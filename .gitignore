@@ -7,6 +7,9 @@ backend_cloud_code/node_modules/
 .env.local
 .env.production
 
+# Next.js build output
+.next/
+
 # Vercel
 .vercel/
 

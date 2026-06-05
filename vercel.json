@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "backend_cloud_code/server.js", "use": "@vercel/node" },
+    { "src": "next.config.js",               "use": "@vercel/next" }
+  ],
+  "routes": [
+    { "src": "/api/(.*)",     "dest": "backend_cloud_code/server.js" },
+    { "src": "/webhook/(.*)", "dest": "backend_cloud_code/server.js" }
+  ],
+  "crons": [
+    {
+      "path": "/api/triggers/verificar",
+      "schedule": "0 9 * * *"
+    }
+  ]
+}

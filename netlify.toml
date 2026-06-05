@@ -1,0 +1,21 @@
+# Netlify config — alternativa ao Vercel
+# O backend Express fica em um serviço separado (Railway/Render) quando usar Netlify,
+# pois Netlify não suporta Express nativo (apenas Netlify Functions serverless).
+# Para hospedar TUDO junto, prefira Vercel (vercel.json já configurado).
+
+[build]
+  publish = "public"
+
+# Redireciona SPA: qualquer rota desconhecida → index.html
+[[redirects]]
+  from = "/*"
+  to   = "/index.html"
+  status = 200
+
+# Headers de segurança recomendados
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options        = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy        = "strict-origin-when-cross-origin"

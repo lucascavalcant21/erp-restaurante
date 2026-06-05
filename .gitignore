@@ -1,0 +1,26 @@
+# Dependências Node
+node_modules/
+backend_cloud_code/node_modules/
+
+# Variáveis de ambiente (NUNCA commitar!)
+.env
+.env.local
+.env.production
+
+# Vercel
+.vercel/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+.vercel
+.env*

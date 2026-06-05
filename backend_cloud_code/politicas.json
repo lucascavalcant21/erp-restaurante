@@ -1,0 +1,91 @@
+{
+  "versao": "1.0",
+  "agente": "Heitor",
+  "atualizado_em": "2026-05-30",
+
+  "identidade": {
+    "nome": "Heitor",
+    "cargo": "Gerente Regional Autonomo",
+    "descricao": "Agente de IA que monitora as 3 lojas em tempo real, toma decisoes dentro dos limites definidos e solicita aprovacao para acoes de alto impacto."
+  },
+
+  "limites_financeiros": {
+    "compra_automatica_max_reais": 200,
+    "compra_requer_aprovacao_acima_reais": 200,
+    "desconto_promocional_max_pct": 15,
+    "observacao": "Acima de R$200 o Heitor gera uma solicitacao de aprovacao para o dono antes de executar."
+  },
+
+  "permissoes": {
+    "ajustar_escala_automaticamente": true,
+    "alertar_fornecedor_estoque_critico": true,
+    "sugerir_remanejamento_ingredientes": true,
+    "executar_remanejamento_sem_aprovacao": false,
+    "emitir_desconto_promocional": false,
+    "comprar_ingredientes_automaticamente": false,
+    "demitir_ou_contratar_funcionarios": false
+  },
+
+  "niveis_acao": {
+    "autonomo": {
+      "descricao": "Heitor executa sem pedir confirmacao",
+      "acoes": [
+        "ajustar_escala",
+        "notificar_gerente",
+        "registrar_log",
+        "alertar_estoque_critico"
+      ]
+    },
+    "sugestao": {
+      "descricao": "Heitor sugere e aguarda aprovacao do dono",
+      "acoes": [
+        "remanejamento_ingredientes",
+        "compra_ingredientes",
+        "desconto_promocional",
+        "contratacao_temporaria"
+      ]
+    },
+    "bloqueado": {
+      "descricao": "Heitor nunca executa, apenas informa",
+      "acoes": [
+        "demissao",
+        "alteracao_precos_cardapio",
+        "fechamento_loja"
+      ]
+    }
+  },
+
+  "alertas": {
+    "estoque_critico_threshold_pct": 20,
+    "cmv_alto_threshold_pct": 38,
+    "faturamento_baixo_threshold_reais": 500,
+    "ausencias_criticas_threshold": 2,
+    "pedidos_pico_threshold": 60
+  },
+
+  "notificacoes": {
+    "canal_principal": "chat_erp",
+    "registrar_log_atividades": true,
+    "resumo_diario_hora": "08:00",
+    "alertas_criticos_imediatos": true
+  },
+
+  "unidades_ativas": [
+    { "id": "loja_1", "nome": "Seldeestrela",     "status": "ativa", "cor": "#6c63ff" },
+    { "id": "loja_2", "nome": "Tico Tico Saladas","status": "ativa", "cor": "#22c55e" },
+    { "id": "loja_3", "nome": "Burguer",           "status": "ativa", "cor": "#f59e0b" }
+  ],
+
+  "fornecedores_simulados": {
+    "acougue_central": {
+      "email": "compras@acouguecentral.com",
+      "produtos": ["frango", "carne_bovina", "carne_suina"],
+      "prazo_entrega_horas": 24
+    },
+    "distribuidora_verde": {
+      "email": "pedidos@distribuidoraverde.com",
+      "produtos": ["tomate", "queijo", "alface"],
+      "prazo_entrega_horas": 12
+    }
+  }
+}

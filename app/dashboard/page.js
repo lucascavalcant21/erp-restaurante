@@ -779,8 +779,6 @@ function TelaConta({ sessao, onSair }) {
 // SIDEBAR MENU LATERAL
 // ═══════════════════════════════════════════════════════════════
 function SidebarMenu({ open, onClose, navId, onNav, sessao, onSair, navPermitidos }) {
-  const initialGroup = MENU_GROUPS.find((g) => g.items.some((i) => i.id === navId))?.id || "visao_geral";
-  const [expanded, setExpanded] = useState(initialGroup);
   const papel = sessao ? getPapel(sessao.papel) : null;
   const sideRouter = useRouter();
   let naoLidas = 0;
@@ -816,18 +814,10 @@ function SidebarMenu({ open, onClose, navId, onNav, sessao, onSair, navPermitido
           {MENU_GROUPS.map((group) => {
             const visibleItems = group.items.filter((item) => navPermitidos.includes(item.id));
             if (visibleItems.length === 0) return null;
-            const isExp = expanded === group.id;
             return (
-              <div key={group.id} className="mb-1">
-                <button
-                  onClick={() => setExpanded(isExp ? "" : group.id)}
-                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl active:bg-neutral-100 transition-colors"
-                >
-                  <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">{group.label}</span>
-                  <Ic.ChevronDown size={12} className={`text-neutral-400 transition-transform duration-200 ${isExp ? "rotate-180" : ""}`} />
-                </button>
-                <div className={`overflow-hidden transition-all duration-200 ${isExp ? "max-h-[500px]" : "max-h-0"}`}>
-                  {visibleItems.map((item) => {
+              <div key={group.id} className="mb-3">
+                <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest px-3 py-1.5">{group.label}</p>
+                {visibleItems.map((item) => {
                     const active = navId === item.id;
                     const NavIcon = item.Icon;
                     return (
@@ -856,7 +846,6 @@ function SidebarMenu({ open, onClose, navId, onNav, sessao, onSair, navPermitido
                       </button>
                     );
                   })}
-                </div>
               </div>
             );
           })}

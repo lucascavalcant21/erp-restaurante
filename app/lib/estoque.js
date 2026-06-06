@@ -41,13 +41,13 @@ import { supabase, isSupabaseReady } from "./supabase";
 
 // ─── Seed de demonstração (usado quando Supabase não está configurado) ─────────
 export const ESTOQUE_SEED = [
-  { id: "e1", nome: "Frango (peito)",       categoria: "Proteína",    unidade: "kg", quantidade: 8,   minimo: 10,  preco_unit: 18.90, fornecedor: "Frigorífico BH"   },
-  { id: "e2", nome: "Arroz Branco",         categoria: "Grão",        unidade: "kg", quantidade: 25,  minimo: 10,  preco_unit: 4.50,  fornecedor: "Distribuidora Sul" },
-  { id: "e3", nome: "Feijão Carioca",       categoria: "Grão",        unidade: "kg", quantidade: 12,  minimo: 8,   preco_unit: 7.20,  fornecedor: "Distribuidora Sul" },
-  { id: "e4", nome: "Farinha de Trigo",     categoria: "Grão",        unidade: "kg", quantidade: 3,   minimo: 10,  preco_unit: 3.80,  fornecedor: "Moinho Central"    },
-  { id: "e5", nome: "Óleo de Soja",         categoria: "Óleo",        unidade: "L",  quantidade: 9,   minimo: 5,   preco_unit: 6.90,  fornecedor: "Distribuidora Sul" },
-  { id: "e6", nome: "Tomate",               categoria: "Hortifruti",  unidade: "kg", quantidade: 4,   minimo: 8,   preco_unit: 5.50,  fornecedor: "Hortifruti Verde"  },
-  { id: "e7", nome: "Embalagem Marmitex G", categoria: "Embalagem",   unidade: "cx", quantidade: 2,   minimo: 3,   preco_unit: 48.00, fornecedor: "EmbalaFácil"       },
+  { id: "e1", nome: "Frango (peito)",       categoria: "Proteína",    unidade: "kg", quantidade: 8,   minimo: 10,  preco_unit: 18.90, custo_unitario: 18.90, ultima_entrada: "2026-05-28", fornecedor: "Frigorífico BH"   },
+  { id: "e2", nome: "Arroz Branco",         categoria: "Grão",        unidade: "kg", quantidade: 25,  minimo: 10,  preco_unit: 4.50,  custo_unitario: 4.50,  ultima_entrada: "2026-06-01", fornecedor: "Distribuidora Sul" },
+  { id: "e3", nome: "Feijão Carioca",       categoria: "Grão",        unidade: "kg", quantidade: 12,  minimo: 8,   preco_unit: 7.20,  custo_unitario: 7.20,  ultima_entrada: "2026-06-01", fornecedor: "Distribuidora Sul" },
+  { id: "e4", nome: "Farinha de Trigo",     categoria: "Grão",        unidade: "kg", quantidade: 3,   minimo: 10,  preco_unit: 3.80,  custo_unitario: 3.80,  ultima_entrada: "2026-05-20", fornecedor: "Moinho Central"    },
+  { id: "e5", nome: "Óleo de Soja",         categoria: "Óleo",        unidade: "L",  quantidade: 9,   minimo: 5,   preco_unit: 6.90,  custo_unitario: 6.90,  ultima_entrada: "2026-06-02", fornecedor: "Distribuidora Sul" },
+  { id: "e6", nome: "Tomate",               categoria: "Hortifruti",  unidade: "kg", quantidade: 4,   minimo: 8,   preco_unit: 5.50,  custo_unitario: 5.50,  ultima_entrada: "2026-06-04", fornecedor: "Hortifruti Verde"  },
+  { id: "e7", nome: "Embalagem Marmitex G", categoria: "Embalagem",   unidade: "cx", quantidade: 2,   minimo: 3,   preco_unit: 48.00, custo_unitario: 48.00, ultima_entrada: "2026-05-15", fornecedor: "EmbalaFácil"       },
 ];
 
 // ─── Funções de acesso ────────────────────────────────────────────────────────

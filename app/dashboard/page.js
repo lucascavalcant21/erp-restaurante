@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { lerSessao, encerrarSessao, getPapel } from "../lib/auth";
+import { useERP } from "../context/ERPContext";
 
 // ═══════════════════════════════════════════════════════════════
 // ÍCONES
@@ -143,6 +144,18 @@ const Ic = {
       <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
     </svg>
   ),
+  FlaskConical: ({ size = 18 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+      <path d="M10 2v7.31l-3.72 6.17A2 2 0 0 0 8 18h8a2 2 0 0 0 1.72-2.52L14 9.31V2"/>
+      <path d="M8.5 2h7"/>
+    </svg>
+  ),
+  ChefHat: ({ size = 18 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+      <path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z"/>
+      <line x1="6" y1="17" x2="18" y2="17"/>
+    </svg>
+  ),
   LogOut: ({ size = 18 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -165,11 +178,13 @@ const MENU_GROUPS = [
   {
     id: "operacao", label: "OPERAÇÃO",
     items: [
-      { id: "rotina",       label: "Rotina da Loja",           Icon: Ic.Checklist, href: "/dashboard/operacao/rotina" },
-      { id: "cardapio",     label: "Cardápio e Ficha Técnica", Icon: Ic.MenuBook,  href: "/dashboard/operacao/cardapio" },
-      { id: "estoque",      label: "Controle de Estoque",      Icon: Ic.Box,       href: "/dashboard/operacao/estoque" },
-      { id: "fornecedores", label: "Fornecedores",             Icon: Ic.Truck,     href: "/dashboard/operacao/fornecedores" },
-      { id: "eventos",      label: "Gestão de Eventos",        Icon: Ic.Calendar,  href: "/dashboard/operacao/eventos" },
+      { id: "rotina",        label: "Rotina da Loja",          Icon: Ic.Checklist,    href: "/dashboard/operacao/rotina" },
+      { id: "cardapio",      label: "Cardápio",                Icon: Ic.ChefHat,      href: "/dashboard/operacao/cardapio" },
+      { id: "fichas",        label: "Ficha Técnica",           Icon: Ic.MenuBook,     href: "/dashboard/operacao/fichas" },
+      { id: "ingredientes",  label: "Cadastro de Ingredientes",Icon: Ic.FlaskConical, href: "/dashboard/operacao/ingredientes" },
+      { id: "estoque",       label: "Controle de Estoque",     Icon: Ic.Box,          href: "/dashboard/operacao/estoque" },
+      { id: "fornecedores",  label: "Fornecedores",            Icon: Ic.Truck,        href: "/dashboard/operacao/fornecedores" },
+      { id: "eventos",       label: "Gestão de Eventos",       Icon: Ic.Calendar,     href: "/dashboard/operacao/eventos" },
     ],
   },
   {
@@ -296,18 +311,62 @@ const EMPTY_DASH = {
   ],
 };
 
-function TelaDashboard({ mes, ano, dados, loading }) {
-  const d = dados || EMPTY_DASH;
+// Mock: últimos 6 meses (substituir por API quando PDV integrado)
+const MESES_LABEL = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+const GRAFICO_MOCK = [18400, 21200, 19800, 23500, 22100, 25300];
+
+// Alertas mock — substituir por fetch Supabase quando integrado
+const ALERTAS_ESTOQUE = [
+  { nome: "Feijão Carioca", quantidade: 3, minimo: 5, unidade: "KG" },
+  { nome: "Alface Crespa",  quantidade: 2, minimo: 5, unidade: "MAÇO" },
+];
+const ALERTAS_EVENTOS = [
+  { nome: "Aniversário 50 anos João", dias: 15 },
+];
+
+const ATALHOS = [
+  { id: "cardapio",     label: "Cardápio",     Icon: Ic.ChefHat,      href: "/dashboard/operacao/cardapio",     cor: "#10b981" },
+  { id: "estoque",      label: "Estoque",      Icon: Ic.Box,          href: "/dashboard/operacao/estoque",      cor: "#3b82f6" },
+  { id: "eventos",      label: "Eventos",      Icon: Ic.Calendar,     href: "/dashboard/operacao/eventos",      cor: "#f97316" },
+  { id: "fichas",       label: "Fichas",       Icon: Ic.MenuBook,     href: "/dashboard/operacao/fichas",       cor: "#8b5cf6" },
+  { id: "ingredientes", label: "Ingredientes", Icon: Ic.FlaskConical, href: "/dashboard/operacao/ingredientes", cor: "#ec4899" },
+  { id: "fornecedores", label: "Fornecedores", Icon: Ic.Truck,        href: "/dashboard/operacao/fornecedores", cor: "#06b6d4" },
+];
+
+function TelaDashboard({ mes, ano, dados, loading, sessao }) {
+  const router = useRouter();
+  const d    = dados || EMPTY_DASH;
+  const nome = sessao?.nome?.split(" ")[0] || "Operador";
+  const hora = new Date().getHours();
+  const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
+
+  // Gráfico de barras
+  const hoje     = new Date();
+  const barras   = Array.from({ length: 6 }, (_, i) => {
+    const dt = new Date(hoje.getFullYear(), hoje.getMonth() - 5 + i, 1);
+    return { label: MESES_LABEL[dt.getMonth()], valor: GRAFICO_MOCK[i], atual: i === 5 };
+  });
+  const maxValor = Math.max(...barras.map(b => b.valor));
+  const BAR_H = 72; // px
+
+  const totalAlertas = ALERTAS_ESTOQUE.length + ALERTAS_EVENTOS.length;
+
   return (
-    <div className="px-4 pt-5 pb-28">
-      <h1 className="text-2xl font-black text-neutral-900 mb-1">Painel Inicial</h1>
-      <p className="text-sm text-neutral-400 font-medium mb-5">Visão geral do período.</p>
-      <div className="grid grid-cols-2 gap-3 mb-5">
+    <div className="px-4 pt-5 pb-28 space-y-5">
+
+      {/* Saudação */}
+      <div>
+        <p className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider">{saudacao},</p>
+        <h1 className="text-2xl font-black text-neutral-900 leading-tight">{nome} 👋</h1>
+      </div>
+
+      {/* KPI Cards 2×2 */}
+      <div className="grid grid-cols-2 gap-3">
         {[
-          { label: "Faturamento",   val: d.faturamento != null   ? fmtBRL(d.faturamento)   : null, cor: "#10b981" },
+          { label: "Faturamento",   val: d.faturamento   != null ? fmtBRL(d.faturamento)   : null, cor: "#10b981" },
           { label: "Custos Totais", val: d.custos_totais != null ? fmtBRL(d.custos_totais) : null, cor: "#f97316" },
           { label: "Lucro Líquido", val: d.lucro_liquido != null ? fmtBRL(d.lucro_liquido) : null, cor: "#3b82f6" },
-          { label: "Margem",        val: d.margem_pct != null    ? d.margem_pct + "%"       : null, cor: "#8b5cf6" },
+          { label: "Margem",        val: d.margem_pct    != null ? `${d.margem_pct}%`       : null, cor: "#8b5cf6" },
         ].map(({ label, val, cor }) => (
           <Card key={label} className="p-4">
             <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">{label}</p>
@@ -317,29 +376,123 @@ function TelaDashboard({ mes, ano, dados, loading }) {
           </Card>
         ))}
       </div>
-      <SectionTitle>Distribuição de Custos</SectionTitle>
-      <Card className="p-4 mb-5">
-        {d.distribuicao.map(({ label, cor, pct }) => (
-          <div key={label} className="mb-3 last:mb-0">
-            <div className="flex justify-between items-center mb-1">
-              <span className="text-xs font-bold text-neutral-700">{label}</span>
-              {loading || pct == null ? <Skel cls="h-3 w-8" /> : <span className="text-xs font-black" style={{ color: cor }}>{pct}%</span>}
-            </div>
-            <div className="h-2 bg-neutral-100 rounded-full overflow-hidden">
-              {!loading && pct != null && (
-                <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, backgroundColor: cor }} />
-              )}
-            </div>
+
+      {/* Gráfico de Desempenho */}
+      <div>
+        <SectionTitle>Desempenho — Últimos 6 Meses</SectionTitle>
+        <Card className="p-4">
+          <div className="flex items-end gap-2" style={{ height: BAR_H + 28 }}>
+            {barras.map((b) => {
+              const h = maxValor > 0 ? Math.round((b.valor / maxValor) * BAR_H) : 8;
+              return (
+                <div key={b.label} className="flex-1 flex flex-col items-center gap-1">
+                  <p className="text-[9px] font-black text-neutral-400 leading-none">
+                    {b.valor >= 1000 ? `${(b.valor / 1000).toFixed(0)}k` : b.valor}
+                  </p>
+                  <div
+                    className="w-full rounded-t-lg transition-all duration-700"
+                    style={{ height: `${h}px`, backgroundColor: b.atual ? "#10b981" : "#e5e7eb" }}
+                  />
+                  <p className={`text-[9px] font-black leading-none ${b.atual ? "text-[#10b981]" : "text-neutral-400"}`}>
+                    {b.label}
+                  </p>
+                </div>
+              );
+            })}
           </div>
-        ))}
-      </Card>
-      {!loading && d.faturamento == null && (
-        <Card className="p-6 flex flex-col items-center text-center">
-          <div className="w-12 h-12 rounded-2xl bg-neutral-100 flex items-center justify-center mb-3"><Ic.BarChart size={22} /></div>
-          <p className="text-sm font-bold text-neutral-700 mb-1">Sem dados para o período</p>
-          <p className="text-xs text-neutral-400 font-medium">Registre vendas e custos para ver o painel.</p>
+          <p className="text-[10px] text-neutral-300 font-medium text-center mt-3">
+            Dados simulados · integre seu PDV para valores reais
+          </p>
         </Card>
+      </div>
+
+      {/* Distribuição de Custos */}
+      <div>
+        <SectionTitle>Distribuição de Custos</SectionTitle>
+        <Card className="p-4">
+          {d.distribuicao.map(({ label, cor, pct }) => (
+            <div key={label} className="mb-3 last:mb-0">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-xs font-bold text-neutral-700">{label}</span>
+                {loading || pct == null ? <Skel cls="h-3 w-8" /> : <span className="text-xs font-black" style={{ color: cor }}>{pct}%</span>}
+              </div>
+              <div className="h-2 bg-neutral-100 rounded-full overflow-hidden">
+                {!loading && pct != null && (
+                  <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, backgroundColor: cor }} />
+                )}
+              </div>
+            </div>
+          ))}
+          {!loading && d.faturamento == null && (
+            <div className="flex flex-col items-center text-center py-4">
+              <div className="w-10 h-10 rounded-xl bg-neutral-100 flex items-center justify-center mb-2"><Ic.BarChart size={18} /></div>
+              <p className="text-xs font-bold text-neutral-500">Sem dados para o período</p>
+              <p className="text-[11px] text-neutral-400 font-medium">Registre vendas e custos para ver o painel.</p>
+            </div>
+          )}
+        </Card>
+      </div>
+
+      {/* Alertas */}
+      {totalAlertas > 0 && (
+        <div>
+          <div className="flex items-center justify-between px-1 mb-2">
+            <SectionTitle>Atenção Necessária</SectionTitle>
+            <button
+              onClick={() => router.push("/dashboard/notificacoes")}
+              className="text-[10px] font-black text-[#10b981] active:opacity-70"
+            >
+              Ver todas →
+            </button>
+          </div>
+          <div className="space-y-2">
+            {ALERTAS_ESTOQUE.map((item) => (
+              <button key={item.nome} onClick={() => router.push("/dashboard/operacao/estoque")}
+                className="w-full bg-rose-50 border border-rose-200 rounded-2xl px-4 py-3 flex items-center gap-3 active:scale-95 transition-all text-left">
+                <div className="w-8 h-8 rounded-xl bg-rose-100 flex items-center justify-center flex-shrink-0 text-rose-500">
+                  <Ic.Box size={15} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-black text-rose-800 truncate">{item.nome}</p>
+                  <p className="text-[10px] font-bold text-rose-500">Estoque crítico — {item.quantidade} {item.unidade} (mín: {item.minimo})</p>
+                </div>
+              </button>
+            ))}
+            {ALERTAS_EVENTOS.map((ev) => (
+              <button key={ev.nome} onClick={() => router.push("/dashboard/operacao/eventos")}
+                className="w-full bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex items-center gap-3 active:scale-95 transition-all text-left">
+                <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0 text-amber-500">
+                  <Ic.Calendar size={15} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-black text-amber-800 truncate">{ev.nome}</p>
+                  <p className="text-[10px] font-bold text-amber-600">Em {ev.dias} dias — confirme o cardápio</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
       )}
+
+      {/* Acesso Rápido */}
+      <div>
+        <SectionTitle>Acesso Rápido</SectionTitle>
+        <div className="grid grid-cols-3 gap-2">
+          {ATALHOS.map((a) => {
+            const AIcon = a.Icon;
+            return (
+              <button key={a.id} onClick={() => router.push(a.href)}
+                className="bg-white border border-neutral-100 rounded-2xl shadow-sm p-3 flex flex-col items-center gap-2 active:scale-95 transition-all">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: a.cor + "15", color: a.cor }}>
+                  <AIcon size={18} />
+                </div>
+                <p className="text-[10px] font-black text-neutral-700 text-center leading-tight">{a.label}</p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
     </div>
   );
 }
@@ -630,6 +783,8 @@ function SidebarMenu({ open, onClose, navId, onNav, sessao, onSair, navPermitido
   const [expanded, setExpanded] = useState(initialGroup);
   const papel = sessao ? getPapel(sessao.papel) : null;
   const sideRouter = useRouter();
+  let naoLidas = 0;
+  try { const ctx = useERP(); naoLidas = ctx.naoLidas; } catch (_) {}
 
   return (
     <>
@@ -692,7 +847,12 @@ function SidebarMenu({ open, onClose, navId, onNav, sessao, onSair, navPermitido
                           <NavIcon size={16} />
                         </div>
                         <span className={`text-sm font-bold text-left leading-tight flex-1 ${active ? "text-[#0a6c4b]" : "text-neutral-700"}`}>{item.label}</span>
-                        {active && <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] flex-shrink-0" />}
+                        {item.id === "notificacoes" && naoLidas > 0 && (
+                          <span className="min-w-[18px] h-[18px] bg-rose-500 text-white text-[9px] font-black rounded-full flex items-center justify-center px-1 leading-none flex-shrink-0">
+                            {naoLidas > 9 ? "9+" : naoLidas}
+                          </span>
+                        )}
+                        {active && item.id !== "notificacoes" && <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] flex-shrink-0" />}
                       </button>
                     );
                   })}
@@ -731,9 +891,16 @@ function SidebarMenu({ open, onClose, navId, onNav, sessao, onSair, navPermitido
 // ═══════════════════════════════════════════════════════════════
 // HEADER
 // ═══════════════════════════════════════════════════════════════
-function Header({ onMenuOpen, sessao, navId }) {
+function Header({ onMenuOpen, sessao, navId, onNavNotif }) {
   const activeItem = MENU_GROUPS.flatMap((g) => g.items).find((i) => i.id === navId);
   const title = navId === "conta" ? "Meu Perfil" : (activeItem?.label || "Cerebro ERP");
+  // Tenta usar o context; se não disponível (fora do Provider) ignora
+  let naoLidas = 0;
+  try {
+    const ctx = useERP();
+    naoLidas = ctx.naoLidas;
+  } catch (_) {}
+
   return (
     <header className="sticky top-0 z-30 bg-[#fbf9f5]/95 backdrop-blur-sm border-b border-neutral-200 px-4 py-3 flex items-center gap-3">
       <button onClick={onMenuOpen}
@@ -744,6 +911,17 @@ function Header({ onMenuOpen, sessao, navId }) {
         <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest leading-none mb-0.5">Cerebro ERP</p>
         <p className="text-sm font-black text-neutral-900 leading-tight truncate">{title}</p>
       </div>
+      {/* Sino de notificações com badge */}
+      <button
+        onClick={onNavNotif}
+        className="relative w-9 h-9 rounded-full bg-white border border-neutral-200 flex items-center justify-center active:bg-neutral-50 transition-colors shadow-sm flex-shrink-0">
+        <Ic.Bell size={17} />
+        {naoLidas > 0 && (
+          <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-rose-500 text-white text-[9px] font-black rounded-full flex items-center justify-center px-0.5 leading-none">
+            {naoLidas > 9 ? "9+" : naoLidas}
+          </span>
+        )}
+      </button>
       {sessao && (
         <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#10b981] to-[#059669] flex items-center justify-center text-white text-sm font-black shadow-sm flex-shrink-0">
           {sessao.nome?.[0]?.toUpperCase() || "U"}
@@ -851,7 +1029,7 @@ export default function DashboardPage() {
         navPermitidos={navPermitidos}
       />
 
-      <Header onMenuOpen={() => setMenuOpen(true)} sessao={sessao} navId={navId} />
+      <Header onMenuOpen={() => setMenuOpen(true)} sessao={sessao} navId={navId} onNavNotif={() => setNavId("notificacoes")} />
 
       {MES_FINANCEIROS.includes(navId) && (
         <div className="flex justify-end px-4 pt-3">
@@ -860,7 +1038,7 @@ export default function DashboardPage() {
       )}
 
       <main>
-        {navId === "dashboard"    && <TelaDashboard mes={mes} ano={ano} dados={dashData} loading={dashLoad} />}
+        {navId === "dashboard"    && <TelaDashboard mes={mes} ano={ano} dados={dashData} loading={dashLoad} sessao={sessao} />}
         {navId === "notificacoes" && <TelaEmBreve titulo="Notificações" descricao="Central de alertas do sistema." />}
         {navId === "rotina"       && <TelaEmBreve titulo="Rotina da Loja" descricao="Checklists e tarefas diárias." />}
         {navId === "cardapio"     && <TelaCardapio />}

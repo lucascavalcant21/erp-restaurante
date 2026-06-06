@@ -1,39 +1,376 @@
 "use client";
 
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Clock } from "lucide-react";
+import {
+  ArrowLeft,
+  Search,
+  X,
+  Phone,
+  MessageCircle,
+  Star,
+  ChevronDown,
+  ChevronUp,
+  Plus,
+  User,
+  ShoppingBag,
+  Calendar,
+  TrendingUp,
+  RefreshCw,
+} from "lucide-react";
+import { fetchClientes, inserirCliente, CLIENTES_SEED } from "../../../lib/clientes";
+import Skeleton from "../../../components/Skeleton";
 
-export default function Page() {
+// ─── Helpers ───────────────────────────────────────────────────────────────────
+function fmtBRL(val) {
+  return Number(val).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+function fmtData(str) {
+  if (!str) return "—";
+  const [y, m, d] = str.split("-");
+  return `${d}/${m}/${y}`;
+}
+function diasDesde(str) {
+  if (!str) return 999;
+  const diff = Date.now() - new Date(str + "T12:00:00").getTime();
+  return Math.floor(diff / (1000 * 60 * 60 * 24));
+}
+
+// ─── Tipos ─────────────────────────────────────────────────────────────────────
+const CATEGORIAS_CLIENTE = {
+  vip:     { label: "⭐ VIP",     bg: "bg-amber-100",   cor: "text-amber-700",   borda: "border-amber-200"   },
+  regular: { label: "✓ Regular", bg: "bg-emerald-100", cor: "text-emerald-700", borda: "border-emerald-200" },
+  inativo: { label: "● Inativo", bg: "bg-neutral-100", cor: "text-neutral-500", borda: "border-neutral-200" },
+};
+
+function classificarCliente(totalGasto, ultimaCompra) {
+  const dias = diasDesde(ultimaCompra);
+  if (dias > 60) return "inativo";
+  if (totalGasto >= 500) return "vip";
+  return "regular";
+}
+
+// ─── Pedidos recentes locais (demo — não está no schema básico do Supabase) ────
+const PEDIDOS_LOCAIS = {
+  c1: [
+    { data: "2026-06-04", itens: "Marmitex Executiva × 2", valor: 39.80 },
+    { data: "2026-06-02", itens: "Suco Natural + Salada",   valor: 23.90 },
+    { data: "2026-05-30", itens: "Combo Salada + Suco",     valor: 18.90 },
+  ],
+  c2: [
+    { data: "2026-06-03", itens: "Marmitex Premium",        valor: 24.90 },
+    { data: "2026-05-28", itens: "Refrigerante + Marmitex", valor: 25.90 },
+  ],
+  c3: [
+    { data: "2026-06-05", itens: "Salada Completa × 2",     valor: 29.80 },
+    { data: "2026-06-01", itens: "Combo Salada + Suco",     valor: 18.90 },
+  ],
+  c4: [{ data: "2026-04-10", itens: "Burguer Combo",         valor: 32.00 }],
+  c5: [
+    { data: "2026-06-04", itens: "Sobremesa do Dia × 2",    valor: 17.00 },
+    { data: "2026-05-27", itens: "Marmitex Executiva",      valor: 19.90 },
+  ],
+  c6: [{ data: "2026-03-15", itens: "Salada Completa",       valor: 14.90 }],
+};
+
+const UNIDADES = ["Todas", "Seldeestrela", "Tico Tico Saladas", "Burguer"];
+const FILTROS  = ["Todos", "VIP", "Regular", "Inativo"];
+
+// ─── Form novo cliente ────────────────────────────────────────────────────────
+const BLANK = { nome: "", tel: "", unidade: "Seldeestrela" };
+
+function FormCliente({ onSalvar, onFechar }) {
+  const [form, setForm] = useState(BLANK);
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end bg-black/40" onClick={onFechar}>
+      <div className="w-full bg-white rounded-t-3xl p-6 space-y-4" onClick={e => e.stopPropagation()}>
+        <div className="w-10 h-1 bg-neutral-200 rounded-full mx-auto" />
+        <h2 className="text-lg font-black text-neutral-900">Novo Cliente</h2>
+        <div className="space-y-3">
+          <div>
+            <label className="text-[11px] font-black text-neutral-400 uppercase tracking-wider block mb-1">Nome</label>
+            <input value={form.nome} onChange={e => set("nome", e.target.value)}
+              placeholder="Nome completo"
+              className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-3 text-sm font-medium text-neutral-900 focus:outline-none focus:ring-2 focus:border-[#10b981]" />
+          </div>
+          <div>
+            <label className="text-[11px] font-black text-neutral-400 uppercase tracking-wider block mb-1">Telefone</label>
+            <input value={form.tel} onChange={e => set("tel", e.target.value)}
+              placeholder="(XX) XXXXX-XXXX"
+              className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-3 text-sm font-medium text-neutral-900 focus:outline-none focus:ring-2 focus:border-[#10b981]" />
+          </div>
+          <div>
+            <label className="text-[11px] font-black text-neutral-400 uppercase tracking-wider block mb-1">Unidade</label>
+            <select value={form.unidade} onChange={e => set("unidade", e.target.value)}
+              className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-3 text-sm font-medium text-neutral-900 focus:outline-none focus:ring-2 focus:border-[#10b981]">
+              {["Seldeestrela", "Tico Tico Saladas", "Burguer"].map(u => <option key={u}>{u}</option>)}
+            </select>
+          </div>
+        </div>
+        <button onClick={() => { if (form.nome) { onSalvar(form); onFechar(); } }}
+          className="w-full py-3.5 rounded-2xl bg-neutral-900 text-white font-black text-sm active:scale-95 transition-transform">
+          Salvar Cliente
+        </button>
+        <button onClick={onFechar} className="w-full py-2 text-neutral-400 text-sm font-medium">Cancelar</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Card cliente ──────────────────────────────────────────────────────────────
+function CardCliente({ cliente }) {
+  const [aberto, setAberto] = useState(false);
+  const categoria = classificarCliente(cliente.total_gasto, cliente.ultima_compra);
+  const cat       = CATEGORIAS_CLIENTE[categoria];
+  const iniciais  = cliente.nome.split(" ").slice(0, 2).map(n => n[0]).join("").toUpperCase();
+  const dias      = diasDesde(cliente.ultima_compra);
+  const pedidos   = PEDIDOS_LOCAIS[cliente.id] || [];
+
+  return (
+    <div className={`rounded-2xl border shadow-sm overflow-hidden bg-white ${categoria === "inativo" ? "border-neutral-200" : cat.borda}`}>
+      <button className="w-full px-4 pt-4 pb-3 text-left" onClick={() => setAberto(v => !v)}>
+        <div className="flex items-center gap-3">
+          <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-black text-sm flex-shrink-0 ${cat.bg} ${cat.cor}`}>
+            {iniciais}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-sm font-black text-neutral-900 truncate">{cliente.nome}</p>
+              <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${cat.bg} ${cat.cor}`}>{cat.label}</span>
+            </div>
+            <p className="text-[11px] font-medium text-neutral-400">
+              {cliente.unidade} · Última compra há {dias}d
+            </p>
+          </div>
+          <div className="text-right flex-shrink-0">
+            <p className="text-sm font-black text-neutral-900">{fmtBRL(cliente.total_gasto)}</p>
+            <p className="text-[10px] font-bold text-neutral-400">{cliente.total_pedidos} pedidos</p>
+          </div>
+          {aberto ? <ChevronUp size={16} className="text-neutral-400 flex-shrink-0" /> : <ChevronDown size={16} className="text-neutral-400 flex-shrink-0" />}
+        </div>
+      </button>
+
+      {aberto && (
+        <div className="px-4 pb-4 border-t border-neutral-100">
+          {/* Ações */}
+          <div className="flex gap-2 pt-3 mb-3">
+            {cliente.tel && (
+              <>
+                <a href={`tel:${cliente.tel}`}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-neutral-100 text-neutral-700 text-xs font-black active:scale-95 transition-transform">
+                  <Phone size={13} /> Ligar
+                </a>
+                <a href={`https://wa.me/55${cliente.tel.replace(/\D/g, "")}`} target="_blank" rel="noreferrer"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-emerald-100 text-emerald-700 text-xs font-black active:scale-95 transition-transform">
+                  <MessageCircle size={13} /> WhatsApp
+                </a>
+              </>
+            )}
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            <div className="bg-neutral-50 rounded-xl p-2 text-center">
+              <p className="text-[9px] font-black text-neutral-400 uppercase">Total gasto</p>
+              <p className="text-[12px] font-black text-neutral-900">{fmtBRL(cliente.total_gasto)}</p>
+            </div>
+            <div className="bg-neutral-50 rounded-xl p-2 text-center">
+              <p className="text-[9px] font-black text-neutral-400 uppercase">Pedidos</p>
+              <p className="text-[12px] font-black text-neutral-900">{cliente.total_pedidos}</p>
+            </div>
+            <div className={`rounded-xl p-2 text-center ${dias > 60 ? "bg-rose-50" : "bg-neutral-50"}`}>
+              <p className="text-[9px] font-black text-neutral-400 uppercase">Dias sem</p>
+              <p className={`text-[12px] font-black ${dias > 60 ? "text-rose-700" : "text-neutral-900"}`}>{dias}d</p>
+            </div>
+          </div>
+
+          {/* Últimas compras */}
+          {pedidos.length > 0 && (
+            <div>
+              <p className="text-[10px] font-black text-neutral-400 uppercase tracking-wider mb-2">Últimas Compras</p>
+              <div className="space-y-1.5">
+                {pedidos.map((p, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <div>
+                      <p className="text-[11px] font-black text-neutral-700">{p.itens}</p>
+                      <p className="text-[10px] text-neutral-400">{fmtData(p.data)}</p>
+                    </div>
+                    <p className="text-[12px] font-black text-neutral-900">{fmtBRL(p.valor)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Página Principal ──────────────────────────────────────────────────────────
+export default function CRMPage() {
   const router = useRouter();
+  const [clientes,    setClientes]    = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [fromSeed,    setFromSeed]    = useState(false);
+  const [busca,       setBusca]       = useState("");
+  const [filtro,      setFiltro]      = useState("Todos");
+  const [unidade,     setUnidade]     = useState("Todas");
+  const [formAberto,  setFormAberto]  = useState(false);
+
+  const carregarDados = useCallback(async () => {
+    setLoading(true);
+    const res = await fetchClientes();
+    if (res.fromSeed) {
+      setClientes(CLIENTES_SEED);
+      setFromSeed(true);
+    } else {
+      setClientes(res.data);
+      setFromSeed(false);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { carregarDados(); }, [carregarDados]);
+
+  const clientesFiltrados = useMemo(() => {
+    return clientes.filter(c => {
+      const categoria = classificarCliente(c.total_gasto, c.ultima_compra);
+      const matchBusca   = c.nome.toLowerCase().includes(busca.toLowerCase()) || (c.tel || "").includes(busca);
+      const matchFiltro  = filtro === "Todos" || categoria.toLowerCase() === filtro.toLowerCase();
+      const matchUnidade = unidade === "Todas" || c.unidade === unidade;
+      return matchBusca && matchFiltro && matchUnidade;
+    });
+  }, [clientes, busca, filtro, unidade]);
+
+  const resumo = useMemo(() => {
+    const vip     = clientes.filter(c => classificarCliente(c.total_gasto, c.ultima_compra) === "vip").length;
+    const inativo = clientes.filter(c => classificarCliente(c.total_gasto, c.ultima_compra) === "inativo").length;
+    const totalGasto = clientes.reduce((a, c) => a + Number(c.total_gasto || 0), 0);
+    return { vip, inativo, total: clientes.length, totalGasto };
+  }, [clientes]);
+
+  async function handleNovoCliente(form) {
+    if (fromSeed) {
+      const novo = { id: `c${Date.now()}`, ...form, total_gasto: 0, total_pedidos: 0, ultima_compra: new Date().toISOString().slice(0, 10) };
+      setClientes(prev => [novo, ...prev]);
+    } else {
+      await inserirCliente({ ...form, total_gasto: 0, total_pedidos: 0, ultima_compra: new Date().toISOString().slice(0, 10) });
+      await carregarDados();
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#fbf9f5]">
-      <div className="sticky top-0 z-10 bg-[#fbf9f5] border-b border-neutral-200 px-4 pt-12 pb-3 flex items-center gap-3">
-        <button
-          onClick={() => router.push("/dashboard")}
-          className="w-9 h-9 rounded-xl bg-white border border-neutral-200 flex items-center justify-center shadow-sm active:scale-95 transition-transform"
-        >
-          <ArrowLeft size={18} className="text-neutral-600" />
-        </button>
-        <div>
-          <h1 className="text-lg font-black text-neutral-900 leading-tight">CRM</h1>
-          <p className="text-[11px] text-neutral-400 font-medium">Cadastro e histórico de clientes.</p>
+      {/* Header */}
+      <div className="sticky top-0 z-20 bg-[#fbf9f5] border-b border-neutral-200 px-4 pt-12 pb-3">
+        <div className="flex items-center gap-3">
+          <button onClick={() => router.back()}
+            className="w-9 h-9 rounded-xl bg-white border border-neutral-200 flex items-center justify-center shadow-sm active:scale-95 transition-transform">
+            <ArrowLeft size={18} className="text-neutral-600" />
+          </button>
+          <div className="flex-1">
+            <h1 className="text-lg font-black text-neutral-900 leading-tight">CRM — Clientes</h1>
+            <p className="text-[11px] text-neutral-400 font-medium">{clientes.length} clientes cadastrados</p>
+          </div>
+          <button onClick={carregarDados}
+            className="w-9 h-9 rounded-xl bg-white border border-neutral-200 flex items-center justify-center shadow-sm active:scale-95 transition-transform mr-1">
+            <RefreshCw size={15} className="text-neutral-500" />
+          </button>
+          <button onClick={() => setFormAberto(true)}
+            className="flex items-center gap-1.5 bg-neutral-900 text-white text-xs font-black px-3 py-2 rounded-xl active:scale-95 transition-transform">
+            <Plus size={13} />
+            Novo
+          </button>
         </div>
       </div>
-      <div className="flex flex-col items-center justify-center px-6 pt-24 text-center">
-        <div className="w-20 h-20 rounded-3xl bg-white border border-neutral-100 shadow-sm flex items-center justify-center mb-5">
-          <Clock size={32} className="text-neutral-300" />
-        </div>
-        <h2 className="text-xl font-black text-neutral-900 mb-2">Em Desenvolvimento</h2>
-        <p className="text-sm text-neutral-400 font-medium leading-relaxed max-w-xs">
-          Este módulo está sendo construído. Em breve estará disponível para uso na operação.
-        </p>
-        <button
-          onClick={() => router.push("/dashboard")}
-          className="mt-8 px-6 py-3.5 bg-[#10b981] text-white font-black text-sm rounded-2xl shadow-md active:scale-95 transition-transform"
-        >
-          Voltar ao Painel
-        </button>
+
+      <div className="px-4 pt-4 pb-28 space-y-4">
+
+        {/* Banner demo */}
+        {fromSeed && !loading && (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
+            <p className="text-[11px] font-black text-amber-700">Modo demonstração — configure o Supabase para dados reais</p>
+          </div>
+        )}
+
+        {loading && <Skeleton count={4} />}
+
+        {!loading && (
+          <>
+            {/* KPIs */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-center">
+                <p className="text-[9px] font-black text-amber-600 uppercase tracking-wider mb-1">VIPs</p>
+                <p className="text-2xl font-black text-amber-800">{resumo.vip}</p>
+              </div>
+              <div className="bg-white border border-neutral-100 rounded-2xl shadow-sm p-3 text-center">
+                <p className="text-[9px] font-black text-neutral-400 uppercase tracking-wider mb-1">Total</p>
+                <p className="text-2xl font-black text-neutral-900">{resumo.total}</p>
+              </div>
+              <div className={`rounded-2xl border p-3 text-center ${resumo.inativo > 0 ? "bg-rose-50 border-rose-200" : "bg-white border-neutral-100"}`}>
+                <p className={`text-[9px] font-black uppercase tracking-wider mb-1 ${resumo.inativo > 0 ? "text-rose-600" : "text-neutral-400"}`}>Inativos</p>
+                <p className={`text-2xl font-black ${resumo.inativo > 0 ? "text-rose-800" : "text-neutral-900"}`}>{resumo.inativo}</p>
+              </div>
+            </div>
+
+            {/* Ticket médio */}
+            <div className="bg-white border border-neutral-100 rounded-2xl shadow-sm px-4 py-3 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-black text-neutral-400 uppercase tracking-wider">Gasto Total (CRM)</p>
+                <p className="text-lg font-black text-neutral-900">{fmtBRL(resumo.totalGasto)}</p>
+              </div>
+              <TrendingUp size={22} className="text-emerald-500" />
+            </div>
+
+            {/* Filtros */}
+            <div className="space-y-2">
+              <div className="relative">
+                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" />
+                <input type="text" value={busca} onChange={e => setBusca(e.target.value)}
+                  placeholder="Buscar por nome ou telefone..."
+                  className="w-full bg-white border border-neutral-200 rounded-xl pl-11 pr-10 py-3 text-sm font-medium text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:border-[#10b981] shadow-sm" />
+                {busca && <button onClick={() => setBusca("")} className="absolute right-3 top-1/2 -translate-y-1/2"><X size={15} className="text-neutral-400" /></button>}
+              </div>
+
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {FILTROS.map(f => (
+                  <button key={f} onClick={() => setFiltro(f)}
+                    className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-black transition-all ${filtro === f ? "bg-neutral-900 text-white" : "bg-white border border-neutral-200 text-neutral-600"}`}>
+                    {f}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {UNIDADES.map(u => (
+                  <button key={u} onClick={() => setUnidade(u)}
+                    className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-black transition-all ${unidade === u ? "bg-emerald-600 text-white" : "bg-white border border-neutral-200 text-neutral-600"}`}>
+                    {u}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Lista */}
+            <div className="space-y-3">
+              {clientesFiltrados.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-neutral-100 p-8 text-center">
+                  <p className="text-neutral-400 font-medium text-sm">Nenhum cliente encontrado</p>
+                </div>
+              ) : (
+                clientesFiltrados.map(c => <CardCliente key={c.id} cliente={c} />)
+              )}
+            </div>
+          </>
+        )}
       </div>
+
+      {formAberto && (
+        <FormCliente onSalvar={handleNovoCliente} onFechar={() => setFormAberto(false)} />
+      )}
     </div>
   );
 }

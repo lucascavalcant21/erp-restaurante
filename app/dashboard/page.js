@@ -169,20 +169,20 @@ const Ic = {
 // ═══════════════════════════════════════════════════════════════
 const MENU_GROUPS = [
   {
-    id: "visao_geral", label: "VISÃO GERAL",
+    id: "visao_geral", label: "DASHBOARD",
     items: [
       { id: "dashboard",    label: "Painel Inicial",           Icon: Ic.Dashboard, href: "/dashboard" },
       { id: "notificacoes", label: "Notificações",              Icon: Ic.Bell,      href: "/dashboard/notificacoes" },
     ],
   },
   {
-    id: "operacao", label: "OPERAÇÃO",
+    id: "operacao", label: "GESTÃO OPERACIONAL",
     items: [
-      { id: "rotina",        label: "Rotina da Loja",          Icon: Ic.Checklist,    href: "/dashboard/operacao/rotina" },
+      { id: "rotina",        label: "Operação Geral",          Icon: Ic.Checklist,    href: "/dashboard/operacao/rotina" },
       { id: "cardapio",      label: "Cardápio",                Icon: Ic.ChefHat,      href: "/dashboard/operacao/cardapio" },
       { id: "fichas",        label: "Ficha Técnica",           Icon: Ic.MenuBook,     href: "/dashboard/operacao/fichas" },
-      { id: "ingredientes",  label: "Cadastro de Ingredientes",Icon: Ic.FlaskConical, href: "/dashboard/operacao/ingredientes" },
-      { id: "estoque",       label: "Controle de Estoque",     Icon: Ic.Box,          href: "/dashboard/operacao/estoque" },
+      { id: "ingredientes",  label: "Ingredientes",            Icon: Ic.FlaskConical, href: "/dashboard/operacao/ingredientes" },
+      { id: "estoque",       label: "Estoque",                 Icon: Ic.Box,          href: "/dashboard/operacao/estoque" },
       { id: "fornecedores",  label: "Fornecedores",            Icon: Ic.Truck,        href: "/dashboard/operacao/fornecedores" },
       { id: "eventos",       label: "Gestão de Eventos",       Icon: Ic.Calendar,     href: "/dashboard/operacao/eventos" },
     ],
@@ -190,33 +190,33 @@ const MENU_GROUPS = [
   {
     id: "financeiro", label: "FINANCEIRO",
     items: [
-      { id: "dre",          label: "DRE Gerencial",            Icon: Ic.BarChart,  href: "/dashboard/financeiro/dre" },
+      { id: "dre",          label: "DRE",                      Icon: Ic.BarChart,  href: "/dashboard/financeiro/dre" },
       { id: "fluxo",        label: "Fluxo de Caixa",           Icon: Ic.ArrowsUD,  href: "/dashboard/financeiro/fluxo" },
-      { id: "cmv",          label: "Análise de CMV",           Icon: Ic.Percent,   href: "/dashboard/financeiro/cmv" },
-      { id: "margem",       label: "Margem de Lucro",          Icon: Ic.TrendUp,   href: "/dashboard/financeiro/margem" },
+      { id: "cmv",          label: "CMV",                      Icon: Ic.Percent,   href: "/dashboard/financeiro/cmv" },
+      { id: "margem",       label: "Lucro",                    Icon: Ic.TrendUp,   href: "/dashboard/financeiro/margem" },
       { id: "documentos",   label: "Notas e Boletos",          Icon: Ic.FileText,  href: "/dashboard/financeiro/documentos" },
     ],
   },
   {
-    id: "rh_grupo", label: "EQUIPE & RH",
+    id: "rh_grupo", label: "BPO",
     items: [
-      { id: "gestao_rh",   label: "Gestão de RH",             Icon: Ic.Users,     href: "/dashboard/rh/gestao" },
-      { id: "ponto",       label: "Controle de Ponto",        Icon: Ic.Clock,     href: "/dashboard/rh/ponto" },
-      { id: "colaborador", label: "Portal do Colaborador",    Icon: Ic.Badge,     href: "/dashboard/rh/colaborador" },
+      { id: "gestao_rh",   label: "RH",                        Icon: Ic.Users,     href: "/dashboard/rh/gestao" },
+      { id: "ponto",       label: "Controle de Ponto",         Icon: Ic.Clock,     href: "/dashboard/rh/ponto" },
+      { id: "colaborador", label: "Portal do Colaborador",     Icon: Ic.Badge,     href: "/dashboard/rh/colaborador" },
     ],
   },
   {
     id: "clientes", label: "CLIENTES",
     items: [
-      { id: "crm",       label: "CRM",                        Icon: Ic.UserCheck, href: "/dashboard/clientes/crm" },
-      { id: "campanhas", label: "Campanhas de Vendas",        Icon: Ic.Megaphone, href: "/dashboard/clientes/campanhas" },
-      { id: "nps",       label: "Avaliações (NPS)",           Icon: Ic.Star,      href: "/dashboard/clientes/nps" },
+      { id: "crm",       label: "CRM",                         Icon: Ic.UserCheck, href: "/dashboard/clientes/crm" },
+      { id: "campanhas", label: "Tráfego Pago",                Icon: Ic.Megaphone, href: "/dashboard/clientes/campanhas" },
+      { id: "nps",       label: "Avaliações",                  Icon: Ic.Star,      href: "/dashboard/clientes/nps" },
     ],
   },
   {
-    id: "ia", label: "ASSISTENTE IA",
+    id: "ia", label: "HEITOR I.A",
     items: [
-      { id: "heitor", label: "Central Heitor IA",             Icon: Ic.Brain,     href: "/dashboard/ia/heitor" },
+      { id: "heitor", label: "Chat Heitor",                    Icon: Ic.Brain,     href: "/dashboard/ia/heitor" },
     ],
   },
 ];

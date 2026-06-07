@@ -2,11 +2,116 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ═══════════════════════════════════════════════════════════════
+   CEREBRO ERP — Dark Theme (inspired by Supabase)
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  --bg-base:     #0f0f0f;
+  --bg-surface:  #171717;
+  --bg-elevated: #1f1f1f;
+  --bg-overlay:  #2a2a2a;
+  --border:      #2a2a2a;
+  --border-sub:  #1f1f1f;
+  --text-1:      #f0f0f0;
+  --text-2:      #d0d0d0;
+  --text-3:      #a0a0a0;
+  --text-4:      #707070;
+  --accent:      #10b981;
+  --accent-dim:  rgba(16,185,129,0.12);
+  --accent-text: #34d399;
+  --red:         #f43f5e;
+  --red-dim:     rgba(244,63,94,0.12);
+  --amber:       #f59e0b;
+  --amber-dim:   rgba(245,158,11,0.12);
+}
+
 * {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  box-sizing: border-box;
 }
 
 body {
-  background-color: #fbf9f5;
+  background-color: var(--bg-base) !important;
+  color: var(--text-1);
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
 }
+
+/* ── Backgrounds ──────────────────────────────────────────────── */
+.bg-\[#fbf9f5\]          { background-color: var(--bg-base)      !important; }
+.bg-\[#fbf9f5\]\/95      { background-color: rgba(15,15,15,0.97) !important; }
+.bg-white                { background-color: var(--bg-surface)   !important; }
+.bg-neutral-50           { background-color: var(--bg-elevated)  !important; }
+.bg-neutral-100          { background-color: var(--bg-overlay)   !important; }
+.bg-neutral-200          { background-color: #333333             !important; }
+.bg-\[#edfbf3\]          { background-color: var(--accent-dim)   !important; }
+.bg-rose-50              { background-color: var(--red-dim)      !important; }
+.bg-amber-50             { background-color: var(--amber-dim)    !important; }
+.bg-emerald-50           { background-color: var(--accent-dim)   !important; }
+.bg-rose-100             { background-color: rgba(244,63,94,0.2) !important; }
+.bg-amber-100            { background-color: rgba(245,158,11,0.2)!important; }
+.bg-emerald-100          { background-color: rgba(16,185,129,0.2)!important; }
+.bg-red-50               { background-color: var(--red-dim)      !important; }
+
+/* ── Textos ───────────────────────────────────────────────────── */
+.text-neutral-900        { color: var(--text-1) !important; }
+.text-neutral-800        { color: var(--text-2) !important; }
+.text-neutral-700        { color: var(--text-2) !important; }
+.text-neutral-600        { color: var(--text-3) !important; }
+.text-neutral-500        { color: var(--text-3) !important; }
+.text-neutral-400        { color: var(--text-4) !important; }
+.text-neutral-300        { color: var(--text-4) !important; }
+.text-\[#0a6c4b\]        { color: var(--accent-text) !important; }
+.text-neutral-500.font-medium { color: var(--text-3) !important; }
+
+/* ── Bordas ───────────────────────────────────────────────────── */
+.border-neutral-100      { border-color: var(--border-sub) !important; }
+.border-neutral-200      { border-color: var(--border)     !important; }
+.border-neutral-300      { border-color: var(--bg-overlay) !important; }
+.border-rose-200         { border-color: rgba(244,63,94,0.3)  !important; }
+.border-amber-200        { border-color: rgba(245,158,11,0.3) !important; }
+.border-emerald-200      { border-color: rgba(16,185,129,0.3) !important; }
+.border-red-200          { border-color: rgba(244,63,94,0.3)  !important; }
+.divide-neutral-100 > * + * { border-color: var(--border-sub) !important; }
+
+/* ── Sombras → bordas sutis ───────────────────────────────────── */
+.shadow-sm               { box-shadow: 0 0 0 1px var(--border) !important; }
+.shadow-md               { box-shadow: 0 0 0 1px var(--border) !important; }
+.shadow-2xl              { box-shadow: 0 0 0 1px var(--border), 0 25px 50px rgba(0,0,0,0.8) !important; }
+.shadow-lg               { box-shadow: 0 0 0 1px var(--border), 0 10px 30px rgba(0,0,0,0.5) !important; }
+
+/* ── Inputs ───────────────────────────────────────────────────── */
+input, textarea, select {
+  background-color: var(--bg-elevated) !important;
+  border-color: var(--border) !important;
+  color: var(--text-1) !important;
+}
+input::placeholder, textarea::placeholder {
+  color: var(--text-4) !important;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--accent) !important;
+  outline: none;
+}
+
+/* ── Scrollbar ────────────────────────────────────────────────── */
+::-webkit-scrollbar             { width: 5px; height: 5px; }
+::-webkit-scrollbar-track       { background: var(--bg-base); }
+::-webkit-scrollbar-thumb       { background: var(--bg-overlay); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: #444; }
+
+/* ── Active states ────────────────────────────────────────────── */
+.active\:bg-neutral-50:active  { background-color: var(--bg-elevated) !important; }
+.active\:bg-neutral-100:active { background-color: var(--bg-overlay)  !important; }
+.active\:bg-neutral-200:active { background-color: #333 !important; }
+.active\:bg-red-50:active      { background-color: var(--red-dim) !important; }
+.active\:bg-red-100:active     { background-color: var(--red-dim) !important; }
+.active\:opacity-70:active     { opacity: 0.7; }
+
+/* ── Gradient avatar ──────────────────────────────────────────── */
+.from-\[#10b981\] { --tw-gradient-from: #10b981; }
+.to-\[#059669\]   { --tw-gradient-to:   #059669; }
+
+/* ── Tab active line ──────────────────────────────────────────── */
+.border-b-2.border-neutral-900 { border-color: var(--accent) !important; }

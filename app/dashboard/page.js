@@ -790,7 +790,7 @@ function SidebarMenu({ open, onClose, navId, onNav, sessao, onSair, navPermitido
         className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-300 ${open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
         onClick={onClose}
       />
-      <aside className={`fixed top-0 left-0 bottom-0 z-50 w-[300px] bg-[#fbf9f5] flex flex-col shadow-2xl transition-transform duration-300 ease-in-out ${open ? "translate-x-0" : "-translate-x-full"}`}>
+      <aside className={`fixed top-0 left-0 bottom-0 z-50 w-[300px] bg-[#1c1c1c] flex flex-col shadow-2xl transition-transform duration-300 ease-in-out ${open ? "translate-x-0" : "-translate-x-full"}`}>
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-10 pb-5 border-b border-neutral-200">
@@ -891,7 +891,7 @@ function Header({ onMenuOpen, sessao, navId, onNavNotif }) {
   } catch (_) {}
 
   return (
-    <header className="sticky top-0 z-30 bg-[#fbf9f5]/95 backdrop-blur-sm border-b border-neutral-200 px-4 py-3 flex items-center gap-3">
+    <header className="sticky top-0 z-30 bg-[#1c1c1c]/97 backdrop-blur-sm border-b border-neutral-200 px-4 py-3 flex items-center gap-3">
       <button onClick={onMenuOpen}
         className="w-9 h-9 rounded-full bg-white border border-neutral-200 flex items-center justify-center active:bg-neutral-50 transition-colors shadow-sm flex-shrink-0">
         <Ic.Menu size={18} />
@@ -992,7 +992,7 @@ export default function DashboardPage() {
 
   if (!authOk) {
     return (
-      <div className="min-h-screen bg-[#fbf9f5] flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-[#10b981] flex items-center justify-center shadow-lg">
             <svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2}>
@@ -1007,7 +1007,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#fbf9f5]">
+    <div className="min-h-screen">
       <SidebarMenu
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
@@ -1051,3 +1051,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+                          

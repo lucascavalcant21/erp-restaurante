@@ -44,8 +44,8 @@ export default function EtiquetasPage() {
 
   // Dimensões/escala da etiqueta conforme o tamanho escolhido
   const dim = tamanho === "60x40"
-    ? { h: "40mm", pad: "2.5mm", titulo: "4mm", linha: "2.9mm", resp: "2.5mm", qr: 50, gap: "0.5mm" }
-    : { h: "60mm", pad: "4mm",   titulo: "5mm", linha: "3.4mm", resp: "3mm",   qr: 92, gap: "0.8mm" };
+    ? { h: "40mm", pad: "2.5mm", titulo: "4mm", linha: "2.9mm", resp: "2.5mm", qr: 42, gap: "0.5mm" }
+    : { h: "60mm", pad: "4mm",   titulo: "5mm", linha: "3.4mm", resp: "3mm",   qr: 66, gap: "0.8mm" };
 
   useEffect(() => {
     lerSessao().then((s) => s?.nome && setForm((f) => ({ ...f, responsavel: f.responsavel || s.nome })));
@@ -210,17 +210,18 @@ export default function EtiquetasPage() {
                 {/* responsável */}
                 <div style={{ fontSize: dim.linha, fontWeight: 700, marginTop: "1mm" }}>RESP.: {(form.responsavel || "—").toUpperCase()}</div>
                 {form.lote && <div style={{ fontSize: dim.resp, fontWeight: 700, marginTop: "0.5mm" }}>LOTE/SIF: {form.lote}</div>}
-                {/* QR Code centralizado */}
-                <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", minHeight: 0, padding: "1mm 0" }}>
-                  <QRCodeSVG value={rastreioUrl} size={dim.qr} level="M" />
-                </div>
-                {/* rodapé empresa */}
+                {/* espaço flexível empurra o rodapé pra baixo */}
+                <div style={{ flex: 1, minHeight: "1mm" }} />
+                {/* rodapé: empresa (esq) + QR encaixado (dir) */}
                 <div style={{ borderTop: "0.5mm solid #000", paddingTop: dim.gap, display: "flex", justifyContent: "space-between", alignItems: "flex-end", fontSize: dim.resp, fontWeight: 700, gap: "2mm" }}>
-                  <div style={{ minWidth: 0 }}>
+                  <div style={{ minWidth: 0, lineHeight: 1.35 }}>
                     {cnpj && <div>CNPJ: {fmtCNPJ(cnpj)}</div>}
                     <div>{(unidadeInfo.nome || "").toUpperCase()}</div>
+                    <div style={{ opacity: 0.7 }}>#{codigo}</div>
                   </div>
-                  <div style={{ opacity: 0.7, flexShrink: 0 }}>#{codigo}</div>
+                  <div style={{ flexShrink: 0, lineHeight: 0 }}>
+                    <QRCodeSVG value={rastreioUrl} size={dim.qr} level="M" />
+                  </div>
                 </div>
               </div>
             </div>

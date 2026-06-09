@@ -105,6 +105,7 @@ export async function inserirIngrediente(ing, unidadeId) {
     unidade: ing.unidade,
     preco_compra: ing.preco_compra,
     custo_por_unidade_base: calcCustoUnitario(ing.preco_compra, ing.unidade),
+    setor: ing.setor || "Cozinha",
   }, unidadeId);
   const { data, error } = await supabase.from("ingredientes").insert([payload]).select().single();
   return { data: data ? normalizar(data) : null, error: error?.message || null };
@@ -116,6 +117,7 @@ export async function atualizarIngrediente(id, ing) {
     unidade: ing.unidade,
     preco_compra: ing.preco_compra,
     custo_por_unidade_base: calcCustoUnitario(ing.preco_compra, ing.unidade),
+    setor: ing.setor || "Cozinha",
   };
   if (!isSupabaseReady()) return { error: null };
   const { error } = await supabase.from("ingredientes").update(payload).eq("id", id);

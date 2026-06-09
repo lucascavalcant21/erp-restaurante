@@ -1,496 +1,148 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useMemo } from "react";
+import { FlaskConical, Beef, Droplets, Package, Edit3, Trash2 } from "lucide-react";
+import {
+  PageHeader, PageBody, Card, SectionLabel, KpiGrid, Kpi,
+  SearchBar, EmptyState, Modal, Field, TextInput, NumberInput, Select, Btn, Toast, fmtBRL,
+} from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
 import {
-  ArrowLeft,
-  Plus,
-  Search,
-  X,
-  ChevronDown,
-  Beef,
-  Droplets,
-  Package,
-  Leaf,
-  Box,
-  Edit2,
-  Trash2,
-  FlaskConical,
-  Check,
-  AlertCircle,
-} from "lucide-react";
-
-import {
-  INGREDIENTES_SEED,
-  UNIDADES,
-  calcCustoUnitario,
-  getUnidade,
-  fetchIngredientes,
-  inserirIngrediente,
-  atualizarIngrediente,
-  removerIngrediente,
+  fetchIngredientes, inserirIngrediente, atualizarIngrediente, removerIngrediente,
+  calcCustoUnitario, getUnidade, UNIDADES,
 } from "../../../lib/ingredientes";
 
-// ─── Helpers ───────────────────────────────────────────────────────────────────
-function fmtBRL(val, decimais = 2) {
-  return Number(val).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: decimais,
-    maximumFractionDigits: decimais,
-  });
-}
+const ICONE_UN = { KG: Beef, L: Droplets, UN: Package, MACO: Package, CX: Package };
+const VAZIO = { nome: "", unidade: "KG", preco_compra: "" };
 
-function fmtCustoFracionado(preco, unidade_id) {
-  const custo = calcCustoUnitario(preco, unidade_id);
-  const u = getUnidade(unidade_id);
-  // Decide casas decimais: se custo < 0,01 usa 4 casas
-  const casas = custo < 0.01 ? 4 : 2;
-  return `${fmtBRL(custo, casas)} ${u.label_base}`;
-}
+function FormIngrediente({ inicial, onSalvar, onCancelar }) {
+  const [f, setF] = useState(inicial ? { ...inicial, preco_compra: String(inicial.preco_compra) } : VAZIO);
+  const [erro, setErro] = useState("");
+  const set = (k, v) => { setF((p) => ({ ...p, [k]: v })); setErro(""); };
+  const preco = parseFloat(String(f.preco_compra).replace(",", ".")) || 0;
+  const un = getUnidade(f.unidade);
+  const custoBase = calcCustoUnitario(preco, f.unidade);
 
-function gerarId() {
-  return Date.now();
-}
+  function salvar() {
+    if (!f.nome.trim()) return setErro("Informe o nome do ingrediente.");
+    if (preco <= 0) return setErro("Informe um preço de compra válido.");
+    onSalvar({ nome: f.nome.trim(), unidade: f.unidade, preco_compra: preco });
+  }
 
-// ─── Ícone por unidade ──────────────────────────────────────────────────────
-const ICONE_UNIDADE = {
-  KG:   Beef,
-  L:    Droplets,
-  UN:   Package,
-  MACO: Leaf,
-  CX:   Box,
-};
-
-function IconeUnidade({ unidade, size = 16, className = "" }) {
-  const Icone = ICONE_UNIDADE[unidade] ?? Package;
-  return <Icone size={size} className={className} />;
-}
-
-// ─── Cores por unidade ──────────────────────────────────────────────────────
-const COR_UNIDADE = {
-  KG:   { bg: "#fef3c7", text: "#d97706" },
-  L:    { bg: "#dbeafe", text: "#2563eb" },
-  UN:   { bg: "#f3e8ff", text: "#7c3aed" },
-  MACO: { bg: "#dcfce7", text: "#16a34a" },
-  CX:   { bg: "#fce7f3", text: "#be185d" },
-};
-
-function BadgeUnidade({ unidade }) {
-  const cor = COR_UNIDADE[unidade] ?? { bg: "#f5f5f5", text: "#737373" };
   return (
-    <span
-      className="text-[10px] font-black px-2 py-0.5 rounded-full"
-      style={{ backgroundColor: cor.bg, color: cor.text }}
-    >
-      {unidade}
-    </span>
+    <>
+      <Field label="Nome do ingrediente"><TextInput value={f.nome} onChange={(e) => set("nome", e.target.value)} placeholder="ex: Carne Moída (Patinho)" /></Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Unidade de compra"><Select value={f.unidade} onChange={(e) => set("unidade", e.target.value)}>{UNIDADES.map((u) => <option key={u.id} value={u.id}>{u.label}</option>)}</Select></Field>
+        <Field label="Preço de compra (R$)"><NumberInput value={f.preco_compra} onChange={(e) => set("preco_compra", e.target.value)} placeholder="0,00" step="0.01" /></Field>
+      </div>
+      {preco > 0 && (
+        <div className="erp-panel p-3 mb-3 flex justify-between items-center">
+          <span className="text-[11px] font-medium" style={{ color: "var(--muted)" }}>Custo {un.label_base}</span>
+          <span className="text-sm font-bold" style={{ color: "var(--accent-fg)" }}>{fmtBRL(custoBase, custoBase < 0.01 ? 4 : 2)}</span>
+        </div>
+      )}
+      {erro && <p className="erp-badge erp-badge-danger w-full justify-center mb-3">{erro}</p>}
+      <div className="flex gap-3">
+        <Btn variant="ghost" className="flex-1" onClick={onCancelar}>Cancelar</Btn>
+        <Btn variant="primary" className="flex-1" onClick={salvar}>{inicial ? "Salvar" : "Adicionar"}</Btn>
+      </div>
+    </>
   );
 }
 
-// ─── Estado inicial do formulário ─────────────────────────────────────────────
-const FORM_VAZIO = { nome: "", unidade: "KG", preco_compra: "" };
-
-// ─── Componente Principal ──────────────────────────────────────────────────────
 export default function IngredientesPage() {
   const { unidadeAtiva } = useERP();
-  const router = useRouter();
-  const inputNomeRef = useRef(null);
+  const [lista, setLista]     = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [busca, setBusca]     = useState("");
+  const [modal, setModal]     = useState(false);
+  const [editar, setEditar]   = useState(null);
+  const [salvou, setSalvou]   = useState(false);
 
-  const [ingredientes, setIngredientes] = useState([]);
-  const [loading, setLoading]           = useState(true);
-  const [busca, setBusca]               = useState("");
-  const [form, setForm]                 = useState(FORM_VAZIO);
-  const [formAberto, setFormAberto]     = useState(false);
-  const [editandoId, setEditandoId]     = useState(null);
-  const [erroForm, setErroForm]         = useState("");
-  const [deletandoId, setDeletandoId]   = useState(null);
-  const [salvou, setSalvou]             = useState(false);
+  async function carregar() {
+    setLoading(true);
+    const { data } = await fetchIngredientes(unidadeAtiva);
+    setLista(data || []);
+    setLoading(false);
+  }
+  useEffect(() => { carregar(); /* eslint-disable-next-line */ }, [unidadeAtiva]);
 
-  // ── Carrega do Supabase na montagem ───────────────────────────────────────
-  useEffect(() => {
-    fetchIngredientes(unidadeAtiva).then(({ data }) => {
-      setIngredientes(data);
-      setLoading(false);
-    });
-  }, [unidadeAtiva]);
-
-  // ── Lista filtrada ─────────────────────────────────────────────────────────
-  const lista = useMemo(() => {
+  const filtrados = useMemo(() => {
     const q = busca.toLowerCase().trim();
-    if (!q) return ingredientes;
-    return ingredientes.filter((i) => i.nome.toLowerCase().includes(q));
-  }, [ingredientes, busca]);
+    return q ? lista.filter((i) => i.nome.toLowerCase().includes(q)) : lista;
+  }, [lista, busca]);
 
-  // ── Handlers de formulário ─────────────────────────────────────────────────
-  function setField(key, val) {
-    setForm((prev) => ({ ...prev, [key]: val }));
-    setErroForm("");
+  const mediaCompra = lista.length ? lista.reduce((a, i) => a + (Number(i.preco_compra) || 0), 0) / lista.length : 0;
+
+  async function salvar(dados) {
+    if (editar) await atualizarIngrediente(editar.id, dados);
+    else await inserirIngrediente(dados, unidadeAtiva);
+    setModal(false); setEditar(null);
+    setSalvou(true); setTimeout(() => setSalvou(false), 2200);
+    carregar();
+  }
+  async function remover(id) {
+    await removerIngrediente(id);
+    setLista((p) => p.filter((i) => i.id !== id));
   }
 
-  function validarForm() {
-    if (!form.nome.trim()) return "Informe o nome do ingrediente.";
-    if (!form.preco_compra || isNaN(parseFloat(String(form.preco_compra).replace(",", ".")))) {
-      return "Informe um preço de compra válido.";
-    }
-    if (parseFloat(String(form.preco_compra).replace(",", ".")) <= 0) {
-      return "O preço deve ser maior que zero.";
-    }
-    return "";
-  }
-
-  function handleSalvar() {
-    const erro = validarForm();
-    if (erro) { setErroForm(erro); return; }
-
-    const preco = parseFloat(String(form.preco_compra).replace(",", "."));
-    const novo = {
-      id:                    editandoId ?? gerarId(),
-      nome:                  form.nome.trim(),
-      unidade:               form.unidade,
-      preco_compra:          preco,
-      custo_por_unidade_base: calcCustoUnitario(preco, form.unidade),
-    };
-
-    if (editandoId !== null) {
-      setIngredientes((prev) => prev.map((i) => (i.id === editandoId ? { ...i, ...novo } : i)));
-      atualizarIngrediente(editandoId, novo); // async — propaga para fichas/cardápio automaticamente
-    } else {
-      inserirIngrediente(novo, unidadeAtiva).then(({ data }) => {
-        if (data) setIngredientes((prev) => [...prev, data]);
-      });
-    }
-
-    setForm(FORM_VAZIO);
-    setEditandoId(null);
-    setFormAberto(false);
-    setSalvou(true);
-    setTimeout(() => setSalvou(false), 2500);
-  }
-
-  function handleEditar(ing) {
-    setForm({
-      nome:         ing.nome,
-      unidade:      ing.unidade,
-      preco_compra: String(ing.preco_compra),
-    });
-    setEditandoId(ing.id);
-    setFormAberto(true);
-    setTimeout(() => inputNomeRef.current?.focus(), 100);
-  }
-
-  function handleDeletar(id) {
-    removerIngrediente(id);
-    setIngredientes((prev) => prev.filter((i) => i.id !== id));
-    setDeletandoId(null);
-  }
-
-  function handleCancelar() {
-    setForm(FORM_VAZIO);
-    setEditandoId(null);
-    setFormAberto(false);
-    setErroForm("");
-  }
-
-  function abrirForm() {
-    setFormAberto(true);
-    setEditandoId(null);
-    setForm(FORM_VAZIO);
-    setTimeout(() => inputNomeRef.current?.focus(), 100);
-  }
-
-  // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen ">
+    <div className="min-h-screen">
+      <PageHeader title="Ingredientes" subtitle="Catálogo e custo de insumos" icon={FlaskConical}
+        onAction={() => { setEditar(null); setModal(true); }} actionLabel="Novo" />
+      <PageBody>
+        <Toast show={salvou}>Ingrediente salvo!</Toast>
 
-      {/* Header */}
-      <div className="sticky top-0 z-20  border-b border-white/8 px-4 pt-12 pb-3 flex items-center gap-3" style={{ background: 'var(--surface)' }}>
-        <button
-          onClick={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-card border border-white/8 flex items-center justify-center  active:scale-95 transition-transform"
-        >
-          <ArrowLeft size={18} className="text-muted" />
-        </button>
-        <div className="flex-1">
-          <h1 className="text-lg font-black leading-tight" style={{ color:"#F1F5F9" }}>Ingredientes</h1>
-          <p className="text-[11px] text-dim font-medium">
-            {ingredientes.length} insumo{ingredientes.length !== 1 ? "s" : ""} cadastrado{ingredientes.length !== 1 ? "s" : ""}
-          </p>
-        </div>
-        <button
-          onClick={abrirForm}
-          className="flex items-center gap-1.5 bg-accent text-white text-xs font-black px-3 py-2 rounded-xl  active:scale-95 transition-transform"
-        >
-          <Plus size={14} />
-          Novo
-        </button>
-      </div>
+        <KpiGrid>
+          <Kpi icon={FlaskConical} label="Ingredientes" value={lista.length} tint="var(--accent-fg)" />
+          <Kpi icon={Package} label="Custo médio de compra" value={fmtBRL(mediaCompra)} tint="#3B82F6" />
+        </KpiGrid>
 
-      <div className="px-4 pt-4 pb-28 space-y-3">
+        <SearchBar value={busca} onChange={setBusca} placeholder="Buscar ingrediente..." />
 
-        {/* Toast de sucesso */}
-        {salvou && (
-          <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 animate-pulse">
-            <Check size={16} className="text-emerald-600" />
-            <p className="text-sm font-bold text-emerald-800">
-              {editandoId !== null ? "Ingrediente atualizado!" : "Ingrediente salvo com sucesso!"}
-            </p>
-          </div>
-        )}
-
-        {/* Formulário de Cadastro / Edição */}
-        {formAberto && (
-          <div className="bg-card rounded-2xl border-2 border-accent/30  p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-accent/10 flex items-center justify-center">
-                  <FlaskConical size={15} className="text-accent" />
-                </div>
-                <p className="text-sm font-black text-fg">
-                  {editandoId !== null ? "Editar Ingrediente" : "Novo Ingrediente"}
-                </p>
-              </div>
-              <button onClick={handleCancelar} className="p-1 rounded-lg active:bg-elevated">
-                <X size={18} className="text-dim" />
-              </button>
+        <div>
+          <SectionLabel>{filtrados.length} ingrediente{filtrados.length !== 1 ? "s" : ""}</SectionLabel>
+          {loading ? (
+            <EmptyState icon={FlaskConical} title="Carregando..." />
+          ) : filtrados.length === 0 ? (
+            <EmptyState icon={FlaskConical} title={busca ? "Nenhum ingrediente encontrado" : "Nenhum ingrediente cadastrado"}
+              hint={busca ? "Tente outro termo" : "Toque em Novo para começar o catálogo"} />
+          ) : (
+            <div className="space-y-2">
+              {filtrados.map((i) => {
+                const Icon = ICONE_UN[i.unidade] || Package;
+                const un = getUnidade(i.unidade);
+                const base = i.custo_por_unidade_base ?? calcCustoUnitario(i.preco_compra, i.unidade);
+                return (
+                  <Card key={i.id} className="!p-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "var(--elevated)" }}>
+                        <Icon size={17} style={{ color: "var(--muted)" }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-bold truncate" style={{ color: "var(--fg)" }}>{i.nome}</p>
+                          <span className="erp-badge" style={{ background: "var(--elevated)", color: "var(--muted)" }}>{un.label}</span>
+                        </div>
+                        <p className="text-[11px] font-medium mt-0.5" style={{ color: "var(--dim)" }}>
+                          Compra: {fmtBRL(i.preco_compra)} · <span style={{ color: "var(--accent-fg)" }}>{fmtBRL(base, base < 0.01 ? 4 : 2)} {un.label_base}</span>
+                        </p>
+                      </div>
+                      <button onClick={() => { setEditar(i); setModal(true); }} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "var(--elevated)" }}><Edit3 size={14} style={{ color: "var(--muted)" }} /></button>
+                      <button onClick={() => remover(i.id)} className="w-8 h-8 rounded-lg flex items-center justify-center erp-badge-danger"><Trash2 size={14} /></button>
+                    </div>
+                  </Card>
+                );
+              })}
             </div>
-
-            {/* Nome */}
-            <div className="mb-3">
-              <label className="text-[10px] font-black text-dim uppercase tracking-wider block mb-1.5">
-                Nome do Ingrediente
-              </label>
-              <input
-                ref={inputNomeRef}
-                type="text"
-                value={form.nome}
-                onChange={(e) => setField("nome", e.target.value)}
-                placeholder="Ex: Carne Moída (Patinho)"
-                className="w-full  border border-white/8 rounded-xl px-4 py-3 text-sm font-bold text-fg placeholder:text-dim focus:outline-none focus:ring-2 focus:border-accent transition-all"
-              />
-            </div>
-
-            {/* Unidade + Preço */}
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              <div>
-                <label className="text-[10px] font-black text-dim uppercase tracking-wider block mb-1.5">
-                  Unidade
-                </label>
-                <div className="relative">
-                  <select
-                    value={form.unidade}
-                    onChange={(e) => setField("unidade", e.target.value)}
-                    className="w-full appearance-none  border border-white/8 rounded-xl px-3 py-3 text-sm font-bold text-fg focus:outline-none focus:ring-2 focus:border-accent transition-all pr-8" style={{ background: "#1E293B", color: "#F1F5F9" }} >
-                    {UNIDADES.map((u) => (
-                      <option key={u.id} value={u.id}>{u.label}</option>
-                    ))}
-                  </select>
-                  <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-dim pointer-events-none" />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-black text-dim uppercase tracking-wider block mb-1.5">
-                  Preço de Compra (R$)
-                </label>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  step="0.01"
-                  min="0"
-                  value={form.preco_compra}
-                  onChange={(e) => setField("preco_compra", e.target.value)}
-                  placeholder="0,00"
-                  className="w-full  border border-white/8 rounded-xl px-3 py-3 text-sm font-black text-fg placeholder:text-dim focus:outline-none focus:ring-2 focus:border-accent transition-all text-right"
-                />
-              </div>
-            </div>
-
-            {/* Preview de custo fracionado em tempo real */}
-            {form.preco_compra && parseFloat(String(form.preco_compra).replace(",", ".")) > 0 && (
-              <div className=" border border-white/5 rounded-xl px-4 py-2.5 mb-3 flex items-center justify-between">
-                <p className="text-[11px] font-bold text-subtle">Custo fracionado</p>
-                <p className="text-sm font-black text-fg">
-                  {fmtCustoFracionado(
-                    parseFloat(String(form.preco_compra).replace(",", ".")),
-                    form.unidade
-                  )}
-                </p>
-              </div>
-            )}
-
-            {/* Erro */}
-            {erroForm && (
-              <div className="flex items-center gap-2 bg-[rgba(5,150,105,0.1)] border border-[rgba(5,150,105,0.3)] rounded-xl px-3 py-2.5 mb-3">
-                <AlertCircle size={14} className="text-accent flex-shrink-0" />
-                <p className="text-xs font-bold text-accent-strong">{erroForm}</p>
-              </div>
-            )}
-
-            {/* Botões */}
-            <div className="flex gap-2">
-              <button
-                onClick={handleCancelar}
-                className="flex-1 py-3 rounded-xl font-bold text-sm text-subtle bg-elevated active:scale-95 transition-all"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleSalvar}
-                className="flex-1 py-3 rounded-xl font-black text-sm text-white bg-accent  active:scale-95 transition-all"
-              >
-                {editandoId !== null ? "Atualizar" : "Salvar"}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Barra de Busca */}
-        <div className="relative">
-          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-dim" />
-          <input
-            type="text"
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar ingrediente…"
-            className="w-full bg-card border border-white/8 rounded-xl pl-10 pr-10 py-3 text-sm font-medium text-fg placeholder:text-dim focus:outline-none focus:ring-2 focus:border-accent transition-all "
-          />
-          {busca && (
-            <button onClick={() => setBusca("")} className="absolute right-3 top-1/2 -translate-y-1/2">
-              <X size={15} className="text-dim" />
-            </button>
           )}
         </div>
+      </PageBody>
 
-        {/* Lista de Ingredientes */}
-        {lista.length === 0 ? (
-          <div className="bg-card rounded-2xl border border-white/5  p-8 flex flex-col items-center text-center gap-2">
-            <div className="w-12 h-12 rounded-2xl bg-elevated flex items-center justify-center mb-1">
-              <FlaskConical size={22} className="text-dim" />
-            </div>
-            <p className="text-sm font-bold text-fg-soft">
-              {busca ? "Nenhum ingrediente encontrado" : "Nenhum ingrediente cadastrado"}
-            </p>
-            <p className="text-xs text-dim font-medium">
-              {busca ? `Sem resultados para "${busca}"` : 'Toque em "+ Novo" para cadastrar o primeiro insumo.'}
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {lista.map((ing) => {
-              const emDelecao = deletandoId === ing.id;
-              return (
-                <div
-                  key={ing.id}
-                  className={`bg-card rounded-2xl border  overflow-hidden transition-all duration-200 ${
-                    emDelecao ? "border-[rgba(5,150,105,0.3)] bg-[rgba(5,150,105,0.1)]" : "border-white/5"
-                  }`}
-                >
-                  {/* Linha principal */}
-                  <div className="flex items-center gap-3 px-4 py-3.5">
-                    {/* Ícone */}
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{
-                        backgroundColor: (COR_UNIDADE[ing.unidade] ?? { bg: "#f5f5f5" }).bg,
-                        color:           (COR_UNIDADE[ing.unidade] ?? { text: "#737373" }).text,
-                      }}
-                    >
-                      <IconeUnidade unidade={ing.unidade} size={18} />
-                    </div>
-
-                    {/* Dados */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <p className="text-sm font-black text-fg truncate">{ing.nome}</p>
-                        <BadgeUnidade unidade={ing.unidade} />
-                      </div>
-                      <p className="text-[11px] text-dim font-medium">
-                        Compra: <span className="font-bold text-muted">{fmtBRL(ing.preco_compra)}</span>
-                        {" · "}
-                        <span className="text-accent font-black">
-                          {fmtCustoFracionado(ing.preco_compra, ing.unidade)}
-                        </span>
-                      </p>
-                    </div>
-
-                    {/* Ações */}
-                    {!emDelecao ? (
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        <button
-                          onClick={() => handleEditar(ing)}
-                          className="w-8 h-8 rounded-xl flex items-center justify-center  border border-white/5 active:scale-90 transition-transform"
-                        >
-                          <Edit2 size={13} className="text-subtle" />
-                        </button>
-                        <button
-                          onClick={() => setDeletandoId(ing.id)}
-                          className="w-8 h-8 rounded-xl flex items-center justify-center bg-[rgba(5,150,105,0.1)] border border-[rgba(5,150,105,0.2)] active:scale-90 transition-transform"
-                        >
-                          <Trash2 size={13} className="text-accent" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        <button
-                          onClick={() => setDeletandoId(null)}
-                          className="text-xs font-bold text-subtle bg-elevated rounded-xl px-2.5 py-1.5 active:scale-95 transition-transform"
-                        >
-                          Não
-                        </button>
-                        <button
-                          onClick={() => handleDeletar(ing.id)}
-                          className="text-xs font-black text-white bg-[rgba(5,150,105,0.1)]0 rounded-xl px-2.5 py-1.5 active:scale-95 transition-transform"
-                        >
-                          Excluir
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Faixa de detalhe fracionado (expandida ao entrar em deleção) */}
-                  {emDelecao && (
-                    <div className="px-4 pb-3 pt-0">
-                      <p className="text-xs font-bold text-accent-strong flex items-center gap-1.5">
-                        <AlertCircle size={12} />
-                        Tem certeza? Fichas técnicas que usam este insumo precisarão ser revisadas.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Nota de arquitetura */}
-        <div className="bg-card rounded-2xl border border-white/5  px-5 py-4">
-          <p className="text-[10px] font-black text-dim uppercase tracking-wider mb-2">
-            Como a Ficha Técnica usa estes dados
-          </p>
-          <div className="space-y-1.5">
-            {[
-              { ing: "Carne Moída", qtd: "150g", custo: "R$ 5,25" },
-              { ing: "Arroz Agulhinha", qtd: "200g", custo: "R$ 1,20" },
-              { ing: "Embalagem Marmita", qtd: "1 un", custo: "R$ 0,60" },
-            ].map((ex) => (
-              <div key={ex.ing} className="flex items-center justify-between text-[11px]">
-                <span className="text-subtle font-medium">{ex.ing} × {ex.qtd}</span>
-                <span className="font-black text-fg">{ex.custo}</span>
-              </div>
-            ))}
-            <div className="flex items-center justify-between text-xs border-t border-dashed border-white/8 pt-1.5 mt-1">
-              <span className="font-black text-fg-soft">Custo Total da Marmitex</span>
-              <span className="font-black text-accent">R$ 7,05</span>
-            </div>
-          </div>
-          <p className="text-[10px] text-dim font-medium mt-2">
-            Ao alterar o preço de qualquer ingrediente, o sistema recalcula automaticamente todas as fichas técnicas e o custo dos pratos no cardápio.
-          </p>
-        </div>
-
-      </div>
+      <Modal open={modal} onClose={() => { setModal(false); setEditar(null); }} title={editar ? "Editar ingrediente" : "Novo ingrediente"}>
+        <FormIngrediente inicial={editar} onSalvar={salvar} onCancelar={() => { setModal(false); setEditar(null); }} />
+      </Modal>
     </div>
   );
 }

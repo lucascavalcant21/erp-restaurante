@@ -10,7 +10,7 @@ import {
   SearchBar, Chips, EmptyState, Modal, Field, TextInput, NumberInput, Select, Btn, Toast, fmtBRL, fmtData,
 } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
-import { fetchEstoque, inserirItem, movimentar, removerItem } from "../../../lib/estoque";
+import { fetchEstoque, inserirItem, atualizarItem, movimentar, removerItem } from "../../../lib/estoque";
 
 const CATEGORIAS = ["Proteína", "Grão", "Hortifruti", "Laticínios", "Óleo", "Bebida", "Embalagem", "Limpeza", "Outros"];
 const UNIDADES_EST = ["KG", "L", "UN", "CX", "MAÇO", "G", "ML"];
@@ -24,7 +24,7 @@ function statusItem(i) {
 
 function FormItem({ inicial, onSalvar, onCancelar }) {
   const [f, setF] = useState(inicial
-    ? { ...inicial, quantidade: String(inicial.quantidade ?? ""), minimo: String(inicial.minimo ?? ""), custo_unitario: String(inicial.custo_unitario ?? inicial.preco_unit ?? "") }
+    ? { ...inicial, quantidade: String(inicial.quantidade ?? ""), minimo: String(inicial.minimo ?? ""), custo_unitario: String(Number(inicial.custo_unitario) || Number(inicial.preco_unit) || "") }
     : VAZIO);
   const [erro, setErro] = useState("");
   const set = (k, v) => { setF((p) => ({ ...p, [k]: v })); setErro(""); };
@@ -109,7 +109,7 @@ export default function EstoquePage() {
 
   const resumo = useMemo(() => ({
     total: itens.length,
-    valor: itens.reduce((a, i) => a + (i.quantidade || 0) * (i.custo_unitario ?? i.preco_unit ?? 0), 0),
+    valor: itens.reduce((a, i) => a + (i.quantidade || 0) * (Number(i.custo_unitario) || Number(i.preco_unit) || 0), 0),
     criticos: itens.filter((i) => statusItem(i) === "critico").length,
     baixos: itens.filter((i) => statusItem(i) === "baixo").length,
   }), [itens]);
@@ -121,13 +121,17 @@ export default function EstoquePage() {
   }), [itens, busca, cat]);
 
   async function salvarItem(dados) {
+    const campos = {
+      nome: dados.nome, categoria: dados.categoria, unidade: dados.unidade,
+      quantidade: dados.quantidade, minimo: dados.minimo,
+      preco_unit: dados.custo_unitario, custo_unitario: dados.custo_unitario,
+    };
     if (editar) {
-      // edição local + persistência best-effort
-      setItens((p) => p.map((i) => i.id === editar.id ? { ...i, ...dados } : i));
+      await atualizarItem(editar.id, campos);
     } else {
-      await inserirItem({ nome: dados.nome, categoria: dados.categoria, unidade: dados.unidade, quantidade: dados.quantidade, minimo: dados.minimo, preco_unit: dados.custo_unitario }, unidadeAtiva);
-      await carregar();
+      await inserirItem(campos, unidadeAtiva);
     }
+    await carregar();
     setModal(false); setEditar(null);
     setSalvou(true); setTimeout(() => setSalvou(false), 2200);
   }
@@ -175,7 +179,7 @@ export default function EstoquePage() {
             <div className="space-y-3">
               {filtrados.map((i) => {
                 const st = statusItem(i);
-                const valor = (i.quantidade || 0) * (i.custo_unitario ?? i.preco_unit ?? 0);
+                const valor = (i.quantidade || 0) * (Number(i.custo_unitario) || Number(i.preco_unit) || 0);
                 const pct = Math.min(((i.quantidade || 0) / ((i.minimo || 1) * 3)) * 100, 100);
                 const cor = st === "critico" ? "#EF4444" : st === "baixo" ? "#F59E0B" : "#10B981";
                 return (

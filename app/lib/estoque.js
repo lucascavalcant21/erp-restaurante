@@ -93,6 +93,14 @@ export async function inserirItem(item, unidadeId) {
   return { data, error: error?.message || null };
 }
 
+/** Atualiza os dados de um item do estoque (nome, categoria, mínimo, custo...). */
+export async function atualizarItem(id, updates) {
+  if (!isSupabaseReady()) return { error: "Supabase não configurado" };
+  const { error } = await supabase.from("estoque").update(updates).eq("id", id);
+  if (error) console.error("[estoque] atualizarItem:", error.message);
+  return { error: error?.message || null };
+}
+
 /**
  * Atualiza quantidade de um item (movimentação de entrada ou saída).
  * Também grava o histórico em estoque_movimentacoes.

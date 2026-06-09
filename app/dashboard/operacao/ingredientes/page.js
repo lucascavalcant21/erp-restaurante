@@ -85,7 +85,7 @@ export default function IngredientesPage() {
       // Sincroniza: cria o item correspondente no Estoque (quantidade 0)
       await inserirItem({
         nome: dados.nome, categoria: "Outros", unidade: dados.unidade,
-        quantidade: 0, minimo: 0, preco_unit: dados.preco_compra,
+        quantidade: 0, minimo: 0, preco_unit: dados.preco_compra, custo_unitario: dados.preco_compra,
       }, unidadeAtiva);
       setSalvou("Ingrediente salvo e adicionado ao Estoque!");
     }

@@ -3,8 +3,10 @@
 import { useState, useEffect, useMemo } from "react";
 import { BookOpen, Plus, Trash2, FlaskConical, Calculator } from "lucide-react";
 import {
-  PageHeader, PageBody, Card, SectionLabel, Field, NumberInput, Select, TextInput, Btn, EmptyState, Toast, fmtBRL, fmtPct,
+  PageHeader, PageBody, Card, SectionLabel, Chips, Field, NumberInput, Select, TextInput, Btn, EmptyState, Toast, fmtBRL, fmtPct,
 } from "../../../components/ui";
+
+const SETORES = ["Cozinha", "Bar"];
 import { useERP } from "../../../context/ERPContext";
 import { fetchIngredientes, getIngredienteById, calcCustoLinha, getUnidade } from "../../../lib/ingredientes";
 
@@ -18,7 +20,10 @@ export default function FichasTecnicasPage() {
   const [itens, setItens] = useState([]); // { id, ingrediente_id, quantidade }
   const [selId, setSelId] = useState("");
   const [qtd, setQtd]     = useState("");
+  const [setor, setSetor] = useState("Cozinha");
   const [salvou, setSalvou] = useState(false);
+
+  const catalogoSetor = catalogo.filter((i) => (i.setor || "Cozinha") === setor);
 
   useEffect(() => {
     setLoading(true);
@@ -76,10 +81,15 @@ export default function FichasTecnicasPage() {
             {/* Adicionar ingrediente */}
             <Card>
               <SectionLabel>Adicionar ingrediente</SectionLabel>
+              <div className="mb-3">
+                <Chips options={SETORES} value={setor}
+                  onChange={(s) => { setSetor(s); const first = catalogo.find((i) => (i.setor || "Cozinha") === s); setSelId(String(first?.id ?? "")); }} />
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Ingrediente">
                   <Select value={selId} onChange={(e) => setSelId(e.target.value)}>
-                    {catalogo.map((i) => <option key={i.id} value={i.id}>{i.nome}</option>)}
+                    {catalogoSetor.length === 0 && <option value="">— sem ingredientes de {setor} —</option>}
+                    {catalogoSetor.map((i) => <option key={i.id} value={i.id}>{i.nome}</option>)}
                   </Select>
                 </Field>
                 <Field label={`Quantidade${ingSel ? ` (${getUnidade(ingSel.unidade).base})` : ""}`}>

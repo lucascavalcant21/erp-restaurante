@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { FlaskConical, Beef, Droplets, Package, Edit3, Trash2 } from "lucide-react";
 import {
   PageHeader, PageBody, Card, SectionLabel, KpiGrid, Kpi,
-  SearchBar, EmptyState, Modal, Field, TextInput, NumberInput, Select, Btn, Toast, fmtBRL,
+  SearchBar, Chips, EmptyState, Modal, Field, TextInput, NumberInput, Select, Btn, Toast, fmtBRL,
 } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
 import {
@@ -14,7 +14,8 @@ import {
 import { inserirItem } from "../../../lib/estoque";
 
 const ICONE_UN = { KG: Beef, L: Droplets, UN: Package, MACO: Package, CX: Package };
-const VAZIO = { nome: "", unidade: "KG", preco_compra: "" };
+const SETORES = ["Cozinha", "Bar"];
+const VAZIO = { nome: "", unidade: "KG", preco_compra: "", setor: "Cozinha" };
 
 function FormIngrediente({ inicial, onSalvar, onCancelar }) {
   const [f, setF] = useState(inicial ? { ...inicial, preco_compra: String(inicial.preco_compra) } : VAZIO);
@@ -27,12 +28,13 @@ function FormIngrediente({ inicial, onSalvar, onCancelar }) {
   function salvar() {
     if (!f.nome.trim()) return setErro("Informe o nome do ingrediente.");
     if (preco <= 0) return setErro("Informe um preço de compra válido.");
-    onSalvar({ nome: f.nome.trim(), unidade: f.unidade, preco_compra: preco });
+    onSalvar({ nome: f.nome.trim(), unidade: f.unidade, preco_compra: preco, setor: f.setor || "Cozinha" });
   }
 
   return (
     <>
-      <Field label="Nome do ingrediente"><TextInput value={f.nome} onChange={(e) => set("nome", e.target.value)} placeholder="ex: Carne Moída (Patinho)" /></Field>
+      <Field label="Nome do ingrediente"><TextInput value={f.nome} onChange={(e) => set("nome", e.target.value)} placeholder="ex: Vodka / Carne Moída" /></Field>
+      <Field label="Setor"><Select value={f.setor} onChange={(e) => set("setor", e.target.value)}>{SETORES.map((s) => <option key={s}>{s}</option>)}</Select></Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Unidade de compra"><Select value={f.unidade} onChange={(e) => set("unidade", e.target.value)}>{UNIDADES.map((u) => <option key={u.id} value={u.id}>{u.label}</option>)}</Select></Field>
         <Field label="Preço de compra (R$)"><NumberInput value={f.preco_compra} onChange={(e) => set("preco_compra", e.target.value)} placeholder="0,00" step="0.01" /></Field>
@@ -57,6 +59,7 @@ export default function IngredientesPage() {
   const [lista, setLista]     = useState([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca]     = useState("");
+  const [setor, setSetor]     = useState("Todos");
   const [modal, setModal]     = useState(false);
   const [editar, setEditar]   = useState(null);
   const [salvou, setSalvou]   = useState("");
@@ -71,8 +74,11 @@ export default function IngredientesPage() {
 
   const filtrados = useMemo(() => {
     const q = busca.toLowerCase().trim();
-    return q ? lista.filter((i) => i.nome.toLowerCase().includes(q)) : lista;
-  }, [lista, busca]);
+    return lista.filter((i) =>
+      (!q || i.nome.toLowerCase().includes(q)) &&
+      (setor === "Todos" || (i.setor || "Cozinha") === setor)
+    );
+  }, [lista, busca, setor]);
 
   const mediaCompra = lista.length ? lista.reduce((a, i) => a + (Number(i.preco_compra) || 0), 0) / lista.length : 0;
 
@@ -111,6 +117,7 @@ export default function IngredientesPage() {
         </KpiGrid>
 
         <SearchBar value={busca} onChange={setBusca} placeholder="Buscar ingrediente..." />
+        <Chips options={["Todos", ...SETORES]} value={setor} onChange={setSetor} />
 
         <div>
           <SectionLabel>{filtrados.length} ingrediente{filtrados.length !== 1 ? "s" : ""}</SectionLabel>

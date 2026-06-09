@@ -9,8 +9,9 @@ import {
 import { useERP } from "../../../context/ERPContext";
 import { fetchCardapio, inserirPrato, atualizarPrato, removerPrato } from "../../../lib/cardapio";
 
-const CATEGORIAS = ["Marmita", "Salada", "Prato Principal", "Bebida", "Combo", "Sobremesa", "Lanche"];
-const VAZIO = { nome: "", categoria: "Marmita", preco: "", custo: "", ativo: true };
+const CATEGORIAS = ["Marmita", "Salada", "Prato Principal", "Lanche", "Sobremesa", "Combo", "Bebida", "Drink", "Coquetel", "Dose"];
+const SETORES = ["Cozinha", "Bar"];
+const VAZIO = { nome: "", categoria: "Marmita", preco: "", custo: "", ativo: true, setor: "Cozinha" };
 
 function metricas(p) {
   const preco = Number(p.preco) || 0;
@@ -31,13 +32,16 @@ function FormPrato({ inicial, onSalvar, onCancelar }) {
   function salvar() {
     if (!f.nome.trim()) return setErro("Informe o nome do prato.");
     if (m.preco <= 0) return setErro("Informe um preço de venda válido.");
-    onSalvar({ nome: f.nome.trim(), categoria: f.categoria, preco: m.preco, custo: Number(f.custo) || 0, ativo: f.ativo });
+    onSalvar({ nome: f.nome.trim(), categoria: f.categoria, preco: m.preco, custo: Number(f.custo) || 0, ativo: f.ativo, setor: f.setor || "Cozinha" });
   }
 
   return (
     <>
       <Field label="Nome do prato"><TextInput value={f.nome} onChange={(e) => set("nome", e.target.value)} placeholder="ex: Marmitex Executiva" /></Field>
-      <Field label="Categoria"><Select value={f.categoria} onChange={(e) => set("categoria", e.target.value)}>{CATEGORIAS.map((c) => <option key={c}>{c}</option>)}</Select></Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Categoria"><Select value={f.categoria} onChange={(e) => set("categoria", e.target.value)}>{CATEGORIAS.map((c) => <option key={c}>{c}</option>)}</Select></Field>
+        <Field label="Setor"><Select value={f.setor} onChange={(e) => set("setor", e.target.value)}>{SETORES.map((s) => <option key={s}>{s}</option>)}</Select></Field>
+      </div>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Preço de venda (R$)"><NumberInput value={f.preco} onChange={(e) => set("preco", e.target.value)} placeholder="0,00" step="0.01" /></Field>
         <Field label="Custo / CMV (R$)"><NumberInput value={f.custo} onChange={(e) => set("custo", e.target.value)} placeholder="0,00" step="0.01" /></Field>
@@ -68,6 +72,7 @@ export default function CardapioPage() {
   const [loading, setLoading] = useState(true);
   const [busca, setBusca]     = useState("");
   const [cat, setCat]         = useState("Todos");
+  const [setor, setSetor]     = useState("Todos");
   const [modal, setModal]     = useState(false);
   const [editar, setEditar]   = useState(null);
   const [salvou, setSalvou]   = useState(false);
@@ -91,8 +96,9 @@ export default function CardapioPage() {
   const filtrados = useMemo(() => lista.filter((p) => {
     const mb = p.nome?.toLowerCase().includes(busca.toLowerCase());
     const mc = cat === "Todos" || p.categoria === cat;
-    return mb && mc;
-  }), [lista, busca, cat]);
+    const ms = setor === "Todos" || (p.setor || "Cozinha") === setor;
+    return mb && mc && ms;
+  }), [lista, busca, cat, setor]);
 
   async function salvar(dados) {
     if (editar) { await atualizarPrato(editar.id, dados); }
@@ -125,7 +131,8 @@ export default function CardapioPage() {
         </KpiGrid>
 
         <div className="space-y-3">
-          <SearchBar value={busca} onChange={setBusca} placeholder="Buscar prato..." />
+          <SearchBar value={busca} onChange={setBusca} placeholder="Buscar prato/drink..." />
+          <Chips options={["Todos", ...SETORES]} value={setor} onChange={setSetor} />
           <Chips options={["Todos", ...CATEGORIAS]} value={cat} onChange={setCat} />
         </div>
 

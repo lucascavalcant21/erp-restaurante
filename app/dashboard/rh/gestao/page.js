@@ -10,7 +10,7 @@ import {
 import { useERP } from "../../../context/ERPContext";
 import { fetchFuncionarios, inserirFuncionario, atualizarFuncionario, removerFuncionario } from "../../../lib/rh";
 
-const CARGOS = ["Gerente", "Cozinheiro", "Auxiliar de Cozinha", "Atendente", "Caixa", "Entregador", "Limpeza", "Estoquista", "Outro"];
+const CARGOS = ["Gerente", "Cozinheiro", "Auxiliar de Cozinha", "Bartender", "Barman", "Garçom de Bar", "Atendente", "Caixa", "Entregador", "Limpeza", "Estoquista", "Outro"];
 const TURNOS = ["Manhã (06-14h)", "Tarde (14-22h)", "Noite (22-06h)", "Integral (08-18h)", "Folguista"];
 const VAZIO = { nome: "", cargo: "Atendente", turno: "Manhã (06-14h)", salario: "", admissao: "", telefone: "", email: "", ativo: true };
 

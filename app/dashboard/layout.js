@@ -117,6 +117,7 @@ const MENU_GROUPS = [
       { id: "estoque",      label: "Estoque",              Icon: Ic.Box,       href: "/dashboard/operacao/estoque" },
       { id: "fornecedores", label: "Fornecedores",         Icon: Ic.Truck,     href: "/dashboard/operacao/fornecedores" },
       { id: "eventos",      label: "Gestão de Eventos",    Icon: Ic.Calendar,  href: "/dashboard/operacao/eventos" },
+      { id: "etiquetas",    label: "Etiquetas (QR)",       Icon: Ic.Box,       href: "/dashboard/operacao/etiquetas" },
     ],
   },
   {
@@ -164,6 +165,7 @@ function getNavId(pathname) {
   if (pathname.includes("/ingredientes")) return "ingredientes";
   if (pathname.includes("/estoque"))      return "estoque";
   if (pathname.includes("/fornecedores")) return "fornecedores";
+  if (pathname.includes("/etiquetas"))    return "etiquetas";
   if (pathname.includes("/eventos"))      return "eventos";
   if (pathname.includes("/dre"))          return "dre";
   if (pathname.includes("/fluxo"))        return "fluxo";

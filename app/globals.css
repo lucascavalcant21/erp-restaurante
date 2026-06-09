@@ -134,3 +134,11 @@ button, a { cursor: pointer; transition: all 120ms ease; }
   .erp-badge-warn   { background: var(--warning-soft); color: #FCD34D; }
   .erp-badge-danger { background: var(--danger-soft);  color: #FCA5A5; }
 }
+
+/* Impressao de etiqueta (impressora termica) */
+@media print {
+  body * { visibility: hidden !important; }
+  #area-impressao, #area-impressao * { visibility: visible !important; }
+  #area-impressao { position: absolute; left: 0; top: 0; margin: 0; padding: 0; background: #fff !important; color: #000 !important; }
+  @page { margin: 0; }
+}

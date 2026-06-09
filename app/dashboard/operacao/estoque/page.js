@@ -9,6 +9,7 @@ import {
   RefreshCw, CheckCircle, XCircle, Minus, Activity,
 } from "lucide-react";
 import { fetchEstoque, inserirItem, movimentar, removerItem, ESTOQUE_SEED } from "../../../lib/estoque";
+import { useERP } from "../../../context/ERPContext";
 
 function fmtBRL(val) {
   return Number(val).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -756,6 +757,13 @@ export default function EstoquePage() {
   const [itemEditar, setItemEditar] = useState(null);
   const [movModal,   setMovModal]   = useState(null);
   const [salvou,     setSalvou]     = useState(false);
+
+  // Estoque é a fonte da verdade do ERP: sincroniza com o contexto global
+  // para que Dashboard, IA e Notificações reflitam o estoque real e suas mudanças.
+  const { setEstoque: setEstoqueGlobal } = useERP();
+  useEffect(() => {
+    if (!loading) setEstoqueGlobal(itens);
+  }, [itens, loading, setEstoqueGlobal]);
 
   const carregarDados = useCallback(async () => {
     setLoading(true);

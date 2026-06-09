@@ -259,27 +259,27 @@ const Skel = ({ cls = "" }) => (
 function Card({ children, className = "" }) {
   return (
     <div className={`rounded-2xl ${className}`}
-      style={{ background: '#1E293B', border: '1px solid rgba(255,255,255,0.07)', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
+      style={{ background: 'var(--card)', border: '1px solid rgba(255,255,255,0.07)', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
       {children}
     </div>
   );
 }
 function SectionTitle({ children }) {
-  return <p className="text-[10px] font-semibold uppercase tracking-widest mb-3 px-0.5" style={{ color: '#94A3B8', letterSpacing: '0.08em' }}>{children}</p>;
+  return <p className="text-[10px] font-semibold uppercase tracking-widest mb-3 px-0.5" style={{ color: 'var(--muted)', letterSpacing: '0.08em' }}>{children}</p>;
 }
 function TelaEmBreve({ titulo, descricao }) {
   return (
     <div className="px-4 pt-5 pb-28">
-      <h1 className="text-2xl font-black mb-1" style={{ color: '#F1F5F9' }}>{titulo}</h1>
-      <p className="text-sm font-medium mb-8" style={{ color: '#475569' }}>{descricao}</p>
+      <h1 className="text-2xl font-black mb-1" style={{ color: 'var(--fg)' }}>{titulo}</h1>
+      <p className="text-sm font-medium mb-8" style={{ color: 'var(--dim)' }}>{descricao}</p>
       <Card className="p-8 flex flex-col items-center text-center">
         <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'rgba(5,150,105,0.12)' }}>
           <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth={1.8}>
             <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
           </svg>
         </div>
-        <p className="text-sm font-bold mb-1" style={{ color: '#CBD5E1' }}>Em desenvolvimento</p>
-        <p className="text-xs font-medium" style={{ color: '#475569' }}>Este módulo estará disponível em breve.</p>
+        <p className="text-sm font-bold mb-1" style={{ color: 'var(--fg-soft)' }}>Em desenvolvimento</p>
+        <p className="text-xs font-medium" style={{ color: 'var(--dim)' }}>Este módulo estará disponível em breve.</p>
       </Card>
     </div>
   );
@@ -358,8 +358,8 @@ function TelaDashboard({ mes, ano, dados, loading, sessao }) {
 
       {/* Saudação */}
       <div>
-        <p className="text-xs font-medium mb-0.5" style={{ color: '#475569' }}>{saudacao},</p>
-        <h1 className="text-xl font-bold leading-tight" style={{ color: '#F1F5F9' }}>{nome} 👋</h1>
+        <p className="text-xs font-medium mb-0.5" style={{ color: 'var(--dim)' }}>{saudacao},</p>
+        <h1 className="text-xl font-bold leading-tight" style={{ color: 'var(--fg)' }}>{nome} 👋</h1>
       </div>
 
       {/* KPI Cards 2×2 */}
@@ -371,14 +371,14 @@ function TelaDashboard({ mes, ano, dados, loading, sessao }) {
           { label: "Margem",        val: d.margem_pct    != null ? `${d.margem_pct}%`       : null, dot: "#8B5CF6" },
         ].map(({ label, val, dot }) => (
           <div key={label} className="rounded-2xl p-4"
-            style={{ background: '#1E293B', border: '1px solid rgba(255,255,255,0.07)' }}>
+            style={{ background: 'var(--card)', border: '1px solid rgba(255,255,255,0.07)' }}>
             <div className="flex items-center gap-1.5 mb-2">
               <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: dot }} />
-              <p className="text-[10px] font-semibold uppercase" style={{ color: '#94A3B8', letterSpacing: '0.06em' }}>{label}</p>
+              <p className="text-[10px] font-semibold uppercase" style={{ color: 'var(--muted)', letterSpacing: '0.06em' }}>{label}</p>
             </div>
             {loading || val == null
               ? <Skel cls="h-6 w-20" />
-              : <p className="text-lg font-bold" style={{ color: '#F1F5F9' }}>{val}</p>}
+              : <p className="text-lg font-bold" style={{ color: 'var(--fg)' }}>{val}</p>}
           </div>
         ))}
       </div>
@@ -399,14 +399,14 @@ function TelaDashboard({ mes, ano, dados, loading, sessao }) {
                     className="w-full rounded-t-lg transition-all duration-700"
                     style={{ height: `${h}px`, backgroundColor: b.atual ? "#10b981" : "#334155" }}
                   />
-                  <p className={`text-[9px] font-black leading-none`} style={{ color: b.atual ? '#10b981' : '#475569' }}>
+                  <p className={`text-[9px] font-black leading-none`} style={{ color: b.atual ? 'var(--accent)' : 'var(--dim)' }}>
                     {b.label}
                   </p>
                 </div>
               );
             })}
           </div>
-          <p className="text-[10px] font-medium text-center mt-3" style={{ color: '#334155' }}>
+          <p className="text-[10px] font-medium text-center mt-3" style={{ color: 'var(--elevated)' }}>
             Dados simulados · integre seu PDV para valores reais
           </p>
         </Card>
@@ -419,7 +419,7 @@ function TelaDashboard({ mes, ano, dados, loading, sessao }) {
           {d.distribuicao.map(({ label, cor, pct }) => (
             <div key={label} className="mb-3 last:mb-0">
               <div className="flex justify-between items-center mb-1">
-                <span className="text-xs font-bold" style={{ color: '#CBD5E1' }}>{label}</span>
+                <span className="text-xs font-bold" style={{ color: 'var(--fg-soft)' }}>{label}</span>
                 {loading || pct == null ? <Skel cls="h-3 w-8" /> : <span className="text-xs font-black" style={{ color: cor }}>{pct}%</span>}
               </div>
               <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
@@ -431,9 +431,9 @@ function TelaDashboard({ mes, ano, dados, loading, sessao }) {
           ))}
           {!loading && d.faturamento == null && (
             <div className="flex flex-col items-center text-center py-4">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-2" style={{ background: 'rgba(255,255,255,0.06)', color: '#475569' }}><Ic.BarChart size={18} /></div>
-              <p className="text-xs font-bold" style={{ color: '#64748B' }}>Sem dados para o período</p>
-              <p className="text-[11px] font-medium" style={{ color: '#475569' }}>Registre vendas e custos para ver o painel.</p>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-2" style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--dim)' }}><Ic.BarChart size={18} /></div>
+              <p className="text-xs font-bold" style={{ color: 'var(--subtle)' }}>Sem dados para o período</p>
+              <p className="text-[11px] font-medium" style={{ color: 'var(--dim)' }}>Registre vendas e custos para ver o painel.</p>
             </div>
           )}
         </Card>
@@ -493,14 +493,14 @@ function TelaDashboard({ mes, ano, dados, loading, sessao }) {
             return (
               <button key={a.id} onClick={() => router.push(a.href)}
                 className="rounded-xl p-3 flex flex-col items-center gap-2 active:scale-95 transition-all"
-                style={{ background: '#1E293B', border: '1px solid rgba(255,255,255,0.07)' }}
+                style={{ background: 'var(--card)', border: '1px solid rgba(255,255,255,0.07)' }}
                 onMouseOver={e=>e.currentTarget.style.background='#263548'}
-                onMouseOut={e=>e.currentTarget.style.background='#1E293B'}>
+                onMouseOut={e=>e.currentTarget.style.background='var(--card)'}>
                 <div className="w-9 h-9 rounded-lg flex items-center justify-center"
-                  style={{ background: 'rgba(255,255,255,0.08)', color: '#F1F5F9' }}>
+                  style={{ background: 'rgba(255,255,255,0.08)', color: 'var(--fg)' }}>
                   <AIcon size={16} />
                 </div>
-                <p className="text-[10px] font-semibold text-center leading-tight" style={{ color: '#94A3B8' }}>{a.label}</p>
+                <p className="text-[10px] font-semibold text-center leading-tight" style={{ color: 'var(--muted)' }}>{a.label}</p>
               </button>
             );
           })}
@@ -528,16 +528,16 @@ function TelaDRE({ mes, ano }) {
   const rows = dados?.linhas || [];
   return (
     <div className="px-4 pt-5 pb-28">
-      <h1 className="text-2xl font-black mb-1" style={{ color: '#F1F5F9' }}>DRE Gerencial</h1>
-      <p className="text-sm font-medium mb-5" style={{ color: '#475569' }}>{MESES[mes]} {ano}</p>
+      <h1 className="text-2xl font-black mb-1" style={{ color: 'var(--fg)' }}>DRE Gerencial</h1>
+      <p className="text-sm font-medium mb-5" style={{ color: 'var(--dim)' }}>{MESES[mes]} {ano}</p>
       {loading
         ? [1,2,3,4,5].map((i) => <Skel key={i} cls="h-14 mb-2" />)
         : rows.length === 0
           ? (
             <Card className="p-6 flex flex-col items-center text-center">
-              <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3" style={{ background: 'rgba(255,255,255,0.06)', color: '#475569' }}><Ic.BarChart size={22} /></div>
-              <p className="text-sm font-bold mb-1" style={{ color: '#CBD5E1' }}>Sem dados para o período</p>
-              <p className="text-xs font-medium" style={{ color: '#475569' }}>Registre lançamentos financeiros para gerar o DRE.</p>
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3" style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--dim)' }}><Ic.BarChart size={22} /></div>
+              <p className="text-sm font-bold mb-1" style={{ color: 'var(--fg-soft)' }}>Sem dados para o período</p>
+              <p className="text-xs font-medium" style={{ color: 'var(--dim)' }}>Registre lançamentos financeiros para gerar o DRE.</p>
             </Card>
           )
           : (
@@ -545,8 +545,8 @@ function TelaDRE({ mes, ano }) {
               {rows.map((r, i) => (
                 <div key={i} className={`flex justify-between items-center px-4 py-3`}
                   style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: r.destaque ? 'rgba(255,255,255,0.03)' : 'transparent' }}>
-                  <p style={{ fontSize: 13, fontWeight: r.destaque ? 700 : 500, color: r.destaque ? '#F1F5F9' : '#94A3B8' }}>{r.label}</p>
-                  <p style={{ fontSize: 13, fontWeight: 700, color: r.valor >= 0 ? '#10b981' : '#EF4444' }}>{fmtBRL(r.valor)}</p>
+                  <p style={{ fontSize: 13, fontWeight: r.destaque ? 700 : 500, color: r.destaque ? 'var(--fg)' : 'var(--muted)' }}>{r.label}</p>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: r.valor >= 0 ? 'var(--accent)' : 'var(--danger)' }}>{fmtBRL(r.valor)}</p>
                 </div>
               ))}
             </Card>
@@ -572,20 +572,20 @@ function TelaEstoque() {
   const filtrados = itens.filter((i) => i.nome?.toLowerCase().includes(busca.toLowerCase()));
   return (
     <div className="px-4 pt-5 pb-28">
-      <h1 className="text-2xl font-black mb-4" style={{ color: '#F1F5F9' }}>Controle de Estoque</h1>
+      <h1 className="text-2xl font-black mb-4" style={{ color: 'var(--fg)' }}>Controle de Estoque</h1>
       <div className="relative mb-4">
-        <div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#475569' }}><Ic.Search size={16} /></div>
+        <div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--dim)' }}><Ic.Search size={16} /></div>
         <input type="search" placeholder="Buscar insumo..." value={busca} onChange={(e) => setBusca(e.target.value)}
-          style={{ width: '100%', background: '#1E293B', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, paddingLeft: 40, paddingRight: 16, paddingTop: 10, paddingBottom: 10, fontSize: 13, fontWeight: 500, color: '#F1F5F9', outline: 'none' }} />
+          style={{ width: '100%', background: 'var(--card)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, paddingLeft: 40, paddingRight: 16, paddingTop: 10, paddingBottom: 10, fontSize: 13, fontWeight: 500, color: 'var(--fg)', outline: 'none' }} />
       </div>
       {loading
         ? [1,2,3,4].map((i) => <Skel key={i} cls="h-16 mb-2" />)
         : filtrados.length === 0
           ? (
             <Card className="p-6 flex flex-col items-center text-center">
-              <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3" style={{ background: 'rgba(255,255,255,0.06)', color: '#475569' }}><Ic.Box size={22} /></div>
-              <p className="text-sm font-bold mb-1" style={{ color: '#CBD5E1' }}>Nenhum insumo cadastrado</p>
-              <p className="text-xs font-medium" style={{ color: '#475569' }}>Adicione insumos para controlar seu estoque.</p>
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3" style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--dim)' }}><Ic.Box size={22} /></div>
+              <p className="text-sm font-bold mb-1" style={{ color: 'var(--fg-soft)' }}>Nenhum insumo cadastrado</p>
+              <p className="text-xs font-medium" style={{ color: 'var(--dim)' }}>Adicione insumos para controlar seu estoque.</p>
             </Card>
           )
           : (
@@ -593,12 +593,12 @@ function TelaEstoque() {
               {filtrados.map((it, i) => (
                 <div key={i} className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-sm font-black"
-                    style={{ background: 'rgba(255,255,255,0.06)', color: '#64748B' }}>
+                    style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--subtle)' }}>
                     {it.nome?.[0]?.toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold truncate" style={{ color: '#F1F5F9' }}>{it.nome}</p>
-                    <p className="text-xs font-medium" style={{ color: '#475569' }}>{it.unidade} · {it.categoria}</p>
+                    <p className="text-sm font-bold truncate" style={{ color: 'var(--fg)' }}>{it.nome}</p>
+                    <p className="text-xs font-medium" style={{ color: 'var(--dim)' }}>{it.unidade} · {it.categoria}</p>
                   </div>
                   <div className="text-right flex-shrink-0">
                     <p className={`text-sm font-black ${it.qtd <= (it.minimo || 0) ? "text-accent" : "text-neutral-800"}`}>{it.qtd}</p>
@@ -811,7 +811,7 @@ function SidebarMenu({ navId, onNav, sessao, onSair, navPermitidos }) {
       style={{
         position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 50,
         width: exp ? W_EXP : W_COL,
-        background: '#0F172A',
+        background: 'var(--surface)',
         borderRight: '1px solid rgba(255,255,255,0.06)',
         transition: 'width 220ms cubic-bezier(0.4,0,0.2,1)',
         overflow: 'hidden',
@@ -836,7 +836,7 @@ function SidebarMenu({ navId, onNav, sessao, onSair, navPermitidos }) {
           </svg>
         </div>
         <div style={{ opacity: exp ? 1 : 0, transition: 'opacity 160ms', whiteSpace: 'nowrap', overflow: 'hidden' }}>
-          <p style={{ color: '#F1F5F9', fontSize: 13, fontWeight: 700, lineHeight: 1.2 }}>Cerebro ERP</p>
+          <p style={{ color: 'var(--fg)', fontSize: 13, fontWeight: 700, lineHeight: 1.2 }}>Cerebro ERP</p>
           {papel && <p style={{ color: papel.cor, fontSize: 10, fontWeight: 600, marginTop: 1 }}>{papel.label}</p>}
         </div>
       </div>
@@ -859,10 +859,10 @@ function SidebarMenu({ navId, onNav, sessao, onSair, navPermitidos }) {
           {sessao?.nome?.[0]?.toUpperCase() || "U"}
         </div>
         <div style={{ opacity: exp ? 1 : 0, transition: 'opacity 160ms', overflow: 'hidden', whiteSpace: 'nowrap', minWidth: 0 }}>
-          <p style={{ color: '#F1F5F9', fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <p style={{ color: 'var(--fg)', fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {sessao?.nome?.split(" ")[0] || "Usuário"}
           </p>
-          <p style={{ color: '#475569', fontSize: 10, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <p style={{ color: 'var(--dim)', fontSize: 10, overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {sessao?.email || ""}
           </p>
         </div>
@@ -881,7 +881,7 @@ function SidebarMenu({ navId, onNav, sessao, onSair, navPermitidos }) {
                 padding: '0 18px', overflow: 'hidden',
                 opacity: exp ? 1 : 0, transition: 'opacity 160ms',
               }}>
-                <p style={{ color: '#334155', fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                <p style={{ color: 'var(--elevated)', fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                   {group.label}
                 </p>
               </div>
@@ -896,17 +896,17 @@ function SidebarMenu({ navId, onNav, sessao, onSair, navPermitidos }) {
                       gap: 12, padding: exp ? '9px 14px' : '9px 0',
                       justifyContent: exp ? 'flex-start' : 'center',
                       background: active ? 'rgba(5,150,105,0.14)' : 'transparent',
-                      color: active ? '#34D399' : '#64748B',
+                      color: active ? 'var(--accent-fg)' : 'var(--subtle)',
                       border: 'none', cursor: 'pointer',
                       transition: 'background 120ms, color 120ms',
                       borderLeft: active ? '2px solid #34D399' : '2px solid transparent',
                     }}
                     onMouseOver={e => {
-                      if (!active) { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = '#CBD5E1'; }
+                      if (!active) { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = 'var(--fg-soft)'; }
                     }}
                     onMouseOut={e => {
                       e.currentTarget.style.background = active ? 'rgba(5,150,105,0.14)' : 'transparent';
-                      e.currentTarget.style.color = active ? '#34D399' : '#64748B';
+                      e.currentTarget.style.color = active ? 'var(--accent-fg)' : 'var(--subtle)';
                     }}>
                     <div style={{ flexShrink: 0, width: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <NavIcon size={16} />
@@ -918,7 +918,7 @@ function SidebarMenu({ navId, onNav, sessao, onSair, navPermitidos }) {
                     }}>{item.label}</span>
                     {item.id === "notificacoes" && naoLidas > 0 && exp && (
                       <span style={{
-                        minWidth: 18, height: 18, background: '#EF4444',
+                        minWidth: 18, height: 18, background: 'var(--danger)',
                         color: 'white', fontSize: 9, fontWeight: 700,
                         borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center',
                         padding: '0 4px', flexShrink: 0,
@@ -942,11 +942,11 @@ function SidebarMenu({ navId, onNav, sessao, onSair, navPermitidos }) {
             width: '100%', display: 'flex', alignItems: 'center',
             gap: 12, padding: exp ? '8px 14px' : '8px 0',
             justifyContent: exp ? 'flex-start' : 'center',
-            color: '#64748B', background: 'transparent', border: 'none', cursor: 'pointer',
+            color: 'var(--subtle)', background: 'transparent', border: 'none', cursor: 'pointer',
             transition: 'background 120ms, color 120ms',
           }}
-          onMouseOver={e=>{ e.currentTarget.style.background='rgba(255,255,255,0.04)'; e.currentTarget.style.color='#CBD5E1'; }}
-          onMouseOut={e=>{ e.currentTarget.style.background='transparent'; e.currentTarget.style.color='#64748B'; }}>
+          onMouseOver={e=>{ e.currentTarget.style.background='rgba(255,255,255,0.04)'; e.currentTarget.style.color='var(--fg-soft)'; }}
+          onMouseOut={e=>{ e.currentTarget.style.background='transparent'; e.currentTarget.style.color='var(--subtle)'; }}>
           <div style={{ width: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Ic.User size={15} />
           </div>
@@ -960,11 +960,11 @@ function SidebarMenu({ navId, onNav, sessao, onSair, navPermitidos }) {
             width: '100%', display: 'flex', alignItems: 'center',
             gap: 12, padding: exp ? '8px 14px' : '8px 0',
             justifyContent: exp ? 'flex-start' : 'center',
-            color: '#64748B', background: 'transparent', border: 'none', cursor: 'pointer',
+            color: 'var(--subtle)', background: 'transparent', border: 'none', cursor: 'pointer',
             transition: 'background 120ms, color 120ms',
           }}
           onMouseOver={e=>{ e.currentTarget.style.background='rgba(239,68,68,0.08)'; e.currentTarget.style.color='#F87171'; }}
-          onMouseOut={e=>{ e.currentTarget.style.background='transparent'; e.currentTarget.style.color='#64748B'; }}>
+          onMouseOut={e=>{ e.currentTarget.style.background='transparent'; e.currentTarget.style.color='var(--subtle)'; }}>
           <div style={{ width: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Ic.LogOut size={15} />
           </div>
@@ -991,11 +991,11 @@ function Header({ sessao, navId, onNavNotif }) {
       position: 'sticky', top: 0, zIndex: 30,
       height: 56, display: 'flex', alignItems: 'center',
       padding: '0 20px', gap: 12,
-      background: '#0F172A',
+      background: 'var(--surface)',
       borderBottom: '1px solid rgba(255,255,255,0.06)',
     }}>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ color: '#F1F5F9', fontSize: 14, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <p style={{ color: 'var(--fg)', fontSize: 14, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {title}
         </p>
       </div>
@@ -1003,7 +1003,7 @@ function Header({ sessao, navId, onNavNotif }) {
         style={{
           position: 'relative', width: 36, height: 36, borderRadius: 8, flexShrink: 0,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          border: '1px solid rgba(255,255,255,0.08)', color: '#94A3B8',
+          border: '1px solid rgba(255,255,255,0.08)', color: 'var(--muted)',
           background: 'transparent', cursor: 'pointer',
         }}
         onMouseOver={e=>e.currentTarget.style.background='rgba(255,255,255,0.06)'}
@@ -1012,7 +1012,7 @@ function Header({ sessao, navId, onNavNotif }) {
         {naoLidas > 0 && (
           <span style={{
             position: 'absolute', top: -4, right: -4,
-            minWidth: 16, height: 16, background: '#EF4444',
+            minWidth: 16, height: 16, background: 'var(--danger)',
             color: 'white', fontSize: 9, fontWeight: 700,
             borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center',
             padding: '0 3px',

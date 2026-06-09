@@ -240,7 +240,7 @@ export default function FichasTecnicasPage() {
     <div className="min-h-screen ">
 
       {/* Header */}
-      <div className="sticky top-0 z-20  border-b border-white/8 px-4 pt-12 pb-3 flex items-center gap-3" style={{ background: '#0F172A' }}>
+      <div className="sticky top-0 z-20  border-b border-white/8 px-4 pt-12 pb-3 flex items-center gap-3" style={{ background: 'var(--surface)' }}>
         <button
           onClick={() => router.back()}
           className="w-9 h-9 rounded-xl bg-card border border-white/8 flex items-center justify-center  active:scale-95 transition-transform"

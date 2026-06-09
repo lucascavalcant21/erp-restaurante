@@ -128,7 +128,7 @@ function LayoutSidebar({ sessao, navId, onSair }) {
       style={{
         position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 50,
         width: exp ? 260 : 64,
-        background: '#0F172A',
+        background: 'var(--surface)',
         borderRight: '1px solid rgba(255,255,255,0.06)',
         transition: 'width 220ms cubic-bezier(0.4,0,0.2,1)',
         overflow: 'hidden',
@@ -153,7 +153,7 @@ function LayoutSidebar({ sessao, navId, onSair }) {
           </svg>
         </div>
         <div style={{ opacity: exp ? 1 : 0, transition: 'opacity 160ms', whiteSpace: 'nowrap', overflow: 'hidden' }}>
-          <p style={{ color: '#F1F5F9', fontSize: 13, fontWeight: 700, lineHeight: 1.2 }}>Cerebro ERP</p>
+          <p style={{ color: 'var(--fg)', fontSize: 13, fontWeight: 700, lineHeight: 1.2 }}>Cerebro ERP</p>
           {papel && <p style={{ color: papel.cor, fontSize: 10, fontWeight: 600, marginTop: 1 }}>{papel.label}</p>}
         </div>
       </div>
@@ -176,10 +176,10 @@ function LayoutSidebar({ sessao, navId, onSair }) {
           {sessao?.nome?.[0]?.toUpperCase() || "U"}
         </div>
         <div style={{ opacity: exp ? 1 : 0, transition: 'opacity 160ms', overflow: 'hidden', whiteSpace: 'nowrap', minWidth: 0 }}>
-          <p style={{ color: '#F1F5F9', fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <p style={{ color: 'var(--fg)', fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {sessao?.nome?.split(" ")[0] || "Usuário"}
           </p>
-          <p style={{ color: '#475569', fontSize: 10, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <p style={{ color: 'var(--dim)', fontSize: 10, overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {sessao?.email || ""}
           </p>
         </div>
@@ -194,7 +194,7 @@ function LayoutSidebar({ sessao, navId, onSair }) {
               padding: '0 18px', overflow: 'hidden',
               opacity: exp ? 1 : 0, transition: 'opacity 160ms',
             }}>
-              <p style={{ color: '#334155', fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+              <p style={{ color: 'var(--elevated)', fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                 {group.label}
               </p>
             </div>
@@ -209,17 +209,17 @@ function LayoutSidebar({ sessao, navId, onSair }) {
                     gap: 12, padding: exp ? '9px 14px' : '9px 0',
                     justifyContent: exp ? 'flex-start' : 'center',
                     background: active ? 'rgba(5,150,105,0.14)' : 'transparent',
-                    color: active ? '#34D399' : '#64748B',
+                    color: active ? 'var(--accent-fg)' : 'var(--subtle)',
                     border: 'none', cursor: 'pointer',
                     transition: 'background 120ms, color 120ms',
                     borderLeft: active ? '2px solid #34D399' : '2px solid transparent',
                   }}
                   onMouseOver={e => {
-                    if (!active) { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = '#CBD5E1'; }
+                    if (!active) { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = 'var(--fg-soft)'; }
                   }}
                   onMouseOut={e => {
                     e.currentTarget.style.background = active ? 'rgba(5,150,105,0.14)' : 'transparent';
-                    e.currentTarget.style.color = active ? '#34D399' : '#64748B';
+                    e.currentTarget.style.color = active ? 'var(--accent-fg)' : 'var(--subtle)';
                   }}>
                   <div style={{ flexShrink: 0, width: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <NavIcon />
@@ -244,10 +244,10 @@ function LayoutSidebar({ sessao, navId, onSair }) {
             width: '100%', display: 'flex', alignItems: 'center',
             gap: 12, padding: exp ? '8px 14px' : '8px 0',
             justifyContent: exp ? 'flex-start' : 'center',
-            color: '#64748B', background: 'transparent', border: 'none', cursor: 'pointer',
+            color: 'var(--subtle)', background: 'transparent', border: 'none', cursor: 'pointer',
           }}
-          onMouseOver={e=>{ e.currentTarget.style.background='rgba(255,255,255,0.04)'; e.currentTarget.style.color='#CBD5E1'; }}
-          onMouseOut={e=>{ e.currentTarget.style.background='transparent'; e.currentTarget.style.color='#64748B'; }}>
+          onMouseOver={e=>{ e.currentTarget.style.background='rgba(255,255,255,0.04)'; e.currentTarget.style.color='var(--fg-soft)'; }}
+          onMouseOut={e=>{ e.currentTarget.style.background='transparent'; e.currentTarget.style.color='var(--subtle)'; }}>
           <div style={{ width: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Ic.User />
           </div>
@@ -261,10 +261,10 @@ function LayoutSidebar({ sessao, navId, onSair }) {
             width: '100%', display: 'flex', alignItems: 'center',
             gap: 12, padding: exp ? '8px 14px' : '8px 0',
             justifyContent: exp ? 'flex-start' : 'center',
-            color: '#64748B', background: 'transparent', border: 'none', cursor: 'pointer',
+            color: 'var(--subtle)', background: 'transparent', border: 'none', cursor: 'pointer',
           }}
           onMouseOver={e=>{ e.currentTarget.style.background='rgba(239,68,68,0.08)'; e.currentTarget.style.color='#F87171'; }}
-          onMouseOut={e=>{ e.currentTarget.style.background='transparent'; e.currentTarget.style.color='#64748B'; }}>
+          onMouseOut={e=>{ e.currentTarget.style.background='transparent'; e.currentTarget.style.color='var(--subtle)'; }}>
           <div style={{ width: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Ic.LogOut />
           </div>

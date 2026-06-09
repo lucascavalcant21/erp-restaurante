@@ -33,7 +33,28 @@ alter table fornecedores           add column if not exists unidade_id text refe
 alter table clientes               add column if not exists unidade_id text references unidades(id);
 alter table avaliacoes_nps         add column if not exists unidade_id text references unidades(id);
 alter table campanhas              add column if not exists unidade_id text references unidades(id);
--- (adicione aqui: documentos, lancamentos_fluxo, etc. quando criar as tabelas)
+-- Tabelas financeiras (criadas já com unidade_id)
+create table if not exists lancamentos (
+  id         uuid primary key default gen_random_uuid(),
+  tipo       text not null,           -- 'entrada' | 'saida'
+  categoria  text,
+  descricao  text not null,
+  valor      numeric not null default 0,
+  data       date not null default current_date,
+  unidade_id text references unidades(id),
+  created_at timestamptz default now()
+);
+create table if not exists documentos (
+  id         uuid primary key default gen_random_uuid(),
+  tipo       text, descricao text not null, categoria text,
+  valor      numeric not null default 0,
+  emissao    date, vencimento date,
+  status     text default 'Pendente', -- Pendente | Pago | Vencido
+  unidade_id text references unidades(id),
+  created_at timestamptz default now()
+);
+create index if not exists idx_lancamentos_unidade on lancamentos(unidade_id);
+create index if not exists idx_documentos_unidade  on documentos(unidade_id);
 
 -- 3) Índices para filtrar por unidade rapidamente
 create index if not exists idx_estoque_unidade      on estoque(unidade_id);

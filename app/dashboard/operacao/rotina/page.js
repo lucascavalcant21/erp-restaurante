@@ -99,12 +99,6 @@ const TAREFAS_INICIAIS = {
 
 const RESPONSAVEIS = [
   "Selecione o responsável…",
-  "Lucas (Gerente)",
-  "Ana (Supervisora)",
-  "Carlos (Caixa)",
-  "Maria (Cozinha)",
-  "João (Estoque)",
-  "Fernanda (Atendimento)",
 ];
 
 // ─── Componente Principal ──────────────────────────────────────────────────────

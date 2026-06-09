@@ -36,39 +36,12 @@ const COLABORADOR = {
 };
 
 // ─── Holerites ────────────────────────────────────────────────────────────────
-const HOLERITES = [
-  { id: "h1", mes: "Maio 2026",   liquido: 2185.40, status: "disponivel" },
-  { id: "h2", mes: "Abril 2026",  liquido: 2185.40, status: "disponivel" },
-  { id: "h3", mes: "Março 2026",  liquido: 2185.40, status: "disponivel" },
-  { id: "h4", mes: "Fevereiro 2026", liquido: 2050.20, status: "disponivel" },
-];
+const HOLERITES = [];
 
-const HOLERITE_DETALHE = {
-  h1: {
-    proventos: [
-      { label: "Salário Base",         valor: 2400.00 },
-      { label: "Horas Extras (4h)",    valor: 120.00  },
-    ],
-    descontos: [
-      { label: "INSS (7,5%)",          valor: 192.00 },
-      { label: "VT Desconto",          valor: 86.00  },
-      { label: "VR Desconto",          valor: 56.60  },
-    ],
-  },
-};
+const HOLERITE_DETALHE = {};
 
 // ─── Escala ───────────────────────────────────────────────────────────────────
-const ESCALA = [
-  { data: "2026-06-02", dia: "Seg", turno: "06:00–14:00", status: "trabalhado" },
-  { data: "2026-06-03", dia: "Ter", turno: "06:00–14:00", status: "trabalhado" },
-  { data: "2026-06-04", dia: "Qua", turno: "06:00–14:00", status: "trabalhado" },
-  { data: "2026-06-05", dia: "Qui", turno: "06:00–14:00", status: "hoje"       },
-  { data: "2026-06-06", dia: "Sex", turno: "06:00–14:00", status: "futuro"     },
-  { data: "2026-06-07", dia: "Sáb", turno: "FOLGA",       status: "folga"      },
-  { data: "2026-06-08", dia: "Dom", turno: "FOLGA",       status: "folga"      },
-  { data: "2026-06-09", dia: "Seg", turno: "06:00–14:00", status: "futuro"     },
-  { data: "2026-06-10", dia: "Ter", turno: "06:00–14:00", status: "futuro"     },
-];
+const ESCALA = [];
 
 const ESCALA_STYLE = {
   trabalhado: { bg: "bg-emerald-50",  borda: "border-emerald-200", cor: "text-emerald-700", label: "✓" },
@@ -78,11 +51,7 @@ const ESCALA_STYLE = {
 };
 
 // ─── Avisos ───────────────────────────────────────────────────────────────────
-const AVISOS = [
-  { id: "a1", tipo: "info",    titulo: "Reunião de equipe",        corpo: "Reunião geral na próxima segunda-feira às 08:00 na Seldeestrela.", data: "2026-06-03" },
-  { id: "a2", tipo: "alerta",  titulo: "Atualização de uniforme",  corpo: "A partir de 01/07, o uso do jaleco completo é obrigatório em todas as unidades.", data: "2026-06-01" },
-  { id: "a3", tipo: "sucesso", titulo: "Férias aprovadas",         corpo: "Suas férias de 14/07 a 02/08 foram aprovadas. Bom descanso!", data: "2026-05-28" },
-];
+const AVISOS = [];
 
 const AVISO_STYLE = {
   info:    { Icon: Info,          bg: "bg-blue-50",    borda: "border-blue-200",    cor: "text-blue-600"    },
@@ -91,12 +60,7 @@ const AVISO_STYLE = {
 };
 
 // ─── Documentos da empresa ────────────────────────────────────────────────────
-const DOCUMENTOS = [
-  { id: "d1", nome: "Regulamento Interno",     tipo: "PDF", tamanho: "248 KB" },
-  { id: "d2", nome: "Política de Benefícios",  tipo: "PDF", tamanho: "180 KB" },
-  { id: "d3", nome: "Manual do Colaborador",   tipo: "PDF", tamanho: "1.2 MB" },
-  { id: "d4", nome: "Contrato de Trabalho",    tipo: "PDF", tamanho: "95 KB"  },
-];
+const DOCUMENTOS = [];
 
 // ─── Seção expansível ─────────────────────────────────────────────────────────
 function Secao({ icon: Icon, titulo, badge, children, defaultOpen = false }) {

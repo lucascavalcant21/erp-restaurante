@@ -26,8 +26,14 @@ export default function EtiquetasPage() {
   const [form, setForm] = useState({ produto: "", conservacao: "Congelado", quantidade: "1", unidade: "UN", dias: 30, lote: "", responsavel: "" });
   const [cnpj, setCnpj] = useState("");
   const [codigo, setCodigo] = useState(gerarCodigo());
+  const [tamanho, setTamanho] = useState("60x60"); // "60x60" | "60x40"
   const [salvou, setSalvou] = useState("");
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  // Dimensões/escala da etiqueta conforme o tamanho escolhido
+  const dim = tamanho === "60x40"
+    ? { h: "40mm", pad: "2.5mm", titulo: "4mm", linha: "2.9mm", resp: "2.6mm", qr: 60, gap: "0.5mm" }
+    : { h: "60mm", pad: "4mm",   titulo: "5mm", linha: "3.6mm", resp: "3.2mm", qr: 96, gap: "0.8mm" };
 
   useEffect(() => {
     lerSessao().then((s) => s?.nome && setForm((f) => ({ ...f, responsavel: f.responsavel || s.nome })));
@@ -129,30 +135,41 @@ export default function EtiquetasPage() {
 
           {/* ── Preview / Etiqueta ── */}
           <div>
-            <SectionLabel>Pré-visualização (60×60mm)</SectionLabel>
+            <div className="flex items-center justify-between mb-2">
+              <SectionLabel>Pré-visualização</SectionLabel>
+              <div className="flex gap-1.5">
+                {["60x40", "60x60"].map((t) => (
+                  <button key={t} onClick={() => setTamanho(t)}
+                    className="text-[11px] font-bold px-3 py-1.5 rounded-lg transition-all"
+                    style={tamanho === t ? { background: "var(--accent-strong)", color: "#fff" } : { background: "var(--card)", color: "var(--muted)", border: "1px solid var(--line)" }}>
+                    {t.replace("x", "×")}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="flex justify-center">
-              <div id="area-impressao" style={{ width: "60mm", minHeight: "60mm", background: "#fff", color: "#000", padding: "4mm", fontFamily: "monospace", borderRadius: 8 }}>
-                <div style={{ fontSize: "5mm", fontWeight: 800, lineHeight: 1.1, textTransform: "uppercase", borderBottom: "0.4mm solid #000", paddingBottom: "1.5mm" }}>
+              <div id="area-impressao" style={{ width: "60mm", height: dim.h, background: "#fff", color: "#000", padding: dim.pad, fontFamily: "monospace", borderRadius: 8, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                <div style={{ fontSize: dim.titulo, fontWeight: 800, lineHeight: 1.05, textTransform: "uppercase", borderBottom: "0.4mm solid #000", paddingBottom: dim.gap }}>
                   {nomeProduto || "PRODUTO"}
                 </div>
-                <Linha k={form.conservacao.toUpperCase()} v={`QTD: ${form.quantidade}${form.unidade !== "UN" ? form.unidade : ""}`} top />
-                <Linha k="MANIPULACAO:" v={fmtDataHora(agora)} />
-                <Linha k="VALIDADE:" v={fmtDataHora(validadeEm)} />
-                {form.lote && <Linha k="LOTE/SIF:" v={form.lote} />}
-                <div style={{ borderTop: "0.4mm solid #000", marginTop: "1.5mm", paddingTop: "1.5mm", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-                  <div style={{ fontSize: "3.2mm" }}>
+                <Linha fs={dim.linha} k={form.conservacao.toUpperCase()} v={`QTD: ${form.quantidade}${form.unidade !== "UN" ? form.unidade : ""}`} top />
+                <Linha fs={dim.linha} k="MANIP.:" v={fmtDataHora(agora)} />
+                <Linha fs={dim.linha} k="VALIDADE:" v={fmtDataHora(validadeEm)} />
+                {form.lote && <Linha fs={dim.linha} k="LOTE/SIF:" v={form.lote} />}
+                <div style={{ borderTop: "0.4mm solid #000", marginTop: "auto", paddingTop: dim.gap, display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: "2mm" }}>
+                  <div style={{ fontSize: dim.resp, lineHeight: 1.25, minWidth: 0 }}>
                     <div style={{ fontWeight: 700 }}>RESP.: {(form.responsavel || "—").toUpperCase()}</div>
-                    <div style={{ marginTop: "1mm" }}>{(unidadeInfo.nome || "").toUpperCase()}</div>
+                    <div>{(unidadeInfo.nome || "").toUpperCase()}</div>
                     {cnpj && <div>CNPJ: {cnpj}</div>}
                   </div>
-                  <div style={{ background: "#fff", padding: "0.5mm" }}>
-                    <QRCodeSVG value={rastreioUrl} size={96} level="M" />
+                  <div style={{ background: "#fff", flexShrink: 0 }}>
+                    <QRCodeSVG value={rastreioUrl} size={dim.qr} level="M" />
                   </div>
                 </div>
               </div>
             </div>
             <p className="text-[11px] text-center mt-3 flex items-center justify-center gap-1.5" style={{ color: "var(--dim)" }}>
-              <QrCode size={13} /> Código {codigo} · escaneie para rastrear
+              <QrCode size={13} /> {tamanho.replace("x", "×")}mm · código {codigo}
             </p>
           </div>
         </div>
@@ -161,9 +178,9 @@ export default function EtiquetasPage() {
   );
 }
 
-function Linha({ k, v, top }) {
+function Linha({ k, v, top, fs = "3.6mm" }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "3.6mm", fontWeight: 700, marginTop: top ? "1.5mm" : "0.8mm", borderBottom: "0.3mm solid #000", paddingBottom: "0.8mm" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", gap: "2mm", fontSize: fs, fontWeight: 700, marginTop: top ? "1.2mm" : "0.6mm", borderBottom: "0.3mm solid #000", paddingBottom: "0.6mm", whiteSpace: "nowrap" }}>
       <span>{k}</span><span>{v}</span>
     </div>
   );

@@ -103,6 +103,7 @@ const MENU_GROUPS = [
     id: "visao_geral", label: "DASHBOARD",
     items: [
       { id: "dashboard",    label: "Painel Inicial",       Icon: Ic.Dashboard, href: "/dashboard" },
+      { id: "rede",         label: "Visão de Rede",        Icon: Ic.BarChart,  href: "/dashboard/rede" },
       { id: "notificacoes", label: "Notificações",          Icon: Ic.Bell,      href: "/dashboard/notificacoes" },
     ],
   },
@@ -155,6 +156,7 @@ const MENU_GROUPS = [
 // Mapeia pathname → navId
 function getNavId(pathname) {
   if (pathname === "/dashboard") return "dashboard";
+  if (pathname.includes("/rede"))         return "rede";
   if (pathname.includes("/notificacoes")) return "notificacoes";
   if (pathname.includes("/rotina"))       return "rotina";
   if (pathname.includes("/cardapio"))     return "cardapio";

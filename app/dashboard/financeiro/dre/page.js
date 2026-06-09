@@ -107,9 +107,9 @@ function GraficoPizza({ fatias, raio = 48 }) {
           <div key={i} className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ backgroundColor: s.cor }} />
-              <p className="text-[10px] font-bold text-[#94A3B8]">{s.label}</p>
+              <p className="text-[10px] font-bold text-muted">{s.label}</p>
             </div>
-            <p className="text-[10px] font-black text-[#F1F5F9]">{s.pct}%</p>
+            <p className="text-[10px] font-black text-fg">{s.pct}%</p>
           </div>
         ))}
       </div>
@@ -125,7 +125,7 @@ function KPICard({ label, valor, anterior, formatador = fmtBRL, icone, corBase =
     emerald: { bg: "bg-emerald-50", borda: "border-emerald-200", txt: "text-emerald-800", icon: "bg-emerald-100" },
     blue:    { bg: "bg-blue-50",    borda: "border-blue-200",    txt: "text-blue-800",    icon: "bg-blue-100"    },
     violet:  { bg: "bg-violet-50",  borda: "border-violet-200",  txt: "text-violet-800",  icon: "bg-violet-100"  },
-    neutral: { bg: "bg-[#1E293B]",      borda: "border-white/5", txt: "text-[#F1F5F9]", icon: "bg-[#334155]" },
+    neutral: { bg: "bg-card",      borda: "border-white/5", txt: "text-fg", icon: "bg-elevated" },
   };
   const c = cores[corBase] || cores.neutral;
   const metaPct = meta ? Math.min((valor / meta) * 100, 100) : null;
@@ -136,20 +136,20 @@ function KPICard({ label, valor, anterior, formatador = fmtBRL, icone, corBase =
         {icone}
       </div>
       <p className={`text-lg font-black ${c.txt} leading-tight`}>{formatador(valor)}</p>
-      <p className="text-[10px] font-bold text-[#475569] mb-1">{label}</p>
+      <p className="text-[10px] font-bold text-dim mb-1">{label}</p>
       <div className="flex items-center justify-between">
         {var_pct != null && (
-          <div className={`flex items-center gap-0.5 text-[10px] font-black ${positivo ? "text-emerald-600" : "text-[#10b981]"}`}>
+          <div className={`flex items-center gap-0.5 text-[10px] font-black ${positivo ? "text-emerald-600" : "text-accent"}`}>
             {positivo ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
             {positivo ? "+" : ""}{fmtPct(Math.abs(var_pct))} vs mai
           </div>
         )}
         {metaPct != null && (
-          <div className="text-[9px] font-black text-[#475569]">{Math.round(metaPct)}% da meta</div>
+          <div className="text-[9px] font-black text-dim">{Math.round(metaPct)}% da meta</div>
         )}
       </div>
       {metaPct != null && (
-        <div className="h-1 bg-[#334155] rounded-full mt-1.5 overflow-hidden">
+        <div className="h-1 bg-elevated rounded-full mt-1.5 overflow-hidden">
           <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${metaPct}%` }} />
         </div>
       )}
@@ -160,23 +160,23 @@ function KPICard({ label, valor, anterior, formatador = fmtBRL, icone, corBase =
 // ─── Linha da DRE ─────────────────────────────────────────────────────────────
 function LinhaDRE({ label, valor, receita_bruta, destaque, negativo, separador, subitem }) {
   const pct = receita_bruta > 0 ? (Math.abs(valor) / receita_bruta) * 100 : 0;
-  const cor = negativo ? "text-[#059669]" : destaque ? "text-[#F1F5F9]" : "text-[#CBD5E1]";
-  if (separador) return <div className="h-px bg-[#334155] my-1" />;
+  const cor = negativo ? "text-accent-strong" : destaque ? "text-fg" : "text-fg-soft";
+  if (separador) return <div className="h-px bg-elevated my-1" />;
   return (
     <div className={`flex items-center justify-between px-4 py-2.5 ${destaque ? "" : ""} ${subitem ? "pl-8" : ""}`}>
       <div className="flex-1 min-w-0">
-        <p className={`text-[13px] leading-tight ${destaque ? "font-black text-[#F1F5F9]" : subitem ? "font-medium text-[#64748B]" : "font-bold text-[#CBD5E1]"}`}>
+        <p className={`text-[13px] leading-tight ${destaque ? "font-black text-fg" : subitem ? "font-medium text-subtle" : "font-bold text-fg-soft"}`}>
           {label}
         </p>
         {!destaque && !subitem && (
-          <div className="h-1 bg-[#334155] rounded-full mt-1 w-24 overflow-hidden">
+          <div className="h-1 bg-elevated rounded-full mt-1 w-24 overflow-hidden">
             <div className="h-full rounded-full" style={{ width: `${Math.min(pct, 100)}%`, backgroundColor: negativo ? "#f43f5e" : "#10b981" }} />
           </div>
         )}
       </div>
       <div className="text-right flex-shrink-0 ml-4">
         <p className={`text-[13px] font-black ${cor}`}>{negativo ? "- " : ""}{fmtBRL(Math.abs(valor))}</p>
-        {!destaque && <p className="text-[9px] text-[#475569] font-medium">{fmtPct(pct)} RB</p>}
+        {!destaque && <p className="text-[9px] text-dim font-medium">{fmtPct(pct)} RB</p>}
       </div>
     </div>
   );
@@ -190,12 +190,12 @@ function SeletorMes({ mes, ano, onChange }) {
   const isFuturo = ano > hoje.getFullYear() || (ano === hoje.getFullYear() && mes > hoje.getMonth());
   return (
     <div className="flex items-center gap-2">
-      <button onClick={prev} className="w-8 h-8 rounded-xl bg-[#1E293B] border border-white/8 flex items-center justify-center active:scale-95 ">
-        <ChevronLeft size={15} className="text-[#94A3B8]" />
+      <button onClick={prev} className="w-8 h-8 rounded-xl bg-card border border-white/8 flex items-center justify-center active:scale-95 ">
+        <ChevronLeft size={15} className="text-muted" />
       </button>
-      <span className="text-sm font-black text-[#F1F5F9] w-32 text-center">{MESES[mes]} {ano}</span>
-      <button onClick={next} disabled={isFuturo} className="w-8 h-8 rounded-xl bg-[#1E293B] border border-white/8 flex items-center justify-center active:scale-95  disabled:opacity-30">
-        <ChevronRight size={15} className="text-[#94A3B8]" />
+      <span className="text-sm font-black text-fg w-32 text-center">{MESES[mes]} {ano}</span>
+      <button onClick={next} disabled={isFuturo} className="w-8 h-8 rounded-xl bg-card border border-white/8 flex items-center justify-center active:scale-95  disabled:opacity-30">
+        <ChevronRight size={15} className="text-muted" />
       </button>
     </div>
   );
@@ -224,15 +224,15 @@ function AnaliseAutomatica({ d, anterior, margem_liquida, cmv_pct }) {
   if (var_lucro > var_receita + 2) pontos.push({ tipo: "ok", texto: `Lucro cresceu mais que a receita (+${fmtPct(var_lucro)} vs +${fmtPct(var_receita)}) — alavancagem operacional positiva.` });
 
   return (
-    <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-4">
-      <p className="text-[10px] font-black text-[#475569] uppercase tracking-wider mb-3">Análise Automática — IA</p>
+    <div className="bg-card rounded-2xl border border-white/5  p-4">
+      <p className="text-[10px] font-black text-dim uppercase tracking-wider mb-3">Análise Automática — IA</p>
       <div className="space-y-2">
         {pontos.map((p, i) => (
           <div key={i} className="flex items-start gap-2">
             {p.tipo === "ok"
               ? <CheckCircle size={13} className="text-emerald-500 flex-shrink-0 mt-0.5" />
               : <AlertTriangle size={13} className="text-amber-500 flex-shrink-0 mt-0.5" />}
-            <p className="text-[12px] font-medium text-[#CBD5E1] leading-snug">{p.texto}</p>
+            <p className="text-[12px] font-medium text-fg-soft leading-snug">{p.texto}</p>
           </div>
         ))}
       </div>
@@ -274,12 +274,12 @@ export default function DREPage() {
       <div className="sticky top-0 z-20 border-b border-white/8 px-4 pt-12 pb-3" style={{ background: '#0F172A' }}>
         <div className="flex items-center gap-3">
           <button onClick={() => router.back()}
-            className="w-9 h-9 rounded-xl bg-[#1E293B] border border-white/8 flex items-center justify-center  active:scale-95 transition-transform">
-            <ArrowLeft size={18} className="text-[#94A3B8]" />
+            className="w-9 h-9 rounded-xl bg-card border border-white/8 flex items-center justify-center  active:scale-95 transition-transform">
+            <ArrowLeft size={18} className="text-muted" />
           </button>
           <div className="flex-1">
             <h1 className="text-lg font-black leading-tight" style={{ color:"#F1F5F9" }}>DRE Gerencial</h1>
-            <p className="text-[11px] text-[#475569] font-medium">Demonstrativo de Resultado</p>
+            <p className="text-[11px] text-dim font-medium">Demonstrativo de Resultado</p>
           </div>
           <button onClick={() => exportarPDF({
               titulo: `DRE Gerencial — ${MESES[mes]} ${ano}`,
@@ -301,7 +301,7 @@ export default function DREPage() {
               ],
               rodape: `Margem Líquida: ${fmtPct(margem_liquida)} · Margem Bruta: ${fmtPct(margem_bruta)} · CMV: ${fmtPct(cmv_pct)}`,
             })}
-            className="flex items-center gap-1.5 bg-[#1E293B] border border-white/8 text-[#CBD5E1] text-xs font-black px-3 py-2 rounded-xl active:scale-95 ">
+            className="flex items-center gap-1.5 bg-card border border-white/8 text-fg-soft text-xs font-black px-3 py-2 rounded-xl active:scale-95 ">
             <FileDown size={13} /> PDF
           </button>
         </div>
@@ -310,7 +310,7 @@ export default function DREPage() {
         <div className="flex gap-2 mt-3">
           {[["visao","📊 Visão Geral"],["detalhes","📋 DRE"],["evolucao","📈 Evolução"]].map(([id, label]) => (
             <button key={id} onClick={() => setTabAtiva(id)}
-              className={`flex-1 py-2 rounded-xl text-[10px] font-black transition-all active:scale-95 ${tabAtiva === id ? "bg-[#059669] text-white" : "bg-[#1E293B] text-[#94A3B8] border border-white/8"}`}>
+              className={`flex-1 py-2 rounded-xl text-[10px] font-black transition-all active:scale-95 ${tabAtiva === id ? "bg-accent-strong text-white" : "bg-card text-muted border border-white/8"}`}>
               {label}
             </button>
           ))}
@@ -339,12 +339,12 @@ export default function DREPage() {
                 icone={<Percent size={16} className="text-blue-600" />} />
               <KPICard label="Margem Líquida" valor={margem_liquida}   anterior={d.receita_bruta > 0 ? (dAnt.lucro_liquido/dAnt.receita_bruta)*100 : null}
                 corBase="neutral" formatador={fmtPct}
-                icone={<Percent size={16} className="text-[#94A3B8]" />} />
+                icone={<Percent size={16} className="text-muted" />} />
             </div>
 
             {/* Indicadores de eficiência */}
-            <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-4">
-              <p className="text-[10px] font-black text-[#475569] uppercase tracking-wider mb-3">Indicadores de Eficiência</p>
+            <div className="bg-card rounded-2xl border border-white/5  p-4">
+              <p className="text-[10px] font-black text-dim uppercase tracking-wider mb-3">Indicadores de Eficiência</p>
               <div className="space-y-3">
                 {[
                   { label: "CMV / Receita Bruta", valor: cmv_pct,     meta: 40, melhor: false },
@@ -355,13 +355,13 @@ export default function DREPage() {
                   return (
                     <div key={r.label}>
                       <div className="flex items-center justify-between mb-1">
-                        <p className="text-[12px] font-bold text-[#CBD5E1]">{r.label}</p>
+                        <p className="text-[12px] font-bold text-fg-soft">{r.label}</p>
                         <div className="flex items-center gap-1.5">
                           <span className={`text-[10px] font-black ${ok ? "text-emerald-600" : "text-amber-600"}`}>{fmtPct(r.valor)}</span>
-                          <span className="text-[9px] text-[#475569]">meta {r.melhor ? "≥" : "≤"}{fmtPct(r.meta)}</span>
+                          <span className="text-[9px] text-dim">meta {r.melhor ? "≥" : "≤"}{fmtPct(r.meta)}</span>
                         </div>
                       </div>
-                      <div className="h-1.5 bg-[#334155] rounded-full overflow-hidden">
+                      <div className="h-1.5 bg-elevated rounded-full overflow-hidden">
                         <div className="h-full rounded-full transition-all duration-700"
                           style={{ width: `${Math.min(r.valor / (r.melhor ? r.meta * 2 : 60) * 100, 100)}%`, backgroundColor: ok ? "#10b981" : "#f59e0b" }} />
                       </div>
@@ -372,12 +372,12 @@ export default function DREPage() {
             </div>
 
             {/* Pizza despesas */}
-            <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-4">
-              <p className="text-[10px] font-black text-[#475569] uppercase tracking-wider mb-3">Composição das Despesas</p>
+            <div className="bg-card rounded-2xl border border-white/5  p-4">
+              <p className="text-[10px] font-black text-dim uppercase tracking-wider mb-3">Composição das Despesas</p>
               <GraficoPizza fatias={fatiasDespesas} />
               <div className="mt-3 pt-3 border-t border-white/5 flex justify-between">
-                <p className="text-[11px] font-bold text-[#64748B]">Total despesas op.</p>
-                <p className="text-[12px] font-black text-[#F1F5F9]">{fmtBRL(d.total_despesas_op)}</p>
+                <p className="text-[11px] font-bold text-subtle">Total despesas op.</p>
+                <p className="text-[12px] font-black text-fg">{fmtBRL(d.total_despesas_op)}</p>
               </div>
             </div>
 
@@ -385,22 +385,22 @@ export default function DREPage() {
             <AnaliseAutomatica d={d} anterior={dAnt} margem_liquida={margem_liquida} cmv_pct={cmv_pct} />
 
             {/* Stats do semestre */}
-            <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-4">
-              <p className="text-[10px] font-black text-[#475569] uppercase tracking-wider mb-3">Semestre em Números</p>
+            <div className="bg-card rounded-2xl border border-white/5  p-4">
+              <p className="text-[10px] font-black text-dim uppercase tracking-wider mb-3">Semestre em Números</p>
               <div className="grid grid-cols-3 gap-3">
                 <div className="text-center">
-                  <p className="text-base font-black text-[#F1F5F9]">{fmtK(mediaMensal)}</p>
-                  <p className="text-[9px] font-bold text-[#475569] uppercase">Média mensal</p>
+                  <p className="text-base font-black text-fg">{fmtK(mediaMensal)}</p>
+                  <p className="text-[9px] font-bold text-dim uppercase">Média mensal</p>
                 </div>
                 <div className="text-center">
                   <p className="text-base font-black text-emerald-700">{melhorMes.mes}</p>
-                  <p className="text-[9px] font-bold text-[#475569] uppercase">Melhor mês</p>
+                  <p className="text-[9px] font-bold text-dim uppercase">Melhor mês</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-base font-black text-[#F1F5F9]">
+                  <p className="text-base font-black text-fg">
                     {fmtK(HISTORICO.reduce((a, h) => a + h.lucro_liquido, 0))}
                   </p>
-                  <p className="text-[9px] font-bold text-[#475569] uppercase">Lucro total</p>
+                  <p className="text-[9px] font-bold text-dim uppercase">Lucro total</p>
                 </div>
               </div>
             </div>
@@ -409,7 +409,7 @@ export default function DREPage() {
 
         {/* ── ABA DRE COMPLETO ── */}
         {tabAtiva === "detalhes" && (
-          <div className="bg-[#1E293B] rounded-2xl border border-white/5  overflow-hidden divide-y divide-neutral-50">
+          <div className="bg-card rounded-2xl border border-white/5  overflow-hidden divide-y divide-neutral-50">
             <div className="px-4 py-2 bg-emerald-50">
               <p className="text-[10px] font-black text-emerald-600 uppercase tracking-wider">Receitas</p>
             </div>
@@ -443,8 +443,8 @@ export default function DREPage() {
             <div className={`px-4 py-4 flex items-center justify-between ${d.lucro_liquido >= 0 ? "bg-emerald-50" : "bg-[rgba(5,150,105,0.1)]"}`}>
               <p className={`text-base font-black ${d.lucro_liquido >= 0 ? "text-emerald-900" : "text-rose-800"}`}>= LUCRO LÍQUIDO</p>
               <div className="text-right">
-                <p className={`text-xl font-black ${d.lucro_liquido >= 0 ? "text-emerald-700" : "text-[#059669]"}`}>{fmtBRL(d.lucro_liquido)}</p>
-                <p className={`text-[11px] font-black ${d.lucro_liquido >= 0 ? "text-emerald-500" : "text-[#10b981]"}`}>{fmtPct(margem_liquida)} da RB</p>
+                <p className={`text-xl font-black ${d.lucro_liquido >= 0 ? "text-emerald-700" : "text-accent-strong"}`}>{fmtBRL(d.lucro_liquido)}</p>
+                <p className={`text-[11px] font-black ${d.lucro_liquido >= 0 ? "text-emerald-500" : "text-accent"}`}>{fmtPct(margem_liquida)} da RB</p>
               </div>
             </div>
           </div>
@@ -453,23 +453,23 @@ export default function DREPage() {
         {/* ── ABA EVOLUÇÃO ── */}
         {tabAtiva === "evolucao" && (
           <>
-            <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-4">
-              <p className="text-[10px] font-black text-[#475569] uppercase tracking-wider mb-1">Evolução — Últimos 6 Meses</p>
+            <div className="bg-card rounded-2xl border border-white/5  p-4">
+              <p className="text-[10px] font-black text-dim uppercase tracking-wider mb-1">Evolução — Últimos 6 Meses</p>
               <GraficoBarras dados={HISTORICO} altura={88} />
               <div className="flex gap-3 mt-1 justify-center">
                 {[["#10b981","Receita"],["#3b82f6","Lucro Bruto"],["#8b5cf6","Lucro Líquido"]].map(([cor, label]) => (
                   <div key={label} className="flex items-center gap-1">
                     <div className="w-2 h-2 rounded-sm" style={{ backgroundColor: cor }} />
-                    <p className="text-[9px] font-bold text-[#64748B]">{label}</p>
+                    <p className="text-[9px] font-bold text-subtle">{label}</p>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Tabela comparativa */}
-            <div className="bg-[#1E293B] rounded-2xl border border-white/5  overflow-hidden">
+            <div className="bg-card rounded-2xl border border-white/5  overflow-hidden">
               <div className="px-4 py-3 border-b border-white/5">
-                <p className="text-[10px] font-black text-[#475569] uppercase tracking-wider">Comparativo Mensal</p>
+                <p className="text-[10px] font-black text-dim uppercase tracking-wider">Comparativo Mensal</p>
               </div>
               <div className="divide-y divide-neutral-50">
                 {HISTORICO.map((h, i) => {
@@ -477,13 +477,13 @@ export default function DREPage() {
                   const varR  = i > 0 ? variacao(h.receita, HISTORICO[i-1].receita) : null;
                   return (
                     <div key={h.mes} className={`px-4 py-3 flex items-center ${atual ? "bg-emerald-50" : ""}`}>
-                      <p className={`w-10 text-[12px] font-black ${atual ? "text-emerald-700" : "text-[#94A3B8]"}`}>{h.mes}</p>
+                      <p className={`w-10 text-[12px] font-black ${atual ? "text-emerald-700" : "text-muted"}`}>{h.mes}</p>
                       <div className="flex-1">
-                        <p className="text-[12px] font-black text-[#F1F5F9]">{fmtBRL(h.receita)}</p>
-                        <p className="text-[10px] text-[#475569]">Lucro: {fmtBRL(h.lucro_liquido)}</p>
+                        <p className="text-[12px] font-black text-fg">{fmtBRL(h.receita)}</p>
+                        <p className="text-[10px] text-dim">Lucro: {fmtBRL(h.lucro_liquido)}</p>
                       </div>
                       {varR != null && (
-                        <span className={`text-[10px] font-black ${varR >= 0 ? "text-emerald-600" : "text-[#10b981]"}`}>
+                        <span className={`text-[10px] font-black ${varR >= 0 ? "text-emerald-600" : "text-accent"}`}>
                           {varR >= 0 ? "▲" : "▼"} {fmtPct(Math.abs(varR))}
                         </span>
                       )}
@@ -495,15 +495,15 @@ export default function DREPage() {
             </div>
 
             {/* CMV ao longo do tempo */}
-            <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-4">
-              <p className="text-[10px] font-black text-[#475569] uppercase tracking-wider mb-3">CMV% — Evolução</p>
+            <div className="bg-card rounded-2xl border border-white/5  p-4">
+              <p className="text-[10px] font-black text-dim uppercase tracking-wider mb-3">CMV% — Evolução</p>
               <div className="space-y-2">
                 {HISTORICO.map((h, i) => {
                   const ok = h.cmv_pct <= 40;
                   return (
                     <div key={h.mes} className="flex items-center gap-3">
-                      <p className="text-[11px] font-black text-[#64748B] w-8">{h.mes}</p>
-                      <div className="flex-1 h-2 bg-[#334155] rounded-full overflow-hidden">
+                      <p className="text-[11px] font-black text-subtle w-8">{h.mes}</p>
+                      <div className="flex-1 h-2 bg-elevated rounded-full overflow-hidden">
                         <div className="h-full rounded-full transition-all duration-700"
                           style={{ width: `${(h.cmv_pct / 60) * 100}%`, backgroundColor: ok ? "#10b981" : "#f59e0b" }} />
                       </div>
@@ -514,13 +514,13 @@ export default function DREPage() {
               </div>
               <div className="flex items-center gap-2 mt-2 pt-2 border-t border-white/5">
                 <div className="w-2 h-2 rounded-full bg-neutral-300" />
-                <p className="text-[10px] text-[#475569]">Linha de meta: 40% da Receita Bruta</p>
+                <p className="text-[10px] text-dim">Linha de meta: 40% da Receita Bruta</p>
               </div>
             </div>
           </>
         )}
 
-        <p className="text-[10px] text-[#334155] font-medium text-center">
+        <p className="text-[10px] text-elevated font-medium text-center">
           * Conecte seu PDV e lançamentos ao Supabase para dados reais
         </p>
       </div>

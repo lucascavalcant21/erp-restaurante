@@ -34,7 +34,7 @@ function SeletorPapel({ value, onChange }) {
             onClick={() => onChange(p.id)}
             className={`w-full flex items-start gap-3 px-4 py-3.5 rounded-2xl border-2 transition-all text-left ${
               sel
-                ? "border-[#10b981] bg-[#edfbf3]"
+                ? "border-accent bg-brand-50"
                 : "border-neutral-100 bg-neutral-50 active:bg-neutral-100"
             }`}
           >
@@ -47,7 +47,7 @@ function SeletorPapel({ value, onChange }) {
             </div>
 
             <div className="flex-1 min-w-0">
-              <p className={`text-sm font-bold leading-tight mb-0.5 ${sel ? "text-[#0a6c4b]" : "text-neutral-800"}`}>
+              <p className={`text-sm font-bold leading-tight mb-0.5 ${sel ? "text-brand-900" : "text-neutral-800"}`}>
                 {p.label}
               </p>
               <p className="text-xs text-neutral-400 font-medium leading-snug">
@@ -57,7 +57,7 @@ function SeletorPapel({ value, onChange }) {
 
             {/* Checkmark */}
             <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 transition-all ${
-              sel ? "bg-[#10b981] text-white" : "border-2 border-neutral-200"
+              sel ? "bg-accent text-white" : "border-2 border-neutral-200"
             }`}>
               {sel && <IcCheck />}
             </div>
@@ -81,7 +81,7 @@ function StepBar({ step }) {
           <div key={label} className="flex items-center gap-2 flex-1 last:flex-none">
             <div className={`flex items-center gap-1.5 ${current ? "opacity-100" : done ? "opacity-70" : "opacity-30"}`}>
               <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 ${
-                done ? "bg-[#10b981] text-white" : current ? "bg-[#10b981] text-white" : "bg-neutral-200 text-neutral-500"
+                done ? "bg-accent text-white" : current ? "bg-accent text-white" : "bg-neutral-200 text-neutral-500"
               }`}>
                 {done ? <IcCheck /> : i + 1}
               </div>
@@ -90,7 +90,7 @@ function StepBar({ step }) {
               </span>
             </div>
             {i < STEPS.length - 1 && (
-              <div className={`flex-1 h-px ${done ? "bg-[#10b981]" : "bg-neutral-200"}`} />
+              <div className={`flex-1 h-px ${done ? "bg-accent" : "bg-neutral-200"}`} />
             )}
           </div>
         );
@@ -166,7 +166,7 @@ export default function CadastroPage() {
   const papelAtual = PAPEIS.find((p) => p.id === form.papel);
 
   return (
-    <div className="min-h-screen bg-[#fbf9f5] flex flex-col px-5 py-10">
+    <div className="min-h-screen bg-card flex flex-col px-5 py-10">
 
       {/* Header */}
       <div className="flex items-center gap-3 mb-8">
@@ -197,26 +197,26 @@ export default function CadastroPage() {
           <div>
             <label className="text-xs font-bold text-neutral-500 uppercase tracking-wide block mb-1.5">Nome completo</label>
             <input type="text" placeholder="Lucas Cavalcante" value={form.nome} onChange={set("nome")}
-              className="w-full bg-white border border-neutral-200 rounded-2xl px-4 py-3 text-sm font-medium text-neutral-800 placeholder-neutral-400 outline-none focus:border-[#10b981] focus:ring-2 focus:ring-[#10b981]/20 transition-all shadow-sm" />
+              className="w-full bg-white border border-neutral-200 rounded-2xl px-4 py-3 text-sm font-medium text-neutral-800 placeholder-neutral-400 outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all shadow-sm" />
           </div>
 
           <div>
             <label className="text-xs font-bold text-neutral-500 uppercase tracking-wide block mb-1.5">E-mail</label>
             <input type="email" autoComplete="email" placeholder="seu@email.com" value={form.email} onChange={set("email")}
-              className="w-full bg-white border border-neutral-200 rounded-2xl px-4 py-3 text-sm font-medium text-neutral-800 placeholder-neutral-400 outline-none focus:border-[#10b981] focus:ring-2 focus:ring-[#10b981]/20 transition-all shadow-sm" />
+              className="w-full bg-white border border-neutral-200 rounded-2xl px-4 py-3 text-sm font-medium text-neutral-800 placeholder-neutral-400 outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all shadow-sm" />
           </div>
 
           <div>
             <label className="text-xs font-bold text-neutral-500 uppercase tracking-wide block mb-1.5">Telefone (opcional)</label>
             <input type="tel" placeholder="(11) 9 0000-0000" value={form.telefone} onChange={set("telefone")}
-              className="w-full bg-white border border-neutral-200 rounded-2xl px-4 py-3 text-sm font-medium text-neutral-800 placeholder-neutral-400 outline-none focus:border-[#10b981] focus:ring-2 focus:ring-[#10b981]/20 transition-all shadow-sm" />
+              className="w-full bg-white border border-neutral-200 rounded-2xl px-4 py-3 text-sm font-medium text-neutral-800 placeholder-neutral-400 outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all shadow-sm" />
           </div>
 
           <div>
             <label className="text-xs font-bold text-neutral-500 uppercase tracking-wide block mb-1.5">Senha</label>
             <div className="relative">
               <input type={verSenha ? "text" : "password"} autoComplete="new-password" placeholder="Mínimo 6 caracteres" value={form.senha} onChange={set("senha")}
-                className="w-full bg-white border border-neutral-200 rounded-2xl px-4 py-3 pr-11 text-sm font-medium text-neutral-800 placeholder-neutral-400 outline-none focus:border-[#10b981] focus:ring-2 focus:ring-[#10b981]/20 transition-all shadow-sm" />
+                className="w-full bg-white border border-neutral-200 rounded-2xl px-4 py-3 pr-11 text-sm font-medium text-neutral-800 placeholder-neutral-400 outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all shadow-sm" />
               <button type="button" onClick={() => setVerSenha(!verSenha)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 active:text-neutral-600">
                 <IcEye open={verSenha} />
@@ -268,16 +268,16 @@ export default function CadastroPage() {
               return (
                 <button key={u} type="button" onClick={() => { setForm((f) => ({ ...f, unidade: u })); setErro(""); }}
                   className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 transition-all text-left ${
-                    sel ? "border-[#10b981] bg-[#edfbf3]" : "border-neutral-100 bg-neutral-50 active:bg-neutral-100"
+                    sel ? "border-accent bg-brand-50" : "border-neutral-100 bg-neutral-50 active:bg-neutral-100"
                   }`}>
                   <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm font-black flex-shrink-0 ${
-                    sel ? "bg-[#10b981] text-white" : "bg-neutral-200 text-neutral-500"
+                    sel ? "bg-accent text-white" : "bg-neutral-200 text-neutral-500"
                   }`}>
                     {u[0]}
                   </div>
-                  <span className={`text-sm font-bold flex-1 ${sel ? "text-[#0a6c4b]" : "text-neutral-700"}`}>{u}</span>
+                  <span className={`text-sm font-bold flex-1 ${sel ? "text-brand-900" : "text-neutral-700"}`}>{u}</span>
                   {sel && (
-                    <div className="w-5 h-5 rounded-full bg-[#10b981] flex items-center justify-center text-white flex-shrink-0">
+                    <div className="w-5 h-5 rounded-full bg-accent flex items-center justify-center text-white flex-shrink-0">
                       <IcCheck />
                     </div>
                   )}
@@ -299,12 +299,12 @@ export default function CadastroPage() {
       <div className="mt-8 space-y-3">
         {step < 2 ? (
           <button onClick={avancar}
-            className="w-full py-3.5 rounded-2xl bg-[#10b981] text-white text-sm font-bold shadow-sm active:bg-[#059669] transition-colors">
+            className="w-full py-3.5 rounded-2xl bg-accent text-white text-sm font-bold shadow-sm active:bg-accent-strong transition-colors">
             Continuar
           </button>
         ) : (
           <button onClick={finalizar} disabled={loading}
-            className="w-full py-3.5 rounded-2xl bg-[#10b981] text-white text-sm font-bold shadow-sm active:bg-[#059669] transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+            className="w-full py-3.5 rounded-2xl bg-accent text-white text-sm font-bold shadow-sm active:bg-accent-strong transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
             {loading ? (
               <>
                 <svg className="animate-spin" width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
@@ -318,7 +318,7 @@ export default function CadastroPage() {
 
         <p className="text-center text-sm text-neutral-400 font-medium">
           Já tem conta?{" "}
-          <button onClick={() => router.push("/login")} className="text-[#10b981] font-bold">
+          <button onClick={() => router.push("/login")} className="text-accent font-bold">
             Entrar
           </button>
         </p>

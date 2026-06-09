@@ -79,63 +79,63 @@ function FormLancamento({ onSalvar, onCancelar }) {
   }
 
   return (
-    <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-5 space-y-4">
-      <p className="text-sm font-black text-[#F1F5F9]">Novo Lançamento</p>
+    <div className="bg-card rounded-2xl border border-white/5  p-5 space-y-4">
+      <p className="text-sm font-black text-fg">Novo Lançamento</p>
 
       {/* Tipo */}
       <div className="flex rounded-xl overflow-hidden border border-white/8">
         <button onClick={() => { setTipo("entrada"); setCategoria("Vendas Balcão"); }}
-          className={`flex-1 py-3 text-sm font-black transition-colors ${tipo === "entrada" ? "bg-emerald-500 text-white" : "bg-[#1E293B] text-[#64748B]"}`}>
+          className={`flex-1 py-3 text-sm font-black transition-colors ${tipo === "entrada" ? "bg-emerald-500 text-white" : "bg-card text-subtle"}`}>
           + Entrada
         </button>
         <button onClick={() => { setTipo("saida"); setCategoria("Fornecedores"); }}
-          className={`flex-1 py-3 text-sm font-black transition-colors ${tipo === "saida" ? "bg-[rgba(5,150,105,0.1)]0 text-white" : "bg-[#1E293B] text-[#64748B]"}`}>
+          className={`flex-1 py-3 text-sm font-black transition-colors ${tipo === "saida" ? "bg-[rgba(5,150,105,0.1)]0 text-white" : "bg-card text-subtle"}`}>
           − Saída
         </button>
       </div>
 
       <div>
-        <label className="text-[10px] font-black text-[#475569] uppercase tracking-wider block mb-1.5">Categoria</label>
+        <label className="text-[10px] font-black text-dim uppercase tracking-wider block mb-1.5">Categoria</label>
         <div className="relative">
           <select value={categoria} onChange={e => setCategoria(e.target.value)}
-            className="w-full appearance-none  border border-white/8 rounded-xl px-4 py-3.5 text-sm font-bold text-[#F1F5F9] focus:outline-none focus:ring-2 focus:border-[#10b981] pr-10" style={{ background: "#1E293B", color: "#F1F5F9" }} >
+            className="w-full appearance-none  border border-white/8 rounded-xl px-4 py-3.5 text-sm font-bold text-fg focus:outline-none focus:ring-2 focus:border-accent pr-10" style={{ background: "#1E293B", color: "#F1F5F9" }} >
             {cats.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
-          <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#475569] pointer-events-none" />
+          <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-dim pointer-events-none" />
         </div>
       </div>
 
       <div>
-        <label className="text-[10px] font-black text-[#475569] uppercase tracking-wider block mb-1.5">Descrição</label>
+        <label className="text-[10px] font-black text-dim uppercase tracking-wider block mb-1.5">Descrição</label>
         <input type="text" value={descricao} onChange={e => { setDescricao(e.target.value); setErro(""); }}
           placeholder="ex: Vendas do dia"
-          className="w-full  border border-white/8 rounded-xl px-4 py-3.5 text-sm font-medium text-[#F1F5F9] placeholder:text-[#475569] focus:outline-none focus:ring-2 focus:border-[#10b981]" />
+          className="w-full  border border-white/8 rounded-xl px-4 py-3.5 text-sm font-medium text-fg placeholder:text-dim focus:outline-none focus:ring-2 focus:border-accent" />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-[10px] font-black text-[#475569] uppercase tracking-wider block mb-1.5">Valor (R$)</label>
+          <label className="text-[10px] font-black text-dim uppercase tracking-wider block mb-1.5">Valor (R$)</label>
           <input type="number" inputMode="decimal" step="0.01" min="0" value={valor} onChange={e => { setValor(e.target.value); setErro(""); }}
             placeholder="0,00"
-            className="w-full  border border-white/8 rounded-xl px-4 py-3.5 text-sm font-black text-[#F1F5F9] placeholder:text-[#475569] focus:outline-none focus:ring-2 focus:border-[#10b981]" />
+            className="w-full  border border-white/8 rounded-xl px-4 py-3.5 text-sm font-black text-fg placeholder:text-dim focus:outline-none focus:ring-2 focus:border-accent" />
         </div>
         <div>
-          <label className="text-[10px] font-black text-[#475569] uppercase tracking-wider block mb-1.5">Data</label>
+          <label className="text-[10px] font-black text-dim uppercase tracking-wider block mb-1.5">Data</label>
           <input type="date" value={data} onChange={e => setData(e.target.value)}
-            className="w-full  border border-white/8 rounded-xl px-4 py-3.5 text-sm font-bold text-[#F1F5F9] focus:outline-none focus:ring-2 focus:border-[#10b981]" />
+            className="w-full  border border-white/8 rounded-xl px-4 py-3.5 text-sm font-bold text-fg focus:outline-none focus:ring-2 focus:border-accent" />
         </div>
       </div>
 
       {erro && (
         <div className="flex items-center gap-2 bg-[rgba(5,150,105,0.1)] border border-[rgba(5,150,105,0.3)] rounded-xl px-3 py-2.5">
-          <AlertCircle size={13} className="text-[#10b981] flex-shrink-0" />
-          <p className="text-xs font-bold text-[#059669]">{erro}</p>
+          <AlertCircle size={13} className="text-accent flex-shrink-0" />
+          <p className="text-xs font-bold text-accent-strong">{erro}</p>
         </div>
       )}
 
       <div className="flex gap-3">
-        <button onClick={onCancelar} className="flex-1 py-3.5 rounded-xl font-black text-sm text-[#CBD5E1] bg-[#334155] active:scale-95 transition-all">Cancelar</button>
-        <button onClick={handleSalvar} className="flex-1 py-3.5 rounded-xl font-black text-sm text-white bg-[#10b981] active:scale-95 transition-all ">
+        <button onClick={onCancelar} className="flex-1 py-3.5 rounded-xl font-black text-sm text-fg-soft bg-elevated active:scale-95 transition-all">Cancelar</button>
+        <button onClick={handleSalvar} className="flex-1 py-3.5 rounded-xl font-black text-sm text-white bg-accent active:scale-95 transition-all ">
           Lançar
         </button>
       </div>
@@ -186,12 +186,12 @@ export default function FluxoCaixaPage() {
   return (
     <div className="min-h-screen ">
       <div className="sticky top-0 z-20  border-b border-white/8 px-4 pt-12 pb-3 flex items-center gap-3" style={{ background: '#0F172A' }}>
-        <button onClick={() => router.back()} className="w-9 h-9 rounded-xl bg-[#1E293B] border border-white/8 flex items-center justify-center  active:scale-95 transition-transform">
-          <ArrowLeft size={18} className="text-[#94A3B8]" />
+        <button onClick={() => router.back()} className="w-9 h-9 rounded-xl bg-card border border-white/8 flex items-center justify-center  active:scale-95 transition-transform">
+          <ArrowLeft size={18} className="text-muted" />
         </button>
         <div className="flex-1">
           <h1 className="text-lg font-black leading-tight" style={{ color:"#F1F5F9" }}>Fluxo de Caixa</h1>
-          <p className="text-[11px] text-[#475569] font-medium">Entradas e saídas do período</p>
+          <p className="text-[11px] text-dim font-medium">Entradas e saídas do período</p>
         </div>
         <button
           onClick={() => exportarTabelaPDF({
@@ -206,11 +206,11 @@ export default function FluxoCaixaPage() {
             ]),
             rodape: `Total Entradas: ${fmtBRL(entradas)} · Total Saídas: ${fmtBRL(saidas)} · Saldo: ${fmtBRL(saldo)}`,
           })}
-          className="flex items-center gap-1.5 bg-[#1E293B] border border-white/8 text-[#CBD5E1] text-xs font-black px-3 py-2 rounded-xl active:scale-95 transition-transform  mr-1">
+          className="flex items-center gap-1.5 bg-card border border-white/8 text-fg-soft text-xs font-black px-3 py-2 rounded-xl active:scale-95 transition-transform  mr-1">
           <FileDown size={13} /> PDF
         </button>
         <button onClick={() => { setFormAberto(true); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-          className="flex items-center gap-1.5 text-xs font-black px-3 py-2 rounded-xl bg-[#10b981] text-white  active:scale-95 transition-all">
+          className="flex items-center gap-1.5 text-xs font-black px-3 py-2 rounded-xl bg-accent text-white  active:scale-95 transition-all">
           <Plus size={14} /> Lançar
         </button>
       </div>
@@ -233,12 +233,12 @@ export default function FluxoCaixaPage() {
         {/* Seletor de mês */}
         <div className="flex justify-center">
           <div className="flex items-center gap-2">
-            <button onClick={prev} className="w-8 h-8 rounded-xl bg-[#1E293B] border border-white/8 flex items-center justify-center active:scale-95 ">
-              <ChevronLeft size={15} className="text-[#94A3B8]" />
+            <button onClick={prev} className="w-8 h-8 rounded-xl bg-card border border-white/8 flex items-center justify-center active:scale-95 ">
+              <ChevronLeft size={15} className="text-muted" />
             </button>
-            <span className="text-sm font-black text-[#F1F5F9] w-32 text-center">{MESES[mes]} {ano}</span>
-            <button onClick={next} className="w-8 h-8 rounded-xl bg-[#1E293B] border border-white/8 flex items-center justify-center active:scale-95 ">
-              <ChevronRight size={15} className="text-[#94A3B8]" />
+            <span className="text-sm font-black text-fg w-32 text-center">{MESES[mes]} {ano}</span>
+            <button onClick={next} className="w-8 h-8 rounded-xl bg-card border border-white/8 flex items-center justify-center active:scale-95 ">
+              <ChevronRight size={15} className="text-muted" />
             </button>
           </div>
         </div>
@@ -254,17 +254,17 @@ export default function FluxoCaixaPage() {
           </div>
           <div className="bg-[rgba(5,150,105,0.1)] border border-[rgba(5,150,105,0.3)] rounded-2xl p-3">
             <div className="w-7 h-7 rounded-lg bg-[rgba(5,150,105,0.15)] flex items-center justify-center mb-1.5">
-              <ArrowDownCircle size={14} className="text-[#10b981]" />
+              <ArrowDownCircle size={14} className="text-accent" />
             </div>
-            <p className="text-base font-black text-[#059669] leading-tight">{fmtBRL(saidas)}</p>
-            <p className="text-[10px] font-bold text-[#10b981]">Saídas</p>
+            <p className="text-base font-black text-accent-strong leading-tight">{fmtBRL(saidas)}</p>
+            <p className="text-[10px] font-bold text-accent">Saídas</p>
           </div>
-          <div className={`rounded-2xl border p-3 ${saldo >= 0 ? "bg-[#1E293B] border-white/5" : "bg-[rgba(5,150,105,0.1)] border-[rgba(5,150,105,0.3)]"}`}>
-            <div className={`w-7 h-7 rounded-lg flex items-center justify-center mb-1.5 ${saldo >= 0 ? "bg-[#334155]" : "bg-[rgba(5,150,105,0.15)]"}`}>
-              <Wallet size={14} className={saldo >= 0 ? "text-[#94A3B8]" : "text-[#10b981]"} />
+          <div className={`rounded-2xl border p-3 ${saldo >= 0 ? "bg-card border-white/5" : "bg-[rgba(5,150,105,0.1)] border-[rgba(5,150,105,0.3)]"}`}>
+            <div className={`w-7 h-7 rounded-lg flex items-center justify-center mb-1.5 ${saldo >= 0 ? "bg-elevated" : "bg-[rgba(5,150,105,0.15)]"}`}>
+              <Wallet size={14} className={saldo >= 0 ? "text-muted" : "text-accent"} />
             </div>
-            <p className={`text-base font-black leading-tight ${saldo >= 0 ? "text-[#F1F5F9]" : "text-[#059669]"}`}>{fmtBRL(saldo)}</p>
-            <p className={`text-[10px] font-bold ${saldo >= 0 ? "text-[#475569]" : "text-[#10b981]"}`}>Saldo</p>
+            <p className={`text-base font-black leading-tight ${saldo >= 0 ? "text-fg" : "text-accent-strong"}`}>{fmtBRL(saldo)}</p>
+            <p className={`text-[10px] font-bold ${saldo >= 0 ? "text-dim" : "text-accent"}`}>Saldo</p>
           </div>
         </div>
 
@@ -272,7 +272,7 @@ export default function FluxoCaixaPage() {
         <div className="flex gap-2">
           {[{ id: "todos", label: "Todos" }, { id: "entrada", label: "Entradas" }, { id: "saida", label: "Saídas" }].map(f => (
             <button key={f.id} onClick={() => setFiltroTipo(f.id)}
-              className={`flex-1 py-2.5 rounded-xl text-[11px] font-black transition-all active:scale-95 ${filtroTipo === f.id ? "bg-[#059669] text-white" : "bg-[#1E293B] text-[#94A3B8] border border-white/8"}`}>
+              className={`flex-1 py-2.5 rounded-xl text-[11px] font-black transition-all active:scale-95 ${filtroTipo === f.id ? "bg-accent-strong text-white" : "bg-card text-muted border border-white/8"}`}>
               {f.label}
             </button>
           ))}
@@ -281,34 +281,34 @@ export default function FluxoCaixaPage() {
         {/* Lista de lançamentos */}
         <div>
           <div className="flex justify-between px-1 mb-2">
-            <p className="text-[11px] font-black text-[#475569] uppercase tracking-wider">Lançamentos</p>
-            <p className="text-[11px] font-bold text-[#475569]">{filtrados.length} registro{filtrados.length !== 1 ? "s" : ""}</p>
+            <p className="text-[11px] font-black text-dim uppercase tracking-wider">Lançamentos</p>
+            <p className="text-[11px] font-bold text-dim">{filtrados.length} registro{filtrados.length !== 1 ? "s" : ""}</p>
           </div>
 
           {filtrados.length === 0 ? (
-            <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-8 flex flex-col items-center text-center gap-2">
+            <div className="bg-card rounded-2xl border border-white/5  p-8 flex flex-col items-center text-center gap-2">
               <Wallet size={28} className="text-neutral-200 mb-1" />
-              <p className="text-sm font-bold text-[#64748B]">Nenhum lançamento no período</p>
-              <p className="text-xs text-[#475569] font-medium">Use o botão Lançar para registrar entradas e saídas.</p>
+              <p className="text-sm font-bold text-subtle">Nenhum lançamento no período</p>
+              <p className="text-xs text-dim font-medium">Use o botão Lançar para registrar entradas e saídas.</p>
             </div>
           ) : (
-            <div className="bg-[#1E293B] rounded-2xl border border-white/5  overflow-hidden divide-y divide-neutral-50">
+            <div className="bg-card rounded-2xl border border-white/5  overflow-hidden divide-y divide-neutral-50">
               {filtrados.map(l => (
                 <div key={l.id} className="flex items-center gap-3 px-4 py-3.5">
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${l.tipo === "entrada" ? "bg-emerald-100 text-emerald-600" : "bg-[rgba(5,150,105,0.15)] text-[#10b981]"}`}>
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${l.tipo === "entrada" ? "bg-emerald-100 text-emerald-600" : "bg-[rgba(5,150,105,0.15)] text-accent"}`}>
                     {l.tipo === "entrada" ? <ArrowUpCircle size={16} /> : <ArrowDownCircle size={16} />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-black text-[#F1F5F9] truncate">{l.descricao}</p>
-                    <p className="text-[10px] text-[#475569] font-medium">{l.categoria} · {fmtData(l.data)}</p>
+                    <p className="text-sm font-black text-fg truncate">{l.descricao}</p>
+                    <p className="text-[10px] text-dim font-medium">{l.categoria} · {fmtData(l.data)}</p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className={`text-sm font-black ${l.tipo === "entrada" ? "text-emerald-600" : "text-[#10b981]"}`}>
+                    <p className={`text-sm font-black ${l.tipo === "entrada" ? "text-emerald-600" : "text-accent"}`}>
                       {l.tipo === "entrada" ? "+" : "−"}{fmtBRL(l.valor)}
                     </p>
                   </div>
                   <button onClick={() => handleDeletar(l.id)} className="w-7 h-7 rounded-lg  border border-white/5 flex items-center justify-center active:scale-90 transition-transform flex-shrink-0">
-                    <Trash2 size={12} className="text-[#475569]" />
+                    <Trash2 size={12} className="text-dim" />
                   </button>
                 </div>
               ))}

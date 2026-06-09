@@ -42,11 +42,11 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fbf9f5] flex flex-col items-center justify-center px-5">
+    <div className="min-h-screen bg-card flex flex-col items-center justify-center px-5">
 
       {/* Logo */}
       <div className="mb-8 flex flex-col items-center">
-        <div className="w-14 h-14 rounded-2xl bg-[#10b981] flex items-center justify-center shadow-lg mb-4">
+        <div className="w-14 h-14 rounded-2xl bg-accent flex items-center justify-center shadow-lg mb-4">
           <svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2}>
             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
             <polyline points="9 22 9 12 15 12 15 22"/>
@@ -74,7 +74,7 @@ export default function LoginPage() {
               placeholder="seu@email.com"
               value={email}
               onChange={(e) => { setEmail(e.target.value); setErro(""); }}
-              className="w-full bg-neutral-50 border border-neutral-200 rounded-2xl px-4 py-3 text-sm font-medium text-neutral-800 placeholder-neutral-400 outline-none focus:border-[#10b981] focus:ring-2 focus:ring-[#10b981]/20 transition-all"
+              className="w-full bg-neutral-50 border border-neutral-200 rounded-2xl px-4 py-3 text-sm font-medium text-neutral-800 placeholder-neutral-400 outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
             />
           </div>
 
@@ -90,7 +90,7 @@ export default function LoginPage() {
                 placeholder="Sua senha"
                 value={senha}
                 onChange={(e) => { setSenha(e.target.value); setErro(""); }}
-                className="w-full bg-neutral-50 border border-neutral-200 rounded-2xl px-4 py-3 pr-11 text-sm font-medium text-neutral-800 placeholder-neutral-400 outline-none focus:border-[#10b981] focus:ring-2 focus:ring-[#10b981]/20 transition-all"
+                className="w-full bg-neutral-50 border border-neutral-200 rounded-2xl px-4 py-3 pr-11 text-sm font-medium text-neutral-800 placeholder-neutral-400 outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
               />
               <button
                 type="button"
@@ -113,7 +113,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 rounded-2xl bg-[#10b981] text-white text-sm font-bold shadow-sm active:bg-[#059669] transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+            className="w-full py-3.5 rounded-2xl bg-accent text-white text-sm font-bold shadow-sm active:bg-accent-strong transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
           >
             {loading ? (
               <>
@@ -132,7 +132,7 @@ export default function LoginPage() {
         Ainda não tem conta?{" "}
         <button
           onClick={() => router.push("/cadastro")}
-          className="text-[#10b981] font-bold"
+          className="text-accent font-bold"
         >
           Cadastre-se
         </button>

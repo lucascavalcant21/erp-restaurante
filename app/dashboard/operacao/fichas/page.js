@@ -97,11 +97,11 @@ function LinhaReceita({ item, catalogo, onRemover }) {
 
       {/* Dados */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-black text-[#F1F5F9] truncate">{ing.nome}</p>
-        <p className="text-[11px] text-[#475569] font-medium">
+        <p className="text-sm font-black text-fg truncate">{ing.nome}</p>
+        <p className="text-[11px] text-dim font-medium">
           {fmtQtd(item.quantidade, ing.unidade)}
           {" · "}
-          <span className="text-[#64748B]">
+          <span className="text-subtle">
             {fmtBRL(ing.custo_por_unidade_base, ing.custo_por_unidade_base < 0.01 ? 4 : 2)}
             {" "}
             {getUnidade(ing.unidade).label_base}
@@ -111,7 +111,7 @@ function LinhaReceita({ item, catalogo, onRemover }) {
 
       {/* Custo da linha */}
       <div className="text-right flex-shrink-0 mr-1">
-        <p className="text-base font-black text-[#F1F5F9]">{fmtBRL(custo)}</p>
+        <p className="text-base font-black text-fg">{fmtBRL(custo)}</p>
       </div>
 
       {/* Remover */}
@@ -119,7 +119,7 @@ function LinhaReceita({ item, catalogo, onRemover }) {
         onClick={() => onRemover(item.id)}
         className="w-7 h-7 rounded-lg flex items-center justify-center bg-[rgba(5,150,105,0.1)] border border-[rgba(5,150,105,0.2)] active:scale-90 transition-transform flex-shrink-0"
       >
-        <Trash2 size={12} className="text-[#10b981]" />
+        <Trash2 size={12} className="text-accent" />
       </button>
     </div>
   );
@@ -243,20 +243,20 @@ export default function FichasTecnicasPage() {
       <div className="sticky top-0 z-20  border-b border-white/8 px-4 pt-12 pb-3 flex items-center gap-3" style={{ background: '#0F172A' }}>
         <button
           onClick={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-[#1E293B] border border-white/8 flex items-center justify-center  active:scale-95 transition-transform"
+          className="w-9 h-9 rounded-xl bg-card border border-white/8 flex items-center justify-center  active:scale-95 transition-transform"
         >
-          <ArrowLeft size={18} className="text-[#94A3B8]" />
+          <ArrowLeft size={18} className="text-muted" />
         </button>
         <div className="flex-1">
           <h1 className="text-lg font-black leading-tight" style={{ color:"#F1F5F9" }}>Ficha Técnica</h1>
-          <p className="text-[11px] text-[#475569] font-medium">Composição de receita e CMV</p>
+          <p className="text-[11px] text-dim font-medium">Composição de receita e CMV</p>
         </div>
         <button
           onClick={handleSalvarFicha}
           className={`flex items-center gap-1.5 text-xs font-black px-3 py-2 rounded-xl  active:scale-95 transition-all ${
             salvou
               ? "bg-emerald-100 text-emerald-700"
-              : "bg-[#10b981] text-white"
+              : "bg-accent text-white"
           }`}
         >
           {salvou ? <><Check size={13} /> Salvo</> : "Salvar"}
@@ -266,13 +266,13 @@ export default function FichasTecnicasPage() {
       <div className="px-4 pt-4 pb-28 space-y-4">
 
         {/* Card do Prato */}
-        <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-5">
+        <div className="bg-card rounded-2xl border border-white/5  p-5">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-2xl bg-[#10b981]/10 flex items-center justify-center flex-shrink-0">
-              <ChefHat size={20} className="text-[#10b981]" />
+            <div className="w-10 h-10 rounded-2xl bg-accent/10 flex items-center justify-center flex-shrink-0">
+              <ChefHat size={20} className="text-accent" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-bold text-[#475569] uppercase tracking-wider mb-0.5">Nome do Prato</p>
+              <p className="text-[10px] font-bold text-dim uppercase tracking-wider mb-0.5">Nome do Prato</p>
               {editandoNome ? (
                 <input
                   ref={nomeRef}
@@ -281,15 +281,15 @@ export default function FichasTecnicasPage() {
                   onChange={(e) => setFicha((p) => ({ ...p, nome: e.target.value }))}
                   onBlur={() => setEditandoNome(false)}
                   onKeyDown={(e) => e.key === "Enter" && setEditandoNome(false)}
-                  className="text-lg font-black text-[#F1F5F9] bg-transparent border-b-2 border-[#10b981] outline-none w-full"
+                  className="text-lg font-black text-fg bg-transparent border-b-2 border-accent outline-none w-full"
                 />
               ) : (
                 <button
                   onClick={() => { setEditandoNome(true); setTimeout(() => nomeRef.current?.focus(), 50); }}
                   className="flex items-center gap-1.5 active:opacity-70 w-full text-left"
                 >
-                  <p className="text-lg font-black text-[#F1F5F9] truncate">{ficha.nome}</p>
-                  <Edit3 size={13} className="text-[#475569] flex-shrink-0" />
+                  <p className="text-lg font-black text-fg truncate">{ficha.nome}</p>
+                  <Edit3 size={13} className="text-dim flex-shrink-0" />
                 </button>
               )}
             </div>
@@ -297,10 +297,10 @@ export default function FichasTecnicasPage() {
 
           {/* Preço de Venda */}
           <div className=" rounded-xl border border-white/5 p-4">
-            <p className="text-[10px] font-bold text-[#475569] uppercase tracking-wider mb-1">Preço de Venda</p>
+            <p className="text-[10px] font-bold text-dim uppercase tracking-wider mb-1">Preço de Venda</p>
             {editandoPreco ? (
               <div className="flex items-center gap-1">
-                <span className="text-2xl font-black text-[#475569]">R$</span>
+                <span className="text-2xl font-black text-dim">R$</span>
                 <input
                   ref={precoRef}
                   autoFocus
@@ -312,7 +312,7 @@ export default function FichasTecnicasPage() {
                   onChange={(e) => setFicha((p) => ({ ...p, preco_venda: e.target.value }))}
                   onBlur={() => setEditandoPreco(false)}
                   onKeyDown={(e) => e.key === "Enter" && setEditandoPreco(false)}
-                  className="text-3xl font-black text-[#F1F5F9] bg-transparent border-b-2 border-[#10b981] outline-none w-32"
+                  className="text-3xl font-black text-fg bg-transparent border-b-2 border-accent outline-none w-32"
                 />
               </div>
             ) : (
@@ -320,8 +320,8 @@ export default function FichasTecnicasPage() {
                 onClick={() => { setEditandoPreco(true); setTimeout(() => precoRef.current?.focus(), 50); }}
                 className="flex items-center gap-2 active:opacity-70"
               >
-                <p className="text-3xl font-black text-[#F1F5F9]">{fmtBRL(preco)}</p>
-                <Edit3 size={15} className="text-[#475569]" />
+                <p className="text-3xl font-black text-fg">{fmtBRL(preco)}</p>
+                <Edit3 size={15} className="text-dim" />
               </button>
             )}
           </div>
@@ -340,10 +340,10 @@ export default function FichasTecnicasPage() {
           <p
             className={`text-[10px] font-black uppercase tracking-wider mb-1 ${
               ficha.itens.length === 0
-                ? "text-[#475569]"
+                ? "text-dim"
                 : margem_ok
                 ? "text-emerald-500"
-                : "text-[#10b981]"
+                : "text-accent"
             }`}
           >
             Custo Total de Produção (CMV)
@@ -353,10 +353,10 @@ export default function FichasTecnicasPage() {
           <p
             className={`text-6xl font-black leading-none mb-1 ${
               ficha.itens.length === 0
-                ? "text-[#334155]"
+                ? "text-elevated"
                 : margem_ok
                 ? "text-emerald-800"
-                : "text-[#059669]"
+                : "text-accent-strong"
             }`}
           >
             {fmtBRL(custo_total)}
@@ -366,14 +366,14 @@ export default function FichasTecnicasPage() {
             <>
               <p
                 className={`text-sm font-bold mb-4 ${
-                  margem_ok ? "text-emerald-600" : "text-[#10b981]"
+                  margem_ok ? "text-emerald-600" : "text-accent"
                 }`}
               >
                 {fmtBRL(mc_reais)} de margem · {mc_pct.toFixed(1)}% MC · CMV {cmv_pct.toFixed(1)}%
               </p>
 
               {/* Barra dupla: CMV vs MC */}
-              <div className="h-3 bg-[#1E293B]/60 rounded-full overflow-hidden flex mb-3">
+              <div className="h-3 bg-card/60 rounded-full overflow-hidden flex mb-3">
                 <div
                   className="h-full transition-all duration-500"
                   style={{ width: `${Math.min(cmv_pct, 100)}%`, backgroundColor: margem_ok ? "#10b981" : "#f43f5e" }}
@@ -384,10 +384,10 @@ export default function FichasTecnicasPage() {
                 />
               </div>
               <div className="flex justify-between text-[10px] font-bold mb-3">
-                <span className={margem_ok ? "text-emerald-600" : "text-[#10b981]"}>
+                <span className={margem_ok ? "text-emerald-600" : "text-accent"}>
                   ← CMV {cmv_pct.toFixed(1)}%
                 </span>
-                <span className="text-[#475569]">
+                <span className="text-dim">
                   MC {mc_pct.toFixed(1)}% →
                 </span>
               </div>
@@ -395,8 +395,8 @@ export default function FichasTecnicasPage() {
               {/* Alerta / OK */}
               {!margem_ok && (
                 <div className="flex items-center gap-2 bg-[rgba(5,150,105,0.15)] rounded-xl px-3 py-2.5 mb-3">
-                  <AlertCircle size={14} className="text-[#10b981] flex-shrink-0" />
-                  <p className="text-xs font-black text-[#059669]">
+                  <AlertCircle size={14} className="text-accent flex-shrink-0" />
+                  <p className="text-xs font-black text-accent-strong">
                     Atenção: Margem abaixo de 30% — prato com CMV crítico!
                   </p>
                 </div>
@@ -413,35 +413,35 @@ export default function FichasTecnicasPage() {
           )}
 
           {/* Nota explicativa */}
-          <div className="flex items-start gap-2 bg-[#1E293B]/70 rounded-xl px-3 py-2.5">
-            <Info size={13} className="text-[#475569] flex-shrink-0 mt-0.5" />
-            <p className="text-[11px] text-[#64748B] font-medium leading-relaxed">
+          <div className="flex items-start gap-2 bg-card/70 rounded-xl px-3 py-2.5">
+            <Info size={13} className="text-dim flex-shrink-0 mt-0.5" />
+            <p className="text-[11px] text-subtle font-medium leading-relaxed">
               Este valor representa o custo bruto do prato e será enviado para o módulo de{" "}
-              <span className="font-bold text-[#CBD5E1]">Cardápio</span> para calcular sua
+              <span className="font-bold text-fg-soft">Cardápio</span> para calcular sua
               margem de lucro real sobre o preço de venda.
             </p>
           </div>
         </div>
 
         {/* ── Formulário: Adicionar Insumo ──────────────────────────────────── */}
-        <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-5">
+        <div className="bg-card rounded-2xl border border-white/5  p-5">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 rounded-xl bg-[#334155] flex items-center justify-center">
-              <FlaskConical size={15} className="text-[#94A3B8]" />
+            <div className="w-8 h-8 rounded-xl bg-elevated flex items-center justify-center">
+              <FlaskConical size={15} className="text-muted" />
             </div>
-            <p className="text-sm font-black text-[#F1F5F9]">Adicionar Insumo à Receita</p>
+            <p className="text-sm font-black text-fg">Adicionar Insumo à Receita</p>
           </div>
 
           {/* Select de ingrediente */}
           <div className="mb-3">
-            <label className="text-[10px] font-black text-[#475569] uppercase tracking-wider block mb-1.5">
+            <label className="text-[10px] font-black text-dim uppercase tracking-wider block mb-1.5">
               Ingrediente
             </label>
             <div className="relative">
               <select
                 value={selIngId}
                 onChange={(e) => { setSelIngId(e.target.value); setErroForm(""); }}
-                className="w-full appearance-none  border border-white/8 rounded-xl px-4 py-3.5 text-sm font-bold text-[#F1F5F9] focus:outline-none focus:ring-2 focus:border-[#10b981] transition-all pr-10" style={{ background: "#1E293B", color: "#F1F5F9" }} >
+                className="w-full appearance-none  border border-white/8 rounded-xl px-4 py-3.5 text-sm font-bold text-fg focus:outline-none focus:ring-2 focus:border-accent transition-all pr-10" style={{ background: "#1E293B", color: "#F1F5F9" }} >
                 {catalogo.map((ing) => (
                   <option key={ing.id} value={String(ing.id)}>
                     {ing.nome} — {fmtBRL(ing.custo_por_unidade_base, ing.custo_por_unidade_base < 0.01 ? 4 : 2)}{" "}
@@ -449,13 +449,13 @@ export default function FichasTecnicasPage() {
                   </option>
                 ))}
               </select>
-              <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#475569] pointer-events-none" />
+              <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-dim pointer-events-none" />
             </div>
           </div>
 
           {/* Quantidade */}
           <div className="mb-3">
-            <label className="text-[10px] font-black text-[#475569] uppercase tracking-wider block mb-1.5">
+            <label className="text-[10px] font-black text-dim uppercase tracking-wider block mb-1.5">
               Quantidade utilizada{unidadeBase ? ` (${unidadeBase.base})` : ""}
             </label>
             <input
@@ -467,33 +467,33 @@ export default function FichasTecnicasPage() {
               onChange={(e) => { setQtdInput(e.target.value); setErroForm(""); }}
               onKeyDown={(e) => e.key === "Enter" && handleAdicionarInsumo()}
               placeholder={unidadeBase?.base === "g" ? "ex: 150" : unidadeBase?.base === "mL" ? "ex: 30" : "ex: 1"}
-              className="w-full  border border-white/8 rounded-xl px-4 py-3.5 text-base font-black text-[#F1F5F9] placeholder:text-[#475569] placeholder:font-medium focus:outline-none focus:ring-2 focus:border-[#10b981] transition-all"
+              className="w-full  border border-white/8 rounded-xl px-4 py-3.5 text-base font-black text-fg placeholder:text-dim placeholder:font-medium focus:outline-none focus:ring-2 focus:border-accent transition-all"
             />
           </div>
 
           {/* Preview de custo em tempo real */}
           {previewCusto !== null && (
-            <div className="flex items-center justify-between bg-[#10b981]/8 border border-[#10b981]/20 rounded-xl px-4 py-2.5 mb-3">
-              <p className="text-[11px] font-bold text-[#94A3B8]">
+            <div className="flex items-center justify-between bg-accent/8 border border-accent/20 rounded-xl px-4 py-2.5 mb-3">
+              <p className="text-[11px] font-bold text-muted">
                 {fmtQtd(parseFloat(qtdInput), ingSelecionado?.unidade ?? "UN")} ×{" "}
                 {ingSelecionado?.nome}
               </p>
-              <p className="text-base font-black text-[#10b981]">{fmtBRL(previewCusto)}</p>
+              <p className="text-base font-black text-accent">{fmtBRL(previewCusto)}</p>
             </div>
           )}
 
           {/* Erro */}
           {erroForm && (
             <div className="flex items-center gap-2 bg-[rgba(5,150,105,0.1)] border border-[rgba(5,150,105,0.3)] rounded-xl px-3 py-2.5 mb-3">
-              <AlertCircle size={13} className="text-[#10b981] flex-shrink-0" />
-              <p className="text-xs font-bold text-[#059669]">{erroForm}</p>
+              <AlertCircle size={13} className="text-accent flex-shrink-0" />
+              <p className="text-xs font-bold text-accent-strong">{erroForm}</p>
             </div>
           )}
 
           {/* Botão Adicionar */}
           <button
             onClick={handleAdicionarInsumo}
-            className="w-full py-4 rounded-xl font-black text-sm text-white bg-[#059669] flex items-center justify-center gap-2 active:scale-95 transition-all "
+            className="w-full py-4 rounded-xl font-black text-sm text-white bg-accent-strong flex items-center justify-center gap-2 active:scale-95 transition-all "
           >
             <Plus size={16} />
             Adicionar Insumo à Receita
@@ -503,30 +503,30 @@ export default function FichasTecnicasPage() {
         {/* ── Lista de Itens da Receita ──────────────────────────────────────── */}
         <div>
           <div className="flex items-center justify-between px-1 mb-2">
-            <p className="text-[11px] font-black text-[#475569] uppercase tracking-wider">
+            <p className="text-[11px] font-black text-dim uppercase tracking-wider">
               Composição da Receita
             </p>
-            <p className="text-[11px] font-bold text-[#475569]">
+            <p className="text-[11px] font-bold text-dim">
               {ficha.itens.length} insumo{ficha.itens.length !== 1 ? "s" : ""}
             </p>
           </div>
 
           {ficha.itens.length === 0 ? (
-            <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-8 flex flex-col items-center text-center gap-2">
-              <div className="w-12 h-12 rounded-2xl bg-[#334155] flex items-center justify-center mb-1">
-                <ChefHat size={22} className="text-[#334155]" />
+            <div className="bg-card rounded-2xl border border-white/5  p-8 flex flex-col items-center text-center gap-2">
+              <div className="w-12 h-12 rounded-2xl bg-elevated flex items-center justify-center mb-1">
+                <ChefHat size={22} className="text-elevated" />
               </div>
-              <p className="text-sm font-bold text-[#64748B]">Nenhum insumo adicionado</p>
-              <p className="text-xs text-[#475569] font-medium">
+              <p className="text-sm font-bold text-subtle">Nenhum insumo adicionado</p>
+              <p className="text-xs text-dim font-medium">
                 Use o formulário acima para montar a receita do prato.
               </p>
             </div>
           ) : (
-            <div className="bg-[#1E293B] rounded-2xl border border-white/5  overflow-hidden divide-y divide-neutral-50">
+            <div className="bg-card rounded-2xl border border-white/5  overflow-hidden divide-y divide-neutral-50">
               {/* Cabeçalho da tabela */}
               <div className="flex items-center px-4 py-2 ">
-                <p className="text-[10px] font-black text-[#475569] uppercase tracking-wider flex-1">Ingrediente</p>
-                <p className="text-[10px] font-black text-[#475569] uppercase tracking-wider w-16 text-right mr-8">Custo</p>
+                <p className="text-[10px] font-black text-dim uppercase tracking-wider flex-1">Ingrediente</p>
+                <p className="text-[10px] font-black text-dim uppercase tracking-wider w-16 text-right mr-8">Custo</p>
               </div>
 
               {/* Linhas */}
@@ -541,8 +541,8 @@ export default function FichasTecnicasPage() {
 
               {/* Rodapé total */}
               <div className="flex items-center justify-between px-4 py-3.5  border-t border-white/8">
-                <p className="text-sm font-black text-[#CBD5E1]">Custo Total</p>
-                <p className="text-lg font-black text-[#10b981]">{fmtBRL(custo_total)}</p>
+                <p className="text-sm font-black text-fg-soft">Custo Total</p>
+                <p className="text-lg font-black text-accent">{fmtBRL(custo_total)}</p>
               </div>
             </div>
           )}
@@ -556,9 +556,9 @@ export default function FichasTecnicasPage() {
                 { label: "MC R$", value: fmtBRL(mc_reais), ok: mc_reais > 0,  desc: "Lucro por Prato" },
               ].map((ind) => (
                 <div key={ind.label} className={`rounded-2xl border px-3 py-3 text-center ${ind.ok ? "border-emerald-500/20 bg-[rgba(16,185,129,0.06)]" : "border-rose-500/20 bg-[rgba(244,63,94,0.06)]"}`}>
-                  <p className={`text-base font-black ${ind.ok ? "text-[#10b981]" : "text-[#f43f5e]"}`}>{ind.value}</p>
-                  <p className="text-[9px] font-black text-[#475569] uppercase tracking-wider mt-0.5">{ind.label}</p>
-                  <p className="text-[9px] text-[#334155] font-medium">{ind.desc}</p>
+                  <p className={`text-base font-black ${ind.ok ? "text-accent" : "text-danger"}`}>{ind.value}</p>
+                  <p className="text-[9px] font-black text-dim uppercase tracking-wider mt-0.5">{ind.label}</p>
+                  <p className="text-[9px] text-elevated font-medium">{ind.desc}</p>
                 </div>
               ))}
             </div>
@@ -568,7 +568,7 @@ export default function FichasTecnicasPage() {
           <button
             onClick={handleSalvarFicha}
             disabled={!ficha.nome || ficha.itens.length === 0}
-            className="w-full py-4 rounded-2xl font-black text-sm text-white bg-[#10b981] disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all "
+            className="w-full py-4 rounded-2xl font-black text-sm text-white bg-accent disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all "
           >
             {salvou ? "✓ Ficha Salva!" : "Salvar Ficha Técnica"}
           </button>

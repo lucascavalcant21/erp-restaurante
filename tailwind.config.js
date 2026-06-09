@@ -29,10 +29,12 @@ module.exports = {
         "line-soft": "#1E293B",
 
         // Texto (hierarquia)
-        fg:       "#F1F5F9", // texto principal
-        muted:    "#94A3B8", // texto secundário
-        subtle:   "#64748B", // texto auxiliar / labels
-        faint:    "#334155", // texto desabilitado / divisores
+        fg:        "#F1F5F9", // texto principal
+        "fg-soft": "#CBD5E1", // texto principal suave
+        muted:     "#94A3B8", // texto secundário
+        subtle:    "#64748B", // texto auxiliar / labels
+        dim:       "#475569", // texto terciário / ícones
+        faint:     "#334155", // texto desabilitado / divisores
 
         // Acento (verde da marca) + estados
         accent:        "#10B981",

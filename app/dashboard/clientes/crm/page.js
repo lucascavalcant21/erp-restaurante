@@ -40,7 +40,7 @@ function diasDesde(str) {
 const CATEGORIAS_CLIENTE = {
   vip:     { label: "⭐ VIP",     bg: "bg-amber-100",   cor: "text-amber-700",   borda: "border-amber-200"   },
   regular: { label: "✓ Regular", bg: "bg-emerald-100", cor: "text-emerald-700", borda: "border-emerald-200" },
-  inativo: { label: "● Inativo", bg: "bg-[#334155]", cor: "text-[#64748B]", borda: "border-white/8" },
+  inativo: { label: "● Inativo", bg: "bg-elevated", cor: "text-subtle", borda: "border-white/8" },
 };
 
 function classificarCliente(totalGasto, ultimaCompra) {
@@ -84,36 +84,36 @@ function FormCliente({ onSalvar, onFechar }) {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-[#059669]/40" onClick={onFechar}>
-      <div className="w-full bg-[#1E293B] rounded-t-3xl p-6 space-y-4" onClick={e => e.stopPropagation()}>
-        <div className="w-10 h-1 bg-[#334155] rounded-full mx-auto" />
-        <h2 className="text-lg font-black text-[#F1F5F9]">Novo Cliente</h2>
+    <div className="fixed inset-0 z-50 flex items-end bg-accent-strong/40" onClick={onFechar}>
+      <div className="w-full bg-card rounded-t-3xl p-6 space-y-4" onClick={e => e.stopPropagation()}>
+        <div className="w-10 h-1 bg-elevated rounded-full mx-auto" />
+        <h2 className="text-lg font-black text-fg">Novo Cliente</h2>
         <div className="space-y-3">
           <div>
-            <label className="text-[11px] font-black text-[#475569] uppercase tracking-wider block mb-1">Nome</label>
+            <label className="text-[11px] font-black text-dim uppercase tracking-wider block mb-1">Nome</label>
             <input value={form.nome} onChange={e => set("nome", e.target.value)}
               placeholder="Nome completo"
-              className="w-full  border border-white/8 rounded-xl px-3 py-3 text-sm font-medium text-[#F1F5F9] focus:outline-none focus:ring-2 focus:border-[#10b981]" />
+              className="w-full  border border-white/8 rounded-xl px-3 py-3 text-sm font-medium text-fg focus:outline-none focus:ring-2 focus:border-accent" />
           </div>
           <div>
-            <label className="text-[11px] font-black text-[#475569] uppercase tracking-wider block mb-1">Telefone</label>
+            <label className="text-[11px] font-black text-dim uppercase tracking-wider block mb-1">Telefone</label>
             <input value={form.tel} onChange={e => set("tel", e.target.value)}
               placeholder="(XX) XXXXX-XXXX"
-              className="w-full  border border-white/8 rounded-xl px-3 py-3 text-sm font-medium text-[#F1F5F9] focus:outline-none focus:ring-2 focus:border-[#10b981]" />
+              className="w-full  border border-white/8 rounded-xl px-3 py-3 text-sm font-medium text-fg focus:outline-none focus:ring-2 focus:border-accent" />
           </div>
           <div>
-            <label className="text-[11px] font-black text-[#475569] uppercase tracking-wider block mb-1">Unidade</label>
+            <label className="text-[11px] font-black text-dim uppercase tracking-wider block mb-1">Unidade</label>
             <select value={form.unidade} onChange={e => set("unidade", e.target.value)}
-              className="w-full  border border-white/8 rounded-xl px-3 py-3 text-sm font-medium text-[#F1F5F9] focus:outline-none focus:ring-2 focus:border-[#10b981]">
+              className="w-full  border border-white/8 rounded-xl px-3 py-3 text-sm font-medium text-fg focus:outline-none focus:ring-2 focus:border-accent">
               {["Seldeestrela", "Tico Tico Saladas", "Burguer"].map(u => <option key={u}>{u}</option>)}
             </select>
           </div>
         </div>
         <button onClick={() => { if (form.nome) { onSalvar(form); onFechar(); } }}
-          className="w-full py-3.5 rounded-2xl bg-[#059669] text-white font-black text-sm active:scale-95 transition-transform">
+          className="w-full py-3.5 rounded-2xl bg-accent-strong text-white font-black text-sm active:scale-95 transition-transform">
           Salvar Cliente
         </button>
-        <button onClick={onFechar} className="w-full py-2 text-[#475569] text-sm font-medium">Cancelar</button>
+        <button onClick={onFechar} className="w-full py-2 text-dim text-sm font-medium">Cancelar</button>
       </div>
     </div>
   );
@@ -129,7 +129,7 @@ function CardCliente({ cliente }) {
   const pedidos   = PEDIDOS_LOCAIS[cliente.id] || [];
 
   return (
-    <div className={`rounded-2xl border  overflow-hidden bg-[#1E293B] ${categoria === "inativo" ? "border-white/8" : cat.borda}`}>
+    <div className={`rounded-2xl border  overflow-hidden bg-card ${categoria === "inativo" ? "border-white/8" : cat.borda}`}>
       <button className="w-full px-4 pt-4 pb-3 text-left" onClick={() => setAberto(v => !v)}>
         <div className="flex items-center gap-3">
           <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-black text-sm flex-shrink-0 ${cat.bg} ${cat.cor}`}>
@@ -137,18 +137,18 @@ function CardCliente({ cliente }) {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-sm font-black text-[#F1F5F9] truncate">{cliente.nome}</p>
+              <p className="text-sm font-black text-fg truncate">{cliente.nome}</p>
               <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${cat.bg} ${cat.cor}`}>{cat.label}</span>
             </div>
-            <p className="text-[11px] font-medium text-[#475569]">
+            <p className="text-[11px] font-medium text-dim">
               {cliente.unidade} · Última compra há {dias}d
             </p>
           </div>
           <div className="text-right flex-shrink-0">
-            <p className="text-sm font-black text-[#F1F5F9]">{fmtBRL(cliente.total_gasto)}</p>
-            <p className="text-[10px] font-bold text-[#475569]">{cliente.total_pedidos} pedidos</p>
+            <p className="text-sm font-black text-fg">{fmtBRL(cliente.total_gasto)}</p>
+            <p className="text-[10px] font-bold text-dim">{cliente.total_pedidos} pedidos</p>
           </div>
-          {aberto ? <ChevronUp size={16} className="text-[#475569] flex-shrink-0" /> : <ChevronDown size={16} className="text-[#475569] flex-shrink-0" />}
+          {aberto ? <ChevronUp size={16} className="text-dim flex-shrink-0" /> : <ChevronDown size={16} className="text-dim flex-shrink-0" />}
         </div>
       </button>
 
@@ -159,7 +159,7 @@ function CardCliente({ cliente }) {
             {cliente.tel && (
               <>
                 <a href={`tel:${cliente.tel}`}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-[#334155] text-[#CBD5E1] text-xs font-black active:scale-95 transition-transform">
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-elevated text-fg-soft text-xs font-black active:scale-95 transition-transform">
                   <Phone size={13} /> Ligar
                 </a>
                 <a href={`https://wa.me/55${cliente.tel.replace(/\D/g, "")}`} target="_blank" rel="noreferrer"
@@ -173,31 +173,31 @@ function CardCliente({ cliente }) {
           {/* Stats */}
           <div className="grid grid-cols-3 gap-2 mb-3">
             <div className=" rounded-xl p-2 text-center">
-              <p className="text-[9px] font-black text-[#475569] uppercase">Total gasto</p>
-              <p className="text-[12px] font-black text-[#F1F5F9]">{fmtBRL(cliente.total_gasto)}</p>
+              <p className="text-[9px] font-black text-dim uppercase">Total gasto</p>
+              <p className="text-[12px] font-black text-fg">{fmtBRL(cliente.total_gasto)}</p>
             </div>
             <div className=" rounded-xl p-2 text-center">
-              <p className="text-[9px] font-black text-[#475569] uppercase">Pedidos</p>
-              <p className="text-[12px] font-black text-[#F1F5F9]">{cliente.total_pedidos}</p>
+              <p className="text-[9px] font-black text-dim uppercase">Pedidos</p>
+              <p className="text-[12px] font-black text-fg">{cliente.total_pedidos}</p>
             </div>
             <div className={`rounded-xl p-2 text-center ${dias > 60 ? "bg-[rgba(5,150,105,0.1)]" : ""}`}>
-              <p className="text-[9px] font-black text-[#475569] uppercase">Dias sem</p>
-              <p className={`text-[12px] font-black ${dias > 60 ? "text-[#059669]" : "text-[#F1F5F9]"}`}>{dias}d</p>
+              <p className="text-[9px] font-black text-dim uppercase">Dias sem</p>
+              <p className={`text-[12px] font-black ${dias > 60 ? "text-accent-strong" : "text-fg"}`}>{dias}d</p>
             </div>
           </div>
 
           {/* Últimas compras */}
           {pedidos.length > 0 && (
             <div>
-              <p className="text-[10px] font-black text-[#475569] uppercase tracking-wider mb-2">Últimas Compras</p>
+              <p className="text-[10px] font-black text-dim uppercase tracking-wider mb-2">Últimas Compras</p>
               <div className="space-y-1.5">
                 {pedidos.map((p, i) => (
                   <div key={i} className="flex items-center justify-between">
                     <div>
-                      <p className="text-[11px] font-black text-[#CBD5E1]">{p.itens}</p>
-                      <p className="text-[10px] text-[#475569]">{fmtData(p.data)}</p>
+                      <p className="text-[11px] font-black text-fg-soft">{p.itens}</p>
+                      <p className="text-[10px] text-dim">{fmtData(p.data)}</p>
                     </div>
-                    <p className="text-[12px] font-black text-[#F1F5F9]">{fmtBRL(p.valor)}</p>
+                    <p className="text-[12px] font-black text-fg">{fmtBRL(p.valor)}</p>
                   </div>
                 ))}
               </div>
@@ -268,19 +268,19 @@ export default function CRMPage() {
       <div className="sticky top-0 z-20  border-b border-white/8 px-4 pt-12 pb-3" style={{ background: '#0F172A' }}>
         <div className="flex items-center gap-3">
           <button onClick={() => router.back()}
-            className="w-9 h-9 rounded-xl bg-[#1E293B] border border-white/8 flex items-center justify-center  active:scale-95 transition-transform">
-            <ArrowLeft size={18} className="text-[#94A3B8]" />
+            className="w-9 h-9 rounded-xl bg-card border border-white/8 flex items-center justify-center  active:scale-95 transition-transform">
+            <ArrowLeft size={18} className="text-muted" />
           </button>
           <div className="flex-1">
             <h1 className="text-lg font-black leading-tight" style={{ color:"#F1F5F9" }}>CRM — Clientes</h1>
-            <p className="text-[11px] text-[#475569] font-medium">{clientes.length} clientes cadastrados</p>
+            <p className="text-[11px] text-dim font-medium">{clientes.length} clientes cadastrados</p>
           </div>
           <button onClick={carregarDados}
-            className="w-9 h-9 rounded-xl bg-[#1E293B] border border-white/8 flex items-center justify-center  active:scale-95 transition-transform mr-1">
-            <RefreshCw size={15} className="text-[#64748B]" />
+            className="w-9 h-9 rounded-xl bg-card border border-white/8 flex items-center justify-center  active:scale-95 transition-transform mr-1">
+            <RefreshCw size={15} className="text-subtle" />
           </button>
           <button onClick={() => setFormAberto(true)}
-            className="flex items-center gap-1.5 bg-[#059669] text-white text-xs font-black px-3 py-2 rounded-xl active:scale-95 transition-transform">
+            className="flex items-center gap-1.5 bg-accent-strong text-white text-xs font-black px-3 py-2 rounded-xl active:scale-95 transition-transform">
             <Plus size={13} />
             Novo
           </button>
@@ -306,21 +306,21 @@ export default function CRMPage() {
                 <p className="text-[9px] font-black text-amber-600 uppercase tracking-wider mb-1">VIPs</p>
                 <p className="text-2xl font-black text-amber-800">{resumo.vip}</p>
               </div>
-              <div className="bg-[#1E293B] border border-white/5 rounded-2xl  p-3 text-center">
-                <p className="text-[9px] font-black text-[#475569] uppercase tracking-wider mb-1">Total</p>
-                <p className="text-2xl font-black text-[#F1F5F9]">{resumo.total}</p>
+              <div className="bg-card border border-white/5 rounded-2xl  p-3 text-center">
+                <p className="text-[9px] font-black text-dim uppercase tracking-wider mb-1">Total</p>
+                <p className="text-2xl font-black text-fg">{resumo.total}</p>
               </div>
-              <div className={`rounded-2xl border p-3 text-center ${resumo.inativo > 0 ? "bg-[rgba(5,150,105,0.1)] border-[rgba(5,150,105,0.3)]" : "bg-[#1E293B] border-white/5"}`}>
-                <p className={`text-[9px] font-black uppercase tracking-wider mb-1 ${resumo.inativo > 0 ? "text-[#059669]" : "text-[#475569]"}`}>Inativos</p>
-                <p className={`text-2xl font-black ${resumo.inativo > 0 ? "text-rose-800" : "text-[#F1F5F9]"}`}>{resumo.inativo}</p>
+              <div className={`rounded-2xl border p-3 text-center ${resumo.inativo > 0 ? "bg-[rgba(5,150,105,0.1)] border-[rgba(5,150,105,0.3)]" : "bg-card border-white/5"}`}>
+                <p className={`text-[9px] font-black uppercase tracking-wider mb-1 ${resumo.inativo > 0 ? "text-accent-strong" : "text-dim"}`}>Inativos</p>
+                <p className={`text-2xl font-black ${resumo.inativo > 0 ? "text-rose-800" : "text-fg"}`}>{resumo.inativo}</p>
               </div>
             </div>
 
             {/* Ticket médio */}
-            <div className="bg-[#1E293B] border border-white/5 rounded-2xl  px-4 py-3 flex items-center justify-between">
+            <div className="bg-card border border-white/5 rounded-2xl  px-4 py-3 flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-black text-[#475569] uppercase tracking-wider">Gasto Total (CRM)</p>
-                <p className="text-lg font-black text-[#F1F5F9]">{fmtBRL(resumo.totalGasto)}</p>
+                <p className="text-[10px] font-black text-dim uppercase tracking-wider">Gasto Total (CRM)</p>
+                <p className="text-lg font-black text-fg">{fmtBRL(resumo.totalGasto)}</p>
               </div>
               <TrendingUp size={22} className="text-emerald-500" />
             </div>
@@ -328,17 +328,17 @@ export default function CRMPage() {
             {/* Filtros */}
             <div className="space-y-2">
               <div className="relative">
-                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#475569]" />
+                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-dim" />
                 <input type="text" value={busca} onChange={e => setBusca(e.target.value)}
                   placeholder="Buscar por nome ou telefone..."
-                  className="w-full bg-[#1E293B] border border-white/8 rounded-xl pl-11 pr-10 py-3 text-sm font-medium text-[#F1F5F9] placeholder:text-[#475569] focus:outline-none focus:ring-2 focus:border-[#10b981] " />
-                {busca && <button onClick={() => setBusca("")} className="absolute right-3 top-1/2 -translate-y-1/2"><X size={15} className="text-[#475569]" /></button>}
+                  className="w-full bg-card border border-white/8 rounded-xl pl-11 pr-10 py-3 text-sm font-medium text-fg placeholder:text-dim focus:outline-none focus:ring-2 focus:border-accent " />
+                {busca && <button onClick={() => setBusca("")} className="absolute right-3 top-1/2 -translate-y-1/2"><X size={15} className="text-dim" /></button>}
               </div>
 
               <div className="flex gap-2 overflow-x-auto pb-1">
                 {FILTROS.map(f => (
                   <button key={f} onClick={() => setFiltro(f)}
-                    className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-black transition-all ${filtro === f ? "bg-[#059669] text-white" : "bg-[#1E293B] border border-white/8 text-[#94A3B8]"}`}>
+                    className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-black transition-all ${filtro === f ? "bg-accent-strong text-white" : "bg-card border border-white/8 text-muted"}`}>
                     {f}
                   </button>
                 ))}
@@ -347,7 +347,7 @@ export default function CRMPage() {
               <div className="flex gap-2 overflow-x-auto pb-1">
                 {UNIDADES.map(u => (
                   <button key={u} onClick={() => setUnidade(u)}
-                    className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-black transition-all ${unidade === u ? "bg-emerald-600 text-white" : "bg-[#1E293B] border border-white/8 text-[#94A3B8]"}`}>
+                    className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[11px] font-black transition-all ${unidade === u ? "bg-emerald-600 text-white" : "bg-card border border-white/8 text-muted"}`}>
                     {u}
                   </button>
                 ))}
@@ -357,8 +357,8 @@ export default function CRMPage() {
             {/* Lista */}
             <div className="space-y-3">
               {clientesFiltrados.length === 0 ? (
-                <div className="bg-[#1E293B] rounded-2xl border border-white/5 p-8 text-center">
-                  <p className="text-[#475569] font-medium text-sm">Nenhum cliente encontrado</p>
+                <div className="bg-card rounded-2xl border border-white/5 p-8 text-center">
+                  <p className="text-dim font-medium text-sm">Nenhum cliente encontrado</p>
                 </div>
               ) : (
                 clientesFiltrados.map(c => <CardCliente key={c.id} cliente={c} />)

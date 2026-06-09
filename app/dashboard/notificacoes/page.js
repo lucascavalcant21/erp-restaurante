@@ -33,8 +33,8 @@ const TIPO_CONFIG = {
     Icon:  AlertTriangle,
     bg:    "bg-[rgba(5,150,105,0.1)]",
     borda: "border-[rgba(5,150,105,0.3)]",
-    icone: "bg-[rgba(5,150,105,0.15)] text-[#10b981]",
-    badge: "bg-[rgba(5,150,105,0.15)] text-[#059669]",
+    icone: "bg-[rgba(5,150,105,0.15)] text-accent",
+    badge: "bg-[rgba(5,150,105,0.15)] text-accent-strong",
     label: "Estoque",
     href:  "/dashboard/operacao/estoque",
   },
@@ -60,8 +60,8 @@ const TIPO_CONFIG = {
     Icon:  Megaphone,
     bg:    "",
     borda: "border-white/8",
-    icone: "bg-[#334155] text-[#64748B]",
-    badge: "bg-[#334155] text-[#64748B]",
+    icone: "bg-elevated text-subtle",
+    badge: "bg-elevated text-subtle",
     label: "Aviso",
     href:  null,
   },
@@ -126,11 +126,11 @@ function CardNotificacao({ notif, onLer, onDeletar }) {
   const IcoComp = cfg.Icon;
 
   return (
-    <div className={`rounded-2xl border  overflow-hidden transition-all ${notif.lida ? "bg-[#1E293B] border-white/5 opacity-70" : `${cfg.bg} ${cfg.borda}`}`}>
+    <div className={`rounded-2xl border  overflow-hidden transition-all ${notif.lida ? "bg-card border-white/5 opacity-70" : `${cfg.bg} ${cfg.borda}`}`}>
       <div className="px-4 py-3.5">
         <div className="flex items-start gap-3">
           {/* Ícone */}
-          <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${notif.lida ? "bg-[#334155] text-[#475569]" : cfg.icone}`}>
+          <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${notif.lida ? "bg-elevated text-dim" : cfg.icone}`}>
             <IcoComp size={16} />
           </div>
 
@@ -138,19 +138,19 @@ function CardNotificacao({ notif, onLer, onDeletar }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2 mb-0.5">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className={`text-[9px] font-black uppercase tracking-wide px-1.5 py-0.5 rounded-full ${notif.lida ? "bg-[#334155] text-[#475569]" : cfg.badge}`}>
+                <span className={`text-[9px] font-black uppercase tracking-wide px-1.5 py-0.5 rounded-full ${notif.lida ? "bg-elevated text-dim" : cfg.badge}`}>
                   {cfg.label}
                 </span>
                 {!notif.lida && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] flex-shrink-0" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-accent flex-shrink-0" />
                 )}
               </div>
-              <span className="text-[10px] text-[#475569] font-medium flex-shrink-0">{tempoRelativo(notif.criada_em)}</span>
+              <span className="text-[10px] text-dim font-medium flex-shrink-0">{tempoRelativo(notif.criada_em)}</span>
             </div>
-            <p className={`text-sm font-black leading-tight mb-1 ${notif.lida ? "text-[#94A3B8]" : "text-[#F1F5F9]"}`}>
+            <p className={`text-sm font-black leading-tight mb-1 ${notif.lida ? "text-muted" : "text-fg"}`}>
               {notif.titulo}
             </p>
-            <p className="text-[11px] text-[#64748B] font-medium leading-relaxed">{notif.corpo}</p>
+            <p className="text-[11px] text-subtle font-medium leading-relaxed">{notif.corpo}</p>
           </div>
         </div>
       </div>
@@ -159,7 +159,7 @@ function CardNotificacao({ notif, onLer, onDeletar }) {
       <div className="flex items-center border-t border-white/5 divide-x divide-white/5">
         {cfg.href && (
           <a href={cfg.href}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-black text-[#94A3B8] active: transition-colors">
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-black text-muted active: transition-colors">
             Ver módulo <ChevronRight size={12} />
           </a>
         )}
@@ -170,7 +170,7 @@ function CardNotificacao({ notif, onLer, onDeletar }) {
           </button>
         )}
         <button onClick={() => onDeletar(notif.id)}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-black text-[#10b981] active:bg-[rgba(5,150,105,0.1)] transition-colors">
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-black text-accent active:bg-[rgba(5,150,105,0.1)] transition-colors">
           <Trash2 size={13} /> Remover
         </button>
       </div>
@@ -233,18 +233,18 @@ export default function NotificacoesPage() {
       <div className="sticky top-0 z-20  border-b border-white/8 px-4 pt-12 pb-3" style={{ background: '#0F172A' }}>
         <div className="flex items-center gap-3 mb-3">
           <button onClick={() => router.back()}
-            className="w-9 h-9 rounded-xl bg-[#1E293B] border border-white/8 flex items-center justify-center  active:scale-95 transition-transform">
-            <ArrowLeft size={18} className="text-[#94A3B8]" />
+            className="w-9 h-9 rounded-xl bg-card border border-white/8 flex items-center justify-center  active:scale-95 transition-transform">
+            <ArrowLeft size={18} className="text-muted" />
           </button>
           <div className="flex-1">
             <h1 className="text-lg font-black leading-tight" style={{ color:"#F1F5F9" }}>Notificações</h1>
-            <p className="text-[11px] text-[#475569] font-medium">
+            <p className="text-[11px] text-dim font-medium">
               {naoLidas > 0 ? `${naoLidas} não lida${naoLidas > 1 ? "s" : ""}` : "Tudo em dia"}
             </p>
           </div>
           {naoLidas > 0 && (
             <button onClick={handleLerTodas}
-              className="flex items-center gap-1 text-[11px] font-black text-[#10b981] active:opacity-70 transition-opacity">
+              className="flex items-center gap-1 text-[11px] font-black text-accent active:opacity-70 transition-opacity">
               <CheckCheck size={14} /> Ler todas
             </button>
           )}
@@ -254,10 +254,10 @@ export default function NotificacoesPage() {
         <div className="flex gap-2 overflow-x-auto scrollbar-none pb-0.5">
           {FILTROS.map(f => (
             <button key={f.id} onClick={() => setFiltro(f.id)}
-              className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-full transition-all active:scale-95 ${filtro === f.id ? "bg-[#059669] text-white" : "bg-[#1E293B] text-[#94A3B8] border border-white/8"}`}>
+              className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-full transition-all active:scale-95 ${filtro === f.id ? "bg-accent-strong text-white" : "bg-card text-muted border border-white/8"}`}>
               {f.label}
               {f.id === "nao_lidas" && naoLidas > 0 && (
-                <span className="ml-1 bg-[#10b981] text-white text-[9px] font-black rounded-full px-1">{naoLidas}</span>
+                <span className="ml-1 bg-accent text-white text-[9px] font-black rounded-full px-1">{naoLidas}</span>
               )}
             </button>
           ))}
@@ -270,7 +270,7 @@ export default function NotificacoesPage() {
         {notificacoes.some(n => n.tipo === "estoque_critico" && !n.lida) && filtro === "todas" && (
           <button onClick={() => router.push("/dashboard/operacao/estoque")}
             className="w-full bg-[rgba(5,150,105,0.1)]0 text-white rounded-2xl px-4 py-3.5 flex items-center gap-3 active:scale-95 transition-all ">
-            <div className="w-9 h-9 rounded-xl bg-[#1E293B]/20 flex items-center justify-center flex-shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-card/20 flex items-center justify-center flex-shrink-0">
               <Package size={18} />
             </div>
             <div className="flex-1 text-left">
@@ -285,14 +285,14 @@ export default function NotificacoesPage() {
 
         {/* Lista */}
         {filtradas.length === 0 ? (
-          <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-10 flex flex-col items-center text-center gap-2 mt-4">
-            <div className="w-14 h-14 rounded-2xl bg-[#334155] flex items-center justify-center mb-2">
-              <Bell size={24} className="text-[#334155]" />
+          <div className="bg-card rounded-2xl border border-white/5  p-10 flex flex-col items-center text-center gap-2 mt-4">
+            <div className="w-14 h-14 rounded-2xl bg-elevated flex items-center justify-center mb-2">
+              <Bell size={24} className="text-elevated" />
             </div>
-            <p className="text-sm font-bold text-[#64748B]">
+            <p className="text-sm font-bold text-subtle">
               {filtro === "nao_lidas" ? "Nenhuma notificação não lida" : "Nenhuma notificação"}
             </p>
-            <p className="text-xs text-[#475569] font-medium">
+            <p className="text-xs text-dim font-medium">
               {filtro === "nao_lidas" ? "Você está em dia com tudo!" : "As notificações aparecerão aqui."}
             </p>
           </div>
@@ -307,7 +307,7 @@ export default function NotificacoesPage() {
         {/* Limpar lidas */}
         {notificacoes.some(n => n.lida) && (
           <button onClick={handleLimparLidas}
-            className="w-full py-3 rounded-2xl border border-white/8 text-[11px] font-black text-[#475569] active: transition-colors mt-2">
+            className="w-full py-3 rounded-2xl border border-white/8 text-[11px] font-black text-dim active: transition-colors mt-2">
             Limpar notificações lidas
           </button>
         )}

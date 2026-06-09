@@ -446,7 +446,7 @@ function TelaDashboard({ mes, ano, dados, loading, sessao }) {
             <SectionTitle>Atenção Necessária</SectionTitle>
             <button
               onClick={() => router.push("/dashboard/notificacoes")}
-              className="text-[10px] font-black text-[#10b981] active:opacity-70"
+              className="text-[10px] font-black text-accent active:opacity-70"
             >
               Ver todas →
             </button>
@@ -601,7 +601,7 @@ function TelaEstoque() {
                     <p className="text-xs font-medium" style={{ color: '#475569' }}>{it.unidade} · {it.categoria}</p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className={`text-sm font-black ${it.qtd <= (it.minimo || 0) ? "text-[#10b981]" : "text-neutral-800"}`}>{it.qtd}</p>
+                    <p className={`text-sm font-black ${it.qtd <= (it.minimo || 0) ? "text-accent" : "text-neutral-800"}`}>{it.qtd}</p>
                     <p className="text-[10px] text-neutral-400 font-medium">qtd</p>
                   </div>
                 </div>
@@ -643,14 +643,14 @@ function TelaCardapio() {
             <Card className="divide-y divide-neutral-100">
               {receitas.map((r, i) => (
                 <div key={i} className="flex items-center gap-3 px-4 py-3">
-                  <div className="w-9 h-9 rounded-xl bg-[#edfbf3] flex items-center justify-center flex-shrink-0 text-[#10b981]">
+                  <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center flex-shrink-0 text-accent">
                     <Ic.MenuBook size={16} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-neutral-800 truncate">{r.nome}</p>
                     <p className="text-xs text-neutral-400 font-medium">{r.categoria}</p>
                   </div>
-                  {r.custo != null && <p className="text-sm font-black text-[#10b981] flex-shrink-0">{fmtBRL(r.custo)}</p>}
+                  {r.custo != null && <p className="text-sm font-black text-accent flex-shrink-0">{fmtBRL(r.custo)}</p>}
                 </div>
               ))}
             </Card>
@@ -695,12 +695,12 @@ function TelaConta({ sessao, onSair }) {
         <div className="flex items-center gap-4">
           <button onClick={() => fileRef.current?.click()} className="relative flex-shrink-0 group">
             {fotoUrl
-              ? <img src={fotoUrl} alt="Foto" className="w-16 h-16 rounded-full object-cover shadow-md ring-2 ring-[#10b981]/40" />
-              : <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#10b981] to-[#059669] flex items-center justify-center text-white text-2xl font-black shadow-md ring-2 ring-[#10b981]/40">
+              ? <img src={fotoUrl} alt="Foto" className="w-16 h-16 rounded-full object-cover shadow-md ring-2 ring-accent/40" />
+              : <div className="w-16 h-16 rounded-full bg-gradient-to-br from-accent to-accent-strong flex items-center justify-center text-white text-2xl font-black shadow-md ring-2 ring-accent/40">
                   {sessao?.nome?.[0]?.toUpperCase() || "U"}
                 </div>
             }
-            <div className="absolute inset-0 rounded-full bg-[#059669]/30 flex items-center justify-center opacity-0 group-active:opacity-100 transition-opacity">
+            <div className="absolute inset-0 rounded-full bg-accent-strong/30 flex items-center justify-center opacity-0 group-active:opacity-100 transition-opacity">
               <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2}>
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -711,8 +711,8 @@ function TelaConta({ sessao, onSair }) {
           <div className="flex-1 min-w-0">
             <p className="text-base font-black text-neutral-900 leading-tight">{sessao?.nome || "Usuário"}</p>
             <p className="text-xs text-neutral-400 font-medium mb-1">{papel?.label || "—"}</p>
-            <span className="inline-flex items-center gap-1.5 bg-[#edfbf3] text-[#0a6c4b] text-[10px] font-bold px-2 py-0.5 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#10b981]" />
+            <span className="inline-flex items-center gap-1.5 bg-brand-50 text-brand-900 text-[10px] font-bold px-2 py-0.5 rounded-full">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent" />
               Sessão ativa
             </span>
           </div>
@@ -741,12 +741,12 @@ function TelaConta({ sessao, onSair }) {
       <Card className="p-1 mb-4">
         {unidades.map((u, i) => (
           <button key={u} onClick={() => setUnidade(i)}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${unidade === i ? "bg-[#edfbf3]" : "active:bg-neutral-50"}`}>
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 ${unidade === i ? "bg-[#10b981] text-white" : "bg-neutral-100 text-neutral-500"}`}>
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${unidade === i ? "bg-brand-50" : "active:bg-neutral-50"}`}>
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 ${unidade === i ? "bg-accent text-white" : "bg-neutral-100 text-neutral-500"}`}>
               {u[0]}
             </div>
-            <span className={`text-sm font-bold flex-1 text-left ${unidade === i ? "text-[#0a6c4b]" : "text-neutral-700"}`}>{u}</span>
-            {unidade === i && <span className="text-[#10b981] text-[10px] font-black bg-[#edfbf3] px-2 py-0.5 rounded-full">ATIVA</span>}
+            <span className={`text-sm font-bold flex-1 text-left ${unidade === i ? "text-brand-900" : "text-neutral-700"}`}>{u}</span>
+            {unidade === i && <span className="text-accent text-[10px] font-black bg-brand-50 px-2 py-0.5 rounded-full">ATIVA</span>}
           </button>
         ))}
       </Card>
@@ -767,12 +767,12 @@ function TelaConta({ sessao, onSair }) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
                       <span className="text-xs font-bold text-neutral-800">{s.dispositivo}</span>
-                      {i === 0 && !s.saida && <span className="text-[9px] font-black text-[#10b981] bg-[#edfbf3] px-1.5 py-0.5 rounded-full">ATUAL</span>}
+                      {i === 0 && !s.saida && <span className="text-[9px] font-black text-accent bg-brand-50 px-1.5 py-0.5 rounded-full">ATUAL</span>}
                     </div>
                     <p className="text-xs text-neutral-500 font-medium">Entrada: <span className="text-neutral-700 font-bold">{fmtDataHora(s.entrada)}</span></p>
                     {s.saida && <p className="text-xs text-neutral-500 font-medium">Saída: <span className="text-neutral-700 font-bold">{fmtDataHora(s.saida)}</span></p>}
                   </div>
-                  <span className={`text-[10px] font-bold px-2 py-1 rounded-full flex-shrink-0 ${!s.saida ? "bg-[#edfbf3] text-[#0a6c4b]" : "bg-neutral-100 text-neutral-500"}`}>
+                  <span className={`text-[10px] font-bold px-2 py-1 rounded-full flex-shrink-0 ${!s.saida ? "bg-brand-50 text-brand-900" : "bg-neutral-100 text-neutral-500"}`}>
                     {fmtDuracao(s.entrada, s.saida)}
                   </span>
                 </div>
@@ -783,7 +783,7 @@ function TelaConta({ sessao, onSair }) {
       </div>
 
       <button onClick={onSair}
-        className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl border-2 border-[rgba(5,150,105,0.3)] text-[#10b981] text-sm font-bold active:bg-red-50 transition-colors mt-2">
+        className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl border-2 border-[rgba(5,150,105,0.3)] text-accent text-sm font-bold active:bg-red-50 transition-colors mt-2">
         <Ic.LogOut size={16} />
         Sair da conta
       </button>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { lerSessao, encerrarSessao, getPapel } from "../lib/auth";
+import { lerSessao, encerrarSessao, getPapel, podeAcessar, homeDoPapel } from "../lib/auth";
 import { useERP } from "../context/ERPContext";
 
 // ═══════════════════════════════════════════════════════════════
@@ -257,7 +257,10 @@ function LayoutSidebar({ sessao, navId, onSair }) {
 
       {/* Nav */}
       <nav style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '8px 0' }}>
-        {MENU_GROUPS.map((group) => (
+        {MENU_GROUPS.map((group) => {
+          const itens = group.items.filter((item) => sessao && podeAcessar(sessao.papel, item.id));
+          if (!itens.length) return null;
+          return (
           <div key={group.id} style={{ marginBottom: 8 }}>
             <div style={{
               height: 20, display: 'flex', alignItems: 'center',
@@ -268,7 +271,7 @@ function LayoutSidebar({ sessao, navId, onSair }) {
                 {group.label}
               </p>
             </div>
-            {group.items.map((item) => {
+            {itens.map((item) => {
               const active = navId === item.id;
               const NavIcon = item.Icon;
               return (
@@ -303,7 +306,8 @@ function LayoutSidebar({ sessao, navId, onSair }) {
               );
             })}
           </div>
-        ))}
+          );
+        })}
       </nav>
 
       {/* Rodapé */}
@@ -364,6 +368,13 @@ export default function DashboardLayout({ children }) {
     });
     return () => { vivo = false; };
   }, [router]);
+
+  // Guard de permissão: bloqueia acesso direto a módulos fora do papel
+  useEffect(() => {
+    if (!sessao) return;
+    const atual = getNavId(pathname || "");
+    if (!podeAcessar(sessao.papel, atual)) router.replace(homeDoPapel(sessao.papel));
+  }, [sessao, pathname, router]);
 
   async function sair() {
     await encerrarSessao();

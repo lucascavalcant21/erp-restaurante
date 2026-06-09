@@ -2,139 +2,84 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { fazerLogin } from "../lib/auth";
-
-// ── Ícones ────────────────────────────────────────────────────
-const IcEye = ({ open }) => (
-  <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-    {open
-      ? <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></>
-      : <><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></>
-    }
-  </svg>
-);
+import { Eye, EyeOff, LogIn } from "lucide-react";
+import { fazerLogin, homeDoPapel } from "../lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail]     = useState("");
-  const [senha, setSenha]     = useState("");
-  const [verSenha, setVerSenha] = useState(false);
-  const [erro, setErro]       = useState("");
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [ver, setVer] = useState(false);
+  const [lembrar, setLembrar] = useState(true);
+  const [erro, setErro] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (e) => {
+  async function handleLogin(e) {
     e.preventDefault();
-    if (!email || !senha) { setErro("Preencha todos os campos."); return; }
-    setLoading(true);
-    setErro("");
-
-    const result = await fazerLogin(email, senha);
-    if (!result.ok) {
-      setErro(result.erro);
-      setLoading(false);
-      return;
-    }
-
-    router.push("/dashboard");
-  };
+    if (!email || !senha) { setErro("Preencha e-mail e senha."); return; }
+    setLoading(true); setErro("");
+    const r = await fazerLogin(email, senha);
+    if (!r.ok) { setErro(r.erro); setLoading(false); return; }
+    try { localStorage.setItem("erp_lembrar", lembrar ? "1" : "0"); } catch (_) {}
+    router.push(homeDoPapel(r.usuario.papel));
+  }
 
   return (
-    <div className="min-h-screen bg-card flex flex-col items-center justify-center px-5">
-
-      {/* Logo */}
+    <div className="min-h-screen flex flex-col items-center justify-center px-5" style={{ background: "var(--surface)" }}>
       <div className="mb-8 flex flex-col items-center">
-        <div className="w-14 h-14 rounded-2xl bg-accent flex items-center justify-center shadow-lg mb-4">
-          <svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2}>
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-            <polyline points="9 22 9 12 15 12 15 22"/>
+        <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ background: "linear-gradient(135deg,#059669,#34D399)" }}>
+          <svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.2}>
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
           </svg>
         </div>
-        <p className="text-2xl font-black text-neutral-900 tracking-tight">Cerebro ERP</p>
-        <p className="text-sm text-neutral-400 font-medium mt-0.5">Gestão inteligente para food service</p>
+        <p className="text-2xl font-bold tracking-tight" style={{ color: "var(--fg)" }}>Cerebro ERP</p>
+        <p className="text-sm font-medium mt-0.5" style={{ color: "var(--dim)" }}>Gestão inteligente para food service</p>
       </div>
 
-      {/* Card */}
-      <div className="w-full max-w-sm bg-white rounded-3xl shadow-sm border border-neutral-100 p-6">
-        <h1 className="text-xl font-black text-neutral-900 mb-1">Entrar</h1>
-        <p className="text-sm text-neutral-400 font-medium mb-6">Acesse sua conta para continuar.</p>
+      <form onSubmit={handleLogin} className="w-full max-w-sm erp-card p-6 space-y-4">
+        <div>
+          <h1 className="text-xl font-bold" style={{ color: "var(--fg)" }}>Entrar</h1>
+          <p className="text-sm font-medium" style={{ color: "var(--dim)" }}>Acesse sua conta para continuar.</p>
+        </div>
 
-        <form onSubmit={handleLogin} className="space-y-4">
+        <div>
+          <label className="erp-label block mb-1.5">E-mail</label>
+          <input type="email" autoComplete="email" value={email} placeholder="seu@email.com"
+            onChange={(e) => { setEmail(e.target.value); setErro(""); }} className="erp-input" />
+        </div>
 
-          {/* E-mail */}
-          <div>
-            <label className="text-xs font-bold text-neutral-500 uppercase tracking-wide block mb-1.5">
-              E-mail
-            </label>
-            <input
-              type="email"
-              autoComplete="email"
-              placeholder="seu@email.com"
-              value={email}
-              onChange={(e) => { setEmail(e.target.value); setErro(""); }}
-              className="w-full bg-neutral-50 border border-neutral-200 rounded-2xl px-4 py-3 text-sm font-medium text-neutral-800 placeholder-neutral-400 outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
-            />
+        <div>
+          <label className="erp-label block mb-1.5">Senha</label>
+          <div className="relative">
+            <input type={ver ? "text" : "password"} autoComplete="current-password" value={senha} placeholder="Sua senha"
+              onChange={(e) => { setSenha(e.target.value); setErro(""); }} className="erp-input" style={{ paddingRight: 44 }} />
+            <button type="button" onClick={() => setVer(!ver)} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: "var(--dim)" }}>
+              {ver ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
           </div>
+        </div>
 
-          {/* Senha */}
-          <div>
-            <label className="text-xs font-bold text-neutral-500 uppercase tracking-wide block mb-1.5">
-              Senha
-            </label>
-            <div className="relative">
-              <input
-                type={verSenha ? "text" : "password"}
-                autoComplete="current-password"
-                placeholder="Sua senha"
-                value={senha}
-                onChange={(e) => { setSenha(e.target.value); setErro(""); }}
-                className="w-full bg-neutral-50 border border-neutral-200 rounded-2xl px-4 py-3 pr-11 text-sm font-medium text-neutral-800 placeholder-neutral-400 outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
-              />
-              <button
-                type="button"
-                onClick={() => setVerSenha(!verSenha)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 active:text-neutral-600"
-              >
-                <IcEye open={verSenha} />
-              </button>
-            </div>
-          </div>
-
-          {/* Erro */}
-          {erro && (
-            <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3">
-              <p className="text-xs font-semibold text-red-600">{erro}</p>
-            </div>
-          )}
-
-          {/* Botão */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3.5 rounded-2xl bg-accent text-white text-sm font-bold shadow-sm active:bg-accent-strong transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <>
-                <svg className="animate-spin" width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                  <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                </svg>
-                Entrando...
-              </>
-            ) : "Entrar"}
+        <div className="flex items-center justify-between">
+          <label className="flex items-center gap-2 text-[12px] font-medium cursor-pointer" style={{ color: "var(--muted)" }}>
+            <input type="checkbox" checked={lembrar} onChange={(e) => setLembrar(e.target.checked)} style={{ accentColor: "#10B981" }} />
+            Lembrar de mim
+          </label>
+          <button type="button" onClick={() => router.push("/recuperar")} className="text-[12px] font-bold" style={{ color: "var(--accent-fg)" }}>
+            Esqueci minha senha
           </button>
-        </form>
-      </div>
+        </div>
 
-      {/* Link cadastro */}
-      <p className="text-sm text-neutral-500 font-medium mt-6">
-        Ainda não tem conta?{" "}
-        <button
-          onClick={() => router.push("/cadastro")}
-          className="text-accent font-bold"
-        >
-          Cadastre-se
+        {erro && <p className="erp-badge erp-badge-danger w-full justify-center">{erro}</p>}
+
+        <button type="submit" disabled={loading} className="erp-btn erp-btn-primary w-full !h-12 disabled:opacity-60">
+          {loading ? "Entrando..." : <><LogIn size={16} /> Entrar</>}
         </button>
-      </p>
+      </form>
 
+      <p className="text-sm font-medium mt-6" style={{ color: "var(--muted)" }}>
+        Ainda não tem conta?{" "}
+        <button onClick={() => router.push("/cadastro")} className="font-bold" style={{ color: "var(--accent-fg)" }}>Cadastre-se</button>
+      </p>
     </div>
   );
 }

@@ -1,261 +1,97 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import { useERP } from "../../context/ERPContext";
+import { Bell, AlertTriangle, Calendar, Info, Megaphone, CheckCheck, Trash2, ChevronRight } from "lucide-react";
 import {
-  ArrowLeft,
-  Bell,
-  AlertTriangle,
-  Calendar,
-  Package,
-  Info,
-  CheckCheck,
-  Trash2,
-  ChevronRight,
-  Megaphone,
-} from "lucide-react";
+  PageHeader, PageBody, Card, SectionLabel, Chips, EmptyState, Btn,
+} from "../../components/ui";
+import { useERP } from "../../context/ERPContext";
+import { useRouter } from "next/navigation";
 
-// ─── Helpers ───────────────────────────────────────────────────────────────────
-function tempoRelativo(iso) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const min  = Math.floor(diff / 60000);
-  if (min < 60)   return `${min}min atrás`;
-  const h = Math.floor(min / 60);
-  if (h < 24)     return `${h}h atrás`;
-  const d = Math.floor(h / 24);
-  if (d < 7)      return `${d}d atrás`;
-  return new Date(iso).toLocaleDateString("pt-BR");
-}
-
-// ─── Tipos de notificação ─────────────────────────────────────────────────────
-const TIPO_CONFIG = {
-  estoque_critico: {
-    Icon:  AlertTriangle,
-    bg:    "bg-[rgba(5,150,105,0.1)]",
-    borda: "border-[rgba(5,150,105,0.3)]",
-    icone: "bg-[rgba(5,150,105,0.15)] text-accent",
-    badge: "bg-[rgba(5,150,105,0.15)] text-accent-strong",
-    label: "Estoque",
-    href:  "/dashboard/operacao/estoque",
-  },
-  evento_proximo: {
-    Icon:  Calendar,
-    bg:    "bg-amber-50",
-    borda: "border-amber-200",
-    icone: "bg-amber-100 text-amber-500",
-    badge: "bg-amber-100 text-amber-600",
-    label: "Evento",
-    href:  "/dashboard/operacao/eventos",
-  },
-  sistema: {
-    Icon:  Info,
-    bg:    "bg-blue-50",
-    borda: "border-blue-100",
-    icone: "bg-blue-100 text-blue-500",
-    badge: "bg-blue-100 text-blue-600",
-    label: "Sistema",
-    href:  null,
-  },
-  aviso: {
-    Icon:  Megaphone,
-    bg:    "",
-    borda: "border-white/8",
-    icone: "bg-elevated text-subtle",
-    badge: "bg-elevated text-subtle",
-    label: "Aviso",
-    href:  null,
-  },
+const TIPO = {
+  estoque_critico: { Icon: AlertTriangle, cor: "#EF4444", label: "Estoque", href: "/dashboard/operacao/estoque" },
+  evento_proximo:  { Icon: Calendar,      cor: "#F59E0B", label: "Evento",  href: "/dashboard/operacao/eventos" },
+  sistema:         { Icon: Info,          cor: "#3B82F6", label: "Sistema", href: null },
+  aviso:           { Icon: Megaphone,     cor: "#8B5CF6", label: "Aviso",   href: null },
 };
 
-// ─── Componente: Card de notificação ─────────────────────────────────────────
-function CardNotificacao({ notif, onLer, onDeletar }) {
-  const cfg = TIPO_CONFIG[notif.tipo] ?? TIPO_CONFIG.sistema;
-  const IcoComp = cfg.Icon;
-
-  return (
-    <div className={`rounded-2xl border  overflow-hidden transition-all ${notif.lida ? "bg-card border-white/5 opacity-70" : `${cfg.bg} ${cfg.borda}`}`}>
-      <div className="px-4 py-3.5">
-        <div className="flex items-start gap-3">
-          {/* Ícone */}
-          <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${notif.lida ? "bg-elevated text-dim" : cfg.icone}`}>
-            <IcoComp size={16} />
-          </div>
-
-          {/* Conteúdo */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2 mb-0.5">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className={`text-[9px] font-black uppercase tracking-wide px-1.5 py-0.5 rounded-full ${notif.lida ? "bg-elevated text-dim" : cfg.badge}`}>
-                  {cfg.label}
-                </span>
-                {!notif.lida && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-accent flex-shrink-0" />
-                )}
-              </div>
-              <span className="text-[10px] text-dim font-medium flex-shrink-0">{tempoRelativo(notif.data)}</span>
-            </div>
-            <p className={`text-sm font-black leading-tight mb-1 ${notif.lida ? "text-muted" : "text-fg"}`}>
-              {notif.titulo}
-            </p>
-            <p className="text-[11px] text-subtle font-medium leading-relaxed">{notif.corpo}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Ações */}
-      <div className="flex items-center border-t border-white/5 divide-x divide-white/5">
-        {cfg.href && (
-          <a href={cfg.href}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-black text-muted active: transition-colors">
-            Ver módulo <ChevronRight size={12} />
-          </a>
-        )}
-        {!notif.lida && (
-          <button onClick={() => onLer(notif.id)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-black text-emerald-600 active:bg-emerald-50 transition-colors">
-            <CheckCheck size={13} /> Marcar lida
-          </button>
-        )}
-        <button onClick={() => onDeletar(notif.id)}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-black text-accent active:bg-[rgba(5,150,105,0.1)] transition-colors">
-          <Trash2 size={13} /> Remover
-        </button>
-      </div>
-    </div>
-  );
+function tempoRel(iso) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const min = Math.floor(diff / 60000);
+  if (min < 60) return `${min}min atrás`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h}h atrás`;
+  return `${Math.floor(h / 24)}d atrás`;
 }
 
-// ─── Filtros ─────────────────────────────────────────────────────────────────
 const FILTROS = [
-  { id: "todas",   label: "Todas" },
-  { id: "nao_lidas", label: "Não lidas" },
-  { id: "estoque_critico", label: "Estoque" },
-  { id: "evento_proximo",  label: "Eventos" },
-  { id: "sistema", label: "Sistema" },
+  { value: "todas", label: "Todas" },
+  { value: "nao_lidas", label: "Não lidas" },
+  { value: "estoque_critico", label: "Estoque" },
+  { value: "evento_proximo", label: "Eventos" },
 ];
 
-// ─── Página Principal ──────────────────────────────────────────────────────────
 export default function NotificacoesPage() {
   const router = useRouter();
-
-  // Estado global compartilhado — alertas de estoque crítico vêm do estoque real
-  const {
-    notificacoes,
-    marcarLida,
-    marcarTodasLidas,
-    removerNotificacao,
-    limparLidas,
-  } = useERP();
+  const { notificacoes, marcarLida, marcarTodasLidas, removerNotificacao, limparLidas } = useERP();
   const [filtro, setFiltro] = useState("todas");
 
-  // ── Métricas ──────────────────────────────────────────────────────────────
-  const naoLidas = useMemo(() => notificacoes.filter(n => !n.lida).length, [notificacoes]);
-
-  // ── Filtragem (mais recentes primeiro) ────────────────────────────────────
-  const filtradas = useMemo(() => {
-    return notificacoes
-      .filter(n => {
-        if (filtro === "todas")     return true;
-        if (filtro === "nao_lidas") return !n.lida;
-        return n.tipo === filtro;
-      })
-      .sort((a, b) => new Date(b.data) - new Date(a.data));
-  }, [notificacoes, filtro]);
-
-  // ── Handlers (delegam ao contexto global) ─────────────────────────────────
-  const handleLer        = marcarLida;
-  const handleDeletar    = removerNotificacao;
-  const handleLerTodas   = marcarTodasLidas;
-  const handleLimparLidas = limparLidas;
+  const naoLidas = notificacoes.filter((n) => !n.lida).length;
+  const filtradas = useMemo(() => notificacoes
+    .filter((n) => filtro === "todas" ? true : filtro === "nao_lidas" ? !n.lida : n.tipo === filtro)
+    .sort((a, b) => new Date(b.data) - new Date(a.data)), [notificacoes, filtro]);
 
   return (
-    <div className="min-h-screen ">
+    <div className="min-h-screen">
+      <PageHeader title="Notificações" subtitle={naoLidas > 0 ? `${naoLidas} não lida${naoLidas > 1 ? "s" : ""}` : "Tudo em dia"} icon={Bell} />
+      <PageBody>
+        {naoLidas > 0 && (
+          <Btn variant="ghost" className="w-full" onClick={marcarTodasLidas}><CheckCheck size={15} /> Marcar todas como lidas</Btn>
+        )}
 
-      {/* Header */}
-      <div className="sticky top-0 z-20  border-b border-white/8 px-4 pt-12 pb-3" style={{ background: 'var(--surface)' }}>
-        <div className="flex items-center gap-3 mb-3">
-          <button onClick={() => router.back()}
-            className="w-9 h-9 rounded-xl bg-card border border-white/8 flex items-center justify-center  active:scale-95 transition-transform">
-            <ArrowLeft size={18} className="text-muted" />
-          </button>
-          <div className="flex-1">
-            <h1 className="text-lg font-black leading-tight" style={{ color:"#F1F5F9" }}>Notificações</h1>
-            <p className="text-[11px] text-dim font-medium">
-              {naoLidas > 0 ? `${naoLidas} não lida${naoLidas > 1 ? "s" : ""}` : "Tudo em dia"}
-            </p>
-          </div>
-          {naoLidas > 0 && (
-            <button onClick={handleLerTodas}
-              className="flex items-center gap-1 text-[11px] font-black text-accent active:opacity-70 transition-opacity">
-              <CheckCheck size={14} /> Ler todas
+        <Chips options={FILTROS} value={filtro} onChange={setFiltro} />
+
+        <div>
+          <SectionLabel>{filtradas.length} notificação{filtradas.length !== 1 ? "ões" : ""}</SectionLabel>
+          {filtradas.length === 0 ? (
+            <EmptyState icon={Bell} title={filtro === "nao_lidas" ? "Nenhuma não lida" : "Nenhuma notificação"}
+              hint="Alertas de estoque, eventos e avisos aparecem aqui automaticamente." />
+          ) : (
+            <div className="space-y-2">
+              {filtradas.map((n) => {
+                const cfg = TIPO[n.tipo] || TIPO.sistema;
+                return (
+                  <Card key={n.id} className="!p-3" style={n.lida ? { opacity: 0.6 } : {}}>
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: cfg.cor + "22" }}>
+                        <cfg.Icon size={16} style={{ color: cfg.cor }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="erp-badge" style={{ background: cfg.cor + "22", color: cfg.cor }}>{cfg.label}</span>
+                          <span className="text-[10px]" style={{ color: "var(--dim)" }}>{tempoRel(n.data)}</span>
+                        </div>
+                        <p className="text-sm font-bold mt-1" style={{ color: n.lida ? "var(--muted)" : "var(--fg)" }}>{n.titulo}</p>
+                        <p className="text-[11px] mt-0.5" style={{ color: "var(--subtle)" }}>{n.corpo}</p>
+                        <div className="flex items-center gap-3 mt-2">
+                          {cfg.href && <button onClick={() => router.push(cfg.href)} className="text-[11px] font-bold flex items-center gap-0.5" style={{ color: "var(--muted)" }}>Ver módulo <ChevronRight size={12} /></button>}
+                          {!n.lida && <button onClick={() => marcarLida(n.id)} className="text-[11px] font-bold" style={{ color: "var(--accent-fg)" }}>Marcar lida</button>}
+                          <button onClick={() => removerNotificacao(n.id)} className="text-[11px] font-bold flex items-center gap-0.5" style={{ color: "#FCA5A5" }}><Trash2 size={11} /> Remover</button>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+          {notificacoes.some((n) => n.lida) && (
+            <button onClick={limparLidas} className="w-full mt-3 py-2.5 rounded-xl text-[11px] font-bold" style={{ border: "1px solid var(--line)", color: "var(--dim)" }}>
+              Limpar notificações lidas
             </button>
           )}
         </div>
-
-        {/* Chips de filtro */}
-        <div className="flex gap-2 overflow-x-auto scrollbar-none pb-0.5">
-          {FILTROS.map(f => (
-            <button key={f.id} onClick={() => setFiltro(f.id)}
-              className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-full transition-all active:scale-95 ${filtro === f.id ? "bg-accent-strong text-white" : "bg-card text-muted border border-white/8"}`}>
-              {f.label}
-              {f.id === "nao_lidas" && naoLidas > 0 && (
-                <span className="ml-1 bg-accent text-white text-[9px] font-black rounded-full px-1">{naoLidas}</span>
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="px-4 pt-4 pb-28 space-y-3">
-
-        {/* Banner de estoque crítico no topo (se houver) */}
-        {notificacoes.some(n => n.tipo === "estoque_critico" && !n.lida) && filtro === "todas" && (
-          <button onClick={() => router.push("/dashboard/operacao/estoque")}
-            className="w-full bg-accent-strong text-white rounded-2xl px-4 py-3.5 flex items-center gap-3 active:scale-95 transition-all ">
-            <div className="w-9 h-9 rounded-xl bg-card/20 flex items-center justify-center flex-shrink-0">
-              <Package size={18} />
-            </div>
-            <div className="flex-1 text-left">
-              <p className="text-sm font-black">Estoque crítico detectado</p>
-              <p className="text-[11px] font-medium opacity-90">
-                {notificacoes.filter(n => n.tipo === "estoque_critico" && !n.lida).length} iten(s) abaixo do mínimo — reposição necessária
-              </p>
-            </div>
-            <ChevronRight size={18} className="opacity-80 flex-shrink-0" />
-          </button>
-        )}
-
-        {/* Lista */}
-        {filtradas.length === 0 ? (
-          <div className="bg-card rounded-2xl border border-white/5  p-10 flex flex-col items-center text-center gap-2 mt-4">
-            <div className="w-14 h-14 rounded-2xl bg-elevated flex items-center justify-center mb-2">
-              <Bell size={24} className="text-elevated" />
-            </div>
-            <p className="text-sm font-bold text-subtle">
-              {filtro === "nao_lidas" ? "Nenhuma notificação não lida" : "Nenhuma notificação"}
-            </p>
-            <p className="text-xs text-dim font-medium">
-              {filtro === "nao_lidas" ? "Você está em dia com tudo!" : "As notificações aparecerão aqui."}
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {filtradas.map(n => (
-              <CardNotificacao key={n.id} notif={n} onLer={handleLer} onDeletar={handleDeletar} />
-            ))}
-          </div>
-        )}
-
-        {/* Limpar lidas */}
-        {notificacoes.some(n => n.lida) && (
-          <button onClick={handleLimparLidas}
-            className="w-full py-3 rounded-2xl border border-white/8 text-[11px] font-black text-dim active: transition-colors mt-2">
-            Limpar notificações lidas
-          </button>
-        )}
-
-      </div>
+      </PageBody>
     </div>
   );
 }

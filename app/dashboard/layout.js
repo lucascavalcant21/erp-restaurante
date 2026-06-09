@@ -356,16 +356,25 @@ export default function DashboardLayout({ children }) {
   const [sessao, setSessao] = useState(null);
 
   useEffect(() => {
-    const s = lerSessao();
-    if (!s) { router.replace("/login"); return; }
-    setSessao(s);
+    let vivo = true;
+    lerSessao().then((s) => {
+      if (!vivo) return;
+      if (!s) { router.replace("/login"); return; }
+      setSessao(s);
+    });
+    return () => { vivo = false; };
   }, [router]);
+
+  async function sair() {
+    await encerrarSessao();
+    router.replace("/login");
+  }
 
   const navId = pathname?.split("/")[2] || "dashboard";
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "#0F172A" }}>
-      <LayoutSidebar sessao={sessao} navId={navId} onSair={() => { router.replace("/login"); }} />
+      <LayoutSidebar sessao={sessao} navId={navId} onSair={sair} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", marginLeft: 64, minHeight: "100vh" }}>
         {children}
       </div>

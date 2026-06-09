@@ -60,19 +60,23 @@ export function ERPProvider({ children }) {
 
   // Inicializa a unidade a partir da sessão (papel) e da última escolha salva
   useEffect(() => {
-    const sessao = lerSessao();
-    const trocar = podeVerTodas(sessao?.papel);
-    setPodeTrocar(trocar);
+    let vivo = true;
+    lerSessao().then((sessao) => {
+      if (!vivo) return;
+      const trocar = podeVerTodas(sessao?.papel);
+      setPodeTrocar(trocar);
 
-    const padrao = unidadeDaSessao(sessao);
-    if (trocar) {
-      const salva = typeof window !== "undefined" ? localStorage.getItem(UNIDADE_KEY) : null;
-      const valida = salva === CENTRAL.id || UNIDADES.some(u => u.id === salva);
-      setUnidadeAtivaState(valida ? salva : padrao);
-    } else {
-      // Usuário de unidade fica travado na própria unidade
-      setUnidadeAtivaState(padrao);
-    }
+      const padrao = unidadeDaSessao(sessao);
+      if (trocar) {
+        const salva = typeof window !== "undefined" ? localStorage.getItem(UNIDADE_KEY) : null;
+        const valida = salva === CENTRAL.id || UNIDADES.some(u => u.id === salva);
+        setUnidadeAtivaState(valida ? salva : padrao);
+      } else {
+        // Usuário de unidade fica travado na própria unidade
+        setUnidadeAtivaState(padrao);
+      }
+    });
+    return () => { vivo = false; };
   }, []);
 
   const setUnidadeAtiva = useCallback((id) => {

@@ -25,7 +25,7 @@ function Secao({ icon: Icon, titulo, children, aberto: ab = false }) {
 export default function ColaboradorPage() {
   const { unidadeInfo } = useERP();
   const [sessao, setSessao] = useState(null);
-  useEffect(() => { setSessao(lerSessao()); }, []);
+  useEffect(() => { lerSessao().then(setSessao); }, []);
   const papel = sessao ? getPapel(sessao.papel) : null;
 
   return (

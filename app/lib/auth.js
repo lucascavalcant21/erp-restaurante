@@ -1,158 +1,75 @@
 // ═══════════════════════════════════════════════════════════════
-// auth.js — Autenticação e controle de acesso por papel
+// auth.js — Autenticação real via Supabase Auth
+// (senhas com hash, sessão JWT gerenciada pelo Supabase)
 // ═══════════════════════════════════════════════════════════════
 
+import { supabase, isSupabaseReady } from "./supabase";
+
 export const PAPEIS = [
-  {
-    id: "admin",
-    label: "Administrador",
-    descricao: "Acesso total ao sistema. Visualiza e edita todos os módulos.",
-    cor: "#0f172a",
-    nav: ["dashboard","notificacoes","rotina","ingredientes","fichas","cardapio","estoque","fornecedores","eventos","dre","fluxo","cmv","margem","documentos","gestao_rh","ponto","colaborador","crm","campanhas","nps","heitor"],
-    modulos: ["dashboard","notificacoes","rotina","ingredientes","fichas","cardapio","estoque","fornecedores","eventos","dre","fluxo","cmv","margem","documentos","gestao_rh","ponto","colaborador","crm","campanhas","nps","heitor"],
-  },
-  {
-    id: "gerente",
-    label: "Gerente de Unidade",
-    descricao: "Visão operacional e financeira da unidade. Acessa dashboard, estoque, RH e DRE.",
-    cor: "#10b981",
-    nav: ["dashboard","notificacoes","rotina","ingredientes","fichas","cardapio","estoque","fornecedores","eventos","dre","fluxo","cmv","gestao_rh","colaborador"],
-    modulos: ["dashboard","notificacoes","rotina","ingredientes","fichas","cardapio","estoque","fornecedores","eventos","dre","fluxo","cmv","gestao_rh","colaborador"],
-  },
-  {
-    id: "financeiro",
-    label: "Financeiro",
-    descricao: "Focado em resultados financeiros: DRE, CMV, fluxo de caixa e documentos fiscais.",
-    cor: "#3b82f6",
-    nav: ["dashboard","dre","fluxo","cmv","margem","documentos"],
-    modulos: ["dashboard","dre","fluxo","cmv","margem","documentos"],
-  },
-  {
-    id: "rh",
-    label: "Recursos Humanos",
-    descricao: "Gerencia colaboradores, escala, ponto e holerites.",
-    cor: "#ec4899",
-    nav: ["gestao_rh","ponto","colaborador"],
-    modulos: ["gestao_rh","ponto","colaborador"],
-  },
-  {
-    id: "estoque",
-    label: "Estoquista",
-    descricao: "Controle de insumos, categorias e movimentação de estoque.",
-    cor: "#8b5cf6",
-    nav: ["estoque","ingredientes","fichas","cardapio","fornecedores"],
-    modulos: ["estoque","ingredientes","fichas","cardapio","fornecedores"],
-  },
-  {
-    id: "cozinha",
-    label: "Cozinha / Chef",
-    descricao: "Acessa fichas técnicas, cardápio e insumos disponíveis.",
-    cor: "#f97316",
-    nav: ["ingredientes","fichas","cardapio","estoque"],
-    modulos: ["ingredientes","fichas","cardapio","estoque"],
-  },
-  {
-    id: "marketing",
-    label: "Marketing",
-    descricao: "Gerencia campanhas, clientes e avaliações NPS.",
-    cor: "#f59e0b",
-    nav: ["dashboard","crm","campanhas","nps"],
-    modulos: ["dashboard","crm","campanhas","nps"],
-  },
-  {
-    id: "caixa",
-    label: "Operador de Caixa",
-    descricao: "Registra vendas e consulta o resumo do dia.",
-    cor: "#64748b",
-    nav: ["dashboard"],
-    modulos: ["dashboard"],
-  },
+  { id: "admin",     label: "Administrador",       descricao: "Acesso total ao sistema.",                         cor: "#0f172a" },
+  { id: "gerente",   label: "Gerente de Unidade",  descricao: "Visão operacional e financeira da unidade.",       cor: "#10b981" },
+  { id: "financeiro",label: "Financeiro",          descricao: "DRE, CMV, fluxo de caixa e documentos.",           cor: "#3b82f6" },
+  { id: "rh",        label: "Recursos Humanos",    descricao: "Colaboradores, escala, ponto e holerites.",        cor: "#ec4899" },
+  { id: "estoque",   label: "Estoquista",          descricao: "Insumos, categorias e movimentação de estoque.",   cor: "#8b5cf6" },
+  { id: "cozinha",   label: "Cozinha / Chef",      descricao: "Fichas técnicas, cardápio e insumos.",             cor: "#f97316" },
+  { id: "marketing", label: "Marketing",           descricao: "Campanhas, clientes e avaliações NPS.",            cor: "#f59e0b" },
+  { id: "caixa",     label: "Operador de Caixa",   descricao: "Registra vendas e consulta o resumo do dia.",      cor: "#64748b" },
 ];
 
-const STORAGE_KEY = "erp_sessao";
-
-// ── Salvar sessão ──────────────────────────────────────────────
-export function salvarSessao(usuario) {
-  try {
-    const sessao = {
-      ...usuario,
-      logadoEm: new Date().toISOString(),
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessao));
-
-    // Registra no histórico de logins
-    const hist = JSON.parse(localStorage.getItem("erp_login_hist") || "[]");
-    const nova = {
-      id: Date.now(),
-      entrada: sessao.logadoEm,
-      saida: null,
-      dispositivo: typeof navigator !== "undefined" && navigator.userAgent.includes("Mobile") ? "Mobile" : "Desktop",
-    };
-    localStorage.setItem("erp_login_hist", JSON.stringify([nova, ...hist].slice(0, 10)));
-  } catch (_) {}
+export function getPapel(papelId) {
+  return PAPEIS.find((p) => p.id === papelId) || PAPEIS[0];
 }
 
-// ── Ler sessão ─────────────────────────────────────────────────
-export function lerSessao() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch (_) {
-    return null;
-  }
+// ── Mapeia o usuário do Supabase para o formato usado no app ───────
+function mapUser(u) {
+  if (!u) return null;
+  const m = u.user_metadata || {};
+  return {
+    id: u.id,
+    email: u.email,
+    nome: m.nome || (u.email ? u.email.split("@")[0] : "Usuário"),
+    papel: m.papel || "admin",
+    unidade: m.unidade || null,
+  };
 }
 
-// ── Encerrar sessão ────────────────────────────────────────────
-export function encerrarSessao() {
-  try {
-    // Registra horário de saída
-    const hist = JSON.parse(localStorage.getItem("erp_login_hist") || "[]");
-    if (hist.length > 0 && !hist[0].saida) {
-      hist[0].saida = new Date().toISOString();
-      localStorage.setItem("erp_login_hist", JSON.stringify(hist));
-    }
-    localStorage.removeItem(STORAGE_KEY);
-  } catch (_) {}
+function traduzErro(msg = "") {
+  if (/Invalid login credentials/i.test(msg)) return "E-mail ou senha incorretos.";
+  if (/already registered|already been registered/i.test(msg)) return "Este e-mail já está cadastrado.";
+  if (/at least 6/i.test(msg)) return "A senha precisa ter ao menos 6 caracteres.";
+  if (/Email not confirmed/i.test(msg)) return "Confirme seu e-mail antes de entrar (veja sua caixa de entrada).";
+  if (/Unable to validate email/i.test(msg)) return "E-mail inválido.";
+  return msg || "Erro de autenticação.";
 }
 
 // ── Registrar usuário ──────────────────────────────────────────
-export function registrarUsuario(dados) {
-  try {
-    const usuarios = JSON.parse(localStorage.getItem("erp_usuarios") || "[]");
-    const jaExiste = usuarios.find((u) => u.email === dados.email);
-    if (jaExiste) return { ok: false, erro: "E-mail já cadastrado." };
-
-    const novo = {
-      id: Date.now(),
-      nome: dados.nome,
-      email: dados.email,
-      senha: dados.senha, // em produção: hash
-      papel: dados.papel,
-      unidade: dados.unidade || null,
-      telefone: dados.telefone || null,
-      criadoEm: new Date().toISOString(),
-    };
-    localStorage.setItem("erp_usuarios", JSON.stringify([...usuarios, novo]));
-    return { ok: true, usuario: novo };
-  } catch (_) {
-    return { ok: false, erro: "Erro ao salvar. Tente novamente." };
-  }
+export async function registrarUsuario({ nome, email, senha, papel, unidade }) {
+  if (!isSupabaseReady()) return { ok: false, erro: "Sistema indisponível no momento." };
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password: senha,
+    options: { data: { nome, papel, unidade } },
+  });
+  if (error) return { ok: false, erro: traduzErro(error.message) };
+  return { ok: true, usuario: mapUser(data.user), precisaConfirmar: !data.session };
 }
 
 // ── Login ──────────────────────────────────────────────────────
-export function fazerLogin(email, senha) {
-  try {
-    const usuarios = JSON.parse(localStorage.getItem("erp_usuarios") || "[]");
-    const usuario = usuarios.find((u) => u.email === email && u.senha === senha);
-    if (!usuario) return { ok: false, erro: "E-mail ou senha incorretos." };
-    salvarSessao(usuario);
-    return { ok: true, usuario };
-  } catch (_) {
-    return { ok: false, erro: "Erro ao autenticar. Tente novamente." };
-  }
+export async function fazerLogin(email, senha) {
+  if (!isSupabaseReady()) return { ok: false, erro: "Sistema indisponível no momento." };
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password: senha });
+  if (error) return { ok: false, erro: traduzErro(error.message) };
+  return { ok: true, usuario: mapUser(data.user) };
 }
 
-// ── Papel do usuário ───────────────────────────────────────────
-export function getPapel(papelId) {
-  return PAPEIS.find((p) => p.id === papelId) || PAPEIS[0];
+// ── Ler sessão atual (async) ───────────────────────────────────
+export async function lerSessao() {
+  if (!isSupabaseReady()) return null;
+  const { data } = await supabase.auth.getSession();
+  return data?.session?.user ? mapUser(data.session.user) : null;
+}
+
+// ── Encerrar sessão ────────────────────────────────────────────
+export async function encerrarSessao() {
+  if (isSupabaseReady()) await supabase.auth.signOut();
 }

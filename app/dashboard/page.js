@@ -23,7 +23,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { resumoEstoque, estoque, naoLidas, unidadeInfo, isCentral, podeTrocar } = useERP();
   const [nome, setNome] = useState("");
-  useEffect(() => { setNome(lerSessao()?.nome?.split(" ")[0] || "Operador"); }, []);
+  useEffect(() => { lerSessao().then((s) => setNome(s?.nome?.split(" ")[0] || "Operador")); }, []);
 
   const hora = new Date().getHours();
   const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";

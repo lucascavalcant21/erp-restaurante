@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { PAPEIS, registrarUsuario, salvarSessao } from "../lib/auth";
+import { PAPEIS, registrarUsuario } from "../lib/auth";
 
 const UNIDADES = ["Seldeestrela", "Tico Tico Saladas", "Burguer", "Todas as unidades"];
 
@@ -150,16 +150,19 @@ export default function CadastroPage() {
     setLoading(true);
     setErro("");
 
-    await new Promise((r) => setTimeout(r, 700));
-
-    const result = registrarUsuario(form);
+    const result = await registrarUsuario(form);
     if (!result.ok) {
       setErro(result.erro);
       setLoading(false);
       return;
     }
 
-    salvarSessao(result.usuario);
+    if (result.precisaConfirmar) {
+      setErro("Conta criada! Confirme o e-mail enviado para você e depois faça login.");
+      setLoading(false);
+      setTimeout(() => router.push("/login"), 2500);
+      return;
+    }
     router.push("/dashboard");
   };
 

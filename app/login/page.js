@@ -28,10 +28,7 @@ export default function LoginPage() {
     setLoading(true);
     setErro("");
 
-    // Simula latência de rede
-    await new Promise((r) => setTimeout(r, 600));
-
-    const result = fazerLogin(email, senha);
+    const result = await fazerLogin(email, senha);
     if (!result.ok) {
       setErro(result.erro);
       setLoading(false);

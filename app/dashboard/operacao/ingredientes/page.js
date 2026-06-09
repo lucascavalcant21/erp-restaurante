@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useERP } from "../../../context/ERPContext";
 import {
   ArrowLeft,
   Plus,
@@ -93,6 +94,7 @@ const FORM_VAZIO = { nome: "", unidade: "KG", preco_compra: "" };
 
 // ─── Componente Principal ──────────────────────────────────────────────────────
 export default function IngredientesPage() {
+  const { unidadeAtiva } = useERP();
   const router = useRouter();
   const inputNomeRef = useRef(null);
 
@@ -108,11 +110,11 @@ export default function IngredientesPage() {
 
   // ── Carrega do Supabase na montagem ───────────────────────────────────────
   useEffect(() => {
-    fetchIngredientes().then(({ data }) => {
+    fetchIngredientes(unidadeAtiva).then(({ data }) => {
       setIngredientes(data);
       setLoading(false);
     });
-  }, []);
+  }, [unidadeAtiva]);
 
   // ── Lista filtrada ─────────────────────────────────────────────────────────
   const lista = useMemo(() => {
@@ -155,7 +157,7 @@ export default function IngredientesPage() {
       setIngredientes((prev) => prev.map((i) => (i.id === editandoId ? { ...i, ...novo } : i)));
       atualizarIngrediente(editandoId, novo); // async — propaga para fichas/cardápio automaticamente
     } else {
-      inserirIngrediente(novo).then(({ data }) => {
+      inserirIngrediente(novo, unidadeAtiva).then(({ data }) => {
         if (data) setIngredientes((prev) => [...prev, data]);
       });
     }

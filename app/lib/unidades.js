@@ -50,3 +50,17 @@ export function unidadeDaSessao(sessao) {
 export function podeVerTodas(papelId) {
   return papelId === "admin" || papelId === "financeiro";
 }
+
+// ── Helpers de escopo de dados (multiunidade) ──────────────────────────────────
+// Aplicam o filtro/carimbo de unidade só quando há uma unidade específica.
+// Em "Central" (todas) NÃO filtram — retornam a rede inteira.
+
+/** Aplica .eq("unidade_id", ...) na query quando a unidade é específica. */
+export function escoparPorUnidade(query, unidadeId) {
+  return (unidadeId && unidadeId !== "todas") ? query.eq("unidade_id", unidadeId) : query;
+}
+
+/** Carimba unidade_id num objeto a inserir (null em "Central"). */
+export function carimbarUnidade(obj, unidadeId) {
+  return { ...obj, unidade_id: (unidadeId && unidadeId !== "todas") ? unidadeId : null };
+}

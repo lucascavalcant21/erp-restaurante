@@ -54,6 +54,7 @@
  */
 
 import { supabase, isSupabaseReady } from "./supabase";
+import { escoparPorUnidade, carimbarUnidade } from "./unidades";
 
 // ── Seeds ─────────────────────────────────────────────────────────────────────
 export const CLIENTES_SEED = [];
@@ -63,19 +64,19 @@ export const AVALIACOES_SEED = [];
 export const CAMPANHAS_SEED = [];
 
 // ── Clientes ──────────────────────────────────────────────────────────────────
-export async function fetchClientes() {
+export async function fetchClientes(unidadeId) {
   if (!isSupabaseReady()) return { data: [], error: null, fromSeed: true };
-  const { data, error } = await supabase
-    .from("clientes")
-    .select("*")
-    .order("total_gasto", { ascending: false });
+  const { data, error } = await escoparPorUnidade(
+    supabase.from("clientes").select("*").order("total_gasto", { ascending: false }),
+    unidadeId,
+  );
   if (error) return { data: [], error: error.message, fromSeed: true };
   return { data: data || [], error: null, fromSeed: false };
 }
 
-export async function inserirCliente(cliente) {
+export async function inserirCliente(cliente, unidadeId) {
   if (!isSupabaseReady()) return { data: null, error: "Supabase não configurado" };
-  const { data, error } = await supabase.from("clientes").insert([cliente]).select().single();
+  const { data, error } = await supabase.from("clientes").insert([carimbarUnidade(cliente, unidadeId)]).select().single();
   return { data, error: error?.message || null };
 }
 
@@ -86,36 +87,36 @@ export async function atualizarCliente(id, updates) {
 }
 
 // ── NPS ───────────────────────────────────────────────────────────────────────
-export async function fetchAvaliacoes() {
+export async function fetchAvaliacoes(unidadeId) {
   if (!isSupabaseReady()) return { data: [], error: null, fromSeed: true };
-  const { data, error } = await supabase
-    .from("avaliacoes_nps")
-    .select("*")
-    .order("data", { ascending: false });
+  const { data, error } = await escoparPorUnidade(
+    supabase.from("avaliacoes_nps").select("*").order("data", { ascending: false }),
+    unidadeId,
+  );
   if (error) return { data: [], error: error.message, fromSeed: true };
   return { data: data || [], error: null, fromSeed: false };
 }
 
-export async function inserirAvaliacao(avaliacao) {
+export async function inserirAvaliacao(avaliacao, unidadeId) {
   if (!isSupabaseReady()) return { data: null, error: "Supabase não configurado" };
-  const { data, error } = await supabase.from("avaliacoes_nps").insert([avaliacao]).select().single();
+  const { data, error } = await supabase.from("avaliacoes_nps").insert([carimbarUnidade(avaliacao, unidadeId)]).select().single();
   return { data, error: error?.message || null };
 }
 
 // ── Campanhas ─────────────────────────────────────────────────────────────────
-export async function fetchCampanhas() {
+export async function fetchCampanhas(unidadeId) {
   if (!isSupabaseReady()) return { data: [], error: null, fromSeed: true };
-  const { data, error } = await supabase
-    .from("campanhas")
-    .select("*")
-    .order("created_at", { ascending: false });
+  const { data, error } = await escoparPorUnidade(
+    supabase.from("campanhas").select("*").order("created_at", { ascending: false }),
+    unidadeId,
+  );
   if (error) return { data: [], error: error.message, fromSeed: true };
   return { data: data || [], error: null, fromSeed: false };
 }
 
-export async function inserirCampanha(campanha) {
+export async function inserirCampanha(campanha, unidadeId) {
   if (!isSupabaseReady()) return { data: null, error: "Supabase não configurado" };
-  const { data, error } = await supabase.from("campanhas").insert([campanha]).select().single();
+  const { data, error } = await supabase.from("campanhas").insert([carimbarUnidade(campanha, unidadeId)]).select().single();
   return { data, error: error?.message || null };
 }
 

@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { fetchEventos, inserirEvento, atualizarEvento, removerEvento, EVENTOS_SEED } from "../../../lib/eventos";
+import { useERP } from "../../../context/ERPContext";
 import {
   ArrowLeft,
   Plus,
@@ -321,15 +322,16 @@ function FormEvento({ inicial, onSalvar, onCancelar }) {
 export default function EventosPage() {
   const router = useRouter();
 
+  const { unidadeAtiva } = useERP();
   const [eventos,    setEventos]   = useState([]);
   const [loading,    setLoading]   = useState(true);
 
   useEffect(() => {
-    fetchEventos().then(({ data }) => {
+    fetchEventos(unidadeAtiva).then(({ data }) => {
       setEventos(data);
       setLoading(false);
     });
-  }, []);
+  }, [unidadeAtiva]);
   const [busca,      setBusca]     = useState("");
   const [filtroTipo, setFiltroTipo]= useState("Todos");
   const [filtroSt,   setFiltroSt]  = useState("Todos");

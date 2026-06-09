@@ -51,6 +51,7 @@
  */
 
 import { supabase, isSupabaseReady } from "./supabase";
+import { escoparPorUnidade, carimbarUnidade } from "./unidades";
 
 // ── Seeds ─────────────────────────────────────────────────────────────────────
 export const FUNCIONARIOS_SEED = [];
@@ -60,19 +61,19 @@ export const REGISTROS_PONTO_SEED = [];
 export const HOLERITES_SEED = {};
 
 // ── Funcionários ──────────────────────────────────────────────────────────────
-export async function fetchFuncionarios() {
+export async function fetchFuncionarios(unidadeId) {
   if (!isSupabaseReady()) return { data: [], error: null, fromSeed: true };
-  const { data, error } = await supabase
-    .from("funcionarios")
-    .select("*")
-    .order("nome");
+  const { data, error } = await escoparPorUnidade(
+    supabase.from("funcionarios").select("*").order("nome"),
+    unidadeId,
+  );
   if (error) return { data: [], error: error.message, fromSeed: true };
   return { data: data || [], error: null, fromSeed: false };
 }
 
-export async function inserirFuncionario(func) {
+export async function inserirFuncionario(func, unidadeId) {
   if (!isSupabaseReady()) return { data: null, error: "Supabase não configurado" };
-  const { data, error } = await supabase.from("funcionarios").insert([func]).select().single();
+  const { data, error } = await supabase.from("funcionarios").insert([carimbarUnidade(func, unidadeId)]).select().single();
   return { data, error: error?.message || null };
 }
 

@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useERP } from "../../../context/ERPContext";
 import {
   ArrowLeft,
   Star,
@@ -179,6 +180,7 @@ function CardAvaliacao({ aval }) {
 // ─── Página Principal ──────────────────────────────────────────────────────────
 export default function NPSPage() {
   const router = useRouter();
+  const { unidadeAtiva } = useERP();
   const [filtro,     setFiltro]     = useState("Todas");
   const [unidade,    setUnidade]    = useState("Todas");
   const [modal,      setModal]      = useState(false);
@@ -188,7 +190,7 @@ export default function NPSPage() {
 
   const carregarDados = useCallback(async () => {
     setLoading(true);
-    const res = await fetchAvaliacoes();
+    const res = await fetchAvaliacoes(unidadeAtiva);
     if (res.fromSeed) {
       setAvaliacoes(AVALIACOES_SEED);
       setFromSeed(true);
@@ -197,7 +199,7 @@ export default function NPSPage() {
       setFromSeed(false);
     }
     setLoading(false);
-  }, []);
+  }, [unidadeAtiva]);
 
   useEffect(() => { carregarDados(); }, [carregarDados]);
 
@@ -229,7 +231,7 @@ export default function NPSPage() {
     if (fromSeed) {
       setAvaliacoes(prev => [nova, ...prev]);
     } else {
-      await inserirAvaliacao({ ...form, data: new Date().toISOString().slice(0, 10) });
+      await inserirAvaliacao({ ...form, data: new Date().toISOString().slice(0, 10) }, unidadeAtiva);
       await carregarDados();
     }
   }

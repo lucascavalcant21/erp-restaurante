@@ -35,19 +35,23 @@
  */
 
 import { supabase, isSupabaseReady } from "./supabase";
+import { escoparPorUnidade, carimbarUnidade } from "./unidades";
 
 export const CARDAPIO_SEED = [];
 
-export async function fetchCardapio() {
+export async function fetchCardapio(unidadeId) {
   if (!isSupabaseReady()) return { data: [], error: null, fromSeed: true };
-  const { data, error } = await supabase.from("cardapio").select("*").order("categoria").order("nome");
+  const { data, error } = await escoparPorUnidade(
+    supabase.from("cardapio").select("*").order("categoria").order("nome"),
+    unidadeId,
+  );
   if (error) return { data: [], error: error.message, fromSeed: true };
   return { data: data || [], error: null, fromSeed: false };
 }
 
-export async function inserirPrato(prato) {
+export async function inserirPrato(prato, unidadeId) {
   if (!isSupabaseReady()) return { data: null, error: "Supabase não configurado" };
-  const { data, error } = await supabase.from("cardapio").insert([prato]).select().single();
+  const { data, error } = await supabase.from("cardapio").insert([carimbarUnidade(prato, unidadeId)]).select().single();
   return { data, error: error?.message || null };
 }
 

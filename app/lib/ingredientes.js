@@ -30,6 +30,7 @@
  */
 
 import { supabase, isSupabaseReady } from "./supabase";
+import { escoparPorUnidade, carimbarUnidade } from "./unidades";
 
 
 // Unidades disponíveis e sua unidade-base de custo fracionado
@@ -87,21 +88,24 @@ function normalizar(i) {
 }
 
 // ─── CRUD Supabase ────────────────────────────────────────────────────────────
-export async function fetchIngredientes() {
+export async function fetchIngredientes(unidadeId) {
   if (!isSupabaseReady()) return { data: INGREDIENTES_SEED.map(normalizar), fromSeed: true };
-  const { data, error } = await supabase.from("ingredientes").select("*").order("nome");
+  const { data, error } = await escoparPorUnidade(
+    supabase.from("ingredientes").select("*").order("nome"),
+    unidadeId,
+  );
   if (error || !data?.length) return { data: INGREDIENTES_SEED.map(normalizar), fromSeed: true };
   return { data: data.map(normalizar), fromSeed: false };
 }
 
-export async function inserirIngrediente(ing) {
+export async function inserirIngrediente(ing, unidadeId) {
   if (!isSupabaseReady()) return { data: { ...ing, id: Date.now() }, error: null };
-  const payload = {
+  const payload = carimbarUnidade({
     nome: ing.nome,
     unidade: ing.unidade,
     preco_compra: ing.preco_compra,
     custo_por_unidade_base: calcCustoUnitario(ing.preco_compra, ing.unidade),
-  };
+  }, unidadeId);
   const { data, error } = await supabase.from("ingredientes").insert([payload]).select().single();
   return { data: data ? normalizar(data) : null, error: error?.message || null };
 }

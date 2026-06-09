@@ -760,14 +760,14 @@ export default function EstoquePage() {
 
   // Estoque é a fonte da verdade do ERP: sincroniza com o contexto global
   // para que Dashboard, IA e Notificações reflitam o estoque real e suas mudanças.
-  const { setEstoque: setEstoqueGlobal } = useERP();
+  const { setEstoque: setEstoqueGlobal, unidadeAtiva } = useERP();
   useEffect(() => {
     if (!loading) setEstoqueGlobal(itens);
   }, [itens, loading, setEstoqueGlobal]);
 
   const carregarDados = useCallback(async () => {
     setLoading(true);
-    const { data, error, fromSeed: demo } = await fetchEstoque();
+    const { data, error, fromSeed: demo } = await fetchEstoque(unidadeAtiva);
     if (demo || error) {
       setItens(ESTOQUE_SEED);
       setFromSeed(true);
@@ -776,7 +776,7 @@ export default function EstoquePage() {
       setFromSeed(false);
     }
     setLoading(false);
-  }, []);
+  }, [unidadeAtiva]);
 
   useEffect(() => { carregarDados(); }, [carregarDados]);
 
@@ -793,7 +793,7 @@ export default function EstoquePage() {
       else setItens(prev => [...prev, item]);
     } else {
       const payload = { nome: item.nome, categoria: item.categoria, unidade: item.unidade, quantidade: item.quantidade, minimo: item.minimo, preco_unit: item.custo_unitario };
-      await inserirItem(payload);
+      await inserirItem(payload, unidadeAtiva);
       await carregarDados();
     }
     setFormAberto(false); setItemEditar(null);

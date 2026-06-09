@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { fetchFuncionarios, inserirFuncionario, atualizarFuncionario, removerFuncionario } from "../../../lib/rh";
+import { useERP } from "../../../context/ERPContext";
 import {
   ArrowLeft, Plus, Trash2, Edit3, Search, X, Check,
   AlertCircle, ChevronDown, Users, DollarSign, UserCheck,
@@ -216,6 +217,7 @@ function CardFuncionario({ f, onEditar, onToggle, onDeletar }) {
 // ─── Página Principal ──────────────────────────────────────────────────────────
 export default function GestaoRHPage() {
   const router = useRouter();
+  const { unidadeAtiva } = useERP();
   const [funcionarios, setFuncionarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busca,        setBusca]        = useState("");
@@ -225,11 +227,11 @@ export default function GestaoRHPage() {
   const [salvou,       setSalvou]       = useState(false);
 
   useEffect(() => {
-    fetchFuncionarios().then(({ data }) => {
+    fetchFuncionarios(unidadeAtiva).then(({ data }) => {
       setFuncionarios(data);
       setLoading(false);
     });
-  }, []);
+  }, [unidadeAtiva]);
 
   const resumo = useMemo(() => {
     const ativos   = funcionarios.filter(f => f.ativo);
@@ -252,7 +254,7 @@ export default function GestaoRHPage() {
       atualizarFuncionario(f.id, f);
       setFuncionarios(prev => prev.map(x => x.id === f.id ? f : x));
     } else {
-      const { data } = await inserirFuncionario(f);
+      const { data } = await inserirFuncionario(f, unidadeAtiva);
       setFuncionarios(prev => [...prev, data ?? f]);
     }
     setFormAberto(false); setFEditar(null);

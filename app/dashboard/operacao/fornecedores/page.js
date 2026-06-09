@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { fetchFornecedores, inserirFornecedor, atualizarFornecedor, removerFornecedor, FORNECEDORES_SEED } from "../../../lib/fornecedores";
+import { useERP } from "../../../context/ERPContext";
 import {
   ArrowLeft,
   Plus,
@@ -274,15 +275,16 @@ function FormFornecedor({ inicial, onSalvar, onCancelar }) {
 export default function FornecedoresPage() {
   const router = useRouter();
 
+  const { unidadeAtiva } = useERP();
   const [fornecedores, setFornecedores] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchFornecedores().then(({ data }) => {
+    fetchFornecedores(unidadeAtiva).then(({ data }) => {
       setFornecedores(data);
       setLoading(false);
     });
-  }, []);
+  }, [unidadeAtiva]);
   const [busca,        setBusca]        = useState("");
   const [segFiltro,    setSegFiltro]    = useState("Todos");
   const [formAberto,   setFormAberto]   = useState(false);
@@ -315,7 +317,7 @@ export default function FornecedoresPage() {
       atualizarFornecedor(f.id, f);
       setFornecedores(prev => prev.map(x => x.id === f.id ? f : x));
     } else {
-      const { data } = await inserirFornecedor(f);
+      const { data } = await inserirFornecedor(f, unidadeAtiva);
       setFornecedores(prev => [...prev, data ?? f]);
     }
     setFormAberto(false);

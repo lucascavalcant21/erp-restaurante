@@ -38,6 +38,7 @@
  */
 
 import { supabase, isSupabaseReady } from "./supabase";
+import { escoparPorUnidade, carimbarUnidade } from "./unidades";
 
 // ─── Seed de demonstração (usado quando Supabase não está configurado) ─────────
 export const ESTOQUE_SEED = [];
@@ -57,15 +58,15 @@ function normalizar(item) {
   };
 }
 
-export async function fetchEstoque() {
+export async function fetchEstoque(unidadeId) {
   if (!isSupabaseReady()) {
     return { data: [], error: null, fromSeed: true };
   }
 
-  const { data, error } = await supabase
-    .from("estoque")
-    .select("*")
-    .order("nome");
+  const { data, error } = await escoparPorUnidade(
+    supabase.from("estoque").select("*").order("nome"),
+    unidadeId,
+  );
 
   if (error) {
     console.error("[estoque] fetchEstoque:", error.message);
@@ -79,12 +80,12 @@ export async function fetchEstoque() {
  * Insere um novo item no estoque.
  * @param {Object} item - { nome, categoria, unidade, quantidade, minimo, preco_unit, fornecedor }
  */
-export async function inserirItem(item) {
+export async function inserirItem(item, unidadeId) {
   if (!isSupabaseReady()) return { data: null, error: "Supabase não configurado" };
 
   const { data, error } = await supabase
     .from("estoque")
-    .insert([item])
+    .insert([carimbarUnidade(item, unidadeId)])
     .select()
     .single();
 

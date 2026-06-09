@@ -1,17 +1,21 @@
 import { supabase, isSupabaseReady } from "./supabase";
+import { escoparPorUnidade, carimbarUnidade } from "./unidades";
 
 export const EVENTOS_SEED = [];
 
-export async function fetchEventos() {
+export async function fetchEventos(unidadeId) {
   if (!isSupabaseReady()) return { data: EVENTOS_SEED, fromSeed: true };
-  const { data, error } = await supabase.from("eventos").select("*").order("data", { ascending: true });
+  const { data, error } = await escoparPorUnidade(
+    supabase.from("eventos").select("*").order("data", { ascending: true }),
+    unidadeId,
+  );
   if (error || !data?.length) return { data: EVENTOS_SEED, fromSeed: true };
   return { data, fromSeed: false };
 }
 
-export async function inserirEvento(ev) {
+export async function inserirEvento(ev, unidadeId) {
   if (!isSupabaseReady()) return { data: { ...ev, id: `ev${Date.now()}` }, error: null };
-  const { data, error } = await supabase.from("eventos").insert([ev]).select().single();
+  const { data, error } = await supabase.from("eventos").insert([carimbarUnidade(ev, unidadeId)]).select().single();
   return { data, error: error?.message || null };
 }
 

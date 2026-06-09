@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useERP } from "../../../context/ERPContext";
 import {
   ArrowLeft,
   Plus,
@@ -269,6 +270,7 @@ function CardCampanha({ camp, onStatusChange }) {
 // ─── Página Principal ──────────────────────────────────────────────────────────
 export default function CampanhasPage() {
   const router = useRouter();
+  const { unidadeAtiva } = useERP();
   const [filtro,    setFiltro]    = useState("Todas");
   const [modal,     setModal]     = useState(false);
   const [campanhas, setCampanhas] = useState([]);
@@ -277,7 +279,7 @@ export default function CampanhasPage() {
 
   const carregarDados = useCallback(async () => {
     setLoading(true);
-    const res = await fetchCampanhas();
+    const res = await fetchCampanhas(unidadeAtiva);
     if (res.fromSeed) {
       setCampanhas(CAMPANHAS_SEED);
       setFromSeed(true);
@@ -286,7 +288,7 @@ export default function CampanhasPage() {
       setFromSeed(false);
     }
     setLoading(false);
-  }, []);
+  }, [unidadeAtiva]);
 
   useEffect(() => { carregarDados(); }, [carregarDados]);
 
@@ -312,7 +314,7 @@ export default function CampanhasPage() {
     if (fromSeed) {
       setCampanhas(prev => [{ id: `camp${Date.now()}`, ...nova }, ...prev]);
     } else {
-      await inserirCampanha(nova);
+      await inserirCampanha(nova, unidadeAtiva);
       await carregarDados();
     }
   }

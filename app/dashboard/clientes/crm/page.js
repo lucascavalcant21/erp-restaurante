@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useERP } from "../../../context/ERPContext";
 import {
   ArrowLeft,
   Search,
@@ -212,6 +213,7 @@ function CardCliente({ cliente }) {
 // ─── Página Principal ──────────────────────────────────────────────────────────
 export default function CRMPage() {
   const router = useRouter();
+  const { unidadeAtiva } = useERP();
   const [clientes,    setClientes]    = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [fromSeed,    setFromSeed]    = useState(false);
@@ -222,7 +224,7 @@ export default function CRMPage() {
 
   const carregarDados = useCallback(async () => {
     setLoading(true);
-    const res = await fetchClientes();
+    const res = await fetchClientes(unidadeAtiva);
     if (res.fromSeed) {
       setClientes(CLIENTES_SEED);
       setFromSeed(true);
@@ -231,7 +233,7 @@ export default function CRMPage() {
       setFromSeed(false);
     }
     setLoading(false);
-  }, []);
+  }, [unidadeAtiva]);
 
   useEffect(() => { carregarDados(); }, [carregarDados]);
 
@@ -257,7 +259,7 @@ export default function CRMPage() {
       const novo = { id: `c${Date.now()}`, ...form, total_gasto: 0, total_pedidos: 0, ultima_compra: new Date().toISOString().slice(0, 10) };
       setClientes(prev => [novo, ...prev]);
     } else {
-      await inserirCliente({ ...form, total_gasto: 0, total_pedidos: 0, ultima_compra: new Date().toISOString().slice(0, 10) });
+      await inserirCliente({ ...form, total_gasto: 0, total_pedidos: 0, ultima_compra: new Date().toISOString().slice(0, 10) }, unidadeAtiva);
       await carregarDados();
     }
   }

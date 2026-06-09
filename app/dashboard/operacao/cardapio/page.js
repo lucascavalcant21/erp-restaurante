@@ -36,6 +36,7 @@ import {
   atualizarPrato,
   removerPrato,
 } from "../../../lib/cardapio";
+import { useERP } from "../../../context/ERPContext";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 function fmtBRL(val, dec = 2) {
@@ -333,6 +334,7 @@ function FormPrato({ inicial, onSalvar, onCancelar }) {
 // ─── Página Principal ──────────────────────────────────────────────────────────
 export default function CardapioPage() {
   const router = useRouter();
+  const { unidadeAtiva } = useERP();
 
   const [pratos,       setPratos]      = useState([]);
   const [catalogo,     setCatalogo]    = useState(INGREDIENTES_SEED.map((i) => ({ ...i, custo_por_unidade_base: calcCustoUnitario(i.preco_compra, i.unidade) })));
@@ -344,9 +346,9 @@ export default function CardapioPage() {
 
   // ── Carrega do Supabase na montagem ───────────────────────────────────────
   useEffect(() => {
-    fetchCardapio().then(({ data }) => { if (data.length) setPratos(data); });
-    fetchIngredientes().then(({ data }) => setCatalogo(data));
-  }, []);
+    fetchCardapio(unidadeAtiva).then(({ data }) => setPratos(data));
+    fetchIngredientes(unidadeAtiva).then(({ data }) => setCatalogo(data));
+  }, [unidadeAtiva]);
 
   // ── Métricas resumo ────────────────────────────────────────────────────────
   const resumo = useMemo(() => {
@@ -379,7 +381,7 @@ export default function CardapioPage() {
       setPratos((prev) => prev.map((p) => (p.id === prato.id ? prato : p)));
       await atualizarPrato(prato.id, prato);
     } else {
-      const { data } = await inserirPrato(prato);
+      const { data } = await inserirPrato(prato, unidadeAtiva);
       setPratos((prev) => [...prev, data ?? prato]);
     }
     setFormAberto(false);

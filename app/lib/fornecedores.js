@@ -1,17 +1,21 @@
 import { supabase, isSupabaseReady } from "./supabase";
+import { escoparPorUnidade, carimbarUnidade } from "./unidades";
 
 export const FORNECEDORES_SEED = [];
 
-export async function fetchFornecedores() {
+export async function fetchFornecedores(unidadeId) {
   if (!isSupabaseReady()) return { data: FORNECEDORES_SEED, fromSeed: true };
-  const { data, error } = await supabase.from("fornecedores").select("*").order("nome");
+  const { data, error } = await escoparPorUnidade(
+    supabase.from("fornecedores").select("*").order("nome"),
+    unidadeId,
+  );
   if (error || !data?.length) return { data: FORNECEDORES_SEED, fromSeed: true };
   return { data, fromSeed: false };
 }
 
-export async function inserirFornecedor(forn) {
+export async function inserirFornecedor(forn, unidadeId) {
   if (!isSupabaseReady()) return { data: { ...forn, id: `f${Date.now()}` }, error: null };
-  const { data, error } = await supabase.from("fornecedores").insert([forn]).select().single();
+  const { data, error } = await supabase.from("fornecedores").insert([carimbarUnidade(forn, unidadeId)]).select().single();
   return { data, error: error?.message || null };
 }
 

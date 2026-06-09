@@ -143,10 +143,4 @@ async function recalcularFichasComIngrediente(ingredienteId, novoCustoUnit) {
   }
 }
 
-export const INGREDIENTES_SEED = [
-  { id: 1, nome: "Carne Moída (Patinho)", unidade: "KG", preco_compra: 35.00, custo_por_unidade_base: 35.00 / 1000 },
-  { id: 2, nome: "Arroz Agulhinha",       unidade: "KG", preco_compra: 6.00,  custo_por_unidade_base: 6.00 / 1000  },
-  { id: 3, nome: "Embalagem Marmita",     unidade: "UN", preco_compra: 0.60,  custo_por_unidade_base: 0.60          },
-  { id: 4, nome: "Feijão Carioca",        unidade: "KG", preco_compra: 8.50,  custo_por_unidade_base: 8.50 / 1000  },
-  { id: 5, nome: "Óleo de Soja",          unidade: "L",  preco_compra: 7.90,  custo_por_unidade_base: 7.90 / 1000  },
-];
+export const INGREDIENTES_SEED = [];

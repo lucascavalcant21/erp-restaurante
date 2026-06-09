@@ -58,25 +58,7 @@ const CATALOGO = INGREDIENTES_SEED.map((i) => ({
 
 // ─── Fichas Técnicas disponíveis (mock) ────────────────────────────────────────
 // Supabase: supabase.from('fichas').select('*, ficha_itens(*)')
-const FICHAS_MOCK = [
-  {
-    id: "ficha_001",
-    nome: "Marmitex Executiva",
-    itens: [
-      { id: "l1", ingrediente_id: 1, quantidade: 150 },
-      { id: "l2", ingrediente_id: 2, quantidade: 200 },
-      { id: "l3", ingrediente_id: 3, quantidade: 1 },
-    ],
-  },
-  {
-    id: "ficha_002",
-    nome: "Salada Completa",
-    itens: [
-      { id: "l4", ingrediente_id: 4, quantidade: 100 },
-      { id: "l5", ingrediente_id: 5, quantidade: 20 },
-    ],
-  },
-];
+const FICHAS_MOCK = [];
 
 function calcCustoFicha(ficha) {
   if (!ficha) return 0;
@@ -91,24 +73,7 @@ const CATEGORIAS = ["Todos", "Marmita", "Salada", "Prato Principal", "Bebida", "
 
 // ─── Dados iniciais (seed) ─────────────────────────────────────────────────────
 // Supabase: supabase.from('cardapio').select('*')
-const PRATOS_SEED = [
-  {
-    id: "prato_001",
-    nome: "Marmitex Executiva",
-    categoria: "Marmita",
-    preco_venda: 19.9,
-    ficha_id: "ficha_001",
-    ativo: true,
-  },
-  {
-    id: "prato_002",
-    nome: "Salada Completa",
-    categoria: "Salada",
-    preco_venda: 14.9,
-    ficha_id: "ficha_002",
-    ativo: true,
-  },
-];
+const PRATOS_SEED = [];
 
 // ─── Componente: Card de prato ─────────────────────────────────────────────────
 function CardPrato({ prato, onEditar, onToggle, onDeletar }) {

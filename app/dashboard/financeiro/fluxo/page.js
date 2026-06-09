@@ -42,23 +42,7 @@ function dataIso(dia) {
   return `${ano}-${String(mes).padStart(2,"0")}-${String(dia).padStart(2,"0")}`;
 }
 
-const LANCAMENTOS_SEED = [
-  { id: "l1",  tipo: "entrada", categoria: "Vendas Balcão",      descricao: "Vendas do dia",            valor: 1850, data: dataIso(1)  },
-  { id: "l2",  tipo: "entrada", categoria: "iFood / Delivery",   descricao: "Pedidos iFood",            valor: 620,  data: dataIso(1)  },
-  { id: "l3",  tipo: "saida",   categoria: "Fornecedores",        descricao: "Frigorifico São Paulo",    valor: 700,  data: dataIso(2)  },
-  { id: "l4",  tipo: "entrada", categoria: "Vendas Balcão",      descricao: "Vendas do dia",            valor: 2100, data: dataIso(3)  },
-  { id: "l5",  tipo: "saida",   categoria: "Energia",             descricao: "Conta de Luz",             valor: 340,  data: dataIso(3)  },
-  { id: "l6",  tipo: "entrada", categoria: "Vendas Balcão",      descricao: "Vendas do dia",            valor: 1960, data: dataIso(4)  },
-  { id: "l7",  tipo: "saida",   categoria: "Fornecedores",        descricao: "Distribuidora GrãoVerde",  valor: 480,  data: dataIso(5)  },
-  { id: "l8",  tipo: "entrada", categoria: "iFood / Delivery",   descricao: "Pedidos iFood",            valor: 780,  data: dataIso(5)  },
-  { id: "l9",  tipo: "saida",   categoria: "Folha de Pagamento",  descricao: "Salários quinzena",        valor: 2750, data: dataIso(10) },
-  { id: "l10", tipo: "entrada", categoria: "Eventos",             descricao: "Sinal Casamento Silva",    valor: 2000, data: dataIso(12) },
-  { id: "l11", tipo: "saida",   categoria: "Aluguel",             descricao: "Aluguel mensal",           valor: 2200, data: dataIso(15) },
-  { id: "l12", tipo: "entrada", categoria: "Vendas Balcão",      descricao: "Vendas do dia",            valor: 2350, data: dataIso(15) },
-  { id: "l13", tipo: "saida",   categoria: "Marketing",           descricao: "Anúncios Instagram",       valor: 320,  data: dataIso(17) },
-  { id: "l14", tipo: "entrada", categoria: "Vendas Balcão",      descricao: "Vendas do dia",            valor: 1980, data: dataIso(18) },
-  { id: "l15", tipo: "saida",   categoria: "Impostos",            descricao: "Simples Nacional",         valor: 1265, data: dataIso(20) },
-];
+const LANCAMENTOS_SEED = [];
 
 // ─── Formulário novo lançamento ───────────────────────────────────────────────
 function FormLancamento({ onSalvar, onCancelar }) {

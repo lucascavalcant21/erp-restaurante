@@ -36,16 +36,7 @@
 
 import { supabase, isSupabaseReady } from "./supabase";
 
-export const CARDAPIO_SEED = [
-  { id: "p1", nome: "Marmitex Executiva",   categoria: "Marmita",         preco: 19.90, custo: 7.05,  ativo: true },
-  { id: "p2", nome: "Suco Natural 500ml",   categoria: "Bebida",          preco: 9.00,  custo: 3.80,  ativo: true },
-  { id: "p3", nome: "Salada Completa",      categoria: "Salada",          preco: 14.90, custo: 4.35,  ativo: true },
-  { id: "p4", nome: "Marmitex Premium",     categoria: "Marmita",         preco: 24.90, custo: 10.20, ativo: true },
-  { id: "p5", nome: "Prato Feijão Tropeiro",categoria: "Prato Principal", preco: 22.00, custo: 9.80,  ativo: true },
-  { id: "p6", nome: "Combo Salada + Suco",  categoria: "Combo",           preco: 18.90, custo: 8.50,  ativo: true },
-  { id: "p7", nome: "Refrigerante Lata",    categoria: "Bebida",          preco: 6.00,  custo: 3.20,  ativo: true },
-  { id: "p8", nome: "Sobremesa do Dia",     categoria: "Sobremesa",       preco: 8.50,  custo: 5.10,  ativo: true },
-];
+export const CARDAPIO_SEED = [];
 
 export async function fetchCardapio() {
   if (!isSupabaseReady()) return { data: [], error: null, fromSeed: true };

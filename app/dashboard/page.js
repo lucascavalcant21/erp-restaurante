@@ -318,9 +318,9 @@ const EMPTY_DASH = {
   ],
 };
 
-// Mock: últimos 6 meses (substituir por API quando PDV integrado)
+// Faturamento dos últimos 6 meses — carregado do PDV/financeiro (vazio até integrar)
 const MESES_LABEL = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
-const GRAFICO_MOCK = [18400, 21200, 19800, 23500, 22100, 25300];
+const GRAFICO_MENSAL = [];
 
 // Alertas carregados do Supabase — sem dados fictícios
 const ALERTAS_ESTOQUE = [];
@@ -346,9 +346,10 @@ function TelaDashboard({ mes, ano, dados, loading, sessao }) {
   const hoje     = new Date();
   const barras   = Array.from({ length: 6 }, (_, i) => {
     const dt = new Date(hoje.getFullYear(), hoje.getMonth() - 5 + i, 1);
-    return { label: MESES_LABEL[dt.getMonth()], valor: GRAFICO_MOCK[i], atual: i === 5 };
+    return { label: MESES_LABEL[dt.getMonth()], valor: GRAFICO_MENSAL[i] ?? 0, atual: i === 5 };
   });
-  const maxValor = Math.max(...barras.map(b => b.valor));
+  const maxValor = Math.max(0, ...barras.map(b => b.valor));
+  const semDados = maxValor === 0;
   const BAR_H = 72; // px
 
   const totalAlertas = ALERTAS_ESTOQUE.length + ALERTAS_EVENTOS.length;
@@ -407,7 +408,7 @@ function TelaDashboard({ mes, ano, dados, loading, sessao }) {
             })}
           </div>
           <p className="text-[10px] font-medium text-center mt-3" style={{ color: 'var(--elevated)' }}>
-            Dados simulados · integre seu PDV para valores reais
+            {semDados ? "Sem dados ainda · integre seu PDV para ver o desempenho" : "Faturamento mensal"}
           </p>
         </Card>
       </div>

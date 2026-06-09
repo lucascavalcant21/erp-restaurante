@@ -30,14 +30,7 @@ const UNIDADES = ["Seldeestrela", "Tico Tico Saladas", "Burguer"];
 const TURNOS = ["Manhã (06-14h)", "Tarde (14-22h)", "Noite (22-06h)", "Integral (08-18h)", "Folguista"];
 
 // ─── Seed de funcionários ────────────────────────────────────────────────────
-const FUNCIONARIOS_SEED = [
-  { id: "f1", nome: "Ana Torres",      cargo: "Gerente",            unidade: "Seldeestrela",    turno: "Integral (08-18h)", salario: 3200, admissao: "2022-03-15", telefone: "(11) 99111-2233", email: "ana@seldeestrela.com",  ativo: true  },
-  { id: "f2", nome: "João Santos",     cargo: "Cozinheiro",         unidade: "Seldeestrela",    turno: "Manhã (06-14h)",    salario: 2100, admissao: "2023-06-01", telefone: "(11) 99222-3344", email: "",                       ativo: true  },
-  { id: "f3", nome: "Maria Lima",      cargo: "Atendente",          unidade: "Tico Tico Saladas",turno: "Tarde (14-22h)",    salario: 1600, admissao: "2024-01-10", telefone: "(11) 99333-4455", email: "",                       ativo: true  },
-  { id: "f4", nome: "Carlos Pereira",  cargo: "Auxiliar de Cozinha",unidade: "Burguer",         turno: "Noite (22-06h)",    salario: 1500, admissao: "2023-09-20", telefone: "(11) 99444-5566", email: "",                       ativo: true  },
-  { id: "f5", nome: "Fernanda Costa",  cargo: "Caixa",              unidade: "Seldeestrela",    turno: "Tarde (14-22h)",    salario: 1700, admissao: "2024-03-05", telefone: "(11) 99555-6677", email: "",                       ativo: true  },
-  { id: "f6", nome: "Roberto Alves",   cargo: "Entregador",         unidade: "Burguer",         turno: "Tarde (14-22h)",    salario: 1450, admissao: "2023-11-15", telefone: "(11) 99666-7788", email: "",                       ativo: false },
-];
+const FUNCIONARIOS_SEED = [];
 
 // ─── Formulário ───────────────────────────────────────────────────────────────
 function FormFuncionario({ inicial, onSalvar, onCancelar }) {

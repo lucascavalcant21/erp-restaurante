@@ -35,14 +35,9 @@ import { createContext, useContext, useState, useCallback, useEffect } from "rea
 import { fetchEstoque, ESTOQUE_SEED } from "../lib/estoque";
 
 // ─── Notificações iniciais ────────────────────────────────────────────────────
-// Apenas as informativas/manuais. As de estoque crítico são geradas
-// automaticamente a partir do estoque real (ver useEffect abaixo).
-const NOTIF_SEED = [
-  { id: "n_evt_1", tipo: "evento_proximo", titulo: "Evento em 15 dias",                corpo: "Aniversário 50 anos João — 20/06/2026 às 20h. Confirme cardápio e equipe.",          lida: false, data: new Date(Date.now() - 5 * 3600000).toISOString() },
-  { id: "n_sis_1", tipo: "sistema",        titulo: "Bem-vindo ao Cerebro ERP",          corpo: "Todos os módulos foram carregados com sucesso. Explore o painel e configure sua operação.", lida: true,  data: new Date(Date.now() - 2 * 86400000).toISOString() },
-  { id: "n_avs_1", tipo: "aviso",          titulo: "Integração com PDV pendente",       corpo: "Conecte seu sistema de vendas (iFood, Saipos) para ativar os dados financeiros em tempo real.", lida: true,  data: new Date(Date.now() - 3 * 86400000).toISOString() },
-  { id: "n_evt_2", tipo: "evento_proximo", titulo: "Casamento Silva & Costa — 38 dias", corpo: "Confirme lista de ingredientes e ficha técnica do cardápio contratado.",            lida: true,  data: new Date(Date.now() - 4 * 86400000).toISOString() },
-];
+// Vazio: as notificações são geradas a partir de dados reais (ex.: estoque
+// crítico via useEffect abaixo) ou inseridas via addNotificacao().
+const NOTIF_SEED = [];
 
 // ─── Context ──────────────────────────────────────────────────────────────────
 const ERPContext = createContext(null);

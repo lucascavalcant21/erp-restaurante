@@ -48,16 +48,7 @@ const TIPOS = ["Todos", "Nota Fiscal", "Boleto", "Fatura", "Contrato", "Recibo"]
 const CATEGORIAS_DOC = ["Fornecedor", "Aluguel", "Energia", "Folha", "Imposto", "Marketing", "Outros"];
 
 // ─── Seed de documentos ───────────────────────────────────────────────────────
-const DOCS_SEED = [
-  { id: "d1", tipo: "Boleto",      descricao: "Frigorifico São Paulo",   categoria: "Fornecedor", valor: 700,  emissao: "2026-06-01", vencimento: "2026-06-08", status: "Pago"     },
-  { id: "d2", tipo: "Fatura",      descricao: "Conta de Energia",        categoria: "Energia",    valor: 680,  emissao: "2026-06-03", vencimento: "2026-06-15", status: "Pendente" },
-  { id: "d3", tipo: "Boleto",      descricao: "Aluguel Loja",            categoria: "Aluguel",    valor: 2200, emissao: "2026-06-01", vencimento: "2026-06-15", status: "Pago"     },
-  { id: "d4", tipo: "Nota Fiscal", descricao: "GrãoVerde — Grãos",       categoria: "Fornecedor", valor: 480,  emissao: "2026-05-30", vencimento: "2026-06-14", status: "Pago"     },
-  { id: "d5", tipo: "Boleto",      descricao: "Simples Nacional",        categoria: "Imposto",    valor: 1265, emissao: "2026-06-01", vencimento: "2026-06-20", status: "Pendente" },
-  { id: "d6", tipo: "Fatura",      descricao: "Folha de Pagamento",      categoria: "Folha",      valor: 5500, emissao: "2026-06-01", vencimento: "2026-06-05", status: "Pago"     },
-  { id: "d7", tipo: "Boleto",      descricao: "Anúncios Meta Ads",       categoria: "Marketing",  valor: 320,  emissao: "2026-06-05", vencimento: "2026-06-25", status: "Pendente" },
-  { id: "d8", tipo: "Nota Fiscal", descricao: "Embal Express",           categoria: "Fornecedor", valor: 280,  emissao: "2026-05-28", vencimento: "2026-06-05", status: "Vencido"  },
-];
+const DOCS_SEED = [];
 
 // ─── Formulário ───────────────────────────────────────────────────────────────
 function FormDoc({ inicial, onSalvar, onCancelar }) {

@@ -53,47 +53,11 @@
 import { supabase, isSupabaseReady } from "./supabase";
 
 // ── Seeds ─────────────────────────────────────────────────────────────────────
-export const FUNCIONARIOS_SEED = [
-  { id: "f1", nome: "Ana Clara Souza",   cargo: "Cozinheira",  unidade: "Seldeestrela", turno: "06:00–14:00", salario: 2100, admissao: "2024-01-10", status: "ativo" },
-  { id: "f2", nome: "Bruno Ferreira",    cargo: "Auxiliar",    unidade: "Seldeestrela", turno: "08:00–17:00", salario: 1800, admissao: "2024-03-05", status: "ativo" },
-  { id: "f3", nome: "Carla Mendes",      cargo: "Atendente",   unidade: "Tico Tico",    turno: "08:00–17:00", salario: 1900, admissao: "2023-11-20", status: "ativo" },
-  { id: "f4", nome: "Diego Alves",       cargo: "Entregador",  unidade: "Burguer",      turno: "10:00–19:00", salario: 1750, admissao: "2025-02-14", status: "ativo" },
-  { id: "f5", nome: "Elisa Rocha",       cargo: "Gerente",     unidade: "Seldeestrela", turno: "07:00–16:00", salario: 3500, admissao: "2022-08-01", status: "ativo" },
-];
+export const FUNCIONARIOS_SEED = [];
 
-export const REGISTROS_PONTO_SEED = [
-  { id: "r1",  func_id: "f1", data: "2026-06-02", entrada: "06:02", saida: "14:05" },
-  { id: "r2",  func_id: "f1", data: "2026-06-03", entrada: "06:18", saida: "14:10" },
-  { id: "r3",  func_id: "f1", data: "2026-06-04", entrada: "05:58", saida: "14:02" },
-  { id: "r4",  func_id: "f1", data: "2026-06-05", entrada: "06:01", saida: null    },
-  { id: "r5",  func_id: "f2", data: "2026-06-02", entrada: "08:25", saida: "17:10" },
-  { id: "r6",  func_id: "f2", data: "2026-06-03", entrada: "08:05", saida: "17:02" },
-  { id: "r7",  func_id: "f2", data: "2026-06-04", entrada: null,    saida: null    },
-  { id: "r8",  func_id: "f2", data: "2026-06-05", entrada: "08:12", saida: null    },
-  { id: "r9",  func_id: "f3", data: "2026-06-02", entrada: "08:00", saida: "17:00" },
-  { id: "r10", func_id: "f3", data: "2026-06-03", entrada: "08:03", saida: "17:05" },
-  { id: "r11", func_id: "f3", data: "2026-06-04", entrada: "08:00", saida: "17:00" },
-  { id: "r12", func_id: "f3", data: "2026-06-05", entrada: "08:00", saida: null    },
-  { id: "r13", func_id: "f4", data: "2026-06-02", entrada: "10:05", saida: "19:00" },
-  { id: "r14", func_id: "f4", data: "2026-06-03", entrada: "10:30", saida: "19:15" },
-  { id: "r15", func_id: "f4", data: "2026-06-04", entrada: "10:00", saida: "19:00" },
-  { id: "r16", func_id: "f4", data: "2026-06-05", entrada: "10:02", saida: null    },
-  { id: "r17", func_id: "f5", data: "2026-06-02", entrada: "07:00", saida: "16:00" },
-  { id: "r18", func_id: "f5", data: "2026-06-03", entrada: "07:00", saida: "16:05" },
-  { id: "r19", func_id: "f5", data: "2026-06-04", entrada: "07:02", saida: "16:00" },
-  { id: "r20", func_id: "f5", data: "2026-06-05", entrada: "07:00", saida: null    },
-];
+export const REGISTROS_PONTO_SEED = [];
 
-export const HOLERITES_SEED = {
-  f1: [
-    { id: "h1", func_id: "f1", mes: 5, ano: 2026, bruto: 2100, liquido: 1780, detalhes: { proventos: [{ nome: "Salário Base", valor: 2100 }], descontos: [{ nome: "INSS", valor: 168 }, { nome: "IRRF", valor: 152 }] } },
-    { id: "h2", func_id: "f1", mes: 4, ano: 2026, bruto: 2100, liquido: 1780, detalhes: { proventos: [{ nome: "Salário Base", valor: 2100 }], descontos: [{ nome: "INSS", valor: 168 }, { nome: "IRRF", valor: 152 }] } },
-  ],
-  f2: [], f3: [], f4: [],
-  f5: [
-    { id: "h3", func_id: "f5", mes: 5, ano: 2026, bruto: 3500, liquido: 2870, detalhes: { proventos: [{ nome: "Salário Base", valor: 3500 }], descontos: [{ nome: "INSS", valor: 280 }, { nome: "IRRF", valor: 350 }] } },
-  ],
-};
+export const HOLERITES_SEED = {};
 
 // ── Funcionários ──────────────────────────────────────────────────────────────
 export async function fetchFuncionarios() {

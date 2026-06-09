@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Users, Wallet, UserCheck, Edit3, Trash2, Phone } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Users, Wallet, UserCheck, Edit3, Trash2, Phone, Settings2 } from "lucide-react";
 import {
   PageHeader, PageBody, Card, SectionLabel, KpiGrid, Kpi,
   SearchBar, Chips, EmptyState, Modal, Field, TextInput, NumberInput, Select, Btn, Toast, fmtBRL,
@@ -47,6 +48,7 @@ function FormFunc({ inicial, onSalvar, onCancelar }) {
 }
 
 export default function GestaoRhPage() {
+  const router = useRouter();
   const { unidadeAtiva, unidadeInfo } = useERP();
   const [lista, setLista] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -130,6 +132,7 @@ export default function GestaoRhPage() {
                       </div>
                       <p className="text-[11px]" style={{ color: "var(--dim)" }}>{f.cargo} · {f.turno}{f.salario ? ` · ${fmtBRL(f.salario)}` : ""}</p>
                     </div>
+                    <button onClick={() => router.push(`/dashboard/rh/funcionario/${f.id}`)} title="Gerenciar (holerites, docs, avisos...)" className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "var(--accent-soft)" }}><Settings2 size={14} style={{ color: "var(--accent-fg)" }} /></button>
                     <button onClick={() => { setEditar(f); setModal(true); }} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "var(--elevated)" }}><Edit3 size={14} style={{ color: "var(--muted)" }} /></button>
                     <button onClick={() => remover(f.id)} className="w-8 h-8 rounded-lg flex items-center justify-center erp-badge-danger"><Trash2 size={14} /></button>
                   </div>

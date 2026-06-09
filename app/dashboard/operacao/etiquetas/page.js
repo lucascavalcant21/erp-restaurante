@@ -44,8 +44,8 @@ export default function EtiquetasPage() {
 
   // Dimensões/escala da etiqueta conforme o tamanho escolhido
   const dim = tamanho === "60x40"
-    ? { h: "40mm", pad: "2.5mm", titulo: "4mm", linha: "2.9mm", resp: "2.5mm", qr: 42, gap: "0.5mm" }
-    : { h: "60mm", pad: "4mm",   titulo: "5mm", linha: "3.4mm", resp: "3mm",   qr: 66, gap: "0.8mm" };
+    ? { h: "40mm", pad: "2.5mm", titulo: "3.8mm", linha: "2.5mm", resp: "2.4mm", qr: 42, gap: "0.5mm" }
+    : { h: "60mm", pad: "3.5mm", titulo: "4.6mm", linha: "3mm",   resp: "2.8mm", qr: 64, gap: "0.8mm" };
 
   useEffect(() => {
     lerSessao().then((s) => s?.nome && setForm((f) => ({ ...f, responsavel: f.responsavel || s.nome })));
@@ -198,14 +198,14 @@ export default function EtiquetasPage() {
                   {nomeProduto || "PRODUTO"}
                 </div>
                 {/* conservação + qtd */}
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: dim.linha, fontWeight: 700, padding: "0.8mm 0", borderBottom: "0.4mm solid #000" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", whiteSpace: "nowrap", fontSize: dim.linha, fontWeight: 700, padding: "0.8mm 0", borderBottom: "0.4mm solid #000" }}>
                   <span>{form.conservacao.toUpperCase()}</span>
                   <span>QTD: {form.quantidade}{form.unidade !== "UN" ? " " + form.unidade : ""}</span>
                 </div>
                 {/* manipulação + validade */}
                 <div style={{ padding: "0.8mm 0", borderBottom: "0.4mm solid #000" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: dim.linha, fontWeight: 700 }}><span>MANIPULACAO:</span><span>{fmtDataHora(agora)}</span></div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: dim.linha, fontWeight: 700, marginTop: "0.4mm" }}><span>VALIDADE:</span><span>{fmtDataHora(validadeEm)}</span></div>
+                  <div style={{ display: "flex", justifyContent: "space-between", whiteSpace: "nowrap", fontSize: dim.linha, fontWeight: 700 }}><span>MANIPULACAO:</span><span>{fmtDataHora(agora)}</span></div>
+                  <div style={{ display: "flex", justifyContent: "space-between", whiteSpace: "nowrap", fontSize: dim.linha, fontWeight: 700, marginTop: "0.4mm" }}><span>VALIDADE:</span><span>{fmtDataHora(validadeEm)}</span></div>
                 </div>
                 {/* responsável */}
                 <div style={{ fontSize: dim.linha, fontWeight: 700, marginTop: "1mm" }}>RESP.: {(form.responsavel || "—").toUpperCase()}</div>

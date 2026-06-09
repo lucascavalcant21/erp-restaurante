@@ -11,6 +11,7 @@ import {
   fetchIngredientes, inserirIngrediente, atualizarIngrediente, removerIngrediente,
   calcCustoUnitario, getUnidade, UNIDADES,
 } from "../../../lib/ingredientes";
+import { inserirItem } from "../../../lib/estoque";
 
 const ICONE_UN = { KG: Beef, L: Droplets, UN: Package, MACO: Package, CX: Package };
 const VAZIO = { nome: "", unidade: "KG", preco_compra: "" };
@@ -58,7 +59,7 @@ export default function IngredientesPage() {
   const [busca, setBusca]     = useState("");
   const [modal, setModal]     = useState(false);
   const [editar, setEditar]   = useState(null);
-  const [salvou, setSalvou]   = useState(false);
+  const [salvou, setSalvou]   = useState("");
 
   async function carregar() {
     setLoading(true);
@@ -76,10 +77,20 @@ export default function IngredientesPage() {
   const mediaCompra = lista.length ? lista.reduce((a, i) => a + (Number(i.preco_compra) || 0), 0) / lista.length : 0;
 
   async function salvar(dados) {
-    if (editar) await atualizarIngrediente(editar.id, dados);
-    else await inserirIngrediente(dados, unidadeAtiva);
+    if (editar) {
+      await atualizarIngrediente(editar.id, dados);
+      setSalvou("Ingrediente atualizado!");
+    } else {
+      await inserirIngrediente(dados, unidadeAtiva);
+      // Sincroniza: cria o item correspondente no Estoque (quantidade 0)
+      await inserirItem({
+        nome: dados.nome, categoria: "Outros", unidade: dados.unidade,
+        quantidade: 0, minimo: 0, preco_unit: dados.preco_compra,
+      }, unidadeAtiva);
+      setSalvou("Ingrediente salvo e adicionado ao Estoque!");
+    }
     setModal(false); setEditar(null);
-    setSalvou(true); setTimeout(() => setSalvou(false), 2200);
+    setTimeout(() => setSalvou(""), 2600);
     carregar();
   }
   async function remover(id) {
@@ -92,7 +103,7 @@ export default function IngredientesPage() {
       <PageHeader title="Ingredientes" subtitle="Catálogo e custo de insumos" icon={FlaskConical}
         onAction={() => { setEditar(null); setModal(true); }} actionLabel="Novo" />
       <PageBody>
-        <Toast show={salvou}>Ingrediente salvo!</Toast>
+        <Toast show={!!salvou}>{salvou}</Toast>
 
         <KpiGrid>
           <Kpi icon={FlaskConical} label="Ingredientes" value={lista.length} tint="var(--accent-fg)" />

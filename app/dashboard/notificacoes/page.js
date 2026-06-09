@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { useERP } from "../../context/ERPContext";
 import {
   ArrowLeft,
   Bell,
@@ -67,59 +68,6 @@ const TIPO_CONFIG = {
   },
 };
 
-// ─── Seed de notificações ─────────────────────────────────────────────────────
-// Supabase: supabase.from('notificacoes').select('*').order('created_at', { ascending: false })
-const NOTIFICACOES_SEED = [
-  {
-    id:    "n1",
-    tipo:  "estoque_critico",
-    titulo: "Feijão Carioca abaixo do mínimo",
-    corpo: "Estoque atual: 3 KG — mínimo configurado: 5 KG. Realize a reposição.",
-    lida:  false,
-    criada_em: new Date(Date.now() - 25 * 60000).toISOString(), // 25min atrás
-  },
-  {
-    id:    "n2",
-    tipo:  "estoque_critico",
-    titulo: "Alface Crespa crítica",
-    corpo: "Estoque atual: 2 MAÇOS — mínimo configurado: 5 MAÇOS.",
-    lida:  false,
-    criada_em: new Date(Date.now() - 2 * 3600000).toISOString(), // 2h atrás
-  },
-  {
-    id:    "n3",
-    tipo:  "evento_proximo",
-    titulo: "Evento em 15 dias",
-    corpo: "Aniversário 50 anos João — 20/06/2026 às 20h. Confirme cardápio e equipe.",
-    lida:  false,
-    criada_em: new Date(Date.now() - 5 * 3600000).toISOString(), // 5h atrás
-  },
-  {
-    id:    "n4",
-    tipo:  "sistema",
-    titulo: "Bem-vindo ao Cerebro ERP",
-    corpo: "Todos os módulos foram carregados com sucesso. Explore o painel e configure sua operação.",
-    lida:  true,
-    criada_em: new Date(Date.now() - 2 * 86400000).toISOString(), // 2 dias atrás
-  },
-  {
-    id:    "n5",
-    tipo:  "aviso",
-    titulo: "Integração com PDV pendente",
-    corpo: "Conecte seu sistema de vendas (iFood, Saipos) para ativar os dados financeiros em tempo real.",
-    lida:  true,
-    criada_em: new Date(Date.now() - 3 * 86400000).toISOString(), // 3 dias atrás
-  },
-  {
-    id:    "n6",
-    tipo:  "evento_proximo",
-    titulo: "Casamento Silva & Costa — 38 dias",
-    corpo: "Confirme lista de ingredientes e ficha técnica do cardápio contratado.",
-    lida:  true,
-    criada_em: new Date(Date.now() - 4 * 86400000).toISOString(), // 4 dias atrás
-  },
-];
-
 // ─── Componente: Card de notificação ─────────────────────────────────────────
 function CardNotificacao({ notif, onLer, onDeletar }) {
   const cfg = TIPO_CONFIG[notif.tipo] ?? TIPO_CONFIG.sistema;
@@ -145,7 +93,7 @@ function CardNotificacao({ notif, onLer, onDeletar }) {
                   <span className="w-1.5 h-1.5 rounded-full bg-accent flex-shrink-0" />
                 )}
               </div>
-              <span className="text-[10px] text-dim font-medium flex-shrink-0">{tempoRelativo(notif.criada_em)}</span>
+              <span className="text-[10px] text-dim font-medium flex-shrink-0">{tempoRelativo(notif.data)}</span>
             </div>
             <p className={`text-sm font-black leading-tight mb-1 ${notif.lida ? "text-muted" : "text-fg"}`}>
               {notif.titulo}
@@ -191,40 +139,35 @@ const FILTROS = [
 export default function NotificacoesPage() {
   const router = useRouter();
 
-  const [notificacoes, setNotificacoes] = useState(NOTIFICACOES_SEED);
-  const [filtro,       setFiltro]       = useState("todas");
+  // Estado global compartilhado — alertas de estoque crítico vêm do estoque real
+  const {
+    notificacoes,
+    marcarLida,
+    marcarTodasLidas,
+    removerNotificacao,
+    limparLidas,
+  } = useERP();
+  const [filtro, setFiltro] = useState("todas");
 
   // ── Métricas ──────────────────────────────────────────────────────────────
   const naoLidas = useMemo(() => notificacoes.filter(n => !n.lida).length, [notificacoes]);
 
-  // ── Filtragem ─────────────────────────────────────────────────────────────
+  // ── Filtragem (mais recentes primeiro) ────────────────────────────────────
   const filtradas = useMemo(() => {
-    return notificacoes.filter(n => {
-      if (filtro === "todas")    return true;
-      if (filtro === "nao_lidas") return !n.lida;
-      return n.tipo === filtro;
-    });
+    return notificacoes
+      .filter(n => {
+        if (filtro === "todas")     return true;
+        if (filtro === "nao_lidas") return !n.lida;
+        return n.tipo === filtro;
+      })
+      .sort((a, b) => new Date(b.data) - new Date(a.data));
   }, [notificacoes, filtro]);
 
-  // ── Handlers ──────────────────────────────────────────────────────────────
-  function handleLer(id) {
-    setNotificacoes(prev => prev.map(n => n.id === id ? { ...n, lida: true } : n));
-    // TODO: supabase.from('notificacoes').update({ lida: true }).eq('id', id)
-  }
-
-  function handleDeletar(id) {
-    setNotificacoes(prev => prev.filter(n => n.id !== id));
-    // TODO: supabase.from('notificacoes').delete().eq('id', id)
-  }
-
-  function handleLerTodas() {
-    setNotificacoes(prev => prev.map(n => ({ ...n, lida: true })));
-    // TODO: supabase.from('notificacoes').update({ lida: true }).eq('user_id', userId)
-  }
-
-  function handleLimparLidas() {
-    setNotificacoes(prev => prev.filter(n => !n.lida));
-  }
+  // ── Handlers (delegam ao contexto global) ─────────────────────────────────
+  const handleLer        = marcarLida;
+  const handleDeletar    = removerNotificacao;
+  const handleLerTodas   = marcarTodasLidas;
+  const handleLimparLidas = limparLidas;
 
   return (
     <div className="min-h-screen ">
@@ -269,7 +212,7 @@ export default function NotificacoesPage() {
         {/* Banner de estoque crítico no topo (se houver) */}
         {notificacoes.some(n => n.tipo === "estoque_critico" && !n.lida) && filtro === "todas" && (
           <button onClick={() => router.push("/dashboard/operacao/estoque")}
-            className="w-full bg-[rgba(5,150,105,0.1)]0 text-white rounded-2xl px-4 py-3.5 flex items-center gap-3 active:scale-95 transition-all ">
+            className="w-full bg-accent-strong text-white rounded-2xl px-4 py-3.5 flex items-center gap-3 active:scale-95 transition-all ">
             <div className="w-9 h-9 rounded-xl bg-card/20 flex items-center justify-center flex-shrink-0">
               <Package size={18} />
             </div>

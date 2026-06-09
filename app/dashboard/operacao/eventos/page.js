@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { fetchEventos, inserirEvento, atualizarEvento, removerEvento, EVENTOS_SEED } from "../../../lib/eventos";
 import {
   ArrowLeft,
   Plus,
@@ -48,56 +49,14 @@ const STATUS_OPTS = ["Confirmado", "Pendente", "Cancelado", "Concluído"];
 const STATUS_STYLE = {
   Confirmado: { bg: "bg-emerald-100", text: "text-emerald-700", Icon: CheckCircle2, iconColor: "text-emerald-500" },
   Pendente:   { bg: "bg-amber-100",   text: "text-amber-700",   Icon: HelpCircle,  iconColor: "text-amber-500"   },
-  Cancelado:  { bg: "bg-rose-100",    text: "text-rose-700",    Icon: XCircle,     iconColor: "text-rose-500"    },
-  Concluído:  { bg: "bg-neutral-100", text: "text-neutral-600", Icon: CheckCircle2,iconColor: "text-neutral-400" },
+  Cancelado:  { bg: "bg-[rgba(5,150,105,0.15)]",    text: "text-[#059669]",    Icon: XCircle,     iconColor: "text-[#10b981]"    },
+  Concluído:  { bg: "bg-[#334155]", text: "text-[#94A3B8]", Icon: CheckCircle2,iconColor: "text-[#475569]" },
 };
 
 // ─── Tipos de evento ──────────────────────────────────────────────────────────
 const TIPOS = ["Todos", "Casamento", "Aniversário", "Corporativo", "Formatura", "Confraternização", "Churrasco", "Outro"];
 
 // ─── Seed de dados ────────────────────────────────────────────────────────────
-const EVENTOS_SEED = [
-  {
-    id: "ev1",
-    nome: "Casamento Silva & Costa",
-    tipo: "Casamento",
-    status: "Confirmado",
-    data: "2026-07-12T18:00",
-    local: "Salão Villa Bella",
-    responsavel: "Ana Torres",
-    convidados: 120,
-    valor_contrato: 8500,
-    custo_estimado: 4200,
-    observacoes: "Cardápio executivo + barra de doces",
-  },
-  {
-    id: "ev2",
-    nome: "Aniversário 50 anos João",
-    tipo: "Aniversário",
-    status: "Pendente",
-    data: "2026-06-20T20:00",
-    local: "Residência do cliente",
-    responsavel: "Lucas Cavalcante",
-    convidados: 60,
-    valor_contrato: 3200,
-    custo_estimado: 1800,
-    observacoes: "Confirmar cardápio até 15/06",
-  },
-  {
-    id: "ev3",
-    nome: "Confraternização Empresa XYZ",
-    tipo: "Corporativo",
-    status: "Concluído",
-    data: "2026-05-15T12:00",
-    local: "Sede da empresa",
-    responsavel: "Maria Souza",
-    convidados: 80,
-    valor_contrato: 4000,
-    custo_estimado: 2100,
-    observacoes: "Almoço executivo — pago",
-  },
-];
-
 // ─── Componente: Card de evento ───────────────────────────────────────────────
 function CardEvento({ evento, onEditar, onDeletar, onMudarStatus }) {
   const st     = STATUS_STYLE[evento.status] ?? STATUS_STYLE.Pendente;
@@ -107,61 +66,61 @@ function CardEvento({ evento, onEditar, onDeletar, onMudarStatus }) {
   const futuro = dias !== null && dias > 0;
 
   return (
-    <div className={`bg-white rounded-2xl border shadow-sm overflow-hidden ${evento.status === "Cancelado" ? "opacity-60 border-neutral-200" : "border-neutral-100"}`}>
+    <div className={`bg-[#1E293B] rounded-2xl border  overflow-hidden ${evento.status === "Cancelado" ? "opacity-60 border-white/8" : "border-white/5"}`}>
       <div className="px-4 pt-4 pb-3">
         {/* Topo */}
         <div className="flex items-start justify-between gap-2 mb-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-              <span className="text-[10px] font-black text-neutral-400 uppercase tracking-wider">{evento.tipo}</span>
+              <span className="text-[10px] font-black text-[#475569] uppercase tracking-wider">{evento.tipo}</span>
               <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full ${st.bg} ${st.text}`}>
                 {evento.status}
               </span>
               {futuro && (
-                <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full ${dias <= 7 ? "bg-rose-100 text-rose-600" : dias <= 30 ? "bg-amber-100 text-amber-600" : "bg-blue-50 text-blue-600"}`}>
+                <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full ${dias <= 7 ? "bg-[rgba(5,150,105,0.15)] text-[#059669]" : dias <= 30 ? "bg-amber-100 text-amber-600" : "bg-blue-50 text-blue-600"}`}>
                   {dias === 0 ? "Hoje!" : `Em ${dias}d`}
                 </span>
               )}
             </div>
-            <p className="text-base font-black text-neutral-900 leading-tight truncate">{evento.nome}</p>
+            <p className="text-base font-black leading-tight text-[#F1F5F9]">{evento.nome}</p>
           </div>
           <div className="text-right flex-shrink-0">
-            <p className="text-lg font-black text-neutral-900">{fmtBRL(evento.valor_contrato)}</p>
-            <p className="text-[11px] text-neutral-400 font-medium">contrato</p>
+            <p className="text-lg font-black text-[#F1F5F9]">{fmtBRL(evento.valor_contrato)}</p>
+            <p className="text-[11px] text-[#475569] font-medium">contrato</p>
           </div>
         </div>
 
         {/* Infos */}
         <div className="space-y-1.5 mb-3">
-          <div className="flex items-center gap-2 text-[12px] text-neutral-600 font-medium">
-            <Calendar size={13} className="text-neutral-400 flex-shrink-0" />
+          <div className="flex items-center gap-2 text-[12px] text-[#94A3B8] font-medium">
+            <Calendar size={13} className="text-[#475569] flex-shrink-0" />
             {fmtDataHora(evento.data)}
           </div>
           {evento.local && (
-            <div className="flex items-center gap-2 text-[12px] text-neutral-600 font-medium">
-              <MapPin size={13} className="text-neutral-400 flex-shrink-0" />
+            <div className="flex items-center gap-2 text-[12px] text-[#94A3B8] font-medium">
+              <MapPin size={13} className="text-[#475569] flex-shrink-0" />
               <span className="truncate">{evento.local}</span>
             </div>
           )}
-          <div className="flex items-center gap-2 text-[12px] text-neutral-600 font-medium">
-            <Users size={13} className="text-neutral-400 flex-shrink-0" />
+          <div className="flex items-center gap-2 text-[12px] text-[#94A3B8] font-medium">
+            <Users size={13} className="text-[#475569] flex-shrink-0" />
             {evento.convidados} convidados · Resp: {evento.responsavel}
           </div>
         </div>
 
         {/* Break-even / Lucratividade */}
-        <div className="bg-neutral-50 rounded-xl px-3 py-2.5 mb-3">
+        <div className=" rounded-xl px-3 py-2.5 mb-3">
           <div className="flex justify-between items-center mb-1.5">
-            <p className="text-[10px] font-black text-neutral-400 uppercase tracking-wider">Lucro Estimado</p>
-            <p className={`text-sm font-black ${lucro >= 0 ? "text-emerald-700" : "text-rose-600"}`}>{fmtBRL(lucro)}</p>
+            <p className="text-[10px] font-black text-[#475569] uppercase tracking-wider">Lucro Estimado</p>
+            <p className={`text-sm font-black ${lucro >= 0 ? "text-emerald-700" : "text-[#059669]"}`}>{fmtBRL(lucro)}</p>
           </div>
-          <div className="h-1.5 bg-neutral-200 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-[#334155] rounded-full overflow-hidden">
             <div className="h-full rounded-full transition-all duration-500"
               style={{ width: `${Math.min(Math.max(margem, 0), 100)}%`, backgroundColor: margem >= 40 ? "#10b981" : margem >= 20 ? "#f59e0b" : "#f43f5e" }} />
           </div>
           <div className="flex justify-between text-[10px] font-bold mt-1">
-            <span className="text-neutral-400">Custo: {fmtBRL(evento.custo_estimado)}</span>
-            <span className={margem >= 40 ? "text-emerald-600" : margem >= 20 ? "text-amber-500" : "text-rose-500"}>
+            <span className="text-[#475569]">Custo: {fmtBRL(evento.custo_estimado)}</span>
+            <span className={margem >= 40 ? "text-emerald-600" : margem >= 20 ? "text-amber-500" : "text-[#10b981]"}>
               Margem: {margem.toFixed(1)}%
             </span>
           </div>
@@ -169,7 +128,7 @@ function CardEvento({ evento, onEditar, onDeletar, onMudarStatus }) {
 
         {/* Observações */}
         {evento.observacoes && (
-          <p className="text-[11px] text-neutral-500 font-medium bg-neutral-50 rounded-xl px-3 py-2 mb-3 leading-relaxed">
+          <p className="text-[11px] text-[#64748B] font-medium  rounded-xl px-3 py-2 mb-3 leading-relaxed">
             {evento.observacoes}
           </p>
         )}
@@ -190,10 +149,10 @@ function CardEvento({ evento, onEditar, onDeletar, onMudarStatus }) {
 
       {/* Ações */}
       <div className="flex items-center border-t border-neutral-50 divide-x divide-neutral-50">
-        <button onClick={() => onEditar(evento)} className="flex-1 flex items-center justify-center gap-1.5 py-3 text-[11px] font-black text-neutral-600 active:bg-neutral-50 transition-colors">
+        <button onClick={() => onEditar(evento)} className="flex-1 flex items-center justify-center gap-1.5 py-3 text-[11px] font-black text-[#94A3B8] active: transition-colors">
           <Edit3 size={13} /> Editar
         </button>
-        <button onClick={() => onDeletar(evento.id)} className="flex-1 flex items-center justify-center gap-1.5 py-3 text-[11px] font-black text-rose-400 active:bg-rose-50 transition-colors">
+        <button onClick={() => onDeletar(evento.id)} className="flex-1 flex items-center justify-center gap-1.5 py-3 text-[11px] font-black text-[#10b981] active:bg-[rgba(5,150,105,0.1)] transition-colors">
           <Trash2 size={13} /> Remover
         </button>
       </div>
@@ -240,92 +199,92 @@ function FormEvento({ inicial, onSalvar, onCancelar }) {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-5 space-y-4">
-      <p className="text-sm font-black text-neutral-900">{inicial ? "Editar Evento" : "Novo Evento"}</p>
+    <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-5 space-y-4">
+      <p className="text-sm font-black text-[#F1F5F9]">{inicial ? "Editar Evento" : "Novo Evento"}</p>
 
       <div>
-        <label className="text-[10px] font-black text-neutral-400 uppercase tracking-wider block mb-1.5">Nome do Evento *</label>
+        <label className="text-[10px] font-black text-[#475569] uppercase tracking-wider block mb-1.5">Nome do Evento *</label>
         <input type="text" value={nome} onChange={e => { setNome(e.target.value); setErro(""); }}
           placeholder="ex: Casamento Silva & Costa"
-          className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3.5 text-sm font-bold text-neutral-900 placeholder:text-neutral-400 placeholder:font-medium focus:outline-none focus:ring-2 focus:border-[#10b981]" />
+          className="w-full  border border-white/8 rounded-xl px-4 py-3.5 text-sm font-bold text-[#F1F5F9] placeholder:text-[#475569] placeholder:font-medium focus:outline-none focus:ring-2 focus:border-[#10b981]" />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-wider block mb-1.5">Tipo</label>
+          <label className="text-[10px] font-black text-[#475569] uppercase tracking-wider block mb-1.5">Tipo</label>
           <div className="relative">
             <select value={tipo} onChange={e => setTipo(e.target.value)}
-              className="w-full appearance-none bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-3.5 text-sm font-bold text-neutral-900 focus:outline-none focus:ring-2 focus:border-[#10b981] pr-8">
+              className="w-full appearance-none  border border-white/8 rounded-xl px-3 py-3.5 text-sm font-bold text-[#F1F5F9] focus:outline-none focus:ring-2 focus:border-[#10b981] pr-8" style={{ background: "#1E293B", color: "#F1F5F9" }} >
               {TIPOS.filter(t => t !== "Todos").map(t => <option key={t} value={t}>{t}</option>)}
             </select>
-            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
+            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#475569] pointer-events-none" />
           </div>
         </div>
         <div>
-          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-wider block mb-1.5">Status</label>
+          <label className="text-[10px] font-black text-[#475569] uppercase tracking-wider block mb-1.5">Status</label>
           <div className="relative">
             <select value={status} onChange={e => setStatus(e.target.value)}
-              className="w-full appearance-none bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-3.5 text-sm font-bold text-neutral-900 focus:outline-none focus:ring-2 focus:border-[#10b981] pr-8">
+              className="w-full appearance-none  border border-white/8 rounded-xl px-3 py-3.5 text-sm font-bold text-[#F1F5F9] focus:outline-none focus:ring-2 focus:border-[#10b981] pr-8" style={{ background: "#1E293B", color: "#F1F5F9" }} >
               {STATUS_OPTS.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
-            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
+            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#475569] pointer-events-none" />
           </div>
         </div>
       </div>
 
       <div>
-        <label className="text-[10px] font-black text-neutral-400 uppercase tracking-wider block mb-1.5">Data e Hora *</label>
+        <label className="text-[10px] font-black text-[#475569] uppercase tracking-wider block mb-1.5">Data e Hora *</label>
         <input type="datetime-local" value={data} onChange={e => { setData(e.target.value); setErro(""); }}
-          className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3.5 text-sm font-bold text-neutral-900 focus:outline-none focus:ring-2 focus:border-[#10b981]" />
+          className="w-full  border border-white/8 rounded-xl px-4 py-3.5 text-sm font-bold text-[#F1F5F9] focus:outline-none focus:ring-2 focus:border-[#10b981]" />
       </div>
 
       <div>
-        <label className="text-[10px] font-black text-neutral-400 uppercase tracking-wider block mb-1.5">Local</label>
+        <label className="text-[10px] font-black text-[#475569] uppercase tracking-wider block mb-1.5">Local</label>
         <input type="text" value={local} onChange={e => setLocal(e.target.value)}
           placeholder="ex: Salão Villa Bella"
-          className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3.5 text-sm font-medium text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:border-[#10b981]" />
+          className="w-full  border border-white/8 rounded-xl px-4 py-3.5 text-sm font-medium text-[#F1F5F9] placeholder:text-[#475569] focus:outline-none focus:ring-2 focus:border-[#10b981]" />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-wider block mb-1.5">Responsável</label>
+          <label className="text-[10px] font-black text-[#475569] uppercase tracking-wider block mb-1.5">Responsável</label>
           <input type="text" value={responsavel} onChange={e => setResponsavel(e.target.value)}
             placeholder="Nome"
-            className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3.5 text-sm font-medium text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:border-[#10b981]" />
+            className="w-full  border border-white/8 rounded-xl px-4 py-3.5 text-sm font-medium text-[#F1F5F9] placeholder:text-[#475569] focus:outline-none focus:ring-2 focus:border-[#10b981]" />
         </div>
         <div>
-          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-wider block mb-1.5">Convidados</label>
+          <label className="text-[10px] font-black text-[#475569] uppercase tracking-wider block mb-1.5">Convidados</label>
           <input type="number" inputMode="numeric" min="0" value={convidados} onChange={e => setConvidados(e.target.value)}
             placeholder="0"
-            className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3.5 text-sm font-black text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:border-[#10b981]" />
+            className="w-full  border border-white/8 rounded-xl px-4 py-3.5 text-sm font-black text-[#F1F5F9] placeholder:text-[#475569] focus:outline-none focus:ring-2 focus:border-[#10b981]" />
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-wider block mb-1.5">Valor do Contrato (R$)</label>
+          <label className="text-[10px] font-black text-[#475569] uppercase tracking-wider block mb-1.5">Valor do Contrato (R$)</label>
           <input type="number" inputMode="decimal" step="100" min="0" value={valor} onChange={e => setValor(e.target.value)}
             placeholder="0"
-            className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3.5 text-sm font-black text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:border-[#10b981]" />
+            className="w-full  border border-white/8 rounded-xl px-4 py-3.5 text-sm font-black text-[#F1F5F9] placeholder:text-[#475569] focus:outline-none focus:ring-2 focus:border-[#10b981]" />
         </div>
         <div>
-          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-wider block mb-1.5">Custo Estimado (R$)</label>
+          <label className="text-[10px] font-black text-[#475569] uppercase tracking-wider block mb-1.5">Custo Estimado (R$)</label>
           <input type="number" inputMode="decimal" step="100" min="0" value={custo} onChange={e => setCusto(e.target.value)}
             placeholder="0"
-            className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3.5 text-sm font-black text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:border-[#10b981]" />
+            className="w-full  border border-white/8 rounded-xl px-4 py-3.5 text-sm font-black text-[#F1F5F9] placeholder:text-[#475569] focus:outline-none focus:ring-2 focus:border-[#10b981]" />
         </div>
       </div>
 
       {/* Preview de lucro */}
       {valorN > 0 && (
-        <div className={`rounded-xl border px-4 py-3 ${lucroPreview >= 0 ? "bg-emerald-50 border-emerald-200" : "bg-rose-50 border-rose-200"}`}>
+        <div className={`rounded-xl border px-4 py-3 ${lucroPreview >= 0 ? "bg-emerald-50 border-emerald-200" : "bg-[rgba(5,150,105,0.1)] border-[rgba(5,150,105,0.3)]"}`}>
           <div className="flex justify-between items-center">
             <div>
-              <p className={`text-[10px] font-black uppercase tracking-wider ${lucroPreview >= 0 ? "text-emerald-500" : "text-rose-400"}`}>Lucro Estimado</p>
-              <p className={`text-xl font-black ${lucroPreview >= 0 ? "text-emerald-800" : "text-rose-700"}`}>{fmtBRL(lucroPreview)}</p>
+              <p className={`text-[10px] font-black uppercase tracking-wider ${lucroPreview >= 0 ? "text-emerald-500" : "text-[#10b981]"}`}>Lucro Estimado</p>
+              <p className={`text-xl font-black ${lucroPreview >= 0 ? "text-emerald-800" : "text-[#059669]"}`}>{fmtBRL(lucroPreview)}</p>
             </div>
             {margemPreview !== null && (
-              <p className={`text-sm font-black ${margemPreview >= 40 ? "text-emerald-600" : margemPreview >= 20 ? "text-amber-500" : "text-rose-500"}`}>
+              <p className={`text-sm font-black ${margemPreview >= 40 ? "text-emerald-600" : margemPreview >= 20 ? "text-amber-500" : "text-[#10b981]"}`}>
                 {margemPreview.toFixed(1)}% margem
               </p>
             )}
@@ -334,23 +293,23 @@ function FormEvento({ inicial, onSalvar, onCancelar }) {
       )}
 
       <div>
-        <label className="text-[10px] font-black text-neutral-400 uppercase tracking-wider block mb-1.5">Observações</label>
+        <label className="text-[10px] font-black text-[#475569] uppercase tracking-wider block mb-1.5">Observações</label>
         <textarea value={obs} onChange={e => setObs(e.target.value)}
           placeholder="Cardápio, exigências especiais, pendências..."
           rows={3}
-          className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm font-medium text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:border-[#10b981] resize-none" />
+          className="w-full  border border-white/8 rounded-xl px-4 py-3 text-sm font-medium text-[#F1F5F9] placeholder:text-[#475569] focus:outline-none focus:ring-2 focus:border-[#10b981] resize-none" />
       </div>
 
       {erro && (
-        <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2.5">
-          <AlertCircle size={13} className="text-rose-500 flex-shrink-0" />
-          <p className="text-xs font-bold text-rose-700">{erro}</p>
+        <div className="flex items-center gap-2 bg-[rgba(5,150,105,0.1)] border border-[rgba(5,150,105,0.3)] rounded-xl px-3 py-2.5">
+          <AlertCircle size={13} className="text-[#10b981] flex-shrink-0" />
+          <p className="text-xs font-bold text-[#059669]">{erro}</p>
         </div>
       )}
 
       <div className="flex gap-3 pt-1">
-        <button onClick={onCancelar} className="flex-1 py-3.5 rounded-xl font-black text-sm text-neutral-700 bg-neutral-100 active:scale-95 transition-all">Cancelar</button>
-        <button onClick={handleSalvar} className="flex-1 py-3.5 rounded-xl font-black text-sm text-white bg-[#10b981] active:scale-95 transition-all shadow-md">
+        <button onClick={onCancelar} className="flex-1 py-3.5 rounded-xl font-black text-sm text-[#CBD5E1] bg-[#334155] active:scale-95 transition-all">Cancelar</button>
+        <button onClick={handleSalvar} className="flex-1 py-3.5 rounded-xl font-black text-sm text-white bg-[#10b981] active:scale-95 transition-all ">
           {inicial ? "Salvar Alterações" : "Criar Evento"}
         </button>
       </div>
@@ -362,7 +321,15 @@ function FormEvento({ inicial, onSalvar, onCancelar }) {
 export default function EventosPage() {
   const router = useRouter();
 
-  const [eventos,    setEventos]   = useState(EVENTOS_SEED);
+  const [eventos,    setEventos]   = useState([]);
+  const [loading,    setLoading]   = useState(true);
+
+  useEffect(() => {
+    fetchEventos().then(({ data }) => {
+      setEventos(data);
+      setLoading(false);
+    });
+  }, []);
   const [busca,      setBusca]     = useState("");
   const [filtroTipo, setFiltroTipo]= useState("Todos");
   const [filtroSt,   setFiltroSt]  = useState("Todos");
@@ -418,7 +385,7 @@ export default function EventosPage() {
   }
 
   function handleDeletar(id) {
-    setEventos(prev => prev.filter(e => e.id !== id));
+    removerEvento(id); setEventos(prev => prev.filter(e => e.id !== id));
   }
 
   function handleMudarStatus(id, novoStatus) {
@@ -426,19 +393,19 @@ export default function EventosPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#fbf9f5]">
+    <div className="min-h-screen ">
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-[#fbf9f5] border-b border-neutral-200 px-4 pt-12 pb-3 flex items-center gap-3">
+      <div className="sticky top-0 z-20  border-b border-white/8 px-4 pt-12 pb-3 flex items-center gap-3" style={{ background: '#0F172A' }}>
         <button onClick={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-white border border-neutral-200 flex items-center justify-center shadow-sm active:scale-95 transition-transform">
-          <ArrowLeft size={18} className="text-neutral-600" />
+          className="w-9 h-9 rounded-xl bg-[#1E293B] border border-white/8 flex items-center justify-center  active:scale-95 transition-transform">
+          <ArrowLeft size={18} className="text-[#94A3B8]" />
         </button>
         <div className="flex-1">
-          <h1 className="text-lg font-black text-neutral-900 leading-tight">Gestão de Eventos</h1>
-          <p className="text-[11px] text-neutral-400 font-medium">Planejamento, reservas e break-even</p>
+          <h1 className="text-lg font-black leading-tight" style={{ color:"#F1F5F9" }}>Gestão de Eventos</h1>
+          <p className="text-[11px] text-[#475569] font-medium">Planejamento, reservas e break-even</p>
         </div>
         <button onClick={() => { setEvEditar(null); setFormAberto(true); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-          className="flex items-center gap-1.5 text-xs font-black px-3 py-2 rounded-xl bg-[#10b981] text-white shadow-md active:scale-95 transition-all">
+          className="flex items-center gap-1.5 text-xs font-black px-3 py-2 rounded-xl bg-[#10b981] text-white  active:scale-95 transition-all">
           <Plus size={14} /> Novo Evento
         </button>
       </div>
@@ -464,46 +431,46 @@ export default function EventosPage() {
 
         {/* ── Cards de Resumo ──────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-4">
-            <div className="w-8 h-8 rounded-xl bg-neutral-100 flex items-center justify-center mb-2">
-              <Calendar size={16} className="text-neutral-600" />
+          <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-4">
+            <div className="w-8 h-8 rounded-xl bg-[#334155] flex items-center justify-center mb-2">
+              <Calendar size={16} className="text-[#94A3B8]" />
             </div>
-            <p className="text-2xl font-black text-neutral-900">{resumo.confirmados}</p>
-            <p className="text-[11px] font-bold text-neutral-400">Eventos confirmados</p>
+            <p className="text-2xl font-black text-[#F1F5F9]">{resumo.confirmados}</p>
+            <p className="text-[11px] font-bold text-[#475569]">Eventos confirmados</p>
           </div>
-          <div className={`rounded-2xl border shadow-sm p-4 ${resumo.proximos > 0 ? "bg-amber-50 border-amber-200" : "bg-white border-neutral-100"}`}>
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center mb-2 ${resumo.proximos > 0 ? "bg-amber-100" : "bg-neutral-100"}`}>
-              <Clock size={16} className={resumo.proximos > 0 ? "text-amber-500" : "text-neutral-400"} />
+          <div className={`rounded-2xl border  p-4 ${resumo.proximos > 0 ? "bg-amber-50 border-amber-200" : "bg-[#1E293B] border-white/5"}`}>
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center mb-2 ${resumo.proximos > 0 ? "bg-amber-100" : "bg-[#334155]"}`}>
+              <Clock size={16} className={resumo.proximos > 0 ? "text-amber-500" : "text-[#475569]"} />
             </div>
-            <p className={`text-2xl font-black ${resumo.proximos > 0 ? "text-amber-800" : "text-neutral-900"}`}>{resumo.proximos}</p>
-            <p className={`text-[11px] font-bold ${resumo.proximos > 0 ? "text-amber-500" : "text-neutral-400"}`}>Próximos 30 dias</p>
+            <p className={`text-2xl font-black ${resumo.proximos > 0 ? "text-amber-800" : "text-[#F1F5F9]"}`}>{resumo.proximos}</p>
+            <p className={`text-[11px] font-bold ${resumo.proximos > 0 ? "text-amber-500" : "text-[#475569]"}`}>Próximos 30 dias</p>
           </div>
-          <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-4">
+          <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-4">
             <div className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center mb-2">
               <DollarSign size={16} className="text-blue-600" />
             </div>
-            <p className="text-lg font-black text-neutral-900">{fmtBRL(resumo.faturamento)}</p>
-            <p className="text-[11px] font-bold text-neutral-400">Faturamento confirmado</p>
+            <p className="text-lg font-black text-[#F1F5F9]">{fmtBRL(resumo.faturamento)}</p>
+            <p className="text-[11px] font-bold text-[#475569]">Faturamento confirmado</p>
           </div>
-          <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-4">
+          <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-4">
             <div className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center mb-2">
               <TrendingUp size={16} className="text-emerald-600" />
             </div>
             <p className="text-lg font-black text-emerald-800">{fmtBRL(resumo.lucro)}</p>
-            <p className="text-[11px] font-bold text-neutral-400">Lucro estimado</p>
+            <p className="text-[11px] font-bold text-[#475569]">Lucro estimado</p>
           </div>
         </div>
 
         {/* ── Busca + Filtros ─────────────────────────────────────────────────── */}
         <div className="space-y-3">
           <div className="relative">
-            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" />
+            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#475569]" />
             <input type="text" value={busca} onChange={e => setBusca(e.target.value)}
               placeholder="Buscar evento..."
-              className="w-full bg-white border border-neutral-200 rounded-xl pl-11 pr-10 py-3 text-sm font-medium text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:border-[#10b981] shadow-sm" />
+              className="w-full bg-[#1E293B] border border-white/8 rounded-xl pl-11 pr-10 py-3 text-sm font-medium text-[#F1F5F9] placeholder:text-[#475569] focus:outline-none focus:ring-2 focus:border-[#10b981] " />
             {busca && (
               <button onClick={() => setBusca("")} className="absolute right-3 top-1/2 -translate-y-1/2">
-                <X size={15} className="text-neutral-400" />
+                <X size={15} className="text-[#475569]" />
               </button>
             )}
           </div>
@@ -511,7 +478,7 @@ export default function EventosPage() {
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
             {["Todos", ...STATUS_OPTS].map(s => (
               <button key={s} onClick={() => setFiltroSt(s)}
-                className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-full transition-all active:scale-95 ${filtroSt === s ? "bg-neutral-900 text-white" : "bg-white text-neutral-600 border border-neutral-200"}`}>
+                className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-full transition-all active:scale-95 ${filtroSt === s ? "bg-[#059669] text-white" : "bg-[#1E293B] text-[#94A3B8] border border-white/8"}`}>
                 {s}
               </button>
             ))}
@@ -520,7 +487,7 @@ export default function EventosPage() {
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
             {TIPOS.map(t => (
               <button key={t} onClick={() => setFiltroTipo(t)}
-                className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-full transition-all active:scale-95 ${filtroTipo === t ? "bg-neutral-700 text-white" : "bg-white text-neutral-500 border border-neutral-200"}`}>
+                className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-full transition-all active:scale-95 ${filtroTipo === t ? "bg-neutral-700 text-white" : "bg-[#1E293B] text-[#64748B] border border-white/8"}`}>
                 {t}
               </button>
             ))}
@@ -530,17 +497,17 @@ export default function EventosPage() {
         {/* ── Lista de Eventos ──────────────────────────────────────────────── */}
         <div>
           <div className="flex items-center justify-between px-1 mb-2">
-            <p className="text-[11px] font-black text-neutral-400 uppercase tracking-wider">Eventos</p>
-            <p className="text-[11px] font-bold text-neutral-400">{filtrados.length} evento{filtrados.length !== 1 ? "s" : ""}</p>
+            <p className="text-[11px] font-black text-[#475569] uppercase tracking-wider">Eventos</p>
+            <p className="text-[11px] font-bold text-[#475569]">{filtrados.length} evento{filtrados.length !== 1 ? "s" : ""}</p>
           </div>
 
           {filtrados.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-8 flex flex-col items-center text-center gap-2">
-              <div className="w-12 h-12 rounded-2xl bg-neutral-100 flex items-center justify-center mb-1">
-                <Calendar size={22} className="text-neutral-300" />
+            <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-8 flex flex-col items-center text-center gap-2">
+              <div className="w-12 h-12 rounded-2xl bg-[#334155] flex items-center justify-center mb-1">
+                <Calendar size={22} className="text-[#334155]" />
               </div>
-              <p className="text-sm font-bold text-neutral-500">{busca ? "Nenhum evento encontrado" : "Nenhum evento cadastrado"}</p>
-              <p className="text-xs text-neutral-400 font-medium">
+              <p className="text-sm font-bold text-[#64748B]">{busca ? "Nenhum evento encontrado" : "Nenhum evento cadastrado"}</p>
+              <p className="text-xs text-[#475569] font-medium">
                 {busca ? `Sem resultados para "${busca}"` : "Clique em Novo Evento para começar."}
               </p>
             </div>

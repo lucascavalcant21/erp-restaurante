@@ -164,21 +164,21 @@ export default function RotinaPage() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#fbf9f5]">
+    <div className="min-h-screen ">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-[#fbf9f5] border-b border-neutral-200 px-4 pt-12 pb-3 flex items-center gap-3">
+      <div style={{ position:"sticky", top:0, zIndex:10, background:"#0F172A", borderBottom:"1px solid rgba(255,255,255,0.06)", padding:"14px 16px", display:"flex", alignItems:"center", gap:12 }}>
         <button
           onClick={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-white border border-neutral-200 flex items-center justify-center shadow-sm active:scale-95 transition-transform"
+          className="w-9 h-9 rounded-xl bg-[#1E293B] border border-white/8 flex items-center justify-center  active:scale-95 transition-transform"
         >
-          <ArrowLeft size={18} className="text-neutral-600" />
+          <ArrowLeft size={18} className="text-[#94A3B8]" />
         </button>
         <div className="flex-1">
-          <h1 className="text-lg font-black text-neutral-900 leading-tight">Rotina da Loja</h1>
-          <p className="text-[11px] text-neutral-400 font-medium">Controle de abertura e fechamento</p>
+          <h1 className="text-lg font-black leading-tight" style={{ color:"#F1F5F9" }}>Rotina da Loja</h1>
+          <p className="text-[11px] text-[#475569] font-medium">Controle de abertura e fechamento</p>
         </div>
         <div className="text-right">
-          <p className="text-[11px] text-neutral-400 font-medium">
+          <p className="text-[11px] text-[#475569] font-medium">
             {new Date().toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" })}
           </p>
         </div>
@@ -187,7 +187,7 @@ export default function RotinaPage() {
       <div className="px-4 pt-4 pb-28 space-y-4">
 
         {/* Seletor de Turno */}
-        <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-1.5 flex gap-1.5">
+        <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-1.5 flex gap-1.5">
           {[
             { id: "abertura", label: "Abertura da Loja", Icon: Sun, cor: "#f59e0b" },
             { id: "fechamento", label: "Fechamento da Loja", Icon: Moon, cor: "#6366f1" },
@@ -199,8 +199,8 @@ export default function RotinaPage() {
                 onClick={() => handleTrocarTurno(id)}
                 className={`flex-1 flex items-center justify-center gap-2 py-3 px-3 rounded-xl font-bold text-sm transition-all duration-200 active:scale-95 ${
                   ativo
-                    ? "text-white shadow-md"
-                    : "text-neutral-400 hover:text-neutral-600"
+                    ? "text-white "
+                    : "text-[#475569] hover:text-[#94A3B8]"
                 }`}
                 style={ativo ? { backgroundColor: cor } : {}}
               >
@@ -212,11 +212,11 @@ export default function RotinaPage() {
         </div>
 
         {/* Painel de Progresso */}
-        <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-5">
+        <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-5">
           <div className="flex items-end justify-between mb-3">
             <div>
-              <p className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-0.5">Progresso do Turno</p>
-              <p className="text-4xl font-black text-neutral-900 leading-none">{pct}%</p>
+              <p className="text-[11px] font-bold text-[#475569] uppercase tracking-wider mb-0.5">Progresso do Turno</p>
+              <p className="text-4xl font-black text-[#F1F5F9] leading-none">{pct}%</p>
             </div>
             <div className="text-right">
               <p
@@ -225,14 +225,14 @@ export default function RotinaPage() {
               >
                 {labelStatus}
               </p>
-              <p className="text-[11px] text-neutral-400 font-medium mt-1.5">
+              <p className="text-[11px] text-[#475569] font-medium mt-1.5">
                 {concluidas} de {total} tarefas
               </p>
             </div>
           </div>
 
           {/* Barra de progresso */}
-          <div className="h-4 bg-neutral-100 rounded-full overflow-hidden">
+          <div className="h-4 bg-[#334155] rounded-full overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-500 ease-out"
               style={{ width: `${pct}%`, backgroundColor: corBarra }}
@@ -249,7 +249,7 @@ export default function RotinaPage() {
 
         {/* Lista de Tarefas */}
         <div>
-          <p className="text-[11px] font-black text-neutral-400 uppercase tracking-wider mb-2 px-1">
+          <p className="text-[11px] font-black text-[#475569] uppercase tracking-wider mb-2 px-1">
             Checklist — {turno === "abertura" ? "Abertura" : "Fechamento"}
           </p>
           <div className="space-y-2">
@@ -259,8 +259,8 @@ export default function RotinaPage() {
               return (
                 <div
                   key={tarefa.id}
-                  className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-all duration-200 ${
-                    tarefa.concluida ? "border-[#10b981]/30 bg-[#f0fdf8]" : "border-neutral-100"
+                  className={`bg-[#1E293B] rounded-2xl border  overflow-hidden transition-all duration-200 ${
+                    tarefa.concluida ? "border-[#10b981]/30 bg-[#f0fdf8]" : "border-white/5"
                   }`}
                 >
                   <div className="flex items-center gap-3 px-4 py-3.5">
@@ -272,7 +272,7 @@ export default function RotinaPage() {
                       {tarefa.concluida ? (
                         <CheckCircle2 size={24} className="text-[#10b981]" />
                       ) : (
-                        <Circle size={24} className="text-neutral-300" />
+                        <Circle size={24} className="text-[#334155]" />
                       )}
                     </button>
 
@@ -291,8 +291,8 @@ export default function RotinaPage() {
                     <p
                       className={`flex-1 text-sm font-bold leading-tight ${
                         tarefa.concluida
-                          ? "line-through text-neutral-400"
-                          : "text-neutral-800"
+                          ? "line-through text-[#475569]"
+                          : "text-[#F1F5F9]"
                       }`}
                     >
                       {tarefa.label}
@@ -301,19 +301,19 @@ export default function RotinaPage() {
                     {/* Expandir */}
                     <button
                       onClick={() => toggleExpand(tarefa.id)}
-                      className="flex-shrink-0 p-1 rounded-lg active:bg-neutral-100 transition-colors"
+                      className="flex-shrink-0 p-1 rounded-lg active:bg-[#334155] transition-colors"
                     >
                       <ChevronDown
                         size={16}
-                        className={`text-neutral-400 transition-transform duration-200 ${isExp ? "rotate-180" : ""}`}
+                        className={`text-[#475569] transition-transform duration-200 ${isExp ? "rotate-180" : ""}`}
                       />
                     </button>
                   </div>
 
                   {/* Detalhe expansível */}
                   {isExp && (
-                    <div className="px-4 pb-4 pt-0 border-t border-neutral-100 mt-0">
-                      <p className="text-xs text-neutral-500 font-medium leading-relaxed pt-3">
+                    <div className="px-4 pb-4 pt-0 border-t border-white/5 mt-0">
+                      <p className="text-xs text-[#64748B] font-medium leading-relaxed pt-3">
                         {tarefa.detalhe}
                       </p>
                     </div>
@@ -325,12 +325,12 @@ export default function RotinaPage() {
         </div>
 
         {/* Registro de Responsável */}
-        <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-5">
+        <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-5">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 rounded-xl bg-neutral-100 flex items-center justify-center">
-              <User size={15} className="text-neutral-600" />
+            <div className="w-8 h-8 rounded-xl bg-[#334155] flex items-center justify-center">
+              <User size={15} className="text-[#94A3B8]" />
             </div>
-            <p className="text-sm font-black text-neutral-900">Registro do Responsável</p>
+            <p className="text-sm font-black text-[#F1F5F9]">Registro do Responsável</p>
           </div>
 
           {/* Seletor de Responsável */}
@@ -338,8 +338,7 @@ export default function RotinaPage() {
             <select
               value={responsavel}
               onChange={(e) => setResponsavel(e.target.value)}
-              className="w-full appearance-none bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm font-bold text-neutral-800 focus:outline-none focus:ring-2 focus:ring-[#10b981]/30 focus:border-[#10b981] transition-all pr-10"
-            >
+              className="w-full appearance-none  border border-white/8 rounded-xl px-4 py-3 text-sm font-bold text-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-[#10b981]/30 focus:border-[#10b981] transition-all pr-10" style={{ background: "#1E293B", color: "#F1F5F9" }} >
               {RESPONSAVEIS.map((r) => (
                 <option key={r} value={r} disabled={r === RESPONSAVEIS[0]}>
                   {r}
@@ -348,7 +347,7 @@ export default function RotinaPage() {
             </select>
             <ChevronDown
               size={16}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#475569] pointer-events-none"
             />
           </div>
 
@@ -358,7 +357,7 @@ export default function RotinaPage() {
             onChange={(e) => setObservacao(e.target.value)}
             placeholder="Observações do turno (opcional)…"
             rows={3}
-            className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm text-neutral-700 font-medium placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#10b981]/30 focus:border-[#10b981] transition-all resize-none"
+            className="w-full  border border-white/8 rounded-xl px-4 py-3 text-sm text-[#CBD5E1] font-medium placeholder:text-[#475569] focus:outline-none focus:ring-2 focus:ring-[#10b981]/30 focus:border-[#10b981] transition-all resize-none"
           />
         </div>
 
@@ -366,10 +365,10 @@ export default function RotinaPage() {
         {!registroFinalizado ? (
           <button
             onClick={handleFinalizarRotina}
-            className={`w-full py-4 rounded-2xl font-black text-base shadow-md active:scale-95 transition-all duration-200 ${
+            className={`w-full py-4 rounded-2xl font-black text-base  active:scale-95 transition-all duration-200 ${
               pct === 100 && responsavel !== RESPONSAVEIS[0]
                 ? "bg-[#10b981] text-white shadow-[#10b981]/30"
-                : "bg-neutral-100 text-neutral-400 shadow-none"
+                : "bg-[#334155] text-[#475569] shadow-none"
             }`}
           >
             {pct === 100 ? "Finalizar e Registrar Rotina" : `Conclua as tarefas (${total - concluidas} restantes)`}
@@ -377,14 +376,14 @@ export default function RotinaPage() {
         ) : (
           <div className="bg-[#f0fdf8] border border-[#10b981]/30 rounded-2xl p-5 flex flex-col items-center text-center gap-2">
             <CheckCircle2 size={36} className="text-[#10b981]" />
-            <p className="text-base font-black text-neutral-900">Rotina Registrada!</p>
-            <p className="text-xs text-neutral-500 font-medium">
+            <p className="text-base font-black text-[#F1F5F9]">Rotina Registrada!</p>
+            <p className="text-xs text-[#64748B] font-medium">
               Turno de{" "}
               <span className="font-bold capitalize">{turno}</span> finalizado por{" "}
-              <span className="font-bold text-neutral-700">{responsavel}</span>.
+              <span className="font-bold text-[#CBD5E1]">{responsavel}</span>.
             </p>
             {/* TODO: exibir timestamp da persistência no Supabase */}
-            <p className="text-[11px] text-neutral-400 mt-1">
+            <p className="text-[11px] text-[#475569] mt-1">
               {new Date().toLocaleString("pt-BR", {
                 day: "2-digit",
                 month: "2-digit",

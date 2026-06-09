@@ -16,6 +16,7 @@ backend_cloud_code/node_modules/
 # Logs
 *.log
 npm-debug.log*
+build-log.txt
 
 # Sistema operacional
 .DS_Store

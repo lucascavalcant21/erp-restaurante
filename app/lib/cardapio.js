@@ -48,9 +48,9 @@ export const CARDAPIO_SEED = [
 ];
 
 export async function fetchCardapio() {
-  if (!isSupabaseReady()) return { data: CARDAPIO_SEED, error: null, fromSeed: true };
+  if (!isSupabaseReady()) return { data: [], error: null, fromSeed: true };
   const { data, error } = await supabase.from("cardapio").select("*").order("categoria").order("nome");
-  if (error) return { data: CARDAPIO_SEED, error: error.message, fromSeed: true };
+  if (error) return { data: [], error: error.message, fromSeed: true };
   return { data: data || [], error: null, fromSeed: false };
 }
 

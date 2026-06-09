@@ -104,7 +104,7 @@ function gerarInsights(erpData) {
   if (erpData.faltas_mes > 0) {
     insights.push({
       id: "i4", tipo: "alerta", prioridade: "media",
-      Icon: Users, cor: "text-rose-600", bg: "bg-rose-50", borda: "border-rose-200",
+      Icon: Users, cor: "text-[#059669]", bg: "bg-[rgba(5,150,105,0.1)]", borda: "border-[rgba(5,150,105,0.3)]",
       titulo: `${erpData.faltas_mes} falta${erpData.faltas_mes !== 1 ? "s" : ""} registrada${erpData.faltas_mes !== 1 ? "s" : ""} este mês`,
       corpo: "Verifique o espelho de ponto e acione o protocolo de comunicação com o colaborador.",
       acao: "Ver Ponto",
@@ -129,7 +129,7 @@ function gerarInsights(erpData) {
   if (erpData.nao_lidas > 0) {
     insights.push({
       id: "i6", tipo: "alerta", prioridade: "alta",
-      Icon: Bell, cor: "text-rose-600", bg: "bg-rose-50", borda: "border-rose-200",
+      Icon: Bell, cor: "text-[#059669]", bg: "bg-[rgba(5,150,105,0.1)]", borda: "border-[rgba(5,150,105,0.3)]",
       titulo: `${erpData.nao_lidas} notificaç${erpData.nao_lidas === 1 ? "ão não lida" : "ões não lidas"}`,
       corpo: "Você tem alertas pendentes no sistema. Revise as notificações para não perder nenhuma ação importante.",
       acao: "Ver Alertas",
@@ -214,14 +214,14 @@ function Bolha({ msg }) {
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"} mb-3`}>
       {!isUser && (
-        <div className="w-7 h-7 rounded-xl bg-neutral-900 flex items-center justify-center flex-shrink-0 mr-2 mt-0.5">
+        <div className="w-7 h-7 rounded-xl bg-[#059669] flex items-center justify-center flex-shrink-0 mr-2 mt-0.5">
           <Sparkles size={13} className="text-white" />
         </div>
       )}
       <div className={`max-w-[82%] px-3.5 py-2.5 rounded-2xl text-[13px] leading-relaxed font-medium whitespace-pre-line
         ${isUser
-          ? "bg-neutral-900 text-white rounded-tr-sm"
-          : "bg-white border border-neutral-100 shadow-sm text-neutral-800 rounded-tl-sm"
+          ? "bg-[#059669] text-white rounded-tr-sm"
+          : "bg-[#1E293B] border border-white/5  text-[#F1F5F9] rounded-tl-sm"
         }`}>
         {renderTexto(msg.texto)}
       </div>
@@ -236,17 +236,17 @@ function CardInsight({ insight }) {
   return (
     <div className={`rounded-2xl border p-3.5 ${insight.bg} ${insight.borda}`}>
       <div className="flex items-start gap-3">
-        <div className="w-8 h-8 rounded-xl bg-white/70 flex items-center justify-center flex-shrink-0">
+        <div className="w-8 h-8 rounded-xl bg-[#1E293B]/70 flex items-center justify-center flex-shrink-0">
           <Icon size={15} className={insight.cor} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[12px] font-black text-neutral-900 leading-snug mb-0.5">{insight.titulo}</p>
-          <p className="text-[11px] font-medium text-neutral-600 leading-snug">{insight.corpo}</p>
+          <p className="text-[12px] font-black text-[#F1F5F9] leading-snug mb-0.5">{insight.titulo}</p>
+          <p className="text-[11px] font-medium text-[#94A3B8] leading-snug">{insight.corpo}</p>
         </div>
       </div>
       <button
         onClick={() => router.push(insight.href)}
-        className="mt-2.5 w-full flex items-center justify-center gap-1 text-[11px] font-black text-neutral-700 bg-white/80 border border-white rounded-xl py-2 active:scale-95 transition-transform">
+        className="mt-2.5 w-full flex items-center justify-center gap-1 text-[11px] font-black text-[#CBD5E1] bg-[#1E293B]/80 border border-white rounded-xl py-2 active:scale-95 transition-transform">
         {insight.acao} <ChevronRight size={12} />
       </button>
     </div>
@@ -316,20 +316,20 @@ export default function HeitorPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#fbf9f5] flex flex-col">
+    <div className="min-h-screen  flex flex-col">
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-[#fbf9f5] border-b border-neutral-200 px-4 pt-12 pb-3 flex-shrink-0">
+      <div className="sticky top-0 z-20  border-b border-white/8 px-4 pt-12 pb-3 flex-shrink-0" style={{ background: '#0F172A' }}>
         <div className="flex items-center gap-3">
           <button onClick={() => router.back()}
-            className="w-9 h-9 rounded-xl bg-white border border-neutral-200 flex items-center justify-center shadow-sm active:scale-95 transition-transform">
-            <ArrowLeft size={18} className="text-neutral-600" />
+            className="w-9 h-9 rounded-xl bg-[#1E293B] border border-white/8 flex items-center justify-center  active:scale-95 transition-transform">
+            <ArrowLeft size={18} className="text-[#94A3B8]" />
           </button>
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-lg bg-neutral-900 flex items-center justify-center">
+              <div className="w-6 h-6 rounded-lg bg-[#059669] flex items-center justify-center">
                 <Sparkles size={12} className="text-white" />
               </div>
-              <h1 className="text-lg font-black text-neutral-900 leading-tight">Heitor IA</h1>
+              <h1 className="text-lg font-black leading-tight" style={{ color:"#F1F5F9" }}>Heitor IA</h1>
               <span className="text-[9px] font-black bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full">ONLINE</span>
               {erpData.estoque_criticos > 0 && (
                 <span className="text-[9px] font-black bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">
@@ -337,7 +337,7 @@ export default function HeitorPage() {
                 </span>
               )}
             </div>
-            <p className="text-[11px] text-neutral-400 font-medium">Assistente inteligente de gestão</p>
+            <p className="text-[11px] text-[#475569] font-medium">Assistente inteligente de gestão</p>
           </div>
         </div>
 
@@ -345,7 +345,7 @@ export default function HeitorPage() {
         <div className="flex gap-2 mt-3">
           {[["insights", `💡 Insights (${insights.length})`], ["chat", "💬 Chat"]].map(([id, label]) => (
             <button key={id} onClick={() => setAba(id)}
-              className={`flex-1 py-2 rounded-xl text-[11px] font-black transition-all active:scale-95 ${aba === id ? "bg-neutral-900 text-white" : "bg-white text-neutral-600 border border-neutral-200"}`}>
+              className={`flex-1 py-2 rounded-xl text-[11px] font-black transition-all active:scale-95 ${aba === id ? "bg-[#059669] text-white" : "bg-[#1E293B] text-[#94A3B8] border border-white/8"}`}>
               {label}
             </button>
           ))}
@@ -363,28 +363,28 @@ export default function HeitorPage() {
               <p className="text-base font-black text-emerald-800">{fmtBRL(erpData.faturamento_mes)}</p>
               <p className="text-[10px] font-bold text-emerald-600">este mês</p>
             </div>
-            <div className="bg-white border border-neutral-100 rounded-2xl shadow-sm p-3">
-              <p className="text-[9px] font-black text-neutral-400 uppercase tracking-wider mb-0.5">Lucro Bruto</p>
-              <p className="text-base font-black text-neutral-900">{fmtBRL(lucro)}</p>
-              <p className="text-[10px] font-bold text-neutral-400">MC {erpData.mc_media}%</p>
+            <div className="bg-[#1E293B] border border-white/5 rounded-2xl  p-3">
+              <p className="text-[9px] font-black text-[#475569] uppercase tracking-wider mb-0.5">Lucro Bruto</p>
+              <p className="text-base font-black text-[#F1F5F9]">{fmtBRL(lucro)}</p>
+              <p className="text-[10px] font-bold text-[#475569]">MC {erpData.mc_media}%</p>
             </div>
-            <div className={`rounded-2xl border p-3 ${erpData.cmv_geral >= 35 ? "bg-amber-50 border-amber-200" : "bg-white border-neutral-100"}`}>
-              <p className="text-[9px] font-black text-neutral-400 uppercase tracking-wider mb-0.5">CMV Geral</p>
-              <p className={`text-base font-black ${erpData.cmv_geral >= 35 ? "text-amber-800" : "text-neutral-900"}`}>{erpData.cmv_geral}%</p>
-              <p className="text-[10px] font-bold text-neutral-400">meta: abaixo de 35%</p>
+            <div className={`rounded-2xl border p-3 ${erpData.cmv_geral >= 35 ? "bg-amber-50 border-amber-200" : "bg-[#1E293B] border-white/5"}`}>
+              <p className="text-[9px] font-black text-[#475569] uppercase tracking-wider mb-0.5">CMV Geral</p>
+              <p className={`text-base font-black ${erpData.cmv_geral >= 35 ? "text-amber-800" : "text-[#F1F5F9]"}`}>{erpData.cmv_geral}%</p>
+              <p className="text-[10px] font-bold text-[#475569]">meta: abaixo de 35%</p>
             </div>
-            <div className={`rounded-2xl border p-3 ${erpData.estoque_criticos > 0 ? "bg-rose-50 border-rose-200" : "bg-white border-neutral-100 shadow-sm"}`}>
-              <p className="text-[9px] font-black text-neutral-400 uppercase tracking-wider mb-0.5">Estoque Crítico</p>
-              <p className={`text-base font-black ${erpData.estoque_criticos > 0 ? "text-rose-700" : "text-emerald-700"}`}>
+            <div className={`rounded-2xl border p-3 ${erpData.estoque_criticos > 0 ? "bg-[rgba(5,150,105,0.1)] border-[rgba(5,150,105,0.3)]" : "bg-[#1E293B] border-white/5 "}`}>
+              <p className="text-[9px] font-black text-[#475569] uppercase tracking-wider mb-0.5">Estoque Crítico</p>
+              <p className={`text-base font-black ${erpData.estoque_criticos > 0 ? "text-[#059669]" : "text-emerald-700"}`}>
                 {erpData.estoque_criticos > 0 ? `${erpData.estoque_criticos} item${erpData.estoque_criticos > 1 ? "s" : ""}` : "OK"}
               </p>
-              <p className="text-[10px] font-bold text-neutral-400">{erpData.total_estoque} itens total</p>
+              <p className="text-[10px] font-bold text-[#475569]">{erpData.total_estoque} itens total</p>
             </div>
           </div>
 
           {/* Insights dinâmicos */}
           <div>
-            <p className="text-[10px] font-black text-neutral-400 uppercase tracking-wider px-1 mb-2">
+            <p className="text-[10px] font-black text-[#475569] uppercase tracking-wider px-1 mb-2">
               {insights.length} insights identificados
             </p>
             <div className="space-y-3">
@@ -394,7 +394,7 @@ export default function HeitorPage() {
 
           {/* CTA para chat */}
           <button onClick={() => { setAba("chat"); inputRef.current?.focus(); }}
-            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-neutral-900 text-white font-black text-sm active:scale-95 transition-transform">
+            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-[#059669] text-white font-black text-sm active:scale-95 transition-transform">
             <Sparkles size={15} />
             Perguntar ao Heitor
           </button>
@@ -409,11 +409,11 @@ export default function HeitorPage() {
             {/* Sugestões (só se poucas mensagens) */}
             {mensagens.length <= 1 && (
               <div className="mb-4">
-                <p className="text-[10px] font-black text-neutral-400 uppercase tracking-wider mb-2">Sugestões</p>
+                <p className="text-[10px] font-black text-[#475569] uppercase tracking-wider mb-2">Sugestões</p>
                 <div className="flex flex-wrap gap-2">
                   {SUGESTOES.map((s, i) => (
                     <button key={i} onClick={() => enviar(s)}
-                      className="text-[11px] font-black bg-white border border-neutral-200 text-neutral-700 px-3 py-1.5 rounded-full active:scale-95 transition-transform">
+                      className="text-[11px] font-black bg-[#1E293B] border border-white/8 text-[#CBD5E1] px-3 py-1.5 rounded-full active:scale-95 transition-transform">
                       {s}
                     </button>
                   ))}
@@ -425,10 +425,10 @@ export default function HeitorPage() {
 
             {carregando && (
               <div className="flex justify-start mb-3">
-                <div className="w-7 h-7 rounded-xl bg-neutral-900 flex items-center justify-center flex-shrink-0 mr-2">
+                <div className="w-7 h-7 rounded-xl bg-[#059669] flex items-center justify-center flex-shrink-0 mr-2">
                   <Sparkles size={13} className="text-white" />
                 </div>
-                <div className="bg-white border border-neutral-100 shadow-sm px-4 py-3 rounded-2xl rounded-tl-sm">
+                <div className="bg-[#1E293B] border border-white/5  px-4 py-3 rounded-2xl rounded-tl-sm">
                   <div className="flex gap-1.5 items-center">
                     <div className="w-1.5 h-1.5 rounded-full bg-neutral-400 animate-bounce" style={{ animationDelay: "0ms" }} />
                     <div className="w-1.5 h-1.5 rounded-full bg-neutral-400 animate-bounce" style={{ animationDelay: "150ms" }} />
@@ -441,7 +441,7 @@ export default function HeitorPage() {
           </div>
 
           {/* Input */}
-          <div className="flex-shrink-0 px-4 pb-8 pt-2 bg-[#fbf9f5] border-t border-neutral-200">
+          <div className="flex-shrink-0 px-4 pb-8 pt-2  border-t border-white/8">
             <div className="flex gap-2">
               <input
                 ref={inputRef}
@@ -449,12 +449,12 @@ export default function HeitorPage() {
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKey}
                 placeholder="Pergunte sobre o negócio..."
-                className="flex-1 bg-white border border-neutral-200 rounded-xl px-4 py-3 text-sm font-medium text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:border-[#10b981] shadow-sm"
+                className="flex-1 bg-[#1E293B] border border-white/8 rounded-xl px-4 py-3 text-sm font-medium text-[#F1F5F9] placeholder:text-[#475569] focus:outline-none focus:ring-2 focus:border-[#10b981] "
               />
               <button
                 onClick={() => enviar()}
                 disabled={!input.trim() || carregando}
-                className="w-11 h-11 rounded-xl bg-neutral-900 flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform disabled:opacity-40">
+                className="w-11 h-11 rounded-xl bg-[#059669] flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform disabled:opacity-40">
                 <Send size={16} className="text-white" />
               </button>
             </div>

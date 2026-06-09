@@ -39,7 +39,7 @@ function diasRestantes(fim) {
 const STATUS_CAMP = {
   ativa:     { label: "Ativa",     Icon: CheckCircle, bg: "bg-emerald-100", cor: "text-emerald-700", dot: "#10b981" },
   agendada:  { label: "Agendada",  Icon: Clock,       bg: "bg-blue-100",    cor: "text-blue-700",    dot: "#3b82f6" },
-  encerrada: { label: "Encerrada", Icon: XCircle,     bg: "bg-neutral-100", cor: "text-neutral-500", dot: "#9ca3af" },
+  encerrada: { label: "Encerrada", Icon: XCircle,     bg: "bg-[#334155]", cor: "text-[#64748B]", dot: "#9ca3af" },
 };
 
 const TIPOS_CAMP = {
@@ -99,71 +99,71 @@ function FormCampanha({ onSalvar, onFechar }) {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-black/40" onClick={onFechar}>
-      <div className="w-full bg-white rounded-t-3xl p-6 space-y-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="w-10 h-1 bg-neutral-200 rounded-full mx-auto" />
-        <h2 className="text-lg font-black text-neutral-900">Nova Campanha</h2>
+    <div className="fixed inset-0 z-50 flex items-end bg-[#059669]/40" onClick={onFechar}>
+      <div className="w-full bg-[#1E293B] rounded-t-3xl p-6 space-y-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="w-10 h-1 bg-[#334155] rounded-full mx-auto" />
+        <h2 className="text-lg font-black text-[#F1F5F9]">Nova Campanha</h2>
 
         <div className="space-y-3">
           <div>
-            <label className="text-[11px] font-black text-neutral-400 uppercase tracking-wider block mb-1">Nome da Campanha</label>
+            <label className="text-[11px] font-black text-[#475569] uppercase tracking-wider block mb-1">Nome da Campanha</label>
             <input value={form.nome} onChange={e => set("nome", e.target.value)}
               placeholder="Ex: Quinta do Suco"
-              className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-3 text-sm font-medium text-neutral-900 focus:outline-none focus:ring-2 focus:border-[#10b981]" />
+              className="w-full  border border-white/8 rounded-xl px-3 py-3 text-sm font-medium text-[#F1F5F9] focus:outline-none focus:ring-2 focus:border-[#10b981]" />
           </div>
           <div>
-            <label className="text-[11px] font-black text-neutral-400 uppercase tracking-wider block mb-1">Tipo</label>
+            <label className="text-[11px] font-black text-[#475569] uppercase tracking-wider block mb-1">Tipo</label>
             <select value={form.tipo} onChange={e => set("tipo", e.target.value)}
-              className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-3 text-sm font-medium text-neutral-900 focus:outline-none focus:ring-2 focus:border-[#10b981]">
+              className="w-full  border border-white/8 rounded-xl px-3 py-3 text-sm font-medium text-[#F1F5F9] focus:outline-none focus:ring-2 focus:border-[#10b981]">
               {Object.entries(TIPOS_CAMP).map(([k, v]) => <option key={k} value={k}>{v.emoji} {v.label}</option>)}
             </select>
           </div>
           <div>
-            <label className="text-[11px] font-black text-neutral-400 uppercase tracking-wider block mb-1">Descrição</label>
+            <label className="text-[11px] font-black text-[#475569] uppercase tracking-wider block mb-1">Descrição</label>
             <textarea value={form.descricao} onChange={e => set("descricao", e.target.value)} rows={2}
               placeholder="Descreva a campanha..."
-              className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2.5 text-sm font-medium text-neutral-900 focus:outline-none focus:ring-2 focus:border-[#10b981] resize-none" />
+              className="w-full  border border-white/8 rounded-xl px-3 py-2.5 text-sm font-medium text-[#F1F5F9] focus:outline-none focus:ring-2 focus:border-[#10b981] resize-none" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[11px] font-black text-neutral-400 uppercase tracking-wider block mb-1">Cupom</label>
+              <label className="text-[11px] font-black text-[#475569] uppercase tracking-wider block mb-1">Cupom</label>
               <input value={form.cupom} onChange={e => set("cupom", e.target.value.toUpperCase())}
                 placeholder="CODIGO"
-                className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-3 text-sm font-black text-neutral-900 focus:outline-none focus:ring-2 focus:border-[#10b981]" />
+                className="w-full  border border-white/8 rounded-xl px-3 py-3 text-sm font-black text-[#F1F5F9] focus:outline-none focus:ring-2 focus:border-[#10b981]" />
             </div>
             <div>
-              <label className="text-[11px] font-black text-neutral-400 uppercase tracking-wider block mb-1">Desconto (%)</label>
+              <label className="text-[11px] font-black text-[#475569] uppercase tracking-wider block mb-1">Desconto (%)</label>
               <input type="number" value={form.desconto} onChange={e => set("desconto", e.target.value)}
                 placeholder="0"
-                className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-3 text-sm font-medium text-neutral-900 focus:outline-none focus:ring-2 focus:border-[#10b981]" />
+                className="w-full  border border-white/8 rounded-xl px-3 py-3 text-sm font-medium text-[#F1F5F9] focus:outline-none focus:ring-2 focus:border-[#10b981]" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[11px] font-black text-neutral-400 uppercase tracking-wider block mb-1">Início</label>
+              <label className="text-[11px] font-black text-[#475569] uppercase tracking-wider block mb-1">Início</label>
               <input type="date" value={form.inicio} onChange={e => set("inicio", e.target.value)}
-                className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2.5 text-sm font-medium text-neutral-900 focus:outline-none focus:ring-2 focus:border-[#10b981]" />
+                className="w-full  border border-white/8 rounded-xl px-3 py-2.5 text-sm font-medium text-[#F1F5F9] focus:outline-none focus:ring-2 focus:border-[#10b981]" />
             </div>
             <div>
-              <label className="text-[11px] font-black text-neutral-400 uppercase tracking-wider block mb-1">Fim</label>
+              <label className="text-[11px] font-black text-[#475569] uppercase tracking-wider block mb-1">Fim</label>
               <input type="date" value={form.fim} onChange={e => set("fim", e.target.value)}
-                className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2.5 text-sm font-medium text-neutral-900 focus:outline-none focus:ring-2 focus:border-[#10b981]" />
+                className="w-full  border border-white/8 rounded-xl px-3 py-2.5 text-sm font-medium text-[#F1F5F9] focus:outline-none focus:ring-2 focus:border-[#10b981]" />
             </div>
           </div>
           <div>
-            <label className="text-[11px] font-black text-neutral-400 uppercase tracking-wider block mb-1">Unidade</label>
+            <label className="text-[11px] font-black text-[#475569] uppercase tracking-wider block mb-1">Unidade</label>
             <select value={form.unidade} onChange={e => set("unidade", e.target.value)}
-              className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-3 text-sm font-medium text-neutral-900 focus:outline-none focus:ring-2 focus:border-[#10b981]">
+              className="w-full  border border-white/8 rounded-xl px-3 py-3 text-sm font-medium text-[#F1F5F9] focus:outline-none focus:ring-2 focus:border-[#10b981]">
               {UNIDADES_OPT.map(u => <option key={u}>{u}</option>)}
             </select>
           </div>
         </div>
 
         <button onClick={() => { if (form.nome && form.inicio && form.fim) { onSalvar(form); onFechar(); } }}
-          className="w-full py-3.5 rounded-2xl bg-neutral-900 text-white font-black text-sm active:scale-95 transition-transform">
+          className="w-full py-3.5 rounded-2xl bg-[#059669] text-white font-black text-sm active:scale-95 transition-transform">
           Criar Campanha
         </button>
-        <button onClick={onFechar} className="w-full py-2 text-neutral-400 text-sm font-medium">Cancelar</button>
+        <button onClick={onFechar} className="w-full py-2 text-[#475569] text-sm font-medium">Cancelar</button>
       </div>
     </div>
   );
@@ -182,33 +182,33 @@ function CardCampanha({ camp, onStatusChange }) {
   }
 
   return (
-    <div className={`rounded-2xl border shadow-sm overflow-hidden bg-white ${camp.status === "encerrada" ? "border-neutral-100 opacity-75" : camp.status === "agendada" ? "border-blue-200" : "border-emerald-200"}`}>
+    <div className={`rounded-2xl border  overflow-hidden bg-[#1E293B] ${camp.status === "encerrada" ? "border-white/5 opacity-75" : camp.status === "agendada" ? "border-blue-200" : "border-emerald-200"}`}>
       <button className="w-full px-4 pt-4 pb-3 text-left" onClick={() => setAberto(v => !v)}>
         <div className="flex items-start gap-3 mb-3">
-          <div className="w-9 h-9 rounded-xl bg-neutral-100 flex items-center justify-center text-lg flex-shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-[#334155] flex items-center justify-center text-lg flex-shrink-0">
             {tipo.emoji}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-0.5">
               <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${st.bg} ${st.cor}`}>{st.label}</span>
-              <span className="text-[9px] font-medium text-neutral-400">{camp.unidade}</span>
+              <span className="text-[9px] font-medium text-[#475569]">{camp.unidade}</span>
               {dias !== null && dias >= 0 && (
                 <span className="text-[9px] font-black bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">{dias}d restantes</span>
               )}
             </div>
-            <p className="text-sm font-black text-neutral-900 truncate">{camp.nome}</p>
+            <p className="text-sm font-black text-[#F1F5F9] truncate">{camp.nome}</p>
           </div>
-          {aberto ? <ChevronUp size={15} className="text-neutral-400 flex-shrink-0" /> : <ChevronDown size={15} className="text-neutral-400 flex-shrink-0" />}
+          {aberto ? <ChevronUp size={15} className="text-[#475569] flex-shrink-0" /> : <ChevronDown size={15} className="text-[#475569] flex-shrink-0" />}
         </div>
 
         {/* Barra progresso */}
         {camp.meta_clientes > 0 && (
           <div className="mb-3">
             <div className="flex justify-between text-[10px] font-black mb-1">
-              <span className="text-neutral-400">Alcance</span>
-              <span className="text-neutral-700">{camp.clientes_atingidos}/{camp.meta_clientes} clientes</span>
+              <span className="text-[#475569]">Alcance</span>
+              <span className="text-[#CBD5E1]">{camp.clientes_atingidos}/{camp.meta_clientes} clientes</span>
             </div>
-            <div className="h-1.5 bg-neutral-100 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-[#334155] rounded-full overflow-hidden">
               <div className="h-full rounded-full transition-all duration-700"
                 style={{ width: `${progr}%`, backgroundColor: st.dot }} />
             </div>
@@ -216,33 +216,33 @@ function CardCampanha({ camp, onStatusChange }) {
         )}
 
         <div className="grid grid-cols-3 gap-2">
-          <div className="bg-neutral-50 rounded-xl px-2 py-2 text-center">
-            <p className="text-[9px] font-black text-neutral-400 uppercase">Receita</p>
+          <div className=" rounded-xl px-2 py-2 text-center">
+            <p className="text-[9px] font-black text-[#475569] uppercase">Receita</p>
             <p className="text-[11px] font-black text-emerald-700">{fmtBRL(camp.receita_gerada)}</p>
           </div>
-          <div className="bg-neutral-50 rounded-xl px-2 py-2 text-center">
-            <p className="text-[9px] font-black text-neutral-400 uppercase">Período</p>
-            <p className="text-[11px] font-black text-neutral-900">{fmtData(camp.inicio)}–{fmtData(camp.fim)}</p>
+          <div className=" rounded-xl px-2 py-2 text-center">
+            <p className="text-[9px] font-black text-[#475569] uppercase">Período</p>
+            <p className="text-[11px] font-black text-[#F1F5F9]">{fmtData(camp.inicio)}–{fmtData(camp.fim)}</p>
           </div>
-          <div className="bg-neutral-50 rounded-xl px-2 py-2 text-center">
-            <p className="text-[9px] font-black text-neutral-400 uppercase">Desconto</p>
-            <p className="text-[11px] font-black text-neutral-900">{camp.desconto > 0 ? `${camp.desconto}%` : "—"}</p>
+          <div className=" rounded-xl px-2 py-2 text-center">
+            <p className="text-[9px] font-black text-[#475569] uppercase">Desconto</p>
+            <p className="text-[11px] font-black text-[#F1F5F9]">{camp.desconto > 0 ? `${camp.desconto}%` : "—"}</p>
           </div>
         </div>
       </button>
 
       {aberto && (
-        <div className="px-4 pb-4 border-t border-neutral-100 pt-3 space-y-3">
-          <p className="text-[12px] font-medium text-neutral-600 leading-snug">{camp.descricao}</p>
+        <div className="px-4 pb-4 border-t border-white/5 pt-3 space-y-3">
+          <p className="text-[12px] font-medium text-[#94A3B8] leading-snug">{camp.descricao}</p>
 
           {camp.cupom && (
-            <div className="flex items-center justify-between bg-neutral-50 rounded-xl px-3 py-2.5">
+            <div className="flex items-center justify-between  rounded-xl px-3 py-2.5">
               <div>
-                <p className="text-[9px] font-black text-neutral-400 uppercase tracking-wider">Código do Cupom</p>
-                <p className="text-base font-black text-neutral-900 tracking-widest">{camp.cupom}</p>
+                <p className="text-[9px] font-black text-[#475569] uppercase tracking-wider">Código do Cupom</p>
+                <p className="text-base font-black text-[#F1F5F9] tracking-widest">{camp.cupom}</p>
               </div>
               <button onClick={copiarCupom}
-                className="flex items-center gap-1 text-[11px] font-black text-neutral-600 bg-white border border-neutral-200 px-2.5 py-1.5 rounded-lg active:scale-95 transition-transform">
+                className="flex items-center gap-1 text-[11px] font-black text-[#94A3B8] bg-[#1E293B] border border-white/8 px-2.5 py-1.5 rounded-lg active:scale-95 transition-transform">
                 <Copy size={12} /> Copiar
               </button>
             </div>
@@ -250,7 +250,7 @@ function CardCampanha({ camp, onStatusChange }) {
 
           {camp.status === "ativa" && (
             <button onClick={() => onStatusChange(camp.id, "encerrada")}
-              className="w-full py-2.5 rounded-xl border border-rose-200 text-rose-600 text-xs font-black active:scale-95 transition-transform">
+              className="w-full py-2.5 rounded-xl border border-[rgba(5,150,105,0.3)] text-[#059669] text-xs font-black active:scale-95 transition-transform">
               Encerrar Campanha
             </button>
           )}
@@ -327,23 +327,23 @@ export default function CampanhasPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#fbf9f5]">
-      <div className="sticky top-0 z-20 bg-[#fbf9f5] border-b border-neutral-200 px-4 pt-12 pb-3">
+    <div className="min-h-screen ">
+      <div className="sticky top-0 z-20  border-b border-white/8 px-4 pt-12 pb-3" style={{ background: '#0F172A' }}>
         <div className="flex items-center gap-3">
           <button onClick={() => router.back()}
-            className="w-9 h-9 rounded-xl bg-white border border-neutral-200 flex items-center justify-center shadow-sm active:scale-95 transition-transform">
-            <ArrowLeft size={18} className="text-neutral-600" />
+            className="w-9 h-9 rounded-xl bg-[#1E293B] border border-white/8 flex items-center justify-center  active:scale-95 transition-transform">
+            <ArrowLeft size={18} className="text-[#94A3B8]" />
           </button>
           <div className="flex-1">
-            <h1 className="text-lg font-black text-neutral-900 leading-tight">Campanhas de Vendas</h1>
-            <p className="text-[11px] text-neutral-400 font-medium">Marketing e promoções</p>
+            <h1 className="text-lg font-black leading-tight" style={{ color:"#F1F5F9" }}>Campanhas de Vendas</h1>
+            <p className="text-[11px] text-[#475569] font-medium">Marketing e promoções</p>
           </div>
           <button onClick={carregarDados}
-            className="w-9 h-9 rounded-xl bg-white border border-neutral-200 flex items-center justify-center shadow-sm active:scale-95 transition-transform mr-1">
-            <RefreshCw size={15} className="text-neutral-500" />
+            className="w-9 h-9 rounded-xl bg-[#1E293B] border border-white/8 flex items-center justify-center  active:scale-95 transition-transform mr-1">
+            <RefreshCw size={15} className="text-[#64748B]" />
           </button>
           <button onClick={() => setModal(true)}
-            className="flex items-center gap-1.5 bg-neutral-900 text-white text-xs font-black px-3 py-2 rounded-xl active:scale-95 transition-transform">
+            className="flex items-center gap-1.5 bg-[#059669] text-white text-xs font-black px-3 py-2 rounded-xl active:scale-95 transition-transform">
             <Plus size={13} /> Nova
           </button>
         </div>
@@ -367,13 +367,13 @@ export default function CampanhasPage() {
             <p className="text-[9px] font-black text-emerald-600 uppercase tracking-wider mb-1">Ativas</p>
             <p className="text-2xl font-black text-emerald-800">{resumo.ativas}</p>
           </div>
-          <div className="bg-white border border-neutral-100 rounded-2xl shadow-sm p-3 text-center">
-            <p className="text-[9px] font-black text-neutral-400 uppercase tracking-wider mb-1">Clientes</p>
-            <p className="text-2xl font-black text-neutral-900">{resumo.clientes}</p>
+          <div className="bg-[#1E293B] border border-white/5 rounded-2xl  p-3 text-center">
+            <p className="text-[9px] font-black text-[#475569] uppercase tracking-wider mb-1">Clientes</p>
+            <p className="text-2xl font-black text-[#F1F5F9]">{resumo.clientes}</p>
           </div>
-          <div className="bg-white border border-neutral-100 rounded-2xl shadow-sm p-3 text-center">
-            <p className="text-[9px] font-black text-neutral-400 uppercase tracking-wider mb-0.5">Receita</p>
-            <p className="text-sm font-black text-neutral-900">{fmtBRL(resumo.receita)}</p>
+          <div className="bg-[#1E293B] border border-white/5 rounded-2xl  p-3 text-center">
+            <p className="text-[9px] font-black text-[#475569] uppercase tracking-wider mb-0.5">Receita</p>
+            <p className="text-sm font-black text-[#F1F5F9]">{fmtBRL(resumo.receita)}</p>
           </div>
         </div>
 
@@ -381,7 +381,7 @@ export default function CampanhasPage() {
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
           {FILTROS.map(f => (
             <button key={f} onClick={() => setFiltro(f)}
-              className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-full transition-all active:scale-95 ${filtro === f ? "bg-neutral-900 text-white" : "bg-white text-neutral-600 border border-neutral-200"}`}>
+              className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-full transition-all active:scale-95 ${filtro === f ? "bg-[#059669] text-white" : "bg-[#1E293B] text-[#94A3B8] border border-white/8"}`}>
               {f}
             </button>
           ))}
@@ -390,7 +390,7 @@ export default function CampanhasPage() {
         {/* Lista */}
         <div className="space-y-3">
           {filtradas.length === 0
-            ? <div className="text-center py-12 text-neutral-300">
+            ? <div className="text-center py-12 text-[#334155]">
                 <Megaphone size={32} className="mx-auto mb-2 opacity-40" />
                 <p className="font-black text-sm">Nenhuma campanha</p>
               </div>

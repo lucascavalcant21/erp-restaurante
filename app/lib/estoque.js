@@ -67,7 +67,7 @@ function normalizar(item) {
 
 export async function fetchEstoque() {
   if (!isSupabaseReady()) {
-    return { data: ESTOQUE_SEED.map(normalizar), error: null, fromSeed: true };
+    return { data: [], error: null, fromSeed: true };
   }
 
   const { data, error } = await supabase
@@ -77,7 +77,7 @@ export async function fetchEstoque() {
 
   if (error) {
     console.error("[estoque] fetchEstoque:", error.message);
-    return { data: ESTOQUE_SEED.map(normalizar), error: error.message, fromSeed: true };
+    return { data: [], error: error.message, fromSeed: true };
   }
 
   return { data: (data || []).map(normalizar), error: null, fromSeed: false };

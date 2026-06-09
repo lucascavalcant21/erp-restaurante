@@ -40,8 +40,8 @@ const STATUS_OPTS = ["Pendente", "Pago", "Vencido", "Cancelado"];
 const STATUS_STYLE = {
   Pendente:  { bg: "bg-amber-100",   text: "text-amber-700",   Icon: Clock       },
   Pago:      { bg: "bg-emerald-100", text: "text-emerald-700", Icon: CheckCircle2 },
-  Vencido:   { bg: "bg-rose-100",    text: "text-rose-700",    Icon: XCircle     },
-  Cancelado: { bg: "bg-neutral-100", text: "text-neutral-500", Icon: XCircle     },
+  Vencido:   { bg: "bg-[rgba(5,150,105,0.15)]",    text: "text-[#059669]",    Icon: XCircle     },
+  Cancelado: { bg: "bg-[#334155]", text: "text-[#64748B]", Icon: XCircle     },
 };
 
 const TIPOS = ["Todos", "Nota Fiscal", "Boleto", "Fatura", "Contrato", "Recibo"];
@@ -83,81 +83,81 @@ function FormDoc({ inicial, onSalvar, onCancelar }) {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-5 space-y-4">
-      <p className="text-sm font-black text-neutral-900">{inicial ? "Editar Documento" : "Novo Documento"}</p>
+    <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-5 space-y-4">
+      <p className="text-sm font-black text-[#F1F5F9]">{inicial ? "Editar Documento" : "Novo Documento"}</p>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-wider block mb-1.5">Tipo</label>
+          <label className="text-[10px] font-black text-[#475569] uppercase tracking-wider block mb-1.5">Tipo</label>
           <div className="relative">
             <select value={tipo} onChange={e => setTipo(e.target.value)}
-              className="w-full appearance-none bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-3 text-sm font-bold text-neutral-900 focus:outline-none focus:ring-2 focus:border-[#10b981] pr-8">
+              className="w-full appearance-none  border border-white/8 rounded-xl px-3 py-3 text-sm font-bold text-[#F1F5F9] focus:outline-none focus:ring-2 focus:border-[#10b981] pr-8" style={{ background: "#1E293B", color: "#F1F5F9" }} >
               {TIPOS.filter(t => t !== "Todos").map(t => <option key={t} value={t}>{t}</option>)}
             </select>
-            <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
+            <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#475569] pointer-events-none" />
           </div>
         </div>
         <div>
-          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-wider block mb-1.5">Categoria</label>
+          <label className="text-[10px] font-black text-[#475569] uppercase tracking-wider block mb-1.5">Categoria</label>
           <div className="relative">
             <select value={categoria} onChange={e => setCategoria(e.target.value)}
-              className="w-full appearance-none bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-3 text-sm font-bold text-neutral-900 focus:outline-none focus:ring-2 focus:border-[#10b981] pr-8">
+              className="w-full appearance-none  border border-white/8 rounded-xl px-3 py-3 text-sm font-bold text-[#F1F5F9] focus:outline-none focus:ring-2 focus:border-[#10b981] pr-8" style={{ background: "#1E293B", color: "#F1F5F9" }} >
               {CATEGORIAS_DOC.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
-            <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
+            <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#475569] pointer-events-none" />
           </div>
         </div>
       </div>
 
       <div>
-        <label className="text-[10px] font-black text-neutral-400 uppercase tracking-wider block mb-1.5">Descrição</label>
+        <label className="text-[10px] font-black text-[#475569] uppercase tracking-wider block mb-1.5">Descrição</label>
         <input type="text" value={descricao} onChange={e => { setDescricao(e.target.value); setErro(""); }}
           placeholder="ex: Frigorifico São Paulo"
-          className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3.5 text-sm font-medium text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:border-[#10b981]" />
+          className="w-full  border border-white/8 rounded-xl px-4 py-3.5 text-sm font-medium text-[#F1F5F9] placeholder:text-[#475569] focus:outline-none focus:ring-2 focus:border-[#10b981]" />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-wider block mb-1.5">Valor (R$)</label>
+          <label className="text-[10px] font-black text-[#475569] uppercase tracking-wider block mb-1.5">Valor (R$)</label>
           <input type="number" inputMode="decimal" step="0.01" min="0" value={valor} onChange={e => { setValor(e.target.value); setErro(""); }}
             placeholder="0,00"
-            className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm font-black text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:border-[#10b981]" />
+            className="w-full  border border-white/8 rounded-xl px-4 py-3 text-sm font-black text-[#F1F5F9] placeholder:text-[#475569] focus:outline-none focus:ring-2 focus:border-[#10b981]" />
         </div>
         <div>
-          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-wider block mb-1.5">Status</label>
+          <label className="text-[10px] font-black text-[#475569] uppercase tracking-wider block mb-1.5">Status</label>
           <div className="relative">
             <select value={status} onChange={e => setStatus(e.target.value)}
-              className="w-full appearance-none bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-3 text-sm font-bold text-neutral-900 focus:outline-none focus:ring-2 focus:border-[#10b981] pr-8">
+              className="w-full appearance-none  border border-white/8 rounded-xl px-3 py-3 text-sm font-bold text-[#F1F5F9] focus:outline-none focus:ring-2 focus:border-[#10b981] pr-8" style={{ background: "#1E293B", color: "#F1F5F9" }} >
               {STATUS_OPTS.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
-            <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
+            <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#475569] pointer-events-none" />
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-wider block mb-1.5">Emissão</label>
+          <label className="text-[10px] font-black text-[#475569] uppercase tracking-wider block mb-1.5">Emissão</label>
           <input type="date" value={emissao} onChange={e => setEmissao(e.target.value)}
-            className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm font-bold text-neutral-900 focus:outline-none focus:ring-2 focus:border-[#10b981]" />
+            className="w-full  border border-white/8 rounded-xl px-4 py-3 text-sm font-bold text-[#F1F5F9] focus:outline-none focus:ring-2 focus:border-[#10b981]" />
         </div>
         <div>
-          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-wider block mb-1.5">Vencimento</label>
+          <label className="text-[10px] font-black text-[#475569] uppercase tracking-wider block mb-1.5">Vencimento</label>
           <input type="date" value={vencimento} onChange={e => { setVencimento(e.target.value); setErro(""); }}
-            className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm font-bold text-neutral-900 focus:outline-none focus:ring-2 focus:border-[#10b981]" />
+            className="w-full  border border-white/8 rounded-xl px-4 py-3 text-sm font-bold text-[#F1F5F9] focus:outline-none focus:ring-2 focus:border-[#10b981]" />
         </div>
       </div>
 
       {erro && (
-        <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2.5">
-          <AlertCircle size={13} className="text-rose-500 flex-shrink-0" />
-          <p className="text-xs font-bold text-rose-700">{erro}</p>
+        <div className="flex items-center gap-2 bg-[rgba(5,150,105,0.1)] border border-[rgba(5,150,105,0.3)] rounded-xl px-3 py-2.5">
+          <AlertCircle size={13} className="text-[#10b981] flex-shrink-0" />
+          <p className="text-xs font-bold text-[#059669]">{erro}</p>
         </div>
       )}
 
       <div className="flex gap-3 pt-1">
-        <button onClick={onCancelar} className="flex-1 py-3.5 rounded-xl font-black text-sm text-neutral-700 bg-neutral-100 active:scale-95 transition-all">Cancelar</button>
-        <button onClick={handleSalvar} className="flex-1 py-3.5 rounded-xl font-black text-sm text-white bg-[#10b981] active:scale-95 transition-all shadow-md">
+        <button onClick={onCancelar} className="flex-1 py-3.5 rounded-xl font-black text-sm text-[#CBD5E1] bg-[#334155] active:scale-95 transition-all">Cancelar</button>
+        <button onClick={handleSalvar} className="flex-1 py-3.5 rounded-xl font-black text-sm text-white bg-[#10b981] active:scale-95 transition-all ">
           {inicial ? "Salvar" : "Adicionar"}
         </button>
       </div>
@@ -172,25 +172,25 @@ function CardDoc({ doc, onEditar, onMudarStatus, onDeletar }) {
   const urgente = doc.status === "Pendente" && dias !== null && dias <= 5;
 
   return (
-    <div className={`bg-white rounded-2xl border shadow-sm overflow-hidden ${urgente ? "border-rose-200" : doc.status === "Vencido" ? "border-rose-200" : "border-neutral-100"}`}>
+    <div className={`bg-[#1E293B] rounded-2xl border  overflow-hidden ${urgente ? "border-[rgba(5,150,105,0.3)]" : doc.status === "Vencido" ? "border-[rgba(5,150,105,0.3)]" : "border-white/5"}`}>
       <div className="px-4 pt-3.5 pb-3">
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-              <span className="text-[10px] font-black text-neutral-400 uppercase tracking-wider">{doc.tipo}</span>
-              <span className="text-[10px] font-bold text-neutral-400">·</span>
-              <span className="text-[10px] font-bold text-neutral-400">{doc.categoria}</span>
+              <span className="text-[10px] font-black text-[#475569] uppercase tracking-wider">{doc.tipo}</span>
+              <span className="text-[10px] font-bold text-[#475569]">·</span>
+              <span className="text-[10px] font-bold text-[#475569]">{doc.categoria}</span>
               <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full ${st.bg} ${st.text}`}>{doc.status}</span>
-              {urgente && <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-600">Vence em {dias}d!</span>}
+              {urgente && <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full bg-[rgba(5,150,105,0.15)] text-[#059669]">Vence em {dias}d!</span>}
             </div>
-            <p className="text-sm font-black text-neutral-900 truncate">{doc.descricao}</p>
+            <p className="text-sm font-black text-[#F1F5F9] truncate">{doc.descricao}</p>
           </div>
-          <p className="text-base font-black text-neutral-900 flex-shrink-0">{fmtBRL(doc.valor)}</p>
+          <p className="text-base font-black text-[#F1F5F9] flex-shrink-0">{fmtBRL(doc.valor)}</p>
         </div>
 
-        <div className="flex items-center gap-4 text-[10px] font-bold text-neutral-400 mb-3">
+        <div className="flex items-center gap-4 text-[10px] font-bold text-[#475569] mb-3">
           <span>Emissão: {fmtData(doc.emissao)}</span>
-          <span className={doc.status === "Vencido" ? "text-rose-500 font-black" : ""}>
+          <span className={doc.status === "Vencido" ? "text-[#10b981] font-black" : ""}>
             Vencimento: {fmtData(doc.vencimento)}
           </span>
         </div>
@@ -204,17 +204,17 @@ function CardDoc({ doc, onEditar, onMudarStatus, onDeletar }) {
         )}
         {doc.status === "Vencido" && (
           <button onClick={() => onMudarStatus(doc.id, "Pago")}
-            className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-rose-50 border border-rose-200 rounded-xl text-[11px] font-black text-rose-600 active:scale-95 transition-all">
+            className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-[rgba(5,150,105,0.1)] border border-[rgba(5,150,105,0.3)] rounded-xl text-[11px] font-black text-[#059669] active:scale-95 transition-all">
             <Check size={13} /> Registrar Pagamento
           </button>
         )}
       </div>
 
       <div className="flex items-center border-t border-neutral-50 divide-x divide-neutral-50">
-        <button onClick={() => onEditar(doc)} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-black text-neutral-600 active:bg-neutral-50 transition-colors">
+        <button onClick={() => onEditar(doc)} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-black text-[#94A3B8] active: transition-colors">
           <Edit3 size={13} /> Editar
         </button>
-        <button onClick={() => onDeletar(doc.id)} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-black text-rose-400 active:bg-rose-50 transition-colors">
+        <button onClick={() => onDeletar(doc.id)} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-black text-[#10b981] active:bg-[rgba(5,150,105,0.1)] transition-colors">
           <Trash2 size={13} /> Remover
         </button>
       </div>
@@ -283,14 +283,14 @@ export default function DocumentosPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#fbf9f5]">
-      <div className="sticky top-0 z-20 bg-[#fbf9f5] border-b border-neutral-200 px-4 pt-12 pb-3 flex items-center gap-3">
-        <button onClick={() => router.back()} className="w-9 h-9 rounded-xl bg-white border border-neutral-200 flex items-center justify-center shadow-sm active:scale-95 transition-transform">
-          <ArrowLeft size={18} className="text-neutral-600" />
+    <div className="min-h-screen ">
+      <div className="sticky top-0 z-20  border-b border-white/8 px-4 pt-12 pb-3 flex items-center gap-3" style={{ background: '#0F172A' }}>
+        <button onClick={() => router.back()} className="w-9 h-9 rounded-xl bg-[#1E293B] border border-white/8 flex items-center justify-center  active:scale-95 transition-transform">
+          <ArrowLeft size={18} className="text-[#94A3B8]" />
         </button>
         <div className="flex-1">
-          <h1 className="text-lg font-black text-neutral-900 leading-tight">Notas e Boletos</h1>
-          <p className="text-[11px] text-neutral-400 font-medium">Contas a pagar e documentos fiscais</p>
+          <h1 className="text-lg font-black leading-tight" style={{ color:"#F1F5F9" }}>Notas e Boletos</h1>
+          <p className="text-[11px] text-[#475569] font-medium">Contas a pagar e documentos fiscais</p>
         </div>
         <button
           onClick={() => exportarTabelaPDF({
@@ -304,11 +304,11 @@ export default function DocumentosPage() {
             ]),
             rodape: `Total: ${filtrados.length} documentos · Gerado pelo Cerebro ERP`,
           })}
-          className="flex items-center gap-1.5 bg-white border border-neutral-200 text-neutral-700 text-xs font-black px-2 py-2 rounded-xl active:scale-95 transition-transform shadow-sm mr-1">
+          className="flex items-center gap-1.5 bg-[#1E293B] border border-white/8 text-[#CBD5E1] text-xs font-black px-2 py-2 rounded-xl active:scale-95 transition-transform  mr-1">
           <FileDown size={13} /> PDF
         </button>
         <button onClick={() => { setDocEditar(null); setFormAberto(true); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-          className="flex items-center gap-1.5 text-xs font-black px-3 py-2 rounded-xl bg-[#10b981] text-white shadow-md active:scale-95 transition-all">
+          className="flex items-center gap-1.5 text-xs font-black px-3 py-2 rounded-xl bg-[#10b981] text-white  active:scale-95 transition-all">
           <Plus size={14} /> Novo
         </button>
       </div>
@@ -330,21 +330,21 @@ export default function DocumentosPage() {
 
         {/* KPIs */}
         <div className="grid grid-cols-2 gap-3">
-          <div className={`rounded-2xl border shadow-sm p-4 ${resumo.vencidos > 0 ? "bg-rose-50 border-rose-200" : "bg-white border-neutral-100"}`}>
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center mb-2 ${resumo.vencidos > 0 ? "bg-rose-100" : "bg-neutral-100"}`}>
-              <AlertCircle size={16} className={resumo.vencidos > 0 ? "text-rose-500" : "text-neutral-400"} />
+          <div className={`rounded-2xl border  p-4 ${resumo.vencidos > 0 ? "bg-[rgba(5,150,105,0.1)] border-[rgba(5,150,105,0.3)]" : "bg-[#1E293B] border-white/5"}`}>
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center mb-2 ${resumo.vencidos > 0 ? "bg-[rgba(5,150,105,0.15)]" : "bg-[#334155]"}`}>
+              <AlertCircle size={16} className={resumo.vencidos > 0 ? "text-[#10b981]" : "text-[#475569]"} />
             </div>
-            <p className={`text-2xl font-black ${resumo.vencidos > 0 ? "text-rose-700" : "text-neutral-900"}`}>{resumo.vencidos}</p>
-            <p className={`text-[11px] font-bold ${resumo.vencidos > 0 ? "text-rose-500" : "text-neutral-400"}`}>Vencidos</p>
+            <p className={`text-2xl font-black ${resumo.vencidos > 0 ? "text-[#059669]" : "text-[#F1F5F9]"}`}>{resumo.vencidos}</p>
+            <p className={`text-[11px] font-bold ${resumo.vencidos > 0 ? "text-[#10b981]" : "text-[#475569]"}`}>Vencidos</p>
           </div>
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl shadow-sm p-4">
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl  p-4">
             <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center mb-2">
               <Clock size={16} className="text-amber-500" />
             </div>
             <p className="text-xl font-black text-amber-800">{fmtBRL(resumo.total_pendente)}</p>
             <p className="text-[11px] font-bold text-amber-600">A pagar ({resumo.pendentes})</p>
           </div>
-          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl shadow-sm p-4 col-span-2">
+          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl  p-4 col-span-2">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[10px] font-black text-emerald-600 uppercase tracking-wider mb-0.5">Total Pago no Mês</p>
@@ -359,18 +359,18 @@ export default function DocumentosPage() {
 
         {/* Busca */}
         <div className="relative">
-          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" />
+          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#475569]" />
           <input type="text" value={busca} onChange={e => setBusca(e.target.value)}
             placeholder="Buscar documento..."
-            className="w-full bg-white border border-neutral-200 rounded-xl pl-11 pr-10 py-3 text-sm font-medium text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:border-[#10b981] shadow-sm" />
-          {busca && <button onClick={() => setBusca("")} className="absolute right-3 top-1/2 -translate-y-1/2"><X size={15} className="text-neutral-400" /></button>}
+            className="w-full bg-[#1E293B] border border-white/8 rounded-xl pl-11 pr-10 py-3 text-sm font-medium text-[#F1F5F9] placeholder:text-[#475569] focus:outline-none focus:ring-2 focus:border-[#10b981] " />
+          {busca && <button onClick={() => setBusca("")} className="absolute right-3 top-1/2 -translate-y-1/2"><X size={15} className="text-[#475569]" /></button>}
         </div>
 
         {/* Filtro status */}
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
           {["Todos", ...STATUS_OPTS].map(s => (
             <button key={s} onClick={() => setFiltroSt(s)}
-              className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-full transition-all active:scale-95 ${filtroSt === s ? "bg-neutral-900 text-white" : "bg-white text-neutral-600 border border-neutral-200"}`}>
+              className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-full transition-all active:scale-95 ${filtroSt === s ? "bg-[#059669] text-white" : "bg-[#1E293B] text-[#94A3B8] border border-white/8"}`}>
               {s}
             </button>
           ))}
@@ -380,7 +380,7 @@ export default function DocumentosPage() {
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
           {TIPOS.map(t => (
             <button key={t} onClick={() => setFiltroTipo(t)}
-              className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-full transition-all active:scale-95 ${filtroTipo === t ? "bg-neutral-700 text-white" : "bg-white text-neutral-500 border border-neutral-200"}`}>
+              className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-full transition-all active:scale-95 ${filtroTipo === t ? "bg-neutral-700 text-white" : "bg-[#1E293B] text-[#64748B] border border-white/8"}`}>
               {t}
             </button>
           ))}
@@ -389,14 +389,14 @@ export default function DocumentosPage() {
         {/* Lista */}
         <div>
           <div className="flex justify-between px-1 mb-2">
-            <p className="text-[11px] font-black text-neutral-400 uppercase tracking-wider">Documentos</p>
-            <p className="text-[11px] font-bold text-neutral-400">{filtrados.length} documento{filtrados.length !== 1 ? "s" : ""}</p>
+            <p className="text-[11px] font-black text-[#475569] uppercase tracking-wider">Documentos</p>
+            <p className="text-[11px] font-bold text-[#475569]">{filtrados.length} documento{filtrados.length !== 1 ? "s" : ""}</p>
           </div>
 
           {filtrados.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-8 flex flex-col items-center text-center gap-2">
+            <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-8 flex flex-col items-center text-center gap-2">
               <FileText size={28} className="text-neutral-200 mb-1" />
-              <p className="text-sm font-bold text-neutral-500">Nenhum documento encontrado</p>
+              <p className="text-sm font-bold text-[#64748B]">Nenhum documento encontrado</p>
             </div>
           ) : (
             <div className="space-y-3">

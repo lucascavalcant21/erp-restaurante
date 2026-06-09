@@ -52,7 +52,7 @@ function classificar(cmv_pct) {
 const CLASS_STYLE = {
   ok:      { bg: "bg-emerald-50", borda: "border-emerald-200", cor: "#10b981", label: "Saudável", badge: "bg-emerald-100 text-emerald-700" },
   alerta:  { bg: "bg-amber-50",   borda: "border-amber-200",   cor: "#f59e0b", label: "Atenção",  badge: "bg-amber-100 text-amber-600"   },
-  critico: { bg: "bg-rose-50",    borda: "border-rose-200",    cor: "#f43f5e", label: "Crítico",  badge: "bg-rose-100 text-rose-600"     },
+  critico: { bg: "bg-[rgba(5,150,105,0.1)]",    borda: "border-[rgba(5,150,105,0.3)]",    cor: "#f43f5e", label: "Crítico",  badge: "bg-[rgba(5,150,105,0.15)] text-[#059669]"     },
 };
 
 function GraficoBarrasH({ itens, maxVal = 70 }) {
@@ -144,42 +144,42 @@ function CardCMV({ prato, rank }) {
   const classe  = classificar(cmv_pct);
   const st      = CLASS_STYLE[classe];
   return (
-    <div className={`rounded-2xl border shadow-sm overflow-hidden ${classe !== "ok" ? `${st.bg} ${st.borda}` : "bg-white border-neutral-100"}`}>
+    <div className={`rounded-2xl border  overflow-hidden ${classe !== "ok" ? `${st.bg} ${st.borda}` : "bg-[#1E293B] border-white/5"}`}>
       <div className="px-4 pt-4 pb-3">
         <div className="flex items-start justify-between gap-2 mb-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-0.5">
-              {rank && <span className="text-[10px] font-black text-neutral-300">#{rank}</span>}
-              <span className="text-[10px] font-black text-neutral-400 uppercase tracking-wider">{prato.categoria}</span>
+              {rank && <span className="text-[10px] font-black text-[#334155]">#{rank}</span>}
+              <span className="text-[10px] font-black text-[#475569] uppercase tracking-wider">{prato.categoria}</span>
               <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full ${st.badge}`}>{st.label}</span>
             </div>
-            <p className="text-base font-black text-neutral-900 truncate">{prato.nome}</p>
+            <p className="text-base font-black text-[#F1F5F9] truncate">{prato.nome}</p>
           </div>
           <div className="text-right flex-shrink-0">
             <p className="text-xl font-black" style={{ color: st.cor }}>{fmtPct(cmv_pct)}</p>
-            <p className="text-[10px] font-bold text-neutral-400">CMV</p>
+            <p className="text-[10px] font-bold text-[#475569]">CMV</p>
           </div>
         </div>
-        <div className="h-2.5 bg-neutral-100 rounded-full overflow-hidden flex mb-1.5">
+        <div className="h-2.5 bg-[#334155] rounded-full overflow-hidden flex mb-1.5">
           <div className="h-full rounded-l-full transition-all duration-700"
             style={{ width: `${Math.min(cmv_pct, 100)}%`, backgroundColor: st.cor }} />
         </div>
         <div className="flex justify-between text-[10px] font-black mb-3">
           <span style={{ color: st.cor }}>CMV {fmtPct(cmv_pct)}</span>
-          <span className="text-neutral-400">MC {fmtPct(mc_pct)}</span>
+          <span className="text-[#475569]">MC {fmtPct(mc_pct)}</span>
         </div>
         <div className="grid grid-cols-3 gap-2">
-          <div className="bg-white/70 rounded-xl px-2 py-2 text-center">
-            <p className="text-[10px] font-black text-neutral-400 uppercase">Preço</p>
-            <p className="text-xs font-black text-neutral-900">{fmtBRL(prato.preco)}</p>
+          <div className="bg-[#1E293B]/70 rounded-xl px-2 py-2 text-center">
+            <p className="text-[10px] font-black text-[#475569] uppercase">Preço</p>
+            <p className="text-xs font-black text-[#F1F5F9]">{fmtBRL(prato.preco)}</p>
           </div>
-          <div className="bg-white/70 rounded-xl px-2 py-2 text-center">
-            <p className="text-[10px] font-black text-neutral-400 uppercase">Custo</p>
-            <p className="text-xs font-black text-neutral-900">{fmtBRL(prato.custo)}</p>
+          <div className="bg-[#1E293B]/70 rounded-xl px-2 py-2 text-center">
+            <p className="text-[10px] font-black text-[#475569] uppercase">Custo</p>
+            <p className="text-xs font-black text-[#F1F5F9]">{fmtBRL(prato.custo)}</p>
           </div>
-          <div className="bg-white/70 rounded-xl px-2 py-2 text-center">
-            <p className="text-[10px] font-black text-neutral-400 uppercase">Vendas/mês</p>
-            <p className="text-xs font-black text-neutral-900">{prato.vendas_mes}un</p>
+          <div className="bg-[#1E293B]/70 rounded-xl px-2 py-2 text-center">
+            <p className="text-[10px] font-black text-[#475569] uppercase">Vendas/mês</p>
+            <p className="text-xs font-black text-[#F1F5F9]">{prato.vendas_mes}un</p>
           </div>
         </div>
       </div>
@@ -206,54 +206,54 @@ function TabVisao({ pratos, resumo }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
-        <div className={`rounded-2xl border shadow-sm p-4 col-span-2 ${resumo.cmv_real >= 45 ? "bg-rose-50 border-rose-200" : resumo.cmv_real >= 35 ? "bg-amber-50 border-amber-200" : "bg-emerald-50 border-emerald-200"}`}>
-          <p className="text-[10px] font-black text-neutral-400 uppercase tracking-wider mb-1">CMV Geral do Cardápio</p>
+        <div className={`rounded-2xl border  p-4 col-span-2 ${resumo.cmv_real >= 45 ? "bg-[rgba(5,150,105,0.1)] border-[rgba(5,150,105,0.3)]" : resumo.cmv_real >= 35 ? "bg-amber-50 border-amber-200" : "bg-emerald-50 border-emerald-200"}`}>
+          <p className="text-[10px] font-black text-[#475569] uppercase tracking-wider mb-1">CMV Geral do Cardápio</p>
           <div className="flex items-end gap-3">
-            <p className={`text-4xl font-black ${resumo.cmv_real >= 45 ? "text-rose-700" : resumo.cmv_real >= 35 ? "text-amber-700" : "text-emerald-800"}`}>
+            <p className={`text-4xl font-black ${resumo.cmv_real >= 45 ? "text-[#059669]" : resumo.cmv_real >= 35 ? "text-amber-700" : "text-emerald-800"}`}>
               {fmtPct(resumo.cmv_real)}
             </p>
-            <p className="text-[10px] font-bold text-neutral-400 mb-1">Meta: abaixo de 35%</p>
+            <p className="text-[10px] font-bold text-[#475569] mb-1">Meta: abaixo de 35%</p>
           </div>
-          <div className="h-2 bg-white/50 rounded-full overflow-hidden mt-2">
+          <div className="h-2 bg-[#1E293B]/50 rounded-full overflow-hidden mt-2">
             <div className="h-full rounded-full" style={{ width: `${Math.min((resumo.cmv_real / 70) * 100, 100)}%`, backgroundColor: resumo.cmv_real >= 45 ? "#f43f5e" : resumo.cmv_real >= 35 ? "#f59e0b" : "#10b981" }} />
           </div>
         </div>
-        <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-4">
-          <p className="text-[10px] font-black text-neutral-400 uppercase tracking-wider mb-1">Custo Total</p>
-          <p className="text-xl font-black text-neutral-900">{fmtBRL(resumo.custo_total)}</p>
-          <p className="text-[10px] font-bold text-neutral-400 mt-0.5">de {fmtBRL(resumo.faturamento)}</p>
+        <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-4">
+          <p className="text-[10px] font-black text-[#475569] uppercase tracking-wider mb-1">Custo Total</p>
+          <p className="text-xl font-black text-[#F1F5F9]">{fmtBRL(resumo.custo_total)}</p>
+          <p className="text-[10px] font-bold text-[#475569] mt-0.5">de {fmtBRL(resumo.faturamento)}</p>
         </div>
         <div className="grid grid-cols-2 gap-2 col-span-1">
-          <div className={`rounded-2xl border shadow-sm p-3 ${resumo.criticos > 0 ? "bg-rose-50 border-rose-200" : "bg-white border-neutral-100"}`}>
-            <p className="text-[9px] font-black text-neutral-400 uppercase">Críticos</p>
-            <p className={`text-2xl font-black ${resumo.criticos > 0 ? "text-rose-700" : "text-neutral-900"}`}>{resumo.criticos}</p>
+          <div className={`rounded-2xl border  p-3 ${resumo.criticos > 0 ? "bg-[rgba(5,150,105,0.1)] border-[rgba(5,150,105,0.3)]" : "bg-[#1E293B] border-white/5"}`}>
+            <p className="text-[9px] font-black text-[#475569] uppercase">Críticos</p>
+            <p className={`text-2xl font-black ${resumo.criticos > 0 ? "text-[#059669]" : "text-[#F1F5F9]"}`}>{resumo.criticos}</p>
           </div>
-          <div className={`rounded-2xl border shadow-sm p-3 ${resumo.alertas > 0 ? "bg-amber-50 border-amber-200" : "bg-white border-neutral-100"}`}>
-            <p className="text-[9px] font-black text-neutral-400 uppercase">Atenção</p>
-            <p className={`text-2xl font-black ${resumo.alertas > 0 ? "text-amber-700" : "text-neutral-900"}`}>{resumo.alertas}</p>
+          <div className={`rounded-2xl border  p-3 ${resumo.alertas > 0 ? "bg-amber-50 border-amber-200" : "bg-[#1E293B] border-white/5"}`}>
+            <p className="text-[9px] font-black text-[#475569] uppercase">Atenção</p>
+            <p className={`text-2xl font-black ${resumo.alertas > 0 ? "text-amber-700" : "text-[#F1F5F9]"}`}>{resumo.alertas}</p>
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-4">
-        <p className="text-xs font-black text-neutral-900 uppercase tracking-wider mb-3">CMV por Prato</p>
+      <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-4">
+        <p className="text-xs font-black text-[#F1F5F9] uppercase tracking-wider mb-3">CMV por Prato</p>
         <GraficoBarrasH
           itens={[...pratos].sort((a, b) => a.cmv_pct - b.cmv_pct).map(p => ({ nome: p.nome, valor: p.cmv_pct }))}
           maxVal={70}
         />
-        <p className="text-[10px] text-neutral-400 font-medium mt-2">Linha verde = meta 35%</p>
+        <p className="text-[10px] text-[#475569] font-medium mt-2">Linha verde = meta 35%</p>
       </div>
 
       <div className="relative">
-        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" />
+        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#475569]" />
         <input type="text" value={busca} onChange={e => setBusca(e.target.value)}
-          placeholder="Buscar prato..." className="w-full bg-white border border-neutral-200 rounded-xl pl-11 pr-10 py-3 text-sm font-medium text-neutral-900 placeholder:text-neutral-400 focus:outline-none shadow-sm" />
-        {busca && <button onClick={() => setBusca("")} className="absolute right-3 top-1/2 -translate-y-1/2"><X size={15} className="text-neutral-400" /></button>}
+          placeholder="Buscar prato..." className="w-full bg-[#1E293B] border border-white/8 rounded-xl pl-11 pr-10 py-3 text-sm font-medium text-[#F1F5F9] placeholder:text-[#475569] focus:outline-none " />
+        {busca && <button onClick={() => setBusca("")} className="absolute right-3 top-1/2 -translate-y-1/2"><X size={15} className="text-[#475569]" /></button>}
       </div>
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
         {CATEGORIAS_FILTRO.map(c => (
           <button key={c} onClick={() => setFiltro(c)}
-            className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-full transition-all active:scale-95 ${filtro === c ? "bg-neutral-900 text-white" : "bg-white text-neutral-600 border border-neutral-200"}`}>
+            className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-full transition-all active:scale-95 ${filtro === c ? "bg-[#059669] text-white" : "bg-[#1E293B] text-[#94A3B8] border border-white/8"}`}>
             {c}
           </button>
         ))}
@@ -261,7 +261,7 @@ function TabVisao({ pratos, resumo }) {
       <div className="flex gap-2">
         {[{ id: "cmv_desc", label: "Maior CMV" }, { id: "cmv_asc", label: "Menor CMV" }, { id: "vendas_desc", label: "Mais Vendidos" }].map(o => (
           <button key={o.id} onClick={() => setOrdenar(o.id)}
-            className={`flex-1 py-2.5 rounded-xl text-[10px] font-black transition-all active:scale-95 ${ordenar === o.id ? "bg-neutral-900 text-white" : "bg-white text-neutral-600 border border-neutral-200"}`}>
+            className={`flex-1 py-2.5 rounded-xl text-[10px] font-black transition-all active:scale-95 ${ordenar === o.id ? "bg-[#059669] text-white" : "bg-[#1E293B] text-[#94A3B8] border border-white/8"}`}>
             {o.label}
           </button>
         ))}
@@ -291,8 +291,8 @@ function TabCategorias({ pratos }) {
 
   return (
     <div className="space-y-4">
-      <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-4">
-        <p className="text-xs font-black text-neutral-900 uppercase tracking-wider mb-3">CMV por Categoria</p>
+      <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-4">
+        <p className="text-xs font-black text-[#F1F5F9] uppercase tracking-wider mb-3">CMV por Categoria</p>
         <GraficoBarrasH
           itens={porCategoria.map(c => ({ nome: c.cat, valor: c.cmv_real, cor: CAT_COR[c.cat] })).sort((a, b) => a.valor - b.valor)}
           maxVal={70}
@@ -305,7 +305,7 @@ function TabCategorias({ pratos }) {
           const ativo = catSel === c.cat;
           return (
             <button key={c.cat} onClick={() => setCatSel(ativo ? null : c.cat)}
-              className={`flex-shrink-0 text-[11px] font-black px-3 py-2 rounded-xl border transition-all active:scale-95 ${ativo ? "border-2 shadow-sm" : "bg-white border-neutral-200 text-neutral-600"}`}
+              className={`flex-shrink-0 text-[11px] font-black px-3 py-2 rounded-xl border transition-all active:scale-95 ${ativo ? "border-2 " : "bg-[#1E293B] border-white/8 text-[#94A3B8]"}`}
               style={ativo ? { borderColor: CAT_COR[c.cat], color: CAT_COR[c.cat], background: `${CAT_COR[c.cat]}15` } : {}}>
               {c.cat}
               <span className={`ml-1.5 text-[9px] px-1.5 py-0.5 rounded-full ${st.badge}`}>{fmtPct(c.cmv_real)}</span>
@@ -315,40 +315,40 @@ function TabCategorias({ pratos }) {
       </div>
 
       {catSelecionada && (
-        <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-4 space-y-4">
+        <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-4 space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-black text-neutral-900">{catSelecionada.cat}</p>
+            <p className="text-sm font-black text-[#F1F5F9]">{catSelecionada.cat}</p>
             <p className="text-lg font-black" style={{ color: CAT_COR[catSelecionada.cat] }}>{fmtPct(catSelecionada.cmv_real)}</p>
           </div>
           <div className="grid grid-cols-3 gap-2">
-            <div className="bg-neutral-50 rounded-xl p-3 text-center">
-              <p className="text-[10px] font-black text-neutral-400 uppercase">Pratos</p>
-              <p className="text-lg font-black text-neutral-900">{catSelecionada.itens.length}</p>
+            <div className=" rounded-xl p-3 text-center">
+              <p className="text-[10px] font-black text-[#475569] uppercase">Pratos</p>
+              <p className="text-lg font-black text-[#F1F5F9]">{catSelecionada.itens.length}</p>
             </div>
-            <div className="bg-neutral-50 rounded-xl p-3 text-center">
-              <p className="text-[10px] font-black text-neutral-400 uppercase">Faturamento</p>
-              <p className="text-xs font-black text-neutral-900">{fmtBRL(catSelecionada.fat)}</p>
+            <div className=" rounded-xl p-3 text-center">
+              <p className="text-[10px] font-black text-[#475569] uppercase">Faturamento</p>
+              <p className="text-xs font-black text-[#F1F5F9]">{fmtBRL(catSelecionada.fat)}</p>
             </div>
-            <div className="bg-neutral-50 rounded-xl p-3 text-center">
-              <p className="text-[10px] font-black text-neutral-400 uppercase">Custo</p>
-              <p className="text-xs font-black text-neutral-900">{fmtBRL(catSelecionada.custo)}</p>
+            <div className=" rounded-xl p-3 text-center">
+              <p className="text-[10px] font-black text-[#475569] uppercase">Custo</p>
+              <p className="text-xs font-black text-[#F1F5F9]">{fmtBRL(catSelecionada.custo)}</p>
             </div>
           </div>
           <div>
-            <p className="text-[11px] font-black text-neutral-400 uppercase tracking-wider mb-2">Evolução 6 meses</p>
+            <p className="text-[11px] font-black text-[#475569] uppercase tracking-wider mb-2">Evolução 6 meses</p>
             <GraficoLinhaCategoria categoria={catSelecionada.cat} />
           </div>
           <div>
-            <p className="text-[11px] font-black text-neutral-400 uppercase tracking-wider mb-2">Pratos</p>
+            <p className="text-[11px] font-black text-[#475569] uppercase tracking-wider mb-2">Pratos</p>
             {catSelecionada.itens.map(p => (
-              <div key={p.id} className="flex items-center gap-3 py-2 border-b border-neutral-100 last:border-0">
+              <div key={p.id} className="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-black text-neutral-800 truncate">{p.nome}</p>
-                  <p className="text-[10px] text-neutral-400">{fmtBRL(p.preco)} · {p.vendas_mes} vendas</p>
+                  <p className="text-xs font-black text-[#F1F5F9] truncate">{p.nome}</p>
+                  <p className="text-[10px] text-[#475569]">{fmtBRL(p.preco)} · {p.vendas_mes} vendas</p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-black" style={{ color: p.cmv_pct >= 45 ? "#f43f5e" : p.cmv_pct >= 35 ? "#f59e0b" : "#10b981" }}>{fmtPct(p.cmv_pct)}</p>
-                  <div className="w-16 h-1.5 bg-neutral-100 rounded-full overflow-hidden mt-0.5">
+                  <div className="w-16 h-1.5 bg-[#334155] rounded-full overflow-hidden mt-0.5">
                     <div className="h-full rounded-full" style={{ width: `${Math.min(p.cmv_pct / 70 * 100, 100)}%`, backgroundColor: p.cmv_pct >= 45 ? "#f43f5e" : p.cmv_pct >= 35 ? "#f59e0b" : "#10b981" }} />
                   </div>
                 </div>
@@ -371,40 +371,40 @@ function TabRanking({ pratos }) {
 
   return (
     <div className="space-y-4">
-      <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-4">
+      <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-4">
         <div className="flex items-center gap-2 mb-3">
-          <XCircle size={15} className="text-rose-500" />
-          <p className="text-xs font-black text-neutral-900 uppercase tracking-wider">Pior CMV — Revisar precificação</p>
+          <XCircle size={15} className="text-[#10b981]" />
+          <p className="text-xs font-black text-[#F1F5F9] uppercase tracking-wider">Pior CMV — Revisar precificação</p>
         </div>
         <div className="space-y-2">
           {top3Piores.map((p, i) => (
-            <div key={p.id} className="flex items-center gap-3 p-3 bg-rose-50 rounded-xl border border-rose-100">
+            <div key={p.id} className="flex items-center gap-3 p-3 bg-[rgba(5,150,105,0.1)] rounded-xl border border-[rgba(5,150,105,0.2)]">
               <span className="text-lg">{medalhas[i]}</span>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-black text-neutral-900 truncate">{p.nome}</p>
-                <p className="text-[10px] text-neutral-500">{p.categoria} · {p.vendas_mes} vendas/mês</p>
+                <p className="text-xs font-black text-[#F1F5F9] truncate">{p.nome}</p>
+                <p className="text-[10px] text-[#64748B]">{p.categoria} · {p.vendas_mes} vendas/mês</p>
               </div>
               <div className="text-right">
-                <p className="text-base font-black text-rose-600">{fmtPct(p.cmv_pct)}</p>
-                <p className="text-[9px] text-rose-400">+{fmtPct(p.cmv_pct - META_CMV)} acima</p>
+                <p className="text-base font-black text-[#059669]">{fmtPct(p.cmv_pct)}</p>
+                <p className="text-[9px] text-[#10b981]">+{fmtPct(p.cmv_pct - META_CMV)} acima</p>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-4">
+      <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-4">
         <div className="flex items-center gap-2 mb-3">
           <CheckCircle size={15} className="text-emerald-500" />
-          <p className="text-xs font-black text-neutral-900 uppercase tracking-wider">Melhor CMV — Pratos referência</p>
+          <p className="text-xs font-black text-[#F1F5F9] uppercase tracking-wider">Melhor CMV — Pratos referência</p>
         </div>
         <div className="space-y-2">
           {top3Melhores.map((p, i) => (
             <div key={p.id} className="flex items-center gap-3 p-3 bg-emerald-50 rounded-xl border border-emerald-100">
               <span className="text-lg">{medalhas[i]}</span>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-black text-neutral-900 truncate">{p.nome}</p>
-                <p className="text-[10px] text-neutral-500">{p.categoria} · {p.vendas_mes} vendas/mês</p>
+                <p className="text-xs font-black text-[#F1F5F9] truncate">{p.nome}</p>
+                <p className="text-[10px] text-[#64748B]">{p.categoria} · {p.vendas_mes} vendas/mês</p>
               </div>
               <div className="text-right">
                 <p className="text-base font-black text-emerald-600">{fmtPct(p.cmv_pct)}</p>
@@ -415,22 +415,22 @@ function TabRanking({ pratos }) {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-4">
-        <p className="text-xs font-black text-neutral-900 uppercase tracking-wider mb-1">Maior Custo Absoluto / Mês</p>
-        <p className="text-[10px] text-neutral-400 mb-3">Pratos que mais pesam no custo total</p>
+      <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-4">
+        <p className="text-xs font-black text-[#F1F5F9] uppercase tracking-wider mb-1">Maior Custo Absoluto / Mês</p>
+        <p className="text-[10px] text-[#475569] mb-3">Pratos que mais pesam no custo total</p>
         <div className="space-y-2">
           {porImpacto.map((p, i) => {
             const custoTotal = p.custo * p.vendas_mes;
             const maxCusto = porImpacto[0].custo * porImpacto[0].vendas_mes;
             return (
               <div key={p.id} className="flex items-center gap-3">
-                <span className="text-[11px] font-black text-neutral-300 w-4">#{i+1}</span>
+                <span className="text-[11px] font-black text-[#334155] w-4">#{i+1}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between mb-1">
-                    <p className="text-xs font-black text-neutral-800 truncate">{p.nome}</p>
-                    <p className="text-xs font-black text-neutral-700 ml-2 flex-shrink-0">{fmtBRL(custoTotal)}</p>
+                    <p className="text-xs font-black text-[#F1F5F9] truncate">{p.nome}</p>
+                    <p className="text-xs font-black text-[#CBD5E1] ml-2 flex-shrink-0">{fmtBRL(custoTotal)}</p>
                   </div>
-                  <div className="h-2 bg-neutral-100 rounded-full overflow-hidden">
+                  <div className="h-2 bg-[#334155] rounded-full overflow-hidden">
                     <div className="h-full rounded-full bg-orange-400" style={{ width: `${(custoTotal / maxCusto) * 100}%` }} />
                   </div>
                 </div>
@@ -440,22 +440,22 @@ function TabRanking({ pratos }) {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-4">
-        <p className="text-xs font-black text-neutral-900 uppercase tracking-wider mb-1">Maior Margem de Contribuição</p>
-        <p className="text-[10px] text-neutral-400 mb-3">Pratos que mais geram margem (MC × vendas)</p>
+      <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-4">
+        <p className="text-xs font-black text-[#F1F5F9] uppercase tracking-wider mb-1">Maior Margem de Contribuição</p>
+        <p className="text-[10px] text-[#475569] mb-3">Pratos que mais geram margem (MC × vendas)</p>
         <div className="space-y-2">
           {porMC.map((p, i) => {
             const mc = (p.preco - p.custo) * p.vendas_mes;
             const maxMC = (porMC[0].preco - porMC[0].custo) * porMC[0].vendas_mes;
             return (
               <div key={p.id} className="flex items-center gap-3">
-                <span className="text-[11px] font-black text-neutral-300 w-4">#{i+1}</span>
+                <span className="text-[11px] font-black text-[#334155] w-4">#{i+1}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between mb-1">
-                    <p className="text-xs font-black text-neutral-800 truncate">{p.nome}</p>
+                    <p className="text-xs font-black text-[#F1F5F9] truncate">{p.nome}</p>
                     <p className="text-xs font-black text-emerald-700 ml-2 flex-shrink-0">{fmtBRL(mc)}</p>
                   </div>
-                  <div className="h-2 bg-neutral-100 rounded-full overflow-hidden">
+                  <div className="h-2 bg-[#334155] rounded-full overflow-hidden">
                     <div className="h-full rounded-full bg-emerald-400" style={{ width: `${(mc / maxMC) * 100}%` }} />
                   </div>
                 </div>
@@ -515,14 +515,14 @@ function TabAnalise({ pratos, resumo }) {
   const TIPO_STYLE = {
     ok:      { icon: <CheckCircle size={15} className="text-emerald-500 flex-shrink-0 mt-0.5" />, bg: "bg-emerald-50 border-emerald-200" },
     alerta:  { icon: <AlertTriangle size={15} className="text-amber-500 flex-shrink-0 mt-0.5" />, bg: "bg-amber-50 border-amber-200" },
-    critico: { icon: <XCircle size={15} className="text-rose-500 flex-shrink-0 mt-0.5" />,        bg: "bg-rose-50 border-rose-200" },
+    critico: { icon: <XCircle size={15} className="text-[#10b981] flex-shrink-0 mt-0.5" />,        bg: "bg-[rgba(5,150,105,0.1)] border-[rgba(5,150,105,0.3)]" },
     info:    { icon: <Minus size={15} className="text-blue-400 flex-shrink-0 mt-0.5" />,          bg: "bg-blue-50 border-blue-200" },
   };
 
   return (
     <div className="space-y-4">
-      <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-4">
-        <p className="text-xs font-black text-neutral-900 uppercase tracking-wider mb-3">Scorecard de Eficiência</p>
+      <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-4">
+        <p className="text-xs font-black text-[#F1F5F9] uppercase tracking-wider mb-3">Scorecard de Eficiência</p>
         <div className="space-y-3">
           {[
             { label: "CMV Geral",    valor: resumo.cmv_real, meta: 35, inverter: true },
@@ -536,13 +536,13 @@ function TabAnalise({ pratos, resumo }) {
             return (
               <div key={e.label}>
                 <div className="flex justify-between mb-1">
-                  <p className="text-xs font-bold text-neutral-700">{e.label}</p>
+                  <p className="text-xs font-bold text-[#CBD5E1]">{e.label}</p>
                   <div className="flex items-center gap-2">
                     <p className="text-xs font-black" style={{ color: dentro ? "#10b981" : "#f43f5e" }}>{fmtPct(e.valor)}</p>
-                    <p className="text-[10px] text-neutral-400">meta {fmtPct(e.meta)}</p>
+                    <p className="text-[10px] text-[#475569]">meta {fmtPct(e.meta)}</p>
                   </div>
                 </div>
-                <div className="h-2.5 bg-neutral-100 rounded-full overflow-hidden">
+                <div className="h-2.5 bg-[#334155] rounded-full overflow-hidden">
                   <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: dentro ? "#10b981" : "#f59e0b" }} />
                 </div>
               </div>
@@ -551,22 +551,22 @@ function TabAnalise({ pratos, resumo }) {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-4">
-        <p className="text-xs font-black text-neutral-900 uppercase tracking-wider mb-3">Análise Automática</p>
+      <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-4">
+        <p className="text-xs font-black text-[#F1F5F9] uppercase tracking-wider mb-3">Análise Automática</p>
         <div className="space-y-3">
           {analises.map((a, i) => (
             <div key={i} className={`flex gap-3 p-3 rounded-xl border ${TIPO_STYLE[a.tipo]?.bg}`}>
               {TIPO_STYLE[a.tipo]?.icon}
               <div>
-                <p className="text-xs font-black text-neutral-900">{a.titulo}</p>
-                <p className="text-[11px] text-neutral-500 mt-0.5 leading-relaxed">{a.descricao}</p>
+                <p className="text-xs font-black text-[#F1F5F9]">{a.titulo}</p>
+                <p className="text-[11px] text-[#64748B] mt-0.5 leading-relaxed">{a.descricao}</p>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="bg-neutral-900 rounded-2xl p-4">
+      <div className="bg-[#059669] rounded-2xl p-4">
         <p className="text-xs font-black text-white uppercase tracking-wider mb-3">Próximos Passos</p>
         <div className="space-y-2.5">
           {[
@@ -576,12 +576,12 @@ function TabAnalise({ pratos, resumo }) {
             { n: "4", acao: "Impulsionar venda de Marmitex Executiva e Salada",    prazo: "Mês atual",    urgencia: "baixa" },
           ].map(a => (
             <div key={a.n} className="flex items-start gap-3">
-              <span className="w-5 h-5 rounded-full bg-white/10 text-white text-[10px] font-black flex items-center justify-center flex-shrink-0 mt-0.5">{a.n}</span>
+              <span className="w-5 h-5 rounded-full bg-[#1E293B]/10 text-white text-[10px] font-black flex items-center justify-center flex-shrink-0 mt-0.5">{a.n}</span>
               <div className="flex-1">
                 <p className="text-xs font-bold text-white">{a.acao}</p>
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className="text-[9px] text-white/50">{a.prazo}</span>
-                  <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full ${a.urgencia === "alta" ? "bg-rose-500/30 text-rose-300" : a.urgencia === "media" ? "bg-amber-500/30 text-amber-300" : "bg-emerald-500/30 text-emerald-300"}`}>
+                  <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full ${a.urgencia === "alta" ? "bg-[rgba(5,150,105,0.1)]0/30 text-rose-300" : a.urgencia === "media" ? "bg-amber-500/30 text-amber-300" : "bg-emerald-500/30 text-emerald-300"}`}>
                     {a.urgencia.toUpperCase()}
                   </span>
                 </div>
@@ -619,15 +619,15 @@ export default function CMVPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#fbf9f5]">
-      <div className="sticky top-0 z-20 bg-[#fbf9f5] border-b border-neutral-200 px-4 pt-12 pb-0">
+    <div className="min-h-screen ">
+      <div className="sticky top-0 z-20  border-b border-white/8 px-4 pt-12 pb-0" style={{ background: '#0F172A' }}>
         <div className="flex items-center gap-3 mb-3">
-          <button onClick={() => router.back()} className="w-9 h-9 rounded-xl bg-white border border-neutral-200 flex items-center justify-center shadow-sm active:scale-95 transition-transform">
-            <ArrowLeft size={18} className="text-neutral-600" />
+          <button onClick={() => router.back()} className="w-9 h-9 rounded-xl bg-[#1E293B] border border-white/8 flex items-center justify-center  active:scale-95 transition-transform">
+            <ArrowLeft size={18} className="text-[#94A3B8]" />
           </button>
           <div className="flex-1">
-            <h1 className="text-lg font-black text-neutral-900 leading-tight">Análise de CMV</h1>
-            <p className="text-[11px] text-neutral-400 font-medium">Custo de mercadoria vendida por prato</p>
+            <h1 className="text-lg font-black leading-tight" style={{ color:"#F1F5F9" }}>Análise de CMV</h1>
+            <p className="text-[11px] text-[#475569] font-medium">Custo de mercadoria vendida por prato</p>
           </div>
           <button
             onClick={() => exportarTabelaPDF({
@@ -636,14 +636,14 @@ export default function CMVPage() {
               dados: pratos.map(p => [p.nome, p.categoria, fmtBRL(p.preco), fmtBRL(p.custo), fmtPct(p.cmv_pct), p.cmv_pct >= 45 ? "Crítico" : p.cmv_pct >= 35 ? "Atenção" : "Saudável"]),
               rodape: `CMV Geral: ${fmtPct(resumo.cmv_real)} · Meta: <35% · Cerebro ERP`,
             })}
-            className="flex items-center gap-1.5 bg-white border border-neutral-200 text-neutral-700 text-xs font-black px-3 py-2 rounded-xl active:scale-95 transition-transform shadow-sm">
+            className="flex items-center gap-1.5 bg-[#1E293B] border border-white/8 text-[#CBD5E1] text-xs font-black px-3 py-2 rounded-xl active:scale-95 transition-transform ">
             <FileDown size={13} /> PDF
           </button>
         </div>
         <div className="flex gap-0 -mb-px overflow-x-auto scrollbar-none">
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
-              className={`flex-shrink-0 px-4 py-2.5 text-[11px] font-black transition-all border-b-2 ${tab === t.id ? "border-neutral-900 text-neutral-900" : "border-transparent text-neutral-400"}`}>
+              className={`flex-shrink-0 px-4 py-2.5 text-[11px] font-black transition-all border-b-2 ${tab === t.id ? "border-neutral-900 text-[#F1F5F9]" : "border-transparent text-[#475569]"}`}>
               {t.label}
             </button>
           ))}

@@ -253,26 +253,33 @@ function useHistoricoLogin() {
 // ═══════════════════════════════════════════════════════════════
 // COMPONENTES BASE
 // ═══════════════════════════════════════════════════════════════
-const Skel = ({ cls = "" }) => <div className={`animate-pulse bg-neutral-100 rounded-xl ${cls}`} />;
+const Skel = ({ cls = "" }) => (
+  <div className={`rounded-lg ${cls}`} style={{ background: 'linear-gradient(90deg,#1E293B 25%,#334155 50%,#1E293B 75%)', backgroundSize: '400px 100%', animation: 'shimmer 1.4s ease-in-out infinite' }} />
+);
 function Card({ children, className = "" }) {
-  return <div className={`bg-white rounded-2xl shadow-sm ${className}`}>{children}</div>;
+  return (
+    <div className={`rounded-2xl ${className}`}
+      style={{ background: '#1E293B', border: '1px solid rgba(255,255,255,0.07)', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
+      {children}
+    </div>
+  );
 }
 function SectionTitle({ children }) {
-  return <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-2 px-1">{children}</p>;
+  return <p className="text-[10px] font-semibold uppercase tracking-widest mb-3 px-0.5" style={{ color: '#94A3B8', letterSpacing: '0.08em' }}>{children}</p>;
 }
 function TelaEmBreve({ titulo, descricao }) {
   return (
     <div className="px-4 pt-5 pb-28">
-      <h1 className="text-2xl font-black text-neutral-900 mb-1">{titulo}</h1>
-      <p className="text-sm text-neutral-400 font-medium mb-8">{descricao}</p>
+      <h1 className="text-2xl font-black mb-1" style={{ color: '#F1F5F9' }}>{titulo}</h1>
+      <p className="text-sm font-medium mb-8" style={{ color: '#475569' }}>{descricao}</p>
       <Card className="p-8 flex flex-col items-center text-center">
-        <div className="w-14 h-14 rounded-2xl bg-neutral-100 flex items-center justify-center mb-4">
+        <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'rgba(5,150,105,0.12)' }}>
           <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth={1.8}>
             <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
           </svg>
         </div>
-        <p className="text-sm font-bold text-neutral-700 mb-1">Em desenvolvimento</p>
-        <p className="text-xs text-neutral-400 font-medium">Este módulo estará disponível em breve.</p>
+        <p className="text-sm font-bold mb-1" style={{ color: '#CBD5E1' }}>Em desenvolvimento</p>
+        <p className="text-xs font-medium" style={{ color: '#475569' }}>Este módulo estará disponível em breve.</p>
       </Card>
     </div>
   );
@@ -315,14 +322,9 @@ const EMPTY_DASH = {
 const MESES_LABEL = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 const GRAFICO_MOCK = [18400, 21200, 19800, 23500, 22100, 25300];
 
-// Alertas mock — substituir por fetch Supabase quando integrado
-const ALERTAS_ESTOQUE = [
-  { nome: "Feijão Carioca", quantidade: 3, minimo: 5, unidade: "KG" },
-  { nome: "Alface Crespa",  quantidade: 2, minimo: 5, unidade: "MAÇO" },
-];
-const ALERTAS_EVENTOS = [
-  { nome: "Aniversário 50 anos João", dias: 15 },
-];
+// Alertas carregados do Supabase — sem dados fictícios
+const ALERTAS_ESTOQUE = [];
+const ALERTAS_EVENTOS = [];
 
 const ATALHOS = [
   { id: "cardapio",     label: "Cardápio",     Icon: Ic.ChefHat,      href: "/dashboard/operacao/cardapio",     cor: "#10b981" },
@@ -352,28 +354,32 @@ function TelaDashboard({ mes, ano, dados, loading, sessao }) {
   const totalAlertas = ALERTAS_ESTOQUE.length + ALERTAS_EVENTOS.length;
 
   return (
-    <div className="px-4 pt-5 pb-28 space-y-5">
+    <div className="px-4 pt-5 pb-28 space-y-6">
 
       {/* Saudação */}
       <div>
-        <p className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider">{saudacao},</p>
-        <h1 className="text-2xl font-black text-neutral-900 leading-tight">{nome} 👋</h1>
+        <p className="text-xs font-medium mb-0.5" style={{ color: '#475569' }}>{saudacao},</p>
+        <h1 className="text-xl font-bold leading-tight" style={{ color: '#F1F5F9' }}>{nome} 👋</h1>
       </div>
 
       {/* KPI Cards 2×2 */}
       <div className="grid grid-cols-2 gap-3">
         {[
-          { label: "Faturamento",   val: d.faturamento   != null ? fmtBRL(d.faturamento)   : null, cor: "#10b981" },
-          { label: "Custos Totais", val: d.custos_totais != null ? fmtBRL(d.custos_totais) : null, cor: "#f97316" },
-          { label: "Lucro Líquido", val: d.lucro_liquido != null ? fmtBRL(d.lucro_liquido) : null, cor: "#3b82f6" },
-          { label: "Margem",        val: d.margem_pct    != null ? `${d.margem_pct}%`       : null, cor: "#8b5cf6" },
-        ].map(({ label, val, cor }) => (
-          <Card key={label} className="p-4">
-            <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">{label}</p>
+          { label: "Faturamento",   val: d.faturamento   != null ? fmtBRL(d.faturamento)   : null, dot: "#059669" },
+          { label: "Custos Totais", val: d.custos_totais != null ? fmtBRL(d.custos_totais) : null, dot: "#EF4444" },
+          { label: "Lucro Líquido", val: d.lucro_liquido != null ? fmtBRL(d.lucro_liquido) : null, dot: "#3B82F6" },
+          { label: "Margem",        val: d.margem_pct    != null ? `${d.margem_pct}%`       : null, dot: "#8B5CF6" },
+        ].map(({ label, val, dot }) => (
+          <div key={label} className="rounded-2xl p-4"
+            style={{ background: '#1E293B', border: '1px solid rgba(255,255,255,0.07)' }}>
+            <div className="flex items-center gap-1.5 mb-2">
+              <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: dot }} />
+              <p className="text-[10px] font-semibold uppercase" style={{ color: '#94A3B8', letterSpacing: '0.06em' }}>{label}</p>
+            </div>
             {loading || val == null
-              ? <Skel cls="h-7 w-24 mt-1" />
-              : <p className="text-xl font-black leading-tight" style={{ color: cor }}>{val}</p>}
-          </Card>
+              ? <Skel cls="h-6 w-20" />
+              : <p className="text-lg font-bold" style={{ color: '#F1F5F9' }}>{val}</p>}
+          </div>
         ))}
       </div>
 
@@ -391,16 +397,16 @@ function TelaDashboard({ mes, ano, dados, loading, sessao }) {
                   </p>
                   <div
                     className="w-full rounded-t-lg transition-all duration-700"
-                    style={{ height: `${h}px`, backgroundColor: b.atual ? "#10b981" : "#e5e7eb" }}
+                    style={{ height: `${h}px`, backgroundColor: b.atual ? "#10b981" : "#334155" }}
                   />
-                  <p className={`text-[9px] font-black leading-none ${b.atual ? "text-[#10b981]" : "text-neutral-400"}`}>
+                  <p className={`text-[9px] font-black leading-none`} style={{ color: b.atual ? '#10b981' : '#475569' }}>
                     {b.label}
                   </p>
                 </div>
               );
             })}
           </div>
-          <p className="text-[10px] text-neutral-300 font-medium text-center mt-3">
+          <p className="text-[10px] font-medium text-center mt-3" style={{ color: '#334155' }}>
             Dados simulados · integre seu PDV para valores reais
           </p>
         </Card>
@@ -413,10 +419,10 @@ function TelaDashboard({ mes, ano, dados, loading, sessao }) {
           {d.distribuicao.map(({ label, cor, pct }) => (
             <div key={label} className="mb-3 last:mb-0">
               <div className="flex justify-between items-center mb-1">
-                <span className="text-xs font-bold text-neutral-700">{label}</span>
+                <span className="text-xs font-bold" style={{ color: '#CBD5E1' }}>{label}</span>
                 {loading || pct == null ? <Skel cls="h-3 w-8" /> : <span className="text-xs font-black" style={{ color: cor }}>{pct}%</span>}
               </div>
-              <div className="h-2 bg-neutral-100 rounded-full overflow-hidden">
+              <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
                 {!loading && pct != null && (
                   <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, backgroundColor: cor }} />
                 )}
@@ -425,9 +431,9 @@ function TelaDashboard({ mes, ano, dados, loading, sessao }) {
           ))}
           {!loading && d.faturamento == null && (
             <div className="flex flex-col items-center text-center py-4">
-              <div className="w-10 h-10 rounded-xl bg-neutral-100 flex items-center justify-center mb-2"><Ic.BarChart size={18} /></div>
-              <p className="text-xs font-bold text-neutral-500">Sem dados para o período</p>
-              <p className="text-[11px] text-neutral-400 font-medium">Registre vendas e custos para ver o painel.</p>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-2" style={{ background: 'rgba(255,255,255,0.06)', color: '#475569' }}><Ic.BarChart size={18} /></div>
+              <p className="text-xs font-bold" style={{ color: '#64748B' }}>Sem dados para o período</p>
+              <p className="text-[11px] font-medium" style={{ color: '#475569' }}>Registre vendas e custos para ver o painel.</p>
             </div>
           )}
         </Card>
@@ -448,25 +454,29 @@ function TelaDashboard({ mes, ano, dados, loading, sessao }) {
           <div className="space-y-2">
             {ALERTAS_ESTOQUE.map((item) => (
               <button key={item.nome} onClick={() => router.push("/dashboard/operacao/estoque")}
-                className="w-full bg-rose-50 border border-rose-200 rounded-2xl px-4 py-3 flex items-center gap-3 active:scale-95 transition-all text-left">
-                <div className="w-8 h-8 rounded-xl bg-rose-100 flex items-center justify-center flex-shrink-0 text-rose-500">
-                  <Ic.Box size={15} />
+                className="w-full rounded-xl px-4 py-3 flex items-center gap-3 active:scale-95 transition-all text-left"
+                style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderLeft: '3px solid #EF4444' }}>
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ background: '#FEE2E2', color: '#DC2626' }}>
+                  <Ic.Box size={13} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-black text-rose-800 truncate">{item.nome}</p>
-                  <p className="text-[10px] font-bold text-rose-500">Estoque crítico — {item.quantidade} {item.unidade} (mín: {item.minimo})</p>
+                  <p className="text-xs font-semibold truncate" style={{ color: '#7F1D1D' }}>{item.nome}</p>
+                  <p className="text-[10px] font-medium mt-0.5" style={{ color: '#DC2626' }}>Crítico — {item.quantidade} {item.unidade} (mín: {item.minimo})</p>
                 </div>
               </button>
             ))}
             {ALERTAS_EVENTOS.map((ev) => (
               <button key={ev.nome} onClick={() => router.push("/dashboard/operacao/eventos")}
-                className="w-full bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex items-center gap-3 active:scale-95 transition-all text-left">
-                <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0 text-amber-500">
-                  <Ic.Calendar size={15} />
+                className="w-full rounded-xl px-4 py-3 flex items-center gap-3 active:scale-95 transition-all text-left"
+                style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderLeft: '3px solid #F59E0B' }}>
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ background: '#FEF3C7', color: '#D97706' }}>
+                  <Ic.Calendar size={13} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-black text-amber-800 truncate">{ev.nome}</p>
-                  <p className="text-[10px] font-bold text-amber-600">Em {ev.dias} dias — confirme o cardápio</p>
+                  <p className="text-xs font-semibold truncate" style={{ color: '#78350F' }}>{ev.nome}</p>
+                  <p className="text-[10px] font-medium mt-0.5" style={{ color: '#D97706' }}>Em {ev.dias} dias — confirme o cardápio</p>
                 </div>
               </button>
             ))}
@@ -482,11 +492,15 @@ function TelaDashboard({ mes, ano, dados, loading, sessao }) {
             const AIcon = a.Icon;
             return (
               <button key={a.id} onClick={() => router.push(a.href)}
-                className="bg-white border border-neutral-100 rounded-2xl shadow-sm p-3 flex flex-col items-center gap-2 active:scale-95 transition-all">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: a.cor + "15", color: a.cor }}>
-                  <AIcon size={18} />
+                className="rounded-xl p-3 flex flex-col items-center gap-2 active:scale-95 transition-all"
+                style={{ background: '#1E293B', border: '1px solid rgba(255,255,255,0.07)' }}
+                onMouseOver={e=>e.currentTarget.style.background='#263548'}
+                onMouseOut={e=>e.currentTarget.style.background='#1E293B'}>
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center"
+                  style={{ background: 'rgba(255,255,255,0.08)', color: '#F1F5F9' }}>
+                  <AIcon size={16} />
                 </div>
-                <p className="text-[10px] font-black text-neutral-700 text-center leading-tight">{a.label}</p>
+                <p className="text-[10px] font-semibold text-center leading-tight" style={{ color: '#94A3B8' }}>{a.label}</p>
               </button>
             );
           })}
@@ -514,24 +528,25 @@ function TelaDRE({ mes, ano }) {
   const rows = dados?.linhas || [];
   return (
     <div className="px-4 pt-5 pb-28">
-      <h1 className="text-2xl font-black text-neutral-900 mb-1">DRE Gerencial</h1>
-      <p className="text-sm text-neutral-400 font-medium mb-5">{MESES[mes]} {ano}</p>
+      <h1 className="text-2xl font-black mb-1" style={{ color: '#F1F5F9' }}>DRE Gerencial</h1>
+      <p className="text-sm font-medium mb-5" style={{ color: '#475569' }}>{MESES[mes]} {ano}</p>
       {loading
         ? [1,2,3,4,5].map((i) => <Skel key={i} cls="h-14 mb-2" />)
         : rows.length === 0
           ? (
             <Card className="p-6 flex flex-col items-center text-center">
-              <div className="w-12 h-12 rounded-2xl bg-neutral-100 flex items-center justify-center mb-3"><Ic.BarChart size={22} /></div>
-              <p className="text-sm font-bold text-neutral-700 mb-1">Sem dados para o período</p>
-              <p className="text-xs text-neutral-400 font-medium">Registre lançamentos financeiros para gerar o DRE.</p>
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3" style={{ background: 'rgba(255,255,255,0.06)', color: '#475569' }}><Ic.BarChart size={22} /></div>
+              <p className="text-sm font-bold mb-1" style={{ color: '#CBD5E1' }}>Sem dados para o período</p>
+              <p className="text-xs font-medium" style={{ color: '#475569' }}>Registre lançamentos financeiros para gerar o DRE.</p>
             </Card>
           )
           : (
-            <Card className="divide-y divide-neutral-100">
+            <Card>
               {rows.map((r, i) => (
-                <div key={i} className={`flex justify-between items-center px-4 py-3 ${r.destaque ? "bg-neutral-50" : ""}`}>
-                  <p className={`text-sm ${r.destaque ? "font-black text-neutral-900" : "font-medium text-neutral-600"}`}>{r.label}</p>
-                  <p className={`text-sm font-bold ${r.valor >= 0 ? "text-[#10b981]" : "text-red-500"}`}>{fmtBRL(r.valor)}</p>
+                <div key={i} className={`flex justify-between items-center px-4 py-3`}
+                  style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: r.destaque ? 'rgba(255,255,255,0.03)' : 'transparent' }}>
+                  <p style={{ fontSize: 13, fontWeight: r.destaque ? 700 : 500, color: r.destaque ? '#F1F5F9' : '#94A3B8' }}>{r.label}</p>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: r.valor >= 0 ? '#10b981' : '#EF4444' }}>{fmtBRL(r.valor)}</p>
                 </div>
               ))}
             </Card>
@@ -557,35 +572,36 @@ function TelaEstoque() {
   const filtrados = itens.filter((i) => i.nome?.toLowerCase().includes(busca.toLowerCase()));
   return (
     <div className="px-4 pt-5 pb-28">
-      <h1 className="text-2xl font-black text-neutral-900 mb-4">Controle de Estoque</h1>
+      <h1 className="text-2xl font-black mb-4" style={{ color: '#F1F5F9' }}>Controle de Estoque</h1>
       <div className="relative mb-4">
-        <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none"><Ic.Search size={16} /></div>
+        <div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#475569' }}><Ic.Search size={16} /></div>
         <input type="search" placeholder="Buscar insumo..." value={busca} onChange={(e) => setBusca(e.target.value)}
-          className="w-full bg-white border border-neutral-200 rounded-2xl pl-10 pr-4 py-2.5 text-sm font-medium text-neutral-800 outline-none focus:border-[#10b981] focus:ring-2 focus:ring-[#10b981]/20 transition-all shadow-sm" />
+          style={{ width: '100%', background: '#1E293B', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, paddingLeft: 40, paddingRight: 16, paddingTop: 10, paddingBottom: 10, fontSize: 13, fontWeight: 500, color: '#F1F5F9', outline: 'none' }} />
       </div>
       {loading
         ? [1,2,3,4].map((i) => <Skel key={i} cls="h-16 mb-2" />)
         : filtrados.length === 0
           ? (
             <Card className="p-6 flex flex-col items-center text-center">
-              <div className="w-12 h-12 rounded-2xl bg-neutral-100 flex items-center justify-center mb-3"><Ic.Box size={22} /></div>
-              <p className="text-sm font-bold text-neutral-700 mb-1">Nenhum insumo cadastrado</p>
-              <p className="text-xs text-neutral-400 font-medium">Adicione insumos para controlar seu estoque.</p>
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3" style={{ background: 'rgba(255,255,255,0.06)', color: '#475569' }}><Ic.Box size={22} /></div>
+              <p className="text-sm font-bold mb-1" style={{ color: '#CBD5E1' }}>Nenhum insumo cadastrado</p>
+              <p className="text-xs font-medium" style={{ color: '#475569' }}>Adicione insumos para controlar seu estoque.</p>
             </Card>
           )
           : (
-            <Card className="divide-y divide-neutral-100">
+            <Card>
               {filtrados.map((it, i) => (
-                <div key={i} className="flex items-center gap-3 px-4 py-3">
-                  <div className="w-9 h-9 rounded-xl bg-neutral-100 flex items-center justify-center flex-shrink-0 text-sm font-black text-neutral-500">
+                <div key={i} className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-sm font-black"
+                    style={{ background: 'rgba(255,255,255,0.06)', color: '#64748B' }}>
                     {it.nome?.[0]?.toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-neutral-800 truncate">{it.nome}</p>
-                    <p className="text-xs text-neutral-400 font-medium">{it.unidade} · {it.categoria}</p>
+                    <p className="text-sm font-bold truncate" style={{ color: '#F1F5F9' }}>{it.nome}</p>
+                    <p className="text-xs font-medium" style={{ color: '#475569' }}>{it.unidade} · {it.categoria}</p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className={`text-sm font-black ${it.qtd <= (it.minimo || 0) ? "text-red-500" : "text-neutral-800"}`}>{it.qtd}</p>
+                    <p className={`text-sm font-black ${it.qtd <= (it.minimo || 0) ? "text-[#10b981]" : "text-neutral-800"}`}>{it.qtd}</p>
                     <p className="text-[10px] text-neutral-400 font-medium">qtd</p>
                   </div>
                 </div>
@@ -684,7 +700,7 @@ function TelaConta({ sessao, onSair }) {
                   {sessao?.nome?.[0]?.toUpperCase() || "U"}
                 </div>
             }
-            <div className="absolute inset-0 rounded-full bg-black/30 flex items-center justify-center opacity-0 group-active:opacity-100 transition-opacity">
+            <div className="absolute inset-0 rounded-full bg-[#059669]/30 flex items-center justify-center opacity-0 group-active:opacity-100 transition-opacity">
               <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2}>
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -767,7 +783,7 @@ function TelaConta({ sessao, onSair }) {
       </div>
 
       <button onClick={onSair}
-        className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl border-2 border-red-200 text-red-500 text-sm font-bold active:bg-red-50 transition-colors mt-2">
+        className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl border-2 border-[rgba(5,150,105,0.3)] text-[#10b981] text-sm font-bold active:bg-red-50 transition-colors mt-2">
         <Ic.LogOut size={16} />
         Sair da conta
       </button>
@@ -776,143 +792,242 @@ function TelaConta({ sessao, onSair }) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// SIDEBAR MENU LATERAL
+// SIDEBAR ESTÁTICA — ícones sempre visíveis, expande no hover
 // ═══════════════════════════════════════════════════════════════
-function SidebarMenu({ open, onClose, navId, onNav, sessao, onSair, navPermitidos }) {
+function SidebarMenu({ navId, onNav, sessao, onSair, navPermitidos }) {
+  const [exp, setExp] = useState(false);
   const papel = sessao ? getPapel(sessao.papel) : null;
   const sideRouter = useRouter();
   let naoLidas = 0;
   try { const ctx = useERP(); naoLidas = ctx.naoLidas; } catch (_) {}
 
+  const W_COL = 64;
+  const W_EXP = 260;
+
   return (
-    <>
-      <div
-        className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-300 ${open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
-        onClick={onClose}
-      />
-      <aside className={`fixed top-0 left-0 bottom-0 z-50 w-[300px] bg-[#1c1c1c] flex flex-col shadow-2xl transition-transform duration-300 ease-in-out ${open ? "translate-x-0" : "-translate-x-full"}`}>
+    <aside
+      onMouseEnter={() => setExp(true)}
+      onMouseLeave={() => setExp(false)}
+      style={{
+        position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 50,
+        width: exp ? W_EXP : W_COL,
+        background: '#0F172A',
+        borderRight: '1px solid rgba(255,255,255,0.06)',
+        transition: 'width 220ms cubic-bezier(0.4,0,0.2,1)',
+        overflow: 'hidden',
+        display: 'flex', flexDirection: 'column',
+      }}>
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-10 pb-5 border-b border-neutral-200">
-          <div>
-            <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest mb-0.5">Cerebro ERP</p>
-            <p className="text-base font-black text-neutral-900 leading-tight">{sessao?.nome?.split(" ")[0] || "Usuário"}</p>
-            {papel && (
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: papel.cor }} />
-                <p className="text-xs text-neutral-500 font-medium">{papel.label}</p>
+      {/* Logo */}
+      <div style={{
+        height: 56, flexShrink: 0,
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        display: 'flex', alignItems: 'center',
+        padding: '0 18px', gap: 12,
+      }}>
+        <div style={{
+          width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+          background: 'linear-gradient(135deg,#059669,#34D399)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5}>
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+        </div>
+        <div style={{ opacity: exp ? 1 : 0, transition: 'opacity 160ms', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+          <p style={{ color: '#F1F5F9', fontSize: 13, fontWeight: 700, lineHeight: 1.2 }}>Cerebro ERP</p>
+          {papel && <p style={{ color: papel.cor, fontSize: 10, fontWeight: 600, marginTop: 1 }}>{papel.label}</p>}
+        </div>
+      </div>
+
+      {/* Usuário */}
+      <div style={{
+        margin: '10px 8px 4px',
+        borderRadius: 10,
+        background: 'rgba(255,255,255,0.04)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        padding: '8px 10px',
+        display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0,
+      }}>
+        <div style={{
+          width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+          background: 'linear-gradient(135deg,#059669,#34D399)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: 'white', fontSize: 12, fontWeight: 700,
+        }}>
+          {sessao?.nome?.[0]?.toUpperCase() || "U"}
+        </div>
+        <div style={{ opacity: exp ? 1 : 0, transition: 'opacity 160ms', overflow: 'hidden', whiteSpace: 'nowrap', minWidth: 0 }}>
+          <p style={{ color: '#F1F5F9', fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {sessao?.nome?.split(" ")[0] || "Usuário"}
+          </p>
+          <p style={{ color: '#475569', fontSize: 10, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {sessao?.email || ""}
+          </p>
+        </div>
+      </div>
+
+      {/* Nav */}
+      <nav style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '8px 0' }}>
+        {MENU_GROUPS.map((group) => {
+          const visibleItems = group.items.filter((item) => navPermitidos.includes(item.id));
+          if (visibleItems.length === 0) return null;
+          return (
+            <div key={group.id} style={{ marginBottom: 8 }}>
+              {/* Rótulo do grupo — só visível quando expandido */}
+              <div style={{
+                height: 20, display: 'flex', alignItems: 'center',
+                padding: '0 18px', overflow: 'hidden',
+                opacity: exp ? 1 : 0, transition: 'opacity 160ms',
+              }}>
+                <p style={{ color: '#334155', fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                  {group.label}
+                </p>
               </div>
-            )}
+              {visibleItems.map((item) => {
+                const active = navId === item.id;
+                const NavIcon = item.Icon;
+                return (
+                  <button key={item.id}
+                    onClick={() => item.id === "dashboard" ? onNav("dashboard") : sideRouter.push(item.href)}
+                    style={{
+                      width: '100%', display: 'flex', alignItems: 'center',
+                      gap: 12, padding: exp ? '9px 14px' : '9px 0',
+                      justifyContent: exp ? 'flex-start' : 'center',
+                      background: active ? 'rgba(5,150,105,0.14)' : 'transparent',
+                      color: active ? '#34D399' : '#64748B',
+                      border: 'none', cursor: 'pointer',
+                      transition: 'background 120ms, color 120ms',
+                      borderLeft: active ? '2px solid #34D399' : '2px solid transparent',
+                    }}
+                    onMouseOver={e => {
+                      if (!active) { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = '#CBD5E1'; }
+                    }}
+                    onMouseOut={e => {
+                      e.currentTarget.style.background = active ? 'rgba(5,150,105,0.14)' : 'transparent';
+                      e.currentTarget.style.color = active ? '#34D399' : '#64748B';
+                    }}>
+                    <div style={{ flexShrink: 0, width: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <NavIcon size={16} />
+                    </div>
+                    <span style={{
+                      fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap',
+                      opacity: exp ? 1 : 0, transition: 'opacity 160ms',
+                      flex: 1, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis',
+                    }}>{item.label}</span>
+                    {item.id === "notificacoes" && naoLidas > 0 && exp && (
+                      <span style={{
+                        minWidth: 18, height: 18, background: '#EF4444',
+                        color: 'white', fontSize: 9, fontWeight: 700,
+                        borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        padding: '0 4px', flexShrink: 0,
+                      }}>
+                        {naoLidas > 9 ? "9+" : naoLidas}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })}
+      </nav>
+
+      {/* Rodapé */}
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '8px 0 12px' }}>
+        <button
+          onClick={() => onNav("conta")}
+          style={{
+            width: '100%', display: 'flex', alignItems: 'center',
+            gap: 12, padding: exp ? '8px 14px' : '8px 0',
+            justifyContent: exp ? 'flex-start' : 'center',
+            color: '#64748B', background: 'transparent', border: 'none', cursor: 'pointer',
+            transition: 'background 120ms, color 120ms',
+          }}
+          onMouseOver={e=>{ e.currentTarget.style.background='rgba(255,255,255,0.04)'; e.currentTarget.style.color='#CBD5E1'; }}
+          onMouseOut={e=>{ e.currentTarget.style.background='transparent'; e.currentTarget.style.color='#64748B'; }}>
+          <div style={{ width: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Ic.User size={15} />
           </div>
-          <button onClick={onClose} className="w-9 h-9 rounded-full bg-neutral-100 flex items-center justify-center active:bg-neutral-200 flex-shrink-0">
-            <Ic.Close size={18} />
-          </button>
-        </div>
-
-        {/* Itens */}
-        <nav className="flex-1 overflow-y-auto py-4 px-3">
-          {MENU_GROUPS.map((group) => {
-            const visibleItems = group.items.filter((item) => navPermitidos.includes(item.id));
-            if (visibleItems.length === 0) return null;
-            return (
-              <div key={group.id} className="mb-3">
-                <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest px-3 py-1.5">{group.label}</p>
-                {visibleItems.map((item) => {
-                    const active = navId === item.id;
-                    const NavIcon = item.Icon;
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => {
-                          onClose();
-                          if (item.id === "dashboard") {
-                            onNav("dashboard");
-                          } else {
-                            sideRouter.push(item.href);
-                          }
-                        }}
-                        className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl mb-0.5 transition-all ${active ? "bg-[#edfbf3]" : "active:bg-neutral-100"}`}
-                      >
-                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${active ? "bg-[#10b981] text-white" : "bg-neutral-100 text-neutral-500"}`}>
-                          <NavIcon size={16} />
-                        </div>
-                        <span className={`text-sm font-bold text-left leading-tight flex-1 ${active ? "text-[#0a6c4b]" : "text-neutral-700"}`}>{item.label}</span>
-                        {item.id === "notificacoes" && naoLidas > 0 && (
-                          <span className="min-w-[18px] h-[18px] bg-rose-500 text-white text-[9px] font-black rounded-full flex items-center justify-center px-1 leading-none flex-shrink-0">
-                            {naoLidas > 9 ? "9+" : naoLidas}
-                          </span>
-                        )}
-                        {active && item.id !== "notificacoes" && <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] flex-shrink-0" />}
-                      </button>
-                    );
-                  })}
-              </div>
-            );
-          })}
-        </nav>
-
-        {/* Rodapé */}
-        <div className="border-t border-neutral-200 px-3 py-4 space-y-1">
-          <button
-            onClick={() => { onNav("conta"); onClose(); }}
-            className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all ${navId === "conta" ? "bg-[#edfbf3]" : "active:bg-neutral-100"}`}
-          >
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${navId === "conta" ? "bg-[#10b981] text-white" : "bg-neutral-100 text-neutral-500"}`}>
-              <Ic.User size={16} />
-            </div>
-            <span className={`text-sm font-bold flex-1 text-left ${navId === "conta" ? "text-[#0a6c4b]" : "text-neutral-700"}`}>Meu Perfil</span>
-          </button>
-          <button
-            onClick={() => { onSair(); onClose(); }}
-            className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-red-500 active:bg-red-50 transition-colors"
-          >
-            <div className="w-8 h-8 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
-              <Ic.LogOut size={16} />
-            </div>
-            <span className="text-sm font-bold text-left">Sair da conta</span>
-          </button>
-        </div>
-      </aside>
-    </>
+          <span style={{ fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', opacity: exp ? 1 : 0, transition: 'opacity 160ms' }}>
+            Meu Perfil
+          </span>
+        </button>
+        <button
+          onClick={onSair}
+          style={{
+            width: '100%', display: 'flex', alignItems: 'center',
+            gap: 12, padding: exp ? '8px 14px' : '8px 0',
+            justifyContent: exp ? 'flex-start' : 'center',
+            color: '#64748B', background: 'transparent', border: 'none', cursor: 'pointer',
+            transition: 'background 120ms, color 120ms',
+          }}
+          onMouseOver={e=>{ e.currentTarget.style.background='rgba(239,68,68,0.08)'; e.currentTarget.style.color='#F87171'; }}
+          onMouseOut={e=>{ e.currentTarget.style.background='transparent'; e.currentTarget.style.color='#64748B'; }}>
+          <div style={{ width: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Ic.LogOut size={15} />
+          </div>
+          <span style={{ fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', opacity: exp ? 1 : 0, transition: 'opacity 160ms' }}>
+            Sair da conta
+          </span>
+        </button>
+      </div>
+    </aside>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════
 // HEADER
 // ═══════════════════════════════════════════════════════════════
-function Header({ onMenuOpen, sessao, navId, onNavNotif }) {
+function Header({ sessao, navId, onNavNotif }) {
   const activeItem = MENU_GROUPS.flatMap((g) => g.items).find((i) => i.id === navId);
   const title = navId === "conta" ? "Meu Perfil" : (activeItem?.label || "Cerebro ERP");
-  // Tenta usar o context; se não disponível (fora do Provider) ignora
   let naoLidas = 0;
-  try {
-    const ctx = useERP();
-    naoLidas = ctx.naoLidas;
-  } catch (_) {}
+  try { const ctx = useERP(); naoLidas = ctx.naoLidas; } catch (_) {}
 
   return (
-    <header className="sticky top-0 z-30 bg-[#1c1c1c]/97 backdrop-blur-sm border-b border-neutral-200 px-4 py-3 flex items-center gap-3">
-      <button onClick={onMenuOpen}
-        className="w-9 h-9 rounded-full bg-white border border-neutral-200 flex items-center justify-center active:bg-neutral-50 transition-colors shadow-sm flex-shrink-0">
-        <Ic.Menu size={18} />
-      </button>
-      <div className="flex-1 min-w-0">
-        <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest leading-none mb-0.5">Cerebro ERP</p>
-        <p className="text-sm font-black text-neutral-900 leading-tight truncate">{title}</p>
+    <header style={{
+      position: 'sticky', top: 0, zIndex: 30,
+      height: 56, display: 'flex', alignItems: 'center',
+      padding: '0 20px', gap: 12,
+      background: '#0F172A',
+      borderBottom: '1px solid rgba(255,255,255,0.06)',
+    }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ color: '#F1F5F9', fontSize: 14, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {title}
+        </p>
       </div>
-      {/* Sino de notificações com badge */}
-      <button
-        onClick={onNavNotif}
-        className="relative w-9 h-9 rounded-full bg-white border border-neutral-200 flex items-center justify-center active:bg-neutral-50 transition-colors shadow-sm flex-shrink-0">
-        <Ic.Bell size={17} />
+      <button onClick={onNavNotif}
+        style={{
+          position: 'relative', width: 36, height: 36, borderRadius: 8, flexShrink: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          border: '1px solid rgba(255,255,255,0.08)', color: '#94A3B8',
+          background: 'transparent', cursor: 'pointer',
+        }}
+        onMouseOver={e=>e.currentTarget.style.background='rgba(255,255,255,0.06)'}
+        onMouseOut={e=>e.currentTarget.style.background='transparent'}>
+        <Ic.Bell size={16} />
         {naoLidas > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-rose-500 text-white text-[9px] font-black rounded-full flex items-center justify-center px-0.5 leading-none">
+          <span style={{
+            position: 'absolute', top: -4, right: -4,
+            minWidth: 16, height: 16, background: '#EF4444',
+            color: 'white', fontSize: 9, fontWeight: 700,
+            borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '0 3px',
+          }}>
             {naoLidas > 9 ? "9+" : naoLidas}
           </span>
         )}
       </button>
       {sessao && (
-        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#10b981] to-[#059669] flex items-center justify-center text-white text-sm font-black shadow-sm flex-shrink-0">
+        <div style={{
+          width: 36, height: 36, borderRadius: 8, flexShrink: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: 'white', fontSize: 13, fontWeight: 700,
+          background: 'linear-gradient(135deg,#059669,#34D399)',
+        }}>
           {sessao.nome?.[0]?.toUpperCase() || "U"}
         </div>
       )}
@@ -928,7 +1043,6 @@ export default function DashboardPage() {
   const [authOk,   setAuthOk]   = useState(false);
   const [sessao,   setSessao]   = useState(null);
   const [navId,    setNavId]    = useState("dashboard");
-  const [menuOpen, setMenuOpen] = useState(false);
   const [dashData, setDashData] = useState(null);
   const [dashLoad, setDashLoad] = useState(true);
   const [mes,      setMes]      = useState(new Date().getMonth());
@@ -946,109 +1060,35 @@ export default function DashboardPage() {
       fluxo_caixa: "fluxo", cmv: "cmv", escala: "ponto", nps: "nps",
     };
     const mapeados = (p.nav || []).map((id) => mapa[id] || id).filter(Boolean);
-    return [...new Set(mapeados)];
+    return [...new Set(["dashboard", ...mapeados])];
   }
 
   useEffect(() => {
     const s = lerSessao();
     if (!s) { router.replace("/login"); return; }
     setSessao(s);
-    const perm = getNavPermitidos(s.papel);
-    setNavId(perm[0] || "dashboard");
     setAuthOk(true);
+    setDashLoad(false);
   }, []);
 
-  const navPermitidos = authOk ? getNavPermitidos(sessao?.papel) : [];
-
-  const handleSair = () => { encerrarSessao(); router.replace("/login"); };
-
-  const MES_FINANCEIROS = ["dashboard", "dre", "fluxo", "cmv", "margem"];
-
-  useEffect(() => {
-    if (!authOk || navId !== "dashboard") return;
-    setDashLoad(true);
-    fetch(`/api/dashboard?mes=${mes + 1}&ano=${ano}`)
-      .then((r) => r.json())
-      .then((raw) => {
-        // Normalize API response shape to match component expectations
-        const dist = raw.distribuicao || {};
-        const normalized = {
-          faturamento:   raw.faturamento   ?? null,
-          custos_totais: raw.custos        ?? null,
-          lucro_liquido: raw.lucro         ?? null,
-          margem_pct:    raw.margem        ?? null,
-          distribuicao: Array.isArray(raw.distribuicao) ? raw.distribuicao : [
-            { label: "CMV",         cor: "#f97316", pct: dist.cmv         ?? null },
-            { label: "Mão de Obra", cor: "#ec4899", pct: dist.mao_de_obra ?? null },
-            { label: "Operacional", cor: "#10b981", pct: dist.operacional ?? null },
-            { label: "Impostos",    cor: "#ef4444", pct: dist.impostos    ?? null },
-          ],
-        };
-        setDashData(normalized);
-        setDashLoad(false);
-      })
-      .catch(() => setDashLoad(false));
-  }, [mes, ano, navId, authOk]);
-
-  if (!authOk) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-[#10b981] flex items-center justify-center shadow-lg">
-            <svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2}>
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-              <polyline points="9 22 9 12 15 12 15 22"/>
-            </svg>
-          </div>
-          <p className="text-sm font-bold text-neutral-500">Carregando...</p>
-        </div>
-      </div>
-    );
-  }
+  if (!authOk) return null;
 
   return (
-    <div className="min-h-screen">
-      <SidebarMenu
-        open={menuOpen}
-        onClose={() => setMenuOpen(false)}
-        navId={navId}
-        onNav={setNavId}
+    <>
+      <Header
         sessao={sessao}
-        onSair={handleSair}
-        navPermitidos={navPermitidos}
+        navId="dashboard"
+        onNavNotif={() => router.push("/dashboard/notificacoes")}
       />
-
-      <Header onMenuOpen={() => setMenuOpen(true)} sessao={sessao} navId={navId} onNavNotif={() => setNavId("notificacoes")} />
-
-      {MES_FINANCEIROS.includes(navId) && (
-        <div className="flex justify-end px-4 pt-3">
-          <SeletorMes mes={mes} ano={ano} onChange={(m, a) => { setMes(m); setAno(a); }} />
-        </div>
-      )}
-
-      <main>
-        {navId === "dashboard"    && <TelaDashboard mes={mes} ano={ano} dados={dashData} loading={dashLoad} sessao={sessao} />}
-        {navId === "notificacoes" && <TelaEmBreve titulo="Notificações" descricao="Central de alertas do sistema." />}
-        {navId === "rotina"       && <TelaEmBreve titulo="Rotina da Loja" descricao="Checklists e tarefas diárias." />}
-        {navId === "cardapio"     && <TelaCardapio />}
-        {navId === "estoque"      && <TelaEstoque />}
-        {navId === "fornecedores" && <TelaEmBreve titulo="Fornecedores" descricao="Lista de contatos e pedidos." />}
-        {navId === "eventos"      && <TelaEmBreve titulo="Gestão de Eventos" descricao="Planejamento, reservas e break-even." />}
-        {navId === "dre"          && <TelaDRE mes={mes} ano={ano} />}
-        {navId === "fluxo"        && <TelaEmBreve titulo="Fluxo de Caixa" descricao="Entradas e saídas diárias." />}
-        {navId === "cmv"          && <TelaEmBreve titulo="Análise de CMV" descricao="Custo de mercadoria vendida." />}
-        {navId === "margem"       && <TelaEmBreve titulo="Margem de Lucro" descricao="Ranking de lucratividade dos produtos." />}
-        {navId === "documentos"   && <TelaEmBreve titulo="Notas e Boletos" descricao="Contas a pagar e notas fiscais de entrada." />}
-        {navId === "gestao_rh"    && <TelaEmBreve titulo="Gestão de RH" descricao="Cadastro de funcionários e documentos." />}
-        {navId === "ponto"        && <TelaEmBreve titulo="Controle de Ponto" descricao="Espelho e batida de ponto mobile." />}
-        {navId === "colaborador"  && <TelaEmBreve titulo="Portal do Colaborador" descricao="Área restrita de treinamentos e holerites." />}
-        {navId === "crm"          && <TelaEmBreve titulo="CRM" descricao="Gestão de relacionamento e histórico do cliente." />}
-        {navId === "campanhas"    && <TelaEmBreve titulo="Campanhas de Vendas" descricao="Ações de marketing e cupons." />}
-        {navId === "nps"          && <TelaEmBreve titulo="Avaliações (NPS)" descricao="Pesquisas de satisfação e feedback." />}
-        {navId === "heitor"       && <TelaEmBreve titulo="Central Heitor IA" descricao="Painel de automação e análises preditivas." />}
-        {navId === "conta"        && <TelaConta sessao={sessao} onSair={handleSair} />}
+      <main style={{ flex: 1, overflowY: "auto" }}>
+        <TelaDashboard
+          mes={mes}
+          ano={ano}
+          dados={dashData}
+          loading={dashLoad}
+          sessao={sessao}
+        />
       </main>
-    </div>
+    </>
   );
 }
-                          

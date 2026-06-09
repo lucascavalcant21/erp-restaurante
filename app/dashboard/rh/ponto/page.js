@@ -67,7 +67,7 @@ function statusRegistro(reg) {
 const STATUS_STYLE = {
   ok:          { label: "Normal",      bg: "bg-emerald-100", cor: "text-emerald-700", dot: "#10b981" },
   atraso:      { label: "Atraso",      bg: "bg-amber-100",   cor: "text-amber-700",   dot: "#f59e0b" },
-  falta:       { label: "Falta",       bg: "bg-rose-100",    cor: "text-rose-700",    dot: "#f43f5e" },
+  falta:       { label: "Falta",       bg: "bg-[rgba(5,150,105,0.15)]",    cor: "text-[#059669]",    dot: "#f43f5e" },
   em_servico:  { label: "Em serviço",  bg: "bg-blue-100",    cor: "text-blue-700",    dot: "#3b82f6" },
 };
 
@@ -84,23 +84,23 @@ function LinhaRegistro({ reg }) {
   const dur = reg.entrada && reg.saida ? diffHoras(reg.entrada, reg.saida) : null;
 
   return (
-    <div className="flex items-center gap-3 py-2.5 border-b border-neutral-100 last:border-0">
+    <div className="flex items-center gap-3 py-2.5 border-b border-white/5 last:border-0">
       <div className="flex-shrink-0 w-10 text-center">
-        <p className="text-[10px] font-black text-neutral-400">{diaSemana(reg.data)}</p>
-        <p className="text-[13px] font-black text-neutral-700">{fmtData(reg.data)}</p>
+        <p className="text-[10px] font-black text-[#475569]">{diaSemana(reg.data)}</p>
+        <p className="text-[13px] font-black text-[#CBD5E1]">{fmtData(reg.data)}</p>
       </div>
       <div className="flex-1 grid grid-cols-3 gap-1 text-center">
         <div>
-          <p className="text-[9px] font-black text-neutral-400 uppercase">Entrada</p>
-          <p className={`text-[13px] font-black ${reg.entrada ? "text-neutral-900" : "text-neutral-300"}`}>{fmtHora(reg.entrada)}</p>
+          <p className="text-[9px] font-black text-[#475569] uppercase">Entrada</p>
+          <p className={`text-[13px] font-black ${reg.entrada ? "text-[#F1F5F9]" : "text-[#334155]"}`}>{fmtHora(reg.entrada)}</p>
         </div>
         <div>
-          <p className="text-[9px] font-black text-neutral-400 uppercase">Saída</p>
-          <p className={`text-[13px] font-black ${reg.saida ? "text-neutral-900" : "text-neutral-300"}`}>{fmtHora(reg.saida)}</p>
+          <p className="text-[9px] font-black text-[#475569] uppercase">Saída</p>
+          <p className={`text-[13px] font-black ${reg.saida ? "text-[#F1F5F9]" : "text-[#334155]"}`}>{fmtHora(reg.saida)}</p>
         </div>
         <div>
-          <p className="text-[9px] font-black text-neutral-400 uppercase">Total</p>
-          <p className={`text-[13px] font-black ${dur ? "text-emerald-700" : "text-neutral-300"}`}>{dur ? dur.label : "--"}</p>
+          <p className="text-[9px] font-black text-[#475569] uppercase">Total</p>
+          <p className={`text-[13px] font-black ${dur ? "text-emerald-700" : "text-[#334155]"}`}>{dur ? dur.label : "--"}</p>
         </div>
       </div>
       <span className={`flex-shrink-0 text-[9px] font-black px-2 py-1 rounded-full ${stl.bg} ${stl.cor}`}>{stl.label}</span>
@@ -129,48 +129,48 @@ function CardFuncionario({ func, registros }) {
   const iniciais  = func.nome.split(" ").slice(0, 2).map(n => n[0]).join("").toUpperCase();
 
   return (
-    <div className={`rounded-2xl border shadow-sm overflow-hidden ${temAlerta ? "border-amber-200" : "border-neutral-100"} bg-white`}>
+    <div className={`rounded-2xl border  overflow-hidden ${temAlerta ? "border-amber-200" : "border-white/5"} bg-[#1E293B]`}>
       <button className="w-full px-4 pt-4 pb-3 text-left" onClick={() => setAberto(v => !v)}>
         <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm flex-shrink-0 ${temAlerta ? "bg-amber-100 text-amber-700" : "bg-neutral-100 text-neutral-600"}`}>
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm flex-shrink-0 ${temAlerta ? "bg-amber-100 text-amber-700" : "bg-[#334155] text-[#94A3B8]"}`}>
             {iniciais}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <p className="text-sm font-black text-neutral-900 truncate">{func.nome}</p>
+              <p className="text-sm font-black text-[#F1F5F9] truncate">{func.nome}</p>
               {temAlerta && <AlertTriangle size={13} className="text-amber-500 flex-shrink-0" />}
             </div>
-            <p className="text-[11px] font-medium text-neutral-400">{func.cargo} · {func.turno}</p>
+            <p className="text-[11px] font-medium text-[#475569]">{func.cargo} · {func.turno}</p>
           </div>
           <div className="text-right flex-shrink-0">
-            <p className="text-base font-black text-neutral-900">{stats.hTrab}h{stats.mTrab > 0 ? stats.mTrab + "m" : ""}</p>
-            <p className="text-[10px] font-bold text-neutral-400">trabalhadas</p>
+            <p className="text-base font-black text-[#F1F5F9]">{stats.hTrab}h{stats.mTrab > 0 ? stats.mTrab + "m" : ""}</p>
+            <p className="text-[10px] font-bold text-[#475569]">trabalhadas</p>
           </div>
-          {aberto ? <ChevronUp size={16} className="text-neutral-400 flex-shrink-0" /> : <ChevronDown size={16} className="text-neutral-400 flex-shrink-0" />}
+          {aberto ? <ChevronUp size={16} className="text-[#475569] flex-shrink-0" /> : <ChevronDown size={16} className="text-[#475569] flex-shrink-0" />}
         </div>
 
         {/* Mini stats */}
         <div className="grid grid-cols-3 gap-2 mt-3">
-          <div className="bg-neutral-50 rounded-xl px-2 py-2 text-center">
-            <p className="text-[9px] font-black text-neutral-400 uppercase">Dias</p>
-            <p className="text-sm font-black text-neutral-900">{stats.dias}</p>
+          <div className=" rounded-xl px-2 py-2 text-center">
+            <p className="text-[9px] font-black text-[#475569] uppercase">Dias</p>
+            <p className="text-sm font-black text-[#F1F5F9]">{stats.dias}</p>
           </div>
-          <div className={`rounded-xl px-2 py-2 text-center ${stats.atrasos > 0 ? "bg-amber-50" : "bg-neutral-50"}`}>
-            <p className="text-[9px] font-black text-neutral-400 uppercase">Atrasos</p>
-            <p className={`text-sm font-black ${stats.atrasos > 0 ? "text-amber-700" : "text-neutral-900"}`}>{stats.atrasos}</p>
+          <div className={`rounded-xl px-2 py-2 text-center ${stats.atrasos > 0 ? "bg-amber-50" : ""}`}>
+            <p className="text-[9px] font-black text-[#475569] uppercase">Atrasos</p>
+            <p className={`text-sm font-black ${stats.atrasos > 0 ? "text-amber-700" : "text-[#F1F5F9]"}`}>{stats.atrasos}</p>
           </div>
-          <div className={`rounded-xl px-2 py-2 text-center ${stats.faltas > 0 ? "bg-rose-50" : "bg-neutral-50"}`}>
-            <p className="text-[9px] font-black text-neutral-400 uppercase">Faltas</p>
-            <p className={`text-sm font-black ${stats.faltas > 0 ? "text-rose-700" : "text-neutral-900"}`}>{stats.faltas}</p>
+          <div className={`rounded-xl px-2 py-2 text-center ${stats.faltas > 0 ? "bg-[rgba(5,150,105,0.1)]" : ""}`}>
+            <p className="text-[9px] font-black text-[#475569] uppercase">Faltas</p>
+            <p className={`text-sm font-black ${stats.faltas > 0 ? "text-[#059669]" : "text-[#F1F5F9]"}`}>{stats.faltas}</p>
           </div>
         </div>
       </button>
 
       {aberto && (
-        <div className="px-4 pb-4 border-t border-neutral-100">
-          <p className="text-[10px] font-black text-neutral-400 uppercase tracking-wider pt-3 mb-2">Registros do Mês</p>
+        <div className="px-4 pb-4 border-t border-white/5">
+          <p className="text-[10px] font-black text-[#475569] uppercase tracking-wider pt-3 mb-2">Registros do Mês</p>
           {registros.length === 0
-            ? <p className="text-sm text-neutral-400 text-center py-4">Nenhum registro</p>
+            ? <p className="text-sm text-[#475569] text-center py-4">Nenhum registro</p>
             : registros.map(r => <LinhaRegistro key={r.id} reg={r} />)
           }
         </div>
@@ -193,48 +193,48 @@ function ModalPonto({ funcionarios, onSalvar, onFechar }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-black/40" onClick={onFechar}>
-      <div className="w-full bg-white rounded-t-3xl p-6 space-y-4" onClick={e => e.stopPropagation()}>
-        <div className="w-10 h-1 bg-neutral-200 rounded-full mx-auto" />
-        <h2 className="text-lg font-black text-neutral-900">Registrar Ponto</h2>
+    <div className="fixed inset-0 z-50 flex items-end bg-[#059669]/40" onClick={onFechar}>
+      <div className="w-full bg-[#1E293B] rounded-t-3xl p-6 space-y-4" onClick={e => e.stopPropagation()}>
+        <div className="w-10 h-1 bg-[#334155] rounded-full mx-auto" />
+        <h2 className="text-lg font-black text-[#F1F5F9]">Registrar Ponto</h2>
         <div className="space-y-3">
           <div>
-            <label className="text-[11px] font-black text-neutral-400 uppercase tracking-wider block mb-1">Funcionário</label>
+            <label className="text-[11px] font-black text-[#475569] uppercase tracking-wider block mb-1">Funcionário</label>
             <select value={form.func_id} onChange={e => set("func_id", e.target.value)}
-              className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-3 text-sm font-medium text-neutral-900 focus:outline-none focus:ring-2 focus:border-[#10b981]">
+              className="w-full  border border-white/8 rounded-xl px-3 py-3 text-sm font-medium text-[#F1F5F9] focus:outline-none focus:ring-2 focus:border-[#10b981]">
               <option value="">Selecionar...</option>
               {funcionarios.map(f => <option key={f.id} value={f.id}>{f.nome}</option>)}
             </select>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[11px] font-black text-neutral-400 uppercase tracking-wider block mb-1">Tipo</label>
+              <label className="text-[11px] font-black text-[#475569] uppercase tracking-wider block mb-1">Tipo</label>
               <div className="grid grid-cols-2 gap-2">
                 {[["entrada","Entrada"],["saida","Saída"]].map(([v, l]) => (
                   <button key={v} onClick={() => set("tipo", v)}
-                    className={`py-2.5 rounded-xl text-xs font-black transition-all ${form.tipo === v ? (v === "entrada" ? "bg-emerald-600 text-white" : "bg-rose-500 text-white") : "bg-neutral-100 text-neutral-600"}`}>
+                    className={`py-2.5 rounded-xl text-xs font-black transition-all ${form.tipo === v ? (v === "entrada" ? "bg-emerald-600 text-white" : "bg-[rgba(5,150,105,0.1)]0 text-white") : "bg-[#334155] text-[#94A3B8]"}`}>
                     {l}
                   </button>
                 ))}
               </div>
             </div>
             <div>
-              <label className="text-[11px] font-black text-neutral-400 uppercase tracking-wider block mb-1">Hora</label>
+              <label className="text-[11px] font-black text-[#475569] uppercase tracking-wider block mb-1">Hora</label>
               <input type="time" value={form.hora} onChange={e => set("hora", e.target.value)}
-                className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2.5 text-sm font-medium text-neutral-900 focus:outline-none focus:ring-2 focus:border-[#10b981]" />
+                className="w-full  border border-white/8 rounded-xl px-3 py-2.5 text-sm font-medium text-[#F1F5F9] focus:outline-none focus:ring-2 focus:border-[#10b981]" />
             </div>
           </div>
           <div>
-            <label className="text-[11px] font-black text-neutral-400 uppercase tracking-wider block mb-1">Data</label>
+            <label className="text-[11px] font-black text-[#475569] uppercase tracking-wider block mb-1">Data</label>
             <input type="date" value={form.data} onChange={e => set("data", e.target.value)}
-              className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2.5 text-sm font-medium text-neutral-900 focus:outline-none focus:ring-2 focus:border-[#10b981]" />
+              className="w-full  border border-white/8 rounded-xl px-3 py-2.5 text-sm font-medium text-[#F1F5F9] focus:outline-none focus:ring-2 focus:border-[#10b981]" />
           </div>
         </div>
         <button onClick={salvar}
-          className="w-full py-3.5 rounded-2xl bg-neutral-900 text-white font-black text-sm active:scale-95 transition-transform">
+          className="w-full py-3.5 rounded-2xl bg-[#059669] text-white font-black text-sm active:scale-95 transition-transform">
           Confirmar Registro
         </button>
-        <button onClick={onFechar} className="w-full py-2 text-neutral-400 text-sm font-medium">Cancelar</button>
+        <button onClick={onFechar} className="w-full py-2 text-[#475569] text-sm font-medium">Cancelar</button>
       </div>
     </div>
   );
@@ -325,24 +325,24 @@ export default function PontoPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#fbf9f5]">
+    <div className="min-h-screen ">
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-[#fbf9f5] border-b border-neutral-200 px-4 pt-12 pb-3">
+      <div className="sticky top-0 z-20  border-b border-white/8 px-4 pt-12 pb-3" style={{ background: '#0F172A' }}>
         <div className="flex items-center gap-3">
           <button onClick={() => router.back()}
-            className="w-9 h-9 rounded-xl bg-white border border-neutral-200 flex items-center justify-center shadow-sm active:scale-95 transition-transform">
-            <ArrowLeft size={18} className="text-neutral-600" />
+            className="w-9 h-9 rounded-xl bg-[#1E293B] border border-white/8 flex items-center justify-center  active:scale-95 transition-transform">
+            <ArrowLeft size={18} className="text-[#94A3B8]" />
           </button>
           <div className="flex-1">
-            <h1 className="text-lg font-black text-neutral-900 leading-tight">Controle de Ponto</h1>
-            <p className="text-[11px] text-neutral-400 font-medium">Registros de entrada e saída</p>
+            <h1 className="text-lg font-black leading-tight" style={{ color:"#F1F5F9" }}>Controle de Ponto</h1>
+            <p className="text-[11px] text-[#475569] font-medium">Registros de entrada e saída</p>
           </div>
           <button onClick={carregarDados}
-            className="w-9 h-9 rounded-xl bg-white border border-neutral-200 flex items-center justify-center shadow-sm active:scale-95 transition-transform mr-1">
-            <RefreshCw size={15} className="text-neutral-500" />
+            className="w-9 h-9 rounded-xl bg-[#1E293B] border border-white/8 flex items-center justify-center  active:scale-95 transition-transform mr-1">
+            <RefreshCw size={15} className="text-[#64748B]" />
           </button>
           <button onClick={() => setModal(true)}
-            className="flex items-center gap-1.5 bg-neutral-900 text-white text-xs font-black px-3 py-2 rounded-xl active:scale-95 transition-transform">
+            className="flex items-center gap-1.5 bg-[#059669] text-white text-xs font-black px-3 py-2 rounded-xl active:scale-95 transition-transform">
             <Clock size={13} />
             Bater Ponto
           </button>
@@ -351,7 +351,7 @@ export default function PontoPage() {
         {/* Seletor de mês */}
         <div className="mt-3">
           <input type="month" value={mes} onChange={e => setMes(e.target.value)}
-            className="w-full bg-white border border-neutral-200 rounded-xl px-4 py-2.5 text-sm font-medium text-neutral-900 focus:outline-none focus:ring-2 focus:border-[#10b981] shadow-sm" />
+            className="w-full bg-[#1E293B] border border-white/8 rounded-xl px-4 py-2.5 text-sm font-medium text-[#F1F5F9] focus:outline-none focus:ring-2 focus:border-[#10b981] " />
         </div>
       </div>
 
@@ -374,23 +374,23 @@ export default function PontoPage() {
                 <p className="text-[9px] font-black text-blue-600 uppercase tracking-wider mb-1">Em serviço</p>
                 <p className="text-2xl font-black text-blue-800">{resumo.emServico}</p>
               </div>
-              <div className={`rounded-2xl border p-3 text-center ${resumo.totalAtrasos > 0 ? "bg-amber-50 border-amber-200" : "bg-white border-neutral-100"}`}>
-                <p className={`text-[9px] font-black uppercase tracking-wider mb-1 ${resumo.totalAtrasos > 0 ? "text-amber-600" : "text-neutral-400"}`}>Atrasos</p>
-                <p className={`text-2xl font-black ${resumo.totalAtrasos > 0 ? "text-amber-800" : "text-neutral-900"}`}>{resumo.totalAtrasos}</p>
+              <div className={`rounded-2xl border p-3 text-center ${resumo.totalAtrasos > 0 ? "bg-amber-50 border-amber-200" : "bg-[#1E293B] border-white/5"}`}>
+                <p className={`text-[9px] font-black uppercase tracking-wider mb-1 ${resumo.totalAtrasos > 0 ? "text-amber-600" : "text-[#475569]"}`}>Atrasos</p>
+                <p className={`text-2xl font-black ${resumo.totalAtrasos > 0 ? "text-amber-800" : "text-[#F1F5F9]"}`}>{resumo.totalAtrasos}</p>
               </div>
-              <div className={`rounded-2xl border p-3 text-center ${resumo.totalFaltas > 0 ? "bg-rose-50 border-rose-200" : "bg-white border-neutral-100"}`}>
-                <p className={`text-[9px] font-black uppercase tracking-wider mb-1 ${resumo.totalFaltas > 0 ? "text-rose-600" : "text-neutral-400"}`}>Faltas</p>
-                <p className={`text-2xl font-black ${resumo.totalFaltas > 0 ? "text-rose-800" : "text-neutral-900"}`}>{resumo.totalFaltas}</p>
+              <div className={`rounded-2xl border p-3 text-center ${resumo.totalFaltas > 0 ? "bg-[rgba(5,150,105,0.1)] border-[rgba(5,150,105,0.3)]" : "bg-[#1E293B] border-white/5"}`}>
+                <p className={`text-[9px] font-black uppercase tracking-wider mb-1 ${resumo.totalFaltas > 0 ? "text-[#059669]" : "text-[#475569]"}`}>Faltas</p>
+                <p className={`text-2xl font-black ${resumo.totalFaltas > 0 ? "text-rose-800" : "text-[#F1F5F9]"}`}>{resumo.totalFaltas}</p>
               </div>
             </div>
 
             {/* Busca */}
             <div className="relative">
-              <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" />
+              <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#475569]" />
               <input type="text" value={busca} onChange={e => setBusca(e.target.value)}
                 placeholder="Buscar funcionário..."
-                className="w-full bg-white border border-neutral-200 rounded-xl pl-11 pr-10 py-3 text-sm font-medium text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:border-[#10b981] shadow-sm" />
-              {busca && <button onClick={() => setBusca("")} className="absolute right-3 top-1/2 -translate-y-1/2"><X size={15} className="text-neutral-400" /></button>}
+                className="w-full bg-[#1E293B] border border-white/8 rounded-xl pl-11 pr-10 py-3 text-sm font-medium text-[#F1F5F9] placeholder:text-[#475569] focus:outline-none focus:ring-2 focus:border-[#10b981] " />
+              {busca && <button onClick={() => setBusca("")} className="absolute right-3 top-1/2 -translate-y-1/2"><X size={15} className="text-[#475569]" /></button>}
             </div>
 
             {/* Cards por funcionário */}
@@ -400,7 +400,7 @@ export default function PontoPage() {
               ))}
             </div>
 
-            <p className="text-[10px] text-neutral-300 font-medium text-center">
+            <p className="text-[10px] text-[#334155] font-medium text-center">
               * Turno-base: 08:00. Atraso registrado após 10 min de tolerância.
             </p>
           </>

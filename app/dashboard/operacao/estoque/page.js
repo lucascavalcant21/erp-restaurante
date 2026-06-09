@@ -55,15 +55,15 @@ function Skeleton() {
   return (
     <div className="space-y-3">
       {[1,2,3].map(i => (
-        <div key={i} className="bg-white rounded-2xl border border-neutral-100 p-4 animate-pulse">
+        <div key={i} className="bg-[#1E293B] rounded-2xl border border-white/5 p-4 animate-pulse">
           <div className="flex justify-between mb-3">
             <div className="space-y-2">
-              <div className="h-2 w-16 bg-neutral-100 rounded-full" />
-              <div className="h-4 w-40 bg-neutral-200 rounded-full" />
+              <div className="h-2 w-16 bg-[#334155] rounded-full" />
+              <div className="h-4 w-40 bg-[#334155] rounded-full" />
             </div>
-            <div className="h-8 w-12 bg-neutral-100 rounded-xl" />
+            <div className="h-8 w-12 bg-[#334155] rounded-xl" />
           </div>
-          <div className="h-2 bg-neutral-100 rounded-full" />
+          <div className="h-2 bg-[#334155] rounded-full" />
         </div>
       ))}
     </div>
@@ -77,31 +77,31 @@ function CardItem({ item, onEditar, onMovimentar, onDeletar }) {
   const valorTotal = item.quantidade * item.custo_unitario;
 
   return (
-    <div className={`bg-white rounded-2xl border shadow-sm overflow-hidden ${critico ? "border-rose-200" : baixo ? "border-amber-200" : "border-neutral-100"}`}>
+    <div className={`bg-[#1E293B] rounded-2xl border  overflow-hidden ${critico ? "border-[rgba(5,150,105,0.3)]" : baixo ? "border-amber-200" : "border-white/5"}`}>
       <div className="px-4 pt-4 pb-3">
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-0.5">
-              <span className="text-[10px] font-black text-neutral-400 uppercase tracking-wider">{item.categoria}</span>
-              {critico && <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-600">Crítico</span>}
+              <span className="text-[10px] font-black text-[#475569] uppercase tracking-wider">{item.categoria}</span>
+              {critico && <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full bg-[rgba(5,150,105,0.15)] text-[#059669]">Crítico</span>}
               {baixo   && <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-600">Baixo</span>}
             </div>
-            <p className="text-base font-black text-neutral-900 truncate">{item.nome}</p>
-            <p className="text-[11px] text-neutral-400 font-medium mt-0.5">Última entrada: {fmtData(item.ultima_entrada)}</p>
+            <p className="text-base font-black text-[#F1F5F9] truncate">{item.nome}</p>
+            <p className="text-[11px] text-[#475569] font-medium mt-0.5">Última entrada: {fmtData(item.ultima_entrada)}</p>
           </div>
           <div className="text-right flex-shrink-0">
-            <p className="text-xl font-black text-neutral-900">{item.quantidade}</p>
-            <p className="text-[11px] text-neutral-400 font-medium">{item.unidade}</p>
+            <p className="text-xl font-black text-[#F1F5F9]">{item.quantidade}</p>
+            <p className="text-[11px] text-[#475569] font-medium">{item.unidade}</p>
           </div>
         </div>
         <div className="mb-2">
-          <div className="h-2 bg-neutral-100 rounded-full overflow-hidden">
+          <div className="h-2 bg-[#334155] rounded-full overflow-hidden">
             <div className="h-full rounded-full transition-all duration-500"
               style={{ width: `${Math.min((item.quantidade / (item.minimo * 3)) * 100, 100)}%`, backgroundColor: critico ? "#f43f5e" : baixo ? "#f59e0b" : "#10b981" }} />
           </div>
           <div className="flex justify-between text-[10px] font-bold mt-1">
-            <span className={critico ? "text-rose-500" : baixo ? "text-amber-500" : "text-neutral-400"}>Mín: {item.minimo} {item.unidade}</span>
-            <span className="text-neutral-400">Valor: {fmtBRL(valorTotal)}</span>
+            <span className={critico ? "text-[#10b981]" : baixo ? "text-amber-500" : "text-[#475569]"}>Mín: {item.minimo} {item.unidade}</span>
+            <span className="text-[#475569]">Valor: {fmtBRL(valorTotal)}</span>
           </div>
         </div>
       </div>
@@ -112,10 +112,10 @@ function CardItem({ item, onEditar, onMovimentar, onDeletar }) {
         <button onClick={() => onMovimentar(item, "saida")} className="flex-1 flex items-center justify-center gap-1.5 py-3 text-[11px] font-black text-blue-600 active:bg-blue-50 transition-colors">
           <ArrowDownCircle size={13} /> Saída
         </button>
-        <button onClick={() => onEditar(item)} className="flex-1 flex items-center justify-center gap-1.5 py-3 text-[11px] font-black text-neutral-600 active:bg-neutral-50 transition-colors">
+        <button onClick={() => onEditar(item)} className="flex-1 flex items-center justify-center gap-1.5 py-3 text-[11px] font-black text-[#94A3B8] active: transition-colors">
           <Edit3 size={13} /> Editar
         </button>
-        <button onClick={() => onDeletar(item.id)} className="flex-1 flex items-center justify-center gap-1.5 py-3 text-[11px] font-black text-rose-400 active:bg-rose-50 transition-colors">
+        <button onClick={() => onDeletar(item.id)} className="flex-1 flex items-center justify-center gap-1.5 py-3 text-[11px] font-black text-[#10b981] active:bg-[rgba(5,150,105,0.1)] transition-colors">
           <Trash2 size={13} /> Remover
         </button>
       </div>
@@ -150,65 +150,65 @@ function FormItem({ inicial, onSalvar, onCancelar }) {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-5 space-y-4">
-      <p className="text-sm font-black text-neutral-900">{inicial ? "Editar Item" : "Novo Item de Estoque"}</p>
+    <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-5 space-y-4">
+      <p className="text-sm font-black text-[#F1F5F9]">{inicial ? "Editar Item" : "Novo Item de Estoque"}</p>
       <div>
-        <label className="text-[10px] font-black text-neutral-400 uppercase tracking-wider block mb-1.5">Nome</label>
+        <label className="text-[10px] font-black text-[#475569] uppercase tracking-wider block mb-1.5">Nome</label>
         <input type="text" value={nome} onChange={e => { setNome(e.target.value); setErro(""); }}
           placeholder="ex: Carne Moída"
-          className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3.5 text-sm font-bold text-neutral-900 placeholder:text-neutral-400 placeholder:font-medium focus:outline-none focus:ring-2 focus:border-[#10b981] transition-all" />
+          className="w-full  border border-white/8 rounded-xl px-4 py-3.5 text-sm font-bold text-[#F1F5F9] placeholder:text-[#475569] placeholder:font-medium focus:outline-none focus:ring-2 focus:border-[#10b981] transition-all" />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-wider block mb-1.5">Categoria</label>
+          <label className="text-[10px] font-black text-[#475569] uppercase tracking-wider block mb-1.5">Categoria</label>
           <div className="relative">
             <select value={categoria} onChange={e => setCategoria(e.target.value)}
-              className="w-full appearance-none bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-3.5 text-sm font-bold text-neutral-900 focus:outline-none focus:ring-2 focus:border-[#10b981] pr-8">
+              className="w-full appearance-none  border border-white/8 rounded-xl px-3 py-3.5 text-sm font-bold text-[#F1F5F9] focus:outline-none focus:ring-2 focus:border-[#10b981] pr-8" style={{ background: "#1E293B", color: "#F1F5F9" }} >
               {CATEGORIAS.filter(c => c !== "Todos").map(c => <option key={c} value={c}>{c}</option>)}
             </select>
-            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
+            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#475569] pointer-events-none" />
           </div>
         </div>
         <div>
-          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-wider block mb-1.5">Unidade</label>
+          <label className="text-[10px] font-black text-[#475569] uppercase tracking-wider block mb-1.5">Unidade</label>
           <div className="relative">
             <select value={unidade} onChange={e => setUnidade(e.target.value)}
-              className="w-full appearance-none bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-3.5 text-sm font-bold text-neutral-900 focus:outline-none focus:ring-2 focus:border-[#10b981] pr-8">
+              className="w-full appearance-none  border border-white/8 rounded-xl px-3 py-3.5 text-sm font-bold text-[#F1F5F9] focus:outline-none focus:ring-2 focus:border-[#10b981] pr-8" style={{ background: "#1E293B", color: "#F1F5F9" }} >
               {UNIDADES_ESTOQUE.map(u => <option key={u} value={u}>{u}</option>)}
             </select>
-            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
+            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#475569] pointer-events-none" />
           </div>
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-wider block mb-1.5">Qtd. Atual</label>
+          <label className="text-[10px] font-black text-[#475569] uppercase tracking-wider block mb-1.5">Qtd. Atual</label>
           <input type="number" inputMode="decimal" min="0" value={quantidade} onChange={e => { setQuantidade(e.target.value); setErro(""); }}
             placeholder="0"
-            className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3.5 text-sm font-black text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:border-[#10b981]" />
+            className="w-full  border border-white/8 rounded-xl px-4 py-3.5 text-sm font-black text-[#F1F5F9] placeholder:text-[#475569] focus:outline-none focus:ring-2 focus:border-[#10b981]" />
         </div>
         <div>
-          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-wider block mb-1.5">Mínimo</label>
+          <label className="text-[10px] font-black text-[#475569] uppercase tracking-wider block mb-1.5">Mínimo</label>
           <input type="number" inputMode="decimal" min="0" value={minimo} onChange={e => { setMinimo(e.target.value); setErro(""); }}
             placeholder="0"
-            className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3.5 text-sm font-black text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:border-[#10b981]" />
+            className="w-full  border border-white/8 rounded-xl px-4 py-3.5 text-sm font-black text-[#F1F5F9] placeholder:text-[#475569] focus:outline-none focus:ring-2 focus:border-[#10b981]" />
         </div>
       </div>
       <div>
-        <label className="text-[10px] font-black text-neutral-400 uppercase tracking-wider block mb-1.5">Custo Unitário (R$)</label>
+        <label className="text-[10px] font-black text-[#475569] uppercase tracking-wider block mb-1.5">Custo Unitário (R$)</label>
         <input type="number" inputMode="decimal" step="0.01" min="0" value={custo} onChange={e => { setCusto(e.target.value); setErro(""); }}
           placeholder="0.00"
-          className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3.5 text-sm font-black text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:border-[#10b981]" />
+          className="w-full  border border-white/8 rounded-xl px-4 py-3.5 text-sm font-black text-[#F1F5F9] placeholder:text-[#475569] focus:outline-none focus:ring-2 focus:border-[#10b981]" />
       </div>
       {erro && (
-        <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2.5">
-          <AlertCircle size={13} className="text-rose-500 flex-shrink-0" />
-          <p className="text-xs font-bold text-rose-700">{erro}</p>
+        <div className="flex items-center gap-2 bg-[rgba(5,150,105,0.1)] border border-[rgba(5,150,105,0.3)] rounded-xl px-3 py-2.5">
+          <AlertCircle size={13} className="text-[#10b981] flex-shrink-0" />
+          <p className="text-xs font-bold text-[#059669]">{erro}</p>
         </div>
       )}
       <div className="flex gap-3 pt-1">
-        <button onClick={onCancelar} className="flex-1 py-3.5 rounded-xl font-black text-sm text-neutral-700 bg-neutral-100 active:scale-95 transition-all">Cancelar</button>
-        <button onClick={handleSalvar} className="flex-1 py-3.5 rounded-xl font-black text-sm text-white bg-[#10b981] active:scale-95 transition-all shadow-md">
+        <button onClick={onCancelar} className="flex-1 py-3.5 rounded-xl font-black text-sm text-[#CBD5E1] bg-[#334155] active:scale-95 transition-all">Cancelar</button>
+        <button onClick={handleSalvar} className="flex-1 py-3.5 rounded-xl font-black text-sm text-white bg-[#10b981] active:scale-95 transition-all ">
           {inicial ? "Salvar Alterações" : "Cadastrar Item"}
         </button>
       </div>
@@ -230,39 +230,39 @@ function ModalMovimentacao({ item, tipo, onConfirmar, onCancelar }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-end justify-center">
-      <div className="bg-white rounded-t-3xl w-full max-w-md p-6 pb-10 space-y-4">
+    <div className="fixed inset-0 z-50 bg-[#059669]/40 flex items-end justify-center">
+      <div className="bg-[#1E293B] rounded-t-3xl w-full max-w-md p-6 pb-10 space-y-4">
         <div className="flex items-center gap-3 mb-2">
           <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${entrada ? "bg-emerald-100" : "bg-blue-100"}`}>
             {entrada ? <ArrowUpCircle size={20} className="text-emerald-600" /> : <ArrowDownCircle size={20} className="text-blue-600" />}
           </div>
           <div>
-            <p className="text-base font-black text-neutral-900">{entrada ? "Registrar Entrada" : "Registrar Saída"}</p>
-            <p className="text-[11px] text-neutral-400 font-medium truncate">{item.nome}</p>
+            <p className="text-base font-black text-[#F1F5F9]">{entrada ? "Registrar Entrada" : "Registrar Saída"}</p>
+            <p className="text-[11px] text-[#475569] font-medium truncate">{item.nome}</p>
           </div>
         </div>
         <div>
-          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-wider block mb-1.5">
+          <label className="text-[10px] font-black text-[#475569] uppercase tracking-wider block mb-1.5">
             Quantidade ({item.unidade})
-            {!entrada && <span className="ml-1 text-neutral-400 normal-case font-medium">— disponível: {item.quantidade}</span>}
+            {!entrada && <span className="ml-1 text-[#475569] normal-case font-medium">— disponível: {item.quantidade}</span>}
           </label>
           <input autoFocus type="number" inputMode="decimal" min="0.1" step="0.1"
             value={qtd} onChange={e => setQtd(e.target.value)}
             onKeyDown={e => e.key === "Enter" && handleConfirmar()}
             placeholder="ex: 5"
-            className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3.5 text-xl font-black text-neutral-900 placeholder:text-neutral-300 focus:outline-none focus:ring-2 focus:border-[#10b981]" />
+            className="w-full  border border-white/8 rounded-xl px-4 py-3.5 text-xl font-black text-[#F1F5F9] placeholder:text-[#334155] focus:outline-none focus:ring-2 focus:border-[#10b981]" />
         </div>
         <div>
-          <label className="text-[10px] font-black text-neutral-400 uppercase tracking-wider block mb-1.5">Observação (opcional)</label>
+          <label className="text-[10px] font-black text-[#475569] uppercase tracking-wider block mb-1.5">Observação (opcional)</label>
           <input type="text" value={obs} onChange={e => setObs(e.target.value)}
             placeholder="ex: Compra Fornecedor X"
-            className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm font-medium text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:border-[#10b981]" />
+            className="w-full  border border-white/8 rounded-xl px-4 py-3 text-sm font-medium text-[#F1F5F9] placeholder:text-[#475569] focus:outline-none focus:ring-2 focus:border-[#10b981]" />
         </div>
         <div className="flex gap-3 pt-1">
-          <button onClick={onCancelar} className="flex-1 py-3.5 rounded-xl font-black text-sm text-neutral-700 bg-neutral-100 active:scale-95 transition-all">Cancelar</button>
+          <button onClick={onCancelar} className="flex-1 py-3.5 rounded-xl font-black text-sm text-[#CBD5E1] bg-[#334155] active:scale-95 transition-all">Cancelar</button>
           <button onClick={handleConfirmar}
             disabled={!qtd || parseFloat(qtd) <= 0 || (!entrada && parseFloat(qtd) > item.quantidade)}
-            className={`flex-1 py-3.5 rounded-xl font-black text-sm text-white active:scale-95 transition-all shadow-md disabled:opacity-40 ${entrada ? "bg-emerald-500" : "bg-blue-500"}`}>
+            className={`flex-1 py-3.5 rounded-xl font-black text-sm text-white active:scale-95 transition-all  disabled:opacity-40 ${entrada ? "bg-emerald-500" : "bg-blue-500"}`}>
             Confirmar {entrada ? "Entrada" : "Saída"}
           </button>
         </div>
@@ -288,33 +288,33 @@ function TabControle({ itens, resumo, fromSeed, onEditar, onMovimentar, onDeleta
     <div className="space-y-4">
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-4">
-          <div className="w-8 h-8 rounded-xl bg-neutral-100 flex items-center justify-center mb-2">
-            <Package size={16} className="text-neutral-600" />
+        <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-4">
+          <div className="w-8 h-8 rounded-xl bg-[#334155] flex items-center justify-center mb-2">
+            <Package size={16} className="text-[#94A3B8]" />
           </div>
-          <p className="text-2xl font-black text-neutral-900">{resumo.total}</p>
-          <p className="text-[11px] font-bold text-neutral-400">Itens cadastrados</p>
+          <p className="text-2xl font-black text-[#F1F5F9]">{resumo.total}</p>
+          <p className="text-[11px] font-bold text-[#475569]">Itens cadastrados</p>
         </div>
-        <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-4">
+        <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-4">
           <div className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center mb-2">
             <BarChart2 size={16} className="text-emerald-600" />
           </div>
           <p className="text-xl font-black text-emerald-800">{fmtBRL(resumo.valorTotal)}</p>
-          <p className="text-[11px] font-bold text-neutral-400">Valor total em estoque</p>
+          <p className="text-[11px] font-bold text-[#475569]">Valor total em estoque</p>
         </div>
-        <div className={`rounded-2xl border shadow-sm p-4 ${resumo.criticos > 0 ? "bg-rose-50 border-rose-200" : "bg-white border-neutral-100"}`}>
-          <div className={`w-8 h-8 rounded-xl flex items-center justify-center mb-2 ${resumo.criticos > 0 ? "bg-rose-100" : "bg-neutral-100"}`}>
-            <AlertTriangle size={16} className={resumo.criticos > 0 ? "text-rose-500" : "text-neutral-400"} />
+        <div className={`rounded-2xl border  p-4 ${resumo.criticos > 0 ? "bg-[rgba(5,150,105,0.1)] border-[rgba(5,150,105,0.3)]" : "bg-[#1E293B] border-white/5"}`}>
+          <div className={`w-8 h-8 rounded-xl flex items-center justify-center mb-2 ${resumo.criticos > 0 ? "bg-[rgba(5,150,105,0.15)]" : "bg-[#334155]"}`}>
+            <AlertTriangle size={16} className={resumo.criticos > 0 ? "text-[#10b981]" : "text-[#475569]"} />
           </div>
-          <p className={`text-2xl font-black ${resumo.criticos > 0 ? "text-rose-700" : "text-neutral-900"}`}>{resumo.criticos}</p>
-          <p className={`text-[11px] font-bold ${resumo.criticos > 0 ? "text-rose-500" : "text-neutral-400"}`}>Itens críticos</p>
+          <p className={`text-2xl font-black ${resumo.criticos > 0 ? "text-[#059669]" : "text-[#F1F5F9]"}`}>{resumo.criticos}</p>
+          <p className={`text-[11px] font-bold ${resumo.criticos > 0 ? "text-[#10b981]" : "text-[#475569]"}`}>Itens críticos</p>
         </div>
-        <div className={`rounded-2xl border shadow-sm p-4 ${resumo.baixos > 0 ? "bg-amber-50 border-amber-200" : "bg-white border-neutral-100"}`}>
-          <div className={`w-8 h-8 rounded-xl flex items-center justify-center mb-2 ${resumo.baixos > 0 ? "bg-amber-100" : "bg-neutral-100"}`}>
-            <TrendingDown size={16} className={resumo.baixos > 0 ? "text-amber-500" : "text-neutral-400"} />
+        <div className={`rounded-2xl border  p-4 ${resumo.baixos > 0 ? "bg-amber-50 border-amber-200" : "bg-[#1E293B] border-white/5"}`}>
+          <div className={`w-8 h-8 rounded-xl flex items-center justify-center mb-2 ${resumo.baixos > 0 ? "bg-amber-100" : "bg-[#334155]"}`}>
+            <TrendingDown size={16} className={resumo.baixos > 0 ? "text-amber-500" : "text-[#475569]"} />
           </div>
-          <p className={`text-2xl font-black ${resumo.baixos > 0 ? "text-amber-700" : "text-neutral-900"}`}>{resumo.baixos}</p>
-          <p className={`text-[11px] font-bold ${resumo.baixos > 0 ? "text-amber-500" : "text-neutral-400"}`}>Estoque baixo</p>
+          <p className={`text-2xl font-black ${resumo.baixos > 0 ? "text-amber-700" : "text-[#F1F5F9]"}`}>{resumo.baixos}</p>
+          <p className={`text-[11px] font-bold ${resumo.baixos > 0 ? "text-amber-500" : "text-[#475569]"}`}>Estoque baixo</p>
         </div>
       </div>
 
@@ -335,7 +335,7 @@ function TabControle({ itens, resumo, fromSeed, onEditar, onMovimentar, onDeleta
       {/* Botão novo item */}
       {!formAberto && (
         <button onClick={onAbrirForm}
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border-2 border-dashed border-neutral-200 text-[11px] font-black text-neutral-400 active:scale-95 transition-all hover:border-emerald-300 hover:text-emerald-600">
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border-2 border-dashed border-white/8 text-[11px] font-black text-[#475569] active:scale-95 transition-all hover:border-emerald-300 hover:text-emerald-600">
           <Plus size={14} /> Novo Item de Estoque
         </button>
       )}
@@ -343,16 +343,16 @@ function TabControle({ itens, resumo, fromSeed, onEditar, onMovimentar, onDeleta
       {/* Busca + filtro */}
       <div className="space-y-3">
         <div className="relative">
-          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" />
+          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#475569]" />
           <input type="text" value={busca} onChange={e => setBusca(e.target.value)}
             placeholder="Buscar item..."
-            className="w-full bg-white border border-neutral-200 rounded-xl pl-11 pr-10 py-3 text-sm font-medium text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:border-[#10b981] shadow-sm" />
-          {busca && <button onClick={() => setBusca("")} className="absolute right-3 top-1/2 -translate-y-1/2"><X size={15} className="text-neutral-400" /></button>}
+            className="w-full bg-[#1E293B] border border-white/8 rounded-xl pl-11 pr-10 py-3 text-sm font-medium text-[#F1F5F9] placeholder:text-[#475569] focus:outline-none focus:ring-2 focus:border-[#10b981] " />
+          {busca && <button onClick={() => setBusca("")} className="absolute right-3 top-1/2 -translate-y-1/2"><X size={15} className="text-[#475569]" /></button>}
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
           {CATEGORIAS.map(cat => (
             <button key={cat} onClick={() => setCatFiltro(cat)}
-              className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-full transition-all active:scale-95 ${catFiltro === cat ? "bg-neutral-900 text-white" : "bg-white text-neutral-600 border border-neutral-200"}`}>
+              className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-full transition-all active:scale-95 ${catFiltro === cat ? "bg-[#059669] text-white" : "bg-[#1E293B] text-[#94A3B8] border border-white/8"}`}>
               {cat}
             </button>
           ))}
@@ -362,13 +362,13 @@ function TabControle({ itens, resumo, fromSeed, onEditar, onMovimentar, onDeleta
       {/* Lista */}
       <div>
         <div className="flex items-center justify-between px-1 mb-2">
-          <p className="text-[11px] font-black text-neutral-400 uppercase tracking-wider">{catFiltro === "Todos" ? "Todos os Itens" : catFiltro}</p>
-          <p className="text-[11px] font-bold text-neutral-400">{itensFiltrados.length} iten{itensFiltrados.length !== 1 ? "s" : ""}</p>
+          <p className="text-[11px] font-black text-[#475569] uppercase tracking-wider">{catFiltro === "Todos" ? "Todos os Itens" : catFiltro}</p>
+          <p className="text-[11px] font-bold text-[#475569]">{itensFiltrados.length} iten{itensFiltrados.length !== 1 ? "s" : ""}</p>
         </div>
         {itensFiltrados.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-8 flex flex-col items-center text-center gap-2">
-            <Package size={22} className="text-neutral-300" />
-            <p className="text-sm font-bold text-neutral-500">{busca ? "Nenhum item encontrado" : "Estoque vazio"}</p>
+          <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-8 flex flex-col items-center text-center gap-2">
+            <Package size={22} className="text-[#334155]" />
+            <p className="text-sm font-bold text-[#64748B]">{busca ? "Nenhum item encontrado" : "Estoque vazio"}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -402,7 +402,7 @@ function TabCurvaABC({ itens }) {
   const ABC_STYLE = {
     A: { bg: "bg-emerald-50 border-emerald-200", badge: "bg-emerald-500 text-white", cor: "#10b981", label: "Alta prioridade" },
     B: { bg: "bg-amber-50 border-amber-200",     badge: "bg-amber-500 text-white",   cor: "#f59e0b", label: "Média prioridade" },
-    C: { bg: "bg-neutral-50 border-neutral-200", badge: "bg-neutral-400 text-white", cor: "#9ca3af", label: "Baixa prioridade" },
+    C: { bg: " border-white/8", badge: "bg-neutral-400 text-white", cor: "#9ca3af", label: "Baixa prioridade" },
   };
 
   // Gráfico de barras horizontal (valor por item)
@@ -417,10 +417,10 @@ function TabCurvaABC({ itens }) {
           const r  = resumoABC[cls];
           const pctValor = totalValor > 0 ? (r.valor / totalValor) * 100 : 0;
           return (
-            <div key={cls} className={`rounded-2xl border shadow-sm p-3 text-center ${st.bg}`}>
+            <div key={cls} className={`rounded-2xl border  p-3 text-center ${st.bg}`}>
               <span className={`text-xs font-black px-2 py-0.5 rounded-full ${st.badge}`}>{cls}</span>
-              <p className="text-xl font-black text-neutral-900 mt-2">{r.qtd}</p>
-              <p className="text-[10px] font-bold text-neutral-500">iten{r.qtd !== 1 ? "s" : ""}</p>
+              <p className="text-xl font-black text-[#F1F5F9] mt-2">{r.qtd}</p>
+              <p className="text-[10px] font-bold text-[#64748B]">iten{r.qtd !== 1 ? "s" : ""}</p>
               <p className="text-xs font-black mt-1" style={{ color: st.cor }}>{pctValor.toFixed(0)}% do valor</p>
             </div>
           );
@@ -428,8 +428,8 @@ function TabCurvaABC({ itens }) {
       </div>
 
       {/* Explicação */}
-      <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-4">
-        <p className="text-xs font-black text-neutral-900 uppercase tracking-wider mb-3">Como funciona</p>
+      <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-4">
+        <p className="text-xs font-black text-[#F1F5F9] uppercase tracking-wider mb-3">Como funciona</p>
         <div className="space-y-2">
           {[
             { cls: "A", desc: "Top 80% do valor — máximo controle, compras frequentes, sem ruptura" },
@@ -440,7 +440,7 @@ function TabCurvaABC({ itens }) {
             return (
               <div key={e.cls} className="flex items-start gap-3">
                 <span className={`text-[10px] font-black px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5 ${st.badge}`}>{e.cls}</span>
-                <p className="text-[11px] text-neutral-600 leading-relaxed">{e.desc}</p>
+                <p className="text-[11px] text-[#94A3B8] leading-relaxed">{e.desc}</p>
               </div>
             );
           })}
@@ -448,8 +448,8 @@ function TabCurvaABC({ itens }) {
       </div>
 
       {/* Lista ranqueada */}
-      <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-4">
-        <p className="text-xs font-black text-neutral-900 uppercase tracking-wider mb-3">Ranking por Valor em Estoque</p>
+      <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-4">
+        <p className="text-xs font-black text-[#F1F5F9] uppercase tracking-wider mb-3">Ranking por Valor em Estoque</p>
         <div className="space-y-3">
           {abc.map((item, i) => {
             const st = ABC_STYLE[item.classe_abc];
@@ -457,17 +457,17 @@ function TabCurvaABC({ itens }) {
             return (
               <div key={item.id} className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-black text-neutral-300 w-5">#{i+1}</span>
+                  <span className="text-[10px] font-black text-[#334155] w-5">#{i+1}</span>
                   <span className={`text-[9px] font-black px-1.5 py-0.5 rounded flex-shrink-0 ${st.badge}`}>{item.classe_abc}</span>
-                  <p className="text-xs font-black text-neutral-800 flex-1 truncate">{item.nome}</p>
-                  <p className="text-xs font-black text-neutral-700 flex-shrink-0">{fmtBRL(item.valor_total)}</p>
+                  <p className="text-xs font-black text-[#F1F5F9] flex-1 truncate">{item.nome}</p>
+                  <p className="text-xs font-black text-[#CBD5E1] flex-shrink-0">{fmtBRL(item.valor_total)}</p>
                 </div>
                 <div className="flex items-center gap-2 pl-7">
-                  <div className="flex-1 h-1.5 bg-neutral-100 rounded-full overflow-hidden">
+                  <div className="flex-1 h-1.5 bg-[#334155] rounded-full overflow-hidden">
                     <div className="h-full rounded-full" style={{ width: `${barPct}%`, backgroundColor: st.cor }} />
                   </div>
-                  <span className="text-[9px] text-neutral-400 font-medium w-10 text-right">{barPct.toFixed(1)}%</span>
-                  <span className="text-[9px] text-neutral-300 font-medium w-14 text-right">acum. {item.pct_acumulado.toFixed(0)}%</span>
+                  <span className="text-[9px] text-[#475569] font-medium w-10 text-right">{barPct.toFixed(1)}%</span>
+                  <span className="text-[9px] text-[#334155] font-medium w-14 text-right">acum. {item.pct_acumulado.toFixed(0)}%</span>
                 </div>
               </div>
             );
@@ -494,9 +494,9 @@ function TabCobertura({ itens }) {
   }, [itens]);
 
   const STATUS_STYLE = {
-    critico: { bg: "bg-rose-50 border-rose-200",     cor: "#f43f5e", badge: "bg-rose-100 text-rose-700",    label: "Crítico"   },
+    critico: { bg: "bg-[rgba(5,150,105,0.1)] border-[rgba(5,150,105,0.3)]",     cor: "#f43f5e", badge: "bg-[rgba(5,150,105,0.15)] text-[#059669]",    label: "Crítico"   },
     alerta:  { bg: "bg-amber-50 border-amber-200",   cor: "#f59e0b", badge: "bg-amber-100 text-amber-700",  label: "Atenção"   },
-    ok:      { bg: "bg-white border-neutral-100",     cor: "#10b981", badge: "bg-emerald-100 text-emerald-700", label: "OK"    },
+    ok:      { bg: "bg-[#1E293B] border-white/5",     cor: "#10b981", badge: "bg-emerald-100 text-emerald-700", label: "OK"    },
     excesso: { bg: "bg-blue-50 border-blue-200",     cor: "#3b82f6", badge: "bg-blue-100 text-blue-700",    label: "Excesso"   },
   };
 
@@ -513,28 +513,28 @@ function TabCobertura({ itens }) {
     <div className="space-y-4">
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3">
-        <div className={`rounded-2xl border shadow-sm p-4 ${stats.criticos > 0 ? "bg-rose-50 border-rose-200" : "bg-white border-neutral-100"}`}>
-          <p className="text-[10px] font-black text-neutral-400 uppercase mb-1">Cobertura crítica (≤3d)</p>
-          <p className={`text-2xl font-black ${stats.criticos > 0 ? "text-rose-700" : "text-neutral-900"}`}>{stats.criticos}</p>
+        <div className={`rounded-2xl border  p-4 ${stats.criticos > 0 ? "bg-[rgba(5,150,105,0.1)] border-[rgba(5,150,105,0.3)]" : "bg-[#1E293B] border-white/5"}`}>
+          <p className="text-[10px] font-black text-[#475569] uppercase mb-1">Cobertura crítica (≤3d)</p>
+          <p className={`text-2xl font-black ${stats.criticos > 0 ? "text-[#059669]" : "text-[#F1F5F9]"}`}>{stats.criticos}</p>
         </div>
-        <div className={`rounded-2xl border shadow-sm p-4 ${stats.alertas > 0 ? "bg-amber-50 border-amber-200" : "bg-white border-neutral-100"}`}>
-          <p className="text-[10px] font-black text-neutral-400 uppercase mb-1">Atenção (4–7 dias)</p>
-          <p className={`text-2xl font-black ${stats.alertas > 0 ? "text-amber-700" : "text-neutral-900"}`}>{stats.alertas}</p>
+        <div className={`rounded-2xl border  p-4 ${stats.alertas > 0 ? "bg-amber-50 border-amber-200" : "bg-[#1E293B] border-white/5"}`}>
+          <p className="text-[10px] font-black text-[#475569] uppercase mb-1">Atenção (4–7 dias)</p>
+          <p className={`text-2xl font-black ${stats.alertas > 0 ? "text-amber-700" : "text-[#F1F5F9]"}`}>{stats.alertas}</p>
         </div>
-        <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-4">
-          <p className="text-[10px] font-black text-neutral-400 uppercase mb-1">Cobertura média</p>
-          <p className="text-2xl font-black text-neutral-900">{stats.media_dias}d</p>
+        <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-4">
+          <p className="text-[10px] font-black text-[#475569] uppercase mb-1">Cobertura média</p>
+          <p className="text-2xl font-black text-[#F1F5F9]">{stats.media_dias}d</p>
         </div>
-        <div className={`rounded-2xl border shadow-sm p-4 ${stats.excessos > 0 ? "bg-blue-50 border-blue-200" : "bg-white border-neutral-100"}`}>
-          <p className="text-[10px] font-black text-neutral-400 uppercase mb-1">Excesso de estoque</p>
-          <p className={`text-2xl font-black ${stats.excessos > 0 ? "text-blue-700" : "text-neutral-900"}`}>{stats.excessos}</p>
+        <div className={`rounded-2xl border  p-4 ${stats.excessos > 0 ? "bg-blue-50 border-blue-200" : "bg-[#1E293B] border-white/5"}`}>
+          <p className="text-[10px] font-black text-[#475569] uppercase mb-1">Excesso de estoque</p>
+          <p className={`text-2xl font-black ${stats.excessos > 0 ? "text-blue-700" : "text-[#F1F5F9]"}`}>{stats.excessos}</p>
         </div>
       </div>
 
       {/* Gráfico de barras — dias de cobertura */}
-      <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-4">
-        <p className="text-xs font-black text-neutral-900 uppercase tracking-wider mb-1">Dias de Cobertura por Item</p>
-        <p className="text-[10px] text-neutral-400 mb-3">Baseado no consumo médio diário</p>
+      <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-4">
+        <p className="text-xs font-black text-[#F1F5F9] uppercase tracking-wider mb-1">Dias de Cobertura por Item</p>
+        <p className="text-[10px] text-[#475569] mb-3">Baseado no consumo médio diário</p>
         <div className="space-y-2.5">
           {itensComCobertura.filter(i => i.dias_cobertura < 200).slice(0, 10).map(item => {
             const st = STATUS_STYLE[item.status_cobertura];
@@ -544,49 +544,49 @@ function TabCobertura({ itens }) {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     <span className={`text-[9px] font-black px-1.5 py-0.5 rounded flex-shrink-0 ${st.badge}`}>{st.label}</span>
-                    <p className="text-xs font-black text-neutral-800 truncate">{item.nome}</p>
+                    <p className="text-xs font-black text-[#F1F5F9] truncate">{item.nome}</p>
                   </div>
                   <p className="text-xs font-black flex-shrink-0 ml-2" style={{ color: st.cor }}>
                     {item.dias_cobertura}d
                   </p>
                 </div>
-                <div className="h-2 bg-neutral-100 rounded-full overflow-hidden">
+                <div className="h-2 bg-[#334155] rounded-full overflow-hidden">
                   <div className="h-full rounded-full transition-all" style={{ width: `${Math.max(barPct, 2)}%`, backgroundColor: st.cor }} />
                 </div>
-                <p className="text-[9px] text-neutral-400">Consumo: {item.consumo_dia.toFixed(1)} {item.unidade}/dia · Estoque: {item.quantidade} {item.unidade}</p>
+                <p className="text-[9px] text-[#475569]">Consumo: {item.consumo_dia.toFixed(1)} {item.unidade}/dia · Estoque: {item.quantidade} {item.unidade}</p>
               </div>
             );
           })}
         </div>
 
         {/* Legenda */}
-        <div className="flex flex-wrap gap-3 mt-4 pt-3 border-t border-neutral-100">
+        <div className="flex flex-wrap gap-3 mt-4 pt-3 border-t border-white/5">
           {[["critico", "≤3d"], ["alerta", "4–7d"], ["ok", "8–60d"], ["excesso", ">60d"]].map(([s, l]) => (
             <div key={s} className="flex items-center gap-1.5">
               <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: STATUS_STYLE[s].cor }} />
-              <span className="text-[10px] text-neutral-500 font-medium">{STATUS_STYLE[s].label} {l}</span>
+              <span className="text-[10px] text-[#64748B] font-medium">{STATUS_STYLE[s].label} {l}</span>
             </div>
           ))}
         </div>
       </div>
 
       {/* Giro de estoque */}
-      <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-4">
-        <p className="text-xs font-black text-neutral-900 uppercase tracking-wider mb-1">Giro de Estoque / Mês</p>
-        <p className="text-[10px] text-neutral-400 mb-3">Quantas vezes o estoque se renova por mês</p>
+      <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-4">
+        <p className="text-xs font-black text-[#F1F5F9] uppercase tracking-wider mb-1">Giro de Estoque / Mês</p>
+        <p className="text-[10px] text-[#475569] mb-3">Quantas vezes o estoque se renova por mês</p>
         <div className="space-y-2">
           {[...itensComCobertura].sort((a, b) => b.giro_mensal - a.giro_mensal).slice(0, 8).map((item, i) => {
             const maxGiro = Math.max(...itensComCobertura.map(x => x.giro_mensal), 1);
             const cor = item.giro_mensal >= 4 ? "#10b981" : item.giro_mensal >= 2 ? "#f59e0b" : "#f43f5e";
             return (
               <div key={item.id} className="flex items-center gap-3">
-                <span className="text-[11px] font-black text-neutral-300 w-4">#{i+1}</span>
+                <span className="text-[11px] font-black text-[#334155] w-4">#{i+1}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between mb-1">
-                    <p className="text-xs font-black text-neutral-800 truncate">{item.nome}</p>
+                    <p className="text-xs font-black text-[#F1F5F9] truncate">{item.nome}</p>
                     <p className="text-xs font-black flex-shrink-0 ml-2" style={{ color: cor }}>{item.giro_mensal}x</p>
                   </div>
-                  <div className="h-2 bg-neutral-100 rounded-full overflow-hidden">
+                  <div className="h-2 bg-[#334155] rounded-full overflow-hidden">
                     <div className="h-full rounded-full" style={{ width: `${Math.min((item.giro_mensal / maxGiro) * 100, 100)}%`, backgroundColor: cor }} />
                   </div>
                 </div>
@@ -594,7 +594,7 @@ function TabCobertura({ itens }) {
             );
           })}
         </div>
-        <div className="flex gap-4 mt-3 pt-3 border-t border-neutral-100 text-[10px] text-neutral-500">
+        <div className="flex gap-4 mt-3 pt-3 border-t border-white/5 text-[10px] text-[#64748B]">
           <span>🟢 Alto giro ≥4x</span>
           <span>🟡 Médio 2–4x</span>
           <span>🔴 Baixo &lt;2x</span>
@@ -661,7 +661,7 @@ function TabAnalise({ itens, resumo }) {
   const TIPO_STYLE = {
     ok:      { icon: <CheckCircle size={15} className="text-emerald-500 flex-shrink-0 mt-0.5" />, bg: "bg-emerald-50 border-emerald-200" },
     alerta:  { icon: <AlertTriangle size={15} className="text-amber-500 flex-shrink-0 mt-0.5" />, bg: "bg-amber-50 border-amber-200" },
-    critico: { icon: <XCircle size={15} className="text-rose-500 flex-shrink-0 mt-0.5" />,        bg: "bg-rose-50 border-rose-200" },
+    critico: { icon: <XCircle size={15} className="text-[#10b981] flex-shrink-0 mt-0.5" />,        bg: "bg-[rgba(5,150,105,0.1)] border-[rgba(5,150,105,0.3)]" },
     info:    { icon: <Minus size={15} className="text-blue-400 flex-shrink-0 mt-0.5" />,          bg: "bg-blue-50 border-blue-200" },
   };
 
@@ -679,31 +679,31 @@ function TabAnalise({ itens, resumo }) {
   return (
     <div className="space-y-4">
       {/* Valor por categoria */}
-      <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-4">
-        <p className="text-xs font-black text-neutral-900 uppercase tracking-wider mb-3">Valor em Estoque por Categoria</p>
+      <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-4">
+        <p className="text-xs font-black text-[#F1F5F9] uppercase tracking-wider mb-3">Valor em Estoque por Categoria</p>
         <div className="space-y-2">
           {porCategoria.map(([cat, val]) => (
             <div key={cat} className="flex items-center gap-3">
-              <p className="text-xs font-black text-neutral-700 w-24 flex-shrink-0">{cat}</p>
-              <div className="flex-1 h-2.5 bg-neutral-100 rounded-full overflow-hidden">
+              <p className="text-xs font-black text-[#CBD5E1] w-24 flex-shrink-0">{cat}</p>
+              <div className="flex-1 h-2.5 bg-[#334155] rounded-full overflow-hidden">
                 <div className="h-full rounded-full bg-emerald-400" style={{ width: `${(val / maxCat) * 100}%` }} />
               </div>
-              <p className="text-xs font-black text-neutral-700 w-24 text-right flex-shrink-0">{fmtBRL(val)}</p>
+              <p className="text-xs font-black text-[#CBD5E1] w-24 text-right flex-shrink-0">{fmtBRL(val)}</p>
             </div>
           ))}
         </div>
       </div>
 
       {/* Análise automática */}
-      <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-4">
-        <p className="text-xs font-black text-neutral-900 uppercase tracking-wider mb-3">Análise Automática</p>
+      <div className="bg-[#1E293B] rounded-2xl border border-white/5  p-4">
+        <p className="text-xs font-black text-[#F1F5F9] uppercase tracking-wider mb-3">Análise Automática</p>
         <div className="space-y-3">
           {analises.map((a, i) => (
             <div key={i} className={`flex gap-3 p-3 rounded-xl border ${TIPO_STYLE[a.tipo]?.bg}`}>
               {TIPO_STYLE[a.tipo]?.icon}
               <div>
-                <p className="text-xs font-black text-neutral-900">{a.titulo}</p>
-                <p className="text-[11px] text-neutral-500 mt-0.5 leading-relaxed">{a.descricao}</p>
+                <p className="text-xs font-black text-[#F1F5F9]">{a.titulo}</p>
+                <p className="text-[11px] text-[#64748B] mt-0.5 leading-relaxed">{a.descricao}</p>
               </div>
             </div>
           ))}
@@ -711,7 +711,7 @@ function TabAnalise({ itens, resumo }) {
       </div>
 
       {/* Plano de ação */}
-      <div className="bg-neutral-900 rounded-2xl p-4">
+      <div className="bg-[#059669] rounded-2xl p-4">
         <p className="text-xs font-black text-white uppercase tracking-wider mb-3">Plano de Reposição</p>
         <div className="space-y-2.5">
           {itens
@@ -723,12 +723,12 @@ function TabAnalise({ itens, resumo }) {
               const qtd_repor = Math.max(0, (item.minimo * 3) - item.quantidade);
               return (
                 <div key={item.id} className="flex items-start gap-3">
-                  <span className="w-5 h-5 rounded-full bg-white/10 text-white text-[10px] font-black flex items-center justify-center flex-shrink-0 mt-0.5">{i+1}</span>
+                  <span className="w-5 h-5 rounded-full bg-[#1E293B]/10 text-white text-[10px] font-black flex items-center justify-center flex-shrink-0 mt-0.5">{i+1}</span>
                   <div className="flex-1">
                     <p className="text-xs font-bold text-white">{item.nome} — repor ~{qtd_repor.toFixed(1)} {item.unidade}</p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-[9px] text-white/50">Estoque: {item.quantidade} · Mín: {item.minimo}</span>
-                      <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full ${urgencia === "alta" ? "bg-rose-500/30 text-rose-300" : "bg-amber-500/30 text-amber-300"}`}>
+                      <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full ${urgencia === "alta" ? "bg-[rgba(5,150,105,0.1)]0/30 text-rose-300" : "bg-amber-500/30 text-amber-300"}`}>
                         {urgencia.toUpperCase()}
                       </span>
                     </div>
@@ -820,24 +820,24 @@ export default function EstoquePage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#fbf9f5]">
+    <div className="min-h-screen ">
       {movModal && (
         <ModalMovimentacao item={movModal.item} tipo={movModal.tipo}
           onConfirmar={handleConfirmarMov} onCancelar={() => setMovModal(null)} />
       )}
 
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-[#fbf9f5] border-b border-neutral-200 px-4 pt-12 pb-0">
+      <div className="sticky top-0 z-20  border-b border-white/8 px-4 pt-12 pb-0" style={{ background: '#0F172A' }}>
         <div className="flex items-center gap-3 mb-3">
-          <button onClick={() => router.back()} className="w-9 h-9 rounded-xl bg-white border border-neutral-200 flex items-center justify-center shadow-sm active:scale-95 transition-transform">
-            <ArrowLeft size={18} className="text-neutral-600" />
+          <button onClick={() => router.back()} className="w-9 h-9 rounded-xl bg-[#1E293B] border border-white/8 flex items-center justify-center  active:scale-95 transition-transform">
+            <ArrowLeft size={18} className="text-[#94A3B8]" />
           </button>
           <div className="flex-1">
-            <h1 className="text-lg font-black text-neutral-900 leading-tight">Controle de Estoque</h1>
-            <p className="text-[11px] text-neutral-400 font-medium">Entradas, saídas e análise</p>
+            <h1 className="text-lg font-black leading-tight" style={{ color:"#F1F5F9" }}>Controle de Estoque</h1>
+            <p className="text-[11px] text-[#475569] font-medium">Entradas, saídas e análise</p>
           </div>
-          <button onClick={carregarDados} className="w-9 h-9 rounded-xl bg-white border border-neutral-200 flex items-center justify-center shadow-sm active:scale-95 transition-transform">
-            <RefreshCw size={15} className={`text-neutral-600 ${loading ? "animate-spin" : ""}`} />
+          <button onClick={carregarDados} className="w-9 h-9 rounded-xl bg-[#1E293B] border border-white/8 flex items-center justify-center  active:scale-95 transition-transform">
+            <RefreshCw size={15} className={`text-[#94A3B8] ${loading ? "animate-spin" : ""}`} />
           </button>
         </div>
 
@@ -845,7 +845,7 @@ export default function EstoquePage() {
         <div className="flex gap-0 -mb-px overflow-x-auto scrollbar-none">
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
-              className={`flex-shrink-0 px-4 py-2.5 text-[11px] font-black transition-all border-b-2 ${tab === t.id ? "border-neutral-900 text-neutral-900" : "border-transparent text-neutral-400"}`}>
+              className={`flex-shrink-0 px-4 py-2.5 text-[11px] font-black transition-all border-b-2 ${tab === t.id ? "border-neutral-900 text-[#F1F5F9]" : "border-transparent text-[#475569]"}`}>
               {t.label}
             </button>
           ))}

@@ -17,7 +17,7 @@ const ICONE_CONS = { Resfriado: Thermometer, Congelado: Snowflake, Ambiente: Box
 
 function fmtDataHora(d) {
   const p = (n) => String(n).padStart(2, "0");
-  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${String(d.getFullYear()).slice(2)} - ${p(d.getHours())}h${p(d.getMinutes())}`;
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${String(d.getFullYear()).slice(2)} - ${p(d.getHours())}H${p(d.getMinutes())}`;
 }
 
 export default function EtiquetasPage() {
@@ -44,8 +44,8 @@ export default function EtiquetasPage() {
 
   // Dimensões/escala da etiqueta conforme o tamanho escolhido
   const dim = tamanho === "60x40"
-    ? { h: "40mm", pad: "2.5mm", titulo: "4mm", linha: "2.9mm", resp: "2.6mm", qr: 60, gap: "0.5mm" }
-    : { h: "60mm", pad: "4mm",   titulo: "5mm", linha: "3.6mm", resp: "3.2mm", qr: 96, gap: "0.8mm" };
+    ? { h: "40mm", pad: "2.5mm", titulo: "4mm", linha: "2.9mm", resp: "2.5mm", qr: 50, gap: "0.5mm" }
+    : { h: "60mm", pad: "4mm",   titulo: "5mm", linha: "3.4mm", resp: "3mm",   qr: 92, gap: "0.8mm" };
 
   useEffect(() => {
     lerSessao().then((s) => s?.nome && setForm((f) => ({ ...f, responsavel: f.responsavel || s.nome })));
@@ -192,31 +192,35 @@ export default function EtiquetasPage() {
               </div>
             </div>
             <div className="flex justify-center">
-              <div id="area-impressao" style={{ width: "60mm", height: dim.h, background: "#fff", color: "#000", padding: dim.pad, fontFamily: "'Helvetica Neue', Arial, sans-serif", borderRadius: 8, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-                {/* topo: empresa + conservação */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "2mm" }}>
-                  <span style={{ fontSize: dim.resp, fontWeight: 800, letterSpacing: "0.2px", textTransform: "uppercase", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(unidadeInfo.nome || "").toUpperCase()}</span>
-                  <span style={{ flexShrink: 0, fontSize: dim.resp, fontWeight: 800, background: "#000", color: "#fff", padding: "0.4mm 1.6mm", borderRadius: "1mm" }}>{form.conservacao.toUpperCase()}</span>
-                </div>
+              <div id="area-impressao" style={{ width: "60mm", height: dim.h, background: "#fff", color: "#000", padding: dim.pad, fontFamily: "'Courier New', monospace", borderRadius: 8, display: "flex", flexDirection: "column", overflow: "hidden" }}>
                 {/* produto */}
-                <div style={{ fontSize: dim.titulo, fontWeight: 800, lineHeight: 1.0, textTransform: "uppercase", marginTop: dim.gap, paddingBottom: dim.gap, borderBottom: "0.5mm solid #000" }}>
+                <div style={{ fontSize: dim.titulo, fontWeight: 800, lineHeight: 1.0, textTransform: "uppercase", paddingBottom: dim.gap, borderBottom: "0.5mm solid #000" }}>
                   {nomeProduto || "PRODUTO"}
                 </div>
-                {/* linhas */}
-                <Linha fs={dim.linha} k="QTD" v={`${form.quantidade} ${form.unidade}`} top />
-                <Linha fs={dim.linha} k="MANIP." v={fmtDataHora(agora)} />
-                <Linha fs={dim.linha} k="VALIDADE" v={fmtDataHora(validadeEm)} forte />
-                {form.lote && <Linha fs={dim.linha} k="LOTE/SIF" v={form.lote} />}
-                {/* rodapé: resp + QR */}
-                <div style={{ marginTop: "auto", paddingTop: dim.gap, borderTop: "0.5mm solid #000", display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: "2mm" }}>
-                  <div style={{ fontSize: dim.resp, lineHeight: 1.3, minWidth: 0 }}>
-                    <div style={{ fontWeight: 800 }}>RESP.: {(form.responsavel || "—").toUpperCase()}</div>
-                    {cnpj && <div style={{ marginTop: "0.4mm" }}>CNPJ {fmtCNPJ(cnpj)}</div>}
-                    <div style={{ opacity: 0.65 }}>#{codigo}</div>
+                {/* conservação + qtd */}
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: dim.linha, fontWeight: 700, padding: "0.8mm 0", borderBottom: "0.4mm solid #000" }}>
+                  <span>{form.conservacao.toUpperCase()}</span>
+                  <span>QTD: {form.quantidade}{form.unidade !== "UN" ? " " + form.unidade : ""}</span>
+                </div>
+                {/* manipulação + validade */}
+                <div style={{ padding: "0.8mm 0", borderBottom: "0.4mm solid #000" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: dim.linha, fontWeight: 700 }}><span>MANIPULACAO:</span><span>{fmtDataHora(agora)}</span></div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: dim.linha, fontWeight: 700, marginTop: "0.4mm" }}><span>VALIDADE:</span><span>{fmtDataHora(validadeEm)}</span></div>
+                </div>
+                {/* responsável */}
+                <div style={{ fontSize: dim.linha, fontWeight: 700, marginTop: "1mm" }}>RESP.: {(form.responsavel || "—").toUpperCase()}</div>
+                {form.lote && <div style={{ fontSize: dim.resp, fontWeight: 700, marginTop: "0.5mm" }}>LOTE/SIF: {form.lote}</div>}
+                {/* QR Code centralizado */}
+                <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", minHeight: 0, padding: "1mm 0" }}>
+                  <QRCodeSVG value={rastreioUrl} size={dim.qr} level="M" />
+                </div>
+                {/* rodapé empresa */}
+                <div style={{ borderTop: "0.5mm solid #000", paddingTop: dim.gap, display: "flex", justifyContent: "space-between", alignItems: "flex-end", fontSize: dim.resp, fontWeight: 700, gap: "2mm" }}>
+                  <div style={{ minWidth: 0 }}>
+                    {cnpj && <div>CNPJ: {fmtCNPJ(cnpj)}</div>}
+                    <div>{(unidadeInfo.nome || "").toUpperCase()}</div>
                   </div>
-                  <div style={{ flexShrink: 0, border: "0.4mm solid #000", padding: "0.6mm", borderRadius: "1mm", lineHeight: 0 }}>
-                    <QRCodeSVG value={rastreioUrl} size={dim.qr} level="M" />
-                  </div>
+                  <div style={{ opacity: 0.7, flexShrink: 0 }}>#{codigo}</div>
                 </div>
               </div>
             </div>

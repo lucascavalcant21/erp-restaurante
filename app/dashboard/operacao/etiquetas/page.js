@@ -27,8 +27,20 @@ export default function EtiquetasPage() {
   const [cnpj, setCnpj] = useState("");
   const [codigo, setCodigo] = useState(gerarCodigo());
   const [tamanho, setTamanho] = useState("60x60"); // "60x60" | "60x40"
+  const [validadeModo, setValidadeModo] = useState("dias"); // "dias" | "data"
+  const [dataValidade, setDataValidade] = useState("");
+  const [presets, setPresets] = useState([]);
+  const [novoPreset, setNovoPreset] = useState({ nome: "", dias: "" });
+  const [showPreset, setShowPreset] = useState(false);
   const [salvou, setSalvou] = useState("");
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  function salvarPresets(lista) { setPresets(lista); try { localStorage.setItem("erp_validade_presets", JSON.stringify(lista)); } catch (_) {} }
+  function addPreset() {
+    if (!novoPreset.nome.trim() || !novoPreset.dias) return;
+    salvarPresets([...presets, { nome: novoPreset.nome.trim(), dias: Number(novoPreset.dias) || 0 }]);
+    setNovoPreset({ nome: "", dias: "" }); setShowPreset(false);
+  }
 
   // Dimensões/escala da etiqueta conforme o tamanho escolhido
   const dim = tamanho === "60x40"
@@ -37,7 +49,10 @@ export default function EtiquetasPage() {
 
   useEffect(() => {
     lerSessao().then((s) => s?.nome && setForm((f) => ({ ...f, responsavel: f.responsavel || s.nome })));
-    try { setCnpj(localStorage.getItem("erp_cnpj") || ""); } catch (_) {}
+    try {
+      setCnpj(localStorage.getItem("erp_cnpj") || "");
+      setPresets(JSON.parse(localStorage.getItem("erp_validade_presets") || "[]"));
+    } catch (_) {}
   }, []);
   useEffect(() => {
     (async () => {
@@ -50,11 +65,16 @@ export default function EtiquetasPage() {
   function escolherConservacao(id) {
     const c = CONSERVACAO.find((x) => x.id === id);
     set("conservacao", id);
-    if (c) set("dias", c.dias);
+    if (c) { set("dias", c.dias); setValidadeModo("dias"); }
   }
+  function aplicarPreset(p) { set("dias", p.dias); setValidadeModo("dias"); }
 
   const agora = useMemo(() => new Date(), [form, codigo]); // recalc ao mexer
-  const validadeEm = useMemo(() => new Date(agora.getTime() + (Number(form.dias) || 0) * 86400000), [agora, form.dias]);
+  const validadeEm = useMemo(() => {
+    if (validadeModo === "data" && dataValidade) return new Date(`${dataValidade}T23:59:00`);
+    return new Date(agora.getTime() + (Number(form.dias) || 0) * 86400000);
+  }, [validadeModo, dataValidade, agora, form.dias]);
+  const diasEfetivo = Math.max(0, Math.round((validadeEm.getTime() - agora.getTime()) / 86400000));
   const nomeProduto = (form.produto || "").trim();
 
   const rastreioUrl = typeof window !== "undefined" ? `${window.location.origin}/rastreio/${codigo}` : `/rastreio/${codigo}`;
@@ -67,7 +87,7 @@ export default function EtiquetasPage() {
     await criarEtiqueta({
       codigo, produto: nomeProduto, conservacao: form.conservacao,
       quantidade: Number(form.quantidade) || 0, unidade: form.unidade,
-      validade_dias: Number(form.dias) || 0,
+      validade_dias: diasEfetivo,
       manipulacao_em: agora.toISOString(), validade_em: validadeEm.toISOString(),
       lote: form.lote || null, responsavel: form.responsavel.trim(),
     }, unidadeAtiva);
@@ -119,10 +139,34 @@ export default function EtiquetasPage() {
                 <Field label="Quantidade"><NumberInput value={form.quantidade} onChange={(e) => set("quantidade", e.target.value)} /></Field>
                 <Field label="Unidade"><Select value={form.unidade} onChange={(e) => set("unidade", e.target.value)}>{UNIDADES.map((u) => <option key={u}>{u}</option>)}</Select></Field>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Validade (dias)"><NumberInput value={form.dias} onChange={(e) => set("dias", e.target.value)} /></Field>
-                <Field label="Lote / SIF (opcional)"><TextInput value={form.lote} onChange={(e) => set("lote", e.target.value)} placeholder="SIF 1234" /></Field>
+              <div className="mb-2 flex gap-1.5">
+                {[["dias", "Por dias"], ["data", "Por data"]].map(([m, l]) => (
+                  <button key={m} onClick={() => setValidadeModo(m)} className="flex-1 py-2 rounded-lg text-[12px] font-bold transition-all"
+                    style={validadeModo === m ? { background: "var(--accent-strong)", color: "#fff" } : { background: "var(--panel)", color: "var(--muted)", border: "1px solid var(--line)" }}>{l}</button>
+                ))}
               </div>
+              {validadeModo === "dias" ? (
+                <Field label="Validade (dias)"><NumberInput value={form.dias} onChange={(e) => set("dias", e.target.value)} /></Field>
+              ) : (
+                <Field label="Data de validade"><TextInput type="date" value={dataValidade} onChange={(e) => setDataValidade(e.target.value)} /></Field>
+              )}
+              <div className="flex flex-wrap gap-1.5 items-center mb-3">
+                {presets.map((p, i) => (
+                  <span key={i} className="inline-flex items-center gap-1.5 text-[11px] font-bold pl-2.5 pr-1.5 py-1 rounded-full" style={{ background: "var(--accent-soft)", color: "var(--accent-fg)" }}>
+                    <button onClick={() => aplicarPreset(p)} title="Aplicar">{p.nome} · {p.dias}d</button>
+                    <button onClick={() => salvarPresets(presets.filter((_, x) => x !== i))} title="Remover" style={{ opacity: 0.6 }}>×</button>
+                  </span>
+                ))}
+                <button onClick={() => setShowPreset((v) => !v)} className="text-[11px] font-bold px-2.5 py-1 rounded-full" style={{ border: "1px dashed var(--line)", color: "var(--muted)" }}>+ preset</button>
+              </div>
+              {showPreset && (
+                <div className="flex gap-2 mb-3 items-end">
+                  <div className="flex-1"><TextInput value={novoPreset.nome} onChange={(e) => setNovoPreset((p) => ({ ...p, nome: e.target.value }))} placeholder="Nome (ex: Açaí)" /></div>
+                  <div style={{ width: 90 }}><NumberInput value={novoPreset.dias} onChange={(e) => setNovoPreset((p) => ({ ...p, dias: e.target.value }))} placeholder="dias" /></div>
+                  <Btn variant="primary" onClick={addPreset}>OK</Btn>
+                </div>
+              )}
+              <Field label="Lote / SIF (opcional)"><TextInput value={form.lote} onChange={(e) => set("lote", e.target.value)} placeholder="SIF 1234" /></Field>
               <Field label="Responsável"><TextInput value={form.responsavel} onChange={(e) => set("responsavel", e.target.value)} placeholder="Nome" /></Field>
               <Field label="CNPJ da empresa (sai na etiqueta)"><TextInput value={cnpj} onChange={(e) => salvarCnpj(e.target.value)} placeholder="00.000.000/0001-00" /></Field>
             </Card>
@@ -148,21 +192,29 @@ export default function EtiquetasPage() {
               </div>
             </div>
             <div className="flex justify-center">
-              <div id="area-impressao" style={{ width: "60mm", height: dim.h, background: "#fff", color: "#000", padding: dim.pad, fontFamily: "monospace", borderRadius: 8, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-                <div style={{ fontSize: dim.titulo, fontWeight: 800, lineHeight: 1.05, textTransform: "uppercase", borderBottom: "0.4mm solid #000", paddingBottom: dim.gap }}>
+              <div id="area-impressao" style={{ width: "60mm", height: dim.h, background: "#fff", color: "#000", padding: dim.pad, fontFamily: "'Helvetica Neue', Arial, sans-serif", borderRadius: 8, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                {/* topo: empresa + conservação */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "2mm" }}>
+                  <span style={{ fontSize: dim.resp, fontWeight: 800, letterSpacing: "0.2px", textTransform: "uppercase", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(unidadeInfo.nome || "").toUpperCase()}</span>
+                  <span style={{ flexShrink: 0, fontSize: dim.resp, fontWeight: 800, background: "#000", color: "#fff", padding: "0.4mm 1.6mm", borderRadius: "1mm" }}>{form.conservacao.toUpperCase()}</span>
+                </div>
+                {/* produto */}
+                <div style={{ fontSize: dim.titulo, fontWeight: 800, lineHeight: 1.0, textTransform: "uppercase", marginTop: dim.gap, paddingBottom: dim.gap, borderBottom: "0.5mm solid #000" }}>
                   {nomeProduto || "PRODUTO"}
                 </div>
-                <Linha fs={dim.linha} k={form.conservacao.toUpperCase()} v={`QTD: ${form.quantidade}${form.unidade !== "UN" ? form.unidade : ""}`} top />
-                <Linha fs={dim.linha} k="MANIP.:" v={fmtDataHora(agora)} />
-                <Linha fs={dim.linha} k="VALIDADE:" v={fmtDataHora(validadeEm)} />
-                {form.lote && <Linha fs={dim.linha} k="LOTE/SIF:" v={form.lote} />}
-                <div style={{ borderTop: "0.4mm solid #000", marginTop: "auto", paddingTop: dim.gap, display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: "2mm" }}>
-                  <div style={{ fontSize: dim.resp, lineHeight: 1.25, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700 }}>RESP.: {(form.responsavel || "—").toUpperCase()}</div>
-                    <div>{(unidadeInfo.nome || "").toUpperCase()}</div>
-                    {cnpj && <div>CNPJ: {cnpj}</div>}
+                {/* linhas */}
+                <Linha fs={dim.linha} k="QTD" v={`${form.quantidade} ${form.unidade}`} top />
+                <Linha fs={dim.linha} k="MANIP." v={fmtDataHora(agora)} />
+                <Linha fs={dim.linha} k="VALIDADE" v={fmtDataHora(validadeEm)} forte />
+                {form.lote && <Linha fs={dim.linha} k="LOTE/SIF" v={form.lote} />}
+                {/* rodapé: resp + QR */}
+                <div style={{ marginTop: "auto", paddingTop: dim.gap, borderTop: "0.5mm solid #000", display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: "2mm" }}>
+                  <div style={{ fontSize: dim.resp, lineHeight: 1.3, minWidth: 0 }}>
+                    <div style={{ fontWeight: 800 }}>RESP.: {(form.responsavel || "—").toUpperCase()}</div>
+                    {cnpj && <div style={{ marginTop: "0.4mm" }}>CNPJ {fmtCNPJ(cnpj)}</div>}
+                    <div style={{ opacity: 0.65 }}>#{codigo}</div>
                   </div>
-                  <div style={{ background: "#fff", flexShrink: 0 }}>
+                  <div style={{ flexShrink: 0, border: "0.4mm solid #000", padding: "0.6mm", borderRadius: "1mm", lineHeight: 0 }}>
                     <QRCodeSVG value={rastreioUrl} size={dim.qr} level="M" />
                   </div>
                 </div>
@@ -178,9 +230,22 @@ export default function EtiquetasPage() {
   );
 }
 
-function Linha({ k, v, top, fs = "3.6mm" }) {
+function fmtCNPJ(s) {
+  const d = (s || "").replace(/\D/g, "");
+  return d.length === 14 ? d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5") : s;
+}
+
+function Linha({ k, v, top, fs = "3.6mm", forte }) {
+  const base = { display: "flex", justifyContent: "space-between", gap: "2mm", fontSize: fs, fontWeight: 700, whiteSpace: "nowrap" };
+  if (forte) {
+    return (
+      <div style={{ ...base, background: "#000", color: "#fff", padding: "0.9mm 1.2mm", borderRadius: "0.8mm", marginTop: "1mm" }}>
+        <span>{k}</span><span>{v}</span>
+      </div>
+    );
+  }
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", gap: "2mm", fontSize: fs, fontWeight: 700, marginTop: top ? "1.2mm" : "0.6mm", borderBottom: "0.3mm solid #000", paddingBottom: "0.6mm", whiteSpace: "nowrap" }}>
+    <div style={{ ...base, marginTop: top ? "1.2mm" : "0.6mm", borderBottom: "0.3mm solid #000", paddingBottom: "0.6mm" }}>
       <span>{k}</span><span>{v}</span>
     </div>
   );

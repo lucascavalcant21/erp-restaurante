@@ -33,6 +33,10 @@
 
 import { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { fetchEstoque, ESTOQUE_SEED } from "../lib/estoque";
+import { UNIDADES, CENTRAL, unidadeDaSessao, podeVerTodas, getUnidade } from "../lib/unidades";
+import { lerSessao } from "../lib/auth";
+
+const UNIDADE_KEY = "erp_unidade_ativa";
 
 // ─── Notificações iniciais ────────────────────────────────────────────────────
 // Vazio: as notificações são geradas a partir de dados reais (ex.: estoque
@@ -49,6 +53,32 @@ export function ERPProvider({ children }) {
 
   // ── Notificações ──────────────────────────────────────────────────────────
   const [notificacoes, setNotificacoes] = useState(NOTIF_SEED);
+
+  // ── Unidade ativa (multiunidade: Central + restaurantes) ──────────────────
+  const [unidadeAtiva, setUnidadeAtivaState] = useState(CENTRAL.id);
+  const [podeTrocar,   setPodeTrocar]        = useState(true);
+
+  // Inicializa a unidade a partir da sessão (papel) e da última escolha salva
+  useEffect(() => {
+    const sessao = lerSessao();
+    const trocar = podeVerTodas(sessao?.papel);
+    setPodeTrocar(trocar);
+
+    const padrao = unidadeDaSessao(sessao);
+    if (trocar) {
+      const salva = typeof window !== "undefined" ? localStorage.getItem(UNIDADE_KEY) : null;
+      const valida = salva === CENTRAL.id || UNIDADES.some(u => u.id === salva);
+      setUnidadeAtivaState(valida ? salva : padrao);
+    } else {
+      // Usuário de unidade fica travado na própria unidade
+      setUnidadeAtivaState(padrao);
+    }
+  }, []);
+
+  const setUnidadeAtiva = useCallback((id) => {
+    setUnidadeAtivaState(id);
+    try { localStorage.setItem(UNIDADE_KEY, id); } catch (_) {}
+  }, []);
 
   // ── Carregar estoque ao montar ────────────────────────────────────────────
   useEffect(() => {
@@ -129,6 +159,9 @@ export function ERPProvider({ children }) {
 
   return (
     <ERPContext.Provider value={{
+      // Unidade (multiunidade)
+      unidades: UNIDADES, unidadeAtiva, setUnidadeAtiva, podeTrocar,
+      unidadeInfo: getUnidade(unidadeAtiva), isCentral: unidadeAtiva === CENTRAL.id,
       // Estoque
       estoque, setEstoque, estoqueReady,
       descontarEstoque, resumoEstoque,

@@ -337,6 +337,7 @@ const ATALHOS = [
 
 function TelaDashboard({ mes, ano, dados, loading, sessao }) {
   const router = useRouter();
+  const { unidadeInfo, isCentral } = useERP();
   const d    = dados || EMPTY_DASH;
   const nome = sessao?.nome?.split(" ")[0] || "Operador";
   const hora = new Date().getHours();
@@ -361,6 +362,13 @@ function TelaDashboard({ mes, ano, dados, loading, sessao }) {
       <div>
         <p className="text-xs font-medium mb-0.5" style={{ color: 'var(--dim)' }}>{saudacao},</p>
         <h1 className="text-xl font-bold leading-tight" style={{ color: 'var(--fg)' }}>{nome} 👋</h1>
+        <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-full"
+          style={{ background: 'var(--card)', border: '1px solid rgba(255,255,255,0.07)' }}>
+          <span className="w-1.5 h-1.5 rounded-full" style={{ background: unidadeInfo.cor }} />
+          <span className="text-[11px] font-semibold" style={{ color: 'var(--fg-soft)' }}>
+            {isCentral ? "Central · visão consolidada da rede" : unidadeInfo.nome}
+          </span>
+        </div>
       </div>
 
       {/* KPI Cards 2×2 */}

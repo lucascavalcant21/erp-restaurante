@@ -3,6 +3,71 @@
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { lerSessao, encerrarSessao, getPapel } from "../lib/auth";
+import { useERP } from "../context/ERPContext";
+
+// ═══════════════════════════════════════════════════════════════
+// SELETOR DE UNIDADE (Central + restaurantes)
+// ═══════════════════════════════════════════════════════════════
+function UnidadeSwitcher({ exp }) {
+  const { unidades, unidadeAtiva, setUnidadeAtiva, podeTrocar, unidadeInfo } = useERP();
+  const [open, setOpen] = useState(false);
+  const opcoes = [{ id: "todas", nome: "Central · todas", cor: "#8B5CF6" }, ...unidades];
+
+  if (!exp) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", padding: "6px 0" }} title={unidadeInfo.nome}>
+        <div style={{ width: 10, height: 10, borderRadius: 999, background: unidadeInfo.cor }} />
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ margin: "4px 8px 6px" }}>
+      <button
+        onClick={() => podeTrocar && setOpen((o) => !o)}
+        style={{
+          width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px",
+          borderRadius: 10, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
+          cursor: podeTrocar ? "pointer" : "default",
+        }}>
+        <div style={{ width: 8, height: 8, borderRadius: 999, background: unidadeInfo.cor, flexShrink: 0 }} />
+        <div style={{ flex: 1, textAlign: "left", overflow: "hidden" }}>
+          <p style={{ fontSize: 9, color: "#64748B", fontWeight: 700, letterSpacing: "0.06em" }}>UNIDADE</p>
+          <p style={{ fontSize: 12, color: "#F1F5F9", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {unidadeInfo.id === "todas" ? "Central · todas" : unidadeInfo.nome}
+          </p>
+        </div>
+        {podeTrocar && (
+          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth={2}
+            style={{ flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform 160ms" }}>
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        )}
+      </button>
+
+      {open && podeTrocar && (
+        <div style={{ marginTop: 4, display: "flex", flexDirection: "column", gap: 2 }}>
+          {opcoes.map((o) => {
+            const ativo = o.id === unidadeAtiva;
+            return (
+              <button key={o.id}
+                onClick={() => { setUnidadeAtiva(o.id); setOpen(false); }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderRadius: 8,
+                  background: ativo ? "rgba(255,255,255,0.07)" : "transparent", border: "none", cursor: "pointer", width: "100%", textAlign: "left",
+                }}>
+                <div style={{ width: 7, height: 7, borderRadius: 999, background: o.cor, flexShrink: 0 }} />
+                <span style={{ fontSize: 12, color: ativo ? "#F1F5F9" : "#94A3B8", fontWeight: ativo ? 600 : 500, whiteSpace: "nowrap" }}>
+                  {o.nome}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ═══════════════════════════════════════════════════════════════
 // ÍCONES (subset necessário para o layout)
@@ -184,6 +249,9 @@ function LayoutSidebar({ sessao, navId, onSair }) {
           </p>
         </div>
       </div>
+
+      {/* Seletor de unidade */}
+      <UnidadeSwitcher exp={exp} />
 
       {/* Nav */}
       <nav style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '8px 0' }}>

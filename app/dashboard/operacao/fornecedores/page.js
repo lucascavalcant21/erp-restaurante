@@ -1,462 +1,184 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import { fetchFornecedores, inserirFornecedor, atualizarFornecedor, removerFornecedor, FORNECEDORES_SEED } from "../../../lib/fornecedores";
-import { useERP } from "../../../context/ERPContext";
+import { Truck, Star, Phone, Mail, MapPin, Edit3, Trash2, CheckCircle, XCircle, Wallet } from "lucide-react";
 import {
-  ArrowLeft,
-  Plus,
-  Trash2,
-  Edit3,
-  Search,
-  X,
-  Check,
-  AlertCircle,
-  ChevronDown,
-  Phone,
-  Mail,
-  MapPin,
-  Truck,
-  Star,
-  ToggleLeft,
-  ToggleRight,
-  ShoppingCart,
-} from "lucide-react";
+  PageHeader, PageBody, Card, SectionLabel, KpiGrid, Kpi,
+  SearchBar, Chips, EmptyState, Modal, Field, TextInput, NumberInput, Select, Btn, Toast, fmtBRL,
+} from "../../../components/ui";
+import { useERP } from "../../../context/ERPContext";
+import { fetchFornecedores, inserirFornecedor, atualizarFornecedor, removerFornecedor } from "../../../lib/fornecedores";
 
-// ─── Helpers ───────────────────────────────────────────────────────────────────
-function fmtBRL(val) {
-  return Number(val).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-function fmtData(iso) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("pt-BR");
-}
+const SEGMENTOS = ["Carnes", "Grãos e Cereais", "Hortifruti", "Laticínios", "Bebidas", "Embalagens", "Limpeza", "Outros"];
+const PAGAMENTOS = ["À Vista", "Boleto 7d", "Boleto 15d", "Boleto 30d", "Pix"];
+const VAZIO = { nome: "", segmento: "Carnes", contato: "", telefone: "", email: "", cidade: "", forma_pagamento: "À Vista", pedido_minimo: "", estrelas: 5, ativo: true };
 
-// ─── Categorias / Segmentos ────────────────────────────────────────────────────
-const SEGMENTOS = ["Todos", "Carnes", "Grãos e Cereais", "Hortifruti", "Laticínios", "Bebidas", "Embalagens", "Limpeza e Higiene", "Equipamentos", "Outros"];
-const FORMAS_PAGAMENTO = ["À Vista", "Boleto 7d", "Boleto 15d", "Boleto 28d", "Cartão", "Pix"];
-
-// ─── Seed de dados ────────────────────────────────────────────────────────────
-// ─── Componente: Estrelas ─────────────────────────────────────────────────────
-function Estrelas({ valor, onChange }) {
-  return (
-    <div className="flex gap-1">
-      {[1, 2, 3, 4, 5].map(n => (
-        <button key={n} type="button" onClick={() => onChange?.(n)}>
-          <Star size={16} className={n <= valor ? "text-amber-400 fill-amber-400" : "text-neutral-200 fill-neutral-200"} />
-        </button>
-      ))}
-    </div>
-  );
-}
-
-// ─── Componente: Card de fornecedor ───────────────────────────────────────────
-function CardFornecedor({ f, onEditar, onToggle, onDeletar }) {
-  const [expandido, setExpandido] = useState(false);
-
-  return (
-    <div className={`bg-card rounded-2xl border  overflow-hidden transition-all ${!f.ativo ? "opacity-60 border-white/8" : "border-white/5"}`}>
-      {/* Cabeçalho */}
-      <button className="w-full px-4 pt-4 pb-3 text-left" onClick={() => setExpandido(e => !e)}>
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-0.5">
-              <span className="text-[10px] font-black text-dim uppercase tracking-wider">{f.segmento}</span>
-              <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full ${f.ativo ? "bg-emerald-100 text-emerald-700" : "bg-elevated text-subtle"}`}>
-                {f.ativo ? "Ativo" : "Inativo"}
-              </span>
-            </div>
-            <p className="text-base font-black text-fg truncate">{f.nome}</p>
-            <Estrelas valor={f.estrelas} />
-          </div>
-          <div className="text-right flex-shrink-0">
-            <p className="text-base font-black text-fg">{fmtBRL(f.total_compras)}</p>
-            <p className="text-[11px] text-dim font-medium">total comprado</p>
-          </div>
-        </div>
-      </button>
-
-      {/* Detalhes expansíveis */}
-      {expandido && (
-        <div className="px-4 pb-4 space-y-2 border-t border-neutral-50 pt-3">
-          {f.contato && (
-            <div className="flex items-center gap-2 text-sm text-fg-soft font-medium">
-              <div className="w-7 h-7 rounded-lg bg-elevated flex items-center justify-center flex-shrink-0">
-                <Truck size={13} className="text-subtle" />
-              </div>
-              {f.contato}
-            </div>
-          )}
-          {f.telefone && (
-            <a href={`tel:${f.telefone}`} className="flex items-center gap-2 text-sm text-blue-600 font-medium">
-              <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
-                <Phone size={13} className="text-blue-500" />
-              </div>
-              {f.telefone}
-            </a>
-          )}
-          {f.email && (
-            <a href={`mailto:${f.email}`} className="flex items-center gap-2 text-sm text-blue-600 font-medium">
-              <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
-                <Mail size={13} className="text-blue-500" />
-              </div>
-              <span className="truncate">{f.email}</span>
-            </a>
-          )}
-          {f.cidade && (
-            <div className="flex items-center gap-2 text-sm text-fg-soft font-medium">
-              <div className="w-7 h-7 rounded-lg bg-elevated flex items-center justify-center flex-shrink-0">
-                <MapPin size={13} className="text-subtle" />
-              </div>
-              {f.cidade}
-            </div>
-          )}
-          <div className="grid grid-cols-2 gap-2 pt-1">
-            <div className=" rounded-xl px-3 py-2">
-              <p className="text-[10px] font-black text-dim uppercase tracking-wider">Pagamento</p>
-              <p className="text-sm font-black text-fg">{f.forma_pagamento}</p>
-            </div>
-            <div className=" rounded-xl px-3 py-2">
-              <p className="text-[10px] font-black text-dim uppercase tracking-wider">Pedido Mín.</p>
-              <p className="text-sm font-black text-fg">{fmtBRL(f.pedido_minimo)}</p>
-            </div>
-            <div className=" rounded-xl px-3 py-2 col-span-2">
-              <p className="text-[10px] font-black text-dim uppercase tracking-wider">Última Compra</p>
-              <p className="text-sm font-black text-fg">{fmtData(f.ultima_compra)}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Ações */}
-      <div className="flex items-center border-t border-neutral-50 divide-x divide-neutral-50">
-        <button onClick={() => onEditar(f)} className="flex-1 flex items-center justify-center gap-1.5 py-3 text-[11px] font-black text-muted active: transition-colors">
-          <Edit3 size={13} /> Editar
-        </button>
-        <button onClick={() => onToggle(f.id)} className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-[11px] font-black transition-colors active: ${f.ativo ? "text-subtle" : "text-emerald-600"}`}>
-          {f.ativo ? <ToggleRight size={15} /> : <ToggleLeft size={15} />}
-          {f.ativo ? "Desativar" : "Ativar"}
-        </button>
-        <button onClick={() => onDeletar(f.id)} className="flex-1 flex items-center justify-center gap-1.5 py-3 text-[11px] font-black text-accent active:bg-[rgba(5,150,105,0.1)] transition-colors">
-          <Trash2 size={13} /> Remover
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ─── Formulário: Cadastrar / Editar Fornecedor ────────────────────────────────
 function FormFornecedor({ inicial, onSalvar, onCancelar }) {
-  const [nome,       setNome]       = useState(inicial?.nome            ?? "");
-  const [segmento,   setSegmento]   = useState(inicial?.segmento        ?? "Outros");
-  const [contato,    setContato]    = useState(inicial?.contato         ?? "");
-  const [telefone,   setTelefone]   = useState(inicial?.telefone        ?? "");
-  const [email,      setEmail]      = useState(inicial?.email           ?? "");
-  const [cidade,     setCidade]     = useState(inicial?.cidade          ?? "");
-  const [pagamento,  setPagamento]  = useState(inicial?.forma_pagamento ?? "À Vista");
-  const [minimo,     setMinimo]     = useState(inicial?.pedido_minimo   ?? "");
-  const [estrelas,   setEstrelas]   = useState(inicial?.estrelas        ?? 3);
-  const [erro,       setErro]       = useState("");
+  const [f, setF] = useState(inicial || VAZIO);
+  const [erro, setErro] = useState("");
+  const set = (k, v) => { setF((p) => ({ ...p, [k]: v })); setErro(""); };
 
-  function handleSalvar() {
-    if (!nome.trim()) { setErro("Informe o nome do fornecedor."); return; }
-    setErro("");
+  function salvar() {
+    if (!f.nome.trim()) return setErro("Informe o nome do fornecedor.");
     onSalvar({
-      id:               inicial?.id ?? `f${Date.now()}`,
-      nome:             nome.trim(),
-      segmento,
-      contato:          contato.trim(),
-      telefone:         telefone.trim(),
-      email:            email.trim(),
-      cidade:           cidade.trim(),
-      forma_pagamento:  pagamento,
-      pedido_minimo:    parseFloat(minimo) || 0,
-      estrelas,
-      ultima_compra:    inicial?.ultima_compra ?? null,
-      total_compras:    inicial?.total_compras ?? 0,
-      ativo:            inicial?.ativo ?? true,
+      ...f,
+      nome: f.nome.trim(),
+      pedido_minimo: Number(f.pedido_minimo) || 0,
+      estrelas: Number(f.estrelas) || 0,
     });
   }
 
   return (
-    <div className="bg-card rounded-2xl border border-white/5  p-5 space-y-4">
-      <p className="text-sm font-black text-fg">{inicial ? "Editar Fornecedor" : "Novo Fornecedor"}</p>
-
-      <div>
-        <label className="text-[10px] font-black text-dim uppercase tracking-wider block mb-1.5">Nome da Empresa *</label>
-        <input type="text" value={nome} onChange={e => { setNome(e.target.value); setErro(""); }}
-          placeholder="ex: Frigorifico São Paulo"
-          className="w-full  border border-white/8 rounded-xl px-4 py-3.5 text-sm font-bold text-fg placeholder:text-dim placeholder:font-medium focus:outline-none focus:ring-2 focus:border-accent" />
-      </div>
-
-      <div>
-        <label className="text-[10px] font-black text-dim uppercase tracking-wider block mb-1.5">Segmento</label>
-        <div className="relative">
-          <select value={segmento} onChange={e => setSegmento(e.target.value)}
-            className="w-full appearance-none  border border-white/8 rounded-xl px-4 py-3.5 text-sm font-bold text-fg focus:outline-none focus:ring-2 focus:border-accent pr-10" style={{ background: "#1E293B", color: "#F1F5F9" }} >
-            {SEGMENTOS.filter(s => s !== "Todos").map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-          <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-dim pointer-events-none" />
-        </div>
-      </div>
-
+    <>
+      <Field label="Nome / Razão social"><TextInput value={f.nome} onChange={(e) => set("nome", e.target.value)} placeholder="ex: Frigorífico São Paulo" /></Field>
       <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="text-[10px] font-black text-dim uppercase tracking-wider block mb-1.5">Contato</label>
-          <input type="text" value={contato} onChange={e => setContato(e.target.value)}
-            placeholder="Nome do vendedor"
-            className="w-full  border border-white/8 rounded-xl px-4 py-3.5 text-sm font-medium text-fg placeholder:text-dim focus:outline-none focus:ring-2 focus:border-accent" />
-        </div>
-        <div>
-          <label className="text-[10px] font-black text-dim uppercase tracking-wider block mb-1.5">Telefone</label>
-          <input type="tel" value={telefone} onChange={e => setTelefone(e.target.value)}
-            placeholder="(11) 99999-9999"
-            className="w-full  border border-white/8 rounded-xl px-4 py-3.5 text-sm font-medium text-fg placeholder:text-dim focus:outline-none focus:ring-2 focus:border-accent" />
-        </div>
+        <Field label="Segmento"><Select value={f.segmento} onChange={(e) => set("segmento", e.target.value)}>{SEGMENTOS.map((s) => <option key={s}>{s}</option>)}</Select></Field>
+        <Field label="Pagamento"><Select value={f.forma_pagamento} onChange={(e) => set("forma_pagamento", e.target.value)}>{PAGAMENTOS.map((s) => <option key={s}>{s}</option>)}</Select></Field>
       </div>
-
-      <div>
-        <label className="text-[10px] font-black text-dim uppercase tracking-wider block mb-1.5">E-mail</label>
-        <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-          placeholder="contato@fornecedor.com"
-          className="w-full  border border-white/8 rounded-xl px-4 py-3.5 text-sm font-medium text-fg placeholder:text-dim focus:outline-none focus:ring-2 focus:border-accent" />
-      </div>
-
-      <div>
-        <label className="text-[10px] font-black text-dim uppercase tracking-wider block mb-1.5">Cidade / Região</label>
-        <input type="text" value={cidade} onChange={e => setCidade(e.target.value)}
-          placeholder="ex: São Paulo, SP"
-          className="w-full  border border-white/8 rounded-xl px-4 py-3.5 text-sm font-medium text-fg placeholder:text-dim focus:outline-none focus:ring-2 focus:border-accent" />
-      </div>
-
+      <Field label="Contato"><TextInput value={f.contato} onChange={(e) => set("contato", e.target.value)} placeholder="Nome do vendedor" /></Field>
       <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="text-[10px] font-black text-dim uppercase tracking-wider block mb-1.5">Forma de Pagamento</label>
-          <div className="relative">
-            <select value={pagamento} onChange={e => setPagamento(e.target.value)}
-              className="w-full appearance-none  border border-white/8 rounded-xl px-3 py-3.5 text-sm font-bold text-fg focus:outline-none focus:ring-2 focus:border-accent pr-8" style={{ background: "#1E293B", color: "#F1F5F9" }} >
-              {FORMAS_PAGAMENTO.map(f => <option key={f} value={f}>{f}</option>)}
-            </select>
-            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-dim pointer-events-none" />
-          </div>
-        </div>
-        <div>
-          <label className="text-[10px] font-black text-dim uppercase tracking-wider block mb-1.5">Pedido Mínimo (R$)</label>
-          <input type="number" inputMode="decimal" step="10" min="0" value={minimo} onChange={e => setMinimo(e.target.value)}
-            placeholder="0"
-            className="w-full  border border-white/8 rounded-xl px-4 py-3.5 text-sm font-black text-fg placeholder:text-dim focus:outline-none focus:ring-2 focus:border-accent" />
-        </div>
+        <Field label="Telefone"><TextInput value={f.telefone} onChange={(e) => set("telefone", e.target.value)} placeholder="(11) 9..." /></Field>
+        <Field label="Cidade"><TextInput value={f.cidade} onChange={(e) => set("cidade", e.target.value)} placeholder="Cidade, UF" /></Field>
       </div>
-
-      <div>
-        <label className="text-[10px] font-black text-dim uppercase tracking-wider block mb-1.5">Avaliação</label>
-        <Estrelas valor={estrelas} onChange={setEstrelas} />
+      <Field label="E-mail"><TextInput value={f.email} onChange={(e) => set("email", e.target.value)} placeholder="vendas@fornecedor.com" /></Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Pedido mínimo (R$)"><NumberInput value={f.pedido_minimo} onChange={(e) => set("pedido_minimo", e.target.value)} placeholder="0" /></Field>
+        <Field label="Avaliação (estrelas)"><Select value={f.estrelas} onChange={(e) => set("estrelas", e.target.value)}>{[5,4,3,2,1].map((n) => <option key={n} value={n}>{n} ★</option>)}</Select></Field>
       </div>
-
-      {erro && (
-        <div className="flex items-center gap-2 bg-[rgba(5,150,105,0.1)] border border-[rgba(5,150,105,0.3)] rounded-xl px-3 py-2.5">
-          <AlertCircle size={13} className="text-accent flex-shrink-0" />
-          <p className="text-xs font-bold text-accent-strong">{erro}</p>
-        </div>
-      )}
-
-      <div className="flex gap-3 pt-1">
-        <button onClick={onCancelar} className="flex-1 py-3.5 rounded-xl font-black text-sm text-fg-soft bg-elevated active:scale-95 transition-all">Cancelar</button>
-        <button onClick={handleSalvar} className="flex-1 py-3.5 rounded-xl font-black text-sm text-white bg-accent active:scale-95 transition-all ">
-          {inicial ? "Salvar Alterações" : "Cadastrar Fornecedor"}
-        </button>
+      <Field label="Situação">
+        <Select value={f.ativo ? "1" : "0"} onChange={(e) => set("ativo", e.target.value === "1")}>
+          <option value="1">Ativo</option><option value="0">Inativo</option>
+        </Select>
+      </Field>
+      {erro && <p className="erp-badge erp-badge-danger w-full justify-center mb-3">{erro}</p>}
+      <div className="flex gap-3">
+        <Btn variant="ghost" className="flex-1" onClick={onCancelar}>Cancelar</Btn>
+        <Btn variant="primary" className="flex-1" onClick={salvar}>{inicial ? "Salvar" : "Adicionar"}</Btn>
       </div>
-    </div>
+    </>
   );
 }
 
-// ─── Página Principal ──────────────────────────────────────────────────────────
-export default function FornecedoresPage() {
-  const router = useRouter();
-
-  const { unidadeAtiva } = useERP();
-  const [fornecedores, setFornecedores] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchFornecedores(unidadeAtiva).then(({ data }) => {
-      setFornecedores(data);
-      setLoading(false);
-    });
-  }, [unidadeAtiva]);
-  const [busca,        setBusca]        = useState("");
-  const [segFiltro,    setSegFiltro]    = useState("Todos");
-  const [formAberto,   setFormAberto]   = useState(false);
-  const [fEditar,      setFEditar]      = useState(null);
-  const [salvou,       setSalvou]       = useState(false);
-
-  // ── Métricas ──────────────────────────────────────────────────────────────
-  const resumo = useMemo(() => {
-    const ativos = fornecedores.filter(f => f.ativo).length;
-    const total_compras = fornecedores.reduce((acc, f) => acc + (f.total_compras || 0), 0);
-    const media_estrelas = fornecedores.length > 0
-      ? fornecedores.reduce((acc, f) => acc + f.estrelas, 0) / fornecedores.length
-      : 0;
-    return { total: fornecedores.length, ativos, total_compras, media_estrelas };
-  }, [fornecedores]);
-
-  // ── Filtragem ─────────────────────────────────────────────────────────────
-  const filtrados = useMemo(() => {
-    return fornecedores.filter(f => {
-      const matchBusca = f.nome.toLowerCase().includes(busca.toLowerCase()) ||
-                         f.contato.toLowerCase().includes(busca.toLowerCase());
-      const matchSeg   = segFiltro === "Todos" || f.segmento === segFiltro;
-      return matchBusca && matchSeg;
-    });
-  }, [fornecedores, busca, segFiltro]);
-
-  // ── Handlers ──────────────────────────────────────────────────────────────
-  async function handleSalvar(f) {
-    if (fEditar) {
-      atualizarFornecedor(f.id, f);
-      setFornecedores(prev => prev.map(x => x.id === f.id ? f : x));
-    } else {
-      const { data } = await inserirFornecedor(f, unidadeAtiva);
-      setFornecedores(prev => [...prev, data ?? f]);
-    }
-    setFormAberto(false);
-    setFEditar(null);
-    setSalvou(true);
-    setTimeout(() => setSalvou(false), 2500);
-  }
-
-  function handleEditar(f) {
-    setFEditar(f);
-    setFormAberto(true);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
-  function handleToggle(id) {
-    setFornecedores(prev => prev.map(f => f.id === id ? { ...f, ativo: !f.ativo } : f));
-  }
-
-  function handleDeletar(id) {
-    setFornecedores(prev => prev.filter(f => f.id !== id));
-  }
-
+function CardFornecedor({ f, onEditar, onRemover }) {
   return (
-    <div className="min-h-screen ">
-      {/* Header */}
-      <div className="sticky top-0 z-20  border-b border-white/8 px-4 pt-12 pb-3 flex items-center gap-3" style={{ background: 'var(--surface)' }}>
-        <button onClick={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-card border border-white/8 flex items-center justify-center  active:scale-95 transition-transform">
-          <ArrowLeft size={18} className="text-muted" />
-        </button>
-        <div className="flex-1">
-          <h1 className="text-lg font-black leading-tight" style={{ color:"#F1F5F9" }}>Fornecedores</h1>
-          <p className="text-[11px] text-dim font-medium">Contatos, pedidos e avaliações</p>
+    <Card>
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "var(--elevated)" }}>
+          <Truck size={18} style={{ color: "var(--muted)" }} />
         </div>
-        <button onClick={() => { setFEditar(null); setFormAberto(true); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-          className="flex items-center gap-1.5 text-xs font-black px-3 py-2 rounded-xl bg-accent text-white  active:scale-95 transition-all">
-          <Plus size={14} /> Novo
-        </button>
-      </div>
-
-      <div className="px-4 pt-4 pb-28 space-y-4">
-
-        {/* Toast */}
-        {salvou && (
-          <div className="flex items-center gap-2 bg-emerald-100 border border-emerald-200 rounded-2xl px-4 py-3">
-            <Check size={15} className="text-emerald-600 flex-shrink-0" />
-            <p className="text-sm font-black text-emerald-800">Fornecedor salvo!</p>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-bold truncate" style={{ color: "var(--fg)" }}>{f.nome}</p>
+            {!f.ativo && <span className="erp-badge" style={{ background: "var(--elevated)", color: "var(--subtle)" }}>Inativo</span>}
           </div>
-        )}
-
-        {/* Formulário */}
-        {formAberto && (
-          <FormFornecedor
-            inicial={fEditar}
-            onSalvar={handleSalvar}
-            onCancelar={() => { setFormAberto(false); setFEditar(null); }}
-          />
-        )}
-
-        {/* ── Cards de Resumo ──────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-card rounded-2xl border border-white/5  p-4">
-            <div className="w-8 h-8 rounded-xl bg-elevated flex items-center justify-center mb-2">
-              <Truck size={16} className="text-muted" />
-            </div>
-            <p className="text-2xl font-black text-fg">{resumo.ativos}</p>
-            <p className="text-[11px] font-bold text-dim">Fornecedores ativos</p>
+          <p className="text-[11px] font-medium" style={{ color: "var(--dim)" }}>{f.segmento}{f.contato ? ` · ${f.contato}` : ""}</p>
+          <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 text-[11px]" style={{ color: "var(--subtle)" }}>
+            {f.telefone && <span className="flex items-center gap-1"><Phone size={11} />{f.telefone}</span>}
+            {f.cidade && <span className="flex items-center gap-1"><MapPin size={11} />{f.cidade}</span>}
+            {f.forma_pagamento && <span className="flex items-center gap-1"><Wallet size={11} />{f.forma_pagamento}</span>}
           </div>
-          <div className="bg-card rounded-2xl border border-white/5  p-4">
-            <div className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center mb-2">
-              <ShoppingCart size={16} className="text-emerald-600" />
-            </div>
-            <p className="text-xl font-black text-emerald-800">{fmtBRL(resumo.total_compras)}</p>
-            <p className="text-[11px] font-bold text-dim">Total em compras</p>
-          </div>
-          <div className="bg-card rounded-2xl border border-white/5  p-4 col-span-2">
-            <p className="text-[10px] font-black text-dim uppercase tracking-wider mb-1.5">Avaliação Média dos Fornecedores</p>
-            <div className="flex items-center gap-3">
-              <Estrelas valor={Math.round(resumo.media_estrelas)} />
-              <p className="text-sm font-black text-fg-soft">{resumo.media_estrelas.toFixed(1)} de 5</p>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Busca + Filtro ─────────────────────────────────────────────────── */}
-        <div className="space-y-3">
-          <div className="relative">
-            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-dim" />
-            <input type="text" value={busca} onChange={e => setBusca(e.target.value)}
-              placeholder="Buscar fornecedor ou contato..."
-              className="w-full bg-card border border-white/8 rounded-xl pl-11 pr-10 py-3 text-sm font-medium text-fg placeholder:text-dim focus:outline-none focus:ring-2 focus:border-accent " />
-            {busca && (
-              <button onClick={() => setBusca("")} className="absolute right-3 top-1/2 -translate-y-1/2">
-                <X size={15} className="text-dim" />
-              </button>
-            )}
-          </div>
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-            {SEGMENTOS.map(seg => (
-              <button key={seg} onClick={() => setSegFiltro(seg)}
-                className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-full transition-all active:scale-95 ${segFiltro === seg ? "bg-accent-strong text-white" : "bg-card text-muted border border-white/8"}`}>
-                {seg}
-              </button>
+          <div className="flex items-center gap-0.5 mt-1.5">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Star key={i} size={12} style={{ color: i < (f.estrelas || 0) ? "#F59E0B" : "var(--faint)" }} fill={i < (f.estrelas || 0) ? "#F59E0B" : "none"} />
             ))}
           </div>
         </div>
+      </div>
+      <div className="flex gap-2 mt-3 pt-3" style={{ borderTop: "1px solid var(--line)" }}>
+        <button onClick={() => onEditar(f)} className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[11px] font-bold rounded-lg" style={{ color: "var(--muted)", background: "var(--elevated)" }}>
+          <Edit3 size={13} /> Editar
+        </button>
+        <button onClick={() => onRemover(f.id)} className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[11px] font-bold rounded-lg erp-badge-danger">
+          <Trash2 size={13} /> Remover
+        </button>
+      </div>
+    </Card>
+  );
+}
 
-        {/* ── Lista ─────────────────────────────────────────────────────────── */}
+export default function FornecedoresPage() {
+  const { unidadeAtiva } = useERP();
+  const [lista, setLista]       = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [busca, setBusca]       = useState("");
+  const [seg, setSeg]           = useState("Todos");
+  const [modal, setModal]       = useState(false);
+  const [editar, setEditar]     = useState(null);
+  const [salvou, setSalvou]     = useState(false);
+
+  async function carregar() {
+    setLoading(true);
+    const { data } = await fetchFornecedores(unidadeAtiva);
+    setLista(data || []);
+    setLoading(false);
+  }
+  useEffect(() => { carregar(); /* eslint-disable-next-line */ }, [unidadeAtiva]);
+
+  const resumo = useMemo(() => {
+    const ativos = lista.filter((f) => f.ativo).length;
+    const compras = lista.reduce((a, f) => a + (Number(f.total_compras) || 0), 0);
+    const estrelas = lista.length ? lista.reduce((a, f) => a + (Number(f.estrelas) || 0), 0) / lista.length : 0;
+    return { total: lista.length, ativos, compras, estrelas };
+  }, [lista]);
+
+  const filtrados = useMemo(() => lista.filter((f) => {
+    const mb = f.nome?.toLowerCase().includes(busca.toLowerCase()) || (f.contato || "").toLowerCase().includes(busca.toLowerCase());
+    const ms = seg === "Todos" || f.segmento === seg;
+    return mb && ms;
+  }), [lista, busca, seg]);
+
+  async function salvar(dados) {
+    if (editar) {
+      await atualizarFornecedor(editar.id, dados);
+    } else {
+      await inserirFornecedor(dados, unidadeAtiva);
+    }
+    setModal(false); setEditar(null);
+    setSalvou(true); setTimeout(() => setSalvou(false), 2200);
+    carregar();
+  }
+  async function remover(id) {
+    await removerFornecedor(id);
+    setLista((p) => p.filter((f) => f.id !== id));
+  }
+
+  return (
+    <div className="min-h-screen">
+      <PageHeader title="Fornecedores" subtitle="Parceiros de compra da unidade" icon={Truck}
+        onAction={() => { setEditar(null); setModal(true); }} actionLabel="Novo" />
+      <PageBody>
+        <Toast show={salvou}>Fornecedor salvo!</Toast>
+
+        <KpiGrid>
+          <Kpi icon={Truck} label="Fornecedores" value={resumo.total} tint="var(--accent-fg)" />
+          <Kpi icon={CheckCircle} label="Ativos" value={resumo.ativos} tint="#10B981" />
+          <Kpi icon={Wallet} label="Total em compras" value={fmtBRL(resumo.compras)} tint="#3B82F6" />
+          <Kpi icon={Star} label="Média de avaliação" value={`${resumo.estrelas.toFixed(1)} ★`} tint="#F59E0B" />
+        </KpiGrid>
+
+        <div className="space-y-3">
+          <SearchBar value={busca} onChange={setBusca} placeholder="Buscar fornecedor..." />
+          <Chips options={["Todos", ...SEGMENTOS]} value={seg} onChange={setSeg} />
+        </div>
+
         <div>
-          <div className="flex items-center justify-between px-1 mb-2">
-            <p className="text-[11px] font-black text-dim uppercase tracking-wider">
-              {segFiltro === "Todos" ? "Todos os Fornecedores" : segFiltro}
-            </p>
-            <p className="text-[11px] font-bold text-dim">{filtrados.length} fornecedor{filtrados.length !== 1 ? "es" : ""}</p>
-          </div>
-
-          {filtrados.length === 0 ? (
-            <div className="bg-card rounded-2xl border border-white/5  p-8 flex flex-col items-center text-center gap-2">
-              <div className="w-12 h-12 rounded-2xl bg-elevated flex items-center justify-center mb-1">
-                <Truck size={22} className="text-elevated" />
-              </div>
-              <p className="text-sm font-bold text-subtle">{busca ? "Nenhum fornecedor encontrado" : "Nenhum fornecedor cadastrado"}</p>
-              <p className="text-xs text-dim font-medium">
-                {busca ? `Sem resultados para "${busca}"` : "Clique em Novo para cadastrar o primeiro fornecedor."}
-              </p>
-            </div>
+          <SectionLabel>{filtrados.length} fornecedor{filtrados.length !== 1 ? "es" : ""}</SectionLabel>
+          {loading ? (
+            <EmptyState icon={Truck} title="Carregando..." />
+          ) : filtrados.length === 0 ? (
+            <EmptyState icon={Truck} title={busca || seg !== "Todos" ? "Nenhum fornecedor encontrado" : "Nenhum fornecedor cadastrado"}
+              hint={busca || seg !== "Todos" ? "Ajuste a busca ou o filtro" : "Toque em Novo para adicionar o primeiro"} />
           ) : (
             <div className="space-y-3">
-              {filtrados.map(f => (
-                <CardFornecedor key={f.id} f={f}
-                  onEditar={handleEditar}
-                  onToggle={handleToggle}
-                  onDeletar={handleDeletar} />
-              ))}
+              {filtrados.map((f) => <CardFornecedor key={f.id} f={f} onEditar={(x) => { setEditar(x); setModal(true); }} onRemover={remover} />)}
             </div>
           )}
         </div>
+      </PageBody>
 
-      </div>
+      <Modal open={modal} onClose={() => { setModal(false); setEditar(null); }} title={editar ? "Editar fornecedor" : "Novo fornecedor"}>
+        <FormFornecedor inicial={editar} onSalvar={salvar} onCancelar={() => { setModal(false); setEditar(null); }} />
+      </Modal>
     </div>
   );
 }

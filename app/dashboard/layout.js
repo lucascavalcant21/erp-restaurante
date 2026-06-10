@@ -129,6 +129,12 @@ const MENU_GROUPS = [
     ],
   },
   {
+    id: "eventos_grp", label: "🎉 EVENTOS",
+    items: [
+      { id: "eventos", label: "🎉 Eventos", Icon: Ic.Calendar, href: "/dashboard/eventos" },
+    ],
+  },
+  {
     id: "rh_grupo", label: "👥 RECURSOS HUMANOS",
     items: [
       { id: "rh", label: "👥 RH", Icon: Ic.Users, href: "/dashboard/rh" },

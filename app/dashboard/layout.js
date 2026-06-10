@@ -111,19 +111,27 @@ const MENU_GROUPS = [
   {
     id: "bar", label: "🍹 BAR",
     items: [
-      { id: "bar",          label: "Departamento",         Icon: Ic.MenuBook,  href: "/dashboard/bar" },
+      { id: "vendas",       label: "PDV — Vendas",         Icon: Ic.Cart,      href: "/dashboard/vendas" },
+      { id: "drinks",       label: "Cardápio Drinks",      Icon: Ic.MenuBook,  href: "/dashboard/operacao/drinks" },
+      { id: "estoque_bar",  label: "Estoque",              Icon: Ic.Box,       href: "/dashboard/operacao/estoque" },
+      { id: "ingredientes", label: "Ingredientes",         Icon: Ic.Flask,     href: "/dashboard/operacao/ingredientes" },
     ],
   },
   {
     id: "cozinha", label: "👨‍🍳 COZINHA",
     items: [
-      { id: "cozinha",      label: "Departamento",         Icon: Ic.ChefHat,   href: "/dashboard/cozinha" },
+      { id: "cardapio_coz", label: "Cardápio",             Icon: Ic.ChefHat,   href: "/dashboard/operacao/cardapio" },
+      { id: "rotina",       label: "Operação",             Icon: Ic.Checklist, href: "/dashboard/operacao/rotina" },
+      { id: "fichas",       label: "Fichas Técnicas",      Icon: Ic.MenuBook,  href: "/dashboard/operacao/fichas" },
+      { id: "estoque_coz",  label: "Estoque",              Icon: Ic.Box,       href: "/dashboard/operacao/estoque" },
+      { id: "ingredientes_coz", label: "Ingredientes",     Icon: Ic.Flask,     href: "/dashboard/operacao/ingredientes" },
+      { id: "fornecedores", label: "Fornecedores",         Icon: Ic.Truck,     href: "/dashboard/operacao/fornecedores" },
     ],
   },
   {
     id: "cervejas", label: "🍺 CERVEJAS",
     items: [
-      { id: "cervejas",     label: "Departamento",         Icon: Ic.Beer,      href: "/dashboard/cervejas" },
+      { id: "cervejas", label: "Catálogo & Estoque",       Icon: Ic.Beer,      href: "/dashboard/cervejas/catalogo" },
     ],
   },
   {

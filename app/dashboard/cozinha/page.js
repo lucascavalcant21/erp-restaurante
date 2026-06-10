@@ -14,14 +14,12 @@ export default function CozinhaPage() {
   }, [setDepartamento]);
 
   const opcoes = [
-    { id: "cardapio", emoji: "🍽️", titulo: "Cardápio", desc: "Pratos, receitas e preços", href: "/dashboard/operacao/cardapio" },
-    { id: "rotina", emoji: "📋", titulo: "Operação", desc: "Rotina diária da cozinha", href: "/dashboard/operacao/rotina" },
-    { id: "fichas", emoji: "📄", titulo: "Fichas Técnicas", desc: "Receitas e composição de pratos", href: "/dashboard/operacao/fichas" },
-    { id: "estoque", emoji: "📦", titulo: "Estoque", desc: "Controle de ingredientes", href: "/dashboard/operacao/estoque" },
-    { id: "ingredientes", emoji: "🧪", titulo: "Ingredientes", desc: "Cadastro e gerenciamento", href: "/dashboard/operacao/ingredientes" },
-    { id: "fornecedores", emoji: "🚚", titulo: "Fornecedores", desc: "Contatos e condições", href: "/dashboard/operacao/fornecedores" },
-    { id: "validade", emoji: "⏰", titulo: "Controle de Validade", desc: "Rastreamento de vencimentos", href: "/dashboard/operacao/validade" },
-    { id: "etiquetas", emoji: "🏷️", titulo: "Etiquetas (QR)", desc: "Gerador de códigos QR", href: "/dashboard/operacao/etiquetas" },
+    { id: "cardapio", emoji: "🍽️", titulo: "Cardápio", desc: "Menu completo, preços de venda e composição", href: "/dashboard/operacao/cardapio" },
+    { id: "rotina", emoji: "📋", titulo: "Operação", desc: "Fluxo de trabalho diário, tarefas e metas", href: "/dashboard/operacao/rotina" },
+    { id: "fichas", emoji: "📄", titulo: "Fichas Técnicas", desc: "Receitas, modo de preparo e ingredientes", href: "/dashboard/operacao/fichas" },
+    { id: "estoque", emoji: "📦", titulo: "Estoque", desc: "Controle de ingredientes e insumos", href: "/dashboard/operacao/estoque" },
+    { id: "ingredientes", emoji: "🧪", titulo: "Ingredientes", desc: "Cadastro, preços de compra e unidades", href: "/dashboard/operacao/ingredientes" },
+    { id: "fornecedores", emoji: "🚚", titulo: "Fornecedores", desc: "Base de fornecedores e negociações", href: "/dashboard/operacao/fornecedores" },
   ];
 
   return (

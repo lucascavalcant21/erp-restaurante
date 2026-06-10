@@ -14,10 +14,10 @@ export default function BarPage() {
   }, [setDepartamento]);
 
   const opcoes = [
-    { id: "vendas", emoji: "🛒", titulo: "PDV — Vendas", desc: "Gerenciar vendas do balcão", href: "/dashboard/vendas" },
-    { id: "drinks", emoji: "🍹", titulo: "Cardápio Drinks", desc: "Drinks, coquetéis e mocktails", href: "/dashboard/operacao/drinks" },
-    { id: "estoque", emoji: "📦", titulo: "Estoque", desc: "Controle de ingredientes e bebidas", href: "/dashboard/operacao/estoque" },
-    { id: "ingredientes", emoji: "🧪", titulo: "Ingredientes", desc: "Cadastro e gerenciamento", href: "/dashboard/operacao/ingredientes" },
+    { id: "vendas", emoji: "🛒", titulo: "PDV — Vendas", desc: "Registro de vendas diretas ao balcão", href: "/dashboard/vendas" },
+    { id: "drinks", emoji: "🍹", titulo: "Cardápio Drinks", desc: "Drinks, coquetéis, mocktails e composição", href: "/dashboard/operacao/drinks" },
+    { id: "estoque", emoji: "📦", titulo: "Estoque", desc: "Controle de bebidas, destilados e ingredientes", href: "/dashboard/operacao/estoque" },
+    { id: "ingredientes", emoji: "🧪", titulo: "Ingredientes", desc: "Cadastro, preços de compra e unidades", href: "/dashboard/operacao/ingredientes" },
   ];
 
   return (

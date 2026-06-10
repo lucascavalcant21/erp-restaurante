@@ -138,6 +138,13 @@ const MENU_GROUPS = [
     ],
   },
   {
+    id: "gestao", label: "⚙️ GESTÃO",
+    items: [
+      { id: "validade",  label: "Controle de Validade", Icon: Ic.Calendar, href: "/dashboard/operacao/validade" },
+      { id: "etiquetas", label: "Etiquetas",           Icon: Ic.Box,      href: "/dashboard/operacao/etiquetas" },
+    ],
+  },
+  {
     id: "rh_grupo", label: "👥 RECURSOS HUMANOS",
     items: [
       { id: "gestao_rh",   label: "RH",                   Icon: Ic.Users,     href: "/dashboard/rh/gestao" },
@@ -169,6 +176,8 @@ function getNavId(pathname) {
   if (pathname.includes("/cervejas"))     return "cervejas";
   if (pathname.includes("/vendas"))       return "vendas";
   if (pathname.includes("/drinks"))       return "drinks";
+  if (pathname.includes("/validade"))     return "validade";
+  if (pathname.includes("/etiquetas"))    return "etiquetas";
   if (pathname.includes("/rede"))         return "rede";
   if (pathname.includes("/notificacoes")) return "notificacoes";
   if (pathname.includes("/rotina"))       return "rotina";
@@ -177,15 +186,13 @@ function getNavId(pathname) {
   if (pathname.includes("/ingredientes")) return "ingredientes";
   if (pathname.includes("/estoque"))      return "estoque";
   if (pathname.includes("/fornecedores")) return "fornecedores";
-  if (pathname.includes("/etiquetas"))    return "etiquetas";
-  if (pathname.includes("/validade"))     return "validade";
   if (pathname.includes("/eventos"))      return "eventos";
   if (pathname.includes("/dre"))          return "dre";
   if (pathname.includes("/fluxo"))        return "fluxo";
   if (pathname.includes("/cmv"))          return "cmv";
   if (pathname.includes("/margem"))       return "margem";
   if (pathname.includes("/documentos"))   return "documentos";
-  if (pathname.includes("/gestao"))       return "gestao_rh";
+  if (pathname.includes("/rh"))           return "gestao_rh";
   if (pathname.includes("/ponto"))        return "ponto";
   if (pathname.includes("/colaborador"))  return "colaborador";
   if (pathname.includes("/crm"))          return "crm";

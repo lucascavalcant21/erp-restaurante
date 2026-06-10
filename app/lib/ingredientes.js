@@ -35,9 +35,11 @@ import { escoparPorUnidade, carimbarUnidade } from "./unidades";
 
 // Unidades disponíveis e sua unidade-base de custo fracionado
 export const UNIDADES = [
-  { id: "KG",   label: "Quilo (kg)",       base: "grama",       fator: 1000, label_base: "por grama"       },
-  { id: "L",    label: "Litro (L)",       base: "mililitro",   fator: 1000, label_base: "por mililitro"   },
-  { id: "UN",   label: "Unidade",         base: "unidade",     fator: 1,    label_base: "por unidade"     },
+  { id: "KG",   label: "KG",              base: "grama",       fator: 1000, label_base: "por grama"       },
+  { id: "L",    label: "L",               base: "mililitro",   fator: 1000, label_base: "por mililitro"   },
+  { id: "UN",   label: "UN",              base: "unidade",     fator: 1,    label_base: "por unidade"     },
+  { id: "G",    label: "g (grama)",       base: "grama",       fator: 1,    label_base: "por grama"       },
+  { id: "ML",   label: "mL (mililitro)",  base: "mililitro",   fator: 1,    label_base: "por mililitro"   },
   { id: "MACO", label: "Maço",            base: "unidade",     fator: 1,    label_base: "por unidade"     },
   { id: "CX",   label: "Caixa",           base: "unidade",     fator: 1,    label_base: "por unidade"     },
 ];

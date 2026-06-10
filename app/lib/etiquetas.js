@@ -41,3 +41,16 @@ export async function buscarPorCodigo(codigo) {
   const { data } = await supabase.from("etiquetas").select("*").eq("codigo", codigo).maybeSingle();
   return data || null;
 }
+
+// Status da etiqueta: 'ativa' | 'baixa' (consumido/usado) | 'perda' (perdido/descartado)
+export async function atualizarStatusEtiqueta(id, status) {
+  if (!isSupabaseReady()) return { error: "Sistema indisponível" };
+  const { error } = await supabase.from("etiquetas").update({ status }).eq("id", id);
+  return { error: error?.message || null };
+}
+
+// Dias até vencer (negativo = já venceu)
+export function diasParaVencer(validadeIso) {
+  if (!validadeIso) return null;
+  return Math.floor((new Date(validadeIso).getTime() - Date.now()) / 86400000);
+}

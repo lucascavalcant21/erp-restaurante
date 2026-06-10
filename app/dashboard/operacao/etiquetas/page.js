@@ -54,11 +54,16 @@ export default function EtiquetasPage() {
       setPresets(JSON.parse(localStorage.getItem("erp_validade_presets") || "[]"));
     } catch (_) {}
   }, []);
+  const [custoMap, setCustoMap] = useState({});
   useEffect(() => {
     (async () => {
       const [c, e] = await Promise.all([fetchCardapio(unidadeAtiva), fetchEstoque(unidadeAtiva)]);
       const nomes = [...new Set([...(c.data || []), ...(e.data || [])].map((x) => x.nome))].sort();
       setProdutos(nomes);
+      const mapa = {};
+      (c.data || []).forEach((x) => { mapa[x.nome] = Number(x.custo) || 0; });
+      (e.data || []).forEach((x) => { mapa[x.nome] = Number(x.custo_unitario) || Number(x.preco_unit) || mapa[x.nome] || 0; });
+      setCustoMap(mapa);
     })();
   }, [unidadeAtiva]);
 
@@ -90,6 +95,7 @@ export default function EtiquetasPage() {
       validade_dias: diasEfetivo,
       manipulacao_em: agora.toISOString(), validade_em: validadeEm.toISOString(),
       lote: form.lote || null, responsavel: form.responsavel.trim(),
+      custo_unit: custoMap[nomeProduto] || 0, status: "ativa",
     }, unidadeAtiva);
     if (imprimir) { setTimeout(() => window.print(), 150); }
     setSalvou(imprimir ? "Etiqueta salva e enviada para impressão!" : "Etiqueta salva!");

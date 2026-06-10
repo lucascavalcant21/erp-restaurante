@@ -75,6 +75,7 @@ function UnidadeSwitcher({ exp }) {
 const Ic = {
   Dashboard: () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>,
   Cart:      () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>,
+  Beer:      () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M17 2h-1v8h2a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/><path d="M5 20c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2v-8H5v8z"/><path d="M4 6h12a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1z"/></svg>,
   Bell:      () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
   Checklist: () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>,
   ChefHat:   () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z"/><line x1="6" y1="17" x2="18" y2="17"/></svg>,
@@ -104,33 +105,36 @@ const MENU_GROUPS = [
     id: "visao_geral", label: "DASHBOARD",
     items: [
       { id: "dashboard",    label: "Painel Inicial",       Icon: Ic.Dashboard, href: "/dashboard" },
-      { id: "rede",         label: "Visão de Rede",        Icon: Ic.BarChart,  href: "/dashboard/rede" },
-      { id: "notificacoes", label: "Notificações",          Icon: Ic.Bell,      href: "/dashboard/notificacoes" },
+      { id: "notificacoes", label: "Notificações",         Icon: Ic.Bell,      href: "/dashboard/notificacoes" },
     ],
   },
   {
-    id: "vendas_grupo", label: "PONTO DE VENDA",
+    id: "bar", label: "🍹 BAR",
     items: [
-      { id: "vendas", label: "PDV — Vendas", Icon: Ic.Cart, href: "/dashboard/vendas" },
+      { id: "vendas",       label: "PDV — Vendas",         Icon: Ic.Cart,      href: "/dashboard/vendas" },
+      { id: "cardapio",     label: "Cardápio Bar",         Icon: Ic.MenuBook,  href: "/dashboard/operacao/cardapio" },
+      { id: "estoque_bar",  label: "Estoque Bar",          Icon: Ic.Box,       href: "/dashboard/operacao/estoque" },
+      { id: "ingredientes", label: "Ingredientes Bar",     Icon: Ic.Flask,     href: "/dashboard/operacao/ingredientes" },
+      { id: "cervejas",     label: "Catálogo de Cervejas", Icon: Ic.Beer,      href: "/dashboard/cervejas" },
     ],
   },
   {
-    id: "operacao", label: "GESTÃO OPERACIONAL",
+    id: "cozinha", label: "👨‍🍳 COZINHA",
     items: [
-      { id: "rotina",       label: "Operação Geral",       Icon: Ic.Checklist, href: "/dashboard/operacao/rotina" },
-      { id: "cardapio",     label: "Cardápio",             Icon: Ic.ChefHat,   href: "/dashboard/operacao/cardapio" },
-      { id: "fichas",       label: "Ficha Técnica",        Icon: Ic.MenuBook,  href: "/dashboard/operacao/fichas" },
-      { id: "ingredientes", label: "Ingredientes",         Icon: Ic.Flask,     href: "/dashboard/operacao/ingredientes" },
-      { id: "estoque",      label: "Estoque",              Icon: Ic.Box,       href: "/dashboard/operacao/estoque" },
-      { id: "fornecedores", label: "Fornecedores",         Icon: Ic.Truck,     href: "/dashboard/operacao/fornecedores" },
-      { id: "eventos",      label: "Gestão de Eventos",    Icon: Ic.Calendar,  href: "/dashboard/operacao/eventos" },
-      { id: "etiquetas",    label: "Etiquetas (QR)",       Icon: Ic.Box,       href: "/dashboard/operacao/etiquetas" },
-      { id: "validade",     label: "Controle de Validade", Icon: Ic.Calendar,  href: "/dashboard/operacao/validade" },
+      { id: "rotina",          label: "Operação Geral",        Icon: Ic.Checklist, href: "/dashboard/operacao/rotina" },
+      { id: "cardapio_coz",    label: "Cardápio Cozinha",      Icon: Ic.ChefHat,   href: "/dashboard/operacao/cardapio" },
+      { id: "fichas",          label: "Ficha Técnica",         Icon: Ic.MenuBook,  href: "/dashboard/operacao/fichas" },
+      { id: "ingredientes_coz",label: "Ingredientes Cozinha",  Icon: Ic.Flask,     href: "/dashboard/operacao/ingredientes" },
+      { id: "estoque_coz",     label: "Estoque Cozinha",       Icon: Ic.Box,       href: "/dashboard/operacao/estoque" },
+      { id: "fornecedores",    label: "Fornecedores",         Icon: Ic.Truck,     href: "/dashboard/operacao/fornecedores" },
+      { id: "etiquetas",       label: "Etiquetas (QR)",        Icon: Ic.Box,       href: "/dashboard/operacao/etiquetas" },
+      { id: "validade",        label: "Controle de Validade",  Icon: Ic.Calendar,  href: "/dashboard/operacao/validade" },
     ],
   },
   {
-    id: "financeiro", label: "FINANCEIRO",
+    id: "financeiro", label: "💰 FINANCEIRO",
     items: [
+      { id: "rede",       label: "Visão Consolidada",Icon: Ic.BarChart,  href: "/dashboard/rede" },
       { id: "dre",        label: "DRE",              Icon: Ic.BarChart,  href: "/dashboard/financeiro/dre" },
       { id: "fluxo",      label: "Fluxo de Caixa",   Icon: Ic.ArrowsUD,  href: "/dashboard/financeiro/fluxo" },
       { id: "cmv",        label: "CMV",              Icon: Ic.Percent,   href: "/dashboard/financeiro/cmv" },
@@ -139,23 +143,23 @@ const MENU_GROUPS = [
     ],
   },
   {
-    id: "rh_grupo", label: "BPO",
+    id: "rh_grupo", label: "👥 RECURSOS HUMANOS",
     items: [
-      { id: "gestao_rh",  label: "RH",                    Icon: Ic.Users,     href: "/dashboard/rh/gestao" },
-      { id: "ponto",      label: "Controle de Ponto",      Icon: Ic.Clock,     href: "/dashboard/rh/ponto" },
-      { id: "colaborador",label: "Portal do Colaborador",  Icon: Ic.Badge,     href: "/dashboard/rh/colaborador" },
+      { id: "gestao_rh",   label: "RH",                   Icon: Ic.Users,     href: "/dashboard/rh/gestao" },
+      { id: "ponto",       label: "Controle de Ponto",    Icon: Ic.Clock,     href: "/dashboard/rh/ponto" },
+      { id: "colaborador", label: "Portal do Colaborador",Icon: Ic.Badge,     href: "/dashboard/rh/colaborador" },
     ],
   },
   {
-    id: "clientes", label: "CLIENTES",
+    id: "clientes", label: "📱 CLIENTES & MARKETING",
     items: [
-      { id: "crm",       label: "CRM",            Icon: Ic.UserCheck, href: "/dashboard/clientes/crm" },
-      { id: "campanhas", label: "Tráfego Pago",   Icon: Ic.Megaphone, href: "/dashboard/clientes/campanhas" },
-      { id: "nps",       label: "Avaliações",     Icon: Ic.Star,      href: "/dashboard/clientes/nps" },
+      { id: "crm",       label: "CRM",          Icon: Ic.UserCheck, href: "/dashboard/clientes/crm" },
+      { id: "campanhas", label: "Tráfego Pago", Icon: Ic.Megaphone, href: "/dashboard/clientes/campanhas" },
+      { id: "nps",       label: "Avaliações",   Icon: Ic.Star,      href: "/dashboard/clientes/nps" },
     ],
   },
   {
-    id: "ia", label: "HEITOR I.A",
+    id: "ia", label: "🤖 INTELIGÊNCIA ARTIFICIAL",
     items: [
       { id: "heitor", label: "Chat Heitor", Icon: Ic.Brain, href: "/dashboard/ia/heitor" },
     ],
@@ -166,6 +170,7 @@ const MENU_GROUPS = [
 function getNavId(pathname) {
   if (pathname === "/dashboard") return "dashboard";
   if (pathname.includes("/vendas"))       return "vendas";
+  if (pathname.includes("/cervejas"))     return "cervejas";
   if (pathname.includes("/rede"))         return "rede";
   if (pathname.includes("/notificacoes")) return "notificacoes";
   if (pathname.includes("/rotina"))       return "rotina";

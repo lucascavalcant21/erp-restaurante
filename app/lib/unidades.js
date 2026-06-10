@@ -1,24 +1,23 @@
 // ═══════════════════════════════════════════════════════════════
-// unidades.js — Fonte única da verdade das UNIDADES (restaurantes)
+// unidades.js — Departamentos do Restaurante (Bar, Cozinha, Cervejas)
 // ═══════════════════════════════════════════════════════════════
 //
-// Toda a rede é multiunidade: cada registro do ERP (estoque, cardápio,
-// ficha, funcionário, lançamento...) pertence a uma unidade. A "Central"
-// (Matriz) é a visão consolidada de TODAS as unidades.
+// Ao invés de múltiplas unidades/lojas, o ERP agora usa departamentos:
+// - Bar: bebidas, drinks, coquetéis
+// - Cozinha: alimentos, pratos principais, compostos
+// - Cervejas: catálogo e estoque específicos de cerveja
 //
-// Para escopar os dados no Supabase, cada tabela deve ganhar uma coluna
-// `unidade_id text` e as queries devem filtrar por ela. Ver SQL em docs.
-//
-// Edite a lista abaixo para refletir seus restaurantes reais.
+// Cada departamento tem seu próprio estoque, ingredientes e cardápio.
+// "Central" consolida a visão de todos os departamentos.
 
 export const UNIDADES = [
-  { id: "seldeestrela", nome: "Seldeestrela",      curto: "Sel", cor: "#10B981" },
-  { id: "ticotico",     nome: "Tico Tico Saladas", curto: "Tico", cor: "#3B82F6" },
-  { id: "burguer",      nome: "Burguer",           curto: "Bur", cor: "#F97316" },
+  { id: "bar",      nome: "Bar",           curto: "Bar", cor: "#3B82F6" },
+  { id: "cozinha",  nome: "Cozinha",       curto: "Coz", cor: "#10B981" },
+  { id: "cervejas", nome: "Cervejas",      curto: "Cer", cor: "#F59E0B" },
 ];
 
-// "Central" representa a visão consolidada da matriz (todas as unidades).
-export const CENTRAL = { id: "todas", nome: "Central", curto: "Tudo", cor: "#8B5CF6" };
+// "Central" consolida todos os departamentos
+export const CENTRAL = { id: "todas", nome: "Central · Todos", curto: "Tudo", cor: "#8B5CF6" };
 
 /** Retorna a unidade pelo id (ou CENTRAL se for "todas"/inexistente). */
 export function getUnidade(id) {

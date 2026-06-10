@@ -9,7 +9,7 @@
 
 Cobre: Operação (estoque, ingredientes, cardápio, fichas técnicas, fornecedores, eventos, rotina, **etiquetas QR + rastreio + validade/perdas**), Financeiro (DRE, fluxo de caixa, CMV, margem, documentos), RH (gestão, ponto, **portal do colaborador**), Clientes (CRM, NPS, campanhas), IA assistente (Heitor), Dashboard com BI (KPIs com variação %, gráficos) e Visão de Rede.
 
-- **Status:** funcional e **publicado em produção**. ~30 módulos recriados sobre um design system. Auth real + banco seguro (RLS). Falta principalmente **cadastrar dados reais** e construir o **PDV/Vendas**.
+- **Status:** funcional e **publicado em produção**. ~30 módulos recriados sobre um design system. Auth real + banco seguro (RLS). **PDV/Vendas construído** (fecha o ciclo venda→receita→estoque) — falta apenas **rodar `docs/vendas.sql` no Supabase** para criar as tabelas. Pendências principais: **cadastrar dados reais** e **RLS por unidade**.
 - **Site:** https://erp-restaurante-sand.vercel.app
 - **Repo GitHub:** `lucascavalcant21/erp-restaurante` — **branch de deploy = `main`** (Vercel publica de `main`).
 - **Supabase project ref:** `sezccspqxgklicfndwxx` (nome: cerebro-erp, AWS sa-east-1, plano Free). Painel: https://supabase.com/dashboard/project/sezccspqxgklicfndwxx
@@ -52,6 +52,7 @@ Scripts SQL versionados em `docs/`:
 - `docs/migracao-multiunidade.sql` — adiciona `unidade_id` + tabela `unidades`.
 - `docs/seguranca-rls.sql` — liga RLS + revoke anon + grant authenticated.
 - `docs/rh-portal.sql` — tabelas de RH/Portal (documentos, holerites, avisos, advertências, produções, cursos) + bucket `anexos`.
+- `docs/vendas.sql` — **PDV/Vendas**: tabelas `vendas` + `venda_itens` + RLS + índices. **(Rodar no Supabase para ativar o PDV.)**
 - (Etiquetas/validade: tabela `etiquetas` + colunas `status`/`custo_unit` — SQL fornecido no chat; `setor` em cardapio/ingredientes idem.)
 
 ### Tabelas e principais colunas
@@ -76,6 +77,8 @@ Scripts SQL versionados em `docs/`:
 - **fornecedores**: id, nome, segmento, contato, telefone, email, cidade, forma_pagamento, pedido_minimo, estrelas, ativo, total_compras, unidade_id.
 - **documentos**: id, tipo, descricao, categoria, valor, emissao, vencimento, status, unidade_id.
 - **lancamentos** (fluxo de caixa): id, tipo(entrada/saida), categoria, descricao, valor, data, unidade_id.
+- **vendas** (PDV): id, subtotal, desconto, total, forma_pagamento(dinheiro/pix/credito/debito), cliente, observacao, status(concluida/cancelada), **lancamento_id**(receita gerada, p/ estorno), unidade_id, created_at.
+- **venda_itens**: id, venda_id→vendas, cardapio_id, nome, preco_unit, custo_unit, quantidade, subtotal, unidade_id.
 - **etiquetas**: id, codigo(unique), produto, conservacao, quantidade, unidade, validade_dias, manipulacao_em, validade_em, lote, responsavel, **status**(ativa/baixa/perda), **custo_unit**, unidade_id. (Leitura pública/anon p/ rastreio do QR.)
 
 ### Relacionamentos
@@ -98,6 +101,7 @@ Scripts SQL versionados em `docs/`:
 
 ## 7. FUNCIONALIDADES — CONCLUÍDAS
 - ✅ Multiunidade (Central + 3 lojas) com seletor de unidade e escopo por `unidade_id`.
+- ✅ **PDV / Vendas** (`/dashboard/vendas`): catálogo (pratos ativos do Cardápio) → carrinho com +/− → checkout (forma de pagamento, desconto, cliente) → **registra venda** (`vendas`/`venda_itens`), **gera receita** automática no Fluxo de Caixa (alimenta DRE/Dashboard) e **dá baixa de estoque** via ficha técnica (melhor esforço, por nome do ingrediente). Histórico do dia + **cancelar venda** (estorna a receita). Papel **caixa** abre direto no PDV. *(Depende de rodar `docs/vendas.sql`.)*
 - ✅ **Operação:** Estoque (CRUD + entrada/saída + valor), Ingredientes (custo por unidade-base; sincroniza p/ Estoque), Cardápio (preço/custo/CMV/MC + setor Cozinha/Bar), Fichas Técnicas (montagem de receita por setor), Fornecedores, Eventos, Rotina (checklist abertura/fechamento).
 - ✅ **Etiquetas QR:** criação (produto, conservação, validade por dias **ou data**, presets de validade do usuário, lote, responsável, CNPJ), preview 60×40/60×60, impressão térmica (CSS print), **QR com rastreio público**, layout estilo KAIRU.
 - ✅ **Controle de Validade (FEFO):** produtos por cor (vencido/vencendo/ok), dias p/ vencer, busca por código, **baixa (usado) / perda**, **área de Perdas com R$**, alertas.
@@ -118,8 +122,8 @@ Scripts SQL versionados em `docs/`:
 - ⚠️ Dados reais: tabelas vazias — depende de cadastro pelo usuário.
 
 ## 9. FUNCIONALIDADES — PENDENTES
-- ⛔ **PDV / Vendas** (registrar venda → baixa estoque + alimenta receita). É a peça que fecha o ciclo venda→estoque→financeiro.
-- ⛔ RLS **por unidade** (hoje é "qualquer logado vê tudo"; falta restringir gerente à sua loja via claim/coluna do usuário).
+- ⛔ RLS **por unidade** (hoje é "qualquer logado vê tudo"; falta restringir gerente à sua loja via claim/coluna do usuário). **Agora é a pendência nº 1.**
+- ⚠️ PDV: baixa de estoque é por **nome** do ingrediente (ficha → estoque). Evoluir para FK real `ingrediente_id`/`estoque_id`. Cancelamento estorna a receita mas **não restaura estoque** automaticamente.
 - ⛔ Perdas de validade lançadas automaticamente no Financeiro/DRE.
 - ⛔ Notificações automáticas (validade vencendo, estoque crítico, metas).
 - ⛔ Importação em massa / relatórios exportáveis (PDF existe lib `exportPDF.js`, pouco usada).
@@ -137,7 +141,7 @@ Definido em `app/lib/auth.js` (`PAPEIS`). Cada papel tem `home` (rota inicial) e
 | estoque | /dashboard/operacao/estoque | estoque, ingredientes, fichas, cardapio, fornecedores, etiquetas, validade |
 | cozinha | /dashboard/operacao/cardapio | ingredientes, fichas, cardapio, estoque, etiquetas, validade |
 | marketing | /dashboard/clientes/crm | crm, campanhas, nps |
-| caixa | /dashboard | dashboard, notificações |
+| caixa | /dashboard/vendas | vendas (PDV), dashboard, notificações |
 
 `podeVerTodas(papel)` (admin/financeiro) habilita o seletor de unidade/Central.
 
@@ -149,6 +153,7 @@ Definido em `app/lib/auth.js` (`PAPEIS`). Cada papel tem `home` (rota inicial) e
 - **Etiqueta → Rastreio → Validade → Perda:** cria etiqueta (Imprimir/Salvar grava no banco) → QR aponta p/ `/rastreio/[codigo]` (público) → entra no Controle de Validade → baixa(usado)/perda → Perdas (R$).
 - **RH → Portal:** RH lança (holerite/aviso/curso/etc.) por funcionário → cai automático no Portal do colaborador (ligado por e-mail).
 - **Fluxo de Caixa → Dashboard/DRE:** lançamentos alimentam KPIs, gráficos e DRE.
+- **PDV → Receita → Estoque:** registrar venda grava `vendas`/`venda_itens` → cria lançamento de **entrada** (categoria "Vendas") no Fluxo → baixa ingredientes do estoque pela ficha técnica do prato. Cancelar a venda remove o lançamento (estorno).
 
 ---
 
@@ -165,8 +170,8 @@ Definido em `app/lib/auth.js` (`PAPEIS`). Cada papel tem `home` (rota inicial) e
 ## 13. COMPONENTES E PÁGINAS (estrutura `app/`)
 **Kit UI** (`app/components/ui.js`): PageHeader, PageBody, Card, SectionLabel, KpiGrid, Kpi, SearchBar, Chips, EmptyState, Modal, Field, TextInput, NumberInput, Select, Btn, Toast, fmt (BRL/Pct/Data). `Skeleton.js`.
 **Contexto:** `app/context/ERPContext.js`.
-**Libs (`app/lib/`):** supabase, auth, unidades, estoque, ingredientes, cardapio, fornecedores, eventos, clientes, rh, pessoas (RH/portal), financeiro, etiquetas, exportPDF.
-**Páginas:** login, cadastro, recuperar, nova-senha, rastreio/[codigo], dashboard (page + layout), dashboard/rede, notificacoes, operacao/{rotina,cardapio,fichas,ingredientes,estoque,fornecedores,eventos,etiquetas,validade}, financeiro/{dre,fluxo,cmv,margem,documentos}, rh/{gestao,ponto,colaborador,funcionario/[id]}, clientes/{crm,campanhas,nps}, ia/heitor.
+**Libs (`app/lib/`):** supabase, auth, unidades, estoque, ingredientes, cardapio, fornecedores, eventos, clientes, rh, pessoas (RH/portal), financeiro, etiquetas, **vendas** (PDV), exportPDF.
+**Páginas:** login, cadastro, recuperar, nova-senha, rastreio/[codigo], dashboard (page + layout), dashboard/rede, notificacoes, **vendas (PDV)**, operacao/{rotina,cardapio,fichas,ingredientes,estoque,fornecedores,eventos,etiquetas,validade}, financeiro/{dre,fluxo,cmv,margem,documentos}, rh/{gestao,ponto,colaborador,funcionario/[id]}, clientes/{crm,campanhas,nps}, ia/heitor.
 
 ---
 
@@ -189,18 +194,19 @@ Definido em `app/lib/auth.js` (`PAPEIS`). Cada papel tem `home` (rota inicial) e
 ---
 
 ## 16. PRÓXIMOS PASSOS RECOMENDADOS
-1. Construir **PDV/Vendas** (fecha o ciclo financeiro/estoque).
+1. **Rodar `docs/vendas.sql`** no Supabase para ativar o PDV em produção. (Código já publicado.)
 2. **RLS por unidade** (claim de unidade no usuário + policies).
 3. **Notificações automáticas** (validade/estoque) + perdas no DRE.
-4. Cadastrar **dados reais** das 3 lojas.
+4. Cadastrar **dados reais** das 3 lojas (e testar o ciclo de venda no PDV).
 5. Limpeza de usuários de teste + revogar token + configurar SMTP/URLs.
+6. Evoluir baixa de estoque do PDV (FK ingrediente↔estoque) e restauro de estoque no cancelamento.
 
 ---
 
 ## 17. CHECKLIST GERAL
 - [x] Multiunidade · [x] Auth real · [x] RLS (global) · [x] Design system claro
 - [x] Operação completa · [x] Etiquetas+QR+Validade+Perdas · [x] Financeiro (BI) · [x] RH+Portal · [x] Clientes · [x] Dashboard+Rede · [x] IA
-- [ ] PDV/Vendas · [ ] RLS por unidade · [ ] Notificações automáticas · [ ] Perdas no DRE · [ ] Dados reais cadastrados · [ ] Limpeza segurança (usuários teste/token/SMTP)
+- [x] **PDV/Vendas (código)** · [ ] `docs/vendas.sql` rodado no Supabase · [ ] RLS por unidade · [ ] Notificações automáticas · [ ] Perdas no DRE · [ ] Dados reais cadastrados · [ ] Limpeza segurança (usuários teste/token/SMTP)
 
 ---
 

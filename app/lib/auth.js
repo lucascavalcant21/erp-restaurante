@@ -16,7 +16,7 @@ export const PAPEIS = [
     id: "gerente", label: "Gerente de Unidade", cor: "#10b981",
     descricao: "Gestão completa da sua loja (sem visão consolidada da rede).",
     home: "/dashboard",
-    nav: ["dashboard","notificacoes","rotina","ingredientes","fichas","cardapio","estoque","fornecedores","eventos","etiquetas","validade","dre","fluxo","cmv","margem","documentos","gestao_rh","ponto","colaborador","crm","campanhas","nps","heitor"],
+    nav: ["dashboard","vendas","notificacoes","rotina","ingredientes","fichas","cardapio","estoque","fornecedores","eventos","etiquetas","validade","dre","fluxo","cmv","margem","documentos","gestao_rh","ponto","colaborador","crm","campanhas","nps","heitor"],
   },
   {
     id: "financeiro", label: "Financeiro", cor: "#3b82f6",
@@ -50,8 +50,8 @@ export const PAPEIS = [
   },
   {
     id: "caixa", label: "Operador de Caixa", cor: "#64748b",
-    descricao: "Painel e notificações do dia.",
-    home: "/dashboard", nav: ["dashboard","notificacoes"],
+    descricao: "Ponto de venda, painel e notificações do dia.",
+    home: "/dashboard/vendas", nav: ["dashboard","vendas","notificacoes"],
   },
 ];
 

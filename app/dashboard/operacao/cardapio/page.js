@@ -67,7 +67,7 @@ function FormPrato({ inicial, onSalvar, onCancelar }) {
 }
 
 export default function CardapioPage() {
-  const { unidadeAtiva } = useERP();
+  const { unidadeAtiva, unidadeInfo } = useERP();
   const [lista, setLista]     = useState([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca]     = useState("");
@@ -83,7 +83,7 @@ export default function CardapioPage() {
     setLista(data || []);
     setLoading(false);
   }
-  useEffect(() => { carregar(); /* eslint-disable-next-line */ }, [unidadeAtiva]);
+  useEffect(() => { carregar(); }, [unidadeAtiva]);
 
   const resumo = useMemo(() => {
     const ativos = lista.filter((p) => p.ativo);
@@ -118,7 +118,7 @@ export default function CardapioPage() {
 
   return (
     <div className="min-h-screen">
-      <PageHeader title="Cardápio" subtitle="Pratos, preços e margem de contribuição" icon={ChefHat}
+      <PageHeader title={`Cardápio ${unidadeInfo.nome}`} subtitle="Pratos, preços e margem de contribuição" icon={ChefHat}
         onAction={() => { setEditar(null); setModal(true); }} actionLabel="Novo" />
       <PageBody>
         <Toast show={salvou}>Cardápio atualizado!</Toast>

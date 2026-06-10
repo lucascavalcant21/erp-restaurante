@@ -55,7 +55,7 @@ function FormIngrediente({ inicial, onSalvar, onCancelar }) {
 }
 
 export default function IngredientesPage() {
-  const { unidadeAtiva } = useERP();
+  const { unidadeAtiva, unidadeInfo } = useERP();
   const [lista, setLista]     = useState([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca]     = useState("");
@@ -70,7 +70,7 @@ export default function IngredientesPage() {
     setLista(data || []);
     setLoading(false);
   }
-  useEffect(() => { carregar(); /* eslint-disable-next-line */ }, [unidadeAtiva]);
+  useEffect(() => { carregar(); }, [unidadeAtiva]);
 
   const filtrados = useMemo(() => {
     const q = busca.toLowerCase().trim();
@@ -106,7 +106,7 @@ export default function IngredientesPage() {
 
   return (
     <div className="min-h-screen">
-      <PageHeader title="Ingredientes" subtitle="Catálogo e custo de insumos" icon={FlaskConical}
+      <PageHeader title={`Ingredientes ${unidadeInfo.nome}`} subtitle="Catálogo e custo de insumos" icon={FlaskConical}
         onAction={() => { setEditar(null); setModal(true); }} actionLabel="Novo" />
       <PageBody>
         <Toast show={!!salvou}>{salvou}</Toast>

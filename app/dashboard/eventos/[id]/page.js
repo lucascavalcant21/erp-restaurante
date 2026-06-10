@@ -13,6 +13,12 @@ import {
   Ingredientes, Preparos, Pratos, Drinks, Reservas, CustosFixos,
   custoPrato, custoDrink, calcularMaquininha, rateForMethod,
 } from "../../../lib/eventos";
+import TabCardapio from "./TabCardapio";
+import TabDrinks from "./TabDrinks";
+import TabReservas from "./TabReservas";
+import TabCompras from "./TabCompras";
+import TabFinanceiro from "./TabFinanceiro";
+import TabConfig from "./TabConfig";
 
 const TABS = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -294,13 +300,63 @@ export default function EventoPage() {
           </>
         )}
 
-        {tab !== "dashboard" && (
-          <Card className="!p-6 text-center">
-            <p style={{ color: "var(--muted)", marginBottom: 8 }}>🚧 Aba em construção</p>
-            <p className="text-sm" style={{ color: "var(--dim)" }}>
-              A aba <strong>{TABS.find((t) => t.id === tab)?.label}</strong> será implementada nas próximas etapas.
-            </p>
-          </Card>
+        {tab === "cardapio" && (
+          <TabCardapio
+            eventoId={eventoId}
+            ingredientes={ingredientes}
+            preparos={preparos}
+            pratos={pratos}
+            onChange={carregar}
+          />
+        )}
+
+        {tab === "drinks" && (
+          <TabDrinks
+            eventoId={eventoId}
+            ingredientes={ingredientes}
+            preparos={preparos}
+            drinks={drinks}
+            onChange={carregar}
+          />
+        )}
+
+        {tab === "reservas" && (
+          <TabReservas
+            eventoId={eventoId}
+            evento={evento}
+            reservas={reservas}
+            pratos={pratos}
+            drinks={drinks}
+            ingredientes={ingredientes}
+            preparos={preparos}
+            onChange={carregar}
+          />
+        )}
+
+        {tab === "compras" && (
+          <TabCompras
+            evento={evento}
+            reservas={reservas}
+            pratos={pratos}
+            drinks={drinks}
+            ingredientes={ingredientes}
+            preparos={preparos}
+          />
+        )}
+
+        {tab === "financeiro" && calc && (
+          <TabFinanceiro
+            eventoId={eventoId}
+            evento={evento}
+            custosFixos={custosFixos}
+            reservas={reservas}
+            calc={calc}
+            onChange={carregar}
+          />
+        )}
+
+        {tab === "config" && (
+          <TabConfig evento={evento} onChange={carregar} />
         )}
       </PageBody>
     </div>

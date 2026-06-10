@@ -33,7 +33,8 @@ import { supabase, isSupabaseReady } from "./supabase";
 import { escoparPorUnidade, carimbarUnidade } from "./unidades";
 
 
-// Unidades disponíveis e sua unidade-base de custo fracionado
+// Unidades de medida — siglas simples, exceto Maço e Caixa (nomes completos)
+// Adicionado g (grama) e mL (mililitro) como unidades de compra
 export const UNIDADES = [
   { id: "KG",   label: "KG",              base: "grama",       fator: 1000, label_base: "por grama"       },
   { id: "L",    label: "L",               base: "mililitro",   fator: 1000, label_base: "por mililitro"   },

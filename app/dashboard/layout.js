@@ -119,12 +119,7 @@ const MENU_GROUPS = [
   {
     id: "financeiro", label: "💰 FINANCEIRO",
     items: [
-      { id: "rede",       label: "Visão Consolidada",Icon: Ic.BarChart,  href: "/dashboard/rede" },
-      { id: "dre",        label: "DRE",              Icon: Ic.BarChart,  href: "/dashboard/financeiro/dre" },
-      { id: "fluxo",      label: "Fluxo de Caixa",   Icon: Ic.ArrowsUD,  href: "/dashboard/financeiro/fluxo" },
-      { id: "cmv",        label: "CMV",              Icon: Ic.Percent,   href: "/dashboard/financeiro/cmv" },
-      { id: "margem",     label: "Lucro",            Icon: Ic.TrendUp,   href: "/dashboard/financeiro/margem" },
-      { id: "documentos", label: "Notas e Boletos",  Icon: Ic.FileText,  href: "/dashboard/financeiro/documentos" },
+      { id: "financeiro", label: "💰 Financeiro", Icon: Ic.BarChart, href: "/dashboard/financeiro" },
     ],
   },
   {
@@ -168,6 +163,7 @@ function getNavId(pathname) {
   if (pathname.includes("/drinks"))       return "drinks";
   if (pathname.includes("/validade"))     return "validade";
   if (pathname.includes("/etiquetas"))    return "etiquetas";
+  if (pathname.includes("/financeiro"))   return "financeiro";
   if (pathname.includes("/rede"))         return "rede";
   if (pathname.includes("/notificacoes")) return "notificacoes";
   if (pathname.includes("/rotina"))       return "rotina";

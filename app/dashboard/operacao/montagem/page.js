@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { ClipboardList, Plus, Trash2, Edit3, Printer, Camera, Clock } from "lucide-react";
 import {
@@ -189,7 +189,7 @@ function imprimirFicha(m) {
   if (w) { w.document.write(html); w.document.close(); }
 }
 
-export default function MontagemPage() {
+function MontagemPageInner() {
   const { unidadeAtiva } = useERP();
   const searchParams = useSearchParams();
   const deptInicial = searchParams.get("dept") || "cozinha";
@@ -294,5 +294,13 @@ export default function MontagemPage() {
         <FormMontagem inicial={editar} deptInicial={dept} onSalvar={salvar} onCancelar={() => { setModal(false); setEditar(null); }} />
       </Modal>
     </div>
+  );
+}
+
+export default function MontagemPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" />}>
+      <MontagemPageInner />
+    </Suspense>
   );
 }

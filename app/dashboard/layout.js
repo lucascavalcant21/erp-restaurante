@@ -156,6 +156,7 @@ function getNavId(pathname) {
   if (pathname.includes("/cervejas"))     return "cervejas";
   if (pathname.includes("/vendas"))       return "vendas";
   if (pathname.includes("/drinks"))       return "drinks";
+  if (pathname.includes("/montagem"))     return "montagem";
   if (pathname.includes("/validade"))     return "validade";
   if (pathname.includes("/etiquetas"))    return "etiquetas";
   if (pathname.includes("/financeiro"))   return "financeiro";

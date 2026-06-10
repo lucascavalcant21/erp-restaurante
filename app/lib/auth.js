@@ -16,7 +16,7 @@ export const PAPEIS = [
     id: "gerente", label: "Gerente de Unidade", cor: "#10b981",
     descricao: "Gestão completa da sua loja (sem visão consolidada da rede).",
     home: "/dashboard",
-    nav: ["dashboard","bar","cozinha","cervejas","vendas","drinks","notificacoes","rotina","ingredientes","fichas","cardapio","estoque","fornecedores","eventos","etiquetas","validade","gestao","financeiro","dre","fluxo","cmv","margem","documentos","rh","gestao_rh","ponto","colaborador","clientes","crm","campanhas","nps","heitor"],
+    nav: ["dashboard","bar","cozinha","cervejas","vendas","drinks","montagem","notificacoes","rotina","ingredientes","fichas","cardapio","estoque","fornecedores","eventos","etiquetas","validade","gestao","financeiro","dre","fluxo","cmv","margem","documentos","rh","gestao_rh","ponto","colaborador","clientes","crm","campanhas","nps","heitor"],
   },
   {
     id: "financeiro", label: "Financeiro", cor: "#3b82f6",
@@ -40,7 +40,7 @@ export const PAPEIS = [
     id: "cozinha", label: "Cozinha / Chef", cor: "#f97316",
     descricao: "Fichas técnicas, cardápio e insumos.",
     home: "/dashboard/operacao/cardapio",
-    nav: ["notificacoes","bar","cozinha","ingredientes","fichas","cardapio","estoque","etiquetas","validade","gestao"],
+    nav: ["notificacoes","bar","cozinha","ingredientes","fichas","cardapio","montagem","estoque","etiquetas","validade","gestao"],
   },
   {
     id: "marketing", label: "Marketing", cor: "#f59e0b",

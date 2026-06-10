@@ -16,6 +16,7 @@ export default function BarPage() {
   const opcoes = [
     { id: "vendas", emoji: "🛒", titulo: "PDV — Vendas", desc: "Registro de vendas diretas ao balcão", href: "/dashboard/vendas" },
     { id: "drinks", emoji: "🍹", titulo: "Cardápio Drinks", desc: "Drinks, coquetéis, mocktails e composição", href: "/dashboard/operacao/drinks" },
+    { id: "montagem", emoji: "📝", titulo: "Montagem", desc: "Fichas de montagem com foto e passo a passo", href: "/dashboard/operacao/montagem?dept=bar" },
     { id: "estoque", emoji: "📦", titulo: "Estoque", desc: "Controle de bebidas, destilados e ingredientes", href: "/dashboard/operacao/estoque" },
     { id: "ingredientes", emoji: "🧪", titulo: "Ingredientes", desc: "Cadastro, preços de compra e unidades", href: "/dashboard/operacao/ingredientes" },
     { id: "etiquetas", emoji: "🏷️", titulo: "Etiquetas", desc: "Geração de etiquetas e códigos QR para bebidas", href: "/dashboard/operacao/etiquetas" },

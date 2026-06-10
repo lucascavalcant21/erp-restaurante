@@ -201,7 +201,7 @@ function getNavId(pathname) {
 // ═══════════════════════════════════════════════════════════════
 // SIDEBAR DO LAYOUT
 // ═══════════════════════════════════════════════════════════════
-function LayoutSidebar({ sessao, navId, onSair }) {
+function LayoutSidebar({ sessao, navId, onSair, onNavChange }) {
   const [exp, setExp] = useState(false);
   const router = useRouter();
   const papel = sessao ? getPapel(sessao.papel) : null;
@@ -294,7 +294,7 @@ function LayoutSidebar({ sessao, navId, onSair }) {
               const NavIcon = item.Icon;
               return (
                 <button key={item.id}
-                  onClick={() => router.push(item.href)}
+                  onClick={() => { router.push(item.href); onNavChange(item.id); }}
                   style={{
                     width: '100%', display: 'flex', alignItems: 'center',
                     gap: 12, padding: exp ? '9px 14px' : '9px 0',
@@ -376,6 +376,7 @@ export default function DashboardLayout({ children }) {
   const router   = useRouter();
   const pathname = usePathname();
   const [sessao, setSessao] = useState(null);
+  const { setUnidadeAtiva } = useERP();
 
   useEffect(() => {
     let vivo = true;
@@ -394,6 +395,17 @@ export default function DashboardLayout({ children }) {
     if (!podeAcessar(sessao.papel, atual)) router.replace(homeDoPapel(sessao.papel));
   }, [sessao, pathname, router]);
 
+  // Muda departamento automaticamente ao navegar
+  function handleNavChange(newNavId) {
+    if (newNavId === "vendas" || newNavId === "drinks" || newNavId === "estoque_bar" || newNavId === "ingredientes") {
+      setUnidadeAtiva("bar");
+    } else if (newNavId === "rotina" || newNavId === "cardapio" || newNavId === "fichas" || newNavId === "validade" || newNavId === "etiquetas") {
+      setUnidadeAtiva("cozinha");
+    } else if (newNavId === "cervejas") {
+      setUnidadeAtiva("cervejas");
+    }
+  }
+
   async function sair() {
     await encerrarSessao();
     router.replace("/login");
@@ -403,7 +415,7 @@ export default function DashboardLayout({ children }) {
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "var(--surface)" }}>
-      <LayoutSidebar sessao={sessao} navId={navId} onSair={sair} />
+      <LayoutSidebar sessao={sessao} navId={navId} onSair={sair} onNavChange={handleNavChange} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", marginLeft: 64, minHeight: "100vh" }}>
         {children}
       </div>

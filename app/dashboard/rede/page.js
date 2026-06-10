@@ -10,6 +10,7 @@ import { UNIDADES } from "../../lib/unidades";
 import { fetchEstoque } from "../../lib/estoque";
 import { fetchFuncionarios } from "../../lib/rh";
 import { fetchCardapio } from "../../lib/cardapio";
+import { fetchLancamentos } from "../../lib/financeiro";
 
 function fmtBRL(v) {
   return Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -20,10 +21,11 @@ function fmtPct(v) {
 
 // Calcula os indicadores de UMA unidade a partir das 3 fontes de dados
 async function carregarUnidade(u) {
-  const [est, fun, car] = await Promise.all([
+  const [est, fun, car, lan] = await Promise.all([
     fetchEstoque(u.id),
     fetchFuncionarios(u.id),
     fetchCardapio(u.id),
+    fetchLancamentos(u.id),
   ]);
   const estoque = est.data || [];
   const equipe  = (fun.data || []).filter((f) => f.ativo !== false);
@@ -38,19 +40,26 @@ async function carregarUnidade(u) {
     .map((p) => ((Number(p.custo) || 0) / Number(p.preco)) * 100);
   const cmvMedio = cmvs.length ? cmvs.reduce((a, b) => a + b, 0) / cmvs.length : null;
 
+  // Financeiro 30 dias
+  const now = Date.now(), d30 = 30 * 86400000;
+  const noPeriodo = (tipo) => (lan.data || []).filter((l) => l.tipo === tipo && new Date(l.data).getTime() >= now - d30).reduce((a, l) => a + (Number(l.valor) || 0), 0);
+  const receita30 = noPeriodo("entrada");
+  const lucro30 = receita30 - noPeriodo("saida");
+
   return {
     ...u,
     itens: estoque.length, valorEstoque, criticos,
     equipe: equipe.length, folha,
     pratos: pratos.length, cmvMedio,
+    receita30, lucro30,
   };
 }
 
 function KpiCentral({ icon: Icon, label, valor, cor }) {
   return (
     <div className="erp-card p-4">
-      <div className="w-8 h-8 rounded-xl flex items-center justify-center mb-2" style={{ background: "var(--elevated)" }}>
-        <Icon size={16} style={{ color: cor || "var(--muted)" }} />
+      <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-2" style={{ background: "var(--panel)" }}>
+        <Icon size={16} style={{ color: cor || "var(--subtle)" }} />
       </div>
       <p className="text-xl font-bold" style={{ color: "var(--fg)" }}>{valor}</p>
       <p className="text-[11px] font-medium" style={{ color: "var(--dim)" }}>{label}</p>
@@ -72,11 +81,14 @@ export default function RedePage() {
   }, []);
 
   const total = useMemo(() => ({
+    receita:      dados.reduce((a, u) => a + (u.receita30 || 0), 0),
+    lucro:        dados.reduce((a, u) => a + (u.lucro30 || 0), 0),
     valorEstoque: dados.reduce((a, u) => a + u.valorEstoque, 0),
     criticos:     dados.reduce((a, u) => a + u.criticos, 0),
     equipe:       dados.reduce((a, u) => a + u.equipe, 0),
     folha:        dados.reduce((a, u) => a + u.folha, 0),
   }), [dados]);
+  const maxReceita = Math.max(1, ...dados.map((u) => u.receita30 || 0));
 
   // Melhor CMV (menor) entre unidades que têm cardápio precificado
   const melhorCmv = useMemo(() => {
@@ -96,7 +108,7 @@ export default function RedePage() {
         </button>
         <div className="flex-1">
           <h1 className="text-lg font-bold leading-tight flex items-center gap-2" style={{ color: "var(--fg)" }}>
-            <Building2 size={18} style={{ color: "#8B5CF6" }} /> Visão de Rede
+            <Building2 size={18} style={{ color: "var(--muted)" }} /> Visão de Rede
           </h1>
           <p className="text-[11px] font-medium" style={{ color: "var(--dim)" }}>
             Central · consolidado e comparativo das {UNIDADES.length} unidades
@@ -108,14 +120,36 @@ export default function RedePage() {
 
         {/* Consolidado da rede */}
         <div>
-          <p className="erp-label mb-2">Consolidado da rede</p>
+          <p className="erp-label mb-2">Consolidado da rede (30 dias)</p>
           <div className="grid grid-cols-2 gap-3">
-            <KpiCentral icon={DollarSign}    label="Valor em estoque" valor={fmtBRL(total.valorEstoque)} cor="#10B981" />
-            <KpiCentral icon={AlertTriangle} label="Itens críticos"    valor={total.criticos} cor={total.criticos > 0 ? "#EF4444" : "#10B981"} />
-            <KpiCentral icon={Users}         label="Colaboradores"     valor={total.equipe} cor="#3B82F6" />
-            <KpiCentral icon={DollarSign}    label="Folha mensal"      valor={fmtBRL(total.folha)} cor="#F59E0B" />
+            <KpiCentral icon={TrendingUp}    label="Receita da rede"   valor={fmtBRL(total.receita)} />
+            <KpiCentral icon={DollarSign}    label="Lucro da rede"     valor={fmtBRL(total.lucro)} cor={total.lucro < 0 ? "#DC2626" : undefined} />
+            <KpiCentral icon={DollarSign}    label="Valor em estoque"  valor={fmtBRL(total.valorEstoque)} />
+            <KpiCentral icon={AlertTriangle} label="Itens críticos"    valor={total.criticos} cor={total.criticos > 0 ? "#DC2626" : undefined} />
+            <KpiCentral icon={Users}         label="Colaboradores"     valor={total.equipe} />
+            <KpiCentral icon={DollarSign}    label="Folha mensal"      valor={fmtBRL(total.folha)} />
           </div>
         </div>
+
+        {/* Faturamento por unidade (comparativo) */}
+        {!loading && total.receita > 0 && (
+          <div>
+            <p className="erp-label mb-2">Faturamento por unidade (30 dias)</p>
+            <div className="erp-card p-4 space-y-3">
+              {dados.slice().sort((a, b) => (b.receita30 || 0) - (a.receita30 || 0)).map((u) => (
+                <div key={u.id}>
+                  <div className="flex justify-between text-[12px] mb-1">
+                    <span className="flex items-center gap-1.5" style={{ color: "var(--fg-soft)" }}><span className="w-2 h-2 rounded-full" style={{ background: u.cor }} />{u.nome}</span>
+                    <span className="font-bold" style={{ color: "var(--fg)" }}>{fmtBRL(u.receita30 || 0)}</span>
+                  </div>
+                  <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--panel)" }}>
+                    <div className="h-full rounded-full" style={{ width: `${((u.receita30 || 0) / maxReceita) * 100}%`, background: u.cor }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Destaque: melhor CMV */}
         {melhorCmv && (
@@ -149,12 +183,12 @@ export default function RedePage() {
                     )}
                   </div>
                   <div className="grid grid-cols-3 gap-3 text-center">
+                    <Metric icon={TrendingUp} label="Receita 30d" valor={fmtBRL(u.receita30 || 0)} />
+                    <Metric icon={DollarSign} label="Lucro 30d"  valor={fmtBRL(u.lucro30 || 0)} />
                     <Metric icon={Package}   label="Estoque" valor={fmtBRL(u.valorEstoque)} />
                     <Metric icon={Users}     label="Equipe"  valor={u.equipe} />
                     <Metric icon={ChefHat}   label="Pratos"  valor={u.pratos} />
-                    <Metric icon={DollarSign} label="Folha"  valor={fmtBRL(u.folha)} />
                     <Metric icon={TrendingUp} label="CMV méd." valor={u.cmvMedio != null ? fmtPct(u.cmvMedio) : "—"} />
-                    <Metric icon={AlertTriangle} label="Itens" valor={u.itens} />
                   </div>
                 </div>
               ))}

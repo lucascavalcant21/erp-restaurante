@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Wine, Plus, Trash2, Edit3 } from "lucide-react";
+import { Wine, Plus, Trash2, Edit3, TrendingUp } from "lucide-react";
 import {
   PageHeader, PageBody, Card, SectionLabel, KpiGrid, Kpi,
-  SearchBar, Chips, EmptyState, Modal, Field, TextInput, NumberInput, Select, Btn, Toast, fmtBRL,
+  SearchBar, Chips, EmptyState, Modal, Field, TextInput, NumberInput, Select, Btn, Toast, fmtBRL, fmtPct,
 } from "../../components/ui";
 import { useERP } from "../../context/ERPContext";
 import { fetchCervejas, inserirCerveja, atualizarCerveja, removerCerveja, ESTILOS, VOLUMES, ORIGENS } from "../../lib/cervejas";
@@ -17,7 +17,8 @@ function FormCerveja({ inicial, onSalvar, onCancelar }) {
   const set = (k, v) => { setF((p) => ({ ...p, [k]: v })); setErro(""); };
   const precoC = parseFloat(String(f.preco_compra).replace(",", ".")) || 0;
   const precoV = parseFloat(String(f.preco_venda).replace(",", ".")) || 0;
-  const lucro = precoV > precoC ? precoV - precoC : 0;
+  const cmv = precoV > 0 ? (precoC / precoV) * 100 : 0;
+  const margem = precoV > precoC ? ((precoV - precoC) / precoV) * 100 : 0;
 
   function salvar() {
     if (!f.marca.trim()) return setErro("Informe a marca da cerveja.");
@@ -48,7 +49,12 @@ function FormCerveja({ inicial, onSalvar, onCancelar }) {
         <Field label="Preço de compra (R$)"><NumberInput value={f.preco_compra} onChange={(e) => set("preco_compra", e.target.value)} placeholder="0,00" step="0.01" /></Field>
         <Field label="Preço de venda (R$)"><NumberInput value={f.preco_venda} onChange={(e) => set("preco_venda", e.target.value)} placeholder="0,00" step="0.01" /></Field>
       </div>
-      {lucro > 0 && <p className="text-xs font-bold" style={{ color: "#10B981" }}>Margem: {fmtBRL(lucro)}</p>}
+      {precoV > 0 && (
+        <div className="erp-panel p-3 mb-3 flex justify-between items-center">
+          <span className="text-[11px] font-bold" style={{ color: "var(--muted)" }}>CMV {fmtPct(cmv)} · Margem {fmtPct(margem)}</span>
+          <span className="text-sm font-bold" style={{ color: margem >= 30 ? "var(--accent-fg)" : "#DC2626" }}>{fmtBRL(precoV - precoC)}</span>
+        </div>
+      )}
       <Field label="Fornecedor"><TextInput value={f.fornecedor} onChange={(e) => set("fornecedor", e.target.value)} placeholder="ex: Distribuidor local" /></Field>
       <Field label="Quantidade"><NumberInput value={f.quantidade} onChange={(e) => set("quantidade", e.target.value)} placeholder="0" step="1" /></Field>
       {erro && <p className="erp-badge erp-badge-danger w-full justify-center mb-3">{erro}</p>}
@@ -77,7 +83,7 @@ export default function CervejasPage() {
     setLista(data || []);
     setLoading(false);
   }
-  useEffect(() => { carregar(); /* eslint-disable-next-line */ }, [unidadeAtiva]);
+  useEffect(() => { carregar(); }, [unidadeAtiva]);
 
   const filtrados = useMemo(() => lista.filter((c) => {
     const mb = c.marca?.toLowerCase().includes(busca.toLowerCase());
@@ -88,8 +94,9 @@ export default function CervejasPage() {
 
   const resumo = useMemo(() => {
     const criticas = lista.filter((c) => c.quantidade <= c.minimo).length;
-    const estoque = lista.reduce((a, c) => a + (c.quantidade * c.preco_venda), 0);
-    return { total: lista.length, criticas, estoque };
+    const estoque_valor = lista.reduce((a, c) => a + (c.quantidade * c.preco_venda), 0);
+    const cmv_medio = lista.length ? lista.reduce((a, c) => a + ((c.preco_compra / (c.preco_venda || 1)) * 100), 0) / lista.length : 0;
+    return { total: lista.length, criticas, estoque_valor, cmv_medio };
   }, [lista]);
 
   async function salvar(dados) {
@@ -110,13 +117,13 @@ export default function CervejasPage() {
 
   return (
     <div className="min-h-screen">
-      <PageHeader title="Cervejas" subtitle="Catálogo e estoque · Bar" icon={Wine} onAction={() => { setEditar(null); setModal(true); }} actionLabel="Nova" />
+      <PageHeader title="Cervejas" subtitle="Catálogo, estoque e rentabilidade" icon={Wine} onAction={() => { setEditar(null); setModal(true); }} actionLabel="Nova" />
       <PageBody>
         <Toast show={!!salvou}>{salvou}</Toast>
 
         <KpiGrid>
           <Kpi icon={Wine} label="Cervejas cadastradas" value={resumo.total} tint="var(--accent-fg)" />
-          <Kpi icon={Wine} label="Estoque crítico" value={resumo.criticas} tint={resumo.criticas > 0 ? "#EF4444" : "var(--muted)"} />
+          <Kpi icon={TrendingUp} label="CMV médio" value={fmtPct(resumo.cmv_medio)} tint={resumo.cmv_medio <= 40 ? "#10B981" : "#F59E0B"} />
         </KpiGrid>
 
         <SearchBar value={busca} onChange={setBusca} placeholder="Buscar marca..." />
@@ -132,6 +139,10 @@ export default function CervejasPage() {
           ) : (
             <div className="space-y-2">
               {filtrados.map((c) => {
+                const precoV = Number(c.preco_venda) || 0;
+                const precoC = Number(c.preco_compra) || 0;
+                const cmv = precoV > 0 ? (precoC / precoV) * 100 : 0;
+                const margem = precoV > precoC ? ((precoV - precoC) / precoV) * 100 : 0;
                 const critica = c.quantidade <= c.minimo;
                 return (
                   <Card key={c.id} className="!p-3" style={critica ? { opacity: 0.75, borderLeft: "3px solid #EF4444" } : {}}>
@@ -143,7 +154,20 @@ export default function CervejasPage() {
                           {c.origem === "Importada" && <span className="erp-badge text-[10px]" style={{ background: "#D4AF37", color: "#000" }}>Importada</span>}
                         </div>
                         <p className="text-[11px]" style={{ color: "var(--dim)" }}>{c.volume_ml}mL {c.alcool ? `· ${c.alcool}%` : ""} · Est: {c.quantidade}/{c.minimo}</p>
-                        <p className="text-sm font-bold mt-1" style={{ color: "var(--fg)" }}>{fmtBRL(c.preco_venda)} · Compra: {fmtBRL(c.preco_compra)}</p>
+                        <div className="flex items-center gap-3 mt-2">
+                          <div>
+                            <p className="text-[10px]" style={{ color: "var(--dim)" }}>Venda</p>
+                            <p className="font-bold" style={{ color: "var(--fg)" }}>{fmtBRL(precoV)}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px]" style={{ color: "var(--dim)" }}>Compra</p>
+                            <p className="text-sm" style={{ color: "var(--muted)" }}>{fmtBRL(precoC)}</p>
+                          </div>
+                          <div style={{ borderLeft: "1px solid var(--line)", paddingLeft: 12 }}>
+                            <p className="text-[10px] font-bold" style={{ color: cmv <= 40 ? "var(--accent-fg)" : "#DC2626" }}>CMV {fmtPct(cmv)}</p>
+                            <p className="text-sm font-bold" style={{ color: cmv <= 40 ? "var(--accent-fg)" : "#DC2626" }}>{fmtBRL(precoV - precoC)}</p>
+                          </div>
+                        </div>
                       </div>
                       <div className="flex gap-1 flex-shrink-0">
                         <button onClick={() => { setEditar(c); setModal(true); }} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "var(--elevated)" }}><Edit3 size={14} style={{ color: "var(--muted)" }} /></button>

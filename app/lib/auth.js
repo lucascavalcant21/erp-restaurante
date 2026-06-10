@@ -16,7 +16,7 @@ export const PAPEIS = [
     id: "gerente", label: "Gerente de Unidade", cor: "#10b981",
     descricao: "Gestão completa da sua loja (sem visão consolidada da rede).",
     home: "/dashboard",
-    nav: ["dashboard","bar","cozinha","cervejas","vendas","drinks","notificacoes","rotina","ingredientes","fichas","cardapio","estoque","fornecedores","eventos","etiquetas","validade","financeiro","dre","fluxo","cmv","margem","documentos","gestao_rh","ponto","colaborador","crm","campanhas","nps","heitor"],
+    nav: ["dashboard","bar","cozinha","cervejas","vendas","drinks","notificacoes","rotina","ingredientes","fichas","cardapio","estoque","fornecedores","eventos","etiquetas","validade","gestao","financeiro","dre","fluxo","cmv","margem","documentos","rh","gestao_rh","ponto","colaborador","clientes","crm","campanhas","nps","heitor"],
   },
   {
     id: "financeiro", label: "Financeiro", cor: "#3b82f6",
@@ -28,25 +28,25 @@ export const PAPEIS = [
     id: "rh", label: "Recursos Humanos", cor: "#ec4899",
     descricao: "Equipe, ponto e portal do colaborador.",
     home: "/dashboard/rh/gestao",
-    nav: ["notificacoes","gestao_rh","ponto","colaborador"],
+    nav: ["notificacoes","rh","gestao_rh","ponto","colaborador"],
   },
   {
     id: "estoque", label: "Estoquista", cor: "#8b5cf6",
     descricao: "Insumos, estoque, fichas, cardápio e fornecedores.",
     home: "/dashboard/operacao/estoque",
-    nav: ["notificacoes","bar","cozinha","cervejas","estoque","ingredientes","fichas","cardapio","fornecedores","etiquetas","validade"],
+    nav: ["notificacoes","bar","cozinha","cervejas","estoque","ingredientes","fichas","cardapio","fornecedores","etiquetas","validade","gestao"],
   },
   {
     id: "cozinha", label: "Cozinha / Chef", cor: "#f97316",
     descricao: "Fichas técnicas, cardápio e insumos.",
     home: "/dashboard/operacao/cardapio",
-    nav: ["notificacoes","bar","cozinha","ingredientes","fichas","cardapio","estoque","etiquetas","validade"],
+    nav: ["notificacoes","bar","cozinha","ingredientes","fichas","cardapio","estoque","etiquetas","validade","gestao"],
   },
   {
     id: "marketing", label: "Marketing", cor: "#f59e0b",
     descricao: "Clientes, campanhas e avaliações.",
     home: "/dashboard/clientes/crm",
-    nav: ["dashboard","notificacoes","crm","campanhas","nps"],
+    nav: ["dashboard","notificacoes","clientes","crm","campanhas","nps"],
   },
   {
     id: "caixa", label: "Operador de Caixa", cor: "#64748b",

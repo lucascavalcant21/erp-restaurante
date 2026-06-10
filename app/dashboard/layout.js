@@ -125,24 +125,19 @@ const MENU_GROUPS = [
   {
     id: "gestao", label: "⚙️ GESTÃO",
     items: [
-      { id: "validade",  label: "Controle de Validade", Icon: Ic.Calendar, href: "/dashboard/operacao/validade" },
-      { id: "etiquetas", label: "Etiquetas",           Icon: Ic.Box,      href: "/dashboard/operacao/etiquetas" },
+      { id: "gestao", label: "⚙️ Gestão", Icon: Ic.Calendar, href: "/dashboard/gestao" },
     ],
   },
   {
     id: "rh_grupo", label: "👥 RECURSOS HUMANOS",
     items: [
-      { id: "gestao_rh",   label: "RH",                   Icon: Ic.Users,     href: "/dashboard/rh/gestao" },
-      { id: "ponto",       label: "Controle de Ponto",    Icon: Ic.Clock,     href: "/dashboard/rh/ponto" },
-      { id: "colaborador", label: "Portal do Colaborador",Icon: Ic.Badge,     href: "/dashboard/rh/colaborador" },
+      { id: "rh", label: "👥 RH", Icon: Ic.Users, href: "/dashboard/rh" },
     ],
   },
   {
     id: "clientes", label: "📱 CLIENTES & MARKETING",
     items: [
-      { id: "crm",       label: "CRM",          Icon: Ic.UserCheck, href: "/dashboard/clientes/crm" },
-      { id: "campanhas", label: "Tráfego Pago", Icon: Ic.Megaphone, href: "/dashboard/clientes/campanhas" },
-      { id: "nps",       label: "Avaliações",   Icon: Ic.Star,      href: "/dashboard/clientes/nps" },
+      { id: "clientes", label: "📱 Clientes & Marketing", Icon: Ic.UserCheck, href: "/dashboard/clientes" },
     ],
   },
   {
@@ -164,6 +159,9 @@ function getNavId(pathname) {
   if (pathname.includes("/validade"))     return "validade";
   if (pathname.includes("/etiquetas"))    return "etiquetas";
   if (pathname.includes("/financeiro"))   return "financeiro";
+  if (pathname.includes("/gestao"))       return "gestao";
+  if (pathname.includes("/clientes"))     return "clientes";
+  if (pathname.includes("/rh"))           return "rh";
   if (pathname.includes("/rede"))         return "rede";
   if (pathname.includes("/notificacoes")) return "notificacoes";
   if (pathname.includes("/rotina"))       return "rotina";
@@ -178,7 +176,6 @@ function getNavId(pathname) {
   if (pathname.includes("/cmv"))          return "cmv";
   if (pathname.includes("/margem"))       return "margem";
   if (pathname.includes("/documentos"))   return "documentos";
-  if (pathname.includes("/rh"))           return "gestao_rh";
   if (pathname.includes("/ponto"))        return "ponto";
   if (pathname.includes("/colaborador"))  return "colaborador";
   if (pathname.includes("/crm"))          return "crm";

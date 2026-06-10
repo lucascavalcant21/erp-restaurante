@@ -147,7 +147,7 @@ export default function FuncionarioDetalhePage() {
         )}
 
         {!func?.email && func && (
-          <Card><p className="text-[12px]" style={{ color: "#FCA5A5" }}>⚠️ Este funcionário não tem e-mail cadastrado — sem e-mail, ele não consegue ver o portal. Edite o cadastro e adicione o e-mail de login dele.</p></Card>
+          <Card><p className="text-[12px]" style={{ color: "#DC2626" }}>⚠️ Este funcionário não tem e-mail cadastrado — sem e-mail, ele não consegue ver o portal. Edite o cadastro e adicione o e-mail de login dele.</p></Card>
         )}
 
         <Chips options={TABS.map((t) => ({ value: t.key, label: t.label }))} value={abaKey} onChange={setAbaKey} />

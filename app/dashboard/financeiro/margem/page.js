@@ -75,7 +75,7 @@ export default function MargemPage() {
                     <Card key={l.id} className="!p-3">
                       <div className="flex items-center justify-between mb-1.5">
                         <p className="text-sm font-bold truncate" style={{ color: "var(--fg)" }}>{l.nome}</p>
-                        <span className="text-sm font-bold" style={{ color: ok ? "var(--accent-fg)" : "#FCA5A5" }}>{fmtBRL(l.mcR)}</span>
+                        <span className="text-sm font-bold" style={{ color: ok ? "var(--accent-fg)" : "#DC2626" }}>{fmtBRL(l.mcR)}</span>
                       </div>
                       <div className="h-2 rounded-full overflow-hidden mb-1" style={{ background: "var(--elevated)" }}>
                         <div className="h-full rounded-full" style={{ width: `${Math.min(Math.max(l.mc, 0), 100)}%`, background: ok ? "#10B981" : "#F59E0B" }} />

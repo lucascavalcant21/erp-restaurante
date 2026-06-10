@@ -85,15 +85,15 @@ export default function ValidadePage() {
           <Card style={{ background: "rgba(239,68,68,0.12)", borderColor: "#EF4444" }} className="flex items-center gap-3">
             <AlertTriangle size={22} style={{ color: "#EF4444", flexShrink: 0 }} />
             <div>
-              <p className="text-sm font-bold" style={{ color: "#FCA5A5" }}>{resumo.vencidosSemBaixa} produto(s) VENCIDO(S) sem baixa</p>
-              <p className="text-[12px]" style={{ color: "var(--muted)" }}>Possível perda de <b style={{ color: "#FCA5A5" }}>{fmtBRL(resumo.valorPendente)}</b> — registre baixa (usado) ou perda.</p>
+              <p className="text-sm font-bold" style={{ color: "#DC2626" }}>{resumo.vencidosSemBaixa} produto(s) VENCIDO(S) sem baixa</p>
+              <p className="text-[12px]" style={{ color: "var(--muted)" }}>Possível perda de <b style={{ color: "#DC2626" }}>{fmtBRL(resumo.valorPendente)}</b> — registre baixa (usado) ou perda.</p>
             </div>
           </Card>
         )}
         {resumo.vencendo > 0 && (
           <Card style={{ background: "var(--warning-soft)" }} className="flex items-center gap-3">
             <Clock size={20} style={{ color: "#F59E0B", flexShrink: 0 }} />
-            <p className="text-sm font-bold" style={{ color: "#FCD34D" }}>{resumo.vencendo} produto(s) vencem em até 7 dias — use primeiro!</p>
+            <p className="text-sm font-bold" style={{ color: "#B45309" }}>{resumo.vencendo} produto(s) vencem em até 7 dias — use primeiro!</p>
           </Card>
         )}
 
@@ -147,7 +147,7 @@ export default function ValidadePage() {
                       )}
                       {e.status !== "ativa" && (
                         <div className="flex items-center justify-between mt-1.5">
-                          <span className="text-[11px] font-bold" style={{ color: e.status === "perda" ? "#FCA5A5" : "var(--accent-fg)" }}>
+                          <span className="text-[11px] font-bold" style={{ color: e.status === "perda" ? "#DC2626" : "var(--accent-fg)" }}>
                             {e.status === "perda" ? `💸 Perda ${fmtBRL(e.valor)}` : "✔ Baixa (consumido)"}
                           </span>
                           <button onClick={() => mudarStatus(e.id, "ativa")} className="text-[11px] font-bold" style={{ color: "var(--dim)" }}>desfazer</button>

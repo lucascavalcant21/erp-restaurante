@@ -74,7 +74,7 @@ export default function CmvPage() {
                     <Card key={l.id} className="!p-3">
                       <div className="flex items-center justify-between mb-1.5">
                         <p className="text-sm font-bold truncate" style={{ color: "var(--fg)" }}>{l.nome}</p>
-                        <span className="text-sm font-bold" style={{ color: alto ? "#FCA5A5" : "var(--accent-fg)" }}>{fmtPct(l.cmv)}</span>
+                        <span className="text-sm font-bold" style={{ color: alto ? "#DC2626" : "var(--accent-fg)" }}>{fmtPct(l.cmv)}</span>
                       </div>
                       <div className="h-2 rounded-full overflow-hidden mb-1" style={{ background: "var(--elevated)" }}>
                         <div className="h-full rounded-full" style={{ width: `${Math.min(l.cmv, 100)}%`, background: alto ? "#EF4444" : "#10B981" }} />

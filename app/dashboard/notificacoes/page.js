@@ -76,7 +76,7 @@ export default function NotificacoesPage() {
                         <div className="flex items-center gap-3 mt-2">
                           {cfg.href && <button onClick={() => router.push(cfg.href)} className="text-[11px] font-bold flex items-center gap-0.5" style={{ color: "var(--muted)" }}>Ver módulo <ChevronRight size={12} /></button>}
                           {!n.lida && <button onClick={() => marcarLida(n.id)} className="text-[11px] font-bold" style={{ color: "var(--accent-fg)" }}>Marcar lida</button>}
-                          <button onClick={() => removerNotificacao(n.id)} className="text-[11px] font-bold flex items-center gap-0.5" style={{ color: "#FCA5A5" }}><Trash2 size={11} /> Remover</button>
+                          <button onClick={() => removerNotificacao(n.id)} className="text-[11px] font-bold flex items-center gap-0.5" style={{ color: "#DC2626" }}><Trash2 size={11} /> Remover</button>
                         </div>
                       </div>
                     </div>

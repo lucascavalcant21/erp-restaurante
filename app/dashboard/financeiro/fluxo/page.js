@@ -107,10 +107,10 @@ export default function FluxoPage() {
         <Card>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Wallet size={18} style={{ color: resumo.saldo >= 0 ? "var(--accent-fg)" : "#FCA5A5" }} />
+              <Wallet size={18} style={{ color: resumo.saldo >= 0 ? "var(--accent-fg)" : "#DC2626" }} />
               <span className="text-sm font-medium" style={{ color: "var(--muted)" }}>Saldo do período</span>
             </div>
-            <span className="text-xl font-bold" style={{ color: resumo.saldo >= 0 ? "var(--accent-fg)" : "#FCA5A5" }}>{fmtBRL(resumo.saldo)}</span>
+            <span className="text-xl font-bold" style={{ color: resumo.saldo >= 0 ? "var(--accent-fg)" : "#DC2626" }}>{fmtBRL(resumo.saldo)}</span>
           </div>
         </Card>
 
@@ -136,7 +136,7 @@ export default function FluxoPage() {
                         <p className="text-sm font-bold truncate" style={{ color: "var(--fg)" }}>{l.descricao}</p>
                         <p className="text-[11px]" style={{ color: "var(--dim)" }}>{l.categoria} · {fmtData(l.data)}</p>
                       </div>
-                      <span className="text-sm font-bold" style={{ color: ent ? "var(--accent-fg)" : "#FCA5A5" }}>{ent ? "+" : "−"}{fmtBRL(l.valor)}</span>
+                      <span className="text-sm font-bold" style={{ color: ent ? "var(--accent-fg)" : "#DC2626" }}>{ent ? "+" : "−"}{fmtBRL(l.valor)}</span>
                       <button onClick={() => remover(l.id)} className="w-8 h-8 rounded-lg flex items-center justify-center erp-badge-danger"><Trash2 size={13} /></button>
                     </div>
                   </Card>

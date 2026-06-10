@@ -46,10 +46,10 @@ export default function DrePage() {
             {/* Resultado em destaque */}
             <Card>
               <p className="erp-label">Resultado do período</p>
-              <p className="text-3xl font-bold mt-1" style={{ color: dre.resultado >= 0 ? "var(--accent-fg)" : "#FCA5A5" }}>
+              <p className="text-3xl font-bold mt-1" style={{ color: dre.resultado >= 0 ? "var(--accent-fg)" : "#DC2626" }}>
                 {fmtBRL(dre.resultado)}
               </p>
-              <div className="flex items-center gap-1 mt-1 text-[12px] font-bold" style={{ color: dre.resultado >= 0 ? "var(--accent-fg)" : "#FCA5A5" }}>
+              <div className="flex items-center gap-1 mt-1 text-[12px] font-bold" style={{ color: dre.resultado >= 0 ? "var(--accent-fg)" : "#DC2626" }}>
                 {dre.resultado >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
                 <span>Margem líquida {fmtPct(dre.margem)}</span>
               </div>
@@ -65,9 +65,9 @@ export default function DrePage() {
               {Object.entries(dre.desp).sort((a, b) => b[1] - a[1]).map(([cat, val]) => (
                 <Linha key={cat} label={cat} valor={-val} indent />
               ))}
-              <Linha label="Total de despesas" valor={-dre.despesaTotal} cor="#FCA5A5" />
+              <Linha label="Total de despesas" valor={-dre.despesaTotal} cor="#DC2626" />
               <div style={{ borderTop: "2px solid var(--line)" }} />
-              <Linha label="(=) Resultado líquido" valor={dre.resultado} forte cor={dre.resultado >= 0 ? "#34D399" : "#FCA5A5"} />
+              <Linha label="(=) Resultado líquido" valor={dre.resultado} forte cor={dre.resultado >= 0 ? "#34D399" : "#DC2626"} />
             </Card>
           </>
         )}

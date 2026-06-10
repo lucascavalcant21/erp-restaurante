@@ -18,40 +18,40 @@ module.exports = {
           900: "#0a6c4b",
         },
 
-        // ── Design tokens semânticos (tema dark) ──────────────────────
-        // Trocar o tema inteiro = mexer só nestes valores.
+        // ── Design tokens semânticos (tema claro — estilo Ascend) ─────
+        // Trocar o tema inteiro = mexer só nestes valores (+ globals.css :root).
         // Uso: bg-surface, bg-panel, bg-card, border-line, text-fg, etc.
-        surface:  "#0F172A", // fundo do app (slate-900)
-        panel:    "#162032", // painéis / seções
-        card:     "#1E293B", // cartões (slate-800)
-        elevated: "#334155", // elementos elevados / hover (slate-700)
-        line:     "#27324A", // bordas
-        "line-soft": "#1E293B",
+        surface:  "#F7F8FA", // fundo do app
+        panel:    "#F1F5F9", // painéis / seções
+        card:     "#FFFFFF", // cartões
+        elevated: "#F1F5F9", // elementos elevados / hover
+        line:     "#E5E7EB", // bordas
+        "line-soft": "#F1F5F9",
 
         // Texto (hierarquia)
-        fg:        "#F1F5F9", // texto principal
-        "fg-soft": "#CBD5E1", // texto principal suave
-        muted:     "#94A3B8", // texto secundário
-        subtle:    "#64748B", // texto auxiliar / labels
-        dim:       "#475569", // texto terciário / ícones
-        faint:     "#334155", // texto desabilitado / divisores
+        fg:        "#0F172A", // texto principal
+        "fg-soft": "#334155", // texto principal suave
+        muted:     "#64748B", // texto secundário
+        subtle:    "#94A3B8", // texto auxiliar / labels
+        dim:       "#94A3B8", // texto terciário / ícones
+        faint:     "#CBD5E1", // divisores
 
-        // Acento (verde da marca) + estados
+        // Acento (verde da marca) + estados (legíveis em fundo claro)
         accent:        "#10B981",
         "accent-strong": "#059669",
-        "accent-fg":   "#34D399",
+        "accent-fg":   "#059669",
         danger:        "#EF4444",
-        "danger-soft": "rgba(239,68,68,0.12)",
+        "danger-soft": "rgba(239,68,68,0.10)",
         warning:       "#F59E0B",
-        "warning-soft":"rgba(245,158,11,0.12)",
+        "warning-soft":"rgba(245,158,11,0.13)",
         info:          "#3B82F6",
       },
       borderRadius: {
         xl2: "14px",
       },
       boxShadow: {
-        card: "0 1px 3px rgba(0,0,0,0.30), 0 1px 2px rgba(0,0,0,0.20)",
-        pop:  "0 8px 24px rgba(0,0,0,0.40)",
+        card: "0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.07)",
+        pop:  "0 12px 32px rgba(16,24,40,0.14)",
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],

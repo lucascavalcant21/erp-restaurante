@@ -9,36 +9,38 @@
    ═══════════════════════════════════════════════════════════════ */
 
 :root {
-  /* Superfícies */
-  --surface:    #0F172A; /* fundo do app */
-  --panel:      #162032; /* seções */
-  --card:       #1E293B; /* cartões */
-  --elevated:   #334155; /* hover / elevado */
+  /* Superfícies (tema claro — estilo Ascend) */
+  --surface:    #F7F8FA; /* fundo do app */
+  --panel:      #F1F5F9; /* seções */
+  --card:       #FFFFFF; /* cartões */
+  --elevated:   #F1F5F9; /* hover / elevado */
 
   /* Bordas */
-  --line:       #27324A;
-  --line-soft:  #1E293B;
+  --line:       #E5E7EB;
+  --line-soft:  #F1F5F9;
 
-  /* Texto */
-  --fg:         #F1F5F9;
-  --muted:      #94A3B8;
-  --subtle:     #64748B;
-  --faint:      #334155;
+  /* Texto (hierarquia) */
+  --fg:         #0F172A;
+  --fg-soft:    #334155;
+  --muted:      #64748B;
+  --subtle:     #94A3B8;
+  --dim:        #94A3B8;
+  --faint:      #CBD5E1;
 
-  /* Acento (verde da marca) + estados */
+  /* Acento (verde da marca) + estados — tons legíveis em fundo claro */
   --accent:        #10B981;
   --accent-strong: #059669;
-  --accent-fg:     #34D399;
-  --accent-soft:   rgba(16,185,129,0.14);
+  --accent-fg:     #059669;
+  --accent-soft:   rgba(16,185,129,0.12);
   --danger:        #EF4444;
-  --danger-soft:   rgba(239,68,68,0.12);
+  --danger-soft:   rgba(239,68,68,0.10);
   --warning:       #F59E0B;
-  --warning-soft:  rgba(245,158,11,0.12);
+  --warning-soft:  rgba(245,158,11,0.13);
   --info:          #3B82F6;
 
-  /* Sombras */
-  --shadow-card: 0 1px 3px rgba(0,0,0,0.30), 0 1px 2px rgba(0,0,0,0.20);
-  --shadow-pop:  0 8px 24px rgba(0,0,0,0.40);
+  /* Sombras suaves */
+  --shadow-card: 0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.07);
+  --shadow-pop:  0 12px 32px rgba(16,24,40,0.14);
 }
 
 * {
@@ -105,7 +107,7 @@ button, a { cursor: pointer; transition: all 120ms ease; }
   }
   .erp-btn-ghost:hover { background-color: var(--elevated); color: var(--fg); }
   .erp-btn-danger {
-    background-color: var(--danger-soft); color: #FCA5A5;
+    background-color: var(--danger-soft); color: #DC2626;
     border-color: rgba(239,68,68,0.25);
   }
   .erp-btn-danger:hover { background-color: var(--danger); color: #fff; }
@@ -130,9 +132,9 @@ button, a { cursor: pointer; transition: all 120ms ease; }
     padding: 3px 10px; border-radius: 999px;
     font-size: 12px; font-weight: 600;
   }
-  .erp-badge-ok     { background: var(--accent-soft);  color: var(--accent-fg); }
-  .erp-badge-warn   { background: var(--warning-soft); color: #FCD34D; }
-  .erp-badge-danger { background: var(--danger-soft);  color: #FCA5A5; }
+  .erp-badge-ok     { background: var(--accent-soft);  color: var(--accent-strong); }
+  .erp-badge-warn   { background: var(--warning-soft); color: #B45309; }
+  .erp-badge-danger { background: var(--danger-soft);  color: #DC2626; }
 }
 
 /* Impressao de etiqueta (impressora termica) */

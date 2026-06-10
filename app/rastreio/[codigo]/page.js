@@ -35,7 +35,7 @@ export default function RastreioPage() {
           <div className="erp-card p-8 text-center text-sm" style={{ color: "var(--subtle)" }}>Buscando etiqueta...</div>
         ) : !et ? (
           <div className="erp-card p-8 text-center">
-            <AlertTriangle size={36} style={{ color: "#FCA5A5", margin: "0 auto 8px" }} />
+            <AlertTriangle size={36} style={{ color: "#DC2626", margin: "0 auto 8px" }} />
             <p className="text-base font-bold" style={{ color: "var(--fg)" }}>Etiqueta não encontrada</p>
             <p className="text-sm mt-1" style={{ color: "var(--dim)" }}>Código <b>{codigo}</b> não existe ou foi removido.</p>
           </div>
@@ -43,19 +43,19 @@ export default function RastreioPage() {
           <div className="erp-card overflow-hidden">
             {/* Status */}
             <div className="p-5 text-center" style={{ background: vencido ? "rgba(239,68,68,0.15)" : "var(--accent-soft)" }}>
-              {vencido ? <AlertTriangle size={40} style={{ color: "#FCA5A5", margin: "0 auto 6px" }} /> : <ShieldCheck size={40} style={{ color: "var(--accent-fg)", margin: "0 auto 6px" }} />}
-              <p className="text-xl font-bold" style={{ color: vencido ? "#FCA5A5" : "var(--accent-fg)" }}>{vencido ? "VENCIDO" : "DENTRO DA VALIDADE"}</p>
-              <p className="text-[13px] font-bold mt-1" style={{ color: vencido ? "#FCA5A5" : "var(--accent-fg)" }}>{textoDias}</p>
+              {vencido ? <AlertTriangle size={40} style={{ color: "#DC2626", margin: "0 auto 6px" }} /> : <ShieldCheck size={40} style={{ color: "var(--accent-fg)", margin: "0 auto 6px" }} />}
+              <p className="text-xl font-bold" style={{ color: vencido ? "#DC2626" : "var(--accent-fg)" }}>{vencido ? "VENCIDO" : "DENTRO DA VALIDADE"}</p>
+              <p className="text-[13px] font-bold mt-1" style={{ color: vencido ? "#DC2626" : "var(--accent-fg)" }}>{textoDias}</p>
               <p className="text-2xl font-bold mt-2" style={{ color: "var(--fg)" }}>{et.produto}</p>
               {et.status === "baixa" && <p className="text-[11px] mt-1" style={{ color: "var(--dim)" }}>✔ Baixa registrada (consumido)</p>}
-              {et.status === "perda" && <p className="text-[11px] mt-1" style={{ color: "#FCA5A5" }}>⚠ Registrado como PERDA</p>}
+              {et.status === "perda" && <p className="text-[11px] mt-1" style={{ color: "#DC2626" }}>⚠ Registrado como PERDA</p>}
             </div>
             {/* Detalhes */}
             <div className="p-4 space-y-0">
               <Linha k="Conservação" v={et.conservacao} />
               <Linha k="Quantidade" v={`${et.quantidade} ${et.unidade || ""}`} />
               <Linha k="Manipulação" v={fmtDataHora(et.manipulacao_em)} />
-              <Linha k="Validade" v={fmtDataHora(et.validade_em)} forte cor={vencido ? "#FCA5A5" : "var(--accent-fg)"} />
+              <Linha k="Validade" v={fmtDataHora(et.validade_em)} forte cor={vencido ? "#DC2626" : "var(--accent-fg)"} />
               {et.lote && <Linha k="Lote / SIF" v={et.lote} />}
               <Linha k="Responsável" v={et.responsavel} />
               <Linha k="Código" v={et.codigo} />

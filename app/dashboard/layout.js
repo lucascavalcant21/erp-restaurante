@@ -199,7 +199,7 @@ function LayoutSidebar({ sessao, navId, onSair }) {
       style={{
         position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 50,
         width: exp ? 260 : 64,
-        background: 'var(--surface)',
+        background: '#0F172A',
         borderRight: '1px solid rgba(255,255,255,0.06)',
         transition: 'width 220ms cubic-bezier(0.4,0,0.2,1)',
         overflow: 'hidden',
@@ -388,7 +388,7 @@ export default function DashboardLayout({ children }) {
   const navId = pathname?.split("/")[2] || "dashboard";
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#0F172A" }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: "var(--surface)" }}>
       <LayoutSidebar sessao={sessao} navId={navId} onSair={sair} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", marginLeft: 64, minHeight: "100vh" }}>
         {children}

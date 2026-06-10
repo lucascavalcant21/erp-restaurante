@@ -152,7 +152,7 @@ export default function ColaboradorPage() {
                 <div className="space-y-1">{d.ponto.map((r) => (
                   <div key={r.id} className="flex items-center justify-between py-1.5" style={{ borderBottom: "1px solid var(--line)" }}>
                     <span className="text-[12px] font-medium" style={{ color: "var(--fg-soft)" }}>{fmtData(r.data)}</span>
-                    <span className="text-[12px]" style={{ color: "var(--dim)" }}>Entrada <b style={{ color: "var(--accent-fg)" }}>{r.entrada || "—"}</b> · Saída <b style={{ color: "#FCA5A5" }}>{r.saida || "—"}</b></span>
+                    <span className="text-[12px]" style={{ color: "var(--dim)" }}>Entrada <b style={{ color: "var(--accent-fg)" }}>{r.entrada || "—"}</b> · Saída <b style={{ color: "#DC2626" }}>{r.saida || "—"}</b></span>
                   </div>))}</div>
               )}
             </Secao>

@@ -49,7 +49,7 @@ function FormPrato({ inicial, onSalvar, onCancelar }) {
       {m.preco > 0 && (
         <div className="erp-panel p-3 mb-3 flex justify-between items-center">
           <span className="text-[11px] font-medium" style={{ color: "var(--muted)" }}>Margem de contribuição</span>
-          <span className="text-sm font-bold" style={{ color: m.ok ? "var(--accent-fg)" : "#FCA5A5" }}>MC {fmtPct(m.mc)} · CMV {fmtPct(m.cmv)}</span>
+          <span className="text-sm font-bold" style={{ color: m.ok ? "var(--accent-fg)" : "#DC2626" }}>MC {fmtPct(m.mc)} · CMV {fmtPct(m.cmv)}</span>
         </div>
       )}
       <Field label="Situação">
@@ -162,7 +162,7 @@ export default function CardapioPage() {
                     <div className="h-2 rounded-full overflow-hidden mb-1" style={{ background: "var(--elevated)" }}>
                       <div className="h-full rounded-full" style={{ width: `${Math.min(m.cmv, 100)}%`, background: m.ok ? "#10B981" : "#EF4444" }} />
                     </div>
-                    <div className="flex justify-between text-[10px] font-bold mb-3" style={{ color: m.ok ? "var(--accent-fg)" : "#FCA5A5" }}>
+                    <div className="flex justify-between text-[10px] font-bold mb-3" style={{ color: m.ok ? "var(--accent-fg)" : "#DC2626" }}>
                       <span>CMV {fmtPct(m.cmv)} · Custo {fmtBRL(m.custo)}</span>
                       <span>MC {fmtPct(m.mc)}</span>
                     </div>

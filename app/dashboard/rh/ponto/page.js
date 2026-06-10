@@ -71,7 +71,7 @@ export default function PontoPage() {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold truncate" style={{ color: "var(--fg)" }}>{f.nome}</p>
                         <p className="text-[11px]" style={{ color: "var(--dim)" }}>
-                          Entrada: <b style={{ color: p.entrada ? "var(--accent-fg)" : "var(--dim)" }}>{p.entrada || "—"}</b> · Saída: <b style={{ color: p.saida ? "#FCA5A5" : "var(--dim)" }}>{p.saida || "—"}</b>
+                          Entrada: <b style={{ color: p.entrada ? "var(--accent-fg)" : "var(--dim)" }}>{p.entrada || "—"}</b> · Saída: <b style={{ color: p.saida ? "#DC2626" : "var(--dim)" }}>{p.saida || "—"}</b>
                         </p>
                       </div>
                     </div>
@@ -79,7 +79,7 @@ export default function PontoPage() {
                       <button onClick={() => bater(f, "entrada")} disabled={!!p.entrada}
                         className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[11px] font-bold rounded-lg erp-badge-ok disabled:opacity-40"><LogIn size={13} /> Entrada</button>
                       <button onClick={() => bater(f, "saida")} disabled={!p.entrada || !!p.saida}
-                        className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[11px] font-bold rounded-lg disabled:opacity-40" style={{ background: "var(--danger-soft)", color: "#FCA5A5" }}><LogOut size={13} /> Saída</button>
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[11px] font-bold rounded-lg disabled:opacity-40" style={{ background: "var(--danger-soft)", color: "#DC2626" }}><LogOut size={13} /> Saída</button>
                     </div>
                   </Card>
                 );

@@ -75,7 +75,7 @@ export default function DashboardPage() {
                   className="w-full flex items-center gap-3 px-4 py-3 text-left" style={idx ? { borderTop: "1px solid var(--line)" } : {}}>
                   <AlertTriangle size={15} style={{ color: "#EF4444", flexShrink: 0 }} />
                   <span className="flex-1 text-sm font-medium truncate" style={{ color: "var(--fg)" }}>{i.nome}</span>
-                  <span className="text-[11px]" style={{ color: "#FCA5A5" }}>{i.quantidade} {i.unidade}</span>
+                  <span className="text-[11px]" style={{ color: "#DC2626" }}>{i.quantidade} {i.unidade}</span>
                   <ChevronRight size={14} style={{ color: "var(--dim)" }} />
                 </button>
               ))}

@@ -104,7 +104,7 @@ export default function DocumentosPage() {
         {resumo.vencido > 0 && (
           <Card className="flex items-center gap-3">
             <AlertTriangle size={18} style={{ color: "#EF4444" }} />
-            <span className="text-sm font-bold" style={{ color: "#FCA5A5" }}>{resumo.vencido} documento(s) vencido(s)</span>
+            <span className="text-sm font-bold" style={{ color: "#DC2626" }}>{resumo.vencido} documento(s) vencido(s)</span>
           </Card>
         )}
 

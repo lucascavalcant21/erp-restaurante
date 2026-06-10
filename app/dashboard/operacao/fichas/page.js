@@ -135,7 +135,7 @@ export default function FichasTecnicasPage() {
                 <span className="text-xl font-bold" style={{ color: "var(--fg)" }}>{fmtBRL(custoTotal)}</span>
               </div>
               {precoN > 0 && (
-                <div className="flex justify-between text-[12px] font-bold" style={{ color: ok ? "var(--accent-fg)" : "#FCA5A5" }}>
+                <div className="flex justify-between text-[12px] font-bold" style={{ color: ok ? "var(--accent-fg)" : "#DC2626" }}>
                   <span>CMV {fmtPct(cmv)}</span>
                   <span>Margem {fmtPct(mc)}</span>
                 </div>

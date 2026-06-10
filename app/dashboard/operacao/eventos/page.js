@@ -155,7 +155,7 @@ export default function EventosPage() {
                       </div>
                       <div className="text-right flex-shrink-0">
                         <p className="text-sm font-bold" style={{ color: "var(--fg)" }}>{fmtBRL(e.valor_contrato)}</p>
-                        <p className="text-[11px]" style={{ color: margem >= 0 ? "var(--accent-fg)" : "#FCA5A5" }}>lucro {fmtBRL(margem)}</p>
+                        <p className="text-[11px]" style={{ color: margem >= 0 ? "var(--accent-fg)" : "#DC2626" }}>lucro {fmtBRL(margem)}</p>
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] mb-3" style={{ color: "var(--subtle)" }}>

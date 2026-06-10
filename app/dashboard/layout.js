@@ -112,7 +112,7 @@ const MENU_GROUPS = [
     id: "bar", label: "🍹 BAR",
     items: [
       { id: "vendas",       label: "PDV — Vendas",         Icon: Ic.Cart,      href: "/dashboard/vendas" },
-      { id: "cardapio",     label: "Cardápio Bar",         Icon: Ic.MenuBook,  href: "/dashboard/operacao/cardapio" },
+      { id: "drinks",       label: "Cardápio Drinks",      Icon: Ic.MenuBook,  href: "/dashboard/operacao/drinks" },
       { id: "estoque_bar",  label: "Estoque Bar",          Icon: Ic.Box,       href: "/dashboard/operacao/estoque" },
       { id: "ingredientes", label: "Ingredientes Bar",     Icon: Ic.Flask,     href: "/dashboard/operacao/ingredientes" },
       { id: "cervejas",     label: "Catálogo de Cervejas", Icon: Ic.Beer,      href: "/dashboard/cervejas" },
@@ -171,6 +171,7 @@ function getNavId(pathname) {
   if (pathname === "/dashboard") return "dashboard";
   if (pathname.includes("/vendas"))       return "vendas";
   if (pathname.includes("/cervejas"))     return "cervejas";
+  if (pathname.includes("/drinks"))       return "drinks";
   if (pathname.includes("/rede"))         return "rede";
   if (pathname.includes("/notificacoes")) return "notificacoes";
   if (pathname.includes("/rotina"))       return "rotina";

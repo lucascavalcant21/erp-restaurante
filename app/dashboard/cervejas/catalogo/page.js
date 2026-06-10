@@ -1,14 +1,13 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
 import { Wine, Plus, Trash2, Edit3, TrendingUp } from "lucide-react";
 import {
   PageHeader, PageBody, Card, SectionLabel, KpiGrid, Kpi,
   SearchBar, Chips, EmptyState, Modal, Field, TextInput, NumberInput, Select, Btn, Toast, fmtBRL, fmtPct,
-} from "../../components/ui";
-import { useERP } from "../../context/ERPContext";
-import { fetchCervejas, inserirCerveja, atualizarCerveja, removerCerveja, ESTILOS, VOLUMES, ORIGENS } from "../../lib/cervejas";
+} from "../../../components/ui";
+import { useERP } from "../../../context/ERPContext";
+import { fetchCervejas, inserirCerveja, atualizarCerveja, removerCerveja, ESTILOS, VOLUMES, ORIGENS } from "../../../lib/cervejas";
 
 const VAZIO = { marca: "", estilo: "Pilsen", volume_ml: 350, alcool: "", preco_compra: "", preco_venda: "", quantidade: "", minimo: 10, fornecedor: "", origem: "Brasil" };
 
@@ -67,7 +66,7 @@ function FormCerveja({ inicial, onSalvar, onCancelar }) {
   );
 }
 
-function CatalogoCervejas() {
+export default function CatalogoCervejasPage() {
   const { unidadeAtiva, unidadeInfo } = useERP();
   const [lista, setLista] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -118,7 +117,7 @@ function CatalogoCervejas() {
 
   return (
     <div className="min-h-screen">
-      <PageHeader title="Cervejas" subtitle="Catálogo, estoque e rentabilidade" icon={Wine} onAction={() => { setEditar(null); setModal(true); }} actionLabel="Nova" />
+      <PageHeader title="Catálogo de Cervejas" subtitle="Marcas, preços e rentabilidade" icon={Wine} onAction={() => { setEditar(null); setModal(true); }} actionLabel="Nova" />
       <PageBody>
         <Toast show={!!salvou}>{salvou}</Toast>
 
@@ -186,42 +185,6 @@ function CatalogoCervejas() {
       <Modal open={modal} onClose={() => { setModal(false); setEditar(null); }} title={editar ? "Editar cerveja" : "Nova cerveja"}>
         <FormCerveja inicial={editar} onSalvar={salvar} onCancelar={() => { setModal(false); setEditar(null); }} />
       </Modal>
-    </div>
-  );
-}
-
-export default function CervejasPage() {
-  const { setDepartamento } = useERP();
-  const router = useRouter();
-
-  useEffect(() => {
-    setDepartamento("cervejas");
-  }, [setDepartamento]);
-
-  const opcoes = [
-    { id: "catalogo", emoji: "🍺", titulo: "Catálogo", desc: "Marcas, estilos, preços e CMV", href: "/dashboard/cervejas/catalogo" },
-    { id: "estoque", emoji: "📦", titulo: "Estoque", desc: "Controle de quantidades", href: "/dashboard/cervejas/estoque" },
-  ];
-
-  return (
-    <div className="min-h-screen">
-      <PageHeader title="🍺 Cervejas" subtitle="Gestão de bebidas alcoólicas" back={true} />
-      <PageBody>
-        <div className="space-y-3">
-          {opcoes.map((op) => (
-            <Card key={op.id} className="!p-4 cursor-pointer hover:opacity-80 transition" onClick={() => router.push(op.href)}>
-              <div className="flex items-center gap-4">
-                <div className="text-3xl">{op.emoji}</div>
-                <div className="flex-1">
-                  <p className="text-lg font-bold" style={{ color: "var(--fg)" }}>{op.titulo}</p>
-                  <p className="text-sm" style={{ color: "var(--dim)" }}>{op.desc}</p>
-                </div>
-                <div style={{ color: "var(--muted)" }}>→</div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </PageBody>
     </div>
   );
 }

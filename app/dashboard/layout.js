@@ -111,24 +111,19 @@ const MENU_GROUPS = [
   {
     id: "bar", label: "🍹 BAR",
     items: [
-      { id: "vendas",       label: "PDV — Vendas",         Icon: Ic.Cart,      href: "/dashboard/vendas" },
-      { id: "drinks",       label: "Cardápio Drinks",      Icon: Ic.MenuBook,  href: "/dashboard/operacao/drinks" },
-      { id: "estoque_bar",  label: "Estoque Bar",          Icon: Ic.Box,       href: "/dashboard/operacao/estoque" },
-      { id: "ingredientes", label: "Ingredientes Bar",     Icon: Ic.Flask,     href: "/dashboard/operacao/ingredientes" },
-      { id: "cervejas",     label: "Catálogo de Cervejas", Icon: Ic.Beer,      href: "/dashboard/cervejas" },
+      { id: "bar",          label: "Departamento",         Icon: Ic.MenuBook,  href: "/dashboard/bar" },
     ],
   },
   {
     id: "cozinha", label: "👨‍🍳 COZINHA",
     items: [
-      { id: "rotina",          label: "Operação Geral",        Icon: Ic.Checklist, href: "/dashboard/operacao/rotina" },
-      { id: "cardapio_coz",    label: "Cardápio Cozinha",      Icon: Ic.ChefHat,   href: "/dashboard/operacao/cardapio" },
-      { id: "fichas",          label: "Ficha Técnica",         Icon: Ic.MenuBook,  href: "/dashboard/operacao/fichas" },
-      { id: "ingredientes_coz",label: "Ingredientes Cozinha",  Icon: Ic.Flask,     href: "/dashboard/operacao/ingredientes" },
-      { id: "estoque_coz",     label: "Estoque Cozinha",       Icon: Ic.Box,       href: "/dashboard/operacao/estoque" },
-      { id: "fornecedores",    label: "Fornecedores",         Icon: Ic.Truck,     href: "/dashboard/operacao/fornecedores" },
-      { id: "etiquetas",       label: "Etiquetas (QR)",        Icon: Ic.Box,       href: "/dashboard/operacao/etiquetas" },
-      { id: "validade",        label: "Controle de Validade",  Icon: Ic.Calendar,  href: "/dashboard/operacao/validade" },
+      { id: "cozinha",      label: "Departamento",         Icon: Ic.ChefHat,   href: "/dashboard/cozinha" },
+    ],
+  },
+  {
+    id: "cervejas", label: "🍺 CERVEJAS",
+    items: [
+      { id: "cervejas",     label: "Departamento",         Icon: Ic.Beer,      href: "/dashboard/cervejas" },
     ],
   },
   {
@@ -169,8 +164,10 @@ const MENU_GROUPS = [
 // Mapeia pathname → navId
 function getNavId(pathname) {
   if (pathname === "/dashboard") return "dashboard";
-  if (pathname.includes("/vendas"))       return "vendas";
+  if (pathname.includes("/bar"))          return "bar";
+  if (pathname.includes("/cozinha"))      return "cozinha";
   if (pathname.includes("/cervejas"))     return "cervejas";
+  if (pathname.includes("/vendas"))       return "vendas";
   if (pathname.includes("/drinks"))       return "drinks";
   if (pathname.includes("/rede"))         return "rede";
   if (pathname.includes("/notificacoes")) return "notificacoes";
@@ -201,7 +198,7 @@ function getNavId(pathname) {
 // ═══════════════════════════════════════════════════════════════
 // SIDEBAR DO LAYOUT
 // ═══════════════════════════════════════════════════════════════
-function LayoutSidebar({ sessao, navId, onSair, onNavChange }) {
+function LayoutSidebar({ sessao, navId, onSair }) {
   const [exp, setExp] = useState(false);
   const router = useRouter();
   const papel = sessao ? getPapel(sessao.papel) : null;
@@ -294,7 +291,7 @@ function LayoutSidebar({ sessao, navId, onSair, onNavChange }) {
               const NavIcon = item.Icon;
               return (
                 <button key={item.id}
-                  onClick={() => { router.push(item.href); onNavChange(item.id); }}
+                  onClick={() => router.push(item.href)}
                   style={{
                     width: '100%', display: 'flex', alignItems: 'center',
                     gap: 12, padding: exp ? '9px 14px' : '9px 0',
@@ -395,16 +392,6 @@ export default function DashboardLayout({ children }) {
     if (!podeAcessar(sessao.papel, atual)) router.replace(homeDoPapel(sessao.papel));
   }, [sessao, pathname, router]);
 
-  // Muda departamento automaticamente ao navegar
-  function handleNavChange(newNavId) {
-    if (newNavId === "vendas" || newNavId === "drinks" || newNavId === "estoque_bar" || newNavId === "ingredientes") {
-      setUnidadeAtiva("bar");
-    } else if (newNavId === "rotina" || newNavId === "cardapio" || newNavId === "fichas" || newNavId === "validade" || newNavId === "etiquetas") {
-      setUnidadeAtiva("cozinha");
-    } else if (newNavId === "cervejas") {
-      setUnidadeAtiva("cervejas");
-    }
-  }
 
   async function sair() {
     await encerrarSessao();
@@ -415,7 +402,7 @@ export default function DashboardLayout({ children }) {
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "var(--surface)" }}>
-      <LayoutSidebar sessao={sessao} navId={navId} onSair={sair} onNavChange={handleNavChange} />
+      <LayoutSidebar sessao={sessao} navId={navId} onSair={sair} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", marginLeft: 64, minHeight: "100vh" }}>
         {children}
       </div>

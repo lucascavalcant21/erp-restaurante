@@ -56,6 +56,7 @@ export function ERPProvider({ children }) {
 
   // ── Unidade ativa (multiunidade: Central + restaurantes) ──────────────────
   const [unidadeAtiva, setUnidadeAtivaState] = useState(CENTRAL.id);
+  const [departamento, setDepartamentoState] = useState(null); // bar, cozinha, cervejas
   const [podeTrocar,   setPodeTrocar]        = useState(true);
 
   // Inicializa a unidade a partir da sessão (papel) e da última escolha salva
@@ -81,7 +82,13 @@ export function ERPProvider({ children }) {
 
   const setUnidadeAtiva = useCallback((id) => {
     setUnidadeAtivaState(id);
+    setDepartamentoState(null); // reseta departamento ao trocar unidade
     try { localStorage.setItem(UNIDADE_KEY, id); } catch (_) {}
+  }, []);
+
+  const setDepartamento = useCallback((dept) => {
+    setDepartamentoState(dept);
+    try { localStorage.setItem("erp_departamento_ativo", dept); } catch (_) {}
   }, []);
 
   // ── Carregar estoque ao montar ────────────────────────────────────────────
@@ -166,6 +173,8 @@ export function ERPProvider({ children }) {
       // Unidade (multiunidade)
       unidades: UNIDADES, unidadeAtiva, setUnidadeAtiva, podeTrocar,
       unidadeInfo: getUnidade(unidadeAtiva), isCentral: unidadeAtiva === CENTRAL.id,
+      // Departamento (bar, cozinha, cervejas)
+      departamento, setDepartamento,
       // Estoque
       estoque, setEstoque, estoqueReady,
       descontarEstoque, resumoEstoque,

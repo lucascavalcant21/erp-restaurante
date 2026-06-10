@@ -1,23 +1,31 @@
 // ═══════════════════════════════════════════════════════════════
-// unidades.js — Departamentos do Restaurante (Bar, Cozinha, Cervejas)
+// unidades.js — Restaurantes (Unidades)
 // ═══════════════════════════════════════════════════════════════
 //
-// Ao invés de múltiplas unidades/lojas, o ERP agora usa departamentos:
-// - Bar: bebidas, drinks, coquetéis
-// - Cozinha: alimentos, pratos principais, compostos
-// - Cervejas: catálogo e estoque específicos de cerveja
+// UNIDADES = Restaurantes (lojas físicas)
+// Dentro de cada restaurante existem 3 DEPARTAMENTOS:
+// - Bar: bebidas, drinks, coquetéis, cervejas
+// - Cozinha: alimentos, pratos, ingredientes
+// - Cervejas: catálogo e estoque específico
 //
-// Cada departamento tem seu próprio estoque, ingredientes e cardápio.
-// "Central" consolida a visão de todos os departamentos.
+// Cada unidade tem seu próprio estoque, cardápio, etc.
+// "Central" consolida a visão de todas as unidades.
 
 export const UNIDADES = [
-  { id: "bar",      nome: "Bar",           curto: "Bar", cor: "#3B82F6" },
-  { id: "cozinha",  nome: "Cozinha",       curto: "Coz", cor: "#10B981" },
-  { id: "cervejas", nome: "Cervejas",      curto: "Cer", cor: "#F59E0B" },
+  { id: "seldeestrela", nome: "Seldeestrela",      curto: "Sel", cor: "#10B981" },
+  { id: "ticotico",     nome: "Tico Tico Saladas", curto: "Tico", cor: "#3B82F6" },
+  { id: "burguer",      nome: "Burguer",           curto: "Bur", cor: "#F97316" },
 ];
 
-// "Central" consolida todos os departamentos
-export const CENTRAL = { id: "todas", nome: "Central · Todos", curto: "Tudo", cor: "#8B5CF6" };
+// DEPARTAMENTOS dentro de cada restaurante
+export const DEPARTAMENTOS = [
+  { id: "bar",      nome: "🍹 Bar",       cor: "#3B82F6" },
+  { id: "cozinha",  nome: "👨‍🍳 Cozinha",   cor: "#10B981" },
+  { id: "cervejas", nome: "🍺 Cervejas",  cor: "#F59E0B" },
+];
+
+// "Central" consolida todas as unidades
+export const CENTRAL = { id: "todas", nome: "Central", curto: "Tudo", cor: "#8B5CF6" };
 
 /** Retorna a unidade pelo id (ou CENTRAL se for "todas"/inexistente). */
 export function getUnidade(id) {

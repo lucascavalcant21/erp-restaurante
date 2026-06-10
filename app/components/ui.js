@@ -66,11 +66,13 @@ export function SectionLabel({ children }) {
 export function KpiGrid({ children }) {
   return <div className="grid grid-cols-2 gap-3">{children}</div>;
 }
-export function Kpi({ icon: Icon, label, value, tint = "var(--muted)" }) {
+export function Kpi({ icon: Icon, label, value }) {
+  // Minimalista: ícone neutro (monocromático). A cor fica reservada
+  // para ações (acento) e status de alerta (badges).
   return (
     <div className="erp-card p-4">
-      <div className="w-8 h-8 rounded-xl flex items-center justify-center mb-2" style={{ background: "var(--elevated)" }}>
-        {Icon && <Icon size={16} style={{ color: tint }} />}
+      <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-2" style={{ background: "var(--panel)" }}>
+        {Icon && <Icon size={16} style={{ color: "var(--subtle)" }} />}
       </div>
       <p className="text-xl font-bold" style={{ color: "var(--fg)" }}>{value}</p>
       <p className="text-[11px] font-medium" style={{ color: "var(--dim)" }}>{label}</p>

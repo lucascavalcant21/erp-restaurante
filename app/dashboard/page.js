@@ -89,8 +89,8 @@ export default function DashboardPage() {
           <div className="grid grid-cols-3 gap-3">
             {ATALHOS.map((a) => (
               <button key={a.label} onClick={() => router.push(a.href)} className="erp-card p-4 flex flex-col items-center gap-2 active:scale-95 transition-transform">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: a.cor + "22" }}>
-                  <a.Icon size={18} style={{ color: a.cor }} />
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "var(--panel)" }}>
+                  <a.Icon size={18} style={{ color: "var(--subtle)" }} />
                 </div>
                 <span className="text-[11px] font-bold" style={{ color: "var(--fg-soft)" }}>{a.label}</span>
               </button>

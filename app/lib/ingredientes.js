@@ -33,16 +33,14 @@ import { supabase, isSupabaseReady } from "./supabase";
 import { escoparPorUnidade, carimbarUnidade } from "./unidades";
 
 
-// Unidades de medida — siglas simples, exceto Maço e Caixa (nomes completos)
-// Adicionado g (grama) e mL (mililitro) como unidades de compra
 export const UNIDADES = [
-  { id: "KG",   label: "KG",              base: "grama",       fator: 1000, label_base: "por grama"       },
-  { id: "L",    label: "L",               base: "mililitro",   fator: 1000, label_base: "por mililitro"   },
-  { id: "UN",   label: "UN",              base: "unidade",     fator: 1,    label_base: "por unidade"     },
-  { id: "G",    label: "g (grama)",       base: "grama",       fator: 1,    label_base: "por grama"       },
-  { id: "ML",   label: "mL (mililitro)",  base: "mililitro",   fator: 1,    label_base: "por mililitro"   },
-  { id: "MACO", label: "Maço",            base: "unidade",     fator: 1,    label_base: "por unidade"     },
-  { id: "CX",   label: "Caixa",           base: "unidade",     fator: 1,    label_base: "por unidade"     },
+  { id: "KG",   label: "Kg",   base: "grama",     fator: 1000, label_base: "por grama"     },
+  { id: "L",    label: "L",    base: "mililitro", fator: 1000, label_base: "por mililitro" },
+  { id: "UN",   label: "Un",   base: "unidade",   fator: 1,    label_base: "por unidade"   },
+  { id: "G",    label: "g",    base: "grama",     fator: 1,    label_base: "por grama"     },
+  { id: "ML",   label: "ml",   base: "mililitro", fator: 1,    label_base: "por mililitro" },
+  { id: "MACO", label: "maço", base: "unidade",   fator: 1,    label_base: "por unidade"   },
+  { id: "CX",   label: "Cx",   base: "unidade",   fator: 1,    label_base: "por unidade"   },
 ];
 
 export function getUnidade(id) {

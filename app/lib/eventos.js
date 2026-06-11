@@ -335,6 +335,159 @@ export function sugestaoQuantidade(nomeIngrediente) {
   return null;
 }
 
+// ─── Parser de Lista de Ingredientes (texto livre → estruturado) ────────
+/**
+ * Detecta categoria de ingrediente pelo nome (food).
+ */
+const CATEGORIA_KEYWORDS_FOOD = [
+  { id: "carnes_vermelhas", k: ["picanha", "filé mignon", "file mignon", "filet", "alcatra", "maminha", "fraldinha", "contrafilé", "costela", "carne moída", "moida", "boi"] },
+  { id: "aves",             k: ["frango", "galinha", "peito de frango", "coxa", "sobrecoxa", "asa", "peru", "pato"] },
+  { id: "peixes",           k: ["salmão", "salmao", "atum", "robalo", "linguado", "tilápia", "tilapia", "merluza", "peixe", "camarão", "camarao", "lagosta", "polvo", "lula", "ostras"] },
+  { id: "suinos",           k: ["porco", "lombo", "pernil", "bacon", "linguiça", "linguica", "calabresa"] },
+  { id: "embutidos",        k: ["presunto", "salame", "mortadela", "salsicha"] },
+  { id: "vegetais",         k: ["alface", "rúcula", "rucula", "espinafre", "tomate", "cebola", "alho", "batata", "cenoura", "abobrinha", "berinjela", "brócolis", "brocolis", "couve", "agrião", "agriao", "pimentão", "pimentao", "pepino"] },
+  { id: "frutas",           k: ["morango", "framboesa", "mirtilo", "maçã", "maca", "banana", "laranja", "abacaxi", "manga", "uva", "kiwi", "melão", "melao", "pêssego", "pessego"] },
+  { id: "cereais",          k: ["arroz", "feijão", "feijao", "lentilha", "grão de bico", "quinoa", "aveia"] },
+  { id: "massas",           k: ["macarrão", "macarrao", "spaghetti", "penne", "fettuccine", "ravioli", "lasanha", "massa", "talharim"] },
+  { id: "paes",             k: ["pão", "pao", "baguete", "ciabatta", "brioche", "torrada"] },
+  { id: "laticinios",       k: ["leite", "queijo", "muçarela", "mussarela", "parmesão", "parmesao", "iogurte", "manteiga", "creme de leite", "ricota", "gorgonzola"] },
+  { id: "ovos",             k: ["ovo", "ovos"] },
+  { id: "temperos",         k: ["sal", "pimenta", "orégano", "oregano", "manjericão", "manjericao", "alecrim", "tomilho", "louro", "cominho", "páprika", "paprika", "açafrão", "acafrao"] },
+  { id: "oleos",            k: ["óleo", "oleo", "azeite", "vinagre"] },
+  { id: "conservas",        k: ["conserva", "milho", "ervilha", "azeitona", "palmito"] },
+  { id: "doces",            k: ["açúcar", "acucar", "chocolate", "mel", "geleia", "sorvete", "creme", "mousse", "pudim"] },
+];
+
+const CATEGORIA_KEYWORDS_BAR = [
+  { id: "destilados",    k: ["vodka", "gin", "rum", "tequila", "whisky", "whiskey", "conhaque", "cachaça", "cachaca"] },
+  { id: "vinhos",         k: ["vinho", "tinto", "branco", "rosé", "rose"] },
+  { id: "cervejas",       k: ["cerveja", "ipa", "pilsen", "stout", "weiss", "lager"] },
+  { id: "espumantes",     k: ["champagne", "espumante", "prosecco", "champanhe"] },
+  { id: "licores",        k: ["licor"] },
+  { id: "xaropes",        k: ["xarope", "grenadine", "curaçau", "curacau"] },
+  { id: "sucos",          k: ["suco", "néctar", "nectar"] },
+  { id: "refrigerantes",  k: ["refrigerante", "tônica", "tonica", "soda", "coca", "guaraná", "guarana", "sprite", "fanta", "água tônica", "agua tonica"] },
+  { id: "aguas",          k: ["água", "agua"] },
+  { id: "frutas_decor",   k: ["limão", "limao", "lima", "laranja", "abacaxi", "morango", "cereja"] },
+  { id: "aromaticos",     k: ["hortelã", "hortela", "manjericão", "manjericao", "canela", "alecrim"] },
+  { id: "laticinios_bar", k: ["leite", "creme"] },
+  { id: "doces_bar",      k: ["açúcar", "acucar", "mel"] },
+];
+
+export function detectarCategoria(nome, tipo) {
+  const n = (nome || "").toLowerCase();
+  const lista = tipo === "bar" ? CATEGORIA_KEYWORDS_BAR : CATEGORIA_KEYWORDS_FOOD;
+  for (const cat of lista) {
+    if (cat.k.some((kw) => n.includes(kw))) return cat.id;
+  }
+  return tipo === "bar" ? "outros_bar" : "outros";
+}
+
+/**
+ * Parser de linha única: "Picanha 65 R$/Kg" → { nome, custo_unit, peso_unit, unidade }
+ *
+ * Regras de detecção:
+ * - Procura preço (números com R$, vírgula ou ponto)
+ * - Procura unidade explícita (Kg, kg, g, L, ml, un)
+ * - Procura quantidade (número antes da unidade)
+ * - Resto = nome
+ *
+ * Exemplos suportados:
+ *   "Picanha 65 reais o kg"
+ *   "Picanha - 65,00/kg"
+ *   "Vinho tinto suave R$ 35 - 750ml"
+ *   "Tônica 6,50 - 350ml"
+ *   "Filé mignon 95"
+ *   "Salmão 110/kg"
+ */
+export function parseIngredienteLinha(linha, tipo = "food") {
+  if (!linha || !linha.trim()) return null;
+  let texto = linha.trim();
+
+  // Detecta unidade (com precedência: Kg/L > g/ml/un)
+  let unidade = null;
+  let qtd = null;
+
+  // Procura padrão "número + unidade" ou "/unidade"
+  const padraoComQtd = /(\d+(?:[.,]\d+)?)\s*(kg|Kg|KG|L|l|g|ml|ML|un|UN)\b/;
+  const padraoSoUnid = /\/\s*(kg|Kg|KG|L|l|g|ml|ML|un|UN)\b/i;
+  const padraoUnidPosicao = /\b(kg|Kg|KG|L|l|g|ml|ML|un|UN)\b/;
+
+  const matchComQtd = texto.match(padraoComQtd);
+  if (matchComQtd) {
+    qtd = parseFloat(matchComQtd[1].replace(",", "."));
+    unidade = matchComQtd[2].toLowerCase();
+    texto = texto.replace(matchComQtd[0], "").trim();
+  } else {
+    const matchSo = texto.match(padraoSoUnid);
+    if (matchSo) {
+      unidade = matchSo[1].toLowerCase();
+      texto = texto.replace(matchSo[0], "").trim();
+    } else {
+      const matchPos = texto.match(padraoUnidPosicao);
+      if (matchPos) {
+        unidade = matchPos[1].toLowerCase();
+        texto = texto.replace(matchPos[0], "").trim();
+      }
+    }
+  }
+
+  // Normaliza unidade
+  if (unidade === "kg") unidade = "Kg";
+  if (unidade === "l")  unidade = "L";
+
+  // Procura preço (R$ X,XX ou apenas X,XX após "reais" / no fim)
+  let preco = null;
+  // Tenta capturar com R$
+  const padraoComRS = /R\$\s*(\d+(?:[.,]\d+)?)/i;
+  const matchRS = texto.match(padraoComRS);
+  if (matchRS) {
+    preco = parseFloat(matchRS[1].replace(",", "."));
+    texto = texto.replace(matchRS[0], "").trim();
+  } else {
+    // Procura número solto (último número da linha geralmente é o preço)
+    const todosNumeros = texto.match(/\d+(?:[.,]\d+)?/g);
+    if (todosNumeros && todosNumeros.length > 0) {
+      preco = parseFloat(todosNumeros[todosNumeros.length - 1].replace(",", "."));
+      texto = texto.replace(new RegExp(todosNumeros[todosNumeros.length - 1] + "(?!.*" + todosNumeros[todosNumeros.length - 1].replace(/[.,]/g, "[.,]") + ")"), "").trim();
+    }
+  }
+
+  // Limpa lixo (R$, reais, /, -, "o", "por", "a", etc)
+  let nome = texto
+    .replace(/\b(reais?|real|R\$|por|o|a|os|as|de|do|da)\b/gi, "")
+    .replace(/[\/\-—–]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  // Default se nada foi achado
+  if (!unidade) unidade = tipo === "bar" ? "ml" : "g";
+  if (!qtd) qtd = unidade === "Kg" || unidade === "L" ? 1 : (tipo === "bar" ? 750 : 1000);
+  if (!preco) preco = 0;
+
+  if (!nome) return null;
+
+  return {
+    nome,
+    custo_unit: preco,
+    peso_unit: qtd,
+    unidade,
+    categoria: detectarCategoria(nome, tipo),
+    tipo,
+  };
+}
+
+/**
+ * Parse de lista (várias linhas).
+ */
+export function parseIngredientesLista(texto, tipo = "food") {
+  if (!texto) return [];
+  return texto
+    .split(/\r?\n/)
+    .map((l) => parseIngredienteLinha(l, tipo))
+    .filter(Boolean);
+}
+
 // ─── Helpers de cálculo ──────────────────────────────────────────────────
 export function custoIngrediente(ing, qty) {
   if (!ing || !ing.peso_unit) return 0;

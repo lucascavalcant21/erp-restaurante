@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2, Edit3, Beer, Search, Download } from "lucide-react";
+import { Plus, Trash2, Edit3, Beer, Search, Download, ListPlus } from "lucide-react";
 import { Card, SectionLabel, Btn, Field, TextInput, NumberInput, Select, Modal, fmtBRL, fmtPct } from "../../../components/ui";
 import { Ingredientes, Preparos, Drinks, CATEGORIAS_ING_BAR, getCategoriaIng, custoIngrediente, custoPreparoUnit, custoItem, custoDrink, sugestaoQuantidade } from "../../../lib/eventos";
 import ModalImportar from "./ModalImportar";
+import ModalLote from "./ModalLote";
 
 const VAZIO_ING = { tipo: "bar", nome: "", categoria: "outros_bar", custo_unit: "", peso_unit: 750, unidade: "ml" };
 const VAZIO_PREP = { tipo: "bar", nome: "", rendimento: 1000, unidade: "ml", base_ingredients: [] };
@@ -379,6 +380,7 @@ function FormDrink({ inicial, ingredientes, preparos, onSalvar, onCancelar }) {
 export default function TabDrinks({ eventoId, ingredientes, preparos, drinks, compras = [], onChange }) {
   const [modal, setModal]   = useState(null);
   const [importar, setImportar] = useState(null);
+  const [modalLote, setModalLote] = useState(false);
   const [editar, setEditar] = useState(null);
   const [busca, setBusca]   = useState("");
 
@@ -419,7 +421,8 @@ export default function TabDrinks({ eventoId, ingredientes, preparos, drinks, co
       <Card className="!p-4" style={{ borderTop: "3px solid #10B981" }}>
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
           <h3 style={{ fontWeight: 700, color: "var(--fg)" }}>🍾 1️⃣ Ingredientes do Bar ({ingBar.length})</h3>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <Btn variant="ghost" onClick={() => setModalLote(true)}><ListPlus size={14} /> Adicionar em lote</Btn>
             <Btn variant="ghost" onClick={() => setImportar("ingredientes-bar")}><Download size={14} /> Importar do ERP</Btn>
             <Btn variant="primary" onClick={() => { setEditar(null); setModal("ing"); }}><Plus size={14} /> Novo ingrediente</Btn>
           </div>
@@ -609,6 +612,19 @@ export default function TabDrinks({ eventoId, ingredientes, preparos, drinks, co
       <Modal open={modal === "drink"} onClose={() => { setModal(null); setEditar(null); }} title={editar ? "Editar drink" : "Novo drink"}>
         <FormDrink inicial={editar} ingredientes={ingBar} preparos={prepBar} onSalvar={salvarDrink} onCancelar={() => { setModal(null); setEditar(null); }} />
       </Modal>
+
+      <ModalLote
+        open={modalLote}
+        onClose={() => setModalLote(false)}
+        eventoId={eventoId}
+        tipo="bar"
+        ingredientesExistentes={ingBar}
+        onSuccess={(sucesso, falha) => {
+          if (falha > 0) alert(`✓ ${sucesso} item(ns) adicionado(s)\n⚠ ${falha} com erro`);
+          else alert(`✓ ${sucesso} ingrediente(s) adicionado(s) em lote!`);
+          onChange();
+        }}
+      />
 
       {importar && (
         <ModalImportar

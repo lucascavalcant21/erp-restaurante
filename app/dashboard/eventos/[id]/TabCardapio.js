@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2, Edit3, ChefHat, FlaskConical, Save, X, Search, Download } from "lucide-react";
+import { Plus, Trash2, Edit3, ChefHat, FlaskConical, Save, X, Search, Download, ListPlus } from "lucide-react";
 import { Card, SectionLabel, Btn, Field, TextInput, NumberInput, Select, Modal, fmtBRL, fmtPct } from "../../../components/ui";
 import { Ingredientes, Preparos, Pratos, CATEGORIAS_PRATO, DISH_TAGS, CATEGORIAS_ING_FOOD, getCategoriaIng, custoIngrediente, custoPreparoUnit, custoItem, custoPrato, sugestaoQuantidade } from "../../../lib/eventos";
 import ModalImportar from "./ModalImportar";
+import ModalLote from "./ModalLote";
 
 const VAZIO_ING = { tipo: "food", nome: "", categoria: "outros", custo_unit: "", peso_unit: 1, unidade: "Kg" };
 const VAZIO_PREP = { tipo: "food", nome: "", rendimento: 1000, unidade: "g", base_ingredients: [], porcao_sugerida: "", modo_preparo: "" };
@@ -488,6 +489,7 @@ function FormPrato({ inicial, ingredientes, preparos, onSalvar, onCancelar }) {
 export default function TabCardapio({ eventoId, ingredientes, preparos, pratos, compras = [], onChange }) {
   const [modal, setModal]   = useState(null);  // 'ing' | 'prep' | 'prato'
   const [importar, setImportar] = useState(null); // 'ingredientes-food' | 'pratos'
+  const [modalLote, setModalLote] = useState(false);
   const [editar, setEditar] = useState(null);
   const [busca, setBusca]   = useState("");
 
@@ -539,7 +541,8 @@ export default function TabCardapio({ eventoId, ingredientes, preparos, pratos, 
           <h3 style={{ fontWeight: 700, color: "var(--fg)" }}>
             🥕 1️⃣ Ingredientes da Cozinha ({ingFood.length})
           </h3>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <Btn variant="ghost" onClick={() => setModalLote(true)}><ListPlus size={14} /> Adicionar em lote</Btn>
             <Btn variant="ghost" onClick={() => setImportar("ingredientes-food")}><Download size={14} /> Importar do ERP</Btn>
             <Btn variant="primary" onClick={() => { setEditar(null); setModal("ing"); }}><Plus size={14} /> Novo ingrediente</Btn>
           </div>
@@ -762,6 +765,19 @@ export default function TabCardapio({ eventoId, ingredientes, preparos, pratos, 
       <Modal open={modal === "prato"} onClose={() => { setModal(null); setEditar(null); }} title={editar ? "Editar prato" : "Novo prato"}>
         <FormPrato inicial={editar} ingredientes={ingFood} preparos={prepFood} onSalvar={salvarPrato} onCancelar={() => { setModal(null); setEditar(null); }} />
       </Modal>
+
+      <ModalLote
+        open={modalLote}
+        onClose={() => setModalLote(false)}
+        eventoId={eventoId}
+        tipo="food"
+        ingredientesExistentes={ingFood}
+        onSuccess={(sucesso, falha) => {
+          if (falha > 0) alert(`✓ ${sucesso} item(ns) adicionado(s)\n⚠ ${falha} com erro`);
+          else alert(`✓ ${sucesso} ingrediente(s) adicionado(s) em lote!`);
+          onChange();
+        }}
+      />
 
       {importar && (
         <ModalImportar

@@ -7,7 +7,7 @@ import { Ingredientes, Preparos, Pratos, CATEGORIAS_PRATO, DISH_TAGS, CATEGORIAS
 import ModalImportar from "./ModalImportar";
 
 const VAZIO_ING = { tipo: "food", nome: "", categoria: "outros", custo_unit: "", peso_unit: 1, unidade: "Kg" };
-const VAZIO_PREP = { tipo: "food", nome: "", rendimento: 1000, unidade: "g", base_ingredients: [] };
+const VAZIO_PREP = { tipo: "food", nome: "", rendimento: 1000, unidade: "g", base_ingredients: [], porcao_sugerida: "", modo_preparo: "" };
 const VAZIO_PRATO = { nome: "", categoria: "Principal", rendimento: 1, descricao: "", tags: [], ingredients: [] };
 
 // ─── Form Ingrediente ────────────────────────────────────────────────────
@@ -118,10 +118,32 @@ function FormIngrediente({ inicial, onSalvar, onCancelar }) {
   );
 }
 
-// ─── Form Preparo ────────────────────────────────────────────────────────
+// ─── Form Preparo (Receita) ──────────────────────────────────────────────
 function FormPreparo({ inicial, ingredientes, onSalvar, onCancelar }) {
+  // Detecta se rendimento estava em g/ml e mostra em Kg/L se >= 1000
+  const detectarUnidUI = (i) => {
+    if (!i) return "Kg";
+    if (i.unidade === "g"  && Number(i.rendimento) >= 1000) return "Kg";
+    if (i.unidade === "ml" && Number(i.rendimento) >= 1000) return "L";
+    return i.unidade || "Kg";
+  };
+  const detectarRendUI = (i) => {
+    if (!i) return "5";
+    const u = detectarUnidUI(i);
+    if (u === "Kg" || u === "L") return String(Number(i.rendimento) / 1000);
+    return String(i.rendimento);
+  };
+
   const [f, setF] = useState(
-    inicial ? { ...inicial, rendimento: String(inicial.rendimento || "") } : VAZIO_PREP,
+    inicial
+      ? {
+          ...inicial,
+          rendimento: detectarRendUI(inicial),
+          unidade: detectarUnidUI(inicial),
+          porcao_sugerida: String(inicial.porcao_sugerida || ""),
+          modo_preparo: inicial.modo_preparo || "",
+        }
+      : { ...VAZIO_PREP, rendimento: "5", unidade: "Kg" },
   );
   const [erro, setErro] = useState("");
   const set = (k, v) => { setF((p) => ({ ...p, [k]: v })); setErro(""); };
@@ -136,11 +158,21 @@ function FormPreparo({ inicial, ingredientes, onSalvar, onCancelar }) {
     set("base_ingredients", f.base_ingredients.map((i) => i.id === ingId ? { ...i, qty: Number(qty) || 0 } : i));
   }
 
+  // Converte rendimento da UI (Kg/L) pra base (g/ml) para todos os cálculos
+  const fatorEscala = (f.unidade === "Kg" || f.unidade === "L") ? 1000 : 1;
+  const unidadeBase = (f.unidade === "Kg") ? "g" : (f.unidade === "L") ? "ml" : f.unidade;
+  const rendBase = (parseFloat(String(f.rendimento).replace(",", ".")) || 0) * fatorEscala;
+
   const custoTotal = f.base_ingredients.reduce((s, item) => {
     const ing = ingredientes.find((i) => i.id === item.id);
     return s + custoIngrediente(ing, item.qty);
   }, 0);
-  const custoPorUnit = f.rendimento > 0 ? custoTotal / Number(f.rendimento) : 0;
+  const custoPorUnitBase = rendBase > 0 ? custoTotal / rendBase : 0;
+
+  // Cálculo de porções
+  const porcaoNum = parseFloat(String(f.porcao_sugerida).replace(",", ".")) || 0;
+  const totalPorcoes = porcaoNum > 0 ? Math.floor(rendBase / porcaoNum) : 0;
+  const custoPorPorcao = porcaoNum > 0 ? custoPorUnitBase * porcaoNum : 0;
 
   function salvar() {
     if (!f.nome.trim()) return setErro("Informe o nome.");
@@ -148,39 +180,77 @@ function FormPreparo({ inicial, ingredientes, onSalvar, onCancelar }) {
     onSalvar({
       tipo: "food",
       nome: f.nome.trim(),
-      rendimento: parseFloat(String(f.rendimento).replace(",", ".")) || 1,
-      unidade: f.unidade,
+      rendimento: rendBase,                     // sempre salva em g ou ml
+      unidade: unidadeBase,                     // sempre salva como g ou ml
       base_ingredients: f.base_ingredients,
+      porcao_sugerida: porcaoNum || null,
+      modo_preparo: f.modo_preparo || null,
     });
   }
+
   return (
     <>
-      <Field label="Nome do preparo"><TextInput value={f.nome} onChange={(e) => set("nome", e.target.value)} placeholder="ex: Molho de tomate caseiro" /></Field>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Rendimento"><NumberInput value={f.rendimento} onChange={(e) => set("rendimento", e.target.value)} placeholder="1000" step="1" /></Field>
+      <Field label="Nome da receita / preparo">
+        <TextInput value={f.nome} onChange={(e) => set("nome", e.target.value)} placeholder="ex: Bolo de cenoura, Purê de batata, Molho de tomate" />
+      </Field>
+
+      <div className="grid grid-cols-3 gap-3">
+        <Field label="Rende quanto?">
+          <NumberInput value={f.rendimento} onChange={(e) => set("rendimento", e.target.value)} placeholder="5" step="0.01" />
+        </Field>
         <Field label="Unidade">
           <Select value={f.unidade} onChange={(e) => set("unidade", e.target.value)}>
-            <option value="g">g</option><option value="ml">ml</option>
+            <option value="Kg">Kg</option>
+            <option value="g">g</option>
+            <option value="L">L</option>
+            <option value="ml">ml</option>
           </Select>
+        </Field>
+        <Field label={`Porção por prato (${unidadeBase})`}>
+          <NumberInput value={f.porcao_sugerida} onChange={(e) => set("porcao_sugerida", e.target.value)} placeholder="150" step="1" />
         </Field>
       </div>
 
-      <SectionLabel>Ingredientes do preparo ({f.base_ingredients.length})</SectionLabel>
-      <div className="space-y-1" style={{ maxHeight: 280, overflowY: "auto", marginBottom: 12 }}>
+      {/* 🎯 Card de rendimento em destaque */}
+      {rendBase > 0 && porcaoNum > 0 && (
+        <Card className="!p-3 mb-3" style={{ background: "linear-gradient(135deg, #10B98122, #06B6D422)", border: "1px solid #10B98144" }}>
+          <p className="text-[10px] font-bold" style={{ color: "#10B981", letterSpacing: "0.04em", textTransform: "uppercase" }}>🎯 Rendimento da receita</p>
+          <div className="flex items-baseline gap-2 mb-1">
+            <strong style={{ fontSize: 32, color: "#10B981" }}>{totalPorcoes}</strong>
+            <span style={{ fontSize: 13, color: "var(--fg)" }}>porções de <strong>{porcaoNum}{unidadeBase}</strong></span>
+          </div>
+          <p className="text-[11px]" style={{ color: "var(--muted)" }}>
+            Total: <strong>{f.rendimento}{f.unidade}</strong>
+            {" · "}por porção: <strong>{porcaoNum}{unidadeBase}</strong>
+            {" · "}custo por porção: <strong style={{ color: "#10B981" }}>{fmtBRL(custoPorPorcao)}</strong>
+          </p>
+          {totalPorcoes * porcaoNum < rendBase && (
+            <p className="text-[10px] mt-1" style={{ color: "#F59E0B" }}>
+              ⚠ Sobra: {(rendBase - (totalPorcoes * porcaoNum))}{unidadeBase} (não dá pra mais uma porção completa)
+            </p>
+          )}
+        </Card>
+      )}
+
+      <SectionLabel>Ingredientes da receita ({f.base_ingredients.length})</SectionLabel>
+      <div className="space-y-1" style={{ maxHeight: 240, overflowY: "auto", marginBottom: 12 }}>
         {ingredientes.length === 0 ? (
           <p className="text-sm text-center" style={{ color: "var(--dim)", padding: 12 }}>Cadastre ingredientes primeiro</p>
         ) : ingredientes.map((ing) => {
           const sel = f.base_ingredients.find((i) => i.id === ing.id);
+          const exibirIngUnit = ing.unidade === "g" && ing.peso_unit >= 1000 ? "Kg" : ing.unidade === "ml" && ing.peso_unit >= 1000 ? "L" : ing.unidade;
           return (
             <div key={ing.id} className="flex items-center gap-2 p-2 rounded" style={{ background: sel ? "var(--elevated)" : "transparent" }}>
               <input type="checkbox" checked={!!sel} onChange={() => toggleIng(ing.id)} />
               <div className="flex-1 text-[12px]">
                 <strong style={{ color: "var(--fg)" }}>{ing.nome}</strong>
-                <span style={{ color: "var(--dim)", marginLeft: 6 }}>{fmtBRL((ing.custo_unit / ing.peso_unit) * 1000)}/{ing.unidade === "g" ? "kg" : "L"}</span>
+                <span style={{ color: "var(--dim)", marginLeft: 6 }}>
+                  {fmtBRL((ing.custo_unit / ing.peso_unit) * (ing.unidade === "g" || ing.unidade === "ml" ? 1000 : 1))}/{exibirIngUnit}
+                </span>
               </div>
               {sel && (
                 <div className="flex items-center gap-1">
-                  <NumberInput value={sel.qty} onChange={(e) => setQty(ing.id, e.target.value)} style={{ width: 70 }} step="1" />
+                  <NumberInput value={sel.qty} onChange={(e) => setQty(ing.id, e.target.value)} style={{ width: 80, fontWeight: 700 }} step="1" />
                   <span className="text-[10px]" style={{ color: "var(--dim)" }}>{ing.unidade}</span>
                 </div>
               )}
@@ -189,9 +259,20 @@ function FormPreparo({ inicial, ingredientes, onSalvar, onCancelar }) {
         })}
       </div>
 
-      <div className="erp-panel p-3 mb-3 flex justify-between">
-        <span className="text-[11px] font-bold" style={{ color: "var(--muted)" }}>
-          Custo total: {fmtBRL(custoTotal)} · Custo por {f.unidade}: {fmtBRL(custoPorUnit)}
+      <Field label="Modo de preparo (opcional)">
+        <textarea
+          value={f.modo_preparo}
+          onChange={(e) => set("modo_preparo", e.target.value)}
+          placeholder="1. Misture todos os ingredientes secos&#10;2. Adicione o ovo e o óleo&#10;3. Asse em forno pré-aquecido a 180°C por 40min..."
+          rows={4}
+          style={{ width: "100%", padding: "10px 12px", borderRadius: 8, background: "var(--elevated)", color: "var(--fg)", border: "1px solid var(--line)", fontSize: 13, resize: "vertical", fontFamily: "inherit" }}
+        />
+      </Field>
+
+      <div className="erp-panel p-2 mb-3 flex justify-between" style={{ background: "var(--elevated)", borderRadius: 6 }}>
+        <span className="text-[11px]" style={{ color: "var(--muted)" }}>
+          <strong>💰 Custo total dos ingredientes:</strong> {fmtBRL(custoTotal)}
+          {rendBase > 0 && <> · por {unidadeBase}: <strong style={{ color: "var(--accent-fg)" }}>{fmtBRL(custoPorUnitBase)}</strong></>}
         </span>
       </div>
 
@@ -569,24 +650,53 @@ export default function TabCardapio({ eventoId, ingredientes, preparos, pratos, 
           <p className="text-sm text-center" style={{ color: "var(--dim)", padding: 12 }}>
             {ingFood.length === 0
               ? "Cadastre ingredientes primeiro para criar preparos."
-              : "Opcional. Crie preparos para reutilizar em vários pratos (ex: molho de tomate caseiro)."}
+              : "Opcional. Crie receitas para reutilizar em vários pratos (ex: bolo, purê, molho)."}
           </p>
         ) : (
           <div className="space-y-2">
             {prepFood.map((prep) => {
               const unitCost = custoPreparoUnit(prep, ingredientes);
+              const totalCusto = unitCost * Number(prep.rendimento);
+              // Display de rendimento total em Kg/L se >= 1000
+              const exibirRend = () => {
+                if (prep.unidade === "g" && Number(prep.rendimento) >= 1000) return { v: (Number(prep.rendimento) / 1000).toFixed(2).replace(/\.?0+$/, ""), u: "Kg" };
+                if (prep.unidade === "ml" && Number(prep.rendimento) >= 1000) return { v: (Number(prep.rendimento) / 1000).toFixed(2).replace(/\.?0+$/, ""), u: "L" };
+                return { v: prep.rendimento, u: prep.unidade };
+              };
+              const r = exibirRend();
+              const porcao = Number(prep.porcao_sugerida) || 0;
+              const totalPorcoes = porcao > 0 ? Math.floor(Number(prep.rendimento) / porcao) : 0;
               return (
-                <div key={prep.id} className="p-2 rounded flex items-center justify-between" style={{ background: "var(--elevated)" }}>
-                  <div>
-                    <strong style={{ color: "var(--fg)", fontSize: 13 }}>{prep.nome}</strong>
-                    <p className="text-[11px]" style={{ color: "var(--dim)" }}>
-                      Rendimento: {prep.rendimento}{prep.unidade} · {fmtBRL(unitCost)}/{prep.unidade}
-                    </p>
+                <div key={prep.id} className="p-3 rounded" style={{ background: "var(--elevated)" }}>
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex-1">
+                      <strong style={{ color: "var(--fg)", fontSize: 14 }}>🧪 {prep.nome}</strong>
+                      <p className="text-[11px] mt-1" style={{ color: "var(--dim)" }}>
+                        Rende <strong style={{ color: "var(--fg)" }}>{r.v}{r.u}</strong>
+                        {" · "}custo total: <strong style={{ color: "var(--fg)" }}>{fmtBRL(totalCusto)}</strong>
+                        {" · "}{fmtBRL(unitCost)}/{prep.unidade}
+                      </p>
+                    </div>
+                    <div className="flex gap-1 flex-shrink-0">
+                      <button onClick={() => { setEditar(prep); setModal("prep"); }} style={{ background: "var(--surface)", padding: 6, borderRadius: 6, border: "none", cursor: "pointer" }}><Edit3 size={12} style={{ color: "var(--muted)" }} /></button>
+                      <button onClick={() => removerPrep(prep.id)} style={{ background: "#EF444433", padding: 6, borderRadius: 6, border: "none", cursor: "pointer" }}><Trash2 size={12} style={{ color: "#EF4444" }} /></button>
+                    </div>
                   </div>
-                  <div className="flex gap-1">
-                    <button onClick={() => { setEditar(prep); setModal("prep"); }} style={{ background: "var(--surface)", padding: 6, borderRadius: 6, border: "none", cursor: "pointer" }}><Edit3 size={12} style={{ color: "var(--muted)" }} /></button>
-                    <button onClick={() => removerPrep(prep.id)} style={{ background: "#EF444433", padding: 6, borderRadius: 6, border: "none", cursor: "pointer" }}><Trash2 size={12} style={{ color: "#EF4444" }} /></button>
-                  </div>
+                  {porcao > 0 && (
+                    <div className="p-2 rounded mb-2" style={{ background: "linear-gradient(135deg, #10B98122, #06B6D422)", borderLeft: "3px solid #10B981" }}>
+                      <p className="text-[11px]" style={{ color: "var(--fg)" }}>
+                        🎯 <strong style={{ color: "#10B981" }}>{totalPorcoes} porções</strong>
+                        {" "}de <strong>{porcao}{prep.unidade}</strong>
+                        {" · "}custo por porção: <strong style={{ color: "#10B981" }}>{fmtBRL(unitCost * porcao)}</strong>
+                      </p>
+                    </div>
+                  )}
+                  {prep.modo_preparo && (
+                    <details style={{ marginTop: 6 }}>
+                      <summary style={{ cursor: "pointer", fontSize: 11, color: "var(--muted)", fontWeight: 600 }}>📖 Modo de preparo</summary>
+                      <p className="text-[11px] mt-2 whitespace-pre-wrap" style={{ color: "var(--dim)", paddingLeft: 8, borderLeft: "2px solid var(--line)" }}>{prep.modo_preparo}</p>
+                    </details>
+                  )}
                 </div>
               );
             })}

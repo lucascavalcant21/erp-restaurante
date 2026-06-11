@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2, Edit3, Beer, Search } from "lucide-react";
+import { Plus, Trash2, Edit3, Beer, Search, Download } from "lucide-react";
 import { Card, SectionLabel, Btn, Field, TextInput, NumberInput, Select, Modal, fmtBRL, fmtPct } from "../../../components/ui";
 import { Ingredientes, Preparos, Drinks, custoIngrediente, custoPreparoUnit, custoItem, custoDrink } from "../../../lib/eventos";
+import ModalImportar from "./ModalImportar";
 
 const VAZIO_ING = { tipo: "bar", nome: "", custo_unit: "", peso_unit: 750, unidade: "ml" };
 const VAZIO_PREP = { tipo: "bar", nome: "", rendimento: 1000, unidade: "ml", base_ingredients: [] };
@@ -262,6 +263,7 @@ function FormDrink({ inicial, ingredientes, preparos, onSalvar, onCancelar }) {
 // ─── Componente principal da aba ─────────────────────────────────────────
 export default function TabDrinks({ eventoId, ingredientes, preparos, drinks, onChange }) {
   const [modal, setModal]   = useState(null);
+  const [importar, setImportar] = useState(null);
   const [editar, setEditar] = useState(null);
   const [busca, setBusca]   = useState("");
 
@@ -293,9 +295,12 @@ export default function TabDrinks({ eventoId, ingredientes, preparos, drinks, on
     <div className="space-y-4">
       {/* Drinks */}
       <Card className="!p-4">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
           <h3 style={{ fontWeight: 700, color: "var(--fg)" }}><Beer size={16} style={{ display: "inline", marginRight: 6 }} />Drinks ({drinks.length})</h3>
-          <Btn variant="primary" onClick={() => { setEditar(null); setModal("drink"); }}><Plus size={14} /> Novo drink</Btn>
+          <div className="flex gap-2">
+            <Btn variant="ghost" onClick={() => setImportar("drinks")}><Download size={14} /> Importar do cardápio</Btn>
+            <Btn variant="primary" onClick={() => { setEditar(null); setModal("drink"); }}><Plus size={14} /> Novo drink</Btn>
+          </div>
         </div>
         <div className="relative mb-3">
           <Search size={14} style={{ position: "absolute", left: 10, top: 12, color: "var(--muted)" }} />
@@ -376,9 +381,12 @@ export default function TabDrinks({ eventoId, ingredientes, preparos, drinks, on
 
       {/* Ingredientes */}
       <Card className="!p-4">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
           <h3 style={{ fontWeight: 700, color: "var(--fg)" }}>🍾 Ingredientes do Bar ({ingBar.length})</h3>
-          <Btn variant="ghost" onClick={() => { setEditar(null); setModal("ing"); }}><Plus size={14} /> Novo ingrediente</Btn>
+          <div className="flex gap-2">
+            <Btn variant="ghost" onClick={() => setImportar("ingredientes-bar")}><Download size={14} /> Importar</Btn>
+            <Btn variant="ghost" onClick={() => { setEditar(null); setModal("ing"); }}><Plus size={14} /> Novo</Btn>
+          </div>
         </div>
         {ingBar.length === 0 ? (
           <p className="text-sm text-center" style={{ color: "var(--dim)", padding: 12 }}>Adicione bebidas, destilados, xaropes para usar em drinks.</p>
@@ -411,6 +419,17 @@ export default function TabDrinks({ eventoId, ingredientes, preparos, drinks, on
       <Modal open={modal === "drink"} onClose={() => { setModal(null); setEditar(null); }} title={editar ? "Editar drink" : "Novo drink"}>
         <FormDrink inicial={editar} ingredientes={ingBar} preparos={prepBar} onSalvar={salvarDrink} onCancelar={() => { setModal(null); setEditar(null); }} />
       </Modal>
+
+      {importar && (
+        <ModalImportar
+          open={!!importar}
+          onClose={() => setImportar(null)}
+          tipo={importar}
+          eventoId={eventoId}
+          existentes={importar === "drinks" ? drinks : ingBar}
+          onSuccess={(count) => { alert(`✓ ${count} item(ns) importado(s) com sucesso!`); onChange(); }}
+        />
+      )}
     </div>
   );
 }

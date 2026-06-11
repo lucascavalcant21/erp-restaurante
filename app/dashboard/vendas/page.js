@@ -109,15 +109,20 @@ export default function VendasPage() {
   async function finalizar() {
     if (!carrinho.length || salvando) return;
     setSalvando(true);
-    const { error } = await registrarVenda(
+    const { error, baixaEstoque } = await registrarVenda(
       { itens: carrinho, desconto: descN, forma_pagamento: forma, cliente: cliente.trim() },
       unidadeAtiva,
     );
     setSalvando(false);
     if (error) { setToast(`Erro: ${error}`); setTimeout(() => setToast(""), 3000); return; }
     setCarrinho([]); setDesconto(""); setCliente(""); setForma("dinheiro"); setCheckout(false);
-    setToast(`Venda de ${fmtBRL(total)} registrada!`);
-    setTimeout(() => setToast(""), 2600);
+    const baixaMsg = baixaEstoque?.baixados > 0
+      ? ` · ${baixaEstoque.baixados} ingrediente(s) baixado(s) do estoque`
+      : baixaEstoque?.semEstoque
+        ? " · (sem estoque cadastrado)"
+        : "";
+    setToast(`Venda de ${fmtBRL(total)} registrada!${baixaMsg}`);
+    setTimeout(() => setToast(""), 3500);
     carregarVendas();
   }
 

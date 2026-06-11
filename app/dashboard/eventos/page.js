@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarDays, Plus, Trash2, Edit3, MapPin, Clock } from "lucide-react";
+import { CalendarDays, Plus, Trash2, Edit3, MapPin, Clock, Copy } from "lucide-react";
 import {
   PageHeader, PageBody, Card, SectionLabel, KpiGrid, Kpi,
   SearchBar, Chips, EmptyState, Modal, Field, TextInput, NumberInput, Select, Btn, Toast, fmtBRL,
 } from "../../components/ui";
 import { useERP } from "../../context/ERPContext";
-import { fetchEventos, inserirEvento, atualizarEvento, removerEvento } from "../../lib/eventos";
+import { fetchEventos, inserirEvento, atualizarEvento, removerEvento, duplicarEvento } from "../../lib/eventos";
 
 const VAZIO = {
   nome: "",
@@ -142,6 +142,7 @@ export default function EventosPage() {
   const [modal, setModal] = useState(false);
   const [editar, setEditar] = useState(null);
   const [salvou, setSalvou] = useState("");
+  const [duplicando, setDuplicando] = useState(null); // { evento, novoNome, novaData }
 
   async function carregar() {
     setLoading(true);
@@ -192,6 +193,29 @@ export default function EventosPage() {
     if (!confirm(`Remover o evento "${nome}"? Essa ação não pode ser desfeita.`)) return;
     await removerEvento(id);
     setLista((p) => p.filter((e) => e.id !== id));
+  }
+
+  function abrirDuplicar(evento) {
+    setDuplicando({
+      evento,
+      novoNome: `${evento.nome} (cópia)`,
+      novaData: evento.data_evento,
+    });
+  }
+
+  async function confirmarDuplicar() {
+    if (!duplicando) return;
+    if (!duplicando.novoNome.trim() || !duplicando.novaData) {
+      alert("Informe o nome e a data do novo evento."); return;
+    }
+    const { data, error } = await duplicarEvento(duplicando.evento, duplicando.novoNome.trim(), duplicando.novaData, unidadeAtiva);
+    if (error) { alert("Erro ao duplicar: " + error); return; }
+    setDuplicando(null);
+    if (data?.id) {
+      router.push(`/dashboard/eventos/${data.id}`);
+    } else {
+      carregar();
+    }
   }
 
   return (
@@ -248,6 +272,7 @@ export default function EventosPage() {
                         </div>
                       </div>
                       <div className="flex gap-1 flex-shrink-0" onClick={(ev) => ev.stopPropagation()}>
+                        <button onClick={() => abrirDuplicar(e)} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "var(--elevated)" }} title="Duplicar evento"><Copy size={14} style={{ color: "var(--muted)" }} /></button>
                         <button onClick={() => { setEditar(e); setModal(true); }} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "var(--elevated)" }} title="Editar"><Edit3 size={14} style={{ color: "var(--muted)" }} /></button>
                         <button onClick={() => remover(e.id, e.nome)} className="w-8 h-8 rounded-lg flex items-center justify-center erp-badge-danger" title="Remover"><Trash2 size={14} /></button>
                       </div>
@@ -262,6 +287,32 @@ export default function EventosPage() {
 
       <Modal open={modal} onClose={() => { setModal(false); setEditar(null); }} title={editar ? "Editar evento" : "Novo evento"}>
         <FormEvento inicial={editar} onSalvar={salvar} onCancelar={() => { setModal(false); setEditar(null); }} />
+      </Modal>
+
+      <Modal open={!!duplicando} onClose={() => setDuplicando(null)} title="Duplicar evento">
+        {duplicando && (
+          <>
+            <p className="text-[12px] mb-3" style={{ color: "var(--dim)" }}>
+              Vai duplicar <strong style={{ color: "var(--fg)" }}>{duplicando.evento.nome}</strong> com
+              todos os pratos, drinks, ingredientes, preparos e custos fixos. As reservas <strong>não</strong> são copiadas.
+            </p>
+            <Field label="Nome do novo evento">
+              <TextInput value={duplicando.novoNome} onChange={(e) => setDuplicando((d) => ({ ...d, novoNome: e.target.value }))} />
+            </Field>
+            <Field label="Data do novo evento">
+              <input
+                type="date"
+                value={duplicando.novaData}
+                onChange={(e) => setDuplicando((d) => ({ ...d, novaData: e.target.value }))}
+                style={{ width: "100%", padding: "10px 12px", borderRadius: 8, background: "var(--elevated)", color: "var(--fg)", border: "1px solid var(--line)", fontSize: 13 }}
+              />
+            </Field>
+            <div className="flex gap-3">
+              <Btn variant="ghost" className="flex-1" onClick={() => setDuplicando(null)}>Cancelar</Btn>
+              <Btn variant="primary" className="flex-1" onClick={confirmarDuplicar}><Copy size={14} /> Duplicar</Btn>
+            </div>
+          </>
+        )}
       </Modal>
     </div>
   );

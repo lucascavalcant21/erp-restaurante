@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2, Edit3, ChefHat, FlaskConical, Save, X, Search } from "lucide-react";
+import { Plus, Trash2, Edit3, ChefHat, FlaskConical, Save, X, Search, Download } from "lucide-react";
 import { Card, SectionLabel, Btn, Field, TextInput, NumberInput, Select, Modal, fmtBRL, fmtPct } from "../../../components/ui";
 import { Ingredientes, Preparos, Pratos, CATEGORIAS_PRATO, DISH_TAGS, custoIngrediente, custoPreparoUnit, custoItem, custoPrato } from "../../../lib/eventos";
+import ModalImportar from "./ModalImportar";
 
 const VAZIO_ING = { tipo: "food", nome: "", custo_unit: "", peso_unit: 1000, unidade: "g" };
 const VAZIO_PREP = { tipo: "food", nome: "", rendimento: 1000, unidade: "g", base_ingredients: [] };
@@ -266,6 +267,7 @@ function FormPrato({ inicial, ingredientes, preparos, onSalvar, onCancelar }) {
 // ─── Componente principal da aba ─────────────────────────────────────────
 export default function TabCardapio({ eventoId, ingredientes, preparos, pratos, onChange }) {
   const [modal, setModal]   = useState(null);  // 'ing' | 'prep' | 'prato'
+  const [importar, setImportar] = useState(null); // 'ingredientes-food' | 'pratos'
   const [editar, setEditar] = useState(null);
   const [busca, setBusca]   = useState("");
 
@@ -306,9 +308,12 @@ export default function TabCardapio({ eventoId, ingredientes, preparos, pratos, 
     <div className="space-y-4">
       {/* Pratos */}
       <Card className="!p-4">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
           <h3 style={{ fontWeight: 700, color: "var(--fg)" }}><ChefHat size={16} style={{ display: "inline", marginRight: 6 }} />Pratos ({pratos.length})</h3>
-          <Btn variant="primary" onClick={() => { setEditar(null); setModal("prato"); }}><Plus size={14} /> Novo prato</Btn>
+          <div className="flex gap-2">
+            <Btn variant="ghost" onClick={() => setImportar("pratos")}><Download size={14} /> Importar do cardápio</Btn>
+            <Btn variant="primary" onClick={() => { setEditar(null); setModal("prato"); }}><Plus size={14} /> Novo prato</Btn>
+          </div>
         </div>
         <div className="relative mb-3">
           <Search size={14} style={{ position: "absolute", left: 10, top: 12, color: "var(--muted)" }} />
@@ -383,9 +388,12 @@ export default function TabCardapio({ eventoId, ingredientes, preparos, pratos, 
 
       {/* Ingredientes */}
       <Card className="!p-4">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
           <h3 style={{ fontWeight: 700, color: "var(--fg)" }}>🥕 Ingredientes ({ingFood.length})</h3>
-          <Btn variant="ghost" onClick={() => { setEditar(null); setModal("ing"); }}><Plus size={14} /> Novo ingrediente</Btn>
+          <div className="flex gap-2">
+            <Btn variant="ghost" onClick={() => setImportar("ingredientes-food")}><Download size={14} /> Importar</Btn>
+            <Btn variant="ghost" onClick={() => { setEditar(null); setModal("ing"); }}><Plus size={14} /> Novo</Btn>
+          </div>
         </div>
         {ingFood.length === 0 ? (
           <p className="text-sm text-center" style={{ color: "var(--dim)", padding: 12 }}>Adicione ingredientes base para usar em preparos e pratos.</p>
@@ -418,6 +426,17 @@ export default function TabCardapio({ eventoId, ingredientes, preparos, pratos, 
       <Modal open={modal === "prato"} onClose={() => { setModal(null); setEditar(null); }} title={editar ? "Editar prato" : "Novo prato"}>
         <FormPrato inicial={editar} ingredientes={ingFood} preparos={prepFood} onSalvar={salvarPrato} onCancelar={() => { setModal(null); setEditar(null); }} />
       </Modal>
+
+      {importar && (
+        <ModalImportar
+          open={!!importar}
+          onClose={() => setImportar(null)}
+          tipo={importar}
+          eventoId={eventoId}
+          existentes={importar === "pratos" ? pratos : ingFood}
+          onSuccess={(count) => { alert(`✓ ${count} item(ns) importado(s) com sucesso!`); onChange(); }}
+        />
+      )}
     </div>
   );
 }

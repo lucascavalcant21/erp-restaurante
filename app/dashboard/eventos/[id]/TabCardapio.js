@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Plus, Trash2, Edit3, ChefHat, FlaskConical, Save, X, Search, Download } from "lucide-react";
 import { Card, SectionLabel, Btn, Field, TextInput, NumberInput, Select, Modal, fmtBRL, fmtPct } from "../../../components/ui";
-import { Ingredientes, Preparos, Pratos, CATEGORIAS_PRATO, DISH_TAGS, custoIngrediente, custoPreparoUnit, custoItem, custoPrato } from "../../../lib/eventos";
+import { Ingredientes, Preparos, Pratos, CATEGORIAS_PRATO, DISH_TAGS, custoIngrediente, custoPreparoUnit, custoItem, custoPrato, sugestaoQuantidade } from "../../../lib/eventos";
 import ModalImportar from "./ModalImportar";
 
 const VAZIO_ING = { tipo: "food", nome: "", custo_unit: "", peso_unit: 1000, unidade: "g" };
@@ -230,17 +230,50 @@ function FormPrato({ inicial, ingredientes, preparos, onSalvar, onCancelar }) {
           <p className="text-sm text-center" style={{ color: "var(--dim)", padding: 12 }}>Cadastre ingredientes primeiro</p>
         ) : ingredientes.map((ing) => {
           const sel = f.ingredients.find((i) => i.id === ing.id && i.type === "food");
+          const sug = sugestaoQuantidade(ing.nome);
+          const rendNum = Number(f.rendimento) || 1;
+          const qtdTotal = sel ? Number(sel.qty) * rendNum : 0;
+          const totalFormatado = (q) => {
+            if (q >= 1000 && (ing.unidade === "g" || ing.unidade === "ml")) {
+              return `${(q / 1000).toFixed(q >= 10000 ? 1 : 2)}${ing.unidade === "g" ? "kg" : "L"}`;
+            }
+            return `${q.toFixed(0)}${ing.unidade}`;
+          };
           return (
-            <div key={`food-${ing.id}`} className="flex items-center gap-2 p-2 rounded" style={{ background: sel ? "var(--elevated)" : "transparent" }}>
-              <input type="checkbox" checked={!!sel} onChange={() => toggleItem(ing.id, "food")} />
-              <div className="flex-1 text-[12px]">
-                <strong style={{ color: "var(--fg)" }}>{ing.nome}</strong>
-                <span style={{ color: "var(--dim)", marginLeft: 6 }}>{fmtBRL((ing.custo_unit / ing.peso_unit) * 1000)}/{ing.unidade === "g" ? "kg" : "L"}</span>
+            <div key={`food-${ing.id}`} className="p-2 rounded" style={{ background: sel ? "var(--elevated)" : "transparent" }}>
+              <div className="flex items-center gap-2">
+                <input type="checkbox" checked={!!sel} onChange={() => toggleItem(ing.id, "food")} />
+                <div className="flex-1 text-[12px]">
+                  <strong style={{ color: "var(--fg)" }}>{ing.nome}</strong>
+                  <span style={{ color: "var(--dim)", marginLeft: 6 }}>{fmtBRL((ing.custo_unit / ing.peso_unit) * 1000)}/{ing.unidade === "g" ? "kg" : "L"}</span>
+                  {sug && sug.unidade === ing.unidade && (
+                    <span style={{ color: "#10B981", marginLeft: 6, fontSize: 10 }}>
+                      💡 sugerido: {sug.min}–{sug.max}{sug.unidade}/porção
+                    </span>
+                  )}
+                </div>
+                {sel && (
+                  <div className="flex items-center gap-1">
+                    <NumberInput value={sel.qty} onChange={(e) => setQty(ing.id, "food", e.target.value)} style={{ width: 70 }} step="1" />
+                    <span className="text-[10px]" style={{ color: "var(--dim)" }}>{ing.unidade}</span>
+                    {sug && sug.unidade === ing.unidade && sel.qty > 0 && (
+                      Number(sel.qty) < sug.min || Number(sel.qty) > sug.max ? (
+                        <button
+                          type="button"
+                          onClick={() => setQty(ing.id, "food", Math.round((sug.min + sug.max) / 2))}
+                          style={{ background: "#F59E0B22", border: "none", padding: "2px 6px", borderRadius: 4, cursor: "pointer", fontSize: 9, color: "#F59E0B" }}
+                          title="Usar média sugerida"
+                        >⚠</button>
+                      ) : (
+                        <span style={{ color: "#10B981", fontSize: 11 }} title="Dentro da faixa sugerida">✓</span>
+                      )
+                    )}
+                  </div>
+                )}
               </div>
-              {sel && (
-                <div className="flex items-center gap-1">
-                  <NumberInput value={sel.qty} onChange={(e) => setQty(ing.id, "food", e.target.value)} style={{ width: 70 }} step="1" />
-                  <span className="text-[10px]" style={{ color: "var(--dim)" }}>{ing.unidade}</span>
+              {sel && rendNum > 1 && Number(sel.qty) > 0 && (
+                <div className="text-[10px] mt-1" style={{ color: "var(--muted)", paddingLeft: 26 }}>
+                  📦 Para <strong style={{ color: "var(--fg)" }}>{rendNum} porções</strong> = <strong style={{ color: "var(--accent-fg)" }}>{totalFormatado(qtdTotal)}</strong>
                 </div>
               )}
             </div>

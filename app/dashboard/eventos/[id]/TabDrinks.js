@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Plus, Trash2, Edit3, Beer, Search, Download } from "lucide-react";
 import { Card, SectionLabel, Btn, Field, TextInput, NumberInput, Select, Modal, fmtBRL, fmtPct } from "../../../components/ui";
-import { Ingredientes, Preparos, Drinks, custoIngrediente, custoPreparoUnit, custoItem, custoDrink } from "../../../lib/eventos";
+import { Ingredientes, Preparos, Drinks, custoIngrediente, custoPreparoUnit, custoItem, custoDrink, sugestaoQuantidade } from "../../../lib/eventos";
 import ModalImportar from "./ModalImportar";
 
 const VAZIO_ING = { tipo: "bar", nome: "", custo_unit: "", peso_unit: 750, unidade: "ml" };
@@ -226,19 +226,39 @@ function FormDrink({ inicial, ingredientes, preparos, onSalvar, onCancelar }) {
           <p className="text-sm text-center" style={{ color: "var(--dim)", padding: 12 }}>Cadastre ingredientes de bar primeiro</p>
         ) : ingredientes.map((ing) => {
           const sel = f.ingredients.find((i) => i.id === ing.id && i.type === "bar");
+          const sug = sugestaoQuantidade(ing.nome);
           return (
-            <div key={`bar-${ing.id}`} className="flex items-center gap-2 p-2 rounded" style={{ background: sel ? "var(--elevated)" : "transparent" }}>
-              <input type="checkbox" checked={!!sel} onChange={() => toggleItem(ing.id, "bar")} />
-              <div className="flex-1 text-[12px]">
-                <strong style={{ color: "var(--fg)" }}>{ing.nome}</strong>
-                <span style={{ color: "var(--dim)", marginLeft: 6 }}>{fmtBRL((ing.custo_unit / ing.peso_unit) * 1000)}/{ing.unidade === "g" ? "kg" : ing.unidade === "ml" ? "L" : "un"}</span>
-              </div>
-              {sel && (
-                <div className="flex items-center gap-1">
-                  <NumberInput value={sel.qty} onChange={(e) => setQty(ing.id, "bar", e.target.value)} style={{ width: 70 }} step="1" />
-                  <span className="text-[10px]" style={{ color: "var(--dim)" }}>{ing.unidade}</span>
+            <div key={`bar-${ing.id}`} className="p-2 rounded" style={{ background: sel ? "var(--elevated)" : "transparent" }}>
+              <div className="flex items-center gap-2">
+                <input type="checkbox" checked={!!sel} onChange={() => toggleItem(ing.id, "bar")} />
+                <div className="flex-1 text-[12px]">
+                  <strong style={{ color: "var(--fg)" }}>{ing.nome}</strong>
+                  <span style={{ color: "var(--dim)", marginLeft: 6 }}>{fmtBRL((ing.custo_unit / ing.peso_unit) * 1000)}/{ing.unidade === "g" ? "kg" : ing.unidade === "ml" ? "L" : "un"}</span>
+                  {sug && sug.unidade === ing.unidade && (
+                    <span style={{ color: "#10B981", marginLeft: 6, fontSize: 10 }}>
+                      💡 {sug.categoria}: {sug.min}–{sug.max}{sug.unidade}
+                    </span>
+                  )}
                 </div>
-              )}
+                {sel && (
+                  <div className="flex items-center gap-1">
+                    <NumberInput value={sel.qty} onChange={(e) => setQty(ing.id, "bar", e.target.value)} style={{ width: 70 }} step="1" />
+                    <span className="text-[10px]" style={{ color: "var(--dim)" }}>{ing.unidade}</span>
+                    {sug && sug.unidade === ing.unidade && sel.qty > 0 && (
+                      Number(sel.qty) < sug.min || Number(sel.qty) > sug.max ? (
+                        <button
+                          type="button"
+                          onClick={() => setQty(ing.id, "bar", Math.round((sug.min + sug.max) / 2))}
+                          style={{ background: "#F59E0B22", border: "none", padding: "2px 6px", borderRadius: 4, cursor: "pointer", fontSize: 9, color: "#F59E0B" }}
+                          title="Usar média sugerida"
+                        >⚠</button>
+                      ) : (
+                        <span style={{ color: "#10B981", fontSize: 11 }} title="Dentro da faixa sugerida">✓</span>
+                      )
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           );
         })}

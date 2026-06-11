@@ -141,6 +141,7 @@ function ListaItensCompra({ itens, corDestaque, unidadeRef, compraDe, onUpdate }
 
 export default function TabCompras({ evento, reservas, pratos, drinks, ingredientes, preparos }) {
   const [safetyMargin, setSafetyMargin] = useState(Number(evento.margem_seg) || 10);
+  const [modo, setModo] = useState("estimado"); // 'estimado' | 'real'
   const [compras, setCompras] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -176,24 +177,46 @@ export default function TabCompras({ evento, reservas, pratos, drinks, ingredien
     const couples = reservas.length;
     if (couples === 0) return { food: [], bar: [], totalCost: 0 };
 
-    // Distribui porções de pratos por categoria
-    const portionsCategoria = (categoria, included) => {
-      const inCat = pratos.filter((p) => p.categoria === categoria);
-      if (!inCat.length) return new Map();
-      const portionsPerDish = (couples * Number(included)) / inCat.length;
-      const map = new Map();
-      inCat.forEach((d) => map.set(d.id, portionsPerDish));
-      return map;
-    };
+    let dishPortions, drinkPortionsMap, drinksMenu;
+    const peopleMult = evento.charge_mode === "person" ? 1 : 2;
 
-    const dishPortions = new Map([
-      ...portionsCategoria("Entrada", evento.entradas_inc),
-      ...portionsCategoria("Principal", evento.principais_inc),
-      ...portionsCategoria("Sobremesa", evento.sobremesas_inc),
-    ]);
-    const drinksMenu = drinks.filter((d) => !d.is_extra);
-    const drinkPortions = drinksMenu.length > 0
-      ? (couples * Number(evento.drinks_inc)) / drinksMenu.length : 0;
+    if (modo === "real") {
+      // ─── MODO REAL: usa escolhas das reservas ────────────────────────
+      // Conta quantos casais escolheram cada prato
+      dishPortions = new Map();
+      reservas.forEach((r) => {
+        (r.menu_choices || []).forEach((id) => {
+          dishPortions.set(id, (dishPortions.get(id) || 0) + 1);
+        });
+      });
+      // Conta quantos casais escolheram cada drink
+      drinkPortionsMap = new Map();
+      reservas.forEach((r) => {
+        (r.drink_choices || []).forEach((id) => {
+          drinkPortionsMap.set(id, (drinkPortionsMap.get(id) || 0) + 1);
+        });
+      });
+      drinksMenu = drinks.filter((d) => !d.is_extra);
+    } else {
+      // ─── MODO ESTIMADO: distribui igual por categoria ───────────────
+      const portionsCategoria = (categoria, included) => {
+        const inCat = pratos.filter((p) => p.categoria === categoria);
+        if (!inCat.length) return new Map();
+        const portionsPerDish = (couples * Number(included)) / inCat.length;
+        const map = new Map();
+        inCat.forEach((d) => map.set(d.id, portionsPerDish));
+        return map;
+      };
+      dishPortions = new Map([
+        ...portionsCategoria("Entrada", evento.entradas_inc),
+        ...portionsCategoria("Principal", evento.principais_inc),
+        ...portionsCategoria("Sobremesa", evento.sobremesas_inc),
+      ]);
+      drinksMenu = drinks.filter((d) => !d.is_extra);
+      drinkPortionsMap = new Map();
+      const drinkPortions = drinksMenu.length > 0 ? (couples * Number(evento.drinks_inc)) / drinksMenu.length : 0;
+      drinksMenu.forEach((d) => drinkPortionsMap.set(d.id, drinkPortions));
+    }
 
     // Acumular necessidades por ingrediente (food e bar)
     const foodNeeded = new Map();
@@ -221,7 +244,8 @@ export default function TabCompras({ evento, reservas, pratos, drinks, ingredien
       (p.ingredients || []).forEach((i) => addItemNeed(i, portions, false));
     });
     drinksMenu.forEach((d) => {
-      (d.ingredients || []).forEach((i) => addItemNeed(i, drinkPortions, true));
+      const portions = drinkPortionsMap.get(d.id) || 0;
+      (d.ingredients || []).forEach((i) => addItemNeed(i, portions, true));
     });
 
     // Extras
@@ -259,7 +283,13 @@ export default function TabCompras({ evento, reservas, pratos, drinks, ingredien
 
     const totalCost = [...food, ...bar].reduce((s, i) => s + i.cost, 0);
     return { food, bar, totalCost };
-  }, [reservas, pratos, drinks, ingredientes, preparos, evento, safetyMargin]);
+  }, [reservas, pratos, drinks, ingredientes, preparos, evento, safetyMargin, modo]);
+
+  // Stats sobre escolhas das reservas
+  const escolhasStats = useMemo(() => {
+    const comEscolhas = reservas.filter((r) => (r.menu_choices?.length || 0) > 0 || (r.drink_choices?.length || 0) > 0).length;
+    return { comEscolhas, totalReservas: reservas.length };
+  }, [reservas]);
 
   if (reservas.length === 0) {
     return (
@@ -273,17 +303,62 @@ export default function TabCompras({ evento, reservas, pratos, drinks, ingredien
   return (
     <div className="space-y-4">
       <Card className="!p-4">
-        <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center justify-between flex-wrap gap-3 mb-3">
           <div>
             <h3 style={{ fontWeight: 700, color: "var(--fg)" }}><ShoppingCart size={16} style={{ display: "inline", marginRight: 6 }} />Lista de Compras</h3>
             <p className="text-[11px]" style={{ color: "var(--dim)" }}>
-              Calculado a partir de {reservas.length} {evento.charge_mode === "couple" ? "casais" : "pessoas"} × menu do evento
+              {modo === "real"
+                ? `Calculado pelas escolhas reais das ${escolhasStats.comEscolhas} reserva${escolhasStats.comEscolhas !== 1 ? "s" : ""} com pratos/drinks selecionados`
+                : `Calculado por distribuição igual em ${reservas.length} ${evento.charge_mode === "couple" ? "casais" : "pessoas"} × menu do evento`}
             </p>
           </div>
           <Field label="Margem segurança (%)">
             <NumberInput value={safetyMargin} onChange={(e) => setSafetyMargin(Number(e.target.value) || 0)} step="1" style={{ width: 100 }} />
           </Field>
         </div>
+
+        {/* Toggle de modo de cálculo */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => setModo("estimado")}
+            style={{
+              padding: "10px 12px", borderRadius: 8, border: "none", cursor: "pointer",
+              background: modo === "estimado" ? "linear-gradient(135deg, #3B82F6, #6366F1)" : "var(--elevated)",
+              color: modo === "estimado" ? "white" : "var(--muted)",
+              fontSize: 12, fontWeight: 600, textAlign: "left",
+            }}
+          >
+            <div>📊 Modo Estimado (planejamento)</div>
+            <div style={{ fontSize: 10, fontWeight: 400, opacity: 0.9, marginTop: 2 }}>
+              Distribui as porções igualmente entre todos os pratos/drinks
+            </div>
+          </button>
+          <button
+            onClick={() => setModo("real")}
+            disabled={escolhasStats.comEscolhas === 0}
+            style={{
+              padding: "10px 12px", borderRadius: 8, border: "none",
+              cursor: escolhasStats.comEscolhas === 0 ? "not-allowed" : "pointer",
+              background: modo === "real" ? "linear-gradient(135deg, #10B981, #059669)" : "var(--elevated)",
+              color: modo === "real" ? "white" : "var(--muted)",
+              fontSize: 12, fontWeight: 600, textAlign: "left",
+              opacity: escolhasStats.comEscolhas === 0 ? 0.5 : 1,
+            }}
+          >
+            <div>🎯 Modo Real (escolhas dos clientes)</div>
+            <div style={{ fontSize: 10, fontWeight: 400, opacity: 0.9, marginTop: 2 }}>
+              {escolhasStats.comEscolhas === 0
+                ? "Nenhuma reserva tem escolhas registradas ainda"
+                : `Conta as escolhas reais de ${escolhasStats.comEscolhas}/${escolhasStats.totalReservas} reservas`}
+            </div>
+          </button>
+        </div>
+
+        {modo === "real" && escolhasStats.comEscolhas < escolhasStats.totalReservas && (
+          <p className="text-[11px] mt-2" style={{ color: "#F59E0B" }}>
+            ⚠ Atenção: {escolhasStats.totalReservas - escolhasStats.comEscolhas} reserva{escolhasStats.totalReservas - escolhasStats.comEscolhas !== 1 ? "s" : ""} sem escolhas — esses casais não estão sendo contabilizados. Complete-os antes de comprar.
+          </p>
+        )}
       </Card>
 
       {/* ─── Resumo Estimado vs Real ─────────────────────────────────────── */}

@@ -228,6 +228,60 @@ export const Compras = {
   remove: (id) => removeOne("evento_compras", id),
 };
 
+// ─── Sugestões de quantidade por porção ──────────────────────────────────
+/**
+ * Detecta categoria do ingrediente pelo nome e retorna sugestão de qty/porção.
+ * Retorna { min, max, unidade } baseado em padrões da indústria.
+ */
+const SUGESTOES_QTD = [
+  // Carnes nobres (filé, picanha, mignon, costela)
+  { keywords: ["picanha", "filé mignon", "file mignon", "filet"], min: 180, max: 220, unidade: "g", categoria: "Carne nobre" },
+  { keywords: ["alcatra", "maminha", "fraldinha", "contrafilé", "costela"], min: 200, max: 250, unidade: "g", categoria: "Carne bovina" },
+  { keywords: ["carne", "boi", "boeuf", "wellington"], min: 180, max: 220, unidade: "g", categoria: "Carne bovina" },
+  { keywords: ["frango", "peito", "coxa", "sobrecoxa"], min: 150, max: 200, unidade: "g", categoria: "Aves" },
+  { keywords: ["porco", "lombo", "pernil", "bacon"], min: 150, max: 200, unidade: "g", categoria: "Suínos" },
+  { keywords: ["salmão", "salmao", "atum", "robalo", "linguado", "tilapia", "tilápia", "peixe"], min: 150, max: 200, unidade: "g", categoria: "Peixes" },
+  { keywords: ["camarão", "camarao", "lagosta", "polvo", "lula"], min: 100, max: 150, unidade: "g", categoria: "Frutos do mar" },
+
+  // Massas e arrozes
+  { keywords: ["arroz", "risoto", "risotto"], min: 80, max: 120, unidade: "g", categoria: "Carboidrato" },
+  { keywords: ["massa", "macarrão", "macarrao", "spaghetti", "penne", "fettuccine", "ravioli"], min: 90, max: 120, unidade: "g", categoria: "Massa" },
+  { keywords: ["batata", "purê", "pure"], min: 150, max: 200, unidade: "g", categoria: "Acompanhamento" },
+  { keywords: ["farofa"], min: 50, max: 80, unidade: "g", categoria: "Acompanhamento" },
+
+  // Vegetais e saladas
+  { keywords: ["salada", "alface", "rúcula", "rucula", "espinafre", "agrião"], min: 60, max: 100, unidade: "g", categoria: "Folhas" },
+  { keywords: ["legume", "cenoura", "abobrinha", "berinjela", "brócolis"], min: 80, max: 120, unidade: "g", categoria: "Legumes" },
+
+  // Sobremesas
+  { keywords: ["sobremesa", "mousse", "pudim", "torta", "bolo", "cheesecake", "tiramisu"], min: 100, max: 150, unidade: "g", categoria: "Sobremesa" },
+  { keywords: ["sorvete", "gelato"], min: 80, max: 120, unidade: "g", categoria: "Sobremesa" },
+  { keywords: ["fruta", "morango", "framboesa", "mirtilo"], min: 50, max: 100, unidade: "g", categoria: "Frutas" },
+
+  // Bebidas (bar)
+  { keywords: ["destilado", "vodka", "gin", "rum", "tequila", "whisky", "whiskey", "conhaque"], min: 40, max: 60, unidade: "ml", categoria: "Destilado (dose)" },
+  { keywords: ["licor", "xarope"], min: 15, max: 30, unidade: "ml", categoria: "Licor/Xarope" },
+  { keywords: ["vinho"], min: 120, max: 180, unidade: "ml", categoria: "Vinho" },
+  { keywords: ["cerveja"], min: 300, max: 600, unidade: "ml", categoria: "Cerveja" },
+  { keywords: ["champagne", "espumante", "prosecco"], min: 100, max: 150, unidade: "ml", categoria: "Espumante" },
+  { keywords: ["tônica", "tonica", "soda", "refrigerante", "água tônica"], min: 150, max: 250, unidade: "ml", categoria: "Mixer" },
+  { keywords: ["suco"], min: 100, max: 200, unidade: "ml", categoria: "Suco" },
+  { keywords: ["leite", "creme"], min: 50, max: 100, unidade: "ml", categoria: "Lácteo" },
+  { keywords: ["limão", "limao", "lima"], min: 10, max: 20, unidade: "ml", categoria: "Cítrico" },
+  { keywords: ["açúcar", "acucar", "mel"], min: 5, max: 15, unidade: "g", categoria: "Adoçante" },
+  { keywords: ["hortelã", "hortela", "manjericão", "canela"], min: 2, max: 8, unidade: "g", categoria: "Aromático" },
+];
+
+export function sugestaoQuantidade(nomeIngrediente) {
+  const n = (nomeIngrediente || "").toLowerCase();
+  for (const s of SUGESTOES_QTD) {
+    if (s.keywords.some((k) => n.includes(k))) {
+      return { min: s.min, max: s.max, unidade: s.unidade, categoria: s.categoria };
+    }
+  }
+  return null;
+}
+
 // ─── Helpers de cálculo ──────────────────────────────────────────────────
 export function custoIngrediente(ing, qty) {
   if (!ing || !ing.peso_unit) return 0;

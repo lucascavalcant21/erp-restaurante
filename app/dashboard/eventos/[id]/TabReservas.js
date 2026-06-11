@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { Plus, Trash2, Edit3, Users, Check, Clock, CreditCard } from "lucide-react";
 import { Card, SectionLabel, Btn, Field, TextInput, NumberInput, Select, Modal, fmtBRL } from "../../../components/ui";
-import { Reservas, TIME_SLOTS, PAYMENT_METHODS, custoDrink } from "../../../lib/eventos";
+import { Reservas, TIME_SLOTS, PAYMENT_METHODS, custoDrink, custoPrato } from "../../../lib/eventos";
 
 const VAZIO = {
   nome: "", mesa: "", horario: "19:00", sinal: 0,
@@ -55,6 +55,80 @@ function FormReserva({ inicial, evento, reservas, pratos, drinks, ingredientes, 
   }, 0);
   const totalValor = Number(evento.preco_unit) + totalExtras;
 
+  // ─── Pratos por categoria (com limites do menu do evento) ──────────────
+  const pratosPorCat = {
+    "Entrada":    pratos.filter((p) => p.categoria === "Entrada"),
+    "Principal":  pratos.filter((p) => p.categoria === "Principal"),
+    "Sobremesa":  pratos.filter((p) => p.categoria === "Sobremesa"),
+  };
+  const limitesCat = {
+    "Entrada":    Number(evento.entradas_inc) || 0,
+    "Principal":  Number(evento.principais_inc) || 0,
+    "Sobremesa":  Number(evento.sobremesas_inc) || 0,
+  };
+  // Conta quantos pratos escolhidos por categoria
+  function contadorCat(categoria) {
+    return f.menu_choices.filter((id) => {
+      const p = pratos.find((pr) => pr.id === id);
+      return p && p.categoria === categoria;
+    }).length;
+  }
+  // Toggle respeitando limite (com substituição quando atingir)
+  function toggleMenuComLimite(prato) {
+    const cat = prato.categoria;
+    const limite = limitesCat[cat] || 0;
+    if (inMenu(prato.id)) {
+      set("menu_choices", f.menu_choices.filter((x) => x !== prato.id));
+      return;
+    }
+    const escolhidosCat = f.menu_choices.filter((id) => {
+      const p = pratos.find((pr) => pr.id === id);
+      return p && p.categoria === cat;
+    });
+    if (escolhidosCat.length >= limite) {
+      // Já bateu o limite — substitui o mais antigo dessa categoria
+      const semOMaisAntigo = f.menu_choices.filter((id) => id !== escolhidosCat[0]);
+      set("menu_choices", [...semOMaisAntigo, prato.id]);
+    } else {
+      set("menu_choices", [...f.menu_choices, prato.id]);
+    }
+  }
+
+  // Drinks com limite
+  const limiteDrinks = Number(evento.drinks_inc) || 0;
+  function toggleDrinkComLimite(drink) {
+    if (inDrinks(drink.id)) {
+      set("drink_choices", f.drink_choices.filter((x) => x !== drink.id));
+      return;
+    }
+    if (f.drink_choices.length >= limiteDrinks) {
+      const semOMaisAntigo = f.drink_choices.slice(1);
+      set("drink_choices", [...semOMaisAntigo, drink.id]);
+    } else {
+      set("drink_choices", [...f.drink_choices, drink.id]);
+    }
+  }
+
+  // ─── CMV do casal (custo total dos pratos + drinks escolhidos + extras) ─
+  const cmvPratos = f.menu_choices.reduce((s, id) => {
+    const p = pratos.find((pr) => pr.id === id);
+    return s + (p ? custoPrato(p, ingredientes, preparos) : 0);
+  }, 0);
+  const cmvDrinks = f.drink_choices.reduce((s, id) => {
+    const d = drinks.find((dr) => dr.id === id);
+    return s + (d ? custoDrink(d, ingredientes, preparos) : 0);
+  }, 0);
+  const cmvExtras = f.extra_drinks.reduce((s, e) => {
+    const d = drinks.find((dr) => dr.id === e.drinkId);
+    return s + (d ? custoDrink(d, ingredientes, preparos) * e.qty : 0);
+  }, 0);
+  const cmvCasal = cmvPratos + cmvDrinks + cmvExtras;
+
+  // ─── % do sinal ─────────────────────────────────────────────────────────
+  const sinalNum = parseFloat(String(f.sinal).replace(",", ".")) || 0;
+  const sinalPct = totalValor > 0 ? (sinalNum / totalValor) * 100 : 0;
+  const restante = Math.max(0, totalValor - sinalNum);
+
   function salvar() {
     if (!f.nome.trim()) return setErro("Informe o nome.");
     const sinalNum = parseFloat(String(f.sinal).replace(",", ".")) || 0;
@@ -101,39 +175,154 @@ function FormReserva({ inicial, evento, reservas, pratos, drinks, ingredientes, 
         </Field>
       </div>
 
-      <Field label={`Sinal pago (R$) — Total: ${fmtBRL(totalValor)}`}>
+      {/* ─── Sinal com % ─────────────────────────────────────────────────── */}
+      <Field label={
+        <span className="flex items-center gap-2 flex-wrap">
+          <span>Sinal pago (R$)</span>
+          <span style={{ color: "var(--dim)", fontWeight: 400 }}>· Total: {fmtBRL(totalValor)}</span>
+          {sinalNum > 0 && (
+            <span style={{
+              color: sinalPct >= 100 ? "#10B981" : sinalPct >= 50 ? "#F59E0B" : "#EF4444",
+              fontWeight: 700, fontSize: 11,
+              padding: "2px 8px", borderRadius: 999,
+              background: sinalPct >= 100 ? "#10B98122" : sinalPct >= 50 ? "#F59E0B22" : "#EF444422",
+            }}>
+              {sinalPct.toFixed(1)}%
+            </span>
+          )}
+        </span>
+      }>
         <NumberInput value={f.sinal} onChange={(e) => set("sinal", e.target.value)} placeholder="0,00" step="0.01" />
       </Field>
-
-      <SectionLabel>Escolha dos pratos ({f.menu_choices.length} selecionados)</SectionLabel>
-      <div className="space-y-1" style={{ maxHeight: 200, overflowY: "auto", marginBottom: 12 }}>
-        {pratos.length === 0 ? (
-          <p className="text-sm text-center" style={{ color: "var(--dim)", padding: 8 }}>Cadastre pratos no Cardápio primeiro</p>
-        ) : pratos.map((prato) => (
-          <label key={prato.id} className="flex items-center gap-2 p-2 rounded cursor-pointer" style={{ background: inMenu(prato.id) ? "var(--elevated)" : "transparent" }}>
-            <input type="checkbox" checked={inMenu(prato.id)} onChange={() => toggleMenu(prato.id)} />
-            <div className="flex-1 text-[12px]">
-              <strong style={{ color: "var(--fg)" }}>{prato.nome}</strong>
-              <span style={{ color: "var(--dim)", marginLeft: 6, fontSize: 10 }}>{prato.categoria}</span>
-            </div>
-          </label>
-        ))}
+      {/* Barra visual do pagamento */}
+      <div style={{ height: 6, background: "var(--elevated)", borderRadius: 100, overflow: "hidden", marginBottom: 4 }}>
+        <div style={{
+          width: `${Math.min(100, sinalPct)}%`, height: "100%",
+          background: sinalPct >= 100 ? "#10B981" : "linear-gradient(90deg, #EF4444, #F59E0B)",
+          transition: "width 200ms",
+        }} />
+      </div>
+      <div className="flex justify-between text-[10px] mb-3" style={{ color: "var(--dim)" }}>
+        <span>{sinalPct >= 100 ? "✓ Pago total" : `Faltam ${fmtBRL(restante)}`}</span>
+        <span>50% sugerido: {fmtBRL(totalValor / 2)} · Total: {fmtBRL(totalValor)}</span>
       </div>
 
-      <SectionLabel>Escolha dos drinks do menu ({f.drink_choices.length} selecionados)</SectionLabel>
-      <div className="space-y-1" style={{ maxHeight: 160, overflowY: "auto", marginBottom: 12 }}>
-        {drinksMenu.length === 0 ? (
-          <p className="text-sm text-center" style={{ color: "var(--dim)", padding: 8 }}>Cadastre drinks (não-extras) no menu</p>
-        ) : drinksMenu.map((drink) => (
-          <label key={drink.id} className="flex items-center gap-2 p-2 rounded cursor-pointer" style={{ background: inDrinks(drink.id) ? "var(--elevated)" : "transparent" }}>
-            <input type="checkbox" checked={inDrinks(drink.id)} onChange={() => toggleDrink(drink.id)} />
-            <div className="flex-1 text-[12px]">
-              <strong style={{ color: "var(--fg)" }}>{drink.nome}</strong>
-              <span style={{ color: "var(--dim)", marginLeft: 6, fontSize: 10 }}>{drink.has_alcohol ? "🍸" : "🌿"}</span>
+      {/* ─── Resumo CMV do casal ───────────────────────────────────────────── */}
+      {cmvCasal > 0 && (
+        <div className="erp-panel p-3 mb-3" style={{ background: "var(--elevated)", borderRadius: 8 }}>
+          <div className="flex justify-between items-center text-[11px]">
+            <span style={{ color: "var(--muted)" }}>
+              <strong>CMV deste {evento.charge_mode === "couple" ? "casal" : "pessoa"}:</strong>{" "}
+              {fmtBRL(cmvCasal)}
+            </span>
+            <span style={{ color: "var(--accent-fg)", fontWeight: 700 }}>
+              Lucro: {fmtBRL(totalValor - cmvCasal)}
+              <span style={{ color: "var(--dim)", marginLeft: 4, fontWeight: 400 }}>
+                ({totalValor > 0 ? (((totalValor - cmvCasal) / totalValor) * 100).toFixed(1) : 0}%)
+              </span>
+            </span>
+          </div>
+          <div className="text-[10px] mt-1" style={{ color: "var(--dim)" }}>
+            Pratos: {fmtBRL(cmvPratos)} · Drinks: {fmtBRL(cmvDrinks)}
+            {cmvExtras > 0 && <> · Extras: {fmtBRL(cmvExtras)}</>}
+          </div>
+        </div>
+      )}
+
+      {/* ─── Pratos por Categoria ──────────────────────────────────────────── */}
+      {["Entrada", "Principal", "Sobremesa"].map((categoria) => {
+        const pratosCat = pratosPorCat[categoria];
+        const limite = limitesCat[categoria];
+        const escolhidos = contadorCat(categoria);
+        if (limite === 0) return null; // categoria não faz parte do menu
+
+        return (
+          <div key={categoria} style={{ marginBottom: 12 }}>
+            <div className="flex items-center justify-between mb-2">
+              <SectionLabel>{categoria === "Entrada" ? "🥗 Entradas/Petiscos" : categoria === "Principal" ? "🍽️ Pratos Principais" : "🍰 Sobremesas"}</SectionLabel>
+              <span style={{
+                fontSize: 10, fontWeight: 700,
+                padding: "2px 8px", borderRadius: 999,
+                background: escolhidos === limite ? "#10B98122" : escolhidos > 0 ? "#F59E0B22" : "var(--elevated)",
+                color: escolhidos === limite ? "#10B981" : escolhidos > 0 ? "#F59E0B" : "var(--muted)",
+              }}>
+                {escolhidos} / {limite}
+              </span>
             </div>
-          </label>
-        ))}
-      </div>
+            {pratosCat.length === 0 ? (
+              <p className="text-[11px] text-center" style={{ color: "var(--dim)", padding: 8 }}>
+                Nenhum prato cadastrado em <strong>{categoria}</strong>. Adicione no Cardápio.
+              </p>
+            ) : (
+              <div className="space-y-1" style={{ maxHeight: 180, overflowY: "auto" }}>
+                {pratosCat.map((prato) => {
+                  const sel = inMenu(prato.id);
+                  const cmv = custoPrato(prato, ingredientes, preparos);
+                  return (
+                    <label key={prato.id} className="flex items-center gap-2 p-2 rounded cursor-pointer" style={{ background: sel ? "var(--elevated)" : "transparent" }}>
+                      <input type="checkbox" checked={sel} onChange={() => toggleMenuComLimite(prato)} />
+                      <div className="flex-1 text-[12px]">
+                        <strong style={{ color: "var(--fg)" }}>{prato.nome}</strong>
+                        {(prato.tags || []).map((t) => (
+                          <span key={t} style={{ color: "var(--dim)", marginLeft: 4, fontSize: 9 }}>· {t}</span>
+                        ))}
+                        {cmv > 0 && (
+                          <span style={{ color: "var(--dim)", marginLeft: 6, fontSize: 10 }}>
+                            CMV {fmtBRL(cmv)}
+                          </span>
+                        )}
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* ─── Drinks do menu ─────────────────────────────────────────────────── */}
+      {limiteDrinks > 0 && (
+        <div style={{ marginBottom: 12 }}>
+          <div className="flex items-center justify-between mb-2">
+            <SectionLabel>🍹 Drinks do menu</SectionLabel>
+            <span style={{
+              fontSize: 10, fontWeight: 700,
+              padding: "2px 8px", borderRadius: 999,
+              background: f.drink_choices.length === limiteDrinks ? "#10B98122" : f.drink_choices.length > 0 ? "#F59E0B22" : "var(--elevated)",
+              color: f.drink_choices.length === limiteDrinks ? "#10B981" : f.drink_choices.length > 0 ? "#F59E0B" : "var(--muted)",
+            }}>
+              {f.drink_choices.length} / {limiteDrinks}
+            </span>
+          </div>
+          {drinksMenu.length === 0 ? (
+            <p className="text-[11px] text-center" style={{ color: "var(--dim)", padding: 8 }}>
+              Nenhum drink no menu. Adicione na aba <strong>Drinks</strong> (sem marcar como "extra").
+            </p>
+          ) : (
+            <div className="space-y-1" style={{ maxHeight: 180, overflowY: "auto" }}>
+              {drinksMenu.map((drink) => {
+                const sel = inDrinks(drink.id);
+                const cmv = custoDrink(drink, ingredientes, preparos);
+                return (
+                  <label key={drink.id} className="flex items-center gap-2 p-2 rounded cursor-pointer" style={{ background: sel ? "var(--elevated)" : "transparent" }}>
+                    <input type="checkbox" checked={sel} onChange={() => toggleDrinkComLimite(drink)} />
+                    <div className="flex-1 text-[12px]">
+                      <strong style={{ color: "var(--fg)" }}>{drink.nome}</strong>
+                      <span style={{ color: "var(--dim)", marginLeft: 6, fontSize: 10 }}>{drink.has_alcohol ? "🍸 c/ álcool" : "🌿 s/ álcool"}</span>
+                      {cmv > 0 && (
+                        <span style={{ color: "var(--dim)", marginLeft: 6, fontSize: 10 }}>
+                          CMV {fmtBRL(cmv)}
+                        </span>
+                      )}
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {drinksExtras.length > 0 && (
         <>

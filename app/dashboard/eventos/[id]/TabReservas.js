@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Plus, Trash2, Edit3, Users, Check, Clock, CreditCard } from "lucide-react";
+import { Plus, Trash2, Edit3, Users, Check, Clock, CreditCard, Printer, ChefHat, Beer } from "lucide-react";
 import { Card, SectionLabel, Btn, Field, TextInput, NumberInput, Select, Modal, fmtBRL } from "../../../components/ui";
-import { Reservas, TIME_SLOTS, PAYMENT_METHODS, custoDrink, custoPrato } from "../../../lib/eventos";
+import { Reservas, TIME_SLOTS, PAYMENT_METHODS, custoDrink, custoPrato, custoItem, custoPreparoUnit, custoIngrediente } from "../../../lib/eventos";
 
 const VAZIO = {
   nome: "", mesa: "", horario: "19:00", sinal: 0,
@@ -363,6 +363,266 @@ function FormReserva({ inicial, evento, reservas, pratos, drinks, ingredientes, 
   );
 }
 
+// ─── Helpers para impressão ──────────────────────────────────────────────
+function nomeItem(item, ingredientes, preparos) {
+  if (item.type === "prep") {
+    const p = preparos.find((x) => x.id === item.id);
+    return p ? { nome: p.nome, unidade: p.unidade, isPrep: true } : { nome: "?", unidade: "" };
+  }
+  const i = ingredientes.find((x) => x.id === item.id);
+  return i ? { nome: i.nome, unidade: i.unidade, isPrep: false } : { nome: "?", unidade: "" };
+}
+
+function montarIngredientesPrato(prato, ingredientes, preparos) {
+  if (!prato.ingredients?.length) return "";
+  return prato.ingredients.map((item) => {
+    const meta = nomeItem(item, ingredientes, preparos);
+    const icon = meta.isPrep ? "🧪" : "•";
+    return `${icon} ${meta.nome} — ${item.qty}${meta.unidade}`;
+  }).join("<br>");
+}
+
+function imprimirOrdemCozinha(evento, reservas, pratos, ingredientes, preparos) {
+  // Agrupa reservas por turno
+  const porTurno = {};
+  reservas.forEach((r) => {
+    const t = r.horario || "Sem turno";
+    if (!porTurno[t]) porTurno[t] = [];
+    porTurno[t].push(r);
+  });
+  const turnos = Object.keys(porTurno).sort();
+
+  // Consolida pratos por turno para "resumo de produção"
+  function totalPorTurno(turno) {
+    const cont = new Map();
+    porTurno[turno].forEach((r) => {
+      (r.menu_choices || []).forEach((id) => {
+        cont.set(id, (cont.get(id) || 0) + 1);
+      });
+    });
+    return Array.from(cont.entries()).map(([id, qty]) => {
+      const p = pratos.find((pr) => pr.id === id);
+      return { prato: p, qty };
+    }).filter((x) => x.prato);
+  }
+
+  const turnoLabel = (t) => t === "19:00" ? "1º TURNO — 19h às 21h" : t === "21:30" ? "2º TURNO — 21h30 às 23h30" : t;
+
+  const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Ordem de Produção Cozinha — ${evento.nome}</title>
+<style>
+* { box-sizing: border-box; }
+body { font-family: -apple-system, system-ui, sans-serif; max-width: 900px; margin: 24px auto; padding: 16px; color: #111; }
+h1 { margin: 0 0 4px; font-size: 24px; }
+.meta { font-size: 12px; color: #64748b; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e2e8f0; }
+.turno { margin-bottom: 28px; page-break-inside: avoid; }
+.turno-header { background: linear-gradient(135deg, #EF4444, #F59E0B); color: white; padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; font-size: 14px; font-weight: 700; letter-spacing: 0.04em; }
+.resumo { background: #fef3c7; border-left: 4px solid #F59E0B; padding: 12px 14px; border-radius: 6px; margin-bottom: 16px; }
+.resumo h3 { margin: 0 0 8px; font-size: 13px; color: #92400e; text-transform: uppercase; letter-spacing: 0.06em; }
+.resumo-row { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; border-bottom: 1px dashed #fde68a; }
+.resumo-row:last-child { border-bottom: none; }
+.mesa { border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; page-break-inside: avoid; }
+.mesa-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed #cbd5e1; }
+.mesa-nome { font-weight: 700; font-size: 14px; }
+.mesa-meta { font-size: 11px; color: #64748b; }
+.prato { background: #f8fafc; padding: 8px 10px; border-radius: 6px; margin-top: 6px; }
+.prato-nome { font-weight: 700; font-size: 13px; color: #0f172a; }
+.prato-cat { display: inline-block; background: #e2e8f0; color: #475569; padding: 1px 6px; border-radius: 999px; font-size: 9px; margin-left: 6px; text-transform: uppercase; font-weight: 700; }
+.prato-desc { font-size: 11px; color: #475569; margin: 4px 0; font-style: italic; }
+.prato-ings { font-size: 11px; color: #334155; line-height: 1.6; margin-top: 4px; padding-left: 4px; }
+.prato-tags { margin-top: 4px; }
+.tag { display: inline-block; background: #fef3c7; color: #92400e; padding: 1px 6px; border-radius: 999px; font-size: 9px; margin-right: 4px; font-weight: 600; }
+.obs { background: #fef9c3; padding: 6px 10px; border-radius: 4px; font-size: 11px; margin-top: 6px; color: #713f12; }
+.obs::before { content: "⚠ "; }
+.rodape { margin-top: 32px; padding-top: 12px; border-top: 1px solid #e2e8f0; font-size: 10px; color: #94a3b8; text-align: center; }
+.empty { text-align: center; padding: 20px; color: #94a3b8; font-size: 12px; }
+@media print { body { margin: 0; padding: 8px; } .turno { page-break-after: auto; } }
+</style></head><body>
+<h1>🍽️ Ordem de Produção — Cozinha</h1>
+<div class="meta"><strong>${evento.nome}</strong> · ${new Date(evento.data_evento + "T00:00:00").toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })} · ${evento.tag || ""}</div>
+
+${turnos.map((t) => {
+  const resumoTurno = totalPorTurno(t);
+  return `
+<div class="turno">
+  <div class="turno-header">${turnoLabel(t)} · ${porTurno[t].length} ${porTurno[t].length === 1 ? (evento.charge_mode === "couple" ? "casal" : "pessoa") : (evento.charge_mode === "couple" ? "casais" : "pessoas")}</div>
+
+  ${resumoTurno.length > 0 ? `
+  <div class="resumo">
+    <h3>📊 Total a produzir neste turno</h3>
+    ${resumoTurno.map((r) => `<div class="resumo-row"><span>${r.prato.nome}</span><strong>${r.qty}x porção</strong></div>`).join("")}
+  </div>
+  ` : ""}
+
+  ${porTurno[t].length === 0 ? '<div class="empty">Sem reservas neste turno.</div>' : porTurno[t].map((r) => {
+    const pratosEscolhidos = (r.menu_choices || []).map((id) => pratos.find((p) => p.id === id)).filter(Boolean);
+    return `
+    <div class="mesa">
+      <div class="mesa-head">
+        <div>
+          <div class="mesa-nome">${r.nome}</div>
+          ${r.mesa ? `<div class="mesa-meta">Mesa ${r.mesa}</div>` : ""}
+        </div>
+        <div class="mesa-meta">${pratosEscolhidos.length} prato${pratosEscolhidos.length !== 1 ? "s" : ""}</div>
+      </div>
+
+      ${pratosEscolhidos.length === 0
+        ? '<div class="empty">Sem escolhas registradas</div>'
+        : pratosEscolhidos.map((prato) => `
+          <div class="prato">
+            <div class="prato-nome">${prato.nome}<span class="prato-cat">${prato.categoria}</span></div>
+            ${prato.descricao ? `<div class="prato-desc">${prato.descricao}</div>` : ""}
+            ${(prato.tags || []).length > 0 ? `<div class="prato-tags">${prato.tags.map((t) => `<span class="tag">${t}</span>`).join("")}</div>` : ""}
+            ${prato.ingredients?.length ? `<div class="prato-ings"><strong>Ingredientes:</strong><br>${montarIngredientesPrato(prato, ingredientes, preparos)}</div>` : ""}
+          </div>
+        `).join("")
+      }
+
+      ${r.observacao ? `<div class="obs">${r.observacao}</div>` : ""}
+    </div>
+    `;
+  }).join("")}
+</div>
+  `;
+}).join("")}
+
+<div class="rodape">Impresso em ${new Date().toLocaleString("pt-BR")} · Cerebro ERP</div>
+<script>window.onload = () => { window.print(); }</script>
+</body></html>`;
+  const w = window.open("", "_blank");
+  if (w) { w.document.write(html); w.document.close(); }
+}
+
+function imprimirOrdemBar(evento, reservas, drinks, ingredientes, preparos) {
+  const porTurno = {};
+  reservas.forEach((r) => {
+    const t = r.horario || "Sem turno";
+    if (!porTurno[t]) porTurno[t] = [];
+    porTurno[t].push(r);
+  });
+  const turnos = Object.keys(porTurno).sort();
+
+  // Resumo: drinks do menu + drinks extras totalizados por turno
+  function totalPorTurno(turno) {
+    const cont = new Map();
+    porTurno[turno].forEach((r) => {
+      (r.drink_choices || []).forEach((id) => cont.set(id, (cont.get(id) || 0) + 1));
+      (r.extra_drinks || []).forEach((ed) => cont.set(ed.drinkId, (cont.get(ed.drinkId) || 0) + Number(ed.qty || 0)));
+    });
+    return Array.from(cont.entries()).map(([id, qty]) => {
+      const d = drinks.find((dr) => dr.id === id);
+      return { drink: d, qty };
+    }).filter((x) => x.drink);
+  }
+
+  const turnoLabel = (t) => t === "19:00" ? "1º TURNO — 19h às 21h" : t === "21:30" ? "2º TURNO — 21h30 às 23h30" : t;
+
+  const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Ordem de Produção Bar — ${evento.nome}</title>
+<style>
+* { box-sizing: border-box; }
+body { font-family: -apple-system, system-ui, sans-serif; max-width: 900px; margin: 24px auto; padding: 16px; color: #111; }
+h1 { margin: 0 0 4px; font-size: 24px; }
+.meta { font-size: 12px; color: #64748b; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e2e8f0; }
+.turno { margin-bottom: 28px; page-break-inside: avoid; }
+.turno-header { background: linear-gradient(135deg, #8B5CF6, #EC4899); color: white; padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; font-size: 14px; font-weight: 700; letter-spacing: 0.04em; }
+.resumo { background: #ede9fe; border-left: 4px solid #8B5CF6; padding: 12px 14px; border-radius: 6px; margin-bottom: 16px; }
+.resumo h3 { margin: 0 0 8px; font-size: 13px; color: #5b21b6; text-transform: uppercase; letter-spacing: 0.06em; }
+.resumo-row { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; border-bottom: 1px dashed #c4b5fd; }
+.resumo-row:last-child { border-bottom: none; }
+.mesa { border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; page-break-inside: avoid; }
+.mesa-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed #cbd5e1; }
+.mesa-nome { font-weight: 700; font-size: 14px; }
+.mesa-meta { font-size: 11px; color: #64748b; }
+.drink { background: #f8fafc; padding: 8px 10px; border-radius: 6px; margin-top: 6px; }
+.drink-nome { font-weight: 700; font-size: 13px; color: #0f172a; }
+.drink-tag { display: inline-block; padding: 1px 6px; border-radius: 999px; font-size: 9px; margin-left: 6px; text-transform: uppercase; font-weight: 700; }
+.tag-alc { background: #fef3c7; color: #92400e; }
+.tag-noalc { background: #d1fae5; color: #065f46; }
+.tag-extra { background: #ede9fe; color: #5b21b6; }
+.drink-desc { font-size: 11px; color: #475569; margin: 4px 0; font-style: italic; }
+.drink-ings { font-size: 11px; color: #334155; line-height: 1.6; margin-top: 4px; padding-left: 4px; }
+.qty-badge { display: inline-block; background: #8B5CF6; color: white; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; margin-left: 6px; }
+.section-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; font-weight: 700; margin: 10px 0 4px; }
+.obs { background: #fef9c3; padding: 6px 10px; border-radius: 4px; font-size: 11px; margin-top: 6px; color: #713f12; }
+.obs::before { content: "⚠ "; }
+.rodape { margin-top: 32px; padding-top: 12px; border-top: 1px solid #e2e8f0; font-size: 10px; color: #94a3b8; text-align: center; }
+.empty { text-align: center; padding: 20px; color: #94a3b8; font-size: 12px; }
+@media print { body { margin: 0; padding: 8px; } .turno { page-break-after: auto; } }
+</style></head><body>
+<h1>🍹 Ordem de Produção — Bar</h1>
+<div class="meta"><strong>${evento.nome}</strong> · ${new Date(evento.data_evento + "T00:00:00").toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })} · ${evento.tag || ""}</div>
+
+${turnos.map((t) => {
+  const resumoTurno = totalPorTurno(t);
+  return `
+<div class="turno">
+  <div class="turno-header">${turnoLabel(t)} · ${porTurno[t].length} ${porTurno[t].length === 1 ? (evento.charge_mode === "couple" ? "casal" : "pessoa") : (evento.charge_mode === "couple" ? "casais" : "pessoas")}</div>
+
+  ${resumoTurno.length > 0 ? `
+  <div class="resumo">
+    <h3>📊 Total a preparar neste turno</h3>
+    ${resumoTurno.map((r) => `<div class="resumo-row"><span>${r.drink.nome} ${r.drink.has_alcohol ? "🍸" : "🌿"}</span><strong>${r.qty}x</strong></div>`).join("")}
+  </div>
+  ` : ""}
+
+  ${porTurno[t].length === 0 ? '<div class="empty">Sem reservas neste turno.</div>' : porTurno[t].map((r) => {
+    const drinksMenu = (r.drink_choices || []).map((id) => drinks.find((d) => d.id === id)).filter(Boolean);
+    const drinksExtras = (r.extra_drinks || []).map((ed) => ({
+      drink: drinks.find((d) => d.id === ed.drinkId), qty: Number(ed.qty || 0),
+    })).filter((x) => x.drink);
+    return `
+    <div class="mesa">
+      <div class="mesa-head">
+        <div>
+          <div class="mesa-nome">${r.nome}</div>
+          ${r.mesa ? `<div class="mesa-meta">Mesa ${r.mesa}</div>` : ""}
+        </div>
+        <div class="mesa-meta">${drinksMenu.length + drinksExtras.reduce((s, e) => s + e.qty, 0)} drink${drinksMenu.length + drinksExtras.reduce((s, e) => s + e.qty, 0) !== 1 ? "s" : ""}</div>
+      </div>
+
+      ${drinksMenu.length > 0 ? `<div class="section-label">Drinks do menu</div>` : ""}
+      ${drinksMenu.map((drink) => `
+        <div class="drink">
+          <div>
+            <span class="drink-nome">${drink.nome}</span>
+            <span class="drink-tag ${drink.has_alcohol ? "tag-alc" : "tag-noalc"}">${drink.has_alcohol ? "🍸 c/ álcool" : "🌿 s/ álcool"}</span>
+          </div>
+          ${drink.descricao ? `<div class="drink-desc">${drink.descricao}</div>` : ""}
+          ${drink.ingredients?.length ? `<div class="drink-ings"><strong>Ingredientes:</strong><br>${montarIngredientesPrato(drink, ingredientes, preparos)}</div>` : ""}
+        </div>
+      `).join("")}
+
+      ${drinksExtras.length > 0 ? `<div class="section-label">Drinks extras</div>` : ""}
+      ${drinksExtras.map(({ drink, qty }) => `
+        <div class="drink">
+          <div>
+            <span class="drink-nome">${drink.nome}</span>
+            <span class="qty-badge">${qty}x</span>
+            <span class="drink-tag ${drink.has_alcohol ? "tag-alc" : "tag-noalc"}">${drink.has_alcohol ? "🍸 c/ álcool" : "🌿 s/ álcool"}</span>
+            <span class="drink-tag tag-extra">💰 Extra</span>
+          </div>
+          ${drink.descricao ? `<div class="drink-desc">${drink.descricao}</div>` : ""}
+          ${drink.ingredients?.length ? `<div class="drink-ings"><strong>Ingredientes:</strong><br>${montarIngredientesPrato(drink, ingredientes, preparos)}</div>` : ""}
+        </div>
+      `).join("")}
+
+      ${drinksMenu.length === 0 && drinksExtras.length === 0 ? '<div class="empty">Sem drinks escolhidos</div>' : ""}
+      ${r.observacao ? `<div class="obs">${r.observacao}</div>` : ""}
+    </div>
+    `;
+  }).join("")}
+</div>
+  `;
+}).join("")}
+
+<div class="rodape">Impresso em ${new Date().toLocaleString("pt-BR")} · Cerebro ERP</div>
+<script>window.onload = () => { window.print(); }</script>
+</body></html>`;
+  const w = window.open("", "_blank");
+  if (w) { w.document.write(html); w.document.close(); }
+}
+
 // ─── Componente principal ────────────────────────────────────────────────
 export default function TabReservas({ eventoId, evento, reservas, pratos, drinks, ingredientes, preparos, onChange }) {
   const [modal, setModal]   = useState(false);
@@ -401,6 +661,44 @@ export default function TabReservas({ eventoId, evento, reservas, pratos, drinks
           <div><p className="text-[10px]" style={{ color: "var(--dim)" }}>SINAIS</p><strong style={{ fontSize: 16, color: "var(--fg)" }}>{fmtBRL(stats.totalSinal)}</strong></div>
           <div><p className="text-[10px]" style={{ color: "var(--dim)" }}>1º T / 2º T</p><strong style={{ fontSize: 16, color: "var(--fg)" }}>{stats.turno1} / {stats.turno2}</strong></div>
         </div>
+
+        {/* Botões de Impressão (ordens de produção) */}
+        {reservas.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3">
+            <button
+              onClick={() => imprimirOrdemCozinha(evento, reservas, pratos, ingredientes, preparos)}
+              style={{
+                display: "flex", alignItems: "center", gap: 8, padding: "12px 14px",
+                borderRadius: 10, border: "none", cursor: "pointer",
+                background: "linear-gradient(135deg, #EF4444, #F59E0B)",
+                color: "white", fontWeight: 700, fontSize: 13,
+              }}
+            >
+              <ChefHat size={18} />
+              <div className="flex-1 text-left">
+                <div>Imprimir Cozinha</div>
+                <div style={{ fontSize: 10, fontWeight: 400, opacity: 0.9 }}>Ordem de pratos por mesa e turno</div>
+              </div>
+              <Printer size={16} />
+            </button>
+            <button
+              onClick={() => imprimirOrdemBar(evento, reservas, drinks, ingredientes, preparos)}
+              style={{
+                display: "flex", alignItems: "center", gap: 8, padding: "12px 14px",
+                borderRadius: 10, border: "none", cursor: "pointer",
+                background: "linear-gradient(135deg, #8B5CF6, #EC4899)",
+                color: "white", fontWeight: 700, fontSize: 13,
+              }}
+            >
+              <Beer size={18} />
+              <div className="flex-1 text-left">
+                <div>Imprimir Bar</div>
+                <div style={{ fontSize: 10, fontWeight: 400, opacity: 0.9 }}>Ordem de drinks por mesa e turno</div>
+              </div>
+              <Printer size={16} />
+            </button>
+          </div>
+        )}
 
         <div className="flex items-center justify-between mb-3">
           <h3 style={{ fontWeight: 700, color: "var(--fg)" }}><Users size={16} style={{ display: "inline", marginRight: 6 }} />Reservas ({filtradas.length})</h3>

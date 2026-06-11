@@ -23,8 +23,8 @@ import TabConfig from "./TabConfig";
 const TABS = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "reservas",  label: "Mesas / Reservas", icon: Users },
-  { id: "cardapio",  label: "Cardápio", icon: UtensilsCrossed },
-  { id: "drinks",    label: "Drinks", icon: Beer },
+  { id: "cardapio",  label: "Cozinha", icon: UtensilsCrossed },
+  { id: "drinks",    label: "Bar", icon: Beer },
   { id: "compras",   label: "Compras", icon: ShoppingCart },
   { id: "financeiro", label: "Financeiro", icon: DollarSign },
   { id: "config",    label: "Configurações", icon: Settings },

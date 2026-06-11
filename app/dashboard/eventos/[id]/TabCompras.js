@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { ShoppingCart, ChefHat, Wine, Printer, Activity } from "lucide-react";
-import { Card, SectionLabel, Btn, NumberInput, Field, fmtBRL } from "../../../components/ui";
+import { useMemo, useState, useEffect } from "react";
+import { ShoppingCart, ChefHat, Wine, Printer, Activity, Check } from "lucide-react";
+import { Card, SectionLabel, Btn, NumberInput, TextInput, Field, fmtBRL, fmtPct } from "../../../components/ui";
+import { Compras } from "../../../lib/eventos";
 
 function imprimirLista(food, bar, totalCost, evento, safetyMargin) {
   const html = `
@@ -51,8 +52,125 @@ ${bar.map(i => `<tr><td><strong>${i.name}</strong></td><td>${i.qty.toFixed(0)}${
   if (w) { w.document.write(html); w.document.close(); }
 }
 
+// ─── Componente: lista de itens com checkbox de comprado e valor pago ──
+function ListaItensCompra({ itens, corDestaque, unidadeRef, compraDe, onUpdate }) {
+  return (
+    <div className="space-y-1">
+      {itens.map((i) => {
+        const compra = compraDe.get(i.id);
+        const comprado = !!compra?.comprado;
+        const valorPago = compra?.valor_pago != null ? String(compra.valor_pago) : "";
+        const precoPorUnit = i.unit === "g" ? i.pricePerKg : i.unit === "ml" ? i.pricePerL : 0;
+        return (
+          <div key={i.id} className="p-2 rounded" style={{
+            background: comprado ? "var(--elevated)" : "transparent",
+            borderLeft: comprado ? `3px solid ${corDestaque}` : "3px solid transparent",
+            transition: "background 160ms",
+          }}>
+            <div className="flex items-center gap-2 flex-wrap">
+              <input
+                type="checkbox"
+                checked={comprado}
+                onChange={(e) => onUpdate(i.id, { comprado: e.target.checked, valor_pago: e.target.checked && !valorPago ? i.cost : Number(valorPago) || 0 })}
+                style={{ width: 18, height: 18, cursor: "pointer", flexShrink: 0 }}
+              />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <strong style={{ color: "var(--fg)", fontSize: 13, textDecoration: comprado ? "line-through" : "none", opacity: comprado ? 0.7 : 1 }}>{i.name}</strong>
+                  {comprado && <Check size={12} style={{ color: corDestaque }} />}
+                </div>
+                <div style={{ fontSize: 10, color: "var(--dim)" }}>
+                  Necessário: <strong style={{ color: "var(--muted)" }}>{i.qty.toFixed(0)}{i.unit}</strong>
+                  {" · "}+buffer: <strong style={{ color: "var(--fg)" }}>{i.qtyWithBuffer.toFixed(0)}{i.unit}</strong>
+                  {precoPorUnit > 0 && <> · {fmtBRL(precoPorUnit)}/{unidadeRef}</>}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="text-right">
+                  <div style={{ fontSize: 10, color: "var(--dim)" }}>Estimado</div>
+                  <div style={{ fontSize: 12, color: corDestaque, fontWeight: 700 }}>{fmtBRL(i.cost)}</div>
+                </div>
+                {comprado && (
+                  <div className="flex flex-col" style={{ width: 100 }}>
+                    <label style={{ fontSize: 9, color: "var(--dim)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Pago (R$)</label>
+                    <NumberInput
+                      value={valorPago}
+                      onChange={(e) => onUpdate(i.id, { comprado: true, valor_pago: parseFloat(String(e.target.value).replace(",", ".")) || 0 })}
+                      step="0.01"
+                      style={{ padding: "4px 8px", fontSize: 12 }}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+            {comprado && Number(valorPago) > 0 && (
+              <div className="mt-1" style={{ fontSize: 10, paddingLeft: 26 }}>
+                {(() => {
+                  const v = Number(valorPago);
+                  const diff = v - i.cost;
+                  const pct = i.cost > 0 ? (diff / i.cost) * 100 : 0;
+                  if (Math.abs(diff) < 0.01) return <span style={{ color: "#10B981" }}>✓ Exato como estimado</span>;
+                  return (
+                    <span style={{ color: diff > 0 ? "#EF4444" : "#10B981" }}>
+                      {diff > 0 ? "📈" : "📉"} {diff > 0 ? "+" : ""}{fmtBRL(diff)} ({pct > 0 ? "+" : ""}{pct.toFixed(1)}%) vs estimado
+                    </span>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
+        );
+      })}
+      {/* Subtotal */}
+      <div className="p-2 mt-2 flex justify-between items-center" style={{ background: "var(--elevated)", borderRadius: 8 }}>
+        <span className="text-[11px] font-bold" style={{ color: "var(--muted)" }}>Subtotal</span>
+        <div className="text-right">
+          <div className="text-[10px]" style={{ color: "var(--dim)" }}>
+            Estimado: <strong style={{ color: corDestaque }}>{fmtBRL(itens.reduce((s, i) => s + i.cost, 0))}</strong>
+            {" · "}
+            Real: <strong style={{ color: "#10B981" }}>{fmtBRL(itens.reduce((s, i) => {
+              const c = compraDe.get(i.id);
+              return s + (c?.comprado ? Number(c.valor_pago || 0) : 0);
+            }, 0))}</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function TabCompras({ evento, reservas, pratos, drinks, ingredientes, preparos }) {
   const [safetyMargin, setSafetyMargin] = useState(Number(evento.margem_seg) || 10);
+  const [compras, setCompras] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  async function carregar() {
+    setLoading(true);
+    const { data } = await Compras.list(evento.id);
+    setCompras(data || []);
+    setLoading(false);
+  }
+  useEffect(() => { carregar(); }, [evento.id]);
+
+  // Mapa: ingrediente_id → compra existente
+  const compraDe = useMemo(() => {
+    const map = new Map();
+    compras.forEach((c) => map.set(c.ingrediente_id, c));
+    return map;
+  }, [compras]);
+
+  // Persiste mudanças no banco (otimistic update + upsert)
+  async function atualizarCompra(ingredienteId, patch) {
+    // Otimistic
+    setCompras((prev) => {
+      const existing = prev.find((c) => c.ingrediente_id === ingredienteId);
+      if (existing) {
+        return prev.map((c) => c.ingrediente_id === ingredienteId ? { ...c, ...patch } : c);
+      }
+      return [...prev, { ingrediente_id: ingredienteId, evento_id: evento.id, comprado: false, valor_pago: 0, ...patch }];
+    });
+    await Compras.upsert(evento.id, ingredienteId, patch);
+  }
 
   const shopping = useMemo(() => {
     const couples = reservas.length;
@@ -168,13 +286,35 @@ export default function TabCompras({ evento, reservas, pratos, drinks, ingredien
         </div>
       </Card>
 
-      <div className="grid grid-cols-4 gap-2">
-        <Card className="!p-3"><p className="text-[10px]" style={{ color: "var(--dim)" }}>CUSTO ESTIMADO</p><strong style={{ fontSize: 16, color: "#EF4444" }}>{fmtBRL(shopping.totalCost)}</strong></Card>
-        <Card className="!p-3"><p className="text-[10px]" style={{ color: "var(--dim)" }}>ITENS COZINHA</p><strong style={{ fontSize: 20, color: "var(--fg)" }}>{shopping.food.length}</strong></Card>
-        <Card className="!p-3"><p className="text-[10px]" style={{ color: "var(--dim)" }}>ITENS BAR</p><strong style={{ fontSize: 20, color: "var(--fg)" }}>{shopping.bar.length}</strong></Card>
-        <Card className="!p-3"><p className="text-[10px]" style={{ color: "var(--dim)" }}>MARGEM</p><strong style={{ fontSize: 20, color: "var(--accent-fg)" }}>+{safetyMargin}%</strong></Card>
-      </div>
+      {/* ─── Resumo Estimado vs Real ─────────────────────────────────────── */}
+      {(() => {
+        const totalGasto = compras.filter((c) => c.comprado).reduce((s, c) => s + Number(c.valor_pago || 0), 0);
+        const totalComprados = compras.filter((c) => c.comprado).length;
+        const totalItens = shopping.food.length + shopping.bar.length;
+        const diff = totalGasto - shopping.totalCost;
+        const pctConcluido = totalItens > 0 ? (totalComprados / totalItens) * 100 : 0;
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+            <Card className="!p-3">
+              <p className="text-[10px]" style={{ color: "var(--dim)" }}>CUSTO ESTIMADO</p>
+              <strong style={{ fontSize: 18, color: "#EF4444" }}>{fmtBRL(shopping.totalCost)}</strong>
+              <p className="text-[10px]" style={{ color: "var(--dim)" }}>{totalItens} itens · +{safetyMargin}%</p>
+            </Card>
+            <Card className="!p-3" style={{ borderLeft: "3px solid #10B981" }}>
+              <p className="text-[10px]" style={{ color: "var(--dim)" }}>GASTO REAL</p>
+              <strong style={{ fontSize: 18, color: "#10B981" }}>{fmtBRL(totalGasto)}</strong>
+              <p className="text-[10px]" style={{ color: "var(--dim)" }}>{totalComprados}/{totalItens} comprado{totalComprados !== 1 ? "s" : ""} · {pctConcluido.toFixed(0)}%</p>
+            </Card>
+            <Card className="!p-3">
+              <p className="text-[10px]" style={{ color: "var(--dim)" }}>{diff >= 0 ? "ACIMA DO ESTIMADO" : "ABAIXO DO ESTIMADO"}</p>
+              <strong style={{ fontSize: 18, color: diff > 0 ? "#EF4444" : "#10B981" }}>{diff >= 0 ? "+" : ""}{fmtBRL(diff)}</strong>
+              <p className="text-[10px]" style={{ color: "var(--dim)" }}>{shopping.totalCost > 0 ? ((Math.abs(diff) / shopping.totalCost) * 100).toFixed(1) : 0}% de diferença</p>
+            </Card>
+          </div>
+        );
+      })()}
 
+      {/* ─── Lista de Cozinha ────────────────────────────────────────────── */}
       <Card className="!p-4">
         <div className="flex items-center gap-2 mb-3">
           <ChefHat size={16} style={{ color: "#EF4444" }} />
@@ -183,28 +323,17 @@ export default function TabCompras({ evento, reservas, pratos, drinks, ingredien
         {shopping.food.length === 0 ? (
           <p className="text-sm text-center" style={{ color: "var(--dim)" }}>Nenhum item.</p>
         ) : (
-          <table style={{ width: "100%", fontSize: 12 }}>
-            <thead><tr style={{ textAlign: "left", color: "var(--muted)", fontSize: 10, textTransform: "uppercase" }}>
-              <th style={{ padding: 6 }}>Item</th><th style={{ padding: 6 }}>Necessário</th><th style={{ padding: 6 }}>+ Buffer</th><th style={{ padding: 6, textAlign: "right" }}>Custo</th>
-            </tr></thead>
-            <tbody>
-              {shopping.food.map((i) => (
-                <tr key={i.id} style={{ borderTop: "1px solid var(--line)" }}>
-                  <td style={{ padding: 8 }}><strong style={{ color: "var(--fg)" }}>{i.name}</strong><div style={{ fontSize: 10, color: "var(--dim)" }}>{fmtBRL(i.pricePerKg)}/kg</div></td>
-                  <td style={{ padding: 8, color: "var(--muted)" }}>{i.qty.toFixed(0)}{i.unit}</td>
-                  <td style={{ padding: 8, color: "var(--fg)", fontWeight: 600 }}>{i.qtyWithBuffer.toFixed(0)}{i.unit}</td>
-                  <td style={{ padding: 8, textAlign: "right", color: "#EF4444", fontWeight: 700 }}>{fmtBRL(i.cost)}</td>
-                </tr>
-              ))}
-              <tr style={{ background: "var(--elevated)" }}>
-                <td colSpan={3} style={{ padding: 8, fontWeight: 700 }}>Subtotal Cozinha</td>
-                <td style={{ padding: 8, textAlign: "right", fontWeight: 800, color: "#EF4444" }}>{fmtBRL(shopping.food.reduce((s, i) => s + i.cost, 0))}</td>
-              </tr>
-            </tbody>
-          </table>
+          <ListaItensCompra
+            itens={shopping.food}
+            corDestaque="#EF4444"
+            unidadeRef="kg"
+            compraDe={compraDe}
+            onUpdate={atualizarCompra}
+          />
         )}
       </Card>
 
+      {/* ─── Lista de Bar ────────────────────────────────────────────────── */}
       <Card className="!p-4">
         <div className="flex items-center gap-2 mb-3">
           <Wine size={16} style={{ color: "#8B5CF6" }} />
@@ -213,25 +342,13 @@ export default function TabCompras({ evento, reservas, pratos, drinks, ingredien
         {shopping.bar.length === 0 ? (
           <p className="text-sm text-center" style={{ color: "var(--dim)" }}>Nenhum item.</p>
         ) : (
-          <table style={{ width: "100%", fontSize: 12 }}>
-            <thead><tr style={{ textAlign: "left", color: "var(--muted)", fontSize: 10, textTransform: "uppercase" }}>
-              <th style={{ padding: 6 }}>Item</th><th style={{ padding: 6 }}>Necessário</th><th style={{ padding: 6 }}>+ Buffer</th><th style={{ padding: 6, textAlign: "right" }}>Custo</th>
-            </tr></thead>
-            <tbody>
-              {shopping.bar.map((i) => (
-                <tr key={i.id} style={{ borderTop: "1px solid var(--line)" }}>
-                  <td style={{ padding: 8 }}><strong style={{ color: "var(--fg)" }}>{i.name}</strong><div style={{ fontSize: 10, color: "var(--dim)" }}>{fmtBRL(i.pricePerL)}/L</div></td>
-                  <td style={{ padding: 8, color: "var(--muted)" }}>{i.qty.toFixed(0)}{i.unit}</td>
-                  <td style={{ padding: 8, color: "var(--fg)", fontWeight: 600 }}>{i.qtyWithBuffer.toFixed(0)}{i.unit}</td>
-                  <td style={{ padding: 8, textAlign: "right", color: "#8B5CF6", fontWeight: 700 }}>{fmtBRL(i.cost)}</td>
-                </tr>
-              ))}
-              <tr style={{ background: "var(--elevated)" }}>
-                <td colSpan={3} style={{ padding: 8, fontWeight: 700 }}>Subtotal Bar</td>
-                <td style={{ padding: 8, textAlign: "right", fontWeight: 800, color: "#8B5CF6" }}>{fmtBRL(shopping.bar.reduce((s, i) => s + i.cost, 0))}</td>
-              </tr>
-            </tbody>
-          </table>
+          <ListaItensCompra
+            itens={shopping.bar}
+            corDestaque="#8B5CF6"
+            unidadeRef="L"
+            compraDe={compraDe}
+            onUpdate={atualizarCompra}
+          />
         )}
       </Card>
 

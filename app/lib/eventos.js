@@ -202,6 +202,32 @@ export const CustosFixos = {
   remove: (id) => removeOne("evento_custos_fixos", id),
 };
 
+// ─── Compras realizadas ──────────────────────────────────────────────────
+export const Compras = {
+  list: (eId) => fetchList("evento_compras", eId, "created_at"),
+  /**
+   * Upsert: cria ou atualiza compra de um ingrediente.
+   * Usa o unique (evento_id, ingrediente_id) como chave.
+   */
+  upsert: async (eventoId, ingredienteId, patch) => {
+    if (!isSupabaseReady()) return { error: "Supabase não configurado" };
+    const { error } = await supabase
+      .from("evento_compras")
+      .upsert(
+        {
+          evento_id: eventoId,
+          ingrediente_id: ingredienteId,
+          ...patch,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "evento_id,ingrediente_id" },
+      );
+    if (error) console.error("[eventos] upsert compra:", error.message);
+    return { error: error?.message || null };
+  },
+  remove: (id) => removeOne("evento_compras", id),
+};
+
 // ─── Helpers de cálculo ──────────────────────────────────────────────────
 export function custoIngrediente(ing, qty) {
   if (!ing || !ing.peso_unit) return 0;

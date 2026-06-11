@@ -10,7 +10,7 @@ import { PageHeader, PageBody, Card, KpiGrid, Kpi, fmtBRL, fmtPct } from "../../
 import { useERP } from "../../../context/ERPContext";
 import {
   fetchEvento, atualizarEvento,
-  Ingredientes, Preparos, Pratos, Drinks, Reservas, CustosFixos,
+  Ingredientes, Preparos, Pratos, Drinks, Reservas, CustosFixos, Compras,
   custoPrato, custoDrink, calcularMaquininha, rateForMethod,
 } from "../../../lib/eventos";
 import TabCardapio from "./TabCardapio";
@@ -55,6 +55,7 @@ export default function EventoPage() {
   const [drinks, setDrinks]             = useState([]);
   const [reservas, setReservas]         = useState([]);
   const [custosFixos, setCustosFixos]   = useState([]);
+  const [compras, setCompras]           = useState([]);
 
   async function carregar() {
     setLoading(true);
@@ -62,18 +63,20 @@ export default function EventoPage() {
     if (!ev) { setLoading(false); return; }
     setEvento(ev);
 
-    const [ing, prep, prat, drk, res, cf] = await Promise.all([
+    const [ing, prep, prat, drk, res, cf, cp] = await Promise.all([
       Ingredientes.list(eventoId),
       Preparos.list(eventoId),
       Pratos.list(eventoId),
       Drinks.list(eventoId),
       Reservas.list(eventoId),
       CustosFixos.list(eventoId),
+      Compras.list(eventoId),
     ]);
     setIngredientes(ing.data || []);
     setPreparos(prep.data || []);
     setPratos(prat.data || []);
     setDrinks(drk.data || []);
+    setCompras(cp.data || []);
     setReservas(res.data || []);
     setCustosFixos(cf.data || []);
     setLoading(false);
@@ -350,6 +353,7 @@ export default function EventoPage() {
             evento={evento}
             custosFixos={custosFixos}
             reservas={reservas}
+            compras={compras}
             calc={calc}
             onChange={carregar}
           />

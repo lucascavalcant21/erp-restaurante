@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Plus, Trash2, Edit3, DollarSign, Target, CreditCard, Users } from "lucide-react";
+import { Plus, Trash2, Edit3, DollarSign, Target, CreditCard, Users, ShoppingCart } from "lucide-react";
 import { Card, SectionLabel, Btn, Field, TextInput, NumberInput, Select, Modal, fmtBRL, fmtPct } from "../../../components/ui";
 import { CustosFixos, atualizarEvento, FIXED_COST_CATEGORIES, CMO_AREAS } from "../../../lib/eventos";
 
@@ -92,7 +92,7 @@ function FormCustoFixo({ inicial, onSalvar, onCancelar }) {
   );
 }
 
-export default function TabFinanceiro({ eventoId, evento, custosFixos, reservas, calc, onChange }) {
+export default function TabFinanceiro({ eventoId, evento, custosFixos, reservas, compras = [], calc, onChange }) {
   const [modal, setModal]   = useState(false);
   const [editar, setEditar] = useState(null);
   const [meta, setMeta]     = useState(String(evento.meta_lucro || 0));
@@ -200,6 +200,65 @@ export default function TabFinanceiro({ eventoId, evento, custosFixos, reservas,
           </div>
         </Card>
       </div>
+
+      {/* Compras Realizadas (CMV real) */}
+      {(() => {
+        const totalGastoReal = compras.filter((c) => c.comprado).reduce((s, c) => s + Number(c.valor_pago || 0), 0);
+        const totalCompradosCount = compras.filter((c) => c.comprado).length;
+        const totalCmvEstimado = calc.totalCMV; // CMV estimado total (das reservas)
+        const diff = totalGastoReal - totalCmvEstimado;
+        return (
+          <Card className="!p-4">
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <h3 style={{ fontWeight: 700, color: "var(--fg)" }}>
+                <ShoppingCart size={16} style={{ display: "inline", marginRight: 6 }} />
+                Compras Realizadas (CMV Real)
+              </h3>
+              <span className="text-[10px]" style={{ color: "var(--dim)" }}>{totalCompradosCount} item{totalCompradosCount !== 1 ? "s" : ""} comprado{totalCompradosCount !== 1 ? "s" : ""}</span>
+            </div>
+            {totalCompradosCount === 0 ? (
+              <p className="text-sm text-center" style={{ color: "var(--dim)", padding: 12 }}>
+                Marque itens como comprados na aba <strong>Compras</strong> para registrar o CMV real.
+              </p>
+            ) : (
+              <>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <p className="text-[10px]" style={{ color: "var(--dim)" }}>CMV ESTIMADO</p>
+                    <strong style={{ fontSize: 18, color: "#F59E0B" }}>{fmtBRL(totalCmvEstimado)}</strong>
+                  </div>
+                  <div>
+                    <p className="text-[10px]" style={{ color: "var(--dim)" }}>GASTO REAL EM COMPRAS</p>
+                    <strong style={{ fontSize: 18, color: "#10B981" }}>{fmtBRL(totalGastoReal)}</strong>
+                  </div>
+                  <div>
+                    <p className="text-[10px]" style={{ color: "var(--dim)" }}>{diff >= 0 ? "ACIMA DO PREVISTO" : "ABAIXO DO PREVISTO"}</p>
+                    <strong style={{ fontSize: 18, color: diff > 0 ? "#EF4444" : "#10B981" }}>
+                      {diff >= 0 ? "+" : ""}{fmtBRL(diff)}
+                    </strong>
+                    {totalCmvEstimado > 0 && (
+                      <p className="text-[10px]" style={{ color: "var(--dim)" }}>
+                        {((Math.abs(diff) / totalCmvEstimado) * 100).toFixed(1)}% de variação
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-3 p-2 rounded" style={{ background: "var(--elevated)" }}>
+                  <p className="text-[11px]" style={{ color: "var(--muted)" }}>
+                    <strong style={{ color: "var(--fg)" }}>Lucro recalculado com CMV real:</strong>{" "}
+                    <span style={{ color: (calc.totalRevenue - totalGastoReal - calc.totalFixos - calc.impostos - calc.machineFee) >= 0 ? "#10B981" : "#EF4444", fontWeight: 700 }}>
+                      {fmtBRL(calc.totalRevenue - totalGastoReal - calc.totalFixos - calc.impostos - calc.machineFee)}
+                    </span>
+                    <span style={{ color: "var(--dim)", marginLeft: 6 }}>
+                      (vs {fmtBRL(calc.profit)} estimado)
+                    </span>
+                  </p>
+                </div>
+              </>
+            )}
+          </Card>
+        );
+      })()}
 
       {/* Custos Fixos */}
       <Card className="!p-4">

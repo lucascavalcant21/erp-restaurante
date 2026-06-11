@@ -135,6 +135,25 @@ create table if not exists evento_custos_fixos (
 
 create index if not exists idx_evt_cf_evento on evento_custos_fixos(evento_id);
 
+-- ─── Compras realizadas (registro do que foi efetivamente comprado) ─────
+create table if not exists evento_compras (
+  id              uuid primary key default gen_random_uuid(),
+  evento_id       uuid not null references eventos(id) on delete cascade,
+  ingrediente_id  uuid not null references evento_ingredientes(id) on delete cascade,
+  comprado        boolean not null default false,
+  qtd_comprada    numeric,                          -- quantidade real adquirida
+  valor_pago      numeric not null default 0,       -- valor real pago
+  fornecedor      text,
+  data_compra     date,
+  observacao      text,
+  created_at      timestamptz default now(),
+  updated_at      timestamptz default now(),
+  unique (evento_id, ingrediente_id)
+);
+
+create index if not exists idx_evt_compras_evento     on evento_compras(evento_id);
+create index if not exists idx_evt_compras_ingrediente on evento_compras(ingrediente_id);
+
 -- ─── RLS ─────────────────────────────────────────────────────────
 alter table eventos               enable row level security;
 alter table evento_ingredientes   enable row level security;
@@ -143,6 +162,7 @@ alter table evento_pratos         enable row level security;
 alter table evento_drinks         enable row level security;
 alter table evento_reservas       enable row level security;
 alter table evento_custos_fixos   enable row level security;
+alter table evento_compras        enable row level security;
 
 revoke all on eventos               from anon;
 revoke all on evento_ingredientes   from anon;
@@ -151,6 +171,7 @@ revoke all on evento_pratos         from anon;
 revoke all on evento_drinks         from anon;
 revoke all on evento_reservas       from anon;
 revoke all on evento_custos_fixos   from anon;
+revoke all on evento_compras        from anon;
 
 grant all on eventos               to authenticated;
 grant all on evento_ingredientes   to authenticated;
@@ -159,6 +180,7 @@ grant all on evento_pratos         to authenticated;
 grant all on evento_drinks         to authenticated;
 grant all on evento_reservas       to authenticated;
 grant all on evento_custos_fixos   to authenticated;
+grant all on evento_compras        to authenticated;
 
 drop policy if exists "auth_all" on eventos;
 create policy "auth_all" on eventos for all to authenticated using (true) with check (true);
@@ -180,6 +202,9 @@ create policy "auth_all" on evento_reservas for all to authenticated using (true
 
 drop policy if exists "auth_all" on evento_custos_fixos;
 create policy "auth_all" on evento_custos_fixos for all to authenticated using (true) with check (true);
+
+drop policy if exists "auth_all" on evento_compras;
+create policy "auth_all" on evento_compras for all to authenticated using (true) with check (true);
 
 -- ─── Bucket de banners ──────────────────────────────────────────
 insert into storage.buckets (id, name, public)

@@ -488,6 +488,220 @@ export function parseIngredientesLista(texto, tipo = "food") {
     .filter(Boolean);
 }
 
+// ─── Parser de RECEITA (mais sofisticado, lida com colher/xícara/frações) ─
+
+// Equivalências aproximadas pra converter medidas culinárias em g/ml
+const MEDIDAS_CONVERSAO = [
+  // Xícaras (chá padrão = 240ml)
+  { regex: /x[íi]caras?(?:\s*\(ch[áa]\))?/i, valor: 240, unidade: "ml" },
+  { regex: /x[íi]caras?\s*\(caf[ée]\)/i,     valor: 60,  unidade: "ml" },
+  // Colheres
+  { regex: /colher(?:es)?\s*(?:\(sopa\)|de\s*sopa)?/i, valor: 15, unidade: "ml" },
+  { regex: /colher(?:es)?\s*\(ch[áa]\)|colher(?:es)?\s*de\s*ch[áa]/i, valor: 5, unidade: "ml" },
+  { regex: /colher(?:es)?\s*\(caf[ée]\)|colher(?:es)?\s*de\s*caf[ée]/i, valor: 2.5, unidade: "ml" },
+  // Outras
+  { regex: /pitadas?/i,    valor: 0.5, unidade: "g" },
+  { regex: /punhados?/i,   valor: 30,  unidade: "g" },
+  { regex: /copos?/i,      valor: 200, unidade: "ml" },
+  { regex: /lat(?:a|inha)s?/i, valor: 350, unidade: "ml" },
+  { regex: /garrafas?/i,   valor: 600, unidade: "ml" },
+  { regex: /a\s*gosto/i,   valor: 1,   unidade: "g", aGosto: true },
+];
+
+// Converte frações em decimal: "1/2", "3/4", etc
+function parseNumeroComFracao(s) {
+  if (!s) return 0;
+  s = String(s).trim().replace(",", ".");
+  // Mista: "1 1/2" → 1.5
+  const mista = s.match(/^(\d+)\s+(\d+)\/(\d+)$/);
+  if (mista) return Number(mista[1]) + Number(mista[2]) / Number(mista[3]);
+  // Pura: "1/2"
+  const fracao = s.match(/^(\d+)\/(\d+)$/);
+  if (fracao) return Number(fracao[1]) / Number(fracao[2]);
+  // Decimal/inteiro
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
+
+/**
+ * Parse de UMA linha de ingrediente de receita.
+ * Exemplos suportados:
+ *   "200g de farinha"
+ *   "1 xícara (chá) de leite"
+ *   "2 colheres (sopa) de açúcar"
+ *   "1/2 cebola picada"
+ *   "3 ovos"
+ *   "1 kg de carne moída"
+ *   "1L de leite"
+ *   "Sal a gosto"
+ *
+ * Retorna: { qty, unidade, nome, originalLinha, aGosto }
+ */
+export function parseIngredienteReceita(linha) {
+  if (!linha || !linha.trim()) return null;
+  const original = linha.trim();
+  let texto = original;
+
+  // Remove marcadores de lista (-, *, •, números)
+  texto = texto.replace(/^[-*•·–—]\s*/, "").replace(/^\d+[\.\)]\s+/, "").trim();
+  if (!texto) return null;
+
+  // 1) Detecta "a gosto"
+  if (/a\s*gosto/i.test(texto)) {
+    const nome = texto.replace(/a\s*gosto/i, "").replace(/^de\s+/i, "").trim();
+    return { qty: 0, unidade: "g", nome, originalLinha: original, aGosto: true };
+  }
+
+  // 2) Extrai número (incluindo frações: 1/2, 1 1/2, 2.5, 3,75)
+  const padraoNumero = /^(\d+(?:\s+\d+\/\d+)?|\d+\/\d+|\d+(?:[.,]\d+)?)/;
+  const matchN = texto.match(padraoNumero);
+  let qty = 1;
+  if (matchN) {
+    qty = parseNumeroComFracao(matchN[1]);
+    texto = texto.slice(matchN[0].length).trim();
+  }
+
+  // 3) Detecta unidade explícita (g, Kg, ml, L)
+  let unidade = null;
+  const matchUnidExplicita = texto.match(/^(kg|Kg|KG|g|G|ml|ML|L|l)\b/);
+  if (matchUnidExplicita) {
+    unidade = matchUnidExplicita[1].toLowerCase();
+    texto = texto.slice(matchUnidExplicita[0].length).trim();
+    if (unidade === "kg") unidade = "Kg";
+    if (unidade === "l")  unidade = "L";
+  }
+
+  // 4) Detecta medida culinária (colher, xícara, etc)
+  if (!unidade) {
+    for (const m of MEDIDAS_CONVERSAO) {
+      const match = texto.match(m.regex);
+      if (match) {
+        qty = qty * m.valor;
+        unidade = m.unidade;
+        texto = texto.replace(m.regex, "").trim();
+        break;
+      }
+    }
+  }
+
+  // 5) Default: se ainda não tem unidade, é "un"
+  if (!unidade) {
+    unidade = "un";
+  }
+
+  // 6) Limpa preposições e palavras irrelevantes
+  let nome = texto
+    .replace(/^(de|do|da|dos|das)\s+/i, "")
+    .replace(/\s*(picad[oa]s?|fatiad[oa]s?|ralad[oa]s?|cortad[oa]s?|amassad[oa]s?|inteir[oa]s?|fresc[oa]s?)\s*$/i, "")
+    .replace(/\s+a\s+gosto$/i, "")
+    .replace(/[(),]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!nome) return null;
+
+  return { qty, unidade, nome, originalLinha: original };
+}
+
+/**
+ * Parse de receita inteira:
+ * Retorna { titulo, ingredientes, modo_preparo, rendimento }
+ */
+export function parseReceita(texto) {
+  if (!texto) return null;
+  const linhas = texto.split(/\r?\n/);
+
+  let titulo = "";
+  let rendimento = null;
+  const ingredientes = [];
+  const modoPreparo = [];
+
+  // Estado de parsing
+  let secao = "indef"; // 'titulo' | 'ingredientes' | 'preparo' | 'indef'
+  let viuTitulo = false;
+
+  for (const linha of linhas) {
+    const l = linha.trim();
+    if (!l) continue;
+
+    // Detecta cabeçalhos de seção
+    const isCabIng = /^ingredientes?:?$/i.test(l) || /^lista\s+de\s+ingredientes/i.test(l);
+    const isCabPrep = /^(modo\s+de\s+preparo|preparo|instruções|instrucoes|como\s+fazer|prepara[çc][ãa]o)/i.test(l);
+
+    if (isCabIng)  { secao = "ingredientes"; continue; }
+    if (isCabPrep) { secao = "preparo";      continue; }
+
+    // Detecta rendimento (porções)
+    const matchRend = l.match(/(?:rendimento|rende|porc(?:o|õ)es)[:\s]*(\d+)/i);
+    if (matchRend) { rendimento = Number(matchRend[1]); continue; }
+
+    // Se ainda não viu título, primeira linha não-vazia que não parece ingrediente vira título
+    if (!viuTitulo && secao === "indef") {
+      // Se a linha começa com número/marcador, é provavelmente ingrediente
+      if (!/^[-*•·–—]\s*/.test(l) && !/^\d+\s*[gkl]/i.test(l) && !/^\d+\s*x[íi]cara/i.test(l) && l.length < 80) {
+        titulo = l;
+        viuTitulo = true;
+        continue;
+      }
+      secao = "ingredientes"; // assume ingredientes se cair fora
+    }
+
+    if (secao === "ingredientes") {
+      const ing = parseIngredienteReceita(l);
+      if (ing) ingredientes.push(ing);
+    } else if (secao === "preparo") {
+      modoPreparo.push(l);
+    } else if (secao === "indef") {
+      // Tenta detectar se é ingrediente
+      const ing = parseIngredienteReceita(l);
+      if (ing && ing.qty > 0) ingredientes.push(ing);
+    }
+  }
+
+  return {
+    titulo,
+    rendimento,
+    ingredientes,
+    modo_preparo: modoPreparo.join("\n"),
+  };
+}
+
+/**
+ * Normaliza nome de ingrediente para comparação (lowercase, sem acentos, sem plurais simples).
+ */
+function normalizarNome(nome) {
+  return (nome || "")
+    .toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g, "") // remove acentos
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Cruza ingredientes da receita com os existentes no evento.
+ * Retorna ingredientes da receita com flag `existe` e `ingredienteId` (se existir).
+ */
+export function cruzarReceitaComEstoque(ingredientesReceita, ingredientesEvento) {
+  return ingredientesReceita.map((ing) => {
+    const nomeNorm = normalizarNome(ing.nome);
+    // Match: nome igual ou nome contém uma das palavras-chave principais
+    const existe = ingredientesEvento.find((ie) => {
+      const ieNorm = normalizarNome(ie.nome);
+      if (ieNorm === nomeNorm) return true;
+      // Match parcial: nome do evento contido na receita ou vice-versa
+      const palavrasReceita = nomeNorm.split(" ").filter((p) => p.length > 3);
+      const palavrasEvento = ieNorm.split(" ").filter((p) => p.length > 3);
+      return palavrasReceita.some((p) => ieNorm.includes(p)) || palavrasEvento.some((p) => nomeNorm.includes(p));
+    });
+    return {
+      ...ing,
+      existe: !!existe,
+      ingredienteId: existe?.id || null,
+      ingredienteCadastrado: existe || null,
+    };
+  });
+}
+
 // ─── Helpers de cálculo ──────────────────────────────────────────────────
 export function custoIngrediente(ing, qty) {
   if (!ing || !ing.peso_unit) return 0;

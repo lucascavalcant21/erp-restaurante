@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2, Edit3, ChefHat, FlaskConical, Save, X, Search, Download, ListPlus } from "lucide-react";
+import { Plus, Trash2, Edit3, ChefHat, FlaskConical, Save, X, Search, Download, ListPlus, Wand2 } from "lucide-react";
 import { Card, SectionLabel, Btn, Field, TextInput, NumberInput, Select, Modal, fmtBRL, fmtPct } from "../../../components/ui";
 import { Ingredientes, Preparos, Pratos, CATEGORIAS_PRATO, DISH_TAGS, CATEGORIAS_ING_FOOD, getCategoriaIng, custoIngrediente, custoPreparoUnit, custoItem, custoPrato, sugestaoQuantidade } from "../../../lib/eventos";
 import ModalImportar from "./ModalImportar";
 import ModalLote from "./ModalLote";
+import ModalReceita from "./ModalReceita";
 
 const VAZIO_ING = { tipo: "food", nome: "", categoria: "outros", custo_unit: "", peso_unit: 1, unidade: "Kg" };
 const VAZIO_PREP = { tipo: "food", nome: "", rendimento: 1000, unidade: "g", base_ingredients: [], porcao_sugerida: "", modo_preparo: "" };
@@ -490,6 +491,7 @@ export default function TabCardapio({ eventoId, ingredientes, preparos, pratos, 
   const [modal, setModal]   = useState(null);  // 'ing' | 'prep' | 'prato'
   const [importar, setImportar] = useState(null); // 'ingredientes-food' | 'pratos'
   const [modalLote, setModalLote] = useState(false);
+  const [modalReceita, setModalReceita] = useState(false);
   const [editar, setEditar] = useState(null);
   const [busca, setBusca]   = useState("");
 
@@ -711,7 +713,10 @@ export default function TabCardapio({ eventoId, ingredientes, preparos, pratos, 
       <Card className="!p-4" style={{ borderTop: "3px solid #F59E0B" }}>
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
           <h3 style={{ fontWeight: 700, color: "var(--fg)" }}><ChefHat size={16} style={{ display: "inline", marginRight: 6 }} />3️⃣ Pratos do Menu ({pratos.length})</h3>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <Btn variant="ghost" onClick={() => setModalReceita(true)} style={{ background: "linear-gradient(135deg, #8B5CF6, #EC4899)", color: "white" }}>
+              <Wand2 size={14} /> Importar receita
+            </Btn>
             <Btn variant="ghost" onClick={() => setImportar("pratos")}><Download size={14} /> Importar do cardápio</Btn>
             <Btn variant="primary" onClick={() => { setEditar(null); setModal("prato"); }} disabled={ingFood.length === 0}><Plus size={14} /> Novo prato</Btn>
           </div>
@@ -777,6 +782,14 @@ export default function TabCardapio({ eventoId, ingredientes, preparos, pratos, 
           else alert(`✓ ${sucesso} ingrediente(s) adicionado(s) em lote!`);
           onChange();
         }}
+      />
+
+      <ModalReceita
+        open={modalReceita}
+        onClose={() => setModalReceita(false)}
+        eventoId={eventoId}
+        ingredientesEvento={ingFood}
+        onSuccess={onChange}
       />
 
       {importar && (

@@ -227,38 +227,69 @@ function FormDrink({ inicial, ingredientes, preparos, onSalvar, onCancelar }) {
         ) : ingredientes.map((ing) => {
           const sel = f.ingredients.find((i) => i.id === ing.id && i.type === "bar");
           const sug = sugestaoQuantidade(ing.nome);
+          const dentroFaixa = sug && sel && sel.qty > 0 && Number(sel.qty) >= sug.min && Number(sel.qty) <= sug.max;
           return (
             <div key={`bar-${ing.id}`} className="p-2 rounded" style={{ background: sel ? "var(--elevated)" : "transparent" }}>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 mb-1">
                 <input type="checkbox" checked={!!sel} onChange={() => toggleItem(ing.id, "bar")} />
                 <div className="flex-1 text-[12px]">
                   <strong style={{ color: "var(--fg)" }}>{ing.nome}</strong>
                   <span style={{ color: "var(--dim)", marginLeft: 6 }}>{fmtBRL((ing.custo_unit / ing.peso_unit) * 1000)}/{ing.unidade === "g" ? "kg" : ing.unidade === "ml" ? "L" : "un"}</span>
-                  {sug && sug.unidade === ing.unidade && (
-                    <span style={{ color: "#10B981", marginLeft: 6, fontSize: 10 }}>
-                      💡 {sug.categoria}: {sug.min}–{sug.max}{sug.unidade}
-                    </span>
-                  )}
                 </div>
-                {sel && (
-                  <div className="flex items-center gap-1">
-                    <NumberInput value={sel.qty} onChange={(e) => setQty(ing.id, "bar", e.target.value)} style={{ width: 70 }} step="1" />
-                    <span className="text-[10px]" style={{ color: "var(--dim)" }}>{ing.unidade}</span>
-                    {sug && sug.unidade === ing.unidade && sel.qty > 0 && (
-                      Number(sel.qty) < sug.min || Number(sel.qty) > sug.max ? (
+              </div>
+              {sel && (
+                <div style={{ paddingLeft: 26, marginTop: 6 }}>
+                  <p className="text-[11px] mb-2" style={{ color: "var(--muted)" }}>
+                    👉 Quanto vou usar <strong style={{ color: "var(--fg)" }}>por drink</strong>?
+                    {sug && sug.unidade === ing.unidade && (
+                      <span style={{ color: "#10B981", marginLeft: 6 }}>
+                        💡 Sugerido para {sug.categoria}: {sug.min}–{sug.max}{sug.unidade}
+                      </span>
+                    )}
+                  </p>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-1">
+                      <NumberInput
+                        value={sel.qty}
+                        onChange={(e) => setQty(ing.id, "bar", e.target.value)}
+                        style={{ width: 80, fontSize: 14, fontWeight: 700, padding: "8px 10px" }}
+                        step="1"
+                      />
+                      <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>{ing.unidade}/drink</span>
+                      {dentroFaixa && <span style={{ color: "#10B981", fontSize: 13, marginLeft: 4 }} title="Dentro da faixa sugerida">✓</span>}
+                    </div>
+
+                    {sug && sug.unidade === ing.unidade && (
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px]" style={{ color: "var(--dim)" }}>Rápido:</span>
+                        <button
+                          type="button"
+                          onClick={() => setQty(ing.id, "bar", sug.min)}
+                          style={{ background: Number(sel.qty) === sug.min ? "#10B981" : "var(--surface)", color: Number(sel.qty) === sug.min ? "#fff" : "var(--muted)", border: "none", padding: "4px 8px", borderRadius: 6, cursor: "pointer", fontSize: 10, fontWeight: 600 }}
+                        >{sug.min}{sug.unidade}</button>
                         <button
                           type="button"
                           onClick={() => setQty(ing.id, "bar", Math.round((sug.min + sug.max) / 2))}
-                          style={{ background: "#F59E0B22", border: "none", padding: "2px 6px", borderRadius: 4, cursor: "pointer", fontSize: 9, color: "#F59E0B" }}
-                          title="Usar média sugerida"
-                        >⚠</button>
-                      ) : (
-                        <span style={{ color: "#10B981", fontSize: 11 }} title="Dentro da faixa sugerida">✓</span>
-                      )
+                          style={{ background: Number(sel.qty) === Math.round((sug.min + sug.max) / 2) ? "#3B82F6" : "var(--surface)", color: Number(sel.qty) === Math.round((sug.min + sug.max) / 2) ? "#fff" : "var(--muted)", border: "none", padding: "4px 8px", borderRadius: 6, cursor: "pointer", fontSize: 10, fontWeight: 600 }}
+                        >média {Math.round((sug.min + sug.max) / 2)}{sug.unidade}</button>
+                        <button
+                          type="button"
+                          onClick={() => setQty(ing.id, "bar", sug.max)}
+                          style={{ background: Number(sel.qty) === sug.max ? "#F59E0B" : "var(--surface)", color: Number(sel.qty) === sug.max ? "#fff" : "var(--muted)", border: "none", padding: "4px 8px", borderRadius: 6, cursor: "pointer", fontSize: 10, fontWeight: 600 }}
+                        >{sug.max}{sug.unidade}</button>
+                      </div>
                     )}
                   </div>
-                )}
-              </div>
+
+                  {/* Custo por drink */}
+                  {Number(sel.qty) > 0 && (
+                    <div className="mt-2 p-2 rounded" style={{ background: "var(--surface)", fontSize: 11 }}>
+                      💰 Custo deste ingrediente no drink: <strong style={{ color: "var(--accent-fg)" }}>{fmtBRL((ing.custo_unit / ing.peso_unit) * Number(sel.qty))}</strong>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}

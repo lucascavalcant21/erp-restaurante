@@ -309,6 +309,7 @@ export default function EventoPage() {
             ingredientes={ingredientes}
             preparos={preparos}
             pratos={pratos}
+            compras={compras}
             onChange={carregar}
           />
         )}
@@ -319,6 +320,7 @@ export default function EventoPage() {
             ingredientes={ingredientes}
             preparos={preparos}
             drinks={drinks}
+            compras={compras}
             onChange={carregar}
           />
         )}

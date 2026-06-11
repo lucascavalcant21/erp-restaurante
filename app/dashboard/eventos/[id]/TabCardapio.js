@@ -404,7 +404,7 @@ function FormPrato({ inicial, ingredientes, preparos, onSalvar, onCancelar }) {
 }
 
 // ─── Componente principal da aba ─────────────────────────────────────────
-export default function TabCardapio({ eventoId, ingredientes, preparos, pratos, onChange }) {
+export default function TabCardapio({ eventoId, ingredientes, preparos, pratos, compras = [], onChange }) {
   const [modal, setModal]   = useState(null);  // 'ing' | 'prep' | 'prato'
   const [importar, setImportar] = useState(null); // 'ingredientes-food' | 'pratos'
   const [editar, setEditar] = useState(null);
@@ -493,7 +493,6 @@ export default function TabCardapio({ eventoId, ingredientes, preparos, pratos, 
                     </div>
                     <div className="space-y-1">
                       {porCat[cat.id].map((ing) => {
-                        // Mostra valor original: se está em g e peso=1000, mostra em Kg
                         const exibirPeso = (i) => {
                           if (i.unidade === "g"  && i.peso_unit >= 1000) return { v: (i.peso_unit / 1000).toFixed(2).replace(/\.?0+$/, ""), u: "Kg" };
                           if (i.unidade === "ml" && i.peso_unit >= 1000) return { v: (i.peso_unit / 1000).toFixed(2).replace(/\.?0+$/, ""), u: "L" };
@@ -503,15 +502,48 @@ export default function TabCardapio({ eventoId, ingredientes, preparos, pratos, 
                         const precoBase = ing.unidade === "g" ? `${fmtBRL((ing.custo_unit / ing.peso_unit) * 1000)}/Kg` :
                                           ing.unidade === "ml" ? `${fmtBRL((ing.custo_unit / ing.peso_unit) * 1000)}/L` :
                                           `${fmtBRL(ing.custo_unit / ing.peso_unit)}/${ing.unidade}`;
+
+                        // Indicador de compra
+                        const compraDoIng = compras.find((c) => c.ingrediente_id === ing.id && c.comprado);
+                        let indicador = null;
+                        if (compraDoIng) {
+                          const valorPago = Number(compraDoIng.valor_pago || 0);
+                          // Custo estimado proporcional (preço cadastrado × quantidade comprada se houver, senão por embalagem)
+                          const qtdComprada = Number(compraDoIng.qtd_comprada || ing.peso_unit);
+                          const custoEstimado = (Number(ing.custo_unit) / Number(ing.peso_unit)) * qtdComprada;
+                          const diff = valorPago - custoEstimado;
+                          const pct = custoEstimado > 0 ? Math.abs((diff / custoEstimado) * 100) : 0;
+                          if (diff < -0.5) {
+                            indicador = { tipo: "economia", texto: `🟢 -${pct.toFixed(0)}%`, cor: "#10B981", bg: "#10B98122" };
+                          } else if (diff > 0.5) {
+                            indicador = { tipo: "perda", texto: `🔴 +${pct.toFixed(0)}%`, cor: "#EF4444", bg: "#EF444422" };
+                          } else {
+                            indicador = { tipo: "igual", texto: "🟡 igual", cor: "#3B82F6", bg: "#3B82F622" };
+                          }
+                        }
+
                         return (
-                          <div key={ing.id} className="p-2 rounded flex items-center justify-between" style={{ background: "var(--elevated)" }}>
-                            <div>
-                              <strong style={{ color: "var(--fg)", fontSize: 13 }}>{ing.nome}</strong>
+                          <div key={ing.id} className="p-2 rounded flex items-center justify-between" style={{
+                            background: "var(--elevated)",
+                            borderLeft: indicador ? `3px solid ${indicador.cor}` : "3px solid transparent",
+                          }}>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <strong style={{ color: "var(--fg)", fontSize: 13 }}>{ing.nome}</strong>
+                                {indicador && (
+                                  <span style={{
+                                    padding: "1px 8px", borderRadius: 999, fontSize: 10, fontWeight: 700,
+                                    background: indicador.bg, color: indicador.cor,
+                                  }} title={indicador.tipo === "economia" ? "Você economizou nesse ingrediente!" : indicador.tipo === "perda" ? "Você pagou mais que o estimado" : "Sem variação"}>
+                                    {indicador.texto}
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-[11px]" style={{ color: "var(--dim)" }}>
                                 {fmtBRL(ing.custo_unit)} / {p.v}{p.u} · <strong style={{ color: "var(--accent-fg)" }}>{precoBase}</strong>
                               </p>
                             </div>
-                            <div className="flex gap-1">
+                            <div className="flex gap-1 flex-shrink-0">
                               <button onClick={() => { setEditar(ing); setModal("ing"); }} style={{ background: "var(--surface)", padding: 6, borderRadius: 6, border: "none", cursor: "pointer" }}><Edit3 size={12} style={{ color: "var(--muted)" }} /></button>
                               <button onClick={() => removerIng(ing.id)} style={{ background: "#EF444433", padding: 6, borderRadius: 6, border: "none", cursor: "pointer" }}><Trash2 size={12} style={{ color: "#EF4444" }} /></button>
                             </div>

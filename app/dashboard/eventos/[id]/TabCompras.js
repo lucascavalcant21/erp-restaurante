@@ -104,16 +104,47 @@ function ListaItensCompra({ itens, corDestaque, unidadeRef, compraDe, onUpdate }
               </div>
             </div>
             {comprado && Number(valorPago) > 0 && (
-              <div className="mt-1" style={{ fontSize: 10, paddingLeft: 26 }}>
+              <div className="mt-2" style={{ paddingLeft: 26 }}>
                 {(() => {
                   const v = Number(valorPago);
                   const diff = v - i.cost;
-                  const pct = i.cost > 0 ? (diff / i.cost) * 100 : 0;
-                  if (Math.abs(diff) < 0.01) return <span style={{ color: "#10B981" }}>✓ Exato como estimado</span>;
+                  const pct = i.cost > 0 ? Math.abs((diff / i.cost) * 100) : 0;
+                  // ECONOMIA (paguei menos que estimado)
+                  if (diff < -0.5) {
+                    return (
+                      <div style={{ background: "#10B98122", padding: "6px 10px", borderRadius: 6, borderLeft: "3px solid #10B981" }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "#10B981" }}>
+                          🟢 ECONOMIA — {fmtBRL(Math.abs(diff))} (-{pct.toFixed(1)}%)
+                        </div>
+                        <div style={{ fontSize: 10, color: "var(--dim)", marginTop: 2 }}>
+                          Estimado {fmtBRL(i.cost)} · Pago {fmtBRL(v)} · Você gastou {pct.toFixed(0)}% a menos
+                        </div>
+                      </div>
+                    );
+                  }
+                  // PERDA (paguei mais que estimado)
+                  if (diff > 0.5) {
+                    return (
+                      <div style={{ background: "#EF444422", padding: "6px 10px", borderRadius: 6, borderLeft: "3px solid #EF4444" }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "#EF4444" }}>
+                          🔴 ACIMA DO ESTIMADO — +{fmtBRL(diff)} (+{pct.toFixed(1)}%)
+                        </div>
+                        <div style={{ fontSize: 10, color: "var(--dim)", marginTop: 2 }}>
+                          Estimado {fmtBRL(i.cost)} · Pago {fmtBRL(v)} · Você gastou {pct.toFixed(0)}% a mais
+                        </div>
+                      </div>
+                    );
+                  }
+                  // IGUAL
                   return (
-                    <span style={{ color: diff > 0 ? "#EF4444" : "#10B981" }}>
-                      {diff > 0 ? "📈" : "📉"} {diff > 0 ? "+" : ""}{fmtBRL(diff)} ({pct > 0 ? "+" : ""}{pct.toFixed(1)}%) vs estimado
-                    </span>
+                    <div style={{ background: "#3B82F622", padding: "6px 10px", borderRadius: 6, borderLeft: "3px solid #3B82F6" }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#3B82F6" }}>
+                        🟡 PREÇO IGUAL AO ESTIMADO
+                      </div>
+                      <div style={{ fontSize: 10, color: "var(--dim)", marginTop: 2 }}>
+                        Estimado {fmtBRL(i.cost)} · Pago {fmtBRL(v)} · Sem variação
+                      </div>
+                    </div>
                   );
                 })()}
               </div>
@@ -360,6 +391,105 @@ export default function TabCompras({ evento, reservas, pratos, drinks, ingredien
           </p>
         )}
       </Card>
+
+      {/* ─── Análise de Ganhos/Perdas ──────────────────────────────────── */}
+      {(() => {
+        // Calcula por item: economia ou perda
+        const todosItens = [...shopping.food, ...shopping.bar];
+        let economiaTotal = 0;
+        let perdaTotal = 0;
+        let economias = [];
+        let perdas = [];
+        let neutros = 0;
+
+        todosItens.forEach((i) => {
+          const c = compraDe.get(i.id);
+          if (!c?.comprado) return;
+          const diff = Number(c.valor_pago || 0) - i.cost;
+          if (diff < -0.5) {
+            economiaTotal += Math.abs(diff);
+            economias.push({ nome: i.name, diff: Math.abs(diff), pct: i.cost > 0 ? (Math.abs(diff) / i.cost) * 100 : 0 });
+          } else if (diff > 0.5) {
+            perdaTotal += diff;
+            perdas.push({ nome: i.name, diff, pct: i.cost > 0 ? (diff / i.cost) * 100 : 0 });
+          } else {
+            neutros++;
+          }
+        });
+        const saldo = economiaTotal - perdaTotal;
+        const totalComprado = economias.length + perdas.length + neutros;
+        if (totalComprado === 0) return null;
+
+        economias.sort((a, b) => b.diff - a.diff);
+        perdas.sort((a, b) => b.diff - a.diff);
+
+        return (
+          <Card className="!p-4" style={{
+            background: saldo >= 0
+              ? "linear-gradient(135deg, #10B98111, #06B6D411)"
+              : "linear-gradient(135deg, #EF444411, #F59E0B11)",
+            border: `1px solid ${saldo >= 0 ? "#10B98133" : "#EF444433"}`,
+          }}>
+            <h3 style={{ fontWeight: 700, color: "var(--fg)", marginBottom: 12, fontSize: 14 }}>
+              📊 Análise de Compras ({totalComprado} item{totalComprado !== 1 ? "s" : ""} comprado{totalComprado !== 1 ? "s" : ""})
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+              <div style={{ padding: 10, background: "#10B98122", borderRadius: 8, borderLeft: "3px solid #10B981" }}>
+                <p style={{ fontSize: 10, color: "#10B981", fontWeight: 700, textTransform: "uppercase" }}>🟢 ECONOMIA</p>
+                <strong style={{ fontSize: 20, color: "#10B981" }}>{fmtBRL(economiaTotal)}</strong>
+                <p style={{ fontSize: 11, color: "var(--dim)" }}>{economias.length} ingrediente{economias.length !== 1 ? "s" : ""}</p>
+              </div>
+              <div style={{ padding: 10, background: "#EF444422", borderRadius: 8, borderLeft: "3px solid #EF4444" }}>
+                <p style={{ fontSize: 10, color: "#EF4444", fontWeight: 700, textTransform: "uppercase" }}>🔴 ACIMA DO ESTIMADO</p>
+                <strong style={{ fontSize: 20, color: "#EF4444" }}>{fmtBRL(perdaTotal)}</strong>
+                <p style={{ fontSize: 11, color: "var(--dim)" }}>{perdas.length} ingrediente{perdas.length !== 1 ? "s" : ""}</p>
+              </div>
+              <div style={{
+                padding: 10,
+                background: saldo >= 0 ? "#10B98133" : "#EF444433",
+                borderRadius: 8, borderLeft: `3px solid ${saldo >= 0 ? "#10B981" : "#EF4444"}`,
+              }}>
+                <p style={{ fontSize: 10, color: saldo >= 0 ? "#10B981" : "#EF4444", fontWeight: 700, textTransform: "uppercase" }}>
+                  SALDO {saldo >= 0 ? "POSITIVO" : "NEGATIVO"}
+                </p>
+                <strong style={{ fontSize: 20, color: saldo >= 0 ? "#10B981" : "#EF4444" }}>
+                  {saldo >= 0 ? "+" : ""}{fmtBRL(saldo)}
+                </strong>
+                <p style={{ fontSize: 11, color: "var(--dim)" }}>
+                  {neutros > 0 && `${neutros} sem variação`}
+                </p>
+              </div>
+            </div>
+
+            {/* Top 3 economias e top 3 perdas */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {economias.length > 0 && (
+                <div>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: "#10B981", marginBottom: 4 }}>🏆 Maiores economias</p>
+                  {economias.slice(0, 3).map((e, i) => (
+                    <div key={i} className="flex justify-between text-[11px] py-1" style={{ borderBottom: i < 2 ? "1px dashed var(--line)" : "none" }}>
+                      <span style={{ color: "var(--fg)" }}>{e.nome}</span>
+                      <span style={{ color: "#10B981", fontWeight: 700 }}>-{fmtBRL(e.diff)} ({e.pct.toFixed(0)}%)</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {perdas.length > 0 && (
+                <div>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: "#EF4444", marginBottom: 4 }}>⚠️ Maiores excessos</p>
+                  {perdas.slice(0, 3).map((p, i) => (
+                    <div key={i} className="flex justify-between text-[11px] py-1" style={{ borderBottom: i < 2 ? "1px dashed var(--line)" : "none" }}>
+                      <span style={{ color: "var(--fg)" }}>{p.nome}</span>
+                      <span style={{ color: "#EF4444", fontWeight: 700 }}>+{fmtBRL(p.diff)} (+{p.pct.toFixed(0)}%)</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </Card>
+        );
+      })()}
 
       {/* ─── Resumo Estimado vs Real ─────────────────────────────────────── */}
       {(() => {

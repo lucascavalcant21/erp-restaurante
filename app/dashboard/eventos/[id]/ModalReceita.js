@@ -51,6 +51,18 @@ export default function ModalReceita({ open, onClose, eventoId, ingredientesEven
   // Estado para criar o prato
   const [dadosPrato, setDadosPrato] = useState({ nome: "", categoria: "Principal", rendimento: 1, descricao: "" });
 
+  // Calculadora de proporção: ajusta a receita pra X porções desejadas
+  const [porcoesDesejadas, setPorcoesDesejadas] = useState(1);
+  const [porcoesOriginais, setPorcoesOriginais] = useState(1);
+  const fatorEscala = porcoesOriginais > 0 ? porcoesDesejadas / porcoesOriginais : 1;
+
+  // Helper: formata número com até 1 decimal e remove .0
+  function fmtNum(n) {
+    if (n < 1) return n.toFixed(2).replace(/\.?0+$/, "");
+    if (n < 10) return n.toFixed(1).replace(/\.0$/, "");
+    return Math.round(n).toString();
+  }
+
   function analisar() {
     const r = parseReceita(texto);
     if (!r || r.ingredientes.length === 0) {
@@ -60,13 +72,16 @@ export default function ModalReceita({ open, onClose, eventoId, ingredientesEven
     setReceita(r);
     const cruzados = cruzarReceitaComEstoque(r.ingredientes, ingredientesEvento);
     setIngsCruzados(cruzados);
-    // Pre-popula nome do prato
+    // Pre-popula nome do prato e rendimento detectado
+    const rendDetect = r.rendimento || 1;
     setDadosPrato({
       nome: r.titulo || "",
       categoria: "Principal",
-      rendimento: r.rendimento || 1,
+      rendimento: rendDetect,
       descricao: "",
     });
+    setPorcoesOriginais(rendDetect);
+    setPorcoesDesejadas(rendDetect);  // por padrão: receita original
     setEtapa("analisar");
   }
 
@@ -120,27 +135,29 @@ export default function ModalReceita({ open, onClose, eventoId, ingredientesEven
   async function criarPrato() {
     if (!dadosPrato.nome.trim()) { alert("Informe o nome do prato"); return; }
     setSalvando(true);
-    // Monta ingredientes a partir dos cruzados que existem
+    // Monta ingredientes APLICANDO O FATOR DE ESCALA
     const ingredients = ingsCruzados
       .filter((i) => i.existe && i.ingredienteId && !i.aGosto)
       .map((i) => {
-        // Converte qty pra unidade base (g/ml) do ingrediente
-        let qty = Number(i.qty);
+        let qty = Number(i.qty) * fatorEscala; // 🎯 aplica escala
         if (i.unidade === "Kg") qty *= 1000;
         if (i.unidade === "L")  qty *= 1000;
-        return { id: i.ingredienteId, qty, type: "food" };
+        // O qty salvo é POR PORÇÃO (não total)
+        // Como aplicamos escala pra porçõesDesejadas, dividimos por porçõesDesejadas
+        const qtyPorPorcao = qty / Number(porcoesDesejadas);
+        return { id: i.ingredienteId, qty: qtyPorPorcao, type: "food" };
       });
     const { error } = await Pratos.add(eventoId, {
       nome: dadosPrato.nome.trim(),
       categoria: dadosPrato.categoria,
-      rendimento: Number(dadosPrato.rendimento) || 1,
+      rendimento: Number(porcoesDesejadas) || 1,
       descricao: dadosPrato.descricao || null,
       tags: [],
       ingredients,
     });
     setSalvando(false);
     if (error) { alert("Erro ao criar prato: " + error); return; }
-    alert(`✓ Prato "${dadosPrato.nome}" criado com ${ingredients.length} ingredientes!`);
+    alert(`✓ Prato "${dadosPrato.nome}" criado para ${porcoesDesejadas} porções com ${ingredients.length} ingredientes!`);
     onSuccess?.();
     fechar();
   }
@@ -358,11 +375,11 @@ export default function ModalReceita({ open, onClose, eventoId, ingredientesEven
         </>
       )}
 
-      {/* ETAPA 4: CRIAR PRATO */}
+      {/* ETAPA 4: CRIAR PRATO COM CALCULADORA DE PROPORÇÃO */}
       {etapa === "criar-prato" && (
         <>
           <p className="text-[12px] mb-3" style={{ color: "#10B981" }}>
-            ✓ Todos os ingredientes cadastrados! Agora vamos criar o prato com a receita.
+            ✓ Todos os ingredientes cadastrados! Agora ajuste a quantidade que vai fazer.
           </p>
 
           <Field label="Nome do prato">
@@ -377,33 +394,106 @@ export default function ModalReceita({ open, onClose, eventoId, ingredientesEven
                 {CATEGORIAS_PRATO.map((c) => <option key={c}>{c}</option>)}
               </Select>
             </Field>
-            <Field label="Rendimento (porções)">
-              <NumberInput value={dadosPrato.rendimento}
-                onChange={(e) => setDadosPrato({ ...dadosPrato, rendimento: e.target.value })}
-                step="1" />
+            <Field label="Descrição (opcional)">
+              <TextInput value={dadosPrato.descricao}
+                onChange={(e) => setDadosPrato({ ...dadosPrato, descricao: e.target.value })}
+                placeholder="Curto descritivo" />
             </Field>
           </div>
-          <Field label="Descrição (opcional)">
-            <TextInput value={dadosPrato.descricao}
-              onChange={(e) => setDadosPrato({ ...dadosPrato, descricao: e.target.value })}
-              placeholder="Curto descritivo" />
-          </Field>
 
-          <div className="p-2 rounded mb-3" style={{ background: "#10B98122", borderLeft: "3px solid #10B981" }}>
-            <p className="text-[11px]" style={{ color: "var(--fg)" }}>
-              ✓ <strong>{ingsCruzados.filter((i) => i.existe && !i.aGosto).length}</strong> ingredientes serão adicionados ao prato
+          {/* 🎯 CALCULADORA DE PROPORÇÃO */}
+          <div className="p-3 rounded mb-3" style={{ background: "linear-gradient(135deg, #8B5CF622, #EC489922)", border: "1px solid #8B5CF644" }}>
+            <p style={{ fontSize: 11, color: "#8B5CF6", fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: 8 }}>
+              🎯 Calculadora de Proporção
             </p>
-            {ingsCruzados.filter((i) => i.aGosto).length > 0 && (
-              <p className="text-[10px] mt-1" style={{ color: "var(--dim)" }}>
-                ({ingsCruzados.filter((i) => i.aGosto).length} ingrediente(s) "a gosto" foram ignorados)
+
+            <div className="grid grid-cols-2 gap-3 mb-2">
+              <Field label="Receita original rende">
+                <div className="flex items-center gap-2">
+                  <NumberInput value={porcoesOriginais}
+                    onChange={(e) => setPorcoesOriginais(Number(e.target.value) || 1)}
+                    step="1" />
+                  <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>porções</span>
+                </div>
+              </Field>
+              <Field label="Quero fazer para">
+                <div className="flex items-center gap-2">
+                  <NumberInput value={porcoesDesejadas}
+                    onChange={(e) => setPorcoesDesejadas(Number(e.target.value) || 1)}
+                    step="1"
+                    style={{ fontWeight: 700, fontSize: 16, color: "#8B5CF6" }} />
+                  <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>porções</span>
+                </div>
+              </Field>
+            </div>
+
+            {/* Botões rápidos */}
+            <div className="flex gap-1 flex-wrap mb-2">
+              <span className="text-[10px]" style={{ color: "var(--dim)" }}>Rápido:</span>
+              {[
+                { label: "½ receita",   v: Math.max(1, Math.round(porcoesOriginais / 2)) },
+                { label: "Original",    v: porcoesOriginais },
+                { label: "2× receita",  v: porcoesOriginais * 2 },
+                { label: "3× receita",  v: porcoesOriginais * 3 },
+              ].map((b, i) => (
+                <button key={i} onClick={() => setPorcoesDesejadas(b.v)}
+                  style={{ background: porcoesDesejadas === b.v ? "#8B5CF6" : "var(--surface)", color: porcoesDesejadas === b.v ? "#fff" : "var(--muted)", padding: "3px 8px", borderRadius: 6, border: "none", cursor: "pointer", fontSize: 10, fontWeight: 600 }}>
+                  {b.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Indicador do fator */}
+            <div className="p-2 rounded text-center mb-3" style={{ background: "var(--elevated)" }}>
+              <p style={{ fontSize: 11, color: "var(--muted)" }}>
+                Fator de escala:{" "}
+                <strong style={{
+                  color: fatorEscala === 1 ? "#10B981" : fatorEscala > 1 ? "#F59E0B" : "#3B82F6",
+                  fontSize: 16,
+                }}>
+                  {fatorEscala === 1 ? "1× (mantém)" : `${fatorEscala.toFixed(2).replace(/\.?0+$/, "")}× ${fatorEscala > 1 ? "(aumenta)" : "(reduz)"}`}
+                </strong>
               </p>
-            )}
+            </div>
+
+            {/* Comparativo dos ingredientes */}
+            <p style={{ fontSize: 10, color: "var(--muted)", fontWeight: 700, textTransform: "uppercase", marginBottom: 6 }}>
+              📋 Receita ajustada:
+            </p>
+            <div style={{ maxHeight: 200, overflowY: "auto", background: "var(--elevated)", padding: 8, borderRadius: 6 }}>
+              {ingsCruzados.filter((i) => i.existe && !i.aGosto).map((ing, idx) => {
+                const qtyOriginal = Number(ing.qty);
+                const qtyAjustado = qtyOriginal * fatorEscala;
+                const mudou = Math.abs(qtyOriginal - qtyAjustado) > 0.01;
+                return (
+                  <div key={idx} className="flex items-center justify-between py-1" style={{ borderBottom: "1px dashed var(--line)" }}>
+                    <span className="text-[11px]" style={{ color: "var(--fg)" }}>{ing.nome}</span>
+                    <span className="text-[11px]">
+                      {mudou && (
+                        <span style={{ color: "var(--dim)", textDecoration: "line-through", marginRight: 6 }}>
+                          {fmtNum(qtyOriginal)}{ing.unidade}
+                        </span>
+                      )}
+                      <strong style={{ color: mudou ? "#8B5CF6" : "var(--fg)" }}>
+                        {fmtNum(qtyAjustado)}{ing.unidade}
+                      </strong>
+                    </span>
+                  </div>
+                );
+              })}
+              {ingsCruzados.filter((i) => i.aGosto).map((ing, idx) => (
+                <div key={`g${idx}`} className="flex items-center justify-between py-1">
+                  <span className="text-[11px]" style={{ color: "var(--fg)" }}>{ing.nome}</span>
+                  <span className="text-[10px]" style={{ color: "var(--dim)" }}>a gosto</span>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="flex gap-3">
             <Btn variant="ghost" onClick={() => setEtapa("analisar")}>← Voltar</Btn>
             <Btn variant="primary" className="flex-1" onClick={criarPrato} disabled={salvando}>
-              <ChefHat size={14} /> {salvando ? "Criando..." : "Criar prato"}
+              <ChefHat size={14} /> {salvando ? "Criando..." : `Criar prato para ${porcoesDesejadas} porções`}
             </Btn>
           </div>
         </>

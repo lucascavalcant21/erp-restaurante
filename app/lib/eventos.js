@@ -28,6 +28,59 @@ export const PAYMENT_METHODS = [
 
 export const CATEGORIAS_PRATO = ["Entrada", "Principal", "Sobremesa"];
 
+// Categorias para ingredientes da Cozinha
+export const CATEGORIAS_ING_FOOD = [
+  { id: "carnes_vermelhas", label: "🥩 Carnes Vermelhas", cor: "#DC2626" },
+  { id: "aves",             label: "🍗 Aves",              cor: "#F59E0B" },
+  { id: "peixes",           label: "🐟 Peixes e Frutos do Mar", cor: "#0EA5E9" },
+  { id: "suinos",           label: "🥓 Suínos",            cor: "#EC4899" },
+  { id: "embutidos",        label: "🌭 Embutidos",         cor: "#A855F7" },
+  { id: "vegetais",         label: "🥦 Vegetais e Verduras", cor: "#22C55E" },
+  { id: "frutas",           label: "🍓 Frutas",            cor: "#EF4444" },
+  { id: "cereais",          label: "🌾 Cereais e Grãos",   cor: "#CA8A04" },
+  { id: "massas",           label: "🍝 Massas",            cor: "#EAB308" },
+  { id: "paes",             label: "🥖 Pães",              cor: "#A16207" },
+  { id: "laticinios",       label: "🧀 Laticínios",        cor: "#FBBF24" },
+  { id: "ovos",             label: "🥚 Ovos",              cor: "#FCD34D" },
+  { id: "temperos",         label: "🌿 Temperos e Ervas",  cor: "#10B981" },
+  { id: "oleos",            label: "🫒 Óleos e Vinagres",  cor: "#84CC16" },
+  { id: "conservas",        label: "🥫 Conservas",         cor: "#78716C" },
+  { id: "doces",            label: "🍰 Doces e Sobremesas", cor: "#F472B6" },
+  { id: "outros",           label: "📦 Outros",            cor: "#6B7280" },
+];
+
+// Categorias para ingredientes do Bar
+export const CATEGORIAS_ING_BAR = [
+  { id: "destilados",   label: "🥃 Destilados",         cor: "#92400E" },
+  { id: "vinhos",       label: "🍷 Vinhos",             cor: "#7F1D1D" },
+  { id: "cervejas",     label: "🍺 Cervejas",           cor: "#CA8A04" },
+  { id: "espumantes",   label: "🍾 Espumantes",         cor: "#FBBF24" },
+  { id: "licores",      label: "🍯 Licores",            cor: "#A16207" },
+  { id: "xaropes",      label: "🍯 Xaropes",            cor: "#EC4899" },
+  { id: "sucos",        label: "🧃 Sucos",              cor: "#F97316" },
+  { id: "refrigerantes", label: "🥤 Refrigerantes e Mixers", cor: "#3B82F6" },
+  { id: "aguas",        label: "💧 Águas",              cor: "#0EA5E9" },
+  { id: "frutas_decor", label: "🍋 Frutas e Decorações", cor: "#22C55E" },
+  { id: "aromaticos",   label: "🌿 Aromáticos",         cor: "#10B981" },
+  { id: "laticinios_bar", label: "🥛 Laticínios",       cor: "#FCD34D" },
+  { id: "doces_bar",    label: "🍬 Adoçantes",          cor: "#F472B6" },
+  { id: "outros_bar",   label: "📦 Outros",             cor: "#6B7280" },
+];
+
+export function getCategoriaIng(id, tipo) {
+  const lista = tipo === "bar" ? CATEGORIAS_ING_BAR : CATEGORIAS_ING_FOOD;
+  return lista.find((c) => c.id === id);
+}
+
+// Unidades suportadas (com conversão pra base g/ml)
+export const UNIDADES_ING = [
+  { id: "g",  label: "g",  base: "g",  fator: 1 },
+  { id: "Kg", label: "Kg", base: "g",  fator: 1000 },
+  { id: "ml", label: "ml", base: "ml", fator: 1 },
+  { id: "L",  label: "L",  base: "ml", fator: 1000 },
+  { id: "un", label: "un", base: "un", fator: 1 },
+];
+
 export const DISH_TAGS = [
   "Vegetariano", "Vegano", "Sem Glúten", "Sem Lactose", "Picante", "Romântico", "Premium",
 ];

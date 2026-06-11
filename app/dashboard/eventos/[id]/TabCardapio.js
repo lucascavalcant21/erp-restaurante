@@ -3,43 +3,112 @@
 import { useState } from "react";
 import { Plus, Trash2, Edit3, ChefHat, FlaskConical, Save, X, Search, Download } from "lucide-react";
 import { Card, SectionLabel, Btn, Field, TextInput, NumberInput, Select, Modal, fmtBRL, fmtPct } from "../../../components/ui";
-import { Ingredientes, Preparos, Pratos, CATEGORIAS_PRATO, DISH_TAGS, custoIngrediente, custoPreparoUnit, custoItem, custoPrato, sugestaoQuantidade } from "../../../lib/eventos";
+import { Ingredientes, Preparos, Pratos, CATEGORIAS_PRATO, DISH_TAGS, CATEGORIAS_ING_FOOD, getCategoriaIng, custoIngrediente, custoPreparoUnit, custoItem, custoPrato, sugestaoQuantidade } from "../../../lib/eventos";
 import ModalImportar from "./ModalImportar";
 
-const VAZIO_ING = { tipo: "food", nome: "", custo_unit: "", peso_unit: 1000, unidade: "g" };
+const VAZIO_ING = { tipo: "food", nome: "", categoria: "outros", custo_unit: "", peso_unit: 1, unidade: "Kg" };
 const VAZIO_PREP = { tipo: "food", nome: "", rendimento: 1000, unidade: "g", base_ingredients: [] };
 const VAZIO_PRATO = { nome: "", categoria: "Principal", rendimento: 1, descricao: "", tags: [], ingredients: [] };
 
 // ─── Form Ingrediente ────────────────────────────────────────────────────
 function FormIngrediente({ inicial, onSalvar, onCancelar }) {
+  // Detecta se inicial está em "Kg" baseado em peso_unit=1000 e unidade=g (compatibilidade retro)
+  function detectarUnidadeUI(ing) {
+    if (!ing) return "Kg";
+    if (ing.unidade === "g" && Number(ing.peso_unit) === 1000) return "Kg";
+    if (ing.unidade === "ml" && Number(ing.peso_unit) === 1000) return "L";
+    return ing.unidade;
+  }
+  function detectarPesoUI(ing) {
+    if (!ing) return "1";
+    const uiUnit = detectarUnidadeUI(ing);
+    if (uiUnit === "Kg") return String(Number(ing.peso_unit) / 1000);
+    if (uiUnit === "L")  return String(Number(ing.peso_unit) / 1000);
+    return String(ing.peso_unit || "");
+  }
+
   const [f, setF] = useState(
-    inicial ? { ...inicial, custo_unit: String(inicial.custo_unit || ""), peso_unit: String(inicial.peso_unit || "") } : VAZIO_ING,
+    inicial
+      ? {
+          ...inicial,
+          categoria: inicial.categoria || "outros",
+          custo_unit: String(inicial.custo_unit || ""),
+          peso_unit: detectarPesoUI(inicial),
+          unidade: detectarUnidadeUI(inicial),
+        }
+      : VAZIO_ING,
   );
   const [erro, setErro] = useState("");
   const set = (k, v) => { setF((p) => ({ ...p, [k]: v })); setErro(""); };
 
   function salvar() {
     if (!f.nome.trim()) return setErro("Informe o nome.");
+
+    // Converte para unidade-base (g ou ml) ao salvar
+    const pesoNum = parseFloat(String(f.peso_unit).replace(",", ".")) || 1;
+    let unidadeFinal = f.unidade;
+    let pesoFinal = pesoNum;
+    if (f.unidade === "Kg") { unidadeFinal = "g";  pesoFinal = pesoNum * 1000; }
+    if (f.unidade === "L")  { unidadeFinal = "ml"; pesoFinal = pesoNum * 1000; }
+
     onSalvar({
       tipo: "food",
       nome: f.nome.trim(),
+      categoria: f.categoria,
       custo_unit: parseFloat(String(f.custo_unit).replace(",", ".")) || 0,
-      peso_unit: parseFloat(String(f.peso_unit).replace(",", ".")) || 1,
-      unidade: f.unidade,
+      peso_unit: pesoFinal,
+      unidade: unidadeFinal,
     });
   }
+
+  const cat = getCategoriaIng(f.categoria, "food");
+
   return (
     <>
-      <Field label="Nome do ingrediente"><TextInput value={f.nome} onChange={(e) => set("nome", e.target.value)} placeholder="ex: Filé Mignon" /></Field>
+      <Field label="Nome do ingrediente">
+        <TextInput value={f.nome} onChange={(e) => set("nome", e.target.value)} placeholder="ex: Filé Mignon, Picanha, Arroz" />
+      </Field>
+
+      <Field label="Categoria">
+        <Select value={f.categoria} onChange={(e) => set("categoria", e.target.value)}>
+          {CATEGORIAS_ING_FOOD.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+        </Select>
+        {cat && (
+          <div style={{ marginTop: 4, display: "inline-block", padding: "2px 8px", borderRadius: 999, fontSize: 10, fontWeight: 700, background: cat.cor + "22", color: cat.cor }}>
+            {cat.label}
+          </div>
+        )}
+      </Field>
+
       <div className="grid grid-cols-3 gap-3">
-        <Field label="Custo (R$)"><NumberInput value={f.custo_unit} onChange={(e) => set("custo_unit", e.target.value)} placeholder="95,00" step="0.01" /></Field>
-        <Field label="Peso/Volume"><NumberInput value={f.peso_unit} onChange={(e) => set("peso_unit", e.target.value)} placeholder="1000" step="1" /></Field>
+        <Field label="Preço pago (R$)">
+          <NumberInput value={f.custo_unit} onChange={(e) => set("custo_unit", e.target.value)} placeholder="65,00" step="0.01" />
+        </Field>
+        <Field label="Quantidade">
+          <NumberInput value={f.peso_unit} onChange={(e) => set("peso_unit", e.target.value)} placeholder="1" step="0.01" />
+        </Field>
         <Field label="Unidade">
           <Select value={f.unidade} onChange={(e) => set("unidade", e.target.value)}>
-            <option value="g">g</option><option value="ml">ml</option><option value="un">un</option>
+            <option value="Kg">Kg</option>
+            <option value="g">g</option>
+            <option value="L">L</option>
+            <option value="ml">ml</option>
+            <option value="un">un</option>
           </Select>
         </Field>
       </div>
+
+      {/* Resumo do preço por unidade base */}
+      {Number(f.custo_unit) > 0 && Number(f.peso_unit) > 0 && (
+        <div className="erp-panel p-2 mb-3" style={{ background: "var(--elevated)", borderRadius: 6 }}>
+          <p className="text-[11px]" style={{ color: "var(--muted)" }}>
+            💡 Você pagou <strong style={{ color: "var(--fg)" }}>R$ {Number(f.custo_unit).toFixed(2)}</strong>{" "}
+            por <strong style={{ color: "var(--fg)" }}>{f.peso_unit} {f.unidade}</strong>{" "}
+            = <strong style={{ color: "var(--accent-fg)" }}>R$ {(Number(f.custo_unit) / Number(f.peso_unit)).toFixed(2)}/{f.unidade}</strong>
+          </p>
+        </div>
+      )}
+
       {erro && <p className="erp-badge erp-badge-danger w-full justify-center mb-3">{erro}</p>}
       <div className="flex gap-3">
         <Btn variant="ghost" className="flex-1" onClick={onCancelar}>Cancelar</Btn>
@@ -403,22 +472,58 @@ export default function TabCardapio({ eventoId, ingredientes, preparos, pratos, 
             </p>
           </div>
         ) : (
-          <div className="space-y-2">
-            {ingFood.map((ing) => (
-              <div key={ing.id} className="p-2 rounded flex items-center justify-between" style={{ background: "var(--elevated)" }}>
-                <div>
-                  <strong style={{ color: "var(--fg)", fontSize: 13 }}>{ing.nome}</strong>
-                  <p className="text-[11px]" style={{ color: "var(--dim)" }}>
-                    {fmtBRL(ing.custo_unit)} / {ing.peso_unit}{ing.unidade} · {fmtBRL((ing.custo_unit / ing.peso_unit) * 1000)}/{ing.unidade === "g" ? "kg" : ing.unidade === "ml" ? "L" : "un"}
-                  </p>
-                </div>
-                <div className="flex gap-1">
-                  <button onClick={() => { setEditar(ing); setModal("ing"); }} style={{ background: "var(--surface)", padding: 6, borderRadius: 6, border: "none", cursor: "pointer" }}><Edit3 size={12} style={{ color: "var(--muted)" }} /></button>
-                  <button onClick={() => removerIng(ing.id)} style={{ background: "#EF444433", padding: 6, borderRadius: 6, border: "none", cursor: "pointer" }}><Trash2 size={12} style={{ color: "#EF4444" }} /></button>
-                </div>
+          (() => {
+            // Agrupa por categoria
+            const porCat = {};
+            ingFood.forEach((ing) => {
+              const cid = ing.categoria || "outros";
+              if (!porCat[cid]) porCat[cid] = [];
+              porCat[cid].push(ing);
+            });
+            const catsOrdenadas = CATEGORIAS_ING_FOOD.filter((c) => porCat[c.id]?.length > 0);
+            return (
+              <div className="space-y-3">
+                {catsOrdenadas.map((cat) => (
+                  <div key={cat.id}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <div style={{ padding: "2px 8px", borderRadius: 999, fontSize: 10, fontWeight: 700, background: cat.cor + "22", color: cat.cor }}>
+                        {cat.label}
+                      </div>
+                      <span className="text-[10px]" style={{ color: "var(--dim)" }}>{porCat[cat.id].length} item{porCat[cat.id].length !== 1 ? "s" : ""}</span>
+                    </div>
+                    <div className="space-y-1">
+                      {porCat[cat.id].map((ing) => {
+                        // Mostra valor original: se está em g e peso=1000, mostra em Kg
+                        const exibirPeso = (i) => {
+                          if (i.unidade === "g"  && i.peso_unit >= 1000) return { v: (i.peso_unit / 1000).toFixed(2).replace(/\.?0+$/, ""), u: "Kg" };
+                          if (i.unidade === "ml" && i.peso_unit >= 1000) return { v: (i.peso_unit / 1000).toFixed(2).replace(/\.?0+$/, ""), u: "L" };
+                          return { v: i.peso_unit, u: i.unidade };
+                        };
+                        const p = exibirPeso(ing);
+                        const precoBase = ing.unidade === "g" ? `${fmtBRL((ing.custo_unit / ing.peso_unit) * 1000)}/Kg` :
+                                          ing.unidade === "ml" ? `${fmtBRL((ing.custo_unit / ing.peso_unit) * 1000)}/L` :
+                                          `${fmtBRL(ing.custo_unit / ing.peso_unit)}/${ing.unidade}`;
+                        return (
+                          <div key={ing.id} className="p-2 rounded flex items-center justify-between" style={{ background: "var(--elevated)" }}>
+                            <div>
+                              <strong style={{ color: "var(--fg)", fontSize: 13 }}>{ing.nome}</strong>
+                              <p className="text-[11px]" style={{ color: "var(--dim)" }}>
+                                {fmtBRL(ing.custo_unit)} / {p.v}{p.u} · <strong style={{ color: "var(--accent-fg)" }}>{precoBase}</strong>
+                              </p>
+                            </div>
+                            <div className="flex gap-1">
+                              <button onClick={() => { setEditar(ing); setModal("ing"); }} style={{ background: "var(--surface)", padding: 6, borderRadius: 6, border: "none", cursor: "pointer" }}><Edit3 size={12} style={{ color: "var(--muted)" }} /></button>
+                              <button onClick={() => removerIng(ing.id)} style={{ background: "#EF444433", padding: 6, borderRadius: 6, border: "none", cursor: "pointer" }}><Trash2 size={12} style={{ color: "#EF4444" }} /></button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            );
+          })()
         )}
       </Card>
 

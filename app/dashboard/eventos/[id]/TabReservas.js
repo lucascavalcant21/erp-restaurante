@@ -662,43 +662,57 @@ export default function TabReservas({ eventoId, evento, reservas, pratos, drinks
           <div><p className="text-[10px]" style={{ color: "var(--dim)" }}>1º T / 2º T</p><strong style={{ fontSize: 16, color: "var(--fg)" }}>{stats.turno1} / {stats.turno2}</strong></div>
         </div>
 
-        {/* Botões de Impressão (ordens de produção) */}
-        {reservas.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3">
-            <button
-              onClick={() => imprimirOrdemCozinha(evento, reservas, pratos, ingredientes, preparos)}
-              style={{
-                display: "flex", alignItems: "center", gap: 8, padding: "12px 14px",
-                borderRadius: 10, border: "none", cursor: "pointer",
-                background: "linear-gradient(135deg, #EF4444, #F59E0B)",
-                color: "white", fontWeight: 700, fontSize: 13,
-              }}
-            >
-              <ChefHat size={18} />
-              <div className="flex-1 text-left">
-                <div>Imprimir Cozinha</div>
-                <div style={{ fontSize: 10, fontWeight: 400, opacity: 0.9 }}>Ordem de pratos por mesa e turno</div>
+        {/* Botões de Impressão (ordens de produção) — sempre visíveis */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3">
+          <button
+            onClick={() => reservas.length > 0 ? imprimirOrdemCozinha(evento, reservas, pratos, ingredientes, preparos) : alert("Adicione reservas para gerar a ordem de produção da cozinha.")}
+            disabled={reservas.length === 0}
+            style={{
+              display: "flex", alignItems: "center", gap: 8, padding: "12px 14px",
+              borderRadius: 10, border: "none",
+              cursor: reservas.length === 0 ? "not-allowed" : "pointer",
+              background: reservas.length === 0 ? "var(--elevated)" : "linear-gradient(135deg, #EF4444, #F59E0B)",
+              color: reservas.length === 0 ? "var(--muted)" : "white",
+              fontWeight: 700, fontSize: 13,
+              opacity: reservas.length === 0 ? 0.6 : 1,
+            }}
+          >
+            <ChefHat size={18} />
+            <div className="flex-1 text-left">
+              <div>🍳 Imprimir Cozinha</div>
+              <div style={{ fontSize: 10, fontWeight: 400, opacity: 0.9 }}>
+                {reservas.length === 0
+                  ? "Adicione reservas primeiro"
+                  : `Ordem de pratos por mesa e turno (${reservas.length} reserva${reservas.length !== 1 ? "s" : ""})`}
               </div>
-              <Printer size={16} />
-            </button>
-            <button
-              onClick={() => imprimirOrdemBar(evento, reservas, drinks, ingredientes, preparos)}
-              style={{
-                display: "flex", alignItems: "center", gap: 8, padding: "12px 14px",
-                borderRadius: 10, border: "none", cursor: "pointer",
-                background: "linear-gradient(135deg, #8B5CF6, #EC4899)",
-                color: "white", fontWeight: 700, fontSize: 13,
-              }}
-            >
-              <Beer size={18} />
-              <div className="flex-1 text-left">
-                <div>Imprimir Bar</div>
-                <div style={{ fontSize: 10, fontWeight: 400, opacity: 0.9 }}>Ordem de drinks por mesa e turno</div>
+            </div>
+            <Printer size={16} />
+          </button>
+          <button
+            onClick={() => reservas.length > 0 ? imprimirOrdemBar(evento, reservas, drinks, ingredientes, preparos) : alert("Adicione reservas para gerar a ordem de produção do bar.")}
+            disabled={reservas.length === 0}
+            style={{
+              display: "flex", alignItems: "center", gap: 8, padding: "12px 14px",
+              borderRadius: 10, border: "none",
+              cursor: reservas.length === 0 ? "not-allowed" : "pointer",
+              background: reservas.length === 0 ? "var(--elevated)" : "linear-gradient(135deg, #8B5CF6, #EC4899)",
+              color: reservas.length === 0 ? "var(--muted)" : "white",
+              fontWeight: 700, fontSize: 13,
+              opacity: reservas.length === 0 ? 0.6 : 1,
+            }}
+          >
+            <Beer size={18} />
+            <div className="flex-1 text-left">
+              <div>🍹 Imprimir Bar</div>
+              <div style={{ fontSize: 10, fontWeight: 400, opacity: 0.9 }}>
+                {reservas.length === 0
+                  ? "Adicione reservas primeiro"
+                  : `Ordem de drinks por mesa e turno (${reservas.length} reserva${reservas.length !== 1 ? "s" : ""})`}
               </div>
-              <Printer size={16} />
-            </button>
-          </div>
-        )}
+            </div>
+            <Printer size={16} />
+          </button>
+        </div>
 
         <div className="flex items-center justify-between mb-3">
           <h3 style={{ fontWeight: 700, color: "var(--fg)" }}><Users size={16} style={{ display: "inline", marginRight: 6 }} />Reservas ({filtradas.length})</h3>

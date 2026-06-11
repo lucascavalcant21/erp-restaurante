@@ -168,18 +168,24 @@ export default function EventosPage() {
 
   async function salvar(dados) {
     if (editar) {
-      await atualizarEvento(editar.id, dados);
-    } else {
-      const { data } = await inserirEvento(dados, unidadeAtiva);
-      if (data?.id) {
-        setModal(false); setEditar(null);
-        router.push(`/dashboard/eventos/${data.id}`);
-        return;
-      }
+      const { error } = await atualizarEvento(editar.id, dados);
+      if (error) { alert("Erro ao salvar: " + error + "\n\nVerifique se rodou o SQL docs/eventos.sql no Supabase."); return; }
+      setModal(false); setEditar(null); setSalvou("Evento salvo!");
+      setTimeout(() => setSalvou(""), 2600);
+      carregar();
+      return;
     }
-    setModal(false); setEditar(null); setSalvou("Evento salvo!");
-    setTimeout(() => setSalvou(""), 2600);
-    carregar();
+    const { data, error } = await inserirEvento(dados, unidadeAtiva);
+    if (error) {
+      alert("Erro ao criar evento: " + error + "\n\nVerifique se rodou o SQL docs/eventos.sql no Supabase para criar a tabela 'eventos'.");
+      return;
+    }
+    if (data?.id) {
+      setModal(false); setEditar(null);
+      router.push(`/dashboard/eventos/${data.id}`);
+      return;
+    }
+    alert("Algo deu errado: evento não retornou ID. Verifique o console e se o SQL foi executado.");
   }
 
   async function remover(id, nome) {

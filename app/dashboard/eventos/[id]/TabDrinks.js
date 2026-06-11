@@ -293,13 +293,92 @@ export default function TabDrinks({ eventoId, ingredientes, preparos, drinks, on
 
   return (
     <div className="space-y-4">
-      {/* Drinks */}
-      <Card className="!p-4">
+      {/* Alerta de fluxo */}
+      <Card className="!p-3" style={{ background: "linear-gradient(135deg, #8B5CF622, #F59E0B22)", borderLeft: "3px solid #8B5CF6" }}>
+        <p className="text-[12px]" style={{ color: "var(--fg)" }}>
+          <strong>🍹 Fluxo do Bar:</strong> 1️⃣ Cadastre <strong>ingredientes</strong> (bebidas, destilados, xaropes) → 2️⃣ Crie <strong>preparos</strong> (opcional, ex: xarope caseiro) → 3️⃣ Monte os <strong>drinks</strong>
+        </p>
+      </Card>
+
+      {/* 1) Ingredientes do Bar (PRIMEIRO) */}
+      <Card className="!p-4" style={{ borderTop: "3px solid #10B981" }}>
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <h3 style={{ fontWeight: 700, color: "var(--fg)" }}><Beer size={16} style={{ display: "inline", marginRight: 6 }} />Drinks ({drinks.length})</h3>
+          <h3 style={{ fontWeight: 700, color: "var(--fg)" }}>🍾 1️⃣ Ingredientes do Bar ({ingBar.length})</h3>
+          <div className="flex gap-2">
+            <Btn variant="ghost" onClick={() => setImportar("ingredientes-bar")}><Download size={14} /> Importar do ERP</Btn>
+            <Btn variant="primary" onClick={() => { setEditar(null); setModal("ing"); }}><Plus size={14} /> Novo ingrediente</Btn>
+          </div>
+        </div>
+        {ingBar.length === 0 ? (
+          <div className="text-center" style={{ padding: 20 }}>
+            <p style={{ color: "var(--muted)", marginBottom: 8 }}>Nenhum ingrediente do bar cadastrado.</p>
+            <p className="text-[12px]" style={{ color: "var(--dim)" }}>
+              Comece pelas bebidas (gin, vodka, vinho, tônica, xaropes).
+              Serão usados em <strong>preparos</strong> e <strong>drinks</strong>, e aparecerão na <strong>Lista de Compras</strong>.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {ingBar.map((ing) => (
+              <div key={ing.id} className="p-2 rounded flex items-center justify-between" style={{ background: "var(--elevated)" }}>
+                <div>
+                  <strong style={{ color: "var(--fg)", fontSize: 13 }}>{ing.nome}</strong>
+                  <p className="text-[11px]" style={{ color: "var(--dim)" }}>
+                    {fmtBRL(ing.custo_unit)} / {ing.peso_unit}{ing.unidade} · {fmtBRL((ing.custo_unit / ing.peso_unit) * 1000)}/{ing.unidade === "g" ? "kg" : ing.unidade === "ml" ? "L" : "un"}
+                  </p>
+                </div>
+                <div className="flex gap-1">
+                  <button onClick={() => { setEditar(ing); setModal("ing"); }} style={{ background: "var(--surface)", padding: 6, borderRadius: 6, border: "none", cursor: "pointer" }}><Edit3 size={12} style={{ color: "var(--muted)" }} /></button>
+                  <button onClick={() => removerIng(ing.id)} style={{ background: "#EF444433", padding: 6, borderRadius: 6, border: "none", cursor: "pointer" }}><Trash2 size={12} style={{ color: "#EF4444" }} /></button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* 2) Preparos do Bar */}
+      <Card className="!p-4" style={{ borderTop: "3px solid #8B5CF6" }}>
+        <div className="flex items-center justify-between mb-3">
+          <h3 style={{ fontWeight: 700, color: "var(--fg)" }}>🧪 2️⃣ Preparos / Sub-receitas ({prepBar.length})</h3>
+          <Btn variant="ghost" onClick={() => { setEditar(null); setModal("prep"); }} disabled={ingBar.length === 0}><Plus size={14} /> Novo preparo</Btn>
+        </div>
+        {prepBar.length === 0 ? (
+          <p className="text-sm text-center" style={{ color: "var(--dim)", padding: 12 }}>
+            {ingBar.length === 0
+              ? "Cadastre ingredientes primeiro para criar preparos."
+              : "Opcional. Crie preparos para reutilizar em drinks (ex: xarope de morango caseiro)."}
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {prepBar.map((prep) => {
+              const unitCost = custoPreparoUnit(prep, ingredientes);
+              return (
+                <div key={prep.id} className="p-2 rounded flex items-center justify-between" style={{ background: "var(--elevated)" }}>
+                  <div>
+                    <strong style={{ color: "var(--fg)", fontSize: 13 }}>{prep.nome}</strong>
+                    <p className="text-[11px]" style={{ color: "var(--dim)" }}>
+                      Rendimento: {prep.rendimento}{prep.unidade} · {fmtBRL(unitCost)}/{prep.unidade}
+                    </p>
+                  </div>
+                  <div className="flex gap-1">
+                    <button onClick={() => { setEditar(prep); setModal("prep"); }} style={{ background: "var(--surface)", padding: 6, borderRadius: 6, border: "none", cursor: "pointer" }}><Edit3 size={12} style={{ color: "var(--muted)" }} /></button>
+                    <button onClick={() => removerPrep(prep.id)} style={{ background: "#EF444433", padding: 6, borderRadius: 6, border: "none", cursor: "pointer" }}><Trash2 size={12} style={{ color: "#EF4444" }} /></button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Card>
+
+      {/* 3) Drinks (FINAL) */}
+      <Card className="!p-4" style={{ borderTop: "3px solid #F59E0B" }}>
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <h3 style={{ fontWeight: 700, color: "var(--fg)" }}><Beer size={16} style={{ display: "inline", marginRight: 6 }} />3️⃣ Drinks do Menu ({drinks.length})</h3>
           <div className="flex gap-2">
             <Btn variant="ghost" onClick={() => setImportar("drinks")}><Download size={14} /> Importar do cardápio</Btn>
-            <Btn variant="primary" onClick={() => { setEditar(null); setModal("drink"); }}><Plus size={14} /> Novo drink</Btn>
+            <Btn variant="primary" onClick={() => { setEditar(null); setModal("drink"); }} disabled={ingBar.length === 0}><Plus size={14} /> Novo drink</Btn>
           </div>
         </div>
         <div className="relative mb-3">
@@ -344,68 +423,6 @@ export default function TabDrinks({ eventoId, ingredientes, preparos, drinks, on
                 </div>
               );
             })}
-          </div>
-        )}
-      </Card>
-
-      {/* Preparos */}
-      <Card className="!p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 style={{ fontWeight: 700, color: "var(--fg)" }}>🧪 Preparos / Sub-receitas ({prepBar.length})</h3>
-          <Btn variant="ghost" onClick={() => { setEditar(null); setModal("prep"); }}><Plus size={14} /> Novo preparo</Btn>
-        </div>
-        {prepBar.length === 0 ? (
-          <p className="text-sm text-center" style={{ color: "var(--dim)", padding: 12 }}>Crie preparos para reutilizar em drinks (ex: xarope caseiro).</p>
-        ) : (
-          <div className="space-y-2">
-            {prepBar.map((prep) => {
-              const unitCost = custoPreparoUnit(prep, ingredientes);
-              return (
-                <div key={prep.id} className="p-2 rounded flex items-center justify-between" style={{ background: "var(--elevated)" }}>
-                  <div>
-                    <strong style={{ color: "var(--fg)", fontSize: 13 }}>{prep.nome}</strong>
-                    <p className="text-[11px]" style={{ color: "var(--dim)" }}>
-                      Rendimento: {prep.rendimento}{prep.unidade} · {fmtBRL(unitCost)}/{prep.unidade}
-                    </p>
-                  </div>
-                  <div className="flex gap-1">
-                    <button onClick={() => { setEditar(prep); setModal("prep"); }} style={{ background: "var(--surface)", padding: 6, borderRadius: 6, border: "none", cursor: "pointer" }}><Edit3 size={12} style={{ color: "var(--muted)" }} /></button>
-                    <button onClick={() => removerPrep(prep.id)} style={{ background: "#EF444433", padding: 6, borderRadius: 6, border: "none", cursor: "pointer" }}><Trash2 size={12} style={{ color: "#EF4444" }} /></button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </Card>
-
-      {/* Ingredientes */}
-      <Card className="!p-4">
-        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <h3 style={{ fontWeight: 700, color: "var(--fg)" }}>🍾 Ingredientes do Bar ({ingBar.length})</h3>
-          <div className="flex gap-2">
-            <Btn variant="ghost" onClick={() => setImportar("ingredientes-bar")}><Download size={14} /> Importar</Btn>
-            <Btn variant="ghost" onClick={() => { setEditar(null); setModal("ing"); }}><Plus size={14} /> Novo</Btn>
-          </div>
-        </div>
-        {ingBar.length === 0 ? (
-          <p className="text-sm text-center" style={{ color: "var(--dim)", padding: 12 }}>Adicione bebidas, destilados, xaropes para usar em drinks.</p>
-        ) : (
-          <div className="space-y-2">
-            {ingBar.map((ing) => (
-              <div key={ing.id} className="p-2 rounded flex items-center justify-between" style={{ background: "var(--elevated)" }}>
-                <div>
-                  <strong style={{ color: "var(--fg)", fontSize: 13 }}>{ing.nome}</strong>
-                  <p className="text-[11px]" style={{ color: "var(--dim)" }}>
-                    {fmtBRL(ing.custo_unit)} / {ing.peso_unit}{ing.unidade} · {fmtBRL((ing.custo_unit / ing.peso_unit) * 1000)}/{ing.unidade === "g" ? "kg" : ing.unidade === "ml" ? "L" : "un"}
-                  </p>
-                </div>
-                <div className="flex gap-1">
-                  <button onClick={() => { setEditar(ing); setModal("ing"); }} style={{ background: "var(--surface)", padding: 6, borderRadius: 6, border: "none", cursor: "pointer" }}><Edit3 size={12} style={{ color: "var(--muted)" }} /></button>
-                  <button onClick={() => removerIng(ing.id)} style={{ background: "#EF444433", padding: 6, borderRadius: 6, border: "none", cursor: "pointer" }}><Trash2 size={12} style={{ color: "#EF4444" }} /></button>
-                </div>
-              </div>
-            ))}
           </div>
         )}
       </Card>

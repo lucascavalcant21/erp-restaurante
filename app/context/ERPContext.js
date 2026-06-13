@@ -93,28 +93,32 @@ export function ERPProvider({ children }) {
     try { localStorage.setItem("erp_departamento_ativo", dept); } catch (_) {}
   }, []);
 
-  // ── Carregar estoque ao montar ────────────────────────────────────────────
+  // ── Carregar estoque por unidade ──────────────────────────────────────────
   useEffect(() => {
-    fetchEstoque().then(({ data }) => {
+    setEstoqueReady(false);
+    fetchEstoque(unidadeAtiva).then(({ data }) => {
       setEstoque(data);
       setEstoqueReady(true);
-      // Gera notificações automáticas para itens críticos
-      const criticos = data.filter(i => i.quantidade <= i.minimo);
-      criticos.forEach(item => {
-        const id = `notif_est_${item.id}`;
-        setNotificacoes(prev => {
-          if (prev.some(n => n.id === id)) return prev;
-          return [{
-            id, tipo: "estoque_critico",
-            titulo: `Estoque crítico: ${item.nome}`,
-            corpo: `${item.quantidade} ${item.unidade} restantes (mín: ${item.minimo}).`,
-            lida: false,
-            data: new Date().toISOString(),
-          }, ...prev];
-        });
+      
+      const criticos = data.filter(i => (i.quantidade ?? 0) <= (i.minimo ?? 0));
+      
+      setNotificacoes(prev => {
+        // Limpa as notificações de estoque da unidade anterior (mantém as outras)
+        const filtradas = prev.filter(n => n.tipo !== "estoque_critico");
+        
+        const novas = criticos.map(item => ({
+          id: `notif_est_${item.id}`, 
+          tipo: "estoque_critico",
+          titulo: `Estoque crítico: ${item.nome}`,
+          corpo: `${item.quantidade} ${item.unidade} restantes (mín: ${item.minimo}).`,
+          lida: false,
+          data: new Date().toISOString(),
+        }));
+        
+        return [...novas, ...filtradas];
       });
     });
-  }, []);
+  }, [unidadeAtiva]);
 
   // ── Desconta item do estoque (chamado pela venda/cardápio) ─────────────────
   const descontarEstoque = useCallback((itemId, quantidade) => {

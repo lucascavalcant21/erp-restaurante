@@ -183,7 +183,7 @@ export default function CerebroDashboard() {
                   stroke="none"
                 >
                   {dadosPizza.map((entry, index) => (
-                    <Cell key={\`cell-\${index}\`} fill={entry.color} />
+                    <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
                 <RTooltip formatter={(value) => fmtBRL(value)} contentStyle={{ backgroundColor: 'var(--panel)', border: 'none', borderRadius: '8px', color: 'var(--fg)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />

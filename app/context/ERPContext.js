@@ -106,6 +106,11 @@ export function ERPProvider({ children }) {
         // Limpa as notificações de estoque da unidade anterior (mantém as outras)
         const filtradas = prev.filter(n => n.tipo !== "estoque_critico");
         
+        // O Cérebro tem sua própria central de Insights, então não deve receber notificações de estoque unitárias
+        if (unidadeAtiva === "todas") {
+          return filtradas;
+        }
+
         const novas = criticos.map(item => ({
           id: `notif_est_${item.id}`, 
           tipo: "estoque_critico",

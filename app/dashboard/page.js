@@ -10,6 +10,7 @@ import { PageBody, Card, SectionLabel, fmtBRL } from "../components/ui";
 import { useERP } from "../context/ERPContext";
 import { lerSessao } from "../lib/auth";
 import { fetchLancamentos } from "../lib/financeiro";
+import CerebroDashboard from "../components/CerebroDashboard";
 
 const ATALHOS = [
   { label: "Estoque", Icon: Package, href: "/dashboard/operacao/estoque" },
@@ -113,6 +114,10 @@ export default function DashboardPage() {
     const total = Object.values(map).reduce((s, v) => s + v, 0);
     return { total, itens: Object.entries(map).map(([cat, val]) => ({ cat, val, pct: total ? (val / total) * 100 : 0 })).sort((a, b) => b.val - a.val).slice(0, 5) };
   }, [lanc, cfg]);
+
+  if (unidadeAtiva === "todas") {
+    return <CerebroDashboard />;
+  }
 
   return (
     <div className="min-h-screen">

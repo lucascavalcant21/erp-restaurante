@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { ChefHat, TrendingUp, Check, AlertCircle, Edit3, Trash2, ToggleLeft, ToggleRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ChefHat, TrendingUp, Check, AlertCircle, Edit3, Trash2, ToggleLeft, ToggleRight, Tablet } from "lucide-react";
 import {
   PageHeader, PageBody, Card, SectionLabel, KpiGrid, Kpi,
   SearchBar, Chips, EmptyState, Modal, Field, TextInput, NumberInput, Select, Btn, Toast, fmtBRL, fmtPct,
@@ -67,6 +68,7 @@ function FormPrato({ inicial, onSalvar, onCancelar }) {
 }
 
 export default function CardapioPage() {
+  const router = useRouter();
   const { unidadeAtiva, unidadeInfo } = useERP();
   const [lista, setLista]     = useState([]);
   const [loading, setLoading] = useState(true);
@@ -119,7 +121,16 @@ export default function CardapioPage() {
   return (
     <div className="min-h-screen">
       <PageHeader title={`Cardápio ${unidadeInfo.nome}`} subtitle="Pratos, preços e margem de contribuição" icon={ChefHat}
-        onAction={() => { setEditar(null); setModal(true); }} actionLabel="Novo" />
+        onAction={() => { setEditar(null); setModal(true); }} actionLabel="Novo">
+        <button
+          onClick={() => router.push("/dashboard/operacao/cardapio/tablet")}
+          className="erp-btn erp-btn-ghost flex items-center gap-2 text-sm"
+          title="Modo tablet para a cozinha"
+          style={{ borderColor: "#10B981", color: "#10B981" }}
+        >
+          <Tablet size={16} /> Cozinha
+        </button>
+      </PageHeader>
       <PageBody>
         <Toast show={salvou}>Cardápio atualizado!</Toast>
 

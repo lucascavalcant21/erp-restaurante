@@ -201,6 +201,7 @@ export default function CervejasPage() {
   const opcoes = [
     { id: "catalogo", emoji: "🍺", titulo: "Catálogo", desc: "Marcas, estilos, preços e CMV", href: "/dashboard/cervejas/catalogo" },
     { id: "estoque", emoji: "📦", titulo: "Estoque", desc: "Controle de quantidades", href: "/dashboard/cervejas/estoque" },
+    { id: "tablet", emoji: "📱", titulo: "Modo Tablet — Sala de Cervejas", desc: "Interface quiosque para dar entrada e retirada no estoque de cervejas", href: "/dashboard/cervejas/tablet" },
   ];
 
   return (

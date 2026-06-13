@@ -172,15 +172,15 @@ export default function CerebroDashboard() {
   }
 
   const kpiBox = (label, value, Icon, color, sub) => (
-    <Card className="p-5 flex flex-col justify-between" style={{ background: `linear-gradient(145deg, rgba(15,23,42,1) 0%, rgba(15,23,42,0.4) 100%)`, borderLeft: `3px solid ${color}` }}>
-      <div className="flex justify-between items-start mb-2">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${color}15` }}>
-          <Icon size={20} style={{ color }} />
+    <Card className="p-5 flex flex-col justify-between" style={{ borderBottom: `4px solid ${color}`, boxShadow: `0 10px 30px -10px ${color}20` }}>
+      <div className="flex justify-between items-start mb-4">
+        <div className="w-11 h-11 rounded-2xl flex items-center justify-center" style={{ background: `${color}15` }}>
+          <Icon size={22} style={{ color }} />
         </div>
-        <p className="text-[10px] uppercase font-bold tracking-wider" style={{ color: "var(--dim)" }}>{label}</p>
+        <p className="text-[11px] uppercase font-bold tracking-widest mt-2" style={{ color: "var(--dim)" }}>{label}</p>
       </div>
       <div>
-        <p className="text-2xl font-black" style={{ color: "var(--fg)" }}>{value}</p>
+        <p className="text-3xl font-black tracking-tight" style={{ color: "var(--fg)" }}>{value}</p>
         {sub && <p className="text-xs font-semibold mt-1" style={{ color: "var(--muted)" }}>{sub}</p>}
       </div>
     </Card>

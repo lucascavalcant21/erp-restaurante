@@ -5,13 +5,14 @@ import { useRouter } from "next/navigation";
 import {
   ChefHat, DollarSign, TrendingUp, AlertTriangle, Clock, Plus,
   User, BookOpen, Minus, X, CheckCircle, XCircle, Package,
-  BarChart3, ArrowLeft, Flame, Edit3,
+  BarChart3, ArrowLeft, Flame, Edit3, Scale,
 } from "lucide-react";
 import {
   PageHeader, PageBody, Card, KpiGrid, Kpi, SearchBar, Toast, fmtBRL,
 } from "./ui";
 import { useERP } from "../context/ERPContext";
 import { fetchCardapio } from "../lib/cardapio";
+import { fetchDrinks } from "../lib/drinks";
 import { fetchEstoque } from "../lib/estoque";
 import { fetchFuncionarios } from "../lib/rh";
 import { fetchProducoes, registrarProducao, fetchFichaDoPrato, calcularResumo } from "../lib/producao";
@@ -28,11 +29,14 @@ const fmtHora = (iso) => {
   return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 };
 
+const UNIDADES_MEDIDA = ["KG", "g", "L", "ml", "UN"];
+
 // ─── Modal Nova Produção ─────────────────────────────────────────────────────
 function ModalNovaProducao({ pratos, estoque, funcionarios, setor, onConfirmar, onClose, loading }) {
   const [pratoId, setPratoId] = useState("");
   const [funcId, setFuncId] = useState("");
-  const [quantidade, setQuantidade] = useState(1);
+  const [quantidade, setQuantidade] = useState("");
+  const [unidadeMedida, setUnidadeMedida] = useState("KG");
   const [ficha, setFicha] = useState([]);
   const [ingredientes, setIngredientes] = useState([]);
   const [motivo, setMotivo] = useState("");
@@ -43,7 +47,9 @@ function ModalNovaProducao({ pratos, estoque, funcionarios, setor, onConfirmar, 
   const prato = pratos.find((p) => p.id === pratoId);
   const func = funcionarios.find((f) => f.id === funcId);
 
-  // Verifica se houve alteração
+  const labelSetor = setor === "bar" ? "Produção para Bar" : "Produção para Cozinha";
+
+  // Verifica se houve alteração nos ingredientes vs ficha técnica
   const teveAlteracao = ingredientes.some(
     (ing) => Math.abs((ing.qtd_usada || 0) - (ing.qtd_ficha || 0)) > 0.001
   );
@@ -55,7 +61,7 @@ function ModalNovaProducao({ pratos, estoque, funcionarios, setor, onConfirmar, 
       setLoadingFicha(true);
       const { data } = await fetchFichaDoPrato(pratoId);
       setFicha(data || []);
-      // Mapeia os ingredientes da ficha com os do estoque
+      const qtdNum = Number(quantidade) || 1;
       const mapped = (data || []).map((fi) => {
         const estoqueItem = estoque.find(
           (e) => e.nome?.toLowerCase() === fi.nome?.toLowerCase()
@@ -66,8 +72,8 @@ function ModalNovaProducao({ pratos, estoque, funcionarios, setor, onConfirmar, 
           estoque_id: estoqueItem?.id || null,
           nome: fi.nome,
           unidade: fi.unidade,
-          qtd_ficha: (fi.quantidade || 0) * quantidade,
-          qtd_usada: (fi.quantidade || 0) * quantidade,
+          qtd_ficha: (fi.quantidade || 0) * qtdNum,
+          qtd_usada: (fi.quantidade || 0) * qtdNum,
           custo_unit: fi.custo_unit || estoqueItem?.custo_unitario || estoqueItem?.preco_unit || 0,
           disponivel: estoqueItem?.quantidade || 0,
         };
@@ -84,20 +90,21 @@ function ModalNovaProducao({ pratos, estoque, funcionarios, setor, onConfirmar, 
   }
 
   async function confirmar() {
-    if (!pratoId) return setErro("Selecione o prato/drink.");
+    if (!pratoId) return setErro("Selecione o que foi produzido.");
     if (!funcId) return setErro("Selecione quem produziu.");
-    if (quantidade <= 0) return setErro("Quantidade deve ser maior que zero.");
-    if (pratoId && ingredientes.length === 0) return setErro("Este prato não possui ficha técnica cadastrada. Cadastre antes de registrar a produção.");
-    if (teveAlteracao && !motivo.trim()) return setErro("Informe o motivo da alteração nos ingredientes.");
-    if (!sobras.trim()) return setErro("Informe as sobras ou observações da produção.");
+    if (!quantidade || Number(quantidade) <= 0) return setErro("Informe a quantidade produzida.");
+    if (pratoId && ingredientes.length === 0) return setErro("Este item não possui ficha técnica cadastrada. Cadastre antes de registrar a produção.");
+    if (teveAlteracao && !motivo.trim()) return setErro("Houve alteração nos ingredientes. Informe o motivo obrigatoriamente.");
+    if (!sobras.trim()) return setErro("Informe as sobras ou resultado da produção.");
     setErro("");
 
     await onConfirmar({
       setor,
       prato_id: pratoId,
       prato_nome: prato?.nome || "",
-      prato_preco: Number(prato?.preco) || 0,
-      quantidade,
+      prato_preco: Number(prato?.preco || prato?.preco_venda) || 0,
+      quantidade: Number(quantidade),
+      unidade_medida: unidadeMedida,
       funcionario_id: funcId,
       funcionario_nome: func?.nome || "",
       motivo_alteracao: teveAlteracao ? motivo : null,
@@ -133,7 +140,7 @@ function ModalNovaProducao({ pratos, estoque, funcionarios, setor, onConfirmar, 
             </div>
             <div>
               <p style={{ color: "#94A3B8", fontSize: 12, fontWeight: 600, textTransform: "uppercase" }}>NOVA PRODUÇÃO</p>
-              <p style={{ color: "#F1F5F9", fontSize: 18, fontWeight: 700 }}>{setor === "bar" ? "Bar" : "Cozinha"}</p>
+              <p style={{ color: "#F1F5F9", fontSize: 18, fontWeight: 700 }}>{labelSetor}</p>
             </div>
           </div>
           <button onClick={onClose} style={{ color: "#64748B", background: "none", border: "none", cursor: "pointer" }}>
@@ -144,10 +151,10 @@ function ModalNovaProducao({ pratos, estoque, funcionarios, setor, onConfirmar, 
         {/* Body */}
         <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 20 }}>
 
-          {/* Prato / Drink */}
+          {/* O que foi produzido */}
           <div>
             <label style={{ display: "flex", alignItems: "center", gap: 6, color: "#64748B", fontSize: 12, fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              <BookOpen size={14} /> O que foi produzido?
+              <BookOpen size={14} /> {labelSetor} — O que foi produzido? *
             </label>
             <select value={pratoId} onChange={(e) => { setPratoId(e.target.value); setErro(""); }}
               style={{
@@ -156,9 +163,11 @@ function ModalNovaProducao({ pratos, estoque, funcionarios, setor, onConfirmar, 
                 color: pratoId ? "#F1F5F9" : "#64748B", fontSize: 16, fontWeight: 600,
                 outline: "none", cursor: "pointer",
               }}>
-              <option value="">Selecione o prato/drink...</option>
+              <option value="">Selecione...</option>
               {pratos.map((p) => (
-                <option key={p.id} value={p.id}>{p.nome} — {fmtBRL(p.preco)}</option>
+                <option key={p.id} value={p.id}>
+                  {p.nome} — {fmtBRL(p.preco || p.preco_venda || 0)}
+                </option>
               ))}
             </select>
           </div>
@@ -166,7 +175,7 @@ function ModalNovaProducao({ pratos, estoque, funcionarios, setor, onConfirmar, 
           {/* Quem produziu */}
           <div>
             <label style={{ display: "flex", alignItems: "center", gap: 6, color: "#64748B", fontSize: 12, fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              <User size={14} /> Quem produziu?
+              <User size={14} /> Quem produziu? *
             </label>
             <select value={funcId} onChange={(e) => { setFuncId(e.target.value); setErro(""); }}
               style={{
@@ -182,25 +191,38 @@ function ModalNovaProducao({ pratos, estoque, funcionarios, setor, onConfirmar, 
             </select>
           </div>
 
-          {/* Quantidade produzida */}
+          {/* Quantidade produzida + Unidade de medida */}
           <div>
-            <label style={{ color: "#64748B", fontSize: 12, fontWeight: 700, marginBottom: 8, display: "block", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              Quantidade produzida
+            <label style={{ display: "flex", alignItems: "center", gap: 6, color: "#64748B", fontSize: 12, fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              <Scale size={14} /> Quantidade produzida *
             </label>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <button onClick={() => setQuantidade((q) => Math.max(1, q - 1))}
-                style={{ width: 52, height: 52, borderRadius: 12, background: "#334155", border: "none", color: "#F1F5F9", fontSize: 22, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <button onClick={() => setQuantidade((q) => String(Math.max(0.1, (Number(q) || 1) - 1)))}
+                style={{ width: 52, height: 52, borderRadius: 12, background: "#334155", border: "none", color: "#F1F5F9", fontSize: 22, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <Minus size={20} />
               </button>
-              <input type="number" value={quantidade} min="1" step="1"
-                onChange={(e) => setQuantidade(Math.max(1, Number(e.target.value)))}
+              <input type="number" value={quantidade} min="0.01" step="0.1"
+                placeholder="0"
+                onChange={(e) => setQuantidade(e.target.value)}
                 style={{
                   flex: 1, height: 52, textAlign: "center", borderRadius: 12,
                   background: "#0F172A", border: "1.5px solid #334155",
                   color: "#F1F5F9", fontSize: 22, fontWeight: 700, outline: "none",
+                  minWidth: 0,
                 }} />
-              <button onClick={() => setQuantidade((q) => q + 1)}
-                style={{ width: 52, height: 52, borderRadius: 12, background: "#334155", border: "none", color: "#F1F5F9", fontSize: 22, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <select value={unidadeMedida} onChange={(e) => setUnidadeMedida(e.target.value)}
+                style={{
+                  width: 90, height: 52, padding: "0 10px", borderRadius: 12,
+                  background: "#0F172A", border: "1.5px solid #334155",
+                  color: "#F1F5F9", fontSize: 16, fontWeight: 700,
+                  outline: "none", cursor: "pointer", textAlign: "center", flexShrink: 0,
+                }}>
+                {UNIDADES_MEDIDA.map((u) => (
+                  <option key={u} value={u}>{u}</option>
+                ))}
+              </select>
+              <button onClick={() => setQuantidade((q) => String((Number(q) || 0) + 1))}
+                style={{ width: 52, height: 52, borderRadius: 12, background: "#334155", border: "none", color: "#F1F5F9", fontSize: 22, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <Plus size={20} />
               </button>
             </div>
@@ -210,18 +232,18 @@ function ModalNovaProducao({ pratos, estoque, funcionarios, setor, onConfirmar, 
           {pratoId && (
             <div>
               <label style={{ display: "flex", alignItems: "center", gap: 6, color: "#64748B", fontSize: 12, fontWeight: 700, marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                <Package size={14} /> Ingredientes utilizados
+                <Package size={14} /> Ingredientes utilizados (da ficha técnica)
               </label>
               {loadingFicha ? (
                 <p style={{ color: "#475569", fontSize: 14, padding: "16px 0" }}>Carregando ficha técnica...</p>
               ) : ingredientes.length === 0 ? (
-                <div style={{ background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.3)", borderRadius: 12, padding: "14px 16px" }}>
-                  <p style={{ color: "#F97316", fontSize: 13, fontWeight: 600 }}>
-                    ⚠ Nenhuma ficha técnica cadastrada para este prato. A baixa no estoque não será feita automaticamente.
+                <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 12, padding: "14px 16px" }}>
+                  <p style={{ color: "#EF4444", fontSize: 13, fontWeight: 600 }}>
+                    ⚠ Nenhuma ficha técnica cadastrada para este item. Cadastre a ficha técnica antes de registrar a produção.
                   </p>
                 </div>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: 250, overflowY: "auto" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: 280, overflowY: "auto" }}>
                   {ingredientes.map((ing, idx) => {
                     const alterado = Math.abs((ing.qtd_usada || 0) - (ing.qtd_ficha || 0)) > 0.001;
                     return (
@@ -239,20 +261,20 @@ function ModalNovaProducao({ pratos, estoque, funcionarios, setor, onConfirmar, 
                           )}
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
-                          <span style={{ color: "#64748B", fontSize: 12, minWidth: 80 }}>
+                          <span style={{ color: "#64748B", fontSize: 12, minWidth: 100 }}>
                             Receita: {ing.qtd_ficha} {ing.unidade}
                           </span>
                           <input type="number" value={ing.qtd_usada} step="0.1" min="0"
                             onChange={(e) => atualizarQtdUsada(idx, e.target.value)}
                             style={{
                               flex: 1, height: 38, textAlign: "center", borderRadius: 10,
-                              background: "#1E293B", border: "1px solid #475569",
+                              background: "#1E293B", border: `1px solid ${alterado ? "#F97316" : "#475569"}`,
                               color: "#F1F5F9", fontSize: 15, fontWeight: 600, outline: "none",
                             }} />
                           <span style={{ color: "#475569", fontSize: 12 }}>{ing.unidade}</span>
                         </div>
                         <p style={{ color: "#475569", fontSize: 11 }}>
-                          Disponível no estoque: {ing.disponivel} {ing.unidade} · Custo: {fmtBRL(ing.custo_unit)}/{ing.unidade}
+                          Disponível: {ing.disponivel} {ing.unidade} · Custo: {fmtBRL(ing.custo_unit)}/{ing.unidade}
                         </p>
                       </div>
                     );
@@ -262,27 +284,32 @@ function ModalNovaProducao({ pratos, estoque, funcionarios, setor, onConfirmar, 
             </div>
           )}
 
-          {/* Motivo da alteração (sempre visível, obrigatório se alterou) */}
-          <div>
-            <label style={{ display: "flex", alignItems: "center", gap: 6, color: teveAlteracao ? "#F97316" : "#64748B", fontSize: 12, fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              <Edit3 size={14} /> Motivo / Observação da produção {teveAlteracao ? "*" : "*"}
-            </label>
-            <input value={motivo} onChange={(e) => { setMotivo(e.target.value); setErro(""); }}
-              placeholder={teveAlteracao ? "OBRIGATÓRIO: houve alteração nos ingredientes. Informe o motivo..." : "Ex: Produção do dia, reposição, pedido especial..."}
-              style={{
-                width: "100%", height: 52, padding: "0 16px", borderRadius: 12,
-                background: "#0F172A", border: `1.5px solid ${teveAlteracao ? "#F97316" : "#334155"}`,
-                color: "#F1F5F9", fontSize: 15, outline: "none",
-              }} />
-          </div>
+          {/* Motivo da alteração — SÓ aparece se alterou ingredientes */}
+          {teveAlteracao && (
+            <div style={{ background: "rgba(249,115,22,0.06)", border: "1.5px solid #F97316", borderRadius: 14, padding: 16 }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 6, color: "#F97316", fontSize: 12, fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                <AlertTriangle size={14} /> Motivo da alteração nos ingredientes *
+              </label>
+              <p style={{ color: "#94A3B8", fontSize: 12, marginBottom: 10 }}>
+                A quantidade utilizada está diferente da ficha técnica. Informe o motivo:
+              </p>
+              <input value={motivo} onChange={(e) => { setMotivo(e.target.value); setErro(""); }}
+                placeholder="Ex: Usou mais farinha pois a massa ficou seca, ingrediente menor que o padrão..."
+                style={{
+                  width: "100%", height: 52, padding: "0 16px", borderRadius: 12,
+                  background: "#0F172A", border: "1.5px solid #F97316",
+                  color: "#F1F5F9", fontSize: 15, outline: "none",
+                }} />
+            </div>
+          )}
 
-          {/* Sobras */}
+          {/* Sobras / Resultado */}
           <div>
             <label style={{ color: "#64748B", fontSize: 12, fontWeight: 700, marginBottom: 8, display: "block", textTransform: "uppercase", letterSpacing: "0.05em" }}>
               Sobras / Resultado da produção *
             </label>
             <input value={sobras} onChange={(e) => { setSobras(e.target.value); setErro(""); }}
-              placeholder="Ex: Sobrou 2 porções, nada sobrou, massa guardada..."
+              placeholder="Ex: Nada sobrou, sobrou 2 porções, massa guardada na geladeira..."
               style={{
                 width: "100%", height: 52, padding: "0 16px", borderRadius: 12,
                 background: "#0F172A", border: "1.5px solid #334155",
@@ -290,7 +317,7 @@ function ModalNovaProducao({ pratos, estoque, funcionarios, setor, onConfirmar, 
               }} />
           </div>
 
-          {/* Resumo de custo */}
+          {/* Resumo financeiro */}
           {pratoId && ingredientes.length > 0 && (
             <div style={{ background: "#0F172A", borderRadius: 14, padding: 16, border: "1px solid #334155" }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
@@ -300,15 +327,17 @@ function ModalNovaProducao({ pratos, estoque, funcionarios, setor, onConfirmar, 
                 </span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                <span style={{ color: "#64748B", fontSize: 13 }}>Receita potencial ({quantidade}x {fmtBRL(prato?.preco)}):</span>
+                <span style={{ color: "#64748B", fontSize: 13 }}>
+                  Receita potencial ({quantidade || 0} {unidadeMedida} x {fmtBRL(prato?.preco || prato?.preco_venda || 0)}):
+                </span>
                 <span style={{ color: "#10B981", fontSize: 14, fontWeight: 700 }}>
-                  {fmtBRL((prato?.preco || 0) * quantidade)}
+                  {fmtBRL((prato?.preco || prato?.preco_venda || 0) * (Number(quantidade) || 0))}
                 </span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #334155", paddingTop: 8 }}>
                 <span style={{ color: "#94A3B8", fontSize: 13, fontWeight: 600 }}>Lucro estimado:</span>
                 <span style={{ color: "#3B82F6", fontSize: 15, fontWeight: 800 }}>
-                  {fmtBRL((prato?.preco || 0) * quantidade - ingredientes.reduce((a, i) => a + (i.qtd_usada || 0) * (i.custo_unit || 0), 0))}
+                  {fmtBRL((prato?.preco || prato?.preco_venda || 0) * (Number(quantidade) || 0) - ingredientes.reduce((a, i) => a + (i.qtd_usada || 0) * (i.custo_unit || 0), 0))}
                 </span>
               </div>
             </div>
@@ -360,14 +389,19 @@ export default function ProducaoModule({ setor }) {
 
   const carregar = useCallback(async () => {
     setLoading(true);
-    const [resP, resC, resE, resF] = await Promise.all([
+    const [resP, resItens, resE, resF] = await Promise.all([
       fetchProducoes(unidadeAtiva, setor),
-      fetchCardapio(unidadeAtiva),
+      // Bar puxa do módulo Drinks, Cozinha puxa do Cardápio
+      setor === "bar" ? fetchDrinks(unidadeAtiva) : fetchCardapio(unidadeAtiva),
       fetchEstoque(unidadeAtiva),
       fetchFuncionarios(unidadeAtiva),
     ]);
     setProducoes(resP.data || []);
-    setPratos((resC.data || []).filter((p) => p.ativo !== false));
+
+    // Normaliza: drinks têm preco_venda, cardapio tem preco
+    const itens = (resItens.data || []).filter((p) => p.ativo !== false);
+    setPratos(itens);
+
     setEstoque(resE.data || []);
     setFuncionarios((resF.data || []).filter((f) => f.ativo !== false && f.status !== "inativo"));
     setLoading(false);
@@ -377,7 +411,6 @@ export default function ProducaoModule({ setor }) {
 
   const resumo = useMemo(() => calcularResumo(producoes), [producoes]);
 
-  // Histórico filtrado pela busca
   const historicoFiltrado = useMemo(() =>
     producoes.filter((p) =>
       p.prato_nome?.toLowerCase().includes(busca.toLowerCase())
@@ -397,7 +430,7 @@ export default function ProducaoModule({ setor }) {
     carregar();
   }
 
-  const titulo = setor === "bar" ? "🍹 Produção — Bar" : "👨‍🍳 Produção — Cozinha";
+  const titulo = setor === "bar" ? "🍹 Produção para Bar" : "👨‍🍳 Produção para Cozinha";
   const subtitulo = "Registro de produção, baixa no estoque e análise financeira";
 
   return (
@@ -419,10 +452,9 @@ export default function ProducaoModule({ setor }) {
           <Kpi icon={Flame} label="Itens Produzidos" value={resumo.totalProduzido} tint="#F97316" />
         </KpiGrid>
 
-        {/* Barra de busca */}
-        <SearchBar value={busca} onChange={setBusca} placeholder="Buscar por prato ou funcionário..." />
+        <SearchBar value={busca} onChange={setBusca} placeholder="Buscar por produção ou funcionário..." />
 
-        {/* Histórico de produções */}
+        {/* Histórico */}
         <div className="space-y-3">
           <p className="text-xs font-bold uppercase" style={{ color: "var(--dim)", letterSpacing: "0.05em" }}>
             Histórico de Produções ({historicoFiltrado.length})
@@ -439,7 +471,7 @@ export default function ProducaoModule({ setor }) {
                 Nenhuma produção registrada ainda
               </p>
               <p style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>
-                Clique em "Nova Produção" para começar
+                Clique em &quot;Nova Produção&quot; para começar
               </p>
             </Card>
           ) : (
@@ -449,7 +481,6 @@ export default function ProducaoModule({ setor }) {
 
               return (
                 <Card key={p.id} className="!p-4">
-                  {/* Cabeçalho do card */}
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="flex items-center gap-3">
                       <div style={{
@@ -474,36 +505,28 @@ export default function ProducaoModule({ setor }) {
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <p className="text-lg font-extrabold" style={{ color: "#F97316" }}>{p.quantidade}x</p>
+                      <p className="text-lg font-extrabold" style={{ color: "#F97316" }}>
+                        {p.quantidade}{p.unidade_medida ? ` ${p.unidade_medida}` : "x"}
+                      </p>
                     </div>
                   </div>
 
                   {/* Financeiro */}
                   <div className="flex gap-3 mb-3 flex-wrap">
-                    <div style={{
-                      background: "rgba(239,68,68,0.08)", borderRadius: 10, padding: "8px 12px",
-                      flex: 1, minWidth: 120,
-                    }}>
+                    <div style={{ background: "rgba(239,68,68,0.08)", borderRadius: 10, padding: "8px 12px", flex: 1, minWidth: 120 }}>
                       <p style={{ color: "#64748B", fontSize: 10, fontWeight: 700, textTransform: "uppercase" }}>Custo</p>
                       <p style={{ color: "#EF4444", fontSize: 16, fontWeight: 800 }}>{fmtBRL(p.custo_total)}</p>
                     </div>
-                    <div style={{
-                      background: "rgba(16,185,129,0.08)", borderRadius: 10, padding: "8px 12px",
-                      flex: 1, minWidth: 120,
-                    }}>
+                    <div style={{ background: "rgba(16,185,129,0.08)", borderRadius: 10, padding: "8px 12px", flex: 1, minWidth: 120 }}>
                       <p style={{ color: "#64748B", fontSize: 10, fontWeight: 700, textTransform: "uppercase" }}>Receita Potencial</p>
                       <p style={{ color: "#10B981", fontSize: 16, fontWeight: 800 }}>{fmtBRL(p.receita_potencial)}</p>
                     </div>
-                    <div style={{
-                      background: "rgba(59,130,246,0.08)", borderRadius: 10, padding: "8px 12px",
-                      flex: 1, minWidth: 120,
-                    }}>
+                    <div style={{ background: "rgba(59,130,246,0.08)", borderRadius: 10, padding: "8px 12px", flex: 1, minWidth: 120 }}>
                       <p style={{ color: "#64748B", fontSize: 10, fontWeight: 700, textTransform: "uppercase" }}>Lucro</p>
                       <p style={{ color: "#3B82F6", fontSize: 16, fontWeight: 800 }}>{fmtBRL((p.receita_potencial || 0) - (p.custo_total || 0))}</p>
                     </div>
                   </div>
 
-                  {/* Alteração */}
                   {p.teve_alteracao && (
                     <div style={{
                       background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.25)",
@@ -516,7 +539,6 @@ export default function ProducaoModule({ setor }) {
                     </div>
                   )}
 
-                  {/* Ingredientes usados (colapsável) */}
                   {ings.length > 0 && (
                     <details style={{ marginTop: 4 }}>
                       <summary style={{ color: "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", marginBottom: 6 }}>
@@ -532,10 +554,7 @@ export default function ProducaoModule({ setor }) {
                               background: alt ? "rgba(249,115,22,0.06)" : "transparent",
                             }}>
                               <span style={{ color: "var(--fg)", fontSize: 13 }}>{ing.nome}</span>
-                              <span style={{
-                                color: alt ? "#F97316" : "var(--dim)",
-                                fontSize: 12, fontWeight: 600,
-                              }}>
+                              <span style={{ color: alt ? "#F97316" : "var(--dim)", fontSize: 12, fontWeight: 600 }}>
                                 {alt && <span style={{ textDecoration: "line-through", marginRight: 6, opacity: 0.5 }}>{ing.qtd_ficha}</span>}
                                 {ing.qtd_usada} {ing.unidade}
                               </span>
@@ -546,7 +565,6 @@ export default function ProducaoModule({ setor }) {
                     </details>
                   )}
 
-                  {/* Sobras */}
                   {p.sobras && (
                     <p style={{ color: "var(--muted)", fontSize: 12, marginTop: 8 }}>
                       💡 Sobras: {p.sobras}
@@ -559,7 +577,6 @@ export default function ProducaoModule({ setor }) {
         </div>
       </PageBody>
 
-      {/* Modal */}
       {modal && (
         <ModalNovaProducao
           pratos={pratos}

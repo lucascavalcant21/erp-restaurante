@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS producoes (
   prato_nome          text not null,
   prato_preco         numeric not null default 0,
   quantidade          numeric not null default 1,
+  unidade_medida      text,
   custo_total         numeric not null default 0,
   receita_potencial   numeric not null default 0,
   funcionario_id      uuid,

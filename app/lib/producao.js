@@ -85,6 +85,7 @@ export async function registrarProducao(prod, ingredientes, unidadeId) {
     prato_nome: prod.prato_nome,
     prato_preco: prod.prato_preco || 0,
     quantidade: prod.quantidade || 1,
+    unidade_medida: prod.unidade_medida || null,
     custo_total: custoTotal,
     receita_potencial: receitaPotencial,
     funcionario_id: prod.funcionario_id || null,

@@ -58,16 +58,18 @@ export function ERPProvider({ children }) {
   const [unidadeAtiva, setUnidadeAtivaState] = useState(CENTRAL.id);
   const [departamento, setDepartamentoState] = useState(null); // bar, cozinha, cervejas
   const [podeTrocar,   setPodeTrocar]        = useState(true);
+  const [sessao,       setSessao]            = useState(null);
 
   // Inicializa a unidade a partir da sessão (papel) e da última escolha salva
   useEffect(() => {
     let vivo = true;
-    lerSessao().then((sessao) => {
+    lerSessao().then((sessaoObj) => {
       if (!vivo) return;
-      const trocar = podeVerTodas(sessao?.papel);
+      setSessao(sessaoObj);
+      const trocar = podeVerTodas(sessaoObj?.papel);
       setPodeTrocar(trocar);
 
-      const padrao = unidadeDaSessao(sessao);
+      const padrao = unidadeDaSessao(sessaoObj);
       if (trocar) {
         const salva = typeof window !== "undefined" ? localStorage.getItem(UNIDADE_KEY) : null;
         const valida = salva === CENTRAL.id || UNIDADES.some(u => u.id === salva);
@@ -170,6 +172,8 @@ export function ERPProvider({ children }) {
 
   return (
     <ERPContext.Provider value={{
+      // Sessão e Permissões
+      sessao,
       // Unidade (multiunidade)
       unidades: UNIDADES, unidadeAtiva, setUnidadeAtiva, podeTrocar,
       unidadeInfo: getUnidade(unidadeAtiva), isCentral: unidadeAtiva === CENTRAL.id,

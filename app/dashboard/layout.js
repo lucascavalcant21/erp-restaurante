@@ -111,6 +111,7 @@ const MENU_GROUPS = [
   {
     id: "operacao", label: "OPERAÇÃO",
     items: [
+      { id: "tarefas",  label: "📋 Minhas Tarefas", Icon: Ic.Checklist, href: "/dashboard/tarefas" },
       { id: "bar",      label: "🍹 Bar",      Icon: Ic.MenuBook, href: "/dashboard/bar" },
       { id: "cozinha",  label: "👨‍🍳 Cozinha", Icon: Ic.ChefHat,  href: "/dashboard/cozinha" },
       { id: "cervejas", label: "🍺 Cervejas", Icon: Ic.Beer,     href: "/dashboard/cervejas" },
@@ -125,7 +126,8 @@ const MENU_GROUPS = [
   {
     id: "gestao", label: "⚙️ GESTÃO",
     items: [
-      { id: "gestao", label: "⚙️ Gestão", Icon: Ic.Calendar, href: "/dashboard/gestao" },
+      { id: "gestao", label: "⚙️ Gestão Geral", Icon: Ic.Calendar, href: "/dashboard/gestao" },
+      { id: "gestao_tarefas", label: "📋 Motor de Tarefas", Icon: Ic.Checklist, href: "/dashboard/gestao/tarefas" },
     ],
   },
   {
@@ -189,6 +191,8 @@ function getNavId(pathname) {
   if (pathname.includes("/campanhas"))    return "campanhas";
   if (pathname.includes("/nps"))          return "nps";
   if (pathname.includes("/heitor"))       return "heitor";
+  if (pathname.includes("/gestao/tarefas")) return "gestao_tarefas";
+  if (pathname.includes("/tarefas"))      return "tarefas";
   return "dashboard";
 }
 

@@ -15,8 +15,8 @@ export const PAPEIS = [
   {
     id: "gerente", label: "Gerente de Unidade", cor: "#10b981",
     descricao: "Gestão completa da sua loja (sem visão consolidada da rede).",
-    home: "/dashboard",
-    nav: ["dashboard","bar","cozinha","cervejas","vendas","drinks","montagem","notificacoes","rotina","ingredientes","fichas","cardapio","estoque","fornecedores","eventos","etiquetas","validade","gestao","financeiro","dre","fluxo","cmv","margem","documentos","rh","gestao_rh","ponto","colaborador","clientes","crm","campanhas","nps","heitor"],
+    home: "/dashboard/tarefas",
+    nav: ["dashboard","tarefas","bar","cozinha","cervejas","vendas","drinks","montagem","notificacoes","rotina","ingredientes","fichas","cardapio","estoque","fornecedores","eventos","etiquetas","validade","gestao","financeiro","dre","fluxo","cmv","margem","documentos","rh","gestao_rh","ponto","colaborador","clientes","crm","campanhas","nps","heitor"],
   },
   {
     id: "financeiro", label: "Financeiro", cor: "#3b82f6",
@@ -33,14 +33,14 @@ export const PAPEIS = [
   {
     id: "estoque", label: "Estoquista", cor: "#8b5cf6",
     descricao: "Insumos, estoque, fichas, cardápio e fornecedores.",
-    home: "/dashboard/operacao/estoque",
-    nav: ["notificacoes","bar","cozinha","cervejas","estoque","ingredientes","fichas","cardapio","fornecedores","etiquetas","validade","gestao"],
+    home: "/dashboard/tarefas",
+    nav: ["tarefas","notificacoes","bar","cozinha","cervejas","estoque","ingredientes","fichas","cardapio","fornecedores","etiquetas","validade","gestao"],
   },
   {
     id: "cozinha", label: "Cozinha / Chef", cor: "#f97316",
     descricao: "Fichas técnicas, cardápio e insumos.",
-    home: "/dashboard/operacao/cardapio",
-    nav: ["notificacoes","bar","cozinha","ingredientes","fichas","cardapio","montagem","estoque","etiquetas","validade","gestao"],
+    home: "/dashboard/tarefas",
+    nav: ["tarefas","notificacoes","bar","cozinha","ingredientes","fichas","cardapio","montagem","estoque","etiquetas","validade","gestao"],
   },
   {
     id: "marketing", label: "Marketing", cor: "#f59e0b",
@@ -51,12 +51,17 @@ export const PAPEIS = [
   {
     id: "caixa", label: "Operador de Caixa", cor: "#64748b",
     descricao: "Ponto de venda, painel e notificações do dia.",
-    home: "/dashboard/vendas", nav: ["dashboard","vendas","notificacoes"],
+    home: "/dashboard/tarefas", nav: ["dashboard","tarefas","vendas","notificacoes"],
   },
 ];
 
 export function getPapel(papelId) {
   return PAPEIS.find((p) => p.id === papelId) || PAPEIS[0];
+}
+
+/** Verifica se o papel logado é o Cérebro (Administrador Master) */
+export function isCerebro(papelId) {
+  return papelId === "admin";
 }
 
 /** Rota inicial do papel (pra onde vai ao logar). */

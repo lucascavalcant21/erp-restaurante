@@ -9,6 +9,7 @@ import {
 } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
 import { fetchCardapio, inserirPrato, atualizarPrato, removerPrato } from "../../../lib/cardapio";
+import { isCerebro } from "../../../lib/auth";
 
 const CATEGORIAS = ["Marmita", "Salada", "Prato Principal", "Lanche", "Sobremesa", "Combo", "Bebida", "Drink", "Coquetel", "Dose"];
 const SETORES = ["Cozinha", "Bar"];
@@ -69,7 +70,8 @@ function FormPrato({ inicial, onSalvar, onCancelar }) {
 
 export default function CardapioPage() {
   const router = useRouter();
-  const { unidadeAtiva, unidadeInfo } = useERP();
+  const { unidadeAtiva, unidadeInfo, sessao } = useERP();
+  const isCerebroAdmin = sessao ? isCerebro(sessao.papel) : false;
   const [lista, setLista]     = useState([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca]     = useState("");
@@ -121,7 +123,7 @@ export default function CardapioPage() {
   return (
     <div className="min-h-screen">
       <PageHeader title={`Cardápio ${unidadeInfo.nome}`} subtitle="Pratos, preços e margem de contribuição" icon={ChefHat}
-        onAction={() => { setEditar(null); setModal(true); }} actionLabel="Novo">
+        onAction={isCerebroAdmin ? () => { setEditar(null); setModal(true); } : undefined} actionLabel={isCerebroAdmin ? "Novo" : undefined}>
         <button
           onClick={() => router.push("/dashboard/operacao/cardapio/tablet")}
           className="erp-btn erp-btn-ghost flex items-center gap-2 text-sm"
@@ -178,11 +180,15 @@ export default function CardapioPage() {
                       <span>MC {fmtPct(m.mc)}</span>
                     </div>
                     <div className="flex gap-2" style={{ borderTop: "1px solid var(--line)", paddingTop: 10 }}>
-                      <button onClick={() => toggle(p)} className="flex-1 flex items-center justify-center gap-1 py-2 text-[11px] font-bold rounded-lg" style={{ background: "var(--elevated)", color: "var(--muted)" }}>
+                      <button onClick={isCerebroAdmin ? () => toggle(p) : undefined} className="flex-1 flex items-center justify-center gap-1 py-2 text-[11px] font-bold rounded-lg" style={{ background: "var(--elevated)", color: "var(--muted)", opacity: isCerebroAdmin ? 1 : 0.5, cursor: isCerebroAdmin ? "pointer" : "default" }}>
                         {p.ativo ? <ToggleRight size={15} /> : <ToggleLeft size={15} />} {p.ativo ? "Pausar" : "Ativar"}
                       </button>
-                      <button onClick={() => { setEditar(p); setModal(true); }} className="w-9 flex items-center justify-center rounded-lg" style={{ background: "var(--elevated)" }}><Edit3 size={14} style={{ color: "var(--muted)" }} /></button>
-                      <button onClick={() => remover(p.id)} className="w-9 flex items-center justify-center rounded-lg erp-badge-danger"><Trash2 size={14} /></button>
+                      {isCerebroAdmin && (
+                        <>
+                          <button onClick={() => { setEditar(p); setModal(true); }} className="w-9 flex items-center justify-center rounded-lg" style={{ background: "var(--elevated)" }}><Edit3 size={14} style={{ color: "var(--muted)" }} /></button>
+                          <button onClick={() => remover(p.id)} className="w-9 flex items-center justify-center rounded-lg erp-badge-danger"><Trash2 size={14} /></button>
+                        </>
+                      )}
                     </div>
                   </Card>
                 );

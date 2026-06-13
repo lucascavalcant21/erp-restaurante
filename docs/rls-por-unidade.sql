@@ -75,7 +75,6 @@ BEGIN
     'ingredientes',
     'cardapio',
     'fichas_tecnicas',
-    'ficha_itens',
     'funcionarios',
     'registros_ponto',
     'holerites',
@@ -110,7 +109,7 @@ BEGIN
       EXECUTE format('DROP POLICY IF EXISTS "rls_unidade" ON public.%I;', t);
 
       -- Cria a nova policy por unidade
-      EXECUTE format($$
+      EXECUTE format($policy$
         CREATE POLICY "rls_unidade" ON public.%I
           FOR ALL
           TO authenticated
@@ -124,7 +123,7 @@ BEGIN
             OR unidade_id = auth_unidade_id()
             OR unidade_id IS NULL
           );
-      $$, t);
+      $policy$, t);
 
       RAISE NOTICE 'RLS por unidade aplicado em: %', t;
     ELSE
@@ -141,6 +140,7 @@ GRANT SELECT ON public.unidades TO authenticated;
 
 DROP POLICY IF EXISTS "auth_full_access" ON public.unidades;
 DROP POLICY IF EXISTS "rls_unidade" ON public.unidades;
+DROP POLICY IF EXISTS "todos_authenticated_leem" ON public.unidades;
 CREATE POLICY "todos_authenticated_leem" ON public.unidades
   FOR SELECT TO authenticated
   USING (true);

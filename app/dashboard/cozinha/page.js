@@ -15,6 +15,7 @@ export default function CozinhaPage() {
 
   const opcoes = [
     { id: "cardapio", emoji: "🍽️", titulo: "Cardápio", desc: "Menu completo, preços de venda e composição", href: "/dashboard/operacao/cardapio" },
+    { id: "producao", emoji: "🔥", titulo: "Produção", desc: "Registro de produção, baixa no estoque e análise financeira", href: "/dashboard/cozinha/producao" },
     { id: "rotina", emoji: "📋", titulo: "Operação", desc: "Fluxo de trabalho diário, tarefas e metas", href: "/dashboard/operacao/rotina" },
     { id: "fichas", emoji: "📄", titulo: "Fichas Técnicas", desc: "Receitas, modo de preparo e ingredientes", href: "/dashboard/operacao/fichas" },
     { id: "montagem", emoji: "📝", titulo: "Montagem", desc: "Fichas de montagem com foto e passo a passo", href: "/dashboard/operacao/montagem?dept=cozinha" },

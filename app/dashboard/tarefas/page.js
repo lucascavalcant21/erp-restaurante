@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Checklist, CheckCircle, Clock, AlertTriangle, ArrowRight } from "lucide-react";
+import { ListChecks, CheckCircle, Clock, AlertTriangle, ArrowRight } from "lucide-react";
 import { PageHeader, PageBody, Card, EmptyState, SectionLabel, Btn, Toast, fmtData } from "../../components/ui";
 import { useERP } from "../../context/ERPContext";
 import { fetchMinhasTarefas, responderTarefa } from "../../lib/tarefas";
@@ -92,7 +92,7 @@ export default function MinhasTarefasPage() {
 
   return (
     <div className="min-h-screen">
-      <PageHeader title="Minhas Tarefas" subtitle="Atividades diárias enviadas pelo Cérebro" icon={Checklist} />
+      <PageHeader title="Minhas Tarefas" subtitle="Atividades diárias enviadas pelo Cérebro" icon={ListChecks} />
       <PageBody>
         <Toast show={salvou}>Tarefa concluída com sucesso!</Toast>
 

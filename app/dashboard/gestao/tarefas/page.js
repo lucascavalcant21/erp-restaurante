@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Checklist, Plus, Send, Edit, Trash, Server, FileText } from "lucide-react";
+import { ListChecks, Plus, Send, Edit, Trash, Server, FileText } from "lucide-react";
 import { PageHeader, PageBody, Card, SectionLabel, Modal, Btn, Field, TextInput, Select, Toast } from "../../../components/ui";
 import { fetchTemplates, inserirTemplate, criarInstancia } from "../../../lib/tarefas";
 import { UNIDADES } from "../../../lib/unidades";

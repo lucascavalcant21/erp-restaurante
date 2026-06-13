@@ -101,14 +101,14 @@ const Ic = {
 
 const MENU_GROUPS = [
   {
-    id: "visao_geral", label: "DASHBOARD",
+    id: "visao_geral", label: "DASHBOARD", scope: "ambos",
     items: [
       { id: "dashboard",    label: "Painel Inicial",       Icon: Ic.Dashboard, href: "/dashboard" },
       { id: "notificacoes", label: "Notificações",         Icon: Ic.Bell,      href: "/dashboard/notificacoes" },
     ],
   },
   {
-    id: "operacao", label: "OPERAÇÃO",
+    id: "operacao", label: "OPERAÇÃO", scope: "unidade",
     items: [
       { id: "tarefas",  label: "📋 Minhas Tarefas", Icon: Ic.Checklist, href: "/dashboard/tarefas" },
       { id: "bar",      label: "🍹 Bar",      Icon: Ic.MenuBook, href: "/dashboard/bar" },
@@ -117,38 +117,38 @@ const MENU_GROUPS = [
     ],
   },
   {
-    id: "financeiro", label: "💰 FINANCEIRO",
+    id: "financeiro", label: "💰 FINANCEIRO", scope: "cerebro",
     items: [
       { id: "financeiro", label: "💰 Financeiro", Icon: Ic.BarChart, href: "/dashboard/financeiro" },
     ],
   },
   {
-    id: "gestao", label: "⚙️ GESTÃO",
+    id: "gestao", label: "⚙️ GESTÃO & AJUSTES", scope: "cerebro",
     items: [
       { id: "gestao", label: "⚙️ Gestão Geral", Icon: Ic.Calendar, href: "/dashboard/gestao" },
       { id: "gestao_tarefas", label: "📋 Motor de Tarefas", Icon: Ic.Checklist, href: "/dashboard/gestao/tarefas" },
     ],
   },
   {
-    id: "eventos_grp", label: "🎉 EVENTOS",
+    id: "eventos_grp", label: "🎉 EVENTOS", scope: "cerebro",
     items: [
       { id: "eventos", label: "🎉 Eventos", Icon: Ic.Calendar, href: "/dashboard/eventos" },
     ],
   },
   {
-    id: "rh_grupo", label: "👥 RECURSOS HUMANOS",
+    id: "rh_grupo", label: "👥 RECURSOS HUMANOS", scope: "cerebro",
     items: [
       { id: "rh", label: "👥 RH", Icon: Ic.Users, href: "/dashboard/rh" },
     ],
   },
   {
-    id: "clientes", label: "📱 CLIENTES & MARKETING",
+    id: "clientes", label: "📱 CLIENTES & MARKETING", scope: "cerebro",
     items: [
       { id: "clientes", label: "📱 Clientes & Marketing", Icon: Ic.UserCheck, href: "/dashboard/clientes" },
     ],
   },
   {
-    id: "ia", label: "🤖 INTELIGÊNCIA ARTIFICIAL",
+    id: "ia", label: "🤖 INTELIGÊNCIA ARTIFICIAL", scope: "cerebro",
     items: [
       { id: "heitor", label: "Chat Heitor", Icon: Ic.Brain, href: "/dashboard/ia/heitor" },
     ],
@@ -298,7 +298,7 @@ function LayoutSidebar({ sessao, navId, onSair }) {
 
       {/* Nav */}
       <nav style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '8px 0' }}>
-        {MENU_GROUPS.map((group) => {
+        {MENU_GROUPS.filter(g => g.scope === "ambos" || (unidadeAtiva === "todas" ? g.scope === "cerebro" : g.scope === "unidade")).map((group) => {
           const itens = group.items.filter((item) => sessao && podeAcessar(sessao.papel, item.id));
           if (!itens.length) return null;
           return (

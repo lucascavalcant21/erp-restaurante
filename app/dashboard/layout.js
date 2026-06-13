@@ -201,6 +201,7 @@ function getNavId(pathname) {
 function LayoutSidebar({ sessao, navId, onSair }) {
   const [exp, setExp] = useState(false);
   const router = useRouter();
+  const { unidadeAtiva, setUnidadeAtiva } = useERP();
   const papel = sessao ? getPapel(sessao.papel) : null;
 
   return (

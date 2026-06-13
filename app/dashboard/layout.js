@@ -11,7 +11,6 @@ import { useERP } from "../context/ERPContext";
 function UnidadeSwitcher({ exp }) {
   const { unidades, unidadeAtiva, setUnidadeAtiva, podeTrocar, unidadeInfo } = useERP();
   const [open, setOpen] = useState(false);
-  const opcoes = [{ id: "todas", nome: "Central · todas", cor: "#8B5CF6" }, ...unidades];
 
   if (!exp) {
     return (
@@ -32,9 +31,9 @@ function UnidadeSwitcher({ exp }) {
         }}>
         <div style={{ width: 8, height: 8, borderRadius: 999, background: unidadeInfo.cor, flexShrink: 0 }} />
         <div style={{ flex: 1, textAlign: "left", overflow: "hidden" }}>
-          <p style={{ fontSize: 9, color: "#64748B", fontWeight: 700, letterSpacing: "0.06em" }}>UNIDADE</p>
+          <p style={{ fontSize: 9, color: "#64748B", fontWeight: 700, letterSpacing: "0.06em" }}>UNIDADE OPERACIONAL</p>
           <p style={{ fontSize: 12, color: "#F1F5F9", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {unidadeInfo.id === "todas" ? "Central · todas" : unidadeInfo.nome}
+            {unidadeInfo.id === "todas" ? "Selecione..." : unidadeInfo.nome}
           </p>
         </div>
         {podeTrocar && (
@@ -45,9 +44,9 @@ function UnidadeSwitcher({ exp }) {
         )}
       </button>
 
-      {open && podeTrocar && (
+        {open && podeTrocar && (
         <div style={{ marginTop: 4, display: "flex", flexDirection: "column", gap: 2 }}>
-          {opcoes.map((o) => {
+          {unidades.map((o) => {
             const ativo = o.id === unidadeAtiva;
             return (
               <button key={o.id}
@@ -267,6 +266,31 @@ function LayoutSidebar({ sessao, navId, onSair }) {
           </p>
         </div>
       </div>
+
+      {/* Cérebro (Fixo) */}
+      {sessao && podeAcessar(sessao.papel, "dashboard") && getPapel(sessao.papel).id === "admin" && (
+        <div style={{ margin: '0 8px 6px' }}>
+          <button
+            onClick={() => setUnidadeAtiva("todas")}
+            style={{
+              width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px",
+              borderRadius: 10,
+              background: unidadeAtiva === "todas" ? "linear-gradient(135deg, #8B5CF6, #6D28D9)" : "rgba(139,92,246,0.05)",
+              border: unidadeAtiva === "todas" ? "none" : "1px solid rgba(139,92,246,0.2)",
+              cursor: "pointer",
+              boxShadow: unidadeAtiva === "todas" ? "0 4px 12px rgba(139,92,246,0.3)" : "none"
+            }}>
+            <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: unidadeAtiva === "todas" ? "#fff" : "#A78BFA" }}>
+              <Ic.Brain />
+            </div>
+            <div style={{ flex: 1, textAlign: "left", overflow: "hidden", opacity: exp ? 1 : 0, transition: 'opacity 160ms' }}>
+              <p style={{ fontSize: 13, color: unidadeAtiva === "todas" ? "#fff" : "#C4B5FD", fontWeight: 700, whiteSpace: "nowrap" }}>
+                Cérebro
+              </p>
+            </div>
+          </button>
+        </div>
+      )}
 
       {/* Seletor de unidade */}
       <UnidadeSwitcher exp={exp} />

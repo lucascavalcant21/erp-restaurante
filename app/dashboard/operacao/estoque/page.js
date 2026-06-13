@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
   Package, AlertTriangle, TrendingDown, Wallet, ArrowUpCircle, ArrowDownCircle,
-  Edit3, Trash2,
+  Edit3, Trash2, Tablet,
 } from "lucide-react";
 import {
   PageHeader, PageBody, Card, SectionLabel, KpiGrid, Kpi,
@@ -86,6 +87,7 @@ function FormMov({ item, tipo, onConfirmar, onCancelar }) {
 }
 
 export default function EstoquePage() {
+  const router = useRouter();
   const { setEstoque: setEstoqueGlobal, unidadeAtiva } = useERP();
   const [itens, setItens]     = useState([]);
   const [loading, setLoading] = useState(true);
@@ -152,7 +154,16 @@ export default function EstoquePage() {
   return (
     <div className="min-h-screen">
       <PageHeader title="Estoque" subtitle="Insumos, mínimos e movimentação" icon={Package}
-        onAction={() => { setEditar(null); setModal(true); }} actionLabel="Novo" />
+        onAction={() => { setEditar(null); setModal(true); }} actionLabel="Novo">
+        <button
+          onClick={() => router.push("/dashboard/operacao/estoque/tablet")}
+          className="erp-btn erp-btn-ghost flex items-center gap-2 text-sm"
+          title="Abrir modo tablet para a sala de estoque"
+          style={{ borderColor: "var(--accent)", color: "var(--accent-fg)" }}
+        >
+          <Tablet size={16} /> Modo Tablet
+        </button>
+      </PageHeader>
       <PageBody>
         <Toast show={salvou}>Estoque atualizado!</Toast>
 

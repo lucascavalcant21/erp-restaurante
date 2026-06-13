@@ -20,7 +20,7 @@ export function fmtPct(v, dec = 1) { return `${Number(v || 0).toFixed(dec)}%`; }
 export function fmtData(iso) { return iso ? new Date(iso).toLocaleDateString("pt-BR") : "—"; }
 
 // ── Cabeçalho de página ────────────────────────────────────────
-export function PageHeader({ title, subtitle, icon: Icon, onAction, actionLabel = "Novo", back = true }) {
+export function PageHeader({ title, subtitle, icon: Icon, onAction, actionLabel = "Novo", back = true, children }) {
   const router = useRouter();
   return (
     <div className="sticky top-0 z-20 border-b px-4 pt-12 pb-3 flex items-center gap-3"
@@ -38,6 +38,7 @@ export function PageHeader({ title, subtitle, icon: Icon, onAction, actionLabel 
         </h1>
         {subtitle && <p className="text-[11px] font-medium truncate" style={{ color: "var(--dim)" }}>{subtitle}</p>}
       </div>
+      {children}
       {onAction && (
         <button onClick={onAction}
           className="erp-btn erp-btn-primary !h-9 text-xs active:scale-95 transition-transform">

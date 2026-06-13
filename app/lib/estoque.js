@@ -156,3 +156,88 @@ export async function removerItem(id) {
   if (error) console.error("[estoque] removerItem:", error.message);
   return { error: error?.message || null };
 }
+
+/**
+ * Movimentação via Modo Tablet: grava obs como JSON com dados do funcionário.
+ * @param {string} id - UUID do item de estoque
+ * @param {"entrada"|"saida"} tipo
+ * @param {number} quantidade
+ * @param {{ responsavel: string, cargo: string, motivo: string, tipo_motivo: string }} meta
+ * @param {string} unidadeId
+ */
+export async function movimentarTablet(id, tipo, quantidade, meta, unidadeId) {
+  if (!isSupabaseReady()) return { error: "Supabase não configurado" };
+
+  // Busca quantidade atual
+  const { data: item, error: fetchErr } = await supabase
+    .from("estoque")
+    .select("quantidade")
+    .eq("id", id)
+    .single();
+
+  if (fetchErr) return { error: fetchErr.message };
+
+  const novaQtd = tipo === "entrada"
+    ? item.quantidade + quantidade
+    : Math.max(0, item.quantidade - quantidade);
+
+  const { error: updateErr } = await supabase
+    .from("estoque")
+    .update({ quantidade: novaQtd, updated_at: new Date().toISOString() })
+    .eq("id", id);
+
+  if (updateErr) return { error: updateErr.message };
+
+  const obs = JSON.stringify({
+    responsavel: meta.responsavel || "",
+    cargo:       meta.cargo       || "",
+    motivo:      meta.motivo      || "",
+    tipo_motivo: meta.tipo_motivo || "livre",
+    via:         "tablet",
+  });
+
+  await supabase.from("estoque_movimentacoes").insert([{
+    estoque_id: id,
+    tipo,
+    quantidade,
+    obs,
+    unidade_id: (unidadeId && unidadeId !== "todas") ? unidadeId : null,
+  }]);
+
+  return { error: null, novaQtd };
+}
+
+/**
+ * Busca histórico de movimentações do tablet (mais recentes primeiro).
+ * Retorna até `limite` registros. Faz parse do obs JSON para expor os metadados.
+ * @param {string} unidadeId
+ * @param {number} [limite=100]
+ */
+export async function fetchHistoricoTablet(unidadeId, limite = 100) {
+  if (!isSupabaseReady()) return { data: [], error: null };
+
+  let query = supabase
+    .from("estoque_movimentacoes")
+    .select("*, estoque(nome, unidade)")
+    .order("created_at", { ascending: false })
+    .limit(limite);
+
+  if (unidadeId && unidadeId !== "todas") {
+    query = query.eq("unidade_id", unidadeId);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    console.error("[estoque] fetchHistoricoTablet:", error.message);
+    return { data: [], error: error.message };
+  }
+
+  // Parse do obs JSON (pode ser string pura ou JSON)
+  const parsed = (data || []).map((m) => {
+    let meta = {};
+    try { meta = JSON.parse(m.obs || "{}"); } catch (_) { meta = { motivo: m.obs || "" }; }
+    return { ...m, meta };
+  });
+
+  return { data: parsed, error: null };
+}

@@ -1,6 +1,6 @@
 # PROJECT_CONTEXT.md — Cerebro ERP (FoodERP)
 > Documento mestre de contexto. Abra uma conversa nova colando/anexando este arquivo para continuar o desenvolvimento sem perder contexto.
-> Última atualização: 2026-06-09.
+> Última atualização: 2026-06-13.
 
 ---
 
@@ -9,7 +9,7 @@
 
 Cobre: Operação (estoque, ingredientes, cardápio, fichas técnicas, fornecedores, eventos, rotina, **etiquetas QR + rastreio + validade/perdas**), Financeiro (DRE, fluxo de caixa, CMV, margem, documentos), RH (gestão, ponto, **portal do colaborador**), Clientes (CRM, NPS, campanhas), IA assistente (Heitor), Dashboard com BI (KPIs com variação %, gráficos) e Visão de Rede.
 
-- **Status:** funcional e **publicado em produção**. ~30 módulos recriados sobre um design system. Auth real + banco seguro (RLS). **PDV/Vendas construído** (fecha o ciclo venda→receita→estoque) — falta apenas **rodar `docs/vendas.sql` no Supabase** para criar as tabelas. Pendências principais: **cadastrar dados reais** e **RLS por unidade**.
+- **Status:** funcional e **publicado em produção**. ~30 módulos recriados sobre um design system. Auth real + banco seguro (RLS). **PDV/Vendas construído** (fecha o ciclo venda→receita→estoque) — falta apenas **rodar `docs/vendas.sql` no Supabase** para criar as tabelas. **RLS por unidade implementado** (`docs/rls-por-unidade.sql` criado — rodar após vendas.sql). Pendências principais: **executar os dois SQLs no Supabase** e **cadastrar dados reais**.
 - **Site:** https://erp-restaurante-sand.vercel.app
 - **Repo GitHub:** `lucascavalcant21/erp-restaurante` — **branch de deploy = `main`** (Vercel publica de `main`).
 - **Supabase project ref:** `sezccspqxgklicfndwxx` (nome: cerebro-erp, AWS sa-east-1, plano Free). Painel: https://supabase.com/dashboard/project/sezccspqxgklicfndwxx
@@ -50,9 +50,10 @@ Gerir uma **rede de 3 restaurantes** com:
 Scripts SQL versionados em `docs/`:
 - `docs/schema-completo.sql` — recria todas as tabelas operacionais/financeiras/clientes com `unidade_id` + RLS + bucket Storage. **Schema canônico** (casa com o app).
 - `docs/migracao-multiunidade.sql` — adiciona `unidade_id` + tabela `unidades`.
-- `docs/seguranca-rls.sql` — liga RLS + revoke anon + grant authenticated.
+- `docs/seguranca-rls.sql` — liga RLS + revoke anon + grant authenticated (global, sem filtro por unidade).
 - `docs/rh-portal.sql` — tabelas de RH/Portal (documentos, holerites, avisos, advertências, produções, cursos) + bucket `anexos`.
 - `docs/vendas.sql` — **PDV/Vendas**: tabelas `vendas` + `venda_itens` + RLS + índices. **(Rodar no Supabase para ativar o PDV.)**
+- `docs/rls-por-unidade.sql` — **RLS por unidade** ⭐ NOVO: cria funções `auth_papel()`, `auth_unidade_id()`, `pode_ver_todas()` e policies que isolam dados por restaurante. **(Rodar APÓS vendas.sql.)**
 - (Etiquetas/validade: tabela `etiquetas` + colunas `status`/`custo_unit` — SQL fornecido no chat; `setor` em cardapio/ingredientes idem.)
 
 ### Tabelas e principais colunas
@@ -122,7 +123,8 @@ Scripts SQL versionados em `docs/`:
 - ⚠️ Dados reais: tabelas vazias — depende de cadastro pelo usuário.
 
 ## 9. FUNCIONALIDADES — PENDENTES
-- ⛔ RLS **por unidade** (hoje é "qualquer logado vê tudo"; falta restringir gerente à sua loja via claim/coluna do usuário). **Agora é a pendência nº 1.**
+- ⏳ RLS **por unidade** — SQL criado (`docs/rls-por-unidade.sql`). **Falta rodar no Supabase.** Usa `user_metadata.papel` + `user_metadata.unidade` do JWT para filtrar dados.
+- ⏳ **Ativar PDV**: rodar `docs/vendas.sql` no Supabase. Código 100% pronto.
 - ⚠️ PDV: baixa de estoque é por **nome** do ingrediente (ficha → estoque). Evoluir para FK real `ingrediente_id`/`estoque_id`. Cancelamento estorna a receita mas **não restaura estoque** automaticamente.
 - ⛔ Perdas de validade lançadas automaticamente no Financeiro/DRE.
 - ⛔ Notificações automáticas (validade vencendo, estoque crítico, metas).
@@ -194,19 +196,20 @@ Definido em `app/lib/auth.js` (`PAPEIS`). Cada papel tem `home` (rota inicial) e
 ---
 
 ## 16. PRÓXIMOS PASSOS RECOMENDADOS
-1. **Rodar `docs/vendas.sql`** no Supabase para ativar o PDV em produção. (Código já publicado.)
-2. **RLS por unidade** (claim de unidade no usuário + policies).
-3. **Notificações automáticas** (validade/estoque) + perdas no DRE.
-4. Cadastrar **dados reais** das 3 lojas (e testar o ciclo de venda no PDV).
-5. Limpeza de usuários de teste + revogar token + configurar SMTP/URLs.
-6. Evoluir baixa de estoque do PDV (FK ingrediente↔estoque) e restauro de estoque no cancelamento.
+1. ⏳ **Rodar `docs/vendas.sql`** no Supabase para ativar o PDV em produção. (Código já publicado.)
+2. ⏳ **Rodar `docs/rls-por-unidade.sql`** no Supabase para isolar dados por unidade (rodar APÓS vendas.sql).
+3. ✅ Verificar `user_metadata` dos usuários existentes no Supabase Auth → garantir que `papel` e `unidade` estão corretos.
+4. **Notificações automáticas** (validade/estoque) + perdas no DRE.
+5. Cadastrar **dados reais** das 3 lojas (e testar o ciclo de venda no PDV).
+6. Limpeza de usuários de teste + revogar token + configurar SMTP/URLs.
+7. Evoluir baixa de estoque do PDV (FK ingrediente↔estoque) e restauro de estoque no cancelamento.
 
 ---
 
 ## 17. CHECKLIST GERAL
 - [x] Multiunidade · [x] Auth real · [x] RLS (global) · [x] Design system claro
 - [x] Operação completa · [x] Etiquetas+QR+Validade+Perdas · [x] Financeiro (BI) · [x] RH+Portal · [x] Clientes · [x] Dashboard+Rede · [x] IA
-- [x] **PDV/Vendas (código)** · [ ] `docs/vendas.sql` rodado no Supabase · [ ] RLS por unidade · [ ] Notificações automáticas · [ ] Perdas no DRE · [ ] Dados reais cadastrados · [ ] Limpeza segurança (usuários teste/token/SMTP)
+- [x] **PDV/Vendas (código)** · [ ] `docs/vendas.sql` rodado no Supabase · [x] **RLS por unidade (SQL criado)** · [ ] `docs/rls-por-unidade.sql` rodado no Supabase · [ ] Notificações automáticas · [ ] Perdas no DRE · [ ] Dados reais cadastrados · [ ] Limpeza segurança (usuários teste/token/SMTP)
 
 ---
 
@@ -231,7 +234,8 @@ Meu ERP/Meu ERP/
 │     ├─ clientes/ (crm, campanhas, nps)
 │     └─ ia/heitor/
 ├─ backend_cloud_code/ (server.js — Express /api /webhook)
-├─ docs/ (schema-completo.sql, migracao-multiunidade.sql, seguranca-rls.sql, rh-portal.sql)
+├─ docs/ (schema-completo.sql, migracao-multiunidade.sql, seguranca-rls.sql, rh-portal.sql,
+│          vendas.sql, **rls-por-unidade.sql** ← NOVO)
 ├─ public/, tailwind.config.js, next.config.js, vercel.json, package.json
 ```
 

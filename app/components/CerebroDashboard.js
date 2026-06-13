@@ -154,7 +154,7 @@ export default function CerebroDashboard() {
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--line)" />
                 <XAxis dataKey="data" stroke="var(--dim)" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="var(--dim)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => \`R$ \${value/1000}k\`} />
+                <YAxis stroke="var(--dim)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `R$ ${value/1000}k`} />
                 <RTooltip 
                   contentStyle={{ backgroundColor: 'var(--panel)', border: 'none', borderRadius: '8px', color: 'var(--fg)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                   formatter={(value) => fmtBRL(value)}
@@ -201,7 +201,7 @@ export default function CerebroDashboard() {
               <BarChart data={dadosRanking} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--line)" />
                 <XAxis dataKey="name" stroke="var(--dim)" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="var(--dim)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => \`R$ \${value/1000}k\`} />
+                <YAxis stroke="var(--dim)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `R$ ${value/1000}k`} />
                 <RTooltip 
                   cursor={{ fill: 'rgba(255,255,255,0.05)' }}
                   contentStyle={{ backgroundColor: 'var(--panel)', border: 'none', borderRadius: '8px', color: 'var(--fg)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}

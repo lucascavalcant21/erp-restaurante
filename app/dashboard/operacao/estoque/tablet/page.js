@@ -7,10 +7,10 @@ import {
   CheckCircle, AlertTriangle, XCircle, Lock, X, RotateCcw,
   ArrowLeft, Layers, User, Briefcase, BookOpen, Plus, Minus,
 } from "lucide-react";
-import { fetchEstoque, movimentarTablet, fetchHistoricoTablet } from "@/app/lib/estoque";
-import { fetchFuncionarios } from "@/app/lib/rh";
-import { useERP } from "@/app/context/ERPContext";
-import { supabase, isSupabaseReady } from "@/app/lib/supabase";
+import { fetchEstoque, movimentarTablet, fetchHistoricoTablet } from "../../../../lib/estoque";
+import { fetchFuncionarios } from "../../../../lib/rh";
+import { useERP } from "../../../../context/ERPContext";
+import { supabase, isSupabaseReady } from "../../../../lib/supabase";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const fmtHora = (iso) => {

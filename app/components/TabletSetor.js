@@ -15,10 +15,10 @@ import {
   CheckCircle, AlertTriangle, XCircle, Lock, X, RotateCcw,
   ArrowLeft, Layers, User, BookOpen, Plus, Minus,
 } from "lucide-react";
-import { fetchEstoque, movimentarTablet, fetchHistoricoTablet } from "@/app/lib/estoque";
-import { fetchFuncionarios } from "@/app/lib/rh";
-import { useERP } from "@/app/context/ERPContext";
-import { supabase, isSupabaseReady } from "@/app/lib/supabase";
+import { fetchEstoque, movimentarTablet, fetchHistoricoTablet } from "../lib/estoque";
+import { fetchFuncionarios } from "../lib/rh";
+import { useERP } from "../context/ERPContext";
+import { supabase, isSupabaseReady } from "../lib/supabase";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const fmtHora = (iso) => { if (!iso) return "--"; const d = new Date(iso); return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }); };

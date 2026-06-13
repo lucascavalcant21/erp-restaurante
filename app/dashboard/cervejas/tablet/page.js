@@ -7,10 +7,10 @@ import {
   CheckCircle, AlertTriangle, XCircle, Lock, X, RotateCcw,
   ArrowLeft, Wine, User, Plus, Minus,
 } from "lucide-react";
-import { fetchCervejas, atualizarCerveja } from "../../lib/cervejas";
-import { fetchFuncionarios } from "../../lib/rh";
-import { useERP } from "../../context/ERPContext";
-import { supabase, isSupabaseReady } from "../../lib/supabase";
+import { fetchCervejas, atualizarCerveja } from "../../../lib/cervejas";
+import { fetchFuncionarios } from "../../../lib/rh";
+import { useERP } from "../../../context/ERPContext";
+import { supabase, isSupabaseReady } from "../../../lib/supabase";
 
 const COR = "#F59E0B"; // âmbar/dourado para cervejas
 

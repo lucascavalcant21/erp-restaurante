@@ -1,5 +1,5 @@
 "use client";
-import TabletSetor from "../../../components/TabletSetor";
+import TabletSetor from "../../../../components/TabletSetor";
 
 export default function CozinhaTabletPage() {
   return (

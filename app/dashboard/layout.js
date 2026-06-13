@@ -103,7 +103,7 @@ const MENU_GROUPS = [
   {
     id: "visao_geral", label: "DASHBOARD", scope: "ambos",
     items: [
-      { id: "dashboard",    label: "Painel Inicial",       Icon: Ic.Dashboard, href: "/dashboard" },
+      { id: "dashboard",    label: "Dashboard",       Icon: Ic.Dashboard, href: "/dashboard" },
       { id: "notificacoes", label: "Notificações",         Icon: Ic.Bell,      href: "/dashboard/notificacoes" },
     ],
   },

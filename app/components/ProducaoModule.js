@@ -87,7 +87,9 @@ function ModalNovaProducao({ pratos, estoque, funcionarios, setor, onConfirmar, 
     if (!pratoId) return setErro("Selecione o prato/drink.");
     if (!funcId) return setErro("Selecione quem produziu.");
     if (quantidade <= 0) return setErro("Quantidade deve ser maior que zero.");
+    if (pratoId && ingredientes.length === 0) return setErro("Este prato não possui ficha técnica cadastrada. Cadastre antes de registrar a produção.");
     if (teveAlteracao && !motivo.trim()) return setErro("Informe o motivo da alteração nos ingredientes.");
+    if (!sobras.trim()) return setErro("Informe as sobras ou observações da produção.");
     setErro("");
 
     await onConfirmar({
@@ -99,7 +101,7 @@ function ModalNovaProducao({ pratos, estoque, funcionarios, setor, onConfirmar, 
       funcionario_id: funcId,
       funcionario_nome: func?.nome || "",
       motivo_alteracao: teveAlteracao ? motivo : null,
-      sobras: sobras || null,
+      sobras: sobras,
     }, ingredientes);
   }
 
@@ -260,29 +262,27 @@ function ModalNovaProducao({ pratos, estoque, funcionarios, setor, onConfirmar, 
             </div>
           )}
 
-          {/* Motivo da alteração (obrigatório se alterou) */}
-          {teveAlteracao && (
-            <div>
-              <label style={{ display: "flex", alignItems: "center", gap: 6, color: "#F97316", fontSize: 12, fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                <Edit3 size={14} /> Motivo da alteração *
-              </label>
-              <input value={motivo} onChange={(e) => { setMotivo(e.target.value); setErro(""); }}
-                placeholder="Ex: Ingrediente acabou, substitui por outro..."
-                style={{
-                  width: "100%", height: 52, padding: "0 16px", borderRadius: 12,
-                  background: "#0F172A", border: "1.5px solid #F97316",
-                  color: "#F1F5F9", fontSize: 15, outline: "none",
-                }} />
-            </div>
-          )}
+          {/* Motivo da alteração (sempre visível, obrigatório se alterou) */}
+          <div>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, color: teveAlteracao ? "#F97316" : "#64748B", fontSize: 12, fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              <Edit3 size={14} /> Motivo / Observação da produção {teveAlteracao ? "*" : "*"}
+            </label>
+            <input value={motivo} onChange={(e) => { setMotivo(e.target.value); setErro(""); }}
+              placeholder={teveAlteracao ? "OBRIGATÓRIO: houve alteração nos ingredientes. Informe o motivo..." : "Ex: Produção do dia, reposição, pedido especial..."}
+              style={{
+                width: "100%", height: 52, padding: "0 16px", borderRadius: 12,
+                background: "#0F172A", border: `1.5px solid ${teveAlteracao ? "#F97316" : "#334155"}`,
+                color: "#F1F5F9", fontSize: 15, outline: "none",
+              }} />
+          </div>
 
           {/* Sobras */}
           <div>
             <label style={{ color: "#64748B", fontSize: 12, fontWeight: 700, marginBottom: 8, display: "block", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              Sobras / Observações (opcional)
+              Sobras / Resultado da produção *
             </label>
-            <input value={sobras} onChange={(e) => setSobras(e.target.value)}
-              placeholder="Ex: Sobrou 2 porções, massa restante guardada..."
+            <input value={sobras} onChange={(e) => { setSobras(e.target.value); setErro(""); }}
+              placeholder="Ex: Sobrou 2 porções, nada sobrou, massa guardada..."
               style={{
                 width: "100%", height: 52, padding: "0 16px", borderRadius: 12,
                 background: "#0F172A", border: "1.5px solid #334155",

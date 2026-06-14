@@ -117,7 +117,7 @@ const MENU_GROUPS = [
     ],
   },
   {
-    id: "financeiro", label: "💰 FINANCEIRO", scope: "cerebro",
+    id: "financeiro", label: "💰 FINANCEIRO", scope: "unidade",
     items: [
       { id: "financeiro", label: "💰 Financeiro", Icon: Ic.BarChart, href: "/dashboard/financeiro" },
     ],
@@ -130,19 +130,19 @@ const MENU_GROUPS = [
     ],
   },
   {
-    id: "eventos_grp", label: "🎉 EVENTOS", scope: "cerebro",
+    id: "eventos_grp", label: "🎉 EVENTOS", scope: "unidade",
     items: [
       { id: "eventos", label: "🎉 Eventos", Icon: Ic.Calendar, href: "/dashboard/eventos" },
     ],
   },
   {
-    id: "rh_grupo", label: "👥 RECURSOS HUMANOS", scope: "cerebro",
+    id: "rh_grupo", label: "👥 RECURSOS HUMANOS", scope: "unidade",
     items: [
       { id: "rh", label: "👥 RH", Icon: Ic.Users, href: "/dashboard/rh" },
     ],
   },
   {
-    id: "clientes", label: "📱 CLIENTES & MARKETING", scope: "cerebro",
+    id: "clientes", label: "📱 CLIENTES & MARKETING", scope: "unidade",
     items: [
       { id: "clientes", label: "📱 Clientes & Marketing", Icon: Ic.UserCheck, href: "/dashboard/clientes" },
     ],

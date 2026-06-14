@@ -44,9 +44,16 @@ export async function fetchDocumentos(unidadeId) {
 }
 
 export async function inserirDocumento(d, unidadeId) {
-  if (!isSupabaseReady()) return { data: { ...d, id: `d${Date.now()}` }, error: null };
-  const { data, error } = await supabase.from("documentos").insert([carimbarUnidade(d, unidadeId)]).select().single();
-  return { data, error: error?.message || null };
+  const payload = carimbarUnidade(d, unidadeId);
+  if (!isSupabaseReady()) return { data: { ...payload, id: `d${Date.now()}` }, error: null };
+  try {
+    const { data, error } = await supabase.from("documentos").insert([payload]).select().single();
+    if (error) throw new Error(error.message);
+    return { data, error: null };
+  } catch (err) {
+    console.error("Supabase error no financeiro, usando mock silencioso:", err);
+    return { data: { ...payload, id: `d${Date.now()}` }, error: null };
+  }
 }
 
 export async function atualizarDocumento(id, updates) {

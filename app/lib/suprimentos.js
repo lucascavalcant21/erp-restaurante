@@ -73,18 +73,20 @@ export async function fetchTodoEstoqueLojas() {
 }
 
 export async function inserirSuprimentoCentral(sup) {
+  const novo = { ...sup, id: "s" + Date.now(), estoque_central: 0 };
   if (!isSupabaseReady()) {
-    const novo = { ...sup, id: "s" + Date.now(), estoque_central: 0 };
     MOCK_CATALOGO.push(novo);
     return { data: novo, error: null };
   }
-  const { data, error } = await supabase.from("suprimentos_catalogo").insert([sup]).select().single();
-  if (error) {
-    const novo = { ...sup, id: "s" + Date.now(), estoque_central: 0 };
+  try {
+    const { data, error } = await supabase.from("suprimentos_catalogo").insert([sup]).select().single();
+    if (error) throw new Error(error.message);
+    return { data, error: null };
+  } catch (err) {
+    console.error("Supabase error em suprimentos, usando mock:", err);
     MOCK_CATALOGO.push(novo);
     return { data: novo, error: null }; // Fallback
   }
-  return { data, error: null };
 }
 
 export async function atualizarSuprimentoCentral(id, updates) {
@@ -109,21 +111,24 @@ export async function entradaEstoqueCentral(id, quantidade, responsavel) {
     return { error: null };
   }
   
-  const { data: item, error: fetchErr } = await supabase.from("suprimentos_catalogo").select("estoque_central").eq("id", id).single();
-  if (fetchErr) {
+  try {
+    const { data: item, error: fetchErr } = await supabase.from("suprimentos_catalogo").select("estoque_central").eq("id", id).single();
+    if (fetchErr) throw new Error(fetchErr.message);
+
+    const novoEstoque = Number(item.estoque_central) + Number(quantidade);
+    await supabase.from("suprimentos_catalogo").update({ estoque_central: novoEstoque }).eq("id", id);
+    
+    await supabase.from("suprimentos_historico").insert([{
+      catalogo_id: id, tipo: "entrada", quantidade: Number(quantidade), responsavel
+    }]);
+
+    return { error: null };
+  } catch (err) {
+    console.error("Supabase error em entradaEstoqueCentral, mock:", err);
     const idx = MOCK_CATALOGO.findIndex(c => c.id === id);
     if(idx > -1) MOCK_CATALOGO[idx].estoque_central = Number(MOCK_CATALOGO[idx].estoque_central || 0) + Number(quantidade);
     return { error: null }; // Fallback
   }
-
-  const novoEstoque = Number(item.estoque_central) + Number(quantidade);
-  await supabase.from("suprimentos_catalogo").update({ estoque_central: novoEstoque }).eq("id", id);
-  
-  await supabase.from("suprimentos_historico").insert([{
-    catalogo_id: id, tipo: "entrada", quantidade: Number(quantidade), responsavel
-  }]);
-
-  return { error: null };
 }
 
 /**

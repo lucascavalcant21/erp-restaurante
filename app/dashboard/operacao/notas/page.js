@@ -31,11 +31,30 @@ function FormScanner({ onSalvar, onCancelar }) {
     if (!f) return;
     setFile(f);
     
-    // Gerar preview local para mostrar na tela
+    // Gerar preview local e comprimir a imagem (celulares tiram fotos de 5MB, que quebram o limite da Vercel)
     const reader = new FileReader();
     reader.onload = (ev) => {
-      setPreview(ev.target.result);
-      iniciarLeituraOCR(ev.target.result);
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let w = img.width;
+        let h = img.height;
+        // Reduzir para no máximo 1200px para o ChatGPT ler super rápido e não dar Timeout de 10s na Vercel
+        const MAX = 1200;
+        if (w > h && w > MAX) { h = Math.round((h * MAX) / w); w = MAX; }
+        else if (h > MAX) { w = Math.round((w * MAX) / h); h = MAX; }
+        
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, w, h);
+        
+        // Comprime para JPEG com 60% de qualidade
+        const compressedBase64 = canvas.toDataURL("image/jpeg", 0.6);
+        setPreview(compressedBase64);
+        iniciarLeituraOCR(compressedBase64);
+      };
+      img.src = ev.target.result;
     };
     reader.readAsDataURL(f);
   }

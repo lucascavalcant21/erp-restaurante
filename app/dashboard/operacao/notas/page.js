@@ -61,10 +61,15 @@ function FormScanner({ onSalvar, onCancelar }) {
 
   async function iniciarLeituraOCR(base64) {
     setLoadingIA(true);
-    // Simula a requisição para uma IA Vision (OpenAI/Google)
-    const extraido = await simularLeituraOCR(base64);
-    setDadosIA(extraido);
-    setLoadingIA(false);
+    try {
+      const extraido = await simularLeituraOCR(base64);
+      setDadosIA(extraido);
+    } catch (err) {
+      alert("A Inteligência Artificial falhou: " + err.message + "\n\nTente novamente ou use uma imagem menor.");
+      setPreview(null);
+    } finally {
+      setLoadingIA(false);
+    }
   }
 
   function confirmar() {

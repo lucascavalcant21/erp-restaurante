@@ -113,27 +113,12 @@ export async function simularLeituraOCR(imagemBase64) {
     if (res.ok) {
       const dadosIA = await res.json();
       return dadosIA;
+    } else {
+      const errorText = await res.text();
+      throw new Error(`Servidor retornou HTTP ${res.status}: ${errorText}`);
     }
-    // Se falhar (ex: sem chave API configurada), cai pro fallback silenciosamente
   } catch (err) {
-    console.error("OCR API Falhou, usando mock:", err);
+    console.error("ERRO REAL DA VERCEL:", err);
+    throw err; // Lança o erro de verdade para a tela mostrar
   }
-
-  // FALLBACK SIMULADO (caso não tenha configurado o ChatGPT ainda)
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const hf = Math.random() > 0.5;
-      resolve({
-        fornecedor: hf ? "Ceasa Distribuidora de Frutas" : "Distribuidora Bebidas Frias",
-        cnpj: hf ? "44.555.666/0001-77" : "88.999.000/0001-22",
-        data_emissao: new Date().toISOString().slice(0, 10), // Hoje
-        hora_emissao: `${String(Math.floor(Math.random() * 12) + 6).padStart(2, '0')}:${String(Math.floor(Math.random() * 59)).padStart(2, '0')}`,
-        categoria: hf ? "Hortifruti" : "Bebidas",
-        valor_total: Number((Math.random() * 1000 + 100).toFixed(2)),
-        itens: hf 
-          ? [{ nome: "Tomate Carmem", qtd: 10, un: "KG", preco: 7.5 }, { nome: "Alface Crespa", qtd: 20, un: "UN", preco: 2.0 }]
-          : [{ nome: "Cerveja Pilsen 600ml", qtd: 4, un: "CX", preco: 120.0 }]
-      });
-    }, 3500); // 3.5s de delay para o "Show" UX
-  });
 }

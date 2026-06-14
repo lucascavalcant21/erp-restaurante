@@ -11,6 +11,7 @@ import { lerSessao } from "../../../lib/auth";
 import { fetchCardapio } from "../../../lib/cardapio";
 import { fetchEstoque } from "../../../lib/estoque";
 import { CONSERVACAO, gerarCodigo, criarEtiqueta } from "../../../lib/etiquetas";
+import { UNIDADES as UNIDADES_REDE } from "../../../lib/unidades";
 
 const UNIDADES = ["UN", "KG", "G", "L", "ML", "CX", "PCT", "BANDEJA"];
 const ICONE_CONS = { Resfriado: Thermometer, Congelado: Snowflake, Ambiente: Box };
@@ -23,7 +24,10 @@ function fmtDataHora(d) {
 export default function EtiquetasPage() {
   const { unidadeAtiva, unidadeInfo } = useERP();
   const [produtos, setProdutos] = useState([]);
-  const [form, setForm] = useState({ produto: "", conservacao: "Congelado", quantidade: "1", unidade: "UN", dias: 30, lote: "", responsavel: "" });
+  const [form, setForm] = useState({ 
+    produto: "", conservacao: "Congelado", quantidade: "1", unidade: "UN", 
+    dias: 30, lote: "", responsavel: "", unidade_destino: unidadeAtiva === "todas" ? "seldeestrela" : unidadeAtiva 
+  });
   const [cnpj, setCnpj] = useState("");
   const [codigo, setCodigo] = useState(gerarCodigo());
   const [tamanho, setTamanho] = useState("60x60"); // "60x60" | "60x40"
@@ -96,7 +100,7 @@ export default function EtiquetasPage() {
       manipulacao_em: agora.toISOString(), validade_em: validadeEm.toISOString(),
       lote: form.lote || null, responsavel: form.responsavel.trim(),
       custo_unit: custoMap[nomeProduto] || 0, status: "ativa",
-    }, unidadeAtiva);
+    }, form.unidade_destino);
     if (imprimir) { setTimeout(() => window.print(), 150); }
     setSalvou(imprimir ? "Etiqueta salva e enviada para impressão!" : "Etiqueta salva!");
     setTimeout(() => { setSalvou(""); setCodigo(gerarCodigo()); }, 2200);
@@ -174,6 +178,11 @@ export default function EtiquetasPage() {
               )}
               <Field label="Lote / SIF (opcional)"><TextInput value={form.lote} onChange={(e) => set("lote", e.target.value)} placeholder="SIF 1234" /></Field>
               <Field label="Responsável"><TextInput value={form.responsavel} onChange={(e) => set("responsavel", e.target.value)} placeholder="Nome" /></Field>
+              <Field label="Unidade (Destino da Validade)">
+                <Select value={form.unidade_destino} onChange={(e) => set("unidade_destino", e.target.value)}>
+                  {UNIDADES_REDE.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
+                </Select>
+              </Field>
               <Field label="CNPJ da empresa (sai na etiqueta)"><TextInput value={cnpj} onChange={(e) => salvarCnpj(e.target.value)} placeholder="00.000.000/0001-00" /></Field>
             </Card>
 
@@ -222,7 +231,7 @@ export default function EtiquetasPage() {
                 <div style={{ borderTop: "0.5mm solid #000", paddingTop: dim.gap, display: "flex", justifyContent: "space-between", alignItems: "flex-end", fontSize: dim.resp, fontWeight: 700, gap: "2mm" }}>
                   <div style={{ minWidth: 0, lineHeight: 1.35 }}>
                     {cnpj && <div>CNPJ: {fmtCNPJ(cnpj)}</div>}
-                    <div>{(unidadeInfo.nome || "").toUpperCase()}</div>
+                    <div>{UNIDADES_REDE.find(u => u.id === form.unidade_destino)?.nome.toUpperCase() || "LOJA"}</div>
                     <div style={{ opacity: 0.7 }}>#{codigo}</div>
                   </div>
                   <div style={{ flexShrink: 0, lineHeight: 0 }}>

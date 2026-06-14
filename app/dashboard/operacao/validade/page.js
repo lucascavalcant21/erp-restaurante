@@ -5,6 +5,7 @@ import { CalendarClock, AlertTriangle, CheckCircle, Clock, Check, XCircle, Trend
 import { PageHeader, PageBody, Card, SectionLabel, KpiGrid, Kpi, Chips, SearchBar, EmptyState, fmtData, fmtBRL } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
 import { fetchEtiquetas, atualizarStatusEtiqueta } from "../../../lib/etiquetas";
+import { UNIDADES } from "../../../lib/unidades";
 
 function statusValidade(iso) {
   const dias = Math.floor((new Date(iso).getTime() - Date.now()) / 86400000);
@@ -135,7 +136,7 @@ export default function ValidadePage() {
                             {filtro !== "perdas" && filtro !== "baixados" && idx === 0 && e.dias >= 0 && <span className="erp-badge erp-badge-ok">usar 1º</span>}
                             {e.valor > 0 && <span className="text-[11px]" style={{ color: "var(--dim)" }}>· {fmtBRL(e.valor)}</span>}
                           </div>
-                          <p className="text-[11px]" style={{ color: "var(--dim)" }}>vence {fmtData(e.validade_em)} {fmtHora(e.validade_em)} · #{e.codigo}</p>
+                          <p className="text-[11px]" style={{ color: "var(--dim)" }}>vence {fmtData(e.validade_em)} {fmtHora(e.validade_em)} · #{e.codigo} {unidadeAtiva === "todas" && e.unidade_id ? `· 📍 ${UNIDADES.find(u => u.id === e.unidade_id)?.nome || e.unidade_id}` : ""}</p>
                         </div>
                         <span className="text-[11px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap" style={{ background: e.st.cor + "22", color: e.st.cor }}>{textoDias(e.dias)}</span>
                       </div>

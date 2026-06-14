@@ -26,7 +26,7 @@ export default function EtiquetasPage() {
   const [produtos, setProdutos] = useState([]);
   const [form, setForm] = useState({ 
     produto: "", conservacao: "Congelado", quantidade: "1", unidade: "UN", 
-    dias: 30, lote: "", responsavel: "", unidade_destino: unidadeAtiva === "todas" ? "seldeestrela" : unidadeAtiva 
+    dias: 30, lote: "", responsavel: "" 
   });
   const [cnpj, setCnpj] = useState("");
   const [codigo, setCodigo] = useState(gerarCodigo());
@@ -100,7 +100,7 @@ export default function EtiquetasPage() {
       manipulacao_em: agora.toISOString(), validade_em: validadeEm.toISOString(),
       lote: form.lote || null, responsavel: form.responsavel.trim(),
       custo_unit: custoMap[nomeProduto] || 0, status: "ativa",
-    }, form.unidade_destino);
+    }, unidadeAtiva);
     if (imprimir) { setTimeout(() => window.print(), 150); }
     setSalvou(imprimir ? "Etiqueta salva e enviada para impressão!" : "Etiqueta salva!");
     setTimeout(() => { setSalvou(""); setCodigo(gerarCodigo()); }, 2200);
@@ -112,9 +112,12 @@ export default function EtiquetasPage() {
       <PageBody>
         <Toast show={!!salvou}>{salvou}</Toast>
 
-        <div className="grid lg:grid-cols-2 gap-4">
-          {/* ── Formulário ── */}
-          <div className="space-y-4">
+        {(!unidadeAtiva || unidadeAtiva === "todas") ? (
+          <EmptyState icon={Tag} title="Acesso Restrito às Unidades" hint="O Cérebro (Gestão Central) apenas visualiza o Controle de Validade. Para gerar novas etiquetas, selecione uma unidade no menu lateral." />
+        ) : (
+          <div className="grid lg:grid-cols-2 gap-4">
+            {/* ── Formulário ── */}
+            <div className="space-y-4">
             <Card>
               <Field label="Produto">
                 <Select value={produtos.includes(form.produto) ? form.produto : ""} onChange={(e) => set("produto", e.target.value)}>
@@ -178,11 +181,6 @@ export default function EtiquetasPage() {
               )}
               <Field label="Lote / SIF (opcional)"><TextInput value={form.lote} onChange={(e) => set("lote", e.target.value)} placeholder="SIF 1234" /></Field>
               <Field label="Responsável"><TextInput value={form.responsavel} onChange={(e) => set("responsavel", e.target.value)} placeholder="Nome" /></Field>
-              <Field label="Unidade (Destino da Validade)">
-                <Select value={form.unidade_destino} onChange={(e) => set("unidade_destino", e.target.value)}>
-                  {UNIDADES_REDE.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
-                </Select>
-              </Field>
               <Field label="CNPJ da empresa (sai na etiqueta)"><TextInput value={cnpj} onChange={(e) => salvarCnpj(e.target.value)} placeholder="00.000.000/0001-00" /></Field>
             </Card>
 
@@ -231,7 +229,7 @@ export default function EtiquetasPage() {
                 <div style={{ borderTop: "0.5mm solid #000", paddingTop: dim.gap, display: "flex", justifyContent: "space-between", alignItems: "flex-end", fontSize: dim.resp, fontWeight: 700, gap: "2mm" }}>
                   <div style={{ minWidth: 0, lineHeight: 1.35 }}>
                     {cnpj && <div>CNPJ: {fmtCNPJ(cnpj)}</div>}
-                    <div>{UNIDADES_REDE.find(u => u.id === form.unidade_destino)?.nome.toUpperCase() || "LOJA"}</div>
+                    <div>{(unidadeInfo.nome || "").toUpperCase()}</div>
                     <div style={{ opacity: 0.7 }}>#{codigo}</div>
                   </div>
                   <div style={{ flexShrink: 0, lineHeight: 0 }}>
@@ -244,7 +242,7 @@ export default function EtiquetasPage() {
               <QrCode size={13} /> {tamanho.replace("x", "×")}mm · código {codigo}
             </p>
           </div>
-        </div>
+        )}
       </PageBody>
     </div>
   );

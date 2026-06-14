@@ -8,7 +8,6 @@ export default function GestaoPage() {
 
   const opcoes = [
     { id: "validade", emoji: "⏰", titulo: "Controle de Validade", desc: "Rastreamento de vencimentos de insumos", href: "/dashboard/operacao/validade" },
-    { id: "etiquetas", emoji: "🏷️", titulo: "Etiquetas", desc: "Geração de etiquetas e códigos QR", href: "/dashboard/operacao/etiquetas" },
     { id: "suprimentos", emoji: "📦", titulo: "Estoque Central de Suprimentos", desc: "Controle e distribuição de material de limpeza para as lojas", href: "/dashboard/gestao/suprimentos" },
   ];
 

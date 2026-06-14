@@ -242,6 +242,7 @@ export default function EtiquetasPage() {
               <QrCode size={13} /> {tamanho.replace("x", "×")}mm · código {codigo}
             </p>
           </div>
+        </div>
         )}
       </PageBody>
     </div>

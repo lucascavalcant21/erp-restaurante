@@ -5,11 +5,11 @@ import { ReceiptText, ScanLine, Camera, Trash2, Calendar, Clock, ArrowDownAZ, Ch
 import {
   PageHeader, PageBody, Card, KpiGrid, Kpi,
   SearchBar, Chips, EmptyState, Modal, Field, TextInput, NumberInput, Select, Btn, Toast, fmtBRL, fmtData
-} from "../../../../components/ui";
-import { useERP } from "../../../../context/ERPContext";
+} from "../../../components/ui";
+import { useERP } from "../../../context/ERPContext";
 import {
   fetchNotas, salvarNota, deletarNota, simularLeituraOCR, CATEGORIAS_NOTA
-} from "../../../../lib/notas";
+} from "../../../lib/notas";
 
 function FormScanner({ onSalvar, onCancelar }) {
   const [file, setFile] = useState(null);

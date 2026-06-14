@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+export const maxDuration = 60; // Aumenta o tempo limite da Vercel para 60s (necessário para a IA processar imagens pesadas)
+
 export async function POST(request) {
   try {
     const { imageBase64 } = await request.json();

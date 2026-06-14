@@ -65,6 +65,13 @@ export async function fetchCatalogoCentral() {
   return { data: data || [], error: null };
 }
 
+export async function fetchTodoEstoqueLojas() {
+  if (!isSupabaseReady()) return { data: MOCK_UNIDADES, error: null };
+  const { data, error } = await supabase.from("suprimentos_unidades").select("*");
+  if (error) return { data: MOCK_UNIDADES, error: null };
+  return { data: data || [], error: null };
+}
+
 export async function inserirSuprimentoCentral(sup) {
   if (!isSupabaseReady()) {
     const novo = { ...sup, id: "s" + Date.now(), estoque_central: 0 };

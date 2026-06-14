@@ -8,7 +8,7 @@ import {
 } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
 import {
-  fetchCatalogoCentral, inserirSuprimentoCentral, atualizarSuprimentoCentral,
+  fetchCatalogoCentral, fetchTodoEstoqueLojas, inserirSuprimentoCentral, atualizarSuprimentoCentral,
   entradaEstoqueCentral, transferirParaUnidade, CATEGORIAS_SUP, UNIDADES_SUP
 } from "../../../lib/suprimentos";
 import { UNIDADES } from "../../../lib/unidades";
@@ -98,6 +98,7 @@ function FormTransferencia({ item, onConfirmar, onCancelar }) {
 export default function GestaoSuprimentosCentral() {
   const { sessao } = useERP();
   const [lista, setLista] = useState([]);
+  const [estoqueLojas, setEstoqueLojas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
   const [cat, setCat] = useState("Todos");
@@ -110,8 +111,12 @@ export default function GestaoSuprimentosCentral() {
 
   const carregar = useCallback(async () => {
     setLoading(true);
-    const { data } = await fetchCatalogoCentral();
+    const [{ data }, { data: lojas }] = await Promise.all([
+      fetchCatalogoCentral(),
+      fetchTodoEstoqueLojas()
+    ]);
     setLista(data || []);
+    setEstoqueLojas(lojas || []);
     setLoading(false);
   }, []);
 
@@ -211,6 +216,31 @@ export default function GestaoSuprimentosCentral() {
                       </div>
                     </div>
                   </div>
+
+                  {(() => {
+                    const lojasDoItem = estoqueLojas.filter(el => el.catalogo_id === i.id);
+                    if (lojasDoItem.length === 0) return null;
+                    return (
+                      <div className="mt-4 pt-3 border-t" style={{ borderColor: "var(--line)" }}>
+                        <p className="text-[10px] font-bold uppercase mb-2" style={{ color: "var(--dim)" }}>Estoque nas Lojas</p>
+                        <div className="flex flex-wrap gap-2">
+                          {lojasDoItem.map(lu => {
+                            const uNome = UNIDADES.find(x => x.id === lu.unidade_id)?.nome || lu.unidade_id;
+                            const isBaixo = Number(lu.quantidade) <= Number(lu.minimo);
+                            return (
+                              <div key={lu.id} className="flex flex-col px-3 py-2 rounded-lg border" style={{ background: "var(--elevated)", borderColor: isBaixo ? "#EF4444" : "var(--line)" }}>
+                                <span className="text-[9px] uppercase font-bold whitespace-nowrap" style={{ color: "var(--dim)" }}>{uNome}</span>
+                                <div className="flex items-baseline gap-1 mt-1">
+                                  <span className="text-sm font-black" style={{ color: isBaixo ? "#EF4444" : "var(--fg)" }}>{lu.quantidade}</span>
+                                  <span className="text-[10px] font-bold" style={{ color: "var(--dim)" }}>{i.unidade_medida}</span>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   <div className="flex gap-2 mt-4 pt-3 border-t" style={{ borderColor: "var(--line)" }}>
                     <button 

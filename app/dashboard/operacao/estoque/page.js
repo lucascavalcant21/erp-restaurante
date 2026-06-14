@@ -219,14 +219,16 @@ export default function EstoquePage() {
                       <span style={{ color: "var(--dim)" }}>Mín: {i.minimo} {i.unidade}</span>
                       <span style={{ color: "var(--dim)" }}>Valor: {fmtBRL(valor)}</span>
                     </div>
-                    {podeEditar && (
-                      <div className="flex gap-2" style={{ borderTop: "1px solid var(--line)", paddingTop: 10 }}>
-                        <button onClick={() => setMov({ item: i, tipo: "entrada" })} className="flex-1 flex items-center justify-center gap-1 py-2 text-[11px] font-bold rounded-lg erp-badge-ok"><ArrowUpCircle size={13} /> Entrada</button>
-                        <button onClick={() => setMov({ item: i, tipo: "saida" })} className="flex-1 flex items-center justify-center gap-1 py-2 text-[11px] font-bold rounded-lg" style={{ background: "rgba(59,130,246,0.14)", color: "#60A5FA" }}><ArrowDownCircle size={13} /> Saída</button>
-                        <button onClick={() => { setEditar(i); setModal(true); }} className="w-9 flex items-center justify-center rounded-lg" style={{ background: "var(--elevated)" }}><Edit3 size={14} style={{ color: "var(--muted)" }} /></button>
-                        <button onClick={() => remover(i.id)} className="w-9 flex items-center justify-center rounded-lg erp-badge-danger"><Trash2 size={14} /></button>
-                      </div>
-                    )}
+                    <div className="flex gap-2" style={{ borderTop: "1px solid var(--line)", paddingTop: 10 }}>
+                      <button onClick={() => setMov({ item: i, tipo: "entrada" })} className="flex-1 flex items-center justify-center gap-1 py-2 text-[11px] font-bold rounded-lg erp-badge-ok"><ArrowUpCircle size={13} /> Entrada</button>
+                      <button onClick={() => setMov({ item: i, tipo: "saida" })} className="flex-1 flex items-center justify-center gap-1 py-2 text-[11px] font-bold rounded-lg" style={{ background: "rgba(59,130,246,0.14)", color: "#60A5FA" }}><ArrowDownCircle size={13} /> Saída</button>
+                      {podeEditar && (
+                        <>
+                          <button onClick={() => { setEditar(i); setModal(true); }} className="w-9 flex items-center justify-center rounded-lg" style={{ background: "var(--elevated)" }}><Edit3 size={14} style={{ color: "var(--muted)" }} /></button>
+                          <button onClick={() => remover(i.id)} className="w-9 flex items-center justify-center rounded-lg erp-badge-danger"><Trash2 size={14} /></button>
+                        </>
+                      )}
+                    </div>
                   </Card>
                 );
               })}

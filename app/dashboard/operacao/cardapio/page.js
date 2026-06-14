@@ -166,6 +166,7 @@ export default function CardapioPage() {
                       <div className="min-w-0">
                         <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "var(--dim)" }}>{p.categoria}</span>
                         <p className="text-base font-bold truncate" style={{ color: "var(--fg)" }}>{p.nome}</p>
+                        <p className="text-[11px] font-bold mt-1" style={{ color: "var(--accent-fg)" }}>Em estoque: {p.estoque_producao || 0} unid.</p>
                       </div>
                       <div className="text-right flex-shrink-0">
                         <p className="text-xl font-bold" style={{ color: "var(--fg)" }}>{fmtBRL(m.preco)}</p>

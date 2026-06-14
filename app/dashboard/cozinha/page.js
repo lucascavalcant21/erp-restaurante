@@ -23,6 +23,7 @@ export default function CozinhaPage() {
     { id: "ingredientes", emoji: "🧪", titulo: "Ingredientes", desc: "Cadastro, preços de compra e unidades", href: "/dashboard/operacao/ingredientes" },
     { id: "fornecedores", emoji: "🚚", titulo: "Fornecedores", desc: "Base de fornecedores e negociações", href: "/dashboard/operacao/fornecedores" },
     { id: "etiquetas", emoji: "🏷️", titulo: "Etiquetas", desc: "Geração de etiquetas e códigos QR para insumos", href: "/dashboard/operacao/etiquetas" },
+    { id: "limpeza", emoji: "✨", titulo: "Limpeza & Suprimentos", desc: "Controle da despensa de materiais e baixa de consumo diário", href: "/dashboard/operacao/limpeza" },
   ];
 
   return (

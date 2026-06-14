@@ -161,6 +161,7 @@ export default function DrinksPage() {
                           <p className="font-bold" style={{ color: "var(--fg)" }}>{d.nome}</p>
                           <span className="erp-badge text-[10px]" style={{ background: d.tipo === "Drink" ? "#EC4899" : "#10B981", color: "#fff" }}>{d.tipo}</span>
                         </div>
+                        <p className="text-[11px] font-bold mt-1" style={{ color: "var(--accent-fg)" }}>Em estoque: {d.estoque_producao || 0} unid.</p>
                       </div>
                       <p className="text-lg font-bold" style={{ color: "var(--accent-fg)" }}>{fmtBRL(precoV)}</p>
                     </div>

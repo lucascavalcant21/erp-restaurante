@@ -13,6 +13,8 @@ import {
 import { useERP } from "../../../context/ERPContext";
 import { fetchEstoque, inserirItem, atualizarItem, movimentar, removerItem } from "../../../lib/estoque";
 import { podeEditarGlobal } from "../../../lib/auth";
+import { fetchCardapio } from "../../../lib/cardapio";
+import { fetchDrinks } from "../../../lib/drinks";
 
 const CATEGORIAS = ["Proteína", "Grão", "Hortifruti", "Laticínios", "Óleo", "Bebida", "Embalagem", "Limpeza", "Outros"];
 const UNIDADES_EST = ["KG", "L", "UN", "CX", "MAÇO", "G", "ML"];
@@ -62,24 +64,51 @@ function FormItem({ inicial, onSalvar, onCancelar }) {
   );
 }
 
-function FormMov({ item, tipo, onConfirmar, onCancelar }) {
+function FormMov({ item, tipo, produtosCombo, onConfirmar, onCancelar }) {
   const [qtd, setQtd] = useState("");
   const [obs, setObs] = useState("");
+  const [produtoDestino, setProdutoDestino] = useState("");
   const entrada = tipo === "entrada";
   const n = parseFloat(qtd) || 0;
-  const invalido = n <= 0 || (!entrada && n > (item.quantidade ?? 0));
+  const invalido = n <= 0 || (!entrada && n > (item.quantidade ?? 0)) || (!entrada && !produtoDestino);
+  
+  function confirmar() {
+    let finalObs = obs;
+    if (!entrada && produtoDestino) {
+      finalObs = `Retirada para produção: ${produtoDestino}${obs ? ` - ${obs}` : ""}`;
+    }
+    onConfirmar(n, finalObs);
+  }
+
   return (
     <>
       <p className="text-[11px] font-medium mb-3" style={{ color: "var(--dim)" }}>
         {item.nome} · disponível: {item.quantidade} {item.unidade}
       </p>
-      <Field label={`Quantidade (${item.unidade})`}>
+      
+      {!entrada && (
+        <Field label="Para qual produção está tirando? *">
+          <Select value={produtoDestino} onChange={(e) => setProdutoDestino(e.target.value)}>
+            <option value="">Selecione o prato ou drink...</option>
+            {produtosCombo.map((p) => (
+              <option key={p.id} value={p.nome}>{p.nome}</option>
+            ))}
+            <option value="Outro (Desperdício, Consumo interno, etc)">Outro (Desperdício, Consumo interno, etc)</option>
+          </Select>
+        </Field>
+      )}
+
+      <Field label={`Quantidade (${item.unidade}) *`}>
         <NumberInput autoFocus value={qtd} onChange={(e) => setQtd(e.target.value)} placeholder="0" step="0.1" />
       </Field>
-      <Field label="Observação (opcional)"><TextInput value={obs} onChange={(e) => setObs(e.target.value)} placeholder={entrada ? "ex: Compra Fornecedor X" : "ex: Consumo do dia"} /></Field>
+      
+      <Field label="Observação (opcional)">
+        <TextInput value={obs} onChange={(e) => setObs(e.target.value)} placeholder={entrada ? "ex: Compra Fornecedor X" : "ex: Complemento da requisição..."} />
+      </Field>
+      
       <div className="flex gap-3">
         <Btn variant="ghost" className="flex-1" onClick={onCancelar}>Cancelar</Btn>
-        <Btn variant="primary" className="flex-1" disabled={invalido} onClick={() => onConfirmar(n, obs)}>
+        <Btn variant="primary" className="flex-1" disabled={invalido} onClick={confirmar}>
           Confirmar {entrada ? "entrada" : "saída"}
         </Btn>
       </div>
@@ -99,11 +128,23 @@ export default function EstoquePage() {
   const [editar, setEditar]   = useState(null);
   const [mov, setMov]         = useState(null); // { item, tipo }
   const [salvou, setSalvou]   = useState(false);
+  const [produtos, setProdutos] = useState([]);
 
   const carregar = useCallback(async () => {
     setLoading(true);
-    const { data } = await fetchEstoque(unidadeAtiva);
-    setItens(data || []);
+    const [resEstoque, resCardapio, resDrinks] = await Promise.all([
+      fetchEstoque(unidadeAtiva),
+      fetchCardapio(unidadeAtiva),
+      fetchDrinks(unidadeAtiva)
+    ]);
+    setItens(resEstoque.data || []);
+    
+    // Junta pratos e drinks para o combo de "Produção Alvo"
+    const ativos = [...(resCardapio.data || []), ...(resDrinks.data || [])].filter(p => p.ativo !== false);
+    // Ordena alfabeticamente
+    ativos.sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
+    setProdutos(ativos);
+    
     setLoading(false);
   }, [unidadeAtiva]);
   useEffect(() => { carregar(); }, [carregar]);
@@ -240,8 +281,8 @@ export default function EstoquePage() {
       <Modal open={modal} onClose={() => { setModal(false); setEditar(null); }} title={editar ? "Editar item" : "Novo item"}>
         <FormItem inicial={editar} onSalvar={salvarItem} onCancelar={() => { setModal(false); setEditar(null); }} />
       </Modal>
-      <Modal open={!!mov} onClose={() => setMov(null)} title={mov?.tipo === "entrada" ? "Registrar entrada" : "Registrar saída"}>
-        {mov && <FormMov item={mov.item} tipo={mov.tipo} onConfirmar={confirmarMov} onCancelar={() => setMov(null)} />}
+      <Modal open={!!mov} onClose={() => setMov(null)} title={mov?.tipo === "entrada" ? "Registrar entrada" : "Registrar saída da Dispensa"}>
+        {mov && <FormMov item={mov.item} tipo={mov.tipo} produtosCombo={produtos} onConfirmar={confirmarMov} onCancelar={() => setMov(null)} />}
       </Modal>
     </div>
   );

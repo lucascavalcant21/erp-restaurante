@@ -114,39 +114,22 @@ export async function registrarProducao(prod, ingredientes, unidadeId) {
     return { error: error.message };
   }
 
-  // 5. Dar baixa no estoque para cada ingrediente
-  for (const ing of ingredientes) {
-    if (!ing.estoque_id || !ing.qtd_usada) continue;
+  // 5. Incrementar o estoque_producao do item finalizado
+  const tabela = prod.setor === "bar" ? "drinks" : "cardapio";
+  
+  // Busca quantidade atual
+  const { data: itemCardapio, error: fetchErr } = await supabase
+    .from(tabela)
+    .select("estoque_producao")
+    .eq("id", prod.prato_id)
+    .single();
 
-    // Busca quantidade atual
-    const { data: item, error: fetchErr } = await supabase
-      .from("estoque")
-      .select("quantidade")
-      .eq("id", ing.estoque_id)
-      .single();
-
-    if (fetchErr) continue;
-
-    const novaQtd = Math.max(0, (item.quantidade || 0) - ing.qtd_usada);
-
+  if (!fetchErr) {
+    const novoEstoque = (itemCardapio.estoque_producao || 0) + (prod.quantidade || 1);
     await supabase
-      .from("estoque")
-      .update({ quantidade: novaQtd, updated_at: new Date().toISOString() })
-      .eq("id", ing.estoque_id);
-
-    // Registra movimentação
-    await supabase.from("estoque_movimentacoes").insert([{
-      estoque_id: ing.estoque_id,
-      tipo: "saida",
-      quantidade: ing.qtd_usada,
-      obs: JSON.stringify({
-        via: "producao",
-        prato: prod.prato_nome,
-        responsavel: prod.funcionario_nome || "",
-        setor: prod.setor,
-      }),
-      unidade_id: (unidadeId && unidadeId !== "todas") ? unidadeId : null,
-    }]);
+      .from(tabela)
+      .update({ estoque_producao: novoEstoque })
+      .eq("id", prod.prato_id);
   }
 
   return { data, error: null };

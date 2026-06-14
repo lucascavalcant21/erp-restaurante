@@ -5,6 +5,7 @@ import { Brain, TrendingUp, DollarSign, Users, Package } from "lucide-react";
 import { Card, SectionLabel, fmtBRL } from "./ui";
 import { UNIDADES } from "../lib/unidades";
 import { carregarDadosDaUnidade, consolidarRede, fmtPct } from "../lib/cerebro";
+import { checkAlertasLimpeza } from "../lib/suprimentos";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
@@ -14,6 +15,7 @@ import {
 export default function CerebroDashboard() {
   const [unidades, setUnidades] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [alertasLimpeza, setAlertasLimpeza] = useState([]);
 
   useEffect(() => {
     let vivo = true;
@@ -23,6 +25,11 @@ export default function CerebroDashboard() {
         setLoading(false);
       }
     });
+    
+    checkAlertasLimpeza().then((res) => {
+      if (vivo && res.data) setAlertasLimpeza(res.data);
+    });
+    
     return () => { vivo = false; };
   }, []);
 
@@ -132,6 +139,23 @@ export default function CerebroDashboard() {
           {kpiBox("CMO Médio", fmtPct(rede.cmo), Users, rede.cmo > 30 ? "#EF4444" : "#8B5CF6", "Custo de Mão de Obra")}
         </div>
       </div>
+
+      {alertasLimpeza.length > 0 && (
+        <div className="p-4 rounded-2xl" style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)" }}>
+          <div className="flex items-center gap-2 mb-3">
+            <Package size={20} color="#EF4444" />
+            <p className="font-bold text-[#EF4444]">Alertas de Abastecimento (Limpeza & Suprimentos)</p>
+          </div>
+          <div className="space-y-2">
+            {alertasLimpeza.map((alerta, idx) => (
+              <div key={idx} className="flex justify-between items-center text-sm font-semibold" style={{ color: "var(--fg)" }}>
+                <span>Unidade <span className="uppercase text-[#EF4444]">{alerta.unidade_id}</span> precisa de <strong>{alerta.item}</strong></span>
+                <span className="text-xs" style={{ color: "var(--dim)" }}>Estoque: {alerta.quantidade} (Mín: {alerta.minimo})</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Gráficos Recharts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

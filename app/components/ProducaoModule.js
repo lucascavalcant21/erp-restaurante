@@ -239,7 +239,7 @@ function ModalNovaProducao({ pratos, estoque, funcionarios, setor, onConfirmar, 
               ) : ingredientes.length === 0 ? (
                 <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 12, padding: "14px 16px" }}>
                   <p style={{ color: "#EF4444", fontSize: 13, fontWeight: 600 }}>
-                    ⚠ Nenhuma ficha técnica cadastrada para este item. Cadastre a ficha técnica antes de registrar a produção.
+                    ⚠ Nenhuma ficha técnica cadastrada para este item.
                   </p>
                 </div>
               ) : (
@@ -363,7 +363,7 @@ function ModalNovaProducao({ pratos, estoque, funcionarios, setor, onConfirmar, 
               border: "none", color: "#fff", fontSize: 16, fontWeight: 700,
               cursor: loading ? "default" : "pointer", transition: "background 150ms",
             }}>
-              {loading ? "Registrando..." : "Finalizar Produção e Dar Baixa"}
+              {loading ? "Registrando..." : "Registrar Lote Produzido"}
             </button>
           </div>
         </div>
@@ -426,12 +426,12 @@ export default function ProducaoModule({ setor }) {
       return;
     }
     setModal(false);
-    setToast({ msg: "Produção registrada e estoque atualizado!", tipo: "ok" });
+    setToast({ msg: "Lote de produção registrado. Estoque do produto atualizado!", tipo: "ok" });
     carregar();
   }
 
   const titulo = setor === "bar" ? "🍹 Produção para Bar" : "👨‍🍳 Produção para Cozinha";
-  const subtitulo = "Registro de produção, baixa no estoque e análise financeira";
+  const subtitulo = "Registro de lote produzido e formação do Estoque de Prontos";
 
   return (
     <div className="min-h-screen">

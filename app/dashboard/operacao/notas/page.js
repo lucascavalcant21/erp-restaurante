@@ -10,12 +10,18 @@ import { useERP } from "../../../context/ERPContext";
 import {
   fetchNotas, salvarNota, deletarNota, simularLeituraOCR, CATEGORIAS_NOTA
 } from "../../../lib/notas";
+import { inserirDocumento } from "../../../lib/financeiro";
+import { inserirSuprimentoCentral, entradaEstoqueCentral } from "../../../lib/suprimentos";
 
 function FormScanner({ onSalvar, onCancelar }) {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [loadingIA, setLoadingIA] = useState(false);
   const [dadosIA, setDadosIA] = useState(null);
+  
+  // Automações
+  const [lancarFinanceiro, setLancarFinanceiro] = useState(true);
+  const [alimentarEstoque, setAlimentarEstoque] = useState(false);
   
   // Ref para o input de arquivo escondido
   const fileInputRef = useRef(null);
@@ -43,7 +49,7 @@ function FormScanner({ onSalvar, onCancelar }) {
   }
 
   function confirmar() {
-    onSalvar(dadosIA, preview); // Passa os dados lidos e a foto
+    onSalvar(dadosIA, preview, lancarFinanceiro, alimentarEstoque); // Passa os dados lidos, foto e as opções de automação
   }
 
   if (!preview) {
@@ -121,6 +127,25 @@ function FormScanner({ onSalvar, onCancelar }) {
           </div>
         )}
 
+        {/* NOVOS CONTROLES DE AUTOMAÇÃO */}
+        {dadosIA && (
+          <div className="mt-4 p-4 rounded-xl space-y-3" style={{ background: "var(--elevated)", border: "1px solid var(--line)" }}>
+            <p className="text-xs font-bold uppercase tracking-wide" style={{ color: "var(--dim)" }}>Automações Inteligentes</p>
+            
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input type="checkbox" className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" 
+                checked={lancarFinanceiro} onChange={(e) => setLancarFinanceiro(e.target.checked)} />
+              <span className="text-sm font-bold" style={{ color: "var(--fg)" }}>Lançar pendência no Financeiro (Contas a Pagar)</span>
+            </label>
+            
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input type="checkbox" className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" 
+                checked={alimentarEstoque} onChange={(e) => setAlimentarEstoque(e.target.checked)} />
+              <span className="text-sm font-bold" style={{ color: "var(--fg)" }}>Dar entrada automática dos itens no Estoque</span>
+            </label>
+          </div>
+        )}
+
         <div className="flex gap-3 mt-6 pt-4 border-t" style={{ borderColor: "var(--line)" }}>
           <Btn variant="ghost" className="flex-1" onClick={onCancelar}>Cancelar</Btn>
           <Btn variant="primary" className="flex-1" disabled={!dadosIA || loadingIA} onClick={confirmar} style={dadosIA ? { background: "#10B981", color: "#fff" } : {}}>
@@ -178,7 +203,7 @@ export default function NotasFiscaisPage() {
     valorMes: filtrados.reduce((acc, n) => acc + (Number(n.valor_total) || 0), 0)
   }), [filtrados]);
 
-  async function salvar(dadosIA, imagemBase64) {
+  async function salvar(dadosIA, imagemBase64, lancarFinanceiro, alimentarEstoque) {
     // Mesclar dados da IA com a imagem gerada
     const payload = {
       ...dadosIA,
@@ -186,6 +211,41 @@ export default function NotasFiscaisPage() {
     };
     
     await salvarNota(payload, unidadeAtiva);
+
+    // ── 1. Automação Financeira ──
+    if (lancarFinanceiro) {
+      await inserirDocumento({
+        tipo: "despesa",
+        descricao: `Nota: ${dadosIA.fornecedor || "Diversos"}`,
+        categoria: dadosIA.categoria || "Geral",
+        valor: Number(dadosIA.valor_total) || 0,
+        emissao: dadosIA.data_emissao || new Date().toISOString().slice(0, 10),
+        vencimento: dadosIA.data_emissao || new Date().toISOString().slice(0, 10), // Vence no dia da emissão (pode alterar no módulo financeiro)
+        status: "pendente"
+      }, unidadeAtiva);
+    }
+
+    // ── 2. Automação de Estoque ──
+    if (alimentarEstoque && dadosIA.itens && dadosIA.itens.length > 0) {
+      for (const item of dadosIA.itens) {
+        // Na demonstração: Cadastramos os itens automaticamente no Catálogo Central (se houver duplicado, o ideal era um de/para)
+        const resCat = await inserirSuprimentoCentral({
+          nome: item.nome || "Item Desconhecido",
+          categoria: dadosIA.categoria || "Geral",
+          unidade_medida: item.un || "UN",
+          estoque_minimo: 10
+        });
+        
+        // Dá entrada no estoque
+        if (resCat.data && resCat.data.id) {
+          // Calcula o custo unitário (Assumindo que o preço lido é o total da linha ou unitário. Geralmente é total / qtd)
+          const precoTotalLinha = Number(item.preco) || 0;
+          const qtd = Number(item.qtd) || 1;
+          const custoUnit = precoTotalLinha / qtd;
+          await entradaEstoqueCentral(resCat.data.id, qtd, custoUnit);
+        }
+      }
+    }
     setToast("Nota Fiscal salva com sucesso!");
     setModalScanner(false);
     setTimeout(() => setToast(""), 3000);

@@ -49,13 +49,15 @@ export async function fetchNotas(unidadeId) {
   let q = supabase.from("notas_fiscais").select("*").order("data_emissao", { ascending: false }).order("hora_emissao", { ascending: false });
   if (unidadeId && unidadeId !== "todas") q = q.eq("unidade_id", unidadeId);
   
-  const { data, error } = await q;
-  if (error) {
+  try {
+    const { data, error } = await q;
+    if (error) throw new Error(error.message);
+    return { data: data || [], error: null };
+  } catch (err) {
     let filt = MOCK_NOTAS;
     if (unidadeId && unidadeId !== "todas") filt = filt.filter(n => n.unidade_id === unidadeId || n.unidade_id === "todas");
     return { data: [...filt].sort((a,b) => new Date(b.created_at) - new Date(a.created_at)), error: null }; // Fallback
   }
-  return { data: data || [], error: null };
 }
 
 export async function salvarNota(dados, unidadeId) {
@@ -68,14 +70,16 @@ export async function salvarNota(dados, unidadeId) {
     return { data: nota, error: null };
   }
 
-  const { data, error } = await supabase.from("notas_fiscais").insert([nota]).select().single();
-  if (error) {
+  try {
+    const { data, error } = await supabase.from("notas_fiscais").insert([nota]).select().single();
+    if (error) throw new Error(error.message);
+    return { data, error: null };
+  } catch (err) {
     nota.id = "n" + Date.now();
     nota.created_at = new Date().toISOString();
-    MOCK_NOTAS.push(nota);
+    MOCK_NOTAS.unshift(nota);
     return { data: nota, error: null }; // Fallback
   }
-  return { data, error: null };
 }
 
 export async function deletarNota(id) {
@@ -83,12 +87,14 @@ export async function deletarNota(id) {
     MOCK_NOTAS = MOCK_NOTAS.filter(n => n.id !== id);
     return { error: null };
   }
-  const { error } = await supabase.from("notas_fiscais").delete().eq("id", id);
-  if (error) {
+  try {
+    const { error } = await supabase.from("notas_fiscais").delete().eq("id", id);
+    if (error) throw new Error(error.message);
+    return { error: null };
+  } catch (err) {
     MOCK_NOTAS = MOCK_NOTAS.filter(n => n.id !== id);
     return { error: null }; // Fallback
   }
-  return { error: null };
 }
 
 /**

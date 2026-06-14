@@ -103,6 +103,23 @@ export async function deletarNota(id) {
  * Atrasa 3 segundos e retorna um objeto parseado pseudo-aleatório.
  */
 export async function simularLeituraOCR(imagemBase64) {
+  try {
+    const res = await fetch("/api/ocr", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ imageBase64 })
+    });
+    
+    if (res.ok) {
+      const dadosIA = await res.json();
+      return dadosIA;
+    }
+    // Se falhar (ex: sem chave API configurada), cai pro fallback silenciosamente
+  } catch (err) {
+    console.error("OCR API Falhou, usando mock:", err);
+  }
+
+  // FALLBACK SIMULADO (caso não tenha configurado o ChatGPT ainda)
   return new Promise((resolve) => {
     setTimeout(() => {
       const hf = Math.random() > 0.5;

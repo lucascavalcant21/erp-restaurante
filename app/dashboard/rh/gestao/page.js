@@ -9,6 +9,7 @@ import {
 } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
 import { fetchFuncionarios, inserirFuncionario, atualizarFuncionario, removerFuncionario } from "../../../lib/rh";
+import { podeEditarGlobal } from "../../../lib/auth";
 
 const CARGOS = ["Gerente", "Cozinheiro", "Auxiliar de Cozinha", "Bartender", "Barman", "Garçom de Bar", "Atendente", "Caixa", "Entregador", "Limpeza", "Estoquista", "Outro"];
 const TURNOS = ["Manhã (06-14h)", "Tarde (14-22h)", "Noite (22-06h)", "Integral (08-18h)", "Folguista"];
@@ -49,7 +50,8 @@ function FormFunc({ inicial, onSalvar, onCancelar }) {
 
 export default function GestaoRhPage() {
   const router = useRouter();
-  const { unidadeAtiva, unidadeInfo } = useERP();
+  const { unidadeAtiva, unidadeInfo, sessao } = useERP();
+  const podeEditar = sessao ? podeEditarGlobal(sessao.papel) : false;
   const [lista, setLista] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
@@ -92,7 +94,7 @@ export default function GestaoRhPage() {
   return (
     <div className="min-h-screen">
       <PageHeader title="RH" subtitle={`Equipe · ${unidadeInfo.nome}`} icon={Users}
-        onAction={() => { setEditar(null); setModal(true); }} actionLabel="Novo" />
+        onAction={podeEditar ? () => { setEditar(null); setModal(true); } : undefined} actionLabel={podeEditar ? "Novo" : undefined} />
       <PageBody>
         <Toast show={salvou}>Colaborador salvo!</Toast>
 
@@ -133,8 +135,12 @@ export default function GestaoRhPage() {
                       <p className="text-[11px]" style={{ color: "var(--dim)" }}>{f.cargo} · {f.turno}{f.salario ? ` · ${fmtBRL(f.salario)}` : ""}</p>
                     </div>
                     <button onClick={() => router.push(`/dashboard/rh/funcionario/${f.id}`)} title="Gerenciar (holerites, docs, avisos...)" className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "var(--accent-soft)" }}><Settings2 size={14} style={{ color: "var(--accent-fg)" }} /></button>
-                    <button onClick={() => { setEditar(f); setModal(true); }} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "var(--elevated)" }}><Edit3 size={14} style={{ color: "var(--muted)" }} /></button>
-                    <button onClick={() => remover(f.id)} className="w-8 h-8 rounded-lg flex items-center justify-center erp-badge-danger"><Trash2 size={14} /></button>
+                    {podeEditar && (
+                      <>
+                        <button onClick={() => { setEditar(f); setModal(true); }} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "var(--elevated)" }}><Edit3 size={14} style={{ color: "var(--muted)" }} /></button>
+                        <button onClick={() => remover(f.id)} className="w-8 h-8 rounded-lg flex items-center justify-center erp-badge-danger"><Trash2 size={14} /></button>
+                      </>
+                    )}
                   </div>
                 </Card>
               ))}

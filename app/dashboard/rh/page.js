@@ -2,15 +2,18 @@
 
 import { useRouter } from "next/navigation";
 import { PageHeader, PageBody, Card } from "../../components/ui";
+import { useERP } from "../../context/ERPContext";
+import { podeAcessar } from "../../lib/auth";
 
 export default function RHPage() {
   const router = useRouter();
+  const { sessao } = useERP();
 
   const opcoes = [
-    { id: "gestao_rh", emoji: "👥", titulo: "RH", desc: "Gestão de equipe, contratos e folha", href: "/dashboard/rh/gestao" },
+    { id: "gestao_rh", emoji: "👥", titulo: "Gestão de Equipe", desc: "Controle de funcionários, contratos e folha", href: "/dashboard/rh/gestao" },
     { id: "ponto", emoji: "⏱️", titulo: "Controle de Ponto", desc: "Registros de entrada, saída e horas", href: "/dashboard/rh/ponto" },
-    { id: "colaborador", emoji: "🪪", titulo: "Portal do Colaborador", desc: "Acesso a dados, holerites e benefícios", href: "/dashboard/rh/colaborador" },
-  ];
+    { id: "colaborador", emoji: "🪪", titulo: "Meu Portal", desc: "Acesso aos meus dados, holerites e benefícios", href: "/dashboard/rh/colaborador" },
+  ].filter(op => sessao ? podeAcessar(sessao.papel, op.id) : false);
 
   return (
     <div className="min-h-screen">

@@ -11,7 +11,7 @@ import {
   calcCustoUnitario, getUnidade, UNIDADES,
 } from "../../../lib/ingredientes";
 import { inserirItem } from "../../../lib/estoque";
-import { isCerebro } from "../../../lib/auth";
+import { podeEditarGlobal } from "../../../lib/auth";
 
 const ICONE_UN = { KG: Beef, L: Droplets, UN: Package, MACO: Package, CX: Package };
 const SETORES = ["Cozinha", "Bar"];
@@ -56,7 +56,7 @@ function FormIngrediente({ inicial, onSalvar, onCancelar }) {
 
 export default function IngredientesPage() {
   const { unidadeAtiva, unidadeInfo, sessao } = useERP();
-  const isCerebroAdmin = sessao ? isCerebro(sessao.papel) : false;
+  const podeEditar = sessao ? podeEditarGlobal(sessao.papel) : false;
   const [lista, setLista]     = useState([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca]     = useState("");
@@ -108,7 +108,7 @@ export default function IngredientesPage() {
   return (
     <div className="min-h-screen">
       <PageHeader title={`Ingredientes ${unidadeInfo.nome}`} subtitle="Catálogo e custo de insumos" icon={FlaskConical}
-        onAction={isCerebroAdmin ? () => { setEditar(null); setModal(true); } : undefined} actionLabel={isCerebroAdmin ? "Novo" : undefined} />
+        onAction={podeEditar ? () => { setEditar(null); setModal(true); } : undefined} actionLabel={podeEditar ? "Novo" : undefined} />
       <PageBody>
         <Toast show={!!salvou}>{salvou}</Toast>
 
@@ -148,7 +148,7 @@ export default function IngredientesPage() {
                           Compra: {fmtBRL(i.preco_compra)} · <span style={{ color: "var(--accent-fg)" }}>{fmtBRL(base, base < 0.01 ? 4 : 2)} {un.label_base}</span>
                         </p>
                       </div>
-                      {isCerebroAdmin && (
+                      {podeEditar && (
                         <>
                           <button onClick={() => { setEditar(i); setModal(true); }} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "var(--elevated)" }}><Edit3 size={14} style={{ color: "var(--muted)" }} /></button>
                           <button onClick={() => remover(i.id)} className="w-8 h-8 rounded-lg flex items-center justify-center erp-badge-danger"><Trash2 size={14} /></button>

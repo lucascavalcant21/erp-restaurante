@@ -34,24 +34,24 @@ export const PAPEIS = [
     id: "estoque", label: "Estoquista", cor: "#8b5cf6",
     descricao: "Insumos, estoque, fichas, cardápio e fornecedores.",
     home: "/dashboard/tarefas",
-    nav: ["tarefas","notificacoes","bar","cozinha","cervejas","estoque","ingredientes","fichas","cardapio","fornecedores","etiquetas","validade","gestao"],
+    nav: ["tarefas","notificacoes","bar","cozinha","cervejas","estoque","ingredientes","fichas","cardapio","fornecedores","etiquetas","validade","gestao","ponto","colaborador"],
   },
   {
     id: "cozinha", label: "Cozinha / Chef", cor: "#f97316",
     descricao: "Fichas técnicas, cardápio e insumos.",
     home: "/dashboard/tarefas",
-    nav: ["tarefas","notificacoes","bar","cozinha","ingredientes","fichas","cardapio","montagem","estoque","etiquetas","validade","gestao"],
+    nav: ["tarefas","notificacoes","bar","cozinha","ingredientes","fichas","cardapio","montagem","estoque","etiquetas","validade","gestao","ponto","colaborador"],
   },
   {
     id: "marketing", label: "Marketing", cor: "#f59e0b",
     descricao: "Clientes, campanhas e avaliações.",
     home: "/dashboard/clientes/crm",
-    nav: ["dashboard","notificacoes","clientes","crm","campanhas","nps"],
+    nav: ["dashboard","notificacoes","clientes","crm","campanhas","nps","ponto","colaborador"],
   },
   {
     id: "caixa", label: "Operador de Caixa", cor: "#64748b",
     descricao: "Ponto de venda, painel e notificações do dia.",
-    home: "/dashboard/tarefas", nav: ["dashboard","tarefas","vendas","notificacoes"],
+    home: "/dashboard/tarefas", nav: ["dashboard","tarefas","vendas","notificacoes","ponto","colaborador"],
   },
 ];
 
@@ -61,6 +61,11 @@ export function getPapel(papelId) {
 
 /** Verifica se o papel logado é o Cérebro (Administrador Master) */
 export function isCerebro(papelId) {
+  return papelId === "admin";
+}
+
+/** Verifica se o papel tem permissão de edição global nas tabelas do sistema */
+export function podeEditarGlobal(papelId) {
   return papelId === "admin";
 }
 

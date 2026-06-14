@@ -9,9 +9,11 @@ import {
 const SETORES = ["Cozinha", "Bar"];
 import { useERP } from "../../../context/ERPContext";
 import { fetchIngredientes, getIngredienteById, calcCustoLinha, getUnidade } from "../../../lib/ingredientes";
+import { podeEditarGlobal } from "../../../lib/auth";
 
 export default function FichasTecnicasPage() {
-  const { unidadeAtiva, unidadeInfo } = useERP();
+  const { unidadeAtiva, unidadeInfo, sessao } = useERP();
+  const podeEditar = sessao ? podeEditarGlobal(sessao.papel) : false;
   const [catalogo, setCatalogo] = useState([]);
   const [loading, setLoading]   = useState(true);
 
@@ -74,30 +76,32 @@ export default function FichasTecnicasPage() {
           <>
             {/* Identificação */}
             <Card>
-              <Field label="Nome do prato / ficha"><TextInput value={nome} onChange={(e) => setNome(e.target.value)} placeholder="ex: Marmitex Executiva" /></Field>
-              <Field label="Preço de venda (R$)"><NumberInput value={preco} onChange={(e) => setPreco(e.target.value)} placeholder="0,00" step="0.01" /></Field>
+              <Field label="Nome do prato / ficha"><TextInput value={nome} onChange={(e) => setNome(e.target.value)} placeholder="ex: Marmitex Executiva" disabled={!podeEditar} /></Field>
+              <Field label="Preço de venda (R$)"><NumberInput value={preco} onChange={(e) => setPreco(e.target.value)} placeholder="0,00" step="0.01" disabled={!podeEditar} /></Field>
             </Card>
 
             {/* Adicionar ingrediente */}
-            <Card>
-              <SectionLabel>Adicionar ingrediente</SectionLabel>
-              <div className="mb-3">
-                <Chips options={SETORES} value={setor}
-                  onChange={(s) => { setSetor(s); const first = catalogo.find((i) => (i.setor || "Cozinha") === s); setSelId(String(first?.id ?? "")); }} />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Ingrediente">
-                  <Select value={selId} onChange={(e) => setSelId(e.target.value)}>
-                    {catalogoSetor.length === 0 && <option value="">— sem ingredientes de {setor} —</option>}
-                    {catalogoSetor.map((i) => <option key={i.id} value={i.id}>{i.nome}</option>)}
-                  </Select>
-                </Field>
-                <Field label={`Quantidade${ingSel ? ` (${getUnidade(ingSel.unidade).base})` : ""}`}>
-                  <NumberInput value={qtd} onChange={(e) => setQtd(e.target.value)} placeholder="0" onKeyDown={(e) => e.key === "Enter" && adicionar()} />
-                </Field>
-              </div>
-              <Btn variant="primary" className="w-full" onClick={adicionar}><Plus size={15} /> Adicionar à ficha</Btn>
-            </Card>
+            {podeEditar && (
+              <Card>
+                <SectionLabel>Adicionar ingrediente</SectionLabel>
+                <div className="mb-3">
+                  <Chips options={SETORES} value={setor}
+                    onChange={(s) => { setSetor(s); const first = catalogo.find((i) => (i.setor || "Cozinha") === s); setSelId(String(first?.id ?? "")); }} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Ingrediente">
+                    <Select value={selId} onChange={(e) => setSelId(e.target.value)}>
+                      {catalogoSetor.length === 0 && <option value="">— sem ingredientes de {setor} —</option>}
+                      {catalogoSetor.map((i) => <option key={i.id} value={i.id}>{i.nome}</option>)}
+                    </Select>
+                  </Field>
+                  <Field label={`Quantidade${ingSel ? ` (${getUnidade(ingSel.unidade).base})` : ""}`}>
+                    <NumberInput value={qtd} onChange={(e) => setQtd(e.target.value)} placeholder="0" onKeyDown={(e) => e.key === "Enter" && adicionar()} />
+                  </Field>
+                </div>
+                <Btn variant="primary" className="w-full" onClick={adicionar}><Plus size={15} /> Adicionar à ficha</Btn>
+              </Card>
+            )}
 
             {/* Linhas da receita */}
             <div>
@@ -119,7 +123,7 @@ export default function FichasTecnicasPage() {
                             <p className="text-[11px]" style={{ color: "var(--dim)" }}>{it.quantidade} {un.base} · {fmtBRL(ing.custo_por_unidade_base, 4)} {un.label_base}</p>
                           </div>
                           <p className="text-sm font-bold" style={{ color: "var(--fg)" }}>{fmtBRL(custo)}</p>
-                          <button onClick={() => remover(it.id)} className="w-8 h-8 rounded-lg flex items-center justify-center erp-badge-danger"><Trash2 size={14} /></button>
+                          {podeEditar && <button onClick={() => remover(it.id)} className="w-8 h-8 rounded-lg flex items-center justify-center erp-badge-danger"><Trash2 size={14} /></button>}
                         </div>
                       </Card>
                     );
@@ -142,7 +146,9 @@ export default function FichasTecnicasPage() {
               )}
             </Card>
 
-            <Btn variant="primary" className="w-full !h-12" disabled={!nome.trim() || !itens.length} onClick={salvar}>Salvar ficha técnica</Btn>
+            {podeEditar && (
+              <Btn variant="primary" className="w-full !h-12" disabled={!nome.trim() || !itens.length} onClick={salvar}>Salvar ficha técnica</Btn>
+            )}
           </>
         )}
       </PageBody>

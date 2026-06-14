@@ -642,6 +642,56 @@ app.get("/api/dashboard", (req, res) => {
 });
 
 // =============================================================================
+// MÓDULO DE OCR (Integração com ChatGPT Vision)
+// =============================================================================
+app.post("/api/ocr", async (req, res) => {
+  try {
+    const { imageBase64 } = req.body;
+
+    if (!process.env.OPENAI_API_KEY) {
+      return erro(res, "OpenAI API Key não configurada.", 500);
+    }
+
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: "Você é um especialista em ler notas fiscais, DANFEs e cupons fiscais brasileiros. Extraia os dados e retorne EXATAMENTE um objeto JSON com as chaves: 'fornecedor' (string), 'cnpj' (string formatada), 'data_emissao' (string YYYY-MM-DD), 'hora_emissao' (string HH:MM), 'categoria' (escolha entre: Hortifruti, Açougue/Proteína, Laticínios, Secos e Molhados, Bebidas, Limpeza, Embalagens, Outros), 'valor_total' (number), e 'itens' (array de objetos com 'nome', 'qtd', 'un' e 'preco' numérico). Se a imagem não for uma nota ou não der pra ler, tente o melhor e preencha nulo. Responda apenas o JSON puro."
+          },
+          {
+            role: "user",
+            content: [
+              { type: "text", text: "Extraia os dados deste documento." },
+              { type: "image_url", image_url: { url: imageBase64 } }
+            ]
+          }
+        ],
+        max_tokens: 1500,
+        response_format: { type: "json_object" }
+      })
+    });
+
+    const data = await response.json();
+    if (data.error) throw new Error(data.error.message);
+
+    const resultString = data.choices[0].message.content;
+    const jsonResult = JSON.parse(resultString);
+
+    res.json(jsonResult);
+  } catch (error) {
+    console.error("Erro na API OCR (Express):", error);
+    erro(res, error.message, 500);
+  }
+});
+
+// =============================================================================
 // START
 // =============================================================================
 app.listen(PORT, () => console.log(`[FoodERP] Servidor na porta ${PORT}`));

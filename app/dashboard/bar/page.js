@@ -23,6 +23,7 @@ export default function BarPage() {
     { id: "ingredientes", emoji: "🧪", titulo: "Ingredientes", desc: "Cadastro, preços de compra e unidades", href: "/dashboard/operacao/ingredientes" },
     { id: "etiquetas", emoji: "🏷️", titulo: "Etiquetas", desc: "Geração de etiquetas e códigos QR para bebidas", href: "/dashboard/operacao/etiquetas" },
     { id: "limpeza", emoji: "✨", titulo: "Limpeza & Suprimentos", desc: "Controle da despensa de materiais e baixa de consumo diário", href: "/dashboard/operacao/limpeza" },
+    { id: "notas", emoji: "🧾", titulo: "Notas Fiscais", desc: "Escanear notas de recebimento de bebidas", href: "/dashboard/operacao/notas" },
   ];
 
   return (

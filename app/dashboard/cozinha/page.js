@@ -24,6 +24,7 @@ export default function CozinhaPage() {
     { id: "fornecedores", emoji: "🚚", titulo: "Fornecedores", desc: "Base de fornecedores e negociações", href: "/dashboard/operacao/fornecedores" },
     { id: "etiquetas", emoji: "🏷️", titulo: "Etiquetas", desc: "Geração de etiquetas e códigos QR para insumos", href: "/dashboard/operacao/etiquetas" },
     { id: "limpeza", emoji: "✨", titulo: "Limpeza & Suprimentos", desc: "Controle da despensa de materiais e baixa de consumo diário", href: "/dashboard/operacao/limpeza" },
+    { id: "notas", emoji: "🧾", titulo: "Notas Fiscais", desc: "Escanear notas de recebimento de mercadorias", href: "/dashboard/operacao/notas" },
   ];
 
   return (

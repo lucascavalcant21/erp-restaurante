@@ -5,13 +5,13 @@ import { Package, Plus, Send, AlertTriangle, Building2, Beaker, Archive } from "
 import {
   PageHeader, PageBody, Card, KpiGrid, Kpi,
   SearchBar, Chips, EmptyState, Modal, Field, TextInput, NumberInput, Select, Btn, Toast, fmtBRL
-} from "../../../../components/ui";
-import { useERP } from "../../../../context/ERPContext";
+} from "../../../components/ui";
+import { useERP } from "../../../context/ERPContext";
 import {
   fetchCatalogoCentral, inserirSuprimentoCentral, atualizarSuprimentoCentral,
   entradaEstoqueCentral, transferirParaUnidade, CATEGORIAS_SUP, UNIDADES_SUP
-} from "../../../../lib/suprimentos";
-import { UNIDADES } from "../../../../lib/unidades";
+} from "../../../lib/suprimentos";
+import { UNIDADES } from "../../../lib/unidades";
 
 const VAZIO = { nome: "", categoria: "Limpeza", unidade_medida: "UN", custo_unitario: "" };
 

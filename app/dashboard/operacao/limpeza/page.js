@@ -5,11 +5,11 @@ import { Sparkles, Minus, Plus, Search, Archive, AlertTriangle } from "lucide-re
 import {
   PageHeader, PageBody, Card, KpiGrid, Kpi,
   SearchBar, Chips, EmptyState, Modal, Field, TextInput, NumberInput, Btn, Toast
-} from "../../../../components/ui";
-import { useERP } from "../../../../context/ERPContext";
+} from "../../../components/ui";
+import { useERP } from "../../../context/ERPContext";
 import {
   fetchSuprimentosDaUnidade, registrarConsumo, CATEGORIAS_SUP
-} from "../../../../lib/suprimentos";
+} from "../../../lib/suprimentos";
 
 function FormConsumo({ item, onConfirmar, onCancelar }) {
   const [qtd, setQtd] = useState("");

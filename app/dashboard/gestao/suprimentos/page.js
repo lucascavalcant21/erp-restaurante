@@ -13,7 +13,7 @@ import {
 } from "../../../lib/suprimentos";
 import { UNIDADES } from "../../../lib/unidades";
 
-const VAZIO = { nome: "", categoria: "Limpeza", unidade_medida: "UN", custo_unitario: "" };
+const VAZIO = { nome: "", categoria: "Limpeza", unidade_medida: "UN", custo_unitario: "", fornecedor: "" };
 
 function FormItem({ inicial, onSalvar, onCancelar }) {
   const [f, setF] = useState(inicial ? { ...inicial, custo_unitario: String(inicial.custo_unitario) } : VAZIO);
@@ -31,7 +31,10 @@ function FormItem({ inicial, onSalvar, onCancelar }) {
         <Field label="Categoria"><Select value={f.categoria} onChange={(e) => setF({ ...f, categoria: e.target.value })}>{CATEGORIAS_SUP.map(c => <option key={c}>{c}</option>)}</Select></Field>
         <Field label="Unidade"><Select value={f.unidade_medida} onChange={(e) => setF({ ...f, unidade_medida: e.target.value })}>{UNIDADES_SUP.map(u => <option key={u}>{u}</option>)}</Select></Field>
       </div>
-      <Field label="Custo Unitário (Global)"><NumberInput value={f.custo_unitario} onChange={(e) => setF({ ...f, custo_unitario: e.target.value })} placeholder="0,00" step="0.01" /></Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Custo Unitário (Global)"><NumberInput value={f.custo_unitario} onChange={(e) => setF({ ...f, custo_unitario: e.target.value })} placeholder="0,00" step="0.01" /></Field>
+        <Field label="Fornecedor Principal"><TextInput value={f.fornecedor} onChange={(e) => setF({ ...f, fornecedor: e.target.value })} placeholder="Distribuidora..." /></Field>
+      </div>
       
       {erro && <p className="erp-badge erp-badge-danger w-full justify-center mb-3">{erro}</p>}
       <div className="flex gap-3">
@@ -195,7 +198,7 @@ export default function GestaoSuprimentosCentral() {
                     <div className="flex-1">
                       <p className="text-[10px] font-bold uppercase" style={{ color: "var(--dim)" }}>{i.categoria}</p>
                       <p className="font-bold text-base" style={{ color: "var(--fg)" }}>{i.nome}</p>
-                      <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>Custo Global: {fmtBRL(i.custo_unitario)}</p>
+                      <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>Custo Global: {fmtBRL(i.custo_unitario)} {i.fornecedor ? `· Fornecedor: ${i.fornecedor}` : ""}</p>
                     </div>
                     
                     <div className="text-right">

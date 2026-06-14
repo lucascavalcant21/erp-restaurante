@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { Tag, Printer, Save, Snowflake, Thermometer, Box, QrCode } from "lucide-react";
 import {
-  PageHeader, PageBody, Card, SectionLabel, Field, TextInput, NumberInput, Select, Btn, Toast,
+  PageHeader, PageBody, Card, SectionLabel, Field, TextInput, NumberInput, Select, Btn, Toast, EmptyState
 } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
 import { lerSessao } from "../../../lib/auth";

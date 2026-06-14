@@ -131,10 +131,12 @@ export default function GestaoSuprimentosCentral() {
 
   async function salvarItem(dados) {
     if (editar) {
-      await atualizarSuprimentoCentral(editar.id, dados);
+      const { error } = await atualizarSuprimentoCentral(editar.id, dados);
+      if (error) return setToast("Erro: " + error);
       setToast("Item atualizado!");
     } else {
-      await inserirSuprimentoCentral(dados);
+      const { error } = await inserirSuprimentoCentral(dados);
+      if (error) return setToast("Erro: " + error);
       setToast("Item criado na Central!");
     }
     setModalItem(false); setEditar(null);

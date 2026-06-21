@@ -9,17 +9,24 @@ import {
 const SETORES = ["Cozinha", "Bar"];
 import { useERP } from "../../../context/ERPContext";
 import { fetchIngredientes, getIngredienteById, calcCustoLinha, getUnidade } from "../../../lib/ingredientes";
+import { fetchTodasFichas, salvarFichaCompleta } from "../../../lib/cardapio";
 import { podeEditarGlobal } from "../../../lib/auth";
 
 export default function FichasTecnicasPage() {
   const { unidadeAtiva, unidadeInfo, sessao } = useERP();
   const podeEditar = sessao ? podeEditarGlobal(sessao.papel) : false;
   const [catalogo, setCatalogo] = useState([]);
+  const [pratosDb, setPratosDb] = useState([]);
   const [loading, setLoading]   = useState(true);
+  const [salvando, setSalvando] = useState(false);
 
+  // Ficha Atual
+  const [fichaAtualId, setFichaAtualId] = useState("nova");
   const [nome, setNome]   = useState("");
   const [preco, setPreco] = useState("");
   const [itens, setItens] = useState([]); // { id, ingrediente_id, quantidade }
+  
+  // Adição
   const [selId, setSelId] = useState("");
   const [qtd, setQtd]     = useState("");
   const [setor, setSetor] = useState("Cozinha");
@@ -27,14 +34,44 @@ export default function FichasTecnicasPage() {
 
   const catalogoSetor = catalogo.filter((i) => (i.setor || "Cozinha") === setor);
 
-  useEffect(() => {
+  async function carregarTudo() {
     setLoading(true);
-    fetchIngredientes(unidadeAtiva).then(({ data }) => {
-      setCatalogo(data || []);
-      setSelId(String(data?.[0]?.id ?? ""));
-      setLoading(false);
-    });
+    const [resIng, resFichas] = await Promise.all([
+      fetchIngredientes(unidadeAtiva),
+      fetchTodasFichas(unidadeAtiva)
+    ]);
+    setCatalogo(resIng.data || []);
+    setSelId(String(resIng.data?.[0]?.id ?? ""));
+    setPratosDb(resFichas.data || []);
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    if (unidadeAtiva) carregarTudo();
   }, [unidadeAtiva]);
+
+  // Quando muda a ficha no dropdown
+  useEffect(() => {
+    if (fichaAtualId === "nova") {
+      setNome(""); setPreco(""); setItens([]);
+    } else {
+      const p = pratosDb.find(x => x.id === fichaAtualId);
+      if (p) {
+        setNome(p.nome);
+        setPreco(p.preco || "");
+        const fichaRow = p.fichas_tecnicas?.[0];
+        if (fichaRow && fichaRow.ficha_itens) {
+          setItens(fichaRow.ficha_itens.map(it => ({
+            id: `loaded_${it.id}`,
+            ingrediente_id: it.ingrediente_id,
+            quantidade: it.quantidade
+          })));
+        } else {
+          setItens([]);
+        }
+      }
+    }
+  }, [fichaAtualId, pratosDb]);
 
   const custoTotal = useMemo(() => itens.reduce((acc, it) => {
     const ing = getIngredienteById(it.ingrediente_id, catalogo);
@@ -54,9 +91,27 @@ export default function FichasTecnicasPage() {
     setQtd("");
   }
   function remover(id) { setItens((p) => p.filter((x) => x.id !== id)); }
-  function salvar() {
+  async function salvar() {
     if (!nome.trim() || !itens.length) return;
-    setSalvou(true); setTimeout(() => setSalvou(false), 2500);
+    setSalvando(true);
+    
+    const prato_id = fichaAtualId === "nova" ? null : fichaAtualId;
+    const res = await salvarFichaCompleta(
+      prato_id, 
+      { nome, preco: precoN, custoTotal, setor }, 
+      itens, 
+      unidadeAtiva
+    );
+    
+    setSalvando(false);
+    if (!res.error) {
+      setSalvou(true); 
+      setTimeout(() => setSalvou(false), 2500);
+      await carregarTudo();
+      setFichaAtualId(res.prato_id);
+    } else {
+      alert("Erro ao salvar: " + res.error);
+    }
   }
 
   const ingSel = getIngredienteById(selId, catalogo);
@@ -74,6 +129,18 @@ export default function FichasTecnicasPage() {
             hint="Cadastre ingredientes em Operação → Ingredientes para montar fichas técnicas." />
         ) : (
           <>
+            {/* Seleção de Ficha */}
+            <Card className="!bg-[var(--bg-sec)] mb-4">
+              <Field label="Selecione um prato para editar ou crie uma Nova Ficha">
+                <Select value={fichaAtualId} onChange={(e) => setFichaAtualId(e.target.value)}>
+                  <option value="nova">✨ Criar Nova Ficha Técnica</option>
+                  {pratosDb.map(p => (
+                    <option key={p.id} value={p.id}>{p.nome}</option>
+                  ))}
+                </Select>
+              </Field>
+            </Card>
+
             {/* Identificação */}
             <Card>
               <Field label="Nome do prato / ficha"><TextInput value={nome} onChange={(e) => setNome(e.target.value)} placeholder="ex: Marmitex Executiva" disabled={!podeEditar} /></Field>
@@ -147,7 +214,9 @@ export default function FichasTecnicasPage() {
             </Card>
 
             {podeEditar && (
-              <Btn variant="primary" className="w-full !h-12" disabled={!nome.trim() || !itens.length} onClick={salvar}>Salvar ficha técnica</Btn>
+              <Btn variant="primary" className="w-full !h-12" disabled={!nome.trim() || !itens.length || salvando} onClick={salvar}>
+                {salvando ? "Salvando..." : "Salvar ficha técnica e vincular ao Cardápio"}
+              </Btn>
             )}
           </>
         )}

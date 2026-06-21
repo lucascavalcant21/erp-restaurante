@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Package, AlertTriangle, TrendingDown, Wallet, ArrowUpCircle, ArrowDownCircle,
-  Edit3, Trash2, Tablet,
+  Edit3, Trash2, Tablet, ShoppingCart, Copy,
 } from "lucide-react";
 import {
   PageHeader, PageBody, Card, SectionLabel, KpiGrid, Kpi,
@@ -125,6 +125,7 @@ export default function EstoquePage() {
   const [busca, setBusca]     = useState("");
   const [cat, setCat]         = useState("Todos");
   const [modal, setModal]     = useState(false);
+  const [modalCompras, setModalCompras] = useState(false);
   const [editar, setEditar]   = useState(null);
   const [mov, setMov]         = useState(null); // { item, tipo }
   const [salvou, setSalvou]   = useState(false);
@@ -198,6 +199,14 @@ export default function EstoquePage() {
     <div className="min-h-screen">
       <PageHeader title="Estoque" subtitle="Insumos, mínimos e movimentação" icon={Package}
         onAction={podeEditar ? () => { setEditar(null); setModal(true); } : undefined} actionLabel={podeEditar ? "Novo" : undefined}>
+        <button
+          onClick={() => setModalCompras(true)}
+          className="erp-btn erp-btn-ghost flex items-center gap-2 text-sm"
+          title="Gerar lista de compras automática"
+          style={{ borderColor: "var(--line)", color: "var(--fg)" }}
+        >
+          <ShoppingCart size={16} /> Lista de Compras
+        </button>
         <button
           onClick={() => router.push("/dashboard/operacao/estoque/tablet")}
           className="erp-btn erp-btn-ghost flex items-center gap-2 text-sm"
@@ -284,6 +293,64 @@ export default function EstoquePage() {
       <Modal open={!!mov} onClose={() => setMov(null)} title={mov?.tipo === "entrada" ? "Registrar entrada" : "Registrar saída da Dispensa"}>
         {mov && <FormMov item={mov.item} tipo={mov.tipo} produtosCombo={produtos} onConfirmar={confirmarMov} onCancelar={() => setMov(null)} />}
       </Modal>
+      <Modal open={modalCompras} onClose={() => setModalCompras(false)} title="Lista de Compras Automática">
+        <ListaCompras itens={itens} onFechar={() => setModalCompras(false)} />
+      </Modal>
+    </div>
+  );
+}
+
+function ListaCompras({ itens, onFechar }) {
+  const itensCriticos = itens.filter(i => (i.quantidade || 0) < (i.minimo || 0));
+
+  const copiarWhatsApp = () => {
+    let texto = "*🛒 LISTA DE COMPRAS - HEFISTO*\n_Gerada automaticamente pelo estoque mínimo_\n\n";
+    itensCriticos.forEach(i => {
+      const comprarQtd = (i.minimo || 0) - (i.quantidade || 0);
+      texto += `• ${i.nome}: *Comprar ${comprarQtd} ${i.unidade}*\n  _(Estoque atual: ${i.quantidade} | Mínimo: ${i.minimo})_\n`;
+    });
+    navigator.clipboard.writeText(texto);
+    alert("Lista copiada! Agora é só colar no WhatsApp do seu fornecedor.");
+  };
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm" style={{ color: "var(--dim)" }}>
+        Baseado no seu nível crítico, o sistema calculou o que você precisa repor hoje.
+      </p>
+
+      {itensCriticos.length === 0 ? (
+        <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl text-emerald-800 text-sm font-bold text-center">
+          Estoque em dia! Nada precisa ser comprado no momento.
+        </div>
+      ) : (
+        <div className="space-y-2 max-h-60 overflow-y-auto pr-2 no-scrollbar">
+          {itensCriticos.map(i => {
+            const comprarQtd = (i.minimo || 0) - (i.quantidade || 0);
+            return (
+              <div key={i.id} className="p-3 bg-white border border-slate-200 rounded-xl flex justify-between items-center">
+                <div>
+                  <p className="font-bold text-slate-900">{i.nome}</p>
+                  <p className="text-[10px] text-slate-500">Atual: {i.quantidade} | Mín: {i.minimo}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-slate-500">Comprar</p>
+                  <p className="font-bold text-red-600">{comprarQtd} {i.unidade}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="flex gap-3 pt-2">
+        <Btn variant="ghost" className="flex-1" onClick={onFechar}>Fechar</Btn>
+        {itensCriticos.length > 0 && (
+          <Btn variant="primary" className="flex-1 flex items-center justify-center gap-2" onClick={copiarWhatsApp}>
+            <Copy size={16} /> Copiar para WhatsApp
+          </Btn>
+        )}
+      </div>
     </div>
   );
 }

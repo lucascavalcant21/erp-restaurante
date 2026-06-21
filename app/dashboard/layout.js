@@ -6,70 +6,7 @@ import { lerSessao, encerrarSessao, getPapel, podeAcessar, homeDoPapel } from ".
 import { useERP } from "../context/ERPContext";
 
 // ═══════════════════════════════════════════════════════════════
-// SELETOR DE UNIDADE (Central + restaurantes)
-// ═══════════════════════════════════════════════════════════════
-function UnidadeSwitcher({ exp }) {
-  const { unidades, unidadeAtiva, setUnidadeAtiva, podeTrocar, unidadeInfo } = useERP();
-  const [open, setOpen] = useState(false);
-
-  if (!exp) {
-    return (
-      <div style={{ display: "flex", justifyContent: "center", padding: "6px 0" }} title={unidadeInfo.nome}>
-        <div style={{ width: 10, height: 10, borderRadius: 999, background: unidadeInfo.cor }} />
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ margin: "4px 8px 6px" }}>
-      <button
-        onClick={() => podeTrocar && setOpen((o) => !o)}
-        style={{
-          width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px",
-          borderRadius: 10, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
-          cursor: podeTrocar ? "pointer" : "default",
-        }}>
-        <div style={{ width: 8, height: 8, borderRadius: 999, background: unidadeInfo.cor, flexShrink: 0 }} />
-        <div style={{ flex: 1, textAlign: "left", overflow: "hidden" }}>
-          <p style={{ fontSize: 9, color: "#64748B", fontWeight: 700, letterSpacing: "0.06em" }}>UNIDADE OPERACIONAL</p>
-          <p style={{ fontSize: 12, color: "#F1F5F9", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {unidadeInfo.id === "todas" ? "Selecione..." : unidadeInfo.nome}
-          </p>
-        </div>
-        {podeTrocar && (
-          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth={2}
-            style={{ flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform 160ms" }}>
-            <path d="M6 9l6 6 6-6" />
-          </svg>
-        )}
-      </button>
-
-        {open && podeTrocar && (
-        <div style={{ marginTop: 4, display: "flex", flexDirection: "column", gap: 2 }}>
-          {unidades.map((o) => {
-            const ativo = o.id === unidadeAtiva;
-            return (
-              <button key={o.id}
-                onClick={() => { setUnidadeAtiva(o.id); setOpen(false); }}
-                style={{
-                  display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderRadius: 8,
-                  background: ativo ? "rgba(255,255,255,0.07)" : "transparent", border: "none", cursor: "pointer", width: "100%", textAlign: "left",
-                }}>
-                <div style={{ width: 7, height: 7, borderRadius: 999, background: o.cor, flexShrink: 0 }} />
-                <span style={{ fontSize: 12, color: ativo ? "#F1F5F9" : "#94A3B8", fontWeight: ativo ? 600 : 500, whiteSpace: "nowrap" }}>
-                  {o.nome}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════
-// ÍCONES (subset necessário para o layout)
+// ÍCONES
 // ═══════════════════════════════════════════════════════════════
 const Ic = {
   Dashboard: () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>,
@@ -97,71 +34,91 @@ const Ic = {
   Brain:     () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-5 0V8a2.5 2.5 0 0 1-2.5-2.5A2.5 2.5 0 0 1 9.5 2z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 5 0V8a2.5 2.5 0 0 0 2.5-2.5A2.5 2.5 0 0 0 14.5 2z"/></svg>,
   User:      () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>,
   LogOut:    () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
+  Settings:  () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>,
+  Building2: () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg>,
+  AlertTriangle: () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
 };
 
 const MENU_GROUPS = [
   {
-    id: "visao_geral", label: "DASHBOARD", scope: "ambos",
+    id: "visao_geral", label: "DASHBOARD E INSIGHTS", scope: "ambos",
     items: [
-      { id: "dashboard",    label: "Dashboard",       Icon: Ic.Dashboard, href: "/dashboard" },
-      { id: "notificacoes", label: "Notificações",         Icon: Ic.Bell,      href: "/dashboard/notificacoes" },
+      { id: "dashboard",    label: "Visão Geral",       Icon: Ic.Dashboard, href: "/dashboard" },
+      { id: "notificacoes", label: "Central de Avisos",    Icon: Ic.Bell,      href: "/dashboard/notificacoes" },
     ],
   },
   {
-    id: "operacao", label: "OPERAÇÃO", scope: "unidade",
+    id: "frente_caixa", label: "VENDAS E PDV", scope: "unidade",
     items: [
-      { id: "tarefas",  label: "📋 Minhas Tarefas", Icon: Ic.Checklist, href: "/dashboard/tarefas" },
-      { id: "bar",      label: "🍹 Bar",      Icon: Ic.MenuBook, href: "/dashboard/bar" },
-      { id: "cozinha",  label: "👨‍🍳 Cozinha", Icon: Ic.ChefHat,  href: "/dashboard/cozinha" },
-      { id: "cervejas", label: "🍺 Cervejas", Icon: Ic.Beer,     href: "/dashboard/cervejas" },
+      { id: "vendas",     label: "PDV Rápido",  Icon: Ic.Cart,     href: "/dashboard/vendas" },
+      { id: "mesas",      label: "Gestão de Mesas",   Icon: Ic.Users,    href: "/dashboard/mesas" },
+      { id: "delivery",   label: "Logística Delivery", Icon: Ic.Truck, href: "/dashboard/delivery" },
     ],
   },
   {
-    id: "financeiro", label: "💰 FINANCEIRO", scope: "unidade",
+    id: "operacao", label: "PRODUÇÃO E ROTINA", scope: "unidade",
     items: [
-      { id: "financeiro", label: "💰 Financeiro", Icon: Ic.BarChart, href: "/dashboard/financeiro" },
+      { id: "cozinha_kds", label: "KDS Cozinha", Icon: Ic.Bell, href: "/dashboard/cozinha/kds" },
+      { id: "cozinha",     label: "Preparos", Icon: Ic.ChefHat,  href: "/dashboard/cozinha/producao" },
+      { id: "bar",         label: "KDS Bar",      Icon: Ic.Flask, href: "/dashboard/bar" },
+      { id: "cervejas",    label: "Taps e Chopes", Icon: Ic.Beer,     href: "/dashboard/cervejas" },
+      { id: "tarefas",     label: "Checklists", Icon: Ic.Checklist, href: "/dashboard/tarefas" },
+      { id: "montagem",    label: "Fichas Visuais", Icon: Ic.FileText, href: "/dashboard/operacao/montagem?dept=cozinha" },
+      { id: "limpeza",     label: "Auditoria de Limpeza", Icon: Ic.Checklist, href: "/dashboard/operacao/limpeza" },
     ],
   },
   {
-    id: "gestao", label: "⚙️ GESTÃO & AJUSTES", scope: "cerebro",
+    id: "estoque", label: "SUPRIMENTOS E CUSTOS", scope: "cerebro",
     items: [
-      { id: "gestao", label: "⚙️ Gestão Geral", Icon: Ic.Calendar, href: "/dashboard/gestao" },
-      { id: "gestao_tarefas", label: "📋 Motor de Tarefas", Icon: Ic.Checklist, href: "/dashboard/gestao/tarefas" },
+      { id: "estoque",     label: "Inventário Geral", Icon: Ic.Box, href: "/dashboard/operacao/estoque" },
+      { id: "fichas",      label: "Engenharia de Cardápio", Icon: Ic.FileText, href: "/dashboard/operacao/fichas" },
+      { id: "auditoria",   label: "Controle de Perdas", Icon: Ic.AlertTriangle, href: "/dashboard/gestao/auditoria" },
     ],
   },
   {
-    id: "eventos_grp", label: "🎉 EVENTOS", scope: "unidade",
+    id: "financeiro", label: "FINANCEIRO", scope: "unidade",
     items: [
-      { id: "eventos", label: "🎉 Eventos", Icon: Ic.Calendar, href: "/dashboard/eventos" },
+      { id: "financeiro", label: "Resultados", Icon: Ic.BarChart, href: "/dashboard/financeiro" },
     ],
   },
   {
-    id: "rh_grupo", label: "👥 RECURSOS HUMANOS", scope: "unidade",
+    id: "clientes", label: "RELACIONAMENTO", scope: "unidade",
     items: [
-      { id: "rh", label: "👥 RH", Icon: Ic.Users, href: "/dashboard/rh" },
+      { id: "clientes", label: "CRM", Icon: Ic.UserCheck, href: "/dashboard/clientes" },
+      { id: "eventos",  label: "Eventos e Reservas", Icon: Ic.Calendar, href: "/dashboard/eventos" },
     ],
   },
   {
-    id: "clientes", label: "📱 CLIENTES & MARKETING", scope: "unidade",
+    id: "gestao", label: "ADMINISTRAÇÃO", scope: "ambos",
     items: [
-      { id: "clientes", label: "📱 Clientes & Marketing", Icon: Ic.UserCheck, href: "/dashboard/clientes" },
+      { id: "gestao", label: "Configurações Globais", Icon: Ic.Settings, href: "/dashboard/gestao" },
+      { id: "gestao", label: "Dispositivos", Icon: Ic.Settings, href: "/dashboard/gestao/impressoes" },
+      { id: "gestao", label: "Automações", Icon: Ic.Checklist, href: "/dashboard/gestao/tarefas" },
+      { id: "rh", label: "Colaboradores", Icon: Ic.Users, href: "/dashboard/rh" },
+      { id: "organograma", label: "Estrutura", Icon: Ic.Users, href: "/dashboard/rh/organograma" },
+      { id: "configuracoes", label: "Políticas de RH", Icon: Ic.Settings, href: "/dashboard/rh/configuracoes" },
+      { id: "rede", label: "Lojas e Unidades", Icon: Ic.Building2, href: "/dashboard/rede/gestao" },
     ],
   },
   {
-    id: "ia", label: "🤖 INTELIGÊNCIA ARTIFICIAL", scope: "cerebro",
+    id: "ia", label: "INTELIGÊNCIA ARTIFICIAL", scope: "cerebro",
     items: [
-      { id: "heitor", label: "Chat Heitor", Icon: Ic.Brain, href: "/dashboard/ia/heitor" },
+      { id: "heitor", label: "Hefisto AI", Icon: Ic.Brain, href: "/dashboard/ia/heitor" },
     ],
   },
 ];
 
-// Mapeia pathname → navId
 function getNavId(pathname) {
   if (pathname === "/dashboard") return "dashboard";
+  if (pathname.includes("/cozinha/kds"))      return "cozinha_kds";
+  if (pathname.includes("/cozinha/producao")) return "cozinha";
+  if (pathname.includes("/cozinha/tablet"))   return "cozinha_tablet";
   if (pathname.includes("/bar"))          return "bar";
   if (pathname.includes("/cozinha"))      return "cozinha";
   if (pathname.includes("/cervejas"))     return "cervejas";
   if (pathname.includes("/vendas"))       return "vendas";
+  if (pathname.includes("/mesas"))        return "mesas";
+  if (pathname.includes("/delivery"))     return "delivery";
   if (pathname.includes("/drinks"))       return "drinks";
   if (pathname.includes("/montagem"))     return "montagem";
   if (pathname.includes("/validade"))     return "validade";
@@ -169,7 +126,11 @@ function getNavId(pathname) {
   if (pathname.includes("/financeiro"))   return "financeiro";
   if (pathname.includes("/gestao"))       return "gestao";
   if (pathname.includes("/clientes"))     return "clientes";
+  if (pathname.includes("/rh/organograma")) return "organograma";
+  if (pathname.includes("/rh/configuracoes")) return "configuracoes";
   if (pathname.includes("/rh"))           return "rh";
+  if (pathname.includes("/gestao/auditoria")) return "gestao_auditoria";
+  if (pathname.includes("/rede/gestao"))  return "rede_gestao";
   if (pathname.includes("/rede"))         return "rede";
   if (pathname.includes("/notificacoes")) return "notificacoes";
   if (pathname.includes("/rotina"))       return "rotina";
@@ -196,200 +157,154 @@ function getNavId(pathname) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// SIDEBAR DO LAYOUT
+// MEGA MENU (Busca Global)
 // ═══════════════════════════════════════════════════════════════
-function LayoutSidebar({ sessao, navId, onSair }) {
-  const [exp, setExp] = useState(false);
+function MegaMenu({ isOpen, onClose, sessao, router, unidadeAtiva }) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[60] flex md:left-[80px] left-0 bg-slate-900/20 backdrop-blur-md transition-all">
+      <div className="absolute inset-0 bg-white/95 p-6 md:p-8 overflow-y-auto animate-in fade-in slide-in-from-top-8 duration-300 shadow-2xl border-l border-slate-200">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 max-w-7xl mx-auto gap-4">
+          <h2 className="text-3xl font-black text-slate-900 tracking-tighter">Ver tudo</h2>
+          <div className="flex items-center gap-4">
+            <div className="relative flex-1 md:flex-none">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" placeholder="O que você procura?" className="pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg w-full md:w-80 text-sm outline-none focus:border-orange-500 transition-colors" />
+            </div>
+            <button onClick={onClose} className="p-2.5 bg-slate-100 rounded-lg text-slate-500 hover:bg-slate-200 transition-colors">
+              <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-8 max-w-7xl mx-auto">
+          {MENU_GROUPS.filter(g => g.scope === "ambos" || (unidadeAtiva === "todas" ? g.scope === "cerebro" : g.scope === "unidade")).map((group) => {
+             const itens = group.items.filter((item) => sessao && podeAcessar(sessao.papel, item.id));
+             if (!itens.length) return null;
+             return (
+               <div key={group.id} className="mb-8 break-inside-avoid">
+                 <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">{group.label}</h3>
+                 <div className="flex flex-col gap-1">
+                   {itens.map(item => (
+                     <button key={item.id} onClick={() => { onClose(); router.push(item.href); }}
+                       className="flex items-center gap-2 px-3 py-2.5 text-[13px] text-slate-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors text-left font-medium">
+                       <div className="opacity-70"><item.Icon /></div>
+                       <span>{item.label}</span>
+                     </button>
+                   ))}
+                 </div>
+               </div>
+             )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SLIM SIDEBAR (Takeat Style)
+// ═══════════════════════════════════════════════════════════════
+function TakeatSidebar({ sessao, onSair, onOpenMegaMenu }) {
   const router = useRouter();
-  const { unidadeAtiva, setUnidadeAtiva } = useERP();
-  const papel = sessao ? getPapel(sessao.papel) : null;
+  
+  const SIDEBAR_ITEMS = [
+    { id: 'perfil', label: 'Perfil', icon: Ic.User, action: () => router.push('/dashboard') },
+    { id: 'buscar', label: 'Buscar', icon: () => <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>, action: onOpenMegaMenu },
+    { id: 'operacao', label: 'Operação', icon: Ic.ChefHat, action: () => router.push('/dashboard/vendas') },
+    { id: 'delivery', label: 'Delivery', icon: Ic.Truck, action: () => router.push('/dashboard/delivery') },
+    { id: 'cardapio', label: 'Cardápio', icon: Ic.MenuBook, action: () => router.push('/dashboard/operacao/cardapio') },
+    { id: 'cadastros', label: 'Cadastros', icon: Ic.Box, action: () => router.push('/dashboard/operacao/estoque') },
+    { id: 'impressoras', label: 'Impressoras', icon: Ic.Settings, action: () => router.push('/dashboard/gestao/impressoes') },
+  ];
 
   return (
-    <aside
-      onMouseEnter={() => setExp(true)}
-      onMouseLeave={() => setExp(false)}
-      style={{
-        position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 50,
-        width: exp ? 260 : 64,
-        background: '#0F172A',
-        borderRight: '1px solid rgba(255,255,255,0.06)',
-        transition: 'width 220ms cubic-bezier(0.4,0,0.2,1)',
-        overflow: 'hidden',
-        display: 'flex', flexDirection: 'column',
-      }}>
-
-      {/* Logo */}
-      <div style={{
-        height: 56, flexShrink: 0,
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
-        display: 'flex', alignItems: 'center',
-        padding: '0 18px', gap: 12,
-      }}>
-        <div style={{
-          width: 28, height: 28, borderRadius: 8, flexShrink: 0,
-          background: 'linear-gradient(135deg,#059669,#34D399)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5}>
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-            <polyline points="9 22 9 12 15 12 15 22"/>
-          </svg>
-        </div>
-        <div style={{ opacity: exp ? 1 : 0, transition: 'opacity 160ms', whiteSpace: 'nowrap', overflow: 'hidden' }}>
-          <p style={{ color: 'var(--fg)', fontSize: 13, fontWeight: 700, lineHeight: 1.2 }}>Cerebro ERP</p>
-          {papel && <p style={{ color: papel.cor, fontSize: 10, fontWeight: 600, marginTop: 1 }}>{papel.label}</p>}
-        </div>
+    <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-[80px] bg-gradient-to-b from-[#EA580C] to-[#C2410C] flex-col items-center py-4 z-50 shadow-[4px_0_24px_rgba(234,88,12,0.15)]">
+      <div className="w-12 h-12 bg-white/10 hover:bg-white/20 transition-all rounded-[16px] flex items-center justify-center mb-6 text-white font-black text-2xl cursor-pointer shadow-inner backdrop-blur-sm" onClick={() => router.push('/dashboard')}>
+        H
       </div>
 
-      {/* Usuário */}
-      <div style={{
-        margin: '10px 8px 4px',
-        borderRadius: 10,
-        background: 'rgba(255,255,255,0.04)',
-        border: '1px solid rgba(255,255,255,0.06)',
-        padding: '8px 10px',
-        display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0,
-      }}>
-        <div style={{
-          width: 28, height: 28, borderRadius: 8, flexShrink: 0,
-          background: 'linear-gradient(135deg,#059669,#34D399)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: 'white', fontSize: 12, fontWeight: 700,
-        }}>
-          {sessao?.nome?.[0]?.toUpperCase() || "U"}
-        </div>
-        <div style={{ opacity: exp ? 1 : 0, transition: 'opacity 160ms', overflow: 'hidden', whiteSpace: 'nowrap', minWidth: 0 }}>
-          <p style={{ color: 'var(--fg)', fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {sessao?.nome?.split(" ")[0] || "Usuário"}
-          </p>
-          <p style={{ color: 'var(--dim)', fontSize: 10, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {sessao?.email || ""}
-          </p>
-        </div>
-      </div>
-
-      {/* Cérebro (Fixo) */}
-      {sessao && podeAcessar(sessao.papel, "dashboard") && getPapel(sessao.papel).id === "admin" && (
-        <div style={{ margin: '0 8px 6px' }}>
-          <button
-            onClick={() => setUnidadeAtiva("todas")}
-            style={{
-              width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px",
-              borderRadius: 10,
-              background: unidadeAtiva === "todas" ? "linear-gradient(135deg, #8B5CF6, #6D28D9)" : "rgba(139,92,246,0.05)",
-              border: unidadeAtiva === "todas" ? "none" : "1px solid rgba(139,92,246,0.2)",
-              cursor: "pointer",
-              boxShadow: unidadeAtiva === "todas" ? "0 4px 12px rgba(139,92,246,0.3)" : "none"
-            }}>
-            <div style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: unidadeAtiva === "todas" ? "#fff" : "#A78BFA" }}>
-              <Ic.Brain />
-            </div>
-            <div style={{ flex: 1, textAlign: "left", overflow: "hidden", opacity: exp ? 1 : 0, transition: 'opacity 160ms' }}>
-              <p style={{ fontSize: 13, color: unidadeAtiva === "todas" ? "#fff" : "#C4B5FD", fontWeight: 700, whiteSpace: "nowrap" }}>
-                Cérebro
-              </p>
-            </div>
+      <div className="flex-1 flex flex-col w-full gap-1 px-2 overflow-y-auto hide-scrollbar">
+        {SIDEBAR_ITEMS.map(item => (
+          <button key={item.id} onClick={item.action}
+            className="flex flex-col items-center justify-center gap-1.5 w-full py-3.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all">
+            <div className="w-5 h-5 flex items-center justify-center"><item.icon /></div>
+            <span className="text-[9px] font-bold text-center leading-tight tracking-wide uppercase">{item.label}</span>
           </button>
-        </div>
-      )}
+        ))}
+      </div>
 
-      {/* Seletor de unidade */}
-      <UnidadeSwitcher exp={exp} />
-
-      {/* Nav */}
-      <nav style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '8px 0' }}>
-        {MENU_GROUPS.filter(g => g.scope === "ambos" || (unidadeAtiva === "todas" ? g.scope === "cerebro" : g.scope === "unidade")).map((group) => {
-          const itens = group.items.filter((item) => sessao && podeAcessar(sessao.papel, item.id));
-          if (!itens.length) return null;
-          return (
-          <div key={group.id} style={{ marginBottom: 8 }}>
-            <div style={{
-              height: 20, display: 'flex', alignItems: 'center',
-              padding: '0 18px', overflow: 'hidden',
-              opacity: exp ? 1 : 0, transition: 'opacity 160ms',
-            }}>
-              <p style={{ color: 'var(--elevated)', fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-                {group.label}
-              </p>
-            </div>
-            {itens.map((item) => {
-              const active = navId === item.id;
-              const NavIcon = item.Icon;
-              return (
-                <button key={item.id}
-                  onClick={() => router.push(item.href)}
-                  style={{
-                    width: '100%', display: 'flex', alignItems: 'center',
-                    gap: 12, padding: exp ? '9px 14px' : '9px 0',
-                    justifyContent: exp ? 'flex-start' : 'center',
-                    background: active ? 'rgba(5,150,105,0.14)' : 'transparent',
-                    color: active ? 'var(--accent-fg)' : 'var(--subtle)',
-                    border: 'none', cursor: 'pointer',
-                    transition: 'background 120ms, color 120ms',
-                    borderLeft: active ? '2px solid #34D399' : '2px solid transparent',
-                  }}
-                  onMouseOver={e => {
-                    if (!active) { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = 'var(--fg-soft)'; }
-                  }}
-                  onMouseOut={e => {
-                    e.currentTarget.style.background = active ? 'rgba(5,150,105,0.14)' : 'transparent';
-                    e.currentTarget.style.color = active ? 'var(--accent-fg)' : 'var(--subtle)';
-                  }}>
-                  <div style={{ flexShrink: 0, width: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <NavIcon />
-                  </div>
-                  <span style={{
-                    fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap',
-                    opacity: exp ? 1 : 0, transition: 'opacity 160ms',
-                    flex: 1, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis',
-                  }}>{item.label}</span>
-                </button>
-              );
-            })}
-          </div>
-          );
-        })}
-      </nav>
-
-      {/* Rodapé */}
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '8px 0 12px' }}>
-        <button
-          onClick={() => router.push("/dashboard")}
-          style={{
-            width: '100%', display: 'flex', alignItems: 'center',
-            gap: 12, padding: exp ? '8px 14px' : '8px 0',
-            justifyContent: exp ? 'flex-start' : 'center',
-            color: 'var(--subtle)', background: 'transparent', border: 'none', cursor: 'pointer',
-          }}
-          onMouseOver={e=>{ e.currentTarget.style.background='rgba(255,255,255,0.04)'; e.currentTarget.style.color='var(--fg-soft)'; }}
-          onMouseOut={e=>{ e.currentTarget.style.background='transparent'; e.currentTarget.style.color='var(--subtle)'; }}>
-          <div style={{ width: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Ic.User />
-          </div>
-          <span style={{ fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', opacity: exp ? 1 : 0, transition: 'opacity 160ms' }}>
-            Meu Perfil
-          </span>
-        </button>
-        <button
-          onClick={onSair}
-          style={{
-            width: '100%', display: 'flex', alignItems: 'center',
-            gap: 12, padding: exp ? '8px 14px' : '8px 0',
-            justifyContent: exp ? 'flex-start' : 'center',
-            color: 'var(--subtle)', background: 'transparent', border: 'none', cursor: 'pointer',
-          }}
-          onMouseOver={e=>{ e.currentTarget.style.background='rgba(239,68,68,0.08)'; e.currentTarget.style.color='#F87171'; }}
-          onMouseOut={e=>{ e.currentTarget.style.background='transparent'; e.currentTarget.style.color='var(--subtle)'; }}>
-          <div style={{ width: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Ic.LogOut />
-          </div>
-          <span style={{ fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', opacity: exp ? 1 : 0, transition: 'opacity 160ms' }}>
-            Sair da conta
-          </span>
+      <div className="w-full px-2 mt-auto pt-2">
+        <button onClick={onSair} className="flex flex-col items-center justify-center gap-1.5 w-full py-3.5 text-white/80 hover:text-white hover:bg-red-500/50 rounded-xl transition-colors">
+          <div className="w-5 h-5 flex items-center justify-center"><Ic.LogOut /></div>
+          <span className="text-[9px] font-bold text-center uppercase">Sair</span>
         </button>
       </div>
     </aside>
-  );
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TOP HEADER (Takeat Style)
+// ═══════════════════════════════════════════════════════════════
+function TakeatHeader({ sessao, onOpenMobileMenu }) {
+  const { unidades, unidadeAtiva, setUnidadeAtiva, podeTrocar, unidadeInfo } = useERP();
+  const router = useRouter();
+
+  return (
+    <header className="h-[64px] border-b border-slate-200/60 flex items-center justify-between px-4 md:px-6 sticky top-0 z-40 glass-panel shadow-sm">
+      <div className="flex items-center gap-4">
+        {/* Mobile menu button */}
+        <button onClick={onOpenMobileMenu} className="md:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+          <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+
+        {/* Top Shortcuts (Hidden on mobile) */}
+        <div className="hidden md:flex items-center gap-1">
+          <button onClick={() => router.push('/dashboard/vendas')} className="flex items-center gap-2 text-slate-600 hover:text-orange-600 font-bold text-[13px] px-3 py-2 rounded-xl hover:bg-orange-50/80 transition-all">
+            <div className="text-orange-500 drop-shadow-sm"><Ic.ChefHat /></div> Operação
+          </button>
+          <div className="w-px h-4 bg-slate-200 mx-1"></div>
+          <button onClick={() => router.push('/dashboard/vendas')} className="flex items-center gap-2 text-slate-500 hover:text-orange-600 font-bold text-[13px] px-3 py-2 rounded-lg hover:bg-orange-50 transition-colors">
+            <div className="text-orange-500"><Ic.Truck /></div> Delivery
+          </button>
+          <div className="w-px h-4 bg-slate-200 mx-1"></div>
+          <button onClick={() => router.push('/dashboard/operacao/cardapio')} className="flex items-center gap-2 text-slate-500 hover:text-orange-600 font-bold text-[13px] px-3 py-2 rounded-lg hover:bg-orange-50 transition-colors">
+            <div className="text-orange-500"><Ic.MenuBook /></div> Divulgar cardápio
+          </button>
+        </div>
+      </div>
+
+      {/* Logo Central (Takeat style) com Gradiente */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 font-black text-2xl tracking-tighter italic cursor-pointer bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-orange-700 drop-shadow-sm transition-transform hover:scale-105" onClick={() => router.push('/dashboard')}>
+        Hefisto.
+      </div>
+
+      {/* Direita */}
+      <div className="flex items-center gap-3 md:gap-5">
+        <button className="relative p-2 text-slate-400 hover:text-orange-500 transition-colors hidden md:block">
+          <Ic.Bell />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+        </button>
+
+        {/* Unit Switcher simplificado para a TopBar */}
+        <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors relative group">
+           <div className="w-2.5 h-2.5 rounded-full" style={{ background: unidadeInfo?.cor || '#22C55E' }}></div>
+           <span className="text-[13px] font-bold text-slate-700 hidden md:block">{unidadeInfo?.nome || "Carregando..."}</span>
+           {podeTrocar && (
+             <div className="absolute top-full right-0 mt-2 w-56 bg-white shadow-xl border border-slate-100 rounded-xl py-2 hidden group-hover:block z-50">
+                <div className="px-4 py-2 text-[10px] uppercase font-bold text-slate-400 border-b border-slate-50 mb-2">Unidades</div>
+                {unidades.map(u => (
+                  <div key={u.id} onClick={() => setUnidadeAtiva(u.id)} className="px-4 py-2.5 hover:bg-orange-50 hover:text-orange-600 text-sm font-semibold text-slate-700 flex items-center gap-3 transition-colors">
+                    <div className="w-2 h-2 rounded-full" style={{ background: u.cor }}></div> {u.nome}
+                  </div>
+                ))}
+             </div>
+           )}
+        </div>
+      </div>
+    </header>
+  )
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -399,7 +314,11 @@ export default function DashboardLayout({ children }) {
   const router   = useRouter();
   const pathname = usePathname();
   const [sessao, setSessao] = useState(null);
-  const { setUnidadeAtiva } = useERP();
+  const { setUnidadeAtiva, unidadeAtiva } = useERP();
+  
+  // States
+  const [megaMenuOpen, setMegaMenuOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     let vivo = true;
@@ -411,13 +330,11 @@ export default function DashboardLayout({ children }) {
     return () => { vivo = false; };
   }, [router]);
 
-  // Guard de permissão: bloqueia acesso direto a módulos fora do papel
   useEffect(() => {
     if (!sessao) return;
     const atual = getNavId(pathname || "");
     if (!podeAcessar(sessao.papel, atual)) router.replace(homeDoPapel(sessao.papel));
   }, [sessao, pathname, router]);
-
 
   async function sair() {
     await encerrarSessao();
@@ -427,10 +344,50 @@ export default function DashboardLayout({ children }) {
   const navId = pathname?.split("/")[2] || "dashboard";
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "var(--surface)" }}>
-      <LayoutSidebar sessao={sessao} navId={navId} onSair={sair} />
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", marginLeft: 64, minHeight: "100vh" }}>
-        {children}
+    <div className="flex min-h-screen bg-[#F8FAFC]">
+      {/* Sidebar Desktop (Slim Takeat) */}
+      <TakeatSidebar sessao={sessao} onSair={sair} onOpenMegaMenu={() => setMegaMenuOpen(true)} />
+      
+      {/* Mega Menu Overlay */}
+      <MegaMenu isOpen={megaMenuOpen} onClose={() => setMegaMenuOpen(false)} sessao={sessao} router={router} unidadeAtiva={unidadeAtiva} />
+
+      {/* Menu Mobile */}
+      {mobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
+          <div className="relative w-[80%] max-w-[300px] h-full bg-white flex flex-col shadow-2xl animate-in slide-in-from-left duration-200">
+            <div className="p-4 flex items-center justify-between border-b border-slate-100">
+              <span className="font-bold text-orange-600 italic">Hefisto.</span>
+              <button onClick={() => setMobileMenuOpen(false)}><svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-2">
+               <button onClick={() => { setMobileMenuOpen(false); setMegaMenuOpen(true); }} className="flex items-center gap-3 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700">
+                 <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Buscar módulos...
+               </button>
+               {MENU_GROUPS.map(group => (
+                 <div key={group.id} className="mt-4">
+                   <p className="text-[10px] uppercase font-bold text-slate-400 mb-2 px-2">{group.label}</p>
+                   {group.items.map(item => (
+                     <button key={item.id} onClick={() => { setMobileMenuOpen(false); router.push(item.href); }} className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-orange-50 text-slate-600 hover:text-orange-600 rounded-lg text-left font-semibold">
+                       <item.Icon /> {item.label}
+                     </button>
+                   ))}
+                 </div>
+               ))}
+            </div>
+            <div className="p-4 border-t border-slate-100">
+              <button onClick={sair} className="w-full py-3 bg-red-50 text-red-600 font-bold rounded-xl flex items-center justify-center gap-2"><Ic.LogOut /> Sair</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-h-[100dvh] md:ml-[80px] w-full relative max-w-full overflow-x-hidden">
+        <TakeatHeader sessao={sessao} onOpenMobileMenu={() => setMobileMenuOpen(true)} />
+        <main className="flex-1 p-4 md:p-6 lg:p-8 relative">
+          {children}
+        </main>
       </div>
     </div>
   );

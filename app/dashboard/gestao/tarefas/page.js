@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { ListChecks, Plus, Send, Edit, Trash, Server, FileText } from "lucide-react";
 import { PageHeader, PageBody, Card, SectionLabel, Modal, Btn, Field, TextInput, Select, Toast } from "../../../components/ui";
 import { fetchTemplates, inserirTemplate, criarInstancia } from "../../../lib/tarefas";
-import { UNIDADES } from "../../../lib/unidades";
+import { useERP } from "../../../context/ERPContext";
 
 export default function MotorDeTarefasPage() {
   const [templates, setTemplates] = useState([]);
@@ -20,8 +20,10 @@ export default function MotorDeTarefasPage() {
   const [fDesc, setFDesc] = useState("");
   const [fCampos, setFCampos] = useState([]); // [{ id: "c1", label: "Geladeira Limpa?", tipo: "checkbox" }]
 
+  const { unidades } = useERP();
+
   // Form Envio
-  const [envioUnidade, setEnvioUnidade] = useState(UNIDADES[0]?.id || "");
+  const [envioUnidade, setEnvioUnidade] = useState(unidades[0]?.id || "");
   const [envioPrazo, setEnvioPrazo] = useState("");
 
   useEffect(() => {
@@ -161,7 +163,7 @@ export default function MotorDeTarefasPage() {
             </p>
             <Field label="Destino (Unidade)">
               <Select value={envioUnidade} onChange={(e) => setEnvioUnidade(e.target.value)}>
-                {UNIDADES.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
+                {unidades.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
               </Select>
             </Field>
             <Field label="Prazo (Opcional)">

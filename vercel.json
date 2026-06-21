@@ -13,10 +13,5 @@
       "path": "/api/triggers/verificar",
       "schedule": "0 9 * * *"
     }
-  ],
-  "functions": {
-    "backend_cloud_code/server.js": {
-      "maxDuration": 60
-    }
-  }
+  ]
 }

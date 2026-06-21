@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Brain, TrendingUp, DollarSign, Users, Package } from "lucide-react";
 import { Card, SectionLabel, fmtBRL } from "./ui";
-import { UNIDADES } from "../lib/unidades";
+import { useERP } from "../context/ERPContext";
 import { carregarDadosDaUnidade, consolidarRede, fmtPct } from "../lib/cerebro";
 import { checkAlertasLimpeza } from "../lib/suprimentos";
 import {
@@ -13,13 +13,15 @@ import {
 } from "recharts";
 
 export default function CerebroDashboard() {
+  const { unidades: listaUnidades } = useERP();
   const [unidades, setUnidades] = useState([]);
   const [loading, setLoading] = useState(true);
   const [alertasLimpeza, setAlertasLimpeza] = useState([]);
 
   useEffect(() => {
     let vivo = true;
-    Promise.all(UNIDADES.map(carregarDadosDaUnidade)).then((res) => {
+    if (!listaUnidades || listaUnidades.length === 0) return;
+    Promise.all(listaUnidades.map(carregarDadosDaUnidade)).then((res) => {
       if (vivo) {
         setUnidades(res);
         setLoading(false);
@@ -31,7 +33,7 @@ export default function CerebroDashboard() {
     });
     
     return () => { vivo = false; };
-  }, []);
+  }, [listaUnidades]);
 
   const rede = useMemo(() => consolidarRede(unidades), [unidades]);
 

@@ -4,6 +4,7 @@
 
 import { supabase, isSupabaseReady } from "./supabase";
 import { carimbarUnidade } from "./unidades";
+import { inserirLancamento } from "./financeiro";
 
 // Presets de conservação (validade padrão em dias) — editável no formulário
 export const CONSERVACAO = [
@@ -43,9 +44,24 @@ export async function buscarPorCodigo(codigo) {
 }
 
 // Status da etiqueta: 'ativa' | 'baixa' (consumido/usado) | 'perda' (perdido/descartado)
-export async function atualizarStatusEtiqueta(id, status) {
+export async function atualizarStatusEtiqueta(etiqueta, status) {
   if (!isSupabaseReady()) return { error: "Sistema indisponível" };
+  const id = typeof etiqueta === "string" ? etiqueta : etiqueta.id;
   const { error } = await supabase.from("etiquetas").update({ status }).eq("id", id);
+  
+  if (!error && status === "perda" && typeof etiqueta === "object") {
+    const valor = (Number(etiqueta.quantidade) || 0) * (Number(etiqueta.custo_unit) || 0);
+    if (valor > 0) {
+      await inserirLancamento({
+        tipo: "saida",
+        categoria: "Desperdício/Perda",
+        descricao: `Perda de Validade: ${etiqueta.produto} (${etiqueta.quantidade} ${etiqueta.unidade})`,
+        valor: valor,
+        data: new Date().toISOString().slice(0, 10)
+      }, etiqueta.unidade_id);
+    }
+  }
+
   return { error: error?.message || null };
 }
 

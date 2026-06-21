@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { Bell, ClipboardList, AlertTriangle, DollarSign, FileText, GraduationCap, Trash2, Upload, Download, User } from "lucide-react";
+import { Bell, ClipboardList, AlertTriangle, DollarSign, FileText, GraduationCap, Trash2, Upload, Download, User, Users, Clock } from "lucide-react";
 import {
   PageHeader, PageBody, Card, SectionLabel, Chips, EmptyState, Modal, Field, TextInput, NumberInput, Select, Btn, Toast, fmtBRL, fmtData,
 } from "../../../../components/ui";
@@ -15,6 +15,9 @@ import {
   fetchHolerites, inserirHolerite, removerHolerite,
   fetchDocumentos, inserirDocumento, removerDocumento,
   fetchCursos, inserirCurso, removerCurso,
+  fetchBonificacoes, inserirBonificacao, removerBonificacao, fetchTiposBonificacao,
+  fetchAtas, inserirAta, removerAta,
+  fetchHistorico, inserirHistorico, removerHistorico,
   uploadAnexo,
 } from "../../../../lib/pessoas";
 
@@ -37,9 +40,18 @@ const TABS = [
   { key: "cursos", label: "Cursos", icon: GraduationCap, fetch: fetchCursos, insert: inserirCurso, remove: removerCurso, upload: true,
     campos: [{ k: "titulo", label: "Título" }, { k: "descricao", label: "Descrição" }, { k: "origem", label: "Origem", select: ["empresa", "colaborador"] }, { k: "tipo_arquivo", label: "Tipo", select: ["pdf", "video", "link"] }],
     titulo: (x) => x.titulo, sub: (x) => `${x.origem} · ${x.tipo_arquivo}` },
+  { key: "bonificacoes", label: "Bônus", icon: DollarSign, fetch: fetchBonificacoes, insert: inserirBonificacao, remove: removerBonificacao,
+    campos: [{ k: "tipo_id", label: "Tipo de Bônus", selectDynamic: true }, { k: "valor", label: "Valor (R$)", num: true }, { k: "data", label: "Data" }, { k: "obs", label: "Observações" }],
+    titulo: (x) => x.rh_tipos_bonificacao?.nome || "Bônus", sub: (x) => `Valor: ${fmtBRL(x.valor)}` },
+  { key: "atas", label: "Atas", icon: Users, fetch: fetchAtas, insert: inserirAta, remove: removerAta, upload: true,
+    campos: [{ k: "data", label: "Data" }, { k: "assunto", label: "Assunto da Reunião" }, { k: "descricao", label: "Resumo / Decisões" }],
+    titulo: (x) => x.assunto, sub: (x) => x.descricao || "Sem resumo" },
+  { key: "historico", label: "Histórico", icon: Clock, fetch: fetchHistorico, insert: inserirHistorico, remove: removerHistorico,
+    campos: [{ k: "data", label: "Data da Mudança" }, { k: "tipo_evento", label: "Tipo", select: ["contrato", "cargo", "salario", "unidade"] }, { k: "valor_antigo", label: "Valor Antigo" }, { k: "valor_novo", label: "Valor Novo" }, { k: "observacao", label: "Motivo / Obs" }],
+    titulo: (x) => `Mudou ${x.tipo_evento}`, sub: (x) => `${x.valor_antigo || "N/A"} ➔ ${x.valor_novo}` },
 ];
 
-function FormTab({ tab, func, onSalvar, onCancelar }) {
+function FormTab({ tab, func, onSalvar, onCancelar, opcoesDinamicas = {} }) {
   const [f, setF] = useState({});
   const [file, setFile] = useState(null);
   const [erro, setErro] = useState("");
@@ -48,7 +60,15 @@ function FormTab({ tab, func, onSalvar, onCancelar }) {
 
   async function salvar() {
     const obrig = tab.campos[0].k;
-    if (!f[obrig]) return setErro(`Preencha "${tab.campos[0].label}".`);
+    if (!f[obrig] && !tab.campos[0].selectDynamic) return setErro(`Preencha "${tab.campos[0].label}".`);
+    
+    // Tratamento para select dinamico sem valor inicial forçado (pega o primeiro se existir)
+    if (tab.campos[0].selectDynamic && !f[obrig]) {
+      const p = opcoesDinamicas[tab.campos[0].k];
+      if (!p || p.length === 0) return setErro("Nenhuma opção disponível.");
+      f[obrig] = p[0].value;
+    }
+
     setEnviando(true);
     let arquivo_url = null;
     if (tab.upload && file) {
@@ -69,10 +89,14 @@ function FormTab({ tab, func, onSalvar, onCancelar }) {
         <Field key={c.k} label={c.label}>
           {c.select ? (
             <Select value={f[c.k] || c.select[0]} onChange={(e) => set(c.k, e.target.value)}>{c.select.map((o) => <option key={o}>{o}</option>)}</Select>
+          ) : c.selectDynamic ? (
+             <Select value={f[c.k] || ""} onChange={(e) => set(c.k, e.target.value)}>
+                {(opcoesDinamicas[c.k] || []).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+             </Select>
           ) : c.num ? (
             <NumberInput value={f[c.k] || ""} onChange={(e) => set(c.k, e.target.value)} />
           ) : (
-            <TextInput value={f[c.k] || ""} onChange={(e) => set(c.k, e.target.value)} />
+            <TextInput type={c.k === "data" ? "date" : "text"} value={f[c.k] || ""} onChange={(e) => set(c.k, e.target.value)} />
           )}
         </Field>
       ))}
@@ -99,6 +123,7 @@ export default function FuncionarioDetalhePage() {
   const [func, setFunc] = useState(null);
   const [abaKey, setAbaKey] = useState("avisos");
   const [itens, setItens] = useState([]);
+  const [tiposB, setTiposB] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(false);
   const [salvou, setSalvou] = useState("");
@@ -108,7 +133,8 @@ export default function FuncionarioDetalhePage() {
   useEffect(() => {
     if (!supabase || !id) return;
     supabase.from("funcionarios").select("*").eq("id", id).maybeSingle().then(({ data }) => setFunc(data));
-  }, [id]);
+    fetchTiposBonificacao(unidadeInfo.id).then(({ data }) => setTiposB(data || []));
+  }, [id, unidadeInfo.id]);
 
   const carregar = useCallback(async () => {
     if (!func) return;
@@ -138,10 +164,19 @@ export default function FuncionarioDetalhePage() {
 
         {func && (
           <Card className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl flex items-center justify-center font-bold" style={{ background: "var(--accent-soft)", color: "var(--accent-fg)" }}>{func.nome?.[0]?.toUpperCase()}</div>
+            {func.foto_url ? (
+              <img src={func.foto_url} alt={func.nome} className="w-11 h-11 rounded-2xl object-cover flex-shrink-0" />
+            ) : (
+              <div className="w-11 h-11 rounded-2xl flex items-center justify-center font-bold flex-shrink-0" style={{ background: "var(--accent-soft)", color: "var(--accent-fg)" }}>
+                {func.nome?.[0]?.toUpperCase()}
+              </div>
+            )}
             <div className="min-w-0">
               <p className="text-sm font-bold truncate" style={{ color: "var(--fg)" }}>{func.nome}</p>
-              <p className="text-[11px]" style={{ color: "var(--dim)" }}>{func.cargo} · {func.turno || "—"} · {func.email || "sem e-mail"}</p>
+              <p className="text-[11px] text-[var(--dim)] truncate">
+                {func.cargo} · {func.turno || "—"} · {func.tipo_contrato || "CLT Fixo"}
+              </p>
+              {func.email && <p className="text-[10px] text-[var(--muted)] truncate">{func.email}</p>}
             </div>
           </Card>
         )}
@@ -179,7 +214,7 @@ export default function FuncionarioDetalhePage() {
       </PageBody>
 
       <Modal open={modal} onClose={() => setModal(false)} title={`Novo · ${aba.label}`}>
-        {func && <FormTab tab={aba} func={func} onSalvar={salvar} onCancelar={() => setModal(false)} />}
+        {func && <FormTab tab={aba} func={func} onSalvar={salvar} onCancelar={() => setModal(false)} opcoesDinamicas={{ tipo_id: tiposB.map(t => ({ value: t.id, label: t.nome })) }} />}
       </Modal>
     </div>
   );

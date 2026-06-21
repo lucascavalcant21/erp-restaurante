@@ -14,8 +14,9 @@ export default function CozinhaPage() {
   }, [setDepartamento]);
 
   const opcoes = [
+    { id: "kds", emoji: "📺", titulo: "Painel de Pedidos (KDS)", desc: "Tela viva da operação: Pedidos do PDV caindo em tempo real", href: "/dashboard/cozinha/kds" },
     { id: "cardapio", emoji: "🍽️", titulo: "Cardápio", desc: "Menu completo, preços de venda e composição", href: "/dashboard/operacao/cardapio" },
-    { id: "producao", emoji: "🔥", titulo: "Produção", desc: "Registro de produção, baixa no estoque e análise financeira", href: "/dashboard/cozinha/producao" },
+    { id: "producao", emoji: "🔥", titulo: "Lotes de Produção", desc: "Registro de produção, baixa no estoque e análise financeira", href: "/dashboard/cozinha/producao" },
     { id: "rotina", emoji: "📋", titulo: "Operação", desc: "Fluxo de trabalho diário, tarefas e metas", href: "/dashboard/operacao/rotina" },
     { id: "fichas", emoji: "📄", titulo: "Fichas Técnicas", desc: "Receitas, modo de preparo e ingredientes", href: "/dashboard/operacao/fichas" },
     { id: "montagem", emoji: "📝", titulo: "Montagem", desc: "Fichas de montagem com foto e passo a passo", href: "/dashboard/operacao/montagem?dept=cozinha" },

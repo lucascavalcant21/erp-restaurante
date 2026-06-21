@@ -21,18 +21,51 @@ export async function POST(request) {
         messages: [
           {
             role: "system",
-            content: "Você é um especialista em ler notas fiscais, DANFEs e cupons fiscais brasileiros. Extraia os dados e retorne EXATAMENTE um objeto JSON com as chaves: 'fornecedor' (string), 'cnpj' (string formatada), 'data_emissao' (string YYYY-MM-DD), 'hora_emissao' (string HH:MM), 'categoria' (escolha entre: Hortifruti, Açougue/Proteína, Laticínios, Secos e Molhados, Bebidas, Limpeza, Embalagens, Outros), 'valor_total' (number), e 'itens' (array de objetos com 'nome', 'qtd', 'un' e 'preco' numérico). Se a imagem não for uma nota ou não der pra ler, tente o melhor e preencha nulo. Responda apenas o JSON puro."
+            content: "Você é um auditor fiscal especialista em extração de dados. Leia a Nota Fiscal, DANFE ou cupom fiscal e extraia os dados.\nREGRAS PARA OS ITENS:\n1. Leia linha por linha. Nunca agrupe produtos diferentes.\n2. Para o 'nome', remova códigos numéricos longos do início (ex: '00012345 - OLEO DE SOJA' vira apenas 'OLEO DE SOJA').\n3. Para o 'preco', extraia o valor TOTAL daquela linha (e não o valor unitário).\n4. Se a imagem não for uma nota, retorne strings vazias e listas vazias.\nO retorno deve seguir ESTRITAMENTE o formato solicitado."
           },
           {
             role: "user",
             content: [
-              { type: "text", text: "Extraia os dados deste documento." },
-              { type: "image_url", image_url: { url: imageBase64 } }
+              { type: "text", text: "Analise a imagem e extraia os dados do cupom/nota fiscal." },
+              { type: "image_url", image_url: { url: imageBase64, detail: "high" } }
             ]
           }
         ],
-        max_tokens: 1500,
-        response_format: { type: "json_object" }
+        max_tokens: 2000,
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "extracao_nota",
+            strict: true,
+            schema: {
+              type: "object",
+              properties: {
+                fornecedor: { type: "string", description: "Nome ou Razão Social. Vazio se não houver." },
+                cnpj: { type: "string", description: "CNPJ formatado." },
+                data_emissao: { type: "string", description: "Data no formato YYYY-MM-DD" },
+                hora_emissao: { type: "string", description: "Hora no formato HH:MM" },
+                categoria: { type: "string", enum: ["Hortifruti", "Açougue/Proteína", "Laticínios", "Secos e Molhados", "Bebidas", "Limpeza", "Embalagens", "Outros"] },
+                valor_total: { type: "string", description: "Valor total exato da nota, ex: '219,90'" },
+                itens: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      nome: { type: "string", description: "Nome limpo do produto (sem códigos numéricos)" },
+                      qtd: { type: "string", description: "Quantidade comprada, ex: '2,615'" },
+                      un: { type: "string", description: "Unidade de medida (UN, KG, CX)" },
+                      preco: { type: "string", description: "Valor total do item na linha, ex: '23,51'" }
+                    },
+                    required: ["nome", "qtd", "un", "preco"],
+                    additionalProperties: false
+                  }
+                }
+              },
+              required: ["fornecedor", "cnpj", "data_emissao", "hora_emissao", "categoria", "valor_total", "itens"],
+              additionalProperties: false
+            }
+          }
+        }
       })
     });
 
@@ -41,6 +74,20 @@ export async function POST(request) {
 
     const resultString = data.choices[0].message.content;
     const jsonResult = JSON.parse(resultString);
+    
+    // Converte os valores string com vírgula para número real para o frontend
+    if (jsonResult.valor_total) {
+      jsonResult.valor_total = parseFloat(jsonResult.valor_total.replace(/[^\d,-]/g, '').replace(',', '.'));
+    }
+    if (jsonResult.itens) {
+      jsonResult.itens = jsonResult.itens.map(item => ({
+        ...item,
+        qtd: item.qtd ? parseFloat(String(item.qtd).replace(/[^\d,-]/g, '').replace(',', '.')) : 1,
+        preco: item.preco ? parseFloat(String(item.preco).replace(/[^\d,-]/g, '').replace(',', '.')) : 0
+      }));
+    }
+
+    console.log("RESULTADO OCR:", JSON.stringify(jsonResult, null, 2));
 
     return NextResponse.json(jsonResult);
   } catch (error) {

@@ -12,6 +12,7 @@ export default function RHPage() {
   const opcoes = [
     { id: "gestao_rh", emoji: "👥", titulo: "Gestão de Equipe", desc: "Controle de funcionários, contratos e folha", href: "/dashboard/rh/gestao" },
     { id: "ponto", emoji: "⏱️", titulo: "Controle de Ponto", desc: "Registros de entrada, saída e horas", href: "/dashboard/rh/ponto" },
+    { id: "recrutamento", emoji: "🎯", titulo: "Banco de Talentos", desc: "Triagem automática de currículos e vagas", href: "/dashboard/rh/recrutamento" },
     { id: "colaborador", emoji: "🪪", titulo: "Meu Portal", desc: "Acesso aos meus dados, holerites e benefícios", href: "/dashboard/rh/colaborador" },
   ].filter(op => sessao ? podeAcessar(sessao.papel, op.id) : false);
 

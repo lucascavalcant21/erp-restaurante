@@ -69,10 +69,89 @@ export async function removerPrato(id) {
 
 /** Busca ficha técnica de um prato (itens de ingredientes) */
 export async function fetchFicha(pratoId) {
-  if (!isSupabaseReady()) return { data: [], error: null };
-  const { data, error } = await supabase
+  if (!isSupabaseReady()) return { data: null, error: null };
+  const { data: ficha, error: errFicha } = await supabase
     .from("fichas_tecnicas")
-    .select("*")
-    .eq("prato_id", pratoId);
-  return { data: data || [], error: error?.message || null };
+    .select("*, ficha_itens(*)")
+    .eq("prato_id", pratoId)
+    .single();
+  return { data: ficha || null, error: errFicha?.message || null };
+}
+
+export async function fetchTodasFichas(unidadeId) {
+  if (!isSupabaseReady()) return { data: [], error: null };
+  const { data: pratos, error: errPratos } = await escoparPorUnidade(
+    supabase.from("cardapio").select("*, fichas_tecnicas(*, ficha_itens(*))").order("nome"),
+    unidadeId
+  );
+  if (errPratos) return { data: [], error: errPratos.message };
+  return { data: pratos || [], error: null };
+}
+
+export async function salvarFichaCompleta(prato_id, dados_prato, itens, unidade_id) {
+  if (!isSupabaseReady()) return { error: "Supabase não configurado" };
+
+  try {
+    let pratoIdFinal = prato_id;
+    
+    // 1. Upsert no Cardapio
+    if (prato_id) {
+      const { error } = await supabase.from("cardapio").update({
+        nome: dados_prato.nome,
+        preco: dados_prato.preco,
+        custo: dados_prato.custoTotal,
+      }).eq("id", prato_id);
+      if (error) throw error;
+    } else {
+      const { data: novoPrato, error } = await supabase.from("cardapio").insert([{
+        nome: dados_prato.nome,
+        preco: dados_prato.preco,
+        custo: dados_prato.custoTotal,
+        categoria: dados_prato.setor === "Cozinha" ? "Pratos" : "Bebidas",
+        unidade_id
+      }]).select().single();
+      if (error) throw error;
+      pratoIdFinal = novoPrato.id;
+    }
+
+    // 2. Achar ou Criar Ficha Tecnica associada
+    let { data: ficha } = await supabase.from("fichas_tecnicas").select("id").eq("prato_id", pratoIdFinal).maybeSingle();
+    let fichaIdFinal = ficha?.id;
+
+    if (fichaIdFinal) {
+      const { error } = await supabase.from("fichas_tecnicas").update({
+        nome: dados_prato.nome,
+        custo_total: dados_prato.custoTotal
+      }).eq("id", fichaIdFinal);
+      if (error) throw error;
+    } else {
+      const { data: novaFicha, error: errFicha } = await supabase.from("fichas_tecnicas").insert([{
+        prato_id: pratoIdFinal,
+        nome: dados_prato.nome,
+        custo_total: dados_prato.custoTotal,
+        unidade_id
+      }]).select().single();
+      if (errFicha) throw errFicha;
+      fichaIdFinal = novaFicha.id;
+    }
+
+    // 3. Apagar itens antigos
+    const { error: errDel } = await supabase.from("ficha_itens").delete().eq("ficha_id", fichaIdFinal);
+    if (errDel) throw errDel;
+
+    // 4. Inserir novos itens
+    if (itens.length > 0) {
+      const insertItens = itens.map(it => ({
+        ficha_id: fichaIdFinal,
+        ingrediente_id: it.ingrediente_id,
+        quantidade: it.quantidade
+      }));
+      const { error: errItens } = await supabase.from("ficha_itens").insert(insertItens);
+      if (errItens) throw errItens;
+    }
+
+    return { error: null, prato_id: pratoIdFinal };
+  } catch (err) {
+    return { error: err.message };
+  }
 }

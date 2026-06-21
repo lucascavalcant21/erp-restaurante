@@ -62,6 +62,7 @@ export async function fetchNotas(unidadeId) {
 
 export async function salvarNota(dados, unidadeId) {
   const nota = carimbarUnidade(dados, unidadeId);
+  if (!nota.unidade_id) nota.unidade_id = "todas"; // notas_fiscais exige unidade_id NOT NULL
   
   if (!isSupabaseReady()) {
     nota.id = "n" + Date.now();
@@ -72,13 +73,10 @@ export async function salvarNota(dados, unidadeId) {
 
   try {
     const { data, error } = await supabase.from("notas_fiscais").insert([nota]).select().single();
-    if (error) throw new Error(error.message);
+    if (error) return { data: null, error: error.message };
     return { data, error: null };
   } catch (err) {
-    nota.id = "n" + Date.now();
-    nota.created_at = new Date().toISOString();
-    MOCK_NOTAS.unshift(nota);
-    return { data: nota, error: null }; // Fallback
+    return { data: null, error: err.message };
   }
 }
 
@@ -107,7 +105,7 @@ export async function simularLeituraOCR(imagemBase64) {
     const res = await fetch("/api/ocr", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ imageBase64 })
+      body: JSON.stringify({ imageBase64: imagemBase64 })
     });
     
     if (res.ok) {

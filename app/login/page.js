@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, LogIn } from "lucide-react";
-import { fazerLogin, homeDoPapel } from "../lib/auth";
+import { fazerLogin, homeDoPapel, formatarParaEmailFantasma } from "../lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,9 +16,9 @@ export default function LoginPage() {
 
   async function handleLogin(e) {
     e.preventDefault();
-    if (!email || !senha) { setErro("Preencha e-mail e senha."); return; }
+    if (!email || !senha) { setErro("Preencha o usuário e a senha."); return; }
     setLoading(true); setErro("");
-    const r = await fazerLogin(email, senha);
+    const r = await fazerLogin(formatarParaEmailFantasma(email), senha);
     if (!r.ok) { setErro(r.erro); setLoading(false); return; }
     try { localStorage.setItem("erp_lembrar", lembrar ? "1" : "0"); } catch (_) {}
     router.push(homeDoPapel(r.usuario.papel));
@@ -27,12 +27,12 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-5" style={{ background: "var(--surface)" }}>
       <div className="mb-8 flex flex-col items-center">
-        <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ background: "linear-gradient(135deg,#059669,#34D399)" }}>
+        <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ background: "linear-gradient(135deg,#F97316,#EA580C)" }}>
           <svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.2}>
             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
           </svg>
         </div>
-        <p className="text-2xl font-bold tracking-tight" style={{ color: "var(--fg)" }}>Cerebro ERP</p>
+        <p className="text-2xl font-bold tracking-tight" style={{ color: "var(--fg)" }}>Hefisto</p>
         <p className="text-sm font-medium mt-0.5" style={{ color: "var(--dim)" }}>Gestão inteligente para food service</p>
       </div>
 
@@ -43,8 +43,8 @@ export default function LoginPage() {
         </div>
 
         <div>
-          <label className="erp-label block mb-1.5">E-mail</label>
-          <input type="email" autoComplete="email" value={email} placeholder="seu@email.com"
+          <label className="erp-label block mb-1.5">Usuário ou E-mail</label>
+          <input type="text" autoComplete="username" value={email} placeholder="Ex: seldeestrela ou seu@email.com"
             onChange={(e) => { setEmail(e.target.value); setErro(""); }} className="erp-input" />
         </div>
 
@@ -61,7 +61,7 @@ export default function LoginPage() {
 
         <div className="flex items-center justify-between">
           <label className="flex items-center gap-2 text-[12px] font-medium cursor-pointer" style={{ color: "var(--muted)" }}>
-            <input type="checkbox" checked={lembrar} onChange={(e) => setLembrar(e.target.checked)} style={{ accentColor: "#10B981" }} />
+            <input type="checkbox" checked={lembrar} onChange={(e) => setLembrar(e.target.checked)} style={{ accentColor: "var(--accent)" }} />
             Lembrar de mim
           </label>
           <button type="button" onClick={() => router.push("/recuperar")} className="text-[12px] font-bold" style={{ color: "var(--accent-fg)" }}>

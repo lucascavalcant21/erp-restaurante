@@ -10,6 +10,7 @@ export default function GestaoPage() {
     { id: "validade", emoji: "⏰", titulo: "Controle de Validade", desc: "Rastreamento de vencimentos de insumos", href: "/dashboard/operacao/validade" },
     { id: "suprimentos", emoji: "📦", titulo: "Estoque Central de Suprimentos", desc: "Controle e distribuição de material de limpeza para as lojas", href: "/dashboard/gestao/suprimentos" },
     { id: "notas", emoji: "🧾", titulo: "Notas Fiscais & DANFEs", desc: "Digitalização e OCR de notas de entrada", href: "/dashboard/operacao/notas" },
+    { id: "documentos", emoji: "📜", titulo: "Documentos Legais", desc: "Alvarás, CNPJ, Contratos e Certidões da empresa", href: "/dashboard/gestao/documentos" },
   ];
 
   return (

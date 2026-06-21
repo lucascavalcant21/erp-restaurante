@@ -4,10 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Eye, EyeOff, Check } from "lucide-react";
 import { PAPEIS, registrarUsuario, homeDoPapel } from "../lib/auth";
-import { UNIDADES, CENTRAL } from "../lib/unidades";
+import { CENTRAL } from "../lib/unidades";
+import { useERP } from "../context/ERPContext";
 
 const STEPS = ["Dados", "Função", "Unidade"];
-const OPC_UNIDADE = [...UNIDADES, { id: CENTRAL.id, nome: "Central (todas as lojas)", cor: CENTRAL.cor }];
 
 function StepBar({ step }) {
   return (
@@ -33,6 +33,7 @@ function StepBar({ step }) {
 
 export default function CadastroPage() {
   const router = useRouter();
+  const { unidades } = useERP();
   const [step, setStep] = useState(0);
   const [erro, setErro] = useState("");
   const [loading, setLoading] = useState(false);
@@ -119,7 +120,7 @@ export default function CadastroPage() {
           <div className="space-y-2">
             <div className="mb-2"><h1 className="text-lg font-bold" style={{ color: "var(--fg)" }}>Sua unidade</h1>
               <p className="text-sm font-medium" style={{ color: "var(--dim)" }}>Onde você atua.</p></div>
-            {OPC_UNIDADE.map((u) => {
+            {[...unidades, { id: CENTRAL.id, nome: "Central (todas as lojas)", cor: CENTRAL.cor }].map((u) => {
               const sel = form.unidade === u.id;
               return (
                 <button key={u.id} type="button" onClick={() => { setForm((f) => ({ ...f, unidade: u.id })); setErro(""); }}

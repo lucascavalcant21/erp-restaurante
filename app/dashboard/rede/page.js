@@ -6,11 +6,11 @@ import {
   ArrowLeft, Building2, Package, AlertTriangle, Users,
   TrendingUp, ChefHat, Crown, DollarSign,
 } from "lucide-react";
-import { UNIDADES } from "../../lib/unidades";
 import { fetchEstoque } from "../../lib/estoque";
 import { fetchFuncionarios } from "../../lib/rh";
 import { fetchCardapio } from "../../lib/cardapio";
 import { fetchLancamentos } from "../../lib/financeiro";
+import { useERP } from "../../context/ERPContext";
 
 function fmtBRL(v) {
   return Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -69,16 +69,18 @@ function KpiCentral({ icon: Icon, label, valor, cor }) {
 
 export default function RedePage() {
   const router = useRouter();
+  const { unidades } = useERP();
   const [dados, setDados]     = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let vivo = true;
-    Promise.all(UNIDADES.map(carregarUnidade)).then((res) => {
+    if (unidades.length === 0) return;
+    Promise.all(unidades.map(carregarUnidade)).then((res) => {
       if (vivo) { setDados(res); setLoading(false); }
     });
     return () => { vivo = false; };
-  }, []);
+  }, [unidades]);
 
   const total = useMemo(() => ({
     receita:      dados.reduce((a, u) => a + (u.receita30 || 0), 0),
@@ -111,7 +113,7 @@ export default function RedePage() {
             <Building2 size={18} style={{ color: "var(--muted)" }} /> Visão de Rede
           </h1>
           <p className="text-[11px] font-medium" style={{ color: "var(--dim)" }}>
-            Central · consolidado e comparativo das {UNIDADES.length} unidades
+            Central · consolidado e comparativo das {unidades.length} unidades
           </p>
         </div>
       </div>

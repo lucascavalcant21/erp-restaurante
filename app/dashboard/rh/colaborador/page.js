@@ -8,7 +8,7 @@ import { lerSessao, getPapel } from "../../../lib/auth";
 import { supabase } from "../../../lib/supabase";
 import {
   buscarFuncionarioPorEmail, fetchHolerites, fetchDocumentos, fetchAvisos,
-  fetchAdvertencias, fetchProducoes, fetchCursos,
+  fetchAdvertencias, fetchProducoes, fetchCursos, fetchBonificacoes
 } from "../../../lib/pessoas";
 
 function Secao({ icon: Icon, titulo, badge, children, aberto = false }) {
@@ -32,23 +32,24 @@ export default function ColaboradorPage() {
   const [sessao, setSessao] = useState(null);
   const [func, setFunc] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [d, setD] = useState({ holerites: [], documentos: [], avisos: [], advertencias: [], producoes: [], cursos: [], ponto: [] });
+  const [d, setD] = useState({ holerites: [], documentos: [], avisos: [], advertencias: [], producoes: [], cursos: [], ponto: [], bonificacoes: [] });
 
   useEffect(() => {
     (async () => {
       const s = await lerSessao(); setSessao(s);
       const f = await buscarFuncionarioPorEmail(s?.email); setFunc(f);
       if (f) {
-        const [holerites, documentos, avisos, advertencias, producoes, cursos] = await Promise.all([
+        const [holerites, documentos, avisos, advertencias, producoes, cursos, bonificacoes] = await Promise.all([
           fetchHolerites(f.id), fetchDocumentos(f.id), fetchAvisos(f.id),
           fetchAdvertencias(f.id), fetchProducoes(f.id), fetchCursos(f.id),
+          fetchBonificacoes(f.id)
         ]);
         let ponto = [];
         if (supabase) {
           const { data } = await supabase.from("registros_ponto").select("*").eq("func_id", f.id).order("data", { ascending: false }).limit(15);
           ponto = data || [];
         }
-        setD({ holerites, documentos, avisos, advertencias, producoes, cursos, ponto });
+        setD({ holerites, documentos, avisos, advertencias, producoes, cursos, ponto, bonificacoes });
       }
       setLoading(false);
     })();
@@ -62,9 +63,13 @@ export default function ColaboradorPage() {
       <PageBody>
         {/* Cartão do colaborador */}
         <Card className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg" style={{ background: "var(--accent-soft)", color: "var(--accent-fg)" }}>
-            {(func?.nome || sessao?.nome)?.[0]?.toUpperCase() || "U"}
-          </div>
+          {func?.foto_url ? (
+            <img src={func.foto_url} alt="Foto de perfil" className="w-12 h-12 rounded-2xl object-cover" />
+          ) : (
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg" style={{ background: "var(--accent-soft)", color: "var(--accent-fg)" }}>
+              {(func?.nome || sessao?.nome)?.[0]?.toUpperCase() || "U"}
+            </div>
+          )}
           <div className="min-w-0">
             <p className="text-base font-bold truncate" style={{ color: "var(--fg)" }}>{func?.nome || sessao?.nome || "Colaborador"}</p>
             <p className="text-[11px]" style={{ color: "var(--dim)" }}>
@@ -109,6 +114,19 @@ export default function ColaboradorPage() {
                     <div><p className="text-sm font-bold" style={{ color: "var(--fg)" }}>{String(h.mes).padStart(2,"0")}/{h.ano}</p>
                       <p className="text-[11px]" style={{ color: "var(--accent-fg)" }}>Líquido {fmtBRL(h.liquido)}</p></div>
                     {h.arquivo_url && <a href={h.arquivo_url} target="_blank" rel="noreferrer" className="erp-badge erp-badge-ok flex items-center gap-1"><Download size={12} /> Baixar</a>}
+                  </div>))}</div>
+              )}
+            </Secao>
+
+            <Secao icon={DollarSign} titulo="Meus Bônus / Premiações" badge={d.bonificacoes?.length || 0}>
+              {!d.bonificacoes || d.bonificacoes.length === 0 ? <EmptyState icon={DollarSign} title="Nenhum bônus recebido" /> : (
+                <div className="space-y-2">{d.bonificacoes.map((b) => (
+                  <div key={b.id} className="erp-panel p-3 flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{b.rh_tipos_bonificacao?.nome || "Bônus"}</p>
+                      <p className="text-[11px]" style={{ color: "var(--dim)" }}>{fmtData(b.data)} {b.obs ? `· ${b.obs}` : ""}</p>
+                    </div>
+                    <span className="font-bold" style={{ color: "var(--fg)" }}>{fmtBRL(b.valor)}</span>
                   </div>))}</div>
               )}
             </Secao>

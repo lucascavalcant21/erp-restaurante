@@ -58,7 +58,7 @@ export async function fetchVendas(unidadeId, { desde } = {}) {
  * @param {string} unidadeId
  */
 export async function registrarVenda(
-  { itens, desconto = 0, forma_pagamento = "dinheiro", cliente = "", observacao = "" },
+  { itens, desconto = 0, taxa_servico = 0, acrescimo = 0, forma_pagamento = "dinheiro", cliente = "", observacao = "", caixa_id = null },
   unidadeId,
 ) {
   if (!isSupabaseReady()) return { data: null, error: "Supabase não configurado" };
@@ -66,7 +66,10 @@ export async function registrarVenda(
 
   const subtotal = itens.reduce((a, it) => a + (Number(it.preco) || 0) * (Number(it.quantidade) || 0), 0);
   const desc = Math.min(Math.max(0, Number(desconto) || 0), subtotal);
-  const total = Math.max(0, subtotal - desc);
+  const taxa = Math.max(0, Number(taxa_servico) || 0);
+  const acres = Math.max(0, Number(acrescimo) || 0);
+  
+  const total = Math.max(0, subtotal - desc + taxa + acres);
 
   // 1) Receita no fluxo de caixa (alimenta Fluxo/DRE/Dashboard).
   //    Feita antes do cabeçalho para guardar o lancamento_id e permitir estorno.
@@ -82,9 +85,9 @@ export async function registrarVenda(
   const { data: venda, error: errV } = await supabase
     .from("vendas")
     .insert([carimbarUnidade({
-      subtotal, desconto: desc, total, forma_pagamento,
+      subtotal, desconto: desc, taxa_servico: taxa, acrescimo: acres, total, forma_pagamento,
       cliente: cliente || null, observacao: observacao || null,
-      status: "concluida", lancamento_id: lanc?.id || null,
+      status: "concluida", lancamento_id: lanc?.id || null, caixa_id
     }, unidadeId)])
     .select()
     .single();

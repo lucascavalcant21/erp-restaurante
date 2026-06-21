@@ -430,7 +430,7 @@ export default function ProducaoModule({ setor }) {
     carregar();
   }
 
-  const titulo = setor === "bar" ? "🍹 Produção para Bar" : "👨‍🍳 Produção para Cozinha";
+  const titulo = setor === "bar" ? "Produção para Bar" : "Produção para Cozinha";
   const subtitulo = "Registro de lote produzido e formação do Estoque de Prontos";
 
   return (

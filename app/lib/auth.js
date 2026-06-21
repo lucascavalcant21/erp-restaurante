@@ -16,7 +16,7 @@ export const PAPEIS = [
     id: "gerente", label: "Gerente de Unidade", cor: "#10b981",
     descricao: "Gestão completa da sua loja (sem visão consolidada da rede).",
     home: "/dashboard/tarefas",
-    nav: ["dashboard","tarefas","bar","cozinha","cervejas","vendas","drinks","montagem","notificacoes","rotina","ingredientes","fichas","cardapio","estoque","fornecedores","eventos","etiquetas","validade","gestao","financeiro","dre","fluxo","cmv","margem","documentos","rh","gestao_rh","ponto","colaborador","clientes","crm","campanhas","nps","heitor"],
+    nav: ["dashboard","tarefas","bar","cozinha","cervejas","vendas","mesas","drinks","montagem","notificacoes","rotina","ingredientes","fichas","cardapio","estoque","fornecedores","eventos","etiquetas","validade","gestao","financeiro","dre","fluxo","cmv","margem","documentos","rh","organograma","configuracoes","gestao_rh","recrutamento","ponto","colaborador","clientes","crm","campanhas","nps","heitor"],
   },
   {
     id: "financeiro", label: "Financeiro", cor: "#3b82f6",
@@ -28,7 +28,7 @@ export const PAPEIS = [
     id: "rh", label: "Recursos Humanos", cor: "#ec4899",
     descricao: "Equipe, ponto e portal do colaborador.",
     home: "/dashboard/rh/gestao",
-    nav: ["notificacoes","rh","gestao_rh","ponto","colaborador"],
+    nav: ["notificacoes","rh","organograma","configuracoes","gestao_rh","recrutamento","ponto","colaborador"],
   },
   {
     id: "estoque", label: "Estoquista", cor: "#8b5cf6",
@@ -51,7 +51,12 @@ export const PAPEIS = [
   {
     id: "caixa", label: "Operador de Caixa", cor: "#64748b",
     descricao: "Ponto de venda, painel e notificações do dia.",
-    home: "/dashboard/tarefas", nav: ["dashboard","tarefas","vendas","notificacoes","ponto","colaborador"],
+    home: "/dashboard/tarefas", nav: ["dashboard","tarefas","vendas","mesas","notificacoes","ponto","colaborador"],
+  },
+  {
+    id: "garcom", label: "Garçom / Atendimento", cor: "#0284c7",
+    descricao: "Acesso restrito ao PDV Celular (Mesas).",
+    home: "/dashboard/mesas", nav: ["mesas"],
   },
 ];
 
@@ -99,6 +104,17 @@ function traduzErro(msg = "") {
   if (/Unable to validate email/i.test(msg)) return "E-mail inválido.";
   if (/rate limit|too many/i.test(msg)) return "Muitas tentativas. Aguarde um instante e tente de novo.";
   return msg || "Erro de autenticação.";
+}
+
+// ── Helpers de Conversão Usuário <-> E-mail (Multi-tenant Login) ───────────────
+export function formatarParaEmailFantasma(usuario) {
+  if (!usuario) return "";
+  // Se já tiver '@', assumimos que o usuário digitou o e-mail completo real (Cérebro).
+  if (usuario.includes("@")) return usuario.trim().toLowerCase();
+  
+  // Limpa espaços e cria o e-mail fantasma (ex: "matriz" vira "matriz@hefisto.app")
+  const slug = usuario.trim().toLowerCase().replace(/\s+/g, ".");
+  return `${slug}@hefisto.app`;
 }
 
 // ── Registrar ──────────────────────────────────────────────────

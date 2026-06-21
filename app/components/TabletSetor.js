@@ -4,8 +4,8 @@
  * TabletSetor — Modo Tablet reutilizável para Bar e Cozinha.
  * Filtra os ingredientes pelo campo `setor` ("Bar" | "Cozinha").
  * Usado em:
- *   /dashboard/bar/tablet      → setor="Bar",    cor=#3B82F6, emoji=🍹
- *   /dashboard/cozinha/tablet  → setor="Cozinha", cor=#10B981, emoji=👨‍🍳
+ *   /dashboard/bar/tablet      → setor="Bar",    cor=#3B82F6
+ *   /dashboard/cozinha/tablet  → setor="Cozinha", cor=#10B981
  */
 
 import { useState, useEffect, useCallback } from "react";

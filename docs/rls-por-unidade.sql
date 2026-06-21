@@ -136,14 +136,21 @@ END $$;
 
 ALTER TABLE public.unidades ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.unidades FROM anon;
-GRANT SELECT ON public.unidades TO authenticated;
+GRANT ALL ON public.unidades TO authenticated;
 
 DROP POLICY IF EXISTS "auth_full_access" ON public.unidades;
 DROP POLICY IF EXISTS "rls_unidade" ON public.unidades;
 DROP POLICY IF EXISTS "todos_authenticated_leem" ON public.unidades;
+DROP POLICY IF EXISTS "admin_gerencia" ON public.unidades;
+
 CREATE POLICY "todos_authenticated_leem" ON public.unidades
   FOR SELECT TO authenticated
   USING (true);
+
+CREATE POLICY "admin_gerencia" ON public.unidades
+  FOR ALL TO authenticated
+  USING (pode_ver_todas())
+  WITH CHECK (pode_ver_todas());
 
 -- ── 5. Tabela `etiquetas` — mantém leitura pública (QR sem login) ─────────────
 -- A policy de unidade acima cobre authenticated.

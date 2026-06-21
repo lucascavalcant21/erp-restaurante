@@ -33,7 +33,8 @@
 
 import { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { fetchEstoque, ESTOQUE_SEED } from "../lib/estoque";
-import { UNIDADES, CENTRAL, unidadeDaSessao, podeVerTodas, getUnidade } from "../lib/unidades";
+import { fetchEtiquetas } from "../lib/etiquetas";
+import { fetchUnidades, CENTRAL, unidadeDaSessao, podeVerTodas, getUnidade } from "../lib/unidades";
 import { lerSessao } from "../lib/auth";
 
 const UNIDADE_KEY = "erp_unidade_ativa";
@@ -55,6 +56,7 @@ export function ERPProvider({ children }) {
   const [notificacoes, setNotificacoes] = useState(NOTIF_SEED);
 
   // ── Unidade ativa (multiunidade: Central + restaurantes) ──────────────────
+  const [unidades, setUnidades] = useState([]);
   const [unidadeAtiva, setUnidadeAtivaState] = useState(CENTRAL.id);
   const [departamento, setDepartamentoState] = useState(null); // bar, cozinha, cervejas
   const [podeTrocar,   setPodeTrocar]        = useState(true);
@@ -63,16 +65,19 @@ export function ERPProvider({ children }) {
   // Inicializa a unidade a partir da sessão (papel) e da última escolha salva
   useEffect(() => {
     let vivo = true;
-    lerSessao().then((sessaoObj) => {
+    Promise.all([fetchUnidades(), lerSessao()]).then(([resUnidades, sessaoObj]) => {
       if (!vivo) return;
+      const unids = resUnidades.data || [];
+      setUnidades(unids);
       setSessao(sessaoObj);
       const trocar = podeVerTodas(sessaoObj?.papel);
       setPodeTrocar(trocar);
 
-      const padrao = unidadeDaSessao(sessaoObj);
-      if (trocar) {
-        const salva = typeof window !== "undefined" ? localStorage.getItem(UNIDADE_KEY) : null;
-        const valida = salva === CENTRAL.id || UNIDADES.some(u => u.id === salva);
+      const padrao = unidadeDaSessao(sessaoObj, unids);
+      if (trocar && sessaoObj?.id) {
+        const chaveUsuario = `${UNIDADE_KEY}_${sessaoObj.id}`;
+        const salva = typeof window !== "undefined" ? localStorage.getItem(chaveUsuario) : null;
+        const valida = salva === CENTRAL.id || unids.some(u => u.id === salva);
         setUnidadeAtivaState(valida ? salva : padrao);
       } else {
         // Usuário de unidade fica travado na própria unidade
@@ -85,33 +90,53 @@ export function ERPProvider({ children }) {
   const setUnidadeAtiva = useCallback((id) => {
     setUnidadeAtivaState(id);
     setDepartamentoState(null); // reseta departamento ao trocar unidade
-    try { localStorage.setItem(UNIDADE_KEY, id); } catch (_) {}
-  }, []);
+    try {
+      if (sessao?.id) {
+        localStorage.setItem(`${UNIDADE_KEY}_${sessao.id}`, id);
+      }
+    } catch (_) {}
+  }, [sessao]);
 
   const setDepartamento = useCallback((dept) => {
     setDepartamentoState(dept);
     try { localStorage.setItem("erp_departamento_ativo", dept); } catch (_) {}
   }, []);
 
-  // ── Carregar estoque por unidade ──────────────────────────────────────────
+  // ── Carregar estoque e validade por unidade ──────────────────────────────────────────
   useEffect(() => {
     setEstoqueReady(false);
-    fetchEstoque(unidadeAtiva).then(({ data }) => {
-      setEstoque(data);
+    Promise.all([
+      fetchEstoque(unidadeAtiva),
+      fetchEtiquetas(unidadeAtiva, 1000)
+    ]).then(([resEst, resEtiq]) => {
+      const dataEstoque = resEst.data || [];
+      const dataEtiq = resEtiq || [];
+
+      setEstoque(dataEstoque);
       setEstoqueReady(true);
       
-      const criticos = data.filter(i => (i.quantidade ?? 0) <= (i.minimo ?? 0));
+      const criticos = dataEstoque.filter(i => (i.quantidade ?? 0) <= (i.minimo ?? 0));
       
-      setNotificacoes(prev => {
-        // Limpa as notificações de estoque da unidade anterior (mantém as outras)
-        const filtradas = prev.filter(n => n.tipo !== "estoque_critico");
-        
-        // O Cérebro tem sua própria central de Insights, então não deve receber notificações de estoque unitárias
-        if (unidadeAtiva === "todas") {
-          return filtradas;
-        }
+      // Checar validades
+      const vencendo = dataEtiq.filter(e => {
+        if (e.status !== "ativa") return false;
+        const dias = Math.floor((new Date(e.validade_em).getTime() - Date.now()) / 86400000);
+        return dias <= 7 && dias >= 0; // Vencendo nos proximos 7 dias
+      });
+      
+      const vencidos = dataEtiq.filter(e => {
+        if (e.status !== "ativa") return false;
+        const dias = Math.floor((new Date(e.validade_em).getTime() - Date.now()) / 86400000);
+        return dias < 0; 
+      });
 
-        const novas = criticos.map(item => ({
+      setNotificacoes(prev => {
+        const filtradas = prev.filter(n => !["estoque_critico", "validade_vencendo", "validade_vencida"].includes(n.tipo));
+        
+        // O Cérebro tem sua própria central de Insights, então não deve receber notificações unitárias
+        if (unidadeAtiva === "todas") return filtradas;
+
+        const novasEst = criticos.map(item => ({
           id: `notif_est_${item.id}`, 
           tipo: "estoque_critico",
           titulo: `Estoque crítico: ${item.nome}`,
@@ -119,8 +144,26 @@ export function ERPProvider({ children }) {
           lida: false,
           data: new Date().toISOString(),
         }));
-        
-        return [...novas, ...filtradas];
+
+        const novasVen = vencendo.map(item => ({
+          id: `notif_ven_${item.id}`, 
+          tipo: "validade_vencendo",
+          titulo: `Vencimento próximo: ${item.produto}`,
+          corpo: `Faltam dias! Restam ${item.quantidade} ${item.unidade}.`,
+          lida: false,
+          data: new Date().toISOString(),
+        }));
+
+        const novasVcd = vencidos.map(item => ({
+          id: `notif_vcd_${item.id}`, 
+          tipo: "validade_vencida",
+          titulo: `Produto vencido: ${item.produto}`,
+          corpo: `Lote vencido! Realize a baixa ou registre perda de ${item.quantidade} ${item.unidade}.`,
+          lida: false,
+          data: new Date().toISOString(),
+        }));
+
+        return [...novasVcd, ...novasVen, ...novasEst, ...filtradas];
       });
     });
   }, [unidadeAtiva]);
@@ -184,8 +227,8 @@ export function ERPProvider({ children }) {
       // Sessão e Permissões
       sessao,
       // Unidade (multiunidade)
-      unidades: UNIDADES, unidadeAtiva, setUnidadeAtiva, podeTrocar,
-      unidadeInfo: getUnidade(unidadeAtiva), isCentral: unidadeAtiva === CENTRAL.id,
+      unidades, unidadeAtiva, setUnidadeAtiva, podeTrocar,
+      unidadeInfo: getUnidade(unidades, unidadeAtiva), isCentral: unidadeAtiva === CENTRAL.id,
       // Departamento (bar, cozinha, cervejas)
       departamento, setDepartamento,
       // Estoque

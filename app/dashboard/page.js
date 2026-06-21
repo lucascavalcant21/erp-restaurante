@@ -51,18 +51,18 @@ function variacao(a, b) { if (!b) return a > 0 ? 100 : null; return ((a - b) / b
 function KpiVar({ label, value, delta, inverter }) {
   const pos = delta != null && (inverter ? delta < 0 : delta >= 0);
   return (
-    <Card className="p-4">
-      <p className="erp-label">{label}</p>
-      <p className="text-2xl font-bold mt-1.5" style={{ color: "var(--fg)" }}>{value}</p>
+    <Card className="p-6 md:p-8 flex flex-col justify-between group hover:shadow-[0_20px_40px_rgba(9,9,11,0.12)] transition-all duration-300 transform hover:-translate-y-1" style={{ minHeight: '140px' }}>
+      <p className="text-xs md:text-sm font-bold tracking-widest uppercase" style={{ color: "var(--muted)" }}>{label}</p>
+      <p className="text-3xl md:text-4xl font-black tracking-tighter mt-auto" style={{ color: "var(--fg)" }}>{value}</p>
       {delta == null ? (
-        <p className="text-[11px] mt-1.5" style={{ color: "var(--dim)" }}>sem histórico ainda</p>
+        <p className="text-[11px] mt-1.5 font-medium" style={{ color: "var(--dim)" }}>sem histórico ainda</p>
       ) : (
-        <div className="flex items-center gap-1 mt-1.5">
-          <span className="inline-flex items-center gap-0.5 text-[11px] font-bold px-1.5 py-0.5 rounded-md"
-            style={{ background: pos ? "var(--accent-soft)" : "var(--danger-soft)", color: pos ? "var(--accent-strong)" : "#DC2626" }}>
-            {pos ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}{Math.abs(delta).toFixed(0)}%
+        <div className="flex items-center gap-2 mt-2">
+          <span className="inline-flex items-center gap-0.5 text-[11px] font-bold px-2 py-1 rounded-lg shadow-sm"
+            style={{ background: pos ? "var(--success-soft)" : "var(--danger-soft)", color: pos ? "var(--success-strong)" : "#DC2626" }}>
+            {pos ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}{Math.abs(delta).toFixed(0)}%
           </span>
-          <span className="text-[11px]" style={{ color: "var(--dim)" }}>vs. período anterior</span>
+          <span className="text-[11px] font-medium" style={{ color: "var(--muted)" }}>vs. período anterior</span>
         </div>
       )}
     </Card>
@@ -121,19 +121,19 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen">
-      <div className="px-4 pt-12 pb-2" style={{ background: "var(--surface)" }}>
-        <p className="text-xs font-medium" style={{ color: "var(--dim)" }}>{saudacao},</p>
-        <h1 className="text-xl font-bold leading-tight" style={{ color: "var(--fg)" }}>{nome} 👋</h1>
-        <div className="flex items-center justify-between gap-2 mt-2 flex-wrap">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: "var(--card)", border: "1px solid var(--line)" }}>
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: unidadeInfo.cor }} />
-            <span className="text-[11px] font-semibold" style={{ color: "var(--fg-soft)" }}>{isCentral ? "Central · consolidado" : unidadeInfo.nome}</span>
+      <div className="px-4 pt-12 pb-6" style={{ background: "var(--surface)" }}>
+        <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">{saudacao},</p>
+        <h1 className="text-3xl md:text-4xl font-black leading-tight tracking-tighter" style={{ color: "var(--fg)" }}>{nome}</h1>
+        <div className="flex items-center justify-between gap-4 mt-4 flex-wrap">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[12px] bg-white border border-slate-200/60 shadow-sm">
+            <span className="w-2 h-2 rounded-full shadow-[0_0_8px_rgba(0,0,0,0.2)]" style={{ background: unidadeInfo.cor }} />
+            <span className="text-[12px] font-bold text-slate-600">{isCentral ? "Central · consolidado" : unidadeInfo.nome}</span>
           </div>
           {/* Filtro de período */}
-          <div className="inline-flex p-0.5 rounded-lg" style={{ background: "var(--card)", border: "1px solid var(--line)" }}>
+          <div className="inline-flex p-1 rounded-[14px] bg-slate-100/80 border border-slate-200/50 backdrop-blur-sm shadow-inner">
             {Object.entries(PERIODOS).map(([k, v]) => (
-              <button key={k} onClick={() => setPeriodo(k)} className="text-[11px] font-bold px-2.5 py-1 rounded-md transition-all"
-                style={periodo === k ? { background: "var(--accent-strong)", color: "#fff" } : { color: "var(--muted)" }}>{v.label}</button>
+              <button key={k} onClick={() => setPeriodo(k)} className="text-[12px] font-bold px-4 py-1.5 rounded-[10px] transition-all duration-300"
+                style={periodo === k ? { background: "var(--card)", color: "var(--accent-strong)", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" } : { color: "var(--muted)" }}>{v.label}</button>
             ))}
           </div>
         </div>
@@ -165,12 +165,12 @@ export default function DashboardPage() {
           <Card>
             <div className="flex items-end gap-1.5" style={{ height: 130 }}>
               {barras.map((b, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center justify-end gap-1" style={{ height: "100%" }}>
-                  <div className="w-full flex items-end justify-center gap-0.5" style={{ height: "100%" }}>
-                    <div className="rounded-t-sm transition-all" style={{ width: "45%", height: `${Math.max((b.receita / maxBar) * 100, b.receita ? 3 : 0)}%`, background: "var(--accent)" }} title={`Receita ${fmtBRL(b.receita)}`} />
-                    <div className="rounded-t-sm transition-all" style={{ width: "45%", height: `${Math.max((b.despesa / maxBar) * 100, b.despesa ? 3 : 0)}%`, background: "#EF4444" }} title={`Despesa ${fmtBRL(b.despesa)}`} />
+                <div key={i} className="flex-1 flex flex-col items-center justify-end gap-1.5 group" style={{ height: "100%" }}>
+                  <div className="w-full flex items-end justify-center gap-1" style={{ height: "100%" }}>
+                    <div className="rounded-t-md transition-all duration-300 group-hover:opacity-80" style={{ width: "45%", height: `${Math.max((b.receita / maxBar) * 100, b.receita ? 4 : 0)}%`, background: "linear-gradient(to top, var(--accent-strong), var(--accent))", boxShadow: "inset 0 1px 2px rgba(255,255,255,0.3)" }} title={`Receita ${fmtBRL(b.receita)}`} />
+                    <div className="rounded-t-md transition-all duration-300 group-hover:opacity-80" style={{ width: "45%", height: `${Math.max((b.despesa / maxBar) * 100, b.despesa ? 4 : 0)}%`, background: "linear-gradient(to top, #BE123C, #F43F5E)", boxShadow: "inset 0 1px 2px rgba(255,255,255,0.3)" }} title={`Despesa ${fmtBRL(b.despesa)}`} />
                   </div>
-                  <span className="text-[9px]" style={{ color: "var(--dim)" }}>{b.label}</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">{b.label}</span>
                 </div>
               ))}
             </div>
@@ -232,13 +232,13 @@ export default function DashboardPage() {
 
         <div>
           <SectionLabel>Atalhos</SectionLabel>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
             {ATALHOS.map((a) => (
-              <button key={a.label} onClick={() => router.push(a.href)} className="erp-card p-4 flex flex-col items-center gap-2 active:scale-95 transition-transform">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "var(--panel)" }}>
-                  <a.Icon size={18} style={{ color: "var(--subtle)" }} />
+              <button key={a.label} onClick={() => router.push(a.href)} className="erp-card p-5 flex items-center gap-4 hover:-translate-y-1 hover:shadow-lg transition-all duration-300 group">
+                <div className="w-12 h-12 rounded-[16px] flex items-center justify-center bg-slate-50 border border-slate-100 group-hover:bg-orange-50 group-hover:border-orange-100 transition-colors">
+                  <a.Icon size={20} className="text-slate-400 group-hover:text-orange-500 transition-colors" />
                 </div>
-                <span className="text-[11px] font-bold" style={{ color: "var(--fg-soft)" }}>{a.label}</span>
+                <span className="text-[13px] font-bold text-slate-600 group-hover:text-slate-900 transition-colors">{a.label}</span>
               </button>
             ))}
           </div>

@@ -39,8 +39,8 @@ function FormScanner({ onSalvar, onCancelar }) {
         const canvas = document.createElement("canvas");
         let w = img.width;
         let h = img.height;
-        // Reduzir para no máximo 1200px para o ChatGPT ler super rápido e não dar Timeout de 10s na Vercel
-        const MAX = 1200;
+        // Reduzir para no máximo 1800px para manter nitidez dos itens
+        const MAX = 1800;
         if (w > h && w > MAX) { h = Math.round((h * MAX) / w); w = MAX; }
         else if (h > MAX) { w = Math.round((w * MAX) / h); h = MAX; }
         
@@ -49,8 +49,8 @@ function FormScanner({ onSalvar, onCancelar }) {
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, w, h);
         
-        // Comprime para JPEG com 60% de qualidade
-        const compressedBase64 = canvas.toDataURL("image/jpeg", 0.6);
+        // Comprime para JPEG com 85% de qualidade (texto precisa de nitidez)
+        const compressedBase64 = canvas.toDataURL("image/jpeg", 0.85);
         setPreview(compressedBase64);
         iniciarLeituraOCR(compressedBase64);
       };
@@ -109,9 +109,9 @@ function FormScanner({ onSalvar, onCancelar }) {
   return (
     <div className="flex flex-col lg:flex-row gap-6">
       {/* Coluna da Imagem */}
-      <div className="flex-1 flex flex-col gap-2">
-        <p className="text-sm font-bold uppercase tracking-wide" style={{ color: "var(--dim)" }}>Imagem da Nota</p>
-        <div className="relative rounded-xl overflow-hidden border" style={{ borderColor: "var(--line)", height: 400, background: "#000" }}>
+      <div className="w-full lg:w-1/3 flex flex-col gap-2">
+        <p className="text-xs font-bold uppercase tracking-wide" style={{ color: "var(--dim)" }}>Imagem da Nota</p>
+        <div className="relative rounded-xl overflow-hidden border" style={{ borderColor: "var(--line)", height: 250, background: "#000" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={preview} alt="Nota" className="w-full h-full object-contain opacity-80" />
           
@@ -128,7 +128,7 @@ function FormScanner({ onSalvar, onCancelar }) {
 
       {/* Coluna dos Dados Extraídos */}
       <div className="flex-1 flex flex-col">
-        <p className="text-sm font-bold uppercase tracking-wide mb-2" style={{ color: "var(--dim)" }}>Dados Extraídos (Editáveis)</p>
+        <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: "var(--dim)" }}>Dados Extraídos</p>
         
         {!dadosIA && !loadingIA && (
           <div className="flex-1 flex items-center justify-center p-6 border border-dashed rounded-xl" style={{ borderColor: "var(--line)" }}>
@@ -137,24 +137,24 @@ function FormScanner({ onSalvar, onCancelar }) {
         )}
 
         {dadosIA && (
-          <div className="space-y-4 flex-1">
-            <Field label="Fornecedor"><TextInput value={dadosIA.fornecedor} onChange={e => setDadosIA({...dadosIA, fornecedor: e.target.value})} /></Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="CNPJ"><TextInput value={dadosIA.cnpj} onChange={e => setDadosIA({...dadosIA, cnpj: e.target.value})} /></Field>
-              <Field label="Categoria"><Select value={dadosIA.categoria} onChange={e => setDadosIA({...dadosIA, categoria: e.target.value})}>{CATEGORIAS_NOTA.map(c => <option key={c}>{c}</option>)}</Select></Field>
+          <div className="space-y-3 flex-1">
+            <Field label="Fornecedor"><TextInput className="py-1.5 text-sm" value={dadosIA.fornecedor} onChange={e => setDadosIA({...dadosIA, fornecedor: e.target.value})} /></Field>
+            <div className="grid grid-cols-2 gap-2">
+              <Field label="CNPJ"><TextInput className="py-1.5 text-sm" value={dadosIA.cnpj} onChange={e => setDadosIA({...dadosIA, cnpj: e.target.value})} /></Field>
+              <Field label="Categoria"><Select className="py-1.5 text-sm" value={dadosIA.categoria} onChange={e => setDadosIA({...dadosIA, categoria: e.target.value})}>{CATEGORIAS_NOTA.map(c => <option key={c}>{c}</option>)}</Select></Field>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Data"><TextInput type="date" value={dadosIA.data_emissao} onChange={e => setDadosIA({...dadosIA, data_emissao: e.target.value})} /></Field>
-              <Field label="Hora"><TextInput type="time" value={dadosIA.hora_emissao} onChange={e => setDadosIA({...dadosIA, hora_emissao: e.target.value})} /></Field>
+            <div className="grid grid-cols-2 gap-2">
+              <Field label="Data"><TextInput className="py-1.5 text-sm" type="date" value={dadosIA.data_emissao} onChange={e => setDadosIA({...dadosIA, data_emissao: e.target.value})} /></Field>
+              <Field label="Hora"><TextInput className="py-1.5 text-sm" type="time" value={dadosIA.hora_emissao} onChange={e => setDadosIA({...dadosIA, hora_emissao: e.target.value})} /></Field>
             </div>
-            <Field label="Valor Total (R$)"><NumberInput value={dadosIA.valor_total} onChange={e => setDadosIA({...dadosIA, valor_total: e.target.value})} /></Field>
+            <Field label="Valor Total (R$)"><NumberInput className="py-1.5 text-sm font-bold text-blue-600" value={dadosIA.valor_total} onChange={e => setDadosIA({...dadosIA, valor_total: e.target.value})} /></Field>
           </div>
         )}
 
         {/* NOVOS CONTROLES DE AUTOMAÇÃO */}
         {dadosIA && (
-          <div className="mt-4 p-4 rounded-xl space-y-3" style={{ background: "var(--elevated)", border: "1px solid var(--line)" }}>
-            <p className="text-xs font-bold uppercase tracking-wide" style={{ color: "var(--dim)" }}>Automações Inteligentes</p>
+          <div className="mt-3 p-3 rounded-xl space-y-2" style={{ background: "var(--elevated)", border: "1px solid var(--line)" }}>
+            <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "var(--dim)" }}>Automações Inteligentes</p>
             
             <label className="flex items-center gap-3 cursor-pointer">
               <input type="checkbox" className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" 
@@ -170,12 +170,14 @@ function FormScanner({ onSalvar, onCancelar }) {
           </div>
         )}
 
-        <div className="flex gap-3 mt-6 pt-4 border-t" style={{ borderColor: "var(--line)" }}>
-          <Btn variant="ghost" className="flex-1" onClick={onCancelar}>Cancelar</Btn>
-          <Btn variant="primary" className="flex-1" disabled={!dadosIA || loadingIA} onClick={confirmar} style={dadosIA ? { background: "#10B981", color: "#fff" } : {}}>
-            <CheckCircle size={18} /> Salvar Nota
-          </Btn>
-        </div>
+        {dadosIA && (
+          <div className="flex gap-2 mt-4 pt-3 border-t" style={{ borderColor: "var(--line)" }}>
+            <Btn variant="ghost" className="flex-1 py-2 text-sm" onClick={onCancelar}>Cancelar</Btn>
+            <Btn variant="primary" className="flex-1 py-2 text-sm" disabled={!dadosIA || loadingIA} onClick={confirmar} style={dadosIA ? { background: "#10B981", color: "#fff" } : {}}>
+              <CheckCircle size={16} /> Salvar
+            </Btn>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -193,7 +195,8 @@ export default function NotasFiscaisPage() {
   
   const [modalScanner, setModalScanner] = useState(false);
   const [toast, setToast] = useState("");
-  const [notaExpandida, setNotaExpandida] = useState(null); // ID da nota para mostrar a foto
+  const [notaExpandida, setNotaExpandida] = useState(null); // ID da nota para mostrar a foto e itens
+  const [fotoAberta, setFotoAberta] = useState(null); // URL da imagem para o modal de tela cheia
 
   async function carregar() {
     setLoading(true);
@@ -229,12 +232,20 @@ export default function NotasFiscaisPage() {
 
   async function salvar(dadosIA, imagemBase64, lancarFinanceiro, alimentarEstoque) {
     // Mesclar dados da IA com a imagem gerada
+    // Garantir que os campos obrigatórios não fiquem vazios (o banco de dados rejeita "" para data e nulo para fornecedor)
     const payload = {
       ...dadosIA,
+      fornecedor: dadosIA.fornecedor || "Fornecedor Não Identificado",
+      data_emissao: dadosIA.data_emissao || new Date().toISOString().slice(0, 10),
+      valor_total: Number(dadosIA.valor_total) || 0,
       imagem_url: imagemBase64 // Em prod seria um link do Storage Supabase
     };
     
-    await salvarNota(payload, unidadeAtiva);
+    const resNota = await salvarNota(payload, unidadeAtiva);
+    if (resNota.error) {
+      alert("Erro ao salvar nota no banco: " + resNota.error);
+      return;
+    }
 
     // ── 1. Automação Financeira ──
     if (lancarFinanceiro) {
@@ -352,13 +363,15 @@ export default function NotasFiscaisPage() {
                 {/* Área Expansível (Foto da Nota) */}
                 {notaExpandida === n.id && (
                   <div className="p-4 mt-2 rounded-xl mb-6 flex gap-4" style={{ background: "var(--card)", border: "1px dashed var(--line)" }}>
-                    <div className="w-32 h-40 rounded-lg overflow-hidden border flex items-center justify-center bg-black/5" style={{ borderColor: "var(--line)" }}>
-                      {n.imagem_url ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img src={n.imagem_url} alt="Nota Fisical" className="w-full h-full object-cover hover:object-contain transition-all" />
-                      ) : (
-                        <span className="text-[10px] text-center" style={{ color: "var(--muted)" }}>Sem<br/>Imagem</span>
-                      )}
+                    <div className="flex flex-col gap-2">
+                      <div onClick={() => n.imagem_url && setFotoAberta(n.imagem_url)} title="Clique para ampliar na mesma tela" className="w-32 h-40 rounded-lg overflow-hidden border flex items-center justify-center bg-black/5 hover:ring-2 hover:ring-blue-500 transition-all cursor-pointer" style={{ borderColor: "var(--line)" }}>
+                        {n.imagem_url ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img src={n.imagem_url} alt="Nota Fisical" className="w-full h-full object-cover hover:object-contain transition-all" />
+                        ) : (
+                          <span className="text-[10px] text-center" style={{ color: "var(--muted)" }}>Sem<br/>Imagem</span>
+                        )}
+                      </div>
                     </div>
                     <div className="flex-1">
                       <p className="text-xs font-bold uppercase mb-2" style={{ color: "var(--dim)" }}>Itens Identificados pela IA</p>
@@ -385,6 +398,22 @@ export default function NotasFiscaisPage() {
 
       <Modal open={modalScanner} onClose={() => setModalScanner(false)} title="Escaneamento Inteligente">
         <FormScanner onSalvar={salvar} onCancelar={() => setModalScanner(false)} />
+      </Modal>
+
+      {/* Modal de Ampliação de Imagem (Lightbox) */}
+      <Modal open={!!fotoAberta} onClose={() => setFotoAberta(null)} title="Visualizador de Documento" maxWidth="max-w-4xl">
+        {fotoAberta && (
+          <div className="flex flex-col items-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={fotoAberta} alt="Nota Ampliada" className="max-h-[70vh] object-contain rounded-xl border mb-4" style={{ borderColor: "var(--line)" }} />
+            <div className="flex gap-4 w-full justify-center">
+              <a href={fotoAberta} download="nota_fiscal_erp.jpg" className="px-6 py-2 rounded-lg font-bold transition-all text-white flex items-center gap-2" style={{ background: "#3B82F6" }}>
+                <UploadCloud size={18} className="rotate-180" /> Baixar Imagem
+              </a>
+              <Btn variant="ghost" onClick={() => setFotoAberta(null)}>Fechar Visualizador</Btn>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

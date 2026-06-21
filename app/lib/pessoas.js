@@ -77,6 +77,59 @@ export async function inserirCurso(c, unidadeId) {
 }
 export const removerCurso = (id) => supabase.from("cursos").delete().eq("id", id);
 
+// ── Tipos de Bonificações ──────────────────────────────────────
+export async function fetchTiposBonificacao(unidadeId) {
+  if (!isSupabaseReady()) return { data: [], error: null };
+  const { data, error } = await supabase.from("rh_tipos_bonificacao")
+    .select("*")
+    .or(`unidade_id.eq.${unidadeId},unidade_id.eq.todas`)
+    .order("nome");
+  return { data: data || [], error: error?.message };
+}
+export async function inserirTipoBonificacao(tb, unidadeId) {
+  const { data, error } = await supabase.from("rh_tipos_bonificacao").insert([carimbarUnidade(tb, unidadeId)]).select().single();
+  return { data, error: error?.message || null };
+}
+export async function atualizarTipoBonificacao(id, updates) {
+  const { error } = await supabase.from("rh_tipos_bonificacao").update(updates).eq("id", id);
+  return { error: error?.message || null };
+}
+export async function removerTipoBonificacao(id) {
+  const { error } = await supabase.from("rh_tipos_bonificacao").delete().eq("id", id);
+  return { error: error?.message || null };
+}
+
+// ── Bonificações (Lançamentos p/ Func) ─────────────────────────
+export async function fetchBonificacoes(funcId) {
+  if (!isSupabaseReady() || !funcId) return [];
+  const { data } = await supabase.from("rh_bonificacoes")
+    .select("*, rh_tipos_bonificacao(nome)")
+    .eq("func_id", funcId)
+    .order("data", { ascending: false });
+  return data || [];
+}
+export async function inserirBonificacao(b, unidadeId) {
+  const { data, error } = await supabase.from("rh_bonificacoes").insert([carimbarUnidade(b, unidadeId)]).select().single();
+  return { data, error: error?.message || null };
+}
+export const removerBonificacao = (id) => supabase.from("rh_bonificacoes").delete().eq("id", id);
+
+// ── Atas de Reunião ────────────────────────────────────────────
+export const fetchAtas = (funcId) => listarPorFunc("rh_atas", funcId, "data");
+export async function inserirAta(ata, unidadeId) {
+  const { data, error } = await supabase.from("rh_atas").insert([carimbarUnidade(ata, unidadeId)]).select().single();
+  return { data, error: error?.message || null };
+}
+export const removerAta = (id) => supabase.from("rh_atas").delete().eq("id", id);
+
+// ── Histórico de Alterações ────────────────────────────────────
+export const fetchHistorico = (funcId) => listarPorFunc("rh_historico", funcId, "data");
+export async function inserirHistorico(hist, unidadeId) {
+  const { data, error } = await supabase.from("rh_historico").insert([carimbarUnidade(hist, unidadeId)]).select().single();
+  return { data, error: error?.message || null };
+}
+export const removerHistorico = (id) => supabase.from("rh_historico").delete().eq("id", id);
+
 // ── Upload de anexo (Supabase Storage) ─────────────────────────
 export async function uploadAnexo(file, pasta = "geral") {
   if (!isSupabaseReady() || !file) return { url: null, error: "Sem arquivo" };

@@ -7,14 +7,15 @@ import {
 } from "../../components/ui";
 import { useERP } from "../../context/ERPContext";
 import { useRouter } from "next/navigation";
-import { UNIDADES } from "../../lib/unidades";
 import { carregarDadosDaUnidade, consolidarRede, gerarInsights } from "../../lib/cerebro";
 
 const TIPO = {
-  estoque_critico: { Icon: AlertTriangle, cor: "#EF4444", label: "Estoque", href: "/dashboard/operacao/estoque" },
-  evento_proximo:  { Icon: Calendar,      cor: "#F59E0B", label: "Evento",  href: "/dashboard/operacao/eventos" },
-  sistema:         { Icon: Info,          cor: "#3B82F6", label: "Sistema", href: null },
-  aviso:           { Icon: Megaphone,     cor: "#8B5CF6", label: "Aviso",   href: null },
+  estoque_critico:   { Icon: AlertTriangle, cor: "#EF4444", label: "Estoque", href: "/dashboard/operacao/estoque" },
+  validade_vencida:  { Icon: AlertTriangle, cor: "#DC2626", label: "Validade", href: "/dashboard/operacao/validade" },
+  validade_vencendo: { Icon: Calendar,      cor: "#F59E0B", label: "Validade", href: "/dashboard/operacao/validade" },
+  evento_proximo:    { Icon: Calendar,      cor: "#F59E0B", label: "Evento",   href: "/dashboard/operacao/eventos" },
+  sistema:           { Icon: Info,          cor: "#3B82F6", label: "Sistema",  href: null },
+  aviso:             { Icon: Megaphone,     cor: "#8B5CF6", label: "Aviso",    href: null },
 };
 
 function tempoRel(iso) {
@@ -29,7 +30,7 @@ function tempoRel(iso) {
 
 export default function NotificacoesPage() {
   const router = useRouter();
-  const { notificacoes, marcarLida, marcarTodasLidas, removerNotificacao, limparLidas, unidadeAtiva } = useERP();
+  const { notificacoes, marcarLida, marcarTodasLidas, removerNotificacao, limparLidas, unidadeAtiva, unidades } = useERP();
   const [filtro, setFiltro] = useState("todas");
   
   // Estado para os insights do Cérebro
@@ -39,7 +40,8 @@ export default function NotificacoesPage() {
   const FILTROS = [
     { value: "todas", label: "Todas" },
     { value: "nao_lidas", label: "Não lidas" },
-    { value: "estoque_critico", label: "Estoque" },
+    { value: "estoque_critico", label: "Estoque Baixo" },
+    { value: "validade", label: "Validades" },
     { value: "evento_proximo", label: "Eventos" },
   ];
 
@@ -50,17 +52,22 @@ export default function NotificacoesPage() {
   useEffect(() => {
     if (filtro === "insights" && insights.length === 0) {
       setLoadingInsights(true);
-      Promise.all(UNIDADES.map(carregarDadosDaUnidade)).then(res => {
+      Promise.all(unidades.map(carregarDadosDaUnidade)).then(res => {
         const rede = consolidarRede(res);
         setInsights(gerarInsights(rede, res));
         setLoadingInsights(false);
       });
     }
-  }, [filtro, insights.length]);
+  }, [filtro, insights.length, unidades]);
 
   const naoLidas = notificacoes.filter((n) => !n.lida).length;
   const filtradas = useMemo(() => notificacoes
-    .filter((n) => filtro === "todas" ? true : filtro === "nao_lidas" ? !n.lida : n.tipo === filtro)
+    .filter((n) => {
+      if (filtro === "todas") return true;
+      if (filtro === "nao_lidas") return !n.lida;
+      if (filtro === "validade") return n.tipo === "validade_vencendo" || n.tipo === "validade_vencida";
+      return n.tipo === filtro;
+    })
     .sort((a, b) => new Date(b.data) - new Date(a.data)), [notificacoes, filtro]);
 
   return (

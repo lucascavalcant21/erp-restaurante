@@ -28,9 +28,11 @@ export async function fetchMontagens(unidadeId, departamento) {
 
 export async function inserirMontagem(montagem, unidadeId) {
   if (!isSupabaseReady()) return { data: null, error: "Supabase não configurado" };
+  const payload = carimbarUnidade(montagem, unidadeId);
+  // Garante que o frontend envia a estrutura_ia como object/json
   const { data, error } = await supabase
     .from("montagem")
-    .insert([carimbarUnidade(montagem, unidadeId)])
+    .insert([payload])
     .select()
     .single();
   if (error) console.error("[montagem] inserirMontagem:", error.message);

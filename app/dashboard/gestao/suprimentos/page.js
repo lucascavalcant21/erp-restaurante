@@ -11,7 +11,6 @@ import {
   fetchCatalogoCentral, fetchTodoEstoqueLojas, inserirSuprimentoCentral, atualizarSuprimentoCentral,
   entradaEstoqueCentral, transferirParaUnidade, CATEGORIAS_SUP, UNIDADES_SUP
 } from "../../../lib/suprimentos";
-import { UNIDADES } from "../../../lib/unidades";
 
 const VAZIO = { nome: "", categoria: "Limpeza", unidade_medida: "UN", custo_unitario: "", fornecedor: "" };
 
@@ -61,7 +60,8 @@ function FormCompra({ item, onConfirmar, onCancelar }) {
 }
 
 function FormTransferencia({ item, onConfirmar, onCancelar }) {
-  const [unidade, setUnidade] = useState(UNIDADES[0]?.id || "");
+  const { unidades } = useERP();
+  const [unidade, setUnidade] = useState(unidades[0]?.id || "");
   const [qtd, setQtd] = useState("");
   const [minimo, setMinimo] = useState("");
   
@@ -78,7 +78,7 @@ function FormTransferencia({ item, onConfirmar, onCancelar }) {
       
       <Field label="Loja Destino">
         <Select value={unidade} onChange={(e) => setUnidade(e.target.value)}>
-          {UNIDADES.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
+          {unidades.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
         </Select>
       </Field>
       <div className="grid grid-cols-2 gap-3">
@@ -96,7 +96,7 @@ function FormTransferencia({ item, onConfirmar, onCancelar }) {
 }
 
 export default function GestaoSuprimentosCentral() {
-  const { sessao } = useERP();
+  const { sessao, unidades } = useERP();
   const [lista, setLista] = useState([]);
   const [estoqueLojas, setEstoqueLojas] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -159,7 +159,7 @@ export default function GestaoSuprimentosCentral() {
 
   async function confirmarTransf(unidadeId, qtd, min) {
     await transferirParaUnidade(modalTransf.id, unidadeId, qtd, min, sessao?.nome || "Admin");
-    const loja = UNIDADES.find(u => u.id === unidadeId)?.nome || unidadeId;
+    const loja = unidades.find(u => u.id === unidadeId)?.nome || unidadeId;
     setToast(`Enviado ${qtd} ${modalTransf.unidade_medida} para ${loja}`);
     setModalTransf(null);
     setTimeout(() => setToast(""), 3000);
@@ -225,7 +225,7 @@ export default function GestaoSuprimentosCentral() {
                         <p className="text-[10px] font-bold uppercase mb-2" style={{ color: "var(--dim)" }}>Estoque nas Lojas</p>
                         <div className="flex flex-wrap gap-2">
                           {lojasDoItem.map(lu => {
-                            const uNome = UNIDADES.find(x => x.id === lu.unidade_id)?.nome || lu.unidade_id;
+                            const uNome = unidades.find(x => x.id === lu.unidade_id)?.nome || lu.unidade_id;
                             const isBaixo = Number(lu.quantidade) <= Number(lu.minimo);
                             return (
                               <div key={lu.id} className="flex flex-col px-3 py-2 rounded-lg border" style={{ background: "var(--elevated)", borderColor: isBaixo ? "#EF4444" : "var(--line)" }}>

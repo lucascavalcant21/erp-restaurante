@@ -115,9 +115,9 @@ export function gerarInsights(rede, unidades) {
 
   // 3. Fornecedores e CMV
   if (rede.cmv > 35) {
-    alertas.push({ id: "cmv_fornecedor", tipo: "perigo", titulo: "Alerta de Custos e Fornecedores 🚨", msg: `O Custo da Mercadoria (CMV) global está elevado (${fmtPct(rede.cmv)}). DICA: Está na hora de cotar novos fornecedores para os ingredientes mais usados, negociar preços ou reajustar o preço final no cardápio.` });
+    alertas.push({ id: "cmv_fornecedor", tipo: "perigo", titulo: "Alerta de Custos e Fornecedores", msg: `O Custo da Mercadoria (CMV) global está elevado (${fmtPct(rede.cmv)}). DICA: Está na hora de cotar novos fornecedores para os ingredientes mais usados, negociar preços ou reajustar o preço final no cardápio.` });
   } else if (rede.cmv > 0 && rede.cmv <= 28) {
-    alertas.push({ id: "cmv_ok", tipo: "sucesso", titulo: "CMV e Fornecedores Saudáveis ✅", msg: `O CMV da rede está impecável (${fmtPct(rede.cmv)}). Os preços negociados com os fornecedores estão acompanhando bem o seu preço de venda.` });
+    alertas.push({ id: "cmv_ok", tipo: "sucesso", titulo: "CMV e Fornecedores Saudáveis", msg: `O CMV da rede está impecável (${fmtPct(rede.cmv)}). Os preços negociados com os fornecedores estão acompanhando bem o seu preço de venda.` });
   }
 
   // 4. Custo de Mão de Obra (CMO)
@@ -139,7 +139,7 @@ export function gerarInsights(rede, unidades) {
 
   // 6. Estoque Crítico
   if (rede.criticos > 0) {
-    alertas.push({ id: "est_crit", tipo: "alerta", titulo: "Risco de Ruptura de Estoque 📦", msg: `Existem ${rede.criticos} insumos em níveis críticos na rede. DICA: Faça uma cotação de urgência com seus melhores fornecedores para não perder vendas por falta de ingredientes.` });
+    alertas.push({ id: "est_crit", tipo: "alerta", titulo: "Risco de Ruptura de Estoque", msg: `Existem ${rede.criticos} insumos em níveis críticos na rede. DICA: Faça uma cotação de urgência com seus melhores fornecedores para não perder vendas por falta de ingredientes.` });
   }
 
   // 7. Eventos Futuros

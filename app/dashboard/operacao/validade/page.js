@@ -5,7 +5,6 @@ import { CalendarClock, AlertTriangle, CheckCircle, Clock, Check, XCircle, Trend
 import { PageHeader, PageBody, Card, SectionLabel, KpiGrid, Kpi, Chips, SearchBar, EmptyState, fmtData, fmtBRL } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
 import { fetchEtiquetas, atualizarStatusEtiqueta } from "../../../lib/etiquetas";
-import { UNIDADES } from "../../../lib/unidades";
 
 function statusValidade(iso) {
   const dias = Math.floor((new Date(iso).getTime() - Date.now()) / 86400000);
@@ -22,7 +21,7 @@ function textoDias(dias) {
 function fmtHora(iso) { const d = new Date(iso); return `${String(d.getHours()).padStart(2, "0")}h${String(d.getMinutes()).padStart(2, "0")}`; }
 
 export default function ValidadePage() {
-  const { unidadeAtiva, unidadeInfo } = useERP();
+  const { unidadeAtiva, unidadeInfo, unidades } = useERP();
   const [lista, setLista] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState("todos");
@@ -35,9 +34,9 @@ export default function ValidadePage() {
   }
   useEffect(() => { carregar(); /* eslint-disable-next-line */ }, [unidadeAtiva]);
 
-  async function mudarStatus(id, status) {
-    setLista((p) => p.map((e) => e.id === id ? { ...e, status } : e));
-    await atualizarStatusEtiqueta(id, status);
+  async function mudarStatus(e, status) {
+    setLista((p) => p.map((item) => item.id === e.id ? { ...item, status } : item));
+    await atualizarStatusEtiqueta(e, status);
   }
 
   const itens = useMemo(() => lista.map((e) => {
@@ -136,14 +135,14 @@ export default function ValidadePage() {
                             {filtro !== "perdas" && filtro !== "baixados" && idx === 0 && e.dias >= 0 && <span className="erp-badge erp-badge-ok">usar 1º</span>}
                             {e.valor > 0 && <span className="text-[11px]" style={{ color: "var(--dim)" }}>· {fmtBRL(e.valor)}</span>}
                           </div>
-                          <p className="text-[11px]" style={{ color: "var(--dim)" }}>vence {fmtData(e.validade_em)} {fmtHora(e.validade_em)} · #{e.codigo} {unidadeAtiva === "todas" && e.unidade_id ? `· 📍 ${UNIDADES.find(u => u.id === e.unidade_id)?.nome || e.unidade_id}` : ""}</p>
+                          <p className="text-[11px]" style={{ color: "var(--dim)" }}>vence {fmtData(e.validade_em)} {fmtHora(e.validade_em)} · #{e.codigo} {unidadeAtiva === "todas" && e.unidade_id ? `· 📍 ${unidades.find(u => u.id === e.unidade_id)?.nome || e.unidade_id}` : ""}</p>
                         </div>
                         <span className="text-[11px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap" style={{ background: e.st.cor + "22", color: e.st.cor }}>{textoDias(e.dias)}</span>
                       </div>
                       {e.status === "ativa" && (
                         <div className="flex gap-2 mt-2">
-                          <button onClick={() => mudarStatus(e.id, "baixa")} className="flex-1 flex items-center justify-center gap-1 py-1.5 text-[11px] font-bold rounded-lg erp-badge-ok"><Check size={12} /> Dar baixa (usado)</button>
-                          <button onClick={() => mudarStatus(e.id, "perda")} className="flex-1 flex items-center justify-center gap-1 py-1.5 text-[11px] font-bold rounded-lg erp-badge-danger"><XCircle size={12} /> Registrar perda</button>
+                          <button onClick={() => mudarStatus(e, "baixa")} className="flex-1 flex items-center justify-center gap-1 py-1.5 text-[11px] font-bold rounded-lg erp-badge-ok"><Check size={12} /> Dar baixa (usado)</button>
+                          <button onClick={() => mudarStatus(e, "perda")} className="flex-1 flex items-center justify-center gap-1 py-1.5 text-[11px] font-bold rounded-lg erp-badge-danger"><XCircle size={12} /> Registrar perda</button>
                         </div>
                       )}
                       {e.status !== "ativa" && (
@@ -151,7 +150,7 @@ export default function ValidadePage() {
                           <span className="text-[11px] font-bold" style={{ color: e.status === "perda" ? "#DC2626" : "var(--accent-fg)" }}>
                             {e.status === "perda" ? `💸 Perda ${fmtBRL(e.valor)}` : "✔ Baixa (consumido)"}
                           </span>
-                          <button onClick={() => mudarStatus(e.id, "ativa")} className="text-[11px] font-bold" style={{ color: "var(--dim)" }}>desfazer</button>
+                          <button onClick={() => mudarStatus(e, "ativa")} className="text-[11px] font-bold" style={{ color: "var(--dim)" }}>desfazer</button>
                         </div>
                       )}
                     </div>

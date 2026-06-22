@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../context/ERPContext";
 import { fetchItensKDS, atualizarStatusKDS } from "../../lib/vendas";
-import { MonitorPlay, ArrowLeft, Clock, CheckCircle2, Play } from "lucide-react";
+import { MonitorPlay, ArrowLeft, Clock, CheckCircle2, Play, Maximize } from "lucide-react";
 
 function KDSRunner() {
   const router = useRouter();
@@ -14,6 +14,7 @@ function KDSRunner() {
   const { unidadeAtiva } = useERP();
   const [itens, setItens] = useState([]);
   const [loading, setLoading] = useState(true);
+  const containerRef = useRef(null);
 
   const carregar = async () => {
     // Evita tela piscando ao recarregar (polling)
@@ -52,8 +53,16 @@ function KDSRunner() {
      return min;
   };
 
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+       containerRef.current?.requestFullscreen?.();
+    } else {
+       document.exitFullscreen?.();
+    }
+  };
+
   return (
-    <div className="min-h-screen font-sans text-slate-100 bg-slate-900 overflow-x-hidden">
+    <div ref={containerRef} className="min-h-screen font-sans text-slate-100 bg-slate-900 overflow-x-hidden">
       
       {/* TOPBAR KDS (Escuro) */}
       <div className="bg-black/40 border-b border-slate-800 p-4 flex items-center justify-between sticky top-0 z-10 backdrop-blur-md">
@@ -68,6 +77,9 @@ function KDSRunner() {
               <p className="text-slate-700 font-bold uppercase tracking-widest text-[10px] mt-1">Kitchen Display System • Atualização em Tempo Real</p>
            </div>
          </div>
+         <button onClick={toggleFullscreen} className="p-3 text-slate-500 hover:text-white bg-slate-800 rounded-xl transition-colors" title="Tela Cheia">
+            <Maximize size={20}/>
+         </button>
       </div>
 
       <div className="p-6">

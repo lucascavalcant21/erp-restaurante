@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchMesas, criarMesa, fetchPedidoAberto, abrirMesaEPedido, lancarItemComanda, fecharContaDaMesa, fetchProdutos } from "../../../lib/vendas";
 import { fetchColaboradores } from "../../../lib/rh";
-import { Utensils, Plus, Users, ShoppingCart, Send, CreditCard, ArrowLeft, Coffee, X } from "lucide-react";
+import { Utensils, Plus, Users, ShoppingCart, Send, CreditCard, ArrowLeft, Coffee, X, Maximize } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
 export default function SaloesMesasPage() {
@@ -103,15 +103,26 @@ export default function SaloesMesasPage() {
   // Cálculo da comanda em tempo real
   const totalComanda = pedidoAtivo?.pedidos_itens?.reduce((acc, it) => acc + (it.valor_unitario * it.quantidade), 0) || 0;
 
-  // ─── RENDER MESA ATIVA (COMANDA) ─────────────────────────────────
-  if (mesaAtiva && pedidoAtivo) {
-     return (
+  // ─── TELA CHEIA ──────────────────────────────────────────────────
+  const containerRef = useRef(null);
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+       containerRef.current?.requestFullscreen?.();
+    } else {
+       document.exitFullscreen?.();
+    }
+  };
+
+  return (
+    <div ref={containerRef} className="w-full min-h-screen bg-slate-100">
+      {mesaAtiva && pedidoAtivo ? (
         <div className="min-h-screen bg-slate-50 flex font-sans">
            {/* Lado Esquerdo: Lista de Itens */}
            <div className="flex-1 flex flex-col h-screen overflow-hidden border-r border-slate-200 bg-white">
               <div className="p-6 border-b border-slate-100 flex items-center justify-between shadow-sm z-10">
                  <div className="flex items-center gap-4">
                     <button onClick={fecharMesaUI} className="w-12 h-12 flex items-center justify-center bg-slate-100 rounded-full hover:bg-slate-200 text-slate-500"><ArrowLeft size={24}/></button>
+                    <button onClick={toggleFullscreen} className="w-12 h-12 flex items-center justify-center bg-slate-100 rounded-full hover:bg-slate-200 text-slate-500" title="Tela Cheia"><Maximize size={20}/></button>
                     <div>
                        <h2 className="text-3xl font-black text-slate-800 tracking-tight">Mesa {mesaAtiva.numero_mesa}</h2>
                        <p className="text-emerald-500 font-bold text-xs uppercase tracking-widest mt-1">Ocupada - Comanda #{pedidoAtivo.id.split('-')[0]}</p>
@@ -218,12 +229,8 @@ export default function SaloesMesasPage() {
            )}
 
         </div>
-     );
-  }
-
-  // ─── RENDER SALÃO (MAPA DE MESAS) ────────────────────────────────
-  return (
-    <div className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-100">
+      ) : (
+        <div className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-100">
       
       {/* TOPBAR */}
       <div className="bg-slate-900 pt-8 pb-8 px-8 shadow-lg">
@@ -240,9 +247,14 @@ export default function SaloesMesasPage() {
                  <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">PDV de Garçom - Atendimento Rápido</p>
               </div>
             </div>
-            <button onClick={handleCriarMesa} className="bg-slate-800 hover:bg-slate-700 text-slate-500 px-4 py-2 rounded-lg font-bold text-sm transition-colors border border-slate-700">
-               + Adicionar Mesa
-            </button>
+            <div className="flex items-center gap-2">
+               <button onClick={handleCriarMesa} className="bg-slate-800 hover:bg-slate-700 text-slate-500 px-4 py-2 rounded-lg font-bold text-sm transition-colors border border-slate-700">
+                  + Adicionar Mesa
+               </button>
+               <button onClick={toggleFullscreen} className="bg-slate-800 hover:bg-slate-700 text-slate-500 p-2 rounded-lg font-bold text-sm transition-colors border border-slate-700" title="Tela Cheia">
+                  <Maximize size={20} />
+               </button>
+            </div>
          </div>
       </div>
 
@@ -280,6 +292,8 @@ export default function SaloesMesasPage() {
          )}
       </div>
 
+        </div>
+      )}
     </div>
   );
 }

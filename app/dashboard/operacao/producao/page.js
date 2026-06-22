@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchFichas } from "../../../lib/operacao";
 import { registrarProducao } from "../../../lib/estoque";
 import { fetchColaboradores } from "../../../lib/rh";
-import { Flame, Droplets, Save, ArrowLeft, X, UtensilsCrossed, Wine } from "lucide-react";
+import { Flame, Droplets, Save, ArrowLeft, X, UtensilsCrossed, Wine, Maximize } from "lucide-react";
 
 function ProducaoRunner() {
   const router = useRouter();
@@ -61,10 +61,19 @@ function ProducaoRunner() {
     setModalProduzir(false);
   };
 
+  const containerRef = useRef(null);
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+       containerRef.current?.requestFullscreen?.();
+    } else {
+       document.exitFullscreen?.();
+    }
+  };
+
   const isBar = deptUrl === 'bar';
 
   return (
-    <div className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50">
+    <div ref={containerRef} className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50">
       
       {/* TOPBAR */}
       <div className="bg-white border-b border-slate-200 pt-6 pb-6 px-6 sticky top-0 z-10">
@@ -81,6 +90,9 @@ function ProducaoRunner() {
                  <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Baixa Automática de Estoque</p>
               </div>
             </div>
+            <button onClick={toggleFullscreen} className="p-3 text-slate-500 hover:text-slate-800 bg-slate-50 rounded-full border border-slate-200" title="Tela Cheia">
+               <Maximize size={20}/>
+            </button>
          </div>
       </div>
 

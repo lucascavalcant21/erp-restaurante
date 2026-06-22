@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   Search, PackagePlus, PackageMinus, Clock, ChevronLeft,
   CheckCircle, AlertTriangle, XCircle, Lock, X, RotateCcw,
-  ArrowLeft, Layers, User, Briefcase, BookOpen, Plus, Minus,
+  ArrowLeft, Layers, User, Briefcase, BookOpen, Plus, Minus, Maximize,
 } from "lucide-react";
 import { fetchEstoque, movimentarTablet, fetchHistoricoTablet } from "../../../../lib/estoque";
 import { fetchFuncionarios } from "../../../../lib/rh";
@@ -553,8 +553,17 @@ export default function TabletEstoquePage() {
   }
 
   // ── Tela Principal ──────────────────────────────────────────────────────────
+  const containerRef = useRef(null);
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+       containerRef.current?.requestFullscreen?.();
+    } else {
+       document.exitFullscreen?.();
+    }
+  };
+
   return (
-    <div style={{ minHeight: "100vh", background: "#0F172A", fontFamily: "'Inter', sans-serif" }}>
+    <div ref={containerRef} style={{ minHeight: "100vh", background: "#0F172A", fontFamily: "'Inter', sans-serif" }}>
       <style>{`
         @keyframes slideUp { from { opacity:0; transform:translateX(-50%) translateY(12px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
         @keyframes fadeIn  { from { opacity:0; } to { opacity:1; } }
@@ -602,6 +611,10 @@ export default function TabletEstoquePage() {
         <button onClick={carregar} title="Atualizar"
           style={{ color: "#475569", background: "none", border: "none", cursor: "pointer" }}>
           <RotateCcw size={18} />
+        </button>
+        <button onClick={toggleFullscreen} title="Tela Cheia"
+          style={{ color: "#475569", background: "none", border: "none", cursor: "pointer", marginLeft: 8 }}>
+          <Maximize size={18} />
         </button>
       </div>
 

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Clock, Users, ScanFace, CheckCircle2, ArrowLeft, Fingerprint, Activity } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+import { Clock, Users, ScanFace, CheckCircle2, ArrowLeft, Fingerprint, Activity, Maximize } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchFuncionarios, fetchPontoMes, registrarPonto } from "../../../lib/rh";
 import { useRouter } from "next/navigation";
@@ -116,16 +116,30 @@ export default function PontoBiometricoPage() {
   // ════════════════════════════════════════════════════════════
   // TELA PRINCIPAL (HUD BIOMÉTRICO)
   // ════════════════════════════════════════════════════════════
+  const containerRef = React.useRef(null);
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+       containerRef.current?.requestFullscreen?.();
+    } else {
+       document.exitFullscreen?.();
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-[9999] bg-slate-950 flex overflow-hidden font-sans select-none">
+    <div ref={containerRef} className="fixed inset-0 z-[9999] bg-slate-950 flex overflow-hidden font-sans select-none">
       
       {/* COLUNA ESQUERDA: CÂMERA HUD FUTURISTA (1/2) */}
       <div className="w-1/2 flex flex-col bg-[#0A0F1C] relative border-r border-blue-900/30 overflow-hidden">
          
          {/* Botão de Saída Gerencial */}
-         <button onClick={() => router.push("/dashboard")} className="absolute top-6 left-6 p-4 bg-slate-800/50 hover:bg-emerald-500 hover:text-white text-slate-500 rounded-2xl backdrop-blur-md transition-colors z-50 group">
-            <ArrowLeft size={24} className="group-hover:-translate-x-1 transition-transform" />
-         </button>
+         <div className="absolute top-6 left-6 flex items-center gap-4 z-50">
+           <button onClick={() => router.push("/dashboard")} className="p-4 bg-slate-800/50 hover:bg-emerald-500 hover:text-white text-slate-500 rounded-2xl backdrop-blur-md transition-colors group">
+              <ArrowLeft size={24} className="group-hover:-translate-x-1 transition-transform" />
+           </button>
+           <button onClick={toggleFullscreen} className="p-4 bg-slate-800/50 hover:bg-emerald-500 hover:text-white text-slate-500 rounded-2xl backdrop-blur-md transition-colors group" title="Tela Cheia">
+              <Maximize size={24} className="group-hover:scale-110 transition-transform" />
+           </button>
+         </div>
 
          {/* Elementos de Interface HUD (Bordas) */}
          <div className="absolute top-6 right-6 text-slate-600/50 font-mono text-xs text-right">

@@ -29,7 +29,7 @@ export default function CozinhaHubPage() {
          
          {/* ITEM GIGANTE: Produção do Dia */}
          <button 
-           onClick={() => router.push("/dashboard/cozinha/producao")}
+           onClick={() => router.push("/dashboard/operacao/producao?dept=cozinha")}
            className="col-span-2 lg:col-span-3 row-span-2 rounded-[32px] p-8 relative overflow-hidden group text-left border border-slate-200 bg-white hover:border-orange-300 transition-all shadow-sm"
          >
             <div className="absolute -bottom-10 -right-10 opacity-5 transform group-hover:scale-110 transition-transform duration-700">
@@ -79,7 +79,7 @@ export default function CozinhaHubPage() {
             <h3 className="font-bold text-slate-700 text-sm">Ingredientes</h3>
          </button>
 
-         <button onClick={() => router.push("/dashboard/operacao/estoque")} className="col-span-1 row-span-1 rounded-[24px] p-5 bg-white border border-slate-200 hover:border-slate-300 transition-all flex flex-col justify-center items-center gap-2 group text-center">
+         <button onClick={() => router.push("/dashboard/operacao/estoque?dept=cozinha")} className="col-span-1 row-span-1 rounded-[24px] p-5 bg-white border border-slate-200 hover:border-slate-300 transition-all flex flex-col justify-center items-center gap-2 group text-center">
             <Package size={24} className="text-amber-500 group-hover:scale-110 transition-transform" />
             <h3 className="font-bold text-slate-700 text-sm">Estoque Físico</h3>
          </button>

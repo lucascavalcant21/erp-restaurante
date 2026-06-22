@@ -1,243 +1,99 @@
-/**
- * ─────────────────────────────────────────────────────────────────────────────
- * CAMADA DE DADOS: Estoque
- * ─────────────────────────────────────────────────────────────────────────────
- *
- * SQL para criar a tabela no Supabase (cole no SQL Editor):
- *
- *   create table estoque (
- *     id          uuid primary key default gen_random_uuid(),
- *     nome        text not null,
- *     categoria   text not null,
- *     unidade     text not null,        -- kg, L, un, cx
- *     quantidade  numeric not null default 0,
- *     minimo      numeric not null default 0,
- *     preco_unit  numeric not null default 0,
- *     fornecedor  text,
- *     updated_at  timestamptz default now()
- *   );
- *
- *   -- Histórico de movimentações
- *   create table estoque_movimentacoes (
- *     id          uuid primary key default gen_random_uuid(),
- *     estoque_id  uuid references estoque(id) on delete cascade,
- *     tipo        text not null,   -- 'entrada' | 'saida'
- *     quantidade  numeric not null,
- *     obs         text,
- *     created_at  timestamptz default now()
- *   );
- *
- *   -- Habilitar RLS
- *   alter table estoque enable row level security;
- *   alter table estoque_movimentacoes enable row level security;
- *
- *   -- Política: qualquer usuário autenticado pode ler/escrever
- *   create policy "auth_all" on estoque for all to authenticated using (true) with check (true);
- *   create policy "auth_all" on estoque_movimentacoes for all to authenticated using (true) with check (true);
- * ─────────────────────────────────────────────────────────────────────────────
- */
-
 import { supabase, isSupabaseReady } from "./supabase";
-import { escoparPorUnidade, carimbarUnidade } from "./unidades";
 
-// ─── Seed de demonstração (usado quando Supabase não está configurado) ─────────
-export const ESTOQUE_SEED = [];
+// ─── ESTOQUE FÍSICO ──────────────────────────────────────────────────────────
 
-// ─── Funções de acesso ────────────────────────────────────────────────────────
+export async function fetchEstoque(unidadeId, deptUrl) {
+  if (!isSupabaseReady()) return { data: [], error: "Offline" };
+  
+  // Trazemos todos os insumos e fazemos um LEFT JOIN com o estoque_atual
+  let query = supabase.from("insumos")
+    .select(`
+      id, nome, unidade_medida, custo_unitario, departamento,
+      estoque_atual (quantidade_atual)
+    `)
+    .order("nome");
 
-/**
- * Busca todos os itens do estoque ordenados por nome.
- * @returns {Promise<{data: Array, error: string|null, fromSeed: boolean}>}
- */
-// Normaliza campos: preco_unit → custo_unitario, ultima_entrada fallback
-function normalizar(item) {
-  return {
-    ...item,
-    custo_unitario: item.custo_unitario ?? item.preco_unit ?? 0,
-    ultima_entrada: item.ultima_entrada ?? item.updated_at?.slice(0, 10) ?? null,
-  };
-}
-
-export async function fetchEstoque(unidadeId) {
-  if (!isSupabaseReady()) {
-    return { data: [], error: null, fromSeed: true };
-  }
-
-  const { data, error } = await escoparPorUnidade(
-    supabase.from("estoque").select("*").order("nome"),
-    unidadeId,
-  );
-
-  if (error) {
-    console.error("[estoque] fetchEstoque:", error.message);
-    return { data: [], error: error.message, fromSeed: true };
-  }
-
-  return { data: (data || []).map(normalizar), error: null, fromSeed: false };
-}
-
-/**
- * Insere um novo item no estoque.
- * @param {Object} item - { nome, categoria, unidade, quantidade, minimo, preco_unit, fornecedor }
- */
-export async function inserirItem(item, unidadeId) {
-  if (!isSupabaseReady()) return { data: null, error: "Supabase não configurado" };
-
-  const { data, error } = await supabase
-    .from("estoque")
-    .insert([carimbarUnidade(item, unidadeId)])
-    .select()
-    .single();
-
-  if (error) console.error("[estoque] inserirItem:", error.message);
-  return { data, error: error?.message || null };
-}
-
-/** Atualiza os dados de um item do estoque (nome, categoria, mínimo, custo...). */
-export async function atualizarItem(id, updates) {
-  if (!isSupabaseReady()) return { error: "Supabase não configurado" };
-  const { error } = await supabase.from("estoque").update(updates).eq("id", id);
-  if (error) console.error("[estoque] atualizarItem:", error.message);
-  return { error: error?.message || null };
-}
-
-/**
- * Atualiza quantidade de um item (movimentação de entrada ou saída).
- * Também grava o histórico em estoque_movimentacoes.
- * @param {string} id - UUID do item
- * @param {"entrada"|"saida"} tipo
- * @param {number} quantidade
- * @param {string} [obs]
- */
-export async function movimentar(id, tipo, quantidade, obs = "") {
-  if (!isSupabaseReady()) return { error: "Supabase não configurado" };
-
-  // Busca quantidade atual
-  const { data: item, error: fetchErr } = await supabase
-    .from("estoque")
-    .select("quantidade")
-    .eq("id", id)
-    .single();
-
-  if (fetchErr) return { error: fetchErr.message };
-
-  const novaQtd = tipo === "entrada"
-    ? item.quantidade + quantidade
-    : Math.max(0, item.quantidade - quantidade);
-
-  // Atualiza quantidade
-  const { error: updateErr } = await supabase
-    .from("estoque")
-    .update({ quantidade: novaQtd, updated_at: new Date().toISOString() })
-    .eq("id", id);
-
-  if (updateErr) return { error: updateErr.message };
-
-  // Grava histórico (melhor esforço — não bloqueia)
-  await supabase.from("estoque_movimentacoes").insert([{
-    estoque_id: id, tipo, quantidade, obs,
-  }]);
-
-  return { error: null, novaQtd };
-}
-
-/**
- * Remove um item do estoque.
- * @param {string} id - UUID do item
- */
-export async function removerItem(id) {
-  if (!isSupabaseReady()) return { error: "Supabase não configurado" };
-
-  const { error } = await supabase
-    .from("estoque")
-    .delete()
-    .eq("id", id);
-
-  if (error) console.error("[estoque] removerItem:", error.message);
-  return { error: error?.message || null };
-}
-
-/**
- * Movimentação via Modo Tablet: grava obs como JSON com dados do funcionário.
- * @param {string} id - UUID do item de estoque
- * @param {"entrada"|"saida"} tipo
- * @param {number} quantidade
- * @param {{ responsavel: string, cargo: string, motivo: string, tipo_motivo: string }} meta
- * @param {string} unidadeId
- */
-export async function movimentarTablet(id, tipo, quantidade, meta, unidadeId) {
-  if (!isSupabaseReady()) return { error: "Supabase não configurado" };
-
-  // Busca quantidade atual
-  const { data: item, error: fetchErr } = await supabase
-    .from("estoque")
-    .select("quantidade")
-    .eq("id", id)
-    .single();
-
-  if (fetchErr) return { error: fetchErr.message };
-
-  const novaQtd = tipo === "entrada"
-    ? item.quantidade + quantidade
-    : Math.max(0, item.quantidade - quantidade);
-
-  const { error: updateErr } = await supabase
-    .from("estoque")
-    .update({ quantidade: novaQtd, updated_at: new Date().toISOString() })
-    .eq("id", id);
-
-  if (updateErr) return { error: updateErr.message };
-
-  const obs = JSON.stringify({
-    responsavel: meta.responsavel || "",
-    cargo:       meta.cargo       || "",
-    motivo:      meta.motivo      || "",
-    tipo_motivo: meta.tipo_motivo || "livre",
-    via:         "tablet",
-  });
-
-  await supabase.from("estoque_movimentacoes").insert([{
-    estoque_id: id,
-    tipo,
-    quantidade,
-    obs,
-    unidade_id: (unidadeId && unidadeId !== "todas") ? unidadeId : null,
-  }]);
-
-  return { error: null, novaQtd };
-}
-
-/**
- * Busca histórico de movimentações do tablet (mais recentes primeiro).
- * Retorna até `limite` registros. Faz parse do obs JSON para expor os metadados.
- * @param {string} unidadeId
- * @param {number} [limite=100]
- */
-export async function fetchHistoricoTablet(unidadeId, limite = 100) {
-  if (!isSupabaseReady()) return { data: [], error: null };
-
-  let query = supabase
-    .from("estoque_movimentacoes")
-    .select("*, estoque(nome, unidade)")
-    .order("created_at", { ascending: false })
-    .limit(limite);
-
-  if (unidadeId && unidadeId !== "todas") {
-    query = query.eq("unidade_id", unidadeId);
-  }
+  if (unidadeId && unidadeId !== "matriz") query = query.eq("unidade_id", unidadeId);
+  if (deptUrl) query = query.eq("departamento", deptUrl);
 
   const { data, error } = await query;
-  if (error) {
-    console.error("[estoque] fetchHistoricoTablet:", error.message);
-    return { data: [], error: error.message };
+  
+  // Formata o array para facilitar o uso na tela
+  const formatado = (data || []).map(ins => ({
+     insumo_id: ins.id,
+     nome: ins.nome,
+     departamento: ins.departamento,
+     unidade_medida: ins.unidade_medida,
+     custo_unitario: ins.custo_unitario,
+     quantidade_atual: ins.estoque_atual?.[0]?.quantidade_atual || 0
+  }));
+
+  return { data: formatado, error: error?.message };
+}
+
+// Para ajustes manuais (Balanço, Compras)
+export async function ajustarEstoque(unidadeId, insumoId, novaQuantidade) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  
+  // O Supabase fará o UPSERT pois criamos a constraint UNIQUE(unidade_id, insumo_id)
+  const { error } = await supabase.from("estoque_atual").upsert({
+     unidade_id: unidadeId,
+     insumo_id: insumoId,
+     quantidade_atual: novaQuantidade,
+     updated_at: new Date().toISOString()
+  }, { onConflict: 'unidade_id, insumo_id' });
+
+  return { error: error?.message };
+}
+
+
+// ─── PRODUÇÃO DIÁRIA (O Motor da Mágica) ────────────────────────────────────
+
+export async function registrarProducao(unidadeId, ficha, qtdProduzida, colaboradorId) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  
+  // 1. Inserimos o log da produção
+  const { error: errLog } = await supabase.from("producao_diaria").insert([{
+     unidade_id: unidadeId,
+     ficha_id: ficha.id,
+     colaborador_id: colaboradorId,
+     quantidade_produzida: qtdProduzida
+  }]);
+
+  if(errLog) return { error: errLog.message };
+
+  // 2. Buscamos o estoque atual de TODOS os ingredientes dessa ficha para poder subtrair
+  const ingIds = ficha.fichas_ingredientes.map(i => i.insumos.id);
+  
+  const { data: estoqueDB } = await supabase.from("estoque_atual")
+     .select("insumo_id, quantidade_atual")
+     .eq("unidade_id", unidadeId)
+     .in("insumo_id", ingIds);
+
+  const mapaEstoque = {};
+  if(estoqueDB) {
+     estoqueDB.forEach(e => mapaEstoque[e.insumo_id] = e.quantidade_atual);
   }
 
-  // Parse do obs JSON (pode ser string pura ou JSON)
-  const parsed = (data || []).map((m) => {
-    let meta = {};
-    try { meta = JSON.parse(m.obs || "{}"); } catch (_) { meta = { motivo: m.obs || "" }; }
-    return { ...m, meta };
+  // 3. Calculamos o novo saldo e preparamos o array de Upsert
+  const atualizacoesEstoque = ficha.fichas_ingredientes.map(ing => {
+     const qtdConsumidaTotal = ing.quantidade * qtdProduzida;
+     const saldoAnterior = mapaEstoque[ing.insumos.id] || 0;
+     const novoSaldo = saldoAnterior - qtdConsumidaTotal;
+
+     return {
+        unidade_id: unidadeId,
+        insumo_id: ing.insumos.id,
+        quantidade_atual: novoSaldo,
+        updated_at: new Date().toISOString()
+     };
   });
 
-  return { data: parsed, error: null };
+  // 4. Salva as baixas no estoque de uma vez só!
+  if (atualizacoesEstoque.length > 0) {
+     const { error: errUpsert } = await supabase.from("estoque_atual").upsert(atualizacoesEstoque, { onConflict: 'unidade_id, insumo_id' });
+     if(errUpsert) return { error: errUpsert.message };
+  }
+
+  return { success: true };
 }

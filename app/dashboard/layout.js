@@ -186,7 +186,7 @@ function MegaMenu({ isOpen, onClose, sessao, router, unidadeAtiva }) {
                  <h3 className="text-[11px] font-bold text-[var(--subtle)] uppercase tracking-wider mb-3">{group.label}</h3>
                  <div className="flex flex-col gap-1">
                    {itens.map(item => (
-                     <button key={item.id} onClick={() => { onClose(); router.push(item.href); }}
+                     <button key={item.href} onClick={() => { onClose(); router.push(item.href); }}
                        className="flex items-center gap-2 px-3 py-2.5 text-[13px] text-[var(--fg-soft)] hover:text-orange-500 hover:bg-[var(--elevated)] rounded-lg transition-colors text-left font-medium">
                        <div className="opacity-70"><item.Icon /></div>
                        <span>{item.label}</span>
@@ -374,7 +374,7 @@ export default function DashboardLayout({ children }) {
                  <div key={group.id} className="mt-4">
                    <p className="text-[10px] uppercase font-bold text-[var(--subtle)] mb-2 px-2">{group.label}</p>
                    {group.items.map(item => (
-                     <button key={item.id} onClick={() => { setMobileMenuOpen(false); router.push(item.href); }} className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-[var(--elevated)] text-[var(--fg-soft)] hover:text-orange-500 rounded-lg text-left font-semibold">
+                     <button key={item.href} onClick={() => { setMobileMenuOpen(false); router.push(item.href); }} className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-[var(--elevated)] text-[var(--fg-soft)] hover:text-orange-500 rounded-lg text-left font-semibold">
                        <item.Icon /> {item.label}
                      </button>
                    ))}

@@ -41,69 +41,47 @@ const Ic = {
 
 const MENU_GROUPS = [
   {
-    id: "visao_geral", label: "DASHBOARD E INSIGHTS", scope: "ambos",
+    id: "torre_controle", label: "TORRE DE CONTROLE", scope: "ambos",
     items: [
       { id: "dashboard",    label: "Visão Geral",       Icon: Ic.Dashboard, href: "/dashboard" },
-      { id: "notificacoes", label: "Central de Avisos",    Icon: Ic.Bell,      href: "/dashboard/notificacoes" },
+      { id: "financeiro",   label: "Centro Financeiro", Icon: Ic.BarChart,  href: "/dashboard/financeiro" },
+      { id: "rh",           label: "Gestão de Equipe",  Icon: Ic.Users,     href: "/dashboard/rh" },
+      { id: "clientes",     label: "Relacionamento (CRM)", Icon: Ic.UserCheck, href: "/dashboard/clientes" },
+      { id: "heitor",       label: "Hefisto AI",        Icon: Ic.Brain,     href: "/dashboard/ia/heitor" },
     ],
   },
   {
-    id: "frente_caixa", label: "VENDAS E PDV", scope: "unidade",
+    id: "operacao", label: "OPERAÇÃO (TABLETS)", scope: "unidade",
     items: [
-      { id: "vendas",     label: "PDV Rápido",  Icon: Ic.Cart,     href: "/dashboard/vendas" },
-      { id: "mesas",      label: "Gestão de Mesas",   Icon: Ic.Users,    href: "/dashboard/mesas" },
-      { id: "delivery",   label: "Logística Delivery", Icon: Ic.Truck, href: "/dashboard/delivery" },
+      { id: "vendas",       label: "Caixa (Frente de Loja)", Icon: Ic.Cart,    href: "/dashboard/vendas" },
+      { id: "mesas",        label: "Salão & Garçom",         Icon: Ic.Users,   href: "/dashboard/mesas" },
+      { id: "delivery",     label: "Despacho Delivery",      Icon: Ic.Truck,   href: "/dashboard/delivery" },
+      { id: "ponto",        label: "Bate-Ponto (Facial)",    Icon: Ic.Badge,   href: "/dashboard/rh/ponto" },
     ],
   },
   {
-    id: "operacao", label: "PRODUÇÃO E ROTINA", scope: "unidade",
+    id: "producao", label: "PRODUÇÃO & KDS", scope: "unidade",
     items: [
-      { id: "cozinha_kds", label: "KDS Cozinha", Icon: Ic.Bell, href: "/dashboard/cozinha/kds" },
-      { id: "cozinha",     label: "Preparos", Icon: Ic.ChefHat,  href: "/dashboard/cozinha/producao" },
-      { id: "bar",         label: "KDS Bar",      Icon: Ic.Flask, href: "/dashboard/bar" },
-      { id: "cervejas",    label: "Taps e Chopes", Icon: Ic.Beer,     href: "/dashboard/cervejas" },
-      { id: "tarefas",     label: "Checklists", Icon: Ic.Checklist, href: "/dashboard/tarefas" },
-      { id: "montagem",    label: "Fichas Visuais", Icon: Ic.FileText, href: "/dashboard/operacao/montagem?dept=cozinha" },
-      { id: "limpeza",     label: "Auditoria de Limpeza", Icon: Ic.Checklist, href: "/dashboard/operacao/limpeza" },
+      { id: "cozinha_kds",  label: "KDS Cozinha",         Icon: Ic.Bell,     href: "/dashboard/cozinha/kds" },
+      { id: "bar",          label: "KDS Bar",             Icon: Ic.Flask,    href: "/dashboard/bar" },
+      { id: "montagem",     label: "Fichas Visuais",      Icon: Ic.FileText, href: "/dashboard/operacao/montagem?dept=cozinha" },
     ],
   },
   {
-    id: "estoque", label: "SUPRIMENTOS E CUSTOS", scope: "cerebro",
+    id: "suprimentos", label: "SUPRIMENTOS & BACKOFFICE", scope: "cerebro",
     items: [
-      { id: "estoque",     label: "Inventário Geral", Icon: Ic.Box, href: "/dashboard/operacao/estoque" },
-      { id: "fichas",      label: "Engenharia de Cardápio", Icon: Ic.FileText, href: "/dashboard/operacao/fichas" },
-      { id: "auditoria",   label: "Controle de Perdas", Icon: Ic.AlertTriangle, href: "/dashboard/gestao/auditoria" },
+      { id: "estoque",      label: "Estoque e Inventário", Icon: Ic.Box,           href: "/dashboard/operacao/estoque" },
+      { id: "fichas",       label: "Engenharia de Cardápio", Icon: Ic.FileText,    href: "/dashboard/operacao/fichas" },
+      { id: "limpeza",      label: "Rotinas e Checklists", Icon: Ic.Checklist,     href: "/dashboard/operacao/limpeza" },
+      { id: "auditoria",    label: "Auditoria de Perdas",  Icon: Ic.AlertTriangle, href: "/dashboard/gestao/auditoria" },
     ],
   },
   {
-    id: "financeiro", label: "FINANCEIRO", scope: "unidade",
+    id: "configuracoes", label: "CONFIGURAÇÕES", scope: "ambos",
     items: [
-      { id: "financeiro", label: "Resultados", Icon: Ic.BarChart, href: "/dashboard/financeiro" },
-    ],
-  },
-  {
-    id: "clientes", label: "RELACIONAMENTO", scope: "unidade",
-    items: [
-      { id: "clientes", label: "CRM", Icon: Ic.UserCheck, href: "/dashboard/clientes" },
-      { id: "eventos",  label: "Eventos e Reservas", Icon: Ic.Calendar, href: "/dashboard/eventos" },
-    ],
-  },
-  {
-    id: "gestao", label: "ADMINISTRAÇÃO", scope: "ambos",
-    items: [
-      { id: "gestao", label: "Configurações Globais", Icon: Ic.Settings, href: "/dashboard/gestao" },
-      { id: "gestao", label: "Dispositivos", Icon: Ic.Settings, href: "/dashboard/gestao/impressoes" },
-      { id: "gestao", label: "Automações", Icon: Ic.Checklist, href: "/dashboard/gestao/tarefas" },
-      { id: "rh", label: "Colaboradores", Icon: Ic.Users, href: "/dashboard/rh" },
-      { id: "organograma", label: "Estrutura", Icon: Ic.Users, href: "/dashboard/rh/organograma" },
-      { id: "configuracoes", label: "Políticas de RH", Icon: Ic.Settings, href: "/dashboard/rh/configuracoes" },
-      { id: "rede", label: "Lojas e Unidades", Icon: Ic.Building2, href: "/dashboard/rede/gestao" },
-    ],
-  },
-  {
-    id: "ia", label: "INTELIGÊNCIA ARTIFICIAL", scope: "cerebro",
-    items: [
-      { id: "heitor", label: "Hefisto AI", Icon: Ic.Brain, href: "/dashboard/ia/heitor" },
+      { id: "rede",         label: "Rede e Lojas",         Icon: Ic.Building2, href: "/dashboard/rede/gestao" },
+      { id: "gestao",       label: "Impressoes e Dispositivos", Icon: Ic.Settings, href: "/dashboard/gestao/impressoes" },
+      { id: "gestao",       label: "Configurações Gerais", Icon: Ic.Settings,  href: "/dashboard/gestao" },
     ],
   },
 ];
@@ -124,35 +102,37 @@ function getNavId(pathname) {
   if (pathname.includes("/validade"))     return "validade";
   if (pathname.includes("/etiquetas"))    return "etiquetas";
   if (pathname.includes("/financeiro"))   return "financeiro";
+  if (pathname.includes("/gestao/impressoes")) return "gestao";
   if (pathname.includes("/gestao"))       return "gestao";
   if (pathname.includes("/clientes"))     return "clientes";
   if (pathname.includes("/rh/organograma")) return "organograma";
   if (pathname.includes("/rh/configuracoes")) return "configuracoes";
+  if (pathname.includes("/rh/ponto"))     return "ponto";
   if (pathname.includes("/rh"))           return "rh";
-  if (pathname.includes("/gestao/auditoria")) return "gestao_auditoria";
-  if (pathname.includes("/rede/gestao"))  return "rede_gestao";
+  if (pathname.includes("/gestao/auditoria")) return "auditoria";
+  if (pathname.includes("/rede/gestao"))  return "rede";
   if (pathname.includes("/rede"))         return "rede";
   if (pathname.includes("/notificacoes")) return "notificacoes";
-  if (pathname.includes("/rotina"))       return "rotina";
-  if (pathname.includes("/cardapio"))     return "cardapio";
+  if (pathname.includes("/rotina"))       return "limpeza";
+  if (pathname.includes("/cardapio"))     return "fichas";
   if (pathname.includes("/fichas"))       return "fichas";
-  if (pathname.includes("/ingredientes")) return "ingredientes";
+  if (pathname.includes("/ingredientes")) return "estoque";
   if (pathname.includes("/estoque"))      return "estoque";
-  if (pathname.includes("/fornecedores")) return "fornecedores";
-  if (pathname.includes("/eventos"))      return "eventos";
-  if (pathname.includes("/dre"))          return "dre";
-  if (pathname.includes("/fluxo"))        return "fluxo";
-  if (pathname.includes("/cmv"))          return "cmv";
-  if (pathname.includes("/margem"))       return "margem";
-  if (pathname.includes("/documentos"))   return "documentos";
-  if (pathname.includes("/ponto"))        return "ponto";
-  if (pathname.includes("/colaborador"))  return "colaborador";
-  if (pathname.includes("/crm"))          return "crm";
-  if (pathname.includes("/campanhas"))    return "campanhas";
-  if (pathname.includes("/nps"))          return "nps";
+  if (pathname.includes("/fornecedores")) return "estoque";
+  if (pathname.includes("/eventos"))      return "clientes";
+  if (pathname.includes("/dre"))          return "financeiro";
+  if (pathname.includes("/fluxo"))        return "financeiro";
+  if (pathname.includes("/cmv"))          return "financeiro";
+  if (pathname.includes("/margem"))       return "financeiro";
+  if (pathname.includes("/documentos"))   return "financeiro";
+  if (pathname.includes("/colaborador"))  return "rh";
+  if (pathname.includes("/crm"))          return "clientes";
+  if (pathname.includes("/campanhas"))    return "clientes";
+  if (pathname.includes("/nps"))          return "clientes";
   if (pathname.includes("/heitor"))       return "heitor";
-  if (pathname.includes("/gestao/tarefas")) return "gestao_tarefas";
-  if (pathname.includes("/tarefas"))      return "tarefas";
+  if (pathname.includes("/gestao/tarefas")) return "gestao";
+  if (pathname.includes("/limpeza"))      return "limpeza";
+  if (pathname.includes("/tarefas"))      return "limpeza";
   return "dashboard";
 }
 
@@ -210,14 +190,14 @@ function DesktopSidebar({ onSair, onOpenMegaMenu }) {
   const pathname = usePathname();
 
   const ITEMS = [
-    { label: 'Início',     icon: Ic.Dashboard, href: '/dashboard' },
-    { label: 'Operar',     icon: Ic.ChefHat,   href: '/dashboard/vendas' },
-    { label: 'Delivery',   icon: Ic.Truck,      href: '/dashboard/delivery' },
-    { label: 'Cardápio',   icon: Ic.MenuBook,   href: '/dashboard/operacao/cardapio' },
-    { label: 'Estoque',    icon: Ic.Box,        href: '/dashboard/operacao/estoque' },
-    { label: 'Financeiro', icon: Ic.BarChart,   href: '/dashboard/financeiro' },
-    { label: 'RH',         icon: Ic.Users,      href: '/dashboard/rh' },
-    { label: 'Gestão',     icon: Ic.Settings,   href: '/dashboard/gestao' },
+    { label: 'Torre',      icon: Ic.Dashboard, href: '/dashboard' },
+    { label: 'Caixa',      icon: Ic.Cart,      href: '/dashboard/vendas' },
+    { label: 'Salão',      icon: Ic.Users,     href: '/dashboard/mesas' },
+    { label: 'KDS',        icon: Ic.Bell,      href: '/dashboard/cozinha/kds' },
+    { label: 'Estoque',    icon: Ic.Box,       href: '/dashboard/operacao/estoque' },
+    { label: 'Financeiro', icon: Ic.BarChart,  href: '/dashboard/financeiro' },
+    { label: 'RH',         icon: Ic.Users,     href: '/dashboard/rh' },
+    { label: 'Ajustes',    icon: Ic.Settings,  href: '/dashboard/gestao' },
   ];
 
   return (
@@ -258,10 +238,10 @@ function MobileBottomNav({ onOpenMegaMenu }) {
   const pathname = usePathname();
 
   const TABS = [
-    { label: 'Início',   icon: Ic.Dashboard, href: '/dashboard' },
-    { label: 'Operar',   icon: Ic.ChefHat,   href: '/dashboard/vendas' },
-    { label: 'Delivery', icon: Ic.Truck,      href: '/dashboard/delivery' },
-    { label: 'Cardápio', icon: Ic.MenuBook,   href: '/dashboard/operacao/cardapio' },
+    { label: 'Torre',    icon: Ic.Dashboard, href: '/dashboard' },
+    { label: 'Caixa',    icon: Ic.Cart,      href: '/dashboard/vendas' },
+    { label: 'Salão',    icon: Ic.Users,     href: '/dashboard/mesas' },
+    { label: 'KDS',      icon: Ic.Bell,      href: '/dashboard/cozinha/kds' },
   ];
 
   return (

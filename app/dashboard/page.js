@@ -8,7 +8,7 @@ export default function DashboardIndex() {
 
   useEffect(() => {
     // Redireciona automaticamente para o primeiro módulo operacional (Salão)
-    router.replace("/dashboard/mesas");
+    router.replace("/dashboard/salao/mesas");
   }, [router]);
 
   return (

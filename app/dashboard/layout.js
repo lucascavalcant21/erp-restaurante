@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 
 const MODULES = [
-  { id: "salao",        label: "Salão",              icon: Users,        href: "/dashboard/mesas" },
+  { id: "salao",        label: "Salão (PDV)",        icon: Users,        href: "/dashboard/salao/mesas" },
   { id: "kds",          label: "KDS",                icon: Bell,         href: "/dashboard/kds" },
   { id: "cozinha",      label: "Op. Cozinha",        icon: ChefHat,      href: "/dashboard/cozinha" },
   { id: "op_salao",     label: "Op. Salão",          icon: Store,        href: "/dashboard/salao" },

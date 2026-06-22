@@ -67,10 +67,10 @@ export default function BarHubPage() {
          </button>
 
          {/* ITENS NORMAIS (1x1) */}
-         <button onClick={() => router.push("/dashboard/operacao/engenharia-drinks")} className="col-span-1 row-span-1 rounded-[24px] p-6 bg-slate-900 border border-slate-800 hover:bg-slate-800 transition-all flex flex-col justify-between group">
-            <div className="w-10 h-10 rounded-xl bg-white/10 text-white flex items-center justify-center"><BarChart size={20} /></div>
+         <button onClick={() => router.push("/dashboard/kds?dept=bar")} className="col-span-1 row-span-1 rounded-[24px] p-6 bg-slate-900 border border-slate-800 hover:bg-slate-800 transition-all flex flex-col justify-between group">
+            <div className="w-10 h-10 rounded-xl bg-white/10 text-emerald-400 flex items-center justify-center"><BarChart size={20} /></div>
             <div>
-               <h3 className="font-bold text-white text-lg leading-tight">Engenharia Bar</h3>
+               <h3 className="font-bold text-white text-lg leading-tight">Painel KDS</h3>
             </div>
          </button>
 
@@ -89,9 +89,9 @@ export default function BarHubPage() {
             <h3 className="font-bold text-slate-700 text-sm">Compras</h3>
          </button>
 
-         <button onClick={() => router.push("/dashboard/operacao/criar-drink")} className="col-span-1 row-span-1 rounded-[24px] p-5 bg-white border border-slate-200 hover:border-slate-300 transition-all flex flex-col justify-center items-center gap-2 group text-center">
-            <PlusCircle size={24} className="text-fuchsia-500 group-hover:scale-110 transition-transform" />
-            <h3 className="font-bold text-slate-700 text-sm leading-tight">Criação Drinks</h3>
+         <button onClick={() => router.push("/dashboard/operacao/produtos?dept=bar")} className="col-span-1 row-span-1 rounded-[24px] p-5 bg-white border border-slate-200 hover:border-slate-300 transition-all flex flex-col justify-center items-center gap-2 group text-center">
+            <PlusCircle size={24} className="text-emerald-500 group-hover:scale-110 transition-transform" />
+            <h3 className="font-bold text-slate-700 text-sm leading-tight">Produtos (Cardápio)</h3>
          </button>
 
          <button onClick={() => router.push("/dashboard/operacao/etiquetas-bar")} className="col-span-1 row-span-1 rounded-[24px] p-5 bg-white border border-slate-200 hover:border-slate-300 transition-all flex flex-col justify-center items-center gap-2 group text-center">

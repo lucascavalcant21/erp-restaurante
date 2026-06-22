@@ -32,7 +32,7 @@ function montarBuckets(step, count) {
       ini = d.getTime(); fim = ini + 86400000; label = d.getDate();
     } else if (step === "week") {
       const d = new Date(now); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - i * 7);
-      ini = d.getTime() - 6 * 86400000; fim = d.getTime() + 86400000; label = \`\${d.getDate()}/\${d.getMonth() + 1}\`;
+      ini = d.getTime() - 6 * 86400000; fim = d.getTime() + 86400000; label = `${d.getDate()}/${d.getMonth() + 1}`;
     } else {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       ini = d.getTime(); fim = new Date(d.getFullYear(), d.getMonth() + 1, 1).getTime(); label = MES_LETRA[d.getMonth()];

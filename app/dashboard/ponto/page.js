@@ -2,31 +2,55 @@
 
 import { useState, useEffect } from "react";
 import { useERP } from "../../context/ERPContext";
+import { fetchColaboradores } from "../../lib/rh";
+import { fetchPontoHoje, baterPonto } from "../../lib/ponto";
 import { Fingerprint, Search, LogIn, Coffee, Utensils, LogOut, CheckCircle2 } from "lucide-react";
 
-// Mock de funcionários e seus status atuais no ponto
-// status: 0 = Não bateu ponto, 1 = Trabalhando, 2 = Em Intervalo, 3 = Retornou (Trabalhando), 4 = Saiu (Fim)
-const MOCK_FUNCIONARIOS = [
-  { id: "1", nome: "Carlos Silva", cargo: "Garçom", status: 0 },
-  { id: "2", nome: "Ana Pereira", cargo: "Cozinheira", status: 1 },
-  { id: "3", nome: "João Marcos", cargo: "Barman", status: 2 },
-  { id: "4", nome: "Luiza Santos", cargo: "Gerente", status: 4 },
-];
-
 export default function PontoPage() {
-  const { unidadeInfo } = useERP();
-  const [funcionarios, setFuncionarios] = useState(MOCK_FUNCIONARIOS);
+  const { unidadeInfo, unidadeAtiva } = useERP();
+  const [funcionarios, setFuncionarios] = useState([]);
   const [busca, setBusca] = useState("");
   const [funcSelecionado, setFuncSelecionado] = useState(null);
   const [mensagem, setMensagem] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const carregarDados = async () => {
+    setLoading(true);
+    const [resColab, resPonto] = await Promise.all([
+      fetchColaboradores(unidadeAtiva),
+      fetchPontoHoje(unidadeAtiva)
+    ]);
+    
+    const colabs = resColab.data || [];
+    const pontos = resPonto.data || [];
+
+    // Mesclar o status do dia para cada colaborador
+    const funcComStatus = colabs.map(c => {
+      const pontoDeHoje = pontos.find(p => p.colaborador_id === c.id);
+      return {
+        ...c,
+        status: pontoDeHoje ? pontoDeHoje.status_jornada : 0
+      };
+    });
+
+    setFuncionarios(funcComStatus);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (unidadeAtiva) carregarDados();
+  }, [unidadeAtiva]);
 
   const filtrados = funcionarios.filter(f => 
     f.nome.toLowerCase().includes(busca.toLowerCase()) || 
     f.cargo.toLowerCase().includes(busca.toLowerCase())
   );
 
-  const handleBaterPonto = (novoStatus, texto) => {
-    // Atualiza o status do funcionário
+  const handleBaterPonto = async (novoStatus, texto, colunaHora) => {
+    // Registra no banco
+    await baterPonto(unidadeAtiva, funcSelecionado.id, novoStatus, colunaHora);
+    
+    // Atualiza a tela localmente
     setFuncionarios(prev => prev.map(f => f.id === funcSelecionado.id ? { ...f, status: novoStatus } : f));
     
     // Mostra mensagem de sucesso
@@ -35,6 +59,7 @@ export default function PontoPage() {
        setMensagem(null);
        setFuncSelecionado(null);
        setBusca("");
+       carregarDados(); // Recarrega os dados pra garantir
     }, 2500);
   };
 
@@ -63,7 +88,8 @@ export default function PontoPage() {
            </div>
 
            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto custom-scrollbar pr-2">
-              {filtrados.map(f => (
+              {loading && <div className="col-span-1 md:col-span-2 text-center p-10 font-bold text-slate-400">Carregando quadro...</div>}
+              {!loading && filtrados.map(f => (
                  <button 
                    key={f.id} 
                    onClick={() => setFuncSelecionado(f)}
@@ -73,7 +99,7 @@ export default function PontoPage() {
                     <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1">{f.cargo}</p>
                  </button>
               ))}
-              {filtrados.length === 0 && (
+              {!loading && filtrados.length === 0 && (
                  <div className="col-span-1 md:col-span-2 text-center p-10 text-slate-500 font-bold">Colaborador não encontrado.</div>
               )}
            </div>
@@ -93,7 +119,7 @@ export default function PontoPage() {
            <div className="flex flex-col gap-4">
               <button 
                 disabled={funcSelecionado.status !== 0}
-                onClick={() => handleBaterPonto(1, "Entrada")}
+                onClick={() => handleBaterPonto(1, "Entrada", "hora_entrada")}
                 className={`p-6 rounded-2xl flex items-center justify-between font-black text-xl transition-all ${
                   funcSelecionado.status === 0 
                   ? 'bg-blue-600 text-white hover:bg-blue-500 hover:shadow-[0_0_30px_rgba(37,99,235,0.4)] hover:-translate-y-1' 
@@ -106,7 +132,7 @@ export default function PontoPage() {
 
               <button 
                 disabled={funcSelecionado.status !== 1 && funcSelecionado.status !== 3}
-                onClick={() => handleBaterPonto(2, "Saída para Intervalo")}
+                onClick={() => handleBaterPonto(2, "Saída para Intervalo", "hora_saida_intervalo")}
                 className={`p-6 rounded-2xl flex items-center justify-between font-black text-xl transition-all ${
                   (funcSelecionado.status === 1 || funcSelecionado.status === 3)
                   ? 'bg-amber-600 text-white hover:bg-amber-500 hover:shadow-[0_0_30px_rgba(217,119,6,0.4)] hover:-translate-y-1' 
@@ -119,7 +145,7 @@ export default function PontoPage() {
 
               <button 
                 disabled={funcSelecionado.status !== 2}
-                onClick={() => handleBaterPonto(3, "Retorno do Intervalo")}
+                onClick={() => handleBaterPonto(3, "Retorno do Intervalo", "hora_retorno_intervalo")}
                 className={`p-6 rounded-2xl flex items-center justify-between font-black text-xl transition-all ${
                   funcSelecionado.status === 2
                   ? 'bg-indigo-600 text-white hover:bg-indigo-500 hover:shadow-[0_0_30px_rgba(79,70,229,0.4)] hover:-translate-y-1' 
@@ -132,7 +158,7 @@ export default function PontoPage() {
 
               <button 
                 disabled={funcSelecionado.status !== 1 && funcSelecionado.status !== 3}
-                onClick={() => handleBaterPonto(4, "Fim do Expediente")}
+                onClick={() => handleBaterPonto(4, "Fim do Expediente", "hora_saida")}
                 className={`p-6 rounded-2xl flex items-center justify-between font-black text-xl transition-all ${
                   (funcSelecionado.status === 1 || funcSelecionado.status === 3)
                   ? 'bg-emerald-600 text-white hover:bg-emerald-500 hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] hover:-translate-y-1' 

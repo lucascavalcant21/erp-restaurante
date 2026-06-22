@@ -1,31 +1,56 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useERP } from "../../context/ERPContext";
+import { fetchColaboradores, inserirColaborador, removerColaborador } from "../../lib/rh";
 import { 
-  Users, UserPlus, FileText, Upload, Save, X, Search 
+  Users, UserPlus, FileText, Upload, Save, X, Search, Trash2 
 } from "lucide-react";
 import { fmtBRL } from "../../components/ui";
 
 export default function RHPage() {
   const router = useRouter();
+  const { unidadeAtiva } = useERP();
   
-  // Mocks de Funcionários (Na prática viria do Supabase)
-  const [funcionarios, setFuncionarios] = useState([
-    { id: "1", nome: "Carlos Silva", cargo: "Garçom", salario: 1800, docs: ["RG.pdf", "Contrato.pdf"] },
-    { id: "2", nome: "Ana Pereira", cargo: "Cozinheira", salario: 2500, docs: ["CNH.pdf"] }
-  ]);
+  const [funcionarios, setFuncionarios] = useState([]);
   const [busca, setBusca] = useState("");
   const [modalNovo, setModalNovo] = useState(false);
   const [novoFunc, setNovoFunc] = useState({ nome: "", cargo: "", salario: "" });
+  const [loading, setLoading] = useState(true);
+
+  const carregar = async () => {
+    setLoading(true);
+    const { data } = await fetchColaboradores(unidadeAtiva);
+    // Adicionando um array vazio de docs temporariamente até implementarmos o Storage
+    setFuncionarios(data.map(f => ({ ...f, docs: [] })));
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (unidadeAtiva) carregar();
+  }, [unidadeAtiva]);
 
   const filtrados = funcionarios.filter(f => f.nome.toLowerCase().includes(busca.toLowerCase()));
 
-  const handleSalvar = () => {
-    if(!novoFunc.nome) return;
-    setFuncionarios([...funcionarios, { ...novoFunc, id: Date.now().toString(), docs: [] }]);
+  const handleSalvar = async () => {
+    if(!novoFunc.nome || !novoFunc.cargo) return;
+    await inserirColaborador({
+      unidade_id: unidadeAtiva,
+      nome: novoFunc.nome,
+      cargo: novoFunc.cargo,
+      salario: Number(novoFunc.salario) || 0
+    });
     setModalNovo(false);
     setNovoFunc({ nome: "", cargo: "", salario: "" });
+    carregar();
+  };
+
+  const handleRemover = async (id) => {
+    if(confirm("Remover este funcionário?")) {
+      await removerColaborador(id);
+      carregar();
+    }
   };
 
   return (
@@ -61,29 +86,33 @@ export default function RHPage() {
                      <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">Colaborador</th>
                      <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">Cargo</th>
                      <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">Remuneração Base</th>
-                     <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 text-right">Documentos</th>
+                     <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 text-right">Documentos / Ações</th>
                   </tr>
                </thead>
                <tbody className="divide-y divide-slate-100">
-                  {filtrados.map(f => (
+                  {loading && <tr><td colSpan={4} className="p-10 text-center text-slate-400 font-bold">Carregando...</td></tr>}
+                  {!loading && filtrados.map(f => (
                      <tr key={f.id} className="hover:bg-slate-50 transition-colors">
                         <td className="p-4 font-bold text-slate-800">{f.nome}</td>
                         <td className="p-4 font-medium text-slate-600">{f.cargo}</td>
                         <td className="p-4 font-black text-slate-800">{fmtBRL(f.salario)}</td>
                         <td className="p-4 text-right">
-                           <div className="flex flex-col items-end gap-1">
-                              {f.docs.length > 0 ? f.docs.map((d, i) => (
+                           <div className="flex flex-col items-end gap-2">
+                              {f.docs?.length > 0 ? f.docs.map((d, i) => (
                                 <span key={i} className="flex items-center gap-1 text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-md"><FileText size={10}/> {d}</span>
                               )) : <span className="text-[10px] text-slate-400">Sem docs</span>}
-                              <button className="mt-2 flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800">
-                                 <Upload size={12}/> Anexar PDF
-                              </button>
+                              <div className="flex items-center gap-3 mt-1">
+                                <button className="flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800">
+                                   <Upload size={14}/> Anexar PDF
+                                </button>
+                                <button onClick={() => handleRemover(f.id)} className="text-red-500 hover:bg-red-50 p-1 rounded transition-colors"><Trash2 size={16}/></button>
+                              </div>
                            </div>
                         </td>
                      </tr>
                   ))}
-                  {filtrados.length === 0 && (
-                     <tr><td colSpan={4} className="p-10 text-center text-slate-400 font-bold">Nenhum funcionário encontrado.</td></tr>
+                  {!loading && filtrados.length === 0 && (
+                     <tr><td colSpan={4} className="p-10 text-center text-slate-400 font-bold">Nenhum funcionário cadastrado.</td></tr>
                   )}
                </tbody>
             </table>

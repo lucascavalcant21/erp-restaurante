@@ -8,7 +8,8 @@ import { fetchCardapio } from "../../lib/cardapio";
 import { fetchMesasEComandas, abrirComanda, adicionarItemComanda, removerItemComanda, fecharComanda } from "../../lib/mesas";
 import { fetchCaixaAberto } from "../../lib/caixas";
 import { registrarVenda } from "../../lib/vendas";
-import { fmtBRL } from "../../components/ui";
+
+function fmtBRL(v) { return Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
 
 function VendasPDVContent() {
   const { unidadeAtiva, unidadeInfo } = useERP();
@@ -161,206 +162,251 @@ function VendasPDVContent() {
     setSalvando(false);
   }
 
-  if (loading) return <div className="flex h-full items-center justify-center font-bold text-slate-400">Carregando PDV...</div>;
+  if (loading) return <div className="flex h-screen items-center justify-center font-black text-2xl text-slate-400 bg-slate-50">Iniciando PDV...</div>;
 
   return (
-    <div className="flex h-[calc(100vh-100px)] bg-[var(--surface)] gap-4 overflow-hidden relative">
+    <div className="flex h-screen bg-slate-100 overflow-hidden font-sans">
       {toast && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[999] bg-slate-800 text-white px-5 py-3 rounded-full shadow-2xl font-bold text-sm transition-all">
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[999] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl font-black text-sm transition-all animate-bounce">
           {toast}
         </div>
       )}
 
-      {/* COLUNA ESQUERDA: PRODUTOS */}
-      <div className="flex-1 flex flex-col min-w-0 bg-[var(--card)] rounded-[32px] shadow-[0_4px_32px_rgba(0,0,0,0.2)] border border-[var(--line)] overflow-hidden relative">
-         {/* HEADER ESQUERDO: Busca e Title */}
-         <div className="p-6 border-b border-[var(--line)] flex items-center gap-4 bg-[var(--card)]/90 backdrop-blur-md z-10 sticky top-0">
+      {/* COLUNA ESQUERDA: PRODUTOS (CARDÁPIO) */}
+      <div className="flex-1 flex flex-col min-w-0 bg-white shadow-xl z-10">
+         {/* HEADER ESQUERDO */}
+         <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-4 bg-white z-20">
             {isMesa && (
-               <button onClick={() => router.push("/dashboard/mesas")} className="p-2 bg-[var(--panel)] border border-[var(--line)] rounded-xl hover:bg-[var(--elevated)] text-[var(--subtle)] transition-colors shadow-sm">
-                 <ArrowLeft size={18} />
+               <button onClick={() => router.push("/dashboard/mesas")} className="p-4 bg-slate-50 rounded-2xl hover:bg-slate-100 text-slate-500 transition-colors shadow-sm">
+                 <ArrowLeft size={24} />
                </button>
             )}
             <div className="relative flex-1">
-               <SearchIcon size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--subtle)]" />
-               <input type="text" placeholder="Buscar produto..." value={busca} onChange={e => setBusca(e.target.value)} className="w-full pl-10 pr-4 py-2.5 bg-[var(--surface)] border border-[var(--line)] rounded-[14px] text-[var(--fg)] text-sm outline-none focus:border-orange-500 focus:bg-[var(--panel)] shadow-sm transition-colors" />
+               <SearchIcon size={24} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+               <input 
+                 type="text" 
+                 placeholder="Buscar produto..." 
+                 value={busca} 
+                 onChange={e => setBusca(e.target.value)} 
+                 className="w-full pl-14 pr-6 py-4 bg-slate-50 rounded-2xl text-slate-800 font-bold text-lg outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:font-medium" 
+               />
             </div>
             {isMesa && (
-               <div className="px-4 py-2.5 bg-teal-50 text-teal-700 font-bold text-sm rounded-[14px] border border-teal-100 uppercase tracking-wider flex items-center gap-2 shadow-sm">
-                 <div className="w-2.5 h-2.5 rounded-full bg-teal-500"></div> {mesaDaComanda?.numero}
+               <div className="px-6 py-4 bg-blue-50 text-blue-700 font-black text-lg rounded-2xl flex items-center gap-2 shadow-sm">
+                 MESA {mesaDaComanda?.numero}
                </div>
             )}
          </div>
 
-         {/* CARROSSEL DE CATEGORIAS (Estilo Takeat) */}
-         <div className="border-b border-[var(--line)] bg-[var(--card)]/50 backdrop-blur-sm px-4 py-5 overflow-x-auto hide-scrollbar flex gap-4">
+         {/* CARROSSEL DE CATEGORIAS */}
+         <div className="border-b border-slate-100 bg-white px-6 py-4 overflow-x-auto custom-scrollbar flex gap-3">
             {categorias.map(c => (
-               <button key={c} onClick={() => setCategoriaSelecionada(c)} className={`flex flex-col items-center justify-center min-w-[90px] p-4 rounded-[20px] border-2 transition-all duration-300 ${categoriaSelecionada === c ? 'border-orange-500 bg-gradient-to-br from-orange-500/10 to-orange-500/5 shadow-[0_8px_16px_rgba(249,115,22,0.15)] transform -translate-y-1' : 'border-[var(--line)] bg-[var(--panel)] hover:bg-[var(--elevated)] hover:border-[var(--line-soft)] hover:-translate-y-0.5'}`}>
-                  <div className={`w-14 h-14 rounded-[16px] mb-3 flex items-center justify-center font-black text-xl shadow-inner transition-colors ${categoriaSelecionada === c ? 'bg-orange-500 text-white' : 'bg-[var(--surface)] text-[var(--subtle)]'}`}>
-                    {c.substring(0,2).toUpperCase()}
-                  </div>
-                  <span className={`text-[12px] font-black uppercase tracking-widest text-center ${categoriaSelecionada === c ? 'text-orange-500' : 'text-[var(--subtle)]'}`}>{c}</span>
+               <button 
+                 key={c} 
+                 onClick={() => setCategoriaSelecionada(c)} 
+                 className={`flex-shrink-0 px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all duration-200 ${
+                   categoriaSelecionada === c 
+                     ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 transform scale-105' 
+                     : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                 }`}
+               >
+                 {c}
                </button>
             ))}
          </div>
 
          {/* GRID DE PRODUTOS */}
-         <div className="flex-1 overflow-y-auto p-5 hide-scrollbar bg-[var(--surface)]/50">
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-5">
+         <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-20">
                {filtrados.map(p => {
                  const qtdNoCarrinho = itensCarrinho.find(x => x.id === p.id)?.quantidade || 0;
                  return (
-                   <div key={p.id} className="bg-[var(--panel)] border border-[var(--line)] rounded-[24px] overflow-hidden shadow-sm hover:shadow-[0_20px_40px_rgba(0,0,0,0.3)] transition-all duration-300 hover:-translate-y-1.5 flex flex-col relative group">
+                   <button 
+                     key={p.id} 
+                     onClick={() => handleAddItem(p)}
+                     className="bg-white border border-slate-100 rounded-[28px] overflow-hidden shadow-sm hover:shadow-xl hover:border-blue-200 transition-all duration-200 flex flex-col relative group text-left active:scale-95"
+                   >
                       {qtdNoCarrinho > 0 && (
-                        <div className="absolute top-3 right-3 w-8 h-8 bg-orange-500 text-white font-black text-sm flex items-center justify-center rounded-full shadow-[0_4px_12px_rgba(249,115,22,0.4)] z-10">{qtdNoCarrinho}</div>
+                        <div className="absolute top-3 right-3 w-10 h-10 bg-blue-600 text-white font-black text-lg flex items-center justify-center rounded-full shadow-lg z-10">
+                          {qtdNoCarrinho}
+                        </div>
                       )}
-                      {/* Imagem Placeholder */}
-                      <div className="h-36 bg-[var(--surface)] flex items-center justify-center text-[var(--subtle)] relative overflow-hidden group-hover:bg-[var(--elevated)] transition-colors">
-                         <ImageIcon size={48} className="opacity-20 transition-transform duration-500 group-hover:scale-110" />
-                         {/* Efeito overlay gradiente para ficar mais premium */}
-                         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                      
+                      <div className="h-40 bg-slate-100 flex items-center justify-center text-slate-300 relative overflow-hidden group-hover:bg-slate-200 transition-colors">
+                         <ImageIcon size={48} className="opacity-50" />
                       </div>
-                      <div className="p-5 flex-1 flex flex-col">
-                         <h3 className="font-bold text-[var(--fg)] text-[15px] leading-tight mb-2 flex-1 group-hover:text-orange-500 transition-colors">{p.nome}</h3>
-                         <div className="flex items-center justify-between mt-auto pt-3 border-t border-[var(--line)]">
-                           <span className="font-black text-teal-500 text-[16px]">{fmtBRL(p.preco)}</span>
-                           <button onClick={() => handleAddItem(p)} className="w-10 h-10 rounded-[14px] bg-[var(--elevated)] text-[var(--subtle)] hover:bg-orange-500 hover:text-white hover:shadow-[0_4px_12px_rgba(249,115,22,0.3)] flex items-center justify-center transition-all transform active:scale-95">
-                             <Plus size={18} />
-                           </button>
-                         </div>
+                      
+                      <div className="p-5 flex-1 flex flex-col justify-between">
+                         <h3 className="font-bold text-slate-800 text-base leading-tight mb-2 line-clamp-2">{p.nome}</h3>
+                         <span className="font-black text-blue-600 text-xl">{fmtBRL(p.preco)}</span>
                       </div>
-                   </div>
+                   </button>
                  )
                })}
             </div>
          </div>
       </div>
 
-      {/* COLUNA DIREITA: CARRINHO (Sidebar fixa) */}
-      <div className="w-[400px] bg-[var(--card)] rounded-[32px] shadow-[0_4px_32px_rgba(0,0,0,0.3)] border border-[var(--line)] flex flex-col flex-shrink-0 relative overflow-hidden">
-         {/* Carrinho Header */}
-         <div className="p-6 border-b border-[var(--line)] bg-black/40 text-white relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-5 rounded-full blur-3xl transform translate-x-10 -translate-y-10"></div>
-            <h2 className="font-black text-2xl tracking-tighter relative z-10">{isMesa ? `Comanda de ${comandaAberta.nome_cliente}` : "Pedido Balcão"}</h2>
-            <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest relative z-10">{totalItens} itens selecionados</p>
+      {/* COLUNA DIREITA: CUPOM FISCAL / CARRINHO */}
+      <div className="w-[420px] bg-slate-50 flex flex-col flex-shrink-0 shadow-[-10px_0_30px_rgba(0,0,0,0.05)] z-20 border-l border-slate-200">
+         
+         {/* Cabeçalho Cupom */}
+         <div className="p-6 bg-white border-b border-slate-200 shadow-sm">
+            <h2 className="font-black text-2xl text-slate-800 tracking-tight">
+              {isMesa ? `Comanda: ${comandaAberta.nome_cliente}` : "Venda Balcão"}
+            </h2>
+            <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">{totalItens} Itens</p>
          </div>
 
-         {/* Lista de Itens */}
-         <div className="flex-1 overflow-y-auto p-5 hide-scrollbar flex flex-col gap-4 bg-[var(--surface)]/30">
+         {/* Lista de Itens do Cupom */}
+         <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
             {itensCarrinho.length === 0 ? (
-               <div className="flex-1 flex flex-col items-center justify-center text-[var(--subtle)] opacity-60">
-                 <p className="font-bold text-[15px]">Carrinho vazio</p>
-                 <p className="text-xs font-medium mt-1">Adicione itens para começar</p>
+               <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
+                 <div className="w-20 h-20 bg-slate-200 rounded-full flex items-center justify-center mb-4">
+                   <Plus size={32} className="text-slate-500" />
+                 </div>
+                 <p className="font-black text-lg">Cupom Vazio</p>
+                 <p className="text-sm font-medium text-slate-500 mt-1">Toque nos produtos para adicionar</p>
                </div>
             ) : (
                itensCarrinho.map(item => (
-                 <div key={item.id} className="bg-[var(--panel)] p-4 rounded-2xl border border-[var(--line)] shadow-sm flex items-start gap-4 transition-all hover:shadow-md hover:border-[var(--line-soft)] group">
-                    <div className="flex-1 min-w-0">
-                       <p className="font-bold text-[var(--fg)] text-[14px] leading-tight line-clamp-2">{item.nome}</p>
-                       <p className="font-bold text-teal-500 text-[13px] mt-1.5">{fmtBRL(item.preco)}</p>
+                 <div key={item.id} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col gap-3">
+                    <div className="flex justify-between items-start">
+                       <p className="font-bold text-slate-800 text-[15px] leading-tight flex-1 pr-2">{item.nome}</p>
+                       <p className="font-black text-blue-600 text-[15px]">{fmtBRL(item.preco * item.quantidade)}</p>
                     </div>
-                    {/* Controles */}
-                    <div className="flex items-center gap-2 bg-[var(--surface)] border border-[var(--line)] rounded-[12px] p-1 shadow-inner">
-                       <button onClick={() => handleMinusItem(item)} className="w-8 h-8 flex items-center justify-center text-[var(--subtle)] hover:text-orange-500 hover:bg-[var(--elevated)] hover:shadow-sm rounded-[8px] transition-all">
-                          {item.quantidade === 1 ? <Trash2 size={15} className="text-red-500" /> : <Minus size={15} />}
-                       </button>
-                       <span className="font-bold text-[14px] w-5 text-center text-[var(--fg)]">{item.quantidade}</span>
-                       <button onClick={() => handleAddItem(item)} className="w-8 h-8 flex items-center justify-center text-[var(--subtle)] hover:text-orange-500 hover:bg-[var(--elevated)] hover:shadow-sm rounded-[8px] transition-all">
-                          <Plus size={15} />
-                       </button>
+                    
+                    <div className="flex items-center justify-between">
+                       <span className="text-sm font-bold text-slate-400">{fmtBRL(item.preco)} un</span>
+                       
+                       <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+                          <button onClick={() => handleMinusItem(item)} className="w-10 h-10 flex items-center justify-center bg-white shadow-sm text-slate-600 hover:text-red-500 rounded-lg active:scale-95 transition-all">
+                             {item.quantidade === 1 ? <Trash2 size={18} /> : <Minus size={18} />}
+                          </button>
+                          <span className="font-black text-lg w-10 text-center text-slate-800">{item.quantidade}</span>
+                          <button onClick={() => handleAddItem(item)} className="w-10 h-10 flex items-center justify-center bg-white shadow-sm text-slate-600 hover:text-blue-600 rounded-lg active:scale-95 transition-all">
+                             <Plus size={18} />
+                          </button>
+                       </div>
                     </div>
                  </div>
                ))
             )}
          </div>
 
-         {/* Carrinho Footer (Totais e Botão Pagar) */}
-         <div className="p-6 border-t border-[var(--line)] bg-[var(--card)]">
-            <div className="flex justify-between items-center mb-3">
-               <span className="text-[14px] font-bold text-[var(--subtle)]">Subtotal</span>
-               <span className="text-[15px] font-black text-[var(--fg)]">{fmtBRL(subtotal)}</span>
+         {/* Rodapé Totais e Botão Cobrar */}
+         <div className="bg-white border-t border-slate-200 p-6 shadow-[0_-10px_20px_rgba(0,0,0,0.02)]">
+            <div className="flex justify-between items-center mb-2">
+               <span className="text-sm font-bold text-slate-500">Subtotal</span>
+               <span className="text-base font-black text-slate-800">{fmtBRL(subtotal)}</span>
             </div>
             {isMesa && (
               <div className="flex justify-between items-center mb-4">
-                 <span className="text-[14px] font-bold text-[var(--subtle)]">Taxa Serv. (10%)</span>
-                 <span className="text-[14px] font-bold text-[var(--fg)]">+{fmtBRL(taxaServicoVal)}</span>
+                 <span className="text-sm font-bold text-slate-500">Taxa de Serviço (10%)</span>
+                 <span className="text-base font-black text-slate-800">+{fmtBRL(taxaServicoVal)}</span>
               </div>
             )}
-            <div className="flex justify-between items-center pt-4 border-t border-[var(--line)] mb-6">
-               <span className="font-black text-xl text-[var(--fg)] uppercase tracking-tighter">Total</span>
-               <span className="font-black text-3xl text-teal-500 tracking-tight">{fmtBRL(totalFinal)}</span>
+            
+            <div className="flex justify-between items-center py-4 mt-2 border-t-2 border-dashed border-slate-200 mb-6">
+               <span className="font-black text-2xl text-slate-800 uppercase tracking-tight">Total</span>
+               <span className="font-black text-4xl text-blue-600">{fmtBRL(totalFinal)}</span>
             </div>
 
-            <button disabled={totalItens === 0} onClick={() => setModalCheckout(true)} className="w-full py-5 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-400 hover:to-teal-500 disabled:opacity-50 disabled:from-slate-300 disabled:to-slate-300 disabled:shadow-none text-white font-black text-[16px] uppercase tracking-wider rounded-[20px] shadow-[0_12px_24px_rgba(20,184,166,0.3)] transition-all duration-300 flex items-center justify-center gap-2 transform active:scale-[0.98]">
-               Avançar p/ Caixa <ChevronRight size={22} className="ml-1" />
+            <button 
+              disabled={totalItens === 0} 
+              onClick={() => setModalCheckout(true)} 
+              className="w-full py-6 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-black text-xl uppercase tracking-widest rounded-2xl shadow-xl shadow-blue-600/30 transition-all duration-200 active:scale-95 flex items-center justify-center gap-3"
+            >
+               Cobrar {totalItens > 0 ? fmtBRL(totalFinal) : ""}
             </button>
          </div>
       </div>
 
       {/* MODAL NOVA COMANDA */}
       {modalNovaComanda && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
-          <div className="bg-[var(--surface)] rounded-[24px] shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-[var(--line)] bg-[var(--panel)]/80 flex justify-between items-center">
-              <h2 className="font-black text-xl text-[var(--fg)] tracking-tight">Nova Comanda</h2>
-              <button onClick={() => router.push("/dashboard/mesas")} className="text-[var(--subtle)] hover:text-[var(--fg)] bg-[var(--surface)] border border-[var(--line)] w-8 h-8 rounded-full flex items-center justify-center transition-colors"><X size={16}/></button>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-md p-8 animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="font-black text-3xl text-slate-800 tracking-tight">Nova Mesa</h2>
+              <button onClick={() => router.push("/dashboard/mesas")} className="text-slate-400 hover:text-slate-800 bg-slate-100 w-12 h-12 rounded-full flex items-center justify-center transition-colors"><X size={24}/></button>
             </div>
-            <div className="p-6">
-               <label className="block text-[11px] font-bold text-[var(--subtle)] uppercase tracking-widest mb-3">Nome do Cliente</label>
-               <input type="text" autoFocus value={nomeNovoCliente} onChange={e => setNomeNovoCliente(e.target.value)} placeholder="Ex: João Silva" className="w-full p-4 bg-[var(--panel)] border border-[var(--line)] rounded-[14px] outline-none focus:border-teal-500 focus:bg-[var(--elevated)] mb-6 font-bold text-[15px] text-[var(--fg)] transition-colors shadow-sm" />
-               <button onClick={handleAbrirComanda} disabled={!nomeNovoCliente.trim() || salvando} className="w-full py-4 bg-teal-500 hover:bg-teal-600 disabled:bg-slate-700 disabled:opacity-50 text-white font-black text-[15px] uppercase tracking-wide rounded-[14px] transition-all transform active:scale-95 shadow-[0_4px_14px_rgba(20,184,166,0.3)]">
-                 Abrir Comanda
-               </button>
-            </div>
+            
+            <label className="block text-sm font-bold text-slate-500 uppercase tracking-widest mb-3">Nome do Cliente</label>
+            <input 
+              type="text" 
+              autoFocus 
+              value={nomeNovoCliente} 
+              onChange={e => setNomeNovoCliente(e.target.value)} 
+              placeholder="Ex: João da Silva" 
+              className="w-full p-5 bg-slate-50 border-2 border-slate-200 rounded-2xl outline-none focus:border-blue-500 focus:bg-white mb-8 font-black text-xl text-slate-800 transition-colors" 
+            />
+            
+            <button 
+              onClick={handleAbrirComanda} 
+              disabled={!nomeNovoCliente.trim() || salvando} 
+              className="w-full py-5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-black text-lg uppercase tracking-widest rounded-2xl transition-all active:scale-95 shadow-xl shadow-blue-600/20"
+            >
+              Abrir Comanda
+            </button>
           </div>
         </div>
       )}
 
       {/* MODAL CHECKOUT / PAGAMENTO */}
       {modalCheckout && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
-          <div className="bg-[var(--surface)] rounded-[32px] shadow-[0_32px_64px_rgba(0,0,0,0.4)] w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col border border-[var(--line)]">
-            <div className="p-6 border-b border-[var(--line)] flex justify-between items-center bg-[var(--panel)]">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col">
+            <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
               <div>
-                <h2 className="font-black text-xl text-[var(--fg)] tracking-tight">Pagamento</h2>
-                <p className="text-xs font-bold text-[var(--subtle)] uppercase mt-1 tracking-widest">{isMesa ? comandaAberta.nome_cliente : "Balcão"}</p>
+                <h2 className="font-black text-3xl text-slate-800 tracking-tight">Pagamento</h2>
+                <p className="text-sm font-bold text-slate-400 uppercase mt-2 tracking-widest">{isMesa ? comandaAberta.nome_cliente : "Venda Balcão"}</p>
               </div>
-              <button onClick={() => setModalCheckout(false)} className="w-8 h-8 rounded-full bg-[var(--surface)] border border-[var(--line)] flex items-center justify-center text-[var(--subtle)] hover:bg-[var(--elevated)] hover:text-[var(--fg)] transition-colors"><X size={16}/></button>
+              <button onClick={() => setModalCheckout(false)} className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors"><X size={24}/></button>
             </div>
 
-            <div className="p-6 flex-1 flex flex-col">
-               {/* Resumo Total */}
-               <div className="flex justify-between items-center p-5 bg-teal-500/10 border border-teal-500/20 rounded-[20px] mb-8 shadow-sm">
+            <div className="p-8 bg-slate-50 flex-1">
+               {/* Resumo Total Gigante */}
+               <div className="flex justify-between items-center p-8 bg-blue-600 text-white rounded-[28px] mb-8 shadow-xl shadow-blue-600/20">
                  <div>
-                   <p className="text-[11px] font-bold text-teal-400 uppercase tracking-widest mb-1.5">Total a Pagar</p>
-                   <p className="font-black text-4xl text-teal-500 tracking-tight">{fmtBRL(totalFinal)}</p>
+                   <p className="text-sm font-bold text-blue-200 uppercase tracking-widest mb-2">Total a Pagar</p>
+                   <p className="font-black text-6xl tracking-tight">{fmtBRL(totalFinal)}</p>
                  </div>
-                 <div className="text-right opacity-60">
-                   <p className="text-[11px] font-bold text-teal-400 uppercase tracking-widest mb-1.5">Restante</p>
-                   <p className="font-black text-xl text-teal-500">{fmtBRL(totalFinal)}</p>
+                 <div className="w-20 h-20 rounded-full bg-blue-500 flex items-center justify-center shadow-inner">
+                   <CreditCard size={32} className="text-white" />
                  </div>
                </div>
 
                {/* Métodos de Pagamento */}
-               <label className="block text-[12px] font-bold text-[var(--subtle)] uppercase tracking-widest mb-4 px-1">Método de Pagamento</label>
-               <div className="grid grid-cols-2 gap-3 mb-8">
+               <label className="block text-sm font-bold text-slate-500 uppercase tracking-widest mb-4">Escolha a Forma</label>
+               <div className="grid grid-cols-2 gap-4 mb-10">
                  {[
                    { id: 'dinheiro', icon: Banknote, label: 'Dinheiro' },
-                   { id: 'credito', icon: CreditCard, label: 'Crédito' },
-                   { id: 'debito', icon: CreditCard, label: 'Débito' },
-                   { id: 'pix', icon: QrCode, label: 'PIX' }
+                   { id: 'credito', icon: CreditCard, label: 'Cartão Crédito' },
+                   { id: 'debito', icon: CreditCard, label: 'Cartão Débito' },
+                   { id: 'pix', icon: QrCode, label: 'PIX Instantâneo' }
                  ].map(m => (
-                   <button key={m.id} onClick={() => setFormaPgto(m.id)} className={`flex items-center gap-3 p-4 rounded-[16px] border-[2.5px] transition-all ${formaPgto === m.id ? 'border-teal-500 bg-teal-500/10 text-teal-400 font-bold shadow-md transform -translate-y-0.5' : 'border-[var(--line)] bg-[var(--panel)] text-[var(--subtle)] font-semibold hover:border-[var(--line-soft)] hover:bg-[var(--elevated)]'}`}>
-                     <m.icon size={20} className={formaPgto === m.id ? 'text-teal-400' : 'text-[var(--dim)]'} />
-                     <span className="text-[14px]">{m.label}</span>
+                   <button 
+                     key={m.id} 
+                     onClick={() => setFormaPgto(m.id)} 
+                     className={`flex items-center gap-4 p-6 rounded-[24px] border-4 transition-all duration-200 active:scale-95 ${
+                       formaPgto === m.id 
+                         ? 'border-blue-600 bg-white text-blue-600 font-black shadow-lg shadow-blue-600/10' 
+                         : 'border-transparent bg-white text-slate-500 font-bold hover:border-slate-200'
+                     }`}
+                   >
+                     <m.icon size={28} className={formaPgto === m.id ? 'text-blue-600' : 'text-slate-400'} />
+                     <span className="text-lg">{m.label}</span>
                    </button>
                  ))}
                </div>
 
-               <div className="mt-auto pt-6">
-                 <button onClick={handleConfirmarPagamento} disabled={salvando || !caixaAtual} className="w-full py-5 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-400 hover:to-emerald-500 text-white font-black text-[16px] tracking-wider uppercase rounded-[20px] shadow-[0_12px_32px_rgba(16,185,129,0.3)] transition-all duration-300 transform active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 flex items-center justify-center gap-2">
-                   {salvando ? "Processando..." : (caixaAtual ? "Finalizar Pagamento" : "CAIXA FECHADO - Abra o caixa")}
-                 </button>
-               </div>
+               <button 
+                 onClick={handleConfirmarPagamento} 
+                 disabled={salvando || !caixaAtual} 
+                 className="w-full py-6 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-300 disabled:text-slate-500 text-white font-black text-2xl uppercase tracking-widest rounded-3xl shadow-xl shadow-emerald-500/30 transition-all active:scale-95 flex items-center justify-center gap-3"
+               >
+                 {salvando ? "Processando..." : (caixaAtual ? "Confirmar R$" : "Caixa Fechado")}
+               </button>
             </div>
           </div>
         </div>
@@ -371,7 +417,7 @@ function VendasPDVContent() {
 
 export default function VendasPage() {
   return (
-    <Suspense fallback={<div className="p-10 font-bold text-slate-400">Iniciando PDV...</div>}>
+    <Suspense fallback={<div className="flex h-screen items-center justify-center font-black text-2xl text-slate-400 bg-slate-50">Iniciando PDV...</div>}>
       <VendasPDVContent />
     </Suspense>
   )

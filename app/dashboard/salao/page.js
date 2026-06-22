@@ -22,7 +22,7 @@ export default function SalaoHubPage() {
 
       <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-6">
          
-         <button onClick={() => router.push("/dashboard/salao/checklist")} className="rounded-[32px] p-10 bg-white border border-slate-200 hover:border-emerald-300 transition-all shadow-sm flex flex-col justify-between group text-left h-64">
+         <button onClick={() => router.push("/dashboard/checklists?dept=salao&tipo=operacional")} className="rounded-[32px] p-10 bg-white border border-slate-200 hover:border-emerald-300 transition-all shadow-sm flex flex-col justify-between group text-left h-64">
             <div className="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-500 flex items-center justify-center mb-6">
                <CheckSquare size={32} />
             </div>

@@ -4,10 +4,10 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Package, AlertTriangle, TrendingDown, Wallet, ArrowUpCircle, ArrowDownCircle,
-  Edit3, Trash2, Tablet, ShoppingCart, Copy,
+  Edit3, Trash2, Tablet, ShoppingCart, Copy, Search, CheckCircle2, Factory, LogOut, LogIn
 } from "lucide-react";
 import {
-  PageHeader, PageBody, Card, SectionLabel, KpiGrid, Kpi,
+  PageBody, Card, KpiGrid, Kpi,
   SearchBar, Chips, EmptyState, Modal, Field, TextInput, NumberInput, Select, Btn, Toast, fmtBRL, fmtData,
 } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
@@ -44,23 +44,23 @@ function FormItem({ inicial, onSalvar, onCancelar }) {
   }
 
   return (
-    <>
-      <Field label="Nome do item"><TextInput value={f.nome} onChange={(e) => set("nome", e.target.value)} placeholder="ex: Frango (peito)" /></Field>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Categoria"><Select value={f.categoria} onChange={(e) => set("categoria", e.target.value)}>{CATEGORIAS.map((c) => <option key={c}>{c}</option>)}</Select></Field>
-        <Field label="Unidade"><Select value={f.unidade} onChange={(e) => set("unidade", e.target.value)}>{UNIDADES_EST.map((u) => <option key={u}>{u}</option>)}</Select></Field>
+    <div className="p-2 space-y-4">
+      <Field label="Nome Comercial do Insumo"><TextInput autoFocus value={f.nome} onChange={(e) => set("nome", e.target.value)} placeholder="ex: Frango (peito)" className="!bg-slate-50" /></Field>
+      <div className="grid grid-cols-2 gap-4">
+        <Field label="Categoria"><Select value={f.categoria} onChange={(e) => set("categoria", e.target.value)} className="!bg-slate-50">{CATEGORIAS.map((c) => <option key={c}>{c}</option>)}</Select></Field>
+        <Field label="Unidade de Medida"><Select value={f.unidade} onChange={(e) => set("unidade", e.target.value)} className="!bg-slate-50">{UNIDADES_EST.map((u) => <option key={u}>{u}</option>)}</Select></Field>
       </div>
-      <div className="grid grid-cols-3 gap-3">
-        <Field label="Quantidade"><NumberInput value={f.quantidade} onChange={(e) => set("quantidade", e.target.value)} placeholder="0" /></Field>
-        <Field label="Mínimo"><NumberInput value={f.minimo} onChange={(e) => set("minimo", e.target.value)} placeholder="0" /></Field>
-        <Field label="Custo un. (R$)"><NumberInput value={f.custo_unitario} onChange={(e) => set("custo_unitario", e.target.value)} placeholder="0,00" step="0.01" /></Field>
+      <div className="grid grid-cols-3 gap-4">
+        <Field label="Qtd Atual"><NumberInput value={f.quantidade} onChange={(e) => set("quantidade", e.target.value)} placeholder="0" className="!bg-slate-50" /></Field>
+        <Field label="Mínimo Ideal"><NumberInput value={f.minimo} onChange={(e) => set("minimo", e.target.value)} placeholder="0" className="!bg-slate-50" /></Field>
+        <Field label="Custo un. (R$)"><NumberInput value={f.custo_unitario} onChange={(e) => set("custo_unitario", e.target.value)} placeholder="0,00" step="0.01" className="!bg-slate-50" /></Field>
       </div>
-      {erro && <p className="erp-badge erp-badge-danger w-full justify-center mb-3">{erro}</p>}
-      <div className="flex gap-3">
-        <Btn variant="ghost" className="flex-1" onClick={onCancelar}>Cancelar</Btn>
-        <Btn variant="primary" className="flex-1" onClick={salvar}>{inicial ? "Salvar" : "Adicionar"}</Btn>
+      {erro && <div className="p-3 bg-red-50 text-red-600 font-bold rounded-xl text-center text-sm">{erro}</div>}
+      <div className="flex gap-3 pt-4 border-t border-slate-100">
+        <button className="flex-1 py-3 text-slate-500 font-bold hover:bg-slate-100 rounded-xl transition-colors" onClick={onCancelar}>Cancelar</button>
+        <button className="flex-1 py-3 bg-slate-900 text-white font-black rounded-xl shadow-lg hover:bg-slate-800 transition-colors" onClick={salvar}>{inicial ? "Atualizar Ficha" : "Cadastrar Insumo"}</button>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -75,59 +75,68 @@ function FormMov({ item, tipo, produtosCombo, onConfirmar, onCancelar }) {
   function confirmar() {
     let finalObs = obs;
     if (!entrada && produtoDestino) {
-      finalObs = `Retirada para produção: ${produtoDestino}${obs ? ` - ${obs}` : ""}`;
+      finalObs = `Produção: ${produtoDestino}${obs ? ` - ${obs}` : ""}`;
     }
     onConfirmar(n, finalObs);
   }
 
   return (
-    <>
-      <p className="text-[11px] font-medium mb-3" style={{ color: "var(--dim)" }}>
-        {item.nome} · disponível: {item.quantidade} {item.unidade}
-      </p>
+    <div className="p-2 space-y-4">
+      <div className={`p-4 rounded-xl mb-4 flex items-center justify-between ${entrada ? 'bg-emerald-50' : 'bg-orange-50'}`}>
+         <div>
+            <p className={`text-[10px] font-bold uppercase tracking-widest ${entrada ? 'text-emerald-600' : 'text-orange-600'}`}>{entrada ? 'Nova Entrada' : 'Saída de Insumo'}</p>
+            <p className={`text-lg font-black ${entrada ? 'text-emerald-900' : 'text-orange-900'}`}>{item.nome}</p>
+         </div>
+         <div className="text-right">
+            <p className={`text-[10px] font-bold uppercase tracking-widest ${entrada ? 'text-emerald-600' : 'text-orange-600'}`}>Estoque Atual</p>
+            <p className={`text-lg font-black ${entrada ? 'text-emerald-900' : 'text-orange-900'}`}>{item.quantidade} {item.unidade}</p>
+         </div>
+      </div>
       
       {!entrada && (
         <Field label="Para qual produção está tirando? *">
-          <Select value={produtoDestino} onChange={(e) => setProdutoDestino(e.target.value)}>
-            <option value="">Selecione o prato ou drink...</option>
-            {produtosCombo.map((p) => (
-              <option key={p.id} value={p.nome}>{p.nome}</option>
-            ))}
-            <option value="Outro (Desperdício, Consumo interno, etc)">Outro (Desperdício, Consumo interno, etc)</option>
+          <Select value={produtoDestino} onChange={(e) => setProdutoDestino(e.target.value)} className="!bg-slate-50">
+            <option value="">Selecione o prato ou destino...</option>
+            {produtosCombo.map((p) => <option key={p.id} value={p.nome}>{p.nome}</option>)}
+            <option value="Perda/Desperdício">Perda/Desperdício</option>
+            <option value="Consumo Interno">Consumo Interno</option>
           </Select>
         </Field>
       )}
 
-      <Field label={`Quantidade (${item.unidade}) *`}>
-        <NumberInput autoFocus value={qtd} onChange={(e) => setQtd(e.target.value)} placeholder="0" step="0.1" />
+      <Field label={`Quantidade a movimentar (${item.unidade}) *`}>
+        <NumberInput autoFocus value={qtd} onChange={(e) => setQtd(e.target.value)} placeholder="0" step="0.1" className="text-2xl h-14 font-black text-center !bg-slate-50" />
       </Field>
       
-      <Field label="Observação (opcional)">
-        <TextInput value={obs} onChange={(e) => setObs(e.target.value)} placeholder={entrada ? "ex: Compra Fornecedor X" : "ex: Complemento da requisição..."} />
+      <Field label="Motivo / Observação (Opcional)">
+        <TextInput value={obs} onChange={(e) => setObs(e.target.value)} placeholder={entrada ? "ex: NF 12345 Fornecedor X" : "ex: Complemento turno noite..."} className="!bg-slate-50" />
       </Field>
       
-      <div className="flex gap-3">
-        <Btn variant="ghost" className="flex-1" onClick={onCancelar}>Cancelar</Btn>
-        <Btn variant="primary" className="flex-1" disabled={invalido} onClick={confirmar}>
-          Confirmar {entrada ? "entrada" : "saída"}
-        </Btn>
+      <div className="flex gap-3 pt-4">
+        <button className="flex-1 py-3 text-slate-500 font-bold hover:bg-slate-100 rounded-xl transition-colors" onClick={onCancelar}>Cancelar</button>
+        <button 
+          className={`flex-1 py-3 font-black text-white rounded-xl shadow-lg transition-all disabled:opacity-50 ${entrada ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-orange-500 hover:bg-orange-600'}`} 
+          disabled={invalido} 
+          onClick={confirmar}
+        >
+          Confirmar {entrada ? "Entrada" : "Saída"}
+        </button>
       </div>
-    </>
+    </div>
   );
 }
 
-export default function EstoquePage() {
+export default function EstoqueLogisticoPage() {
   const router = useRouter();
-  const { setEstoque: setEstoqueGlobal, unidadeAtiva, sessao } = useERP();
+  const { setEstoque: setEstoqueGlobal, unidadeAtiva, sessao, unidadeInfo } = useERP();
   const podeEditar = sessao ? podeEditarGlobal(sessao.papel) : false;
   const [itens, setItens]     = useState([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca]     = useState("");
   const [cat, setCat]         = useState("Todos");
   const [modal, setModal]     = useState(false);
-  const [modalCompras, setModalCompras] = useState(false);
   const [editar, setEditar]   = useState(null);
-  const [mov, setMov]         = useState(null); // { item, tipo }
+  const [mov, setMov]         = useState(null); 
   const [salvou, setSalvou]   = useState(false);
   const [produtos, setProdutos] = useState([]);
 
@@ -139,25 +148,20 @@ export default function EstoquePage() {
       fetchDrinks(unidadeAtiva)
     ]);
     setItens(resEstoque.data || []);
-    
-    // Junta pratos e drinks para o combo de "Produção Alvo"
     const ativos = [...(resCardapio.data || []), ...(resDrinks.data || [])].filter(p => p.ativo !== false);
-    // Ordena alfabeticamente
     ativos.sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
     setProdutos(ativos);
-    
     setLoading(false);
   }, [unidadeAtiva]);
+  
   useEffect(() => { carregar(); }, [carregar]);
-
-  // Sincroniza com a Central (Dashboard / IA / Notificações)
   useEffect(() => { if (!loading) setEstoqueGlobal(itens); }, [itens, loading, setEstoqueGlobal]);
 
   const resumo = useMemo(() => ({
     total: itens.length,
     valor: itens.reduce((a, i) => a + (i.quantidade || 0) * (Number(i.custo_unitario) || Number(i.preco_unit) || 0), 0),
-    criticos: itens.filter((i) => statusItem(i) === "critico").length,
-    baixos: itens.filter((i) => statusItem(i) === "baixo").length,
+    criticos: itens.filter((i) => statusItem(i) === "critico"),
+    baixos: itens.filter((i) => statusItem(i) === "baixo"),
   }), [itens]);
 
   const filtrados = useMemo(() => itens.filter((i) => {
@@ -195,162 +199,184 @@ export default function EstoquePage() {
     setItens((p) => p.filter((i) => i.id !== id));
   }
 
-  return (
-    <div className="min-h-screen">
-      <PageHeader title="Estoque" subtitle="Insumos, mínimos e movimentação" icon={Package}
-        onAction={podeEditar ? () => { setEditar(null); setModal(true); } : undefined} actionLabel={podeEditar ? "Novo" : undefined}>
-        <button
-          onClick={() => setModalCompras(true)}
-          className="erp-btn erp-btn-ghost flex items-center gap-2 text-sm"
-          title="Gerar lista de compras automática"
-          style={{ borderColor: "var(--line)", color: "var(--fg)" }}
-        >
-          <ShoppingCart size={16} /> Lista de Compras
-        </button>
-        <button
-          onClick={() => router.push("/dashboard/operacao/estoque/tablet")}
-          className="erp-btn erp-btn-ghost flex items-center gap-2 text-sm"
-          title="Abrir modo tablet para a sala de estoque"
-          style={{ borderColor: "var(--accent)", color: "var(--accent-fg)" }}
-        >
-          <Tablet size={16} /> Modo Tablet
-        </button>
-      </PageHeader>
-      <PageBody>
-        <Toast show={salvou}>Estoque atualizado!</Toast>
-
-        <KpiGrid>
-          <Kpi icon={Package} label="Itens cadastrados" value={resumo.total} tint="var(--accent-fg)" />
-          <Kpi icon={Wallet} label="Valor em estoque" value={fmtBRL(resumo.valor)} tint="#3B82F6" />
-          <Kpi icon={AlertTriangle} label="Itens críticos" value={resumo.criticos} tint={resumo.criticos > 0 ? "#EF4444" : "#10B981"} />
-          <Kpi icon={TrendingDown} label="Estoque baixo" value={resumo.baixos} tint={resumo.baixos > 0 ? "#F59E0B" : "var(--muted)"} />
-        </KpiGrid>
-
-        <div className="space-y-3">
-          <SearchBar value={busca} onChange={setBusca} placeholder="Buscar item..." />
-          <Chips options={["Todos", ...CATEGORIAS]} value={cat} onChange={setCat} />
-        </div>
-
-        <div>
-          <SectionLabel>{filtrados.length} item{filtrados.length !== 1 ? "ns" : ""}</SectionLabel>
-          {loading ? (
-            <EmptyState icon={Package} title="Carregando..." />
-          ) : filtrados.length === 0 ? (
-            <EmptyState icon={Package} title={busca || cat !== "Todos" ? "Nenhum item encontrado" : "Estoque vazio"}
-              hint={busca || cat !== "Todos" ? "Ajuste a busca ou o filtro" : "Toque em Novo para cadastrar um insumo"} />
-          ) : (
-            <div className="space-y-3">
-              {filtrados.map((i) => {
-                const st = statusItem(i);
-                const valor = (i.quantidade || 0) * (Number(i.custo_unitario) || Number(i.preco_unit) || 0);
-                const pct = Math.min(((i.quantidade || 0) / ((i.minimo || 1) * 3)) * 100, 100);
-                const cor = st === "critico" ? "#EF4444" : st === "baixo" ? "#F59E0B" : "#10B981";
-                return (
-                  <Card key={i.id}>
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "var(--dim)" }}>{i.categoria}</span>
-                          {st === "critico" && <span className="erp-badge erp-badge-danger">Crítico</span>}
-                          {st === "baixo" && <span className="erp-badge erp-badge-warn">Baixo</span>}
-                        </div>
-                        <p className="text-base font-bold truncate" style={{ color: "var(--fg)" }}>{i.nome}</p>
-                        {i.ultima_entrada && <p className="text-[11px]" style={{ color: "var(--dim)" }}>Última entrada: {fmtData(i.ultima_entrada)}</p>}
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <p className="text-xl font-bold" style={{ color: "var(--fg)" }}>{i.quantidade}</p>
-                        <p className="text-[11px]" style={{ color: "var(--dim)" }}>{i.unidade}</p>
-                      </div>
-                    </div>
-                    <div className="h-2 rounded-full overflow-hidden mb-1" style={{ background: "var(--elevated)" }}>
-                      <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: cor }} />
-                    </div>
-                    <div className="flex justify-between text-[10px] font-medium mb-3">
-                      <span style={{ color: "var(--dim)" }}>Mín: {i.minimo} {i.unidade}</span>
-                      <span style={{ color: "var(--dim)" }}>Valor: {fmtBRL(valor)}</span>
-                    </div>
-                    <div className="flex gap-2" style={{ borderTop: "1px solid var(--line)", paddingTop: 10 }}>
-                      <button onClick={() => setMov({ item: i, tipo: "entrada" })} className="flex-1 flex items-center justify-center gap-1 py-2 text-[11px] font-bold rounded-lg erp-badge-ok"><ArrowUpCircle size={13} /> Entrada</button>
-                      <button onClick={() => setMov({ item: i, tipo: "saida" })} className="flex-1 flex items-center justify-center gap-1 py-2 text-[11px] font-bold rounded-lg" style={{ background: "rgba(59,130,246,0.14)", color: "#60A5FA" }}><ArrowDownCircle size={13} /> Saída</button>
-                      {podeEditar && (
-                        <>
-                          <button onClick={() => { setEditar(i); setModal(true); }} className="w-9 flex items-center justify-center rounded-lg" style={{ background: "var(--elevated)" }}><Edit3 size={14} style={{ color: "var(--muted)" }} /></button>
-                          <button onClick={() => remover(i.id)} className="w-9 flex items-center justify-center rounded-lg erp-badge-danger"><Trash2 size={14} /></button>
-                        </>
-                      )}
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </PageBody>
-
-      <Modal open={modal} onClose={() => { setModal(false); setEditar(null); }} title={editar ? "Editar item" : "Novo item"}>
-        <FormItem inicial={editar} onSalvar={salvarItem} onCancelar={() => { setModal(false); setEditar(null); }} />
-      </Modal>
-      <Modal open={!!mov} onClose={() => setMov(null)} title={mov?.tipo === "entrada" ? "Registrar entrada" : "Registrar saída da Dispensa"}>
-        {mov && <FormMov item={mov.item} tipo={mov.tipo} produtosCombo={produtos} onConfirmar={confirmarMov} onCancelar={() => setMov(null)} />}
-      </Modal>
-      <Modal open={modalCompras} onClose={() => setModalCompras(false)} title="Lista de Compras Automática">
-        <ListaCompras itens={itens} onFechar={() => setModalCompras(false)} />
-      </Modal>
-    </div>
-  );
-}
-
-function ListaCompras({ itens, onFechar }) {
-  const itensCriticos = itens.filter(i => (i.quantidade || 0) < (i.minimo || 0));
-
-  const copiarWhatsApp = () => {
-    let texto = "*🛒 LISTA DE COMPRAS - HEFISTO*\n_Gerada automaticamente pelo estoque mínimo_\n\n";
-    itensCriticos.forEach(i => {
+  const gerarListaCompras = () => {
+    let texto = `*🛒 LISTA DE COMPRAS - ${unidadeInfo?.nome || 'HEFISTO'}*\n_Gerada automaticamente_\n\n`;
+    resumo.criticos.forEach(i => {
       const comprarQtd = (i.minimo || 0) - (i.quantidade || 0);
-      texto += `• ${i.nome}: *Comprar ${comprarQtd} ${i.unidade}*\n  _(Estoque atual: ${i.quantidade} | Mínimo: ${i.minimo})_\n`;
+      texto += `• ${i.nome}: *Comprar ${comprarQtd} ${i.unidade}* _(Atual: ${i.quantidade})_\n`;
     });
     navigator.clipboard.writeText(texto);
-    alert("Lista copiada! Agora é só colar no WhatsApp do seu fornecedor.");
+    alert("Lista copiada! Cole no WhatsApp do seu fornecedor ou comprador.");
   };
 
   return (
-    <div className="space-y-4">
-      <p className="text-sm" style={{ color: "var(--dim)" }}>
-        Baseado no seu nível crítico, o sistema calculou o que você precisa repor hoje.
-      </p>
+    <div className="min-h-screen bg-slate-50 font-sans pb-24">
+      <Toast show={salvou}>Operação Logística Registrada!</Toast>
 
-      {itensCriticos.length === 0 ? (
-        <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl text-emerald-800 text-sm font-bold text-center">
-          Estoque em dia! Nada precisa ser comprado no momento.
-        </div>
-      ) : (
-        <div className="space-y-2 max-h-60 overflow-y-auto pr-2 no-scrollbar">
-          {itensCriticos.map(i => {
-            const comprarQtd = (i.minimo || 0) - (i.quantidade || 0);
-            return (
-              <div key={i.id} className="p-3 bg-white border border-slate-200 rounded-xl flex justify-between items-center">
-                <div>
-                  <p className="font-bold text-slate-900">{i.nome}</p>
-                  <p className="text-[10px] text-slate-500">Atual: {i.quantidade} | Mín: {i.minimo}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs text-slate-500">Comprar</p>
-                  <p className="font-bold text-red-600">{comprarQtd} {i.unidade}</p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      <div className="flex gap-3 pt-2">
-        <Btn variant="ghost" className="flex-1" onClick={onFechar}>Fechar</Btn>
-        {itensCriticos.length > 0 && (
-          <Btn variant="primary" className="flex-1 flex items-center justify-center gap-2" onClick={copiarWhatsApp}>
-            <Copy size={16} /> Copiar para WhatsApp
-          </Btn>
-        )}
+      {/* HEADER LOGÍSTICO */}
+      <div className="bg-slate-900 text-white px-6 py-10 rounded-b-[40px] shadow-xl relative overflow-hidden">
+         <div className="absolute top-0 right-0 p-8 opacity-5"><Factory size={200} /></div>
+         
+         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative z-10 max-w-5xl mx-auto">
+            <div>
+               <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2 flex items-center gap-2">
+                  <Package size={14}/> Centro de Distribuição
+               </p>
+               <h1 className="text-3xl md:text-5xl font-black tracking-tighter">Estoque Geral.</h1>
+               <p className="text-sm font-medium text-slate-400 mt-2">Gestão de Insumos da {unidadeInfo.nome}</p>
+            </div>
+            
+            <div className="flex gap-3">
+               <button onClick={() => router.push("/dashboard/operacao/estoque/tablet")} className="px-5 py-3 rounded-2xl bg-slate-800 text-slate-300 font-bold flex items-center gap-2 hover:bg-slate-700 transition-colors">
+                  <Tablet size={18}/> Modo Tablet
+               </button>
+               {podeEditar && (
+                 <button onClick={() => { setEditar(null); setModal(true); }} className="px-5 py-3 rounded-2xl bg-white text-slate-900 font-black shadow-lg flex items-center gap-2 hover:bg-slate-100 transition-all">
+                    Cadastrar Insumo
+                 </button>
+               )}
+            </div>
+         </div>
       </div>
+
+      <PageBody className="max-w-5xl mx-auto mt-6">
+        
+        {/* PAINEL DE RUPTURA (ALERTA LOGÍSTICO) */}
+        {!loading && resumo.criticos.length > 0 && (
+          <div className="mb-8 p-6 md:p-8 bg-red-600 rounded-[32px] shadow-lg text-white flex flex-col md:flex-row justify-between items-center gap-6 relative overflow-hidden border border-red-500">
+             <div className="absolute -right-10 -bottom-10 opacity-10"><AlertTriangle size={200}/></div>
+             <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-2">
+                   <AlertTriangle size={24} className="text-red-200" />
+                   <h2 className="text-2xl font-black tracking-tighter">Alerta de Ruptura!</h2>
+                </div>
+                <p className="text-red-100 font-medium">Você tem <span className="font-black text-white">{resumo.criticos.length} itens</span> abaixo do estoque mínimo. A operação pode parar.</p>
+             </div>
+             
+             <button onClick={gerarListaCompras} className="relative z-10 px-6 py-4 bg-white text-red-700 font-black rounded-2xl shadow-xl flex items-center gap-3 hover:scale-105 transition-transform w-full md:w-auto justify-center">
+                <ShoppingCart size={20}/>
+                Gerar Pedido WhatsApp
+             </button>
+          </div>
+        )}
+
+        {/* MODO SEGURO */}
+        {!loading && resumo.criticos.length === 0 && resumo.total > 0 && (
+          <div className="mb-8 p-6 bg-emerald-50 rounded-[32px] border border-emerald-100 flex items-center gap-4 text-emerald-800">
+             <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
+                <CheckCircle2 size={24}/>
+             </div>
+             <div>
+                <h3 className="font-black text-lg">Estoque Abastecido</h3>
+                <p className="text-sm font-medium text-emerald-600">Nenhum insumo crítico no momento. Operação rodando 100% segura.</p>
+             </div>
+          </div>
+        )}
+
+        {/* BARRA DE PESQUISA E FILTROS */}
+        <div className="bg-white p-4 rounded-[24px] shadow-sm border border-slate-200 mb-8 flex flex-col gap-4">
+           <div className="relative w-full">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" size={18} />
+              <input 
+                type="text" 
+                value={busca} 
+                onChange={e => setBusca(e.target.value)} 
+                placeholder="Pesquisar insumo por nome..." 
+                className="w-full pl-12 pr-4 py-4 bg-slate-50 border-none rounded-xl text-slate-800 font-bold focus:ring-2 focus:ring-slate-900 outline-none"
+              />
+           </div>
+           <Chips options={["Todos", ...CATEGORIAS]} value={cat} onChange={setCat} />
+        </div>
+
+        {/* LISTAGEM DE PRATELEIRAS (O ESTOQUE EM SI) */}
+        <div>
+           {loading ? (
+             <div className="p-12 text-center">
+                <Package size={32} className="mx-auto text-slate-300 animate-pulse mb-4" />
+                <p className="font-bold text-slate-500">Varrendo prateleiras...</p>
+             </div>
+           ) : filtrados.length === 0 ? (
+             <div className="p-12 text-center bg-white rounded-[32px] border border-slate-200">
+                <Search size={32} className="mx-auto text-slate-300 mb-4" />
+                <p className="font-bold text-slate-800 text-lg">Nenhum item encontrado</p>
+                <p className="text-sm text-slate-500 mt-2">Ajuste os filtros ou cadastre novos insumos.</p>
+             </div>
+           ) : (
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {filtrados.map((i) => {
+                  const st = statusItem(i);
+                  const valor = (i.quantidade || 0) * (Number(i.custo_unitario) || Number(i.preco_unit) || 0);
+                  const pct = Math.min(((i.quantidade || 0) / ((i.minimo || 1) * 3)) * 100, 100);
+                  
+                  // Cores da progress bar
+                  const corBarra = st === "critico" ? "bg-red-500" : st === "baixo" ? "bg-orange-400" : "bg-emerald-500";
+                  const corBg = st === "critico" ? "bg-red-100" : st === "baixo" ? "bg-orange-100" : "bg-emerald-100";
+                  const corBadge = st === "critico" ? "bg-red-50 text-red-600 border-red-200" : st === "baixo" ? "bg-orange-50 text-orange-600 border-orange-200" : "bg-emerald-50 text-emerald-600 border-emerald-200";
+
+                  return (
+                    <div key={i.id} className="bg-white p-5 rounded-[24px] border border-slate-200 hover:border-slate-300 shadow-sm transition-all group">
+                       
+                       <div className="flex justify-between items-start mb-4">
+                          <div className="min-w-0 pr-4">
+                             <div className="flex items-center gap-2 mb-1">
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{i.categoria}</span>
+                             </div>
+                             <h3 className="text-lg font-black text-slate-800 truncate">{i.nome}</h3>
+                          </div>
+                          
+                          <div className={`px-3 py-1.5 rounded-xl border flex flex-col items-center justify-center shrink-0 ${corBadge}`}>
+                             <span className="text-xs font-bold uppercase tracking-widest opacity-80">Qtd</span>
+                             <span className="text-lg font-black font-mono">{i.quantidade} {i.unidade}</span>
+                          </div>
+                       </div>
+
+                       {/* Tanque de Estoque (Progress Bar) */}
+                       <div className="mb-4">
+                          <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">
+                             <span>Nível Operacional</span>
+                             <span>Min: {i.minimo} {i.unidade}</span>
+                          </div>
+                          <div className={`w-full h-2 rounded-full overflow-hidden ${corBg}`}>
+                             <div className={`h-full rounded-full transition-all duration-700 ${corBarra}`} style={{ width: `${pct}%` }}></div>
+                          </div>
+                       </div>
+
+                       {/* Botões de Ação */}
+                       <div className="flex gap-2 mt-4 pt-4 border-t border-slate-100">
+                          <button onClick={() => setMov({ item: i, tipo: "entrada" })} className="flex-1 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center gap-2 font-bold text-xs transition-colors">
+                             <LogIn size={14}/> Entrada
+                          </button>
+                          <button onClick={() => setMov({ item: i, tipo: "saida" })} className="flex-1 py-2.5 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-xl flex items-center justify-center gap-2 font-bold text-xs transition-colors">
+                             <LogOut size={14}/> Saída
+                          </button>
+                          
+                          {podeEditar && (
+                             <div className="flex gap-2 pl-2 border-l border-slate-100 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onClick={() => { setEditar(i); setModal(true); }} className="w-10 h-10 bg-slate-50 hover:bg-slate-200 text-slate-500 rounded-xl flex items-center justify-center transition-colors">
+                                   <Edit3 size={14}/>
+                                </button>
+                                <button onClick={() => remover(i.id)} className="w-10 h-10 bg-red-50 hover:bg-red-500 text-red-500 hover:text-white rounded-xl flex items-center justify-center transition-colors">
+                                   <Trash2 size={14}/>
+                                </button>
+                             </div>
+                          )}
+                       </div>
+
+                    </div>
+                  );
+                })}
+             </div>
+           )}
+        </div>
+      </PageBody>
+
+      <Modal open={modal} onClose={() => { setModal(false); setEditar(null); }} title={editar ? "Atualizar Insumo" : "Novo Insumo"}>
+        <FormItem inicial={editar} onSalvar={salvarItem} onCancelar={() => { setModal(false); setEditar(null); }} />
+      </Modal>
+      
+      <Modal open={!!mov} onClose={() => setMov(null)} title={mov?.tipo === "entrada" ? "Registrar Entrada (Compra)" : "Registrar Saída (Consumo/Perda)"}>
+        {mov && <FormMov item={mov.item} tipo={mov.tipo} produtosCombo={produtos} onConfirmar={confirmarMov} onCancelar={() => setMov(null)} />}
+      </Modal>
     </div>
   );
 }

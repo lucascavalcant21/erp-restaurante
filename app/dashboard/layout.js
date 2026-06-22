@@ -177,7 +177,7 @@ function MegaMenu({ isOpen, onClose, sessao, router, unidadeAtiva }) {
           </div>
         </div>
 
-        <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-8 max-w-7xl mx-auto w-full pb-20">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 max-w-7xl mx-auto w-full pb-20">
           {MENU_GROUPS.filter(g => g.scope === "ambos" || (unidadeAtiva === "todas" ? g.scope === "cerebro" : g.scope === "unidade")).map((group) => {
              const itens = group.items.filter((item) => sessao && podeAcessar(sessao.papel, item.id));
              if (!itens.length) return null;

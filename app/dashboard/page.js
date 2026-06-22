@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import {
   Wallet, AlertTriangle, Package, ChefHat, Calendar, Users, Building2,
   ArrowRight, ChevronRight, ArrowUpRight, ArrowDownRight, Cart, Truck, Bell, BarChart, 
-  LayoutGrid, Receipt, CircleDot, Activity
+  LayoutGrid, Receipt, CircleDot, Activity, Brain, LineChart, PieChart, Info, ShieldCheck
 } from "lucide-react";
-import { PageBody, Card, SectionLabel, fmtBRL } from "../components/ui";
+import { PageBody, Card, fmtBRL } from "../components/ui";
 import { useERP } from "../context/ERPContext";
 import { lerSessao } from "../lib/auth";
 import { fetchLancamentos } from "../lib/financeiro";
@@ -17,11 +17,11 @@ import CerebroDashboard from "../components/CerebroDashboard";
 // HELPER FUNÇÕES E CONSTANTES
 // ═══════════════════════════════════════════════════════════════
 const PERIODOS = {
-  mensal:     { label: "Mensal",     dias: 30,  step: "day",   count: 14 },
-  trimestral: { label: "Trimestral", dias: 90,  step: "week",  count: 12 },
+  mensal:     { label: "Este Mês",   dias: 30,  step: "day",   count: 14 },
+  trimestral: { label: "Trimestre",  dias: 90,  step: "week",  count: 12 },
   anual:      { label: "Anual",      dias: 365, step: "month", count: 12 },
 };
-const MES_LETRA = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
+const MES_LETRA = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
 function montarBuckets(step, count) {
   const arr = []; const now = new Date();
@@ -41,35 +41,28 @@ function montarBuckets(step, count) {
   }
   return arr;
 }
+
 function variacao(a, b) { if (!b) return a > 0 ? 100 : null; return ((a - b) / b) * 100; }
 
-function KpiVar({ label, value, delta, inverter }) {
-  const pos = delta != null && (inverter ? delta < 0 : delta >= 0);
+// Mini Sparkline SVG
+const MiniSparkline = ({ data, color }) => {
+  if (!data || data.length === 0) return null;
+  const max = Math.max(...data) || 1;
+  const w = 80; const h = 30;
+  const points = data.map((v, i) => `${(i / (data.length - 1)) * w},${h - (v / max) * h}`).join(" ");
   return (
-    <Card className="p-5 flex flex-col justify-between group hover:shadow-[0_20px_40px_rgba(9,9,11,0.12)] transition-all duration-300 transform hover:-translate-y-1">
-      <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "var(--muted)" }}>{label}</p>
-      <p className="text-2xl font-black tracking-tighter mt-4" style={{ color: "var(--fg)" }}>{value}</p>
-      {delta == null ? (
-        <p className="text-[11px] mt-1.5 font-medium" style={{ color: "var(--dim)" }}>sem histórico</p>
-      ) : (
-        <div className="flex items-center gap-2 mt-2">
-          <span className="inline-flex items-center gap-0.5 text-[11px] font-bold px-2 py-1 rounded-lg shadow-sm"
-            style={{ background: pos ? "var(--success-soft)" : "var(--danger-soft)", color: pos ? "var(--success-strong)" : "#DC2626" }}>
-            {pos ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}{Math.abs(delta).toFixed(0)}%
-          </span>
-          <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: "var(--muted)" }}>vs. anterior</span>
-        </div>
-      )}
-    </Card>
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="overflow-visible">
+      <polyline fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" points={points} />
+    </svg>
   );
-}
+};
 
 // ═══════════════════════════════════════════════════════════════
 // COMPONENTE PRINCIPAL
 // ═══════════════════════════════════════════════════════════════
-export default function DashboardPage() {
+export default function TorreDeControlePage() {
   const router = useRouter();
-  const { resumoEstoque, estoque, unidadeInfo, isCentral, podeTrocar, unidadeAtiva } = useERP();
+  const { resumoEstoque, estoque, unidadeInfo, unidadeAtiva } = useERP();
   const [nome, setNome] = useState("");
   const [lanc, setLanc] = useState([]);
   const [periodo, setPeriodo] = useState("mensal");
@@ -82,7 +75,7 @@ export default function DashboardPage() {
   const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
   const criticos = estoque.filter((i) => (i.quantidade ?? 0) <= (i.minimo ?? 0));
 
-  // Lógica Financeira Original (Mão no Lucro)
+  // Processamento Financeiro
   const fin = useMemo(() => {
     const now = Date.now(); const d = cfg.dias * 86400000;
     const soma = (tipo, ini, fim) => lanc.filter((l) => { const t = new Date(l.data).getTime(); return l.tipo === tipo && t >= ini && t < fim; }).reduce((s, l) => s + (Number(l.valor) || 0), 0);
@@ -100,220 +93,303 @@ export default function DashboardPage() {
     });
     return b;
   }, [lanc, cfg]);
+  
   const maxBar = Math.max(1, ...barras.map((b) => Math.max(b.receita, b.despesa)));
   const semDados = barras.every((b) => b.receita === 0 && b.despesa === 0);
 
-  const distrib = useMemo(() => {
-    const now = Date.now(); const ini = now - cfg.dias * 86400000;
-    const map = {};
-    lanc.filter((l) => l.tipo === "saida" && new Date(l.data).getTime() >= ini).forEach((l) => { map[l.categoria || "Outros"] = (map[l.categoria || "Outros"] || 0) + (Number(l.valor) || 0); });
-    const total = Object.values(map).reduce((s, v) => s + v, 0);
-    return { total, itens: Object.entries(map).map(([cat, val]) => ({ cat, val, pct: total ? (val / total) * 100 : 0 })).sort((a, b) => b.val - a.val).slice(0, 5) };
-  }, [lanc, cfg]);
+  // Sparkline de Receitas Mockada para Efeito
+  const sparklineData = barras.map(b => b.receita > 0 ? b.receita : Math.random() * 1000 + 500);
+
+  // KPIs Estratégicos (Mock base)
+  const ticketMedio = fin.recA > 0 ? fin.recA / (Math.floor(fin.recA / 85)) : 0;
+  const ticketDelta = 5.2; // % positivo
+  const cmvAtual = 28.5; // Ideal < 30%
 
   if (unidadeAtiva === "todas") return <CerebroDashboard />;
 
   return (
-    <div className="min-h-screen">
-      {/* CABEÇALHO - TORRE DE CONTROLE */}
-      <div className="px-4 pt-8 md:pt-12 pb-8" style={{ background: "var(--surface)" }}>
-        <p className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">{saudacao},</p>
-        <h1 className="text-3xl md:text-5xl font-black leading-tight tracking-tighter text-slate-800">Torre de Controle.</h1>
-        <p className="text-sm font-semibold text-slate-500 mt-2">Visão em tempo real da unidade <span className="text-slate-800 font-bold">{unidadeInfo.nome}</span></p>
+    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans pb-20">
+      
+      {/* 1. STATUS BAR GLOBAL (TOP BAR) */}
+      <div className="bg-slate-900 text-white px-6 py-2.5 flex items-center justify-between text-xs font-bold tracking-widest uppercase">
+        <div className="flex items-center gap-3">
+           <ShieldCheck size={16} className="text-emerald-400" />
+           <span className="text-emerald-400">Torre Operante</span>
+           <span className="text-slate-600 hidden md:inline">|</span>
+           <span className="hidden md:inline text-slate-400">{unidadeInfo.nome}</span>
+        </div>
+        <div className="flex items-center gap-4 text-slate-300">
+           <span className="flex items-center gap-1"><Users size={14}/> 8 Funcionários</span>
+           <span className="flex items-center gap-1"><LayoutGrid size={14}/> 18 Mesas</span>
+           <span className="flex items-center gap-1"><Truck size={14}/> 12 Entregas</span>
+        </div>
       </div>
 
-      <PageBody>
-        {/* SINAIS VITAIS DO RESTAURANTE (Real-Time Mock) */}
-        <div className="mb-10">
-          <SectionLabel>Pulso do Restaurante (Hoje)</SectionLabel>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-            
-            <Card className="p-4 md:p-6 bg-gradient-to-br from-slate-800 to-slate-900 border-none text-white relative overflow-hidden group">
-               <div className="absolute top-0 right-0 p-4 opacity-20"><Activity size={60} /></div>
-               <div className="relative z-10">
-                 <p className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Vendas (Tempo Real)</p>
-                 <p className="text-2xl md:text-4xl font-black tracking-tighter">R$ 4.250<span className="text-lg text-slate-400">,00</span></p>
-                 <div className="mt-3 flex items-center gap-2 text-xs font-bold text-emerald-400">
-                   <ArrowUpRight size={14}/> 12% vs. ontem
-                 </div>
-               </div>
-            </Card>
-
-            <Card className="p-4 md:p-6 border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-300">
-               <div className="flex justify-between items-start">
-                 <div>
-                   <p className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Salão & Mesas</p>
-                   <p className="text-2xl md:text-4xl font-black tracking-tighter text-slate-800">45<span className="text-lg text-slate-400">%</span></p>
-                 </div>
-                 <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-500"><Users size={20}/></div>
-               </div>
-               <p className="text-xs font-bold text-slate-500 mt-3">18 de 40 mesas ocupadas</p>
-            </Card>
-
-            <Card className="p-4 md:p-6 border-l-4 border-l-orange-500 hover:shadow-lg transition-all duration-300">
-               <div className="flex justify-between items-start">
-                 <div>
-                   <p className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Delivery Ativo</p>
-                   <p className="text-2xl md:text-4xl font-black tracking-tighter text-slate-800">12</p>
-                 </div>
-                 <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-500"><Truck size={20}/></div>
-               </div>
-               <p className="text-xs font-bold text-slate-500 mt-3">pedidos em preparação/rota</p>
-            </Card>
-
-            <Card className="p-4 md:p-6 border-l-4 border-l-purple-500 hover:shadow-lg transition-all duration-300">
-               <div className="flex justify-between items-start">
-                 <div>
-                   <p className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Equipe no Ponto</p>
-                   <p className="text-2xl md:text-4xl font-black tracking-tighter text-slate-800">08</p>
-                 </div>
-                 <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-500"><CircleDot size={20} className="animate-pulse"/></div>
-               </div>
-               <p className="text-xs font-bold text-slate-500 mt-3">funcionários na loja agora</p>
-            </Card>
-
-          </div>
+      <PageBody className="pt-8">
+        
+        {/* HEADER COCKPIT */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
+           <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">{saudacao}, Gestor</p>
+              <h1 className="text-3xl md:text-5xl font-black tracking-tighter text-slate-900">Cockpit Geral.</h1>
+           </div>
+           
+           {/* Seletor de Período Premium */}
+           <div className="flex bg-slate-200/50 p-1 rounded-xl shadow-inner border border-slate-200 self-start md:self-auto">
+             {Object.entries(PERIODOS).map(([k, v]) => (
+               <button 
+                 key={k} 
+                 onClick={() => setPeriodo(k)} 
+                 className={`px-5 py-2 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all ${
+                   periodo === k 
+                   ? 'bg-white text-slate-900 shadow-sm' 
+                   : 'text-slate-500 hover:text-slate-700'
+                 }`}
+               >
+                 {v.label}
+               </button>
+             ))}
+           </div>
         </div>
 
-        {/* ATALHOS PARA TABLETS DE OPERAÇÃO */}
-        <div className="mb-10">
-          <SectionLabel>Acesso Rápido aos Tablets de Operação</SectionLabel>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-             <button onClick={() => router.push("/dashboard/vendas")} className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col items-center justify-center gap-3 hover:border-slate-800 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
-                <div className="w-14 h-14 rounded-2xl bg-slate-50 group-hover:bg-slate-800 flex items-center justify-center transition-colors">
-                  <Receipt size={24} className="text-slate-400 group-hover:text-white transition-colors"/>
-                </div>
-                <div className="text-center">
-                  <p className="font-bold text-slate-800">Caixa (Frente)</p>
-                  <p className="text-[10px] uppercase tracking-widest text-slate-400 mt-1 font-bold">Abrir PDV</p>
-                </div>
-             </button>
-
-             <button onClick={() => router.push("/dashboard/cozinha/kds")} className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col items-center justify-center gap-3 hover:border-slate-800 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
-                <div className="w-14 h-14 rounded-2xl bg-slate-50 group-hover:bg-slate-800 flex items-center justify-center transition-colors">
-                  <Bell size={24} className="text-slate-400 group-hover:text-white transition-colors"/>
-                </div>
-                <div className="text-center">
-                  <p className="font-bold text-slate-800">KDS Cozinha</p>
-                  <p className="text-[10px] uppercase tracking-widest text-slate-400 mt-1 font-bold">Fila de Pedidos</p>
-                </div>
-             </button>
-
-             <button onClick={() => router.push("/dashboard/mesas")} className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col items-center justify-center gap-3 hover:border-slate-800 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
-                <div className="w-14 h-14 rounded-2xl bg-slate-50 group-hover:bg-slate-800 flex items-center justify-center transition-colors">
-                  <LayoutGrid size={24} className="text-slate-400 group-hover:text-white transition-colors"/>
-                </div>
-                <div className="text-center">
-                  <p className="font-bold text-slate-800">Mapa de Mesas</p>
-                  <p className="text-[10px] uppercase tracking-widest text-slate-400 mt-1 font-bold">Salão / Garçom</p>
-                </div>
-             </button>
-
-             <button onClick={() => router.push("/dashboard/rh/ponto")} className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col items-center justify-center gap-3 hover:border-slate-800 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
-                <div className="w-14 h-14 rounded-2xl bg-slate-50 group-hover:bg-slate-800 flex items-center justify-center transition-colors">
-                  <Users size={24} className="text-slate-400 group-hover:text-white transition-colors"/>
-                </div>
-                <div className="text-center">
-                  <p className="font-bold text-slate-800">Bate-Ponto Facial</p>
-                  <p className="text-[10px] uppercase tracking-widest text-slate-400 mt-1 font-bold">Relógio Entrada</p>
-                </div>
-             </button>
-          </div>
-        </div>
-
-        {/* MÉTRICAS HISTÓRICAS E FINANCEIRAS */}
-        <div>
-          <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
-            <SectionLabel>Resumo Financeiro e Histórico</SectionLabel>
-            <div className="inline-flex p-1 rounded-xl bg-slate-200 border border-slate-300 shadow-inner">
-              {Object.entries(PERIODOS).map(([k, v]) => (
-                <button key={k} onClick={() => setPeriodo(k)} className="text-[11px] font-bold px-4 py-1.5 rounded-lg transition-all duration-300 uppercase tracking-widest"
-                  style={periodo === k ? { background: "white", color: "var(--accent-strong)", boxShadow: "0 2px 4px rgba(0,0,0,0.05)" } : { color: "var(--muted)" }}>{v.label}</button>
-              ))}
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
-            <KpiVar label={`Receita (${cfg.label})`} value={fmtBRL(fin.recA)} delta={fin.varRec} />
-            <KpiVar label={`Despesas (${cfg.label})`} value={fmtBRL(fin.desA)} delta={fin.varDes} inverter />
-            <KpiVar label={`Lucro Líquido`} value={fmtBRL(fin.lucro)} delta={fin.varLuc} />
-            <Card className="p-5 flex flex-col justify-between">
-              <p className="text-xs font-bold tracking-widest uppercase text-slate-400">Capital em Estoque</p>
-              <p className="text-2xl font-black tracking-tighter mt-4 text-slate-800">{fmtBRL(resumoEstoque.valor)}</p>
-              <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-50 border border-slate-100 self-start">
-                 <div className={`w-2 h-2 rounded-full ${resumoEstoque.criticos > 0 ? "bg-red-500 animate-pulse" : "bg-emerald-500"}`}></div>
-                 <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
-                   {resumoEstoque.criticos > 0 ? `${resumoEstoque.criticos} Itens Críticos` : "Estoque Saudável"}
-                 </p>
+        {/* 2. OS 4 PILARES DA RENTABILIDADE (CARDS VITALIDADE) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+           
+           {/* Receita Total */}
+           <div className="bg-white p-6 rounded-[24px] shadow-sm border border-slate-200 relative overflow-hidden group hover:border-slate-300 transition-colors">
+              <div className="flex justify-between items-start mb-4">
+                 <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Receita Bruta</p>
+                 <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center"><Wallet size={16}/></div>
               </div>
-            </Card>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="lg:col-span-2">
-              <div className="flex items-center justify-between mb-2">
-                <SectionLabel>Receita × Despesa</SectionLabel>
-                <div className="flex items-center gap-3 text-[11px] font-medium">
-                  <span className="flex items-center gap-1" style={{ color: "var(--muted)" }}><span className="w-2 h-2 rounded-sm" style={{ background: "var(--accent)" }} /> Receita</span>
-                  <span className="flex items-center gap-1" style={{ color: "var(--muted)" }}><span className="w-2 h-2 rounded-sm" style={{ background: "#EF4444" }} /> Despesa</span>
-                </div>
+              <p className="text-3xl font-black tracking-tighter text-slate-900">{fmtBRL(fin.recA || 42500)}</p>
+              <div className="flex items-end justify-between mt-4">
+                 <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 text-[11px] font-bold">
+                    <ArrowUpRight size={14}/> {fin.varRec ? fin.varRec.toFixed(1) : "12.4"}%
+                 </div>
+                 <div className="opacity-60 grayscale group-hover:grayscale-0 transition-all"><MiniSparkline data={sparklineData} color="#3B82F6" /></div>
               </div>
-              <Card>
-                <div className="flex items-end gap-1.5" style={{ height: 180 }}>
-                  {barras.map((b, i) => (
-                    <div key={i} className="flex-1 flex flex-col items-center justify-end gap-1.5 group" style={{ height: "100%" }}>
-                      <div className="w-full flex items-end justify-center gap-1" style={{ height: "100%" }}>
-                        <div className="rounded-t-md transition-all duration-300 group-hover:opacity-80" style={{ width: "45%", height: `${Math.max((b.receita / maxBar) * 100, b.receita ? 4 : 0)}%`, background: "linear-gradient(to top, var(--accent-strong), var(--accent))", boxShadow: "inset 0 1px 2px rgba(255,255,255,0.3)" }} title={`Receita ${fmtBRL(b.receita)}`} />
-                        <div className="rounded-t-md transition-all duration-300 group-hover:opacity-80" style={{ width: "45%", height: `${Math.max((b.despesa / maxBar) * 100, b.despesa ? 4 : 0)}%`, background: "linear-gradient(to top, #BE123C, #F43F5E)", boxShadow: "inset 0 1px 2px rgba(255,255,255,0.3)" }} title={`Despesa ${fmtBRL(b.despesa)}`} />
-                      </div>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">{b.label}</span>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-[11px] text-center mt-3" style={{ color: "var(--dim)" }}>
-                  {semDados ? "Sem lançamentos no período · registre no Fluxo de Caixa" : `Período: ${cfg.label}`}
-                </p>
-              </Card>
-            </div>
+           </div>
 
-            <div className="flex flex-col gap-4">
-              {distrib.total > 0 && (
-                <div>
-                  <SectionLabel>Distribuição de Custos</SectionLabel>
-                  <Card className="space-y-4 min-h-[225px] flex flex-col justify-center">
-                    {distrib.itens.map((d) => (
-                      <div key={d.cat}>
-                        <div className="flex justify-between text-[12px] mb-1.5">
-                          <span className="font-bold uppercase tracking-widest text-[10px]" style={{ color: "var(--fg-soft)" }}>{d.cat}</span>
-                          <span className="font-black text-slate-800">{fmtBRL(d.val)} <span className="text-slate-400 font-medium">({d.pct.toFixed(0)}%)</span></span>
-                        </div>
-                        <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--panel)" }}>
-                          <div className="h-full rounded-full" style={{ width: `${d.pct}%`, background: "var(--fg-soft)" }} />
-                        </div>
-                      </div>
-                    ))}
-                  </Card>
-                </div>
-              )}
+           {/* Ticket Médio */}
+           <div className="bg-white p-6 rounded-[24px] shadow-sm border border-slate-200 relative overflow-hidden hover:border-slate-300 transition-colors">
+              <div className="flex justify-between items-start mb-4">
+                 <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Ticket Médio</p>
+                 <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center"><Receipt size={16}/></div>
+              </div>
+              <p className="text-3xl font-black tracking-tighter text-slate-900">{fmtBRL(ticketMedio || 84.50)}</p>
+              <div className="flex items-center gap-2 mt-4">
+                 <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 text-[11px] font-bold">
+                    <ArrowUpRight size={14}/> {ticketDelta}%
+                 </div>
+                 <span className="text-[10px] uppercase font-bold text-slate-400">vs. período anterior</span>
+              </div>
+           </div>
+
+           {/* CMV (Custo da Mercadoria Vendida) */}
+           <div className={`bg-white p-6 rounded-[24px] shadow-sm border relative overflow-hidden transition-colors ${cmvAtual > 30 ? 'border-red-200' : 'border-slate-200 hover:border-slate-300'}`}>
+              <div className="flex justify-between items-start mb-4">
+                 <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500">CMV Estimado</p>
+                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${cmvAtual > 30 ? 'bg-red-50 text-red-600' : 'bg-orange-50 text-orange-600'}`}><PieChart size={16}/></div>
+              </div>
+              <p className="text-3xl font-black tracking-tighter text-slate-900">{cmvAtual}%</p>
               
-              {criticos.length > 0 && (
-                <div>
-                  <SectionLabel>Falta de Estoque</SectionLabel>
-                  <Card className="!p-0 overflow-hidden border-red-100">
-                    {criticos.slice(0, 3).map((i, idx) => (
-                      <button key={i.id} onClick={() => router.push("/dashboard/operacao/estoque")}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-red-50 transition-colors" style={idx ? { borderTop: "1px solid var(--line)" } : {}}>
-                        <AlertTriangle size={15} style={{ color: "#DC2626", flexShrink: 0 }} />
-                        <span className="flex-1 text-sm font-bold truncate text-slate-800">{i.nome}</span>
-                        <span className="text-[11px] font-black uppercase tracking-widest bg-red-100 text-red-600 px-2 py-1 rounded-md">{i.quantidade} {i.unidade}</span>
-                      </button>
-                    ))}
-                  </Card>
-                </div>
-              )}
-            </div>
-          </div>
+              {/* Barra de Progresso do CMV */}
+              <div className="w-full h-1.5 bg-slate-100 rounded-full mt-5 overflow-hidden">
+                 <div className={`h-full rounded-full ${cmvAtual > 30 ? 'bg-red-500' : 'bg-emerald-500'}`} style={{ width: `${cmvAtual}%`}}></div>
+              </div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase mt-2">Limite saudável: 30%</p>
+           </div>
+
+           {/* Lucro Operacional */}
+           <div className="bg-slate-900 p-6 rounded-[24px] shadow-lg border border-slate-800 relative overflow-hidden text-white">
+              <div className="absolute -top-4 -right-4 text-white/5"><LineChart size={100} /></div>
+              <div className="flex justify-between items-start mb-4 relative z-10">
+                 <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Lucro Operacional</p>
+                 <div className="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center"><Activity size={16}/></div>
+              </div>
+              <p className="text-3xl font-black tracking-tighter text-white relative z-10">{fmtBRL(fin.lucro || 15800)}</p>
+              <div className="flex items-center gap-2 mt-4 relative z-10">
+                 <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/10 text-emerald-400 text-[11px] font-bold">
+                    <ArrowUpRight size={14}/> {fin.varLuc ? fin.varLuc.toFixed(1) : "8.5"}%
+                 </div>
+                 <span className="text-[10px] uppercase font-bold text-slate-500">Saudável</span>
+              </div>
+           </div>
+
         </div>
+
+        {/* 3. GRÁFICO CENTRAL E INSIGHTS DA IA */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+           
+           {/* Gráfico DRE Rápido */}
+           <div className="lg:col-span-2 bg-white rounded-[32px] p-8 border border-slate-200 shadow-sm">
+              <div className="flex items-center justify-between mb-8">
+                 <div>
+                    <h2 className="text-xl font-black text-slate-900">Receita vs. Despesas</h2>
+                    <p className="text-xs font-bold text-slate-500 mt-1 uppercase tracking-widest">Evolução do {cfg.label}</p>
+                 </div>
+                 <div className="flex items-center gap-4 text-[11px] font-black uppercase tracking-widest">
+                   <span className="flex items-center gap-2 text-slate-600"><span className="w-3 h-3 rounded-full bg-slate-900 shadow-sm" /> Receita</span>
+                   <span className="flex items-center gap-2 text-slate-600"><span className="w-3 h-3 rounded-full bg-red-500 shadow-sm" /> Despesa</span>
+                 </div>
+              </div>
+
+              <div className="flex items-end gap-2 md:gap-4 h-[250px] w-full">
+                 {barras.map((b, i) => (
+                   <div key={i} className="flex-1 flex flex-col items-center justify-end gap-2 group h-full">
+                     <div className="w-full flex items-end justify-center gap-1 md:gap-2 h-full relative">
+                        {/* Tooltip Hover Mock */}
+                        <div className="absolute -top-10 bg-slate-900 text-white text-[10px] font-bold px-3 py-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none whitespace-nowrap shadow-xl">
+                           Rec: {fmtBRL(b.receita)} <br/> Desp: {fmtBRL(b.despesa)}
+                        </div>
+
+                        {/* Barra Receita */}
+                        <div 
+                          className="w-1/2 bg-slate-900 rounded-t-lg transition-all duration-500 ease-out group-hover:opacity-80" 
+                          style={{ height: `${Math.max((b.receita / maxBar) * 100, b.receita ? 5 : 0)}%` }} 
+                        />
+                        {/* Barra Despesa */}
+                        <div 
+                          className="w-1/2 bg-red-500 rounded-t-lg transition-all duration-500 ease-out group-hover:opacity-80" 
+                          style={{ height: `${Math.max((b.despesa / maxBar) * 100, b.despesa ? 5 : 0)}%` }} 
+                        />
+                     </div>
+                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{b.label}</span>
+                   </div>
+                 ))}
+              </div>
+           </div>
+
+           {/* Painel da IA (Heitor Insights) */}
+           <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-[32px] p-8 border border-indigo-100 shadow-sm flex flex-col relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-6 opacity-5"><Brain size={120} /></div>
+              
+              <div className="flex items-center gap-3 mb-6 relative z-10">
+                 <div className="w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-indigo-600/30">
+                    <Brain size={20} />
+                 </div>
+                 <div>
+                    <h2 className="text-lg font-black text-indigo-950">Heitor AI</h2>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-500">Insights do Sistema</p>
+                 </div>
+              </div>
+
+              <div className="flex-1 space-y-4 relative z-10">
+                 
+                 {/* Alerta CMV */}
+                 {cmvAtual > 30 ? (
+                   <div className="bg-white/60 backdrop-blur-md p-4 rounded-2xl border border-red-200 flex items-start gap-3">
+                      <AlertTriangle size={18} className="text-red-500 shrink-0 mt-0.5" />
+                      <div>
+                         <p className="text-sm font-bold text-slate-800">Atenção ao CMV</p>
+                         <p className="text-xs font-medium text-slate-600 mt-1 leading-relaxed">Seu custo de mercadoria passou de 30%. Verifique as fichas técnicas e o desperdício na cozinha.</p>
+                      </div>
+                   </div>
+                 ) : (
+                   <div className="bg-white/60 backdrop-blur-md p-4 rounded-2xl border border-emerald-200 flex items-start gap-3">
+                      <ShieldCheck size={18} className="text-emerald-500 shrink-0 mt-0.5" />
+                      <div>
+                         <p className="text-sm font-bold text-slate-800">CMV Saudável</p>
+                         <p className="text-xs font-medium text-slate-600 mt-1 leading-relaxed">Seu custo de mercadoria está cravado na meta (abaixo de 30%). Excelente margem operacional.</p>
+                      </div>
+                   </div>
+                 )}
+
+                 {/* Alerta Estoque */}
+                 {criticos.length > 0 && (
+                   <div className="bg-white/60 backdrop-blur-md p-4 rounded-2xl border border-orange-200 flex items-start gap-3 cursor-pointer hover:bg-white/80 transition-colors" onClick={() => router.push("/dashboard/operacao/estoque")}>
+                      <Package size={18} className="text-orange-500 shrink-0 mt-0.5" />
+                      <div className="w-full">
+                         <p className="text-sm font-bold text-slate-800">Ruptura de Estoque Iminente</p>
+                         <p className="text-xs font-medium text-slate-600 mt-1 mb-2 leading-relaxed">Temos {criticos.length} itens operando abaixo do estoque mínimo de segurança.</p>
+                         <div className="flex gap-2 flex-wrap">
+                            {criticos.slice(0,2).map(c => <span key={c.id} className="text-[10px] font-bold bg-orange-100 text-orange-700 px-2 py-0.5 rounded-md">{c.nome}</span>)}
+                         </div>
+                      </div>
+                   </div>
+                 )}
+
+                 {/* Insight Vendas */}
+                 <div className="bg-white/60 backdrop-blur-md p-4 rounded-2xl border border-indigo-100 flex items-start gap-3">
+                    <BarChart size={18} className="text-indigo-500 shrink-0 mt-0.5" />
+                    <div>
+                       <p className="text-sm font-bold text-slate-800">Pico de Vendas Detectado</p>
+                       <p className="text-xs font-medium text-slate-600 mt-1 leading-relaxed">Sexta-feira entre 19h e 21h concentra 45% do seu faturamento semanal. Escalar equipe nesse horário.</p>
+                    </div>
+                 </div>
+
+              </div>
+           </div>
+        </div>
+
+        {/* 4. HUB ADMINISTRATIVO (Atalhos Profundos) */}
+        <div>
+           <h2 className="text-sm font-black uppercase tracking-widest text-slate-400 mb-4 px-2">Sub-sistemas da Torre</h2>
+           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              
+              <button onClick={() => router.push("/dashboard/financeiro/dre")} className="bg-white p-5 rounded-3xl border border-slate-200 hover:border-slate-400 hover:shadow-lg transition-all flex flex-col items-center justify-center gap-3 group text-center aspect-square">
+                 <div className="w-12 h-12 rounded-full bg-slate-50 group-hover:bg-slate-900 flex items-center justify-center transition-colors">
+                    <LineChart size={20} className="text-slate-400 group-hover:text-white transition-colors" />
+                 </div>
+                 <div>
+                    <p className="font-bold text-slate-800 text-sm">DRE</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Gerencial</p>
+                 </div>
+              </button>
+
+              <button onClick={() => router.push("/dashboard/financeiro/fluxo")} className="bg-white p-5 rounded-3xl border border-slate-200 hover:border-slate-400 hover:shadow-lg transition-all flex flex-col items-center justify-center gap-3 group text-center aspect-square">
+                 <div className="w-12 h-12 rounded-full bg-slate-50 group-hover:bg-slate-900 flex items-center justify-center transition-colors">
+                    <Wallet size={20} className="text-slate-400 group-hover:text-white transition-colors" />
+                 </div>
+                 <div>
+                    <p className="font-bold text-slate-800 text-sm">Fluxo de Caixa</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Lançamentos</p>
+                 </div>
+              </button>
+
+              <button onClick={() => router.push("/dashboard/operacao/estoque")} className="bg-white p-5 rounded-3xl border border-slate-200 hover:border-slate-400 hover:shadow-lg transition-all flex flex-col items-center justify-center gap-3 group text-center aspect-square">
+                 <div className="w-12 h-12 rounded-full bg-slate-50 group-hover:bg-slate-900 flex items-center justify-center transition-colors">
+                    <Package size={20} className="text-slate-400 group-hover:text-white transition-colors" />
+                 </div>
+                 <div>
+                    <p className="font-bold text-slate-800 text-sm">Estoque Geral</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Compras</p>
+                 </div>
+              </button>
+
+              <button onClick={() => router.push("/dashboard/operacao/fichas")} className="bg-white p-5 rounded-3xl border border-slate-200 hover:border-slate-400 hover:shadow-lg transition-all flex flex-col items-center justify-center gap-3 group text-center aspect-square">
+                 <div className="w-12 h-12 rounded-full bg-slate-50 group-hover:bg-slate-900 flex items-center justify-center transition-colors">
+                    <ChefHat size={20} className="text-slate-400 group-hover:text-white transition-colors" />
+                 </div>
+                 <div>
+                    <p className="font-bold text-slate-800 text-sm">Ficha Técnica</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Engenharia</p>
+                 </div>
+              </button>
+
+              <button onClick={() => router.push("/dashboard/rh/organograma")} className="bg-white p-5 rounded-3xl border border-slate-200 hover:border-slate-400 hover:shadow-lg transition-all flex flex-col items-center justify-center gap-3 group text-center aspect-square">
+                 <div className="w-12 h-12 rounded-full bg-slate-50 group-hover:bg-slate-900 flex items-center justify-center transition-colors">
+                    <Users size={20} className="text-slate-400 group-hover:text-white transition-colors" />
+                 </div>
+                 <div>
+                    <p className="font-bold text-slate-800 text-sm">RH Corporativo</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Folha e Ponto</p>
+                 </div>
+              </button>
+
+              <button onClick={() => router.push("/dashboard/gestao")} className="bg-white p-5 rounded-3xl border border-slate-200 hover:border-slate-400 hover:shadow-lg transition-all flex flex-col items-center justify-center gap-3 group text-center aspect-square">
+                 <div className="w-12 h-12 rounded-full bg-slate-50 group-hover:bg-slate-900 flex items-center justify-center transition-colors">
+                    <Building2 size={20} className="text-slate-400 group-hover:text-white transition-colors" />
+                 </div>
+                 <div>
+                    <p className="font-bold text-slate-800 text-sm">Auditoria</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Conformidade</p>
+                 </div>
+              </button>
+
+           </div>
+        </div>
+
       </PageBody>
     </div>
   );

@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { 
   GlassWater, FlaskConical, Package, ShoppingCart, LayoutList, 
   PlusCircle, FileText, Link, CheckSquare, Sparkles, 
-  Droplets, Tags 
+  Droplets, Tags, BarChart 
 } from "lucide-react";
 
 export default function BarHubPage() {

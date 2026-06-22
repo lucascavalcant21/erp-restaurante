@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { 
   ChefHat, FlaskConical, Package, ShoppingCart, LayoutList, 
   PlusCircle, FileText, Link, CheckSquare, Sparkles, 
-  Flame, Tags 
+  Flame, Tags, BarChart 
 } from "lucide-react";
 
 export default function CozinhaHubPage() {

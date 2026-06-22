@@ -1,14 +1,14 @@
 import { supabase, isSupabaseReady } from "./supabase";
 
 export const CATEGORIAS_CUSTO = [
-  { id: 'cmv_cozinha', label: 'CMV Cozinha (Insumos)', cor: 'bg-orange-500' },
-  { id: 'cmv_bar', label: 'CMV Bar (Insumos)', cor: 'bg-fuchsia-500' },
-  { id: 'folha', label: 'Folha e Pessoal', cor: 'bg-blue-500' },
-  { id: 'limpeza', label: 'Limpeza e Descartáveis', cor: 'bg-cyan-500' },
-  { id: 'manutencao', label: 'Manutenção e Reparos', cor: 'bg-amber-500' },
-  { id: 'despesa_fixa', label: 'Despesas Operacionais Fixas', cor: 'bg-slate-600' },
-  { id: 'impostos', label: 'Impostos e Taxas', cor: 'bg-red-500' },
+  { id: 'cmv', label: 'CMV (Custo de Mercadoria Vendida)', cor: 'bg-orange-500' },
+  { id: 'cmo', label: 'CMO (Custo de Mão de Obra)', cor: 'bg-blue-500' },
+  { id: 'custo_fixo', label: 'Custo Fixo (Aluguel, Luz, etc)', cor: 'bg-slate-600' },
+  { id: 'limpeza', label: 'Materiais de Limpeza', cor: 'bg-cyan-500' },
+  { id: 'marketing', label: 'Custo Marketing', cor: 'bg-pink-500' },
   { id: 'investimento', label: 'Investimentos', cor: 'bg-emerald-500' },
+  { id: 'inventarios', label: 'Inventários / Quebras', cor: 'bg-red-500' },
+  { id: 'impostos', label: 'Impostos e Taxas', cor: 'bg-amber-500' },
   { id: 'retirada_socio', label: 'Retirada de Sócios (Lucro)', cor: 'bg-indigo-500' }
 ];
 

@@ -113,7 +113,7 @@ export async function registrarCompra(unidadeId, insumoId, nomeInsumo, departame
   await ajustarEstoque(unidadeId, insumoId, saldoAnterior + quantidadeComprada);
   
   // 2. Lança no Contas a Pagar (Financeiro)
-  const categoria = departamento === 'cozinha' ? 'cmv_cozinha' : 'cmv_bar';
+  const categoria = 'cmv'; // Unificado conforme solicitado
   const hoje = new Date().toISOString().split('T')[0];
   
   const { error } = await supabase.from("contas_pagar").insert([{

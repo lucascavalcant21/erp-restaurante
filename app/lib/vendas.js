@@ -179,10 +179,10 @@ export async function processarBaixaEstoqueECMV(pedidoId, unidadeId) {
   const hoje = new Date().toISOString().split('T')[0];
 
   if(custoCozinha > 0) {
-     contasCMV.push({ unidade_id: unidadeId, descricao: `Baixa CMV Cozinha - Pedido`, valor: custoCozinha, data_vencimento: hoje, data_pagamento: hoje, categoria: 'cmv_cozinha', status: 'pago' });
+     contasCMV.push({ unidade_id: unidadeId, descricao: `Baixa CMV Cozinha - Pedido`, valor: custoCozinha, data_vencimento: hoje, data_pagamento: hoje, categoria: 'cmv', status: 'pago' });
   }
   if(custoBar > 0) {
-     contasCMV.push({ unidade_id: unidadeId, descricao: `Baixa CMV Bar - Pedido`, valor: custoBar, data_vencimento: hoje, data_pagamento: hoje, categoria: 'cmv_bar', status: 'pago' });
+     contasCMV.push({ unidade_id: unidadeId, descricao: `Baixa CMV Bar - Pedido`, valor: custoBar, data_vencimento: hoje, data_pagamento: hoje, categoria: 'cmv', status: 'pago' });
   }
 
   if(contasCMV.length > 0) {

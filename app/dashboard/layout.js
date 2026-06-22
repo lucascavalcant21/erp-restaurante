@@ -10,13 +10,13 @@ import {
 } from "lucide-react";
 
 const MODULES = [
-  { id: "salao",        label: "Salão (PDV)",        icon: Users,        href: "/dashboard/salao/mesas" },
+  { id: "salao",        label: "Salão",              icon: Users,        href: "/dashboard/salao/mesas" },
   { id: "kds",          label: "KDS",                icon: Bell,         href: "/dashboard/kds" },
   { id: "cozinha",      label: "Op. Cozinha",        icon: ChefHat,      href: "/dashboard/cozinha" },
   { id: "op_salao",     label: "Op. Salão",          icon: Store,        href: "/dashboard/salao" },
   { id: "bar",          label: "Op. Bar",            icon: GlassWater,   href: "/dashboard/bar" },
   { id: "financeiro",   label: "Financeiro",         icon: BarChart,     href: "/dashboard/financeiro" },
-  { id: "rh",           label: "Recursos Humanos",   icon: Briefcase,    href: "/dashboard/rh" },
+  { id: "rh",           label: "RH",                 icon: Briefcase,    href: "/dashboard/rh" },
   { id: "ponto",        label: "Sistema de Ponto",   icon: Fingerprint,  href: "/dashboard/ponto" },
 ];
 

@@ -62,7 +62,7 @@ export default function RHPage() {
           descricao: `Salário: ${f.nome} - ${f.cargo}`,
           valor: f.salario,
           data_vencimento: hoje,
-          categoria: 'folha',
+          categoria: 'cmo',
           status: 'pendente'
        });
        alert("Lançado com sucesso em Contas a Pagar (Financeiro)!");

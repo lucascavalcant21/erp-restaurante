@@ -91,7 +91,12 @@ export default function CozinhaHubPage() {
 
          <button onClick={() => router.push("/dashboard/operacao/produtos?dept=cozinha")} className="col-span-1 row-span-1 rounded-[24px] p-5 bg-white border border-slate-200 hover:border-slate-300 transition-all flex flex-col justify-center items-center gap-2 group text-center">
             <PlusCircle size={24} className="text-emerald-500 group-hover:scale-110 transition-transform" />
-            <h3 className="font-bold text-slate-700 text-sm leading-tight">Produtos (Cardápio)</h3>
+            <h3 className="font-bold text-slate-700 text-sm leading-tight">Criação de Pratos</h3>
+         </button>
+
+         <button onClick={() => router.push("/dashboard/operacao/engenharia?dept=cozinha")} className="col-span-1 row-span-1 rounded-[24px] p-5 bg-white border border-slate-200 hover:border-slate-300 transition-all flex flex-col justify-center items-center gap-2 group text-center">
+            <BarChart size={24} className="text-indigo-500 group-hover:scale-110 transition-transform" />
+            <h3 className="font-bold text-slate-700 text-sm leading-tight">Engenharia Cardápio</h3>
          </button>
 
          <button onClick={() => router.push("/dashboard/operacao/etiquetas")} className="col-span-1 row-span-1 rounded-[24px] p-5 bg-white border border-slate-200 hover:border-slate-300 transition-all flex flex-col justify-center items-center gap-2 group text-center">

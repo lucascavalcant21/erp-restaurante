@@ -93,8 +93,8 @@ export default function SaloesMesasPage() {
   };
 
   const handlePagar = async () => {
-    if(confirm(`Confirmar o pagamento da Mesa ${mesaAtiva.numero_mesa}? A mesa ficará livre.`)) {
-       await fecharContaDaMesa(mesaAtiva.id, pedidoAtivo.id);
+    if(confirm(`Confirmar o pagamento da Mesa ${mesaAtiva.numero_mesa}? A mesa ficará livre e o estoque será baixado.`)) {
+       await fecharContaDaMesa(mesaAtiva.id, pedidoAtivo.id, unidadeAtiva);
        fecharMesaUI();
        carregarMesas();
     }

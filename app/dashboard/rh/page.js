@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useERP } from "../../context/ERPContext";
 import { fetchColaboradores, inserirColaborador, removerColaborador } from "../../lib/rh";
+import { salvarConta } from "../../lib/financeiro";
 import { 
   Users, UserPlus, FileText, Upload, Save, X, Search, Trash2 
 } from "lucide-react";
@@ -50,6 +51,21 @@ export default function RHPage() {
     if(confirm("Remover este funcionário?")) {
       await removerColaborador(id);
       carregar();
+    }
+  };
+
+  const handleLancarFinanceiro = async (f) => {
+    if(confirm(`Deseja lançar R$ ${f.salario} no Financeiro para o funcionário ${f.nome}?`)) {
+       const hoje = new Date().toISOString().split('T')[0];
+       await salvarConta({
+          unidade_id: unidadeAtiva,
+          descricao: `Salário: ${f.nome} - ${f.cargo}`,
+          valor: f.salario,
+          data_vencimento: hoje,
+          categoria: 'folha',
+          status: 'pendente'
+       });
+       alert("Lançado com sucesso em Contas a Pagar (Financeiro)!");
     }
   };
 
@@ -101,11 +117,14 @@ export default function RHPage() {
                               {f.docs?.length > 0 ? f.docs.map((d, i) => (
                                 <span key={i} className="flex items-center gap-1 text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-md"><FileText size={10}/> {d}</span>
                               )) : <span className="text-[10px] text-slate-400">Sem docs</span>}
-                              <div className="flex items-center gap-3 mt-1">
+                              <div className="flex items-center gap-3 mt-2">
+                                <button onClick={() => handleLancarFinanceiro(f)} className="flex items-center gap-1 text-xs font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition-colors">
+                                   Lançar Salário
+                                </button>
                                 <button className="flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800">
                                    <Upload size={14}/> Anexar PDF
                                 </button>
-                                <button onClick={() => handleRemover(f.id)} className="text-red-500 hover:bg-red-50 p-1 rounded transition-colors"><Trash2 size={16}/></button>
+                                <button onClick={() => handleRemover(f.id)} className="text-red-500 hover:bg-red-50 p-1.5 rounded transition-colors"><Trash2 size={16}/></button>
                               </div>
                            </div>
                         </td>

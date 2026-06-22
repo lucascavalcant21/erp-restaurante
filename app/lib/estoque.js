@@ -97,3 +97,33 @@ export async function registrarProducao(unidadeId, ficha, qtdProduzida, colabora
 
   return { success: true };
 }
+
+// ─── COMPRAS (Integração Estoque -> Financeiro) ──────────────────────────────
+export async function registrarCompra(unidadeId, insumoId, nomeInsumo, departamento, quantidadeComprada, valorPago) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  
+  // 1. Aumenta o Estoque
+  const { data: estoqueDB } = await supabase.from("estoque_atual")
+     .select("quantidade_atual")
+     .eq("unidade_id", unidadeId)
+     .eq("insumo_id", insumoId)
+     .single();
+     
+  const saldoAnterior = estoqueDB ? estoqueDB.quantidade_atual : 0;
+  await ajustarEstoque(unidadeId, insumoId, saldoAnterior + quantidadeComprada);
+  
+  // 2. Lança no Contas a Pagar (Financeiro)
+  const categoria = departamento === 'cozinha' ? 'cmv_cozinha' : 'cmv_bar';
+  const hoje = new Date().toISOString().split('T')[0];
+  
+  const { error } = await supabase.from("contas_pagar").insert([{
+     unidade_id: unidadeId,
+     descricao: `Compra: ${quantidadeComprada}x ${nomeInsumo}`,
+     valor: valorPago,
+     data_vencimento: hoje,
+     categoria: categoria,
+     status: 'pendente'
+  }]);
+
+  return { error: error?.message };
+}

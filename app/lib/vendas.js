@@ -105,11 +105,101 @@ export async function lancarItemComanda(pedidoId, produtoId, valorUnitario, quan
   return { error: error?.message };
 }
 
-export async function fecharContaDaMesa(mesaId, pedidoId) {
+export async function processarBaixaEstoqueECMV(pedidoId, unidadeId) {
+  if (!isSupabaseReady()) return;
+
+  // 1. Pega os itens do pedido com as fichas e ingredientes
+  const { data: itens } = await supabase.from("pedidos_itens")
+    .select(`
+      quantidade,
+      produtos (
+         departamento,
+         fichas_tecnicas (
+            fichas_ingredientes (
+               quantidade,
+               insumos ( id, custo_unitario )
+            )
+         )
+      )
+    `)
+    .eq("pedido_id", pedidoId);
+
+  if(!itens || itens.length === 0) return;
+
+  let custoCozinha = 0;
+  let custoBar = 0;
+  const deducoesEstoque = {};
+
+  // 2. Calcula as deduções e o CMV
+  itens.forEach(it => {
+     const ficha = it.produtos?.fichas_tecnicas;
+     if(!ficha || !ficha.fichas_ingredientes) return;
+
+     ficha.fichas_ingredientes.forEach(ing => {
+        const qtdGasta = ing.quantidade * it.quantidade;
+        const custoGasto = qtdGasta * ing.insumos.custo_unitario;
+
+        // Soma para o DRE Financeiro (Separando Bar vs Cozinha)
+        if(it.produtos.departamento === 'cozinha') custoCozinha += custoGasto;
+        else custoBar += custoGasto;
+
+        // Agrupa pro Estoque
+        if(!deducoesEstoque[ing.insumos.id]) deducoesEstoque[ing.insumos.id] = 0;
+        deducoesEstoque[ing.insumos.id] += qtdGasta;
+     });
+  });
+
+  // 3. Atualiza o Estoque
+  const insumosIds = Object.keys(deducoesEstoque);
+  if(insumosIds.length > 0) {
+     const { data: estoqueDB } = await supabase.from("estoque_atual")
+        .select("insumo_id, quantidade_atual")
+        .eq("unidade_id", unidadeId)
+        .in("insumo_id", insumosIds);
+
+     const atualizacoes = [];
+     insumosIds.forEach(id => {
+        const dbInfo = estoqueDB?.find(e => e.insumo_id === id);
+        const saldoAnterior = dbInfo ? dbInfo.quantidade_atual : 0;
+        atualizacoes.push({
+           unidade_id: unidadeId,
+           insumo_id: id,
+           quantidade_atual: saldoAnterior - deducoesEstoque[id],
+           updated_at: new Date().toISOString()
+        });
+     });
+
+     if(atualizacoes.length > 0) {
+        await supabase.from("estoque_atual").upsert(atualizacoes, { onConflict: 'unidade_id, insumo_id' });
+     }
+  }
+
+  // 4. Lança o CMV no Financeiro (DRE Automático)
+  const contasCMV = [];
+  const hoje = new Date().toISOString().split('T')[0];
+
+  if(custoCozinha > 0) {
+     contasCMV.push({ unidade_id: unidadeId, descricao: `Baixa CMV Cozinha - Pedido`, valor: custoCozinha, data_vencimento: hoje, data_pagamento: hoje, categoria: 'cmv_cozinha', status: 'pago' });
+  }
+  if(custoBar > 0) {
+     contasCMV.push({ unidade_id: unidadeId, descricao: `Baixa CMV Bar - Pedido`, valor: custoBar, data_vencimento: hoje, data_pagamento: hoje, categoria: 'cmv_bar', status: 'pago' });
+  }
+
+  if(contasCMV.length > 0) {
+     await supabase.from("contas_pagar").insert(contasCMV);
+  }
+}
+
+export async function fecharContaDaMesa(mesaId, pedidoId, unidadeId) {
   if (!isSupabaseReady()) return { error: "Offline" };
   
   await supabase.from("pedidos").update({ status: 'pago' }).eq("id", pedidoId);
   await supabase.from("mesas").update({ status: 'livre' }).eq("id", mesaId);
+  
+  // Roda a mágica da Automação (Não bloqueia a tela do usuário)
+  if(unidadeId) {
+     processarBaixaEstoqueECMV(pedidoId, unidadeId).catch(console.error);
+  }
   
   return { success: true };
 }
@@ -220,6 +310,20 @@ export async function recusarPedidoOnline(pedidoId) {
   
   await supabase.from("pedidos").update({ status: 'cancelado', updated_at: new Date().toISOString() }).eq("id", pedidoId);
   await supabase.from("pedidos_itens").update({ status_kds: 'cancelado', updated_at: new Date().toISOString() }).eq("pedido_id", pedidoId);
+  
+  return { success: true };
+}
+
+// Quando o pedido delivery é entregue e pago
+export async function fecharPedidoOnline(pedidoId, unidadeId) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  
+  await supabase.from("pedidos").update({ status: 'pago', updated_at: new Date().toISOString() }).eq("id", pedidoId);
+  
+  // Baixa o estoque e joga pro CMV
+  if(unidadeId) {
+     processarBaixaEstoqueECMV(pedidoId, unidadeId).catch(console.error);
+  }
   
   return { success: true };
 }

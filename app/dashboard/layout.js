@@ -162,9 +162,9 @@ function getNavId(pathname) {
 function MegaMenu({ isOpen, onClose, sessao, router, unidadeAtiva }) {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-[60] flex md:left-[80px] left-0 bg-black/80 backdrop-blur-md transition-all">
-      <div className="absolute inset-0 bg-[var(--surface)] p-6 md:p-8 overflow-y-auto animate-in fade-in slide-in-from-top-8 duration-300 shadow-2xl border-l border-[var(--line)]">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 max-w-7xl mx-auto gap-4">
+    <div className="fixed inset-0 z-[60] md:left-[80px] left-0 bg-[var(--surface)] border-l border-[var(--line)] overflow-y-auto animate-in fade-in slide-in-from-top-8 duration-300 shadow-2xl custom-scrollbar">
+      <div className="p-6 md:p-8 min-h-full flex flex-col">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 max-w-7xl mx-auto gap-4 w-full">
           <h2 className="text-3xl font-black text-[var(--fg)] tracking-tighter">Ver tudo</h2>
           <div className="flex items-center gap-4">
             <div className="relative flex-1 md:flex-none">
@@ -177,7 +177,7 @@ function MegaMenu({ isOpen, onClose, sessao, router, unidadeAtiva }) {
           </div>
         </div>
 
-        <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-8 max-w-7xl mx-auto">
+        <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-8 max-w-7xl mx-auto w-full pb-20">
           {MENU_GROUPS.filter(g => g.scope === "ambos" || (unidadeAtiva === "todas" ? g.scope === "cerebro" : g.scope === "unidade")).map((group) => {
              const itens = group.items.filter((item) => sessao && podeAcessar(sessao.papel, item.id));
              if (!itens.length) return null;

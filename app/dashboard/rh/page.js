@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useERP } from "../../context/ERPContext";
-import { fetchColaboradores, inserirColaborador, removerColaborador } from "../../lib/rh";
+import { fetchColaboradores, inserirColaborador, removerColaborador, fetchDocumentos, uploadDocumentoRH, removerDocumento } from "../../lib/rh";
 import { salvarConta } from "../../lib/financeiro";
 import { 
-  Users, UserPlus, FileText, Upload, Save, X, Search, Trash2 
+  Users, UserPlus, FileText, Upload, Save, X, Search, Trash2, Loader2
 } from "lucide-react";
 import { fmtBRL } from "../../components/ui";
 
@@ -19,12 +19,22 @@ export default function RHPage() {
   const [modalNovo, setModalNovo] = useState(false);
   const [novoFunc, setNovoFunc] = useState({ nome: "", cargo: "", salario: "" });
   const [loading, setLoading] = useState(true);
+  const [uploadingId, setUploadingId] = useState(null);
+
+  const fileInputRef = useRef(null);
+  const [funcParaUpload, setFuncParaUpload] = useState(null);
 
   const carregar = async () => {
     setLoading(true);
     const { data } = await fetchColaboradores(unidadeAtiva);
-    // Adicionando um array vazio de docs temporariamente até implementarmos o Storage
-    setFuncionarios(data.map(f => ({ ...f, docs: [] })));
+    
+    // Busca os documentos de cada um (ideal seria uma query relacional no supabase, mas pro MVP assim serve)
+    const comDocs = await Promise.all(data.map(async (f) => {
+       const docsResp = await fetchDocumentos(f.id);
+       return { ...f, docs: docsResp.data || [] };
+    }));
+
+    setFuncionarios(comDocs);
     setLoading(false);
   };
 
@@ -69,8 +79,38 @@ export default function RHPage() {
     }
   };
 
+  const acionarUpload = (f) => {
+    setFuncParaUpload(f.id);
+    fileInputRef.current.click();
+  };
+
+  const handleUploadFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !funcParaUpload) return;
+
+    setUploadingId(funcParaUpload);
+    const { error } = await uploadDocumentoRH(funcParaUpload, file);
+    setUploadingId(null);
+    setFuncParaUpload(null);
+    fileInputRef.current.value = ""; // reseta o input
+
+    if (error) {
+       alert(error);
+    } else {
+       carregar();
+    }
+  };
+
+  const handleApagarDoc = async (docId, url) => {
+     if(confirm("Apagar este documento permanentemente?")) {
+        await removerDocumento(docId, url);
+        carregar();
+     }
+  };
+
   return (
     <div className="min-h-screen font-sans pb-24 text-slate-800">
+      <input type="file" ref={fileInputRef} className="hidden" onChange={handleUploadFile} accept=".pdf,.png,.jpg,.jpeg" />
       
       {/* HEADER */}
       <div className="pt-6 pb-8 px-6 max-w-5xl mx-auto flex items-center justify-between">
@@ -114,15 +154,22 @@ export default function RHPage() {
                         <td className="p-4 font-black text-slate-800">{fmtBRL(f.salario)}</td>
                         <td className="p-4 text-right">
                            <div className="flex flex-col items-end gap-2">
-                              {f.docs?.length > 0 ? f.docs.map((d, i) => (
-                                <span key={i} className="flex items-center gap-1 text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-md"><FileText size={10}/> {d}</span>
+                              {f.docs?.length > 0 ? f.docs.map((d) => (
+                                <div key={d.id} className="flex items-center gap-2">
+                                  <a href={d.url_arquivo} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-[10px] font-bold bg-slate-100 text-indigo-600 px-2 py-1 rounded-md hover:bg-indigo-50 hover:underline">
+                                    <FileText size={10}/> {d.nome_arquivo}
+                                  </a>
+                                  <button onClick={() => handleApagarDoc(d.id, d.url_arquivo)} className="text-red-400 hover:text-red-600"><X size={12}/></button>
+                                </div>
                               )) : <span className="text-[10px] text-slate-400">Sem docs</span>}
+                              
                               <div className="flex items-center gap-3 mt-2">
                                 <button onClick={() => handleLancarFinanceiro(f)} className="flex items-center gap-1 text-xs font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition-colors">
                                    Lançar Salário
                                 </button>
-                                <button className="flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800">
-                                   <Upload size={14}/> Anexar PDF
+                                <button onClick={() => acionarUpload(f)} disabled={uploadingId === f.id} className="flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800 disabled:opacity-50">
+                                   {uploadingId === f.id ? <Loader2 size={14} className="animate-spin"/> : <Upload size={14}/>} 
+                                   {uploadingId === f.id ? "Enviando..." : "Anexar Doc"}
                                 </button>
                                 <button onClick={() => handleRemover(f.id)} className="text-red-500 hover:bg-red-50 p-1.5 rounded transition-colors"><Trash2 size={16}/></button>
                               </div>

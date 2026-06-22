@@ -145,3 +145,82 @@ export async function atualizarStatusKDS(itemId, novoStatus) {
   const { error } = await supabase.from("pedidos_itens").update({ status_kds: novoStatus, updated_at: new Date().toISOString() }).eq("id", itemId);
   return { error: error?.message };
 }
+
+// ─── DELIVERY E AUTO-ATENDIMENTO (Pedidos Online) ────────────────────────────
+
+// Usado pelo app/cardapio/[unidadeId] para enviar o pedido
+export async function enviarPedidoOnline(unidadeId, dadosCliente, itensCart) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  
+  // 1. Cria o Pedido com status 'novo_online'
+  const valorTotal = itensCart.reduce((acc, it) => acc + (it.preco_venda * it.quantidade), 0);
+  
+  const { data: pedido, error: errPed } = await supabase.from("pedidos").insert([{
+     unidade_id: unidadeId,
+     status: 'novo_online',
+     tipo_pedido: dadosCliente.tipo, // 'delivery' ou 'qrcode'
+     cliente_nome: dadosCliente.nome,
+     cliente_telefone: dadosCliente.telefone,
+     endereco_entrega: dadosCliente.endereco || null,
+     troco_para: dadosCliente.troco || null,
+     valor_total: valorTotal
+  }]).select().single();
+
+  if (errPed) return { error: errPed.message };
+
+  // 2. Insere os itens com status 'aguardando_aceite' (Pra não cair no KDS ainda)
+  const insertsItens = itensCart.map(it => ({
+     pedido_id: pedido.id,
+     produto_id: it.id,
+     quantidade: it.quantidade,
+     valor_unitario: it.preco_venda,
+     observacao: it.observacao || "",
+     status_kds: 'aguardando_aceite'
+  }));
+
+  const { error: errItens } = await supabase.from("pedidos_itens").insert(insertsItens);
+  return { error: errItens?.message, pedidoId: pedido.id };
+}
+
+// Usado pelo Dashboard do Restaurante para ver os pedidos que chegaram
+export async function fetchPedidosOnlinePendentes(unidadeId) {
+  if (!isSupabaseReady()) return { data: [] };
+  
+  const { data, error } = await supabase.from("pedidos")
+    .select(`
+      *,
+      pedidos_itens (
+         id, quantidade, valor_unitario, observacao,
+         produtos ( nome_produto, departamento )
+      )
+    `)
+    .eq("unidade_id", unidadeId)
+    .eq("status", "novo_online")
+    .order("created_at", { ascending: true });
+
+  return { data: data || [], error: error?.message };
+}
+
+// Quando o caixa clica em "Aceitar"
+export async function aceitarPedidoOnline(pedidoId) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  
+  // 1. Muda status do pedido para 'aberto' (ou 'preparando_delivery')
+  await supabase.from("pedidos").update({ status: 'preparando_delivery', updated_at: new Date().toISOString() }).eq("id", pedidoId);
+  
+  // 2. Libera os itens pro KDS (muda de 'aguardando_aceite' para 'pendente')
+  await supabase.from("pedidos_itens").update({ status_kds: 'pendente', updated_at: new Date().toISOString() }).eq("pedido_id", pedidoId);
+  
+  return { success: true };
+}
+
+// Quando o caixa recusa
+export async function recusarPedidoOnline(pedidoId) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  
+  await supabase.from("pedidos").update({ status: 'cancelado', updated_at: new Date().toISOString() }).eq("id", pedidoId);
+  await supabase.from("pedidos_itens").update({ status_kds: 'cancelado', updated_at: new Date().toISOString() }).eq("pedido_id", pedidoId);
+  
+  return { success: true };
+}
+

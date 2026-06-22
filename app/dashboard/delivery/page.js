@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
-import { Search as SearchIcon, MapPin, Map, Clock, Users, Plus, Edit3, Trash2, Motorbike, Check, X } from "lucide-react";
+import { Search as SearchIcon, MapPin, Map, Clock, Users, Plus, Edit3, Trash2, Check, X } from "lucide-react";
 import { Modal, Field, TextInput, Select, NumberInput, Toast, Btn } from "../../components/ui";
 import { fmtBRL } from "../../components/ui";
 import { useERP } from "../../context/ERPContext";

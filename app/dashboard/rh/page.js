@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   Users, UserPlus, Clock, CalendarCheck, ShieldCheck, 
   Briefcase, Mail, Phone, MoreVertical, BadgeAlert, Wallet,
-  Download, Filter, CircleDot, AlertTriangle, ArrowRight
+  Download, Filter, CircleDot, AlertTriangle, ArrowRight, BarChart3
 } from "lucide-react";
 import { PageBody, Card, fmtBRL } from "../../components/ui";
 import { useERP } from "../../context/ERPContext";

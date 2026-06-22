@@ -561,7 +561,7 @@ function MontagemPageInner() {
                     {m.foto_url ? (
                       <img src={m.foto_url} alt={m.nome} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
                     ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center text-slate-300">
+                      <div className="w-full h-full flex flex-col items-center justify-center text-slate-500">
                          <Camera size={32} />
                          <span className="text-[10px] uppercase font-bold mt-2">Sem foto</span>
                       </div>

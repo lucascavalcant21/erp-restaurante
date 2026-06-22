@@ -355,11 +355,11 @@ export default function GestaoRhPage() {
           <p className="text-slate-500 text-sm">O funcionário já pode entrar no sistema pelo celular usando as credenciais abaixo:</p>
           <div className="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4 space-y-2">
             <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-2">
-              <span className="text-slate-400 text-xs uppercase font-bold">Usuário</span>
+              <span className="text-slate-500 text-xs uppercase font-bold">Usuário</span>
               <span className="text-slate-800 dark:text-white font-mono text-lg font-bold">{acessoGerado?.login}</span>
             </div>
             <div className="flex justify-between items-center pt-2">
-              <span className="text-slate-400 text-xs uppercase font-bold">Senha (PIN)</span>
+              <span className="text-slate-500 text-xs uppercase font-bold">Senha (PIN)</span>
               <span className="text-emerald-500 font-mono text-lg font-bold">{acessoGerado?.senha}</span>
             </div>
           </div>

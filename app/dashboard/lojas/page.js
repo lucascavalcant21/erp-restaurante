@@ -44,7 +44,7 @@ export default function LojasPage() {
     }
   };
 
-  if (loading) return <div className="p-10 font-bold text-slate-400">Carregando lojas...</div>;
+  if (loading) return <div className="p-10 font-bold text-slate-500">Carregando lojas...</div>;
 
   return (
     <div className="max-w-4xl mx-auto py-10">
@@ -94,7 +94,7 @@ export default function LojasPage() {
                       </div>
                       <div>
                          <p className="font-bold text-slate-800 text-lg">{u.nome}</p>
-                         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">ID: {u.id.substring(0,8)}</p>
+                         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">ID: {u.id.substring(0,8)}</p>
                       </div>
                    </div>
                    <div className="flex items-center gap-2">
@@ -107,8 +107,8 @@ export default function LojasPage() {
          ))}
          {unidades.length === 0 && (
             <div className="p-10 text-center flex flex-col items-center">
-               <Store size={48} className="text-slate-300 mb-4" />
-               <p className="font-bold text-slate-400">Nenhuma unidade cadastrada. Crie a primeira acima.</p>
+               <Store size={48} className="text-slate-500 mb-4" />
+               <p className="font-bold text-slate-500">Nenhuma unidade cadastrada. Crie a primeira acima.</p>
             </div>
          )}
       </div>

@@ -101,7 +101,7 @@ export default function CRMPage() {
         <Card className="p-5 flex flex-col justify-between group hover:shadow-lg transition-all duration-300 border-l-4 border-l-blue-500">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Clientes na Base</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Clientes na Base</p>
               <p className="text-3xl font-black tracking-tighter text-slate-800">{kpis.totalCli}</p>
             </div>
             <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600"><Users size={20}/></div>
@@ -114,7 +114,7 @@ export default function CRMPage() {
         <Card className="p-5 flex flex-col justify-between group hover:shadow-lg transition-all duration-300 border-l-4 border-l-emerald-500">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Score NPS</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Score NPS</p>
               <p className="text-3xl font-black tracking-tighter text-slate-800">{kpis.npsAvg}</p>
             </div>
             <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600"><Star size={20} className="fill-emerald-600"/></div>
@@ -125,7 +125,7 @@ export default function CRMPage() {
         <Card className="p-5 flex flex-col justify-between group hover:shadow-lg transition-all duration-300 border-l-4 border-l-purple-500">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Taxa de Retorno</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Taxa de Retorno</p>
               <p className="text-3xl font-black tracking-tighter text-slate-800">{kpis.taxaRetorno}%</p>
             </div>
             <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600"><Heart size={20}/></div>
@@ -136,9 +136,9 @@ export default function CRMPage() {
         <Card className="p-5 flex flex-col justify-between group hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-slate-800 to-slate-900 border-none text-white relative overflow-hidden">
           <div className="absolute -right-4 -top-4 opacity-10"><Award size={120} /></div>
           <div className="relative z-10">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">LTV Médio</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">LTV Médio</p>
             <p className="text-3xl font-black tracking-tighter">{fmtBRL(kpis.avgLtv)}</p>
-            <p className="text-xs font-bold text-slate-400 mt-3">Gasto de vida útil</p>
+            <p className="text-xs font-bold text-slate-500 mt-3">Gasto de vida útil</p>
           </div>
         </Card>
       </div>
@@ -169,7 +169,7 @@ export default function CRMPage() {
               </div>
             ))}
             {clientes.length === 0 && (
-               <div className="p-8 text-center text-slate-400 font-medium">Nenhum cliente registrado</div>
+               <div className="p-8 text-center text-slate-500 font-medium">Nenhum cliente registrado</div>
             )}
           </div>
         </Card>
@@ -214,7 +214,7 @@ export default function CRMPage() {
       <div className="p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
             <input 
               type="text" 
               placeholder="Buscar cliente..." 
@@ -229,10 +229,10 @@ export default function CRMPage() {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-white border-b border-slate-100">
-              <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">Cliente</th>
-              <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">Contato</th>
-              <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">Status</th>
-              <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 text-right">LTV (Gasto Total)</th>
+              <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Cliente</th>
+              <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Contato</th>
+              <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Status</th>
+              <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">LTV (Gasto Total)</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
@@ -259,7 +259,7 @@ export default function CRMPage() {
               </tr>
             ))}
             {clientesFiltrados.length === 0 && (
-               <tr><td colSpan="4" className="p-8 text-center text-slate-400 font-medium">Nenhum cliente encontrado na busca.</td></tr>
+               <tr><td colSpan="4" className="p-8 text-center text-slate-500 font-medium">Nenhum cliente encontrado na busca.</td></tr>
             )}
           </tbody>
         </table>
@@ -287,14 +287,14 @@ export default function CRMPage() {
                     <Star key={i} size={14} className={i < (av.nota/2) ? "fill-yellow-400" : "text-slate-200"} />
                   ))}
                 </div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{av.origem}</span>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{av.origem}</span>
               </div>
               <p className="text-sm font-medium text-slate-700 italic">"{av.comentario || 'Sem comentário'}"</p>
             </div>
             <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
               <div>
                 <p className="text-xs font-bold text-slate-800">{av.nome}</p>
-                <p className="text-[10px] text-slate-400">{av.data}</p>
+                <p className="text-[10px] text-slate-500">{av.data}</p>
               </div>
             </div>
           </div>
@@ -337,24 +337,24 @@ export default function CRMPage() {
                 
                 <div className="grid grid-cols-3 gap-2 border-t border-slate-100 pt-4">
                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase">Atingidos</p>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase">Atingidos</p>
                       <p className="font-black text-slate-800 text-lg">{c.clientes_atingidos || 0}</p>
                    </div>
                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase">Conversão</p>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase">Conversão</p>
                       <p className="font-black text-slate-800 text-lg">
                         {c.meta_clientes > 0 ? Math.round(((c.clientes_atingidos||0) / c.meta_clientes)*100) : 0}%
                       </p>
                    </div>
                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase">Receita (ROI)</p>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase">Receita (ROI)</p>
                       <p className="font-black text-emerald-600 text-lg">{fmtBRL(c.receita_gerada)}</p>
                    </div>
                 </div>
              </Card>
           ))}
           {campanhas.length === 0 && (
-             <div className="col-span-2 p-10 text-center text-slate-400 font-medium bg-slate-50 rounded-2xl border border-dashed border-slate-300">
+             <div className="col-span-2 p-10 text-center text-slate-500 font-medium bg-slate-50 rounded-2xl border border-dashed border-slate-300">
                Nenhuma campanha criada ainda.
              </div>
           )}
@@ -368,7 +368,7 @@ export default function CRMPage() {
       <div className="px-4 pt-8 md:pt-12 pb-6 bg-[var(--surface)] sticky top-0 z-30 border-b border-slate-100 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 max-w-6xl mx-auto">
           <div>
-            <p className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Marketing</p>
+            <p className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">Marketing</p>
             <h1 className="text-3xl md:text-5xl font-black leading-tight tracking-tighter text-slate-800">Relacionamento.</h1>
             <p className="text-sm font-semibold text-slate-500 mt-2">Gestão de clientes e fidelização em <span className="text-slate-800 font-bold">{unidadeInfo.nome}</span></p>
           </div>
@@ -407,7 +407,7 @@ export default function CRMPage() {
       <PageBody>
         <div className="max-w-6xl mx-auto">
           {loading ? (
-             <div className="py-20 text-center font-bold text-slate-400">Carregando CRM...</div>
+             <div className="py-20 text-center font-bold text-slate-500">Carregando CRM...</div>
           ) : (
              <>
                {activeTab === "visao" && renderVisaoGeral()}

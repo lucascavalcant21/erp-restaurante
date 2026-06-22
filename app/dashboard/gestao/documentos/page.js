@@ -144,7 +144,7 @@ export default function DocumentosLegaisPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-bold truncate" style={{ color: "var(--fg)" }}>{d.titulo}</p>
-                        <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">{d.tipo}</span>
+                        <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-500">{d.tipo}</span>
                       </div>
                       {d.descricao && <p className="text-xs mt-0.5" style={{ color: "var(--subtle)" }}>{d.descricao}</p>}
                       

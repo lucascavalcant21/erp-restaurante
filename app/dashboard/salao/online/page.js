@@ -66,7 +66,7 @@ export default function GestorOnlinePage() {
               </div>
               <div>
                  <h1 className="text-4xl font-black tracking-tighter">Gestor Delivery</h1>
-                 <p className="text-slate-400 font-bold uppercase tracking-widest text-xs mt-1">Pedidos Online Aguardando Aceite</p>
+                 <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Pedidos Online Aguardando Aceite</p>
               </div>
             </div>
          </div>
@@ -74,11 +74,11 @@ export default function GestorOnlinePage() {
 
       <div className="max-w-5xl mx-auto px-8 mt-10">
          {loading ? (
-            <p className="font-bold text-slate-400">Buscando novos pedidos...</p>
+            <p className="font-bold text-slate-500">Buscando novos pedidos...</p>
          ) : pedidos.length === 0 ? (
             <div className="text-center p-10 bg-white border border-slate-200 rounded-3xl max-w-lg mx-auto mt-20">
                <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Motorbike size={40} className="text-slate-300"/>
+                  <Motorbike size={40} className="text-slate-500"/>
                </div>
                <h3 className="text-2xl font-black text-slate-700">Nenhum pedido novo</h3>
                <p className="text-slate-500 mt-2 font-medium mb-6">Fique de olho. Assim que um cliente enviar um pedido pelo QR Code, ele aparecerá aqui com um alerta.</p>
@@ -120,12 +120,12 @@ export default function GestorOnlinePage() {
                            </div>
 
                            <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
-                              <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Itens do Pedido</h3>
+                              <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-4">Itens do Pedido</h3>
                               <div className="space-y-4">
                                  {ped.pedidos_itens?.map((it, i) => (
                                     <div key={i} className="flex justify-between items-start">
                                        <div className="flex gap-3">
-                                          <span className="font-black text-slate-400">{it.quantidade}x</span>
+                                          <span className="font-black text-slate-500">{it.quantidade}x</span>
                                           <div>
                                              <p className="font-bold text-slate-800">{it.produtos.nome_produto}</p>
                                              {it.observacao && <p className="text-xs font-bold text-amber-600 mt-1 bg-amber-50 px-2 py-1 inline-block rounded">Obs: {it.observacao}</p>}
@@ -141,10 +141,10 @@ export default function GestorOnlinePage() {
                         {/* LADO DIREITO: Total e Ações */}
                         <div className="w-full md:w-80 flex flex-col justify-between">
                            <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-lg mb-4">
-                              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Total a Receber</p>
+                              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">Total a Receber</p>
                               <p className="text-4xl font-black text-emerald-400 mb-4">{fmtBRL(ped.valor_total)}</p>
                               {ped.troco_para && (
-                                 <p className="text-sm font-bold text-slate-300 bg-slate-800 p-3 rounded-xl border border-slate-700">Troco p/: {ped.troco_para}</p>
+                                 <p className="text-sm font-bold text-slate-500 bg-slate-800 p-3 rounded-xl border border-slate-700">Troco p/: {ped.troco_para}</p>
                               )}
                            </div>
 

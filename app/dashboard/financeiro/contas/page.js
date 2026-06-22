@@ -62,7 +62,7 @@ export default function ContasAPagarPage() {
          <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div>
                <h1 className="text-4xl font-black tracking-tighter">Contas a Pagar</h1>
-               <p className="text-slate-400 font-bold uppercase tracking-widest text-xs mt-1">Gestão de Custos e Despesas</p>
+               <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Gestão de Custos e Despesas</p>
             </div>
             <button onClick={() => setModalOpen(true)} className="px-6 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl flex items-center gap-2 shadow-xl shadow-emerald-500/20 active:scale-95 transition-all">
                <Plus size={20}/> Nova Despesa
@@ -76,7 +76,7 @@ export default function ContasAPagarPage() {
                   <CalendarDays size={28}/>
                </div>
                <div>
-                  <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Pendente (A Pagar)</p>
+                  <p className="text-[10px] uppercase font-bold tracking-widest text-slate-500">Pendente (A Pagar)</p>
                   <p className="text-3xl font-black text-amber-400">{fmtBRL(aPagarTotal)}</p>
                </div>
             </div>
@@ -85,7 +85,7 @@ export default function ContasAPagarPage() {
                   <Wallet size={28}/>
                </div>
                <div>
-                  <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Total Pago</p>
+                  <p className="text-[10px] uppercase font-bold tracking-widest text-slate-500">Total Pago</p>
                   <p className="text-3xl font-black text-emerald-400">{fmtBRL(pagasTotal)}</p>
                </div>
             </div>
@@ -97,16 +97,16 @@ export default function ContasAPagarPage() {
             
             <div className="flex items-center gap-4 mb-6 pb-6 border-b border-slate-100">
                <div className="flex-1 relative">
-                  <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"/>
+                  <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"/>
                   <input type="text" placeholder="Buscar despesa..." className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-sm outline-none focus:bg-white focus:border-emerald-500 transition-colors"/>
                </div>
                <button className="p-3 bg-slate-50 border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-100"><Filter size={18}/></button>
             </div>
 
             {loading ? (
-               <div className="text-center py-10 font-bold text-slate-400">Carregando contas...</div>
+               <div className="text-center py-10 font-bold text-slate-500">Carregando contas...</div>
             ) : contas.length === 0 ? (
-               <div className="text-center py-20 text-slate-400">
+               <div className="text-center py-20 text-slate-500">
                   <Wallet size={48} className="mx-auto mb-4 opacity-20"/>
                   <p className="font-bold">Nenhuma conta cadastrada.</p>
                </div>
@@ -114,7 +114,7 @@ export default function ContasAPagarPage() {
                <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                      <thead>
-                        <tr className="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b-2 border-slate-100">
+                        <tr className="text-[10px] font-black uppercase tracking-widest text-slate-500 border-b-2 border-slate-100">
                            <th className="pb-4 pl-4">Vencimento</th>
                            <th className="pb-4">Descrição</th>
                            <th className="pb-4">Categoria</th>

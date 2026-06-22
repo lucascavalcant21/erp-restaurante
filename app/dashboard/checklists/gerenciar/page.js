@@ -83,7 +83,7 @@ export default function GerenciarChecklistsPage() {
            </div>
            <div>
               <h1 className="text-4xl font-black tracking-tighter text-slate-900">Gerenciar Checklists</h1>
-              <p className="text-slate-500 font-bold uppercase tracking-widest text-xs mt-1">Crie as listas de tarefas</p>
+              <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Crie as listas de tarefas</p>
            </div>
          </div>
          <button onClick={abrirNovo} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
@@ -93,9 +93,9 @@ export default function GerenciarChecklistsPage() {
 
       <div className="max-w-5xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
          {loading ? (
-           <p className="font-bold text-slate-400">Carregando checklists...</p>
+           <p className="font-bold text-slate-500">Carregando checklists...</p>
          ) : templates.length === 0 ? (
-           <p className="col-span-full font-bold text-slate-400">Nenhum checklist criado para esta unidade ainda.</p>
+           <p className="col-span-full font-bold text-slate-500">Nenhum checklist criado para esta unidade ainda.</p>
          ) : (
            templates.map(t => (
              <div key={t.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow relative group">
@@ -107,8 +107,8 @@ export default function GerenciarChecklistsPage() {
                       {t.departamento} • {t.tipo}
                    </span>
                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => abrirEditar(t)} className="text-slate-400 hover:text-emerald-600"><Edit3 size={16}/></button>
-                      <button onClick={() => handleDesativar(t.id)} className="text-slate-400 hover:text-red-600"><Trash2 size={16}/></button>
+                      <button onClick={() => abrirEditar(t)} className="text-slate-500 hover:text-emerald-600"><Edit3 size={16}/></button>
+                      <button onClick={() => handleDesativar(t.id)} className="text-slate-500 hover:text-red-600"><Trash2 size={16}/></button>
                    </div>
                 </div>
                 <h3 className="text-xl font-black text-slate-800 leading-tight">{t.titulo}</h3>
@@ -156,7 +156,7 @@ export default function GerenciarChecklistsPage() {
                      <div className="space-y-3">
                         {form.itens.map((it, i) => (
                            <div key={it.id} className="flex items-center gap-2">
-                              <span className="w-6 text-center font-black text-slate-300 text-sm">{i+1}.</span>
+                              <span className="w-6 text-center font-black text-slate-500 text-sm">{i+1}.</span>
                               <input 
                                  type="text" 
                                  placeholder="O que deve ser feito?"
@@ -164,7 +164,7 @@ export default function GerenciarChecklistsPage() {
                                  onChange={e => mudaTarefa(it.id, e.target.value)}
                                  className="flex-1 p-3 bg-white border border-slate-200 rounded-lg font-medium outline-none focus:border-emerald-500"
                               />
-                              <button onClick={() => removeTarefa(it.id)} className="p-3 text-slate-400 hover:text-red-500 transition-colors"><Trash2 size={18}/></button>
+                              <button onClick={() => removeTarefa(it.id)} className="p-3 text-slate-500 hover:text-red-500 transition-colors"><Trash2 size={18}/></button>
                            </div>
                         ))}
                      </div>

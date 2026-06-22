@@ -58,14 +58,14 @@ function KDSRunner() {
       {/* TOPBAR KDS (Escuro) */}
       <div className="bg-black/40 border-b border-slate-800 p-4 flex items-center justify-between sticky top-0 z-10 backdrop-blur-md">
          <div className="flex items-center gap-4">
-           <button onClick={() => router.back()} className="p-3 text-slate-400 hover:text-white bg-slate-800 rounded-xl transition-colors">
+           <button onClick={() => router.back()} className="p-3 text-slate-500 hover:text-white bg-slate-800 rounded-xl transition-colors">
               <ArrowLeft size={20}/>
            </button>
            <div>
               <h1 className="text-2xl font-black tracking-tighter text-white flex items-center gap-2">
                  <MonitorPlay size={24} className="text-emerald-500"/> KDS - {deptUrl.toUpperCase()}
               </h1>
-              <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mt-1">Kitchen Display System • Atualização em Tempo Real</p>
+              <p className="text-slate-700 font-bold uppercase tracking-widest text-[10px] mt-1">Kitchen Display System • Atualização em Tempo Real</p>
            </div>
          </div>
       </div>
@@ -145,7 +145,7 @@ function KDSRunner() {
 
 export default function Page() {
   return (
-    <Suspense fallback={<div className="p-10 text-center font-bold text-slate-400">Iniciando KDS...</div>}>
+    <Suspense fallback={<div className="p-10 text-center font-bold text-slate-500">Iniciando KDS...</div>}>
        <KDSRunner />
     </Suspense>
   );

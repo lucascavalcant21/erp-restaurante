@@ -99,7 +99,7 @@ export default function KDSPage() {
       {/* HEADER DO KDS */}
       <div className="px-6 py-4 bg-slate-900 border-b border-slate-800 flex items-center justify-between shadow-sm z-50">
          <div className="flex items-center gap-6">
-            <button onClick={() => router.push("/dashboard")} className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl transition-colors active:scale-95">
+            <button onClick={() => router.push("/dashboard")} className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-500 hover:text-white rounded-xl transition-colors active:scale-95">
                <ArrowLeft size={24} />
             </button>
             
@@ -182,7 +182,7 @@ export default function KDSPage() {
                            <div className={`px-4 py-2 rounded-xl flex flex-col items-end border ${
                               isAtrasado ? 'bg-red-500/20 border-red-500/30' : 'bg-slate-800/50 border-slate-700'
                            }`}>
-                              <p className={`text-2xl font-black flex items-center gap-2 ${isAtrasado ? 'text-red-500 animate-pulse' : 'text-slate-300'}`}>
+                              <p className={`text-2xl font-black flex items-center gap-2 ${isAtrasado ? 'text-red-500 animate-pulse' : 'text-slate-500'}`}>
                                  <Clock size={20} /> {minutos}m
                               </p>
                               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">{horaStr(pedido.created_at)}</p>
@@ -197,7 +197,7 @@ export default function KDSPage() {
                               // Configs Visuais por Status
                               let stBg = "bg-slate-800";
                               let stBorder = "border-slate-700";
-                              let stText = "text-slate-300";
+                              let stText = "text-slate-500";
                               let stIcon = <div className="w-6 h-6 rounded-full border-4 border-slate-600" />;
                               
                               if (st === "preparando") {

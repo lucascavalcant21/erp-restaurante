@@ -12,7 +12,7 @@ export default function DashboardIndex() {
   }, [router]);
 
   return (
-    <div className="flex h-screen items-center justify-center text-slate-400 font-bold">
+    <div className="flex h-screen items-center justify-center text-slate-500 font-bold">
       Entrando na Unidade...
     </div>
   );

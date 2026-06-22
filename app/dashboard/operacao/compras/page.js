@@ -59,7 +59,7 @@ export default function ComprasPage() {
               </div>
               <div>
                  <h1 className="text-4xl font-black tracking-tighter">Entrada de Compras</h1>
-                 <p className="text-slate-400 font-bold uppercase tracking-widest text-xs mt-1">Integração: Estoque e Financeiro</p>
+                 <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Integração: Estoque e Financeiro</p>
               </div>
             </div>
             <button onClick={() => setModalOpen(true)} className="px-6 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl flex items-center gap-2 shadow-xl shadow-emerald-500/20 active:scale-95 transition-all">
@@ -82,7 +82,7 @@ export default function ComprasPage() {
          </div>
 
          {loading ? (
-            <p className="text-center font-bold text-slate-400">Carregando insumos...</p>
+            <p className="text-center font-bold text-slate-500">Carregando insumos...</p>
          ) : (
             <div className="bg-white rounded-[32px] p-6 border border-slate-200 shadow-xl shadow-slate-200/50">
                <h2 className="text-xl font-black text-slate-800 mb-6 px-2">Status do Estoque de Insumos</h2>
@@ -91,7 +91,7 @@ export default function ComprasPage() {
                      <div key={ins.insumo_id} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
                         <p className="font-bold text-slate-700 leading-tight mb-2">{ins.nome}</p>
                         <div className="flex justify-between items-end mt-auto">
-                           <span className="text-[10px] uppercase font-black text-slate-400">{ins.departamento}</span>
+                           <span className="text-[10px] uppercase font-black text-slate-500">{ins.departamento}</span>
                            <span className="text-lg font-black text-indigo-600">{ins.quantidade_atual} {ins.unidade_medida}</span>
                         </div>
                      </div>
@@ -107,7 +107,7 @@ export default function ComprasPage() {
                <h2 className="font-black text-2xl text-slate-800 mb-6">Registrar Compra</h2>
                <form onSubmit={handleComprar} className="space-y-4">
                   <div>
-                     <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">O que você comprou?</label>
+                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">O que você comprou?</label>
                      <select required value={form.insumoId} onChange={e=>setForm({...form, insumoId: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-800 outline-none focus:border-emerald-500">
                         <option value="">-- Selecione o Insumo --</option>
                         {insumos.map(i => <option key={i.insumo_id} value={i.insumo_id}>{i.nome}</option>)}
@@ -115,11 +115,11 @@ export default function ComprasPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                      <div>
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">Qtd (Em {insumos.find(i=>i.insumo_id===form.insumoId)?.unidade_medida || 'un'})</label>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Qtd (Em {insumos.find(i=>i.insumo_id===form.insumoId)?.unidade_medida || 'un'})</label>
                         <input required type="number" step="0.01" min="0" value={form.quantidade} onChange={e=>setForm({...form, quantidade: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-800 outline-none focus:border-emerald-500"/>
                      </div>
                      <div>
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">Valor Total Pago (R$)</label>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Valor Total Pago (R$)</label>
                         <input required type="text" placeholder="50,00" value={form.valorPago} onChange={e=>setForm({...form, valorPago: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-black text-emerald-600 outline-none focus:border-emerald-500"/>
                      </div>
                   </div>

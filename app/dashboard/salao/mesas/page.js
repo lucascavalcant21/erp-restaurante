@@ -124,7 +124,7 @@ export default function SaloesMesasPage() {
 
               <div className="flex-1 overflow-y-auto p-6 bg-slate-50 custom-scrollbar">
                  {pedidoAtivo.pedidos_itens?.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-slate-400">
+                    <div className="h-full flex flex-col items-center justify-center text-slate-500">
                        <Coffee size={64} className="mb-4 opacity-20"/>
                        <p className="font-bold text-lg">Mesa sem itens</p>
                        <p className="text-sm">Comece lançando o primeiro pedido.</p>
@@ -160,7 +160,7 @@ export default function SaloesMesasPage() {
               <div>
                  <h3 className="font-black text-2xl mb-8 flex items-center gap-3"><ShoppingCart size={24}/> Resumo da Conta</h3>
                  
-                 <div className="space-y-4 text-slate-400 font-medium">
+                 <div className="space-y-4 text-slate-500 font-medium">
                     <div className="flex justify-between"><span>Subtotal Itens</span><span className="text-white">{fmtBRL(totalComanda)}</span></div>
                     <div className="flex justify-between"><span>Taxa de Serviço (10%)</span><span className="text-white">{fmtBRL(totalComanda * 0.1)}</span></div>
                     <div className="w-full h-px bg-slate-800 my-4"></div>
@@ -187,7 +187,7 @@ export default function SaloesMesasPage() {
                     
                     <div className="space-y-5">
                        <div>
-                          <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">Produto do Cardápio</label>
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Produto do Cardápio</label>
                           <select value={produtoSel} onChange={e=>setProdutoSel(e.target.value)} className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-800 text-lg outline-none focus:border-emerald-500">
                              <option value="">-- Buscar Produto --</option>
                              {produtos.map(p => <option key={p.id} value={p.id}>{p.nome_produto} ({fmtBRL(p.preco_venda)})</option>)}
@@ -196,7 +196,7 @@ export default function SaloesMesasPage() {
 
                        <div className="grid grid-cols-3 gap-4 items-end">
                           <div className="col-span-1">
-                             <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2 text-center">Quantidade</label>
+                             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2 text-center">Quantidade</label>
                              <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-2xl p-2">
                                 <button onClick={()=>setQtdLancamento(q=>Math.max(1, q-1))} className="w-10 h-10 rounded-xl bg-white text-slate-500 font-black shadow-sm">-</button>
                                 <span className="font-black text-xl text-slate-800">{qtdLancamento}</span>
@@ -204,7 +204,7 @@ export default function SaloesMesasPage() {
                              </div>
                           </div>
                           <div className="col-span-2">
-                             <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">Observação p/ KDS</label>
+                             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Observação p/ KDS</label>
                              <input type="text" placeholder="Ex: Sem gelo" value={obsLancamento} onChange={e=>setObsLancamento(e.target.value)} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-medium outline-none focus:border-emerald-500"/>
                           </div>
                        </div>
@@ -237,10 +237,10 @@ export default function SaloesMesasPage() {
               </div>
               <div>
                  <h1 className="text-4xl font-black tracking-tighter">Salão e Mesas</h1>
-                 <p className="text-slate-400 font-bold uppercase tracking-widest text-xs mt-1">PDV de Garçom - Atendimento Rápido</p>
+                 <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">PDV de Garçom - Atendimento Rápido</p>
               </div>
             </div>
-            <button onClick={handleCriarMesa} className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg font-bold text-sm transition-colors border border-slate-700">
+            <button onClick={handleCriarMesa} className="bg-slate-800 hover:bg-slate-700 text-slate-500 px-4 py-2 rounded-lg font-bold text-sm transition-colors border border-slate-700">
                + Adicionar Mesa
             </button>
          </div>
@@ -248,10 +248,10 @@ export default function SaloesMesasPage() {
 
       <div className="max-w-7xl mx-auto px-8 mt-10">
          {loading ? (
-            <p className="font-bold text-slate-400">Desenhando salão...</p>
+            <p className="font-bold text-slate-500">Desenhando salão...</p>
          ) : mesas.length === 0 ? (
             <div className="text-center p-10 bg-white border border-slate-200 rounded-3xl max-w-lg mx-auto mt-20">
-               <Users size={48} className="mx-auto text-slate-300 mb-6"/>
+               <Users size={48} className="mx-auto text-slate-500 mb-6"/>
                <h3 className="text-2xl font-black text-slate-700">Seu salão está vazio</h3>
                <p className="text-slate-500 mt-2 font-medium mb-6">Crie as mesas do seu restaurante para começar a vender.</p>
                <button onClick={handleCriarMesa} className="bg-emerald-500 text-white px-8 py-4 rounded-xl font-black hover:bg-emerald-600 transition-colors">Gerar Primeira Mesa</button>
@@ -268,7 +268,7 @@ export default function SaloesMesasPage() {
                           'bg-amber-400 border-amber-500 text-amber-900'}
                      `}
                   >
-                     <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${m.status === 'livre' ? 'bg-slate-100 text-slate-400' : 'bg-black/20 text-white'}`}>
+                     <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${m.status === 'livre' ? 'bg-slate-100 text-slate-500' : 'bg-black/20 text-white'}`}>
                         {m.status}
                      </span>
                      <div>

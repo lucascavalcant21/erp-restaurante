@@ -94,7 +94,7 @@ export default function HeitorPage() {
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Online
                 </span>
               </div>
-              <p className="text-xs font-medium text-slate-400 flex items-center gap-1 mt-0.5">
+              <p className="text-xs font-medium text-slate-500 flex items-center gap-1 mt-0.5">
                 <Cpu size={12}/> Analisando dados da unidade <span className="text-white font-bold">{unidadeInfo.nome}</span>
               </p>
             </div>
@@ -168,7 +168,7 @@ export default function HeitorPage() {
               <Send size={18} color="#fff" className="ml-1" />
             </button>
           </div>
-          <p className="text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-3">
+          <p className="text-center text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-3">
             Hefisto AI processa os dados em tempo real.
           </p>
         </div>

@@ -85,11 +85,11 @@ function ChecklistRunner() {
       <div className="min-h-screen bg-slate-50 font-sans pb-32">
          {/* Topbar Fixo */}
          <div className="sticky top-0 bg-white border-b border-slate-200 z-10 px-4 py-4 flex items-center gap-4">
-            <button onClick={() => setChecklistAtual(null)} className="p-2 text-slate-400 hover:text-slate-800 bg-slate-100 rounded-full">
+            <button onClick={() => setChecklistAtual(null)} className="p-2 text-slate-500 hover:text-slate-800 bg-slate-100 rounded-full">
                <ArrowLeft size={20}/>
             </button>
             <div className="flex-1">
-               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{checklistAtual.tipo} • {checklistAtual.departamento}</p>
+               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{checklistAtual.tipo} • {checklistAtual.departamento}</p>
                <h1 className="text-xl font-black text-slate-800 leading-tight">{checklistAtual.titulo}</h1>
             </div>
             <div className="text-right">
@@ -159,12 +159,12 @@ function ChecklistRunner() {
     <div className="min-h-screen bg-slate-50 font-sans pb-24 text-slate-800">
       <div className="pt-6 pb-8 px-6 max-w-3xl mx-auto flex items-center justify-between">
          <div className="flex items-center gap-4">
-           <button onClick={() => router.back()} className="p-3 text-slate-400 hover:text-slate-800 bg-white shadow-sm border border-slate-200 rounded-full">
+           <button onClick={() => router.back()} className="p-3 text-slate-500 hover:text-slate-800 bg-white shadow-sm border border-slate-200 rounded-full">
               <ArrowLeft size={20}/>
            </button>
            <div>
               <h1 className="text-3xl font-black tracking-tighter text-slate-900 capitalize">Checklists {dept}</h1>
-              <p className="text-slate-500 font-bold uppercase tracking-widest text-xs mt-1 capitalize">Tipo: {tipo}</p>
+              <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1 capitalize">Tipo: {tipo}</p>
            </div>
          </div>
          <button onClick={() => router.push("/dashboard/checklists/gerenciar")} className="bg-slate-900 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-md hover:bg-slate-800 transition-colors">
@@ -174,10 +174,10 @@ function ChecklistRunner() {
 
       <div className="max-w-3xl mx-auto px-6">
          {loading ? (
-            <p className="font-bold text-slate-400">Buscando formulários...</p>
+            <p className="font-bold text-slate-500">Buscando formulários...</p>
          ) : templates.length === 0 ? (
             <div className="text-center p-10 bg-white border border-slate-200 rounded-3xl">
-               <CheckSquare size={40} className="mx-auto text-slate-300 mb-4"/>
+               <CheckSquare size={40} className="mx-auto text-slate-500 mb-4"/>
                <h3 className="text-xl font-black text-slate-700">Nenhum checklist disponível</h3>
                <p className="text-slate-500 mt-2 font-medium">Peça ao gestor para criar modelos no Gerenciador de Checklists.</p>
             </div>
@@ -195,7 +195,7 @@ function ChecklistRunner() {
                         </span>
                         <h3 className="text-2xl font-black text-slate-800">{t.titulo}</h3>
                      </div>
-                     <div className="w-12 h-12 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+                     <div className="w-12 h-12 rounded-full bg-slate-50 text-slate-500 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-white transition-colors">
                         <ChevronRight size={24}/>
                      </div>
                   </button>
@@ -209,7 +209,7 @@ function ChecklistRunner() {
 
 export default function Page() {
   return (
-    <Suspense fallback={<div className="p-10 font-bold text-slate-400">Carregando módulo...</div>}>
+    <Suspense fallback={<div className="p-10 font-bold text-slate-500">Carregando módulo...</div>}>
       <ChecklistRunner />
     </Suspense>
   );

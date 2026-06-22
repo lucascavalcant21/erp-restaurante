@@ -162,7 +162,7 @@ function VendasPDVContent() {
     setSalvando(false);
   }
 
-  if (loading) return <div className="flex h-screen items-center justify-center font-black text-2xl text-slate-400 bg-slate-50">Iniciando PDV...</div>;
+  if (loading) return <div className="flex h-screen items-center justify-center font-black text-2xl text-slate-500 bg-slate-50">Iniciando PDV...</div>;
 
   return (
     <div className="flex h-screen bg-slate-100 overflow-hidden font-sans">
@@ -182,7 +182,7 @@ function VendasPDVContent() {
                </button>
             )}
             <div className="relative flex-1">
-               <SearchIcon size={24} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+               <SearchIcon size={24} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
                <input 
                  type="text" 
                  placeholder="Buscar produto..." 
@@ -232,7 +232,7 @@ function VendasPDVContent() {
                         </div>
                       )}
                       
-                      <div className="h-40 bg-slate-100 flex items-center justify-center text-slate-300 relative overflow-hidden group-hover:bg-slate-200 transition-colors">
+                      <div className="h-40 bg-slate-100 flex items-center justify-center text-slate-500 relative overflow-hidden group-hover:bg-slate-200 transition-colors">
                          <ImageIcon size={48} className="opacity-50" />
                       </div>
                       
@@ -255,13 +255,13 @@ function VendasPDVContent() {
             <h2 className="font-black text-2xl text-slate-800 tracking-tight">
               {isMesa ? `Comanda: ${comandaAberta.nome_cliente}` : "Venda Balcão"}
             </h2>
-            <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">{totalItens} Itens</p>
+            <p className="text-sm font-bold text-slate-500 mt-1 uppercase tracking-widest">{totalItens} Itens</p>
          </div>
 
          {/* Lista de Itens do Cupom */}
          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
             {itensCarrinho.length === 0 ? (
-               <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
+               <div className="flex-1 flex flex-col items-center justify-center text-slate-500">
                  <div className="w-20 h-20 bg-slate-200 rounded-full flex items-center justify-center mb-4">
                    <Plus size={32} className="text-slate-500" />
                  </div>
@@ -277,7 +277,7 @@ function VendasPDVContent() {
                     </div>
                     
                     <div className="flex items-center justify-between">
-                       <span className="text-sm font-bold text-slate-400">{fmtBRL(item.preco)} un</span>
+                       <span className="text-sm font-bold text-slate-500">{fmtBRL(item.preco)} un</span>
                        
                        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
                           <button onClick={() => handleMinusItem(item)} className="w-10 h-10 flex items-center justify-center bg-white shadow-sm text-slate-600 hover:text-red-500 rounded-lg active:scale-95 transition-all">
@@ -315,7 +315,7 @@ function VendasPDVContent() {
             <button 
               disabled={totalItens === 0} 
               onClick={() => setModalCheckout(true)} 
-              className="w-full py-6 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-black text-xl uppercase tracking-widest rounded-2xl shadow-xl shadow-blue-600/30 transition-all duration-200 active:scale-95 flex items-center justify-center gap-3"
+              className="w-full py-6 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-500 text-white font-black text-xl uppercase tracking-widest rounded-2xl shadow-xl shadow-blue-600/30 transition-all duration-200 active:scale-95 flex items-center justify-center gap-3"
             >
                Cobrar {totalItens > 0 ? fmtBRL(totalFinal) : ""}
             </button>
@@ -328,7 +328,7 @@ function VendasPDVContent() {
           <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-md p-8 animate-in zoom-in-95 duration-200">
             <div className="flex justify-between items-center mb-8">
               <h2 className="font-black text-3xl text-slate-800 tracking-tight">Nova Mesa</h2>
-              <button onClick={() => router.push("/dashboard/mesas")} className="text-slate-400 hover:text-slate-800 bg-slate-100 w-12 h-12 rounded-full flex items-center justify-center transition-colors"><X size={24}/></button>
+              <button onClick={() => router.push("/dashboard/mesas")} className="text-slate-500 hover:text-slate-800 bg-slate-100 w-12 h-12 rounded-full flex items-center justify-center transition-colors"><X size={24}/></button>
             </div>
             
             <label className="block text-sm font-bold text-slate-500 uppercase tracking-widest mb-3">Nome do Cliente</label>
@@ -359,7 +359,7 @@ function VendasPDVContent() {
             <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
               <div>
                 <h2 className="font-black text-3xl text-slate-800 tracking-tight">Pagamento</h2>
-                <p className="text-sm font-bold text-slate-400 uppercase mt-2 tracking-widest">{isMesa ? comandaAberta.nome_cliente : "Venda Balcão"}</p>
+                <p className="text-sm font-bold text-slate-500 uppercase mt-2 tracking-widest">{isMesa ? comandaAberta.nome_cliente : "Venda Balcão"}</p>
               </div>
               <button onClick={() => setModalCheckout(false)} className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors"><X size={24}/></button>
             </div>
@@ -394,7 +394,7 @@ function VendasPDVContent() {
                          : 'border-transparent bg-white text-slate-500 font-bold hover:border-slate-200'
                      }`}
                    >
-                     <m.icon size={28} className={formaPgto === m.id ? 'text-blue-600' : 'text-slate-400'} />
+                     <m.icon size={28} className={formaPgto === m.id ? 'text-blue-600' : 'text-slate-500'} />
                      <span className="text-lg">{m.label}</span>
                    </button>
                  ))}
@@ -417,7 +417,7 @@ function VendasPDVContent() {
 
 export default function VendasPage() {
   return (
-    <Suspense fallback={<div className="flex h-screen items-center justify-center font-black text-2xl text-slate-400 bg-slate-50">Iniciando PDV...</div>}>
+    <Suspense fallback={<div className="flex h-screen items-center justify-center font-black text-2xl text-slate-500 bg-slate-50">Iniciando PDV...</div>}>
       <VendasPDVContent />
     </Suspense>
   )

@@ -36,7 +36,7 @@ export default function CardapioGeradorPage() {
       <div className="bg-white border-b border-slate-200 pt-6 pb-6 px-6 sticky top-0 z-10">
          <div className="max-w-4xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <button onClick={() => router.back()} className="p-3 text-slate-400 hover:text-slate-800 bg-slate-50 rounded-full border border-slate-200">
+              <button onClick={() => router.back()} className="p-3 text-slate-500 hover:text-slate-800 bg-slate-50 rounded-full border border-slate-200">
                  <ArrowLeft size={20}/>
               </button>
               <div className="w-14 h-14 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center shadow-inner">
@@ -44,7 +44,7 @@ export default function CardapioGeradorPage() {
               </div>
               <div>
                  <h1 className="text-3xl font-black tracking-tighter text-slate-900">Cardápio Digital</h1>
-                 <p className="text-slate-500 font-bold uppercase tracking-widest text-xs mt-1">Gere o QR Code para as mesas</p>
+                 <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Gere o QR Code para as mesas</p>
               </div>
             </div>
          </div>
@@ -61,7 +61,7 @@ export default function CardapioGeradorPage() {
                </p>
 
                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm mb-6">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Link Oficial</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 block">Link Oficial</label>
                   <div className="flex items-center gap-2 bg-slate-50 p-3 rounded-xl border border-slate-100">
                      <input type="text" readOnly value={urlPublica} className="flex-1 bg-transparent text-sm font-bold text-slate-600 outline-none truncate"/>
                      <button onClick={copiarLink} className="p-2 bg-white rounded-lg border border-slate-200 text-slate-500 hover:text-blue-600 transition-colors" title="Copiar"><Copy size={16}/></button>
@@ -91,7 +91,7 @@ export default function CardapioGeradorPage() {
                      // eslint-disable-next-line @next/next/no-img-element
                      <img src={qrCodeUrl} alt="QR Code Cardapio" className="w-64 h-64 object-contain transition-transform group-hover:scale-105" />
                   ) : (
-                     <div className="w-64 h-64 flex items-center justify-center bg-slate-50 text-slate-300">
+                     <div className="w-64 h-64 flex items-center justify-center bg-slate-50 text-slate-500">
                         <QrCode size={64}/>
                      </div>
                   )}

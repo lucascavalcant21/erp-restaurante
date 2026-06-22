@@ -75,7 +75,7 @@ function IngredientesRunner() {
       <div className="bg-white border-b border-slate-200 pt-6 pb-6 px-6 sticky top-0 z-10">
          <div className="max-w-5xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <button onClick={() => router.back()} className="p-3 text-slate-400 hover:text-slate-800 bg-slate-50 rounded-full border border-slate-200">
+              <button onClick={() => router.back()} className="p-3 text-slate-500 hover:text-slate-800 bg-slate-50 rounded-full border border-slate-200">
                  <ArrowLeft size={20}/>
               </button>
               <div className="w-14 h-14 rounded-2xl bg-fuchsia-100 text-fuchsia-600 flex items-center justify-center shadow-inner">
@@ -83,7 +83,7 @@ function IngredientesRunner() {
               </div>
               <div>
                  <h1 className="text-3xl font-black tracking-tighter text-slate-900">Banco de Ingredientes</h1>
-                 <p className="text-slate-500 font-bold uppercase tracking-widest text-xs mt-1">Custo Base de Insumos {deptUrl ? `- ${deptUrl}` : ''}</p>
+                 <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Custo Base de Insumos {deptUrl ? `- ${deptUrl}` : ''}</p>
               </div>
             </div>
             <button onClick={abrirNovo} className="flex items-center gap-2 bg-fuchsia-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-fuchsia-700 transition-colors shadow-lg shadow-fuchsia-600/20">
@@ -94,7 +94,7 @@ function IngredientesRunner() {
 
       <div className="max-w-5xl mx-auto px-6 mt-8">
          <div className="bg-white p-3 rounded-2xl border border-slate-200 mb-6 flex items-center gap-3 shadow-sm">
-            <Search size={20} className="text-slate-400 ml-2" />
+            <Search size={20} className="text-slate-500 ml-2" />
             <input type="text" placeholder="Buscar ingrediente..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-bold text-slate-700 p-2" />
          </div>
 
@@ -102,19 +102,19 @@ function IngredientesRunner() {
             <table className="w-full text-left">
                <thead>
                   <tr className="bg-slate-50 border-b border-slate-100">
-                     <th className="p-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Ingrediente</th>
-                     <th className="p-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Unid. Base</th>
-                     <th className="p-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Custo / Base</th>
-                     <th className="p-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Ações</th>
+                     <th className="p-5 text-[10px] font-black uppercase tracking-widest text-slate-500">Ingrediente</th>
+                     <th className="p-5 text-[10px] font-black uppercase tracking-widest text-slate-500">Unid. Base</th>
+                     <th className="p-5 text-[10px] font-black uppercase tracking-widest text-slate-500">Custo / Base</th>
+                     <th className="p-5 text-[10px] font-black uppercase tracking-widest text-slate-500 text-right">Ações</th>
                   </tr>
                </thead>
                <tbody className="divide-y divide-slate-100">
-                  {loading && <tr><td colSpan={4} className="p-10 text-center text-slate-400 font-bold">Buscando insumos...</td></tr>}
+                  {loading && <tr><td colSpan={4} className="p-10 text-center text-slate-500 font-bold">Buscando insumos...</td></tr>}
                   {!loading && filtrados.map(ins => (
                      <tr key={ins.id} className="hover:bg-slate-50 transition-colors">
                         <td className="p-5">
                            <p className="font-bold text-slate-800 text-lg">{ins.nome}</p>
-                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Dept: {ins.departamento}</p>
+                           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Dept: {ins.departamento}</p>
                         </td>
                         <td className="p-5">
                            <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-lg font-bold text-xs uppercase tracking-widest">{ins.unidade_medida}</span>
@@ -123,13 +123,13 @@ function IngredientesRunner() {
                            <p className="font-black text-fuchsia-600 text-lg">{fmtBRL(ins.custo_unitario)}</p>
                         </td>
                         <td className="p-5 text-right">
-                           <button onClick={() => abrirEditar(ins)} className="p-2 text-slate-400 hover:text-fuchsia-600 transition-colors"><Edit3 size={18}/></button>
-                           <button onClick={() => handleRemover(ins.id)} className="p-2 text-slate-400 hover:text-red-500 transition-colors"><Trash2 size={18}/></button>
+                           <button onClick={() => abrirEditar(ins)} className="p-2 text-slate-500 hover:text-fuchsia-600 transition-colors"><Edit3 size={18}/></button>
+                           <button onClick={() => handleRemover(ins.id)} className="p-2 text-slate-500 hover:text-red-500 transition-colors"><Trash2 size={18}/></button>
                         </td>
                      </tr>
                   ))}
                   {!loading && filtrados.length === 0 && (
-                     <tr><td colSpan={4} className="p-10 text-center text-slate-400 font-bold">Nenhum ingrediente encontrado.</td></tr>
+                     <tr><td colSpan={4} className="p-10 text-center text-slate-500 font-bold">Nenhum ingrediente encontrado.</td></tr>
                   )}
                </tbody>
             </table>
@@ -176,7 +176,7 @@ function IngredientesRunner() {
                         <input type="number" placeholder="0.00" value={form.custo_unitario} onChange={e=>setForm({...form, custo_unitario: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-fuchsia-600 outline-none focus:border-fuchsia-500"/>
                      </div>
                   </div>
-                  <p className="text-[11px] font-medium text-slate-400 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                  <p className="text-[11px] font-medium text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-100">
                      Dica: Se você compra a garrafa de Vodka de 1 Litro por R$ 60,00, a Unidade Base é "L" e o Custo é "60". O sistema vai calcular os MLs sozinho nas fichas!
                   </p>
                </div>
@@ -194,7 +194,7 @@ function IngredientesRunner() {
 
 export default function Page() {
   return (
-    <Suspense fallback={<div className="p-10 text-center font-bold text-slate-400">Carregando módulo...</div>}>
+    <Suspense fallback={<div className="p-10 text-center font-bold text-slate-500">Carregando módulo...</div>}>
        <IngredientesRunner />
     </Suspense>
   );

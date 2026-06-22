@@ -35,7 +35,7 @@ export default function DashboardFinanceiroPage() {
          <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
             <div>
                <h1 className="text-4xl font-black tracking-tighter">Financeiro</h1>
-               <p className="text-slate-400 font-bold uppercase tracking-widest text-xs mt-1">DRE Gerencial e Fluxo de Caixa</p>
+               <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">DRE Gerencial e Fluxo de Caixa</p>
             </div>
             <div className="flex gap-4">
                <button onClick={() => router.push("/dashboard/financeiro/contas")} className="px-6 py-4 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-2xl flex items-center gap-2 transition-all">
@@ -48,11 +48,11 @@ export default function DashboardFinanceiroPage() {
       <div className="max-w-6xl mx-auto px-6 -mt-8 relative z-20">
          
          {loading ? (
-            <div className="text-center py-20 text-slate-400 font-bold animate-pulse bg-white rounded-3xl shadow-xl">
+            <div className="text-center py-20 text-slate-500 font-bold animate-pulse bg-white rounded-3xl shadow-xl">
                Calculando DRE do mês...
             </div>
          ) : !dre ? (
-            <div className="text-center py-20 text-slate-400">Erro ao carregar dados.</div>
+            <div className="text-center py-20 text-slate-500">Erro ao carregar dados.</div>
          ) : (
             <div className="space-y-6">
                
@@ -61,7 +61,7 @@ export default function DashboardFinanceiroPage() {
                   <div className="bg-white p-6 rounded-[32px] border border-slate-200 shadow-xl shadow-slate-200/50 flex flex-col justify-between">
                      <div className="flex justify-between items-start mb-4">
                         <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center"><ArrowUpRight size={24}/></div>
-                        <span className="text-[10px] uppercase font-black text-slate-400 bg-slate-100 px-2 py-1 rounded-md">Receitas</span>
+                        <span className="text-[10px] uppercase font-black text-slate-500 bg-slate-100 px-2 py-1 rounded-md">Receitas</span>
                      </div>
                      <div>
                         <p className="text-slate-500 font-medium text-sm">Faturamento Bruto</p>
@@ -72,7 +72,7 @@ export default function DashboardFinanceiroPage() {
                   <div className="bg-white p-6 rounded-[32px] border border-slate-200 shadow-xl shadow-slate-200/50 flex flex-col justify-between">
                      <div className="flex justify-between items-start mb-4">
                         <div className="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center"><ArrowDownRight size={24}/></div>
-                        <span className="text-[10px] uppercase font-black text-slate-400 bg-slate-100 px-2 py-1 rounded-md">Despesas Pagas</span>
+                        <span className="text-[10px] uppercase font-black text-slate-500 bg-slate-100 px-2 py-1 rounded-md">Despesas Pagas</span>
                      </div>
                      <div>
                         <p className="text-slate-500 font-medium text-sm">Custo Total</p>
@@ -117,7 +117,7 @@ export default function DashboardFinanceiroPage() {
                                     </p>
                                     <div className="text-right">
                                        <p className="font-black text-slate-900">{fmtBRL(valor)}</p>
-                                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{perc}% da Receita</p>
+                                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{perc}% da Receita</p>
                                     </div>
                                  </div>
                                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -139,7 +139,7 @@ export default function DashboardFinanceiroPage() {
                            <div className="flex items-center gap-4 bg-slate-800 p-4 rounded-2xl border border-slate-700">
                               <div className="w-12 h-12 bg-emerald-500/20 text-emerald-400 rounded-xl flex items-center justify-center"><UtensilsCrossed size={20}/></div>
                               <div className="flex-1">
-                                 <p className="text-xs uppercase font-black tracking-widest text-slate-400 mb-1">Salão (PDV)</p>
+                                 <p className="text-xs uppercase font-black tracking-widest text-slate-500 mb-1">Salão (PDV)</p>
                                  <p className="text-2xl font-black">{fmtBRL(dre.fatPorCanal.salao)}</p>
                               </div>
                            </div>
@@ -147,7 +147,7 @@ export default function DashboardFinanceiroPage() {
                            <div className="flex items-center gap-4 bg-slate-800 p-4 rounded-2xl border border-slate-700">
                               <div className="w-12 h-12 bg-indigo-500/20 text-indigo-400 rounded-xl flex items-center justify-center"><Motorbike size={20}/></div>
                               <div className="flex-1">
-                                 <p className="text-xs uppercase font-black tracking-widest text-slate-400 mb-1">Delivery / QR Code</p>
+                                 <p className="text-xs uppercase font-black tracking-widest text-slate-500 mb-1">Delivery / QR Code</p>
                                  <p className="text-2xl font-black">{fmtBRL(dre.fatPorCanal.delivery + dre.fatPorCanal.qrcode)}</p>
                               </div>
                            </div>
@@ -159,19 +159,19 @@ export default function DashboardFinanceiroPage() {
                         <h2 className="text-xl font-black text-slate-800 tracking-tight mb-6">Recebimentos</h2>
                         <div className="grid grid-cols-2 gap-4">
                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                              <p className="text-[10px] uppercase font-black tracking-widest text-slate-400 mb-1">PIX</p>
+                              <p className="text-[10px] uppercase font-black tracking-widest text-slate-500 mb-1">PIX</p>
                               <p className="text-lg font-black text-slate-800">{fmtBRL(dre.fatPorPagamento.pix)}</p>
                            </div>
                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                              <p className="text-[10px] uppercase font-black tracking-widest text-slate-400 mb-1">Cartão de Crédito</p>
+                              <p className="text-[10px] uppercase font-black tracking-widest text-slate-500 mb-1">Cartão de Crédito</p>
                               <p className="text-lg font-black text-slate-800">{fmtBRL(dre.fatPorPagamento.credito)}</p>
                            </div>
                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                              <p className="text-[10px] uppercase font-black tracking-widest text-slate-400 mb-1">Cartão de Débito</p>
+                              <p className="text-[10px] uppercase font-black tracking-widest text-slate-500 mb-1">Cartão de Débito</p>
                               <p className="text-lg font-black text-slate-800">{fmtBRL(dre.fatPorPagamento.debito)}</p>
                            </div>
                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                              <p className="text-[10px] uppercase font-black tracking-widest text-slate-400 mb-1">Dinheiro</p>
+                              <p className="text-[10px] uppercase font-black tracking-widest text-slate-500 mb-1">Dinheiro</p>
                               <p className="text-lg font-black text-slate-800">{fmtBRL(dre.fatPorPagamento.dinheiro)}</p>
                            </div>
                         </div>

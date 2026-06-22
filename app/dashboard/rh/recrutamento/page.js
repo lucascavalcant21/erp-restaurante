@@ -137,7 +137,7 @@ export default function RecrutamentoPage() {
                       <XCircle size={16} />
                     </button>
                   )}
-                  <button onClick={() => remover(c.id)} className="w-9 h-9 rounded-xl flex items-center justify-center bg-[var(--panel)] text-slate-400 hover:text-red-500 border border-[var(--line)]">
+                  <button onClick={() => remover(c.id)} className="w-9 h-9 rounded-xl flex items-center justify-center bg-[var(--panel)] text-slate-500 hover:text-red-500 border border-[var(--line)]">
                     <Trash2 size={16} />
                   </button>
                 </div>

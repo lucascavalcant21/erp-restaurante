@@ -85,7 +85,7 @@ export default function ProdutosPage() {
       <div className="bg-white border-b border-slate-200 pt-6 pb-6 px-6 sticky top-0 z-10">
          <div className="max-w-5xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <button onClick={() => router.back()} className="p-3 text-slate-400 hover:text-slate-800 bg-slate-50 rounded-full border border-slate-200">
+              <button onClick={() => router.back()} className="p-3 text-slate-500 hover:text-slate-800 bg-slate-50 rounded-full border border-slate-200">
                  <ArrowLeft size={20}/>
               </button>
               <div className="w-14 h-14 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center shadow-inner">
@@ -93,7 +93,7 @@ export default function ProdutosPage() {
               </div>
               <div>
                  <h1 className="text-3xl font-black tracking-tighter text-slate-900">Produtos para Venda</h1>
-                 <p className="text-slate-500 font-bold uppercase tracking-widest text-xs mt-1">O que o cliente vê no Salão e no QR Code</p>
+                 <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">O que o cliente vê no Salão e no QR Code</p>
               </div>
             </div>
             <button onClick={abrirNovo} className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20">
@@ -104,16 +104,16 @@ export default function ProdutosPage() {
 
       <div className="max-w-5xl mx-auto px-6 mt-8">
          <div className="bg-white p-3 rounded-2xl border border-slate-200 mb-6 flex items-center gap-3 shadow-sm">
-            <Search size={20} className="text-slate-400 ml-2" />
+            <Search size={20} className="text-slate-500 ml-2" />
             <input type="text" placeholder="Buscar produto no cardápio..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-bold text-slate-700 p-2" />
          </div>
 
          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {loading ? (
-               <p className="font-bold text-slate-400 col-span-full">Buscando produtos...</p>
+               <p className="font-bold text-slate-500 col-span-full">Buscando produtos...</p>
             ) : filtrados.length === 0 ? (
                <div className="col-span-full text-center p-10 bg-white border border-slate-200 rounded-3xl">
-                  <UtensilsCrossed size={40} className="mx-auto text-slate-300 mb-4"/>
+                  <UtensilsCrossed size={40} className="mx-auto text-slate-500 mb-4"/>
                   <h3 className="text-xl font-black text-slate-700">O cardápio está vazio</h3>
                   <p className="text-slate-500 mt-2 font-medium">Você precisa cadastrar produtos para que o garçom consiga lançar comandas.</p>
                </div>
@@ -124,18 +124,18 @@ export default function ProdutosPage() {
                         <span className="bg-slate-100 text-slate-500 px-3 py-1 rounded-lg font-black text-[10px] uppercase tracking-widest">
                            {p.categoria}
                         </span>
-                        <button onClick={() => abrirEditar(p)} className="text-slate-400 hover:text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity p-1"><Edit3 size={18}/></button>
+                        <button onClick={() => abrirEditar(p)} className="text-slate-500 hover:text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity p-1"><Edit3 size={18}/></button>
                      </div>
                      <h3 className="text-xl font-black text-slate-800 leading-tight mb-4">{p.nome_produto}</h3>
                      
                      <div className="flex justify-between items-end">
                         <div>
-                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Preço (PDV)</p>
+                           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Preço (PDV)</p>
                            <p className="font-black text-2xl text-indigo-600">{fmtBRL(p.preco_venda)}</p>
                         </div>
                         <div className="text-right">
-                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Vinculado a</p>
-                           <p className={`font-bold text-xs ${p.fichas_tecnicas ? 'text-emerald-600' : 'text-slate-300'}`}>
+                           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Vinculado a</p>
+                           <p className={`font-bold text-xs ${p.fichas_tecnicas ? 'text-emerald-600' : 'text-slate-500'}`}>
                               {p.fichas_tecnicas ? p.fichas_tecnicas.nome_receita : 'Sem baixa de estoque'}
                            </p>
                         </div>
@@ -192,7 +192,7 @@ export default function ProdutosPage() {
                         <option value="">-- Não dar baixa no estoque --</option>
                         {fichas.map(f => <option key={f.id} value={f.id}>{f.nome_receita} ({f.departamento})</option>)}
                      </select>
-                     <p className="text-[10px] text-slate-400 mt-2 font-medium">Se vinculado, ao vender este produto o sistema dará baixa nos insumos da ficha automaticamente e exibirá no KDS.</p>
+                     <p className="text-[10px] text-slate-500 mt-2 font-medium">Se vinculado, ao vender este produto o sistema dará baixa nos insumos da ficha automaticamente e exibirá no KDS.</p>
                   </div>
                </div>
 

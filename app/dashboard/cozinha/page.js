@@ -20,7 +20,7 @@ export default function CozinhaHubPage() {
          </div>
          <div>
             <h1 className="text-4xl font-black tracking-tighter text-slate-900">Op. Cozinha</h1>
-            <p className="text-slate-500 font-bold uppercase tracking-widest text-xs mt-1">Gestão de Produção e Insumos</p>
+            <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Gestão de Produção e Insumos</p>
          </div>
       </div>
 
@@ -50,11 +50,11 @@ export default function CozinhaHubPage() {
          <button onClick={() => router.push("/dashboard/operacao/cardapio")} className="col-span-2 row-span-1 rounded-[24px] p-6 bg-white border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all flex flex-col justify-between group">
             <div className="flex justify-between items-start">
                <div className="w-10 h-10 rounded-xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors"><FileText size={20} /></div>
-               <Link size={16} className="text-slate-300" />
+               <Link size={16} className="text-slate-500" />
             </div>
             <div>
                <h3 className="font-bold text-slate-800 text-lg">Cardápio Digital</h3>
-               <p className="text-[10px] uppercase font-bold text-slate-400 mt-0.5">Gestão de Itens e QR Code</p>
+               <p className="text-[10px] uppercase font-bold text-slate-500 mt-0.5">Gestão de Itens e QR Code</p>
             </div>
          </button>
 
@@ -62,7 +62,7 @@ export default function CozinhaHubPage() {
             <div className="w-10 h-10 rounded-xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors"><LayoutList size={20} /></div>
             <div>
                <h3 className="font-bold text-slate-800 text-lg">Ficha Técnica</h3>
-               <p className="text-[10px] uppercase font-bold text-slate-400 mt-0.5">Rendimentos e Custos</p>
+               <p className="text-[10px] uppercase font-bold text-slate-500 mt-0.5">Rendimentos e Custos</p>
             </div>
          </button>
 

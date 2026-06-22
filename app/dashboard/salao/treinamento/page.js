@@ -67,7 +67,7 @@ export default function TreinamentoPage() {
       {/* HEADER */}
       <div className="pt-6 pb-8 px-6 max-w-5xl mx-auto flex items-center justify-between">
          <div className="flex items-center gap-4">
-           <button onClick={() => router.back()} className="w-12 h-12 rounded-full bg-white border border-slate-200 text-slate-400 flex items-center justify-center hover:bg-slate-100 transition-colors">
+           <button onClick={() => router.back()} className="w-12 h-12 rounded-full bg-white border border-slate-200 text-slate-500 flex items-center justify-center hover:bg-slate-100 transition-colors">
               <ArrowLeft size={20} />
            </button>
            <div className="w-16 h-16 rounded-3xl bg-rose-100 text-rose-600 flex items-center justify-center shadow-inner">
@@ -75,7 +75,7 @@ export default function TreinamentoPage() {
            </div>
            <div>
               <h1 className="text-3xl font-black tracking-tighter text-slate-900">Portal de Treinamento</h1>
-              <p className="text-slate-500 font-bold uppercase tracking-widest text-xs mt-1">{unidadeInfo?.nome}</p>
+              <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">{unidadeInfo?.nome}</p>
            </div>
          </div>
          <button onClick={() => setModalNovo(true)} className="flex items-center gap-2 bg-rose-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-rose-700 transition-colors shadow-lg shadow-rose-600/20">
@@ -85,10 +85,10 @@ export default function TreinamentoPage() {
 
       <div className="max-w-5xl mx-auto px-6">
          {loading ? (
-            <p className="text-center font-bold text-slate-400 mt-10">Carregando portal...</p>
+            <p className="text-center font-bold text-slate-500 mt-10">Carregando portal...</p>
          ) : treinamentos.length === 0 ? (
             <div className="text-center p-12 bg-white rounded-[32px] border border-slate-200 shadow-sm mt-4">
-               <Video size={48} className="mx-auto text-slate-300 mb-4"/>
+               <Video size={48} className="mx-auto text-slate-500 mb-4"/>
                <h3 className="text-2xl font-black text-slate-800">Nenhum treinamento cadastrado</h3>
                <p className="text-slate-500 font-medium mt-2">Adicione links do YouTube com instruções para os garçons e recepcionistas.</p>
             </div>
@@ -100,7 +100,7 @@ export default function TreinamentoPage() {
                         {t.capa_url ? (
                            <img src={t.capa_url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                         ) : (
-                           <PlaySquare size={48} className="text-slate-300" />
+                           <PlaySquare size={48} className="text-slate-500" />
                         )}
                         <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                            <a href={t.link_video} target="_blank" rel="noreferrer" className="w-16 h-16 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-2xl scale-90 group-hover:scale-100 transition-all">
@@ -111,7 +111,7 @@ export default function TreinamentoPage() {
                      <div className="p-6 flex-1 flex flex-col">
                         <div className="flex justify-between items-start mb-2">
                            <h3 className="font-black text-xl text-slate-800 leading-tight">{t.titulo}</h3>
-                           <button onClick={() => handleRemover(t.id)} className="text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={18}/></button>
+                           <button onClick={() => handleRemover(t.id)} className="text-slate-500 hover:text-red-500 transition-colors"><Trash2 size={18}/></button>
                         </div>
                         <p className="text-sm font-medium text-slate-500 line-clamp-3 mb-4 flex-1">{t.descricao}</p>
                         <a href={t.link_video} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-rose-600 font-bold hover:text-rose-800 transition-colors text-sm bg-rose-50 px-4 py-3 rounded-2xl">

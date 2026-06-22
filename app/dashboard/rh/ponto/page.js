@@ -181,7 +181,7 @@ export default function PontoBiometricoPage() {
                  <div className={`px-6 py-3 rounded-full font-black text-sm uppercase tracking-widest backdrop-blur-xl border shadow-xl ${
                    estadoTotem === "escaneando" 
                      ? "bg-blue-900/80 text-blue-300 border-blue-500 animate-pulse" 
-                     : "bg-slate-900 text-slate-400 border-slate-700"
+                     : "bg-slate-900 text-slate-500 border-slate-700"
                  }`}>
                     {estadoTotem === "escaneando" ? "Identificando Padrão..." : "Posicione o Rosto"}
                  </div>
@@ -208,7 +208,7 @@ export default function PontoBiometricoPage() {
          
          <div className="p-10 border-b border-slate-800 bg-slate-900/50 backdrop-blur-md">
             <h3 className="text-3xl font-black text-white tracking-tight">Console de Simulação</h3>
-            <p className="text-slate-400 text-sm mt-2 font-medium">Toque em um cartão para injetar a face correspondente no scanner biométrico.</p>
+            <p className="text-slate-500 text-sm mt-2 font-medium">Toque em um cartão para injetar a face correspondente no scanner biométrico.</p>
          </div>
 
          <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">

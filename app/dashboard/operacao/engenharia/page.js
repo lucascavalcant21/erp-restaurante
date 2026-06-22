@@ -49,7 +49,7 @@ export default function EngenhariaPage() {
     <div className="min-h-screen bg-slate-50 font-sans pb-24">
       {/* HEADER */}
       <div className="pt-6 pb-8 px-6 max-w-5xl mx-auto flex items-center gap-4">
-         <button onClick={() => router.back()} className="w-12 h-12 rounded-full bg-white border border-slate-200 text-slate-400 flex items-center justify-center hover:bg-slate-100 transition-colors">
+         <button onClick={() => router.back()} className="w-12 h-12 rounded-full bg-white border border-slate-200 text-slate-500 flex items-center justify-center hover:bg-slate-100 transition-colors">
             <ArrowLeft size={20} />
          </button>
          <div className="w-16 h-16 rounded-3xl bg-indigo-100 text-indigo-600 flex items-center justify-center shadow-inner">
@@ -57,13 +57,13 @@ export default function EngenhariaPage() {
          </div>
          <div>
             <h1 className="text-3xl font-black tracking-tighter text-slate-900">Engenharia de Cardápio</h1>
-            <p className="text-slate-500 font-bold uppercase tracking-widest text-xs mt-1">Matriz de Lucratividade • {unidadeInfo?.nome}</p>
+            <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Matriz de Lucratividade • {unidadeInfo?.nome}</p>
          </div>
       </div>
 
       <PageBody className="max-w-5xl">
         {loading ? (
-           <div className="text-center p-10"><p className="font-bold text-slate-400">Calculando matriz...</p></div>
+           <div className="text-center p-10"><p className="font-bold text-slate-500">Calculando matriz...</p></div>
         ) : itens.length === 0 ? (
            <EmptyState icon={BarChart} title="Sem dados suficientes" hint="Você precisa ter produtos no cardápio e histórico de pedidos para que a inteligência calcule a rentabilidade." />
         ) : (
@@ -74,14 +74,14 @@ export default function EngenhariaPage() {
                  <Card className="flex items-center gap-4 border-l-4 border-l-indigo-500">
                     <div className="p-3 bg-indigo-50 rounded-xl text-indigo-600"><TrendingUp size={24}/></div>
                     <div>
-                       <p className="text-xs font-bold text-slate-400 uppercase">Média de Volume Vendido</p>
+                       <p className="text-xs font-bold text-slate-500 uppercase">Média de Volume Vendido</p>
                        <p className="text-2xl font-black text-slate-800">{medias.avgVolume.toFixed(1)} un / prato</p>
                     </div>
                  </Card>
                  <Card className="flex items-center gap-4 border-l-4 border-l-emerald-500">
                     <div className="p-3 bg-emerald-50 rounded-xl text-emerald-600"><TrendingUp size={24}/></div>
                     <div>
-                       <p className="text-xs font-bold text-slate-400 uppercase">Média de Margem Bruta</p>
+                       <p className="text-xs font-bold text-slate-500 uppercase">Média de Margem Bruta</p>
                        <p className="text-2xl font-black text-slate-800">{fmtBRL(medias.avgMargem)} / prato</p>
                     </div>
                  </Card>
@@ -114,7 +114,7 @@ export default function EngenhariaPage() {
                           
                           <div className="flex-1 overflow-y-auto pr-2 space-y-2">
                              {grupo.length === 0 ? (
-                                <p className="text-center text-slate-400 font-medium text-sm mt-10">Nenhum prato nesta categoria.</p>
+                                <p className="text-center text-slate-500 font-medium text-sm mt-10">Nenhum prato nesta categoria.</p>
                              ) : (
                                 grupo.map(it => (
                                    <div key={it.id} className="flex justify-between items-center p-3 rounded-2xl bg-slate-50 border border-slate-100 hover:border-slate-200 transition-colors">
@@ -124,7 +124,7 @@ export default function EngenhariaPage() {
                                       </div>
                                       <div className="text-right">
                                          <p className="text-sm font-black text-slate-900" style={{color: cfg.cor}}>{it.volume} un</p>
-                                         <p className="text-[11px] font-bold text-slate-400 uppercase mt-0.5">+{fmtBRL(it.margem)} l.b.</p>
+                                         <p className="text-[11px] font-bold text-slate-500 uppercase mt-0.5">+{fmtBRL(it.margem)} l.b.</p>
                                       </div>
                                    </div>
                                 ))

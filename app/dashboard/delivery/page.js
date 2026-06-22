@@ -162,13 +162,13 @@ export default function DeliveryKanbanPage() {
                  <h2 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2"><Bike size={24} className="text-orange-500" /> Frota de Entregadores</h2>
                  
                  {motoboys.length === 0 ? (
-                    <div className="text-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-300 font-bold text-slate-400">Nenhum motoboy cadastrado.</div>
+                    <div className="text-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-300 font-bold text-slate-500">Nenhum motoboy cadastrado.</div>
                  ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                        {motoboys.map(m => (
                           <div key={m.id} className="flex items-center justify-between p-4 border border-slate-200 rounded-xl bg-slate-50">
                              <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center font-black text-slate-400 shadow-sm">{m.nome[0].toUpperCase()}</div>
+                                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center font-black text-slate-500 shadow-sm">{m.nome[0].toUpperCase()}</div>
                                 <div>
                                    <p className="font-bold text-slate-800">{m.nome}</p>
                                    <p className="text-xs font-bold text-slate-500">{m.placa || "Sem Placa"} · {m.telefone}</p>
@@ -212,7 +212,7 @@ export default function DeliveryKanbanPage() {
 
          <div className="flex items-center gap-4">
             <div className="relative hidden md:block">
-               <SearchIcon size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+               <SearchIcon size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
                <input type="text" placeholder="Buscar pedido ou cliente..." value={busca} onChange={(e) => setBusca(e.target.value)} className="pl-12 pr-4 py-3 bg-slate-100 rounded-xl text-slate-800 font-bold text-sm w-64 outline-none focus:ring-2 focus:ring-blue-500 transition-all" />
             </div>
             <button onClick={() => setAbaConfig(true)} className="px-5 py-3 bg-white border-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600 font-black rounded-xl transition-all shadow-sm flex items-center gap-2">
@@ -237,7 +237,7 @@ export default function DeliveryKanbanPage() {
                  <div key={p.id} className="bg-white p-5 rounded-[20px] shadow-sm border-2 border-slate-100 border-l-4 border-l-orange-500 opacity-80 pointer-events-none">
                     <div className="flex justify-between items-start mb-2">
                        <span className="font-black text-slate-800">#{p.id.slice(0,4).toUpperCase()}</span>
-                       <span className="text-xs font-bold text-slate-400">{horaStr(p.created_at)}</span>
+                       <span className="text-xs font-bold text-slate-500">{horaStr(p.created_at)}</span>
                     </div>
                     <p className="font-bold text-slate-600 text-sm mb-3">👤 {p.cliente || "Cliente Delivery"}</p>
                     <div className="bg-orange-50 text-orange-600 font-bold text-[10px] uppercase tracking-widest p-2 rounded-lg text-center animate-pulse">
@@ -245,7 +245,7 @@ export default function DeliveryKanbanPage() {
                     </div>
                  </div>
                ))}
-               {colCozinha.length === 0 && <div className="text-center p-6 border-2 border-dashed border-slate-200 rounded-[20px] font-bold text-slate-400 text-sm">Vazio</div>}
+               {colCozinha.length === 0 && <div className="text-center p-6 border-2 border-dashed border-slate-200 rounded-[20px] font-bold text-slate-500 text-sm">Vazio</div>}
             </div>
          </div>
 
@@ -262,7 +262,7 @@ export default function DeliveryKanbanPage() {
                  <div key={p.id} className="bg-white p-5 rounded-[20px] shadow-[0_10px_30px_rgba(16,185,129,0.15)] border-2 border-emerald-400 transform hover:-translate-y-1 transition-transform">
                     <div className="flex justify-between items-start mb-2">
                        <span className="font-black text-slate-800 text-lg">#{p.id.slice(0,4).toUpperCase()}</span>
-                       <span className="text-xs font-bold text-slate-400">{horaStr(p.created_at)}</span>
+                       <span className="text-xs font-bold text-slate-500">{horaStr(p.created_at)}</span>
                     </div>
                     <p className="font-bold text-slate-800 text-sm mb-1">👤 {p.cliente || "Cliente Delivery"}</p>
                     <p className="font-medium text-slate-500 text-xs mb-4 line-clamp-2">📍 {p.observacao || "Endereço não informado"}</p>
@@ -272,7 +272,7 @@ export default function DeliveryKanbanPage() {
                     </button>
                  </div>
                ))}
-               {colRampa.length === 0 && <div className="text-center p-6 border-2 border-dashed border-slate-200 rounded-[20px] font-bold text-slate-400 text-sm">Rampa Livre</div>}
+               {colRampa.length === 0 && <div className="text-center p-6 border-2 border-dashed border-slate-200 rounded-[20px] font-bold text-slate-500 text-sm">Rampa Livre</div>}
             </div>
          </div>
 
@@ -289,7 +289,7 @@ export default function DeliveryKanbanPage() {
                  <div key={p.id} className="bg-white p-5 rounded-[20px] shadow-sm border-2 border-slate-200 border-l-4 border-l-blue-500">
                     <div className="flex justify-between items-start mb-2">
                        <span className="font-black text-slate-800">#{p.id.slice(0,4).toUpperCase()}</span>
-                       <span className="text-xs font-bold text-slate-400">{horaStr(p.created_at)}</span>
+                       <span className="text-xs font-bold text-slate-500">{horaStr(p.created_at)}</span>
                     </div>
                     <p className="font-bold text-slate-600 text-sm mb-2">👤 {p.cliente || "Cliente"}</p>
                     <div className="flex items-center gap-2 bg-blue-50 p-2 rounded-lg text-blue-700 text-xs font-black uppercase tracking-widest mb-3">
@@ -301,24 +301,24 @@ export default function DeliveryKanbanPage() {
                     </button>
                  </div>
                ))}
-               {colRota.length === 0 && <div className="text-center p-6 border-2 border-dashed border-slate-200 rounded-[20px] font-bold text-slate-400 text-sm">Nenhum motoboy na rua</div>}
+               {colRota.length === 0 && <div className="text-center p-6 border-2 border-dashed border-slate-200 rounded-[20px] font-bold text-slate-500 text-sm">Nenhum motoboy na rua</div>}
             </div>
          </div>
 
          {/* COLUNA 4: ENTREGUES */}
          <div className="flex-shrink-0 w-80 flex flex-col max-h-full">
             <div className="flex items-center justify-between mb-4 px-2">
-               <h2 className="font-black text-slate-400 uppercase tracking-widest text-sm flex items-center gap-2">
+               <h2 className="font-black text-slate-500 uppercase tracking-widest text-sm flex items-center gap-2">
                   <PackageCheck size={18} /> Entregues
                </h2>
-               <span className="bg-slate-200 text-slate-400 font-black px-3 py-1 rounded-full text-xs">{colEntregue.length}</span>
+               <span className="bg-slate-200 text-slate-500 font-black px-3 py-1 rounded-full text-xs">{colEntregue.length}</span>
             </div>
             <div className="flex-1 overflow-y-auto space-y-4 hide-scrollbar">
                {colEntregue.map(p => (
                  <div key={p.id} className="bg-slate-200 p-4 rounded-[16px] border border-slate-300 opacity-60">
                     <div className="flex justify-between items-start mb-1">
                        <span className="font-bold text-slate-500 text-sm">#{p.id.slice(0,4).toUpperCase()}</span>
-                       <Check size={14} className="text-slate-400" />
+                       <Check size={14} className="text-slate-500" />
                     </div>
                     <p className="font-semibold text-slate-500 text-xs">👤 {p.cliente || "Cliente"}</p>
                  </div>
@@ -333,10 +333,10 @@ export default function DeliveryKanbanPage() {
           <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
              <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                 <div>
-                   <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Despachar Pedido</p>
+                   <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-1">Despachar Pedido</p>
                    <h2 className="font-black text-3xl text-slate-800 tracking-tight">#{modalDespacho.id.slice(0,4).toUpperCase()}</h2>
                 </div>
-                <button onClick={() => setModalDespacho(null)} className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors"><X size={20}/></button>
+                <button onClick={() => setModalDespacho(null)} className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"><X size={20}/></button>
              </div>
 
              <div className="p-8">
@@ -361,7 +361,7 @@ export default function DeliveryKanbanPage() {
                                </div>
                                <div className="text-left">
                                   <p className="font-black text-slate-800 text-lg">{mb.nome}</p>
-                                  <p className="text-xs font-bold text-slate-400">{mb.placa || "Placa não informada"}</p>
+                                  <p className="text-xs font-bold text-slate-500">{mb.placa || "Placa não informada"}</p>
                                </div>
                             </div>
                             <span className="font-bold text-blue-500 text-sm opacity-0 group-hover:opacity-100 transition-opacity">Selecionar</span>

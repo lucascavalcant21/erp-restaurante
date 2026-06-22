@@ -120,7 +120,7 @@ export default function RHPage() {
            </div>
            <div>
               <h1 className="text-4xl font-black tracking-tighter text-slate-900">RH & Equipe</h1>
-              <p className="text-slate-500 font-bold uppercase tracking-widest text-xs mt-1">Gestão de Funcionários</p>
+              <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Gestão de Funcionários</p>
            </div>
          </div>
          <button onClick={() => setModalNovo(true)} className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20">
@@ -131,7 +131,7 @@ export default function RHPage() {
       <div className="max-w-5xl mx-auto px-6">
          
          <div className="bg-white p-4 rounded-t-3xl border border-slate-200 border-b-0 flex items-center gap-3">
-            <Search size={18} className="text-slate-400" />
+            <Search size={18} className="text-slate-500" />
             <input type="text" placeholder="Buscar funcionário..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-medium text-slate-700" />
          </div>
 
@@ -139,14 +139,14 @@ export default function RHPage() {
             <table className="w-full text-left">
                <thead>
                   <tr className="bg-slate-50 border-b border-slate-100">
-                     <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">Colaborador</th>
-                     <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">Cargo</th>
-                     <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">Remuneração Base</th>
-                     <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 text-right">Documentos / Ações</th>
+                     <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Colaborador</th>
+                     <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Cargo</th>
+                     <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Remuneração Base</th>
+                     <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">Documentos / Ações</th>
                   </tr>
                </thead>
                <tbody className="divide-y divide-slate-100">
-                  {loading && <tr><td colSpan={4} className="p-10 text-center text-slate-400 font-bold">Carregando...</td></tr>}
+                  {loading && <tr><td colSpan={4} className="p-10 text-center text-slate-500 font-bold">Carregando...</td></tr>}
                   {!loading && filtrados.map(f => (
                      <tr key={f.id} className="hover:bg-slate-50 transition-colors">
                         <td className="p-4 font-bold text-slate-800">{f.nome}</td>
@@ -161,7 +161,7 @@ export default function RHPage() {
                                   </a>
                                   <button onClick={() => handleApagarDoc(d.id, d.url_arquivo)} className="text-red-400 hover:text-red-600"><X size={12}/></button>
                                 </div>
-                              )) : <span className="text-[10px] text-slate-400">Sem docs</span>}
+                              )) : <span className="text-[10px] text-slate-500">Sem docs</span>}
                               
                               <div className="flex items-center gap-3 mt-2">
                                 <button onClick={() => handleLancarFinanceiro(f)} className="flex items-center gap-1 text-xs font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition-colors">
@@ -178,7 +178,7 @@ export default function RHPage() {
                      </tr>
                   ))}
                   {!loading && filtrados.length === 0 && (
-                     <tr><td colSpan={4} className="p-10 text-center text-slate-400 font-bold">Nenhum funcionário cadastrado.</td></tr>
+                     <tr><td colSpan={4} className="p-10 text-center text-slate-500 font-bold">Nenhum funcionário cadastrado.</td></tr>
                   )}
                </tbody>
             </table>

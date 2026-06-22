@@ -137,9 +137,9 @@ export default function FluxoCaixaFintechPage() {
          <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-emerald-500 rounded-full blur-[100px] opacity-10"></div>
          
          <div className="relative z-10 max-w-3xl mx-auto text-center">
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Conta da Unidade · {unidadeInfo.nome}</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Conta da Unidade · {unidadeInfo.nome}</p>
             <h1 className="text-5xl md:text-7xl font-black tracking-tighter mb-2">{fmtBRL(resumo.saldo)}</h1>
-            <p className="text-sm font-medium text-slate-400">Saldo Atual do Período Operacional</p>
+            <p className="text-sm font-medium text-slate-500">Saldo Atual do Período Operacional</p>
          </div>
       </div>
 
@@ -171,11 +171,11 @@ export default function FluxoCaixaFintechPage() {
          {/* RESUMO RÁPIDO */}
          <div className="bg-white p-2 rounded-2xl border border-slate-200 flex justify-between items-center mb-10 shadow-sm">
             <div className="flex-1 text-center py-3 border-r border-slate-100">
-               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Entradas</p>
+               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Entradas</p>
                <p className="text-lg font-black text-emerald-600">{fmtBRL(resumo.entradas)}</p>
             </div>
             <div className="flex-1 text-center py-3">
-               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Saídas</p>
+               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Saídas</p>
                <p className="text-lg font-black text-red-600">{fmtBRL(resumo.saidas)}</p>
             </div>
          </div>
@@ -190,12 +190,12 @@ export default function FluxoCaixaFintechPage() {
          <div className="bg-white rounded-[32px] border border-slate-200 shadow-sm overflow-hidden">
             {loading ? (
                <div className="p-12 text-center">
-                  <ArrowDownUp size={32} className="mx-auto text-slate-300 animate-pulse mb-4" />
+                  <ArrowDownUp size={32} className="mx-auto text-slate-500 animate-pulse mb-4" />
                   <p className="font-bold text-slate-500">Buscando transações...</p>
                </div>
             ) : filtrados.length === 0 ? (
                <div className="p-12 text-center">
-                  <Search size={32} className="mx-auto text-slate-300 mb-4" />
+                  <Search size={32} className="mx-auto text-slate-500 mb-4" />
                   <p className="font-bold text-slate-800 text-lg">Extrato Limpo</p>
                   <p className="text-sm text-slate-500 mt-2">Você ainda não tem {filtro !== "Todos" ? filtro.toLowerCase() : "lançamentos"} nesse período.</p>
                </div>
@@ -216,8 +216,8 @@ export default function FluxoCaixaFintechPage() {
                             <div>
                                <p className="font-bold text-slate-900">{l.descricao}</p>
                                <div className="flex items-center gap-2 mt-0.5">
-                                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">{l.categoria}</span>
-                                  <span className="text-xs font-medium text-slate-400">{fmtData(l.data)}</span>
+                                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">{l.categoria}</span>
+                                  <span className="text-xs font-medium text-slate-500">{fmtData(l.data)}</span>
                                </div>
                             </div>
                          </div>

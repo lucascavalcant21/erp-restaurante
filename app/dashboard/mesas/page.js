@@ -112,7 +112,7 @@ export default function MesasPDVPage() {
 
          <div className="flex items-center gap-4">
             <div className="relative">
-              <SearchIcon size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+              <SearchIcon size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
               <input 
                 type="text" 
                 placeholder="Buscar Mesa..." 
@@ -133,9 +133,9 @@ export default function MesasPDVPage() {
       {/* MAPA DE MESAS (GRID) */}
       <div className="flex-1 overflow-y-auto p-6 md:p-8 hide-scrollbar">
         {loading ? (
-          <div className="h-full flex items-center justify-center font-black text-2xl text-slate-400">Carregando Mapa...</div>
+          <div className="h-full flex items-center justify-center font-black text-2xl text-slate-500">Carregando Mapa...</div>
         ) : mesas.length === 0 ? (
-           <div className="h-full flex flex-col items-center justify-center text-slate-400">
+           <div className="h-full flex flex-col items-center justify-center text-slate-500">
               <div className="w-24 h-24 bg-slate-200 rounded-full flex items-center justify-center mb-6">
                 <Coffee size={40} className="text-slate-500" />
               </div>
@@ -211,7 +211,7 @@ export default function MesasPDVPage() {
             {/* Header Drawer */}
             <div className="p-8 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
               <div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Gerenciar</p>
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Gerenciar</p>
                 <h2 className="text-4xl font-black text-slate-800 tracking-tight">{mesaSelecionada.numero}</h2>
               </div>
               <button onClick={fecharDrawer} className="w-14 h-14 bg-white rounded-full flex items-center justify-center text-slate-500 hover:text-slate-800 shadow-sm border border-slate-200 transition-colors active:scale-95">
@@ -232,7 +232,7 @@ export default function MesasPDVPage() {
                  <span className="font-black text-xl uppercase tracking-widest">Abrir Comanda</span>
                </button>
 
-               <div className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Comandas em Atividade</div>
+               <div className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-4">Comandas em Atividade</div>
                
                {mesaSelecionada.comandas?.length > 0 ? (
                  <div className="flex flex-col gap-4">
@@ -250,11 +250,11 @@ export default function MesasPDVPage() {
                          <div className="flex-1">
                            <p className="font-black text-slate-800 text-lg mb-1">{c.nome_cliente || "Sem nome"}</p>
                            <div className="flex items-center gap-3">
-                             <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-md">{tempoDecorrido(c.aberta_em)}</span>
+                             <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-md">{tempoDecorrido(c.aberta_em)}</span>
                              <span className="text-sm font-black text-blue-600">{fmtBRL(totalComanda)}</span>
                            </div>
                          </div>
-                         <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
+                         <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
                            <ChevronRight size={24}/>
                          </div>
                        </button>
@@ -263,7 +263,7 @@ export default function MesasPDVPage() {
                  </div>
                ) : (
                  <div className="text-center py-10 px-4 text-slate-500 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">
-                    <Coffee size={40} className="mx-auto mb-4 text-slate-300" />
+                    <Coffee size={40} className="mx-auto mb-4 text-slate-500" />
                     <p className="font-bold text-lg mb-1">Mesa Livre</p>
                     <p className="text-sm">Nenhuma comanda aberta nesta mesa no momento.</p>
                  </div>

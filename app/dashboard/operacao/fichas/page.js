@@ -141,7 +141,7 @@ function FichasRunner() {
       <div className="bg-white border-b border-slate-200 pt-6 pb-6 px-6 sticky top-0 z-10">
          <div className="max-w-5xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <button onClick={() => router.back()} className="p-3 text-slate-400 hover:text-slate-800 bg-slate-50 rounded-full border border-slate-200">
+              <button onClick={() => router.back()} className="p-3 text-slate-500 hover:text-slate-800 bg-slate-50 rounded-full border border-slate-200">
                  <ArrowLeft size={20}/>
               </button>
               <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner ${deptUrl === 'bar' ? 'bg-purple-100 text-purple-600' : 'bg-emerald-100 text-emerald-600'}`}>
@@ -149,7 +149,7 @@ function FichasRunner() {
               </div>
               <div>
                  <h1 className="text-3xl font-black tracking-tighter text-slate-900">Fichas Técnicas</h1>
-                 <p className="text-slate-500 font-bold uppercase tracking-widest text-xs mt-1">Receituário e Custos - {deptUrl}</p>
+                 <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Receituário e Custos - {deptUrl}</p>
               </div>
             </div>
             <button onClick={abrirNova} className={`flex items-center gap-2 text-white px-5 py-3 rounded-xl font-bold transition-colors shadow-lg ${deptUrl === 'bar' ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-600/20' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'}`}>
@@ -160,15 +160,15 @@ function FichasRunner() {
 
       <div className="max-w-5xl mx-auto px-6 mt-8">
          <div className="bg-white p-3 rounded-2xl border border-slate-200 mb-6 flex items-center gap-3 shadow-sm">
-            <Search size={20} className="text-slate-400 ml-2" />
+            <Search size={20} className="text-slate-500 ml-2" />
             <input type="text" placeholder="Buscar receita..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-bold text-slate-700 p-2" />
          </div>
 
          {loading ? (
-            <p className="font-bold text-slate-400">Buscando receitas...</p>
+            <p className="font-bold text-slate-500">Buscando receitas...</p>
          ) : filtradas.length === 0 ? (
             <div className="text-center p-10 bg-white border border-slate-200 rounded-3xl">
-               <LayoutList size={40} className="mx-auto text-slate-300 mb-4"/>
+               <LayoutList size={40} className="mx-auto text-slate-500 mb-4"/>
                <h3 className="text-xl font-black text-slate-700">Nenhuma ficha encontrada</h3>
                <p className="text-slate-500 mt-2 font-medium">Cadastre suas receitas para calcular automaticamente o custo do prato.</p>
             </div>
@@ -190,19 +190,19 @@ function FichasRunner() {
                               {f.departamento === 'bar' ? <Wine size={18}/> : <UtensilsCrossed size={18}/>}
                            </span>
                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button onClick={() => abrirEditar(f)} className="p-2 bg-slate-50 rounded-lg text-slate-400 hover:text-emerald-600"><Edit3 size={16}/></button>
-                              <button onClick={() => handleRemover(f.id)} className="p-2 bg-slate-50 rounded-lg text-slate-400 hover:text-red-600"><Trash2 size={16}/></button>
+                              <button onClick={() => abrirEditar(f)} className="p-2 bg-slate-50 rounded-lg text-slate-500 hover:text-emerald-600"><Edit3 size={16}/></button>
+                              <button onClick={() => handleRemover(f.id)} className="p-2 bg-slate-50 rounded-lg text-slate-500 hover:text-red-600"><Trash2 size={16}/></button>
                            </div>
                         </div>
                         <h3 className="text-xl font-black text-slate-800 leading-tight mb-1">{f.nome_receita}</h3>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Rende: {f.rendimento_porcoes} Porções</p>
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Rende: {f.rendimento_porcoes} Porções</p>
                         
                         <div className="mt-auto pt-4 border-t border-slate-100 flex justify-between items-end">
                            <div>
-                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Custo / Porção</p>
+                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Custo / Porção</p>
                               <p className="text-2xl font-black text-emerald-600">{fmtBRL(custoPorcao)}</p>
                            </div>
-                           <p className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded-md">Total: {fmtBRL(custoFicha)}</p>
+                           <p className="text-[10px] font-bold text-slate-500 bg-slate-50 px-2 py-1 rounded-md">Total: {fmtBRL(custoFicha)}</p>
                         </div>
                      </div>
                   );
@@ -220,7 +220,7 @@ function FichasRunner() {
                <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-white">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">{form.id ? "Editar Receita" : "Nova Receita"}</h2>
-                     <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">Custo Total Atual: <span className="text-emerald-600 font-black">{fmtBRL(calcularCustoTotal(ingFicha))}</span></p>
+                     <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mt-1">Custo Total Atual: <span className="text-emerald-600 font-black">{fmtBRL(calcularCustoTotal(ingFicha))}</span></p>
                   </div>
                   <button onClick={() => setModalNovo(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
                </div>
@@ -259,7 +259,7 @@ function FichasRunner() {
                      {/* LISTA DE INGREDIENTES */}
                      <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
                         {ingFicha.length === 0 && (
-                           <div className="text-center p-6 text-slate-400 font-medium text-sm">
+                           <div className="text-center p-6 text-slate-500 font-medium text-sm">
                               Selecione ingredientes acima para montar a ficha técnica e calcular o custo.
                            </div>
                         )}
@@ -278,9 +278,9 @@ function FichasRunner() {
                                     onChange={e => updateQtd(ing.insumo_id, e.target.value)}
                                     className="w-20 p-2 text-center bg-white border border-slate-200 rounded-lg font-black text-slate-700 outline-none focus:border-emerald-500"
                                  />
-                                 <span className="text-[10px] font-black text-slate-400 uppercase w-6">{ing.unidade}</span>
+                                 <span className="text-[10px] font-black text-slate-500 uppercase w-6">{ing.unidade}</span>
                               </div>
-                              <button onClick={() => removeIngrediente(ing.insumo_id)} className="p-2 text-slate-300 hover:text-red-500 transition-colors bg-white rounded-lg border border-slate-200">
+                              <button onClick={() => removeIngrediente(ing.insumo_id)} className="p-2 text-slate-500 hover:text-red-500 transition-colors bg-white rounded-lg border border-slate-200">
                                  <Trash2 size={14}/>
                               </button>
                            </div>
@@ -307,7 +307,7 @@ function FichasRunner() {
 
 export default function Page() {
   return (
-    <Suspense fallback={<div className="p-10 text-center font-bold text-slate-400">Carregando módulo...</div>}>
+    <Suspense fallback={<div className="p-10 text-center font-bold text-slate-500">Carregando módulo...</div>}>
        <FichasRunner />
     </Suspense>
   );

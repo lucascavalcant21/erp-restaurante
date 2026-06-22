@@ -44,7 +44,7 @@ function TreeNode({ func, childrenMap, level, isLast, isRoot }) {
 
          {/* Badge de Liderança */}
          {hasChildren && (
-            <div className={`mt-4 px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1 ${isCLevel ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
+            <div className={`mt-4 px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1 ${isCLevel ? 'bg-slate-800 text-slate-500' : 'bg-slate-100 text-slate-500'}`}>
                <Users size={12} /> {children.length} Liderado{children.length > 1 ? 's' : ''}
             </div>
          )}
@@ -139,15 +139,15 @@ export default function OrganogramaCorporativoPage() {
          
          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative z-10 max-w-7xl mx-auto">
             <div>
-               <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2 flex items-center gap-2">
+               <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 flex items-center gap-2">
                   <Network size={14}/> Gestão de Pessoas
                </p>
                <h1 className="text-3xl md:text-5xl font-black tracking-tighter">Quadro Corporativo.</h1>
-               <p className="text-sm font-medium text-slate-400 mt-2">Estrutura Hierárquica da {unidadeInfo.nome}</p>
+               <p className="text-sm font-medium text-slate-500 mt-2">Estrutura Hierárquica da {unidadeInfo.nome}</p>
             </div>
             
             <div className="w-full md:w-96 relative">
-               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" size={18} />
+               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500" size={18} />
                <input 
                  type="text" 
                  value={busca} 
@@ -174,7 +174,7 @@ export default function OrganogramaCorporativoPage() {
                    </div>
                    <div>
                       <p className="font-bold text-slate-900">{func.nome}</p>
-                      <p className="text-[10px] uppercase font-bold text-slate-400">{func.cargo}</p>
+                      <p className="text-[10px] uppercase font-bold text-slate-500">{func.cargo}</p>
                    </div>
                 </div>
              ))}

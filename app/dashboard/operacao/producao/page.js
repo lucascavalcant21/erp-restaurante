@@ -70,7 +70,7 @@ function ProducaoRunner() {
       <div className="bg-white border-b border-slate-200 pt-6 pb-6 px-6 sticky top-0 z-10">
          <div className="max-w-5xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <button onClick={() => router.back()} className="p-3 text-slate-400 hover:text-slate-800 bg-slate-50 rounded-full border border-slate-200">
+              <button onClick={() => router.back()} className="p-3 text-slate-500 hover:text-slate-800 bg-slate-50 rounded-full border border-slate-200">
                  <ArrowLeft size={20}/>
               </button>
               <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner ${isBar ? 'bg-purple-100 text-purple-600' : 'bg-orange-100 text-orange-600'}`}>
@@ -78,7 +78,7 @@ function ProducaoRunner() {
               </div>
               <div>
                  <h1 className="text-3xl font-black tracking-tighter text-slate-900">Produção do Dia</h1>
-                 <p className="text-slate-500 font-bold uppercase tracking-widest text-xs mt-1">Baixa Automática de Estoque</p>
+                 <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Baixa Automática de Estoque</p>
               </div>
             </div>
          </div>
@@ -91,7 +91,7 @@ function ProducaoRunner() {
          </div>
 
          {loading ? (
-            <p className="font-bold text-slate-400">Carregando fichas...</p>
+            <p className="font-bold text-slate-500">Carregando fichas...</p>
          ) : fichas.length === 0 ? (
             <div className="text-center p-10 bg-white border border-slate-200 rounded-3xl">
                <h3 className="text-xl font-black text-slate-700">Nenhuma ficha cadastrada</h3>
@@ -111,7 +111,7 @@ function ProducaoRunner() {
                         </span>
                      </div>
                      <h3 className="text-2xl font-black text-slate-800 leading-tight mb-2">{f.nome_receita}</h3>
-                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">{f.fichas_ingredientes?.length || 0} Ingredientes</p>
+                     <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">{f.fichas_ingredientes?.length || 0} Ingredientes</p>
                      
                      <div className="mt-auto pt-4 border-t border-slate-100">
                         <span className={`inline-flex items-center gap-2 font-bold text-sm ${isBar ? 'text-purple-600' : 'text-orange-600'}`}>
@@ -130,7 +130,7 @@ function ProducaoRunner() {
                <div className="flex justify-between items-center mb-6">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">Registrar Produção</h2>
-                     <p className="text-sm font-bold text-slate-400 mt-1">{fichaAtual.nome_receita}</p>
+                     <p className="text-sm font-bold text-slate-500 mt-1">{fichaAtual.nome_receita}</p>
                   </div>
                   <button onClick={() => setModalProduzir(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
                </div>
@@ -149,20 +149,20 @@ function ProducaoRunner() {
                   <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block text-center mb-4">Quantas porções você fez?</label>
                      <div className="flex items-center justify-center gap-4">
-                        <button onClick={()=>setQtdProd(p => Math.max(1, Number(p)-1))} className="w-14 h-14 rounded-full bg-white border border-slate-200 flex items-center justify-center text-3xl font-black text-slate-400 hover:text-slate-800">-</button>
+                        <button onClick={()=>setQtdProd(p => Math.max(1, Number(p)-1))} className="w-14 h-14 rounded-full bg-white border border-slate-200 flex items-center justify-center text-3xl font-black text-slate-500 hover:text-slate-800">-</button>
                         <input 
                            type="number" 
                            value={qtdProd} 
                            onChange={e=>setQtdProd(e.target.value)} 
                            className="w-24 p-2 text-center text-4xl font-black text-slate-800 bg-transparent outline-none"
                         />
-                        <button onClick={()=>setQtdProd(p => Number(p)+1)} className="w-14 h-14 rounded-full bg-white border border-slate-200 flex items-center justify-center text-3xl font-black text-slate-400 hover:text-slate-800">+</button>
+                        <button onClick={()=>setQtdProd(p => Number(p)+1)} className="w-14 h-14 rounded-full bg-white border border-slate-200 flex items-center justify-center text-3xl font-black text-slate-500 hover:text-slate-800">+</button>
                      </div>
                   </div>
 
                   {/* Preview da Baixa */}
                   <div className="pt-2">
-                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Previsão de Baixa no Estoque:</p>
+                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Previsão de Baixa no Estoque:</p>
                      <div className="space-y-2 max-h-32 overflow-y-auto custom-scrollbar pr-2">
                         {fichaAtual.fichas_ingredientes?.map(ing => {
                            const consumo = ing.quantidade * Number(qtdProd);
@@ -190,7 +190,7 @@ function ProducaoRunner() {
 
 export default function Page() {
   return (
-    <Suspense fallback={<div className="p-10 text-center font-bold text-slate-400">Carregando Produção...</div>}>
+    <Suspense fallback={<div className="p-10 text-center font-bold text-slate-500">Carregando Produção...</div>}>
        <ProducaoRunner />
     </Suspense>
   );

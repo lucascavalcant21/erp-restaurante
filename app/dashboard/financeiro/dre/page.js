@@ -52,18 +52,18 @@ export default function DreGerencialPage() {
          
          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative z-10 max-w-5xl mx-auto">
             <div>
-               <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2 flex items-center gap-2">
+               <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 flex items-center gap-2">
                   <BarChart3 size={14}/> Engenharia Financeira
                </p>
                <h1 className="text-3xl md:text-5xl font-black tracking-tighter">DRE Gerencial.</h1>
-               <p className="text-sm font-medium text-slate-400 mt-2">Demonstrativo de Resultados do Exercício da {unidadeInfo.nome}</p>
+               <p className="text-sm font-medium text-slate-500 mt-2">Demonstrativo de Resultados do Exercício da {unidadeInfo.nome}</p>
             </div>
             
             <div className="flex bg-slate-800 p-1 rounded-xl shadow-inner border border-slate-700">
                {["Semanal", "Mensal", "Anual"].map(p => (
                   <button 
                     key={p} onClick={() => setPeriodoLetra(p)}
-                    className={`px-5 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${periodoLetra === p ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-white'}`}
+                    className={`px-5 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${periodoLetra === p ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-white'}`}
                   >
                     {p}
                   </button>
@@ -157,7 +157,7 @@ export default function DreGerencialPage() {
                       {Object.entries(dre.categorias).sort((a, b) => b[1] - a[1]).map(([cat, val], idx) => (
                          <div key={cat} className="flex justify-between items-center px-6 py-2.5 hover:bg-slate-50 transition-colors group">
                             <div className="flex items-center gap-3">
-                               <span className="text-[10px] font-bold text-slate-300 w-4">{idx + 1}</span>
+                               <span className="text-[10px] font-bold text-slate-500 w-4">{idx + 1}</span>
                                <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900 transition-colors">{cat}</span>
                             </div>
                             <span className="text-sm font-medium text-slate-500 font-mono">
@@ -166,7 +166,7 @@ export default function DreGerencialPage() {
                          </div>
                       ))}
                       {Object.keys(dre.categorias).length === 0 && (
-                         <div className="px-6 py-4 text-sm text-slate-400 font-medium">Nenhuma despesa registrada.</div>
+                         <div className="px-6 py-4 text-sm text-slate-500 font-medium">Nenhuma despesa registrada.</div>
                       )}
                    </div>
 
@@ -209,7 +209,7 @@ function LinhaTotal({ codigo, label, valor, cor, bg }) {
   return (
     <div className={`flex justify-between items-center px-6 py-4 border-b border-slate-200 ${bg}`}>
       <div className="flex items-center gap-3">
-         <span className="text-[10px] font-black text-slate-400 border border-slate-300 w-5 h-5 rounded-md flex items-center justify-center bg-white">{codigo}</span>
+         <span className="text-[10px] font-black text-slate-500 border border-slate-300 w-5 h-5 rounded-md flex items-center justify-center bg-white">{codigo}</span>
          <span className={`text-sm font-black uppercase tracking-widest ${cor}`}>{label}</span>
       </div>
       <span className={`text-lg font-black font-mono ${cor}`}>{fmtBRL(valor)}</span>

@@ -54,7 +54,7 @@ export default function PontoPage() {
      carregar(); // Recarrega os dados
   };
 
-  if(!unidadeAtiva) return <div className="p-10 font-bold text-slate-400">Selecione uma loja no topo.</div>;
+  if(!unidadeAtiva) return <div className="p-10 font-bold text-slate-500">Selecione uma loja no topo.</div>;
 
   return (
     <div className="max-w-4xl mx-auto py-10 font-sans">
@@ -66,7 +66,7 @@ export default function PontoPage() {
             </div>
             <div>
                <h1 className="text-3xl font-black text-slate-900 tracking-tight">Sistema de Ponto</h1>
-               <p className="text-slate-500 font-bold uppercase tracking-widest text-xs mt-1">Unidade: {unidadeInfo?.nome}</p>
+               <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Unidade: {unidadeInfo?.nome}</p>
             </div>
          </div>
       </div>
@@ -77,12 +77,12 @@ export default function PontoPage() {
          <div className="w-full md:w-1/2 border-r border-slate-100 flex flex-col bg-slate-50">
             <div className="p-6 border-b border-slate-200">
                <div className="bg-white p-3 rounded-2xl border border-slate-200 flex items-center gap-2">
-                  <Search size={18} className="text-slate-400" />
+                  <Search size={18} className="text-slate-500" />
                   <input type="text" placeholder="Buscar por nome ou cargo..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-bold text-slate-700 bg-transparent" />
                </div>
             </div>
             <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-2">
-               {loading && <p className="text-center font-bold text-slate-400 mt-10">Carregando...</p>}
+               {loading && <p className="text-center font-bold text-slate-500 mt-10">Carregando...</p>}
                {!loading && filtrados.map(f => {
                   const status = getStatus(f.id);
                   const isSelected = colabAtivo?.id === f.id;
@@ -99,14 +99,14 @@ export default function PontoPage() {
                      </button>
                   );
                })}
-               {!loading && filtrados.length === 0 && <p className="text-center font-bold text-slate-400 mt-10">Nenhum colaborador encontrado.</p>}
+               {!loading && filtrados.length === 0 && <p className="text-center font-bold text-slate-500 mt-10">Nenhum colaborador encontrado.</p>}
             </div>
          </div>
 
          {/* Lado Direito: Batida de Ponto Sequencial */}
          <div className="w-full md:w-1/2 p-8 flex flex-col items-center justify-center bg-white relative">
             {!colabAtivo ? (
-               <div className="text-center text-slate-300 flex flex-col items-center gap-4">
+               <div className="text-center text-slate-500 flex flex-col items-center gap-4">
                   <Fingerprint size={80} strokeWidth={1} />
                   <p className="font-bold text-lg">Selecione seu nome na lista para bater o ponto.</p>
                </div>
@@ -129,25 +129,25 @@ export default function PontoPage() {
                         </div>
                      ) : (
                         <div className="w-full space-y-4">
-                           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest text-left ml-2 mb-2">Próxima Ação Requerida:</p>
+                           <p className="text-xs font-bold text-slate-500 uppercase tracking-widest text-left ml-2 mb-2">Próxima Ação Requerida:</p>
                            
                            {/* Botão 1 */}
-                           <button onClick={() => handleBaterPonto('entrada')} disabled={st !== 0} className={`w-full py-5 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-2 ${st === 0 ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/20 hover:bg-indigo-700 scale-105' : 'bg-slate-100 text-slate-400'}`}>
+                           <button onClick={() => handleBaterPonto('entrada')} disabled={st !== 0} className={`w-full py-5 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-2 ${st === 0 ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/20 hover:bg-indigo-700 scale-105' : 'bg-slate-100 text-slate-500'}`}>
                               1. Entrada no Trabalho {st > 0 && <CheckCircle2 size={18}/>}
                            </button>
 
                            {/* Botão 2 */}
-                           <button onClick={() => handleBaterPonto('saida_intervalo')} disabled={st !== 1} className={`w-full py-5 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-2 ${st === 1 ? 'bg-amber-500 text-white shadow-xl shadow-amber-500/20 hover:bg-amber-600 scale-105' : 'bg-slate-100 text-slate-400'}`}>
+                           <button onClick={() => handleBaterPonto('saida_intervalo')} disabled={st !== 1} className={`w-full py-5 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-2 ${st === 1 ? 'bg-amber-500 text-white shadow-xl shadow-amber-500/20 hover:bg-amber-600 scale-105' : 'bg-slate-100 text-slate-500'}`}>
                               2. Saída para Intervalo {st > 1 && <CheckCircle2 size={18}/>}
                            </button>
 
                            {/* Botão 3 */}
-                           <button onClick={() => handleBaterPonto('retorno_intervalo')} disabled={st !== 2} className={`w-full py-5 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-2 ${st === 2 ? 'bg-blue-500 text-white shadow-xl shadow-blue-500/20 hover:bg-blue-600 scale-105' : 'bg-slate-100 text-slate-400'}`}>
+                           <button onClick={() => handleBaterPonto('retorno_intervalo')} disabled={st !== 2} className={`w-full py-5 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-2 ${st === 2 ? 'bg-blue-500 text-white shadow-xl shadow-blue-500/20 hover:bg-blue-600 scale-105' : 'bg-slate-100 text-slate-500'}`}>
                               3. Retorno do Intervalo {st > 2 && <CheckCircle2 size={18}/>}
                            </button>
 
                            {/* Botão 4 */}
-                           <button onClick={() => handleBaterPonto('saida_trabalho')} disabled={st !== 3} className={`w-full py-5 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-2 ${st === 3 ? 'bg-emerald-500 text-white shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 scale-105' : 'bg-slate-100 text-slate-400'}`}>
+                           <button onClick={() => handleBaterPonto('saida_trabalho')} disabled={st !== 3} className={`w-full py-5 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-2 ${st === 3 ? 'bg-emerald-500 text-white shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 scale-105' : 'bg-slate-100 text-slate-500'}`}>
                               4. Saída do Trabalho
                            </button>
                         </div>

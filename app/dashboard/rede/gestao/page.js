@@ -38,7 +38,7 @@ export default function GestaoUnidadesPage() {
       <div className="p-8 text-center">
         <ShieldAlert className="mx-auto text-red-500 mb-4" size={48} />
         <h2 className="text-xl font-bold text-white mb-2">Acesso Negado</h2>
-        <p className="text-slate-400">Apenas o Cérebro (Central) pode gerenciar unidades.</p>
+        <p className="text-slate-500">Apenas o Cérebro (Central) pode gerenciar unidades.</p>
       </div>
     );
   }
@@ -126,10 +126,10 @@ export default function GestaoUnidadesPage() {
                 </div>
                 <div className="flex-1">
                   <h3 className="font-bold text-white text-sm">{u.nome}</h3>
-                  <p className="text-xs text-slate-400">ID: {u.id}</p>
+                  <p className="text-xs text-slate-500">ID: {u.id}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => abrirModal(u)} className="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-800 text-slate-300 hover:text-white">
+                  <button onClick={() => abrirModal(u)} className="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-800 text-slate-500 hover:text-white">
                     <Edit2 size={14} />
                   </button>
                   <button onClick={() => remover(u.id)} className="w-8 h-8 rounded-lg flex items-center justify-center bg-red-500/10 text-red-400 hover:bg-red-500/20">
@@ -191,14 +191,14 @@ export default function GestaoUnidadesPage() {
       {/* Modal de Sucesso com Credenciais */}
       <Modal open={!!credenciais} onClose={() => setCredenciais(null)} title="🎉 Loja Criada!">
         <div className="text-center py-4 space-y-4">
-          <p className="text-slate-300 text-sm">O acesso do dono dessa unidade foi gerado com sucesso.</p>
+          <p className="text-slate-500 text-sm">O acesso do dono dessa unidade foi gerado com sucesso.</p>
           <div className="bg-slate-900 border border-slate-700 rounded-xl p-4 space-y-2">
             <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-              <span className="text-slate-400 text-xs uppercase font-bold">Usuário / Login</span>
+              <span className="text-slate-500 text-xs uppercase font-bold">Usuário / Login</span>
               <span className="text-white font-mono text-lg font-bold">{credenciais?.login}</span>
             </div>
             <div className="flex justify-between items-center pt-2">
-              <span className="text-slate-400 text-xs uppercase font-bold">Senha Padrão</span>
+              <span className="text-slate-500 text-xs uppercase font-bold">Senha Padrão</span>
               <span className="text-emerald-400 font-mono text-lg font-bold">{credenciais?.senha}</span>
             </div>
           </div>

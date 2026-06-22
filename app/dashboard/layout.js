@@ -224,7 +224,7 @@ function TakeatSidebar({ sessao, onSair, onOpenMegaMenu }) {
         H
       </div>
 
-      <div className="flex-1 flex flex-col w-full gap-1 px-2 overflow-y-auto hide-scrollbar">
+      <div className="flex-1 flex flex-col w-full gap-1 px-2 overflow-y-auto min-h-0 hide-scrollbar pb-4">
         {SIDEBAR_ITEMS.map(item => (
           <button key={item.id} onClick={item.action}
             className="flex flex-col items-center justify-center gap-1.5 w-full py-3.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all">

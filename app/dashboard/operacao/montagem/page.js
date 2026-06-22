@@ -54,18 +54,18 @@ function RenderCamadaVertical({ camada }) {
   }
 
   return (
-    <div className="flex items-center gap-4 relative group hover:bg-slate-50 p-2 rounded-xl transition-colors">
+    <div className="flex items-center gap-4 relative group hover:bg-[var(--elevated)] p-2 rounded-xl transition-colors">
       <div className="w-32 flex-shrink-0 flex items-center justify-center relative">
-         <div style={{...shapeStyle, width: '100%', boxShadow: '0 4px 10px -2px rgba(0, 0, 0, 0.2)'}} />
+         <div style={{...shapeStyle, width: '100%', boxShadow: '0 4px 10px -2px rgba(0, 0, 0, 0.4)'}} />
       </div>
       
-      <div className="flex-1 border-t-2 border-dashed border-slate-200 relative group-hover:border-slate-300 transition-colors">
-        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-slate-300 group-hover:bg-slate-400" />
+      <div className="flex-1 border-t-2 border-dashed border-[var(--line-soft)] relative group-hover:border-[var(--subtle)] transition-colors">
+        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-[var(--line-soft)] group-hover:bg-[var(--subtle)]" />
       </div>
 
       <div className="w-48 text-right flex-shrink-0">
-         <p className="font-bold text-[13px] text-slate-700 leading-tight">{camada.nome}</p>
-         <p className="text-[9px] uppercase text-slate-400 font-bold">{camada.tipo.replace('_', ' ')}</p>
+         <p className="font-bold text-[13px] text-[var(--fg)] leading-tight">{camada.nome}</p>
+         <p className="text-[9px] uppercase text-[var(--subtle)] font-bold">{camada.tipo.replace('_', ' ')}</p>
       </div>
     </div>
   )
@@ -73,8 +73,8 @@ function RenderCamadaVertical({ camada }) {
 
 function EstruturaVertical({ camadas }) {
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm mt-4">
-       <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6 text-center">Estrutura Explodida (Vertical)</h3>
+    <div className="bg-[var(--panel)] border border-[var(--line)] rounded-2xl p-6 shadow-sm mt-4">
+       <h3 className="text-[10px] font-black uppercase tracking-widest text-[var(--subtle)] mb-6 text-center">Estrutura Explodida (Vertical)</h3>
        <div className="flex flex-col gap-1">
           {camadas.map((cam, idx) => <RenderCamadaVertical key={idx} camada={cam} />)}
        </div>
@@ -91,8 +91,8 @@ function EstruturaRadial({ camadas, fotoUrl }) {
   const dir = camadas.slice(meio);
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm mt-4 overflow-hidden relative">
-      <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-8 text-center">Visão Radial</h3>
+    <div className="bg-[var(--panel)] border border-[var(--line)] rounded-2xl p-6 md:p-8 shadow-sm mt-4 overflow-hidden relative">
+      <h3 className="text-[10px] font-black uppercase tracking-widest text-[var(--subtle)] mb-8 text-center">Visão Radial</h3>
       <div className="flex items-center justify-between gap-4 md:gap-8 relative min-h-[250px]">
         
         {/* Coluna Esquerda */}
@@ -100,22 +100,28 @@ function EstruturaRadial({ camadas, fotoUrl }) {
           {esq.map((c, i) => (
             <div key={i} className="flex items-center gap-2 md:gap-4 w-full group">
               <div className="flex-1 text-right">
-                  <p className="font-bold text-[11px] md:text-[13px] text-slate-700 leading-tight">{c.nome}</p>
-                  <p className="text-[9px] uppercase text-slate-400 font-bold">{c.tipo.replace('_', ' ')}</p>
+                  <p className="font-bold text-[11px] md:text-[13px] text-[var(--fg)] leading-tight">{c.nome}</p>
+                  <p className="text-[9px] uppercase text-[var(--subtle)] font-bold">{c.tipo.replace('_', ' ')}</p>
               </div>
-              <div className="w-8 md:w-16 h-px border-t-2 border-dashed border-slate-300 relative group-hover:border-slate-400 transition-colors">
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-slate-300 group-hover:bg-orange-500 transition-colors" />
+              <div className="flex items-center text-[var(--line-soft)] group-hover:text-orange-500 transition-colors">
+                <div className="w-8 md:w-16 h-px border-t-2 border-dashed border-current relative"></div>
+                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" className="ml-[-4px]">
+                  <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
               </div>
             </div>
           ))}
         </div>
 
         {/* Foto Central Redonda */}
-        <div className="w-32 h-32 md:w-48 md:h-48 rounded-full border-[6px] border-white shadow-2xl overflow-hidden relative z-30 flex-shrink-0 bg-slate-100">
+        <div className="w-32 h-32 md:w-48 md:h-48 rounded-full border-[6px] border-[var(--surface)] shadow-[0_0_30px_rgba(249,115,22,0.15)] overflow-hidden relative z-30 flex-shrink-0 bg-[var(--panel)]">
           {fotoUrl ? (
              <img src={fotoUrl} alt="Prato Central" className="w-full h-full object-cover hover:scale-110 transition-transform duration-500" />
           ) : (
-             <div className="w-full h-full flex items-center justify-center text-slate-300"><Camera size={32} /></div>
+             <div className="w-full h-full flex flex-col items-center justify-center text-[var(--subtle)]">
+               <Camera size={32} className="mb-2 opacity-50" />
+               <span className="text-[10px] font-bold uppercase tracking-widest">Sem Foto</span>
+             </div>
           )}
         </div>
 
@@ -123,12 +129,15 @@ function EstruturaRadial({ camadas, fotoUrl }) {
         <div className="flex-1 flex flex-col justify-around h-full gap-6 items-start z-20">
           {dir.map((c, i) => (
             <div key={i} className="flex items-center gap-2 md:gap-4 w-full group">
-              <div className="w-8 md:w-16 h-px border-t-2 border-dashed border-slate-300 relative group-hover:border-slate-400 transition-colors">
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-slate-300 group-hover:bg-orange-500 transition-colors" />
+              <div className="flex items-center text-[var(--line-soft)] group-hover:text-orange-500 transition-colors flex-row-reverse">
+                <div className="w-8 md:w-16 h-px border-t-2 border-dashed border-current relative"></div>
+                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" className="mr-[-4px]">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
               </div>
               <div className="flex-1 text-left">
-                  <p className="font-bold text-[11px] md:text-[13px] text-slate-700 leading-tight">{c.nome}</p>
-                  <p className="text-[9px] uppercase text-slate-400 font-bold">{c.tipo.replace('_', ' ')}</p>
+                  <p className="font-bold text-[11px] md:text-[13px] text-[var(--fg)] leading-tight">{c.nome}</p>
+                  <p className="text-[9px] uppercase text-[var(--subtle)] font-bold">{c.tipo.replace('_', ' ')}</p>
               </div>
             </div>
           ))}
@@ -184,33 +193,33 @@ function EditorCamadas({ camadas, setCamadas }) {
   }
 
   return (
-    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mt-3">
+    <div className="bg-[var(--panel)] border border-[var(--line)] rounded-xl p-4 mt-3">
       <div className="flex items-center justify-between mb-3">
-         <h4 className="text-xs font-black uppercase text-slate-500">Ajuste de Camadas (IA)</h4>
-         <button onClick={adicionar} className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded flex items-center gap-1 hover:bg-orange-200 transition-colors">
+         <h4 className="text-xs font-black uppercase text-[var(--subtle)]">Ajuste de Camadas (IA)</h4>
+         <button onClick={adicionar} className="text-xs font-bold text-orange-500 bg-orange-500/10 px-2 py-1 rounded flex items-center gap-1 hover:bg-orange-500/20 transition-colors">
             <Plus size={12}/> Adicionar
          </button>
       </div>
       <div className="space-y-2">
         {camadas.map((c, idx) => (
-          <div key={idx} className="flex items-center gap-2 bg-white p-2 border border-slate-200 rounded-lg shadow-sm">
+          <div key={idx} className="flex items-center gap-2 bg-[var(--surface)] p-2 border border-[var(--line)] rounded-lg shadow-sm">
             <div className="flex flex-col gap-1">
-               <button onClick={() => mover(idx, -1)} disabled={idx === 0} className="p-1 rounded bg-slate-100 text-slate-400 hover:text-slate-700 disabled:opacity-30"><ArrowUp size={12} /></button>
-               <button onClick={() => mover(idx, 1)} disabled={idx === camadas.length - 1} className="p-1 rounded bg-slate-100 text-slate-400 hover:text-slate-700 disabled:opacity-30"><ArrowDown size={12} /></button>
+               <button onClick={() => mover(idx, -1)} disabled={idx === 0} className="p-1 rounded bg-[var(--elevated)] text-[var(--subtle)] hover:text-[var(--fg)] disabled:opacity-30"><ArrowUp size={12} /></button>
+               <button onClick={() => mover(idx, 1)} disabled={idx === camadas.length - 1} className="p-1 rounded bg-[var(--elevated)] text-[var(--subtle)] hover:text-[var(--fg)] disabled:opacity-30"><ArrowDown size={12} /></button>
             </div>
             <div className="flex-1 grid grid-cols-3 gap-2">
                <input 
                  value={c.nome} onChange={(e) => alterar(idx, "nome", e.target.value)} 
-                 className="col-span-2 bg-transparent border border-slate-200 rounded px-2 py-1.5 text-xs font-bold text-slate-700 outline-none focus:border-orange-500" 
+                 className="col-span-2 bg-transparent border border-[var(--line)] rounded px-2 py-1.5 text-xs font-bold text-[var(--fg)] outline-none focus:border-orange-500" 
                />
                <select 
                  value={c.tipo} onChange={(e) => alterar(idx, "tipo", e.target.value)}
-                 className="col-span-1 bg-transparent border border-slate-200 rounded px-1 py-1.5 text-[10px] uppercase font-bold text-slate-500 outline-none focus:border-orange-500"
+                 className="col-span-1 bg-transparent border border-[var(--line)] rounded px-1 py-1.5 text-[10px] uppercase font-bold text-[var(--subtle)] outline-none focus:border-orange-500"
                >
                  {TIPOS_IA.map(t => <option key={t} value={t}>{t.replace('_',' ')}</option>)}
                </select>
             </div>
-            <button onClick={() => remover(idx)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={14}/></button>
+            <button onClick={() => remover(idx)} className="p-2 text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"><Trash2 size={14}/></button>
           </div>
         ))}
       </div>
@@ -591,14 +600,14 @@ function MontagemPageInner() {
 
       {/* MODAL GIGANTE para comportar o editor */}
       {modal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-2 md:p-6 overflow-y-auto">
-           <div className="bg-white rounded-[24px] shadow-2xl w-full max-w-4xl my-auto animate-in zoom-in-95 duration-200">
-             <div className="p-4 md:p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-[24px]">
-                <h2 className="font-black text-lg md:text-xl text-slate-800 flex items-center gap-2">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-2 md:p-6 overflow-y-auto">
+           <div className="bg-[var(--surface)] rounded-[24px] shadow-2xl w-full max-w-4xl my-auto animate-in zoom-in-95 duration-200 border border-[var(--line)]">
+             <div className="p-4 md:p-6 border-b border-[var(--line)] flex justify-between items-center bg-[var(--panel)] rounded-t-[24px]">
+                <h2 className="font-black text-lg md:text-xl text-[var(--fg)] flex items-center gap-2">
                   <ClipboardList size={22} className="text-orange-500" />
                   {editar ? "Editar Ficha de Montagem" : "Nova Ficha de Montagem"}
                 </h2>
-                <button onClick={() => { setModal(false); setEditar(null); }} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200">
+                <button onClick={() => { setModal(false); setEditar(null); }} className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--surface)] text-[var(--subtle)] border border-[var(--line)] hover:bg-[var(--elevated)] hover:text-[var(--fg)]">
                    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
              </div>
@@ -612,9 +621,9 @@ function MontagemPageInner() {
                 </div>
                 
                 {/* Coluna 2: Preview em tempo real da IA */}
-                <div className="hidden lg:block border-l border-slate-100 pl-8 sticky top-0">
-                   <h3 className="font-black text-slate-800 text-lg mb-4">Prévia do Gráfico</h3>
-                   <div className="text-slate-500 text-xs mb-4">
+                <div className="hidden lg:block border-l border-[var(--line)] pl-8 sticky top-0">
+                   <h3 className="font-black text-[var(--fg)] text-lg mb-4">Prévia do Gráfico</h3>
+                   <div className="text-[var(--subtle)] text-xs mb-4">
                       Veja em tempo real como o painel visual será gerado. Ele se adapta dependendo do tipo (Prato vs Drink) e da presença de foto.
                    </div>
                    <div className="scale-90 origin-top-left w-[110%]">

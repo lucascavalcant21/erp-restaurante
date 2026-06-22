@@ -292,13 +292,19 @@ function TakeatHeader({ sessao, onOpenMobileMenu }) {
            <div className="w-2.5 h-2.5 rounded-full" style={{ background: unidadeInfo?.cor || '#22C55E' }}></div>
            <span className="text-[13px] font-bold text-[var(--fg)] hidden md:block">{unidadeInfo?.nome || "Carregando..."}</span>
            {podeTrocar && (
-             <div className="absolute top-full right-0 mt-2 w-56 bg-[var(--surface)] shadow-xl border border-[var(--line)] rounded-xl py-2 hidden group-hover:block z-50">
-                <div className="px-4 py-2 text-[10px] uppercase font-bold text-[var(--subtle)] border-b border-[var(--line)] mb-2">Unidades</div>
-                {unidades.map(u => (
-                  <div key={u.id} onClick={() => setUnidadeAtiva(u.id)} className="px-4 py-2.5 hover:bg-[var(--elevated)] text-sm font-semibold text-[var(--fg-soft)] flex items-center gap-3 transition-colors">
-                    <div className="w-2 h-2 rounded-full" style={{ background: u.cor }}></div> {u.nome}
-                  </div>
-                ))}
+             <div className="absolute top-full right-0 pt-2 w-56 hidden group-hover:block z-50">
+               <div className="bg-[var(--surface)] shadow-xl border border-[var(--line)] rounded-xl py-2">
+                 <div className="px-4 py-2 text-[10px] uppercase font-bold text-[var(--subtle)] border-b border-[var(--line)] mb-2">Visão Geral</div>
+                 <div onClick={() => setUnidadeAtiva('todas')} className="px-4 py-2.5 hover:bg-[var(--elevated)] text-sm font-semibold text-[var(--fg-soft)] flex items-center gap-3 transition-colors">
+                   <div className="w-2 h-2 rounded-full bg-purple-500"></div> Central (Rede)
+                 </div>
+                 <div className="px-4 py-2 text-[10px] uppercase font-bold text-[var(--subtle)] border-b border-[var(--line)] mb-2 mt-2">Lojas Físicas</div>
+                 {unidades.map(u => (
+                   <div key={u.id} onClick={() => setUnidadeAtiva(u.id)} className="px-4 py-2.5 hover:bg-[var(--elevated)] text-sm font-semibold text-[var(--fg-soft)] flex items-center gap-3 transition-colors">
+                     <div className="w-2 h-2 rounded-full" style={{ background: u.cor }}></div> {u.nome}
+                   </div>
+                 ))}
+               </div>
              </div>
            )}
         </div>

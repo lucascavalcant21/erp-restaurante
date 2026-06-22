@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchPedidosOnlinePendentes, aceitarPedidoOnline, recusarPedidoOnline } from "../../../lib/vendas";
-import { Bike, Check, X, ArrowLeft, Clock, MapPin, Phone, AlertCircle } from "lucide-react";
+import { Bike, Check, X, ArrowLeft, Clock, MapPin, Phone, AlertCircle, Maximize } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
 export default function GestorOnlinePage() {
@@ -51,8 +51,17 @@ export default function GestorOnlinePage() {
      return Math.floor(ms / 60000); // minutos
   };
 
+  const containerRef = useRef(null);
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+       containerRef.current?.requestFullscreen?.();
+    } else {
+       document.exitFullscreen?.();
+    }
+  };
+
   return (
-    <div className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-100">
+    <div ref={containerRef} className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-100">
       
       {/* TOPBAR */}
       <div className="bg-slate-900 pt-8 pb-8 px-8 shadow-lg">
@@ -69,6 +78,9 @@ export default function GestorOnlinePage() {
                  <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Pedidos Online Aguardando Aceite</p>
               </div>
             </div>
+            <button onClick={toggleFullscreen} className="bg-slate-800 hover:bg-slate-700 text-slate-500 p-3 rounded-xl transition-colors border border-slate-700" title="Tela Cheia">
+               <Maximize size={24} />
+            </button>
          </div>
       </div>
 

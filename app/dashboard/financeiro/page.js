@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useERP } from "../../context/ERPContext";
 import { fetchDRE, CATEGORIAS_CUSTO } from "../../lib/financeiro";
-import { LineChart, DollarSign, ArrowUpRight, ArrowDownRight, Activity, Percent, PieChart, UtensilsCrossed, Bike, FileText } from "lucide-react";
+import { LineChart, DollarSign, ArrowUpRight, ArrowDownRight, Activity, Percent, PieChart, UtensilsCrossed, Bike, FileText, Maximize } from "lucide-react";
 import { fmtBRL } from "../../components/ui";
 
 export default function DashboardFinanceiroPage() {
@@ -24,8 +24,17 @@ export default function DashboardFinanceiroPage() {
     carregar();
   }, [unidadeAtiva]);
 
+  const containerRef = useRef(null);
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+       containerRef.current?.requestFullscreen?.();
+    } else {
+       document.exitFullscreen?.();
+    }
+  };
+
   return (
-    <div className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50">
+    <div ref={containerRef} className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50">
       
       {/* HEADER ESCURO */}
       <div className="bg-[#0f172a] pt-8 pb-12 px-6 shadow-2xl relative overflow-hidden text-white border-b border-slate-800">
@@ -38,6 +47,9 @@ export default function DashboardFinanceiroPage() {
                <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">DRE Gerencial e Fluxo de Caixa</p>
             </div>
             <div className="flex gap-4">
+               <button onClick={toggleFullscreen} className="p-4 bg-slate-800 hover:bg-slate-700 text-slate-500 rounded-2xl flex items-center transition-all" title="Tela Cheia">
+                  <Maximize size={24}/>
+               </button>
                <button onClick={() => router.push("/dashboard/financeiro/contas")} className="px-6 py-4 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-2xl flex items-center gap-2 transition-all">
                   <FileText size={18}/> Contas a Pagar
                </button>

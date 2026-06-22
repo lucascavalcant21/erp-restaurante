@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, Suspense } from "react";
+import { useState, useEffect, useMemo, useCallback, Suspense, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, Minus, Trash2, Search as SearchIcon, ArrowLeft, Image as ImageIcon, ChevronRight, X, CreditCard, Banknote, QrCode } from "lucide-react";
+import { Plus, Minus, Trash2, Search as SearchIcon, ArrowLeft, Image as ImageIcon, ChevronRight, X, CreditCard, Banknote, QrCode, Maximize } from "lucide-react";
 import { useERP } from "../../context/ERPContext";
 import { fetchCardapio } from "../../lib/cardapio";
 import { fetchMesasEComandas, abrirComanda, adicionarItemComanda, removerItemComanda, fecharComanda } from "../../lib/mesas";
@@ -164,8 +164,17 @@ function VendasPDVContent() {
 
   if (loading) return <div className="flex h-screen items-center justify-center font-black text-2xl text-slate-500 bg-slate-50">Iniciando PDV...</div>;
 
+  const containerRef = useRef(null);
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+       containerRef.current?.requestFullscreen?.();
+    } else {
+       document.exitFullscreen?.();
+    }
+  };
+
   return (
-    <div className="flex h-screen bg-slate-100 overflow-hidden font-sans">
+    <div ref={containerRef} className="flex h-screen bg-slate-100 overflow-hidden font-sans">
       {toast && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[999] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl font-black text-sm transition-all animate-bounce">
           {toast}
@@ -196,6 +205,9 @@ function VendasPDVContent() {
                  MESA {mesaDaComanda?.numero}
                </div>
             )}
+            <button onClick={toggleFullscreen} className="p-4 bg-slate-50 rounded-2xl hover:bg-slate-100 text-slate-500 transition-colors shadow-sm" title="Tela Cheia">
+               <Maximize size={24} />
+            </button>
          </div>
 
          {/* CARROSSEL DE CATEGORIAS */}

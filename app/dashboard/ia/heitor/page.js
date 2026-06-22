@@ -2,8 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Brain, Send } from "lucide-react";
-import { PageHeader } from "../../../components/ui";
+import { Brain, Send, Cpu, Sparkles } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 
 function fmtBRL(v) { return Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
@@ -46,7 +45,7 @@ function gerarResposta(texto, erp) {
     return `Prioridades para **${erp.unidade}** hoje:\n${linhas.map((l, i) => `${i + 1}. ${l}`).join("\n")}`;
   }
   if (t.includes("oi") || t.includes("olá") || t.includes("bom dia") || t.includes("boa")) {
-    return `Olá! Sou o **Heitor**, assistente de gestão da rede.${erp.criticos.length > 0 ? ` Atenção: ${erp.criticos.length} item(ns) em estoque crítico em ${erp.unidade}.` : ` Tudo tranquilo no estoque de ${erp.unidade}.`} Como posso ajudar?`;
+    return `Olá! Sou a **Hefisto AI**, inteligência baseada nos dados da rede.${erp.criticos.length > 0 ? ` Atenção: ${erp.criticos.length} item(ns) em estoque crítico em ${erp.unidade}.` : ` Tudo tranquilo no estoque de ${erp.unidade}.`} Como posso ajudar?`;
   }
   return `Posso te ajudar com base nos dados reais do ERP da unidade **${erp.unidade}**: estoque, notificações, CMV/margem (Cardápio) e faturamento (Fluxo de Caixa). Pergunte algo específico desses temas.`;
 }
@@ -58,7 +57,7 @@ export default function HeitorPage() {
   const erp = { criticos, totalEstoque: estoque.length, naoLidas, unidade: unidadeInfo.nome };
 
   const [msgs, setMsgs] = useState([
-    { role: "bot", text: "Olá! Sou o **Heitor**. Pergunte sobre estoque, notificações, CMV ou faturamento da sua unidade." },
+    { role: "bot", text: "Saudações. Sou a **Hefisto AI**. Estou conectada ao banco de dados do restaurante. Pergunte-me sobre seu estoque, notificações, CMV ou faturamento em tempo real." },
   ]);
   const [input, setInput] = useState("");
   const fimRef = useRef(null);
@@ -73,45 +72,105 @@ export default function HeitorPage() {
   }
 
   function render(txt) {
-    // negrito simples **x**
     return txt.split("\n").map((linha, i) => (
-      <p key={i} style={{ margin: i ? "4px 0 0" : 0 }}
-        dangerouslySetInnerHTML={{ __html: linha.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>') }} />
+      <p key={i} style={{ margin: i ? "8px 0 0" : 0 }}
+        dangerouslySetInnerHTML={{ __html: linha.replace(/\*\*(.+?)\*\*/g, '<b class="font-black">$1</b>') }} />
     ));
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <PageHeader title="Heitor I.A" subtitle={`Assistente de gestão · ${unidadeInfo.nome}`} icon={Brain} />
+    <div className="min-h-screen flex flex-col bg-slate-50">
+      {/* HEADER COCKPIT IA PREMIUM */}
+      <div className="px-4 py-6 bg-slate-900 sticky top-0 z-30 shadow-2xl shadow-slate-900/20 border-b border-slate-800">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/30">
+              <Brain size={24} color="#fff" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl md:text-2xl font-black text-white tracking-tight">Hefisto AI</h1>
+                <span className="px-2 py-0.5 rounded-full bg-slate-800 text-emerald-400 text-[10px] font-bold uppercase tracking-widest flex items-center gap-1 border border-slate-700">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Online
+                </span>
+              </div>
+              <p className="text-xs font-medium text-slate-400 flex items-center gap-1 mt-0.5">
+                <Cpu size={12}/> Analisando dados da unidade <span className="text-white font-bold">{unidadeInfo.nome}</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
 
-      <div className="flex-1 px-4 pt-4 pb-40 space-y-3 overflow-y-auto">
+      {/* ÁREA DO CHAT */}
+      <div className="flex-1 w-full max-w-4xl mx-auto px-4 pt-8 pb-40 space-y-6 overflow-y-auto">
         {msgs.map((m, i) => (
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className="max-w-[82%] px-3.5 py-2.5 rounded-2xl text-sm"
-              style={m.role === "user"
-                ? { background: "var(--accent-strong)", color: "#fff", borderBottomRightRadius: 4 }
-                : { background: "var(--card)", border: "1px solid var(--line)", color: "var(--fg-soft)", borderBottomLeftRadius: 4 }}>
+            {m.role === "bot" && (
+              <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center flex-shrink-0 mr-3 mt-1">
+                <Brain size={14} className="text-purple-400" />
+              </div>
+            )}
+            
+            <div className={`max-w-[85%] md:max-w-[75%] px-5 py-4 text-sm shadow-sm ${
+                m.role === "user"
+                  ? "bg-slate-800 text-white rounded-2xl rounded-tr-sm"
+                  : "bg-white text-slate-700 border border-slate-200 rounded-2xl rounded-tl-sm"
+              }`}
+            >
               {render(m.text)}
             </div>
+            
+            {m.role === "user" && (
+              <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0 ml-3 mt-1">
+                <span className="text-[10px] font-black text-slate-500">VC</span>
+              </div>
+            )}
           </div>
         ))}
         <div ref={fimRef} />
       </div>
 
-      {/* Sugestões + input fixos */}
-      <div className="fixed bottom-0 left-0 right-0 px-4 pb-5 pt-2" style={{ background: "linear-gradient(transparent, var(--surface) 30%)" }}>
-        <div className="flex gap-2 overflow-x-auto pb-2" style={{ scrollbarWidth: "none" }}>
-          {SUGESTOES.map((s) => (
-            <button key={s} onClick={() => enviar(s)} className="flex-shrink-0 text-[11px] font-medium px-3 py-1.5 rounded-full"
-              style={{ background: "var(--card)", border: "1px solid var(--line)", color: "var(--muted)" }}>{s}</button>
-          ))}
-        </div>
-        <div className="flex gap-2 items-center">
-          <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && enviar()}
-            placeholder="Pergunte ao Heitor..." className="erp-input" style={{ height: 46 }} />
-          <button onClick={() => enviar()} className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "var(--accent-strong)" }}>
-            <Send size={18} color="#fff" />
-          </button>
+      {/* ÁREA DE INPUT (FIXA NO RODAPÉ) */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+        <div className="max-w-4xl mx-auto px-4 pb-6 pt-3">
+          
+          {/* Sugestões Rápidas */}
+          <div className="flex gap-2 overflow-x-auto pb-3 custom-scrollbar">
+            {SUGESTOES.map((s) => (
+              <button key={s} onClick={() => enviar(s)} 
+                className="flex-shrink-0 flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-full bg-slate-50 border border-slate-200 text-slate-600 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 transition-colors"
+              >
+                <Sparkles size={12}/> {s}
+              </button>
+            ))}
+          </div>
+          
+          {/* Caixa de Texto Premium */}
+          <div className="flex items-end gap-3 bg-slate-50 p-2 border border-slate-200 rounded-3xl focus-within:ring-2 focus-within:ring-purple-500 focus-within:border-purple-500 transition-all">
+            <textarea 
+              value={input} 
+              onChange={(e) => setInput(e.target.value)} 
+              onKeyDown={(e) => {
+                if(e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  enviar();
+                }
+              }}
+              placeholder="Pergunte ao seu ERP..." 
+              className="w-full bg-transparent border-none focus:ring-0 resize-none px-4 py-3 text-sm text-slate-800 placeholder-slate-400 max-h-32 min-h-[48px]" 
+              rows={1}
+            />
+            <button 
+              onClick={() => enviar()} 
+              className="w-12 h-12 rounded-2xl bg-slate-800 hover:bg-slate-900 flex items-center justify-center flex-shrink-0 shadow-md transition-colors"
+            >
+              <Send size={18} color="#fff" className="ml-1" />
+            </button>
+          </div>
+          <p className="text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-3">
+            Hefisto AI processa os dados em tempo real.
+          </p>
         </div>
       </div>
     </div>

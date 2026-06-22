@@ -88,7 +88,7 @@ export default function PontoPage() {
                   const isSelected = colabAtivo?.id === f.id;
                   
                   return (
-                     <button key={f.id} onClick={() => setColabAtivo(f)} className={`p-4 rounded-2xl text-left border transition-all ${isSelected ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'bg-white border-slate-200 hover:border-indigo-300'}`}>
+                     <button key={f.id} onClick={() => setColabAtivo(f)} className={`p-4 rounded-2xl text-left border transition-all ${isSelected ? 'bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-600/20' : 'bg-white border-slate-200 hover:border-emerald-300'}`}>
                         <div className="flex justify-between items-center">
                            <div>
                               <p className={`font-black text-lg ${isSelected ? 'text-white' : 'text-slate-800'}`}>{f.nome}</p>
@@ -115,7 +115,7 @@ export default function PontoPage() {
                
                return (
                   <div className="w-full max-w-sm flex flex-col items-center text-center animate-in fade-in zoom-in-95 duration-300">
-                     <div className="w-24 h-24 rounded-full bg-indigo-50 flex items-center justify-center mb-4 text-indigo-600">
+                     <div className="w-24 h-24 rounded-full bg-slate-50 flex items-center justify-center mb-4 text-emerald-600">
                         <Clock size={40} />
                      </div>
                      <h2 className="text-2xl font-black text-slate-900 mb-1">{colabAtivo.nome}</h2>
@@ -132,17 +132,17 @@ export default function PontoPage() {
                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest text-left ml-2 mb-2">Próxima Ação Requerida:</p>
                            
                            {/* Botão 1 */}
-                           <button onClick={() => handleBaterPonto('entrada')} disabled={st !== 0} className={`w-full py-5 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-2 ${st === 0 ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/20 hover:bg-indigo-700 scale-105' : 'bg-slate-100 text-slate-500'}`}>
+                           <button onClick={() => handleBaterPonto('entrada')} disabled={st !== 0} className={`w-full py-5 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-2 ${st === 0 ? 'bg-emerald-600 text-white shadow-xl shadow-emerald-600/20 hover:bg-emerald-700 scale-105' : 'bg-slate-100 text-slate-500'}`}>
                               1. Entrada no Trabalho {st > 0 && <CheckCircle2 size={18}/>}
                            </button>
 
                            {/* Botão 2 */}
-                           <button onClick={() => handleBaterPonto('saida_intervalo')} disabled={st !== 1} className={`w-full py-5 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-2 ${st === 1 ? 'bg-amber-500 text-white shadow-xl shadow-amber-500/20 hover:bg-amber-600 scale-105' : 'bg-slate-100 text-slate-500'}`}>
+                           <button onClick={() => handleBaterPonto('saida_intervalo')} disabled={st !== 1} className={`w-full py-5 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-2 ${st === 1 ? 'bg-emerald-500 text-white shadow-xl shadow-amber-500/20 hover:bg-emerald-600 scale-105' : 'bg-slate-100 text-slate-500'}`}>
                               2. Saída para Intervalo {st > 1 && <CheckCircle2 size={18}/>}
                            </button>
 
                            {/* Botão 3 */}
-                           <button onClick={() => handleBaterPonto('retorno_intervalo')} disabled={st !== 2} className={`w-full py-5 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-2 ${st === 2 ? 'bg-blue-500 text-white shadow-xl shadow-blue-500/20 hover:bg-blue-600 scale-105' : 'bg-slate-100 text-slate-500'}`}>
+                           <button onClick={() => handleBaterPonto('retorno_intervalo')} disabled={st !== 2} className={`w-full py-5 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-2 ${st === 2 ? 'bg-emerald-500 text-white shadow-xl shadow-blue-500/20 hover:bg-emerald-600 scale-105' : 'bg-slate-100 text-slate-500'}`}>
                               3. Retorno do Intervalo {st > 2 && <CheckCircle2 size={18}/>}
                            </button>
 

@@ -137,15 +137,15 @@ export default function SaloesMesasPage() {
                                 <span className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center font-black text-slate-500">{it.quantidade}x</span>
                                 <div>
                                    <p className="font-bold text-slate-800 text-lg leading-tight">{it.produtos.nome_produto}</p>
-                                   {it.observacao && <p className="text-xs font-medium text-amber-600 mt-1 bg-amber-50 inline-block px-2 py-0.5 rounded">Obs: {it.observacao}</p>}
+                                   {it.observacao && <p className="text-xs font-medium text-emerald-600 mt-1 bg-slate-50 inline-block px-2 py-0.5 rounded">Obs: {it.observacao}</p>}
                                 </div>
                              </div>
                              <div className="text-right">
                                 <p className="font-black text-emerald-600 text-lg">{fmtBRL(it.valor_unitario * it.quantidade)}</p>
                                 <p className={`text-[10px] font-black uppercase tracking-widest mt-1 px-2 py-0.5 rounded-md inline-block ${
-                                   it.status_kds === 'entregue' ? 'bg-emerald-100 text-emerald-600' :
-                                   it.status_kds === 'pronto' ? 'bg-indigo-100 text-indigo-600 animate-pulse' :
-                                   'bg-amber-100 text-amber-600'
+                                   it.status_kds === 'entregue' ? 'bg-slate-100 text-slate-800' :
+                                   it.status_kds === 'pronto' ? 'bg-slate-100 text-emerald-600 animate-pulse' :
+                                   'bg-slate-100 text-emerald-600'
                                 }`}>{it.status_kds}</p>
                              </div>
                           </div>
@@ -265,7 +265,7 @@ export default function SaloesMesasPage() {
                      className={`aspect-square rounded-[32px] p-6 flex flex-col justify-between items-start transition-all duration-300 active:scale-95 shadow-md border-2
                         ${m.status === 'livre' ? 'bg-white border-transparent hover:border-emerald-300 hover:shadow-lg' : 
                           m.status === 'ocupada' ? 'bg-emerald-500 border-emerald-600 text-white shadow-emerald-500/30' : 
-                          'bg-amber-400 border-amber-500 text-amber-900'}
+                          'bg-amber-400 border-emerald-500 text-amber-900'}
                      `}
                   >
                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${m.status === 'livre' ? 'bg-slate-100 text-slate-500' : 'bg-black/20 text-white'}`}>

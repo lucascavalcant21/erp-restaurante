@@ -115,7 +115,7 @@ export default function RHPage() {
       {/* HEADER */}
       <div className="pt-6 pb-8 px-6 max-w-5xl mx-auto flex items-center justify-between">
          <div className="flex items-center gap-4">
-           <div className="w-16 h-16 rounded-3xl bg-indigo-100 text-indigo-600 flex items-center justify-center shadow-inner">
+           <div className="w-16 h-16 rounded-3xl bg-slate-100 text-emerald-600 flex items-center justify-center shadow-inner">
               <Users size={32} />
            </div>
            <div>
@@ -123,7 +123,7 @@ export default function RHPage() {
               <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Gestão de Funcionários</p>
            </div>
          </div>
-         <button onClick={() => setModalNovo(true)} className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20">
+         <button onClick={() => setModalNovo(true)} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
             <UserPlus size={18} /> Contratar
          </button>
       </div>
@@ -156,10 +156,10 @@ export default function RHPage() {
                            <div className="flex flex-col items-end gap-2">
                               {f.docs?.length > 0 ? f.docs.map((d) => (
                                 <div key={d.id} className="flex items-center gap-2">
-                                  <a href={d.url_arquivo} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-[10px] font-bold bg-slate-100 text-indigo-600 px-2 py-1 rounded-md hover:bg-indigo-50 hover:underline">
+                                  <a href={d.url_arquivo} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-[10px] font-bold bg-slate-100 text-emerald-600 px-2 py-1 rounded-md hover:bg-slate-50 hover:underline">
                                     <FileText size={10}/> {d.nome_arquivo}
                                   </a>
-                                  <button onClick={() => handleApagarDoc(d.id, d.url_arquivo)} className="text-red-400 hover:text-red-600"><X size={12}/></button>
+                                  <button onClick={() => handleApagarDoc(d.id, d.url_arquivo)} className="text-slate-500 hover:text-emerald-600"><X size={12}/></button>
                                 </div>
                               )) : <span className="text-[10px] text-slate-500">Sem docs</span>}
                               
@@ -167,11 +167,11 @@ export default function RHPage() {
                                 <button onClick={() => handleLancarFinanceiro(f)} className="flex items-center gap-1 text-xs font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition-colors">
                                    Lançar Salário
                                 </button>
-                                <button onClick={() => acionarUpload(f)} disabled={uploadingId === f.id} className="flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800 disabled:opacity-50">
+                                <button onClick={() => acionarUpload(f)} disabled={uploadingId === f.id} className="flex items-center gap-1 text-xs font-bold text-emerald-600 hover:text-indigo-800 disabled:opacity-50">
                                    {uploadingId === f.id ? <Loader2 size={14} className="animate-spin"/> : <Upload size={14}/>} 
                                    {uploadingId === f.id ? "Enviando..." : "Anexar Doc"}
                                 </button>
-                                <button onClick={() => handleRemover(f.id)} className="text-red-500 hover:bg-red-50 p-1.5 rounded transition-colors"><Trash2 size={16}/></button>
+                                <button onClick={() => handleRemover(f.id)} className="text-slate-600 hover:bg-slate-50 p-1.5 rounded transition-colors"><Trash2 size={16}/></button>
                               </div>
                            </div>
                         </td>
@@ -198,19 +198,19 @@ export default function RHPage() {
                <div className="space-y-4">
                   <div>
                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nome Completo</label>
-                     <input type="text" value={novoFunc.nome} onChange={e=>setNovoFunc({...novoFunc, nome: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-indigo-500"/>
+                     <input type="text" value={novoFunc.nome} onChange={e=>setNovoFunc({...novoFunc, nome: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
                   </div>
                   <div>
                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Função / Cargo</label>
-                     <input type="text" value={novoFunc.cargo} onChange={e=>setNovoFunc({...novoFunc, cargo: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-indigo-500"/>
+                     <input type="text" value={novoFunc.cargo} onChange={e=>setNovoFunc({...novoFunc, cargo: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
                   </div>
                   <div>
                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Salário Base (R$)</label>
-                     <input type="number" value={novoFunc.salario} onChange={e=>setNovoFunc({...novoFunc, salario: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-indigo-600 outline-none focus:border-indigo-500"/>
+                     <input type="number" value={novoFunc.salario} onChange={e=>setNovoFunc({...novoFunc, salario: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-emerald-600 outline-none focus:border-emerald-500"/>
                   </div>
                </div>
 
-               <button onClick={handleSalvar} disabled={!novoFunc.nome} className="w-full mt-8 py-5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-indigo-600/20 active:scale-95">
+               <button onClick={handleSalvar} disabled={!novoFunc.nome} className="w-full mt-8 py-5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95">
                   Salvar Colaborador
                </button>
             </div>

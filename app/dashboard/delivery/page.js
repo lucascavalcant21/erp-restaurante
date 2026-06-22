@@ -128,7 +128,7 @@ export default function DeliveryKanbanPage() {
         
         <div className="bg-white border-b border-slate-200 p-6 flex justify-between items-center z-10 shadow-sm">
            <div>
-              <h1 className="text-2xl font-black text-slate-800 flex items-center gap-2"><Settings className="text-blue-600"/> Ajustes do Delivery</h1>
+              <h1 className="text-2xl font-black text-slate-800 flex items-center gap-2"><Settings className="text-emerald-600"/> Ajustes do Delivery</h1>
               <p className="text-sm font-bold text-slate-500 mt-1">Taxas, Zonas de Entrega e Motoboys</p>
            </div>
            <button onClick={() => setAbaConfig(false)} className="px-6 py-3 bg-slate-800 text-white font-bold rounded-xl flex items-center gap-2 hover:bg-slate-900 transition-colors">
@@ -140,7 +140,7 @@ export default function DeliveryKanbanPage() {
            <div className="max-w-4xl mx-auto space-y-8">
               {/* Regras Gerais */}
               <div className="bg-white p-8 rounded-[24px] shadow-sm border border-slate-200">
-                 <h2 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2"><Map size={24} className="text-teal-500" /> Regras de Raio e Taxa</h2>
+                 <h2 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2"><Map size={24} className="text-slate-600" /> Regras de Raio e Taxa</h2>
                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                     <Field label="Raio de Atendimento (KM)">
                       <NumberInput value={configs.raio_km} onChange={(e) => handleConfigChange("raio_km", Number(e.target.value))} />
@@ -152,14 +152,14 @@ export default function DeliveryKanbanPage() {
                       <NumberInput value={configs.taxa_por_km} onChange={(e) => handleConfigChange("taxa_por_km", Number(e.target.value))} />
                     </Field>
                  </div>
-                 <button onClick={handleSalvarConfigs} disabled={salvando} className="w-full md:w-auto px-8 py-4 bg-teal-500 hover:bg-teal-600 text-white font-black rounded-xl">
+                 <button onClick={handleSalvarConfigs} disabled={salvando} className="w-full md:w-auto px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-xl">
                     {salvando ? "Salvando..." : "Salvar Regras"}
                  </button>
               </div>
 
               {/* Tabela de Motoboys Simplificada pro Walkthrough */}
               <div className="bg-white p-8 rounded-[24px] shadow-sm border border-slate-200">
-                 <h2 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2"><Bike size={24} className="text-orange-500" /> Frota de Entregadores</h2>
+                 <h2 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2"><Bike size={24} className="text-slate-600" /> Frota de Entregadores</h2>
                  
                  {motoboys.length === 0 ? (
                     <div className="text-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-300 font-bold text-slate-500">Nenhum motoboy cadastrado.</div>
@@ -201,8 +201,8 @@ export default function DeliveryKanbanPage() {
       {/* HEADER OPERACIONAL */}
       <div className="px-6 py-4 bg-white border-b border-slate-200 flex items-center justify-between shadow-sm z-10 flex-shrink-0">
          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-blue-600/10 flex items-center justify-center border border-blue-600/20 shadow-sm">
-               <Truck size={24} className="text-blue-600" />
+            <div className="w-12 h-12 rounded-2xl bg-emerald-600/10 flex items-center justify-center border border-emerald-600/20 shadow-sm">
+               <Truck size={24} className="text-emerald-600" />
             </div>
             <div>
                <h1 className="text-2xl font-black text-slate-800 tracking-tight">Expedição Delivery</h1>
@@ -213,7 +213,7 @@ export default function DeliveryKanbanPage() {
          <div className="flex items-center gap-4">
             <div className="relative hidden md:block">
                <SearchIcon size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
-               <input type="text" placeholder="Buscar pedido ou cliente..." value={busca} onChange={(e) => setBusca(e.target.value)} className="pl-12 pr-4 py-3 bg-slate-100 rounded-xl text-slate-800 font-bold text-sm w-64 outline-none focus:ring-2 focus:ring-blue-500 transition-all" />
+               <input type="text" placeholder="Buscar pedido ou cliente..." value={busca} onChange={(e) => setBusca(e.target.value)} className="pl-12 pr-4 py-3 bg-slate-100 rounded-xl text-slate-800 font-bold text-sm w-64 outline-none focus:ring-2 focus:ring-emerald-500 transition-all" />
             </div>
             <button onClick={() => setAbaConfig(true)} className="px-5 py-3 bg-white border-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600 font-black rounded-xl transition-all shadow-sm flex items-center gap-2">
                <Settings size={18} /> Ajustes
@@ -228,7 +228,7 @@ export default function DeliveryKanbanPage() {
          <div className="flex-shrink-0 w-80 flex flex-col max-h-full">
             <div className="flex items-center justify-between mb-4 px-2">
                <h2 className="font-black text-slate-700 uppercase tracking-widest text-sm flex items-center gap-2">
-                  <Flame size={18} className="text-orange-500" /> Na Cozinha
+                  <Flame size={18} className="text-slate-600" /> Na Cozinha
                </h2>
                <span className="bg-slate-200 text-slate-600 font-black px-3 py-1 rounded-full text-xs">{colCozinha.length}</span>
             </div>
@@ -240,7 +240,7 @@ export default function DeliveryKanbanPage() {
                        <span className="text-xs font-bold text-slate-500">{horaStr(p.created_at)}</span>
                     </div>
                     <p className="font-bold text-slate-600 text-sm mb-3">👤 {p.cliente || "Cliente Delivery"}</p>
-                    <div className="bg-orange-50 text-orange-600 font-bold text-[10px] uppercase tracking-widest p-2 rounded-lg text-center animate-pulse">
+                    <div className="bg-slate-50 text-emerald-600 font-bold text-[10px] uppercase tracking-widest p-2 rounded-lg text-center animate-pulse">
                        Aguardando KDS
                     </div>
                  </div>
@@ -280,7 +280,7 @@ export default function DeliveryKanbanPage() {
          <div className="flex-shrink-0 w-80 flex flex-col max-h-full">
             <div className="flex items-center justify-between mb-4 px-2">
                <h2 className="font-black text-slate-700 uppercase tracking-widest text-sm flex items-center gap-2">
-                  <Route size={18} className="text-blue-500" /> Em Rota
+                  <Route size={18} className="text-slate-600" /> Em Rota
                </h2>
                <span className="bg-slate-200 text-slate-600 font-black px-3 py-1 rounded-full text-xs">{colRota.length}</span>
             </div>
@@ -292,7 +292,7 @@ export default function DeliveryKanbanPage() {
                        <span className="text-xs font-bold text-slate-500">{horaStr(p.created_at)}</span>
                     </div>
                     <p className="font-bold text-slate-600 text-sm mb-2">👤 {p.cliente || "Cliente"}</p>
-                    <div className="flex items-center gap-2 bg-blue-50 p-2 rounded-lg text-blue-700 text-xs font-black uppercase tracking-widest mb-3">
+                    <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-lg text-emerald-700 text-xs font-black uppercase tracking-widest mb-3">
                        <Bike size={14}/> {p.motoboy || "Motoboy"}
                     </div>
                     
@@ -344,19 +344,19 @@ export default function DeliveryKanbanPage() {
                 
                 <div className="space-y-3 mb-8 max-h-60 overflow-y-auto hide-scrollbar pr-2">
                    {motoboys.filter(m => m.status === 'online').length === 0 ? (
-                      <div className="p-6 bg-rose-50 border border-rose-200 rounded-2xl text-center">
-                         <p className="font-bold text-rose-600 mb-1">Nenhum motoboy Online!</p>
-                         <p className="text-xs text-rose-500">Vá em Configurações para ativar os motoboys.</p>
+                      <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl text-center">
+                         <p className="font-bold text-emerald-600 mb-1">Nenhum motoboy Online!</p>
+                         <p className="text-xs text-slate-600">Vá em Configurações para ativar os motoboys.</p>
                       </div>
                    ) : (
                       motoboys.filter(m => m.status === 'online').map(mb => (
                          <button 
                             key={mb.id} 
                             onClick={() => moverPedido(modalDespacho.id, "rota", mb.nome)}
-                            className="w-full flex items-center justify-between p-4 bg-white border-2 border-slate-100 hover:border-blue-500 rounded-2xl transition-all group"
+                            className="w-full flex items-center justify-between p-4 bg-white border-2 border-slate-100 hover:border-emerald-500 rounded-2xl transition-all group"
                          >
                             <div className="flex items-center gap-4">
-                               <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center font-black text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
+                               <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center font-black text-slate-500 group-hover:bg-slate-100 group-hover:text-emerald-600 transition-colors">
                                   <Bike size={20} />
                                </div>
                                <div className="text-left">
@@ -364,7 +364,7 @@ export default function DeliveryKanbanPage() {
                                   <p className="text-xs font-bold text-slate-500">{mb.placa || "Placa não informada"}</p>
                                </div>
                             </div>
-                            <span className="font-bold text-blue-500 text-sm opacity-0 group-hover:opacity-100 transition-opacity">Selecionar</span>
+                            <span className="font-bold text-slate-600 text-sm opacity-0 group-hover:opacity-100 transition-opacity">Selecionar</span>
                          </button>
                       ))
                    )}

@@ -71,7 +71,7 @@ export default function DashboardFinanceiroPage() {
 
                   <div className="bg-white p-6 rounded-[32px] border border-slate-200 shadow-xl shadow-slate-200/50 flex flex-col justify-between">
                      <div className="flex justify-between items-start mb-4">
-                        <div className="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center"><ArrowDownRight size={24}/></div>
+                        <div className="w-12 h-12 rounded-full bg-slate-50 text-slate-600 flex items-center justify-center"><ArrowDownRight size={24}/></div>
                         <span className="text-[10px] uppercase font-black text-slate-500 bg-slate-100 px-2 py-1 rounded-md">Despesas Pagas</span>
                      </div>
                      <div>
@@ -80,7 +80,7 @@ export default function DashboardFinanceiroPage() {
                      </div>
                   </div>
 
-                  <div className={`${dre.lucroLiquido >= 0 ? 'bg-emerald-500' : 'bg-red-500'} p-6 rounded-[32px] shadow-xl text-white flex flex-col justify-between`}>
+                  <div className={`${dre.lucroLiquido >= 0 ? 'bg-emerald-500' : 'bg-emerald-500'} p-6 rounded-[32px] shadow-xl text-white flex flex-col justify-between`}>
                      <div className="flex justify-between items-start mb-4">
                         <div className="w-12 h-12 rounded-full bg-white/20 text-white flex items-center justify-center"><DollarSign size={24}/></div>
                         <span className="text-[10px] uppercase font-black bg-black/20 px-2 py-1 rounded-md">Resultado</span>
@@ -100,7 +100,7 @@ export default function DashboardFinanceiroPage() {
                   {/* DRE DETALHADO (Plano de Contas) */}
                   <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-xl shadow-slate-200/50">
                      <div className="flex items-center gap-3 mb-8">
-                        <Activity className="text-indigo-500"/>
+                        <Activity className="text-slate-600"/>
                         <h2 className="text-2xl font-black text-slate-800 tracking-tight">DRE Detalhado</h2>
                      </div>
 
@@ -145,7 +145,7 @@ export default function DashboardFinanceiroPage() {
                            </div>
 
                            <div className="flex items-center gap-4 bg-slate-800 p-4 rounded-2xl border border-slate-700">
-                              <div className="w-12 h-12 bg-indigo-500/20 text-indigo-400 rounded-xl flex items-center justify-center"><Motorbike size={20}/></div>
+                              <div className="w-12 h-12 bg-emerald-500/20 text-slate-500 rounded-xl flex items-center justify-center"><Motorbike size={20}/></div>
                               <div className="flex-1">
                                  <p className="text-xs uppercase font-black tracking-widest text-slate-500 mb-1">Delivery / QR Code</p>
                                  <p className="text-2xl font-black">{fmtBRL(dre.fatPorCanal.delivery + dre.fatPorCanal.qrcode)}</p>

@@ -95,7 +95,7 @@ export default function MesasPDVPage() {
       <div className="px-6 py-4 bg-white border-b border-slate-200 flex items-center justify-between shadow-sm z-10">
          <div className="flex items-center gap-6">
             <h1 className="font-black text-2xl text-slate-800 tracking-tight flex items-center gap-2">
-              <Map className="text-blue-600"/> Salão
+              <Map className="text-emerald-600"/> Salão
             </h1>
             <div className="h-8 w-px bg-slate-200"></div>
             
@@ -104,8 +104,8 @@ export default function MesasPDVPage() {
               <div className="px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl font-bold flex items-center gap-2">
                 <div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div> {mesasLivres} Livres
               </div>
-              <div className="px-4 py-2 bg-amber-50 text-amber-700 rounded-xl font-bold flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></div> {mesasOcupadas} Ocupadas
+              <div className="px-4 py-2 bg-slate-50 text-emerald-700 rounded-xl font-bold flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div> {mesasOcupadas} Ocupadas
               </div>
             </div>
          </div>
@@ -118,10 +118,10 @@ export default function MesasPDVPage() {
                 placeholder="Buscar Mesa..." 
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
-                className="pl-12 pr-4 py-3 bg-slate-100 rounded-2xl text-slate-800 font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500 w-64 transition-all"
+                className="pl-12 pr-4 py-3 bg-slate-100 rounded-2xl text-slate-800 font-bold text-sm outline-none focus:ring-2 focus:ring-emerald-500 w-64 transition-all"
               />
             </div>
-            <button onClick={() => carregar(true)} className="w-12 h-12 rounded-2xl bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-blue-600 flex items-center justify-center transition-colors shadow-sm active:scale-95">
+            <button onClick={() => carregar(true)} className="w-12 h-12 rounded-2xl bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-emerald-600 flex items-center justify-center transition-colors shadow-sm active:scale-95">
               <RefreshCw size={20} />
             </button>
             <button onClick={handleAdicionarMesa} disabled={salvando} className="px-5 py-3 rounded-2xl bg-slate-800 text-white font-black text-sm uppercase tracking-widest hover:bg-slate-900 shadow-lg shadow-slate-900/20 transition-all active:scale-95 flex items-center gap-2">
@@ -141,7 +141,7 @@ export default function MesasPDVPage() {
               </div>
               <p className="font-black text-2xl mb-2 text-slate-800">O Salão está vazio</p>
               <p className="mb-8 font-medium">Adicione mesas para começar a operar.</p>
-              <button onClick={() => gerarMesas(unidadeAtiva, 12).then(()=>carregar(true))} className="px-8 py-4 bg-blue-600 text-white font-black text-lg rounded-2xl shadow-xl shadow-blue-600/30 hover:bg-blue-700 active:scale-95 transition-all">
+              <button onClick={() => gerarMesas(unidadeAtiva, 12).then(()=>carregar(true))} className="px-8 py-4 bg-emerald-600 text-white font-black text-lg rounded-2xl shadow-xl shadow-blue-600/30 hover:bg-emerald-700 active:scale-95 transition-all">
                 Gerar 12 Mesas Automaticamente
               </button>
            </div>
@@ -158,7 +158,7 @@ export default function MesasPDVPage() {
                   onClick={() => abrirDrawer(m)}
                   className={`relative flex flex-col p-5 aspect-square rounded-[32px] transition-all duration-300 active:scale-95 text-left overflow-hidden group ${
                     ocupada 
-                      ? 'bg-amber-500 border-b-8 border-amber-600 shadow-[0_12px_32px_rgba(245,158,11,0.3)] hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(245,158,11,0.4)]' 
+                      ? 'bg-emerald-500 border-b-8 border-emerald-600 shadow-[0_12px_32px_rgba(245,158,11,0.3)] hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(245,158,11,0.4)]' 
                       : 'bg-white border-b-8 border-slate-200 shadow-sm hover:-translate-y-1 hover:shadow-lg hover:border-emerald-200'
                   }`}
                 >
@@ -242,19 +242,19 @@ export default function MesasPDVPage() {
                        <button 
                          key={c.id} 
                          onClick={() => router.push(`/dashboard/vendas?comanda=${c.id}`)} 
-                         className="flex items-center gap-5 p-5 bg-white border-2 border-slate-100 hover:border-blue-500 rounded-3xl transition-all text-left w-full shadow-sm hover:shadow-lg group active:scale-95"
+                         className="flex items-center gap-5 p-5 bg-white border-2 border-slate-100 hover:border-emerald-500 rounded-3xl transition-all text-left w-full shadow-sm hover:shadow-lg group active:scale-95"
                        >
-                         <div className="w-14 h-14 rounded-full bg-blue-50 text-blue-600 font-black flex items-center justify-center text-2xl group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                         <div className="w-14 h-14 rounded-full bg-slate-50 text-emerald-600 font-black flex items-center justify-center text-2xl group-hover:bg-emerald-600 group-hover:text-white transition-colors">
                            {c.nome_cliente?.[0]?.toUpperCase()||"C"}
                          </div>
                          <div className="flex-1">
                            <p className="font-black text-slate-800 text-lg mb-1">{c.nome_cliente || "Sem nome"}</p>
                            <div className="flex items-center gap-3">
                              <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-md">{tempoDecorrido(c.aberta_em)}</span>
-                             <span className="text-sm font-black text-blue-600">{fmtBRL(totalComanda)}</span>
+                             <span className="text-sm font-black text-emerald-600">{fmtBRL(totalComanda)}</span>
                            </div>
                          </div>
-                         <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
+                         <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-500 group-hover:bg-slate-100 group-hover:text-emerald-600 transition-colors">
                            <ChevronRight size={24}/>
                          </div>
                        </button>

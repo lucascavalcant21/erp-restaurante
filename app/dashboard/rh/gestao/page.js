@@ -342,7 +342,7 @@ export default function GestaoRhPage() {
           <Field label="Senha (PIN)">
             <TextInput value={formAcesso.senha} onChange={e => setFormAcesso({...formAcesso, senha: e.target.value})} placeholder="123456" />
           </Field>
-          {acessoErro && <p className="text-xs text-red-500 text-center">{acessoErro}</p>}
+          {acessoErro && <p className="text-xs text-slate-600 text-center">{acessoErro}</p>}
           <Btn variant="primary" className="w-full" onClick={gerarAcessoPDV} disabled={acessoEnviando}>
             {acessoEnviando ? "Gerando..." : "Gerar Acesso"}
           </Btn>

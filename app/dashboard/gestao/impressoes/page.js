@@ -176,7 +176,7 @@ export default function ImpressoesPage() {
               </div>
             </Card>
 
-            <Btn onClick={handleSave} disabled={salvando} className="w-full h-12 shadow-lg !bg-indigo-600 hover:!bg-indigo-700 text-white border-none">
+            <Btn onClick={handleSave} disabled={salvando} className="w-full h-12 shadow-lg !bg-emerald-600 hover:!bg-emerald-700 text-white border-none">
               <Save size={18} className="mr-2" /> Salvar Configurações
             </Btn>
           </div>

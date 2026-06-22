@@ -88,7 +88,7 @@ export default function ProdutosPage() {
               <button onClick={() => router.back()} className="p-3 text-slate-500 hover:text-slate-800 bg-slate-50 rounded-full border border-slate-200">
                  <ArrowLeft size={20}/>
               </button>
-              <div className="w-14 h-14 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center shadow-inner">
+              <div className="w-14 h-14 rounded-2xl bg-slate-100 text-emerald-600 flex items-center justify-center shadow-inner">
                  <Tag size={28} />
               </div>
               <div>
@@ -96,7 +96,7 @@ export default function ProdutosPage() {
                  <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">O que o cliente vê no Salão e no QR Code</p>
               </div>
             </div>
-            <button onClick={abrirNovo} className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20">
+            <button onClick={abrirNovo} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
                <Plus size={18} /> Novo Produto
             </button>
          </div>
@@ -124,14 +124,14 @@ export default function ProdutosPage() {
                         <span className="bg-slate-100 text-slate-500 px-3 py-1 rounded-lg font-black text-[10px] uppercase tracking-widest">
                            {p.categoria}
                         </span>
-                        <button onClick={() => abrirEditar(p)} className="text-slate-500 hover:text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity p-1"><Edit3 size={18}/></button>
+                        <button onClick={() => abrirEditar(p)} className="text-slate-500 hover:text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity p-1"><Edit3 size={18}/></button>
                      </div>
                      <h3 className="text-xl font-black text-slate-800 leading-tight mb-4">{p.nome_produto}</h3>
                      
                      <div className="flex justify-between items-end">
                         <div>
                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Preço (PDV)</p>
-                           <p className="font-black text-2xl text-indigo-600">{fmtBRL(p.preco_venda)}</p>
+                           <p className="font-black text-2xl text-emerald-600">{fmtBRL(p.preco_venda)}</p>
                         </div>
                         <div className="text-right">
                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Vinculado a</p>
@@ -157,13 +157,13 @@ export default function ProdutosPage() {
                <div className="space-y-4">
                   <div>
                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nome do Produto</label>
-                     <input type="text" placeholder="Ex: Caipirinha de Morango" value={form.nome_produto} onChange={e=>setForm({...form, nome_produto: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-indigo-500 text-slate-800"/>
+                     <input type="text" placeholder="Ex: Caipirinha de Morango" value={form.nome_produto} onChange={e=>setForm({...form, nome_produto: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500 text-slate-800"/>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4">
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Categoria</label>
-                        <select value={form.categoria} onChange={e=>setForm({...form, categoria: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-indigo-500">
+                        <select value={form.categoria} onChange={e=>setForm({...form, categoria: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500">
                            <option value="Bebidas">Bebidas</option>
                            <option value="Entradas">Entradas</option>
                            <option value="Pratos Principais">Pratos Principais</option>
@@ -174,7 +174,7 @@ export default function ProdutosPage() {
                      </div>
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Vai pro KDS de?</label>
-                        <select value={form.departamento} onChange={e=>setForm({...form, departamento: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-indigo-500">
+                        <select value={form.departamento} onChange={e=>setForm({...form, departamento: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500">
                            <option value="cozinha">Cozinha</option>
                            <option value="bar">Bar</option>
                         </select>
@@ -183,12 +183,12 @@ export default function ProdutosPage() {
 
                   <div>
                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Preço de Venda (Cliente)</label>
-                     <input type="number" step="0.01" placeholder="0.00" value={form.preco_venda} onChange={e=>setForm({...form, preco_venda: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-indigo-600 text-xl outline-none focus:border-indigo-500"/>
+                     <input type="number" step="0.01" placeholder="0.00" value={form.preco_venda} onChange={e=>setForm({...form, preco_venda: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-emerald-600 text-xl outline-none focus:border-emerald-500"/>
                   </div>
 
                   <div className="pt-4 border-t border-slate-100">
                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Ligar à Ficha Técnica (Opcional)</label>
-                     <select value={form.ficha_id} onChange={e=>setForm({...form, ficha_id: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:border-indigo-500">
+                     <select value={form.ficha_id} onChange={e=>setForm({...form, ficha_id: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:border-emerald-500">
                         <option value="">-- Não dar baixa no estoque --</option>
                         {fichas.map(f => <option key={f.id} value={f.id}>{f.nome_receita} ({f.departamento})</option>)}
                      </select>
@@ -196,7 +196,7 @@ export default function ProdutosPage() {
                   </div>
                </div>
 
-               <button onClick={handleSalvar} className="w-full mt-8 py-5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-indigo-600/20 active:scale-95 flex items-center justify-center gap-2">
+               <button onClick={handleSalvar} className="w-full mt-8 py-5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-2">
                   <Save size={20}/> Salvar no Cardápio
                </button>
             </div>

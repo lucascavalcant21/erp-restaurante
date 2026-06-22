@@ -147,7 +147,7 @@ function FormScanner({ onSalvar, onCancelar }) {
               <Field label="Data"><TextInput className="py-1.5 text-sm" type="date" value={dadosIA.data_emissao} onChange={e => setDadosIA({...dadosIA, data_emissao: e.target.value})} /></Field>
               <Field label="Hora"><TextInput className="py-1.5 text-sm" type="time" value={dadosIA.hora_emissao} onChange={e => setDadosIA({...dadosIA, hora_emissao: e.target.value})} /></Field>
             </div>
-            <Field label="Valor Total (R$)"><NumberInput className="py-1.5 text-sm font-bold text-blue-600" value={dadosIA.valor_total} onChange={e => setDadosIA({...dadosIA, valor_total: e.target.value})} /></Field>
+            <Field label="Valor Total (R$)"><NumberInput className="py-1.5 text-sm font-bold text-emerald-600" value={dadosIA.valor_total} onChange={e => setDadosIA({...dadosIA, valor_total: e.target.value})} /></Field>
           </div>
         )}
 
@@ -157,13 +157,13 @@ function FormScanner({ onSalvar, onCancelar }) {
             <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "var(--dim)" }}>Automações Inteligentes</p>
             
             <label className="flex items-center gap-3 cursor-pointer">
-              <input type="checkbox" className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" 
+              <input type="checkbox" className="w-5 h-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" 
                 checked={lancarFinanceiro} onChange={(e) => setLancarFinanceiro(e.target.checked)} />
               <span className="text-sm font-bold" style={{ color: "var(--fg)" }}>Lançar pendência no Financeiro (Contas a Pagar)</span>
             </label>
             
             <label className="flex items-center gap-3 cursor-pointer">
-              <input type="checkbox" className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" 
+              <input type="checkbox" className="w-5 h-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" 
                 checked={alimentarEstoque} onChange={(e) => setAlimentarEstoque(e.target.checked)} />
               <span className="text-sm font-bold" style={{ color: "var(--fg)" }}>Dar entrada automática dos itens no Estoque</span>
             </label>
@@ -353,7 +353,7 @@ export default function NotasFiscaisPage() {
                     
                     <div className="text-right flex flex-col items-end">
                       <p className="text-xl font-black" style={{ color: "var(--accent-fg)" }}>{fmtBRL(n.valor_total)}</p>
-                      <button onClick={(e) => { e.stopPropagation(); remover(n.id); }} className="p-1.5 mt-2 rounded-md hover:bg-red-500/10 text-red-500 transition">
+                      <button onClick={(e) => { e.stopPropagation(); remover(n.id); }} className="p-1.5 mt-2 rounded-md hover:bg-emerald-500/10 text-slate-600 transition">
                         <Trash2 size={16} />
                       </button>
                     </div>

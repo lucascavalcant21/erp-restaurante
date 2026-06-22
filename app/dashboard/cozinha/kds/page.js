@@ -103,8 +103,8 @@ export default function KDSPage() {
                <ArrowLeft size={24} />
             </button>
             
-            <div className="w-12 h-12 rounded-2xl bg-orange-500/20 flex items-center justify-center border border-orange-500/30 shadow-[0_0_20px_rgba(249,115,22,0.15)]">
-               <ChefHat size={28} className="text-orange-500" />
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 shadow-[0_0_20px_rgba(249,115,22,0.15)]">
+               <ChefHat size={28} className="text-slate-600" />
             </div>
 
             <div>
@@ -121,7 +121,7 @@ export default function KDSPage() {
               className={`flex items-center gap-2 px-5 py-3 rounded-xl font-black text-sm uppercase tracking-widest transition-colors ${
                 somAtivo 
                   ? "bg-emerald-500/20 text-emerald-500 border border-emerald-500/30" 
-                  : "bg-red-500/20 text-red-500 border border-red-500/30"
+                  : "bg-emerald-500/20 text-slate-600 border border-emerald-500/30"
               }`}
             >
                {somAtivo ? <Volume2 size={20} /> : <VolumeX size={20} />}
@@ -154,14 +154,14 @@ export default function KDSPage() {
                   const pct = Math.min(100, Math.max(0, (minutos / SLA_MINUTOS) * 100));
                   let corSLA = "bg-emerald-500";
                   let corSlaGlow = "shadow-[0_0_15px_rgba(16,185,129,0.5)]";
-                  if (pct > 50 && pct < 80) { corSLA = "bg-amber-500"; corSlaGlow = "shadow-[0_0_15px_rgba(245,158,11,0.5)]"; }
-                  if (pct >= 80) { corSLA = "bg-red-500"; corSlaGlow = "shadow-[0_0_15px_rgba(239,68,68,0.6)]"; }
+                  if (pct > 50 && pct < 80) { corSLA = "bg-emerald-500"; corSlaGlow = "shadow-[0_0_15px_rgba(245,158,11,0.5)]"; }
+                  if (pct >= 80) { corSLA = "bg-emerald-500"; corSlaGlow = "shadow-[0_0_15px_rgba(239,68,68,0.6)]"; }
 
                   const todosProntos = pedido.venda_itens.length > 0 && pedido.venda_itens.every(i => i.status_preparo === "pronto");
 
                   return (
                      <div key={pedido.id} className={`flex flex-col bg-slate-900 rounded-[28px] border-2 overflow-hidden shadow-xl transition-all ${
-                        isAtrasado ? "border-red-500/50 shadow-[0_10px_40px_rgba(239,68,68,0.15)]" : "border-slate-800"
+                        isAtrasado ? "border-emerald-500/50 shadow-[0_10px_40px_rgba(239,68,68,0.15)]" : "border-slate-800"
                      }`}>
                         
                         {/* Barra SLA (Progresso) */}
@@ -170,9 +170,9 @@ export default function KDSPage() {
                         </div>
 
                         {/* Cabeçalho Ticket */}
-                        <div className={`p-5 flex items-center justify-between border-b ${isAtrasado ? 'bg-red-500/10 border-red-500/20' : 'bg-slate-900 border-slate-800'}`}>
+                        <div className={`p-5 flex items-center justify-between border-b ${isAtrasado ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-slate-900 border-slate-800'}`}>
                            <div>
-                              <p className={`text-xl font-black tracking-tight ${isAtrasado ? 'text-red-400' : 'text-white'}`}>
+                              <p className={`text-xl font-black tracking-tight ${isAtrasado ? 'text-slate-500' : 'text-white'}`}>
                                  #{pedido.id.slice(0, 4).toUpperCase()}
                               </p>
                               <p className="text-sm font-bold text-slate-500 mt-1 uppercase tracking-widest">
@@ -180,9 +180,9 @@ export default function KDSPage() {
                               </p>
                            </div>
                            <div className={`px-4 py-2 rounded-xl flex flex-col items-end border ${
-                              isAtrasado ? 'bg-red-500/20 border-red-500/30' : 'bg-slate-800/50 border-slate-700'
+                              isAtrasado ? 'bg-emerald-500/20 border-emerald-500/30' : 'bg-slate-800/50 border-slate-700'
                            }`}>
-                              <p className={`text-2xl font-black flex items-center gap-2 ${isAtrasado ? 'text-red-500 animate-pulse' : 'text-slate-500'}`}>
+                              <p className={`text-2xl font-black flex items-center gap-2 ${isAtrasado ? 'text-slate-600 animate-pulse' : 'text-slate-500'}`}>
                                  <Clock size={20} /> {minutos}m
                               </p>
                               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">{horaStr(pedido.created_at)}</p>
@@ -201,10 +201,10 @@ export default function KDSPage() {
                               let stIcon = <div className="w-6 h-6 rounded-full border-4 border-slate-600" />;
                               
                               if (st === "preparando") {
-                                 stBg = "bg-orange-500/20";
-                                 stBorder = "border-orange-500/50";
-                                 stText = "text-orange-400";
-                                 stIcon = <Flame size={24} className="text-orange-500 animate-pulse" />;
+                                 stBg = "bg-emerald-500/20";
+                                 stBorder = "border-emerald-500/50";
+                                 stText = "text-slate-500";
+                                 stIcon = <Flame size={24} className="text-slate-600 animate-pulse" />;
                               } else if (st === "pronto") {
                                  stBg = "bg-emerald-500/20";
                                  stBorder = "border-emerald-500/50";
@@ -229,8 +229,8 @@ export default function KDSPage() {
 
                            {/* Observação */}
                            {pedido.observacao && (
-                              <div className="mt-2 p-4 bg-amber-500/10 border-2 border-amber-500/30 rounded-[20px]">
-                                 <p className="text-xs font-black text-amber-500 uppercase tracking-widest flex items-center gap-2 mb-2">
+                              <div className="mt-2 p-4 bg-emerald-500/10 border-2 border-emerald-500/30 rounded-[20px]">
+                                 <p className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center gap-2 mb-2">
                                     <TriangleAlert size={16} /> Observação do Cliente
                                  </p>
                                  <p className="text-amber-100 font-bold text-sm leading-snug">{pedido.observacao}</p>

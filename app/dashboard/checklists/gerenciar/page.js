@@ -78,7 +78,7 @@ export default function GerenciarChecklistsPage() {
       {/* HEADER */}
       <div className="pt-6 pb-8 px-6 max-w-5xl mx-auto flex items-center justify-between">
          <div className="flex items-center gap-4">
-           <div className="w-16 h-16 rounded-3xl bg-emerald-100 text-emerald-600 flex items-center justify-center shadow-inner">
+           <div className="w-16 h-16 rounded-3xl bg-slate-100 text-slate-800 flex items-center justify-center shadow-inner">
               <CheckSquare size={32} />
            </div>
            <div>
@@ -101,14 +101,14 @@ export default function GerenciarChecklistsPage() {
              <div key={t.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow relative group">
                 <div className="flex justify-between items-start mb-4">
                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                      t.departamento === 'cozinha' ? 'bg-orange-100 text-orange-600' :
-                      t.departamento === 'bar' ? 'bg-indigo-100 text-indigo-600' : 'bg-pink-100 text-pink-600'
+                      t.departamento === 'cozinha' ? 'bg-slate-100 text-emerald-600' :
+                      t.departamento === 'bar' ? 'bg-slate-100 text-emerald-600' : 'bg-slate-100 text-emerald-600'
                    }`}>
                       {t.departamento} • {t.tipo}
                    </span>
                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button onClick={() => abrirEditar(t)} className="text-slate-500 hover:text-emerald-600"><Edit3 size={16}/></button>
-                      <button onClick={() => handleDesativar(t.id)} className="text-slate-500 hover:text-red-600"><Trash2 size={16}/></button>
+                      <button onClick={() => handleDesativar(t.id)} className="text-slate-500 hover:text-emerald-600"><Trash2 size={16}/></button>
                    </div>
                 </div>
                 <h3 className="text-xl font-black text-slate-800 leading-tight">{t.titulo}</h3>
@@ -164,7 +164,7 @@ export default function GerenciarChecklistsPage() {
                                  onChange={e => mudaTarefa(it.id, e.target.value)}
                                  className="flex-1 p-3 bg-white border border-slate-200 rounded-lg font-medium outline-none focus:border-emerald-500"
                               />
-                              <button onClick={() => removeTarefa(it.id)} className="p-3 text-slate-500 hover:text-red-500 transition-colors"><Trash2 size={18}/></button>
+                              <button onClick={() => removeTarefa(it.id)} className="p-3 text-slate-500 hover:text-slate-600 transition-colors"><Trash2 size={18}/></button>
                            </div>
                         ))}
                      </div>

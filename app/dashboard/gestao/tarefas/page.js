@@ -136,7 +136,7 @@ export default function MotorDeTarefasPage() {
                 <TextInput value={c.label} onChange={(e) => alteraCampo(i, e.target.value)} />
               </div>
               <div className="w-24 text-[10px] font-bold text-center uppercase" style={{ color: "var(--accent)" }}>{c.tipo}</div>
-              <button onClick={() => removeCampo(i)} className="p-2 rounded hover:bg-red-500/20"><Trash size={16} color="#ef4444" /></button>
+              <button onClick={() => removeCampo(i)} className="p-2 rounded hover:bg-emerald-500/20"><Trash size={16} color="#ef4444" /></button>
             </div>
           ))}
           {fCampos.length === 0 && <p className="text-xs text-center p-4 text-gray-500">Nenhum campo. Adicione um abaixo.</p>}

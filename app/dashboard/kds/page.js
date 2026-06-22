@@ -91,7 +91,7 @@ function KDSRunner() {
                         onClick={() => avancarStatus(it)}
                         className={`text-left rounded-[32px] p-6 flex flex-col justify-between transition-all duration-300 shadow-2xl active:scale-95 border-2
                            ${it.status_kds === 'pendente' ? 'bg-slate-800 border-slate-700 hover:border-slate-500' : 
-                             it.status_kds === 'preparando' ? 'bg-amber-500 border-amber-400 text-amber-950' : 
+                             it.status_kds === 'preparando' ? 'bg-emerald-500 border-emerald-400 text-amber-950' : 
                              'bg-emerald-500 border-emerald-400 text-emerald-950 animate-pulse'}
                         `}
                      >
@@ -100,7 +100,7 @@ function KDSRunner() {
                               {it.quantidade}x
                            </span>
                            <span className={`flex items-center gap-1 font-black px-3 py-1 rounded-full text-[10px] uppercase tracking-widest
-                              ${isAtrasado && it.status_kds === 'pendente' ? 'bg-red-500 text-white animate-bounce' : 'bg-black/10'}
+                              ${isAtrasado && it.status_kds === 'pendente' ? 'bg-emerald-500 text-white animate-bounce' : 'bg-black/10'}
                            `}>
                               <Clock size={12}/> {min} MIN
                            </span>
@@ -110,7 +110,7 @@ function KDSRunner() {
                            <p className="text-3xl font-black leading-tight tracking-tight mb-2">{it.produtos.nome_produto}</p>
                            {it.observacao && (
                               <p className={`font-bold text-sm px-3 py-2 rounded-lg inline-block
-                                 ${it.status_kds === 'pendente' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-black/20'}
+                                 ${it.status_kds === 'pendente' ? 'bg-emerald-500/20 text-slate-500 border border-emerald-500/30' : 'bg-black/20'}
                               `}>
                                  ⚠️ {it.observacao}
                               </p>

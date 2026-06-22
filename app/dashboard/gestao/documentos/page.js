@@ -215,7 +215,7 @@ export default function DocumentosLegaisPage() {
             </div>
           </Field>
 
-          {erro && <p className="text-xs text-red-500 text-center">{erro}</p>}
+          {erro && <p className="text-xs text-slate-600 text-center">{erro}</p>}
 
           <Btn variant="primary" className="w-full" onClick={salvar} disabled={salvando}>
             {salvando ? "Salvando..." : "Salvar Documento"}

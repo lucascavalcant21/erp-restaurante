@@ -36,7 +36,7 @@ export default function GestaoUnidadesPage() {
   if (!isCentral) {
     return (
       <div className="p-8 text-center">
-        <ShieldAlert className="mx-auto text-red-500 mb-4" size={48} />
+        <ShieldAlert className="mx-auto text-slate-600 mb-4" size={48} />
         <h2 className="text-xl font-bold text-white mb-2">Acesso Negado</h2>
         <p className="text-slate-500">Apenas o Cérebro (Central) pode gerenciar unidades.</p>
       </div>
@@ -132,7 +132,7 @@ export default function GestaoUnidadesPage() {
                   <button onClick={() => abrirModal(u)} className="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-800 text-slate-500 hover:text-white">
                     <Edit2 size={14} />
                   </button>
-                  <button onClick={() => remover(u.id)} className="w-8 h-8 rounded-lg flex items-center justify-center bg-red-500/10 text-red-400 hover:bg-red-500/20">
+                  <button onClick={() => remover(u.id)} className="w-8 h-8 rounded-lg flex items-center justify-center bg-emerald-500/10 text-slate-500 hover:bg-emerald-500/20">
                     <Trash2 size={14} />
                   </button>
                 </div>
@@ -177,7 +177,7 @@ export default function GestaoUnidadesPage() {
             </Field>
           </div>
 
-          {erro && <p className="text-red-400 text-xs text-center">{erro}</p>}
+          {erro && <p className="text-slate-500 text-xs text-center">{erro}</p>}
 
           <div className="flex gap-3 pt-2">
             <Btn variant="ghost" className="flex-1" onClick={() => setModal(false)}>Cancelar</Btn>

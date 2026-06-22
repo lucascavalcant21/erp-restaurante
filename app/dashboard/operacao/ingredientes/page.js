@@ -78,7 +78,7 @@ function IngredientesRunner() {
               <button onClick={() => router.back()} className="p-3 text-slate-500 hover:text-slate-800 bg-slate-50 rounded-full border border-slate-200">
                  <ArrowLeft size={20}/>
               </button>
-              <div className="w-14 h-14 rounded-2xl bg-fuchsia-100 text-fuchsia-600 flex items-center justify-center shadow-inner">
+              <div className="w-14 h-14 rounded-2xl bg-slate-100 text-emerald-600 flex items-center justify-center shadow-inner">
                  <FlaskConical size={28} />
               </div>
               <div>
@@ -86,7 +86,7 @@ function IngredientesRunner() {
                  <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Custo Base de Insumos {deptUrl ? `- ${deptUrl}` : ''}</p>
               </div>
             </div>
-            <button onClick={abrirNovo} className="flex items-center gap-2 bg-fuchsia-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-fuchsia-700 transition-colors shadow-lg shadow-fuchsia-600/20">
+            <button onClick={abrirNovo} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
                <Plus size={18} /> Cadastrar Insumo
             </button>
          </div>
@@ -120,11 +120,11 @@ function IngredientesRunner() {
                            <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-lg font-bold text-xs uppercase tracking-widest">{ins.unidade_medida}</span>
                         </td>
                         <td className="p-5">
-                           <p className="font-black text-fuchsia-600 text-lg">{fmtBRL(ins.custo_unitario)}</p>
+                           <p className="font-black text-emerald-600 text-lg">{fmtBRL(ins.custo_unitario)}</p>
                         </td>
                         <td className="p-5 text-right">
-                           <button onClick={() => abrirEditar(ins)} className="p-2 text-slate-500 hover:text-fuchsia-600 transition-colors"><Edit3 size={18}/></button>
-                           <button onClick={() => handleRemover(ins.id)} className="p-2 text-slate-500 hover:text-red-500 transition-colors"><Trash2 size={18}/></button>
+                           <button onClick={() => abrirEditar(ins)} className="p-2 text-slate-500 hover:text-emerald-600 transition-colors"><Edit3 size={18}/></button>
+                           <button onClick={() => handleRemover(ins.id)} className="p-2 text-slate-500 hover:text-slate-600 transition-colors"><Trash2 size={18}/></button>
                         </td>
                      </tr>
                   ))}
@@ -148,7 +148,7 @@ function IngredientesRunner() {
                   {!deptUrl && (
                     <div>
                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Departamento</label>
-                       <select value={form.departamento} onChange={e=>setForm({...form, departamento: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-fuchsia-500">
+                       <select value={form.departamento} onChange={e=>setForm({...form, departamento: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500">
                           <option value="cozinha">Cozinha</option>
                           <option value="bar">Bar</option>
                        </select>
@@ -157,13 +157,13 @@ function IngredientesRunner() {
 
                   <div>
                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nome do Ingrediente</label>
-                     <input type="text" placeholder="Ex: Tomate Carmem" value={form.nome} onChange={e=>setForm({...form, nome: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-fuchsia-500"/>
+                     <input type="text" placeholder="Ex: Tomate Carmem" value={form.nome} onChange={e=>setForm({...form, nome: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4">
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Unidade Base</label>
-                        <select value={form.unidade_medida} onChange={e=>setForm({...form, unidade_medida: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-fuchsia-500">
+                        <select value={form.unidade_medida} onChange={e=>setForm({...form, unidade_medida: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500">
                            <option value="kg">Kilo (KG)</option>
                            <option value="l">Litro (L)</option>
                            <option value="un">Unidade (UN)</option>
@@ -173,7 +173,7 @@ function IngredientesRunner() {
                      </div>
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Custo da Unid. Base</label>
-                        <input type="number" placeholder="0.00" value={form.custo_unitario} onChange={e=>setForm({...form, custo_unitario: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-fuchsia-600 outline-none focus:border-fuchsia-500"/>
+                        <input type="number" placeholder="0.00" value={form.custo_unitario} onChange={e=>setForm({...form, custo_unitario: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-emerald-600 outline-none focus:border-emerald-500"/>
                      </div>
                   </div>
                   <p className="text-[11px] font-medium text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-100">
@@ -181,7 +181,7 @@ function IngredientesRunner() {
                   </p>
                </div>
 
-               <button onClick={handleSalvar} className="w-full mt-8 py-5 bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-fuchsia-600/20 active:scale-95 flex items-center justify-center gap-2">
+               <button onClick={handleSalvar} className="w-full mt-8 py-5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-2">
                   <Save size={20}/> Salvar Ingrediente
                </button>
             </div>

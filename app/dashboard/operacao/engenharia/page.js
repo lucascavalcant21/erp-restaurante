@@ -52,7 +52,7 @@ export default function EngenhariaPage() {
          <button onClick={() => router.back()} className="w-12 h-12 rounded-full bg-white border border-slate-200 text-slate-500 flex items-center justify-center hover:bg-slate-100 transition-colors">
             <ArrowLeft size={20} />
          </button>
-         <div className="w-16 h-16 rounded-3xl bg-indigo-100 text-indigo-600 flex items-center justify-center shadow-inner">
+         <div className="w-16 h-16 rounded-3xl bg-slate-100 text-emerald-600 flex items-center justify-center shadow-inner">
             <BarChart size={32} />
          </div>
          <div>
@@ -72,7 +72,7 @@ export default function EngenhariaPage() {
               {/* KPIs de Referência */}
               <div className="grid grid-cols-2 gap-4">
                  <Card className="flex items-center gap-4 border-l-4 border-l-indigo-500">
-                    <div className="p-3 bg-indigo-50 rounded-xl text-indigo-600"><TrendingUp size={24}/></div>
+                    <div className="p-3 bg-slate-50 rounded-xl text-emerald-600"><TrendingUp size={24}/></div>
                     <div>
                        <p className="text-xs font-bold text-slate-500 uppercase">Média de Volume Vendido</p>
                        <p className="text-2xl font-black text-slate-800">{medias.avgVolume.toFixed(1)} un / prato</p>

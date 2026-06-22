@@ -147,9 +147,9 @@ export default function AuditoriaPerdasPage() {
                       <p className="text-xl font-black" style={{ color: corStatus }}>{item.taxa_perda.toFixed(1)}%</p>
                     </div>
 
-                    <div className="text-right bg-red-500/10 px-3 py-1.5 rounded-lg border border-red-500/20 w-28">
-                      <p className="text-[10px] font-bold uppercase text-red-500">Ralo Financeiro</p>
-                      <p className="text-lg font-black text-red-500">{fmtBRL(item.prejuizo)}</p>
+                    <div className="text-right bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20 w-28">
+                      <p className="text-[10px] font-bold uppercase text-slate-600">Ralo Financeiro</p>
+                      <p className="text-lg font-black text-slate-600">{fmtBRL(item.prejuizo)}</p>
                     </div>
                   </div>
 

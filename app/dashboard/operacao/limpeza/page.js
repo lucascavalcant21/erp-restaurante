@@ -46,7 +46,7 @@ function FormConsumo({ item, onConfirmar, onCancelar }) {
         </button>
       </div>
 
-      {n > Number(item.quantidade) && <p className="text-xs text-red-500 mb-2">Quantidade maior que o disponível na despensa da unidade.</p>}
+      {n > Number(item.quantidade) && <p className="text-xs text-slate-600 mb-2">Quantidade maior que o disponível na despensa da unidade.</p>}
       
       <div className="flex gap-3 mt-4">
         <Btn variant="ghost" className="flex-1" onClick={onCancelar}>Cancelar</Btn>

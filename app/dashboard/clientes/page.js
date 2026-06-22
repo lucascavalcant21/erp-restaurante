@@ -104,7 +104,7 @@ export default function CRMPage() {
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Clientes na Base</p>
               <p className="text-3xl font-black tracking-tighter text-slate-800">{kpis.totalCli}</p>
             </div>
-            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600"><Users size={20}/></div>
+            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-emerald-600"><Users size={20}/></div>
           </div>
           <p className="text-xs font-bold text-emerald-500 flex items-center gap-1 mt-3">
             <TrendingUp size={12}/> +{(kpis.totalCli * 0.1).toFixed(0)} este mês
@@ -128,7 +128,7 @@ export default function CRMPage() {
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Taxa de Retorno</p>
               <p className="text-3xl font-black tracking-tighter text-slate-800">{kpis.taxaRetorno}%</p>
             </div>
-            <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600"><Heart size={20}/></div>
+            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-emerald-600"><Heart size={20}/></div>
           </div>
           <p className="text-xs font-bold text-slate-500 mt-3">Clientes fidelizados</p>
         </Card>
@@ -151,7 +151,7 @@ export default function CRMPage() {
               <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest">🏆 Top Clientes (LTV)</h3>
               <p className="text-[10px] font-medium text-slate-500 mt-1">Os que mais gastaram historicamente</p>
             </div>
-            <button onClick={() => setActiveTab("base")} className="text-xs font-bold text-blue-600 hover:text-blue-800">Ver todos</button>
+            <button onClick={() => setActiveTab("base")} className="text-xs font-bold text-emerald-600 hover:text-blue-800">Ver todos</button>
           </div>
           <div className="divide-y divide-slate-100">
             {clientes.slice(0,5).map((cliente, idx) => (
@@ -181,17 +181,17 @@ export default function CRMPage() {
               <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest">⚠️ Atenção: Avaliações</h3>
               <p className="text-[10px] font-medium text-slate-500 mt-1">Reviews recentes com nota baixa</p>
             </div>
-            <button onClick={() => setActiveTab("nps")} className="text-xs font-bold text-blue-600 hover:text-blue-800">Abrir NPS</button>
+            <button onClick={() => setActiveTab("nps")} className="text-xs font-bold text-emerald-600 hover:text-blue-800">Abrir NPS</button>
           </div>
           <div className="p-4 space-y-4">
             {avaliacoes.filter(a => Number(a.nota) <= 5).slice(0,4).map((av) => (
-              <div key={av.id} className="bg-red-50 border border-red-100 rounded-xl p-4">
+              <div key={av.id} className="bg-slate-50 border border-slate-200 rounded-xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <HeartCrack size={16} className="text-red-500"/>
+                    <HeartCrack size={16} className="text-slate-600"/>
                     <span className="text-xs font-bold text-slate-800">{av.nome}</span>
                   </div>
-                  <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest">{av.origem} (Nota {av.nota})</span>
+                  <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">{av.origem} (Nota {av.nota})</span>
                 </div>
                 <p className="text-sm text-slate-700 italic">"{av.comentario}"</p>
               </div>
@@ -220,7 +220,7 @@ export default function CRMPage() {
               placeholder="Buscar cliente..." 
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              className="pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full md:w-64"
+              className="pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 w-full md:w-64"
             />
           </div>
         </div>
@@ -247,8 +247,8 @@ export default function CRMPage() {
                 </td>
                 <td className="p-4">
                   <span className={`inline-flex px-2.5 py-1 text-[10px] font-black uppercase tracking-widest rounded-md border 
-                    ${cliente.status === 'Vip' ? 'bg-purple-50 text-purple-600 border-purple-100' : 
-                      cliente.status === 'Risco' ? 'bg-red-50 text-red-600 border-red-100' : 
+                    ${cliente.status === 'Vip' ? 'bg-slate-50 text-emerald-600 border-slate-200' : 
+                      cliente.status === 'Risco' ? 'bg-slate-50 text-emerald-600 border-slate-200' : 
                       'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
                     {cliente.status || "Ativo"}
                   </span>
@@ -281,7 +281,7 @@ export default function CRMPage() {
           <div key={av.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-4">
-                <div className="flex text-yellow-400">
+                <div className="flex text-slate-500">
                   {/* Converte nota 0-10 para 1-5 estrelas simbolicamente */}
                   {[...Array(5)].map((_, i) => (
                     <Star key={i} size={14} className={i < (av.nota/2) ? "fill-yellow-400" : "text-slate-200"} />
@@ -311,7 +311,7 @@ export default function CRMPage() {
             <h3 className="font-black text-xl text-slate-800">Campanhas e Cashback</h3>
             <p className="text-sm font-medium text-slate-500 mt-1">Acorde clientes inativos com SMS ou WhatsApp</p>
           </div>
-          <button onClick={() => setModalCampanha(true)} className="flex items-center gap-2 bg-blue-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors">
+          <button onClick={() => setModalCampanha(true)} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors">
             <Plus size={18}/> Criar Campanha
           </button>
        </div>
@@ -321,12 +321,12 @@ export default function CRMPage() {
              <Card key={c.id} className="p-6">
                 <div className="flex justify-between items-start mb-4">
                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-xl bg-slate-50 text-emerald-600 flex items-center justify-center">
                          <Megaphone size={24}/>
                       </div>
                       <div>
                          <h4 className="font-bold text-slate-800">{c.nome}</h4>
-                         <p className="text-xs font-bold uppercase tracking-widest text-blue-600">{c.tipo} • Cupom: {c.cupom}</p>
+                         <p className="text-xs font-bold uppercase tracking-widest text-emerald-600">{c.tipo} • Cupom: {c.cupom}</p>
                       </div>
                    </div>
                    <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-emerald-100">
@@ -373,7 +373,7 @@ export default function CRMPage() {
             <p className="text-sm font-semibold text-slate-500 mt-2">Gestão de clientes e fidelização em <span className="text-slate-800 font-bold">{unidadeInfo.nome}</span></p>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={() => { setActiveTab('campanhas'); setModalCampanha(true); }} className="flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 shadow-blue-600/20 shadow-xl">
+            <button onClick={() => { setActiveTab('campanhas'); setModalCampanha(true); }} className="flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 shadow-emerald-600/20 shadow-xl">
               <Megaphone size={18} /> Nova Campanha
             </button>
           </div>
@@ -431,27 +431,27 @@ export default function CRMPage() {
                <div className="space-y-4">
                   <div>
                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nome da Campanha</label>
-                     <input type="text" value={novaCampanha.nome} onChange={e=>setNovaCampanha({...novaCampanha, nome: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-blue-500" placeholder="Ex: Resgate Inverno"/>
+                     <input type="text" value={novaCampanha.nome} onChange={e=>setNovaCampanha({...novaCampanha, nome: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500" placeholder="Ex: Resgate Inverno"/>
                   </div>
                   
                   <div>
                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Mensagem/Descrição</label>
-                     <textarea value={novaCampanha.descricao} onChange={e=>setNovaCampanha({...novaCampanha, descricao: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:border-blue-500 resize-none h-24" placeholder="Sua msg aqui..."/>
+                     <textarea value={novaCampanha.descricao} onChange={e=>setNovaCampanha({...novaCampanha, descricao: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500 resize-none h-24" placeholder="Sua msg aqui..."/>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Código do Cupom</label>
-                        <input type="text" value={novaCampanha.cupom} onChange={e=>setNovaCampanha({...novaCampanha, cupom: e.target.value.toUpperCase()})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-blue-600 outline-none focus:border-blue-500" placeholder="Ex: VOLTA10"/>
+                        <input type="text" value={novaCampanha.cupom} onChange={e=>setNovaCampanha({...novaCampanha, cupom: e.target.value.toUpperCase()})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-emerald-600 outline-none focus:border-emerald-500" placeholder="Ex: VOLTA10"/>
                      </div>
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Desconto (R$ ou %)</label>
-                        <input type="number" value={novaCampanha.desconto} onChange={e=>setNovaCampanha({...novaCampanha, desconto: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-blue-500" placeholder="10"/>
+                        <input type="number" value={novaCampanha.desconto} onChange={e=>setNovaCampanha({...novaCampanha, desconto: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500" placeholder="10"/>
                      </div>
                   </div>
                </div>
 
-               <button onClick={handleSalvarCampanha} disabled={salvando || !novaCampanha.nome} className="w-full mt-8 py-5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-blue-600/20 active:scale-95">
+               <button onClick={handleSalvarCampanha} disabled={salvando || !novaCampanha.nome} className="w-full mt-8 py-5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95">
                   {salvando ? "Salvando..." : "Lançar Campanha"}
                </button>
             </div>

@@ -123,12 +123,12 @@ export default function PontoBiometricoPage() {
       <div className="w-1/2 flex flex-col bg-[#0A0F1C] relative border-r border-blue-900/30 overflow-hidden">
          
          {/* Botão de Saída Gerencial */}
-         <button onClick={() => router.push("/dashboard")} className="absolute top-6 left-6 p-4 bg-slate-800/50 hover:bg-red-500 hover:text-white text-slate-500 rounded-2xl backdrop-blur-md transition-colors z-50 group">
+         <button onClick={() => router.push("/dashboard")} className="absolute top-6 left-6 p-4 bg-slate-800/50 hover:bg-emerald-500 hover:text-white text-slate-500 rounded-2xl backdrop-blur-md transition-colors z-50 group">
             <ArrowLeft size={24} className="group-hover:-translate-x-1 transition-transform" />
          </button>
 
          {/* Elementos de Interface HUD (Bordas) */}
-         <div className="absolute top-6 right-6 text-blue-500/50 font-mono text-xs text-right">
+         <div className="absolute top-6 right-6 text-slate-600/50 font-mono text-xs text-right">
             <p>SYS.CORE // {unidadeInfo.nome?.toUpperCase()}</p>
             <p>BIO.SCAN_MODULE_v3.4</p>
             <div className="flex items-center justify-end gap-2 mt-2">
@@ -143,19 +143,19 @@ export default function PontoBiometricoPage() {
             <div className="relative w-80 h-80 md:w-[450px] md:h-[450px]">
                
                {/* Moldura Futurista */}
-               <div className={`absolute inset-0 border-2 rounded-[60px] transition-all duration-700 ${estadoTotem === "escaneando" ? "border-blue-500 bg-blue-500/5 shadow-[0_0_100px_rgba(59,130,246,0.2)]" : "border-slate-800 bg-slate-900/50"}`}>
+               <div className={`absolute inset-0 border-2 rounded-[60px] transition-all duration-700 ${estadoTotem === "escaneando" ? "border-emerald-500 bg-emerald-500/5 shadow-[0_0_100px_rgba(59,130,246,0.2)]" : "border-slate-800 bg-slate-900/50"}`}>
                   
                   {/* Cantos do HUD */}
-                  <div className={`absolute -top-1 -left-1 w-16 h-16 border-t-4 border-l-4 rounded-tl-[60px] transition-colors duration-700 ${estadoTotem === "escaneando" ? "border-blue-400" : "border-slate-600"}`}></div>
-                  <div className={`absolute -top-1 -right-1 w-16 h-16 border-t-4 border-r-4 rounded-tr-[60px] transition-colors duration-700 ${estadoTotem === "escaneando" ? "border-blue-400" : "border-slate-600"}`}></div>
-                  <div className={`absolute -bottom-1 -left-1 w-16 h-16 border-b-4 border-l-4 rounded-bl-[60px] transition-colors duration-700 ${estadoTotem === "escaneando" ? "border-blue-400" : "border-slate-600"}`}></div>
-                  <div className={`absolute -bottom-1 -right-1 w-16 h-16 border-b-4 border-r-4 rounded-br-[60px] transition-colors duration-700 ${estadoTotem === "escaneando" ? "border-blue-400" : "border-slate-600"}`}></div>
+                  <div className={`absolute -top-1 -left-1 w-16 h-16 border-t-4 border-l-4 rounded-tl-[60px] transition-colors duration-700 ${estadoTotem === "escaneando" ? "border-emerald-400" : "border-slate-600"}`}></div>
+                  <div className={`absolute -top-1 -right-1 w-16 h-16 border-t-4 border-r-4 rounded-tr-[60px] transition-colors duration-700 ${estadoTotem === "escaneando" ? "border-emerald-400" : "border-slate-600"}`}></div>
+                  <div className={`absolute -bottom-1 -left-1 w-16 h-16 border-b-4 border-l-4 rounded-bl-[60px] transition-colors duration-700 ${estadoTotem === "escaneando" ? "border-emerald-400" : "border-slate-600"}`}></div>
+                  <div className={`absolute -bottom-1 -right-1 w-16 h-16 border-b-4 border-r-4 rounded-br-[60px] transition-colors duration-700 ${estadoTotem === "escaneando" ? "border-emerald-400" : "border-slate-600"}`}></div>
                </div>
 
                {/* Central Icon */}
                <div className="absolute inset-0 flex items-center justify-center z-0">
                   {estadoTotem === "escaneando" ? (
-                     <Fingerprint size={160} className="text-blue-500 animate-pulse" />
+                     <Fingerprint size={160} className="text-slate-600 animate-pulse" />
                   ) : (
                      <ScanFace size={120} className="text-slate-700" />
                   )}
@@ -180,7 +180,7 @@ export default function PontoBiometricoPage() {
                <div className="absolute -bottom-5 left-1/2 transform -translate-x-1/2 flex justify-center z-20">
                  <div className={`px-6 py-3 rounded-full font-black text-sm uppercase tracking-widest backdrop-blur-xl border shadow-xl ${
                    estadoTotem === "escaneando" 
-                     ? "bg-blue-900/80 text-blue-300 border-blue-500 animate-pulse" 
+                     ? "bg-blue-900/80 text-blue-300 border-emerald-500 animate-pulse" 
                      : "bg-slate-900 text-slate-500 border-slate-700"
                  }`}>
                     {estadoTotem === "escaneando" ? "Identificando Padrão..." : "Posicione o Rosto"}
@@ -194,7 +194,7 @@ export default function PontoBiometricoPage() {
                  {horaLocal.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                </h2>
                <div className="flex justify-center items-center gap-3 mt-2">
-                  <p className="text-blue-400 font-bold uppercase tracking-widest text-lg">
+                  <p className="text-slate-500 font-bold uppercase tracking-widest text-lg">
                     {horaLocal.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}
                   </p>
                   <span className="text-slate-600 font-mono text-sm">{horaLocal.getSeconds().toString().padStart(2, '0')}s</span>
@@ -214,7 +214,7 @@ export default function PontoBiometricoPage() {
          <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
             {loading ? (
                <div className="h-full flex items-center justify-center">
-                 <Activity size={48} className="text-blue-500 animate-pulse" />
+                 <Activity size={48} className="text-slate-600 animate-pulse" />
                </div>
             ) : funcs.length === 0 ? (
                <div className="h-full flex flex-col items-center justify-center text-slate-500">
@@ -237,18 +237,18 @@ export default function PontoBiometricoPage() {
                               concluido 
                                 ? "bg-slate-900/50 border-slate-800 opacity-40 cursor-not-allowed" 
                                 : isScanningThis
-                                  ? "bg-blue-900/40 border-blue-400 scale-105 shadow-[0_0_40px_rgba(59,130,246,0.2)]"
+                                  ? "bg-blue-900/40 border-emerald-400 scale-105 shadow-[0_0_40px_rgba(59,130,246,0.2)]"
                                   : "bg-slate-800/80 border-slate-700 hover:border-slate-500 hover:-translate-y-2 hover:bg-slate-800"
                            }`}
                         >
                            {/* Avatar Holográfico */}
                            <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-4 text-3xl font-black border-2 shadow-inner transition-colors duration-500 ${
-                              isScanningThis ? "bg-blue-500/20 text-blue-400 border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.5)]" : "bg-slate-900 text-slate-500 border-slate-700"
+                              isScanningThis ? "bg-emerald-500/20 text-slate-500 border-emerald-400 shadow-[0_0_20px_rgba(59,130,246,0.5)]" : "bg-slate-900 text-slate-500 border-slate-700"
                            }`}>
                               {f.nome[0].toUpperCase()}
                            </div>
                            
-                           <h4 className={`font-black text-lg text-center leading-tight mb-4 ${isScanningThis ? 'text-blue-400' : 'text-slate-200'}`}>
+                           <h4 className={`font-black text-lg text-center leading-tight mb-4 ${isScanningThis ? 'text-slate-500' : 'text-slate-200'}`}>
                               {f.nome.split(" ")[0]}
                            </h4>
                            
@@ -258,7 +258,7 @@ export default function PontoBiometricoPage() {
                                  <span>Entrada</span>
                                  <span>{p.entrada || "--:--"}</span>
                               </div>
-                              <div className={`flex justify-between items-center px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${p.saida ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20' : 'bg-slate-950 text-slate-600'}`}>
+                              <div className={`flex justify-between items-center px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${p.saida ? 'bg-emerald-500/10 text-slate-600 border border-emerald-500/20' : 'bg-slate-950 text-slate-600'}`}>
                                  <span>Saída</span>
                                  <span>{p.saida || "--:--"}</span>
                               </div>

@@ -84,7 +84,7 @@ export default function DreGerencialPage() {
              <div className="lg:col-span-1 space-y-6">
                 
                 {/* O Grande Termômetro de Lucratividade */}
-                <div className={`p-8 rounded-[32px] shadow-lg border relative overflow-hidden text-white ${isLucro ? 'bg-emerald-600 border-emerald-500' : 'bg-red-600 border-red-500'}`}>
+                <div className={`p-8 rounded-[32px] shadow-lg border relative overflow-hidden text-white ${isLucro ? 'bg-emerald-600 border-emerald-500' : 'bg-emerald-600 border-emerald-500'}`}>
                    <div className="absolute top-0 right-0 p-6 opacity-10">
                       {isLucro ? <TrendingUp size={120} /> : <TrendingDown size={120} />}
                    </div>
@@ -147,7 +147,7 @@ export default function DreGerencialPage() {
 
                    {/* Cabeçalho de Despesas */}
                    <div className="px-6 py-2">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-red-500 bg-red-50 px-2 py-1 rounded-md">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-600 bg-slate-50 px-2 py-1 rounded-md">
                          (-) Custos & Despesas Operacionais
                       </span>
                    </div>
@@ -175,22 +175,22 @@ export default function DreGerencialPage() {
                      codigo="2" 
                      label="(=) Custo Operacional Total" 
                      valor={-dre.despesaTotal} 
-                     cor="text-red-600" 
-                     bg="bg-red-50" 
+                     cor="text-emerald-600" 
+                     bg="bg-slate-50" 
                    />
 
                    <div className="h-4"></div>
 
                    {/* Linha Mestra: Resultado Líquido */}
-                   <div className={`px-6 py-6 border-t-2 border-slate-900 flex justify-between items-center ${isLucro ? 'bg-emerald-50' : 'bg-red-50'}`}>
+                   <div className={`px-6 py-6 border-t-2 border-slate-900 flex justify-between items-center ${isLucro ? 'bg-emerald-50' : 'bg-slate-50'}`}>
                       <div className="flex items-center gap-3">
                          <span className="w-6 h-6 rounded-md bg-slate-900 text-white flex items-center justify-center text-xs font-black">3</span>
                          <div>
                             <span className={`text-lg font-black uppercase tracking-widest ${isLucro ? 'text-emerald-900' : 'text-red-900'}`}>(=) Resultado Líquido</span>
-                            <p className={`text-[10px] font-bold uppercase tracking-widest mt-1 ${isLucro ? 'text-emerald-600' : 'text-red-600'}`}>Lucro ou Prejuízo do Exercício</p>
+                            <p className={`text-[10px] font-bold uppercase tracking-widest mt-1 ${isLucro ? 'text-emerald-600' : 'text-emerald-600'}`}>Lucro ou Prejuízo do Exercício</p>
                          </div>
                       </div>
-                      <span className={`text-2xl font-black font-mono ${isLucro ? 'text-emerald-600' : 'text-red-600'}`}>
+                      <span className={`text-2xl font-black font-mono ${isLucro ? 'text-emerald-600' : 'text-emerald-600'}`}>
                          {fmtBRL(dre.ebitda)}
                       </span>
                    </div>

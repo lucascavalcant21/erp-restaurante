@@ -169,8 +169,8 @@ export default function RhConfiguracoesPage() {
                     <button onClick={() => { setEditar(item); setModal(true); }} className="w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--elevated)]">
                       <Edit3 size={14} className="text-[var(--muted)]" />
                     </button>
-                    <button onClick={() => remover(item.id)} className="w-8 h-8 rounded-lg flex items-center justify-center bg-red-500/10 hover:bg-red-500/20">
-                      <Trash2 size={14} className="text-red-500" />
+                    <button onClick={() => remover(item.id)} className="w-8 h-8 rounded-lg flex items-center justify-center bg-emerald-500/10 hover:bg-emerald-500/20">
+                      <Trash2 size={14} className="text-slate-600" />
                     </button>
                   </div>
                 </Card>

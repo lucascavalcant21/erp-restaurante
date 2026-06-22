@@ -48,7 +48,7 @@ function DesktopSidebar({ onSair }) {
            <Settings size={22} />
            <span className="text-[9px] font-bold uppercase mt-1.5 px-1 text-center leading-tight">Lojas</span>
          </button>
-         <button onClick={onSair} title="Sair" className="flex flex-col items-center justify-center w-full aspect-square text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-2xl transition-all duration-300 hover:-translate-y-1">
+         <button onClick={onSair} title="Sair" className="flex flex-col items-center justify-center w-full aspect-square text-slate-400 hover:text-slate-500 hover:bg-emerald-500/10 rounded-2xl transition-all duration-300 hover:-translate-y-1">
            <LogOut size={22} />
            <span className="text-[9px] font-bold uppercase mt-1.5 px-1 text-center leading-tight">Sair</span>
          </button>
@@ -119,7 +119,7 @@ function TopHeader({ onSair }) {
       </div>
       
       <div className="flex items-center gap-4">
-        <button onClick={onSair} className="md:hidden p-2 text-slate-400 hover:text-red-500 bg-white border border-slate-200 shadow-sm rounded-xl transition-all hover:shadow-md hover:-translate-y-0.5">
+        <button onClick={onSair} className="md:hidden p-2 text-slate-400 hover:text-slate-600 bg-white border border-slate-200 shadow-sm rounded-xl transition-all hover:shadow-md hover:-translate-y-0.5">
           <LogOut size={18} />
         </button>
       </div>
@@ -153,7 +153,7 @@ export default function DashboardLayout({ children }) {
       <MobileBottomNav />
       <div className="flex-1 flex flex-col min-h-screen md:ml-[80px] w-full overflow-x-hidden">
         <TopHeader onSair={sair} />
-        <main key={pathname} className="flex-1 p-4 md:p-6 lg:p-8 pb-[80px] md:pb-8 animate-page-in">
+        <main key={pathname} className="flex-1 pb-[80px] md:pb-8 animate-page-in">
           {children}
         </main>
       </div>

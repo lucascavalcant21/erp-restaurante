@@ -72,12 +72,12 @@ export default function ContasAPagarPage() {
          {/* CARDS DE RESUMO */}
          <div className="max-w-5xl mx-auto mt-10 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="bg-slate-800 p-6 rounded-[24px] border border-slate-700/50 flex items-center gap-4">
-               <div className="w-14 h-14 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center">
+               <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 text-slate-600 flex items-center justify-center">
                   <CalendarDays size={28}/>
                </div>
                <div>
                   <p className="text-[10px] uppercase font-bold tracking-widest text-slate-500">Pendente (A Pagar)</p>
-                  <p className="text-3xl font-black text-amber-400">{fmtBRL(aPagarTotal)}</p>
+                  <p className="text-3xl font-black text-slate-500">{fmtBRL(aPagarTotal)}</p>
                </div>
             </div>
             <div className="bg-slate-800 p-6 rounded-[24px] border border-slate-700/50 flex items-center gap-4">
@@ -133,7 +133,7 @@ export default function ContasAPagarPage() {
 
                            return (
                               <tr key={c.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors group">
-                                 <td className={`py-4 pl-4 ${isAtrasado ? 'text-red-500 font-black' : 'text-slate-500'}`}>
+                                 <td className={`py-4 pl-4 ${isAtrasado ? 'text-slate-600 font-black' : 'text-slate-500'}`}>
                                     {c.data_vencimento.split('-').reverse().join('/')}
                                     {isAtrasado && <span className="block text-[10px] uppercase">Atrasado</span>}
                                  </td>
@@ -150,7 +150,7 @@ export default function ContasAPagarPage() {
                                           <CheckCircle2 size={14}/> Pago
                                        </span>
                                     ) : (
-                                       <span className="inline-flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-lg">
+                                       <span className="inline-flex items-center gap-1 text-xs text-emerald-600 bg-slate-50 px-2 py-1 rounded-lg">
                                           <CircleDashed size={14}/> Pendente
                                        </span>
                                     )}

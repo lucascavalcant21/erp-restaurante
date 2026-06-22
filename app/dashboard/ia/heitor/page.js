@@ -108,7 +108,7 @@ export default function HeitorPage() {
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
             {m.role === "bot" && (
               <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center flex-shrink-0 mr-3 mt-1">
-                <Brain size={14} className="text-purple-400" />
+                <Brain size={14} className="text-slate-500" />
               </div>
             )}
             
@@ -139,7 +139,7 @@ export default function HeitorPage() {
           <div className="flex gap-2 overflow-x-auto pb-3 custom-scrollbar">
             {SUGESTOES.map((s) => (
               <button key={s} onClick={() => enviar(s)} 
-                className="flex-shrink-0 flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-full bg-slate-50 border border-slate-200 text-slate-600 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 transition-colors"
+                className="flex-shrink-0 flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-full bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-emerald-700 hover:border-slate-200 transition-colors"
               >
                 <Sparkles size={12}/> {s}
               </button>
@@ -147,7 +147,7 @@ export default function HeitorPage() {
           </div>
           
           {/* Caixa de Texto Premium */}
-          <div className="flex items-end gap-3 bg-slate-50 p-2 border border-slate-200 rounded-3xl focus-within:ring-2 focus-within:ring-purple-500 focus-within:border-purple-500 transition-all">
+          <div className="flex items-end gap-3 bg-slate-50 p-2 border border-slate-200 rounded-3xl focus-within:ring-2 focus-within:ring-purple-500 focus-within:border-emerald-500 transition-all">
             <textarea 
               value={input} 
               onChange={(e) => setInput(e.target.value)} 

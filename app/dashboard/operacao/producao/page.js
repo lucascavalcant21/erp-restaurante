@@ -73,7 +73,7 @@ function ProducaoRunner() {
               <button onClick={() => router.back()} className="p-3 text-slate-500 hover:text-slate-800 bg-slate-50 rounded-full border border-slate-200">
                  <ArrowLeft size={20}/>
               </button>
-              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner ${isBar ? 'bg-purple-100 text-purple-600' : 'bg-orange-100 text-orange-600'}`}>
+              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner ${isBar ? 'bg-slate-100 text-emerald-600' : 'bg-slate-100 text-emerald-600'}`}>
                  {isBar ? <Droplets size={28} /> : <Flame size={28} />}
               </div>
               <div>
@@ -106,7 +106,7 @@ function ProducaoRunner() {
                      className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all relative group text-left flex flex-col"
                   >
                      <div className="flex justify-between items-start mb-4">
-                        <span className={`w-12 h-12 rounded-full flex items-center justify-center ${f.departamento === 'bar' ? 'bg-purple-50 text-purple-600' : 'bg-orange-50 text-orange-600'}`}>
+                        <span className={`w-12 h-12 rounded-full flex items-center justify-center ${f.departamento === 'bar' ? 'bg-slate-50 text-emerald-600' : 'bg-slate-50 text-emerald-600'}`}>
                            {f.departamento === 'bar' ? <Wine size={20}/> : <UtensilsCrossed size={20}/>}
                         </span>
                      </div>
@@ -114,7 +114,7 @@ function ProducaoRunner() {
                      <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">{f.fichas_ingredientes?.length || 0} Ingredientes</p>
                      
                      <div className="mt-auto pt-4 border-t border-slate-100">
-                        <span className={`inline-flex items-center gap-2 font-bold text-sm ${isBar ? 'text-purple-600' : 'text-orange-600'}`}>
+                        <span className={`inline-flex items-center gap-2 font-bold text-sm ${isBar ? 'text-emerald-600' : 'text-emerald-600'}`}>
                            {isBar ? <Droplets size={16}/> : <Flame size={16}/>} Iniciar Produção
                         </span>
                      </div>
@@ -169,7 +169,7 @@ function ProducaoRunner() {
                            return (
                               <div key={ing.insumos.id} className="flex justify-between items-center bg-white p-2 rounded border border-slate-100">
                                  <span className="font-bold text-slate-600 text-sm">{ing.insumos.nome}</span>
-                                 <span className="font-black text-red-500 text-sm">- {consumo.toFixed(3)} {ing.insumos.unidade_medida}</span>
+                                 <span className="font-black text-slate-600 text-sm">- {consumo.toFixed(3)} {ing.insumos.unidade_medida}</span>
                               </div>
                            )
                         })}
@@ -177,7 +177,7 @@ function ProducaoRunner() {
                   </div>
                </div>
 
-               <button onClick={handleConfirmar} className={`w-full mt-8 py-5 text-white font-black text-lg rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2 ${isBar ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-600/20' : 'bg-orange-500 hover:bg-orange-600 shadow-orange-500/20'} shadow-xl`}>
+               <button onClick={handleConfirmar} className={`w-full mt-8 py-5 text-white font-black text-lg rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2 ${isBar ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20' : 'bg-emerald-500 hover:bg-emerald-600 shadow-orange-500/20'} shadow-xl`}>
                   <Save size={20}/> Confirmar Produção e Baixar Estoque
                </button>
             </div>

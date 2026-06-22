@@ -85,7 +85,7 @@ function FormTransferencia({ item, onConfirmar, onCancelar }) {
         <Field label={`Qtd a Enviar (${item.unidade_medida})`}><NumberInput value={qtd} onChange={(e) => setQtd(e.target.value)} placeholder="0" /></Field>
         <Field label="Novo Mínimo na Loja"><NumberInput value={minimo} onChange={(e) => setMinimo(e.target.value)} placeholder="Opcional" /></Field>
       </div>
-      {q > Number(item.estoque_central) && <p className="text-xs text-red-500 mt-1 mb-2">Quantidade maior que o disponível na central.</p>}
+      {q > Number(item.estoque_central) && <p className="text-xs text-slate-600 mt-1 mb-2">Quantidade maior que o disponível na central.</p>}
       
       <div className="flex gap-3 mt-4">
         <Btn variant="ghost" className="flex-1" onClick={onCancelar}>Cancelar</Btn>

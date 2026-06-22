@@ -128,16 +128,16 @@ export default function RecrutamentoPage() {
                   </Btn>
                   
                   {c.status !== "Aprovado" && (
-                    <button onClick={() => mudarStatus(c.id, "Aprovado")} className="w-9 h-9 rounded-xl flex items-center justify-center bg-emerald-100 text-emerald-600 hover:bg-emerald-200">
+                    <button onClick={() => mudarStatus(c.id, "Aprovado")} className="w-9 h-9 rounded-xl flex items-center justify-center bg-slate-100 text-slate-800 hover:bg-emerald-200">
                       <CheckCircle size={16} />
                     </button>
                   )}
                   {c.status !== "Reprovado" && (
-                    <button onClick={() => mudarStatus(c.id, "Reprovado")} className="w-9 h-9 rounded-xl flex items-center justify-center bg-red-100 text-red-600 hover:bg-red-200">
+                    <button onClick={() => mudarStatus(c.id, "Reprovado")} className="w-9 h-9 rounded-xl flex items-center justify-center bg-slate-100 text-emerald-600 hover:bg-slate-200">
                       <XCircle size={16} />
                     </button>
                   )}
-                  <button onClick={() => remover(c.id)} className="w-9 h-9 rounded-xl flex items-center justify-center bg-[var(--panel)] text-slate-500 hover:text-red-500 border border-[var(--line)]">
+                  <button onClick={() => remover(c.id)} className="w-9 h-9 rounded-xl flex items-center justify-center bg-[var(--panel)] text-slate-500 hover:text-slate-600 border border-[var(--line)]">
                     <Trash2 size={16} />
                   </button>
                 </div>

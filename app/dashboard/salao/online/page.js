@@ -61,7 +61,7 @@ export default function GestorOnlinePage() {
               <button onClick={() => router.back()} className="p-3 bg-slate-800 hover:bg-slate-700 rounded-full transition-colors">
                  <ArrowLeft size={20}/>
               </button>
-              <div className="w-16 h-16 rounded-2xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 text-slate-500 flex items-center justify-center">
                  <Motorbike size={32} />
               </div>
               <div>
@@ -82,14 +82,14 @@ export default function GestorOnlinePage() {
                </div>
                <h3 className="text-2xl font-black text-slate-700">Nenhum pedido novo</h3>
                <p className="text-slate-500 mt-2 font-medium mb-6">Fique de olho. Assim que um cliente enviar um pedido pelo QR Code, ele aparecerá aqui com um alerta.</p>
-               <div className="flex items-center justify-center gap-2 text-indigo-500 text-sm font-bold bg-indigo-50 p-3 rounded-xl w-max mx-auto animate-pulse">
-                  <div className="w-2 h-2 rounded-full bg-indigo-500"></div> Online e aguardando...
+               <div className="flex items-center justify-center gap-2 text-slate-600 text-sm font-bold bg-slate-50 p-3 rounded-xl w-max mx-auto animate-pulse">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500"></div> Online e aguardando...
                </div>
             </div>
          ) : (
             <div className="space-y-6">
-               <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-center gap-3">
-                  <AlertCircle className="text-amber-500"/>
+               <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl flex items-center gap-3">
+                  <AlertCircle className="text-slate-600"/>
                   <p className="text-amber-800 font-bold text-sm">Atenção: Os pedidos abaixo NÃO estão na cozinha ainda. Você precisa Aceitar para que eles sejam impressos/exibidos no KDS.</p>
                </div>
 
@@ -103,10 +103,10 @@ export default function GestorOnlinePage() {
                         {/* LADO ESQUERDO: Dados do Cliente e Itens */}
                         <div className="flex-1">
                            <div className="flex items-center gap-4 mb-6">
-                              <span className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest ${ped.tipo_pedido === 'delivery' ? 'bg-indigo-100 text-indigo-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                              <span className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest ${ped.tipo_pedido === 'delivery' ? 'bg-slate-100 text-emerald-700' : 'bg-emerald-100 text-emerald-700'}`}>
                                  {ped.tipo_pedido}
                               </span>
-                              <span className={`flex items-center gap-1 text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-lg ${isAtrasado ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-100 text-slate-500'}`}>
+                              <span className={`flex items-center gap-1 text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-lg ${isAtrasado ? 'bg-emerald-500 text-white animate-pulse' : 'bg-slate-100 text-slate-500'}`}>
                                  <Clock size={14}/> {min} min aguardando
                               </span>
                            </div>
@@ -128,10 +128,10 @@ export default function GestorOnlinePage() {
                                           <span className="font-black text-slate-500">{it.quantidade}x</span>
                                           <div>
                                              <p className="font-bold text-slate-800">{it.produtos.nome_produto}</p>
-                                             {it.observacao && <p className="text-xs font-bold text-amber-600 mt-1 bg-amber-50 px-2 py-1 inline-block rounded">Obs: {it.observacao}</p>}
+                                             {it.observacao && <p className="text-xs font-bold text-emerald-600 mt-1 bg-slate-50 px-2 py-1 inline-block rounded">Obs: {it.observacao}</p>}
                                           </div>
                                        </div>
-                                       <span className="font-black text-indigo-600">{fmtBRL(it.valor_unitario * it.quantidade)}</span>
+                                       <span className="font-black text-emerald-600">{fmtBRL(it.valor_unitario * it.quantidade)}</span>
                                     </div>
                                  ))}
                               </div>
@@ -152,7 +152,7 @@ export default function GestorOnlinePage() {
                               <button onClick={() => handleAceitar(ped.id)} className="w-full py-5 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-500/20 active:scale-95 flex items-center justify-center gap-2">
                                  <Check size={24}/> Aceitar Pedido
                               </button>
-                              <button onClick={() => handleRecusar(ped.id)} className="w-full py-5 bg-white border-2 border-red-200 text-red-500 hover:bg-red-50 font-black text-lg rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2">
+                              <button onClick={() => handleRecusar(ped.id)} className="w-full py-5 bg-white border-2 border-slate-200 text-slate-600 hover:bg-slate-50 font-black text-lg rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2">
                                  <X size={24}/> Recusar
                               </button>
                            </div>

@@ -190,7 +190,7 @@ function ChecklistRunner() {
                      className="w-full bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all text-left flex items-center justify-between group"
                   >
                      <div>
-                        <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-600 mb-3 inline-block">
+                        <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-slate-100 text-slate-800 mb-3 inline-block">
                            {t.itens.length} Tarefas
                         </span>
                         <h3 className="text-2xl font-black text-slate-800">{t.titulo}</h3>

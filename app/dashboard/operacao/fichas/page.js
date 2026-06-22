@@ -144,7 +144,7 @@ function FichasRunner() {
               <button onClick={() => router.back()} className="p-3 text-slate-500 hover:text-slate-800 bg-slate-50 rounded-full border border-slate-200">
                  <ArrowLeft size={20}/>
               </button>
-              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner ${deptUrl === 'bar' ? 'bg-purple-100 text-purple-600' : 'bg-emerald-100 text-emerald-600'}`}>
+              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner ${deptUrl === 'bar' ? 'bg-slate-100 text-emerald-600' : 'bg-slate-100 text-slate-800'}`}>
                  <LayoutList size={28} />
               </div>
               <div>
@@ -152,7 +152,7 @@ function FichasRunner() {
                  <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Receituário e Custos - {deptUrl}</p>
               </div>
             </div>
-            <button onClick={abrirNova} className={`flex items-center gap-2 text-white px-5 py-3 rounded-xl font-bold transition-colors shadow-lg ${deptUrl === 'bar' ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-600/20' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'}`}>
+            <button onClick={abrirNova} className={`flex items-center gap-2 text-white px-5 py-3 rounded-xl font-bold transition-colors shadow-lg ${deptUrl === 'bar' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'}`}>
                <Plus size={18} /> Nova Ficha
             </button>
          </div>
@@ -186,12 +186,12 @@ function FichasRunner() {
                   return (
                      <div key={f.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow relative group flex flex-col">
                         <div className="flex justify-between items-start mb-4">
-                           <span className={`w-10 h-10 rounded-full flex items-center justify-center ${f.departamento === 'bar' ? 'bg-purple-50 text-purple-600' : 'bg-orange-50 text-orange-600'}`}>
+                           <span className={`w-10 h-10 rounded-full flex items-center justify-center ${f.departamento === 'bar' ? 'bg-slate-50 text-emerald-600' : 'bg-slate-50 text-emerald-600'}`}>
                               {f.departamento === 'bar' ? <Wine size={18}/> : <UtensilsCrossed size={18}/>}
                            </span>
                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                               <button onClick={() => abrirEditar(f)} className="p-2 bg-slate-50 rounded-lg text-slate-500 hover:text-emerald-600"><Edit3 size={16}/></button>
-                              <button onClick={() => handleRemover(f.id)} className="p-2 bg-slate-50 rounded-lg text-slate-500 hover:text-red-600"><Trash2 size={16}/></button>
+                              <button onClick={() => handleRemover(f.id)} className="p-2 bg-slate-50 rounded-lg text-slate-500 hover:text-emerald-600"><Trash2 size={16}/></button>
                            </div>
                         </div>
                         <h3 className="text-xl font-black text-slate-800 leading-tight mb-1">{f.nome_receita}</h3>
@@ -280,7 +280,7 @@ function FichasRunner() {
                                  />
                                  <span className="text-[10px] font-black text-slate-500 uppercase w-6">{ing.unidade}</span>
                               </div>
-                              <button onClick={() => removeIngrediente(ing.insumo_id)} className="p-2 text-slate-500 hover:text-red-500 transition-colors bg-white rounded-lg border border-slate-200">
+                              <button onClick={() => removeIngrediente(ing.insumo_id)} className="p-2 text-slate-500 hover:text-slate-600 transition-colors bg-white rounded-lg border border-slate-200">
                                  <Trash2 size={14}/>
                               </button>
                            </div>

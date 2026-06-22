@@ -103,7 +103,7 @@ function EstruturaRadial({ camadas, fotoUrl }) {
                   <p className="font-bold text-[11px] md:text-[13px] text-[var(--fg)] leading-tight">{c.nome}</p>
                   <p className="text-[9px] uppercase text-[var(--subtle)] font-bold">{c.tipo.replace('_', ' ')}</p>
               </div>
-              <div className="flex items-center text-[var(--line-soft)] group-hover:text-orange-500 transition-colors">
+              <div className="flex items-center text-[var(--line-soft)] group-hover:text-slate-600 transition-colors">
                 <div className="w-8 md:w-16 h-px border-t-2 border-dashed border-current relative"></div>
                 <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" className="ml-[-4px]">
                   <polyline points="15 18 9 12 15 6"></polyline>
@@ -129,7 +129,7 @@ function EstruturaRadial({ camadas, fotoUrl }) {
         <div className="flex-1 flex flex-col justify-around h-full gap-6 items-start z-20">
           {dir.map((c, i) => (
             <div key={i} className="flex items-center gap-2 md:gap-4 w-full group">
-              <div className="flex items-center text-[var(--line-soft)] group-hover:text-orange-500 transition-colors flex-row-reverse">
+              <div className="flex items-center text-[var(--line-soft)] group-hover:text-slate-600 transition-colors flex-row-reverse">
                 <div className="w-8 md:w-16 h-px border-t-2 border-dashed border-current relative"></div>
                 <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" className="mr-[-4px]">
                   <polyline points="9 18 15 12 9 6"></polyline>
@@ -196,7 +196,7 @@ function EditorCamadas({ camadas, setCamadas }) {
     <div className="bg-[var(--panel)] border border-[var(--line)] rounded-xl p-4 mt-3">
       <div className="flex items-center justify-between mb-3">
          <h4 className="text-xs font-black uppercase text-[var(--subtle)]">Ajuste de Camadas (IA)</h4>
-         <button onClick={adicionar} className="text-xs font-bold text-orange-500 bg-orange-500/10 px-2 py-1 rounded flex items-center gap-1 hover:bg-orange-500/20 transition-colors">
+         <button onClick={adicionar} className="text-xs font-bold text-slate-600 bg-emerald-500/10 px-2 py-1 rounded flex items-center gap-1 hover:bg-emerald-500/20 transition-colors">
             <Plus size={12}/> Adicionar
          </button>
       </div>
@@ -210,16 +210,16 @@ function EditorCamadas({ camadas, setCamadas }) {
             <div className="flex-1 grid grid-cols-3 gap-2">
                <input 
                  value={c.nome} onChange={(e) => alterar(idx, "nome", e.target.value)} 
-                 className="col-span-2 bg-transparent border border-[var(--line)] rounded px-2 py-1.5 text-xs font-bold text-[var(--fg)] outline-none focus:border-orange-500" 
+                 className="col-span-2 bg-transparent border border-[var(--line)] rounded px-2 py-1.5 text-xs font-bold text-[var(--fg)] outline-none focus:border-emerald-500" 
                />
                <select 
                  value={c.tipo} onChange={(e) => alterar(idx, "tipo", e.target.value)}
-                 className="col-span-1 bg-transparent border border-[var(--line)] rounded px-1 py-1.5 text-[10px] uppercase font-bold text-[var(--subtle)] outline-none focus:border-orange-500"
+                 className="col-span-1 bg-transparent border border-[var(--line)] rounded px-1 py-1.5 text-[10px] uppercase font-bold text-[var(--subtle)] outline-none focus:border-emerald-500"
                >
                  {TIPOS_IA.map(t => <option key={t} value={t}>{t.replace('_',' ')}</option>)}
                </select>
             </div>
-            <button onClick={() => remover(idx)} className="p-2 text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"><Trash2 size={14}/></button>
+            <button onClick={() => remover(idx)} className="p-2 text-slate-600 hover:text-slate-500 hover:bg-emerald-500/10 rounded-lg transition-colors"><Trash2 size={14}/></button>
           </div>
         ))}
       </div>
@@ -331,7 +331,7 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar }) {
       <div className="relative">
         <div className="flex items-center justify-between mb-1">
            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Ingredientes e Passo a passo</label>
-           <button onClick={invocarIA} disabled={gerandoIA || !f.descritivo} className="flex items-center gap-1.5 text-[11px] font-black uppercase text-purple-600 bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 shadow-sm border border-purple-100">
+           <button onClick={invocarIA} disabled={gerandoIA || !f.descritivo} className="flex items-center gap-1.5 text-[11px] font-black uppercase text-emerald-600 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 shadow-sm border border-slate-200">
              {gerandoIA ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
              {gerandoIA ? "Mágica rolando..." : "Desenhar com IA"}
            </button>
@@ -551,7 +551,7 @@ function MontagemPageInner() {
               {filtrados.map((m) => (
                 <Card key={m.id} className="!p-0 hover:shadow-xl transition-shadow relative overflow-hidden group flex flex-col justify-between">
                   {m.estrutura_ia && (
-                    <div className="absolute top-4 right-4 bg-purple-100 text-purple-700 w-8 h-8 rounded-full flex items-center justify-center shadow-md z-10" title="Criado com Inteligência Artificial">
+                    <div className="absolute top-4 right-4 bg-slate-100 text-emerald-700 w-8 h-8 rounded-full flex items-center justify-center shadow-md z-10" title="Criado com Inteligência Artificial">
                        <Sparkles size={14} />
                     </div>
                   )}
@@ -583,10 +583,10 @@ function MontagemPageInner() {
                        <button onClick={() => { setEditar(m); setModal(true); }} className="flex-1 py-2 rounded-lg flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs transition-colors" title="Editar Ficha e Layout IA">
                          <Edit3 size={14} /> Editar
                        </button>
-                       <button onClick={() => imprimirFicha(m)} className="w-10 h-10 rounded-lg flex items-center justify-center bg-orange-50 hover:bg-orange-100 text-orange-500 transition-colors" title="Imprimir">
+                       <button onClick={() => imprimirFicha(m)} className="w-10 h-10 rounded-lg flex items-center justify-center bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors" title="Imprimir">
                          <Printer size={16} />
                        </button>
-                       <button onClick={() => remover(m.id)} className="w-10 h-10 rounded-lg flex items-center justify-center bg-red-50 hover:bg-red-100 text-red-500 transition-colors" title="Remover">
+                       <button onClick={() => remover(m.id)} className="w-10 h-10 rounded-lg flex items-center justify-center bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors" title="Remover">
                          <Trash2 size={16} />
                        </button>
                     </div>
@@ -604,7 +604,7 @@ function MontagemPageInner() {
            <div className="bg-[var(--surface)] rounded-[24px] shadow-2xl w-full max-w-4xl my-auto animate-in zoom-in-95 duration-200 border border-[var(--line)]">
              <div className="p-4 md:p-6 border-b border-[var(--line)] flex justify-between items-center bg-[var(--panel)] rounded-t-[24px]">
                 <h2 className="font-black text-lg md:text-xl text-[var(--fg)] flex items-center gap-2">
-                  <ClipboardList size={22} className="text-orange-500" />
+                  <ClipboardList size={22} className="text-slate-600" />
                   {editar ? "Editar Ficha de Montagem" : "Nova Ficha de Montagem"}
                 </h2>
                 <button onClick={() => { setModal(false); setEditar(null); }} className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--surface)] text-[var(--subtle)] border border-[var(--line)] hover:bg-[var(--elevated)] hover:text-[var(--fg)]">

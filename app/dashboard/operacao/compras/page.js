@@ -54,7 +54,7 @@ export default function ComprasPage() {
               <button onClick={() => router.back()} className="p-3 bg-slate-800 hover:bg-slate-700 rounded-full transition-colors">
                  <ArrowLeft size={20}/>
               </button>
-              <div className="w-16 h-16 rounded-2xl bg-blue-500/20 text-blue-400 flex items-center justify-center">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 text-slate-500 flex items-center justify-center">
                  <ShoppingCart size={32} />
               </div>
               <div>
@@ -69,11 +69,11 @@ export default function ComprasPage() {
       </div>
 
       <div className="max-w-5xl mx-auto px-6 mt-8">
-         <div className="bg-amber-50 border border-amber-200 p-6 rounded-[24px] flex items-start gap-4 mb-8">
-            <AlertCircle className="text-amber-500 flex-shrink-0" size={28}/>
+         <div className="bg-slate-50 border border-slate-200 p-6 rounded-[24px] flex items-start gap-4 mb-8">
+            <AlertCircle className="text-slate-600 flex-shrink-0" size={28}/>
             <div>
                <h3 className="font-black text-amber-800 text-lg mb-1">Como funciona a Hiper-Automação?</h3>
-               <p className="text-amber-700 font-medium text-sm leading-relaxed">
+               <p className="text-emerald-700 font-medium text-sm leading-relaxed">
                   Ao registrar uma compra de insumo (como Tomate ou Vodka) aqui, o sistema automaticamente: <br/>
                   1. Adiciona a quantidade comprada no <strong>Estoque Físico</strong> da Cozinha/Bar. <br/>
                   2. Gera uma conta pendente em <strong>Contas a Pagar</strong> no módulo Financeiro (como CMV).
@@ -92,7 +92,7 @@ export default function ComprasPage() {
                         <p className="font-bold text-slate-700 leading-tight mb-2">{ins.nome}</p>
                         <div className="flex justify-between items-end mt-auto">
                            <span className="text-[10px] uppercase font-black text-slate-500">{ins.departamento}</span>
-                           <span className="text-lg font-black text-indigo-600">{ins.quantidade_atual} {ins.unidade_medida}</span>
+                           <span className="text-lg font-black text-emerald-600">{ins.quantidade_atual} {ins.unidade_medida}</span>
                         </div>
                      </div>
                   ))}

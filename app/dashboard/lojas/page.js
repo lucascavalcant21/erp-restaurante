@@ -49,7 +49,7 @@ export default function LojasPage() {
   return (
     <div className="max-w-4xl mx-auto py-10">
       <div className="flex items-center gap-3 mb-2">
-         <Building2 size={28} className="text-orange-500" />
+         <Building2 size={28} className="text-slate-600" />
          <h1 className="text-3xl font-black text-slate-900 tracking-tighter">Suas Lojas</h1>
       </div>
       <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-10">Gerenciador de Unidades Físicas</p>
@@ -63,7 +63,7 @@ export default function LojasPage() {
               value={novoNome} 
               onChange={e => setNovoNome(e.target.value)}
               placeholder="Ex: Unidade Centro"
-              className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-orange-500 font-bold text-slate-700"
+              className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-emerald-500 font-bold text-slate-700"
             />
          </div>
          <button onClick={handleCriar} disabled={!novoNome.trim()} className="md:mt-5 w-full md:w-auto px-8 py-4 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 text-white font-black rounded-xl transition-colors flex items-center justify-center gap-2">
@@ -81,7 +81,7 @@ export default function LojasPage() {
                       type="text" 
                       value={editNome} 
                       onChange={e => setEditNome(e.target.value)}
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500 font-bold"
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 font-bold"
                     />
                     <button onClick={handleSalvarEdicao} className="p-3 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100"><Save size={20}/></button>
                     <button onClick={() => setEditId(null)} className="p-3 bg-slate-50 text-slate-500 rounded-lg hover:bg-slate-200"><X size={20}/></button>
@@ -98,8 +98,8 @@ export default function LojasPage() {
                       </div>
                    </div>
                    <div className="flex items-center gap-2">
-                      <button onClick={() => { setEditId(u.id); setEditNome(u.nome); }} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"><Edit2 size={18}/></button>
-                      <button onClick={() => handleRemover(u.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={18}/></button>
+                      <button onClick={() => { setEditId(u.id); setEditNome(u.nome); }} className="p-2 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"><Edit2 size={18}/></button>
+                      <button onClick={() => handleRemover(u.id)} className="p-2 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"><Trash2 size={18}/></button>
                    </div>
                  </>
                )}

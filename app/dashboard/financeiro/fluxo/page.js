@@ -31,7 +31,7 @@ function FormLancamento({ isReceita, onSalvar, onCancelar }) {
   const [erro, setErro] = useState("");
   
   const cats = isReceita ? CAT_ENTRADA : CAT_SAIDA;
-  const corBotao = isReceita ? "bg-emerald-500 hover:bg-emerald-600" : "bg-red-500 hover:bg-red-600";
+  const corBotao = isReceita ? "bg-emerald-500 hover:bg-emerald-600" : "bg-emerald-500 hover:bg-emerald-600";
 
   function salvar() {
     if (!descricao.trim()) return setErro("Informe a descrição do lançamento.");
@@ -42,7 +42,7 @@ function FormLancamento({ isReceita, onSalvar, onCancelar }) {
 
   return (
     <div className="p-2">
-      <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 ${isReceita ? 'bg-emerald-50 text-emerald-500' : 'bg-red-50 text-red-500'}`}>
+      <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 ${isReceita ? 'bg-emerald-50 text-emerald-500' : 'bg-slate-50 text-slate-600'}`}>
          {isReceita ? <Plus size={32} /> : <Minus size={32} />}
       </div>
       
@@ -72,7 +72,7 @@ function FormLancamento({ isReceita, onSalvar, onCancelar }) {
         </div>
       </div>
 
-      {erro && <div className="mt-4 p-3 bg-red-50 text-red-600 text-sm font-bold rounded-xl text-center">{erro}</div>}
+      {erro && <div className="mt-4 p-3 bg-slate-50 text-emerald-600 text-sm font-bold rounded-xl text-center">{erro}</div>}
       
       <div className="flex gap-3 mt-8">
         <button className="flex-1 py-4 font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors" onClick={onCancelar}>Cancelar</button>
@@ -133,7 +133,7 @@ export default function FluxoCaixaFintechPage() {
       {/* HEADER FINTECH (O GRANDE CARTÃO) */}
       <div className="bg-slate-900 text-white px-6 pt-12 pb-24 rounded-b-[48px] shadow-xl relative overflow-hidden">
          {/* Background Shapes */}
-         <div className="absolute -top-32 -right-32 w-96 h-96 bg-indigo-500 rounded-full blur-[100px] opacity-20"></div>
+         <div className="absolute -top-32 -right-32 w-96 h-96 bg-emerald-500 rounded-full blur-[100px] opacity-20"></div>
          <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-emerald-500 rounded-full blur-[100px] opacity-10"></div>
          
          <div className="relative z-10 max-w-3xl mx-auto text-center">
@@ -161,7 +161,7 @@ export default function FluxoCaixaFintechPage() {
               onClick={() => setModalDespesa(true)} 
               className="bg-white p-6 rounded-[32px] shadow-lg border border-slate-100 flex flex-col items-center justify-center gap-3 group hover:shadow-xl hover:-translate-y-1 transition-all"
             >
-               <div className="w-14 h-14 rounded-full bg-red-50 group-hover:bg-red-500 text-red-500 group-hover:text-white flex items-center justify-center transition-colors">
+               <div className="w-14 h-14 rounded-full bg-slate-50 group-hover:bg-emerald-500 text-slate-600 group-hover:text-white flex items-center justify-center transition-colors">
                   <ArrowUpRight size={24} />
                </div>
                <span className="font-bold text-slate-800">Nova Despesa</span>
@@ -176,7 +176,7 @@ export default function FluxoCaixaFintechPage() {
             </div>
             <div className="flex-1 text-center py-3">
                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Saídas</p>
-               <p className="text-lg font-black text-red-600">{fmtBRL(resumo.saidas)}</p>
+               <p className="text-lg font-black text-emerald-600">{fmtBRL(resumo.saidas)}</p>
             </div>
          </div>
 
@@ -231,7 +231,7 @@ export default function FluxoCaixaFintechPage() {
                             {/* Botão Deletar Invisível até o hover */}
                             <button 
                               onClick={() => remover(l.id)} 
-                              className="w-10 h-10 rounded-xl bg-red-50 text-red-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white"
+                              className="w-10 h-10 rounded-xl bg-slate-50 text-slate-600 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-emerald-500 hover:text-white"
                               title="Remover lançamento"
                             >
                                <Trash2 size={16} />

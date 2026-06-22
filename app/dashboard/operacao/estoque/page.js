@@ -58,7 +58,7 @@ function EstoqueRunner() {
               <button onClick={() => router.back()} className="p-3 text-slate-500 hover:text-slate-800 bg-slate-50 rounded-full border border-slate-200">
                  <ArrowLeft size={20}/>
               </button>
-              <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center shadow-inner">
+              <div className="w-14 h-14 rounded-2xl bg-slate-100 text-emerald-600 flex items-center justify-center shadow-inner">
                  <PackageSearch size={28} />
               </div>
               <div>
@@ -70,11 +70,11 @@ function EstoqueRunner() {
       </div>
 
       <div className="max-w-5xl mx-auto px-6 mt-8">
-         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6 flex items-start gap-4">
-            <AlertCircle className="text-amber-500 flex-shrink-0 mt-0.5" />
+         <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-6 flex items-start gap-4">
+            <AlertCircle className="text-slate-600 flex-shrink-0 mt-0.5" />
             <div>
                <h3 className="font-bold text-amber-800">Atenção ao Saldo Base</h3>
-               <p className="text-amber-700 text-sm mt-1">Para que a <strong>Produção do Dia</strong> funcione perfeitamente descontando insumos, certifique-se de que os ingredientes possuem saldo positivo aqui nesta tela.</p>
+               <p className="text-emerald-700 text-sm mt-1">Para que a <strong>Produção do Dia</strong> funcione perfeitamente descontando insumos, certifique-se de que os ingredientes possuem saldo positivo aqui nesta tela.</p>
             </div>
          </div>
 
@@ -106,14 +106,14 @@ function EstoqueRunner() {
                         </td>
                         <td className="p-5">
                            <div className="flex items-center gap-3">
-                              <span className={`font-black text-2xl ${ins.quantidade_atual <= 0 ? 'text-red-500' : 'text-emerald-600'}`}>
+                              <span className={`font-black text-2xl ${ins.quantidade_atual <= 0 ? 'text-slate-600' : 'text-emerald-600'}`}>
                                  {Number(ins.quantidade_atual).toFixed(2)}
                               </span>
-                              {ins.quantidade_atual <= 0 && <span className="text-[9px] font-black uppercase tracking-widest bg-red-100 text-red-600 px-2 py-1 rounded-md">Zerado</span>}
+                              {ins.quantidade_atual <= 0 && <span className="text-[9px] font-black uppercase tracking-widest bg-slate-100 text-emerald-600 px-2 py-1 rounded-md">Zerado</span>}
                            </div>
                         </td>
                         <td className="p-5 text-right">
-                           <button onClick={() => abrirAjuste(ins)} className="p-3 bg-amber-50 text-amber-600 hover:bg-amber-100 rounded-xl transition-colors font-bold text-sm flex items-center gap-2 ml-auto">
+                           <button onClick={() => abrirAjuste(ins)} className="p-3 bg-slate-50 text-emerald-600 hover:bg-slate-100 rounded-xl transition-colors font-bold text-sm flex items-center gap-2 ml-auto">
                               <RefreshCw size={16}/> Ajustar
                            </button>
                         </td>
@@ -150,14 +150,14 @@ function EstoqueRunner() {
                            placeholder="0.00" 
                            value={novoSaldo} 
                            onChange={e=>setNovoSaldo(e.target.value)} 
-                           className="w-full p-5 text-2xl bg-white border-2 border-amber-200 rounded-2xl font-black text-slate-800 outline-none focus:border-amber-500"
+                           className="w-full p-5 text-2xl bg-white border-2 border-slate-200 rounded-2xl font-black text-slate-800 outline-none focus:border-emerald-500"
                         />
                         <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-slate-500">{itemAtual.unidade_medida}</span>
                      </div>
                   </div>
                </div>
 
-               <button onClick={handleSalvarAjuste} className="w-full mt-8 py-5 bg-amber-500 hover:bg-amber-600 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-amber-500/20 active:scale-95 flex items-center justify-center gap-2">
+               <button onClick={handleSalvarAjuste} className="w-full mt-8 py-5 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-amber-500/20 active:scale-95 flex items-center justify-center gap-2">
                   <Save size={20}/> Confirmar Ajuste
                </button>
             </div>

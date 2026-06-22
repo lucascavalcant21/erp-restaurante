@@ -70,7 +70,7 @@ export default function TreinamentoPage() {
            <button onClick={() => router.back()} className="w-12 h-12 rounded-full bg-white border border-slate-200 text-slate-500 flex items-center justify-center hover:bg-slate-100 transition-colors">
               <ArrowLeft size={20} />
            </button>
-           <div className="w-16 h-16 rounded-3xl bg-rose-100 text-rose-600 flex items-center justify-center shadow-inner">
+           <div className="w-16 h-16 rounded-3xl bg-slate-100 text-emerald-600 flex items-center justify-center shadow-inner">
               <PlaySquare size={32} />
            </div>
            <div>
@@ -78,7 +78,7 @@ export default function TreinamentoPage() {
               <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">{unidadeInfo?.nome}</p>
            </div>
          </div>
-         <button onClick={() => setModalNovo(true)} className="flex items-center gap-2 bg-rose-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-rose-700 transition-colors shadow-lg shadow-rose-600/20">
+         <button onClick={() => setModalNovo(true)} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
             <Plus size={18} /> Novo Módulo
          </button>
       </div>
@@ -103,7 +103,7 @@ export default function TreinamentoPage() {
                            <PlaySquare size={48} className="text-slate-500" />
                         )}
                         <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                           <a href={t.link_video} target="_blank" rel="noreferrer" className="w-16 h-16 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-2xl scale-90 group-hover:scale-100 transition-all">
+                           <a href={t.link_video} target="_blank" rel="noreferrer" className="w-16 h-16 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-2xl scale-90 group-hover:scale-100 transition-all">
                               <PlaySquare size={24} className="ml-1"/>
                            </a>
                         </div>
@@ -111,10 +111,10 @@ export default function TreinamentoPage() {
                      <div className="p-6 flex-1 flex flex-col">
                         <div className="flex justify-between items-start mb-2">
                            <h3 className="font-black text-xl text-slate-800 leading-tight">{t.titulo}</h3>
-                           <button onClick={() => handleRemover(t.id)} className="text-slate-500 hover:text-red-500 transition-colors"><Trash2 size={18}/></button>
+                           <button onClick={() => handleRemover(t.id)} className="text-slate-500 hover:text-slate-600 transition-colors"><Trash2 size={18}/></button>
                         </div>
                         <p className="text-sm font-medium text-slate-500 line-clamp-3 mb-4 flex-1">{t.descricao}</p>
-                        <a href={t.link_video} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-rose-600 font-bold hover:text-rose-800 transition-colors text-sm bg-rose-50 px-4 py-3 rounded-2xl">
+                        <a href={t.link_video} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-emerald-600 font-bold hover:text-rose-800 transition-colors text-sm bg-slate-50 px-4 py-3 rounded-2xl">
                            <LinkIcon size={16}/> Assistir no YouTube
                         </a>
                      </div>
@@ -127,26 +127,26 @@ export default function TreinamentoPage() {
       {modalNovo && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
             <div className="bg-white rounded-[32px] w-full max-w-md p-8 shadow-2xl animate-in zoom-in-95">
-               <h2 className="font-black text-2xl text-slate-800 mb-6 flex items-center gap-3"><BookOpen size={24} className="text-rose-500"/> Novo Treinamento</h2>
+               <h2 className="font-black text-2xl text-slate-800 mb-6 flex items-center gap-3"><BookOpen size={24} className="text-slate-600"/> Novo Treinamento</h2>
                
                <div className="space-y-4">
                   <div>
                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Título do Módulo</label>
-                     <input type="text" value={form.titulo} onChange={e=>setForm({...form, titulo: e.target.value})} placeholder="Ex: Como abrir um vinho" className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-rose-500"/>
+                     <input type="text" value={form.titulo} onChange={e=>setForm({...form, titulo: e.target.value})} placeholder="Ex: Como abrir um vinho" className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
                   </div>
                   <div>
                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Descrição</label>
-                     <textarea value={form.descricao} onChange={e=>setForm({...form, descricao: e.target.value})} rows={3} placeholder="Instruções para os garçons..." className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:border-rose-500 resize-none"/>
+                     <textarea value={form.descricao} onChange={e=>setForm({...form, descricao: e.target.value})} rows={3} placeholder="Instruções para os garçons..." className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500 resize-none"/>
                   </div>
                   <div>
                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Link do YouTube</label>
-                     <input type="url" value={form.link_video} onChange={e=>setForm({...form, link_video: e.target.value})} placeholder="https://youtube.com/watch?v=..." className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-blue-600 outline-none focus:border-rose-500"/>
+                     <input type="url" value={form.link_video} onChange={e=>setForm({...form, link_video: e.target.value})} placeholder="https://youtube.com/watch?v=..." className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-emerald-600 outline-none focus:border-emerald-500"/>
                   </div>
                </div>
 
                <div className="flex gap-3 mt-8">
                   <button onClick={() => setModalNovo(false)} className="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl transition-all">Cancelar</button>
-                  <button onClick={handleSalvar} disabled={!form.titulo || !form.link_video} className="flex-[2] py-4 bg-rose-600 hover:bg-rose-700 disabled:bg-slate-300 text-white font-black rounded-2xl transition-all shadow-lg shadow-rose-600/20">Publicar Módulo</button>
+                  <button onClick={handleSalvar} disabled={!form.titulo || !form.link_video} className="flex-[2] py-4 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-black rounded-2xl transition-all shadow-lg shadow-emerald-600/20">Publicar Módulo</button>
                </div>
             </div>
          </div>

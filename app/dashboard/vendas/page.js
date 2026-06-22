@@ -188,11 +188,11 @@ function VendasPDVContent() {
                  placeholder="Buscar produto..." 
                  value={busca} 
                  onChange={e => setBusca(e.target.value)} 
-                 className="w-full pl-14 pr-6 py-4 bg-slate-50 rounded-2xl text-slate-800 font-bold text-lg outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:font-medium" 
+                 className="w-full pl-14 pr-6 py-4 bg-slate-50 rounded-2xl text-slate-800 font-bold text-lg outline-none focus:ring-2 focus:ring-emerald-500 transition-all placeholder:font-medium" 
                />
             </div>
             {isMesa && (
-               <div className="px-6 py-4 bg-blue-50 text-blue-700 font-black text-lg rounded-2xl flex items-center gap-2 shadow-sm">
+               <div className="px-6 py-4 bg-slate-50 text-emerald-700 font-black text-lg rounded-2xl flex items-center gap-2 shadow-sm">
                  MESA {mesaDaComanda?.numero}
                </div>
             )}
@@ -206,7 +206,7 @@ function VendasPDVContent() {
                  onClick={() => setCategoriaSelecionada(c)} 
                  className={`flex-shrink-0 px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all duration-200 ${
                    categoriaSelecionada === c 
-                     ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 transform scale-105' 
+                     ? 'bg-emerald-600 text-white shadow-lg shadow-blue-600/30 transform scale-105' 
                      : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
                  }`}
                >
@@ -224,10 +224,10 @@ function VendasPDVContent() {
                    <button 
                      key={p.id} 
                      onClick={() => handleAddItem(p)}
-                     className="bg-white border border-slate-100 rounded-[28px] overflow-hidden shadow-sm hover:shadow-xl hover:border-blue-200 transition-all duration-200 flex flex-col relative group text-left active:scale-95"
+                     className="bg-white border border-slate-100 rounded-[28px] overflow-hidden shadow-sm hover:shadow-xl hover:border-slate-200 transition-all duration-200 flex flex-col relative group text-left active:scale-95"
                    >
                       {qtdNoCarrinho > 0 && (
-                        <div className="absolute top-3 right-3 w-10 h-10 bg-blue-600 text-white font-black text-lg flex items-center justify-center rounded-full shadow-lg z-10">
+                        <div className="absolute top-3 right-3 w-10 h-10 bg-emerald-600 text-white font-black text-lg flex items-center justify-center rounded-full shadow-lg z-10">
                           {qtdNoCarrinho}
                         </div>
                       )}
@@ -238,7 +238,7 @@ function VendasPDVContent() {
                       
                       <div className="p-5 flex-1 flex flex-col justify-between">
                          <h3 className="font-bold text-slate-800 text-base leading-tight mb-2 line-clamp-2">{p.nome}</h3>
-                         <span className="font-black text-blue-600 text-xl">{fmtBRL(p.preco)}</span>
+                         <span className="font-black text-emerald-600 text-xl">{fmtBRL(p.preco)}</span>
                       </div>
                    </button>
                  )
@@ -273,18 +273,18 @@ function VendasPDVContent() {
                  <div key={item.id} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col gap-3">
                     <div className="flex justify-between items-start">
                        <p className="font-bold text-slate-800 text-[15px] leading-tight flex-1 pr-2">{item.nome}</p>
-                       <p className="font-black text-blue-600 text-[15px]">{fmtBRL(item.preco * item.quantidade)}</p>
+                       <p className="font-black text-emerald-600 text-[15px]">{fmtBRL(item.preco * item.quantidade)}</p>
                     </div>
                     
                     <div className="flex items-center justify-between">
                        <span className="text-sm font-bold text-slate-500">{fmtBRL(item.preco)} un</span>
                        
                        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
-                          <button onClick={() => handleMinusItem(item)} className="w-10 h-10 flex items-center justify-center bg-white shadow-sm text-slate-600 hover:text-red-500 rounded-lg active:scale-95 transition-all">
+                          <button onClick={() => handleMinusItem(item)} className="w-10 h-10 flex items-center justify-center bg-white shadow-sm text-slate-600 hover:text-slate-600 rounded-lg active:scale-95 transition-all">
                              {item.quantidade === 1 ? <Trash2 size={18} /> : <Minus size={18} />}
                           </button>
                           <span className="font-black text-lg w-10 text-center text-slate-800">{item.quantidade}</span>
-                          <button onClick={() => handleAddItem(item)} className="w-10 h-10 flex items-center justify-center bg-white shadow-sm text-slate-600 hover:text-blue-600 rounded-lg active:scale-95 transition-all">
+                          <button onClick={() => handleAddItem(item)} className="w-10 h-10 flex items-center justify-center bg-white shadow-sm text-slate-600 hover:text-emerald-600 rounded-lg active:scale-95 transition-all">
                              <Plus size={18} />
                           </button>
                        </div>
@@ -309,13 +309,13 @@ function VendasPDVContent() {
             
             <div className="flex justify-between items-center py-4 mt-2 border-t-2 border-dashed border-slate-200 mb-6">
                <span className="font-black text-2xl text-slate-800 uppercase tracking-tight">Total</span>
-               <span className="font-black text-4xl text-blue-600">{fmtBRL(totalFinal)}</span>
+               <span className="font-black text-4xl text-emerald-600">{fmtBRL(totalFinal)}</span>
             </div>
 
             <button 
               disabled={totalItens === 0} 
               onClick={() => setModalCheckout(true)} 
-              className="w-full py-6 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-500 text-white font-black text-xl uppercase tracking-widest rounded-2xl shadow-xl shadow-blue-600/30 transition-all duration-200 active:scale-95 flex items-center justify-center gap-3"
+              className="w-full py-6 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-500 text-white font-black text-xl uppercase tracking-widest rounded-2xl shadow-xl shadow-blue-600/30 transition-all duration-200 active:scale-95 flex items-center justify-center gap-3"
             >
                Cobrar {totalItens > 0 ? fmtBRL(totalFinal) : ""}
             </button>
@@ -338,13 +338,13 @@ function VendasPDVContent() {
               value={nomeNovoCliente} 
               onChange={e => setNomeNovoCliente(e.target.value)} 
               placeholder="Ex: João da Silva" 
-              className="w-full p-5 bg-slate-50 border-2 border-slate-200 rounded-2xl outline-none focus:border-blue-500 focus:bg-white mb-8 font-black text-xl text-slate-800 transition-colors" 
+              className="w-full p-5 bg-slate-50 border-2 border-slate-200 rounded-2xl outline-none focus:border-emerald-500 focus:bg-white mb-8 font-black text-xl text-slate-800 transition-colors" 
             />
             
             <button 
               onClick={handleAbrirComanda} 
               disabled={!nomeNovoCliente.trim() || salvando} 
-              className="w-full py-5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-black text-lg uppercase tracking-widest rounded-2xl transition-all active:scale-95 shadow-xl shadow-blue-600/20"
+              className="w-full py-5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-black text-lg uppercase tracking-widest rounded-2xl transition-all active:scale-95 shadow-xl shadow-emerald-600/20"
             >
               Abrir Comanda
             </button>
@@ -366,12 +366,12 @@ function VendasPDVContent() {
 
             <div className="p-8 bg-slate-50 flex-1">
                {/* Resumo Total Gigante */}
-               <div className="flex justify-between items-center p-8 bg-blue-600 text-white rounded-[28px] mb-8 shadow-xl shadow-blue-600/20">
+               <div className="flex justify-between items-center p-8 bg-emerald-600 text-white rounded-[28px] mb-8 shadow-xl shadow-emerald-600/20">
                  <div>
                    <p className="text-sm font-bold text-blue-200 uppercase tracking-widest mb-2">Total a Pagar</p>
                    <p className="font-black text-6xl tracking-tight">{fmtBRL(totalFinal)}</p>
                  </div>
-                 <div className="w-20 h-20 rounded-full bg-blue-500 flex items-center justify-center shadow-inner">
+                 <div className="w-20 h-20 rounded-full bg-emerald-500 flex items-center justify-center shadow-inner">
                    <CreditCard size={32} className="text-white" />
                  </div>
                </div>
@@ -390,11 +390,11 @@ function VendasPDVContent() {
                      onClick={() => setFormaPgto(m.id)} 
                      className={`flex items-center gap-4 p-6 rounded-[24px] border-4 transition-all duration-200 active:scale-95 ${
                        formaPgto === m.id 
-                         ? 'border-blue-600 bg-white text-blue-600 font-black shadow-lg shadow-blue-600/10' 
+                         ? 'border-emerald-600 bg-white text-emerald-600 font-black shadow-lg shadow-blue-600/10' 
                          : 'border-transparent bg-white text-slate-500 font-bold hover:border-slate-200'
                      }`}
                    >
-                     <m.icon size={28} className={formaPgto === m.id ? 'text-blue-600' : 'text-slate-500'} />
+                     <m.icon size={28} className={formaPgto === m.id ? 'text-emerald-600' : 'text-slate-500'} />
                      <span className="text-lg">{m.label}</span>
                    </button>
                  ))}

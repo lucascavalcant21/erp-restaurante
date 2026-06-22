@@ -20,7 +20,7 @@ function TreeNode({ func, childrenMap, level, isLast, isRoot }) {
 
   const bgCard = isCLevel ? "bg-slate-900 border-slate-800" : isManager ? "bg-white border-slate-200 shadow-md" : "bg-white border-slate-100 shadow-sm";
   const textName = isCLevel ? "text-white" : "text-slate-900";
-  const textRole = isCLevel ? "text-emerald-400" : isManager ? "text-blue-600" : "text-slate-500";
+  const textRole = isCLevel ? "text-emerald-400" : isManager ? "text-emerald-600" : "text-slate-500";
   const avatarBg = isCLevel ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-600";
 
   return (
@@ -153,7 +153,7 @@ export default function OrganogramaCorporativoPage() {
                  value={busca} 
                  onChange={e => setBusca(e.target.value)} 
                  placeholder="Pesquisar funcionário..." 
-                 className="w-full pl-12 pr-4 py-4 bg-slate-800/80 border border-slate-700 rounded-2xl text-white font-bold placeholder-slate-500 focus:ring-2 focus:ring-blue-500 outline-none backdrop-blur-sm"
+                 className="w-full pl-12 pr-4 py-4 bg-slate-800/80 border border-slate-700 rounded-2xl text-white font-bold placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 outline-none backdrop-blur-sm"
                />
             </div>
          </div>

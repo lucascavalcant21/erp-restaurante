@@ -2,318 +2,135 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { lerSessao, encerrarSessao, getPapel, podeAcessar, homeDoPapel } from "../lib/auth";
+import { lerSessao, encerrarSessao, podeAcessar } from "../lib/auth";
 import { useERP } from "../context/ERPContext";
+import {
+  Users, Bell, ChefHat, GlassWater, BarChart, 
+  Briefcase, Fingerprint, Store, Settings, LogOut, ChevronDown, Check
+} from "lucide-react";
 
-// ═══════════════════════════════════════════════════════════════
-// ÍCONES
-// ═══════════════════════════════════════════════════════════════
-const Ic = {
-  Dashboard: () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>,
-  Cart:      () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>,
-  Beer:      () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M17 2h-1v8h2a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/><path d="M5 20c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2v-8H5v8z"/><path d="M4 6h12a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1z"/></svg>,
-  Bell:      () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
-  Checklist: () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>,
-  ChefHat:   () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z"/><line x1="6" y1="17" x2="18" y2="17"/></svg>,
-  MenuBook:  () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>,
-  Flask:     () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M10 2v7.31l-3.72 6.17A2 2 0 0 0 8 18h8a2 2 0 0 0 1.72-2.52L14 9.31V2"/><path d="M8.5 2h7"/></svg>,
-  Box:       () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>,
-  Truck:     () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>,
-  Calendar:  () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
-  BarChart:  () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/><line x1="2" y1="20" x2="22" y2="20"/></svg>,
-  ArrowsUD:  () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M3 3v18h18"/><path d="M7 16l4-4 4 4 4-4"/></svg>,
-  Percent:   () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>,
-  TrendUp:   () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
-  FileText:  () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
-  Users:     () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
-  Clock:     () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
-  Badge:     () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>,
-  UserCheck: () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>,
-  Megaphone: () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M22 2L11 13"/><path d="M22 2L15 22l-4-9-9-4 19-7z"/></svg>,
-  Star:      () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
-  Brain:     () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-5 0V8a2.5 2.5 0 0 1-2.5-2.5A2.5 2.5 0 0 1 9.5 2z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 5 0V8a2.5 2.5 0 0 0 2.5-2.5A2.5 2.5 0 0 0 14.5 2z"/></svg>,
-  User:      () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>,
-  LogOut:    () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
-  Settings:  () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>,
-  Building2: () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg>,
-  AlertTriangle: () => <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
-};
-
-const MENU_GROUPS = [
-  {
-    id: "torre_controle", label: "TORRE DE CONTROLE", scope: "ambos",
-    items: [
-      { id: "dashboard",    label: "Visão Geral",       Icon: Ic.Dashboard, href: "/dashboard" },
-      { id: "financeiro",   label: "Centro Financeiro", Icon: Ic.BarChart,  href: "/dashboard/financeiro" },
-      { id: "rh",           label: "Gestão de Equipe",  Icon: Ic.Users,     href: "/dashboard/rh" },
-      { id: "clientes",     label: "Relacionamento (CRM)", Icon: Ic.UserCheck, href: "/dashboard/clientes" },
-      { id: "heitor",       label: "Hefisto AI",        Icon: Ic.Brain,     href: "/dashboard/ia/heitor" },
-    ],
-  },
-  {
-    id: "operacao", label: "OPERAÇÃO (TABLETS)", scope: "unidade",
-    items: [
-      { id: "vendas",       label: "Caixa (Frente de Loja)", Icon: Ic.Cart,    href: "/dashboard/vendas" },
-      { id: "mesas",        label: "Salão & Garçom",         Icon: Ic.Users,   href: "/dashboard/mesas" },
-      { id: "delivery",     label: "Despacho Delivery",      Icon: Ic.Truck,   href: "/dashboard/delivery" },
-      { id: "ponto",        label: "Bate-Ponto (Facial)",    Icon: Ic.Badge,   href: "/dashboard/rh/ponto" },
-    ],
-  },
-  {
-    id: "producao", label: "PRODUÇÃO & KDS", scope: "unidade",
-    items: [
-      { id: "cozinha_kds",  label: "KDS Cozinha",         Icon: Ic.Bell,     href: "/dashboard/cozinha/kds" },
-      { id: "bar",          label: "KDS Bar",             Icon: Ic.Flask,    href: "/dashboard/bar" },
-      { id: "montagem",     label: "Fichas Visuais",      Icon: Ic.FileText, href: "/dashboard/operacao/montagem?dept=cozinha" },
-    ],
-  },
-  {
-    id: "suprimentos", label: "SUPRIMENTOS & BACKOFFICE", scope: "cerebro",
-    items: [
-      { id: "estoque",      label: "Estoque e Inventário", Icon: Ic.Box,           href: "/dashboard/operacao/estoque" },
-      { id: "fichas",       label: "Engenharia de Cardápio", Icon: Ic.FileText,    href: "/dashboard/operacao/fichas" },
-      { id: "limpeza",      label: "Rotinas e Checklists", Icon: Ic.Checklist,     href: "/dashboard/operacao/limpeza" },
-      { id: "auditoria",    label: "Auditoria de Perdas",  Icon: Ic.AlertTriangle, href: "/dashboard/gestao/auditoria" },
-    ],
-  },
-  {
-    id: "configuracoes", label: "CONFIGURAÇÕES", scope: "ambos",
-    items: [
-      { id: "rede",         label: "Rede e Lojas",         Icon: Ic.Building2, href: "/dashboard/rede/gestao" },
-      { id: "gestao",       label: "Impressoes e Dispositivos", Icon: Ic.Settings, href: "/dashboard/gestao/impressoes" },
-      { id: "gestao",       label: "Configurações Gerais", Icon: Ic.Settings,  href: "/dashboard/gestao" },
-    ],
-  },
+const MODULES = [
+  { id: "salao",        label: "Salão",              icon: Users,        href: "/dashboard/mesas" },
+  { id: "kds",          label: "KDS",                icon: Bell,         href: "/dashboard/kds" },
+  { id: "cozinha",      label: "Op. Cozinha",        icon: ChefHat,      href: "/dashboard/cozinha" },
+  { id: "op_salao",     label: "Op. Salão",          icon: Store,        href: "/dashboard/salao" },
+  { id: "bar",          label: "Op. Bar",            icon: GlassWater,   href: "/dashboard/bar" },
+  { id: "financeiro",   label: "Financeiro",         icon: BarChart,     href: "/dashboard/financeiro" },
+  { id: "rh",           label: "Recursos Humanos",   icon: Briefcase,    href: "/dashboard/rh" },
+  { id: "ponto",        label: "Sistema de Ponto",   icon: Fingerprint,  href: "/dashboard/ponto" },
 ];
 
-function getNavId(pathname) {
-  if (pathname === "/dashboard") return "dashboard";
-  if (pathname.includes("/cozinha/kds"))      return "cozinha_kds";
-  if (pathname.includes("/cozinha/producao")) return "cozinha";
-  if (pathname.includes("/cozinha/tablet"))   return "cozinha_tablet";
-  if (pathname.includes("/bar"))          return "bar";
-  if (pathname.includes("/cozinha"))      return "cozinha";
-  if (pathname.includes("/cervejas"))     return "cervejas";
-  if (pathname.includes("/vendas"))       return "vendas";
-  if (pathname.includes("/mesas"))        return "mesas";
-  if (pathname.includes("/delivery"))     return "delivery";
-  if (pathname.includes("/drinks"))       return "drinks";
-  if (pathname.includes("/montagem"))     return "montagem";
-  if (pathname.includes("/validade"))     return "validade";
-  if (pathname.includes("/etiquetas"))    return "etiquetas";
-  if (pathname.includes("/financeiro"))   return "financeiro";
-  if (pathname.includes("/gestao/impressoes")) return "gestao";
-  if (pathname.includes("/gestao"))       return "gestao";
-  if (pathname.includes("/clientes"))     return "clientes";
-  if (pathname.includes("/rh/organograma")) return "organograma";
-  if (pathname.includes("/rh/configuracoes")) return "configuracoes";
-  if (pathname.includes("/rh/ponto"))     return "ponto";
-  if (pathname.includes("/rh"))           return "rh";
-  if (pathname.includes("/gestao/auditoria")) return "auditoria";
-  if (pathname.includes("/rede/gestao"))  return "rede";
-  if (pathname.includes("/rede"))         return "rede";
-  if (pathname.includes("/notificacoes")) return "notificacoes";
-  if (pathname.includes("/rotina"))       return "limpeza";
-  if (pathname.includes("/cardapio"))     return "fichas";
-  if (pathname.includes("/fichas"))       return "fichas";
-  if (pathname.includes("/ingredientes")) return "estoque";
-  if (pathname.includes("/estoque"))      return "estoque";
-  if (pathname.includes("/fornecedores")) return "estoque";
-  if (pathname.includes("/eventos"))      return "clientes";
-  if (pathname.includes("/dre"))          return "financeiro";
-  if (pathname.includes("/fluxo"))        return "financeiro";
-  if (pathname.includes("/cmv"))          return "financeiro";
-  if (pathname.includes("/margem"))       return "financeiro";
-  if (pathname.includes("/documentos"))   return "financeiro";
-  if (pathname.includes("/colaborador"))  return "rh";
-  if (pathname.includes("/crm"))          return "clientes";
-  if (pathname.includes("/campanhas"))    return "clientes";
-  if (pathname.includes("/nps"))          return "clientes";
-  if (pathname.includes("/heitor"))       return "heitor";
-  if (pathname.includes("/gestao/tarefas")) return "gestao";
-  if (pathname.includes("/limpeza"))      return "limpeza";
-  if (pathname.includes("/tarefas"))      return "limpeza";
-  return "dashboard";
-}
-
-// ═══════════════════════════════════════════════════════════════
-// MEGA MENU (Busca Global)
-// ═══════════════════════════════════════════════════════════════
-function MegaMenu({ isOpen, onClose, sessao, router, unidadeAtiva }) {
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 z-[60] md:left-[80px] left-0 bg-[var(--surface)] border-l border-[var(--line)] overflow-y-auto animate-in fade-in slide-in-from-top-8 duration-300 shadow-2xl custom-scrollbar">
-      <div className="p-6 md:p-8 min-h-full flex flex-col">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 max-w-7xl mx-auto gap-4 w-full">
-          <h2 className="text-3xl font-black text-[var(--fg)] tracking-tighter">Ver tudo</h2>
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1 md:flex-none">
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--subtle)]" width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input type="text" placeholder="O que você procura?" className="pl-10 pr-4 py-2.5 bg-[var(--panel)] border border-[var(--line)] rounded-lg w-full md:w-80 text-[var(--fg)] text-sm outline-none focus:border-orange-500 transition-colors" />
-            </div>
-            <button onClick={onClose} className="p-2.5 bg-[var(--panel)] rounded-lg text-[var(--subtle)] hover:bg-[var(--elevated)] transition-colors">
-              <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 max-w-7xl mx-auto w-full pb-20">
-          {MENU_GROUPS.filter(g => g.scope === "ambos" || (unidadeAtiva === "todas" ? g.scope === "cerebro" : g.scope === "unidade")).map((group) => {
-             const itens = group.items.filter((item) => sessao && podeAcessar(sessao.papel, item.id));
-             if (!itens.length) return null;
-             return (
-               <div key={group.id} className="mb-8 break-inside-avoid">
-                 <h3 className="text-[11px] font-bold text-[var(--subtle)] uppercase tracking-wider mb-3">{group.label}</h3>
-                 <div className="flex flex-col gap-1">
-                   {itens.map(item => (
-                     <button key={item.href} onClick={() => { onClose(); router.push(item.href); }}
-                       className="flex items-center gap-2 px-3 py-2.5 text-[13px] text-[var(--fg-soft)] hover:text-orange-500 hover:bg-[var(--elevated)] rounded-lg transition-colors text-left font-medium">
-                       <div className="opacity-70"><item.Icon /></div>
-                       <span>{item.label}</span>
-                     </button>
-                   ))}
-                 </div>
-               </div>
-             )
-          })}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ═══════════════════════════════════════════════════════════════
-// SIDEBAR DESKTOP
-// ═══════════════════════════════════════════════════════════════
-function DesktopSidebar({ onSair, onOpenMegaMenu }) {
+function DesktopSidebar({ onSair }) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const ITEMS = [
-    { label: 'Torre',      icon: Ic.Dashboard, href: '/dashboard' },
-    { label: 'Caixa',      icon: Ic.Cart,      href: '/dashboard/vendas' },
-    { label: 'Salão',      icon: Ic.Users,     href: '/dashboard/mesas' },
-    { label: 'KDS',        icon: Ic.Bell,      href: '/dashboard/cozinha/kds' },
-    { label: 'Estoque',    icon: Ic.Box,       href: '/dashboard/operacao/estoque' },
-    { label: 'Financeiro', icon: Ic.BarChart,  href: '/dashboard/financeiro' },
-    { label: 'RH',         icon: Ic.Users,     href: '/dashboard/rh' },
-    { label: 'Ajustes',    icon: Ic.Settings,  href: '/dashboard/gestao' },
-  ];
-
   return (
-    <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-[72px] bg-[#1a1a2e] flex-col items-center py-4 z-50">
-      <div onClick={() => router.push('/dashboard')} className="w-10 h-10 bg-orange-500 hover:bg-orange-400 transition-all rounded-xl flex items-center justify-center mb-3 text-white font-black text-lg cursor-pointer shadow-lg">H</div>
+    <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-[80px] bg-[#0f172a] flex-col items-center py-6 z-50 border-r border-white/5">
+      <div onClick={() => router.push('/dashboard')} className="w-12 h-12 bg-orange-500 hover:bg-orange-400 transition-all rounded-[14px] flex items-center justify-center mb-6 text-white font-black text-xl cursor-pointer shadow-[0_0_20px_rgba(249,115,22,0.3)]">
+        H
+      </div>
 
-      <button onClick={onOpenMegaMenu} className="flex flex-col items-center gap-1 w-full px-2 py-2 mb-2 text-white/50 hover:text-white hover:bg-white/10 rounded-xl transition-all">
-        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <span className="text-[8px] font-bold uppercase">Buscar</span>
-      </button>
-
-      <div className="flex-1 flex flex-col w-full gap-0.5 px-2 overflow-y-auto" style={{scrollbarWidth:'none'}}>
-        {ITEMS.map(item => {
-          const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
+      <div className="flex-1 flex flex-col w-full gap-2 px-2 overflow-y-auto custom-scrollbar">
+        {MODULES.map(item => {
+          const active = pathname.includes(item.href);
           return (
-            <button key={item.href} onClick={() => router.push(item.href)}
-              className={`flex flex-col items-center gap-1 w-full py-2 rounded-xl transition-all ${active ? 'bg-orange-500 text-white' : 'text-white/50 hover:text-white hover:bg-white/10'}`}>
-              <div className="w-4 h-4 flex items-center justify-center"><item.icon /></div>
-              <span className="text-[8px] font-bold uppercase leading-tight text-center">{item.label}</span>
+            <button key={item.id} onClick={() => router.push(item.href)} title={item.label}
+              className={`flex flex-col items-center justify-center w-full aspect-square rounded-2xl transition-all group relative ${active ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}>
+              <item.icon size={22} className={active ? '' : 'group-hover:scale-110 transition-transform'} />
+              <span className="text-[9px] font-bold uppercase mt-1.5 px-1 text-center leading-tight opacity-80">{item.label}</span>
             </button>
           );
         })}
       </div>
 
-      <button onClick={onSair} className="flex flex-col items-center gap-1 w-full px-2 py-2 mt-1 text-white/40 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all">
-        <div className="w-4 h-4"><Ic.LogOut /></div>
-        <span className="text-[8px] font-bold uppercase">Sair</span>
-      </button>
+      <div className="w-full px-2 mt-4 flex flex-col gap-2">
+         <button onClick={() => router.push('/dashboard/lojas')} title="Gerenciar Lojas" className="flex flex-col items-center justify-center w-full aspect-square text-slate-400 hover:text-white hover:bg-slate-800 rounded-2xl transition-all">
+           <Settings size={22} />
+           <span className="text-[9px] font-bold uppercase mt-1.5 px-1 text-center leading-tight">Lojas</span>
+         </button>
+         <button onClick={onSair} title="Sair" className="flex flex-col items-center justify-center w-full aspect-square text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-2xl transition-all">
+           <LogOut size={22} />
+           <span className="text-[9px] font-bold uppercase mt-1.5 px-1 text-center leading-tight">Sair</span>
+         </button>
+      </div>
     </aside>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════
-// BOTTOM NAV MOBILE
-// ═══════════════════════════════════════════════════════════════
-function MobileBottomNav({ onOpenMegaMenu }) {
+function MobileBottomNav() {
   const router = useRouter();
   const pathname = usePathname();
-
-  const TABS = [
-    { label: 'Torre',    icon: Ic.Dashboard, href: '/dashboard' },
-    { label: 'Caixa',    icon: Ic.Cart,      href: '/dashboard/vendas' },
-    { label: 'Salão',    icon: Ic.Users,     href: '/dashboard/mesas' },
-    { label: 'KDS',      icon: Ic.Bell,      href: '/dashboard/cozinha/kds' },
-  ];
-
+  // Mostrar apenas os 4 primeiros no mobile, ou scroll horizontal
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#1a1a2e] border-t border-white/10 flex items-stretch" style={{height:58,paddingBottom:'env(safe-area-inset-bottom)'}}>
-      {TABS.map(tab => {
-        const active = pathname === tab.href || (tab.href !== '/dashboard' && pathname.startsWith(tab.href));
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0f172a] border-t border-slate-800 flex items-stretch overflow-x-auto custom-scrollbar" style={{height:64,paddingBottom:'env(safe-area-inset-bottom)'}}>
+      {MODULES.map(item => {
+        const active = pathname.includes(item.href);
         return (
-          <button key={tab.href} onClick={() => router.push(tab.href)}
-            className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors ${active ? 'text-orange-400' : 'text-white/40'}`}>
-            <div className="w-5 h-5 flex items-center justify-center"><tab.icon /></div>
-            <span className="text-[9px] font-bold uppercase">{tab.label}</span>
+          <button key={item.id} onClick={() => router.push(item.href)}
+            className={`flex-none w-[20vw] flex flex-col items-center justify-center gap-1 transition-colors ${active ? 'text-orange-500' : 'text-slate-400'}`}>
+            <item.icon size={20} />
+            <span className="text-[9px] font-bold uppercase truncate px-1 w-full text-center">{item.label}</span>
           </button>
         );
       })}
-      <button onClick={onOpenMegaMenu} className="flex-1 flex flex-col items-center justify-center gap-0.5 text-white/40 hover:text-orange-400 transition-colors">
-        <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <span className="text-[9px] font-bold uppercase">Ver tudo</span>
-      </button>
     </nav>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════
-// TOP HEADER
-// ═══════════════════════════════════════════════════════════════
 function TopHeader({ onSair }) {
   const { unidades, unidadeAtiva, setUnidadeAtiva, podeTrocar, unidadeInfo } = useERP();
   const router = useRouter();
+  const [menuLojas, setMenuLojas] = useState(false);
 
   return (
-    <header className="h-[56px] border-b border-[var(--line)] flex items-center justify-between px-4 sticky top-0 z-40 bg-[var(--surface)] shadow-sm">
-      <span onClick={() => router.push('/dashboard')} className="font-black text-xl tracking-tighter italic cursor-pointer text-orange-500">Hefisto.</span>
-      <div className="flex items-center gap-2">
-        <div className="relative group">
-          <div className="flex items-center gap-1.5 bg-[var(--panel)] border border-[var(--line)] px-2.5 py-1.5 rounded-lg cursor-pointer hover:bg-[var(--elevated)] transition-colors">
-            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: unidadeInfo?.cor || '#22C55E' }}></div>
-            <span className="text-[12px] font-bold text-[var(--fg)] max-w-[80px] truncate">{unidadeInfo?.nome || '...'}</span>
-          </div>
-          {podeTrocar && (
-            <div className="absolute top-full right-0 pt-2 w-52 hidden group-hover:block z-50">
-              <div className="bg-[var(--surface)] shadow-xl border border-[var(--line)] rounded-xl py-2">
-                <div className="px-4 py-2 text-[10px] uppercase font-bold text-[var(--subtle)] border-b border-[var(--line)] mb-1">Visão Geral</div>
-                <div onClick={() => setUnidadeAtiva('todas')} className="px-4 py-2.5 hover:bg-[var(--elevated)] text-sm font-semibold text-[var(--fg-soft)] flex items-center gap-3 cursor-pointer">
-                  <div className="w-2 h-2 rounded-full bg-purple-500"></div> Central
-                </div>
-                <div className="px-4 py-2 text-[10px] uppercase font-bold text-[var(--subtle)] border-b border-[var(--line)] mb-1 mt-1">Lojas</div>
-                {unidades.map(u => (
-                  <div key={u.id} onClick={() => setUnidadeAtiva(u.id)} className="px-4 py-2.5 hover:bg-[var(--elevated)] text-sm font-semibold text-[var(--fg-soft)] flex items-center gap-3 cursor-pointer">
-                    <div className="w-2 h-2 rounded-full" style={{ background: u.cor }}></div> {u.nome}
+    <header className="h-[64px] border-b border-slate-200 flex items-center justify-between px-6 sticky top-0 z-40 bg-white shadow-sm">
+      <div className="flex items-center gap-4">
+         {/* Seletor de Unidades (Novo Formato) */}
+         <div className="relative">
+           <button onClick={() => setMenuLojas(!menuLojas)} className="flex items-center gap-2.5 bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl hover:bg-slate-100 transition-colors">
+              <div className="w-2.5 h-2.5 rounded-full" style={{ background: unidadeInfo?.cor || '#22C55E' }}></div>
+              <span className="text-sm font-black text-slate-800">{unidadeInfo?.nome || 'Selecione uma Unidade'}</span>
+              {podeTrocar && <ChevronDown size={14} className="text-slate-400" />}
+           </button>
+           
+           {menuLojas && podeTrocar && (
+             <>
+               <div className="fixed inset-0 z-40" onClick={() => setMenuLojas(false)}></div>
+               <div className="absolute top-full left-0 mt-2 w-64 bg-white border border-slate-200 shadow-xl rounded-2xl overflow-hidden z-50">
+                  <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                     <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Suas Lojas</span>
+                     <button onClick={() => { setMenuLojas(false); router.push('/dashboard/lojas'); }} className="text-[10px] font-bold uppercase tracking-widest text-orange-500 hover:underline">Gerenciar</button>
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-        <button onClick={onSair} className="md:hidden p-2 text-[var(--subtle)] hover:text-red-500 rounded-lg transition-colors">
-          <Ic.LogOut />
+                  <div className="max-h-64 overflow-y-auto">
+                     {unidades.map(u => (
+                        <button key={u.id} onClick={() => { setUnidadeAtiva(u.id); setMenuLojas(false); }} className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors text-left border-b border-slate-50 last:border-0">
+                           <div className="flex items-center gap-3">
+                              <div className="w-2.5 h-2.5 rounded-full" style={{ background: u.cor }}></div>
+                              <span className="text-sm font-bold text-slate-700">{u.nome}</span>
+                           </div>
+                           {u.id === unidadeAtiva && <Check size={16} className="text-emerald-500" />}
+                        </button>
+                     ))}
+                  </div>
+               </div>
+             </>
+           )}
+         </div>
+      </div>
+      
+      <div className="flex items-center gap-4">
+        <button onClick={onSair} className="md:hidden p-2 text-slate-400 hover:text-red-500 bg-slate-50 rounded-xl transition-colors">
+          <LogOut size={18} />
         </button>
       </div>
     </header>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════
-// LAYOUT PRINCIPAL
-// ═══════════════════════════════════════════════════════════════
 export default function DashboardLayout({ children }) {
   const router   = useRouter();
   const pathname = usePathname();
   const [sessao, setSessao] = useState(null);
-  const { setUnidadeAtiva, unidadeAtiva } = useERP();
-  const [megaMenuOpen, setMegaMenuOpen] = useState(false);
 
   useEffect(() => {
     let vivo = true;
@@ -325,25 +142,18 @@ export default function DashboardLayout({ children }) {
     return () => { vivo = false; };
   }, [router]);
 
-  useEffect(() => {
-    if (!sessao) return;
-    const atual = getNavId(pathname || "");
-    if (!podeAcessar(sessao.papel, atual)) router.replace(homeDoPapel(sessao.papel));
-  }, [sessao, pathname, router]);
-
   async function sair() {
     await encerrarSessao();
     router.replace("/login");
   }
 
   return (
-    <div className="flex min-h-screen bg-[var(--surface)]">
-      <DesktopSidebar onSair={sair} onOpenMegaMenu={() => setMegaMenuOpen(true)} />
-      <MegaMenu isOpen={megaMenuOpen} onClose={() => setMegaMenuOpen(false)} sessao={sessao} router={router} unidadeAtiva={unidadeAtiva} />
-      <MobileBottomNav onOpenMegaMenu={() => setMegaMenuOpen(true)} />
-      <div className="flex-1 flex flex-col min-h-screen md:ml-[72px] w-full overflow-x-hidden">
+    <div className="flex min-h-screen bg-slate-50/50">
+      <DesktopSidebar onSair={sair} />
+      <MobileBottomNav />
+      <div className="flex-1 flex flex-col min-h-screen md:ml-[80px] w-full overflow-x-hidden">
         <TopHeader onSair={sair} />
-        <main className="flex-1 p-4 md:p-6 lg:p-8 pb-[68px] md:pb-8">
+        <main className="flex-1 p-4 md:p-6 lg:p-8 pb-[80px] md:pb-8">
           {children}
         </main>
       </div>

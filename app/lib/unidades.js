@@ -1,23 +1,19 @@
 // ═══════════════════════════════════════════════════════════════
 // unidades.js — Restaurantes (Unidades)
 // ═══════════════════════════════════════════════════════════════
-//
-// UNIDADES = Restaurantes (lojas físicas)
-// Dentro de cada restaurante existem 3 DEPARTAMENTOS:
-// - Bar: bebidas, drinks, coquetéis, cervejas
-// - Cozinha: alimentos, pratos, ingredientes
-// - Cervejas: catálogo e estoque específico
-//
-// Cada unidade tem seu próprio estoque, cardápio, etc.
-// "Central" consolida a visão de todas as unidades.
 
 import { supabase, isSupabaseReady } from "./supabase";
 
-// Removido o hardcode UNIDADES. Agora elas vêm do BD via fetchUnidades.
 export async function fetchUnidades() {
-  if (!isSupabaseReady()) return { data: [], error: "Supabase offline" };
+  if (!isSupabaseReady()) {
+    // Retorno fallback se não tiver supabase
+    return { data: [{ id: "matriz", nome: "Unidade Matriz", cor: "#22c55e" }], error: null };
+  }
   const { data, error } = await supabase.from("unidades").select("*").order("nome");
-  return { data: data || [], error: error?.message };
+  if (error || !data || data.length === 0) {
+    return { data: [{ id: "matriz", nome: "Unidade Matriz", cor: "#22c55e" }], error: null };
+  }
+  return { data, error: null };
 }
 
 export async function inserirUnidade(u) {
@@ -38,57 +34,40 @@ export async function removerUnidade(id) {
   return { error: error?.message };
 }
 
-// DEPARTAMENTOS dentro de cada restaurante
 export const DEPARTAMENTOS = [
   { id: "bar",      nome: "Bar e Bebidas",       cor: "#3B82F6" },
-  { id: "cozinha",  nome: "Cozinha e Pratos",   cor: "#10B981" },
-  { id: "cervejas", nome: "Cervejas e Chopes",  cor: "#F59E0B" },
+  { id: "cozinha",  nome: "Cozinha e Pratos",    cor: "#10B981" },
 ];
 
-// "Central" consolida todas as unidades
-export const CENTRAL = { id: "todas", nome: "Central", curto: "Tudo", cor: "#8B5CF6" };
-
-/** Retorna a unidade pelo id (ou CENTRAL se for "todas"/inexistente). */
+/** Retorna a unidade pelo id. Se não achar, retorna a primeira da lista. */
 export function getUnidade(listaUnidades, id) {
-  if (!id || id === "todas") return CENTRAL;
-  return listaUnidades.find((u) => u.id === id) || CENTRAL;
-}
-
-/** True se o contexto atual é a visão consolidada da matriz. */
-export function isCentral(id) {
-  return !id || id === "todas";
+  if (!listaUnidades || listaUnidades.length === 0) return { id: "matriz", nome: "Unidade Matriz", cor: "#22c55e" };
+  return listaUnidades.find((u) => u.id === id) || listaUnidades[0];
 }
 
 /**
- * Resolve a unidade inicial a partir da sessão do usuário.
- * - Admin / vínculo "Todas" → Central (pode trocar entre unidades)
- * - Gerente de unidade → travado na própria unidade
- * Aceita tanto id ("seldeestrela") quanto nome legado ("Seldeestrela").
+ * Resolve a unidade inicial a partir da sessão.
  */
 export function unidadeDaSessao(sessao, listaUnidades = []) {
+  if (listaUnidades.length === 0) return "matriz";
   const v = sessao?.unidade;
-  if (!v || /todas/i.test(v)) return CENTRAL.id;
-  const porId   = listaUnidades.find((u) => u.id === v);
+  if (!v) return listaUnidades[0].id;
+  const porId = listaUnidades.find((u) => u.id === v);
   if (porId) return porId.id;
-  const porNome = listaUnidades.find((u) => u.nome?.toLowerCase() === String(v).toLowerCase());
-  return porNome ? porNome.id : CENTRAL.id;
+  return listaUnidades[0].id;
 }
 
-/** Papéis que enxergam a rede inteira e podem alternar de unidade. */
+/** Papéis que enxergam a rede inteira e podem gerenciar lojas. */
 export function podeVerTodas(papelId) {
   return papelId === "admin" || papelId === "financeiro";
 }
 
-// ── Helpers de escopo de dados (multiunidade) ──────────────────────────────────
-// Aplicam o filtro/carimbo de unidade só quando há uma unidade específica.
-// Em "Central" (todas) NÃO filtram — retornam a rede inteira.
-
-/** Aplica .eq("unidade_id", ...) na query quando a unidade é específica. */
+/** Aplica .eq("unidade_id", ...) na query. (Obrigatório ter unidade) */
 export function escoparPorUnidade(query, unidadeId) {
-  return (unidadeId && unidadeId !== "todas") ? query.eq("unidade_id", unidadeId) : query;
+  return unidadeId ? query.eq("unidade_id", unidadeId) : query;
 }
 
-/** Carimba unidade_id num objeto a inserir (null em "Central"). */
+/** Carimba unidade_id num objeto a inserir. */
 export function carimbarUnidade(obj, unidadeId) {
-  return { ...obj, unidade_id: (unidadeId && unidadeId !== "todas") ? unidadeId : null };
+  return { ...obj, unidade_id: unidadeId };
 }

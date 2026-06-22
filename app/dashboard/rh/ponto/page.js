@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Clock, Users, ScanFace, CheckCircle2, AlertCircle, ArrowLeft } from "lucide-react";
+import { Clock, Users, ScanFace, CheckCircle2, ArrowLeft, Fingerprint, Activity } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchFuncionarios, fetchPontoMes, registrarPonto } from "../../../lib/rh";
 import { useRouter } from "next/navigation";
@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 function hojeISO() { return new Date().toISOString().slice(0, 10); }
 function horaAgora() { return new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }); }
 
-export default function PontoTotemPage() {
+export default function PontoBiometricoPage() {
   const { unidadeAtiva, unidadeInfo } = useERP();
   const router = useRouter();
   
@@ -17,7 +17,7 @@ export default function PontoTotemPage() {
   const [pontos, setPontos] = useState({}); // { func_id: { entrada, saida } }
   const [loading, setLoading] = useState(true);
   
-  // Relógio
+  // Relógio Atômico
   const [horaLocal, setHoraLocal] = useState(new Date());
 
   // Estado do Totem: "espera", "escaneando", "sucesso"
@@ -55,139 +55,174 @@ export default function PontoTotemPage() {
     setFuncSelecionado(func);
     setEstadoTotem("escaneando");
 
-    // Simula 2 segundos de reconhecimento facial
+    // Simula 2.5 segundos de varredura biométrica intensiva
     setTimeout(async () => {
       const p = pontos[func.id] || {};
       const hora = horaAgora();
       
-      // Inteligência de Bate Ponto
       let tipo = "entrada";
       let msg = "";
       
       if (!p.entrada) {
          tipo = "entrada";
-         msg = `Bom dia, ${func.nome.split(" ")[0]}! Entrada registrada.`;
+         msg = `Bom dia, ${func.nome.split(" ")[0]}! Entrada Liberada.`;
       } else if (!p.saida) {
          tipo = "saida";
-         msg = `Até logo, ${func.nome.split(" ")[0]}! Saída registrada.`;
+         msg = `Até logo, ${func.nome.split(" ")[0]}! Saída Confirmada.`;
       } else {
-         // Já bateu entrada e saída hoje
-         setMensagemSucesso(`Ponto do dia já concluído para ${func.nome.split(" ")[0]}.`);
+         setMensagemSucesso(`Jornada concluída para ${func.nome.split(" ")[0]}.`);
          setEstadoTotem("sucesso");
-         setTimeout(() => { setEstadoTotem("espera"); setFuncSelecionado(null); }, 3500);
+         setTimeout(() => { setEstadoTotem("espera"); setFuncSelecionado(null); }, 3000);
          return;
       }
 
-      // Salva no banco e local
       setPontos((prev) => ({ ...prev, [func.id]: { ...(prev[func.id] || {}), [tipo]: hora } }));
       await registrarPonto(func.id, hojeISO(), tipo, hora);
       
       setMensagemSucesso(`${msg} às ${hora}`);
       setEstadoTotem("sucesso");
 
-      // Retorna pro estado de espera após 3.5s
       setTimeout(() => {
         setEstadoTotem("espera");
         setFuncSelecionado(null);
-      }, 3500);
+      }, 3000);
 
-    }, 2000);
+    }, 2500);
   }
 
-  // Se o Totem estiver em sucesso, mostra uma tela verde gigante
+  // ════════════════════════════════════════════════════════════
+  // TELA DE SUCESSO (ACESSO AUTORIZADO)
+  // ════════════════════════════════════════════════════════════
   if (estadoTotem === "sucesso") {
     return (
       <div className="fixed inset-0 z-[9999] bg-emerald-500 flex flex-col items-center justify-center animate-in fade-in duration-300">
-         <div className="w-32 h-32 bg-white rounded-full flex items-center justify-center mb-8 shadow-2xl animate-bounce">
-            <CheckCircle2 size={64} className="text-emerald-500" />
+         {/* Background Pulse */}
+         <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-[500px] h-[500px] bg-emerald-400 rounded-full blur-[100px] animate-pulse opacity-50"></div>
          </div>
-         <h1 className="text-white font-black text-4xl md:text-6xl text-center max-w-3xl px-4 drop-shadow-md">
+         
+         <div className="relative z-10 w-40 h-40 bg-white rounded-[40px] flex items-center justify-center mb-10 shadow-[0_20px_60px_rgba(0,0,0,0.3)] animate-bounce" style={{ animationDuration: '2s' }}>
+            <CheckCircle2 size={80} className="text-emerald-500" />
+         </div>
+         
+         <h1 className="relative z-10 text-white font-black text-5xl md:text-7xl text-center max-w-4xl px-4 tracking-tighter drop-shadow-xl">
             {mensagemSucesso}
          </h1>
+         <p className="relative z-10 text-emerald-100 font-bold uppercase tracking-widest mt-6 text-xl animate-pulse">Acesso Autorizado</p>
       </div>
     );
   }
 
+  // ════════════════════════════════════════════════════════════
+  // TELA PRINCIPAL (HUD BIOMÉTRICO)
+  // ════════════════════════════════════════════════════════════
   return (
-    <div className="fixed inset-0 z-[9999] bg-slate-900 flex overflow-hidden font-sans">
+    <div className="fixed inset-0 z-[9999] bg-slate-950 flex overflow-hidden font-sans select-none">
       
-      {/* COLUNA ESQUERDA: CÂMERA & INSTRUÇÕES */}
-      <div className="w-1/2 flex flex-col bg-slate-950 relative border-r border-slate-800">
-         {/* Botão de Saída Oculto (Canto superior esquerdo para o gerente sair do Totem) */}
-         <button onClick={() => router.push("/dashboard")} className="absolute top-6 left-6 p-4 bg-slate-800/50 hover:bg-slate-700 text-slate-500 hover:text-white rounded-2xl backdrop-blur-sm transition-colors">
-            <ArrowLeft size={24} />
+      {/* COLUNA ESQUERDA: CÂMERA HUD FUTURISTA (1/2) */}
+      <div className="w-1/2 flex flex-col bg-[#0A0F1C] relative border-r border-blue-900/30 overflow-hidden">
+         
+         {/* Botão de Saída Gerencial */}
+         <button onClick={() => router.push("/dashboard")} className="absolute top-6 left-6 p-4 bg-slate-800/50 hover:bg-red-500 hover:text-white text-slate-500 rounded-2xl backdrop-blur-md transition-colors z-50 group">
+            <ArrowLeft size={24} className="group-hover:-translate-x-1 transition-transform" />
          </button>
 
-         <div className="flex-1 flex flex-col items-center justify-center p-12 relative">
-            <div className="text-center mb-10 z-10">
-               <h1 className="text-4xl font-black text-white tracking-tighter mb-2">Totem de Ponto</h1>
-               <p className="text-slate-400 font-medium text-lg">{unidadeInfo.nome}</p>
+         {/* Elementos de Interface HUD (Bordas) */}
+         <div className="absolute top-6 right-6 text-blue-500/50 font-mono text-xs text-right">
+            <p>SYS.CORE // {unidadeInfo.nome?.toUpperCase()}</p>
+            <p>BIO.SCAN_MODULE_v3.4</p>
+            <div className="flex items-center justify-end gap-2 mt-2">
+               <Activity size={12} className="animate-pulse text-emerald-400" />
+               <span className="text-emerald-400">ONLINE</span>
             </div>
+         </div>
 
-            {/* MOCK DA CÂMERA FACIAL */}
-            <div className={`relative w-80 h-80 md:w-96 md:h-96 rounded-[40px] border-4 overflow-hidden shadow-[0_0_80px_rgba(0,0,0,0.5)] transition-colors duration-500 ${estadoTotem === "escaneando" ? "border-blue-500" : "border-slate-800"}`}>
+         <div className="flex-1 flex flex-col items-center justify-center relative">
+            
+            {/* O SCANNER DE ROSTO */}
+            <div className="relative w-80 h-80 md:w-[450px] md:h-[450px]">
                
-               <div className="absolute inset-0 bg-slate-900 flex items-center justify-center z-0">
-                  <ScanFace size={100} className={estadoTotem === "escaneando" ? "text-blue-500 animate-pulse" : "text-slate-700"} />
+               {/* Moldura Futurista */}
+               <div className={`absolute inset-0 border-2 rounded-[60px] transition-all duration-700 ${estadoTotem === "escaneando" ? "border-blue-500 bg-blue-500/5 shadow-[0_0_100px_rgba(59,130,246,0.2)]" : "border-slate-800 bg-slate-900/50"}`}>
+                  
+                  {/* Cantos do HUD */}
+                  <div className={`absolute -top-1 -left-1 w-16 h-16 border-t-4 border-l-4 rounded-tl-[60px] transition-colors duration-700 ${estadoTotem === "escaneando" ? "border-blue-400" : "border-slate-600"}`}></div>
+                  <div className={`absolute -top-1 -right-1 w-16 h-16 border-t-4 border-r-4 rounded-tr-[60px] transition-colors duration-700 ${estadoTotem === "escaneando" ? "border-blue-400" : "border-slate-600"}`}></div>
+                  <div className={`absolute -bottom-1 -left-1 w-16 h-16 border-b-4 border-l-4 rounded-bl-[60px] transition-colors duration-700 ${estadoTotem === "escaneando" ? "border-blue-400" : "border-slate-600"}`}></div>
+                  <div className={`absolute -bottom-1 -right-1 w-16 h-16 border-b-4 border-r-4 rounded-br-[60px] transition-colors duration-700 ${estadoTotem === "escaneando" ? "border-blue-400" : "border-slate-600"}`}></div>
                </div>
 
-               {/* Scanner Laser Animado */}
+               {/* Central Icon */}
+               <div className="absolute inset-0 flex items-center justify-center z-0">
+                  {estadoTotem === "escaneando" ? (
+                     <Fingerprint size={160} className="text-blue-500 animate-pulse" />
+                  ) : (
+                     <ScanFace size={120} className="text-slate-700" />
+                  )}
+               </div>
+
+               {/* Laser de Varredura */}
                {estadoTotem === "escaneando" && (
-                 <div className="absolute top-0 left-0 right-0 h-1 bg-blue-500 shadow-[0_0_20px_4px_rgba(59,130,246,0.8)] z-10" 
-                      style={{ animation: 'scanner 1.5s linear infinite' }}>
+                 <div className="absolute left-6 right-6 h-1 bg-blue-400 shadow-[0_0_30px_5px_rgba(96,165,250,1)] z-10 opacity-80" 
+                      style={{ animation: 'scanWave 2s ease-in-out infinite' }}>
                  </div>
                )}
                <style dangerouslySetInnerHTML={{__html: `
-                 @keyframes scanner { 
-                   0% { transform: translateY(0); } 
-                   50% { transform: translateY(380px); } 
-                   100% { transform: translateY(0); } 
+                 @keyframes scanWave { 
+                   0% { top: 10%; opacity: 0; }
+                   10% { opacity: 1; }
+                   90% { opacity: 1; }
+                   100% { top: 90%; opacity: 0; } 
                  }
                `}} />
 
-               {/* Overlay Status */}
-               <div className="absolute bottom-6 left-0 right-0 flex justify-center z-20">
-                 <div className={`px-6 py-2 rounded-full font-black text-sm uppercase tracking-widest backdrop-blur-md border ${
+               {/* Badge Flutuante */}
+               <div className="absolute -bottom-5 left-1/2 transform -translate-x-1/2 flex justify-center z-20">
+                 <div className={`px-6 py-3 rounded-full font-black text-sm uppercase tracking-widest backdrop-blur-xl border shadow-xl ${
                    estadoTotem === "escaneando" 
-                     ? "bg-blue-500/20 text-blue-400 border-blue-500/50 animate-pulse" 
-                     : "bg-slate-800/50 text-slate-400 border-slate-700"
+                     ? "bg-blue-900/80 text-blue-300 border-blue-500 animate-pulse" 
+                     : "bg-slate-900 text-slate-400 border-slate-700"
                  }`}>
-                    {estadoTotem === "escaneando" ? "Analisando Biometria..." : "Aguardando Rosto"}
+                    {estadoTotem === "escaneando" ? "Identificando Padrão..." : "Posicione o Rosto"}
                  </div>
                </div>
             </div>
 
-            {/* RELÓGIO GIGANTE */}
-            <div className="absolute bottom-10 left-0 right-0 text-center">
-               <h2 className="text-7xl font-black text-white tracking-tighter tabular-nums drop-shadow-xl opacity-90">
-                 {horaLocal.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+            {/* RELÓGIO ATÔMICO */}
+            <div className="absolute bottom-12 left-0 right-0 text-center">
+               <h2 className="text-[100px] leading-none font-black text-white tracking-tighter tabular-nums drop-shadow-2xl">
+                 {horaLocal.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                </h2>
-               <p className="text-xl text-slate-500 font-bold uppercase tracking-widest mt-2">
-                 {horaLocal.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}
-               </p>
+               <div className="flex justify-center items-center gap-3 mt-2">
+                  <p className="text-blue-400 font-bold uppercase tracking-widest text-lg">
+                    {horaLocal.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}
+                  </p>
+                  <span className="text-slate-600 font-mono text-sm">{horaLocal.getSeconds().toString().padStart(2, '0')}s</span>
+               </div>
             </div>
          </div>
       </div>
 
-      {/* COLUNA DIREITA: SELEÇÃO DE FUNCIONÁRIOS (Simulador) */}
-      <div className="w-1/2 bg-slate-900 flex flex-col p-10">
-         <div className="mb-8">
-            <h3 className="text-2xl font-black text-white">Simulador de Identificação</h3>
-            <p className="text-slate-400 text-sm mt-1">Toque na sua foto para emular a leitura facial na câmera.</p>
+      {/* COLUNA DIREITA: SIMULADOR DE FUNCIONÁRIOS (1/2) */}
+      <div className="w-1/2 bg-[#0F172A] flex flex-col">
+         
+         <div className="p-10 border-b border-slate-800 bg-slate-900/50 backdrop-blur-md">
+            <h3 className="text-3xl font-black text-white tracking-tight">Console de Simulação</h3>
+            <p className="text-slate-400 text-sm mt-2 font-medium">Toque em um cartão para injetar a face correspondente no scanner biométrico.</p>
          </div>
 
-         <div className="flex-1 overflow-y-auto hide-scrollbar">
+         <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
             {loading ? (
                <div className="h-full flex items-center justify-center">
-                 <div className="w-12 h-12 border-4 border-slate-700 border-t-blue-500 rounded-full animate-spin"></div>
+                 <Activity size={48} className="text-blue-500 animate-pulse" />
                </div>
             ) : funcs.length === 0 ? (
                <div className="h-full flex flex-col items-center justify-center text-slate-500">
-                  <Users size={64} className="mb-4 opacity-30" />
-                  <p className="font-bold text-xl">Nenhum funcionário cadastrado.</p>
+                  <Users size={64} className="mb-4 opacity-20" />
+                  <p className="font-bold text-xl uppercase tracking-widest">Base de Dados Vazia</p>
                </div>
             ) : (
-               <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
+               <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
                   {funcs.map((f) => {
                      const p = pontos[f.id] || {};
                      const concluido = p.entrada && p.saida;
@@ -198,31 +233,39 @@ export default function PontoTotemPage() {
                            key={f.id} 
                            onClick={() => simularReconhecimento(f)}
                            disabled={estadoTotem !== "espera" || concluido}
-                           className={`relative flex flex-col items-center p-6 rounded-[32px] border-4 transition-all duration-300 ${
+                           className={`relative flex flex-col items-center p-6 rounded-[32px] border-2 transition-all duration-500 group ${
                               concluido 
-                                ? "bg-slate-800/30 border-slate-800 opacity-50 cursor-not-allowed" 
+                                ? "bg-slate-900/50 border-slate-800 opacity-40 cursor-not-allowed" 
                                 : isScanningThis
-                                  ? "bg-blue-900/40 border-blue-500 scale-105 shadow-[0_0_30px_rgba(59,130,246,0.3)]"
-                                  : "bg-slate-800 border-slate-700 hover:border-slate-500 hover:-translate-y-2 hover:shadow-2xl"
+                                  ? "bg-blue-900/40 border-blue-400 scale-105 shadow-[0_0_40px_rgba(59,130,246,0.2)]"
+                                  : "bg-slate-800/80 border-slate-700 hover:border-slate-500 hover:-translate-y-2 hover:bg-slate-800"
                            }`}
                         >
-                           <div className="w-24 h-24 rounded-full bg-slate-700 flex items-center justify-center mb-4 text-3xl font-black text-slate-400 border-2 border-slate-600 shadow-inner overflow-hidden">
+                           {/* Avatar Holográfico */}
+                           <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-4 text-3xl font-black border-2 shadow-inner transition-colors duration-500 ${
+                              isScanningThis ? "bg-blue-500/20 text-blue-400 border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.5)]" : "bg-slate-900 text-slate-500 border-slate-700"
+                           }`}>
                               {f.nome[0].toUpperCase()}
                            </div>
-                           <h4 className="font-bold text-white text-lg text-center leading-tight mb-2">{f.nome.split(" ")[0]}</h4>
                            
-                           {/* Status Chips */}
-                           <div className="mt-auto flex flex-col gap-1 w-full">
-                              <div className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest text-center ${p.entrada ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-900 text-slate-500'}`}>
-                                 IN: {p.entrada || "--:--"}
+                           <h4 className={`font-black text-lg text-center leading-tight mb-4 ${isScanningThis ? 'text-blue-400' : 'text-slate-200'}`}>
+                              {f.nome.split(" ")[0]}
+                           </h4>
+                           
+                           {/* Painel de Horários */}
+                           <div className="mt-auto w-full flex flex-col gap-1.5">
+                              <div className={`flex justify-between items-center px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${p.entrada ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-slate-950 text-slate-600'}`}>
+                                 <span>Entrada</span>
+                                 <span>{p.entrada || "--:--"}</span>
                               </div>
-                              <div className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest text-center ${p.saida ? 'bg-rose-500/20 text-rose-400' : 'bg-slate-900 text-slate-500'}`}>
-                                 OUT: {p.saida || "--:--"}
+                              <div className={`flex justify-between items-center px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${p.saida ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20' : 'bg-slate-950 text-slate-600'}`}>
+                                 <span>Saída</span>
+                                 <span>{p.saida || "--:--"}</span>
                               </div>
                            </div>
 
                            {concluido && (
-                              <div className="absolute -top-3 -right-3 w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center border-4 border-slate-900">
+                              <div className="absolute -top-3 -right-3 w-10 h-10 bg-slate-900 rounded-full flex items-center justify-center border-2 border-emerald-900 shadow-xl">
                                 <CheckCircle2 size={20} className="text-emerald-500" />
                               </div>
                            )}
@@ -233,6 +276,13 @@ export default function PontoTotemPage() {
             )}
          </div>
       </div>
+
+      <style dangerouslySetInnerHTML={{__html: `
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
+      `}} />
     </div>
   );
 }

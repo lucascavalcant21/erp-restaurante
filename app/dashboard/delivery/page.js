@@ -3,13 +3,13 @@
 import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { Search as SearchIcon, MapPin, Map, Clock, Users, Plus, Edit3, Trash2, Motorbike, Check, X } from "lucide-react";
-import { Modal, Field, TextInput, Select, NumberInput, Toast, Btn } from "../../../components/ui";
-import { fmtBRL } from "../../../components/ui";
-import { useERP } from "../../../context/ERPContext";
+import { Modal, Field, TextInput, Select, NumberInput, Toast, Btn } from "../../components/ui";
+import { fmtBRL } from "../../components/ui";
+import { useERP } from "../../context/ERPContext";
 import { 
   fetchDeliveryConfigs, salvarDeliveryConfigs, 
   fetchMotoboys, salvarMotoboy, removerMotoboy 
-} from "../../../lib/delivery";
+} from "../../lib/delivery";
 
 const DeliveryMap = dynamic(() => import("./MapComponent"), { ssr: false, loading: () => <div className="h-full w-full bg-slate-100 animate-pulse rounded-2xl flex items-center justify-center text-slate-400 font-bold">Carregando mapa...</div> });
 

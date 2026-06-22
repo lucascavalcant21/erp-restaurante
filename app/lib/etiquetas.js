@@ -49,16 +49,49 @@ export async function atualizarStatusEtiqueta(etiqueta, status) {
   const id = typeof etiqueta === "string" ? etiqueta : etiqueta.id;
   const { error } = await supabase.from("etiquetas").update({ status }).eq("id", id);
   
-  if (!error && status === "perda" && typeof etiqueta === "object") {
-    const valor = (Number(etiqueta.quantidade) || 0) * (Number(etiqueta.custo_unit) || 0);
-    if (valor > 0) {
-      await inserirLancamento({
-        tipo: "saida",
-        categoria: "Desperdício/Perda",
-        descricao: `Perda de Validade: ${etiqueta.produto} (${etiqueta.quantidade} ${etiqueta.unidade})`,
-        valor: valor,
-        data: new Date().toISOString().slice(0, 10)
-      }, etiqueta.unidade_id);
+  if (!error && typeof etiqueta === "object") {
+    // 1. Tentar dar baixa no Estoque Físico buscando o Insumo pelo Nome
+    const { data: insumoMatch } = await supabase.from("insumos")
+      .select("id")
+      .eq("unidade_id", etiqueta.unidade_id)
+      .ilike("nome", etiqueta.produto)
+      .maybeSingle();
+
+    if (insumoMatch) {
+       // Buscar saldo atual
+       const { data: estAtual } = await supabase.from("estoque_atual")
+          .select("quantidade_atual")
+          .eq("unidade_id", etiqueta.unidade_id)
+          .eq("insumo_id", insumoMatch.id)
+          .maybeSingle();
+
+       const saldoAnterior = estAtual ? estAtual.quantidade_atual : 0;
+       const qtdAbater = Number(etiqueta.quantidade) || 0;
+       const novoSaldo = Math.max(0, saldoAnterior - qtdAbater);
+
+       await supabase.from("estoque_atual").upsert({
+          unidade_id: etiqueta.unidade_id,
+          insumo_id: insumoMatch.id,
+          quantidade_atual: novoSaldo,
+          updated_at: new Date().toISOString()
+       }, { onConflict: 'unidade_id, insumo_id' });
+    }
+
+    // 2. Se for perda, lançar o prejuízo no DRE (Financeiro)
+    if (status === "perda") {
+       const valor = (Number(etiqueta.quantidade) || 0) * (Number(etiqueta.custo_unit) || 0);
+       if (valor > 0) {
+          const hoje = new Date().toISOString().split('T')[0];
+          await supabase.from("contas_pagar").insert([{
+             unidade_id: etiqueta.unidade_id,
+             descricao: `Perda de Validade: ${etiqueta.produto} (${etiqueta.quantidade} ${etiqueta.unidade})`,
+             valor: valor,
+             data_vencimento: hoje,
+             data_pagamento: hoje,
+             categoria: 'inventarios',
+             status: 'pago' // já entra pago pois o dinheiro já foi gasto lá atrás
+          }]);
+       }
     }
   }
 

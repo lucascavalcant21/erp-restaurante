@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useERP } from "../../../../context/ERPContext";
-import { fetchPedidosOnlinePendentes, aceitarPedidoOnline, recusarPedidoOnline } from "../../../../lib/vendas";
+import { useERP } from "../../../context/ERPContext";
+import { fetchPedidosOnlinePendentes, aceitarPedidoOnline, recusarPedidoOnline } from "../../../lib/vendas";
 import { Motorbike, Check, X, ArrowLeft, Clock, MapPin, Phone, AlertCircle } from "lucide-react";
-import { fmtBRL } from "../../../../components/ui";
+import { fmtBRL } from "../../../components/ui";
 
 export default function GestorOnlinePage() {
   const router = useRouter();

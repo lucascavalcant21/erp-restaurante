@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useERP } from "../../../../context/ERPContext";
-import { fetchEstoque, registrarCompra } from "../../../../lib/estoque";
+import { useERP } from "../../../context/ERPContext";
+import { fetchEstoque, registrarCompra } from "../../../lib/estoque";
 import { ShoppingCart, PackagePlus, Plus, ArrowLeft, TrendingUp, AlertCircle } from "lucide-react";
-import { fmtBRL } from "../../../../components/ui";
+import { fmtBRL } from "../../../components/ui";
 
 export default function ComprasPage() {
   const router = useRouter();

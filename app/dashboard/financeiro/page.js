@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useERP } from "../../../context/ERPContext";
-import { fetchDRE, CATEGORIAS_CUSTO } from "../../../lib/financeiro";
+import { useERP } from "../../context/ERPContext";
+import { fetchDRE, CATEGORIAS_CUSTO } from "../../lib/financeiro";
 import { LineChart, DollarSign, ArrowUpRight, ArrowDownRight, Activity, Percent, PieChart, UtensilsCrossed, Motorbike, FileText } from "lucide-react";
-import { fmtBRL } from "../../../components/ui";
+import { fmtBRL } from "../../components/ui";
 
 export default function DashboardFinanceiroPage() {
   const router = useRouter();

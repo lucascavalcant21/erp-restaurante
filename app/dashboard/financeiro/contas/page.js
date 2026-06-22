@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useERP } from "../../../../context/ERPContext";
-import { fetchContas, salvarConta, pagarConta, CATEGORIAS_CUSTO } from "../../../../lib/financeiro";
+import { useERP } from "../../../context/ERPContext";
+import { fetchContas, salvarConta, pagarConta, CATEGORIAS_CUSTO } from "../../../lib/financeiro";
 import { Plus, Search, CheckCircle2, CircleDashed, Filter, CalendarDays, Wallet } from "lucide-react";
-import { fmtBRL } from "../../../../components/ui";
+import { fmtBRL } from "../../../components/ui";
 
 export default function ContasAPagarPage() {
   const { unidadeAtiva } = useERP();

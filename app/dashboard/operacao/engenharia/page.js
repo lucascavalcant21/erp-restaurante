@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useERP } from "../../../../context/ERPContext";
-import { fetchEngenharia } from "../../../../lib/engenharia";
+import { useERP } from "../../../context/ERPContext";
+import { fetchEngenharia, salvarItemEngenharia } from "../../../lib/engenharia";
 import { BarChart, ArrowLeft, Star, Heart, Puzzle, Ghost, TrendingUp, AlertTriangle } from "lucide-react";
-import { PageHeader, PageBody, Card, EmptyState, fmtBRL } from "../../../../components/ui";
+import { PageHeader, PageBody, Card, EmptyState, fmtBRL } from "../../../components/ui";
 
 // Matriz de classificação para estilos
 const MATRIZ = {

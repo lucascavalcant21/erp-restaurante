@@ -2,8 +2,8 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useERP } from "../../../context/ERPContext";
-import { fetchItensKDS, atualizarStatusKDS } from "../../../lib/vendas";
+import { useERP } from "../../context/ERPContext";
+import { fetchItensKDS, atualizarStatusKDS } from "../../lib/vendas";
 import { MonitorPlay, ArrowLeft, Clock, CheckCircle2, Play } from "lucide-react";
 
 function KDSRunner() {

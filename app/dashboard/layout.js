@@ -26,7 +26,7 @@ function DesktopSidebar({ onSair }) {
 
   return (
     <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-[80px] bg-[#0A1128] flex-col items-center py-6 z-50 border-r border-slate-800 shadow-2xl">
-      <div onClick={() => router.push('/dashboard')} className="w-12 h-12 bg-blue-600 hover:bg-blue-500 transition-all rounded-[14px] flex items-center justify-center mb-6 text-white font-black text-xl cursor-pointer shadow-[0_4px_14px_rgba(37,99,235,0.4)] hover:shadow-[0_8px_24px_rgba(37,99,235,0.6)] hover:-translate-y-1">
+      <div onClick={() => router.push('/dashboard')} className="w-12 h-12 bg-emerald-600 hover:bg-emerald-500 transition-all rounded-[14px] flex items-center justify-center mb-6 text-white font-black text-xl cursor-pointer shadow-[0_4px_14px_rgba(5,150,105,0.4)] hover:shadow-[0_8px_24px_rgba(5,150,105,0.6)] hover:-translate-y-1">
         H
       </div>
 
@@ -35,7 +35,7 @@ function DesktopSidebar({ onSair }) {
           const active = pathname.includes(item.href);
           return (
             <button key={item.id} onClick={() => router.push(item.href)} title={item.label}
-              className={`flex flex-col items-center justify-center w-full aspect-square rounded-2xl transition-all duration-300 group relative ${active ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 -translate-y-1' : 'text-slate-400 hover:text-white hover:bg-slate-800/50 hover:-translate-y-1'}`}>
+              className={`flex flex-col items-center justify-center w-full aspect-square rounded-2xl transition-all duration-300 group relative ${active ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 -translate-y-1' : 'text-slate-400 hover:text-white hover:bg-slate-800/50 hover:-translate-y-1'}`}>
               <item.icon size={22} className={active ? '' : 'group-hover:scale-110 transition-transform'} />
               <span className="text-[9px] font-bold uppercase mt-1.5 px-1 text-center leading-tight opacity-80">{item.label}</span>
             </button>
@@ -67,7 +67,7 @@ function MobileBottomNav() {
         const active = pathname.includes(item.href);
         return (
           <button key={item.id} onClick={() => router.push(item.href)}
-            className={`flex-none w-[20vw] flex flex-col items-center justify-center gap-1 transition-all duration-300 ${active ? 'text-blue-500 scale-105' : 'text-slate-400 hover:text-slate-200'}`}>
+            className={`flex-none w-[20vw] flex flex-col items-center justify-center gap-1 transition-all duration-300 ${active ? 'text-emerald-500 scale-105' : 'text-slate-400 hover:text-slate-200'}`}>
             <item.icon size={20} />
             <span className="text-[9px] font-bold uppercase truncate px-1 w-full text-center">{item.label}</span>
           </button>
@@ -88,7 +88,7 @@ function TopHeader({ onSair }) {
          {/* Seletor de Unidades (Novo Formato) */}
          <div className="relative">
            <button onClick={() => setMenuLojas(!menuLojas)} className="flex items-center gap-2.5 bg-white border border-slate-200 px-4 py-2.5 rounded-xl hover:bg-slate-50 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5">
-              <div className="w-3 h-3 rounded-full shadow-inner" style={{ background: unidadeInfo?.cor || '#2563EB' }}></div>
+              <div className="w-3 h-3 rounded-full shadow-inner" style={{ background: unidadeInfo?.cor || '#059669' }}></div>
               <span className="text-sm font-black text-slate-800">{unidadeInfo?.nome || 'Selecione uma Unidade'}</span>
               {podeTrocar && <ChevronDown size={14} className="text-slate-400" />}
            </button>
@@ -99,7 +99,7 @@ function TopHeader({ onSair }) {
                <div className="absolute top-full left-0 mt-2 w-64 bg-white border border-slate-200 shadow-[0_20px_40px_rgba(0,0,0,0.1)] rounded-2xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200">
                   <div className="px-4 py-3 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Suas Lojas</span>
-                     <button onClick={() => { setMenuLojas(false); router.push('/dashboard/lojas'); }} className="text-[10px] font-bold uppercase tracking-widest text-blue-600 hover:text-blue-800 hover:underline transition-colors">Gerenciar</button>
+                     <button onClick={() => { setMenuLojas(false); router.push('/dashboard/lojas'); }} className="text-[10px] font-bold uppercase tracking-widest text-emerald-600 hover:text-emerald-800 hover:underline transition-colors">Gerenciar</button>
                   </div>
                   <div className="max-h-64 overflow-y-auto">
                      {unidades.map(u => (
@@ -108,7 +108,7 @@ function TopHeader({ onSair }) {
                               <div className="w-2.5 h-2.5 rounded-full shadow-inner group-hover:scale-110 transition-transform" style={{ background: u.cor }}></div>
                               <span className="text-sm font-bold text-slate-700">{u.nome}</span>
                            </div>
-                           {u.id === unidadeAtiva && <Check size={16} className="text-blue-600" />}
+                           {u.id === unidadeAtiva && <Check size={16} className="text-emerald-600" />}
                         </button>
                      ))}
                   </div>
@@ -153,7 +153,6 @@ export default function DashboardLayout({ children }) {
       <MobileBottomNav />
       <div className="flex-1 flex flex-col min-h-screen md:ml-[80px] w-full overflow-x-hidden">
         <TopHeader onSair={sair} />
-        {/* Adicionando a classe de animação e uma key baseada no pathname para re-animar na troca de rota */}
         <main key={pathname} className="flex-1 p-4 md:p-6 lg:p-8 pb-[80px] md:pb-8 animate-page-in">
           {children}
         </main>

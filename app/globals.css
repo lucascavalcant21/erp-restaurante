@@ -25,11 +25,11 @@
   --dim:        #CBD5E1; 
   --faint:      #E2E8F0;
 
-  /* Cores de Ação e Acento (Deep Blue / Indigo) */
-  --accent:        #2563EB; /* Blue-600 */
-  --accent-strong: #1D4ED8; /* Blue-700 */
+  /* Cores de Ação e Acento (Verde Escuro / Emerald) */
+  --accent:        #059669; /* Emerald 600 */
+  --accent-strong: #047857; /* Emerald 700 */
   --accent-fg:     #FFFFFF;
-  --accent-soft:   rgba(37,99,235,0.12);
+  --accent-soft:   rgba(5,150,105,0.12);
   
   /* Status */
   --success:        #059669; /* Emerald 600 */
@@ -155,15 +155,15 @@ button, a { cursor: pointer; transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
     transform: scale(0.94);
   }
   
-  /* Botão Primário (Azul Intenso) com Glow */
+  /* Botão Primário (Verde Escuro) com Glow */
   .erp-btn-primary {
     background: linear-gradient(135deg, var(--accent), var(--accent-strong));
     color: var(--accent-fg);
-    box-shadow: 0 4px 14px rgba(37,99,235,0.3), inset 0 1px 1px rgba(255,255,255,0.2);
+    box-shadow: 0 4px 14px rgba(5,150,105,0.3), inset 0 1px 1px rgba(255,255,255,0.2);
     border: 1px solid rgba(0,0,0,0.1);
   }
   .erp-btn-primary:hover { 
-    box-shadow: 0 8px 24px rgba(37,99,235,0.4), inset 0 1px 1px rgba(255,255,255,0.3);
+    box-shadow: 0 8px 24px rgba(5,150,105,0.4), inset 0 1px 1px rgba(255,255,255,0.3);
     transform: translateY(-2px);
   }
 

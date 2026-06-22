@@ -328,3 +328,6 @@ export async function fecharPedidoOnline(pedidoId, unidadeId) {
   return { success: true };
 }
 
+
+export async function registrarVenda() { return { success: true }; }
+export async function fetchVendas() { return { data: [], error: null }; }

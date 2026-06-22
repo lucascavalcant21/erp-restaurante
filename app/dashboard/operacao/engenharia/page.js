@@ -15,7 +15,7 @@ const MATRIZ = {
   "Cachorro": { icon: Ghost, cor: "#EF4444", bg: "#FEE2E2", desc: "Vende pouco, Lucra pouco. Considere remover do menu." }
 };
 
-export default function EngenhariaPage() {
+function EngenhariaRunner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const dept = searchParams.get("dept") || "cozinha";
@@ -139,5 +139,13 @@ export default function EngenhariaPage() {
         )}
       </PageBody>
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div className="p-10 text-center text-slate-500 font-bold">Carregando Engenharia...</div>}>
+      <EngenhariaRunner />
+    </Suspense>
   );
 }

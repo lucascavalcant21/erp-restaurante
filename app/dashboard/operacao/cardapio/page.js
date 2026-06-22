@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
-import { ArrowLeft, QrCode, Copy, ExternalLink, Smartphone } from "lucide-react";
+import { ArrowLeft, QrCode, Copy, ExternalLink, Smartphone, ArrowDown } from "lucide-react";
 
 export default function CardapioGeradorPage() {
   const router = useRouter();

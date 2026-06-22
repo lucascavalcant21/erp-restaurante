@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchPedidosOnlinePendentes, aceitarPedidoOnline, recusarPedidoOnline } from "../../../lib/vendas";
-import { Motorbike, Check, X, ArrowLeft, Clock, MapPin, Phone, AlertCircle } from "lucide-react";
+import { Bike, Check, X, ArrowLeft, Clock, MapPin, Phone, AlertCircle } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
 export default function GestorOnlinePage() {
@@ -62,7 +62,7 @@ export default function GestorOnlinePage() {
                  <ArrowLeft size={20}/>
               </button>
               <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 text-slate-500 flex items-center justify-center">
-                 <Motorbike size={32} />
+                 <Bike size={32} />
               </div>
               <div>
                  <h1 className="text-4xl font-black tracking-tighter">Gestor Delivery</h1>
@@ -78,7 +78,7 @@ export default function GestorOnlinePage() {
          ) : pedidos.length === 0 ? (
             <div className="text-center p-10 bg-white border border-slate-200 rounded-3xl max-w-lg mx-auto mt-20">
                <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Motorbike size={40} className="text-slate-500"/>
+                  <Bike size={40} className="text-slate-500"/>
                </div>
                <h3 className="text-2xl font-black text-slate-700">Nenhum pedido novo</h3>
                <p className="text-slate-500 mt-2 font-medium mb-6">Fique de olho. Assim que um cliente enviar um pedido pelo QR Code, ele aparecerá aqui com um alerta.</p>

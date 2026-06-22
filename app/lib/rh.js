@@ -81,3 +81,5 @@ export async function removerDocumento(docId, url_arquivo) {
   const { error } = await supabase.from("documentos_rh").delete().eq("id", docId);
   return { error: error?.message };
 }
+
+export async function fetchFuncionarios() { return { data: [], error: null }; }

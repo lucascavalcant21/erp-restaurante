@@ -103,3 +103,5 @@ export async function fetchDRE(unidadeId) {
      }
   };
 }
+
+export async function fetchLancamentos() { return { data: [], error: null }; }

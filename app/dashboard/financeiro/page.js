@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useERP } from "../../context/ERPContext";
 import { fetchDRE, CATEGORIAS_CUSTO } from "../../lib/financeiro";
-import { LineChart, DollarSign, ArrowUpRight, ArrowDownRight, Activity, Percent, PieChart, UtensilsCrossed, Motorbike, FileText } from "lucide-react";
+import { LineChart, DollarSign, ArrowUpRight, ArrowDownRight, Activity, Percent, PieChart, UtensilsCrossed, Bike, FileText } from "lucide-react";
 import { fmtBRL } from "../../components/ui";
 
 export default function DashboardFinanceiroPage() {
@@ -145,7 +145,7 @@ export default function DashboardFinanceiroPage() {
                            </div>
 
                            <div className="flex items-center gap-4 bg-slate-800 p-4 rounded-2xl border border-slate-700">
-                              <div className="w-12 h-12 bg-emerald-500/20 text-slate-500 rounded-xl flex items-center justify-center"><Motorbike size={20}/></div>
+                              <div className="w-12 h-12 bg-emerald-500/20 text-slate-500 rounded-xl flex items-center justify-center"><Bike size={20}/></div>
                               <div className="flex-1">
                                  <p className="text-xs uppercase font-black tracking-widest text-slate-500 mb-1">Delivery / QR Code</p>
                                  <p className="text-2xl font-black">{fmtBRL(dre.fatPorCanal.delivery + dre.fatPorCanal.qrcode)}</p>

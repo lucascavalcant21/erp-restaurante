@@ -141,9 +141,8 @@ export function EmptyState({ icon: Icon = Inbox, title = "Nada por aqui ainda", 
 export function Modal({ open, onClose, title, children }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center backdrop-blur-sm" style={{ background: "rgba(9, 9, 11, 0.4)" }} onClick={onClose}>
-      <div className="w-full max-w-md max-h-[92vh] overflow-y-auto rounded-t-[32px] md:rounded-[32px] p-6 pb-10 shadow-2xl animate-in fade-in zoom-in-95 duration-200"
-        style={{ background: "var(--card)", border: "1px solid rgba(255,255,255,0.2)" }}
+    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center backdrop-blur-sm bg-slate-900/40" onClick={onClose}>
+      <div className="w-full max-w-md max-h-[92vh] overflow-y-auto rounded-t-[32px] md:rounded-[32px] p-6 pb-10 shadow-2xl animate-in fade-in zoom-in-95 duration-200 bg-white border border-slate-200"
         onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <p className="text-base font-bold" style={{ color: "var(--fg)" }}>{title}</p>

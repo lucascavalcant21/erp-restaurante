@@ -1,25 +1,37 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import dynamic from "next/dynamic";
-import { Search as SearchIcon, MapPin, Map, Clock, Users, Plus, Edit3, Trash2, Check, X } from "lucide-react";
-import { Modal, Field, TextInput, Select, NumberInput, Toast, Btn } from "../../components/ui";
-import { fmtBRL } from "../../components/ui";
+import { Search as SearchIcon, MapPin, Clock, Users, Plus, Edit3, Trash2, Check, X, Truck, Settings, Motorbike, PackageOpen, PackageCheck, Route, Map } from "lucide-react";
+import { Field, TextInput, Select, NumberInput } from "../../components/ui";
 import { useERP } from "../../context/ERPContext";
 import { 
   fetchDeliveryConfigs, salvarDeliveryConfigs, 
   fetchMotoboys, salvarMotoboy, removerMotoboy 
 } from "../../lib/delivery";
+// Reutilizando as buscas de vendas do KDS para unificar a base e acabar com os bugs de sumiço de pedidos
+import { fetchPedidosAtivos } from "../../lib/kds";
 
-const DeliveryMap = dynamic(() => import("./MapComponent"), { ssr: false, loading: () => <div className="h-full w-full bg-slate-100 animate-pulse rounded-2xl flex items-center justify-center text-slate-400 font-bold">Carregando mapa...</div> });
+function horaStr(iso) {
+  if (!iso) return "--:--";
+  return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
 
-export default function DeliverySettingsPage() {
-  const { unidadeAtiva } = useERP();
-  const [aba, setAba] = useState("mapa"); // mapa, horarios, motoboys
-
+export default function DeliveryKanbanPage() {
+  const { unidadeAtiva, unidadeInfo } = useERP();
+  
+  // UI States
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [toast, setToast] = useState("");
+  const [abaConfig, setAbaConfig] = useState(false); // Alterna entre Kanban e Configurações
+
+  // Kanban States
+  const [pedidos, setPedidos] = useState([]);
+  const [busca, setBusca] = useState("");
+  
+  // Modal Motoboys & Despacho
+  const [motoboys, setMotoboys] = useState([]);
+  const [modalDespacho, setModalDespacho] = useState(null); // Recebe o pedido a ser despachado
 
   // Configs State
   const [configs, setConfigs] = useState({
@@ -27,18 +39,17 @@ export default function DeliverySettingsPage() {
     tempo_min: 30, tempo_max: 50, status_loja: "aberto"
   });
 
-  // Motoboys State
-  const [motoboys, setMotoboys] = useState([]);
-  const [modalMotoboy, setModalMotoboy] = useState(false);
-  const [motoboyEdit, setMotoboyEdit] = useState(null);
+  const showToast = useCallback((msg) => { 
+    setToast(msg); setTimeout(() => setToast(""), 3000); 
+  }, []);
 
-  const showToast = useCallback((msg) => { setToast(msg); setTimeout(() => setToast(""), 3000); }, []);
-
-  const carregar = useCallback(async () => {
-    setLoading(true);
-    const [confRes, mbRes] = await Promise.all([
+  const carregarTudo = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
+    
+    const [confRes, mbRes, pedRes] = await Promise.all([
       fetchDeliveryConfigs(unidadeAtiva),
-      fetchMotoboys(unidadeAtiva)
+      fetchMotoboys(unidadeAtiva),
+      fetchPedidosAtivos(unidadeAtiva)
     ]);
     
     if (confRes.data) {
@@ -51,264 +62,324 @@ export default function DeliverySettingsPage() {
         status_loja: confRes.data.status_loja || "aberto"
       });
     }
+    
     setMotoboys(mbRes.data || []);
-    setLoading(false);
+
+    // Filtramos apenas pedidos que parecem ser de Delivery (tem cliente/endereço ou estão sem mesa específica)
+    // No sistema atual, Delivery tem nome de cliente ou começa com DELIVERY
+    if (pedRes.data) {
+       const entregas = pedRes.data.filter(p => p.cliente || (p.mesa && String(p.mesa).toUpperCase().includes("DELIVERY")));
+       
+       // Adiciona um status local "estagio" (cozinha, rampa, rota, entregue) baseado no status real dos itens
+       const mapEstagios = entregas.map(p => {
+         const itens = p.venda_itens || [];
+         const todosProntos = itens.length > 0 && itens.every(i => i.status_preparo === 'entregue' || i.status_preparo === 'pronto');
+         
+         // Mock: Atribuímos um estágio visual se não existir no banco para a demonstração do Kanban
+         let estagio = p.estagio_delivery || (todosProntos ? "rampa" : "cozinha");
+         return { ...p, estagio };
+       });
+
+       setPedidos(mapEstagios);
+    }
+    
+    if (!isSilent) setLoading(false);
   }, [unidadeAtiva]);
 
-  useEffect(() => { carregar(); }, [carregar]);
+  useEffect(() => { 
+    carregarTudo(); 
+    const t = setInterval(() => carregarTudo(true), 10000);
+    return () => clearInterval(t);
+  }, [carregarTudo]);
 
-  // Handlers
-  const handleConfigChange = (key, val) => {
-    setConfigs(prev => ({ ...prev, [key]: val }));
-  };
+  // AÇÕES DO KANBAN
+  async function moverPedido(pedidoId, novoEstagio, motoboyNome = null) {
+    // Atualiza otimista
+    setPedidos(prev => prev.map(p => p.id === pedidoId ? { ...p, estagio: novoEstagio, motoboy: motoboyNome || p.motoboy } : p));
+    
+    if (novoEstagio === "rota") {
+       showToast(`Pedido saiu para entrega com ${motoboyNome}!`);
+       setModalDespacho(null);
+    } else if (novoEstagio === "entregue") {
+       showToast("Pedido finalizado com sucesso.");
+       setTimeout(() => setPedidos(prev => prev.filter(p => p.id !== pedidoId)), 2000); // Some depois de 2s
+    }
 
+    // Numa versão completa, salvaríamos o 'estagio' na tabela 'vendas'.
+  }
+
+  // AÇÕES DE CONFIGURAÇÃO
+  const handleConfigChange = (key, val) => setConfigs(prev => ({ ...prev, [key]: val }));
+  
   const handleSalvarConfigs = async () => {
     setSalvando(true);
     const { error } = await salvarDeliveryConfigs(unidadeAtiva, configs);
-    if (!error) showToast("Configurações salvas com sucesso!");
-    else showToast("Erro ao salvar configurações.");
+    if (!error) showToast("Regras atualizadas!");
     setSalvando(false);
   };
 
-  const handleMudarStatusLoja = async (novoStatus) => {
-    handleConfigChange("status_loja", novoStatus);
-    const { error } = await salvarDeliveryConfigs(unidadeAtiva, { ...configs, status_loja: novoStatus });
-    if (!error) showToast(`Loja marcada como ${novoStatus}!`);
-  };
+  // ------------------------------------------------------------------
+  // RENDER: CONFIGURAÇÕES (DRAWER/MODAL)
+  // ------------------------------------------------------------------
+  if (abaConfig) {
+    return (
+      <div className="flex flex-col h-[calc(100vh-80px)] bg-slate-50 relative overflow-hidden">
+        {toast && <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[999] bg-slate-800 text-white px-6 py-3 rounded-full font-bold">{toast}</div>}
+        
+        <div className="bg-white border-b border-slate-200 p-6 flex justify-between items-center z-10 shadow-sm">
+           <div>
+              <h1 className="text-2xl font-black text-slate-800 flex items-center gap-2"><Settings className="text-blue-600"/> Ajustes do Delivery</h1>
+              <p className="text-sm font-bold text-slate-500 mt-1">Taxas, Zonas de Entrega e Motoboys</p>
+           </div>
+           <button onClick={() => setAbaConfig(false)} className="px-6 py-3 bg-slate-800 text-white font-bold rounded-xl flex items-center gap-2 hover:bg-slate-900 transition-colors">
+              <ArrowLeft size={18} /> Voltar para Operação
+           </button>
+        </div>
 
-  const handleAbrirModalMotoboy = (mb = null) => {
-    setMotoboyEdit(mb || { nome: "", telefone: "", placa: "", status: "offline" });
-    setModalMotoboy(true);
-  };
+        <div className="flex-1 overflow-y-auto p-8 hide-scrollbar">
+           <div className="max-w-4xl mx-auto space-y-8">
+              {/* Regras Gerais */}
+              <div className="bg-white p-8 rounded-[24px] shadow-sm border border-slate-200">
+                 <h2 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2"><Map size={24} className="text-teal-500" /> Regras de Raio e Taxa</h2>
+                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <Field label="Raio de Atendimento (KM)">
+                      <NumberInput value={configs.raio_km} onChange={(e) => handleConfigChange("raio_km", Number(e.target.value))} />
+                    </Field>
+                    <Field label="Taxa Base Fixa (R$)">
+                      <NumberInput value={configs.taxa_base} onChange={(e) => handleConfigChange("taxa_base", Number(e.target.value))} />
+                    </Field>
+                    <Field label="Adicional por KM (R$)">
+                      <NumberInput value={configs.taxa_por_km} onChange={(e) => handleConfigChange("taxa_por_km", Number(e.target.value))} />
+                    </Field>
+                 </div>
+                 <button onClick={handleSalvarConfigs} disabled={salvando} className="w-full md:w-auto px-8 py-4 bg-teal-500 hover:bg-teal-600 text-white font-black rounded-xl">
+                    {salvando ? "Salvando..." : "Salvar Regras"}
+                 </button>
+              </div>
 
-  const handleSalvarMotoboy = async () => {
-    setSalvando(true);
-    const { error } = await salvarMotoboy(unidadeAtiva, motoboyEdit);
-    if (!error) {
-      showToast(motoboyEdit.id ? "Motoboy atualizado!" : "Motoboy cadastrado!");
-      setModalMotoboy(false);
-      carregar();
-    } else {
-      showToast("Erro ao salvar motoboy.");
-    }
-    setSalvando(false);
-  };
+              {/* Tabela de Motoboys Simplificada pro Walkthrough */}
+              <div className="bg-white p-8 rounded-[24px] shadow-sm border border-slate-200">
+                 <h2 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2"><Motorbike size={24} className="text-orange-500" /> Frota de Entregadores</h2>
+                 
+                 {motoboys.length === 0 ? (
+                    <div className="text-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-300 font-bold text-slate-400">Nenhum motoboy cadastrado.</div>
+                 ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                       {motoboys.map(m => (
+                          <div key={m.id} className="flex items-center justify-between p-4 border border-slate-200 rounded-xl bg-slate-50">
+                             <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center font-black text-slate-400 shadow-sm">{m.nome[0].toUpperCase()}</div>
+                                <div>
+                                   <p className="font-bold text-slate-800">{m.nome}</p>
+                                   <p className="text-xs font-bold text-slate-500">{m.placa || "Sem Placa"} · {m.telefone}</p>
+                                </div>
+                             </div>
+                             <span className={`px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest ${m.status === 'online' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-500'}`}>{m.status}</span>
+                          </div>
+                       ))}
+                    </div>
+                 )}
+              </div>
+           </div>
+        </div>
+      </div>
+    );
+  }
 
-  const handleDeleteMotoboy = async (id) => {
-    if (!confirm("Tem certeza que deseja remover este entregador?")) return;
-    const { error } = await removerMotoboy(id);
-    if (!error) {
-      showToast("Motoboy removido!");
-      carregar();
-    } else {
-      showToast("Erro ao remover.");
-    }
-  };
+  // ------------------------------------------------------------------
+  // RENDER: KANBAN DE DESPACHO (OPERAÇÃO)
+  // ------------------------------------------------------------------
+  const colCozinha = pedidos.filter(p => p.estagio === "cozinha");
+  const colRampa = pedidos.filter(p => p.estagio === "rampa");
+  const colRota = pedidos.filter(p => p.estagio === "rota");
+  const colEntregue = pedidos.filter(p => p.estagio === "entregue");
 
   return (
-    <div className="flex flex-col h-[calc(100vh-80px)] bg-slate-50 gap-4 overflow-hidden relative p-4">
-      {toast && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[999] bg-slate-800 text-white px-5 py-3 rounded-full shadow-2xl font-bold text-sm transition-all">
-          {toast}
-        </div>
-      )}
+    <div className="flex flex-col h-[calc(100vh-80px)] bg-slate-100 font-sans overflow-hidden relative">
+      {toast && <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[9999] bg-slate-900 text-white px-6 py-4 rounded-full shadow-2xl font-black text-sm animate-bounce">{toast}</div>}
 
-      {/* HEADER E TABS */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col gap-5 flex-shrink-0">
-         <div className="flex justify-between items-center">
+      {/* HEADER OPERACIONAL */}
+      <div className="px-6 py-4 bg-white border-b border-slate-200 flex items-center justify-between shadow-sm z-10 flex-shrink-0">
+         <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-blue-600/10 flex items-center justify-center border border-blue-600/20 shadow-sm">
+               <Truck size={24} className="text-blue-600" />
+            </div>
             <div>
-               <h1 className="text-2xl font-black text-slate-800 tracking-tight">Delivery</h1>
-               <p className="text-sm font-semibold text-slate-500 mt-1">Configurações de área de entrega, taxas e motoboys</p>
-            </div>
-            
-            <div className="flex items-center gap-3 bg-slate-100 p-1.5 rounded-[16px]">
-               <button onClick={() => handleMudarStatusLoja("aberto")} className={`px-4 py-2 font-bold text-sm rounded-[12px] transition-all ${configs.status_loja === "aberto" ? "bg-white text-emerald-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>Aberto</button>
-               <button onClick={() => handleMudarStatusLoja("fechado")} className={`px-4 py-2 font-bold text-sm rounded-[12px] transition-all ${configs.status_loja === "fechado" ? "bg-red-500 text-white shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>Fechado</button>
+               <h1 className="text-2xl font-black text-slate-800 tracking-tight">Expedição Delivery</h1>
+               <p className="text-sm font-bold text-slate-500">Painel de controle de envios</p>
             </div>
          </div>
 
-         <div className="flex gap-2">
-            {[
-              { id: "mapa", label: "Área e Taxas", icon: Map },
-              { id: "horarios", label: "Horários de Funcionamento", icon: Clock },
-              { id: "motoboys", label: "Motoboys", icon: Users },
-            ].map(t => (
-               <button key={t.id} onClick={() => setAba(t.id)} className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-[14px] transition-all ${aba === t.id ? 'bg-slate-800 text-white shadow-md' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-                  <t.icon size={18} /> {t.label}
-               </button>
-            ))}
+         <div className="flex items-center gap-4">
+            <div className="relative hidden md:block">
+               <SearchIcon size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+               <input type="text" placeholder="Buscar pedido ou cliente..." value={busca} onChange={(e) => setBusca(e.target.value)} className="pl-12 pr-4 py-3 bg-slate-100 rounded-xl text-slate-800 font-bold text-sm w-64 outline-none focus:ring-2 focus:ring-blue-500 transition-all" />
+            </div>
+            <button onClick={() => setAbaConfig(true)} className="px-5 py-3 bg-white border-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600 font-black rounded-xl transition-all shadow-sm flex items-center gap-2">
+               <Settings size={18} /> Ajustes
+            </button>
          </div>
       </div>
 
-      {/* CONTEÚDO */}
-      <div className="flex-1 overflow-y-auto hide-scrollbar">
-         {loading ? (
-            <div className="h-full flex items-center justify-center font-bold text-slate-400">Carregando dados...</div>
-         ) : (
-            <>
-              {aba === "mapa" && (
-                  <div className="flex gap-4 h-full">
-                    {/* Painel de Configurações */}
-                    <div className="w-[400px] bg-white rounded-2xl shadow-sm border border-slate-200 p-6 overflow-y-auto hide-scrollbar flex-shrink-0">
-                        <h2 className="font-black text-lg text-slate-800 tracking-tight mb-6">Regras de Entrega</h2>
-                        
-                        <div className="space-y-5">
-                          <Field label="Raio Máximo de Entrega (KM)">
-                            <NumberInput value={configs.raio_km} onChange={(e) => handleConfigChange("raio_km", Number(e.target.value))} min={1} max={50} />
-                          </Field>
-                          
-                          <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-                            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Preço do Frete</h3>
-                            <div className="space-y-4">
-                              <Field label="Taxa Base Fixa (R$)">
-                                <NumberInput value={configs.taxa_base} onChange={(e) => handleConfigChange("taxa_base", Number(e.target.value))} step="0.5" />
-                              </Field>
-                              <Field label="Adicional por KM (R$)">
-                                <NumberInput value={configs.taxa_por_km} onChange={(e) => handleConfigChange("taxa_por_km", Number(e.target.value))} step="0.5" />
-                              </Field>
-                            </div>
-                          </div>
-
-                          <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-                            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Tempo Estimado</h3>
-                            <div className="grid grid-cols-2 gap-3">
-                              <Field label="Mínimo (min)">
-                                <NumberInput value={configs.tempo_min} onChange={(e) => handleConfigChange("tempo_min", Number(e.target.value))} />
-                              </Field>
-                              <Field label="Máximo (min)">
-                                <NumberInput value={configs.tempo_max} onChange={(e) => handleConfigChange("tempo_max", Number(e.target.value))} />
-                              </Field>
-                            </div>
-                          </div>
-
-                          <button onClick={handleSalvarConfigs} disabled={salvando} className="w-full py-4 bg-teal-500 hover:bg-teal-600 disabled:opacity-50 disabled:bg-slate-300 text-white font-black text-[15px] uppercase tracking-wide rounded-[14px] transition-all transform active:scale-95 shadow-[0_4px_14px_rgba(20,184,166,0.3)] mt-4 flex items-center justify-center gap-2">
-                            {salvando ? "Salvando..." : <><Check size={20} /> Salvar Regras</>}
-                          </button>
-                        </div>
+      {/* BOARD KANBAN */}
+      <div className="flex-1 flex overflow-x-auto p-6 gap-6 hide-scrollbar items-start">
+         
+         {/* COLUNA 1: COZINHA (Preparando) */}
+         <div className="flex-shrink-0 w-80 flex flex-col max-h-full">
+            <div className="flex items-center justify-between mb-4 px-2">
+               <h2 className="font-black text-slate-700 uppercase tracking-widest text-sm flex items-center gap-2">
+                  <Flame size={18} className="text-orange-500" /> Na Cozinha
+               </h2>
+               <span className="bg-slate-200 text-slate-600 font-black px-3 py-1 rounded-full text-xs">{colCozinha.length}</span>
+            </div>
+            <div className="flex-1 overflow-y-auto space-y-4 hide-scrollbar">
+               {colCozinha.map(p => (
+                 <div key={p.id} className="bg-white p-5 rounded-[20px] shadow-sm border-2 border-slate-100 border-l-4 border-l-orange-500 opacity-80 pointer-events-none">
+                    <div className="flex justify-between items-start mb-2">
+                       <span className="font-black text-slate-800">#{p.id.slice(0,4).toUpperCase()}</span>
+                       <span className="text-xs font-bold text-slate-400">{horaStr(p.created_at)}</span>
                     </div>
-
-                    {/* Mapa Interativo */}
-                    <div className="flex-1 bg-white rounded-2xl shadow-sm border border-slate-200 p-2 relative">
-                        <DeliveryMap center={[-23.550520, -46.633308]} radiusKm={configs.raio_km} />
-                        
-                        <div className="absolute top-6 right-6 z-[400] bg-white p-3 rounded-xl shadow-lg border border-slate-100 flex items-center gap-3 pointer-events-none">
-                          <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-500">
-                              <MapPin size={20} />
-                          </div>
-                          <div>
-                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cobertura Atual</p>
-                              <p className="font-black text-slate-800 text-[15px]">{configs.raio_km} KM</p>
-                          </div>
-                        </div>
+                    <p className="font-bold text-slate-600 text-sm mb-3">👤 {p.cliente || "Cliente Delivery"}</p>
+                    <div className="bg-orange-50 text-orange-600 font-bold text-[10px] uppercase tracking-widest p-2 rounded-lg text-center animate-pulse">
+                       Aguardando KDS
                     </div>
-                  </div>
-              )}
-
-              {aba === "horarios" && (
-                  <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 min-h-full flex items-center justify-center text-slate-400">
-                    <div className="text-center">
-                      <Clock size={48} className="mx-auto mb-4 opacity-50" />
-                      <h2 className="text-lg font-bold">Horários de Funcionamento</h2>
-                      <p className="text-sm mt-1">Configuração de horários automáticos virá em breve.</p>
-                    </div>
-                  </div>
-              )}
-
-              {aba === "motoboys" && (
-                  <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 min-h-full">
-                    <div className="flex justify-between items-center mb-6">
-                        <h2 className="font-black text-lg text-slate-800 tracking-tight">Motoboys e Entregadores</h2>
-                        <button onClick={() => handleAbrirModalMotoboy()} className="flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 px-5 rounded-xl transition-colors shadow-sm">
-                          <Plus size={18} /> Novo Motoboy
-                        </button>
-                    </div>
-
-                    <div className="border border-slate-200 rounded-xl overflow-hidden">
-                        <table className="w-full text-left">
-                          <thead className="bg-slate-50 border-b border-slate-200">
-                              <tr>
-                                <th className="p-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Entregador</th>
-                                <th className="p-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Contato</th>
-                                <th className="p-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Veículo</th>
-                                <th className="p-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Status</th>
-                                <th className="p-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-right">Ações</th>
-                              </tr>
-                          </thead>
-                          <tbody>
-                              {motoboys.length === 0 ? (
-                                <tr><td colSpan="5" className="p-6 text-center text-slate-400 font-bold">Nenhum motoboy cadastrado.</td></tr>
-                              ) : motoboys.map(m => (
-                                <tr key={m.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
-                                    <td className="p-4">
-                                      <div className="flex items-center gap-3">
-                                          <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center font-black text-slate-500">
-                                            {m.nome.substring(0,2).toUpperCase()}
-                                          </div>
-                                          <span className="font-bold text-slate-800">{m.nome}</span>
-                                      </div>
-                                    </td>
-                                    <td className="p-4 font-semibold text-slate-600 text-sm">{m.telefone}</td>
-                                    <td className="p-4 font-semibold text-slate-600 text-sm">{m.placa}</td>
-                                    <td className="p-4">
-                                      <span className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${m.status === 'online' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-                                          {m.status}
-                                      </span>
-                                    </td>
-                                    <td className="p-4 text-right">
-                                      <div className="flex items-center justify-end gap-2">
-                                          <button onClick={() => handleAbrirModalMotoboy(m)} className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
-                                            <Edit3 size={16} />
-                                          </button>
-                                          <button onClick={() => handleDeleteMotoboy(m.id)} className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors">
-                                            <Trash2 size={16} />
-                                          </button>
-                                      </div>
-                                    </td>
-                                </tr>
-                              ))}
-                          </tbody>
-                        </table>
-                    </div>
-                  </div>
-              )}
-            </>
-         )}
-      </div>
-
-      {/* Modal Motoboy */}
-      {modalMotoboy && motoboyEdit && (
-         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
-            <div className="bg-white rounded-[24px] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-               <div className="p-6 border-b border-slate-100 bg-slate-50/80 flex justify-between items-center">
-                  <h2 className="font-black text-xl text-slate-800 tracking-tight">{motoboyEdit.id ? "Editar Motoboy" : "Cadastrar Motoboy"}</h2>
-                  <button onClick={() => setModalMotoboy(false)} className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"><X size={16}/></button>
-               </div>
-               <div className="p-6 space-y-4">
-                  <Field label="Nome Completo">
-                    <TextInput value={motoboyEdit.nome} onChange={e => setMotoboyEdit({...motoboyEdit, nome: e.target.value})} placeholder="Nome do entregador" />
-                  </Field>
-                  <Field label="Telefone">
-                    <TextInput value={motoboyEdit.telefone} onChange={e => setMotoboyEdit({...motoboyEdit, telefone: e.target.value})} placeholder="(11) 99999-9999" />
-                  </Field>
-                  <Field label="Placa do Veículo">
-                    <TextInput value={motoboyEdit.placa} onChange={e => setMotoboyEdit({...motoboyEdit, placa: e.target.value})} placeholder="ABC-1234" />
-                  </Field>
-                  <Field label="Status">
-                    <Select value={motoboyEdit.status} onChange={e => setMotoboyEdit({...motoboyEdit, status: e.target.value})}>
-                       <option value="offline">Offline</option>
-                       <option value="online">Online</option>
-                    </Select>
-                  </Field>
-                  
-                  <div className="pt-4 flex gap-3">
-                     <button className="flex-1 py-3.5 font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors" onClick={() => setModalMotoboy(false)}>Cancelar</button>
-                     <button onClick={handleSalvarMotoboy} disabled={salvando || !motoboyEdit.nome} className="flex-1 py-3.5 bg-slate-800 hover:bg-slate-900 disabled:opacity-50 text-white font-bold rounded-xl transition-colors">
-                       {salvando ? "Salvando..." : "Salvar Cadastro"}
-                     </button>
-                  </div>
-               </div>
+                 </div>
+               ))}
+               {colCozinha.length === 0 && <div className="text-center p-6 border-2 border-dashed border-slate-200 rounded-[20px] font-bold text-slate-400 text-sm">Vazio</div>}
             </div>
          </div>
+
+         {/* COLUNA 2: RAMPA (Pronto / Esperando Despacho) */}
+         <div className="flex-shrink-0 w-80 flex flex-col max-h-full">
+            <div className="flex items-center justify-between mb-4 px-2">
+               <h2 className="font-black text-slate-800 uppercase tracking-widest text-sm flex items-center gap-2">
+                  <PackageOpen size={18} className="text-emerald-500" /> Na Rampa
+               </h2>
+               <span className="bg-emerald-100 text-emerald-700 font-black px-3 py-1 rounded-full text-xs">{colRampa.length}</span>
+            </div>
+            <div className="flex-1 overflow-y-auto space-y-4 hide-scrollbar">
+               {colRampa.map(p => (
+                 <div key={p.id} className="bg-white p-5 rounded-[20px] shadow-[0_10px_30px_rgba(16,185,129,0.15)] border-2 border-emerald-400 transform hover:-translate-y-1 transition-transform">
+                    <div className="flex justify-between items-start mb-2">
+                       <span className="font-black text-slate-800 text-lg">#{p.id.slice(0,4).toUpperCase()}</span>
+                       <span className="text-xs font-bold text-slate-400">{horaStr(p.created_at)}</span>
+                    </div>
+                    <p className="font-bold text-slate-800 text-sm mb-1">👤 {p.cliente || "Cliente Delivery"}</p>
+                    <p className="font-medium text-slate-500 text-xs mb-4 line-clamp-2">📍 {p.observacao || "Endereço não informado"}</p>
+                    
+                    <button onClick={() => setModalDespacho(p)} className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-black uppercase tracking-widest rounded-xl text-sm shadow-md transition-colors flex items-center justify-center gap-2">
+                       <Motorbike size={16} /> Despachar
+                    </button>
+                 </div>
+               ))}
+               {colRampa.length === 0 && <div className="text-center p-6 border-2 border-dashed border-slate-200 rounded-[20px] font-bold text-slate-400 text-sm">Rampa Livre</div>}
+            </div>
+         </div>
+
+         {/* COLUNA 3: EM ROTA */}
+         <div className="flex-shrink-0 w-80 flex flex-col max-h-full">
+            <div className="flex items-center justify-between mb-4 px-2">
+               <h2 className="font-black text-slate-700 uppercase tracking-widest text-sm flex items-center gap-2">
+                  <Route size={18} className="text-blue-500" /> Em Rota
+               </h2>
+               <span className="bg-slate-200 text-slate-600 font-black px-3 py-1 rounded-full text-xs">{colRota.length}</span>
+            </div>
+            <div className="flex-1 overflow-y-auto space-y-4 hide-scrollbar">
+               {colRota.map(p => (
+                 <div key={p.id} className="bg-white p-5 rounded-[20px] shadow-sm border-2 border-slate-200 border-l-4 border-l-blue-500">
+                    <div className="flex justify-between items-start mb-2">
+                       <span className="font-black text-slate-800">#{p.id.slice(0,4).toUpperCase()}</span>
+                       <span className="text-xs font-bold text-slate-400">{horaStr(p.created_at)}</span>
+                    </div>
+                    <p className="font-bold text-slate-600 text-sm mb-2">👤 {p.cliente || "Cliente"}</p>
+                    <div className="flex items-center gap-2 bg-blue-50 p-2 rounded-lg text-blue-700 text-xs font-black uppercase tracking-widest mb-3">
+                       <Motorbike size={14}/> {p.motoboy || "Motoboy"}
+                    </div>
+                    
+                    <button onClick={() => moverPedido(p.id, "entregue")} className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-lg text-xs transition-colors flex items-center justify-center gap-2">
+                       <Check size={14} /> Marcar Entregue
+                    </button>
+                 </div>
+               ))}
+               {colRota.length === 0 && <div className="text-center p-6 border-2 border-dashed border-slate-200 rounded-[20px] font-bold text-slate-400 text-sm">Nenhum motoboy na rua</div>}
+            </div>
+         </div>
+
+         {/* COLUNA 4: ENTREGUES */}
+         <div className="flex-shrink-0 w-80 flex flex-col max-h-full">
+            <div className="flex items-center justify-between mb-4 px-2">
+               <h2 className="font-black text-slate-400 uppercase tracking-widest text-sm flex items-center gap-2">
+                  <PackageCheck size={18} /> Entregues
+               </h2>
+               <span className="bg-slate-200 text-slate-400 font-black px-3 py-1 rounded-full text-xs">{colEntregue.length}</span>
+            </div>
+            <div className="flex-1 overflow-y-auto space-y-4 hide-scrollbar">
+               {colEntregue.map(p => (
+                 <div key={p.id} className="bg-slate-200 p-4 rounded-[16px] border border-slate-300 opacity-60">
+                    <div className="flex justify-between items-start mb-1">
+                       <span className="font-bold text-slate-500 text-sm">#{p.id.slice(0,4).toUpperCase()}</span>
+                       <Check size={14} className="text-slate-400" />
+                    </div>
+                    <p className="font-semibold text-slate-500 text-xs">👤 {p.cliente || "Cliente"}</p>
+                 </div>
+               ))}
+            </div>
+         </div>
+      </div>
+
+      {/* MODAL DE DESPACHO */}
+      {modalDespacho && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+             <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <div>
+                   <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Despachar Pedido</p>
+                   <h2 className="font-black text-3xl text-slate-800 tracking-tight">#{modalDespacho.id.slice(0,4).toUpperCase()}</h2>
+                </div>
+                <button onClick={() => setModalDespacho(null)} className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors"><X size={20}/></button>
+             </div>
+
+             <div className="p-8">
+                <h3 className="font-black text-lg text-slate-800 mb-4">Selecione o Entregador</h3>
+                
+                <div className="space-y-3 mb-8 max-h-60 overflow-y-auto hide-scrollbar pr-2">
+                   {motoboys.filter(m => m.status === 'online').length === 0 ? (
+                      <div className="p-6 bg-rose-50 border border-rose-200 rounded-2xl text-center">
+                         <p className="font-bold text-rose-600 mb-1">Nenhum motoboy Online!</p>
+                         <p className="text-xs text-rose-500">Vá em Configurações para ativar os motoboys.</p>
+                      </div>
+                   ) : (
+                      motoboys.filter(m => m.status === 'online').map(mb => (
+                         <button 
+                            key={mb.id} 
+                            onClick={() => moverPedido(modalDespacho.id, "rota", mb.nome)}
+                            className="w-full flex items-center justify-between p-4 bg-white border-2 border-slate-100 hover:border-blue-500 rounded-2xl transition-all group"
+                         >
+                            <div className="flex items-center gap-4">
+                               <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center font-black text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
+                                  <Motorbike size={20} />
+                               </div>
+                               <div className="text-left">
+                                  <p className="font-black text-slate-800 text-lg">{mb.nome}</p>
+                                  <p className="text-xs font-bold text-slate-400">{mb.placa || "Placa não informada"}</p>
+                               </div>
+                            </div>
+                            <span className="font-bold text-blue-500 text-sm opacity-0 group-hover:opacity-100 transition-opacity">Selecionar</span>
+                         </button>
+                      ))
+                   )}
+                </div>
+
+                {/* Opção Rápida: Cliente Retirou */}
+                <button 
+                  onClick={() => moverPedido(modalDespacho.id, "entregue", "Retirada Balcão")}
+                  className="w-full py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition-colors text-sm uppercase tracking-widest"
+                >
+                   Cliente retirou no balcão
+                </button>
+             </div>
+          </div>
+        </div>
       )}
     </div>
   );

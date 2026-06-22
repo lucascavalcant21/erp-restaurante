@@ -58,7 +58,7 @@ export default function CozinhaHubPage() {
             </div>
          </button>
 
-         <button onClick={() => router.push("/dashboard/operacao/fichas")} className="col-span-1 lg:col-span-2 row-span-1 rounded-[24px] p-6 bg-white border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all flex flex-col justify-between group">
+         <button onClick={() => router.push("/dashboard/operacao/fichas?dept=cozinha")} className="col-span-1 lg:col-span-2 row-span-1 rounded-[24px] p-6 bg-white border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all flex flex-col justify-between group">
             <div className="w-10 h-10 rounded-xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors"><LayoutList size={20} /></div>
             <div>
                <h3 className="font-bold text-slate-800 text-lg">Ficha Técnica</h3>
@@ -74,7 +74,7 @@ export default function CozinhaHubPage() {
          </button>
 
          {/* ITENS NORMAIS (1x1) */}
-         <button onClick={() => router.push("/dashboard/operacao/ingredientes")} className="col-span-1 row-span-1 rounded-[24px] p-5 bg-white border border-slate-200 hover:border-slate-300 transition-all flex flex-col justify-center items-center gap-2 group text-center">
+         <button onClick={() => router.push("/dashboard/operacao/ingredientes?dept=cozinha")} className="col-span-1 row-span-1 rounded-[24px] p-5 bg-white border border-slate-200 hover:border-slate-300 transition-all flex flex-col justify-center items-center gap-2 group text-center">
             <FlaskConical size={24} className="text-fuchsia-500 group-hover:scale-110 transition-transform" />
             <h3 className="font-bold text-slate-700 text-sm">Ingredientes</h3>
          </button>

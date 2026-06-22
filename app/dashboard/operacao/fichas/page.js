@@ -1,334 +1,314 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { BookOpen, Plus, Trash2, FlaskConical, Calculator, Settings2, Info, Check, ArrowRight, Gauge } from "lucide-react";
-import {
-  PageBody, Card, Chips, Field, NumberInput, Select, TextInput, Btn, EmptyState, Toast, fmtBRL, fmtPct,
-} from "../../../components/ui";
-
-const SETORES = ["Cozinha", "Bar"];
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
-import { fetchIngredientes, getIngredienteById, calcCustoLinha, getUnidade } from "../../../lib/ingredientes";
-import { fetchTodasFichas, salvarFichaCompleta } from "../../../lib/cardapio";
-import { podeEditarGlobal } from "../../../lib/auth";
+import { fetchFichas, salvarFicha, removerFicha, fetchInsumos } from "../../../lib/operacao";
+import { LayoutList, Plus, Search, Trash2, Edit3, X, Save, ArrowLeft, UtensilsCrossed, Wine, ChevronRight } from "lucide-react";
+import { fmtBRL } from "../../../components/ui";
 
-export default function FichasTecnicasPage() {
-  const { unidadeAtiva, unidadeInfo, sessao } = useERP();
-  const podeEditar = sessao ? podeEditarGlobal(sessao.papel) : false;
-  const [catalogo, setCatalogo] = useState([]);
-  const [pratosDb, setPratosDb] = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [salvando, setSalvando] = useState(false);
-
-  // Ficha Atual
-  const [fichaAtualId, setFichaAtualId] = useState("nova");
-  const [nome, setNome]   = useState("");
-  const [preco, setPreco] = useState("");
-  const [itens, setItens] = useState([]); // { id, ingrediente_id, quantidade }
+function FichasRunner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const deptUrl = searchParams.get("dept") || "cozinha"; // 'cozinha' ou 'bar'
   
-  // Adição
-  const [selId, setSelId] = useState("");
-  const [qtd, setQtd]     = useState("");
-  const [setor, setSetor] = useState("Cozinha");
-  const [salvou, setSalvou] = useState(false);
+  const { unidadeAtiva } = useERP();
+  const [fichas, setFichas] = useState([]);
+  const [insumosAtivos, setInsumosAtivos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [busca, setBusca] = useState("");
+  
+  const [modalNovo, setModalNovo] = useState(false);
+  
+  // Estado do formulário da Ficha
+  const [form, setForm] = useState({ 
+    id: null, 
+    departamento: deptUrl, 
+    nome_receita: "", 
+    rendimento_porcoes: "1", 
+    modo_preparo: "" 
+  });
+  
+  // Estado dos ingredientes selecionados na ficha
+  const [ingFicha, setIngFicha] = useState([]); // [{ insumo_id, nome, unidade, custo_unitario, quantidade }]
 
-  const catalogoSetor = catalogo.filter((i) => (i.setor || "Cozinha") === setor);
-
-  async function carregarTudo() {
+  const carregar = async () => {
     setLoading(true);
-    const [resIng, resFichas] = await Promise.all([
-      fetchIngredientes(unidadeAtiva),
-      fetchTodasFichas(unidadeAtiva)
+    const [resFichas, resInsumos] = await Promise.all([
+       fetchFichas(unidadeAtiva, deptUrl),
+       fetchInsumos(unidadeAtiva, deptUrl)
     ]);
-    setCatalogo(resIng.data || []);
-    setSelId(String(resIng.data?.[0]?.id ?? ""));
-    setPratosDb(resFichas.data || []);
+    setFichas(resFichas.data || []);
+    setInsumosAtivos(resInsumos.data || []);
     setLoading(false);
-  }
+  };
 
   useEffect(() => {
-    if (unidadeAtiva) carregarTudo();
-  }, [unidadeAtiva]);
+    if (unidadeAtiva) carregar();
+  }, [unidadeAtiva, deptUrl]);
 
-  // Quando muda a ficha no dropdown
-  useEffect(() => {
-    if (fichaAtualId === "nova") {
-      setNome(""); setPreco(""); setItens([]);
-    } else {
-      const p = pratosDb.find(x => x.id === fichaAtualId);
-      if (p) {
-        setNome(p.nome);
-        setPreco(p.preco || "");
-        const fichaRow = p.fichas_tecnicas?.[0];
-        if (fichaRow && fichaRow.ficha_itens) {
-          setItens(fichaRow.ficha_itens.map(it => ({
-            id: `loaded_${it.id}`,
-            ingrediente_id: it.ingrediente_id,
-            quantidade: it.quantidade
-          })));
-        } else {
-          setItens([]);
-        }
-      }
-    }
-  }, [fichaAtualId, pratosDb]);
+  const filtradas = fichas.filter(f => f.nome_receita.toLowerCase().includes(busca.toLowerCase()));
 
-  const custoTotal = useMemo(() => itens.reduce((acc, it) => {
-    const ing = getIngredienteById(it.ingrediente_id, catalogo);
-    return acc + (ing ? calcCustoLinha(ing, it.quantidade) : 0);
-  }, 0), [itens, catalogo]);
+  const abrirNova = () => {
+    setForm({ id: null, departamento: deptUrl, nome_receita: "", rendimento_porcoes: "1", modo_preparo: "" });
+    setIngFicha([]);
+    setModalNovo(true);
+  };
 
-  const precoN = parseFloat(String(preco).replace(",", ".")) || 0;
-  const mc  = precoN > 0 ? ((precoN - custoTotal) / precoN) * 100 : 0;
-  const cmv = precoN > 0 ? (custoTotal / precoN) * 100 : 0;
-  
-  // Limites Saudáveis (CMV Ideal < 30%)
-  const isHealthy = cmv > 0 && cmv <= 30;
-  const isWarning = cmv > 30 && cmv <= 40;
-  const isCritical = cmv > 40;
+  const abrirEditar = (ficha) => {
+    setForm({ 
+       id: ficha.id, 
+       departamento: ficha.departamento, 
+       nome_receita: ficha.nome_receita, 
+       rendimento_porcoes: ficha.rendimento_porcoes, 
+       modo_preparo: ficha.modo_preparo || "" 
+    });
+    // Mapeando a estrutura do banco pro estado local
+    const mapIng = (ficha.fichas_ingredientes || []).map(fi => ({
+       insumo_id: fi.insumos.id,
+       nome: fi.insumos.nome,
+       unidade: fi.insumos.unidade_medida,
+       custo_unitario: fi.insumos.custo_unitario,
+       quantidade: fi.quantidade
+    }));
+    setIngFicha(mapIng);
+    setModalNovo(true);
+  };
 
-  function adicionar() {
-    const ing = getIngredienteById(selId, catalogo);
-    const q = parseFloat(String(qtd).replace(",", ".")) || 0;
-    if (!ing || q <= 0) return;
-    setItens((p) => [...p, { id: `l${Date.now()}`, ingrediente_id: ing.id, quantidade: q }]);
-    setQtd("");
-  }
-  function remover(id) { setItens((p) => p.filter((x) => x.id !== id)); }
-  
-  async function salvar() {
-    if (!nome.trim() || !itens.length) return;
-    setSalvando(true);
+  const calcularCustoTotal = (ingredientesLista) => {
+    return ingredientesLista.reduce((acc, ing) => acc + (ing.custo_unitario * ing.quantidade), 0);
+  };
+
+  const addIngrediente = (insumoId) => {
+    if(!insumoId) return;
+    if(ingFicha.find(i => i.insumo_id === insumoId)) return; // Já existe
     
-    const prato_id = fichaAtualId === "nova" ? null : fichaAtualId;
-    const res = await salvarFichaCompleta(
-      prato_id, 
-      { nome, preco: precoN, custoTotal, setor }, 
-      itens, 
-      unidadeAtiva
+    const insumoDb = insumosAtivos.find(i => i.id === insumoId);
+    setIngFicha([...ingFicha, {
+       insumo_id: insumoDb.id,
+       nome: insumoDb.nome,
+       unidade: insumoDb.unidade_medida,
+       custo_unitario: insumoDb.custo_unitario,
+       quantidade: 0
+    }]);
+  };
+
+  const updateQtd = (insumoId, qtd) => {
+    setIngFicha(lista => lista.map(i => i.insumo_id === insumoId ? { ...i, quantidade: Number(qtd) || 0 } : i));
+  };
+
+  const removeIngrediente = (insumoId) => {
+    setIngFicha(lista => lista.filter(i => i.insumo_id !== insumoId));
+  };
+
+  const handleSalvar = async () => {
+    if(!form.nome_receita.trim()) return alert("Digite o nome da receita");
+    if(!form.rendimento_porcoes) return alert("Digite o rendimento");
+    
+    // Filtra ingredientes que estão com qtd = 0
+    const ingValidos = ingFicha.filter(i => i.quantidade > 0);
+    if(ingValidos.length === 0) return alert("Adicione pelo menos um ingrediente com quantidade válida.");
+
+    const erro = await salvarFicha(
+       {
+          id: form.id,
+          unidade_id: unidadeAtiva,
+          departamento: form.departamento,
+          nome_receita: form.nome_receita,
+          rendimento_porcoes: Number(form.rendimento_porcoes),
+          modo_preparo: form.modo_preparo
+       },
+       ingValidos.map(i => ({ insumo_id: i.insumo_id, quantidade: i.quantidade }))
     );
-    
-    setSalvando(false);
-    if (!res.error) {
-      setSalvou(true); 
-      setTimeout(() => setSalvou(false), 2500);
-      await carregarTudo();
-      setFichaAtualId(res.prato_id);
-    } else {
-      alert("Erro ao salvar: " + res.error);
-    }
-  }
 
-  const ingSel = getIngredienteById(selId, catalogo);
+    if(erro.error) return alert("Erro ao salvar: " + erro.error);
+    
+    setModalNovo(false);
+    carregar();
+  };
+
+  const handleRemover = async (id) => {
+    if(confirm("Deseja excluir esta ficha técnica permanentemente?")) {
+       await removerFicha(id);
+       carregar();
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-24 font-sans">
+    <div className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50">
       
-      {/* HEADER LABORATÓRIO */}
-      <div className="bg-slate-900 text-white px-6 py-10 md:py-12 rounded-b-[40px] shadow-xl relative overflow-hidden">
-         <div className="absolute top-0 right-0 p-8 opacity-5"><FlaskConical size={200} /></div>
-         
-         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative z-10 max-w-5xl mx-auto">
-            <div>
-               <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2 flex items-center gap-2">
-                  <Calculator size={14}/> Engenharia de Cardápio
-               </p>
-               <h1 className="text-3xl md:text-5xl font-black tracking-tighter">Laboratório de Receitas.</h1>
-               <p className="text-sm font-medium text-slate-400 mt-2">Cálculo de CMV e precificação · {unidadeInfo.nome}</p>
+      {/* TOPBAR */}
+      <div className="bg-white border-b border-slate-200 pt-6 pb-6 px-6 sticky top-0 z-10">
+         <div className="max-w-5xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button onClick={() => router.back()} className="p-3 text-slate-400 hover:text-slate-800 bg-slate-50 rounded-full border border-slate-200">
+                 <ArrowLeft size={20}/>
+              </button>
+              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner ${deptUrl === 'bar' ? 'bg-purple-100 text-purple-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                 <LayoutList size={28} />
+              </div>
+              <div>
+                 <h1 className="text-3xl font-black tracking-tighter text-slate-900">Fichas Técnicas</h1>
+                 <p className="text-slate-500 font-bold uppercase tracking-widest text-xs mt-1">Receituário e Custos - {deptUrl}</p>
+              </div>
             </div>
-            
-            <div className="bg-slate-800/80 p-3 rounded-2xl shadow-inner border border-slate-700 min-w-[280px]">
-               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Abrir Ficha Existente</p>
-               <Select value={fichaAtualId} onChange={(e) => setFichaAtualId(e.target.value)} className="!bg-slate-900 !text-white !border-slate-700">
-                 <option value="nova">✨ Criar Nova Ficha Técnica</option>
-                 {pratosDb.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-               </Select>
-            </div>
+            <button onClick={abrirNova} className={`flex items-center gap-2 text-white px-5 py-3 rounded-xl font-bold transition-colors shadow-lg ${deptUrl === 'bar' ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-600/20' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'}`}>
+               <Plus size={18} /> Nova Ficha
+            </button>
          </div>
       </div>
 
-      <PageBody className="max-w-5xl mx-auto mt-6">
-        <Toast show={salvou}>Ficha calculada e armazenada no cofre!</Toast>
+      <div className="max-w-5xl mx-auto px-6 mt-8">
+         <div className="bg-white p-3 rounded-2xl border border-slate-200 mb-6 flex items-center gap-3 shadow-sm">
+            <Search size={20} className="text-slate-400 ml-2" />
+            <input type="text" placeholder="Buscar receita..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-bold text-slate-700 p-2" />
+         </div>
 
-        {loading ? (
-          <EmptyState icon={FlaskConical} title="Carregando laboratório..." />
-        ) : catalogo.length === 0 ? (
-          <EmptyState icon={FlaskConical} title="Laboratório sem insumos"
-            hint="Cadastre os ingredientes básicos primeiro no módulo de Estoque/Ingredientes." />
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-             
-             {/* COLUNA ESQUERDA: DADOS DO PRATO E ADIÇÃO DE INGREDIENTES (7/12) */}
-             <div className="lg:col-span-7 space-y-6">
-                
-                {/* Informações Básicas */}
-                <div className="bg-white p-6 rounded-[24px] shadow-sm border border-slate-200">
-                   <h2 className="text-sm font-black uppercase tracking-widest text-slate-800 mb-4 flex items-center gap-2">
-                      <Settings2 size={18}/> Produto de Venda
-                   </h2>
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Field label="Nome Comercial do Prato">
-                        <TextInput value={nome} onChange={(e) => setNome(e.target.value)} placeholder="ex: Smash Burger Duplo" disabled={!podeEditar} className="!bg-slate-50" />
-                      </Field>
-                      <Field label="Preço de Venda Final (R$)">
-                        <NumberInput value={preco} onChange={(e) => setPreco(e.target.value)} placeholder="0,00" step="0.01" disabled={!podeEditar} className="!bg-slate-50" />
-                      </Field>
-                   </div>
-                </div>
+         {loading ? (
+            <p className="font-bold text-slate-400">Buscando receitas...</p>
+         ) : filtradas.length === 0 ? (
+            <div className="text-center p-10 bg-white border border-slate-200 rounded-3xl">
+               <LayoutList size={40} className="mx-auto text-slate-300 mb-4"/>
+               <h3 className="text-xl font-black text-slate-700">Nenhuma ficha encontrada</h3>
+               <p className="text-slate-500 mt-2 font-medium">Cadastre suas receitas para calcular automaticamente o custo do prato.</p>
+            </div>
+         ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+               {filtradas.map(f => {
+                  // Mapeia e calcula custo na hora pra exibir o card
+                  const mapIng = (f.fichas_ingredientes || []).map(fi => ({
+                     custo_unitario: fi.insumos?.custo_unitario || 0,
+                     quantidade: fi.quantidade
+                  }));
+                  const custoFicha = calcularCustoTotal(mapIng);
+                  const custoPorcao = custoFicha / (f.rendimento_porcoes || 1);
 
-                {/* Bloco de Composição (Adicionar) */}
-                {podeEditar && (
-                   <div className="bg-white p-6 rounded-[24px] shadow-sm border border-slate-200">
-                      <div className="flex justify-between items-end mb-4">
-                         <h2 className="text-sm font-black uppercase tracking-widest text-slate-800 flex items-center gap-2">
-                            <FlaskConical size={18}/> Formular Receita
-                         </h2>
-                         <Chips options={SETORES} value={setor} onChange={(s) => { setSetor(s); const first = catalogo.find((i) => (i.setor || "Cozinha") === s); setSelId(String(first?.id ?? "")); }} />
-                      </div>
-                      
-                      <div className="flex flex-col md:flex-row gap-4 mb-4">
-                         <div className="flex-1">
-                            <Field label="Selecionar Ingrediente">
-                              <Select value={selId} onChange={(e) => setSelId(e.target.value)} className="!bg-slate-50">
-                                {catalogoSetor.length === 0 && <option value="">— Vazio —</option>}
-                                {catalogoSetor.map((i) => <option key={i.id} value={i.id}>{i.nome}</option>)}
-                              </Select>
-                            </Field>
-                         </div>
-                         <div className="w-full md:w-32">
-                            <Field label={`Qtd ${ingSel ? `(${getUnidade(ingSel.unidade).base})` : ""}`}>
-                              <NumberInput value={qtd} onChange={(e) => setQtd(e.target.value)} placeholder="0" onKeyDown={(e) => e.key === "Enter" && adicionar()} className="!bg-slate-50 text-center font-bold" />
-                            </Field>
-                         </div>
-                      </div>
-                      <button onClick={adicionar} className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors">
-                         <Plus size={18} /> Lançar na Mistura
-                      </button>
-                   </div>
-                )}
+                  return (
+                     <div key={f.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow relative group flex flex-col">
+                        <div className="flex justify-between items-start mb-4">
+                           <span className={`w-10 h-10 rounded-full flex items-center justify-center ${f.departamento === 'bar' ? 'bg-purple-50 text-purple-600' : 'bg-orange-50 text-orange-600'}`}>
+                              {f.departamento === 'bar' ? <Wine size={18}/> : <UtensilsCrossed size={18}/>}
+                           </span>
+                           <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button onClick={() => abrirEditar(f)} className="p-2 bg-slate-50 rounded-lg text-slate-400 hover:text-emerald-600"><Edit3 size={16}/></button>
+                              <button onClick={() => handleRemover(f.id)} className="p-2 bg-slate-50 rounded-lg text-slate-400 hover:text-red-600"><Trash2 size={16}/></button>
+                           </div>
+                        </div>
+                        <h3 className="text-xl font-black text-slate-800 leading-tight mb-1">{f.nome_receita}</h3>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Rende: {f.rendimento_porcoes} Porções</p>
+                        
+                        <div className="mt-auto pt-4 border-t border-slate-100 flex justify-between items-end">
+                           <div>
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Custo / Porção</p>
+                              <p className="text-2xl font-black text-emerald-600">{fmtBRL(custoPorcao)}</p>
+                           </div>
+                           <p className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded-md">Total: {fmtBRL(custoFicha)}</p>
+                        </div>
+                     </div>
+                  );
+               })}
+            </div>
+         )}
+      </div>
 
-                {/* Lista de Ingredientes (Receita) */}
-                <div>
-                   <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-3 ml-2">Composição Atual ({itens.length})</h2>
-                   
-                   {itens.length === 0 ? (
-                      <div className="p-8 border-2 border-dashed border-slate-200 rounded-[24px] text-center bg-slate-50/50">
-                         <FlaskConical size={32} className="mx-auto text-slate-300 mb-2" />
-                         <p className="font-bold text-slate-500">A panela está vazia.</p>
-                         <p className="text-xs text-slate-400 mt-1">Adicione os ingredientes acima para iniciar a engenharia de custo.</p>
-                      </div>
-                   ) : (
-                      <div className="space-y-3">
-                         {itens.map((it) => {
-                            const ing = getIngredienteById(it.ingrediente_id, catalogo);
-                            if (!ing) return null;
-                            const un = getUnidade(ing.unidade);
-                            const custo = calcCustoLinha(ing, it.quantidade);
-                            
-                            return (
-                               <div key={it.id} className="bg-white p-4 rounded-2xl border border-slate-200 flex items-center gap-4 hover:border-slate-300 transition-colors group">
-                                  <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 shrink-0">
-                                     <FlaskConical size={18} />
-                                  </div>
-                                  <div className="flex-1">
-                                     <p className="font-black text-slate-800 text-sm">{ing.nome}</p>
-                                     <p className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-widest">
-                                        {it.quantidade} {un.base} · {fmtBRL(ing.custo_por_unidade_base, 4)} p/ {un.label_base}
-                                     </p>
-                                  </div>
-                                  <div className="text-right">
-                                     <p className="font-black font-mono text-slate-700">{fmtBRL(custo)}</p>
-                                  </div>
-                                  {podeEditar && (
-                                     <button onClick={() => remover(it.id)} className="w-10 h-10 rounded-xl flex items-center justify-center bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-colors shrink-0 opacity-0 group-hover:opacity-100">
-                                        <Trash2 size={16} />
-                                     </button>
-                                  )}
-                               </div>
-                            );
-                         })}
-                      </div>
-                   )}
-                </div>
+      {/* MODAL DE CRIAÇÃO DA FICHA TÉCNICA */}
+      {modalNovo && (
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-[32px] w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl animate-in zoom-in-95 flex flex-col">
+               
+               {/* HEADER DO MODAL */}
+               <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-white">
+                  <div>
+                     <h2 className="font-black text-2xl text-slate-800">{form.id ? "Editar Receita" : "Nova Receita"}</h2>
+                     <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">Custo Total Atual: <span className="text-emerald-600 font-black">{fmtBRL(calcularCustoTotal(ingFicha))}</span></p>
+                  </div>
+                  <button onClick={() => setModalNovo(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+               </div>
 
-             </div>
+               {/* BODY DO MODAL COM SCROLL */}
+               <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50 custom-scrollbar grid grid-cols-1 md:grid-cols-2 gap-8">
+                  
+                  {/* COLUNA ESQUERDA: Dados Básicos */}
+                  <div className="space-y-4">
+                     <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nome da Receita</label>
+                        <input type="text" placeholder="Ex: Caipirinha de Morango" value={form.nome_receita} onChange={e=>setForm({...form, nome_receita: e.target.value})} className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500 shadow-sm"/>
+                     </div>
+                     <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Rendimento (Nº de Porções)</label>
+                        <input type="number" placeholder="1" value={form.rendimento_porcoes} onChange={e=>setForm({...form, rendimento_porcoes: e.target.value})} className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500 shadow-sm"/>
+                     </div>
+                     <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Modo de Preparo</label>
+                        <textarea placeholder="Passo a passo da execução..." value={form.modo_preparo} onChange={e=>setForm({...form, modo_preparo: e.target.value})} className="w-full h-40 p-4 mt-1 bg-white border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:border-emerald-500 shadow-sm resize-none"></textarea>
+                     </div>
+                  </div>
 
-             {/* COLUNA DIREITA: TERMÔMETRO DE LUCRATIVIDADE (5/12) */}
-             <div className="lg:col-span-5 relative">
-                <div className="sticky top-6">
-                   <div className="bg-slate-900 rounded-[32px] p-8 shadow-xl text-white relative overflow-hidden">
-                      {/* Efeito de brilho de fundo dinâmico */}
-                      <div className={`absolute -top-24 -right-24 w-64 h-64 rounded-full blur-[80px] opacity-40 transition-colors duration-1000 ${
-                        precoN === 0 ? 'bg-slate-700' :
-                        isHealthy ? 'bg-emerald-500' : 
-                        isWarning ? 'bg-yellow-500' : 'bg-red-500'
-                      }`}></div>
+                  {/* COLUNA DIREITA: Ingredientes da Ficha */}
+                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col h-full max-h-[500px]">
+                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 block">Composição (Ingredientes)</label>
+                     
+                     {/* ADD INGREDIENTE */}
+                     <div className="flex gap-2 mb-4">
+                        <select onChange={e => { addIngrediente(e.target.value); e.target.value=""; }} className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-600 outline-none focus:border-emerald-500 text-sm">
+                           <option value="">+ Pesquisar Insumo...</option>
+                           {insumosAtivos.map(i => <option key={i.id} value={i.id}>{i.nome} ({i.unidade_medida})</option>)}
+                        </select>
+                     </div>
 
-                      <h2 className="text-sm font-black uppercase tracking-widest text-slate-300 mb-6 flex items-center gap-2 relative z-10">
-                         <Gauge size={18}/> Termômetro de Lucro
-                      </h2>
+                     {/* LISTA DE INGREDIENTES */}
+                     <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
+                        {ingFicha.length === 0 && (
+                           <div className="text-center p-6 text-slate-400 font-medium text-sm">
+                              Selecione ingredientes acima para montar a ficha técnica e calcular o custo.
+                           </div>
+                        )}
+                        {ingFicha.map(ing => (
+                           <div key={ing.insumo_id} className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center gap-3 group">
+                              <div className="flex-1 min-w-0">
+                                 <p className="font-bold text-slate-800 text-sm truncate">{ing.nome}</p>
+                                 <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">Custo: {fmtBRL(ing.custo_unitario * ing.quantidade)}</p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                 <input 
+                                    type="number" 
+                                    step="0.001"
+                                    placeholder="0"
+                                    value={ing.quantidade || ""}
+                                    onChange={e => updateQtd(ing.insumo_id, e.target.value)}
+                                    className="w-20 p-2 text-center bg-white border border-slate-200 rounded-lg font-black text-slate-700 outline-none focus:border-emerald-500"
+                                 />
+                                 <span className="text-[10px] font-black text-slate-400 uppercase w-6">{ing.unidade}</span>
+                              </div>
+                              <button onClick={() => removeIngrediente(ing.insumo_id)} className="p-2 text-slate-300 hover:text-red-500 transition-colors bg-white rounded-lg border border-slate-200">
+                                 <Trash2 size={14}/>
+                              </button>
+                           </div>
+                        ))}
+                     </div>
 
-                      {/* Display Custo Ficha */}
-                      <div className="bg-white/10 p-5 rounded-2xl border border-white/10 mb-6 relative z-10 backdrop-blur-sm">
-                         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Custo Total dos Ingredientes</p>
-                         <p className="text-4xl font-black font-mono">{fmtBRL(custoTotal)}</p>
-                      </div>
+                  </div>
 
-                      {/* Gauges (Se houver preço) */}
-                      {precoN > 0 ? (
-                         <div className="space-y-6 relative z-10">
-                            
-                            {/* CMV */}
-                            <div>
-                               <div className="flex justify-between items-end mb-2">
-                                  <span className="text-[11px] font-bold uppercase tracking-widest text-slate-300">CMV (Custo da Mercadoria)</span>
-                                  <span className={`text-2xl font-black ${isHealthy ? 'text-emerald-400' : isWarning ? 'text-yellow-400' : 'text-red-400'}`}>
-                                     {cmv.toFixed(1)}%
-                                  </span>
-                               </div>
-                               <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-                                  <div className={`h-full rounded-full transition-all duration-500 ${isHealthy ? 'bg-emerald-500' : isWarning ? 'bg-yellow-500' : 'bg-red-500'}`} style={{ width: `${Math.min(cmv, 100)}%` }}></div>
-                               </div>
-                               <p className="text-[10px] font-bold text-slate-400 mt-2">
-                                  {isHealthy ? "✅ Margem excelente (Menor que 30%)" : 
-                                   isWarning ? "⚠️ Margem apertada (Entre 30% e 40%)" : 
-                                   "🚨 Cuidado! Produto não rentável (Acima de 40%)"}
-                               </p>
-                            </div>
+               </div>
 
-                            {/* Margem de Contribuição Bruta */}
-                            <div className="pt-4 border-t border-white/10">
-                               <p className="text-[11px] font-bold uppercase tracking-widest text-slate-300 mb-1">Margem de Contribuição Bruta</p>
-                               <p className="text-3xl font-black text-white">{fmtBRL(precoN - custoTotal)}</p>
-                               <p className="text-[10px] text-slate-400 font-bold mt-1">Isso é o que sobra para pagar custos fixos e gerar lucro final.</p>
-                            </div>
+               {/* FOOTER DO MODAL */}
+               <div className="p-6 border-t border-slate-100 bg-white">
+                  <button onClick={handleSalvar} className="w-full py-5 bg-slate-900 hover:bg-slate-800 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-slate-900/20 active:scale-95 flex items-center justify-center gap-2">
+                     <Save size={20}/> Salvar Receita ({fmtBRL(calcularCustoTotal(ingFicha))})
+                  </button>
+               </div>
+            </div>
+         </div>
+      )}
 
-                         </div>
-                      ) : (
-                         <div className="bg-slate-800/50 border border-slate-700 p-6 rounded-2xl text-center relative z-10">
-                            <Info size={24} className="text-slate-400 mx-auto mb-2" />
-                            <p className="text-sm font-bold text-slate-300">Insira o Preço de Venda</p>
-                            <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest">Para ativar o cálculo de CMV e Margem</p>
-                         </div>
-                      )}
-
-                      {/* Botão de Salvar */}
-                      {podeEditar && (
-                         <button 
-                           onClick={salvar} 
-                           disabled={!nome.trim() || !itens.length || salvando}
-                           className="w-full mt-8 py-4 bg-white text-slate-900 rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-emerald-400 hover:text-slate-900 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(255,255,255,0.1)] relative z-10 flex items-center justify-center gap-2"
-                         >
-                            {salvando ? "Blindando Ficha..." : <><Check size={18}/> Salvar Engenharia</>}
-                         </button>
-                      )}
-                   </div>
-                </div>
-             </div>
-
-          </div>
-        )}
-      </PageBody>
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div className="p-10 text-center font-bold text-slate-400">Carregando módulo...</div>}>
+       <FichasRunner />
+    </Suspense>
   );
 }

@@ -99,7 +99,7 @@ export async function registrarProducao(unidadeId, ficha, qtdProduzida, colabora
 }
 
 // ─── COMPRAS (Integração Estoque -> Financeiro) ──────────────────────────────
-export async function registrarCompra(unidadeId, insumoId, nomeInsumo, departamento, quantidadeComprada, valorPago) {
+export async function registrarCompra(unidadeId, insumoId, nomeInsumo, departamento, quantidadeComprada, valorPago, fornecedorNome = "") {
   if (!isSupabaseReady()) return { error: "Offline" };
   
   // 1. Aumenta o Estoque
@@ -115,10 +115,11 @@ export async function registrarCompra(unidadeId, insumoId, nomeInsumo, departame
   // 2. Lança no Contas a Pagar (Financeiro)
   const categoria = 'cmv'; // Unificado conforme solicitado
   const hoje = new Date().toISOString().split('T')[0];
+  const descForn = fornecedorNome ? ` (Fornecedor: ${fornecedorNome})` : "";
   
   const { error } = await supabase.from("contas_pagar").insert([{
      unidade_id: unidadeId,
-     descricao: `Compra: ${quantidadeComprada}x ${nomeInsumo}`,
+     descricao: `Compra: ${quantidadeComprada}x ${nomeInsumo}${descForn}`,
      valor: valorPago,
      data_vencimento: hoje,
      categoria: categoria,

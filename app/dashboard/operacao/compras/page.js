@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchEstoque, registrarCompra } from "../../../lib/estoque";
+import { fetchFornecedores } from "../../../lib/fornecedores";
 import { ShoppingCart, PackagePlus, Plus, ArrowLeft, TrendingUp, AlertCircle } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
@@ -12,15 +13,20 @@ export default function ComprasPage() {
   const { unidadeAtiva } = useERP();
   
   const [insumos, setInsumos] = useState([]);
+  const [fornecedores, setFornecedores] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState({ insumoId: "", quantidade: 1, valorPago: "" });
+  const [form, setForm] = useState({ insumoId: "", quantidade: 1, valorPago: "", fornecedorId: "" });
 
   const carregar = async () => {
     setLoading(true);
-    const { data } = await fetchEstoque(unidadeAtiva);
-    setInsumos(data);
+    const [ resEstoque, resFornecedores ] = await Promise.all([
+      fetchEstoque(unidadeAtiva),
+      fetchFornecedores(unidadeAtiva)
+    ]);
+    setInsumos(resEstoque.data);
+    setFornecedores(resFornecedores.data);
     setLoading(false);
   };
 
@@ -36,12 +42,15 @@ export default function ComprasPage() {
      const valorNum = parseFloat(form.valorPago.replace(',', '.'));
      if(isNaN(valorNum)) return alert("Valor inválido.");
 
-     await registrarCompra(unidadeAtiva, ins.insumo_id, ins.nome, ins.departamento, Number(form.quantidade), valorNum);
+     const forn = fornecedores.find(f => f.id === form.fornecedorId);
+     const fornNome = forn ? forn.nome : "";
+
+     await registrarCompra(unidadeAtiva, ins.insumo_id, ins.nome, ins.departamento, Number(form.quantidade), valorNum, fornNome);
      
      alert(`Compra registrada! ${form.quantidade} ${ins.unidade_medida} adicionado ao estoque e R$ ${valorNum} enviado para o Contas a Pagar (Financeiro).`);
      
      setModalOpen(false);
-     setForm({ insumoId: "", quantidade: 1, valorPago: "" });
+     setForm({ insumoId: "", quantidade: 1, valorPago: "", fornecedorId: "" });
      carregar();
   };
 
@@ -108,9 +117,16 @@ export default function ComprasPage() {
                <form onSubmit={handleComprar} className="space-y-4">
                   <div>
                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">O que você comprou?</label>
-                     <select required value={form.insumoId} onChange={e=>setForm({...form, insumoId: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-800 outline-none focus:border-emerald-500">
+                     <select required value={form.insumoId} onChange={e=>setForm({...form, insumoId: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-800 outline-none focus:border-emerald-500 mb-4">
                         <option value="">-- Selecione o Insumo --</option>
                         {insumos.map(i => <option key={i.insumo_id} value={i.insumo_id}>{i.nome}</option>)}
+                     </select>
+                  </div>
+                  <div>
+                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Qual Fornecedor? (Opcional)</label>
+                     <select value={form.fornecedorId} onChange={e=>setForm({...form, fornecedorId: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-800 outline-none focus:border-emerald-500">
+                        <option value="">-- Sem Fornecedor --</option>
+                        {fornecedores.map(f => <option key={f.id} value={f.id}>{f.nome}</option>)}
                      </select>
                   </div>
                   <div className="grid grid-cols-2 gap-4">

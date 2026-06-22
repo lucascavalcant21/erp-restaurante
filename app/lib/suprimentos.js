@@ -50,66 +50,45 @@ import { supabase, isSupabaseReady } from "./supabase";
 export const CATEGORIAS_SUP = ["Limpeza", "Higiene", "Escritório", "Descartáveis", "Outros"];
 export const UNIDADES_SUP = ["UN", "L", "mL", "PCT", "CX", "RL", "KG"];
 
-let MOCK_CATALOGO = [
-  { id: "s1", nome: "Sabão Líquido 5L", categoria: "Limpeza", unidade_medida: "UN", estoque_central: 10, custo_unitario: 25.50, fornecedor: "Distribuidora ABC" },
-  { id: "s2", nome: "Papel Toalha", categoria: "Higiene", unidade_medida: "PCT", estoque_central: 50, custo_unitario: 8.90, fornecedor: "Atacadão" }
-];
+let MOCK_CATALOGO = [];
 let MOCK_UNIDADES = [];
 
 // ─── GESTÃO CENTRAL (NÍVEL 1) ────────────────────────────────────────────────
 
 export async function fetchCatalogoCentral() {
-  if (!isSupabaseReady()) return { data: [...MOCK_CATALOGO].sort((a,b)=>a.nome.localeCompare(b.nome)), error: null };
+  if (!isSupabaseReady()) return { data: [], error: null };
   const { data, error } = await supabase.from("suprimentos_catalogo").select("*").order("nome");
-  if (error) return { data: [...MOCK_CATALOGO].sort((a,b)=>a.nome.localeCompare(b.nome)), error: null }; // Fallback
+  if (error) return { data: [], error: error.message };
   return { data: data || [], error: null };
 }
 
 export async function fetchTodoEstoqueLojas() {
-  if (!isSupabaseReady()) return { data: MOCK_UNIDADES, error: null };
+  if (!isSupabaseReady()) return { data: [], error: null };
   const { data, error } = await supabase.from("suprimentos_unidades").select("*");
-  if (error) return { data: MOCK_UNIDADES, error: null };
+  if (error) return { data: [], error: error.message };
   return { data: data || [], error: null };
 }
 
 export async function inserirSuprimentoCentral(sup) {
-  const novo = { ...sup, id: "s" + Date.now(), estoque_central: 0 };
-  if (!isSupabaseReady()) {
-    MOCK_CATALOGO.push(novo);
-    return { data: novo, error: null };
-  }
+  if (!isSupabaseReady()) return { error: "Supabase offline" };
   try {
     const { data, error } = await supabase.from("suprimentos_catalogo").insert([sup]).select().single();
     if (error) throw new Error(error.message);
     return { data, error: null };
   } catch (err) {
-    console.error("Supabase error em suprimentos, usando mock:", err);
-    MOCK_CATALOGO.push(novo);
-    return { data: novo, error: null }; // Fallback
+    return { data: null, error: err.message };
   }
 }
 
 export async function atualizarSuprimentoCentral(id, updates) {
-  if (!isSupabaseReady()) {
-    const idx = MOCK_CATALOGO.findIndex(c => c.id === id);
-    if(idx > -1) MOCK_CATALOGO[idx] = { ...MOCK_CATALOGO[idx], ...updates };
-    return { error: null };
-  }
+  if (!isSupabaseReady()) return { error: "Supabase offline" };
   const { error } = await supabase.from("suprimentos_catalogo").update(updates).eq("id", id);
-  if (error) {
-    const idx = MOCK_CATALOGO.findIndex(c => c.id === id);
-    if(idx > -1) MOCK_CATALOGO[idx] = { ...MOCK_CATALOGO[idx], ...updates };
-    return { error: null }; // Fallback
-  }
+  if (error) return { error: error.message };
   return { error: null };
 }
 
 export async function entradaEstoqueCentral(id, quantidade, responsavel) {
-  if (!isSupabaseReady()) {
-    const idx = MOCK_CATALOGO.findIndex(c => c.id === id);
-    if(idx > -1) MOCK_CATALOGO[idx].estoque_central = Number(MOCK_CATALOGO[idx].estoque_central || 0) + Number(quantidade);
-    return { error: null };
-  }
+  if (!isSupabaseReady()) return { error: "Supabase offline" };
   
   try {
     const { data: item, error: fetchErr } = await supabase.from("suprimentos_catalogo").select("estoque_central").eq("id", id).single();
@@ -124,10 +103,7 @@ export async function entradaEstoqueCentral(id, quantidade, responsavel) {
 
     return { error: null };
   } catch (err) {
-    console.error("Supabase error em entradaEstoqueCentral, mock:", err);
-    const idx = MOCK_CATALOGO.findIndex(c => c.id === id);
-    if(idx > -1) MOCK_CATALOGO[idx].estoque_central = Number(MOCK_CATALOGO[idx].estoque_central || 0) + Number(quantidade);
-    return { error: null }; // Fallback
+    return { error: err.message };
   }
 }
 
@@ -135,22 +111,12 @@ export async function entradaEstoqueCentral(id, quantidade, responsavel) {
  * Transfere estoque do catálogo central para uma unidade.
  */
 export async function transferirParaUnidade(catalogoId, unidadeDestino, quantidade, minimo, responsavel) {
-  if (!isSupabaseReady()) {
-    const idx = MOCK_CATALOGO.findIndex(c => c.id === catalogoId);
-    if(idx > -1) MOCK_CATALOGO[idx].estoque_central = Math.max(0, Number(MOCK_CATALOGO[idx].estoque_central || 0) - Number(quantidade));
-    
-    let uItem = MOCK_UNIDADES.find(u => u.catalogo_id === catalogoId && u.unidade_id === unidadeDestino);
-    if(uItem) {
-      uItem.quantidade = Number(uItem.quantidade) + Number(quantidade);
-      if(minimo !== undefined && minimo !== null) uItem.minimo = minimo;
-    } else {
-      MOCK_UNIDADES.push({ id: "su"+Date.now(), catalogo_id: catalogoId, unidade_id: unidadeDestino, quantidade: Number(quantidade), minimo: minimo || 0 });
-    }
-    return { error: null };
-  }
+  if (!isSupabaseReady()) return { error: "Supabase offline" };
 
   // 1. Desconta do central
-  const { data: central } = await supabase.from("suprimentos_catalogo").select("estoque_central").eq("id", catalogoId).single();
+  const { data: central, error: errCentral } = await supabase.from("suprimentos_catalogo").select("estoque_central").eq("id", catalogoId).single();
+  if(errCentral) return { error: errCentral.message };
+
   const novoCentral = Math.max(0, Number(central.estoque_central) - Number(quantidade));
   await supabase.from("suprimentos_catalogo").update({ estoque_central: novoCentral }).eq("id", catalogoId);
 
@@ -192,12 +158,6 @@ export async function transferirParaUnidade(catalogoId, unidadeDestino, quantida
  */
 export async function fetchSuprimentosDaUnidade(unidadeId) {
   if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") {
-    if(!isSupabaseReady() && unidadeId && unidadeId !== "todas") {
-      return { data: MOCK_UNIDADES.filter(u => u.unidade_id === unidadeId).map(u => {
-        const cat = MOCK_CATALOGO.find(c => c.id === u.catalogo_id) || {};
-        return { ...u, nome: cat.nome, categoria: cat.categoria, unidade_medida: cat.unidade_medida, custo_unitario: cat.custo_unitario };
-      }), error: null };
-    }
     return { data: [], error: null };
   }
   
@@ -234,17 +194,10 @@ export async function fetchSuprimentosDaUnidade(unidadeId) {
  * Registra o consumo diário de um item na unidade (baixa).
  */
 export async function registrarConsumo(unidadeEstoqueId, quantidade, responsavel) {
-  if (!isSupabaseReady()) {
-    const uItem = MOCK_UNIDADES.find(u => u.id === unidadeEstoqueId);
-    if(uItem) {
-      uItem.quantidade = Math.max(0, Number(uItem.quantidade) - Number(quantidade));
-      return { error: null, novaQtd: uItem.quantidade };
-    }
-    return { error: "Item não encontrado" };
-  }
+  if (!isSupabaseReady()) return { error: "Supabase offline" };
 
-  const { data: item } = await supabase.from("suprimentos_unidades").select("*").eq("id", unidadeEstoqueId).single();
-  if (!item) return { error: "Item não encontrado" };
+  const { data: item, error: fetchErr } = await supabase.from("suprimentos_unidades").select("*").eq("id", unidadeEstoqueId).single();
+  if (fetchErr || !item) return { error: "Item não encontrado" };
 
   const novaQtd = Math.max(0, Number(item.quantidade) - Number(quantidade));
   await supabase.from("suprimentos_unidades").update({ quantidade: novaQtd, updated_at: new Date().toISOString() }).eq("id", unidadeEstoqueId);
@@ -265,14 +218,7 @@ export async function registrarConsumo(unidadeEstoqueId, quantidade, responsavel
  * Usado pelo Cérebro/Notificações do Gestor Central.
  */
 export async function checkAlertasLimpeza() {
-  if (!isSupabaseReady()) {
-    return { data: MOCK_UNIDADES.filter(u => u.quantidade <= u.minimo).map(u => ({
-      unidade_id: u.unidade_id,
-      item: MOCK_CATALOGO.find(c => c.id === u.catalogo_id)?.nome,
-      quantidade: u.quantidade,
-      minimo: u.minimo
-    }))};
-  }
+  if (!isSupabaseReady()) return { data: [] };
   
   const { data, error } = await supabase
     .from("suprimentos_unidades")

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Search as SearchIcon, MapPin, Clock, Users, Plus, Edit3, Trash2, Check, X, Truck, Settings, Motorbike, PackageOpen, PackageCheck, Route, Map } from "lucide-react";
+import { Search as SearchIcon, MapPin, Clock, Users, Plus, Edit3, Trash2, Check, X, Truck, Settings, Bike, PackageOpen, PackageCheck, Route, Map, Flame, ArrowLeft } from "lucide-react";
 import { Field, TextInput, Select, NumberInput } from "../../components/ui";
 import { useERP } from "../../context/ERPContext";
 import { 
@@ -159,7 +159,7 @@ export default function DeliveryKanbanPage() {
 
               {/* Tabela de Motoboys Simplificada pro Walkthrough */}
               <div className="bg-white p-8 rounded-[24px] shadow-sm border border-slate-200">
-                 <h2 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2"><Motorbike size={24} className="text-orange-500" /> Frota de Entregadores</h2>
+                 <h2 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2"><Bike size={24} className="text-orange-500" /> Frota de Entregadores</h2>
                  
                  {motoboys.length === 0 ? (
                     <div className="text-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-300 font-bold text-slate-400">Nenhum motoboy cadastrado.</div>
@@ -268,7 +268,7 @@ export default function DeliveryKanbanPage() {
                     <p className="font-medium text-slate-500 text-xs mb-4 line-clamp-2">📍 {p.observacao || "Endereço não informado"}</p>
                     
                     <button onClick={() => setModalDespacho(p)} className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-black uppercase tracking-widest rounded-xl text-sm shadow-md transition-colors flex items-center justify-center gap-2">
-                       <Motorbike size={16} /> Despachar
+                       <Bike size={16} /> Despachar
                     </button>
                  </div>
                ))}
@@ -293,7 +293,7 @@ export default function DeliveryKanbanPage() {
                     </div>
                     <p className="font-bold text-slate-600 text-sm mb-2">👤 {p.cliente || "Cliente"}</p>
                     <div className="flex items-center gap-2 bg-blue-50 p-2 rounded-lg text-blue-700 text-xs font-black uppercase tracking-widest mb-3">
-                       <Motorbike size={14}/> {p.motoboy || "Motoboy"}
+                       <Bike size={14}/> {p.motoboy || "Motoboy"}
                     </div>
                     
                     <button onClick={() => moverPedido(p.id, "entregue")} className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-lg text-xs transition-colors flex items-center justify-center gap-2">
@@ -357,7 +357,7 @@ export default function DeliveryKanbanPage() {
                          >
                             <div className="flex items-center gap-4">
                                <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center font-black text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
-                                  <Motorbike size={20} />
+                                  <Bike size={20} />
                                </div>
                                <div className="text-left">
                                   <p className="font-black text-slate-800 text-lg">{mb.nome}</p>

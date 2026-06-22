@@ -125,12 +125,12 @@ export default function DashboardPage() {
         <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">{saudacao},</p>
         <h1 className="text-3xl md:text-4xl font-black leading-tight tracking-tighter" style={{ color: "var(--fg)" }}>{nome}</h1>
         <div className="flex items-center justify-between gap-4 mt-4 flex-wrap">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[12px] bg-white border border-slate-200/60 shadow-sm">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[12px] bg-[var(--panel)] border border-[var(--line)] shadow-sm">
             <span className="w-2 h-2 rounded-full shadow-[0_0_8px_rgba(0,0,0,0.2)]" style={{ background: unidadeInfo.cor }} />
-            <span className="text-[12px] font-bold text-slate-600">{isCentral ? "Central · consolidado" : unidadeInfo.nome}</span>
+            <span className="text-[12px] font-bold text-[var(--fg)]">{isCentral ? "Central · consolidado" : unidadeInfo.nome}</span>
           </div>
           {/* Filtro de período */}
-          <div className="inline-flex p-1 rounded-[14px] bg-slate-100/80 border border-slate-200/50 backdrop-blur-sm shadow-inner">
+          <div className="inline-flex p-1 rounded-[14px] bg-[var(--panel)] border border-[var(--line)] backdrop-blur-sm shadow-inner">
             {Object.entries(PERIODOS).map(([k, v]) => (
               <button key={k} onClick={() => setPeriodo(k)} className="text-[12px] font-bold px-4 py-1.5 rounded-[10px] transition-all duration-300"
                 style={periodo === k ? { background: "var(--card)", color: "var(--accent-strong)", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" } : { color: "var(--muted)" }}>{v.label}</button>
@@ -234,11 +234,11 @@ export default function DashboardPage() {
           <SectionLabel>Atalhos</SectionLabel>
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
             {ATALHOS.map((a) => (
-              <button key={a.label} onClick={() => router.push(a.href)} className="erp-card p-5 flex items-center gap-4 hover:-translate-y-1 hover:shadow-lg transition-all duration-300 group">
-                <div className="w-12 h-12 rounded-[16px] flex items-center justify-center bg-slate-50 border border-slate-100 group-hover:bg-orange-50 group-hover:border-orange-100 transition-colors">
-                  <a.Icon size={20} className="text-slate-400 group-hover:text-orange-500 transition-colors" />
+              <button key={a.label} onClick={() => router.push(a.href)} className="erp-card p-5 flex items-center gap-4 hover:-translate-y-1 hover:shadow-[var(--shadow-float)] transition-all duration-300 group">
+                <div className="w-12 h-12 rounded-[16px] flex items-center justify-center bg-[var(--panel)] border border-[var(--line)] group-hover:bg-[var(--elevated)] group-hover:border-[var(--accent-soft)] transition-colors">
+                  <a.Icon size={20} className="text-[var(--subtle)] group-hover:text-orange-500 transition-colors" />
                 </div>
-                <span className="text-[13px] font-bold text-slate-600 group-hover:text-slate-900 transition-colors">{a.label}</span>
+                <span className="text-[13px] font-bold text-[var(--fg-soft)] group-hover:text-[var(--fg)] transition-colors">{a.label}</span>
               </button>
             ))}
           </div>

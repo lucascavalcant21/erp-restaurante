@@ -162,16 +162,16 @@ function getNavId(pathname) {
 function MegaMenu({ isOpen, onClose, sessao, router, unidadeAtiva }) {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-[60] flex md:left-[80px] left-0 bg-slate-900/20 backdrop-blur-md transition-all">
-      <div className="absolute inset-0 bg-white/95 p-6 md:p-8 overflow-y-auto animate-in fade-in slide-in-from-top-8 duration-300 shadow-2xl border-l border-slate-200">
+    <div className="fixed inset-0 z-[60] flex md:left-[80px] left-0 bg-black/80 backdrop-blur-md transition-all">
+      <div className="absolute inset-0 bg-[var(--surface)] p-6 md:p-8 overflow-y-auto animate-in fade-in slide-in-from-top-8 duration-300 shadow-2xl border-l border-[var(--line)]">
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 max-w-7xl mx-auto gap-4">
-          <h2 className="text-3xl font-black text-slate-900 tracking-tighter">Ver tudo</h2>
+          <h2 className="text-3xl font-black text-[var(--fg)] tracking-tighter">Ver tudo</h2>
           <div className="flex items-center gap-4">
             <div className="relative flex-1 md:flex-none">
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input type="text" placeholder="O que você procura?" className="pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg w-full md:w-80 text-sm outline-none focus:border-orange-500 transition-colors" />
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--subtle)]" width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" placeholder="O que você procura?" className="pl-10 pr-4 py-2.5 bg-[var(--panel)] border border-[var(--line)] rounded-lg w-full md:w-80 text-[var(--fg)] text-sm outline-none focus:border-orange-500 transition-colors" />
             </div>
-            <button onClick={onClose} className="p-2.5 bg-slate-100 rounded-lg text-slate-500 hover:bg-slate-200 transition-colors">
+            <button onClick={onClose} className="p-2.5 bg-[var(--panel)] rounded-lg text-[var(--subtle)] hover:bg-[var(--elevated)] transition-colors">
               <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           </div>
@@ -183,11 +183,11 @@ function MegaMenu({ isOpen, onClose, sessao, router, unidadeAtiva }) {
              if (!itens.length) return null;
              return (
                <div key={group.id} className="mb-8 break-inside-avoid">
-                 <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">{group.label}</h3>
+                 <h3 className="text-[11px] font-bold text-[var(--subtle)] uppercase tracking-wider mb-3">{group.label}</h3>
                  <div className="flex flex-col gap-1">
                    {itens.map(item => (
                      <button key={item.id} onClick={() => { onClose(); router.push(item.href); }}
-                       className="flex items-center gap-2 px-3 py-2.5 text-[13px] text-slate-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors text-left font-medium">
+                       className="flex items-center gap-2 px-3 py-2.5 text-[13px] text-[var(--fg-soft)] hover:text-orange-500 hover:bg-[var(--elevated)] rounded-lg transition-colors text-left font-medium">
                        <div className="opacity-70"><item.Icon /></div>
                        <span>{item.label}</span>
                      </button>
@@ -252,24 +252,24 @@ function TakeatHeader({ sessao, onOpenMobileMenu }) {
   const router = useRouter();
 
   return (
-    <header className="h-[64px] border-b border-slate-200/60 flex items-center justify-between px-4 md:px-6 sticky top-0 z-40 glass-panel shadow-sm">
+    <header className="h-[64px] border-b border-[var(--line)] flex items-center justify-between px-4 md:px-6 sticky top-0 z-40 glass-panel shadow-sm">
       <div className="flex items-center gap-4">
         {/* Mobile menu button */}
-        <button onClick={onOpenMobileMenu} className="md:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+        <button onClick={onOpenMobileMenu} className="md:hidden p-2 -ml-2 text-[var(--fg-soft)] hover:bg-[var(--elevated)] rounded-lg transition-colors">
           <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
 
         {/* Top Shortcuts (Hidden on mobile) */}
         <div className="hidden md:flex items-center gap-1">
-          <button onClick={() => router.push('/dashboard/vendas')} className="flex items-center gap-2 text-slate-600 hover:text-orange-600 font-bold text-[13px] px-3 py-2 rounded-xl hover:bg-orange-50/80 transition-all">
+          <button onClick={() => router.push('/dashboard/vendas')} className="flex items-center gap-2 text-[var(--fg-soft)] hover:text-orange-500 font-bold text-[13px] px-3 py-2 rounded-xl hover:bg-[var(--elevated)] transition-all">
             <div className="text-orange-500 drop-shadow-sm"><Ic.ChefHat /></div> Operação
           </button>
-          <div className="w-px h-4 bg-slate-200 mx-1"></div>
-          <button onClick={() => router.push('/dashboard/vendas')} className="flex items-center gap-2 text-slate-500 hover:text-orange-600 font-bold text-[13px] px-3 py-2 rounded-lg hover:bg-orange-50 transition-colors">
+          <div className="w-px h-4 bg-[var(--line)] mx-1"></div>
+          <button onClick={() => router.push('/dashboard/vendas')} className="flex items-center gap-2 text-[var(--subtle)] hover:text-orange-500 font-bold text-[13px] px-3 py-2 rounded-lg hover:bg-[var(--elevated)] transition-colors">
             <div className="text-orange-500"><Ic.Truck /></div> Delivery
           </button>
-          <div className="w-px h-4 bg-slate-200 mx-1"></div>
-          <button onClick={() => router.push('/dashboard/operacao/cardapio')} className="flex items-center gap-2 text-slate-500 hover:text-orange-600 font-bold text-[13px] px-3 py-2 rounded-lg hover:bg-orange-50 transition-colors">
+          <div className="w-px h-4 bg-[var(--line)] mx-1"></div>
+          <button onClick={() => router.push('/dashboard/operacao/cardapio')} className="flex items-center gap-2 text-[var(--subtle)] hover:text-orange-500 font-bold text-[13px] px-3 py-2 rounded-lg hover:bg-[var(--elevated)] transition-colors">
             <div className="text-orange-500"><Ic.MenuBook /></div> Divulgar cardápio
           </button>
         </div>
@@ -282,20 +282,20 @@ function TakeatHeader({ sessao, onOpenMobileMenu }) {
 
       {/* Direita */}
       <div className="flex items-center gap-3 md:gap-5">
-        <button className="relative p-2 text-slate-400 hover:text-orange-500 transition-colors hidden md:block">
+        <button className="relative p-2 text-[var(--subtle)] hover:text-orange-500 transition-colors hidden md:block">
           <Ic.Bell />
           <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
         </button>
 
         {/* Unit Switcher simplificado para a TopBar */}
-        <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors relative group">
+        <div className="flex items-center gap-2 bg-[var(--panel)] px-3 py-1.5 rounded-lg border border-[var(--line)] cursor-pointer hover:bg-[var(--elevated)] transition-colors relative group">
            <div className="w-2.5 h-2.5 rounded-full" style={{ background: unidadeInfo?.cor || '#22C55E' }}></div>
-           <span className="text-[13px] font-bold text-slate-700 hidden md:block">{unidadeInfo?.nome || "Carregando..."}</span>
+           <span className="text-[13px] font-bold text-[var(--fg)] hidden md:block">{unidadeInfo?.nome || "Carregando..."}</span>
            {podeTrocar && (
-             <div className="absolute top-full right-0 mt-2 w-56 bg-white shadow-xl border border-slate-100 rounded-xl py-2 hidden group-hover:block z-50">
-                <div className="px-4 py-2 text-[10px] uppercase font-bold text-slate-400 border-b border-slate-50 mb-2">Unidades</div>
+             <div className="absolute top-full right-0 mt-2 w-56 bg-[var(--surface)] shadow-xl border border-[var(--line)] rounded-xl py-2 hidden group-hover:block z-50">
+                <div className="px-4 py-2 text-[10px] uppercase font-bold text-[var(--subtle)] border-b border-[var(--line)] mb-2">Unidades</div>
                 {unidades.map(u => (
-                  <div key={u.id} onClick={() => setUnidadeAtiva(u.id)} className="px-4 py-2.5 hover:bg-orange-50 hover:text-orange-600 text-sm font-semibold text-slate-700 flex items-center gap-3 transition-colors">
+                  <div key={u.id} onClick={() => setUnidadeAtiva(u.id)} className="px-4 py-2.5 hover:bg-[var(--elevated)] text-sm font-semibold text-[var(--fg-soft)] flex items-center gap-3 transition-colors">
                     <div className="w-2 h-2 rounded-full" style={{ background: u.cor }}></div> {u.nome}
                   </div>
                 ))}
@@ -344,7 +344,7 @@ export default function DashboardLayout({ children }) {
   const navId = pathname?.split("/")[2] || "dashboard";
 
   return (
-    <div className="flex min-h-screen bg-[#F8FAFC]">
+    <div className="flex min-h-screen bg-[var(--surface)]">
       {/* Sidebar Desktop (Slim Takeat) */}
       <TakeatSidebar sessao={sessao} onSair={sair} onOpenMegaMenu={() => setMegaMenuOpen(true)} />
       
@@ -355,28 +355,28 @@ export default function DashboardLayout({ children }) {
       {mobileMenuOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
-          <div className="relative w-[80%] max-w-[300px] h-full bg-white flex flex-col shadow-2xl animate-in slide-in-from-left duration-200">
-            <div className="p-4 flex items-center justify-between border-b border-slate-100">
+          <div className="relative w-[80%] max-w-[300px] h-full bg-[var(--surface)] flex flex-col shadow-2xl animate-in slide-in-from-left duration-200">
+            <div className="p-4 flex items-center justify-between border-b border-[var(--line)]">
               <span className="font-bold text-orange-600 italic">Hefisto.</span>
-              <button onClick={() => setMobileMenuOpen(false)}><svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+              <button onClick={() => setMobileMenuOpen(false)} className="text-[var(--fg)]"><svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-2">
-               <button onClick={() => { setMobileMenuOpen(false); setMegaMenuOpen(true); }} className="flex items-center gap-3 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700">
+               <button onClick={() => { setMobileMenuOpen(false); setMegaMenuOpen(true); }} className="flex items-center gap-3 px-4 py-3 bg-[var(--panel)] border border-[var(--line)] rounded-xl font-bold text-[var(--fg)]">
                  <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Buscar módulos...
                </button>
                {MENU_GROUPS.map(group => (
                  <div key={group.id} className="mt-4">
-                   <p className="text-[10px] uppercase font-bold text-slate-400 mb-2 px-2">{group.label}</p>
+                   <p className="text-[10px] uppercase font-bold text-[var(--subtle)] mb-2 px-2">{group.label}</p>
                    {group.items.map(item => (
-                     <button key={item.id} onClick={() => { setMobileMenuOpen(false); router.push(item.href); }} className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-orange-50 text-slate-600 hover:text-orange-600 rounded-lg text-left font-semibold">
+                     <button key={item.id} onClick={() => { setMobileMenuOpen(false); router.push(item.href); }} className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-[var(--elevated)] text-[var(--fg-soft)] hover:text-orange-500 rounded-lg text-left font-semibold">
                        <item.Icon /> {item.label}
                      </button>
                    ))}
                  </div>
                ))}
             </div>
-            <div className="p-4 border-t border-slate-100">
-              <button onClick={sair} className="w-full py-3 bg-red-50 text-red-600 font-bold rounded-xl flex items-center justify-center gap-2"><Ic.LogOut /> Sair</button>
+            <div className="p-4 border-t border-[var(--line)]">
+              <button onClick={sair} className="w-full py-3 bg-red-500/10 text-red-500 font-bold rounded-xl flex items-center justify-center gap-2"><Ic.LogOut /> Sair</button>
             </div>
           </div>
         </div>

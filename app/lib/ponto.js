@@ -2,7 +2,8 @@ import { supabase, isSupabaseReady } from "./supabase";
 
 export async function fetchPontoHoje(unidadeId) {
   if (!isSupabaseReady()) return { data: [] };
-  const hoje = new Date().toISOString().split('T')[0];
+  const dataLocal = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+  const hoje = dataLocal.getFullYear() + "-" + String(dataLocal.getMonth() + 1).padStart(2, '0') + "-" + String(dataLocal.getDate()).padStart(2, '0');
   
   const { data, error } = await supabase
     .from("registro_ponto")
@@ -63,7 +64,8 @@ export async function fetchPontosMes(colaboradorId, anoMes) {
 
 export async function registrarBatida(colaboradorId, unidadeId, tipoBatida) {
   if (!isSupabaseReady()) return { error: "Offline" };
-  const hoje = new Date().toISOString().split('T')[0];
+  const dataLocal = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+  const hoje = dataLocal.getFullYear() + "-" + String(dataLocal.getMonth() + 1).padStart(2, '0') + "-" + String(dataLocal.getDate()).padStart(2, '0');
   const agora = new Date().toISOString();
   
   // Buscar se já tem registro hoje

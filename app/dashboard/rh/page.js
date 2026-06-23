@@ -113,7 +113,8 @@ export default function RHPage() {
           valor: f.salario,
           data_vencimento: hoje,
           categoria: 'cmo',
-          status: 'pendente'
+          status: 'pago',
+          data_pagamento: hoje
        });
        alert("Lançado com sucesso em Contas a Pagar (Financeiro)!");
     }

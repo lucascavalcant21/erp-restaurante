@@ -200,6 +200,36 @@ export default function PontoPage() {
 
   const handleBaterPonto = async (tipo) => {
      if(!colabAtivo) return;
+
+     // --- Lógica de Bloqueio de Entrada ---
+     if (tipo === 'entrada') {
+        const hoje = new Date();
+        const diaSemana = hoje.getDay().toString(); // 0 a 6
+        const { horario_entrada, dias_trabalho } = colabAtivo;
+
+        // 1. Bloqueio de Folga
+        if (dias_trabalho && !dias_trabalho.split(',').includes(diaSemana)) {
+           alert("Hoje é seu dia de folga! A entrada não é permitida.");
+           return;
+        }
+
+        // 2. Bloqueio de Horário Prematuro (Tolerância de 5 minutos)
+        if (horario_entrada) {
+           const [hEntrada, mEntrada] = horario_entrada.split(':').map(Number);
+           const minutosAgendados = (hEntrada * 60) + mEntrada;
+           const minutosAgora = (hoje.getHours() * 60) + hoje.getMinutes();
+
+           if (minutosAgora < minutosAgendados - 5) {
+              const hLib = Math.floor((minutosAgendados - 5) / 60);
+              const mLib = (minutosAgendados - 5) % 60;
+              const formatLib = `${String(hLib).padStart(2, '0')}:${String(mLib).padStart(2, '0')}`;
+              alert(`Seu turno inicia às ${horario_entrada}. Você só pode bater o ponto a partir das ${formatLib}.`);
+              return;
+           }
+        }
+     }
+     // ------------------------------------
+
      const { error } = await registrarBatida(colabAtivo.id, unidadeAtiva, tipo);
      if(error) return alert(error);
      

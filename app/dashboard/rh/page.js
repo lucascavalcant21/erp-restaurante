@@ -19,7 +19,7 @@ export default function RHPage() {
   const [pontosHoje, setPontosHoje] = useState([]);
   const [busca, setBusca] = useState("");
   const [modalNovo, setModalNovo] = useState(false);
-  const [novoFunc, setNovoFunc] = useState({ nome: "", cargo: "", salario: "" });
+  const [novoFunc, setNovoFunc] = useState({ nome: "", cargo: "", salario: "", horario_entrada: "", horario_saida: "", dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60 });
   const [loading, setLoading] = useState(true);
   const [uploadingId, setUploadingId] = useState(null);
 
@@ -56,10 +56,14 @@ export default function RHPage() {
       unidade_id: unidadeAtiva,
       nome: novoFunc.nome,
       cargo: novoFunc.cargo,
-      salario: Number(novoFunc.salario) || 0
+      salario: Number(novoFunc.salario) || 0,
+      horario_entrada: novoFunc.horario_entrada,
+      horario_saida: novoFunc.horario_saida,
+      dias_trabalho: novoFunc.dias_trabalho,
+      tempo_intervalo: Number(novoFunc.tempo_intervalo) || 60
     });
     setModalNovo(false);
-    setNovoFunc({ nome: "", cargo: "", salario: "" });
+    setNovoFunc({ nome: "", cargo: "", salario: "", horario_entrada: "", horario_saida: "", dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60 });
     carregar();
   };
 
@@ -172,11 +176,76 @@ export default function RHPage() {
                         <td className="p-4">
                            {(() => {
                               const pt = pontosHoje.find(p => p.colaborador_id === f.id);
-                              if (!pt) return <span className="text-[11px] font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-md">Não iniciou</span>;
-                              if (pt.status_jornada === 1) return <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-md">Trabalhando (Entrou {new Date(pt.hora_entrada).toLocaleTimeString('pt-BR').slice(0,5)})</span>;
-                              if (pt.status_jornada === 2) return <span className="text-[11px] font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-md">Intervalo (Saiu {new Date(pt.hora_saida_intervalo).toLocaleTimeString('pt-BR').slice(0,5)})</span>;
-                              if (pt.status_jornada === 3) return <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-md">Trabalhando (Voltou {new Date(pt.hora_retorno_intervalo).toLocaleTimeString('pt-BR').slice(0,5)})</span>;
-                              if (pt.status_jornada === 4) return <span className="text-[11px] font-bold text-blue-700 bg-blue-100 px-2.5 py-1 rounded-md">Concluída (Saiu {new Date(pt.hora_saida).toLocaleTimeString('pt-BR').slice(0,5)})</span>;
+                              
+                              const strToMin = (str) => {
+                                 if(!str) return null;
+                                 const [h,m] = str.split(':').map(Number);
+                                 return h*60+m;
+                              };
+                              const dateToMin = (dStr) => {
+                                 if(!dStr) return null;
+                                 const d = new Date(dStr);
+                                 return d.getHours()*60 + d.getMinutes();
+                              };
+                              const minToStr = (m) => {
+                                 if (m < 0) m += 24 * 60; // Caso vire a noite
+                                 const hh = Math.floor(m/60);
+                                 const mm = m%60;
+                                 if(hh === 0) return `${mm}min`;
+                                 return `${hh}h${mm.toString().padStart(2,'0')}`;
+                              };
+
+                              if (!pt) {
+                                 if(f.horario_entrada && f.dias_trabalho && f.dias_trabalho.split(',').includes(new Date().getDay().toString())) {
+                                    const minAgora = new Date().getHours() * 60 + new Date().getMinutes();
+                                    const minEntrada = strToMin(f.horario_entrada);
+                                    if(minAgora > minEntrada) {
+                                       return <span className="text-[11px] font-bold text-rose-700 bg-rose-100 px-2.5 py-1 rounded-md border border-rose-200">Atrasado (Era p/ {f.horario_entrada})</span>;
+                                    }
+                                 }
+                                 return <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md">Não iniciou</span>;
+                              }
+
+                              const hrEntrada = new Date(pt.hora_entrada).toLocaleTimeString('pt-BR').slice(0,5);
+
+                              if (pt.status_jornada === 1) {
+                                 let extra = "";
+                                 if(f.horario_entrada) {
+                                    const mPt = dateToMin(pt.hora_entrada);
+                                    const mAg = strToMin(f.horario_entrada);
+                                    if(mPt > mAg + 5) extra = ` (Era p/ ${f.horario_entrada})`;
+                                    else extra = ` (No horário)`;
+                                 }
+                                 const atrasado = extra.includes("Era p/");
+                                 return <span className={`text-[11px] font-bold px-2.5 py-1 rounded-md border ${atrasado ? 'text-rose-700 bg-rose-100 border-rose-200' : 'text-emerald-700 bg-emerald-100 border-emerald-200'}`}>Trab: Entrou {hrEntrada}{extra}</span>;
+                              }
+
+                              if (pt.status_jornada === 2) {
+                                 const hrSaidaInt = new Date(pt.hora_saida_intervalo).toLocaleTimeString('pt-BR').slice(0,5);
+                                 return <span className="text-[11px] font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-md border border-amber-200">No Intervalo: Saiu {hrSaidaInt}</span>;
+                              }
+
+                              if (pt.status_jornada === 3) {
+                                 const hrVolta = new Date(pt.hora_retorno_intervalo).toLocaleTimeString('pt-BR').slice(0,5);
+                                 let intTexto = "";
+                                 const minSaida = dateToMin(pt.hora_saida_intervalo);
+                                 let minVolta = dateToMin(pt.hora_retorno_intervalo);
+                                 if (minVolta < minSaida) minVolta += 24 * 60; // Virou a noite
+                                 const duracao = minVolta - minSaida; 
+                                 const limite = f.tempo_intervalo || 60;
+                                 
+                                 if(duracao > limite) {
+                                    intTexto = ` (Tirou ${minToStr(duracao)}, o limite é ${minToStr(limite)})`;
+                                    return <span className="text-[11px] font-bold text-rose-700 bg-rose-100 px-2.5 py-1 rounded-md border border-rose-200">Voltou {hrVolta}{intTexto}</span>;
+                                 }
+                                 return <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-md border border-emerald-200">Voltou {hrVolta} (Intervalo OK)</span>;
+                              }
+
+                              if (pt.status_jornada === 4) {
+                                 const hrSaida = new Date(pt.hora_saida).toLocaleTimeString('pt-BR').slice(0,5);
+                                 return <span className="text-[11px] font-bold text-blue-700 bg-blue-100 px-2.5 py-1 rounded-md border border-blue-200">Expediente Concluído: Saiu {hrSaida}</span>;
+                              }
+
                               return <span className="text-[11px] font-bold text-slate-400">--</span>;
                            })()}
                         </td>
@@ -238,6 +307,26 @@ export default function RHPage() {
                   <div>
                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Salário Base (R$)</label>
                      <input type="number" value={novoFunc.salario} onChange={e=>setNovoFunc({...novoFunc, salario: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-emerald-600 outline-none focus:border-emerald-500"/>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-4 mt-4">
+                     <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Entrada (HH:MM)</label>
+                        <input type="time" value={novoFunc.horario_entrada || ""} onChange={e=>setNovoFunc({...novoFunc, horario_entrada: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                     </div>
+                     <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Saída (HH:MM)</label>
+                        <input type="time" value={novoFunc.horario_saida || ""} onChange={e=>setNovoFunc({...novoFunc, horario_saida: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                     </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                     <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Dias Trabalho (Ex: 1,2,3,4,5,6)</label>
+                        <input type="text" placeholder="0=Dom, 1=Seg..." value={novoFunc.dias_trabalho || ""} onChange={e=>setNovoFunc({...novoFunc, dias_trabalho: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500 text-sm"/>
+                     </div>
+                     <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Intervalo (Minutos)</label>
+                        <input type="number" value={novoFunc.tempo_intervalo || ""} onChange={e=>setNovoFunc({...novoFunc, tempo_intervalo: e.target.value})} placeholder="Ex: 60" className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                     </div>
                   </div>
                </div>
 

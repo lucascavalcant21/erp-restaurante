@@ -130,7 +130,12 @@ export default function RHPage() {
            </div>
          </div>
          <div className="flex items-center gap-3">
-            <a href={`/api/afd?unidadeId=${unidadeAtiva}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-slate-800 text-white px-5 py-3 rounded-xl font-bold hover:bg-slate-900 transition-colors shadow-lg shadow-slate-800/20">
+            <a 
+               href={(!unidadeAtiva || unidadeAtiva === "todas") ? "#" : `/api/afd?unidadeId=${unidadeAtiva}`} 
+               onClick={(e) => { if(!unidadeAtiva || unidadeAtiva === "todas") { e.preventDefault(); alert("Por favor, selecione uma unidade específica no menu lateral esquerdo para exportar o AFD daquela empresa."); } }}
+               target={(!unidadeAtiva || unidadeAtiva === "todas") ? "_self" : "_blank"} 
+               rel="noreferrer" 
+               className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold transition-colors shadow-lg ${(!unidadeAtiva || unidadeAtiva === "todas") ? "bg-slate-300 text-slate-500 cursor-not-allowed" : "bg-slate-800 text-white hover:bg-slate-900 shadow-slate-800/20"}`}>
                <FileText size={18} /> Exportar AFD
             </a>
             <button onClick={() => setModalNovo(true)} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">

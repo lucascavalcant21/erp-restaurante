@@ -564,13 +564,13 @@ export default function RHPage() {
       {/* Modal Adicionar/Editar Funcionário */}
       {modalNovo && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-[32px] w-full max-w-md p-8 shadow-2xl animate-in zoom-in-95">
-               <div className="flex justify-between items-center mb-6">
+            <div className="bg-white rounded-[32px] w-full max-w-md p-6 sm:p-8 shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[95vh] overflow-hidden">
+               <div className="flex justify-between items-center mb-6 shrink-0 border-b border-slate-100 pb-4">
                   <h2 className="font-black text-2xl text-slate-800">{editandoId ? "Editar Colaborador" : "Novo Funcionário"}</h2>
                   <button onClick={() => setModalNovo(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
                </div>
 
-               <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2 pb-4">
+               <div className="space-y-4 flex-1 overflow-y-auto pr-2 pb-4 custom-scrollbar">
                   <div className="grid grid-cols-2 gap-4">
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Tipo de Contrato</label>
@@ -690,9 +690,11 @@ export default function RHPage() {
                   </div>
                </div>
 
-               <button onClick={handleSalvar} disabled={!novoFunc.nome} className="w-full mt-6 py-5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95">
-                  {editandoId ? "Salvar Alterações" : "Salvar Colaborador"}
-               </button>
+               <div className="mt-4 pt-4 border-t border-slate-100 shrink-0">
+                  <button onClick={handleSalvar} disabled={!novoFunc.nome} className="w-full py-5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95">
+                     {editandoId ? "Salvar Alterações" : "Salvar Colaborador"}
+                  </button>
+               </div>
             </div>
          </div>
       )}

@@ -108,6 +108,14 @@ export default function EtiquetasPage() {
 
   return (
     <div className="min-h-screen">
+      <style dangerouslySetInnerHTML={{__html: `
+        @media print {
+          body * { visibility: hidden !important; }
+          #area-impressao, #area-impressao * { visibility: visible !important; }
+          #area-impressao { position: absolute; left: 0; top: 0; margin: 0; padding: 0; background: #fff !important; color: #000 !important; }
+          @page { margin: 0; }
+        }
+      `}} />
       <PageHeader title="Etiquetas" subtitle={`QR Code + rastreio · ${unidadeInfo.nome}`} icon={Tag} />
       <PageBody>
         <Toast show={!!salvou}>{salvou}</Toast>

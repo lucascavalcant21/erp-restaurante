@@ -226,10 +226,3 @@ button, a { cursor: pointer; transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
   animation: fadeIn 500ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Impressao de etiqueta (impressora termica) */
-@media print {
-  body * { visibility: hidden !important; }
-  #area-impressao, #area-impressao * { visibility: visible !important; }
-  #area-impressao { position: absolute; left: 0; top: 0; margin: 0; padding: 0; background: #fff !important; color: #000 !important; }
-  @page { margin: 0; }
-}

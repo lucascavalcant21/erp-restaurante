@@ -62,9 +62,27 @@ export async function GET(request) {
 
     // 4. Construção do AFD
     let nsr = 1;
-    const dataHoje = new Date();
-    const dataGeracao = padL(dataHoje.getDate(), 2) + padL(dataHoje.getMonth() + 1, 2) + dataHoje.getFullYear();
-    const horaGeracao = padL(dataHoje.getHours(), 2) + padL(dataHoje.getMinutes(), 2);
+    const formatterSP = new Intl.DateTimeFormat("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit",
+      hour12: false
+    });
+    
+    const getParts = (dateObj) => {
+       const parts = formatterSP.formatToParts(dateObj);
+       return {
+          D: parts.find(p => p.type === 'day')?.value || "00",
+          M: parts.find(p => p.type === 'month')?.value || "00",
+          Y: parts.find(p => p.type === 'year')?.value || "0000",
+          h: parts.find(p => p.type === 'hour')?.value || "00",
+          m: parts.find(p => p.type === 'minute')?.value || "00"
+       };
+    };
+
+    const hojeP = getParts(new Date());
+    const dataGeracao = hojeP.D + hojeP.M + hojeP.Y;
+    const horaGeracao = hojeP.h + hojeP.m;
     
     const cnpjApenasNum = soNumeros(unidade.cnpj || "00000000000000");
 
@@ -92,8 +110,8 @@ export async function GET(request) {
 
        const adicionarBatida = (horaISO, tipoBatidaChar) => {
           if(!horaISO) return;
-          const d = new Date(horaISO);
-          const horaStr = padL(d.getHours(), 2) + padL(d.getMinutes(), 2);
+          const bp = getParts(new Date(horaISO));
+          const horaStr = bp.h + bp.m;
           
           const detalhe = "3" + 
                           padL(nsr.toString(), 9) + 

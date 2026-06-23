@@ -23,35 +23,49 @@ const MODULES = [
 function DesktopSidebar({ onSair }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { unidadeInfo } = useERP();
+  
+  const bgColor = unidadeInfo?.cor || "#0A1128";
 
   return (
-    <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-[80px] bg-[#0A1128] flex-col items-center py-6 z-50 border-r border-slate-800 shadow-2xl">
-      <div onClick={() => router.push('/dashboard')} className="w-12 h-12 bg-emerald-600 hover:bg-emerald-500 transition-all rounded-[14px] flex items-center justify-center mb-6 text-white font-black text-xl cursor-pointer shadow-[0_4px_14px_rgba(5,150,105,0.4)] hover:shadow-[0_8px_24px_rgba(5,150,105,0.6)] hover:-translate-y-1">
-        H
-      </div>
+    <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-[80px] flex-col items-center py-6 z-50 border-r border-slate-800 shadow-2xl overflow-hidden transition-colors duration-500" style={{ backgroundColor: bgColor }}>
+      
+      {/* Overlay escuro para garantir que os ícones brancos fiquem legíveis independente da cor */}
+      <div className="absolute inset-0 bg-black/30 pointer-events-none"></div>
+      
+      <div className="relative z-10 flex flex-col items-center w-full h-full">
+        <div className="flex flex-col items-center w-full mb-6 cursor-pointer" onClick={() => router.push('/dashboard')}>
+          <div className="w-12 h-12 bg-white/20 hover:bg-white/30 backdrop-blur-md transition-all rounded-[14px] flex items-center justify-center text-white font-black text-xl shadow-lg hover:-translate-y-1">
+            {unidadeInfo?.nome ? unidadeInfo.nome.charAt(0).toUpperCase() : 'ERP'}
+          </div>
+          <span className="text-[8px] font-black uppercase text-white/80 text-center w-full truncate px-1 mt-2 tracking-widest" title={unidadeInfo?.nome}>
+            {unidadeInfo?.nome || 'Matriz'}
+          </span>
+        </div>
 
-      <div className="flex-1 flex flex-col w-full gap-2 px-2 overflow-y-auto custom-scrollbar">
-        {MODULES.map(item => {
-          const active = pathname.includes(item.href);
-          return (
-            <button key={item.id} onClick={() => router.push(item.href)} title={item.label}
-              className={`flex flex-col items-center justify-center w-full aspect-square rounded-2xl transition-all duration-300 group relative ${active ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 -translate-y-1' : 'text-slate-400 hover:text-white hover:bg-slate-800/50 hover:-translate-y-1'}`}>
-              <item.icon size={22} className={active ? '' : 'group-hover:scale-110 transition-transform'} />
-              <span className="text-[9px] font-bold uppercase mt-1.5 px-1 text-center leading-tight opacity-80">{item.label}</span>
-            </button>
-          );
-        })}
-      </div>
+        <div className="flex-1 flex flex-col w-full gap-2 px-2 overflow-y-auto custom-scrollbar">
+          {MODULES.map(item => {
+            const active = pathname.includes(item.href);
+            return (
+              <button key={item.id} onClick={() => router.push(item.href)} title={item.label}
+                className={`flex flex-col items-center justify-center w-full aspect-square rounded-2xl transition-all duration-300 group relative ${active ? 'bg-white/20 text-white shadow-lg shadow-black/20 -translate-y-1' : 'text-white/60 hover:text-white hover:bg-white/10 hover:-translate-y-1'}`}>
+                <item.icon size={22} className={active ? '' : 'group-hover:scale-110 transition-transform'} />
+                <span className="text-[9px] font-bold uppercase mt-1.5 px-1 text-center leading-tight opacity-80">{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
 
-      <div className="w-full px-2 mt-4 flex flex-col gap-2">
-         <button onClick={() => router.push('/dashboard/lojas')} title="Gerenciar Lojas" className="flex flex-col items-center justify-center w-full aspect-square text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-2xl transition-all duration-300 hover:-translate-y-1">
-           <Settings size={22} />
-           <span className="text-[9px] font-bold uppercase mt-1.5 px-1 text-center leading-tight">Lojas</span>
-         </button>
-         <button onClick={onSair} title="Sair" className="flex flex-col items-center justify-center w-full aspect-square text-slate-400 hover:text-slate-500 hover:bg-emerald-500/10 rounded-2xl transition-all duration-300 hover:-translate-y-1">
-           <LogOut size={22} />
-           <span className="text-[9px] font-bold uppercase mt-1.5 px-1 text-center leading-tight">Sair</span>
-         </button>
+        <div className="w-full px-2 mt-4 flex flex-col gap-2">
+           <button onClick={() => router.push('/dashboard/lojas')} title="Gerenciar Lojas" className="flex flex-col items-center justify-center w-full aspect-square text-white/60 hover:text-white hover:bg-white/10 rounded-2xl transition-all duration-300 hover:-translate-y-1">
+             <Settings size={22} />
+             <span className="text-[9px] font-bold uppercase mt-1.5 px-1 text-center leading-tight">Lojas</span>
+           </button>
+           <button onClick={onSair} title="Sair" className="flex flex-col items-center justify-center w-full aspect-square text-white/60 hover:text-white hover:bg-white/10 rounded-2xl transition-all duration-300 hover:-translate-y-1">
+             <LogOut size={22} />
+             <span className="text-[9px] font-bold uppercase mt-1.5 px-1 text-center leading-tight">Sair</span>
+           </button>
+        </div>
       </div>
     </aside>
   );

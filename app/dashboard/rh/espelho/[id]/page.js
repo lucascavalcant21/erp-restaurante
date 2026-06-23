@@ -191,7 +191,7 @@ export default function EspelhoDePonto() {
          <div className="mt-12 flex justify-between w-full px-12 text-[10px] font-bold uppercase text-center gap-10">
             <div className="w-[45%]">
                <div className="border-b border-slate-800 mb-1"></div>
-               {colaborador.unidade?.nome || "Assinatura do Empregador"}
+               {colaborador.unidade?.nome ? `Responsável ${colaborador.unidade.nome}` : "Responsável pela Empresa"}
             </div>
             <div className="w-[45%]">
                <div className="border-b border-slate-800 mb-1"></div>

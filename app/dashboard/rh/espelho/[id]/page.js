@@ -188,12 +188,12 @@ export default function EspelhoDePonto() {
          </table>
 
          {/* Assinaturas */}
-         <div className="mt-4 flex justify-between px-10 text-[10px] font-bold uppercase text-center">
-            <div className="w-56">
+         <div className="mt-12 flex justify-between w-full px-12 text-[10px] font-bold uppercase text-center gap-10">
+            <div className="w-[45%]">
                <div className="border-b border-slate-800 mb-1"></div>
                {colaborador.unidade?.nome || "Assinatura do Empregador"}
             </div>
-            <div className="w-56">
+            <div className="w-[45%]">
                <div className="border-b border-slate-800 mb-1"></div>
                {colaborador.nome}
             </div>

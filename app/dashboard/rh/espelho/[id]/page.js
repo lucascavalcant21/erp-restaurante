@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
-import { supabase } from "../../../../../lib/supabase";
-import { fetchPontosMes } from "../../../../../lib/ponto";
+import { supabase } from "../../../../lib/supabase";
+import { fetchPontosMes } from "../../../../lib/ponto";
 import { Printer, ArrowLeft } from "lucide-react";
 
 export default function EspelhoDePonto() {

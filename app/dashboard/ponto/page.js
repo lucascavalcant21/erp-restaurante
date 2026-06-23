@@ -127,8 +127,12 @@ export default function PontoPage() {
      if(!colabAtivo) return;
      const { error } = await registrarBatida(colabAtivo.id, unidadeAtiva, tipo);
      if(error) return alert(error);
-     setColabAtivo(null);
-     carregar();
+     
+     // Recarrega os dados para mostrar o checkmark verde
+     await carregar();
+     
+     // Dá um feedback visual para o usuário
+     alert("Ponto registrado com sucesso!");
   };
 
   if(!unidadeAtiva) return <div className="p-10 font-bold text-slate-500">Selecione uma loja no topo.</div>;

@@ -7,7 +7,7 @@ import { fetchColaboradores, inserirColaborador, atualizarColaborador, removerCo
 import { fetchPontoHoje } from "../../lib/ponto";
 import { salvarConta } from "../../lib/financeiro";
 import { 
-  Users, UserPlus, FileText, Upload, Save, X, Search, Trash2, Loader2, CalendarHeart, Star, Phone, CreditCard, ClipboardList
+  Users, UserPlus, FileText, Upload, Save, X, Search, Trash2, Loader2, CalendarHeart, Star, Phone, CreditCard, ClipboardList, Clock, CalendarDays
 } from "lucide-react";
 import { fmtBRL } from "../../components/ui";
 
@@ -20,7 +20,7 @@ export default function RHPage() {
   const [cargos, setCargos] = useState([]);
   const [busca, setBusca] = useState("");
   const [abaAtiva, setAbaAtiva] = useState("Fixo");
-  const statePadrao = { nome: "", cargo: "", salario: "", horario_entrada: "", horario_saida: "", dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60, tipo_contrato: "Fixo", telefone: "", cpf: "", chave_pix: "", avaliacao_estrelas: 0, anotacoes_rh: "" };
+  const statePadrao = { nome: "", cargo: "", salario: "", horario_entrada: "", horario_saida: "", dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60, tipo_contrato: "Fixo", telefone: "", cpf: "", chave_pix: "", avaliacao_estrelas: 0, anotacoes_rh: "", data_admissao: "", status_contrato: "Definitivo" };
   const [modalNovo, setModalNovo] = useState(false);
   const [novoFunc, setNovoFunc] = useState(statePadrao);
   const [editandoId, setEditandoId] = useState(null);
@@ -84,7 +84,9 @@ export default function RHPage() {
        cpf: f.cpf || "",
        chave_pix: f.chave_pix || "",
        avaliacao_estrelas: f.avaliacao_estrelas || 0,
-       anotacoes_rh: f.anotacoes_rh || ""
+       anotacoes_rh: f.anotacoes_rh || "",
+       data_admissao: f.data_admissao || "",
+       status_contrato: f.status_contrato || "Definitivo"
     });
     setModalNovo(true);
   };
@@ -106,7 +108,9 @@ export default function RHPage() {
       cpf: novoFunc.cpf,
       chave_pix: novoFunc.chave_pix,
       avaliacao_estrelas: Number(novoFunc.avaliacao_estrelas) || 0,
-      anotacoes_rh: novoFunc.anotacoes_rh
+      anotacoes_rh: novoFunc.anotacoes_rh,
+      data_admissao: novoFunc.data_admissao || null,
+      status_contrato: novoFunc.status_contrato
     };
 
     if (editandoId) {
@@ -126,6 +130,34 @@ export default function RHPage() {
       await removerColaborador(id);
       carregar();
     }
+  };
+
+  const calcularProgresso = (f) => {
+     if (f.tipo_contrato !== "Fixo" || !f.data_admissao) return null;
+     const dAdm = new Date(f.data_admissao + "T12:00:00Z");
+     const hj = new Date();
+     hj.setHours(0,0,0,0);
+     dAdm.setHours(0,0,0,0);
+     
+     const diffDias = Math.floor((hj - dAdm) / (1000 * 60 * 60 * 24));
+     
+     if (f.status_contrato && f.status_contrato.startsWith("Experiência")) {
+        const m = f.status_contrato.match(/\d+/);
+        if (m) {
+           const diasTotal = parseInt(m[0], 10);
+           const faltam = diasTotal - diffDias;
+           if (faltam > 0) return { text: `Faltam ${faltam} dias (Experiência)`, color: 'text-amber-700 bg-amber-50 border-amber-200' };
+           else return { text: `Vencido há ${Math.abs(faltam)} dias`, color: 'text-rose-700 bg-rose-50 border-rose-200' };
+        }
+     } else if (f.status_contrato === "Definitivo") {
+        const anoAtual = hj.getFullYear();
+        let prox = new Date(dAdm);
+        prox.setFullYear(anoAtual);
+        if (hj > prox) prox.setFullYear(anoAtual + 1);
+        const faltamFerias = Math.floor((prox - hj) / (1000 * 60 * 60 * 24));
+        return { text: `Faltam ${faltamFerias} dias p/ Férias`, color: 'text-indigo-700 bg-indigo-50 border-indigo-200' };
+     }
+     return null;
   };
 
   const handleLancarFinanceiro = async (f) => {
@@ -311,6 +343,16 @@ export default function RHPage() {
                            <div className="font-bold text-slate-700">{f.cargo}</div>
                            {f.telefone && <div className="text-[11px] font-semibold text-slate-500 flex items-center gap-1 mt-1"><Phone size={10}/> {f.telefone}</div>}
                            {f.chave_pix && <div className="text-[11px] font-semibold text-slate-500 flex items-center gap-1 mt-0.5"><CreditCard size={10}/> PIX: {f.chave_pix}</div>}
+                           {(() => {
+                              const prog = calcularProgresso(f);
+                              if(!prog) return null;
+                              return (
+                                 <div className={`text-[10px] font-bold px-2 py-0.5 mt-2 rounded border inline-block ${prog.color}`}>
+                                    <Clock size={10} className="inline mr-1 -mt-0.5" />
+                                    {prog.text}
+                                 </div>
+                              );
+                           })()}
                         </td>
                         <td className="p-4 font-black text-emerald-700">{fmtBRL(f.salario)}</td>
                         <td className="p-4">
@@ -487,6 +529,25 @@ export default function RHPage() {
                         <input type="number" value={novoFunc.salario} onChange={e=>setNovoFunc({...novoFunc, salario: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-emerald-600 outline-none focus:border-emerald-500"/>
                      </div>
                   </div>
+
+                  {novoFunc.tipo_contrato === "Fixo" && (
+                     <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-4 mt-4 bg-indigo-50/30 p-4 rounded-2xl">
+                        <div>
+                           <label className="text-xs font-bold text-indigo-600 uppercase tracking-widest block mb-1">Data de Admissão</label>
+                           <input type="date" value={novoFunc.data_admissao || ""} onChange={e=>setNovoFunc({...novoFunc, data_admissao: e.target.value})} className="w-full p-4 bg-white border border-slate-200 rounded-xl font-bold outline-none focus:border-indigo-500 text-slate-700"/>
+                        </div>
+                        <div>
+                           <label className="text-xs font-bold text-indigo-600 uppercase tracking-widest block mb-1">Fase do Contrato</label>
+                           <select value={novoFunc.status_contrato} onChange={e=>setNovoFunc({...novoFunc, status_contrato: e.target.value})} className="w-full p-4 bg-white border border-slate-200 rounded-xl font-bold outline-none focus:border-indigo-500 text-slate-700 appearance-none">
+                              <option value="Experiência (30 dias)">Experiência (30 dias)</option>
+                              <option value="Experiência (45 dias)">Experiência (45 dias)</option>
+                              <option value="Experiência (90 dias)">Experiência (90 dias)</option>
+                              <option value="Definitivo">Contrato Definitivo</option>
+                           </select>
+                        </div>
+                     </div>
+                  )}
+
                   <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-4 mt-4">
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Entrada (HH:MM)</label>

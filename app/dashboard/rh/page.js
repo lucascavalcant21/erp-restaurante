@@ -131,7 +131,7 @@ export default function RHPage() {
          </div>
          <div className="flex items-center gap-3">
             <a 
-               href={(!unidadeAtiva || unidadeAtiva === "todas") ? "#" : `/api/afd?unidadeId=${unidadeAtiva}`} 
+               href={(!unidadeAtiva || unidadeAtiva === "todas") ? "#" : `/exportar-afd?unidadeId=${unidadeAtiva}`} 
                onClick={(e) => { if(!unidadeAtiva || unidadeAtiva === "todas") { e.preventDefault(); alert("Por favor, selecione uma unidade específica no menu lateral esquerdo para exportar o AFD daquela empresa."); } }}
                target={(!unidadeAtiva || unidadeAtiva === "todas") ? "_self" : "_blank"} 
                rel="noreferrer" 

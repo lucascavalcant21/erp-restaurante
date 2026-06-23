@@ -8,7 +8,8 @@ export async function fetchPontoHoje(unidadeId) {
     .from("registro_ponto")
     .select("*")
     .eq("unidade_id", unidadeId)
-    .eq("data_referencia", hoje);
+    .eq("data_referencia", hoje)
+    .order("created_at", { ascending: false });
     
   if (error) {
     console.error("Erro ao buscar pontos:", error);

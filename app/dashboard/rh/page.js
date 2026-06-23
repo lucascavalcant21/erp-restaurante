@@ -3,11 +3,11 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useERP } from "../../context/ERPContext";
-import { fetchColaboradores, inserirColaborador, atualizarColaborador, removerColaborador, fetchDocumentos, uploadDocumentoRH, removerDocumento, fetchCargos } from "../../lib/rh";
+import { fetchColaboradores, inserirColaborador, atualizarColaborador, removerColaborador, fetchDocumentos, uploadDocumentoRH, removerDocumento, fetchCargos, fetchFolgasEsporadicas, inserirFolgaEsporadica, removerFolgaEsporadica } from "../../lib/rh";
 import { fetchPontoHoje } from "../../lib/ponto";
 import { salvarConta } from "../../lib/financeiro";
 import { 
-  Users, UserPlus, FileText, Upload, Save, X, Search, Trash2, Loader2
+  Users, UserPlus, FileText, Upload, Save, X, Search, Trash2, Loader2, CalendarHeart
 } from "lucide-react";
 import { fmtBRL } from "../../components/ui";
 
@@ -27,6 +27,11 @@ export default function RHPage() {
 
   const fileInputRef = useRef(null);
   const [funcParaUpload, setFuncParaUpload] = useState(null);
+  
+  const [modalFolgas, setModalFolgas] = useState(false);
+  const [funcParaFolgas, setFuncParaFolgas] = useState(null);
+  const [folgasEsporadicas, setFolgasEsporadicas] = useState([]);
+  const [novaFolgaData, setNovaFolgaData] = useState("");
 
   const carregar = async () => {
     setLoading(true);
@@ -149,6 +154,30 @@ export default function RHPage() {
      if(confirm("Apagar este documento permanentemente?")) {
         await removerDocumento(docId, url);
         carregar();
+     }
+  };
+
+  const abrirModalFolgas = async (f) => {
+     setFuncParaFolgas(f);
+     setModalFolgas(true);
+     setNovaFolgaData("");
+     const res = await fetchFolgasEsporadicas(f.id);
+     setFolgasEsporadicas(res.data || []);
+  };
+  
+  const handleAdicionarFolga = async () => {
+     if(!novaFolgaData) return;
+     await inserirFolgaEsporadica(unidadeAtiva, funcParaFolgas.id, novaFolgaData);
+     setNovaFolgaData("");
+     const res = await fetchFolgasEsporadicas(funcParaFolgas.id);
+     setFolgasEsporadicas(res.data || []);
+  };
+
+  const handleRemoverFolga = async (id) => {
+     if(confirm("Remover esta folga?")) {
+        await removerFolgaEsporadica(id);
+        const res = await fetchFolgasEsporadicas(funcParaFolgas.id);
+        setFolgasEsporadicas(res.data || []);
      }
   };
 
@@ -301,6 +330,9 @@ export default function RHPage() {
                                  <button onClick={() => router.push(`/dashboard/rh/contrato/${f.id}`)} className="flex items-center gap-1 text-xs font-black text-slate-600 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-200 transition-colors">
                                     <FileText size={14}/> Regulamento
                                  </button>
+                                 <button onClick={() => abrirModalFolgas(f)} className="flex items-center gap-1 text-xs font-black text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg hover:bg-rose-100 transition-colors">
+                                    <CalendarHeart size={14}/> Folgas
+                                 </button>
                                  <button onClick={() => handleLancarFinanceiro(f)} className="flex items-center gap-1 text-xs font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition-colors">
                                     Lançar Salário
                                  </button>
@@ -393,6 +425,48 @@ export default function RHPage() {
                <button onClick={handleSalvar} disabled={!novoFunc.nome} className="w-full mt-8 py-5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95">
                   {editandoId ? "Salvar Alterações" : "Salvar Colaborador"}
                </button>
+            </div>
+         </div>
+      )}
+
+      {/* Modal Gerenciar Folgas */}
+      {modalFolgas && funcParaFolgas && (
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-[32px] w-full max-w-md p-8 shadow-2xl animate-in zoom-in-95">
+               <div className="flex justify-between items-center mb-6">
+                  <div>
+                     <h2 className="font-black text-2xl text-slate-800">Gerenciar Folgas</h2>
+                     <p className="text-xs font-bold text-slate-500">{funcParaFolgas.nome}</p>
+                  </div>
+                  <button onClick={() => setModalFolgas(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+               </div>
+
+               <div className="bg-slate-50 p-4 rounded-2xl mb-6 border border-slate-100">
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Folgas Fixas (Semanais)</p>
+                  <p className="text-sm font-medium text-slate-700 leading-snug">
+                     Estas são calculadas pelos "Dias de Trabalho". As folgas semanais de <b>{funcParaFolgas.nome}</b> são os dias da semana que NÃO estão marcados na edição do funcionário.
+                  </p>
+               </div>
+
+               <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Adicionar Folga Extra (Data Específica)</label>
+                  <div className="flex gap-2">
+                     <input type="date" value={novaFolgaData} onChange={e=>setNovaFolgaData(e.target.value)} className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500 text-slate-700"/>
+                     <button onClick={handleAdicionarFolga} className="bg-emerald-600 text-white px-4 font-bold rounded-xl hover:bg-emerald-700 transition-colors">Adicionar</button>
+                  </div>
+               </div>
+
+               <div className="mt-6 space-y-2 max-h-60 overflow-y-auto pr-2">
+                  {folgasEsporadicas.length === 0 ? (
+                     <p className="text-center text-sm font-bold text-slate-400 py-4">Nenhuma folga extra agendada.</p>
+                  ) : folgasEsporadicas.map(folga => (
+                     <div key={folga.id} className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        <span className="font-bold text-slate-700">{new Date(folga.data_folga).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</span>
+                        <button onClick={() => handleRemoverFolga(folga.id)} className="text-slate-400 hover:text-rose-600 transition-colors"><Trash2 size={16}/></button>
+                     </div>
+                  ))}
+               </div>
+
             </div>
          </div>
       )}

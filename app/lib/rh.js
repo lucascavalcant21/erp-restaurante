@@ -169,3 +169,25 @@ export const atualizarTurno = async () => { return { error: null }; };
 export const removerTurno = async () => { return { error: null }; };
 export const inserirCargosPadrao = async () => { return { error: null }; };
 
+export async function fetchFolgasEsporadicas(colaboradorId) {
+  if (!isSupabaseReady()) return { data: [], error: "Offline" };
+  const { data, error } = await supabase.from("rh_folgas_esporadicas").select("*").eq("colaborador_id", colaboradorId).order("data_folga");
+  return { data: data || [], error: error?.message };
+}
+
+export async function inserirFolgaEsporadica(unidadeId, colaboradorId, dataFolga) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase.from("rh_folgas_esporadicas").insert([{
+    unidade_id: unidadeId,
+    colaborador_id: colaboradorId,
+    data_folga: dataFolga
+  }]);
+  return { error: error?.message };
+}
+
+export async function removerFolgaEsporadica(id) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase.from("rh_folgas_esporadicas").delete().eq("id", id);
+  return { error: error?.message };
+}
+

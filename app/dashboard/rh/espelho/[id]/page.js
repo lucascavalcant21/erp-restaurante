@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabase";
 import { fetchPontosMes } from "../../../../lib/ponto";
+import { fetchFolgasEsporadicas } from "../../../../lib/rh";
 import { Printer, ArrowLeft } from "lucide-react";
 
 export default function EspelhoDePonto() {
@@ -16,6 +17,7 @@ export default function EspelhoDePonto() {
 
   const [colaborador, setColaborador] = useState(null);
   const [pontos, setPontos] = useState([]);
+  const [folgasEsporadicas, setFolgasEsporadicas] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -40,6 +42,11 @@ export default function EspelhoDePonto() {
       // Busca Pontos
       const { data: pts } = await fetchPontosMes(colabId, mesParam);
       setPontos(pts || []);
+
+      // Busca Folgas Esporádicas
+      const resFolgas = await fetchFolgasEsporadicas(colabId);
+      setFolgasEsporadicas(resFolgas.data || []);
+
       setLoading(false);
     }
     carregar();
@@ -129,6 +136,23 @@ export default function EspelhoDePonto() {
                {arrayDias.map(dia => {
                   const dataString = `${mesParam}-${dia.toString().padStart(2,'0')}`;
                   const reg = pontos.find(p => p.data_referencia === dataString);
+                  
+                  // Verifica se é folga
+                  const dataObj = new Date(dataString + "T12:00:00Z");
+                  const diaSemana = dataObj.getUTCDay().toString();
+                  const isFolgaFixa = colaborador?.dias_trabalho ? !colaborador.dias_trabalho.split(',').includes(diaSemana) : false;
+                  const isFolgaEsporadica = folgasEsporadicas.some(f => f.data_folga === dataString);
+                  const isFolga = isFolgaFixa || isFolgaEsporadica;
+
+                  if (isFolga && !reg) {
+                      return (
+                         <tr key={dia}>
+                            <td className="border border-slate-800 !py-0 !px-1 font-bold bg-slate-50 text-slate-500">{dia.toString().padStart(2,'0')}</td>
+                            <td colSpan={5} className="border border-slate-800 !py-0 !px-1 font-black tracking-[0.5em] text-slate-400 bg-slate-50">FOLGA</td>
+                            <td className="border border-slate-800 !py-0 !px-1"></td>
+                         </tr>
+                      );
+                  }
                   
                   // Calculando horas do dia
                   let horasDia = 0;

@@ -134,30 +134,38 @@ export default function RHPage() {
 
   const calcularProgresso = (f) => {
      if (f.tipo_contrato !== "Fixo" || !f.data_admissao) return null;
+     const badges = [];
      const dAdm = new Date(f.data_admissao + "T12:00:00Z");
      const hj = new Date();
      hj.setHours(0,0,0,0);
      dAdm.setHours(0,0,0,0);
      
      const diffDias = Math.floor((hj - dAdm) / (1000 * 60 * 60 * 24));
+     const anoAtual = hj.getFullYear();
      
      if (f.status_contrato && f.status_contrato.startsWith("Experiência")) {
         const m = f.status_contrato.match(/\d+/);
         if (m) {
            const diasTotal = parseInt(m[0], 10);
            const faltam = diasTotal - diffDias;
-           if (faltam > 0) return { text: `Faltam ${faltam} dias (Experiência)`, color: 'text-amber-700 bg-amber-50 border-amber-200' };
-           else return { text: `Vencido há ${Math.abs(faltam)} dias`, color: 'text-rose-700 bg-rose-50 border-rose-200' };
+           if (faltam > 0) badges.push({ text: `Faltam ${faltam} dias (Experiência)`, color: 'text-amber-700 bg-amber-50 border-amber-200' });
+           else badges.push({ text: `Vencido há ${Math.abs(faltam)} dias`, color: 'text-rose-700 bg-rose-50 border-rose-200' });
         }
      } else if (f.status_contrato === "Definitivo") {
-        const anoAtual = hj.getFullYear();
         let prox = new Date(dAdm);
         prox.setFullYear(anoAtual);
         if (hj > prox) prox.setFullYear(anoAtual + 1);
         const faltamFerias = Math.floor((prox - hj) / (1000 * 60 * 60 * 24));
-        return { text: `Faltam ${faltamFerias} dias p/ Férias`, color: 'text-indigo-700 bg-indigo-50 border-indigo-200' };
+        badges.push({ text: `1 Ano em ${faltamFerias} dias`, color: 'text-indigo-700 bg-indigo-50 border-indigo-200' });
      }
-     return null;
+
+     // Férias Coletivas
+     let proxColetiva = new Date(anoAtual, 11, 21); // 21 de Dezembro
+     if (hj > proxColetiva) proxColetiva.setFullYear(anoAtual + 1);
+     const faltamColetiva = Math.floor((proxColetiva - hj) / (1000 * 60 * 60 * 24));
+     badges.push({ text: `Coletivas em ${faltamColetiva} dias (21/12)`, color: 'text-teal-700 bg-teal-50 border-teal-200' });
+
+     return badges;
   };
 
   const handleLancarFinanceiro = async (f) => {
@@ -344,12 +352,16 @@ export default function RHPage() {
                            {f.telefone && <div className="text-[11px] font-semibold text-slate-500 flex items-center gap-1 mt-1"><Phone size={10}/> {f.telefone}</div>}
                            {f.chave_pix && <div className="text-[11px] font-semibold text-slate-500 flex items-center gap-1 mt-0.5"><CreditCard size={10}/> PIX: {f.chave_pix}</div>}
                            {(() => {
-                              const prog = calcularProgresso(f);
-                              if(!prog) return null;
+                              const badges = calcularProgresso(f);
+                              if(!badges || badges.length === 0) return null;
                               return (
-                                 <div className={`text-[10px] font-bold px-2 py-0.5 mt-2 rounded border inline-block ${prog.color}`}>
-                                    <Clock size={10} className="inline mr-1 -mt-0.5" />
-                                    {prog.text}
+                                 <div className="flex flex-col gap-1 mt-2">
+                                    {badges.map((b, idx) => (
+                                       <div key={idx} className={`text-[10px] font-bold px-2 py-0.5 rounded border inline-block w-fit ${b.color}`}>
+                                          <Clock size={10} className="inline mr-1 -mt-0.5" />
+                                          {b.text}
+                                       </div>
+                                    ))}
                                  </div>
                               );
                            })()}

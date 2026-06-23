@@ -82,6 +82,18 @@ export default function EspelhoDePonto() {
 
       {/* Folha A4 */}
       <div className="max-w-[210mm] mx-auto bg-white p-[10mm] shadow-md print:shadow-none print:p-0 print:m-0 min-h-[297mm] print:min-h-0">
+         <style dangerouslySetInnerHTML={{__html: `
+           @media print {
+             @page { margin: 10mm; }
+             body { -webkit-print-color-adjust: exact; }
+           }
+           .tabela-ponto th, .tabela-ponto td {
+             font-size: 10px !important;
+             line-height: 1.1 !important;
+             padding: 2px !important;
+             height: 16px !important;
+           }
+         `}} />
          
          {/* Cabeçalho */}
          <div className="border border-slate-800 p-2 mb-2">
@@ -101,7 +113,7 @@ export default function EspelhoDePonto() {
          </div>
 
          {/* Tabela de Pontos */}
-         <table className="w-full text-[9px] border-collapse border border-slate-800 text-center">
+         <table className="tabela-ponto w-full border-collapse border border-slate-800 text-center">
             <thead>
                <tr className="bg-slate-100">
                   <th className="border border-slate-800 !py-0 !px-1 w-8">DIA</th>

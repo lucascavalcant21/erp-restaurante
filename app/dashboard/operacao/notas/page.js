@@ -8,7 +8,7 @@ import {
 } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
 import {
-  fetchNotas, salvarNota, deletarNota, simularLeituraOCR, CATEGORIAS_NOTA
+  fetchNotas, salvarNota, deletarNota, simularLeituraOCR, uploadImagemNota, CATEGORIAS_NOTA
 } from "../../../lib/notas";
 import { inserirDocumento } from "../../../lib/financeiro";
 import { inserirSuprimentoCentral, entradaEstoqueCentral } from "../../../lib/suprimentos";
@@ -231,6 +231,17 @@ export default function NotasFiscaisPage() {
   }), [filtrados]);
 
   async function salvar(dadosIA, imagemBase64, lancarFinanceiro, alimentarEstoque) {
+    // 1. Upload da imagem para o Supabase Storage
+    let urlOficial = null;
+    if (imagemBase64) {
+      const { url, error: errUp } = await uploadImagemNota(imagemBase64, unidadeAtiva);
+      if (errUp) {
+        alert("Aviso: Falha ao fazer upload da imagem: " + errUp);
+      } else {
+        urlOficial = url;
+      }
+    }
+
     // Mesclar dados da IA com a imagem gerada
     // Garantir que os campos obrigatórios não fiquem vazios (o banco de dados rejeita "" para data e nulo para fornecedor)
     const payload = {
@@ -238,7 +249,7 @@ export default function NotasFiscaisPage() {
       fornecedor: dadosIA.fornecedor || "Fornecedor Não Identificado",
       data_emissao: dadosIA.data_emissao || new Date().toISOString().slice(0, 10),
       valor_total: Number(dadosIA.valor_total) || 0,
-      imagem_url: imagemBase64 // Em prod seria um link do Storage Supabase
+      imagem_url: urlOficial 
     };
     
     const resNota = await salvarNota(payload, unidadeAtiva);

@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchEstoque, ajustarEstoque } from "../../../lib/estoque";
-import { PackageSearch, Edit3, X, Save, ArrowLeft, RefreshCw, AlertCircle } from "lucide-react";
+import { PackageSearch, Edit3, X, Save, ArrowLeft, RefreshCw, AlertCircle, Search } from "lucide-react";
 
 function EstoqueRunner() {
   const router = useRouter();

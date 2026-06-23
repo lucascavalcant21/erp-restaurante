@@ -83,3 +83,14 @@ export async function removerDocumento(docId, url_arquivo) {
 }
 
 export async function fetchFuncionarios() { return { data: [], error: null }; }
+
+export const inserirFuncionario = inserirColaborador;
+export const removerFuncionario = removerColaborador;
+export async function atualizarFuncionario(id, dados) {
+  if (!isSupabaseReady()) return { data: null, error: "Offline" };
+  const { data, error } = await supabase.from("colaboradores").update(dados).eq("id", id).select().single();
+  return { data, error: error?.message };
+}
+
+export async function fetchPontoMes(unidadeId, mesAno) { return { data: [], error: null }; }
+export async function registrarPonto(dados) { return { data: null, error: null }; }

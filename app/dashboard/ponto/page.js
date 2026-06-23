@@ -4,8 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useERP } from "../../context/ERPContext";
 import { fetchColaboradores } from "../../lib/rh";
-import { fetchPontoHoje, registrarBatida } from "../../lib/ponto";
-import { Fingerprint, Search, Clock, CheckCircle2, AlertCircle, Lock, ArrowLeft, Maximize, X } from "lucide-react";
+import { fetchPontoHoje, registrarBatida, fetchHistoricoPonto } from "../../lib/ponto";
+import { Fingerprint, Search, Clock, CheckCircle2, AlertCircle, Lock, ArrowLeft, Maximize, X, Calendar } from "lucide-react";
 
 // ─── Modal de PIN ─────────────────────────────────────────────────────────────
 function ModalPIN({ onSuccess, onClose, titulo, subtitulo }) {
@@ -78,6 +78,80 @@ function ModalPIN({ onSuccess, onClose, titulo, subtitulo }) {
   );
 }
 
+// ─── Modal de Histórico ─────────────────────────────────────────────────────────────
+function ModalHistorico({ onClose, colaborador }) {
+  const [historico, setHistorico] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      const res = await fetchHistoricoPonto(colaborador.id);
+      setHistorico(res.data || []);
+      setLoading(false);
+    }
+    if (colaborador) load();
+  }, [colaborador]);
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "rgba(15,23,42,0.6)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      zIndex: 9999, backdropFilter: "blur(4px)", padding: 16
+    }}>
+      <div style={{
+        background: "#FFF", borderRadius: 24, padding: "24px",
+        width: "min(400px, 100%)", maxHeight: "80vh", display: "flex", flexDirection: "column",
+        boxShadow: "0 32px 64px rgba(0,0,0,0.2)", position: "relative"
+      }}>
+        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 bg-slate-100 p-2 rounded-full">
+          <X size={20} />
+        </button>
+        
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+             <Calendar size={24}/>
+          </div>
+          <div>
+            <h2 className="text-xl font-black text-slate-900">Histórico</h2>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{colaborador.nome}</p>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto pr-2 space-y-3">
+          {loading && <p className="text-center font-bold text-slate-500 py-10">Carregando...</p>}
+          {!loading && historico.length === 0 && <p className="text-center font-bold text-slate-500 py-10">Nenhum registro encontrado.</p>}
+          {!loading && historico.map(reg => {
+             const dataFormatada = new Date(reg.data_referencia + "T12:00:00").toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+             return (
+               <div key={reg.id} className="p-4 rounded-2xl border border-slate-200 bg-slate-50 flex flex-col gap-2">
+                 <p className="text-sm font-black text-slate-700 border-b border-slate-200 pb-2 mb-1">{dataFormatada}</p>
+                 <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                    <div>
+                       <p className="text-slate-400 font-bold uppercase text-[10px]">Entrada</p>
+                       <p className="font-bold text-slate-800">{reg.hora_entrada ? new Date(reg.hora_entrada).toLocaleTimeString('pt-BR').slice(0,5) : '--:--'}</p>
+                    </div>
+                    <div>
+                       <p className="text-slate-400 font-bold uppercase text-[10px]">Saída Int.</p>
+                       <p className="font-bold text-slate-800">{reg.hora_saida_intervalo ? new Date(reg.hora_saida_intervalo).toLocaleTimeString('pt-BR').slice(0,5) : '--:--'}</p>
+                    </div>
+                    <div>
+                       <p className="text-slate-400 font-bold uppercase text-[10px]">Volta Int.</p>
+                       <p className="font-bold text-slate-800">{reg.hora_retorno_intervalo ? new Date(reg.hora_retorno_intervalo).toLocaleTimeString('pt-BR').slice(0,5) : '--:--'}</p>
+                    </div>
+                    <div>
+                       <p className="text-slate-400 font-bold uppercase text-[10px]">Saída Final</p>
+                       <p className="font-bold text-slate-800">{reg.hora_saida ? new Date(reg.hora_saida).toLocaleTimeString('pt-BR').slice(0,5) : '--:--'}</p>
+                    </div>
+                 </div>
+               </div>
+             );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function PontoPage() {
   const router = useRouter();
   const { unidadeAtiva, unidadeInfo } = useERP();
@@ -91,6 +165,7 @@ export default function PontoPage() {
   // Controle de Trava e Tela Cheia
   const [pinOk, setPinOk] = useState(false);
   const [pedindoSaida, setPedindoSaida] = useState(false);
+  const [historicoAberto, setHistoricoAberto] = useState(false);
   const containerRef = useRef(null);
 
   const carregar = async () => {
@@ -159,6 +234,14 @@ export default function PontoPage() {
            subtitulo="Digite o PIN do Gerente para voltar ao ERP"
            onSuccess={() => router.push("/dashboard")} 
            onClose={() => setPedindoSaida(false)} 
+         />
+      )}
+
+      {/* Modal de Histórico */}
+      {historicoAberto && colabAtivo && (
+         <ModalHistorico 
+           colaborador={colabAtivo} 
+           onClose={() => setHistoricoAberto(false)} 
          />
       )}
 
@@ -239,70 +322,77 @@ export default function PontoPage() {
                           </div>
                        </div>
                        
-                       {st === 4 ? (
-                          <div className="bg-emerald-50 text-emerald-600 p-6 rounded-2xl w-full flex flex-col items-center gap-2 border border-emerald-100">
-                             <CheckCircle2 size={32}/>
-                             <p className="font-black text-xl tracking-tight">Jornada Concluída</p>
-                             <p className="font-bold text-emerald-700 text-sm">Você já bateu todos os pontos de hoje.</p>
-                          </div>
-                       ) : (
-                          <div className="w-full text-left">
-                             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-2 mb-3">Registro do Dia:</p>
-                             
-                             <div className="grid grid-cols-2 gap-3 w-full">
-                                {/* Botão 1 */}
-                                <button onClick={() => handleBaterPonto('entrada')} disabled={st !== 0} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 0 ? 'bg-emerald-600 text-white shadow-xl shadow-emerald-600/20 hover:bg-emerald-700 scale-105' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
-                                   <div className="flex items-center gap-2">
-                                      <span className="font-black text-[15px]">1. Entrada</span>
-                                      {st > 0 && <CheckCircle2 size={16} className="text-emerald-500" />}
-                                   </div>
-                                   {pontoDoDia?.hora_entrada ? (
-                                      <span className="text-sm font-black opacity-90">{new Date(pontoDoDia.hora_entrada).toLocaleTimeString('pt-BR')}</span>
-                                   ) : (
-                                      <span className="text-xs font-bold opacity-50">--:--</span>
-                                   )}
-                                </button>
-
-                                {/* Botão 2 */}
-                                <button onClick={() => handleBaterPonto('saida_intervalo')} disabled={st !== 1} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 1 ? 'bg-amber-500 text-white shadow-xl shadow-amber-500/20 hover:bg-amber-600 scale-105' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
-                                   <div className="flex items-center gap-2">
-                                      <span className="font-black text-[15px]">2. Saída Int.</span>
-                                      {st > 1 && <CheckCircle2 size={16} className="text-amber-500" />}
-                                   </div>
-                                   {pontoDoDia?.hora_saida_intervalo ? (
-                                      <span className="text-sm font-black opacity-90">{new Date(pontoDoDia.hora_saida_intervalo).toLocaleTimeString('pt-BR')}</span>
-                                   ) : (
-                                      <span className="text-xs font-bold opacity-50">--:--</span>
-                                   )}
-                                </button>
-
-                                {/* Botão 3 */}
-                                <button onClick={() => handleBaterPonto('retorno_intervalo')} disabled={st !== 2} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 2 ? 'bg-blue-500 text-white shadow-xl shadow-blue-500/20 hover:bg-blue-600 scale-105' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
-                                   <div className="flex items-center gap-2">
-                                      <span className="font-black text-[15px]">3. Volta Int.</span>
-                                      {st > 2 && <CheckCircle2 size={16} className="text-blue-500" />}
-                                   </div>
-                                   {pontoDoDia?.hora_retorno_intervalo ? (
-                                      <span className="text-sm font-black opacity-90">{new Date(pontoDoDia.hora_retorno_intervalo).toLocaleTimeString('pt-BR')}</span>
-                                   ) : (
-                                      <span className="text-xs font-bold opacity-50">--:--</span>
-                                   )}
-                                </button>
-
-                                {/* Botão 4 */}
-                                <button onClick={() => handleBaterPonto('saida_trabalho')} disabled={st !== 3} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 3 ? 'bg-rose-500 text-white shadow-xl shadow-rose-500/20 hover:bg-rose-600 scale-105' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
-                                   <div className="flex items-center gap-2">
-                                      <span className="font-black text-[15px]">4. Saída Final</span>
-                                   </div>
-                                   {pontoDoDia?.hora_saida ? (
-                                      <span className="text-sm font-black opacity-90">{new Date(pontoDoDia.hora_saida).toLocaleTimeString('pt-BR')}</span>
-                                   ) : (
-                                      <span className="text-xs font-bold opacity-50">--:--</span>
-                                   )}
-                                </button>
+                       {st === 4 && (
+                          <div className="bg-emerald-50 text-emerald-600 p-4 rounded-2xl w-full flex flex-col items-center gap-1 border border-emerald-100 mb-4 animate-in slide-in-from-top-4">
+                             <div className="flex items-center gap-2">
+                                <CheckCircle2 size={24}/>
+                                <p className="font-black text-lg tracking-tight">Jornada Concluída</p>
                              </div>
+                             <p className="font-bold text-emerald-700 text-xs">Todos os pontos de hoje foram registrados.</p>
                           </div>
                        )}
+                       
+                       <div className="w-full text-left">
+                          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-2 mb-3">Registro do Dia:</p>
+                          
+                          <div className="grid grid-cols-2 gap-3 w-full mb-4">
+                             {/* Botão 1 */}
+                             <button onClick={() => handleBaterPonto('entrada')} disabled={st !== 0} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 0 ? 'bg-emerald-600 text-white shadow-xl shadow-emerald-600/20 hover:bg-emerald-700 scale-105' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
+                                <div className="flex items-center gap-2">
+                                   <span className="font-black text-[15px]">1. Entrada</span>
+                                   {st > 0 && <CheckCircle2 size={16} className={st === 0 ? 'text-white' : 'text-emerald-500'} />}
+                                </div>
+                                {pontoDoDia?.hora_entrada ? (
+                                   <span className="text-sm font-black opacity-90">{new Date(pontoDoDia.hora_entrada).toLocaleTimeString('pt-BR')}</span>
+                                ) : (
+                                   <span className="text-xs font-bold opacity-50">--:--</span>
+                                )}
+                             </button>
+
+                             {/* Botão 2 */}
+                             <button onClick={() => handleBaterPonto('saida_intervalo')} disabled={st !== 1} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 1 ? 'bg-amber-500 text-white shadow-xl shadow-amber-500/20 hover:bg-amber-600 scale-105' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
+                                <div className="flex items-center gap-2">
+                                   <span className="font-black text-[15px]">2. Saída Int.</span>
+                                   {st > 1 && <CheckCircle2 size={16} className={st === 1 ? 'text-white' : 'text-amber-500'} />}
+                                </div>
+                                {pontoDoDia?.hora_saida_intervalo ? (
+                                   <span className="text-sm font-black opacity-90">{new Date(pontoDoDia.hora_saida_intervalo).toLocaleTimeString('pt-BR')}</span>
+                                ) : (
+                                   <span className="text-xs font-bold opacity-50">--:--</span>
+                                )}
+                             </button>
+
+                             {/* Botão 3 */}
+                             <button onClick={() => handleBaterPonto('retorno_intervalo')} disabled={st !== 2} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 2 ? 'bg-blue-500 text-white shadow-xl shadow-blue-500/20 hover:bg-blue-600 scale-105' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
+                                <div className="flex items-center gap-2">
+                                   <span className="font-black text-[15px]">3. Volta Int.</span>
+                                   {st > 2 && <CheckCircle2 size={16} className={st === 2 ? 'text-white' : 'text-blue-500'} />}
+                                </div>
+                                {pontoDoDia?.hora_retorno_intervalo ? (
+                                   <span className="text-sm font-black opacity-90">{new Date(pontoDoDia.hora_retorno_intervalo).toLocaleTimeString('pt-BR')}</span>
+                                ) : (
+                                   <span className="text-xs font-bold opacity-50">--:--</span>
+                                )}
+                             </button>
+
+                             {/* Botão 4 */}
+                             <button onClick={() => handleBaterPonto('saida_trabalho')} disabled={st !== 3} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 3 ? 'bg-rose-500 text-white shadow-xl shadow-rose-500/20 hover:bg-rose-600 scale-105' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
+                                <div className="flex items-center gap-2">
+                                   <span className="font-black text-[15px]">4. Saída Final</span>
+                                   {st > 3 && <CheckCircle2 size={16} className={st === 3 ? 'text-white' : 'text-rose-500'} />}
+                                </div>
+                                {pontoDoDia?.hora_saida ? (
+                                   <span className="text-sm font-black opacity-90">{new Date(pontoDoDia.hora_saida).toLocaleTimeString('pt-BR')}</span>
+                                ) : (
+                                   <span className="text-xs font-bold opacity-50">--:--</span>
+                                )}
+                             </button>
+                          </div>
+                          
+                          <button onClick={() => setHistoricoAberto(true)} className="w-full py-3 rounded-xl bg-slate-100 text-slate-600 font-bold hover:bg-slate-200 transition-all text-sm flex items-center justify-center gap-2 border border-slate-200">
+                             <Clock size={16}/> Ver Histórico de Dias Anteriores
+                          </button>
+                       </div>
                     </div>
                  );
               })()}

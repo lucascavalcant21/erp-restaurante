@@ -18,6 +18,23 @@ export async function fetchPontoHoje(unidadeId) {
   return { data };
 }
 
+export async function fetchHistoricoPonto(colaboradorId) {
+  if (!isSupabaseReady()) return { data: [] };
+  
+  const { data, error } = await supabase
+    .from("registro_ponto")
+    .select("*")
+    .eq("colaborador_id", colaboradorId)
+    .order("data_referencia", { ascending: false })
+    .limit(7);
+    
+  if (error) {
+    console.error("Erro ao buscar histórico:", error);
+    return { data: [] };
+  }
+  return { data };
+}
+
 export async function registrarBatida(colaboradorId, unidadeId, tipoBatida) {
   if (!isSupabaseReady()) return { error: "Offline" };
   const hoje = new Date().toISOString().split('T')[0];

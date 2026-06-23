@@ -102,7 +102,7 @@ export default function RHPage() {
       funcionario_id: funcionarioConsumo.id,
       descricao: novoConsumo.descricao,
       valor_original: valOriginal,
-      valor_com_desconto: valDesconto,
+      valor_desconto: valDesconto,
       forma_pagamento: novoConsumo.forma_pagamento,
       status_pagamento: statPagto,
       data_consumo: new Date(novoConsumo.data_consumo).toISOString(),
@@ -119,6 +119,12 @@ export default function RHPage() {
   const quitarConsumo = async (consumoId) => {
     if (!confirm("Confirmar quitação (pagamento recebido) deste consumo?")) return;
     const { error } = await atualizarStatusConsumo(consumoId, "Pago");
+    if (error) alert("Erro: " + error);
+    else carregarConsumo(funcionarioConsumo.id);
+  };
+
+  const alterarFormaPagamentoConsumo = async (consumoId, statusAtual, novaForma) => {
+    const { error } = await atualizarStatusConsumo(consumoId, statusAtual, novaForma);
     if (error) alert("Erro: " + error);
     else carregarConsumo(funcionarioConsumo.id);
   };
@@ -876,7 +882,7 @@ export default function RHPage() {
                                        </div>
                                     </div>
                                     <div className="text-right">
-                                       <div className="font-black text-teal-700">{fmtBRL(item.valor_com_desconto)}</div>
+                                       <div className="font-black text-teal-700">{fmtBRL(item.valor_desconto)}</div>
                                        <div className="text-[10px] font-medium text-slate-400 line-through">De {fmtBRL(item.valor_original)}</div>
                                     </div>
                                  </div>
@@ -885,13 +891,24 @@ export default function RHPage() {
                                     <div className="flex items-center gap-2">
                                        {isPago ? (
                                           <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100">
-                                             <CheckCircle size={10}/> PAGO ({item.forma_pagamento})
+                                             <CheckCircle size={10}/> PAGO
                                           </span>
                                        ) : (
                                           <span className="flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-100">
                                              <Clock size={10}/> PENDENTE
                                           </span>
                                        )}
+                                       
+                                       <select 
+                                          value={item.forma_pagamento} 
+                                          onChange={(e) => alterarFormaPagamentoConsumo(item.id, item.status_pagamento, e.target.value)}
+                                          className="text-[10px] font-bold bg-slate-50 border border-slate-200 text-slate-600 rounded-md px-1 py-1 outline-none focus:border-teal-500 max-w-[120px]"
+                                       >
+                                          <option value="Desconto em Folha">Desconto em Folha</option>
+                                          <option value="Dinheiro">Dinheiro</option>
+                                          <option value="PIX">PIX</option>
+                                          <option value="Cartão">Cartão</option>
+                                       </select>
                                        
                                        {!isPago && (
                                           <button onClick={() => quitarConsumo(item.id)} className="text-[10px] font-bold uppercase tracking-wider text-white bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded-md transition-colors">
@@ -914,7 +931,7 @@ export default function RHPage() {
                            <div className="flex justify-between items-center text-sm">
                               <span className="font-bold text-slate-500 uppercase tracking-widest text-xs">Total Pendente</span>
                               <span className="font-black text-rose-600 text-lg">
-                                 {fmtBRL(listaConsumo.filter(i => i.status_pagamento !== "Pago").reduce((acc, curr) => acc + curr.valor_com_desconto, 0))}
+                                 {fmtBRL(listaConsumo.filter(i => i.status_pagamento !== "Pago").reduce((acc, curr) => acc + curr.valor_desconto, 0))}
                               </span>
                            </div>
                         </div>

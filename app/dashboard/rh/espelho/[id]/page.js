@@ -25,11 +25,17 @@ export default function EspelhoDePonto() {
       // Busca Colaborador
       const { data: colab } = await supabase
         .from("colaboradores")
-        .select("*, unidade:unidades(nome, cnpj)")
+        .select("*")
         .eq("id", colabId)
         .single();
         
-      if (colab) setColaborador(colab);
+      if (colab) {
+        if (colab.unidade_id) {
+           const { data: unid } = await supabase.from("unidades").select("nome, cnpj").eq("id", colab.unidade_id).single();
+           colab.unidade = unid;
+        }
+        setColaborador(colab);
+      }
 
       // Busca Pontos
       const { data: pts } = await fetchPontosMes(colabId, mesParam);

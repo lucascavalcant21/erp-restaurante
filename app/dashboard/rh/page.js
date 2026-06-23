@@ -7,7 +7,7 @@ import { fetchColaboradores, inserirColaborador, atualizarColaborador, removerCo
 import { fetchPontoHoje } from "../../lib/ponto";
 import { salvarConta } from "../../lib/financeiro";
 import { 
-  Users, UserPlus, FileText, Upload, Save, X, Search, Trash2, Loader2, CalendarHeart
+  Users, UserPlus, FileText, Upload, Save, X, Search, Trash2, Loader2, CalendarHeart, Star, Phone, CreditCard, ClipboardList
 } from "lucide-react";
 import { fmtBRL } from "../../components/ui";
 
@@ -19,8 +19,10 @@ export default function RHPage() {
   const [pontosHoje, setPontosHoje] = useState([]);
   const [cargos, setCargos] = useState([]);
   const [busca, setBusca] = useState("");
+  const [abaAtiva, setAbaAtiva] = useState("Fixo");
+  const statePadrao = { nome: "", cargo: "", salario: "", horario_entrada: "", horario_saida: "", dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60, tipo_contrato: "Fixo", telefone: "", cpf: "", chave_pix: "", avaliacao_estrelas: 0, anotacoes_rh: "" };
   const [modalNovo, setModalNovo] = useState(false);
-  const [novoFunc, setNovoFunc] = useState({ nome: "", cargo: "", salario: "", horario_entrada: "", horario_saida: "", dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60 });
+  const [novoFunc, setNovoFunc] = useState(statePadrao);
   const [editandoId, setEditandoId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [uploadingId, setUploadingId] = useState(null);
@@ -57,11 +59,11 @@ export default function RHPage() {
     if (unidadeAtiva) carregar();
   }, [unidadeAtiva]);
 
-  const filtrados = funcionarios.filter(f => f.nome.toLowerCase().includes(busca.toLowerCase()));
+  const filtrados = funcionarios.filter(f => f.nome.toLowerCase().includes(busca.toLowerCase()) && (f.tipo_contrato || "Fixo") === abaAtiva);
 
   const abrirModalNovo = () => {
     setEditandoId(null);
-    setNovoFunc({ nome: "", cargo: "", salario: "", horario_entrada: "", horario_saida: "", dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60 });
+    setNovoFunc(statePadrao);
     setModalNovo(true);
   };
 
@@ -74,7 +76,13 @@ export default function RHPage() {
        horario_entrada: f.horario_entrada || "", 
        horario_saida: f.horario_saida || "", 
        dias_trabalho: f.dias_trabalho || "1,2,3,4,5,6", 
-       tempo_intervalo: f.tempo_intervalo || 60 
+       tempo_intervalo: f.tempo_intervalo || 60,
+       tipo_contrato: f.tipo_contrato || "Fixo",
+       telefone: f.telefone || "",
+       cpf: f.cpf || "",
+       chave_pix: f.chave_pix || "",
+       avaliacao_estrelas: f.avaliacao_estrelas || 0,
+       anotacoes_rh: f.anotacoes_rh || ""
     });
     setModalNovo(true);
   };
@@ -90,7 +98,13 @@ export default function RHPage() {
       horario_entrada: novoFunc.horario_entrada,
       horario_saida: novoFunc.horario_saida,
       dias_trabalho: novoFunc.dias_trabalho,
-      tempo_intervalo: Number(novoFunc.tempo_intervalo) || 60
+      tempo_intervalo: Number(novoFunc.tempo_intervalo) || 60,
+      tipo_contrato: novoFunc.tipo_contrato,
+      telefone: novoFunc.telefone,
+      cpf: novoFunc.cpf,
+      chave_pix: novoFunc.chave_pix,
+      avaliacao_estrelas: Number(novoFunc.avaliacao_estrelas) || 0,
+      anotacoes_rh: novoFunc.anotacoes_rh
     };
 
     if (editandoId) {
@@ -101,7 +115,7 @@ export default function RHPage() {
     
     setModalNovo(false);
     setEditandoId(null);
-    setNovoFunc({ nome: "", cargo: "", salario: "", horario_entrada: "", horario_saida: "", dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60 });
+    setNovoFunc(statePadrao);
     carregar();
   };
 
@@ -113,11 +127,13 @@ export default function RHPage() {
   };
 
   const handleLancarFinanceiro = async (f) => {
-    if(confirm(`Deseja lançar R$ ${f.salario} no Financeiro para o funcionário ${f.nome}?`)) {
+    const isFree = f.tipo_contrato === "Freelancer";
+    const labelLabel = isFree ? "Diária" : "Salário";
+    if(confirm(`Deseja lançar R$ ${f.salario} no Financeiro como ${labelLabel} para o funcionário ${f.nome}?`)) {
        const hoje = new Date().toISOString().split('T')[0];
        await salvarConta({
           unidade_id: unidadeAtiva,
-          descricao: `Salário: ${f.nome} - ${f.cargo}`,
+          descricao: `${labelLabel}: ${f.nome} - ${f.cargo}`,
           valor: f.salario,
           data_vencimento: hoje,
           categoria: 'cmo',
@@ -213,6 +229,11 @@ export default function RHPage() {
 
       <div className="max-w-5xl mx-auto px-6">
          
+         <div className="flex gap-4 mb-4">
+            <button onClick={()=>setAbaAtiva("Fixo")} className={`flex-1 py-3 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${abaAtiva === "Fixo" ? "bg-slate-800 text-white shadow-lg shadow-slate-800/20" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>Equipe Fixa</button>
+            <button onClick={()=>setAbaAtiva("Freelancer")} className={`flex-1 py-3 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${abaAtiva === "Freelancer" ? "bg-slate-800 text-white shadow-lg shadow-slate-800/20" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>Freelancers Extras</button>
+         </div>
+
          <div className="bg-white p-4 rounded-t-3xl border border-slate-200 border-b-0 flex items-center gap-3">
             <Search size={18} className="text-slate-500" />
             <input type="text" placeholder="Buscar funcionário..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-medium text-slate-700" />
@@ -223,8 +244,8 @@ export default function RHPage() {
                <thead>
                   <tr className="bg-slate-50 border-b border-slate-100">
                      <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Colaborador</th>
-                     <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Cargo</th>
-                     <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Remuneração Base</th>
+                     <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Perfil & Contato</th>
+                     <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">{abaAtiva === "Freelancer" ? "Diária Base" : "Remuneração Base"}</th>
                      <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Ponto Hoje</th>
                      <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">Documentos / Ações</th>
                   </tr>
@@ -233,9 +254,23 @@ export default function RHPage() {
                   {loading && <tr><td colSpan={5} className="p-10 text-center text-slate-500 font-bold">Carregando...</td></tr>}
                   {!loading && filtrados.map(f => (
                      <tr key={f.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="p-4 font-bold text-slate-800">{f.nome}</td>
-                        <td className="p-4 font-medium text-slate-600">{f.cargo}</td>
-                        <td className="p-4 font-black text-slate-800">{fmtBRL(f.salario)}</td>
+                        <td className="p-4">
+                           <div className="font-black text-slate-800 text-base">{f.nome}</div>
+                           {f.tipo_contrato === "Freelancer" && (
+                              <div className="flex text-amber-400 mt-1">
+                                 {[...Array(5)].map((_, i) => (
+                                    <Star key={i} size={12} className={i < (f.avaliacao_estrelas || 0) ? "fill-amber-400" : "text-slate-200"} />
+                                 ))}
+                              </div>
+                           )}
+                           {f.anotacoes_rh && <div className="text-[10px] font-bold text-slate-400 mt-1 flex items-start gap-1"><ClipboardList size={10} className="mt-0.5 shrink-0"/> <span className="line-clamp-1">{f.anotacoes_rh}</span></div>}
+                        </td>
+                        <td className="p-4">
+                           <div className="font-bold text-slate-700">{f.cargo}</div>
+                           {f.telefone && <div className="text-[11px] font-semibold text-slate-500 flex items-center gap-1 mt-1"><Phone size={10}/> {f.telefone}</div>}
+                           {f.chave_pix && <div className="text-[11px] font-semibold text-slate-500 flex items-center gap-1 mt-0.5"><CreditCard size={10}/> PIX: {f.chave_pix}</div>}
+                        </td>
+                        <td className="p-4 font-black text-emerald-700">{fmtBRL(f.salario)}</td>
                         <td className="p-4">
                            {(() => {
                               const pt = pontosHoje.find(p => p.colaborador_id === f.id);
@@ -334,7 +369,7 @@ export default function RHPage() {
                                     <CalendarHeart size={14}/> Folgas
                                  </button>
                                  <button onClick={() => handleLancarFinanceiro(f)} className="flex items-center gap-1 text-xs font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition-colors">
-                                    Lançar Salário
+                                    Lançar {f.tipo_contrato === "Freelancer" ? "Diária" : "Salário"}
                                  </button>
                                 <button onClick={() => acionarUpload(f)} disabled={uploadingId === f.id} className="flex items-center gap-1 text-xs font-bold text-emerald-600 hover:text-indigo-800 disabled:opacity-50">
                                    {uploadingId === f.id ? <Loader2 size={14} className="animate-spin"/> : <Upload size={14}/>} 
@@ -365,12 +400,21 @@ export default function RHPage() {
                   <button onClick={() => setModalNovo(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
                </div>
 
-               <div className="space-y-4">
-                  <div>
-                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nome Completo</label>
-                     <input type="text" value={novoFunc.nome} onChange={e=>setNovoFunc({...novoFunc, nome: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+               <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2 pb-4">
+                  <div className="grid grid-cols-2 gap-4">
+                     <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Tipo de Contrato</label>
+                        <select value={novoFunc.tipo_contrato} onChange={e=>setNovoFunc({...novoFunc, tipo_contrato: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500 text-slate-700 appearance-none">
+                           <option value="Fixo">Equipe Fixa (CLT/Mensalista)</option>
+                           <option value="Freelancer">Freelancer / Extra (Diária)</option>
+                        </select>
+                     </div>
+                     <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nome Completo</label>
+                        <input type="text" value={novoFunc.nome} onChange={e=>setNovoFunc({...novoFunc, nome: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                     </div>
                   </div>
-                  <div>
+                  <div className="grid grid-cols-2 gap-4">
                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Função / Cargo</label>
                      {cargos.length > 0 ? (
                        <select value={novoFunc.cargo} onChange={e=>setNovoFunc({...novoFunc, cargo: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500 appearance-none text-slate-700">
@@ -381,9 +425,25 @@ export default function RHPage() {
                        <input type="text" value={novoFunc.cargo} onChange={e=>setNovoFunc({...novoFunc, cargo: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500" placeholder="Digite ou crie cargos nas Configurações" />
                      )}
                   </div>
-                  <div>
-                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Salário Base (R$)</label>
-                     <input type="number" value={novoFunc.salario} onChange={e=>setNovoFunc({...novoFunc, salario: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-emerald-600 outline-none focus:border-emerald-500"/>
+                  <div className="grid grid-cols-2 gap-4">
+                     <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Telefone / WhatsApp</label>
+                        <input type="text" value={novoFunc.telefone} onChange={e=>setNovoFunc({...novoFunc, telefone: e.target.value})} placeholder="(00) 00000-0000" className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                     </div>
+                     <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">CPF</label>
+                        <input type="text" value={novoFunc.cpf} onChange={e=>setNovoFunc({...novoFunc, cpf: e.target.value})} placeholder="000.000.000-00" className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                     </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                     <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Chave PIX</label>
+                        <input type="text" value={novoFunc.chave_pix} onChange={e=>setNovoFunc({...novoFunc, chave_pix: e.target.value})} placeholder="Chave para pagamento" className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                     </div>
+                     <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{novoFunc.tipo_contrato === "Freelancer" ? "Valor da Diária Base (R$)" : "Salário Base (R$)"}</label>
+                        <input type="number" value={novoFunc.salario} onChange={e=>setNovoFunc({...novoFunc, salario: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-emerald-600 outline-none focus:border-emerald-500"/>
+                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-4 mt-4">
                      <div>
@@ -420,9 +480,28 @@ export default function RHPage() {
                         <input type="number" value={novoFunc.tempo_intervalo || ""} onChange={e=>setNovoFunc({...novoFunc, tempo_intervalo: e.target.value})} placeholder="Ex: 60" className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
                      </div>
                   </div>
+
+                  <div className="border-t border-slate-100 pt-4 mt-4">
+                     {novoFunc.tipo_contrato === "Freelancer" && (
+                        <div className="mb-4">
+                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Avaliação do Freelancer (Estrelas)</label>
+                           <div className="flex gap-2">
+                              {[1,2,3,4,5].map(star => (
+                                 <button key={star} type="button" onClick={() => setNovoFunc({...novoFunc, avaliacao_estrelas: star})} className={`p-2 rounded-lg transition-colors ${novoFunc.avaliacao_estrelas >= star ? 'bg-amber-100 text-amber-500' : 'bg-slate-100 text-slate-300 hover:bg-slate-200'}`}>
+                                    <Star size={24} className={novoFunc.avaliacao_estrelas >= star ? 'fill-amber-500' : ''} />
+                                 </button>
+                              ))}
+                           </div>
+                        </div>
+                     )}
+                     <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Anotações / Ocorrências (Oculto para o funcionário)</label>
+                        <textarea value={novoFunc.anotacoes_rh} onChange={e=>setNovoFunc({...novoFunc, anotacoes_rh: e.target.value})} rows="3" placeholder="Registre advertências, faltas não justificadas, comportamento, etc..." className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500 text-slate-700 resize-none"></textarea>
+                     </div>
+                  </div>
                </div>
 
-               <button onClick={handleSalvar} disabled={!novoFunc.nome} className="w-full mt-8 py-5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95">
+               <button onClick={handleSalvar} disabled={!novoFunc.nome} className="w-full mt-6 py-5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95">
                   {editandoId ? "Salvar Alterações" : "Salvar Colaborador"}
                </button>
             </div>

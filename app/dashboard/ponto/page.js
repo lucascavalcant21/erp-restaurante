@@ -112,6 +112,7 @@ export default function PontoPage() {
                </div>
             ) : (() => {
                const st = getStatus(colabAtivo.id);
+               const pontoDoDia = pontos.find(pt => pt.colaborador_id === colabAtivo.id);
                
                return (
                   <div className="w-full max-w-sm flex flex-col items-center text-center animate-in fade-in zoom-in-95 duration-300">
@@ -128,27 +129,31 @@ export default function PontoPage() {
                            <p className="font-medium text-emerald-700 text-sm">Você já bateu todos os pontos de hoje. Bom descanso!</p>
                         </div>
                      ) : (
-                        <div className="w-full space-y-4">
-                           <p className="text-xs font-bold text-slate-500 uppercase tracking-widest text-left ml-2 mb-2">Próxima Ação Requerida:</p>
+                        <div className="w-full space-y-4 text-left">
+                           <p className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-2 mb-2">Histórico de Hoje:</p>
                            
                            {/* Botão 1 */}
-                           <button onClick={() => handleBaterPonto('entrada')} disabled={st !== 0} className={`w-full py-5 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-2 ${st === 0 ? 'bg-emerald-600 text-white shadow-xl shadow-emerald-600/20 hover:bg-emerald-700 scale-105' : 'bg-slate-100 text-slate-500'}`}>
-                              1. Entrada no Trabalho {st > 0 && <CheckCircle2 size={18}/>}
+                           <button onClick={() => handleBaterPonto('entrada')} disabled={st !== 0} className={`relative w-full py-5 px-6 rounded-2xl font-black text-lg transition-all flex items-center justify-between gap-2 ${st === 0 ? 'bg-emerald-600 text-white shadow-xl shadow-emerald-600/20 hover:bg-emerald-700 scale-105' : 'bg-slate-100 text-slate-500'}`}>
+                              <span className="flex items-center gap-2">1. Entrada no Trabalho {st > 0 && <CheckCircle2 size={18} className="text-emerald-500" />}</span>
+                              {pontoDoDia?.hora_entrada && <span className="text-sm font-bold opacity-80">{new Date(pontoDoDia.hora_entrada).toLocaleTimeString('pt-BR')}</span>}
                            </button>
 
                            {/* Botão 2 */}
-                           <button onClick={() => handleBaterPonto('saida_intervalo')} disabled={st !== 1} className={`w-full py-5 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-2 ${st === 1 ? 'bg-emerald-500 text-white shadow-xl shadow-amber-500/20 hover:bg-emerald-600 scale-105' : 'bg-slate-100 text-slate-500'}`}>
-                              2. Saída para Intervalo {st > 1 && <CheckCircle2 size={18}/>}
+                           <button onClick={() => handleBaterPonto('saida_intervalo')} disabled={st !== 1} className={`relative w-full py-5 px-6 rounded-2xl font-black text-lg transition-all flex items-center justify-between gap-2 ${st === 1 ? 'bg-emerald-500 text-white shadow-xl shadow-amber-500/20 hover:bg-emerald-600 scale-105' : 'bg-slate-100 text-slate-500'}`}>
+                              <span className="flex items-center gap-2">2. Saída para Intervalo {st > 1 && <CheckCircle2 size={18} className="text-amber-500" />}</span>
+                              {pontoDoDia?.hora_saida_intervalo && <span className="text-sm font-bold opacity-80">{new Date(pontoDoDia.hora_saida_intervalo).toLocaleTimeString('pt-BR')}</span>}
                            </button>
 
                            {/* Botão 3 */}
-                           <button onClick={() => handleBaterPonto('retorno_intervalo')} disabled={st !== 2} className={`w-full py-5 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-2 ${st === 2 ? 'bg-emerald-500 text-white shadow-xl shadow-blue-500/20 hover:bg-emerald-600 scale-105' : 'bg-slate-100 text-slate-500'}`}>
-                              3. Retorno do Intervalo {st > 2 && <CheckCircle2 size={18}/>}
+                           <button onClick={() => handleBaterPonto('retorno_intervalo')} disabled={st !== 2} className={`relative w-full py-5 px-6 rounded-2xl font-black text-lg transition-all flex items-center justify-between gap-2 ${st === 2 ? 'bg-emerald-500 text-white shadow-xl shadow-blue-500/20 hover:bg-emerald-600 scale-105' : 'bg-slate-100 text-slate-500'}`}>
+                              <span className="flex items-center gap-2">3. Retorno do Intervalo {st > 2 && <CheckCircle2 size={18} className="text-blue-500" />}</span>
+                              {pontoDoDia?.hora_retorno_intervalo && <span className="text-sm font-bold opacity-80">{new Date(pontoDoDia.hora_retorno_intervalo).toLocaleTimeString('pt-BR')}</span>}
                            </button>
 
                            {/* Botão 4 */}
-                           <button onClick={() => handleBaterPonto('saida_trabalho')} disabled={st !== 3} className={`w-full py-5 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-2 ${st === 3 ? 'bg-emerald-500 text-white shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 scale-105' : 'bg-slate-100 text-slate-500'}`}>
-                              4. Saída do Trabalho
+                           <button onClick={() => handleBaterPonto('saida_trabalho')} disabled={st !== 3} className={`relative w-full py-5 px-6 rounded-2xl font-black text-lg transition-all flex items-center justify-between gap-2 ${st === 3 ? 'bg-emerald-500 text-white shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 scale-105' : 'bg-slate-100 text-slate-500'}`}>
+                              <span className="flex items-center gap-2">4. Saída do Trabalho</span>
+                              {pontoDoDia?.hora_saida && <span className="text-sm font-bold opacity-80">{new Date(pontoDoDia.hora_saida).toLocaleTimeString('pt-BR')}</span>}
                            </button>
                         </div>
                      )}

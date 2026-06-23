@@ -23,12 +23,15 @@ export async function registrarBatida(colaboradorId, unidadeId, tipoBatida) {
   const agora = new Date().toISOString();
   
   // Buscar se já tem registro hoje
-  let { data: registro } = await supabase
+  let { data: registros, error: err } = await supabase
     .from("registro_ponto")
     .select("*")
     .eq("colaborador_id", colaboradorId)
     .eq("data_referencia", hoje)
-    .single();
+    .order("created_at", { ascending: false })
+    .limit(1);
+    
+  let registro = registros && registros.length > 0 ? registros[0] : null;
     
   let updates = {};
   let novoStatus = 0;

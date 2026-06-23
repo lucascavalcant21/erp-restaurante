@@ -178,7 +178,7 @@ export default function LojasPage() {
                    <div className="bg-white p-2 rounded-lg shadow-sm text-slate-400"><FileText size={16}/></div>
                    <div>
                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">CNPJ Vinculado</p>
-                     <p className="text-sm font-black text-slate-700">{u.cnpj}</p>
+                     <p className="text-sm font-black text-slate-700">{mascaraCNPJ(u.cnpj)}</p>
                    </div>
                  </div>
                ) : (

@@ -62,7 +62,7 @@ export async function fetchDRE(unidadeId) {
 
   // 2. Busca todos os CUSTOS (Contas Pagas)
   const { data: contas } = await supabase.from("contas_pagar")
-    .select("valor, categoria")
+    .select("id, descricao, valor, categoria, data_pagamento")
     .eq("unidade_id", unidadeId)
     .eq("status", "pago");
 
@@ -79,11 +79,16 @@ export async function fetchDRE(unidadeId) {
 
   // -- Cálculos de Despesas --
   const custosPorCategoria = {};
-  CATEGORIAS_CUSTO.forEach(c => custosPorCategoria[c.id] = 0);
+  const detalhesPorCategoria = {};
+  CATEGORIAS_CUSTO.forEach(c => {
+      custosPorCategoria[c.id] = 0;
+      detalhesPorCategoria[c.id] = [];
+  });
   
   (contas || []).forEach(c => {
      if(custosPorCategoria[c.categoria] !== undefined) {
          custosPorCategoria[c.categoria] += Number(c.valor);
+         detalhesPorCategoria[c.categoria].push(c);
      }
   });
 
@@ -99,7 +104,8 @@ export async function fetchDRE(unidadeId) {
         margem,
         fatPorCanal,
         fatPorPagamento,
-        custosPorCategoria
+        custosPorCategoria,
+        detalhesPorCategoria
      }
   };
 }

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useERP } from "../../context/ERPContext";
 import { fetchDRE, CATEGORIAS_CUSTO } from "../../lib/financeiro";
-import { LineChart, DollarSign, ArrowUpRight, ArrowDownRight, Activity, Percent, PieChart, UtensilsCrossed, Bike, FileText, Maximize } from "lucide-react";
+import { LineChart, DollarSign, ArrowUpRight, ArrowDownRight, Activity, Percent, PieChart, UtensilsCrossed, Bike, FileText, Maximize, ChevronDown, ChevronUp } from "lucide-react";
 import { fmtBRL } from "../../components/ui";
 
 export default function DashboardFinanceiroPage() {
@@ -12,6 +12,7 @@ export default function DashboardFinanceiroPage() {
   const { unidadeAtiva } = useERP();
   const [dre, setDre] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [catExpandida, setCatExpandida] = useState(null);
 
   useEffect(() => {
     async function carregar() {
@@ -121,11 +122,15 @@ export default function DashboardFinanceiroPage() {
                            const valor = dre.custosPorCategoria[cat.id] || 0;
                            const perc = dre.faturamentoTotal > 0 ? ((valor / dre.faturamentoTotal) * 100).toFixed(1) : 0;
                            
+                           const detalhes = dre.detalhesPorCategoria ? dre.detalhesPorCategoria[cat.id] : [];
+                           const expandido = catExpandida === cat.id;
+
                            return (
-                              <div key={cat.id} className="group cursor-default">
+                              <div key={cat.id} className="group cursor-pointer bg-white hover:bg-slate-50 transition-colors p-2 -mx-2 rounded-xl" onClick={() => setCatExpandida(expandido ? null : cat.id)}>
                                  <div className="flex justify-between items-end mb-2">
                                     <p className="font-bold text-slate-700 flex items-center gap-2">
                                        <span className={`w-3 h-3 rounded-full ${cat.cor}`}></span> {cat.label}
+                                       {detalhes.length > 0 && (expandido ? <ChevronUp size={14} className="text-slate-400"/> : <ChevronDown size={14} className="text-slate-400"/>)}
                                     </p>
                                     <div className="text-right">
                                        <p className="font-black text-slate-900">{fmtBRL(valor)}</p>
@@ -135,6 +140,18 @@ export default function DashboardFinanceiroPage() {
                                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                                     <div className={`h-full ${cat.cor} transition-all duration-1000`} style={{ width: `${Math.min(perc, 100)}%` }}></div>
                                  </div>
+                                 
+                                 {/* DETALHES DA CATEGORIA (ACORDEÃO) */}
+                                 {expandido && detalhes.length > 0 && (
+                                    <div className="mt-3 pl-4 border-l-2 border-slate-100 space-y-2 animate-in slide-in-from-top-2 fade-in">
+                                       {detalhes.map(det => (
+                                          <div key={det.id} className="flex justify-between items-center text-xs">
+                                             <span className="text-slate-500 max-w-[60%] truncate" title={det.descricao}>{det.descricao || "Sem descrição"}</span>
+                                             <span className="text-slate-700 font-bold">{fmtBRL(det.valor)}</span>
+                                          </div>
+                                       ))}
+                                    </div>
+                                 )}
                               </div>
                            );
                         })}

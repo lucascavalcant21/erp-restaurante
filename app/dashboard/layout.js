@@ -148,12 +148,12 @@ export default function DashboardLayout({ children }) {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#F8FAFC]">
-      <DesktopSidebar onSair={sair} />
-      <MobileBottomNav />
-      <div className="flex-1 flex flex-col min-h-screen md:ml-[80px] w-full overflow-x-hidden">
-        <TopHeader onSair={sair} />
-        <main key={pathname} className="flex-1 pb-[80px] md:pb-8 animate-page-in">
+    <div className="flex min-h-screen bg-[#F8FAFC] print:block print:bg-white print:min-h-0">
+      <div className="print:hidden"><DesktopSidebar onSair={sair} /></div>
+      <div className="print:hidden"><MobileBottomNav /></div>
+      <div className="flex-1 flex flex-col min-h-screen md:ml-[80px] w-full overflow-x-hidden print:ml-0 print:overflow-visible print:block print:min-h-0">
+        <div className="print:hidden"><TopHeader onSair={sair} /></div>
+        <main key={pathname} className="flex-1 pb-[80px] md:pb-8 animate-page-in print:pb-0 print:m-0">
           {children}
         </main>
       </div>

@@ -1,16 +1,17 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-// Usamos o createClient direto aqui porque estamos num ambiente Node.js / Edge do Next.js
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+export const dynamic = 'force-dynamic';
 
 const padR = (str, len) => (str || "").toString().substring(0, len).padEnd(len, ' ');
 const padL = (str, len) => (str || "").toString().substring(0, len).padStart(len, '0');
 const soNumeros = (str) => (str || "").replace(/\D/g, "");
 
 export async function GET(request) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabase = createClient(supabaseUrl || "", supabaseKey || "");
+
   const { searchParams } = new URL(request.url);
   const unidadeId = searchParams.get("unidadeId");
 

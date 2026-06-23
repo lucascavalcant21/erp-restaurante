@@ -129,9 +129,14 @@ export default function RHPage() {
               <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Gestão de Funcionários</p>
            </div>
          </div>
-         <button onClick={() => setModalNovo(true)} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
-            <UserPlus size={18} /> Contratar
-         </button>
+         <div className="flex items-center gap-3">
+            <a href={`/api/afd?unidadeId=${unidadeAtiva}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-slate-800 text-white px-5 py-3 rounded-xl font-bold hover:bg-slate-900 transition-colors shadow-lg shadow-slate-800/20">
+               <FileText size={18} /> Exportar AFD
+            </a>
+            <button onClick={() => setModalNovo(true)} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
+               <UserPlus size={18} /> Contratar
+            </button>
+         </div>
       </div>
 
       <div className="max-w-5xl mx-auto px-6">

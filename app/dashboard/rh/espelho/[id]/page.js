@@ -77,6 +77,7 @@ export default function EspelhoDePonto() {
          </button>
          <button onClick={() => window.print()} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
             <Printer size={18}/> Imprimir PDF
+         </button>
       </div>
 
       {/* Folha A4 */}

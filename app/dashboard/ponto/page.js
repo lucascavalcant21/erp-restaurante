@@ -213,9 +213,9 @@ export default function PontoPage() {
            </div>
 
            {/* Lado Direito: Batida de Ponto Sequencial */}
-           <div className="w-full md:w-1/2 p-6 flex flex-col items-center justify-center bg-white relative overflow-y-auto">
+           <div className="w-full md:w-1/2 p-6 flex flex-col items-center justify-start pt-10 bg-white relative overflow-y-auto">
               {!colabAtivo ? (
-                 <div className="text-center text-slate-400 flex flex-col items-center gap-4">
+                 <div className="text-center text-slate-400 flex flex-col items-center gap-4 mt-20">
                     <Fingerprint size={80} strokeWidth={1} />
                     <p className="font-bold text-lg max-w-xs">Selecione seu nome na lista para bater o ponto.</p>
                  </div>
@@ -242,28 +242,61 @@ export default function PontoPage() {
                              <p className="font-bold text-emerald-700 text-sm">Você já bateu todos os pontos de hoje.</p>
                           </div>
                        ) : (
-                          <div className="w-full space-y-3 text-left">
-                             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-2 mb-2">Registro do Dia:</p>
+                          <div className="w-full text-left">
+                             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-2 mb-3">Registro do Dia:</p>
                              
-                             <button onClick={() => handleBaterPonto('entrada')} disabled={st !== 0} className={`relative w-full py-4 px-5 rounded-2xl font-black text-lg transition-all flex items-center justify-between gap-2 ${st === 0 ? 'bg-emerald-600 text-white shadow-xl shadow-emerald-600/20 hover:bg-emerald-700 scale-105' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
-                                <span className="flex items-center gap-2">1. Entrada {st > 0 && <CheckCircle2 size={20} className="text-emerald-500" />}</span>
-                                {pontoDoDia?.hora_entrada && <span className="text-sm font-black opacity-80">{new Date(pontoDoDia.hora_entrada).toLocaleTimeString('pt-BR')}</span>}
-                             </button>
+                             <div className="grid grid-cols-2 gap-3 w-full">
+                                {/* Botão 1 */}
+                                <button onClick={() => handleBaterPonto('entrada')} disabled={st !== 0} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 0 ? 'bg-emerald-600 text-white shadow-xl shadow-emerald-600/20 hover:bg-emerald-700 scale-105' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
+                                   <div className="flex items-center gap-2">
+                                      <span className="font-black text-[15px]">1. Entrada</span>
+                                      {st > 0 && <CheckCircle2 size={16} className="text-emerald-500" />}
+                                   </div>
+                                   {pontoDoDia?.hora_entrada ? (
+                                      <span className="text-sm font-black opacity-90">{new Date(pontoDoDia.hora_entrada).toLocaleTimeString('pt-BR')}</span>
+                                   ) : (
+                                      <span className="text-xs font-bold opacity-50">--:--</span>
+                                   )}
+                                </button>
 
-                             <button onClick={() => handleBaterPonto('saida_intervalo')} disabled={st !== 1} className={`relative w-full py-4 px-5 rounded-2xl font-black text-lg transition-all flex items-center justify-between gap-2 ${st === 1 ? 'bg-amber-500 text-white shadow-xl shadow-amber-500/20 hover:bg-amber-600 scale-105' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
-                                <span className="flex items-center gap-2">2. Saída Intervalo {st > 1 && <CheckCircle2 size={20} className="text-amber-500" />}</span>
-                                {pontoDoDia?.hora_saida_intervalo && <span className="text-sm font-black opacity-80">{new Date(pontoDoDia.hora_saida_intervalo).toLocaleTimeString('pt-BR')}</span>}
-                             </button>
+                                {/* Botão 2 */}
+                                <button onClick={() => handleBaterPonto('saida_intervalo')} disabled={st !== 1} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 1 ? 'bg-amber-500 text-white shadow-xl shadow-amber-500/20 hover:bg-amber-600 scale-105' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
+                                   <div className="flex items-center gap-2">
+                                      <span className="font-black text-[15px]">2. Saída Int.</span>
+                                      {st > 1 && <CheckCircle2 size={16} className="text-amber-500" />}
+                                   </div>
+                                   {pontoDoDia?.hora_saida_intervalo ? (
+                                      <span className="text-sm font-black opacity-90">{new Date(pontoDoDia.hora_saida_intervalo).toLocaleTimeString('pt-BR')}</span>
+                                   ) : (
+                                      <span className="text-xs font-bold opacity-50">--:--</span>
+                                   )}
+                                </button>
 
-                             <button onClick={() => handleBaterPonto('retorno_intervalo')} disabled={st !== 2} className={`relative w-full py-4 px-5 rounded-2xl font-black text-lg transition-all flex items-center justify-between gap-2 ${st === 2 ? 'bg-blue-500 text-white shadow-xl shadow-blue-500/20 hover:bg-blue-600 scale-105' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
-                                <span className="flex items-center gap-2">3. Volta Intervalo {st > 2 && <CheckCircle2 size={20} className="text-blue-500" />}</span>
-                                {pontoDoDia?.hora_retorno_intervalo && <span className="text-sm font-black opacity-80">{new Date(pontoDoDia.hora_retorno_intervalo).toLocaleTimeString('pt-BR')}</span>}
-                             </button>
+                                {/* Botão 3 */}
+                                <button onClick={() => handleBaterPonto('retorno_intervalo')} disabled={st !== 2} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 2 ? 'bg-blue-500 text-white shadow-xl shadow-blue-500/20 hover:bg-blue-600 scale-105' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
+                                   <div className="flex items-center gap-2">
+                                      <span className="font-black text-[15px]">3. Volta Int.</span>
+                                      {st > 2 && <CheckCircle2 size={16} className="text-blue-500" />}
+                                   </div>
+                                   {pontoDoDia?.hora_retorno_intervalo ? (
+                                      <span className="text-sm font-black opacity-90">{new Date(pontoDoDia.hora_retorno_intervalo).toLocaleTimeString('pt-BR')}</span>
+                                   ) : (
+                                      <span className="text-xs font-bold opacity-50">--:--</span>
+                                   )}
+                                </button>
 
-                             <button onClick={() => handleBaterPonto('saida_trabalho')} disabled={st !== 3} className={`relative w-full py-4 px-5 rounded-2xl font-black text-lg transition-all flex items-center justify-between gap-2 ${st === 3 ? 'bg-rose-500 text-white shadow-xl shadow-rose-500/20 hover:bg-rose-600 scale-105' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
-                                <span className="flex items-center gap-2">4. Saída Final</span>
-                                {pontoDoDia?.hora_saida && <span className="text-sm font-black opacity-80">{new Date(pontoDoDia.hora_saida).toLocaleTimeString('pt-BR')}</span>}
-                             </button>
+                                {/* Botão 4 */}
+                                <button onClick={() => handleBaterPonto('saida_trabalho')} disabled={st !== 3} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 3 ? 'bg-rose-500 text-white shadow-xl shadow-rose-500/20 hover:bg-rose-600 scale-105' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
+                                   <div className="flex items-center gap-2">
+                                      <span className="font-black text-[15px]">4. Saída Final</span>
+                                   </div>
+                                   {pontoDoDia?.hora_saida ? (
+                                      <span className="text-sm font-black opacity-90">{new Date(pontoDoDia.hora_saida).toLocaleTimeString('pt-BR')}</span>
+                                   ) : (
+                                      <span className="text-xs font-bold opacity-50">--:--</span>
+                                   )}
+                                </button>
+                             </div>
                           </div>
                        )}
                     </div>

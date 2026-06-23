@@ -74,6 +74,17 @@ export default function EspelhoDePonto() {
 
   let totalHorasMes = 0;
 
+  const mascaraCNPJ = (v) => {
+    if(!v) return "";
+    v = v.replace(/\D/g, "");
+    if (v.length > 14) v = v.substring(0, 14);
+    v = v.replace(/^(\d{2})(\d)/, "$1.$2");
+    v = v.replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3");
+    v = v.replace(/\.(\d{3})(\d)/, ".$1/$2");
+    v = v.replace(/(\d{4})(\d)/, "$1-$2");
+    return v;
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 font-sans pb-20 print:bg-white print:pb-0">
       
@@ -110,7 +121,7 @@ export default function EspelhoDePonto() {
             <div className="grid grid-cols-2 gap-4 text-[10px] font-bold uppercase mt-1">
                <div>
                   <p><strong>Empregador:</strong> {colaborador.unidade?.nome || "Empresa"}</p>
-                  <p><strong>CNPJ:</strong> {colaborador.unidade?.cnpj || "00.000.000/0000-00"}</p>
+                  <p><strong>CNPJ:</strong> {mascaraCNPJ(colaborador.unidade?.cnpj) || "00.000.000/0000-00"}</p>
                </div>
                <div>
                   <p><strong>Empregado(a):</strong> {colaborador.nome}</p>

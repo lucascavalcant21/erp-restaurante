@@ -152,6 +152,63 @@ function ModalHistorico({ onClose, colaborador }) {
   );
 }
 
+function BotaoEntrada({ colab, ponto, st, onBater }) {
+   const [agora, setAgora] = useState(new Date());
+   
+   useEffect(() => {
+      const interval = setInterval(() => setAgora(new Date()), 1000);
+      return () => clearInterval(interval);
+   }, []);
+
+   const { horario_entrada, dias_trabalho } = colab;
+   const diaSemana = agora.getDay().toString();
+   const diaFolga = dias_trabalho && !dias_trabalho.split(',').includes(diaSemana);
+
+   let bloqueado = false;
+   let msgBloqueio = null;
+
+   if (diaFolga) {
+      bloqueado = true;
+      msgBloqueio = "Dia de Folga";
+   } else if (horario_entrada) {
+      const [hEntrada, mEntrada] = horario_entrada.split(':').map(Number);
+      const minutosAgendados = (hEntrada * 60) + mEntrada;
+      const minutosAgora = (agora.getHours() * 60) + agora.getMinutes();
+      
+      if (minutosAgora < minutosAgendados - 5) {
+         bloqueado = true;
+         const objLiberacao = new Date(agora);
+         objLiberacao.setHours(Math.floor((minutosAgendados - 5) / 60), (minutosAgendados - 5) % 60, 0, 0);
+         const diffMs = objLiberacao.getTime() - agora.getTime();
+         
+         const horas = Math.floor(diffMs / (1000 * 60 * 60));
+         const minutos = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+         const segundos = Math.floor((diffMs % (1000 * 60)) / 1000);
+         
+         const formatNum = n => String(n).padStart(2, '0');
+         msgBloqueio = `Faltam ${formatNum(horas)}:${formatNum(minutos)}:${formatNum(segundos)}`;
+      }
+   }
+
+   const finalDisabled = st !== 0 || bloqueado;
+
+   return (
+      <button onClick={() => onBater('entrada')} disabled={finalDisabled} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${(st === 0 && !bloqueado) ? 'bg-emerald-600 text-white shadow-xl shadow-emerald-600/20 hover:bg-emerald-700 scale-105' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
+         <div className="flex items-center gap-2">
+            <span className="font-black text-[15px]">1. Entrada</span>
+            {st > 0 && <CheckCircle2 size={16} className={st === 0 ? 'text-white' : 'text-emerald-500'} />}
+         </div>
+         {st === 0 && bloqueado ? (
+            <span className="text-xs font-bold text-rose-500 mt-1 flex items-center gap-1"><Clock size={12}/> {msgBloqueio}</span>
+         ) : ponto?.hora_entrada ? (
+            <span className="text-sm font-black opacity-90">{new Date(ponto.hora_entrada).toLocaleTimeString('pt-BR')}</span>
+         ) : (
+            <span className="text-xs font-bold opacity-50">--:--</span>
+         )}
+      </button>
+   );
+}
+
 export default function PontoPage() {
   const router = useRouter();
   const { unidadeAtiva, unidadeInfo } = useERP();
@@ -366,18 +423,8 @@ export default function PontoPage() {
                           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-2 mb-3">Registro do Dia:</p>
                           
                           <div className="grid grid-cols-2 gap-3 w-full mb-4">
-                             {/* Botão 1 */}
-                             <button onClick={() => handleBaterPonto('entrada')} disabled={st !== 0} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 0 ? 'bg-emerald-600 text-white shadow-xl shadow-emerald-600/20 hover:bg-emerald-700 scale-105' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
-                                <div className="flex items-center gap-2">
-                                   <span className="font-black text-[15px]">1. Entrada</span>
-                                   {st > 0 && <CheckCircle2 size={16} className={st === 0 ? 'text-white' : 'text-emerald-500'} />}
-                                </div>
-                                {pontoDoDia?.hora_entrada ? (
-                                   <span className="text-sm font-black opacity-90">{new Date(pontoDoDia.hora_entrada).toLocaleTimeString('pt-BR')}</span>
-                                ) : (
-                                   <span className="text-xs font-bold opacity-50">--:--</span>
-                                )}
-                             </button>
+                             {/* Botão 1 - Inteligente com Timer */}
+                             <BotaoEntrada colab={colabAtivo} ponto={pontoDoDia} st={st} onBater={handleBaterPonto} />
 
                              {/* Botão 2 */}
                              <button onClick={() => handleBaterPonto('saida_intervalo')} disabled={st !== 1} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 1 ? 'bg-amber-500 text-white shadow-xl shadow-amber-500/20 hover:bg-amber-600 scale-105' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>

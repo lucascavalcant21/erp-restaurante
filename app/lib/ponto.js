@@ -35,6 +35,28 @@ export async function fetchHistoricoPonto(colaboradorId) {
   return { data };
 }
 
+export async function fetchPontosMes(colaboradorId, anoMes) {
+  if (!isSupabaseReady()) return { data: [] };
+  
+  // anoMes ex: '2026-06'
+  const start = `${anoMes}-01`;
+  const end = `${anoMes}-31`; // Supabase lida bem com dias além do fim do mês na busca léxica de strings YYYY-MM-DD
+  
+  const { data, error } = await supabase
+    .from("registro_ponto")
+    .select("*")
+    .eq("colaborador_id", colaboradorId)
+    .gte("data_referencia", start)
+    .lte("data_referencia", end)
+    .order("data_referencia", { ascending: true });
+    
+  if (error) {
+    console.error("Erro ao buscar pontos do mês:", error);
+    return { data: [] };
+  }
+  return { data };
+}
+
 export async function registrarBatida(colaboradorId, unidadeId, tipoBatida) {
   if (!isSupabaseReady()) return { error: "Offline" };
   const hoje = new Date().toISOString().split('T')[0];

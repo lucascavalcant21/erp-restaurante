@@ -181,7 +181,10 @@ export default function RHPage() {
                                 </div>
                               )) : <span className="text-[10px] text-slate-500">Sem docs</span>}
                               
-                              <div className="flex items-center gap-3 mt-2">
+                              <div className="flex items-center gap-3 mt-2 flex-wrap justify-end">
+                                <button onClick={() => router.push(`/dashboard/rh/espelho/${f.id}?mes=${new Date().toISOString().slice(0,7)}`)} className="flex items-center gap-1 text-xs font-black text-slate-600 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-200 transition-colors">
+                                   Espelho de Ponto
+                                </button>
                                 <button onClick={() => handleLancarFinanceiro(f)} className="flex items-center gap-1 text-xs font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition-colors">
                                    Lançar Salário
                                 </button>

@@ -84,11 +84,11 @@ export default function EspelhoDePonto() {
       <div className="max-w-[210mm] mx-auto bg-white p-[20mm] shadow-md print:shadow-none print:p-0 print:m-0" style={{ minHeight: "297mm" }}>
          
          {/* Cabeçalho */}
-         <div className="border border-slate-800 p-4 mb-6">
-            <h1 className="text-xl font-black text-center uppercase tracking-widest border-b border-slate-800 pb-2 mb-2">
+         <div className="border border-slate-800 p-2 mb-2">
+            <h1 className="text-lg font-black text-center uppercase tracking-widest border-b border-slate-800 pb-1 mb-1">
                Folha de Frequência - {mesParam.split('-').reverse().join('/')}
             </h1>
-            <div className="grid grid-cols-2 gap-4 text-xs font-bold uppercase mt-4">
+            <div className="grid grid-cols-2 gap-4 text-[10px] font-bold uppercase mt-1">
                <div>
                   <p><strong>Empregador:</strong> {colaborador.unidade?.nome || "Empresa"}</p>
                   <p><strong>CNPJ:</strong> {colaborador.unidade?.cnpj || "00.000.000/0000-00"}</p>
@@ -101,16 +101,16 @@ export default function EspelhoDePonto() {
          </div>
 
          {/* Tabela de Pontos */}
-         <table className="w-full text-[10px] border-collapse border border-slate-800 text-center">
+         <table className="w-full text-[9px] border-collapse border border-slate-800 text-center">
             <thead>
                <tr className="bg-slate-100">
-                  <th className="border border-slate-800 p-1.5 w-10">DIA</th>
-                  <th className="border border-slate-800 p-1.5 w-24">ENTRADA</th>
-                  <th className="border border-slate-800 p-1.5 w-24">SAÍDA INT.</th>
-                  <th className="border border-slate-800 p-1.5 w-24">VOLTA INT.</th>
-                  <th className="border border-slate-800 p-1.5 w-24">SAÍDA FINAL</th>
-                  <th className="border border-slate-800 p-1.5 w-24">TOTAL DIÁRIO</th>
-                  <th className="border border-slate-800 p-1.5">ASSINATURA</th>
+                  <th className="border border-slate-800 !py-1 !px-1 w-8">DIA</th>
+                  <th className="border border-slate-800 !py-1 !px-1 w-20">ENTRADA</th>
+                  <th className="border border-slate-800 !py-1 !px-1 w-20">SAÍDA INT.</th>
+                  <th className="border border-slate-800 !py-1 !px-1 w-20">VOLTA INT.</th>
+                  <th className="border border-slate-800 !py-1 !px-1 w-20">SAÍDA FINAL</th>
+                  <th className="border border-slate-800 !py-1 !px-1 w-20">TOTAL DIÁRIO</th>
+                  <th className="border border-slate-800 !py-1 !px-1">ASSINATURA</th>
                </tr>
             </thead>
             <tbody>
@@ -132,38 +132,38 @@ export default function EspelhoDePonto() {
 
                   return (
                      <tr key={dia}>
-                        <td className="border border-slate-800 p-1 font-bold">{dia.toString().padStart(2,'0')}</td>
-                        <td className="border border-slate-800 p-1">{horaStr(reg?.hora_entrada)}</td>
-                        <td className="border border-slate-800 p-1">{horaStr(reg?.hora_saida_intervalo)}</td>
-                        <td className="border border-slate-800 p-1">{horaStr(reg?.hora_retorno_intervalo)}</td>
-                        <td className="border border-slate-800 p-1">{horaStr(reg?.hora_saida)}</td>
-                        <td className="border border-slate-800 p-1 font-bold">{horasDia > 0 ? fmtHoras(horasDia) : ""}</td>
-                        <td className="border border-slate-800 p-1"></td>
+                        <td className="border border-slate-800 !py-0.5 !px-1 font-bold">{dia.toString().padStart(2,'0')}</td>
+                        <td className="border border-slate-800 !py-0.5 !px-1">{horaStr(reg?.hora_entrada)}</td>
+                        <td className="border border-slate-800 !py-0.5 !px-1">{horaStr(reg?.hora_saida_intervalo)}</td>
+                        <td className="border border-slate-800 !py-0.5 !px-1">{horaStr(reg?.hora_retorno_intervalo)}</td>
+                        <td className="border border-slate-800 !py-0.5 !px-1">{horaStr(reg?.hora_saida)}</td>
+                        <td className="border border-slate-800 !py-0.5 !px-1 font-bold">{horasDia > 0 ? fmtHoras(horasDia) : ""}</td>
+                        <td className="border border-slate-800 !py-0.5 !px-1"></td>
                      </tr>
                   );
                })}
             </tbody>
             <tfoot>
                <tr className="bg-slate-100">
-                  <td colSpan={5} className="border border-slate-800 p-2 text-right font-black uppercase">Total de Horas no Mês:</td>
-                  <td colSpan={2} className="border border-slate-800 p-2 text-left font-black text-sm">{fmtHoras(totalHorasMes)} hrs</td>
+                  <td colSpan={5} className="border border-slate-800 !py-1 !px-2 text-right font-black uppercase text-[10px]">Total de Horas no Mês:</td>
+                  <td colSpan={2} className="border border-slate-800 !py-1 !px-2 text-left font-black text-[11px]">{fmtHoras(totalHorasMes)} hrs</td>
                </tr>
             </tfoot>
          </table>
 
          {/* Assinaturas */}
-         <div className="mt-20 flex justify-between px-10 text-xs font-bold uppercase text-center">
-            <div className="w-64">
-               <div className="border-b border-slate-800 mb-2"></div>
+         <div className="mt-8 flex justify-between px-10 text-[10px] font-bold uppercase text-center">
+            <div className="w-56">
+               <div className="border-b border-slate-800 mb-1"></div>
                {colaborador.unidade?.nome || "Assinatura do Empregador"}
             </div>
-            <div className="w-64">
-               <div className="border-b border-slate-800 mb-2"></div>
+            <div className="w-56">
+               <div className="border-b border-slate-800 mb-1"></div>
                {colaborador.nome}
             </div>
          </div>
          
-         <div className="mt-8 text-[9px] text-center text-slate-500">
+         <div className="mt-4 text-[8px] text-center text-slate-500">
             Documento gerado pelo sistema REP-A. Reconhecimento de marcação de ponto nos termos da Portaria MTP nº 671/2021.
          </div>
 

@@ -21,7 +21,7 @@ export async function GET(request) {
 
   // 1. Busca dados da Unidade Empregadora
   const { data: unidade } = await supabase
-    .from("pdv_unidades")
+    .from("unidades")
     .select("*")
     .eq("id", unidadeId)
     .single();

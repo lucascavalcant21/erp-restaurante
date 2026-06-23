@@ -77,11 +77,10 @@ export default function EspelhoDePonto() {
          </button>
          <button onClick={() => window.print()} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
             <Printer size={18}/> Imprimir PDF
-         </button>
       </div>
 
       {/* Folha A4 */}
-      <div className="max-w-[210mm] mx-auto bg-white p-[20mm] shadow-md print:shadow-none print:p-0 print:m-0" style={{ minHeight: "297mm" }}>
+      <div className="max-w-[210mm] mx-auto bg-white p-[10mm] shadow-md print:shadow-none print:p-0 print:m-0 min-h-[297mm] print:min-h-0">
          
          {/* Cabeçalho */}
          <div className="border border-slate-800 p-2 mb-2">
@@ -104,13 +103,13 @@ export default function EspelhoDePonto() {
          <table className="w-full text-[9px] border-collapse border border-slate-800 text-center">
             <thead>
                <tr className="bg-slate-100">
-                  <th className="border border-slate-800 !py-1 !px-1 w-8">DIA</th>
-                  <th className="border border-slate-800 !py-1 !px-1 w-20">ENTRADA</th>
-                  <th className="border border-slate-800 !py-1 !px-1 w-20">SAÍDA INT.</th>
-                  <th className="border border-slate-800 !py-1 !px-1 w-20">VOLTA INT.</th>
-                  <th className="border border-slate-800 !py-1 !px-1 w-20">SAÍDA FINAL</th>
-                  <th className="border border-slate-800 !py-1 !px-1 w-20">TOTAL DIÁRIO</th>
-                  <th className="border border-slate-800 !py-1 !px-1">ASSINATURA</th>
+                  <th className="border border-slate-800 !py-0 !px-1 w-8">DIA</th>
+                  <th className="border border-slate-800 !py-0 !px-1 w-20">ENTRADA</th>
+                  <th className="border border-slate-800 !py-0 !px-1 w-20">SAÍDA INT.</th>
+                  <th className="border border-slate-800 !py-0 !px-1 w-20">VOLTA INT.</th>
+                  <th className="border border-slate-800 !py-0 !px-1 w-20">SAÍDA FINAL</th>
+                  <th className="border border-slate-800 !py-0 !px-1 w-20">TOTAL DIÁRIO</th>
+                  <th className="border border-slate-800 !py-0 !px-1">ASSINATURA</th>
                </tr>
             </thead>
             <tbody>
@@ -132,13 +131,13 @@ export default function EspelhoDePonto() {
 
                   return (
                      <tr key={dia}>
-                        <td className="border border-slate-800 !py-0.5 !px-1 font-bold">{dia.toString().padStart(2,'0')}</td>
-                        <td className="border border-slate-800 !py-0.5 !px-1">{horaStr(reg?.hora_entrada)}</td>
-                        <td className="border border-slate-800 !py-0.5 !px-1">{horaStr(reg?.hora_saida_intervalo)}</td>
-                        <td className="border border-slate-800 !py-0.5 !px-1">{horaStr(reg?.hora_retorno_intervalo)}</td>
-                        <td className="border border-slate-800 !py-0.5 !px-1">{horaStr(reg?.hora_saida)}</td>
-                        <td className="border border-slate-800 !py-0.5 !px-1 font-bold">{horasDia > 0 ? fmtHoras(horasDia) : ""}</td>
-                        <td className="border border-slate-800 !py-0.5 !px-1"></td>
+                        <td className="border border-slate-800 !py-0 !px-1 font-bold">{dia.toString().padStart(2,'0')}</td>
+                        <td className="border border-slate-800 !py-0 !px-1">{horaStr(reg?.hora_entrada)}</td>
+                        <td className="border border-slate-800 !py-0 !px-1">{horaStr(reg?.hora_saida_intervalo)}</td>
+                        <td className="border border-slate-800 !py-0 !px-1">{horaStr(reg?.hora_retorno_intervalo)}</td>
+                        <td className="border border-slate-800 !py-0 !px-1">{horaStr(reg?.hora_saida)}</td>
+                        <td className="border border-slate-800 !py-0 !px-1 font-bold">{horasDia > 0 ? fmtHoras(horasDia) : ""}</td>
+                        <td className="border border-slate-800 !py-0 !px-1"></td>
                      </tr>
                   );
                })}

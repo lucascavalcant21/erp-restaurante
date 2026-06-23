@@ -189,9 +189,11 @@ export default function RHPage() {
     };
 
     if (editandoId) {
-      await atualizarColaborador(editandoId, payload);
+      const { error } = await atualizarColaborador(editandoId, payload);
+      if (error) return alert("Erro ao atualizar: " + error);
     } else {
-      await inserirColaborador(payload);
+      const { error } = await inserirColaborador(payload);
+      if (error) return alert("Erro ao salvar: " + error);
     }
     
     setModalNovo(false);

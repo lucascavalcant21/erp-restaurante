@@ -39,8 +39,12 @@ export async function fetchPontosMes(colaboradorId, anoMes) {
   if (!isSupabaseReady()) return { data: [] };
   
   // anoMes ex: '2026-06'
+  const ano = parseInt(anoMes.split('-')[0]);
+  const mes = parseInt(anoMes.split('-')[1]);
+  const ultimoDia = new Date(ano, mes, 0).getDate();
+  
   const start = `${anoMes}-01`;
-  const end = `${anoMes}-31`; // Supabase lida bem com dias além do fim do mês na busca léxica de strings YYYY-MM-DD
+  const end = `${anoMes}-${ultimoDia.toString().padStart(2, '0')}`;
   
   const { data, error } = await supabase
     .from("registro_ponto")

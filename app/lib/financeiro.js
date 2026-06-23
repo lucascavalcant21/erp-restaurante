@@ -105,3 +105,10 @@ export async function fetchDRE(unidadeId) {
 }
 
 export async function fetchLancamentos() { return { data: [], error: null }; }
+
+export const fetchDocumentos = async () => { return { data: [], error: null }; };
+export const inserirDocumento = async () => { return { error: null }; };
+export const atualizarDocumento = async () => { return { error: null }; };
+export const removerDocumento = async () => { return { error: null }; };
+export const inserirLancamento = async () => { return { error: null }; };
+export const removerLancamento = async () => { return { error: null }; };

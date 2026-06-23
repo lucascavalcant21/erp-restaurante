@@ -126,5 +126,7 @@ export async function registrarCompra(unidadeId, insumoId, nomeInsumo, departame
      status: 'pendente'
   }]);
 
-  return { error: error?.message };
 }
+
+export const fetchHistoricoTablet = async () => { return { data: [], error: null }; };
+export const movimentarTablet = async () => { return { error: null }; };

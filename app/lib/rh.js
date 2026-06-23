@@ -94,3 +94,13 @@ export async function atualizarFuncionario(id, dados) {
 
 export async function fetchPontoMes(unidadeId, mesAno) { return { data: [], error: null }; }
 export async function registrarPonto(dados) { return { data: null, error: null }; }
+
+export const fetchCargos = async () => { return { data: [], error: null }; };
+export const fetchTurnos = async () => { return { data: [], error: null }; };
+export const inserirCargo = async () => { return { error: null }; };
+export const atualizarCargo = async () => { return { error: null }; };
+export const removerCargo = async () => { return { error: null }; };
+export const inserirTurno = async () => { return { error: null }; };
+export const atualizarTurno = async () => { return { error: null }; };
+export const removerTurno = async () => { return { error: null }; };
+export const inserirCargosPadrao = async () => { return { error: null }; };

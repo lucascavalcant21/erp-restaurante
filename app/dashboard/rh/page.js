@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useERP } from "../../context/ERPContext";
-import { fetchColaboradores, inserirColaborador, removerColaborador, fetchDocumentos, uploadDocumentoRH, removerDocumento } from "../../lib/rh";
+import { fetchColaboradores, inserirColaborador, atualizarColaborador, removerColaborador, fetchDocumentos, uploadDocumentoRH, removerDocumento } from "../../lib/rh";
 import { fetchPontoHoje } from "../../lib/ponto";
 import { salvarConta } from "../../lib/financeiro";
 import { 
@@ -20,6 +20,7 @@ export default function RHPage() {
   const [busca, setBusca] = useState("");
   const [modalNovo, setModalNovo] = useState(false);
   const [novoFunc, setNovoFunc] = useState({ nome: "", cargo: "", salario: "", horario_entrada: "", horario_saida: "", dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60 });
+  const [editandoId, setEditandoId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [uploadingId, setUploadingId] = useState(null);
 
@@ -50,9 +51,30 @@ export default function RHPage() {
 
   const filtrados = funcionarios.filter(f => f.nome.toLowerCase().includes(busca.toLowerCase()));
 
+  const abrirModalNovo = () => {
+    setEditandoId(null);
+    setNovoFunc({ nome: "", cargo: "", salario: "", horario_entrada: "", horario_saida: "", dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60 });
+    setModalNovo(true);
+  };
+
+  const abrirModalEdicao = (f) => {
+    setEditandoId(f.id);
+    setNovoFunc({ 
+       nome: f.nome || "", 
+       cargo: f.cargo || "", 
+       salario: f.salario || "", 
+       horario_entrada: f.horario_entrada || "", 
+       horario_saida: f.horario_saida || "", 
+       dias_trabalho: f.dias_trabalho || "1,2,3,4,5,6", 
+       tempo_intervalo: f.tempo_intervalo || 60 
+    });
+    setModalNovo(true);
+  };
+
   const handleSalvar = async () => {
     if(!novoFunc.nome || !novoFunc.cargo) return;
-    await inserirColaborador({
+    
+    const payload = {
       unidade_id: unidadeAtiva,
       nome: novoFunc.nome,
       cargo: novoFunc.cargo,
@@ -61,8 +83,16 @@ export default function RHPage() {
       horario_saida: novoFunc.horario_saida,
       dias_trabalho: novoFunc.dias_trabalho,
       tempo_intervalo: Number(novoFunc.tempo_intervalo) || 60
-    });
+    };
+
+    if (editandoId) {
+      await atualizarColaborador(editandoId, payload);
+    } else {
+      await inserirColaborador(payload);
+    }
+    
     setModalNovo(false);
+    setEditandoId(null);
     setNovoFunc({ nome: "", cargo: "", salario: "", horario_entrada: "", horario_saida: "", dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60 });
     carregar();
   };
@@ -142,7 +172,7 @@ export default function RHPage() {
                className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold transition-colors shadow-lg ${(!unidadeAtiva || unidadeAtiva === "todas") ? "bg-slate-300 text-slate-500 cursor-not-allowed" : "bg-slate-800 text-white hover:bg-slate-900 shadow-slate-800/20"}`}>
                <FileText size={18} /> Exportar AFD
             </a>
-            <button onClick={() => setModalNovo(true)} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
+            <button onClick={abrirModalNovo} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
                <UserPlus size={18} /> Contratar
             </button>
          </div>
@@ -271,7 +301,8 @@ export default function RHPage() {
                                    {uploadingId === f.id ? <Loader2 size={14} className="animate-spin"/> : <Upload size={14}/>} 
                                    {uploadingId === f.id ? "Enviando..." : "Anexar Doc"}
                                 </button>
-                                <button onClick={() => handleRemover(f.id)} className="text-slate-600 hover:bg-slate-50 p-1.5 rounded transition-colors"><Trash2 size={16}/></button>
+                                 <button onClick={() => abrirModalEdicao(f)} className="text-slate-600 hover:bg-slate-50 p-1.5 rounded transition-colors text-[10px] font-bold uppercase border border-slate-200">Editar</button>
+                                 <button onClick={() => handleRemover(f.id)} className="text-slate-600 hover:bg-slate-50 p-1.5 rounded transition-colors"><Trash2 size={16}/></button>
                               </div>
                            </div>
                         </td>
@@ -286,12 +317,12 @@ export default function RHPage() {
 
       </div>
 
-      {/* Modal Adicionar Funcionário */}
+      {/* Modal Adicionar/Editar Funcionário */}
       {modalNovo && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
             <div className="bg-white rounded-[32px] w-full max-w-md p-8 shadow-2xl animate-in zoom-in-95">
                <div className="flex justify-between items-center mb-6">
-                  <h2 className="font-black text-2xl text-slate-800">Novo Funcionário</h2>
+                  <h2 className="font-black text-2xl text-slate-800">{editandoId ? "Editar Colaborador" : "Novo Funcionário"}</h2>
                   <button onClick={() => setModalNovo(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
                </div>
 
@@ -331,7 +362,7 @@ export default function RHPage() {
                </div>
 
                <button onClick={handleSalvar} disabled={!novoFunc.nome} className="w-full mt-8 py-5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95">
-                  Salvar Colaborador
+                  {editandoId ? "Salvar Alterações" : "Salvar Colaborador"}
                </button>
             </div>
          </div>

@@ -180,13 +180,16 @@ export default function RHPage() {
      setModalFolgas(true);
      setNovaFolgaData("");
      
-     // Calcula os próximos 6 domingos
+     // Calcula os domingos do mês atual
      const domingos = [];
      const hoje = new Date();
-     for(let i=0; i<60; i++) {
-        const d = new Date(hoje);
-        d.setDate(hoje.getDate() + i);
-        if(d.getDay() === 0) {
+     const anoAtual = hoje.getFullYear();
+     const mesAtual = hoje.getMonth();
+     
+     for(let i=1; i<=31; i++) {
+        const d = new Date(Date.UTC(anoAtual, mesAtual, i, 12, 0, 0));
+        if(d.getUTCMonth() !== mesAtual) break;
+        if(d.getUTCDay() === 0) {
            const isoDate = d.toISOString().split('T')[0];
            if(!domingos.some(x => x.data === isoDate)) {
               domingos.push({
@@ -194,7 +197,6 @@ export default function RHPage() {
                  label: d.toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit', timeZone: 'UTC'})
               });
            }
-           if(domingos.length === 6) break;
         }
      }
      setDomingosProximos(domingos);

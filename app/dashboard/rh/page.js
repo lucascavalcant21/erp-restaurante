@@ -786,14 +786,14 @@ export default function RHPage() {
                <div className="flex justify-between items-center mb-6 shrink-0 border-b border-slate-100 pb-4">
                   <div className="flex items-center gap-3">
                      <div className="w-12 h-12 bg-teal-100 text-teal-600 rounded-2xl flex items-center justify-center">
-                        <Store size={24} />
+                        <ShoppingBag size={24} />
                      </div>
                      <div>
                         <h2 className="font-black text-2xl text-slate-800">Consumo & Vales</h2>
                         <p className="text-xs font-bold text-slate-500">{funcionarioConsumo.nome}</p>
                      </div>
                   </div>
-                  <button onClick={fecharModalConsumo} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors"><X size={20}/></button>
+                  <button onClick={() => setModalConsumo(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors"><X size={20}/></button>
                </div>
 
                <div className="flex-1 overflow-y-auto pr-2 grid grid-cols-1 md:grid-cols-2 gap-8">

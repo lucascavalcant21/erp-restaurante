@@ -24,7 +24,7 @@ export default function EspelhoDePonto() {
       
       // Busca Colaborador
       const { data: colab } = await supabase
-        .from("rh_colaborador")
+        .from("colaboradores")
         .select("*, unidade:pdv_unidades(nome, cnpj)")
         .eq("id", colabId)
         .single();

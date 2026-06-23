@@ -32,7 +32,7 @@ export async function GET(request) {
 
   // 2. Busca todos os Colaboradores da Unidade
   const { data: colaboradores } = await supabase
-    .from("rh_colaborador")
+    .from("colaboradores")
     .select("id, nome")
     .eq("unidade_id", unidadeId);
     

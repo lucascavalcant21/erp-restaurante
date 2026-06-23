@@ -167,7 +167,7 @@ export default function RHPage() {
   };
 
   const handleSalvar = async () => {
-    if(!novoFunc.nome || !novoFunc.cargo) return;
+    if(!novoFunc.nome || !novoFunc.cargo) return alert("Por favor, preencha o Nome e a Função/Cargo antes de salvar.");
     
     const payload = {
       unidade_id: unidadeAtiva,

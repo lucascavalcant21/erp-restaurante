@@ -81,22 +81,22 @@ export default function EspelhoDePonto() {
       </div>
 
       {/* Folha A4 */}
-      <div className="max-w-[210mm] mx-auto bg-white p-[10mm] shadow-md print:shadow-none print:p-0 print:m-0 min-h-[297mm] print:min-h-0">
+      <div className="max-w-[210mm] mx-auto bg-white py-0 px-[10mm] shadow-md print:shadow-none print:p-0 print:m-0 min-h-[297mm] print:min-h-0">
          <style dangerouslySetInnerHTML={{__html: `
            @media print {
-             @page { margin: 10mm; }
+             @page { margin: 5mm; }
              body { -webkit-print-color-adjust: exact; }
            }
            .tabela-ponto th, .tabela-ponto td {
              font-size: 10px !important;
              line-height: 1.1 !important;
-             padding: 2px !important;
-             height: 16px !important;
+             padding: 1px !important;
+             height: 14px !important;
            }
          `}} />
          
          {/* Cabeçalho */}
-         <div className="border border-slate-800 p-2 mb-2">
+         <div className="border border-slate-800 p-1 mb-1">
             <h1 className="text-lg font-black text-center uppercase tracking-widest border-b border-slate-800 pb-1 mb-1">
                Folha de Frequência - {mesParam.split('-').reverse().join('/')}
             </h1>
@@ -164,7 +164,7 @@ export default function EspelhoDePonto() {
          </table>
 
          {/* Assinaturas */}
-         <div className="mt-8 flex justify-between px-10 text-[10px] font-bold uppercase text-center">
+         <div className="mt-4 flex justify-between px-10 text-[10px] font-bold uppercase text-center">
             <div className="w-56">
                <div className="border-b border-slate-800 mb-1"></div>
                {colaborador.unidade?.nome || "Assinatura do Empregador"}

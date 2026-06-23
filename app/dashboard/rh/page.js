@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useERP } from "../../context/ERPContext";
-import { fetchColaboradores, inserirColaborador, atualizarColaborador, removerColaborador, fetchDocumentos, uploadDocumentoRH, removerDocumento } from "../../lib/rh";
+import { fetchColaboradores, inserirColaborador, atualizarColaborador, removerColaborador, fetchDocumentos, uploadDocumentoRH, removerDocumento, fetchCargos } from "../../lib/rh";
 import { fetchPontoHoje } from "../../lib/ponto";
 import { salvarConta } from "../../lib/financeiro";
 import { 
@@ -17,6 +17,7 @@ export default function RHPage() {
   
   const [funcionarios, setFuncionarios] = useState([]);
   const [pontosHoje, setPontosHoje] = useState([]);
+  const [cargos, setCargos] = useState([]);
   const [busca, setBusca] = useState("");
   const [modalNovo, setModalNovo] = useState(false);
   const [novoFunc, setNovoFunc] = useState({ nome: "", cargo: "", salario: "", horario_entrada: "", horario_saida: "", dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60 });
@@ -29,9 +30,10 @@ export default function RHPage() {
 
   const carregar = async () => {
     setLoading(true);
-    const [resRh, resPonto] = await Promise.all([
+    const [resRh, resPonto, resCargos] = await Promise.all([
       fetchColaboradores(unidadeAtiva),
-      fetchPontoHoje(unidadeAtiva)
+      fetchPontoHoje(unidadeAtiva),
+      fetchCargos(unidadeAtiva)
     ]);
     
     // Busca os documentos de cada um (ideal seria uma query relacional no supabase, mas pro MVP assim serve)
@@ -42,6 +44,7 @@ export default function RHPage() {
 
     setFuncionarios(comDocs);
     setPontosHoje(resPonto.data || []);
+    setCargos(resCargos.data || []);
     setLoading(false);
   };
 
@@ -292,12 +295,15 @@ export default function RHPage() {
                               )) : <span className="text-[10px] text-slate-500">Sem docs</span>}
                               
                               <div className="flex items-center gap-3 mt-2 flex-wrap justify-end">
-                                <button onClick={() => router.push(`/dashboard/rh/espelho/${f.id}?mes=${new Date().toISOString().slice(0,7)}`)} className="flex items-center gap-1 text-xs font-black text-slate-600 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-200 transition-colors">
-                                   Espelho de Ponto
-                                </button>
-                                <button onClick={() => handleLancarFinanceiro(f)} className="flex items-center gap-1 text-xs font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition-colors">
-                                   Lançar Salário
-                                </button>
+                                 <button onClick={() => router.push(`/dashboard/rh/espelho/${f.id}?mes=${new Date().toISOString().slice(0,7)}`)} className="flex items-center gap-1 text-xs font-black text-slate-600 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-200 transition-colors">
+                                    Espelho de Ponto
+                                 </button>
+                                 <button onClick={() => router.push(`/dashboard/rh/contrato/${f.id}`)} className="flex items-center gap-1 text-xs font-black text-slate-600 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-200 transition-colors">
+                                    <FileText size={14}/> Regulamento
+                                 </button>
+                                 <button onClick={() => handleLancarFinanceiro(f)} className="flex items-center gap-1 text-xs font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition-colors">
+                                    Lançar Salário
+                                 </button>
                                 <button onClick={() => acionarUpload(f)} disabled={uploadingId === f.id} className="flex items-center gap-1 text-xs font-bold text-emerald-600 hover:text-indigo-800 disabled:opacity-50">
                                    {uploadingId === f.id ? <Loader2 size={14} className="animate-spin"/> : <Upload size={14}/>} 
                                    {uploadingId === f.id ? "Enviando..." : "Anexar Doc"}
@@ -333,8 +339,15 @@ export default function RHPage() {
                      <input type="text" value={novoFunc.nome} onChange={e=>setNovoFunc({...novoFunc, nome: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
                   </div>
                   <div>
-                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Função / Cargo</label>
-                     <input type="text" value={novoFunc.cargo} onChange={e=>setNovoFunc({...novoFunc, cargo: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Função / Cargo</label>
+                     {cargos.length > 0 ? (
+                       <select value={novoFunc.cargo} onChange={e=>setNovoFunc({...novoFunc, cargo: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500 appearance-none text-slate-700">
+                          <option value="">Selecione um Cargo</option>
+                          {cargos.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
+                       </select>
+                     ) : (
+                       <input type="text" value={novoFunc.cargo} onChange={e=>setNovoFunc({...novoFunc, cargo: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500" placeholder="Digite ou crie cargos nas Configurações" />
+                     )}
                   </div>
                   <div>
                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Salário Base (R$)</label>
@@ -352,8 +365,23 @@ export default function RHPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Dias Trabalho (Ex: 1,2,3,4,5,6)</label>
-                        <input type="text" placeholder="0=Dom, 1=Seg..." value={novoFunc.dias_trabalho || ""} onChange={e=>setNovoFunc({...novoFunc, dias_trabalho: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500 text-sm"/>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2">Dias Trabalho</label>
+                        <div className="flex flex-wrap gap-1">
+                           {[ {v:'0',l:'D'},{v:'1',l:'S'},{v:'2',l:'T'},{v:'3',l:'Q'},{v:'4',l:'Q'},{v:'5',l:'S'},{v:'6',l:'S'} ].map(dia => {
+                              const selecionados = novoFunc.dias_trabalho ? novoFunc.dias_trabalho.split(',') : [];
+                              const ativo = selecionados.includes(dia.v);
+                              return (
+                                 <button key={dia.v} type="button" onClick={() => {
+                                    let novos = [...selecionados];
+                                    if(ativo) novos = novos.filter(d => d !== dia.v);
+                                    else novos.push(dia.v);
+                                    setNovoFunc({...novoFunc, dias_trabalho: novos.sort().join(',')});
+                                 }} className={`w-8 h-8 rounded-lg font-bold text-xs flex items-center justify-center transition-all ${ativo ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}>
+                                    {dia.l}
+                                 </button>
+                              );
+                           })}
+                        </div>
                      </div>
                      <div>
                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Intervalo (Minutos)</label>

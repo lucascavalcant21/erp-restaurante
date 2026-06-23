@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useERP } from "../../context/ERPContext";
 import { fetchColaboradores, inserirColaborador, removerColaborador, fetchDocumentos, uploadDocumentoRH, removerDocumento } from "../../lib/rh";
+import { fetchPontoHoje } from "../../lib/ponto";
 import { salvarConta } from "../../lib/financeiro";
 import { 
   Users, UserPlus, FileText, Upload, Save, X, Search, Trash2, Loader2
@@ -15,6 +16,7 @@ export default function RHPage() {
   const { unidadeAtiva } = useERP();
   
   const [funcionarios, setFuncionarios] = useState([]);
+  const [pontosHoje, setPontosHoje] = useState([]);
   const [busca, setBusca] = useState("");
   const [modalNovo, setModalNovo] = useState(false);
   const [novoFunc, setNovoFunc] = useState({ nome: "", cargo: "", salario: "" });
@@ -26,15 +28,19 @@ export default function RHPage() {
 
   const carregar = async () => {
     setLoading(true);
-    const { data } = await fetchColaboradores(unidadeAtiva);
+    const [resRh, resPonto] = await Promise.all([
+      fetchColaboradores(unidadeAtiva),
+      fetchPontoHoje(unidadeAtiva)
+    ]);
     
     // Busca os documentos de cada um (ideal seria uma query relacional no supabase, mas pro MVP assim serve)
-    const comDocs = await Promise.all(data.map(async (f) => {
+    const comDocs = await Promise.all((resRh.data || []).map(async (f) => {
        const docsResp = await fetchDocumentos(f.id);
        return { ...f, docs: docsResp.data || [] };
     }));
 
     setFuncionarios(comDocs);
+    setPontosHoje(resPonto.data || []);
     setLoading(false);
   };
 
@@ -142,16 +148,28 @@ export default function RHPage() {
                      <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Colaborador</th>
                      <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Cargo</th>
                      <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Remuneração Base</th>
+                     <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Ponto Hoje</th>
                      <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">Documentos / Ações</th>
                   </tr>
                </thead>
                <tbody className="divide-y divide-slate-100">
-                  {loading && <tr><td colSpan={4} className="p-10 text-center text-slate-500 font-bold">Carregando...</td></tr>}
+                  {loading && <tr><td colSpan={5} className="p-10 text-center text-slate-500 font-bold">Carregando...</td></tr>}
                   {!loading && filtrados.map(f => (
                      <tr key={f.id} className="hover:bg-slate-50 transition-colors">
                         <td className="p-4 font-bold text-slate-800">{f.nome}</td>
                         <td className="p-4 font-medium text-slate-600">{f.cargo}</td>
                         <td className="p-4 font-black text-slate-800">{fmtBRL(f.salario)}</td>
+                        <td className="p-4">
+                           {(() => {
+                              const pt = pontosHoje.find(p => p.colaborador_id === f.id);
+                              if (!pt) return <span className="text-[11px] font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-md">Não iniciou</span>;
+                              if (pt.status_jornada === 1) return <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-md">Trabalhando (Entrou {new Date(pt.hora_entrada).toLocaleTimeString('pt-BR').slice(0,5)})</span>;
+                              if (pt.status_jornada === 2) return <span className="text-[11px] font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-md">Intervalo (Saiu {new Date(pt.hora_saida_intervalo).toLocaleTimeString('pt-BR').slice(0,5)})</span>;
+                              if (pt.status_jornada === 3) return <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-md">Trabalhando (Voltou {new Date(pt.hora_retorno_intervalo).toLocaleTimeString('pt-BR').slice(0,5)})</span>;
+                              if (pt.status_jornada === 4) return <span className="text-[11px] font-bold text-blue-700 bg-blue-100 px-2.5 py-1 rounded-md">Concluída (Saiu {new Date(pt.hora_saida).toLocaleTimeString('pt-BR').slice(0,5)})</span>;
+                              return <span className="text-[11px] font-bold text-slate-400">--</span>;
+                           })()}
+                        </td>
                         <td className="p-4 text-right">
                            <div className="flex flex-col items-end gap-2">
                               {f.docs?.length > 0 ? f.docs.map((d) => (
@@ -178,7 +196,7 @@ export default function RHPage() {
                      </tr>
                   ))}
                   {!loading && filtrados.length === 0 && (
-                     <tr><td colSpan={4} className="p-10 text-center text-slate-500 font-bold">Nenhum funcionário cadastrado.</td></tr>
+                     <tr><td colSpan={5} className="p-10 text-center text-slate-500 font-bold">Nenhum funcionário cadastrado.</td></tr>
                   )}
                </tbody>
             </table>

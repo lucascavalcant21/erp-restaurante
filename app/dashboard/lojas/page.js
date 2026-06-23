@@ -14,6 +14,31 @@ export default function LojasPage() {
   const [editandoId, setEditandoId] = useState(null);
   const [abaAtual, setAbaAtual] = useState("basico");
 
+  const mascaraCNPJ = (v) => {
+    v = v?.replace(/\D/g, "") || "";
+    if (v.length > 14) v = v.substring(0, 14);
+    v = v.replace(/^(\d{2})(\d)/, "$1.$2");
+    v = v.replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3");
+    v = v.replace(/\.(\d{3})(\d)/, ".$1/$2");
+    v = v.replace(/(\d{4})(\d)/, "$1-$2");
+    return v;
+  };
+
+  const mascaraCEP = (v) => {
+    v = v?.replace(/\D/g, "") || "";
+    if (v.length > 8) v = v.substring(0, 8);
+    v = v.replace(/^(\d{5})(\d)/, "$1-$2");
+    return v;
+  };
+
+  const mascaraTelefone = (v) => {
+    v = v?.replace(/\D/g, "") || "";
+    if (v.length > 11) v = v.substring(0, 11);
+    v = v.replace(/^(\d{2})(\d)/g, "($1) $2");
+    v = v.replace(/(\d)(\d{4})$/, "$1-$2");
+    return v;
+  };
+
   // Formulário
   const formPadrao = {
     nome: "",
@@ -211,7 +236,7 @@ export default function LojasPage() {
                        <div className="grid grid-cols-2 gap-4">
                           <div>
                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">CNPJ</label>
-                             <input type="text" value={form.cnpj} onChange={e=>setForm({...form, cnpj: e.target.value})} placeholder="00.000.000/0000-00" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-slate-900"/>
+                             <input type="text" value={form.cnpj} onChange={e=>setForm({...form, cnpj: mascaraCNPJ(e.target.value)})} placeholder="00.000.000/0000-00" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-slate-900"/>
                           </div>
                           <div>
                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Inscrição Estadual</label>
@@ -234,7 +259,7 @@ export default function LojasPage() {
                        <div className="grid grid-cols-2 gap-4">
                           <div>
                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Telefone da Unidade</label>
-                             <input type="text" value={form.telefone_unidade} onChange={e=>setForm({...form, telefone_unidade: e.target.value})} placeholder="(00) 0000-0000" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-slate-900"/>
+                             <input type="text" value={form.telefone_unidade} onChange={e=>setForm({...form, telefone_unidade: mascaraTelefone(e.target.value)})} placeholder="(00) 00000-0000" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-slate-900"/>
                           </div>
                           <div>
                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">E-mail Comercial</label>
@@ -248,8 +273,9 @@ export default function LojasPage() {
                           <div>
                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">CEP</label>
                              <input type="text" value={form.cep} onChange={e=>{
-                               setForm({...form, cep: e.target.value});
-                               if(e.target.value.length >= 8) buscarCep(e.target.value);
+                               const mCep = mascaraCEP(e.target.value);
+                               setForm({...form, cep: mCep});
+                               if(mCep.replace(/\D/g,"").length === 8) buscarCep(mCep);
                              }} placeholder="00000-000" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-slate-900"/>
                           </div>
                           <div className="col-span-2">

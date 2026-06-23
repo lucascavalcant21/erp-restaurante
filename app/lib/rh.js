@@ -198,3 +198,33 @@ export async function removerFolgaEsporadica(id) {
   return { error: error?.message };
 }
 
+export async function fetchConsumoFuncionario(colaboradorId) {
+  if (!isSupabaseReady()) return { data: [], error: "Offline" };
+  const { data, error } = await supabase.from("rh_consumo_funcionarios").select("*").eq("funcionario_id", colaboradorId).order("data_consumo", { ascending: false });
+  return { data: data || [], error: error?.message };
+}
+
+export async function inserirConsumoFuncionario(dados) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase.from("rh_consumo_funcionarios").insert([dados]);
+  return { error: error?.message };
+}
+
+export async function atualizarStatusConsumo(id, status_pagamento, forma_pagamento) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  
+  const payload = { status_pagamento };
+  if (forma_pagamento) payload.forma_pagamento = forma_pagamento;
+  if (status_pagamento === "Pago") {
+    payload.data_pagamento = new Date().toISOString();
+  }
+
+  const { error } = await supabase.from("rh_consumo_funcionarios").update(payload).eq("id", id);
+  return { error: error?.message };
+}
+
+export async function removerConsumoFuncionario(id) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase.from("rh_consumo_funcionarios").delete().eq("id", id);
+  return { error: error?.message };
+}

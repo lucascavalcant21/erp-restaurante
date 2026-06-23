@@ -3,11 +3,17 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useERP } from "../../context/ERPContext";
-import { fetchColaboradores, inserirColaborador, atualizarColaborador, removerColaborador, fetchDocumentos, uploadDocumentoRH, removerDocumento, fetchCargos, fetchFolgasEsporadicas, inserirFolgaEsporadica, removerFolgaEsporadica, fetchAllFolgasDaUnidade } from "../../lib/rh";
+import {
+  fetchColaboradores, inserirColaborador, removerColaborador, atualizarColaborador, 
+  fetchDocumentos, uploadDocumentoRH, removerDocumento,
+  fetchCargos,
+  fetchAllFolgasDaUnidade, fetchFolgasEsporadicas, inserirFolgaEsporadica, removerFolgaEsporadica,
+  fetchConsumoFuncionario, inserirConsumoFuncionario, atualizarStatusConsumo, removerConsumoFuncionario
+} from "../../lib/rh";
 import { fetchPontoHoje } from "../../lib/ponto";
 import { salvarConta } from "../../lib/financeiro";
 import { 
-  Users, UserPlus, FileText, Upload, Save, X, Search, Trash2, Loader2, CalendarHeart, Star, Phone, CreditCard, ClipboardList, Clock, CalendarDays
+  Users, UserPlus, FileText, Upload, Save, X, Search, Trash2, Loader2, CalendarHeart, Star, Phone, CreditCard, ClipboardList, Clock, CalendarDays, ShoppingBag, CheckCircle, Store
 } from "lucide-react";
 import { fmtBRL } from "../../components/ui";
 
@@ -37,6 +43,14 @@ export default function RHPage() {
   const [novaFolgaData, setNovaFolgaData] = useState("");
   const [domingosProximos, setDomingosProximos] = useState([]);
 
+  // Estados Modal Consumo (Vales)
+  const [modalConsumo, setModalConsumo] = useState(false);
+  const [funcionarioConsumo, setFuncionarioConsumo] = useState(null);
+  const [listaConsumo, setListaConsumo] = useState([]);
+  const stateConsumo = { descricao: "", valor_original: "", forma_pagamento: "Desconto em Folha", data_consumo: new Date().toISOString().substring(0,16) };
+  const [novoConsumo, setNovoConsumo] = useState(stateConsumo);
+  const [loadingConsumo, setLoadingConsumo] = useState(false);
+
   const carregar = async () => {
     setLoading(true);
     const [resRh, resPonto, resCargos] = await Promise.all([
@@ -45,7 +59,6 @@ export default function RHPage() {
       fetchCargos(unidadeAtiva)
     ]);
     
-    // Busca os documentos de cada um (ideal seria uma query relacional no supabase, mas pro MVP assim serve)
     const comDocs = await Promise.all((resRh.data || []).map(async (f) => {
        const docsResp = await fetchDocumentos(f.id);
        return { ...f, docs: docsResp.data || [] };
@@ -60,6 +73,62 @@ export default function RHPage() {
   useEffect(() => {
     if (unidadeAtiva) carregar();
   }, [unidadeAtiva]);
+
+  // --- Funções de Consumo ---
+  const carregarConsumo = async (funcId) => {
+    setLoadingConsumo(true);
+    const { data } = await fetchConsumoFuncionario(funcId);
+    setListaConsumo(data || []);
+    setLoadingConsumo(false);
+  };
+
+  const abrirModalConsumo = (f) => {
+    setFuncionarioConsumo(f);
+    setNovoConsumo({ ...stateConsumo, data_consumo: new Date().toISOString().substring(0,16) });
+    setListaConsumo([]);
+    setModalConsumo(true);
+    carregarConsumo(f.id);
+  };
+
+  const salvarConsumo = async () => {
+    if (!novoConsumo.descricao || !novoConsumo.valor_original) return alert("Preencha descrição e valor.");
+    
+    const valOriginal = Number(novoConsumo.valor_original);
+    const valDesconto = valOriginal * 0.8; // 20% de desconto
+    const statPagto = novoConsumo.forma_pagamento === "Desconto em Folha" ? "Pendente" : "Pago";
+    
+    const payload = {
+      unidade_id: unidadeAtiva,
+      funcionario_id: funcionarioConsumo.id,
+      descricao: novoConsumo.descricao,
+      valor_original: valOriginal,
+      valor_com_desconto: valDesconto,
+      forma_pagamento: novoConsumo.forma_pagamento,
+      status_pagamento: statPagto,
+      data_consumo: new Date(novoConsumo.data_consumo).toISOString(),
+    };
+    if (statPagto === "Pago") payload.data_pagamento = new Date().toISOString();
+
+    const { error } = await inserirConsumoFuncionario(payload);
+    if (error) return alert("Erro: " + error);
+    
+    setNovoConsumo({ ...stateConsumo, data_consumo: new Date().toISOString().substring(0,16) });
+    carregarConsumo(funcionarioConsumo.id);
+  };
+
+  const quitarConsumo = async (consumoId) => {
+    if (!confirm("Confirmar quitação (pagamento recebido) deste consumo?")) return;
+    const { error } = await atualizarStatusConsumo(consumoId, "Pago");
+    if (error) alert("Erro: " + error);
+    else carregarConsumo(funcionarioConsumo.id);
+  };
+
+  const apagarConsumo = async (consumoId) => {
+    if (!confirm("Apagar este registro?")) return;
+    const { error } = await removerConsumoFuncionario(consumoId);
+    if (error) alert("Erro: " + error);
+    else carregarConsumo(funcionarioConsumo.id);
+  };
 
   const filtrados = funcionarios.filter(f => f.nome.toLowerCase().includes(busca.toLowerCase()) && (f.tipo_contrato || "Fixo") === abaAtiva);
 
@@ -159,8 +228,7 @@ export default function RHPage() {
         badges.push({ text: `1 Ano em ${faltamFerias} dias`, color: 'text-indigo-700 bg-indigo-50 border-indigo-200' });
      }
 
-     // Férias Coletivas
-     let proxColetiva = new Date(anoAtual, 11, 21); // 21 de Dezembro
+     let proxColetiva = new Date(anoAtual, 11, 21);
      if (hj > proxColetiva) proxColetiva.setFullYear(anoAtual + 1);
      const faltamColetiva = Math.floor((proxColetiva - hj) / (1000 * 60 * 60 * 24));
      badges.push({ text: `Coletivas em ${faltamColetiva} dias (21/12)`, color: 'text-teal-700 bg-teal-50 border-teal-200' });
@@ -199,7 +267,7 @@ export default function RHPage() {
     const { error } = await uploadDocumentoRH(funcParaUpload, file);
     setUploadingId(null);
     setFuncParaUpload(null);
-    fileInputRef.current.value = ""; // reseta o input
+    fileInputRef.current.value = ""; 
 
     if (error) {
        alert(error);
@@ -220,7 +288,6 @@ export default function RHPage() {
      setModalFolgas(true);
      setNovaFolgaData("");
      
-     // Calcula os domingos do mês atual
      const domingos = [];
      const hoje = new Date();
      const anoAtual = hoje.getFullYear();
@@ -241,7 +308,6 @@ export default function RHPage() {
      }
      setDomingosProximos(domingos);
 
-     // Carrega os dados
      const res = await fetchFolgasEsporadicas(f.id);
      setFolgasEsporadicas(res.data || []);
      
@@ -258,7 +324,6 @@ export default function RHPage() {
      }
      setNovaFolgaData("");
      
-     // Recarrega os dados
      const res = await fetchFolgasEsporadicas(funcParaFolgas.id);
      setFolgasEsporadicas(res.data || []);
      const resTodas = await fetchAllFolgasDaUnidade(unidadeAtiva);
@@ -382,7 +447,7 @@ export default function RHPage() {
                                  return d.getHours()*60 + d.getMinutes();
                               };
                               const minToStr = (m) => {
-                                 if (m < 0) m += 24 * 60; // Caso vire a noite
+                                 if (m < 0) m += 24 * 60; 
                                  const hh = Math.floor(m/60);
                                  const mm = m%60;
                                  if(hh === 0) return `${mm}min`;
@@ -424,7 +489,7 @@ export default function RHPage() {
                                  let intTexto = "";
                                  const minSaida = dateToMin(pt.hora_saida_intervalo);
                                  let minVolta = dateToMin(pt.hora_retorno_intervalo);
-                                 if (minVolta < minSaida) minVolta += 24 * 60; // Virou a noite
+                                 if (minVolta < minSaida) minVolta += 24 * 60; 
                                  const duracao = minVolta - minSaida; 
                                  const limite = f.tempo_intervalo || 60;
                                  
@@ -464,13 +529,16 @@ export default function RHPage() {
                                  <button onClick={() => abrirModalFolgas(f)} className="flex items-center gap-1 text-xs font-black text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg hover:bg-rose-100 transition-colors">
                                     <CalendarHeart size={14}/> Folgas
                                  </button>
+                                 <button onClick={() => abrirModalConsumo(f)} className="flex items-center gap-1 text-xs font-black text-teal-600 bg-teal-50 px-3 py-1.5 rounded-lg hover:bg-teal-100 transition-colors">
+                                    <ShoppingBag size={14}/> Consumo / Vales
+                                 </button>
                                  <button onClick={() => handleLancarFinanceiro(f)} className="flex items-center gap-1 text-xs font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition-colors">
                                     Lançar {f.tipo_contrato === "Freelancer" ? "Diária" : "Salário"}
                                  </button>
-                                <button onClick={() => acionarUpload(f)} disabled={uploadingId === f.id} className="flex items-center gap-1 text-xs font-bold text-emerald-600 hover:text-indigo-800 disabled:opacity-50">
+                                 <button onClick={() => acionarUpload(f)} disabled={uploadingId === f.id} className="flex items-center gap-1 text-xs font-bold text-emerald-600 hover:text-indigo-800 disabled:opacity-50">
                                    {uploadingId === f.id ? <Loader2 size={14} className="animate-spin"/> : <Upload size={14}/>} 
                                    {uploadingId === f.id ? "Enviando..." : "Anexar Doc"}
-                                </button>
+                                 </button>
                                  <button onClick={() => abrirModalEdicao(f)} className="text-slate-600 hover:bg-slate-50 p-1.5 rounded transition-colors text-[10px] font-bold uppercase border border-slate-200">Editar</button>
                                  <button onClick={() => handleRemover(f.id)} className="text-slate-600 hover:bg-slate-50 p-1.5 rounded transition-colors"><Trash2 size={16}/></button>
                               </div>
@@ -705,6 +773,152 @@ export default function RHPage() {
                            </div>
                         ))}
                      </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      )}
+
+      {/* Modal Consumo de Funcionários (Vales / Lanches / etc) */}
+      {modalConsumo && funcionarioConsumo && (
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-[32px] w-full max-w-[900px] p-8 shadow-2xl animate-in zoom-in-95 max-h-[90vh] overflow-hidden flex flex-col">
+               <div className="flex justify-between items-center mb-6 shrink-0 border-b border-slate-100 pb-4">
+                  <div className="flex items-center gap-3">
+                     <div className="w-12 h-12 bg-teal-100 text-teal-600 rounded-2xl flex items-center justify-center">
+                        <Store size={24} />
+                     </div>
+                     <div>
+                        <h2 className="font-black text-2xl text-slate-800">Consumo & Vales</h2>
+                        <p className="text-xs font-bold text-slate-500">{funcionarioConsumo.nome}</p>
+                     </div>
+                  </div>
+                  <button onClick={fecharModalConsumo} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors"><X size={20}/></button>
+               </div>
+
+               <div className="flex-1 overflow-y-auto pr-2 grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {/* Lado Esquerdo: Adicionar Consumo */}
+                  <div className="flex flex-col">
+                     <div className="bg-teal-50 p-4 rounded-2xl mb-6 border border-teal-100">
+                        <p className="text-xs font-bold text-teal-700 uppercase tracking-widest mb-1">20% de Desconto Automático</p>
+                        <p className="text-sm font-medium text-teal-800 leading-snug">
+                           Os funcionários têm desconto em produtos e refeições. O sistema calculará o valor a pagar com base no valor original informado.
+                        </p>
+                     </div>
+
+                     <div className="space-y-4 flex-1">
+                        <div>
+                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Descrição do Consumo</label>
+                           <input type="text" value={novoConsumo.descricao} onChange={e=>setNovoConsumo({...novoConsumo, descricao: e.target.value})} placeholder="Ex: Almoço, Cerveja, Hambúrguer..." className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-teal-500 text-slate-700"/>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                           <div>
+                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Data / Hora</label>
+                              <input type="datetime-local" value={novoConsumo.data_consumo} onChange={e=>setNovoConsumo({...novoConsumo, data_consumo: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-teal-500 text-slate-700"/>
+                           </div>
+                           <div>
+                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Valor Original (R$)</label>
+                              <input type="number" step="0.01" value={novoConsumo.valor_original} onChange={e=>setNovoConsumo({...novoConsumo, valor_original: e.target.value})} placeholder="Ex: 50.00" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-black text-slate-700 outline-none focus:border-teal-500"/>
+                           </div>
+                        </div>
+
+                        <div>
+                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Forma de Pagamento</label>
+                           <select value={novoConsumo.forma_pagamento} onChange={e=>setNovoConsumo({...novoConsumo, forma_pagamento: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-teal-500 text-slate-700 appearance-none">
+                              <option value="Desconto em Folha">Desconto em Folha (Fica Pendente)</option>
+                              <option value="Dinheiro">Dinheiro (Pago na hora)</option>
+                              <option value="Pix">PIX (Pago na hora)</option>
+                              <option value="Cartão">Cartão (Pago na hora)</option>
+                           </select>
+                        </div>
+                     </div>
+
+                     <div className="mt-6 pt-6 border-t border-slate-100">
+                        {novoConsumo.valor_original && (
+                           <div className="flex items-center justify-between bg-slate-800 p-4 rounded-xl text-white mb-4">
+                              <span className="font-bold">Total a Pagar (com 20% desc.):</span>
+                              <span className="font-black text-xl text-emerald-400">{fmtBRL(Number(novoConsumo.valor_original) * 0.8)}</span>
+                           </div>
+                        )}
+                        <button onClick={salvarConsumo} disabled={!novoConsumo.descricao || !novoConsumo.valor_original} className="w-full py-4 bg-teal-600 hover:bg-teal-700 disabled:bg-slate-300 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-teal-600/20 active:scale-95">
+                           Lançar Consumo
+                        </button>
+                     </div>
+                  </div>
+
+                  {/* Lado Direito: Histórico */}
+                  <div className="bg-slate-50 rounded-2xl border border-slate-100 p-4 flex flex-col h-full overflow-hidden">
+                     <h3 className="font-black text-slate-800 uppercase tracking-widest text-xs mb-4 border-b border-slate-200 pb-2 flex items-center justify-between">
+                        <span>Extrato de Consumo</span>
+                        {listaConsumo.length > 0 && (
+                           <span className="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">{listaConsumo.length} itens</span>
+                        )}
+                     </h3>
+                     
+                     <div className="space-y-3 overflow-y-auto flex-1 pr-1 pb-4">
+                        {loadingConsumo && <p className="text-center text-sm font-bold text-slate-400 py-4">Carregando histórico...</p>}
+                        {!loadingConsumo && listaConsumo.length === 0 && (
+                           <p className="text-center text-sm font-bold text-slate-400 py-4 flex flex-col items-center">
+                              <Store size={32} className="text-slate-300 mb-2"/>
+                              Nenhum consumo registrado.
+                           </p>
+                        )}
+                        {!loadingConsumo && listaConsumo.map(item => {
+                           const isPago = item.status_pagamento === "Pago";
+                           return (
+                              <div key={item.id} className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm relative group">
+                                 <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                       <div className="font-black text-slate-800 leading-tight">{item.descricao}</div>
+                                       <div className="text-[10px] font-bold text-slate-400">
+                                          {new Date(item.data_consumo).toLocaleString('pt-BR')}
+                                       </div>
+                                    </div>
+                                    <div className="text-right">
+                                       <div className="font-black text-teal-700">{fmtBRL(item.valor_com_desconto)}</div>
+                                       <div className="text-[10px] font-medium text-slate-400 line-through">De {fmtBRL(item.valor_original)}</div>
+                                    </div>
+                                 </div>
+                                 
+                                 <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
+                                    <div className="flex items-center gap-2">
+                                       {isPago ? (
+                                          <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100">
+                                             <CheckCircle size={10}/> PAGO ({item.forma_pagamento})
+                                          </span>
+                                       ) : (
+                                          <span className="flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-100">
+                                             <Clock size={10}/> PENDENTE
+                                          </span>
+                                       )}
+                                       
+                                       {!isPago && (
+                                          <button onClick={() => quitarConsumo(item.id)} className="text-[10px] font-bold uppercase tracking-wider text-white bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded-md transition-colors">
+                                             Quitar agora
+                                          </button>
+                                       )}
+                                    </div>
+                                    
+                                    <button onClick={() => apagarConsumo(item.id)} className="text-slate-400 hover:text-rose-600 transition-colors bg-slate-50 p-1.5 rounded-lg opacity-0 group-hover:opacity-100">
+                                       <Trash2 size={14}/>
+                                    </button>
+                                 </div>
+                              </div>
+                           )
+                        })}
+                     </div>
+                     
+                     {!loadingConsumo && listaConsumo.length > 0 && (
+                        <div className="pt-4 border-t border-slate-200 mt-2">
+                           <div className="flex justify-between items-center text-sm">
+                              <span className="font-bold text-slate-500 uppercase tracking-widest text-xs">Total Pendente</span>
+                              <span className="font-black text-rose-600 text-lg">
+                                 {fmtBRL(listaConsumo.filter(i => i.status_pagamento !== "Pago").reduce((acc, curr) => acc + curr.valor_com_desconto, 0))}
+                              </span>
+                           </div>
+                        </div>
+                     )}
                   </div>
                </div>
             </div>

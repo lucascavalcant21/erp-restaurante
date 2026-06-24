@@ -98,9 +98,9 @@ export default function VagasPage() {
           <div className="w-16 h-16 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-6">
             <Store size={32} className="text-emerald-300" />
           </div>
-          <h1 className="text-4xl md:text-5xl font-black tracking-tighter mb-4">Trabalhe Conosco - seldeestrela</h1>
+          <h1 className="text-4xl md:text-5xl font-black tracking-tighter mb-4">Trabalhe Conosco - Seldeestrela</h1>
           <p className="text-emerald-200 text-lg md:text-xl font-medium max-w-xl mx-auto">
-            Estamos em busca de talentos para integrar nossa equipe. Preencha seus dados e faça o teste de perfil.
+            Estamos em busca de talentos apaixonados para integrar nossa equipe e levar o melhor da culinária amazônica aos nossos clientes. Preencha seus dados e faça o teste de perfil.
           </p>
         </div>
       </div>

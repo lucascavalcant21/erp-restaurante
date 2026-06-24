@@ -182,7 +182,7 @@ export default function VagasPage() {
                       value={dadosPessoais.telefone}
                       onChange={e => setDadosPessoais({...dadosPessoais, telefone: e.target.value})}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:border-emerald-500 font-medium text-slate-700"
-                      placeholder="(00) 90000-0000"
+                      placeholder="(45) 90000-0000"
                     />
                   </div>
                   <div>

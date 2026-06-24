@@ -250,7 +250,7 @@ export default function VagasPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Cargo Pretendido *</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Vagas Disponíveis (Selecione aqui) *</label>
                     <div className="relative">
                       <Briefcase size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                       <select 

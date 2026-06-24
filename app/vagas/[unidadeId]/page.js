@@ -20,7 +20,7 @@ export default function VagasPage() {
     cpf: "",
     telefone: "",
     cidade: "",
-    estado: "",
+    estado: "SP",
     rua: "",
     bairro: "",
     numero: "",
@@ -29,9 +29,9 @@ export default function VagasPage() {
     genero: "Masculino",
     escolaridade: "Ensino Médio Completo",
     temFilhos: "Não",
-    qtdFilhos: "",
+    qtdFilhos: "1",
     temAutomovel: "Não",
-    qualAutomovel: ""
+    qualAutomovel: "Carro"
   });
 
   const [respostas, setRespostas] = useState({});
@@ -213,13 +213,39 @@ export default function VagasPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Estado *</label>
-                    <input 
-                      type="text" 
+                    <select 
                       value={dadosPessoais.estado}
                       onChange={e => setDadosPessoais({...dadosPessoais, estado: e.target.value})}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:border-emerald-500 font-medium text-slate-700"
-                      placeholder="UF"
-                    />
+                    >
+                      <option value="AC">Acre</option>
+                      <option value="AL">Alagoas</option>
+                      <option value="AP">Amapá</option>
+                      <option value="AM">Amazonas</option>
+                      <option value="BA">Bahia</option>
+                      <option value="CE">Ceará</option>
+                      <option value="DF">Distrito Federal</option>
+                      <option value="ES">Espírito Santo</option>
+                      <option value="GO">Goiás</option>
+                      <option value="MA">Maranhão</option>
+                      <option value="MT">Mato Grosso</option>
+                      <option value="MS">Mato Grosso do Sul</option>
+                      <option value="MG">Minas Gerais</option>
+                      <option value="PA">Pará</option>
+                      <option value="PB">Paraíba</option>
+                      <option value="PR">Paraná</option>
+                      <option value="PE">Pernambuco</option>
+                      <option value="PI">Piauí</option>
+                      <option value="RJ">Rio de Janeiro</option>
+                      <option value="RN">Rio Grande do Norte</option>
+                      <option value="RS">Rio Grande do Sul</option>
+                      <option value="RO">Rondônia</option>
+                      <option value="RR">Roraima</option>
+                      <option value="SC">Santa Catarina</option>
+                      <option value="SP">São Paulo</option>
+                      <option value="SE">Sergipe</option>
+                      <option value="TO">Tocantins</option>
+                    </select>
                   </div>
                 </div>
 
@@ -302,13 +328,18 @@ export default function VagasPage() {
                     {dadosPessoais.temFilhos === 'Sim' && (
                       <div className="w-1/3">
                         <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Quantos?</label>
-                        <input 
-                          type="number" 
+                        <select 
                           value={dadosPessoais.qtdFilhos}
                           onChange={e => setDadosPessoais({...dadosPessoais, qtdFilhos: e.target.value})}
                           className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:border-emerald-500 font-medium text-slate-700"
-                          placeholder="Ex: 2"
-                        />
+                        >
+                          <option>1</option>
+                          <option>2</option>
+                          <option>3</option>
+                          <option>4</option>
+                          <option>5</option>
+                          <option>Mais de 5</option>
+                        </select>
                       </div>
                     )}
                   </div>
@@ -327,13 +358,15 @@ export default function VagasPage() {
                     {dadosPessoais.temAutomovel === 'Sim' && (
                       <div className="w-1/2">
                         <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Qual?</label>
-                        <input 
-                          type="text" 
+                        <select 
                           value={dadosPessoais.qualAutomovel}
                           onChange={e => setDadosPessoais({...dadosPessoais, qualAutomovel: e.target.value})}
                           className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:border-emerald-500 font-medium text-slate-700"
-                          placeholder="Ex: Moto"
-                        />
+                        >
+                          <option>Carro</option>
+                          <option>Moto</option>
+                          <option>Carro e Moto</option>
+                        </select>
                       </div>
                     )}
                   </div>

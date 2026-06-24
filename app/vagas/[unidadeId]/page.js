@@ -6,6 +6,27 @@ import { enviarCandidatura, PERGUNTAS_RECRUTAMENTO } from "../../lib/recrutament
 import { Upload, CheckCircle, Send, FileText, User, MapPin, Briefcase, ChevronRight, Store, Loader2 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 
+const VAGAS_DETALHES = {
+  "Garçom (2 vagas)": {
+    salario: "R$ 1.800,00",
+    alimentacao: "R$ 400,00",
+    taxa: "Sim (Variável)",
+    jornada: "6x1 - 16h às 00h"
+  },
+  "Cozinheiro (1 vaga)": {
+    salario: "R$ 2.500,00",
+    alimentacao: "R$ 400,00",
+    taxa: "Sim (Variável)",
+    jornada: "6x1 - 15h às 23h"
+  },
+  "Auxiliar de Limpeza (1 vaga)": {
+    salario: "R$ 1.600,00",
+    alimentacao: "R$ 400,00",
+    taxa: "Não",
+    jornada: "6x1 - 08h às 16h"
+  }
+};
+
 export default function VagasPage() {
   const params = useParams();
   const unidadeId = params.unidadeId;
@@ -403,7 +424,7 @@ export default function VagasPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 gap-6">
                   <div>
                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Vagas Disponíveis (Selecione aqui) *</label>
                     <div className="relative">
@@ -419,7 +440,29 @@ export default function VagasPage() {
                         <option>Banco de Talentos / Outros</option>
                       </select>
                     </div>
+
+                    {VAGAS_DETALHES[dadosPessoais.cargoPretendido] && (
+                      <div className="mt-4 bg-emerald-50 border border-emerald-100 rounded-2xl p-4 grid grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-2">
+                        <div>
+                          <p className="text-[10px] font-black text-emerald-600/70 uppercase tracking-widest mb-1">Salário Base</p>
+                          <p className="font-bold text-emerald-900">{VAGAS_DETALHES[dadosPessoais.cargoPretendido].salario}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black text-emerald-600/70 uppercase tracking-widest mb-1">Vale Alimentação</p>
+                          <p className="font-bold text-emerald-900">{VAGAS_DETALHES[dadosPessoais.cargoPretendido].alimentacao}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black text-emerald-600/70 uppercase tracking-widest mb-1">Taxa de Serviço</p>
+                          <p className="font-bold text-emerald-900">{VAGAS_DETALHES[dadosPessoais.cargoPretendido].taxa}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black text-emerald-600/70 uppercase tracking-widest mb-1">Jornada</p>
+                          <p className="font-bold text-emerald-900 text-sm leading-tight">{VAGAS_DETALHES[dadosPessoais.cargoPretendido].jornada}</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
+
                   <div>
                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Resumo da Experiência Profissional *</label>
                     <input 

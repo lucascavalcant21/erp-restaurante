@@ -16,6 +16,7 @@ import {
   Users, UserPlus, FileText, Upload, Save, X, Search, Trash2, Loader2, CalendarHeart, Star, Phone, CreditCard, ClipboardList, Clock, CalendarDays, ShoppingBag, CheckCircle, Store
 } from "lucide-react";
 import { fmtBRL } from "../../components/ui";
+import BancoTalentos from "./components/BancoTalentos";
 
 export default function RHPage() {
   const router = useRouter();
@@ -390,15 +391,20 @@ export default function RHPage() {
          <div className="flex gap-4 mb-4">
             <button onClick={()=>setAbaAtiva("Fixo")} className={`flex-1 py-3 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${abaAtiva === "Fixo" ? "bg-slate-800 text-white shadow-lg shadow-slate-800/20" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>Equipe Fixa</button>
             <button onClick={()=>setAbaAtiva("Freelancer")} className={`flex-1 py-3 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${abaAtiva === "Freelancer" ? "bg-slate-800 text-white shadow-lg shadow-slate-800/20" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>Freelancers Extras</button>
+            <button onClick={()=>setAbaAtiva("Banco de Talentos")} className={`flex-1 py-3 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${abaAtiva === "Banco de Talentos" ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" : "bg-white text-indigo-500 border border-indigo-200 hover:bg-indigo-50"}`}>Banco de Talentos</button>
          </div>
 
-         <div className="bg-white p-4 rounded-t-3xl border border-slate-200 border-b-0 flex items-center gap-3">
-            <Search size={18} className="text-slate-500" />
-            <input type="text" placeholder="Buscar funcionário..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-medium text-slate-700" />
-         </div>
+         {abaAtiva === "Banco de Talentos" ? (
+            <BancoTalentos unidadeAtiva={unidadeAtiva} />
+         ) : (
+            <>
+               <div className="bg-white p-4 rounded-t-3xl border border-slate-200 border-b-0 flex items-center gap-3">
+                  <Search size={18} className="text-slate-500" />
+                  <input type="text" placeholder="Buscar funcionário..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-medium text-slate-700" />
+               </div>
 
-         <div className="bg-white rounded-b-3xl border border-slate-200 overflow-hidden shadow-sm">
-            <table className="w-full text-left">
+               <div className="bg-white rounded-b-3xl border border-slate-200 overflow-hidden shadow-sm">
+                  <table className="w-full text-left">
                <thead>
                   <tr className="bg-slate-50 border-b border-slate-100">
                      <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Colaborador</th>
@@ -563,6 +569,8 @@ export default function RHPage() {
                </tbody>
             </table>
          </div>
+         </>
+         )}
 
       </div>
 

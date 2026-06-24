@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import { enviarCandidatura, PERGUNTAS_RECRUTAMENTO } from "../../lib/recrutamento";
-import { Upload, CheckCircle, Send, FileText, User, MapPin, Briefcase, ChevronRight, Store } from "lucide-react";
+import { Upload, CheckCircle, Send, FileText, User, MapPin, Briefcase, ChevronRight, Store, Loader2 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 
 export default function VagasPage() {

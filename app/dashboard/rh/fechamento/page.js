@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useERP } from "../../../../context/ERPContext";
-import { fetchResumoFolhaMensal, fecharFolhaMensal } from "../../../../lib/rh";
+import { useERP } from "../../../context/ERPContext";
+import { fetchResumoFolhaMensal, fecharFolhaMensal } from "../../../lib/rh";
 import { ArrowLeft, Save, Loader2, DollarSign, Calculator, AlertTriangle, Info } from "lucide-react";
-import { fmtBRL } from "../../../../components/ui";
+import { fmtBRL } from "../../../components/ui";
 
 export default function FechamentoFolhaPage() {
   const router = useRouter();

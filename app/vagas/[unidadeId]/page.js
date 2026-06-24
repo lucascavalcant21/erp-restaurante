@@ -89,7 +89,7 @@ export default function VagasPage() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans pb-24">
       {/* Header */}
-      <div className="bg-slate-900 text-white pt-12 pb-24 px-6 relative overflow-hidden">
+      <div className="bg-emerald-950 text-white pt-12 pb-24 px-6 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
            {/* Abstract pattern */}
            <div className="absolute w-96 h-96 bg-emerald-500 rounded-full blur-3xl -top-20 -left-20"></div>
@@ -98,7 +98,7 @@ export default function VagasPage() {
           <div className="w-16 h-16 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-6">
             <Store size={32} className="text-emerald-300" />
           </div>
-          <h1 className="text-4xl md:text-5xl font-black tracking-tighter mb-4">Trabalhe Conosco - Sel de Estrela</h1>
+          <h1 className="text-4xl md:text-5xl font-black tracking-tighter mb-4">Trabalhe Conosco - seldeestrela</h1>
           <p className="text-emerald-200 text-lg md:text-xl font-medium max-w-xl mx-auto">
             Estamos em busca de talentos para integrar nossa equipe. Preencha seus dados e faça o teste de perfil.
           </p>

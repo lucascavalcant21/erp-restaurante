@@ -20,7 +20,7 @@ export default function VagasPage() {
     cpf: "",
     telefone: "",
     cidade: "",
-    estado: "SP",
+    estado: "",
     rua: "",
     bairro: "",
     numero: "",
@@ -37,6 +37,27 @@ export default function VagasPage() {
   const [respostas, setRespostas] = useState({});
   const [file, setFile] = useState(null);
   const fileInputRef = useRef(null);
+  const [municipios, setMunicipios] = useState([]);
+  const [carregandoMunicipios, setCarregandoMunicipios] = useState(false);
+
+  useEffect(() => {
+    if (!dadosPessoais.estado) {
+      setMunicipios([]);
+      return;
+    }
+    setCarregandoMunicipios(true);
+    fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${dadosPessoais.estado}/municipios`)
+      .then(res => res.json())
+      .then(data => {
+        const sorted = data.sort((a, b) => a.nome.localeCompare(b.nome));
+        setMunicipios(sorted);
+        setCarregandoMunicipios(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setCarregandoMunicipios(false);
+      });
+  }, [dadosPessoais.estado]);
 
   const handleNextStep = () => {
     if (step === 1) {
@@ -202,22 +223,13 @@ export default function VagasPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Cidade *</label>
-                    <input 
-                      type="text" 
-                      value={dadosPessoais.cidade}
-                      onChange={e => setDadosPessoais({...dadosPessoais, cidade: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:border-emerald-500 font-medium text-slate-700"
-                      placeholder="Sua Cidade"
-                    />
-                  </div>
-                  <div>
                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Estado *</label>
                     <select 
                       value={dadosPessoais.estado}
-                      onChange={e => setDadosPessoais({...dadosPessoais, estado: e.target.value})}
+                      onChange={e => setDadosPessoais({...dadosPessoais, estado: e.target.value, cidade: ""})}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:border-emerald-500 font-medium text-slate-700"
                     >
+                      <option value="">Selecione...</option>
                       <option value="AC">Acre</option>
                       <option value="AL">Alagoas</option>
                       <option value="AP">Amapá</option>
@@ -245,6 +257,28 @@ export default function VagasPage() {
                       <option value="SP">São Paulo</option>
                       <option value="SE">Sergipe</option>
                       <option value="TO">Tocantins</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Município *</label>
+                    <select 
+                      value={dadosPessoais.cidade}
+                      onChange={e => setDadosPessoais({...dadosPessoais, cidade: e.target.value})}
+                      disabled={!dadosPessoais.estado}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:border-emerald-500 font-medium text-slate-700 disabled:opacity-50"
+                    >
+                      {!dadosPessoais.estado ? (
+                        <option value="">Selecione seu estado</option>
+                      ) : carregandoMunicipios ? (
+                        <option value="">Carregando...</option>
+                      ) : (
+                        <>
+                          <option value="">Selecione o município</option>
+                          {municipios.map(m => (
+                            <option key={m.id} value={m.nome}>{m.nome}</option>
+                          ))}
+                        </>
+                      )}
                     </select>
                   </div>
                 </div>

@@ -228,3 +228,127 @@ export async function removerConsumoFuncionario(id) {
   const { error } = await supabase.from("rh_consumo_funcionarios").delete().eq("id", id);
   return { error: error?.message };
 }
+
+// ============================================================================
+// FECHAMENTO DE FOLHA
+// ============================================================================
+
+export async function fetchResumoFolhaMensal(unidadeId, mesAno) {
+  if (!isSupabaseReady()) return { data: [], error: "Offline" };
+
+  // 1. Busca Colaboradores
+  const { data: colaboradores } = await fetchColaboradores(unidadeId);
+  if (!colaboradores) return { data: [] };
+
+  // 2. Busca Pontos do Mês
+  const dataInicial = `${mesAno}-01`;
+  const ano = parseInt(mesAno.split('-')[0]);
+  const mes = parseInt(mesAno.split('-')[1]);
+  const ultimoDia = new Date(ano, mes, 0).getDate();
+  const dataFinal = `${mesAno}-${ultimoDia.toString().padStart(2, '0')}`;
+
+  let queryPonto = supabase.from("registro_ponto")
+    .select("colaborador_id, data_referencia")
+    .gte("data_referencia", dataInicial)
+    .lte("data_referencia", dataFinal);
+    
+  if (unidadeId && unidadeId !== "matriz") {
+    queryPonto = queryPonto.eq("unidade_id", unidadeId);
+  }
+
+  const { data: pontos } = await queryPonto;
+  const pontosSeguros = pontos || [];
+
+  // 3. Busca Vales Pendentes
+  let queryVales = supabase.from("rh_consumo_funcionarios")
+    .select("*")
+    .eq("forma_pagamento", "Desconto em Folha")
+    .eq("status_pagamento", "Pendente")
+    .lte("data_consumo", dataFinal + "T23:59:59Z");
+
+  const { data: vales } = await queryVales;
+  const valesSeguros = vales || [];
+
+  const resumo = colaboradores.map(c => {
+    const diasTrabalhados = new Set(pontosSeguros.filter(p => p.colaborador_id === c.id).map(p => p.data_referencia)).size;
+    const meusVales = valesSeguros.filter(v => v.funcionario_id === c.id);
+    const totalVales = meusVales.reduce((acc, v) => acc + Number(v.valor_final), 0);
+
+    const isFreelancer = c.tipo_contrato === "Freelancer";
+    const salarioBaseNumber = Number(c.salario || 0);
+    
+    let baseCalculada = 0;
+    if (isFreelancer) {
+      baseCalculada = diasTrabalhados * salarioBaseNumber;
+    } else {
+      baseCalculada = salarioBaseNumber;
+    }
+
+    return {
+      colaborador_id: c.id,
+      nome: c.nome,
+      cargo: c.cargo,
+      tipo_contrato: c.tipo_contrato,
+      salario_cadastrado: salarioBaseNumber,
+      dias_trabalhados: diasTrabalhados,
+      base_calculada: baseCalculada,
+      total_vales_pendentes: totalVales,
+      vales_detalhes: meusVales
+    };
+  });
+
+  return { data: resumo };
+}
+
+export async function fecharFolhaMensal(unidadeId, mesAno, pagamentos) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+
+  const [anoStr, mesStr] = mesAno.split('-');
+  let ano = parseInt(anoStr);
+  let mes = parseInt(mesStr); 
+  
+  mes += 1;
+  if (mes > 12) {
+    mes = 1;
+    ano += 1;
+  }
+  
+  let dia = 1;
+  let diasUteis = 0;
+  let dataVencimento = null;
+  
+  while (diasUteis < 5) {
+    const data = new Date(ano, mes - 1, dia);
+    const diaSemana = data.getDay();
+    if (diaSemana !== 0 && diaSemana !== 6) {
+      diasUteis++;
+    }
+    if (diasUteis === 5) {
+      dataVencimento = `${ano}-${mes.toString().padStart(2,'0')}-${dia.toString().padStart(2,'0')}`;
+      break;
+    }
+    dia++;
+  }
+
+  const contasParaInserir = pagamentos.map(p => ({
+    unidade_id: unidadeId,
+    descricao: `Salário ${mesStr}/${anoStr} - ${p.nome}`,
+    valor: Number(p.valor_liquido),
+    data_vencimento: dataVencimento,
+    categoria: 'cmo',
+    status: 'pendente'
+  }));
+
+  const { error } = await supabase.from("contas_pagar").insert(contasParaInserir);
+  if (error) return { error: error.message };
+
+  const valesParaBaixar = pagamentos.flatMap(p => p.vales_descontados_ids || []);
+  if (valesParaBaixar.length > 0) {
+    const dataHoje = new Date().toISOString();
+    await supabase.from("rh_consumo_funcionarios")
+      .update({ status_pagamento: 'Pago', data_pagamento: dataHoje })
+      .in('id', valesParaBaixar);
+  }
+
+  return { success: true };
+}

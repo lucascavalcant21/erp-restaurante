@@ -376,6 +376,9 @@ export default function RHPage() {
                className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold transition-colors shadow-lg ${(!unidadeAtiva || unidadeAtiva === "todas") ? "bg-slate-300 text-slate-500 cursor-not-allowed" : "bg-slate-800 text-white hover:bg-slate-900 shadow-slate-800/20"}`}>
                <FileText size={18} /> Exportar AFD
             </a>
+            <button onClick={() => router.push('/dashboard/rh/fechamento')} className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20">
+               <ClipboardList size={18} /> Fechar Folha
+            </button>
             <button onClick={abrirModalNovo} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
                <UserPlus size={18} /> Contratar
             </button>

@@ -24,8 +24,14 @@ export default function VagasPage() {
     rua: "",
     bairro: "",
     numero: "",
-    cargoPretendido: "Garçom/Garçonete",
-    experiencia: ""
+    cargoPretendido: "Garçom/Garçonete (0 vagas)",
+    experiencia: "",
+    genero: "Masculino",
+    escolaridade: "Ensino Médio Completo",
+    temFilhos: "Não",
+    qtdFilhos: "",
+    temAutomovel: "Não",
+    qualAutomovel: ""
   });
 
   const [respostas, setRespostas] = useState({});
@@ -62,6 +68,8 @@ export default function VagasPage() {
       }
     }
 
+    const detalhesExtras = `Gênero: ${dadosPessoais.genero} | Escolaridade: ${dadosPessoais.escolaridade} | Carro: ${dadosPessoais.temAutomovel === 'Sim' ? dadosPessoais.qualAutomovel : 'Não'} | Filhos: ${dadosPessoais.temFilhos === 'Sim' ? dadosPessoais.qtdFilhos : '0'} | Exp: ${dadosPessoais.experiencia}`;
+
     // Concatenando dados para enviar para o banco
     const payload = {
       nome: `${dadosPessoais.nome} ${dadosPessoais.sobrenome}`.trim(),
@@ -69,8 +77,8 @@ export default function VagasPage() {
       telefone: dadosPessoais.telefone,
       endereco: `${dadosPessoais.rua}, ${dadosPessoais.numero} - ${dadosPessoais.bairro}, ${dadosPessoais.cidade}/${dadosPessoais.estado}`,
       cargoPretendido: dadosPessoais.cargoPretendido,
-      experiencia: dadosPessoais.experiencia,
-      temFilhos: "Não informado"
+      experiencia: detalhesExtras,
+      temFilhos: dadosPessoais.temFilhos
     };
 
     const res = await enviarCandidatura(unidadeId, payload, respostas, fileUrl);
@@ -245,6 +253,89 @@ export default function VagasPage() {
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:border-emerald-500 font-medium text-slate-700"
                       placeholder="Centro"
                     />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Gênero *</label>
+                    <select 
+                      value={dadosPessoais.genero}
+                      onChange={e => setDadosPessoais({...dadosPessoais, genero: e.target.value})}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:border-emerald-500 font-medium text-slate-700"
+                    >
+                      <option>Masculino</option>
+                      <option>Feminino</option>
+                      <option>Outro</option>
+                      <option>Prefiro não informar</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Escolaridade *</label>
+                    <select 
+                      value={dadosPessoais.escolaridade}
+                      onChange={e => setDadosPessoais({...dadosPessoais, escolaridade: e.target.value})}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:border-emerald-500 font-medium text-slate-700"
+                    >
+                      <option>Ensino Fundamental</option>
+                      <option>Ensino Médio Incompleto</option>
+                      <option>Ensino Médio Completo</option>
+                      <option>Ensino Superior Incompleto</option>
+                      <option>Ensino Superior Completo</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Possui filhos? *</label>
+                      <select 
+                        value={dadosPessoais.temFilhos}
+                        onChange={e => setDadosPessoais({...dadosPessoais, temFilhos: e.target.value})}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:border-emerald-500 font-medium text-slate-700"
+                      >
+                        <option>Não</option>
+                        <option>Sim</option>
+                      </select>
+                    </div>
+                    {dadosPessoais.temFilhos === 'Sim' && (
+                      <div className="w-1/3">
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Quantos?</label>
+                        <input 
+                          type="number" 
+                          value={dadosPessoais.qtdFilhos}
+                          onChange={e => setDadosPessoais({...dadosPessoais, qtdFilhos: e.target.value})}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:border-emerald-500 font-medium text-slate-700"
+                          placeholder="Ex: 2"
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Possui Automóvel? *</label>
+                      <select 
+                        value={dadosPessoais.temAutomovel}
+                        onChange={e => setDadosPessoais({...dadosPessoais, temAutomovel: e.target.value})}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:border-emerald-500 font-medium text-slate-700"
+                      >
+                        <option>Não</option>
+                        <option>Sim</option>
+                      </select>
+                    </div>
+                    {dadosPessoais.temAutomovel === 'Sim' && (
+                      <div className="w-1/2">
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Qual?</label>
+                        <input 
+                          type="text" 
+                          value={dadosPessoais.qualAutomovel}
+                          onChange={e => setDadosPessoais({...dadosPessoais, qualAutomovel: e.target.value})}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:border-emerald-500 font-medium text-slate-700"
+                          placeholder="Ex: Moto"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 

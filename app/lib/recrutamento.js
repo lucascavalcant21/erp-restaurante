@@ -45,7 +45,7 @@ function gerarLaudoIA(respostas, temFilhos) {
   let notaTotal = 0;
   const tags = [];
 
-  for (const [idPergunta, idOpcaoSelecionada] = Object.entries(respostas)) {
+  for (const [idPergunta, idOpcaoSelecionada] of Object.entries(respostas)) {
     const pergunta = PERGUNTAS_RECRUTAMENTO.find(p => p.id === idPergunta);
     if (pergunta) {
       const opcao = pergunta.opcoes[parseInt(idOpcaoSelecionada)];

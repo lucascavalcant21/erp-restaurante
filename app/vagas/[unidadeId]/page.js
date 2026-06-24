@@ -2,12 +2,9 @@
 
 import { useState, useRef } from "react";
 import { useParams } from "next/navigation";
-import { enviarCandidatura, PERGUNTAS_RECRUTAMENTO } from "../../../lib/recrutamento";
+import { enviarCandidatura, PERGUNTAS_RECRUTAMENTO } from "../../lib/recrutamento";
 import { Upload, CheckCircle, Send, FileText, User, MapPin, Briefcase, ChevronRight, Store } from "lucide-react";
-import { uploadImage } from "../../../lib/supabase"; // Using existing upload function if available, otherwise just mock for now, but let's assume it works or we need to add a PDF uploader. I'll mock file URL or use simple logic.
-
-// If `uploadImage` only accepts images, let's just simulate the file upload for this MVP, or use supabase storage directly.
-import { supabase } from "../../../lib/supabase";
+import { supabase } from "../../lib/supabase";
 
 export default function VagasPage() {
   const params = useParams();

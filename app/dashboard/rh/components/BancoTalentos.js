@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { fetchCandidatos, atualizarStatusCandidato, removerCandidato } from "../../../../lib/recrutamento";
+import { fetchCandidatos, atualizarStatusCandidato, removerCandidato } from "../../../lib/recrutamento";
 import { Loader2, Search, ExternalLink, FileText, Trash2, ShieldAlert, X, Phone, MapPin, Briefcase } from "lucide-react";
 
 export default function BancoTalentos({ unidadeAtiva }) {

@@ -24,7 +24,7 @@ export default function VagasPage() {
     rua: "",
     bairro: "",
     numero: "",
-    cargoPretendido: "Garçom/Garçonete (0 vagas)",
+    cargoPretendido: "Garçom (2 vagas)",
     experiencia: "",
     genero: "Masculino",
     escolaridade: "Ensino Médio Completo",
@@ -349,13 +349,10 @@ export default function VagasPage() {
                         onChange={e => setDadosPessoais({...dadosPessoais, cargoPretendido: e.target.value})}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-11 pr-4 outline-none focus:border-emerald-500 font-medium text-slate-700 appearance-none"
                       >
-                        <option>Garçom/Garçonete</option>
-                        <option>Cozinheiro(a)</option>
-                        <option>Auxiliar de Cozinha</option>
-                        <option>Caixa</option>
-                        <option>Gerente</option>
-                        <option>Limpeza/Serviços Gerais</option>
-                        <option>Outros</option>
+                        <option>Garçom (2 vagas)</option>
+                        <option>Cozinheiro (1 vaga)</option>
+                        <option>Auxiliar de Limpeza (1 vaga)</option>
+                        <option>Banco de Talentos / Outros</option>
                       </select>
                     </div>
                   </div>

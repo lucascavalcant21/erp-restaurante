@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { enviarCandidatura, PERGUNTAS_RECRUTAMENTO } from "../../lib/recrutamento";
 import { Upload, CheckCircle, Send, FileText, User, MapPin, Briefcase, ChevronRight, Store, Loader2 } from "lucide-react";

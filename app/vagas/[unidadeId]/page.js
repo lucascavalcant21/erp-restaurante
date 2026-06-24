@@ -92,14 +92,14 @@ export default function VagasPage() {
       <div className="bg-slate-900 text-white pt-12 pb-24 px-6 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
            {/* Abstract pattern */}
-           <div className="absolute w-96 h-96 bg-indigo-500 rounded-full blur-3xl -top-20 -left-20"></div>
+           <div className="absolute w-96 h-96 bg-emerald-500 rounded-full blur-3xl -top-20 -left-20"></div>
         </div>
         <div className="max-w-3xl mx-auto relative z-10 text-center">
           <div className="w-16 h-16 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <Store size={32} className="text-indigo-300" />
+            <Store size={32} className="text-emerald-300" />
           </div>
-          <h1 className="text-4xl md:text-5xl font-black tracking-tighter mb-4">Trabalhe Conosco</h1>
-          <p className="text-indigo-200 text-lg md:text-xl font-medium max-w-xl mx-auto">
+          <h1 className="text-4xl md:text-5xl font-black tracking-tighter mb-4">Trabalhe Conosco - Sel de Estrela</h1>
+          <p className="text-emerald-200 text-lg md:text-xl font-medium max-w-xl mx-auto">
             Estamos em busca de talentos para integrar nossa equipe. Preencha seus dados e faça o teste de perfil.
           </p>
         </div>
@@ -110,10 +110,10 @@ export default function VagasPage() {
           
           {/* Progress Bar */}
           <div className="flex border-b border-slate-100">
-             <div className={`flex-1 py-4 text-center font-black text-sm uppercase tracking-widest transition-colors ${step === 1 ? 'bg-indigo-50 text-indigo-700' : 'text-slate-400'}`}>
+             <div className={`flex-1 py-4 text-center font-black text-sm uppercase tracking-widest transition-colors ${step === 1 ? 'bg-emerald-50 text-emerald-700' : 'text-slate-400'}`}>
                 1. Dados Pessoais
              </div>
-             <div className={`flex-1 py-4 text-center font-black text-sm uppercase tracking-widest transition-colors border-l border-slate-100 ${step === 2 ? 'bg-indigo-50 text-indigo-700' : 'text-slate-400'}`}>
+             <div className={`flex-1 py-4 text-center font-black text-sm uppercase tracking-widest transition-colors border-l border-slate-100 ${step === 2 ? 'bg-emerald-50 text-emerald-700' : 'text-slate-400'}`}>
                 2. Teste de Perfil
              </div>
           </div>
@@ -131,7 +131,7 @@ export default function VagasPage() {
                         type="text" 
                         value={dadosPessoais.nome}
                         onChange={e => setDadosPessoais({...dadosPessoais, nome: e.target.value})}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-11 pr-4 outline-none focus:border-indigo-500 font-medium text-slate-700"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-11 pr-4 outline-none focus:border-emerald-500 font-medium text-slate-700"
                         placeholder="João da Silva"
                       />
                     </div>
@@ -144,7 +144,7 @@ export default function VagasPage() {
                         type="text" 
                         value={dadosPessoais.cpf}
                         onChange={e => setDadosPessoais({...dadosPessoais, cpf: e.target.value})}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-11 pr-4 outline-none focus:border-indigo-500 font-medium text-slate-700"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-11 pr-4 outline-none focus:border-emerald-500 font-medium text-slate-700"
                         placeholder="000.000.000-00"
                       />
                     </div>
@@ -158,7 +158,7 @@ export default function VagasPage() {
                       type="tel" 
                       value={dadosPessoais.telefone}
                       onChange={e => setDadosPessoais({...dadosPessoais, telefone: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:border-indigo-500 font-medium text-slate-700"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:border-emerald-500 font-medium text-slate-700"
                       placeholder="(00) 90000-0000"
                     />
                   </div>
@@ -167,7 +167,7 @@ export default function VagasPage() {
                     <select 
                       value={dadosPessoais.temFilhos}
                       onChange={e => setDadosPessoais({...dadosPessoais, temFilhos: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:border-indigo-500 font-medium text-slate-700"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:border-emerald-500 font-medium text-slate-700"
                     >
                       <option>Não</option>
                       <option>Sim</option>
@@ -182,7 +182,7 @@ export default function VagasPage() {
                     <textarea 
                       value={dadosPessoais.endereco}
                       onChange={e => setDadosPessoais({...dadosPessoais, endereco: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-11 pr-4 outline-none focus:border-indigo-500 font-medium text-slate-700 h-24 resize-none"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-11 pr-4 outline-none focus:border-emerald-500 font-medium text-slate-700 h-24 resize-none"
                       placeholder="Ex: Rua das Flores, 123 - Bairro Centro"
                     />
                   </div>
@@ -196,7 +196,7 @@ export default function VagasPage() {
                       <select 
                         value={dadosPessoais.cargoPretendido}
                         onChange={e => setDadosPessoais({...dadosPessoais, cargoPretendido: e.target.value})}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-11 pr-4 outline-none focus:border-indigo-500 font-medium text-slate-700 appearance-none"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-11 pr-4 outline-none focus:border-emerald-500 font-medium text-slate-700 appearance-none"
                       >
                         <option>Garçom/Garçonete</option>
                         <option>Cozinheiro(a)</option>
@@ -213,7 +213,7 @@ export default function VagasPage() {
                       type="text" 
                       value={dadosPessoais.experiencia}
                       onChange={e => setDadosPessoais({...dadosPessoais, experiencia: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:border-indigo-500 font-medium text-slate-700"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:border-emerald-500 font-medium text-slate-700"
                       placeholder="Ex: 2 anos como garçom na Pizzaria X"
                     />
                   </div>
@@ -235,7 +235,7 @@ export default function VagasPage() {
                 <div className="pt-6 border-t border-slate-100 flex justify-end">
                   <button 
                     onClick={handleNextStep}
-                    className="flex items-center gap-2 bg-indigo-600 text-white px-8 py-4 rounded-xl font-black hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20"
+                    className="flex items-center gap-2 bg-emerald-600 text-white px-8 py-4 rounded-xl font-black hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20"
                   >
                     Próxima Etapa <ChevronRight size={20} />
                   </button>
@@ -256,7 +256,7 @@ export default function VagasPage() {
                     <p className="font-black text-slate-800 mb-4">{qIndex + 1}. {q.pergunta}</p>
                     <div className="space-y-3">
                       {q.opcoes.map((op, opIndex) => (
-                        <label key={opIndex} className={`flex items-start gap-3 p-4 rounded-xl cursor-pointer border-2 transition-all ${respostas[q.id] === opIndex.toString() ? 'border-indigo-600 bg-indigo-50/50' : 'border-transparent bg-white hover:border-slate-200'}`}>
+                        <label key={opIndex} className={`flex items-start gap-3 p-4 rounded-xl cursor-pointer border-2 transition-all ${respostas[q.id] === opIndex.toString() ? 'border-emerald-600 bg-emerald-50/50' : 'border-transparent bg-white hover:border-slate-200'}`}>
                           <div className="pt-1">
                             <input 
                               type="radio" 
@@ -264,7 +264,7 @@ export default function VagasPage() {
                               value={opIndex}
                               checked={respostas[q.id] === opIndex.toString()}
                               onChange={e => setRespostas({...respostas, [q.id]: e.target.value})}
-                              className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                              className="w-4 h-4 text-emerald-600 focus:ring-emerald-500 border-gray-300"
                             />
                           </div>
                           <span className="text-slate-700 font-medium leading-relaxed">{op.texto}</span>

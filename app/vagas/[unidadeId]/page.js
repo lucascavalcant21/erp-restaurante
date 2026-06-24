@@ -16,11 +16,15 @@ export default function VagasPage() {
 
   const [dadosPessoais, setDadosPessoais] = useState({
     nome: "",
+    sobrenome: "",
     cpf: "",
     telefone: "",
-    endereco: "",
+    cidade: "",
+    estado: "",
+    rua: "",
+    bairro: "",
+    numero: "",
     cargoPretendido: "Garçom/Garçonete",
-    temFilhos: "Não",
     experiencia: ""
   });
 
@@ -30,7 +34,7 @@ export default function VagasPage() {
 
   const handleNextStep = () => {
     if (step === 1) {
-      if (!dadosPessoais.nome || !dadosPessoais.telefone || !dadosPessoais.cpf || !dadosPessoais.endereco || !dadosPessoais.experiencia) {
+      if (!dadosPessoais.nome || !dadosPessoais.sobrenome || !dadosPessoais.telefone || !dadosPessoais.cpf || !dadosPessoais.rua || !dadosPessoais.cidade || !dadosPessoais.experiencia) {
         return alert("Preencha todos os campos obrigatórios.");
       }
     }
@@ -58,7 +62,18 @@ export default function VagasPage() {
       }
     }
 
-    const res = await enviarCandidatura(unidadeId, dadosPessoais, respostas, fileUrl);
+    // Concatenando dados para enviar para o banco
+    const payload = {
+      nome: `${dadosPessoais.nome} ${dadosPessoais.sobrenome}`.trim(),
+      cpf: dadosPessoais.cpf,
+      telefone: dadosPessoais.telefone,
+      endereco: `${dadosPessoais.rua}, ${dadosPessoais.numero} - ${dadosPessoais.bairro}, ${dadosPessoais.cidade}/${dadosPessoais.estado}`,
+      cargoPretendido: dadosPessoais.cargoPretendido,
+      experiencia: dadosPessoais.experiencia,
+      temFilhos: "Não informado"
+    };
+
+    const res = await enviarCandidatura(unidadeId, payload, respostas, fileUrl);
     
     setLoading(false);
 
@@ -124,7 +139,7 @@ export default function VagasPage() {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Nome Completo *</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Nome *</label>
                     <div className="relative">
                       <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                       <input 
@@ -132,9 +147,35 @@ export default function VagasPage() {
                         value={dadosPessoais.nome}
                         onChange={e => setDadosPessoais({...dadosPessoais, nome: e.target.value})}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-11 pr-4 outline-none focus:border-emerald-500 font-medium text-slate-700"
-                        placeholder="João da Silva"
+                        placeholder="João"
                       />
                     </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Sobrenome *</label>
+                    <div className="relative">
+                      <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input 
+                        type="text" 
+                        value={dadosPessoais.sobrenome}
+                        onChange={e => setDadosPessoais({...dadosPessoais, sobrenome: e.target.value})}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-11 pr-4 outline-none focus:border-emerald-500 font-medium text-slate-700"
+                        placeholder="da Silva"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">WhatsApp / Telefone *</label>
+                    <input 
+                      type="tel" 
+                      value={dadosPessoais.telefone}
+                      onChange={e => setDadosPessoais({...dadosPessoais, telefone: e.target.value})}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:border-emerald-500 font-medium text-slate-700"
+                      placeholder="(00) 90000-0000"
+                    />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">CPF *</label>
@@ -153,37 +194,56 @@ export default function VagasPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">WhatsApp *</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Cidade *</label>
                     <input 
-                      type="tel" 
-                      value={dadosPessoais.telefone}
-                      onChange={e => setDadosPessoais({...dadosPessoais, telefone: e.target.value})}
+                      type="text" 
+                      value={dadosPessoais.cidade}
+                      onChange={e => setDadosPessoais({...dadosPessoais, cidade: e.target.value})}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:border-emerald-500 font-medium text-slate-700"
-                      placeholder="(00) 90000-0000"
+                      placeholder="Sua Cidade"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Tem Filhos?</label>
-                    <select 
-                      value={dadosPessoais.temFilhos}
-                      onChange={e => setDadosPessoais({...dadosPessoais, temFilhos: e.target.value})}
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Estado *</label>
+                    <input 
+                      type="text" 
+                      value={dadosPessoais.estado}
+                      onChange={e => setDadosPessoais({...dadosPessoais, estado: e.target.value})}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:border-emerald-500 font-medium text-slate-700"
-                    >
-                      <option>Não</option>
-                      <option>Sim</option>
-                    </select>
+                      placeholder="UF"
+                    />
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Endereço Completo (Rua, Bairro, Cidade) *</label>
-                  <div className="relative">
-                    <MapPin size={18} className="absolute left-4 top-4 text-slate-400" />
-                    <textarea 
-                      value={dadosPessoais.endereco}
-                      onChange={e => setDadosPessoais({...dadosPessoais, endereco: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-11 pr-4 outline-none focus:border-emerald-500 font-medium text-slate-700 h-24 resize-none"
-                      placeholder="Ex: Rua das Flores, 123 - Bairro Centro"
+                <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr] gap-6">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Rua *</label>
+                    <input 
+                      type="text" 
+                      value={dadosPessoais.rua}
+                      onChange={e => setDadosPessoais({...dadosPessoais, rua: e.target.value})}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:border-emerald-500 font-medium text-slate-700"
+                      placeholder="Sua Rua"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Número *</label>
+                    <input 
+                      type="text" 
+                      value={dadosPessoais.numero}
+                      onChange={e => setDadosPessoais({...dadosPessoais, numero: e.target.value})}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:border-emerald-500 font-medium text-slate-700"
+                      placeholder="123"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Bairro *</label>
+                    <input 
+                      type="text" 
+                      value={dadosPessoais.bairro}
+                      onChange={e => setDadosPessoais({...dadosPessoais, bairro: e.target.value})}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:border-emerald-500 font-medium text-slate-700"
+                      placeholder="Centro"
                     />
                   </div>
                 </div>
@@ -203,18 +263,19 @@ export default function VagasPage() {
                         <option>Auxiliar de Cozinha</option>
                         <option>Caixa</option>
                         <option>Gerente</option>
+                        <option>Limpeza/Serviços Gerais</option>
                         <option>Outros</option>
                       </select>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Resumo da Experiência *</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Resumo da Experiência Profissional *</label>
                     <input 
                       type="text" 
                       value={dadosPessoais.experiencia}
                       onChange={e => setDadosPessoais({...dadosPessoais, experiencia: e.target.value})}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none focus:border-emerald-500 font-medium text-slate-700"
-                      placeholder="Ex: 2 anos como garçom na Pizzaria X"
+                      placeholder="Ex: 2 anos em restaurantes"
                     />
                   </div>
                 </div>

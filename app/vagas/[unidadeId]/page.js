@@ -154,11 +154,8 @@ export default function VagasPage() {
           
           {/* Progress Bar */}
           <div className="flex border-b border-slate-100">
-             <div className={`flex-1 py-4 text-center font-black text-sm uppercase tracking-widest transition-colors ${step === 1 ? 'bg-emerald-50 text-emerald-700' : 'text-slate-400'}`}>
-                1. Dados Pessoais
-             </div>
-             <div className={`flex-1 py-4 text-center font-black text-sm uppercase tracking-widest transition-colors border-l border-slate-100 ${step === 2 ? 'bg-emerald-50 text-emerald-700' : 'text-slate-400'}`}>
-                2. Teste de Perfil
+             <div className="flex-1 py-4 text-center font-black text-sm uppercase tracking-widest bg-emerald-50 text-emerald-700">
+                {step === 1 ? "1. Dados Pessoais" : "2. Teste de Perfil"}
              </div>
           </div>
 

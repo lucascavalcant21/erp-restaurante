@@ -915,6 +915,7 @@ export default function SaloesMesasPage() {
                </div>
             </div>
          </div>
+      )}
       {/* MODAL GESTÃO DE GARÇONS */}
       {modalGestaoGarcons && (
          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">

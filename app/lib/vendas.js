@@ -80,7 +80,7 @@ export async function deletarMesa(mesaId) {
 
 // ─── PEDIDOS E COMANDAS (PDV) ────────────────────────────────────────────────
 
-// Busca o pedido que está "aberto" para aquela mesa
+// Busca o primeiro pedido aberto (legado/temporário até termos UI para múltiplas)
 export async function fetchPedidoAberto(mesaId) {
   if (!isSupabaseReady()) return { data: null };
   
@@ -94,9 +94,29 @@ export async function fetchPedidoAberto(mesaId) {
     `)
     .eq("mesa_id", mesaId)
     .eq("status", "aberto")
-    .single();
+    .order("created_at", { ascending: true })
+    .limit(1);
 
-  return { data: data || null, error: error?.message };
+  return { data: data?.[0] || null, error: error?.message };
+}
+
+// Busca TODAS as comandas abertas da mesa
+export async function fetchTodosPedidosAbertos(mesaId) {
+  if (!isSupabaseReady()) return { data: [] };
+  
+  const { data, error } = await supabase.from("pedidos")
+    .select(`
+      *,
+      pedidos_itens (
+         id, quantidade, valor_unitario, observacao, status_kds, created_at,
+         produtos ( nome_produto, departamento )
+      )
+    `)
+    .eq("mesa_id", mesaId)
+    .eq("status", "aberto")
+    .order("created_at", { ascending: true });
+
+  return { data: data || [], error: error?.message };
 }
 
 export async function abrirMesaEPedido(unidadeId, mesaId, garcomId = null, identificacao = null) {
@@ -122,7 +142,8 @@ export async function fetchProximoNumeroComanda(mesaId, numero_mesa) {
   if (!isSupabaseReady()) return `${numero_mesa}.01`;
   const { count } = await supabase.from('pedidos')
      .select('id', { count: 'exact', head: true })
-     .eq('mesa_id', mesaId);
+     .eq('mesa_id', mesaId)
+     .eq('status', 'aberto');
   const proximo = (count || 0) + 1;
   return `${numero_mesa}.${proximo.toString().padStart(2, '0')}`;
 }

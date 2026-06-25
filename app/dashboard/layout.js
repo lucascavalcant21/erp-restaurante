@@ -133,12 +133,14 @@ function TopHeader({ onSair }) {
         
         {/* LADO ESQUERDO: Logo e Botão do Mega Menu */}
         <div className="flex items-center h-full">
-           <button onClick={() => setMegaMenuOpen(!megaMenuOpen)} className="h-full px-4 flex items-center justify-center bg-[#5C85C5] hover:bg-[#6D95D5] transition-colors gap-2">
-              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                 {megaMenuOpen ? <ArrowDown size={18} className="text-white"/> : <ArrowUp size={18} className="text-white"/>}
-              </div>
-              <span className="text-xl font-black tracking-tighter">Hefisto</span>
-           </button>
+            <button onClick={() => setMegaMenuOpen(!megaMenuOpen)} className="h-full px-4 flex items-center justify-center bg-[#5C85C5] hover:bg-[#6D95D5] transition-colors border-r border-[#4970AF]">
+               <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                  {megaMenuOpen ? <ArrowDown size={18} className="text-white"/> : <ArrowUp size={18} className="text-white"/>}
+               </div>
+            </button>
+            <button onClick={() => { router.push("/dashboard/salao/online"); setMegaMenuOpen(false); }} className="h-full px-4 flex items-center justify-center bg-[#4970AF] hover:bg-[#5C85C5] transition-colors">
+               <span className="text-xl font-black tracking-tighter">Hefisto</span>
+            </button>
            
            <div className="px-4 hidden sm:flex items-center">
               <span className="font-bold text-sm tracking-wider uppercase text-white/90">

@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 
 const MODULES = [
-  { id: "salao",        label: "Salão",              icon: Users,        href: "/dashboard/salao/mesas" },
+  { id: "salao",        label: "Salão e Caixa",      icon: Users,        href: "/dashboard/salao/mesas" },
   { id: "kds",          label: "KDS",                icon: Bell,         href: "/dashboard/kds" },
   { id: "cozinha",      label: "Op. Cozinha",        icon: ChefHat,      href: "/dashboard/cozinha" },
   { id: "op_salao",     label: "Op. Salão",          icon: Store,        href: "/dashboard/salao" },
@@ -45,7 +45,7 @@ function DesktopSidebar({ onSair }) {
 
         <div className="flex-1 flex flex-col w-full gap-2 px-2 overflow-y-auto custom-scrollbar">
           {MODULES.map(item => {
-            const active = pathname.includes(item.href);
+            const active = pathname === item.href || pathname.startsWith(item.href + '/');
             return (
               <button key={item.id} onClick={() => router.push(item.href)} title={item.label}
                 className={`flex flex-col items-center justify-center w-full aspect-square rounded-2xl transition-all duration-300 group relative ${active ? 'bg-white/20 text-white shadow-lg shadow-black/20 -translate-y-1' : 'text-white/60 hover:text-white hover:bg-white/10 hover:-translate-y-1'}`}>

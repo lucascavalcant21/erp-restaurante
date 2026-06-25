@@ -190,11 +190,30 @@ export async function processarBaixaEstoqueECMV(pedidoId, unidadeId) {
   }
 }
 
-export async function fecharContaDaMesa(mesaId, pedidoId, unidadeId) {
+export async function fecharContaDaMesa(mesaId, pedidoId, unidadeId, caixaId, pagamentoData) {
   if (!isSupabaseReady()) return { error: "Offline" };
   
-  await supabase.from("pedidos").update({ status: 'pago' }).eq("id", pedidoId);
+  await supabase.from("pedidos").update({ 
+     status: 'pago',
+     caixa_id: caixaId || null,
+     forma_pagamento: pagamentoData?.principal || 'multiplo'
+  }).eq("id", pedidoId);
+  
   await supabase.from("mesas").update({ status: 'livre' }).eq("id", mesaId);
+
+  // Insere entradas no DRE Financeiro baseadas no split
+  if(pagamentoData && pagamentoData.split && unidadeId) {
+     const splitEntries = pagamentoData.split.map(sp => ({
+        unidade_id: unidadeId,
+        descricao: `Recebimento Mesa #${mesaId} (${sp.forma}) ${pagamentoData.nome ? 'Cliente: '+pagamentoData.nome : ''}`,
+        valor: sp.valor,
+        tipo: 'entrada',
+        categoria: 'vendas',
+        status: 'pago',
+        data: new Date().toISOString()
+     }));
+     await supabase.from("contas_pagar").insert(splitEntries);
+  }
   
   // Roda a mágica da Automação (Não bloqueia a tela do usuário)
   if(unidadeId) {
@@ -202,6 +221,70 @@ export async function fecharContaDaMesa(mesaId, pedidoId, unidadeId) {
   }
   
   return { success: true };
+}
+
+export async function lancarVendaBalcao(unidadeId, caixaId, itensCart, pagamentoData) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+
+  const subtotal = itensCart.reduce((acc, it) => acc + (it.preco_venda * it.quantidade), 0);
+  const desconto = pagamentoData?.desconto || 0;
+  const taxa = pagamentoData?.taxa || 0;
+  const valorTotal = subtotal - desconto + taxa;
+
+  // 1. Cria o Pedido (Comanda Direta) com status 'pago'
+  const { data: pedido, error: errPed } = await supabase.from("pedidos").insert([{
+     unidade_id: unidadeId,
+     status: 'pago',
+     valor_total: valorTotal,
+     tipo_pedido: 'balcao',
+     forma_pagamento: pagamentoData?.principal || 'multiplo',
+     caixa_id: caixaId
+  }]).select().single();
+
+  if (errPed) return { error: errPed.message };
+
+  // 2. Cria os Itens
+  const itensDB = itensCart.map(it => ({
+     pedido_id: pedido.id,
+     produto_id: it.id,
+     quantidade: it.quantidade,
+     valor_unitario: it.preco_venda,
+     observacao: it.observacao || '',
+     status_kds: it.departamento === 'cozinha' ? 'pendente' : 'entregue'
+  }));
+
+  const { error: errItens } = await supabase.from("pedidos_itens").insert(itensDB);
+  if (errItens) return { error: errItens.message };
+
+  // 3. Financeiro: Adicionar em contas_pagar (Entrada) baseada no Split
+  if(pagamentoData && pagamentoData.split) {
+     const splitEntries = pagamentoData.split.map(sp => ({
+        unidade_id: unidadeId,
+        descricao: `Venda Balcão #${pedido.id.substring(0,6)} (${sp.forma}) ${pagamentoData.nome ? 'Cliente: '+pagamentoData.nome : ''} ${pagamentoData.cpf ? 'CPF: '+pagamentoData.cpf : ''}`,
+        valor: sp.valor,
+        tipo: 'entrada',
+        categoria: 'vendas',
+        status: 'pago',
+        data: new Date().toISOString()
+     }));
+     await supabase.from("contas_pagar").insert(splitEntries);
+  } else {
+     // Fallback
+     await supabase.from("contas_pagar").insert([{
+        unidade_id: unidadeId,
+        descricao: `Venda Balcão #${pedido.id.substring(0,6)}`,
+        valor: valorTotal,
+        tipo: 'entrada',
+        categoria: 'vendas',
+        status: 'pago',
+        data: new Date().toISOString()
+     }]);
+  }
+
+  // 4. Baixa de Estoque
+  processarBaixaEstoqueECMV(pedido.id, unidadeId).catch(console.error);
+
+  return { data: pedido, error: null };
 }
 
 // ─── KDS (Kitchen Display System) ────────────────────────────────────────────

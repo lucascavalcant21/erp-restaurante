@@ -403,11 +403,6 @@ export default function SaloesMesasPage() {
                <button onClick={() => setAbaAtiva('salao')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-2 ${abaAtiva === 'salao' ? 'bg-blue-500 text-white shadow' : 'text-slate-300 hover:text-white'}`}>
                   <Users size={14} /> Salão (Mesas)
                </button>
-               {abaAtiva === 'salao' && (
-                  <button onClick={() => setModalGestaoMesas(true)} className="px-2 py-2 text-slate-400 hover:text-white transition-colors" title="Gerenciar Mesas Físicas">
-                     <Settings size={14} />
-                  </button>
-               )}
                <button onClick={() => setAbaAtiva('balcao')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-2 ml-2 ${abaAtiva === 'balcao' ? 'bg-emerald-500 text-white shadow' : 'text-slate-300 hover:text-white'}`}>
                   <ShoppingBag size={14} /> Balcão Rápido
                </button>
@@ -440,14 +435,14 @@ export default function SaloesMesasPage() {
               <div className="flex flex-col h-full overflow-hidden">
                  <div className="p-5 flex justify-between items-center border-b border-slate-200 bg-white shrink-0 shadow-sm z-10">
                     <h2 className="text-xl font-black text-slate-800">Mapa de Mesas</h2>
-                    <button onClick={handleCriarMesa} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-sm transition-colors">+ Adicionar Mesa</button>
+                    <button onClick={() => setModalGestaoMesas(true)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-sm transition-colors flex items-center gap-2"><Settings size={16}/> Gerenciar Mesas</button>
                  </div>
                  
                  <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
                     {mesas.length === 0 ? (
                        <div className="text-center py-10">
                           <p className="text-slate-500 font-bold mb-4">Nenhuma mesa cadastrada no salão.</p>
-                          <button onClick={handleCriarMesa} className="px-6 py-3 bg-blue-500 text-white font-black rounded-xl">Criar Primeira Mesa</button>
+                          <button onClick={() => setModalGestaoMesas(true)} className="px-6 py-3 bg-blue-500 text-white font-black rounded-xl">Gerenciar Mesas</button>
                        </div>
                     ) : (
                        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">

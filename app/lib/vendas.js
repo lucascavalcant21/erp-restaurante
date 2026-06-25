@@ -51,6 +51,12 @@ export async function criarMesa(unidadeId, numero) {
   return { error: error?.message };
 }
 
+export async function deletarMesa(mesaId) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase.from("mesas").delete().eq("id", mesaId).eq("status", "livre");
+  return { error: error?.message };
+}
+
 // ─── PEDIDOS E COMANDAS (PDV) ────────────────────────────────────────────────
 
 // Busca o pedido que está "aberto" para aquela mesa

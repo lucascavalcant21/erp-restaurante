@@ -93,7 +93,7 @@ export default function GestorOnlinePage() {
                   <Bike size={40} className="text-slate-500"/>
                </div>
                <h3 className="text-2xl font-black text-slate-700">Nenhum pedido novo</h3>
-               <p className="text-slate-500 mt-2 font-medium mb-6">Fique de olho. Assim que um cliente enviar um pedido pelo QR Code, ele aparecerá aqui com um alerta.</p>
+               <p className="text-slate-500 mt-2 font-medium mb-6">Fique de olho. Assim que um cliente enviar um pedido pelo Cardápio Digital ou pelo iFood, ele aparecerá aqui com um alerta.</p>
                <div className="flex items-center justify-center gap-2 text-slate-600 text-sm font-bold bg-slate-50 p-3 rounded-xl w-max mx-auto animate-pulse">
                   <div className="w-2 h-2 rounded-full bg-emerald-500"></div> Online e aguardando...
                </div>
@@ -115,8 +115,8 @@ export default function GestorOnlinePage() {
                         {/* LADO ESQUERDO: Dados do Cliente e Itens */}
                         <div className="flex-1">
                            <div className="flex items-center gap-4 mb-6">
-                              <span className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest ${ped.tipo_pedido === 'delivery' ? 'bg-slate-100 text-emerald-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                                 {ped.tipo_pedido}
+                              <span className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest ${ped.tipo_pedido === 'ifood' ? 'bg-red-500 text-white' : ped.tipo_pedido === 'delivery' ? 'bg-slate-100 text-emerald-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                 {ped.tipo_pedido === 'ifood' ? 'iFood' : ped.tipo_pedido}
                               </span>
                               <span className={`flex items-center gap-1 text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-lg ${isAtrasado ? 'bg-emerald-500 text-white animate-pulse' : 'bg-slate-100 text-slate-500'}`}>
                                  <Clock size={14}/> {min} min aguardando

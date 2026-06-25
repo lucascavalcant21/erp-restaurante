@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 export default function DashboardIndex() {
-  const { unidadeAtiva } = useERP();
+  const { unidadeAtiva, unidadeInfo } = useERP();
   const [dados, setDados] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -22,7 +22,8 @@ export default function DashboardIndex() {
       if (!unidadeAtiva) return;
       setLoading(true);
       try {
-        const result = await carregarDadosDaUnidade(unidadeAtiva);
+        // carregarDadosDaUnidade espera um objeto com a propriedade .id
+        const result = await carregarDadosDaUnidade({ id: unidadeAtiva, nome: unidadeInfo?.nome || 'Unidade' });
         setDados(result);
       } catch (err) {
         console.error("Erro ao carregar dados da unidade", err);

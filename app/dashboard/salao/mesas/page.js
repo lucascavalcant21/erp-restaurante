@@ -50,6 +50,8 @@ export default function SaloesMesasPage() {
   const [mesas, setMesas] = useState([]);
   const [mesaAtiva, setMesaAtiva] = useState(null);
   const [pedidoAtivo, setPedidoAtivo] = useState(null);
+  const [modalGestaoMesas, setModalGestaoMesas] = useState(false);
+  const [novaMesaNum, setNovaMesaNum] = useState("");
 
   const [modalLancar, setModalLancar] = useState(false);
   const [produtoSel, setProdutoSel] = useState("");

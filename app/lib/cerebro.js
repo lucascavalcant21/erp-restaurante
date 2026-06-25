@@ -60,6 +60,7 @@ export async function carregarDadosDaUnidade(u) {
     cmv: cmvFinal,
     criticos,
     equipe: equipe.length,
+    equipeDetalhada: equipe,
     vendas30: vendas.filter(v => new Date(v.created_at).getTime() >= now - d30),
     producoes30: prod30,
     lancamentos30: lanc30,

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, Suspense } from "react";
+import { useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchCaixaAberto, abrirCaixa, registrarMovimentacao, fetchResumoCaixa, fecharCaixa } from "../../../lib/caixas";
 import { fetchProdutos, lancarVendaBalcao, fetchMesas, criarMesa, fetchPedidoAberto, abrirMesaEPedido, lancarItemComanda, fecharContaDaMesa, fetchGarcons, criarGarcom } from "../../../lib/vendas";
@@ -9,6 +10,7 @@ import { fmtBRL } from "../../../components/ui";
 
 export default function SaloesMesasPage() {
   const { unidadeAtiva, usuarioLogado } = useERP();
+  const router = useRouter();
   
   const [loading, setLoading] = useState(true);
 
@@ -117,6 +119,16 @@ export default function SaloesMesasPage() {
   }, [unidadeAtiva]);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+       const urlParams = new URLSearchParams(window.location.search);
+       if (urlParams.get('acao') === 'garcom') {
+          setModalGarcom(true);
+          router.replace('/dashboard/salao/mesas');
+       }
+    }
+  }, [router]);
+
+  useEffect(() => {
     if(caixa && abaAtiva === 'balcao' && buscaRef.current) {
        buscaRef.current.focus();
     }
@@ -180,7 +192,12 @@ export default function SaloesMesasPage() {
   const clicarMesa = async (mesa) => {
     setMesaAtiva(mesa);
     if(mesa.status === 'livre') {
-       setModalGarcom(true);
+       if (garcomAtivo) {
+          setIdentAtiva("");
+          setModalComanda(true);
+       } else {
+          setModalGarcom(true);
+       }
     } else {
        const { data } = await fetchPedidoAberto(mesa.id);
        setPedidoAtivo(data);
@@ -526,8 +543,16 @@ export default function SaloesMesasPage() {
                <div className="flex-1 flex flex-col overflow-hidden bg-slate-50 relative">
                   
                   {abaAtiva === 'salao' && (
-                     <div className="flex flex-col h-full overflow-hidden">
-                        <div className="bg-white border-b border-slate-200 shrink-0 z-10 flex flex-col sm:flex-row items-center p-2 gap-4">
+                     <div className="flex w-full h-full">
+                        {garcomAtivo && (
+                           <div className="w-10 bg-[#4A72B2] text-white flex flex-col items-center py-4 z-20 shrink-0 shadow-md">
+                              <div className="text-white font-black text-xs flex flex-col items-center tracking-widest whitespace-nowrap" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>
+                                 {garcomAtivo.nome} - {garcomAtivo.cargo}
+                              </div>
+                           </div>
+                        )}
+                        <div className="flex-1 flex flex-col h-full overflow-hidden">
+                           <div className="bg-white border-b border-slate-200 shrink-0 z-10 flex flex-col sm:flex-row items-center p-2 gap-4">
                            <div className="flex gap-2 w-full sm:w-auto">
                               <input type="text" placeholder="Mesa" className="w-24 px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 outline-none focus:border-blue-500 rounded" />
                               <input type="text" placeholder="Comanda" className="w-32 px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 outline-none focus:border-blue-500 rounded" />
@@ -566,6 +591,7 @@ export default function SaloesMesasPage() {
                            )}
                         </div>
                      </div>
+                  </div>
                   )}
 
                   {abaAtiva === 'balcao' && (
@@ -968,7 +994,14 @@ export default function SaloesMesasPage() {
                <h2 className="text-2xl font-black text-[#1E293B] mb-12 tracking-tight">SELECIONE O GARÇOM</h2>
                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-x-12 gap-y-10 max-w-5xl w-full">
                   {garcons.length === 0 ? <p className="col-span-full text-center text-slate-500 font-bold">Nenhum garçom cadastrado. Vá em 'Garçons' no topo do mapa de mesas para cadastrar.</p> : garcons.map(g => (
-                     <button key={g.id} onClick={() => { setGarcomAtivo(g); setModalGarcom(false); setIdentAtiva(""); setModalComanda(true); }} className="flex flex-col items-center gap-4 group">
+                     <button key={g.id} onClick={() => { 
+                        setGarcomAtivo(g); 
+                        setModalGarcom(false); 
+                        if (mesaAtiva) {
+                           setIdentAtiva(""); 
+                           setModalComanda(true); 
+                        }
+                     }} className="flex flex-col items-center gap-4 group">
                         <div className="w-24 h-24 rounded-full bg-[#4A72B2] text-white flex items-center justify-center text-4xl font-black shadow-lg group-hover:scale-105 transition-transform">
                            {g.nome.charAt(0).toUpperCase()}
                         </div>

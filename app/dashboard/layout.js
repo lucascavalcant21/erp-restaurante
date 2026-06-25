@@ -138,9 +138,28 @@ function TopHeader({ onSair }) {
                   {megaMenuOpen ? <ArrowDown size={18} className="text-white"/> : <ArrowUp size={18} className="text-white"/>}
                </div>
             </button>
-            <button onClick={() => { router.push("/dashboard/salao/online"); setMegaMenuOpen(false); }} className="h-full px-4 flex items-center justify-center bg-[#4970AF] hover:bg-[#5C85C5] transition-colors">
+            <button onClick={() => { router.push("/dashboard/salao/online"); setMegaMenuOpen(false); }} className="h-full px-4 flex items-center justify-center bg-[#4970AF] hover:bg-[#5C85C5] transition-colors border-r border-[#3A5B99]">
                <span className="text-xl font-black tracking-tighter">Hefisto</span>
             </button>
+            
+            {/* Ícones de Acesso Rápido (Saipos Style) */}
+            <div className="flex items-center h-full">
+               <button onClick={() => router.push("/dashboard/salao/online")} className="h-full px-4 flex items-center justify-center bg-[#4A72B2] hover:bg-[#5C85C5] transition-colors border-r border-[#3A5B99]" title="Delivery">
+                  <div className="flex items-center justify-center">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="M19 15v-3h-3l-3-3h-3v3h-3v3c0 1.1.9 2 2 2h7c1.1 0 2-.9 2-2z"></path><circle cx="8" cy="19" r="2"></circle><circle cx="17" cy="19" r="2"></circle><path d="m14 15 2 2"></path><path d="M14 12v3"></path></svg>
+                  </div>
+               </button>
+               <button onClick={() => router.push("/dashboard/salao/mesas?acao=garcom")} className="h-full px-4 flex items-center justify-center bg-[#4A72B2] hover:bg-[#5C85C5] transition-colors border-r border-[#3A5B99]" title="Selecionar Garçom">
+                  <div className="flex items-center justify-center">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                  </div>
+               </button>
+               <button onClick={() => router.push("/dashboard/salao/mesas")} className="h-full px-4 flex items-center justify-center bg-[#4A72B2] hover:bg-[#5C85C5] transition-colors border-r border-[#3A5B99]" title="Ficha / Balcão">
+                  <div className="flex items-center justify-center">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"></path><path d="M16 16H8"></path><path d="M16 12H8"></path><path d="M10 8H8"></path></svg>
+                  </div>
+               </button>
+            </div>
            
            <div className="px-4 hidden sm:flex items-center">
               <span className="font-bold text-sm tracking-wider uppercase text-white/90">

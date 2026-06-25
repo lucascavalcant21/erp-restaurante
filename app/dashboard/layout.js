@@ -227,14 +227,14 @@ function TopHeader({ onSair }) {
                   </div>
 
                   {/* Colunas de Categorias */}
-                  <div className="flex-1 overflow-y-auto custom-scrollbar columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-8 space-y-8 pb-10">
+                  <div className="flex-1 overflow-y-auto custom-scrollbar grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 pb-10 items-start">
                      {Object.entries(MEGA_MENU).map(([catName, links]) => {
                         const filteredLinks = links.filter(l => l.label.toLowerCase().includes(searchMenu.toLowerCase()) || catName.toLowerCase().includes(searchMenu.toLowerCase()));
                         
                         if (filteredLinks.length === 0) return null;
 
                         return (
-                           <div key={catName} className="break-inside-avoid">
+                           <div key={catName} className="flex flex-col">
                               <h3 className="text-base font-bold text-[#4970AF] mb-3">{catName}</h3>
                               <ul className="space-y-2">
                                  {filteredLinks.map((link, idx) => (

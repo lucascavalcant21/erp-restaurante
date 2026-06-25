@@ -103,7 +103,13 @@ export default function SaloesMesasPage() {
 
   const carregarMesas = async () => {
     const { data: m } = await fetchMesas(unidadeAtiva);
-    setMesas(m || []);
+    const mesasSanitizadas = (m || []).map((mesa, index) => {
+       if (mesa.numero_mesa === 'Mesa Antiga' || !mesa.numero_mesa) {
+          return { ...mesa, numero_mesa: String(index + 1).padStart(2, '0') };
+       }
+       return mesa;
+    });
+    setMesas(mesasSanitizadas);
   };
 
   useEffect(() => {

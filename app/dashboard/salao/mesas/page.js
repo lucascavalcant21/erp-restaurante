@@ -399,11 +399,16 @@ export default function SaloesMesasPage() {
                </div>
             </div>
             
-            <div className="ml-8 bg-black/20 p-1 rounded-xl flex gap-1">
+            <div className="ml-8 bg-black/20 p-1 rounded-xl flex gap-1 items-center">
                <button onClick={() => setAbaAtiva('salao')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-2 ${abaAtiva === 'salao' ? 'bg-blue-500 text-white shadow' : 'text-slate-300 hover:text-white'}`}>
                   <Users size={14} /> Salão (Mesas)
                </button>
-               <button onClick={() => setAbaAtiva('balcao')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-2 ${abaAtiva === 'balcao' ? 'bg-emerald-500 text-white shadow' : 'text-slate-300 hover:text-white'}`}>
+               {abaAtiva === 'salao' && (
+                  <button onClick={() => setModalGestaoMesas(true)} className="px-2 py-2 text-slate-400 hover:text-white transition-colors" title="Gerenciar Mesas Físicas">
+                     <Settings size={14} />
+                  </button>
+               )}
+               <button onClick={() => setAbaAtiva('balcao')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-2 ml-2 ${abaAtiva === 'balcao' ? 'bg-emerald-500 text-white shadow' : 'text-slate-300 hover:text-white'}`}>
                   <ShoppingBag size={14} /> Balcão Rápido
                </button>
             </div>

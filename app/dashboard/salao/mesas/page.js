@@ -893,48 +893,63 @@ export default function SaloesMesasPage() {
                   <button onClick={() => setModalGestaoMesas(false)} className="text-slate-400 hover:text-white"><X size={24} /></button>
                </div>
                
-               <div className="p-6 overflow-y-auto flex-1 custom-scrollbar bg-slate-50">
+               <div className="p-6 flex-1 overflow-y-auto">
                   <form onSubmit={async (e) => {
                      e.preventDefault();
                      if(!novaMesaNum.trim()) return;
                      setProcessando(true);
                      const res = await criarMesa(unidadeAtiva, novaMesaNum.trim());
                      if (res?.error) {
-                        alert("Erro ao criar mesa: " + res.error);
+                        alert("Erro do Banco de Dados: " + res.error);
                      } else {
                         setNovaMesaNum("");
                         await carregarMesas();
                      }
                      setProcessando(false);
-                  }} className="flex gap-2 mb-6">
-                     <input type="text" value={novaMesaNum} onChange={e => setNovaMesaNum(e.target.value)} placeholder="Ex: 12, VIP, Varanda 1" required className="flex-1 px-4 py-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-blue-500" />
-                     <button type="submit" disabled={processando} className="bg-blue-600 hover:bg-blue-700 text-white px-6 rounded-xl font-black shadow-md flex items-center gap-2"><Plus size={18}/> Adicionar</button>
+                  }} className="flex flex-col gap-3 mb-8">
+                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nome ou Número da Mesa</label>
+                     <div className="flex gap-2">
+                        <input type="text" value={novaMesaNum} onChange={e => setNovaMesaNum(e.target.value)} placeholder="Ex: 12, VIP, Varanda..." required className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-blue-500 focus:bg-white transition-colors" />
+                        <button type="submit" disabled={processando} className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl shadow-lg shadow-blue-500/30 transition-all disabled:opacity-50 flex items-center gap-2 whitespace-nowrap">
+                           {processando ? 'Salvando...' : <><Plus size={18}/> Adicionar</>}
+                        </button>
+                     </div>
                   </form>
 
-                  <div className="space-y-2">
-                     <h3 className="font-black text-slate-500 text-xs uppercase tracking-widest mb-3">Mesas Cadastradas ({mesas.length})</h3>
-                     {mesas.map(m => (
-                        <div key={m.id} className="flex items-center justify-between bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
-                           <div className="flex items-center gap-3">
-                              <div className={`w-3 h-3 rounded-full ${m.status === 'livre' ? 'bg-emerald-500' : 'bg-orange-500'}`}></div>
-                              <span className="font-black text-slate-700 text-lg">{m.numero_mesa}</span>
-                              <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-md">{m.status.toUpperCase()}</span>
-                           </div>
-                           <button disabled={m.status !== 'livre' || processando} title={m.status !== 'livre' ? 'Mesa ocupada não pode ser excluída' : 'Excluir Mesa'} onClick={async () => {
-                              if(confirm(`Tem certeza que deseja excluir a mesa ${m.numero_mesa}?`)) {
-                                 setProcessando(true);
-                                 await deletarMesa(m.id);
-                                 carregarMesas();
-                                 setProcessando(false);
-                              }
-                           }} className="text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
-                              <Trash2 size={18} />
-                           </button>
+                     <h3 className="text-sm font-black text-slate-700 mb-4 flex items-center gap-2">
+                        📋 Lista de Mesas <span className="bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md text-xs">{mesas.length}</span>
+                     </h3>
+                     
+                     {mesas.length === 0 ? (
+                        <div className="text-center py-8 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                           <p className="text-slate-400 font-bold text-sm">Nenhuma mesa foi criada ainda.</p>
                         </div>
-                     ))}
-                     {mesas.length === 0 && <p className="text-slate-400 text-center py-4 font-medium text-sm">Nenhuma mesa cadastrada.</p>}
+                     ) : (
+                        <div className="flex flex-col gap-2">
+                           {mesas.map(m => (
+                              <div key={m.id} className="flex justify-between items-center p-3 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-slate-300 transition-colors">
+                                 <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-black text-slate-600">
+                                       {m.numero_mesa}
+                                    </div>
+                                    <span className={`text-xs font-bold px-2 py-1 rounded-md uppercase ${m.status==='ocupada' ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600'}`}>{m.status}</span>
+                                 </div>
+                                 <button onClick={async () => {
+                                    if(m.status === 'ocupada') {
+                                       alert("Você não pode excluir uma mesa ocupada!"); return;
+                                    }
+                                    if(confirm(`Deseja mesmo excluir a mesa ${m.numero_mesa}?`)) {
+                                       await excluirMesa(m.id);
+                                       await carregarMesas();
+                                    }
+                                 }} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                                    <Trash2 size={18}/>
+                                 </button>
+                              </div>
+                           ))}
+                        </div>
+                     )}
                   </div>
-               </div>
             </div>
          </div>
       )}

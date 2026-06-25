@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchCaixaAberto, abrirCaixa, registrarMovimentacao, fetchResumoCaixa, fecharCaixa } from "../../../lib/caixas";
-import { fetchProdutos, lancarVendaBalcao, fetchMesas, criarMesa, fetchPedidoAberto, abrirMesaEPedido, lancarItemComanda, fecharContaDaMesa, fetchGarcons, criarGarcom } from "../../../lib/vendas";
+import { fetchProdutos, lancarVendaBalcao, fetchMesas, criarMesa, fetchPedidoAberto, abrirMesaEPedido, lancarItemComanda, fecharContaDaMesa, fetchGarcons, criarGarcom, fetchProximoNumeroComanda } from "../../../lib/vendas";
 import { Lock, Unlock, LogOut, DollarSign, ArrowDownCircle, ArrowUpCircle, ShoppingBag, ShoppingCart, Maximize, Plus, Minus, Trash2, Printer, Users, Barcode, CreditCard, Receipt, SplitSquareHorizontal, Utensils, Send, X, Settings, Search, CheckCircle } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
@@ -193,7 +193,8 @@ export default function SaloesMesasPage() {
     setMesaAtiva(mesa);
     if(mesa.status === 'livre') {
        if (garcomAtivo) {
-          setIdentAtiva("");
+          const proxId = await fetchProximoNumeroComanda(mesa.id, mesa.numero_mesa);
+          setIdentAtiva(proxId);
           setModalComanda(true);
        } else {
           setModalGarcom(true);
@@ -994,11 +995,12 @@ export default function SaloesMesasPage() {
                <h2 className="text-2xl font-black text-[#1E293B] mb-12 tracking-tight">SELECIONE O GARÇOM</h2>
                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-x-12 gap-y-10 max-w-5xl w-full">
                   {garcons.length === 0 ? <p className="col-span-full text-center text-slate-500 font-bold">Nenhum garçom cadastrado. Vá em 'Garçons' no topo do mapa de mesas para cadastrar.</p> : garcons.map(g => (
-                     <button key={g.id} onClick={() => { 
+                     <button key={g.id} onClick={async () => { 
                         setGarcomAtivo(g); 
                         setModalGarcom(false); 
                         if (mesaAtiva) {
-                           setIdentAtiva(""); 
+                           const proxId = await fetchProximoNumeroComanda(mesaAtiva.id, mesaAtiva.numero_mesa);
+                           setIdentAtiva(proxId); 
                            setModalComanda(true); 
                         }
                      }} className="flex flex-col items-center gap-4 group">

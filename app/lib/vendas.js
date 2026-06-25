@@ -118,6 +118,15 @@ export async function abrirMesaEPedido(unidadeId, mesaId, garcomId = null, ident
   return { data, error: error?.message };
 }
 
+export async function fetchProximoNumeroComanda(mesaId, numero_mesa) {
+  if (!isSupabaseReady()) return `${numero_mesa}.01`;
+  const { count } = await supabase.from('pedidos')
+     .select('id', { count: 'exact', head: true })
+     .eq('mesa_id', mesaId);
+  const proximo = (count || 0) + 1;
+  return `${numero_mesa}.${proximo.toString().padStart(2, '0')}`;
+}
+
 export async function lancarItemComanda(pedidoId, produtoId, valorUnitario, quantidade, obs) {
   if (!isSupabaseReady()) return { error: "Offline" };
   

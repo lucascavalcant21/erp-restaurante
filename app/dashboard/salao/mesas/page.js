@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchCaixaAberto, abrirCaixa, registrarMovimentacao, fetchResumoCaixa, fecharCaixa } from "../../../lib/caixas";
-import { fetchProdutos, lancarVendaBalcao, fetchMesas, criarMesa, fetchPedidoAberto, abrirMesaEPedido, lancarItemComanda, fecharContaDaMesa } from "../../../lib/vendas";
-import { Lock, Unlock, LogOut, DollarSign, ArrowDownCircle, ArrowUpCircle, ShoppingBag, ShoppingCart, Maximize, Plus, Minus, Trash2, Printer, Users, Barcode, CreditCard, Receipt, SplitSquareHorizontal, Utensils, Send, X, Settings } from "lucide-react";
+import { fetchProdutos, lancarVendaBalcao, fetchMesas, criarMesa, fetchPedidoAberto, abrirMesaEPedido, lancarItemComanda, fecharContaDaMesa, fetchGarcons, criarGarcom } from "../../../lib/vendas";
+import { Lock, Unlock, LogOut, DollarSign, ArrowDownCircle, ArrowUpCircle, ShoppingBag, ShoppingCart, Maximize, Plus, Minus, Trash2, Printer, Users, Barcode, CreditCard, Receipt, SplitSquareHorizontal, Utensils, Send, X, Settings, Search, CheckCircle } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
 export default function SaloesMesasPage() {
@@ -53,6 +53,14 @@ export default function SaloesMesasPage() {
   const [modalGestaoMesas, setModalGestaoMesas] = useState(false);
   const [novaMesaNum, setNovaMesaNum] = useState("");
 
+  const [garcons, setGarcons] = useState([]);
+  const [modalGarcom, setModalGarcom] = useState(false);
+  const [garcomAtivo, setGarcomAtivo] = useState(null);
+  const [modalComanda, setModalComanda] = useState(false);
+  const [identAtiva, setIdentAtiva] = useState("");
+  const [modalGestaoGarcons, setModalGestaoGarcons] = useState(false);
+  const [novoGarcomNome, setNovoGarcomNome] = useState("");
+
   const [modalLancar, setModalLancar] = useState(false);
   const [produtoSel, setProdutoSel] = useState("");
   const [qtdLancamento, setQtdLancamento] = useState(1);
@@ -86,6 +94,8 @@ export default function SaloesMesasPage() {
     if (cx) {
       const { data: prods } = await fetchProdutos(unidadeAtiva);
       setProdutos(prods || []);
+      const { data: grc } = await fetchGarcons(unidadeAtiva);
+      setGarcons(grc || []);
       await carregarMesas();
     }
     setLoading(false);
@@ -164,14 +174,7 @@ export default function SaloesMesasPage() {
   const clicarMesa = async (mesa) => {
     setMesaAtiva(mesa);
     if(mesa.status === 'livre') {
-       if(confirm(`Deseja abrir a Mesa ${mesa.numero_mesa}?`)) {
-          await abrirMesaEPedido(unidadeAtiva, mesa.id);
-          await carregarMesas();
-          const { data } = await fetchPedidoAberto(mesa.id);
-          setPedidoAtivo(data);
-       } else {
-          setMesaAtiva(null);
-       }
+       setModalGarcom(true);
     } else {
        const { data } = await fetchPedidoAberto(mesa.id);
        setPedidoAtivo(data);
@@ -428,175 +431,211 @@ export default function SaloesMesasPage() {
       {/* BODY PRINCIPAL */}
       <div className="flex flex-1 overflow-hidden">
          
-         {/* LADO ESQUERDO (AÇÃO: MESAS ou GRID PRODUTOS) */}
-         <div className="flex-1 flex flex-col overflow-hidden bg-slate-50 relative">
-            
-            {abaAtiva === 'salao' && (
-              <div className="flex flex-col h-full overflow-hidden">
-                 <div className="p-5 flex justify-between items-center border-b border-slate-200 bg-white shrink-0 shadow-sm z-10">
-                    <h2 className="text-xl font-black text-slate-800">Mapa de Mesas</h2>
-                    <button onClick={() => setModalGestaoMesas(true)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-sm transition-colors flex items-center gap-2"><Settings size={16}/> Gerenciar Mesas</button>
-                 </div>
-                 
-                 <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-                    {mesas.length === 0 ? (
-                       <div className="text-center py-10">
-                          <p className="text-slate-500 font-bold mb-4">Nenhuma mesa cadastrada no salão.</p>
-                          <button onClick={() => setModalGestaoMesas(true)} className="px-6 py-3 bg-blue-500 text-white font-black rounded-xl">Gerenciar Mesas</button>
-                       </div>
-                    ) : (
-                       <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                          {mesas.map(m => (
-                             <button key={m.id} onClick={() => clicarMesa(m)}
-                               className={`bg-white rounded-2xl p-4 border-2 shadow-sm transition-all text-center flex flex-col hover:-translate-y-1 relative overflow-hidden ${
-                                 mesaAtiva?.id === m.id ? 'border-slate-800 ring-4 ring-slate-800/20' 
-                                 : m.status === 'ocupada' ? 'border-blue-500 shadow-blue-500/20' : 'border-slate-200 hover:border-slate-300'
-                               }`}>
-                                {m.status === 'ocupada' && <div className="absolute top-0 left-0 w-full h-1 bg-blue-500"></div>}
-                                <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 font-black text-xl transition-colors ${m.status==='ocupada' ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-400'}`}>
-                                   {m.numero_mesa}
-                                </div>
-                                <span className={`font-bold text-xs uppercase tracking-widest ${m.status==='ocupada' ? 'text-blue-500' : 'text-slate-400'}`}>{m.status}</span>
-                             </button>
-                          ))}
-                       </div>
-                    )}
-                 </div>
-              </div>
-            )}
-
-            {abaAtiva === 'balcao' && (
-              <div className="flex flex-col h-full overflow-hidden">
-                <div className="p-4 bg-white border-b border-slate-200 shrink-0 z-10 flex gap-3">
-                   <div className="flex-1 relative">
-                      <Barcode size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <input type="text" ref={buscaRef} value={buscaProd} onChange={e => setBuscaProd(e.target.value)} onKeyDown={checkBipeBusca} placeholder="Bipar código de barras ou buscar nome..." className="w-full pl-12 pr-4 py-3 bg-slate-100 border-none rounded-xl font-bold outline-none" />
-                   </div>
-                </div>
-
-                <div className="px-4 py-2 bg-white border-b border-slate-200 flex gap-2 overflow-x-auto custom-scrollbar shrink-0 shadow-sm z-10">
-                   {["Todas", ...new Set(produtos.map(p => p.categoria || "Geral"))].map(cat => (
-                      <button key={cat} onClick={() => setFiltroCategoria(cat)}
-                         className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all shadow-sm border ${filtroCategoria === cat ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300'}`}>
-                         {cat}
-                      </button>
-                   ))}
-                </div>
-
-                <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                      {produtosFiltrados.map(prod => (
-                         <button key={prod.id} onClick={() => addAoCarrinho(prod)} className="bg-white rounded-xl p-3 border border-slate-200 shadow-sm hover:shadow-md hover:border-emerald-500 transition-all text-left flex flex-col group h-full">
-                            <h3 className="font-bold text-slate-700 text-xs leading-tight mb-2 flex-1">{prod.nome_produto}</h3>
-                            <div className="flex justify-between items-end w-full">
-                               <p className="text-[10px] text-slate-400">Estoque: {prod.codigo_barras ? 'Sim' : 'N/A'}</p>
-                               <p className="font-black text-emerald-600 text-sm">{fmtBRL(prod.preco_venda || prod.preco || 0)}</p>
-                            </div>
-                         </button>
-                      ))}
-                   </div>
-                </div>
-              </div>
-            )}
-         </div>
-
-         {/* LADO DIREITO: COMANDA OU CARRINHO */}
-         <div className="w-[400px] bg-white border-l border-slate-200 shadow-2xl flex flex-col shrink-0 z-20">
-            
-            {abaAtiva === 'balcao' && (
-              <>
-                <div className="px-5 py-4 bg-emerald-50 border-b border-emerald-100 flex items-center justify-between">
-                   <h2 className="font-black text-emerald-800 flex items-center gap-2"><ShoppingCart size={18}/> Cupom Balcão</h2>
-                </div>
-                <div className="flex-1 overflow-y-auto p-3 bg-slate-50/30 custom-scrollbar space-y-2">
-                   {carrinho.length === 0 ? (
-                      <p className="text-center text-slate-400 text-sm font-bold py-10">Carrinho Vazio</p>
-                   ) : carrinho.map(item => (
-                      <div key={item.id} className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-2">
-                         <div className="flex justify-between items-start">
-                            <span className="font-bold text-slate-700 text-xs">{item.nome_produto}</span>
-                            <span className="font-black text-slate-800 text-sm">{fmtBRL((item.preco_venda || item.preco || 0) * item.quantidade)}</span>
-                         </div>
-                         <div className="flex items-center justify-between">
-                            <div className="flex items-center bg-slate-100 rounded-lg p-0.5">
-                               <button onClick={() => alterarQtd(item.id, -1)} className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-slate-600"><Minus size={12}/></button>
-                               <span className="w-8 text-center font-black text-xs">{item.quantidade}</span>
-                               <button onClick={() => alterarQtd(item.id, 1)} className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-slate-600"><Plus size={12}/></button>
-                            </div>
-                            <button onClick={() => removerItem(item.id)} className="text-slate-300 hover:text-red-500 p-1"><Trash2 size={16}/></button>
-                         </div>
-                      </div>
-                   ))}
-                </div>
-                <div className="p-5 bg-white border-t border-slate-200 shadow-[0_-10px_20px_rgba(0,0,0,0.03)] z-10">
-                   <div className="flex justify-between items-end mb-4">
-                      <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Total a Receber</span>
-                      <span className="text-3xl font-black text-emerald-500 tracking-tight">{fmtBRL(totalCarrinho)}</span>
-                   </div>
-                   <button disabled={carrinho.length === 0} onClick={abrirModalPagamento} className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-300 text-white font-black py-4 rounded-xl shadow-lg transition-transform flex items-center justify-center">
-                      RECEBER AGORA
-                   </button>
-                </div>
-              </>
-            )}
-
-            {abaAtiva === 'salao' && (
-              <>
-                <div className="px-5 py-4 bg-slate-800 border-b border-slate-900 flex justify-between items-center">
-                   <h2 className="font-black text-white flex items-center gap-2"><Receipt size={18}/> Comanda Aberta</h2>
-                   {mesaAtiva && <button onClick={()=>setMesaAtiva(null)} className="text-slate-400 hover:text-white"><X size={18}/></button>}
-                </div>
-                <div className="flex-1 flex flex-col overflow-y-auto bg-slate-50">
-                   {!mesaAtiva ? (
-                      <div className="h-full flex flex-col items-center justify-center text-slate-400">
-                         <Utensils size={40} className="mb-4 opacity-20"/>
-                         <p className="font-bold text-sm">Selecione uma mesa</p>
-                      </div>
-                   ) : !pedidoAtivo ? (
-                      <div className="p-6 text-center">
-                         <p className="text-slate-500 font-bold mb-4">A Mesa {mesaAtiva.numero_mesa} está livre.</p>
-                         <button onClick={()=>clicarMesa(mesaAtiva)} className="w-full py-3 bg-blue-500 text-white font-black rounded-xl">Abrir Mesa</button>
-                      </div>
-                   ) : (
-                      <div className="flex-1 flex flex-col">
-                         <div className="px-5 py-3 border-b border-slate-200 bg-white">
-                            <h3 className="font-black text-slate-800 text-lg">Mesa {mesaAtiva.numero_mesa}</h3>
-                            <p className="text-[10px] text-slate-500 uppercase font-bold">Pedido #{pedidoAtivo.id.substring(0,8)}</p>
-                         </div>
-                         <div className="flex-1 p-3 overflow-y-auto custom-scrollbar space-y-1 text-sm">
-                            {pedidoAtivo.pedidos_itens?.length === 0 && <p className="text-center text-slate-400 font-bold pt-4 text-xs">Comanda vazia</p>}
-                            {pedidoAtivo.pedidos_itens?.map(it => (
-                               <div key={it.id} className="flex justify-between py-2 border-b border-dashed border-slate-200 last:border-0 items-start">
-                                  <div className="flex-1">
-                                     <p className="font-bold text-slate-700">{it.quantidade}x {it.produtos?.nome_produto}</p>
-                                     {it.observacao && <p className="text-[10px] text-slate-500 bg-slate-100 inline-block px-1.5 py-0.5 rounded mt-0.5">Obs: {it.observacao}</p>}
-                                  </div>
-                                  <span className="font-black text-slate-800 pl-2">{fmtBRL(it.quantidade * it.valor_unitario)}</span>
-                               </div>
-                            ))}
-                         </div>
-                         <div className="p-3 bg-white border-t border-slate-200">
-                            <button onClick={prepararLancamentoMesa} className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-black py-3 rounded-xl flex items-center justify-center gap-2 transition-colors border border-slate-300">
-                               <Plus size={16}/> LANÇAR PRODUTOS
-                            </button>
-                         </div>
-                      </div>
-                   )}
-                </div>
-                {mesaAtiva && pedidoAtivo && (
-                  <div className="p-5 bg-white border-t border-slate-200 shadow-[0_-10px_20px_rgba(0,0,0,0.03)] z-10">
-                     <div className="flex justify-between items-end mb-4">
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Total Conta</span>
-                        <span className="text-3xl font-black text-blue-600 tracking-tight">{fmtBRL(pedidoAtivo.pedidos_itens?.reduce((a,i)=>a+(i.quantidade*i.valor_unitario),0)||0)}</span>
+         {/* SE ESTIVER NO SALÃO E UMA MESA ESTIVER ABERTA (MODO PDV/POS) */}
+         {abaAtiva === 'salao' && mesaAtiva && pedidoAtivo ? (
+            <>
+               {/* SIDEBAR ESQUERDA: DETALHES DA CONTA */}
+               <div className="w-[320px] bg-white border-r border-slate-200 shadow-xl flex flex-col shrink-0 z-20">
+                  <div className="px-5 py-4 bg-slate-50 border-b border-slate-200 flex flex-col gap-1">
+                     <div className="flex justify-between items-start">
+                        <span className="font-bold text-slate-700 text-lg">Ident: <span className="font-normal">{pedidoAtivo.identificacao || 'Sem Ident'}</span></span>
+                        <span className="font-black text-slate-800 text-xl">{fmtBRL(pedidoAtivo.pedidos_itens?.reduce((a,i)=>a+(i.quantidade*i.valor_unitario),0)||0)}</span>
                      </div>
-                     <button disabled={!pedidoAtivo.pedidos_itens?.length} onClick={abrirModalPagamento} className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-slate-300 text-white font-black py-4 rounded-xl shadow-lg transition-transform flex items-center justify-center">
-                        RECEBER MESA
-                     </button>
+                     <span className="font-bold text-slate-600 text-sm">Comanda: {pedidoAtivo.id.substring(0,6).toUpperCase()}</span>
+                     <div className="flex gap-4 mt-2">
+                        <span className="font-bold text-slate-600 text-sm flex items-center gap-1"><Utensils size={14}/> Mesa: {mesaAtiva.numero_mesa}</span>
+                     </div>
+                     <span className="text-xs text-slate-500 font-bold mt-1">Garçom: {garcons.find(g => g.id === pedidoAtivo.garcom_id)?.nome || 'Sem garçom'}</span>
                   </div>
-                )}
-              </>
-            )}
-         </div>
+                  
+                  <div className="flex-1 overflow-y-auto p-3 bg-slate-50/50 custom-scrollbar space-y-1">
+                     <h3 className="font-bold text-slate-500 text-xs uppercase tracking-widest mb-3 px-2 mt-2">Itens não enviados</h3>
+                     {pedidoAtivo.pedidos_itens?.length === 0 && <p className="text-center text-slate-400 text-sm font-bold pt-4">Nenhum item novo adicionado</p>}
+                     {pedidoAtivo.pedidos_itens?.map(it => (
+                        <div key={it.id} className="flex flex-col bg-white p-2 rounded border border-slate-200 shadow-sm mb-1">
+                           <div className="flex justify-between items-start">
+                              <span className="font-bold text-slate-700 text-sm">{it.quantidade}x {it.produtos?.nome_produto}</span>
+                              <span className="font-black text-slate-800 text-sm">{fmtBRL(it.quantidade * it.valor_unitario)}</span>
+                           </div>
+                           {it.observacao && <span className="text-[10px] text-slate-500 mt-1 uppercase font-bold">Obs: {it.observacao}</span>}
+                        </div>
+                     ))}
+                  </div>
+
+                  <div className="p-4 bg-white border-t border-slate-200 grid grid-cols-2 gap-2 shrink-0 z-10">
+                     <button onClick={() => { setMesaAtiva(null); setPedidoAtivo(null); }} className="py-3 bg-[#F44336] hover:bg-red-600 text-white font-bold text-sm rounded shadow transition-colors">VOLTAR</button>
+                     <button onClick={abrirModalPagamento} className="py-3 bg-[#2196F3] hover:bg-blue-600 text-white font-bold text-sm rounded shadow transition-colors">RECEBER MESA</button>
+                  </div>
+               </div>
+
+               {/* ÁREA PRINCIPAL DIREITA: GRID DE PRODUTOS */}
+               <div className="flex-1 flex flex-col bg-[#F1F5F9] overflow-hidden">
+                  {/* Busca */}
+                  <div className="p-3 bg-white border-b border-slate-200 flex gap-2">
+                     <div className="flex-1 relative">
+                        <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input type="text" ref={buscaRef} value={buscaProd} onChange={e => setBuscaProd(e.target.value)} placeholder="Pesquise produtos pelo código, descrição ou detalhes" className="w-full pl-12 pr-4 py-2 bg-slate-50 border border-slate-200 rounded font-normal outline-none text-slate-700" />
+                     </div>
+                  </div>
+                  {/* Categorias (Topo Horizontal) */}
+                  <div className="px-3 py-2 bg-white flex gap-2 overflow-x-auto custom-scrollbar shrink-0 shadow-sm z-10 border-b border-slate-200">
+                     {["Todas", ...new Set(produtos.map(p => p.categoria || "Geral"))].map(cat => (
+                        <button key={cat} onClick={() => setFiltroCategoria(cat)}
+                           className={`px-4 py-3 rounded text-[11px] font-black uppercase whitespace-nowrap transition-all shadow-sm ${filtroCategoria === cat ? 'bg-[#F59E0B] text-white border-2 border-[#F59E0B]' : 'bg-[#2196F3] text-white hover:bg-blue-600'}`}>
+                           {cat}
+                        </button>
+                     ))}
+                  </div>
+                  {/* Grid de Produtos */}
+                  <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3">
+                        {produtosFiltrados.map(prod => (
+                           <button key={prod.id} onClick={() => {
+                               // Ao invés de lançar no carrinho, vamos lançar direto na mesa!
+                               // Para ser rápido igual o saipos, usamos quantidade 1 sem observação (se precisar de obs, clicaria longo ou teria botão)
+                               // Para simplificar, lança 1 direto.
+                               lancarItemComanda(pedidoAtivo.id, prod.id, prod.preco_venda || prod.preco || 0, 1, "");
+                               // O Supabase Realtime cuidaria disso, mas vamos recarregar a mesa
+                               fetchPedidoAberto(mesaAtiva.id).then(({data}) => setPedidoAtivo(data));
+                           }} className="bg-white rounded p-0 border border-slate-200 shadow hover:shadow-md transition-all text-center flex flex-col group h-full overflow-hidden">
+                              <div className="p-3 flex-1 flex flex-col items-center justify-center">
+                                 <h3 className="font-black text-slate-800 text-[11px] leading-tight mb-2 uppercase">{prod.nome_produto}</h3>
+                                 <p className="font-bold text-slate-500 text-xs">{fmtBRL(prod.preco_venda || prod.preco || 0)}</p>
+                              </div>
+                              <div className="bg-[#2196F3] group-hover:bg-blue-600 text-white py-2 flex items-center justify-center transition-colors">
+                                 <ShoppingCart size={16}/>
+                              </div>
+                           </button>
+                        ))}
+                     </div>
+                  </div>
+               </div>
+            </>
+         ) : (
+            // ==========================================
+            // MODO NORMAL (MAPA DE MESAS OU BALCÃO)
+            // ==========================================
+            <>
+               {/* LADO ESQUERDO (AÇÃO: MESAS ou GRID PRODUTOS BALCÃO) */}
+               <div className="flex-1 flex flex-col overflow-hidden bg-slate-50 relative">
+                  
+                  {abaAtiva === 'salao' && (
+                     <div className="flex flex-col h-full overflow-hidden">
+                        <div className="bg-white border-b border-slate-200 shrink-0 z-10 flex flex-col sm:flex-row items-center p-2 gap-4">
+                           <div className="flex gap-2 w-full sm:w-auto">
+                              <input type="text" placeholder="Mesa" className="w-24 px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 outline-none focus:border-blue-500 rounded" />
+                              <input type="text" placeholder="Comanda" className="w-32 px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 outline-none focus:border-blue-500 rounded" />
+                           </div>
+                           
+                           <div className="flex items-center gap-4 text-xs font-bold text-slate-400">
+                              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-[#4CAF50]"></div> Disponível</div>
+                              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-blue-500"></div> Em consumo</div>
+                              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-amber-500"></div> Pediu a conta</div>
+                           </div>
+
+                           <div className="flex-1"></div>
+                           <button onClick={() => setModalGestaoMesas(true)} className="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs transition-colors rounded"><Settings size={14} className="inline mr-1"/> Config. Mesas</button>
+                           <button onClick={() => setModalGestaoGarcons(true)} className="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs transition-colors rounded"><Users size={14} className="inline mr-1"/> Garçons</button>
+                        </div>
+                        
+                        <div className="flex-1 overflow-y-auto p-2 bg-[#F1F5F9] custom-scrollbar">
+                           {mesas.length === 0 ? (
+                              <div className="text-center py-10">
+                                 <p className="text-slate-500 font-bold mb-4">Nenhuma mesa cadastrada no salão.</p>
+                                 <button onClick={() => setModalGestaoMesas(true)} className="px-6 py-3 bg-blue-500 text-white font-black rounded-xl">Gerenciar Mesas</button>
+                              </div>
+                           ) : (
+                              <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-7 lg:grid-cols-9 xl:grid-cols-10 gap-1.5">
+                                 {mesas.map(m => (
+                                    <button key={m.id} onClick={() => clicarMesa(m)}
+                                      className={`aspect-square w-full flex items-center justify-center font-black text-2xl text-white transition-opacity hover:opacity-90 rounded ${
+                                        m.status === 'ocupada' ? 'bg-blue-500' 
+                                        : m.status === 'fechando' ? 'bg-amber-500' 
+                                        : 'bg-[#4CAF50]'
+                                      }`}>
+                                       {m.numero_mesa}
+                                    </button>
+                                 ))}
+                              </div>
+                           )}
+                        </div>
+                     </div>
+                  )}
+
+                  {abaAtiva === 'balcao' && (
+                     <div className="flex flex-col h-full overflow-hidden">
+                        <div className="p-4 bg-white border-b border-slate-200 shrink-0 z-10 flex gap-3">
+                           <div className="flex-1 relative">
+                              <Barcode size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                              <input type="text" ref={buscaRef} value={buscaProd} onChange={e => setBuscaProd(e.target.value)} onKeyDown={checkBipeBusca} placeholder="Bipar código de barras ou buscar nome..." className="w-full pl-12 pr-4 py-3 bg-slate-100 border-none rounded-xl font-bold outline-none" />
+                           </div>
+                        </div>
+
+                        <div className="px-4 py-2 bg-white border-b border-slate-200 flex gap-2 overflow-x-auto custom-scrollbar shrink-0 shadow-sm z-10">
+                           {["Todas", ...new Set(produtos.map(p => p.categoria || "Geral"))].map(cat => (
+                              <button key={cat} onClick={() => setFiltroCategoria(cat)}
+                                 className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all shadow-sm border ${filtroCategoria === cat ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300'}`}>
+                                 {cat}
+                              </button>
+                           ))}
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                              {produtosFiltrados.map(prod => (
+                                 <button key={prod.id} onClick={() => addAoCarrinho(prod)} className="bg-white rounded-xl p-3 border border-slate-200 shadow-sm hover:shadow-md hover:border-emerald-500 transition-all text-left flex flex-col group h-full">
+                                    <h3 className="font-bold text-slate-700 text-xs leading-tight mb-2 flex-1">{prod.nome_produto}</h3>
+                                    <div className="flex justify-between items-end w-full">
+                                       <p className="text-[10px] text-slate-400">Estoque: {prod.codigo_barras ? 'Sim' : 'N/A'}</p>
+                                       <p className="font-black text-emerald-600 text-sm">{fmtBRL(prod.preco_venda || prod.preco || 0)}</p>
+                                    </div>
+                                 </button>
+                              ))}
+                           </div>
+                        </div>
+                     </div>
+                  )}
+               </div>
+
+               {/* LADO DIREITO: CARRINHO BALCÃO */}
+               {abaAtiva === 'balcao' && (
+                  <div className="w-[400px] bg-white border-l border-slate-200 shadow-2xl flex flex-col shrink-0 z-20">
+                     <div className="px-5 py-4 bg-emerald-50 border-b border-emerald-100 flex items-center justify-between">
+                        <h2 className="font-black text-emerald-800 flex items-center gap-2"><ShoppingCart size={18}/> Cupom Balcão</h2>
+                     </div>
+                     <div className="flex-1 overflow-y-auto p-3 bg-slate-50/30 custom-scrollbar space-y-2">
+                        {carrinho.length === 0 ? (
+                           <p className="text-center text-slate-400 text-sm font-bold py-10">Carrinho Vazio</p>
+                        ) : carrinho.map(item => (
+                           <div key={item.id} className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-2">
+                              <div className="flex justify-between items-start">
+                                 <span className="font-bold text-slate-700 text-xs">{item.nome_produto}</span>
+                                 <span className="font-black text-slate-800 text-sm">{fmtBRL((item.preco_venda || item.preco || 0) * item.quantidade)}</span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                 <div className="flex items-center bg-slate-100 rounded-lg p-0.5">
+                                    <button onClick={() => alterarQtd(item.id, -1)} className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-slate-600"><Minus size={12}/></button>
+                                    <span className="w-8 text-center font-black text-xs">{item.quantidade}</span>
+                                    <button onClick={() => alterarQtd(item.id, 1)} className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-slate-600"><Plus size={12}/></button>
+                                 </div>
+                                 <button onClick={() => removerItem(item.id)} className="text-slate-300 hover:text-red-500 p-1"><Trash2 size={16}/></button>
+                              </div>
+                           </div>
+                        ))}
+                     </div>
+                     <div className="p-5 bg-white border-t border-slate-200 shadow-[0_-10px_20px_rgba(0,0,0,0.03)] z-10">
+                        <div className="flex justify-between items-end mb-4">
+                           <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Total a Receber</span>
+                           <span className="text-3xl font-black text-emerald-500 tracking-tight">{fmtBRL(totalCarrinho)}</span>
+                        </div>
+                        <button disabled={carrinho.length === 0} onClick={abrirModalPagamento} className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-300 text-white font-black py-4 rounded-xl shadow-lg transition-transform flex items-center justify-center">
+                           RECEBER AGORA
+                        </button>
+                     </div>
+                  </div>
+               )}
+            </>
+         )}
       </div>
 
       {/* =======================================================
@@ -873,6 +912,95 @@ export default function SaloesMesasPage() {
                   <button onClick={confirmarFechamento} className="flex-1 bg-red-500 text-white font-black py-3 rounded-xl flex items-center justify-center gap-2">
                      <Lock size={18}/> TRAVAR CAIXA
                   </button>
+               </div>
+            </div>
+         </div>
+      {/* MODAL GESTÃO DE GARÇONS */}
+      {modalGestaoGarcons && (
+         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+               <div className="p-6 border-b border-slate-100 bg-slate-800 text-white flex justify-between items-center">
+                  <div><h2 className="text-xl font-black">Gerenciar Garçons</h2><p className="text-sm text-slate-400">Cadastre a equipe</p></div>
+                  <button onClick={() => setModalGestaoGarcons(false)} className="text-slate-400 hover:text-white"><X size={24} /></button>
+               </div>
+               <div className="p-6 flex-1 overflow-y-auto">
+                  <form onSubmit={async (e) => {
+                     e.preventDefault();
+                     if(!novoGarcomNome.trim()) return;
+                     setProcessando(true);
+                     const res = await criarGarcom(unidadeAtiva, novoGarcomNome.trim());
+                     if(res?.error) alert("Erro: " + res.error);
+                     else { setNovoGarcomNome(""); const { data } = await fetchGarcons(unidadeAtiva); setGarcons(data); }
+                     setProcessando(false);
+                  }} className="flex flex-col gap-3 mb-8">
+                     <label className="text-xs font-bold text-slate-500 uppercase">Nome do Garçom</label>
+                     <div className="flex gap-2">
+                        <input type="text" value={novoGarcomNome} onChange={e => setNovoGarcomNome(e.target.value)} required className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold" placeholder="Ex: João, Maria" />
+                        <button type="submit" disabled={processando} className="px-6 py-3 bg-blue-600 hover:bg-blue-700 transition-colors text-white font-black rounded-xl shadow-lg"><Plus size={18} className="inline"/></button>
+                     </div>
+                  </form>
+                  <h3 className="text-sm font-black text-slate-700 mb-4 flex items-center gap-2">📋 Equipe <span className="bg-slate-100 px-2 py-0.5 rounded text-xs text-slate-500">{garcons.length}</span></h3>
+                  <div className="flex flex-col gap-2">
+                     {garcons.map(g => (
+                        <div key={g.id} className="p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 shadow-sm">{g.nome}</div>
+                     ))}
+                  </div>
+               </div>
+            </div>
+         </div>
+      )}
+
+      {/* MODAL SELECIONAR GARÇOM */}
+      {modalGarcom && (
+         <div className="fixed inset-0 bg-white z-[60] flex flex-col">
+            <div className="bg-[#4A6487] p-4 text-white flex justify-between items-center shadow-md">
+               <span className="font-bold">Mesa: {mesaAtiva?.numero_mesa}</span>
+               <button onClick={() => setModalGarcom(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={20}/></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-10 bg-[#F1F5F9] flex flex-col items-center">
+               <h2 className="text-2xl font-black text-[#1E293B] mb-12 tracking-tight">SELECIONE O GARÇOM</h2>
+               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-x-12 gap-y-10 max-w-5xl w-full">
+                  {garcons.length === 0 ? <p className="col-span-full text-center text-slate-500 font-bold">Nenhum garçom cadastrado. Vá em 'Garçons' no topo do mapa de mesas para cadastrar.</p> : garcons.map(g => (
+                     <button key={g.id} onClick={() => { setGarcomAtivo(g); setModalGarcom(false); setIdentAtiva(""); setModalComanda(true); }} className="flex flex-col items-center gap-4 group">
+                        <div className="w-24 h-24 rounded-full bg-[#4A72B2] text-white flex items-center justify-center text-4xl font-black shadow-lg group-hover:scale-105 transition-transform">
+                           {g.nome.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="font-black text-[#334155] text-xs tracking-wide uppercase text-center leading-snug">{g.nome} - {g.cargo}</span>
+                     </button>
+                  ))}
+               </div>
+            </div>
+         </div>
+      )}
+
+      {/* MODAL ABERTURA DE COMANDA (IDENTIFICAÇÃO) */}
+      {modalComanda && (
+         <div className="fixed inset-0 bg-white z-[60] flex flex-col">
+            <div className="bg-[#fff] border-b border-slate-200 p-4 text-slate-600 flex justify-between items-center shadow-sm">
+               <span className="font-bold">Abertura de comanda</span>
+               <span className="font-bold">Mesa: {mesaAtiva?.numero_mesa}</span>
+            </div>
+            <div className="flex-1 flex flex-col items-center p-10 bg-[#fafafa]">
+               <div className="w-full max-w-2xl mt-10">
+                  <p className="text-slate-500 font-normal mb-2 text-sm">Digite uma identificação a ser adicionada à venda:</p>
+                  <form onSubmit={async (e) => {
+                     e.preventDefault();
+                     setProcessando(true);
+                     await abrirMesaEPedido(unidadeAtiva, mesaAtiva.id, garcomAtivo?.id, identAtiva);
+                     await carregarMesas();
+                     const { data } = await fetchPedidoAberto(mesaAtiva.id);
+                     setPedidoAtivo(data);
+                     setProcessando(false);
+                     setModalComanda(false);
+                  }} className="w-full">
+                     <input type="text" autoFocus value={identAtiva} onChange={e => setIdentAtiva(e.target.value)} required 
+                        className="w-full bg-[#E5E7EB] border-none text-center text-5xl p-6 font-normal text-slate-700 outline-none mb-10 tracking-wider" />
+                     
+                     <div className="flex gap-4 border-t border-slate-200 pt-8">
+                        <button type="button" onClick={() => { setModalComanda(false); setModalGarcom(true); }} className="px-6 py-3 bg-[#F44336] hover:bg-red-600 text-white font-bold text-sm rounded shadow transition-colors">VOLTAR</button>
+                        <button type="submit" disabled={processando} className="px-6 py-3 bg-[#2196F3] hover:bg-blue-600 text-white font-bold text-sm rounded shadow transition-colors">ABRIR COMANDA</button>
+                     </div>
+                  </form>
                </div>
             </div>
          </div>

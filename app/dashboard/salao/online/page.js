@@ -61,122 +61,128 @@ export default function GestorOnlinePage() {
   };
 
   return (
-    <div ref={containerRef} className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-100">
+    <div ref={containerRef} className="h-screen w-full flex font-sans overflow-hidden bg-[#EAEAEA]">
       
-      {/* TOPBAR */}
-      <div className="bg-slate-900 pt-8 pb-8 px-8 shadow-lg">
-         <div className="max-w-5xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-4 text-white">
-              <button onClick={() => router.back()} className="p-3 bg-slate-800 hover:bg-slate-700 rounded-full transition-colors">
-                 <ArrowLeft size={20}/>
-              </button>
-              <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 text-slate-500 flex items-center justify-center">
-                 <Bike size={32} />
-              </div>
-              <div>
-                 <h1 className="text-4xl font-black tracking-tighter">Gestor Delivery</h1>
-                 <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Pedidos Online Aguardando Aceite</p>
-              </div>
-            </div>
-            <button onClick={toggleFullscreen} className="bg-slate-800 hover:bg-slate-700 text-slate-500 p-3 rounded-xl transition-colors border border-slate-700" title="Tela Cheia">
-               <Maximize size={24} />
-            </button>
+      {/* SIDEBAR ESQUERDA (TIRINHA VERMELHA) */}
+      <div className="w-12 bg-[#D12B2B] flex flex-col items-center py-4 z-20 shrink-0 border-r border-red-800">
+         <button onClick={() => router.back()} className="text-white hover:text-red-200 mb-8 transition-colors"><ArrowLeft size={20}/></button>
+         <div className="text-white font-black text-xl flex flex-col items-center tracking-widest" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>
+            SIGA
          </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-8 mt-10">
-         {loading ? (
-            <p className="font-bold text-slate-500">Buscando novos pedidos...</p>
-         ) : pedidos.length === 0 ? (
-            <div className="text-center p-10 bg-white border border-slate-200 rounded-3xl max-w-lg mx-auto mt-20">
-               <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Bike size={40} className="text-slate-500"/>
+      {/* ÁREA PRINCIPAL */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+         
+         {/* TOPBAR */}
+         <div className="bg-[#2D2D2D] h-14 flex items-center px-4 justify-between shrink-0 shadow-md z-10 text-white">
+            <div className="flex items-center h-full">
+               <button className="h-full px-6 font-bold text-xs bg-black/20 border-b-4 border-red-500">DELIVERY</button>
+               <button className="h-full px-6 font-bold text-xs text-slate-400 hover:text-white transition-colors">IFOOD</button>
+            </div>
+            
+            <div className="flex items-center gap-6">
+               <div className="flex items-center gap-2 bg-[#1A1A1A] rounded px-3 py-1.5 border border-slate-700 w-64">
+                  <input type="text" placeholder="Nome, telefone, ID, bairro..." className="bg-transparent border-none outline-none text-xs w-full placeholder-slate-500 text-white" />
                </div>
-               <h3 className="text-2xl font-black text-slate-700">Nenhum pedido novo</h3>
-               <p className="text-slate-500 mt-2 font-medium mb-6">Fique de olho. Assim que um cliente enviar um pedido pelo Cardápio Digital ou pelo iFood, ele aparecerá aqui com um alerta.</p>
-               <div className="flex items-center justify-center gap-2 text-slate-600 text-sm font-bold bg-slate-50 p-3 rounded-xl w-max mx-auto animate-pulse">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500"></div> Online e aguardando...
+
+               <div className="flex items-center gap-1 text-slate-400">
+                  <span className="font-bold text-xs text-slate-300 mr-2">
+                     {pedidos.length === 0 ? "Nenhum pedido novo" : `${pedidos.length} Pedido(s) online`}
+                  </span>
                </div>
             </div>
-         ) : (
-            <div className="space-y-6">
-               <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl flex items-center gap-3">
-                  <AlertCircle className="text-slate-600"/>
-                  <p className="text-amber-800 font-bold text-sm">Atenção: Os pedidos abaixo NÃO estão na cozinha ainda. Você precisa Aceitar para que eles sejam impressos/exibidos no KDS.</p>
-               </div>
 
-               {pedidos.map(ped => {
-                  const min = calcTempo(ped.created_at);
-                  const isAtrasado = min > 5;
-
-                  return (
-                     <div key={ped.id} className="bg-white rounded-[32px] p-6 sm:p-8 border-2 border-slate-200 shadow-xl flex flex-col md:flex-row gap-8">
-                        
-                        {/* LADO ESQUERDO: Dados do Cliente e Itens */}
-                        <div className="flex-1">
-                           <div className="flex items-center gap-4 mb-6">
-                              <span className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest ${ped.tipo_pedido === 'ifood' ? 'bg-red-500 text-white' : ped.tipo_pedido === 'delivery' ? 'bg-slate-100 text-emerald-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                                 {ped.tipo_pedido === 'ifood' ? 'iFood' : ped.tipo_pedido}
-                              </span>
-                              <span className={`flex items-center gap-1 text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-lg ${isAtrasado ? 'bg-emerald-500 text-white animate-pulse' : 'bg-slate-100 text-slate-500'}`}>
-                                 <Clock size={14}/> {min} min aguardando
-                              </span>
-                           </div>
-
-                           <h2 className="text-3xl font-black text-slate-800 mb-1">{ped.cliente_nome}</h2>
-                           <div className="flex flex-col gap-2 mt-4 mb-8">
-                              <p className="text-slate-500 font-bold text-sm flex items-center gap-2"><Phone size={16}/> {ped.cliente_telefone}</p>
-                              {ped.tipo_pedido === 'delivery' && (
-                                 <p className="text-slate-500 font-bold text-sm flex items-start gap-2"><MapPin size={16} className="mt-0.5 flex-shrink-0"/> {ped.endereco_entrega}</p>
-                              )}
-                           </div>
-
-                           <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
-                              <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-4">Itens do Pedido</h3>
-                              <div className="space-y-4">
-                                 {ped.pedidos_itens?.map((it, i) => (
-                                    <div key={i} className="flex justify-between items-start">
-                                       <div className="flex gap-3">
-                                          <span className="font-black text-slate-500">{it.quantidade}x</span>
-                                          <div>
-                                             <p className="font-bold text-slate-800">{it.produtos.nome_produto}</p>
-                                             {it.observacao && <p className="text-xs font-bold text-emerald-600 mt-1 bg-slate-50 px-2 py-1 inline-block rounded">Obs: {it.observacao}</p>}
-                                          </div>
-                                       </div>
-                                       <span className="font-black text-emerald-600">{fmtBRL(it.valor_unitario * it.quantidade)}</span>
-                                    </div>
-                                 ))}
-                              </div>
-                           </div>
-                        </div>
-
-                        {/* LADO DIREITO: Total e Ações */}
-                        <div className="w-full md:w-80 flex flex-col justify-between">
-                           <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-lg mb-4">
-                              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">Total a Receber</p>
-                              <p className="text-4xl font-black text-emerald-400 mb-4">{fmtBRL(ped.valor_total)}</p>
-                              {ped.troco_para && (
-                                 <p className="text-sm font-bold text-slate-500 bg-slate-800 p-3 rounded-xl border border-slate-700">Troco p/: {ped.troco_para}</p>
-                              )}
-                           </div>
-
-                           <div className="space-y-3">
-                              <button onClick={() => handleAceitar(ped.id)} className="w-full py-5 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-500/20 active:scale-95 flex items-center justify-center gap-2">
-                                 <Check size={24}/> Aceitar Pedido
-                              </button>
-                              <button onClick={() => handleRecusar(ped.id)} className="w-full py-5 bg-white border-2 border-slate-200 text-slate-600 hover:bg-slate-50 font-black text-lg rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2">
-                                 <X size={24}/> Recusar
-                              </button>
-                           </div>
-                        </div>
-
-                     </div>
-                  )
-               })}
+            <div className="flex items-center gap-2">
+               <button className="px-3 py-1.5 flex items-center gap-1.5 bg-[#4A4A4A] hover:bg-[#5A5A5A] rounded text-[10px] font-bold uppercase transition-colors">
+                  <Bike size={14}/> Entregadores
+               </button>
+               <button onClick={toggleFullscreen} className="px-3 py-1.5 flex items-center gap-1.5 bg-[#4A4A4A] hover:bg-[#5A5A5A] rounded text-[10px] font-bold uppercase transition-colors">
+                  <Maximize size={14}/>
+               </button>
             </div>
-         )}
+         </div>
+
+         {/* KANBAN BOARD */}
+         <div className="flex-1 flex p-2 gap-2 overflow-x-auto">
+            
+            {/* COLUNA: COZINHA */}
+            <div className="flex-1 min-w-[300px] flex flex-col bg-[#F3F3F3] rounded shadow-sm border border-slate-300">
+               <div className="bg-[#D12B2B] text-white p-2 text-center font-black text-xs uppercase tracking-widest rounded-t">
+                  Cozinha
+               </div>
+               <div className="flex-1 overflow-y-auto p-2">
+                  {pedidos.filter(p => !p.status || p.status === 'aberto' || p.status === 'preparando' || p.status === 'pendente').length === 0 ? (
+                     <div className="h-full flex items-center justify-center text-slate-400 font-bold text-sm uppercase">Nenhum pedido</div>
+                  ) : (
+                     pedidos.filter(p => !p.status || p.status === 'aberto' || p.status === 'preparando' || p.status === 'pendente').map(p => (
+                        <div key={p.id} className="bg-white p-3 rounded shadow-sm border border-slate-200 mb-2">
+                           <div className="flex justify-between items-start mb-2">
+                              <span className="font-black text-slate-800">#{p.id.substring(0,4).toUpperCase()}</span>
+                              <span className="text-xs font-bold text-red-500">{calcTempo(p.created_at)} min</span>
+                           </div>
+                           <p className="font-bold text-slate-600 text-xs">{p.cliente_nome || "Cliente Não Informado"}</p>
+                           <p className="text-xs text-slate-500 mt-1">{p.bairro || p.endereco_entrega}</p>
+                           <div className="mt-3 flex gap-2">
+                              <button onClick={() => handleRecusar(p.id)} className="py-1.5 px-3 bg-[#E0E0E0] text-slate-600 font-bold text-xs rounded hover:bg-slate-300"><X size={14}/></button>
+                              <button onClick={() => handleAceitar(p.id)} className="flex-1 py-1.5 bg-[#4CAF50] hover:bg-green-600 text-white font-bold text-xs rounded">ACEITAR / IMPRIMIR</button>
+                           </div>
+                        </div>
+                     ))
+                  )}
+               </div>
+            </div>
+
+            {/* COLUNA: SAIU */}
+            <div className="flex-1 min-w-[300px] flex flex-col bg-[#F3F3F3] rounded shadow-sm border border-slate-300">
+               <div className="bg-[#7F8C8D] text-white p-2 text-center font-black text-xs uppercase tracking-widest rounded-t">
+                  Saiu
+               </div>
+               <div className="flex-1 overflow-y-auto p-2">
+                  {pedidos.filter(p => p.status === 'saiu').length === 0 ? (
+                     <div className="h-full flex items-center justify-center text-slate-400 font-bold text-sm uppercase">Nenhum pedido</div>
+                  ) : (
+                     pedidos.filter(p => p.status === 'saiu').map(p => (
+                        <div key={p.id} className="bg-white p-3 rounded shadow-sm border border-slate-200 mb-2">
+                           <div className="flex justify-between items-start mb-2">
+                              <span className="font-black text-slate-800">#{p.id.substring(0,4).toUpperCase()}</span>
+                              <span className="text-xs font-bold text-slate-500">{calcTempo(p.created_at)} min</span>
+                           </div>
+                           <p className="font-bold text-slate-600 text-xs">{p.cliente_nome || "Cliente"}</p>
+                           <div className="mt-3">
+                              <button className="w-full py-1.5 bg-[#4CAF50] hover:bg-green-600 text-white font-bold text-xs rounded">MARCAR ENTREGUE</button>
+                           </div>
+                        </div>
+                     ))
+                  )}
+               </div>
+            </div>
+
+            {/* COLUNA: ENTREGUE */}
+            <div className="flex-1 min-w-[300px] flex flex-col bg-[#F3F3F3] rounded shadow-sm border border-slate-300">
+               <div className="bg-[#27AE60] text-white p-2 text-center font-black text-xs uppercase tracking-widest rounded-t">
+                  Entregue
+               </div>
+               <div className="flex-1 overflow-y-auto p-2">
+                  {pedidos.filter(p => p.status === 'entregue').length === 0 ? (
+                     <div className="h-full flex items-center justify-center text-slate-400 font-bold text-sm uppercase">Nenhum pedido</div>
+                  ) : (
+                     pedidos.filter(p => p.status === 'entregue').map(p => (
+                        <div key={p.id} className="bg-white p-3 rounded shadow-sm border border-slate-200 mb-2 opacity-60">
+                           <div className="flex justify-between items-start mb-2">
+                              <span className="font-black text-slate-800">#{p.id.substring(0,4).toUpperCase()}</span>
+                              <span className="text-xs font-bold text-green-600">Concluído</span>
+                           </div>
+                           <p className="font-bold text-slate-600 text-xs">{p.cliente_nome || "Cliente"}</p>
+                        </div>
+                     ))
+                  )}
+               </div>
+            </div>
+
+         </div>
+
       </div>
-
     </div>
   );
 }

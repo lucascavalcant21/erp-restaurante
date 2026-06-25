@@ -32,6 +32,23 @@ export async function salvarProduto(produto) {
   }
 }
 
+// ─── FUNCIONÁRIOS (Garçons) ────────────────────────────────────────────────────
+export async function fetchGarcons(unidadeId) {
+  if (!isSupabaseReady()) return { data: [], error: "Offline" };
+  const { data, error } = await supabase.from("funcionarios").select("*").eq("unidade_id", unidadeId);
+  return { data: data || [], error: error?.message };
+}
+
+export async function criarGarcom(unidadeId, nome) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase.from("funcionarios").insert([{ 
+    unidade_id: unidadeId, 
+    nome: nome,
+    cargo: 'Garçom'
+  }]);
+  return { error: error?.message };
+}
+
 // ─── MESAS (Mapa do Salão) ───────────────────────────────────────────────────
 
 export async function fetchMesas(unidadeId) {
@@ -82,7 +99,7 @@ export async function fetchPedidoAberto(mesaId) {
   return { data: data || null, error: error?.message };
 }
 
-export async function abrirMesaEPedido(unidadeId, mesaId) {
+export async function abrirMesaEPedido(unidadeId, mesaId, garcomId = null, identificacao = null) {
   if (!isSupabaseReady()) return { error: "Offline" };
   
   // 1. Muda status da mesa
@@ -93,7 +110,9 @@ export async function abrirMesaEPedido(unidadeId, mesaId) {
      unidade_id: unidadeId,
      mesa_id: mesaId,
      status: 'aberto',
-     valor_total: 0
+     valor_total: 0,
+     garcom_id: garcomId,
+     identificacao: identificacao
   }]).select().single();
   
   return { data, error: error?.message };
@@ -378,8 +397,9 @@ export async function fetchPedidosOnlinePendentes(unidadeId) {
       )
     `)
     .eq("unidade_id", unidadeId)
-    .eq("status", "novo_online")
-    .order("created_at", { ascending: true });
+    .in("tipo_pedido", ["delivery", "ifood", "qrcode"])
+    .in("status", ["novo_online", "aberto", "preparando", "pendente", "saiu", "entregue"])
+    .order("created_at", { ascending: false });
 
   return { data: data || [], error: error?.message };
 }

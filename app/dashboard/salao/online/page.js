@@ -13,6 +13,7 @@ export default function GestorOnlinePage() {
   
   const [pedidos, setPedidos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [aba, setAba] = useState('DELIVERY');
 
   const carregar = async () => {
     // Não bota loading = true se já tiver pedido pra não piscar a tela
@@ -77,8 +78,9 @@ export default function GestorOnlinePage() {
          {/* TOPBAR */}
          <div className="bg-[#2D2D2D] h-14 flex items-center px-4 justify-between shrink-0 shadow-md z-10 text-white">
             <div className="flex items-center h-full">
-               <button className="h-full px-6 font-bold text-xs bg-black/20 border-b-4 border-red-500">DELIVERY</button>
-               <button className="h-full px-6 font-bold text-xs text-slate-400 hover:text-white transition-colors">IFOOD</button>
+               <button onClick={() => setAba('DELIVERY')} className={`h-full px-6 font-bold text-xs transition-colors ${aba === 'DELIVERY' ? 'bg-black/20 border-b-4 border-red-500 text-white' : 'text-slate-400 hover:text-white'}`}>DELIVERY</button>
+               <button onClick={() => setAba('IFOOD')} className={`h-full px-6 font-bold text-xs transition-colors ${aba === 'IFOOD' ? 'bg-black/20 border-b-4 border-red-500 text-white' : 'text-slate-400 hover:text-white'}`}>IFOOD</button>
+               <button onClick={() => setAba('CARDAPIO')} className={`h-full px-6 font-bold text-xs transition-colors flex items-center gap-2 ${aba === 'CARDAPIO' ? 'bg-black/20 border-b-4 border-red-500 text-white' : 'text-slate-400 hover:text-white'}`}>CARDÁPIO DIGITAL</button>
             </div>
             
             <div className="flex items-center gap-6">
@@ -106,16 +108,26 @@ export default function GestorOnlinePage() {
          {/* KANBAN BOARD */}
          <div className="flex-1 flex p-2 gap-2 overflow-x-auto">
             
-            {/* COLUNA: COZINHA */}
+            {(() => {
+               const pedidosFiltrados = pedidos.filter(p => {
+                  if (aba === 'IFOOD') return p.origem === 'ifood';
+                  if (aba === 'CARDAPIO') return p.origem === 'cardapio';
+                  // DEFAULT: DELIVERY (whatsapp, telefone, manual, etc)
+                  return !p.origem || p.origem === 'whatsapp' || p.origem === 'telefone' || p.origem === 'delivery' || p.origem === 'manual';
+               });
+
+               return (
+                  <>
+                     {/* COLUNA: COZINHA */}
             <div className="flex-1 min-w-[300px] flex flex-col bg-[#F3F3F3] rounded shadow-sm border border-slate-300">
                <div className="bg-[#D12B2B] text-white p-2 text-center font-black text-xs uppercase tracking-widest rounded-t">
                   Cozinha
                </div>
                <div className="flex-1 overflow-y-auto p-2">
-                  {pedidos.filter(p => !p.status || p.status === 'aberto' || p.status === 'preparando' || p.status === 'pendente').length === 0 ? (
+                  {pedidosFiltrados.filter(p => !p.status || p.status === 'aberto' || p.status === 'preparando' || p.status === 'pendente').length === 0 ? (
                      <div className="h-full flex items-center justify-center text-slate-400 font-bold text-sm uppercase">Nenhum pedido</div>
                   ) : (
-                     pedidos.filter(p => !p.status || p.status === 'aberto' || p.status === 'preparando' || p.status === 'pendente').map(p => (
+                     pedidosFiltrados.filter(p => !p.status || p.status === 'aberto' || p.status === 'preparando' || p.status === 'pendente').map(p => (
                         <div key={p.id} className="bg-white p-3 rounded shadow-sm border border-slate-200 mb-2">
                            <div className="flex justify-between items-start mb-2">
                               <span className="font-black text-slate-800">#{p.id.substring(0,4).toUpperCase()}</span>
@@ -139,10 +151,10 @@ export default function GestorOnlinePage() {
                   Saiu
                </div>
                <div className="flex-1 overflow-y-auto p-2">
-                  {pedidos.filter(p => p.status === 'saiu').length === 0 ? (
+                  {pedidosFiltrados.filter(p => p.status === 'saiu').length === 0 ? (
                      <div className="h-full flex items-center justify-center text-slate-400 font-bold text-sm uppercase">Nenhum pedido</div>
                   ) : (
-                     pedidos.filter(p => p.status === 'saiu').map(p => (
+                     pedidosFiltrados.filter(p => p.status === 'saiu').map(p => (
                         <div key={p.id} className="bg-white p-3 rounded shadow-sm border border-slate-200 mb-2">
                            <div className="flex justify-between items-start mb-2">
                               <span className="font-black text-slate-800">#{p.id.substring(0,4).toUpperCase()}</span>
@@ -164,10 +176,10 @@ export default function GestorOnlinePage() {
                   Entregue
                </div>
                <div className="flex-1 overflow-y-auto p-2">
-                  {pedidos.filter(p => p.status === 'entregue').length === 0 ? (
+                  {pedidosFiltrados.filter(p => p.status === 'entregue').length === 0 ? (
                      <div className="h-full flex items-center justify-center text-slate-400 font-bold text-sm uppercase">Nenhum pedido</div>
                   ) : (
-                     pedidos.filter(p => p.status === 'entregue').map(p => (
+                     pedidosFiltrados.filter(p => p.status === 'entregue').map(p => (
                         <div key={p.id} className="bg-white p-3 rounded shadow-sm border border-slate-200 mb-2 opacity-60">
                            <div className="flex justify-between items-start mb-2">
                               <span className="font-black text-slate-800">#{p.id.substring(0,4).toUpperCase()}</span>
@@ -179,6 +191,10 @@ export default function GestorOnlinePage() {
                   )}
                </div>
             </div>
+
+                  </>
+               );
+            })()}
 
          </div>
 

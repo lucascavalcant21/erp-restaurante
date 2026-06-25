@@ -6,11 +6,12 @@ import { lerSessao, encerrarSessao, podeAcessar } from "../lib/auth";
 import { useERP } from "../context/ERPContext";
 import {
   Users, Bell, ChefHat, GlassWater, BarChart, 
-  Briefcase, Fingerprint, Store, Settings, LogOut, ChevronDown, Check
+  Briefcase, Fingerprint, Store, Settings, LogOut, ChevronDown, Check, Bike
 } from "lucide-react";
 
 const MODULES = [
   { id: "salao",        label: "Salão e Caixa",      icon: Users,        href: "/dashboard/salao/mesas" },
+  { id: "delivery",     label: "Delivery",           icon: Bike,         href: "/dashboard/salao/online" },
   { id: "kds",          label: "KDS",                icon: Bell,         href: "/dashboard/kds" },
   { id: "cozinha",      label: "Op. Cozinha",        icon: ChefHat,      href: "/dashboard/cozinha" },
   { id: "op_salao",     label: "Op. Salão",          icon: Store,        href: "/dashboard/salao" },

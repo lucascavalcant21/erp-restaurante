@@ -898,9 +898,13 @@ export default function SaloesMesasPage() {
                      e.preventDefault();
                      if(!novaMesaNum.trim()) return;
                      setProcessando(true);
-                     await criarMesa(unidadeAtiva, novaMesaNum.trim());
-                     setNovaMesaNum("");
-                     carregarMesas();
+                     const res = await criarMesa(unidadeAtiva, novaMesaNum.trim());
+                     if (res?.error) {
+                        alert("Erro ao criar mesa: " + res.error);
+                     } else {
+                        setNovaMesaNum("");
+                        await carregarMesas();
+                     }
                      setProcessando(false);
                   }} className="flex gap-2 mb-6">
                      <input type="text" value={novaMesaNum} onChange={e => setNovaMesaNum(e.target.value)} placeholder="Ex: 12, VIP, Varanda 1" required className="flex-1 px-4 py-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-blue-500" />

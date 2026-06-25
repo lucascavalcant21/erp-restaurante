@@ -47,7 +47,11 @@ export async function fetchMesas(unidadeId) {
 
 export async function criarMesa(unidadeId, numero) {
   if (!isSupabaseReady()) return { error: "Offline" };
-  const { error } = await supabase.from("mesas").insert([{ unidade_id: unidadeId, numero_mesa: numero }]);
+  const { error } = await supabase.from("mesas").insert([{ 
+    unidade_id: unidadeId, 
+    numero_mesa: numero,
+    status: 'livre'
+  }]);
   return { error: error?.message };
 }
 

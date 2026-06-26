@@ -33,7 +33,6 @@ export async function gerarDadosFicticios() {
     const { data: novaUnidade, error: errUni } = await supabase.from("unidades")
       .insert([{
         nome: TEST_UNIT_NAME,
-        empresa_id: null, // Pode ser null no Supabase atual
         cor: "#8B5CF6", // Roxo para destacar
         delivery_aberto: true,
         taxa_entrega_padrao: 5.00,

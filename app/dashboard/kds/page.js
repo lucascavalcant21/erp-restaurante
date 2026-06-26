@@ -143,63 +143,74 @@ function KDSRunner() {
                         </div>
 
                         {/* Lista de Itens do Pedido */}
-                        <div className="p-2 space-y-2">
-                           {pedido.itens.map(it => {
-                              const tempoBase = it.produtos.tempo_preparo_base || 15;
-                              const minItem = Math.floor((new Date() - new Date(it.created_at)) / 60000);
-                              const atrasado = minItem >= tempoBase;
-                              const critico = minItem >= tempoBase + 10;
-                              
+                        {/* Lista de Itens do Pedido Agrupada por Categoria */}
+                        <div className="p-2">
+                           {[...new Set(pedido.itens.map(it => it.produtos.categoria || 'Outros'))].map(cat => {
+                              const itensCat = pedido.itens.filter(i => (i.produtos.categoria || 'Outros') === cat);
                               return (
-                                 <button 
-                                    key={it.id} 
-                                    onClick={() => avancarStatus(it)}
-                                    className={`w-full text-left rounded-xl p-4 transition-all duration-300 shadow-md active:scale-95 border-2 relative overflow-hidden
-                                       ${it.status_kds === 'cancelado' ? 'bg-[#EA1D2C] border-red-500 text-white animate-pulse' : 
-                                         it.status_kds === 'pendente' ? 'bg-slate-700 border-slate-600 text-slate-200 hover:border-slate-500' : 
-                                         it.status_kds === 'preparando' ? (
-                                            critico ? 'bg-red-500 border-red-400 text-white animate-pulse-fast' : 
-                                            atrasado ? 'bg-amber-500 border-amber-400 text-amber-950 animate-pulse' : 
-                                            'bg-amber-300 border-amber-200 text-amber-950'
-                                         ) : 
-                                         'bg-emerald-500 border-emerald-400 text-emerald-950'}
-                                    `}
-                                 >
-                                    <div className="flex justify-between items-start gap-2 relative z-10">
-                                       <span className="text-lg font-black leading-tight">
-                                          {it.status_kds === 'cancelado' ? '❌ CANCELADO' : `${it.quantidade}x ${it.produtos.nome_produto}`}
-                                       </span>
-                                       
-                                       <div className="flex flex-col items-end gap-1 shrink-0">
-                                          <div className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
-                                             it.status_kds === 'pendente' ? 'bg-black/20' : 
-                                             it.status_kds === 'cancelado' ? 'bg-black/20' :
-                                             critico || atrasado ? 'bg-black/20' : 'bg-black/10'
-                                          }`}>
-                                             {minItem}M / {tempoBase}M
-                                          </div>
+                                 <div key={cat} className="mb-4 last:mb-0">
+                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 mb-2 border-b border-slate-700/50 pb-1">{cat}</h4>
+                                    <div className="space-y-2">
+                                       {itensCat.map(it => {
+                                          const tempoBase = it.produtos.tempo_preparo_base || 15;
+                                          const minItem = Math.floor((new Date() - new Date(it.created_at)) / 60000);
+                                          const atrasado = minItem >= tempoBase;
+                                          const critico = minItem >= tempoBase + 10;
                                           
-                                          <div className={`w-6 h-6 rounded-full flex items-center justify-center ${it.status_kds === 'pendente' || it.status_kds === 'cancelado' ? 'bg-slate-900/40 text-white' : 'bg-black/20'}`}>
-                                             {it.status_kds === 'pendente' ? <Play size={12} className="ml-0.5"/> : <CheckCircle2 size={14}/>}
-                                          </div>
-                                       </div>
+                                          return (
+                                             <button 
+                                                key={it.id} 
+                                                onClick={() => avancarStatus(it)}
+                                                className={`w-full text-left rounded-xl p-4 transition-all duration-300 shadow-md active:scale-95 border-2 relative overflow-hidden
+                                                   ${it.status_kds === 'cancelado' ? 'bg-[#EA1D2C] border-red-500 text-white animate-pulse' : 
+                                                     it.status_kds === 'pendente' ? 'bg-slate-700 border-slate-600 text-slate-200 hover:border-slate-500' : 
+                                                     it.status_kds === 'preparando' ? (
+                                                        critico ? 'bg-red-500 border-red-400 text-white animate-pulse-fast' : 
+                                                        atrasado ? 'bg-amber-500 border-amber-400 text-amber-950 animate-pulse' : 
+                                                        'bg-amber-300 border-amber-200 text-amber-950'
+                                                     ) : 
+                                                     'bg-emerald-500 border-emerald-400 text-emerald-950'}
+                                                `}
+                                             >
+                                                <div className="flex justify-between items-start gap-2 relative z-10">
+                                                   <span className="text-lg font-black leading-tight">
+                                                      {it.status_kds === 'cancelado' ? '❌ CANCELADO' : `${it.quantidade}x ${it.produtos.nome_produto}`}
+                                                   </span>
+                                                   
+                                                   <div className="flex flex-col items-end gap-1 shrink-0">
+                                                      <div className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                                                         it.status_kds === 'pendente' ? 'bg-black/20' : 
+                                                         it.status_kds === 'cancelado' ? 'bg-black/20' :
+                                                         critico || atrasado ? 'bg-black/20' : 'bg-black/10'
+                                                      }`}>
+                                                         {minItem}M / {tempoBase}M
+                                                      </div>
+                                                      
+                                                      <div className={`w-6 h-6 rounded-full flex items-center justify-center ${it.status_kds === 'pendente' || it.status_kds === 'cancelado' ? 'bg-slate-900/40 text-white' : 'bg-black/20'}`}>
+                                                         {it.status_kds === 'pendente' ? <Play size={12} className="ml-0.5"/> : <CheckCircle2 size={14}/>}
+                                                      </div>
+                                                   </div>
+                                                </div>
+                                                
+                                                {it.status_kds !== 'cancelado' && it.observacao && (
+                                                   <div className="mt-3 relative z-10">
+                                                      <p className="font-black text-sm text-[#EA1D2C] bg-red-100 p-2.5 rounded-lg border border-red-200 uppercase tracking-wide text-center">
+                                                         ⚠️ {it.observacao}
+                                                      </p>
+                                                   </div>
+                                                )}
+                                                
+                                                {/* Barra de progresso visual de tempo */}
+                                                {it.status_kds === 'preparando' && (
+                                                   <div className="absolute bottom-0 left-0 h-1 bg-black/20 w-full">
+                                                      <div className={`h-full ${critico ? 'bg-red-900' : atrasado ? 'bg-red-500' : 'bg-amber-500'}`} style={{ width: `${Math.min((minItem / tempoBase) * 100, 100)}%`}}></div>
+                                                   </div>
+                                                )}
+                                             </button>
+                                          );
+                                       })}
                                     </div>
-                                    
-                                    {it.status_kds !== 'cancelado' && it.observacao && (
-                                       <div className="mt-3 relative z-10">
-                                          <p className="font-black text-sm text-[#EA1D2C] bg-red-100 p-2.5 rounded-lg border border-red-200 uppercase tracking-wide text-center">
-                                             ⚠️ {it.observacao}
-                                          </p>
-                                       </div>
-                                    )}
-                                    
-                                    {/* Barra de progresso visual de tempo */}
-                                    {it.status_kds === 'preparando' && (
-                                       <div className="absolute bottom-0 left-0 h-1 bg-black/20 w-full">
-                                          <div className={`h-full ${critico ? 'bg-red-900' : atrasado ? 'bg-red-500' : 'bg-amber-500'}`} style={{ width: `${Math.min((minItem / tempoBase) * 100, 100)}%`}}></div>
-                                       </div>
-                                    )}
-                                 </button>
+                                 </div>
                               );
                            })}
                         </div>

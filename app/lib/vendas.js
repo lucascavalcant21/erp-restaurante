@@ -394,7 +394,7 @@ export async function fetchItensKDS(unidadeId, dept) {
     let query = supabase.from("pedidos_itens")
     .select(`
       id, quantidade, observacao, status_kds, created_at,
-      produtos!inner ( nome_produto, departamento, tempo_preparo_base ),
+      produtos!inner ( nome_produto, departamento, tempo_preparo_base, categoria ),
       pedidos!inner ( id, status, tipo_pedido, cliente_nome, mesas (numero_mesa), created_at )
     `)
     .eq("pedidos.unidade_id", unidadeId)

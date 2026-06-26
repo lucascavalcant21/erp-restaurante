@@ -49,6 +49,7 @@ export default function SaloesMesasPage() {
 
   // --- BALCÃO STATE ---
   const [carrinho, setCarrinho] = useState([]);
+  const [modoViagem, setModoViagem] = useState(false);
   const [modalMod, setModalMod] = useState(false);
   const [prodModAtual, setProdModAtual] = useState(null);
   const [modsSelecionados, setModsSelecionados] = useState([]);
@@ -779,6 +780,9 @@ export default function SaloesMesasPage() {
                         <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                         <input type="text" ref={buscaRef} value={buscaProd} onChange={e => setBuscaProd(e.target.value)} placeholder="Pesquise produtos pelo código, descrição ou detalhes" className="w-full pl-12 pr-4 py-2 bg-slate-50 border border-slate-200 rounded font-normal outline-none text-slate-700" />
                      </div>
+                     <button onClick={() => setModoViagem(!modoViagem)} className={`px-4 py-2 rounded font-black text-[11px] uppercase tracking-widest transition-colors flex items-center gap-2 ${modoViagem ? 'bg-purple-600 text-white shadow-md' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
+                        🏍️ {modoViagem ? 'Viagem: ON' : 'Viagem: OFF'}
+                     </button>
                   </div>
                   {/* Categorias (Topo Horizontal) */}
                   <div className="px-3 py-2 bg-white flex gap-2 overflow-x-auto custom-scrollbar shrink-0 shadow-sm z-10 border-b border-slate-200">
@@ -797,7 +801,7 @@ export default function SaloesMesasPage() {
                                // Ao invés de lançar no carrinho, vamos lançar direto na mesa!
                                // Para ser rápido igual o saipos, usamos quantidade 1 sem observação (se precisar de obs, clicaria longo ou teria botão)
                                // Para simplificar, lança 1 direto.
-                               lancarItemComanda(pedidoAtivo.id, prod.id, prod.preco_venda || prod.preco || 0, 1, "");
+                               lancarItemComanda(pedidoAtivo.id, prod.id, prod.preco_venda || prod.preco || 0, 1, modoViagem ? "#PARA LEVAR" : "");
                                // O Supabase Realtime cuidaria disso, mas vamos recarregar a mesa
                                fetchPedidoAberto(mesaAtiva.id).then(({data}) => setPedidoAtivo(data));
                            }} className="bg-white rounded p-0 border border-slate-200 shadow hover:shadow-md transition-all text-center flex flex-col group h-full overflow-hidden">

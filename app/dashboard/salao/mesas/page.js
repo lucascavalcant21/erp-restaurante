@@ -114,6 +114,28 @@ export default function SaloesMesasPage() {
   const abrirCupomTermico = (dados) => {
      const win = window.open('', '_blank', 'width=320,height=600');
      if (!win) return alert("Habilite os popups para imprimir o cupom.");
+     
+     const pagamentosHtml = dados.recebidos && dados.recebidos.length > 0 ? `
+        <div class="sep"></div>
+        <div class="center bold" style="margin-top:4px;">PAGAMENTOS</div>
+        ${dados.recebidos.map(p => `<div class="row"><span>${p.forma.toUpperCase()}</span><span>R$${p.valor.toFixed(2)}</span></div>`).join('')}
+        ${dados.troco > 0 ? `<div class="row"><span>TROCO</span><span>R$${dados.troco.toFixed(2)}</span></div>` : ''}
+     ` : '';
+
+     const itensHtml = dados.itens.map(it => `
+        <div class="row">
+           <span class="name">${it.nome}</span>
+           <span class="qtd">${it.qtd}</span>
+           <span class="val">R$${it.tot.toFixed(2)}</span>
+        </div>
+     `).join('');
+
+     const taxaHtml = dados.taxa > 0 ? `<div class="row"><span>TAXA SERVIÇO</span><span>R$${dados.taxa.toFixed(2)}</span></div>` : '';
+     const descontoHtml = dados.desconto > 0 ? `<div class="row"><span>DESCONTO</span><span>-R$${dados.desconto.toFixed(2)}</span></div>` : '';
+
+     const mesaOuBalcao = dados.tipo === 'salao' ? `MESA ${dados.mesa}` : 'VENDA BALCÃO';
+     const isPreConta = dados.isPreConta ? 'CONFERÊNCIA DE CONTA' : 'RECIBO NÃO FISCAL';
+
      win.document.write(`
         <!DOCTYPE html>
         <html>
@@ -140,8 +162,8 @@ export default function SaloesMesasPage() {
         </head>
         <body>
            <div class="center bold big">HEFISTO ERP</div>
-           <div class="center">${dados.isPreConta ? 'CONFERÊNCIA DE CONTA' : 'RECIBO NÃO FISCAL'}</div>
-           <div class="center">${dados.tipo === 'salao' ? \`MESA \${dados.mesa}\` : 'VENDA BALCÃO'}</div>
+           <div class="center">${isPreConta}</div>
+           <div class="center">${mesaOuBalcao}</div>
            <div class="center" style="font-size:10px">${dados.data.toLocaleString()}</div>
            <div class="sep"></div>
            <div class="row bold">
@@ -150,25 +172,14 @@ export default function SaloesMesasPage() {
               <span class="val">TOTAL</span>
            </div>
            <div class="sep"></div>
-           ${dados.itens.map(it => \`
-              <div class="row">
-                 <span class="name">\${it.nome}</span>
-                 <span class="qtd">\${it.qtd}</span>
-                 <span class="val">R$\${it.tot.toFixed(2)}</span>
-              </div>
-           \`).join('')}
+           ${itensHtml}
            <div class="sep"></div>
-           <div class="row"><span>SUBTOTAL</span><span>R$\${dados.subtotal.toFixed(2)}</span></div>
-           \${dados.taxa > 0 ? \`<div class="row"><span>TAXA SERVIÇO</span><span>R$\${dados.taxa.toFixed(2)}</span></div>\` : ''}
-           \${dados.desconto > 0 ? \`<div class="row"><span>DESCONTO</span><span>-R$\${dados.desconto.toFixed(2)}</span></div>\` : ''}
+           <div class="row"><span>SUBTOTAL</span><span>R$${dados.subtotal.toFixed(2)}</span></div>
+           ${taxaHtml}
+           ${descontoHtml}
            <div class="sep"></div>
-           <div class="row total-row"><span>TOTAL GERAL</span><span>R$\${dados.total.toFixed(2)}</span></div>
-           \${dados.recebidos && dados.recebidos.length > 0 ? \`
-              <div class="sep"></div>
-              <div class="center bold" style="margin-top:4px;">PAGAMENTOS</div>
-              \${dados.recebidos.map(p => \`<div class="row"><span>\${p.forma.toUpperCase()}</span><span>R$\${p.valor.toFixed(2)}</span></div>\`).join('')}
-              \${dados.troco > 0 ? \`<div class="row"><span>TROCO</span><span>R$\${dados.troco.toFixed(2)}</span></div>\` : ''}
-           \` : ''}
+           <div class="row total-row"><span>TOTAL GERAL</span><span>R$${dados.total.toFixed(2)}</span></div>
+           ${pagamentosHtml}
            <div class="sep"></div>
            <div class="center" style="margin-top:10px; font-size:10px;">
               Obrigado pela preferência!<br>

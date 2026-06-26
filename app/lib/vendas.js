@@ -512,6 +512,13 @@ export async function fecharPedidoOnline(pedidoId, unidadeId) {
   return { success: true };
 }
 
+// Atualiza o status geral do pedido (ex: para 'pronto' chamar na TV)
+export async function atualizarStatusPedido(pedidoId, novoStatus) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase.from("pedidos").update({ status: novoStatus, updated_at: new Date().toISOString() }).eq("id", pedidoId);
+  return { error: error?.message, success: !error };
+}
+
 
 export async function registrarVenda() { return { success: true }; }
 export async function fetchVendas() { return { data: [], error: null }; }

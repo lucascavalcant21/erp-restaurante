@@ -81,6 +81,7 @@ const MEGA_MENU = {
     { label: "Canais de venda e Integrações", href: "/dashboard/canais/ifood" },
     { label: "Comandas", href: "#" },
     { label: "Configurações", href: "/dashboard/configuracoes" },
+    { label: "Painel de Senhas (TV)", href: "/chamada/dinamico" },
     { label: "Dados da loja", href: "#" },
     { label: "Dados fiscais", href: "#" },
     { label: "Entregadores", href: "#" },
@@ -129,6 +130,11 @@ function TopHeader({ onSair }) {
   const [searchMenu, setSearchMenu] = useState("");
 
   const handleMenuClick = (href) => {
+    if (href === "/chamada/dinamico") {
+       window.open(`/chamada/${unidadeAtiva}`, "_blank");
+       setMegaMenuOpen(false);
+       return;
+    }
     if (href !== "#") {
       router.push(href);
       setMegaMenuOpen(false);

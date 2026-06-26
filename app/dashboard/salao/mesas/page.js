@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchCaixaAberto, abrirCaixa, registrarMovimentacao, fetchResumoCaixa, fecharCaixa } from "../../../lib/caixas";
-import { fetchProdutos, lancarVendaBalcao, fetchMesas, criarMesa, fetchPedidoAberto, abrirMesaEPedido, lancarItemComanda, fecharContaDaMesa, fetchGarcons, criarGarcom, fetchProximoNumeroComanda, fetchTodosPedidosAbertos, transferirComanda, validarCupom, fetchObservacoesPadrao, fetchPedidosOnlinePendentes, aceitarPedidoOnline, recusarPedidoOnline } from "../../../lib/vendas";
+import { fetchProdutos, lancarVendaBalcao, fetchMesas, criarMesa, fetchPedidoAberto, abrirMesaEPedido, lancarItemComanda, fecharContaDaMesa, fetchGarcons, criarGarcom, fetchProximoNumeroComanda, fetchTodosPedidosAbertos, transferirComanda, validarCupom, fetchObservacoesPadrao, fetchPedidosOnlinePendentes, aceitarPedidoOnline, recusarPedidoOnline, atualizarStatusPedido } from "../../../lib/vendas";
 import { Lock, Unlock, LogOut, DollarSign, ArrowDownCircle, ArrowUpCircle, ShoppingBag, ShoppingCart, Maximize, Plus, Minus, Trash2, Printer, Users, Barcode, CreditCard, Receipt, SplitSquareHorizontal, Utensils, Send, X, Settings, Search, CheckCircle, ArrowRightLeft, Share2, Tag, Bell, Clock, MapPin } from "lucide-react";
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from "../../../lib/supabase";
@@ -217,6 +217,18 @@ export default function SaloesMesasPage() {
   const handleRecusarPedido = async (pedidoId) => {
     if(!confirm('Recusar este pedido?')) return;
     await recusarPedidoOnline(pedidoId);
+    setPedidosOnlineDetalhes(prev => prev.filter(p => p.id !== pedidoId));
+  };
+
+  const handleChamarTV = async (pedidoId) => {
+    await atualizarStatusPedido(pedidoId, 'pronto');
+    setPedidosOnlineDetalhes(prev => prev.map(p =>
+      p.id === pedidoId ? { ...p, status: 'pronto' } : p
+    ));
+  };
+
+  const handleEntregue = async (pedidoId) => {
+    await atualizarStatusPedido(pedidoId, 'entregue');
     setPedidosOnlineDetalhes(prev => prev.filter(p => p.id !== pedidoId));
   };
 
@@ -1792,6 +1804,18 @@ export default function SaloesMesasPage() {
                               </button>
                               <button onClick={() => handleAceitarPedido(pedido.id)} className="flex-1 py-2 text-xs font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-lg transition-colors shadow-sm flex items-center justify-center gap-1">
                                 <CheckCircle size={14}/> Aceitar Pedido
+                              </button>
+                           </div>
+                        )}
+
+                        {/* Ações para Chamada de TV */}
+                        {(pedido.status === 'preparando_delivery' || pedido.status === 'preparando' || pedido.status === 'aberto' || pedido.status === 'pronto') && (
+                           <div className="p-3 flex gap-2 border-t border-slate-200 bg-slate-50">
+                              <button onClick={() => handleChamarTV(pedido.id)} disabled={pedido.status === 'pronto'} className="flex-1 py-2 text-xs font-bold text-blue-700 bg-blue-100 hover:bg-blue-200 disabled:opacity-50 rounded-lg transition-colors flex items-center justify-center gap-1">
+                                📣 {pedido.status === 'pronto' ? 'Chamado' : 'Chamar na TV'}
+                              </button>
+                              <button onClick={() => handleEntregue(pedido.id)} className="flex-1 py-2 text-xs font-bold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 rounded-lg transition-colors flex items-center justify-center gap-1">
+                                <CheckCircle size={14}/> Entregue
                               </button>
                            </div>
                         )}

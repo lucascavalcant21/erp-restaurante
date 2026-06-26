@@ -402,7 +402,7 @@ export async function fetchItensKDS(unidadeId, dept) {
     .order("created_at", { ascending: true }); // O mais velho primeiro
 
   if(dept && dept !== 'todos') {
-     query = query.eq("produtos.departamento", dept);
+     query = query.ilike("produtos.departamento", `%${dept}%`);
   }
 
   const { data, error } = await query;

@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../context/ERPContext";
 import { fetchItensKDS, atualizarStatusKDS } from "../../lib/vendas";
-import { MonitorPlay, ArrowLeft, Clock, CheckCircle2, Play, Maximize } from "lucide-react";
+import { MonitorPlay, ArrowLeft, Clock, CheckCircle2, Play, Maximize, GlassWater, ChefHat } from "lucide-react";
 
 function KDSRunner() {
   const router = useRouter();
@@ -73,7 +73,7 @@ function KDSRunner() {
            </button>
            <div>
               <h1 className="text-2xl font-black tracking-tighter text-white flex items-center gap-2">
-                 <MonitorPlay size={24} className="text-emerald-500"/> KDS - {deptUrl.toUpperCase()}
+                 {deptUrl === 'bar' ? <GlassWater size={24} className="text-blue-500"/> : <ChefHat size={24} className="text-emerald-500"/>} KDS - {deptUrl.toUpperCase()}
               </h1>
               <p className="text-slate-700 font-bold uppercase tracking-widest text-[10px] mt-1">Kitchen Display System • Atualização em Tempo Real</p>
            </div>

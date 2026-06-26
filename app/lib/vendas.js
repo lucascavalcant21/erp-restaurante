@@ -523,6 +523,15 @@ export async function recusarPedidoOnline(pedidoId) {
   return { success: true };
 }
 
+// Quando o pedido sai para entrega
+export async function despacharPedidoOnline(pedidoId) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  
+  await supabase.from("pedidos").update({ status: 'saiu', updated_at: new Date().toISOString() }).eq("id", pedidoId);
+  
+  return { success: true };
+}
+
 // Quando o pedido delivery é entregue e pago
 export async function fecharPedidoOnline(pedidoId, unidadeId) {
   if (!isSupabaseReady()) return { error: "Offline" };

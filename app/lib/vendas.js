@@ -59,14 +59,15 @@ export async function fetchMesas(unidadeId) {
     .eq("unidade_id", unidadeId)
     .order("numero");
     
-  return { data: data || [], error: error?.message };
+  const mappedData = (data || []).map(m => ({ ...m, numero_mesa: m.numero }));
+  return { data: mappedData, error: error?.message };
 }
 
-export async function criarMesa(unidadeId, numero) {
+export async function criarMesa(unidadeId, numeroMesa) {
   if (!isSupabaseReady()) return { error: "Offline" };
   const { error } = await supabase.from("mesas").insert([{ 
     unidade_id: unidadeId, 
-    numero_mesa: numero,
+    numero: String(numeroMesa),
     status: 'livre'
   }]);
   return { error: error?.message };

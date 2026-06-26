@@ -16,6 +16,8 @@ export async function fetchMesasEComandas(unidadeId) {
     return { data: [], error: errM.message };
   }
   
+  const mesasMapeadas = (mesas || []).map(m => ({ ...m, numero_mesa: m.numero }));
+  
   // Buscar comandas ativas (aberta, fechando)
   const { data: comandas, error: errC } = await escoparPorUnidade(
     supabase.from("comandas").select("*").neq("status", "paga").order("created_at", { ascending: true }),
@@ -32,7 +34,7 @@ export async function fetchMesasEComandas(unidadeId) {
   }, {});
 
   // Ordenar mesas numericamente
-  const ordenadas = (mesas || []).sort((a, b) => {
+  const ordenadas = (mesasMapeadas || []).sort((a, b) => {
     const numA = parseInt(a.numero.replace(/\D/g, ""), 10);
     const numB = parseInt(b.numero.replace(/\D/g, ""), 10);
     if (!isNaN(numA) && !isNaN(numB)) return numA - numB;

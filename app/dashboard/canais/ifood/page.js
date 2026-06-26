@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useERP } from "../../../../context/ERPContext";
-import { fetchUnidades, atualizarUnidade } from "../../../../lib/unidades";
-import { enviarPedidoOnline } from "../../../../lib/vendas";
-import { supabase } from "../../../../lib/supabase";
+import { useERP } from "../../../context/ERPContext";
+import { fetchUnidades, atualizarUnidade } from "../../../lib/unidades";
+import { enviarPedidoOnline } from "../../../lib/vendas";
+import { supabase } from "../../../lib/supabase";
 import { Store, Link2, Link2Off, RefreshCw, ShoppingBag, CheckCircle, AlertCircle, PlayCircle } from "lucide-react";
 
 export default function IFoodConfigPage() {

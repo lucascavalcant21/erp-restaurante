@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
-import { supabase } from "../../../lib/supabase";
+import { supabase } from "../../lib/supabase";
 import { Maximize, MonitorPlay, Clock } from "lucide-react";
 
 export default function PainelChamadaTV() {

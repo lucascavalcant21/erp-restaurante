@@ -54,7 +54,7 @@ export async function POST(req) {
        cpf_cliente: cpf_cliente || null
     };
 
-    const { error: insertError, data: notaSalva } = await supabase
+    const { error: insertError } = await supabase
        .from("notas_fiscais")
        .insert([novaNota])
        .select()

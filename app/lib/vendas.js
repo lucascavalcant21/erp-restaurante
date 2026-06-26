@@ -258,7 +258,11 @@ export async function fecharContaDaMesa(mesaId, pedidoId, unidadeId, caixaId, pa
      forma_pagamento: pagamentoData?.principal || 'multiplo'
   }).eq("id", pedidoId);
   
-  await supabase.from("mesas").update({ status: 'livre' }).eq("id", mesaId);
+  // Verifica se ainda existem outras comandas abertas nesta mesa
+  const { count } = await supabase.from("pedidos").select("id", { count: "exact", head: true }).eq("mesa_id", mesaId).eq("status", "aberto");
+  if (count === 0) {
+     await supabase.from("mesas").update({ status: 'livre' }).eq("id", mesaId);
+  }
 
   // Insere entradas no DRE Financeiro baseadas no split
   if(pagamentoData && pagamentoData.split && unidadeId) {
@@ -279,6 +283,25 @@ export async function fecharContaDaMesa(mesaId, pedidoId, unidadeId, caixaId, pa
      processarBaixaEstoqueECMV(pedidoId, unidadeId).catch(console.error);
   }
   
+  return { success: true };
+}
+
+export async function transferirComanda(pedidoId, mesaOrigemId, mesaDestinoId) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+
+  // 1. Atualiza a comanda para a nova mesa
+  const { error: errPed } = await supabase.from("pedidos").update({ mesa_id: mesaDestinoId }).eq("id", pedidoId);
+  if (errPed) return { error: errPed.message };
+
+  // 2. Atualiza a mesa de destino para ocupada
+  await supabase.from("mesas").update({ status: 'ocupada' }).eq("id", mesaDestinoId);
+
+  // 3. Verifica se a mesa de origem ficou livre
+  const { count } = await supabase.from("pedidos").select("id", { count: "exact", head: true }).eq("mesa_id", mesaOrigemId).eq("status", "aberto");
+  if (count === 0) {
+     await supabase.from("mesas").update({ status: 'livre' }).eq("id", mesaOrigemId);
+  }
+
   return { success: true };
 }
 

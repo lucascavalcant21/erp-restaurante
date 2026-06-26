@@ -4,8 +4,8 @@ import React, { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchCaixaAberto, abrirCaixa, registrarMovimentacao, fetchResumoCaixa, fecharCaixa } from "../../../lib/caixas";
-import { fetchProdutos, lancarVendaBalcao, fetchMesas, criarMesa, fetchPedidoAberto, abrirMesaEPedido, lancarItemComanda, fecharContaDaMesa, fetchGarcons, criarGarcom, fetchProximoNumeroComanda } from "../../../lib/vendas";
-import { Lock, Unlock, LogOut, DollarSign, ArrowDownCircle, ArrowUpCircle, ShoppingBag, ShoppingCart, Maximize, Plus, Minus, Trash2, Printer, Users, Barcode, CreditCard, Receipt, SplitSquareHorizontal, Utensils, Send, X, Settings, Search, CheckCircle } from "lucide-react";
+import { fetchProdutos, lancarVendaBalcao, fetchMesas, criarMesa, fetchPedidoAberto, abrirMesaEPedido, lancarItemComanda, fecharContaDaMesa, fetchGarcons, criarGarcom, fetchProximoNumeroComanda, fetchTodosPedidosAbertos, transferirComanda } from "../../../lib/vendas";
+import { Lock, Unlock, LogOut, DollarSign, ArrowDownCircle, ArrowUpCircle, ShoppingBag, ShoppingCart, Maximize, Plus, Minus, Trash2, Printer, Users, Barcode, CreditCard, Receipt, SplitSquareHorizontal, Utensils, Send, X, Settings, Search, CheckCircle, ArrowRightLeft } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
 export default function SaloesMesasPage() {
@@ -52,6 +52,9 @@ export default function SaloesMesasPage() {
   const [mesas, setMesas] = useState([]);
   const [mesaAtiva, setMesaAtiva] = useState(null);
   const [pedidoAtivo, setPedidoAtivo] = useState(null);
+  const [pedidosDaMesa, setPedidosDaMesa] = useState([]);
+  const [modalListaComandas, setModalListaComandas] = useState(false);
+  const [modalTransferir, setModalTransferir] = useState(false);
   const [modalGestaoMesas, setModalGestaoMesas] = useState(false);
   const [novaMesaNum, setNovaMesaNum] = useState("");
 
@@ -200,8 +203,15 @@ export default function SaloesMesasPage() {
           setModalGarcom(true);
        }
     } else {
-       const { data } = await fetchPedidoAberto(mesa.id);
-       setPedidoAtivo(data);
+       setProcessando(true);
+       const { data, error } = await fetchTodosPedidosAbertos(mesa.id);
+       setProcessando(false);
+       if (error) {
+          alert("Erro ao buscar comandas: " + error);
+          return;
+       }
+       setPedidosDaMesa(data);
+       setModalListaComandas(true);
     }
   };
 
@@ -486,9 +496,10 @@ export default function SaloesMesasPage() {
                      ))}
                   </div>
 
-                  <div className="p-4 bg-white border-t border-slate-200 grid grid-cols-2 gap-2 shrink-0 z-10">
+                  <div className="p-4 bg-white border-t border-slate-200 grid grid-cols-3 gap-2 shrink-0 z-10">
                      <button onClick={() => { setMesaAtiva(null); setPedidoAtivo(null); }} className="py-3 bg-[#F44336] hover:bg-red-600 text-white font-bold text-sm rounded shadow transition-colors">VOLTAR</button>
-                     <button onClick={abrirModalPagamento} className="py-3 bg-[#2196F3] hover:bg-blue-600 text-white font-bold text-sm rounded shadow transition-colors">RECEBER MESA</button>
+                     <button onClick={() => setModalTransferir(true)} className="py-3 bg-purple-500 hover:bg-purple-600 text-white font-bold text-sm rounded shadow transition-colors flex items-center justify-center gap-1"><ArrowRightLeft size={16}/> TRANSF.</button>
+                     <button onClick={abrirModalPagamento} className="py-3 bg-[#2196F3] hover:bg-blue-600 text-white font-bold text-sm rounded shadow transition-colors">RECEBER</button>
                   </div>
                </div>
 
@@ -1008,6 +1019,94 @@ export default function SaloesMesasPage() {
                            {g.nome.charAt(0).toUpperCase()}
                         </div>
                         <span className="font-black text-[#334155] text-xs tracking-wide uppercase text-center leading-snug">{g.nome} - {g.cargo}</span>
+                     </button>
+                  ))}
+               </div>
+            </div>
+         </div>
+      )}
+
+      {/* MODAL DE TRANSFERÊNCIA DE MESA */}
+      {modalTransferir && pedidoAtivo && mesaAtiva && (
+         <div className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl">
+               <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-black text-slate-800 flex items-center gap-2"><ArrowRightLeft size={20} className="text-purple-500"/> Transferir Comanda</h2>
+                  <button onClick={() => setModalTransferir(false)} className="text-slate-400 hover:text-red-500"><X size={20}/></button>
+               </div>
+               <p className="text-sm font-bold text-slate-600 mb-4">Transferindo a comanda <span className="text-blue-500">{pedidoAtivo.identificacao}</span> da Mesa {mesaAtiva.numero_mesa} para onde?</p>
+               
+               <div className="mb-6">
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Mesa Destino</label>
+                  <select value={mesaDestinoId} onChange={e => setMesaDestinoId(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-700 outline-none">
+                     <option value="">-- Selecione a Mesa --</option>
+                     {mesas.filter(m => m.id !== mesaAtiva.id).map(m => (
+                        <option key={m.id} value={m.id}>Mesa {m.numero_mesa} {m.status !== 'livre' ? '(Ocupada)' : '(Livre)'}</option>
+                     ))}
+                  </select>
+               </div>
+               
+               <div className="flex gap-3">
+                  <button onClick={() => setModalTransferir(false)} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 font-bold text-slate-600 rounded-xl transition-colors">Cancelar</button>
+                  <button disabled={!mesaDestinoId || processando} onClick={async () => {
+                     setProcessando(true);
+                     const { error } = await transferirComanda(pedidoAtivo.id, mesaAtiva.id, mesaDestinoId);
+                     setProcessando(false);
+                     if(error) alert("Erro ao transferir: " + error);
+                     else {
+                        setModalTransferir(false);
+                        setPedidoAtivo(null);
+                        setMesaAtiva(null);
+                        carregarMesas();
+                        alert("Comanda transferida com sucesso!");
+                     }
+                  }} className="flex-1 py-3 bg-purple-500 hover:bg-purple-600 disabled:bg-slate-300 text-white font-black rounded-xl shadow-md transition-colors">Transferir</button>
+               </div>
+            </div>
+         </div>
+      )}
+
+      {/* MODAL LISTA DE COMANDAS DA MESA */}
+      {modalListaComandas && (
+         <div className="fixed inset-0 bg-white z-[60] flex flex-col">
+            <div className="bg-[#4A6487] p-4 text-white flex justify-between items-center shadow-md">
+               <span className="font-bold">Comandas - Mesa: {mesaAtiva?.numero_mesa}</span>
+               <button onClick={() => setModalListaComandas(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={20}/></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-10 bg-[#F1F5F9] flex flex-col items-center">
+               <h2 className="text-2xl font-black text-[#1E293B] mb-8 tracking-tight">SELECIONE UMA COMANDA</h2>
+               
+               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 w-full max-w-5xl">
+                  {/* Botão de NOVA COMANDA */}
+                  <button onClick={async () => {
+                     setModalListaComandas(false);
+                     if (garcomAtivo) {
+                        const proxId = await fetchProximoNumeroComanda(mesaAtiva.id, mesaAtiva.numero_mesa);
+                        setIdentAtiva(proxId);
+                        setModalComanda(true);
+                     } else {
+                        setModalGarcom(true);
+                     }
+                  }} className="bg-white border-2 border-dashed border-emerald-400 hover:bg-emerald-50 rounded-2xl p-6 flex flex-col items-center justify-center min-h-[160px] transition-colors group">
+                     <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-500 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                        <Plus size={24} className="font-black" />
+                     </div>
+                     <span className="font-black text-emerald-600 uppercase">NOVA COMANDA</span>
+                     <span className="text-xs text-slate-400 font-bold mt-1">Adicionar à Mesa {mesaAtiva?.numero_mesa}</span>
+                  </button>
+
+                  {/* Lista de Comandas Atuais */}
+                  {pedidosDaMesa.map(pedido => (
+                     <button key={pedido.id} onClick={() => {
+                        setPedidoAtivo(pedido);
+                        setFiltroCategoria("Todas");
+                        setModalListaComandas(false);
+                     }} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-lg hover:border-blue-400 transition-all flex flex-col items-center text-center">
+                        <div className="w-16 h-16 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xl font-black mb-4">
+                           {pedido.identificacao ? pedido.identificacao.substring(0,4) : '#'}
+                        </div>
+                        <span className="font-black text-slate-700 text-lg">{pedido.identificacao || 'Sem Ident'}</span>
+                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">R$ {(pedido.pedidos_itens?.reduce((acc, it) => acc + (it.quantidade * it.valor_unitario), 0) || 0).toFixed(2).replace('.',',')}</span>
                      </button>
                   ))}
                </div>

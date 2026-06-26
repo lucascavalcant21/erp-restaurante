@@ -82,6 +82,7 @@ const MEGA_MENU = {
     { label: "Mesas", href: "#" },
     { label: "Modelos de impressão", href: "#" },
     { label: "Motivos de cancelamento", href: "#" },
+    { label: "Observações Padrão", href: "/dashboard/operacao/observacoes" },
     { label: "Status da venda", href: "#" },
     { label: "Turnos", href: "#" }
   ]

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchCaixaAberto, abrirCaixa, registrarMovimentacao, fetchResumoCaixa, fecharCaixa } from "../../../lib/caixas";
-import { fetchProdutos, lancarVendaBalcao, fetchMesas, criarMesa, fetchPedidoAberto, abrirMesaEPedido, lancarItemComanda, fecharContaDaMesa, fetchGarcons, criarGarcom, fetchProximoNumeroComanda, fetchTodosPedidosAbertos, transferirComanda, validarCupom } from "../../../lib/vendas";
+import { fetchProdutos, lancarVendaBalcao, fetchMesas, criarMesa, fetchPedidoAberto, abrirMesaEPedido, lancarItemComanda, fecharContaDaMesa, fetchGarcons, criarGarcom, fetchProximoNumeroComanda, fetchTodosPedidosAbertos, transferirComanda, validarCupom, fetchObservacoesPadrao } from "../../../lib/vendas";
 import { Lock, Unlock, LogOut, DollarSign, ArrowDownCircle, ArrowUpCircle, ShoppingBag, ShoppingCart, Maximize, Plus, Minus, Trash2, Printer, Users, Barcode, CreditCard, Receipt, SplitSquareHorizontal, Utensils, Send, X, Settings, Search, CheckCircle, ArrowRightLeft, Share2, Tag } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
@@ -74,6 +74,7 @@ export default function SaloesMesasPage() {
   const [qtdLancamento, setQtdLancamento] = useState(1);
   const [obsLancamento, setObsLancamento] = useState("");
   const [modsLancarMesa, setModsLancarMesa] = useState([]);
+  const [observacoesPadrao, setObservacoesPadrao] = useState([]);
 
   // --- PAGAMENTO STATE ---
   const [modalPagamento, setModalPagamento] = useState(false);
@@ -118,6 +119,8 @@ export default function SaloesMesasPage() {
 
   const carregarMesas = async () => {
     const { data: m } = await fetchMesas(unidadeAtiva);
+    const { data: obsData } = await fetchObservacoesPadrao(unidadeAtiva);
+    setObservacoesPadrao(obsData || []);
     const mesasSanitizadas = (m || []).map((mesa, index) => {
        if (mesa.numero_mesa === 'Mesa Antiga' || !mesa.numero_mesa) {
           return { ...mesa, numero_mesa: String(index + 1).padStart(2, '0') };
@@ -922,6 +925,15 @@ export default function SaloesMesasPage() {
                   <div>
                      <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Observação (Ex: Sem cebola)</label>
                      <input type="text" value={obsLancamento} onChange={e => setObsLancamento(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-medium text-slate-700 outline-none focus:ring-2 focus:ring-blue-500" placeholder="Opcional..." />
+                     {observacoesPadrao.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-3">
+                           {observacoesPadrao.map(o => (
+                              <button key={o.id} type="button" onClick={() => setObsLancamento(prev => prev ? prev + ', ' + o.texto : o.texto)} className="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase transition-colors shadow-sm">
+                                 + {o.texto}
+                              </button>
+                           ))}
+                        </div>
+                     )}
                   </div>
                </div>
 

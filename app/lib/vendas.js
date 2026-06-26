@@ -576,3 +576,32 @@ export async function validarCupom(unidadeId, codigo) {
 
   return { error: null, cupom: data };
 }
+
+// ====================================================
+// MÓDULO DE OBSERVAÇÕES PADRÃO
+// ====================================================
+
+export async function fetchObservacoesPadrao(unidadeId) {
+  if (!isSupabaseReady()) return { data: [] };
+  const { data, error } = await supabase
+     .from("observacoes_padrao")
+     .select("*")
+     .eq("unidade_id", unidadeId)
+     .order("created_at", { ascending: true });
+  return { data: data || [], error: error?.message };
+}
+
+export async function salvarObservacaoPadrao(unidadeId, texto) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase.from("observacoes_padrao").insert([{
+     unidade_id: unidadeId,
+     texto: texto
+  }]);
+  return { error: error?.message };
+}
+
+export async function excluirObservacaoPadrao(id) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase.from("observacoes_padrao").delete().eq("id", id);
+  return { error: error?.message };
+}

@@ -50,17 +50,17 @@ const MEGA_MENU = {
     { label: "Vendas por período", href: "#" }
   ],
   "Estoque": [
-    { label: "Análise e simulação de CMV", href: "#" },
-    { label: "Ficha técnica", href: "#" },
-    { label: "Grupos de ingrediente", href: "#" },
-    { label: "Histórico de posição de estoque", href: "#" },
-    { label: "Ingredientes e Insumos", href: "#" },
-    { label: "Lista de compras", href: "#" },
-    { label: "Movimentações de estoque", href: "#" },
-    { label: "Notas de entrada", href: "#" },
-    { label: "Ordem de compra", href: "#" },
-    { label: "Posição e contagem de estoque", href: "#" },
-    { label: "Relatório de CMV real", href: "#" }
+    { label: "Análise e simulação de CMV", href: "/dashboard/financeiro/cmv" },
+    { label: "Ficha técnica", href: "/dashboard/operacao/fichas" },
+    { label: "Grupos de ingrediente", href: "/dashboard/operacao/ingredientes" },
+    { label: "Histórico de posição de estoque", href: "/dashboard/operacao/estoque" },
+    { label: "Ingredientes e Insumos", href: "/dashboard/operacao/ingredientes" },
+    { label: "Lista de compras", href: "/dashboard/operacao/compras" },
+    { label: "Movimentações de estoque", href: "/dashboard/operacao/estoque" },
+    { label: "Notas de entrada", href: "/dashboard/operacao/notas" },
+    { label: "Ordem de compra", href: "/dashboard/operacao/compras" },
+    { label: "Posição e contagem de estoque", href: "/dashboard/operacao/estoque" },
+    { label: "Relatório de CMV real", href: "/dashboard/financeiro/cmv" }
   ],
   "Recursos Humanos": [
     { label: "Gestão de RH e Departamento Pessoal", href: "/dashboard/rh" },

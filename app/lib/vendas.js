@@ -411,8 +411,33 @@ export async function fetchItensKDS(unidadeId, dept) {
 
 export async function atualizarStatusKDS(itemId, novoStatus) {
   if (!isSupabaseReady()) return { error: "Offline" };
-  const { error } = await supabase.from("pedidos_itens").update({ status_kds: novoStatus, updated_at: new Date().toISOString() }).eq("id", itemId);
-  return { error: error?.message };
+  
+  // 1. Atualiza o item
+  const { error, data: itemAtualizado } = await supabase.from("pedidos_itens")
+    .update({ status_kds: novoStatus, updated_at: new Date().toISOString() })
+    .eq("id", itemId)
+    .select("pedido_id")
+    .single();
+    
+  if (error) return { error: error.message };
+
+  // 2. Se o status for pronto ou entregue, verifica os irmãos para chamar a TV
+  if (['pronto', 'entregue'].includes(novoStatus) && itemAtualizado?.pedido_id) {
+     const { data: irmaos } = await supabase.from("pedidos_itens")
+       .select("status_kds")
+       .eq("pedido_id", itemAtualizado.pedido_id);
+       
+     if (irmaos) {
+        // Verifica se TODOS os itens do pedido estão prontos, entregues ou cancelados
+        const todosProntos = irmaos.every(i => ['pronto', 'entregue', 'cancelado'].includes(i.status_kds));
+        if (todosProntos) {
+           // Se todos estão prontos, avisa a TV (status do pedido vira 'pronto')
+           await supabase.from("pedidos").update({ status: 'pronto', updated_at: new Date().toISOString() }).eq("id", itemAtualizado.pedido_id);
+        }
+     }
+  }
+
+  return { error: null };
 }
 
 // ─── DELIVERY E AUTO-ATENDIMENTO (Pedidos Online) ────────────────────────────

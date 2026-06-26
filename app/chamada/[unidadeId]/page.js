@@ -15,9 +15,10 @@ export default function PainelChamadaTV() {
   // Carregar os pedidos iniciais
   const carregarPedidos = async () => {
     const { data } = await supabase.from("pedidos")
-      .select("id, numero_pedido, cliente_nome, status, updated_at")
+      .select("id, numero_pedido, cliente_nome, status, updated_at, tipo_pedido")
       .eq("unidade_id", unidadeId)
-      .in("status", ["preparando", "preparando_delivery", "aberto", "pronto"])
+      .in("tipo_pedido", ["balcao", "ifood", "delivery", "cardapio"])
+      .in("status", ["preparando", "preparando_delivery", "aberto", "pronto", "pago"])
       .order("updated_at", { ascending: false });
     
     setPedidos(data || []);
@@ -41,8 +42,8 @@ export default function PainelChamadaTV() {
           const novo = payload.new;
           
           setPedidos(prev => {
-            // Remove se não for mais um status válido (ex: entregue, cancelado)
-            if (!["preparando", "preparando_delivery", "aberto", "pronto"].includes(novo.status)) {
+            // Remove se não for mais um status ou tipo válido
+            if (!["preparando", "preparando_delivery", "aberto", "pronto", "pago"].includes(novo.status) || !["balcao", "ifood", "delivery", "cardapio"].includes(novo.tipo_pedido)) {
                return prev.filter(p => p.id !== novo.id);
             }
             

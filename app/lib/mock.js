@@ -178,11 +178,11 @@ export async function gerarDadosFicticios() {
 
     // 14. Funcionários (RH) para testar o Ponto Eletrônico
     const rhSeed = [
-       { unidade_id: uid, nome: "Carlos Chef", cargo: "Chefe de Cozinha", salario: 3500.00, tipo_contrato: "Fixo", ativo: true, horario_entrada: "17:00", horario_saida: "01:00" },
-       { unidade_id: uid, nome: "Ana Barman", cargo: "Bartender", salario: 2200.00, tipo_contrato: "Fixo", ativo: true, horario_entrada: "18:00", horario_saida: "02:00" },
-       { unidade_id: uid, nome: "Marcos Garçom", cargo: "Garçom", salario: 1800.00, tipo_contrato: "Fixo", ativo: true, horario_entrada: "18:00", horario_saida: "02:00" },
+       { unidade_id: uid, nome: "Carlos Chef", cargo: "Chefe de Cozinha", salario: 3500.00, tipo_contrato: "Fixo", status: "ativo", horario_entrada: "17:00", horario_saida: "01:00" },
+       { unidade_id: uid, nome: "Ana Barman", cargo: "Bartender", salario: 2200.00, tipo_contrato: "Fixo", status: "ativo", horario_entrada: "18:00", horario_saida: "02:00" },
+       { unidade_id: uid, nome: "Marcos Garçom", cargo: "Garçom", salario: 1800.00, tipo_contrato: "Fixo", status: "ativo", horario_entrada: "18:00", horario_saida: "02:00" },
     ];
-    await supabase.from("rh_funcionarios").insert(rhSeed);
+    await supabase.from("colaboradores").insert(rhSeed);
 
     return { success: true, unidade_id: uid };
   } catch (error) {

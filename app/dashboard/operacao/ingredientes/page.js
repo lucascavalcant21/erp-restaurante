@@ -99,41 +99,61 @@ function IngredientesRunner() {
             <input type="text" placeholder="Buscar ingrediente..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-bold text-slate-700 p-2" />
          </div>
 
-         <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
-            <table className="w-full text-left">
-               <thead>
-                  <tr className="bg-slate-50 border-b border-slate-100">
-                     <th className="p-5 text-[10px] font-black uppercase tracking-widest text-slate-500">Ingrediente</th>
-                     <th className="p-5 text-[10px] font-black uppercase tracking-widest text-slate-500">Unid. Base</th>
-                     <th className="p-5 text-[10px] font-black uppercase tracking-widest text-slate-500">Custo / Base</th>
-                     <th className="p-5 text-[10px] font-black uppercase tracking-widest text-slate-500 text-right">Ações</th>
-                  </tr>
-               </thead>
-               <tbody className="divide-y divide-slate-100">
-                  {loading && <tr><td colSpan={4} className="p-10 text-center text-slate-500 font-bold">Buscando insumos...</td></tr>}
-                  {!loading && filtrados.map(ins => (
-                     <tr key={ins.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="p-5">
-                           <p className="font-bold text-slate-800 text-lg">{ins.nome}</p>
-                           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Dept: {ins.departamento}</p>
-                        </td>
-                        <td className="p-5">
-                           <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-lg font-bold text-xs uppercase tracking-widest">{ins.unidade_medida}</span>
-                        </td>
-                        <td className="p-5">
-                           <p className="font-black text-emerald-600 text-lg">{fmtBRL(ins.custo_unitario)}</p>
-                        </td>
-                        <td className="p-5 text-right">
-                           <button onClick={() => abrirEditar(ins)} className="p-2 text-slate-500 hover:text-emerald-600 transition-colors"><Edit3 size={18}/></button>
-                           <button onClick={() => handleRemover(ins.id)} className="p-2 text-slate-500 hover:text-slate-600 transition-colors"><Trash2 size={18}/></button>
-                        </td>
-                     </tr>
-                  ))}
-                  {!loading && filtrados.length === 0 && (
-                     <tr><td colSpan={4} className="p-10 text-center text-slate-500 font-bold">Nenhum ingrediente encontrado.</td></tr>
-                  )}
-               </tbody>
-            </table>
+         <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center">
+               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Ingrediente</span>
+               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-20">Unid.</span>
+               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-32">Custo / Base</span>
+               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-right w-24">Ações</span>
+            </div>
+            {/* Linhas */}
+            <div className="bg-white divide-y divide-slate-100">
+               {loading && (
+                 <div className="p-12 text-center">
+                   <div className="w-8 h-8 border-4 border-slate-200 border-t-emerald-500 rounded-full animate-spin mx-auto mb-3" />
+                   <p className="text-slate-400 font-bold text-sm">Buscando insumos...</p>
+                 </div>
+               )}
+               {!loading && filtrados.map(ins => {
+                 const dept = ins.departamento?.toLowerCase();
+                 const deptColor = dept === 'bar' ? 'bg-purple-100 text-purple-700' : 'bg-amber-100 text-amber-700';
+                 return (
+                   <div key={ins.id} className="px-6 py-4 grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center group hover:bg-emerald-50/40 transition-all duration-150">
+                     {/* Nome + Dept */}
+                     <div className="flex items-center gap-3 min-w-0">
+                       <div className="w-1 h-10 rounded-full bg-emerald-400 shrink-0" />
+                       <div className="min-w-0">
+                         <p className="font-bold text-slate-800 text-[15px] leading-tight truncate">{ins.nome}</p>
+                         <span className={`inline-block text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mt-1 ${deptColor}`}>{ins.departamento}</span>
+                       </div>
+                     </div>
+                     {/* Unidade */}
+                     <div className="w-20 flex justify-center">
+                       <span className="bg-slate-800 text-white px-3 py-1.5 rounded-lg font-black text-xs uppercase tracking-wider shadow-sm">{ins.unidade_medida}</span>
+                     </div>
+                     {/* Custo */}
+                     <div className="w-32 text-center">
+                       <span className="font-black text-xl text-emerald-600">{fmtBRL(ins.custo_unitario)}</span>
+                     </div>
+                     {/* Ações */}
+                     <div className="w-24 flex justify-end gap-1">
+                       <button onClick={() => abrirEditar(ins)} className="p-2 bg-slate-100 hover:bg-blue-100 text-slate-500 hover:text-blue-600 rounded-lg transition-all" title="Editar">
+                         <Edit3 size={16}/>
+                       </button>
+                       <button onClick={() => handleRemover(ins.id)} className="p-2 bg-slate-100 hover:bg-red-100 text-slate-500 hover:text-red-500 rounded-lg transition-all" title="Remover">
+                         <Trash2 size={16}/>
+                       </button>
+                     </div>
+                   </div>
+                 );
+               })}
+               {!loading && filtrados.length === 0 && (
+                 <div className="p-16 text-center">
+                   <p className="text-slate-400 font-bold">Nenhum ingrediente encontrado.</p>
+                 </div>
+               )}
+            </div>
          </div>
       </div>
 

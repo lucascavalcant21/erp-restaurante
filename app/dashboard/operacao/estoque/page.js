@@ -84,47 +84,70 @@ function EstoqueRunner() {
             <input type="text" placeholder="Buscar ingrediente..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-bold text-slate-700 p-2" />
          </div>
 
-         <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
-            <table className="w-full text-left">
-               <thead>
-                  <tr className="bg-slate-50 border-b border-slate-100">
-                     <th className="p-5 text-[10px] font-black uppercase tracking-widest text-slate-500">Ingrediente</th>
-                     <th className="p-5 text-[10px] font-black uppercase tracking-widest text-slate-500">Patrimônio Base</th>
-                     <th className="p-5 text-[10px] font-black uppercase tracking-widest text-slate-500">Saldo Atual (L / KG / UN)</th>
-                     <th className="p-5 text-[10px] font-black uppercase tracking-widest text-slate-500 text-right">Ação</th>
-                  </tr>
-               </thead>
-               <tbody className="divide-y divide-slate-100">
-                  {loading && <tr><td colSpan={4} className="p-10 text-center text-slate-500 font-bold">Buscando saldos...</td></tr>}
-                  {!loading && filtrados.map(ins => (
-                     <tr key={ins.insumo_id} className="hover:bg-slate-50 transition-colors group">
-                        <td className="p-5">
-                           <p className="font-bold text-slate-800 text-lg">{ins.nome}</p>
-                           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Dept: {ins.departamento}</p>
-                        </td>
-                        <td className="p-5">
-                           <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-lg font-bold text-xs uppercase tracking-widest border border-slate-200">{ins.unidade_medida}</span>
-                        </td>
-                        <td className="p-5">
-                           <div className="flex items-center gap-3">
-                              <span className={`font-black text-2xl ${ins.quantidade_atual <= 0 ? 'text-slate-600' : 'text-emerald-600'}`}>
-                                 {Number(ins.quantidade_atual).toFixed(2)}
-                              </span>
-                              {ins.quantidade_atual <= 0 && <span className="text-[9px] font-black uppercase tracking-widest bg-slate-100 text-emerald-600 px-2 py-1 rounded-md">Zerado</span>}
-                           </div>
-                        </td>
-                        <td className="p-5 text-right">
-                           <button onClick={() => abrirAjuste(ins)} className="p-3 bg-slate-50 text-emerald-600 hover:bg-slate-100 rounded-xl transition-colors font-bold text-sm flex items-center gap-2 ml-auto">
-                              <RefreshCw size={16}/> Ajustar
-                           </button>
-                        </td>
-                     </tr>
-                  ))}
-                  {!loading && filtrados.length === 0 && (
-                     <tr><td colSpan={4} className="p-10 text-center text-slate-500 font-bold">Nenhum ingrediente cadastrado ainda.</td></tr>
-                  )}
-               </tbody>
-            </table>
+         <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200">
+            {/* Header da tabela */}
+            <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center">
+               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Ingrediente</span>
+               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-20">Unid.</span>
+               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-32">Saldo Atual</span>
+               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-right w-28">Ação</span>
+            </div>
+
+            {/* Linhas */}
+            <div className="bg-white divide-y divide-slate-100">
+               {loading && (
+                 <div className="p-12 text-center">
+                   <div className="w-8 h-8 border-4 border-slate-200 border-t-emerald-500 rounded-full animate-spin mx-auto mb-3" />
+                   <p className="text-slate-400 font-bold text-sm">Buscando saldos...</p>
+                 </div>
+               )}
+               {!loading && filtrados.map((ins, idx) => {
+                 const zerado = ins.quantidade_atual <= 0;
+                 const critico = !zerado && ins.quantidade_atual < 5;
+                 const dept = ins.departamento?.toLowerCase();
+                 const deptColor = dept === 'bar' ? 'bg-purple-100 text-purple-700' : 'bg-amber-100 text-amber-700';
+                 return (
+                   <div key={ins.insumo_id} className={`px-6 py-4 grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center group transition-all duration-150 ${zerado ? 'bg-red-50/40 hover:bg-red-50' : 'hover:bg-emerald-50/40'}`}>
+                     {/* Nome + Dept */}
+                     <div className="flex items-center gap-3 min-w-0">
+                       <div className={`w-1 h-10 rounded-full shrink-0 ${zerado ? 'bg-red-400' : critico ? 'bg-amber-400' : 'bg-emerald-400'}`} />
+                       <div className="min-w-0">
+                         <p className="font-bold text-slate-800 text-[15px] leading-tight truncate">{ins.nome}</p>
+                         <span className={`inline-block text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mt-1 ${deptColor}`}>{ins.departamento}</span>
+                       </div>
+                     </div>
+                     {/* Unidade */}
+                     <div className="w-20 flex justify-center">
+                       <span className="bg-slate-800 text-white px-3 py-1.5 rounded-lg font-black text-xs uppercase tracking-wider shadow-sm">{ins.unidade_medida}</span>
+                     </div>
+                     {/* Saldo */}
+                     <div className="w-32 flex flex-col items-center">
+                       <span className={`font-black text-2xl leading-none ${zerado ? 'text-red-500' : critico ? 'text-amber-500' : 'text-emerald-600'}`}>
+                         {Number(ins.quantidade_atual).toFixed(2)}
+                       </span>
+                       {zerado && <span className="text-[9px] font-black uppercase tracking-widest text-red-400 mt-1">● Zerado</span>}
+                       {critico && <span className="text-[9px] font-black uppercase tracking-widest text-amber-500 mt-1">⚠ Crítico</span>}
+                       {!zerado && !critico && <span className="text-[9px] font-black uppercase tracking-widest text-emerald-400 mt-1">✓ Normal</span>}
+                     </div>
+                     {/* Ação */}
+                     <div className="w-28 flex justify-end">
+                       <button
+                         onClick={() => abrirAjuste(ins)}
+                         className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-all shadow-sm shadow-emerald-600/20 hover:shadow-emerald-600/40 hover:-translate-y-px active:scale-95"
+                       >
+                         <RefreshCw size={13}/> Ajustar
+                       </button>
+                     </div>
+                   </div>
+                 );
+               })}
+               {!loading && filtrados.length === 0 && (
+                 <div className="p-16 text-center">
+                   <PackageSearch size={40} className="text-slate-200 mx-auto mb-3" />
+                   <p className="text-slate-400 font-bold">Nenhum ingrediente cadastrado ainda.</p>
+                 </div>
+               )}
+            </div>
          </div>
       </div>
 

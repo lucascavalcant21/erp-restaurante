@@ -63,8 +63,7 @@ const MEGA_MENU = {
     { label: "Relatório de CMV real", href: "#" }
   ],
   "Dashboards": [
-    { label: "Acompanhamento de vendas", href: "#" },
-    { label: "Acompanhamento de vendas multilojas", href: "#" },
+    { label: "Acompanhamento de vendas", href: "/dashboard/relatorios" },
     { label: "Canais", href: "#" },
     { label: "Faturamento", href: "#" },
     { label: "Vendas por Data / Hora", href: "#" }

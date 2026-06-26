@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-// Inicializa Supabase no lado do Servidor
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
-
 export async function POST(req) {
+  // Inicializa Supabase no lado do Servidor apenas durante a execução da requisição
+  // Isso evita erros de "supabaseUrl is required" durante o processo de build da Vercel
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://dummy.supabase.co";
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "dummy-key";
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
   try {
     const body = await req.json();
     const { pedido_id, unidade_id, cpf_cliente } = body;

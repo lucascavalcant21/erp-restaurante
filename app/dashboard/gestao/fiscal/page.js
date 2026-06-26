@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchUnidades, atualizarUnidade } from "../../../lib/unidades";
 import { Save, AlertCircle, Building2, FileText, CheckCircle, Shield } from "lucide-react";

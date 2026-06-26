@@ -9,6 +9,7 @@ import { fmtBRL } from "../../../components/ui";
 
 export default function GestorOnlinePage() {
   const router = useRouter();
+  const { abrirMenu } = useERP();
   const { unidadeAtiva } = useERP();
   
   const [pedidos, setPedidos] = useState([]);
@@ -80,7 +81,7 @@ export default function GestorOnlinePage() {
       
       {/* SIDEBAR ESQUERDA (TIRINHA VERMELHA) */}
       <div className="w-12 bg-[#D12B2B] flex flex-col items-center py-4 z-20 shrink-0 border-r border-red-800">
-         <button onClick={() => router.back()} className="text-white hover:text-red-200 mb-8 transition-colors"><ArrowLeft size={20}/></button>
+         <button onClick={() => abrirMenu()} className="text-white hover:text-red-200 mb-8 transition-colors"><ArrowLeft size={20}/></button>
          <div className="text-white font-black text-xl flex flex-col items-center tracking-widest" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>
             SIGA
          </div>

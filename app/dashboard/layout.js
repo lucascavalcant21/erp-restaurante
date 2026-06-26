@@ -122,20 +122,19 @@ function MobileBottomNav() {
 import { Search, ArrowUp, Star, Clock, LifeBuoy, ArrowDown } from "lucide-react";
 
 function TopHeader({ onSair }) {
-  const { unidades, unidadeAtiva, setUnidadeAtiva, podeTrocar, unidadeInfo } = useERP();
+  const { unidades, unidadeAtiva, setUnidadeAtiva, podeTrocar, unidadeInfo, megaMenuOpen, abrirMenu, fecharMenu } = useERP();
   const router = useRouter();
-  const [megaMenuOpen, setMegaMenuOpen] = useState(false);
   const [searchMenu, setSearchMenu] = useState("");
 
   const handleMenuClick = (href) => {
     if (href === "/chamada/dinamico") {
        window.open(`/chamada/${unidadeAtiva}`, "_blank");
-       setMegaMenuOpen(false);
+       fecharMenu();
        return;
     }
     if (href !== "#") {
       router.push(href);
-      setMegaMenuOpen(false);
+      fecharMenu();
     }
   };
 
@@ -145,7 +144,7 @@ function TopHeader({ onSair }) {
         
         {/* LADO ESQUERDO: Logo e Botão do Mega Menu */}
         <div className="flex items-center h-full">
-            <button onClick={() => setMegaMenuOpen(!megaMenuOpen)} className="h-full px-4 flex items-center justify-center bg-[#5C85C5] hover:bg-[#6D95D5] transition-colors border-r border-[#4970AF]">
+            <button onClick={() => megaMenuOpen ? fecharMenu() : abrirMenu()} className="h-full px-4 flex items-center justify-center bg-[#5C85C5] hover:bg-[#6D95D5] transition-colors border-r border-[#4970AF]">
                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
                   {megaMenuOpen ? <ArrowDown size={18} className="text-white"/> : <ArrowUp size={18} className="text-white"/>}
                </div>
@@ -208,7 +207,7 @@ function TopHeader({ onSair }) {
       {megaMenuOpen && (
          <div className="fixed inset-0 top-14 z-40 flex">
             {/* Overlay para fechar ao clicar fora */}
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setMegaMenuOpen(false)}></div>
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => fecharMenu()}></div>
             
             {/* Box Principal do Menu */}
             <div className="relative bg-white w-full max-w-7xl mx-auto shadow-2xl flex rounded-b-lg overflow-hidden h-[85vh] sm:h-auto animate-in fade-in slide-in-from-top-4 duration-200">

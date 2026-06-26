@@ -20,6 +20,10 @@ export function ERPProvider({ children }) {
   const [departamento, setDepartamentoState] = useState(null);
   const [podeTrocar,   setPodeTrocar]        = useState(true);
   const [sessao,       setSessao]            = useState(null);
+  const [megaMenuOpen, setMegaMenuOpen]      = useState(false);
+
+  const abrirMenu = useCallback(() => setMegaMenuOpen(true), []);
+  const fecharMenu = useCallback(() => setMegaMenuOpen(false), []);
 
   useEffect(() => {
     let vivo = true;
@@ -163,6 +167,7 @@ export function ERPProvider({ children }) {
       descontarEstoque, resumoEstoque,
       notificacoes, addNotificacao, marcarLida, marcarTodasLidas,
       removerNotificacao, limparLidas, naoLidas,
+      megaMenuOpen, abrirMenu, fecharMenu,
     }}>
       {children}
     </ERPContext.Provider>

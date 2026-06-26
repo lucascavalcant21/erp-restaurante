@@ -8,6 +8,7 @@ import { MonitorPlay, ArrowLeft, Clock, CheckCircle2, Play, Maximize, GlassWater
 
 function KDSRunner() {
   const router = useRouter();
+  const { abrirMenu } = useERP();
   const searchParams = useSearchParams();
   const deptUrl = searchParams.get("dept") || "todos"; // 'cozinha', 'bar', ou 'todos'
   
@@ -68,7 +69,7 @@ function KDSRunner() {
       {/* TOPBAR KDS (Escuro) */}
       <div className="bg-black/40 border-b border-slate-800 p-4 flex items-center justify-between sticky top-0 z-10 backdrop-blur-md">
          <div className="flex items-center gap-4">
-           <button onClick={() => router.back()} className="p-3 text-slate-500 hover:text-white bg-slate-800 rounded-xl transition-colors">
+           <button onClick={() => abrirMenu()} className="p-3 text-slate-500 hover:text-white bg-slate-800 rounded-xl transition-colors">
               <ArrowLeft size={20}/>
            </button>
            <div>

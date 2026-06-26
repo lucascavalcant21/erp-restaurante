@@ -69,6 +69,7 @@ function KpiCentral({ icon: Icon, label, valor, cor }) {
 
 export default function RedePage() {
   const router = useRouter();
+  const { abrirMenu } = useERP();
   const { unidades } = useERP();
   const [dados, setDados]     = useState([]);
   const [loading, setLoading] = useState(true);
@@ -104,7 +105,7 @@ export default function RedePage() {
       {/* Header */}
       <div className="sticky top-0 z-20 border-b px-4 pt-12 pb-3 flex items-center gap-3"
         style={{ background: "var(--surface)", borderColor: "var(--line)" }}>
-        <button onClick={() => router.back()}
+        <button onClick={() => abrirMenu()}
           className="w-9 h-9 rounded-xl flex items-center justify-center erp-card">
           <ArrowLeft size={18} style={{ color: "var(--muted)" }} />
         </button>

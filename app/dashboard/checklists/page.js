@@ -9,6 +9,7 @@ import { CheckSquare, ArrowLeft, Check, ChevronRight } from "lucide-react";
 
 function ChecklistRunner() {
   const router = useRouter();
+  const { abrirMenu } = useERP();
   const searchParams = useSearchParams();
   const dept = searchParams.get("dept") || "cozinha";
   const tipo = searchParams.get("tipo") || "operacional";
@@ -159,7 +160,7 @@ function ChecklistRunner() {
     <div className="min-h-screen bg-slate-50 font-sans pb-24 text-slate-800">
       <div className="pt-6 pb-8 px-6 max-w-3xl mx-auto flex items-center justify-between">
          <div className="flex items-center gap-4">
-           <button onClick={() => router.back()} className="p-3 text-slate-500 hover:text-slate-800 bg-white shadow-sm border border-slate-200 rounded-full">
+           <button onClick={() => abrirMenu()} className="p-3 text-slate-500 hover:text-slate-800 bg-white shadow-sm border border-slate-200 rounded-full">
               <ArrowLeft size={20}/>
            </button>
            <div>

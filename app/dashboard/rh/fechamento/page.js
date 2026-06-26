@@ -9,6 +9,7 @@ import { fmtBRL } from "../../../components/ui";
 
 export default function FechamentoFolhaPage() {
   const router = useRouter();
+  const { abrirMenu } = useERP();
   const { unidadeAtiva } = useERP();
   
   const [mesAno, setMesAno] = useState(new Date().toISOString().substring(0,7)); // yyyy-MM
@@ -88,7 +89,7 @@ export default function FechamentoFolhaPage() {
       <div className="bg-slate-900 pt-8 pb-12 px-6 shadow-2xl relative text-white border-b border-slate-800">
          <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
             <div>
-               <button onClick={() => router.back()} className="text-slate-400 hover:text-white mb-4 flex items-center gap-2 font-bold transition-colors">
+               <button onClick={() => abrirMenu()} className="text-slate-400 hover:text-white mb-4 flex items-center gap-2 font-bold transition-colors">
                   <ArrowLeft size={18}/> Voltar
                </button>
                <h1 className="text-4xl font-black tracking-tighter">Fechamento de Folha</h1>

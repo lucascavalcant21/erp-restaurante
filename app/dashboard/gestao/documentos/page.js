@@ -12,6 +12,7 @@ const TIPOS = ["CNPJ", "Alvará de Funcionamento", "Vigilância Sanitária", "Bo
 
 export default function DocumentosLegaisPage() {
   const router = useRouter();
+  const { abrirMenu } = useERP();
   const { unidadeAtiva, unidadeInfo } = useERP();
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -102,7 +103,7 @@ export default function DocumentosLegaisPage() {
     <div className="min-h-screen">
       <div className="sticky top-0 z-20 border-b px-4 pt-12 pb-3 flex items-center gap-3"
         style={{ background: "var(--surface)", borderColor: "var(--line)" }}>
-        <button onClick={() => router.back()}
+        <button onClick={() => abrirMenu()}
           className="w-9 h-9 rounded-xl flex items-center justify-center erp-card">
           <ArrowLeft size={18} style={{ color: "var(--muted)" }} />
         </button>

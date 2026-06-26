@@ -9,6 +9,7 @@ import { fetchCandidatos, atualizarStatusCandidato, removerCandidato } from "../
 
 export default function RecrutamentoPage() {
   const router = useRouter();
+  const { abrirMenu } = useERP();
   const { unidadeAtiva, unidadeInfo } = useERP();
   const [candidatos, setCandidatos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -56,7 +57,7 @@ export default function RecrutamentoPage() {
     <div className="min-h-screen">
       <div className="sticky top-0 z-20 border-b px-4 pt-12 pb-3 flex items-center gap-3"
         style={{ background: "var(--surface)", borderColor: "var(--line)" }}>
-        <button onClick={() => router.back()}
+        <button onClick={() => abrirMenu()}
           className="w-9 h-9 rounded-xl flex items-center justify-center erp-card">
           <ArrowLeft size={18} style={{ color: "var(--muted)" }} />
         </button>

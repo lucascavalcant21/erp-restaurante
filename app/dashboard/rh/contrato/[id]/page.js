@@ -10,6 +10,7 @@ import { Printer, ArrowLeft, FileText, CheckCircle2 } from "lucide-react";
 export default function ContratoRhPage() {
   const { id } = useParams();
   const router = useRouter();
+  const { abrirMenu } = useERP();
   const { unidadeAtiva, unidadeInfo } = useERP();
   
   const [colaborador, setColaborador] = useState(null);
@@ -59,7 +60,7 @@ export default function ContratoRhPage() {
       
       {/* Barra de Ferramentas (Não sai na impressão) */}
       <div className="print:hidden bg-slate-900 text-white p-4 flex items-center justify-between sticky top-0 z-50 shadow-xl">
-        <button onClick={() => router.back()} className="flex items-center gap-2 font-bold hover:text-emerald-400 transition-colors">
+        <button onClick={() => abrirMenu()} className="flex items-center gap-2 font-bold hover:text-emerald-400 transition-colors">
           <ArrowLeft size={18}/> Voltar
         </button>
         <div className="flex gap-4">

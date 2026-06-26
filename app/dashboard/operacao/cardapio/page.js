@@ -7,6 +7,7 @@ import { ArrowLeft, QrCode, Copy, ExternalLink, Smartphone, ArrowDown } from "lu
 
 export default function CardapioGeradorPage() {
   const router = useRouter();
+  const { abrirMenu } = useERP();
   const { unidadeAtiva, unidadeInfo } = useERP();
   const [urlPublica, setUrlPublica] = useState("");
   const [qrCodeUrl, setQrCodeUrl] = useState("");
@@ -36,7 +37,7 @@ export default function CardapioGeradorPage() {
       <div className="bg-white border-b border-slate-200 pt-6 pb-6 px-6 sticky top-0 z-10">
          <div className="max-w-4xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <button onClick={() => router.back()} className="p-3 text-slate-500 hover:text-slate-800 bg-slate-50 rounded-full border border-slate-200">
+              <button onClick={() => abrirMenu()} className="p-3 text-slate-500 hover:text-slate-800 bg-slate-50 rounded-full border border-slate-200">
                  <ArrowLeft size={20}/>
               </button>
               <div className="w-14 h-14 rounded-2xl bg-slate-100 text-emerald-600 flex items-center justify-center shadow-inner">

@@ -8,6 +8,7 @@ import { PackageSearch, Edit3, X, Save, ArrowLeft, RefreshCw, AlertCircle, Searc
 
 function EstoqueRunner() {
   const router = useRouter();
+  const { abrirMenu } = useERP();
   const searchParams = useSearchParams();
   const deptUrl = searchParams.get("dept"); // 'cozinha' ou 'bar'
   
@@ -55,7 +56,7 @@ function EstoqueRunner() {
       <div className="bg-white border-b border-slate-200 pt-6 pb-6 px-6 sticky top-0 z-10">
          <div className="max-w-5xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <button onClick={() => router.back()} className="p-3 text-slate-500 hover:text-slate-800 bg-slate-50 rounded-full border border-slate-200">
+              <button onClick={() => abrirMenu()} className="p-3 text-slate-500 hover:text-slate-800 bg-slate-50 rounded-full border border-slate-200">
                  <ArrowLeft size={20}/>
               </button>
               <div className="w-14 h-14 rounded-2xl bg-slate-100 text-emerald-600 flex items-center justify-center shadow-inner">

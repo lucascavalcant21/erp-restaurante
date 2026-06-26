@@ -17,6 +17,7 @@ import { fmtBRL } from "../../../components/ui";
 
 export default function EmbalagensPage() {
   const router = useRouter();
+  const { abrirMenu } = useERP();
   const { unidadeAtiva } = useERP();
   
   const [aba, setAba] = useState("estoque"); // estoque, saida, compras
@@ -111,7 +112,7 @@ export default function EmbalagensPage() {
       <div className="bg-slate-900 pt-8 pb-10 px-8 shadow-lg text-white">
          <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div className="flex items-center gap-4">
-              <button onClick={() => router.back()} className="p-3 bg-slate-800 hover:bg-slate-700 rounded-full transition-colors">
+              <button onClick={() => abrirMenu()} className="p-3 bg-slate-800 hover:bg-slate-700 rounded-full transition-colors">
                  <ArrowLeft size={20}/>
               </button>
               <div className="w-16 h-16 rounded-2xl bg-teal-500/20 text-teal-400 flex items-center justify-center">

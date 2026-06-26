@@ -4,8 +4,8 @@ import React, { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchCaixaAberto, abrirCaixa, registrarMovimentacao, fetchResumoCaixa, fecharCaixa } from "../../../lib/caixas";
-import { fetchProdutos, lancarVendaBalcao, fetchMesas, criarMesa, fetchPedidoAberto, abrirMesaEPedido, lancarItemComanda, fecharContaDaMesa, fetchGarcons, criarGarcom, fetchProximoNumeroComanda, fetchTodosPedidosAbertos, transferirComanda } from "../../../lib/vendas";
-import { Lock, Unlock, LogOut, DollarSign, ArrowDownCircle, ArrowUpCircle, ShoppingBag, ShoppingCart, Maximize, Plus, Minus, Trash2, Printer, Users, Barcode, CreditCard, Receipt, SplitSquareHorizontal, Utensils, Send, X, Settings, Search, CheckCircle, ArrowRightLeft, Share2 } from "lucide-react";
+import { fetchProdutos, lancarVendaBalcao, fetchMesas, criarMesa, fetchPedidoAberto, abrirMesaEPedido, lancarItemComanda, fecharContaDaMesa, fetchGarcons, criarGarcom, fetchProximoNumeroComanda, fetchTodosPedidosAbertos, transferirComanda, validarCupom } from "../../../lib/vendas";
+import { Lock, Unlock, LogOut, DollarSign, ArrowDownCircle, ArrowUpCircle, ShoppingBag, ShoppingCart, Maximize, Plus, Minus, Trash2, Printer, Users, Barcode, CreditCard, Receipt, SplitSquareHorizontal, Utensils, Send, X, Settings, Search, CheckCircle, ArrowRightLeft, Share2, Tag } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
 export default function SaloesMesasPage() {
@@ -85,6 +85,8 @@ export default function SaloesMesasPage() {
   const [taxaExtra, setTaxaExtra] = useState("");
   const [clienteCpf, setClienteCpf] = useState("");
   const [clienteNome, setClienteNome] = useState("");
+  const [cupomDigitado, setCupomDigitado] = useState("");
+  const [cupomAplicado, setCupomAplicado] = useState(null);
 
   // --- RECIBO ---
   const [modalRecibo, setModalRecibo] = useState(false);
@@ -342,12 +344,39 @@ export default function SaloesMesasPage() {
      if(sub <= 0) return alert("Valor zerado!");
 
      setDescontoPerc(""); setDescontoRs(""); setTaxaExtra(""); setClienteCpf(""); setClienteNome(""); setQuantidadePessoas(1);
+     setCupomDigitado(""); setCupomAplicado(null);
      
      let taxa10 = aplicarDezPorcento && abaAtiva === 'salao' ? sub * 0.10 : 0;
      let totalAberto = sub + taxa10;
 
      setPagamentos([{ id: Date.now(), forma: 'dinheiro', valor: totalAberto }]);
      setModalPagamento(true);
+  };
+
+  const handleAplicarCupom = async () => {
+     if(!cupomDigitado) return;
+     setProcessando(true);
+     const { cupom, error } = await validarCupom(unidadeAtiva, cupomDigitado);
+     setProcessando(false);
+     
+     if (error) {
+        alert(error);
+        setCupomDigitado("");
+        return;
+     }
+
+     setCupomAplicado(cupom);
+     if (cupom.tipo === 'percentual') {
+        setDescontoPerc(cupom.valor);
+        setDescontoRs("");
+     } else {
+        setDescontoRs(cupom.valor);
+        setDescontoPerc("");
+     }
+  };
+
+  const checkBipeCupom = (e) => {
+     if (e.key === 'Enter') handleAplicarCupom();
   };
 
   const subtotalPagamento = useMemo(() => {
@@ -938,16 +967,31 @@ export default function SaloesMesasPage() {
                      <div className="grid grid-cols-2 gap-2">
                         <div>
                            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Desc %</label>
-                           <input type="number" value={descontoPerc} onChange={e=>setDescontoPerc(e.target.value)} placeholder="0%" className="w-full px-3 py-2 rounded-lg border border-slate-300 font-bold"/>
+                           <input type="number" value={descontoPerc} onChange={e=>setDescontoPerc(e.target.value)} placeholder="0%" className="w-full px-3 py-2 rounded-lg border border-slate-300 font-bold disabled:bg-slate-100" disabled={cupomAplicado} />
                         </div>
                         <div>
                            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Desc R$</label>
-                           <input type="number" step="0.01" value={descontoRs} onChange={e=>setDescontoRs(e.target.value)} placeholder="0.00" className="w-full px-3 py-2 rounded-lg border border-slate-300 font-bold"/>
+                           <input type="number" step="0.01" value={descontoRs} onChange={e=>setDescontoRs(e.target.value)} placeholder="0.00" className="w-full px-3 py-2 rounded-lg border border-slate-300 font-bold disabled:bg-slate-100" disabled={cupomAplicado} />
                         </div>
                      </div>
                      <div>
                         <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Taxas Extras (Serviço, Entrega)</label>
                         <input type="number" step="0.01" value={taxaExtra} onChange={e=>setTaxaExtra(e.target.value)} placeholder="R$ 0.00" className="w-full px-4 py-2.5 rounded-xl border border-slate-300 outline-none font-bold text-slate-700"/>
+                     </div>
+
+                     <div className="pt-2 border-t border-slate-200">
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5"><Tag size={12} className="inline mr-1"/> Cupom de Desconto</label>
+                        {cupomAplicado ? (
+                           <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 p-3 rounded-xl">
+                              <span className="font-bold text-emerald-800 text-sm">{cupomAplicado.codigo} aplicado! (-{cupomAplicado.tipo === 'percentual' ? cupomAplicado.valor+'%' : fmtBRL(cupomAplicado.valor)})</span>
+                              <button type="button" onClick={() => { setCupomAplicado(null); setDescontoPerc(""); setDescontoRs(""); }} className="text-red-500 hover:text-red-700 font-bold text-xs bg-white px-2 py-1 rounded shadow-sm">Remover</button>
+                           </div>
+                        ) : (
+                           <div className="flex gap-2">
+                              <input type="text" value={cupomDigitado} onChange={e=>setCupomDigitado(e.target.value.toUpperCase())} onKeyDown={checkBipeCupom} placeholder="CÓDIGO" className="flex-1 px-4 py-2.5 rounded-xl border border-slate-300 outline-none font-black text-slate-700 uppercase" />
+                              <button type="button" onClick={handleAplicarCupom} disabled={processando || !cupomDigitado} className="bg-slate-800 hover:bg-slate-900 text-white font-bold px-4 rounded-xl disabled:opacity-50">Aplicar</button>
+                           </div>
+                        )}
                      </div>
                   </div>
                </div>

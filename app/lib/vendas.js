@@ -512,3 +512,67 @@ export async function fecharPedidoOnline(pedidoId, unidadeId) {
 
 export async function registrarVenda() { return { success: true }; }
 export async function fetchVendas() { return { data: [], error: null }; }
+
+// ====================================================
+// MÓDULO DE CUPONS DE DESCONTO
+// ====================================================
+
+export async function fetchCupons(unidadeId) {
+  if (!isSupabaseReady()) return { data: [] };
+  const { data, error } = await supabase
+     .from("cupons")
+     .select("*")
+     .eq("unidade_id", unidadeId)
+     .order("created_at", { ascending: false });
+  return { data: data || [], error: error?.message };
+}
+
+export async function salvarCupom(unidadeId, cupomObj) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const cupom = {
+     unidade_id: unidadeId,
+     codigo: cupomObj.codigo.toUpperCase().trim(),
+     tipo: cupomObj.tipo,
+     valor: cupomObj.valor,
+     data_validade: cupomObj.data_validade || null,
+     ativo: cupomObj.ativo !== undefined ? cupomObj.ativo : true
+  };
+
+  if (cupomObj.id) {
+     const { error } = await supabase.from("cupons").update(cupom).eq("id", cupomObj.id);
+     return { error: error?.message };
+  } else {
+     const { error } = await supabase.from("cupons").insert([cupom]);
+     return { error: error?.message };
+  }
+}
+
+export async function excluirCupom(cupomId) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase.from("cupons").delete().eq("id", cupomId);
+  return { error: error?.message };
+}
+
+export async function validarCupom(unidadeId, codigo) {
+  if (!isSupabaseReady()) return { error: "Sistema offline", cupom: null };
+  const codLimpo = codigo.toUpperCase().trim();
+  
+  const { data, error } = await supabase
+     .from("cupons")
+     .select("*")
+     .eq("unidade_id", unidadeId)
+     .eq("codigo", codLimpo)
+     .single();
+     
+  if (error || !data) return { error: "Cupom não encontrado.", cupom: null };
+  if (!data.ativo) return { error: "Este cupom foi desativado.", cupom: null };
+  
+  if (data.data_validade) {
+     const hoje = new Date().toISOString().split('T')[0];
+     if (hoje > data.data_validade) {
+        return { error: "Este cupom já expirou.", cupom: null };
+     }
+  }
+
+  return { error: null, cupom: data };
+}

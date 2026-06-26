@@ -33,7 +33,7 @@ const MEGA_MENU = {
   ],
   "Relacionamento com cliente": [
     { label: "Cadastro de clientes", href: "#" },
-    { label: "Cupons de desconto", href: "#" }
+    { label: "Cupons de desconto", href: "/dashboard/marketing/cupons" }
   ],
   "Relatórios": [
     { label: "Cupons gerados", href: "#" },

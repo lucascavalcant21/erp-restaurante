@@ -28,7 +28,12 @@ export default function ProdutosPage() {
      ficha_id: "",
      codigo_barras: "",
      imagem_url: "",
-     modificadores: []
+     modificadores: [],
+     ncm: "",
+     cest: "",
+     cfop: "5102",
+     csosn: "102",
+     origem_icms: "0"
   });
 
   const [novoModNome, setNovoModNome] = useState("");
@@ -62,7 +67,12 @@ export default function ProdutosPage() {
        ficha_id: "",
        codigo_barras: "",
        imagem_url: "",
-       modificadores: []
+       modificadores: [],
+       ncm: "",
+       cest: "",
+       cfop: "5102",
+       csosn: "102",
+       origem_icms: "0"
     });
     setNovoModNome("");
     setNovoModPreco("");
@@ -80,7 +90,12 @@ export default function ProdutosPage() {
        ficha_id: prod.ficha_id || "",
        codigo_barras: prod.codigo_barras || "",
        imagem_url: prod.imagem_url || "",
-       modificadores: prod.modificadores || []
+       modificadores: prod.modificadores || [],
+       ncm: prod.ncm || "",
+       cest: prod.cest || "",
+       cfop: prod.cfop || "5102",
+       csosn: prod.csosn || "102",
+       origem_icms: prod.origem_icms || "0"
     });
     setNovoModNome("");
     setNovoModPreco("");
@@ -280,6 +295,27 @@ export default function ProdutosPage() {
                            <option value="">-- Não dar baixa no estoque --</option>
                            {fichas.map(f => <option key={f.id} value={f.id}>{f.nome_receita} ({f.departamento})</option>)}
                         </select>
+                     </div>
+                  </div>
+
+                  {/* Dados Fiscais (NFC-e) */}
+                  <div className="pt-6 border-t border-slate-100">
+                     <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-4">
+                        Dados Fiscais (NFC-e)
+                     </h3>
+                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">NCM</label>
+                           <input type="text" placeholder="Ex: 21069090" value={form.ncm} onChange={e=>setForm({...form, ncm: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500 text-slate-800"/>
+                        </div>
+                        <div>
+                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">CEST</label>
+                           <input type="text" placeholder="Opcional" value={form.cest} onChange={e=>setForm({...form, cest: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500 text-slate-800"/>
+                        </div>
+                        <div>
+                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">CFOP</label>
+                           <input type="text" placeholder="Ex: 5102" value={form.cfop} onChange={e=>setForm({...form, cfop: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500 text-slate-800"/>
+                        </div>
                      </div>
                   </div>
 

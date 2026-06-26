@@ -83,7 +83,7 @@ const MEGA_MENU = {
     { label: "Configurações", href: "/dashboard/configuracoes" },
     { label: "Painel de Senhas (TV)", href: "/chamada/dinamico" },
     { label: "Dados da loja", href: "#" },
-    { label: "Dados fiscais", href: "#" },
+    { label: "Dados fiscais", href: "/dashboard/gestao/fiscal" },
     { label: "Entregadores", href: "#" },
     { label: "Garçons", href: "#" },
     { label: "Inutilização de notas fiscais", href: "#" },

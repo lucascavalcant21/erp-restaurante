@@ -96,6 +96,7 @@ export default function SaloesMesasPage() {
   // --- PAGAMENTO STATE ---
   const [modalPagamento, setModalPagamento] = useState(false);
   const [processando, setProcessando] = useState(false);
+  const [emitirNFCe, setEmitirNFCe] = useState(false);
   
   const [pagamentos, setPagamentos] = useState([{ id: 1, forma: 'dinheiro', valor: 0 }]);
   const [descontoPerc, setDescontoPerc] = useState("");
@@ -134,7 +135,22 @@ export default function SaloesMesasPage() {
      const descontoHtml = dados.desconto > 0 ? `<div class="row"><span>DESCONTO</span><span>-R$${dados.desconto.toFixed(2)}</span></div>` : '';
 
      const mesaOuBalcao = dados.tipo === 'salao' ? `MESA ${dados.mesa}` : 'VENDA BALCÃO';
-     const isPreConta = dados.isPreConta ? 'CONFERÊNCIA DE CONTA' : 'RECIBO NÃO FISCAL';
+     
+     let tituloRecibo = dados.isPreConta ? 'CONFERÊNCIA DE CONTA' : 'RECIBO NÃO FISCAL';
+     let nfceHtml = '';
+     
+     if (dados.nfce) {
+        tituloRecibo = 'DOCUMENTO AUXILIAR DA NOTA FISCAL DE CONSUMIDOR ELETRÔNICA';
+        nfceHtml = `
+           <div class="sep"></div>
+           <div class="center" style="font-size:9px; margin-top:8px;">
+              <p class="bold mb-1">EMISSÃO DE NFC-e</p>
+              <p>Chave de Acesso:</p>
+              <p style="word-break: break-all;">${dados.nfce.chave_acesso}</p>
+              <p class="mt-2"><a href="${dados.nfce.url_pdf}" target="_blank">Consultar pela Chave de Acesso</a></p>
+           </div>
+        `;
+     }
 
      win.document.write(`
         <!DOCTYPE html>
@@ -162,7 +178,7 @@ export default function SaloesMesasPage() {
         </head>
         <body>
            <div class="center bold big">HEFISTO ERP</div>
-           <div class="center">${isPreConta}</div>
+           <div class="center">${tituloRecibo}</div>
            <div class="center">${mesaOuBalcao}</div>
            <div class="center" style="font-size:10px">${dados.data.toLocaleString()}</div>
            <div class="sep"></div>
@@ -180,6 +196,7 @@ export default function SaloesMesasPage() {
            <div class="sep"></div>
            <div class="row total-row"><span>TOTAL GERAL</span><span>R$${dados.total.toFixed(2)}</span></div>
            ${pagamentosHtml}
+           ${nfceHtml}
            <div class="sep"></div>
            <div class="center" style="margin-top:10px; font-size:10px;">
               Obrigado pela preferência!<br>
@@ -634,6 +651,30 @@ export default function SaloesMesasPage() {
      setProcessando(false);
 
      if(sucesso) {
+        let nfcePayload = null;
+        if (emitirNFCe) {
+           try {
+              const resNF = await fetch('/api/fiscal/emitir', {
+                 method: 'POST',
+                 headers: { 'Content-Type': 'application/json' },
+                 body: JSON.stringify({
+                    pedido_id: pedidoIdParaRecibo,
+                    unidade_id: unidadeAtiva,
+                    cpf_cliente: clienteCpf
+                 })
+              });
+              const dataNF = await resNF.json();
+              if (dataNF.success) {
+                 nfcePayload = dataNF.nota;
+              } else {
+                 alert("Atenção: Venda fechada, mas erro ao emitir NFC-e: " + dataNF.error);
+              }
+           } catch (err) {
+              console.error(err);
+              alert("Erro ao tentar emitir NFC-e. A venda foi registrada.");
+           }
+        }
+
         const itensRecibo = abaAtiva !== 'salao' 
           ? carrinho.map(i => ({ nome: i.nome_produto, qtd: i.quantidade, tot: i.quantidade * (i.preco_venda||0) }))
           : pedidoAtivo.pedidos_itens.map(i => ({ nome: i.produtos?.nome_produto || 'Item', qtd: i.quantidade, tot: i.quantidade * i.valor_unitario }));
@@ -652,7 +693,8 @@ export default function SaloesMesasPage() {
            troco: troco,
            cliente: clienteNome,
            cpf: clienteCpf,
-           data: new Date()
+           data: new Date(),
+           nfce: nfcePayload
         };
 
         setDadosRecibo(objRecibo);
@@ -1330,7 +1372,12 @@ export default function SaloesMesasPage() {
                      )}
                   </div>
 
-                  <div className="pt-6 shrink-0 mt-4 border-t border-slate-100">
+                  <div className="pt-6 shrink-0 mt-4 border-t border-slate-100 space-y-4">
+                     <label className="flex items-center gap-2 cursor-pointer bg-slate-50 p-3 rounded-xl border border-slate-200 hover:bg-slate-100 transition-colors">
+                        <input type="checkbox" checked={emitirNFCe} onChange={e => setEmitirNFCe(e.target.checked)} className="w-5 h-5 accent-emerald-600 cursor-pointer"/>
+                        <span className="font-bold text-slate-700">Emitir Cupom Fiscal (NFC-e / SAT)</span>
+                     </label>
+
                      <button onClick={finalizarVenda} disabled={processando || restante > 0} className="w-full bg-slate-800 hover:bg-black disabled:bg-slate-300 text-white font-black py-4 rounded-xl shadow-lg transition-transform text-lg flex items-center justify-center">
                         {processando ? "PROCESSANDO..." : "CONCLUIR RECEBIMENTO"}
                      </button>

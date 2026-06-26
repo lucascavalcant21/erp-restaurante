@@ -375,17 +375,16 @@ export async function lancarVendaBalcao(unidadeId, caixaId, itensCart, pagamento
 export async function fetchItensKDS(unidadeId, dept) {
   if (!isSupabaseReady()) return { data: [], error: "Offline" };
   
-  // Busca todos os itens que NÃO foram entregues, que sejam do departamento correto,
-  // E que o pedido original ainda esteja "aberto"
+  // Busca todos os itens que NÃO foram entregues ou cancelados
   let query = supabase.from("pedidos_itens")
     .select(`
       id, quantidade, observacao, status_kds, created_at,
       produtos!inner ( nome_produto, departamento ),
-      pedidos!inner ( id, status, mesas (numero_mesa) )
+      pedidos!inner ( id, status, tipo_pedido, cliente_nome, mesas (numero_mesa) )
     `)
     .eq("pedidos.unidade_id", unidadeId)
-    .eq("pedidos.status", "aberto")
     .neq("status_kds", "entregue")
+    .neq("status_kds", "cancelado")
     .order("created_at", { ascending: true }); // O mais velho primeiro
 
   if(dept && dept !== 'todos') {

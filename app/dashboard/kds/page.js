@@ -102,8 +102,8 @@ function KDSRunner() {
                         key={it.id} 
                         onClick={() => avancarStatus(it)}
                         className={`text-left rounded-[32px] p-6 flex flex-col justify-between transition-all duration-300 shadow-2xl active:scale-95 border-2
-                           ${it.status_kds === 'pendente' ? 'bg-slate-800 border-slate-700 hover:border-slate-500' : 
-                             it.status_kds === 'preparando' ? 'bg-emerald-500 border-emerald-400 text-amber-950' : 
+                           ${it.status_kds === 'pendente' ? 'bg-slate-800 border-slate-700 text-white hover:border-slate-500' : 
+                             it.status_kds === 'preparando' ? 'bg-amber-400 border-amber-300 text-amber-950' : 
                              'bg-emerald-500 border-emerald-400 text-emerald-950 animate-pulse'}
                         `}
                      >
@@ -112,7 +112,7 @@ function KDSRunner() {
                               {it.quantidade}x
                            </span>
                            <span className={`flex items-center gap-1 font-black px-3 py-1 rounded-full text-[10px] uppercase tracking-widest
-                              ${isAtrasado && it.status_kds === 'pendente' ? 'bg-emerald-500 text-white animate-bounce' : 'bg-black/10'}
+                              ${isAtrasado && it.status_kds === 'pendente' ? 'bg-red-500 text-white animate-bounce' : 'bg-black/10'}
                            `}>
                               <Clock size={12}/> {min} MIN
                            </span>
@@ -130,9 +130,30 @@ function KDSRunner() {
                         </div>
 
                         <div className="mt-auto border-t border-black/10 pt-4 flex justify-between items-end">
-                           <div>
-                              <p className="text-[10px] font-black uppercase tracking-widest opacity-50 mb-1">Mesa</p>
-                              <p className="text-2xl font-black">{it.pedidos.mesas.numero_mesa}</p>
+                           <div className={`px-3 py-1.5 rounded-xl ${
+                              it.status_kds === 'pendente' 
+                               ? (it.pedidos?.tipo_pedido === 'ifood' ? 'bg-red-950/30' : 
+                                  it.pedidos?.tipo_pedido === 'balcao' ? 'bg-blue-950/30' : 
+                                  it.pedidos?.tipo_pedido === 'cardapio' || it.pedidos?.tipo_pedido === 'delivery' ? 'bg-purple-950/30' : 'bg-emerald-950/30') 
+                               : 'bg-black/10'
+                           }`}>
+                              <p className={`text-[10px] font-black uppercase tracking-widest mb-0.5 ${
+                                 it.status_kds === 'pendente'
+                                  ? (it.pedidos?.tipo_pedido === 'ifood' ? 'text-red-400' : 
+                                     it.pedidos?.tipo_pedido === 'balcao' ? 'text-blue-400' : 
+                                     it.pedidos?.tipo_pedido === 'cardapio' || it.pedidos?.tipo_pedido === 'delivery' ? 'text-purple-400' : 'text-emerald-400')
+                                  : 'opacity-70'
+                              }`}>
+                                 {it.pedidos?.tipo_pedido === 'ifood' ? 'IFOOD' :
+                                  it.pedidos?.tipo_pedido === 'balcao' ? 'BALCÃO' :
+                                  it.pedidos?.tipo_pedido === 'cardapio' || it.pedidos?.tipo_pedido === 'delivery' ? 'ONLINE' : 'MESA'}
+                              </p>
+                              <p className="text-xl font-black leading-none truncate max-w-[120px]">
+                                 {it.pedidos?.tipo_pedido === 'ifood' || it.pedidos?.tipo_pedido === 'cardapio' || it.pedidos?.tipo_pedido === 'delivery'
+                                    ? (it.pedidos?.cliente_nome ? it.pedidos.cliente_nome.split(' ')[0] : `#${it.pedidos.id.substring(0,4)}`)
+                                    : it.pedidos?.tipo_pedido === 'balcao' ? `#${it.pedidos.id.substring(0,4)}` 
+                                    : (it.pedidos?.mesas?.numero_mesa || 'N/A')}
+                              </p>
                            </div>
                            
                            <div className="flex items-center gap-2">

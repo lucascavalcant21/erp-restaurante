@@ -7,6 +7,7 @@ import { fetchCaixaAberto, abrirCaixa, registrarMovimentacao, fetchResumoCaixa, 
 import { fetchProdutos, lancarVendaBalcao, fetchMesas, criarMesa, fetchPedidoAberto, abrirMesaEPedido, lancarItemComanda, fecharContaDaMesa, fetchGarcons, criarGarcom, fetchProximoNumeroComanda, fetchTodosPedidosAbertos, transferirComanda, validarCupom, fetchObservacoesPadrao } from "../../../lib/vendas";
 import { Lock, Unlock, LogOut, DollarSign, ArrowDownCircle, ArrowUpCircle, ShoppingBag, ShoppingCart, Maximize, Plus, Minus, Trash2, Printer, Users, Barcode, CreditCard, Receipt, SplitSquareHorizontal, Utensils, Send, X, Settings, Search, CheckCircle, ArrowRightLeft, Share2, Tag } from "lucide-react";
 import { QRCodeSVG } from 'qrcode.react';
+import { supabase } from "../../../lib/supabase";
 import { fmtBRL } from "../../../components/ui";
 
 export default function SaloesMesasPage() {
@@ -99,6 +100,11 @@ export default function SaloesMesasPage() {
   const [aplicarDezPorcento, setAplicarDezPorcento] = useState(true);
   const [quantidadePessoas, setQuantidadePessoas] = useState(1);
 
+  // --- PEDIDOS ONLINE (QR CODE) ---
+  const [pedidosOnline, setPedidosOnline] = useState([]);
+  const [showAlertaOnline, setShowAlertaOnline] = useState(false);
+  const audioRef = useRef(null);
+
   // ==========================================
   // INITIAL LOAD
   // ==========================================
@@ -145,6 +151,48 @@ export default function SaloesMesasPage() {
        }
     }
   }, [router]);
+
+  // --- REALTIME: escuta novos pedidos QR Code ---
+  useEffect(() => {
+    if (!unidadeAtiva) return;
+
+    const channel = supabase
+      .channel(`pedidos_online_${unidadeAtiva}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'pedidos',
+          filter: `unidade_id=eq.${unidadeAtiva}`
+        },
+        (payload) => {
+          const novo = payload.new;
+          if (novo.status === 'novo_online') {
+            setPedidosOnline(prev => [novo, ...prev]);
+            setShowAlertaOnline(true);
+            // Som de alerta
+            try {
+              const ctx = new (window.AudioContext || window.webkitAudioContext)();
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.connect(gain);
+              gain.connect(ctx.destination);
+              osc.frequency.setValueAtTime(880, ctx.currentTime);
+              osc.frequency.setValueAtTime(660, ctx.currentTime + 0.15);
+              osc.frequency.setValueAtTime(880, ctx.currentTime + 0.3);
+              gain.gain.setValueAtTime(0.3, ctx.currentTime);
+              gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+              osc.start(ctx.currentTime);
+              osc.stop(ctx.currentTime + 0.6);
+            } catch(e) {}
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [unidadeAtiva]);
 
   useEffect(() => {
     if(caixa && abaAtiva === 'balcao' && buscaRef.current) {
@@ -550,6 +598,35 @@ export default function SaloesMesasPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-72px)] bg-slate-100 overflow-hidden font-sans">
       
+      {/* BANNER DE ALERTA — PEDIDO NOVO VIA QR CODE */}
+      {showAlertaOnline && pedidosOnline.length > 0 && (
+        <div className="bg-gradient-to-r from-orange-500 to-rose-500 text-white px-4 py-3 flex items-center justify-between z-50 shadow-lg animate-pulse shrink-0">
+          <div className="flex items-center gap-3 font-bold">
+            <span className="text-2xl">🔔</span>
+            <div>
+              <p className="font-black text-sm uppercase tracking-widest">
+                Novo Pedido pelo QR Code!
+              </p>
+              <p className="text-orange-100 text-xs font-medium">
+                {pedidosOnline[0]?.cliente_nome || 'Cliente'} — 
+                Mesa/Tipo: {pedidosOnline[0]?.tipo_pedido?.toUpperCase()}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="bg-white/20 text-white font-black text-xs px-3 py-1.5 rounded-full">
+              {pedidosOnline.length} aguardando
+            </span>
+            <button
+              onClick={() => { setShowAlertaOnline(false); setPedidosOnline([]); }}
+              className="p-1.5 hover:bg-white/20 rounded-full transition-colors"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* HEADER DE COMANDO */}
       <header className="bg-slate-800 text-white px-4 py-3 flex items-center justify-between shrink-0 shadow-lg z-20">
          <div className="flex items-center gap-4">

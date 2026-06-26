@@ -4,8 +4,8 @@ import React, { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchCaixaAberto, abrirCaixa, registrarMovimentacao, fetchResumoCaixa, fecharCaixa } from "../../../lib/caixas";
-import { fetchProdutos, lancarVendaBalcao, fetchMesas, criarMesa, fetchPedidoAberto, abrirMesaEPedido, lancarItemComanda, fecharContaDaMesa, fetchGarcons, criarGarcom, fetchProximoNumeroComanda, fetchTodosPedidosAbertos, transferirComanda, validarCupom, fetchObservacoesPadrao } from "../../../lib/vendas";
-import { Lock, Unlock, LogOut, DollarSign, ArrowDownCircle, ArrowUpCircle, ShoppingBag, ShoppingCart, Maximize, Plus, Minus, Trash2, Printer, Users, Barcode, CreditCard, Receipt, SplitSquareHorizontal, Utensils, Send, X, Settings, Search, CheckCircle, ArrowRightLeft, Share2, Tag } from "lucide-react";
+import { fetchProdutos, lancarVendaBalcao, fetchMesas, criarMesa, fetchPedidoAberto, abrirMesaEPedido, lancarItemComanda, fecharContaDaMesa, fetchGarcons, criarGarcom, fetchProximoNumeroComanda, fetchTodosPedidosAbertos, transferirComanda, validarCupom, fetchObservacoesPadrao, fetchPedidosOnlinePendentes, aceitarPedidoOnline, recusarPedidoOnline } from "../../../lib/vendas";
+import { Lock, Unlock, LogOut, DollarSign, ArrowDownCircle, ArrowUpCircle, ShoppingBag, ShoppingCart, Maximize, Plus, Minus, Trash2, Printer, Users, Barcode, CreditCard, Receipt, SplitSquareHorizontal, Utensils, Send, X, Settings, Search, CheckCircle, ArrowRightLeft, Share2, Tag, Bell, Clock, MapPin } from "lucide-react";
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from "../../../lib/supabase";
 import { fmtBRL } from "../../../components/ui";
@@ -104,6 +104,9 @@ export default function SaloesMesasPage() {
   const [pedidosOnline, setPedidosOnline] = useState([]);
   const [showAlertaOnline, setShowAlertaOnline] = useState(false);
   const audioRef = useRef(null);
+  const [painelOnline, setPainelOnline] = useState(false);
+  const [pedidosOnlineDetalhes, setPedidosOnlineDetalhes] = useState([]);
+  const [carregandoPainel, setCarregandoPainel] = useState(false);
 
   // ==========================================
   // INITIAL LOAD
@@ -193,6 +196,29 @@ export default function SaloesMesasPage() {
 
     return () => { supabase.removeChannel(channel); };
   }, [unidadeAtiva]);
+
+  const abrirPainelOnline = async () => {
+    setPainelOnline(true);
+    setCarregandoPainel(true);
+    const { data } = await fetchPedidosOnlinePendentes(unidadeAtiva);
+    setPedidosOnlineDetalhes(data || []);
+    setCarregandoPainel(false);
+    setShowAlertaOnline(false);
+    setPedidosOnline([]);
+  };
+
+  const handleAceitarPedido = async (pedidoId) => {
+    await aceitarPedidoOnline(pedidoId);
+    setPedidosOnlineDetalhes(prev => prev.map(p =>
+      p.id === pedidoId ? { ...p, status: 'preparando_delivery' } : p
+    ));
+  };
+
+  const handleRecusarPedido = async (pedidoId) => {
+    if(!confirm('Recusar este pedido?')) return;
+    await recusarPedidoOnline(pedidoId);
+    setPedidosOnlineDetalhes(prev => prev.filter(p => p.id !== pedidoId));
+  };
 
   useEffect(() => {
     if(caixa && abaAtiva === 'balcao' && buscaRef.current) {
@@ -614,9 +640,12 @@ export default function SaloesMesasPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className="bg-white/20 text-white font-black text-xs px-3 py-1.5 rounded-full">
-              {pedidosOnline.length} aguardando
-            </span>
+            <button
+              onClick={abrirPainelOnline}
+              className="bg-white text-orange-600 font-black text-xs px-4 py-2 rounded-xl hover:bg-orange-50 transition-colors shadow-sm"
+            >
+              Ver Pedidos ({pedidosOnline.length})
+            </button>
             <button
               onClick={() => { setShowAlertaOnline(false); setPedidosOnline([]); }}
               className="p-1.5 hover:bg-white/20 rounded-full transition-colors"
@@ -658,6 +687,14 @@ export default function SaloesMesasPage() {
          </div>
 
          <div className="flex gap-2">
+            <button onClick={abrirPainelOnline} className="relative flex items-center gap-1.5 px-3 py-2 bg-orange-500 hover:bg-orange-600 font-bold text-xs rounded-lg transition-colors text-white shadow">
+               <Bell size={16} /> Pedidos Online
+               {pedidosOnline.length > 0 && (
+                 <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full animate-bounce">
+                   {pedidosOnline.length}
+                 </span>
+               )}
+            </button>
             <button onClick={() => {
                const url = `${window.location.origin}/delivery/${unidadeAtiva}`;
                navigator.clipboard.writeText(url);
@@ -1672,6 +1709,108 @@ export default function SaloesMesasPage() {
                   </div>
             </div>
          </div>
+      )}
+
+      {/* PAINEL LATERAL: PEDIDOS ONLINE (QR CODE / DELIVERY) */}
+      {painelOnline && (
+        <div className="fixed inset-0 z-[100] flex justify-end bg-black/60 backdrop-blur-sm">
+          <div className="w-[400px] bg-white h-full shadow-2xl flex flex-col animate-slide-in-right">
+            
+            {/* Header do Painel */}
+            <div className="bg-orange-500 text-white p-4 flex justify-between items-center shrink-0 shadow-md z-10 relative">
+               <div className="flex items-center gap-2">
+                 <Bell size={20} className="animate-pulse" />
+                 <h2 className="font-black text-lg">Pedidos Online</h2>
+               </div>
+               <button onClick={() => setPainelOnline(false)} className="p-2 hover:bg-white/20 rounded-full transition-colors">
+                 <X size={20} />
+               </button>
+            </div>
+
+            {/* Conteúdo (Lista) */}
+            <div className="flex-1 overflow-y-auto p-4 bg-slate-50 flex flex-col gap-4 relative">
+               {carregandoPainel ? (
+                  <div className="flex items-center justify-center h-full text-slate-400">
+                     <p className="font-bold animate-pulse">Carregando pedidos...</p>
+                  </div>
+               ) : pedidosOnlineDetalhes.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-2 opacity-60">
+                     <ShoppingBag size={48} strokeWidth={1} />
+                     <p className="font-bold">Nenhum pedido online pendente.</p>
+                  </div>
+               ) : (
+                  pedidosOnlineDetalhes.map(pedido => (
+                     <div key={pedido.id} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                        
+                        {/* Cabeçalho do Card */}
+                        <div className="p-3 border-b border-slate-100 flex justify-between items-start bg-slate-50/50">
+                           <div>
+                              <div className="flex gap-2 items-center mb-1">
+                                <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${pedido.tipo_pedido === 'qrcode' ? 'bg-purple-100 text-purple-700' : 'bg-red-100 text-red-700'}`}>
+                                   {pedido.tipo_pedido}
+                                </span>
+                                <span className="text-xs font-bold text-slate-500">#{pedido.numero_pedido}</span>
+                              </div>
+                              <h3 className="font-black text-slate-800 uppercase">{pedido.cliente_nome || 'Cliente não informado'}</h3>
+                              {pedido.cliente_telefone && <p className="text-xs text-slate-500 mt-0.5 font-mono">{pedido.cliente_telefone}</p>}
+                           </div>
+                           <div className="text-right">
+                              <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-md uppercase">
+                                {pedido.status.replace('_', ' ')}
+                              </span>
+                              <p className="text-[10px] text-slate-400 mt-2">{new Date(pedido.created_at).toLocaleTimeString().slice(0,5)}</p>
+                           </div>
+                        </div>
+
+                        {/* Itens */}
+                        <div className="p-3 bg-white text-xs space-y-2">
+                           {pedido.pedidos_itens?.map((it, idx) => (
+                              <div key={idx} className="flex justify-between border-b border-slate-50 pb-2 last:border-0 last:pb-0">
+                                 <div>
+                                    <span className="font-bold">{it.quantidade}x</span> {it.produtos?.nome_produto}
+                                    {it.observacao && <p className="text-[10px] text-slate-400 mt-0.5 italic">Obs: {it.observacao}</p>}
+                                 </div>
+                                 <span className="font-medium">{fmtBRL(it.valor_unitario * it.quantidade)}</span>
+                              </div>
+                           ))}
+                        </div>
+
+                        {/* Totais e Pagamento */}
+                        <div className="px-3 py-2 bg-slate-50 border-t border-slate-100 text-xs flex justify-between items-center font-bold">
+                           <span className="text-slate-500 font-normal uppercase flex items-center gap-1">
+                             <CreditCard size={12}/> Pagamento: {pedido.forma_pagamento || 'N/A'}
+                             {pedido.troco_para && <span className="text-[10px] bg-yellow-100 text-yellow-800 px-1 rounded ml-1">Troco p/ {fmtBRL(parseFloat(pedido.troco_para))}</span>}
+                           </span>
+                           <span className="text-sm">{fmtBRL(pedido.valor_total)}</span>
+                        </div>
+
+                        {/* Ações (Apenas para novos) */}
+                        {pedido.status === 'novo_online' && (
+                           <div className="p-3 flex gap-2 border-t border-slate-200 bg-white">
+                              <button onClick={() => handleRecusarPedido(pedido.id)} className="flex-1 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-100">
+                                Recusar
+                              </button>
+                              <button onClick={() => handleAceitarPedido(pedido.id)} className="flex-1 py-2 text-xs font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-lg transition-colors shadow-sm flex items-center justify-center gap-1">
+                                <CheckCircle size={14}/> Aceitar Pedido
+                              </button>
+                           </div>
+                        )}
+                     </div>
+                  ))
+               )}
+            </div>
+
+            <style dangerouslySetInnerHTML={{__html: `
+               @keyframes slideInRight {
+                 from { transform: translateX(100%); }
+                 to { transform: translateX(0); }
+               }
+               .animate-slide-in-right {
+                 animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+               }
+            `}} />
+          </div>
+        </div>
       )}
 
     </div>

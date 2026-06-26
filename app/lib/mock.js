@@ -147,10 +147,10 @@ export async function gerarDadosFicticios() {
 
     // 7. Produtos
     const produtosSeed = [
-       { unidade_id: uid, nome_produto: "Smash Classic", categoria: "Hambúrgueres", departamento: "cozinha", preco_venda: 28.00, ficha_id: fichaSmash.id, tempo_preparo_base: 10, descricao: "Pão, blend 150g, cheddar." },
-       { unidade_id: uid, nome_produto: "Double Bacon", categoria: "Hambúrgueres", departamento: "cozinha", preco_venda: 39.00, ficha_id: fichaDouble.id, tempo_preparo_base: 15, descricao: "Pão, 2x blend 150g, duplo cheddar e bacon." },
-       { unidade_id: uid, nome_produto: "Caipirinha", categoria: "Drinks", departamento: "bar", preco_venda: 22.00, ficha_id: fichaCaipi.id, tempo_preparo_base: 5, descricao: "Vodka, limão e açúcar." },
-       { unidade_id: uid, nome_produto: "Chopp 500ml", categoria: "Bebidas", departamento: "bar", preco_venda: 15.00, ficha_id: fichaChopp.id, tempo_preparo_base: 3, descricao: "Chopp Pilsen gelado." },
+       { unidade_id: uid, nome_produto: "Smash Classic", categoria: "Hambúrgueres", departamento: "cozinha", preco_venda: 28.00, ficha_id: fichaSmash.id, tempo_preparo_base: 10 },
+       { unidade_id: uid, nome_produto: "Double Bacon", categoria: "Hambúrgueres", departamento: "cozinha", preco_venda: 39.00, ficha_id: fichaDouble.id, tempo_preparo_base: 15 },
+       { unidade_id: uid, nome_produto: "Caipirinha", categoria: "Drinks", departamento: "bar", preco_venda: 22.00, ficha_id: fichaCaipi.id, tempo_preparo_base: 5 },
+       { unidade_id: uid, nome_produto: "Chopp 500ml", categoria: "Bebidas", departamento: "bar", preco_venda: 15.00, ficha_id: fichaChopp.id, tempo_preparo_base: 3 },
     ];
     const { data: produtos, error: errProd } = await supabase.from("produtos").insert(produtosSeed).select();
     if(errProd) throw errProd;

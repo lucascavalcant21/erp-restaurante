@@ -10,13 +10,13 @@ import {
 } from "lucide-react";
 
 const MEGA_MENU = {
-  "Cardápio": [
-    { label: "Cardápio", href: "#" },
+  "Operação (Caixa, KDS, Garçom)": [
     { label: "Frente de Caixa (PDV)", href: "/dashboard/salao/mesas" },
-    { label: "Delivery", href: "/dashboard/salao/online" },
-    { label: "KDS", href: "/dashboard/kds" },
-    { label: "Op. Cozinha", href: "/dashboard/cozinha" },
-    { label: "Op. Bar", href: "/dashboard/bar" }
+    { label: "App do Garçom", href: "/dashboard/salao/mesas?acao=garcom" },
+    { label: "Delivery e iFood", href: "/dashboard/salao/online" },
+    { label: "Painel da Cozinha (KDS)", href: "/dashboard/kds?dept=cozinha" },
+    { label: "Painel do Bar", href: "/dashboard/kds?dept=bar" },
+    { label: "Catálogo de Produtos", href: "/dashboard/operacao/produtos" }
   ],
   "Financeiro": [
     { label: "Acerto de entregadores", href: "#" },

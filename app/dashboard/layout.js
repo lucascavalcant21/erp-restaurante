@@ -301,39 +301,54 @@ function TopHeader({ onSair }) {
                   {/* Colunas de Categorias */}
                   <div className="flex-1 overflow-y-auto custom-scrollbar pb-6">
 
-                      {/* ── SETORES DE OPERAÇÃO — Cards visuais ── */}
+                      {/* ── SETORES DE OPERAÇÃO — Cards visuais premium ── */}
                       {!searchMenu && (
-                        <div className="mb-6">
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">Operação</p>
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="mb-8">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="h-px flex-1 bg-slate-100" />
+                            <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400 px-2">⚡ Acesso Rápido por Setor</span>
+                            <div className="h-px flex-1 bg-slate-100" />
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             {OPERACAO_SETORES.map(setor => (
-                              <div key={setor.id} className={`rounded-xl border ${setor.borda} ${setor.bg} p-4`}>
-                                {/* Cabeçalho do setor */}
-                                <div className="flex items-center gap-2 mb-3">
-                                  <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: setor.cor }}>
-                                    <setor.Icone size={15} className="text-white" />
+                              <div
+                                key={setor.id}
+                                className="rounded-2xl overflow-hidden shadow-sm border border-white/60"
+                                style={{ background: `linear-gradient(145deg, white 0%, ${setor.bg.replace('bg-','').includes('-') ? 'var(--tw-bg-opacity)' : 'white'} 100%)` }}
+                              >
+                                {/* Faixa colorida no topo */}
+                                <div className="px-4 py-3 flex items-center gap-3" style={{ background: `linear-gradient(90deg, ${setor.cor}15, ${setor.cor}05)`, borderBottom: `2px solid ${setor.cor}30` }}>
+                                  <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm" style={{ backgroundColor: setor.cor }}>
+                                    <setor.Icone size={18} className="text-white" />
                                   </div>
-                                  <span className="font-bold text-sm" style={{ color: setor.cor }}>{setor.titulo}</span>
+                                  <div>
+                                    <p className="font-black text-sm leading-tight" style={{ color: setor.cor }}>{setor.titulo}</p>
+                                    <p className="text-[10px] text-slate-400 font-medium">{setor.links.length} módulos disponíveis</p>
+                                  </div>
                                 </div>
-                                {/* Links do setor */}
-                                <ul className="space-y-1">
+                                {/* Lista de links */}
+                                <div className="p-2">
                                   {setor.links.map((link, idx) => (
-                                    <li key={idx}>
-                                      <button
-                                        onClick={() => handleMenuClick(link.href)}
-                                        className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-white/70 transition-colors group flex items-start justify-between gap-1"
-                                      >
-                                        <div>
-                                          <span className="text-[12.5px] font-semibold text-slate-700 group-hover:text-slate-900 leading-tight block">{link.label}</span>
-                                          {link.desc && <span className="text-[11px] text-slate-400 leading-tight block">{link.desc}</span>}
-                                        </div>
-                                        {link.badge && (
-                                          <span className={`shrink-0 text-[9px] font-bold text-white px-1.5 py-0.5 rounded-full mt-0.5 ${link.badgeCor}`}>{link.badge}</span>
-                                        )}
-                                      </button>
-                                    </li>
+                                    <button
+                                      key={idx}
+                                      onClick={() => handleMenuClick(link.href)}
+                                      className="w-full text-left px-3 py-2 rounded-xl transition-all duration-150 group flex items-center justify-between gap-2 hover:shadow-sm"
+                                      style={{ '--hover-bg': `${setor.cor}10` }}
+                                      onMouseEnter={e => e.currentTarget.style.backgroundColor = `${setor.cor}12`}
+                                      onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                                    >
+                                      <div className="min-w-0">
+                                        <span className="text-[12.5px] font-semibold text-slate-700 group-hover:text-slate-900 leading-tight block truncate">{link.label}</span>
+                                        {link.desc && <span className="text-[10.5px] text-slate-400 leading-tight block truncate">{link.desc}</span>}
+                                      </div>
+                                      {link.badge ? (
+                                        <span className={`shrink-0 text-[9px] font-bold text-white px-1.5 py-0.5 rounded-full ${link.badgeCor} animate-pulse`}>{link.badge}</span>
+                                      ) : (
+                                        <span className="shrink-0 text-slate-200 group-hover:translate-x-0.5 transition-transform text-xs">›</span>
+                                      )}
+                                    </button>
                                   ))}
-                                </ul>
+                                </div>
                               </div>
                             ))}
                           </div>
@@ -341,32 +356,43 @@ function TopHeader({ onSair }) {
                       )}
 
                       {/* ── OUTRAS CATEGORIAS ── */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 items-start">
-                      {Object.entries(MEGA_MENU).map(([catName, links]) => {
-                         const filteredLinks = links.filter(l => l.label.toLowerCase().includes(searchMenu.toLowerCase()) || catName.toLowerCase().includes(searchMenu.toLowerCase()));
-                         
-                         if (filteredLinks.length === 0) return null;
-
-                         return (
-                            <div key={catName} className="flex flex-col">
-                               <h3 className="text-base font-bold text-[#4970AF] mb-3">{catName}</h3>
-                               <ul className="space-y-2">
-                                  {filteredLinks.map((link, idx) => (
-                                     <li key={idx}>
-                                        <button 
-                                           onClick={() => handleMenuClick(link.href)}
-                                           className={`text-left text-[13px] hover:underline transition-colors ${link.href !== '#' ? 'text-slate-700 hover:text-blue-600' : 'text-slate-400 cursor-not-allowed'}`}
-                                           title={link.href === '#' ? "Em breve" : ""}
-                                        >
-                                           {link.label}
-                                        </button>
-                                     </li>
-                                  ))}
-                               </ul>
+                      {Object.values(MEGA_MENU).some(links => links.some(l => l.label.toLowerCase().includes(searchMenu.toLowerCase()))) && (
+                        <>
+                          {!searchMenu && (
+                            <div className="flex items-center gap-3 mb-4">
+                              <div className="h-px flex-1 bg-slate-100" />
+                              <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400 px-2">Módulos do Sistema</span>
+                              <div className="h-px flex-1 bg-slate-100" />
                             </div>
-                         );
-                      })}
-                      </div>
+                          )}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 items-start">
+                          {Object.entries(MEGA_MENU).map(([catName, links]) => {
+                             const filteredLinks = links.filter(l => l.label.toLowerCase().includes(searchMenu.toLowerCase()) || catName.toLowerCase().includes(searchMenu.toLowerCase()));
+                             if (filteredLinks.length === 0) return null;
+                             return (
+                                <div key={catName} className="flex flex-col">
+                                   <h3 className="text-xs font-black uppercase tracking-wider text-[#4970AF] mb-3 pb-2 border-b border-slate-100">{catName}</h3>
+                                   <ul className="space-y-1">
+                                      {filteredLinks.map((link, idx) => (
+                                         <li key={idx}>
+                                            <button
+                                               onClick={() => handleMenuClick(link.href)}
+                                               className={`w-full text-left text-[12.5px] px-2 py-1.5 rounded-lg transition-all flex items-center gap-2 group ${link.href !== '#' ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-50' : 'text-slate-300 cursor-not-allowed'}`}
+                                               title={link.href === '#' ? "Em breve" : ""}
+                                            >
+                                               <span className={`w-1 h-1 rounded-full shrink-0 transition-all ${link.href !== '#' ? 'bg-slate-300 group-hover:bg-[#4970AF] group-hover:scale-125' : 'bg-slate-200'}`} />
+                                               {link.label}
+                                               {link.href === '#' && <span className="ml-auto text-[9px] text-slate-300 font-bold">EM BREVE</span>}
+                                            </button>
+                                         </li>
+                                      ))}
+                                   </ul>
+                                </div>
+                             );
+                          })}
+                          </div>
+                        </>
+                      )}
 
                    </div>
 

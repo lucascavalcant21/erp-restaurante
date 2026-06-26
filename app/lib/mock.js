@@ -167,6 +167,15 @@ export async function gerarDadosFicticios() {
        { pedido_id: ped4.id, produto_id: produtos[1].id, quantidade: 1, valor_unitario: 39.00, status_kds: "pendente", observacao: "#DELIVERY" },
     ]);
 
+    // 13. Lançamentos Financeiros (Custos Fixos) para o DRE
+    const despesasSeed = [
+       { unidade_id: uid, descricao: "Aluguel Loja", valor: 3500.00, tipo: "saida", categoria: "Aluguel", status: "pago", data: new Date().toISOString() },
+       { unidade_id: uid, descricao: "Conta de Luz (Enel)", valor: 850.00, tipo: "saida", categoria: "Energia", status: "pago", data: new Date().toISOString() },
+       { unidade_id: uid, descricao: "Folha de Pagamento (Garçons)", valor: 4200.00, tipo: "saida", categoria: "Folha de Pagamento", status: "pago", data: new Date().toISOString() },
+       { unidade_id: uid, descricao: "Marketing (Instagram Ads)", valor: 300.00, tipo: "saida", categoria: "Marketing", status: "pago", data: new Date().toISOString() },
+    ];
+    await supabase.from("contas_pagar").insert(despesasSeed);
+
     return { success: true, unidade_id: uid };
   } catch (error) {
     console.error("Erro na geração de mock:", error);

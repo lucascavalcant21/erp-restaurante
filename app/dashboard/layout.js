@@ -39,7 +39,7 @@ const MEGA_MENU = {
     { label: "Cupons gerados", href: "#" },
     { label: "Desempenho por atendente", href: "#" },
     { label: "Desempenho por garçom", href: "#" },
-    { label: "DRE Gerencial/Financeiro", href: "#" },
+    { label: "DRE Gerencial/Financeiro", href: "/dashboard/financeiro/dre" },
     { label: "Faturamento por dia", href: "#" },
     { label: "Itens consumidos", href: "#" },
     { label: "Itens vendidos", href: "#" },

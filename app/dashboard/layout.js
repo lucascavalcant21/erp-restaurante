@@ -62,6 +62,14 @@ const MEGA_MENU = {
     { label: "Posição e contagem de estoque", href: "#" },
     { label: "Relatório de CMV real", href: "#" }
   ],
+  "Recursos Humanos": [
+    { label: "Gestão de RH e Departamento Pessoal", href: "/dashboard/rh" },
+    { label: "Ponto Eletrônico", href: "/dashboard/rh/ponto" },
+    { label: "Gestão de Colaboradores", href: "/dashboard/rh/colaborador" },
+    { label: "Fechamento de Folha", href: "/dashboard/rh/fechamento" },
+    { label: "Organograma", href: "/dashboard/rh/organograma" },
+    { label: "Recrutamento e Seleção", href: "/dashboard/rh/recrutamento" }
+  ],
   "Dashboards": [
     { label: "Acompanhamento de vendas", href: "/dashboard/relatorios" },
     { label: "Canais", href: "#" },

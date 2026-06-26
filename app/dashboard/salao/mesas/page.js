@@ -86,6 +86,10 @@ export default function SaloesMesasPage() {
   const [modalRecibo, setModalRecibo] = useState(false);
   const [dadosRecibo, setDadosRecibo] = useState(null);
 
+  // --- FECHAMENTO AVANÇADO ---
+  const [aplicarDezPorcento, setAplicarDezPorcento] = useState(true);
+  const [quantidadePessoas, setQuantidadePessoas] = useState(1);
+
   // ==========================================
   // INITIAL LOAD
   // ==========================================
@@ -283,8 +287,12 @@ export default function SaloesMesasPage() {
 
      if(sub <= 0) return alert("Valor zerado!");
 
-     setDescontoPerc(""); setDescontoRs(""); setTaxaExtra(""); setClienteCpf(""); setClienteNome("");
-     setPagamentos([{ id: Date.now(), forma: 'dinheiro', valor: sub }]);
+     setDescontoPerc(""); setDescontoRs(""); setTaxaExtra(""); setClienteCpf(""); setClienteNome(""); setQuantidadePessoas(1);
+     
+     let taxa10 = aplicarDezPorcento && abaAtiva === 'salao' ? sub * 0.10 : 0;
+     let totalAberto = sub + taxa10;
+
+     setPagamentos([{ id: Date.now(), forma: 'dinheiro', valor: totalAberto }]);
      setModalPagamento(true);
   };
 
@@ -300,9 +308,10 @@ export default function SaloesMesasPage() {
   const valorTotalFinal = useMemo(() => {
      let v = subtotalPagamento;
      const desc = Number(descontoRs) || (v * (Number(descontoPerc)/100)) || 0;
-     const taxa = Number(taxaExtra) || 0;
-     return v - desc + taxa;
-  }, [subtotalPagamento, descontoRs, descontoPerc, taxaExtra]);
+     const taxaFixa = Number(taxaExtra) || 0;
+     const taxaDezPorcento = aplicarDezPorcento && abaAtiva === 'salao' ? (v - desc) * 0.10 : 0;
+     return v - desc + taxaFixa + taxaDezPorcento;
+  }, [subtotalPagamento, descontoRs, descontoPerc, taxaExtra, aplicarDezPorcento, abaAtiva]);
 
   const somaPagamentos = useMemo(() => pagamentos.reduce((acc, p) => acc + Number(p.valor || 0), 0), [pagamentos]);
   const troco = Math.max(0, somaPagamentos - valorTotalFinal);
@@ -379,6 +388,37 @@ export default function SaloesMesasPage() {
         setModalRecibo(true);
      }
   };
+
+  const imprimirPreConta = () => {
+    if (!pedidoAtivo) return;
+    const desc = Number(descontoRs) || (subtotalPagamento * (Number(descontoPerc)/100)) || 0;
+    const taxaFixa = Number(taxaExtra) || 0;
+    const taxaDezPorcento = aplicarDezPorcento && abaAtiva === 'salao' ? (subtotalPagamento - desc) * 0.10 : 0;
+    
+    const itensRecibo = pedidoAtivo.pedidos_itens.map(i => ({ nome: i.produtos?.nome_produto || 'Item', qtd: i.quantidade, tot: i.quantidade * i.valor_unitario }));
+
+    setDadosRecibo({
+       id: pedidoAtivo.id,
+       tipo: 'salao',
+       isPreConta: true,
+       mesa: mesaAtiva?.numero_mesa,
+       itens: itensRecibo,
+       subtotal: subtotalPagamento,
+       desconto: desc,
+       taxa: taxaFixa + taxaDezPorcento,
+       total: valorTotalFinal,
+       recebidos: [],
+       troco: 0,
+       cliente: clienteNome,
+       cpf: clienteCpf,
+       data: new Date()
+    });
+    setModalRecibo(true);
+    
+    setTimeout(() => {
+       window.print();
+    }, 500);
+ };
 
   // ==========================================
   // RENDERS
@@ -496,9 +536,10 @@ export default function SaloesMesasPage() {
                      ))}
                   </div>
 
-                  <div className="p-4 bg-white border-t border-slate-200 grid grid-cols-3 gap-2 shrink-0 z-10">
+                  <div className="p-4 bg-white border-t border-slate-200 grid grid-cols-2 gap-2 shrink-0 z-10">
                      <button onClick={() => { setMesaAtiva(null); setPedidoAtivo(null); }} className="py-3 bg-[#F44336] hover:bg-red-600 text-white font-bold text-sm rounded shadow transition-colors">VOLTAR</button>
                      <button onClick={() => setModalTransferir(true)} className="py-3 bg-purple-500 hover:bg-purple-600 text-white font-bold text-sm rounded shadow transition-colors flex items-center justify-center gap-1"><ArrowRightLeft size={16}/> TRANSF.</button>
+                     <button onClick={imprimirPreConta} className="py-3 bg-slate-800 hover:bg-black text-white font-bold text-sm rounded shadow transition-colors flex items-center justify-center gap-1"><Printer size={16}/> PRÉ-CONTA</button>
                      <button onClick={abrirModalPagamento} className="py-3 bg-[#2196F3] hover:bg-blue-600 text-white font-bold text-sm rounded shadow transition-colors">RECEBER</button>
                   </div>
                </div>
@@ -746,6 +787,14 @@ export default function SaloesMesasPage() {
 
                   <h3 className="font-black text-slate-800 mb-4 flex items-center gap-2">Descontos e Taxas</h3>
                   <div className="space-y-4">
+                     {abaAtiva === 'salao' && (
+                     <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+                        <label className="text-xs font-bold text-slate-700">Taxa de Serviço (10%)</label>
+                        <button type="button" onClick={() => setAplicarDezPorcento(!aplicarDezPorcento)} className={`w-12 h-6 rounded-full transition-colors relative ${aplicarDezPorcento ? 'bg-emerald-500' : 'bg-slate-300'}`}>
+                           <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${aplicarDezPorcento ? 'translate-x-7' : 'translate-x-1'}`}></div>
+                        </button>
+                     </div>
+                     )}
                      <div className="grid grid-cols-2 gap-2">
                         <div>
                            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Desc %</label>
@@ -771,7 +820,7 @@ export default function SaloesMesasPage() {
                      <button onClick={() => setModalPagamento(false)} className="text-slate-400 hover:text-slate-600 font-bold uppercase text-sm">Cancelar</button>
                   </div>
 
-                  <div className="flex justify-between items-center bg-slate-800 text-white rounded-2xl p-5 mb-8 shadow-md">
+                  <div className="flex justify-between items-center bg-slate-800 text-white rounded-2xl p-5 mb-6 shadow-md">
                      <div>
                         <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Líquido</p>
                         <div className="flex items-end gap-2">
@@ -782,6 +831,26 @@ export default function SaloesMesasPage() {
                      <div className="text-right">
                         <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Restante</p>
                         <span className={`text-2xl font-black ${restante === 0 ? 'text-emerald-400' : 'text-orange-400'}`}>{fmtBRL(restante)}</span>
+                     </div>
+                  </div>
+
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6 flex items-center justify-between shadow-inner">
+                     <div className="flex items-center gap-3">
+                        <div className="bg-white p-2 rounded-lg shadow-sm">
+                           <Users className="text-blue-500" size={20} />
+                        </div>
+                        <div>
+                           <label className="block text-[10px] font-bold text-slate-500 uppercase">Dividir Conta Por:</label>
+                           <div className="flex items-center gap-2 mt-1">
+                              <button onClick={() => setQuantidadePessoas(Math.max(1, quantidadePessoas - 1))} className="w-7 h-7 bg-white border border-slate-300 rounded-md text-slate-600 font-bold flex items-center justify-center hover:bg-slate-100 transition-colors">-</button>
+                              <span className="font-black text-slate-700 w-6 text-center text-lg">{quantidadePessoas}</span>
+                              <button onClick={() => setQuantidadePessoas(quantidadePessoas + 1)} className="w-7 h-7 bg-white border border-slate-300 rounded-md text-slate-600 font-bold flex items-center justify-center hover:bg-slate-100 transition-colors">+</button>
+                           </div>
+                        </div>
+                     </div>
+                     <div className="text-right">
+                        <p className="text-[10px] font-bold text-slate-500 uppercase">Total por Pessoa</p>
+                        <span className="text-2xl font-black text-blue-600 tracking-tight">{fmtBRL(valorTotalFinal / Math.max(1, quantidadePessoas))}</span>
                      </div>
                   </div>
 
@@ -871,13 +940,15 @@ export default function SaloesMesasPage() {
                   <div className="flex justify-between font-black text-sm pt-1 border-t border-slate-200 mt-1"><span>TOTAL:</span><span>{fmtBRL(dadosRecibo.total)}</span></div>
                </div>
 
-               <div className="border-t border-dashed border-slate-400 pt-2 mt-2 text-[10px] space-y-1">
-                  <p className="font-bold text-center mb-1">Pagamentos Reais:</p>
-                  {dadosRecibo.recebidos.map((pg, i) => (
-                     <div key={i} className="flex justify-between uppercase"><span>{pg.forma}:</span><span>{fmtBRL(pg.valor)}</span></div>
-                  ))}
-                  {dadosRecibo.troco > 0 && <div className="flex justify-between font-bold mt-1"><span>Troco Devolvido:</span><span>{fmtBRL(dadosRecibo.troco)}</span></div>}
-               </div>
+               {!dadosRecibo.isPreConta && (
+                  <div className="border-t border-dashed border-slate-400 pt-2 mt-2 text-[10px] space-y-1">
+                     <p className="font-bold text-center mb-1">Pagamentos Reais:</p>
+                     {dadosRecibo.recebidos.map((pg, i) => (
+                        <div key={i} className="flex justify-between uppercase"><span>{pg.forma}:</span><span>{fmtBRL(pg.valor)}</span></div>
+                     ))}
+                     {dadosRecibo.troco > 0 && <div className="flex justify-between font-bold mt-1"><span>Troco Devolvido:</span><span>{fmtBRL(dadosRecibo.troco)}</span></div>}
+                  </div>
+               )}
 
                {dadosRecibo.cpf && (
                   <div className="border-t border-dashed border-slate-400 pt-2 mt-2 text-[10px] text-center">

@@ -45,7 +45,7 @@ export async function gerarDadosFicticios() {
     const uid = novaUnidade.id;
 
     // 3. Abrir um Caixa
-    const { data: caixa } = await supabase.from("caixas")
+    const { data: caixa, error: errCx } = await supabase.from("caixas")
       .insert([{
          unidade_id: uid,
          usuario_abertura_id: null,
@@ -53,6 +53,7 @@ export async function gerarDadosFicticios() {
          saldo_atual: 150.00,
          status: "aberto"
       }]).select("id").single();
+    if(errCx) throw errCx;
 
     // 4. Insumos
     const insumosSeed = [
@@ -64,7 +65,8 @@ export async function gerarDadosFicticios() {
       { nome: "Vodka Smirnoff", departamento: "bar", unidade_medida: "l", custo_unitario: 40.00, unidade_id: uid },
       { nome: "Limão Taiti", departamento: "bar", unidade_medida: "kg", custo_unitario: 5.00, unidade_id: uid },
     ];
-    const { data: insumos } = await supabase.from("insumos").insert(insumosSeed).select();
+    const { data: insumos, error: errIns } = await supabase.from("insumos").insert(insumosSeed).select();
+    if(errIns) throw errIns;
 
     // Funções auxiliares para achar IDs
     const getIns = (nome) => insumos.find(i => i.nome === nome).id;
@@ -75,13 +77,15 @@ export async function gerarDadosFicticios() {
        insumo_id: i.id,
        quantidade_atual: i.unidade_medida === 'kg' || i.unidade_medida === 'l' ? 10 : 100 // 10kg/10L ou 100un
     }));
-    await supabase.from("estoque_atual").insert(estoqueSeed);
+    const { error: errEst } = await supabase.from("estoque_atual").insert(estoqueSeed);
+    if(errEst) throw errEst;
 
     // 6. Fichas Técnicas e Ingredientes
     // Smash Classic
-    const { data: fichaSmash } = await supabase.from("fichas_tecnicas").insert([{
+    const { data: fichaSmash, error: errF1 } = await supabase.from("fichas_tecnicas").insert([{
        unidade_id: uid, departamento: "cozinha", nome_receita: "Smash Classic"
     }]).select("id").single();
+    if(errF1) throw errF1;
     await supabase.from("fichas_ingredientes").insert([
        { ficha_id: fichaSmash.id, insumo_id: getIns("Carne Bovina (Blend)"), quantidade: 0.150 },
        { ficha_id: fichaSmash.id, insumo_id: getIns("Pão Brioche"), quantidade: 1.000 },
@@ -89,9 +93,10 @@ export async function gerarDadosFicticios() {
     ]);
 
     // Double Bacon
-    const { data: fichaDouble } = await supabase.from("fichas_tecnicas").insert([{
+    const { data: fichaDouble, error: errF2 } = await supabase.from("fichas_tecnicas").insert([{
        unidade_id: uid, departamento: "cozinha", nome_receita: "Double Bacon Smash"
     }]).select("id").single();
+    if(errF2) throw errF2;
     await supabase.from("fichas_ingredientes").insert([
        { ficha_id: fichaDouble.id, insumo_id: getIns("Carne Bovina (Blend)"), quantidade: 0.300 },
        { ficha_id: fichaDouble.id, insumo_id: getIns("Pão Brioche"), quantidade: 1.000 },
@@ -100,18 +105,20 @@ export async function gerarDadosFicticios() {
     ]);
 
     // Caipirinha
-    const { data: fichaCaipi } = await supabase.from("fichas_tecnicas").insert([{
+    const { data: fichaCaipi, error: errF3 } = await supabase.from("fichas_tecnicas").insert([{
        unidade_id: uid, departamento: "bar", nome_receita: "Caipirinha Clássica"
     }]).select("id").single();
+    if(errF3) throw errF3;
     await supabase.from("fichas_ingredientes").insert([
        { ficha_id: fichaCaipi.id, insumo_id: getIns("Vodka Smirnoff"), quantidade: 0.075 },
        { ficha_id: fichaCaipi.id, insumo_id: getIns("Limão Taiti"), quantidade: 0.100 },
     ]);
 
     // Chopp
-    const { data: fichaChopp } = await supabase.from("fichas_tecnicas").insert([{
+    const { data: fichaChopp, error: errF4 } = await supabase.from("fichas_tecnicas").insert([{
        unidade_id: uid, departamento: "bar", nome_receita: "Copo Chopp 500ml"
     }]).select("id").single();
+    if(errF4) throw errF4;
     await supabase.from("fichas_ingredientes").insert([
        { ficha_id: fichaChopp.id, insumo_id: getIns("Barril Chopp Pilsen 50L"), quantidade: 0.500 },
     ]);
@@ -123,7 +130,8 @@ export async function gerarDadosFicticios() {
        { unidade_id: uid, nome_produto: "Caipirinha", categoria: "Drinks", departamento: "bar", preco_venda: 22.00, ficha_id: fichaCaipi.id, tempo_preparo_base: 5, descricao: "Vodka, limão e açúcar." },
        { unidade_id: uid, nome_produto: "Chopp 500ml", categoria: "Bebidas", departamento: "bar", preco_venda: 15.00, ficha_id: fichaChopp.id, tempo_preparo_base: 3, descricao: "Chopp Pilsen gelado." },
     ];
-    const { data: produtos } = await supabase.from("produtos").insert(produtosSeed).select();
+    const { data: produtos, error: errProd } = await supabase.from("produtos").insert(produtosSeed).select();
+    if(errProd) throw errProd;
 
     // 8. Mesas
     const mesasSeed = [
@@ -131,30 +139,34 @@ export async function gerarDadosFicticios() {
        { unidade_id: uid, numero_mesa: "02", status: "livre" },
        { unidade_id: uid, numero_mesa: "03", status: "ocupada" },
     ];
-    const { data: mesas } = await supabase.from("mesas").insert(mesasSeed).select();
+    const { data: mesas, error: errMesas } = await supabase.from("mesas").insert(mesasSeed).select();
+    if(errMesas) throw errMesas;
 
     // 9. Pedidos (Mesa 01) - Em preparo
-    const { data: ped1 } = await supabase.from("pedidos").insert([{
+    const { data: ped1, error: errP1 } = await supabase.from("pedidos").insert([{
        unidade_id: uid, mesa_id: mesas[0].id, tipo_pedido: "mesa", status: "aberto"
     }]).select("id").single();
+    if(errP1) throw errP1;
     await supabase.from("pedidos_itens").insert([
        { pedido_id: ped1.id, produto_id: produtos[0].id, quantidade: 1, valor_unitario: 28.00, status_kds: "preparando", observacao: "Sem cebola" },
        { pedido_id: ped1.id, produto_id: produtos[3].id, quantidade: 2, valor_unitario: 15.00, status_kds: "entregue" }, // Chopps já entregues
     ]);
 
     // 10. Pedido (Mesa 03) - Pendente (Acabou de pedir)
-    const { data: ped2 } = await supabase.from("pedidos").insert([{
+    const { data: ped2, error: errP2 } = await supabase.from("pedidos").insert([{
        unidade_id: uid, mesa_id: mesas[2].id, tipo_pedido: "mesa", status: "aberto"
     }]).select("id").single();
+    if(errP2) throw errP2;
     await supabase.from("pedidos_itens").insert([
        { pedido_id: ped2.id, produto_id: produtos[1].id, quantidade: 2, valor_unitario: 39.00, status_kds: "pendente" },
        { pedido_id: ped2.id, produto_id: produtos[2].id, quantidade: 2, valor_unitario: 22.00, status_kds: "pendente" }, 
     ]);
 
     // 11. Pedido Balcão - Pago, aguardando na TV (Preparando)
-    const { data: ped3 } = await supabase.from("pedidos").insert([{
+    const { data: ped3, error: errP3 } = await supabase.from("pedidos").insert([{
        unidade_id: uid, tipo_pedido: "balcao", status: "pago", cliente_nome: "Maria", caixa_id: caixa.id
     }]).select("id").single();
+    if(errP3) throw errP3;
     await supabase.from("pedidos_itens").insert([
        { pedido_id: ped3.id, produto_id: produtos[0].id, quantidade: 1, valor_unitario: 28.00, status_kds: "preparando", observacao: "#PARA LEVAR" },
     ]);

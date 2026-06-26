@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useERP } from "../../../context/ERPContext";
-import { fetchUnidades, atualizarUnidade } from "../../../lib/unidades";
+import { useERP } from "../../context/ERPContext";
+import { fetchUnidades, atualizarUnidade } from "../../lib/unidades";
 import { Settings, Store, Phone, Clock, Bike, Save, CheckCircle, AlertCircle } from "lucide-react";
 
 export default function ConfiguracoesPage() {

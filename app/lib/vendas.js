@@ -399,7 +399,6 @@ export async function fetchItensKDS(unidadeId, dept) {
     `)
     .eq("pedidos.unidade_id", unidadeId)
     .neq("status_kds", "entregue")
-    .neq("status_kds", "cancelado")
     .order("created_at", { ascending: true }); // O mais velho primeiro
 
   if(dept && dept !== 'todos') {
@@ -419,10 +418,10 @@ export async function atualizarStatusKDS(itemId, novoStatus) {
 // ─── DELIVERY E AUTO-ATENDIMENTO (Pedidos Online) ────────────────────────────
 
 // Usado pelo app/cardapio/[unidadeId] para enviar o pedido
-export async function enviarPedidoOnline(unidadeId, dadosCliente, itensCart) {
+export async function enviarPedidoOnline(unidadeId, dadosCliente, itensCart, autoAprovar = false) {
   if (!isSupabaseReady()) return { error: "Offline" };
   
-  // 1. Cria o Pedido com status 'novo_online'
+  // 1. Cria o Pedido com status 'novo_online' (ou 'preparando' se autoAprovar)
   let valorTotal = itensCart.reduce((acc, it) => acc + (it.preco_venda * it.quantidade), 0);
   if (dadosCliente.taxa_entrega) {
      valorTotal += parseFloat(dadosCliente.taxa_entrega);
@@ -430,7 +429,7 @@ export async function enviarPedidoOnline(unidadeId, dadosCliente, itensCart) {
   
   const { data: pedido, error: errPed } = await supabase.from("pedidos").insert([{
      unidade_id: unidadeId,
-     status: 'novo_online',
+     status: autoAprovar ? 'preparando' : 'novo_online',
      tipo_pedido: dadosCliente.tipo, // 'delivery' ou 'qrcode'
      cliente_nome: dadosCliente.nome,
      cliente_telefone: dadosCliente.telefone,
@@ -442,14 +441,14 @@ export async function enviarPedidoOnline(unidadeId, dadosCliente, itensCart) {
 
   if (errPed) return { error: errPed.message };
 
-  // 2. Insere os itens com status 'aguardando_aceite' (Pra não cair no KDS ainda)
+  // 2. Insere os itens
   const insertsItens = itensCart.map(it => ({
      pedido_id: pedido.id,
      produto_id: it.id,
      quantidade: it.quantidade,
      valor_unitario: it.preco_venda,
      observacao: it.observacao || "",
-     status_kds: 'aguardando_aceite'
+     status_kds: autoAprovar ? 'pendente' : 'aguardando_aceite'
   }));
 
   const { error: errItens } = await supabase.from("pedidos_itens").insert(insertsItens);

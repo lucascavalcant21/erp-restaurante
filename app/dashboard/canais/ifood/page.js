@@ -90,14 +90,27 @@ export default function IFoodConfigPage() {
         taxa_entrega: 7.50
      };
 
-     const { error } = await enviarPedidoOnline(unidadeAtiva, dadosCliente, carrinho);
+     const { error } = await enviarPedidoOnline(unidadeAtiva, dadosCliente, carrinho, true);
      setSimulando(false);
 
      if(error) {
         alert("Erro ao simular: " + error);
      } else {
-        alert("Pedido simulado com sucesso! Verifique a tela do seu PDV (Mesas).");
+        alert("Pedido iFood injetado diretamente na Cozinha (KDS)!");
      }
+  };
+
+  const simularCancelamento = async () => {
+     setSimulando(true);
+     const { data } = await supabase.from("pedidos").select("id").eq("unidade_id", unidadeAtiva).eq("tipo_pedido", "ifood").order("created_at", { ascending: false }).limit(1).single();
+     if (data) {
+        await supabase.from("pedidos").update({ status: 'cancelado' }).eq("id", data.id);
+        await supabase.from("pedidos_itens").update({ status_kds: 'cancelado' }).eq("pedido_id", data.id);
+        alert("Último pedido iFood cancelado!");
+     } else {
+        alert("Nenhum pedido do iFood encontrado para cancelar.");
+     }
+     setSimulando(false);
   };
 
   if (loading) return <div className="p-8 text-slate-500 font-bold animate-pulse">Carregando integrações...</div>;
@@ -174,7 +187,14 @@ export default function IFoodConfigPage() {
                   onClick={simularPedido} disabled={!conectado || simulando}
                   className="w-full mt-4 py-3 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:bg-slate-800 text-white font-black text-sm rounded-xl transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
                >
-                  {simulando ? 'Injetando...' : 'Simular Recebimento'}
+                  {simulando ? 'Processando...' : 'Injetar Pedido (KDS)'}
+               </button>
+               
+               <button 
+                  onClick={simularCancelamento} disabled={!conectado || simulando}
+                  className="w-full mt-2 py-3 bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:bg-slate-800 text-white font-black text-sm rounded-xl transition-all shadow-lg shadow-red-500/20 flex items-center justify-center gap-2"
+               >
+                  Simular Cancelamento
                </button>
                
                {!conectado && <p className="text-[10px] text-red-300 font-bold uppercase tracking-widest mt-2">Conecte primeiro</p>}

@@ -39,6 +39,7 @@ function KDSRunner() {
     if(item.status_kds === 'pendente') novo = 'preparando';
     else if(item.status_kds === 'preparando') novo = 'pronto';
     else if(item.status_kds === 'pronto') novo = 'entregue';
+    else if(item.status_kds === 'cancelado') novo = 'entregue'; // Dispensar cancelado
     else return;
 
     // Atualiza localmente rápido pra parecer real-time (Optimistic UI)
@@ -101,11 +102,12 @@ function KDSRunner() {
                      <button 
                         key={it.id} 
                         onClick={() => avancarStatus(it)}
-                        className={`text-left rounded-[32px] p-6 flex flex-col justify-between transition-all duration-300 shadow-2xl active:scale-95 border-2
-                           ${it.status_kds === 'pendente' ? 'bg-slate-800 border-slate-700 text-white hover:border-slate-500' : 
-                             it.status_kds === 'preparando' ? 'bg-amber-400 border-amber-300 text-amber-950' : 
-                             'bg-emerald-500 border-emerald-400 text-emerald-950 animate-pulse'}
-                        `}
+                         className={`text-left rounded-[32px] p-6 flex flex-col justify-between transition-all duration-300 shadow-2xl active:scale-95 border-2
+                            ${it.status_kds === 'cancelado' ? 'bg-[#EA1D2C] border-red-500 text-white animate-pulse' : 
+                              it.status_kds === 'pendente' ? 'bg-slate-800 border-slate-700 text-white hover:border-slate-500' : 
+                              it.status_kds === 'preparando' ? 'bg-amber-400 border-amber-300 text-amber-950' : 
+                              'bg-emerald-500 border-emerald-400 text-emerald-950 animate-pulse'}
+                         `}
                      >
                         <div className="flex justify-between items-start mb-6">
                            <span className={`px-4 py-2 rounded-xl text-3xl font-black ${it.status_kds === 'pendente' ? 'bg-slate-700 text-white' : 'bg-black/20'}`}>
@@ -119,8 +121,14 @@ function KDSRunner() {
                         </div>
                         
                         <div className="mb-8">
-                           <p className="text-3xl font-black leading-tight tracking-tight mb-2">{it.produtos.nome_produto}</p>
-                           {it.observacao && (
+                           <p className="text-3xl font-black leading-tight tracking-tight mb-2">
+                              {it.status_kds === 'cancelado' ? '❌ CANCELADO' : it.produtos.nome_produto}
+                           </p>
+                           {it.status_kds === 'cancelado' ? (
+                              <p className="font-bold text-sm px-3 py-2 rounded-lg inline-block bg-white/20">
+                                 {it.produtos.nome_produto}
+                              </p>
+                           ) : it.observacao && (
                               <p className={`font-bold text-sm px-3 py-2 rounded-lg inline-block
                                  ${it.status_kds === 'pendente' ? 'bg-emerald-500/20 text-slate-500 border border-emerald-500/30' : 'bg-black/20'}
                               `}>
@@ -158,9 +166,9 @@ function KDSRunner() {
                            
                            <div className="flex items-center gap-2">
                               <span className="text-[10px] font-black uppercase tracking-widest opacity-50">
-                                 {it.status_kds === 'pendente' ? 'Iniciar' : it.status_kds === 'preparando' ? 'Pronto' : 'Entregar'}
+                                 {it.status_kds === 'cancelado' ? 'Dispensar' : it.status_kds === 'pendente' ? 'Iniciar' : it.status_kds === 'preparando' ? 'Pronto' : 'Entregar'}
                               </span>
-                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${it.status_kds === 'pendente' ? 'bg-slate-700 text-white' : 'bg-black/20'}`}>
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${it.status_kds === 'pendente' || it.status_kds === 'cancelado' ? 'bg-slate-700 text-white' : 'bg-black/20'}`}>
                                  {it.status_kds === 'pendente' ? <Play size={16} className="ml-1"/> : <CheckCircle2 size={20}/>}
                               </div>
                            </div>

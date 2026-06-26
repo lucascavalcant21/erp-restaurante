@@ -32,6 +32,7 @@ export async function gerarDadosFicticios() {
     // 2. Criar Unidade de Teste
     const { data: novaUnidade, error: errUni } = await supabase.from("unidades")
       .insert([{
+        id: "mock-unidade",
         nome: TEST_UNIT_NAME,
         cor: "#8B5CF6", // Roxo para destacar
         delivery_aberto: true,

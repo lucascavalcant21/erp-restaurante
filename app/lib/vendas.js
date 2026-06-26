@@ -305,7 +305,7 @@ export async function transferirComanda(pedidoId, mesaOrigemId, mesaDestinoId) {
   return { success: true };
 }
 
-export async function lancarVendaBalcao(unidadeId, caixaId, itensCart, pagamentoData) {
+export async function lancarVendaBalcao(unidadeId, caixaId, itensCart, pagamentoData, origem = 'balcao') {
   if (!isSupabaseReady()) return { error: "Offline" };
 
   const subtotal = itensCart.reduce((acc, it) => acc + (it.preco_venda * it.quantidade), 0);
@@ -318,7 +318,8 @@ export async function lancarVendaBalcao(unidadeId, caixaId, itensCart, pagamento
      unidade_id: unidadeId,
      status: 'pago',
      valor_total: valorTotal,
-     tipo_pedido: 'balcao',
+     tipo_pedido: origem, // balcao, ifood, cardapio
+     origem: origem,
      forma_pagamento: pagamentoData?.principal || 'multiplo',
      caixa_id: caixaId
   }]).select().single();

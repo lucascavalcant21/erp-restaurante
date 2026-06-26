@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchCaixaAberto, abrirCaixa, registrarMovimentacao, fetchResumoCaixa, fecharCaixa } from "../../../lib/caixas";
 import { fetchProdutos, lancarVendaBalcao, fetchMesas, criarMesa, fetchPedidoAberto, abrirMesaEPedido, lancarItemComanda, fecharContaDaMesa, fetchGarcons, criarGarcom, fetchProximoNumeroComanda, fetchTodosPedidosAbertos, transferirComanda } from "../../../lib/vendas";
-import { Lock, Unlock, LogOut, DollarSign, ArrowDownCircle, ArrowUpCircle, ShoppingBag, ShoppingCart, Maximize, Plus, Minus, Trash2, Printer, Users, Barcode, CreditCard, Receipt, SplitSquareHorizontal, Utensils, Send, X, Settings, Search, CheckCircle, ArrowRightLeft } from "lucide-react";
+import { Lock, Unlock, LogOut, DollarSign, ArrowDownCircle, ArrowUpCircle, ShoppingBag, ShoppingCart, Maximize, Plus, Minus, Trash2, Printer, Users, Barcode, CreditCard, Receipt, SplitSquareHorizontal, Utensils, Send, X, Settings, Search, CheckCircle, ArrowRightLeft, Share2 } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
 export default function SaloesMesasPage() {
@@ -280,7 +280,7 @@ export default function SaloesMesasPage() {
   // ==========================================
   const abrirModalPagamento = () => {
      let sub = 0;
-     if(abaAtiva === 'balcao') sub = totalCarrinho;
+     if(abaAtiva !== 'salao') sub = totalCarrinho;
      else if(abaAtiva === 'salao' && pedidoAtivo) {
         sub = pedidoAtivo.pedidos_itens?.reduce((acc, it) => acc + (it.valor_unitario * it.quantidade), 0) || 0;
      }
@@ -298,7 +298,7 @@ export default function SaloesMesasPage() {
 
   const subtotalPagamento = useMemo(() => {
      let sub = 0;
-     if(abaAtiva === 'balcao') sub = totalCarrinho;
+     if(abaAtiva !== 'salao') sub = totalCarrinho;
      else if(abaAtiva === 'salao' && pedidoAtivo) {
         sub = pedidoAtivo.pedidos_itens?.reduce((acc, it) => acc + (it.valor_unitario * it.quantidade), 0) || 0;
      }
@@ -348,9 +348,9 @@ export default function SaloesMesasPage() {
      let sucesso = false;
      let pedidoIdParaRecibo = null;
 
-     if(abaAtiva === 'balcao') {
+     if(abaAtiva !== 'salao') {
         const itensMapeados = carrinho.map(i => ({ ...i, preco_venda: i.preco_venda || i.preco || 0 }));
-        const { error, data } = await lancarVendaBalcao(unidadeAtiva, caixa.id, itensMapeados, pagamentoData);
+        const { error, data } = await lancarVendaBalcao(unidadeAtiva, caixa.id, itensMapeados, pagamentoData, abaAtiva);
         if(error) alert(error);
         else { sucesso = true; pedidoIdParaRecibo = data.id; }
      } else {
@@ -362,7 +362,7 @@ export default function SaloesMesasPage() {
      setProcessando(false);
 
      if(sucesso) {
-        const itensRecibo = abaAtiva === 'balcao' 
+        const itensRecibo = abaAtiva !== 'salao' 
           ? carrinho.map(i => ({ nome: i.nome_produto, qtd: i.quantidade, tot: i.quantidade * (i.preco_venda||0) }))
           : pedidoAtivo.pedidos_itens.map(i => ({ nome: i.produtos?.nome_produto || 'Item', qtd: i.quantidade, tot: i.quantidade * i.valor_unitario }));
 
@@ -383,7 +383,7 @@ export default function SaloesMesasPage() {
         });
 
         setModalPagamento(false);
-        if(abaAtiva === 'balcao') setCarrinho([]);
+        if(abaAtiva !== 'salao') setCarrinho([]);
         if(abaAtiva === 'salao') { setMesaAtiva(null); setPedidoAtivo(null); carregarMesas(); }
         setModalRecibo(true);
      }
@@ -480,13 +480,26 @@ export default function SaloesMesasPage() {
                <button onClick={() => setAbaAtiva('salao')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-2 ${abaAtiva === 'salao' ? 'bg-blue-500 text-white shadow' : 'text-slate-300 hover:text-white'}`}>
                   <Users size={14} /> Salão (Mesas)
                </button>
-               <button onClick={() => setAbaAtiva('balcao')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-2 ml-2 ${abaAtiva === 'balcao' ? 'bg-emerald-500 text-white shadow' : 'text-slate-300 hover:text-white'}`}>
+               <button onClick={() => setAbaAtiva('balcao')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-2 ${abaAtiva === 'balcao' ? 'bg-emerald-500 text-white shadow' : 'text-slate-300 hover:text-white'}`}>
                   <ShoppingBag size={14} /> Balcão Rápido
+               </button>
+               <button onClick={() => setAbaAtiva('ifood')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-2 ${abaAtiva === 'ifood' ? 'bg-[#EA1D2C] text-white shadow' : 'text-slate-300 hover:text-white'}`}>
+                  <Utensils size={14} /> iFood
+               </button>
+               <button onClick={() => setAbaAtiva('cardapio')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-2 ${abaAtiva === 'cardapio' ? 'bg-purple-600 text-white shadow' : 'text-slate-300 hover:text-white'}`}>
+                  <ShoppingBag size={14} /> Cardápio Digital
                </button>
             </div>
          </div>
 
          <div className="flex gap-2">
+            <button onClick={() => {
+               const url = `${window.location.origin}/delivery/${unidadeAtiva}`;
+               navigator.clipboard.writeText(url);
+               alert("Link do cardápio copiado para enviar aos clientes!");
+            }} className="flex items-center gap-1.5 px-3 py-2 bg-purple-500 hover:bg-purple-600 font-bold text-xs rounded-lg transition-colors text-white shadow">
+               <Share2 size={16} /> Copiar Link
+            </button>
             <button onClick={toggleFullScreen} className="flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 font-bold text-xs rounded-lg transition-colors text-white">
                <Maximize size={16} /> Tela Cheia
             </button>
@@ -647,7 +660,7 @@ export default function SaloesMesasPage() {
                   </div>
                   )}
 
-                  {abaAtiva === 'balcao' && (
+                  {abaAtiva !== 'salao' && (
                      <div className="flex flex-col h-full overflow-hidden">
                         <div className="p-4 bg-white border-b border-slate-200 shrink-0 z-10 flex gap-3">
                            <div className="flex-1 relative">
@@ -683,10 +696,10 @@ export default function SaloesMesasPage() {
                </div>
 
                {/* LADO DIREITO: CARRINHO BALCÃO */}
-               {abaAtiva === 'balcao' && (
+               {abaAtiva !== 'salao' && (
                   <div className="w-[400px] bg-white border-l border-slate-200 shadow-2xl flex flex-col shrink-0 z-20">
                      <div className="px-5 py-4 bg-emerald-50 border-b border-emerald-100 flex items-center justify-between">
-                        <h2 className="font-black text-emerald-800 flex items-center gap-2"><ShoppingCart size={18}/> Cupom Balcão</h2>
+                        <h2 className="font-black text-emerald-800 flex items-center gap-2 uppercase"><ShoppingCart size={18}/> Cupom {abaAtiva}</h2>
                      </div>
                      <div className="flex-1 overflow-y-auto p-3 bg-slate-50/30 custom-scrollbar space-y-2">
                         {carrinho.length === 0 ? (

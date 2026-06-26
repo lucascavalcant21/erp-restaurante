@@ -1187,14 +1187,17 @@ export default function SaloesMesasPage() {
       {/* RECIBO FINAL */}
       {modalRecibo && dadosRecibo && (
          <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-lg p-6 w-[320px] shadow-2xl flex flex-col font-mono relative">
+            <div className="bg-white rounded-2xl p-6 w-[320px] shadow-2xl flex flex-col font-mono relative">
+               
+               {/* Cabeçalho */}
                <div className="text-center mb-4 border-b border-dashed border-slate-400 pb-4">
-                  <h2 className="font-black text-xl mb-1">{unidadeAtiva === 'matriz' ? 'NOME FANTASIA' : 'FILIAL'}</h2>
-                  <p className="text-xs">CUPOM NÃO FISCAL</p>
+                  <h2 className="font-black text-xl mb-1">HEFISTO ERP</h2>
+                  <p className="text-xs font-bold">CUPOM NÃO FISCAL</p>
                   <p className="text-xs">{dadosRecibo.tipo === 'salao' ? `MESA ${dadosRecibo.mesa}` : 'VENDA BALCÃO'}</p>
                   <p className="text-[10px] mt-1">{dadosRecibo.data.toLocaleString()}</p>
                </div>
 
+               {/* Itens */}
                <div className="text-xs mb-2">
                   <div className="flex justify-between font-bold border-b border-slate-200 pb-1 mb-1">
                      <span>DESC</span><span>QTD</span><span>TOT</span>
@@ -1208,6 +1211,7 @@ export default function SaloesMesasPage() {
                   ))}
                </div>
 
+               {/* Totais */}
                <div className="border-t border-dashed border-slate-400 pt-2 mt-2 text-xs space-y-1">
                   <div className="flex justify-between"><span>Subtotal:</span><span>{fmtBRL(dadosRecibo.subtotal)}</span></div>
                   {dadosRecibo.desconto > 0 && <div className="flex justify-between text-slate-500"><span>Desconto:</span><span>- {fmtBRL(dadosRecibo.desconto)}</span></div>}
@@ -1215,13 +1219,14 @@ export default function SaloesMesasPage() {
                   <div className="flex justify-between font-black text-sm pt-1 border-t border-slate-200 mt-1"><span>TOTAL:</span><span>{fmtBRL(dadosRecibo.total)}</span></div>
                </div>
 
+               {/* Pagamentos */}
                {!dadosRecibo.isPreConta && (
                   <div className="border-t border-dashed border-slate-400 pt-2 mt-2 text-[10px] space-y-1">
-                     <p className="font-bold text-center mb-1">Pagamentos Reais:</p>
+                     <p className="font-bold text-center mb-1">Pagamentos:</p>
                      {dadosRecibo.recebidos.map((pg, i) => (
                         <div key={i} className="flex justify-between uppercase"><span>{pg.forma}:</span><span>{fmtBRL(pg.valor)}</span></div>
                      ))}
-                     {dadosRecibo.troco > 0 && <div className="flex justify-between font-bold mt-1"><span>Troco Devolvido:</span><span>{fmtBRL(dadosRecibo.troco)}</span></div>}
+                     {dadosRecibo.troco > 0 && <div className="flex justify-between font-bold mt-1"><span>Troco:</span><span>{fmtBRL(dadosRecibo.troco)}</span></div>}
                   </div>
                )}
 
@@ -1232,25 +1237,119 @@ export default function SaloesMesasPage() {
                   </div>
                )}
 
-               <div className="text-center text-[10px] mt-6 pt-4 border-t border-slate-800">
+               <div className="text-center text-[10px] mt-4 pt-3 border-t border-slate-800">
                   <p>Obrigado pela preferência!</p>
+                  <p className="text-slate-400 mt-1">Volte sempre 🙏</p>
                </div>
 
-               <div className="absolute -bottom-16 left-0 right-0 flex gap-2">
-                  <button onClick={() => setModalRecibo(false)} className="flex-1 bg-white text-slate-800 font-bold py-3 rounded-lg shadow-lg">Fechar</button>
-                  <button onClick={() => window.print()} className="flex-1 bg-blue-500 text-white font-bold py-3 rounded-lg shadow-lg flex items-center justify-center gap-2"><Printer size={16}/> Imprimir</button>
+               {/* Botões */}
+               <div className="flex gap-2 mt-6">
+                  <button
+                     onClick={() => setModalRecibo(false)}
+                     className="flex-1 bg-slate-100 text-slate-700 font-bold py-3 rounded-xl"
+                  >
+                     Fechar
+                  </button>
+                  <button
+                     onClick={() => {
+                        const win = window.open('', '_blank', 'width=320,height=600');
+                        win.document.write(`
+                           <!DOCTYPE html>
+                           <html>
+                           <head>
+                              <meta charset="utf-8"/>
+                              <title>Cupom</title>
+                              <style>
+                                 * { margin:0; padding:0; box-sizing:border-box; }
+                                 body {
+                                    font-family: 'Courier New', monospace;
+                                    font-size: 11px;
+                                    width: 80mm;
+                                    padding: 4mm;
+                                    color: #000;
+                                 }
+                                 .center { text-align: center; }
+                                 .bold { font-weight: bold; }
+                                 .big { font-size: 14px; }
+                                 .sep { border-top: 1px dashed #000; margin: 6px 0; }
+                                 .row { display: flex; justify-content: space-between; }
+                                 .row .name { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+                                 .row .qtd { width: 25px; text-align: center; }
+                                 .row .val { width: 55px; text-align: right; }
+                                 .total-row { font-size: 14px; font-weight: bold; }
+                                 @media print {
+                                    @page { margin: 0; size: 80mm auto; }
+                                    body { width: 80mm; }
+                                 }
+                              </style>
+                           </head>
+                           <body>
+                              <div class="center bold big">HEFISTO ERP</div>
+                              <div class="center">CUPOM NÃO FISCAL</div>
+                              <div class="center">${dadosRecibo.tipo === 'salao' ? `MESA ${dadosRecibo.mesa}` : 'VENDA BALCÃO'}</div>
+                              <div class="center" style="font-size:10px">${dadosRecibo.data.toLocaleString()}</div>
+                              <div class="sep"></div>
+                              <div class="row bold">
+                                 <span class="name">DESCRIÇÃO</span>
+                                 <span class="qtd">QTD</span>
+                                 <span class="val">TOTAL</span>
+                              </div>
+                              <div class="sep"></div>
+                              ${dadosRecibo.itens.map(it => `
+                                 <div class="row">
+                                    <span class="name">${it.nome}</span>
+                                    <span class="qtd">${it.qtd}</span>
+                                    <span class="val">R$${it.tot.toFixed(2)}</span>
+                                 </div>
+                              `).join('')}
+                              <div class="sep"></div>
+                              <div class="row">
+                                 <span>Subtotal:</span>
+                                 <span>${fmtBRL(dadosRecibo.subtotal)}</span>
+                              </div>
+                              ${dadosRecibo.desconto > 0 ? `<div class="row"><span>Desconto:</span><span>- ${fmtBRL(dadosRecibo.desconto)}</span></div>` : ''}
+                              ${dadosRecibo.taxa > 0 ? `<div class="row"><span>Taxas:</span><span>+ ${fmtBRL(dadosRecibo.taxa)}</span></div>` : ''}
+                              <div class="sep"></div>
+                              <div class="row total-row">
+                                 <span>TOTAL:</span>
+                                 <span>${fmtBRL(dadosRecibo.total)}</span>
+                              </div>
+                              ${!dadosRecibo.isPreConta ? `
+                                 <div class="sep"></div>
+                                 <div class="center bold" style="margin-bottom:4px">PAGAMENTOS</div>
+                                 ${dadosRecibo.recebidos.map(pg => `
+                                    <div class="row">
+                                       <span>${pg.forma.toUpperCase()}:</span>
+                                       <span>${fmtBRL(pg.valor)}</span>
+                                    </div>
+                                 `).join('')}
+                                 ${dadosRecibo.troco > 0 ? `<div class="row bold"><span>TROCO:</span><span>${fmtBRL(dadosRecibo.troco)}</span></div>` : ''}
+                              ` : ''}
+                              ${dadosRecibo.cpf ? `
+                                 <div class="sep"></div>
+                                 <div class="center" style="font-size:10px">CPF: ${dadosRecibo.cpf}</div>
+                                 ${dadosRecibo.cliente ? `<div class="center" style="font-size:10px">${dadosRecibo.cliente}</div>` : ''}
+                              ` : ''}
+                              <div class="sep"></div>
+                              <div class="center" style="margin-top:8px">Obrigado pela preferência!</div>
+                              <div class="center">Volte sempre 🙏</div>
+                              <script>
+                                 window.onload = function() { window.print(); window.close(); }
+                              </script>
+                           </body>
+                           </html>
+                        `);
+                        win.document.close();
+                     }}
+                     className="flex-1 bg-blue-600 text-white font-black py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-blue-500/30 hover:bg-blue-700 transition-colors"
+                  >
+                     <Printer size={18}/> Imprimir
+                  </button>
                </div>
-               <style dangerouslySetInnerHTML={{__html: `
-                  @media print {
-                     body * { visibility: hidden; }
-                     .z-\\[80\\] * { visibility: visible; }
-                     .z-\\[80\\] { position: absolute; left: 0; top: 0; background: transparent; }
-                     button { display: none !important; }
-                  }
-               `}} />
             </div>
          </div>
       )}
+
 
       {/* MODAL: SANGRIAS E SUPRIMENTOS */}
       {modalMov && (

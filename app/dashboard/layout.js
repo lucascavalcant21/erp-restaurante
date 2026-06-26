@@ -10,13 +10,24 @@ import {
 } from "lucide-react";
 
 const MEGA_MENU = {
-  "Operação (Caixa, KDS, Garçom)": [
+  "Operação Salão & Delivery": [
     { label: "Frente de Caixa (PDV)", href: "/dashboard/salao/mesas" },
     { label: "App do Garçom", href: "/dashboard/salao/mesas?acao=garcom" },
     { label: "Delivery e iFood", href: "/dashboard/salao/online" },
+    { label: "Catálogo de Produtos", href: "/dashboard/operacao/produtos" },
+    { label: "Painel de Senhas (TV)", href: "/chamada/dinamico" }
+  ],
+  "Operação Cozinha": [
     { label: "Painel da Cozinha (KDS)", href: "/dashboard/kds?dept=cozinha" },
-    { label: "Painel do Bar", href: "/dashboard/kds?dept=bar" },
-    { label: "Catálogo de Produtos", href: "/dashboard/operacao/produtos" }
+    { label: "Ingredientes e Fichas", href: "/dashboard/operacao/ingredientes" },
+    { label: "Controle de Estoque", href: "/dashboard/operacao/estoque" },
+    { label: "Compras e Notas (NF-e)", href: "/dashboard/operacao/compras" },
+    { label: "Análise de CMV", href: "/dashboard/financeiro/cmv" }
+  ],
+  "Operação Bar": [
+    { label: "Painel do Bar (KDS)", href: "/dashboard/kds?dept=bar" },
+    { label: "Estoque do Bar", href: "/dashboard/operacao/estoque?dept=bar" },
+    { label: "Fichas de Drinks", href: "/dashboard/operacao/ingredientes?dept=bar" }
   ],
   "Financeiro": [
     { label: "Acerto de entregadores", href: "#" },
@@ -48,19 +59,6 @@ const MEGA_MENU = {
     { label: "Vendas por área de entrega", href: "#" },
     { label: "Vendas por forma de pagamento", href: "#" },
     { label: "Vendas por período", href: "#" }
-  ],
-  "Estoque": [
-    { label: "Análise e simulação de CMV", href: "/dashboard/financeiro/cmv" },
-    { label: "Ficha técnica", href: "/dashboard/operacao/fichas" },
-    { label: "Grupos de ingrediente", href: "/dashboard/operacao/ingredientes" },
-    { label: "Histórico de posição de estoque", href: "/dashboard/operacao/estoque" },
-    { label: "Ingredientes e Insumos", href: "/dashboard/operacao/ingredientes" },
-    { label: "Lista de compras", href: "/dashboard/operacao/compras" },
-    { label: "Movimentações de estoque", href: "/dashboard/operacao/estoque" },
-    { label: "Notas de entrada", href: "/dashboard/operacao/notas" },
-    { label: "Ordem de compra", href: "/dashboard/operacao/compras" },
-    { label: "Posição e contagem de estoque", href: "/dashboard/operacao/estoque" },
-    { label: "Relatório de CMV real", href: "/dashboard/financeiro/cmv" }
   ],
   "Recursos Humanos": [
     { label: "Gestão de RH e Departamento Pessoal", href: "/dashboard/rh" },

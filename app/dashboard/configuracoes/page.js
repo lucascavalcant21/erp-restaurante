@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { useERP } from "../../context/ERPContext";
 import { fetchUnidades, atualizarUnidade } from "../../lib/unidades";
-import { Settings, Store, Phone, Clock, Bike, Save, CheckCircle, AlertCircle } from "lucide-react";
+import { Settings, Store, Phone, Clock, Bike, Save, CheckCircle, AlertCircle, Beaker, Trash2, RefreshCw } from "lucide-react";
+import { gerarDadosFicticios, limparAmbienteTeste } from "../../lib/mock";
 
 export default function ConfiguracoesPage() {
   const { unidadeAtiva } = useERP();
@@ -72,6 +73,31 @@ export default function ConfiguracoesPage() {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
+  };
+
+  const [mockLoading, setMockLoading] = useState(false);
+
+  const handleGerarMock = async () => {
+    setMockLoading(true);
+    const res = await gerarDadosFicticios();
+    setMockLoading(false);
+    if(res.error) alert("Erro: " + res.error);
+    else {
+      alert("Ambiente de teste criado! A página será atualizada.");
+      window.location.reload();
+    }
+  };
+
+  const handleLimparMock = async () => {
+    if(!confirm("CUIDADO: Tem certeza que deseja apagar o ambiente de testes? Isso apagará a loja falsa e todos os pedidos gerados nela. Seus dados reais estão seguros.")) return;
+    setMockLoading(true);
+    const res = await limparAmbienteTeste();
+    setMockLoading(false);
+    if(res.error) alert("Erro: " + res.error);
+    else {
+      alert("Ambiente de teste apagado com sucesso.");
+      window.location.reload();
+    }
   };
 
   if (loading) return <div className="p-8 text-slate-500 font-bold animate-pulse">Carregando configurações...</div>;
@@ -198,6 +224,29 @@ export default function ConfiguracoesPage() {
         </div>
 
       </form>
+
+      {/* CARD 3: Mock Data (Sandbox) */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-6">
+         <div className="bg-purple-50 border-b border-purple-100 p-4 flex items-center gap-2">
+            <Beaker size={18} className="text-purple-600" />
+            <h2 className="font-bold text-purple-800">Desenvolvimento e Testes (Sandbox)</h2>
+         </div>
+         <div className="p-6">
+            <p className="text-sm text-slate-600 mb-6">
+               Crie um <strong>Ambiente de Teste</strong> para visualizar o ERP funcionando sem sujar a sua loja oficial. 
+               Uma nova Unidade Falsa será criada com Fichas Técnicas, Produtos, Pedidos rolando no KDS e Caixas abertos.
+            </p>
+            <div className="flex items-center gap-4">
+               <button type="button" onClick={handleGerarMock} disabled={mockLoading} className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 px-6 rounded-xl flex items-center gap-2 transition-colors disabled:opacity-50">
+                  <RefreshCw size={18} className={mockLoading ? "animate-spin" : ""} /> {mockLoading ? "Processando..." : "Gerar Ambiente de Teste"}
+               </button>
+               <button type="button" onClick={handleLimparMock} disabled={mockLoading} className="bg-red-50 text-red-600 hover:bg-red-100 font-bold py-2.5 px-6 rounded-xl flex items-center gap-2 transition-colors disabled:opacity-50">
+                  <Trash2 size={18} /> Apagar Ambiente
+               </button>
+            </div>
+         </div>
+      </div>
+
     </div>
   );
 }

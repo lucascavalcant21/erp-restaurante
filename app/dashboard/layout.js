@@ -6,29 +6,69 @@ import { lerSessao, encerrarSessao, podeAcessar } from "../lib/auth";
 import { useERP } from "../context/ERPContext";
 import {
   Users, Bell, ChefHat, GlassWater, BarChart, 
-  Briefcase, Fingerprint, Store, Settings, LogOut, ChevronDown, Check, Bike
+  Briefcase, Fingerprint, Store, Settings, LogOut, ChevronDown, Check, Bike,
+  UtensilsCrossed, FlaskConical, Package, ShoppingCart, FileText, TrendingUp
 } from "lucide-react";
 
+// Cards especiais de operação — renderizados de forma visual diferenciada
+const OPERACAO_SETORES = [
+  {
+    id: "salao",
+    titulo: "Operação Salão & Delivery",
+    Icone: UtensilsCrossed,
+    cor: "#4970AF",
+    bg: "bg-blue-50",
+    borda: "border-blue-200",
+    links: [
+      { label: "Frente de Caixa (PDV)", href: "/dashboard/salao/mesas", desc: "Abrir mesa, comanda e pagamento", badge: "LIVE", badgeCor: "bg-emerald-500" },
+      { label: "App do Garçom", href: "/dashboard/salao/mesas?acao=garcom", desc: "Modo garçom com seleção de operador", badge: null },
+      { label: "Delivery & iFood", href: "/dashboard/salao/online", desc: "Pedidos online e integrações", badge: "LIVE", badgeCor: "bg-orange-500" },
+      { label: "Catálogo de Produtos", href: "/dashboard/operacao/produtos", desc: "Cardápio, preços e categorias", badge: null },
+      { label: "Cardápio Digital (QR)", href: "/dashboard/operacao/cardapio", desc: "Cardápio via QR Code para clientes", badge: null },
+      { label: "Painel de Senhas (TV)", href: "/chamada/dinamico", desc: "Exibir chamada em TV ou monitor", badge: "TV", badgeCor: "bg-slate-500" },
+      { label: "Cupons de Desconto", href: "/dashboard/marketing/cupons", desc: "Criar e gerenciar promoções", badge: null },
+      { label: "Observações Padrão", href: "/dashboard/operacao/observacoes", desc: "Obs. rápidas no lançamento de pedidos", badge: null },
+    ]
+  },
+  {
+    id: "cozinha",
+    titulo: "Operação Cozinha",
+    Icone: ChefHat,
+    cor: "#D97706",
+    bg: "bg-amber-50",
+    borda: "border-amber-200",
+    links: [
+      { label: "KDS Cozinha", href: "/dashboard/kds?dept=cozinha", desc: "Monitor de pedidos em tempo real", badge: "LIVE", badgeCor: "bg-emerald-500" },
+      { label: "Fichas Técnicas", href: "/dashboard/operacao/fichas", desc: "Receitas com custo e rendimento", badge: null },
+      { label: "Ingredientes e Insumos", href: "/dashboard/operacao/ingredientes", desc: "Banco de ingredientes com preços", badge: null },
+      { label: "Controle de Estoque", href: "/dashboard/operacao/estoque", desc: "Posição atual, contagem e movimentos", badge: null },
+      { label: "Lista de Compras", href: "/dashboard/operacao/compras", desc: "Sugestão automática por consumo", badge: null },
+      { label: "Notas de Entrada (NF-e)", href: "/dashboard/operacao/notas", desc: "Lançar NF de fornecedores", badge: null },
+      { label: "Análise de CMV", href: "/dashboard/financeiro/cmv", desc: "Custo real da mercadoria vendida", badge: null },
+      { label: "Produção e Pré-Preparo", href: "/dashboard/operacao/producao", desc: "Registrar produções internas", badge: null },
+      { label: "Validade de Produtos", href: "/dashboard/operacao/validade", desc: "Controle de vencimentos", badge: null },
+      { label: "Rotinas Operacionais", href: "/dashboard/operacao/rotina", desc: "Checklists de abertura/fechamento", badge: null },
+    ]
+  },
+  {
+    id: "bar",
+    titulo: "Operação Bar",
+    Icone: GlassWater,
+    cor: "#7C3AED",
+    bg: "bg-purple-50",
+    borda: "border-purple-200",
+    links: [
+      { label: "KDS Bar", href: "/dashboard/kds?dept=bar", desc: "Monitor de pedidos do bar", badge: "LIVE", badgeCor: "bg-emerald-500" },
+      { label: "Drinks e Coquetéis", href: "/dashboard/operacao/drinks", desc: "Montagem e produção de drinks", badge: null },
+      { label: "Fichas de Drinks", href: "/dashboard/operacao/ingredientes?dept=bar", desc: "Receitas com custo e insumos", badge: null },
+      { label: "Estoque do Bar", href: "/dashboard/operacao/estoque?dept=bar", desc: "Bebidas, xaropes e insumos", badge: null },
+      { label: "Cardápio de Bebidas", href: "/dashboard/operacao/produtos?cat=Bebidas", desc: "Produtos do bar no cardápio", badge: null },
+      { label: "Compras do Bar", href: "/dashboard/operacao/compras", desc: "Reposição de bebidas e insumos", badge: null },
+    ]
+  }
+];
+
 const MEGA_MENU = {
-  "Operação Salão & Delivery": [
-    { label: "Frente de Caixa (PDV)", href: "/dashboard/salao/mesas" },
-    { label: "App do Garçom", href: "/dashboard/salao/mesas?acao=garcom" },
-    { label: "Delivery e iFood", href: "/dashboard/salao/online" },
-    { label: "Catálogo de Produtos", href: "/dashboard/operacao/produtos" },
-    { label: "Painel de Senhas (TV)", href: "/chamada/dinamico" }
-  ],
-  "Operação Cozinha": [
-    { label: "Painel da Cozinha (KDS)", href: "/dashboard/kds?dept=cozinha" },
-    { label: "Ingredientes e Fichas", href: "/dashboard/operacao/ingredientes" },
-    { label: "Controle de Estoque", href: "/dashboard/operacao/estoque" },
-    { label: "Compras e Notas (NF-e)", href: "/dashboard/operacao/compras" },
-    { label: "Análise de CMV", href: "/dashboard/financeiro/cmv" }
-  ],
-  "Operação Bar": [
-    { label: "Painel do Bar (KDS)", href: "/dashboard/kds?dept=bar" },
-    { label: "Estoque do Bar", href: "/dashboard/operacao/estoque?dept=bar" },
-    { label: "Fichas de Drinks", href: "/dashboard/operacao/ingredientes?dept=bar" }
-  ],
   "Financeiro": [
     { label: "Acerto de entregadores", href: "#" },
     { label: "Acerto de garçons", href: "#" },
@@ -259,32 +299,76 @@ function TopHeader({ onSair }) {
                   </div>
 
                   {/* Colunas de Categorias */}
-                  <div className="flex-1 overflow-y-auto custom-scrollbar grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 pb-10 items-start">
-                     {Object.entries(MEGA_MENU).map(([catName, links]) => {
-                        const filteredLinks = links.filter(l => l.label.toLowerCase().includes(searchMenu.toLowerCase()) || catName.toLowerCase().includes(searchMenu.toLowerCase()));
-                        
-                        if (filteredLinks.length === 0) return null;
+                  <div className="flex-1 overflow-y-auto custom-scrollbar pb-6">
 
-                        return (
-                           <div key={catName} className="flex flex-col">
-                              <h3 className="text-base font-bold text-[#4970AF] mb-3">{catName}</h3>
-                              <ul className="space-y-2">
-                                 {filteredLinks.map((link, idx) => (
+                      {/* ── SETORES DE OPERAÇÃO — Cards visuais ── */}
+                      {!searchMenu && (
+                        <div className="mb-6">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">Operação</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            {OPERACAO_SETORES.map(setor => (
+                              <div key={setor.id} className={`rounded-xl border ${setor.borda} ${setor.bg} p-4`}>
+                                {/* Cabeçalho do setor */}
+                                <div className="flex items-center gap-2 mb-3">
+                                  <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: setor.cor }}>
+                                    <setor.Icone size={15} className="text-white" />
+                                  </div>
+                                  <span className="font-bold text-sm" style={{ color: setor.cor }}>{setor.titulo}</span>
+                                </div>
+                                {/* Links do setor */}
+                                <ul className="space-y-1">
+                                  {setor.links.map((link, idx) => (
                                     <li key={idx}>
-                                       <button 
-                                          onClick={() => handleMenuClick(link.href)}
-                                          className={`text-left text-[13px] hover:underline transition-colors ${link.href !== '#' ? 'text-slate-700 hover:text-blue-600' : 'text-slate-400 cursor-not-allowed'}`}
-                                          title={link.href === '#' ? "Em breve" : ""}
-                                       >
-                                          {link.label}
-                                       </button>
+                                      <button
+                                        onClick={() => handleMenuClick(link.href)}
+                                        className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-white/70 transition-colors group flex items-start justify-between gap-1"
+                                      >
+                                        <div>
+                                          <span className="text-[12.5px] font-semibold text-slate-700 group-hover:text-slate-900 leading-tight block">{link.label}</span>
+                                          {link.desc && <span className="text-[11px] text-slate-400 leading-tight block">{link.desc}</span>}
+                                        </div>
+                                        {link.badge && (
+                                          <span className={`shrink-0 text-[9px] font-bold text-white px-1.5 py-0.5 rounded-full mt-0.5 ${link.badgeCor}`}>{link.badge}</span>
+                                        )}
+                                      </button>
                                     </li>
-                                 ))}
-                              </ul>
-                           </div>
-                        );
-                     })}
-                  </div>
+                                  ))}
+                                </ul>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* ── OUTRAS CATEGORIAS ── */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 items-start">
+                      {Object.entries(MEGA_MENU).map(([catName, links]) => {
+                         const filteredLinks = links.filter(l => l.label.toLowerCase().includes(searchMenu.toLowerCase()) || catName.toLowerCase().includes(searchMenu.toLowerCase()));
+                         
+                         if (filteredLinks.length === 0) return null;
+
+                         return (
+                            <div key={catName} className="flex flex-col">
+                               <h3 className="text-base font-bold text-[#4970AF] mb-3">{catName}</h3>
+                               <ul className="space-y-2">
+                                  {filteredLinks.map((link, idx) => (
+                                     <li key={idx}>
+                                        <button 
+                                           onClick={() => handleMenuClick(link.href)}
+                                           className={`text-left text-[13px] hover:underline transition-colors ${link.href !== '#' ? 'text-slate-700 hover:text-blue-600' : 'text-slate-400 cursor-not-allowed'}`}
+                                           title={link.href === '#' ? "Em breve" : ""}
+                                        >
+                                           {link.label}
+                                        </button>
+                                     </li>
+                                  ))}
+                               </ul>
+                            </div>
+                         );
+                      })}
+                      </div>
+
+                   </div>
 
                </div>
             </div>

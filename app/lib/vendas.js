@@ -68,6 +68,7 @@ export async function criarMesa(unidadeId, numeroMesa) {
   const { error } = await supabase.from("mesas").insert([{ 
     unidade_id: unidadeId, 
     numero: String(numeroMesa),
+    numero_mesa: String(numeroMesa),
     status: 'livre'
   }]);
   return { error: error?.message };

@@ -21,6 +21,16 @@ export default function CardapioPublicoPage() {
 
   // FORM CHECKOUT
   const [form, setForm] = useState({ tipo: "delivery", nome: "", telefone: "", endereco: "", troco: "" });
+  const [mesaUrl, setMesaUrl] = useState(null);
+
+  useEffect(() => {
+     const params = new URLSearchParams(window.location.search);
+     const m = params.get('mesa');
+     if(m) {
+        setMesaUrl(m);
+        setForm(f => ({ ...f, tipo: 'qrcode' }));
+     }
+  }, []);
 
   useEffect(() => {
     async function carregarCardapio() {
@@ -73,7 +83,12 @@ export default function CardapioPublicoPage() {
      if(!form.telefone) return alert("Digite seu WhatsApp!");
      if(form.tipo === 'delivery' && !form.endereco) return alert("Digite seu endereço!");
 
-     const erro = await enviarPedidoOnline(unidadeId, form, carrinho);
+     const payloadForm = { ...form };
+     if (mesaUrl) {
+         payloadForm.nome = `[MESA ${mesaUrl}] ${form.nome}`;
+     }
+
+     const erro = await enviarPedidoOnline(unidadeId, payloadForm, carrinho);
      if(erro.error) return alert("Erro ao enviar: " + erro.error);
 
      setPedidoEnviado(true);
@@ -211,13 +226,19 @@ export default function CardapioPublicoPage() {
                ) : (
                   // TELA 2: DADOS DO CHECKOUT
                   <div className="space-y-6">
-                     <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-3">Como você quer receber?</label>
-                        <div className="grid grid-cols-2 gap-3">
-                           <button onClick={()=>setForm({...form, tipo: 'delivery'})} className={`p-4 rounded-2xl font-black border-2 transition-all ${form.tipo === 'delivery' ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-white border-slate-200 text-slate-400'}`}>Delivery</button>
-                           <button onClick={()=>setForm({...form, tipo: 'qrcode'})} className={`p-4 rounded-2xl font-black border-2 transition-all ${form.tipo === 'qrcode' ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-white border-slate-200 text-slate-400'}`}>Estou na Mesa</button>
+                     {!mesaUrl ? (
+                        <div>
+                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-3">Como você quer receber?</label>
+                           <div className="grid grid-cols-2 gap-3">
+                              <button onClick={()=>setForm({...form, tipo: 'delivery'})} className={`p-4 rounded-2xl font-black border-2 transition-all ${form.tipo === 'delivery' ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-white border-slate-200 text-slate-400'}`}>Delivery</button>
+                              <button onClick={()=>setForm({...form, tipo: 'qrcode'})} className={`p-4 rounded-2xl font-black border-2 transition-all ${form.tipo === 'qrcode' ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-white border-slate-200 text-slate-400'}`}>Estou na Mesa</button>
+                           </div>
                         </div>
-                     </div>
+                     ) : (
+                        <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-200">
+                           <p className="text-indigo-800 font-bold text-sm text-center">📍 Pedido vinculado à Mesa {mesaUrl}</p>
+                        </div>
+                     )}
 
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Seu Nome</label>

@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useERP } from "../../../context/ERPContext";
-import { fetchEstatisticasDashboard } from "../../../lib/relatorios";
+import { useERP } from "../../context/ERPContext";
+import { fetchEstatisticasDashboard } from "../../lib/relatorios";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from "recharts";
 import { TrendingUp, ShoppingBag, Receipt, DollarSign, Calendar, MapPin, Loader2, ArrowRight } from "lucide-react";
-import { fmtBRL } from "../../../components/ui";
+import { fmtBRL } from "../../components/ui";
 
 const COLORS = ['#4970AF', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
 

@@ -6,6 +6,7 @@ import { useERP } from "../../../context/ERPContext";
 import { fetchCaixaAberto, abrirCaixa, registrarMovimentacao, fetchResumoCaixa, fecharCaixa } from "../../../lib/caixas";
 import { fetchProdutos, lancarVendaBalcao, fetchMesas, criarMesa, fetchPedidoAberto, abrirMesaEPedido, lancarItemComanda, fecharContaDaMesa, fetchGarcons, criarGarcom, fetchProximoNumeroComanda, fetchTodosPedidosAbertos, transferirComanda, validarCupom, fetchObservacoesPadrao } from "../../../lib/vendas";
 import { Lock, Unlock, LogOut, DollarSign, ArrowDownCircle, ArrowUpCircle, ShoppingBag, ShoppingCart, Maximize, Plus, Minus, Trash2, Printer, Users, Barcode, CreditCard, Receipt, SplitSquareHorizontal, Utensils, Send, X, Settings, Search, CheckCircle, ArrowRightLeft, Share2, Tag } from "lucide-react";
+import { QRCodeSVG } from 'qrcode.react';
 import { fmtBRL } from "../../../components/ui";
 
 export default function SaloesMesasPage() {
@@ -60,6 +61,7 @@ export default function SaloesMesasPage() {
   const [modalTransferir, setModalTransferir] = useState(false);
   const [modalGestaoMesas, setModalGestaoMesas] = useState(false);
   const [novaMesaNum, setNovaMesaNum] = useState("");
+  const [qrMesa, setQrMesa] = useState(null); // Mesa para imprimir QR Code
 
   const [garcons, setGarcons] = useState([]);
   const [modalGarcom, setModalGarcom] = useState(false);
@@ -1470,17 +1472,23 @@ export default function SaloesMesasPage() {
                                     </div>
                                     <span className={`text-xs font-bold px-2 py-1 rounded-md uppercase ${m.status==='ocupada' ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600'}`}>{m.status}</span>
                                  </div>
-                                 <button onClick={async () => {
-                                    if(m.status === 'ocupada') {
-                                       alert("Você não pode excluir uma mesa ocupada!"); return;
-                                    }
-                                    if(confirm(`Deseja mesmo excluir a mesa ${m.numero_mesa}?`)) {
-                                       await excluirMesa(m.id);
-                                       await carregarMesas();
-                                    }
-                                 }} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                                    <Trash2 size={18}/>
-                                 </button>
+                                 <div className="flex gap-2">
+                                    <button onClick={() => setQrMesa(m)} className="p-2 bg-slate-100 text-slate-500 rounded-lg hover:bg-slate-200 transition" title="Gerar QR Code">
+                                       <Barcode size={18} />
+                                    </button>
+                                    <button onClick={async () => {
+                                       if(m.status === 'ocupada') {
+                                          alert("Você não pode excluir uma mesa ocupada!"); return;
+                                       }
+                                       if(confirm(`Deseja mesmo excluir a mesa ${m.numero_mesa}?`)) {
+                                          // Excluir usando supabase
+                                          const { error } = await supabase.from('mesas').delete().eq('id', m.id);
+                                          if(!error) await carregarMesas();
+                                       }
+                                    }} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                                       <Trash2 size={18}/>
+                                    </button>
+                                 </div>
                               </div>
                            ))}
                         </div>

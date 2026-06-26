@@ -78,7 +78,7 @@ const MEGA_MENU = {
   ],
   "Opções da loja": [
     { label: "Áreas de entrega", href: "#" },
-    { label: "Canais de venda e Integrações", href: "#" },
+    { label: "Canais de venda e Integrações", href: "/dashboard/canais/ifood" },
     { label: "Comandas", href: "#" },
     { label: "Configurações", href: "/dashboard/configuracoes" },
     { label: "Dados da loja", href: "#" },

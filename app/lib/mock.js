@@ -6,13 +6,36 @@ export async function limparAmbienteTeste() {
   if (!isSupabaseReady()) return { error: "Offline" };
 
   try {
-    // 1. Achar a unidade de teste
-    const { data: unidade } = await supabase.from("unidades").select("id").eq("nome", TEST_UNIT_NAME).single();
-    if (!unidade) return { success: true }; // Nada para limpar
+    // 1. Achar a unidade de teste (usando o id explícito que criamos)
+    let { data: unidade } = await supabase.from("unidades").select("id").eq("id", "mock-unidade").single();
+    
+    let targetId = unidade?.id;
 
-    // 2. Apagar a Unidade.
-    // Como a tabela tem ON DELETE CASCADE para quase tudo, isso limpará os pedidos, produtos, insumos, etc.
-    const { error } = await supabase.from("unidades").delete().eq("id", unidade.id);
+    if (!targetId) {
+       // Se não achou pelo id novo, tenta achar pelo nome (para limpar a sujeira da tentativa anterior)
+       const { data: uniAntiga } = await supabase.from("unidades").select("id").eq("nome", TEST_UNIT_NAME).single();
+       if (!uniAntiga) return { success: true };
+       targetId = uniAntiga.id;
+    }
+
+    // 1.5 Limpar tabelas de relacionamento que podem bloquear o CASCADE
+    // Fichas Ingredientes
+    const { data: fichas } = await supabase.from("fichas_tecnicas").select("id").eq("unidade_id", targetId);
+    if (fichas && fichas.length > 0) {
+      await supabase.from("fichas_ingredientes").delete().in("ficha_id", fichas.map(f => f.id));
+    }
+    
+    // Pedidos Itens
+    const { data: pedidos } = await supabase.from("pedidos").select("id").eq("unidade_id", targetId);
+    if (pedidos && pedidos.length > 0) {
+      await supabase.from("pedidos_itens").delete().in("pedido_id", pedidos.map(p => p.id));
+    }
+
+    // Estoque
+    await supabase.from("estoque_atual").delete().eq("unidade_id", targetId);
+
+    // 2. Apagar a Unidade (agora o CASCADE deve funcionar para o resto)
+    const { error } = await supabase.from("unidades").delete().eq("id", targetId);
     if (error) throw error;
 
     return { success: true };

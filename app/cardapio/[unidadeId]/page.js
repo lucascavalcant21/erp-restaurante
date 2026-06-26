@@ -11,6 +11,8 @@ export default function CardapioPublicoPage() {
   const { unidadeId } = useParams();
   const [produtos, setProdutos] = useState([]);
   const [unidadeNome, setUnidadeNome] = useState("Carregando...");
+  const [lojaAberta, setLojaAberta] = useState(true);
+  const [taxaEntrega, setTaxaEntrega] = useState(0);
   const [loading, setLoading] = useState(true);
 
   // CARRINHO
@@ -35,8 +37,12 @@ export default function CardapioPublicoPage() {
   useEffect(() => {
     async function carregarCardapio() {
        setLoading(true);
-       const { data: uni } = await supabase.from("unidades").select("nome").eq("id", unidadeId).single();
-       if(uni) setUnidadeNome(uni.nome);
+       const { data: uni } = await supabase.from("unidades").select("nome, delivery_aberto, taxa_entrega_padrao").eq("id", unidadeId).single();
+       if(uni) {
+         setUnidadeNome(uni.nome);
+         setLojaAberta(uni.delivery_aberto !== false);
+         setTaxaEntrega(parseFloat(uni.taxa_entrega_padrao) || 0);
+       }
 
        const { data: prod } = await supabase.from("produtos")
           .select("*")
@@ -77,6 +83,8 @@ export default function CardapioPublicoPage() {
   };
 
   const totalCarrinho = carrinho.reduce((acc, it) => acc + (it.preco_venda * it.quantidade), 0);
+  const valorTaxa = form.tipo === 'delivery' ? taxaEntrega : 0;
+  const totalGeral = totalCarrinho + valorTaxa;
 
   const finalizarPedido = async () => {
      if(!form.nome) return alert("Digite seu nome!");
@@ -84,6 +92,9 @@ export default function CardapioPublicoPage() {
      if(form.tipo === 'delivery' && !form.endereco) return alert("Digite seu endereço!");
 
      const payloadForm = { ...form };
+     if (form.tipo === 'delivery' && taxaEntrega > 0) {
+        payloadForm.taxa_entrega = taxaEntrega;
+     }
      if (mesaUrl) {
          payloadForm.nome = `[MESA ${mesaUrl}] ${form.nome}`;
      }
@@ -128,6 +139,13 @@ export default function CardapioPublicoPage() {
             <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Menu Digital & Delivery</p>
          </div>
       </div>
+
+      {/* BANNER LOJA FECHADA */}
+      {!loading && !lojaAberta && (
+         <div className="bg-red-500 text-white text-center py-3 px-4 font-bold text-sm mx-4 mt-4 rounded-xl shadow-md flex items-center justify-center gap-2">
+            <Info size={16} /> O delivery está fechado no momento.
+         </div>
+      )}
 
       <div className="max-w-md mx-auto px-4 -mt-6 relative z-20">
          
@@ -178,7 +196,7 @@ export default function CardapioPublicoPage() {
       </div>
 
       {/* FLOAT BAR CARRINHO */}
-      {carrinho.length > 0 && !modalCart && (
+      {carrinho.length > 0 && !modalCart && lojaAberta && (
          <div className="fixed bottom-6 left-4 right-4 z-30 flex justify-center animate-in slide-in-from-bottom-10">
             <button onClick={()=>setModalCart(true)} className="w-full max-w-md bg-indigo-600 text-white p-4 rounded-[24px] shadow-2xl shadow-indigo-600/30 flex items-center justify-between active:scale-95 transition-transform">
                <div className="flex items-center gap-3">
@@ -267,9 +285,15 @@ export default function CardapioPublicoPage() {
             </div>
 
             <div className="p-6 bg-white border-t border-slate-100 pb-10">
+               {telaCheckout && form.tipo === 'delivery' && taxaEntrega > 0 && (
+                  <div className="flex justify-between items-center mb-2 text-sm text-slate-500 font-bold">
+                     <span>Taxa de Entrega</span>
+                     <span>{fmtBRL(taxaEntrega)}</span>
+                  </div>
+               )}
                <div className="flex justify-between items-center mb-6">
-                  <span className="font-bold text-slate-500">Total do Pedido</span>
-                  <span className="text-3xl font-black text-indigo-600">{fmtBRL(totalCarrinho)}</span>
+                  <span className="font-bold text-slate-500">Total a Pagar</span>
+                  <span className="text-3xl font-black text-indigo-600">{fmtBRL(totalGeral)}</span>
                </div>
                {!telaCheckout ? (
                   <button onClick={() => setTelaCheckout(true)} className="w-full py-5 bg-indigo-600 text-white font-black text-xl rounded-2xl active:scale-95 transition-transform shadow-xl shadow-indigo-600/30">

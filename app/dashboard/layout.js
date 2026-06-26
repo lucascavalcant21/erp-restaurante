@@ -72,7 +72,7 @@ const MEGA_MENU = {
     { label: "Áreas de entrega", href: "#" },
     { label: "Canais de venda e Integrações", href: "#" },
     { label: "Comandas", href: "#" },
-    { label: "Configurações", href: "/dashboard/lojas" },
+    { label: "Configurações", href: "/dashboard/configuracoes" },
     { label: "Dados da loja", href: "#" },
     { label: "Dados fiscais", href: "#" },
     { label: "Entregadores", href: "#" },
@@ -94,7 +94,7 @@ function MobileBottomNav() {
   const mobileModules = [
     { id: "salao", label: "Mesas", icon: Users, href: "/dashboard/salao/mesas" },
     { id: "delivery", label: "Delivery", icon: Bike, href: "/dashboard/salao/online" },
-    { id: "lojas", label: "Ajustes", icon: Settings, href: "/dashboard/lojas" },
+    { id: "lojas", label: "Ajustes", icon: Settings, href: "/dashboard/configuracoes" },
   ];
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0A1128] border-t border-slate-800 flex items-stretch overflow-x-auto shadow-[0_-10px_30px_rgba(0,0,0,0.1)] h-16 pb-safe">

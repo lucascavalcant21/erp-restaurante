@@ -423,7 +423,10 @@ export async function enviarPedidoOnline(unidadeId, dadosCliente, itensCart) {
   if (!isSupabaseReady()) return { error: "Offline" };
   
   // 1. Cria o Pedido com status 'novo_online'
-  const valorTotal = itensCart.reduce((acc, it) => acc + (it.preco_venda * it.quantidade), 0);
+  let valorTotal = itensCart.reduce((acc, it) => acc + (it.preco_venda * it.quantidade), 0);
+  if (dadosCliente.taxa_entrega) {
+     valorTotal += parseFloat(dadosCliente.taxa_entrega);
+  }
   
   const { data: pedido, error: errPed } = await supabase.from("pedidos").insert([{
      unidade_id: unidadeId,
@@ -433,7 +436,8 @@ export async function enviarPedidoOnline(unidadeId, dadosCliente, itensCart) {
      cliente_telefone: dadosCliente.telefone,
      endereco_entrega: dadosCliente.endereco || null,
      troco_para: dadosCliente.troco || null,
-     valor_total: valorTotal
+     valor_total: valorTotal,
+     taxa_entrega: dadosCliente.taxa_entrega || 0
   }]).select().single();
 
   if (errPed) return { error: errPed.message };

@@ -23,6 +23,7 @@ export default function ProdutosPage() {
      nome_produto: "", 
      categoria: "Pratos Principais", 
      departamento: "cozinha", 
+     tempo_preparo_base: 15,
      preco_venda: "", 
      ficha_id: "",
      codigo_barras: "",
@@ -56,6 +57,7 @@ export default function ProdutosPage() {
        nome_produto: "", 
        categoria: "Pratos Principais", 
        departamento: "cozinha", 
+       tempo_preparo_base: 15,
        preco_venda: "", 
        ficha_id: "",
        codigo_barras: "",
@@ -73,6 +75,7 @@ export default function ProdutosPage() {
        nome_produto: prod.nome_produto, 
        categoria: prod.categoria, 
        departamento: prod.departamento, 
+       tempo_preparo_base: prod.tempo_preparo_base || 15,
        preco_venda: prod.preco_venda, 
        ficha_id: prod.ficha_id || "",
        codigo_barras: prod.codigo_barras || "",
@@ -91,6 +94,7 @@ export default function ProdutosPage() {
     const erro = await salvarProduto({
        ...form,
        unidade_id: unidadeAtiva,
+       tempo_preparo_base: Number(form.tempo_preparo_base),
        preco_venda: Number(form.preco_venda),
        ficha_id: form.ficha_id || null
     });
@@ -245,6 +249,10 @@ export default function ProdutosPage() {
                            <option value="cozinha">Cozinha</option>
                            <option value="bar">Bar</option>
                         </select>
+                     </div>
+                     <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tempo de Preparo (Min)</label>
+                        <input type="number" value={form.tempo_preparo_base} onChange={e=>setForm({...form, tempo_preparo_base: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500"/>
                      </div>
                   </div>
 

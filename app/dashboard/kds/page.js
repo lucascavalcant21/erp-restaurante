@@ -93,88 +93,118 @@ function KDSRunner() {
                <p className="font-medium mt-2 uppercase tracking-widest">Nenhum pedido pendente na fila.</p>
             </div>
          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-               {itens.filter(i => i.status_kds !== 'entregue').map((it) => {
-                  const min = calcTempo(it.created_at);
-                  const isAtrasado = min >= 15;
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-start">
+               {Object.values(itens.reduce((acc, it) => {
+                  if(it.status_kds === 'entregue') return acc;
+                  const pId = it.pedidos.id;
+                  if(!acc[pId]) {
+                     acc[pId] = {
+                        pedidoId: pId,
+                        tipo_pedido: it.pedidos.tipo_pedido,
+                        cliente_nome: it.pedidos.cliente_nome,
+                        numero_mesa: it.pedidos.mesas?.numero_mesa,
+                        created_at: it.pedidos.created_at || it.created_at,
+                        itens: []
+                     };
+                  }
+                  acc[pId].itens.push(it);
+                  return acc;
+               }, {})).sort((a,b) => new Date(a.created_at) - new Date(b.created_at)).map((pedido) => {
+                  
+                  const msPedido = new Date() - new Date(pedido.created_at);
+                  const minPedido = Math.floor(msPedido / 60000);
                   
                   return (
-                     <button 
-                        key={it.id} 
-                        onClick={() => avancarStatus(it)}
-                         className={`text-left rounded-[32px] p-6 flex flex-col justify-between transition-all duration-300 shadow-2xl active:scale-95 border-2
-                            ${it.status_kds === 'cancelado' ? 'bg-[#EA1D2C] border-red-500 text-white animate-pulse' : 
-                              it.status_kds === 'pendente' ? 'bg-slate-800 border-slate-700 text-white hover:border-slate-500' : 
-                              it.status_kds === 'preparando' ? 'bg-amber-400 border-amber-300 text-amber-950' : 
-                              'bg-emerald-500 border-emerald-400 text-emerald-950 animate-pulse'}
-                         `}
-                     >
-                        <div className="flex justify-between items-start mb-6">
-                           <span className={`px-4 py-2 rounded-xl text-3xl font-black ${it.status_kds === 'pendente' ? 'bg-slate-700 text-white' : 'bg-black/20'}`}>
-                              {it.quantidade}x
-                           </span>
-                           <span className={`flex items-center gap-1 font-black px-3 py-1 rounded-full text-[10px] uppercase tracking-widest
-                              ${isAtrasado && it.status_kds === 'pendente' ? 'bg-red-500 text-white animate-bounce' : 'bg-black/10'}
-                           `}>
-                              <Clock size={12}/> {min} MIN
-                           </span>
-                        </div>
+                     <div key={pedido.pedidoId} className="bg-slate-800 rounded-2xl overflow-hidden shadow-2xl border border-slate-700 flex flex-col">
                         
-                        <div className="mb-8">
-                           <p className="text-3xl font-black leading-tight tracking-tight mb-2">
-                              {it.status_kds === 'cancelado' ? '❌ CANCELADO' : it.produtos.nome_produto}
-                           </p>
-                           {it.status_kds === 'cancelado' ? (
-                              <p className="font-bold text-sm px-3 py-2 rounded-lg inline-block bg-white/20">
-                                 {it.produtos.nome_produto}
+                        {/* Header da Comanda */}
+                        <div className="bg-slate-900 p-4 border-b border-slate-700 flex justify-between items-center">
+                           <div>
+                              <p className={`text-[10px] font-black uppercase tracking-widest ${
+                                 pedido.tipo_pedido === 'ifood' ? 'text-red-400' :
+                                 pedido.tipo_pedido === 'balcao' ? 'text-blue-400' :
+                                 pedido.tipo_pedido === 'cardapio' || pedido.tipo_pedido === 'delivery' ? 'text-purple-400' : 'text-emerald-400'
+                              }`}>
+                                 {pedido.tipo_pedido === 'ifood' ? 'IFOOD' :
+                                  pedido.tipo_pedido === 'balcao' ? 'BALCÃO' :
+                                  pedido.tipo_pedido === 'cardapio' || pedido.tipo_pedido === 'delivery' ? 'ONLINE' : 'MESA'}
                               </p>
-                           ) : it.observacao && (
-                              <p className={`font-bold text-sm px-3 py-2 rounded-lg inline-block
-                                 ${it.status_kds === 'pendente' ? 'bg-emerald-500/20 text-slate-500 border border-emerald-500/30' : 'bg-black/20'}
-                              `}>
-                                 ⚠️ {it.observacao}
+                              <p className="text-xl font-black text-white leading-none mt-1 truncate max-w-[200px]">
+                                 {pedido.tipo_pedido === 'ifood' || pedido.tipo_pedido === 'cardapio' || pedido.tipo_pedido === 'delivery'
+                                    ? (pedido.cliente_nome ? pedido.cliente_nome.split(' ')[0] : `#${pedido.pedidoId.substring(0,4)}`)
+                                    : pedido.tipo_pedido === 'balcao' ? `#${pedido.pedidoId.substring(0,4)}` 
+                                    : `Mesa ${pedido.numero_mesa || 'N/A'}`}
                               </p>
-                           )}
+                           </div>
+                           <div className="bg-slate-800 px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-slate-300">
+                              <Clock size={14}/>
+                              <span className="font-black text-sm">{minPedido} MIN</span>
+                           </div>
                         </div>
 
-                        <div className="mt-auto border-t border-black/10 pt-4 flex justify-between items-end">
-                           <div className={`px-3 py-1.5 rounded-xl ${
-                              it.status_kds === 'pendente' 
-                               ? (it.pedidos?.tipo_pedido === 'ifood' ? 'bg-red-950/30' : 
-                                  it.pedidos?.tipo_pedido === 'balcao' ? 'bg-blue-950/30' : 
-                                  it.pedidos?.tipo_pedido === 'cardapio' || it.pedidos?.tipo_pedido === 'delivery' ? 'bg-purple-950/30' : 'bg-emerald-950/30') 
-                               : 'bg-black/10'
-                           }`}>
-                              <p className={`text-[10px] font-black uppercase tracking-widest mb-0.5 ${
-                                 it.status_kds === 'pendente'
-                                  ? (it.pedidos?.tipo_pedido === 'ifood' ? 'text-red-400' : 
-                                     it.pedidos?.tipo_pedido === 'balcao' ? 'text-blue-400' : 
-                                     it.pedidos?.tipo_pedido === 'cardapio' || it.pedidos?.tipo_pedido === 'delivery' ? 'text-purple-400' : 'text-emerald-400')
-                                  : 'opacity-70'
-                              }`}>
-                                 {it.pedidos?.tipo_pedido === 'ifood' ? 'IFOOD' :
-                                  it.pedidos?.tipo_pedido === 'balcao' ? 'BALCÃO' :
-                                  it.pedidos?.tipo_pedido === 'cardapio' || it.pedidos?.tipo_pedido === 'delivery' ? 'ONLINE' : 'MESA'}
-                              </p>
-                              <p className="text-xl font-black leading-none truncate max-w-[120px]">
-                                 {it.pedidos?.tipo_pedido === 'ifood' || it.pedidos?.tipo_pedido === 'cardapio' || it.pedidos?.tipo_pedido === 'delivery'
-                                    ? (it.pedidos?.cliente_nome ? it.pedidos.cliente_nome.split(' ')[0] : `#${it.pedidos.id.substring(0,4)}`)
-                                    : it.pedidos?.tipo_pedido === 'balcao' ? `#${it.pedidos.id.substring(0,4)}` 
-                                    : (it.pedidos?.mesas?.numero_mesa || 'N/A')}
-                              </p>
-                           </div>
-                           
-                           <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-black uppercase tracking-widest opacity-50">
-                                 {it.status_kds === 'cancelado' ? 'Dispensar' : it.status_kds === 'pendente' ? 'Iniciar' : it.status_kds === 'preparando' ? 'Pronto' : 'Entregar'}
-                              </span>
-                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${it.status_kds === 'pendente' || it.status_kds === 'cancelado' ? 'bg-slate-700 text-white' : 'bg-black/20'}`}>
-                                 {it.status_kds === 'pendente' ? <Play size={16} className="ml-1"/> : <CheckCircle2 size={20}/>}
-                              </div>
-                           </div>
+                        {/* Lista de Itens do Pedido */}
+                        <div className="p-2 space-y-2">
+                           {pedido.itens.map(it => {
+                              const tempoBase = it.produtos.tempo_preparo_base || 15;
+                              const minItem = Math.floor((new Date() - new Date(it.created_at)) / 60000);
+                              const atrasado = minItem >= tempoBase;
+                              const critico = minItem >= tempoBase + 10;
+                              
+                              return (
+                                 <button 
+                                    key={it.id} 
+                                    onClick={() => avancarStatus(it)}
+                                    className={`w-full text-left rounded-xl p-4 transition-all duration-300 shadow-md active:scale-95 border-2 relative overflow-hidden
+                                       ${it.status_kds === 'cancelado' ? 'bg-[#EA1D2C] border-red-500 text-white animate-pulse' : 
+                                         it.status_kds === 'pendente' ? 'bg-slate-700 border-slate-600 text-slate-200 hover:border-slate-500' : 
+                                         it.status_kds === 'preparando' ? (
+                                            critico ? 'bg-red-500 border-red-400 text-white animate-pulse-fast' : 
+                                            atrasado ? 'bg-amber-500 border-amber-400 text-amber-950 animate-pulse' : 
+                                            'bg-amber-300 border-amber-200 text-amber-950'
+                                         ) : 
+                                         'bg-emerald-500 border-emerald-400 text-emerald-950'}
+                                    `}
+                                 >
+                                    <div className="flex justify-between items-start gap-2 relative z-10">
+                                       <span className="text-lg font-black leading-tight">
+                                          {it.status_kds === 'cancelado' ? '❌ CANCELADO' : `${it.quantidade}x ${it.produtos.nome_produto}`}
+                                       </span>
+                                       
+                                       <div className="flex flex-col items-end gap-1 shrink-0">
+                                          <div className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                                             it.status_kds === 'pendente' ? 'bg-black/20' : 
+                                             it.status_kds === 'cancelado' ? 'bg-black/20' :
+                                             critico || atrasado ? 'bg-black/20' : 'bg-black/10'
+                                          }`}>
+                                             {minItem}M / {tempoBase}M
+                                          </div>
+                                          
+                                          <div className={`w-6 h-6 rounded-full flex items-center justify-center ${it.status_kds === 'pendente' || it.status_kds === 'cancelado' ? 'bg-slate-900/40 text-white' : 'bg-black/20'}`}>
+                                             {it.status_kds === 'pendente' ? <Play size={12} className="ml-0.5"/> : <CheckCircle2 size={14}/>}
+                                          </div>
+                                       </div>
+                                    </div>
+                                    
+                                    {it.status_kds !== 'cancelado' && it.observacao && (
+                                       <div className="mt-3 relative z-10">
+                                          <p className="font-black text-sm text-[#EA1D2C] bg-red-100 p-2.5 rounded-lg border border-red-200 uppercase tracking-wide text-center">
+                                             ⚠️ {it.observacao}
+                                          </p>
+                                       </div>
+                                    )}
+                                    
+                                    {/* Barra de progresso visual de tempo */}
+                                    {it.status_kds === 'preparando' && (
+                                       <div className="absolute bottom-0 left-0 h-1 bg-black/20 w-full">
+                                          <div className={`h-full ${critico ? 'bg-red-900' : atrasado ? 'bg-red-500' : 'bg-amber-500'}`} style={{ width: `${Math.min((minItem / tempoBase) * 100, 100)}%`}}></div>
+                                       </div>
+                                    )}
+                                 </button>
+                              );
+                           })}
                         </div>
-                     </button>
-                  )
+                     </div>
+                  );
                })}
             </div>
          )}

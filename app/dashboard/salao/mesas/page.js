@@ -8,7 +8,7 @@ import { fetchProdutos, lancarVendaBalcao, fetchMesas, criarMesa, fetchPedidoAbe
 import { Lock, Unlock, LogOut, DollarSign, ArrowDownCircle, ArrowUpCircle, ShoppingBag, ShoppingCart, Maximize, Plus, Minus, Trash2, Printer, Users, Barcode, CreditCard, Receipt, SplitSquareHorizontal, Utensils, Send, X, Settings, Search, CheckCircle, ArrowRightLeft, Share2, Tag, Bell, Clock, MapPin } from "lucide-react";
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from "../../../lib/supabase";
-import { fmtBRL } from "../../../components/ui";
+import { fmtBRL, CupomTermico } from "../../../components/ui";
 
 export default function SaloesMesasPage() {
   const { unidadeAtiva, usuarioLogado } = useERP();
@@ -58,6 +58,19 @@ export default function SaloesMesasPage() {
   const [mesas, setMesas] = useState([]);
   const [mesaAtiva, setMesaAtiva] = useState(null);
   const [pedidoAtivo, setPedidoAtivo] = useState(null);
+  
+  // --- IMPRESSÃO TÉRMICA ---
+  const [cupomParaImprimir, setCupomParaImprimir] = useState(null); // { pedido, tipo: 'parcial' | 'final' }
+
+  useEffect(() => {
+    if (cupomParaImprimir) {
+      setTimeout(() => {
+        window.print();
+        // Opcional: limpar após imprimir para não ficar na tela (comentado para o dev ver a tira se quiser)
+        // setCupomParaImprimir(null);
+      }, 500);
+    }
+  }, [cupomParaImprimir]);
   const [pedidosDaMesa, setPedidosDaMesa] = useState([]);
   const [modalListaComandas, setModalListaComandas] = useState(false);
   const [modalTransferir, setModalTransferir] = useState(false);
@@ -96,6 +109,79 @@ export default function SaloesMesasPage() {
   // --- RECIBO ---
   const [modalRecibo, setModalRecibo] = useState(false);
   const [dadosRecibo, setDadosRecibo] = useState(null);
+
+  // --- FUNÇÃO GLOBAL DE IMPRESSÃO TÉRMICA (POP-UP) ---
+  const abrirCupomTermico = (dados) => {
+     const win = window.open('', '_blank', 'width=320,height=600');
+     if (!win) return alert("Habilite os popups para imprimir o cupom.");
+     win.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+           <meta charset="utf-8"/>
+           <title>Cupom Térmico</title>
+           <style>
+              * { margin:0; padding:0; box-sizing:border-box; }
+              body { font-family: 'Courier New', monospace; font-size: 11px; width: 80mm; padding: 4mm; color: #000; }
+              .center { text-align: center; }
+              .bold { font-weight: bold; }
+              .big { font-size: 14px; }
+              .sep { border-top: 1px dashed #000; margin: 6px 0; }
+              .row { display: flex; justify-content: space-between; }
+              .row .name { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+              .row .qtd { width: 25px; text-align: center; }
+              .row .val { width: 55px; text-align: right; }
+              .total-row { font-size: 14px; font-weight: bold; }
+              @media print {
+                 @page { margin: 0; size: 80mm auto; }
+                 body { width: 80mm; }
+              }
+           </style>
+        </head>
+        <body>
+           <div class="center bold big">HEFISTO ERP</div>
+           <div class="center">${dados.isPreConta ? 'CONFERÊNCIA DE CONTA' : 'RECIBO NÃO FISCAL'}</div>
+           <div class="center">${dados.tipo === 'salao' ? \`MESA \${dados.mesa}\` : 'VENDA BALCÃO'}</div>
+           <div class="center" style="font-size:10px">${dados.data.toLocaleString()}</div>
+           <div class="sep"></div>
+           <div class="row bold">
+              <span class="name">DESCRIÇÃO</span>
+              <span class="qtd">QTD</span>
+              <span class="val">TOTAL</span>
+           </div>
+           <div class="sep"></div>
+           ${dados.itens.map(it => \`
+              <div class="row">
+                 <span class="name">\${it.nome}</span>
+                 <span class="qtd">\${it.qtd}</span>
+                 <span class="val">R$\${it.tot.toFixed(2)}</span>
+              </div>
+           \`).join('')}
+           <div class="sep"></div>
+           <div class="row"><span>SUBTOTAL</span><span>R$\${dados.subtotal.toFixed(2)}</span></div>
+           \${dados.taxa > 0 ? \`<div class="row"><span>TAXA SERVIÇO</span><span>R$\${dados.taxa.toFixed(2)}</span></div>\` : ''}
+           \${dados.desconto > 0 ? \`<div class="row"><span>DESCONTO</span><span>-R$\${dados.desconto.toFixed(2)}</span></div>\` : ''}
+           <div class="sep"></div>
+           <div class="row total-row"><span>TOTAL GERAL</span><span>R$\${dados.total.toFixed(2)}</span></div>
+           \${dados.recebidos && dados.recebidos.length > 0 ? \`
+              <div class="sep"></div>
+              <div class="center bold" style="margin-top:4px;">PAGAMENTOS</div>
+              \${dados.recebidos.map(p => \`<div class="row"><span>\${p.forma.toUpperCase()}</span><span>R$\${p.valor.toFixed(2)}</span></div>\`).join('')}
+              \${dados.troco > 0 ? \`<div class="row"><span>TROCO</span><span>R$\${dados.troco.toFixed(2)}</span></div>\` : ''}
+           \` : ''}
+           <div class="sep"></div>
+           <div class="center" style="margin-top:10px; font-size:10px;">
+              Obrigado pela preferência!<br>
+              Sistema Hefisto ERP
+           </div>
+           <script>
+              window.onload = function() { window.print(); window.close(); }
+           </script>
+        </body>
+        </html>
+     `);
+     win.document.close();
+  };
 
   // --- FECHAMENTO AVANÇADO ---
   const [aplicarDezPorcento, setAplicarDezPorcento] = useState(true);
@@ -541,9 +627,10 @@ export default function SaloesMesasPage() {
           ? carrinho.map(i => ({ nome: i.nome_produto, qtd: i.quantidade, tot: i.quantidade * (i.preco_venda||0) }))
           : pedidoAtivo.pedidos_itens.map(i => ({ nome: i.produtos?.nome_produto || 'Item', qtd: i.quantidade, tot: i.quantidade * i.valor_unitario }));
 
-        setDadosRecibo({
+        const objRecibo = {
            id: pedidoIdParaRecibo,
            tipo: abaAtiva,
+           isPreConta: false,
            mesa: mesaAtiva?.numero_mesa,
            itens: itensRecibo,
            subtotal: subtotalPagamento,
@@ -555,12 +642,17 @@ export default function SaloesMesasPage() {
            cliente: clienteNome,
            cpf: clienteCpf,
            data: new Date()
-        });
+        };
+
+        setDadosRecibo(objRecibo);
 
         setModalPagamento(false);
         if(abaAtiva !== 'salao') setCarrinho([]);
         if(abaAtiva === 'salao') { setMesaAtiva(null); setPedidoAtivo(null); carregarMesas(); }
         setModalRecibo(true);
+
+        // IMPRESSÃO TÉRMICA AUTOMÁTICA AO FINALIZAR!
+        abrirCupomTermico(objRecibo);
      }
   };
 
@@ -572,7 +664,7 @@ export default function SaloesMesasPage() {
     
     const itensRecibo = pedidoAtivo.pedidos_itens.map(i => ({ nome: i.produtos?.nome_produto || 'Item', qtd: i.quantidade, tot: i.quantidade * i.valor_unitario }));
 
-    setDadosRecibo({
+    const dadosPrev = {
        id: pedidoAtivo.id,
        tipo: 'salao',
        isPreConta: true,
@@ -587,12 +679,13 @@ export default function SaloesMesasPage() {
        cliente: clienteNome,
        cpf: clienteCpf,
        data: new Date()
-    });
+    };
+    
+    setDadosRecibo(dadosPrev);
     setModalRecibo(true);
     
-    setTimeout(() => {
-       window.print();
-    }, 500);
+    // Imprime automaticamente o Popup Térmico
+    abrirCupomTermico(dadosPrev);
  };
 
   // ==========================================
@@ -1304,99 +1397,10 @@ export default function SaloesMesasPage() {
                      Fechar
                   </button>
                   <button
-                     onClick={() => {
-                        const win = window.open('', '_blank', 'width=320,height=600');
-                        win.document.write(`
-                           <!DOCTYPE html>
-                           <html>
-                           <head>
-                              <meta charset="utf-8"/>
-                              <title>Cupom</title>
-                              <style>
-                                 * { margin:0; padding:0; box-sizing:border-box; }
-                                 body {
-                                    font-family: 'Courier New', monospace;
-                                    font-size: 11px;
-                                    width: 80mm;
-                                    padding: 4mm;
-                                    color: #000;
-                                 }
-                                 .center { text-align: center; }
-                                 .bold { font-weight: bold; }
-                                 .big { font-size: 14px; }
-                                 .sep { border-top: 1px dashed #000; margin: 6px 0; }
-                                 .row { display: flex; justify-content: space-between; }
-                                 .row .name { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-                                 .row .qtd { width: 25px; text-align: center; }
-                                 .row .val { width: 55px; text-align: right; }
-                                 .total-row { font-size: 14px; font-weight: bold; }
-                                 @media print {
-                                    @page { margin: 0; size: 80mm auto; }
-                                    body { width: 80mm; }
-                                 }
-                              </style>
-                           </head>
-                           <body>
-                              <div class="center bold big">HEFISTO ERP</div>
-                              <div class="center">CUPOM NÃO FISCAL</div>
-                              <div class="center">${dadosRecibo.tipo === 'salao' ? `MESA ${dadosRecibo.mesa}` : 'VENDA BALCÃO'}</div>
-                              <div class="center" style="font-size:10px">${dadosRecibo.data.toLocaleString()}</div>
-                              <div class="sep"></div>
-                              <div class="row bold">
-                                 <span class="name">DESCRIÇÃO</span>
-                                 <span class="qtd">QTD</span>
-                                 <span class="val">TOTAL</span>
-                              </div>
-                              <div class="sep"></div>
-                              ${dadosRecibo.itens.map(it => `
-                                 <div class="row">
-                                    <span class="name">${it.nome}</span>
-                                    <span class="qtd">${it.qtd}</span>
-                                    <span class="val">R$${it.tot.toFixed(2)}</span>
-                                 </div>
-                              `).join('')}
-                              <div class="sep"></div>
-                              <div class="row">
-                                 <span>Subtotal:</span>
-                                 <span>${fmtBRL(dadosRecibo.subtotal)}</span>
-                              </div>
-                              ${dadosRecibo.desconto > 0 ? `<div class="row"><span>Desconto:</span><span>- ${fmtBRL(dadosRecibo.desconto)}</span></div>` : ''}
-                              ${dadosRecibo.taxa > 0 ? `<div class="row"><span>Taxas:</span><span>+ ${fmtBRL(dadosRecibo.taxa)}</span></div>` : ''}
-                              <div class="sep"></div>
-                              <div class="row total-row">
-                                 <span>TOTAL:</span>
-                                 <span>${fmtBRL(dadosRecibo.total)}</span>
-                              </div>
-                              ${!dadosRecibo.isPreConta ? `
-                                 <div class="sep"></div>
-                                 <div class="center bold" style="margin-bottom:4px">PAGAMENTOS</div>
-                                 ${dadosRecibo.recebidos.map(pg => `
-                                    <div class="row">
-                                       <span>${pg.forma.toUpperCase()}:</span>
-                                       <span>${fmtBRL(pg.valor)}</span>
-                                    </div>
-                                 `).join('')}
-                                 ${dadosRecibo.troco > 0 ? `<div class="row bold"><span>TROCO:</span><span>${fmtBRL(dadosRecibo.troco)}</span></div>` : ''}
-                              ` : ''}
-                              ${dadosRecibo.cpf ? `
-                                 <div class="sep"></div>
-                                 <div class="center" style="font-size:10px">CPF: ${dadosRecibo.cpf}</div>
-                                 ${dadosRecibo.cliente ? `<div class="center" style="font-size:10px">${dadosRecibo.cliente}</div>` : ''}
-                              ` : ''}
-                              <div class="sep"></div>
-                              <div class="center" style="margin-top:8px">Obrigado pela preferência!</div>
-                              <div class="center">Volte sempre 🙏</div>
-                              <script>
-                                 window.onload = function() { window.print(); window.close(); }
-                              </script>
-                           </body>
-                           </html>
-                        `);
-                        win.document.close();
-                     }}
-                     className="flex-1 bg-blue-600 text-white font-black py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-blue-500/30 hover:bg-blue-700 transition-colors"
+                     onClick={() => abrirCupomTermico(dadosRecibo)}
+                     className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2"
                   >
-                     <Printer size={18}/> Imprimir
+                     <Printer size={18}/> Re-Imprimir Cupom
                   </button>
                </div>
             </div>

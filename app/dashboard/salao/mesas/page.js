@@ -47,6 +47,9 @@ export default function SaloesMesasPage() {
 
   // --- BALCÃO STATE ---
   const [carrinho, setCarrinho] = useState([]);
+  const [modalMod, setModalMod] = useState(false);
+  const [prodModAtual, setProdModAtual] = useState(null);
+  const [modsSelecionados, setModsSelecionados] = useState([]);
   
   // --- SALÃO STATE ---
   const [mesas, setMesas] = useState([]);
@@ -70,6 +73,7 @@ export default function SaloesMesasPage() {
   const [produtoSel, setProdutoSel] = useState("");
   const [qtdLancamento, setQtdLancamento] = useState(1);
   const [obsLancamento, setObsLancamento] = useState("");
+  const [modsLancarMesa, setModsLancarMesa] = useState([]);
 
   // --- PAGAMENTO STATE ---
   const [modalPagamento, setModalPagamento] = useState(false);
@@ -223,18 +227,37 @@ export default function SaloesMesasPage() {
     setProdutoSel("");
     setQtdLancamento(1);
     setObsLancamento("");
+    setModsLancarMesa([]);
     setModalLancar(true);
   };
 
   const confirmarLancamentoMesa = async () => {
     if(!produtoSel) return alert("Selecione um produto");
     const prodObj = produtos.find(p => p.id === produtoSel);
+    
+    let basePrice = Number(prodObj.preco_venda || prodObj.preco || 0);
+    const modsPrice = modsLancarMesa.reduce((acc, m) => acc + Number(m.preco || 0), 0);
+    
+    let obsFinal = obsLancamento || '';
+    if(modsLancarMesa.length > 0) {
+       const modsTxt = modsLancarMesa.map(m => `+${m.nome}`).join(', ');
+       obsFinal = obsFinal ? `${obsFinal} (${modsTxt})` : modsTxt;
+    }
+
     setProcessando(true);
-    await lancarItemComanda(pedidoAtivo.id, prodObj.id, prodObj.preco_venda || prodObj.preco || 0, qtdLancamento, obsLancamento);
+    await lancarItemComanda(pedidoAtivo.id, prodObj.id, basePrice + modsPrice, qtdLancamento, obsFinal);
     setProcessando(false);
     setModalLancar(false);
     const { data } = await fetchPedidoAberto(mesaAtiva.id);
     setPedidoAtivo(data);
+  };
+
+  const toggleModLancarMesa = (mod) => {
+     setModsLancarMesa(prev => {
+        const existe = prev.find(m => m.nome === mod.nome);
+        if(existe) return prev.filter(m => m.nome !== mod.nome);
+        return [...prev, mod];
+     });
   };
 
   // ==========================================
@@ -247,33 +270,64 @@ export default function SaloesMesasPage() {
     return p;
   }, [produtos, filtroCategoria, buscaProd]);
 
-  const addAoCarrinho = (prod) => {
+  const addAoCarrinho = (prod, mods = []) => {
     setCarrinho(prev => {
-      const existente = prev.find(i => i.id === prod.id);
-      if (existente) return prev.map(i => i.id === prod.id ? { ...i, quantidade: i.quantidade + 1 } : i);
-      return [...prev, { ...prod, quantidade: 1 }];
+      const modsKey = mods.map(m => m.nome).sort().join('|');
+      const uniqueId = `${prod.id}-${modsKey}`;
+      const existente = prev.find(i => i.uniqueId === uniqueId);
+      if (existente) return prev.map(i => i.uniqueId === uniqueId ? { ...i, quantidade: i.quantidade + 1 } : i);
+      return [...prev, { ...prod, uniqueId, quantidade: 1, modsSelecionados: mods }];
     });
   };
 
-  const alterarQtd = (id, delta) => {
-    setCarrinho(prev => prev.map(i => i.id === id ? { ...i, quantidade: Math.max(1, i.quantidade + delta) } : i));
+  const handleSelecionarProdutoBalcao = (prod) => {
+     if(prod.modificadores && prod.modificadores.length > 0) {
+        setProdModAtual(prod);
+        setModsSelecionados([]);
+        setModalMod(true);
+     } else {
+        addAoCarrinho(prod, []);
+     }
   };
 
-  const removerItem = (id) => {
-    setCarrinho(prev => prev.filter(i => i.id !== id));
+  const confirmarMods = () => {
+     addAoCarrinho(prodModAtual, modsSelecionados);
+     setModalMod(false);
+     setProdModAtual(null);
+     setModsSelecionados([]);
+  };
+
+  const toggleMod = (mod) => {
+     setModsSelecionados(prev => {
+        const existe = prev.find(m => m.nome === mod.nome);
+        if(existe) return prev.filter(m => m.nome !== mod.nome);
+        return [...prev, mod];
+     });
+  };
+
+  const alterarQtd = (uniqueId, delta) => {
+    setCarrinho(prev => prev.map(i => i.uniqueId === uniqueId ? { ...i, quantidade: Math.max(1, i.quantidade + delta) } : i));
+  };
+
+  const removerItem = (uniqueId) => {
+    setCarrinho(prev => prev.filter(i => i.uniqueId !== uniqueId));
   };
 
   const checkBipeBusca = (e) => {
      if(e.key === 'Enter' && buscaProd) {
         const prodMatch = produtosFiltrados.find(p => p.codigo_barras === buscaProd || p.nome_produto.toLowerCase() === buscaProd.toLowerCase());
         if(prodMatch) {
-           addAoCarrinho(prodMatch);
+           handleSelecionarProdutoBalcao(prodMatch);
            setBuscaProd(""); 
         }
      }
   };
 
-  const totalCarrinho = useMemo(() => carrinho.reduce((a, i) => a + (Number(i.preco_venda || i.preco || 0) * i.quantidade), 0), [carrinho]);
+  const totalCarrinho = useMemo(() => carrinho.reduce((a, i) => {
+     const base = Number(i.preco_venda || i.preco || 0);
+     const modsPrice = (i.modsSelecionados || []).reduce((acc, m) => acc + Number(m.preco || 0), 0);
+     return a + ((base + modsPrice) * i.quantidade);
+  }, 0), [carrinho]);
 
   // ==========================================
   // PAGAMENTO (MEGAZORD)
@@ -681,7 +735,7 @@ export default function SaloesMesasPage() {
                         <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                               {produtosFiltrados.map(prod => (
-                                 <button key={prod.id} onClick={() => addAoCarrinho(prod)} className="bg-white rounded-xl p-3 border border-slate-200 shadow-sm hover:shadow-md hover:border-emerald-500 transition-all text-left flex flex-col group h-full">
+                                 <button key={prod.id} onClick={() => handleSelecionarProdutoBalcao(prod)} className="bg-white rounded-xl p-3 border border-slate-200 shadow-sm hover:shadow-md hover:border-emerald-500 transition-all text-left flex flex-col group h-full">
                                     <h3 className="font-bold text-slate-700 text-xs leading-tight mb-2 flex-1">{prod.nome_produto}</h3>
                                     <div className="flex justify-between items-end w-full">
                                        <p className="text-[10px] text-slate-400">Estoque: {prod.codigo_barras ? 'Sim' : 'N/A'}</p>
@@ -704,22 +758,38 @@ export default function SaloesMesasPage() {
                      <div className="flex-1 overflow-y-auto p-3 bg-slate-50/30 custom-scrollbar space-y-2">
                         {carrinho.length === 0 ? (
                            <p className="text-center text-slate-400 text-sm font-bold py-10">Carrinho Vazio</p>
-                        ) : carrinho.map(item => (
-                           <div key={item.id} className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-2">
+                        ) : carrinho.map(item => {
+                           const basePrice = Number(item.preco_venda || item.preco || 0);
+                           const modsPrice = (item.modsSelecionados || []).reduce((acc, m) => acc + Number(m.preco || 0), 0);
+                           const itemTotal = (basePrice + modsPrice) * item.quantidade;
+                           
+                           return (
+                           <div key={item.uniqueId} className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-2 relative group">
+                              <button onClick={() => removerItem(item.uniqueId)} className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"><X size={12}/></button>
                               <div className="flex justify-between items-start">
-                                 <span className="font-bold text-slate-700 text-xs">{item.nome_produto}</span>
-                                 <span className="font-black text-slate-800 text-sm">{fmtBRL((item.preco_venda || item.preco || 0) * item.quantidade)}</span>
-                              </div>
-                              <div className="flex items-center justify-between">
-                                 <div className="flex items-center bg-slate-100 rounded-lg p-0.5">
-                                    <button onClick={() => alterarQtd(item.id, -1)} className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-slate-600"><Minus size={12}/></button>
-                                    <span className="w-8 text-center font-black text-xs">{item.quantidade}</span>
-                                    <button onClick={() => alterarQtd(item.id, 1)} className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-slate-600"><Plus size={12}/></button>
+                                 <div>
+                                    <span className="font-bold text-slate-700 text-xs">{item.nome_produto}</span>
+                                    {item.modsSelecionados && item.modsSelecionados.length > 0 && (
+                                       <div className="flex flex-wrap gap-1 mt-1">
+                                          {item.modsSelecionados.map((m, idx) => (
+                                             <span key={idx} className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-bold">
+                                                + {m.nome}
+                                             </span>
+                                          ))}
+                                       </div>
+                                    )}
                                  </div>
-                                 <button onClick={() => removerItem(item.id)} className="text-slate-300 hover:text-red-500 p-1"><Trash2 size={16}/></button>
+                                 <span className="font-black text-emerald-600 text-sm">{fmtBRL(itemTotal)}</span>
+                              </div>
+                              <div className="flex justify-between items-center mt-1">
+                                 <div className="flex items-center gap-2 bg-slate-100 rounded-lg p-1">
+                                    <button onClick={() => alterarQtd(item.uniqueId, -1)} className="w-6 h-6 flex items-center justify-center bg-white rounded-md shadow-sm text-slate-600 hover:text-red-500"><Minus size={12}/></button>
+                                    <span className="font-black text-slate-700 text-xs w-4 text-center">{item.quantidade}</span>
+                                    <button onClick={() => alterarQtd(item.uniqueId, 1)} className="w-6 h-6 flex items-center justify-center bg-white rounded-md shadow-sm text-slate-600 hover:text-emerald-500"><Plus size={12}/></button>
+                                 </div>
                               </div>
                            </div>
-                        ))}
+                        )})}
                      </div>
                      <div className="p-5 bg-white border-t border-slate-200 shadow-[0_-10px_20px_rgba(0,0,0,0.03)] z-10">
                         <div className="flex justify-between items-end mb-4">
@@ -740,6 +810,44 @@ export default function SaloesMesasPage() {
           MODAIS E SOBREPOSIÇÕES
       ======================================================== */}
       
+      {/* MODAL: MODIFICADORES BALCÃO */}
+      {modalMod && prodModAtual && (
+         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-[32px] p-8 w-full max-w-md shadow-2xl animate-in zoom-in-95">
+               <div className="flex justify-between items-center mb-6">
+                  <div>
+                     <h2 className="text-2xl font-black text-slate-800">{prodModAtual.nome_produto}</h2>
+                     <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mt-1">Selecione os adicionais</p>
+                  </div>
+                  <button onClick={() => setModalMod(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+               </div>
+               
+               <div className="space-y-3 my-8 max-h-[40vh] overflow-y-auto custom-scrollbar pr-2">
+                  {prodModAtual.modificadores.map((mod, i) => {
+                     const selecionado = modsSelecionados.find(m => m.nome === mod.nome);
+                     return (
+                        <button key={i} onClick={() => toggleMod(mod)} className={`w-full flex justify-between items-center p-4 rounded-2xl border-2 transition-all ${selecionado ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
+                           <div className="flex items-center gap-3">
+                              <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${selecionado ? 'border-emerald-500 bg-emerald-500' : 'border-slate-300'}`}>
+                                 {selecionado && <CheckCircle size={14} className="text-white"/>}
+                              </div>
+                              <span className={`font-bold ${selecionado ? 'text-emerald-900' : 'text-slate-700'}`}>{mod.nome}</span>
+                           </div>
+                           <span className={`font-black ${selecionado ? 'text-emerald-700' : 'text-slate-500'}`}>
+                              {mod.preco > 0 ? `+ ${fmtBRL(mod.preco)}` : 'Grátis'}
+                           </span>
+                        </button>
+                     );
+                  })}
+               </div>
+
+               <button onClick={confirmarMods} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-5 text-lg rounded-2xl shadow-xl shadow-emerald-600/20 active:scale-95 transition-all">
+                  Confirmar e Adicionar
+               </button>
+            </div>
+         </div>
+      )}
+      
       {/* MODAL: LANÇAR ITEM NA MESA */}
       {modalLancar && (
          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -752,13 +860,32 @@ export default function SaloesMesasPage() {
                <div className="space-y-4">
                   <div>
                      <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Produto do Cardápio</label>
-                     <select value={produtoSel} onChange={e => setProdutoSel(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500">
+                     <select value={produtoSel} onChange={e => { setProdutoSel(e.target.value); setModsLancarMesa([]); }} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="">-- Selecione --</option>
                         {produtos.map(p => (
                            <option key={p.id} value={p.id}>{p.nome_produto} - {fmtBRL(p.preco_venda||p.preco||0)}</option>
                         ))}
                      </select>
                   </div>
+
+                  {/* Mostra Modificadores se o Produto Selecionado tiver */}
+                  {produtoSel && produtos.find(p => p.id === produtoSel)?.modificadores?.length > 0 && (
+                     <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Adicionais</label>
+                        <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-2">
+                           {produtos.find(p => p.id === produtoSel).modificadores.map((mod, i) => {
+                              const selecionado = modsLancarMesa.find(m => m.nome === mod.nome);
+                              return (
+                                 <button key={i} onClick={() => toggleModLancarMesa(mod)} className={`w-full flex justify-between items-center p-3 rounded-xl border-2 transition-all ${selecionado ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 bg-slate-50'}`}>
+                                    <span className={`font-bold text-sm ${selecionado ? 'text-emerald-900' : 'text-slate-700'}`}>{mod.nome}</span>
+                                    <span className={`font-black text-sm ${selecionado ? 'text-emerald-700' : 'text-slate-500'}`}>{mod.preco > 0 ? `+ ${fmtBRL(mod.preco)}` : 'Grátis'}</span>
+                                 </button>
+                              );
+                           })}
+                        </div>
+                     </div>
+                  )}
+
                   <div>
                      <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Quantidade</label>
                      <input type="number" min="1" value={qtdLancamento} onChange={e => setQtdLancamento(Number(e.target.value))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500" />

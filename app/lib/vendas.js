@@ -308,7 +308,11 @@ export async function transferirComanda(pedidoId, mesaOrigemId, mesaDestinoId) {
 export async function lancarVendaBalcao(unidadeId, caixaId, itensCart, pagamentoData, origem = 'balcao') {
   if (!isSupabaseReady()) return { error: "Offline" };
 
-  const subtotal = itensCart.reduce((acc, it) => acc + (it.preco_venda * it.quantidade), 0);
+  const subtotal = itensCart.reduce((acc, it) => {
+     const base = Number(it.preco_venda || it.preco || 0);
+     const modsPrice = (it.modsSelecionados || []).reduce((a, m) => a + Number(m.preco || 0), 0);
+     return acc + ((base + modsPrice) * it.quantidade);
+  }, 0);
   const desconto = pagamentoData?.desconto || 0;
   const taxa = pagamentoData?.taxa || 0;
   const valorTotal = subtotal - desconto + taxa;
@@ -327,14 +331,25 @@ export async function lancarVendaBalcao(unidadeId, caixaId, itensCart, pagamento
   if (errPed) return { error: errPed.message };
 
   // 2. Cria os Itens
-  const itensDB = itensCart.map(it => ({
-     pedido_id: pedido.id,
-     produto_id: it.id,
-     quantidade: it.quantidade,
-     valor_unitario: it.preco_venda,
-     observacao: it.observacao || '',
-     status_kds: it.departamento === 'cozinha' ? 'pendente' : 'entregue'
-  }));
+  const itensDB = itensCart.map(it => {
+     const base = Number(it.preco_venda || it.preco || 0);
+     const modsPrice = (it.modsSelecionados || []).reduce((a, m) => a + Number(m.preco || 0), 0);
+     
+     let obs = it.observacao || '';
+     if (it.modsSelecionados && it.modsSelecionados.length > 0) {
+        const modsTxt = it.modsSelecionados.map(m => `+${m.nome}`).join(', ');
+        obs = obs ? `${obs} (${modsTxt})` : modsTxt;
+     }
+
+     return {
+        pedido_id: pedido.id,
+        produto_id: it.id,
+        quantidade: it.quantidade,
+        valor_unitario: base + modsPrice,
+        observacao: obs,
+        status_kds: it.departamento === 'cozinha' ? 'pendente' : 'entregue'
+     };
+  });
 
   const { error: errItens } = await supabase.from("pedidos_itens").insert(itensDB);
   if (errItens) return { error: errItens.message };

@@ -67,13 +67,12 @@ export async function gerarDadosFicticios() {
     if (errUni) throw errUni;
     const uid = novaUnidade.id;
 
-    // 3. Abrir um Caixa
-    const { data: caixa, error: errCx } = await supabase.from("caixas")
+    // 3. Abrir um Caixa (na tabela correta pdv_caixas)
+    const { data: caixa, error: errCx } = await supabase.from("pdv_caixas")
       .insert([{
          unidade_id: uid,
-         usuario_abertura_id: null,
-         saldo_inicial: 150.00,
-         saldo_atual: 150.00,
+         usuario_id: "Operador de Teste",
+         fundo_inicial: 150.00,
          status: "aberto"
       }]).select("id").single();
     if(errCx) throw errCx;

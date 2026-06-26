@@ -157,9 +157,9 @@ export async function gerarDadosFicticios() {
 
     // 8. Mesas
     const mesasSeed = [
-       { unidade_id: uid, numero_mesa: "01", status: "ocupada" },
-       { unidade_id: uid, numero_mesa: "02", status: "livre" },
-       { unidade_id: uid, numero_mesa: "03", status: "ocupada" },
+       { unidade_id: uid, numero: "01", status: "ocupada" },
+       { unidade_id: uid, numero: "02", status: "livre" },
+       { unidade_id: uid, numero: "03", status: "ocupada" },
     ];
     const { data: mesas, error: errMesas } = await supabase.from("mesas").insert(mesasSeed).select();
     if(errMesas) throw errMesas;

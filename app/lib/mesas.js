@@ -8,7 +8,7 @@ export async function fetchMesasEComandas(unidadeId) {
   
   // Buscar mesas
   const { data: mesas, error: errM } = await escoparPorUnidade(
-    supabase.from("mesas").select("*").order("numero_mesa", { ascending: true }),
+    supabase.from("mesas").select("*").order("numero", { ascending: true }),
     unidadeId
   );
   if (errM) {

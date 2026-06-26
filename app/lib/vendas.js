@@ -57,7 +57,7 @@ export async function fetchMesas(unidadeId) {
   const { data, error } = await supabase.from("mesas")
     .select("*")
     .eq("unidade_id", unidadeId)
-    .order("numero_mesa");
+    .order("numero");
     
   return { data: data || [], error: error?.message };
 }

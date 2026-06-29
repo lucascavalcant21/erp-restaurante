@@ -110,11 +110,40 @@ export async function fetchDRE(unidadeId) {
   };
 }
 
-export async function fetchLancamentos() { return { data: [], error: null }; }
+// ============================================================================
+// FLUXO DE CAIXA (Lançamentos manuais + entradas automáticas de venda)
+// Tabela `lancamentos` — ver migração em supabase_lancamentos.sql
+// ============================================================================
+
+export async function fetchLancamentos(unidadeId) {
+  if (!isSupabaseReady()) return { data: [], error: "Offline" };
+  let query = supabase.from("lancamentos").select("*").order("data", { ascending: false });
+  if (unidadeId) query = query.eq("unidade_id", unidadeId);
+  const { data, error } = await query;
+  return { data: data || [], error: error?.message };
+}
+
+export async function inserirLancamento(dados, unidadeId) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const payload = {
+    unidade_id: unidadeId,
+    tipo: dados.tipo,                 // 'entrada' | 'saida'
+    categoria: dados.categoria || null,
+    descricao: dados.descricao || null,
+    valor: Number(dados.valor) || 0,
+    data: dados.data || new Date().toISOString(),
+  };
+  const { data, error } = await supabase.from("lancamentos").insert([payload]).select().single();
+  return { data, error: error?.message };
+}
+
+export async function removerLancamento(id) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase.from("lancamentos").delete().eq("id", id);
+  return { error: error?.message };
+}
 
 export const fetchDocumentos = async () => { return { data: [], error: null }; };
 export const inserirDocumento = async () => { return { error: null }; };
 export const atualizarDocumento = async () => { return { error: null }; };
 export const removerDocumento = async () => { return { error: null }; };
-export const inserirLancamento = async () => { return { error: null }; };
-export const removerLancamento = async () => { return { error: null }; };

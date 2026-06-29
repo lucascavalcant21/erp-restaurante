@@ -257,9 +257,10 @@ export async function processarBaixaEstoqueECMV(pedidoId, unidadeId) {
 export async function fecharContaDaMesa(mesaId, pedidoId, unidadeId, caixaId, pagamentoData) {
   if (!isSupabaseReady()) return { error: "Offline" };
   
-  await supabase.from("pedidos").update({ 
+  // Obs: `pedidos` não possui coluna `caixa_id`; incluí-la fazia o UPDATE falhar
+  // silenciosamente — a mesa nunca era marcada como paga e a receita sumia do DRE.
+  await supabase.from("pedidos").update({
      status: 'pago',
-     caixa_id: caixaId || null,
      forma_pagamento: pagamentoData?.principal || 'multiplo'
   }).eq("id", pedidoId);
   
@@ -277,10 +278,9 @@ export async function fecharContaDaMesa(mesaId, pedidoId, unidadeId, caixaId, pa
         valor: sp.valor,
         tipo: 'entrada',
         categoria: 'vendas',
-        status: 'pago',
         data: new Date().toISOString()
      }));
-     await supabase.from("contas_pagar").insert(splitEntries);
+     await supabase.from("lancamentos").insert(splitEntries);
   }
   
   // Roda a mágica da Automação (Não bloqueia a tela do usuário)
@@ -323,14 +323,14 @@ export async function lancarVendaBalcao(unidadeId, caixaId, itensCart, pagamento
   const valorTotal = subtotal - desconto + taxa;
 
   // 1. Cria o Pedido (Comanda Direta) com status 'pago'
+  // Obs: a tabela `pedidos` não possui colunas `origem` nem `caixa_id` — a origem
+  // já é registrada em `tipo_pedido`. Incluí-las quebrava o INSERT inteiro.
   const { data: pedido, error: errPed } = await supabase.from("pedidos").insert([{
      unidade_id: unidadeId,
      status: 'pago',
      valor_total: valorTotal,
      tipo_pedido: origem, // balcao, ifood, cardapio
-     origem: origem,
-     forma_pagamento: pagamentoData?.principal || 'multiplo',
-     caixa_id: caixaId
+     forma_pagamento: pagamentoData?.principal || 'multiplo'
   }]).select().single();
 
   if (errPed) return { error: errPed.message };
@@ -367,19 +367,17 @@ export async function lancarVendaBalcao(unidadeId, caixaId, itensCart, pagamento
         valor: sp.valor,
         tipo: 'entrada',
         categoria: 'vendas',
-        status: 'pago',
         data: new Date().toISOString()
      }));
-     await supabase.from("contas_pagar").insert(splitEntries);
+     await supabase.from("lancamentos").insert(splitEntries);
   } else {
      // Fallback
-     await supabase.from("contas_pagar").insert([{
+     await supabase.from("lancamentos").insert([{
         unidade_id: unidadeId,
         descricao: `Venda Balcão #${pedido.id.substring(0,6)}`,
         valor: valorTotal,
         tipo: 'entrada',
         categoria: 'vendas',
-        status: 'pago',
         data: new Date().toISOString()
      }]);
   }
@@ -457,6 +455,8 @@ export async function enviarPedidoOnline(unidadeId, dadosCliente, itensCart, aut
      valorTotal += parseFloat(dadosCliente.taxa_entrega);
   }
   
+  // Obs: `pedidos` não possui coluna `taxa_entrega`; incluí-la quebrava o INSERT
+  // e nenhum pedido online era criado. A taxa já está somada em `valor_total`.
   const { data: pedido, error: errPed } = await supabase.from("pedidos").insert([{
      unidade_id: unidadeId,
      status: autoAprovar ? 'preparando' : 'novo_online',
@@ -465,8 +465,7 @@ export async function enviarPedidoOnline(unidadeId, dadosCliente, itensCart, aut
      cliente_telefone: dadosCliente.telefone,
      endereco_entrega: dadosCliente.endereco || null,
      troco_para: dadosCliente.troco || null,
-     valor_total: valorTotal,
-     taxa_entrega: dadosCliente.taxa_entrega || 0
+     valor_total: valorTotal
   }]).select().single();
 
   if (errPed) return { error: errPed.message };

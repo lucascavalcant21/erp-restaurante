@@ -1,5 +1,6 @@
 import "./globals.css";
 import { ERPProvider } from "./context/ERPContext";
+import RegisterSW from "./components/RegisterSW";
 
 export const metadata = {
   title: "Hefisto",
@@ -25,8 +26,10 @@ export default function RootLayout({ children }) {
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#0f172a" />
+        <link rel="apple-touch-icon" href="/icon-192x192.png" />
       </head>
       <body>
+        <RegisterSW />
         <ERPProvider>
           {children}
         </ERPProvider>

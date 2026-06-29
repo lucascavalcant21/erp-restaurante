@@ -15,12 +15,17 @@ export async function fetchInsumos(unidadeId, dept) {
 
 export async function salvarInsumo(insumo) {
   if (!isSupabaseReady()) return { error: "Offline" };
-  
-  if (insumo.id) {
-    const { error } = await supabase.from("insumos").update(insumo).eq("id", insumo.id);
+
+  // Remove campos que não devem ir no payload: `id` nulo quebra o INSERT
+  // (coluna id é NOT NULL com default gen_random_uuid; enviar null viola a constraint)
+  // e `created_at` é gerenciado pelo banco.
+  const { id, created_at, ...campos } = insumo;
+
+  if (id) {
+    const { error } = await supabase.from("insumos").update(campos).eq("id", id);
     return { error: error?.message };
   } else {
-    const { error } = await supabase.from("insumos").insert([insumo]);
+    const { error } = await supabase.from("insumos").insert([campos]);
     return { error: error?.message };
   }
 }
@@ -60,13 +65,15 @@ export async function salvarFicha(ficha, ingredientes) {
   if (!isSupabaseReady()) return { error: "Offline" };
   
   let fichaId = ficha.id;
+  // `id` nulo quebra o INSERT (mesma constraint NOT NULL da tabela insumos)
+  const { id: _id, created_at, ...camposFicha } = ficha;
 
   // 1. Salva a Capa da Ficha
   if (fichaId) {
-    const { error } = await supabase.from("fichas_tecnicas").update(ficha).eq("id", fichaId);
+    const { error } = await supabase.from("fichas_tecnicas").update(camposFicha).eq("id", fichaId);
     if(error) return { error: error.message };
   } else {
-    const { data, error } = await supabase.from("fichas_tecnicas").insert([ficha]).select("id").single();
+    const { data, error } = await supabase.from("fichas_tecnicas").insert([camposFicha]).select("id").single();
     if(error) return { error: error.message };
     fichaId = data.id;
   }

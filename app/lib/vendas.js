@@ -22,12 +22,15 @@ export async function fetchProdutos(unidadeId, dept) {
 
 export async function salvarProduto(produto) {
   if (!isSupabaseReady()) return { error: "Offline" };
-  
-  if (produto.id) {
-    const { error } = await supabase.from("produtos").update(produto).eq("id", produto.id);
+
+  // `id` nulo quebra o INSERT (coluna id NOT NULL com default no Postgres)
+  const { id, created_at, ...campos } = produto;
+
+  if (id) {
+    const { error } = await supabase.from("produtos").update(campos).eq("id", id);
     return { error: error?.message };
   } else {
-    const { error } = await supabase.from("produtos").insert([produto]);
+    const { error } = await supabase.from("produtos").insert([campos]);
     return { error: error?.message };
   }
 }

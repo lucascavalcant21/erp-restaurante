@@ -278,10 +278,9 @@ export async function fecharContaDaMesa(mesaId, pedidoId, unidadeId, caixaId, pa
         valor: sp.valor,
         tipo: 'entrada',
         categoria: 'vendas',
-        status: 'pago',
         data: new Date().toISOString()
      }));
-     await supabase.from("contas_pagar").insert(splitEntries);
+     await supabase.from("lancamentos").insert(splitEntries);
   }
   
   // Roda a mágica da Automação (Não bloqueia a tela do usuário)
@@ -368,19 +367,17 @@ export async function lancarVendaBalcao(unidadeId, caixaId, itensCart, pagamento
         valor: sp.valor,
         tipo: 'entrada',
         categoria: 'vendas',
-        status: 'pago',
         data: new Date().toISOString()
      }));
-     await supabase.from("contas_pagar").insert(splitEntries);
+     await supabase.from("lancamentos").insert(splitEntries);
   } else {
      // Fallback
-     await supabase.from("contas_pagar").insert([{
+     await supabase.from("lancamentos").insert([{
         unidade_id: unidadeId,
         descricao: `Venda Balcão #${pedido.id.substring(0,6)}`,
         valor: valorTotal,
         tipo: 'entrada',
         categoria: 'vendas',
-        status: 'pago',
         data: new Date().toISOString()
      }]);
   }

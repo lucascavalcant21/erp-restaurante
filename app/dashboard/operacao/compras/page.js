@@ -46,10 +46,11 @@ export default function ComprasPage() {
      const forn = fornecedores.find(f => f.id === form.fornecedorId);
      const fornNome = forn ? forn.nome : "";
 
-     await registrarCompra(unidadeAtiva, ins.insumo_id, ins.nome, ins.departamento, Number(form.quantidade), valorNum, fornNome);
-     
+     const res = await registrarCompra(unidadeAtiva, ins.insumo_id, ins.nome, ins.departamento, Number(form.quantidade), valorNum, fornNome);
+     if(res?.error) return alert("❌ Erro ao registrar a compra: " + res.error);
+
      alert(`Compra registrada! ${form.quantidade} ${ins.unidade_medida} adicionado ao estoque e R$ ${valorNum} enviado para o Contas a Pagar (Financeiro).`);
-     
+
      setModalOpen(false);
      setForm({ insumoId: "", quantidade: 1, valorPago: "", fornecedorId: "" });
      carregar();

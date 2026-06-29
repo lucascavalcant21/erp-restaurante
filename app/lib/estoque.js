@@ -107,16 +107,17 @@ export async function registrarCompra(unidadeId, insumoId, nomeInsumo, departame
      .select("quantidade_atual")
      .eq("unidade_id", unidadeId)
      .eq("insumo_id", insumoId)
-     .single();
-     
+     .maybeSingle();
+
   const saldoAnterior = estoqueDB ? estoqueDB.quantidade_atual : 0;
-  await ajustarEstoque(unidadeId, insumoId, saldoAnterior + quantidadeComprada);
-  
+  const { error: errEstoque } = await ajustarEstoque(unidadeId, insumoId, saldoAnterior + quantidadeComprada);
+  if (errEstoque) return { error: errEstoque };
+
   // 2. Lança no Contas a Pagar (Financeiro)
   const categoria = 'cmv'; // Unificado conforme solicitado
   const hoje = new Date().toISOString().split('T')[0];
   const descForn = fornecedorNome ? ` (Fornecedor: ${fornecedorNome})` : "";
-  
+
   const { error } = await supabase.from("contas_pagar").insert([{
      unidade_id: unidadeId,
      descricao: `Compra: ${quantidadeComprada}x ${nomeInsumo}${descForn}`,
@@ -125,7 +126,9 @@ export async function registrarCompra(unidadeId, insumoId, nomeInsumo, departame
      categoria: categoria,
      status: 'pendente'
   }]);
+  if (error) return { error: error.message };
 
+  return { success: true };
 }
 
 export const fetchHistoricoTablet = async () => { return { data: [], error: null }; };

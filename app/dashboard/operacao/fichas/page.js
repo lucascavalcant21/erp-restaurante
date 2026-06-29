@@ -7,6 +7,15 @@ import { fetchFichas, salvarFicha, removerFicha, fetchInsumos } from "../../../l
 import { LayoutList, Plus, Search, Trash2, Edit3, X, Save, ArrowLeft, UtensilsCrossed, Wine, ChevronRight } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
+// Sub-unidades para lançamento em ficha. O custo do insumo é por unidade-base
+// (R$/kg, R$/L). Em receita pensamos em g/ml, então convertemos: 1 base = `f` sub.
+// Ex: kg → g (f=1000). Insumos em "un" não têm sub-unidade.
+const SUB_UNIDADES = {
+  kg: { sub: "g",  f: 1000 },
+  l:  { sub: "ml", f: 1000 },
+};
+const getSub = (unidade) => SUB_UNIDADES[String(unidade || "").toLowerCase()] || null;
+
 function FichasRunner() {
   const router = useRouter();
   const { abrirMenu } = useERP();
@@ -64,13 +73,17 @@ function FichasRunner() {
        rendimento_porcoes: ficha.rendimento_porcoes, 
        modo_preparo: ficha.modo_preparo || "" 
     });
-    // Mapeando a estrutura do banco pro estado local
+    // Mapeando a estrutura do banco pro estado local.
+    // `quantidade` é sempre armazenada na unidade-base do insumo (kg/L/un).
+    // Por padrão exibimos em sub-unidade (g/ml) quando ela existe, pois é como
+    // se pensa em receita; o usuário pode alternar pelo botão na linha.
     const mapIng = (ficha.fichas_ingredientes || []).map(fi => ({
        insumo_id: fi.insumos.id,
        nome: fi.insumos.nome,
        unidade: fi.insumos.unidade_medida,
        custo_unitario: fi.insumos.custo_unitario,
-       quantidade: fi.quantidade
+       quantidade: fi.quantidade,
+       modo: getSub(fi.insumos.unidade_medida) ? 'sub' : 'base'
     }));
     setIngFicha(mapIng);
     setModalNovo(true);
@@ -83,19 +96,25 @@ function FichasRunner() {
   const addIngrediente = (insumoId) => {
     if(!insumoId) return;
     if(ingFicha.find(i => i.insumo_id === insumoId)) return; // Já existe
-    
+
     const insumoDb = insumosAtivos.find(i => i.id === insumoId);
     setIngFicha([...ingFicha, {
        insumo_id: insumoDb.id,
        nome: insumoDb.nome,
        unidade: insumoDb.unidade_medida,
        custo_unitario: insumoDb.custo_unitario,
-       quantidade: 0
+       quantidade: 0,
+       modo: getSub(insumoDb.unidade_medida) ? 'sub' : 'base'
     }]);
   };
 
-  const updateQtd = (insumoId, qtd) => {
-    setIngFicha(lista => lista.map(i => i.insumo_id === insumoId ? { ...i, quantidade: Number(qtd) || 0 } : i));
+  // Recebe a quantidade JÁ em unidade-base (a conversão acontece no onChange do input)
+  const updateQtd = (insumoId, qtdBase) => {
+    setIngFicha(lista => lista.map(i => i.insumo_id === insumoId ? { ...i, quantidade: Number(qtdBase) || 0 } : i));
+  };
+
+  const toggleModo = (insumoId) => {
+    setIngFicha(lista => lista.map(i => i.insumo_id === insumoId ? { ...i, modo: i.modo === 'sub' ? 'base' : 'sub' } : i));
   };
 
   const removeIngrediente = (insumoId) => {
@@ -264,28 +283,52 @@ function FichasRunner() {
                               Selecione ingredientes acima para montar a ficha técnica e calcular o custo.
                            </div>
                         )}
-                        {ingFicha.map(ing => (
+                        {ingFicha.map(ing => {
+                           const sub = getSub(ing.unidade);
+                           const emSub = sub && ing.modo === "sub";
+                           const fator = emSub ? sub.f : 1;
+                           const unidadeLabel = emSub ? sub.sub : ing.unidade;
+                           // valor exibido = quantidade-base convertida pra unidade de digitação
+                           const valorExibido = ing.quantidade ? +(ing.quantidade * fator).toFixed(4) : "";
+                           const onChangeQtd = (e) => {
+                              const v = Number(e.target.value) || 0;
+                              updateQtd(ing.insumo_id, v / fator); // sempre grava em unidade-base
+                           };
+                           return (
                            <div key={ing.insumo_id} className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center gap-3 group">
                               <div className="flex-1 min-w-0">
                                  <p className="font-bold text-slate-800 text-sm truncate">{ing.nome}</p>
                                  <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">Custo: {fmtBRL(ing.custo_unitario * ing.quantidade)}</p>
                               </div>
                               <div className="flex items-center gap-2">
-                                 <input 
-                                    type="number" 
-                                    step="0.001"
+                                 <input
+                                    type="number"
+                                    step={emSub ? "1" : "0.001"}
+                                    min="0"
                                     placeholder="0"
-                                    value={ing.quantidade || ""}
-                                    onChange={e => updateQtd(ing.insumo_id, e.target.value)}
+                                    value={valorExibido}
+                                    onChange={onChangeQtd}
                                     className="w-20 p-2 text-center bg-white border border-slate-200 rounded-lg font-black text-slate-700 outline-none focus:border-emerald-500"
                                  />
-                                 <span className="text-[10px] font-black text-slate-500 uppercase w-6">{ing.unidade}</span>
+                                 {sub ? (
+                                    <button
+                                       type="button"
+                                       onClick={() => toggleModo(ing.insumo_id)}
+                                       title="Alternar unidade de lançamento"
+                                       className="text-[10px] font-black text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-md px-1.5 py-1 uppercase w-9 transition-colors"
+                                    >
+                                       {unidadeLabel}
+                                    </button>
+                                 ) : (
+                                    <span className="text-[10px] font-black text-slate-500 uppercase w-9 text-center">{unidadeLabel}</span>
+                                 )}
                               </div>
                               <button onClick={() => removeIngrediente(ing.insumo_id)} className="p-2 text-slate-500 hover:text-slate-600 transition-colors bg-white rounded-lg border border-slate-200">
                                  <Trash2 size={14}/>
                               </button>
                            </div>
-                        ))}
+                           );
+                        })}
                      </div>
 
                   </div>

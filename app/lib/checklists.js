@@ -16,11 +16,14 @@ export async function fetchTemplates(unidadeId, dept, tipo) {
 export async function salvarTemplate(template) {
   if (!isSupabaseReady()) return { error: "Offline" };
   
-  if (template.id) {
-    const { error } = await supabase.from("checklists_templates").update(template).eq("id", template.id);
+  // `id` nulo quebra o INSERT (coluna id NOT NULL com default no Postgres)
+  const { id, created_at, ...campos } = template;
+
+  if (id) {
+    const { error } = await supabase.from("checklists_templates").update(campos).eq("id", id);
     return { error: error?.message };
   } else {
-    const { error } = await supabase.from("checklists_templates").insert([template]);
+    const { error } = await supabase.from("checklists_templates").insert([campos]);
     return { error: error?.message };
   }
 }

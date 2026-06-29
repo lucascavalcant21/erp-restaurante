@@ -17,9 +17,20 @@ function IngredientesRunner() {
   const [insumos, setInsumos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
-  
+
   const [modalNovo, setModalNovo] = useState(false);
   const [form, setForm] = useState({ id: null, departamento: deptUrl || "cozinha", nome: "", unidade_medida: "kg", custo_unitario: "" });
+
+  // Feedback de sucesso (toast flutuante autodescartável)
+  const [toast, setToast] = useState(null); // { msg, tipo: 'ok' | 'erro' }
+  const showToast = (msg, tipo = "ok") => {
+    setToast({ msg, tipo });
+    setTimeout(() => setToast(null), 2800);
+  };
+
+  // Paginação client-side
+  const PAGE_SIZE = 10;
+  const [pagina, setPagina] = useState(1);
 
   const carregar = async () => {
     setLoading(true);
@@ -35,6 +46,13 @@ function IngredientesRunner() {
 
   const filtrados = insumos.filter(i => i.nome.toLowerCase().includes(busca.toLowerCase()));
 
+  // Reseta para a 1ª página quando a busca, o filtro ou os dados mudam
+  useEffect(() => { setPagina(1); }, [busca, deptUrl, insumos.length]);
+
+  const totalPaginas = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
+  const paginaAtual = Math.min(pagina, totalPaginas);
+  const paginados = filtrados.slice((paginaAtual - 1) * PAGE_SIZE, paginaAtual * PAGE_SIZE);
+
   const abrirNovo = () => {
     setForm({ id: null, departamento: deptUrl || "cozinha", nome: "", unidade_medida: "kg", custo_unitario: "" });
     setModalNovo(true);
@@ -46,32 +64,66 @@ function IngredientesRunner() {
   };
 
   const handleSalvar = async () => {
-    if(!form.nome.trim()) return alert("Digite o nome do ingrediente");
-    if(!form.custo_unitario) return alert("Digite o custo");
+    if(!form.nome.trim()) return alert("❌ Digite o nome do ingrediente");
+    if(form.nome.length > 100) return alert("❌ Nome não pode ter mais de 100 caracteres");
+    if(!form.custo_unitario) return alert("❌ Digite o custo");
+
+    const custo = Number(form.custo_unitario);
+    if(custo <= 0) return alert("❌ Custo deve ser um valor maior que zero");
+    if(custo > 999999.99) return alert("❌ Custo não pode ser maior que R$ 999.999,99");
 
     const erro = await salvarInsumo({
        ...form,
        unidade_id: unidadeAtiva,
-       custo_unitario: Number(form.custo_unitario)
+       custo_unitario: custo
     });
 
-    if(erro.error) return alert("Erro ao salvar: " + erro.error);
-    
+    if(erro.error) {
+      return alert("❌ Erro ao salvar ingrediente: " + erro.error);
+    }
+
+    const editando = !!form.id;
     setModalNovo(false);
-    carregar();
+    await carregar();
+    showToast(editando ? "Ingrediente atualizado!" : "Ingrediente cadastrado!");
   };
 
   const handleRemover = async (id) => {
-    if(confirm("Deseja apagar este insumo? (Pode falhar se estiver em uso numa Ficha Técnica)")) {
+    const ingrediente = insumos.find(i => i.id === id);
+    if(!ingrediente) return;
+
+    if(confirm(`Deseja deletar "${ingrediente.nome}"?\n\nAviso: Se este ingrediente estiver em uso numa Ficha Técnica, a exclusão falhará.`)) {
        const { error } = await removerInsumo(id);
-       if(error) alert("Não é possível apagar pois este ingrediente faz parte de uma Ficha Técnica.");
-       carregar();
+       if(error) {
+         if(error.toLowerCase().includes("foreign") || error.toLowerCase().includes("ficha")) {
+           alert(`❌ Não é possível deletar "${ingrediente.nome}" pois ele está sendo usado em uma Ficha Técnica.\n\nDelete a ficha técnica primeiro.`);
+         } else {
+           alert(`❌ Erro ao deletar "${ingrediente.nome}": ${error}`);
+         }
+       } else {
+         await carregar();
+         showToast(`"${ingrediente.nome}" removido.`);
+       }
     }
   };
 
+  if(!unidadeAtiva) {
+    return (
+      <div className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-4">
+            <FlaskConical size={32} />
+          </div>
+          <h2 className="text-2xl font-black text-slate-800 mb-2">Nenhuma Loja Ativa</h2>
+          <p className="text-slate-600 font-semibold">Selecione uma loja na barra superior para gerenciar ingredientes.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50">
-      
+
       {/* TOPBAR */}
       <div className="bg-white border-b border-slate-200 pt-6 pb-6 px-6 sticky top-0 z-10">
          <div className="max-w-5xl mx-auto flex items-center justify-between">
@@ -99,6 +151,18 @@ function IngredientesRunner() {
             <input type="text" placeholder="Buscar ingrediente..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-bold text-slate-700 p-2" />
          </div>
 
+         <div className="flex gap-2 mb-6 flex-wrap">
+           <button onClick={() => router.push(`/dashboard/operacao/ingredientes`)} className={`px-4 py-2 rounded-lg font-bold transition-all ${!deptUrl ? 'bg-emerald-600 text-white shadow-lg' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>
+             📦 Todos
+           </button>
+           <button onClick={() => router.push(`/dashboard/operacao/ingredientes?dept=cozinha`)} className={`px-4 py-2 rounded-lg font-bold transition-all ${deptUrl === 'cozinha' ? 'bg-emerald-600 text-white shadow-lg' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>
+             👨‍🍳 Cozinha
+           </button>
+           <button onClick={() => router.push(`/dashboard/operacao/ingredientes?dept=bar`)} className={`px-4 py-2 rounded-lg font-bold transition-all ${deptUrl === 'bar' ? 'bg-emerald-600 text-white shadow-lg' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>
+             🍹 Bar
+           </button>
+         </div>
+
          <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200">
             {/* Header */}
             <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center">
@@ -112,10 +176,10 @@ function IngredientesRunner() {
                {loading && (
                  <div className="p-12 text-center">
                    <div className="w-8 h-8 border-4 border-slate-200 border-t-emerald-500 rounded-full animate-spin mx-auto mb-3" />
-                   <p className="text-slate-400 font-bold text-sm">Buscando insumos...</p>
+                   <p className="text-slate-400 font-bold text-sm">Carregando ingredientes{deptUrl ? ` de ${deptUrl}` : ''}...</p>
                  </div>
                )}
-               {!loading && filtrados.map(ins => {
+               {!loading && paginados.map(ins => {
                  const dept = ins.departamento?.toLowerCase();
                  const deptColor = dept === 'bar' ? 'bg-purple-100 text-purple-700' : 'bg-amber-100 text-amber-700';
                  return (
@@ -154,8 +218,43 @@ function IngredientesRunner() {
                  </div>
                )}
             </div>
+
+            {/* Controles de paginação */}
+            {!loading && filtrados.length > PAGE_SIZE && (
+              <div className="bg-white border-t border-slate-100 px-6 py-3 flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-500">
+                  Mostrando {(paginaAtual - 1) * PAGE_SIZE + 1}–{Math.min(paginaAtual * PAGE_SIZE, filtrados.length)} de {filtrados.length}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setPagina(p => Math.max(1, p - 1))}
+                    disabled={paginaAtual === 1}
+                    className="px-3 py-1.5 rounded-lg font-bold text-sm bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    ← Anterior
+                  </button>
+                  <span className="text-xs font-black text-slate-600 px-2">{paginaAtual} / {totalPaginas}</span>
+                  <button
+                    onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
+                    disabled={paginaAtual === totalPaginas}
+                    className="px-3 py-1.5 rounded-lg font-bold text-sm bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Próxima →
+                  </button>
+                </div>
+              </div>
+            )}
          </div>
       </div>
+
+      {/* Toast flutuante de feedback */}
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-[60] animate-in slide-in-from-bottom-4 fade-in">
+          <div className={`px-5 py-3 rounded-xl shadow-2xl font-bold text-white flex items-center gap-2 ${toast.tipo === 'erro' ? 'bg-red-600' : 'bg-emerald-600'}`}>
+            {toast.tipo === 'erro' ? '⚠️' : '✅'} {toast.msg}
+          </div>
+        </div>
+      )}
 
       {modalNovo && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
@@ -194,11 +293,11 @@ function IngredientesRunner() {
                      </div>
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Custo da Unid. Base</label>
-                        <input type="number" placeholder="0.00" value={form.custo_unitario} onChange={e=>setForm({...form, custo_unitario: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-emerald-600 outline-none focus:border-emerald-500"/>
+                        <input type="number" step="0.01" min="0" max="999999.99" placeholder="0.00" value={form.custo_unitario} onChange={e=>setForm({...form, custo_unitario: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-emerald-600 outline-none focus:border-emerald-500"/>
                      </div>
                   </div>
                   <p className="text-[11px] font-medium text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                     Dica: Se você compra a garrafa de Vodka de 1 Litro por R$ 60,00, a Unidade Base é "L" e o Custo é "60". O sistema vai calcular os MLs sozinho nas fichas!
+                     Dica: Cadastre o custo da unidade de compra. Ex.: garrafa de Vodka de 1 Litro por R$ 60,00 → Unidade Base "L" e Custo "60". Nas Fichas Técnicas você lança em ml (ou g, para Kg) e o sistema converte o custo automaticamente.
                   </p>
                </div>
 

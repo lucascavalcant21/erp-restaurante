@@ -736,9 +736,54 @@ export default function SaloesMesasPage() {
     
     setDadosRecibo(dadosPrev);
     setModalRecibo(true);
-    
+
     // Imprime automaticamente o Popup Térmico
     abrirCupomTermico(dadosPrev);
+ };
+
+  // Envia o pedido para a cozinha: imprime a via de produção (sem precos) e
+  // confirma no KDS. Os itens ja entram no KDS ao serem lancados (status
+  // 'pendente'), entao aqui a acao principal e imprimir a via da cozinha.
+  const enviarParaCozinha = () => {
+    if (!pedidoAtivo || !(pedidoAtivo.pedidos_itens?.length > 0)) {
+       return alert("Nenhum item para enviar para a cozinha.");
+    }
+    const itens = pedidoAtivo.pedidos_itens.map(i => ({
+       nome: i.produtos?.nome_produto || 'Item',
+       qtd: i.quantidade,
+       obs: i.observacao || ''
+    }));
+    const win = window.open('', '_blank', 'width=320,height=600');
+    if (!win) return alert("Habilite os popups para imprimir a via da cozinha.");
+
+    const agora = new Date().toLocaleString('pt-BR');
+    const itensHtml = itens.map(it => `
+       <div class="item">
+          <span class="q">${it.qtd}x</span> <span class="n">${it.nome}</span>
+          ${it.obs ? `<div class="obs">OBS: ${it.obs}</div>` : ''}
+       </div>`).join('');
+
+    win.document.write(`
+       <!DOCTYPE html><html><head><meta charset="utf-8"/><title>Via da Cozinha</title>
+       <style>
+          *{margin:0;padding:0;box-sizing:border-box}
+          body{font-family:'Courier New',monospace;width:80mm;padding:4mm;color:#000}
+          .center{text-align:center}.big{font-size:20px;font-weight:bold}
+          .sep{border-top:1px dashed #000;margin:8px 0}
+          .item{font-size:16px;font-weight:bold;margin:8px 0}
+          .item .q{font-size:19px}
+          .obs{font-size:12px;font-weight:normal;margin:2px 0 0 6px}
+          @media print{@page{margin:0;size:80mm auto}}
+       </style></head><body>
+          <div class="center big">COZINHA</div>
+          <div class="center">${mesaAtiva?.numero_mesa ? 'MESA ' + mesaAtiva.numero_mesa : 'PEDIDO'}</div>
+          <div class="center" style="font-size:10px">${agora}</div>
+          <div class="sep"></div>
+          ${itensHtml}
+          <div class="sep"></div>
+       </body></html>`);
+    win.document.close();
+    setTimeout(() => { win.print(); }, 300);
  };
 
   // ==========================================
@@ -910,11 +955,16 @@ export default function SaloesMesasPage() {
                      ))}
                   </div>
 
-                  <div className="p-4 bg-white border-t border-slate-200 grid grid-cols-2 gap-2 shrink-0 z-10">
-                     <button onClick={() => { setMesaAtiva(null); setPedidoAtivo(null); }} className="py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm rounded-xl transition-colors">VOLTAR</button>
-                     <button onClick={() => setModalTransferir(true)} className="py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm rounded-xl transition-colors flex items-center justify-center gap-1"><ArrowRightLeft size={16}/> TRANSF.</button>
-                     <button onClick={imprimirPreConta} className="py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm rounded-xl transition-colors flex items-center justify-center gap-1"><Printer size={16}/> PRÉ-CONTA</button>
-                     <button onClick={abrirModalPagamento} className="py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-sm rounded-xl shadow-md shadow-emerald-500/25 active:scale-[0.98] transition-all">RECEBER</button>
+                  <div className="p-4 bg-white border-t border-slate-200 shrink-0 z-10">
+                     <button onClick={enviarParaCozinha} className="w-full py-3 mb-2 bg-amber-500 hover:bg-amber-600 text-white font-black text-sm rounded-xl shadow-md shadow-amber-500/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                        <Send size={16}/> Enviar para a Cozinha
+                     </button>
+                     <div className="grid grid-cols-2 gap-2">
+                        <button onClick={() => { setMesaAtiva(null); setPedidoAtivo(null); }} className="py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm rounded-xl transition-colors">VOLTAR</button>
+                        <button onClick={() => setModalTransferir(true)} className="py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm rounded-xl transition-colors flex items-center justify-center gap-1"><ArrowRightLeft size={16}/> TRANSF.</button>
+                        <button onClick={imprimirPreConta} className="py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm rounded-xl transition-colors flex items-center justify-center gap-1"><Printer size={16}/> PRÉ-CONTA</button>
+                        <button onClick={abrirModalPagamento} className="py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-sm rounded-xl shadow-md shadow-emerald-500/25 active:scale-[0.98] transition-all">RECEBER</button>
+                     </div>
                   </div>
                </div>
 

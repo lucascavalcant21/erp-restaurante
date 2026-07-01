@@ -1110,8 +1110,8 @@ export default function SaloesMesasPage() {
                            <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Total a Receber</span>
                            <span className="text-3xl font-black text-emerald-500 tracking-tight">{fmtBRL(totalCarrinho)}</span>
                         </div>
-                        <button disabled={carrinho.length === 0} onClick={abrirModalPagamento} className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-300 text-white font-black py-4 rounded-xl shadow-lg transition-transform flex items-center justify-center">
-                           RECEBER AGORA
+                        <button disabled={carrinho.length === 0} onClick={abrirModalPagamento} className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none text-white font-black py-4 rounded-2xl shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                           <CheckCircle size={18} /> RECEBER AGORA
                         </button>
                      </div>
                   </div>

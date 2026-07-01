@@ -911,10 +911,10 @@ export default function SaloesMesasPage() {
                   </div>
 
                   <div className="p-4 bg-white border-t border-slate-200 grid grid-cols-2 gap-2 shrink-0 z-10">
-                     <button onClick={() => { setMesaAtiva(null); setPedidoAtivo(null); }} className="py-3 bg-[#F44336] hover:bg-red-600 text-white font-bold text-sm rounded shadow transition-colors">VOLTAR</button>
-                     <button onClick={() => setModalTransferir(true)} className="py-3 bg-purple-500 hover:bg-purple-600 text-white font-bold text-sm rounded shadow transition-colors flex items-center justify-center gap-1"><ArrowRightLeft size={16}/> TRANSF.</button>
-                     <button onClick={imprimirPreConta} className="py-3 bg-slate-800 hover:bg-black text-white font-bold text-sm rounded shadow transition-colors flex items-center justify-center gap-1"><Printer size={16}/> PRÉ-CONTA</button>
-                     <button onClick={abrirModalPagamento} className="py-3 bg-[#2196F3] hover:bg-blue-600 text-white font-bold text-sm rounded shadow transition-colors">RECEBER</button>
+                     <button onClick={() => { setMesaAtiva(null); setPedidoAtivo(null); }} className="py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm rounded-xl transition-colors">VOLTAR</button>
+                     <button onClick={() => setModalTransferir(true)} className="py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm rounded-xl transition-colors flex items-center justify-center gap-1"><ArrowRightLeft size={16}/> TRANSF.</button>
+                     <button onClick={imprimirPreConta} className="py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm rounded-xl transition-colors flex items-center justify-center gap-1"><Printer size={16}/> PRÉ-CONTA</button>
+                     <button onClick={abrirModalPagamento} className="py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-sm rounded-xl shadow-md shadow-emerald-500/25 active:scale-[0.98] transition-all">RECEBER</button>
                   </div>
                </div>
 
@@ -934,7 +934,7 @@ export default function SaloesMesasPage() {
                   <div className="px-3 py-2 bg-white flex gap-2 overflow-x-auto custom-scrollbar shrink-0 shadow-sm z-10 border-b border-slate-200">
                      {["Todas", ...new Set(produtos.map(p => p.categoria || "Geral"))].map(cat => (
                         <button key={cat} onClick={() => setFiltroCategoria(cat)}
-                           className={`px-4 py-3 rounded text-[11px] font-black uppercase whitespace-nowrap transition-all shadow-sm ${filtroCategoria === cat ? 'bg-[#F59E0B] text-white border-2 border-[#F59E0B]' : 'bg-[#2196F3] text-white hover:bg-blue-600'}`}>
+                           className={`px-4 py-2.5 rounded-lg text-[11px] font-black uppercase whitespace-nowrap transition-all ${filtroCategoria === cat ? 'bg-emerald-500 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
                            {cat}
                         </button>
                      ))}
@@ -950,12 +950,12 @@ export default function SaloesMesasPage() {
                                lancarItemComanda(pedidoAtivo.id, prod.id, prod.preco_venda || prod.preco || 0, 1, modoViagem ? "#PARA LEVAR" : "");
                                // O Supabase Realtime cuidaria disso, mas vamos recarregar a mesa
                                fetchPedidoAberto(mesaAtiva.id).then(({data}) => setPedidoAtivo(data));
-                           }} className="bg-white rounded p-0 border border-slate-200 shadow hover:shadow-md transition-all text-center flex flex-col group h-full overflow-hidden">
+                           }} className="bg-white rounded-xl p-0 border border-slate-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all text-center flex flex-col group h-full overflow-hidden">
                               <div className="p-3 flex-1 flex flex-col items-center justify-center">
                                  <h3 className="font-black text-slate-800 text-[11px] leading-tight mb-2 uppercase">{prod.nome_produto}</h3>
-                                 <p className="font-bold text-slate-500 text-xs">{fmtBRL(prod.preco_venda || prod.preco || 0)}</p>
+                                 <p className="font-bold text-emerald-600 text-xs">{fmtBRL(prod.preco_venda || prod.preco || 0)}</p>
                               </div>
-                              <div className="bg-[#2196F3] group-hover:bg-blue-600 text-white py-2 flex items-center justify-center transition-colors">
+                              <div className="bg-emerald-500 group-hover:bg-emerald-600 text-white py-2 flex items-center justify-center transition-colors">
                                  <ShoppingCart size={16}/>
                               </div>
                            </button>

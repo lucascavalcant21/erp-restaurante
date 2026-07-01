@@ -32,7 +32,14 @@ function KDSRunner() {
   const [loading, setLoading] = useState(true);
   const [ordemFila, setOrdemFila] = useState([]); // prioridade manual (array de pedidoId)
   const [stats, setStats] = useState({ itens: 0, pedidos: 0, delivery: 0, mesa: 0 });
+  const [confirmItem, setConfirmItem] = useState(null); // item aguardando confirmacao
   const containerRef = useRef(null);
+
+  const acaoLabel = (status) => ({
+    pendente: "Iniciar o preparo deste item",
+    preparando: "Marcar este item como pronto",
+    pronto: "Marcar este item como entregue",
+  }[status] || "Avançar item");
 
   const carregar = async () => {
     if (itens.length === 0) setLoading(true);
@@ -229,7 +236,7 @@ function KDSRunner() {
                           else if (it.status_kds === "preparando") cor = "bg-amber-50 text-amber-800 border-amber-100";
                           else cor = "bg-slate-50 text-slate-700 border-slate-100";
                           return (
-                            <button key={it.id} onClick={() => avancarItem(it)} className={`w-full text-left px-3 py-2 rounded-lg border font-bold text-sm transition-all active:scale-[0.98] flex items-center justify-between ${cor} ${anim}`}>
+                            <button key={it.id} onClick={() => setConfirmItem(it)} className={`w-full text-left px-3 py-2 rounded-lg border font-bold text-sm transition-all active:scale-[0.98] flex items-center justify-between ${cor} ${anim}`}>
                               <span className="truncate">{it.quantidade}x {it.produtos?.nome_produto}</span>
                               {it.status_kds === "pronto" ? <Check size={16} className="shrink-0" /> : <Play size={13} className="shrink-0 opacity-60" />}
                             </button>
@@ -269,6 +276,21 @@ function KDSRunner() {
           );
         })}
       </div>
+
+      {/* Confirmacao ao tocar num item (pergunta em vez de avancar direto) */}
+      {confirmItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4" onClick={() => setConfirmItem(null)}>
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-black text-slate-900 leading-tight">{confirmItem.quantidade}x {confirmItem.produtos?.nome_produto}</h3>
+            {confirmItem.observacao && <p className="text-xs font-bold text-amber-700 mt-1">Obs: {confirmItem.observacao}</p>}
+            <p className="text-sm font-bold text-slate-500 mt-3">{acaoLabel(confirmItem.status_kds)}?</p>
+            <div className="grid grid-cols-2 gap-3 mt-6">
+              <button onClick={() => setConfirmItem(null)} className="py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors">Cancelar</button>
+              <button onClick={() => { avancarItem(confirmItem); setConfirmItem(null); }} className="py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-xl transition-colors">Confirmar</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

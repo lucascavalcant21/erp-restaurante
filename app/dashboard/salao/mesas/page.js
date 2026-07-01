@@ -1006,17 +1006,21 @@ export default function SaloesMesasPage() {
                                  <button onClick={() => setModalGestaoMesas(true)} className="px-6 py-3 bg-blue-500 text-white font-black rounded-xl">Gerenciar Mesas</button>
                               </div>
                            ) : (
-                              <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-7 lg:grid-cols-9 xl:grid-cols-10 gap-1.5">
-                                 {mesas.map(m => (
-                                    <button key={m.id} onClick={() => clicarMesa(m)}
-                                      className={`aspect-square w-full flex items-center justify-center font-black text-2xl text-white transition-opacity hover:opacity-90 rounded ${
-                                        m.status === 'ocupada' ? 'bg-blue-500' 
-                                        : m.status === 'fechando' ? 'bg-amber-500' 
-                                        : 'bg-[#4CAF50]'
-                                      }`}>
-                                       {m.numero_mesa}
-                                    </button>
-                                 ))}
+                              <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-7 lg:grid-cols-9 xl:grid-cols-10 gap-2.5">
+                                 {mesas.map(m => {
+                                    const st = m.status === 'ocupada'
+                                       ? { bg: 'bg-blue-500', label: 'Em consumo' }
+                                       : m.status === 'fechando'
+                                          ? { bg: 'bg-amber-500', label: 'Pediu a conta' }
+                                          : { bg: 'bg-emerald-500', label: 'Livre' };
+                                    return (
+                                       <button key={m.id} onClick={() => clicarMesa(m)}
+                                         className={`aspect-square w-full flex flex-col items-center justify-center gap-1 rounded-2xl text-white shadow-sm hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all duration-200 ${st.bg}`}>
+                                          <span className="font-black text-xl leading-none text-center px-1">{m.numero_mesa}</span>
+                                          <span className="text-[9px] font-bold uppercase tracking-widest text-white/80">{st.label}</span>
+                                       </button>
+                                    );
+                                 })}
                               </div>
                            )}
                         </div>

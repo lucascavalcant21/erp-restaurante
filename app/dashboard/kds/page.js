@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../context/ERPContext";
 import { fetchItensKDS, atualizarStatusKDS } from "../../lib/vendas";
-import { MonitorPlay, ArrowLeft, Clock, CheckCircle2, Play, Maximize, GlassWater, ChefHat } from "lucide-react";
+import { MonitorPlay, ArrowLeft, Clock, CheckCircle2, Play, Maximize, GlassWater, ChefHat, AlertTriangle } from "lucide-react";
 
 function KDSRunner() {
   const router = useRouter();
@@ -175,7 +175,7 @@ function KDSRunner() {
                                              >
                                                 <div className="flex justify-between items-start gap-2 relative z-10">
                                                    <span className="text-lg font-black leading-tight">
-                                                      {it.status_kds === 'cancelado' ? '❌ CANCELADO' : `${it.quantidade}x ${it.produtos.nome_produto}`}
+                                                      {it.status_kds === 'cancelado' ? 'CANCELADO' : `${it.quantidade}x ${it.produtos.nome_produto}`}
                                                    </span>
                                                    
                                                    <div className="flex flex-col items-end gap-1 shrink-0">
@@ -195,8 +195,8 @@ function KDSRunner() {
                                                 
                                                 {it.status_kds !== 'cancelado' && it.observacao && (
                                                    <div className="mt-3 relative z-10">
-                                                      <p className="font-black text-sm text-[#EA1D2C] bg-red-100 p-2.5 rounded-lg border border-red-200 uppercase tracking-wide text-center">
-                                                         ⚠️ {it.observacao}
+                                                      <p className="font-black text-sm text-[#EA1D2C] bg-red-100 p-2.5 rounded-lg border border-red-200 uppercase tracking-wide text-center flex items-center justify-center gap-1.5">
+                                                         <AlertTriangle size={14}/> {it.observacao}
                                                       </p>
                                                    </div>
                                                 )}

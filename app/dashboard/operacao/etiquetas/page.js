@@ -10,6 +10,7 @@ import { useERP } from "../../../context/ERPContext";
 import { lerSessao } from "../../../lib/auth";
 import { fetchCardapio } from "../../../lib/cardapio";
 import { fetchEstoque } from "../../../lib/estoque";
+import { fetchProdutos } from "../../../lib/vendas";
 import { CONSERVACAO, gerarCodigo, criarEtiqueta } from "../../../lib/etiquetas";
 import { UNIDADES as UNIDADES_REDE } from "../../../lib/unidades";
 
@@ -61,8 +62,17 @@ export default function EtiquetasPage() {
   const [custoMap, setCustoMap] = useState({});
   useEffect(() => {
     (async () => {
-      const [c, e] = await Promise.all([fetchCardapio(unidadeAtiva), fetchEstoque(unidadeAtiva)]);
-      const nomes = [...new Set([...(c.data || []), ...(e.data || [])].map((x) => x.nome))].sort();
+      // Inclui os PRODUTOS (cardapio real) + cardapio legado + insumos do estoque
+      const [c, e, pr] = await Promise.all([
+        fetchCardapio(unidadeAtiva),
+        fetchEstoque(unidadeAtiva),
+        fetchProdutos(unidadeAtiva),
+      ]);
+      const nomes = [...new Set([
+        ...(c.data || []).map((x) => x.nome),
+        ...(e.data || []).map((x) => x.nome),
+        ...(pr.data || []).map((x) => x.nome_produto),
+      ].filter(Boolean))].sort();
       setProdutos(nomes);
       const mapa = {};
       (c.data || []).forEach((x) => { mapa[x.nome] = Number(x.custo) || 0; });

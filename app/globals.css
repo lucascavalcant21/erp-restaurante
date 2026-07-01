@@ -49,6 +49,51 @@
   --shadow-float: 0 24px 48px rgba(15, 23, 42, 0.12), 0 4px 12px rgba(15, 23, 42, 0.06);
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   TEMA ESCURO — ativado por .dark no <html> (ThemeToggle)
+   Só afeta o que usa as variáveis/tokens (.erp-*, novos componentes).
+   ═══════════════════════════════════════════════════════════════ */
+.dark {
+  --surface:    #0B1120; /* fundo do app (slate-950) */
+  --panel:      #111827; /* painéis */
+  --card:       #151D2E; /* cartões (um passo acima do fundo) */
+  --elevated:   #1E293B; /* hover / bg alternativo */
+
+  --line:       rgba(255,255,255,0.08);
+  --line-soft:  rgba(255,255,255,0.04);
+
+  --fg:         #F1F5F9; /* títulos */
+  --fg-soft:    #CBD5E1; /* texto principal */
+  --muted:      #94A3B8; /* secundário */
+  --subtle:     #64748B; /* labels */
+  --dim:        #475569;
+  --faint:      #334155;
+
+  --accent:        #10B981; /* emerald mais vivo no escuro */
+  --accent-strong: #059669;
+  --accent-soft:   rgba(16,185,129,0.16);
+  --success:        #10B981;
+  --success-strong: #34D399;
+  --success-soft:   rgba(16,185,129,0.16);
+  --danger:        #F87171;
+  --danger-soft:   rgba(248,113,113,0.14);
+  --warning:       #FBBF24;
+  --warning-soft:  rgba(251,191,36,0.16);
+  --info:          #60A5FA;
+
+  --shadow-sm:    0 1px 2px rgba(0,0,0,0.30);
+  --shadow-card:  0 4px 20px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.30);
+  --shadow-hover: 0 12px 32px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.35);
+  --shadow-float: 0 24px 48px rgba(0,0,0,0.55), 0 4px 12px rgba(0,0,0,0.40);
+}
+
+/* Transição suave ao alternar tema */
+html { color-scheme: light; }
+html.dark { color-scheme: dark; }
+body, .erp-card, .erp-panel, .erp-input, .erp-btn {
+  transition: background-color 300ms ease, border-color 300ms ease, color 300ms ease;
+}
+
 * {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

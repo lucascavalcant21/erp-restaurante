@@ -306,7 +306,7 @@ function TopHeader({ onSair }) {
                         <div className="mb-8">
                           <div className="flex items-center gap-3 mb-4">
                             <div className="h-px flex-1 bg-slate-100" />
-                            <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400 px-2">⚡ Acesso Rápido por Setor</span>
+                            <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400 px-2">Acesso Rápido por Setor</span>
                             <div className="h-px flex-1 bg-slate-100" />
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

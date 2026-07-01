@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchInsumos, salvarInsumo, removerInsumo } from "../../../lib/operacao";
-import { FlaskConical, Plus, Search, Trash2, Edit3, X, Save, ArrowLeft } from "lucide-react";
+import { FlaskConical, Plus, Search, Trash2, Edit3, X, Save, ArrowLeft, CheckCircle2, AlertTriangle } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
 function IngredientesRunner() {
@@ -64,13 +64,13 @@ function IngredientesRunner() {
   };
 
   const handleSalvar = async () => {
-    if(!form.nome.trim()) return alert("❌ Digite o nome do ingrediente");
-    if(form.nome.length > 100) return alert("❌ Nome não pode ter mais de 100 caracteres");
-    if(!form.custo_unitario) return alert("❌ Digite o custo");
+    if(!form.nome.trim()) return alert("Digite o nome do ingrediente");
+    if(form.nome.length > 100) return alert("Nome não pode ter mais de 100 caracteres");
+    if(!form.custo_unitario) return alert("Digite o custo");
 
     const custo = Number(form.custo_unitario);
-    if(custo <= 0) return alert("❌ Custo deve ser um valor maior que zero");
-    if(custo > 999999.99) return alert("❌ Custo não pode ser maior que R$ 999.999,99");
+    if(custo <= 0) return alert("Custo deve ser um valor maior que zero");
+    if(custo > 999999.99) return alert("Custo não pode ser maior que R$ 999.999,99");
 
     const erro = await salvarInsumo({
        ...form,
@@ -79,7 +79,7 @@ function IngredientesRunner() {
     });
 
     if(erro.error) {
-      return alert("❌ Erro ao salvar ingrediente: " + erro.error);
+      return alert("Erro ao salvar ingrediente: " + erro.error);
     }
 
     const editando = !!form.id;
@@ -96,9 +96,9 @@ function IngredientesRunner() {
        const { error } = await removerInsumo(id);
        if(error) {
          if(error.toLowerCase().includes("foreign") || error.toLowerCase().includes("ficha")) {
-           alert(`❌ Não é possível deletar "${ingrediente.nome}" pois ele está sendo usado em uma Ficha Técnica.\n\nDelete a ficha técnica primeiro.`);
+           alert(`Não é possível deletar "${ingrediente.nome}" pois ele está sendo usado em uma Ficha Técnica.\n\nDelete a ficha técnica primeiro.`);
          } else {
-           alert(`❌ Erro ao deletar "${ingrediente.nome}": ${error}`);
+           alert(`Erro ao deletar "${ingrediente.nome}": ${error}`);
          }
        } else {
          await carregar();
@@ -151,15 +151,15 @@ function IngredientesRunner() {
             <input type="text" placeholder="Buscar ingrediente..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-bold text-slate-700 p-2" />
          </div>
 
-         <div className="flex gap-2 mb-6 flex-wrap">
-           <button onClick={() => router.push(`/dashboard/operacao/ingredientes`)} className={`px-4 py-2 rounded-lg font-bold transition-all ${!deptUrl ? 'bg-emerald-600 text-white shadow-lg' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>
-             📦 Todos
+         <div className="inline-flex gap-1 p-1 mb-6 rounded-xl bg-slate-100">
+           <button onClick={() => router.push(`/dashboard/operacao/ingredientes`)} className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${!deptUrl ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>
+             Todos
            </button>
-           <button onClick={() => router.push(`/dashboard/operacao/ingredientes?dept=cozinha`)} className={`px-4 py-2 rounded-lg font-bold transition-all ${deptUrl === 'cozinha' ? 'bg-emerald-600 text-white shadow-lg' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>
-             👨‍🍳 Cozinha
+           <button onClick={() => router.push(`/dashboard/operacao/ingredientes?dept=cozinha`)} className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${deptUrl === 'cozinha' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>
+             Cozinha
            </button>
-           <button onClick={() => router.push(`/dashboard/operacao/ingredientes?dept=bar`)} className={`px-4 py-2 rounded-lg font-bold transition-all ${deptUrl === 'bar' ? 'bg-emerald-600 text-white shadow-lg' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>
-             🍹 Bar
+           <button onClick={() => router.push(`/dashboard/operacao/ingredientes?dept=bar`)} className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${deptUrl === 'bar' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>
+             Bar
            </button>
          </div>
 
@@ -251,7 +251,7 @@ function IngredientesRunner() {
       {toast && (
         <div className="fixed bottom-6 right-6 z-[60] animate-in slide-in-from-bottom-4 fade-in">
           <div className={`px-5 py-3 rounded-xl shadow-2xl font-bold text-white flex items-center gap-2 ${toast.tipo === 'erro' ? 'bg-red-600' : 'bg-emerald-600'}`}>
-            {toast.tipo === 'erro' ? '⚠️' : '✅'} {toast.msg}
+            {toast.tipo === 'erro' ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />} {toast.msg}
           </div>
         </div>
       )}

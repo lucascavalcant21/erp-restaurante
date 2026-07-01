@@ -1,7 +1,6 @@
 import "./globals.css";
 import { ERPProvider } from "./context/ERPContext";
 import RegisterSW from "./components/RegisterSW";
-import ThemeToggle from "./components/ThemeToggle";
 
 export const metadata = {
   title: "Hefisto",
@@ -28,16 +27,9 @@ export default function RootLayout({ children }) {
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#0f172a" />
         <link rel="apple-touch-icon" href="/icon-192x192.png" />
-        <script
-          dangerouslySetInnerHTML={{
-            __html:
-              "try{if(localStorage.getItem('erp-theme')==='dark'){document.documentElement.classList.add('dark');}}catch(e){}",
-          }}
-        />
       </head>
       <body>
         <RegisterSW />
-        <ThemeToggle />
         <ERPProvider>
           {children}
         </ERPProvider>

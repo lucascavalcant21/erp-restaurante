@@ -787,7 +787,7 @@ export default function SaloesMesasPage() {
       {showAlertaOnline && pedidosOnline.length > 0 && (
         <div className="bg-gradient-to-r from-orange-500 to-rose-500 text-white px-4 py-3 flex items-center justify-between z-50 shadow-lg animate-pulse shrink-0">
           <div className="flex items-center gap-3 font-bold">
-            <span className="text-2xl">🔔</span>
+            <Bell size={22} />
             <div>
               <p className="font-black text-sm uppercase tracking-widest">
                 Novo Pedido pelo QR Code!
@@ -927,7 +927,7 @@ export default function SaloesMesasPage() {
                         <input type="text" ref={buscaRef} value={buscaProd} onChange={e => setBuscaProd(e.target.value)} placeholder="Pesquise produtos pelo código, descrição ou detalhes" className="w-full pl-12 pr-4 py-2 bg-slate-50 border border-slate-200 rounded font-normal outline-none text-slate-700" />
                      </div>
                      <button onClick={() => setModoViagem(!modoViagem)} className={`px-4 py-2 rounded font-black text-[11px] uppercase tracking-widest transition-colors flex items-center gap-2 ${modoViagem ? 'bg-purple-600 text-white shadow-md' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
-                        🏍️ {modoViagem ? 'Viagem: ON' : 'Viagem: OFF'}
+                        <ShoppingBag size={14}/> {modoViagem ? 'Viagem: ON' : 'Viagem: OFF'}
                      </button>
                   </div>
                   {/* Categorias (Topo Horizontal) */}
@@ -1443,7 +1443,7 @@ export default function SaloesMesasPage() {
 
                <div className="text-center text-[10px] mt-4 pt-3 border-t border-slate-800">
                   <p>Obrigado pela preferência!</p>
-                  <p className="text-slate-400 mt-1">Volte sempre 🙏</p>
+                  <p className="text-slate-400 mt-1">Volte sempre</p>
                </div>
 
                {/* Botões */}
@@ -1544,7 +1544,7 @@ export default function SaloesMesasPage() {
                         <button type="submit" disabled={processando} className="px-6 py-3 bg-blue-600 hover:bg-blue-700 transition-colors text-white font-black rounded-xl shadow-lg"><Plus size={18} className="inline"/></button>
                      </div>
                   </form>
-                  <h3 className="text-sm font-black text-slate-700 mb-4 flex items-center gap-2">📋 Equipe <span className="bg-slate-100 px-2 py-0.5 rounded text-xs text-slate-500">{garcons.length}</span></h3>
+                  <h3 className="text-sm font-black text-slate-700 mb-4 flex items-center gap-2"><Users size={16}/> Equipe <span className="bg-slate-100 px-2 py-0.5 rounded text-xs text-slate-500">{garcons.length}</span></h3>
                   <div className="flex flex-col gap-2">
                      {garcons.map(g => (
                         <div key={g.id} className="p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 shadow-sm">{g.nome}</div>
@@ -1746,7 +1746,7 @@ export default function SaloesMesasPage() {
                   </form>
 
                      <h3 className="text-sm font-black text-slate-700 mb-4 flex items-center gap-2">
-                        📋 Lista de Mesas <span className="bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md text-xs">{mesas.length}</span>
+                        <Utensils size={16}/> Lista de Mesas <span className="bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md text-xs">{mesas.length}</span>
                      </h3>
                      
                      {mesas.length === 0 ? (
@@ -1878,7 +1878,7 @@ export default function SaloesMesasPage() {
                         {(pedido.status === 'preparando_delivery' || pedido.status === 'preparando' || pedido.status === 'aberto' || pedido.status === 'pronto') && (
                            <div className="p-3 flex gap-2 border-t border-slate-200 bg-slate-50">
                               <button onClick={() => handleChamarTV(pedido.id)} disabled={pedido.status === 'pronto'} className="flex-1 py-2 text-xs font-bold text-blue-700 bg-blue-100 hover:bg-blue-200 disabled:opacity-50 rounded-lg transition-colors flex items-center justify-center gap-1">
-                                📣 {pedido.status === 'pronto' ? 'Chamado' : 'Chamar na TV'}
+                                <Bell size={14}/> {pedido.status === 'pronto' ? 'Chamado' : 'Chamar na TV'}
                               </button>
                               <button onClick={() => handleEntregue(pedido.id)} className="flex-1 py-2 text-xs font-bold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 rounded-lg transition-colors flex items-center justify-center gap-1">
                                 <CheckCircle size={14}/> Entregue

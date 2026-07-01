@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchCaixaAberto, abrirCaixa, registrarMovimentacao, fetchResumoCaixa, fecharCaixa } from "../../../lib/caixas";
-import { fetchProdutos, lancarVendaBalcao, fetchMesas, criarMesa, fetchPedidoAberto, abrirMesaEPedido, lancarItemComanda, fecharContaDaMesa, fetchGarcons, criarGarcom, fetchProximoNumeroComanda, fetchTodosPedidosAbertos, transferirComanda, validarCupom, fetchObservacoesPadrao, fetchPedidosOnlinePendentes, aceitarPedidoOnline, recusarPedidoOnline, atualizarStatusPedido } from "../../../lib/vendas";
+import { fetchProdutos, lancarVendaBalcao, fetchMesas, criarMesa, fetchPedidoAberto, abrirMesaEPedido, lancarItemComanda, atualizarQtdItemComanda, fecharContaDaMesa, fetchGarcons, criarGarcom, fetchProximoNumeroComanda, fetchTodosPedidosAbertos, transferirComanda, validarCupom, fetchObservacoesPadrao, fetchPedidosOnlinePendentes, aceitarPedidoOnline, recusarPedidoOnline, atualizarStatusPedido } from "../../../lib/vendas";
 import { Lock, Unlock, LogOut, DollarSign, ArrowDownCircle, ArrowUpCircle, ShoppingBag, ShoppingCart, Maximize, Plus, Minus, Trash2, Printer, Users, Barcode, CreditCard, Receipt, SplitSquareHorizontal, Utensils, Send, X, Settings, Search, CheckCircle, ArrowRightLeft, Share2, Tag, Bell, Clock, MapPin } from "lucide-react";
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from "../../../lib/supabase";
@@ -786,6 +786,22 @@ export default function SaloesMesasPage() {
     setTimeout(() => { win.print(); }, 300);
  };
 
+  // Clique no produto: soma na linha existente (se ainda 'pendente') em vez de duplicar
+  const adicionarItemMesa = async (prod) => {
+    if (!pedidoAtivo || !mesaAtiva) return;
+    const obs = modoViagem ? "#PARA LEVAR" : "";
+    const existente = (pedidoAtivo.pedidos_itens || []).find(i =>
+       i.produto_id === prod.id && (i.observacao || "") === obs && i.status_kds === "pendente"
+    );
+    if (existente) {
+       await atualizarQtdItemComanda(existente.id, existente.quantidade + 1);
+    } else {
+       await lancarItemComanda(pedidoAtivo.id, prod.id, prod.preco_venda || prod.preco || 0, 1, obs);
+    }
+    const { data } = await fetchPedidoAberto(mesaAtiva.id);
+    setPedidoAtivo(data);
+  };
+
   // ==========================================
   // RENDERS
   // ==========================================
@@ -993,14 +1009,7 @@ export default function SaloesMesasPage() {
                   <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3">
                         {produtosFiltrados.map(prod => (
-                           <button key={prod.id} onClick={() => {
-                               // Ao invés de lançar no carrinho, vamos lançar direto na mesa!
-                               // Para ser rápido igual o saipos, usamos quantidade 1 sem observação (se precisar de obs, clicaria longo ou teria botão)
-                               // Para simplificar, lança 1 direto.
-                               lancarItemComanda(pedidoAtivo.id, prod.id, prod.preco_venda || prod.preco || 0, 1, modoViagem ? "#PARA LEVAR" : "");
-                               // O Supabase Realtime cuidaria disso, mas vamos recarregar a mesa
-                               fetchPedidoAberto(mesaAtiva.id).then(({data}) => setPedidoAtivo(data));
-                           }} className="bg-white rounded-xl p-0 border border-slate-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all text-center flex flex-col group h-full overflow-hidden">
+                           <button key={prod.id} onClick={() => adicionarItemMesa(prod)} className="bg-white rounded-xl p-0 border border-slate-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all text-center flex flex-col group h-full overflow-hidden">
                               <div className="p-3 flex-1 flex flex-col items-center justify-center">
                                  <h3 className="font-black text-slate-800 text-[11px] leading-tight mb-2 uppercase">{prod.nome_produto}</h3>
                                  <p className="font-bold text-emerald-600 text-xs">{fmtBRL(prod.preco_venda || prod.preco || 0)}</p>

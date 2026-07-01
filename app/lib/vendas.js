@@ -93,7 +93,7 @@ export async function fetchPedidoAberto(mesaId) {
     .select(`
       *,
       pedidos_itens (
-         id, quantidade, valor_unitario, observacao, status_kds, created_at,
+         id, produto_id, quantidade, valor_unitario, observacao, status_kds, created_at,
          produtos ( nome_produto, departamento )
       )
     `)
@@ -113,7 +113,7 @@ export async function fetchTodosPedidosAbertos(mesaId) {
     .select(`
       *,
       pedidos_itens (
-         id, quantidade, valor_unitario, observacao, status_kds, created_at,
+         id, produto_id, quantidade, valor_unitario, observacao, status_kds, created_at,
          produtos ( nome_produto, departamento )
       )
     `)
@@ -166,6 +166,13 @@ export async function lancarItemComanda(pedidoId, produtoId, valorUnitario, quan
      status_kds: 'pendente'
   }]);
 
+  return { error: error?.message };
+}
+
+// Atualiza a quantidade de um item da comanda (usado ao clicar de novo no mesmo produto)
+export async function atualizarQtdItemComanda(itemId, novaQtd) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase.from("pedidos_itens").update({ quantidade: novaQtd }).eq("id", itemId);
   return { error: error?.message };
 }
 

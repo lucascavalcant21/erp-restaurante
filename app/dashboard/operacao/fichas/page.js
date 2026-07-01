@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchFichas, salvarFicha, removerFicha, fetchInsumos } from "../../../lib/operacao";
-import { LayoutList, Plus, Search, Trash2, Edit3, X, Save, ArrowLeft, UtensilsCrossed, Wine, ChevronRight } from "lucide-react";
+import { LayoutList, Plus, Search, Trash2, Edit3, X, Save, ArrowLeft, UtensilsCrossed, Wine, ChevronRight, Printer } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
 // Sub-unidades para lançamento em ficha. O custo do insumo é por unidade-base
@@ -154,6 +154,62 @@ function FichasRunner() {
     }
   };
 
+  const imprimirFicha = (f) => {
+    const win = window.open('', '_blank', 'width=800,height=900');
+    if (!win) return alert("Habilite os popups para imprimir a ficha técnica.");
+    const SUB = { kg: { s: 'g', fa: 1000 }, l: { s: 'ml', fa: 1000 } };
+    const fmtQtd = (qtd, un) => {
+       const c = SUB[String(un || '').toLowerCase()];
+       return c ? `${(+(qtd * c.fa)).toLocaleString('pt-BR')} ${c.s}` : `${qtd} ${String(un || '').toUpperCase()}`;
+    };
+    let custoTotal = 0;
+    const rows = (f.fichas_ingredientes || []).map(fi => {
+       const custo = (fi.insumos?.custo_unitario || 0) * fi.quantidade;
+       custoTotal += custo;
+       return `<tr><td>${fi.insumos?.nome || 'Insumo'}</td><td class="c">${fmtQtd(fi.quantidade, fi.insumos?.unidade_medida)}</td><td class="r">R$ ${custo.toFixed(2)}</td></tr>`;
+    }).join('');
+    const rende = f.rendimento_porcoes || 1;
+    const custoPorcao = custoTotal / rende;
+    win.document.write(`
+       <!DOCTYPE html><html><head><meta charset="utf-8"/><title>Ficha Técnica - ${f.nome_receita}</title>
+       <style>
+          *{margin:0;padding:0;box-sizing:border-box}
+          body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;padding:24px;max-width:720px;margin:0 auto}
+          .head{border-bottom:3px solid #0f172a;padding-bottom:12px;margin-bottom:16px}
+          .tag{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#64748b;font-weight:bold}
+          h1{font-size:26px;margin:4px 0}
+          .meta{font-size:13px;color:#475569;font-weight:bold}
+          h2{font-size:13px;text-transform:uppercase;letter-spacing:2px;color:#64748b;margin:20px 0 8px}
+          table{width:100%;border-collapse:collapse;font-size:14px}
+          th,td{text-align:left;padding:8px 6px;border-bottom:1px solid #e2e8f0}
+          th{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#64748b}
+          td.c{text-align:center}td.r,th.r{text-align:right}
+          .totais{display:flex;justify-content:flex-end;gap:24px;margin-top:12px;font-size:14px}
+          .totais b{font-size:18px}
+          .preparo{margin-top:8px;font-size:14px;line-height:1.6;white-space:pre-wrap;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px}
+          @media print{@page{margin:14mm}}
+       </style></head><body>
+          <div class="head">
+             <div class="tag">Ficha Técnica${f.departamento ? ' — ' + f.departamento : ''}</div>
+             <h1>${f.nome_receita}</h1>
+             <div class="meta">Rendimento: ${rende} porç${rende > 1 ? 'ões' : 'ão'}</div>
+          </div>
+          <h2>Ingredientes</h2>
+          <table>
+             <thead><tr><th>Ingrediente</th><th class="c">Quantidade</th><th class="r">Custo</th></tr></thead>
+             <tbody>${rows || '<tr><td colspan="3">Sem ingredientes cadastrados.</td></tr>'}</tbody>
+          </table>
+          <div class="totais">
+             <div>Custo por porção: <b>R$ ${custoPorcao.toFixed(2)}</b></div>
+             <div>Custo total: <b>R$ ${custoTotal.toFixed(2)}</b></div>
+          </div>
+          <h2>Modo de Preparo</h2>
+          <div class="preparo">${f.modo_preparo ? f.modo_preparo : 'Não informado.'}</div>
+       </body></html>`);
+    win.document.close();
+    setTimeout(() => win.print(), 400);
+  };
+
   return (
     <div className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50">
       
@@ -210,6 +266,7 @@ function FichasRunner() {
                               {f.departamento === 'bar' ? <Wine size={18}/> : <UtensilsCrossed size={18}/>}
                            </span>
                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button onClick={() => imprimirFicha(f)} title="Imprimir ficha técnica" className="p-2 bg-slate-50 rounded-lg text-slate-500 hover:text-emerald-600"><Printer size={16}/></button>
                               <button onClick={() => abrirEditar(f)} className="p-2 bg-slate-50 rounded-lg text-slate-500 hover:text-emerald-600"><Edit3 size={16}/></button>
                               <button onClick={() => handleRemover(f.id)} className="p-2 bg-slate-50 rounded-lg text-slate-500 hover:text-emerald-600"><Trash2 size={16}/></button>
                            </div>

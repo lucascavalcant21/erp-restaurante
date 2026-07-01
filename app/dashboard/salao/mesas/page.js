@@ -830,23 +830,23 @@ export default function SaloesMesasPage() {
             </div>
             
             <div className="ml-8 bg-black/20 p-1 rounded-xl flex gap-1 items-center">
-               <button onClick={() => setAbaAtiva('salao')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-2 ${abaAtiva === 'salao' ? 'bg-blue-500 text-white shadow' : 'text-slate-300 hover:text-white'}`}>
+               <button onClick={() => setAbaAtiva('salao')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${abaAtiva === 'salao' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-300 hover:text-white'}`}>
                   <Users size={14} /> Salão (Mesas)
                </button>
-               <button onClick={() => setAbaAtiva('balcao')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-2 ${abaAtiva === 'balcao' ? 'bg-emerald-500 text-white shadow' : 'text-slate-300 hover:text-white'}`}>
+               <button onClick={() => setAbaAtiva('balcao')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${abaAtiva === 'balcao' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-300 hover:text-white'}`}>
                   <ShoppingBag size={14} /> Balcão Rápido
                </button>
-               <button onClick={() => setAbaAtiva('ifood')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-2 ${abaAtiva === 'ifood' ? 'bg-[#EA1D2C] text-white shadow' : 'text-slate-300 hover:text-white'}`}>
+               <button onClick={() => setAbaAtiva('ifood')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${abaAtiva === 'ifood' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-300 hover:text-white'}`}>
                   <Utensils size={14} /> iFood
                </button>
-               <button onClick={() => setAbaAtiva('cardapio')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-2 ${abaAtiva === 'cardapio' ? 'bg-purple-600 text-white shadow' : 'text-slate-300 hover:text-white'}`}>
+               <button onClick={() => setAbaAtiva('cardapio')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${abaAtiva === 'cardapio' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-300 hover:text-white'}`}>
                   <ShoppingBag size={14} /> Cardápio Digital
                </button>
             </div>
          </div>
 
          <div className="flex gap-2">
-            <button onClick={abrirPainelOnline} className="relative flex items-center gap-1.5 px-3 py-2 bg-orange-500 hover:bg-orange-600 font-bold text-xs rounded-lg transition-colors text-white shadow">
+            <button onClick={abrirPainelOnline} className="relative flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 font-bold text-xs rounded-lg transition-colors text-white">
                <Bell size={16} /> Pedidos Online
                {pedidosOnline.length > 0 && (
                  <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full animate-bounce">
@@ -858,7 +858,7 @@ export default function SaloesMesasPage() {
                const url = `${window.location.origin}/delivery/${unidadeAtiva}`;
                navigator.clipboard.writeText(url);
                alert("Link do cardápio copiado para enviar aos clientes!");
-            }} className="flex items-center gap-1.5 px-3 py-2 bg-purple-500 hover:bg-purple-600 font-bold text-xs rounded-lg transition-colors text-white shadow">
+            }} className="flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 font-bold text-xs rounded-lg transition-colors text-white">
                <Share2 size={16} /> Copiar Link
             </button>
             <button onClick={toggleFullScreen} className="flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 font-bold text-xs rounded-lg transition-colors text-white">

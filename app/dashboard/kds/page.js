@@ -219,12 +219,17 @@ function KDSRunner() {
                         {p.itens.filter(i => i.status_kds !== "entregue").map(it => {
                           const tempoBase = it.produtos?.tempo_preparo_base || 15;
                           const minItem = Math.floor((Date.now() - new Date(it.created_at)) / 60000);
-                          const atrasado = minItem >= tempoBase;
-                          const cor = it.status_kds === "pronto" ? "bg-emerald-50 text-emerald-800 border-emerald-100"
-                            : it.status_kds === "preparando" ? (atrasado ? "bg-red-50 text-red-800 border-red-100" : "bg-amber-50 text-amber-800 border-amber-100")
-                            : "bg-slate-50 text-slate-700 border-slate-100";
+                          const pronto = it.status_kds === "pronto";
+                          const atrasado = !pronto && minItem >= tempoBase;          // passou do tempo -> pisca
+                          const critico = !pronto && minItem >= tempoBase + 15;       // +15 min -> vermelho, pisca rapido
+                          let cor, anim = "";
+                          if (pronto) cor = "bg-emerald-50 text-emerald-800 border-emerald-100";
+                          else if (critico) { cor = "bg-red-100 text-red-900 border-red-300"; anim = "animate-blink-fast"; }
+                          else if (atrasado) { cor = "bg-amber-100 text-amber-900 border-amber-300"; anim = "animate-blink"; }
+                          else if (it.status_kds === "preparando") cor = "bg-amber-50 text-amber-800 border-amber-100";
+                          else cor = "bg-slate-50 text-slate-700 border-slate-100";
                           return (
-                            <button key={it.id} onClick={() => avancarItem(it)} className={`w-full text-left px-3 py-2 rounded-lg border font-bold text-sm transition-all active:scale-[0.98] flex items-center justify-between ${cor}`}>
+                            <button key={it.id} onClick={() => avancarItem(it)} className={`w-full text-left px-3 py-2 rounded-lg border font-bold text-sm transition-all active:scale-[0.98] flex items-center justify-between ${cor} ${anim}`}>
                               <span className="truncate">{it.quantidade}x {it.produtos?.nome_produto}</span>
                               {it.status_kds === "pronto" ? <Check size={16} className="shrink-0" /> : <Play size={13} className="shrink-0 opacity-60" />}
                             </button>

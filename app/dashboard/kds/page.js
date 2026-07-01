@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useERP } from "../../context/ERPContext";
 import { fetchItensKDS, atualizarStatusKDS } from "../../lib/vendas";
 import { supabase, isSupabaseReady } from "../../lib/supabase";
-import { ArrowLeft, Clock, Maximize, ChefHat, GlassWater, ChevronUp, ChevronDown, Check, Play, Bike, Utensils } from "lucide-react";
+import { ArrowLeft, Clock, Maximize, ChefHat, GlassWater, ChevronUp, ChevronDown, Check, Play, Bike, Utensils, Printer, Phone, MapPin, X } from "lucide-react";
 
 // Estágios do quadro (kanban de cozinha)
 const COLUNAS = [
@@ -33,6 +33,7 @@ function KDSRunner() {
   const [ordemFila, setOrdemFila] = useState([]); // prioridade manual (array de pedidoId)
   const [stats, setStats] = useState({ itens: 0, pedidos: 0, delivery: 0, mesa: 0 });
   const [confirmItem, setConfirmItem] = useState(null); // item aguardando confirmacao
+  const [detalhe, setDetalhe] = useState(null); // { pedido, info } — painel de detalhe
   const containerRef = useRef(null);
 
   const acaoLabel = (status) => ({
@@ -103,6 +104,37 @@ function KDSRunner() {
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) containerRef.current?.requestFullscreen?.();
     else document.exitFullscreen?.();
+  };
+
+  // Abre o painel de detalhe do pedido (busca cliente/telefone/endereco)
+  const abrirDetalhe = async (pedido) => {
+    setDetalhe({ pedido, info: null });
+    if (!isSupabaseReady()) return;
+    const { data } = await supabase.from("pedidos")
+      .select("cliente_nome, cliente_telefone, endereco_entrega, forma_pagamento, identificacao, created_at")
+      .eq("id", pedido.pedidoId).maybeSingle();
+    setDetalhe(d => (d && d.pedido.pedidoId === pedido.pedidoId) ? { ...d, info: data } : d);
+  };
+
+  // Imprime a via da cozinha do pedido (itens + obs, sem precos)
+  const imprimirVia = (pedido) => {
+    const win = window.open('', '_blank', 'width=320,height=600');
+    if (!win) return alert("Habilite os popups para imprimir a via.");
+    const agora = new Date().toLocaleString('pt-BR');
+    const ident = pedido.numero_mesa ? 'MESA ' + pedido.numero_mesa : (pedido.cliente_nome || '#' + pedido.pedidoId.substring(0, 4));
+    const itensHtml = pedido.itens.filter(i => i.status_kds !== 'entregue').map(it => `
+       <div class="item"><span class="q">${it.quantidade}x</span> ${it.produtos?.nome_produto || 'Item'}${it.observacao ? `<div class="obs">OBS: ${it.observacao}</div>` : ''}</div>`).join('');
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Via da Cozinha</title><style>
+       *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Courier New',monospace;width:80mm;padding:4mm;color:#000}
+       .center{text-align:center}.big{font-size:20px;font-weight:bold}.sep{border-top:1px dashed #000;margin:8px 0}
+       .item{font-size:16px;font-weight:bold;margin:8px 0}.item .q{font-size:19px}.obs{font-size:12px;font-weight:normal;margin:2px 0 0 6px}
+       @media print{@page{margin:0;size:80mm auto}}
+    </style></head><body>
+       <div class="center big">COZINHA</div><div class="center">${ident}</div>
+       <div class="center" style="font-size:10px">${agora}</div><div class="sep"></div>${itensHtml}<div class="sep"></div>
+    </body></html>`);
+    win.document.close();
+    setTimeout(() => win.print(), 300);
   };
 
   // Agrupa itens (não entregues) em pedidos e calcula o estágio
@@ -207,12 +239,13 @@ function KDSRunner() {
                   return (
                     <div key={p.pedidoId} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                       <div className="px-3 py-2.5 flex items-center justify-between border-b border-slate-100">
-                        <div className="flex items-center gap-2">
+                        <button onClick={() => abrirDetalhe(p)} className="flex items-center gap-2 min-w-0 group/head">
                           <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${badge.cls}`}>{badge.label}</span>
-                          <span className="font-black text-slate-800 text-sm">{identificacao(p)}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
+                          <span className="font-black text-slate-800 text-sm truncate group-hover/head:underline">{identificacao(p)}</span>
+                        </button>
+                        <div className="flex items-center gap-1.5 shrink-0">
                           <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1"><Clock size={12} />{minPedido}m</span>
+                          <button onClick={() => imprimirVia(p)} title="Imprimir via" className="p-1 text-slate-400 hover:text-slate-700 rounded-md hover:bg-slate-100 transition-colors"><Printer size={14} /></button>
                           {col.id === "fila" && (
                             <div className="flex flex-col">
                               <button onClick={() => moverFila(p.pedidoId, -1, ordemAtual)} disabled={pi === 0} className="text-slate-300 hover:text-slate-600 disabled:opacity-30 leading-none"><ChevronUp size={16} /></button>
@@ -291,6 +324,54 @@ function KDSRunner() {
           </div>
         </div>
       )}
+
+      {/* Painel de detalhe do pedido (clique no cabecalho) */}
+      {detalhe && (() => {
+        const p = detalhe.pedido;
+        const info = detalhe.info;
+        const badge = tipoBadge(p.tipo_pedido);
+        const horario = new Date(p.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+        const isDelivery = ehDelivery(p.tipo_pedido);
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4" onClick={() => setDetalhe(null)}>
+            <div className="bg-white rounded-2xl w-full max-w-md max-h-[85vh] overflow-hidden flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              <div className="p-5 border-b border-slate-100 flex items-start justify-between">
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${badge.cls}`}>{badge.label}</span>
+                  <div>
+                    <h3 className="font-black text-slate-900 text-lg leading-tight">{identificacao(p)}</h3>
+                    <p className="text-xs font-bold text-slate-400">Feito às {horario}</p>
+                  </div>
+                </div>
+                <button onClick={() => setDetalhe(null)} className="w-9 h-9 bg-slate-100 hover:bg-slate-200 rounded-full flex items-center justify-center text-slate-500 shrink-0"><X size={18} /></button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                {isDelivery && (
+                  <div className="space-y-2">
+                    {info?.cliente_telefone && <p className="text-sm font-bold text-slate-700 flex items-center gap-2"><Phone size={15} className="text-slate-400" /> {info.cliente_telefone}</p>}
+                    {info?.endereco_entrega && <p className="text-sm font-bold text-slate-700 flex items-start gap-2"><MapPin size={15} className="text-slate-400 mt-0.5 shrink-0" /> {info.endereco_entrega}</p>}
+                    {!info && <p className="text-xs text-slate-400 font-bold">Carregando dados do cliente…</p>}
+                  </div>
+                )}
+                <div>
+                  <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Itens</p>
+                  <div className="space-y-1.5">
+                    {p.itens.filter(i => i.status_kds !== "entregue").map(it => (
+                      <div key={it.id} className="flex justify-between items-start bg-slate-50 rounded-lg px-3 py-2">
+                        <span className="font-bold text-slate-800 text-sm">{it.quantidade}x {it.produtos?.nome_produto}{it.observacao ? <span className="block text-[11px] font-bold text-amber-700">Obs: {it.observacao}</span> : null}</span>
+                        <span className="text-[10px] font-black uppercase text-slate-400 shrink-0 ml-2">{it.status_kds}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="p-4 border-t border-slate-100">
+                <button onClick={() => imprimirVia(p)} className="w-full py-3 bg-slate-800 hover:bg-slate-900 text-white font-black rounded-xl transition-colors flex items-center justify-center gap-2"><Printer size={16} /> Imprimir via</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

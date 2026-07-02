@@ -689,11 +689,13 @@ export default function OrcamentoEventoPage() {
                               </div>
                               <div className="text-center">
                                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block" title="Peso médio de cada porção/unidade. Vem da ficha técnica, mas você pode ajustar.">Peso/un (g)</label>
-                                 <input type="number" min="0" step="0.1" placeholder="ex: 35" value={itens.find(i=>i.produto_id===l.produto_id)?.pesoUn ?? ""} onChange={e=>updateItem(l.produto_id, { pesoUn: e.target.value })} className="w-20 p-2 text-center bg-white border border-slate-200 rounded-lg font-bold text-slate-600 outline-none focus:border-emerald-500"/>
+                                 <input type="number" min="0" step="0.1" placeholder="ex: 35" value={(() => { const raw = itens.find(i=>i.produto_id===l.produto_id)?.pesoUn; return raw === undefined ? (l.pesoUn || "") : raw; })()} onChange={e=>updateItem(l.produto_id, { pesoUn: e.target.value })} className="w-20 p-2 text-center bg-white border border-slate-200 rounded-lg font-bold text-slate-600 outline-none focus:border-emerald-500"/>
                               </div>
                               <div className="text-center">
-                                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block" title="Preço de venda por porção só deste orçamento. Vem do cardápio, mas você pode definir o valor que quiser.">Preço/porção</label>
-                                 <input type="number" min="0" step="0.01" placeholder="0,00" value={itens.find(i=>i.produto_id===l.produto_id)?.precoVenda ?? ""} onChange={e=>updateItem(l.produto_id, { precoVenda: e.target.value })} className={`w-24 p-2 text-center rounded-lg font-black outline-none focus:border-emerald-500 ${l.precoEditado ? 'bg-amber-50 border border-amber-300 text-amber-700' : 'bg-emerald-50 border border-emerald-200 text-emerald-700'}`}/>
+                                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block" title="Preço de venda POR PORÇÃO deste orçamento. Vem preenchido com o preço do cardápio — troque pelo valor que quiser, não altera o cardápio.">Preço de venda</label>
+                                 {/* Vem preenchido com o preço do cardápio; digitou outro valor, vale o seu */}
+                                 <input type="number" min="0" step="0.01" placeholder="0,00" value={(() => { const raw = itens.find(i=>i.produto_id===l.produto_id)?.precoVenda; return raw === undefined ? (l.precoCardapio || "") : raw; })()} onChange={e=>updateItem(l.produto_id, { precoVenda: e.target.value })} className={`w-24 p-2 text-center rounded-lg font-black outline-none focus:border-emerald-500 ${l.precoEditado ? 'bg-amber-50 border border-amber-300 text-amber-700' : 'bg-emerald-50 border border-emerald-200 text-emerald-700'}`}/>
+                                 <span className="block text-[8px] font-bold text-slate-400 mt-0.5">por porção</span>
                               </div>
                               <button onClick={() => removeItem(l.produto_id)} className="p-2 text-slate-400 hover:text-red-500 bg-white rounded-lg border border-slate-200"><Trash2 size={15}/></button>
                            </div>

@@ -6,28 +6,58 @@ import {
   PageHeader, PageBody, Card, SectionLabel, KpiGrid, Kpi, EmptyState, fmtBRL, fmtPct,
 } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
-import { fetchCardapio } from "../../../lib/cardapio";
+import { fetchFichas } from "../../../lib/operacao";
+import { fetchProdutos } from "../../../lib/vendas";
 
-const META_CMV = 35; // % alvo máximo de CMV (acima disso = atenção)
+const META_CMV = 30; // % alvo máximo de CMV (acima disso = atenção)
+
+// Custo total de PRODUZIR uma ficha, resolvendo bases (sub-receitas) em cascata.
+function custoTotalDaFicha(f, todasFichas, guard = new Set()) {
+  if (!f || guard.has(f.id)) return 0;
+  guard.add(f.id);
+  let total = 0;
+  (f.fichas_ingredientes || []).forEach(fi => {
+    if (fi.insumos) {
+      total += (fi.insumos.custo_unitario || 0) * (fi.quantidade || 0);
+    } else if (fi.subficha_id) {
+      const base = todasFichas.find(x => x.id === fi.subficha_id);
+      const custoBaseUnit = base ? custoTotalDaFicha(base, todasFichas, guard) / (base.rendimento_porcoes || 1) : 0;
+      total += custoBaseUnit * (fi.quantidade || 0);
+    }
+  });
+  return total;
+}
 
 export default function CmvPage() {
   const { unidadeAtiva, unidadeInfo } = useERP();
-  const [pratos, setPratos] = useState([]);
+  const [fichas, setFichas] = useState([]);
+  const [produtos, setProdutos] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
-    fetchCardapio(unidadeAtiva).then(({ data }) => {
-      setPratos((data || []).filter((p) => (Number(p.preco) || 0) > 0));
+    Promise.all([fetchFichas(unidadeAtiva), fetchProdutos(unidadeAtiva)]).then(([resFichas, resProdutos]) => {
+      setFichas(resFichas.data || []);
+      setProdutos(resProdutos.data || []);
       setLoading(false);
     });
   }, [unidadeAtiva]);
 
-  const linhas = useMemo(() => pratos.map((p) => {
-    const preco = Number(p.preco) || 0;
-    const custo = Number(p.custo) || 0;
-    return { ...p, preco, custo, cmv: preco > 0 ? (custo / preco) * 100 : 0 };
-  }).sort((a, b) => b.cmv - a.cmv), [pratos]);
+  // CMV real: produtos.preco_venda x custo da ficha_id vinculada (com bases/sub-receitas resolvidas)
+  const linhas = useMemo(() => {
+    const fichasPorId = {};
+    fichas.forEach(f => { fichasPorId[f.id] = f; });
+
+    return produtos
+      .filter(p => (Number(p.preco_venda) || 0) > 0 && p.ficha_id && fichasPorId[p.ficha_id])
+      .map(p => {
+        const ficha = fichasPorId[p.ficha_id];
+        const preco = Number(p.preco_venda) || 0;
+        const custo = custoTotalDaFicha(ficha, fichas) / (ficha.rendimento_porcoes || 1);
+        return { id: p.id, nome: p.nome_produto, departamento: p.departamento, preco, custo, cmv: preco > 0 ? (custo / preco) * 100 : 0 };
+      })
+      .sort((a, b) => b.cmv - a.cmv);
+  }, [produtos, fichas]);
 
   const resumo = useMemo(() => {
     if (!linhas.length) return { medio: 0, acima: 0, melhor: null };
@@ -45,7 +75,7 @@ export default function CmvPage() {
           <EmptyState icon={Percent} title="Carregando..." />
         ) : linhas.length === 0 ? (
           <EmptyState icon={Percent} title="Sem dados de CMV"
-            hint="Cadastre pratos com preço e custo no Cardápio para calcular o CMV." />
+            hint="Cadastre produtos com preço de venda e vincule uma Ficha Técnica a eles para calcular o CMV." />
         ) : (
           <>
             <KpiGrid>
@@ -72,9 +102,14 @@ export default function CmvPage() {
                   const alto = l.cmv > META_CMV;
                   return (
                     <Card key={l.id} className="!p-3">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <p className="text-sm font-bold truncate" style={{ color: "var(--fg)" }}>{l.nome}</p>
-                        <span className="text-sm font-bold" style={{ color: alto ? "#DC2626" : "var(--accent-fg)" }}>{fmtPct(l.cmv)}</span>
+                      <div className="flex items-center justify-between mb-1.5 gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <p className="text-sm font-bold truncate" style={{ color: "var(--fg)" }}>{l.nome}</p>
+                          {l.departamento && (
+                            <span className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded flex-shrink-0" style={{ background: "var(--elevated)", color: "var(--dim)" }}>{l.departamento}</span>
+                          )}
+                        </div>
+                        <span className="text-sm font-bold flex-shrink-0" style={{ color: alto ? "#DC2626" : "var(--accent-fg)" }}>{fmtPct(l.cmv)}</span>
                       </div>
                       <div className="h-2 rounded-full overflow-hidden mb-1" style={{ background: "var(--elevated)" }}>
                         <div className="h-full rounded-full" style={{ width: `${Math.min(l.cmv, 100)}%`, background: alto ? "#EF4444" : "#10B981" }} />

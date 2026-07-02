@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
 import { Tag, Printer, Save, Snowflake, Thermometer, Box, QrCode } from "lucide-react";
 import {
@@ -8,7 +9,6 @@ import {
 } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
 import { lerSessao } from "../../../lib/auth";
-import { fetchCardapio } from "../../../lib/cardapio";
 import { fetchEstoque } from "../../../lib/estoque";
 import { fetchProdutos } from "../../../lib/vendas";
 import { CONSERVACAO, gerarCodigo, criarEtiqueta } from "../../../lib/etiquetas";
@@ -22,8 +22,11 @@ function fmtDataHora(d) {
   return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${String(d.getFullYear()).slice(2)} - ${p(d.getHours())}H${p(d.getMinutes())}`;
 }
 
-export default function EtiquetasPage() {
+function EtiquetasRunner() {
   const { unidadeAtiva, unidadeInfo } = useERP();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const deptUrl = searchParams.get("dept"); // 'cozinha' | 'bar' | null (todos)
   const [produtos, setProdutos] = useState([]);
   const [form, setForm] = useState({ 
     produto: "", conservacao: "Congelado", quantidade: "1", unidade: "UN", 
@@ -62,24 +65,22 @@ export default function EtiquetasPage() {
   const [custoMap, setCustoMap] = useState({});
   useEffect(() => {
     (async () => {
-      // Inclui os PRODUTOS (cardapio real) + cardapio legado + insumos do estoque
-      const [c, e, pr] = await Promise.all([
-        fetchCardapio(unidadeAtiva),
-        fetchEstoque(unidadeAtiva),
-        fetchProdutos(unidadeAtiva),
+      // Produtos do cardápio + insumos do estoque, filtrados pelo departamento
+      // da URL (?dept=cozinha ou ?dept=bar) — cada área vê só o que é dela.
+      const [e, pr] = await Promise.all([
+        fetchEstoque(unidadeAtiva, deptUrl || undefined),
+        fetchProdutos(unidadeAtiva, deptUrl || undefined),
       ]);
       const nomes = [...new Set([
-        ...(c.data || []).map((x) => x.nome),
         ...(e.data || []).map((x) => x.nome),
         ...(pr.data || []).map((x) => x.nome_produto),
       ].filter(Boolean))].sort();
       setProdutos(nomes);
       const mapa = {};
-      (c.data || []).forEach((x) => { mapa[x.nome] = Number(x.custo) || 0; });
       (e.data || []).forEach((x) => { mapa[x.nome] = Number(x.custo_unitario) || Number(x.preco_unit) || mapa[x.nome] || 0; });
       setCustoMap(mapa);
     })();
-  }, [unidadeAtiva]);
+  }, [unidadeAtiva, deptUrl]);
 
   function escolherConservacao(id) {
     const c = CONSERVACAO.find((x) => x.id === id);
@@ -126,9 +127,20 @@ export default function EtiquetasPage() {
           @page { margin: 0; }
         }
       `}} />
-      <PageHeader title="Etiquetas" subtitle={`QR Code + rastreio · ${unidadeInfo.nome}`} icon={Tag} />
+      <PageHeader title={`Etiquetas${deptUrl ? ` — ${deptUrl === 'bar' ? 'Bar' : 'Cozinha'}` : ''}`} subtitle={`QR Code + rastreio · ${unidadeInfo.nome}`} icon={Tag} />
       <PageBody>
         <Toast show={!!salvou}>{salvou}</Toast>
+
+        {/* Filtro por departamento: cada área imprime etiquetas só dos seus itens */}
+        <div className="inline-flex gap-1 p-1 mb-4 rounded-xl" style={{ background: "var(--elevated)" }}>
+          {[["", "Todos"], ["cozinha", "Cozinha"], ["bar", "Bar"]].map(([d, l]) => (
+            <button key={d} onClick={() => router.push(`/dashboard/operacao/etiquetas${d ? `?dept=${d}` : ""}`)}
+              className="px-4 py-2 rounded-lg font-bold text-sm transition-all"
+              style={(deptUrl || "") === d ? { background: "var(--card)", color: "var(--fg)", boxShadow: "0 1px 2px rgba(0,0,0,.15)" } : { color: "var(--muted)" }}>
+              {l}
+            </button>
+          ))}
+        </div>
 
         {(!unidadeAtiva || unidadeAtiva === "todas") ? (
           <EmptyState icon={Tag} title="Acesso Restrito às Unidades" hint="O Cérebro (Gestão Central) apenas visualiza o Controle de Validade. Para gerar novas etiquetas, selecione uma unidade no menu lateral." />
@@ -264,6 +276,14 @@ export default function EtiquetasPage() {
         )}
       </PageBody>
     </div>
+  );
+}
+
+export default function EtiquetasPage() {
+  return (
+    <Suspense fallback={<div className="p-10 text-center font-bold" style={{ color: "var(--muted)" }}>Carregando Etiquetas...</div>}>
+       <EtiquetasRunner />
+    </Suspense>
   );
 }
 

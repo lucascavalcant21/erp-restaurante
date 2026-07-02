@@ -94,7 +94,7 @@ export default function OrcamentoEventoPage() {
   const [mapaFatores, setMapaFatores] = useState({}); // insumo_id -> fator_empanamento
   const [loading, setLoading] = useState(true);
 
-  const [evento, setEvento] = useState({ nome: "", cliente: "", data: "", convidados: "" });
+  const [evento, setEvento] = useState({ nome: "", cliente: "", data: "", convidados: "", comissao_pct: "", parceria_bar_ativa: false, parceria_bar_pct: "30" });
   const [itens, setItens] = useState([]); // [{ produto_id, qtd }]
 
   useEffect(() => {
@@ -168,10 +168,12 @@ export default function OrcamentoEventoPage() {
     const inNatura = !!it.inNatura && fatorInNatura > 1;
     const precoEfetivo = inNatura ? precoVenda * fatorInNatura : precoVenda;
 
+    const vendaTotal = precoEfetivo * porcoes;
     return {
       produto_id: it.produto_id,
       nome: produto.nome_produto,
       categoria: produto.categoria,
+      departamento: produto.departamento,
       ficha,
       qtd,
       un,
@@ -188,7 +190,10 @@ export default function OrcamentoEventoPage() {
       fatorInNatura,
       inNatura,
       precoEfetivo,
-      vendaTotal: precoEfetivo * porcoes,
+      vendaTotal,
+      // Duplo benefício do empanado: ganho no preço (exato) + economia no custo (estimada)
+      ganhoInNatura: inNatura ? (precoEfetivo - precoVenda) * porcoes : 0,
+      economiaEmpanado: fatorInNatura > 1 ? (custoPorcao * porcoes) * (1 - 1 / fatorInNatura) : 0,
     };
   }).filter(Boolean);
 
@@ -196,6 +201,18 @@ export default function OrcamentoEventoPage() {
   const vendaEvento = linhas.reduce((a, l) => a + l.vendaTotal, 0);
   const vendaPorConvidado = convidados > 0 ? vendaEvento / convidados : null;
   const custoPorConvidado = convidados > 0 ? custoEvento / convidados : null;
+
+  // Benefícios do empanado
+  const ganhoInNaturaTotal = linhas.reduce((a, l) => a + l.ganhoInNatura, 0);
+  const economiaEmpanadoTotal = linhas.reduce((a, l) => a + l.economiaEmpanado, 0);
+
+  // Vendas do bar (parceria) e comissão
+  const vendaBar = linhas.filter(l => String(l.departamento).toLowerCase() === "bar").reduce((a, l) => a + l.vendaTotal, 0);
+  const parceriaBarPct = evento.parceria_bar_ativa ? (Number(evento.parceria_bar_pct) || 0) : 0;
+  const parceriaBar = vendaBar * (parceriaBarPct / 100);
+  const comissaoPct = Number(evento.comissao_pct) || 0;
+  const comissao = vendaEvento * (comissaoPct / 100);
+  const lucroEvento = vendaEvento - custoEvento - comissao - parceriaBar;
 
   // Lista de compras: agrega os insumos crus de todas as fichas do evento
   const compras = (() => {
@@ -216,7 +233,7 @@ export default function OrcamentoEventoPage() {
   const updateItem = (produtoId, patch) => setItens(lista => lista.map(i => i.produto_id === produtoId ? { ...i, ...patch } : i));
   const removeItem = (produtoId) => setItens(lista => lista.filter(i => i.produto_id !== produtoId));
   const limparTudo = () => {
-    if (confirm("Limpar todo o orçamento?")) { setEvento({ nome: "", cliente: "", data: "", convidados: "" }); setItens([]); }
+    if (confirm("Limpar todo o orçamento?")) { setEvento({ nome: "", cliente: "", data: "", convidados: "", comissao_pct: "", parceria_bar_ativa: false, parceria_bar_pct: "30" }); setItens([]); }
   };
 
   const cabecalhoDoc = (titulo) => `
@@ -320,6 +337,51 @@ export default function OrcamentoEventoPage() {
     </body></html>`);
   };
 
+  // Documento 3: RELATÓRIO GERENCIAL — faturamento, custos, lucro, comissão,
+  // parceria de bar e o duplo benefício do empanado (uso interno).
+  const imprimirRelatorio = () => {
+    if (linhas.length === 0) return alert("Adicione itens ao evento primeiro.");
+    const linha = (rotulo, valor, cor) => `<div class="linha"><span>${rotulo}</span><b${cor ? ` style="color:${cor}"` : ''}>${valor}</b></div>`;
+    const lucroPct = vendaEvento > 0 ? (lucroEvento / vendaEvento) * 100 : 0;
+
+    abrirDoc(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Relatório - ${evento.nome || 'Evento'}</title>${estiloDoc}</head><body>
+       ${cabecalhoDoc('Relatório Gerencial')}
+
+       <h2>Resultado do Evento</h2>
+       <div class="totais" style="border-top:none;margin-top:0">
+          ${linha('Faturamento (vendas)', fmtBRL(vendaEvento))}
+          ${linha('− Custo de ingredientes', fmtBRL(custoEvento))}
+          ${comissaoPct > 0 ? linha(`− Comissão (${comissaoPct}%)`, fmtBRL(comissao)) : ''}
+          ${parceriaBar > 0 ? linha(`− Parceria bar (${parceriaBarPct}% de ${fmtBRL(vendaBar)})`, fmtBRL(parceriaBar)) : ''}
+          <div class="linha destaque"><span>Lucro do evento (${lucroPct.toFixed(1)}%)</span><span style="color:${lucroEvento >= 0 ? '#059669' : '#dc2626'}">${fmtBRL(lucroEvento)}</span></div>
+          ${convidados > 0 ? linha('Lucro por convidado', fmtBRL(lucroEvento / convidados)) : ''}
+       </div>
+
+       ${(ganhoInNaturaTotal > 0 || economiaEmpanadoTotal > 0) ? `
+       <h2>Benefício do Empanamento</h2>
+       <div class="totais" style="border-top:none;margin-top:0">
+          ${economiaEmpanadoTotal > 0 ? linha('Economia no custo (usei menos peixe)', fmtBRL(economiaEmpanadoTotal), '#059669') : ''}
+          ${ganhoInNaturaTotal > 0 ? linha('Ganho no preço (cobrado como in natura)', fmtBRL(ganhoInNaturaTotal), '#059669') : ''}
+          <div class="linha destaque"><span>Benefício total do empanado</span><span style="color:#059669">${fmtBRL(economiaEmpanadoTotal + ganhoInNaturaTotal)}</span></div>
+       </div>
+       <div class="obs">Economia estimada: comparação com servir o ingrediente in natura. Ganho no preço: itens cobrados como in natura.</div>
+       ` : ''}
+
+       ${parceriaBar > 0 ? `
+       <h2>Parceria de Bebidas</h2>
+       <div class="totais" style="border-top:none;margin-top:0">
+          ${linha('Vendas do bar', fmtBRL(vendaBar))}
+          ${linha(`Repasse ao contratante (${parceriaBarPct}%)`, fmtBRL(parceriaBar))}
+       </div>` : ''}
+
+       <h2>Itens do Buffet</h2>
+       <table>
+          <thead><tr><th>Item</th><th class="c">Qtd</th><th class="r">Custo</th><th class="r">Venda</th></tr></thead>
+          <tbody>${linhas.map(l => `<tr><td>${l.nome}${l.inNatura ? ' (in natura)' : ''}</td><td class="c">${(+l.porcoes.toFixed(1)).toLocaleString('pt-BR')}</td><td class="r">${fmtBRL(l.custoTotal)}</td><td class="r">${fmtBRL(l.vendaTotal)}</td></tr>`).join('')}</tbody>
+       </table>
+    </body></html>`);
+  };
+
   return (
     <div className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50">
 
@@ -344,6 +406,9 @@ export default function OrcamentoEventoPage() {
                </button>
                <button onClick={imprimirInterno} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-5 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm">
                   <Printer size={18} /> Compras (Interno)
+               </button>
+               <button onClick={imprimirRelatorio} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-5 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm">
+                  <FileText size={18} /> Relatório Gerencial
                </button>
             </div>
          </div>
@@ -374,6 +439,22 @@ export default function OrcamentoEventoPage() {
                   <div>
                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1"><Users size={12}/> Nº de Convidados</label>
                      <input type="number" min="0" placeholder="Ex: 80" value={evento.convidados} onChange={e=>setEvento({...evento, convidados: e.target.value})} className="w-full p-3.5 mt-1 bg-emerald-50 border border-emerald-200 rounded-xl font-black text-emerald-700 outline-none focus:border-emerald-500"/>
+                  </div>
+                  <div>
+                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Comissão sobre vendas (%)</label>
+                     <input type="number" min="0" step="0.1" placeholder="Ex: 10" value={evento.comissao_pct} onChange={e=>setEvento({...evento, comissao_pct: e.target.value})} className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500"/>
+                  </div>
+                  <div>
+                     <label className="flex items-center gap-2 cursor-pointer mt-1">
+                        <input type="checkbox" checked={evento.parceria_bar_ativa} onChange={e=>setEvento({...evento, parceria_bar_ativa: e.target.checked})} className="w-4 h-4 accent-emerald-600"/>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Parceria de bar (repasse ao contratante)</span>
+                     </label>
+                     {evento.parceria_bar_ativa && (
+                        <div className="flex items-center gap-2 mt-1">
+                           <input type="number" min="0" max="100" step="1" value={evento.parceria_bar_pct} onChange={e=>setEvento({...evento, parceria_bar_pct: e.target.value})} className="w-24 p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-black text-slate-700 outline-none focus:border-emerald-500"/>
+                           <span className="text-xs font-bold text-slate-500">% das vendas do bar {vendaBar > 0 ? `(${fmtBRL(vendaBar)})` : ''}</span>
+                        </div>
+                     )}
                   </div>
                </div>
             </div>
@@ -468,20 +549,30 @@ export default function OrcamentoEventoPage() {
             <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-xl">
                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Resumo do Evento</p>
                <div className="space-y-2.5 text-sm">
-                  <div className="flex justify-between"><span className="text-slate-400 font-bold">Custo (ingredientes)</span><span className="font-black">{fmtBRL(custoEvento)}</span></div>
-                  {custoPorConvidado !== null && <div className="flex justify-between"><span className="text-slate-400 font-bold">Custo / convidado</span><span className="font-black">{fmtBRL(custoPorConvidado)}</span></div>}
-                  <div className="flex justify-between"><span className="text-slate-400 font-bold">Margem estimada</span><span className="font-black text-emerald-400">{fmtBRL(vendaEvento - custoEvento)}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-400 font-bold">Faturamento</span><span className="font-black">{fmtBRL(vendaEvento)}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-400 font-bold">− Custo ingredientes</span><span className="font-black">{fmtBRL(custoEvento)}</span></div>
+                  {comissao > 0 && <div className="flex justify-between"><span className="text-slate-400 font-bold">− Comissão ({comissaoPct}%)</span><span className="font-black">{fmtBRL(comissao)}</span></div>}
+                  {parceriaBar > 0 && <div className="flex justify-between"><span className="text-slate-400 font-bold">− Parceria bar ({parceriaBarPct}%)</span><span className="font-black">{fmtBRL(parceriaBar)}</span></div>}
+                  {(economiaEmpanadoTotal > 0 || ganhoInNaturaTotal > 0) && (
+                     <div className="flex justify-between bg-sky-500/10 -mx-2 px-2 py-1.5 rounded-lg">
+                        <span className="text-sky-300 font-bold">Benefício empanado</span>
+                        <span className="font-black text-sky-300">+{fmtBRL(economiaEmpanadoTotal + ganhoInNaturaTotal)}</span>
+                     </div>
+                  )}
                   <div className="border-t border-slate-700 pt-3 mt-3">
-                     {vendaPorConvidado !== null && (
+                     {convidados > 0 && (
                         <div className="flex justify-between items-center mb-1">
-                           <span className="text-slate-400 font-bold text-xs uppercase tracking-widest">Por convidado</span>
-                           <span className="font-black text-lg">{fmtBRL(vendaPorConvidado)}</span>
+                           <span className="text-slate-400 font-bold text-xs uppercase tracking-widest">Lucro / convidado</span>
+                           <span className="font-black text-lg">{fmtBRL(lucroEvento / convidados)}</span>
                         </div>
                      )}
                      <div className="flex justify-between items-center">
-                        <span className="text-slate-300 font-bold text-xs uppercase tracking-widest">Total (venda)</span>
-                        <span className="font-black text-2xl text-emerald-400">{fmtBRL(vendaEvento)}</span>
+                        <span className="text-slate-300 font-bold text-xs uppercase tracking-widest">Lucro do evento</span>
+                        <span className={`font-black text-2xl ${lucroEvento >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{fmtBRL(lucroEvento)}</span>
                      </div>
+                     {vendaPorConvidado !== null && (
+                        <p className="text-[10px] font-bold text-slate-500 mt-1 text-right">Venda: {fmtBRL(vendaEvento)} · {fmtBRL(vendaPorConvidado)}/convidado</p>
+                     )}
                   </div>
                </div>
             </div>

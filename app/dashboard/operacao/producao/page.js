@@ -177,7 +177,7 @@ function ProducaoRunner() {
                   <div className="pt-2">
                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Previsão de Baixa no Estoque:</p>
                      <div className="space-y-2 max-h-32 overflow-y-auto custom-scrollbar pr-2">
-                        {fichaAtual.fichas_ingredientes?.map(ing => {
+                        {fichaAtual.fichas_ingredientes?.filter(ing => ing.insumos).map(ing => {
                            const consumo = ing.quantidade * Number(qtdProd);
                            return (
                               <div key={ing.insumos.id} className="flex justify-between items-center bg-white p-2 rounded border border-slate-100">

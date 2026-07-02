@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchFichas, salvarFicha, removerFicha, fetchInsumos } from "../../../lib/operacao";
-import { LayoutList, Plus, Search, Trash2, Edit3, X, Save, ArrowLeft, UtensilsCrossed, Wine, ChevronRight, Printer } from "lucide-react";
+import { LayoutList, Plus, Search, Trash2, Edit3, X, Save, ArrowLeft, UtensilsCrossed, Wine, ChevronRight, Printer, Sparkles, Loader2 } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
 // Sub-unidades para lançamento em ficha. O custo do insumo é por unidade-base
@@ -70,6 +70,37 @@ function FichasRunner() {
   // Bases disponíveis (fichas marcadas como pré-preparo), exceto a própria ficha em edição
   const basesDisponiveis = fichas.filter(f => f.eh_base && f.id !== form.id);
 
+  // Assistente de IA para o Modo de Preparo
+  const [iaExplicacao, setIaExplicacao] = useState("");
+  const [iaLoading, setIaLoading] = useState(false);
+
+  const gerarPreparoIA = async () => {
+    if (!iaExplicacao.trim()) return alert("Explique com suas palavras como o prato é feito.");
+    setIaLoading(true);
+    try {
+      const res = await fetch("/api/ia-preparo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          explicacao: iaExplicacao,
+          nome_receita: form.nome_receita,
+          porcoes: form.rendimento_porcoes,
+          ingredientes: ingFicha.map(i => ({ nome: i.nome, quantidade: i.quantidade, unidade: i.unidade })),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        alert(data.error || "Falha ao gerar o modo de preparo.");
+        return;
+      }
+      setForm(f => ({ ...f, modo_preparo: data.modo_preparo }));
+    } catch {
+      alert("Não consegui falar com a IA. Verifique a conexão.");
+    } finally {
+      setIaLoading(false);
+    }
+  };
+
   const carregar = async () => {
     setLoading(true);
     const [resFichas, resInsumos] = await Promise.all([
@@ -90,6 +121,7 @@ function FichasRunner() {
   const abrirNova = () => {
     setForm({ id: null, departamento: deptUrl, nome_receita: "", rendimento_porcoes: "1", modo_preparo: "", eh_base: false, rendimento_unidade: "porcao" });
     setIngFicha([]);
+    setIaExplicacao("");
     setModalNovo(true);
   };
 
@@ -124,6 +156,7 @@ function FichasRunner() {
        };
     });
     setIngFicha(mapIng);
+    setIaExplicacao("");
     setModalNovo(true);
   };
 
@@ -398,6 +431,32 @@ function FichasRunner() {
                      </div>
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Modo de Preparo</label>
+
+                        {/* Assistente de IA: você explica solto, a IA estrutura em etapas */}
+                        <div className="mt-1 mb-2 bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+                           <div className="flex items-center gap-2 mb-2">
+                              <Sparkles size={15} className="text-emerald-600" />
+                              <span className="text-[11px] font-black uppercase tracking-widest text-emerald-700">Explique com suas palavras — a IA organiza</span>
+                           </div>
+                           <textarea
+                              placeholder="Ex: refogo a cebola no azeite numa panela, junto o camarão, deixo uns 5 min, jogo o leite de coco e o tucupi e cozinho até engrossar..."
+                              value={iaExplicacao}
+                              onChange={e => setIaExplicacao(e.target.value)}
+                              className="w-full h-20 p-3 bg-white border border-emerald-200 rounded-lg text-sm font-medium text-slate-700 outline-none focus:border-emerald-500 resize-none"
+                           ></textarea>
+                           <button
+                              type="button"
+                              onClick={gerarPreparoIA}
+                              disabled={iaLoading}
+                              className="mt-2 w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-sm rounded-lg flex items-center justify-center gap-2 transition-all active:scale-95"
+                           >
+                              {iaLoading
+                                 ? <><Loader2 size={16} className="animate-spin" /> Estruturando etapas...</>
+                                 : <><Sparkles size={16} /> Gerar modo de preparo</>}
+                           </button>
+                           <p className="text-[10px] text-emerald-700/70 font-medium mt-1.5 leading-tight">A IA deduz panela, se vai ao fogo, o tempo de cada etapa e o tempo total. Você pode editar o texto depois.</p>
+                        </div>
+
                         <textarea placeholder="Passo a passo da execução..." value={form.modo_preparo} onChange={e=>setForm({...form, modo_preparo: e.target.value})} className="w-full h-40 p-4 mt-1 bg-white border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:border-emerald-500 shadow-sm resize-none"></textarea>
                      </div>
                   </div>

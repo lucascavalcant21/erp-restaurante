@@ -62,8 +62,9 @@ export async function registrarProducao(unidadeId, ficha, qtdProduzida, colabora
 
   if(errLog) return { error: errLog.message };
 
-  // 2. Buscamos o estoque atual de TODOS os ingredientes dessa ficha para poder subtrair
-  const ingIds = ficha.fichas_ingredientes.map(i => i.insumos.id);
+  // 2. Buscamos o estoque atual dos INSUMOS dessa ficha (ignora sub-fichas/bases)
+  const insumosFicha = (ficha.fichas_ingredientes || []).filter(i => i.insumos);
+  const ingIds = insumosFicha.map(i => i.insumos.id);
   
   const { data: estoqueDB } = await supabase.from("estoque_atual")
      .select("insumo_id, quantidade_atual")
@@ -76,7 +77,7 @@ export async function registrarProducao(unidadeId, ficha, qtdProduzida, colabora
   }
 
   // 3. Calculamos o novo saldo e preparamos o array de Upsert
-  const atualizacoesEstoque = ficha.fichas_ingredientes.map(ing => {
+  const atualizacoesEstoque = insumosFicha.map(ing => {
      const qtdConsumidaTotal = ing.quantidade * qtdProduzida;
      const saldoAnterior = mapaEstoque[ing.insumos.id] || 0;
      const novoSaldo = saldoAnterior - qtdConsumidaTotal;

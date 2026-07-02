@@ -186,7 +186,7 @@ export async function processarBaixaEstoqueECMV(pedidoId, unidadeId) {
       produtos (
          departamento,
          fichas_tecnicas (
-            fichas_ingredientes (
+            fichas_ingredientes!ficha_id (
                quantidade,
                insumos ( id, custo_unitario )
             )
@@ -207,6 +207,7 @@ export async function processarBaixaEstoqueECMV(pedidoId, unidadeId) {
      if(!ficha || !ficha.fichas_ingredientes) return;
 
      ficha.fichas_ingredientes.forEach(ing => {
+        if (!ing.insumos) return; // ingrediente-base (sub-ficha): baixa recursiva fica pra depois
         const qtdGasta = ing.quantidade * it.quantidade;
         const custoGasto = qtdGasta * ing.insumos.custo_unitario;
 

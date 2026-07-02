@@ -32,7 +32,7 @@ function IngredientesRunner() {
   // custo_compra = preço como comprado; peso bruto/limpo calculam a perda de limpeza
   // (casca, espinha, apara). Se for empanado, soma o custo do empanamento e divide
   // pelo ganho de peso. custo_unitario salvo no banco = custo REAL do kg PRONTO.
-  const [form, setForm] = useState({ id: null, departamento: deptUrl || "cozinha", nome: "", marca: "", unidade_medida: "kg", custo_compra: "", peso_bruto_g: "", peso_liquido_g: "", eh_empanado: false, custo_empanamento: "", peso_in_natura_g: "", peso_empanado_g: "" });
+  const [form, setForm] = useState({ id: null, departamento: deptUrl || "cozinha", nome: "", marca: "", unidade_medida: "kg", custo_compra: "", peso_medio_g: "", peso_bruto_g: "", peso_liquido_g: "", eh_empanado: false, custo_empanamento: "", peso_in_natura_g: "", peso_empanado_g: "" });
 
   // Aproveitamento (%) derivado dos pesos: 650g limpos de 1000g brutos = 65%
   const aproveitamentoForm = (() => {
@@ -99,7 +99,7 @@ function IngredientesRunner() {
   const paginados = filtrados.slice((paginaAtual - 1) * PAGE_SIZE, paginaAtual * PAGE_SIZE);
 
   const abrirNovo = () => {
-    setForm({ id: null, departamento: deptUrl || "cozinha", nome: "", marca: "", unidade_medida: "kg", custo_compra: "", peso_bruto_g: "", peso_liquido_g: "", eh_empanado: false, custo_empanamento: "", peso_in_natura_g: "", peso_empanado_g: "" });
+    setForm({ id: null, departamento: deptUrl || "cozinha", nome: "", marca: "", unidade_medida: "kg", custo_compra: "", peso_medio_g: "", peso_bruto_g: "", peso_liquido_g: "", eh_empanado: false, custo_empanamento: "", peso_in_natura_g: "", peso_empanado_g: "" });
     setModalNovo(true);
   };
 
@@ -114,6 +114,7 @@ function IngredientesRunner() {
       marca: ins.marca || "",
       unidade_medida: ins.unidade_medida,
       custo_compra: ins.custo_compra ?? ins.custo_unitario,
+      peso_medio_g: ins.peso_medio_g || "",
       peso_bruto_g: pct > 0 && pct < 100 ? "1000" : "",
       peso_liquido_g: pct > 0 && pct < 100 ? String(Math.round(pct * 10)) : "",
       eh_empanado: !!ins.eh_empanado,
@@ -243,6 +244,7 @@ function IngredientesRunner() {
        unidade_medida: form.unidade_medida,
        unidade_id: unidadeAtiva,
        custo_compra: custoCompra,
+       peso_medio_g: form.peso_medio_g ? Number(form.peso_medio_g) : null,
        aproveitamento_pct: pct < 100 ? Math.round(pct * 100) / 100 : null,
        eh_empanado: !!form.eh_empanado,
        custo_empanamento: form.eh_empanado ? custoEmp : null,
@@ -376,9 +378,12 @@ function IngredientesRunner() {
                          </div>
                        </div>
                      </div>
-                     {/* Unidade */}
-                     <div className="w-20 flex justify-center">
+                     {/* Unidade (+ equivalência média por unidade, quando definida) */}
+                     <div className="w-20 flex flex-col items-center gap-0.5">
                        <span className="bg-slate-800 text-white px-3 py-1.5 rounded-lg font-black text-xs uppercase tracking-wider shadow-sm">{ins.unidade_medida}</span>
+                       {ins.unidade_medida === 'un' && Number(ins.peso_medio_g) > 0 && (
+                         <span className="text-[9px] font-black text-slate-400">≈ {Number(ins.peso_medio_g).toLocaleString('pt-BR')}{String(ins.departamento).toLowerCase() === 'bar' ? 'ml' : 'g'}</span>
+                       )}
                      </div>
                      {/* Custo (real, já corrigido pela perda de limpeza quando houver) */}
                      <div className="w-32 text-center">
@@ -490,6 +495,18 @@ function IngredientesRunner() {
                         <input type="number" step="0.01" min="0" max="999999.99" placeholder="0.00" value={form.custo_compra} onChange={e=>setForm({...form, custo_compra: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-emerald-600 outline-none focus:border-emerald-500"/>
                      </div>
                   </div>
+
+                  {/* Medida de referência: quanto pesa/rende 1 unidade (tomate 1 un = 100g,
+                      caixa de leite = 1000 ml). Aparece quando a unidade base é "un". */}
+                  {form.unidade_medida === "un" && (
+                     <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                           Cada unidade equivale a ({form.departamento === "bar" ? "ml" : "g/ml"}) — opcional
+                        </label>
+                        <input type="number" step="0.1" min="0" placeholder="Ex: 100 (tomate) · 1000 (caixa de leite)" value={form.peso_medio_g} onChange={e=>setForm({...form, peso_medio_g: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500"/>
+                        <p className="text-[10px] text-slate-400 font-medium mt-1">Peso/volume médio de 1 unidade. Serve de referência para lançar na ficha e converter entre unidade e gramas/ml.</p>
+                     </div>
+                  )}
 
                   {/* Perda na limpeza: pesa bruto (com casca/espinha) e limpo (aproveitável) */}
                   <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">

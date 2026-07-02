@@ -2,10 +2,31 @@
 
 import { useState, useEffect } from "react";
 import { useERP } from "../../../context/ERPContext";
-import { fetchFichas } from "../../../lib/operacao";
+import { fetchFichas, fetchInsumos } from "../../../lib/operacao";
 import { fetchProdutos } from "../../../lib/vendas";
 import { PartyPopper, Printer, Trash2, ArrowLeft, Users, ShoppingCart, FileText } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
+
+// Fator "in natura" de uma ficha: quanto o preço deve subir para cobrar o item
+// como se o ingrediente fosse in natura (sem empanar). Ex.: peixe que rende 1,36x
+// ao empanar → cobrar +36% (o cliente paga como peixe puro, você ganha na margem).
+// Pega o MAIOR fator de empanamento entre os insumos da ficha (desce nas bases).
+function fatorInNaturaDaFicha(f, todasFichas, mapaFatores, guard = new Set()) {
+  if (!f || guard.has(f.id)) return 1;
+  guard.add(f.id);
+  let maior = 1;
+  (f.fichas_ingredientes || []).forEach(fi => {
+    if (fi.insumos) {
+      const fator = Number(mapaFatores[fi.insumos.id]) || 1;
+      if (fator > maior) maior = fator;
+    } else if (fi.subficha_id) {
+      const base = todasFichas.find(x => x.id === fi.subficha_id);
+      const f2 = base ? fatorInNaturaDaFicha(base, todasFichas, mapaFatores, guard) : 1;
+      if (f2 > maior) maior = f2;
+    }
+  });
+  return maior;
+}
 
 // Custo total de PRODUZIR uma ficha, resolvendo bases (sub-receitas) em cascata.
 function custoTotalDaFicha(f, todasFichas, guard = new Set()) {
@@ -70,6 +91,7 @@ export default function OrcamentoEventoPage() {
 
   const [produtos, setProdutos] = useState([]);
   const [fichas, setFichas] = useState([]);
+  const [mapaFatores, setMapaFatores] = useState({}); // insumo_id -> fator_empanamento
   const [loading, setLoading] = useState(true);
 
   const [evento, setEvento] = useState({ nome: "", cliente: "", data: "", convidados: "" });
@@ -79,12 +101,19 @@ export default function OrcamentoEventoPage() {
     if (!unidadeAtiva) return;
     (async () => {
       setLoading(true);
-      const [resProd, resFichas] = await Promise.all([
+      const [resProd, resFichas, resInsumos] = await Promise.all([
         fetchProdutos(unidadeAtiva),
         fetchFichas(unidadeAtiva),
+        fetchInsumos(unidadeAtiva),
       ]);
       setProdutos(resProd.data || []);
       setFichas(resFichas.data || []);
+      const mapa = {};
+      (resInsumos.data || []).forEach(i => {
+        const fator = Number(i.fator_empanamento) || 0;
+        if (i.eh_empanado && fator > 1) mapa[i.id] = fator;
+      });
+      setMapaFatores(mapa);
       setLoading(false);
     })();
   }, [unidadeAtiva]);
@@ -131,6 +160,14 @@ export default function OrcamentoEventoPage() {
       ? Number(it.precoVenda) || 0
       : (Number(produto.preco_venda) || 0);
     const precoCardapio = Number(produto.preco_venda) || 0;
+
+    // "Cobrar como in natura": se a ficha usa um ingrediente empanado, o cliente
+    // pode ser cobrado como se fosse o ingrediente puro (mais caro), aplicando o
+    // fator de empanamento sobre o preço. Ex.: peixe rende 1,36x → cobra +36%.
+    const fatorInNatura = ficha ? fatorInNaturaDaFicha(ficha, fichas, mapaFatores) : 1;
+    const inNatura = !!it.inNatura && fatorInNatura > 1;
+    const precoEfetivo = inNatura ? precoVenda * fatorInNatura : precoVenda;
+
     return {
       produto_id: it.produto_id,
       nome: produto.nome_produto,
@@ -142,13 +179,16 @@ export default function OrcamentoEventoPage() {
       porcoes,
       gramasTotal,
       unPorKg: pesoUn > 0 ? 1000 / pesoUn : null,
-      vendaPorKg: pesoUn > 0 ? precoVenda * (1000 / pesoUn) : null,
+      vendaPorKg: pesoUn > 0 ? precoEfetivo * (1000 / pesoUn) : null,
       custoPorcao,
       custoTotal: custoPorcao * porcoes,
       precoVenda,
       precoCardapio,
       precoEditado: precoVenda !== precoCardapio,
-      vendaTotal: precoVenda * porcoes,
+      fatorInNatura,
+      inNatura,
+      precoEfetivo,
+      vendaTotal: precoEfetivo * porcoes,
     };
   }).filter(Boolean);
 
@@ -231,7 +271,7 @@ export default function OrcamentoEventoPage() {
   const imprimirOrcamento = () => {
     if (linhas.length === 0) return alert("Adicione itens ao evento primeiro.");
     const rows = linhas.map(l =>
-      `<tr><td>${l.nome}</td><td class="c">${descQtd(l)}</td><td class="r">${fmtBRL(l.precoVenda)}/porção</td><td class="r">${fmtBRL(l.vendaTotal)}</td></tr>`
+      `<tr><td>${l.nome}</td><td class="c">${descQtd(l)}</td><td class="r">${fmtBRL(l.precoEfetivo)}/porção</td><td class="r">${fmtBRL(l.vendaTotal)}</td></tr>`
     ).join('');
     abrirDoc(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Orçamento - ${evento.nome || 'Evento'}</title>${estiloDoc}</head><body>
        ${cabecalhoDoc('Orçamento de Buffet')}
@@ -387,6 +427,17 @@ export default function OrcamentoEventoPage() {
                                  Preço personalizado (cardápio: {fmtBRL(l.precoCardapio)})
                                  <button onClick={() => updateItem(l.produto_id, { precoVenda: l.precoCardapio })} className="underline hover:text-amber-700">usar o do cardápio</button>
                               </p>
+                           )}
+
+                           {/* Empanado: cobrar como in natura (peixe puro, mais caro) */}
+                           {l.fatorInNatura > 1 && (
+                              <label className="flex items-center gap-2 mt-2 cursor-pointer bg-sky-50 border border-sky-200 rounded-lg p-2">
+                                 <input type="checkbox" checked={l.inNatura} onChange={e=>updateItem(l.produto_id, { inNatura: e.target.checked })} className="w-4 h-4 accent-sky-600"/>
+                                 <span className="text-[10px] font-bold text-sky-700 leading-tight">
+                                    Cobrar como in natura (+{((l.fatorInNatura - 1) * 100).toFixed(0)}%) — ingrediente empanado
+                                    {l.inNatura && <span className="text-sky-500"> · {fmtBRL(l.precoVenda)} → {fmtBRL(l.precoEfetivo)}/porção</span>}
+                                 </span>
+                              </label>
                            )}
 
                            {/* Equivalências: porção em gramas, rendimento por kg e preço do kg */}

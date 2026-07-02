@@ -48,6 +48,7 @@ const OPERACAO_SETORES = [
       { label: "Notas de Entrada (NF-e)", href: "/dashboard/operacao/notas", desc: "Lançar NF de fornecedores", badge: null },
       { label: "Análise de CMV", href: "/dashboard/financeiro/cmv", desc: "Custo real da mercadoria vendida", badge: null },
       { label: "Produção e Pré-Preparo", href: "/dashboard/operacao/producao", desc: "Registrar produções internas", badge: null },
+      { label: "Impressão de Etiquetas", href: "/dashboard/operacao/etiquetas?dept=cozinha", desc: "Etiquetas de validade dos itens da cozinha", badge: null },
       { label: "Validade de Produtos", href: "/dashboard/operacao/validade", desc: "Controle de vencimentos", badge: null },
       { label: "Rotinas Operacionais", href: "/dashboard/operacao/rotina", desc: "Checklists de abertura/fechamento", badge: null },
     ]
@@ -65,6 +66,7 @@ const OPERACAO_SETORES = [
       { label: "Fichas de Drinks", href: "/dashboard/operacao/fichas?dept=bar", desc: "Receitas com custo e insumos", badge: null },
       { label: "Ingredientes e Insumos", href: "/dashboard/operacao/ingredientes?dept=bar", desc: "Banco de ingredientes do bar", badge: null },
       { label: "Estoque do Bar", href: "/dashboard/operacao/estoque?dept=bar", desc: "Bebidas, xaropes e insumos", badge: null },
+      { label: "Impressão de Etiquetas", href: "/dashboard/operacao/etiquetas?dept=bar", desc: "Etiquetas de validade dos itens do bar", badge: null },
       { label: "Cardápio de Bebidas", href: "/dashboard/operacao/produtos?cat=Bebidas", desc: "Produtos do bar no cardápio", badge: null },
       { label: "Compras do Bar", href: "/dashboard/operacao/compras", desc: "Reposição de bebidas e insumos", badge: null },
     ]

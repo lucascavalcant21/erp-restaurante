@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchFichas, fetchInsumos } from "../../../lib/operacao";
 import { fetchProdutos } from "../../../lib/vendas";
-import { PartyPopper, Printer, Trash2, ArrowLeft, Users, ShoppingCart, FileText } from "lucide-react";
+import { fetchOrcamentosEventos, salvarOrcamentoEvento, removerOrcamentoEvento } from "../../../lib/orcamentos";
+import { PartyPopper, Printer, Trash2, ArrowLeft, Users, ShoppingCart, FileText, Save, History, X, Loader2 } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
 // Fator "in natura" de uma ficha: quanto o preço deve subir para cobrar o item
@@ -167,6 +168,66 @@ export default function OrcamentoEventoPage() {
     if (propostas.length <= 1) return alert("Deve haver ao menos uma proposta.");
     if (!confirm(`Remover "${ativa.nome}"?`)) return;
     setPropostas(ps => { const rest = ps.filter(p => p.id !== ativa.id); setAtivaId(rest[0].id); return rest; });
+  };
+
+  // ── Salvar evento + histórico (banco) ────────────────────────────────────
+  const [orcamentoId, setOrcamentoId] = useState(null); // id do evento carregado (null = novo)
+  const [salvando, setSalvando] = useState(false);
+  const [modalHistorico, setModalHistorico] = useState(false);
+  const [historico, setHistorico] = useState([]);
+  const [historicoLoading, setHistoricoLoading] = useState(false);
+
+  const salvarEvento = async () => {
+    const nomeEvento = (evento.nome || "").trim();
+    if (!nomeEvento) return alert("Dê um nome ao evento antes de salvar.");
+    setSalvando(true);
+    const { data, error } = await salvarOrcamentoEvento({
+      id: orcamentoId,
+      unidade_id: unidadeAtiva,
+      nome: nomeEvento,
+      cliente: evento.cliente || null,
+      data_evento: evento.data || null,
+      convidados: Number(evento.convidados) || null,
+      dados: { propostas, ativaId: ativa.id },
+    });
+    setSalvando(false);
+    if (error) return alert("Erro ao salvar o evento: " + error);
+    setOrcamentoId(data.id);
+    alert(`Evento "${nomeEvento}" salvo no histórico!`);
+  };
+
+  const abrirHistorico = async () => {
+    setModalHistorico(true);
+    setHistoricoLoading(true);
+    const { data, error } = await fetchOrcamentosEventos(unidadeAtiva);
+    setHistoricoLoading(false);
+    if (error) { alert("Erro ao carregar o histórico: " + error); return; }
+    setHistorico(data);
+  };
+
+  const carregarDoHistorico = (item) => {
+    const d = item.dados || {};
+    if (!Array.isArray(d.propostas) || !d.propostas.length) return alert("Este evento salvo está sem dados.");
+    setPropostas(d.propostas);
+    setAtivaId(d.propostas.find(p => p.id === d.ativaId) ? d.ativaId : d.propostas[0].id);
+    setOrcamentoId(item.id);
+    setModalHistorico(false);
+  };
+
+  const excluirDoHistorico = async (item) => {
+    if (!confirm(`Excluir "${item.nome}" do histórico?`)) return;
+    const { error } = await removerOrcamentoEvento(item.id);
+    if (error) return alert("Erro ao excluir: " + error);
+    setHistorico(h => h.filter(x => x.id !== item.id));
+    if (orcamentoId === item.id) setOrcamentoId(null);
+  };
+
+  const novoEvento = () => {
+    if (!confirm("Começar um evento novo? (o atual continua no histórico se você salvou)")) return;
+    const p = novaProposta("Proposta 1");
+    setPropostas([p]);
+    setAtivaId(p.id);
+    setOrcamentoId(null);
   };
 
   const convidados = Number(evento.convidados) || 0;
@@ -538,6 +599,17 @@ export default function OrcamentoEventoPage() {
                   <button onClick={renomearProposta} className="text-[10px] font-bold text-slate-500 hover:text-slate-800">Renomear</button>
                   <button onClick={duplicarProposta} className="text-[10px] font-bold text-slate-500 hover:text-slate-800">Duplicar</button>
                   {propostas.length > 1 && <button onClick={removerProposta} className="text-[10px] font-bold text-red-400 hover:text-red-600">Remover</button>}
+
+                  {/* Salvar no banco + histórico de eventos */}
+                  <span className="flex-1" />
+                  {orcamentoId && <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">salvo no histórico</span>}
+                  <button onClick={salvarEvento} disabled={salvando} className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors">
+                     {salvando ? <Loader2 size={11} className="animate-spin"/> : <Save size={11}/>} {orcamentoId ? "Atualizar" : "Salvar Evento"}
+                  </button>
+                  <button onClick={abrirHistorico} className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-colors">
+                     <History size={11}/> Histórico
+                  </button>
+                  <button onClick={novoEvento} className="text-[10px] font-bold text-slate-500 hover:text-slate-800">Novo evento</button>
                </div>
             </div>
 
@@ -727,6 +799,54 @@ export default function OrcamentoEventoPage() {
          </div>
 
       </div>
+
+      {/* HISTÓRICO DE EVENTOS SALVOS */}
+      {modalHistorico && (
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
+            <div className="bg-white rounded-[32px] w-full max-w-2xl my-8 shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[85vh]">
+               <div className="flex justify-between items-center p-8 pb-6 border-b border-slate-100 shrink-0">
+                  <div className="flex items-center gap-3">
+                     <div className="w-11 h-11 rounded-2xl bg-slate-100 text-slate-600 flex items-center justify-center"><History size={22}/></div>
+                     <div>
+                        <h2 className="font-black text-2xl text-slate-800">Histórico de Eventos</h2>
+                        <p className="text-xs font-bold text-slate-500 mt-0.5">Clique num evento para carregar todas as propostas dele</p>
+                     </div>
+                  </div>
+                  <button onClick={() => setModalHistorico(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+               </div>
+
+               <div className="p-8 overflow-y-auto custom-scrollbar">
+                  {historicoLoading ? (
+                     <p className="text-center font-bold text-slate-400 p-8">Carregando histórico...</p>
+                  ) : historico.length === 0 ? (
+                     <p className="text-center font-medium text-slate-400 p-8">Nenhum evento salvo ainda. Monte um orçamento e clique em "Salvar Evento".</p>
+                  ) : (
+                     <div className="space-y-2">
+                        {historico.map(item => {
+                           const nProps = Array.isArray(item.dados?.propostas) ? item.dados.propostas.length : 0;
+                           return (
+                              <div key={item.id} className={`p-4 rounded-2xl border flex items-center gap-3 transition-colors ${item.id === orcamentoId ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-100 hover:border-slate-300'}`}>
+                                 <button onClick={() => carregarDoHistorico(item)} className="flex-1 min-w-0 text-left">
+                                    <p className="font-black text-slate-800 truncate">{item.nome}{item.id === orcamentoId && <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600 ml-2">aberto</span>}</p>
+                                    <p className="text-[11px] font-bold text-slate-500 mt-0.5">
+                                       {item.cliente ? `${item.cliente} · ` : ''}
+                                       {item.data_evento ? `${item.data_evento.split('-').reverse().join('/')} · ` : ''}
+                                       {item.convidados ? `${item.convidados} convidados · ` : ''}
+                                       {nProps} proposta{nProps !== 1 ? 's' : ''}
+                                    </p>
+                                    <p className="text-[10px] font-medium text-slate-400 mt-0.5">Atualizado em {new Date(item.updated_at).toLocaleDateString('pt-BR')} às {new Date(item.updated_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>
+                                 </button>
+                                 <button onClick={() => excluirDoHistorico(item)} className="p-2 text-slate-400 hover:text-red-500 bg-white rounded-lg border border-slate-200 shrink-0" title="Excluir do histórico"><Trash2 size={15}/></button>
+                              </div>
+                           );
+                        })}
+                     </div>
+                  )}
+               </div>
+            </div>
+         </div>
+      )}
+
     </div>
   );
 }

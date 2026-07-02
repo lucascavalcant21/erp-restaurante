@@ -38,9 +38,10 @@ function diasAte(dataStr) {
   return Math.floor((data - hoje) / (1000 * 60 * 60 * 24));
 }
 
-// Orçamento impresso para o CLIENTE: menu incluído + valor por pessoa/casal.
+// Orçamento impresso para o CLIENTE: menu incluído + valor por pessoa/casal
+// + serviços adicionais cobrados (músico, decoração, espaço, equipe extra...).
 // Sem custos internos, CMV ou margem — documento comercial.
-function imprimirOrcamentoCliente(evento, pratos, drinks, reservas, calc) {
+function imprimirOrcamentoCliente(evento, pratos, drinks, reservas, calc, custosFixos = []) {
   const win = window.open("", "_blank", "width=800,height=900");
   if (!win) return alert("Habilite os popups para imprimir o orçamento.");
 
@@ -54,6 +55,8 @@ function imprimirOrcamentoCliente(evento, pratos, drinks, reservas, calc) {
   };
   const drinksInclusos = drinks.filter((d) => !d.is_extra);
   const drinksExtras = drinks.filter((d) => d.is_extra);
+  const servicos = custosFixos.filter((c) => c.cobrar_cliente && Number(c.valor_cobranca) > 0);
+  const totalServicos = servicos.reduce((s, c) => s + Number(c.valor_cobranca || 0), 0);
 
   const inclusos = [
     Number(evento.entradas_inc) > 0 ? `${evento.entradas_inc} entrada${evento.entradas_inc > 1 ? "s" : ""}` : null,
@@ -92,11 +95,12 @@ function imprimirOrcamentoCliente(evento, pratos, drinks, reservas, calc) {
       ${secaoPratos("Sobremesa", "Sobremesas")}
       ${drinksInclusos.length ? `<h2>Drinks inclusos</h2><ul>${drinksInclusos.map((d) => `<li><b>${d.nome}</b>${d.descricao ? ` — <span class="desc">${d.descricao}</span>` : ""}</li>`).join("")}</ul>` : ""}
       ${drinksExtras.length ? `<h2>Drinks extras (cobrados à parte)</h2><ul>${drinksExtras.map((d) => `<li><b>${d.nome}</b> — ${fmtBRL(d.preco_venda)}</li>`).join("")}</ul>` : ""}
+      ${servicos.length ? `<h2>Serviços adicionais</h2><ul>${servicos.map((c) => `<li style="display:flex;justify-content:space-between"><b>${c.nome}</b><span>${fmtBRL(c.valor_cobranca)}</span></li>`).join("")}<li style="display:flex;justify-content:space-between;border-bottom:none;padding-top:8px"><span style="font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:1px;font-weight:bold">Subtotal serviços</span><b>${fmtBRL(totalServicos)}</b></li></ul>` : ""}
       <div class="preco">
         <span class="rotulo">Valor por ${unitName}</span>
         <span class="valor">${fmtBRL(evento.preco_unit)}</span>
       </div>
-      ${reservas.length > 0 ? `<div class="sub">${reservas.length} ${unitName === "casal" ? (reservas.length > 1 ? "casais confirmados" : "casal confirmado") : (reservas.length > 1 ? "pessoas confirmadas" : "pessoa confirmada")} · total projetado: <b>${fmtBRL(reservas.length * Number(evento.preco_unit))}</b></div>` : ""}
+      ${reservas.length > 0 || totalServicos > 0 ? `<div class="sub">${reservas.length > 0 ? `${reservas.length} ${unitName === "casal" ? (reservas.length > 1 ? "casais confirmados" : "casal confirmado") : (reservas.length > 1 ? "pessoas confirmadas" : "pessoa confirmada")} · ` : ""}total projetado: <b>${fmtBRL(reservas.length * Number(evento.preco_unit) + totalServicos)}</b>${totalServicos > 0 ? ` (buffet ${fmtBRL(reservas.length * Number(evento.preco_unit))} + serviços ${fmtBRL(totalServicos)})` : ""}</div>` : ""}
       <div class="obs">Orçamento gerado em ${new Date().toLocaleDateString("pt-BR")}. Valores sujeitos a confirmação de data e disponibilidade.</div>
     </body></html>`);
   win.document.close();
@@ -191,7 +195,9 @@ export default function EventoPage() {
     });
     const totalExtraRevenue = extraInfo.reduce((s, e) => s + e.revenue, 0);
     const totalExtraCost    = extraInfo.reduce((s, e) => s + e.cost, 0);
-    const totalRevenue      = baseRevenue + totalExtraRevenue;
+    // Serviços adicionais cobrados do cliente (músico, decoração, espaço etc.)
+    const receitaServicos   = custosFixos.filter((c) => c.cobrar_cliente).reduce((s, c) => s + Number(c.valor_cobranca || 0), 0);
+    const totalRevenue      = baseRevenue + totalExtraRevenue + receitaServicos;
     const totalSinal        = reservas.reduce((s, r) => s + Number(r.sinal || 0), 0);
     const totalCMV          = reservas.length * cmvUnit + totalExtraCost;
 
@@ -222,6 +228,7 @@ export default function EventoPage() {
       peopleMultiplier, unitName, unitPlural,
       cmvUnit, cmvBreakdown,
       baseRevenue, totalRevenue, totalSinal, totalCMV, totalFixos, laborTotal,
+      receitaServicos,
       machineRate, impostos, machineFee,
       totalExpenses, profit, profitMargin,
       contributionPerUnit, breakeven,
@@ -314,11 +321,11 @@ export default function EventoPage() {
                 <div>
                   <h3 style={{ fontWeight: 700, color: "var(--fg)" }}><FileText size={16} style={{ display: "inline", marginRight: 6 }} />Orçamento para o Cliente</h3>
                   <p className="text-[11px]" style={{ color: "var(--dim)" }}>
-                    Documento comercial: menu incluído ({pratos.length} prato{pratos.length !== 1 ? "s" : ""}, {drinks.filter((d) => !d.is_extra).length} drink{drinks.filter((d) => !d.is_extra).length !== 1 ? "s" : ""}) e valor por {calc.unitName} — sem custos internos.
+                    Documento comercial: menu incluído ({pratos.length} prato{pratos.length !== 1 ? "s" : ""}, {drinks.filter((d) => !d.is_extra).length} drink{drinks.filter((d) => !d.is_extra).length !== 1 ? "s" : ""}), serviços adicionais cobrados ({custosFixos.filter((c) => c.cobrar_cliente).length}) e valor por {calc.unitName} — sem custos internos.
                   </p>
                 </div>
                 <button
-                  onClick={() => imprimirOrcamentoCliente(evento, pratos, drinks, reservas, calc)}
+                  onClick={() => imprimirOrcamentoCliente(evento, pratos, drinks, reservas, calc, custosFixos)}
                   style={{
                     display: "flex", alignItems: "center", gap: 6, padding: "10px 16px",
                     borderRadius: 10, background: "var(--accent-fg)", color: "#000",

@@ -88,7 +88,9 @@ export const DISH_TAGS = [
 export const FIXED_COST_CATEGORIES = [
   { id: "cmo",        label: "CMO (Mão de Obra)", cor: "#ff2d55", isLabor: true },
   { id: "decoracao",  label: "Decoração",         cor: "#ff7eb6" },
-  { id: "musica",     label: "Música",            cor: "#7b61ff" },
+  { id: "musica",     label: "Música e Entretenimento", cor: "#7b61ff" },
+  { id: "espaco",     label: "Aluguel de Espaço", cor: "#F59E0B" },
+  { id: "limpeza",    label: "Limpeza e Descartáveis", cor: "#22C55E" },
   { id: "infra",      label: "Infraestrutura",    cor: "#00b8d4" },
   { id: "marketing",  label: "Marketing",         cor: "#5b9bff" },
   { id: "outros",     label: "Outros",            cor: "#a0a0a0" },

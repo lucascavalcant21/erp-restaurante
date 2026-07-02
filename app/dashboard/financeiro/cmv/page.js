@@ -28,6 +28,17 @@ function custoTotalDaFicha(f, todasFichas, guard = new Set()) {
   return total;
 }
 
+// Nº real de porções: direto (porções/un) ou derivado do peso total quando
+// o rendimento é em kg/g/l/ml (peso total ÷ peso da porção).
+function porcoesDaFicha(f) {
+  const rend = Number(f?.rendimento_porcoes) || 1;
+  const un = String(f?.rendimento_unidade || "porcao").toLowerCase();
+  if (un === "porcao" || un === "un") return rend;
+  const pesoPorcao = Number(f?.peso_porcao_g) || 0;
+  const pesoTotalG = (un === "kg" || un === "l") ? rend * 1000 : rend;
+  return pesoPorcao > 0 ? pesoTotalG / pesoPorcao : rend;
+}
+
 export default function CmvPage() {
   const { unidadeAtiva, unidadeInfo } = useERP();
   const [fichas, setFichas] = useState([]);
@@ -53,7 +64,7 @@ export default function CmvPage() {
       .map(p => {
         const ficha = fichasPorId[p.ficha_id];
         const preco = Number(p.preco_venda) || 0;
-        const custo = custoTotalDaFicha(ficha, fichas) / (ficha.rendimento_porcoes || 1);
+        const custo = custoTotalDaFicha(ficha, fichas) / porcoesDaFicha(ficha);
         return { id: p.id, nome: p.nome_produto, departamento: p.departamento, preco, custo, cmv: preco > 0 ? (custo / preco) * 100 : 0 };
       })
       .sort((a, b) => b.cmv - a.cmv);

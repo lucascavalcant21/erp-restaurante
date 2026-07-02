@@ -1,11 +1,21 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchInsumos, salvarInsumo, removerInsumo } from "../../../lib/operacao";
-import { FlaskConical, Plus, Search, Trash2, Edit3, X, Save, ArrowLeft, CheckCircle2, AlertTriangle } from "lucide-react";
+import { FlaskConical, Plus, Search, Trash2, Edit3, X, Save, ArrowLeft, CheckCircle2, AlertTriangle, Sparkles, Loader2, Camera } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
+
+// Converte um File de imagem em base64 puro (sem o prefixo "data:...;base64,")
+function fileParaBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(",")[1] || "");
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 function IngredientesRunner() {
   const router = useRouter();
@@ -19,7 +29,17 @@ function IngredientesRunner() {
   const [busca, setBusca] = useState("");
 
   const [modalNovo, setModalNovo] = useState(false);
-  const [form, setForm] = useState({ id: null, departamento: deptUrl || "cozinha", nome: "", unidade_medida: "kg", custo_unitario: "" });
+  const [form, setForm] = useState({ id: null, departamento: deptUrl || "cozinha", nome: "", marca: "", unidade_medida: "kg", custo_unitario: "" });
+
+  // Importação em massa via IA (texto colado e/ou foto)
+  const [modalIA, setModalIA] = useState(false);
+  const [iaDept, setIaDept] = useState(deptUrl || "cozinha");
+  const [iaTexto, setIaTexto] = useState("");
+  const [iaImagem, setIaImagem] = useState(null); // { base64, mediaType, previewUrl, nomeArquivo }
+  const [iaLoading, setIaLoading] = useState(false);
+  const [iaItens, setIaItens] = useState(null); // array revisável antes de salvar
+  const [iaSalvando, setIaSalvando] = useState(false);
+  const fileInputRef = useRef(null);
 
   // Feedback de sucesso (toast flutuante autodescartável)
   const [toast, setToast] = useState(null); // { msg, tipo: 'ok' | 'erro' }
@@ -54,13 +74,92 @@ function IngredientesRunner() {
   const paginados = filtrados.slice((paginaAtual - 1) * PAGE_SIZE, paginaAtual * PAGE_SIZE);
 
   const abrirNovo = () => {
-    setForm({ id: null, departamento: deptUrl || "cozinha", nome: "", unidade_medida: "kg", custo_unitario: "" });
+    setForm({ id: null, departamento: deptUrl || "cozinha", nome: "", marca: "", unidade_medida: "kg", custo_unitario: "" });
     setModalNovo(true);
   };
 
   const abrirEditar = (ins) => {
-    setForm({ ...ins });
+    setForm({ marca: "", ...ins });
     setModalNovo(true);
+  };
+
+  // ─── Importação em massa via IA (foto ou lista colada) ─────────────────────
+  const abrirModalIA = () => {
+    setIaDept(deptUrl || "cozinha");
+    setIaTexto("");
+    setIaImagem(null);
+    setIaItens(null);
+    setModalIA(true);
+  };
+
+  const handleSelecionarImagem = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const base64 = await fileParaBase64(file);
+    setIaImagem({ base64, mediaType: file.type || "image/jpeg", previewUrl: URL.createObjectURL(file), nomeArquivo: file.name });
+  };
+
+  const gerarInsumosIA = async () => {
+    if (!iaTexto.trim() && !iaImagem) return alert("Cole uma lista de texto ou envie uma foto.");
+    setIaLoading(true);
+    setIaItens(null);
+    try {
+      const res = await fetch("/api/ia-insumos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          texto: iaTexto,
+          imagem_base64: iaImagem?.base64 || null,
+          imagem_media_type: iaImagem?.mediaType || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        alert(data.error || "Falha ao ler a lista/foto.");
+        return;
+      }
+      // Cada item vira uma linha revisável, com checkbox de inclusão
+      setIaItens(data.itens.map(it => ({ ...it, incluir: true })));
+    } catch {
+      alert("Não consegui falar com a IA. Verifique a conexão.");
+    } finally {
+      setIaLoading(false);
+    }
+  };
+
+  const atualizarItemIA = (idx, campo, valor) => {
+    setIaItens(lista => lista.map((it, i) => i === idx ? { ...it, [campo]: valor } : it));
+  };
+
+  const salvarItensIA = async () => {
+    const selecionados = (iaItens || []).filter(it => it.incluir);
+    if (selecionados.length === 0) return alert("Selecione ao menos um ingrediente.");
+    for (const it of selecionados) {
+      if (!it.nome.trim() || !it.custo_unitario || Number(it.custo_unitario) <= 0) {
+        return alert(`Confira o ingrediente "${it.nome || '(sem nome)'}": nome e custo são obrigatórios.`);
+      }
+    }
+    setIaSalvando(true);
+    let erros = 0;
+    for (const it of selecionados) {
+      const erro = await salvarInsumo({
+        departamento: iaDept,
+        nome: it.nome.trim(),
+        marca: (it.marca || "").trim(),
+        unidade_medida: it.unidade_medida,
+        custo_unitario: Number(it.custo_unitario),
+        unidade_id: unidadeAtiva,
+      });
+      if (erro.error) erros++;
+    }
+    setIaSalvando(false);
+    setModalIA(false);
+    await carregar();
+    if (erros > 0) {
+      showToast(`${selecionados.length - erros} salvos, ${erros} falharam.`, "erro");
+    } else {
+      showToast(`${selecionados.length} ingrediente(s) cadastrado(s)!`);
+    }
   };
 
   const handleSalvar = async () => {
@@ -139,9 +238,14 @@ function IngredientesRunner() {
                  <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Custo Base de Insumos {deptUrl ? `- ${deptUrl}` : ''}</p>
               </div>
             </div>
-            <button onClick={abrirNovo} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
-               <Plus size={18} /> Cadastrar Insumo
-            </button>
+            <div className="flex items-center gap-3">
+               <button onClick={abrirModalIA} className="flex items-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-5 py-3 rounded-xl font-bold hover:bg-emerald-50 transition-colors shadow-sm">
+                  <Sparkles size={18} /> Importar com IA
+               </button>
+               <button onClick={abrirNovo} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
+                  <Plus size={18} /> Cadastrar Insumo
+               </button>
+            </div>
          </div>
       </div>
 
@@ -188,7 +292,7 @@ function IngredientesRunner() {
                      <div className="flex items-center gap-3 min-w-0">
                        <div className="w-1 h-10 rounded-full bg-emerald-400 shrink-0" />
                        <div className="min-w-0">
-                         <p className="font-bold text-slate-800 text-[15px] leading-tight truncate">{ins.nome}</p>
+                         <p className="font-bold text-slate-800 text-[15px] leading-tight truncate">{ins.nome}{ins.marca ? <span className="text-slate-400 font-medium"> · {ins.marca}</span> : null}</p>
                          <span className={`inline-block text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mt-1 ${deptColor}`}>{ins.departamento}</span>
                        </div>
                      </div>
@@ -277,9 +381,14 @@ function IngredientesRunner() {
 
                   <div>
                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nome do Ingrediente</label>
-                     <input type="text" placeholder="Ex: Tomate Carmem" value={form.nome} onChange={e=>setForm({...form, nome: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                     <input type="text" placeholder="Ex: Tomate" value={form.nome} onChange={e=>setForm({...form, nome: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
                   </div>
-                  
+
+                  <div>
+                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Marca (opcional)</label>
+                     <input type="text" placeholder="Ex: Carmem" value={form.marca || ""} onChange={e=>setForm({...form, marca: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4">
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Unidade Base</label>
@@ -304,6 +413,107 @@ function IngredientesRunner() {
                <button onClick={handleSalvar} className="w-full mt-8 py-5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-2">
                   <Save size={20}/> Salvar Ingrediente
                </button>
+            </div>
+         </div>
+      )}
+
+      {/* IMPORTAÇÃO EM MASSA VIA IA */}
+      {modalIA && (
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
+            <div className="bg-white rounded-[32px] w-full max-w-3xl my-8 shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[90vh]">
+               <div className="flex justify-between items-center p-8 pb-6 border-b border-slate-100 shrink-0">
+                  <div className="flex items-center gap-3">
+                     <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center"><Sparkles size={22}/></div>
+                     <div>
+                        <h2 className="font-black text-2xl text-slate-800">Importar Ingredientes com IA</h2>
+                        <p className="text-xs font-bold text-slate-500 mt-0.5">Cole uma lista ou envie foto de nota fiscal / lista de compras</p>
+                     </div>
+                  </div>
+                  <button onClick={() => setModalIA(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+               </div>
+
+               <div className="p-8 overflow-y-auto custom-scrollbar space-y-5">
+                  {!iaItens ? (
+                     <>
+                        {!deptUrl && (
+                           <div>
+                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Departamento destes ingredientes</label>
+                              <select value={iaDept} onChange={e=>setIaDept(e.target.value)} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500">
+                                 <option value="cozinha">Cozinha</option>
+                                 <option value="bar">Bar</option>
+                              </select>
+                           </div>
+                        )}
+
+                        <div>
+                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Colar lista (opcional se enviar foto)</label>
+                           <textarea
+                              placeholder={"Ex:\nTomate Carmem 2kg R$ 15,80\nFilé de Frango Sadia 3kg R$ 42,00\nVodka Smirnoff 1L R$ 60,00"}
+                              value={iaTexto}
+                              onChange={e => setIaTexto(e.target.value)}
+                              className="w-full h-32 p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:border-emerald-500 resize-none"
+                           ></textarea>
+                        </div>
+
+                        <div>
+                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Ou enviar foto (nota fiscal, lista, etiqueta)</label>
+                           <input ref={fileInputRef} type="file" accept="image/*" onChange={handleSelecionarImagem} className="hidden" />
+                           {iaImagem ? (
+                              <div className="mt-1 flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-3">
+                                 <img src={iaImagem.previewUrl} alt="preview" className="w-16 h-16 object-cover rounded-lg border border-slate-200" />
+                                 <div className="flex-1 min-w-0">
+                                    <p className="font-bold text-sm text-slate-700 truncate">{iaImagem.nomeArquivo}</p>
+                                    <button onClick={() => setIaImagem(null)} className="text-xs font-bold text-red-500 hover:text-red-600 mt-1">Remover foto</button>
+                                 </div>
+                              </div>
+                           ) : (
+                              <button type="button" onClick={() => fileInputRef.current?.click()} className="w-full mt-1 p-6 bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center gap-2 text-slate-400 hover:text-emerald-600 hover:border-emerald-300 transition-colors">
+                                 <Camera size={24} />
+                                 <span className="font-bold text-sm">Tirar foto ou escolher da galeria</span>
+                              </button>
+                           )}
+                        </div>
+
+                        <button
+                           onClick={gerarInsumosIA}
+                           disabled={iaLoading}
+                           className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95"
+                        >
+                           {iaLoading ? <><Loader2 size={18} className="animate-spin"/> Lendo ingredientes...</> : <><Sparkles size={18}/> Extrair ingredientes</>}
+                        </button>
+                     </>
+                  ) : (
+                     <>
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Confira antes de salvar ({iaItens.filter(i=>i.incluir).length} de {iaItens.length} selecionados)</p>
+                        <div className="space-y-2">
+                           {iaItens.map((it, idx) => (
+                              <div key={idx} className={`p-3 rounded-xl border flex flex-wrap items-center gap-2 ${it.incluir ? 'bg-white border-slate-200' : 'bg-slate-50 border-slate-100 opacity-60'}`}>
+                                 <input type="checkbox" checked={it.incluir} onChange={e=>atualizarItemIA(idx, "incluir", e.target.checked)} className="w-5 h-5 accent-emerald-600" />
+                                 <input type="text" value={it.nome} onChange={e=>atualizarItemIA(idx, "nome", e.target.value)} placeholder="Nome" className="flex-1 min-w-[140px] p-2 bg-slate-50 border border-slate-200 rounded-lg font-bold text-sm outline-none focus:border-emerald-500" />
+                                 <input type="text" value={it.marca} onChange={e=>atualizarItemIA(idx, "marca", e.target.value)} placeholder="Marca" className="w-28 p-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-emerald-500" />
+                                 <select value={it.unidade_medida} onChange={e=>atualizarItemIA(idx, "unidade_medida", e.target.value)} className="w-24 p-2 bg-slate-50 border border-slate-200 rounded-lg font-bold text-sm outline-none focus:border-emerald-500">
+                                    <option value="kg">KG</option>
+                                    <option value="l">L</option>
+                                    <option value="un">UN</option>
+                                    <option value="g">G</option>
+                                    <option value="ml">ML</option>
+                                 </select>
+                                 <input type="number" step="0.01" value={it.custo_unitario} onChange={e=>atualizarItemIA(idx, "custo_unitario", e.target.value)} placeholder="Custo/base" className="w-28 p-2 bg-emerald-50 border border-emerald-200 rounded-lg font-black text-emerald-600 text-sm outline-none focus:border-emerald-500" />
+                              </div>
+                           ))}
+                        </div>
+                        <button onClick={() => setIaItens(null)} className="text-xs font-bold text-slate-500 hover:text-slate-700">← Voltar e enviar outra lista/foto</button>
+                     </>
+                  )}
+               </div>
+
+               {iaItens && (
+                  <div className="p-8 pt-4 border-t border-slate-100 bg-slate-50 rounded-b-[32px] shrink-0">
+                     <button onClick={salvarItensIA} disabled={iaSalvando} className="w-full py-5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-2">
+                        {iaSalvando ? <><Loader2 size={20} className="animate-spin"/> Salvando...</> : <><Save size={20}/> Salvar {iaItens.filter(i=>i.incluir).length} Ingrediente(s)</>}
+                     </button>
+                  </div>
+               )}
             </div>
          </div>
       )}

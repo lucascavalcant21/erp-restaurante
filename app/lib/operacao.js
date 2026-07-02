@@ -23,10 +23,10 @@ export async function salvarInsumo(insumo) {
 
   if (id) {
     const { error } = await supabase.from("insumos").update(campos).eq("id", id);
-    return { error: error?.message };
+    return { id, error: error?.message };
   } else {
-    const { error } = await supabase.from("insumos").insert([campos]);
-    return { error: error?.message };
+    const { data, error } = await supabase.from("insumos").insert([campos]).select("id").single();
+    return { id: data?.id, error: error?.message };
   }
 }
 

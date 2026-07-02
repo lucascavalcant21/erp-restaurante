@@ -1,11 +1,38 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
-import { fetchFichas, salvarFicha, removerFicha, fetchInsumos } from "../../../lib/operacao";
-import { LayoutList, Plus, Search, Trash2, Edit3, X, Save, ArrowLeft, UtensilsCrossed, Wine, ChevronRight, Printer, Sparkles, Loader2 } from "lucide-react";
+import { fetchFichas, salvarFicha, removerFicha, fetchInsumos, salvarInsumo } from "../../../lib/operacao";
+import { LayoutList, Plus, Search, Trash2, Edit3, X, Save, ArrowLeft, UtensilsCrossed, Wine, ChevronRight, Printer, Sparkles, Loader2, Camera, CheckCircle2, AlertTriangle } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
+
+// Converte um File de imagem em base64 puro (sem o prefixo "data:...;base64,")
+function fileParaBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(",")[1] || "");
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// Normaliza texto pra comparação de nomes (minúsculo, sem acento, sem espaço extra)
+const REGEX_DIACRITICOS = new RegExp("[" + String.fromCharCode(0x0300) + "-" + String.fromCharCode(0x036f) + "]", "g");
+function normalizarNome(s) {
+  const semAcento = String(s || "").toLowerCase().normalize("NFD").replace(REGEX_DIACRITICOS, "");
+  return semAcento.trim();
+}
+
+// Converte uma quantidade lida (na unidade da receita) para a unidade-base do insumo vinculado
+function converterParaBase(quantidadeLida, unidadeLida, unidadeBaseInsumo) {
+  if (unidadeLida === unidadeBaseInsumo) return quantidadeLida;
+  if (unidadeLida === "g" && unidadeBaseInsumo === "kg") return quantidadeLida / 1000;
+  if (unidadeLida === "ml" && unidadeBaseInsumo === "l") return quantidadeLida / 1000;
+  if (unidadeLida === "kg" && unidadeBaseInsumo === "g") return quantidadeLida * 1000;
+  if (unidadeLida === "l" && unidadeBaseInsumo === "ml") return quantidadeLida * 1000;
+  return quantidadeLida; // unidades incompatíveis — usa como veio, revisável na tela
+}
 
 // Sub-unidades para lançamento em ficha. O custo do insumo é por unidade-base
 // (R$/kg, R$/L). Em receita pensamos em g/ml, então convertemos: 1 base = `f` sub.
@@ -69,6 +96,145 @@ function FichasRunner() {
 
   // Bases disponíveis (fichas marcadas como pré-preparo), exceto a própria ficha em edição
   const basesDisponiveis = fichas.filter(f => f.eh_base && f.id !== form.id);
+
+  // ─── Montar Ficha Técnica inteira com IA (texto/foto da receita) ───────────
+  const [modalIAFicha, setModalIAFicha] = useState(false);
+  const [iaFTexto, setIaFTexto] = useState("");
+  const [iaFImagem, setIaFImagem] = useState(null); // { base64, mediaType, previewUrl, nomeArquivo }
+  const [iaFLoading, setIaFLoading] = useState(false);
+  const [iaFResultado, setIaFResultado] = useState(null); // { nome_receita, rendimento_porcoes, modo_preparo, itens: [...] }
+  const fileInputFichaRef = useRef(null);
+
+  const abrirModalIAFicha = () => {
+    setIaFTexto("");
+    setIaFImagem(null);
+    setIaFResultado(null);
+    setModalIAFicha(true);
+  };
+
+  const handleSelecionarImagemFicha = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const base64 = await fileParaBase64(file);
+    setIaFImagem({ base64, mediaType: file.type || "image/jpeg", previewUrl: URL.createObjectURL(file), nomeArquivo: file.name });
+  };
+
+  // Tenta casar o nome extraído pela IA com um insumo já cadastrado no departamento
+  const encontrarInsumoCorrespondente = (nome) => {
+    const alvo = normalizarNome(nome);
+    if (!alvo) return null;
+    const exato = insumosAtivos.find(i => normalizarNome(i.nome) === alvo);
+    if (exato) return exato;
+    return insumosAtivos.find(i => {
+      const n = normalizarNome(i.nome);
+      return n.includes(alvo) || alvo.includes(n);
+    }) || null;
+  };
+
+  const gerarFichaIA = async () => {
+    if (!iaFTexto.trim() && !iaFImagem) return alert("Cole a receita em texto ou envie uma foto.");
+    setIaFLoading(true);
+    try {
+      const res = await fetch("/api/ia-ficha", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          texto: iaFTexto,
+          imagem_base64: iaFImagem?.base64 || null,
+          imagem_media_type: iaFImagem?.mediaType || null,
+          departamento: deptUrl,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        alert(data.error || "Falha ao ler a receita.");
+        return;
+      }
+      const itens = data.ingredientes.map(ing => {
+        const match = encontrarInsumoCorrespondente(ing.nome);
+        return {
+          nomeOriginal: ing.nome,
+          quantidade_lida: ing.quantidade_lida,
+          unidade_lida: ing.unidade_lida,
+          vinculoId: match ? match.id : "novo",
+          novo: { marca: "", unidade_medida: ing.unidade_lida === "g" ? "kg" : ing.unidade_lida === "ml" ? "l" : ing.unidade_lida, custo_unitario: "" },
+          cadastrando: false,
+        };
+      });
+      setIaFResultado({
+        nome_receita: data.nome_receita,
+        rendimento_porcoes: data.rendimento_porcoes,
+        modo_preparo: data.modo_preparo,
+        itens,
+      });
+    } catch {
+      alert("Não consegui falar com a IA. Verifique a conexão.");
+    } finally {
+      setIaFLoading(false);
+    }
+  };
+
+  const atualizarItemIAFicha = (idx, campos) => {
+    setIaFResultado(res => ({
+      ...res,
+      itens: res.itens.map((it, i) => i === idx ? { ...it, ...campos } : it),
+    }));
+  };
+
+  const cadastrarInsumoIAFicha = async (idx) => {
+    const item = iaFResultado.itens[idx];
+    if (!item.novo.custo_unitario || Number(item.novo.custo_unitario) <= 0) {
+      return alert("Digite o custo do novo ingrediente antes de cadastrar.");
+    }
+    atualizarItemIAFicha(idx, { cadastrando: true });
+    const resp = await salvarInsumo({
+      departamento: deptUrl,
+      nome: item.nomeOriginal,
+      marca: item.novo.marca.trim(),
+      unidade_medida: item.novo.unidade_medida,
+      custo_unitario: Number(item.novo.custo_unitario),
+      unidade_id: unidadeAtiva,
+    });
+    if (resp.error || !resp.id) {
+      atualizarItemIAFicha(idx, { cadastrando: false });
+      return alert("Erro ao cadastrar ingrediente: " + (resp.error || "id não retornado"));
+    }
+    const novoInsumo = {
+      id: resp.id, nome: item.nomeOriginal, marca: item.novo.marca,
+      unidade_medida: item.novo.unidade_medida, custo_unitario: Number(item.novo.custo_unitario),
+      departamento: deptUrl,
+    };
+    setInsumosAtivos(lista => [...lista, novoInsumo]);
+    atualizarItemIAFicha(idx, { vinculoId: resp.id, cadastrando: false });
+  };
+
+  const usarFichaIA = () => {
+    const pendente = iaFResultado.itens.find(it => it.vinculoId === "novo");
+    if (pendente) return alert(`Cadastre ou vincule "${pendente.nomeOriginal}" antes de continuar.`);
+
+    const novosIngFicha = iaFResultado.itens.map(it => {
+      const insumo = insumosAtivos.find(i => i.id === it.vinculoId);
+      const quantidade = converterParaBase(it.quantidade_lida, it.unidade_lida, insumo.unidade_medida);
+      return {
+        chave: insumo.id, tipo: "insumo", insumo_id: insumo.id,
+        nome: insumo.nome, unidade: insumo.unidade_medida,
+        custo_unitario: insumo.custo_unitario, quantidade,
+        modo: getSub(insumo.unidade_medida) ? "sub" : "base",
+      };
+    });
+
+    setForm({
+      id: null, departamento: deptUrl,
+      nome_receita: iaFResultado.nome_receita,
+      rendimento_porcoes: String(iaFResultado.rendimento_porcoes || 1),
+      modo_preparo: iaFResultado.modo_preparo,
+      eh_base: false, rendimento_unidade: "porcao",
+    });
+    setIngFicha(novosIngFicha);
+    setIaExplicacao("");
+    setModalIAFicha(false);
+    setModalNovo(true);
+  };
 
   // Assistente de IA para o Modo de Preparo
   const [iaExplicacao, setIaExplicacao] = useState("");
@@ -327,9 +493,14 @@ function FichasRunner() {
                  <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Receituário e Custos - {deptUrl}</p>
               </div>
             </div>
-            <button onClick={abrirNova} className={`flex items-center gap-2 text-white px-5 py-3 rounded-xl font-bold transition-colors shadow-lg ${deptUrl === 'bar' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'}`}>
-               <Plus size={18} /> Nova Ficha
-            </button>
+            <div className="flex items-center gap-3">
+               <button onClick={abrirModalIAFicha} className="flex items-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-5 py-3 rounded-xl font-bold hover:bg-emerald-50 transition-colors shadow-sm">
+                  <Sparkles size={18} /> Montar com IA
+               </button>
+               <button onClick={abrirNova} className="flex items-center gap-2 text-white px-5 py-3 rounded-xl font-bold transition-colors shadow-lg bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20">
+                  <Plus size={18} /> Nova Ficha
+               </button>
+            </div>
          </div>
       </div>
 
@@ -548,6 +719,134 @@ function FichasRunner() {
                      <Save size={20}/> Salvar Receita ({fmtBRL(calcularCustoTotal(ingFicha))})
                   </button>
                </div>
+            </div>
+         </div>
+      )}
+
+      {/* MONTAR FICHA COM IA (texto/foto da receita) */}
+      {modalIAFicha && (
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
+            <div className="bg-white rounded-[32px] w-full max-w-3xl my-8 shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[90vh]">
+               <div className="flex justify-between items-center p-8 pb-6 border-b border-slate-100 shrink-0">
+                  <div className="flex items-center gap-3">
+                     <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center"><Sparkles size={22}/></div>
+                     <div>
+                        <h2 className="font-black text-2xl text-slate-800">Montar Ficha Técnica com IA</h2>
+                        <p className="text-xs font-bold text-slate-500 mt-0.5">Cole a receita ou envie uma foto — a IA monta nome, ingredientes e modo de preparo</p>
+                     </div>
+                  </div>
+                  <button onClick={() => setModalIAFicha(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+               </div>
+
+               <div className="p-8 overflow-y-auto custom-scrollbar space-y-5">
+                  {!iaFResultado ? (
+                     <>
+                        <div>
+                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Colar a receita (opcional se enviar foto)</label>
+                           <textarea
+                              placeholder={"Ex:\nTacacá: refogo camarão seco no azeite, junto tucupi e goma, cozinho 15 min mexendo, sirvo com jambu e pimenta..."}
+                              value={iaFTexto}
+                              onChange={e => setIaFTexto(e.target.value)}
+                              className="w-full h-32 p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:border-emerald-500 resize-none"
+                           ></textarea>
+                        </div>
+
+                        <div>
+                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Ou enviar foto (caderno de receitas, print, etc)</label>
+                           <input ref={fileInputFichaRef} type="file" accept="image/*" onChange={handleSelecionarImagemFicha} className="hidden" />
+                           {iaFImagem ? (
+                              <div className="mt-1 flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-3">
+                                 <img src={iaFImagem.previewUrl} alt="preview" className="w-16 h-16 object-cover rounded-lg border border-slate-200" />
+                                 <div className="flex-1 min-w-0">
+                                    <p className="font-bold text-sm text-slate-700 truncate">{iaFImagem.nomeArquivo}</p>
+                                    <button onClick={() => setIaFImagem(null)} className="text-xs font-bold text-red-500 hover:text-red-600 mt-1">Remover foto</button>
+                                 </div>
+                              </div>
+                           ) : (
+                              <button type="button" onClick={() => fileInputFichaRef.current?.click()} className="w-full mt-1 p-6 bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center gap-2 text-slate-400 hover:text-emerald-600 hover:border-emerald-300 transition-colors">
+                                 <Camera size={24} />
+                                 <span className="font-bold text-sm">Tirar foto ou escolher da galeria</span>
+                              </button>
+                           )}
+                        </div>
+
+                        <button
+                           onClick={gerarFichaIA}
+                           disabled={iaFLoading}
+                           className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95"
+                        >
+                           {iaFLoading ? <><Loader2 size={18} className="animate-spin"/> Montando ficha técnica...</> : <><Sparkles size={18}/> Montar ficha técnica</>}
+                        </button>
+                     </>
+                  ) : (
+                     <>
+                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nome do prato (vai pro cardápio)</label>
+                           <input type="text" value={iaFResultado.nome_receita} onChange={e=>setIaFResultado({...iaFResultado, nome_receita: e.target.value})} className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-lg font-black text-slate-800 outline-none focus:border-emerald-500" />
+                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-3 block">Rendimento (porções)</label>
+                           <input type="number" value={iaFResultado.rendimento_porcoes} onChange={e=>setIaFResultado({...iaFResultado, rendimento_porcoes: e.target.value})} className="w-24 p-3 mt-1 bg-white border border-slate-200 rounded-lg font-bold text-slate-800 outline-none focus:border-emerald-500" />
+                        </div>
+
+                        <div>
+                           <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Ingredientes identificados</p>
+                           <div className="space-y-2">
+                              {iaFResultado.itens.map((it, idx) => {
+                                 const vinculado = it.vinculoId !== "novo";
+                                 return (
+                                    <div key={idx} className={`p-3 rounded-xl border ${vinculado ? 'bg-emerald-50/40 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}>
+                                       <div className="flex items-center gap-2 flex-wrap">
+                                          {vinculado ? <CheckCircle2 size={16} className="text-emerald-600 shrink-0"/> : <AlertTriangle size={16} className="text-amber-600 shrink-0"/>}
+                                          <span className="font-bold text-slate-800 text-sm">{it.nomeOriginal}</span>
+                                          <span className="text-xs font-bold text-slate-400">({it.quantidade_lida}{it.unidade_lida})</span>
+                                          <select
+                                             value={it.vinculoId}
+                                             onChange={e => atualizarItemIAFicha(idx, { vinculoId: e.target.value })}
+                                             className="ml-auto p-2 bg-white border border-slate-200 rounded-lg font-bold text-xs outline-none focus:border-emerald-500"
+                                          >
+                                             <option value="novo">-- Cadastrar novo --</option>
+                                             {insumosAtivos.map(i => <option key={i.id} value={i.id}>{i.nome}</option>)}
+                                          </select>
+                                       </div>
+
+                                       {!vinculado && (
+                                          <div className="mt-2 flex flex-wrap items-center gap-2 pl-6">
+                                             <input type="text" placeholder="Marca (opcional)" value={it.novo.marca} onChange={e=>atualizarItemIAFicha(idx, { novo: { ...it.novo, marca: e.target.value } })} className="w-32 p-2 bg-white border border-slate-200 rounded-lg text-xs outline-none focus:border-emerald-500" />
+                                             <select value={it.novo.unidade_medida} onChange={e=>atualizarItemIAFicha(idx, { novo: { ...it.novo, unidade_medida: e.target.value } })} className="w-20 p-2 bg-white border border-slate-200 rounded-lg font-bold text-xs outline-none focus:border-emerald-500">
+                                                <option value="kg">KG</option>
+                                                <option value="l">L</option>
+                                                <option value="un">UN</option>
+                                                <option value="g">G</option>
+                                                <option value="ml">ML</option>
+                                             </select>
+                                             <input type="number" step="0.01" placeholder="Custo/base" value={it.novo.custo_unitario} onChange={e=>atualizarItemIAFicha(idx, { novo: { ...it.novo, custo_unitario: e.target.value } })} className="w-24 p-2 bg-emerald-50 border border-emerald-200 rounded-lg font-black text-emerald-600 text-xs outline-none focus:border-emerald-500" />
+                                             <button onClick={() => cadastrarInsumoIAFicha(idx)} disabled={it.cadastrando} className="px-3 py-2 bg-slate-800 hover:bg-slate-900 disabled:opacity-50 text-white font-bold text-xs rounded-lg flex items-center gap-1.5">
+                                                {it.cadastrando ? <Loader2 size={12} className="animate-spin"/> : null} Cadastrar e usar
+                                             </button>
+                                          </div>
+                                       )}
+                                    </div>
+                                 );
+                              })}
+                           </div>
+                        </div>
+
+                        <div>
+                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Modo de preparo (editável)</label>
+                           <textarea value={iaFResultado.modo_preparo} onChange={e=>setIaFResultado({...iaFResultado, modo_preparo: e.target.value})} className="w-full h-32 p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700 text-sm outline-none focus:border-emerald-500 resize-none"></textarea>
+                        </div>
+
+                        <button onClick={() => setIaFResultado(null)} className="text-xs font-bold text-slate-500 hover:text-slate-700">← Voltar e enviar outra receita/foto</button>
+                     </>
+                  )}
+               </div>
+
+               {iaFResultado && (
+                  <div className="p-8 pt-4 border-t border-slate-100 bg-slate-50 rounded-b-[32px] shrink-0">
+                     <button onClick={usarFichaIA} className="w-full py-5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-2">
+                        <Save size={20}/> Usar esta ficha
+                     </button>
+                  </div>
+               )}
             </div>
          </div>
       )}

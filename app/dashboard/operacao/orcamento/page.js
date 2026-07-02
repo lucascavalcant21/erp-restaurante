@@ -85,6 +85,9 @@ function fmtCompra(qtd, unidade) {
 }
 
 const DRAFT_KEY = "orcamento_evento_draft";
+const EVENTO_VAZIO = { nome: "", cliente: "", data: "", convidados: "", comissao_pct: "", parceria_bar_ativa: false, parceria_bar_pct: "30" };
+const novoId = () => (globalThis.crypto?.randomUUID?.() || String(Date.now() + Math.random()));
+const novaProposta = (nome) => ({ id: novoId(), nome, evento: { ...EVENTO_VAZIO }, itens: [] });
 
 export default function OrcamentoEventoPage() {
   const { abrirMenu, unidadeAtiva, unidadeInfo } = useERP();
@@ -94,8 +97,16 @@ export default function OrcamentoEventoPage() {
   const [mapaFatores, setMapaFatores] = useState({}); // insumo_id -> fator_empanamento
   const [loading, setLoading] = useState(true);
 
-  const [evento, setEvento] = useState({ nome: "", cliente: "", data: "", convidados: "", comissao_pct: "", parceria_bar_ativa: false, parceria_bar_pct: "30" });
-  const [itens, setItens] = useState([]); // [{ produto_id, qtd }]
+  // Várias propostas por evento (ex.: R$60/pessoa, R$90/pessoa). Cada uma tem
+  // seu próprio evento + itens. `ativaId` diz qual está sendo editada.
+  const [propostas, setPropostas] = useState(() => [novaProposta("Proposta 1")]);
+  const [ativaId, setAtivaId] = useState(null);
+
+  const ativa = propostas.find(p => p.id === ativaId) || propostas[0];
+  const evento = ativa.evento;
+  const itens = ativa.itens;
+  const setEvento = (u) => setPropostas(ps => ps.map(p => p.id === ativa.id ? { ...p, evento: typeof u === "function" ? u(p.evento) : u } : p));
+  const setItens = (u) => setPropostas(ps => ps.map(p => p.id === ativa.id ? { ...p, itens: typeof u === "function" ? u(p.itens) : u } : p));
 
   useEffect(() => {
     if (!unidadeAtiva) return;
@@ -118,20 +129,44 @@ export default function OrcamentoEventoPage() {
     })();
   }, [unidadeAtiva]);
 
-  // Rascunho no navegador: não perde o evento se der refresh
+  // Rascunho no navegador: não perde as propostas se der refresh
   useEffect(() => {
     try {
       const raw = localStorage.getItem(DRAFT_KEY);
       if (raw) {
         const d = JSON.parse(raw);
-        if (d.evento) setEvento(d.evento);
-        if (Array.isArray(d.itens)) setItens(d.itens);
+        if (Array.isArray(d.propostas) && d.propostas.length) {
+          setPropostas(d.propostas);
+          setAtivaId(d.ativaId && d.propostas.find(p => p.id === d.ativaId) ? d.ativaId : d.propostas[0].id);
+        } else if (d.evento) { // migra rascunho antigo (uma proposta só)
+          const p = { ...novaProposta("Proposta 1"), evento: { ...EVENTO_VAZIO, ...d.evento }, itens: Array.isArray(d.itens) ? d.itens : [] };
+          setPropostas([p]); setAtivaId(p.id);
+        }
       }
     } catch { /* rascunho corrompido: ignora */ }
   }, []);
   useEffect(() => {
-    try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ evento, itens })); } catch { }
-  }, [evento, itens]);
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ propostas, ativaId: ativa.id })); } catch { }
+  }, [propostas, ativaId]);
+
+  // ── Gestão de propostas ──────────────────────────────────────────────────
+  const addProposta = () => {
+    const p = novaProposta(`Proposta ${propostas.length + 1}`);
+    setPropostas(ps => [...ps, p]); setAtivaId(p.id);
+  };
+  const duplicarProposta = () => {
+    const p = { ...ativa, id: novoId(), nome: `${ativa.nome} (cópia)`, evento: { ...ativa.evento }, itens: ativa.itens.map(i => ({ ...i })) };
+    setPropostas(ps => [...ps, p]); setAtivaId(p.id);
+  };
+  const renomearProposta = () => {
+    const nome = prompt("Nome da proposta:", ativa.nome);
+    if (nome && nome.trim()) setPropostas(ps => ps.map(p => p.id === ativa.id ? { ...p, nome: nome.trim() } : p));
+  };
+  const removerProposta = () => {
+    if (propostas.length <= 1) return alert("Deve haver ao menos uma proposta.");
+    if (!confirm(`Remover "${ativa.nome}"?`)) return;
+    setPropostas(ps => { const rest = ps.filter(p => p.id !== ativa.id); setAtivaId(rest[0].id); return rest; });
+  };
 
   const convidados = Number(evento.convidados) || 0;
 
@@ -382,6 +417,51 @@ export default function OrcamentoEventoPage() {
     </body></html>`);
   };
 
+  // Venda total e valor/convidado de UMA proposta (para o comparativo)
+  const resumoProposta = (prop) => {
+    const conv = Number(prop.evento?.convidados) || 0;
+    let venda = 0, itensCount = 0;
+    (prop.itens || []).forEach(it => {
+      const produto = produtos.find(p => p.id === it.produto_id);
+      if (!produto) return;
+      itensCount++;
+      const ficha = produto.ficha_id ? fichas.find(f => f.id === produto.ficha_id) : null;
+      const qtd = Number(it.qtd) || 0;
+      const un = it.un || "porcao";
+      const pesoUn = Number(it.pesoUn) || Number(ficha?.peso_porcao_g) || 0;
+      let porcoes = qtd;
+      if (un === "g") porcoes = pesoUn > 0 ? qtd / pesoUn : 0;
+      if (un === "kg") porcoes = pesoUn > 0 ? (qtd * 1000) / pesoUn : 0;
+      const precoV = it.precoVenda !== undefined && it.precoVenda !== "" ? Number(it.precoVenda) || 0 : (Number(produto.preco_venda) || 0);
+      const fator = ficha ? fatorInNaturaDaFicha(ficha, fichas, mapaFatores) : 1;
+      const precoEf = (it.inNatura && fator > 1) ? precoV * fator : precoV;
+      venda += precoEf * porcoes;
+    });
+    return { venda, convidados: conv, porConvidado: conv > 0 ? venda / conv : null, itensCount };
+  };
+
+  // Documento: COMPARATIVO de propostas (para o cliente escolher)
+  const imprimirComparacao = () => {
+    const validas = propostas.filter(p => (p.itens || []).length > 0);
+    if (validas.length === 0) return alert("Adicione itens em ao menos uma proposta.");
+    const cols = validas.map(p => ({ nome: p.nome, ...resumoProposta(p) }));
+    const cabecalho = cols.map(c => `<th class="r">${c.nome}</th>`).join('');
+    abrirDoc(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Propostas - ${evento.nome || 'Evento'}</title>${estiloDoc}</head><body>
+       ${cabecalhoDoc('Propostas de Buffet')}
+       <h2>Opções para o seu evento</h2>
+       <table>
+          <thead><tr><th>Comparativo</th>${cabecalho}</tr></thead>
+          <tbody>
+             <tr><td>Convidados</td>${cols.map(c => `<td class="r">${c.convidados || '—'}</td>`).join('')}</tr>
+             <tr><td>Itens no buffet</td>${cols.map(c => `<td class="r">${c.itensCount}</td>`).join('')}</tr>
+             <tr><td><b>Valor por convidado</b></td>${cols.map(c => `<td class="r"><b>${c.porConvidado !== null ? fmtBRL(c.porConvidado) : '—'}</b></td>`).join('')}</tr>
+             <tr><td><b>Valor total</b></td>${cols.map(c => `<td class="r"><b>${fmtBRL(c.venda)}</b></td>`).join('')}</tr>
+          </tbody>
+       </table>
+       <div class="obs">Escolha a opção que melhor se encaixa. Valores sujeitos a confirmação de data e disponibilidade · ${new Date().toLocaleDateString('pt-BR')}.</div>
+    </body></html>`);
+  };
+
   return (
     <div className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50">
 
@@ -410,6 +490,11 @@ export default function OrcamentoEventoPage() {
                <button onClick={imprimirRelatorio} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-5 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm">
                   <FileText size={18} /> Relatório Gerencial
                </button>
+               {propostas.length > 1 && (
+                  <button onClick={imprimirComparacao} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg">
+                     <FileText size={18} /> Comparar Propostas
+                  </button>
+               )}
             </div>
          </div>
       </div>
@@ -418,10 +503,34 @@ export default function OrcamentoEventoPage() {
 
          {/* COLUNA ESQUERDA: dados do evento + itens */}
          <div className="space-y-6">
+
+            {/* Abas de propostas (ex.: R$60/pessoa, R$90/pessoa) */}
+            <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
+               <div className="flex items-center gap-2 flex-wrap">
+                  {propostas.map(p => {
+                     const r = resumoProposta(p);
+                     const ativoTab = p.id === ativa.id;
+                     return (
+                        <button key={p.id} onClick={() => setAtivaId(p.id)} className={`px-3 py-2 rounded-xl font-bold text-sm transition-all ${ativoTab ? 'bg-slate-900 text-white shadow-md' : 'bg-slate-50 text-slate-500 hover:text-slate-800 border border-slate-200'}`}>
+                           {p.nome}
+                           {r.porConvidado !== null && <span className={`ml-1.5 ${ativoTab ? 'text-emerald-300' : 'text-emerald-600'}`}>{fmtBRL(r.porConvidado)}/pes</span>}
+                        </button>
+                     );
+                  })}
+                  <button onClick={addProposta} className="px-3 py-2 rounded-xl font-bold text-sm bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100">+ Nova</button>
+               </div>
+               <div className="flex items-center gap-3 mt-2 pt-2 border-t border-slate-100">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Proposta ativa: {ativa.nome}</span>
+                  <button onClick={renomearProposta} className="text-[10px] font-bold text-slate-500 hover:text-slate-800">Renomear</button>
+                  <button onClick={duplicarProposta} className="text-[10px] font-bold text-slate-500 hover:text-slate-800">Duplicar</button>
+                  {propostas.length > 1 && <button onClick={removerProposta} className="text-[10px] font-bold text-red-400 hover:text-red-600">Remover</button>}
+               </div>
+            </div>
+
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                <div className="flex items-center justify-between mb-4">
                   <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Dados do Evento</p>
-                  <button onClick={limparTudo} className="text-[10px] font-bold text-red-400 hover:text-red-600 uppercase tracking-widest">Limpar tudo</button>
+                  <button onClick={limparTudo} className="text-[10px] font-bold text-red-400 hover:text-red-600 uppercase tracking-widest">Limpar proposta</button>
                </div>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>

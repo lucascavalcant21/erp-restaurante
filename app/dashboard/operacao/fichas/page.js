@@ -100,6 +100,28 @@ const fmtG = (g) => g >= 1000
   ? `${(g / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} kg`
   : `${(+g.toFixed(1)).toLocaleString("pt-BR")} g`;
 
+// Soma dos ingredientes → rendimento bruto estimado da receita (antes de perdas
+// no cozimento). Separa sólidos (g) de líquidos (ml). Itens em "un" sem peso
+// conhecido não entram. Sugere a unidade conforme o que domina.
+function rendimentoPelosIngredientes(ingLista) {
+  let solidosG = 0, liquidosMl = 0;
+  (ingLista || []).forEach(ing => {
+    const u = String(ing.unidade || "").toLowerCase();
+    const q = Number(ing.quantidade) || 0;
+    if (u === "kg") solidosG += q * 1000;
+    else if (u === "g") solidosG += q;
+    else if (u === "l") liquidosMl += q * 1000;
+    else if (u === "ml") liquidosMl += q;
+    // "un"/"porcao": sem peso conhecido, ignora
+  });
+  const total = solidosG + liquidosMl;
+  if (total <= 0) return null;
+  const ehLiquido = liquidosMl > solidosG;
+  const unidade = total >= 1000 ? (ehLiquido ? "l" : "kg") : (ehLiquido ? "ml" : "g");
+  const valor = (unidade === "kg" || unidade === "l") ? total / 1000 : total;
+  return { totalG: total, unidade, valor: Math.round(valor * 1000) / 1000 };
+}
+
 function FichasRunner() {
   const router = useRouter();
   const { abrirMenu } = useERP();
@@ -678,6 +700,24 @@ function FichasRunner() {
                            </select>
                         </div>
                      </div>
+
+                     {/* Rendimento estimado pela SOMA dos ingredientes */}
+                     {(() => {
+                        const est = rendimentoPelosIngredientes(ingFicha);
+                        if (!est) return null;
+                        const label = { kg: "kg", g: "g", l: "L", ml: "ml" }[est.unidade];
+                        return (
+                           <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+                              <div>
+                                 <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Pelos ingredientes: {est.valor.toLocaleString("pt-BR")} {label}</p>
+                                 <p className="text-[10px] font-medium text-emerald-700/70">Soma total das quantidades (antes de perdas no cozimento).</p>
+                              </div>
+                              <button type="button" onClick={() => setForm(f => ({ ...f, rendimento_porcoes: String(est.valor), rendimento_unidade: est.unidade }))} className="shrink-0 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition-colors active:scale-95">
+                                 Usar
+                              </button>
+                           </div>
+                        );
+                     })()}
 
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Peso por porção/unidade em gramas (opcional)</label>

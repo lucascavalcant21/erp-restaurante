@@ -41,6 +41,7 @@ const OPERACAO_SETORES = [
       { label: "KDS Cozinha", href: "/dashboard/kds?dept=cozinha", desc: "Monitor de pedidos em tempo real", badge: "LIVE", badgeCor: "bg-emerald-500" },
       { label: "Fichas Técnicas", href: "/dashboard/operacao/fichas?dept=cozinha", desc: "Receitas com custo e rendimento", badge: null },
       { label: "Ingredientes e Insumos", href: "/dashboard/operacao/ingredientes?dept=cozinha", desc: "Banco de ingredientes com preços", badge: null },
+      { label: "Cardápio", href: "/dashboard/operacao/produtos", desc: "Precificação e CMV, liga direto no PDV", badge: null },
       { label: "Controle de Estoque", href: "/dashboard/operacao/estoque", desc: "Posição atual, contagem e movimentos", badge: null },
       { label: "Lista de Compras", href: "/dashboard/operacao/compras", desc: "Sugestão automática por consumo", badge: null },
       { label: "Notas de Entrada (NF-e)", href: "/dashboard/operacao/notas", desc: "Lançar NF de fornecedores", badge: null },

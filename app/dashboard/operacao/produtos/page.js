@@ -1,17 +1,47 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchProdutos, salvarProduto } from "../../../lib/vendas";
 import { fetchFichas } from "../../../lib/operacao"; // Pra linkar o custo
-import { UtensilsCrossed, Plus, Search, Edit3, X, Save, ArrowLeft, Tag, Barcode, Image as ImageIcon, Trash2, ListPlus } from "lucide-react";
+import { UtensilsCrossed, Plus, Search, Edit3, X, Save, ArrowLeft, Tag, Barcode, Image as ImageIcon, Trash2, ListPlus, Percent } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
-export default function ProdutosPage() {
+// Custo total de PRODUZIR uma ficha, resolvendo bases (sub-receitas) em cascata.
+function custoTotalDaFicha(f, todasFichas, guard = new Set()) {
+  if (!f || guard.has(f.id)) return 0;
+  guard.add(f.id);
+  let total = 0;
+  (f.fichas_ingredientes || []).forEach(fi => {
+    if (fi.insumos) {
+      total += (fi.insumos.custo_unitario || 0) * (fi.quantidade || 0);
+    } else if (fi.subficha_id) {
+      const base = todasFichas.find(x => x.id === fi.subficha_id);
+      const custoBaseUnit = base ? custoTotalDaFicha(base, todasFichas, guard) / (base.rendimento_porcoes || 1) : 0;
+      total += custoBaseUnit * (fi.quantidade || 0);
+    }
+  });
+  return total;
+}
+// CMV (%) = custo por porção da ficha vinculada / preço de venda. null se não dá pra calcular.
+function calcCmv(precoVenda, fichaId, todasFichas) {
+  const preco = Number(precoVenda) || 0;
+  const ficha = todasFichas.find(f => f.id === fichaId);
+  if (!preco || !ficha) return null;
+  const custoPorcao = custoTotalDaFicha(ficha, todasFichas) / (ficha.rendimento_porcoes || 1);
+  return (custoPorcao / preco) * 100;
+}
+const corCmv = (cmv) => cmv > 30
+  ? { bg: "bg-red-50", border: "border-red-200", text: "text-red-600" }
+  : { bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-600" };
+
+function CardapioRunner() {
   const router = useRouter();
   const { abrirMenu } = useERP();
-  
+  const searchParams = useSearchParams();
+  const catUrl = searchParams.get("cat") || "";
+
   const { unidadeAtiva } = useERP();
   const [produtos, setProdutos] = useState([]);
   const [fichas, setFichas] = useState([]);
@@ -55,14 +85,22 @@ export default function ProdutosPage() {
     if (unidadeAtiva) carregar();
   }, [unidadeAtiva]);
 
-  const filtrados = produtos.filter(p => p.nome_produto.toLowerCase().includes(busca.toLowerCase()));
+  const filtrados = produtos
+    .filter(p => p.nome_produto.toLowerCase().includes(busca.toLowerCase()))
+    .filter(p => !catUrl || p.categoria === catUrl);
+
+  // CMV médio do cardápio filtrado (só produtos com ficha vinculada e preço)
+  const cmvsValidos = filtrados
+    .map(p => calcCmv(p.preco_venda, p.ficha_id, fichas))
+    .filter(v => v !== null);
+  const cmvMedio = cmvsValidos.length > 0 ? cmvsValidos.reduce((a, b) => a + b, 0) / cmvsValidos.length : null;
 
   const abrirNovo = () => {
-    setForm({ 
-       id: null, 
-       nome_produto: "", 
-       categoria: "Pratos Principais", 
-       departamento: "cozinha", 
+    setForm({
+       id: null,
+       nome_produto: "",
+       categoria: catUrl || "Pratos Principais",
+       departamento: "cozinha",
        tempo_preparo_base: 15,
        preco_venda: "", 
        ficha_id: "",
@@ -153,13 +191,21 @@ export default function ProdutosPage() {
                  <Tag size={28} />
               </div>
               <div>
-                 <h1 className="text-3xl font-black tracking-tighter text-slate-900">Produtos para Venda</h1>
-                 <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">O que o cliente vê no Salão e no QR Code</p>
+                 <h1 className="text-3xl font-black tracking-tighter text-slate-900">Cardápio</h1>
+                 <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Precificação · liga direto no PDV · CMV automático</p>
               </div>
             </div>
-            <button onClick={abrirNovo} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
-               <Plus size={18} /> Novo Produto
-            </button>
+            <div className="flex items-center gap-3">
+               {cmvMedio !== null && (
+                  <div className={`px-4 py-2.5 rounded-2xl border ${corCmv(cmvMedio).bg} ${corCmv(cmvMedio).border}`}>
+                     <p className={`text-[9px] font-black uppercase tracking-widest ${corCmv(cmvMedio).text}`}>CMV Médio</p>
+                     <p className={`text-xl font-black ${corCmv(cmvMedio).text}`}>{cmvMedio.toFixed(1)}%</p>
+                  </div>
+               )}
+               <button onClick={abrirNovo} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
+                  <Plus size={18} /> Novo Produto
+               </button>
+            </div>
          </div>
       </div>
 
@@ -179,13 +225,22 @@ export default function ProdutosPage() {
                   <p className="text-slate-500 mt-2 font-medium">Você precisa cadastrar produtos para que o garçom consiga lançar comandas.</p>
                </div>
             ) : (
-               filtrados.map(p => (
+               filtrados.map(p => {
+                  const cmv = calcCmv(p.preco_venda, p.ficha_id, fichas);
+                  return (
                   <div key={p.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow relative group flex flex-col h-full">
-                     <div className="flex justify-between items-start mb-2">
+                     <div className="flex justify-between items-start mb-2 gap-2">
                         <span className="bg-slate-100 text-slate-500 px-3 py-1 rounded-lg font-black text-[10px] uppercase tracking-widest">
                            {p.categoria}
                         </span>
-                        <button onClick={() => abrirEditar(p)} className="text-slate-500 hover:text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity p-1"><Edit3 size={18}/></button>
+                        <div className="flex items-center gap-2">
+                           {cmv !== null && (
+                              <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black ${corCmv(cmv).bg} ${corCmv(cmv).text} border ${corCmv(cmv).border}`}>
+                                 CMV {cmv.toFixed(1)}%
+                              </span>
+                           )}
+                           <button onClick={() => abrirEditar(p)} className="text-slate-500 hover:text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity p-1"><Edit3 size={18}/></button>
+                        </div>
                      </div>
                      
                      <div className="flex gap-4 items-center mb-4 mt-2">
@@ -218,14 +273,15 @@ export default function ProdutosPage() {
                            <p className="font-black text-2xl text-emerald-600">{fmtBRL(p.preco_venda)}</p>
                         </div>
                         <div className="text-right">
-                           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Vinculado a</p>
-                           <p className={`font-bold text-[10px] uppercase ${p.fichas_tecnicas ? 'text-emerald-600' : 'text-slate-400'}`}>
-                              {p.fichas_tecnicas ? p.fichas_tecnicas.nome_receita.substring(0, 15) : 'Estoque Livre'}
+                           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Ficha Técnica</p>
+                           <p className={`font-bold text-[10px] uppercase ${p.fichas_tecnicas ? 'text-emerald-600' : 'text-red-500'}`}>
+                              {p.fichas_tecnicas ? p.fichas_tecnicas.nome_receita.substring(0, 15) : 'Não vinculada'}
                            </p>
                         </div>
                      </div>
                   </div>
-               ))
+                  );
+               })
             )}
          </div>
       </div>
@@ -261,7 +317,7 @@ export default function ProdutosPage() {
                      </div>
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Vai pro KDS de?</label>
-                        <select value={form.departamento} onChange={e=>setForm({...form, departamento: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500">
+                        <select value={form.departamento} onChange={e=>setForm({...form, departamento: e.target.value, ficha_id: ""})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500">
                            <option value="cozinha">Cozinha</option>
                            <option value="bar">Bar</option>
                         </select>
@@ -284,20 +340,36 @@ export default function ProdutosPage() {
                      </div>
                   </div>
 
-                  {/* Preço e Estoque */}
+                  {/* Preço e Ficha Técnica (custo/CMV) */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Preço de Venda (R$)</label>
                         <input type="number" step="0.01" placeholder="0.00" value={form.preco_venda} onChange={e=>setForm({...form, preco_venda: e.target.value})} className="w-full p-4 mt-1 bg-emerald-50 border border-emerald-200 rounded-xl font-black text-emerald-600 text-xl outline-none focus:border-emerald-500"/>
                      </div>
                      <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Baixa de Estoque</label>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Ficha Técnica (custo e baixa de estoque)</label>
                         <select value={form.ficha_id} onChange={e=>setForm({...form, ficha_id: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:border-emerald-500">
-                           <option value="">-- Não dar baixa no estoque --</option>
-                           {fichas.map(f => <option key={f.id} value={f.id}>{f.nome_receita} ({f.departamento})</option>)}
+                           <option value="">-- Não vincular / não dar baixa --</option>
+                           {fichas.filter(f => f.departamento === form.departamento).map(f => <option key={f.id} value={f.id}>{f.nome_receita}</option>)}
                         </select>
                      </div>
                   </div>
+
+                  {/* CMV em tempo real, conforme você digita o preço */}
+                  {(() => {
+                     const cmvLive = calcCmv(form.preco_venda, form.ficha_id, fichas);
+                     if (cmvLive === null) return null;
+                     const cores = corCmv(cmvLive);
+                     return (
+                        <div className={`flex items-center justify-between p-4 rounded-2xl border ${cores.bg} ${cores.border}`}>
+                           <div className="flex items-center gap-2">
+                              <Percent size={16} className={cores.text} />
+                              <p className={`text-xs font-black uppercase tracking-widest ${cores.text}`}>CMV deste produto</p>
+                           </div>
+                           <p className={`text-2xl font-black ${cores.text}`}>{cmvLive.toFixed(1)}%</p>
+                        </div>
+                     );
+                  })()}
 
                   {/* Dados Fiscais (NFC-e) */}
                   <div className="pt-6 border-t border-slate-100">
@@ -368,5 +440,13 @@ export default function ProdutosPage() {
       )}
 
     </div>
+  );
+}
+
+export default function ProdutosPage() {
+  return (
+    <Suspense fallback={<div className="p-10 text-center font-bold text-slate-500">Carregando Cardápio...</div>}>
+       <CardapioRunner />
+    </Suspense>
   );
 }

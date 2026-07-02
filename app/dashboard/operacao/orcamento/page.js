@@ -95,12 +95,24 @@ export default function OrcamentoEventoPage() {
 
   const convidados = Number(evento.convidados) || 0;
 
-  // Linhas calculadas: produto + ficha + custos + venda
+  // Linhas calculadas: produto + ficha + custos + venda.
+  // Quantidade pode ser em porções, g ou kg — convertida pelo peso da porção
+  // (vem da ficha técnica, mas é editável por item: média por unidade de
+  // bolinho, peixe empanado etc).
   const linhas = itens.map(it => {
     const produto = produtos.find(p => p.id === it.produto_id);
     if (!produto) return null;
     const ficha = produto.ficha_id ? fichas.find(f => f.id === produto.ficha_id) : null;
     const qtd = Number(it.qtd) || 0;
+    const un = it.un || "porcao";
+    const pesoUn = Number(it.pesoUn) || Number(ficha?.peso_porcao_g) || 0; // g por porção/unidade
+
+    // Converte a quantidade digitada para nº de porções
+    let porcoes = qtd;
+    if (un === "g") porcoes = pesoUn > 0 ? qtd / pesoUn : 0;
+    if (un === "kg") porcoes = pesoUn > 0 ? (qtd * 1000) / pesoUn : 0;
+
+    const gramasTotal = pesoUn > 0 ? porcoes * pesoUn : null;
     const custoPorcao = ficha ? custoTotalDaFicha(ficha, fichas) / (ficha.rendimento_porcoes || 1) : 0;
     const precoVenda = Number(produto.preco_venda) || 0;
     return {
@@ -109,10 +121,16 @@ export default function OrcamentoEventoPage() {
       categoria: produto.categoria,
       ficha,
       qtd,
+      un,
+      pesoUn,
+      porcoes,
+      gramasTotal,
+      unPorKg: pesoUn > 0 ? 1000 / pesoUn : null,
+      vendaPorKg: pesoUn > 0 ? precoVenda * (1000 / pesoUn) : null,
       custoPorcao,
-      custoTotal: custoPorcao * qtd,
+      custoTotal: custoPorcao * porcoes,
       precoVenda,
-      vendaTotal: precoVenda * qtd,
+      vendaTotal: precoVenda * porcoes,
     };
   }).filter(Boolean);
 
@@ -124,7 +142,7 @@ export default function OrcamentoEventoPage() {
   // Lista de compras: agrega os insumos crus de todas as fichas do evento
   const compras = (() => {
     const acc = {};
-    linhas.forEach(l => { if (l.ficha && l.qtd > 0) acumularInsumos(l.ficha, l.qtd, fichas, acc); });
+    linhas.forEach(l => { if (l.ficha && l.porcoes > 0) acumularInsumos(l.ficha, l.porcoes, fichas, acc); });
     return Object.values(acc)
       .map(c => ({ ...c, custoCompra: c.qtd * c.custo_unitario }))
       .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
@@ -133,9 +151,11 @@ export default function OrcamentoEventoPage() {
 
   const addItem = (produtoId) => {
     if (!produtoId || itens.find(i => i.produto_id === produtoId)) return;
-    setItens([...itens, { produto_id: produtoId, qtd: convidados > 0 ? convidados : 1 }]);
+    const produto = produtos.find(p => p.id === produtoId);
+    const ficha = produto?.ficha_id ? fichas.find(f => f.id === produto.ficha_id) : null;
+    setItens([...itens, { produto_id: produtoId, qtd: convidados > 0 ? convidados : 1, un: "porcao", pesoUn: ficha?.peso_porcao_g || "" }]);
   };
-  const updateQtd = (produtoId, qtd) => setItens(lista => lista.map(i => i.produto_id === produtoId ? { ...i, qtd } : i));
+  const updateItem = (produtoId, patch) => setItens(lista => lista.map(i => i.produto_id === produtoId ? { ...i, ...patch } : i));
   const removeItem = (produtoId) => setItens(lista => lista.filter(i => i.produto_id !== produtoId));
   const limparTudo = () => {
     if (confirm("Limpar todo o orçamento?")) { setEvento({ nome: "", cliente: "", data: "", convidados: "" }); setItens([]); }
@@ -180,17 +200,26 @@ export default function OrcamentoEventoPage() {
     setTimeout(() => win.print(), 400);
   };
 
+  // Descrição da quantidade escolhida, com equivalências (pro cliente se programar)
+  const descQtd = (l) => {
+    const qtdFmt = (+Number(l.qtd).toFixed(2)).toLocaleString("pt-BR");
+    if (l.un === "g" || l.un === "kg") {
+      return `${qtdFmt} ${l.un} (rende ≈ ${(+l.porcoes.toFixed(1)).toLocaleString("pt-BR")} un de ${l.pesoUn}g)`;
+    }
+    return `${qtdFmt} porç${Number(l.qtd) >= 2 ? "ões" : "ão"}${l.gramasTotal ? ` de ${l.pesoUn}g (${fmtCompra(l.gramasTotal / 1000, "kg")})` : ""}`;
+  };
+
   // Documento 1: ORÇAMENTO para o cliente (sem custos internos)
   const imprimirOrcamento = () => {
     if (linhas.length === 0) return alert("Adicione itens ao evento primeiro.");
     const rows = linhas.map(l =>
-      `<tr><td>${l.nome}</td><td class="c">${l.qtd}</td><td class="r">${fmtBRL(l.precoVenda)}</td><td class="r">${fmtBRL(l.vendaTotal)}</td></tr>`
+      `<tr><td>${l.nome}</td><td class="c">${descQtd(l)}</td><td class="r">${fmtBRL(l.precoVenda)}/porção</td><td class="r">${fmtBRL(l.vendaTotal)}</td></tr>`
     ).join('');
     abrirDoc(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Orçamento - ${evento.nome || 'Evento'}</title>${estiloDoc}</head><body>
        ${cabecalhoDoc('Orçamento de Buffet')}
        <h2>Itens do Buffet</h2>
        <table>
-          <thead><tr><th>Item</th><th class="c">Porções</th><th class="r">Valor Unit.</th><th class="r">Valor Total</th></tr></thead>
+          <thead><tr><th>Item</th><th class="c">Quantidade</th><th class="r">Valor Unit.</th><th class="r">Valor Total</th></tr></thead>
           <tbody>${rows}</tbody>
        </table>
        <div class="totais">
@@ -205,7 +234,7 @@ export default function OrcamentoEventoPage() {
   const imprimirInterno = () => {
     if (linhas.length === 0) return alert("Adicione itens ao evento primeiro.");
     const rowsProdutos = linhas.map(l =>
-      `<tr><td>${l.nome}${!l.ficha ? ' *' : ''}</td><td class="c">${l.qtd}</td><td class="r">${fmtBRL(l.custoPorcao)}</td><td class="r">${fmtBRL(l.custoTotal)}</td><td class="r">${fmtBRL(l.vendaTotal)}</td></tr>`
+      `<tr><td>${l.nome}${!l.ficha ? ' *' : ''}</td><td class="c">${descQtd(l)}</td><td class="r">${fmtBRL(l.custoPorcao)}</td><td class="r">${fmtBRL(l.custoTotal)}</td><td class="r">${fmtBRL(l.vendaTotal)}</td></tr>`
     ).join('');
     const rowsCompras = compras.map(c =>
       `<tr><td>${c.nome}</td><td class="c">${fmtCompra(c.qtd, c.unidade)}</td><td class="r">${fmtBRL(c.custo_unitario)}/${c.unidade}</td><td class="r">${fmtBRL(c.custoCompra)}</td></tr>`
@@ -215,7 +244,7 @@ export default function OrcamentoEventoPage() {
        ${cabecalhoDoc('Produção e Compras (uso interno)')}
        <h2>Produção do Buffet</h2>
        <table>
-          <thead><tr><th>Item</th><th class="c">Porções</th><th class="r">Custo/Porção</th><th class="r">Custo Total</th><th class="r">Venda</th></tr></thead>
+          <thead><tr><th>Item</th><th class="c">Quantidade</th><th class="r">Custo/Porção</th><th class="r">Custo Total</th><th class="r">Venda</th></tr></thead>
           <tbody>${rowsProdutos}</tbody>
        </table>
        ${temSemFicha ? '<div class="obs">* item sem ficha técnica vinculada — custo e compras não calculados.</div>' : ''}
@@ -308,19 +337,43 @@ export default function OrcamentoEventoPage() {
                   <div className="space-y-3">
                      {linhas.map(l => (
                         <div key={l.produto_id} className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-                           <div className="flex items-center gap-3">
-                              <div className="flex-1 min-w-0">
+                           <div className="flex items-center gap-3 flex-wrap">
+                              <div className="flex-1 min-w-[150px]">
                                  <p className="font-black text-slate-800 truncate">{l.nome}</p>
                                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{l.categoria}{!l.ficha && <span className="text-red-500"> · sem ficha técnica</span>}</p>
                               </div>
                               <div className="text-center">
-                                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Porções</label>
-                                 <input type="number" min="0" value={l.qtd} onChange={e=>updateQtd(l.produto_id, e.target.value)} className="w-20 p-2 text-center bg-white border border-slate-200 rounded-lg font-black text-slate-700 outline-none focus:border-emerald-500"/>
+                                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Quantidade</label>
+                                 <div className="flex gap-1">
+                                    <input type="number" min="0" step="0.01" value={l.qtd} onChange={e=>updateItem(l.produto_id, { qtd: e.target.value })} className="w-20 p-2 text-center bg-white border border-slate-200 rounded-lg font-black text-slate-700 outline-none focus:border-emerald-500"/>
+                                    <select value={l.un} onChange={e=>updateItem(l.produto_id, { un: e.target.value })} className="p-2 bg-white border border-slate-200 rounded-lg font-bold text-slate-600 text-xs outline-none focus:border-emerald-500">
+                                       <option value="porcao">porções</option>
+                                       {l.pesoUn > 0 && <option value="g">g</option>}
+                                       {l.pesoUn > 0 && <option value="kg">kg</option>}
+                                    </select>
+                                 </div>
+                              </div>
+                              <div className="text-center">
+                                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block" title="Peso médio de cada porção/unidade. Vem da ficha técnica, mas você pode ajustar.">Peso/un (g)</label>
+                                 <input type="number" min="0" step="0.1" placeholder="ex: 35" value={itens.find(i=>i.produto_id===l.produto_id)?.pesoUn ?? ""} onChange={e=>updateItem(l.produto_id, { pesoUn: e.target.value })} className="w-20 p-2 text-center bg-white border border-slate-200 rounded-lg font-bold text-slate-600 outline-none focus:border-emerald-500"/>
                               </div>
                               <button onClick={() => removeItem(l.produto_id)} className="p-2 text-slate-400 hover:text-red-500 bg-white rounded-lg border border-slate-200"><Trash2 size={15}/></button>
                            </div>
-                           <div className="flex justify-between items-center mt-3 pt-3 border-t border-slate-200/70 text-xs font-bold">
-                              <span className="text-slate-500">Custo: <span className="text-slate-700">{fmtBRL(l.custoTotal)}</span>{convidados > 0 && l.qtd > 0 ? ` · ${(l.qtd / convidados).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} porção/convidado` : ''}</span>
+
+                           {/* Equivalências: porção em gramas, rendimento por kg e preço do kg */}
+                           {l.pesoUn > 0 && (
+                              <p className="text-[10px] font-bold text-slate-400 mt-2">
+                                 Porção: {l.pesoUn}g · 1 kg rende <span className="text-slate-600">{(+l.unPorKg.toFixed(1)).toLocaleString("pt-BR")} un</span> · 1 kg = <span className="text-emerald-600">{fmtBRL(l.vendaPorKg)}</span>
+                              </p>
+                           )}
+
+                           <div className="flex justify-between items-center mt-3 pt-3 border-t border-slate-200/70 text-xs font-bold gap-2 flex-wrap">
+                              <span className="text-slate-500">
+                                 {l.porcoes > 0 && (
+                                    <>= {(+l.porcoes.toFixed(1)).toLocaleString("pt-BR")} porç{l.porcoes >= 2 ? 'ões' : 'ão'}{l.gramasTotal ? ` · ${fmtCompra(l.gramasTotal / 1000, 'kg')}` : ''} · </>
+                                 )}
+                                 Custo: <span className="text-slate-700">{fmtBRL(l.custoTotal)}</span>{convidados > 0 && l.porcoes > 0 ? ` · ${(l.porcoes / convidados).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} porção/convidado` : ''}
+                              </span>
                               <span className="text-emerald-600 font-black">Venda: {fmtBRL(l.vendaTotal)}</span>
                            </div>
                         </div>

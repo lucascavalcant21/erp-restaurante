@@ -70,6 +70,13 @@ function CardapioRunner() {
   const [novoModNome, setNovoModNome] = useState("");
   const [novoModPreco, setNovoModPreco] = useState("");
 
+  // Categoria: filtro por chips + criação de categorias próprias no modal
+  const [catFiltro, setCatFiltro] = useState(catUrl); // "" = todas
+  const [criandoCategoria, setCriandoCategoria] = useState(false);
+  const [novaCategoria, setNovaCategoria] = useState("");
+
+  const CATEGORIAS_PADRAO = ["Bebidas", "Entradas", "Pratos Principais", "Sobremesas", "Porções", "Combos", "Pizzas", "Lanches"];
+
   const carregar = async () => {
     setLoading(true);
     const [resProd, resFicha] = await Promise.all([
@@ -85,9 +92,22 @@ function CardapioRunner() {
     if (unidadeAtiva) carregar();
   }, [unidadeAtiva]);
 
+  useEffect(() => { setCatFiltro(catUrl); }, [catUrl]);
+
+  // Categorias em uso nos produtos (inclui as que você criou) + padrão no modal
+  const categoriasEmUso = [...new Set(produtos.map(p => p.categoria).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  const categoriasModal = [...new Set([...CATEGORIAS_PADRAO, ...categoriasEmUso])].sort((a, b) => a.localeCompare(b, "pt-BR"));
+
   const filtrados = produtos
     .filter(p => p.nome_produto.toLowerCase().includes(busca.toLowerCase()))
-    .filter(p => !catUrl || p.categoria === catUrl);
+    .filter(p => !catFiltro || p.categoria === catFiltro);
+
+  // Agrupa por categoria para exibir o cardápio em seções
+  const grupos = categoriasEmUso
+    .map(cat => ({ categoria: cat, itens: filtrados.filter(p => p.categoria === cat) }))
+    .filter(g => g.itens.length > 0);
+  const semCategoria = filtrados.filter(p => !p.categoria);
+  if (semCategoria.length > 0) grupos.push({ categoria: "Sem categoria", itens: semCategoria });
 
   // CMV médio do cardápio filtrado (só produtos com ficha vinculada e preço)
   const cmvsValidos = filtrados
@@ -96,10 +116,12 @@ function CardapioRunner() {
   const cmvMedio = cmvsValidos.length > 0 ? cmvsValidos.reduce((a, b) => a + b, 0) / cmvsValidos.length : null;
 
   const abrirNovo = () => {
+    setCriandoCategoria(false);
+    setNovaCategoria("");
     setForm({
        id: null,
        nome_produto: "",
-       categoria: catUrl || "Pratos Principais",
+       categoria: catFiltro || "Pratos Principais",
        departamento: "cozinha",
        tempo_preparo_base: 15,
        preco_venda: "", 
@@ -119,7 +141,9 @@ function CardapioRunner() {
   };
 
   const abrirEditar = (prod) => {
-    setForm({ 
+    setCriandoCategoria(false);
+    setNovaCategoria("");
+    setForm({
        id: prod.id, 
        nome_produto: prod.nome_produto, 
        categoria: prod.categoria, 
@@ -145,8 +169,16 @@ function CardapioRunner() {
     if(!form.nome_produto.trim()) return alert("Digite o nome do produto");
     if(!form.preco_venda) return alert("Digite o preço de venda");
 
+    // Categoria criada na hora pelo usuário
+    let categoriaFinal = form.categoria;
+    if (criandoCategoria) {
+       categoriaFinal = novaCategoria.trim();
+       if (!categoriaFinal) return alert("Digite o nome da nova categoria.");
+    }
+
     const erro = await salvarProduto({
        ...form,
+       categoria: categoriaFinal,
        unidade_id: unidadeAtiva,
        tempo_preparo_base: Number(form.tempo_preparo_base),
        preco_venda: Number(form.preco_venda),
@@ -175,6 +207,65 @@ function CardapioRunner() {
         ...form,
         modificadores: form.modificadores.filter((_, i) => i !== index)
      });
+  };
+
+  // Card de produto (usado dentro de cada seção de categoria)
+  const renderCard = (p) => {
+     const cmv = calcCmv(p.preco_venda, p.ficha_id, fichas);
+     return (
+     <div key={p.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow relative group flex flex-col h-full">
+        <div className="flex justify-between items-start mb-2 gap-2">
+           <span className="bg-slate-100 text-slate-500 px-3 py-1 rounded-lg font-black text-[10px] uppercase tracking-widest">
+              {p.departamento}
+           </span>
+           <div className="flex items-center gap-2">
+              {cmv !== null && (
+                 <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black ${corCmv(cmv).bg} ${corCmv(cmv).text} border ${corCmv(cmv).border}`}>
+                    CMV {cmv.toFixed(1)}%
+                 </span>
+              )}
+              <button onClick={() => abrirEditar(p)} className="text-slate-500 hover:text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity p-1"><Edit3 size={18}/></button>
+           </div>
+        </div>
+
+        <div className="flex gap-4 items-center mb-4 mt-2">
+           {p.imagem_url ? (
+              <img src={p.imagem_url} alt={p.nome_produto} className="w-16 h-16 object-cover rounded-xl border border-slate-100 shadow-sm" />
+           ) : (
+              <div className="w-16 h-16 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center text-slate-300">
+                 <ImageIcon size={24} />
+              </div>
+           )}
+           <h3 className="text-xl font-black text-slate-800 leading-tight flex-1">{p.nome_produto}</h3>
+        </div>
+
+        <div className="flex flex-col gap-2 mb-4 flex-1">
+           {p.codigo_barras && (
+              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400">
+                 <Barcode size={14}/> {p.codigo_barras}
+              </div>
+           )}
+           {p.modificadores && p.modificadores.length > 0 && (
+              <div className="flex items-center gap-1.5 text-xs font-bold text-amber-500 bg-amber-50 px-2 py-1 rounded-md self-start">
+                 <ListPlus size={14}/> {p.modificadores.length} Opcionais
+              </div>
+           )}
+        </div>
+
+        <div className="flex justify-between items-end mt-auto pt-4 border-t border-slate-100">
+           <div>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Preço (PDV)</p>
+              <p className="font-black text-2xl text-emerald-600">{fmtBRL(p.preco_venda)}</p>
+           </div>
+           <div className="text-right">
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Ficha Técnica</p>
+              <p className={`font-bold text-[10px] uppercase ${p.fichas_tecnicas ? 'text-emerald-600' : 'text-red-500'}`}>
+                 {p.fichas_tecnicas ? p.fichas_tecnicas.nome_receita.substring(0, 15) : 'Não vinculada'}
+              </p>
+           </div>
+        </div>
+     </div>
+     );
   };
 
   return (
@@ -210,80 +301,50 @@ function CardapioRunner() {
       </div>
 
       <div className="max-w-5xl mx-auto px-6 mt-8">
-         <div className="bg-white p-3 rounded-2xl border border-slate-200 mb-6 flex items-center gap-3 shadow-sm">
+         <div className="bg-white p-3 rounded-2xl border border-slate-200 mb-4 flex items-center gap-3 shadow-sm">
             <Search size={20} className="text-slate-500 ml-2" />
             <input type="text" placeholder="Buscar produto no cardápio..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-bold text-slate-700 p-2" />
          </div>
 
-         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {loading ? (
-               <p className="font-bold text-slate-500 col-span-full">Buscando produtos...</p>
-            ) : filtrados.length === 0 ? (
-               <div className="col-span-full text-center p-10 bg-white border border-slate-200 rounded-3xl">
-                  <UtensilsCrossed size={40} className="mx-auto text-slate-500 mb-4"/>
-                  <h3 className="text-xl font-black text-slate-700">O cardápio está vazio</h3>
-                  <p className="text-slate-500 mt-2 font-medium">Você precisa cadastrar produtos para que o garçom consiga lançar comandas.</p>
-               </div>
-            ) : (
-               filtrados.map(p => {
-                  const cmv = calcCmv(p.preco_venda, p.ficha_id, fichas);
-                  return (
-                  <div key={p.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow relative group flex flex-col h-full">
-                     <div className="flex justify-between items-start mb-2 gap-2">
-                        <span className="bg-slate-100 text-slate-500 px-3 py-1 rounded-lg font-black text-[10px] uppercase tracking-widest">
-                           {p.categoria}
-                        </span>
-                        <div className="flex items-center gap-2">
-                           {cmv !== null && (
-                              <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black ${corCmv(cmv).bg} ${corCmv(cmv).text} border ${corCmv(cmv).border}`}>
-                                 CMV {cmv.toFixed(1)}%
-                              </span>
-                           )}
-                           <button onClick={() => abrirEditar(p)} className="text-slate-500 hover:text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity p-1"><Edit3 size={18}/></button>
-                        </div>
+         {/* Chips de categoria (as que você criou aparecem aqui automaticamente) */}
+         {categoriasEmUso.length > 0 && (
+            <div className="flex gap-2 mb-6 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+               <button onClick={() => setCatFiltro("")} className={`shrink-0 px-4 py-2 rounded-full font-bold text-sm transition-all active:scale-95 ${!catFiltro ? 'bg-slate-900 text-white shadow-md' : 'bg-white text-slate-500 border border-slate-200 hover:text-slate-800'}`}>
+                  Todas
+               </button>
+               {categoriasEmUso.map(cat => (
+                  <button key={cat} onClick={() => setCatFiltro(cat)} className={`shrink-0 px-4 py-2 rounded-full font-bold text-sm transition-all active:scale-95 ${catFiltro === cat ? 'bg-slate-900 text-white shadow-md' : 'bg-white text-slate-500 border border-slate-200 hover:text-slate-800'}`}>
+                     {cat} <span className="opacity-60">({produtos.filter(p => p.categoria === cat).length})</span>
+                  </button>
+               ))}
+            </div>
+         )}
+
+         {loading ? (
+            <p className="font-bold text-slate-500">Buscando produtos...</p>
+         ) : filtrados.length === 0 ? (
+            <div className="text-center p-10 bg-white border border-slate-200 rounded-3xl">
+               <UtensilsCrossed size={40} className="mx-auto text-slate-500 mb-4"/>
+               <h3 className="text-xl font-black text-slate-700">{produtos.length === 0 ? 'O cardápio está vazio' : 'Nada encontrado nesse filtro'}</h3>
+               <p className="text-slate-500 mt-2 font-medium">{produtos.length === 0 ? 'Você precisa cadastrar produtos para que o garçom consiga lançar comandas.' : 'Tente outra categoria ou limpe a busca.'}</p>
+            </div>
+         ) : (
+            <div className="space-y-10">
+               {grupos.map(g => (
+                  <div key={g.categoria}>
+                     {/* Cabeçalho da seção de categoria */}
+                     <div className="flex items-center gap-3 mb-4">
+                        <h2 className="text-xl font-black text-slate-800 tracking-tight">{g.categoria}</h2>
+                        <span className="text-[10px] font-black uppercase tracking-widest bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full">{g.itens.length} {g.itens.length === 1 ? 'item' : 'itens'}</span>
+                        <div className="flex-1 h-px bg-slate-200" />
                      </div>
-                     
-                     <div className="flex gap-4 items-center mb-4 mt-2">
-                        {p.imagem_url ? (
-                           <img src={p.imagem_url} alt={p.nome_produto} className="w-16 h-16 object-cover rounded-xl border border-slate-100 shadow-sm" />
-                        ) : (
-                           <div className="w-16 h-16 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center text-slate-300">
-                              <ImageIcon size={24} />
-                           </div>
-                        )}
-                        <h3 className="text-xl font-black text-slate-800 leading-tight flex-1">{p.nome_produto}</h3>
-                     </div>
-                     
-                     <div className="flex flex-col gap-2 mb-4 flex-1">
-                        {p.codigo_barras && (
-                           <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400">
-                              <Barcode size={14}/> {p.codigo_barras}
-                           </div>
-                        )}
-                        {p.modificadores && p.modificadores.length > 0 && (
-                           <div className="flex items-center gap-1.5 text-xs font-bold text-amber-500 bg-amber-50 px-2 py-1 rounded-md self-start">
-                              <ListPlus size={14}/> {p.modificadores.length} Opcionais
-                           </div>
-                        )}
-                     </div>
-                     
-                     <div className="flex justify-between items-end mt-auto pt-4 border-t border-slate-100">
-                        <div>
-                           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Preço (PDV)</p>
-                           <p className="font-black text-2xl text-emerald-600">{fmtBRL(p.preco_venda)}</p>
-                        </div>
-                        <div className="text-right">
-                           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Ficha Técnica</p>
-                           <p className={`font-bold text-[10px] uppercase ${p.fichas_tecnicas ? 'text-emerald-600' : 'text-red-500'}`}>
-                              {p.fichas_tecnicas ? p.fichas_tecnicas.nome_receita.substring(0, 15) : 'Não vinculada'}
-                           </p>
-                        </div>
+                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {g.itens.map(renderCard)}
                      </div>
                   </div>
-                  );
-               })
-            )}
-         </div>
+               ))}
+            </div>
+         )}
       </div>
 
       {modalNovo && (
@@ -304,16 +365,33 @@ function CardapioRunner() {
 
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Categoria</label>
-                        <select value={form.categoria} onChange={e=>setForm({...form, categoria: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500">
-                           <option value="Bebidas">Bebidas</option>
-                           <option value="Entradas">Entradas</option>
-                           <option value="Pratos Principais">Pratos Principais</option>
-                           <option value="Sobremesas">Sobremesas</option>
-                           <option value="Porções">Porções</option>
-                           <option value="Combos">Combos</option>
-                           <option value="Pizzas">Pizzas</option>
-                           <option value="Lanches">Lanches</option>
-                        </select>
+                        {criandoCategoria ? (
+                           <div className="flex gap-2 mt-1">
+                              <input
+                                 type="text"
+                                 autoFocus
+                                 placeholder="Nome da nova categoria..."
+                                 value={novaCategoria}
+                                 onChange={e=>setNovaCategoria(e.target.value)}
+                                 className="flex-1 p-4 bg-emerald-50 border border-emerald-300 rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500"
+                              />
+                              <button type="button" onClick={() => { setCriandoCategoria(false); setNovaCategoria(""); }} className="px-3 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-500 font-bold text-xs">
+                                 Cancelar
+                              </button>
+                           </div>
+                        ) : (
+                           <select
+                              value={form.categoria}
+                              onChange={e => {
+                                 if (e.target.value === "__nova__") { setCriandoCategoria(true); setNovaCategoria(""); }
+                                 else setForm({...form, categoria: e.target.value});
+                              }}
+                              className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500"
+                           >
+                              {categoriasModal.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                              <option value="__nova__">+ Criar nova categoria...</option>
+                           </select>
+                        )}
                      </div>
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Vai pro KDS de?</label>

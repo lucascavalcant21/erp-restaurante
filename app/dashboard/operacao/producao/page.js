@@ -6,6 +6,7 @@ import { useERP } from "../../../context/ERPContext";
 import { fetchFichas } from "../../../lib/operacao";
 import { registrarProducao } from "../../../lib/estoque";
 import { fetchColaboradores } from "../../../lib/rh";
+import { fetchProdutos } from "../../../lib/vendas";
 import { Flame, Droplets, Save, ArrowLeft, X, UtensilsCrossed, Wine, Maximize } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
@@ -27,6 +28,18 @@ function custoTotalDaFicha(f, todasFichas, guard = new Set()) {
   return total;
 }
 
+// CMV (%) = custo por porção / preço de venda do produto vinculado à ficha.
+// Cor muda no limiar de 30%: <=30% saudável (verde), >30% consumindo margem (vermelho).
+function calcCmv(ficha, todasFichas, produtoDaFicha) {
+  const produto = produtoDaFicha[ficha.id];
+  if (!produto || !produto.preco_venda) return null;
+  const custoPorcao = custoTotalDaFicha(ficha, todasFichas) / (ficha.rendimento_porcoes || 1);
+  return (custoPorcao / produto.preco_venda) * 100;
+}
+const corCmv = (cmv) => cmv > 30
+  ? { bg: "bg-red-50", border: "border-red-200", text: "text-red-600" }
+  : { bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-600" };
+
 function ProducaoRunner() {
   const router = useRouter();
   const { abrirMenu } = useERP();
@@ -35,26 +48,39 @@ function ProducaoRunner() {
   
   const { unidadeAtiva } = useERP();
   const [fichas, setFichas] = useState([]);
+  const [produtos, setProdutos] = useState([]);
   const [colaboradores, setColaboradores] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   const [modalProduzir, setModalProduzir] = useState(false);
   const [fichaAtual, setFichaAtual] = useState(null);
-  
+
   // Form de produção
   const [qtdProd, setQtdProd] = useState("1");
   const [colabSelecionado, setColabSelecionado] = useState("");
 
   const carregar = async () => {
     setLoading(true);
-    const [resFichas, resColab] = await Promise.all([
+    const [resFichas, resProdutos, resColab] = await Promise.all([
        fetchFichas(unidadeAtiva, deptUrl),
+       fetchProdutos(unidadeAtiva, deptUrl),
        fetchColaboradores(unidadeAtiva)
     ]);
     setFichas(resFichas.data || []);
+    setProdutos(resProdutos.data || []);
     setColaboradores(resColab.data || []);
     setLoading(false);
   };
+
+  // Primeiro produto de venda vinculado a cada ficha (produtos.ficha_id -> fichas_tecnicas.id)
+  const produtoDaFicha = {};
+  produtos.forEach(p => { if (p.ficha_id && !produtoDaFicha[p.ficha_id]) produtoDaFicha[p.ficha_id] = p; });
+
+  // CMV médio de todos os produtos criados (com ficha e preço de venda válidos)
+  const cmvsValidos = fichas
+    .map(f => calcCmv(f, fichas, produtoDaFicha))
+    .filter(v => v !== null);
+  const cmvMedio = cmvsValidos.length > 0 ? cmvsValidos.reduce((a, b) => a + b, 0) / cmvsValidos.length : null;
 
   useEffect(() => {
     if (unidadeAtiva) carregar();
@@ -110,9 +136,17 @@ function ProducaoRunner() {
                  <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Baixa Automática de Estoque</p>
               </div>
             </div>
-            <button onClick={toggleFullscreen} className="p-3 text-slate-500 hover:text-slate-800 bg-slate-50 rounded-full border border-slate-200" title="Tela Cheia">
-               <Maximize size={20}/>
-            </button>
+            <div className="flex items-center gap-3">
+               {cmvMedio !== null && (
+                  <div className={`px-4 py-2.5 rounded-2xl border ${corCmv(cmvMedio).bg} ${corCmv(cmvMedio).border}`}>
+                     <p className={`text-[9px] font-black uppercase tracking-widest ${corCmv(cmvMedio).text}`}>CMV Médio</p>
+                     <p className={`text-xl font-black ${corCmv(cmvMedio).text}`}>{cmvMedio.toFixed(1)}%</p>
+                  </div>
+               )}
+               <button onClick={toggleFullscreen} className="p-3 text-slate-500 hover:text-slate-800 bg-slate-50 rounded-full border border-slate-200" title="Tela Cheia">
+                  <Maximize size={20}/>
+               </button>
+            </div>
          </div>
       </div>
 
@@ -131,9 +165,11 @@ function ProducaoRunner() {
             </div>
          ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-               {fichas.map(f => (
-                  <button 
-                     key={f.id} 
+               {fichas.map(f => {
+                  const cmv = calcCmv(f, fichas, produtoDaFicha);
+                  return (
+                  <button
+                     key={f.id}
                      onClick={() => abrirProduzir(f)}
                      className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all relative group text-left flex flex-col"
                   >
@@ -141,17 +177,23 @@ function ProducaoRunner() {
                         <span className={`w-12 h-12 rounded-full flex items-center justify-center ${f.departamento === 'bar' ? 'bg-slate-50 text-emerald-600' : 'bg-slate-50 text-emerald-600'}`}>
                            {f.departamento === 'bar' ? <Wine size={20}/> : <UtensilsCrossed size={20}/>}
                         </span>
+                        {cmv !== null && (
+                           <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black ${corCmv(cmv).bg} ${corCmv(cmv).text} border ${corCmv(cmv).border}`}>
+                              CMV {cmv.toFixed(1)}%
+                           </span>
+                        )}
                      </div>
                      <h3 className="text-2xl font-black text-slate-800 leading-tight mb-2">{f.nome_receita}</h3>
                      <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">{f.fichas_ingredientes?.length || 0} Ingredientes</p>
-                     
+
                      <div className="mt-auto pt-4 border-t border-slate-100">
                         <span className={`inline-flex items-center gap-2 font-bold text-sm ${isBar ? 'text-emerald-600' : 'text-emerald-600'}`}>
                            {isBar ? <Droplets size={16}/> : <Flame size={16}/>} Iniciar Produção
                         </span>
                      </div>
                   </button>
-               ))}
+                  );
+               })}
             </div>
          )}
       </div>
@@ -192,17 +234,25 @@ function ProducaoRunner() {
                      </div>
                   </div>
 
-                  {/* Valor Total Médio da Produção */}
+                  {/* Valor Total Médio da Produção + CMV desta ficha */}
                   {(() => {
                      const custoPorcao = custoTotalDaFicha(fichaAtual, fichas) / (fichaAtual.rendimento_porcoes || 1);
                      const valorTotalProducao = custoPorcao * Number(qtdProd || 0);
+                     const cmv = calcCmv(fichaAtual, fichas, produtoDaFicha);
+                     const cores = cmv !== null ? corCmv(cmv) : null;
                      return (
-                        <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-2xl flex items-center justify-between">
+                        <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-2xl flex items-center justify-between gap-4">
                            <div>
                               <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Valor Total Médio desta Produção</p>
                               <p className="text-[10px] font-bold text-emerald-700/70 mt-0.5">{fmtBRL(custoPorcao)} / porção × {qtdProd || 0}</p>
+                              <p className="text-3xl font-black text-emerald-700 mt-1">{fmtBRL(valorTotalProducao)}</p>
                            </div>
-                           <p className="text-3xl font-black text-emerald-700">{fmtBRL(valorTotalProducao)}</p>
+                           {cmv !== null && (
+                              <div className={`px-3 py-2 rounded-xl border shrink-0 text-center ${cores.bg} ${cores.border}`}>
+                                 <p className={`text-[9px] font-black uppercase tracking-widest ${cores.text}`}>CMV</p>
+                                 <p className={`text-xl font-black ${cores.text}`}>{cmv.toFixed(1)}%</p>
+                              </div>
+                           )}
                         </div>
                      );
                   })()}

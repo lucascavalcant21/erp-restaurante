@@ -39,8 +39,8 @@ const OPERACAO_SETORES = [
     borda: "border-amber-200",
     links: [
       { label: "KDS Cozinha", href: "/dashboard/kds?dept=cozinha", desc: "Monitor de pedidos em tempo real", badge: "LIVE", badgeCor: "bg-emerald-500" },
-      { label: "Fichas Técnicas", href: "/dashboard/operacao/fichas", desc: "Receitas com custo e rendimento", badge: null },
-      { label: "Ingredientes e Insumos", href: "/dashboard/operacao/ingredientes", desc: "Banco de ingredientes com preços", badge: null },
+      { label: "Fichas Técnicas", href: "/dashboard/operacao/fichas?dept=cozinha", desc: "Receitas com custo e rendimento", badge: null },
+      { label: "Ingredientes e Insumos", href: "/dashboard/operacao/ingredientes?dept=cozinha", desc: "Banco de ingredientes com preços", badge: null },
       { label: "Controle de Estoque", href: "/dashboard/operacao/estoque", desc: "Posição atual, contagem e movimentos", badge: null },
       { label: "Lista de Compras", href: "/dashboard/operacao/compras", desc: "Sugestão automática por consumo", badge: null },
       { label: "Notas de Entrada (NF-e)", href: "/dashboard/operacao/notas", desc: "Lançar NF de fornecedores", badge: null },
@@ -60,7 +60,8 @@ const OPERACAO_SETORES = [
     links: [
       { label: "KDS Bar", href: "/dashboard/kds?dept=bar", desc: "Monitor de pedidos do bar", badge: "LIVE", badgeCor: "bg-emerald-500" },
       { label: "Drinks e Coquetéis", href: "/dashboard/operacao/drinks", desc: "Montagem e produção de drinks", badge: null },
-      { label: "Fichas de Drinks", href: "/dashboard/operacao/ingredientes?dept=bar", desc: "Receitas com custo e insumos", badge: null },
+      { label: "Fichas de Drinks", href: "/dashboard/operacao/fichas?dept=bar", desc: "Receitas com custo e insumos", badge: null },
+      { label: "Ingredientes e Insumos", href: "/dashboard/operacao/ingredientes?dept=bar", desc: "Banco de ingredientes do bar", badge: null },
       { label: "Estoque do Bar", href: "/dashboard/operacao/estoque?dept=bar", desc: "Bebidas, xaropes e insumos", badge: null },
       { label: "Cardápio de Bebidas", href: "/dashboard/operacao/produtos?cat=Bebidas", desc: "Produtos do bar no cardápio", badge: null },
       { label: "Compras do Bar", href: "/dashboard/operacao/compras", desc: "Reposição de bebidas e insumos", badge: null },

@@ -47,7 +47,7 @@ export async function fetchFichas(unidadeId, dept) {
   let query = supabase.from("fichas_tecnicas")
     .select(`
       *,
-      fichas_ingredientes(
+      fichas_ingredientes!ficha_id(
         id, quantidade, subficha_id,
         insumos(id, nome, unidade_medida, custo_unitario)
       )

@@ -5,12 +5,12 @@ import { Plus, Trash2, Edit3, DollarSign, Target, CreditCard, Users, ShoppingCar
 import { Card, SectionLabel, Btn, Field, TextInput, NumberInput, Select, Modal, fmtBRL, fmtPct } from "../../../components/ui";
 import { CustosFixos, atualizarEvento, FIXED_COST_CATEGORIES, CMO_AREAS } from "../../../lib/eventos";
 
-const VAZIO = { nome: "", categoria: "cmo", area: "cozinha", role: "", is_extra: false, person_count: 1, value_per_person: 0 };
+const VAZIO = { nome: "", categoria: "cmo", area: "cozinha", role: "", is_extra: false, person_count: 1, value_per_person: 0, cobrar_cliente: false, valor_cobranca: "" };
 
 function FormCustoFixo({ inicial, onSalvar, onCancelar }) {
   const [f, setF] = useState(
     inicial
-      ? { ...inicial, person_count: String(inicial.person_count || ""), value_per_person: String(inicial.value_per_person || "") }
+      ? { ...inicial, person_count: String(inicial.person_count || ""), value_per_person: String(inicial.value_per_person || ""), valor_cobranca: inicial.valor_cobranca != null ? String(inicial.valor_cobranca) : "" }
       : VAZIO,
   );
   const [erro, setErro] = useState("");
@@ -18,12 +18,17 @@ function FormCustoFixo({ inicial, onSalvar, onCancelar }) {
 
   const isCmo = f.categoria === "cmo";
   const area = CMO_AREAS.find((a) => a.id === f.area);
+  const totalCusto = Number(f.person_count || 0) * Number(f.value_per_person || 0);
 
   function salvar() {
     if (!f.nome.trim()) return setErro("Informe o nome.");
     const pc = parseFloat(String(f.person_count).replace(",", ".")) || 0;
     const vpp = parseFloat(String(f.value_per_person).replace(",", ".")) || 0;
     if (pc <= 0 || vpp <= 0) return setErro("Informe quantidade e valor válidos.");
+    // Valor cobrado do cliente: se marcado e vazio, repassa o custo total
+    const cobranca = f.cobrar_cliente
+      ? (parseFloat(String(f.valor_cobranca).replace(",", ".")) || pc * vpp)
+      : null;
     onSalvar({
       nome: f.nome.trim(),
       categoria: f.categoria,
@@ -32,6 +37,8 @@ function FormCustoFixo({ inicial, onSalvar, onCancelar }) {
       is_extra: !!f.is_extra,
       person_count: pc,
       value_per_person: vpp,
+      cobrar_cliente: !!f.cobrar_cliente,
+      valor_cobranca: cobranca,
     });
   }
 
@@ -78,9 +85,20 @@ function FormCustoFixo({ inicial, onSalvar, onCancelar }) {
         </label>
       )}
 
+      {/* Repassar este item ao cliente: entra no orçamento e no faturamento */}
+      <label className="flex items-center gap-2 p-2 rounded cursor-pointer mb-2" style={{ background: f.cobrar_cliente ? "#10B98122" : "var(--elevated)", border: f.cobrar_cliente ? "1px solid #10B98155" : "1px solid transparent" }}>
+        <input type="checkbox" checked={!!f.cobrar_cliente} onChange={(e) => set("cobrar_cliente", e.target.checked)} />
+        <span className="text-[12px]" style={{ color: "var(--fg)" }}>Cobrar do cliente (entra no orçamento além do buffet)</span>
+      </label>
+      {f.cobrar_cliente && (
+        <Field label={`Valor cobrado do cliente (R$) — vazio repassa o custo (${fmtBRL(totalCusto)})`}>
+          <NumberInput value={f.valor_cobranca} onChange={(e) => set("valor_cobranca", e.target.value)} placeholder={String(totalCusto.toFixed(2))} step="0.01" />
+        </Field>
+      )}
+
       <div className="erp-panel p-3 mb-3 flex justify-between">
-        <span className="text-[11px] font-bold" style={{ color: "var(--muted)" }}>Total:</span>
-        <strong style={{ color: "var(--accent-fg)" }}>{fmtBRL(Number(f.person_count || 0) * Number(f.value_per_person || 0))}</strong>
+        <span className="text-[11px] font-bold" style={{ color: "var(--muted)" }}>Custo total:</span>
+        <strong style={{ color: "var(--accent-fg)" }}>{fmtBRL(totalCusto)}</strong>
       </div>
 
       {erro && <p className="erp-badge erp-badge-danger w-full justify-center mb-3">{erro}</p>}
@@ -294,6 +312,7 @@ export default function TabFinanceiro({ eventoId, evento, custosFixos, reservas,
                             <div>
                               <strong style={{ color: "var(--fg)" }}>{item.nome}</strong>
                               {item.is_extra && <span className="erp-badge text-[9px]" style={{ background: "#F59E0B33", color: "#F59E0B", marginLeft: 4 }}>extra</span>}
+                              {item.cobrar_cliente && <span className="erp-badge text-[9px]" style={{ background: "#10B98133", color: "#10B981", marginLeft: 4 }}>cobrado do cliente · {fmtBRL(item.valor_cobranca)}</span>}
                               <div style={{ color: "var(--dim)", fontSize: 10 }}>{item.person_count}× {fmtBRL(item.value_per_person)}</div>
                             </div>
                             <div className="flex items-center gap-2">
@@ -313,6 +332,7 @@ export default function TabFinanceiro({ eventoId, evento, custosFixos, reservas,
                       <div key={item.id} className="flex items-center justify-between p-2 rounded text-[12px]" style={{ background: "var(--elevated)" }}>
                         <div>
                           <strong style={{ color: "var(--fg)" }}>{item.nome}</strong>
+                          {item.cobrar_cliente && <span className="erp-badge text-[9px]" style={{ background: "#10B98133", color: "#10B981", marginLeft: 4 }}>cobrado do cliente · {fmtBRL(item.valor_cobranca)}</span>}
                           <div style={{ color: "var(--dim)", fontSize: 10 }}>{item.person_count}× {fmtBRL(item.value_per_person)}</div>
                         </div>
                         <div className="flex items-center gap-2">

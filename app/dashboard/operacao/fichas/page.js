@@ -65,22 +65,35 @@ function custoUnitBase(base, todasFichas) {
   return custoTotalDaFicha(base, todasFichas) / (base.rendimento_porcoes || 1);
 }
 
-// Info de peso de uma ficha: peso total produzido (g), custo por kg e peso por porção.
-// Vale quando a ficha tem peso_porcao_g preenchido OU quando rende direto em kg/l.
+// Peso total produzido (g) a partir do rendimento + unidade + peso da porção
+function pesoTotalDaFicha(rendimento, unidade, pesoPorcaoG) {
+  const un = String(unidade || "porcao").toLowerCase();
+  if (un === "kg" || un === "l") return rendimento * 1000;
+  if (un === "g" || un === "ml") return rendimento;
+  return pesoPorcaoG > 0 ? rendimento * pesoPorcaoG : 0; // porções ou unidades
+}
+
+// Info de peso de uma ficha: peso total produzido (g), custo por kg, peso por
+// porção e QUANTAS porções renderam. Vale quando a ficha tem peso_porcao_g
+// preenchido OU quando rende direto em peso/volume (kg/g/l/ml).
 function infoPesoFicha(f, todasFichas) {
   const rendimento = Number(f.rendimento_porcoes) || 0;
   const pesoPorcao = Number(f.peso_porcao_g) || 0;
   const un = String(f.rendimento_unidade || "porcao").toLowerCase();
-  let pesoTotalG = 0;
-  if (un === "kg" || un === "l") pesoTotalG = rendimento * 1000;
-  else if (pesoPorcao > 0) pesoTotalG = rendimento * pesoPorcao;
+  const pesoTotalG = pesoTotalDaFicha(rendimento, un, pesoPorcao);
   if (!pesoTotalG || !rendimento) return null;
   const custoTotal = custoTotalDaFicha(f, todasFichas);
+  // Nº de porções: direto do rendimento (porções/un) ou derivado do peso
+  const porcoes = (un === "porcao" || un === "un")
+    ? rendimento
+    : (pesoPorcao > 0 ? pesoTotalG / pesoPorcao : null);
   return {
     pesoTotalG,
     custoKg: custoTotal / (pesoTotalG / 1000),
+    custoPorcao: porcoes > 0 ? custoTotal / porcoes : null,
     pesoPorcaoG: pesoPorcao > 0 ? pesoPorcao : null,
-    liquido: un === "l",
+    porcoes,
+    liquido: un === "l" || un === "ml",
   };
 }
 const fmtG = (g) => g >= 1000
@@ -417,7 +430,7 @@ function FichasRunner() {
           rendimento_porcoes: Number(form.rendimento_porcoes),
           modo_preparo: form.modo_preparo,
           eh_base: !!form.eh_base,
-          rendimento_unidade: form.eh_base ? form.rendimento_unidade : "porcao",
+          rendimento_unidade: form.rendimento_unidade || "porcao",
           peso_porcao_g: form.peso_porcao_g ? Number(form.peso_porcao_g) : null
        },
        ingValidos.map(i => ({
@@ -465,8 +478,15 @@ function FichasRunner() {
        return `<tr><td>${nome}</td><td class="c">${fmtQtd(fi.quantidade, unidade)}</td><td class="r">R$ ${custo.toFixed(2)}</td></tr>`;
     }).join('');
     const rende = f.rendimento_porcoes || 1;
-    const custoPorcao = custoTotal / rende;
     const peso = infoPesoFicha(f, fichas);
+    // Porções reais: derivadas do peso quando o rendimento é em kg/g/l/ml
+    const porcoesReais = peso?.porcoes || rende;
+    const custoPorcao = custoTotal / (porcoesReais || 1);
+    const unR = String(f.rendimento_unidade || 'porcao').toLowerCase();
+    const labelUnPrint = { porcao: `porç${rende > 1 ? 'ões' : 'ão'}`, kg: 'kg', g: 'g', l: 'L', ml: 'ml', un: 'un' }[unR] || unR;
+    const linhaRendeu = (unR !== 'porcao' && unR !== 'un' && peso?.porcoes && peso?.pesoPorcaoG)
+       ? ` — rendeu ${(+peso.porcoes.toFixed(1)).toLocaleString('pt-BR')} porções de ${peso.pesoPorcaoG}g`
+       : '';
     const linhaPeso = peso
        ? `<div class="meta">Peso total: ${fmtG(peso.pesoTotalG)}${peso.pesoPorcaoG ? ` (${peso.pesoPorcaoG}g por porção)` : ''} · ${peso.liquido ? '1 L' : '1 kg'} = R$ ${peso.custoKg.toFixed(2)}</div>`
        : '';
@@ -492,7 +512,7 @@ function FichasRunner() {
           <div class="head">
              <div class="tag">Ficha Técnica${f.departamento ? ' — ' + f.departamento : ''}</div>
              <h1>${f.nome_receita}</h1>
-             <div class="meta">Rendimento: ${rende} porç${rende > 1 ? 'ões' : 'ão'}</div>
+             <div class="meta">Rendimento: ${Number(rende).toLocaleString('pt-BR')} ${labelUnPrint}${linhaRendeu}</div>
              ${linhaPeso}
           </div>
           <h2>Ingredientes</h2>
@@ -559,7 +579,12 @@ function FichasRunner() {
                {filtradas.map(f => {
                   // Custo recursivo (resolve bases/sub-receitas)
                   const custoFicha = custoTotalDaFicha(f, fichas);
-                  const custoPorcao = custoFicha / (f.rendimento_porcoes || 1);
+                  const peso = infoPesoFicha(f, fichas);
+                  // Custo por porção: usa as porções REAIS (derivadas do peso quando
+                  // o rendimento é em kg/g/l/ml), senão divide pelo rendimento direto
+                  const custoPorcao = peso?.custoPorcao ?? (custoFicha / (f.rendimento_porcoes || 1));
+                  const unR = String(f.rendimento_unidade || "porcao").toLowerCase();
+                  const labelUn = { porcao: "Porções", kg: "kg", g: "g", l: "L", ml: "ml", un: "un" }[unR] || unR;
 
                   return (
                      <div key={f.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow relative group flex flex-col">
@@ -574,16 +599,23 @@ function FichasRunner() {
                            </div>
                         </div>
                         <h3 className="text-xl font-black text-slate-800 leading-tight mb-1">{f.nome_receita}</h3>
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Rende: {f.rendimento_porcoes} {f.eh_base && f.rendimento_unidade !== 'porcao' ? String(f.rendimento_unidade).toUpperCase() : 'Porções'}{f.peso_porcao_g ? ` de ${f.peso_porcao_g}g` : ''}</p>
-                        {(() => {
-                           const peso = infoPesoFicha(f, fichas);
-                           if (!peso) return <div className="mb-4"/>;
-                           return (
-                              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">
+                           Rende: {Number(f.rendimento_porcoes).toLocaleString("pt-BR")} {labelUn}
+                           {unR === "porcao" && f.peso_porcao_g ? ` de ${f.peso_porcao_g}g` : ''}
+                        </p>
+                        {!peso ? <div className="mb-4"/> : (
+                           <div className="mb-4">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                                  Peso total: {fmtG(peso.pesoTotalG)} · {peso.liquido ? '1 L' : '1 kg'} = <span className="text-emerald-600">{fmtBRL(peso.custoKg)}</span>
                               </p>
-                           );
-                        })()}
+                              {/* Quando rende em peso e tem porção definida: mostra quantas porções saíram */}
+                              {unR !== "porcao" && unR !== "un" && peso.porcoes !== null && peso.pesoPorcaoG && (
+                                 <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mt-0.5">
+                                    = {(+peso.porcoes.toFixed(1)).toLocaleString("pt-BR")} porções de {peso.pesoPorcaoG}g
+                                 </p>
+                              )}
+                           </div>
+                        )}
 
                         <div className="mt-auto pt-4 border-t border-slate-100 flex justify-between items-end">
                            <div>
@@ -631,40 +663,43 @@ function FichasRunner() {
                      </div>
                      <div className="grid grid-cols-2 gap-3">
                         <div>
-                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Rendimento {form.eh_base ? '(quanto rende)' : '(nº porções)'}</label>
-                           <input type="number" placeholder="1" value={form.rendimento_porcoes} onChange={e=>setForm({...form, rendimento_porcoes: e.target.value})} className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500 shadow-sm"/>
+                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Rendimento (quanto a receita gera)</label>
+                           <input type="number" step="0.01" placeholder="Ex: 4 ou 2349" value={form.rendimento_porcoes} onChange={e=>setForm({...form, rendimento_porcoes: e.target.value})} className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500 shadow-sm"/>
                         </div>
-                        {form.eh_base && (
-                           <div>
-                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Unidade</label>
-                              <select value={form.rendimento_unidade} onChange={e=>setForm({...form, rendimento_unidade: e.target.value})} className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500 shadow-sm">
-                                 <option value="l">Litros (L)</option>
-                                 <option value="kg">Kilos (kg)</option>
-                                 <option value="un">Unidades (un)</option>
-                              </select>
-                           </div>
-                        )}
+                        <div>
+                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Unidade de medida</label>
+                           <select value={form.rendimento_unidade} onChange={e=>setForm({...form, rendimento_unidade: e.target.value})} className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500 shadow-sm">
+                              <option value="porcao">Porções</option>
+                              <option value="kg">Kilos (kg)</option>
+                              <option value="g">Gramas (g)</option>
+                              <option value="l">Litros (L)</option>
+                              <option value="ml">Mililitros (ml)</option>
+                              <option value="un">Unidades (un)</option>
+                           </select>
+                        </div>
                      </div>
 
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Peso por porção/unidade em gramas (opcional)</label>
                         <input type="number" step="0.1" min="0" placeholder="Ex: 35 (cada bolinho pesa 35g)" value={form.peso_porcao_g} onChange={e=>setForm({...form, peso_porcao_g: e.target.value})} className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500 shadow-sm"/>
-                        <p className="text-[10px] text-slate-400 font-medium mt-1">Preenchendo, o sistema calcula o peso total produzido, o custo do kg e permite desmembrar em qualquer quantidade.</p>
+                        <p className="text-[10px] text-slate-400 font-medium mt-1">Com rendimento em porções: calcula o peso total. Com rendimento em kg/g: calcula quantas porções renderam. Sempre dá o custo do kg e o desmembrar.</p>
                      </div>
 
                      {/* PESO TOTAL + CUSTO/KG + DESMEMBRAR (ao vivo, conforme preenche) */}
                      {(() => {
                         const rendimento = Number(form.rendimento_porcoes) || 0;
                         const pesoPorcao = Number(form.peso_porcao_g) || 0;
-                        const unR = form.eh_base ? String(form.rendimento_unidade).toLowerCase() : "porcao";
-                        let pesoTotalG = 0;
-                        if (unR === "kg" || unR === "l") pesoTotalG = rendimento * 1000;
-                        else if (pesoPorcao > 0) pesoTotalG = rendimento * pesoPorcao;
+                        const unR = String(form.rendimento_unidade || "porcao").toLowerCase();
+                        const pesoTotalG = pesoTotalDaFicha(rendimento, unR, pesoPorcao);
                         if (!pesoTotalG) return null;
 
                         const custoTotal = calcularCustoTotal(ingFicha);
                         const custoKg = custoTotal / (pesoTotalG / 1000);
-                        const labelKg = unR === "l" ? "1 L" : "1 kg";
+                        const labelKg = (unR === "l" || unR === "ml") ? "1 L" : "1 kg";
+                        // Quantas porções essa produção rende (peso total ÷ peso da porção)
+                        const porcoesRendidas = (unR === "porcao" || unR === "un")
+                           ? rendimento
+                           : (pesoPorcao > 0 ? pesoTotalG / pesoPorcao : null);
 
                         // desmembrar: converte a quantidade digitada para gramas
                         const q = Number(calcQtd) || 0;
@@ -681,6 +716,9 @@ function FichasRunner() {
                                  <div>
                                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Peso total produzido</p>
                                     <p className="text-lg font-black">{fmtG(pesoTotalG)}</p>
+                                    {porcoesRendidas !== null && pesoPorcao > 0 && (
+                                       <p className="text-[10px] font-bold text-slate-400">= {(+porcoesRendidas.toFixed(1)).toLocaleString("pt-BR")} porções de {pesoPorcao}g</p>
+                                    )}
                                  </div>
                                  <div className="text-right">
                                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{labelKg} deste produto custa</p>
@@ -716,16 +754,24 @@ function FichasRunner() {
                         if (!rendimento) return null;
                         const pesoPorcaoFinal = Number(form.peso_porcao_g) || 0;
 
+                        // Nº de porções: direto (porções/un) ou derivado do peso total
+                        const unR = String(form.rendimento_unidade || "porcao").toLowerCase();
+                        const pesoTotalG = pesoTotalDaFicha(rendimento, unR, pesoPorcaoFinal);
+                        const nPorcoes = (unR === "porcao" || unR === "un")
+                           ? rendimento
+                           : (pesoPorcaoFinal > 0 && pesoTotalG > 0 ? pesoTotalG / pesoPorcaoFinal : 0);
+                        if (!nPorcoes) return null;
+
                         // Converte cada ingrediente pesável para gramas por porção
                         const composicao = ingFicha.map(ing => {
                            const u = String(ing.unidade).toLowerCase();
                            let g = null;
                            if ((u === "kg" || u === "l") && ing.quantidade > 0) {
-                              g = (ing.quantidade * 1000) / rendimento;
+                              g = (ing.quantidade * 1000) / nPorcoes;
                            } else if (ing.tipo === "base" && u === "un" && ing.quantidade > 0) {
                               const b = fichas.find(x => x.id === ing.subficha_id);
                               const pg = Number(b?.peso_porcao_g) || 0;
-                              if (pg) g = (ing.quantidade * pg) / rendimento;
+                              if (pg) g = (ing.quantidade * pg) / nPorcoes;
                            }
                            return g ? { nome: ing.nome, g } : null;
                         }).filter(Boolean);

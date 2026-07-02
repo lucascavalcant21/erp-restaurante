@@ -24,12 +24,23 @@ function custoTotalDaFicha(f, todasFichas, guard = new Set()) {
   });
   return total;
 }
+// Nº real de porções de uma ficha: direto (porções/un) ou derivado do peso
+// total quando o rendimento é em kg/g/l/ml (peso total ÷ peso da porção).
+function porcoesDaFicha(f) {
+  const rend = Number(f?.rendimento_porcoes) || 1;
+  const un = String(f?.rendimento_unidade || "porcao").toLowerCase();
+  if (un === "porcao" || un === "un") return rend;
+  const pesoPorcao = Number(f?.peso_porcao_g) || 0;
+  const pesoTotalG = (un === "kg" || un === "l") ? rend * 1000 : rend;
+  return pesoPorcao > 0 ? pesoTotalG / pesoPorcao : rend;
+}
+
 // CMV (%) = custo por porção da ficha vinculada / preço de venda. null se não dá pra calcular.
 function calcCmv(precoVenda, fichaId, todasFichas) {
   const preco = Number(precoVenda) || 0;
   const ficha = todasFichas.find(f => f.id === fichaId);
   if (!preco || !ficha) return null;
-  const custoPorcao = custoTotalDaFicha(ficha, todasFichas) / (ficha.rendimento_porcoes || 1);
+  const custoPorcao = custoTotalDaFicha(ficha, todasFichas) / porcoesDaFicha(ficha);
   return (custoPorcao / preco) * 100;
 }
 const corCmv = (cmv) => cmv > 30

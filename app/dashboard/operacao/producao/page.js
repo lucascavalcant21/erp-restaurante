@@ -28,12 +28,23 @@ function custoTotalDaFicha(f, todasFichas, guard = new Set()) {
   return total;
 }
 
+// Nº real de porções: direto (porções/un) ou derivado do peso total quando
+// o rendimento é em kg/g/l/ml (peso total ÷ peso da porção).
+function porcoesDaFicha(f) {
+  const rend = Number(f?.rendimento_porcoes) || 1;
+  const un = String(f?.rendimento_unidade || "porcao").toLowerCase();
+  if (un === "porcao" || un === "un") return rend;
+  const pesoPorcao = Number(f?.peso_porcao_g) || 0;
+  const pesoTotalG = (un === "kg" || un === "l") ? rend * 1000 : rend;
+  return pesoPorcao > 0 ? pesoTotalG / pesoPorcao : rend;
+}
+
 // CMV (%) = custo por porção / preço de venda do produto vinculado à ficha.
 // Cor muda no limiar de 30%: <=30% saudável (verde), >30% consumindo margem (vermelho).
 function calcCmv(ficha, todasFichas, produtoDaFicha) {
   const produto = produtoDaFicha[ficha.id];
   if (!produto || !produto.preco_venda) return null;
-  const custoPorcao = custoTotalDaFicha(ficha, todasFichas) / (ficha.rendimento_porcoes || 1);
+  const custoPorcao = custoTotalDaFicha(ficha, todasFichas) / porcoesDaFicha(ficha);
   return (custoPorcao / produto.preco_venda) * 100;
 }
 const corCmv = (cmv) => cmv > 30
@@ -236,7 +247,7 @@ function ProducaoRunner() {
 
                   {/* Valor Total Médio da Produção + CMV desta ficha */}
                   {(() => {
-                     const custoPorcao = custoTotalDaFicha(fichaAtual, fichas) / (fichaAtual.rendimento_porcoes || 1);
+                     const custoPorcao = custoTotalDaFicha(fichaAtual, fichas) / porcoesDaFicha(fichaAtual);
                      const valorTotalProducao = custoPorcao * Number(qtdProd || 0);
                      const cmv = calcCmv(fichaAtual, fichas, produtoDaFicha);
                      const cores = cmv !== null ? corCmv(cmv) : null;

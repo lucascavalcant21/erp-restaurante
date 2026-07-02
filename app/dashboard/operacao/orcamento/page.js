@@ -44,6 +44,17 @@ function acumularInsumos(ficha, porcoes, todasFichas, acc, guard = new Set()) {
   guard.delete(ficha.id);
 }
 
+// Nº real de porções: direto (porções/un) ou derivado do peso total quando
+// o rendimento é em kg/g/l/ml (peso total ÷ peso da porção).
+function porcoesDaFicha(f) {
+  const rend = Number(f?.rendimento_porcoes) || 1;
+  const un = String(f?.rendimento_unidade || "porcao").toLowerCase();
+  if (un === "porcao" || un === "un") return rend;
+  const pesoPorcao = Number(f?.peso_porcao_g) || 0;
+  const pesoTotalG = (un === "kg" || un === "l") ? rend * 1000 : rend;
+  return pesoPorcao > 0 ? pesoTotalG / pesoPorcao : rend;
+}
+
 // Formata quantidade de compra: kg/l pequenos viram g/ml; un arredonda pra cima
 function fmtCompra(qtd, unidade) {
   const u = String(unidade || "").toLowerCase();
@@ -113,7 +124,8 @@ export default function OrcamentoEventoPage() {
     if (un === "kg") porcoes = pesoUn > 0 ? (qtd * 1000) / pesoUn : 0;
 
     const gramasTotal = pesoUn > 0 ? porcoes * pesoUn : null;
-    const custoPorcao = ficha ? custoTotalDaFicha(ficha, fichas) / (ficha.rendimento_porcoes || 1) : 0;
+    // Custo por porção real (usa peso quando o rendimento é em kg/g/l/ml)
+    const custoPorcao = ficha ? custoTotalDaFicha(ficha, fichas) / porcoesDaFicha(ficha) : 0;
     const precoVenda = Number(produto.preco_venda) || 0;
     return {
       produto_id: it.produto_id,

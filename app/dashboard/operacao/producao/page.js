@@ -7,6 +7,25 @@ import { fetchFichas } from "../../../lib/operacao";
 import { registrarProducao } from "../../../lib/estoque";
 import { fetchColaboradores } from "../../../lib/rh";
 import { Flame, Droplets, Save, ArrowLeft, X, UtensilsCrossed, Wine, Maximize } from "lucide-react";
+import { fmtBRL } from "../../../components/ui";
+
+// Custo total de PRODUZIR uma ficha, resolvendo bases (sub-receitas) em cascata.
+// guard evita loop infinito se alguém criar uma referência circular.
+function custoTotalDaFicha(f, todasFichas, guard = new Set()) {
+  if (!f || guard.has(f.id)) return 0;
+  guard.add(f.id);
+  let total = 0;
+  (f.fichas_ingredientes || []).forEach(fi => {
+    if (fi.insumos) {
+      total += (fi.insumos.custo_unitario || 0) * (fi.quantidade || 0);
+    } else if (fi.subficha_id) {
+      const base = todasFichas.find(x => x.id === fi.subficha_id);
+      const custoBaseUnit = base ? custoTotalDaFicha(base, todasFichas, guard) / (base.rendimento_porcoes || 1) : 0;
+      total += custoBaseUnit * (fi.quantidade || 0);
+    }
+  });
+  return total;
+}
 
 function ProducaoRunner() {
   const router = useRouter();
@@ -172,6 +191,21 @@ function ProducaoRunner() {
                         <button onClick={()=>setQtdProd(p => Number(p)+1)} className="w-14 h-14 rounded-full bg-white border border-slate-200 flex items-center justify-center text-3xl font-black text-slate-500 hover:text-slate-800">+</button>
                      </div>
                   </div>
+
+                  {/* Valor Total Médio da Produção */}
+                  {(() => {
+                     const custoPorcao = custoTotalDaFicha(fichaAtual, fichas) / (fichaAtual.rendimento_porcoes || 1);
+                     const valorTotalProducao = custoPorcao * Number(qtdProd || 0);
+                     return (
+                        <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-2xl flex items-center justify-between">
+                           <div>
+                              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Valor Total Médio desta Produção</p>
+                              <p className="text-[10px] font-bold text-emerald-700/70 mt-0.5">{fmtBRL(custoPorcao)} / porção × {qtdProd || 0}</p>
+                           </div>
+                           <p className="text-3xl font-black text-emerald-700">{fmtBRL(valorTotalProducao)}</p>
+                        </div>
+                     );
+                  })()}
 
                   {/* Preview da Baixa */}
                   <div className="pt-2">

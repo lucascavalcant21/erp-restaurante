@@ -96,6 +96,7 @@ export default function OrcamentoEventoPage() {
   const [fichas, setFichas] = useState([]);
   const [mapaFatores, setMapaFatores] = useState({}); // insumo_id -> fator_empanamento
   const [loading, setLoading] = useState(true);
+  const [modoSaida, setModoSaida] = useState("imprimir"); // 'imprimir' | 'pdf'
 
   // Várias propostas por evento (ex.: R$60/pessoa, R$90/pessoa). Cada uma tem
   // seu próprio evento + itens. `ativaId` diz qual está sendo editada.
@@ -304,10 +305,19 @@ export default function OrcamentoEventoPage() {
 
   const abrirDoc = (html) => {
     const win = window.open('', '_blank', 'width=800,height=900');
-    if (!win) return alert("Habilite os popups para imprimir.");
-    win.document.write(html);
-    win.document.close();
-    setTimeout(() => win.print(), 400);
+    if (!win) return alert("Habilite os popups para gerar o documento.");
+    if (modoSaida === "pdf") {
+      // Baixa PDF de verdade (html2pdf via CDN). Se falhar em 7s, cai pra impressão.
+      const tit = (html.match(/<title>([^<]*)<\/title>/i)?.[1] || "documento").replace(/[^\wÀ-ÿ \-]/g, "").trim().replace(/\s+/g, "-");
+      const script = `<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"><\/script>`
+        + `<script>(function(){var done=false;function run(){if(window.html2pdf){done=true;html2pdf().set({margin:10,filename:'${tit}.pdf',image:{type:'jpeg',quality:0.98},html2canvas:{scale:2},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}}).from(document.body).save().then(function(){setTimeout(function(){window.close();},1000);});}else{setTimeout(run,300);}}window.addEventListener('load',function(){setTimeout(run,300);});setTimeout(function(){if(!done){window.print();}},7000);})();<\/script>`;
+      win.document.write(html.replace('</body>', script + '</body>'));
+      win.document.close();
+    } else {
+      win.document.write(html);
+      win.document.close();
+      setTimeout(() => win.print(), 400);
+    }
   };
 
   // Descrição da quantidade escolhida, com equivalências (pro cliente se programar)
@@ -481,6 +491,10 @@ export default function OrcamentoEventoPage() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+               <div className="inline-flex p-1 rounded-xl bg-slate-100 mr-1">
+                  <button onClick={() => setModoSaida("imprimir")} className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all ${modoSaida === "imprimir" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>Imprimir</button>
+                  <button onClick={() => setModoSaida("pdf")} className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all ${modoSaida === "pdf" ? "bg-white text-emerald-600 shadow-sm" : "text-slate-500"}`}>Baixar PDF</button>
+               </div>
                <button onClick={imprimirOrcamento} className="flex items-center gap-2 bg-slate-900 text-white px-5 py-3 rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-lg">
                   <FileText size={18} /> Orçamento (Cliente)
                </button>

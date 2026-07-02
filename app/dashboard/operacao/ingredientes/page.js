@@ -29,7 +29,18 @@ function IngredientesRunner() {
   const [busca, setBusca] = useState("");
 
   const [modalNovo, setModalNovo] = useState(false);
-  const [form, setForm] = useState({ id: null, departamento: deptUrl || "cozinha", nome: "", marca: "", unidade_medida: "kg", custo_unitario: "" });
+  // custo_compra = preço como comprado; peso bruto/limpo calculam a perda de limpeza
+  // (casca, espinha, apara). custo_unitario salvo no banco = custo REAL do kg limpo.
+  const [form, setForm] = useState({ id: null, departamento: deptUrl || "cozinha", nome: "", marca: "", unidade_medida: "kg", custo_compra: "", peso_bruto_g: "", peso_liquido_g: "" });
+
+  // Aproveitamento (%) derivado dos pesos: 650g limpos de 1000g brutos = 65%
+  const aproveitamentoForm = (() => {
+    const bruto = Number(form.peso_bruto_g) || 0;
+    const limpo = Number(form.peso_liquido_g) || 0;
+    if (bruto > 0 && limpo > 0 && limpo <= bruto) return (limpo / bruto) * 100;
+    return 100;
+  })();
+  const custoRealForm = form.custo_compra ? Number(form.custo_compra) / (aproveitamentoForm / 100) : 0;
 
   // Importação em massa via IA (texto colado e/ou foto)
   const [modalIA, setModalIA] = useState(false);
@@ -74,12 +85,23 @@ function IngredientesRunner() {
   const paginados = filtrados.slice((paginaAtual - 1) * PAGE_SIZE, paginaAtual * PAGE_SIZE);
 
   const abrirNovo = () => {
-    setForm({ id: null, departamento: deptUrl || "cozinha", nome: "", marca: "", unidade_medida: "kg", custo_unitario: "" });
+    setForm({ id: null, departamento: deptUrl || "cozinha", nome: "", marca: "", unidade_medida: "kg", custo_compra: "", peso_bruto_g: "", peso_liquido_g: "" });
     setModalNovo(true);
   };
 
   const abrirEditar = (ins) => {
-    setForm({ marca: "", ...ins });
+    // Reconstrói os pesos a partir do aproveitamento salvo ("por kg comprado": 1000g -> Xg)
+    const pct = Number(ins.aproveitamento_pct) || 0;
+    setForm({
+      id: ins.id,
+      departamento: ins.departamento,
+      nome: ins.nome,
+      marca: ins.marca || "",
+      unidade_medida: ins.unidade_medida,
+      custo_compra: ins.custo_compra ?? ins.custo_unitario,
+      peso_bruto_g: pct > 0 && pct < 100 ? "1000" : "",
+      peso_liquido_g: pct > 0 && pct < 100 ? String(Math.round(pct * 10)) : "",
+    });
     setModalNovo(true);
   };
 
@@ -165,16 +187,32 @@ function IngredientesRunner() {
   const handleSalvar = async () => {
     if(!form.nome.trim()) return alert("Digite o nome do ingrediente");
     if(form.nome.length > 100) return alert("Nome não pode ter mais de 100 caracteres");
-    if(!form.custo_unitario) return alert("Digite o custo");
+    if(!form.custo_compra) return alert("Digite o custo de compra");
 
-    const custo = Number(form.custo_unitario);
-    if(custo <= 0) return alert("Custo deve ser um valor maior que zero");
-    if(custo > 999999.99) return alert("Custo não pode ser maior que R$ 999.999,99");
+    const custoCompra = Number(form.custo_compra);
+    if(custoCompra <= 0) return alert("Custo deve ser um valor maior que zero");
+    if(custoCompra > 999999.99) return alert("Custo não pode ser maior que R$ 999.999,99");
+
+    const bruto = Number(form.peso_bruto_g) || 0;
+    const limpo = Number(form.peso_liquido_g) || 0;
+    if ((bruto > 0) !== (limpo > 0)) return alert("Para calcular a perda, preencha os DOIS pesos (bruto e limpo) — ou deixe ambos vazios.");
+    if (bruto > 0 && limpo > bruto) return alert("O peso limpo não pode ser maior que o peso bruto.");
+
+    const pct = bruto > 0 ? (limpo / bruto) * 100 : 100;
+    // custo_unitario gravado = custo REAL do kg aproveitável (compra ÷ aproveitamento).
+    // Assim todas as fichas/CMV já usam o custo corrigido sem mudar nada nos cálculos.
+    const custoReal = custoCompra / (pct / 100);
 
     const erro = await salvarInsumo({
-       ...form,
+       id: form.id,
+       departamento: form.departamento,
+       nome: form.nome,
+       marca: form.marca,
+       unidade_medida: form.unidade_medida,
        unidade_id: unidadeAtiva,
-       custo_unitario: custo
+       custo_compra: custoCompra,
+       aproveitamento_pct: pct < 100 ? Math.round(pct * 100) / 100 : null,
+       custo_unitario: Math.round(custoReal * 10000) / 10000
     });
 
     if(erro.error) {
@@ -300,9 +338,14 @@ function IngredientesRunner() {
                      <div className="w-20 flex justify-center">
                        <span className="bg-slate-800 text-white px-3 py-1.5 rounded-lg font-black text-xs uppercase tracking-wider shadow-sm">{ins.unidade_medida}</span>
                      </div>
-                     {/* Custo */}
+                     {/* Custo (real, já corrigido pela perda de limpeza quando houver) */}
                      <div className="w-32 text-center">
                        <span className="font-black text-xl text-emerald-600">{fmtBRL(ins.custo_unitario)}</span>
+                       {Number(ins.aproveitamento_pct) > 0 && Number(ins.aproveitamento_pct) < 100 && (
+                         <p className="text-[9px] font-black uppercase tracking-widest text-red-500 mt-0.5" title={`Compra: ${fmtBRL(ins.custo_compra)} · aproveitamento ${Number(ins.aproveitamento_pct).toFixed(0)}%`}>
+                           perda {(100 - Number(ins.aproveitamento_pct)).toFixed(0)}%
+                         </p>
+                       )}
                      </div>
                      {/* Ações */}
                      <div className="w-24 flex justify-end gap-1">
@@ -401,12 +444,41 @@ function IngredientesRunner() {
                         </select>
                      </div>
                      <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Custo da Unid. Base</label>
-                        <input type="number" step="0.01" min="0" max="999999.99" placeholder="0.00" value={form.custo_unitario} onChange={e=>setForm({...form, custo_unitario: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-emerald-600 outline-none focus:border-emerald-500"/>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Custo de Compra (unid. base)</label>
+                        <input type="number" step="0.01" min="0" max="999999.99" placeholder="0.00" value={form.custo_compra} onChange={e=>setForm({...form, custo_compra: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-emerald-600 outline-none focus:border-emerald-500"/>
                      </div>
                   </div>
+
+                  {/* Perda na limpeza: pesa bruto (com casca/espinha) e limpo (aproveitável) */}
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                     <p className="text-[11px] font-black uppercase tracking-widest text-amber-700 mb-1">Perda na limpeza (opcional)</p>
+                     <p className="text-[10px] font-medium text-amber-700/70 mb-3 leading-tight">Ex.: banana com casca vs sem casca, peixe inteiro vs filé. Pese uma amostra bruta e o que sobrou limpo — o sistema corrige o custo real.</p>
+                     <div className="grid grid-cols-2 gap-3">
+                        <div>
+                           <label className="text-[10px] font-bold text-amber-700 uppercase tracking-widest">Peso bruto (g)</label>
+                           <input type="number" step="1" min="0" placeholder="Ex: 1000" value={form.peso_bruto_g} onChange={e=>setForm({...form, peso_bruto_g: e.target.value})} className="w-full p-3 mt-1 bg-white border border-amber-200 rounded-lg font-bold text-slate-700 outline-none focus:border-amber-500"/>
+                        </div>
+                        <div>
+                           <label className="text-[10px] font-bold text-amber-700 uppercase tracking-widest">Peso limpo (g)</label>
+                           <input type="number" step="1" min="0" placeholder="Ex: 650" value={form.peso_liquido_g} onChange={e=>setForm({...form, peso_liquido_g: e.target.value})} className="w-full p-3 mt-1 bg-white border border-amber-200 rounded-lg font-bold text-slate-700 outline-none focus:border-amber-500"/>
+                        </div>
+                     </div>
+                     {aproveitamentoForm < 100 && (
+                        <div className="flex justify-between items-center mt-3 bg-white border border-amber-200 rounded-lg p-3">
+                           <div>
+                              <p className="text-[10px] font-black uppercase tracking-widest text-red-500">Perda: {(100 - aproveitamentoForm).toFixed(1)}%</p>
+                              <p className="text-[10px] font-bold text-slate-500">Aproveitamento: {aproveitamentoForm.toFixed(1)}%</p>
+                           </div>
+                           <div className="text-right">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Custo real / {form.unidade_medida}</p>
+                              <p className="text-xl font-black text-emerald-600">{fmtBRL(custoRealForm)}</p>
+                           </div>
+                        </div>
+                     )}
+                  </div>
+
                   <p className="text-[11px] font-medium text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                     Dica: Cadastre o custo da unidade de compra. Ex.: garrafa de Vodka de 1 Litro por R$ 60,00 → Unidade Base "L" e Custo "60". Nas Fichas Técnicas você lança em ml (ou g, para Kg) e o sistema converte o custo automaticamente.
+                     Dica: Cadastre o custo da unidade de compra. Ex.: garrafa de Vodka de 1 Litro por R$ 60,00 → Unidade Base "L" e Custo "60". Se tem perda na limpeza, o custo salvo é o REAL (compra ÷ aproveitamento) — as fichas técnicas já calculam em cima dele.
                   </p>
                </div>
 

@@ -48,7 +48,7 @@ export async function fetchFichas(unidadeId, dept) {
     .select(`
       *,
       fichas_ingredientes(
-        id, quantidade,
+        id, quantidade, subficha_id,
         insumos(id, nome, unidade_medida, custo_unitario)
       )
     `)
@@ -84,7 +84,8 @@ export async function salvarFicha(ficha, ingredientes) {
   if (ingredientes && ingredientes.length > 0) {
     const itens = ingredientes.map(i => ({
       ficha_id: fichaId,
-      insumo_id: i.insumo_id,
+      insumo_id: i.insumo_id || null,
+      subficha_id: i.subficha_id || null,
       quantidade: i.quantidade
     }));
     await supabase.from("fichas_ingredientes").insert(itens);

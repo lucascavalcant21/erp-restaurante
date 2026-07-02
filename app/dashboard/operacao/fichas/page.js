@@ -16,6 +16,28 @@ const SUB_UNIDADES = {
 };
 const getSub = (unidade) => SUB_UNIDADES[String(unidade || "").toLowerCase()] || null;
 
+// Custo total de PRODUZIR uma ficha, resolvendo bases (sub-receitas) em cascata.
+// guard evita loop infinito se alguém criar uma referência circular.
+function custoTotalDaFicha(f, todasFichas, guard = new Set()) {
+  if (!f || guard.has(f.id)) return 0;
+  guard.add(f.id);
+  let total = 0;
+  (f.fichas_ingredientes || []).forEach(fi => {
+    if (fi.insumos) {
+      total += (fi.insumos.custo_unitario || 0) * (fi.quantidade || 0);
+    } else if (fi.subficha_id) {
+      const base = todasFichas.find(x => x.id === fi.subficha_id);
+      const custoBaseUnit = base ? custoTotalDaFicha(base, todasFichas, guard) / (base.rendimento_porcoes || 1) : 0;
+      total += custoBaseUnit * (fi.quantidade || 0);
+    }
+  });
+  return total;
+}
+// Custo por unidade-de-rendimento de uma base (usado quando ela vira ingrediente)
+function custoUnitBase(base, todasFichas) {
+  return custoTotalDaFicha(base, todasFichas) / (base.rendimento_porcoes || 1);
+}
+
 function FichasRunner() {
   const router = useRouter();
   const { abrirMenu } = useERP();
@@ -31,16 +53,22 @@ function FichasRunner() {
   const [modalNovo, setModalNovo] = useState(false);
   
   // Estado do formulário da Ficha
-  const [form, setForm] = useState({ 
-    id: null, 
-    departamento: deptUrl, 
-    nome_receita: "", 
-    rendimento_porcoes: "1", 
-    modo_preparo: "" 
+  const [form, setForm] = useState({
+    id: null,
+    departamento: deptUrl,
+    nome_receita: "",
+    rendimento_porcoes: "1",
+    modo_preparo: "",
+    eh_base: false,
+    rendimento_unidade: "porcao"
   });
-  
-  // Estado dos ingredientes selecionados na ficha
-  const [ingFicha, setIngFicha] = useState([]); // [{ insumo_id, nome, unidade, custo_unitario, quantidade }]
+
+  // Ingredientes da ficha. Cada item tem `chave` (insumo_id OU subficha_id),
+  // `tipo` ('insumo'|'base'), `custo_unitario` (por unidade-base) e `unidade`.
+  const [ingFicha, setIngFicha] = useState([]);
+
+  // Bases disponíveis (fichas marcadas como pré-preparo), exceto a própria ficha em edição
+  const basesDisponiveis = fichas.filter(f => f.eh_base && f.id !== form.id);
 
   const carregar = async () => {
     setLoading(true);
@@ -60,31 +88,41 @@ function FichasRunner() {
   const filtradas = fichas.filter(f => f.nome_receita.toLowerCase().includes(busca.toLowerCase()));
 
   const abrirNova = () => {
-    setForm({ id: null, departamento: deptUrl, nome_receita: "", rendimento_porcoes: "1", modo_preparo: "" });
+    setForm({ id: null, departamento: deptUrl, nome_receita: "", rendimento_porcoes: "1", modo_preparo: "", eh_base: false, rendimento_unidade: "porcao" });
     setIngFicha([]);
     setModalNovo(true);
   };
 
   const abrirEditar = (ficha) => {
-    setForm({ 
-       id: ficha.id, 
-       departamento: ficha.departamento, 
-       nome_receita: ficha.nome_receita, 
-       rendimento_porcoes: ficha.rendimento_porcoes, 
-       modo_preparo: ficha.modo_preparo || "" 
+    setForm({
+       id: ficha.id,
+       departamento: ficha.departamento,
+       nome_receita: ficha.nome_receita,
+       rendimento_porcoes: ficha.rendimento_porcoes,
+       modo_preparo: ficha.modo_preparo || "",
+       eh_base: !!ficha.eh_base,
+       rendimento_unidade: ficha.rendimento_unidade || "porcao"
     });
-    // Mapeando a estrutura do banco pro estado local.
-    // `quantidade` é sempre armazenada na unidade-base do insumo (kg/L/un).
-    // Por padrão exibimos em sub-unidade (g/ml) quando ela existe, pois é como
-    // se pensa em receita; o usuário pode alternar pelo botão na linha.
-    const mapIng = (ficha.fichas_ingredientes || []).map(fi => ({
-       insumo_id: fi.insumos.id,
-       nome: fi.insumos.nome,
-       unidade: fi.insumos.unidade_medida,
-       custo_unitario: fi.insumos.custo_unitario,
-       quantidade: fi.quantidade,
-       modo: getSub(fi.insumos.unidade_medida) ? 'sub' : 'base'
-    }));
+    // Reconstrói os ingredientes: cada um é um INSUMO ou uma BASE (sub-ficha).
+    const mapIng = (ficha.fichas_ingredientes || []).map(fi => {
+       if (fi.subficha_id) {
+          const base = fichas.find(x => x.id === fi.subficha_id);
+          return {
+             chave: fi.subficha_id, tipo: "base", subficha_id: fi.subficha_id,
+             nome: base?.nome_receita || "Base",
+             unidade: base?.rendimento_unidade || "un",
+             custo_unitario: base ? custoUnitBase(base, fichas) : 0,
+             quantidade: fi.quantidade,
+             modo: getSub(base?.rendimento_unidade) ? "sub" : "base",
+          };
+       }
+       return {
+          chave: fi.insumos.id, tipo: "insumo", insumo_id: fi.insumos.id,
+          nome: fi.insumos.nome, unidade: fi.insumos.unidade_medida,
+          custo_unitario: fi.insumos.custo_unitario, quantidade: fi.quantidade,
+          modo: getSub(fi.insumos.unidade_medida) ? "sub" : "base",
+       };
+    });
     setIngFicha(mapIng);
     setModalNovo(true);
   };
@@ -93,38 +131,50 @@ function FichasRunner() {
     return ingredientesLista.reduce((acc, ing) => acc + (ing.custo_unitario * ing.quantidade), 0);
   };
 
-  const addIngrediente = (insumoId) => {
-    if(!insumoId) return;
-    if(ingFicha.find(i => i.insumo_id === insumoId)) return; // Já existe
+  // Adiciona insumo ou base. `valor` = "insumo:<id>" ou "base:<id>"
+  const addIngrediente = (valor) => {
+    if (!valor) return;
+    const [tipo, id] = valor.split(":");
+    if (ingFicha.find(i => i.chave === id)) return; // já existe
 
-    const insumoDb = insumosAtivos.find(i => i.id === insumoId);
-    setIngFicha([...ingFicha, {
-       insumo_id: insumoDb.id,
-       nome: insumoDb.nome,
-       unidade: insumoDb.unidade_medida,
-       custo_unitario: insumoDb.custo_unitario,
-       quantidade: 0,
-       modo: getSub(insumoDb.unidade_medida) ? 'sub' : 'base'
-    }]);
+    if (tipo === "base") {
+       const base = fichas.find(f => f.id === id);
+       if (!base) return;
+       setIngFicha([...ingFicha, {
+          chave: base.id, tipo: "base", subficha_id: base.id,
+          nome: base.nome_receita, unidade: base.rendimento_unidade || "un",
+          custo_unitario: custoUnitBase(base, fichas), quantidade: 0,
+          modo: getSub(base.rendimento_unidade) ? "sub" : "base",
+       }]);
+    } else {
+       const insumoDb = insumosAtivos.find(i => i.id === id);
+       if (!insumoDb) return;
+       setIngFicha([...ingFicha, {
+          chave: insumoDb.id, tipo: "insumo", insumo_id: insumoDb.id,
+          nome: insumoDb.nome, unidade: insumoDb.unidade_medida,
+          custo_unitario: insumoDb.custo_unitario, quantidade: 0,
+          modo: getSub(insumoDb.unidade_medida) ? "sub" : "base",
+       }]);
+    }
   };
 
   // Recebe a quantidade JÁ em unidade-base (a conversão acontece no onChange do input)
-  const updateQtd = (insumoId, qtdBase) => {
-    setIngFicha(lista => lista.map(i => i.insumo_id === insumoId ? { ...i, quantidade: Number(qtdBase) || 0 } : i));
+  const updateQtd = (chave, qtdBase) => {
+    setIngFicha(lista => lista.map(i => i.chave === chave ? { ...i, quantidade: Number(qtdBase) || 0 } : i));
   };
 
-  const toggleModo = (insumoId) => {
-    setIngFicha(lista => lista.map(i => i.insumo_id === insumoId ? { ...i, modo: i.modo === 'sub' ? 'base' : 'sub' } : i));
+  const toggleModo = (chave) => {
+    setIngFicha(lista => lista.map(i => i.chave === chave ? { ...i, modo: i.modo === 'sub' ? 'base' : 'sub' } : i));
   };
 
-  const removeIngrediente = (insumoId) => {
-    setIngFicha(lista => lista.filter(i => i.insumo_id !== insumoId));
+  const removeIngrediente = (chave) => {
+    setIngFicha(lista => lista.filter(i => i.chave !== chave));
   };
 
   const handleSalvar = async () => {
     if(!form.nome_receita.trim()) return alert("Digite o nome da receita");
     if(!form.rendimento_porcoes) return alert("Digite o rendimento");
-    
+
     // Filtra ingredientes que estão com qtd = 0
     const ingValidos = ingFicha.filter(i => i.quantidade > 0);
     if(ingValidos.length === 0) return alert("Adicione pelo menos um ingrediente com quantidade válida.");
@@ -136,9 +186,15 @@ function FichasRunner() {
           departamento: form.departamento,
           nome_receita: form.nome_receita,
           rendimento_porcoes: Number(form.rendimento_porcoes),
-          modo_preparo: form.modo_preparo
+          modo_preparo: form.modo_preparo,
+          eh_base: !!form.eh_base,
+          rendimento_unidade: form.eh_base ? form.rendimento_unidade : "porcao"
        },
-       ingValidos.map(i => ({ insumo_id: i.insumo_id, quantidade: i.quantidade }))
+       ingValidos.map(i => ({
+          insumo_id: i.tipo === "insumo" ? i.insumo_id : null,
+          subficha_id: i.tipo === "base" ? i.subficha_id : null,
+          quantidade: i.quantidade
+       }))
     );
 
     if(erro.error) return alert("Erro ao salvar: " + erro.error);
@@ -164,9 +220,19 @@ function FichasRunner() {
     };
     let custoTotal = 0;
     const rows = (f.fichas_ingredientes || []).map(fi => {
-       const custo = (fi.insumos?.custo_unitario || 0) * fi.quantidade;
+       let nome, unidade, custo;
+       if (fi.subficha_id) {
+          const base = fichas.find(x => x.id === fi.subficha_id);
+          nome = (base?.nome_receita || 'Base') + ' (base)';
+          unidade = base?.rendimento_unidade;
+          custo = base ? custoUnitBase(base, fichas) * fi.quantidade : 0;
+       } else {
+          nome = fi.insumos?.nome || 'Insumo';
+          unidade = fi.insumos?.unidade_medida;
+          custo = (fi.insumos?.custo_unitario || 0) * fi.quantidade;
+       }
        custoTotal += custo;
-       return `<tr><td>${fi.insumos?.nome || 'Insumo'}</td><td class="c">${fmtQtd(fi.quantidade, fi.insumos?.unidade_medida)}</td><td class="r">R$ ${custo.toFixed(2)}</td></tr>`;
+       return `<tr><td>${nome}</td><td class="c">${fmtQtd(fi.quantidade, unidade)}</td><td class="r">R$ ${custo.toFixed(2)}</td></tr>`;
     }).join('');
     const rende = f.rendimento_porcoes || 1;
     const custoPorcao = custoTotal / rende;
@@ -251,12 +317,8 @@ function FichasRunner() {
          ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                {filtradas.map(f => {
-                  // Mapeia e calcula custo na hora pra exibir o card
-                  const mapIng = (f.fichas_ingredientes || []).map(fi => ({
-                     custo_unitario: fi.insumos?.custo_unitario || 0,
-                     quantidade: fi.quantidade
-                  }));
-                  const custoFicha = calcularCustoTotal(mapIng);
+                  // Custo recursivo (resolve bases/sub-receitas)
+                  const custoFicha = custoTotalDaFicha(f, fichas);
                   const custoPorcao = custoFicha / (f.rendimento_porcoes || 1);
 
                   return (
@@ -311,9 +373,28 @@ function FichasRunner() {
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nome da Receita</label>
                         <input type="text" placeholder="Ex: Caipirinha de Morango" value={form.nome_receita} onChange={e=>setForm({...form, nome_receita: e.target.value})} className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500 shadow-sm"/>
                      </div>
-                     <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Rendimento (Nº de Porções)</label>
-                        <input type="number" placeholder="1" value={form.rendimento_porcoes} onChange={e=>setForm({...form, rendimento_porcoes: e.target.value})} className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500 shadow-sm"/>
+                     <div className="bg-purple-50 border border-purple-100 rounded-xl p-3">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                           <input type="checkbox" checked={form.eh_base} onChange={e=>setForm({...form, eh_base: e.target.checked})} className="w-4 h-4 accent-purple-600"/>
+                           <span className="text-xs font-black text-purple-700 uppercase tracking-widest">É uma base / pré-preparo</span>
+                        </label>
+                        <p className="text-[11px] text-purple-500 mt-1 font-medium">Marque se esta receita é usada como ingrediente de outros pratos (ex.: base de tucupi, molho, massa).</p>
+                     </div>
+                     <div className="grid grid-cols-2 gap-3">
+                        <div>
+                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Rendimento {form.eh_base ? '(quanto rende)' : '(nº porções)'}</label>
+                           <input type="number" placeholder="1" value={form.rendimento_porcoes} onChange={e=>setForm({...form, rendimento_porcoes: e.target.value})} className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500 shadow-sm"/>
+                        </div>
+                        {form.eh_base && (
+                           <div>
+                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Unidade</label>
+                              <select value={form.rendimento_unidade} onChange={e=>setForm({...form, rendimento_unidade: e.target.value})} className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500 shadow-sm">
+                                 <option value="l">Litros (L)</option>
+                                 <option value="kg">Kilos (kg)</option>
+                                 <option value="un">Unidades (un)</option>
+                              </select>
+                           </div>
+                        )}
                      </div>
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Modo de Preparo</label>
@@ -328,8 +409,15 @@ function FichasRunner() {
                      {/* ADD INGREDIENTE */}
                      <div className="flex gap-2 mb-4">
                         <select onChange={e => { addIngrediente(e.target.value); e.target.value=""; }} className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-600 outline-none focus:border-emerald-500 text-sm">
-                           <option value="">+ Pesquisar Insumo...</option>
-                           {insumosAtivos.map(i => <option key={i.id} value={i.id}>{i.nome} ({i.unidade_medida})</option>)}
+                           <option value="">+ Adicionar insumo ou base...</option>
+                           <optgroup label="Insumos">
+                              {insumosAtivos.map(i => <option key={i.id} value={`insumo:${i.id}`}>{i.nome} ({i.unidade_medida})</option>)}
+                           </optgroup>
+                           {basesDisponiveis.length > 0 && (
+                              <optgroup label="Bases / Pré-preparos">
+                                 {basesDisponiveis.map(b => <option key={b.id} value={`base:${b.id}`}>{b.nome_receita} ({b.rendimento_unidade})</option>)}
+                              </optgroup>
+                           )}
                         </select>
                      </div>
 
@@ -349,12 +437,15 @@ function FichasRunner() {
                            const valorExibido = ing.quantidade ? +(ing.quantidade * fator).toFixed(4) : "";
                            const onChangeQtd = (e) => {
                               const v = Number(e.target.value) || 0;
-                              updateQtd(ing.insumo_id, v / fator); // sempre grava em unidade-base
+                              updateQtd(ing.chave, v / fator); // sempre grava em unidade-base
                            };
                            return (
-                           <div key={ing.insumo_id} className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center gap-3 group">
+                           <div key={ing.chave} className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center gap-3 group">
                               <div className="flex-1 min-w-0">
-                                 <p className="font-bold text-slate-800 text-sm truncate">{ing.nome}</p>
+                                 <p className="font-bold text-slate-800 text-sm truncate flex items-center gap-1.5">
+                                    {ing.nome}
+                                    {ing.tipo === "base" && <span className="text-[8px] font-black uppercase tracking-widest bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">Base</span>}
+                                 </p>
                                  <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">Custo: {fmtBRL(ing.custo_unitario * ing.quantidade)}</p>
                               </div>
                               <div className="flex items-center gap-2">
@@ -370,7 +461,7 @@ function FichasRunner() {
                                  {sub ? (
                                     <button
                                        type="button"
-                                       onClick={() => toggleModo(ing.insumo_id)}
+                                       onClick={() => toggleModo(ing.chave)}
                                        title="Alternar unidade de lançamento"
                                        className="text-[10px] font-black text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-md px-1.5 py-1 uppercase w-9 transition-colors"
                                     >
@@ -380,7 +471,7 @@ function FichasRunner() {
                                     <span className="text-[10px] font-black text-slate-500 uppercase w-9 text-center">{unidadeLabel}</span>
                                  )}
                               </div>
-                              <button onClick={() => removeIngrediente(ing.insumo_id)} className="p-2 text-slate-500 hover:text-slate-600 transition-colors bg-white rounded-lg border border-slate-200">
+                              <button onClick={() => removeIngrediente(ing.chave)} className="p-2 text-slate-500 hover:text-slate-600 transition-colors bg-white rounded-lg border border-slate-200">
                                  <Trash2 size={14}/>
                               </button>
                            </div>

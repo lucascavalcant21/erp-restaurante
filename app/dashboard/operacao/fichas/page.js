@@ -710,6 +710,63 @@ function FichasRunner() {
                         );
                      })()}
 
+                     {/* COMPOSIÇÃO DA PORÇÃO: quantas gramas de cada ingrediente vão em 1 porção */}
+                     {(() => {
+                        const rendimento = Number(form.rendimento_porcoes) || 0;
+                        if (!rendimento) return null;
+                        const pesoPorcaoFinal = Number(form.peso_porcao_g) || 0;
+
+                        // Converte cada ingrediente pesável para gramas por porção
+                        const composicao = ingFicha.map(ing => {
+                           const u = String(ing.unidade).toLowerCase();
+                           let g = null;
+                           if ((u === "kg" || u === "l") && ing.quantidade > 0) {
+                              g = (ing.quantidade * 1000) / rendimento;
+                           } else if (ing.tipo === "base" && u === "un" && ing.quantidade > 0) {
+                              const b = fichas.find(x => x.id === ing.subficha_id);
+                              const pg = Number(b?.peso_porcao_g) || 0;
+                              if (pg) g = (ing.quantidade * pg) / rendimento;
+                           }
+                           return g ? { nome: ing.nome, g } : null;
+                        }).filter(Boolean);
+
+                        if (composicao.length < 2) return null;
+                        const totalInNatura = composicao.reduce((a, c) => a + c.g, 0);
+                        // % sobre o peso final da porção (se informado) ou sobre o total in natura
+                        const baseRef = pesoPorcaoFinal > 0 ? pesoPorcaoFinal : totalInNatura;
+                        const difPreparo = pesoPorcaoFinal > 0 ? ((pesoPorcaoFinal - totalInNatura) / totalInNatura) * 100 : null;
+
+                        return (
+                           <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Composição da porção{pesoPorcaoFinal > 0 ? ` (${pesoPorcaoFinal}g final)` : ''}</p>
+                              <div className="space-y-2">
+                                 {composicao.map((c, i) => {
+                                    const pct = (c.g / baseRef) * 100;
+                                    return (
+                                       <div key={i}>
+                                          <div className="flex justify-between text-xs font-bold text-slate-700 mb-0.5">
+                                             <span className="truncate">{c.nome}</span>
+                                             <span className="shrink-0 ml-2">{(+c.g.toFixed(1)).toLocaleString("pt-BR")} g · {pct.toFixed(0)}%</span>
+                                          </div>
+                                          <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                                             <div className="h-full rounded-full bg-emerald-500" style={{ width: `${Math.min(pct, 100)}%` }} />
+                                          </div>
+                                       </div>
+                                    );
+                                 })}
+                              </div>
+                              <div className="flex justify-between items-center mt-3 pt-3 border-t border-slate-100 text-[10px] font-bold text-slate-500">
+                                 <span>Total in natura: {(+totalInNatura.toFixed(1)).toLocaleString("pt-BR")} g / porção</span>
+                                 {difPreparo !== null && Math.abs(difPreparo) >= 1 && (
+                                    <span className={difPreparo < 0 ? "text-red-500" : "text-emerald-600"}>
+                                       {difPreparo < 0 ? `Perda no preparo: ${Math.abs(difPreparo).toFixed(0)}%` : `Ganho no preparo: +${difPreparo.toFixed(0)}%`}
+                                    </span>
+                                 )}
+                              </div>
+                           </div>
+                        );
+                     })()}
+
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Modo de Preparo</label>
 

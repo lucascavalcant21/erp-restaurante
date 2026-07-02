@@ -126,7 +126,11 @@ export default function OrcamentoEventoPage() {
     const gramasTotal = pesoUn > 0 ? porcoes * pesoUn : null;
     // Custo por porção real (usa peso quando o rendimento é em kg/g/l/ml)
     const custoPorcao = ficha ? custoTotalDaFicha(ficha, fichas) / porcoesDaFicha(ficha) : 0;
-    const precoVenda = Number(produto.preco_venda) || 0;
+    // Preço de venda: o que você definir no item (default = preço do cardápio)
+    const precoVenda = it.precoVenda !== undefined && it.precoVenda !== ""
+      ? Number(it.precoVenda) || 0
+      : (Number(produto.preco_venda) || 0);
+    const precoCardapio = Number(produto.preco_venda) || 0;
     return {
       produto_id: it.produto_id,
       nome: produto.nome_produto,
@@ -142,6 +146,8 @@ export default function OrcamentoEventoPage() {
       custoPorcao,
       custoTotal: custoPorcao * porcoes,
       precoVenda,
+      precoCardapio,
+      precoEditado: precoVenda !== precoCardapio,
       vendaTotal: precoVenda * porcoes,
     };
   }).filter(Boolean);
@@ -165,7 +171,7 @@ export default function OrcamentoEventoPage() {
     if (!produtoId || itens.find(i => i.produto_id === produtoId)) return;
     const produto = produtos.find(p => p.id === produtoId);
     const ficha = produto?.ficha_id ? fichas.find(f => f.id === produto.ficha_id) : null;
-    setItens([...itens, { produto_id: produtoId, qtd: convidados > 0 ? convidados : 1, un: "porcao", pesoUn: ficha?.peso_porcao_g || "" }]);
+    setItens([...itens, { produto_id: produtoId, qtd: convidados > 0 ? convidados : 1, un: "porcao", pesoUn: ficha?.peso_porcao_g || "", precoVenda: produto?.preco_venda ?? "" }]);
   };
   const updateItem = (produtoId, patch) => setItens(lista => lista.map(i => i.produto_id === produtoId ? { ...i, ...patch } : i));
   const removeItem = (produtoId) => setItens(lista => lista.filter(i => i.produto_id !== produtoId));
@@ -333,7 +339,7 @@ export default function OrcamentoEventoPage() {
             </div>
 
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-               <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Itens do Buffet (do Cardápio)</p>
+               <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Itens do Buffet — preço sugerido do cardápio, editável por item</p>
                <select onChange={e => { addItem(e.target.value); e.target.value = ""; }} disabled={loading} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-600 outline-none focus:border-emerald-500 mb-4">
                   <option value="">{loading ? "Carregando cardápio..." : "+ Adicionar produto do cardápio..."}</option>
                   {produtos.filter(p => !itens.find(i => i.produto_id === p.id)).map(p => (
@@ -369,8 +375,19 @@ export default function OrcamentoEventoPage() {
                                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block" title="Peso médio de cada porção/unidade. Vem da ficha técnica, mas você pode ajustar.">Peso/un (g)</label>
                                  <input type="number" min="0" step="0.1" placeholder="ex: 35" value={itens.find(i=>i.produto_id===l.produto_id)?.pesoUn ?? ""} onChange={e=>updateItem(l.produto_id, { pesoUn: e.target.value })} className="w-20 p-2 text-center bg-white border border-slate-200 rounded-lg font-bold text-slate-600 outline-none focus:border-emerald-500"/>
                               </div>
+                              <div className="text-center">
+                                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block" title="Preço de venda por porção só deste orçamento. Vem do cardápio, mas você pode definir o valor que quiser.">Preço/porção</label>
+                                 <input type="number" min="0" step="0.01" placeholder="0,00" value={itens.find(i=>i.produto_id===l.produto_id)?.precoVenda ?? ""} onChange={e=>updateItem(l.produto_id, { precoVenda: e.target.value })} className={`w-24 p-2 text-center rounded-lg font-black outline-none focus:border-emerald-500 ${l.precoEditado ? 'bg-amber-50 border border-amber-300 text-amber-700' : 'bg-emerald-50 border border-emerald-200 text-emerald-700'}`}/>
+                              </div>
                               <button onClick={() => removeItem(l.produto_id)} className="p-2 text-slate-400 hover:text-red-500 bg-white rounded-lg border border-slate-200"><Trash2 size={15}/></button>
                            </div>
+
+                           {l.precoEditado && (
+                              <p className="text-[10px] font-bold text-amber-600 mt-2 flex items-center gap-2">
+                                 Preço personalizado (cardápio: {fmtBRL(l.precoCardapio)})
+                                 <button onClick={() => updateItem(l.produto_id, { precoVenda: l.precoCardapio })} className="underline hover:text-amber-700">usar o do cardápio</button>
+                              </p>
+                           )}
 
                            {/* Equivalências: porção em gramas, rendimento por kg e preço do kg */}
                            {l.pesoUn > 0 && (

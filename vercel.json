@@ -5,7 +5,7 @@
     { "src": "next.config.js",               "use": "@vercel/next" }
   ],
   "routes": [
-    { "src": "^/api/(ia-montagem|ia-preparo|ia-insumos|ia-ficha|ifood/.*)$", "dest": "/api/$1" },
+    { "src": "^/api/(ia-montagem|ia-preparo|ia-insumos|ia-ficha|ia-guia-montagem|ifood/.*)$", "dest": "/api/$1" },
     { "src": "/api/(.*)",     "dest": "backend_cloud_code/server.js" },
     { "src": "/webhook/(.*)", "dest": "backend_cloud_code/server.js" }
   ],

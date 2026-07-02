@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchProdutos, salvarProduto } from "../../../lib/vendas";
 import { fetchFichas } from "../../../lib/operacao"; // Pra linkar o custo
-import { UtensilsCrossed, Plus, Search, Edit3, X, Save, ArrowLeft, Tag, Barcode, Image as ImageIcon, Trash2, ListPlus, Percent } from "lucide-react";
+import { UtensilsCrossed, Plus, Search, Edit3, X, Save, ArrowLeft, Tag, Barcode, Image as ImageIcon, Trash2, ListPlus, Percent, Sparkles, Loader2, Printer, ClipboardList } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
 // Custo total de PRODUZIR uma ficha, resolvendo bases (sub-receitas) em cascata.
@@ -87,6 +87,100 @@ function CardapioRunner() {
   const [novaCategoria, setNovaCategoria] = useState("");
 
   const CATEGORIAS_PADRAO = ["Bebidas", "Entradas", "Pratos Principais", "Sobremesas", "Porções", "Combos", "Pizzas", "Lanches"];
+
+  // Guia de montagem do prato (IA) — para padronizar e imprimir/colar na parede
+  const [modalGuia, setModalGuia] = useState(false);
+  const [guiaProduto, setGuiaProduto] = useState(null);
+  const [guiaObs, setGuiaObs] = useState("");
+  const [guiaLoading, setGuiaLoading] = useState(false);
+  const [guiaResultado, setGuiaResultado] = useState(null);
+
+  // Ingredientes por porção de um produto (a partir da ficha vinculada)
+  const ingredientesDoProduto = (produto) => {
+    const ficha = produto?.ficha_id ? fichas.find(f => f.id === produto.ficha_id) : null;
+    if (!ficha) return [];
+    const nporc = porcoesDaFicha(ficha) || 1;
+    return (ficha.fichas_ingredientes || []).map(fi => {
+      let nome, unidade, qtdBase;
+      if (fi.insumos) { nome = fi.insumos.nome; unidade = fi.insumos.unidade_medida; qtdBase = fi.quantidade; }
+      else { const base = fichas.find(x => x.id === fi.subficha_id); nome = base?.nome_receita || "Base"; unidade = base?.rendimento_unidade || "un"; qtdBase = fi.quantidade; }
+      const porPorcao = (Number(qtdBase) || 0) / nporc;
+      const u = String(unidade).toLowerCase();
+      let q = porPorcao, un = u;
+      if (u === "kg") { q = porPorcao * 1000; un = "g"; }
+      if (u === "l") { q = porPorcao * 1000; un = "ml"; }
+      return { nome, quantidade: Math.round(q * 100) / 100, unidade: un };
+    });
+  };
+
+  const abrirGuia = (produto) => {
+    setGuiaProduto(produto);
+    setGuiaObs("");
+    setGuiaResultado(null);
+    setModalGuia(true);
+  };
+
+  const gerarGuia = async () => {
+    if (!guiaProduto) return;
+    setGuiaLoading(true);
+    try {
+      const res = await fetch("/api/ia-guia-montagem", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nome_prato: guiaProduto.nome_produto,
+          categoria: guiaProduto.categoria,
+          ingredientes: ingredientesDoProduto(guiaProduto),
+          observacoes: guiaObs,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) { alert(data.error || "Falha ao gerar o guia."); return; }
+      setGuiaResultado(data);
+    } catch {
+      alert("Não consegui falar com a IA. Verifique a conexão.");
+    } finally {
+      setGuiaLoading(false);
+    }
+  };
+
+  const imprimirGuia = () => {
+    if (!guiaResultado || !guiaProduto) return;
+    const g = guiaResultado;
+    const win = window.open("", "_blank", "width=800,height=1000");
+    if (!win) return alert("Habilite os popups para imprimir o guia.");
+    const li = (arr) => (arr || []).map(x => `<li>${x}</li>`).join("");
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Guia - ${guiaProduto.nome_produto}</title>
+      <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;padding:28px;max-width:760px;margin:0 auto}
+        .head{background:#0f172a;color:#fff;border-radius:16px;padding:20px 24px;margin-bottom:20px}
+        .tag{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:#94a3b8;font-weight:bold}
+        h1{font-size:34px;margin-top:4px}
+        h2{font-size:15px;text-transform:uppercase;letter-spacing:2px;color:#0f172a;margin:22px 0 8px;border-bottom:2px solid #0f172a;padding-bottom:4px}
+        .box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;font-size:16px;line-height:1.5}
+        table{width:100%;border-collapse:collapse;font-size:16px}
+        td{padding:8px 6px;border-bottom:1px solid #e2e8f0}
+        td.q{text-align:right;font-weight:bold;white-space:nowrap}
+        ol,ul{margin-left:22px;font-size:16px;line-height:1.7}
+        ol li{margin-bottom:4px}
+        .dicas{background:#ecfdf5;border:1px solid #a7f3d0;border-radius:12px;padding:14px 16px;font-size:15px}
+        @media print{@page{margin:12mm}}
+      </style></head><body>
+      <div class="head">
+        <div class="tag">Guia de Montagem${guiaProduto.categoria ? " — " + guiaProduto.categoria : ""}</div>
+        <h1>${guiaProduto.nome_produto}</h1>
+      </div>
+      ${g.louca ? `<h2>Louça / Recipiente</h2><div class="box">${g.louca}</div>` : ""}
+      ${(g.porcionamento || []).length ? `<h2>Porcionamento (quantidades exatas)</h2><table><tbody>${g.porcionamento.map(p => `<tr><td>${p.item || ""}</td><td class="q">${p.quantidade || ""}</td></tr>`).join("")}</tbody></table>` : ""}
+      ${(g.montagem || []).length ? `<h2>Ordem de Montagem</h2><ol>${li(g.montagem)}</ol>` : ""}
+      ${g.finalizacao ? `<h2>Finalização</h2><div class="box">${g.finalizacao}</div>` : ""}
+      ${g.visual ? `<h2>Visual do prato pronto</h2><div class="box">${g.visual}</div>` : ""}
+      ${(g.dicas || []).length ? `<h2>Dicas de padronização</h2><div class="dicas"><ul>${li(g.dicas)}</ul></div>` : ""}
+      </body></html>`);
+    win.document.close();
+    setTimeout(() => win.print(), 400);
+  };
 
   const carregar = async () => {
     setLoading(true);
@@ -235,6 +329,7 @@ function CardapioRunner() {
                     CMV {cmv.toFixed(1)}%
                  </span>
               )}
+              <button onClick={() => abrirGuia(p)} title="Guia de montagem do prato (IA)" className="text-slate-500 hover:text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity p-1"><ClipboardList size={18}/></button>
               <button onClick={() => abrirEditar(p)} className="text-slate-500 hover:text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity p-1"><Edit3 size={18}/></button>
            </div>
         </div>
@@ -524,6 +619,98 @@ function CardapioRunner() {
                      <Save size={20}/> Salvar Produto
                   </button>
                </div>
+            </div>
+         </div>
+      )}
+
+      {/* GUIA DE MONTAGEM DO PRATO (IA) */}
+      {modalGuia && guiaProduto && (
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
+            <div className="bg-white rounded-[32px] w-full max-w-2xl my-8 shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[90vh]">
+               <div className="flex justify-between items-center p-8 pb-6 border-b border-slate-100 shrink-0">
+                  <div className="flex items-center gap-3">
+                     <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center"><ClipboardList size={22}/></div>
+                     <div>
+                        <h2 className="font-black text-2xl text-slate-800">Guia de Montagem</h2>
+                        <p className="text-xs font-bold text-slate-500 mt-0.5">{guiaProduto.nome_produto} — padronize e cole na parede</p>
+                     </div>
+                  </div>
+                  <button onClick={() => setModalGuia(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+               </div>
+
+               <div className="p-8 overflow-y-auto custom-scrollbar space-y-5">
+                  {!guiaProduto.ficha_id && (
+                     <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-[11px] font-bold text-amber-700">
+                        Este produto não tem Ficha Técnica vinculada — a IA vai montar o guia só pelo nome. Para quantidades exatas, vincule uma ficha.
+                     </div>
+                  )}
+
+                  {!guiaResultado ? (
+                     <>
+                        <div>
+                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Observações do chef (opcional)</label>
+                           <textarea
+                              placeholder="Ex: sai em prato fundo, molho por cima na hora, salsinha picada por cima, servir bem quente..."
+                              value={guiaObs}
+                              onChange={e => setGuiaObs(e.target.value)}
+                              className="w-full h-24 p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:border-emerald-500 resize-none"
+                           ></textarea>
+                        </div>
+                        {ingredientesDoProduto(guiaProduto).length > 0 && (
+                           <div className="bg-slate-50 border border-slate-100 rounded-xl p-3">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Ingredientes por porção (da ficha)</p>
+                              <p className="text-xs text-slate-500 font-medium">{ingredientesDoProduto(guiaProduto).map(i => `${i.nome} ${i.quantidade}${i.unidade}`).join(" · ")}</p>
+                           </div>
+                        )}
+                        <button onClick={gerarGuia} disabled={guiaLoading} className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95">
+                           {guiaLoading ? <><Loader2 size={18} className="animate-spin"/> Gerando guia...</> : <><Sparkles size={18}/> Gerar guia de montagem</>}
+                        </button>
+                     </>
+                  ) : (
+                     <div className="space-y-4">
+                        {guiaResultado.louca && (
+                           <div><p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Louça / recipiente</p><p className="font-bold text-slate-800">{guiaResultado.louca}</p></div>
+                        )}
+                        {(guiaResultado.porcionamento || []).length > 0 && (
+                           <div>
+                              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Porcionamento</p>
+                              <div className="space-y-1">
+                                 {guiaResultado.porcionamento.map((p, i) => (
+                                    <div key={i} className="flex justify-between text-sm bg-slate-50 rounded-lg px-3 py-2"><span className="font-bold text-slate-700">{p.item}</span><span className="font-black text-emerald-600">{p.quantidade}</span></div>
+                                 ))}
+                              </div>
+                           </div>
+                        )}
+                        {(guiaResultado.montagem || []).length > 0 && (
+                           <div>
+                              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Ordem de montagem</p>
+                              <ol className="list-decimal ml-5 space-y-1 text-sm font-medium text-slate-700">{guiaResultado.montagem.map((m, i) => <li key={i}>{m}</li>)}</ol>
+                           </div>
+                        )}
+                        {guiaResultado.finalizacao && (
+                           <div><p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Finalização</p><p className="text-sm font-medium text-slate-700">{guiaResultado.finalizacao}</p></div>
+                        )}
+                        {guiaResultado.visual && (
+                           <div><p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Visual esperado</p><p className="text-sm font-medium text-slate-700">{guiaResultado.visual}</p></div>
+                        )}
+                        {(guiaResultado.dicas || []).length > 0 && (
+                           <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700 mb-1">Dicas de padronização</p>
+                              <ul className="list-disc ml-4 text-sm font-medium text-emerald-800 space-y-0.5">{guiaResultado.dicas.map((d, i) => <li key={i}>{d}</li>)}</ul>
+                           </div>
+                        )}
+                        <button onClick={() => setGuiaResultado(null)} className="text-xs font-bold text-slate-500 hover:text-slate-700">← Gerar de novo</button>
+                     </div>
+                  )}
+               </div>
+
+               {guiaResultado && (
+                  <div className="p-8 pt-4 border-t border-slate-100 bg-slate-50 rounded-b-[32px] shrink-0">
+                     <button onClick={imprimirGuia} className="w-full py-5 bg-slate-900 hover:bg-slate-800 text-white font-black text-lg rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2">
+                        <Printer size={20}/> Imprimir guia (colar na parede)
+                     </button>
+                  </div>
+               )}
             </div>
          </div>
       )}

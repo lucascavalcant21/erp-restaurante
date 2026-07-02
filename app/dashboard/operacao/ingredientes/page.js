@@ -30,8 +30,9 @@ function IngredientesRunner() {
 
   const [modalNovo, setModalNovo] = useState(false);
   // custo_compra = preço como comprado; peso bruto/limpo calculam a perda de limpeza
-  // (casca, espinha, apara). custo_unitario salvo no banco = custo REAL do kg limpo.
-  const [form, setForm] = useState({ id: null, departamento: deptUrl || "cozinha", nome: "", marca: "", unidade_medida: "kg", custo_compra: "", peso_bruto_g: "", peso_liquido_g: "" });
+  // (casca, espinha, apara). Se for empanado, soma o custo do empanamento e divide
+  // pelo ganho de peso. custo_unitario salvo no banco = custo REAL do kg PRONTO.
+  const [form, setForm] = useState({ id: null, departamento: deptUrl || "cozinha", nome: "", marca: "", unidade_medida: "kg", custo_compra: "", peso_bruto_g: "", peso_liquido_g: "", eh_empanado: false, custo_empanamento: "", peso_in_natura_g: "", peso_empanado_g: "" });
 
   // Aproveitamento (%) derivado dos pesos: 650g limpos de 1000g brutos = 65%
   const aproveitamentoForm = (() => {
@@ -41,6 +42,19 @@ function IngredientesRunner() {
     return 100;
   })();
   const custoRealForm = form.custo_compra ? Number(form.custo_compra) / (aproveitamentoForm / 100) : 0;
+
+  // Empanamento: fator de ganho de peso (1000g in natura -> 1360g empanado = 1,36)
+  const fatorEmpanadoForm = (() => {
+    if (!form.eh_empanado) return 1;
+    const inNatura = Number(form.peso_in_natura_g) || 0;
+    const empanado = Number(form.peso_empanado_g) || 0;
+    if (inNatura > 0 && empanado > 0) return empanado / inNatura;
+    return 1;
+  })();
+  // Custo final do kg PRONTO: (kg limpo + empanamento) dividido pelo peso que virou
+  const custoFinalForm = form.eh_empanado
+    ? (custoRealForm + (Number(form.custo_empanamento) || 0)) / fatorEmpanadoForm
+    : custoRealForm;
 
   // Importação em massa via IA (texto colado e/ou foto)
   const [modalIA, setModalIA] = useState(false);
@@ -85,13 +99,14 @@ function IngredientesRunner() {
   const paginados = filtrados.slice((paginaAtual - 1) * PAGE_SIZE, paginaAtual * PAGE_SIZE);
 
   const abrirNovo = () => {
-    setForm({ id: null, departamento: deptUrl || "cozinha", nome: "", marca: "", unidade_medida: "kg", custo_compra: "", peso_bruto_g: "", peso_liquido_g: "" });
+    setForm({ id: null, departamento: deptUrl || "cozinha", nome: "", marca: "", unidade_medida: "kg", custo_compra: "", peso_bruto_g: "", peso_liquido_g: "", eh_empanado: false, custo_empanamento: "", peso_in_natura_g: "", peso_empanado_g: "" });
     setModalNovo(true);
   };
 
   const abrirEditar = (ins) => {
     // Reconstrói os pesos a partir do aproveitamento salvo ("por kg comprado": 1000g -> Xg)
     const pct = Number(ins.aproveitamento_pct) || 0;
+    const fator = Number(ins.fator_empanamento) || 0;
     setForm({
       id: ins.id,
       departamento: ins.departamento,
@@ -101,6 +116,10 @@ function IngredientesRunner() {
       custo_compra: ins.custo_compra ?? ins.custo_unitario,
       peso_bruto_g: pct > 0 && pct < 100 ? "1000" : "",
       peso_liquido_g: pct > 0 && pct < 100 ? String(Math.round(pct * 10)) : "",
+      eh_empanado: !!ins.eh_empanado,
+      custo_empanamento: ins.custo_empanamento || "",
+      peso_in_natura_g: fator > 0 ? "1000" : "",
+      peso_empanado_g: fator > 0 ? String(Math.round(fator * 1000)) : "",
     });
     setModalNovo(true);
   };
@@ -199,9 +218,22 @@ function IngredientesRunner() {
     if (bruto > 0 && limpo > bruto) return alert("O peso limpo não pode ser maior que o peso bruto.");
 
     const pct = bruto > 0 ? (limpo / bruto) * 100 : 100;
-    // custo_unitario gravado = custo REAL do kg aproveitável (compra ÷ aproveitamento).
+    const custoLimpo = custoCompra / (pct / 100);
+
+    // Empanamento: soma o custo dos ingredientes de empanar e divide pelo ganho de peso
+    let fator = null;
+    let custoEmp = null;
+    if (form.eh_empanado) {
+       const inNatura = Number(form.peso_in_natura_g) || 0;
+       const empanado = Number(form.peso_empanado_g) || 0;
+       if (!inNatura || !empanado) return alert("Produto empanado: preencha os DOIS pesos (in natura e empanado).");
+       custoEmp = Number(form.custo_empanamento) || 0;
+       fator = empanado / inNatura;
+    }
+
+    // custo_unitario gravado = custo REAL do kg PRONTO (limpeza + empanamento).
     // Assim todas as fichas/CMV já usam o custo corrigido sem mudar nada nos cálculos.
-    const custoReal = custoCompra / (pct / 100);
+    const custoReal = form.eh_empanado ? (custoLimpo + custoEmp) / fator : custoLimpo;
 
     const erro = await salvarInsumo({
        id: form.id,
@@ -212,6 +244,9 @@ function IngredientesRunner() {
        unidade_id: unidadeAtiva,
        custo_compra: custoCompra,
        aproveitamento_pct: pct < 100 ? Math.round(pct * 100) / 100 : null,
+       eh_empanado: !!form.eh_empanado,
+       custo_empanamento: form.eh_empanado ? custoEmp : null,
+       fator_empanamento: form.eh_empanado ? Math.round(fator * 10000) / 10000 : null,
        custo_unitario: Math.round(custoReal * 10000) / 10000
     });
 
@@ -331,7 +366,14 @@ function IngredientesRunner() {
                        <div className="w-1 h-10 rounded-full bg-emerald-400 shrink-0" />
                        <div className="min-w-0">
                          <p className="font-bold text-slate-800 text-[15px] leading-tight truncate">{ins.nome}{ins.marca ? <span className="text-slate-400 font-medium"> · {ins.marca}</span> : null}</p>
-                         <span className={`inline-block text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mt-1 ${deptColor}`}>{ins.departamento}</span>
+                         <div className="flex items-center gap-1.5 mt-1">
+                           <span className={`inline-block text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${deptColor}`}>{ins.departamento}</span>
+                           {ins.eh_empanado && Number(ins.fator_empanamento) > 0 && (
+                             <span className="inline-block text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-sky-100 text-sky-700" title={`1 kg in natura vira ${Number(ins.fator_empanamento).toLocaleString('pt-BR', { maximumFractionDigits: 3 })} kg empanado`}>
+                               empanado {Number(ins.fator_empanamento) > 1 ? '+' : ''}{((Number(ins.fator_empanamento) - 1) * 100).toFixed(0)}%
+                             </span>
+                           )}
+                         </div>
                        </div>
                      </div>
                      {/* Unidade */}
@@ -470,15 +512,58 @@ function IngredientesRunner() {
                               <p className="text-[10px] font-bold text-slate-500">Aproveitamento: {aproveitamentoForm.toFixed(1)}%</p>
                            </div>
                            <div className="text-right">
-                              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Custo real / {form.unidade_medida}</p>
+                              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Custo do kg limpo</p>
                               <p className="text-xl font-black text-emerald-600">{fmtBRL(custoRealForm)}</p>
                            </div>
                         </div>
                      )}
                   </div>
 
+                  {/* Empanamento: o produto ganha peso ao empanar, e o empanamento tem custo próprio */}
+                  <div className="bg-sky-50 border border-sky-200 rounded-xl p-4">
+                     <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={form.eh_empanado} onChange={e=>setForm({...form, eh_empanado: e.target.checked})} className="w-4 h-4 accent-sky-600"/>
+                        <span className="text-[11px] font-black uppercase tracking-widest text-sky-700">Este produto é empanado</span>
+                     </label>
+                     {form.eh_empanado && (
+                        <div className="mt-3 space-y-3">
+                           <div>
+                              <label className="text-[10px] font-bold text-sky-700 uppercase tracking-widest">Custo do empanamento (R$ por kg in natura)</label>
+                              <input type="number" step="0.01" min="0" placeholder="Ex: 4.50 (farinha, ovo, temperos p/ empanar 1kg)" value={form.custo_empanamento} onChange={e=>setForm({...form, custo_empanamento: e.target.value})} className="w-full p-3 mt-1 bg-white border border-sky-200 rounded-lg font-bold text-slate-700 outline-none focus:border-sky-500"/>
+                           </div>
+                           <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                 <label className="text-[10px] font-bold text-sky-700 uppercase tracking-widest">Peso in natura (g)</label>
+                                 <input type="number" step="1" min="0" placeholder="Ex: 1000" value={form.peso_in_natura_g} onChange={e=>setForm({...form, peso_in_natura_g: e.target.value})} className="w-full p-3 mt-1 bg-white border border-sky-200 rounded-lg font-bold text-slate-700 outline-none focus:border-sky-500"/>
+                              </div>
+                              <div>
+                                 <label className="text-[10px] font-bold text-sky-700 uppercase tracking-widest">Peso empanado (g)</label>
+                                 <input type="number" step="1" min="0" placeholder="Ex: 1360" value={form.peso_empanado_g} onChange={e=>setForm({...form, peso_empanado_g: e.target.value})} className="w-full p-3 mt-1 bg-white border border-sky-200 rounded-lg font-bold text-slate-700 outline-none focus:border-sky-500"/>
+                              </div>
+                           </div>
+                           {fatorEmpanadoForm !== 1 && (
+                              <div className="bg-white border border-sky-200 rounded-lg p-3 space-y-2">
+                                 <div className="flex justify-between items-center">
+                                    <div>
+                                       <p className="text-[10px] font-black uppercase tracking-widest text-sky-600">Rendimento: {fatorEmpanadoForm > 1 ? '+' : ''}{((fatorEmpanadoForm - 1) * 100).toFixed(1)}% no peso</p>
+                                       <p className="text-[10px] font-bold text-slate-500">1 kg in natura vira {(fatorEmpanadoForm).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} kg empanado</p>
+                                    </div>
+                                    <div className="text-right">
+                                       <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Custo do kg empanado</p>
+                                       <p className="text-xl font-black text-emerald-600">{fmtBRL(custoFinalForm)}</p>
+                                    </div>
+                                 </div>
+                                 <p className="text-[10px] font-bold text-slate-500 border-t border-sky-100 pt-2">
+                                    Em 1 kg empanado: {Math.round(1000 / fatorEmpanadoForm).toLocaleString("pt-BR")} g de {form.nome || 'produto'} + {Math.round(1000 - 1000 / fatorEmpanadoForm).toLocaleString("pt-BR")} g de empanamento
+                                 </p>
+                              </div>
+                           )}
+                        </div>
+                     )}
+                  </div>
+
                   <p className="text-[11px] font-medium text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                     Dica: Cadastre o custo da unidade de compra. Ex.: garrafa de Vodka de 1 Litro por R$ 60,00 → Unidade Base "L" e Custo "60". Se tem perda na limpeza, o custo salvo é o REAL (compra ÷ aproveitamento) — as fichas técnicas já calculam em cima dele.
+                     Dica: Cadastre o custo da unidade de compra. Ex.: garrafa de Vodka de 1 Litro por R$ 60,00 → Unidade Base "L" e Custo "60". Se tem perda na limpeza ou empanamento, o custo salvo é o REAL do produto pronto — as fichas técnicas já calculam em cima dele.
                   </p>
                </div>
 

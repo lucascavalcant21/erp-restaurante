@@ -25,8 +25,8 @@ export default function ModalImportar({ open, onClose, tipo, eventoId, existente
   const config = {
     "ingredientes-food": { titulo: "Importar Ingredientes (Cozinha)", subtitulo: "Selecione os ingredientes do ERP para usar no evento" },
     "ingredientes-bar":  { titulo: "Importar Ingredientes (Bar)",     subtitulo: "Selecione bebidas, destilados e xaropes do ERP" },
-    "pratos":            { titulo: "Importar Pratos do Cardápio",     subtitulo: "Selecione pratos. As receitas precisarão ser preenchidas no evento." },
-    "drinks":            { titulo: "Importar Drinks do Cardápio",     subtitulo: "Selecione drinks. As receitas precisarão ser preenchidas no evento." },
+    "pratos":            { titulo: "Importar Pratos do Cardápio",     subtitulo: "Produtos com Ficha Técnica entram com a receita e os ingredientes completos." },
+    "drinks":            { titulo: "Importar Drinks do Cardápio",     subtitulo: "Drinks com Ficha Técnica entram com a receita e os ingredientes completos." },
   }[tipo] || { titulo: "Importar", subtitulo: "" };
 
   useEffect(() => {
@@ -145,6 +145,11 @@ export default function ModalImportar({ open, onClose, tipo, eventoId, existente
                     )}
                     {(tipo === "pratos" || tipo === "drinks") && item.preco_venda && (
                       <span style={{ color: "var(--accent-fg)", marginLeft: 6, fontSize: 10, fontWeight: 600 }}>{fmtBRL(item.preco_venda)}</span>
+                    )}
+                    {(tipo === "pratos" || tipo === "drinks") && (
+                      <span style={{ color: item.ficha_id ? "#10B981" : "#F59E0B", marginLeft: 6, fontSize: 10 }}>
+                        {item.ficha_id ? "· com receita" : "· sem ficha técnica"}
+                      </span>
                     )}
                     {jaExiste && (
                       <span style={{ color: "#10B981", marginLeft: 6, fontSize: 10 }}>✓ já importado</span>

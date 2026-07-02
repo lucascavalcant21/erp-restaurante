@@ -750,66 +750,142 @@ export function rateForMethod(method, evento) {
 }
 
 // ─── Importação do Cardápio Regular ──────────────────────────────────────
+// As fontes REAIS do app são: insumos (ingredientes com custo), produtos
+// (cardápio de venda, com preco_venda e ficha_id) e fichas_tecnicas
+// (receita completa, com sub-receitas). As tabelas antigas "ingredientes",
+// "cardapio" e "drinks" estão mortas — nada no app escreve nelas.
+
 /**
- * Busca ingredientes do ERP regular (tabela ingredientes).
- * Retorna lista normalizada para escolha.
+ * Busca ingredientes do ERP regular (tabela insumos).
+ * Campos normalizados para o ModalImportar: nome, unidade, preco_compra.
  */
 export async function fetchIngredientesERP(unidadeId) {
   if (!isSupabaseReady()) return { data: [], error: null };
-  let q = supabase.from("ingredientes").select("*").order("nome");
-  if (unidadeId && unidadeId !== "todas") q = q.eq("unidade_id", unidadeId);
+  let q = supabase.from("insumos").select("*").order("nome");
+  if (unidadeId && unidadeId !== "todas" && unidadeId !== "matriz") q = q.eq("unidade_id", unidadeId);
   const { data, error } = await q;
-  return { data: data || [], error: error?.message || null };
+  const normalizados = (data || []).map((i) => ({
+    ...i,
+    unidade: i.unidade_medida,
+    preco_compra: i.custo_unitario,
+  }));
+  return { data: normalizados, error: error?.message || null };
 }
 
 /**
- * Busca pratos do cardápio regular.
+ * Busca pratos do cardápio regular (tabela produtos, departamento cozinha).
+ * Produtos com ficha_id trazem a receita completa na importação.
  */
 export async function fetchPratosERP(unidadeId) {
   if (!isSupabaseReady()) return { data: [], error: null };
-  let q = supabase.from("cardapio").select("*").order("nome");
-  if (unidadeId && unidadeId !== "todas") q = q.eq("unidade_id", unidadeId);
+  let q = supabase.from("produtos").select("*").eq("departamento", "cozinha").order("nome_produto");
+  if (unidadeId && unidadeId !== "todas" && unidadeId !== "matriz") q = q.eq("unidade_id", unidadeId);
   const { data, error } = await q;
-  return { data: data || [], error: error?.message || null };
+  const normalizados = (data || []).map((p) => ({ ...p, nome: p.nome_produto }));
+  return { data: normalizados, error: error?.message || null };
 }
 
 /**
- * Busca drinks do cardápio regular.
+ * Busca drinks do cardápio regular (tabela produtos, departamento bar).
  */
 export async function fetchDrinksERP(unidadeId) {
   if (!isSupabaseReady()) return { data: [], error: null };
-  let q = supabase.from("drinks").select("*").order("nome");
-  if (unidadeId && unidadeId !== "todas") q = q.eq("unidade_id", unidadeId);
+  let q = supabase.from("produtos").select("*").eq("departamento", "bar").order("nome_produto");
+  if (unidadeId && unidadeId !== "todas" && unidadeId !== "matriz") q = q.eq("unidade_id", unidadeId);
   const { data, error } = await q;
-  return { data: data || [], error: error?.message || null };
+  const normalizados = (data || []).map((p) => ({ ...p, nome: p.nome_produto, tipo: p.categoria }));
+  return { data: normalizados, error: error?.message || null };
+}
+
+// Conversão insumo (unidade base kg/l/g/ml/un) → ingrediente do evento (g/ml/un)
+function convUnidadeInsumo(unidadeMedida) {
+  const u = String(unidadeMedida || "").toLowerCase();
+  if (u === "kg") return { unidade: "g", fator: 1000 };
+  if (u === "g") return { unidade: "g", fator: 1 };
+  if (u === "l") return { unidade: "ml", fator: 1000 };
+  if (u === "ml") return { unidade: "ml", fator: 1 };
+  return { unidade: "un", fator: 1 };
 }
 
 /**
- * Mapeia ingrediente do ERP regular → formato do evento.
- * Detecta tipo (food/bar) pelo nome (palavras-chave de bebidas).
+ * Mapeia insumo do ERP regular → formato do evento.
+ * Tipo (food/bar) vem do departamento do insumo.
  */
 function mapIngredienteERPtoEvento(ing, tipoForcado) {
-  const nome = (ing.nome || "").toLowerCase();
-  const bebidaKeywords = ["vodka", "gin", "rum", "whisky", "whiskey", "tequila", "cerveja", "vinho", "champagne", "xarope", "tônica", "tonica", "soda", "suco", "refrigerante", "água tônica"];
-  const detectado = bebidaKeywords.some((k) => nome.includes(k)) ? "bar" : "food";
-  const tipo = tipoForcado || detectado;
-
-  // Unidade
-  const u = (ing.unidade || "").toUpperCase();
-  let unidade = "g", peso_unit = 1000;
-  if (u === "KG") { unidade = "g"; peso_unit = 1000; }
-  else if (u === "G") { unidade = "g"; peso_unit = 1; }
-  else if (u === "L") { unidade = "ml"; peso_unit = 1000; }
-  else if (u === "ML") { unidade = "ml"; peso_unit = 1; }
-  else if (u === "UN" || u === "MACO" || u === "CX") { unidade = "un"; peso_unit = 1; }
-
+  const tipo = tipoForcado || (String(ing.departamento || "").toLowerCase() === "bar" ? "bar" : "food");
+  const conv = convUnidadeInsumo(ing.unidade_medida || ing.unidade);
   return {
     tipo,
     nome: ing.nome,
-    custo_unit: Number(ing.preco_compra) || 0,
-    peso_unit,
-    unidade,
+    // custo_unit é por peso_unit unidades: insumo de R$35/kg → custo_unit 35, peso_unit 1000 (g)
+    custo_unit: Number(ing.custo_unitario ?? ing.preco_compra) || 0,
+    peso_unit: conv.fator,
+    unidade: conv.unidade,
   };
+}
+
+// ─── Importação com receita (produtos + fichas técnicas) ─────────────────
+
+// Acumula os insumos CRUS de uma ficha para `porcoes` porções, descendo
+// recursivamente nas bases/sub-receitas. acc: { [insumoId]: { insumo, qtd } }
+function acumularInsumosFicha(ficha, porcoes, todasFichas, acc, guard = new Set()) {
+  if (!ficha || guard.has(ficha.id)) return;
+  guard.add(ficha.id);
+  const rend = ficha.rendimento_porcoes || 1;
+  (ficha.fichas_ingredientes || []).forEach((fi) => {
+    const qtdTotal = ((fi.quantidade || 0) / rend) * porcoes;
+    if (fi.insumos) {
+      if (!acc[fi.insumos.id]) acc[fi.insumos.id] = { insumo: fi.insumos, qtd: 0 };
+      acc[fi.insumos.id].qtd += qtdTotal;
+    } else if (fi.subficha_id) {
+      const base = todasFichas.find((x) => x.id === fi.subficha_id);
+      if (base) acumularInsumosFicha(base, qtdTotal, todasFichas, acc, guard);
+    }
+  });
+  guard.delete(ficha.id);
+}
+
+/**
+ * Núcleo da importação de produtos com receita: para cada produto com
+ * ficha_id, resolve a receita até os insumos crus (1 porção), garante os
+ * evento_ingredientes correspondentes (cria os que faltam) e devolve o
+ * array `ingredients` no formato do evento [{type:'ing', id, qty}].
+ */
+async function montarReceitasDosProdutos(eventoId, produtosERP) {
+  // Fichas completas (com insumos e sub-receitas) das unidades envolvidas
+  const { data: fichas } = await supabase.from("fichas_tecnicas")
+    .select(`*, fichas_ingredientes!ficha_id(id, quantidade, subficha_id, insumos(id, nome, departamento, unidade_medida, custo_unitario))`);
+  const todasFichas = fichas || [];
+
+  // Ingredientes já cadastrados no evento (dedupe por nome)
+  const { data: ingsEvento } = await supabase.from("evento_ingredientes").select("*").eq("evento_id", eventoId);
+  const porNome = new Map((ingsEvento || []).map((i) => [String(i.nome).toLowerCase(), i]));
+
+  const receitas = new Map(); // produtoERP.id -> ingredients[]
+  for (const produto of produtosERP) {
+    const ficha = produto.ficha_id ? todasFichas.find((f) => f.id === produto.ficha_id) : null;
+    if (!ficha) { receitas.set(produto.id, []); continue; }
+
+    const acc = {};
+    acumularInsumosFicha(ficha, 1, todasFichas, acc);
+
+    const ingredients = [];
+    for (const { insumo, qtd } of Object.values(acc)) {
+      const chave = String(insumo.nome).toLowerCase();
+      let ingEvento = porNome.get(chave);
+      if (!ingEvento) {
+        const payload = { ...mapIngredienteERPtoEvento(insumo), evento_id: eventoId };
+        const { data: criado, error } = await supabase.from("evento_ingredientes").insert([payload]).select().single();
+        if (error || !criado) continue;
+        ingEvento = criado;
+        porNome.set(chave, criado);
+      }
+      const conv = convUnidadeInsumo(insumo.unidade_medida);
+      ingredients.push({ type: "ing", id: ingEvento.id, qty: Math.round(qtd * conv.fator * 100) / 100 });
+    }
+    receitas.set(produto.id, ingredients);
+  }
+  return receitas;
 }
 
 /**
@@ -828,10 +904,10 @@ export async function importarIngredientes(eventoId, ingredientesERP, tipoForcad
 }
 
 /**
- * Importa pratos do cardápio regular.
- * NOTA: Pratos do cardápio têm apenas custo total, não receita detalhada.
- * Por isso a importação cria pratos sem ingredientes — você precisa adicionar
- * os ingredientes manualmente no evento.
+ * Importa pratos do cardápio regular (produtos), COM a receita da Ficha
+ * Técnica vinculada: os insumos crus entram como evento_ingredientes e o
+ * prato já chega com `ingredients` preenchido (custos e compras funcionam
+ * imediatamente). Produtos sem ficha entram vazios para preencher à mão.
  */
 export async function importarPratos(eventoId, pratosERP, pratosExistentes) {
   if (!isSupabaseReady()) return { count: 0, error: "Supabase não configurado" };
@@ -842,18 +918,20 @@ export async function importarPratos(eventoId, pratosERP, pratosExistentes) {
     if (c.includes("sobremesa") || c.includes("doce")) return "Sobremesa";
     return "Principal";
   };
-  const novos = pratosERP
-    .filter((p) => !nomesExistentes.has(p.nome.toLowerCase()))
-    .map((p) => ({
-      evento_id: eventoId,
-      nome: p.nome,
-      categoria: mapCategoria(p.categoria),
-      rendimento: 1,
-      descricao: p.descricao || null,
-      tags: [],
-      ingredients: [],
-    }));
-  if (!novos.length) return { count: 0, error: null };
+  const aImportar = pratosERP.filter((p) => !nomesExistentes.has(p.nome.toLowerCase()));
+  if (!aImportar.length) return { count: 0, error: null };
+
+  const receitas = await montarReceitasDosProdutos(eventoId, aImportar);
+
+  const novos = aImportar.map((p) => ({
+    evento_id: eventoId,
+    nome: p.nome,
+    categoria: mapCategoria(p.categoria),
+    rendimento: 1,
+    descricao: p.descricao || null,
+    tags: [],
+    ingredients: receitas.get(p.id) || [],
+  }));
   const { error } = await supabase.from("evento_pratos").insert(novos);
   return { count: novos.length, error: error?.message || null };
 }
@@ -958,23 +1036,26 @@ export async function duplicarEvento(eventoOrigem, novoNome, novaData, unidadeId
 }
 
 /**
- * Importa drinks do cardápio regular.
+ * Importa drinks do cardápio regular (produtos do bar), COM a receita da
+ * Ficha Técnica vinculada — mesmo mecanismo de importarPratos.
  */
 export async function importarDrinks(eventoId, drinksERP, drinksExistentes) {
   if (!isSupabaseReady()) return { count: 0, error: "Supabase não configurado" };
   const nomesExistentes = new Set((drinksExistentes || []).map((d) => d.nome.toLowerCase()));
-  const novos = drinksERP
-    .filter((d) => !nomesExistentes.has(d.nome.toLowerCase()))
-    .map((d) => ({
-      evento_id: eventoId,
-      nome: d.nome,
-      has_alcohol: d.tipo !== "Mocktail",
-      is_extra: false,
-      preco_venda: Number(d.preco_venda) || 0,
-      descricao: d.descricao || null,
-      ingredients: [],
-    }));
-  if (!novos.length) return { count: 0, error: null };
+  const aImportar = drinksERP.filter((d) => !nomesExistentes.has(d.nome.toLowerCase()));
+  if (!aImportar.length) return { count: 0, error: null };
+
+  const receitas = await montarReceitasDosProdutos(eventoId, aImportar);
+
+  const novos = aImportar.map((d) => ({
+    evento_id: eventoId,
+    nome: d.nome,
+    has_alcohol: d.tipo !== "Mocktail",
+    is_extra: false,
+    preco_venda: Number(d.preco_venda) || 0,
+    descricao: d.descricao || null,
+    ingredients: receitas.get(d.id) || [],
+  }));
   const { error } = await supabase.from("evento_drinks").insert(novos);
   return { count: novos.length, error: error?.message || null };
 }

@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import {
   LayoutDashboard, Users, UtensilsCrossed, Beer, ShoppingCart, DollarSign, Settings,
-  Calendar, Target, TrendingUp, Activity,
+  Calendar, Target, TrendingUp, Activity, FileText,
 } from "lucide-react";
 import { PageHeader, PageBody, Card, KpiGrid, Kpi, fmtBRL, fmtPct } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
@@ -36,6 +36,71 @@ function diasAte(dataStr) {
   hoje.setHours(0, 0, 0, 0);
   const data = new Date(dataStr + "T00:00:00");
   return Math.floor((data - hoje) / (1000 * 60 * 60 * 24));
+}
+
+// Orçamento impresso para o CLIENTE: menu incluído + valor por pessoa/casal.
+// Sem custos internos, CMV ou margem — documento comercial.
+function imprimirOrcamentoCliente(evento, pratos, drinks, reservas, calc) {
+  const win = window.open("", "_blank", "width=800,height=900");
+  if (!win) return alert("Habilite os popups para imprimir o orçamento.");
+
+  const unitName = calc?.unitName || (evento.charge_mode === "person" ? "pessoa" : "casal");
+  const dataFmt = evento.data_evento ? new Date(evento.data_evento + "T00:00:00").toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) : "";
+
+  const secaoPratos = (categoria, titulo) => {
+    const itens = pratos.filter((p) => p.categoria === categoria);
+    if (!itens.length) return "";
+    return `<h2>${titulo}</h2><ul>${itens.map((p) => `<li><b>${p.nome}</b>${p.descricao ? ` — <span class="desc">${p.descricao}</span>` : ""}</li>`).join("")}</ul>`;
+  };
+  const drinksInclusos = drinks.filter((d) => !d.is_extra);
+  const drinksExtras = drinks.filter((d) => d.is_extra);
+
+  const inclusos = [
+    Number(evento.entradas_inc) > 0 ? `${evento.entradas_inc} entrada${evento.entradas_inc > 1 ? "s" : ""}` : null,
+    Number(evento.principais_inc) > 0 ? `${evento.principais_inc} prato${evento.principais_inc > 1 ? "s" : ""} principal${evento.principais_inc > 1 ? "is" : ""}` : null,
+    Number(evento.sobremesas_inc) > 0 ? `${evento.sobremesas_inc} sobremesa${evento.sobremesas_inc > 1 ? "s" : ""}` : null,
+    Number(evento.drinks_inc) > 0 ? `${evento.drinks_inc} drink${evento.drinks_inc > 1 ? "s" : ""}` : null,
+  ].filter(Boolean).join(" · ");
+
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Orçamento - ${evento.nome}</title>
+    <style>
+      *{margin:0;padding:0;box-sizing:border-box}
+      body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;padding:24px;max-width:720px;margin:0 auto}
+      .head{border-bottom:3px solid #0f172a;padding-bottom:12px;margin-bottom:16px}
+      .tag{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#64748b;font-weight:bold}
+      h1{font-size:26px;margin:4px 0}
+      .meta{font-size:13px;color:#475569}
+      h2{font-size:13px;text-transform:uppercase;letter-spacing:2px;color:#64748b;margin:18px 0 6px}
+      ul{list-style:none}
+      li{padding:5px 0;border-bottom:1px solid #f1f5f9;font-size:14px}
+      .desc{color:#64748b;font-size:12px}
+      .preco{margin-top:24px;border-top:3px solid #0f172a;padding-top:14px;display:flex;justify-content:space-between;align-items:center}
+      .preco .rotulo{font-size:12px;text-transform:uppercase;letter-spacing:2px;color:#64748b;font-weight:bold}
+      .preco .valor{font-size:30px;font-weight:bold}
+      .sub{font-size:12px;color:#64748b;margin-top:6px}
+      .obs{margin-top:28px;font-size:11px;color:#94a3b8}
+      @media print{@page{margin:14mm}}
+    </style></head><body>
+      <div class="head">
+        <div class="tag">Orçamento${evento.tag ? " — " + evento.tag : ""}</div>
+        <h1>${evento.nome}</h1>
+        <div class="meta">${dataFmt}${evento.capacidade ? ` · Capacidade: ${evento.capacidade} ${unitName === "casal" ? "casais" : "pessoas"}` : ""}</div>
+      </div>
+      ${inclusos ? `<div class="meta" style="margin-bottom:8px">Incluído por ${unitName}: <b>${inclusos}</b></div>` : ""}
+      ${secaoPratos("Entrada", "Entradas")}
+      ${secaoPratos("Principal", "Pratos Principais")}
+      ${secaoPratos("Sobremesa", "Sobremesas")}
+      ${drinksInclusos.length ? `<h2>Drinks inclusos</h2><ul>${drinksInclusos.map((d) => `<li><b>${d.nome}</b>${d.descricao ? ` — <span class="desc">${d.descricao}</span>` : ""}</li>`).join("")}</ul>` : ""}
+      ${drinksExtras.length ? `<h2>Drinks extras (cobrados à parte)</h2><ul>${drinksExtras.map((d) => `<li><b>${d.nome}</b> — ${fmtBRL(d.preco_venda)}</li>`).join("")}</ul>` : ""}
+      <div class="preco">
+        <span class="rotulo">Valor por ${unitName}</span>
+        <span class="valor">${fmtBRL(evento.preco_unit)}</span>
+      </div>
+      ${reservas.length > 0 ? `<div class="sub">${reservas.length} ${unitName === "casal" ? (reservas.length > 1 ? "casais confirmados" : "casal confirmado") : (reservas.length > 1 ? "pessoas confirmadas" : "pessoa confirmada")} · total projetado: <b>${fmtBRL(reservas.length * Number(evento.preco_unit))}</b></div>` : ""}
+      <div class="obs">Orçamento gerado em ${new Date().toLocaleDateString("pt-BR")}. Valores sujeitos a confirmação de data e disponibilidade.</div>
+    </body></html>`);
+  win.document.close();
+  setTimeout(() => win.print(), 400);
 }
 
 export default function EventoPage() {
@@ -242,6 +307,28 @@ export default function EventoPage() {
               <Kpi icon={Activity} label="Lucro líquido" value={fmtBRL(calc.profit)} tint={calc.profit >= 0 ? "#10B981" : "#EF4444"} />
               <Kpi icon={Users} label={`${calc.unitPlural} confirmados`} value={`${reservas.length} / ${evento.capacidade}`} tint="#3B82F6" />
             </KpiGrid>
+
+            {/* Orçamento para o cliente: menu + valor por pessoa, sem custos internos */}
+            <Card className="!p-4 mb-4">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div>
+                  <h3 style={{ fontWeight: 700, color: "var(--fg)" }}><FileText size={16} style={{ display: "inline", marginRight: 6 }} />Orçamento para o Cliente</h3>
+                  <p className="text-[11px]" style={{ color: "var(--dim)" }}>
+                    Documento comercial: menu incluído ({pratos.length} prato{pratos.length !== 1 ? "s" : ""}, {drinks.filter((d) => !d.is_extra).length} drink{drinks.filter((d) => !d.is_extra).length !== 1 ? "s" : ""}) e valor por {calc.unitName} — sem custos internos.
+                  </p>
+                </div>
+                <button
+                  onClick={() => imprimirOrcamentoCliente(evento, pratos, drinks, reservas, calc)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 6, padding: "10px 16px",
+                    borderRadius: 10, background: "var(--accent-fg)", color: "#000",
+                    border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700,
+                  }}
+                >
+                  <FileText size={14} /> Imprimir Orçamento
+                </button>
+              </div>
+            </Card>
 
             {/* Break-even */}
             {calc.breakeven !== null && (

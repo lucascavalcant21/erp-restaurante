@@ -252,10 +252,9 @@ export default function OrcamentoEventoPage() {
     const pesoUnFicha = fichasComp.reduce((a, x) => a + (Number(x.ficha.peso_porcao_g) || 0) * x.qtd, 0);
     const pesoUn = Number(it.pesoUn) || pesoUnFicha || 0; // g por porção/unidade
 
-    // Converte a quantidade digitada para nº de porções
-    let porcoes = qtd;
-    if (un === "g") porcoes = pesoUn > 0 ? qtd / pesoUn : 0;
-    if (un === "kg") porcoes = pesoUn > 0 ? (qtd * 1000) / pesoUn : 0;
+    // A quantidade digitada agora representa "porções por pessoa"
+    let porcoesPorPessoa = Number(it.qtd) || 0;
+    let porcoes = convidados > 0 ? porcoesPorPessoa * convidados : porcoesPorPessoa;
 
     const gramasTotal = pesoUn > 0 ? porcoes * pesoUn : null;
     // Custo por porção do prato = soma dos componentes
@@ -353,7 +352,7 @@ export default function OrcamentoEventoPage() {
     if (!produtoId || itens.find(i => i.produto_id === produtoId)) return;
     // Default: 1 porção por convidado; pesoUn e preço são derivados dos
     // componentes no cálculo das linhas (não precisa pré-preencher aqui)
-    setItens([...itens, { produto_id: produtoId, qtd: convidados > 0 ? convidados : 1, un: "porcao" }]);
+    setItens([...itens, { produto_id: produtoId, qtd: 1, un: "porcao" }]);
   };
   const updateItem = (produtoId, patch) => setItens(lista => lista.map(i => i.produto_id === produtoId ? { ...i, ...patch } : i));
   const removeItem = (produtoId) => setItens(lista => lista.filter(i => i.produto_id !== produtoId));
@@ -791,13 +790,11 @@ export default function OrcamentoEventoPage() {
                                  {/* Quantidade (porções por convidado) */}
                                  <div>
                                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Quantidade</label>
-                                    <div className="flex gap-1">
-                                       <input type="number" min="0" step="0.01" value={l.qtd} onChange={e=>updateItem(l.produto_id, { qtd: e.target.value })} className="w-full p-2.5 text-center bg-slate-50 border border-slate-200 rounded-lg font-black text-slate-700 outline-none focus:border-emerald-500"/>
-                                       <select value={l.un} onChange={e=>updateItem(l.produto_id, { un: e.target.value })} className="p-2 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-600 text-xs outline-none focus:border-emerald-500 shrink-0">
-                                          <option value="porcao">porções</option>
-                                          {l.pesoUn > 0 && <option value="g">g</option>}
-                                          {l.pesoUn > 0 && <option value="kg">kg</option>}
-                                       </select>
+                                    <div className="flex bg-slate-50 border border-slate-200 rounded-lg overflow-hidden focus-within:border-emerald-500">
+                                       <input type="number" min="0" step="0.01" value={l.qtd} onChange={e=>updateItem(l.produto_id, { qtd: e.target.value })} className="w-full p-2.5 text-center bg-transparent font-black text-slate-700 outline-none"/>
+                                       <div className="flex items-center justify-center px-2 bg-slate-100 border-l border-slate-200 text-[10px] font-bold text-slate-500">
+                                          porções
+                                       </div>
                                     </div>
                                  </div>
                                  {/* Porção em gramas */}

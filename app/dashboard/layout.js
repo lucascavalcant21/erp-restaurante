@@ -17,8 +17,6 @@ const SIDEBAR_MENU = [
     items: [
       { label: "Checklist de Salão", href: "/dashboard/operacao/rotina?dept=salao" },
       { label: "Treinamentos", href: "/dashboard/rh/treinamentos" },
-      { label: "Cardápio Digital (QR)", href: "/dashboard/operacao/cardapio" },
-      { label: "Painel de Senhas (TV)", href: "/chamada/dinamico" },
       { label: "Observações Padrão", href: "/dashboard/operacao/observacoes" }
     ]
   },

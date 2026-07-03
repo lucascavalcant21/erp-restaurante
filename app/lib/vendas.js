@@ -188,16 +188,25 @@ export async function processarBaixaEstoqueECMV(pedidoId, unidadeId) {
 
   // 2. Todas as fichas com ingredientes (permite resolver sub-receitas na baixa)
   const { data: fichasDB } = await supabase.from("fichas_tecnicas")
-    .select(`id, rendimento_porcoes, fichas_ingredientes!ficha_id(quantidade, subficha_id, insumos(id, custo_unitario))`);
+    .select(`id, rendimento_porcoes, rendimento_unidade, peso_porcao_g, fichas_ingredientes!ficha_id(quantidade, subficha_id, insumos(id, custo_unitario))`);
   const todasFichas = fichasDB || [];
 
-  // Gasta `vezes` × a receita completa da ficha, descendo nas sub-receitas.
-  // (Mantém a semântica original: 1 item vendido baixa a receita inteira.)
-  const gastarReceita = (ficha, vezes, acc, guard = new Set()) => {
+  // Nº real de porções da ficha (mesma regra das telas de CMV/orçamento)
+  const porcoesDaFicha = (f) => {
+     const rend = Number(f?.rendimento_porcoes) || 1;
+     const un = String(f?.rendimento_unidade || "porcao").toLowerCase();
+     if (un === "porcao" || un === "un") return rend;
+     const pesoPorcao = Number(f?.peso_porcao_g) || 0;
+     const pesoTotalG = (un === "kg" || un === "l") ? rend * 1000 : rend;
+     return pesoPorcao > 0 ? pesoTotalG / pesoPorcao : rend;
+  };
+
+  // Gasta `fracao` × a receita completa da ficha, descendo nas sub-receitas
+  const gastarReceita = (ficha, fracao, acc, guard = new Set()) => {
      if (!ficha || guard.has(ficha.id)) return;
      guard.add(ficha.id);
      (ficha.fichas_ingredientes || []).forEach(fi => {
-        const qtdGasta = (fi.quantidade || 0) * vezes;
+        const qtdGasta = (fi.quantidade || 0) * fracao;
         if (fi.insumos) {
            if (!acc[fi.insumos.id]) acc[fi.insumos.id] = { qtd: 0, custo_unitario: fi.insumos.custo_unitario || 0 };
            acc[fi.insumos.id].qtd += qtdGasta;
@@ -214,7 +223,9 @@ export async function processarBaixaEstoqueECMV(pedidoId, unidadeId) {
   let custoBar = 0;
   const deducoesEstoque = {};
 
-  // 3. Para cada item vendido, soma TODOS os componentes do produto
+  // 3. Para cada item vendido, soma TODOS os componentes do produto.
+  // A baixa é POR PORÇÃO (receita ÷ porções reais) — consistente com o custo
+  // por porção usado no CMV; antes baixava a receita inteira por item vendido.
   itens.forEach(it => {
      const prod = it.produtos;
      if (!prod) return;
@@ -225,8 +236,9 @@ export async function processarBaixaEstoqueECMV(pedidoId, unidadeId) {
      componentes.forEach(comp => {
         const ficha = todasFichas.find(f => f.id === comp.ficha_id);
         if (!ficha) return;
+        const porcoesVendidas = (Number(comp.qtd) || 1) * it.quantidade;
         const acc = {};
-        gastarReceita(ficha, (Number(comp.qtd) || 1) * it.quantidade, acc);
+        gastarReceita(ficha, porcoesVendidas / (porcoesDaFicha(ficha) || 1), acc);
 
         Object.entries(acc).forEach(([insumoId, info]) => {
            const custoGasto = info.qtd * info.custo_unitario;

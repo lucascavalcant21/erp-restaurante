@@ -54,19 +54,30 @@ export default function CmvPage() {
     });
   }, [unidadeAtiva]);
 
-  // CMV real: produtos.preco_venda x custo da ficha_id vinculada (com bases/sub-receitas resolvidas)
+  // CMV real: produtos.preco_venda x custo dos componentes (composição múltipla
+  // ou ficha única), com bases/sub-receitas resolvidas
   const linhas = useMemo(() => {
     const fichasPorId = {};
     fichas.forEach(f => { fichasPorId[f.id] = f; });
 
     return produtos
-      .filter(p => (Number(p.preco_venda) || 0) > 0 && p.ficha_id && fichasPorId[p.ficha_id])
+      .filter(p => (Number(p.preco_venda) || 0) > 0)
       .map(p => {
-        const ficha = fichasPorId[p.ficha_id];
+        const componentes = Array.isArray(p.composicao) && p.composicao.length
+          ? p.composicao
+          : (p.ficha_id ? [{ ficha_id: p.ficha_id, qtd: 1 }] : []);
+        let custo = 0, temFicha = false;
+        componentes.forEach(c => {
+          const ficha = fichasPorId[c.ficha_id];
+          if (!ficha) return;
+          temFicha = true;
+          custo += (custoTotalDaFicha(ficha, fichas) / porcoesDaFicha(ficha)) * (Number(c.qtd) || 1);
+        });
+        if (!temFicha) return null;
         const preco = Number(p.preco_venda) || 0;
-        const custo = custoTotalDaFicha(ficha, fichas) / porcoesDaFicha(ficha);
         return { id: p.id, nome: p.nome_produto, departamento: p.departamento, preco, custo, cmv: preco > 0 ? (custo / preco) * 100 : 0 };
       })
+      .filter(Boolean)
       .sort((a, b) => b.cmv - a.cmv);
   }, [produtos, fichas]);
 

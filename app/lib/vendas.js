@@ -179,45 +179,62 @@ export async function atualizarQtdItemComanda(itemId, novaQtd) {
 export async function processarBaixaEstoqueECMV(pedidoId, unidadeId) {
   if (!isSupabaseReady()) return;
 
-  // 1. Pega os itens do pedido com as fichas e ingredientes
+  // 1. Itens do pedido com o produto (ficha única OU composição múltipla)
   const { data: itens } = await supabase.from("pedidos_itens")
-    .select(`
-      quantidade,
-      produtos (
-         departamento,
-         fichas_tecnicas (
-            fichas_ingredientes!ficha_id (
-               quantidade,
-               insumos ( id, custo_unitario )
-            )
-         )
-      )
-    `)
+    .select(`quantidade, produtos ( departamento, ficha_id, composicao )`)
     .eq("pedido_id", pedidoId);
 
   if(!itens || itens.length === 0) return;
+
+  // 2. Todas as fichas com ingredientes (permite resolver sub-receitas na baixa)
+  const { data: fichasDB } = await supabase.from("fichas_tecnicas")
+    .select(`id, rendimento_porcoes, fichas_ingredientes!ficha_id(quantidade, subficha_id, insumos(id, custo_unitario))`);
+  const todasFichas = fichasDB || [];
+
+  // Gasta `vezes` × a receita completa da ficha, descendo nas sub-receitas.
+  // (Mantém a semântica original: 1 item vendido baixa a receita inteira.)
+  const gastarReceita = (ficha, vezes, acc, guard = new Set()) => {
+     if (!ficha || guard.has(ficha.id)) return;
+     guard.add(ficha.id);
+     (ficha.fichas_ingredientes || []).forEach(fi => {
+        const qtdGasta = (fi.quantidade || 0) * vezes;
+        if (fi.insumos) {
+           if (!acc[fi.insumos.id]) acc[fi.insumos.id] = { qtd: 0, custo_unitario: fi.insumos.custo_unitario || 0 };
+           acc[fi.insumos.id].qtd += qtdGasta;
+        } else if (fi.subficha_id) {
+           // qtdGasta está em unidades de rendimento da base → fração da receita da base
+           const base = todasFichas.find(x => x.id === fi.subficha_id);
+           if (base) gastarReceita(base, qtdGasta / (base.rendimento_porcoes || 1), acc, guard);
+        }
+     });
+     guard.delete(ficha.id);
+  };
 
   let custoCozinha = 0;
   let custoBar = 0;
   const deducoesEstoque = {};
 
-  // 2. Calcula as deduções e o CMV
+  // 3. Para cada item vendido, soma TODOS os componentes do produto
   itens.forEach(it => {
-     const ficha = it.produtos?.fichas_tecnicas;
-     if(!ficha || !ficha.fichas_ingredientes) return;
+     const prod = it.produtos;
+     if (!prod) return;
+     const componentes = Array.isArray(prod.composicao) && prod.composicao.length
+        ? prod.composicao
+        : (prod.ficha_id ? [{ ficha_id: prod.ficha_id, qtd: 1 }] : []);
 
-     ficha.fichas_ingredientes.forEach(ing => {
-        if (!ing.insumos) return; // ingrediente-base (sub-ficha): baixa recursiva fica pra depois
-        const qtdGasta = ing.quantidade * it.quantidade;
-        const custoGasto = qtdGasta * ing.insumos.custo_unitario;
+     componentes.forEach(comp => {
+        const ficha = todasFichas.find(f => f.id === comp.ficha_id);
+        if (!ficha) return;
+        const acc = {};
+        gastarReceita(ficha, (Number(comp.qtd) || 1) * it.quantidade, acc);
 
-        // Soma para o DRE Financeiro (Separando Bar vs Cozinha)
-        if(it.produtos.departamento === 'cozinha') custoCozinha += custoGasto;
-        else custoBar += custoGasto;
-
-        // Agrupa pro Estoque
-        if(!deducoesEstoque[ing.insumos.id]) deducoesEstoque[ing.insumos.id] = 0;
-        deducoesEstoque[ing.insumos.id] += qtdGasta;
+        Object.entries(acc).forEach(([insumoId, info]) => {
+           const custoGasto = info.qtd * info.custo_unitario;
+           if (prod.departamento === 'cozinha') custoCozinha += custoGasto;
+           else custoBar += custoGasto;
+           if (!deducoesEstoque[insumoId]) deducoesEstoque[insumoId] = 0;
+           deducoesEstoque[insumoId] += info.qtd;
+        });
      });
   });
 

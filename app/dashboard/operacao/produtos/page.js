@@ -35,12 +35,33 @@ function porcoesDaFicha(f) {
   return pesoPorcao > 0 ? pesoTotalG / pesoPorcao : rend;
 }
 
-// CMV (%) = custo por porção da ficha vinculada / preço de venda. null se não dá pra calcular.
-function calcCmv(precoVenda, fichaId, todasFichas) {
+// Componentes do produto: a composição múltipla (várias fichas com quantidade)
+// ou, nos produtos antigos, a ficha única como componente de qtd 1.
+function componentesDoProduto(p) {
+  if (Array.isArray(p?.composicao) && p.composicao.length) return p.composicao;
+  return p?.ficha_id ? [{ ficha_id: p.ficha_id, qtd: 1 }] : [];
+}
+
+// Custo por porção do PRODUTO = soma dos componentes (porções de cada ficha × qtd)
+function custoPorcaoProduto(p, todasFichas) {
+  const comps = componentesDoProduto(p);
+  if (!comps.length) return null;
+  let total = 0, achouAlguma = false;
+  comps.forEach(c => {
+    const f = todasFichas.find(x => x.id === c.ficha_id);
+    if (!f) return;
+    achouAlguma = true;
+    total += (custoTotalDaFicha(f, todasFichas) / porcoesDaFicha(f)) * (Number(c.qtd) || 1);
+  });
+  return achouAlguma ? total : null;
+}
+
+// CMV (%) = custo por porção do produto / preço de venda. null se não dá pra calcular.
+function calcCmv(precoVenda, produto, todasFichas) {
   const preco = Number(precoVenda) || 0;
-  const ficha = todasFichas.find(f => f.id === fichaId);
-  if (!preco || !ficha) return null;
-  const custoPorcao = custoTotalDaFicha(ficha, todasFichas) / porcoesDaFicha(ficha);
+  if (!preco) return null;
+  const custoPorcao = custoPorcaoProduto(produto, todasFichas);
+  if (custoPorcao === null) return null;
   return (custoPorcao / preco) * 100;
 }
 const corCmv = (cmv) => cmv > 30
@@ -60,14 +81,15 @@ function CardapioRunner() {
   const [busca, setBusca] = useState("");
   
   const [modalNovo, setModalNovo] = useState(false);
-  const [form, setForm] = useState({ 
-     id: null, 
-     nome_produto: "", 
-     categoria: "Pratos Principais", 
-     departamento: "cozinha", 
+  const [form, setForm] = useState({
+     id: null,
+     nome_produto: "",
+     categoria: "Pratos Principais",
+     departamento: "cozinha",
      tempo_preparo_base: 15,
-     preco_venda: "", 
+     preco_venda: "",
      ficha_id: "",
+     composicao: [],
      codigo_barras: "",
      imagem_url: "",
      modificadores: [],
@@ -95,22 +117,28 @@ function CardapioRunner() {
   const [guiaLoading, setGuiaLoading] = useState(false);
   const [guiaResultado, setGuiaResultado] = useState(null);
 
-  // Ingredientes por porção de um produto (a partir da ficha vinculada)
+  // Ingredientes por porção de um produto — soma TODOS os componentes da
+  // composição (ou a ficha única dos produtos antigos).
   const ingredientesDoProduto = (produto) => {
-    const ficha = produto?.ficha_id ? fichas.find(f => f.id === produto.ficha_id) : null;
-    if (!ficha) return [];
-    const nporc = porcoesDaFicha(ficha) || 1;
-    return (ficha.fichas_ingredientes || []).map(fi => {
-      let nome, unidade, qtdBase;
-      if (fi.insumos) { nome = fi.insumos.nome; unidade = fi.insumos.unidade_medida; qtdBase = fi.quantidade; }
-      else { const base = fichas.find(x => x.id === fi.subficha_id); nome = base?.nome_receita || "Base"; unidade = base?.rendimento_unidade || "un"; qtdBase = fi.quantidade; }
-      const porPorcao = (Number(qtdBase) || 0) / nporc;
-      const u = String(unidade).toLowerCase();
-      let q = porPorcao, un = u;
-      if (u === "kg") { q = porPorcao * 1000; un = "g"; }
-      if (u === "l") { q = porPorcao * 1000; un = "ml"; }
-      return { nome, quantidade: Math.round(q * 100) / 100, unidade: un };
+    const resultado = [];
+    componentesDoProduto(produto).forEach(comp => {
+      const ficha = fichas.find(f => f.id === comp.ficha_id);
+      if (!ficha) return;
+      const nporc = porcoesDaFicha(ficha) || 1;
+      const fator = (Number(comp.qtd) || 1) / nporc;
+      (ficha.fichas_ingredientes || []).forEach(fi => {
+        let nome, unidade, qtdBase;
+        if (fi.insumos) { nome = fi.insumos.nome; unidade = fi.insumos.unidade_medida; qtdBase = fi.quantidade; }
+        else { const base = fichas.find(x => x.id === fi.subficha_id); nome = base?.nome_receita || "Base"; unidade = base?.rendimento_unidade || "un"; qtdBase = fi.quantidade; }
+        const porPorcao = (Number(qtdBase) || 0) * fator;
+        const u = String(unidade).toLowerCase();
+        let q = porPorcao, un = u;
+        if (u === "kg") { q = porPorcao * 1000; un = "g"; }
+        if (u === "l") { q = porPorcao * 1000; un = "ml"; }
+        resultado.push({ nome, quantidade: Math.round(q * 100) / 100, unidade: un });
+      });
     });
+    return resultado;
   };
 
   const abrirGuia = (produto) => {
@@ -216,7 +244,7 @@ function CardapioRunner() {
 
   // CMV médio do cardápio filtrado (só produtos com ficha vinculada e preço)
   const cmvsValidos = filtrados
-    .map(p => calcCmv(p.preco_venda, p.ficha_id, fichas))
+    .map(p => calcCmv(p.preco_venda, p, fichas))
     .filter(v => v !== null);
   const cmvMedio = cmvsValidos.length > 0 ? cmvsValidos.reduce((a, b) => a + b, 0) / cmvsValidos.length : null;
 
@@ -229,8 +257,9 @@ function CardapioRunner() {
        categoria: catFiltro || "Pratos Principais",
        departamento: "cozinha",
        tempo_preparo_base: 15,
-       preco_venda: "", 
+       preco_venda: "",
        ficha_id: "",
+       composicao: [],
        codigo_barras: "",
        imagem_url: "",
        modificadores: [],
@@ -254,8 +283,12 @@ function CardapioRunner() {
        categoria: prod.categoria, 
        departamento: prod.departamento, 
        tempo_preparo_base: prod.tempo_preparo_base || 15,
-       preco_venda: prod.preco_venda, 
+       preco_venda: prod.preco_venda,
        ficha_id: prod.ficha_id || "",
+       // Migra produto antigo (ficha única) para o formato de componentes
+       composicao: Array.isArray(prod.composicao) && prod.composicao.length
+          ? prod.composicao.map(c => ({ ...c }))
+          : (prod.ficha_id ? [{ ficha_id: prod.ficha_id, qtd: 1 }] : []),
        codigo_barras: prod.codigo_barras || "",
        imagem_url: prod.imagem_url || "",
        modificadores: prod.modificadores || [],
@@ -281,13 +314,20 @@ function CardapioRunner() {
        if (!categoriaFinal) return alert("Digite o nome da nova categoria.");
     }
 
+    // Componentes válidos (ficha + qtd > 0). ficha_id continua sendo o 1º
+    // componente, por compatibilidade com o que ainda lê ficha única.
+    const composicaoFinal = (form.composicao || [])
+       .filter(c => c.ficha_id && Number(c.qtd) > 0)
+       .map(c => ({ ficha_id: c.ficha_id, qtd: Number(c.qtd) }));
+
     const erro = await salvarProduto({
        ...form,
        categoria: categoriaFinal,
        unidade_id: unidadeAtiva,
        tempo_preparo_base: Number(form.tempo_preparo_base),
        preco_venda: Number(form.preco_venda),
-       ficha_id: form.ficha_id || null
+       composicao: composicaoFinal.length ? composicaoFinal : null,
+       ficha_id: composicaoFinal[0]?.ficha_id || null
     });
 
     if(erro.error) return alert("Erro ao salvar: " + erro.error);
@@ -316,7 +356,7 @@ function CardapioRunner() {
 
   // Card de produto (usado dentro de cada seção de categoria)
   const renderCard = (p) => {
-     const cmv = calcCmv(p.preco_venda, p.ficha_id, fichas);
+     const cmv = calcCmv(p.preco_venda, p, fichas);
      return (
      <div key={p.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow relative group flex flex-col h-full">
         <div className="flex justify-between items-start mb-2 gap-2">
@@ -365,9 +405,15 @@ function CardapioRunner() {
            </div>
            <div className="text-right">
               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Ficha Técnica</p>
-              <p className={`font-bold text-[10px] uppercase ${p.fichas_tecnicas ? 'text-emerald-600' : 'text-red-500'}`}>
-                 {p.fichas_tecnicas ? p.fichas_tecnicas.nome_receita.substring(0, 15) : 'Não vinculada'}
-              </p>
+              {(() => {
+                 const comps = componentesDoProduto(p);
+                 if (!comps.length) return <p className="font-bold text-[10px] uppercase text-red-500">Não vinculada</p>;
+                 if (comps.length === 1) {
+                    const f = fichas.find(x => x.id === comps[0].ficha_id);
+                    return <p className="font-bold text-[10px] uppercase text-emerald-600">{(f?.nome_receita || p.fichas_tecnicas?.nome_receita || 'Ficha').substring(0, 15)}</p>;
+                 }
+                 return <p className="font-bold text-[10px] uppercase text-emerald-600" title={comps.map(c => fichas.find(x => x.id === c.ficha_id)?.nome_receita).filter(Boolean).join(' + ')}>{comps.length} componentes</p>;
+              })()}
            </div>
         </div>
      </div>
@@ -501,7 +547,7 @@ function CardapioRunner() {
                      </div>
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Vai pro KDS de?</label>
-                        <select value={form.departamento} onChange={e=>setForm({...form, departamento: e.target.value, ficha_id: ""})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500">
+                        <select value={form.departamento} onChange={e=>setForm({...form, departamento: e.target.value, ficha_id: "", composicao: []})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500">
                            <option value="cozinha">Cozinha</option>
                            <option value="bar">Bar</option>
                         </select>
@@ -531,17 +577,50 @@ function CardapioRunner() {
                         <input type="number" step="0.01" placeholder="0.00" value={form.preco_venda} onChange={e=>setForm({...form, preco_venda: e.target.value})} className="w-full p-4 mt-1 bg-emerald-50 border border-emerald-200 rounded-xl font-black text-emerald-600 text-xl outline-none focus:border-emerald-500"/>
                      </div>
                      <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Ficha Técnica (custo e baixa de estoque)</label>
-                        <select value={form.ficha_id} onChange={e=>setForm({...form, ficha_id: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:border-emerald-500">
-                           <option value="">-- Não vincular / não dar baixa --</option>
-                           {fichas.filter(f => f.departamento === form.departamento).map(f => <option key={f.id} value={f.id}>{f.nome_receita}</option>)}
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Montagem do prato (fichas técnicas)</label>
+                        <select
+                           value=""
+                           onChange={e => {
+                              const id = e.target.value;
+                              if (!id || (form.composicao || []).find(c => c.ficha_id === id)) return;
+                              setForm({ ...form, composicao: [...(form.composicao || []), { ficha_id: id, qtd: 1 }] });
+                           }}
+                           className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:border-emerald-500"
+                        >
+                           <option value="">+ Adicionar componente...</option>
+                           {fichas.filter(f => f.departamento === form.departamento && !(form.composicao || []).find(c => c.ficha_id === f.id)).map(f => <option key={f.id} value={f.id}>{f.nome_receita}</option>)}
                         </select>
                      </div>
                   </div>
 
+                  {/* Componentes do prato: várias fichas, cada uma com quantidade de porções */}
+                  {(form.composicao || []).length > 0 && (
+                     <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Composição do prato — custo e baixa de estoque somam todos</p>
+                        {(form.composicao || []).map((c, idx) => {
+                           const f = fichas.find(x => x.id === c.ficha_id);
+                           const custoUnit = f ? custoTotalDaFicha(f, fichas) / porcoesDaFicha(f) : 0;
+                           return (
+                              <div key={c.ficha_id} className="flex items-center gap-2 bg-white border border-slate-100 rounded-xl p-2.5">
+                                 <div className="flex-1 min-w-0">
+                                    <p className="font-bold text-slate-700 text-sm truncate">{f?.nome_receita || "Ficha removida"}</p>
+                                    <p className="text-[10px] font-bold text-emerald-600">{fmtBRL(custoUnit)} / porção{f?.peso_porcao_g ? ` · ${f.peso_porcao_g}g` : ""}</p>
+                                 </div>
+                                 <div className="text-center">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Porções</label>
+                                    <input type="number" min="0" step="0.5" value={c.qtd} onChange={e => setForm({ ...form, composicao: form.composicao.map((x, i) => i === idx ? { ...x, qtd: e.target.value } : x) })} className="w-16 p-1.5 text-center bg-slate-50 border border-slate-200 rounded-lg font-black text-slate-700 outline-none focus:border-emerald-500"/>
+                                 </div>
+                                 <span className="font-black text-slate-600 text-sm w-20 text-right">{fmtBRL(custoUnit * (Number(c.qtd) || 0))}</span>
+                                 <button type="button" onClick={() => setForm({ ...form, composicao: form.composicao.filter((_, i) => i !== idx) })} className="p-1.5 text-slate-400 hover:text-red-500 bg-slate-50 rounded-lg border border-slate-200"><Trash2 size={13}/></button>
+                              </div>
+                           );
+                        })}
+                     </div>
+                  )}
+
                   {/* CMV em tempo real, conforme você digita o preço */}
                   {(() => {
-                     const cmvLive = calcCmv(form.preco_venda, form.ficha_id, fichas);
+                     const cmvLive = calcCmv(form.preco_venda, form, fichas);
                      if (cmvLive === null) return null;
                      const cores = corCmv(cmvLive);
                      return (
@@ -639,7 +718,7 @@ function CardapioRunner() {
                </div>
 
                <div className="p-8 overflow-y-auto custom-scrollbar space-y-5">
-                  {!guiaProduto.ficha_id && (
+                  {componentesDoProduto(guiaProduto).length === 0 && (
                      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-[11px] font-bold text-amber-700">
                         Este produto não tem Ficha Técnica vinculada — a IA vai montar o guia só pelo nome. Para quantidades exatas, vincule uma ficha.
                      </div>

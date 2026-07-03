@@ -136,6 +136,8 @@ function FichasRunner() {
   
   const [modalNovo, setModalNovo] = useState(false);
   
+  const [selecionadas, setSelecionadas] = useState([]);
+  
   // Estado do formulário da Ficha
   const [form, setForm] = useState({
     id: null,
@@ -145,8 +147,52 @@ function FichasRunner() {
     modo_preparo: "",
     eh_base: false,
     rendimento_unidade: "porcao",
-    peso_porcao_g: ""
+    peso_porcao_g: "",
+    imagem: "" // Base64 da foto
   });
+  
+  const fileInputRef = useRef(null);
+
+  const processarEComprimirImagem = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const MAX_WIDTH = 600;
+          let width = img.width;
+          let height = img.height;
+          if (width > MAX_WIDTH) {
+            height = Math.round((height * MAX_WIDTH) / width);
+            width = MAX_WIDTH;
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+          // Retorna apenas o base64 puro (sem o prefixo data:image/jpeg;base64,)
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+          resolve(dataUrl.split(",")[1]);
+        };
+        img.onerror = reject;
+      };
+      reader.onerror = reject;
+    });
+  };
+
+  const handleMudarFotoForm = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const base64Comprimido = await processarEComprimirImagem(file);
+      setForm({ ...form, imagem: base64Comprimido });
+    } catch (err) {
+      alert("Erro ao processar imagem.");
+    }
+  };
 
   // Calculadora de desmembramento (digita uma quantidade, vê custo/peso/unidades)
   const [calcQtd, setCalcQtd] = useState("");
@@ -347,7 +393,7 @@ function FichasRunner() {
   const filtradas = fichas.filter(f => f.nome_receita.toLowerCase().includes(busca.toLowerCase()));
 
   const abrirNova = () => {
-    setForm({ id: null, departamento: deptUrl, nome_receita: "", rendimento_porcoes: "1", modo_preparo: "", eh_base: false, rendimento_unidade: "porcao", peso_porcao_g: "" });
+    setForm({ id: null, departamento: deptUrl, nome_receita: "", rendimento_porcoes: "1", modo_preparo: "", eh_base: false, rendimento_unidade: "porcao", peso_porcao_g: "", imagem: "" });
     setIngFicha([]);
     setIaExplicacao("");
     setCalcQtd("");
@@ -363,7 +409,8 @@ function FichasRunner() {
        modo_preparo: ficha.modo_preparo || "",
        eh_base: !!ficha.eh_base,
        rendimento_unidade: ficha.rendimento_unidade || "porcao",
-       peso_porcao_g: ficha.peso_porcao_g || ""
+       peso_porcao_g: ficha.peso_porcao_g || "",
+       imagem: ficha.imagem || ""
     });
     setCalcQtd("");
     // Reconstrói os ingredientes: cada um é um INSUMO ou uma BASE (sub-ficha).
@@ -453,7 +500,8 @@ function FichasRunner() {
           modo_preparo: form.modo_preparo,
           eh_base: !!form.eh_base,
           rendimento_unidade: form.rendimento_unidade || "porcao",
-          peso_porcao_g: form.peso_porcao_g ? Number(form.peso_porcao_g) : null
+          peso_porcao_g: form.peso_porcao_g ? Number(form.peso_porcao_g) : null,
+          imagem: form.imagem || null
        },
        ingValidos.map(i => ({
           insumo_id: i.tipo === "insumo" ? i.insumo_id : null,
@@ -475,49 +523,47 @@ function FichasRunner() {
     }
   };
 
+  const toggleSelecionarTodas = () => {
+    if (selecionadas.length === filtradas.length && filtradas.length > 0) {
+      setSelecionadas([]);
+    } else {
+      setSelecionadas(filtradas.map(f => f.id));
+    }
+  };
+
+  const toggleSelecionar = (id) => {
+    setSelecionadas(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const imprimirLivroSelecionadas = () => {
+    if (selecionadas.length === 0) return;
+    const fichasParaImprimir = fichas.filter(f => selecionadas.includes(f.id));
+    imprimirFichas(fichasParaImprimir);
+  };
+
   const imprimirFicha = (f) => {
-    const win = window.open('', '_blank', 'width=800,height=900');
-    if (!win) return alert("Habilite os popups para imprimir a ficha técnica.");
+    imprimirFichas([f]);
+  };
+
+  const imprimirFichas = (listaDeFichas) => {
+    const win = window.open('', '_blank');
+    if(!win) return alert("Habilite pop-ups para imprimir a ficha.");
     const SUB = { kg: { s: 'g', fa: 1000 }, l: { s: 'ml', fa: 1000 } };
     const fmtQtd = (qtd, un) => {
        const c = SUB[String(un || '').toLowerCase()];
        return c ? `${(+(qtd * c.fa)).toLocaleString('pt-BR')} ${c.s}` : `${qtd} ${String(un || '').toUpperCase()}`;
     };
-    let custoTotal = 0;
-    const rows = (f.fichas_ingredientes || []).map(fi => {
-       let nome, unidade, custo;
-       if (fi.subficha_id) {
-          const base = fichas.find(x => x.id === fi.subficha_id);
-          nome = (base?.nome_receita || 'Base') + ' (base)';
-          unidade = base?.rendimento_unidade;
-          custo = base ? custoUnitBase(base, fichas) * fi.quantidade : 0;
-       } else {
-          nome = fi.insumos?.nome || 'Insumo';
-          unidade = fi.insumos?.unidade_medida;
-          custo = (fi.insumos?.custo_unitario || 0) * fi.quantidade;
-       }
-       custoTotal += custo;
-       return `<tr><td>${nome}</td><td class="c">${fmtQtd(fi.quantidade, unidade)}</td><td class="r">R$ ${custo.toFixed(2)}</td></tr>`;
-    }).join('');
-    const rende = f.rendimento_porcoes || 1;
-    const peso = infoPesoFicha(f, fichas);
-    // Porções reais: derivadas do peso quando o rendimento é em kg/g/l/ml
-    const porcoesReais = peso?.porcoes || rende;
-    const custoPorcao = custoTotal / (porcoesReais || 1);
-    const unR = String(f.rendimento_unidade || 'porcao').toLowerCase();
-    const labelUnPrint = { porcao: `porç${rende > 1 ? 'ões' : 'ão'}`, kg: 'kg', g: 'g', l: 'L', ml: 'ml', un: 'un' }[unR] || unR;
-    const linhaRendeu = (unR !== 'porcao' && unR !== 'un' && peso?.porcoes && peso?.pesoPorcaoG)
-       ? ` — rendeu ${(+peso.porcoes.toFixed(1)).toLocaleString('pt-BR')} porções de ${peso.pesoPorcaoG}g`
-       : '';
-    const linhaPeso = peso
-       ? `<div class="meta">Peso total: ${fmtG(peso.pesoTotalG)}${peso.pesoPorcaoG ? ` (${peso.pesoPorcaoG}g por porção)` : ''} · ${peso.liquido ? '1 L' : '1 kg'} = R$ ${peso.custoKg.toFixed(2)}</div>`
-       : '';
-    win.document.write(`
-       <!DOCTYPE html><html><head><meta charset="utf-8"/><title>Ficha Técnica - ${f.nome_receita}</title>
+    
+    let conteudoHTML = `
+       <!DOCTYPE html><html><head><meta charset="utf-8"/><title>Livro de Receitas</title>
        <style>
           *{margin:0;padding:0;box-sizing:border-box}
           body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;padding:24px;max-width:720px;margin:0 auto}
-          .head{border-bottom:3px solid #0f172a;padding-bottom:12px;margin-bottom:16px}
+          .page-break { page-break-after: always; margin-bottom: 40px; }
+          .page-break:last-child { page-break-after: auto; margin-bottom: 0; }
+          .head{border-bottom:3px solid #0f172a;padding-bottom:12px;margin-bottom:16px;display:flex;gap:16px;align-items:flex-start;}
+          .head-info { flex: 1; }
+          .head-foto { width: 120px; height: 120px; border-radius: 8px; object-fit: cover; border: 1px solid #cbd5e1; }
           .tag{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#64748b;font-weight:bold}
           h1{font-size:26px;margin:4px 0}
           .meta{font-size:13px;color:#475569;font-weight:bold}
@@ -530,25 +576,81 @@ function FichasRunner() {
           .totais b{font-size:18px}
           .preparo{margin-top:8px;font-size:14px;line-height:1.6;white-space:pre-wrap;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px}
           @media print{@page{margin:14mm}}
+          .capa { height: 90vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+          .capa h1 { font-size: 48px; margin-bottom: 16px; }
+          .capa p { font-size: 18px; color: #64748b; }
        </style></head><body>
-          <div class="head">
-             <div class="tag">Ficha Técnica${f.departamento ? ' — ' + f.departamento : ''}</div>
-             <h1>${f.nome_receita}</h1>
-             <div class="meta">Rendimento: ${Number(rende).toLocaleString('pt-BR')} ${labelUnPrint}${linhaRendeu}</div>
-             ${linhaPeso}
-          </div>
-          <h2>Ingredientes</h2>
-          <table>
-             <thead><tr><th>Ingrediente</th><th class="c">Quantidade</th><th class="r">Custo</th></tr></thead>
-             <tbody>${rows || '<tr><td colspan="3">Sem ingredientes cadastrados.</td></tr>'}</tbody>
-          </table>
-          <div class="totais">
-             <div>Custo por porção: <b>R$ ${custoPorcao.toFixed(2)}</b></div>
-             <div>Custo total: <b>R$ ${custoTotal.toFixed(2)}</b></div>
-          </div>
-          <h2>Modo de Preparo</h2>
-          <div class="preparo">${f.modo_preparo ? f.modo_preparo : 'Não informado.'}</div>
-       </body></html>`);
+    `;
+
+    if (listaDeFichas.length > 1) {
+       conteudoHTML += `
+         <div class="capa page-break">
+           <h1>Livro de Receitas</h1>
+           <p>${listaDeFichas.length} receitas catalogadas</p>
+           <p style="margin-top: 40px; font-size: 14px; text-transform: uppercase; letter-spacing: 2px;">Hephaestus ERP</p>
+         </div>
+       `;
+    }
+
+    listaDeFichas.forEach((f) => {
+      const custoTotal = custoTotalDaFicha(f, fichas);
+      const rows = (f.fichas_ingredientes || []).map(fi => {
+         let nome = '', unidade = '', custo = 0;
+         if (fi.insumos) {
+            nome = fi.insumos.nome;
+            unidade = fi.insumos.unidade_medida;
+            custo = fi.quantidade * (fi.insumos.custo_unitario || 0);
+         } else if (fi.subficha_id) {
+            const base = fichas.find(x => x.id === fi.subficha_id);
+            nome = base ? base.nome_receita : 'Base excluída';
+            unidade = base?.rendimento_unidade || 'un';
+            custo = base ? fi.quantidade * custoUnitBase(base, fichas) : 0;
+         }
+         return `<tr><td>${nome}</td><td class="c">${fmtQtd(fi.quantidade, unidade)}</td><td class="r">R$ ${custo.toFixed(2)}</td></tr>`;
+      }).join('');
+      const rende = f.rendimento_porcoes || 1;
+      const peso = infoPesoFicha(f, fichas);
+      const porcoesReais = peso?.porcoes || rende;
+      const custoPorcao = custoTotal / (porcoesReais || 1);
+      const unR = String(f.rendimento_unidade || 'porcao').toLowerCase();
+      const labelUnPrint = { porcao: `porç${rende > 1 ? 'ões' : 'ão'}`, kg: 'kg', g: 'g', l: 'L', ml: 'ml', un: 'un' }[unR] || unR;
+      const linhaRendeu = (unR !== 'porcao' && unR !== 'un' && peso?.porcoes && peso?.pesoPorcaoG)
+         ? ` — rendeu ${(+peso.porcoes.toFixed(1)).toLocaleString('pt-BR')} porções de ${peso.pesoPorcaoG}g`
+         : '';
+      const linhaPeso = peso
+         ? `<div class="meta">Peso total: ${fmtG(peso.pesoTotalG)}${peso.pesoPorcaoG ? ` (${peso.pesoPorcaoG}g por porção)` : ''} · ${peso.liquido ? '1 L' : '1 kg'} = R$ ${peso.custoKg.toFixed(2)}</div>`
+         : '';
+
+      const tagFoto = f.imagem ? `<img src="data:image/jpeg;base64,${f.imagem}" class="head-foto" />` : '';
+
+      conteudoHTML += `
+         <div class="page-break">
+            <div class="head">
+               <div class="head-info">
+                  <div class="tag">Ficha Técnica${f.departamento ? ' — ' + f.departamento : ''}</div>
+                  <h1>${f.nome_receita}</h1>
+                  <div class="meta">Rendimento: ${Number(rende).toLocaleString('pt-BR')} ${labelUnPrint}${linhaRendeu}</div>
+                  ${linhaPeso}
+               </div>
+               ${tagFoto}
+            </div>
+            <h2>Ingredientes</h2>
+            <table>
+               <thead><tr><th>Ingrediente</th><th class="c">Quantidade</th><th class="r">Custo</th></tr></thead>
+               <tbody>${rows || '<tr><td colspan="3">Sem ingredientes cadastrados.</td></tr>'}</tbody>
+            </table>
+            <div class="totais">
+               <div>Custo por porção: <b>R$ ${custoPorcao.toFixed(2)}</b></div>
+               <div>Custo total: <b>R$ ${custoTotal.toFixed(2)}</b></div>
+            </div>
+            <h2>Modo de Preparo</h2>
+            <div class="preparo">${f.modo_preparo ? f.modo_preparo : 'Não informado.'}</div>
+         </div>
+      `;
+    });
+
+    conteudoHTML += `</body></html>`;
+    win.document.write(conteudoHTML);
     win.document.close();
     setTimeout(() => win.print(), 400);
   };
@@ -583,9 +685,23 @@ function FichasRunner() {
       </div>
 
       <div className="max-w-5xl mx-auto px-6 mt-8">
-         <div className="bg-white p-3 rounded-2xl border border-slate-200 mb-6 flex items-center gap-3 shadow-sm">
-            <Search size={20} className="text-slate-500 ml-2" />
-            <input type="text" placeholder="Buscar receita..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-bold text-slate-700 p-2" />
+         <div className="bg-white p-3 rounded-2xl border border-slate-200 mb-6 flex flex-col sm:flex-row items-center gap-3 shadow-sm justify-between">
+            <div className="flex flex-1 items-center gap-2 px-2">
+               <Search size={20} className="text-slate-500" />
+               <input type="text" placeholder="Buscar receita..." value={busca} onChange={e=>setBusca(e.target.value)} className="w-full outline-none font-bold text-slate-700 p-2" />
+            </div>
+            
+            {/* Controles de Livro de Receitas */}
+            <div className="flex items-center gap-3 border-t sm:border-t-0 sm:border-l border-slate-200 pt-3 sm:pt-0 sm:pl-3 w-full sm:w-auto">
+               <button onClick={toggleSelecionarTodas} className="text-xs font-bold text-slate-500 hover:text-emerald-600 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200">
+                  {selecionadas.length === filtradas.length && filtradas.length > 0 ? "Desmarcar Todas" : "Selecionar Todas"}
+               </button>
+               {selecionadas.length > 0 && (
+                  <button onClick={imprimirLivroSelecionadas} className="flex items-center gap-2 bg-slate-800 text-white px-4 py-2 rounded-lg font-bold hover:bg-slate-700 text-xs shadow-md">
+                     <Printer size={16}/> Imprimir Livro ({selecionadas.length})
+                  </button>
+               )}
+            </div>
          </div>
 
          {loading ? (
@@ -609,11 +725,16 @@ function FichasRunner() {
                   const labelUn = { porcao: "Porções", kg: "kg", g: "g", l: "L", ml: "ml", un: "un" }[unR] || unR;
 
                   return (
-                     <div key={f.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow relative group flex flex-col">
+                     <div key={f.id} className={`bg-white p-6 rounded-3xl border shadow-sm hover:shadow-md transition-shadow relative group flex flex-col ${selecionadas.includes(f.id) ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-slate-200'}`}>
                         <div className="flex justify-between items-start mb-4">
-                           <span className={`w-10 h-10 rounded-full flex items-center justify-center ${f.departamento === 'bar' ? 'bg-slate-50 text-emerald-600' : 'bg-slate-50 text-emerald-600'}`}>
-                              {f.departamento === 'bar' ? <Wine size={18}/> : <UtensilsCrossed size={18}/>}
-                           </span>
+                           <div className="flex items-center gap-3">
+                              <label className="cursor-pointer">
+                                 <input type="checkbox" checked={selecionadas.includes(f.id)} onChange={() => toggleSelecionar(f.id)} className="w-5 h-5 accent-emerald-600 cursor-pointer rounded-md"/>
+                              </label>
+                              <span className={`w-10 h-10 rounded-full flex items-center justify-center ${f.departamento === 'bar' ? 'bg-slate-50 text-emerald-600' : 'bg-slate-50 text-emerald-600'}`}>
+                                 {f.departamento === 'bar' ? <Wine size={18}/> : <UtensilsCrossed size={18}/>}
+                              </span>
+                           </div>
                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                               <button onClick={() => imprimirFicha(f)} title="Imprimir ficha técnica" className="p-2 bg-slate-50 rounded-lg text-slate-500 hover:text-emerald-600"><Printer size={16}/></button>
                               <button onClick={() => abrirEditar(f)} className="p-2 bg-slate-50 rounded-lg text-slate-500 hover:text-emerald-600"><Edit3 size={16}/></button>
@@ -670,11 +791,27 @@ function FichasRunner() {
                {/* BODY DO MODAL COM SCROLL */}
                <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50 custom-scrollbar grid grid-cols-1 md:grid-cols-2 gap-8">
                   
-                  {/* COLUNA ESQUERDA: Dados Básicos */}
+                   {/* COLUNA ESQUERDA: Dados Básicos e Foto */}
                   <div className="space-y-4">
-                     <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nome da Receita</label>
-                        <input type="text" placeholder="Ex: Caipirinha de Morango" value={form.nome_receita} onChange={e=>setForm({...form, nome_receita: e.target.value})} className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500 shadow-sm"/>
+                     <div className="flex gap-4">
+                        <div onClick={() => fileInputRef.current?.click()} className="w-24 h-24 shrink-0 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center cursor-pointer hover:bg-slate-100 hover:border-emerald-400 overflow-hidden relative group transition-colors">
+                           {form.imagem ? (
+                              <>
+                                 <img src={`data:image/jpeg;base64,${form.imagem}`} className="w-full h-full object-cover" alt="Foto do Prato" />
+                                 <div className="absolute inset-0 bg-black/50 hidden group-hover:flex items-center justify-center text-white"><Camera size={24}/></div>
+                              </>
+                           ) : (
+                              <div className="text-center">
+                                 <Camera size={24} className="mx-auto text-slate-400 mb-1"/>
+                                 <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Foto</span>
+                              </div>
+                           )}
+                           <input type="file" ref={fileInputRef} onChange={handleMudarFotoForm} accept="image/*" className="hidden" />
+                        </div>
+                        <div className="flex-1">
+                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nome da Receita</label>
+                           <input type="text" placeholder="Ex: Caipirinha de Morango" value={form.nome_receita} onChange={e=>setForm({...form, nome_receita: e.target.value})} className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500 shadow-sm"/>
+                        </div>
                      </div>
                      <div className="bg-purple-50 border border-purple-100 rounded-xl p-3">
                         <label className="flex items-center gap-2 cursor-pointer">

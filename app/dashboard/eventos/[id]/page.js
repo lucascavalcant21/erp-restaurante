@@ -301,7 +301,7 @@ export default function EventoPage() {
               <div className="flex items-center justify-between mb-2">
                 <div>
                   {dias > 0 && (<><strong style={{ fontSize: 28, color: "var(--accent-fg)" }}>{dias}</strong><span style={{ marginLeft: 6, color: "var(--muted)" }}>dias restantes</span></>)}
-                  {dias === 0 && <strong style={{ fontSize: 22, color: "#F59E0B" }}>🎉 O grande dia chegou!</strong>}
+                  {dias === 0 && <strong style={{ fontSize: 22, color: "#F59E0B" }}>O grande dia chegou!</strong>}
                   {dias < 0 && <span style={{ color: "var(--dim)" }}>Encerrado há {Math.abs(dias)} dia{Math.abs(dias) !== 1 ? "s" : ""}</span>}
                 </div>
                 <Calendar size={32} style={{ color: "var(--muted)" }} />
@@ -351,7 +351,7 @@ export default function EventoPage() {
                 </div>
                 {reservas.length >= calc.breakeven ? (
                   <p className="text-sm" style={{ color: "var(--dim)" }}>
-                    ✓ <strong style={{ color: "#10B981" }}>Já cobre os custos</strong> com {calc.breakeven} {calc.unitName === "casal" ? (calc.breakeven === 1 ? "casal" : "casais") : (calc.breakeven === 1 ? "pessoa" : "pessoas")} ·
+                    <strong style={{ color: "#10B981" }}>Já cobre os custos</strong> com {calc.breakeven} {calc.unitName === "casal" ? (calc.breakeven === 1 ? "casal" : "casais") : (calc.breakeven === 1 ? "pessoa" : "pessoas")} ·
                     está <strong style={{ color: "#10B981" }}>{reservas.length - calc.breakeven} acima</strong> da meta
                   </p>
                 ) : (

@@ -189,7 +189,7 @@ export default function GestaoUnidadesPage() {
       </Modal>
 
       {/* Modal de Sucesso com Credenciais */}
-      <Modal open={!!credenciais} onClose={() => setCredenciais(null)} title="🎉 Loja Criada!">
+      <Modal open={!!credenciais} onClose={() => setCredenciais(null)} title="Loja Criada!">
         <div className="text-center py-4 space-y-4">
           <p className="text-slate-500 text-sm">O acesso do dono dessa unidade foi gerado com sucesso.</p>
           <div className="bg-slate-900 border border-slate-700 rounded-xl p-4 space-y-2">

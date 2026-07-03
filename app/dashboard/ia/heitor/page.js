@@ -21,13 +21,13 @@ function gerarResposta(texto, erp) {
 
   if (t.includes("estoque") || t.includes("ingrediente") || t.includes("crític")) {
     if (erp.totalEstoque === 0) return `Ainda não há itens cadastrados no estoque de **${erp.unidade}**. Cadastre em Operação → Estoque para eu acompanhar os níveis.`;
-    if (erp.criticos.length === 0) return `Tudo certo no estoque de **${erp.unidade}**: nenhum dos ${erp.totalEstoque} itens está abaixo do mínimo. 👍`;
+    if (erp.criticos.length === 0) return `Tudo certo no estoque de **${erp.unidade}**: nenhum dos ${erp.totalEstoque} itens está abaixo do mínimo. `;
     return `Atenção: **${erp.criticos.length} item(ns) em estoque crítico** em ${erp.unidade} — ${criticosNomes.slice(0, 4).join(", ")}. Recomendo emitir pedido de compra hoje para não parar a produção.`;
   }
   if (t.includes("notificaç") || t.includes("alerta") || t.includes("pendente")) {
     return erp.naoLidas > 0
       ? `Você tem **${erp.naoLidas} notificação(ões) não lida(s)**. Veja em Notificações.`
-      : `Você está em dia — nenhuma notificação não lida. ✅`;
+      : `Você está em dia — nenhuma notificação não lida. `;
   }
   if (t.includes("cmv") || t.includes("margem") || t.includes("lucro")) {
     return `O CMV e a margem são calculados a partir dos preços e custos do **Cardápio** desta unidade. Cadastre/atualize os pratos e veja os números em Financeiro → CMV e Lucro.`;
@@ -38,10 +38,10 @@ function gerarResposta(texto, erp) {
   if (t.includes("prioridade") || t.includes("o que fazer") || t.includes("recomend") || t.includes("hoje")) {
     const linhas = [];
     linhas.push(erp.criticos.length > 0
-      ? `🔴 Repor estoque crítico (${criticosNomes.slice(0, 2).join(", ")})`
-      : `🟢 Estoque sob controle`);
-    linhas.push(erp.naoLidas > 0 ? `🟡 Revisar ${erp.naoLidas} notificação(ões)` : `🟢 Sem notificações pendentes`);
-    linhas.push(`🔵 Manter cardápio e fichas atualizados para CMV correto`);
+      ? `Repor estoque crítico (${criticosNomes.slice(0, 2).join(", ")})`
+      : `Estoque sob controle`);
+    linhas.push(erp.naoLidas > 0 ? `Revisar ${erp.naoLidas} notificação(ões)` : `Sem notificações pendentes`);
+    linhas.push(`Manter cardápio e fichas atualizados para CMV correto`);
     return `Prioridades para **${erp.unidade}** hoje:\n${linhas.map((l, i) => `${i + 1}. ${l}`).join("\n")}`;
   }
   if (t.includes("oi") || t.includes("olá") || t.includes("bom dia") || t.includes("boa")) {

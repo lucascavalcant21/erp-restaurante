@@ -48,7 +48,7 @@ const TABS = [
     titulo: (x) => x.assunto, sub: (x) => x.descricao || "Sem resumo" },
   { key: "historico", label: "Histórico", icon: Clock, fetch: fetchHistorico, insert: inserirHistorico, remove: removerHistorico,
     campos: [{ k: "data", label: "Data da Mudança" }, { k: "tipo_evento", label: "Tipo", select: ["contrato", "cargo", "salario", "unidade"] }, { k: "valor_antigo", label: "Valor Antigo" }, { k: "valor_novo", label: "Valor Novo" }, { k: "observacao", label: "Motivo / Obs" }],
-    titulo: (x) => `Mudou ${x.tipo_evento}`, sub: (x) => `${x.valor_antigo || "N/A"} ➔ ${x.valor_novo}` },
+    titulo: (x) => `Mudou ${x.tipo_evento}`, sub: (x) => `${x.valor_antigo || "N/A"} ${x.valor_novo}` },
 ];
 
 function FormTab({ tab, func, onSalvar, onCancelar, opcoesDinamicas = {} }) {
@@ -182,7 +182,7 @@ export default function FuncionarioDetalhePage() {
         )}
 
         {!func?.email && func && (
-          <Card><p className="text-[12px]" style={{ color: "#DC2626" }}>⚠️ Este funcionário não tem e-mail cadastrado — sem e-mail, ele não consegue ver o portal. Edite o cadastro e adicione o e-mail de login dele.</p></Card>
+          <Card><p className="text-[12px]" style={{ color: "#DC2626" }}>Este funcionário não tem e-mail cadastrado — sem e-mail, ele não consegue ver o portal. Edite o cadastro e adicione o e-mail de login dele.</p></Card>
         )}
 
         <Chips options={TABS.map((t) => ({ value: t.key, label: t.label }))} value={abaKey} onChange={setAbaKey} />

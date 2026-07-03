@@ -121,11 +121,11 @@ function SidebarItem({ item, pathname }) {
       onClick={handleClick}
       className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-bold transition-all ${
         isActive 
-          ? "bg-blue-500/10 text-blue-400" 
+          ? "bg-emerald-500/10 text-emerald-400" 
           : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
       }`}
     >
-      <div className={`w-1.5 h-1.5 rounded-full transition-colors ${isActive ? 'bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.8)]' : 'bg-transparent'}`} />
+      <div className={`w-1.5 h-1.5 rounded-full transition-colors ${isActive ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' : 'bg-transparent'}`} />
       <span className="truncate">{item.label}</span>
     </button>
   );
@@ -153,10 +153,10 @@ function Sidebar({ mobileOpen, setMobileOpen }) {
       `}>
         {/* Logo Area */}
         <div className="h-16 flex items-center justify-between px-6 shrink-0 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-r from-emerald-600/10 to-transparent pointer-events-none" />
           
           <button onClick={() => router.push('/dashboard')} className="flex items-center gap-3 relative z-10 hover:opacity-80 transition-opacity text-left">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
               <UtensilsCrossed size={16} className="text-white" />
             </div>
             <span className="text-xl font-black text-white tracking-tight">Hefisto</span>
@@ -233,7 +233,7 @@ function TopHeader({ onSair, setMobileOpen }) {
                {unidades.map(u => (
                  <button key={u.id} onClick={() => handleTrocaUnidade(u.id)} className="w-full text-left px-4 py-3 text-sm font-bold hover:bg-slate-50 border-b border-slate-50 last:border-0 flex justify-between items-center group/btn transition-colors">
                    {u.nome}
-                   {u.id === unidadeAtiva && <Check size={16} className="text-blue-500"/>}
+                   {u.id === unidadeAtiva && <Check size={16} className="text-emerald-500"/>}
                  </button>
                ))}
              </div>

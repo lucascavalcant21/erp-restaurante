@@ -1,6 +1,14 @@
 import "./globals.css";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import { ERPProvider } from "./context/ERPContext";
 import RegisterSW from "./components/RegisterSW";
+
+// Fonte oficial do app (variável, hospedada pelo próprio Next — sem CDN externo)
+const fonteApp = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-app",
+});
 
 export const metadata = {
   title: "Hefisto",
@@ -22,13 +30,13 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" className={fonteApp.variable}>
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#0f172a" />
         <link rel="apple-touch-icon" href="/icon-192x192.png" />
       </head>
-      <body>
+      <body className={fonteApp.className}>
         <RegisterSW />
         <ERPProvider>
           {children}

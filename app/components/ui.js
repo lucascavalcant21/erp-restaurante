@@ -33,8 +33,12 @@ export function PageHeader({ title, subtitle, icon: Icon, onAction, actionLabel 
           </button>
         )}
         <div className="flex-1 min-w-0">
-          <h1 className="text-lg md:text-xl font-bold leading-tight flex items-center gap-2" style={{ color: "var(--fg)" }}>
-            {Icon && <Icon size={18} style={{ color: "var(--accent-fg)" }} className="flex-shrink-0" />}
+          <h1 className="text-lg md:text-xl font-bold leading-tight flex items-center gap-2.5" style={{ color: "var(--fg)" }}>
+            {Icon && (
+              <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "var(--accent-soft)" }}>
+                <Icon size={16} style={{ color: "var(--accent-strong)" }} />
+              </span>
+            )}
             <span className="truncate">{title}</span>
           </h1>
           {subtitle && <p className="text-[11px] md:text-xs font-medium truncate" style={{ color: "var(--dim)" }}>{subtitle}</p>}

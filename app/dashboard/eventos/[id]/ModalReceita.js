@@ -139,7 +139,7 @@ export default function ModalReceita({ open, onClose, eventoId, ingredientesEven
     const ingredients = ingsCruzados
       .filter((i) => i.existe && i.ingredienteId && !i.aGosto)
       .map((i) => {
-        let qty = Number(i.qty) * fatorEscala; // 🎯 aplica escala
+        let qty = Number(i.qty) * fatorEscala; // aplica escala
         if (i.unidade === "Kg") qty *= 1000;
         if (i.unidade === "L")  qty *= 1000;
         // O qty salvo é POR PORÇÃO (não total)
@@ -157,7 +157,7 @@ export default function ModalReceita({ open, onClose, eventoId, ingredientesEven
     });
     setSalvando(false);
     if (error) { alert("Erro ao criar prato: " + error); return; }
-    alert(`✓ Prato "${dadosPrato.nome}" criado para ${porcoesDesejadas} porções com ${ingredients.length} ingredientes!`);
+    alert(`Prato "${dadosPrato.nome}" criado para ${porcoesDesejadas} porções com ${ingredients.length} ingredientes!`);
     onSuccess?.();
     fechar();
   }
@@ -176,7 +176,7 @@ export default function ModalReceita({ open, onClose, eventoId, ingredientesEven
   const faltamCount = ingsCruzados.filter((i) => !i.existe).length;
 
   return (
-    <Modal open={open} onClose={fechar} title="🪄 Importar Receita da Internet">
+    <Modal open={open} onClose={fechar} title="Importar Receita da Internet">
       {/* ETAPA 1: COLAR RECEITA */}
       {etapa === "colar" && (
         <>
@@ -186,7 +186,7 @@ export default function ModalReceita({ open, onClose, eventoId, ingredientesEven
 
           <details style={{ marginBottom: 12 }}>
             <summary style={{ cursor: "pointer", fontSize: 11, color: "var(--accent-fg)", fontWeight: 600 }}>
-              💡 Ver exemplo de formato suportado
+              Ver exemplo de formato suportado
             </summary>
             <div className="mt-2 p-3 rounded text-[10px]" style={{ background: "var(--elevated)", maxHeight: 200, overflowY: "auto" }}>
               <code style={{ whiteSpace: "pre-wrap", fontFamily: "monospace", color: "var(--fg)" }}>{EXEMPLO}</code>
@@ -209,7 +209,7 @@ export default function ModalReceita({ open, onClose, eventoId, ingredientesEven
           </Field>
 
           <div className="flex gap-3">
-            <Btn variant="ghost" onClick={() => setTexto(EXEMPLO)}>📋 Usar exemplo</Btn>
+            <Btn variant="ghost" onClick={() => setTexto(EXEMPLO)}>Usar exemplo</Btn>
             <Btn variant="ghost" onClick={fechar}>Cancelar</Btn>
             <Btn variant="primary" className="flex-1" onClick={analisar} disabled={!texto.trim()}>
               <Wand2 size={14} /> Analisar receita
@@ -227,11 +227,11 @@ export default function ModalReceita({ open, onClose, eventoId, ingredientesEven
               <strong style={{ fontSize: 22, color: "var(--fg)" }}>{totalIngs}</strong>
             </div>
             <div style={{ padding: 10, background: "#10B98122", borderRadius: 6, borderLeft: "3px solid #10B981" }}>
-              <p className="text-[10px]" style={{ color: "#10B981" }}>✓ JÁ TENHO</p>
+              <p className="text-[10px]" style={{ color: "#10B981" }}>JÁ TENHO</p>
               <strong style={{ fontSize: 22, color: "#10B981" }}>{existemCount}</strong>
             </div>
             <div style={{ padding: 10, background: "#EF444422", borderRadius: 6, borderLeft: "3px solid #EF4444" }}>
-              <p className="text-[10px]" style={{ color: "#EF4444" }}>⚠ FALTAM</p>
+              <p className="text-[10px]" style={{ color: "#EF4444" }}>FALTAM</p>
               <strong style={{ fontSize: 22, color: "#EF4444" }}>{faltamCount}</strong>
             </div>
           </div>
@@ -263,7 +263,7 @@ export default function ModalReceita({ open, onClose, eventoId, ingredientesEven
                     {ing.aGosto ? "Quantidade livre" : `Precisa: ${ing.qty.toFixed(ing.qty < 1 ? 2 : 0)}${ing.unidade}`}
                     {ing.existe && ing.ingredienteCadastrado && (
                       <span style={{ color: "#10B981", marginLeft: 6 }}>
-                        ✓ Cadastrado: {ing.ingredienteCadastrado.nome}
+                        Cadastrado: {ing.ingredienteCadastrado.nome}
                       </span>
                     )}
                   </p>
@@ -275,7 +275,7 @@ export default function ModalReceita({ open, onClose, eventoId, ingredientesEven
           {receita.modo_preparo && (
             <details style={{ marginBottom: 12 }}>
               <summary style={{ cursor: "pointer", fontSize: 11, color: "var(--accent-fg)", fontWeight: 600 }}>
-                📖 Modo de preparo detectado
+                Modo de preparo detectado
               </summary>
               <div className="mt-2 p-2 rounded text-[11px] whitespace-pre-wrap" style={{ background: "var(--elevated)", color: "var(--dim)" }}>
                 {receita.modo_preparo}
@@ -325,7 +325,7 @@ export default function ModalReceita({ open, onClose, eventoId, ingredientesEven
                     )}
                   </div>
                   <p className="text-[10px] mb-2" style={{ color: "var(--dim)" }}>
-                    🎯 Receita pede: <strong style={{ color: "var(--fg)" }}>{f._qtdUsada.toFixed(f._qtdUsada < 1 ? 2 : 0)}{f._unidadeUsada}</strong>
+                    Receita pede: <strong style={{ color: "var(--fg)" }}>{f._qtdUsada.toFixed(f._qtdUsada < 1 ? 2 : 0)}{f._unidadeUsada}</strong>
                   </p>
                   <div className="grid grid-cols-3 gap-2">
                     <NumberInput
@@ -379,7 +379,7 @@ export default function ModalReceita({ open, onClose, eventoId, ingredientesEven
       {etapa === "criar-prato" && (
         <>
           <p className="text-[12px] mb-3" style={{ color: "#10B981" }}>
-            ✓ Todos os ingredientes cadastrados! Agora ajuste a quantidade que vai fazer.
+            Todos os ingredientes cadastrados! Agora ajuste a quantidade que vai fazer.
           </p>
 
           <Field label="Nome do prato">
@@ -401,10 +401,10 @@ export default function ModalReceita({ open, onClose, eventoId, ingredientesEven
             </Field>
           </div>
 
-          {/* 🎯 CALCULADORA DE PROPORÇÃO */}
+          {/* CALCULADORA DE PROPORÇÃO */}
           <div className="p-3 rounded mb-3" style={{ background: "linear-gradient(135deg, #8B5CF622, #EC489922)", border: "1px solid #8B5CF644" }}>
             <p style={{ fontSize: 11, color: "#8B5CF6", fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: 8 }}>
-              🎯 Calculadora de Proporção
+              Calculadora de Proporção
             </p>
 
             <div className="grid grid-cols-2 gap-3 mb-2">
@@ -458,7 +458,7 @@ export default function ModalReceita({ open, onClose, eventoId, ingredientesEven
 
             {/* Comparativo dos ingredientes */}
             <p style={{ fontSize: 10, color: "var(--muted)", fontWeight: 700, textTransform: "uppercase", marginBottom: 6 }}>
-              📋 Receita ajustada:
+              Receita ajustada:
             </p>
             <div style={{ maxHeight: 200, overflowY: "auto", background: "var(--elevated)", padding: 8, borderRadius: 6 }}>
               {ingsCruzados.filter((i) => i.existe && !i.aGosto).map((ing, idx) => {

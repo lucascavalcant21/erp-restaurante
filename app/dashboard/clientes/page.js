@@ -148,7 +148,7 @@ export default function CRMPage() {
         <Card className="p-0 overflow-hidden">
           <div className="p-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest">🏆 Top Clientes (LTV)</h3>
+              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest">Top Clientes (LTV)</h3>
               <p className="text-[10px] font-medium text-slate-500 mt-1">Os que mais gastaram historicamente</p>
             </div>
             <button onClick={() => setActiveTab("base")} className="text-xs font-bold text-emerald-600 hover:text-blue-800">Ver todos</button>
@@ -178,7 +178,7 @@ export default function CRMPage() {
         <Card className="p-0 overflow-hidden">
           <div className="p-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest">⚠️ Atenção: Avaliações</h3>
+              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest">Atenção: Avaliações</h3>
               <p className="text-[10px] font-medium text-slate-500 mt-1">Reviews recentes com nota baixa</p>
             </div>
             <button onClick={() => setActiveTab("nps")} className="text-xs font-bold text-emerald-600 hover:text-blue-800">Abrir NPS</button>

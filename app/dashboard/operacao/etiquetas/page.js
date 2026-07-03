@@ -103,8 +103,8 @@ function EtiquetasRunner() {
   function salvarCnpj(v) { setCnpj(v); try { localStorage.setItem("erp_cnpj", v); } catch (_) {} }
 
   async function salvar(imprimir) {
-    if (!nomeProduto) { setSalvou("⚠️ Informe o produto"); setTimeout(() => setSalvou(""), 2000); return; }
-    if (!form.responsavel.trim()) { setSalvou("⚠️ Informe o responsável"); setTimeout(() => setSalvou(""), 2000); return; }
+    if (!nomeProduto) { setSalvou("Informe o produto"); setTimeout(() => setSalvou(""), 2000); return; }
+    if (!form.responsavel.trim()) { setSalvou("Informe o responsável"); setTimeout(() => setSalvou(""), 2000); return; }
     await criarEtiqueta({
       codigo, produto: nomeProduto, conservacao: form.conservacao,
       quantidade: Number(form.quantidade) || 0, unidade: form.unidade,

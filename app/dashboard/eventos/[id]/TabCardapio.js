@@ -104,7 +104,7 @@ function FormIngrediente({ inicial, onSalvar, onCancelar }) {
       {Number(f.custo_unit) > 0 && Number(f.peso_unit) > 0 && (
         <div className="erp-panel p-2 mb-3" style={{ background: "var(--elevated)", borderRadius: 6 }}>
           <p className="text-[11px]" style={{ color: "var(--muted)" }}>
-            💡 Você pagou <strong style={{ color: "var(--fg)" }}>R$ {Number(f.custo_unit).toFixed(2)}</strong>{" "}
+            Você pagou <strong style={{ color: "var(--fg)" }}>R$ {Number(f.custo_unit).toFixed(2)}</strong>{" "}
             por <strong style={{ color: "var(--fg)" }}>{f.peso_unit} {f.unidade}</strong>{" "}
             = <strong style={{ color: "var(--accent-fg)" }}>R$ {(Number(f.custo_unit) / Number(f.peso_unit)).toFixed(2)}/{f.unidade}</strong>
           </p>
@@ -213,10 +213,10 @@ function FormPreparo({ inicial, ingredientes, onSalvar, onCancelar }) {
         </Field>
       </div>
 
-      {/* 🎯 Card de rendimento em destaque */}
+      {/* Card de rendimento em destaque */}
       {rendBase > 0 && porcaoNum > 0 && (
         <Card className="!p-3 mb-3" style={{ background: "linear-gradient(135deg, #10B98122, #06B6D422)", border: "1px solid #10B98144" }}>
-          <p className="text-[10px] font-bold" style={{ color: "#10B981", letterSpacing: "0.04em", textTransform: "uppercase" }}>🎯 Rendimento da receita</p>
+          <p className="text-[10px] font-bold" style={{ color: "#10B981", letterSpacing: "0.04em", textTransform: "uppercase" }}>Rendimento da receita</p>
           <div className="flex items-baseline gap-2 mb-1">
             <strong style={{ fontSize: 32, color: "#10B981" }}>{totalPorcoes}</strong>
             <span style={{ fontSize: 13, color: "var(--fg)" }}>porções de <strong>{porcaoNum}{unidadeBase}</strong></span>
@@ -228,7 +228,7 @@ function FormPreparo({ inicial, ingredientes, onSalvar, onCancelar }) {
           </p>
           {totalPorcoes * porcaoNum < rendBase && (
             <p className="text-[10px] mt-1" style={{ color: "#F59E0B" }}>
-              ⚠ Sobra: {(rendBase - (totalPorcoes * porcaoNum))}{unidadeBase} (não dá pra mais uma porção completa)
+              Sobra: {(rendBase - (totalPorcoes * porcaoNum))}{unidadeBase} (não dá pra mais uma porção completa)
             </p>
           )}
         </Card>
@@ -273,7 +273,7 @@ function FormPreparo({ inicial, ingredientes, onSalvar, onCancelar }) {
 
       <div className="erp-panel p-2 mb-3 flex justify-between" style={{ background: "var(--elevated)", borderRadius: 6 }}>
         <span className="text-[11px]" style={{ color: "var(--muted)" }}>
-          <strong>💰 Custo total dos ingredientes:</strong> {fmtBRL(custoTotal)}
+          <strong>Custo total dos ingredientes:</strong> {fmtBRL(custoTotal)}
           {rendBase > 0 && <> · por {unidadeBase}: <strong style={{ color: "var(--accent-fg)" }}>{fmtBRL(custoPorUnitBase)}</strong></>}
         </span>
       </div>
@@ -363,7 +363,7 @@ function FormPrato({ inicial, ingredientes, preparos, onSalvar, onCancelar }) {
                 <div key={`prep-${prep.id}`} className="flex items-center gap-2 p-2 rounded" style={{ background: sel ? "var(--elevated)" : "transparent" }}>
                   <input type="checkbox" checked={!!sel} onChange={() => toggleItem(prep.id, "prep")} />
                   <div className="flex-1 text-[12px]">
-                    <strong style={{ color: "var(--fg)" }}>🧪 {prep.nome}</strong>
+                    <strong style={{ color: "var(--fg)" }}>{prep.nome}</strong>
                     <span style={{ color: "var(--dim)", marginLeft: 6 }}>{fmtBRL(unitCost)}/{prep.unidade}</span>
                   </div>
                   {sel && (
@@ -405,10 +405,10 @@ function FormPrato({ inicial, ingredientes, preparos, onSalvar, onCancelar }) {
                 <div style={{ paddingLeft: 26, marginTop: 6 }}>
                   {/* Pergunta clara */}
                   <p className="text-[11px] mb-2" style={{ color: "var(--muted)" }}>
-                    👉 Quanto vou usar <strong style={{ color: "var(--fg)" }}>por porção</strong>?
+                    Quanto vou usar <strong style={{ color: "var(--fg)" }}>por porção</strong>?
                     {sug && sug.unidade === ing.unidade && (
                       <span style={{ color: "#10B981", marginLeft: 6 }}>
-                        💡 Sugerido para {sug.categoria}: {sug.min}–{sug.max}{sug.unidade}
+                        Sugerido para {sug.categoria}: {sug.min}–{sug.max}{sug.unidade}
                       </span>
                     )}
                   </p>
@@ -423,7 +423,7 @@ function FormPrato({ inicial, ingredientes, preparos, onSalvar, onCancelar }) {
                         step="1"
                       />
                       <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>{ing.unidade}/porção</span>
-                      {dentroFaixa && <span style={{ color: "#10B981", fontSize: 13, marginLeft: 4 }} title="Dentro da faixa sugerida">✓</span>}
+                      {dentroFaixa && <span style={{ color: "#10B981", fontSize: 13, marginLeft: 4 }} title="Dentro da faixa sugerida"></span>}
                     </div>
 
                     {/* Botões rápidos */}
@@ -455,7 +455,7 @@ function FormPrato({ inicial, ingredientes, preparos, onSalvar, onCancelar }) {
                   {/* Cálculo total */}
                   {Number(sel.qty) > 0 && rendNum > 1 && (
                     <div className="mt-2 p-2 rounded" style={{ background: "var(--surface)", fontSize: 11 }}>
-                      📦 <strong style={{ color: "var(--fg)" }}>{sel.qty}{ing.unidade}/porção</strong>{" "}
+                      <strong style={{ color: "var(--fg)" }}>{sel.qty}{ing.unidade}/porção</strong>{" "}
                       × <strong style={{ color: "var(--fg)" }}>{rendNum} porções</strong>{" "}
                       = <strong style={{ color: "var(--accent-fg)", fontSize: 13 }}>{totalFormatado(qtdTotal)}</strong>
                       <span style={{ color: "var(--dim)", marginLeft: 6 }}>
@@ -533,7 +533,7 @@ export default function TabCardapio({ eventoId, ingredientes, preparos, pratos, 
       {/* Alerta de fluxo */}
       <Card className="!p-3" style={{ background: "linear-gradient(135deg, #3B82F622, #10B98122)", borderLeft: "3px solid #3B82F6" }}>
         <p className="text-[12px]" style={{ color: "var(--fg)" }}>
-          <strong>👨‍🍳 Fluxo da Cozinha:</strong> 1️⃣ Cadastre <strong>ingredientes</strong> → 2️⃣ Crie <strong>preparos</strong> (opcional, ex: molho) → 3️⃣ Monte os <strong>pratos</strong> usando ingredientes/preparos
+          <strong>‍Fluxo da Cozinha:</strong> 1⃣ Cadastre <strong>ingredientes</strong> → 2⃣ Crie <strong>preparos</strong> (opcional, ex: molho) → 3⃣ Monte os <strong>pratos</strong> usando ingredientes/preparos
         </p>
       </Card>
 
@@ -541,7 +541,7 @@ export default function TabCardapio({ eventoId, ingredientes, preparos, pratos, 
       <Card className="!p-4" style={{ borderTop: "3px solid #10B981" }}>
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
           <h3 style={{ fontWeight: 700, color: "var(--fg)" }}>
-            🥕 1️⃣ Ingredientes da Cozinha ({ingFood.length})
+            1⃣ Ingredientes da Cozinha ({ingFood.length})
           </h3>
           <div className="flex gap-2 flex-wrap">
             <Btn variant="ghost" onClick={() => setModalLote(true)}><ListPlus size={14} /> Adicionar em lote</Btn>
@@ -600,11 +600,11 @@ export default function TabCardapio({ eventoId, ingredientes, preparos, pratos, 
                           const diff = valorPago - custoEstimado;
                           const pct = custoEstimado > 0 ? Math.abs((diff / custoEstimado) * 100) : 0;
                           if (diff < -0.5) {
-                            indicador = { tipo: "economia", texto: `🟢 -${pct.toFixed(0)}%`, cor: "#10B981", bg: "#10B98122" };
+                            indicador = { tipo: "economia", texto: `-${pct.toFixed(0)}%`, cor: "#10B981", bg: "#10B98122" };
                           } else if (diff > 0.5) {
-                            indicador = { tipo: "perda", texto: `🔴 +${pct.toFixed(0)}%`, cor: "#EF4444", bg: "#EF444422" };
+                            indicador = { tipo: "perda", texto: `+${pct.toFixed(0)}%`, cor: "#EF4444", bg: "#EF444422" };
                           } else {
-                            indicador = { tipo: "igual", texto: "🟡 igual", cor: "#3B82F6", bg: "#3B82F622" };
+                            indicador = { tipo: "igual", texto: "igual", cor: "#3B82F6", bg: "#3B82F622" };
                           }
                         }
 
@@ -648,7 +648,7 @@ export default function TabCardapio({ eventoId, ingredientes, preparos, pratos, 
       {/* 2) Preparos / Sub-receitas */}
       <Card className="!p-4" style={{ borderTop: "3px solid #8B5CF6" }}>
         <div className="flex items-center justify-between mb-3">
-          <h3 style={{ fontWeight: 700, color: "var(--fg)" }}>🧪 2️⃣ Preparos / Sub-receitas ({prepFood.length})</h3>
+          <h3 style={{ fontWeight: 700, color: "var(--fg)" }}>2⃣ Preparos / Sub-receitas ({prepFood.length})</h3>
           <Btn variant="ghost" onClick={() => { setEditar(null); setModal("prep"); }} disabled={ingFood.length === 0}><Plus size={14} /> Novo preparo</Btn>
         </div>
         {prepFood.length === 0 ? (
@@ -675,7 +675,7 @@ export default function TabCardapio({ eventoId, ingredientes, preparos, pratos, 
                 <div key={prep.id} className="p-3 rounded" style={{ background: "var(--elevated)" }}>
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex-1">
-                      <strong style={{ color: "var(--fg)", fontSize: 14 }}>🧪 {prep.nome}</strong>
+                      <strong style={{ color: "var(--fg)", fontSize: 14 }}>{prep.nome}</strong>
                       <p className="text-[11px] mt-1" style={{ color: "var(--dim)" }}>
                         Rende <strong style={{ color: "var(--fg)" }}>{r.v}{r.u}</strong>
                         {" · "}custo total: <strong style={{ color: "var(--fg)" }}>{fmtBRL(totalCusto)}</strong>
@@ -690,7 +690,7 @@ export default function TabCardapio({ eventoId, ingredientes, preparos, pratos, 
                   {porcao > 0 && (
                     <div className="p-2 rounded mb-2" style={{ background: "linear-gradient(135deg, #10B98122, #06B6D422)", borderLeft: "3px solid #10B981" }}>
                       <p className="text-[11px]" style={{ color: "var(--fg)" }}>
-                        🎯 <strong style={{ color: "#10B981" }}>{totalPorcoes} porções</strong>
+                        <strong style={{ color: "#10B981" }}>{totalPorcoes} porções</strong>
                         {" "}de <strong>{porcao}{prep.unidade}</strong>
                         {" · "}custo por porção: <strong style={{ color: "#10B981" }}>{fmtBRL(unitCost * porcao)}</strong>
                       </p>
@@ -698,7 +698,7 @@ export default function TabCardapio({ eventoId, ingredientes, preparos, pratos, 
                   )}
                   {prep.modo_preparo && (
                     <details style={{ marginTop: 6 }}>
-                      <summary style={{ cursor: "pointer", fontSize: 11, color: "var(--muted)", fontWeight: 600 }}>📖 Modo de preparo</summary>
+                      <summary style={{ cursor: "pointer", fontSize: 11, color: "var(--muted)", fontWeight: 600 }}>Modo de preparo</summary>
                       <p className="text-[11px] mt-2 whitespace-pre-wrap" style={{ color: "var(--dim)", paddingLeft: 8, borderLeft: "2px solid var(--line)" }}>{prep.modo_preparo}</p>
                     </details>
                   )}
@@ -712,7 +712,7 @@ export default function TabCardapio({ eventoId, ingredientes, preparos, pratos, 
       {/* 3) Pratos (FINAL — montados com ingredientes e preparos) */}
       <Card className="!p-4" style={{ borderTop: "3px solid #F59E0B" }}>
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <h3 style={{ fontWeight: 700, color: "var(--fg)" }}><ChefHat size={16} style={{ display: "inline", marginRight: 6 }} />3️⃣ Pratos do Menu ({pratos.length})</h3>
+          <h3 style={{ fontWeight: 700, color: "var(--fg)" }}><ChefHat size={16} style={{ display: "inline", marginRight: 6 }} />3⃣ Pratos do Menu ({pratos.length})</h3>
           <div className="flex gap-2 flex-wrap">
             <Btn variant="ghost" onClick={() => setModalReceita(true)} style={{ background: "linear-gradient(135deg, #8B5CF6, #EC4899)", color: "white" }}>
               <Wand2 size={14} /> Importar receita
@@ -778,8 +778,8 @@ export default function TabCardapio({ eventoId, ingredientes, preparos, pratos, 
         tipo="food"
         ingredientesExistentes={ingFood}
         onSuccess={(sucesso, falha) => {
-          if (falha > 0) alert(`✓ ${sucesso} item(ns) adicionado(s)\n⚠ ${falha} com erro`);
-          else alert(`✓ ${sucesso} ingrediente(s) adicionado(s) em lote!`);
+          if (falha > 0) alert(`${sucesso} item(ns) adicionado(s)\n${falha} com erro`);
+          else alert(`${sucesso} ingrediente(s) adicionado(s) em lote!`);
           onChange();
         }}
       />
@@ -799,7 +799,7 @@ export default function TabCardapio({ eventoId, ingredientes, preparos, pratos, 
           tipo={importar}
           eventoId={eventoId}
           existentes={importar === "pratos" ? pratos : ingFood}
-          onSuccess={(count) => { alert(`✓ ${count} item(ns) importado(s) com sucesso!`); onChange(); }}
+          onSuccess={(count) => { alert(`${count} item(ns) importado(s) com sucesso!`); onChange(); }}
         />
       )}
     </div>

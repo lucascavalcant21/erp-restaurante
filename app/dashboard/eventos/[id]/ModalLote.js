@@ -105,7 +105,7 @@ export default function ModalLote({ open, onClose, eventoId, tipo, ingredientesE
 
           <details style={{ marginBottom: 12 }}>
             <summary style={{ cursor: "pointer", fontSize: 11, color: "var(--accent-fg)", fontWeight: 600 }}>
-              💡 Ver formatos suportados e exemplo
+              Ver formatos suportados e exemplo
             </summary>
             <div className="mt-2 p-3 rounded text-[11px]" style={{ background: "var(--elevated)" }}>
               <p style={{ color: "var(--muted)", marginBottom: 6 }}><strong>Exemplos válidos:</strong></p>
@@ -134,7 +134,7 @@ export default function ModalLote({ open, onClose, eventoId, tipo, ingredientesE
           {erro && <p className="erp-badge erp-badge-danger w-full justify-center mb-3">{erro}</p>}
 
           <div className="flex gap-3">
-            <Btn variant="ghost" className="flex-1" onClick={() => { setTexto(exemplo); }}>📋 Usar exemplo</Btn>
+            <Btn variant="ghost" className="flex-1" onClick={() => { setTexto(exemplo); }}>Usar exemplo</Btn>
             <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
             <Btn variant="primary" className="flex-1" onClick={analisar} disabled={!texto.trim()}>
               <Wand2 size={14} /> Analisar lista
@@ -149,8 +149,8 @@ export default function ModalLote({ open, onClose, eventoId, tipo, ingredientesE
               Revise e edite o que precisar antes de salvar.
             </p>
             <div className="flex gap-1">
-              <button onClick={() => toggleTodos(true)}  style={{ background: "var(--elevated)", padding: "4px 10px", borderRadius: 6, border: "none", cursor: "pointer", fontSize: 11, color: "var(--muted)" }}>✓ Marcar todos</button>
-              <button onClick={() => toggleTodos(false)} style={{ background: "var(--elevated)", padding: "4px 10px", borderRadius: 6, border: "none", cursor: "pointer", fontSize: 11, color: "var(--muted)" }}>✗ Desmarcar</button>
+              <button onClick={() => toggleTodos(true)}  style={{ background: "var(--elevated)", padding: "4px 10px", borderRadius: 6, border: "none", cursor: "pointer", fontSize: 11, color: "var(--muted)" }}>Marcar todos</button>
+              <button onClick={() => toggleTodos(false)} style={{ background: "var(--elevated)", padding: "4px 10px", borderRadius: 6, border: "none", cursor: "pointer", fontSize: 11, color: "var(--muted)" }}>Desmarcar</button>
             </div>
           </div>
 
@@ -178,7 +178,7 @@ export default function ModalLote({ open, onClose, eventoId, tipo, ingredientesE
                     )}
                     {item._duplicado && (
                       <span style={{ padding: "1px 6px", borderRadius: 999, fontSize: 9, fontWeight: 700, background: "#EF444433", color: "#EF4444" }}>
-                        ⚠ já cadastrado
+                        já cadastrado
                       </span>
                     )}
                     <button onClick={() => removerItem(item._id)} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 2 }} title="Remover">
@@ -229,7 +229,7 @@ export default function ModalLote({ open, onClose, eventoId, tipo, ingredientesE
                   </Select>
 
                   <p className="text-[10px] mt-1" style={{ color: "var(--dim)" }}>
-                    💰 {fmtBRL(item.custo_unit)} / {item.peso_unit}{item.unidade}
+                    {fmtBRL(item.custo_unit)} / {item.peso_unit}{item.unidade}
                     {item.peso_unit > 0 && (
                       <> · <strong style={{ color: "var(--accent-fg)" }}>
                         {fmtBRL(item.custo_unit / item.peso_unit)}/{item.unidade}

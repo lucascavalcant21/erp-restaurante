@@ -220,7 +220,7 @@ export default function EventosPage() {
 
   return (
     <div className="min-h-screen">
-      <PageHeader title="🎉 Eventos" subtitle="Planejamento financeiro de eventos gastronômicos" icon={CalendarDays} onAction={() => { setEditar(null); setModal(true); }} actionLabel="Novo evento" />
+      <PageHeader title="Eventos" subtitle="Planejamento financeiro de eventos gastronômicos" icon={CalendarDays} onAction={() => { setEditar(null); setModal(true); }} actionLabel="Novo evento" />
       <PageBody>
         <Toast show={!!salvou}>{salvou}</Toast>
 

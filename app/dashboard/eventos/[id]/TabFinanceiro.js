@@ -184,8 +184,8 @@ export default function TabFinanceiro({ eventoId, evento, custosFixos, reservas,
             <CreditCard size={16} style={{ color: "#10B981" }} />
             <h3 style={{ fontWeight: 700, color: "var(--fg)" }}>Status de Pagamento</h3>
           </div>
-          <div className="flex justify-between text-[12px] mb-1"><span style={{ color: "#10B981" }}>✓ Recebido</span><strong>{fmtBRL(totalSinal)}</strong></div>
-          <div className="flex justify-between text-[12px] mb-1"><span style={{ color: "#F59E0B" }}>⌛ A receber</span><strong>{fmtBRL(totalReceber)}</strong></div>
+          <div className="flex justify-between text-[12px] mb-1"><span style={{ color: "#10B981" }}>Recebido</span><strong>{fmtBRL(totalSinal)}</strong></div>
+          <div className="flex justify-between text-[12px] mb-1"><span style={{ color: "#F59E0B" }}>A receber</span><strong>{fmtBRL(totalReceber)}</strong></div>
           <div className="flex justify-between text-[12px] mb-2 pb-2" style={{ borderBottom: "1px solid var(--line)" }}><span style={{ color: "var(--muted)" }}>Total esperado</span><strong>{fmtBRL(calc.totalRevenue)}</strong></div>
           <div style={{ height: 6, background: "var(--elevated)", borderRadius: 100, overflow: "hidden" }}>
             <div style={{ width: `${pagamentoPct}%`, height: "100%", background: "linear-gradient(90deg, #10B981, #F59E0B)" }} />
@@ -214,7 +214,7 @@ export default function TabFinanceiro({ eventoId, evento, custosFixos, reservas,
             {unidadesFaltam !== null && unidadesFaltam > 0 && calc.profit < metaNum && (
               <span>Faltam <strong style={{ color: "var(--accent-fg)" }}>{unidadesFaltam}</strong> {calc.unitName}</span>
             )}
-            {calc.profit >= metaNum && metaNum > 0 && <span style={{ color: "#10B981" }}>Meta batida 🎯</span>}
+            {calc.profit >= metaNum && metaNum > 0 && <span style={{ color: "#10B981" }}>Meta batida </span>}
           </div>
         </Card>
       </div>

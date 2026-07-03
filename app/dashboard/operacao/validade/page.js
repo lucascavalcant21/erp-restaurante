@@ -106,8 +106,8 @@ export default function ValidadePage() {
 
         <SearchBar value={busca} onChange={setBusca} placeholder="Buscar por produto ou código..." />
         <Chips options={[
-          { value: "todos", label: "Ativos" }, { value: "vencendo", label: "🟠 Vencendo" },
-          { value: "vencidos", label: "🔴 Vencidos" }, { value: "perdas", label: "💸 Perdas" }, { value: "baixados", label: "✔ Baixados" },
+          { value: "todos", label: "Ativos" }, { value: "vencendo", label: "Vencendo" },
+          { value: "vencidos", label: "Vencidos" }, { value: "perdas", label: "Perdas" }, { value: "baixados", label: "Baixados" },
         ]} value={filtro} onChange={setFiltro} />
 
         <div>
@@ -139,7 +139,7 @@ export default function ValidadePage() {
                             vence {fmtData(e.validade_em)} {fmtHora(e.validade_em)} · #{e.codigo}
                             {e.lote ? ` · Lote: ${e.lote}` : ""}
                             {e.responsavel ? ` · Resp: ${e.responsavel}` : ""}
-                            {unidadeAtiva === "todas" && e.unidade_id ? ` · 📍 ${unidades.find(u => u.id === e.unidade_id)?.nome || e.unidade_id}` : ""}
+                            {unidadeAtiva === "todas" && e.unidade_id ? ` · ${unidades.find(u => u.id === e.unidade_id)?.nome || e.unidade_id}` : ""}
                           </p>
                         </div>
                         <span className="text-[11px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap" style={{ background: e.st.cor + "22", color: e.st.cor }}>{textoDias(e.dias)}</span>
@@ -153,7 +153,7 @@ export default function ValidadePage() {
                       {e.status !== "ativa" && (
                         <div className="flex items-center justify-between mt-1.5">
                           <span className="text-[11px] font-bold" style={{ color: e.status === "perda" ? "#DC2626" : "var(--accent-fg)" }}>
-                            {e.status === "perda" ? `💸 Perda ${fmtBRL(e.valor)}` : "✔ Baixa (consumido)"}
+                            {e.status === "perda" ? `Perda ${fmtBRL(e.valor)}` : "Baixa (consumido)"}
                           </span>
                           <button onClick={() => mudarStatus(e, "ativa")} className="text-[11px] font-bold" style={{ color: "var(--dim)" }}>desfazer</button>
                         </div>

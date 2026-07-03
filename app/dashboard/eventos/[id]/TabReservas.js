@@ -203,7 +203,7 @@ function FormReserva({ inicial, evento, reservas, pratos, drinks, ingredientes, 
         }} />
       </div>
       <div className="flex justify-between text-[10px] mb-3" style={{ color: "var(--dim)" }}>
-        <span>{sinalPct >= 100 ? "✓ Pago total" : `Faltam ${fmtBRL(restante)}`}</span>
+        <span>{sinalPct >= 100 ? "Pago total" : `Faltam ${fmtBRL(restante)}`}</span>
         <span>50% sugerido: {fmtBRL(totalValor / 2)} · Total: {fmtBRL(totalValor)}</span>
       </div>
 
@@ -239,7 +239,7 @@ function FormReserva({ inicial, evento, reservas, pratos, drinks, ingredientes, 
         return (
           <div key={categoria} style={{ marginBottom: 12 }}>
             <div className="flex items-center justify-between mb-2">
-              <SectionLabel>{categoria === "Entrada" ? "🥗 Entradas/Petiscos" : categoria === "Principal" ? "🍽️ Pratos Principais" : "🍰 Sobremesas"}</SectionLabel>
+              <SectionLabel>{categoria === "Entrada" ? "Entradas/Petiscos" : categoria === "Principal" ? "Pratos Principais" : "Sobremesas"}</SectionLabel>
               <span style={{
                 fontSize: 10, fontWeight: 700,
                 padding: "2px 8px", borderRadius: 999,
@@ -285,7 +285,7 @@ function FormReserva({ inicial, evento, reservas, pratos, drinks, ingredientes, 
       {limiteDrinks > 0 && (
         <div style={{ marginBottom: 12 }}>
           <div className="flex items-center justify-between mb-2">
-            <SectionLabel>🍹 Drinks do menu</SectionLabel>
+            <SectionLabel>Drinks do menu</SectionLabel>
             <span style={{
               fontSize: 10, fontWeight: 700,
               padding: "2px 8px", borderRadius: 999,
@@ -309,7 +309,7 @@ function FormReserva({ inicial, evento, reservas, pratos, drinks, ingredientes, 
                     <input type="checkbox" checked={sel} onChange={() => toggleDrinkComLimite(drink)} />
                     <div className="flex-1 text-[12px]">
                       <strong style={{ color: "var(--fg)" }}>{drink.nome}</strong>
-                      <span style={{ color: "var(--dim)", marginLeft: 6, fontSize: 10 }}>{drink.has_alcohol ? "🍸 c/ álcool" : "🌿 s/ álcool"}</span>
+                      <span style={{ color: "var(--dim)", marginLeft: 6, fontSize: 10 }}>{drink.has_alcohol ? "c/ álcool" : "s/ álcool"}</span>
                       {cmv > 0 && (
                         <span style={{ color: "var(--dim)", marginLeft: 6, fontSize: 10 }}>
                           CMV {fmtBRL(cmv)}
@@ -377,7 +377,7 @@ function montarIngredientesPrato(prato, ingredientes, preparos) {
   if (!prato.ingredients?.length) return "";
   return prato.ingredients.map((item) => {
     const meta = nomeItem(item, ingredientes, preparos);
-    const icon = meta.isPrep ? "🧪" : "•";
+    const icon = meta.isPrep ? "" : "•";
     return `${icon} ${meta.nome} — ${item.qty}${meta.unidade}`;
   }).join("<br>");
 }
@@ -433,12 +433,12 @@ h1 { margin: 0 0 4px; font-size: 24px; }
 .prato-tags { margin-top: 4px; }
 .tag { display: inline-block; background: #fef3c7; color: #92400e; padding: 1px 6px; border-radius: 999px; font-size: 9px; margin-right: 4px; font-weight: 600; }
 .obs { background: #fef9c3; padding: 6px 10px; border-radius: 4px; font-size: 11px; margin-top: 6px; color: #713f12; }
-.obs::before { content: "⚠ "; }
+.obs::before { content: ""; }
 .rodape { margin-top: 32px; padding-top: 12px; border-top: 1px solid #e2e8f0; font-size: 10px; color: #94a3b8; text-align: center; }
 .empty { text-align: center; padding: 20px; color: #94a3b8; font-size: 12px; }
 @media print { body { margin: 0; padding: 8px; } .turno { page-break-after: auto; } }
 </style></head><body>
-<h1>🍽️ Ordem de Produção — Cozinha</h1>
+<h1>Ordem de Produção — Cozinha</h1>
 <div class="meta"><strong>${evento.nome}</strong> · ${new Date(evento.data_evento + "T00:00:00").toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })} · ${evento.tag || ""}</div>
 
 ${turnos.map((t) => {
@@ -449,7 +449,7 @@ ${turnos.map((t) => {
 
   ${resumoTurno.length > 0 ? `
   <div class="resumo">
-    <h3>📊 Total a produzir neste turno</h3>
+    <h3>Total a produzir neste turno</h3>
     ${resumoTurno.map((r) => `<div class="resumo-row"><span>${r.prato.nome}</span><strong>${r.qty}x porção</strong></div>`).join("")}
   </div>
   ` : ""}
@@ -545,12 +545,12 @@ h1 { margin: 0 0 4px; font-size: 24px; }
 .qty-badge { display: inline-block; background: #8B5CF6; color: white; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; margin-left: 6px; }
 .section-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; font-weight: 700; margin: 10px 0 4px; }
 .obs { background: #fef9c3; padding: 6px 10px; border-radius: 4px; font-size: 11px; margin-top: 6px; color: #713f12; }
-.obs::before { content: "⚠ "; }
+.obs::before { content: ""; }
 .rodape { margin-top: 32px; padding-top: 12px; border-top: 1px solid #e2e8f0; font-size: 10px; color: #94a3b8; text-align: center; }
 .empty { text-align: center; padding: 20px; color: #94a3b8; font-size: 12px; }
 @media print { body { margin: 0; padding: 8px; } .turno { page-break-after: auto; } }
 </style></head><body>
-<h1>🍹 Ordem de Produção — Bar</h1>
+<h1>Ordem de Produção — Bar</h1>
 <div class="meta"><strong>${evento.nome}</strong> · ${new Date(evento.data_evento + "T00:00:00").toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })} · ${evento.tag || ""}</div>
 
 ${turnos.map((t) => {
@@ -561,8 +561,8 @@ ${turnos.map((t) => {
 
   ${resumoTurno.length > 0 ? `
   <div class="resumo">
-    <h3>📊 Total a preparar neste turno</h3>
-    ${resumoTurno.map((r) => `<div class="resumo-row"><span>${r.drink.nome} ${r.drink.has_alcohol ? "🍸" : "🌿"}</span><strong>${r.qty}x</strong></div>`).join("")}
+    <h3>Total a preparar neste turno</h3>
+    ${resumoTurno.map((r) => `<div class="resumo-row"><span>${r.drink.nome} ${r.drink.has_alcohol ? "" : ""}</span><strong>${r.qty}x</strong></div>`).join("")}
   </div>
   ` : ""}
 
@@ -586,7 +586,7 @@ ${turnos.map((t) => {
         <div class="drink">
           <div>
             <span class="drink-nome">${drink.nome}</span>
-            <span class="drink-tag ${drink.has_alcohol ? "tag-alc" : "tag-noalc"}">${drink.has_alcohol ? "🍸 c/ álcool" : "🌿 s/ álcool"}</span>
+            <span class="drink-tag ${drink.has_alcohol ? "tag-alc" : "tag-noalc"}">${drink.has_alcohol ? "c/ álcool" : "s/ álcool"}</span>
           </div>
           ${drink.descricao ? `<div class="drink-desc">${drink.descricao}</div>` : ""}
           ${drink.ingredients?.length ? `<div class="drink-ings"><strong>Ingredientes:</strong><br>${montarIngredientesPrato(drink, ingredientes, preparos)}</div>` : ""}
@@ -599,8 +599,8 @@ ${turnos.map((t) => {
           <div>
             <span class="drink-nome">${drink.nome}</span>
             <span class="qty-badge">${qty}x</span>
-            <span class="drink-tag ${drink.has_alcohol ? "tag-alc" : "tag-noalc"}">${drink.has_alcohol ? "🍸 c/ álcool" : "🌿 s/ álcool"}</span>
-            <span class="drink-tag tag-extra">💰 Extra</span>
+            <span class="drink-tag ${drink.has_alcohol ? "tag-alc" : "tag-noalc"}">${drink.has_alcohol ? "c/ álcool" : "s/ álcool"}</span>
+            <span class="drink-tag tag-extra">Extra</span>
           </div>
           ${drink.descricao ? `<div class="drink-desc">${drink.descricao}</div>` : ""}
           ${drink.ingredients?.length ? `<div class="drink-ings"><strong>Ingredientes:</strong><br>${montarIngredientesPrato(drink, ingredientes, preparos)}</div>` : ""}
@@ -679,7 +679,7 @@ export default function TabReservas({ eventoId, evento, reservas, pratos, drinks
           >
             <ChefHat size={18} />
             <div className="flex-1 text-left">
-              <div>🍳 Imprimir Cozinha</div>
+              <div>Imprimir Cozinha</div>
               <div style={{ fontSize: 10, fontWeight: 400, opacity: 0.9 }}>
                 {reservas.length === 0
                   ? "Adicione reservas primeiro"
@@ -703,7 +703,7 @@ export default function TabReservas({ eventoId, evento, reservas, pratos, drinks
           >
             <Beer size={18} />
             <div className="flex-1 text-left">
-              <div>🍹 Imprimir Bar</div>
+              <div>Imprimir Bar</div>
               <div style={{ fontSize: 10, fontWeight: 400, opacity: 0.9 }}>
                 {reservas.length === 0
                   ? "Adicione reservas primeiro"
@@ -763,13 +763,13 @@ export default function TabReservas({ eventoId, evento, reservas, pratos, drinks
                         </span>
                       </div>
                       {pratosEscolhidos.length > 0 && (
-                        <p className="text-[11px]" style={{ color: "var(--dim)" }}>🍽️ {pratosEscolhidos.map((p) => p.nome).join(" + ")}</p>
+                        <p className="text-[11px]" style={{ color: "var(--dim)" }}>{pratosEscolhidos.map((p) => p.nome).join(" + ")}</p>
                       )}
                       {drinksEscolhidos.length > 0 && (
-                        <p className="text-[11px]" style={{ color: "var(--dim)" }}>🍹 {drinksEscolhidos.map((d) => d.nome).join(" + ")}</p>
+                        <p className="text-[11px]" style={{ color: "var(--dim)" }}>{drinksEscolhidos.map((d) => d.nome).join(" + ")}</p>
                       )}
                       {extrasTotal > 0 && (
-                        <p className="text-[11px]" style={{ color: "#8B5CF6" }}>💰 Extras: {fmtBRL(extrasTotal)}</p>
+                        <p className="text-[11px]" style={{ color: "#8B5CF6" }}>Extras: {fmtBRL(extrasTotal)}</p>
                       )}
                       {r.observacao && <p className="text-[11px] mt-1" style={{ color: "var(--muted)", fontStyle: "italic" }}>"{r.observacao}"</p>}
                       <p className="text-[11px] mt-1" style={{ color: "var(--muted)" }}>

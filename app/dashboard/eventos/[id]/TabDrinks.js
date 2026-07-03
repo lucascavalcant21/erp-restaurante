@@ -98,7 +98,7 @@ function FormIngrediente({ inicial, onSalvar, onCancelar }) {
       {Number(f.custo_unit) > 0 && Number(f.peso_unit) > 0 && (
         <div className="erp-panel p-2 mb-3" style={{ background: "var(--elevated)", borderRadius: 6 }}>
           <p className="text-[11px]" style={{ color: "var(--muted)" }}>
-            💡 Você pagou <strong style={{ color: "var(--fg)" }}>R$ {Number(f.custo_unit).toFixed(2)}</strong>{" "}
+            Você pagou <strong style={{ color: "var(--fg)" }}>R$ {Number(f.custo_unit).toFixed(2)}</strong>{" "}
             por <strong style={{ color: "var(--fg)" }}>{f.peso_unit} {f.unidade}</strong>{" "}
             = <strong style={{ color: "var(--accent-fg)" }}>R$ {(Number(f.custo_unit) / Number(f.peso_unit)).toFixed(2)}/{f.unidade}</strong>
           </p>
@@ -240,11 +240,11 @@ function FormDrink({ inicial, ingredientes, preparos, onSalvar, onCancelar }) {
       <div className="grid grid-cols-2 gap-3 mb-3">
         <label className="flex items-center gap-2 p-2 rounded cursor-pointer" style={{ background: "var(--elevated)" }}>
           <input type="checkbox" checked={f.has_alcohol} onChange={(e) => set("has_alcohol", e.target.checked)} />
-          <span className="text-[12px]" style={{ color: "var(--fg)" }}>🍸 Com álcool</span>
+          <span className="text-[12px]" style={{ color: "var(--fg)" }}>Com álcool</span>
         </label>
         <label className="flex items-center gap-2 p-2 rounded cursor-pointer" style={{ background: "var(--elevated)" }}>
           <input type="checkbox" checked={f.is_extra} onChange={(e) => set("is_extra", e.target.checked)} />
-          <span className="text-[12px]" style={{ color: "var(--fg)" }}>💰 Drink extra (vende à parte)</span>
+          <span className="text-[12px]" style={{ color: "var(--fg)" }}>Drink extra (vende à parte)</span>
         </label>
       </div>
 
@@ -272,7 +272,7 @@ function FormDrink({ inicial, ingredientes, preparos, onSalvar, onCancelar }) {
                 <div key={`prep-${prep.id}`} className="flex items-center gap-2 p-2 rounded" style={{ background: sel ? "var(--elevated)" : "transparent" }}>
                   <input type="checkbox" checked={!!sel} onChange={() => toggleItem(prep.id, "prep")} />
                   <div className="flex-1 text-[12px]">
-                    <strong style={{ color: "var(--fg)" }}>🧪 {prep.nome}</strong>
+                    <strong style={{ color: "var(--fg)" }}>{prep.nome}</strong>
                     <span style={{ color: "var(--dim)", marginLeft: 6 }}>{fmtBRL(unitCost)}/{prep.unidade}</span>
                   </div>
                   {sel && (
@@ -305,10 +305,10 @@ function FormDrink({ inicial, ingredientes, preparos, onSalvar, onCancelar }) {
               {sel && (
                 <div style={{ paddingLeft: 26, marginTop: 6 }}>
                   <p className="text-[11px] mb-2" style={{ color: "var(--muted)" }}>
-                    👉 Quanto vou usar <strong style={{ color: "var(--fg)" }}>por drink</strong>?
+                    Quanto vou usar <strong style={{ color: "var(--fg)" }}>por drink</strong>?
                     {sug && sug.unidade === ing.unidade && (
                       <span style={{ color: "#10B981", marginLeft: 6 }}>
-                        💡 Sugerido para {sug.categoria}: {sug.min}–{sug.max}{sug.unidade}
+                        Sugerido para {sug.categoria}: {sug.min}–{sug.max}{sug.unidade}
                       </span>
                     )}
                   </p>
@@ -322,7 +322,7 @@ function FormDrink({ inicial, ingredientes, preparos, onSalvar, onCancelar }) {
                         step="1"
                       />
                       <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>{ing.unidade}/drink</span>
-                      {dentroFaixa && <span style={{ color: "#10B981", fontSize: 13, marginLeft: 4 }} title="Dentro da faixa sugerida">✓</span>}
+                      {dentroFaixa && <span style={{ color: "#10B981", fontSize: 13, marginLeft: 4 }} title="Dentro da faixa sugerida"></span>}
                     </div>
 
                     {sug && sug.unidade === ing.unidade && (
@@ -350,7 +350,7 @@ function FormDrink({ inicial, ingredientes, preparos, onSalvar, onCancelar }) {
                   {/* Custo por drink */}
                   {Number(sel.qty) > 0 && (
                     <div className="mt-2 p-2 rounded" style={{ background: "var(--surface)", fontSize: 11 }}>
-                      💰 Custo deste ingrediente no drink: <strong style={{ color: "var(--accent-fg)" }}>{fmtBRL((ing.custo_unit / ing.peso_unit) * Number(sel.qty))}</strong>
+                      Custo deste ingrediente no drink: <strong style={{ color: "var(--accent-fg)" }}>{fmtBRL((ing.custo_unit / ing.peso_unit) * Number(sel.qty))}</strong>
                     </div>
                   )}
                 </div>
@@ -413,14 +413,14 @@ export default function TabDrinks({ eventoId, ingredientes, preparos, drinks, co
       {/* Alerta de fluxo */}
       <Card className="!p-3" style={{ background: "linear-gradient(135deg, #8B5CF622, #F59E0B22)", borderLeft: "3px solid #8B5CF6" }}>
         <p className="text-[12px]" style={{ color: "var(--fg)" }}>
-          <strong>🍹 Fluxo do Bar:</strong> 1️⃣ Cadastre <strong>ingredientes</strong> (bebidas, destilados, xaropes) → 2️⃣ Crie <strong>preparos</strong> (opcional, ex: xarope caseiro) → 3️⃣ Monte os <strong>drinks</strong>
+          <strong>Fluxo do Bar:</strong> 1⃣ Cadastre <strong>ingredientes</strong> (bebidas, destilados, xaropes) → 2⃣ Crie <strong>preparos</strong> (opcional, ex: xarope caseiro) → 3⃣ Monte os <strong>drinks</strong>
         </p>
       </Card>
 
       {/* 1) Ingredientes do Bar (PRIMEIRO) */}
       <Card className="!p-4" style={{ borderTop: "3px solid #10B981" }}>
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <h3 style={{ fontWeight: 700, color: "var(--fg)" }}>🍾 1️⃣ Ingredientes do Bar ({ingBar.length})</h3>
+          <h3 style={{ fontWeight: 700, color: "var(--fg)" }}>1⃣ Ingredientes do Bar ({ingBar.length})</h3>
           <div className="flex gap-2 flex-wrap">
             <Btn variant="ghost" onClick={() => setModalLote(true)}><ListPlus size={14} /> Adicionar em lote</Btn>
             <Btn variant="ghost" onClick={() => setImportar("ingredientes-bar")}><Download size={14} /> Importar do ERP</Btn>
@@ -474,9 +474,9 @@ export default function TabDrinks({ eventoId, ingredientes, preparos, drinks, co
                           const custoEstimado = (Number(ing.custo_unit) / Number(ing.peso_unit)) * qtdComprada;
                           const diff = valorPago - custoEstimado;
                           const pct = custoEstimado > 0 ? Math.abs((diff / custoEstimado) * 100) : 0;
-                          if (diff < -0.5) indicador = { texto: `🟢 -${pct.toFixed(0)}%`, cor: "#10B981", bg: "#10B98122" };
-                          else if (diff > 0.5) indicador = { texto: `🔴 +${pct.toFixed(0)}%`, cor: "#EF4444", bg: "#EF444422" };
-                          else indicador = { texto: "🟡 igual", cor: "#3B82F6", bg: "#3B82F622" };
+                          if (diff < -0.5) indicador = { texto: `-${pct.toFixed(0)}%`, cor: "#10B981", bg: "#10B98122" };
+                          else if (diff > 0.5) indicador = { texto: `+${pct.toFixed(0)}%`, cor: "#EF4444", bg: "#EF444422" };
+                          else indicador = { texto: "igual", cor: "#3B82F6", bg: "#3B82F622" };
                         }
 
                         return (
@@ -516,7 +516,7 @@ export default function TabDrinks({ eventoId, ingredientes, preparos, drinks, co
       {/* 2) Preparos do Bar */}
       <Card className="!p-4" style={{ borderTop: "3px solid #8B5CF6" }}>
         <div className="flex items-center justify-between mb-3">
-          <h3 style={{ fontWeight: 700, color: "var(--fg)" }}>🧪 2️⃣ Preparos / Sub-receitas ({prepBar.length})</h3>
+          <h3 style={{ fontWeight: 700, color: "var(--fg)" }}>2⃣ Preparos / Sub-receitas ({prepBar.length})</h3>
           <Btn variant="ghost" onClick={() => { setEditar(null); setModal("prep"); }} disabled={ingBar.length === 0}><Plus size={14} /> Novo preparo</Btn>
         </div>
         {prepBar.length === 0 ? (
@@ -551,7 +551,7 @@ export default function TabDrinks({ eventoId, ingredientes, preparos, drinks, co
       {/* 3) Drinks (FINAL) */}
       <Card className="!p-4" style={{ borderTop: "3px solid #F59E0B" }}>
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <h3 style={{ fontWeight: 700, color: "var(--fg)" }}><Beer size={16} style={{ display: "inline", marginRight: 6 }} />3️⃣ Drinks do Menu ({drinks.length})</h3>
+          <h3 style={{ fontWeight: 700, color: "var(--fg)" }}><Beer size={16} style={{ display: "inline", marginRight: 6 }} />3⃣ Drinks do Menu ({drinks.length})</h3>
           <div className="flex gap-2">
             <Btn variant="ghost" onClick={() => setImportar("drinks")}><Download size={14} /> Importar do cardápio</Btn>
             <Btn variant="primary" onClick={() => { setEditar(null); setModal("drink"); }} disabled={ingBar.length === 0}><Plus size={14} /> Novo drink</Btn>
@@ -576,11 +576,11 @@ export default function TabDrinks({ eventoId, ingredientes, preparos, drinks, co
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <strong style={{ color: "var(--fg)" }}>{drink.nome}</strong>
                         {drink.has_alcohol ? (
-                          <span className="erp-badge text-[10px]" style={{ background: "#F59E0B33", color: "#F59E0B" }}>🍸 Com álcool</span>
+                          <span className="erp-badge text-[10px]" style={{ background: "#F59E0B33", color: "#F59E0B" }}>Com álcool</span>
                         ) : (
-                          <span className="erp-badge text-[10px]" style={{ background: "#10B98133", color: "#10B981" }}>🌿 Sem álcool</span>
+                          <span className="erp-badge text-[10px]" style={{ background: "#10B98133", color: "#10B981" }}>Sem álcool</span>
                         )}
-                        {drink.is_extra && <span className="erp-badge text-[10px]" style={{ background: "#8B5CF633", color: "#8B5CF6" }}>💰 Extra</span>}
+                        {drink.is_extra && <span className="erp-badge text-[10px]" style={{ background: "#8B5CF633", color: "#8B5CF6" }}>Extra</span>}
                       </div>
                       {drink.descricao && <p className="text-[11px]" style={{ color: "var(--dim)" }}>{drink.descricao}</p>}
                       <p className="text-[11px] mt-1" style={{ color: "var(--muted)" }}>
@@ -620,8 +620,8 @@ export default function TabDrinks({ eventoId, ingredientes, preparos, drinks, co
         tipo="bar"
         ingredientesExistentes={ingBar}
         onSuccess={(sucesso, falha) => {
-          if (falha > 0) alert(`✓ ${sucesso} item(ns) adicionado(s)\n⚠ ${falha} com erro`);
-          else alert(`✓ ${sucesso} ingrediente(s) adicionado(s) em lote!`);
+          if (falha > 0) alert(`${sucesso} item(ns) adicionado(s)\n${falha} com erro`);
+          else alert(`${sucesso} ingrediente(s) adicionado(s) em lote!`);
           onChange();
         }}
       />
@@ -633,7 +633,7 @@ export default function TabDrinks({ eventoId, ingredientes, preparos, drinks, co
           tipo={importar}
           eventoId={eventoId}
           existentes={importar === "drinks" ? drinks : ingBar}
-          onSuccess={(count) => { alert(`✓ ${count} item(ns) importado(s) com sucesso!`); onChange(); }}
+          onSuccess={(count) => { alert(`${count} item(ns) importado(s) com sucesso!`); onChange(); }}
         />
       )}
     </div>

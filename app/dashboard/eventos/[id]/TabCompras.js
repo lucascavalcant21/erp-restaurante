@@ -28,14 +28,14 @@ th { background: #f1f5f9; font-size: 11px; text-transform: uppercase; }
 <div class="meta">${new Date(evento.data_evento + "T00:00:00").toLocaleDateString("pt-BR")} · ${evento.tag || ""} · Margem de segurança: +${safetyMargin}%</div>
 
 ${food.length > 0 ? `
-<h2>🍽️ Cozinha</h2>
+<h2>Cozinha</h2>
 <table><thead><tr><th>Item</th><th>Necessário</th><th>Com buffer</th><th class="cost">Custo</th></tr></thead><tbody>
 ${food.map(i => `<tr><td><strong>${i.name}</strong></td><td>${i.qty.toFixed(0)}${i.unit}</td><td class="qty">${i.qtyWithBuffer.toFixed(0)}${i.unit}</td><td class="cost">${fmtBRL(i.cost)}</td></tr>`).join("")}
 <tr class="total-row"><td colspan="3">Subtotal Cozinha</td><td class="cost">${fmtBRL(food.reduce((s, i) => s + i.cost, 0))}</td></tr>
 </tbody></table>` : ""}
 
 ${bar.length > 0 ? `
-<h2>🍷 Bar</h2>
+<h2>Bar</h2>
 <table><thead><tr><th>Item</th><th>Necessário</th><th>Com buffer</th><th class="cost">Custo</th></tr></thead><tbody>
 ${bar.map(i => `<tr><td><strong>${i.name}</strong></td><td>${i.qty.toFixed(0)}${i.unit}</td><td class="qty">${i.qtyWithBuffer.toFixed(0)}${i.unit}</td><td class="cost">${fmtBRL(i.cost)}</td></tr>`).join("")}
 <tr class="total-row"><td colspan="3">Subtotal Bar</td><td class="cost">${fmtBRL(bar.reduce((s, i) => s + i.cost, 0))}</td></tr>
@@ -114,7 +114,7 @@ function ListaItensCompra({ itens, corDestaque, unidadeRef, compraDe, onUpdate }
                     return (
                       <div style={{ background: "#10B98122", padding: "6px 10px", borderRadius: 6, borderLeft: "3px solid #10B981" }}>
                         <div style={{ fontSize: 12, fontWeight: 700, color: "#10B981" }}>
-                          🟢 ECONOMIA — {fmtBRL(Math.abs(diff))} (-{pct.toFixed(1)}%)
+                          ECONOMIA — {fmtBRL(Math.abs(diff))} (-{pct.toFixed(1)}%)
                         </div>
                         <div style={{ fontSize: 10, color: "var(--dim)", marginTop: 2 }}>
                           Estimado {fmtBRL(i.cost)} · Pago {fmtBRL(v)} · Você gastou {pct.toFixed(0)}% a menos
@@ -127,7 +127,7 @@ function ListaItensCompra({ itens, corDestaque, unidadeRef, compraDe, onUpdate }
                     return (
                       <div style={{ background: "#EF444422", padding: "6px 10px", borderRadius: 6, borderLeft: "3px solid #EF4444" }}>
                         <div style={{ fontSize: 12, fontWeight: 700, color: "#EF4444" }}>
-                          🔴 ACIMA DO ESTIMADO — +{fmtBRL(diff)} (+{pct.toFixed(1)}%)
+                          ACIMA DO ESTIMADO — +{fmtBRL(diff)} (+{pct.toFixed(1)}%)
                         </div>
                         <div style={{ fontSize: 10, color: "var(--dim)", marginTop: 2 }}>
                           Estimado {fmtBRL(i.cost)} · Pago {fmtBRL(v)} · Você gastou {pct.toFixed(0)}% a mais
@@ -139,7 +139,7 @@ function ListaItensCompra({ itens, corDestaque, unidadeRef, compraDe, onUpdate }
                   return (
                     <div style={{ background: "#3B82F622", padding: "6px 10px", borderRadius: 6, borderLeft: "3px solid #3B82F6" }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: "#3B82F6" }}>
-                        🟡 PREÇO IGUAL AO ESTIMADO
+                        PREÇO IGUAL AO ESTIMADO
                       </div>
                       <div style={{ fontSize: 10, color: "var(--dim)", marginTop: 2 }}>
                         Estimado {fmtBRL(i.cost)} · Pago {fmtBRL(v)} · Sem variação
@@ -359,7 +359,7 @@ export default function TabCompras({ evento, reservas, pratos, drinks, ingredien
               fontSize: 12, fontWeight: 600, textAlign: "left",
             }}
           >
-            <div>📊 Modo Estimado (planejamento)</div>
+            <div>Modo Estimado (planejamento)</div>
             <div style={{ fontSize: 10, fontWeight: 400, opacity: 0.9, marginTop: 2 }}>
               Distribui as porções igualmente entre todos os pratos/drinks
             </div>
@@ -376,7 +376,7 @@ export default function TabCompras({ evento, reservas, pratos, drinks, ingredien
               opacity: escolhasStats.comEscolhas === 0 ? 0.5 : 1,
             }}
           >
-            <div>🎯 Modo Real (escolhas dos clientes)</div>
+            <div>Modo Real (escolhas dos clientes)</div>
             <div style={{ fontSize: 10, fontWeight: 400, opacity: 0.9, marginTop: 2 }}>
               {escolhasStats.comEscolhas === 0
                 ? "Nenhuma reserva tem escolhas registradas ainda"
@@ -387,7 +387,7 @@ export default function TabCompras({ evento, reservas, pratos, drinks, ingredien
 
         {modo === "real" && escolhasStats.comEscolhas < escolhasStats.totalReservas && (
           <p className="text-[11px] mt-2" style={{ color: "#F59E0B" }}>
-            ⚠ Atenção: {escolhasStats.totalReservas - escolhasStats.comEscolhas} reserva{escolhasStats.totalReservas - escolhasStats.comEscolhas !== 1 ? "s" : ""} sem escolhas — esses casais não estão sendo contabilizados. Complete-os antes de comprar.
+            Atenção: {escolhasStats.totalReservas - escolhasStats.comEscolhas} reserva{escolhasStats.totalReservas - escolhasStats.comEscolhas !== 1 ? "s" : ""} sem escolhas — esses casais não estão sendo contabilizados. Complete-os antes de comprar.
           </p>
         )}
       </Card>
@@ -431,17 +431,17 @@ export default function TabCompras({ evento, reservas, pratos, drinks, ingredien
             border: `1px solid ${saldo >= 0 ? "#10B98133" : "#EF444433"}`,
           }}>
             <h3 style={{ fontWeight: 700, color: "var(--fg)", marginBottom: 12, fontSize: 14 }}>
-              📊 Análise de Compras ({totalComprado} item{totalComprado !== 1 ? "s" : ""} comprado{totalComprado !== 1 ? "s" : ""})
+              Análise de Compras ({totalComprado} item{totalComprado !== 1 ? "s" : ""} comprado{totalComprado !== 1 ? "s" : ""})
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
               <div style={{ padding: 10, background: "#10B98122", borderRadius: 8, borderLeft: "3px solid #10B981" }}>
-                <p style={{ fontSize: 10, color: "#10B981", fontWeight: 700, textTransform: "uppercase" }}>🟢 ECONOMIA</p>
+                <p style={{ fontSize: 10, color: "#10B981", fontWeight: 700, textTransform: "uppercase" }}>ECONOMIA</p>
                 <strong style={{ fontSize: 20, color: "#10B981" }}>{fmtBRL(economiaTotal)}</strong>
                 <p style={{ fontSize: 11, color: "var(--dim)" }}>{economias.length} ingrediente{economias.length !== 1 ? "s" : ""}</p>
               </div>
               <div style={{ padding: 10, background: "#EF444422", borderRadius: 8, borderLeft: "3px solid #EF4444" }}>
-                <p style={{ fontSize: 10, color: "#EF4444", fontWeight: 700, textTransform: "uppercase" }}>🔴 ACIMA DO ESTIMADO</p>
+                <p style={{ fontSize: 10, color: "#EF4444", fontWeight: 700, textTransform: "uppercase" }}>ACIMA DO ESTIMADO</p>
                 <strong style={{ fontSize: 20, color: "#EF4444" }}>{fmtBRL(perdaTotal)}</strong>
                 <p style={{ fontSize: 11, color: "var(--dim)" }}>{perdas.length} ingrediente{perdas.length !== 1 ? "s" : ""}</p>
               </div>
@@ -466,7 +466,7 @@ export default function TabCompras({ evento, reservas, pratos, drinks, ingredien
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {economias.length > 0 && (
                 <div>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: "#10B981", marginBottom: 4 }}>🏆 Maiores economias</p>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: "#10B981", marginBottom: 4 }}>Maiores economias</p>
                   {economias.slice(0, 3).map((e, i) => (
                     <div key={i} className="flex justify-between text-[11px] py-1" style={{ borderBottom: i < 2 ? "1px dashed var(--line)" : "none" }}>
                       <span style={{ color: "var(--fg)" }}>{e.nome}</span>
@@ -477,7 +477,7 @@ export default function TabCompras({ evento, reservas, pratos, drinks, ingredien
               )}
               {perdas.length > 0 && (
                 <div>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: "#EF4444", marginBottom: 4 }}>⚠️ Maiores excessos</p>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: "#EF4444", marginBottom: 4 }}>Maiores excessos</p>
                   {perdas.slice(0, 3).map((p, i) => (
                     <div key={i} className="flex justify-between text-[11px] py-1" style={{ borderBottom: i < 2 ? "1px dashed var(--line)" : "none" }}>
                       <span style={{ color: "var(--fg)" }}>{p.nome}</span>

@@ -6,7 +6,8 @@ import { useERP } from "../../../context/ERPContext";
 import { fetchProdutos, salvarProduto } from "../../../lib/vendas";
 import { fetchFichas } from "../../../lib/operacao"; // Pra linkar o custo
 import { fetchEmbalagens } from "../../../lib/embalagens";
-import { UtensilsCrossed, Plus, Search, Edit3, X, Save, ArrowLeft, Tag, Barcode, Image as ImageIcon, Trash2, ListPlus, Percent, Sparkles, Loader2, Printer, ClipboardList, Package } from "lucide-react";
+import { supabase } from "../../../lib/supabase";
+import { UtensilsCrossed, Plus, Search, Edit3, X, Save, ArrowLeft, Tag, Barcode, Image as ImageIcon, Trash2, ListPlus, Percent, Sparkles, Loader2, Printer, ClipboardList, Package, UploadCloud } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
 // Custo total de PRODUZIR uma ficha, resolvendo bases (sub-receitas) em cascata.
@@ -572,15 +573,43 @@ function CardapioRunner() {
                      </div>
                   </div>
 
-                  {/* Detalhes Extra */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
-                     <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1"><Barcode size={14}/> Cód. Barras (Opcional)</label>
-                        <input type="text" placeholder="Bipar ou digitar..." value={form.codigo_barras} onChange={e=>setForm({...form, codigo_barras: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500 text-slate-800"/>
-                     </div>
-                     <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1"><ImageIcon size={14}/> Link da Imagem (Opcional)</label>
-                        <input type="text" placeholder="https://..." value={form.imagem_url} onChange={e=>setForm({...form, imagem_url: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500 text-slate-800"/>
+                  {/* Detalhes Extra: Upload de Imagem */}
+                  <div className="pt-4 border-t border-slate-100">
+                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1 mb-2"><ImageIcon size={14}/> Imagem do Produto (Opcional)</label>
+                     <div className="flex gap-4 items-center mt-2">
+                        {form.imagem_url ? (
+                           <div className="relative w-24 h-24 rounded-2xl border border-slate-200 overflow-hidden shrink-0 shadow-sm bg-slate-50">
+                              <img src={form.imagem_url} alt="Produto" className="w-full h-full object-cover" />
+                              <button type="button" onClick={() => setForm({...form, imagem_url: ""})} className="absolute top-1.5 right-1.5 bg-white rounded-full p-1.5 shadow-sm text-slate-400 hover:text-red-500 transition-colors"><Trash2 size={12}/></button>
+                           </div>
+                        ) : (
+                           <div className="w-24 h-24 rounded-2xl border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-300 bg-slate-50 shrink-0">
+                              <ImageIcon size={28} />
+                           </div>
+                        )}
+                        <div className="flex-1">
+                           <label className="cursor-pointer group flex items-center justify-center gap-2 bg-slate-50 border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 transition-colors rounded-xl p-4 font-bold text-sm w-full relative">
+                              {loading ? <Loader2 className="animate-spin" size={18}/> : <UploadCloud size={18}/>}
+                              <span>{loading ? "Enviando..." : "Selecionar arquivo do computador"}</span>
+                              <input type="file" accept="image/*" disabled={loading} className="hidden" onChange={async (e) => {
+                                 const file = e.target.files[0];
+                                 if (!file) return;
+                                 setLoading(true);
+                                 const ext = file.name.split('.').pop();
+                                 const fileName = `produto-${Date.now()}.${ext}`;
+                                 const { error } = await supabase.storage.from("anexos").upload(`produtos/${fileName}`, file, { upsert: false });
+                                 if (error) {
+                                    alert("Erro ao enviar imagem: " + error.message);
+                                    setLoading(false);
+                                    return;
+                                 }
+                                 const { data: pubData } = supabase.storage.from("anexos").getPublicUrl(`produtos/${fileName}`);
+                                 setForm({...form, imagem_url: pubData.publicUrl});
+                                 setLoading(false);
+                              }}/>
+                           </label>
+                           <p className="text-[11px] font-medium text-slate-400 mt-2 ml-1">Formatos: JPG, PNG, WEBP. A imagem será recortada como um quadrado.</p>
+                        </div>
                      </div>
                   </div>
 

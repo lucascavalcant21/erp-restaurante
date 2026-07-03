@@ -297,38 +297,37 @@ export default function EmbalagensPage() {
                     Estoque saudável. Nada a comprar por enquanto!
                   </div>
                 ) : (
-                  <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
-                    <table className="w-full text-left">
-                       <thead>
-                          <tr className="bg-slate-50 border-b border-slate-100">
-                             <th className="p-5 text-[10px] font-black uppercase tracking-widest text-slate-500">Item</th>
-                             <th className="p-5 text-[10px] font-black uppercase tracking-widest text-slate-500 text-center">Saldo</th>
-                             <th className="p-5 text-[10px] font-black uppercase tracking-widest text-slate-500 text-center">Mínimo Ideal</th>
-                             <th className="p-5 text-[10px] font-black uppercase tracking-widest text-slate-500 text-right">Faltam</th>
-                          </tr>
-                       </thead>
-                       <tbody className="divide-y divide-slate-100">
-                          {compras.map(emb => (
-                             <tr key={emb.id} className="hover:bg-slate-50 transition-colors">
-                                <td className="p-5">
-                                   <p className="font-bold text-slate-800 text-lg">{emb.nome}</p>
-                                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">{emb.categoria}</p>
-                                </td>
-                                <td className="p-5 text-center">
-                                   <span className="font-black text-rose-500 text-xl">{emb.quantidade_atual}</span>
-                                </td>
-                                <td className="p-5 text-center">
-                                   <span className="font-black text-slate-400 text-xl">{emb.quantidade_minima}</span>
-                                </td>
-                                <td className="p-5 text-right">
-                                   <span className="inline-block bg-rose-100 text-rose-600 px-4 py-2 rounded-xl font-black text-lg">
-                                      {Math.max(0, Number(emb.quantidade_minima) - Number(emb.quantidade_atual))} un
-                                   </span>
-                                </td>
-                             </tr>
-                          ))}
-                       </tbody>
-                    </table>
+                  <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200">
+                    <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 grid grid-cols-[1fr_120px_140px_140px] gap-4 items-center">
+                      <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Item</span>
+                      <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center">Saldo</span>
+                      <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center">Mínimo Ideal</span>
+                      <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-right">Faltam</span>
+                    </div>
+                    <div className="bg-white divide-y divide-slate-100">
+                      {compras.map(emb => (
+                        <div key={emb.id} className="px-5 py-4 grid grid-cols-[1fr_120px_140px_140px] gap-4 items-center hover:bg-rose-50/40 transition-all duration-150">
+                          <div className="flex items-center gap-3">
+                            <div className="w-1 h-10 rounded-full bg-rose-400 shrink-0" />
+                            <div>
+                              <p className="font-bold text-slate-800 text-lg">{emb.nome}</p>
+                              <p className="text-[10px] font-bold text-teal-600 uppercase tracking-widest mt-0.5">{emb.categoria}</p>
+                            </div>
+                          </div>
+                          <div className="text-center">
+                            <span className="font-black text-rose-500 text-xl">{emb.quantidade_atual}</span>
+                          </div>
+                          <div className="text-center">
+                            <span className="font-black text-slate-400 text-xl">{emb.quantidade_minima}</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="inline-block bg-rose-100 text-rose-600 px-4 py-2 rounded-xl font-black text-lg">
+                              {Math.max(0, Number(emb.quantidade_minima) - Number(emb.quantidade_atual))} un
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

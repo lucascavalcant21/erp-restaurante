@@ -655,7 +655,7 @@ export default function OrcamentoEventoPage() {
             </div>
 
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-               <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Itens do Buffet — preço sugerido do cardápio, editável por item</p>
+               <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Itens do Buffet</p>
                <select onChange={e => { addItem(e.target.value); e.target.value = ""; }} disabled={loading} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-600 outline-none focus:border-emerald-500 mb-4">
                   <option value="">{loading ? "Carregando cardápio..." : "+ Adicionar produto do cardápio..."}</option>
                   {produtos.filter(p => !itens.find(i => i.produto_id === p.id)).map(p => (
@@ -664,75 +664,97 @@ export default function OrcamentoEventoPage() {
                </select>
 
                {linhas.length === 0 ? (
-                  <div className="text-center p-8 text-slate-400 font-medium text-sm">
-                     Adicione os produtos do buffet. Custos e lista de compras saem das Fichas Técnicas vinculadas.
+                  <div className="text-center p-12 text-slate-300">
+                     <ShoppingCart size={40} className="mx-auto mb-3 opacity-40" />
+                     <p className="text-slate-400 font-bold text-sm">Adicione os produtos do buffet acima.</p>
+                     <p className="text-slate-400 font-medium text-xs mt-1">Custos e compras são calculados automaticamente pelas Fichas Técnicas.</p>
                   </div>
                ) : (
                   <div className="space-y-3">
                      {linhas.map(l => (
-                        <div key={l.produto_id} className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-                           <div className="flex items-center gap-3 flex-wrap">
-                              <div className="flex-1 min-w-[150px]">
-                                 <p className="font-black text-slate-800 truncate">{l.nome}</p>
-                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{l.categoria}{!l.ficha && <span className="text-red-500"> · sem ficha técnica</span>}</p>
+                        <div key={l.produto_id} className="rounded-2xl border border-slate-200 overflow-hidden hover:border-slate-300 transition-colors">
+                           {/* CABEÇALHO DO ITEM — nome + categoria */}
+                           <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-5 py-3 flex items-center justify-between">
+                              <div className="min-w-0">
+                                 <p className="font-black text-white text-[15px] truncate">{l.nome}</p>
+                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                    {l.categoria}
+                                    {!l.ficha && <span className="text-red-400 bg-red-500/20 px-1.5 py-0.5 rounded">sem ficha técnica</span>}
+                                 </p>
                               </div>
-                              <div className="text-center">
-                                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Quantidade</label>
-                                 <div className="flex gap-1">
-                                    <input type="number" min="0" step="0.01" value={l.qtd} onChange={e=>updateItem(l.produto_id, { qtd: e.target.value })} className="w-20 p-2 text-center bg-white border border-slate-200 rounded-lg font-black text-slate-700 outline-none focus:border-emerald-500"/>
-                                    <select value={l.un} onChange={e=>updateItem(l.produto_id, { un: e.target.value })} className="p-2 bg-white border border-slate-200 rounded-lg font-bold text-slate-600 text-xs outline-none focus:border-emerald-500">
-                                       <option value="porcao">porções</option>
-                                       {l.pesoUn > 0 && <option value="g">g</option>}
-                                       {l.pesoUn > 0 && <option value="kg">kg</option>}
-                                    </select>
-                                 </div>
-                              </div>
-                              <div className="text-center">
-                                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block" title="Peso médio de cada porção/unidade. Vem da ficha técnica, mas você pode ajustar.">Peso/un (g)</label>
-                                 <input type="number" min="0" step="0.1" placeholder="ex: 35" value={(() => { const raw = itens.find(i=>i.produto_id===l.produto_id)?.pesoUn; return raw === undefined ? (l.pesoUn || "") : raw; })()} onChange={e=>updateItem(l.produto_id, { pesoUn: e.target.value })} className="w-20 p-2 text-center bg-white border border-slate-200 rounded-lg font-bold text-slate-600 outline-none focus:border-emerald-500"/>
-                              </div>
-                              <div className="text-center">
-                                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block" title="Preço de venda POR PORÇÃO deste orçamento. Vem preenchido com o preço do cardápio — troque pelo valor que quiser, não altera o cardápio.">Preço de venda</label>
-                                 {/* Vem preenchido com o preço do cardápio; digitou outro valor, vale o seu */}
-                                 <input type="number" min="0" step="0.01" placeholder="0,00" value={(() => { const raw = itens.find(i=>i.produto_id===l.produto_id)?.precoVenda; return raw === undefined ? (l.precoCardapio || "") : raw; })()} onChange={e=>updateItem(l.produto_id, { precoVenda: e.target.value })} className={`w-24 p-2 text-center rounded-lg font-black outline-none focus:border-emerald-500 ${l.precoEditado ? 'bg-amber-50 border border-amber-300 text-amber-700' : 'bg-emerald-50 border border-emerald-200 text-emerald-700'}`}/>
-                                 <span className="block text-[8px] font-bold text-slate-400 mt-0.5">por porção</span>
-                              </div>
-                              <button onClick={() => removeItem(l.produto_id)} className="p-2 text-slate-400 hover:text-red-500 bg-white rounded-lg border border-slate-200"><Trash2 size={15}/></button>
+                              <button onClick={() => removeItem(l.produto_id)} className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all shrink-0"><Trash2 size={16}/></button>
                            </div>
 
-                           {l.precoEditado && (
-                              <p className="text-[10px] font-bold text-amber-600 mt-2 flex items-center gap-2">
-                                 Preço personalizado (cardápio: {fmtBRL(l.precoCardapio)})
-                                 <button onClick={() => updateItem(l.produto_id, { precoVenda: l.precoCardapio })} className="underline hover:text-amber-700">usar o do cardápio</button>
-                              </p>
-                           )}
+                           {/* INPUTS — grid organizado */}
+                           <div className="p-4 bg-white">
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                 {/* Quantidade */}
+                                 <div>
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Quantidade</label>
+                                    <div className="flex gap-1">
+                                       <input type="number" min="0" step="0.01" value={l.qtd} onChange={e=>updateItem(l.produto_id, { qtd: e.target.value })} className="w-full p-2.5 text-center bg-slate-50 border border-slate-200 rounded-lg font-black text-slate-700 outline-none focus:border-emerald-500"/>
+                                       <select value={l.un} onChange={e=>updateItem(l.produto_id, { un: e.target.value })} className="p-2 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-600 text-xs outline-none focus:border-emerald-500 shrink-0">
+                                          <option value="porcao">porções</option>
+                                          {l.pesoUn > 0 && <option value="g">g</option>}
+                                          {l.pesoUn > 0 && <option value="kg">kg</option>}
+                                       </select>
+                                    </div>
+                                 </div>
+                                 {/* Peso por unidade */}
+                                 <div>
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1" title="Peso médio de cada porção/unidade">Peso/un (g)</label>
+                                    <input type="number" min="0" step="0.1" placeholder="ex: 35" value={(() => { const raw = itens.find(i=>i.produto_id===l.produto_id)?.pesoUn; return raw === undefined ? (l.pesoUn || "") : raw; })()} onChange={e=>updateItem(l.produto_id, { pesoUn: e.target.value })} className="w-full p-2.5 text-center bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-600 outline-none focus:border-emerald-500"/>
+                                 </div>
+                                 {/* Preço de venda */}
+                                 <div>
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">R$ Venda / porção</label>
+                                    <input type="number" min="0" step="0.01" placeholder="0,00" value={(() => { const raw = itens.find(i=>i.produto_id===l.produto_id)?.precoVenda; return raw === undefined ? (l.precoCardapio || "") : raw; })()} onChange={e=>updateItem(l.produto_id, { precoVenda: e.target.value })} className={`w-full p-2.5 text-center rounded-lg font-black outline-none focus:border-emerald-500 ${l.precoEditado ? 'bg-amber-50 border border-amber-300 text-amber-700' : 'bg-emerald-50 border border-emerald-200 text-emerald-700'}`}/>
+                                    {l.precoEditado && (
+                                       <button onClick={() => updateItem(l.produto_id, { precoVenda: l.precoCardapio })} className="text-[9px] font-bold text-amber-500 hover:text-amber-700 mt-1 underline block w-full text-center">
+                                          voltar p/ cardápio ({fmtBRL(l.precoCardapio)})
+                                       </button>
+                                    )}
+                                 </div>
+                                 {/* Resumo visual */}
+                                 <div className="flex flex-col items-center justify-center bg-slate-50 rounded-lg border border-slate-100 p-2">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Venda Total</span>
+                                    <span className="font-black text-lg text-emerald-600">{fmtBRL(l.vendaTotal)}</span>
+                                 </div>
+                              </div>
 
-                           {/* Empanado: cobrar como in natura (peixe puro, mais caro) */}
-                           {l.fatorInNatura > 1 && (
-                              <label className="flex items-center gap-2 mt-2 cursor-pointer bg-sky-50 border border-sky-200 rounded-lg p-2">
-                                 <input type="checkbox" checked={l.inNatura} onChange={e=>updateItem(l.produto_id, { inNatura: e.target.checked })} className="w-4 h-4 accent-sky-600"/>
-                                 <span className="text-[10px] font-bold text-sky-700 leading-tight">
-                                    Cobrar como in natura (+{((l.fatorInNatura - 1) * 100).toFixed(0)}%) — ingrediente empanado
-                                    {l.inNatura && <span className="text-sky-500"> · {fmtBRL(l.precoVenda)} → {fmtBRL(l.precoEfetivo)}/porção</span>}
-                                 </span>
-                              </label>
-                           )}
+                              {/* OPÇÕES ESPECIAIS — empanado */}
+                              {l.fatorInNatura > 1 && (
+                                 <label className="flex items-center gap-2 mt-3 cursor-pointer bg-sky-50 border border-sky-200 rounded-xl p-2.5">
+                                    <input type="checkbox" checked={l.inNatura} onChange={e=>updateItem(l.produto_id, { inNatura: e.target.checked })} className="w-4 h-4 accent-sky-600 shrink-0"/>
+                                    <span className="text-[10px] font-bold text-sky-700 leading-tight">
+                                       Cobrar como in natura (+{((l.fatorInNatura - 1) * 100).toFixed(0)}%)
+                                       {l.inNatura && <span className="text-sky-500"> · {fmtBRL(l.precoVenda)} → {fmtBRL(l.precoEfetivo)}/porção</span>}
+                                    </span>
+                                 </label>
+                              )}
 
-                           {/* Equivalências: porção em gramas, rendimento por kg e preço do kg */}
-                           {l.pesoUn > 0 && (
-                              <p className="text-[10px] font-bold text-slate-400 mt-2">
-                                 Porção: {l.pesoUn}g · 1 kg rende <span className="text-slate-600">{(+l.unPorKg.toFixed(1)).toLocaleString("pt-BR")} un</span> · 1 kg = <span className="text-emerald-600">{fmtBRL(l.vendaPorKg)}</span>
-                              </p>
-                           )}
-
-                           <div className="flex justify-between items-center mt-3 pt-3 border-t border-slate-200/70 text-xs font-bold gap-2 flex-wrap">
-                              <span className="text-slate-500">
+                              {/* RODAPÉ — métricas compactas */}
+                              <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-x-4 gap-y-1">
                                  {l.porcoes > 0 && (
-                                    <>= {(+l.porcoes.toFixed(1)).toLocaleString("pt-BR")} porç{l.porcoes >= 2 ? 'ões' : 'ão'}{l.gramasTotal ? ` · ${fmtCompra(l.gramasTotal / 1000, 'kg')}` : ''} · </>
+                                    <span className="text-[10px] font-bold text-slate-400">
+                                       <span className="text-slate-600 font-black">{(+l.porcoes.toFixed(1)).toLocaleString("pt-BR")}</span> porç{l.porcoes >= 2 ? 'ões' : 'ão'}
+                                       {l.gramasTotal ? ` · ${fmtCompra(l.gramasTotal / 1000, 'kg')}` : ''}
+                                    </span>
                                  )}
-                                 Custo: <span className="text-slate-700">{fmtBRL(l.custoTotal)}</span>{convidados > 0 && l.porcoes > 0 ? ` · ${(l.porcoes / convidados).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} porção/convidado` : ''}
-                              </span>
-                              <span className="text-emerald-600 font-black">Venda: {fmtBRL(l.vendaTotal)}</span>
+                                 {l.pesoUn > 0 && (
+                                    <span className="text-[10px] font-bold text-slate-400">
+                                       1kg = <span className="text-slate-600">{(+l.unPorKg.toFixed(1)).toLocaleString("pt-BR")} un</span> · <span className="text-emerald-600">{fmtBRL(l.vendaPorKg)}</span>
+                                    </span>
+                                 )}
+                                 <span className="text-[10px] font-bold text-slate-400">
+                                    Custo: <span className="text-slate-700 font-black">{fmtBRL(l.custoTotal)}</span>
+                                 </span>
+                                 {convidados > 0 && l.porcoes > 0 && (
+                                    <span className="text-[10px] font-bold text-slate-400">
+                                       <span className="text-slate-600">{(l.porcoes / convidados).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}</span> porção/convidado
+                                    </span>
+                                 )}
+                              </div>
                            </div>
                         </div>
                      ))}

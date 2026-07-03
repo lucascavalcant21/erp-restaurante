@@ -111,62 +111,62 @@ export default function ContasAPagarPage() {
                   <p className="font-bold">Nenhuma conta cadastrada.</p>
                </div>
             ) : (
-               <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                     <thead>
-                        <tr className="text-[10px] font-black uppercase tracking-widest text-slate-500 border-b-2 border-slate-100">
-                           <th className="pb-4 pl-4">Vencimento</th>
-                           <th className="pb-4">Descrição</th>
-                           <th className="pb-4">Categoria</th>
-                           <th className="pb-4">Valor</th>
-                           <th className="pb-4 text-center">Status</th>
-                           <th className="pb-4 pr-4"></th>
-                        </tr>
-                     </thead>
-                     <tbody className="text-sm font-bold">
-                        {contas.map(c => {
-                           const cat = CATEGORIAS_CUSTO.find(x => x.id === c.categoria);
-                           
-                           // Checa se está atrasado (Pendente e Vencimento < Hoje)
-                           const hoje = new Date().toISOString().split('T')[0];
-                           const isAtrasado = c.status === 'pendente' && c.data_vencimento < hoje;
-
-                           return (
-                              <tr key={c.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors group">
-                                 <td className={`py-4 pl-4 ${isAtrasado ? 'text-slate-600 font-black' : 'text-slate-500'}`}>
-                                    {c.data_vencimento.split('-').reverse().join('/')}
-                                    {isAtrasado && <span className="block text-[10px] uppercase">Atrasado</span>}
-                                 </td>
-                                 <td className="py-4 text-slate-800">{c.descricao}</td>
-                                 <td className="py-4">
-                                    <span className={`px-2 py-1 rounded text-[10px] uppercase font-black tracking-widest text-white ${cat?.cor || 'bg-slate-500'}`}>
-                                       {cat?.label}
-                                    </span>
-                                 </td>
-                                 <td className="py-4 text-slate-900 text-base">{fmtBRL(c.valor)}</td>
-                                 <td className="py-4 text-center">
-                                    {c.status === 'pago' ? (
-                                       <span className="inline-flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
-                                          <CheckCircle2 size={14}/> Pago
-                                       </span>
-                                    ) : (
-                                       <span className="inline-flex items-center gap-1 text-xs text-emerald-600 bg-slate-50 px-2 py-1 rounded-lg">
-                                          <CircleDashed size={14}/> Pendente
-                                       </span>
-                                    )}
-                                 </td>
-                                 <td className="py-4 pr-4 text-right">
-                                    {c.status === 'pendente' && (
-                                       <button onClick={() => handlePagar(c.id)} className="px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs rounded-xl shadow-md active:scale-95 transition-all">
-                                          Pagar
-                                       </button>
-                                    )}
-                                 </td>
-                              </tr>
-                           )
-                        })}
-                     </tbody>
-                  </table>
+               <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200">
+                  {/* Cabeçalho */}
+                  <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 grid grid-cols-[160px_1fr_180px_120px_140px_100px] gap-4 items-center">
+                    <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Vencimento</span>
+                    <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Descrição</span>
+                    <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Categoria</span>
+                    <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Valor</span>
+                    <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center">Status</span>
+                    <span className="text-[11px] font-black uppercase tracking-widest text-slate-300"></span>
+                  </div>
+                  {/* Linhas */}
+                  <div className="bg-white divide-y divide-slate-100">
+                    {contas.map(c => {
+                      const cat = CATEGORIAS_CUSTO.find(x => x.id === c.categoria);
+                      const hoje = new Date().toISOString().split('T')[0];
+                      const isAtrasado = c.status === 'pendente' && c.data_vencimento < hoje;
+                      return (
+                        <div key={c.id} className="px-5 py-4 grid grid-cols-[160px_1fr_180px_120px_140px_100px] gap-4 items-center hover:bg-amber-50/40 transition-all duration-150">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-1 h-10 rounded-full shrink-0 ${isAtrasado ? 'bg-rose-500' : c.status === 'pago' ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                            <div>
+                              <span className={`font-bold text-sm ${isAtrasado ? 'text-rose-700' : 'text-slate-600'}`}>
+                                {c.data_vencimento.split('-').reverse().join('/')}
+                              </span>
+                              {isAtrasado && <span className="block text-[10px] font-black text-rose-500 uppercase">Atrasado</span>}
+                            </div>
+                          </div>
+                          <span className="font-bold text-slate-800">{c.descricao}</span>
+                          <div>
+                            <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full text-white ${cat?.cor || 'bg-slate-500'}`}>
+                              {cat?.label}
+                            </span>
+                          </div>
+                          <span className="font-black text-slate-900">{fmtBRL(c.valor)}</span>
+                          <div className="text-center">
+                            {c.status === 'pago' ? (
+                              <span className="inline-flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg font-bold">
+                                <CheckCircle2 size={14} /> Pago
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-lg font-bold">
+                                <CircleDashed size={14} /> Pendente
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            {c.status === 'pendente' && (
+                              <button onClick={() => handlePagar(c.id)} className="px-3 py-2 bg-slate-100 hover:bg-blue-100 text-slate-500 hover:text-blue-600 rounded-lg transition-all text-xs font-black">
+                                Pagar
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
                </div>
             )}
          </div>

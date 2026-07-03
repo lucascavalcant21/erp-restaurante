@@ -30,6 +30,10 @@ export default function RHPage() {
   const statePadrao = { nome: "", cargo: "", salario: "", horario_entrada: "", horario_saida: "", dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60, tipo_contrato: "Fixo", telefone: "", cpf: "", chave_pix: "", avaliacao_estrelas: 0, anotacoes_rh: "", data_admissao: "", status_contrato: "Definitivo" };
   const [modalNovo, setModalNovo] = useState(false);
   const [novoFunc, setNovoFunc] = useState(statePadrao);
+  
+  const [modalLancamento, setModalLancamento] = useState(false);
+  const [funcParaLancamento, setFuncParaLancamento] = useState(null);
+  const [formLancamento, setFormLancamento] = useState({ total: "0.00", fixo: "0.00", inss: "0.00", fgts: "0.00", taxa: "0.00" });
   const [editandoId, setEditandoId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [uploadingId, setUploadingId] = useState(null);
@@ -365,20 +369,91 @@ export default function RHPage() {
 
   const handleLancarFinanceiro = async (f) => {
     const isFree = f.tipo_contrato === "Freelancer";
-    const labelLabel = isFree ? "Diária" : "Salário";
-    if(confirm(`Deseja lançar R$ ${f.salario} no Financeiro como ${labelLabel} para o funcionário ${f.nome}?`)) {
-       const hoje = new Date().toISOString().split('T')[0];
-       await salvarConta({
-          unidade_id: unidadeAtiva,
-          descricao: `${labelLabel}: ${f.nome} - ${f.cargo}`,
-          valor: f.salario,
-          data_vencimento: hoje,
-          categoria: 'cmo',
-          status: 'pago',
-          data_pagamento: hoje
+    if (isFree) {
+       const totalStr = f.salario ? String(f.salario).replace(',','.') : "0";
+       const total = parseFloat(totalStr) || 0;
+       
+       const inss = total * 0.05;
+       const fgts = total * 0.08;
+       const taxa = total * 0.10;
+       const fixo = total - inss - fgts - taxa;
+       
+       setFormLancamento({
+          total: total.toFixed(2),
+          fixo: fixo.toFixed(2),
+          inss: inss.toFixed(2),
+          fgts: fgts.toFixed(2),
+          taxa: taxa.toFixed(2)
        });
-       alert("Lançado com sucesso em Contas a Pagar (Financeiro)!");
+       setFuncParaLancamento(f);
+       setModalLancamento(true);
+    } else {
+       const labelLabel = "Salário";
+       if(confirm(`Deseja lançar R$ ${f.salario} no Financeiro como ${labelLabel} para o funcionário ${f.nome}?`)) {
+          const hoje = new Date().toISOString().split('T')[0];
+          await salvarConta({
+             unidade_id: unidadeAtiva,
+             descricao: `${labelLabel}: ${f.nome} - ${f.cargo}`,
+             valor: f.salario,
+             data_vencimento: hoje,
+             categoria: 'cmo',
+             status: 'pago',
+             data_pagamento: hoje
+          });
+          alert("Lançado com sucesso em Contas a Pagar (Financeiro)!");
+       }
     }
+  };
+
+  const handleTotalLancamentoChange = (newTotalStr) => {
+      const valStr = newTotalStr.replace(',','.');
+      const total = parseFloat(valStr);
+      if(isNaN(total)) {
+         setFormLancamento({...formLancamento, total: newTotalStr});
+         return;
+      }
+      const inss = total * 0.05;
+      const fgts = total * 0.08;
+      const taxa = total * 0.10;
+      const fixo = total - inss - fgts - taxa;
+      setFormLancamento({
+         total: newTotalStr,
+         fixo: fixo.toFixed(2),
+         inss: inss.toFixed(2),
+         fgts: fgts.toFixed(2),
+         taxa: taxa.toFixed(2)
+      });
+  };
+
+  const salvarLancamentoFinanceiro = async () => {
+     if(!funcParaLancamento) return;
+     const f = funcParaLancamento;
+     const hoje = new Date().toISOString().split('T')[0];
+     
+     const l = [
+       { label: "Diária Base", val: parseFloat(formLancamento.fixo) },
+       { label: "INSS", val: parseFloat(formLancamento.inss) },
+       { label: "FGTS", val: parseFloat(formLancamento.fgts) },
+       { label: "Taxa de Serviço", val: parseFloat(formLancamento.taxa) }
+     ];
+     
+     let sucessos = 0;
+     for (let item of l) {
+        if (item.val && item.val > 0) {
+           const { error } = await salvarConta({
+              unidade_id: unidadeAtiva,
+              descricao: `${item.label} (Extra): ${f.nome} - ${f.cargo}`,
+              valor: item.val,
+              data_vencimento: hoje,
+              categoria: 'cmo',
+              status: 'pago',
+              data_pagamento: hoje
+           });
+           if(!error) sucessos++;
+        }
+     }
+     alert(`Desmembramento lançado! ${sucessos} contas criadas no Financeiro.`);
+     setModalLancamento(false);
   };
 
   const acionarUpload = (f) => {
@@ -1083,6 +1158,52 @@ export default function RHPage() {
                         </div>
                      )}
                   </div>
+               </div>
+            </div>
+         </div>
+      )}
+      {/* Modal Lancamento Financeiro (Desmembramento) */}
+      {modalLancamento && funcParaLancamento && (
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-[32px] w-full max-w-md p-6 sm:p-8 shadow-2xl animate-in zoom-in-95">
+               <div className="flex items-center justify-between mb-6">
+                  <div>
+                     <h2 className="text-2xl font-black tracking-tight text-slate-800">Lançar Diária</h2>
+                     <p className="text-slate-500 font-medium text-sm">Desmembramento do Financeiro</p>
+                  </div>
+                  <button onClick={() => setModalLancamento(false)} className="w-10 h-10 flex items-center justify-center bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200 transition-colors">
+                     <X size={20} />
+                  </button>
+               </div>
+
+               <div className="space-y-4">
+                  <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl">
+                     <label className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest block mb-1">Valor Total Pago (R$)</label>
+                     <input type="text" value={formLancamento.total} onChange={e => handleTotalLancamentoChange(e.target.value)} className="w-full bg-transparent text-2xl font-black text-emerald-800 outline-none" />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                     <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">INSS (5%)</label>
+                        <input type="text" value={formLancamento.inss} onChange={e => setFormLancamento({...formLancamento, inss: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500" />
+                     </div>
+                     <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">FGTS (8%)</label>
+                        <input type="text" value={formLancamento.fgts} onChange={e => setFormLancamento({...formLancamento, fgts: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500" />
+                     </div>
+                     <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Taxa Serviço (10%)</label>
+                        <input type="text" value={formLancamento.taxa} onChange={e => setFormLancamento({...formLancamento, taxa: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500" />
+                     </div>
+                     <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Valor Fixo Base</label>
+                        <input type="text" value={formLancamento.fixo} onChange={e => setFormLancamento({...formLancamento, fixo: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500" />
+                     </div>
+                  </div>
+                  
+                  <button onClick={salvarLancamentoFinanceiro} className="w-full py-4 bg-slate-800 text-white rounded-2xl font-black tracking-wide text-lg mt-2 shadow-lg shadow-slate-800/20 hover:bg-slate-900 transition-colors">
+                     Lançar Desmembramento
+                  </button>
                </div>
             </div>
          </div>

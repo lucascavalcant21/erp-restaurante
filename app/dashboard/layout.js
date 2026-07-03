@@ -12,6 +12,13 @@ import {
 // NOVO MENU SIDEBAR (PDV e KDS REMOVIDOS)
 const SIDEBAR_MENU = [
   {
+    category: "Visão Geral",
+    icon: BarChart,
+    items: [
+      { label: "Dashboard Principal", href: "/dashboard" }
+    ]
+  },
+  {
     category: "Operação Garçons",
     icon: Users,
     items: [
@@ -125,6 +132,7 @@ function SidebarItem({ item, pathname }) {
 
 function Sidebar({ mobileOpen, setMobileOpen }) {
   const pathname = usePathname();
+  const router = useRouter();
   
   return (
     <>
@@ -146,12 +154,12 @@ function Sidebar({ mobileOpen, setMobileOpen }) {
         <div className="h-16 flex items-center justify-between px-6 shrink-0 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-transparent pointer-events-none" />
           
-          <div className="flex items-center gap-3 relative z-10">
+          <button onClick={() => router.push('/dashboard')} className="flex items-center gap-3 relative z-10 hover:opacity-80 transition-opacity text-left">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
               <UtensilsCrossed size={16} className="text-white" />
             </div>
             <span className="text-xl font-black text-white tracking-tight">Hefisto</span>
-          </div>
+          </button>
           
           <button onClick={() => setMobileOpen(false)} className="lg:hidden text-slate-400 hover:text-white relative z-10 p-2">
             <X size={20} />

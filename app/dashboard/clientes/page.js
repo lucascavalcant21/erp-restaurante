@@ -225,44 +225,44 @@ export default function CRMPage() {
           </div>
         </div>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-white border-b border-slate-100">
-              <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Cliente</th>
-              <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Contato</th>
-              <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Status</th>
-              <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">LTV (Gasto Total)</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-50">
-            {clientesFiltrados.map((cliente) => (
-              <tr key={cliente.id} className="hover:bg-slate-50 transition-colors">
-                <td className="p-4">
+      <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200">
+        {/* Cabeçalho */}
+        <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 grid grid-cols-[1fr_1fr_140px_140px] gap-4 items-center">
+          <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Cliente</span>
+          <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Contato</span>
+          <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Status</span>
+          <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-right">LTV Total</span>
+        </div>
+        {/* Linhas */}
+        <div className="bg-white divide-y divide-slate-100">
+          {clientesFiltrados.map((cliente) => (
+            <div key={cliente.id} className="px-5 py-4 grid grid-cols-[1fr_1fr_140px_140px] gap-4 items-center hover:bg-blue-50/40 transition-all duration-150">
+              <div className="flex items-center gap-3">
+                <div className="w-1 h-10 rounded-full bg-blue-500 shrink-0" />
+                <div>
                   <p className="font-bold text-slate-800 text-sm">{cliente.nome}</p>
                   <p className="text-[10px] font-medium uppercase tracking-widest text-slate-500 mt-0.5">{cliente.total_pedidos} visitas</p>
-                </td>
-                <td className="p-4">
-                  <span className="text-sm text-slate-600 font-medium">{cliente.telefone || cliente.tel || "Não inf."}</span>
-                </td>
-                <td className="p-4">
-                  <span className={`inline-flex px-2.5 py-1 text-[10px] font-black uppercase tracking-widest rounded-md border 
-                    ${cliente.status === 'Vip' ? 'bg-slate-50 text-emerald-600 border-slate-200' : 
-                      cliente.status === 'Risco' ? 'bg-slate-50 text-emerald-600 border-slate-200' : 
-                      'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
-                    {cliente.status || "Ativo"}
-                  </span>
-                </td>
-                <td className="p-4 text-right">
-                  <span className="text-sm font-black text-slate-800">{fmtBRL(cliente.total_gasto)}</span>
-                </td>
-              </tr>
-            ))}
-            {clientesFiltrados.length === 0 && (
-               <tr><td colSpan="4" className="p-8 text-center text-slate-500 font-medium">Nenhum cliente encontrado na busca.</td></tr>
-            )}
-          </tbody>
-        </table>
+                </div>
+              </div>
+              <span className="text-sm text-slate-600 font-medium">{cliente.telefone || cliente.tel || "Não inf."}</span>
+              <div>
+                <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${
+                  cliente.status === 'Vip' ? 'bg-purple-100 text-purple-700' :
+                  cliente.status === 'Risco' ? 'bg-rose-100 text-rose-700' :
+                  'bg-emerald-100 text-emerald-700'}`}>
+                  {cliente.status || "Ativo"}
+                </span>
+              </div>
+              <span className="text-sm font-black text-slate-800 text-right">{fmtBRL(cliente.total_gasto)}</span>
+            </div>
+          ))}
+          {clientesFiltrados.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+              <Users size={40} className="mb-3 opacity-30" />
+              <p className="font-bold text-sm">Nenhum cliente encontrado na busca.</p>
+            </div>
+          )}
+        </div>
       </div>
     </Card>
   );

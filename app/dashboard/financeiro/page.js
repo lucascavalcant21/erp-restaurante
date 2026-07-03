@@ -140,60 +140,57 @@ export default function FinanceiroDREPage() {
             </div>
          </div>
 
-         <div className="overflow-x-auto">
-            <table className="w-full text-left">
-               <thead>
-                  <tr className="bg-slate-50/50">
-                     <th className="p-4 text-xs font-bold uppercase tracking-widest text-slate-400">Descrição / Despesa</th>
-                     <th className="p-4 text-xs font-bold uppercase tracking-widest text-slate-400">Categoria</th>
-                     <th className="p-4 text-xs font-bold uppercase tracking-widest text-slate-400">Vencimento</th>
-                     <th className="p-4 text-xs font-bold uppercase tracking-widest text-slate-400">Valor</th>
-                     <th className="p-4 text-xs font-bold uppercase tracking-widest text-slate-400 text-right">Status</th>
-                  </tr>
-               </thead>
-               <tbody className="divide-y divide-slate-100">
-                  {contasFiltradas.length === 0 && (
-                     <tr><td colSpan={5} className="p-10 text-center font-bold text-slate-400">Nenhuma conta encontrada.</td></tr>
-                  )}
-                  {contasFiltradas.map(conta => {
-                     const cat = CATEGORIAS_CUSTO.find(c => c.id === conta.categoria) || CATEGORIAS_CUSTO[2];
-                     const isPendente = conta.status === 'pendente';
-                     
-                     return (
-                        <tr key={conta.id} className="hover:bg-slate-50 transition-colors group">
-                           <td className="p-4">
-                              <span className="font-bold text-slate-700 block">{conta.descricao}</span>
-                           </td>
-                           <td className="p-4">
-                              <span className={`inline-block px-3 py-1 rounded-md text-xs font-bold text-white ${cat.cor}`}>
-                                 {cat.label.split('(')[0].trim()}
-                              </span>
-                           </td>
-                           <td className="p-4">
-                              <div className="flex items-center gap-2 text-sm font-bold text-slate-600">
-                                 <CalendarDays size={16}/> 
-                                 {new Date(conta.data_vencimento).toLocaleDateString('pt-BR')}
-                              </div>
-                           </td>
-                           <td className="p-4 font-black text-slate-800">
-                              {fmtBRL(conta.valor)}
-                           </td>
-                           <td className="p-4 text-right">
-                              {isPendente ? (
-                                 <button onClick={() => handlePagarConta(conta.id)} className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-black text-sm rounded-xl transition-colors shadow-sm">
-                                    Pagar Agora
-                                 </button>
-                              ) : (
-                                 <span className="inline-flex items-center gap-1 text-emerald-600 font-black bg-emerald-50 px-3 py-1.5 rounded-lg text-sm">
-                                    <CheckCircle size={16}/> Pago
-                                 </span>
-                              )}
-                           </td>
-                        </tr>
-                     );
-                  })}
-               </tbody>
-            </table>
+         <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200">
+            {/* Cabeçalho */}
+            <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 grid grid-cols-[1fr_180px_160px_140px_160px] gap-4 items-center">
+              <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Descrição / Despesa</span>
+              <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Categoria</span>
+              <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Vencimento</span>
+              <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Valor</span>
+              <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-right">Status</span>
+            </div>
+            {/* Linhas */}
+            <div className="bg-white divide-y divide-slate-100">
+              {contasFiltradas.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+                  <DollarSign size={40} className="mb-3 opacity-30" />
+                  <p className="font-bold text-sm">Nenhuma conta encontrada.</p>
+                </div>
+              )}
+              {contasFiltradas.map(conta => {
+                const cat = CATEGORIAS_CUSTO.find(c => c.id === conta.categoria) || CATEGORIAS_CUSTO[2];
+                const isPendente = conta.status === 'pendente';
+                return (
+                  <div key={conta.id} className="px-5 py-4 grid grid-cols-[1fr_180px_160px_140px_160px] gap-4 items-center hover:bg-amber-50/40 transition-all duration-150">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-1 h-10 rounded-full shrink-0 ${isPendente ? 'bg-amber-400' : 'bg-emerald-400'}`} />
+                      <span className="font-bold text-slate-700">{conta.descricao}</span>
+                    </div>
+                    <div>
+                      <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full text-white ${cat.cor}`}>
+                        {cat.label.split('(')[0].trim()}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm font-bold text-slate-600">
+                      <CalendarDays size={16} />
+                      {new Date(conta.data_vencimento).toLocaleDateString('pt-BR')}
+                    </div>
+                    <span className="font-black text-slate-800">{fmtBRL(conta.valor)}</span>
+                    <div className="text-right">
+                      {isPendente ? (
+                        <button onClick={() => handlePagarConta(conta.id)} className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-black text-sm rounded-xl transition-colors shadow-sm">
+                          Pagar Agora
+                        </button>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-emerald-600 font-black bg-emerald-50 px-3 py-1.5 rounded-lg text-sm">
+                          <CheckCircle size={16} /> Pago
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
          </div>
       </div>
 

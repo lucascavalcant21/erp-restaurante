@@ -151,7 +151,7 @@ function Sidebar({ mobileOpen, setMobileOpen }) {
         {/* Scrollable Menu */}
         <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
           {SIDEBAR_MENU.map((section, idx) => (
-            <div key={idx} className="animate-in fade-in slide-in-from-left-2" style={{ animationDelay: \`\${idx * 50}ms\`, animationFillMode: 'both' }}>
+            <div key={idx} className="animate-in fade-in slide-in-from-left-2" style={{ animationDelay: `${idx * 50}ms`, animationFillMode: 'both' }}>
               <h3 className="px-3 text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 flex items-center gap-2">
                 <section.icon size={12} className="text-slate-600" /> {section.category}
               </h3>
@@ -192,7 +192,7 @@ function TopHeader({ onSair, setMobileOpen }) {
             <Menu size={22} />
          </button>
          <h1 className="text-lg font-black text-slate-800 hidden sm:block tracking-tight">
-            {unidadeInfo?.nome ? \`Dashboard · \${unidadeInfo.nome}\` : "Painel de Controle"}
+            {unidadeInfo?.nome ? `Dashboard · ${unidadeInfo.nome}` : "Painel de Controle"}
          </h1>
       </div>
 

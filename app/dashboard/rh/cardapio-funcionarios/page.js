@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useERP } from "../../../../context/ERPContext";
-import { fetchFichas } from "../../../../lib/operacao";
+import { useERP } from "../../../context/ERPContext";
+import { fetchFichas } from "../../../lib/operacao";
 import { Utensils, Printer, ArrowLeft, Plus, X, Search } from "lucide-react";
 
 export default function CardapioFuncionarios() {

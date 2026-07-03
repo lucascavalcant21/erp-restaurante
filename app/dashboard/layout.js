@@ -201,6 +201,12 @@ function Sidebar({ mobileOpen, setMobileOpen }) {
 
 function TopHeader({ onSair, setMobileOpen }) {
   const { unidades, unidadeAtiva, setUnidadeAtiva, podeTrocar, unidadeInfo } = useERP();
+  const router = useRouter();
+
+  const handleTrocaUnidade = (id) => {
+    setUnidadeAtiva(id);
+    router.push("/dashboard");
+  };
 
   return (
     <header className="h-16 border-b border-slate-200/60 bg-white/80 backdrop-blur-md flex items-center justify-between px-4 sm:px-6 shrink-0 sticky top-0 z-30 shadow-sm">
@@ -224,7 +230,7 @@ function TopHeader({ onSair, setMobileOpen }) {
              </button>
              <div className="absolute right-0 top-full mt-2 w-64 bg-white text-slate-800 rounded-2xl shadow-xl shadow-slate-200/50 hidden group-hover:block border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 origin-top-right">
                {unidades.map(u => (
-                 <button key={u.id} onClick={() => setUnidadeAtiva(u.id)} className="w-full text-left px-4 py-3 text-sm font-bold hover:bg-slate-50 border-b border-slate-50 last:border-0 flex justify-between items-center group/btn transition-colors">
+                 <button key={u.id} onClick={() => handleTrocaUnidade(u.id)} className="w-full text-left px-4 py-3 text-sm font-bold hover:bg-slate-50 border-b border-slate-50 last:border-0 flex justify-between items-center group/btn transition-colors">
                    {u.nome}
                    {u.id === unidadeAtiva && <Check size={16} className="text-blue-500"/>}
                  </button>

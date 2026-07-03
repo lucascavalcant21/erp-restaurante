@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchProdutos, salvarProduto } from "../../../lib/vendas";
 import { fetchFichas } from "../../../lib/operacao"; // Pra linkar o custo
-import { UtensilsCrossed, Plus, Search, Edit3, X, Save, ArrowLeft, Tag, Barcode, Image as ImageIcon, Trash2, ListPlus, Percent, Sparkles, Loader2, Printer, ClipboardList } from "lucide-react";
+import { fetchEmbalagens } from "../../../lib/embalagens";
+import { UtensilsCrossed, Plus, Search, Edit3, X, Save, ArrowLeft, Tag, Barcode, Image as ImageIcon, Trash2, ListPlus, Percent, Sparkles, Loader2, Printer, ClipboardList, Package } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
 // Custo total de PRODUZIR uma ficha, resolvendo bases (sub-receitas) em cascata.
@@ -42,25 +43,40 @@ function componentesDoProduto(p) {
   return p?.ficha_id ? [{ ficha_id: p.ficha_id, qtd: 1 }] : [];
 }
 
-// Custo por porção do PRODUTO = soma dos componentes (porções de cada ficha × qtd)
-function custoPorcaoProduto(p, todasFichas) {
+// Custo por porção do PRODUTO = soma dos componentes (porções de cada ficha × qtd) + embalagens
+function custoPorcaoProduto(p, todasFichas, todasEmbalagens = []) {
   const comps = componentesDoProduto(p);
-  if (!comps.length) return null;
   let total = 0, achouAlguma = false;
-  comps.forEach(c => {
-    const f = todasFichas.find(x => x.id === c.ficha_id);
-    if (!f) return;
-    achouAlguma = true;
-    total += (custoTotalDaFicha(f, todasFichas) / porcoesDaFicha(f)) * (Number(c.qtd) || 1);
-  });
+  
+  // 1. Custo das Fichas Técnicas
+  if (comps.length) {
+    comps.forEach(c => {
+      const f = todasFichas.find(x => x.id === c.ficha_id);
+      if (!f) return;
+      achouAlguma = true;
+      total += (custoTotalDaFicha(f, todasFichas) / porcoesDaFicha(f)) * (Number(c.qtd) || 1);
+    });
+  }
+
+  // 2. Custo das Embalagens
+  if (Array.isArray(p?.embalagens) && p.embalagens.length && todasEmbalagens.length) {
+    p.embalagens.forEach(emb => {
+      const dbEmb = todasEmbalagens.find(e => e.id === emb.embalagem_id);
+      if (dbEmb) {
+        achouAlguma = true;
+        total += (Number(dbEmb.preco_unitario) || 0) * (Number(emb.qtd) || 1);
+      }
+    });
+  }
+
   return achouAlguma ? total : null;
 }
 
 // CMV (%) = custo por porção do produto / preço de venda. null se não dá pra calcular.
-function calcCmv(precoVenda, produto, todasFichas) {
+function calcCmv(precoVenda, produto, todasFichas, todasEmbalagens = []) {
   const preco = Number(precoVenda) || 0;
   if (!preco) return null;
-  const custoPorcao = custoPorcaoProduto(produto, todasFichas);
+  const custoPorcao = custoPorcaoProduto(produto, todasFichas, todasEmbalagens);
   if (custoPorcao === null) return null;
   return (custoPorcao / preco) * 100;
 }
@@ -77,6 +93,7 @@ function CardapioRunner() {
   const { unidadeAtiva } = useERP();
   const [produtos, setProdutos] = useState([]);
   const [fichas, setFichas] = useState([]);
+  const [embalagensDB, setEmbalagensDB] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
   
@@ -90,14 +107,9 @@ function CardapioRunner() {
      preco_venda: "",
      ficha_id: "",
      composicao: [],
+     embalagens: [],
      codigo_barras: "",
-     imagem_url: "",
-     modificadores: [],
-     ncm: "",
-     cest: "",
-     cfop: "5102",
-     csosn: "102",
-     origem_icms: "0"
+     imagem_url: ""
   });
 
   const [novoModNome, setNovoModNome] = useState("");
@@ -210,14 +222,16 @@ function CardapioRunner() {
     setTimeout(() => win.print(), 400);
   };
 
-  const carregar = async () => {
+  async function carregar() {
     setLoading(true);
-    const [resProd, resFicha] = await Promise.all([
-       fetchProdutos(unidadeAtiva),
-       fetchFichas(unidadeAtiva)
+    const [prodRes, fichasRes, embRes] = await Promise.all([
+      fetchProdutos(unidadeAtiva),
+      fetchFichas(unidadeAtiva),
+      fetchEmbalagens(unidadeAtiva)
     ]);
-    setProdutos(resProd.data || []);
-    setFichas(resFicha.data || []);
+    setProdutos(prodRes.data || []);
+    setFichas(fichasRes || []);
+    setEmbalagensDB(embRes.data || []);
     setLoading(false);
   };
 
@@ -640,7 +654,7 @@ function CardapioRunner() {
 
                   {/* CMV em tempo real, conforme você digita o preço */}
                   {(() => {
-                     const cmvLive = calcCmv(form.preco_venda, form, fichas);
+                     const cmvLive = calcCmv(form.preco_venda, form, fichas, embalagensDB);
                      if (cmvLive === null) return null;
                      const cores = corCmv(cmvLive);
                      return (
@@ -654,62 +668,58 @@ function CardapioRunner() {
                      );
                   })()}
 
-                  {/* Dados Fiscais (NFC-e) */}
+                  {/* Embalagens e Acessórios */}
                   <div className="pt-6 border-t border-slate-100">
-                     <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-4">
-                        Dados Fiscais (NFC-e)
-                     </h3>
-                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">NCM</label>
-                           <input type="text" placeholder="Ex: 21069090" value={form.ncm} onChange={e=>setForm({...form, ncm: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500 text-slate-800"/>
-                        </div>
-                        <div>
-                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">CEST</label>
-                           <input type="text" placeholder="Opcional" value={form.cest} onChange={e=>setForm({...form, cest: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500 text-slate-800"/>
-                        </div>
-                        <div>
-                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">CFOP</label>
-                           <input type="text" placeholder="Ex: 5102" value={form.cfop} onChange={e=>setForm({...form, cfop: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500 text-slate-800"/>
-                        </div>
+                     <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                           <Package size={18}/> Embalagens e Acessórios
+                        </h3>
                      </div>
-                  </div>
 
-                  {/* Adicionais / Modificadores */}
-                  <div className="pt-6 border-t border-slate-100">
-                     <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2 mb-4">
-                        <ListPlus size={18}/> Modificadores e Adicionais
-                     </h3>
-                     
-                     {/* Lista Atual */}
-                     {form.modificadores && form.modificadores.length > 0 && (
-                        <div className="space-y-2 mb-4">
-                           {form.modificadores.map((mod, i) => (
-                              <div key={i} className="flex justify-between items-center bg-slate-50 border border-slate-200 p-3 rounded-xl">
-                                 <div className="font-bold text-slate-700">{mod.nome}</div>
-                                 <div className="flex items-center gap-4">
-                                    <div className="font-black text-emerald-600">{mod.preco > 0 ? `+ ${fmtBRL(mod.preco)}` : 'Grátis'}</div>
-                                    <button onClick={() => removeModificador(i)} className="text-red-400 hover:text-red-600 p-1 bg-white rounded-lg border border-slate-200 shadow-sm"><Trash2 size={16}/></button>
+                     <div className="mb-4">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Adicionar Embalagem / Item</label>
+                        <select
+                           value=""
+                           onChange={e => {
+                              const id = e.target.value;
+                              if (!id || (form.embalagens || []).find(emb => emb.embalagem_id === id)) return;
+                              setForm({ ...form, embalagens: [...(form.embalagens || []), { embalagem_id: id, qtd: 1 }] });
+                           }}
+                           className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:border-emerald-500"
+                        >
+                           <option value="">+ Selecionar do estoque...</option>
+                           {embalagensDB.filter(e => !(form.embalagens || []).find(emb => emb.embalagem_id === e.id)).map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
+                        </select>
+                     </div>
+
+                     {form.embalagens && form.embalagens.length > 0 && (
+                        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2">
+                           <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Custo e baixa somam todos ao vender</p>
+                           {form.embalagens.map((emb, idx) => {
+                              const eDB = embalagensDB.find(x => x.id === emb.embalagem_id);
+                              const custoUnit = eDB ? Number(eDB.preco_unitario) : 0;
+                              return (
+                                 <div key={emb.embalagem_id} className="flex items-center gap-2 bg-white border border-slate-100 rounded-xl p-2.5">
+                                    <div className="flex-1 min-w-0">
+                                       <p className="font-bold text-slate-700 text-sm truncate">{eDB?.nome || "Embalagem excluída"}</p>
+                                       <p className="text-[10px] font-bold text-emerald-600">{fmtBRL(custoUnit)} / unidade</p>
+                                    </div>
+                                    <div className="text-center flex gap-2">
+                                       <div className="text-center">
+                                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Qtd (Un)</label>
+                                          <input type="number" min="1" step="1" value={emb.qtd} 
+                                             onChange={e => setForm({ ...form, embalagens: form.embalagens.map((x, i) => i === idx ? { ...x, qtd: e.target.value } : x) })} 
+                                             className="w-16 p-1.5 text-center bg-slate-50 border border-slate-200 rounded-lg font-black text-slate-700 outline-none focus:border-emerald-500"
+                                          />
+                                       </div>
+                                    </div>
+                                    <span className="font-black text-slate-600 text-sm w-20 text-right">{fmtBRL(custoUnit * (Number(emb.qtd) || 0))}</span>
+                                    <button type="button" onClick={() => setForm({ ...form, embalagens: form.embalagens.filter((_, i) => i !== idx) })} className="p-1.5 text-slate-400 hover:text-red-500 bg-slate-50 rounded-lg border border-slate-200"><Trash2 size={13}/></button>
                                  </div>
-                              </div>
-                           ))}
+                              );
+                           })}
                         </div>
                      )}
-
-                     {/* Add Novo */}
-                     <div className="flex gap-2 items-end bg-slate-100 p-4 rounded-2xl border border-slate-200">
-                        <div className="flex-1">
-                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nome do Adicional</label>
-                           <input type="text" placeholder="Ex: Bacon Extra, Sem Cebola..." value={novoModNome} onChange={e=>setNovoModNome(e.target.value)} className="w-full p-2.5 mt-1 bg-white border border-slate-200 rounded-lg font-bold text-sm outline-none focus:border-emerald-500 text-slate-800"/>
-                        </div>
-                        <div className="w-32">
-                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Preço (+R$)</label>
-                           <input type="number" step="0.01" placeholder="0.00" value={novoModPreco} onChange={e=>setNovoModPreco(e.target.value)} className="w-full p-2.5 mt-1 bg-white border border-slate-200 rounded-lg font-black text-sm text-emerald-600 outline-none focus:border-emerald-500"/>
-                        </div>
-                        <button onClick={addModificador} className="h-10 px-4 bg-slate-800 text-white font-bold rounded-lg hover:bg-slate-900 transition-colors">
-                           Add
-                        </button>
-                     </div>
                   </div>
                </div>
 

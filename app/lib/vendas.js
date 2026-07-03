@@ -181,7 +181,7 @@ export async function processarBaixaEstoqueECMV(pedidoId, unidadeId) {
 
   // 1. Itens do pedido com o produto (ficha única OU composição múltipla)
   const { data: itens } = await supabase.from("pedidos_itens")
-    .select(`quantidade, produtos ( departamento, ficha_id, composicao )`)
+    .select(`quantidade, produtos ( departamento, ficha_id, composicao, embalagens )`)
     .eq("pedido_id", pedidoId);
 
   if(!itens || itens.length === 0) return;
@@ -219,61 +219,110 @@ export async function processarBaixaEstoqueECMV(pedidoId, unidadeId) {
      guard.delete(ficha.id);
   };
 
-  let custoCozinha = 0;
-  let custoBar = 0;
-  const deducoesEstoque = {};
+   let custoCozinha = 0;
+   let custoBar = 0;
+   const deducoesEstoque = {};
+   const deducoesEmbalagem = {};
 
-  // 3. Para cada item vendido, soma TODOS os componentes do produto.
-  // A baixa é POR PORÇÃO (receita ÷ porções reais) — consistente com o custo
-  // por porção usado no CMV; antes baixava a receita inteira por item vendido.
-  itens.forEach(it => {
-     const prod = it.produtos;
-     if (!prod) return;
-     const componentes = Array.isArray(prod.composicao) && prod.composicao.length
-        ? prod.composicao
-        : (prod.ficha_id ? [{ ficha_id: prod.ficha_id, qtd: 1 }] : []);
+   // 3. Para cada item vendido, soma TODOS os componentes do produto.
+   // A baixa é POR PORÇÃO (receita ÷ porções reais) — consistente com o custo
+   // por porção usado no CMV; antes baixava a receita inteira por item vendido.
+   itens.forEach(it => {
+      const prod = it.produtos;
+      if (!prod) return;
+      
+      // -- Ingredientes
+      const componentes = Array.isArray(prod.composicao) && prod.composicao.length
+         ? prod.composicao
+         : (prod.ficha_id ? [{ ficha_id: prod.ficha_id, qtd: 1 }] : []);
 
-     componentes.forEach(comp => {
-        const ficha = todasFichas.find(f => f.id === comp.ficha_id);
-        if (!ficha) return;
-        const porcoesVendidas = (Number(comp.qtd) || 1) * it.quantidade;
-        const acc = {};
-        gastarReceita(ficha, porcoesVendidas / (porcoesDaFicha(ficha) || 1), acc);
+      componentes.forEach(comp => {
+         const ficha = todasFichas.find(f => f.id === comp.ficha_id);
+         if (!ficha) return;
+         const porcoesVendidas = (Number(comp.qtd) || 1) * it.quantidade;
+         const acc = {};
+         gastarReceita(ficha, porcoesVendidas / (porcoesDaFicha(ficha) || 1), acc);
 
-        Object.entries(acc).forEach(([insumoId, info]) => {
-           const custoGasto = info.qtd * info.custo_unitario;
-           if (prod.departamento === 'cozinha') custoCozinha += custoGasto;
-           else custoBar += custoGasto;
-           if (!deducoesEstoque[insumoId]) deducoesEstoque[insumoId] = 0;
-           deducoesEstoque[insumoId] += info.qtd;
-        });
-     });
-  });
+         Object.entries(acc).forEach(([insumoId, info]) => {
+            const custoGasto = info.qtd * info.custo_unitario;
+            if (prod.departamento === 'cozinha') custoCozinha += custoGasto;
+            else custoBar += custoGasto;
+            if (!deducoesEstoque[insumoId]) deducoesEstoque[insumoId] = 0;
+            deducoesEstoque[insumoId] += info.qtd;
+         });
+      });
 
-  // 3. Atualiza o Estoque
-  const insumosIds = Object.keys(deducoesEstoque);
-  if(insumosIds.length > 0) {
-     const { data: estoqueDB } = await supabase.from("estoque_atual")
-        .select("insumo_id, quantidade_atual")
-        .eq("unidade_id", unidadeId)
-        .in("insumo_id", insumosIds);
+      // -- Embalagens
+      if (Array.isArray(prod.embalagens) && prod.embalagens.length > 0) {
+         prod.embalagens.forEach(emb => {
+            if (!deducoesEmbalagem[emb.embalagem_id]) deducoesEmbalagem[emb.embalagem_id] = 0;
+            deducoesEmbalagem[emb.embalagem_id] += (Number(emb.qtd) || 1) * it.quantidade;
+         });
+      }
+   });
 
-     const atualizacoes = [];
-     insumosIds.forEach(id => {
-        const dbInfo = estoqueDB?.find(e => e.insumo_id === id);
-        const saldoAnterior = dbInfo ? dbInfo.quantidade_atual : 0;
-        atualizacoes.push({
-           unidade_id: unidadeId,
-           insumo_id: id,
-           quantidade_atual: saldoAnterior - deducoesEstoque[id],
-           updated_at: new Date().toISOString()
-        });
-     });
+   // 3. Atualiza o Estoque
+   const insumosIds = Object.keys(deducoesEstoque);
+   if(insumosIds.length > 0) {
+      const { data: estoqueDB } = await supabase.from("estoque_atual")
+         .select("insumo_id, quantidade_atual")
+         .eq("unidade_id", unidadeId)
+         .in("insumo_id", insumosIds);
 
-     if(atualizacoes.length > 0) {
-        await supabase.from("estoque_atual").upsert(atualizacoes, { onConflict: 'unidade_id, insumo_id' });
-     }
-  }
+      const atualizacoes = [];
+      insumosIds.forEach(id => {
+         const dbInfo = estoqueDB?.find(e => e.insumo_id === id);
+         const saldoAnterior = dbInfo ? dbInfo.quantidade_atual : 0;
+         atualizacoes.push({
+            unidade_id: unidadeId,
+            insumo_id: id,
+            quantidade_atual: saldoAnterior - deducoesEstoque[id],
+            updated_at: new Date().toISOString()
+         });
+      });
+
+      if(atualizacoes.length > 0) {
+         await supabase.from("estoque_atual").upsert(atualizacoes, { onConflict: 'unidade_id, insumo_id' });
+      }
+   }
+
+   // 4. Baixa de Embalagens
+   const embIds = Object.keys(deducoesEmbalagem);
+   if(embIds.length > 0) {
+      const { data: embEstoqueDB } = await supabase.from("operacao_embalagens")
+         .select("id, quantidade_atual, preco_unitario, departamento")
+         .eq("unidade_id", unidadeId)
+         .in("id", embIds);
+
+      if (embEstoqueDB) {
+         const payloadEmbalagens = [];
+         const consumos = [];
+         
+         embIds.forEach(id => {
+            const info = deducoesEmbalagem[id];
+            const curr = embEstoqueDB.find(e => e.id === id);
+            if (!curr) return;
+            const qtdAtual = curr.quantidade_atual || 0;
+            payloadEmbalagens.push({ id, unidade_id: unidadeId, quantidade_atual: qtdAtual - info });
+            consumos.push({
+               unidade_id: unidadeId,
+               embalagem_id: id,
+               quantidade: info,
+               tipo_movimento: 'Venda Automática (Pedido #' + pedidoId + ')'
+            });
+            // O custo da embalagem já foi incluído no CMV do produto logicamente,
+            // então vamos somar o DRE aqui. Se "departamento" da embalagem for vazio, assumimos Cozinha.
+            const custoEmb = info * (Number(curr.preco_unitario) || 0);
+            if (curr.departamento === 'bar') custoBar += custoEmb;
+            else custoCozinha += custoEmb;
+         });
+         
+         if (payloadEmbalagens.length > 0) {
+            await supabase.from("operacao_embalagens").upsert(payloadEmbalagens);
+            await supabase.from("operacao_embalagens_consumo").insert(consumos);
+         }
+      }
+   }
 
   // 4. Lança o CMV no Financeiro (DRE Automático)
   const contasCMV = [];

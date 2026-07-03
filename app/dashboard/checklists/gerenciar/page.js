@@ -93,7 +93,7 @@ export default function GerenciarChecklistsPage() {
 
       <div className="max-w-5xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
          {loading ? (
-           <p className="font-bold text-slate-500">Carregando checklists...</p>
+           <SkeletonList />
          ) : templates.length === 0 ? (
            <p className="col-span-full font-bold text-slate-500">Nenhum checklist criado para esta unidade ainda.</p>
          ) : (

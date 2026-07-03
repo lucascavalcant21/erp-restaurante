@@ -7,7 +7,7 @@ import {
   Mail, Phone, MoreVertical, Search, Filter, Download,
   Heart, HeartCrack, Award, Gift, Send, X, Plus
 } from "lucide-react";
-import { PageBody, Card, fmtBRL } from "../../components/ui";
+import { PageBody, Card, fmtBRL, SkeletonList } from "../../components/ui";
 import { useERP } from "../../context/ERPContext";
 import { 
   fetchClientes, fetchAvaliacoes, fetchCampanhas, inserirCampanha 
@@ -407,7 +407,7 @@ export default function CRMPage() {
       <PageBody>
         <div className="max-w-6xl mx-auto">
           {loading ? (
-             <div className="py-20 text-center font-bold text-slate-500">Carregando CRM...</div>
+             <SkeletonList rows={5} />
           ) : (
              <>
                {activeTab === "visao" && renderVisaoGeral()}

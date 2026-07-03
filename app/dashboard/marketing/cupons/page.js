@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchCupons, salvarCupom, excluirCupom } from "../../../lib/vendas";
 import { Plus, X, Edit, Trash2, Tag, CheckCircle, AlertCircle } from "lucide-react";
-import { fmtBRL } from "../../../components/ui";
+import { fmtBRL, SkeletonList } from "../../../components/ui";
 
 export default function CuponsPage() {
   const { unidadeAtiva } = useERP();
@@ -89,7 +89,7 @@ export default function CuponsPage() {
     carregar();
   };
 
-  if (loading) return <div className="p-10 text-center font-bold text-slate-500">Carregando cupons...</div>;
+  if (loading) return <div className="p-6"><SkeletonList /></div>;
 
   return (
     <div className="p-8 max-w-6xl mx-auto animate-in fade-in">

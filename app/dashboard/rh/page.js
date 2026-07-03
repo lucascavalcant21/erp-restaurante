@@ -605,7 +605,8 @@ export default function RHPage() {
                </div>
 
                <div className="bg-white rounded-b-3xl border border-slate-200 overflow-hidden shadow-sm">
-                  <table className="w-full text-left">
+                  <div className="table-responsive-wrapper">
+                  <table className="w-full text-left min-w-[860px]">
                <thead>
                   <tr className="bg-slate-50 border-b border-slate-100">
                      <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Colaborador</th>
@@ -774,6 +775,7 @@ export default function RHPage() {
                   )}
                </tbody>
             </table>
+            </div>
          </div>
          </>
          )}

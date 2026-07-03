@@ -113,7 +113,7 @@ export default function IFoodConfigPage() {
      setSimulando(false);
   };
 
-  if (loading) return <div className="p-8 text-slate-500 font-bold animate-pulse">Carregando integrações...</div>;
+  if (loading) return <div className="p-6"><SkeletonList /></div>;
 
   return (
     <div className="p-6 md:p-8 max-w-4xl mx-auto w-full font-sans">

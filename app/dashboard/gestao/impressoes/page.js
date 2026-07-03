@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Printer, Save } from "lucide-react";
-import { PageHeader, PageBody, Card, Field, TextInput, Select, Btn, Toast, Toggle } from "../../../components/ui";
+import { PageHeader, PageBody, Card, Field, TextInput, Select, Btn, Toast, Toggle, SkeletonList } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
 import { fetchConfigImpressao, salvarConfigImpressao, imprimirHtml } from "../../../lib/impressoes";
 
@@ -134,7 +134,7 @@ export default function ImpressoesPage() {
     `;
   }
 
-  if (loading) return <div className="p-10 text-center">Carregando...</div>;
+  if (loading) return <div className="p-6"><SkeletonList /></div>;
   if (!config) return null;
 
   return (

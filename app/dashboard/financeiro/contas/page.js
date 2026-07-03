@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchContas, salvarConta, pagarConta, CATEGORIAS_CUSTO } from "../../../lib/financeiro";
 import { Plus, Search, CheckCircle2, CircleDashed, Filter, CalendarDays, Wallet } from "lucide-react";
-import { fmtBRL } from "../../../components/ui";
+import { fmtBRL, SkeletonList } from "../../../components/ui";
 
 export default function ContasAPagarPage() {
   const { unidadeAtiva } = useERP();
@@ -104,7 +104,7 @@ export default function ContasAPagarPage() {
             </div>
 
             {loading ? (
-               <div className="text-center py-10 font-bold text-slate-500">Carregando contas...</div>
+               <SkeletonList />
             ) : contas.length === 0 ? (
                <div className="text-center py-20 text-slate-500">
                   <Wallet size={48} className="mx-auto mb-4 opacity-20"/>

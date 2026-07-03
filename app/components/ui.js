@@ -24,7 +24,7 @@ export function PageHeader({ title, subtitle, icon: Icon, onAction, actionLabel 
   const router = useRouter();
   return (
     <div className="sticky top-0 z-20 border-b px-4 pt-4 md:pt-12 pb-3 flex flex-col md:flex-row md:items-center gap-3 glass-panel"
-      style={{ borderColor: "rgba(0,0,0,0.05)" }}>
+      style={{ borderColor: "var(--line-soft)" }}>
       <div className="flex items-center gap-3 w-full md:w-auto">
         {back && (
           <button onClick={() => router.back()}
@@ -85,7 +85,7 @@ export function Kpi({ icon: Icon, label, value }) {
           {Icon && <Icon size={22} style={{ color: "var(--accent-strong)" }} />}
         </div>
       </div>
-      <p className="text-3xl md:text-4xl font-black tracking-tighter mt-auto" style={{ color: "var(--fg)" }}>{value}</p>
+      <p className="text-3xl md:text-4xl font-extrabold tracking-tight mt-auto" style={{ color: "var(--fg)" }}>{value}</p>
     </div>
   );
 }
@@ -118,7 +118,7 @@ export function Chips({ options, value, onChange }) {
           <button key={v} onClick={() => onChange(v)}
             className="flex-shrink-0 text-[11px] font-bold px-3 py-1.5 rounded-full transition-all active:scale-95"
             style={ativo
-              ? { background: "var(--accent-strong)", color: "#fff" }
+              ? { background: "var(--accent-strong)", color: "var(--accent-fg)" }
               : { background: "var(--card)", color: "var(--muted)", border: "1px solid var(--line)" }}>
             {label}
           </button>
@@ -128,8 +128,33 @@ export function Chips({ options, value, onChange }) {
   );
 }
 
+// ── Skeletons de carregamento ──────────────────────────────────
+export function Skeleton({ className = "", style }) {
+  return <div className={`erp-skeleton ${className}`} style={style} />;
+}
+export function SkeletonList({ rows = 4 }) {
+  return (
+    <div className="space-y-3" aria-busy="true">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="erp-card p-4 flex items-center gap-4">
+          <Skeleton className="w-11 h-11 rounded-xl flex-shrink-0" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-3.5 w-2/5" />
+            <Skeleton className="h-3 w-3/5" />
+          </div>
+          <Skeleton className="h-3.5 w-16" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── Estado vazio ───────────────────────────────────────────────
-export function EmptyState({ icon: Icon = Inbox, title = "Nada por aqui ainda", hint }) {
+// Se o título começa com "Carregando", vira skeleton automaticamente —
+// todas as telas que usam <EmptyState title="Carregando..."/> ganham
+// loading premium sem precisar mudar nada.
+export function EmptyState({ icon: Icon = Inbox, title = "Nada por aqui ainda", hint, actionLabel, onAction }) {
+  if (/^carregando/i.test(String(title))) return <SkeletonList />;
   return (
     <div className="erp-card p-10 flex flex-col items-center text-center gap-2">
       <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-1" style={{ background: "var(--elevated)" }}>
@@ -137,6 +162,11 @@ export function EmptyState({ icon: Icon = Inbox, title = "Nada por aqui ainda", 
       </div>
       <p className="text-sm font-bold" style={{ color: "var(--fg-soft)" }}>{title}</p>
       {hint && <p className="text-xs font-medium" style={{ color: "var(--dim)" }}>{hint}</p>}
+      {actionLabel && onAction && (
+        <button onClick={onAction} className="erp-btn erp-btn-primary !h-10 text-sm mt-3">
+          <Plus size={15} /> {actionLabel}
+        </button>
+      )}
     </div>
   );
 }
@@ -146,7 +176,8 @@ export function Modal({ open, onClose, title, children }) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center backdrop-blur-sm bg-slate-900/40" onClick={onClose}>
-      <div className="w-full max-w-md max-h-[92vh] overflow-y-auto rounded-t-[32px] md:rounded-[32px] p-6 pb-10 shadow-2xl animate-in fade-in zoom-in-95 duration-200 bg-white border border-slate-200"
+      <div className="w-full max-w-md max-h-[92vh] overflow-y-auto rounded-t-3xl md:rounded-3xl p-6 pb-10 animate-in fade-in zoom-in-95 duration-200 border"
+        style={{ background: "var(--card)", borderColor: "var(--line)", boxShadow: "var(--shadow-float)" }}
         onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <p className="text-base font-bold" style={{ color: "var(--fg)" }}>{title}</p>
@@ -185,11 +216,15 @@ export function Btn({ children, variant = "primary", className = "", ...rest }) 
   return <button className={`erp-btn ${cls} ${className}`} {...rest}>{children}</button>;
 }
 
-// ── Toast simples de sucesso ───────────────────────────────────
+// ── Toast flutuante ────────────────────────────────────────────
+// Flutua no rodapé sem empurrar o layout; o ponto verde indica sucesso.
 export function Toast({ show, children }) {
   if (!show) return null;
   return (
-    <div className="erp-badge erp-badge-ok w-full justify-center py-3 text-sm">{children}</div>
+    <div className="erp-toast">
+      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: "var(--accent)" }} />
+      {children}
+    </div>
   );
 }
 

@@ -37,10 +37,17 @@
   --success-soft:   rgba(5,150,105,0.12);
 
   --danger:        #EF4444;
+  --danger-strong: #B91C1C;
   --danger-soft:   rgba(239,68,68,0.10);
   --warning:       #F59E0B;
+  --warning-strong:#B45309;
   --warning-soft:  rgba(245,158,11,0.13);
   --info:          #3B82F6;
+
+  /* Escala única de raios de borda */
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
 
   /* Sombras Ultra-Premium (Interatividade Elevada) */
   --shadow-sm:   0 1px 2px rgba(15, 23, 42, 0.04);
@@ -76,8 +83,10 @@
   --success-strong: #34D399;
   --success-soft:   rgba(16,185,129,0.16);
   --danger:        #F87171;
+  --danger-strong: #FCA5A5;
   --danger-soft:   rgba(248,113,113,0.14);
   --warning:       #FBBF24;
+  --warning-strong:#FCD34D;
   --warning-soft:  rgba(251,191,36,0.16);
   --info:          #60A5FA;
 
@@ -183,7 +192,7 @@ button, a { cursor: pointer; transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
   .erp-card {
     background-color: var(--card);
     border: 1px solid var(--line);
-    border-radius: 24px;
+    border-radius: var(--radius-lg);
     box-shadow: var(--shadow-card);
     transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -204,7 +213,7 @@ button, a { cursor: pointer; transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
   .erp-panel {
     background-color: var(--panel);
     border: 1px solid var(--line);
-    border-radius: 20px;
+    border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
   }
 
@@ -220,7 +229,7 @@ button, a { cursor: pointer; transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
   .erp-btn {
     display: inline-flex; align-items: center; justify-content: center;
     gap: 8px; height: 48px; padding: 0 24px;
-    border-radius: 16px; font-size: 15px; font-weight: 800;
+    border-radius: var(--radius-md); font-size: 15px; font-weight: 800;
     border: 1px solid transparent; white-space: nowrap;
     transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -253,8 +262,8 @@ button, a { cursor: pointer; transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
   }
   
   .erp-btn-danger {
-    background-color: #FEF2F2; color: #DC2626;
-    border-color: rgba(239,68,68,0.2);
+    background-color: var(--danger-soft); color: var(--danger-strong);
+    border-color: var(--danger-soft);
   }
   .erp-btn-danger:hover { 
     background-color: var(--danger); 
@@ -268,7 +277,7 @@ button, a { cursor: pointer; transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
     width: 100%; height: 52px; padding: 0 20px;
     background-color: var(--surface);
     border: 1px solid var(--line);
-    border-radius: 16px; color: var(--fg); font-size: 15px; font-weight: 600;
+    border-radius: var(--radius-md); color: var(--fg); font-size: 15px; font-weight: 600;
     outline: none; transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
   }
   .erp-input::placeholder { color: var(--subtle); font-weight: 500; }
@@ -286,8 +295,65 @@ button, a { cursor: pointer; transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
     font-size: 12px; font-weight: 800; letter-spacing: 0.02em;
   }
   .erp-badge-ok     { background: var(--success-soft);  color: var(--success-strong); }
-  .erp-badge-warn   { background: var(--warning-soft); color: #B45309; }
-  .erp-badge-danger { background: var(--danger-soft);  color: #B91C1C; }
+  .erp-badge-warn   { background: var(--warning-soft); color: var(--warning-strong); }
+  .erp-badge-danger { background: var(--danger-soft);  color: var(--danger-strong); }
+
+  /* Skeleton de carregamento — bloco pulsante com brilho que percorre */
+  .erp-skeleton {
+    position: relative;
+    overflow: hidden;
+    background: var(--elevated);
+    border-radius: var(--radius-sm);
+  }
+  .erp-skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--panel) 60%, transparent), transparent);
+    animation: shimmer 1.6s ease-in-out infinite;
+  }
+}
+
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+
+/* Toast flutuante — entra deslizando de baixo */
+@keyframes toastIn {
+  from { opacity: 0; transform: translate(-50%, 16px) scale(0.97); }
+  to   { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+.erp-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 80;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 22px;
+  border-radius: 999px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-float);
+  color: var(--fg);
+  font-size: 14px;
+  font-weight: 700;
+  pointer-events: none;
+  animation: toastIn 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Acessibilidade: respeita quem prefere menos movimento */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .erp-card:hover, .erp-btn-primary:hover, .erp-btn-ghost:hover,
+  .erp-btn-danger:hover, .erp-input:focus { transform: none; }
 }
 
 /* Animação suave para as páginas (Fade In) */

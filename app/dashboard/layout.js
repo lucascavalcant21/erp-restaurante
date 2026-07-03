@@ -13,14 +13,22 @@ import {
 const SIDEBAR_MENU = [
   {
     category: "Operação Garçons",
+    icon: Users,
+    items: [
+      { label: "Checklist de Salão", href: "/dashboard/operacao/rotina?dept=salao" },
+      { label: "Treinamentos", href: "/dashboard/rh/treinamentos" },
+      { label: "Cardápio Digital (QR)", href: "/dashboard/operacao/cardapio" },
+      { label: "Painel de Senhas (TV)", href: "/chamada/dinamico" },
+      { label: "Observações Padrão", href: "/dashboard/operacao/observacoes" }
+    ]
+  },
+  {
+    category: "Delivery & Canais",
     icon: Truck,
     items: [
       { label: "Delivery & iFood", href: "/dashboard/salao/online" },
-      { label: "Painel de Senhas (TV)", href: "/chamada/dinamico" },
       { label: "Canais de Venda", href: "/dashboard/canais/ifood" },
-      { label: "Cupons de Desconto", href: "/dashboard/marketing/cupons" },
-      { label: "Cardápio Digital (QR)", href: "/dashboard/operacao/cardapio" },
-      { label: "Observações Padrão", href: "/dashboard/operacao/observacoes" }
+      { label: "Cupons de Desconto", href: "/dashboard/marketing/cupons" }
     ]
   },
   {

@@ -135,6 +135,29 @@ function FichasRunner() {
   const [busca, setBusca] = useState("");
   
   const [modalNovo, setModalNovo] = useState(false);
+  const [iaExplicacao, setIaExplicacao] = useState("");
+  const [autoSoma, setAutoSoma] = useState(true);
+
+  // Calcula a soma dos ingredientes toda vez que ingFicha muda
+  // e atualiza automaticamente o formulário se estiver no modo autoSoma
+  useEffect(() => {
+    if (form && autoSoma && ingFicha.length > 0) {
+      const est = rendimentoPelosIngredientes(ingFicha);
+      if (est && est.totalG > 0) {
+         setForm(f => {
+            const un = String(f.rendimento_unidade || "porcao").toLowerCase();
+            if (un === "g" || un === "kg" || un === "l" || un === "ml") {
+               return { ...f, rendimento_porcoes: String(est.valor), rendimento_unidade: est.unidade };
+            } else if (un === "porcao" || un === "un") {
+               const rend = Number(f.rendimento_porcoes) || 1;
+               const pesoP = (est.totalG / rend).toFixed(1).replace('.0', '');
+               return { ...f, peso_porcao_g: pesoP };
+            }
+            return f;
+         });
+      }
+    }
+  }, [ingFicha, autoSoma]);
   
   const [selecionadas, setSelecionadas] = useState([]);
   
@@ -345,7 +368,6 @@ function FichasRunner() {
   };
 
   // Assistente de IA para o Modo de Preparo
-  const [iaExplicacao, setIaExplicacao] = useState("");
   const [iaLoading, setIaLoading] = useState(false);
 
   const gerarPreparoIA = async () => {
@@ -395,12 +417,14 @@ function FichasRunner() {
   const abrirNova = () => {
     setForm({ id: null, departamento: deptUrl, nome_receita: "", rendimento_porcoes: "1", modo_preparo: "", eh_base: false, rendimento_unidade: "porcao", peso_porcao_g: "", imagem: "" });
     setIngFicha([]);
-    setIaExplicacao("");
+    setAutoSoma(true);
     setCalcQtd("");
+    setIaExplicacao("");
     setModalNovo(true);
   };
 
   const abrirEditar = (ficha) => {
+    setAutoSoma(false);
     setForm({
        id: ficha.id,
        departamento: ficha.departamento,
@@ -825,12 +849,18 @@ function FichasRunner() {
                         <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Rendimento da receita</p>
                         <div className="grid grid-cols-3 gap-3">
                            <div>
-                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Produz</label>
-                              <input type="number" step="0.01" placeholder="Ex: 80" value={form.rendimento_porcoes} onChange={e=>setForm({...form, rendimento_porcoes: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-slate-800 outline-none focus:border-emerald-500 text-center"/>
+                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Rendimento</label>
+                              <input type="number" step="0.01" placeholder="Ex: 80" value={form.rendimento_porcoes} onChange={e=>{
+                                 setForm({...form, rendimento_porcoes: e.target.value});
+                                 setAutoSoma(false);
+                              }} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-slate-800 outline-none focus:border-emerald-500 text-center"/>
                            </div>
                            <div>
                               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Medido em</label>
-                              <select value={form.rendimento_unidade} onChange={e=>setForm({...form, rendimento_unidade: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500">
+                              <select value={form.rendimento_unidade} onChange={e=>{
+                                 setForm({...form, rendimento_unidade: e.target.value});
+                                 setAutoSoma(false);
+                              }} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500">
                                  <option value="porcao">porções</option>
                                  <option value="kg">kg</option>
                                  <option value="g">g</option>
@@ -841,7 +871,10 @@ function FichasRunner() {
                            </div>
                            <div>
                               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Porção pesa (g)</label>
-                              <input type="number" step="0.1" min="0" placeholder="Ex: 300" value={form.peso_porcao_g} onChange={e=>setForm({...form, peso_porcao_g: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-slate-800 outline-none focus:border-emerald-500 text-center"/>
+                              <input type="number" step="0.1" min="0" placeholder="Ex: 300" value={form.peso_porcao_g} onChange={e=>{
+                                 setForm({...form, peso_porcao_g: e.target.value});
+                                 setAutoSoma(false);
+                              }} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-slate-800 outline-none focus:border-emerald-500 text-center"/>
                            </div>
                         </div>
 
@@ -850,14 +883,14 @@ function FichasRunner() {
                            const rendimento = Number(form.rendimento_porcoes) || 0;
                            const pesoPorcao = Number(form.peso_porcao_g) || 0;
                            const unR = String(form.rendimento_unidade || "porcao").toLowerCase();
-                           const pesoTotalG = pesoTotalDaFicha(rendimento, unR, pesoPorcao);
+                           const est = rendimentoPelosIngredientes(ingFicha);
+                           const pesoTotalG = pesoTotalDaFicha(rendimento, unR, pesoPorcao) || (est ? est.totalG : 0);
                            const custoTotal = calcularCustoTotal(ingFicha);
                            const porcoesRendidas = (unR === "porcao" || unR === "un")
                               ? rendimento
                               : (pesoPorcao > 0 && pesoTotalG > 0 ? pesoTotalG / pesoPorcao : null);
                            const custoKg = pesoTotalG > 0 ? custoTotal / (pesoTotalG / 1000) : null;
                            const custoPorc = porcoesRendidas > 0 ? custoTotal / porcoesRendidas : null;
-                           const est = rendimentoPelosIngredientes(ingFicha);
 
                            if (!pesoTotalG && !porcoesRendidas) {
                               // Sem dados suficientes: só a sugestão pelos ingredientes, se houver
@@ -871,7 +904,7 @@ function FichasRunner() {
                            return (
                               <div className="mt-3 bg-emerald-50 border border-emerald-100 rounded-xl px-3.5 py-2.5">
                                  <p className="text-sm font-bold text-slate-700 leading-relaxed">
-                                    Produz <span className="font-black text-slate-900">{fmtG(pesoTotalG)}</span>
+                                    Rendimento <span className="font-black text-slate-900">{fmtG(pesoTotalG)}</span>
                                     {porcoesRendidas !== null && pesoPorcao > 0 && <> = <span className="font-black text-slate-900">{(+porcoesRendidas.toFixed(1)).toLocaleString("pt-BR")} porções de {pesoPorcao}g</span></>}
                                     {custoPorc !== null && <> · porção custa <span className="font-black text-emerald-700">{fmtBRL(custoPorc)}</span></>}
                                     {custoKg !== null && <> · 1 kg custa <span className="font-black text-emerald-700">{fmtBRL(custoKg)}</span></>}

@@ -41,6 +41,7 @@ function EtiquetasRunner() {
   const [novoPreset, setNovoPreset] = useState({ nome: "", dias: "" });
   const [showPreset, setShowPreset] = useState(false);
   const [salvou, setSalvou] = useState("");
+  const [copias, setCopias] = useState(1);
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   function salvarPresets(lista) { setPresets(lista); try { localStorage.setItem("erp_validade_presets", JSON.stringify(lista)); } catch (_) {} }
@@ -123,7 +124,8 @@ function EtiquetasRunner() {
         @media print {
           body * { visibility: hidden !important; }
           #area-impressao, #area-impressao * { visibility: visible !important; }
-          #area-impressao { position: absolute; left: 0; top: 0; margin: 0; padding: 0; background: #fff !important; color: #000 !important; }
+          #area-impressao { position: absolute; left: 0; top: 0; margin: 0; padding: 0; background: #fff !important; color: #000 !important; width: 100%; }
+          .etiqueta-print { page-break-after: always; overflow: hidden; }
           @page { margin: 0; }
         }
       `}} />
@@ -178,9 +180,10 @@ function EtiquetasRunner() {
             </Card>
 
             <Card>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Quantidade"><NumberInput value={form.quantidade} onChange={(e) => set("quantidade", e.target.value)} /></Field>
+              <div className="grid grid-cols-3 gap-3">
+                <Field label="Peso do Produto"><NumberInput value={form.quantidade} onChange={(e) => set("quantidade", e.target.value)} placeholder="0.00" /></Field>
                 <Field label="Unidade"><Select value={form.unidade} onChange={(e) => set("unidade", e.target.value)}>{UNIDADES.map((u) => <option key={u}>{u}</option>)}</Select></Field>
+                <Field label="Etiquetas p/ Imprimir"><NumberInput value={copias} onChange={(e) => setCopias(Number(e.target.value) || 1)} min="1" /></Field>
               </div>
               <div className="mb-2 flex gap-1.5">
                 {[["dias", "Por dias"], ["data", "Por data"]].map(([m, l]) => (
@@ -234,38 +237,42 @@ function EtiquetasRunner() {
                 ))}
               </div>
             </div>
-            <div className="flex justify-center">
-              <div id="area-impressao" style={{ width: "60mm", height: dim.h, background: "#fff", color: "#000", padding: dim.pad, fontFamily: "'Courier New', monospace", borderRadius: 8, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-                {/* produto */}
-                <div style={{ fontSize: dim.titulo, fontWeight: 800, lineHeight: 1.0, textTransform: "uppercase", paddingBottom: dim.gap, borderBottom: "0.5mm solid #000" }}>
-                  {nomeProduto || "PRODUTO"}
-                </div>
-                {/* conservação + qtd */}
-                <div style={{ display: "flex", justifyContent: "space-between", whiteSpace: "nowrap", fontSize: dim.linha, fontWeight: 700, padding: "0.8mm 0", borderBottom: "0.4mm solid #000" }}>
-                  <span>{form.conservacao.toUpperCase()}</span>
-                  <span>QTD: {form.quantidade}{form.unidade !== "UN" ? " " + form.unidade : ""}</span>
-                </div>
-                {/* manipulação + validade */}
-                <div style={{ padding: "0.8mm 0", borderBottom: "0.4mm solid #000" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", whiteSpace: "nowrap", fontSize: dim.linha, fontWeight: 700 }}><span>MANIPULACAO:</span><span>{fmtDataHora(agora)}</span></div>
-                  <div style={{ display: "flex", justifyContent: "space-between", whiteSpace: "nowrap", fontSize: dim.linha, fontWeight: 700, marginTop: "0.4mm" }}><span>VALIDADE:</span><span>{fmtDataHora(validadeEm)}</span></div>
-                </div>
-                {/* responsável */}
-                <div style={{ fontSize: dim.linha, fontWeight: 700, marginTop: "1mm" }}>RESP.: {(form.responsavel || "—").toUpperCase()}</div>
-                {form.lote && <div style={{ fontSize: dim.resp, fontWeight: 700, marginTop: "0.5mm" }}>LOTE/SIF: {form.lote}</div>}
-                {/* espaço flexível empurra o rodapé pra baixo */}
-                <div style={{ flex: 1, minHeight: "1mm" }} />
-                {/* rodapé: empresa (esq) + QR encaixado (dir) */}
-                <div style={{ borderTop: "0.5mm solid #000", paddingTop: dim.gap, display: "flex", justifyContent: "space-between", alignItems: "flex-end", fontSize: dim.resp, fontWeight: 700, gap: "2mm" }}>
-                  <div style={{ minWidth: 0, lineHeight: 1.35 }}>
-                    {cnpj && <div>CNPJ: {fmtCNPJ(cnpj)}</div>}
-                    <div>{(unidadeInfo.nome || "").toUpperCase()}</div>
-                    <div style={{ opacity: 0.7 }}>#{codigo}</div>
+            <div className="flex justify-center overflow-auto p-4 bg-slate-100 rounded-2xl border border-slate-200">
+              <div id="area-impressao" className="flex flex-col gap-4">
+                {Array.from({ length: Math.max(1, copias) }).map((_, idx) => (
+                  <div key={idx} className="etiqueta-print shadow-sm" style={{ width: "60mm", height: dim.h, background: "#fff", color: "#000", padding: dim.pad, fontFamily: "'Courier New', monospace", borderRadius: 8, display: "flex", flexDirection: "column", overflow: "hidden", flexShrink: 0 }}>
+                    {/* produto */}
+                    <div style={{ fontSize: dim.titulo, fontWeight: 800, lineHeight: 1.0, textTransform: "uppercase", paddingBottom: dim.gap, borderBottom: "0.5mm solid #000" }}>
+                      {nomeProduto || "PRODUTO"}
+                    </div>
+                    {/* conservação + qtd */}
+                    <div style={{ display: "flex", justifyContent: "space-between", whiteSpace: "nowrap", fontSize: dim.linha, fontWeight: 700, padding: "0.8mm 0", borderBottom: "0.4mm solid #000" }}>
+                      <span>{form.conservacao.toUpperCase()}</span>
+                      <span>PESO: {form.quantidade}{form.unidade !== "UN" ? " " + form.unidade : ""}</span>
+                    </div>
+                    {/* manipulação + validade */}
+                    <div style={{ padding: "0.8mm 0", borderBottom: "0.4mm solid #000" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", whiteSpace: "nowrap", fontSize: dim.linha, fontWeight: 700 }}><span>MANIPULACAO:</span><span>{fmtDataHora(agora)}</span></div>
+                      <div style={{ display: "flex", justifyContent: "space-between", whiteSpace: "nowrap", fontSize: dim.linha, fontWeight: 700, marginTop: "0.4mm" }}><span>VALIDADE:</span><span>{fmtDataHora(validadeEm)}</span></div>
+                    </div>
+                    {/* responsável */}
+                    <div style={{ fontSize: dim.linha, fontWeight: 700, marginTop: "1mm" }}>RESP.: {(form.responsavel || "—").toUpperCase()}</div>
+                    {form.lote && <div style={{ fontSize: dim.resp, fontWeight: 700, marginTop: "0.5mm" }}>LOTE/SIF: {form.lote}</div>}
+                    {/* espaço flexível empurra o rodapé pra baixo */}
+                    <div style={{ flex: 1, minHeight: "1mm" }} />
+                    {/* rodapé: empresa (esq) + QR encaixado (dir) */}
+                    <div style={{ borderTop: "0.5mm solid #000", paddingTop: dim.gap, display: "flex", justifyContent: "space-between", alignItems: "flex-end", fontSize: dim.resp, fontWeight: 700, gap: "2mm" }}>
+                      <div style={{ minWidth: 0, lineHeight: 1.35 }}>
+                        {cnpj && <div>CNPJ: {fmtCNPJ(cnpj)}</div>}
+                        <div>{(unidadeInfo.nome || "").toUpperCase()}</div>
+                        <div style={{ opacity: 0.7 }}>#{codigo}</div>
+                      </div>
+                      <div style={{ flexShrink: 0, lineHeight: 0 }}>
+                        <QRCodeSVG value={rastreioUrl} size={dim.qr} level="M" />
+                      </div>
+                    </div>
                   </div>
-                  <div style={{ flexShrink: 0, lineHeight: 0 }}>
-                    <QRCodeSVG value={rastreioUrl} size={dim.qr} level="M" />
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
             <p className="text-[11px] text-center mt-3 flex items-center justify-center gap-1.5" style={{ color: "var(--dim)" }}>

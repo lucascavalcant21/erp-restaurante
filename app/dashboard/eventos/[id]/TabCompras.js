@@ -344,7 +344,7 @@ export default function TabCompras({ evento, reservas, pratos, drinks, ingredien
             </p>
           </div>
           <Field label="Margem segurança (%)">
-            <NumberInput value={safetyMargin} onChange={(e) => setSafetyMargin(Number(e.target.value) || 0)} step="1" style={{ width: 100 }} />
+            <NumberInput value={safetyMargin} onChange={(e) => setSafetyMargin(e.target.value)} step="1" style={{ width: 100 }} />
           </Field>
         </div>
 

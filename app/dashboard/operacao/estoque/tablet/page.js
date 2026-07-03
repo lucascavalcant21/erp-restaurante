@@ -214,7 +214,7 @@ function ModalRetirada({ item, funcionarios, fichas, onConfirmar, onClose, loadi
                 <Minus size={20} />
               </button>
               <input type="number" value={qtd} min="0.1" step="0.5"
-                onChange={e => setQtd(Math.max(0.1, Number(e.target.value)))}
+                onChange={e => setQtd(e.target.value)}
                 style={{
                   flex: 1, height: 52, textAlign: "center", borderRadius: 12,
                   background: "#0F172A", border: "1.5px solid #334155",
@@ -343,7 +343,7 @@ function ModalEntrada({ item, onConfirmar, onClose, loading }) {
                 <Minus size={20} />
               </button>
               <input type="number" value={qtd} min="0.1" step="0.5"
-                onChange={e => setQtd(Math.max(0.1, Number(e.target.value)))}
+                onChange={e => setQtd(e.target.value)}
                 style={{
                   flex: 1, height: 52, textAlign: "center", borderRadius: 12,
                   background: "#0F172A", border: "1.5px solid #334155",

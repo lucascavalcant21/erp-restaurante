@@ -411,7 +411,7 @@ export default function ModalReceita({ open, onClose, eventoId, ingredientesEven
               <Field label="Receita original rende">
                 <div className="flex items-center gap-2">
                   <NumberInput value={porcoesOriginais}
-                    onChange={(e) => setPorcoesOriginais(Number(e.target.value) || 1)}
+                    onChange={(e) => setPorcoesOriginais(e.target.value)}
                     step="1" />
                   <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>porções</span>
                 </div>
@@ -419,7 +419,7 @@ export default function ModalReceita({ open, onClose, eventoId, ingredientesEven
               <Field label="Quero fazer para">
                 <div className="flex items-center gap-2">
                   <NumberInput value={porcoesDesejadas}
-                    onChange={(e) => setPorcoesDesejadas(Number(e.target.value) || 1)}
+                    onChange={(e) => setPorcoesDesejadas(e.target.value)}
                     step="1"
                     style={{ fontWeight: 700, fontSize: 16, color: "#8B5CF6" }} />
                   <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>porções</span>

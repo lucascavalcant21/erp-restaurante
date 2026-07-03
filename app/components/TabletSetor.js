@@ -113,7 +113,7 @@ function ModalRetirada({ item, funcionarios, fichas, cor, onConfirmar, onClose, 
             <label style={{ color:"#64748B",fontSize:12,fontWeight:700,display:"block",marginBottom:8,textTransform:"uppercase",letterSpacing:"0.05em" }}>Quantidade ({item.unidade})</label>
             <div style={{ display:"flex",alignItems:"center",gap:12 }}>
               <button onClick={()=>setQtd(q=>Math.max(0.5,q-(q>1?1:0.5)))} style={{ width:52,height:52,borderRadius:12,background:"#334155",border:"none",color:"#F1F5F9",fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}><Minus size={20}/></button>
-              <input type="number" value={qtd} min="0.1" step="0.5" onChange={e=>setQtd(Math.max(0.1,Number(e.target.value)))} style={{ flex:1,height:52,textAlign:"center",borderRadius:12,background:"#0F172A",border:"1.5px solid #334155",color:"#F1F5F9",fontSize:22,fontWeight:700,outline:"none" }}/>
+              <input type="number" value={qtd} min="0.1" step="0.5" onChange={e=>setQtd(e.target.value)} style={{ flex:1,height:52,textAlign:"center",borderRadius:12,background:"#0F172A",border:"1.5px solid #334155",color:"#F1F5F9",fontSize:22,fontWeight:700,outline:"none" }}/>
               <button onClick={()=>setQtd(q=>q+1)} style={{ width:52,height:52,borderRadius:12,background:"#334155",border:"none",color:"#F1F5F9",fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}><Plus size={20}/></button>
             </div>
             <p style={{ color:"#475569",fontSize:12,marginTop:6 }}>Disponível: {Number(item.quantidade||0).toLocaleString("pt-BR",{maximumFractionDigits:2})} {item.unidade}</p>
@@ -162,7 +162,7 @@ function ModalEntrada({ item, cor, onConfirmar, onClose, loading }) {
             <label style={{ color:"#64748B",fontSize:12,fontWeight:700,display:"block",marginBottom:8,textTransform:"uppercase",letterSpacing:"0.05em" }}>Quantidade ({item.unidade})</label>
             <div style={{ display:"flex",alignItems:"center",gap:12 }}>
               <button onClick={()=>setQtd(q=>Math.max(0.5,q-(q>1?1:0.5)))} style={{ width:52,height:52,borderRadius:12,background:"#334155",border:"none",color:"#F1F5F9",fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}><Minus size={20}/></button>
-              <input type="number" value={qtd} min="0.1" step="0.5" onChange={e=>setQtd(Math.max(0.1,Number(e.target.value)))} style={{ flex:1,height:52,textAlign:"center",borderRadius:12,background:"#0F172A",border:"1.5px solid #334155",color:"#F1F5F9",fontSize:22,fontWeight:700,outline:"none" }}/>
+              <input type="number" value={qtd} min="0.1" step="0.5" onChange={e=>setQtd(e.target.value)} style={{ flex:1,height:52,textAlign:"center",borderRadius:12,background:"#0F172A",border:"1.5px solid #334155",color:"#F1F5F9",fontSize:22,fontWeight:700,outline:"none" }}/>
               <button onClick={()=>setQtd(q=>q+1)} style={{ width:52,height:52,borderRadius:12,background:"#334155",border:"none",color:"#F1F5F9",fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}><Plus size={20}/></button>
             </div>
           </div>

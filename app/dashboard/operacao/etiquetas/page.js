@@ -183,7 +183,7 @@ function EtiquetasRunner() {
               <div className="grid grid-cols-3 gap-3">
                 <Field label="Peso do Produto"><NumberInput value={form.quantidade} onChange={(e) => set("quantidade", e.target.value)} placeholder="0.00" /></Field>
                 <Field label="Unidade"><Select value={form.unidade} onChange={(e) => set("unidade", e.target.value)}>{UNIDADES.map((u) => <option key={u}>{u}</option>)}</Select></Field>
-                <Field label="Etiquetas p/ Imprimir"><NumberInput value={copias} onChange={(e) => setCopias(Number(e.target.value) || 1)} min="1" /></Field>
+                <Field label="Etiquetas p/ Imprimir"><NumberInput value={copias} onChange={(e) => setCopias(e.target.value)} min="1" /></Field>
               </div>
               <div className="mb-2 flex gap-1.5">
                 {[["dias", "Por dias"], ["data", "Por data"]].map(([m, l]) => (

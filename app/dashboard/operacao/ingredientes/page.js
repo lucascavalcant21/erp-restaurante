@@ -32,7 +32,7 @@ function IngredientesRunner() {
   // custo_compra = preço como comprado; peso bruto/limpo calculam a perda de limpeza
   // (casca, espinha, apara). Se for empanado, soma o custo do empanamento e divide
   // pelo ganho de peso. custo_unitario salvo no banco = custo REAL do kg PRONTO.
-  const [form, setForm] = useState({ id: null, departamento: deptUrl || "cozinha", nome: "", marca: "", unidade_medida: "kg", custo_compra: "", peso_medio_g: "", peso_bruto_g: "", peso_liquido_g: "", eh_empanado: false, custo_empanamento: "", peso_in_natura_g: "", peso_empanado_g: "" });
+  const [form, setForm] = useState({ id: null, departamento: deptUrl || "cozinha", nome: "", marca: "", unidade_medida: "kg", tamanho_embalagem: "1", valor_embalagem: "", custo_compra: "", peso_medio_g: "", peso_bruto_g: "", peso_liquido_g: "", eh_empanado: false, custo_empanamento: "", peso_in_natura_g: "", peso_empanado_g: "" });
 
   // Aproveitamento (%) derivado dos pesos: 650g limpos de 1000g brutos = 65%
   const aproveitamentoForm = (() => {
@@ -41,7 +41,11 @@ function IngredientesRunner() {
     if (bruto > 0 && limpo > 0 && limpo <= bruto) return (limpo / bruto) * 100;
     return 100;
   })();
-  const custoRealForm = form.custo_compra ? Number(form.custo_compra) / (aproveitamentoForm / 100) : 0;
+  
+  const tamanhoReal = Number(form.tamanho_embalagem) || 1;
+  const valorPagoReal = Number(form.valor_embalagem) || 0;
+  const custoBase = valorPagoReal / tamanhoReal;
+  const custoRealForm = custoBase ? custoBase / (aproveitamentoForm / 100) : 0;
 
   // Empanamento: fator de ganho de peso (1000g in natura -> 1360g empanado = 1,36)
   const fatorEmpanadoForm = (() => {
@@ -99,7 +103,7 @@ function IngredientesRunner() {
   const paginados = filtrados.slice((paginaAtual - 1) * PAGE_SIZE, paginaAtual * PAGE_SIZE);
 
   const abrirNovo = () => {
-    setForm({ id: null, departamento: deptUrl || "cozinha", nome: "", marca: "", unidade_medida: "kg", custo_compra: "", peso_medio_g: "", peso_bruto_g: "", peso_liquido_g: "", eh_empanado: false, custo_empanamento: "", peso_in_natura_g: "", peso_empanado_g: "" });
+    setForm({ id: null, departamento: deptUrl || "cozinha", nome: "", marca: "", unidade_medida: "kg", tamanho_embalagem: "1", valor_embalagem: "", custo_compra: "", peso_medio_g: "", peso_bruto_g: "", peso_liquido_g: "", eh_empanado: false, custo_empanamento: "", peso_in_natura_g: "", peso_empanado_g: "" });
     setModalNovo(true);
   };
 
@@ -113,6 +117,8 @@ function IngredientesRunner() {
       nome: ins.nome,
       marca: ins.marca || "",
       unidade_medida: ins.unidade_medida,
+      tamanho_embalagem: "1",
+      valor_embalagem: ins.custo_compra ?? ins.custo_unitario,
       custo_compra: ins.custo_compra ?? ins.custo_unitario,
       peso_medio_g: ins.peso_medio_g || "",
       peso_bruto_g: pct > 0 && pct < 100 ? "1000" : "",
@@ -207,11 +213,15 @@ function IngredientesRunner() {
   const handleSalvar = async () => {
     if(!form.nome.trim()) return alert("Digite o nome do ingrediente");
     if(form.nome.length > 100) return alert("Nome não pode ter mais de 100 caracteres");
-    if(!form.custo_compra) return alert("Digite o custo de compra");
+    
+    const valorEmb = Number(form.valor_embalagem);
+    if(valorEmb <= 0) return alert("Valor da embalagem deve ser um número maior que zero");
+    if(valorEmb > 999999.99) return alert("Valor não pode ser maior que R$ 999.999,99");
 
-    const custoCompra = Number(form.custo_compra);
-    if(custoCompra <= 0) return alert("Custo deve ser um valor maior que zero");
-    if(custoCompra > 999999.99) return alert("Custo não pode ser maior que R$ 999.999,99");
+    const tamEmb = Number(form.tamanho_embalagem) || 1;
+    if(tamEmb <= 0) return alert("Tamanho/Volume da embalagem deve ser maior que zero");
+
+    const custoCompra = valorEmb / tamEmb;
 
     const bruto = Number(form.peso_bruto_g) || 0;
     const limpo = Number(form.peso_liquido_g) || 0;
@@ -479,20 +489,24 @@ function IngredientesRunner() {
                      <input type="text" placeholder="Ex: Carmem" value={form.marca || ""} onChange={e=>setForm({...form, marca: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-4">
                      <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Unidade Base</label>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Vol / Tamanho</label>
+                        <input type="number" step="0.01" min="0" placeholder="Ex: 750" value={form.tamanho_embalagem} onChange={e=>setForm({...form, tamanho_embalagem: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500"/>
+                     </div>
+                     <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Unidade</label>
                         <select value={form.unidade_medida} onChange={e=>setForm({...form, unidade_medida: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500">
                            <option value="kg">Kilo (KG)</option>
                            <option value="l">Litro (L)</option>
-                           <option value="un">Unidade (UN)</option>
+                           <option value="un">Unid (UN)</option>
                            <option value="g">Grama (G)</option>
                            <option value="ml">Mililitro (ML)</option>
                         </select>
                      </div>
                      <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Custo de Compra (unid. base)</label>
-                        <input type="number" step="0.01" min="0" max="999999.99" placeholder="0.00" value={form.custo_compra} onChange={e=>setForm({...form, custo_compra: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-emerald-600 outline-none focus:border-emerald-500"/>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Valor Pago</label>
+                        <input type="number" step="0.01" min="0" max="999999.99" placeholder="0.00" value={form.valor_embalagem} onChange={e=>setForm({...form, valor_embalagem: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-emerald-600 outline-none focus:border-emerald-500"/>
                      </div>
                   </div>
 

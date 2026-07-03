@@ -863,7 +863,22 @@ function FichasRunner() {
                            <div>
                               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Medido em</label>
                               <select value={form.rendimento_unidade} onChange={e=>{
-                                 setForm({...form, rendimento_unidade: e.target.value});
+                                 const newUn = String(e.target.value).toLowerCase();
+                                 const oldUn = String(form.rendimento_unidade || "porcao").toLowerCase();
+                                 let newVal = Number(String(form.rendimento_porcoes).replace(',', '.')) || 0;
+                                 
+                                 if (newVal > 0) {
+                                    if (oldUn === "kg" && newUn === "g") newVal = newVal * 1000;
+                                    else if (oldUn === "g" && newUn === "kg") newVal = newVal / 1000;
+                                    else if (oldUn === "l" && newUn === "ml") newVal = newVal * 1000;
+                                    else if (oldUn === "ml" && newUn === "l") newVal = newVal / 1000;
+                                 }
+
+                                 setForm({
+                                    ...form, 
+                                    rendimento_unidade: newUn,
+                                    rendimento_porcoes: newVal > 0 ? String(newVal).replace('.', ',') : form.rendimento_porcoes
+                                 });
                                  setAutoSoma(false);
                               }} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500">
                                  <option value="porcao">porções</option>

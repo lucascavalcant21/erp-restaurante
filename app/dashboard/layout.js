@@ -149,7 +149,7 @@ function SidebarSection({ section, idx, pathname }) {
       </button>
       
       <div className={`grid transition-all duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
-        <div className="overflow-hidden space-y-0.5">
+        <div className="overflow-hidden min-h-0 space-y-0.5">
           <div className="pb-2">
              {section.items.map((item, itemIdx) => (
                <SidebarItem key={itemIdx} item={item} pathname={pathname} />

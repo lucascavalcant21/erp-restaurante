@@ -6,44 +6,48 @@ import { lerSessao, encerrarSessao } from "../lib/auth";
 import { useERP } from "../context/ERPContext";
 import {
   Users, BarChart, Store, Settings, LogOut, ChevronDown, Check,
-  UtensilsCrossed, Package, Wallet, Menu, X, Truck
+  UtensilsCrossed, Package, Wallet, Menu, X, Truck, ChefHat, GlassWater
 } from "lucide-react";
 
 // NOVO MENU SIDEBAR (PDV e KDS REMOVIDOS)
 const SIDEBAR_MENU = [
   {
-    category: "Vendas & Delivery",
+    category: "Operação Garçons",
     icon: Truck,
     items: [
       { label: "Delivery & iFood", href: "/dashboard/salao/online" },
       { label: "Painel de Senhas (TV)", href: "/chamada/dinamico" },
       { label: "Canais de Venda", href: "/dashboard/canais/ifood" },
-      { label: "Cupons de Desconto", href: "/dashboard/marketing/cupons" }
-    ]
-  },
-  {
-    category: "Catálogo & Produtos",
-    icon: UtensilsCrossed,
-    items: [
-      { label: "Catálogo e Preços", href: "/dashboard/operacao/produtos" },
-      { label: "Fichas Técnicas", href: "/dashboard/operacao/fichas" },
-      { label: "Ingredientes e Insumos", href: "/dashboard/operacao/ingredientes" },
-      { label: "Drinks e Coquetéis", href: "/dashboard/operacao/drinks" },
+      { label: "Cupons de Desconto", href: "/dashboard/marketing/cupons" },
       { label: "Cardápio Digital (QR)", href: "/dashboard/operacao/cardapio" },
       { label: "Observações Padrão", href: "/dashboard/operacao/observacoes" }
     ]
   },
   {
-    category: "Operacional & Estoque",
-    icon: Package,
+    category: "Operação Cozinha",
+    icon: ChefHat,
     items: [
-      { label: "Controle de Estoque", href: "/dashboard/operacao/estoque" },
+      { label: "Catálogo e Preços", href: "/dashboard/operacao/produtos" },
+      { label: "Fichas Técnicas", href: "/dashboard/operacao/fichas?dept=cozinha" },
+      { label: "Ingredientes e Insumos", href: "/dashboard/operacao/ingredientes?dept=cozinha" },
+      { label: "Controle de Estoque", href: "/dashboard/operacao/estoque?dept=cozinha" },
       { label: "Lista de Compras", href: "/dashboard/operacao/compras" },
       { label: "Notas de Entrada (NF)", href: "/dashboard/operacao/notas" },
       { label: "Produção Diária", href: "/dashboard/operacao/producao" },
-      { label: "Validade e Etiquetas", href: "/dashboard/operacao/etiquetas" },
+      { label: "Validade e Etiquetas", href: "/dashboard/operacao/etiquetas?dept=cozinha" },
       { label: "Rotinas Operacionais", href: "/dashboard/operacao/rotina" },
       { label: "Orçamento de Eventos", href: "/dashboard/operacao/orcamento" }
+    ]
+  },
+  {
+    category: "Operação Bar",
+    icon: GlassWater,
+    items: [
+      { label: "Drinks e Coquetéis", href: "/dashboard/operacao/drinks" },
+      { label: "Fichas de Drinks", href: "/dashboard/operacao/fichas?dept=bar" },
+      { label: "Ingredientes Bar", href: "/dashboard/operacao/ingredientes?dept=bar" },
+      { label: "Estoque do Bar", href: "/dashboard/operacao/estoque?dept=bar" },
+      { label: "Etiquetas do Bar", href: "/dashboard/operacao/etiquetas?dept=bar" }
     ]
   },
   {

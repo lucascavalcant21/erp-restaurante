@@ -852,7 +852,7 @@ function FichasRunner() {
                      {/* RENDIMENTO — tudo numa linha: quanto produz, em quê, e o peso da porção */}
                      <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
                         <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Rendimento da receita</p>
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className={`grid ${["kg", "g", "l", "ml"].includes(String(form.rendimento_unidade || "porcao").toLowerCase()) ? "grid-cols-2" : "grid-cols-3"} gap-3`}>
                            <div>
                               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Rendimento</label>
                               <input type="number" step="0.01" placeholder="Ex: 80" value={form.rendimento_porcoes} onChange={e=>{
@@ -874,13 +874,15 @@ function FichasRunner() {
                                  <option value="un">unidades</option>
                               </select>
                            </div>
-                           <div>
-                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Porção pesa (g)</label>
-                              <input type="number" step="0.1" min="0" placeholder="Ex: 300" value={form.peso_porcao_g} onChange={e=>{
-                                 setForm({...form, peso_porcao_g: e.target.value});
-                                 setAutoSoma(false);
-                              }} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-slate-800 outline-none focus:border-emerald-500 text-center"/>
-                           </div>
+                           {!["kg", "g", "l", "ml"].includes(String(form.rendimento_unidade || "porcao").toLowerCase()) && (
+                              <div>
+                                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Porção pesa (g)</label>
+                                 <input type="number" step="0.1" min="0" placeholder="Ex: 300" value={form.peso_porcao_g} onChange={e=>{
+                                    setForm({...form, peso_porcao_g: e.target.value});
+                                    setAutoSoma(false);
+                                 }} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-slate-800 outline-none focus:border-emerald-500 text-center"/>
+                              </div>
+                           )}
                         </div>
 
                         {/* Resumo em UMA linha do que isso significa */}

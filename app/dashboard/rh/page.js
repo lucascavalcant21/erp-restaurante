@@ -13,7 +13,7 @@ import {
 import { fetchPontoHoje } from "../../lib/ponto";
 import { salvarConta } from "../../lib/financeiro";
 import { 
-  Users, UserPlus, FileText, Upload, Save, X, Search, Trash2, Loader2, CalendarHeart, Star, Phone, CreditCard, ClipboardList, Clock, CalendarDays, ShoppingBag, CheckCircle, Store
+  Users, UserPlus, FileText, Upload, Save, X, Search, Trash2, Loader2, CalendarHeart, Star, Phone, CreditCard, ClipboardList, Clock, CalendarDays, ShoppingBag, CheckCircle, Store, Printer, UtensilsCrossed
 } from "lucide-react";
 import { fmtBRL } from "../../components/ui";
 import BancoTalentos from "./components/BancoTalentos";
@@ -138,6 +138,124 @@ export default function RHPage() {
   };
 
   const filtrados = funcionarios.filter(f => f.nome.toLowerCase().includes(busca.toLowerCase()) && (f.tipo_contrato || "Fixo") === abaAtiva);
+
+  const imprimirFichaExtra = (funcionario) => {
+    const hoje = new Date().toLocaleDateString('pt-BR');
+    const nome = funcionario ? funcionario.nome : "__________________________________________________";
+    const cpf = funcionario ? (funcionario.cpf || "___.___.___-__") : "___.___.___-__";
+    const cargo = funcionario ? (funcionario.cargo || "___________________") : "___________________";
+    
+    const html = `
+      <html>
+        <head>
+          <title>Ficha de Controle de Extras</title>
+          <style>
+            body { font-family: sans-serif; padding: 40px; color: #1e293b; line-height: 1.5; }
+            h1 { text-align: center; margin-bottom: 5px; font-size: 24px; text-transform: uppercase; }
+            h2 { text-align: center; font-size: 14px; font-weight: normal; margin-top: 0; color: #64748b; margin-bottom: 30px; }
+            .header-info { display: flex; justify-content: space-between; margin-bottom: 20px; font-weight: bold; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+            .section { margin-bottom: 30px; }
+            .section-title { font-size: 16px; font-weight: bold; background: #f1f5f9; padding: 10px; border-radius: 4px; margin-bottom: 15px; text-transform: uppercase; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            th, td { border: 1px solid #cbd5e1; padding: 12px; text-align: left; }
+            th { background: #f8fafc; font-size: 12px; text-transform: uppercase; color: #64748b; }
+            .signature-box { height: 60px; }
+            .checkbox { width: 16px; height: 16px; border: 1px solid #94a3b8; display: inline-block; margin-right: 10px; vertical-align: middle; border-radius: 3px; }
+            @media print { body { padding: 0; } }
+          </style>
+        </head>
+        <body>
+          <h1>Controle de Extras / Diárias</h1>
+          <h2>Data: ${hoje}</h2>
+
+          <div class="section">
+             <div class="section-title">Dados do Colaborador</div>
+             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div><strong>Nome:</strong> ${nome}</div>
+                <div><strong>Função:</strong> ${cargo}</div>
+                <div><strong>CPF:</strong> ${cpf}</div>
+                <div><strong>Assinatura:</strong> _________________________________</div>
+             </div>
+          </div>
+
+          <div class="section">
+             <div class="section-title">Controle de Ponto (Turno)</div>
+             <table>
+               <thead>
+                 <tr>
+                   <th>Entrada</th>
+                   <th>Saída Intervalo</th>
+                   <th>Retorno Intervalo</th>
+                   <th>Saída Final</th>
+                 </tr>
+               </thead>
+               <tbody>
+                 <tr>
+                   <td class="signature-box"></td>
+                   <td class="signature-box"></td>
+                   <td class="signature-box"></td>
+                   <td class="signature-box"></td>
+                 </tr>
+               </tbody>
+             </table>
+          </div>
+
+          <div class="section">
+             <div class="section-title">Controle de Equipamentos / Empréstimos</div>
+             <p style="font-size: 12px; color: #64748b; margin-bottom: 15px;">Declaro ter recebido os itens abaixo em perfeito estado para uso em serviço, me comprometendo a devolvê-los ao término do turno. Em caso de perda ou dano, o valor poderá ser descontado.</p>
+             
+             <table>
+               <thead>
+                 <tr>
+                   <th style="width: 50%;">Item Emprestado</th>
+                   <th>Visto Recebimento (Início)</th>
+                   <th>Visto Devolução (Fim)</th>
+                 </tr>
+               </thead>
+               <tbody>
+                 <tr>
+                   <td><span class="checkbox"></span> Uniforme / Camisa</td>
+                   <td class="signature-box"></td>
+                   <td class="signature-box"></td>
+                 </tr>
+                 <tr>
+                   <td><span class="checkbox"></span> Avental</td>
+                   <td class="signature-box"></td>
+                   <td class="signature-box"></td>
+                 </tr>
+                 <tr>
+                   <td><span class="checkbox"></span> Cartão de Consumo</td>
+                   <td class="signature-box"></td>
+                   <td class="signature-box"></td>
+                 </tr>
+                 <tr>
+                   <td><span class="checkbox"></span> Rádio Comunicador / Fone</td>
+                   <td class="signature-box"></td>
+                   <td class="signature-box"></td>
+                 </tr>
+                 <tr>
+                   <td><span class="checkbox"></span> Outro: __________________</td>
+                   <td class="signature-box"></td>
+                   <td class="signature-box"></td>
+                 </tr>
+               </tbody>
+             </table>
+          </div>
+          
+          <div style="margin-top: 50px; text-align: center;">
+             <div style="width: 300px; border-top: 1px solid #000; margin: 0 auto; padding-top: 5px;">
+                Visto do Gerente / Responsável
+             </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const win = window.open("", "_blank");
+    win.document.write(html);
+    win.document.close();
+    setTimeout(() => win.print(), 500);
+  };
 
   const abrirModalNovo = () => {
     setEditandoId(null);
@@ -369,6 +487,14 @@ export default function RHPage() {
            </div>
          </div>
          <div className="flex items-center gap-3">
+            {abaAtiva === "Freelancer" && (
+               <button onClick={() => imprimirFichaExtra(null)} className="flex items-center gap-2 bg-amber-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-amber-700 transition-colors shadow-lg shadow-amber-600/20">
+                  <Printer size={18} /> Ficha em Branco
+               </button>
+            )}
+            <button onClick={() => router.push('/dashboard/rh/cardapio-funcionarios')} className="flex items-center gap-2 bg-white text-slate-800 border border-slate-200 px-5 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm">
+               <UtensilsCrossed size={18} /> Cardápio Equipe
+            </button>
             <a 
                href={(!unidadeAtiva || unidadeAtiva === "todas") ? "#" : `/exportar-afd?unidadeId=${unidadeAtiva}`} 
                onClick={(e) => { if(!unidadeAtiva || unidadeAtiva === "todas") { e.preventDefault(); alert("Por favor, selecione uma unidade específica no menu lateral esquerdo para exportar o AFD daquela empresa."); } }}
@@ -540,6 +666,11 @@ export default function RHPage() {
                                  <button onClick={() => router.push(`/dashboard/rh/espelho/${f.id}?mes=${new Date().toISOString().slice(0,7)}`)} className="flex items-center gap-1 text-xs font-black text-slate-600 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-200 transition-colors">
                                     Espelho de Ponto
                                  </button>
+                                 {f.tipo_contrato === "Freelancer" && (
+                                     <button onClick={() => imprimirFichaExtra(f)} className="flex items-center gap-1 text-xs font-black text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg hover:bg-amber-100 transition-colors">
+                                        <Printer size={14}/> Ficha Controle
+                                     </button>
+                                  )}
                                  <button onClick={() => router.push(`/dashboard/rh/contrato/${f.id}`)} className="flex items-center gap-1 text-xs font-black text-slate-600 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-200 transition-colors">
                                     <FileText size={14}/> Regulamento
                                  </button>

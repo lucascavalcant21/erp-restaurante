@@ -131,11 +131,16 @@ export default function ValidadePage() {
                       <div className="flex items-center gap-2">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold" style={{ color: "var(--fg)" }}>{e.quantidade} {e.unidade}</span>
+                            <span className="text-sm font-bold" style={{ color: "var(--fg)" }}>{(e.copias && e.copias > 1) ? `${e.copias} etiq. de ` : ""}{e.quantidade} {e.unidade}</span>
                             {filtro !== "perdas" && filtro !== "baixados" && idx === 0 && e.dias >= 0 && <span className="erp-badge erp-badge-ok">usar 1º</span>}
                             {e.valor > 0 && <span className="text-[11px]" style={{ color: "var(--dim)" }}>· {fmtBRL(e.valor)}</span>}
                           </div>
-                          <p className="text-[11px]" style={{ color: "var(--dim)" }}>vence {fmtData(e.validade_em)} {fmtHora(e.validade_em)} · #{e.codigo} {unidadeAtiva === "todas" && e.unidade_id ? `· 📍 ${unidades.find(u => u.id === e.unidade_id)?.nome || e.unidade_id}` : ""}</p>
+                          <p className="text-[11px]" style={{ color: "var(--dim)" }}>
+                            vence {fmtData(e.validade_em)} {fmtHora(e.validade_em)} · #{e.codigo}
+                            {e.lote ? ` · Lote: ${e.lote}` : ""}
+                            {e.responsavel ? ` · Resp: ${e.responsavel}` : ""}
+                            {unidadeAtiva === "todas" && e.unidade_id ? ` · 📍 ${unidades.find(u => u.id === e.unidade_id)?.nome || e.unidade_id}` : ""}
+                          </p>
                         </div>
                         <span className="text-[11px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap" style={{ background: e.st.cor + "22", color: e.st.cor }}>{textoDias(e.dias)}</span>
                       </div>

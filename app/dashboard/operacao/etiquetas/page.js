@@ -112,6 +112,7 @@ function EtiquetasRunner() {
       manipulacao_em: agora.toISOString(), validade_em: validadeEm.toISOString(),
       lote: form.lote || null, responsavel: form.responsavel.trim(),
       custo_unit: custoMap[nomeProduto] || 0, status: "ativa",
+      copias: copias > 0 ? copias : 1,
     }, unidadeAtiva);
     if (imprimir) { setTimeout(() => window.print(), 150); }
     setSalvou(imprimir ? "Etiqueta salva e enviada para impressão!" : "Etiqueta salva!");

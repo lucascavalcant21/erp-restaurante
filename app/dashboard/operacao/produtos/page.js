@@ -606,9 +606,25 @@ function CardapioRunner() {
                                     <p className="font-bold text-slate-700 text-sm truncate">{f?.nome_receita || "Ficha removida"}</p>
                                     <p className="text-[10px] font-bold text-emerald-600">{fmtBRL(custoUnit)} / porção{f?.peso_porcao_g ? ` · ${f.peso_porcao_g}g` : ""}</p>
                                  </div>
-                                 <div className="text-center">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Porções</label>
-                                    <input type="number" min="0" step="0.5" value={c.qtd} onChange={e => setForm({ ...form, composicao: form.composicao.map((x, i) => i === idx ? { ...x, qtd: e.target.value } : x) })} className="w-16 p-1.5 text-center bg-slate-50 border border-slate-200 rounded-lg font-black text-slate-700 outline-none focus:border-emerald-500"/>
+                                 <div className="text-center flex gap-2">
+                                    {f?.peso_porcao_g ? (
+                                       <div className="text-center">
+                                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Gramas</label>
+                                          <input type="number" min="0" step="1" 
+                                             value={c.qtd !== "" && c.qtd != null ? Math.round(Number(c.qtd) * f.peso_porcao_g) : ""} 
+                                             onChange={e => setForm({ ...form, composicao: form.composicao.map((x, i) => i === idx ? { ...x, qtd: e.target.value === "" ? "" : Number(e.target.value) / f.peso_porcao_g } : x) })} 
+                                             className="w-16 p-1.5 text-center bg-slate-50 border border-slate-200 rounded-lg font-black text-slate-700 outline-none focus:border-emerald-500"
+                                             placeholder="Ex: 150"/>
+                                       </div>
+                                    ) : null}
+                                    <div className="text-center">
+                                       <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Porções</label>
+                                       <input type="number" min="0" step="0.5" value={c.qtd} 
+                                          onChange={e => setForm({ ...form, composicao: form.composicao.map((x, i) => i === idx ? { ...x, qtd: e.target.value } : x) })} 
+                                          className={`w-16 p-1.5 text-center rounded-lg font-black text-slate-700 outline-none ${f?.peso_porcao_g ? 'bg-transparent border-none text-slate-400' : 'bg-slate-50 border border-slate-200 focus:border-emerald-500'}`}
+                                          disabled={!!f?.peso_porcao_g}
+                                       />
+                                    </div>
                                  </div>
                                  <span className="font-black text-slate-600 text-sm w-20 text-right">{fmtBRL(custoUnit * (Number(c.qtd) || 0))}</span>
                                  <button type="button" onClick={() => setForm({ ...form, composicao: form.composicao.filter((_, i) => i !== idx) })} className="p-1.5 text-slate-400 hover:text-red-500 bg-slate-50 rounded-lg border border-slate-200"><Trash2 size={13}/></button>

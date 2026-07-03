@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useERP } from "../../context/ERPContext";
 import { fetchUnidades, atualizarUnidade } from "../../lib/unidades";
+import { SkeletonList } from "../../components/ui";
 import { Settings, Store, Phone, Clock, Bike, Save, CheckCircle, AlertCircle, Beaker, Trash2, RefreshCw } from "lucide-react";
 import { gerarDadosFicticios, limparAmbienteTeste } from "../../lib/mock";
 

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchTemplates, salvarTemplate, desativarTemplate } from "../../../lib/checklists";
+import { SkeletonList } from "../../../components/ui";
 import { CheckSquare, Plus, Trash2, Edit3, X, Save } from "lucide-react";
 
 export default function GerenciarChecklistsPage() {

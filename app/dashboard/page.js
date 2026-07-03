@@ -7,41 +7,110 @@ import {
    AlertCircle, Clock, PackageOpen, Calendar
 } from "lucide-react";
 
+import { supabase } from "../lib/supabase";
+import { fetchEstatisticasDashboard } from "../lib/relatorios";
+import { fetchContas } from "../lib/financeiro";
+import { fetchEstoque } from "../lib/estoque";
+
 export default function DashboardIndex() {
   const { unidadeAtiva, unidadeInfo } = useERP();
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState(null);
 
   useEffect(() => {
-    // Simula o carregamento de dados do backend toda vez que a unidade mudar
-    setLoading(true);
-    setTimeout(() => {
-       // Dados fictícios baseados no ID da unidade para parecerem únicos
-       const idStr = String(unidadeAtiva);
-       const seed = idStr.charCodeAt(idStr.length - 1) || 5;
-       
-       setMetrics({
-          faturamentoHoje: 1250 * seed + 300,
-          faturamentoOntem: 1100 * seed + 200,
-          pedidosHoje: 15 * seed,
-          ticketMedio: 85 + seed,
-          despesasHoje: 450 * seed,
-          // Histórico dos últimos 7 dias para o mini gráfico
-          historicoVendas: Array.from({ length: 7 }).map((_, i) => ({
-             dia: ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][i],
-             valor: 800 * seed + Math.random() * 2000
-          })),
-          alertasEstoque: [
-             { item: "Coca-Cola 2L", atual: 5, minimo: 12 },
-             { item: "Farinha de Trigo", atual: "2 kg", minimo: "10 kg" }
-          ],
-          contasPagar: [
-             { desc: "Fornecedor Ambev", valor: 1250.00, venc: "Hoje" },
-             { desc: "Energia Elétrica", valor: 890.50, venc: "Amanhã" }
-          ]
-       });
-       setLoading(false);
-    }, 600);
+    if (!unidadeAtiva || unidadeAtiva === 'todas') {
+      setLoading(false);
+      return;
+    }
+
+    async function loadData() {
+      setLoading(true);
+      try {
+        const statsRes = await fetchEstatisticasDashboard(unidadeAtiva, 7);
+        const stats = statsRes?.data || {};
+
+        const hoje = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+        const ontemData = new Date();
+        ontemData.setDate(ontemData.getDate() - 1);
+        const ontem = ontemData.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+
+        const faturamentoHoje = stats.faturamentoPorDia?.find(d => d.data === hoje)?.valor || 0;
+        const faturamentoOntem = stats.faturamentoPorDia?.find(d => d.data === ontem)?.valor || 0;
+
+        // Histórico 7 dias
+        const historicoVendas = [];
+        for(let i=6; i>=0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const dataFormatada = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+            const diaSemana = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][d.getDay()];
+            const valor = stats.faturamentoPorDia?.find(x => x.data === dataFormatada)?.valor || 0;
+            historicoVendas.push({ dia: diaSemana, valor });
+        }
+
+        // Qtd de Pedidos hoje
+        const hojeIsoStart = new Date();
+        hojeIsoStart.setHours(0,0,0,0);
+        const { count: pedidosHoje } = await supabase
+          .from('pedidos')
+          .select('*', { count: 'exact', head: true })
+          .eq('unidade_id', unidadeAtiva)
+          .gte('created_at', hojeIsoStart.toISOString());
+
+        const ticketMedio = pedidosHoje > 0 ? (faturamentoHoje / pedidosHoje) : 0;
+
+        // Contas a Pagar Hoje
+        const { data: contas } = await fetchContas(unidadeAtiva, "");
+        const hojeIso = new Date().toISOString().split('T')[0];
+        let despesasHoje = 0;
+        let contasPagar = [];
+
+        if (contas) {
+          contas.forEach(c => {
+            if (c.status === "pendente") {
+              const venc = c.data_vencimento;
+              if (venc && venc <= hojeIso) {
+                despesasHoje += Number(c.valor || 0);
+              }
+              contasPagar.push({
+                desc: c.descricao,
+                valor: Number(c.valor || 0),
+                venc: venc === hojeIso ? "Hoje" : (venc < hojeIso ? "Atrasado" : new Date(venc + "T00:00:00").toLocaleDateString('pt-BR'))
+              });
+            }
+          });
+        }
+        contasPagar = contasPagar.sort((a,b) => (a.venc === "Atrasado" ? -1 : 1)).slice(0, 3);
+
+        // Alertas de Estoque
+        const { data: estoque } = await fetchEstoque(unidadeAtiva);
+        let alertasEstoque = [];
+        if (estoque) {
+          alertasEstoque = estoque.filter(e => e.quantidade_atual <= e.estoque_minimo).map(e => ({
+            item: e.nome_insumo,
+            atual: e.quantidade_atual,
+            minimo: e.estoque_minimo
+          })).slice(0, 3);
+        }
+
+        setMetrics({
+          faturamentoHoje,
+          faturamentoOntem,
+          pedidosHoje: pedidosHoje || 0,
+          ticketMedio,
+          despesasHoje,
+          historicoVendas,
+          alertasEstoque,
+          contasPagar
+        });
+
+      } catch (err) {
+        console.error(err);
+      }
+      setLoading(false);
+    }
+    
+    loadData();
   }, [unidadeAtiva]);
 
   const fmtBRL = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);

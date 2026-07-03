@@ -41,6 +41,7 @@ const SIDEBAR_MENU = [
       { label: "Notas de Entrada (NF)", href: "/dashboard/operacao/notas?dept=cozinha" },
       { label: "Produção Diária", href: "/dashboard/operacao/producao?dept=cozinha" },
       { label: "Validade e Etiquetas", href: "/dashboard/operacao/etiquetas?dept=cozinha" },
+      { label: "Limpeza, Gás e Óleo", href: "/dashboard/operacao/controles" },
       { label: "Rotinas Operacionais", href: "/dashboard/operacao/rotina?dept=cozinha" },
       { label: "Orçamento de Eventos", href: "/dashboard/operacao/orcamento?dept=cozinha" },
       { label: "Impressões Térmicas", href: "/dashboard/gestao/impressoes?dept=cozinha" }
@@ -161,25 +162,30 @@ function SidebarSection({ section, idx, pathname }) {
   );
 }
 
-function Sidebar({ mobileOpen, setMobileOpen }) {
+function Sidebar({ mobileOpen, setMobileOpen, collapsed }) {
   const pathname = usePathname();
   const router = useRouter();
-  
+
   return (
     <>
-      {/* Mobile Overlay */}
+      {/* Overlay só no celular (quando aberta por cima do conteúdo) */}
       {mobileOpen && (
-        <div 
-          className="fixed inset-0 bg-slate-900/80 z-40 lg:hidden backdrop-blur-sm"
+        <div
+          className="fixed inset-0 bg-slate-900/80 z-40 backdrop-blur-sm md:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
-      {/* Sidebar Container */}
+      {/* Sidebar Container
+          Celular: fixa, entra/sai deslizando (overlay).
+          Desktop: encaixada no layout; recolhe para largura 0 e o
+          conteúdo cresce para ocupar o espaço. */}
       <aside className={`
-        fixed lg:static inset-y-0 left-0 z-50 w-72 bg-[#0A1128] border-r border-slate-800/50
-        flex flex-col transform transition-transform duration-300 ease-in-out shadow-2xl lg:shadow-none
-        ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+        fixed inset-y-0 left-0 z-50 bg-[#0A1128] border-r border-slate-800/50
+        flex flex-col transition-all duration-300 ease-in-out shadow-2xl whitespace-nowrap overflow-hidden
+        md:static md:z-auto md:shadow-none
+        ${mobileOpen ? "translate-x-0 w-72" : "-translate-x-full w-72"}
+        ${collapsed ? "md:translate-x-0 md:w-0 md:border-r-0" : "md:translate-x-0 md:w-72"}
       `}>
         {/* Logo Area */}
         <div className="h-16 flex items-center justify-between px-6 shrink-0 relative overflow-hidden">
@@ -192,7 +198,8 @@ function Sidebar({ mobileOpen, setMobileOpen }) {
             <span className="text-xl font-black text-white tracking-tight">Hefisto</span>
           </button>
           
-          <button onClick={() => setMobileOpen(false)} className="lg:hidden text-slate-400 hover:text-white relative z-10 p-2">
+          {/* Fechar: no celular fecha o overlay */}
+          <button onClick={() => setMobileOpen(false)} className="text-slate-400 hover:text-white relative z-10 p-2 md:hidden">
             <X size={20} />
           </button>
         </div>
@@ -221,7 +228,7 @@ function Sidebar({ mobileOpen, setMobileOpen }) {
   );
 }
 
-function TopHeader({ onSair, setMobileOpen }) {
+function TopHeader({ onSair, onToggleSidebar }) {
   const { unidades, unidadeAtiva, setUnidadeAtiva, podeTrocar, unidadeInfo } = useERP();
   const router = useRouter();
 
@@ -232,9 +239,9 @@ function TopHeader({ onSair, setMobileOpen }) {
 
   return (
     <header className="h-16 border-b border-slate-200/60 bg-white/80 backdrop-blur-md flex items-center justify-between px-4 sm:px-6 shrink-0 sticky top-0 z-30 shadow-sm">
-      
+
       <div className="flex items-center gap-4">
-         <button onClick={() => setMobileOpen(true)} className="lg:hidden p-2 -ml-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors">
+         <button onClick={onToggleSidebar} title="Menu" className="p-2 -ml-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors">
             <Menu size={22} />
          </button>
          <h1 className="text-lg font-black text-slate-800 hidden sm:block tracking-tight">
@@ -277,6 +284,12 @@ export default function DashboardLayout({ children }) {
   const pathname = usePathname();
   const [sessao, setSessao] = useState(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  // Recolher a sidebar no desktop (lembra a preferência entre sessões)
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    try { setCollapsed(localStorage.getItem("erp_sidebar_collapsed") === "1"); } catch (_) {}
+  }, []);
 
   useEffect(() => {
     let vivo = true;
@@ -290,6 +303,19 @@ export default function DashboardLayout({ children }) {
     return () => { vivo = false; };
   }, [pathname, router]);
 
+  // Hambúrguer: no desktop recolhe/expande a sidebar; no celular abre o overlay.
+  function toggleSidebar() {
+    if (typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches) {
+      setCollapsed((c) => {
+        const novo = !c;
+        try { localStorage.setItem("erp_sidebar_collapsed", novo ? "1" : "0"); } catch (_) {}
+        return novo;
+      });
+    } else {
+      setMobileOpen(true);
+    }
+  }
+
   async function sair() {
     await encerrarSessao();
     router.replace("/login");
@@ -300,13 +326,13 @@ export default function DashboardLayout({ children }) {
       
       {/* Sidebar Lateral Escura */}
       <div className="print:hidden h-full flex shrink-0">
-         <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+         <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} collapsed={collapsed} />
       </div>
-      
+
       {/* Área Principal de Conteúdo */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden print:h-auto print:block print:overflow-visible relative">
         <div className="print:hidden shrink-0">
-           <TopHeader onSair={sair} setMobileOpen={setMobileOpen} />
+           <TopHeader onSair={sair} onToggleSidebar={toggleSidebar} />
         </div>
         
         {/* Main Content Area com Scrollbar customizada */}

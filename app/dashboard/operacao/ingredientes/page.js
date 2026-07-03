@@ -451,14 +451,14 @@ function IngredientesRunner() {
       )}
 
       {modalNovo && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-[32px] w-full max-w-md p-8 shadow-2xl animate-in zoom-in-95">
-               <div className="flex justify-between items-center mb-6">
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-2 sm:p-4 overflow-y-auto">
+            <div className="bg-white rounded-[32px] w-full max-w-md p-6 sm:p-8 shadow-2xl animate-in zoom-in-95 my-auto max-h-[90vh] flex flex-col">
+               <div className="flex justify-between items-center mb-6 shrink-0">
                   <h2 className="font-black text-2xl text-slate-800">{form.id ? "Editar Insumo" : "Novo Insumo"}</h2>
                   <button onClick={() => setModalNovo(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
                </div>
 
-               <div className="space-y-4">
+               <div className="space-y-4 overflow-y-auto pr-2" style={{ scrollbarWidth: 'thin' }}>
                   {!deptUrl && (
                     <div>
                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Departamento</label>
@@ -511,14 +511,14 @@ function IngredientesRunner() {
                   {/* Perda na limpeza: pesa bruto (com casca/espinha) e limpo (aproveitável) */}
                   <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
                      <p className="text-[11px] font-black uppercase tracking-widest text-amber-700 mb-1">Perda na limpeza (opcional)</p>
-                     <p className="text-[10px] font-medium text-amber-700/70 mb-3 leading-tight">Ex.: banana com casca vs sem casca, peixe inteiro vs filé. Pese uma amostra bruta e o que sobrou limpo — o sistema corrige o custo real.</p>
+                     <p className="text-[10px] font-medium text-amber-700/70 mb-3 leading-tight">Ex.: banana com casca vs sem casca, peixe inteiro vs filé. Meça uma amostra bruta e o que sobrou limpo — o sistema corrige o custo real.</p>
                      <div className="grid grid-cols-2 gap-3">
                         <div>
-                           <label className="text-[10px] font-bold text-amber-700 uppercase tracking-widest">Peso bruto (g)</label>
+                           <label className="text-[10px] font-bold text-amber-700 uppercase tracking-widest">Peso/Volume Bruto</label>
                            <input type="number" step="1" min="0" placeholder="Ex: 1000" value={form.peso_bruto_g} onChange={e=>setForm({...form, peso_bruto_g: e.target.value})} className="w-full p-3 mt-1 bg-white border border-amber-200 rounded-lg font-bold text-slate-700 outline-none focus:border-amber-500"/>
                         </div>
                         <div>
-                           <label className="text-[10px] font-bold text-amber-700 uppercase tracking-widest">Peso limpo (g)</label>
+                           <label className="text-[10px] font-bold text-amber-700 uppercase tracking-widest">Peso/Volume Limpo</label>
                            <input type="number" step="1" min="0" placeholder="Ex: 650" value={form.peso_liquido_g} onChange={e=>setForm({...form, peso_liquido_g: e.target.value})} className="w-full p-3 mt-1 bg-white border border-amber-200 rounded-lg font-bold text-slate-700 outline-none focus:border-amber-500"/>
                         </div>
                      </div>
@@ -579,12 +579,12 @@ function IngredientesRunner() {
                      )}
                   </div>
 
-                  <p className="text-[11px] font-medium text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                     Dica: Cadastre o custo da unidade de compra. Ex.: garrafa de Vodka de 1 Litro por R$ 60,00 → Unidade Base "L" e Custo "60". Se tem perda na limpeza ou empanamento, o custo salvo é o REAL do produto pronto — as fichas técnicas já calculam em cima dele.
+                  <p className="text-[11px] font-medium text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-100 mt-4">
+                     Dica: Cadastre o custo da unidade de compra. Ex.: garrafa de Vodka de 1 Litro por R$ 60,00 → Unidade Base "L" e Custo "60". Se tem perda na limpeza, o custo salvo é o REAL do produto pronto.
                   </p>
                </div>
 
-               <button onClick={handleSalvar} className="w-full mt-8 py-5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-2">
+               <button onClick={handleSalvar} className="w-full mt-6 shrink-0 py-5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-2">
                   <Save size={20}/> Salvar Ingrediente
                </button>
             </div>

@@ -713,7 +713,7 @@ export default function OrcamentoEventoPage() {
             {linhas.length > 0 && (
               <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200">
                 <div className="bg-gradient-to-r from-emerald-700 to-emerald-600 px-5 py-3 flex items-center justify-between">
-                  <span className="text-[11px] font-black uppercase tracking-widest text-emerald-100">📋 Resumo do Buffet — Valor por Pessoa</span>
+                  <span className="text-[11px] font-black uppercase tracking-widest text-emerald-100">Resumo do Buffet — Valor por Pessoa</span>
                   {convidados > 0 && <span className="text-white font-black text-lg">{fmtBRL(vendaPorConvidado)}<span className="text-emerald-200 font-bold text-xs ml-1">/pessoa</span></span>}
                 </div>
                 <div className="bg-white">
@@ -872,8 +872,20 @@ export default function OrcamentoEventoPage() {
             <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-xl">
                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Resumo do Evento</p>
                <div className="space-y-2.5 text-sm">
-                  <div className="flex justify-between"><span className="text-slate-400 font-bold">Faturamento</span><span className="font-black">{fmtBRL(vendaEvento)}</span></div>
-                  <div className="flex justify-between"><span className="text-slate-400 font-bold">− Custo ingredientes</span><span className="font-black">{fmtBRL(custoEvento)}</span></div>
+                  <div className="flex justify-between items-baseline">
+                     <span className="text-slate-400 font-bold">Faturamento</span>
+                     <div>
+                        {convidados > 0 && <span className="text-slate-500 font-medium text-[11px] mr-2">({fmtBRL(vendaEvento / convidados)}/pes)</span>}
+                        <span className="font-black text-base">{fmtBRL(vendaEvento)}</span>
+                     </div>
+                  </div>
+                  <div className="flex justify-between items-baseline">
+                     <span className="text-slate-400 font-bold">− Custo ingredientes</span>
+                     <div>
+                        {convidados > 0 && <span className="text-slate-500 font-medium text-[11px] mr-2">({fmtBRL(custoEvento / convidados)}/pes)</span>}
+                        <span className="font-black text-base">{fmtBRL(custoEvento)}</span>
+                     </div>
+                  </div>
                   {comissao > 0 && <div className="flex justify-between"><span className="text-slate-400 font-bold">− Comissão ({comissaoPct}%)</span><span className="font-black">{fmtBRL(comissao)}</span></div>}
                   {parceriaBar > 0 && <div className="flex justify-between"><span className="text-slate-400 font-bold">− Parceria bar ({parceriaBarPct}%)</span><span className="font-black">{fmtBRL(parceriaBar)}</span></div>}
                   {(economiaEmpanadoTotal > 0 || ganhoInNaturaTotal > 0) && (
@@ -883,19 +895,13 @@ export default function OrcamentoEventoPage() {
                      </div>
                   )}
                   <div className="border-t border-slate-700 pt-3 mt-3">
-                     {convidados > 0 && (
-                        <div className="flex justify-between items-center mb-1">
-                           <span className="text-slate-400 font-bold text-xs uppercase tracking-widest">Lucro / convidado</span>
-                           <span className="font-black text-lg">{fmtBRL(lucroEvento / convidados)}</span>
-                        </div>
-                     )}
-                     <div className="flex justify-between items-center">
+                     <div className="flex justify-between items-baseline">
                         <span className="text-slate-300 font-bold text-xs uppercase tracking-widest">Lucro do evento</span>
-                        <span className={`font-black text-2xl ${lucroEvento >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{fmtBRL(lucroEvento)}</span>
+                        <div>
+                           {convidados > 0 && <span className="text-slate-500 font-medium text-xs mr-2">({fmtBRL(lucroEvento / convidados)}/pes)</span>}
+                           <span className={`font-black text-2xl ${lucroEvento >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{fmtBRL(lucroEvento)}</span>
+                        </div>
                      </div>
-                     {vendaPorConvidado !== null && (
-                        <p className="text-[10px] font-bold text-slate-500 mt-1 text-right">Venda: {fmtBRL(vendaEvento)} · {fmtBRL(vendaPorConvidado)}/convidado</p>
-                     )}
                   </div>
                </div>
             </div>

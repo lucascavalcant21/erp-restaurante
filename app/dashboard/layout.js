@@ -42,14 +42,16 @@ const SIDEBAR_MENU = [
     items: [
       { label: "Catálogo e Preços", href: "/dashboard/operacao/produtos" },
       { label: "Fichas Técnicas", href: "/dashboard/operacao/fichas?dept=cozinha" },
+      { label: "Guia de Montagem", href: "/dashboard/operacao/montagem?dept=cozinha" },
       { label: "Ingredientes e Insumos", href: "/dashboard/operacao/ingredientes?dept=cozinha" },
       { label: "Controle de Estoque", href: "/dashboard/operacao/estoque?dept=cozinha" },
-      { label: "Lista de Compras", href: "/dashboard/operacao/compras" },
-      { label: "Notas de Entrada (NF)", href: "/dashboard/operacao/notas" },
-      { label: "Produção Diária", href: "/dashboard/operacao/producao" },
+      { label: "Lista de Compras", href: "/dashboard/operacao/compras?dept=cozinha" },
+      { label: "Notas de Entrada (NF)", href: "/dashboard/operacao/notas?dept=cozinha" },
+      { label: "Produção Diária", href: "/dashboard/operacao/producao?dept=cozinha" },
       { label: "Validade e Etiquetas", href: "/dashboard/operacao/etiquetas?dept=cozinha" },
-      { label: "Rotinas Operacionais", href: "/dashboard/operacao/rotina" },
-      { label: "Orçamento de Eventos", href: "/dashboard/operacao/orcamento" }
+      { label: "Rotinas Operacionais", href: "/dashboard/operacao/rotina?dept=cozinha" },
+      { label: "Orçamento de Eventos", href: "/dashboard/operacao/orcamento?dept=cozinha" },
+      { label: "Impressões Térmicas", href: "/dashboard/gestao/impressoes?dept=cozinha" }
     ]
   },
   {
@@ -58,9 +60,16 @@ const SIDEBAR_MENU = [
     items: [
       { label: "Drinks e Coquetéis", href: "/dashboard/operacao/drinks" },
       { label: "Fichas de Drinks", href: "/dashboard/operacao/fichas?dept=bar" },
+      { label: "Guia de Montagem", href: "/dashboard/operacao/montagem?dept=bar" },
       { label: "Ingredientes Bar", href: "/dashboard/operacao/ingredientes?dept=bar" },
       { label: "Estoque do Bar", href: "/dashboard/operacao/estoque?dept=bar" },
-      { label: "Etiquetas do Bar", href: "/dashboard/operacao/etiquetas?dept=bar" }
+      { label: "Lista de Compras", href: "/dashboard/operacao/compras?dept=bar" },
+      { label: "Notas de Entrada (NF)", href: "/dashboard/operacao/notas?dept=bar" },
+      { label: "Produção do Bar", href: "/dashboard/operacao/producao?dept=bar" },
+      { label: "Etiquetas do Bar", href: "/dashboard/operacao/etiquetas?dept=bar" },
+      { label: "Rotinas do Bar", href: "/dashboard/operacao/rotina?dept=bar" },
+      { label: "Orçamento de Eventos", href: "/dashboard/operacao/orcamento?dept=bar" },
+      { label: "Impressões Térmicas", href: "/dashboard/gestao/impressoes?dept=bar" }
     ]
   },
   {

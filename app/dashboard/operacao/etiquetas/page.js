@@ -124,8 +124,8 @@ function EtiquetasRunner() {
         @media print {
           body * { visibility: hidden !important; }
           #area-impressao, #area-impressao * { visibility: visible !important; }
-          #area-impressao { position: absolute; left: 0; top: 0; margin: 0; padding: 0; background: #fff !important; color: #000 !important; width: 100%; }
-          .etiqueta-print { page-break-after: always; overflow: hidden; }
+          #area-impressao { position: absolute !important; left: 0; top: 0; margin: 0; padding: 0; background: #fff !important; color: #000 !important; width: 100%; display: flex !important; flex-direction: row !important; flex-wrap: wrap !important; align-content: flex-start; gap: 2mm !important; }
+          .etiqueta-print { page-break-inside: avoid; overflow: hidden; }
           @page { margin: 0; }
         }
       `}} />

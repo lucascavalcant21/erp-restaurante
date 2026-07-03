@@ -791,8 +791,8 @@ export default function OrcamentoEventoPage() {
                                  <div>
                                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Quantidade</label>
                                     <div className="flex bg-slate-50 border border-slate-200 rounded-lg overflow-hidden focus-within:border-emerald-500">
-                                       <input type="number" min="0" step="0.01" value={l.qtd} onChange={e=>updateItem(l.produto_id, { qtd: e.target.value })} className="w-full p-2.5 text-center bg-transparent font-black text-slate-700 outline-none"/>
-                                       <div className="flex items-center justify-center px-2 bg-slate-100 border-l border-slate-200 text-[10px] font-bold text-slate-500">
+                                       <input type="number" min="0" step="0.01" value={l.qtd} onChange={e=>updateItem(l.produto_id, { qtd: e.target.value })} className="w-full min-w-0 p-2.5 text-center bg-transparent font-black text-slate-700 outline-none"/>
+                                       <div className="flex items-center justify-center px-2 bg-slate-100 border-l border-slate-200 text-[10px] font-bold text-slate-500 shrink-0">
                                           porções
                                        </div>
                                     </div>
@@ -875,14 +875,14 @@ export default function OrcamentoEventoPage() {
                   <div className="flex justify-between items-baseline">
                      <span className="text-slate-400 font-bold">Faturamento</span>
                      <div>
-                        {convidados > 0 && <span className="text-slate-500 font-medium text-[11px] mr-2">({fmtBRL(vendaEvento / convidados)}/pes)</span>}
+                        <span className="text-slate-500 font-medium text-[11px] mr-2">({fmtBRL(vendaEvento / Math.max(1, convidados))}/pes)</span>
                         <span className="font-black text-base">{fmtBRL(vendaEvento)}</span>
                      </div>
                   </div>
                   <div className="flex justify-between items-baseline">
                      <span className="text-slate-400 font-bold">− Custo ingredientes</span>
                      <div>
-                        {convidados > 0 && <span className="text-slate-500 font-medium text-[11px] mr-2">({fmtBRL(custoEvento / convidados)}/pes)</span>}
+                        <span className="text-slate-500 font-medium text-[11px] mr-2">({fmtBRL(custoEvento / Math.max(1, convidados))}/pes)</span>
                         <span className="font-black text-base">{fmtBRL(custoEvento)}</span>
                      </div>
                   </div>
@@ -898,7 +898,7 @@ export default function OrcamentoEventoPage() {
                      <div className="flex justify-between items-baseline">
                         <span className="text-slate-300 font-bold text-xs uppercase tracking-widest">Lucro do evento</span>
                         <div>
-                           {convidados > 0 && <span className="text-slate-500 font-medium text-xs mr-2">({fmtBRL(lucroEvento / convidados)}/pes)</span>}
+                           <span className="text-slate-500 font-medium text-xs mr-2">({fmtBRL(lucroEvento / Math.max(1, convidados))}/pes)</span>
                            <span className={`font-black text-2xl ${lucroEvento >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{fmtBRL(lucroEvento)}</span>
                         </div>
                      </div>

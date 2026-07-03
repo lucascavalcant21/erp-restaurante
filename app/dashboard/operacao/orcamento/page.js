@@ -246,7 +246,8 @@ export default function OrcamentoEventoPage() {
       .map(c => ({ ficha: fichas.find(f => f.id === c.ficha_id), qtd: Number(c.qtd) || 1 }))
       .filter(x => x.ficha);
     const ficha = fichasComp[0]?.ficha || null;
-    const qtd = Number(it.qtd) || 0;
+    const qtdRaw = it.qtd;
+    const qtd = Number(String(it.qtd).replace(',', '.')) || 0;
     const un = it.un || "porcao";
     // Peso da porção do PRATO = soma dos componentes (editável por item)
     const pesoUnFicha = fichasComp.reduce((a, x) => a + (Number(x.ficha.peso_porcao_g) || 0) * x.qtd, 0);
@@ -292,6 +293,7 @@ export default function OrcamentoEventoPage() {
       ficha,
       fichasComp,
       qtd,
+      qtdRaw,
       un,
       pesoUn,
       porcoes,
@@ -551,7 +553,7 @@ export default function OrcamentoEventoPage() {
         ? produto.composicao
         : (produto.ficha_id ? [{ ficha_id: produto.ficha_id, qtd: 1 }] : []);
       const fichasComp = comps.map(c => ({ ficha: fichas.find(f => f.id === c.ficha_id), qtd: Number(c.qtd) || 1 })).filter(x => x.ficha);
-      const qtd = Number(it.qtd) || 0;
+      const qtd = Number(String(it.qtd).replace(',', '.')) || 0;
       const pesoUnFicha = fichasComp.reduce((a, x) => a + (Number(x.ficha.peso_porcao_g) || 0) * x.qtd, 0);
       const pesoUn = Number(it.pesoUn) || pesoUnFicha || 0;
       let porcoesPorPessoa = qtd;
@@ -794,7 +796,10 @@ export default function OrcamentoEventoPage() {
                                  <div>
                                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Quantidade</label>
                                     <div className="flex bg-slate-50 border border-slate-200 rounded-lg overflow-hidden focus-within:border-emerald-500">
-                                       <input type="number" min="0" step="0.01" value={l.qtd} onChange={e=>updateItem(l.produto_id, { qtd: e.target.value })} className="w-full min-w-0 p-2.5 text-center bg-transparent font-black text-slate-700 outline-none"/>
+                                       <input type="text" inputMode="decimal" placeholder="0" value={l.qtdRaw !== undefined ? l.qtdRaw : ''} onChange={e=>{
+                                          const val = e.target.value.replace(/[^0-9.,]/g, '');
+                                          updateItem(l.produto_id, { qtd: val });
+                                       }} className="w-full min-w-0 p-2.5 text-center bg-transparent font-black text-slate-700 outline-none"/>
                                        <div className="flex items-center justify-center px-2 bg-slate-100 border-l border-slate-200 text-[10px] font-bold text-slate-500 shrink-0">
                                           porções
                                        </div>

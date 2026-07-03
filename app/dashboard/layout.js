@@ -27,15 +27,7 @@ const SIDEBAR_MENU = [
       { label: "Observações Padrão", href: "/dashboard/operacao/observacoes" }
     ]
   },
-  {
-    category: "Delivery & Canais",
-    icon: Truck,
-    items: [
-      { label: "Delivery & iFood", href: "/dashboard/salao/online" },
-      { label: "Canais de Venda", href: "/dashboard/canais/ifood" },
-      { label: "Cupons de Desconto", href: "/dashboard/marketing/cupons" }
-    ]
-  },
+
   {
     category: "Operação Cozinha",
     icon: ChefHat,

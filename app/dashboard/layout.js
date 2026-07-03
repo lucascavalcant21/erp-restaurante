@@ -131,6 +131,36 @@ function SidebarItem({ item, pathname }) {
   );
 }
 
+function SidebarSection({ section, idx, pathname }) {
+  // Inicialmente vamos deixar aberto. O usuário pode fechar os que não usa.
+  const [isOpen, setIsOpen] = useState(true);
+
+  return (
+    <div className="animate-in fade-in slide-in-from-left-2" style={{ animationDelay: `${idx * 50}ms`, animationFillMode: 'both' }}>
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-3 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-300 mb-2 flex items-center justify-between transition-colors group outline-none"
+      >
+        <div className="flex items-center gap-2">
+           <section.icon size={13} className="text-slate-600 group-hover:text-slate-400 transition-colors" /> 
+           {section.category}
+        </div>
+        <ChevronDown size={14} className={`text-slate-600 transition-transform duration-200 ${isOpen ? '' : '-rotate-90'}`} />
+      </button>
+      
+      <div className={`grid transition-all duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+        <div className="overflow-hidden space-y-0.5">
+          <div className="pb-2">
+             {section.items.map((item, itemIdx) => (
+               <SidebarItem key={itemIdx} item={item} pathname={pathname} />
+             ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Sidebar({ mobileOpen, setMobileOpen }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -170,16 +200,7 @@ function Sidebar({ mobileOpen, setMobileOpen }) {
         {/* Scrollable Menu */}
         <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
           {SIDEBAR_MENU.map((section, idx) => (
-            <div key={idx} className="animate-in fade-in slide-in-from-left-2" style={{ animationDelay: `${idx * 50}ms`, animationFillMode: 'both' }}>
-              <h3 className="px-3 text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 flex items-center gap-2">
-                <section.icon size={12} className="text-slate-600" /> {section.category}
-              </h3>
-              <div className="space-y-0.5">
-                {section.items.map((item, itemIdx) => (
-                  <SidebarItem key={itemIdx} item={item} pathname={pathname} />
-                ))}
-              </div>
-            </div>
+            <SidebarSection key={idx} section={section} idx={idx} pathname={pathname} />
           ))}
         </div>
         

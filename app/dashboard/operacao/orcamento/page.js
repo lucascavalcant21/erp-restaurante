@@ -233,9 +233,8 @@ export default function OrcamentoEventoPage() {
   const convidados = Number(evento.convidados) || 0;
 
   // Linhas calculadas: produto + ficha + custos + venda.
-  // Quantidade pode ser em porções, g ou kg — convertida pelo peso da porção
-  // (vem da ficha técnica, mas é editável por item: média por unidade de
-  // bolinho, peixe empanado etc).
+  // O fluxo principal é por R$/kg: o usuário define porção (g) e preço/kg,
+  // e o sistema calcula automaticamente o R$/pessoa.
   const linhas = itens.map(it => {
     const produto = produtos.find(p => p.id === it.produto_id);
     if (!produto) return null;
@@ -250,22 +249,32 @@ export default function OrcamentoEventoPage() {
     if (un === "kg") porcoes = pesoUn > 0 ? (qtd * 1000) / pesoUn : 0;
 
     const gramasTotal = pesoUn > 0 ? porcoes * pesoUn : null;
-    // Custo por porção real (usa peso quando o rendimento é em kg/g/l/ml)
     const custoPorcao = ficha ? custoTotalDaFicha(ficha, fichas) / porcoesDaFicha(ficha) : 0;
-    // Preço de venda: o que você definir no item (default = preço do cardápio)
-    const precoVenda = it.precoVenda !== undefined && it.precoVenda !== ""
-      ? Number(it.precoVenda) || 0
-      : (Number(produto.preco_venda) || 0);
-    const precoCardapio = Number(produto.preco_venda) || 0;
+    const custoKg = pesoUn > 0 ? custoPorcao * (1000 / pesoUn) : 0;
 
-    // "Cobrar como in natura": se a ficha usa um ingrediente empanado, o cliente
-    // pode ser cobrado como se fosse o ingrediente puro (mais caro), aplicando o
-    // fator de empanamento sobre o preço. Ex.: peixe rende 1,36x → cobra +36%.
+    // Preço por KG: input principal. Se o user definiu precoKg, usa ele.
+    // Senão, calcula a partir do precoVenda do cardápio.
+    const precoCardapio = Number(produto.preco_venda) || 0;
+    const precoKgCardapio = pesoUn > 0 ? precoCardapio * (1000 / pesoUn) : precoCardapio;
+    const precoKg = it.precoKg !== undefined && it.precoKg !== ""
+      ? Number(it.precoKg) || 0
+      : precoKgCardapio;
+    const precoKgEditado = Math.abs(precoKg - precoKgCardapio) > 0.01;
+
+    // Preço de venda por porção (derivado do kg)
+    const precoVenda = pesoUn > 0 ? precoKg * (pesoUn / 1000) : precoCardapio;
+
+    // Empanamento / in natura
     const fatorInNatura = ficha ? fatorInNaturaDaFicha(ficha, fichas, mapaFatores) : 1;
     const inNatura = !!it.inNatura && fatorInNatura > 1;
     const precoEfetivo = inNatura ? precoVenda * fatorInNatura : precoVenda;
+    const precoKgEfetivo = inNatura ? precoKg * fatorInNatura : precoKg;
 
     const vendaTotal = precoEfetivo * porcoes;
+    // R$ por pessoa para este item
+    const precoPorPessoa = convidados > 0 ? vendaTotal / convidados : (pesoUn > 0 ? precoKg * (pesoUn / 1000) : precoVenda);
+    const kgTotal = gramasTotal ? gramasTotal / 1000 : null;
+
     return {
       produto_id: it.produto_id,
       nome: produto.nome_produto,
@@ -277,18 +286,24 @@ export default function OrcamentoEventoPage() {
       pesoUn,
       porcoes,
       gramasTotal,
+      kgTotal,
       unPorKg: pesoUn > 0 ? 1000 / pesoUn : null,
-      vendaPorKg: pesoUn > 0 ? precoEfetivo * (1000 / pesoUn) : null,
+      vendaPorKg: pesoUn > 0 ? precoKgEfetivo : null,
+      custoKg,
       custoPorcao,
       custoTotal: custoPorcao * porcoes,
+      precoKg,
+      precoKgCardapio,
+      precoKgEditado,
       precoVenda,
       precoCardapio,
-      precoEditado: precoVenda !== precoCardapio,
+      precoEditado: precoKgEditado,
       fatorInNatura,
       inNatura,
       precoEfetivo,
+      precoKgEfetivo,
+      precoPorPessoa,
       vendaTotal,
-      // Duplo benefício do empanado: ganho no preço (exato) + economia no custo (estimada)
       ganhoInNatura: inNatura ? (precoEfetivo - precoVenda) * porcoes : 0,
       economiaEmpanado: fatorInNatura > 1 ? (custoPorcao * porcoes) * (1 - 1 / fatorInNatura) : 0,
     };
@@ -325,7 +340,8 @@ export default function OrcamentoEventoPage() {
     if (!produtoId || itens.find(i => i.produto_id === produtoId)) return;
     const produto = produtos.find(p => p.id === produtoId);
     const ficha = produto?.ficha_id ? fichas.find(f => f.id === produto.ficha_id) : null;
-    setItens([...itens, { produto_id: produtoId, qtd: convidados > 0 ? convidados : 1, un: "porcao", pesoUn: ficha?.peso_porcao_g || "", precoVenda: produto?.preco_venda ?? "" }]);
+    // Default: 1 porção por convidado, precoKg calculado do cardápio
+    setItens([...itens, { produto_id: produtoId, qtd: convidados > 0 ? convidados : 1, un: "porcao", pesoUn: ficha?.peso_porcao_g || "" }]);
   };
   const updateItem = (produtoId, patch) => setItens(lista => lista.map(i => i.produto_id === produtoId ? { ...i, ...patch } : i));
   const removeItem = (produtoId) => setItens(lista => lista.filter(i => i.produto_id !== produtoId));
@@ -654,8 +670,52 @@ export default function OrcamentoEventoPage() {
                </div>
             </div>
 
+            {/* ══ TABELA RESUMO — R$/pessoa por prato ══ */}
+            {linhas.length > 0 && (
+              <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200">
+                <div className="bg-gradient-to-r from-emerald-700 to-emerald-600 px-5 py-3 flex items-center justify-between">
+                  <span className="text-[11px] font-black uppercase tracking-widest text-emerald-100">📋 Resumo do Buffet — Valor por Pessoa</span>
+                  {convidados > 0 && <span className="text-white font-black text-lg">{fmtBRL(vendaPorConvidado)}<span className="text-emerald-200 font-bold text-xs ml-1">/pessoa</span></span>}
+                </div>
+                <div className="bg-white">
+                  {/* Header */}
+                  <div className="px-5 py-2.5 grid grid-cols-[1fr_70px_80px_90px_90px] gap-2 items-center bg-slate-50 border-b border-slate-200">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Prato</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Porção</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">R$/kg</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">R$/pessoa</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Total</span>
+                  </div>
+                  {/* Linhas */}
+                  <div className="divide-y divide-slate-50">
+                    {linhas.map(l => (
+                      <div key={l.produto_id} className="px-5 py-2.5 grid grid-cols-[1fr_70px_80px_90px_90px] gap-2 items-center hover:bg-emerald-50/30 transition-colors">
+                        <div className="min-w-0">
+                          <p className="font-bold text-slate-700 text-sm truncate">{l.nome}</p>
+                          <span className="text-[9px] font-bold text-slate-400 uppercase">{l.categoria}</span>
+                        </div>
+                        <span className="text-center text-xs font-bold text-slate-600">{l.pesoUn > 0 ? `${l.pesoUn}g` : '—'}</span>
+                        <span className="text-center text-xs font-black text-slate-700">{l.vendaPorKg ? fmtBRL(l.vendaPorKg) : '—'}</span>
+                        <span className="text-center text-sm font-black text-emerald-600">{convidados > 0 ? fmtBRL(l.precoPorPessoa) : '—'}</span>
+                        <span className="text-right text-xs font-black text-slate-700">{fmtBRL(l.vendaTotal)}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Totais */}
+                  <div className="px-5 py-3 bg-slate-800 grid grid-cols-[1fr_70px_80px_90px_90px] gap-2 items-center">
+                    <span className="font-black text-white text-sm">TOTAL DO EVENTO</span>
+                    <span />
+                    <span />
+                    <span className="text-center font-black text-emerald-400 text-lg">{convidados > 0 ? fmtBRL(vendaPorConvidado) : '—'}</span>
+                    <span className="text-right font-black text-white text-sm">{fmtBRL(vendaEvento)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ══ ITENS DO BUFFET — configuração detalhada ══ */}
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-               <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Itens do Buffet</p>
+               <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Configurar Itens do Buffet</p>
                <select onChange={e => { addItem(e.target.value); e.target.value = ""; }} disabled={loading} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-600 outline-none focus:border-emerald-500 mb-4">
                   <option value="">{loading ? "Carregando cardápio..." : "+ Adicionar produto do cardápio..."}</option>
                   {produtos.filter(p => !itens.find(i => i.produto_id === p.id)).map(p => (
@@ -687,8 +747,8 @@ export default function OrcamentoEventoPage() {
 
                            {/* INPUTS — grid organizado */}
                            <div className="p-4 bg-white">
-                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                 {/* Quantidade */}
+                              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                                 {/* Quantidade (porções por convidado) */}
                                  <div>
                                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Quantidade</label>
                                     <div className="flex gap-1">
@@ -700,25 +760,32 @@ export default function OrcamentoEventoPage() {
                                        </select>
                                     </div>
                                  </div>
-                                 {/* Peso por unidade */}
+                                 {/* Porção em gramas */}
                                  <div>
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1" title="Peso médio de cada porção/unidade">Peso/un (g)</label>
-                                    <input type="number" min="0" step="0.1" placeholder="ex: 35" value={(() => { const raw = itens.find(i=>i.produto_id===l.produto_id)?.pesoUn; return raw === undefined ? (l.pesoUn || "") : raw; })()} onChange={e=>updateItem(l.produto_id, { pesoUn: e.target.value })} className="w-full p-2.5 text-center bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-600 outline-none focus:border-emerald-500"/>
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Porção (g)</label>
+                                    <input type="number" min="0" step="0.1" placeholder="ex: 200" value={(() => { const raw = itens.find(i=>i.produto_id===l.produto_id)?.pesoUn; return raw === undefined ? (l.pesoUn || "") : raw; })()} onChange={e=>updateItem(l.produto_id, { pesoUn: e.target.value })} className="w-full p-2.5 text-center bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-600 outline-none focus:border-emerald-500"/>
                                  </div>
-                                 {/* Preço de venda */}
+                                 {/* Preço por KG — input principal */}
                                  <div>
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">R$ Venda / porção</label>
-                                    <input type="number" min="0" step="0.01" placeholder="0,00" value={(() => { const raw = itens.find(i=>i.produto_id===l.produto_id)?.precoVenda; return raw === undefined ? (l.precoCardapio || "") : raw; })()} onChange={e=>updateItem(l.produto_id, { precoVenda: e.target.value })} className={`w-full p-2.5 text-center rounded-lg font-black outline-none focus:border-emerald-500 ${l.precoEditado ? 'bg-amber-50 border border-amber-300 text-amber-700' : 'bg-emerald-50 border border-emerald-200 text-emerald-700'}`}/>
-                                    {l.precoEditado && (
-                                       <button onClick={() => updateItem(l.produto_id, { precoVenda: l.precoCardapio })} className="text-[9px] font-bold text-amber-500 hover:text-amber-700 mt-1 underline block w-full text-center">
-                                          voltar p/ cardápio ({fmtBRL(l.precoCardapio)})
+                                    <label className="text-[9px] font-black text-emerald-600 uppercase tracking-widest block mb-1">R$ / kg</label>
+                                    <input type="number" min="0" step="0.01" placeholder="0,00" value={(() => { const raw = itens.find(i=>i.produto_id===l.produto_id)?.precoKg; return raw === undefined ? (l.precoKgCardapio ? (+l.precoKgCardapio.toFixed(2)) : "") : raw; })()} onChange={e=>updateItem(l.produto_id, { precoKg: e.target.value })} className={`w-full p-2.5 text-center rounded-lg font-black outline-none focus:border-emerald-500 ${l.precoKgEditado ? 'bg-amber-50 border-2 border-amber-400 text-amber-700' : 'bg-emerald-50 border-2 border-emerald-300 text-emerald-700'}`}/>
+                                    {l.precoKgEditado && (
+                                       <button onClick={() => updateItem(l.produto_id, { precoKg: "" })} className="text-[9px] font-bold text-amber-500 hover:text-amber-700 mt-1 underline block w-full text-center">
+                                          voltar sugestão ({fmtBRL(l.precoKgCardapio)})
                                        </button>
                                     )}
+                                    {l.custoKg > 0 && <p className="text-[9px] font-bold text-slate-400 mt-0.5 text-center">custo: {fmtBRL(l.custoKg)}/kg</p>}
                                  </div>
-                                 {/* Resumo visual */}
+                                 {/* R$/pessoa — calculado automaticamente */}
+                                 <div className="flex flex-col items-center justify-center bg-emerald-50 rounded-lg border-2 border-emerald-200 p-2">
+                                    <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">R$/pessoa</span>
+                                    <span className="font-black text-xl text-emerald-700">{convidados > 0 ? fmtBRL(l.precoPorPessoa) : fmtBRL(l.precoVenda)}</span>
+                                 </div>
+                                 {/* Total do item */}
                                  <div className="flex flex-col items-center justify-center bg-slate-50 rounded-lg border border-slate-100 p-2">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Venda Total</span>
-                                    <span className="font-black text-lg text-emerald-600">{fmtBRL(l.vendaTotal)}</span>
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total</span>
+                                    <span className="font-black text-lg text-slate-800">{fmtBRL(l.vendaTotal)}</span>
+                                    {l.kgTotal && <span className="text-[9px] font-bold text-slate-400">{(+l.kgTotal.toFixed(2)).toLocaleString("pt-BR")} kg</span>}
                                  </div>
                               </div>
 

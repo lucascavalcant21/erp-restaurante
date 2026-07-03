@@ -552,15 +552,18 @@ export default function OrcamentoEventoPage() {
         : (produto.ficha_id ? [{ ficha_id: produto.ficha_id, qtd: 1 }] : []);
       const fichasComp = comps.map(c => ({ ficha: fichas.find(f => f.id === c.ficha_id), qtd: Number(c.qtd) || 1 })).filter(x => x.ficha);
       const qtd = Number(it.qtd) || 0;
-      const un = it.un || "porcao";
       const pesoUnFicha = fichasComp.reduce((a, x) => a + (Number(x.ficha.peso_porcao_g) || 0) * x.qtd, 0);
       const pesoUn = Number(it.pesoUn) || pesoUnFicha || 0;
-      let porcoes = qtd;
-      if (un === "g") porcoes = pesoUn > 0 ? qtd / pesoUn : 0;
-      if (un === "kg") porcoes = pesoUn > 0 ? (qtd * 1000) / pesoUn : 0;
-      const precoV = it.precoVenda !== undefined && it.precoVenda !== "" ? Number(it.precoVenda) || 0 : (Number(produto.preco_venda) || 0);
+      let porcoesPorPessoa = qtd;
+      let porcoes = conv > 0 ? porcoesPorPessoa * conv : porcoesPorPessoa;
+
+      const precoCardapio = Number(produto.preco_venda) || 0;
+      const precoKgCardapio = pesoUn > 0 ? precoCardapio * (1000 / pesoUn) : precoCardapio;
+      const precoKg = it.precoKg !== undefined && it.precoKg !== "" ? Number(it.precoKg) || 0 : precoKgCardapio;
+      const precoVenda = pesoUn > 0 ? precoKg * (pesoUn / 1000) : precoCardapio;
+
       const fator = fichasComp.reduce((m, x) => Math.max(m, fatorInNaturaDaFicha(x.ficha, fichas, mapaFatores)), 1);
-      const precoEf = (it.inNatura && fator > 1) ? precoV * fator : precoV;
+      const precoEf = (it.inNatura && fator > 1) ? precoVenda * fator : precoVenda;
       venda += precoEf * porcoes;
     });
     return { venda, convidados: conv, porConvidado: conv > 0 ? venda / conv : null, itensCount };

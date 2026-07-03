@@ -911,8 +911,17 @@ function FichasRunner() {
                            return (
                               <div className="mt-3 bg-emerald-50 border border-emerald-100 rounded-xl px-3.5 py-2.5">
                                  <p className="text-sm font-bold text-slate-700 leading-relaxed">
-                                    Rendimento <span className="font-black text-slate-900">{fmtG(pesoTotalG)}</span>
-                                    {porcoesRendidas !== null && pesoPorcao > 0 && <> = <span className="font-black text-slate-900">{(+porcoesRendidas.toFixed(1)).toLocaleString("pt-BR")} porções de {pesoPorcao}g</span></>}
+                                    {unR === "porcao" ? (
+                                       <>
+                                          Rende <span className="font-black text-slate-900">{rendimento} {rendimento >= 2 ? "porções" : "porção"}</span>
+                                          {pesoPorcao > 0 && <> de <span className="font-black text-slate-900">{pesoPorcao}g</span> (Total: {fmtG(pesoTotalG)})</>}
+                                       </>
+                                    ) : (
+                                       <>
+                                          Rende <span className="font-black text-slate-900">{rendimento} {unR}</span>
+                                          {porcoesRendidas !== null && pesoPorcao > 0 && <> = <span className="font-black text-slate-900">{(+porcoesRendidas.toFixed(1)).toLocaleString("pt-BR")} porções de {pesoPorcao}g</span></>}
+                                       </>
+                                    )}
                                     {custoPorc !== null && <> · porção custa <span className="font-black text-emerald-700">{fmtBRL(custoPorc)}</span></>}
                                     {custoKg !== null && <> · 1 kg custa <span className="font-black text-emerald-700">{fmtBRL(custoKg)}</span></>}
                                  </p>

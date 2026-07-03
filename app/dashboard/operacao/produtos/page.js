@@ -230,7 +230,7 @@ function CardapioRunner() {
       fetchEmbalagens(unidadeAtiva)
     ]);
     setProdutos(prodRes.data || []);
-    setFichas(fichasRes || []);
+    setFichas(fichasRes.data || []);
     setEmbalagensDB(embRes.data || []);
     setLoading(false);
   };

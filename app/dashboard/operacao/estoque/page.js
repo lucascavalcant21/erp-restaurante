@@ -4,7 +4,8 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchEstoque, ajustarEstoque } from "../../../lib/estoque";
-import { PackageSearch, Edit3, X, Save, ArrowLeft, RefreshCw, AlertCircle, Search } from "lucide-react";
+import { PackageSearch, Edit3, X, Save, ArrowLeft, RefreshCw, AlertCircle, Search, Plus, TrendingUp } from "lucide-react";
+import { fmtBRL } from "../../../components/ui";
 
 function EstoqueRunner() {
   const router = useRouter();
@@ -18,8 +19,11 @@ function EstoqueRunner() {
   const [busca, setBusca] = useState("");
   
   const [modalAjuste, setModalAjuste] = useState(false);
+  const [modalEntrada, setModalEntrada] = useState(false);
   const [itemAtual, setItemAtual] = useState(null);
   const [novoSaldo, setNovoSaldo] = useState("");
+  const [qtdEntrada, setQtdEntrada] = useState("");
+  const [valorEntrada, setValorEntrada] = useState("");
 
   const carregar = async () => {
     setLoading(true);
@@ -42,11 +46,26 @@ function EstoqueRunner() {
 
   const handleSalvarAjuste = async () => {
     if(novoSaldo === "") return alert("Digite o saldo atual");
-    
     await ajustarEstoque(unidadeAtiva, itemAtual.insumo_id, Number(novoSaldo));
-    
     setModalAjuste(false);
     carregar();
+  };
+
+  const abrirEntrada = (item) => {
+    setItemAtual(item);
+    setQtdEntrada("");
+    setValorEntrada("");
+    setModalEntrada(true);
+  };
+
+  const handleSalvarEntrada = async () => {
+    if(!qtdEntrada || Number(qtdEntrada) <= 0) return alert("Digite a quantidade comprada.");
+    const saldoAtual = Number(itemAtual.quantidade_atual || 0);
+    const novaQtd = saldoAtual + Number(qtdEntrada);
+    await ajustarEstoque(unidadeAtiva, itemAtual.insumo_id, novaQtd);
+    setModalEntrada(false);
+    carregar();
+    alert(`Entrada registrada! Novo saldo de ${itemAtual.nome} é ${novaQtd} ${itemAtual.unidade_medida}`);
   };
 
   return (
@@ -86,11 +105,12 @@ function EstoqueRunner() {
 
          <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200">
             {/* Header da tabela */}
-            <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center">
+            <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 items-center">
                <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Ingrediente</span>
+               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-24">Custo/Un.</span>
                <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-20">Unid.</span>
                <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-32">Saldo Atual</span>
-               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-right w-28">Ação</span>
+               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-right w-48">Ação</span>
             </div>
 
             {/* Linhas */}
@@ -107,7 +127,7 @@ function EstoqueRunner() {
                  const dept = ins.departamento?.toLowerCase();
                  const deptColor = dept === 'bar' ? 'bg-purple-100 text-purple-700' : 'bg-amber-100 text-amber-700';
                  return (
-                   <div key={ins.insumo_id} className={`px-6 py-4 grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center group transition-all duration-150 ${zerado ? 'bg-red-50/40 hover:bg-red-50' : 'hover:bg-emerald-50/40'}`}>
+                   <div key={ins.insumo_id} className={`px-6 py-4 grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 items-center group transition-all duration-150 ${zerado ? 'bg-red-50/40 hover:bg-red-50' : 'hover:bg-emerald-50/40'}`}>
                      {/* Nome + Dept */}
                      <div className="flex items-center gap-3 min-w-0">
                        <div className={`w-1 h-10 rounded-full shrink-0 ${zerado ? 'bg-red-400' : critico ? 'bg-amber-400' : 'bg-emerald-400'}`} />
@@ -115,6 +135,10 @@ function EstoqueRunner() {
                          <p className="font-bold text-slate-800 text-[15px] leading-tight truncate">{ins.nome}</p>
                          <span className={`inline-block text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mt-1 ${deptColor}`}>{ins.departamento}</span>
                        </div>
+                     </div>
+                     {/* Custo */}
+                     <div className="w-24 flex justify-center">
+                       <span className="font-bold text-slate-500 text-sm">{fmtBRL(ins.custo_unitario)}</span>
                      </div>
                      {/* Unidade */}
                      <div className="w-20 flex justify-center">
@@ -130,11 +154,11 @@ function EstoqueRunner() {
                        {!zerado && !critico && <span className="text-[9px] font-black uppercase tracking-widest text-emerald-400 mt-1">✓ Normal</span>}
                      </div>
                      {/* Ação */}
-                     <div className="w-28 flex justify-end">
-                       <button
-                         onClick={() => abrirAjuste(ins)}
-                         className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-all shadow-sm shadow-emerald-600/20 hover:shadow-emerald-600/40 hover:-translate-y-px active:scale-95"
-                       >
+                     <div className="w-48 flex items-center justify-end gap-2">
+                       <button onClick={() => abrirEntrada(ins)} className="flex items-center gap-1.5 px-3 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 font-bold text-xs rounded-xl transition-all shadow-sm active:scale-95">
+                         <Plus size={13}/> Entrada
+                       </button>
+                       <button onClick={() => abrirAjuste(ins)} className="flex items-center gap-1.5 px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl transition-all shadow-sm active:scale-95">
                          <RefreshCw size={13}/> Ajustar
                        </button>
                      </div>
@@ -169,11 +193,8 @@ function EstoqueRunner() {
                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Novo Saldo Real (Balanço)</label>
                      <div className="relative">
                         <input 
-                           type="number" 
-                           step="0.001" 
-                           placeholder="0.00" 
-                           value={novoSaldo} 
-                           onChange={e=>setNovoSaldo(e.target.value)} 
+                           type="number" step="0.001" placeholder="0.00" 
+                           value={novoSaldo} onChange={e=>setNovoSaldo(e.target.value)} 
                            className="w-full p-5 text-2xl bg-white border-2 border-slate-200 rounded-2xl font-black text-slate-800 outline-none focus:border-emerald-500"
                         />
                         <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-slate-500">{itemAtual.unidade_medida}</span>
@@ -181,8 +202,42 @@ function EstoqueRunner() {
                   </div>
                </div>
 
-               <button onClick={handleSalvarAjuste} className="w-full mt-8 py-5 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-amber-500/20 active:scale-95 flex items-center justify-center gap-2">
-                  <Save size={20}/> Confirmar Ajuste
+               <button onClick={handleSalvarAjuste} className="w-full mt-8 py-5 bg-slate-800 hover:bg-slate-900 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-slate-500/20 active:scale-95 flex items-center justify-center gap-2">
+                  <RefreshCw size={20}/> Sobrescrever Saldo
+               </button>
+            </div>
+         </div>
+      )}
+
+      {modalEntrada && itemAtual && (
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-[32px] w-full max-w-sm p-8 shadow-2xl animate-in zoom-in-95">
+               <div className="flex justify-between items-center mb-6">
+                  <h2 className="font-black text-2xl text-slate-800">Lançar Entrada</h2>
+                  <button onClick={() => setModalEntrada(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+               </div>
+
+               <div className="space-y-4">
+                  <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 text-center">
+                     <p className="text-sm font-bold text-emerald-600 uppercase tracking-widest mb-1">{itemAtual.nome}</p>
+                     <p className="text-sm font-medium text-emerald-700">Saldo Atual: {Number(itemAtual.quantidade_atual).toFixed(2)} {itemAtual.unidade_medida}</p>
+                  </div>
+
+                  <div>
+                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Quantas {itemAtual.unidade_medida}s foram compradas?</label>
+                     <div className="relative">
+                        <input 
+                           type="number" step="0.001" placeholder="Ex: 10" 
+                           value={qtdEntrada} onChange={e=>setQtdEntrada(e.target.value)} 
+                           className="w-full p-5 text-2xl bg-white border-2 border-slate-200 rounded-2xl font-black text-slate-800 outline-none focus:border-emerald-500"
+                        />
+                        <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-slate-500">{itemAtual.unidade_medida}</span>
+                     </div>
+                  </div>
+               </div>
+
+               <button onClick={handleSalvarEntrada} className="w-full mt-8 py-5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-500/20 active:scale-95 flex items-center justify-center gap-2">
+                  <TrendingUp size={20}/> Somar ao Estoque
                </button>
             </div>
          </div>

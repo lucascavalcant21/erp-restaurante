@@ -340,6 +340,7 @@ function FichasRunner() {
       modo_preparo: iaFResultado.modo_preparo,
       eh_base: false, rendimento_unidade: "porcao", peso_porcao_g: "",
     });
+    setAutoSoma(true);
     setIngFicha(novosIngFicha);
     setIaExplicacao("");
     setModalIAFicha(false);
@@ -471,6 +472,7 @@ function FichasRunner() {
     if (!valor) return;
     const [tipo, id] = valor.split(":");
     if (ingFicha.find(i => i.chave === id)) return; // já existe
+    setAutoSoma(true);
 
     if (tipo === "base") {
        const base = fichas.find(f => f.id === id);
@@ -495,14 +497,17 @@ function FichasRunner() {
 
   // Recebe a quantidade JÁ em unidade-base (a conversão acontece no onChange do input)
   const updateQtd = (chave, qtdBase) => {
+    setAutoSoma(true);
     setIngFicha(lista => lista.map(i => i.chave === chave ? { ...i, quantidade: Number(qtdBase) || 0 } : i));
   };
 
   const toggleModo = (chave) => {
+    setAutoSoma(true);
     setIngFicha(lista => lista.map(i => i.chave === chave ? { ...i, modo: i.modo === 'sub' ? 'base' : 'sub' } : i));
   };
 
   const removeIngrediente = (chave) => {
+    setAutoSoma(true);
     setIngFicha(lista => lista.filter(i => i.chave !== chave));
   };
 

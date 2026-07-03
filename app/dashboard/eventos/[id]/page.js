@@ -42,8 +42,9 @@ function diasAte(dataStr) {
 // + serviços adicionais cobrados (músico, decoração, espaço, equipe extra...).
 // Sem custos internos, CMV ou margem — documento comercial.
 function imprimirOrcamentoCliente(evento, pratos, drinks, reservas, calc, custosFixos = []) {
-  const win = window.open("", "_blank", "width=800,height=900");
-  if (!win) return alert("Habilite os popups para imprimir o orçamento.");
+  let win = null;
+  try { win = window.open("", "_blank", "width=800,height=900"); } catch { win = null; }
+  if (!win) return alert("O navegador bloqueou a janela de impressão. Habilite os popups para este site (ícone na barra de endereço).");
 
   const unitName = calc?.unitName || (evento.charge_mode === "person" ? "pessoa" : "casal");
   const dataFmt = evento.data_evento ? new Date(evento.data_evento + "T00:00:00").toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) : "";
@@ -325,7 +326,11 @@ export default function EventoPage() {
                   </p>
                 </div>
                 <button
-                  onClick={() => imprimirOrcamentoCliente(evento, pratos, drinks, reservas, calc, custosFixos)}
+                  type="button"
+                  onClick={() => {
+                    try { imprimirOrcamentoCliente(evento, pratos, drinks, reservas, calc, custosFixos); }
+                    catch (e) { console.error("[evento] erro ao gerar orçamento:", e); alert("Erro ao gerar o orçamento: " + e.message); }
+                  }}
                   style={{
                     display: "flex", alignItems: "center", gap: 6, padding: "10px 16px",
                     borderRadius: 10, background: "var(--accent-fg)", color: "#000",

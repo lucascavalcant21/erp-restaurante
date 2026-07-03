@@ -393,8 +393,26 @@ export default function OrcamentoEventoPage() {
      </style>`;
 
   const abrirDoc = (html) => {
-    const win = window.open('', '_blank', 'width=800,height=900');
-    if (!win) return alert("Habilite os popups para gerar o documento.");
+    let win = null;
+    try { win = window.open('', '_blank', 'width=800,height=900'); } catch { win = null; }
+    if (!win) {
+      // Popup bloqueado: cai para impressão na própria aba via iframe invisível
+      try {
+        const iframe = document.createElement('iframe');
+        iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+        document.body.appendChild(iframe);
+        iframe.srcdoc = html;
+        iframe.onload = () => {
+          setTimeout(() => {
+            try { iframe.contentWindow.focus(); iframe.contentWindow.print(); } catch (e) { alert('Não consegui abrir a impressão: ' + e.message); }
+            setTimeout(() => iframe.remove(), 60000);
+          }, 300);
+        };
+        return;
+      } catch (e) {
+        return alert('O navegador bloqueou a janela de impressão. Habilite os popups para este site.\n\nDetalhe: ' + e.message);
+      }
+    }
     if (modoSaida === "pdf") {
       // Baixa PDF de verdade (html2pdf via CDN). Se falhar em 7s, cai pra impressão.
       const tit = (html.match(/<title>([^<]*)<\/title>/i)?.[1] || "documento").replace(/[^\wÀ-ÿ \-]/g, "").trim().replace(/\s+/g, "-");
@@ -407,6 +425,11 @@ export default function OrcamentoEventoPage() {
       win.document.close();
       setTimeout(() => win.print(), 400);
     }
+  };
+
+  // Se algo der errado ao montar o documento, mostra o erro em vez de falhar mudo
+  const seguro = (fn) => () => {
+    try { fn(); } catch (e) { console.error("[orcamento] erro ao gerar documento:", e); alert("Erro ao gerar o documento: " + e.message); }
   };
 
   // Descrição da quantidade escolhida, com equivalências (pro cliente se programar)
@@ -589,17 +612,17 @@ export default function OrcamentoEventoPage() {
                   <button onClick={() => setModoSaida("imprimir")} className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all ${modoSaida === "imprimir" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>Imprimir</button>
                   <button onClick={() => setModoSaida("pdf")} className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all ${modoSaida === "pdf" ? "bg-white text-emerald-600 shadow-sm" : "text-slate-500"}`}>Baixar PDF</button>
                </div>
-               <button onClick={imprimirOrcamento} className="flex items-center gap-2 bg-slate-900 text-white px-5 py-3 rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-lg">
+               <button type="button" onClick={seguro(imprimirOrcamento)} className="flex items-center gap-2 bg-slate-900 text-white px-5 py-3 rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-lg">
                   <FileText size={18} /> Orçamento (Cliente)
                </button>
-               <button onClick={imprimirInterno} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-5 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm">
+               <button type="button" onClick={seguro(imprimirInterno)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-5 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm">
                   <Printer size={18} /> Compras (Interno)
                </button>
-               <button onClick={imprimirRelatorio} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-5 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm">
+               <button type="button" onClick={seguro(imprimirRelatorio)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-5 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm">
                   <FileText size={18} /> Relatório Gerencial
                </button>
                {propostas.length > 1 && (
-                  <button onClick={imprimirComparacao} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg">
+                  <button type="button" onClick={seguro(imprimirComparacao)} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg">
                      <FileText size={18} /> Comparar Propostas
                   </button>
                )}

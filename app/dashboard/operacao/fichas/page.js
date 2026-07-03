@@ -138,27 +138,6 @@ function FichasRunner() {
   const [iaExplicacao, setIaExplicacao] = useState("");
   const [autoSoma, setAutoSoma] = useState(true);
 
-  // Calcula a soma dos ingredientes toda vez que ingFicha muda
-  // e atualiza automaticamente o formulário se estiver no modo autoSoma
-  useEffect(() => {
-    if (form && autoSoma && ingFicha.length > 0) {
-      const est = rendimentoPelosIngredientes(ingFicha);
-      if (est && est.totalG > 0) {
-         setForm(f => {
-            const un = String(f.rendimento_unidade || "porcao").toLowerCase();
-            if (un === "g" || un === "kg" || un === "l" || un === "ml") {
-               return { ...f, rendimento_porcoes: String(est.valor), rendimento_unidade: est.unidade };
-            } else if (un === "porcao" || un === "un") {
-               const rend = Number(f.rendimento_porcoes) || 1;
-               const pesoP = (est.totalG / rend).toFixed(1).replace('.0', '');
-               return { ...f, peso_porcao_g: pesoP };
-            }
-            return f;
-         });
-      }
-    }
-  }, [ingFicha, autoSoma]);
-  
   const [selecionadas, setSelecionadas] = useState([]);
   
   // Estado do formulário da Ficha
@@ -411,6 +390,27 @@ function FichasRunner() {
   useEffect(() => {
     if (unidadeAtiva) carregar();
   }, [unidadeAtiva, deptUrl]);
+
+  // Calcula a soma dos ingredientes toda vez que ingFicha muda
+  // e atualiza automaticamente o formulário se estiver no modo autoSoma
+  useEffect(() => {
+    if (form && autoSoma && ingFicha.length > 0) {
+      const est = rendimentoPelosIngredientes(ingFicha);
+      if (est && est.totalG > 0) {
+         setForm(f => {
+            const un = String(f.rendimento_unidade || "porcao").toLowerCase();
+            if (un === "g" || un === "kg" || un === "l" || un === "ml") {
+               return { ...f, rendimento_porcoes: String(est.valor), rendimento_unidade: est.unidade };
+            } else if (un === "porcao" || un === "un") {
+               const rend = Number(f.rendimento_porcoes) || 1;
+               const pesoP = (est.totalG / rend).toFixed(1).replace('.0', '');
+               return { ...f, peso_porcao_g: pesoP };
+            }
+            return f;
+         });
+      }
+    }
+  }, [ingFicha, autoSoma]);
 
   const filtradas = fichas.filter(f => f.nome_receita.toLowerCase().includes(busca.toLowerCase()));
 

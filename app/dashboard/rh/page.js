@@ -8,7 +8,8 @@ import {
   fetchDocumentos, uploadDocumentoRH, removerDocumento,
   fetchCargos,
   fetchAllFolgasDaUnidade, fetchFolgasEsporadicas, inserirFolgaEsporadica, removerFolgaEsporadica,
-  fetchConsumoFuncionario, inserirConsumoFuncionario, atualizarStatusConsumo, removerConsumoFuncionario
+  fetchConsumoFuncionario, inserirConsumoFuncionario, atualizarStatusConsumo, removerConsumoFuncionario,
+  fetchBancoHoras, inserirBancoHoras, removerBancoHoras, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN
 } from "../../lib/rh";
 import { fetchPontoHoje } from "../../lib/ponto";
 import { salvarConta } from "../../lib/financeiro";
@@ -49,6 +50,12 @@ export default function RHPage() {
   const [domingosProximos, setDomingosProximos] = useState([]);
 
   // Estados Modal Consumo (Vales)
+  // Banco de horas: intervalo de 1h não tirado acumula (limite 8h/mês)
+  const [bancoHoras, setBancoHoras] = useState([]);
+  const [modalBanco, setModalBanco] = useState(false);
+  const [funcBanco, setFuncBanco] = useState(null);
+  const [formBanco, setFormBanco] = useState({ data: "", minutos: "60", observacao: "" });
+
   const [modalConsumo, setModalConsumo] = useState(false);
   const [funcionarioConsumo, setFuncionarioConsumo] = useState(null);
   const [listaConsumo, setListaConsumo] = useState([]);
@@ -58,12 +65,14 @@ export default function RHPage() {
 
   const carregar = async () => {
     setLoading(true);
-    const [resRh, resPonto, resCargos] = await Promise.all([
+    const mesAtual = new Date().toISOString().slice(0, 7);
+    const [resRh, resPonto, resCargos, resBanco] = await Promise.all([
       fetchColaboradores(unidadeAtiva),
       fetchPontoHoje(unidadeAtiva),
-      fetchCargos(unidadeAtiva)
+      fetchCargos(unidadeAtiva),
+      fetchBancoHoras(unidadeAtiva, mesAtual)
     ]);
-    
+
     const comDocs = await Promise.all((resRh.data || []).map(async (f) => {
        const docsResp = await fetchDocumentos(f.id);
        return { ...f, docs: docsResp.data || [] };
@@ -72,12 +81,51 @@ export default function RHPage() {
     setFuncionarios(comDocs);
     setPontosHoje(resPonto.data || []);
     setCargos(resCargos.data || []);
+    setBancoHoras(resBanco.data || []);
     setLoading(false);
   };
 
   useEffect(() => {
     if (unidadeAtiva) carregar();
   }, [unidadeAtiva]);
+
+  // --- Banco de Horas ---
+  const fmtMin = (m) => `${Math.floor(m / 60)}h${String(Math.round(m) % 60).padStart(2, "0")}`;
+  const totalBancoDe = (colabId) => bancoHoras
+    .filter(b => b.colaborador_id === colabId)
+    .reduce((s, b) => s + (Number(b.minutos) || 0), 0);
+
+  const abrirModalBanco = (f) => {
+    setFuncBanco(f);
+    setFormBanco({ data: new Date().toISOString().split("T")[0], minutos: "60", observacao: "" });
+    setModalBanco(true);
+  };
+
+  const lancarBancoHoras = async (e) => {
+    e.preventDefault();
+    const min = Number(formBanco.minutos) || 0;
+    if (min <= 0) return alert("Informe os minutos que faltaram do intervalo.");
+    if (min > 60) return alert("O lançamento é por dia e o intervalo é de 1h — máximo 60 minutos por dia.");
+    if (!formBanco.data) return alert("Informe a data.");
+    const totalAtual = totalBancoDe(funcBanco.id);
+    if (totalAtual + min > BANCO_LIMITE_MIN) {
+      return alert(`Não dá: ${funcBanco.nome} já tem ${fmtMin(totalAtual)} acumuladas neste mês. O limite é 8h — restam só ${fmtMin(BANCO_LIMITE_MIN - totalAtual)}. Programe a folga dele(a)!`);
+    }
+    const { error } = await inserirBancoHoras(unidadeAtiva, funcBanco.id, formBanco.data, min, formBanco.observacao);
+    if (error) return alert("Erro ao lançar: " + error);
+    const novoTotal = totalAtual + min;
+    if (novoTotal >= BANCO_ALERTA_MIN) {
+      alert(`Atenção: ${funcBanco.nome} chegou a ${fmtMin(novoTotal)} de banco de horas no mês (limite 8h). Programe a compensação!`);
+    }
+    setFormBanco({ data: new Date().toISOString().split("T")[0], minutos: "60", observacao: "" });
+    carregar();
+  };
+
+  const excluirBancoHoras = async (id) => {
+    if (!confirm("Remover este lançamento do banco de horas?")) return;
+    await removerBancoHoras(id);
+    carregar();
+  };
 
   // --- Funções de Consumo ---
   const carregarConsumo = async (funcId) => {
@@ -860,6 +908,16 @@ export default function RHPage() {
                                  <button onClick={() => abrirModalFolgas(f)} className="flex items-center gap-1 text-xs font-black text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg hover:bg-rose-100 transition-colors">
                                     <CalendarHeart size={14}/> Folgas
                                  </button>
+                                 {(() => {
+                                    const tb = totalBancoDe(f.id);
+                                    const critico = tb >= BANCO_LIMITE_MIN;
+                                    const alerta = tb >= BANCO_ALERTA_MIN;
+                                    return (
+                                       <button onClick={() => abrirModalBanco(f)} className={`flex items-center gap-1 text-xs font-black px-3 py-1.5 rounded-lg transition-colors ${critico ? "text-red-700 bg-red-100 hover:bg-red-200" : alerta ? "text-amber-700 bg-amber-100 hover:bg-amber-200" : "text-sky-700 bg-sky-50 hover:bg-sky-100"}`}>
+                                          <Clock size={14}/> Banco de Horas{tb > 0 ? `: ${fmtMin(tb)}` : ""}{critico ? " (LIMITE!)" : alerta ? " (atenção)" : ""}
+                                       </button>
+                                    );
+                                 })()}
                                  <button onClick={() => abrirModalConsumo(f)} className="flex items-center gap-1 text-xs font-black text-teal-600 bg-teal-50 px-3 py-1.5 rounded-lg hover:bg-teal-100 transition-colors">
                                     <ShoppingBag size={14}/> Consumo / Vales
                                  </button>
@@ -1028,6 +1086,75 @@ export default function RHPage() {
       )}
 
       {/* Modal Gerenciar Folgas */}
+      {/* MODAL: BANCO DE HORAS (intervalo não tirado; limite 8h/mês) */}
+      {modalBanco && funcBanco && (() => {
+         const lancs = bancoHoras.filter(b => b.colaborador_id === funcBanco.id);
+         const total = lancs.reduce((s, b) => s + (Number(b.minutos) || 0), 0);
+         const pct = Math.min(100, (total / BANCO_LIMITE_MIN) * 100);
+         const critico = total >= BANCO_LIMITE_MIN;
+         const alerta = total >= BANCO_ALERTA_MIN;
+         return (
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
+            <div className="bg-white rounded-[32px] w-full max-w-lg my-8 p-8 shadow-2xl animate-in zoom-in-95 max-h-[88vh] flex flex-col">
+               <div className="flex justify-between items-center mb-5 shrink-0">
+                  <div>
+                     <h2 className="font-black text-2xl text-slate-800">Banco de Horas</h2>
+                     <p className="text-sm font-bold text-slate-500 mt-1">{funcBanco.nome} · mês atual</p>
+                  </div>
+                  <button onClick={() => setModalBanco(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+               </div>
+
+               {/* Acumulado do mês vs limite de 8h */}
+               <div className={`p-4 rounded-2xl border mb-5 shrink-0 ${critico ? "bg-red-50 border-red-200" : alerta ? "bg-amber-50 border-amber-200" : "bg-slate-50 border-slate-200"}`}>
+                  <div className="flex justify-between items-baseline mb-2">
+                     <span className={`text-[10px] font-black uppercase tracking-widest ${critico ? "text-red-600" : alerta ? "text-amber-700" : "text-slate-500"}`}>
+                        {critico ? "Limite de 8h atingido!" : alerta ? "Perto de estourar as 8h!" : "Acumulado no mês"}
+                     </span>
+                     <span className={`text-2xl font-black ${critico ? "text-red-600" : alerta ? "text-amber-700" : "text-slate-800"}`}>{fmtMin(total)} <span className="text-sm font-bold text-slate-400">/ 8h00</span></span>
+                  </div>
+                  <div className="h-2.5 rounded-full overflow-hidden bg-white border border-slate-200">
+                     <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: critico ? "#DC2626" : alerta ? "#F59E0B" : "#059669" }} />
+                  </div>
+                  {(alerta || critico) && <p className="text-[11px] font-bold mt-2 text-slate-600">Programe a compensação/folga de {funcBanco.nome.split(" ")[0]} para zerar o banco.</p>}
+               </div>
+
+               {/* Lançar minutos não tirados do dia */}
+               <form onSubmit={lancarBancoHoras} className="bg-sky-50 border border-sky-200 rounded-2xl p-4 mb-5 shrink-0">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-sky-700 mb-3">Lançar intervalo não tirado</p>
+                  <div className="flex flex-wrap items-end gap-3">
+                     <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Dia</label>
+                        <input type="date" value={formBanco.data} onChange={e=>setFormBanco({...formBanco, data: e.target.value})} className="p-2.5 mt-1 bg-white border border-slate-200 rounded-lg font-bold text-slate-700 outline-none focus:border-sky-500"/>
+                     </div>
+                     <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Minutos que faltaram</label>
+                        <input type="number" min="1" max="60" value={formBanco.minutos} onChange={e=>setFormBanco({...formBanco, minutos: e.target.value})} className="w-24 p-2.5 mt-1 text-center bg-white border border-slate-200 rounded-lg font-black text-slate-800 outline-none focus:border-sky-500"/>
+                     </div>
+                     <button type="submit" className="ml-auto px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-black text-sm rounded-xl transition-colors">Lançar</button>
+                  </div>
+                  <input type="text" placeholder="Motivo (opcional): casa cheia, evento, faltou gente..." value={formBanco.observacao} onChange={e=>setFormBanco({...formBanco, observacao: e.target.value})} className="w-full p-2.5 mt-3 bg-white border border-slate-200 rounded-lg font-medium text-sm text-slate-700 outline-none focus:border-sky-500"/>
+                  <p className="text-[10px] font-medium text-sky-700/70 mt-2">Ex.: só tirou 20 min do intervalo de 1h → lance 40 minutos. Máx. 60 por dia.</p>
+               </form>
+
+               {/* Lançamentos do mês */}
+               <div className="overflow-y-auto space-y-2">
+                  {lancs.length === 0 ? (
+                     <p className="text-sm font-medium text-slate-400 text-center py-4">Nenhum lançamento neste mês.</p>
+                  ) : lancs.map(b => (
+                     <div key={b.id} className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-xl">
+                        <div className="flex-1 min-w-0">
+                           <p className="text-sm font-bold text-slate-700">{b.data ? b.data.split("-").reverse().join("/") : "—"} · <span className="text-sky-700">{fmtMin(Number(b.minutos) || 0)}</span></p>
+                           {b.observacao && <p className="text-[11px] font-medium text-slate-400 truncate">{b.observacao}</p>}
+                        </div>
+                        <button onClick={() => excluirBancoHoras(b.id)} className="p-2 text-slate-400 hover:text-red-500 rounded-lg"><Trash2 size={14}/></button>
+                     </div>
+                  ))}
+               </div>
+            </div>
+         </div>
+         );
+      })()}
+
       {modalFolgas && funcParaFolgas && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
             <div className="bg-white rounded-[32px] w-full max-w-[800px] p-8 shadow-2xl animate-in zoom-in-95 max-h-[90vh] overflow-hidden flex flex-col">

@@ -198,6 +198,45 @@ export async function removerFolgaEsporadica(id) {
   return { error: error?.message };
 }
 
+// ─── BANCO DE HORAS (intervalo não tirado) ───────────────────────────────────
+// Quando o colaborador não consegue tirar a folga/intervalo de 1h do dia (ou
+// tira só parte), os minutos que faltaram acumulam aqui. Limite: 8h (480 min)
+// por colaborador por mês.
+export const BANCO_LIMITE_MIN = 480;  // 8h no mês
+export const BANCO_ALERTA_MIN = 360;  // 6h = 75% -> perto de estourar
+
+export async function fetchBancoHoras(unidadeId, mesAno) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: [] };
+  const [ano, mes] = String(mesAno).split("-").map(Number);
+  const inicio = `${mesAno}-01`;
+  const fim = new Date(ano, mes, 1).toISOString().split("T")[0]; // 1º dia do mês seguinte
+  const { data, error } = await supabase.from("rh_banco_horas")
+    .select("*")
+    .eq("unidade_id", unidadeId)
+    .gte("data", inicio)
+    .lt("data", fim)
+    .order("data", { ascending: false });
+  return { data: data || [], error: error?.message };
+}
+
+export async function inserirBancoHoras(unidadeId, colaboradorId, dataDia, minutos, observacao = "") {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase.from("rh_banco_horas").insert([{
+    unidade_id: unidadeId,
+    colaborador_id: colaboradorId,
+    data: dataDia,
+    minutos: Number(minutos) || 0,
+    observacao: observacao || null,
+  }]);
+  return { error: error?.message };
+}
+
+export async function removerBancoHoras(id) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase.from("rh_banco_horas").delete().eq("id", id);
+  return { error: error?.message };
+}
+
 export async function fetchConsumoFuncionario(colaboradorId) {
   if (!isSupabaseReady()) return { data: [], error: "Offline" };
   const { data, error } = await supabase.from("rh_consumo_funcionarios").select("*").eq("funcionario_id", colaboradorId).order("data_consumo", { ascending: false });

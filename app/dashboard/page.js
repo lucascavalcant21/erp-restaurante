@@ -11,7 +11,7 @@ import { fmtBRL, fmtPct } from "../components/ui";
 
 import { fetchFichas } from "../lib/operacao";
 import { fetchProdutos } from "../lib/vendas";
-import { fetchColaboradores, fetchAllFolgasDaUnidade } from "../lib/rh";
+import { fetchColaboradores, fetchAllFolgasDaUnidade, fetchBancoHoras, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN } from "../lib/rh";
 import { fetchContas } from "../lib/financeiro";
 import { fetchEstoque } from "../lib/estoque";
 import { fetchManutencoes } from "../lib/controles_cozinha";
@@ -67,16 +67,18 @@ export default function DashboardGestao() {
     let vivo = true;
     (async () => {
       setLoading(true);
-      const [rF, rP, rColab, rFolgas, rContas, rEstoque, rManut, rCamp] = await Promise.all([
+      const [rF, rP, rColab, rFolgas, rContas, rEstoque, rManut, rCamp, rBanco] = await Promise.all([
         fetchFichas(unidadeAtiva), fetchProdutos(unidadeAtiva), fetchColaboradores(unidadeAtiva),
         fetchAllFolgasDaUnidade(unidadeAtiva), fetchContas(unidadeAtiva, ""), fetchEstoque(unidadeAtiva),
         fetchManutencoes(unidadeAtiva), fetchCampanhas(unidadeAtiva),
+        fetchBancoHoras(unidadeAtiva, new Date().toISOString().slice(0, 7)),
       ]);
       if (!vivo) return;
       setDados({
         fichas: rF.data || [], produtos: rP.data || [], colaboradores: rColab.data || [],
         folgas: rFolgas.data || [], contas: rContas.data || [], estoque: rEstoque.data || [],
         manutencoes: rManut.data || [], campanhas: rCamp.fromSeed ? [] : (rCamp.data || []),
+        bancoHoras: rBanco.data || [],
       });
       setLoading(false);
     })();
@@ -85,7 +87,7 @@ export default function DashboardGestao() {
 
   const m = useMemo(() => {
     if (!dados) return null;
-    const { fichas, produtos, colaboradores, folgas, contas, estoque, manutencoes, campanhas } = dados;
+    const { fichas, produtos, colaboradores, folgas, contas, estoque, manutencoes, campanhas, bancoHoras = [] } = dados;
 
     // CMV médio da carta
     const fichasPorId = {}; fichas.forEach(f => { fichasPorId[f.id] = f; });
@@ -139,11 +141,19 @@ export default function DashboardGestao() {
     // Marketing: campanhas ativas
     const campanhasAtivas = campanhas.filter(c => String(c.status || "").toLowerCase() === "ativa");
 
+    // Banco de horas: quem está perto de estourar as 8h do mês (>= 6h)
+    const somaBanco = {};
+    bancoHoras.forEach(b => { somaBanco[b.colaborador_id] = (somaBanco[b.colaborador_id] || 0) + (Number(b.minutos) || 0); });
+    const bancoAlertas = Object.entries(somaBanco)
+      .filter(([, min]) => min >= BANCO_ALERTA_MIN)
+      .map(([id, min]) => ({ id, min, nome: colaboradores.find(c => c.id === id)?.nome || "Colaborador", estourou: min >= BANCO_LIMITE_MIN }))
+      .sort((a, b) => b.min - a.min);
+
     return {
       cmvMedio, cmvAcima, cmvCount: cmvs.length,
       folhaMes, ativosCount: ativos.length,
       equipeHoje, totalContasMes, contasVencendo,
-      semEstoque, limpezasVencendo, campanhasAtivas,
+      semEstoque, limpezasVencendo, campanhasAtivas, bancoAlertas,
     };
   }, [dados]);
 
@@ -281,6 +291,18 @@ export default function DashboardGestao() {
                     </span>
                   </div>
                   <span className="text-sm font-black shrink-0 ml-2" style={{ color: "var(--fg)" }}>{fmtBRL(c.valor)}</span>
+                </div>
+              ))}
+            </BlocoAlerta>
+
+            <BlocoAlerta titulo="Banco de horas (limite 8h/mês)" icon={Clock}
+              vazio="Ninguém perto do limite." acao={() => router.push("/dashboard/rh")}>
+              {m.bancoAlertas.slice(0, 3).map(b => (
+                <div key={b.id} className="flex justify-between items-center p-2.5 rounded-xl" style={{ background: b.estourou ? "rgba(239,68,68,0.08)" : "rgba(245,158,11,0.10)" }}>
+                  <span className="text-sm font-bold truncate" style={{ color: "var(--fg-soft)" }}>{b.nome}</span>
+                  <span className="text-[11px] font-black shrink-0 ml-2" style={{ color: b.estourou ? "#DC2626" : "#B45309" }}>
+                    {Math.floor(b.min / 60)}h{String(b.min % 60).padStart(2, "0")}{b.estourou ? " — estourou!" : " / 8h"}
+                  </span>
                 </div>
               ))}
             </BlocoAlerta>

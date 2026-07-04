@@ -159,7 +159,7 @@ export default function AtasReuniaoPage() {
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Ata - ${form.tema}</title>
       <style>
         *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:Georgia,'Times New Roman',serif;color:#111;padding:20mm 16mm;max-width:720px;margin:0 auto}
+        body{font-family:Georgia,'Times New Roman',serif;color:#111;padding:7mm 8mm;max-width:740px;margin:0 auto}
         .topo{border-bottom:3px double #111;padding-bottom:12px;margin-bottom:6px;text-align:center}
         .empresa h2{font-size:20px;letter-spacing:.5px}
         .empresa p{font-size:10.5px;color:#444;margin-top:2px;font-family:Arial,sans-serif}
@@ -178,7 +178,9 @@ export default function AtasReuniaoPage() {
         td.assin{width:38%;height:30px}
         .rodape{margin-top:34px;display:flex;justify-content:center}
         .rodape div{width:320px;border-top:1px solid #111;padding-top:5px;text-align:center;font-size:11px;font-family:Arial,sans-serif;color:#333}
-        @media print{@page{margin:14mm}}
+        /* margem 0 na página: além de aproveitar a folha, remove o cabeçalho
+           e rodapé automáticos do navegador (data/hora, título, URL) */
+        @media print{@page{margin:0}}
       </style></head><body>
       <div class="topo">
         <div class="empresa">

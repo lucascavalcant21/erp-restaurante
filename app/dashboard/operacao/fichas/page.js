@@ -101,18 +101,21 @@ const fmtG = (g) => g >= 1000
   : `${(+g.toFixed(1)).toLocaleString("pt-BR")} g`;
 
 // Soma dos ingredientes → rendimento bruto estimado da receita (antes de perdas
-// no cozimento). Separa sólidos (g) de líquidos (ml). Itens em "un" sem peso
-// conhecido não entram. Sugere a unidade conforme o que domina.
+// no cozimento). Separa sólidos (g) de líquidos (ml). Itens em "un" entram se o
+// insumo tiver peso médio cadastrado (ex: 1 tomate ≈ 100g). Sugere a unidade
+// conforme o que domina.
 function rendimentoPelosIngredientes(ingLista) {
   let solidosG = 0, liquidosMl = 0;
   (ingLista || []).forEach(ing => {
     const u = String(ing.unidade || "").toLowerCase();
     const q = Number(ing.quantidade) || 0;
+    const pm = Number(ing.peso_medio_g) || 0; // peso de 1 unidade, se conhecido
     if (u === "kg") solidosG += q * 1000;
     else if (u === "g") solidosG += q;
     else if (u === "l") liquidosMl += q * 1000;
     else if (u === "ml") liquidosMl += q;
-    // "un"/"porcao": sem peso conhecido, ignora
+    else if ((u === "un" || u === "unidade" || u === "porcao") && pm > 0) solidosG += q * pm;
+    // "un" sem peso médio cadastrado: continua de fora
   });
   const total = solidosG + liquidosMl;
   if (total <= 0) return null;
@@ -329,15 +332,15 @@ function FichasRunner() {
         chave: insumo.id, tipo: "insumo", insumo_id: insumo.id,
         nome: insumo.nome, unidade: insumo.unidade_medida,
         custo_unitario: insumo.custo_unitario, quantidade,
+        peso_medio_g: insumo.peso_medio_g || null,
         modo: getSub(insumo.unidade_medida) ? "sub" : "base",
       };
     });
 
     // Rendimento = peso total somado dos ingredientes (kg/g/l/ml), automático.
-    // Só cai para "porção" se os ingredientes forem todos em unidades (sem peso).
-    const pesoIA = rendimentoPelosIngredientes(
-      iaFResultado.itens.map(it => ({ unidade: it.unidade_lida, quantidade: it.quantidade_lida }))
-    );
+    // Usa peso médio do insumo p/ incluir itens em "un". Só cai para "porção"
+    // se os ingredientes forem todos em unidades sem peso conhecido.
+    const pesoIA = rendimentoPelosIngredientes(novosIngFicha);
     setForm({
       id: null, departamento: deptUrl,
       nome_receita: iaFResultado.nome_receita,
@@ -462,6 +465,7 @@ function FichasRunner() {
           chave: fi.insumos.id, tipo: "insumo", insumo_id: fi.insumos.id,
           nome: fi.insumos.nome, unidade: fi.insumos.unidade_medida,
           custo_unitario: fi.insumos.custo_unitario, quantidade: fi.quantidade,
+          peso_medio_g: fi.insumos.peso_medio_g || null,
           modo: getSub(fi.insumos.unidade_medida) ? "sub" : "base",
        };
     });
@@ -497,6 +501,7 @@ function FichasRunner() {
           chave: insumoDb.id, tipo: "insumo", insumo_id: insumoDb.id,
           nome: insumoDb.nome, unidade: insumoDb.unidade_medida,
           custo_unitario: insumoDb.custo_unitario, quantidade: 0,
+          peso_medio_g: insumoDb.peso_medio_g || null,
           modo: getSub(insumoDb.unidade_medida) ? "sub" : "base",
        }]);
     }
@@ -1257,7 +1262,10 @@ function FichasRunner() {
                            <input type="text" value={iaFResultado.nome_receita} onChange={e=>setIaFResultado({...iaFResultado, nome_receita: e.target.value})} className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-lg font-black text-slate-800 outline-none focus:border-emerald-500" />
                            {(() => {
                               const pesoIA = rendimentoPelosIngredientes(
-                                 iaFResultado.itens.map(it => ({ unidade: it.unidade_lida, quantidade: it.quantidade_lida }))
+                                 iaFResultado.itens.map(it => {
+                                    const ins = insumosAtivos.find(i => i.id === it.vinculoId);
+                                    return { unidade: it.unidade_lida, quantidade: it.quantidade_lida, peso_medio_g: ins?.peso_medio_g || null };
+                                 })
                               );
                               if (pesoIA) return (
                                  <>

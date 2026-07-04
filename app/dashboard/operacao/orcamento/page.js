@@ -5,7 +5,7 @@ import { useERP } from "../../../context/ERPContext";
 import { fetchFichas, fetchInsumos } from "../../../lib/operacao";
 import { fetchProdutos } from "../../../lib/vendas";
 import { fetchOrcamentosEventos, salvarOrcamentoEvento, removerOrcamentoEvento } from "../../../lib/orcamentos";
-import { PartyPopper, Printer, Trash2, ArrowLeft, Users, ShoppingCart, FileText, Save, History, X, Loader2 } from "lucide-react";
+import { PartyPopper, Printer, Trash2, ArrowLeft, Users, ShoppingCart, FileText, Save, History, X, Loader2, ChefHat, ClipboardList, Image as ImageIcon } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
 // Fator "in natura" de uma ficha: quanto o preço deve subir para cobrar o item
@@ -85,8 +85,31 @@ function fmtCompra(qtd, unidade) {
   return `${Math.ceil(qtd)} un`;
 }
 
+// Comprime uma foto para base64 leve (máx ~520px) — guardada no rascunho local
+function comprimirImagem(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const MAX = 520;
+        let { width, height } = img;
+        if (width > MAX) { height = Math.round((height * MAX) / width); width = MAX; }
+        canvas.width = width; canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", 0.7));
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 const DRAFT_KEY = "orcamento_evento_draft";
-const EVENTO_VAZIO = { nome: "", cliente: "", data: "", convidados: "", comissao_pct: "", parceria_bar_ativa: false, parceria_bar_pct: "30" };
+const EVENTO_VAZIO = { nome: "", cliente: "", data: "", hora: "", utensilios: "", convidados: "", comissao_pct: "", parceria_bar_ativa: false, parceria_bar_pct: "30" };
 const novoId = () => (globalThis.crypto?.randomUUID?.() || String(Date.now() + Math.random()));
 const novaProposta = (nome) => ({ id: novoId(), nome, evento: { ...EVENTO_VAZIO }, itens: [] });
 
@@ -254,7 +277,7 @@ export default function OrcamentoEventoPage() {
     const pesoUn = Number(it.pesoUn) || pesoUnFicha || 0; // g por porção/unidade
 
     // A quantidade digitada agora representa "porções por pessoa"
-    let porcoesPorPessoa = Number(it.qtd) || 0;
+    let porcoesPorPessoa = qtd;
     let porcoes = convidados > 0 ? porcoesPorPessoa * convidados : porcoesPorPessoa;
 
     const gramasTotal = pesoUn > 0 ? porcoes * pesoUn : null;
@@ -359,18 +382,26 @@ export default function OrcamentoEventoPage() {
   const updateItem = (produtoId, patch) => setItens(lista => lista.map(i => i.produto_id === produtoId ? { ...i, ...patch } : i));
   const removeItem = (produtoId) => setItens(lista => lista.filter(i => i.produto_id !== produtoId));
   const limparTudo = () => {
-    if (confirm("Limpar todo o orçamento?")) { setEvento({ nome: "", cliente: "", data: "", convidados: "", comissao_pct: "", parceria_bar_ativa: false, parceria_bar_pct: "30" }); setItens([]); }
+    if (confirm("Limpar todo o orçamento?")) { setEvento({ ...EVENTO_VAZIO }); setItens([]); }
   };
 
   const cabecalhoDoc = (titulo) => `
      <div class="head">
         <div class="tag">${titulo} — ${unidadeInfo?.nome || ''}</div>
         <h1>${evento.nome || 'Evento'}</h1>
-        <div class="meta">
+        <div class="meta" style="margin-bottom: 8px;">
            ${evento.cliente ? `Cliente: <b>${evento.cliente}</b> · ` : ''}
            ${evento.data ? `Data: <b>${evento.data.split('-').reverse().join('/')}</b> · ` : ''}
            Convidados: <b>${convidados || '—'}</b>
         </div>
+        ${(unidadeInfo?.cnpj || unidadeInfo?.endereco || unidadeInfo?.cidade) ? `
+        <div class="meta" style="font-size: 11px; color: #64748b; padding-top: 6px; border-top: 1px dashed #cbd5e1; margin-top: 6px;">
+           <b>Prestador de Serviço:</b> ${unidadeInfo?.nome || ''}
+           ${unidadeInfo?.cnpj ? ` · CNPJ: ${unidadeInfo.cnpj}` : ''}
+           ${unidadeInfo?.endereco ? ` · Endereço: ${unidadeInfo.endereco}` : ''}
+           ${unidadeInfo?.cidade ? ` · Cidade: ${unidadeInfo.cidade}` : ''}
+        </div>
+        ` : ''}
      </div>`;
 
   const estiloDoc = `
@@ -492,6 +523,96 @@ export default function OrcamentoEventoPage() {
           <div class="linha"><span>Valor de venda do evento</span><b>${fmtBRL(vendaEvento)}</b></div>
           <div class="linha destaque"><span>Margem estimada</span><span>${fmtBRL(vendaEvento - custoEvento)}</span></div>
        </div>
+    </body></html>`);
+  };
+
+  // Documento: PROGRAMAÇÃO DO EVENTO (uso interno / cozinha) — cardápio, modo de
+  // preparo, descrição de montagem, foto de referência, utensílios e compras.
+  // Serve para você se organizar na produção; não vai para o cliente.
+  const imprimirProgramacao = () => {
+    if (linhas.length === 0) return alert("Adicione itens ao evento primeiro.");
+    const itemPorId = (id) => itens.find(i => i.produto_id === id) || {};
+
+    const cards = linhas.map(l => {
+      const it = itemPorId(l.produto_id);
+      // Modo de preparo: junta o de cada ficha do prato (composição múltipla)
+      const preparo = (l.fichasComp || [])
+        .map(x => x.ficha?.modo_preparo)
+        .filter(Boolean)
+        .join("\n\n");
+      const preparoHtml = preparo
+        ? preparo.split("\n").filter(t => t.trim()).map(t => `<p>${t.replace(/</g, "&lt;")}</p>`).join("")
+        : '<p class="vazio">Sem modo de preparo cadastrado na ficha técnica.</p>';
+      return `
+      <div class="prato">
+        <div class="prato-head">
+          <div>
+            <h3>${l.nome}</h3>
+            <span class="qtd">${descQtd(l)}${l.categoria ? ` · ${l.categoria}` : ""}</span>
+          </div>
+          ${it.foto ? `<img src="${it.foto}" alt="" class="foto"/>` : ""}
+        </div>
+        ${it.descricao ? `<div class="montagem"><b>Montagem / onde servir:</b> ${it.descricao.replace(/</g, "&lt;")}</div>` : ""}
+        <div class="preparo"><b>Modo de preparo</b>${preparoHtml}</div>
+      </div>`;
+    }).join("");
+
+    const rowsCompras = compras.map(c =>
+      `<tr><td>${c.nome}</td><td class="c">${fmtCompra(c.qtd, c.unidade)}</td></tr>`
+    ).join("");
+
+    const dataHora = [
+      evento.data ? evento.data.split("-").reverse().join("/") : null,
+      evento.hora || null,
+    ].filter(Boolean).join(" às ");
+
+    abrirDoc(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Programacao - ${evento.nome || "Evento"}</title>
+      <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;padding:22px;max-width:760px;margin:0 auto}
+        .head{border-bottom:3px solid #0f172a;padding-bottom:12px;margin-bottom:14px}
+        .tag{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#64748b;font-weight:bold}
+        h1{font-size:25px;margin:4px 0}
+        .quando{display:inline-block;background:#0f172a;color:#fff;font-weight:bold;font-size:14px;padding:5px 12px;border-radius:8px;margin-top:4px}
+        .meta{font-size:13px;color:#475569;margin-top:6px}
+        h2{font-size:12px;text-transform:uppercase;letter-spacing:2px;color:#64748b;margin:20px 0 8px;border-bottom:1px solid #e2e8f0;padding-bottom:4px}
+        .prato{border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;margin-bottom:12px;page-break-inside:avoid}
+        .prato-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+        .prato h3{font-size:17px;margin:0}
+        .qtd{font-size:12px;color:#64748b;font-weight:bold}
+        .foto{width:90px;height:90px;object-fit:cover;border-radius:8px;border:1px solid #cbd5e1;flex-shrink:0}
+        .montagem{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 10px;margin-top:8px;font-size:13px;color:#166534}
+        .preparo{margin-top:10px;font-size:13px;color:#334155}
+        .preparo b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#64748b;margin-bottom:4px}
+        .preparo p{margin:3px 0;line-height:1.45}
+        .preparo .vazio{color:#94a3b8;font-style:italic}
+        .util{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;font-size:13px;color:#78350f;white-space:pre-wrap;line-height:1.5}
+        table{width:100%;border-collapse:collapse;font-size:13px}
+        th,td{text-align:left;padding:6px 6px;border-bottom:1px solid #e2e8f0}
+        th{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#64748b}
+        td.c,th.c{text-align:center}
+        .obs{margin-top:22px;font-size:11px;color:#94a3b8}
+        @media print{@page{margin:12mm}}
+      </style></head><body>
+      <div class="head">
+        <div class="tag">Programação do Evento — uso interno · ${unidadeInfo?.nome || ""}</div>
+        <h1>${evento.nome || "Evento"}</h1>
+        ${dataHora ? `<div class="quando">${dataHora}</div>` : ""}
+        <div class="meta">${evento.cliente ? `Cliente: <b>${evento.cliente}</b> · ` : ""}Convidados: <b>${convidados || "—"}</b></div>
+      </div>
+
+      <h2>Cardápio & Modo de Preparo</h2>
+      ${cards}
+
+      ${(evento.utensilios || "").trim() ? `<h2>Utensílios / Equipamentos a Levar</h2><div class="util">${evento.utensilios.replace(/</g, "&lt;")}</div>` : ""}
+
+      <h2>Ingredientes para Comprar</h2>
+      <table>
+        <thead><tr><th>Ingrediente</th><th class="c">Comprar</th></tr></thead>
+        <tbody>${rowsCompras || '<tr><td colspan="2">Nenhum item com ficha técnica.</td></tr>'}</tbody>
+      </table>
+
+      <div class="obs">Programação gerada em ${new Date().toLocaleDateString("pt-BR")}. Documento de uso interno.</div>
     </body></html>`);
   };
 
@@ -622,6 +743,9 @@ export default function OrcamentoEventoPage() {
                <button type="button" onClick={seguro(imprimirInterno)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-5 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm">
                   <Printer size={18} /> Compras (Interno)
                </button>
+               <button type="button" onClick={seguro(imprimirProgramacao)} className="flex items-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-5 py-3 rounded-xl font-bold hover:bg-emerald-50 transition-colors shadow-sm">
+                  <ClipboardList size={18} /> Programação (Cozinha)
+               </button>
                <button type="button" onClick={seguro(imprimirRelatorio)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-5 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm">
                   <FileText size={18} /> Relatório Gerencial
                </button>
@@ -687,9 +811,15 @@ export default function OrcamentoEventoPage() {
                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Cliente</label>
                      <input type="text" placeholder="Nome do cliente" value={evento.cliente} onChange={e=>setEvento({...evento, cliente: e.target.value})} className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500 text-slate-800"/>
                   </div>
-                  <div>
-                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Data</label>
-                     <input type="date" value={evento.data} onChange={e=>setEvento({...evento, data: e.target.value})} className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500 text-slate-700"/>
+                  <div className="grid grid-cols-2 gap-3">
+                     <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Data</label>
+                        <input type="date" value={evento.data} onChange={e=>setEvento({...evento, data: e.target.value})} className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500 text-slate-700"/>
+                     </div>
+                     <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Horário</label>
+                        <input type="time" value={evento.hora || ""} onChange={e=>setEvento({...evento, hora: e.target.value})} className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500 text-slate-700"/>
+                     </div>
                   </div>
                   <div>
                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1"><Users size={12}/> Nº de Convidados</label>
@@ -711,6 +841,12 @@ export default function OrcamentoEventoPage() {
                         </div>
                      )}
                   </div>
+               </div>
+
+               {/* Utensílios do evento — só para a programação interna (não vai pro cliente) */}
+               <div className="mt-4">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1"><ChefHat size={12}/> Utensílios / equipamentos que vou levar</label>
+                  <textarea placeholder="Ex: 2 rechauds, panela de 20L, tábuas, réchaud de banho-maria, garfos de servir, bandejas..." value={evento.utensilios || ""} onChange={e=>setEvento({...evento, utensilios: e.target.value})} rows={2} className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium text-sm text-slate-700 outline-none focus:border-emerald-500 resize-none"/>
                </div>
             </div>
 
@@ -819,18 +955,17 @@ export default function OrcamentoEventoPage() {
                                           voltar sugestão ({fmtBRL(l.precoKgCardapio)})
                                        </button>
                                     )}
-                                    {l.custoKg > 0 && <p className="text-[9px] font-bold text-slate-400 mt-0.5 text-center">custo: {fmtBRL(l.custoKg)}/kg</p>}
                                  </div>
-                                 {/* R$/pessoa — calculado automaticamente */}
+                                 {/* Resumo de Custos e Vendas */}
+                                 <div className="flex flex-col items-center justify-center bg-slate-50 rounded-lg border border-slate-200 p-2">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-center">Custo Total</span>
+                                    <span className="font-black text-lg text-slate-700">{fmtBRL(l.custoTotal)}</span>
+                                    <span className="text-[9px] font-bold text-slate-400 mt-0.5 text-center">{convidados > 0 ? `${fmtBRL(l.custoTotal / convidados)} / pessoa` : ''}</span>
+                                 </div>
                                  <div className="flex flex-col items-center justify-center bg-emerald-50 rounded-lg border-2 border-emerald-200 p-2">
-                                    <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">R$/pessoa</span>
-                                    <span className="font-black text-xl text-emerald-700">{convidados > 0 ? fmtBRL(l.precoPorPessoa) : fmtBRL(l.precoVenda)}</span>
-                                 </div>
-                                 {/* Total do item */}
-                                 <div className="flex flex-col items-center justify-center bg-slate-50 rounded-lg border border-slate-100 p-2">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total</span>
-                                    <span className="font-black text-lg text-slate-800">{fmtBRL(l.vendaTotal)}</span>
-                                    {l.kgTotal && <span className="text-[9px] font-bold text-slate-400">{(+l.kgTotal.toFixed(2)).toLocaleString("pt-BR")} kg</span>}
+                                    <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest text-center">Preço de Venda</span>
+                                    <span className="font-black text-xl text-emerald-700">{fmtBRL(l.vendaTotal)}</span>
+                                    <span className="text-[9px] font-bold text-emerald-600 mt-0.5 text-center">{convidados > 0 ? `${fmtBRL(l.precoPorPessoa)} / pessoa` : ''}</span>
                                  </div>
                               </div>
 
@@ -866,6 +1001,37 @@ export default function OrcamentoEventoPage() {
                                        <span className="text-slate-600">{(l.porcoes / convidados).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}</span> porção/convidado
                                     </span>
                                  )}
+                              </div>
+
+                              {/* PROGRAMAÇÃO INTERNA — descrição de montagem + foto (só pra você) */}
+                              <div className="mt-3 pt-3 border-t border-dashed border-slate-200">
+                                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1"><ClipboardList size={11}/> Programação (uso interno)</p>
+                                 <div className="flex flex-col sm:flex-row gap-3">
+                                    <textarea
+                                       placeholder="Onde/como servir este prato: réchaud na mesa 2, decorar com salsa, servir quente..."
+                                       value={(() => { const it = itens.find(i=>i.produto_id===l.produto_id); return it?.descricao || ""; })()}
+                                       onChange={e=>updateItem(l.produto_id, { descricao: e.target.value })}
+                                       rows={2}
+                                       className="flex-1 p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 outline-none focus:border-emerald-500 resize-none"/>
+                                    <div className="shrink-0">
+                                       {(() => {
+                                          const it = itens.find(i=>i.produto_id===l.produto_id);
+                                          if (it?.foto) return (
+                                             <div className="relative w-24 h-24">
+                                                <img src={it.foto} alt="" className="w-24 h-24 object-cover rounded-lg border border-slate-200"/>
+                                                <button onClick={()=>updateItem(l.produto_id, { foto: null })} className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-md hover:bg-red-600"><X size={13}/></button>
+                                             </div>
+                                          );
+                                          return (
+                                             <label className="w-24 h-24 flex flex-col items-center justify-center gap-1 bg-slate-50 border-2 border-dashed border-slate-200 rounded-lg cursor-pointer hover:border-emerald-400 text-slate-400 hover:text-emerald-500 transition-colors">
+                                                <ImageIcon size={20}/>
+                                                <span className="text-[9px] font-bold">Foto</span>
+                                                <input type="file" accept="image/*" className="hidden" onChange={async e=>{ const f=e.target.files?.[0]; if(f){ try{ const b64=await comprimirImagem(f); updateItem(l.produto_id,{ foto:b64 }); }catch{ alert("Não consegui carregar a imagem."); } } e.target.value=""; }}/>
+                                             </label>
+                                          );
+                                       })()}
+                                    </div>
+                                 </div>
                               </div>
                            </div>
                         </div>

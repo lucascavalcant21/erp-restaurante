@@ -907,6 +907,14 @@ function FichasRunner() {
                                        const foraDaSoma = detalhes.filter(x => x.d.pesoG === null);
                                        const suspeitos = detalhes.filter(x => x.d.precoSuspeito);
                                        return (
+                                          <>
+                                          {suspeitos.length > 0 && (
+                                             <div className="mt-3 bg-red-50 border border-red-200 rounded-xl px-3.5 py-2.5">
+                                                <p className="text-[11px] font-bold text-red-600 leading-relaxed">
+                                                   Preço suspeito inflando o custo: {suspeitos.map(x => `${x.ing.nome} está ${fmtBRL(x.ing.custo_unitario)} por ${String(x.ing.unidade).toLowerCase()} (= ${fmtBRL((Number(x.ing.custo_unitario) || 0) * 1000)}/kg)`).join("; ")}. Se esse é o preço do maço/pacote, corrija no cadastro de Ingredientes.
+                                                </p>
+                                             </div>
+                                          )}
                                           <details className="mt-3 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5">
                                              <summary className="text-[11px] font-bold text-slate-500 cursor-pointer select-none">Ver a conta (ingrediente por ingrediente)</summary>
                                              <div className="mt-2 space-y-1">
@@ -937,13 +945,9 @@ function FichasRunner() {
                                                       Fora da soma de peso (o custo conta, o peso não): {foraDaSoma.map(x => x.ing.nome).join(", ")}. Cadastre o peso médio desses insumos para entrarem.
                                                    </p>
                                                 )}
-                                                {suspeitos.length > 0 && (
-                                                   <p className="text-[10px] font-bold text-red-500 pt-1">
-                                                      Preço suspeito: {suspeitos.map(x => `${x.ing.nome} (${fmtBRL(x.ing.custo_unitario)} por ${String(x.ing.unidade).toLowerCase()} = ${fmtBRL((Number(x.ing.custo_unitario) || 0) * 1000)}/kg)`).join("; ")}. Se esse é o preço do maço/pacote, corrija no cadastro de Ingredientes.
-                                                   </p>
-                                                )}
                                              </div>
                                           </details>
+                                          </>
                                        );
                                     })()}
                                     <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2 flex-wrap">

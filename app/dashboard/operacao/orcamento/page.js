@@ -109,7 +109,7 @@ function comprimirImagem(file) {
 }
 
 const DRAFT_KEY = "orcamento_evento_draft";
-const EVENTO_VAZIO = { nome: "", cliente: "", data: "", hora: "", utensilios: "", convidados: "", comissao_pct: "", parceria_bar_ativa: false, parceria_bar_pct: "30" };
+const EVENTO_VAZIO = { nome: "", cliente: "", data: "", hora: "", utensilios: "", convidados: "", comissao_pct: "", parceria_bar_ativa: false, parceria_bar_pct: "30", valor_final_venda: "", preco_pessoa: "" };
 const novoId = () => (globalThis.crypto?.randomUUID?.() || String(Date.now() + Math.random()));
 const novaProposta = (nome) => ({ id: novoId(), nome, evento: { ...EVENTO_VAZIO }, itens: [] });
 
@@ -255,6 +255,32 @@ export default function OrcamentoEventoPage() {
 
   const convidados = Number(evento.convidados) || 0;
 
+  // Calcula a soma base para saber o multiplicador
+  const somaBase = itens.reduce((a, it) => {
+    const produto = produtos.find(p => p.id === it.produto_id);
+    if (!produto) return a;
+    const comps = (Array.isArray(produto.composicao) && produto.composicao.length) ? produto.composicao : (produto.ficha_id ? [{ ficha_id: produto.ficha_id, qtd: 1 }] : []);
+    const fichasComp = comps.map(c => ({ ficha: fichas.find(f => f.id === c.ficha_id), qtd: Number(c.qtd) || 1 })).filter(x => x.ficha);
+    const qtd = Number(String(it.qtd).replace(',', '.')) || 0;
+    const pesoUnFicha = fichasComp.reduce((acc, x) => acc + (Number(x.ficha.peso_porcao_g) || 0) * x.qtd, 0);
+    const pesoUn = Number(it.pesoUn) || pesoUnFicha || 0;
+    const porcoes = convidados > 0 ? qtd * convidados : qtd;
+    const precoKgCardapio = pesoUn > 0 ? (Number(produto.preco_venda)||0) * (1000/pesoUn) : (Number(produto.preco_venda)||0);
+    const precoKg = it.precoKg !== undefined && it.precoKg !== "" ? Number(it.precoKg) || 0 : precoKgCardapio;
+    const precoVenda = pesoUn > 0 ? precoKg * (pesoUn / 1000) : (Number(produto.preco_venda)||0);
+    const fator = fichasComp.reduce((m, x) => Math.max(m, fatorInNaturaDaFicha(x.ficha, fichas, mapaFatores)), 1);
+    const precoEfBase = (!!it.inNatura && fator > 1) ? precoVenda * fator : precoVenda;
+    return a + (precoEfBase * porcoes);
+  }, 0);
+  // Valor desejado: o R$/pessoa que o cliente vai pagar tem prioridade
+  // (× convidados = total); senão vale o total digitado. O multiplicador
+  // redistribui esse valor pelos itens proporcionalmente.
+  const precoPessoaDesejado = Number(evento.preco_pessoa) || 0;
+  const valorDesejado = (precoPessoaDesejado > 0 && convidados > 0)
+    ? precoPessoaDesejado * convidados
+    : (Number(evento.valor_final_venda) || 0);
+  const multiplicadorMargem = (valorDesejado > 0 && somaBase > 0) ? (valorDesejado / somaBase) : 1;
+
   // Linhas calculadas: produto + ficha + custos + venda.
   // O fluxo principal é por R$/kg: o usuário define porção (g) e preço/kg,
   // e o sistema calcula automaticamente o R$/pessoa.
@@ -300,12 +326,16 @@ export default function OrcamentoEventoPage() {
     // Empanamento / in natura: maior fator entre os componentes
     const fatorInNatura = fichasComp.reduce((m, x) => Math.max(m, fatorInNaturaDaFicha(x.ficha, fichas, mapaFatores)), 1);
     const inNatura = !!it.inNatura && fatorInNatura > 1;
-    const precoEfetivo = inNatura ? precoVenda * fatorInNatura : precoVenda;
-    const precoKgEfetivo = inNatura ? precoKg * fatorInNatura : precoKg;
+    
+    const precoEfetivoBase = inNatura ? precoVenda * fatorInNatura : precoVenda;
+    const precoKgEfetivoBase = inNatura ? precoKg * fatorInNatura : precoKg;
+
+    const precoEfetivo = precoEfetivoBase * multiplicadorMargem;
+    const precoKgEfetivo = precoKgEfetivoBase * multiplicadorMargem;
 
     const vendaTotal = precoEfetivo * porcoes;
     // R$ por pessoa para este item
-    const precoPorPessoa = convidados > 0 ? vendaTotal / convidados : (pesoUn > 0 ? precoKg * (pesoUn / 1000) : precoVenda);
+    const precoPorPessoa = convidados > 0 ? vendaTotal / convidados : (pesoUn > 0 ? precoKgEfetivo * (pesoUn / 1000) : precoEfetivo);
     const kgTotal = gramasTotal ? gramasTotal / 1000 : null;
 
     return {
@@ -345,7 +375,9 @@ export default function OrcamentoEventoPage() {
   }).filter(Boolean);
 
   const custoEvento = linhas.reduce((a, l) => a + l.custoTotal, 0);
-  const vendaEvento = linhas.reduce((a, l) => a + l.vendaTotal, 0);
+  // Com valor desejado definido, o faturamento É esse valor (mesmo que algum
+  // item esteja sem preço no cardápio); senão, soma dos itens.
+  const vendaEvento = valorDesejado > 0 ? valorDesejado : linhas.reduce((a, l) => a + l.vendaTotal, 0);
   const vendaPorConvidado = convidados > 0 ? vendaEvento / convidados : null;
   const custoPorConvidado = convidados > 0 ? custoEvento / convidados : null;
 
@@ -664,31 +696,30 @@ export default function OrcamentoEventoPage() {
   // Venda total e valor/convidado de UMA proposta (para o comparativo)
   const resumoProposta = (prop) => {
     const conv = Number(prop.evento?.convidados) || 0;
-    let venda = 0, itensCount = 0;
+    let somaBase = 0, itensCount = 0;
     (prop.itens || []).forEach(it => {
       const produto = produtos.find(p => p.id === it.produto_id);
       if (!produto) return;
       itensCount++;
-      // Componentes: composição múltipla ou ficha única
-      const comps = (Array.isArray(produto.composicao) && produto.composicao.length)
-        ? produto.composicao
-        : (produto.ficha_id ? [{ ficha_id: produto.ficha_id, qtd: 1 }] : []);
+      const comps = (Array.isArray(produto.composicao) && produto.composicao.length) ? produto.composicao : (produto.ficha_id ? [{ ficha_id: produto.ficha_id, qtd: 1 }] : []);
       const fichasComp = comps.map(c => ({ ficha: fichas.find(f => f.id === c.ficha_id), qtd: Number(c.qtd) || 1 })).filter(x => x.ficha);
       const qtd = Number(String(it.qtd).replace(',', '.')) || 0;
       const pesoUnFicha = fichasComp.reduce((a, x) => a + (Number(x.ficha.peso_porcao_g) || 0) * x.qtd, 0);
       const pesoUn = Number(it.pesoUn) || pesoUnFicha || 0;
-      let porcoesPorPessoa = qtd;
-      let porcoes = conv > 0 ? porcoesPorPessoa * conv : porcoesPorPessoa;
-
+      let porcoes = conv > 0 ? qtd * conv : qtd;
       const precoCardapio = Number(produto.preco_venda) || 0;
       const precoKgCardapio = pesoUn > 0 ? precoCardapio * (1000 / pesoUn) : precoCardapio;
       const precoKg = it.precoKg !== undefined && it.precoKg !== "" ? Number(it.precoKg) || 0 : precoKgCardapio;
       const precoVenda = pesoUn > 0 ? precoKg * (pesoUn / 1000) : precoCardapio;
-
       const fator = fichasComp.reduce((m, x) => Math.max(m, fatorInNaturaDaFicha(x.ficha, fichas, mapaFatores)), 1);
-      const precoEf = (it.inNatura && fator > 1) ? precoVenda * fator : precoVenda;
-      venda += precoEf * porcoes;
+      const precoEfBase = (it.inNatura && fator > 1) ? precoVenda * fator : precoVenda;
+      somaBase += precoEfBase * porcoes;
     });
+    const precoPessoaProp = Number(prop.evento?.preco_pessoa) || 0;
+    const valorDesejado = (precoPessoaProp > 0 && conv > 0)
+      ? precoPessoaProp * conv
+      : (Number(prop.evento?.valor_final_venda) || 0);
+    const venda = valorDesejado > 0 ? valorDesejado : somaBase;
     return { venda, convidados: conv, porConvidado: conv > 0 ? venda / conv : null, itensCount };
   };
 
@@ -824,6 +855,27 @@ export default function OrcamentoEventoPage() {
                   <div>
                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1"><Users size={12}/> Nº de Convidados</label>
                      <input type="number" min="0" placeholder="Ex: 80" value={evento.convidados} onChange={e=>setEvento({...evento, convidados: e.target.value})} className="w-full p-3.5 mt-1 bg-emerald-50 border border-emerald-200 rounded-xl font-black text-emerald-700 outline-none focus:border-emerald-500"/>
+                  </div>
+                  <div>
+                     <label className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Cobrar do Cliente (R$ por pessoa)</label>
+                     <input type="number" min="0" step="0.01" placeholder="Ex: 70,00" value={evento.preco_pessoa || ""} onChange={e=>setEvento({...evento, preco_pessoa: e.target.value})} className="w-full p-3.5 mt-1 bg-emerald-50 border-2 border-emerald-300 rounded-xl font-black text-emerald-700 outline-none focus:border-emerald-500"/>
+                     {precoPessoaDesejado > 0 && convidados > 0 && (
+                        <p className="text-[10px] font-bold text-slate-500 mt-1.5 leading-relaxed">
+                           Cliente paga <span className="text-slate-800">{fmtBRL(vendaEvento)}</span> no total.
+                           Seu custo: <span className="text-slate-800">{fmtBRL(custoPorConvidado || 0)}/pessoa</span> ·
+                           lucro: <span className={`font-black ${lucroEvento >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{fmtBRL(lucroEvento / convidados)}/pessoa ({fmtBRL(lucroEvento)})</span>
+                        </p>
+                     )}
+                     {precoPessoaDesejado > 0 && !(convidados > 0) && (
+                        <p className="text-[10px] font-bold text-amber-600 mt-1.5">Informe o nº de convidados para o cálculo valer.</p>
+                     )}
+                  </div>
+                  <div>
+                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">ou Valor de Venda total (R$)</label>
+                     <input type="number" min="0" step="0.01" placeholder="Ex: 5000" disabled={precoPessoaDesejado > 0 && convidados > 0} value={evento.valor_final_venda || ""} onChange={e=>setEvento({...evento, valor_final_venda: e.target.value})} className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500 disabled:opacity-40"/>
+                     {precoPessoaDesejado > 0 && convidados > 0 && (
+                        <p className="text-[10px] font-medium text-slate-400 mt-1">Ignorado — o valor por pessoa está mandando.</p>
+                     )}
                   </div>
                   <div>
                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Comissão sobre vendas (%)</label>

@@ -35,6 +35,12 @@ export async function salvarProduto(produto) {
   }
 }
 
+export async function removerProduto(id) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase.from("produtos").delete().eq("id", id);
+  return { error: error?.message };
+}
+
 // ─── FUNCIONÁRIOS (Garçons) ────────────────────────────────────────────────────
 export async function fetchGarcons(unidadeId) {
   if (!isSupabaseReady()) return { data: [], error: "Offline" };

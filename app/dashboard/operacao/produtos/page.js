@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
-import { fetchProdutos, salvarProduto } from "../../../lib/vendas";
+import { fetchProdutos, salvarProduto, removerProduto } from "../../../lib/vendas";
 import { fetchFichas } from "../../../lib/operacao"; // Pra linkar o custo
 import { fetchEmbalagens } from "../../../lib/embalagens";
 import { supabase } from "../../../lib/supabase";
@@ -91,7 +91,7 @@ function CardapioRunner() {
   const searchParams = useSearchParams();
   const catUrl = searchParams.get("cat") || "";
 
-  const { unidadeAtiva } = useERP();
+  const { unidadeAtiva, unidadeInfo } = useERP();
   const [produtos, setProdutos] = useState([]);
   const [fichas, setFichas] = useState([]);
   const [embalagensDB, setEmbalagensDB] = useState([]);
@@ -369,6 +369,98 @@ function CardapioRunner() {
      });
   };
 
+  // Excluir prato do cardápio (o histórico de pedidos antigos não é afetado)
+  const handleExcluir = async (p) => {
+    if (!confirm(`Excluir "${p.nome_produto}" do cardápio?\n\nEssa ação não pode ser desfeita.`)) return;
+    const { error } = await removerProduto(p.id);
+    if (error) return alert("Erro ao excluir: " + error);
+    carregar();
+  };
+
+  // Planilha imprimível: preços, custos e CMV de todo o cardápio, por categoria
+  const imprimirTabelaCmv = () => {
+    const lista = filtrados.length ? filtrados : produtos;
+    if (!lista.length) return alert("Cadastre produtos no cardápio primeiro.");
+
+    const gruposDoc = [...grupos];
+    const linhaProduto = (p) => {
+      const custo = custoPorcaoProduto(p, fichas, embalagensDB);
+      const preco = Number(p.preco_venda) || 0;
+      const cmv = calcCmv(p.preco_venda, p, fichas, embalagensDB);
+      const margem = preco - (custo || 0);
+      const temFicha = componentesDoProduto(p).length > 0;
+      return `<tr>
+        <td>${p.nome_produto}${!temFicha ? ' <span class="sem">sem ficha</span>' : ''}</td>
+        <td class="c">${p.departamento || "—"}</td>
+        <td class="r">${temFicha ? fmtBRL(custo) : "—"}</td>
+        <td class="r"><b>${fmtBRL(preco)}</b></td>
+        <td class="r">${temFicha ? fmtBRL(margem) : "—"}</td>
+        <td class="c ${cmv !== null ? (cmv > 30 ? "ruim" : "bom") : ""}">${cmv !== null ? cmv.toFixed(1) + "%" : "—"}</td>
+      </tr>`;
+    };
+
+    const secoes = gruposDoc.map(g => `
+      <h2>${g.categoria}</h2>
+      <table>
+        <thead><tr><th>Produto</th><th class="c">Setor</th><th class="r">Custo/porção</th><th class="r">Preço (PDV)</th><th class="r">Margem</th><th class="c">CMV</th></tr></thead>
+        <tbody>${g.itens.map(linhaProduto).join("")}</tbody>
+      </table>`).join("");
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Cardapio - Precos e CMV</title>
+      <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;padding:20px;max-width:760px;margin:0 auto}
+        .head{border-bottom:3px solid #0f172a;padding-bottom:10px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:flex-end}
+        .tag{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#64748b;font-weight:bold}
+        h1{font-size:24px;margin-top:2px}
+        .resumo{font-size:12px;color:#475569;text-align:right}
+        .resumo b{font-size:18px;display:block}
+        h2{font-size:12px;text-transform:uppercase;letter-spacing:2px;color:#64748b;margin:16px 0 6px;border-bottom:1px solid #e2e8f0;padding-bottom:3px}
+        table{width:100%;border-collapse:collapse;font-size:12px}
+        th,td{text-align:left;padding:6px 6px;border-bottom:1px solid #e2e8f0}
+        th{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#64748b}
+        td.c,th.c{text-align:center}td.r,th.r{text-align:right}
+        td.bom{color:#047857;font-weight:bold}
+        td.ruim{color:#DC2626;font-weight:bold}
+        .sem{color:#DC2626;font-size:9px;text-transform:uppercase;font-weight:bold}
+        .obs{margin-top:18px;font-size:10px;color:#94a3b8}
+        @media print{@page{margin:12mm}}
+      </style></head><body>
+      <div class="head">
+        <div>
+          <div class="tag">Cardápio — Preços, Custos e CMV · ${unidadeInfo?.nome || ""}</div>
+          <h1>Tabela do Cardápio</h1>
+        </div>
+        ${cmvMedio !== null ? `<div class="resumo">CMV médio da carta<b style="color:${cmvMedio > 30 ? "#DC2626" : "#047857"}">${cmvMedio.toFixed(1)}%</b></div>` : ""}
+      </div>
+      ${secoes}
+      <div class="obs">Meta de CMV: até 30% (verde). Margem = preço − custo por porção. Gerado em ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}. Documento interno.</div>
+      </body></html>`;
+
+    let win = null;
+    try { win = window.open("", "_blank", "width=860,height=1000"); } catch { win = null; }
+    if (!win) {
+      try {
+        const iframe = document.createElement("iframe");
+        iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
+        document.body.appendChild(iframe);
+        iframe.srcdoc = html;
+        iframe.onload = () => {
+          setTimeout(() => {
+            try { iframe.contentWindow.focus(); iframe.contentWindow.print(); } catch (e) { alert("Não consegui abrir a impressão: " + e.message); }
+            setTimeout(() => iframe.remove(), 60000);
+          }, 300);
+        };
+        return;
+      } catch (e) {
+        return alert("O navegador bloqueou a janela de impressão. Habilite os popups para este site.\n\nDetalhe: " + e.message);
+      }
+    }
+    win.document.write(html);
+    win.document.close();
+    setTimeout(() => win.print(), 400);
+  };
+
   // Card de produto (usado dentro de cada seção de categoria)
   const renderCard = (p) => {
      const cmv = calcCmv(p.preco_venda, p, fichas);
@@ -385,7 +477,8 @@ function CardapioRunner() {
                  </span>
               )}
               <button onClick={() => abrirGuia(p)} title="Guia de montagem do prato (IA)" className="text-slate-500 hover:text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity p-1"><ClipboardList size={18}/></button>
-              <button onClick={() => abrirEditar(p)} className="text-slate-500 hover:text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity p-1"><Edit3 size={18}/></button>
+              <button onClick={() => abrirEditar(p)} title="Editar" className="text-slate-500 hover:text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity p-1"><Edit3 size={18}/></button>
+              <button onClick={() => handleExcluir(p)} title="Excluir do cardápio" className="text-slate-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1"><Trash2 size={18}/></button>
            </div>
         </div>
 
@@ -460,6 +553,9 @@ function CardapioRunner() {
                      <p className={`text-xl font-black ${corCmv(cmvMedio).text}`}>{cmvMedio.toFixed(1)}%</p>
                   </div>
                )}
+               <button onClick={imprimirTabelaCmv} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-5 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm" title="Planilha com preços, custos e CMV">
+                  <Printer size={18} /> Imprimir Tabela
+               </button>
                <button onClick={abrirNovo} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
                   <Plus size={18} /> Novo Produto
                </button>

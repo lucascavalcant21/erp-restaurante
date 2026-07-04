@@ -28,7 +28,7 @@ export default function RHPage() {
   const [cargos, setCargos] = useState([]);
   const [busca, setBusca] = useState("");
   const [abaAtiva, setAbaAtiva] = useState("Fixo");
-  const statePadrao = { nome: "", cargo: "", salario: "", horario_entrada: "", horario_saida: "", dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60, tipo_contrato: "Fixo", telefone: "", cpf: "", chave_pix: "", avaliacao_estrelas: 0, anotacoes_rh: "", data_admissao: "", status_contrato: "Definitivo" };
+  const statePadrao = { nome: "", cargo: "", salario: "", horario_entrada: "", horario_saida: "", dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60, tipo_contrato: "Fixo", telefone: "", cpf: "", chave_pix: "", avaliacao_estrelas: 0, anotacoes_rh: "", data_admissao: "", status_contrato: "Definitivo", supervisor_id: "" };
   const [modalNovo, setModalNovo] = useState(false);
   const [novoFunc, setNovoFunc] = useState(statePadrao);
   
@@ -440,7 +440,8 @@ export default function RHPage() {
        avaliacao_estrelas: f.avaliacao_estrelas || 0,
        anotacoes_rh: f.anotacoes_rh || "",
        data_admissao: f.data_admissao || "",
-       status_contrato: f.status_contrato || "Definitivo"
+       status_contrato: f.status_contrato || "Definitivo",
+       supervisor_id: f.supervisor_id || ""
     });
     setModalNovo(true);
   };
@@ -464,7 +465,8 @@ export default function RHPage() {
       avaliacao_estrelas: Number(novoFunc.avaliacao_estrelas) || 0,
       anotacoes_rh: novoFunc.anotacoes_rh,
       data_admissao: novoFunc.data_admissao || null,
-      status_contrato: novoFunc.status_contrato
+      status_contrato: novoFunc.status_contrato,
+      supervisor_id: novoFunc.supervisor_id || null
     };
 
     if (editandoId) {
@@ -981,6 +983,16 @@ export default function RHPage() {
                      ) : (
                        <input type="text" value={novoFunc.cargo} onChange={e=>setNovoFunc({...novoFunc, cargo: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500" placeholder="Digite ou crie cargos nas Configurações" />
                      )}
+                  </div>
+                  <div>
+                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Supervisor direto (organograma)</label>
+                     <select value={novoFunc.supervisor_id || ""} onChange={e=>setNovoFunc({...novoFunc, supervisor_id: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500 appearance-none text-slate-700">
+                        <option value="">Ninguém — topo da hierarquia</option>
+                        {funcionarios.filter(f => f.id !== editandoId).map(f => (
+                           <option key={f.id} value={f.id}>{f.nome} ({f.cargo || "—"})</option>
+                        ))}
+                     </select>
+                     <p className="text-[10px] text-slate-400 font-medium mt-1">Define a posição no Organograma: quem não tem supervisor aparece no topo.</p>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                      <div>

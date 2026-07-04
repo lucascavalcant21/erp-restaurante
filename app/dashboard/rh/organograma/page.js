@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Users, User, Search, Network, ChevronDown } from "lucide-react";
 import { PageHeader, PageBody, EmptyState } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
-import { fetchFuncionarios } from "../../../lib/rh";
+import { fetchColaboradores } from "../../../lib/rh";
 
 // ════════════════════════════════════════════════════════════
 // NÓ DO ORGANOGRAMA CORPORATIVO
@@ -98,8 +98,8 @@ export default function OrganogramaCorporativoPage() {
   useEffect(() => {
     async function carregar() {
       setLoading(true);
-      const { data } = await fetchFuncionarios(unidadeAtiva);
-      setLista(data?.filter(f => f.ativo !== false) || []); 
+      const { data } = await fetchColaboradores(unidadeAtiva);
+      setLista((data || []).filter(f => (f.status || "ativo") !== "inativo"));
       setLoading(false);
     }
     carregar();

@@ -183,6 +183,14 @@ export default function PontoPage() {
     }
   };
 
+  // Hooks SEMPRE antes de qualquer return condicional (regra do React —
+  // declarar depois derruba o componente na hora que a tela de sucesso abre)
+  const containerRef = useRef(null);
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) containerRef.current?.requestFullscreen?.();
+    else document.exitFullscreen?.();
+  };
+
   // ── Tela de sucesso / alerta ───────────────────────────────────────────────
   if (sucesso) {
     const alerta = sucesso.tone === "alerta";
@@ -196,12 +204,6 @@ export default function PontoPage() {
       </div>
     );
   }
-
-  const containerRef = useRef(null);
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) containerRef.current?.requestFullscreen?.();
-    else document.exitFullscreen?.();
-  };
 
   // ── Tela do funcionário (bater ponto) ─────────────────────────────────────
   if (selecionado) {

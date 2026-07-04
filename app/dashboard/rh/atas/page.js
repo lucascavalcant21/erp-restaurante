@@ -134,7 +134,6 @@ export default function AtasReuniaoPage() {
     const nomeEmpresa = u.nome_fantasia || u.nome || unidadeInfo?.nome || "Empresa";
     const dataFmt = form.data_reuniao ? form.data_reuniao.split("-").reverse().join("/") : "____/____/______";
     const enderecoLinha = [u.endereco && `${u.endereco}${u.numero ? ", " + u.numero : ""}`, u.bairro, u.cidade && `${u.cidade}${u.uf ? "/" + u.uf : ""}`].filter(Boolean).join(" · ");
-    const logoUrl = `${window.location.origin}/icon-192x192.png`;
 
     const presentes = colaboradores.filter(c => participantes[c.id]);
     // Nº de linhas: o que você definiu em "quantos vão participar" (nomes
@@ -145,7 +144,8 @@ export default function AtasReuniaoPage() {
     const linhaAssin = (n, nome, cargo) => `
       <tr>
         <td class="n">${n}</td>
-        <td class="nome">${nome || ""}${cargo ? `<span class="cargo"> — ${cargo}</span>` : ""}</td>
+        <td class="nome">${nome || ""}</td>
+        <td class="funcao">${cargo || ""}</td>
         <td class="assin"></td>
       </tr>`;
     const linhasPresenca = [
@@ -160,10 +160,8 @@ export default function AtasReuniaoPage() {
       <style>
         *{margin:0;padding:0;box-sizing:border-box}
         body{font-family:Georgia,'Times New Roman',serif;color:#111;padding:20mm 16mm;max-width:720px;margin:0 auto}
-        .topo{display:flex;align-items:center;gap:16px;border-bottom:3px double #111;padding-bottom:12px;margin-bottom:6px}
-        .topo img{width:58px;height:58px;border-radius:12px}
-        .empresa{flex:1}
-        .empresa h2{font-size:19px;letter-spacing:.5px}
+        .topo{border-bottom:3px double #111;padding-bottom:12px;margin-bottom:6px;text-align:center}
+        .empresa h2{font-size:20px;letter-spacing:.5px}
         .empresa p{font-size:10.5px;color:#444;margin-top:2px;font-family:Arial,sans-serif}
         h1{text-align:center;font-size:17px;letter-spacing:4px;text-transform:uppercase;margin:16px 0 4px}
         .tema{text-align:center;font-size:13px;color:#333;margin-bottom:12px;font-style:italic}
@@ -175,15 +173,14 @@ export default function AtasReuniaoPage() {
         th,td{border:1px solid #555;padding:8px 8px;font-size:11.5px;font-family:Arial,sans-serif}
         th{background:#eee;font-size:9px;text-transform:uppercase;letter-spacing:1px}
         td.n{width:6%;text-align:center;color:#666}
-        td.nome{width:52%}
-        td .cargo{color:#666;font-size:10px}
-        td.assin{width:42%;height:30px}
+        td.nome{width:34%}
+        td.funcao{width:22%;color:#444}
+        td.assin{width:38%;height:30px}
         .rodape{margin-top:34px;display:flex;justify-content:center}
         .rodape div{width:320px;border-top:1px solid #111;padding-top:5px;text-align:center;font-size:11px;font-family:Arial,sans-serif;color:#333}
         @media print{@page{margin:14mm}}
       </style></head><body>
       <div class="topo">
-        <img src="${logoUrl}" alt="logo"/>
         <div class="empresa">
           <h2>${nomeEmpresa}</h2>
           <p>
@@ -207,7 +204,7 @@ export default function AtasReuniaoPage() {
 
       <h3>Lista de Presença — nome e assinatura</h3>
       <table>
-        <thead><tr><th>Nº</th><th>Nome / Função</th><th>Assinatura</th></tr></thead>
+        <thead><tr><th>Nº</th><th>Nome</th><th>Função</th><th>Assinatura</th></tr></thead>
         <tbody>${linhasPresenca}</tbody>
       </table>
 

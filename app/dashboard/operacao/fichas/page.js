@@ -402,23 +402,14 @@ function FichasRunner() {
     if (unidadeAtiva) carregar();
   }, [unidadeAtiva, deptUrl]);
 
-  // Calcula a soma dos ingredientes toda vez que ingFicha muda
-  // e atualiza automaticamente o formulário se estiver no modo autoSoma
+  // Rendimento automático: sempre que os ingredientes mudam (e não estiver no
+  // modo manual), o rendimento passa a ser o PESO SOMADO dos ingredientes, na
+  // unidade que domina (kg/g/l/ml). Sem porção, sem multiplicação.
   useEffect(() => {
     if (form && autoSoma && ingFicha.length > 0) {
       const est = rendimentoPelosIngredientes(ingFicha);
       if (est && est.totalG > 0) {
-         setForm(f => {
-            const un = String(f.rendimento_unidade || "porcao").toLowerCase();
-            if (un === "g" || un === "kg" || un === "l" || un === "ml") {
-               return { ...f, rendimento_porcoes: String(est.valor), rendimento_unidade: est.unidade };
-            } else if (un === "porcao" || un === "un") {
-               const rend = Number(f.rendimento_porcoes) || 1;
-               const pesoP = (est.totalG / rend).toFixed(1).replace('.0', '');
-               return { ...f, peso_porcao_g: pesoP };
-            }
-            return f;
-         });
+         setForm(f => ({ ...f, rendimento_porcoes: String(est.valor), rendimento_unidade: est.unidade, peso_porcao_g: "" }));
       }
     }
   }, [ingFicha, autoSoma]);
@@ -861,9 +852,58 @@ function FichasRunner() {
                         </label>
                         <p className="text-[11px] text-purple-500 mt-1 font-medium">Marque se esta receita é usada como ingrediente de outros pratos (ex.: base de tucupi, molho, massa).</p>
                      </div>
-                     {/* RENDIMENTO — tudo numa linha: quanto produz, em quê, e o peso da porção */}
+                     {/* RENDIMENTO — automático pela soma dos ingredientes (peso + custo de 1 kg) */}
                      <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Rendimento da receita</p>
+                        <div className="flex items-center justify-between mb-3">
+                           <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Rendimento da receita</p>
+                           {autoSoma
+                              ? <button type="button" onClick={() => setAutoSoma(false)} className="text-[10px] font-bold text-slate-400 hover:text-slate-600 underline">ajustar manualmente</button>
+                              : <button type="button" onClick={() => setAutoSoma(true)} className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 underline">← voltar ao automático</button>}
+                        </div>
+                        {autoSoma ? (
+                           (() => {
+                              const est = rendimentoPelosIngredientes(ingFicha);
+                              const custoTotal = calcularCustoTotal(ingFicha);
+                              if (!est) return <p className="text-sm text-slate-400 font-medium py-2">Adicione ingredientes — o rendimento e o custo de 1 kg aparecem aqui sozinhos.</p>;
+                              const custoKg = custoTotal / (est.totalG / 1000);
+                              const unLabel = ({ kg: "kg", g: "g", l: "L", ml: "ml" })[est.unidade];
+                              return (
+                                 <>
+                                    <div className="grid grid-cols-2 gap-3">
+                                       <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
+                                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rende</p>
+                                          <p className="text-2xl font-black text-slate-800 mt-1">{est.valor.toLocaleString("pt-BR")} <span className="text-base">{unLabel}</span></p>
+                                          <p className="text-[10px] font-medium text-slate-400">somado dos ingredientes</p>
+                                       </div>
+                                       <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center">
+                                          <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">1 kg custa</p>
+                                          <p className="text-2xl font-black text-emerald-700 mt-1">{fmtBRL(custoKg)}</p>
+                                          <p className="text-[10px] font-medium text-emerald-600/70">custo total {fmtBRL(custoTotal)}</p>
+                                       </div>
+                                    </div>
+                                    <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2 flex-wrap">
+                                       <span className="text-[11px] font-bold text-slate-500">Quanto custa se eu usar</span>
+                                       <input type="number" step="0.01" min="0" placeholder="0" value={calcQtd} onChange={e=>setCalcQtd(e.target.value)} className="w-20 p-2 text-center bg-slate-50 border border-slate-200 rounded-lg font-black text-slate-800 outline-none focus:border-emerald-500"/>
+                                       <select value={["g","kg","l","ml"].includes(calcUn) ? calcUn : "g"} onChange={e=>setCalcUn(e.target.value)} className="p-2 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-600 text-sm outline-none focus:border-emerald-500">
+                                          <option value="g">g</option>
+                                          <option value="kg">kg</option>
+                                          <option value="l">L</option>
+                                          <option value="ml">ml</option>
+                                       </select>
+                                       {(() => {
+                                          const q = Number(calcQtd) || 0;
+                                          let base = 0;
+                                          if (calcUn === "g" || calcUn === "ml") base = q;
+                                          else if (calcUn === "kg" || calcUn === "l") base = q * 1000;
+                                          if (base <= 0) return null;
+                                          return <span className="text-sm font-bold text-slate-600">? → <span className="font-black text-emerald-600">{fmtBRL(custoKg * (base / 1000))}</span></span>;
+                                       })()}
+                                    </div>
+                                 </>
+                              );
+                           })()
+                        ) : (
+                        <>
                         <div className={`grid ${["kg", "g", "l", "ml"].includes(String(form.rendimento_unidade || "porcao").toLowerCase()) ? "grid-cols-2" : "grid-cols-3"} gap-3`}>
                            <div>
                               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Rendimento</label>
@@ -997,6 +1037,8 @@ function FichasRunner() {
                               </div>
                            );
                         })()}
+                        </>
+                        )}
                      </div>
 
                      {/* COMPOSIÇÃO DA PORÇÃO: quantas gramas de cada ingrediente vão em 1 porção */}

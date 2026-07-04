@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Sparkles, Flame, Droplets, Plus, Clock, CheckCircle2, Trash2, CalendarClock, Wind, CalendarCheck } from "lucide-react";
+import { Sparkles, Flame, Droplets, Plus, Clock, CheckCircle2, Trash2, CalendarClock, Wind, CalendarCheck, Printer } from "lucide-react";
 import { PageHeader, PageBody, EmptyState, Modal, Field, TextInput, NumberInput, Select, Btn, Toast } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
 
@@ -36,6 +36,85 @@ function formatarData(iso) {
   if (!iso) return "—";
   const s = iso.length <= 10 ? iso + "T00:00:00" : iso;
   return new Date(s).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
+}
+
+// Planilha imprimível (A4) para preencher à mão: lista as limpezas com a
+// Função responsável e colunas em branco para anotar data/assinatura de quem fez.
+function imprimirPlanilhaAgenda(unidadeNome, itens) {
+  let win = null;
+  try { win = window.open("", "_blank", "width=900,height=1000"); } catch { win = null; }
+  if (!win) { alert("O navegador bloqueou a janela de impressão. Habilite os popups para este site."); return; }
+
+  const catNome = { coifa: "Coifa", ar_condicionado: "Ar-condicionado", outro: "Geral" };
+  // 6 colunas em branco para registrar execuções ao longo do período
+  const colsExec = Array.from({ length: 6 });
+  // Linhas extras em branco para tarefas escritas na hora
+  const linhasVazias = Math.max(0, 4);
+
+  const linha = (nome, categoria, funcao, freq) => `
+    <tr>
+      <td class="tarefa">${nome || "&nbsp;"}${categoria ? `<span class="cat">${catNome[categoria] || ""}</span>` : ""}</td>
+      <td class="funcao">${funcao || "&nbsp;"}</td>
+      <td class="freq">${freq ? freq + " dias" : "&nbsp;"}</td>
+      ${colsExec.map(() => `<td class="exec"></td>`).join("")}
+    </tr>`;
+
+  const corpo = [
+    ...itens.map((i) => linha(i.nome, i.categoria, i.funcao, i.frequencia_dias)),
+    ...Array.from({ length: linhasVazias }).map(() => linha("", "", "", "")),
+  ].join("");
+
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Planilha de Limpezas</title>
+    <style>
+      *{margin:0;padding:0;box-sizing:border-box}
+      body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:16mm 12mm}
+      .head{border-bottom:3px solid #111;padding-bottom:8px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:flex-end}
+      .tag{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#555;font-weight:bold}
+      h1{font-size:20px;margin-top:2px}
+      .sub{font-size:12px;color:#444;text-align:right}
+      .mes{margin:10px 0 6px;font-size:12px}
+      .mes b{display:inline-block;min-width:180px;border-bottom:1px solid #999}
+      table{width:100%;border-collapse:collapse;margin-top:6px}
+      th,td{border:1px solid #333;padding:6px 6px;font-size:11px;vertical-align:middle}
+      th{background:#eee;text-transform:uppercase;letter-spacing:.5px;font-size:9px}
+      td.tarefa{font-weight:bold;width:24%}
+      td.tarefa .cat{display:block;font-weight:normal;font-size:9px;color:#666;text-transform:uppercase}
+      td.funcao{width:18%}
+      td.freq{width:10%;text-align:center;color:#444}
+      td.exec{height:34px}
+      .exec-h{writing-mode:horizontal-tb}
+      .legenda{margin-top:10px;font-size:10px;color:#555}
+      .assin{margin-top:26px;display:flex;justify-content:space-between;gap:40px}
+      .assin div{flex:1;border-top:1px solid #333;padding-top:4px;font-size:10px;text-align:center;color:#444}
+      @media print{@page{size:A4 landscape;margin:10mm}}
+    </style></head><body>
+      <div class="head">
+        <div>
+          <div class="tag">Controle de Limpezas Programadas</div>
+          <h1>${unidadeNome || "Estabelecimento"}</h1>
+        </div>
+        <div class="sub">Emitido em ${new Date().toLocaleDateString("pt-BR")}</div>
+      </div>
+      <div class="mes">Mês/Período de referência: <b>&nbsp;</b></div>
+      <table>
+        <thead>
+          <tr>
+            <th>Tarefa</th>
+            <th>Função Responsável</th>
+            <th>Frequência</th>
+            ${colsExec.map(() => `<th>Data / Assin.</th>`).join("")}
+          </tr>
+        </thead>
+        <tbody>${corpo}</tbody>
+      </table>
+      <div class="legenda">Preencha a data e a assinatura de quem realizou cada limpeza. Linhas em branco para tarefas adicionais.</div>
+      <div class="assin">
+        <div>Responsável pela conferência</div>
+        <div>Gerente / Encarregado</div>
+      </div>
+      <script>window.onload=function(){setTimeout(function(){window.print();},300);};</script>
+    </body></html>`);
+  win.document.close();
 }
 
 function calcularDuracao(inicio, fim) {
@@ -117,6 +196,7 @@ export default function ControlesCozinha() {
         nome: form.nome,
         categoria: form.categoria || "outro",
         frequencia_dias: freq,
+        funcao: form.funcao || "",
         responsavel: form.responsavel || "",
         observacao: form.observacao || "",
         ultima_execucao: form.ultima_execucao ? new Date(form.ultima_execucao).toISOString() : null,
@@ -216,9 +296,16 @@ export default function ControlesCozinha() {
             {abaAtiva === "oleo" && "Ciclos do Óleo da Fritadeira"}
             {abaAtiva === "agenda" && "Limpezas Programadas"}
           </h2>
-          <Btn variant="primary" onClick={() => setModalNovo(true)}>
-            <Plus size={18} /> {abaAtiva === "agenda" ? "Agendar Limpeza" : "Iniciar Novo Uso"}
-          </Btn>
+          <div className="flex gap-2">
+            {abaAtiva === "agenda" && (
+              <Btn variant="ghost" onClick={() => imprimirPlanilhaAgenda(unidadeInfo?.nome, dados)}>
+                <Printer size={18} /> Imprimir Planilha
+              </Btn>
+            )}
+            <Btn variant="primary" onClick={() => setModalNovo(true)}>
+              <Plus size={18} /> {abaAtiva === "agenda" ? "Agendar Limpeza" : "Iniciar Novo Uso"}
+            </Btn>
+          </div>
         </div>
 
         {loading ? (
@@ -244,6 +331,7 @@ export default function ControlesCozinha() {
                       <div className="flex items-center gap-1"><CalendarClock size={14} className="text-slate-400" /> Próxima: <b className="text-slate-800">{formatarData(item.proxima_prevista)}</b></div>
                       <div className="flex items-center gap-1"><CheckCircle2 size={14} className="text-slate-400" /> Última: <b>{formatarData(item.ultima_execucao)}</b></div>
                       <div className="flex items-center gap-1">A cada <b>{item.frequencia_dias} dias</b></div>
+                      {item.funcao && <div className="flex items-center gap-1">Função: <b>{item.funcao}</b></div>}
                       {item.responsavel && <div className="flex items-center gap-1">Responsável: <b>{item.responsavel}</b></div>}
                     </div>
                     {item.observacao && <p className="mt-2 text-xs text-slate-500">{item.observacao}</p>}
@@ -394,9 +482,14 @@ export default function ControlesCozinha() {
                   <input type="date" value={form.proxima_prevista || ""} onChange={e => setForm({ ...form, proxima_prevista: e.target.value })} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-slate-400" />
                 </Field>
               </div>
-              <Field label="Responsável (opcional)">
-                <TextInput value={form.responsavel || ""} onChange={e => setForm({ ...form, responsavel: e.target.value })} placeholder="Ex: Empresa X / João" />
-              </Field>
+              <div className="flex gap-4">
+                <Field label="Função responsável">
+                  <TextInput value={form.funcao || ""} onChange={e => setForm({ ...form, funcao: e.target.value })} placeholder="Ex: Aux. de Limpeza, Cozinheiro..." />
+                </Field>
+                <Field label="Responsável / Empresa (opcional)">
+                  <TextInput value={form.responsavel || ""} onChange={e => setForm({ ...form, responsavel: e.target.value })} placeholder="Ex: Empresa X / João" />
+                </Field>
+              </div>
               <Field label="Observações (opcional)">
                 <TextInput value={form.observacao || ""} onChange={e => setForm({ ...form, observacao: e.target.value })} placeholder="Ex: contato do técnico, detalhes..." />
               </Field>

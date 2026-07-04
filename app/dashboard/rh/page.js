@@ -50,6 +50,38 @@ export default function RHPage() {
   const [domingosProximos, setDomingosProximos] = useState([]);
 
   // Estados Modal Consumo (Vales)
+  // Ficha de extra: antes de imprimir, escolhe os itens emprestados e o valor
+  // pago — o desmembramento (fixo/INSS/FGTS/taxa) é calculado na hora.
+  const ITENS_FICHA_PADRAO = ["Uniforme / Camisa", "Avental", "Cartão de Consumo", "Rádio Comunicador / Fone"];
+  const [modalFicha, setModalFicha] = useState(false);
+  const [fichaFunc, setFichaFunc] = useState(null);
+  const [fichaValor, setFichaValor] = useState("");
+  const [fichaItens, setFichaItens] = useState([]);
+  const [fichaNovoItem, setFichaNovoItem] = useState("");
+
+  const abrirModalFicha = (f) => {
+    setFichaFunc(f);
+    setFichaValor(f?.salario ? String(f.salario) : "");
+    setFichaItens(ITENS_FICHA_PADRAO.map(nome => ({ nome, incluir: true })));
+    setFichaNovoItem("");
+    setModalFicha(true);
+  };
+
+  const addItemFicha = () => {
+    const nome = fichaNovoItem.trim();
+    if (!nome) return;
+    setFichaItens(lista => [...lista, { nome, incluir: true }]);
+    setFichaNovoItem("");
+  };
+
+  const imprimirFichaPreparada = () => {
+    imprimirFichaExtra(fichaFunc, {
+      diaria: fichaValor,
+      itens: fichaItens.filter(i => i.incluir).map(i => i.nome),
+    });
+    setModalFicha(false);
+  };
+
   // Banco de horas: intervalo de 1h não tirado acumula (limite 8h/mês)
   const [bancoHoras, setBancoHoras] = useState([]);
   const [modalBanco, setModalBanco] = useState(false);
@@ -192,14 +224,17 @@ export default function RHPage() {
 
   const filtrados = funcionarios.filter(f => f.nome.toLowerCase().includes(busca.toLowerCase()) && (f.tipo_contrato || "Fixo") === abaAtiva);
 
-  const imprimirFichaExtra = (funcionario) => {
+  const imprimirFichaExtra = (funcionario, opcoes = {}) => {
     const hoje = new Date().toLocaleDateString('pt-BR');
     const nome = funcionario ? funcionario.nome : "__________________________________________________";
     const cpf = funcionario ? (funcionario.cpf || "___.___.___-__") : "___.___.___-__";
     const cargo = funcionario ? (funcionario.cargo || "___________________") : "___________________";
 
     // Diária desmembrada (mesma regra do "Lançar Diária"): fixo + INSS 5% + FGTS 8% + taxa de serviço 10%
-    const diariaTotal = funcionario ? (parseFloat(String(funcionario.salario || "").replace(",", ".")) || 0) : 0;
+    // O valor digitado na hora da impressão tem prioridade sobre o cadastro.
+    const diariaTotal = parseFloat(String(opcoes.diaria ?? (funcionario?.salario || "")).replace(",", ".")) || 0;
+    // Itens escolhidos na hora (ou o kit padrão)
+    const itensLista = Array.isArray(opcoes.itens) && opcoes.itens.length ? opcoes.itens : ITENS_FICHA_PADRAO;
     const dInss = diariaTotal * 0.05;
     const dFgts = diariaTotal * 0.08;
     const dTaxa = diariaTotal * 0.10;
@@ -295,26 +330,12 @@ export default function RHPage() {
                  </tr>
                </thead>
                <tbody>
+                 ${itensLista.map(item => `
                  <tr>
-                   <td><span class="checkbox"></span> Uniforme / Camisa</td>
+                   <td><span class="checkbox"></span> ${item}</td>
                    <td class="signature-box"></td>
                    <td class="signature-box"></td>
-                 </tr>
-                 <tr>
-                   <td><span class="checkbox"></span> Avental</td>
-                   <td class="signature-box"></td>
-                   <td class="signature-box"></td>
-                 </tr>
-                 <tr>
-                   <td><span class="checkbox"></span> Cartão de Consumo</td>
-                   <td class="signature-box"></td>
-                   <td class="signature-box"></td>
-                 </tr>
-                 <tr>
-                   <td><span class="checkbox"></span> Rádio Comunicador / Fone</td>
-                   <td class="signature-box"></td>
-                   <td class="signature-box"></td>
-                 </tr>
+                 </tr>`).join("")}
                  <tr>
                    <td><span class="checkbox"></span> Outro: __________________</td>
                    <td class="signature-box"></td>
@@ -721,7 +742,7 @@ export default function RHPage() {
          </div>
          <div className="flex items-center gap-3">
             {abaAtiva === "Freelancer" && (
-               <button onClick={() => imprimirFichaExtra(null)} className="flex items-center gap-2 bg-amber-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-amber-700 transition-colors shadow-lg shadow-amber-600/20">
+               <button onClick={() => abrirModalFicha(null)} className="flex items-center gap-2 bg-amber-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-amber-700 transition-colors shadow-lg shadow-amber-600/20">
                   <Printer size={18} /> Ficha em Branco
                </button>
             )}
@@ -901,7 +922,7 @@ export default function RHPage() {
                                     Espelho de Ponto
                                  </button>
                                  {f.tipo_contrato === "Freelancer" && (
-                                     <button onClick={() => imprimirFichaExtra(f)} className="flex items-center gap-1 text-xs font-black text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg hover:bg-amber-100 transition-colors">
+                                     <button onClick={() => abrirModalFicha(f)} className="flex items-center gap-1 text-xs font-black text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg hover:bg-amber-100 transition-colors">
                                         <Printer size={14}/> Ficha Controle
                                      </button>
                                   )}
@@ -1099,6 +1120,67 @@ export default function RHPage() {
       )}
 
       {/* Modal Gerenciar Folgas */}
+      {/* MODAL: PREPARAR FICHA DE EXTRA (valor pago + itens emprestados) */}
+      {modalFicha && (() => {
+         const total = parseFloat(String(fichaValor).replace(",", ".")) || 0;
+         const inss = total * 0.05, fgts = total * 0.08, taxa = total * 0.10;
+         const fixo = total - inss - fgts - taxa;
+         const fmt = (v) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+         return (
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
+            <div className="bg-white rounded-[32px] w-full max-w-lg my-8 p-8 shadow-2xl animate-in zoom-in-95 max-h-[88vh] overflow-y-auto">
+               <div className="flex justify-between items-center mb-5">
+                  <div>
+                     <h2 className="font-black text-2xl text-slate-800">Preparar Ficha de Extra</h2>
+                     <p className="text-sm font-bold text-slate-500 mt-1">{fichaFunc ? fichaFunc.nome : "Ficha em branco (extra não cadastrado)"}</p>
+                  </div>
+                  <button onClick={() => setModalFicha(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+               </div>
+
+               {/* Valor pago -> desmembramento automático */}
+               <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 mb-5">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-emerald-700 block mb-1">Valor pago da diária (R$)</label>
+                  <input type="number" min="0" step="0.01" value={fichaValor} onChange={e=>setFichaValor(e.target.value)} placeholder="Ex: 150,00"
+                     className="w-full p-3.5 bg-white border-2 border-emerald-300 rounded-xl font-black text-2xl text-emerald-700 outline-none focus:border-emerald-500"/>
+                  {total > 0 ? (
+                     <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-3 text-xs font-bold text-slate-600">
+                        <span>Valor Fixo: <b className="text-slate-800">{fmt(fixo)}</b></span>
+                        <span>INSS (5%): <b className="text-slate-800">{fmt(inss)}</b></span>
+                        <span>FGTS (8%): <b className="text-slate-800">{fmt(fgts)}</b></span>
+                        <span>Taxa de Serviço (10%): <b className="text-slate-800">{fmt(taxa)}</b></span>
+                        <span className="col-span-2 pt-1 border-t border-emerald-200">Sai impresso já desmembrado na ficha.</span>
+                     </div>
+                  ) : (
+                     <p className="text-[10px] font-medium text-emerald-700/70 mt-2">Sem valor, o acerto sai em branco para preencher à mão.</p>
+                  )}
+               </div>
+
+               {/* Itens emprestados: escolhe na hora */}
+               <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-6">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Itens que a empresa vai emprestar (só os marcados saem na ficha)</p>
+                  <div className="space-y-1.5 mb-3">
+                     {fichaItens.map((it, idx) => (
+                        <label key={idx} className={`flex items-center gap-2.5 p-2.5 rounded-xl cursor-pointer border ${it.incluir ? "bg-white border-emerald-200" : "bg-slate-100 border-slate-200 opacity-60"}`}>
+                           <input type="checkbox" checked={it.incluir} onChange={e=>setFichaItens(lista => lista.map((x, i) => i === idx ? { ...x, incluir: e.target.checked } : x))} className="w-4 h-4 accent-emerald-600"/>
+                           <span className="text-sm font-bold text-slate-700 flex-1">{it.nome}</span>
+                        </label>
+                     ))}
+                  </div>
+                  <div className="flex gap-2">
+                     <input type="text" value={fichaNovoItem} onChange={e=>setFichaNovoItem(e.target.value)} onKeyDown={e=>{ if(e.key==="Enter"){ e.preventDefault(); addItemFicha(); } }} placeholder="Adicionar outro item (ex: Faca do chef, Touca...)"
+                        className="flex-1 p-2.5 bg-white border border-slate-200 rounded-xl font-medium text-sm outline-none focus:border-emerald-500"/>
+                     <button type="button" onClick={addItemFicha} className="px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-black text-sm rounded-xl">+ Add</button>
+                  </div>
+               </div>
+
+               <button onClick={imprimirFichaPreparada} className="w-full py-4 bg-amber-600 hover:bg-amber-700 text-white font-black text-lg rounded-2xl transition-all active:scale-95 shadow-xl shadow-amber-600/20 flex items-center justify-center gap-2">
+                  <Printer size={20}/> Imprimir Ficha
+               </button>
+            </div>
+         </div>
+         );
+      })()}
+
       {/* MODAL: BANCO DE HORAS (intervalo não tirado; limite 8h/mês) */}
       {modalBanco && funcBanco && (() => {
          const lancs = bancoHoras.filter(b => b.colaborador_id === funcBanco.id);

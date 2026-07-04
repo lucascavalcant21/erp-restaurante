@@ -122,7 +122,26 @@ function rendimentoPelosIngredientes(ingLista) {
   const ehLiquido = liquidosMl > solidosG;
   const unidade = total >= 1000 ? (ehLiquido ? "l" : "kg") : (ehLiquido ? "ml" : "g");
   const valor = (unidade === "kg" || unidade === "l") ? total / 1000 : total;
-  return { totalG: total, unidade, valor: Math.round(valor * 1000) / 1000 };
+  return { totalG: total, unidade, valor: Math.round(valor * 1000) / 1000, solidosG, liquidosMl };
+}
+
+// Detalhe por ingrediente: quanto de peso e custo cada um contribui na soma.
+// pesoG = null quando o item não tem peso conhecido (fica fora do rendimento).
+function detalheIngrediente(ing) {
+  const u = String(ing.unidade || "").toLowerCase();
+  const q = Number(ing.quantidade) || 0;
+  const pm = Number(ing.peso_medio_g) || 0;
+  let pesoG = null, liquido = false;
+  if (u === "kg") pesoG = q * 1000;
+  else if (u === "g") pesoG = q;
+  else if (u === "l") { pesoG = q * 1000; liquido = true; }
+  else if (u === "ml") { pesoG = q; liquido = true; }
+  else if ((u === "un" || u === "unidade" || u === "porcao") && pm > 0) pesoG = q * pm;
+  const custo = (Number(ing.custo_unitario) || 0) * q;
+  // Preço por grama ≥ R$1 (= R$1000/kg): quase sempre é cadastro errado
+  // (preço do pacote/maço salvo como preço da grama).
+  const precoSuspeito = (u === "g" || u === "ml") && (Number(ing.custo_unitario) || 0) >= 1;
+  return { pesoG, liquido, custo, precoSuspeito };
 }
 
 function FichasRunner() {
@@ -881,6 +900,52 @@ function FichasRunner() {
                                           <p className="text-[10px] font-medium text-emerald-600/70">custo total {fmtBRL(custoTotal)}</p>
                                        </div>
                                     </div>
+
+                                    {/* Conferência: a conta aberta, item por item */}
+                                    {(() => {
+                                       const detalhes = ingFicha.map(ing => ({ ing, d: detalheIngrediente(ing) }));
+                                       const foraDaSoma = detalhes.filter(x => x.d.pesoG === null);
+                                       const suspeitos = detalhes.filter(x => x.d.precoSuspeito);
+                                       return (
+                                          <details className="mt-3 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5">
+                                             <summary className="text-[11px] font-bold text-slate-500 cursor-pointer select-none">Ver a conta (ingrediente por ingrediente)</summary>
+                                             <div className="mt-2 space-y-1">
+                                                {detalhes.map(({ ing, d }) => (
+                                                   <div key={ing.chave} className="flex justify-between items-baseline text-[11px] font-medium gap-2">
+                                                      <span className="text-slate-600 truncate">
+                                                         {ing.nome}
+                                                         {d.precoSuspeito && <span className="ml-1 text-amber-600 font-bold">(confira o preço!)</span>}
+                                                      </span>
+                                                      <span className="shrink-0 text-slate-500">
+                                                         {d.pesoG !== null ? fmtG(d.pesoG) : <span className="text-amber-600 font-bold">fora do peso</span>}
+                                                         <span className="text-slate-400"> · </span>
+                                                         <span className="font-bold text-slate-700">{fmtBRL(d.custo)}</span>
+                                                      </span>
+                                                   </div>
+                                                ))}
+                                                <div className="flex justify-between items-baseline text-[11px] font-black pt-1.5 mt-1 border-t border-slate-200">
+                                                   <span className="text-slate-700">
+                                                      TOTAL
+                                                      {est.solidosG > 0 && est.liquidosMl > 0 && (
+                                                         <span className="font-medium text-slate-400"> (sólidos {fmtG(est.solidosG)} + líquidos {fmtG(est.liquidosMl).replace(" kg", " L").replace(" g", " ml")})</span>
+                                                      )}
+                                                   </span>
+                                                   <span className="text-slate-800 shrink-0">{fmtG(est.totalG)} · {fmtBRL(custoTotal)}</span>
+                                                </div>
+                                                {foraDaSoma.length > 0 && (
+                                                   <p className="text-[10px] font-bold text-amber-600 pt-1">
+                                                      Fora da soma de peso (o custo conta, o peso não): {foraDaSoma.map(x => x.ing.nome).join(", ")}. Cadastre o peso médio desses insumos para entrarem.
+                                                   </p>
+                                                )}
+                                                {suspeitos.length > 0 && (
+                                                   <p className="text-[10px] font-bold text-red-500 pt-1">
+                                                      Preço suspeito: {suspeitos.map(x => `${x.ing.nome} (${fmtBRL(x.ing.custo_unitario)} por ${String(x.ing.unidade).toLowerCase()} = ${fmtBRL((Number(x.ing.custo_unitario) || 0) * 1000)}/kg)`).join("; ")}. Se esse é o preço do maço/pacote, corrija no cadastro de Ingredientes.
+                                                   </p>
+                                                )}
+                                             </div>
+                                          </details>
+                                       );
+                                    })()}
                                     <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2 flex-wrap">
                                        <span className="text-[11px] font-bold text-slate-500">Quanto custa se eu usar</span>
                                        <input type="number" step="0.01" min="0" placeholder="0" value={calcQtd} onChange={e=>setCalcQtd(e.target.value)} className="w-20 p-2 text-center bg-slate-50 border border-slate-200 rounded-lg font-black text-slate-800 outline-none focus:border-emerald-500"/>

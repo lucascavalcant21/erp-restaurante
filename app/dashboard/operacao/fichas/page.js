@@ -333,12 +333,19 @@ function FichasRunner() {
       };
     });
 
+    // Rendimento = peso total somado dos ingredientes (kg/g/l/ml), automático.
+    // Só cai para "porção" se os ingredientes forem todos em unidades (sem peso).
+    const pesoIA = rendimentoPelosIngredientes(
+      iaFResultado.itens.map(it => ({ unidade: it.unidade_lida, quantidade: it.quantidade_lida }))
+    );
     setForm({
       id: null, departamento: deptUrl,
       nome_receita: iaFResultado.nome_receita,
-      rendimento_porcoes: String(iaFResultado.rendimento_porcoes || 1),
+      rendimento_porcoes: pesoIA ? String(pesoIA.valor) : String(iaFResultado.rendimento_porcoes || 1),
       modo_preparo: iaFResultado.modo_preparo,
-      eh_base: false, rendimento_unidade: "porcao", peso_porcao_g: "",
+      eh_base: false,
+      rendimento_unidade: pesoIA ? pesoIA.unidade : "porcao",
+      peso_porcao_g: "",
     });
     setAutoSoma(true);
     setIngFicha(novosIngFicha);
@@ -1248,8 +1255,27 @@ function FichasRunner() {
                         <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nome do prato (vai pro cardápio)</label>
                            <input type="text" value={iaFResultado.nome_receita} onChange={e=>setIaFResultado({...iaFResultado, nome_receita: e.target.value})} className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-lg font-black text-slate-800 outline-none focus:border-emerald-500" />
-                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-3 block">Rendimento (porções)</label>
-                           <input type="number" value={iaFResultado.rendimento_porcoes} onChange={e=>setIaFResultado({...iaFResultado, rendimento_porcoes: e.target.value})} className="w-24 p-3 mt-1 bg-white border border-slate-200 rounded-lg font-bold text-slate-800 outline-none focus:border-emerald-500" />
+                           {(() => {
+                              const pesoIA = rendimentoPelosIngredientes(
+                                 iaFResultado.itens.map(it => ({ unidade: it.unidade_lida, quantidade: it.quantidade_lida }))
+                              );
+                              if (pesoIA) return (
+                                 <>
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-3 block">Rendimento (peso total)</label>
+                                    <div className="mt-1 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                                       <span className="font-black text-emerald-700 text-lg">{pesoIA.valor.toLocaleString("pt-BR")} {pesoIA.unidade}</span>
+                                       <span className="block text-[10px] font-bold text-emerald-600/80 mt-0.5">Somado automaticamente dos ingredientes. Você pode ajustar na ficha (perdas do cozimento).</span>
+                                    </div>
+                                 </>
+                              );
+                              return (
+                                 <>
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-3 block">Rendimento (porções)</label>
+                                    <input type="number" value={iaFResultado.rendimento_porcoes} onChange={e=>setIaFResultado({...iaFResultado, rendimento_porcoes: e.target.value})} className="w-24 p-3 mt-1 bg-white border border-slate-200 rounded-lg font-bold text-slate-800 outline-none focus:border-emerald-500" />
+                                    <span className="block text-[10px] font-medium text-slate-400 mt-1">Ingredientes em unidades (sem peso) — informe as porções manualmente.</span>
+                                 </>
+                              );
+                           })()}
                         </div>
 
                         <div>

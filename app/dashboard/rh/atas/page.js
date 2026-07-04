@@ -31,6 +31,7 @@ export default function AtasReuniaoPage() {
 
   const [form, setForm] = useState(FORM_VAZIO());
   const [participantes, setParticipantes] = useState({}); // colaborador_id -> bool
+  const [qtdParticipantes, setQtdParticipantes] = useState(""); // nº de linhas de assinatura na folha
   const [gerando, setGerando] = useState(false);
   const [salvando, setSalvando] = useState(false);
 
@@ -136,6 +137,11 @@ export default function AtasReuniaoPage() {
     const logoUrl = `${window.location.origin}/icon-192x192.png`;
 
     const presentes = colaboradores.filter(c => participantes[c.id]);
+    // Nº de linhas: o que você definiu em "quantos vão participar" (nomes
+    // marcados primeiro, o resto em branco). Sem número definido: nomes + 4.
+    const qtdDesejada = Number(qtdParticipantes) || 0;
+    const totalLinhas = qtdDesejada > 0 ? Math.max(qtdDesejada, presentes.length) : presentes.length + 4;
+    const extras = totalLinhas - presentes.length;
     const linhaAssin = (n, nome, cargo) => `
       <tr>
         <td class="n">${n}</td>
@@ -144,7 +150,7 @@ export default function AtasReuniaoPage() {
       </tr>`;
     const linhasPresenca = [
       ...presentes.map((c, i) => linhaAssin(i + 1, c.nome, c.cargo)),
-      ...Array.from({ length: 4 }).map((_, i) => linhaAssin(presentes.length + i + 1, "", "")),
+      ...Array.from({ length: extras }).map((_, i) => linhaAssin(presentes.length + i + 1, "", "")),
     ].join("");
 
     const corpo = form.texto.split("\n").filter(t => t.trim())
@@ -307,6 +313,27 @@ export default function AtasReuniaoPage() {
           <div className="space-y-4">
             <div className="erp-card p-5">
               <p className="erp-label mb-3">Lista de presença (assinam na folha)</p>
+              <div className="flex items-center gap-3 p-3 rounded-xl mb-3" style={{ background: "var(--accent-soft)" }}>
+                <label className="text-xs font-bold flex-1" style={{ color: "var(--accent-strong)" }}>Quantos funcionários vão participar?</label>
+                <input type="number" min="1" max="60" value={qtdParticipantes} onChange={e => setQtdParticipantes(e.target.value)} placeholder="auto"
+                  className="w-20 p-2.5 text-center rounded-lg border font-black outline-none"
+                  style={{ background: "var(--card)", borderColor: "var(--line)", color: "var(--fg)" }} />
+              </div>
+              {(() => {
+                const marcados = colaboradores.filter(c => participantes[c.id]).length;
+                const q = Number(qtdParticipantes) || 0;
+                if (q > 0 && q < marcados) return (
+                  <p className="text-[10px] font-bold mb-3" style={{ color: "#B45309" }}>
+                    Você marcou {marcados} nomes — a folha vai sair com {marcados} linhas para caber todos.
+                  </p>
+                );
+                if (q > 0) return (
+                  <p className="text-[10px] font-medium mb-3" style={{ color: "var(--dim)" }}>
+                    A folha sai com {q} linha{q > 1 ? "s" : ""} de assinatura: {marcados} com nome impresso + {q - marcados} em branco.
+                  </p>
+                );
+                return null;
+              })()}
               {colaboradores.length === 0 ? (
                 <p className="text-xs font-medium" style={{ color: "var(--dim)" }}>Sem colaboradores cadastrados — a folha sai com linhas em branco.</p>
               ) : (
@@ -320,7 +347,7 @@ export default function AtasReuniaoPage() {
                   ))}
                 </div>
               )}
-              <p className="text-[10px] font-medium mt-3" style={{ color: "var(--dim)" }}>A folha impressa sempre inclui 4 linhas extras em branco para visitantes/extras.</p>
+              <p className="text-[10px] font-medium mt-3" style={{ color: "var(--dim)" }}>Sem número definido, a folha sai com os nomes marcados + 4 linhas em branco.</p>
             </div>
 
             <div className="erp-card p-5">

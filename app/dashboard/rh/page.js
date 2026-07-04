@@ -148,6 +148,15 @@ export default function RHPage() {
     const nome = funcionario ? funcionario.nome : "__________________________________________________";
     const cpf = funcionario ? (funcionario.cpf || "___.___.___-__") : "___.___.___-__";
     const cargo = funcionario ? (funcionario.cargo || "___________________") : "___________________";
+
+    // Diária desmembrada (mesma regra do "Lançar Diária"): fixo + INSS 5% + FGTS 8% + taxa de serviço 10%
+    const diariaTotal = funcionario ? (parseFloat(String(funcionario.salario || "").replace(",", ".")) || 0) : 0;
+    const dInss = diariaTotal * 0.05;
+    const dFgts = diariaTotal * 0.08;
+    const dTaxa = diariaTotal * 0.10;
+    const dFixo = diariaTotal - dInss - dFgts - dTaxa;
+    // Na ficha em branco (ou sem diária cadastrada) os valores ficam vazios p/ preencher à mão
+    const money = (v) => diariaTotal > 0 ? `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "";
     
     const html = `
       <html>
@@ -170,7 +179,7 @@ export default function RHPage() {
         </head>
         <body>
           <h1>Controle de Extras / Diárias</h1>
-          <h2>Data: ${hoje}</h2>
+          <h2>Emitida em ${hoje}</h2>
 
           <div class="section">
              <div class="section-title">Dados do Colaborador</div>
@@ -179,6 +188,8 @@ export default function RHPage() {
                 <div><strong>Função:</strong> ${cargo}</div>
                 <div><strong>CPF:</strong> ${cpf}</div>
                 <div><strong>Assinatura:</strong> _________________________________</div>
+                <div><strong>Data do trabalho:</strong> ____/____/______</div>
+                <div><strong>Evento / Ocasião:</strong> _________________________________</div>
              </div>
           </div>
 
@@ -243,16 +254,78 @@ export default function RHPage() {
                    <td class="signature-box"></td>
                  </tr>
                </tbody>
-             </table>
-          </div>
-          
-          <div style="margin-top: 50px; text-align: center;">
-             <div style="width: 300px; border-top: 1px solid #000; margin: 0 auto; padding-top: 5px;">
-                Visto do Gerente / Responsável
-             </div>
-          </div>
-        </body>
-      </html>
+            </table>
+            </div>
+
+            <div class="section">
+               <div class="section-title">Acerto Financeiro (Desmembramento da Diária)</div>
+               <table>
+                 <thead>
+                   <tr>
+                     <th>Descrição</th>
+                     <th>Valor (R$)</th>
+                   </tr>
+                 </thead>
+                 <tbody>
+                   <tr>
+                     <td>Valor Fixo</td>
+                     <td>${money(dFixo)}</td>
+                   </tr>
+                   <tr>
+                     <td>INSS (5%)</td>
+                     <td>${money(dInss)}</td>
+                   </tr>
+                   <tr>
+                     <td>FGTS (8%)</td>
+                     <td>${money(dFgts)}</td>
+                   </tr>
+                   <tr>
+                     <td>Taxa de Serviço (10%)</td>
+                     <td>${money(dTaxa)}</td>
+                   </tr>
+                   <tr style="background:#f8fafc;">
+                     <td><strong>Diária Base (soma)</strong></td>
+                     <td><strong>${money(diariaTotal)}</strong></td>
+                   </tr>
+                   <tr>
+                     <td>Vale Transporte / Passagem</td>
+                     <td></td>
+                   </tr>
+                   <tr>
+                     <td>Adicional / Bônus</td>
+                     <td></td>
+                   </tr>
+                   <tr>
+                     <td>Descontos / Faltas / Quebras</td>
+                     <td></td>
+                   </tr>
+                   <tr>
+                     <td><strong>Total a Pagar</strong></td>
+                     <td><strong></strong></td>
+                   </tr>
+                 </tbody>
+               </table>
+               
+               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+                  <div>
+                    <strong>Forma de Pagamento:</strong><br/>
+                    <span class="checkbox" style="margin-top:5px;"></span> Pix
+                    <span class="checkbox" style="margin-top:5px; margin-left: 15px;"></span> Dinheiro
+                  </div>
+                  <div>
+                    <strong>Assinatura de Recebimento:</strong><br/>
+                    <div style="border-bottom: 1px solid #000; width: 100%; height: 25px;"></div>
+                  </div>
+               </div>
+            </div>
+            
+            <div style="margin-top: 50px; text-align: center;">
+               <div style="width: 300px; border-top: 1px solid #000; margin: 0 auto; padding-top: 5px;">
+                  Visto do Gerente / Responsável
+               </div>
+            </div>
+          </body>
+        </html>
     `;
 
     const win = window.open("", "_blank");

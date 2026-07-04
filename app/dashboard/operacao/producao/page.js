@@ -7,7 +7,7 @@ import { fetchFichas } from "../../../lib/operacao";
 import { registrarProducao } from "../../../lib/estoque";
 import { fetchColaboradores } from "../../../lib/rh";
 import { fetchProdutos } from "../../../lib/vendas";
-import { Flame, Droplets, Save, ArrowLeft, X, UtensilsCrossed, Wine, Maximize } from "lucide-react";
+import { Flame, Droplets, Save, ArrowLeft, X, UtensilsCrossed, Wine, Maximize, Printer, ClipboardList } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
 // Custo total de PRODUZIR uma ficha, resolvendo bases (sub-receitas) em cascata.
@@ -57,7 +57,7 @@ function ProducaoRunner() {
   const searchParams = useSearchParams();
   const deptUrl = searchParams.get("dept") || "cozinha";
   
-  const { unidadeAtiva } = useERP();
+  const { unidadeAtiva, unidadeInfo } = useERP();
   const [fichas, setFichas] = useState([]);
   const [produtos, setProdutos] = useState([]);
   const [colaboradores, setColaboradores] = useState([]);
@@ -65,6 +65,133 @@ function ProducaoRunner() {
 
   const [modalProduzir, setModalProduzir] = useState(false);
   const [fichaAtual, setFichaAtual] = useState(null);
+
+  // Planejamento do dia: { [ficha_id]: { qtd, resp } } — vira planilha impressa
+  const [modalPlanejar, setModalPlanejar] = useState(false);
+  const [plano, setPlano] = useState({});
+  const [dataPlano, setDataPlano] = useState(() => new Date().toISOString().split("T")[0]);
+  const chavePlano = `producao_plano_${unidadeAtiva || ""}_${deptUrl}`;
+
+  // Rascunho do plano sobrevive a refresh (por unidade+departamento)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(chavePlano);
+      if (raw) {
+        const d = JSON.parse(raw);
+        if (d && typeof d.plano === "object") { setPlano(d.plano); if (d.data) setDataPlano(d.data); }
+      } else {
+        setPlano({});
+      }
+    } catch { /* rascunho corrompido: ignora */ }
+  }, [chavePlano]);
+  useEffect(() => {
+    try { localStorage.setItem(chavePlano, JSON.stringify({ plano, data: dataPlano })); } catch { }
+  }, [plano, dataPlano, chavePlano]);
+
+  const setPlanoItem = (fichaId, patch) => {
+    setPlano(p => ({ ...p, [fichaId]: { qtd: "", resp: "", ...(p[fichaId] || {}), ...patch } }));
+  };
+  const itensPlanejados = fichas
+    .map(f => ({ ficha: f, ...(plano[f.id] || {}) }))
+    .filter(x => Number(String(x.qtd || "").replace(",", ".")) > 0);
+
+  // Planilha A4 da produção do dia: item, quantidade e espaço para escrever
+  // quem fez + horários — vai impressa para a parede da cozinha.
+  const imprimirPlanoDoDia = () => {
+    if (itensPlanejados.length === 0) return alert("Defina a quantidade de pelo menos um item para imprimir.");
+    let win = null;
+    try { win = window.open("", "_blank", "width=900,height=1000"); } catch { win = null; }
+
+    const dataFmt = dataPlano ? dataPlano.split("-").reverse().join("/") : new Date().toLocaleDateString("pt-BR");
+    const diaSemana = dataPlano ? ["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"][new Date(dataPlano + "T12:00:00").getDay()] : "";
+
+    const linhasTab = itensPlanejados.map((x, i) => `
+      <tr>
+        <td class="n">${i + 1}</td>
+        <td class="item"><b>${x.ficha.nome_receita}</b></td>
+        <td class="qtd">${(Number(String(x.qtd).replace(",", ".")) || 0).toLocaleString("pt-BR")} porç.</td>
+        <td class="nome">${x.resp || ""}</td>
+        <td class="hora"></td>
+        <td class="hora"></td>
+        <td class="ok"></td>
+      </tr>`).join("");
+    const linhasVazias = Array.from({ length: 3 }).map((_, i) => `
+      <tr>
+        <td class="n">${itensPlanejados.length + i + 1}</td>
+        <td class="item"></td>
+        <td class="qtd"></td>
+        <td class="nome"></td>
+        <td class="hora"></td>
+        <td class="hora"></td>
+        <td class="ok"></td>
+      </tr>`).join("");
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Producao do Dia - ${dataFmt}</title>
+      <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:14mm 12mm}
+        .head{border-bottom:3px solid #111;padding-bottom:8px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:flex-end}
+        .tag{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#555;font-weight:bold}
+        h1{font-size:22px;margin-top:2px}
+        .quando{font-size:14px;font-weight:bold;text-align:right}
+        .quando span{display:block;font-size:11px;color:#555;font-weight:normal}
+        table{width:100%;border-collapse:collapse;margin-top:8px}
+        th,td{border:1px solid #333;padding:7px 6px;font-size:12px;vertical-align:middle}
+        th{background:#eee;text-transform:uppercase;letter-spacing:.5px;font-size:9px}
+        td{height:38px}
+        td.n{width:5%;text-align:center;color:#666}
+        td.item{width:30%}
+        td.qtd{width:12%;text-align:center;font-weight:bold}
+        td.nome{width:23%}
+        td.hora{width:10%}
+        td.ok{width:8%}
+        .legenda{margin-top:8px;font-size:10px;color:#555}
+        .assin{margin-top:24px;display:flex;justify-content:space-between;gap:40px}
+        .assin div{flex:1;border-top:1px solid #333;padding-top:4px;font-size:10px;text-align:center;color:#444}
+        @media print{@page{size:A4 landscape;margin:10mm}}
+      </style></head><body>
+      <div class="head">
+        <div>
+          <div class="tag">Produção do Dia — ${deptUrl === "bar" ? "Bar" : "Cozinha"} · ${unidadeInfo?.nome || ""}</div>
+          <h1>O que produzir hoje</h1>
+        </div>
+        <div class="quando">${dataFmt}<span>${diaSemana}</span></div>
+      </div>
+      <table>
+        <thead>
+          <tr><th>#</th><th>Item (ficha técnica)</th><th>Quantidade</th><th>Feito por (nome)</th><th>Início</th><th>Término</th><th>OK</th></tr>
+        </thead>
+        <tbody>${linhasTab}${linhasVazias}</tbody>
+      </table>
+      <div class="legenda">Quem produzir escreve o próprio nome, os horários de início/término e marca OK ao finalizar. Depois, registre no sistema (Produção do Dia) para dar baixa no estoque.</div>
+      <div class="assin">
+        <div>Responsável pela ${deptUrl === "bar" ? "produção do bar" : "cozinha"}</div>
+        <div>Gerente / Conferência</div>
+      </div>
+      </body></html>`;
+
+    if (!win) {
+      // Popup bloqueado: imprime via iframe invisível na própria aba
+      try {
+        const iframe = document.createElement("iframe");
+        iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
+        document.body.appendChild(iframe);
+        iframe.srcdoc = html;
+        iframe.onload = () => {
+          setTimeout(() => {
+            try { iframe.contentWindow.focus(); iframe.contentWindow.print(); } catch (e) { alert("Não consegui abrir a impressão: " + e.message); }
+            setTimeout(() => iframe.remove(), 60000);
+          }, 300);
+        };
+        return;
+      } catch (e) {
+        return alert("O navegador bloqueou a janela de impressão. Habilite os popups para este site.\n\nDetalhe: " + e.message);
+      }
+    }
+    win.document.write(html);
+    win.document.close();
+    setTimeout(() => win.print(), 400);
+  };
 
   // Form de produção
   const [qtdProd, setQtdProd] = useState("1");
@@ -148,6 +275,10 @@ function ProducaoRunner() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+               <button onClick={() => setModalPlanejar(true)} className="flex items-center gap-2 bg-slate-900 text-white px-5 py-3 rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-lg">
+                  <ClipboardList size={18}/> Planejar & Imprimir o Dia
+                  {itensPlanejados.length > 0 && <span className="bg-emerald-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">{itensPlanejados.length}</span>}
+               </button>
                {cmvMedio !== null && (
                   <div className={`px-4 py-2.5 rounded-2xl border ${corCmv(cmvMedio).bg} ${corCmv(cmvMedio).border}`}>
                      <p className={`text-[9px] font-black uppercase tracking-widest ${corCmv(cmvMedio).text}`}>CMV Médio</p>
@@ -208,6 +339,58 @@ function ProducaoRunner() {
             </div>
          )}
       </div>
+
+      {/* Modal: planejar a produção do dia e imprimir a planilha */}
+      {modalPlanejar && (
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
+            <div className="bg-white rounded-[32px] w-full max-w-2xl my-8 shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[88vh]">
+               <div className="flex justify-between items-center p-8 pb-5 border-b border-slate-100 shrink-0">
+                  <div>
+                     <h2 className="font-black text-2xl text-slate-800">Produção do Dia — Planejamento</h2>
+                     <p className="text-xs font-bold text-slate-500 mt-1">Defina o que produzir e quanto. Designe quem faz (ou deixe em branco para escreverem o nome na folha).</p>
+                  </div>
+                  <button onClick={() => setModalPlanejar(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+               </div>
+
+               <div className="p-8 pt-5 overflow-y-auto space-y-3">
+                  <div className="flex items-center gap-3">
+                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Data da produção</label>
+                     <input type="date" value={dataPlano} onChange={e=>setDataPlano(e.target.value)} className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-700 outline-none focus:border-emerald-500"/>
+                     {itensPlanejados.length > 0 && (
+                        <button onClick={() => { if (confirm("Limpar o planejamento do dia?")) setPlano({}); }} className="ml-auto text-[10px] font-bold text-red-400 hover:text-red-600 uppercase tracking-widest">Limpar tudo</button>
+                     )}
+                  </div>
+
+                  {fichas.map(f => {
+                     const item = plano[f.id] || {};
+                     const ativo = Number(String(item.qtd || "").replace(",", ".")) > 0;
+                     return (
+                        <div key={f.id} className={`p-3.5 rounded-2xl border flex flex-col sm:flex-row sm:items-center gap-3 transition-colors ${ativo ? "border-emerald-300 bg-emerald-50/40" : "border-slate-200 bg-slate-50/50"}`}>
+                           <p className={`flex-1 font-bold text-sm ${ativo ? "text-slate-800" : "text-slate-500"}`}>{f.nome_receita}</p>
+                           <div className="flex items-center gap-2">
+                              <input type="number" min="0" placeholder="0" value={item.qtd || ""} onChange={e=>setPlanoItem(f.id, { qtd: e.target.value })}
+                                 className="w-20 p-2.5 text-center bg-white border border-slate-200 rounded-lg font-black text-slate-800 outline-none focus:border-emerald-500"/>
+                              <span className="text-[10px] font-bold text-slate-400 uppercase">porç.</span>
+                              <select value={item.resp || ""} onChange={e=>setPlanoItem(f.id, { resp: e.target.value })}
+                                 className="p-2.5 bg-white border border-slate-200 rounded-lg font-bold text-xs text-slate-600 outline-none focus:border-emerald-500 max-w-[170px]">
+                                 <option value="">Nome em branco (escrever à mão)</option>
+                                 {colaboradores.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
+                              </select>
+                           </div>
+                        </div>
+                     );
+                  })}
+               </div>
+
+               <div className="p-8 pt-4 border-t border-slate-100 bg-slate-50 rounded-b-[32px] shrink-0 flex items-center gap-3">
+                  <p className="flex-1 text-xs font-bold text-slate-500">{itensPlanejados.length} item(ns) no plano</p>
+                  <button onClick={imprimirPlanoDoDia} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-4 rounded-2xl font-black transition-all active:scale-95 shadow-xl shadow-emerald-600/20">
+                     <Printer size={18}/> Imprimir Planilha do Dia
+                  </button>
+               </div>
+            </div>
+         </div>
+      )}
 
       {modalProduzir && fichaAtual && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">

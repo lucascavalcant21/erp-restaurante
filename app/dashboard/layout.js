@@ -80,6 +80,7 @@ const SIDEBAR_MENU = [
     icon: Users,
     items: [
       { label: "Gestão de RH", href: "/dashboard/rh" },
+      { label: "Atas de Reunião", href: "/dashboard/rh/atas" },
       { label: "Ponto Eletrônico", href: "/dashboard/rh/ponto" },
       { label: "Colaboradores", href: "/dashboard/rh/colaborador" },
       { label: "Fechamento de Folha", href: "/dashboard/rh/fechamento" },

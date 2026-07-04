@@ -62,6 +62,28 @@ export async function fetchPontosMes(colaboradorId, anoMes) {
   return { data };
 }
 
+// Funcionário declarou que NÃO vai tirar o intervalo hoje: pula direto para o
+// estado "voltou do intervalo" (sem horários de intervalo) — a próxima batida
+// é a saída. Os minutos não tirados vão para o banco de horas (feito na tela).
+export async function pularIntervalo(colaboradorId) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const dataLocal = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+  const hoje = dataLocal.getFullYear() + "-" + String(dataLocal.getMonth() + 1).padStart(2, '0') + "-" + String(dataLocal.getDate()).padStart(2, '0');
+  const { data: registros } = await supabase
+    .from("registro_ponto")
+    .select("id, hora_entrada")
+    .eq("colaborador_id", colaboradorId)
+    .eq("data_referencia", hoje)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  const registro = registros?.[0];
+  if (!registro || !registro.hora_entrada) return { error: "Precisa bater a entrada primeiro." };
+  const { error } = await supabase.from("registro_ponto")
+    .update({ status_jornada: 3 })
+    .eq("id", registro.id);
+  return { error: error?.message };
+}
+
 export async function registrarBatida(colaboradorId, unidadeId, tipoBatida) {
   if (!isSupabaseReady()) return { error: "Offline" };
   const dataLocal = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));

@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabase";
 import { fetchPontosMes } from "../../../../lib/ponto";
-import { fetchFolgasEsporadicas } from "../../../../lib/rh";
+import { fetchFolgasEsporadicas, fetchBancoHorasColaborador } from "../../../../lib/rh";
 import { Printer, ArrowLeft } from "lucide-react";
 
 export default function EspelhoDePonto() {
@@ -20,6 +20,7 @@ export default function EspelhoDePonto() {
   const [colaborador, setColaborador] = useState(null);
   const [pontos, setPontos] = useState([]);
   const [folgasEsporadicas, setFolgasEsporadicas] = useState([]);
+  const [bancoMes, setBancoMes] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -48,6 +49,10 @@ export default function EspelhoDePonto() {
       // Busca Folgas Esporádicas
       const resFolgas = await fetchFolgasEsporadicas(colabId);
       setFolgasEsporadicas(resFolgas.data || []);
+
+      // Banco de horas do mês (intervalos não tirados)
+      const resBanco = await fetchBancoHorasColaborador(colabId, mesParam);
+      setBancoMes(resBanco.data || []);
 
       setLoading(false);
     }
@@ -199,6 +204,41 @@ export default function EspelhoDePonto() {
                </tr>
             </tfoot>
          </table>
+
+         {/* Banco de Horas do mês (intervalos não tirados) */}
+         {bancoMes.length > 0 && (() => {
+            const totalMin = bancoMes.reduce((s, b) => s + (Number(b.minutos) || 0), 0);
+            const fmtM = (m) => `${Math.floor(m / 60)}h${String(m % 60).padStart(2, "0")}`;
+            return (
+               <div className="mt-6">
+                  <p className="text-[10px] font-black uppercase tracking-widest mb-1">Banco de Horas — intervalos não tirados (limite 8h/mês)</p>
+                  <table className="w-full border-collapse text-[10px]">
+                     <thead>
+                        <tr className="bg-slate-100">
+                           <th className="border border-slate-800 !py-1 !px-2 text-left">Data</th>
+                           <th className="border border-slate-800 !py-1 !px-2 text-left">Motivo</th>
+                           <th className="border border-slate-800 !py-1 !px-2 text-right">Minutos</th>
+                        </tr>
+                     </thead>
+                     <tbody>
+                        {bancoMes.map(b => (
+                           <tr key={b.id}>
+                              <td className="border border-slate-800 !py-0.5 !px-2">{b.data ? b.data.split("-").reverse().join("/") : "—"}</td>
+                              <td className="border border-slate-800 !py-0.5 !px-2">{b.observacao || "Intervalo não tirado"}</td>
+                              <td className="border border-slate-800 !py-0.5 !px-2 text-right font-bold">{b.minutos} min</td>
+                           </tr>
+                        ))}
+                     </tbody>
+                     <tfoot>
+                        <tr className="bg-slate-100">
+                           <td colSpan={2} className="border border-slate-800 !py-1 !px-2 text-right font-black uppercase text-[10px]">Total acumulado no mês:</td>
+                           <td className="border border-slate-800 !py-1 !px-2 text-right font-black text-[11px]">{fmtM(totalMin)}</td>
+                        </tr>
+                     </tfoot>
+                  </table>
+               </div>
+            );
+         })()}
 
          {/* Assinaturas */}
          <div className="mt-12 flex justify-between w-full px-12 text-[10px] font-bold uppercase text-center gap-10">

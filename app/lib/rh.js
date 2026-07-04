@@ -237,6 +237,21 @@ export async function removerBancoHoras(id) {
   return { error: error?.message };
 }
 
+// Banco de horas de UM colaborador no mês (para a tela de ponto e o espelho)
+export async function fetchBancoHorasColaborador(colaboradorId, mesAno) {
+  if (!isSupabaseReady() || !colaboradorId) return { data: [] };
+  const [ano, mes] = String(mesAno).split("-").map(Number);
+  const inicio = `${mesAno}-01`;
+  const fim = new Date(ano, mes, 1).toISOString().split("T")[0];
+  const { data, error } = await supabase.from("rh_banco_horas")
+    .select("*")
+    .eq("colaborador_id", colaboradorId)
+    .gte("data", inicio)
+    .lt("data", fim)
+    .order("data", { ascending: false });
+  return { data: data || [], error: error?.message };
+}
+
 export async function fetchConsumoFuncionario(colaboradorId) {
   if (!isSupabaseReady()) return { data: [], error: "Offline" };
   const { data, error } = await supabase.from("rh_consumo_funcionarios").select("*").eq("funcionario_id", colaboradorId).order("data_consumo", { ascending: false });

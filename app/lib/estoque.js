@@ -49,6 +49,19 @@ export async function ajustarEstoque(unidadeId, insumoId, novaQuantidade) {
 
 // ─── PRODUÇÃO DIÁRIA (O Motor da Mágica) ────────────────────────────────────
 
+// Produções registradas nos últimos N dias (para o relatório gerencial)
+export async function fetchProducoesPeriodo(unidadeId, dias = 30) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: [] };
+  const inicio = new Date(Date.now() - dias * 86400000).toISOString();
+  const { data, error } = await supabase
+    .from("producao_diaria")
+    .select("*, fichas_tecnicas(nome_receita), colaboradores(nome)")
+    .eq("unidade_id", unidadeId)
+    .gte("created_at", inicio)
+    .order("created_at", { ascending: false });
+  return { data: data || [], error: error?.message };
+}
+
 export async function registrarProducao(unidadeId, ficha, qtdProduzida, colaboradorId) {
   if (!isSupabaseReady()) return { error: "Offline" };
   

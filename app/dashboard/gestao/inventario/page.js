@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import {
-  Warehouse, Plus, Minus, History, Trash2, Edit3, Boxes, Layers, PackageX, X
+  Warehouse, Plus, Minus, History, Trash2, Edit3, Boxes, Layers, PackageX, X, Sparkles, Loader2, Camera
 } from "lucide-react";
 import {
   PageHeader, PageBody, EmptyState, Modal, Field, TextInput, NumberInput, Select, Btn, Toast, SearchBar, Chips, SkeletonList, fmtBRL
@@ -32,6 +32,15 @@ function fmtDataHora(iso) {
   return `${d.toLocaleDateString("pt-BR")} às ${d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
 }
 
+function fileParaBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(",")[1] || "");
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function InventarioPage() {
   const { unidadeAtiva, unidadeInfo } = useERP();
   const [itens, setItens] = useState([]);
@@ -48,6 +57,14 @@ export default function InventarioPage() {
   const [movForm, setMovForm] = useState({});
   const [modalHist, setModalHist] = useState(false);
   const [salvando, setSalvando] = useState(false);
+
+  // Importação em massa via IA (texto colado e/ou foto)
+  const [modalIA, setModalIA] = useState(false);
+  const [iaTexto, setIaTexto] = useState("");
+  const [iaImagem, setIaImagem] = useState(null); // { base64, mediaType, previewUrl }
+  const [iaLoading, setIaLoading] = useState(false);
+  const [iaItens, setIaItens] = useState(null); // lista revisável antes de salvar
+  const [iaSalvando, setIaSalvando] = useState(false);
 
   const notificar = (msg) => { setToast(msg); setTimeout(() => setToast(""), 2800); };
 
@@ -164,6 +181,78 @@ export default function InventarioPage() {
     carregar();
   };
 
+  // ── Importação em massa via IA ────────────────────────────────────────────
+  const abrirModalIA = () => {
+    setIaTexto(""); setIaImagem(null); setIaItens(null); setModalIA(true);
+  };
+
+  const escolherFotoIA = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const base64 = await fileParaBase64(file);
+    setIaImagem({ base64, mediaType: file.type || "image/jpeg", previewUrl: URL.createObjectURL(file) });
+    e.target.value = "";
+  };
+
+  const lerComIA = async () => {
+    if (!iaTexto.trim() && !iaImagem) return alert("Cole uma lista de texto ou envie uma foto.");
+    setIaLoading(true);
+    setIaItens(null);
+    try {
+      const res = await fetch("/api/ia-inventario", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          texto: iaTexto,
+          imagem_base64: iaImagem?.base64 || null,
+          imagem_media_type: iaImagem?.mediaType || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) { alert(data.error || "Falha ao ler a lista."); return; }
+      setIaItens((data.itens || []).map(it => ({ ...it, incluir: true })));
+    } catch {
+      alert("Não consegui falar com a IA. Verifique a conexão.");
+    } finally {
+      setIaLoading(false);
+    }
+  };
+
+  const atualizarItemIA = (idx, patch) => {
+    setIaItens(lista => lista.map((it, i) => i === idx ? { ...it, ...patch } : it));
+  };
+
+  const salvarTodosIA = async () => {
+    const paraSalvar = (iaItens || []).filter(it => it.incluir && it.nome.trim());
+    if (!paraSalvar.length) return alert("Nenhum item marcado para salvar.");
+    setIaSalvando(true);
+    let ok = 0, falhas = 0;
+    for (const it of paraSalvar) {
+      const { id, error } = await salvarItemInventario({
+        id: null,
+        unidade_id: unidadeAtiva,
+        nome: it.nome.trim(),
+        categoria: it.categoria || "Outros",
+        quantidade: Number(it.quantidade) || 0,
+        valor_unitario: Number(it.valor_unitario) > 0 ? Number(it.valor_unitario) : null,
+        localizacao: it.localizacao || null,
+        observacao: null,
+      });
+      if (error || !id) { falhas++; continue; }
+      if ((Number(it.quantidade) || 0) > 0) {
+        await registrarMovimentoInventario(
+          { id, unidade_id: unidadeAtiva, quantidade: 0 },
+          { tipo: "entrada", quantidade: Number(it.quantidade) || 0, motivo: "Importação por IA" }
+        );
+      }
+      ok++;
+    }
+    setIaSalvando(false);
+    setModalIA(false);
+    notificar(`${ok} item(ns) importado(s)${falhas ? ` · ${falhas} falha(s)` : ""}!`);
+    carregar();
+  };
+
   if (!unidadeAtiva || unidadeAtiva === "todas") {
     return (
       <div className="min-h-screen">
@@ -179,6 +268,9 @@ export default function InventarioPage() {
     <div className="min-h-screen pb-24">
       <PageHeader title="Inventário da Unidade" subtitle={`Tudo que ${unidadeInfo?.nome || "a loja"} possui — com histórico de entradas, quebras e perdas`} icon={Warehouse}
         onAction={abrirNovo} actionLabel="Novo Item">
+        <Btn variant="ghost" className="!h-9 text-xs" onClick={abrirModalIA}>
+          <Sparkles size={14} /> Importar com IA
+        </Btn>
         <Btn variant="ghost" className="!h-9 text-xs" onClick={() => setModalHist(true)}>
           <History size={14} /> Histórico
         </Btn>
@@ -346,6 +438,80 @@ export default function InventarioPage() {
           </form>
         )}
       </Modal>
+
+      {/* Modal: importação em massa via IA */}
+      {modalIA && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto" onClick={() => !iaLoading && !iaSalvando && setModalIA(false)}>
+          <div className="w-full max-w-2xl my-8 rounded-3xl border flex flex-col max-h-[88vh]" style={{ background: "var(--card)", borderColor: "var(--line)", boxShadow: "var(--shadow-float)" }} onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center p-6 border-b shrink-0" style={{ borderColor: "var(--line-soft)" }}>
+              <div>
+                <h2 className="font-black text-xl flex items-center gap-2" style={{ color: "var(--fg)" }}><Sparkles size={20} style={{ color: "var(--accent-strong)" }} /> Importar Inventário com IA</h2>
+                <p className="text-xs font-bold mt-0.5" style={{ color: "var(--muted)" }}>Cole a lista ou envie uma foto — a IA monta os itens e você revisa antes de salvar</p>
+              </div>
+              <button onClick={() => setModalIA(false)} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "var(--elevated)", color: "var(--muted)" }}><X size={17} /></button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-4">
+              {!iaItens ? (
+                <>
+                  <textarea
+                    value={iaTexto}
+                    onChange={e => setIaTexto(e.target.value)}
+                    placeholder={"Cole aqui, um item por linha. Ex:\n48 garfos de mesa inox\n30 pratos rasos brancos\n2 freezers horizontais 400L (R$ 2.500 cada) - depósito\n12 potes herméticos 2L"}
+                    rows={7}
+                    className="erp-input !h-auto py-3 font-medium text-sm resize-none"
+                  />
+                  <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed cursor-pointer font-bold text-xs transition-colors" style={{ borderColor: "var(--line)", color: "var(--muted)" }}>
+                      <Camera size={16} /> {iaImagem ? "Trocar foto" : "Enviar foto (opcional)"}
+                      <input type="file" accept="image/*" className="hidden" onChange={escolherFotoIA} />
+                    </label>
+                    {iaImagem && (
+                      <div className="relative">
+                        <img src={iaImagem.previewUrl} alt="" className="h-14 w-14 object-cover rounded-lg border" style={{ borderColor: "var(--line)" }} />
+                        <button onClick={() => setIaImagem(null)} className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center"><X size={11} /></button>
+                      </div>
+                    )}
+                  </div>
+                  <Btn variant="primary" className="w-full" onClick={lerComIA} disabled={iaLoading}>
+                    {iaLoading ? <><Loader2 size={16} className="animate-spin" /> Lendo a lista...</> : <><Sparkles size={16} /> Ler com IA</>}
+                  </Btn>
+                </>
+              ) : (
+                <>
+                  <p className="text-xs font-bold" style={{ color: "var(--muted)" }}>{iaItens.length} item(ns) identificado(s) — revise e desmarque o que não quiser salvar:</p>
+                  <div className="space-y-2">
+                    {iaItens.map((it, idx) => (
+                      <div key={idx} className="p-3 rounded-xl border" style={{ background: it.incluir ? "var(--card)" : "var(--elevated)", borderColor: "var(--line)", opacity: it.incluir ? 1 : 0.55 }}>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <input type="checkbox" checked={it.incluir} onChange={e => atualizarItemIA(idx, { incluir: e.target.checked })} className="w-4 h-4 accent-emerald-600 shrink-0" />
+                          <input type="text" value={it.nome} onChange={e => atualizarItemIA(idx, { nome: e.target.value })} className="flex-1 min-w-[140px] p-2 rounded-lg border font-bold text-sm outline-none" style={{ background: "var(--surface)", borderColor: "var(--line)", color: "var(--fg)" }} />
+                          <select value={it.categoria} onChange={e => atualizarItemIA(idx, { categoria: e.target.value })} className="p-2 rounded-lg border font-bold text-xs outline-none" style={{ background: "var(--surface)", borderColor: "var(--line)", color: "var(--fg-soft)" }}>
+                            {CATEGORIAS_INVENTARIO.map(c => <option key={c} value={c}>{c}</option>)}
+                          </select>
+                        </div>
+                        <div className="flex items-center gap-2 mt-2 pl-6 flex-wrap">
+                          <label className="text-[10px] font-bold" style={{ color: "var(--dim)" }}>Qtd</label>
+                          <input type="number" min="0" value={it.quantidade} onChange={e => atualizarItemIA(idx, { quantidade: e.target.value })} className="w-20 p-2 text-center rounded-lg border font-black text-sm outline-none" style={{ background: "var(--surface)", borderColor: "var(--line)", color: "var(--fg)" }} />
+                          <label className="text-[10px] font-bold ml-1" style={{ color: "var(--dim)" }}>R$/un</label>
+                          <input type="number" min="0" step="0.01" value={it.valor_unitario || ""} onChange={e => atualizarItemIA(idx, { valor_unitario: e.target.value })} placeholder="0,00" className="w-24 p-2 text-center rounded-lg border font-bold text-sm outline-none" style={{ background: "var(--surface)", borderColor: "var(--line)", color: "var(--accent-strong)" }} />
+                          <input type="text" value={it.localizacao || ""} onChange={e => atualizarItemIA(idx, { localizacao: e.target.value })} placeholder="Onde fica (opcional)" className="flex-1 min-w-[120px] p-2 rounded-lg border font-medium text-xs outline-none" style={{ background: "var(--surface)", borderColor: "var(--line)", color: "var(--fg-soft)" }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-3">
+                    <Btn variant="ghost" className="flex-1" onClick={() => setIaItens(null)} disabled={iaSalvando}>← Voltar</Btn>
+                    <Btn variant="primary" className="flex-1" onClick={salvarTodosIA} disabled={iaSalvando}>
+                      {iaSalvando ? <><Loader2 size={16} className="animate-spin" /> Salvando...</> : `Salvar ${iaItens.filter(i => i.incluir).length} item(ns)`}
+                    </Btn>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal: histórico de movimentos com data e hora */}
       {modalHist && (

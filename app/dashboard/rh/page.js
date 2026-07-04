@@ -157,6 +157,11 @@ export default function RHPage() {
     const dFixo = diariaTotal - dInss - dFgts - dTaxa;
     // Na ficha em branco (ou sem diária cadastrada) os valores ficam vazios p/ preencher à mão
     const money = (v) => diariaTotal > 0 ? `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "";
+    const telefone = funcionario?.telefone || "____________________________";
+    const pix = funcionario?.chave_pix || "________________________________________";
+    const horaIni = funcionario?.horario_entrada || "____:____";
+    const horaFim = funcionario?.horario_saida || "____:____";
+    const diariaAcordada = diariaTotal > 0 ? money(diariaTotal) : "R$ ______________";
     
     const html = `
       <html>
@@ -178,18 +183,31 @@ export default function RHPage() {
           </style>
         </head>
         <body>
-          <h1>Controle de Extras / Diárias</h1>
-          <h2>Emitida em ${hoje}</h2>
+          <h1>Ficha de Extra / Diária</h1>
+          <h2>Termo de trabalho e responsabilidade · Emitida em ${hoje} · Via única — fica arquivada com a empresa</h2>
 
           <div class="section">
-             <div class="section-title">Dados do Colaborador</div>
-             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+             <div class="section-title">Dados Pessoais</div>
+             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                 <div><strong>Nome:</strong> ${nome}</div>
-                <div><strong>Função:</strong> ${cargo}</div>
-                <div><strong>CPF:</strong> ${cpf}</div>
-                <div><strong>Assinatura:</strong> _________________________________</div>
+                <div><strong>CPF:</strong> ${cpf} &nbsp;&nbsp; <strong>RG:</strong> __________________</div>
+                <div style="grid-column: 1 / -1;"><strong>Endereço:</strong> ________________________________________________________________________________</div>
+                <div><strong>Telefone:</strong> ${telefone}</div>
+                <div><strong>Chave PIX:</strong> ${pix}</div>
+             </div>
+          </div>
+
+          <div class="section">
+             <div class="section-title">Acordo do Dia</div>
+             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                 <div><strong>Data do trabalho:</strong> ____/____/______</div>
-                <div><strong>Evento / Ocasião:</strong> _________________________________</div>
+                <div><strong>Evento / Ocasião:</strong> ______________________________</div>
+                <div><strong>Função no dia:</strong> ${cargo}</div>
+                <div><strong>Carga acordada:</strong> das ${horaIni} às ${horaFim} · Intervalo: __________</div>
+                <div style="grid-column: 1 / -1; background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px; padding:10px;">
+                   <strong>Valor da diária acordado: ${diariaAcordada}</strong>
+                   <span style="color:#64748b; font-size:12px;"> (desmembramento detalhado no acerto financeiro abaixo)</span>
+                </div>
              </div>
           </div>
 
@@ -216,8 +234,8 @@ export default function RHPage() {
           </div>
 
           <div class="section">
-             <div class="section-title">Controle de Equipamentos / Empréstimos</div>
-             <p style="font-size: 12px; color: #64748b; margin-bottom: 15px;">Declaro ter recebido os itens abaixo em perfeito estado para uso em serviço, me comprometendo a devolvê-los ao término do turno. Em caso de perda ou dano, o valor poderá ser descontado.</p>
+             <div class="section-title">Itens Disponibilizados pela Empresa</div>
+             <p style="font-size: 12px; color: #64748b; margin-bottom: 15px;"><strong>Declaro ter recebido os itens abaixo em perfeito estado</strong> para uso em serviço, e me comprometo a <strong>devolvê-los em perfeito estado, no CAIXA, ao término do turno</strong>. Em caso de perda ou dano, o valor poderá ser descontado do acerto da diária.</p>
              
              <table>
                <thead>
@@ -255,6 +273,13 @@ export default function RHPage() {
                  </tr>
                </tbody>
             </table>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 5px; font-size: 13px;">
+               <div><strong>Itens entregues por (responsável):</strong><br/>_________________________________</div>
+               <div><strong>Local / setor da entrega:</strong><br/>_________________________________</div>
+               <div><strong>Devolução no caixa — conferida por:</strong><br/>_________________________________</div>
+               <div><strong>Horário da devolução:</strong> ____:____ &nbsp;&nbsp; <strong>Tudo em perfeito estado?</strong> <span class="checkbox"></span> Sim <span class="checkbox" style="margin-left:10px;"></span> Não</div>
+            </div>
             </div>
 
             <div class="section">
@@ -318,11 +343,20 @@ export default function RHPage() {
                   </div>
                </div>
             </div>
-            
-            <div style="margin-top: 50px; text-align: center;">
-               <div style="width: 300px; border-top: 1px solid #000; margin: 0 auto; padding-top: 5px;">
-                  Visto do Gerente / Responsável
+
+            <div class="section" style="margin-top: 30px;">
+               <p style="font-size: 12px; color: #334155; border: 1px solid #cbd5e1; border-radius: 6px; padding: 12px; line-height: 1.6;">
+                  Declaro que <strong>li e estou de acordo</strong> com o valor da diária e seu desmembramento (valor fixo, INSS, FGTS e taxa de serviço), com a carga de trabalho acordada para o dia e com a responsabilidade pela devolução dos itens recebidos, em perfeito estado, no caixa, ao término do turno.
+               </p>
+               <div style="display: flex; justify-content: space-between; gap: 40px; margin-top: 45px;">
+                  <div style="flex:1; border-top: 1px solid #000; padding-top: 5px; text-align: center; font-size: 12px;">
+                     Assinatura do Extra / Diarista
+                  </div>
+                  <div style="flex:1; border-top: 1px solid #000; padding-top: 5px; text-align: center; font-size: 12px;">
+                     Gerente / Responsável da Empresa
+                  </div>
                </div>
+               <p style="font-size: 10px; color: #94a3b8; margin-top: 20px; text-align: center;">Via única — este documento fica arquivado com a empresa.</p>
             </div>
           </body>
         </html>

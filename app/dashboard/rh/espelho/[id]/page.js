@@ -207,7 +207,7 @@ export default function EspelhoDePonto() {
 
          {/* Banco de Horas do mês (intervalos não tirados) */}
          {bancoMes.length > 0 && (() => {
-            const totalMin = bancoMes.reduce((s, b) => s + (Number(b.minutos) || 0), 0);
+            const totalMin = bancoMes.filter(b => b.tipo !== "excesso").reduce((s, b) => s + (Number(b.minutos) || 0), 0);
             const fmtM = (m) => `${Math.floor(m / 60)}h${String(m % 60).padStart(2, "0")}`;
             return (
                <div className="mt-6">
@@ -224,8 +224,8 @@ export default function EspelhoDePonto() {
                         {bancoMes.map(b => (
                            <tr key={b.id}>
                               <td className="border border-slate-800 !py-0.5 !px-2">{b.data ? b.data.split("-").reverse().join("/") : "—"}</td>
-                              <td className="border border-slate-800 !py-0.5 !px-2">{b.observacao || "Intervalo não tirado"}</td>
-                              <td className="border border-slate-800 !py-0.5 !px-2 text-right font-bold">{b.minutos} min</td>
+                              <td className="border border-slate-800 !py-0.5 !px-2">{b.tipo === "excesso" ? `OCORRÊNCIA: ${b.observacao || "passou do intervalo"}` : (b.observacao || "Intervalo não tirado")}</td>
+                              <td className="border border-slate-800 !py-0.5 !px-2 text-right font-bold">{b.tipo === "excesso" ? `(+${b.minutos} min além)` : `${b.minutos} min`}</td>
                            </tr>
                         ))}
                      </tbody>

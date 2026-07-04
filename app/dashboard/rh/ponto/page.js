@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { useRouter } from "next/navigation";
-import { fetchColaboradores, inserirBancoHoras, fetchBancoHorasColaborador, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN } from "../../../lib/rh";
+import { fetchColaboradores, inserirBancoHoras, fetchBancoHorasColaborador, somaMinutosBanco, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN } from "../../../lib/rh";
 import { fetchPontoHoje, fetchHistoricoPonto, registrarBatida, pularIntervalo } from "../../../lib/ponto";
 
 const fmtMin = (m) => `${Math.floor(m / 60)}h${String(Math.round(m) % 60).padStart(2, "0")}`;
@@ -79,7 +79,7 @@ export default function PontoPage() {
     setBancoMes(rBanco.data || []);
   };
 
-  const totalBancoMes = bancoMes.reduce((s, b) => s + (Number(b.minutos) || 0), 0);
+  const totalBancoMes = somaMinutosBanco(bancoMes);
   const intervaloPadrao = selecionado ? (Number(selecionado.tempo_intervalo) || 60) : 60;
 
   // Credita minutos no banco respeitando o teto de 8h/mês
@@ -98,9 +98,9 @@ export default function PontoPage() {
     return { creditado: credito, aviso };
   };
 
-  const mostrarSucesso = (titulo, detalhe) => {
-    setSucesso({ titulo, detalhe });
-    setTimeout(() => { setSucesso(null); setSelecionado(null); carregar(); }, 4000);
+  const mostrarSucesso = (titulo, detalhe, tone = "ok") => {
+    setSucesso({ titulo, detalhe, tone });
+    setTimeout(() => { setSucesso(null); setSelecionado(null); carregar(); }, tone === "alerta" ? 6000 : 4000);
   };
 
   // Bater a próxima etapa do ponto
@@ -117,10 +117,12 @@ export default function PontoPage() {
       const agoraStr = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
       const primeiro = selecionado.nome.split(" ")[0];
 
-      // Volta do intervalo: se tirou menos que o padrão, a diferença vai pro banco
+      // Volta do intervalo: compara com o intervalo padrão (1h)
       if (etapa === "retorno_intervalo" && reg?.hora_saida_intervalo) {
         const tirou = Math.round((Date.now() - new Date(reg.hora_saida_intervalo).getTime()) / 60000);
         const faltou = intervaloPadrao - tirou;
+
+        // Tirou MENOS que o padrão: a diferença vira crédito no banco de horas
         if (faltou >= 1) {
           const { creditado, aviso } = await creditarBanco(
             faltou,
@@ -129,6 +131,24 @@ export default function PontoPage() {
           mostrarSucesso(
             `Volta registrada às ${agoraStr}`,
             `${primeiro}, você tirou ${tirou} min de intervalo. ${creditado > 0 ? `${fmtMin(creditado)} foram para o seu banco de horas.` : ""} ${aviso}`
+          );
+          return;
+        }
+
+        // Tirou MAIS que o padrão: aviso de atenção + ocorrência no histórico
+        // (não vira crédito — é só registro para acompanhamento)
+        if (faltou <= -1) {
+          const passou = -faltou;
+          const hoje = new Date().toISOString().split("T")[0];
+          await inserirBancoHoras(
+            unidadeAtiva, selecionado.id, hoje, passou,
+            `Passou ${passou}min do intervalo (tirou ${tirou}min de ${intervaloPadrao}min)`,
+            "excesso"
+          );
+          mostrarSucesso(
+            "Atenção ao horário de intervalo!",
+            `${primeiro}, você tirou ${fmtMin(tirou)} — ${passou} minuto(s) além do intervalo de ${fmtMin(intervaloPadrao)}. Isso ficou registrado no seu histórico. Fique de olho no relógio na próxima!`,
+            "alerta"
           );
           return;
         }
@@ -163,15 +183,16 @@ export default function PontoPage() {
     }
   };
 
-  // ── Tela de sucesso ────────────────────────────────────────────────────────
+  // ── Tela de sucesso / alerta ───────────────────────────────────────────────
   if (sucesso) {
+    const alerta = sucesso.tone === "alerta";
     return (
-      <div className="fixed inset-0 z-[9999] bg-emerald-600 flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-300">
+      <div className={`fixed inset-0 z-[9999] ${alerta ? "bg-amber-500" : "bg-emerald-600"} flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-300`}>
         <div className="w-28 h-28 bg-white rounded-[32px] flex items-center justify-center mb-8 shadow-2xl">
-          <CheckCircle2 size={64} className="text-emerald-600" />
+          {alerta ? <AlertTriangle size={64} className="text-amber-500" /> : <CheckCircle2 size={64} className="text-emerald-600" />}
         </div>
         <h1 className="text-white font-black text-4xl md:text-6xl tracking-tight max-w-3xl">{sucesso.titulo}</h1>
-        {sucesso.detalhe && <p className="text-emerald-100 font-bold text-lg md:text-2xl mt-5 max-w-2xl leading-relaxed">{sucesso.detalhe}</p>}
+        {sucesso.detalhe && <p className={`${alerta ? "text-amber-50" : "text-emerald-100"} font-bold text-lg md:text-2xl mt-5 max-w-2xl leading-relaxed`}>{sucesso.detalhe}</p>}
       </div>
     );
   }
@@ -275,11 +296,17 @@ export default function PontoPage() {
                 ))}
               </div>
             )}
-            {bancoMes.length > 0 && (
-              <p className="text-[10px] font-bold text-slate-500 mt-3">
-                Banco de horas no mês: {bancoMes.length} lançamento(s) somando <span className={totalBancoMes >= BANCO_ALERTA_MIN ? "text-amber-400" : "text-emerald-400"}>{fmtMin(totalBancoMes)}</span>. O espelho completo é impresso pelo RH.
-              </p>
-            )}
+            {bancoMes.length > 0 && (() => {
+              const excessos = bancoMes.filter(b => b.tipo === "excesso");
+              const creditos = bancoMes.length - excessos.length;
+              return (
+                <p className="text-[10px] font-bold text-slate-500 mt-3">
+                  Banco de horas no mês: {creditos} crédito(s) somando <span className={totalBancoMes >= BANCO_ALERTA_MIN ? "text-amber-400" : "text-emerald-400"}>{fmtMin(totalBancoMes)}</span>.
+                  {excessos.length > 0 && <span className="text-amber-400"> {excessos.length} ocorrência(s) de intervalo passado do horário.</span>}
+                  {" "}O espelho completo é impresso pelo RH.
+                </p>
+              );
+            })()}
           </div>
         </div>
       </div>

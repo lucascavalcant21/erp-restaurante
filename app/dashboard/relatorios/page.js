@@ -124,7 +124,7 @@ export default function RelatorioGerencial() {
     const qtdBaixas = baixasPeriodo.reduce((s, b) => s + (Number(b.quantidade) || 0), 0);
 
     // Banco de horas da equipe (mês)
-    const totalBanco = bancoHoras.reduce((s, b) => s + (Number(b.minutos) || 0), 0);
+    const totalBanco = bancoHoras.filter(b => b.tipo !== "excesso").reduce((s, b) => s + (Number(b.minutos) || 0), 0);
 
     // Produções do período: agrupa por ficha + custo estimado
     const prodPorFicha = {};

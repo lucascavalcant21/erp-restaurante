@@ -219,7 +219,9 @@ export async function fetchBancoHoras(unidadeId, mesAno) {
   return { data: data || [], error: error?.message };
 }
 
-export async function inserirBancoHoras(unidadeId, colaboradorId, dataDia, minutos, observacao = "") {
+// tipo: 'credito' (intervalo não tirado -> soma no banco) | 'excesso'
+// (passou do intervalo -> só ocorrência no histórico, não soma no banco)
+export async function inserirBancoHoras(unidadeId, colaboradorId, dataDia, minutos, observacao = "", tipo = "credito") {
   if (!isSupabaseReady()) return { error: "Offline" };
   const { error } = await supabase.from("rh_banco_horas").insert([{
     unidade_id: unidadeId,
@@ -227,8 +229,16 @@ export async function inserirBancoHoras(unidadeId, colaboradorId, dataDia, minut
     data: dataDia,
     minutos: Number(minutos) || 0,
     observacao: observacao || null,
+    tipo,
   }]);
   return { error: error?.message };
+}
+
+// Soma só os CRÉDITOS do banco (excessos de intervalo são ocorrências)
+export function somaMinutosBanco(lancamentos) {
+  return (lancamentos || [])
+    .filter(b => b.tipo !== "excesso")
+    .reduce((s, b) => s + (Number(b.minutos) || 0), 0);
 }
 
 export async function removerBancoHoras(id) {

@@ -143,7 +143,7 @@ export default function DashboardGestao() {
 
     // Banco de horas: quem está perto de estourar as 8h do mês (>= 6h)
     const somaBanco = {};
-    bancoHoras.forEach(b => { somaBanco[b.colaborador_id] = (somaBanco[b.colaborador_id] || 0) + (Number(b.minutos) || 0); });
+    bancoHoras.filter(b => b.tipo !== "excesso").forEach(b => { somaBanco[b.colaborador_id] = (somaBanco[b.colaborador_id] || 0) + (Number(b.minutos) || 0); });
     const bancoAlertas = Object.entries(somaBanco)
       .filter(([, min]) => min >= BANCO_ALERTA_MIN)
       .map(([id, min]) => ({ id, min, nome: colaboradores.find(c => c.id === id)?.nome || "Colaborador", estourou: min >= BANCO_LIMITE_MIN }))

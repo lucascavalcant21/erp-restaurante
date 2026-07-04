@@ -91,8 +91,9 @@ export default function RHPage() {
 
   // --- Banco de Horas ---
   const fmtMin = (m) => `${Math.floor(m / 60)}h${String(Math.round(m) % 60).padStart(2, "0")}`;
+  // Só créditos contam para as 8h — "excesso" (passou do intervalo) é ocorrência
   const totalBancoDe = (colabId) => bancoHoras
-    .filter(b => b.colaborador_id === colabId)
+    .filter(b => b.colaborador_id === colabId && b.tipo !== "excesso")
     .reduce((s, b) => s + (Number(b.minutos) || 0), 0);
 
   const abrirModalBanco = (f) => {
@@ -1089,7 +1090,7 @@ export default function RHPage() {
       {/* MODAL: BANCO DE HORAS (intervalo não tirado; limite 8h/mês) */}
       {modalBanco && funcBanco && (() => {
          const lancs = bancoHoras.filter(b => b.colaborador_id === funcBanco.id);
-         const total = lancs.reduce((s, b) => s + (Number(b.minutos) || 0), 0);
+         const total = lancs.filter(b => b.tipo !== "excesso").reduce((s, b) => s + (Number(b.minutos) || 0), 0);
          const pct = Math.min(100, (total / BANCO_LIMITE_MIN) * 100);
          const critico = total >= BANCO_LIMITE_MIN;
          const alerta = total >= BANCO_ALERTA_MIN;
@@ -1141,9 +1142,14 @@ export default function RHPage() {
                   {lancs.length === 0 ? (
                      <p className="text-sm font-medium text-slate-400 text-center py-4">Nenhum lançamento neste mês.</p>
                   ) : lancs.map(b => (
-                     <div key={b.id} className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-xl">
+                     <div key={b.id} className={`flex items-center gap-3 p-3 rounded-xl border ${b.tipo === "excesso" ? "bg-amber-50 border-amber-200" : "bg-slate-50 border-slate-100"}`}>
                         <div className="flex-1 min-w-0">
-                           <p className="text-sm font-bold text-slate-700">{b.data ? b.data.split("-").reverse().join("/") : "—"} · <span className="text-sky-700">{fmtMin(Number(b.minutos) || 0)}</span></p>
+                           <p className="text-sm font-bold text-slate-700">
+                              {b.data ? b.data.split("-").reverse().join("/") : "—"} ·{" "}
+                              {b.tipo === "excesso"
+                                 ? <span className="text-amber-700">passou {fmtMin(Number(b.minutos) || 0)} do intervalo</span>
+                                 : <span className="text-sky-700">{fmtMin(Number(b.minutos) || 0)}</span>}
+                           </p>
                            {b.observacao && <p className="text-[11px] font-medium text-slate-400 truncate">{b.observacao}</p>}
                         </div>
                         <button onClick={() => excluirBancoHoras(b.id)} className="p-2 text-slate-400 hover:text-red-500 rounded-lg"><Trash2 size={14}/></button>

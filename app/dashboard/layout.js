@@ -92,6 +92,7 @@ const SIDEBAR_MENU = [
     category: "Gestão da Loja",
     icon: Store,
     items: [
+      { label: "Inventário da Unidade", href: "/dashboard/gestao/inventario" },
       { label: "Relatórios Gerais", href: "/dashboard/relatorios" },
       { label: "Configurações", href: "/dashboard/configuracoes" }
     ]

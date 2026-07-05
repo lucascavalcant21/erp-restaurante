@@ -111,7 +111,10 @@ function comprimirImagem(file) {
 const DRAFT_KEY = "orcamento_evento_draft";
 const EVENTO_VAZIO = { nome: "", cliente: "", data: "", hora: "", utensilios: "", convidados: "", comissao_pct: "", parceria_bar_ativa: false, parceria_bar_pct: "30", valor_final_venda: "", preco_pessoa: "" };
 const novoId = () => (globalThis.crypto?.randomUUID?.() || String(Date.now() + Math.random()));
-const novaProposta = (nome) => ({ id: novoId(), nome, evento: { ...EVENTO_VAZIO }, itens: [] });
+const novaProposta = (nome) => ({ id: novoId(), nome, evento: { ...EVENTO_VAZIO }, itens: [], extras: [] });
+
+// Serviços/custos extras do evento além do buffet (aparecem no descritivo)
+const EXTRAS_SUGERIDOS = ["Funcionários / Garçons", "Cantor / Banda", "Dança / Show", "Luz e Energia", "Aluguel do Espaço", "Decoração", "Limpeza"];
 
 export default function OrcamentoEventoPage() {
   const { abrirMenu, unidadeAtiva, unidadeInfo } = useERP();
@@ -132,6 +135,8 @@ export default function OrcamentoEventoPage() {
   const itens = ativa.itens;
   const setEvento = (u) => setPropostas(ps => ps.map(p => p.id === ativa.id ? { ...p, evento: typeof u === "function" ? u(p.evento) : u } : p));
   const setItens = (u) => setPropostas(ps => ps.map(p => p.id === ativa.id ? { ...p, itens: typeof u === "function" ? u(p.itens) : u } : p));
+  const extras = ativa.extras || [];
+  const setExtras = (u) => setPropostas(ps => ps.map(p => p.id === ativa.id ? { ...p, extras: typeof u === "function" ? u(p.extras || []) : u } : p));
 
   useEffect(() => {
     if (!unidadeAtiva) return;
@@ -389,9 +394,15 @@ export default function OrcamentoEventoPage() {
   const vendaBar = linhas.filter(l => String(l.departamento).toLowerCase() === "bar").reduce((a, l) => a + l.vendaTotal, 0);
   const parceriaBarPct = evento.parceria_bar_ativa ? (Number(evento.parceria_bar_pct) || 0) : 0;
   const parceriaBar = vendaBar * (parceriaBarPct / 100);
+  // Extras (funcionários, música, energia, espaço...): o que você cobra do
+  // cliente e o que te custa — entram no descritivo e no lucro
+  const vendaExtras = extras.reduce((a, x) => a + (Number(x.valor_cobrado) || 0), 0);
+  const custoExtras = extras.reduce((a, x) => a + (Number(x.custo) || 0), 0);
+  const totalCliente = vendaEvento + vendaExtras;
+
   const comissaoPct = Number(evento.comissao_pct) || 0;
-  const comissao = vendaEvento * (comissaoPct / 100);
-  const lucroEvento = vendaEvento - custoEvento - comissao - parceriaBar;
+  const comissao = totalCliente * (comissaoPct / 100);
+  const lucroEvento = totalCliente - custoEvento - custoExtras - comissao - parceriaBar;
 
   // Lista de compras: agrega os insumos crus de TODOS os componentes do evento
   const compras = (() => {
@@ -518,9 +529,18 @@ export default function OrcamentoEventoPage() {
           <thead><tr><th>Item</th><th class="c">Quantidade</th><th class="r">Valor Unit.</th><th class="r">Valor Total</th></tr></thead>
           <tbody>${rows}</tbody>
        </table>
+       ${extras.filter(x => Number(x.valor_cobrado) > 0).length ? `
+       <h2>Serviços Adicionais</h2>
+       <table>
+          <tbody>
+             ${extras.filter(x => Number(x.valor_cobrado) > 0).map(x => `<tr><td>${x.nome || "Serviço"}</td><td class="r">${fmtBRL(x.valor_cobrado)}</td></tr>`).join("")}
+             <tr><td style="font-weight:bold">Subtotal serviços</td><td class="r" style="font-weight:bold">${fmtBRL(vendaExtras)}</td></tr>
+          </tbody>
+       </table>` : ''}
        <div class="totais">
-          ${vendaPorConvidado !== null ? `<div class="linha"><span>Valor por convidado (${convidados})</span><b>${fmtBRL(vendaPorConvidado)}</b></div>` : ''}
-          <div class="linha destaque"><span>Valor Total do Evento</span><span>${fmtBRL(vendaEvento)}</span></div>
+          ${vendaPorConvidado !== null ? `<div class="linha"><span>Buffet por convidado (${convidados})</span><b>${fmtBRL(vendaPorConvidado)}</b></div>` : ''}
+          ${vendaExtras > 0 ? `<div class="linha"><span>Buffet</span><b>${fmtBRL(vendaEvento)}</b></div><div class="linha"><span>Serviços adicionais</span><b>${fmtBRL(vendaExtras)}</b></div>` : ''}
+          <div class="linha destaque"><span>Valor Total do Evento</span><span>${fmtBRL(totalCliente)}</span></div>
        </div>
        <div class="obs">Orçamento gerado em ${new Date().toLocaleDateString('pt-BR')}. Valores sujeitos a confirmação de data e disponibilidade.</div>
     </body></html>`);
@@ -653,20 +673,30 @@ export default function OrcamentoEventoPage() {
   const imprimirRelatorio = () => {
     if (linhas.length === 0) return alert("Adicione itens ao evento primeiro.");
     const linha = (rotulo, valor, cor) => `<div class="linha"><span>${rotulo}</span><b${cor ? ` style="color:${cor}"` : ''}>${valor}</b></div>`;
-    const lucroPct = vendaEvento > 0 ? (lucroEvento / vendaEvento) * 100 : 0;
+    const lucroPct = totalCliente > 0 ? (lucroEvento / totalCliente) * 100 : 0;
 
     abrirDoc(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Relatório - ${evento.nome || 'Evento'}</title>${estiloDoc}</head><body>
        ${cabecalhoDoc('Relatório Gerencial')}
 
        <h2>Resultado do Evento</h2>
        <div class="totais" style="border-top:none;margin-top:0">
-          ${linha('Faturamento (vendas)', fmtBRL(vendaEvento))}
+          ${linha('Faturamento buffet', fmtBRL(vendaEvento))}
+          ${vendaExtras > 0 ? linha('+ Serviços extras cobrados', fmtBRL(vendaExtras)) : ''}
+          ${vendaExtras > 0 ? linha('= Faturamento total', fmtBRL(totalCliente)) : ''}
           ${linha('− Custo de ingredientes', fmtBRL(custoEvento))}
+          ${custoExtras > 0 ? linha('− Custo dos extras (funcionários, música...)', fmtBRL(custoExtras)) : ''}
           ${comissaoPct > 0 ? linha(`− Comissão (${comissaoPct}%)`, fmtBRL(comissao)) : ''}
           ${parceriaBar > 0 ? linha(`− Parceria bar (${parceriaBarPct}% de ${fmtBRL(vendaBar)})`, fmtBRL(parceriaBar)) : ''}
           <div class="linha destaque"><span>Lucro do evento (${lucroPct.toFixed(1)}%)</span><span style="color:${lucroEvento >= 0 ? '#059669' : '#dc2626'}">${fmtBRL(lucroEvento)}</span></div>
           ${convidados > 0 ? linha('Lucro por convidado', fmtBRL(lucroEvento / convidados)) : ''}
        </div>
+
+       ${extras.length ? `
+       <h2>Serviços e Custos Extras</h2>
+       <table>
+          <thead><tr><th>Item</th><th class="r">Meu custo</th><th class="r">Cobrado do cliente</th></tr></thead>
+          <tbody>${extras.map(x => `<tr><td>${x.nome || 'Serviço'}</td><td class="r">${fmtBRL(x.custo)}</td><td class="r">${fmtBRL(x.valor_cobrado)}</td></tr>`).join('')}</tbody>
+       </table>` : ''}
 
        ${(ganhoInNaturaTotal > 0 || economiaEmpanadoTotal > 0) ? `
        <h2>Benefício do Empanamento</h2>
@@ -719,7 +749,9 @@ export default function OrcamentoEventoPage() {
     const valorDesejado = (precoPessoaProp > 0 && conv > 0)
       ? precoPessoaProp * conv
       : (Number(prop.evento?.valor_final_venda) || 0);
-    const venda = valorDesejado > 0 ? valorDesejado : somaBase;
+    const vendaBuffet = valorDesejado > 0 ? valorDesejado : somaBase;
+    const vendaExtrasProp = (prop.extras || []).reduce((a, x) => a + (Number(x.valor_cobrado) || 0), 0);
+    const venda = vendaBuffet + vendaExtrasProp;
     return { venda, convidados: conv, porConvidado: conv > 0 ? venda / conv : null, itensCount };
   };
 
@@ -1091,6 +1123,52 @@ export default function OrcamentoEventoPage() {
                   </div>
                )}
             </div>
+
+            {/* ══ SERVIÇOS E CUSTOS EXTRAS — além do buffet ══ */}
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+               <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Serviços e Custos Extras</p>
+               <p className="text-[11px] font-medium text-slate-400 mb-4">Funcionários, música, energia, aluguel do espaço... O que for cobrado aparece no orçamento do cliente junto ao buffet.</p>
+               <div className="flex flex-wrap gap-2 mb-4">
+                  {EXTRAS_SUGERIDOS.filter(s => !extras.find(x => x.nome === s)).map(s => (
+                     <button key={s} type="button" onClick={() => setExtras(lista => [...lista, { id: novoId(), nome: s, custo: "", valor_cobrado: "" }])}
+                        className="px-3 py-1.5 rounded-full text-xs font-bold border border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-700 transition-colors">
+                        + {s}
+                     </button>
+                  ))}
+                  <button type="button" onClick={() => setExtras(lista => [...lista, { id: novoId(), nome: "", custo: "", valor_cobrado: "" }])}
+                     className="px-3 py-1.5 rounded-full text-xs font-bold border border-dashed border-slate-300 text-slate-500 hover:border-emerald-400 hover:text-emerald-700 transition-colors">
+                     + Outro...
+                  </button>
+               </div>
+               {extras.length > 0 && (
+                  <div className="space-y-2">
+                     {extras.map(x => (
+                        <div key={x.id} className="flex flex-wrap items-center gap-2 bg-slate-50 border border-slate-100 rounded-xl p-2.5">
+                           <input type="text" placeholder="Nome do serviço/custo" value={x.nome}
+                              onChange={e => setExtras(lista => lista.map(i => i.id === x.id ? { ...i, nome: e.target.value } : i))}
+                              className="flex-1 min-w-[140px] p-2.5 bg-white border border-slate-200 rounded-lg font-bold text-sm text-slate-700 outline-none focus:border-emerald-500"/>
+                           <div className="text-center">
+                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Meu custo</label>
+                              <input type="number" min="0" step="0.01" placeholder="0,00" value={x.custo}
+                                 onChange={e => setExtras(lista => lista.map(i => i.id === x.id ? { ...i, custo: e.target.value } : i))}
+                                 className="w-24 p-2 text-center bg-white border border-slate-200 rounded-lg font-bold text-slate-700 outline-none focus:border-emerald-500"/>
+                           </div>
+                           <div className="text-center">
+                              <label className="text-[9px] font-black text-emerald-600 uppercase tracking-widest block">Cobrar do cliente</label>
+                              <input type="number" min="0" step="0.01" placeholder="0,00" value={x.valor_cobrado}
+                                 onChange={e => setExtras(lista => lista.map(i => i.id === x.id ? { ...i, valor_cobrado: e.target.value } : i))}
+                                 className="w-28 p-2 text-center bg-emerald-50 border-2 border-emerald-200 rounded-lg font-black text-emerald-700 outline-none focus:border-emerald-500"/>
+                           </div>
+                           <button type="button" onClick={() => setExtras(lista => lista.filter(i => i.id !== x.id))} className="p-2 text-slate-400 hover:text-red-500 rounded-lg shrink-0"><Trash2 size={15}/></button>
+                        </div>
+                     ))}
+                     <div className="flex justify-between pt-2 text-xs font-black text-slate-600">
+                        <span>Custo dos extras: {fmtBRL(custoExtras)}</span>
+                        <span className="text-emerald-700">Cobrado do cliente: {fmtBRL(vendaExtras)}</span>
+                     </div>
+                  </div>
+               )}
+            </div>
          </div>
 
          {/* COLUNA DIREITA: resumo + compras */}
@@ -1099,12 +1177,23 @@ export default function OrcamentoEventoPage() {
                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Resumo do Evento</p>
                <div className="space-y-2.5 text-sm">
                   <div className="flex justify-between items-baseline">
-                     <span className="text-slate-400 font-bold">Faturamento</span>
+                     <span className="text-slate-400 font-bold">Faturamento (buffet{vendaExtras > 0 ? " + extras" : ""})</span>
                      <div>
-                        <span className="text-slate-500 font-medium text-[11px] mr-2">({fmtBRL(vendaEvento / Math.max(1, convidados))}/pes)</span>
-                        <span className="font-black text-base">{fmtBRL(vendaEvento)}</span>
+                        <span className="text-slate-500 font-medium text-[11px] mr-2">({fmtBRL(totalCliente / Math.max(1, convidados))}/pes)</span>
+                        <span className="font-black text-base">{fmtBRL(totalCliente)}</span>
                      </div>
                   </div>
+                  {vendaExtras > 0 && (
+                     <div className="flex justify-between text-[12px]">
+                        <span className="text-slate-500 font-medium pl-3">buffet {fmtBRL(vendaEvento)} + serviços extras {fmtBRL(vendaExtras)}</span>
+                     </div>
+                  )}
+                  {custoExtras > 0 && (
+                     <div className="flex justify-between">
+                        <span className="text-slate-400 font-bold">− Custo dos extras</span>
+                        <span className="font-black">{fmtBRL(custoExtras)}</span>
+                     </div>
+                  )}
                   <div className="flex justify-between items-baseline">
                      <span className="text-slate-400 font-bold">− Custo ingredientes</span>
                      <div>

@@ -12,7 +12,7 @@ import { useERP } from "../../../context/ERPContext";
 import {
   fetchColaboradores, fetchDocumentos, fetchFolgasEsporadicas, fetchConsumoFuncionario,
   fetchBancoHorasColaborador, somaMinutosBanco, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN,
-  fetchAdvertenciasColab, calcularAdicionaisMes
+  fetchAdvertenciasColab, calcularAdicionaisMes, fetchFeriados
 } from "../../../lib/rh";
 import { fetchHistoricoPonto, fetchPontosMes } from "../../../lib/ponto";
 
@@ -59,7 +59,7 @@ export default function VidaColaboradorPage() {
     setVida(null);
     setVidaLoading(true);
     const mes = new Date().toISOString().slice(0, 7);
-    const [rDocs, rFolgas, rConsumo, rBanco, rPonto, rAdv, rPontosMes] = await Promise.all([
+    const [rDocs, rFolgas, rConsumo, rBanco, rPonto, rAdv, rPontosMes, rFeriados] = await Promise.all([
       fetchDocumentos(c.id),
       fetchFolgasEsporadicas(c.id),
       fetchConsumoFuncionario(c.id),
@@ -67,11 +67,12 @@ export default function VidaColaboradorPage() {
       fetchHistoricoPonto(c.id),
       fetchAdvertenciasColab(c.id),
       fetchPontosMes(c.id, mes),
+      fetchFeriados(unidadeAtiva, mes),
     ]);
     setVida({
       docs: rDocs.data || [], folgas: rFolgas.data || [], consumo: rConsumo.data || [],
       banco: rBanco.data || [], ponto: rPonto.data || [],
-      advertencias: rAdv.data || [], pontosMes: rPontosMes.data || [],
+      advertencias: rAdv.data || [], pontosMes: rPontosMes.data || [], feriados: rFeriados.data || [],
     });
     setVidaLoading(false);
   };
@@ -131,11 +132,11 @@ export default function VidaColaboradorPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* Remuneração do mês: fixo + VA + taxa + adicionais do ponto (CLT) */}
               {!isFree && (() => {
-                const ad = calcularAdicionaisMes(vida.pontosMes, sel.salario);
+                const ad = calcularAdicionaisMes(vida.pontosMes, sel.salario, vida.feriados);
                 const fixo = Number(sel.salario) || 0;
                 const va = Number(sel.vale_alimentacao) || 0;
                 const taxa = Number(sel.taxa_servico_mes) || 0;
-                const totalMes = fixo + va + taxa + ad.valorNoturno + ad.valorExtra;
+                const totalMes = fixo + va + taxa + ad.valorNoturno + ad.valorExtra + ad.valorFeriado;
                 const Linha = ({ rotulo, valor, dica }) => (
                   <div className="flex justify-between items-baseline py-1.5 border-b" style={{ borderColor: "var(--line-soft)" }}>
                     <span className="text-sm font-bold" style={{ color: "var(--fg-soft)" }}>{rotulo}{dica && <span className="text-[10px] font-medium ml-1.5" style={{ color: "var(--dim)" }}>{dica}</span>}</span>
@@ -150,7 +151,60 @@ export default function VidaColaboradorPage() {
                     <Linha rotulo="Taxa de serviço" valor={taxa} dica="definida no fim do mês" />
                     <Linha rotulo="Adicional noturno" valor={ad.valorNoturno} dica={`${fmtMin(ad.minNoturno)} após 23h30 · 20% CLT`} />
                     <Linha rotulo="Horas extras" valor={ad.valorExtra} dica={`${fmtMin(ad.minExtra)} após 00h00 · +50% CLT`} />
+                    <Linha rotulo="Trabalho em feriado" valor={ad.valorFeriado} dica={`${fmtMin(ad.minFeriado)} em feriados · +100% CLT`} />
                     <p className="text-[10px] font-medium mt-2" style={{ color: "var(--dim)" }}>Adicionais calculados automaticamente do ponto (hora normal = salário ÷ 220). O botão "Lançar Folha" no RH usa estes valores.</p>
+                  </Bloco>
+                );
+              })()}
+
+              {/* Mini calendário do mês: feriados, folgas e dias com ponto */}
+              {(() => {
+                const agora = new Date();
+                const ano = agora.getFullYear(), mes = agora.getMonth();
+                const diasNoMes = new Date(ano, mes + 1, 0).getDate();
+                const offset = new Date(ano, mes, 1).getDay();
+                const hojeDia = agora.getDate();
+                const feriadosSet = new Set((vida.feriados || []).map(f => f.data));
+                const folgasSet = new Set((vida.folgas || []).map(f => f.data_folga));
+                const pontosSet = new Set((vida.pontosMes || []).filter(p => p.hora_entrada).map(p => p.data_referencia));
+                const trabalhaDias = new Set(String(sel.dias_trabalho || "").split(","));
+                const chave = (d) => `${ano}-${String(mes + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+                return (
+                  <Bloco icon={CalendarHeart} titulo={`Calendário de ${agora.toLocaleDateString("pt-BR", { month: "long" })}`}>
+                    <div className="grid grid-cols-7 gap-1 text-center mb-1">
+                      {DIAS_SEMANA.map(d => <span key={d} className="text-[9px] font-black uppercase" style={{ color: "var(--dim)" }}>{d}</span>)}
+                    </div>
+                    <div className="grid grid-cols-7 gap-1">
+                      {Array.from({ length: offset }).map((_, i) => <span key={`v${i}`} />)}
+                      {Array.from({ length: diasNoMes }).map((_, i) => {
+                        const d = i + 1;
+                        const dataISO = chave(d);
+                        const diaSemana = new Date(ano, mes, d).getDay();
+                        const ehFeriado = feriadosSet.has(dataISO);
+                        const ehFolgaEsp = folgasSet.has(dataISO);
+                        const ehFolgaSemanal = !trabalhaDias.has(String(diaSemana));
+                        const bateu = pontosSet.has(dataISO);
+                        const ehHoje = d === hojeDia;
+                        let bg = "var(--elevated)", fg = "var(--fg-soft)";
+                        if (ehFeriado) { bg = "rgba(239,68,68,0.15)"; fg = "#DC2626"; }
+                        else if (ehFolgaEsp) { bg = "rgba(244,114,182,0.18)"; fg = "#BE185D"; }
+                        else if (ehFolgaSemanal) { bg = "var(--line-soft)"; fg = "var(--dim)"; }
+                        return (
+                          <div key={d} className="relative rounded-lg py-1.5 text-center"
+                            style={{ background: bg, outline: ehHoje ? "2px solid var(--accent)" : "none" }}
+                            title={`${dataISO.split("-").reverse().join("/")}${ehFeriado ? " · Feriado" : ""}${ehFolgaEsp ? " · Folga marcada" : ""}${ehFolgaSemanal ? " · Folga semanal" : ""}${bateu ? " · trabalhou" : ""}`}>
+                            <span className="text-[11px] font-black" style={{ color: fg }}>{d}</span>
+                            {bateu && <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full" style={{ background: "var(--accent)" }} />}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="flex flex-wrap gap-x-3 gap-y-1 mt-3 text-[9px] font-bold" style={{ color: "var(--dim)" }}>
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded" style={{ background: "rgba(239,68,68,0.3)" }} /> Feriado (+100%)</span>
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded" style={{ background: "rgba(244,114,182,0.35)" }} /> Folga marcada</span>
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded" style={{ background: "var(--line-soft)" }} /> Folga semanal</span>
+                      <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--accent)" }} /> Bateu ponto</span>
+                    </div>
                   </Bloco>
                 );
               })()}

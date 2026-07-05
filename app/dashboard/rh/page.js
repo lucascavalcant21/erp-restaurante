@@ -10,7 +10,8 @@ import {
   fetchAllFolgasDaUnidade, fetchFolgasEsporadicas, inserirFolgaEsporadica, removerFolgaEsporadica,
   fetchConsumoFuncionario, inserirConsumoFuncionario, atualizarStatusConsumo, removerConsumoFuncionario,
   fetchBancoHoras, inserirBancoHoras, removerBancoHoras, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN,
-  fetchAdvertenciasColab, inserirAdvertencia, removerAdvertencia
+  fetchAdvertenciasColab, inserirAdvertencia, removerAdvertencia,
+  fetchFeriados, inserirFeriado, removerFeriado
 } from "../../lib/rh";
 import { fetchPontoHoje, fetchPontosMes } from "../../lib/ponto";
 import { calcularAdicionaisMes } from "../../lib/rh";
@@ -82,6 +83,36 @@ export default function RHPage() {
       itens: fichaItens.filter(i => i.incluir).map(i => i.nome),
     });
     setModalFicha(false);
+  };
+
+  // Feriados do mês: dias marcados pagam +100% (dobro) para quem trabalhar
+  const [modalFeriados, setModalFeriados] = useState(false);
+  const [feriadosLista, setFeriadosLista] = useState([]);
+  const [feriadoForm, setFeriadoForm] = useState({ data: "", nome: "" });
+  const [mesFeriados, setMesFeriados] = useState(new Date().toISOString().slice(0, 7));
+
+  const carregarFeriados = async (mes) => {
+    const { data } = await fetchFeriados(unidadeAtiva, mes);
+    setFeriadosLista(data || []);
+  };
+  const abrirModalFeriados = () => {
+    const mes = new Date().toISOString().slice(0, 7);
+    setMesFeriados(mes);
+    setFeriadoForm({ data: "", nome: "" });
+    setModalFeriados(true);
+    carregarFeriados(mes);
+  };
+  const salvarFeriado = async (e) => {
+    e.preventDefault();
+    if (!feriadoForm.data) return alert("Escolha a data do feriado.");
+    const { error } = await inserirFeriado(unidadeAtiva, feriadoForm.data, feriadoForm.nome);
+    if (error) return alert("Erro: " + error);
+    setFeriadoForm({ data: "", nome: "" });
+    carregarFeriados(mesFeriados);
+  };
+  const excluirFeriado = async (id) => {
+    await removerFeriado(id);
+    carregarFeriados(mesFeriados);
   };
 
   // Advertências: geradas aqui, aparecem na vida do colaborador
@@ -267,19 +298,20 @@ export default function RHPage() {
     const venc = `${prox.getFullYear()}-${String(prox.getMonth() + 1).padStart(2, "0")}-05`;
 
     // Monta a folha completa de cada um antes de confirmar
+    const { data: feriadosMes } = await fetchFeriados(unidadeAtiva, mesISO);
     const folha = [];
     for (const f of fixos) {
       const { data: pontos } = await fetchPontosMes(f.id, mesISO);
-      const ad = calcularAdicionaisMes(pontos || [], f.salario);
+      const ad = calcularAdicionaisMes(pontos || [], f.salario, feriadosMes || []);
       const fixo = Number(f.salario) || 0;
       const va = Number(f.vale_alimentacao) || 0;
       const taxa = Number(f.taxa_servico_mes) || 0;
-      const total = fixo + va + taxa + ad.valorNoturno + ad.valorExtra;
+      const total = fixo + va + taxa + ad.valorNoturno + ad.valorExtra + ad.valorFeriado;
       folha.push({ f, fixo, va, taxa, ad, total });
     }
     const totalGeral = folha.reduce((s, x) => s + x.total, 0);
     const resumo = folha.map(x =>
-      `${x.f.nome.split(" ")[0]}: ${fmtBRL(x.total)} (fixo ${fmtBRL(x.fixo)}${x.va ? ` + VA ${fmtBRL(x.va)}` : ""}${x.taxa ? ` + taxa ${fmtBRL(x.taxa)}` : ""}${x.ad.valorNoturno ? ` + noturno ${fmtBRL(x.ad.valorNoturno)}` : ""}${x.ad.valorExtra ? ` + extra ${fmtBRL(x.ad.valorExtra)}` : ""})`
+      `${x.f.nome.split(" ")[0]}: ${fmtBRL(x.total)} (fixo ${fmtBRL(x.fixo)}${x.va ? ` + VA ${fmtBRL(x.va)}` : ""}${x.taxa ? ` + taxa ${fmtBRL(x.taxa)}` : ""}${x.ad.valorNoturno ? ` + noturno ${fmtBRL(x.ad.valorNoturno)}` : ""}${x.ad.valorExtra ? ` + extra ${fmtBRL(x.ad.valorExtra)}` : ""}${x.ad.valorFeriado ? ` + feriado ${fmtBRL(x.ad.valorFeriado)}` : ""})`
     ).join("\n");
     if (!confirm(`Lançar a folha de ${mesKey}?\n\n${resumo}\n\nTOTAL: ${fmtBRL(totalGeral)}\nCada um vira uma conta a pagar (mão de obra), venc. 05/${String(prox.getMonth() + 1).padStart(2, "0")}. Quem já foi lançado no mês não duplica.`)) return;
 
@@ -903,6 +935,9 @@ export default function RHPage() {
                className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold transition-colors shadow-lg ${(!unidadeAtiva || unidadeAtiva === "todas") ? "bg-slate-300 text-slate-500 cursor-not-allowed" : "bg-slate-800 text-white hover:bg-slate-900 shadow-slate-800/20"}`}>
                <FileText size={18} /> Exportar AFD
             </a>
+            <button onClick={abrirModalFeriados} title="Dias de feriado pagam +100% para quem trabalhar (CLT)" className="flex items-center gap-2 bg-white text-rose-600 border border-rose-200 px-5 py-3 rounded-xl font-bold hover:bg-rose-50 transition-colors shadow-sm">
+               <CalendarDays size={18} /> Feriados
+            </button>
             <button onClick={lancarFolhaMes} title="Cria uma conta a pagar por funcionário fixo (mão de obra), sem duplicar" className="flex items-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-5 py-3 rounded-xl font-bold hover:bg-emerald-50 transition-colors shadow-sm">
                <CreditCard size={18} /> Lançar Folha (mês)
             </button>
@@ -1350,6 +1385,46 @@ export default function RHPage() {
          </div>
          );
       })()}
+
+      {/* MODAL: FERIADOS da unidade (dias que pagam +100% p/ quem trabalhar) */}
+      {modalFeriados && (
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
+            <div className="bg-white rounded-[32px] w-full max-w-md my-8 p-8 shadow-2xl animate-in zoom-in-95 max-h-[85vh] flex flex-col">
+               <div className="flex justify-between items-center mb-5 shrink-0">
+                  <div>
+                     <h2 className="font-black text-2xl text-slate-800">Feriados</h2>
+                     <p className="text-sm font-bold text-slate-500 mt-1">Quem trabalhar nesses dias recebe +100% (dobro, CLT)</p>
+                  </div>
+                  <button onClick={() => setModalFeriados(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+               </div>
+
+               <form onSubmit={salvarFeriado} className="bg-rose-50 border border-rose-200 rounded-2xl p-4 mb-4 shrink-0 space-y-3">
+                  <div className="flex gap-3">
+                     <input type="date" value={feriadoForm.data} onChange={e=>setFeriadoForm({...feriadoForm, data: e.target.value})} className="p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-rose-400"/>
+                     <input type="text" placeholder="Nome (ex: Natal)" value={feriadoForm.nome} onChange={e=>setFeriadoForm({...feriadoForm, nome: e.target.value})} className="flex-1 p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-rose-400"/>
+                  </div>
+                  <button type="submit" className="w-full py-3 bg-rose-600 hover:bg-rose-700 text-white font-black text-sm rounded-xl transition-colors">Adicionar Feriado</button>
+               </form>
+
+               <div className="flex items-center gap-2 mb-3 shrink-0">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Mês:</label>
+                  <input type="month" value={mesFeriados} onChange={e=>{ setMesFeriados(e.target.value); carregarFeriados(e.target.value); }} className="p-2 bg-slate-50 border border-slate-200 rounded-lg font-bold text-sm text-slate-700 outline-none"/>
+               </div>
+
+               <div className="overflow-y-auto space-y-2">
+                  {feriadosLista.length === 0 ? (
+                     <p className="text-sm font-medium text-slate-400 text-center py-4">Nenhum feriado marcado neste mês.</p>
+                  ) : feriadosLista.map(fe => (
+                     <div key={fe.id} className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center gap-3">
+                        <span className="text-sm font-black text-rose-600 shrink-0">{fe.data?.split("-").reverse().slice(0, 2).join("/")}</span>
+                        <span className="flex-1 text-sm font-bold text-slate-700 truncate">{fe.nome || "Feriado"}</span>
+                        <button onClick={() => excluirFeriado(fe.id)} className="p-2 text-slate-400 hover:text-red-500 rounded-lg"><Trash2 size={14}/></button>
+                     </div>
+                  ))}
+               </div>
+            </div>
+         </div>
+      )}
 
       {/* MODAL: ADVERTÊNCIAS do colaborador */}
       {modalAdv && funcAdv && (

@@ -249,12 +249,15 @@ export async function removerBancoHoras(id) {
 
 // ─── REMUNERAÇÃO (CLT simplificada) ─────────────────────────────────────────
 // Regras da casa: adicional noturno começa às 23:30 (20% sobre a hora normal,
-// ref. CLT art. 73) e o que passar de 00:00 conta como hora extra (+50%,
-// ref. CF art. 7º XVI). Hora normal = salário ÷ 220 (divisor mensal CLT).
-export function calcularAdicionaisMes(pontosMes, salarioBase) {
+// ref. CLT art. 73); o que passar de 00:00 conta como hora extra (+50%,
+// ref. CF art. 7º XVI); dia trabalhado em FERIADO paga adicional de 100%
+// (dobro, Lei 605/49 art. 9º). Hora normal = salário ÷ 220 (divisor CLT).
+export function calcularAdicionaisMes(pontosMes, salarioBase, feriados = []) {
   const valorHora = (Number(salarioBase) || 0) / 220;
+  const feriadosSet = new Set((feriados || []).map(f => f.data || f));
   let minNoturno = 0;   // 23:30 → 00:00
   let minExtra = 0;     // após 00:00
+  let minFeriado = 0;   // horas trabalhadas em dia de feriado
 
   (pontosMes || []).forEach(reg => {
     if (!reg.hora_entrada || !reg.hora_saida) return;
@@ -275,15 +278,52 @@ export function calcularAdicionaisMes(pontosMes, salarioBase) {
     if (saida.getTime() > meiaNoite.getTime()) {
       minExtra += Math.round((saida.getTime() - meiaNoite.getTime()) / 60000);
     }
+
+    // Dia de feriado: todas as horas trabalhadas pagam +100%
+    if (feriadosSet.has(reg.data_referencia)) {
+      // Desconta o intervalo, se registrado
+      let minDia = Math.round((saida - entrada) / 60000);
+      if (reg.hora_saida_intervalo && reg.hora_retorno_intervalo) {
+        minDia -= Math.max(0, Math.round((new Date(reg.hora_retorno_intervalo) - new Date(reg.hora_saida_intervalo)) / 60000));
+      }
+      if (minDia > 0) minFeriado += minDia;
+    }
   });
 
   const valorNoturno = (minNoturno / 60) * valorHora * 0.20;      // só o adicional de 20%
   const valorExtra = (minExtra / 60) * valorHora * 1.50;          // hora cheia + 50%
+  const valorFeriado = (minFeriado / 60) * valorHora * 1.00;      // adicional de 100% (dobro)
   return {
-    minNoturno, minExtra,
+    minNoturno, minExtra, minFeriado,
     valorNoturno: Math.round(valorNoturno * 100) / 100,
     valorExtra: Math.round(valorExtra * 100) / 100,
+    valorFeriado: Math.round(valorFeriado * 100) / 100,
   };
+}
+
+// ─── FERIADOS DA UNIDADE ─────────────────────────────────────────────────────
+export async function fetchFeriados(unidadeId, mesAno = null) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: [] };
+  let q = supabase.from("rh_feriados").select("*").eq("unidade_id", unidadeId).order("data");
+  if (mesAno) {
+    const [ano, mes] = String(mesAno).split("-").map(Number);
+    const fim = new Date(ano, mes, 1).toISOString().split("T")[0];
+    q = q.gte("data", `${mesAno}-01`).lt("data", fim);
+  }
+  const { data, error } = await q;
+  return { data: data || [], error: error?.message };
+}
+
+export async function inserirFeriado(unidadeId, data, nome) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase.from("rh_feriados").insert([{ unidade_id: unidadeId, data, nome: nome || null }]);
+  return { error: error?.message };
+}
+
+export async function removerFeriado(id) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase.from("rh_feriados").delete().eq("id", id);
+  return { error: error?.message };
 }
 
 // ─── ADVERTÊNCIAS ────────────────────────────────────────────────────────────

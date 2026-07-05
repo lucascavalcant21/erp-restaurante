@@ -696,7 +696,7 @@ function CardapioRunner() {
                   {/* PRATO PRONTO — a montagem é feita na Ficha Técnica; aqui
                       só se escolhe o prato e o resto é financeiro (custo/preço/CMV) */}
                   <div className="pt-4 border-t border-slate-100">
-                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Prato pronto (montado na Ficha Técnica)</label>
+                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{form.departamento === "bar" ? "Drink pronto (montado na Ficha de Drinks)" : "Prato pronto (montado na Ficha Técnica)"}</label>
                      <select
                         value={(form.composicao || []).length === 1 ? form.composicao[0].ficha_id : ""}
                         onChange={e => {
@@ -715,7 +715,7 @@ function CardapioRunner() {
                         }}
                         className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:border-emerald-500"
                      >
-                        <option value="">Selecione o prato...</option>
+                        <option value="">{form.departamento === "bar" ? "Selecione o drink..." : "Selecione o prato..."}</option>
                         {fichas.filter(f => f.departamento === form.departamento && !f.eh_base).map(f => <option key={f.id} value={f.id}>{f.nome_receita}</option>)}
                      </select>
                      <p className="text-[10px] text-slate-400 font-medium mt-1">A montagem (insumos + pré-preparos) é feita em Fichas Técnicas. Aqui você só precifica.</p>
@@ -775,7 +775,7 @@ function CardapioRunner() {
                      return (
                         <div className="grid grid-cols-3 gap-3">
                            <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50 text-center">
-                              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Custo do prato</p>
+                              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">{form.departamento === "bar" ? "Custo do drink" : "Custo do prato"}</p>
                               <p className="text-xl font-black text-slate-800 mt-1">{(form.composicao || []).length ? fmtBRL(custoLive) : "—"}</p>
                               <p className="text-[9px] font-medium text-slate-400">automático da montagem</p>
                            </div>

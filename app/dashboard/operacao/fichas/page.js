@@ -992,12 +992,18 @@ function FichasRunner() {
                            <input type="text" placeholder="Ex: Caipirinha de Morango" value={form.nome_receita} onChange={e=>setForm({...form, nome_receita: e.target.value})} className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500 shadow-sm"/>
                         </div>
                      </div>
-                     <div className="bg-purple-50 border border-purple-100 rounded-xl p-3">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                           <input type="checkbox" checked={form.eh_base} onChange={e=>setForm({...form, eh_base: e.target.checked})} className="w-4 h-4 accent-purple-600"/>
-                           <span className="text-xs font-black text-purple-700 uppercase tracking-widest">É uma base / pré-preparo</span>
-                        </label>
-                        <p className="text-[11px] text-purple-500 mt-1 font-medium">Marque se esta receita é usada como ingrediente de outros pratos (ex.: base de tucupi, molho, massa).</p>
+                     {/* Tipo da ficha: PRATO/DRINK (vai pro cardápio) ou PRÉ-PREPARO (base) */}
+                     <div className="flex gap-2">
+                        <button type="button" onClick={() => setForm({ ...form, eh_base: false })}
+                           className={`flex-1 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all border-2 ${!form.eh_base ? "bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-600/20" : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"}`}>
+                           {deptUrl === "bar" ? "Drink" : "Prato"}
+                           <span className="block text-[9px] font-bold normal-case tracking-normal mt-0.5 opacity-80">vai pro cardápio · monte com insumos e pré-preparos</span>
+                        </button>
+                        <button type="button" onClick={() => setForm({ ...form, eh_base: true })}
+                           className={`flex-1 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all border-2 ${form.eh_base ? "bg-purple-600 border-purple-600 text-white shadow-lg shadow-purple-600/20" : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"}`}>
+                           Pré-preparo
+                           <span className="block text-[9px] font-bold normal-case tracking-normal mt-0.5 opacity-80">{deptUrl === "bar" ? "xarope, mix, infusão — usado dentro dos drinks" : "molho, massa, caldo — usado dentro dos pratos"}</span>
+                        </button>
                      </div>
                      {/* RENDIMENTO — automático pela soma dos ingredientes (peso + custo de 1 kg) */}
                      <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">

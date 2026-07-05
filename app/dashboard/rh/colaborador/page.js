@@ -1,180 +1,253 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Badge, DollarSign, FileText, Bell, AlertTriangle, ClipboardList, GraduationCap, Clock, ChevronDown, Download, PlayCircle } from "lucide-react";
-import { PageHeader, PageBody, Card, EmptyState, fmtData, fmtBRL } from "../../../components/ui";
-import { useERP } from "../../../context/ERPContext";
-import { lerSessao, getPapel } from "../../../lib/auth";
-import { supabase } from "../../../lib/supabase";
+import { useRouter } from "next/navigation";
 import {
-  buscarFuncionarioPorEmail, fetchHolerites, fetchDocumentos, fetchAvisos,
-  fetchAdvertencias, fetchProducoes, fetchCursos, fetchBonificacoes
-} from "../../../lib/pessoas";
+  Users, ArrowLeft, Phone, CreditCard, Clock, Hourglass, CalendarHeart,
+  ShoppingBag, FileText, Star, Edit3, Printer, ChevronRight, IdCard, Network
+} from "lucide-react";
+import { PageHeader, PageBody, EmptyState, SearchBar, SkeletonList, fmtBRL, fmtData } from "../../../components/ui";
+import { useERP } from "../../../context/ERPContext";
+import {
+  fetchColaboradores, fetchDocumentos, fetchFolgasEsporadicas, fetchConsumoFuncionario,
+  fetchBancoHorasColaborador, somaMinutosBanco, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN
+} from "../../../lib/rh";
+import { fetchHistoricoPonto } from "../../../lib/ponto";
 
-function Secao({ icon: Icon, titulo, badge, children, aberto = false }) {
-  const [open, setOpen] = useState(aberto);
+const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const fmtMin = (m) => `${Math.floor(m / 60)}h${String(Math.round(m) % 60).padStart(2, "0")}`;
+const horaDe = (iso) => iso ? new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "--:--";
+
+function Bloco({ icon: Icon, titulo, extra, children }) {
   return (
-    <Card className="!p-0 overflow-hidden">
-      <button onClick={() => setOpen((v) => !v)} className="w-full flex items-center gap-3 px-4 py-3.5">
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "var(--elevated)" }}><Icon size={15} style={{ color: "var(--muted)" }} /></div>
-        <span className="flex-1 text-left text-sm font-bold" style={{ color: "var(--fg)" }}>{titulo}</span>
-        {badge > 0 && <span className="erp-badge erp-badge-ok">{badge}</span>}
-        <ChevronDown size={16} style={{ color: "var(--dim)", transform: open ? "rotate(180deg)" : "none", transition: "transform 160ms" }} />
-      </button>
-      {open && <div className="px-4 pb-4" style={{ borderTop: "1px solid var(--line)", paddingTop: 12 }}>{children}</div>}
-    </Card>
+    <div className="erp-card p-5">
+      <div className="flex items-center justify-between mb-4">
+        <p className="erp-label flex items-center gap-1.5"><Icon size={13} /> {titulo}</p>
+        {extra}
+      </div>
+      {children}
+    </div>
   );
 }
-const GRAV = { leve: "erp-badge-warn", media: "erp-badge-warn", grave: "erp-badge-danger" };
 
-export default function ColaboradorPage() {
-  const { unidadeInfo } = useERP();
-  const [sessao, setSessao] = useState(null);
-  const [func, setFunc] = useState(null);
+export default function VidaColaboradorPage() {
+  const { unidadeAtiva, unidadeInfo } = useERP();
+  const router = useRouter();
+  const [colaboradores, setColaboradores] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [d, setD] = useState({ holerites: [], documentos: [], avisos: [], advertencias: [], producoes: [], cursos: [], ponto: [], bonificacoes: [] });
+  const [busca, setBusca] = useState("");
+
+  // Colaborador aberto + a vida dele
+  const [sel, setSel] = useState(null);
+  const [vida, setVida] = useState(null); // { docs, folgas, consumo, banco, ponto }
+  const [vidaLoading, setVidaLoading] = useState(false);
 
   useEffect(() => {
     (async () => {
-      const s = await lerSessao(); setSessao(s);
-      const f = await buscarFuncionarioPorEmail(s?.email); setFunc(f);
-      if (f) {
-        const [holerites, documentos, avisos, advertencias, producoes, cursos, bonificacoes] = await Promise.all([
-          fetchHolerites(f.id), fetchDocumentos(f.id), fetchAvisos(f.id),
-          fetchAdvertencias(f.id), fetchProducoes(f.id), fetchCursos(f.id),
-          fetchBonificacoes(f.id)
-        ]);
-        let ponto = [];
-        if (supabase) {
-          const { data } = await supabase.from("registros_ponto").select("*").eq("func_id", f.id).order("data", { ascending: false }).limit(15);
-          ponto = data || [];
-        }
-        setD({ holerites, documentos, avisos, advertencias, producoes, cursos, ponto, bonificacoes });
-      }
+      if (!unidadeAtiva || unidadeAtiva === "todas") { setLoading(false); return; }
+      setLoading(true);
+      const { data } = await fetchColaboradores(unidadeAtiva);
+      setColaboradores(data || []);
       setLoading(false);
     })();
-  }, []);
+  }, [unidadeAtiva]);
 
-  const papel = sessao ? getPapel(sessao.papel) : null;
+  const abrir = async (c) => {
+    setSel(c);
+    setVida(null);
+    setVidaLoading(true);
+    const mes = new Date().toISOString().slice(0, 7);
+    const [rDocs, rFolgas, rConsumo, rBanco, rPonto] = await Promise.all([
+      fetchDocumentos(c.id),
+      fetchFolgasEsporadicas(c.id),
+      fetchConsumoFuncionario(c.id),
+      fetchBancoHorasColaborador(c.id, mes),
+      fetchHistoricoPonto(c.id),
+    ]);
+    setVida({
+      docs: rDocs.data || [], folgas: rFolgas.data || [], consumo: rConsumo.data || [],
+      banco: rBanco.data || [], ponto: rPonto.data || [],
+    });
+    setVidaLoading(false);
+  };
 
-  return (
-    <div className="min-h-screen">
-      <PageHeader title="Portal do Colaborador" subtitle="Seu espaço de autosserviço" icon={Badge} />
-      <PageBody>
-        {/* Cartão do colaborador */}
-        <Card className="flex items-center gap-3">
-          {func?.foto_url ? (
-            <img src={func.foto_url} alt="Foto de perfil" className="w-12 h-12 rounded-2xl object-cover" />
-          ) : (
-            <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg" style={{ background: "var(--accent-soft)", color: "var(--accent-fg)" }}>
-              {(func?.nome || sessao?.nome)?.[0]?.toUpperCase() || "U"}
+  if (!unidadeAtiva || unidadeAtiva === "todas") {
+    return (
+      <div className="min-h-screen">
+        <PageHeader title="Colaboradores" subtitle="A vida completa de cada funcionário" icon={Users} />
+        <PageBody><EmptyState icon={Users} title="Selecione uma unidade" hint="Escolha a unidade no topo." /></PageBody>
+      </div>
+    );
+  }
+
+  // ── Detalhe: a vida do colaborador ────────────────────────────────────────
+  if (sel) {
+    const supervisor = colaboradores.find(c => c.id === sel.supervisor_id);
+    const liderados = colaboradores.filter(c => c.supervisor_id === sel.id);
+    const totalBanco = vida ? somaMinutosBanco(vida.banco) : 0;
+    const excessos = vida ? vida.banco.filter(b => b.tipo === "excesso") : [];
+    const consumoPendente = vida ? vida.consumo.filter(x => (x.status_pagamento || "") === "Pendente").reduce((s, x) => s + (Number(x.valor_final ?? x.valor_original) || 0), 0) : 0;
+    const isFree = sel.tipo_contrato === "Freelancer";
+    const diasTrab = String(sel.dias_trabalho || "").split(",").filter(Boolean).map(d => DIAS_SEMANA[Number(d)] || d).join(", ");
+
+    return (
+      <div className="min-h-screen pb-24">
+        <PageHeader title={sel.nome} subtitle={`${sel.cargo || "—"} · ${isFree ? "Freelancer/Extra" : sel.tipo_contrato || "Fixo"} · ${unidadeInfo?.nome}`} icon={IdCard} back={false}>
+          <button onClick={() => { setSel(null); setVida(null); }} className="erp-btn erp-btn-ghost !h-9 text-xs"><ArrowLeft size={14} /> Todos</button>
+          <button onClick={() => router.push(`/dashboard/rh/espelho/${sel.id}?mes=${new Date().toISOString().slice(0, 7)}`)} className="erp-btn erp-btn-ghost !h-9 text-xs"><Printer size={14} /> Espelho de Ponto</button>
+          <button onClick={() => router.push("/dashboard/rh")} className="erp-btn erp-btn-primary !h-9 text-xs"><Edit3 size={14} /> Editar no RH</button>
+        </PageHeader>
+        <PageBody>
+          {/* Dados cadastrais */}
+          <Bloco icon={IdCard} titulo="Dados do colaborador">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-5 gap-y-3 text-sm">
+              <div><p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>Telefone</p><p className="font-bold" style={{ color: "var(--fg-soft)" }}>{sel.telefone || "—"}</p></div>
+              <div><p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>CPF</p><p className="font-bold" style={{ color: "var(--fg-soft)" }}>{sel.cpf || "—"}</p></div>
+              <div><p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>Chave PIX</p><p className="font-bold truncate" style={{ color: "var(--fg-soft)" }}>{sel.chave_pix || "—"}</p></div>
+              <div><p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>{isFree ? "Diária base" : "Salário base"}</p><p className="font-bold" style={{ color: "var(--accent-strong)" }}>{fmtBRL(sel.salario)}</p></div>
+              <div><p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>Horário</p><p className="font-bold" style={{ color: "var(--fg-soft)" }}>{sel.horario_entrada || "—"} às {sel.horario_saida || "—"}</p></div>
+              <div><p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>Dias de trabalho</p><p className="font-bold" style={{ color: "var(--fg-soft)" }}>{diasTrab || "—"}</p></div>
+              <div><p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>Intervalo</p><p className="font-bold" style={{ color: "var(--fg-soft)" }}>{sel.tempo_intervalo || 60} min</p></div>
+              <div><p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>Admissão</p><p className="font-bold" style={{ color: "var(--fg-soft)" }}>{sel.data_admissao ? fmtData(sel.data_admissao) : "—"}</p></div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 mt-4 pt-3 border-t" style={{ borderColor: "var(--line-soft)" }}>
+              <span className="erp-badge" style={{ background: "var(--elevated)", color: "var(--muted)" }}><Network size={12} /> Supervisor: {supervisor?.nome || "topo da hierarquia"}</span>
+              {liderados.length > 0 && <span className="erp-badge erp-badge-ok"><Users size={12} /> Lidera {liderados.length} pessoa(s)</span>}
+              {isFree && (
+                <span className="erp-badge erp-badge-warn flex items-center gap-1">
+                  {[...Array(5)].map((_, i) => <Star key={i} size={11} className={i < (sel.avaliacao_estrelas || 0) ? "fill-amber-500 text-amber-500" : "text-slate-300"} />)}
+                </span>
+              )}
+              {sel.anotacoes_rh && <span className="text-[11px] font-medium" style={{ color: "var(--dim)" }}>{sel.anotacoes_rh}</span>}
+            </div>
+          </Bloco>
+
+          {vidaLoading || !vida ? <SkeletonList rows={4} /> : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Ponto */}
+              <Bloco icon={Clock} titulo="Ponto — últimos dias"
+                extra={<button onClick={() => router.push(`/dashboard/rh/espelho/${sel.id}?mes=${new Date().toISOString().slice(0, 7)}`)} className="text-[10px] font-bold flex items-center gap-0.5" style={{ color: "var(--accent-strong)" }}>Espelho completo <ChevronRight size={11} /></button>}>
+                {vida.ponto.length === 0 ? <p className="text-xs font-medium" style={{ color: "var(--dim)" }}>Sem batidas registradas ainda.</p> : (
+                  <div className="space-y-1">
+                    <div className="grid grid-cols-[60px_1fr_1fr_1fr_1fr] gap-1 text-[9px] font-black uppercase tracking-widest text-center" style={{ color: "var(--dim)" }}>
+                      <span className="text-left">Dia</span><span>Entrada</span><span>Int. saída</span><span>Int. volta</span><span>Saída</span>
+                    </div>
+                    {vida.ponto.map(h => (
+                      <div key={h.id} className="grid grid-cols-[60px_1fr_1fr_1fr_1fr] gap-1 items-center text-center py-1.5 rounded-lg" style={{ background: "var(--elevated)" }}>
+                        <span className="text-[11px] font-black text-left pl-2" style={{ color: "var(--muted)" }}>{h.data_referencia?.slice(5).split("-").reverse().join("/")}</span>
+                        {["hora_entrada", "hora_saida_intervalo", "hora_retorno_intervalo", "hora_saida"].map(c => (
+                          <span key={c} className="text-xs font-bold" style={{ color: h[c] ? "var(--fg-soft)" : "var(--dim)" }}>{horaDe(h[c])}</span>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Bloco>
+
+              {/* Banco de horas */}
+              <Bloco icon={Hourglass} titulo="Banco de horas (mês)"
+                extra={<span className="text-sm font-black" style={{ color: totalBanco >= BANCO_LIMITE_MIN ? "#DC2626" : totalBanco >= BANCO_ALERTA_MIN ? "#B45309" : "var(--fg)" }}>{fmtMin(totalBanco)} / 8h</span>}>
+                <div className="h-2 rounded-full overflow-hidden mb-3" style={{ background: "var(--elevated)" }}>
+                  <div className="h-full rounded-full" style={{ width: `${Math.min(100, (totalBanco / BANCO_LIMITE_MIN) * 100)}%`, background: totalBanco >= BANCO_LIMITE_MIN ? "#DC2626" : totalBanco >= BANCO_ALERTA_MIN ? "#F59E0B" : "var(--accent)" }} />
+                </div>
+                {vida.banco.length === 0 ? <p className="text-xs font-medium" style={{ color: "var(--dim)" }}>Nenhum lançamento neste mês.</p> : (
+                  <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
+                    {vida.banco.map(b => (
+                      <div key={b.id} className="flex justify-between items-center text-xs p-2 rounded-lg" style={{ background: b.tipo === "excesso" ? "rgba(245,158,11,0.10)" : "var(--elevated)" }}>
+                        <span className="font-medium truncate" style={{ color: "var(--fg-soft)" }}>{b.data?.split("-").reverse().join("/")} · {b.observacao || "Intervalo não tirado"}</span>
+                        <span className="font-black shrink-0 ml-2" style={{ color: b.tipo === "excesso" ? "#B45309" : "var(--accent-strong)" }}>{b.tipo === "excesso" ? `+${b.minutos}min além` : fmtMin(Number(b.minutos) || 0)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {excessos.length > 0 && <p className="text-[10px] font-bold mt-2" style={{ color: "#B45309" }}>{excessos.length} ocorrência(s) de intervalo passado do horário.</p>}
+              </Bloco>
+
+              {/* Folgas */}
+              <Bloco icon={CalendarHeart} titulo="Folgas marcadas">
+                {vida.folgas.length === 0 ? <p className="text-xs font-medium" style={{ color: "var(--dim)" }}>Nenhuma folga esporádica marcada.</p> : (
+                  <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
+                    {vida.folgas.map(f => (
+                      <div key={f.id} className="flex justify-between items-center text-xs p-2 rounded-lg" style={{ background: "var(--elevated)" }}>
+                        <span className="font-bold" style={{ color: "var(--fg-soft)" }}>{f.data_folga?.split("-").reverse().join("/")}</span>
+                        <span className="font-medium truncate ml-2" style={{ color: "var(--dim)" }}>{f.descricao || "Folga"}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Bloco>
+
+              {/* Consumo / vales */}
+              <Bloco icon={ShoppingBag} titulo="Consumo e vales"
+                extra={consumoPendente > 0 && <span className="text-xs font-black" style={{ color: "#DC2626" }}>{fmtBRL(consumoPendente)} pendente</span>}>
+                {vida.consumo.length === 0 ? <p className="text-xs font-medium" style={{ color: "var(--dim)" }}>Nenhum consumo registrado.</p> : (
+                  <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
+                    {vida.consumo.map(x => (
+                      <div key={x.id} className="flex justify-between items-center text-xs p-2 rounded-lg" style={{ background: "var(--elevated)" }}>
+                        <div className="min-w-0">
+                          <p className="font-bold truncate" style={{ color: "var(--fg-soft)" }}>{x.descricao}</p>
+                          <p className="text-[10px] font-medium" style={{ color: "var(--dim)" }}>{x.data_consumo ? fmtData(x.data_consumo) : "—"} · {x.forma_pagamento || "—"} · {x.status_pagamento || "—"}</p>
+                        </div>
+                        <span className="font-black shrink-0 ml-2" style={{ color: "var(--fg)" }}>{fmtBRL(x.valor_final ?? x.valor_original)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Bloco>
+
+              {/* Documentos */}
+              <Bloco icon={FileText} titulo="Documentos anexados">
+                {vida.docs.length === 0 ? <p className="text-xs font-medium" style={{ color: "var(--dim)" }}>Nenhum documento. Anexe pela Gestão de RH.</p> : (
+                  <div className="flex flex-wrap gap-2">
+                    {vida.docs.map(doc => (
+                      <a key={doc.id} href={doc.url_arquivo} target="_blank" rel="noreferrer" className="erp-badge erp-badge-ok flex items-center gap-1"><FileText size={11} /> {doc.nome_arquivo}</a>
+                    ))}
+                  </div>
+                )}
+              </Bloco>
             </div>
           )}
-          <div className="min-w-0">
-            <p className="text-base font-bold truncate" style={{ color: "var(--fg)" }}>{func?.nome || sessao?.nome || "Colaborador"}</p>
-            <p className="text-[11px]" style={{ color: "var(--dim)" }}>
-              {func ? `${func.cargo || papel?.label} · ${func.turno || ""}` : papel?.label} · {unidadeInfo.nome}
-            </p>
-          </div>
-        </Card>
+        </PageBody>
+      </div>
+    );
+  }
 
-        {loading ? (
-          <EmptyState icon={Badge} title="Carregando seu portal..." />
-        ) : !func ? (
-          <EmptyState icon={Badge} title="Cadastro não vinculado"
-            hint={`Seu acesso (${sessao?.email || ""}) ainda não foi associado a um funcionário. Peça ao RH para cadastrar você com este mesmo e-mail.`} />
+  // ── Lista de colaboradores ────────────────────────────────────────────────
+  const filtrados = colaboradores.filter(c =>
+    c.nome.toLowerCase().includes(busca.toLowerCase()) || (c.cargo || "").toLowerCase().includes(busca.toLowerCase())
+  );
+
+  return (
+    <div className="min-h-screen pb-24">
+      <PageHeader title="Colaboradores" subtitle={`A vida completa de cada funcionário · ${unidadeInfo?.nome || ""}`} icon={Users}
+        onAction={() => router.push("/dashboard/rh")} actionLabel="Cadastrar no RH" />
+      <PageBody>
+        <SearchBar value={busca} onChange={setBusca} placeholder="Buscar por nome ou cargo..." />
+        {loading ? <SkeletonList rows={5} /> : filtrados.length === 0 ? (
+          <EmptyState icon={Users} title={colaboradores.length === 0 ? "Nenhum colaborador" : "Nada encontrado"}
+            hint={colaboradores.length === 0 ? "Cadastre a equipe na Gestão de RH — aqui você acompanha a vida de cada um." : "Tente outro nome ou cargo."}
+            actionLabel={colaboradores.length === 0 ? "Ir para Gestão de RH" : undefined}
+            onAction={colaboradores.length === 0 ? () => router.push("/dashboard/rh") : undefined} />
         ) : (
-          <>
-            <Secao icon={Bell} titulo="Avisos e reuniões" badge={d.avisos.length} aberto>
-              {d.avisos.length === 0 ? <EmptyState icon={Bell} title="Sem avisos" /> : (
-                <div className="space-y-2">{d.avisos.map((a) => (
-                  <div key={a.id} className="erp-panel p-3">
-                    <div className="flex justify-between"><p className="text-sm font-bold" style={{ color: "var(--fg)" }}>{a.titulo}</p>
-                      <span className="text-[10px]" style={{ color: "var(--dim)" }}>{fmtData(a.data)}</span></div>
-                    <p className="text-[12px] mt-0.5" style={{ color: "var(--subtle)" }}>{a.corpo}</p>
-                  </div>))}</div>
-              )}
-            </Secao>
-
-            <Secao icon={ClipboardList} titulo="Minhas produções" badge={d.producoes.filter(p=>p.status!=="feito").length}>
-              {d.producoes.length === 0 ? <EmptyState icon={ClipboardList} title="Nenhuma produção atribuída" /> : (
-                <div className="space-y-2">{d.producoes.map((p) => (
-                  <div key={p.id} className="erp-panel p-3 flex items-center justify-between">
-                    <div><p className="text-sm font-bold" style={{ color: "var(--fg)" }}>{p.titulo}</p>
-                      <p className="text-[11px]" style={{ color: "var(--dim)" }}>{p.periodo === "semana" ? "Semanal" : "Diária"} · {fmtData(p.data)}</p></div>
-                    <span className={`erp-badge ${p.status === "feito" ? "erp-badge-ok" : "erp-badge-warn"}`}>{p.status}</span>
-                  </div>))}</div>
-              )}
-            </Secao>
-
-            <Secao icon={DollarSign} titulo="Meus holerites" badge={d.holerites.length}>
-              {d.holerites.length === 0 ? <EmptyState icon={DollarSign} title="Nenhum holerite disponível" /> : (
-                <div className="space-y-2">{d.holerites.map((h) => (
-                  <div key={h.id} className="erp-panel p-3 flex items-center justify-between">
-                    <div><p className="text-sm font-bold" style={{ color: "var(--fg)" }}>{String(h.mes).padStart(2,"0")}/{h.ano}</p>
-                      <p className="text-[11px]" style={{ color: "var(--accent-fg)" }}>Líquido {fmtBRL(h.liquido)}</p></div>
-                    {h.arquivo_url && <a href={h.arquivo_url} target="_blank" rel="noreferrer" className="erp-badge erp-badge-ok flex items-center gap-1"><Download size={12} /> Baixar</a>}
-                  </div>))}</div>
-              )}
-            </Secao>
-
-            <Secao icon={DollarSign} titulo="Meus Bônus / Premiações" badge={d.bonificacoes?.length || 0}>
-              {!d.bonificacoes || d.bonificacoes.length === 0 ? <EmptyState icon={DollarSign} title="Nenhum bônus recebido" /> : (
-                <div className="space-y-2">{d.bonificacoes.map((b) => (
-                  <div key={b.id} className="erp-panel p-3 flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{b.rh_tipos_bonificacao?.nome || "Bônus"}</p>
-                      <p className="text-[11px]" style={{ color: "var(--dim)" }}>{fmtData(b.data)} {b.obs ? `· ${b.obs}` : ""}</p>
-                    </div>
-                    <span className="font-bold" style={{ color: "var(--fg)" }}>{fmtBRL(b.valor)}</span>
-                  </div>))}</div>
-              )}
-            </Secao>
-
-            <Secao icon={FileText} titulo="Meus documentos" badge={d.documentos.length}>
-              {d.documentos.length === 0 ? <EmptyState icon={FileText} title="Nenhum documento" /> : (
-                <div className="space-y-2">{d.documentos.map((doc) => (
-                  <div key={doc.id} className="erp-panel p-3 flex items-center justify-between">
-                    <div><p className="text-sm font-bold" style={{ color: "var(--fg)" }}>{doc.titulo}</p>
-                      <p className="text-[11px]" style={{ color: "var(--dim)" }}>{doc.tipo}</p></div>
-                    {doc.arquivo_url && <a href={doc.arquivo_url} target="_blank" rel="noreferrer" className="erp-badge erp-badge-ok flex items-center gap-1"><Download size={12} /> Abrir</a>}
-                  </div>))}</div>
-              )}
-            </Secao>
-
-            <Secao icon={GraduationCap} titulo="Cursos e treinamentos" badge={d.cursos.length}>
-              {d.cursos.length === 0 ? <EmptyState icon={GraduationCap} title="Nenhum curso" /> : (
-                <div className="space-y-2">{d.cursos.map((c) => (
-                  <div key={c.id} className="erp-panel p-3 flex items-center justify-between">
-                    <div><p className="text-sm font-bold" style={{ color: "var(--fg)" }}>{c.titulo}</p>
-                      <p className="text-[11px]" style={{ color: "var(--dim)" }}>{c.origem === "empresa" ? "Da empresa" : "Meu curso"} · {c.tipo_arquivo}</p></div>
-                    {c.arquivo_url && <a href={c.arquivo_url} target="_blank" rel="noreferrer" className="erp-badge erp-badge-ok flex items-center gap-1">{c.tipo_arquivo === "video" ? <PlayCircle size={12} /> : <Download size={12} />} Acessar</a>}
-                  </div>))}</div>
-              )}
-            </Secao>
-
-            <Secao icon={AlertTriangle} titulo="Advertências" badge={d.advertencias.length}>
-              {d.advertencias.length === 0 ? <EmptyState icon={AlertTriangle} title="Nenhuma advertência" hint="Tudo certo por aqui! 👍" /> : (
-                <div className="space-y-2">{d.advertencias.map((a) => (
-                  <div key={a.id} className="erp-panel p-3">
-                    <div className="flex justify-between"><span className={`erp-badge ${GRAV[a.gravidade] || ""}`}>{a.gravidade}</span>
-                      <span className="text-[10px]" style={{ color: "var(--dim)" }}>{fmtData(a.data)}</span></div>
-                    <p className="text-sm font-bold mt-1" style={{ color: "var(--fg)" }}>{a.motivo}</p>
-                    {a.descricao && <p className="text-[12px]" style={{ color: "var(--subtle)" }}>{a.descricao}</p>}
-                  </div>))}</div>
-              )}
-            </Secao>
-
-            <Secao icon={Clock} titulo="Meu histórico de ponto" badge={d.ponto.length}>
-              {d.ponto.length === 0 ? <EmptyState icon={Clock} title="Sem registros de ponto" /> : (
-                <div className="space-y-1">{d.ponto.map((r) => (
-                  <div key={r.id} className="flex items-center justify-between py-1.5" style={{ borderBottom: "1px solid var(--line)" }}>
-                    <span className="text-[12px] font-medium" style={{ color: "var(--fg-soft)" }}>{fmtData(r.data)}</span>
-                    <span className="text-[12px]" style={{ color: "var(--dim)" }}>Entrada <b style={{ color: "var(--accent-fg)" }}>{r.entrada || "—"}</b> · Saída <b style={{ color: "#DC2626" }}>{r.saida || "—"}</b></span>
-                  </div>))}</div>
-              )}
-            </Secao>
-          </>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filtrados.map(c => {
+              const inativo = (c.status || "ativo") === "inativo";
+              return (
+                <button key={c.id} onClick={() => abrir(c)} className={`erp-card p-5 text-left flex items-center gap-3 ${inativo ? "opacity-50" : ""}`}>
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-black shrink-0" style={{ background: "var(--accent-soft)", color: "var(--accent-strong)" }}>
+                    {c.nome[0].toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold truncate" style={{ color: "var(--fg)" }}>{c.nome}</p>
+                    <p className="text-[11px] font-bold uppercase tracking-widest truncate" style={{ color: "var(--dim)" }}>
+                      {c.cargo || "—"}{c.tipo_contrato === "Freelancer" ? " · Extra" : ""}{inativo ? " · inativo" : ""}
+                    </p>
+                  </div>
+                  <ChevronRight size={16} style={{ color: "var(--dim)" }} className="shrink-0" />
+                </button>
+              );
+            })}
+          </div>
         )}
       </PageBody>
     </div>

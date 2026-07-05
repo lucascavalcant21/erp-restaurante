@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchProdutos, salvarProduto, removerProduto, removerProdutoComPedidos } from "../../../lib/vendas";
+import { fetchMontagens, inserirMontagem } from "../../../lib/montagem";
 import { fetchFichas } from "../../../lib/operacao"; // Pra linkar o custo
 import { fetchEmbalagens } from "../../../lib/embalagens";
 import { supabase } from "../../../lib/supabase";
@@ -350,15 +351,24 @@ function CardapioRunner() {
     setModalNovo(false);
     carregar();
 
-    // Prato novo com montagem definida: emenda direto na criação do guia de
-    // montagem (vale para cozinha e bar) — a IA já recebe os ingredientes.
-    if (!form.id && composicaoFinal.length) {
-      abrirGuia({
-        ...form,
-        categoria: categoriaFinal,
-        composicao: composicaoFinal,
-        ficha_id: composicaoFinal[0].ficha_id,
-      });
+    // Prato NOVO: já entra automaticamente no módulo Guia de Montagem
+    // (cozinha ou bar) para criar a montagem lá — sem duplicar por nome.
+    if (!form.id) {
+      const { data: montagens } = await fetchMontagens(unidadeAtiva, form.departamento);
+      const jaExiste = (montagens || []).some(m => (m.nome || "").toLowerCase() === form.nome_produto.trim().toLowerCase());
+      if (!jaExiste) {
+        await inserirMontagem({
+          nome: form.nome_produto.trim(),
+          tipo: form.departamento === "bar" ? "drink" : "prato",
+          departamento: form.departamento,
+          descritivo: "",
+          foto_url: form.imagem_url || "",
+          estrutura_ia: null,
+          tempo_preparo: null,
+          rendimento: "",
+          observacoes: `Criado automaticamente pelo Cardápio (${categoriaFinal}).`,
+        }, unidadeAtiva);
+      }
     }
   };
 

@@ -397,6 +397,73 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar }) {
 // =========================================================================
 // IMPRESSÃO (Inclui IA se houver)
 // =========================================================================
+// Imprime VÁRIAS fichas na mesma folha (1, 2, 4, 6 ou 8 por página),
+// cada uma com o passo a passo — para colar na parede da cozinha/bar.
+function imprimirLote(fichas, porFolha, deptLabel) {
+  if (!fichas.length) return alert("Nenhuma ficha para imprimir.");
+  const cols = porFolha <= 2 ? 1 : 2;
+  const rows = Math.ceil(porFolha / cols);
+  const alturaCard = `${Math.floor(277 / rows)}mm`;
+  const escala = { 1: 15, 2: 12.5, 4: 11, 6: 9.5, 8: 8.5 }[porFolha] || 11;
+
+  const cardHTML = (m) => {
+    const passos = String(m.descritivo || "").split("\n").map(t => t.trim()).filter(Boolean);
+    const camadas = Array.isArray(m.estrutura_ia) ? m.estrutura_ia : [];
+    return `
+    <div class="card">
+      <div class="topo">
+        <h3>${m.nome}</h3>
+        <span class="tag">${m.tipo || ""}${m.tempo_preparo ? ` · ${m.tempo_preparo} min` : ""}</span>
+      </div>
+      ${camadas.length ? `<div class="camadas"><b>Montagem (de cima p/ baixo):</b> ${camadas.map(c => c.nome).join(" → ")}</div>` : ""}
+      ${passos.length ? `<ol>${passos.map(p => `<li>${p.replace(/^\d+[\.\)]\s*/, "")}</li>`).join("")}</ol>` : `<p class="vazio">Sem passo a passo cadastrado — edite a ficha para adicionar.</p>`}
+      ${m.observacoes && !String(m.observacoes).startsWith("Criado automaticamente") ? `<p class="obs">${m.observacoes}</p>` : ""}
+    </div>`;
+  };
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Montagens — ${deptLabel}</title>
+    <style>
+      *{margin:0;padding:0;box-sizing:border-box}
+      body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:5mm 6mm;font-size:${escala}px}
+      .grade{display:grid;grid-template-columns:repeat(${cols},1fr);gap:4mm}
+      .card{border:1.5px solid #333;border-radius:8px;padding:${porFolha <= 2 ? "6mm" : "3.5mm"};height:${alturaCard};overflow:hidden;break-inside:avoid;page-break-inside:avoid;display:flex;flex-direction:column}
+      .topo{display:flex;justify-content:space-between;align-items:baseline;gap:6px;border-bottom:2px solid #111;padding-bottom:3px;margin-bottom:5px}
+      h3{font-size:1.25em;text-transform:uppercase;letter-spacing:.5px}
+      .tag{font-size:.75em;text-transform:uppercase;color:#555;font-weight:bold;white-space:nowrap}
+      .camadas{font-size:.85em;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:5px;padding:4px 6px;margin-bottom:5px;color:#334155}
+      ol{padding-left:1.4em;flex:1}
+      li{font-size:.95em;line-height:1.45;margin-bottom:2px;color:#222}
+      .vazio{font-size:.85em;color:#999;font-style:italic}
+      .obs{font-size:.8em;color:#666;border-top:1px dashed #999;padding-top:3px;margin-top:4px}
+      @media print{@page{margin:0}}
+    </style></head><body>
+    <div class="grade">${fichas.map(cardHTML).join("")}</div>
+    </body></html>`;
+
+  let win = null;
+  try { win = window.open("", "_blank", "width=880,height=1000"); } catch { win = null; }
+  if (!win) {
+    try {
+      const iframe = document.createElement("iframe");
+      iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
+      document.body.appendChild(iframe);
+      iframe.srcdoc = html;
+      iframe.onload = () => {
+        setTimeout(() => {
+          try { iframe.contentWindow.focus(); iframe.contentWindow.print(); } catch (e) { alert("Não consegui abrir a impressão: " + e.message); }
+          setTimeout(() => iframe.remove(), 60000);
+        }, 300);
+      };
+      return;
+    } catch (e) {
+      return alert("O navegador bloqueou a impressão. Habilite os popups.\n\nDetalhe: " + e.message);
+    }
+  }
+  win.document.write(html);
+  win.document.close();
+  setTimeout(() => win.print(), 400);
+}
+
 function imprimirFicha(m) {
   let htmlCamadas = "";
   if (m.estrutura_ia && Array.isArray(m.estrutura_ia)) {
@@ -487,6 +554,7 @@ function MontagemPageInner() {
   const [modal, setModal] = useState(false);
   const [editar, setEditar] = useState(null);
   const [salvou, setSalvou] = useState("");
+  const [porFolha, setPorFolha] = useState(4); // fichas por página na impressão
 
   async function carregar() {
     setLoading(true);
@@ -539,6 +607,26 @@ function MontagemPageInner() {
         <SearchBar value={busca} onChange={setBusca} placeholder="Buscar prato/drink..." />
         <Chips options={["bar", "cozinha"]} value={dept} onChange={setDept} />
         <Chips options={["Todos", "Prato", "Drink"]} value={tipo} onChange={setTipo} />
+
+        {/* Impressão em lote: escolhe quantas fichas por folha */}
+        <div className="erp-card p-3.5 flex flex-wrap items-center gap-3">
+          <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--muted)" }}>Imprimir na mesma folha:</span>
+          <div className="flex gap-1.5">
+            {[1, 2, 4, 6, 8].map(n => (
+              <button key={n} onClick={() => setPorFolha(n)}
+                className="w-9 h-9 rounded-lg font-black text-sm transition-all"
+                style={porFolha === n
+                  ? { background: "var(--accent-strong)", color: "var(--accent-fg)" }
+                  : { background: "var(--elevated)", color: "var(--muted)" }}>
+                {n}
+              </button>
+            ))}
+          </div>
+          <span className="text-[11px] font-medium" style={{ color: "var(--dim)" }}>por página, com o passo a passo</span>
+          <Btn variant="primary" className="!h-9 text-xs ml-auto" onClick={() => imprimirLote(filtrados, porFolha, dept === "bar" ? "Bar" : "Cozinha")}>
+            <Printer size={14} /> Imprimir {filtrados.length} ficha{filtrados.length !== 1 ? "s" : ""}
+          </Btn>
+        </div>
 
         <div>
           <SectionLabel>{filtrados.length} ficha{filtrados.length !== 1 ? "s" : ""}</SectionLabel>

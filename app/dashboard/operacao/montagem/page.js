@@ -12,6 +12,7 @@ import {
   fetchMontagens, inserirMontagem, atualizarMontagem, removerMontagem,
   uploadFotoMontagem,
 } from "../../../lib/montagem";
+import { fetchProdutos } from "../../../lib/vendas";
 
 const VAZIO = {
   nome: "", tipo: "prato", departamento: "cozinha",
@@ -558,6 +559,33 @@ function MontagemPageInner() {
 
   async function carregar() {
     setLoading(true);
+    // Sincroniza com o Cardápio: todo produto do setor sem ficha de montagem
+    // ganha uma automaticamente (cobre os pratos criados antes da automação)
+    try {
+      const [rMont, rProds] = await Promise.all([
+        fetchMontagens(unidadeAtiva, dept),
+        fetchProdutos(unidadeAtiva, dept),
+      ]);
+      const nomes = new Set((rMont.data || []).map(m => (m.nome || "").toLowerCase().trim()));
+      const faltantes = (rProds.data || []).filter(p => p.nome_produto && !nomes.has(p.nome_produto.toLowerCase().trim()));
+      for (const p of faltantes) {
+        await inserirMontagem({
+          nome: p.nome_produto,
+          tipo: dept === "bar" ? "drink" : "prato",
+          departamento: dept,
+          descritivo: "",
+          foto_url: p.imagem_url || "",
+          estrutura_ia: null,
+          tempo_preparo: null,
+          rendimento: "",
+          observacoes: "Criado automaticamente pelo Cardápio.",
+        }, unidadeAtiva);
+      }
+      if (faltantes.length) {
+        setSalvou(`${faltantes.length} prato(s) do cardápio importado(s) para a montagem!`);
+        setTimeout(() => setSalvou(""), 3500);
+      }
+    } catch { /* sincronização é acessória */ }
     const { data } = await fetchMontagens(unidadeAtiva, dept);
     setLista(data || []);
     setLoading(false);

@@ -146,7 +146,7 @@ export async function salvarFicha(ficha, ingredientes) {
     await supabase.from("fichas_ingredientes").insert(itens);
   }
 
-  return { success: true };
+  return { success: true, id: fichaId };
 }
 
 export async function removerFicha(id) {

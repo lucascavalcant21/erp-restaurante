@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchFichas, salvarFicha, removerFicha, fetchInsumos, salvarInsumo } from "../../../lib/operacao";
+import { fetchProdutos, salvarProduto } from "../../../lib/vendas";
+import { fetchMontagens, inserirMontagem } from "../../../lib/montagem";
 import { LayoutList, Plus, Search, Trash2, Edit3, X, Save, ArrowLeft, UtensilsCrossed, Wine, ChevronRight, Printer, Sparkles, Loader2, Camera, CheckCircle2, AlertTriangle } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
@@ -568,9 +570,56 @@ function FichasRunner() {
     );
 
     if(erro.error) return alert("Erro ao salvar: " + erro.error);
-    
+
     setModalNovo(false);
     carregar();
+
+    // PRATO/DRINK novo: cai automaticamente no Cardápio (aguardando preço) e
+    // no Guia de Montagem. Pré-preparo não dispara nada (é só uma base).
+    const fichaIdSalva = erro.id;
+    if (!form.id && !form.eh_base && fichaIdSalva) {
+      try {
+        const nome = form.nome_receita.trim();
+        const ehBarDept = form.departamento === "bar";
+
+        // 1) Cardápio: cria o produto com preço 0 (você precifica lá)
+        const { data: prods } = await fetchProdutos(unidadeAtiva, form.departamento);
+        const jaTemProduto = (prods || []).some(p =>
+          p.ficha_id === fichaIdSalva || (p.nome_produto || "").toLowerCase() === nome.toLowerCase()
+        );
+        if (!jaTemProduto) {
+          await salvarProduto({
+            unidade_id: unidadeAtiva,
+            nome_produto: nome,
+            categoria: ehBarDept ? "Drinks" : "Pratos Principais",
+            departamento: form.departamento,
+            tempo_preparo_base: 15,
+            preco_venda: 0,
+            ficha_id: fichaIdSalva,
+            composicao: [{ ficha_id: fichaIdSalva, qtd: 1 }],
+          });
+        }
+
+        // 2) Guia de Montagem: entra como ficha pendente de montagem
+        const { data: monts } = await fetchMontagens(unidadeAtiva, form.departamento);
+        const jaTemMontagem = (monts || []).some(m => (m.nome || "").toLowerCase() === nome.toLowerCase());
+        if (!jaTemMontagem) {
+          await inserirMontagem({
+            nome,
+            tipo: ehBarDept ? "drink" : "prato",
+            departamento: form.departamento,
+            descritivo: "",
+            foto_url: "",
+            estrutura_ia: null,
+            tempo_preparo: null,
+            rendimento: "",
+            observacoes: "Criado automaticamente pela Ficha Técnica.",
+          }, unidadeAtiva);
+        }
+
+        alert(`"${nome}" salvo!\n\nJá foi enviado para:\n· Cardápio — defina o preço de venda lá\n· Guia de Montagem — crie o passo a passo lá`);
+      } catch { /* integrações não bloqueiam o salvar da ficha */ }
+    }
   };
 
   const handleRemover = async (id) => {

@@ -346,9 +346,20 @@ function CardapioRunner() {
     });
 
     if(erro.error) return alert("Erro ao salvar: " + erro.error);
-    
+
     setModalNovo(false);
     carregar();
+
+    // Prato novo com montagem definida: emenda direto na criação do guia de
+    // montagem (vale para cozinha e bar) — a IA já recebe os ingredientes.
+    if (!form.id && composicaoFinal.length) {
+      abrirGuia({
+        ...form,
+        categoria: categoriaFinal,
+        composicao: composicaoFinal,
+        ficha_id: composicaoFinal[0].ficha_id,
+      });
+    }
   };
 
   const addModificador = () => {
@@ -657,79 +668,29 @@ function CardapioRunner() {
                         )}
                      </div>
                      <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Vai pro KDS de?</label>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Setor (Cozinha ou Bar)</label>
                         <select value={form.departamento} onChange={e=>setForm({...form, departamento: e.target.value, ficha_id: "", composicao: []})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500">
                            <option value="cozinha">Cozinha</option>
                            <option value="bar">Bar</option>
                         </select>
                      </div>
-                     <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tempo de Preparo (Min)</label>
-                        <input type="number" value={form.tempo_preparo_base} onChange={e=>setForm({...form, tempo_preparo_base: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500"/>
-                     </div>
                   </div>
 
-                  {/* Detalhes Extra: Upload de Imagem */}
+                  {/* MONTAGEM DO PRATO — primeiro monta, o custo sai sozinho */}
                   <div className="pt-4 border-t border-slate-100">
-                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1 mb-2"><ImageIcon size={14}/> Imagem do Produto (Opcional)</label>
-                     <div className="flex gap-4 items-center mt-2">
-                        {form.imagem_url ? (
-                           <div className="relative w-24 h-24 rounded-2xl border border-slate-200 overflow-hidden shrink-0 shadow-sm bg-slate-50">
-                              <img src={form.imagem_url} alt="Produto" className="w-full h-full object-cover" />
-                              <button type="button" onClick={() => setForm({...form, imagem_url: ""})} className="absolute top-1.5 right-1.5 bg-white rounded-full p-1.5 shadow-sm text-slate-400 hover:text-red-500 transition-colors"><Trash2 size={12}/></button>
-                           </div>
-                        ) : (
-                           <div className="w-24 h-24 rounded-2xl border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-300 bg-slate-50 shrink-0">
-                              <ImageIcon size={28} />
-                           </div>
-                        )}
-                        <div className="flex-1">
-                           <label className="cursor-pointer group flex items-center justify-center gap-2 bg-slate-50 border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 transition-colors rounded-xl p-4 font-bold text-sm w-full relative">
-                              {loading ? <Loader2 className="animate-spin" size={18}/> : <UploadCloud size={18}/>}
-                              <span>{loading ? "Enviando..." : "Selecionar arquivo do computador"}</span>
-                              <input type="file" accept="image/*" disabled={loading} className="hidden" onChange={async (e) => {
-                                 const file = e.target.files[0];
-                                 if (!file) return;
-                                 setLoading(true);
-                                 const ext = file.name.split('.').pop();
-                                 const fileName = `produto-${Date.now()}.${ext}`;
-                                 const { error } = await supabase.storage.from("anexos").upload(`produtos/${fileName}`, file, { upsert: false });
-                                 if (error) {
-                                    alert("Erro ao enviar imagem: " + error.message);
-                                    setLoading(false);
-                                    return;
-                                 }
-                                 const { data: pubData } = supabase.storage.from("anexos").getPublicUrl(`produtos/${fileName}`);
-                                 setForm({...form, imagem_url: pubData.publicUrl});
-                                 setLoading(false);
-                              }}/>
-                           </label>
-                           <p className="text-[11px] font-medium text-slate-400 mt-2 ml-1">Formatos: JPG, PNG, WEBP. A imagem será recortada como um quadrado.</p>
-                        </div>
-                     </div>
-                  </div>
-
-                  {/* Preço e Ficha Técnica (custo/CMV) */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
-                     <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Preço de Venda (R$)</label>
-                        <input type="number" step="0.01" placeholder="0.00" value={form.preco_venda} onChange={e=>setForm({...form, preco_venda: e.target.value})} className="w-full p-4 mt-1 bg-emerald-50 border border-emerald-200 rounded-xl font-black text-emerald-600 text-xl outline-none focus:border-emerald-500"/>
-                     </div>
-                     <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Montagem do prato (fichas técnicas)</label>
-                        <select
-                           value=""
-                           onChange={e => {
-                              const id = e.target.value;
-                              if (!id || (form.composicao || []).find(c => c.ficha_id === id)) return;
-                              setForm({ ...form, composicao: [...(form.composicao || []), { ficha_id: id, qtd: 1 }] });
-                           }}
-                           className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:border-emerald-500"
-                        >
-                           <option value="">+ Adicionar componente...</option>
-                           {fichas.filter(f => f.departamento === form.departamento && !(form.composicao || []).find(c => c.ficha_id === f.id)).map(f => <option key={f.id} value={f.id}>{f.nome_receita}</option>)}
-                        </select>
-                     </div>
+                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Montagem do prato (fichas técnicas)</label>
+                     <select
+                        value=""
+                        onChange={e => {
+                           const id = e.target.value;
+                           if (!id || (form.composicao || []).find(c => c.ficha_id === id)) return;
+                           setForm({ ...form, composicao: [...(form.composicao || []), { ficha_id: id, qtd: 1 }] });
+                        }}
+                        className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:border-emerald-500"
+                     >
+                        <option value="">+ Adicionar componente...</option>
+                        {fichas.filter(f => f.departamento === form.departamento && !(form.composicao || []).find(c => c.ficha_id === f.id)).map(f => <option key={f.id} value={f.id}>{f.nome_receita}</option>)}
+                     </select>
                   </div>
 
                   {/* Componentes do prato: várias fichas, cada uma com quantidade de porções */}
@@ -777,21 +738,71 @@ function CardapioRunner() {
                      </div>
                   )}
 
-                  {/* CMV em tempo real, conforme você digita o preço */}
+                  {/* CUSTO (auto) → PREÇO (você define) → CMV (auto) */}
                   {(() => {
+                     const custoLive = custoPorcaoProduto(form, fichas, embalagensDB);
                      const cmvLive = calcCmv(form.preco_venda, form, fichas, embalagensDB);
-                     if (cmvLive === null) return null;
-                     const cores = corCmv(cmvLive);
+                     const cores = cmvLive !== null ? corCmv(cmvLive) : null;
                      return (
-                        <div className={`flex items-center justify-between p-4 rounded-2xl border ${cores.bg} ${cores.border}`}>
-                           <div className="flex items-center gap-2">
-                              <Percent size={16} className={cores.text} />
-                              <p className={`text-xs font-black uppercase tracking-widest ${cores.text}`}>CMV deste produto</p>
+                        <div className="grid grid-cols-3 gap-3">
+                           <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50 text-center">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Custo do prato</p>
+                              <p className="text-xl font-black text-slate-800 mt-1">{(form.composicao || []).length ? fmtBRL(custoLive) : "—"}</p>
+                              <p className="text-[9px] font-medium text-slate-400">automático da montagem</p>
                            </div>
-                           <p className={`text-2xl font-black ${cores.text}`}>{cmvLive.toFixed(1)}%</p>
+                           <div className="p-4 rounded-2xl border-2 border-emerald-300 bg-emerald-50 text-center">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Preço de venda (R$)</p>
+                              <input type="number" step="0.01" placeholder="0,00" value={form.preco_venda} onChange={e=>setForm({...form, preco_venda: e.target.value})} className="w-full mt-1 text-center bg-transparent font-black text-emerald-600 text-xl outline-none"/>
+                              <p className="text-[9px] font-medium text-emerald-600/70">você define</p>
+                           </div>
+                           <div className={`p-4 rounded-2xl border text-center ${cmvLive !== null ? `${cores.bg} ${cores.border}` : "border-slate-200 bg-slate-50"}`}>
+                              <p className={`text-[10px] font-black uppercase tracking-widest ${cmvLive !== null ? cores.text : "text-slate-500"}`}>CMV</p>
+                              <p className={`text-xl font-black mt-1 ${cmvLive !== null ? cores.text : "text-slate-400"}`}>{cmvLive !== null ? `${cmvLive.toFixed(1)}%` : "—"}</p>
+                              <p className={`text-[9px] font-medium ${cmvLive !== null ? cores.text : "text-slate-400"}`}>muda automático</p>
+                           </div>
                         </div>
                      );
                   })()}
+
+                  {/* Imagem do Produto */}
+                  <div className="pt-4 border-t border-slate-100">
+                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1 mb-2"><ImageIcon size={14}/> Imagem do Produto (Opcional)</label>
+                     <div className="flex gap-4 items-center mt-2">
+                        {form.imagem_url ? (
+                           <div className="relative w-24 h-24 rounded-2xl border border-slate-200 overflow-hidden shrink-0 shadow-sm bg-slate-50">
+                              <img src={form.imagem_url} alt="Produto" className="w-full h-full object-cover" />
+                              <button type="button" onClick={() => setForm({...form, imagem_url: ""})} className="absolute top-1.5 right-1.5 bg-white rounded-full p-1.5 shadow-sm text-slate-400 hover:text-red-500 transition-colors"><Trash2 size={12}/></button>
+                           </div>
+                        ) : (
+                           <div className="w-24 h-24 rounded-2xl border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-300 bg-slate-50 shrink-0">
+                              <ImageIcon size={28} />
+                           </div>
+                        )}
+                        <div className="flex-1">
+                           <label className="cursor-pointer group flex items-center justify-center gap-2 bg-slate-50 border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 transition-colors rounded-xl p-4 font-bold text-sm w-full relative">
+                              {loading ? <Loader2 className="animate-spin" size={18}/> : <UploadCloud size={18}/>}
+                              <span>{loading ? "Enviando..." : "Selecionar arquivo do computador"}</span>
+                              <input type="file" accept="image/*" disabled={loading} className="hidden" onChange={async (e) => {
+                                 const file = e.target.files[0];
+                                 if (!file) return;
+                                 setLoading(true);
+                                 const ext = file.name.split('.').pop();
+                                 const fileName = `produto-${Date.now()}.${ext}`;
+                                 const { error } = await supabase.storage.from("anexos").upload(`produtos/${fileName}`, file, { upsert: false });
+                                 if (error) {
+                                    alert("Erro ao enviar imagem: " + error.message);
+                                    setLoading(false);
+                                    return;
+                                 }
+                                 const { data: pubData } = supabase.storage.from("anexos").getPublicUrl(`produtos/${fileName}`);
+                                 setForm({...form, imagem_url: pubData.publicUrl});
+                                 setLoading(false);
+                              }}/>
+                           </label>
+                           <p className="text-[11px] font-medium text-slate-400 mt-2 ml-1">Formatos: JPG, PNG, WEBP. A imagem será recortada como um quadrado.</p>
+                        </div>
+                     </div>
+                  </div>
 
                   {/* Embalagens e Acessórios */}
                   <div className="pt-6 border-t border-slate-100">

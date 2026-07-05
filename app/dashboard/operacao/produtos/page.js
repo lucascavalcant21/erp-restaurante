@@ -693,27 +693,29 @@ function CardapioRunner() {
                      </div>
                   </div>
 
-                  {/* MONTAGEM DO PRATO — primeiro monta, o custo sai sozinho */}
+                  {/* PRATO PRONTO — a montagem é feita na Ficha Técnica; aqui
+                      só se escolhe o prato e o resto é financeiro (custo/preço/CMV) */}
                   <div className="pt-4 border-t border-slate-100">
-                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Montagem do prato (fichas técnicas)</label>
+                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Prato pronto (montado na Ficha Técnica)</label>
                      <select
-                        value=""
+                        value={(form.composicao || []).length === 1 ? form.composicao[0].ficha_id : ""}
                         onChange={e => {
                            const id = e.target.value;
-                           if (!id || (form.composicao || []).find(c => c.ficha_id === id)) return;
-                           setForm({ ...form, composicao: [...(form.composicao || []), { ficha_id: id, qtd: 1 }] });
+                           setForm({ ...form, composicao: id ? [{ ficha_id: id, qtd: 1 }] : [], ficha_id: id || "" });
                         }}
                         className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:border-emerald-500"
                      >
-                        <option value="">+ Adicionar componente...</option>
-                        {fichas.filter(f => f.departamento === form.departamento && !(form.composicao || []).find(c => c.ficha_id === f.id)).map(f => <option key={f.id} value={f.id}>{f.nome_receita}</option>)}
+                        <option value="">Selecione o prato...</option>
+                        {fichas.filter(f => f.departamento === form.departamento && !f.eh_base).map(f => <option key={f.id} value={f.id}>{f.nome_receita}</option>)}
                      </select>
+                     <p className="text-[10px] text-slate-400 font-medium mt-1">A montagem (insumos + pré-preparos) é feita em Fichas Técnicas. Aqui você só precifica.</p>
                   </div>
 
-                  {/* Componentes do prato: várias fichas, cada uma com quantidade de porções */}
-                  {(form.composicao || []).length > 0 && (
+                  {/* Compatibilidade: produto antigo montado com VÁRIOS componentes
+                      aqui no cardápio — continua funcionando e editável */}
+                  {(form.composicao || []).length > 1 && (
                      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Composição do prato — custo e baixa de estoque somam todos</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Produto antigo com múltiplos componentes — o custo soma todos</p>
                         {(form.composicao || []).map((c, idx) => {
                            const f = fichas.find(x => x.id === c.ficha_id);
                            const custoUnit = f ? custoTotalDaFicha(f, fichas) / porcoesDaFicha(f) : 0;

@@ -433,7 +433,13 @@ function FichasRunner() {
     }
   }, [ingFicha, autoSoma]);
 
-  const filtradas = fichas.filter(f => f.nome_receita.toLowerCase().includes(busca.toLowerCase()));
+  // Divisão do receituário: Pratos (prontos p/ cardápio) × Pré-preparos (bases
+  // usadas dentro de outros pratos: molhos, massas, caldos...)
+  const [tipoFiltro, setTipoFiltro] = useState("Pratos");
+  const filtradas = fichas.filter(f =>
+    f.nome_receita.toLowerCase().includes(busca.toLowerCase()) &&
+    (tipoFiltro === "Todos" || (tipoFiltro === "Pré-preparos" ? !!f.eh_base : !f.eh_base))
+  );
 
   const abrirNova = () => {
     setForm({ id: null, departamento: deptUrl, nome_receita: "", rendimento_porcoes: "1", modo_preparo: "", eh_base: false, rendimento_unidade: "porcao", peso_porcao_g: "", imagem: "" });
@@ -831,6 +837,25 @@ function FichasRunner() {
       </div>
 
       <div className="max-w-5xl mx-auto px-6 mt-8">
+         {/* Abas: Pratos (prontos p/ cardápio) × Pré-preparos (bases) */}
+         <div className="flex gap-3 mb-4">
+            {[
+              ["Pratos", fichas.filter(f => !f.eh_base).length],
+              ["Pré-preparos", fichas.filter(f => !!f.eh_base).length],
+              ["Todos", fichas.length],
+            ].map(([t, n]) => (
+              <button key={t} onClick={() => setTipoFiltro(t)}
+                className={`flex-1 py-3 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${tipoFiltro === t ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>
+                {t} <span className={tipoFiltro === t ? "text-emerald-200" : "text-slate-400"}>({n})</span>
+              </button>
+            ))}
+         </div>
+         {tipoFiltro === "Pratos" && (
+            <p className="text-[11px] font-bold text-slate-400 mb-4 px-1">Monte o prato aqui: adicione insumos e os pré-preparos como componentes. O Cardápio só precifica em cima do que você montar.</p>
+         )}
+         {tipoFiltro === "Pré-preparos" && (
+            <p className="text-[11px] font-bold text-slate-400 mb-4 px-1">Bases usadas dentro de outros pratos (molhos, massas, caldos). Marque "É uma base/pré-preparo" ao criar.</p>
+         )}
          <div className="bg-white p-3 rounded-2xl border border-slate-200 mb-6 flex flex-col sm:flex-row items-center gap-3 shadow-sm justify-between">
             <div className="flex flex-1 items-center gap-2 px-2">
                <Search size={20} className="text-slate-500" />

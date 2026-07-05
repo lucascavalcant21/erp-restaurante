@@ -12,7 +12,7 @@ import {
   fetchBancoHoras, inserirBancoHoras, removerBancoHoras, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN
 } from "../../lib/rh";
 import { fetchPontoHoje } from "../../lib/ponto";
-import { salvarConta } from "../../lib/financeiro";
+import { salvarConta, fetchContas } from "../../lib/financeiro";
 import { 
   Users, UserPlus, FileText, Upload, Save, X, Search, Trash2, Loader2, CalendarHeart, Star, Phone, CreditCard, ClipboardList, Clock, CalendarDays, ShoppingBag, CheckCircle, Store, Printer, UtensilsCrossed
 } from "lucide-react";
@@ -131,6 +131,7 @@ export default function RHPage() {
   const abrirModalBanco = (f) => {
     setFuncBanco(f);
     setFormBanco({ data: new Date().toISOString().split("T")[0], minutos: "60", observacao: "" });
+    setCompensarData(new Date().toISOString().split("T")[0]);
     setModalBanco(true);
   };
 
@@ -804,6 +805,9 @@ export default function RHPage() {
                className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold transition-colors shadow-lg ${(!unidadeAtiva || unidadeAtiva === "todas") ? "bg-slate-300 text-slate-500 cursor-not-allowed" : "bg-slate-800 text-white hover:bg-slate-900 shadow-slate-800/20"}`}>
                <FileText size={18} /> Exportar AFD
             </a>
+            <button onClick={lancarFolhaMes} title="Cria uma conta a pagar por funcionário fixo (mão de obra), sem duplicar" className="flex items-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-5 py-3 rounded-xl font-bold hover:bg-emerald-50 transition-colors shadow-sm">
+               <CreditCard size={18} /> Lançar Folha (mês)
+            </button>
             <button onClick={() => router.push('/dashboard/rh/fechamento')} className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20">
                <ClipboardList size={18} /> Fechar Folha
             </button>
@@ -1259,6 +1263,17 @@ export default function RHPage() {
                   </div>
                   {(alerta || critico) && <p className="text-[11px] font-bold mt-2 text-slate-600">Programe a compensação/folga de {funcBanco.nome.split(" ")[0]} para zerar o banco.</p>}
                </div>
+
+               {/* Compensar tudo com uma folga (registra a folga e zera os créditos) */}
+               {total > 0 && (
+                  <div className="flex flex-wrap items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-2xl p-3 mb-5 shrink-0">
+                     <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700 flex-1">Compensar com folga:</span>
+                     <input type="date" value={compensarData} onChange={e=>setCompensarData(e.target.value)} className="p-2 bg-white border border-emerald-200 rounded-lg font-bold text-sm text-slate-700 outline-none focus:border-emerald-500"/>
+                     <button onClick={compensarBanco} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl transition-colors">
+                        Dar folga e zerar {fmtMin(total)}
+                     </button>
+                  </div>
+               )}
 
                {/* Lançar minutos não tirados do dia */}
                <form onSubmit={lancarBancoHoras} className="bg-sky-50 border border-sky-200 rounded-2xl p-4 mb-5 shrink-0">

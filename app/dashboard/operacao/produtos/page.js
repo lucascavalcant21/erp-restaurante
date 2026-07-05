@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
-import { fetchProdutos, salvarProduto, removerProduto } from "../../../lib/vendas";
+import { fetchProdutos, salvarProduto, removerProduto, removerProdutoComPedidos } from "../../../lib/vendas";
 import { fetchFichas } from "../../../lib/operacao"; // Pra linkar o custo
 import { fetchEmbalagens } from "../../../lib/embalagens";
 import { supabase } from "../../../lib/supabase";
@@ -380,11 +380,18 @@ function CardapioRunner() {
      });
   };
 
-  // Excluir prato do cardápio (o histórico de pedidos antigos não é afetado)
+  // Excluir prato do cardápio. Se pedidos antigos de teste apontarem para
+  // ele (FK), pergunta se pode levar esses registros junto.
   const handleExcluir = async (p) => {
     if (!confirm(`Excluir "${p.nome_produto}" do cardápio?\n\nEssa ação não pode ser desfeita.`)) return;
-    const { error } = await removerProduto(p.id);
-    if (error) return alert("Erro ao excluir: " + error);
+    const { error, temPedidos } = await removerProduto(p.id);
+    if (temPedidos) {
+      if (!confirm(`"${p.nome_produto}" aparece em registros ANTIGOS de pedidos (dados de teste de quando o sistema tinha PDV).\n\nExcluir o prato e apagar esses registros antigos junto?`)) return;
+      const r2 = await removerProdutoComPedidos(p.id);
+      if (r2.error) return alert("Erro ao excluir: " + r2.error);
+    } else if (error) {
+      return alert("Erro ao excluir: " + error);
+    }
     carregar();
   };
 

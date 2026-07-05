@@ -38,6 +38,20 @@ export async function salvarProduto(produto) {
 export async function removerProduto(id) {
   if (!isSupabaseReady()) return { error: "Offline" };
   const { error } = await supabase.from("produtos").delete().eq("id", id);
+  // FK de pedidos_itens: o produto aparece em registros antigos de pedidos
+  // (dados de teste — este ERP não vende pelo sistema). A tela pergunta se
+  // pode excluir junto.
+  if (error?.message?.includes("pedidos_itens")) return { error: error.message, temPedidos: true };
+  return { error: error?.message };
+}
+
+// Exclui o produto levando junto os itens de pedidos antigos que apontam
+// para ele (só usado após confirmação explícita do usuário).
+export async function removerProdutoComPedidos(id) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error: errItens } = await supabase.from("pedidos_itens").delete().eq("produto_id", id);
+  if (errItens) return { error: errItens.message };
+  const { error } = await supabase.from("produtos").delete().eq("id", id);
   return { error: error?.message };
 }
 

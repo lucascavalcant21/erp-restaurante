@@ -1,13 +1,27 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Percent, AlertCircle, Crown } from "lucide-react";
+import { Percent, AlertCircle, Crown, History, X, TrendingUp, TrendingDown } from "lucide-react";
 import {
   PageHeader, PageBody, Card, SectionLabel, KpiGrid, Kpi, EmptyState, fmtBRL, fmtPct,
 } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
-import { fetchFichas } from "../../../lib/operacao";
+import { fetchFichas, fetchHistoricoPrecos } from "../../../lib/operacao";
 import { fetchProdutos } from "../../../lib/vendas";
+
+// Todos os insumo_ids usados por uma ficha (resolvendo sub-receitas)
+function insumosDaFichaRec(f, todasFichas, acc = new Set(), guard = new Set()) {
+  if (!f || guard.has(f.id)) return acc;
+  guard.add(f.id);
+  (f.fichas_ingredientes || []).forEach(fi => {
+    if (fi.insumos) acc.add(fi.insumos.id);
+    else if (fi.subficha_id) {
+      const base = todasFichas.find(x => x.id === fi.subficha_id);
+      if (base) insumosDaFichaRec(base, todasFichas, acc, guard);
+    }
+  });
+  return acc;
+}
 
 const META_CMV = 30; // % alvo máximo de CMV (acima disso = atenção)
 
@@ -43,16 +57,33 @@ export default function CmvPage() {
   const { unidadeAtiva, unidadeInfo } = useERP();
   const [fichas, setFichas] = useState([]);
   const [produtos, setProdutos] = useState([]);
+  const [historico, setHistorico] = useState([]); // alterações de preço dos insumos
   const [loading, setLoading] = useState(true);
+  const [modalHistPrato, setModalHistPrato] = useState(null); // { nome, mudancas }
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([fetchFichas(unidadeAtiva), fetchProdutos(unidadeAtiva)]).then(([resFichas, resProdutos]) => {
+    Promise.all([fetchFichas(unidadeAtiva), fetchProdutos(unidadeAtiva), fetchHistoricoPrecos(unidadeAtiva)]).then(([resFichas, resProdutos, resHist]) => {
       setFichas(resFichas.data || []);
       setProdutos(resProdutos.data || []);
+      setHistorico(resHist.data || []);
       setLoading(false);
     });
   }, [unidadeAtiva]);
+
+  // Por prato: quais alterações de preço de ingredientes o afetaram
+  const mudancasDoPrato = (produto) => {
+    const comps = Array.isArray(produto.composicao) && produto.composicao.length
+      ? produto.composicao
+      : (produto.ficha_id ? [{ ficha_id: produto.ficha_id, qtd: 1 }] : []);
+    const ids = new Set();
+    comps.forEach(c => {
+      const ficha = fichas.find(f => f.id === c.ficha_id);
+      if (ficha) insumosDaFichaRec(ficha, fichas, ids);
+    });
+    // só alterações reais (ignora o cadastro inicial)
+    return historico.filter(h => ids.has(h.insumo_id) && h.custo_anterior !== null);
+  };
 
   // CMV real: produtos.preco_venda x custo dos componentes (composição múltipla
   // ou ficha única), com bases/sub-receitas resolvidas
@@ -130,6 +161,19 @@ export default function CmvPage() {
                           {l.departamento && (
                             <span className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded flex-shrink-0" style={{ background: "var(--elevated)", color: "var(--dim)" }}>{l.departamento}</span>
                           )}
+                          {(() => {
+                            const p = produtos.find(x => x.id === l.id);
+                            const mud = p ? mudancasDoPrato(p) : [];
+                            if (!mud.length) return null;
+                            return (
+                              <button onClick={() => setModalHistPrato({ nome: l.nome, mudancas: mud })}
+                                className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded flex-shrink-0 flex items-center gap-1 transition-colors"
+                                style={{ background: "rgba(245,158,11,0.13)", color: "#B45309" }}
+                                title="Alterações de preço dos ingredientes deste prato">
+                                <History size={9} /> {mud.length} alteração{mud.length > 1 ? "ões" : ""}
+                              </button>
+                            );
+                          })()}
                         </div>
                         <span className="text-sm font-bold flex-shrink-0" style={{ color: alto ? "#DC2626" : "var(--accent-fg)" }}>{fmtPct(l.cmv)}</span>
                       </div>
@@ -147,6 +191,44 @@ export default function CmvPage() {
           </>
         )}
       </PageBody>
+
+      {/* MODAL: histórico de alterações de ingredientes do prato */}
+      {modalHistPrato && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={() => setModalHistPrato(null)}>
+          <div className="w-full max-w-md max-h-[85vh] rounded-3xl border flex flex-col p-6" style={{ background: "var(--card)", borderColor: "var(--line)", boxShadow: "var(--shadow-float)" }} onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4 shrink-0">
+              <div>
+                <h2 className="font-black text-lg" style={{ color: "var(--fg)" }}>Alterações de Ingredientes</h2>
+                <p className="text-xs font-bold mt-0.5" style={{ color: "var(--muted)" }}>{modalHistPrato.nome} · {modalHistPrato.mudancas.length} mudança(s) de preço</p>
+              </div>
+              <button onClick={() => setModalHistPrato(null)} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "var(--elevated)", color: "var(--muted)" }}><X size={16} /></button>
+            </div>
+            <div className="overflow-y-auto space-y-2">
+              {modalHistPrato.mudancas.map(h => {
+                const antigo = Number(h.custo_anterior) || 0;
+                const novo = Number(h.custo_novo) || 0;
+                const varPct = antigo > 0 ? ((novo - antigo) / antigo) * 100 : 0;
+                const subiu = varPct > 0;
+                return (
+                  <div key={h.id} className="p-3 rounded-xl flex items-center gap-3" style={{ background: "var(--elevated)" }}>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: subiu ? "rgba(239,68,68,0.12)" : "rgba(5,150,105,0.12)", color: subiu ? "#DC2626" : "#047857" }}>
+                      {subiu ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold truncate" style={{ color: "var(--fg)" }}>{h.insumo_nome}</p>
+                      <p className="text-[11px] font-medium" style={{ color: "var(--muted)" }}>
+                        {fmtBRL(antigo)} → {fmtBRL(novo)} · {new Date(h.created_at).toLocaleDateString("pt-BR")} às {new Date(h.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                      </p>
+                    </div>
+                    <span className="text-xs font-black shrink-0" style={{ color: subiu ? "#DC2626" : "#047857" }}>{subiu ? "+" : ""}{varPct.toFixed(1)}%</span>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-[10px] font-medium mt-3 shrink-0" style={{ color: "var(--dim)" }}>O CMV do prato já reflete o preço atual — cada mudança acima recalculou fichas, cardápio e CMV na hora.</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

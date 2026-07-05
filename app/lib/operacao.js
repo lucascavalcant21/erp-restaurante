@@ -22,12 +22,67 @@ export async function salvarInsumo(insumo) {
   const { id, created_at, ...campos } = insumo;
 
   if (id) {
-    const { error } = await supabase.from("insumos").update(campos).eq("id", id);
+    // Preço mudou? Grava no histórico e carimba a data da atualização.
+    // O histórico nunca pode impedir o salvamento (erro dele é ignorado).
+    try {
+      const { data: atual } = await supabase.from("insumos")
+        .select("custo_unitario, unidade_id, nome").eq("id", id).single();
+      const custoAntigo = Number(atual?.custo_unitario) || 0;
+      const custoNovo = Number(campos.custo_unitario) || 0;
+      if (atual && Math.abs(custoAntigo - custoNovo) > 0.0001) {
+        campos.preco_atualizado_em = new Date().toISOString();
+        await supabase.from("insumos_precos_historico").insert([{
+          unidade_id: campos.unidade_id || atual.unidade_id,
+          insumo_id: id,
+          insumo_nome: campos.nome || atual.nome,
+          custo_anterior: custoAntigo,
+          custo_novo: custoNovo,
+        }]);
+      }
+    } catch { /* histórico é acessório */ }
+    let { error } = await supabase.from("insumos").update(campos).eq("id", id);
+    // Colunas novas ainda não criadas no banco: salva sem elas
+    if (error?.message?.includes("preco_atualizado_em") || error?.message?.includes("tamanho_embalagem")) {
+      delete campos.preco_atualizado_em;
+      delete campos.tamanho_embalagem;
+      ({ error } = await supabase.from("insumos").update(campos).eq("id", id));
+    }
     return { id, error: error?.message };
   } else {
-    const { data, error } = await supabase.from("insumos").insert([campos]).select("id").single();
+    campos.preco_atualizado_em = new Date().toISOString();
+    let { data, error } = await supabase.from("insumos").insert([campos]).select("id").single();
+    if (error?.message?.includes("preco_atualizado_em") || error?.message?.includes("tamanho_embalagem")) {
+      delete campos.preco_atualizado_em;
+      delete campos.tamanho_embalagem;
+      ({ data, error } = await supabase.from("insumos").insert([campos]).select("id").single());
+    }
+    // Registro inicial de preço no histórico (custo_anterior nulo = cadastro)
+    if (data?.id) {
+      try {
+        await supabase.from("insumos_precos_historico").insert([{
+          unidade_id: campos.unidade_id,
+          insumo_id: data.id,
+          insumo_nome: campos.nome,
+          custo_anterior: null,
+          custo_novo: Number(campos.custo_unitario) || 0,
+        }]);
+      } catch { /* histórico é acessório */ }
+    }
     return { id: data?.id, error: error?.message };
   }
+}
+
+// Histórico de preços dos insumos (todas as alterações, mais recentes primeiro)
+export async function fetchHistoricoPrecos(unidadeId, insumoId = null) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: [] };
+  let q = supabase.from("insumos_precos_historico")
+    .select("*")
+    .eq("unidade_id", unidadeId)
+    .order("created_at", { ascending: false })
+    .limit(400);
+  if (insumoId) q = q.eq("insumo_id", insumoId);
+  const { data, error } = await q;
+  return { data: data || [], error: error?.message };
 }
 
 export async function removerInsumo(id) {

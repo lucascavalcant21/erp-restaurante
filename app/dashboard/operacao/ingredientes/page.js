@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
-import { fetchInsumos, salvarInsumo, removerInsumo } from "../../../lib/operacao";
-import { FlaskConical, Plus, Search, Trash2, Edit3, X, Save, ArrowLeft, CheckCircle2, AlertTriangle, Sparkles, Loader2, Camera } from "lucide-react";
+import { fetchInsumos, salvarInsumo, removerInsumo, fetchHistoricoPrecos } from "../../../lib/operacao";
+import { FlaskConical, Plus, Search, Trash2, Edit3, X, Save, ArrowLeft, CheckCircle2, AlertTriangle, Sparkles, Loader2, Camera, History, TrendingUp, TrendingDown } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
 // Converte um File de imagem em base64 puro (sem o prefixo "data:...;base64,")
@@ -72,6 +72,21 @@ function IngredientesRunner() {
 
   // Feedback de sucesso (toast flutuante autodescartável)
   const [toast, setToast] = useState(null); // { msg, tipo: 'ok' | 'erro' }
+
+  // Histórico de preços do ingrediente (cada alteração fica registrada)
+  const [modalHist, setModalHist] = useState(null); // insumo aberto
+  const [histPrecos, setHistPrecos] = useState([]);
+  const [histLoading, setHistLoading] = useState(false);
+  const abrirHistorico = async (ins) => {
+    setModalHist(ins);
+    setHistLoading(true);
+    const { data } = await fetchHistoricoPrecos(unidadeAtiva, ins.id);
+    setHistPrecos(data || []);
+    setHistLoading(false);
+  };
+  const fmtDataHoraBR = (iso) => iso
+    ? `${new Date(iso).toLocaleDateString("pt-BR")} às ${new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
+    : "—";
   const showToast = (msg, tipo = "ok") => {
     setToast({ msg, tipo });
     setTimeout(() => setToast(null), 2800);
@@ -117,8 +132,10 @@ function IngredientesRunner() {
       nome: ins.nome,
       marca: ins.marca || "",
       unidade_medida: ins.unidade_medida,
-      tamanho_embalagem: "1",
-      valor_embalagem: ins.custo_compra ?? ins.custo_unitario,
+      tamanho_embalagem: String(ins.tamanho_embalagem || "1"),
+      valor_embalagem: ins.tamanho_embalagem
+        ? Math.round((ins.custo_compra ?? ins.custo_unitario) * ins.tamanho_embalagem * 100) / 100
+        : (ins.custo_compra ?? ins.custo_unitario),
       custo_compra: ins.custo_compra ?? ins.custo_unitario,
       peso_medio_g: ins.peso_medio_g || "",
       peso_bruto_g: pct > 0 && pct < 100 ? "1000" : "",
@@ -254,6 +271,7 @@ function IngredientesRunner() {
        unidade_medida: form.unidade_medida,
        unidade_id: unidadeAtiva,
        custo_compra: custoCompra,
+       tamanho_embalagem: tamEmb,
        peso_medio_g: form.peso_medio_g ? Number(form.peso_medio_g) : null,
        aproveitamento_pct: pct < 100 ? Math.round(pct * 100) / 100 : null,
        eh_empanado: !!form.eh_empanado,
@@ -357,8 +375,8 @@ function IngredientesRunner() {
             <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center">
                <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Ingrediente</span>
                <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-20">Unid.</span>
-               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-32">Custo / Base</span>
-               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-right w-24">Ações</span>
+               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-36">Custo / Base</span>
+               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-right w-32">Ações</span>
             </div>
             {/* Linhas */}
             <div className="bg-white divide-y divide-slate-100">
@@ -378,6 +396,11 @@ function IngredientesRunner() {
                        <div className="w-1 h-10 rounded-full bg-emerald-400 shrink-0" />
                        <div className="min-w-0">
                          <p className="font-bold text-slate-800 text-[15px] leading-tight truncate">{ins.nome}{ins.marca ? <span className="text-slate-400 font-medium"> · {ins.marca}</span> : null}</p>
+                         {Number(ins.tamanho_embalagem) > 0 && (
+                           <p className="text-[10px] font-bold text-slate-400 mt-0.5">
+                             Embalagem: {Number(ins.tamanho_embalagem).toLocaleString("pt-BR")} {ins.unidade_medida} · {fmtBRL((ins.custo_compra ?? ins.custo_unitario) * ins.tamanho_embalagem)}
+                           </p>
+                         )}
                          <div className="flex items-center gap-1.5 mt-1">
                            <span className={`inline-block text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${deptColor}`}>{ins.departamento}</span>
                            {ins.eh_empanado && Number(ins.fator_empanamento) > 0 && (
@@ -396,16 +419,22 @@ function IngredientesRunner() {
                        )}
                      </div>
                      {/* Custo (real, já corrigido pela perda de limpeza quando houver) */}
-                     <div className="w-32 text-center">
+                     <div className="w-36 text-center">
                        <span className="font-black text-xl text-emerald-600">{fmtBRL(ins.custo_unitario)}</span>
                        {Number(ins.aproveitamento_pct) > 0 && Number(ins.aproveitamento_pct) < 100 && (
                          <p className="text-[9px] font-black uppercase tracking-widest text-red-500 mt-0.5" title={`Compra: ${fmtBRL(ins.custo_compra)} · aproveitamento ${Number(ins.aproveitamento_pct).toFixed(0)}%`}>
                            perda {(100 - Number(ins.aproveitamento_pct)).toFixed(0)}%
                          </p>
                        )}
+                       <p className="text-[9px] font-bold text-slate-400 mt-0.5" title="Última atualização de preço">
+                         {fmtDataHoraBR(ins.preco_atualizado_em || ins.created_at)}
+                       </p>
                      </div>
                      {/* Ações */}
-                     <div className="w-24 flex justify-end gap-1">
+                     <div className="w-32 flex justify-end gap-1">
+                       <button onClick={() => abrirHistorico(ins)} className="p-2 bg-slate-100 hover:bg-amber-100 text-slate-500 hover:text-amber-600 rounded-lg transition-all" title="Histórico de preços">
+                         <History size={16}/>
+                       </button>
                        <button onClick={() => abrirEditar(ins)} className="p-2 bg-slate-100 hover:bg-blue-100 text-slate-500 hover:text-blue-600 rounded-lg transition-all" title="Editar">
                          <Edit3 size={16}/>
                        </button>
@@ -458,6 +487,51 @@ function IngredientesRunner() {
             {toast.tipo === 'erro' ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />} {toast.msg}
           </div>
         </div>
+      )}
+
+      {/* MODAL: HISTÓRICO DE PREÇOS do ingrediente */}
+      {modalHist && (
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto" onClick={() => setModalHist(null)}>
+            <div className="bg-white rounded-[32px] w-full max-w-md my-8 p-7 shadow-2xl animate-in zoom-in-95 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+               <div className="flex justify-between items-center mb-4 shrink-0">
+                  <div>
+                     <h2 className="font-black text-xl text-slate-800">Histórico de Preços</h2>
+                     <p className="text-sm font-bold text-slate-500 mt-0.5">{modalHist.nome} · atual {fmtBRL(modalHist.custo_unitario)}/{modalHist.unidade_medida}</p>
+                  </div>
+                  <button onClick={() => setModalHist(null)} className="w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={17}/></button>
+               </div>
+               <div className="overflow-y-auto space-y-2">
+                  {histLoading ? (
+                     <p className="text-center font-bold text-slate-400 py-6"><Loader2 size={20} className="animate-spin inline"/> Carregando...</p>
+                  ) : histPrecos.length === 0 ? (
+                     <p className="text-sm font-medium text-slate-400 text-center py-6">Nenhuma alteração registrada ainda. A partir de agora, toda mudança de preço fica salva aqui.</p>
+                  ) : histPrecos.map(h => {
+                     const antigo = Number(h.custo_anterior);
+                     const novo = Number(h.custo_novo) || 0;
+                     const temAntigo = h.custo_anterior !== null && antigo > 0;
+                     const varPct = temAntigo ? ((novo - antigo) / antigo) * 100 : null;
+                     const subiu = varPct !== null && varPct > 0;
+                     return (
+                        <div key={h.id} className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center gap-3">
+                           <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${varPct === null ? "bg-slate-200 text-slate-500" : subiu ? "bg-red-100 text-red-600" : "bg-emerald-100 text-emerald-600"}`}>
+                              {varPct === null ? <Plus size={15}/> : subiu ? <TrendingUp size={15}/> : <TrendingDown size={15}/>}
+                           </div>
+                           <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold text-slate-700">
+                                 {temAntigo ? <>{fmtBRL(antigo)} <span className="text-slate-400">→</span> {fmtBRL(novo)}</> : <>Cadastro inicial: {fmtBRL(novo)}</>}
+                              </p>
+                              <p className="text-[10px] font-medium text-slate-400">{fmtDataHoraBR(h.created_at)}</p>
+                           </div>
+                           {varPct !== null && (
+                              <span className={`text-xs font-black shrink-0 ${subiu ? "text-red-600" : "text-emerald-600"}`}>{subiu ? "+" : ""}{varPct.toFixed(1)}%</span>
+                           )}
+                        </div>
+                     );
+                  })}
+               </div>
+               <p className="text-[10px] font-medium text-slate-400 mt-3 shrink-0">Toda alteração de preço recalcula automaticamente as fichas, o cardápio e o CMV.</p>
+            </div>
+         </div>
       )}
 
       {modalNovo && (

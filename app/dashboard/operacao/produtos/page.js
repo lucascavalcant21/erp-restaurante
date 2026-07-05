@@ -701,7 +701,17 @@ function CardapioRunner() {
                         value={(form.composicao || []).length === 1 ? form.composicao[0].ficha_id : ""}
                         onChange={e => {
                            const id = e.target.value;
-                           setForm({ ...form, composicao: id ? [{ ficha_id: id, qtd: 1 }] : [], ficha_id: id || "" });
+                           const ficha = fichas.find(f => f.id === id);
+                           // Nome do produto vem da ficha automaticamente (a menos
+                           // que você já tenha digitado um nome próprio)
+                           const nomeAtual = (form.nome_produto || "").trim();
+                           const nomeEhAutomatico = !nomeAtual || fichas.some(f => f.nome_receita === nomeAtual);
+                           setForm({
+                              ...form,
+                              composicao: id ? [{ ficha_id: id, qtd: 1 }] : [],
+                              ficha_id: id || "",
+                              nome_produto: id && ficha && nomeEhAutomatico ? ficha.nome_receita : form.nome_produto,
+                           });
                         }}
                         className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:border-emerald-500"
                      >

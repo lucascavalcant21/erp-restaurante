@@ -226,11 +226,44 @@ function CardapioRunner() {
 
   async function carregar() {
     setLoading(true);
-    const [prodRes, fichasRes, embRes] = await Promise.all([
+    let [prodRes, fichasRes, embRes] = await Promise.all([
       fetchProdutos(unidadeAtiva),
       fetchFichas(unidadeAtiva),
       fetchEmbalagens(unidadeAtiva)
     ]);
+
+    // Sincroniza com as Fichas Técnicas: toda ficha de PRATO/DRINK sem
+    // produto correspondente vira produto aguardando preço (retroativo)
+    try {
+      const prods = prodRes.data || [];
+      const fichasPrato = (fichasRes.data || []).filter(f => !f.eh_base);
+      const vinculadas = new Set();
+      prods.forEach(p => {
+        if (p.ficha_id) vinculadas.add(p.ficha_id);
+        (Array.isArray(p.composicao) ? p.composicao : []).forEach(c => vinculadas.add(c.ficha_id));
+      });
+      const nomesProd = new Set(prods.map(p => (p.nome_produto || "").toLowerCase().trim()));
+      const faltantes = fichasPrato.filter(f =>
+        !vinculadas.has(f.id) && !nomesProd.has((f.nome_receita || "").toLowerCase().trim())
+      );
+      for (const f of faltantes) {
+        await salvarProduto({
+          unidade_id: unidadeAtiva,
+          nome_produto: f.nome_receita,
+          categoria: f.departamento === "bar" ? "Drinks" : "Pratos Principais",
+          departamento: f.departamento,
+          tempo_preparo_base: 15,
+          preco_venda: 0,
+          ficha_id: f.id,
+          composicao: [{ ficha_id: f.id, qtd: 1 }],
+        });
+      }
+      if (faltantes.length) {
+        alert(`${faltantes.length} prato(s)/drink(s) das Fichas Técnicas entraram no Cardápio aguardando preço (R$ 0,00). Defina o preço de venda de cada um.`);
+        prodRes = await fetchProdutos(unidadeAtiva);
+      }
+    } catch { /* sincronização é acessória */ }
+
     setProdutos(prodRes.data || []);
     setFichas(fichasRes.data || []);
     setEmbalagensDB(embRes.data || []);
@@ -536,8 +569,14 @@ function CardapioRunner() {
 
         <div className="flex justify-between items-end mt-auto pt-4 border-t border-slate-100">
            <div>
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Preço (PDV)</p>
-              <p className="font-black text-2xl text-emerald-600">{fmtBRL(p.preco_venda)}</p>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Preço de Venda</p>
+              {Number(p.preco_venda) > 0 ? (
+                 <p className="font-black text-2xl text-emerald-600">{fmtBRL(p.preco_venda)}</p>
+              ) : (
+                 <button onClick={() => abrirEditar(p)} className="font-black text-xs text-amber-700 bg-amber-50 border border-amber-300 rounded-lg px-2.5 py-1.5 hover:bg-amber-100 transition-colors uppercase tracking-widest">
+                    Definir preço
+                 </button>
+              )}
            </div>
            <div className="text-right">
               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Ficha Técnica</p>

@@ -9,9 +9,11 @@ import {
   fetchCargos,
   fetchAllFolgasDaUnidade, fetchFolgasEsporadicas, inserirFolgaEsporadica, removerFolgaEsporadica,
   fetchConsumoFuncionario, inserirConsumoFuncionario, atualizarStatusConsumo, removerConsumoFuncionario,
-  fetchBancoHoras, inserirBancoHoras, removerBancoHoras, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN
+  fetchBancoHoras, inserirBancoHoras, removerBancoHoras, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN,
+  fetchAdvertenciasColab, inserirAdvertencia, removerAdvertencia
 } from "../../lib/rh";
-import { fetchPontoHoje } from "../../lib/ponto";
+import { fetchPontoHoje, fetchPontosMes } from "../../lib/ponto";
+import { calcularAdicionaisMes } from "../../lib/rh";
 import { salvarConta, fetchContas } from "../../lib/financeiro";
 import { 
   Users, UserPlus, FileText, Upload, Save, X, Search, Trash2, Loader2, CalendarHeart, Star, Phone, CreditCard, ClipboardList, Clock, CalendarDays, ShoppingBag, CheckCircle, Store, Printer, UtensilsCrossed
@@ -28,7 +30,7 @@ export default function RHPage() {
   const [cargos, setCargos] = useState([]);
   const [busca, setBusca] = useState("");
   const [abaAtiva, setAbaAtiva] = useState("Fixo");
-  const statePadrao = { nome: "", cargo: "", salario: "", horario_entrada: "", horario_saida: "", dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60, tipo_contrato: "Fixo", telefone: "", cpf: "", chave_pix: "", avaliacao_estrelas: 0, anotacoes_rh: "", data_admissao: "", status_contrato: "Definitivo", supervisor_id: "" };
+  const statePadrao = { nome: "", cargo: "", salario: "", vale_alimentacao: "", taxa_servico_mes: "", horario_entrada: "", horario_saida: "", dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60, tipo_contrato: "Fixo", telefone: "", cpf: "", chave_pix: "", avaliacao_estrelas: 0, anotacoes_rh: "", data_admissao: "", status_contrato: "Definitivo", supervisor_id: "" };
   const [modalNovo, setModalNovo] = useState(false);
   const [novoFunc, setNovoFunc] = useState(statePadrao);
   
@@ -80,6 +82,82 @@ export default function RHPage() {
       itens: fichaItens.filter(i => i.incluir).map(i => i.nome),
     });
     setModalFicha(false);
+  };
+
+  // Advertências: geradas aqui, aparecem na vida do colaborador
+  const [modalAdv, setModalAdv] = useState(false);
+  const [funcAdv, setFuncAdv] = useState(null);
+  const [advLista, setAdvLista] = useState([]);
+  const [advForm, setAdvForm] = useState({ data: "", gravidade: "leve", motivo: "", descricao: "" });
+
+  const abrirModalAdv = async (f) => {
+    setFuncAdv(f);
+    setAdvForm({ data: new Date().toISOString().split("T")[0], gravidade: "leve", motivo: "", descricao: "" });
+    setModalAdv(true);
+    const { data } = await fetchAdvertenciasColab(f.id);
+    setAdvLista(data || []);
+  };
+
+  const salvarAdvertencia = async (e) => {
+    e.preventDefault();
+    if (!advForm.motivo.trim()) return alert("Informe o motivo da advertência.");
+    const { error } = await inserirAdvertencia({
+      unidade_id: unidadeAtiva,
+      colaborador_id: funcAdv.id,
+      data: advForm.data,
+      gravidade: advForm.gravidade,
+      motivo: advForm.motivo.trim(),
+      descricao: advForm.descricao || null,
+    });
+    if (error) return alert("Erro: " + error);
+    const { data } = await fetchAdvertenciasColab(funcAdv.id);
+    setAdvLista(data || []);
+    setAdvForm({ data: new Date().toISOString().split("T")[0], gravidade: "leve", motivo: "", descricao: "" });
+  };
+
+  const excluirAdvertencia = async (id) => {
+    if (!confirm("Excluir esta advertência?")) return;
+    await removerAdvertencia(id);
+    const { data } = await fetchAdvertenciasColab(funcAdv.id);
+    setAdvLista(data || []);
+  };
+
+  // Termo de advertência imprimível (modelo CLT) para assinatura
+  const imprimirTermoAdvertencia = (f, adv) => {
+    const dataFmt = adv.data ? adv.data.split("-").reverse().join("/") : "____/____/______";
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Termo de Advertencia - ${f.nome}</title>
+      <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:Georgia,'Times New Roman',serif;color:#111;padding:10mm 12mm;max-width:700px;margin:0 auto;line-height:1.8}
+        h1{text-align:center;font-size:18px;letter-spacing:4px;text-transform:uppercase;border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:18px}
+        p{font-size:13px;text-align:justify;margin-bottom:10px}
+        .dados{font-family:Arial,sans-serif;font-size:12px;border:1px solid #999;border-radius:6px;padding:10px 12px;margin-bottom:14px}
+        .grav{font-weight:bold;text-transform:uppercase}
+        .assin{margin-top:40px;display:flex;flex-direction:column;gap:34px}
+        .assin div{border-top:1px solid #111;padding-top:4px;font-size:11px;text-align:center;width:320px;margin:0 auto;font-family:Arial,sans-serif}
+        @media print{@page{margin:0}}
+      </style></head><body>
+      <h1>Termo de Advertência</h1>
+      <div class="dados">
+        <b>Colaborador:</b> ${f.nome} &nbsp;·&nbsp; <b>Função:</b> ${f.cargo || "—"} &nbsp;·&nbsp; <b>CPF:</b> ${f.cpf || "____________"}<br/>
+        <b>Data da ocorrência:</b> ${dataFmt} &nbsp;·&nbsp; <b>Gravidade:</b> <span class="grav">${adv.gravidade}</span>
+      </div>
+      <p>Pelo presente, fica o(a) colaborador(a) acima identificado(a) <b>ADVERTIDO(A)</b> em razão de: <b>${adv.motivo}</b>.</p>
+      ${adv.descricao ? `<p><b>Descrição da ocorrência:</b> ${adv.descricao}</p>` : ""}
+      <p>Advertimos que a reincidência em faltas desta natureza poderá ensejar sanções mais severas, na forma do art. 482 da CLT, incluindo suspensão disciplinar e rescisão contratual por justa causa.</p>
+      <p>O(a) colaborador(a) declara ciência do presente termo, recebendo uma via.</p>
+      <div class="assin">
+        <div>Assinatura do(a) colaborador(a)</div>
+        <div>Assinatura do empregador / gerente</div>
+        <div>Testemunha (nome e assinatura)</div>
+      </div>
+      </body></html>`;
+    let win = null;
+    try { win = window.open("", "_blank", "width=820,height=1000"); } catch { win = null; }
+    if (!win) return alert("Habilite os popups para imprimir o termo.");
+    win.document.write(html);
+    win.document.close();
+    setTimeout(() => win.print(), 400);
   };
 
   // Banco de horas: intervalo de 1h não tirado acumula (limite 8h/mês)
@@ -177,35 +255,51 @@ export default function RHPage() {
     carregar();
   };
 
-  // Lança a folha do mês inteira no Financeiro (uma conta por funcionário fixo)
+  // Lança a folha do mês no Financeiro: fixo + vale alimentação + taxa de
+  // serviço + adicional noturno e horas extras calculados do ponto (CLT)
   const lancarFolhaMes = async () => {
     const fixos = funcionarios.filter(f => f.tipo_contrato !== "Freelancer" && (f.status || "ativo") !== "inativo" && Number(f.salario) > 0);
     if (!fixos.length) return alert("Nenhum funcionário fixo com salário cadastrado.");
     const agora = new Date();
+    const mesISO = agora.toISOString().slice(0, 7);
     const mesKey = `${String(agora.getMonth() + 1).padStart(2, "0")}/${agora.getFullYear()}`;
-    const total = fixos.reduce((s, f) => s + Number(f.salario || 0), 0);
-    // Vencimento: dia 05 do mês seguinte
     const prox = new Date(agora.getFullYear(), agora.getMonth() + 1, 5);
     const venc = `${prox.getFullYear()}-${String(prox.getMonth() + 1).padStart(2, "0")}-05`;
-    if (!confirm(`Lançar a folha de ${mesKey} no Financeiro?\n\n${fixos.length} funcionário(s) fixo(s) · total ${fmtBRL(total)}\nCada salário vira uma conta a pagar (mão de obra) com vencimento 05/${String(prox.getMonth() + 1).padStart(2, "0")}.\n\nQuem já foi lançado neste mês não duplica.`)) return;
+
+    // Monta a folha completa de cada um antes de confirmar
+    const folha = [];
+    for (const f of fixos) {
+      const { data: pontos } = await fetchPontosMes(f.id, mesISO);
+      const ad = calcularAdicionaisMes(pontos || [], f.salario);
+      const fixo = Number(f.salario) || 0;
+      const va = Number(f.vale_alimentacao) || 0;
+      const taxa = Number(f.taxa_servico_mes) || 0;
+      const total = fixo + va + taxa + ad.valorNoturno + ad.valorExtra;
+      folha.push({ f, fixo, va, taxa, ad, total });
+    }
+    const totalGeral = folha.reduce((s, x) => s + x.total, 0);
+    const resumo = folha.map(x =>
+      `${x.f.nome.split(" ")[0]}: ${fmtBRL(x.total)} (fixo ${fmtBRL(x.fixo)}${x.va ? ` + VA ${fmtBRL(x.va)}` : ""}${x.taxa ? ` + taxa ${fmtBRL(x.taxa)}` : ""}${x.ad.valorNoturno ? ` + noturno ${fmtBRL(x.ad.valorNoturno)}` : ""}${x.ad.valorExtra ? ` + extra ${fmtBRL(x.ad.valorExtra)}` : ""})`
+    ).join("\n");
+    if (!confirm(`Lançar a folha de ${mesKey}?\n\n${resumo}\n\nTOTAL: ${fmtBRL(totalGeral)}\nCada um vira uma conta a pagar (mão de obra), venc. 05/${String(prox.getMonth() + 1).padStart(2, "0")}. Quem já foi lançado no mês não duplica.`)) return;
 
     const { data: contasExistentes } = await fetchContas(unidadeAtiva, "");
     const jaLancadas = new Set((contasExistentes || []).map(c => c.descricao));
     let ok = 0, pulados = 0;
-    for (const f of fixos) {
-      const descricao = `Folha ${mesKey}: ${f.nome} - ${f.cargo || "—"}`;
+    for (const x of folha) {
+      const descricao = `Folha ${mesKey}: ${x.f.nome} - ${x.f.cargo || "—"}`;
       if (jaLancadas.has(descricao)) { pulados++; continue; }
       const { error } = await salvarConta({
         unidade_id: unidadeAtiva,
         descricao,
-        valor: Number(f.salario) || 0,
+        valor: Math.round(x.total * 100) / 100,
         data_vencimento: venc,
         categoria: "cmo",
         status: "pendente",
       });
       if (!error) ok++;
     }
-    alert(`Folha lançada: ${ok} salário(s) criado(s) em Contas a Pagar${pulados ? ` · ${pulados} já estavam lançados` : ""}.`);
+    alert(`Folha lançada: ${ok} conta(s) criada(s)${pulados ? ` · ${pulados} já estavam lançadas` : ""}.`);
   };
 
   // --- Funções de Consumo ---
@@ -510,7 +604,9 @@ export default function RHPage() {
        anotacoes_rh: f.anotacoes_rh || "",
        data_admissao: f.data_admissao || "",
        status_contrato: f.status_contrato || "Definitivo",
-       supervisor_id: f.supervisor_id || ""
+       supervisor_id: f.supervisor_id || "",
+       vale_alimentacao: f.vale_alimentacao || "",
+       taxa_servico_mes: f.taxa_servico_mes || ""
     });
     setModalNovo(true);
   };
@@ -535,7 +631,9 @@ export default function RHPage() {
       anotacoes_rh: novoFunc.anotacoes_rh,
       data_admissao: novoFunc.data_admissao || null,
       status_contrato: novoFunc.status_contrato,
-      supervisor_id: novoFunc.supervisor_id || null
+      supervisor_id: novoFunc.supervisor_id || null,
+      vale_alimentacao: Number(novoFunc.vale_alimentacao) || 0,
+      taxa_servico_mes: Number(novoFunc.taxa_servico_mes) || 0
     };
 
     if (editandoId) {
@@ -996,6 +1094,9 @@ export default function RHPage() {
                                  <button onClick={() => abrirModalConsumo(f)} className="flex items-center gap-1 text-xs font-black text-teal-600 bg-teal-50 px-3 py-1.5 rounded-lg hover:bg-teal-100 transition-colors">
                                     <ShoppingBag size={14}/> Consumo / Vales
                                  </button>
+                                 <button onClick={() => abrirModalAdv(f)} className="flex items-center gap-1 text-xs font-black text-red-600 bg-red-50 px-3 py-1.5 rounded-lg hover:bg-red-100 transition-colors">
+                                    <FileText size={14}/> Advertências
+                                 </button>
                                  <button onClick={() => handleLancarFinanceiro(f)} className="flex items-center gap-1 text-xs font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition-colors">
                                     Lançar {f.tipo_contrato === "Freelancer" ? "Diária" : "Salário"}
                                  </button>
@@ -1082,10 +1183,28 @@ export default function RHPage() {
                         <input type="text" value={novoFunc.chave_pix} onChange={e=>setNovoFunc({...novoFunc, chave_pix: e.target.value})} placeholder="Chave para pagamento" className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
                      </div>
                      <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{novoFunc.tipo_contrato === "Freelancer" ? "Valor da Diária Base (R$)" : "Salário Base (R$)"}</label>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{novoFunc.tipo_contrato === "Freelancer" ? "Valor da Diária Base (R$)" : "Salário Fixo (R$)"}</label>
                         <input type="number" value={novoFunc.salario} onChange={e=>setNovoFunc({...novoFunc, salario: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-emerald-600 outline-none focus:border-emerald-500"/>
                      </div>
                   </div>
+
+                  {novoFunc.tipo_contrato !== "Freelancer" && (
+                     <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-4">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700 mb-3">Composição da remuneração (além do fixo)</p>
+                        <div className="grid grid-cols-2 gap-4">
+                           <div>
+                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Vale Alimentação (R$/mês)</label>
+                              <input type="number" min="0" step="0.01" placeholder="0,00" value={novoFunc.vale_alimentacao} onChange={e=>setNovoFunc({...novoFunc, vale_alimentacao: e.target.value})} className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500"/>
+                           </div>
+                           <div>
+                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Taxa de Serviço do mês (R$)</label>
+                              <input type="number" min="0" step="0.01" placeholder="0,00" value={novoFunc.taxa_servico_mes} onChange={e=>setNovoFunc({...novoFunc, taxa_servico_mes: e.target.value})} className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500"/>
+                              <p className="text-[10px] text-slate-400 font-medium mt-1">Varia com as vendas — atualize no fim do mês, antes de lançar a folha.</p>
+                           </div>
+                        </div>
+                        <p className="text-[10px] font-medium text-emerald-700/70 mt-3">Adicional noturno (20% após 23h30) e hora extra (+50% após 00h00) são calculados automaticamente pelo ponto, nos moldes da CLT (hora normal = salário ÷ 220).</p>
+                     </div>
+                  )}
 
                   {novoFunc.tipo_contrato === "Fixo" && (
                      <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-4 mt-4 bg-indigo-50/30 p-4 rounded-2xl">
@@ -1231,6 +1350,52 @@ export default function RHPage() {
          </div>
          );
       })()}
+
+      {/* MODAL: ADVERTÊNCIAS do colaborador */}
+      {modalAdv && funcAdv && (
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
+            <div className="bg-white rounded-[32px] w-full max-w-lg my-8 p-8 shadow-2xl animate-in zoom-in-95 max-h-[88vh] flex flex-col">
+               <div className="flex justify-between items-center mb-5 shrink-0">
+                  <div>
+                     <h2 className="font-black text-2xl text-slate-800">Advertências</h2>
+                     <p className="text-sm font-bold text-slate-500 mt-1">{funcAdv.nome} · aparecem na vida do colaborador</p>
+                  </div>
+                  <button onClick={() => setModalAdv(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+               </div>
+
+               <form onSubmit={salvarAdvertencia} className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-5 shrink-0 space-y-3">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-red-600">Nova advertência</p>
+                  <div className="flex gap-3">
+                     <input type="date" value={advForm.data} onChange={e=>setAdvForm({...advForm, data: e.target.value})} className="p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-red-400"/>
+                     <select value={advForm.gravidade} onChange={e=>setAdvForm({...advForm, gravidade: e.target.value})} className="flex-1 p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-red-400">
+                        <option value="leve">Leve</option>
+                        <option value="media">Média</option>
+                        <option value="grave">Grave</option>
+                     </select>
+                  </div>
+                  <input type="text" placeholder="Motivo (ex: atraso sem justificativa)" value={advForm.motivo} onChange={e=>setAdvForm({...advForm, motivo: e.target.value})} className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-red-400"/>
+                  <textarea placeholder="Descrição da ocorrência (opcional)" rows={2} value={advForm.descricao} onChange={e=>setAdvForm({...advForm, descricao: e.target.value})} className="w-full p-3 bg-white border border-slate-200 rounded-xl font-medium text-sm text-slate-700 outline-none focus:border-red-400 resize-none"/>
+                  <button type="submit" className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-black text-sm rounded-xl transition-colors">Registrar Advertência</button>
+               </form>
+
+               <div className="overflow-y-auto space-y-2">
+                  {advLista.length === 0 ? (
+                     <p className="text-sm font-medium text-slate-400 text-center py-4">Nenhuma advertência registrada.</p>
+                  ) : advLista.map(a => (
+                     <div key={a.id} className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center gap-3">
+                        <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md shrink-0 ${a.gravidade === "grave" ? "bg-red-100 text-red-700" : a.gravidade === "media" ? "bg-amber-100 text-amber-700" : "bg-slate-200 text-slate-600"}`}>{a.gravidade}</span>
+                        <div className="flex-1 min-w-0">
+                           <p className="text-sm font-bold text-slate-700 truncate">{a.motivo}</p>
+                           <p className="text-[10px] font-medium text-slate-400">{a.data ? a.data.split("-").reverse().join("/") : "—"}{a.descricao ? ` · ${a.descricao}` : ""}</p>
+                        </div>
+                        <button onClick={() => imprimirTermoAdvertencia(funcAdv, a)} className="p-2 text-slate-400 hover:text-slate-700 rounded-lg" title="Imprimir termo para assinatura"><Printer size={14}/></button>
+                        <button onClick={() => excluirAdvertencia(a.id)} className="p-2 text-slate-400 hover:text-red-500 rounded-lg" title="Excluir"><Trash2 size={14}/></button>
+                     </div>
+                  ))}
+               </div>
+            </div>
+         </div>
+      )}
 
       {/* MODAL: BANCO DE HORAS (intervalo não tirado; limite 8h/mês) */}
       {modalBanco && funcBanco && (() => {

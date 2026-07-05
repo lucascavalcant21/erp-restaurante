@@ -247,6 +247,67 @@ export async function removerBancoHoras(id) {
   return { error: error?.message };
 }
 
+// ─── REMUNERAÇÃO (CLT simplificada) ─────────────────────────────────────────
+// Regras da casa: adicional noturno começa às 23:30 (20% sobre a hora normal,
+// ref. CLT art. 73) e o que passar de 00:00 conta como hora extra (+50%,
+// ref. CF art. 7º XVI). Hora normal = salário ÷ 220 (divisor mensal CLT).
+export function calcularAdicionaisMes(pontosMes, salarioBase) {
+  const valorHora = (Number(salarioBase) || 0) / 220;
+  let minNoturno = 0;   // 23:30 → 00:00
+  let minExtra = 0;     // após 00:00
+
+  (pontosMes || []).forEach(reg => {
+    if (!reg.hora_entrada || !reg.hora_saida) return;
+    const entrada = new Date(reg.hora_entrada);
+    const saida = new Date(reg.hora_saida);
+    if (saida <= entrada) return;
+
+    // Marco das 23:30 do dia da entrada e a meia-noite seguinte
+    const marco2330 = new Date(entrada); marco2330.setHours(23, 30, 0, 0);
+    const meiaNoite = new Date(marco2330); meiaNoite.setMinutes(meiaNoite.getMinutes() + 30);
+
+    // Minutos trabalhados entre 23:30 e 00:00 → adicional noturno
+    const iniNot = Math.max(entrada.getTime(), marco2330.getTime());
+    const fimNot = Math.min(saida.getTime(), meiaNoite.getTime());
+    if (fimNot > iniNot) minNoturno += Math.round((fimNot - iniNot) / 60000);
+
+    // Minutos após a meia-noite → hora extra
+    if (saida.getTime() > meiaNoite.getTime()) {
+      minExtra += Math.round((saida.getTime() - meiaNoite.getTime()) / 60000);
+    }
+  });
+
+  const valorNoturno = (minNoturno / 60) * valorHora * 0.20;      // só o adicional de 20%
+  const valorExtra = (minExtra / 60) * valorHora * 1.50;          // hora cheia + 50%
+  return {
+    minNoturno, minExtra,
+    valorNoturno: Math.round(valorNoturno * 100) / 100,
+    valorExtra: Math.round(valorExtra * 100) / 100,
+  };
+}
+
+// ─── ADVERTÊNCIAS ────────────────────────────────────────────────────────────
+export async function fetchAdvertenciasColab(colaboradorId) {
+  if (!isSupabaseReady() || !colaboradorId) return { data: [] };
+  const { data, error } = await supabase.from("rh_advertencias_colab")
+    .select("*")
+    .eq("colaborador_id", colaboradorId)
+    .order("data", { ascending: false });
+  return { data: data || [], error: error?.message };
+}
+
+export async function inserirAdvertencia(adv) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase.from("rh_advertencias_colab").insert([adv]);
+  return { error: error?.message };
+}
+
+export async function removerAdvertencia(id) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase.from("rh_advertencias_colab").delete().eq("id", id);
+  return { error: error?.message };
+}
+
 // Banco de horas de UM colaborador no mês (para a tela de ponto e o espelho)
 export async function fetchBancoHorasColaborador(colaboradorId, mesAno) {
   if (!isSupabaseReady() || !colaboradorId) return { data: [] };

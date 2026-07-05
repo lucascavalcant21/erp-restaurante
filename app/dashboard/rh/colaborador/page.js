@@ -4,15 +4,17 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Users, ArrowLeft, Phone, CreditCard, Clock, Hourglass, CalendarHeart,
-  ShoppingBag, FileText, Star, Edit3, Printer, ChevronRight, User, Network
+  ShoppingBag, FileText, Star, Edit3, Printer, ChevronRight, User, Network,
+  DollarSign, AlertTriangle
 } from "lucide-react";
 import { PageHeader, PageBody, EmptyState, SearchBar, SkeletonList, fmtBRL, fmtData } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
 import {
   fetchColaboradores, fetchDocumentos, fetchFolgasEsporadicas, fetchConsumoFuncionario,
-  fetchBancoHorasColaborador, somaMinutosBanco, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN
+  fetchBancoHorasColaborador, somaMinutosBanco, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN,
+  fetchAdvertenciasColab, calcularAdicionaisMes
 } from "../../../lib/rh";
-import { fetchHistoricoPonto } from "../../../lib/ponto";
+import { fetchHistoricoPonto, fetchPontosMes } from "../../../lib/ponto";
 
 const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const fmtMin = (m) => `${Math.floor(m / 60)}h${String(Math.round(m) % 60).padStart(2, "0")}`;
@@ -57,16 +59,19 @@ export default function VidaColaboradorPage() {
     setVida(null);
     setVidaLoading(true);
     const mes = new Date().toISOString().slice(0, 7);
-    const [rDocs, rFolgas, rConsumo, rBanco, rPonto] = await Promise.all([
+    const [rDocs, rFolgas, rConsumo, rBanco, rPonto, rAdv, rPontosMes] = await Promise.all([
       fetchDocumentos(c.id),
       fetchFolgasEsporadicas(c.id),
       fetchConsumoFuncionario(c.id),
       fetchBancoHorasColaborador(c.id, mes),
       fetchHistoricoPonto(c.id),
+      fetchAdvertenciasColab(c.id),
+      fetchPontosMes(c.id, mes),
     ]);
     setVida({
       docs: rDocs.data || [], folgas: rFolgas.data || [], consumo: rConsumo.data || [],
       banco: rBanco.data || [], ponto: rPonto.data || [],
+      advertencias: rAdv.data || [], pontosMes: rPontosMes.data || [],
     });
     setVidaLoading(false);
   };
@@ -124,6 +129,50 @@ export default function VidaColaboradorPage() {
 
           {vidaLoading || !vida ? <SkeletonList rows={4} /> : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Remuneração do mês: fixo + VA + taxa + adicionais do ponto (CLT) */}
+              {!isFree && (() => {
+                const ad = calcularAdicionaisMes(vida.pontosMes, sel.salario);
+                const fixo = Number(sel.salario) || 0;
+                const va = Number(sel.vale_alimentacao) || 0;
+                const taxa = Number(sel.taxa_servico_mes) || 0;
+                const totalMes = fixo + va + taxa + ad.valorNoturno + ad.valorExtra;
+                const Linha = ({ rotulo, valor, dica }) => (
+                  <div className="flex justify-between items-baseline py-1.5 border-b" style={{ borderColor: "var(--line-soft)" }}>
+                    <span className="text-sm font-bold" style={{ color: "var(--fg-soft)" }}>{rotulo}{dica && <span className="text-[10px] font-medium ml-1.5" style={{ color: "var(--dim)" }}>{dica}</span>}</span>
+                    <span className="text-sm font-black" style={{ color: "var(--fg)" }}>{fmtBRL(valor)}</span>
+                  </div>
+                );
+                return (
+                  <Bloco icon={DollarSign} titulo="Remuneração do mês (prévia)"
+                    extra={<span className="text-base font-black" style={{ color: "var(--accent-strong)" }}>{fmtBRL(totalMes)}</span>}>
+                    <Linha rotulo="Salário fixo" valor={fixo} />
+                    <Linha rotulo="Vale alimentação" valor={va} />
+                    <Linha rotulo="Taxa de serviço" valor={taxa} dica="definida no fim do mês" />
+                    <Linha rotulo="Adicional noturno" valor={ad.valorNoturno} dica={`${fmtMin(ad.minNoturno)} após 23h30 · 20% CLT`} />
+                    <Linha rotulo="Horas extras" valor={ad.valorExtra} dica={`${fmtMin(ad.minExtra)} após 00h00 · +50% CLT`} />
+                    <p className="text-[10px] font-medium mt-2" style={{ color: "var(--dim)" }}>Adicionais calculados automaticamente do ponto (hora normal = salário ÷ 220). O botão "Lançar Folha" no RH usa estes valores.</p>
+                  </Bloco>
+                );
+              })()}
+
+              {/* Advertências */}
+              <Bloco icon={AlertTriangle} titulo="Advertências"
+                extra={vida.advertencias.length > 0 && <span className="erp-badge erp-badge-danger">{vida.advertencias.length}</span>}>
+                {vida.advertencias.length === 0 ? (
+                  <p className="text-xs font-medium" style={{ color: "var(--dim)" }}>Nenhuma advertência — tudo certo.</p>
+                ) : (
+                  <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
+                    {vida.advertencias.map(a => (
+                      <div key={a.id} className="flex items-center gap-2 text-xs p-2 rounded-lg" style={{ background: "var(--elevated)" }}>
+                        <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded shrink-0 ${a.gravidade === "grave" ? "bg-red-100 text-red-700" : a.gravidade === "media" ? "bg-amber-100 text-amber-700" : "bg-slate-200 text-slate-600"}`}>{a.gravidade}</span>
+                        <span className="font-bold truncate flex-1" style={{ color: "var(--fg-soft)" }}>{a.motivo}</span>
+                        <span className="font-medium shrink-0" style={{ color: "var(--dim)" }}>{a.data ? a.data.split("-").reverse().join("/") : ""}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <p className="text-[10px] font-medium mt-2" style={{ color: "var(--dim)" }}>Registradas e impressas pela Gestão de RH (botão Advertências).</p>
+              </Bloco>
               {/* Ponto */}
               <Bloco icon={Clock} titulo="Ponto — últimos dias"
                 extra={<button onClick={() => router.push(`/dashboard/rh/espelho/${sel.id}?mes=${new Date().toISOString().slice(0, 7)}`)} className="text-[10px] font-bold flex items-center gap-0.5" style={{ color: "var(--accent-strong)" }}>Espelho completo <ChevronRight size={11} /></button>}>

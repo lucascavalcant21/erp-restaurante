@@ -374,7 +374,7 @@ function IngredientesRunner() {
             {/* Header */}
             <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center">
                <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Ingrediente</span>
-               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-20">Unid.</span>
+               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-24">Unid. / Vol.</span>
                <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-36">Custo / Base</span>
                <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-right w-32">Ações</span>
             </div>
@@ -396,11 +396,6 @@ function IngredientesRunner() {
                        <div className="w-1 h-10 rounded-full bg-emerald-400 shrink-0" />
                        <div className="min-w-0">
                          <p className="font-bold text-slate-800 text-[15px] leading-tight truncate">{ins.nome}{ins.marca ? <span className="text-slate-400 font-medium"> · {ins.marca}</span> : null}</p>
-                         {Number(ins.tamanho_embalagem) > 0 && (
-                           <p className="text-[10px] font-bold text-slate-400 mt-0.5">
-                             Embalagem: {Number(ins.tamanho_embalagem).toLocaleString("pt-BR")} {ins.unidade_medida} · {fmtBRL((ins.custo_compra ?? ins.custo_unitario) * ins.tamanho_embalagem)}
-                           </p>
-                         )}
                          <div className="flex items-center gap-1.5 mt-1">
                            <span className={`inline-block text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${deptColor}`}>{ins.departamento}</span>
                            {ins.eh_empanado && Number(ins.fator_empanamento) > 0 && (
@@ -411,9 +406,14 @@ function IngredientesRunner() {
                          </div>
                        </div>
                      </div>
-                     {/* Unidade (+ equivalência média por unidade, quando definida) */}
-                     <div className="w-20 flex flex-col items-center gap-0.5">
+                     {/* Unidade + volume da embalagem comprada (quando houver) */}
+                     <div className="w-24 flex flex-col items-center gap-0.5">
                        <span className="bg-slate-800 text-white px-3 py-1.5 rounded-lg font-black text-xs uppercase tracking-wider shadow-sm">{ins.unidade_medida}</span>
+                       {Number(ins.tamanho_embalagem) > 0 && (
+                         <span className="text-[9px] font-black text-slate-500" title={`Embalagem comprada: ${Number(ins.tamanho_embalagem).toLocaleString('pt-BR')} ${ins.unidade_medida} por ${fmtBRL((ins.custo_compra ?? ins.custo_unitario) * ins.tamanho_embalagem)}`}>
+                           {Number(ins.tamanho_embalagem).toLocaleString('pt-BR')} {ins.unidade_medida} · {fmtBRL((ins.custo_compra ?? ins.custo_unitario) * ins.tamanho_embalagem)}
+                         </span>
+                       )}
                        {ins.unidade_medida === 'un' && Number(ins.peso_medio_g) > 0 && (
                          <span className="text-[9px] font-black text-slate-400">≈ {Number(ins.peso_medio_g).toLocaleString('pt-BR')}{String(ins.departamento).toLowerCase() === 'bar' ? 'ml' : 'g'}</span>
                        )}

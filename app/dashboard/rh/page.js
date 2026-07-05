@@ -160,6 +160,53 @@ export default function RHPage() {
     carregar();
   };
 
+  // Compensar o banco com uma folga: registra a folga e zera os créditos do mês
+  const [compensarData, setCompensarData] = useState("");
+  const compensarBanco = async () => {
+    const creditos = bancoHoras.filter(b => b.colaborador_id === funcBanco.id && b.tipo !== "excesso");
+    const total = creditos.reduce((s, b) => s + (Number(b.minutos) || 0), 0);
+    if (total <= 0) return alert("Não há créditos para compensar.");
+    if (!compensarData) return alert("Escolha a data da folga compensatória.");
+    if (!confirm(`Dar folga compensatória em ${compensarData.split("-").reverse().join("/")} para ${funcBanco.nome} e ZERAR ${fmtMin(total)} do banco de horas?`)) return;
+    const { error } = await inserirFolgaEsporadica(unidadeAtiva, funcBanco.id, compensarData, `Folga compensatória — banco de horas (${fmtMin(total)})`);
+    if (error) return alert("Erro ao registrar a folga: " + error);
+    for (const b of creditos) await removerBancoHoras(b.id);
+    alert(`Pronto: folga registrada e ${fmtMin(total)} compensadas. O banco de ${funcBanco.nome.split(" ")[0]} voltou a zero.`);
+    setModalBanco(false);
+    carregar();
+  };
+
+  // Lança a folha do mês inteira no Financeiro (uma conta por funcionário fixo)
+  const lancarFolhaMes = async () => {
+    const fixos = funcionarios.filter(f => f.tipo_contrato !== "Freelancer" && (f.status || "ativo") !== "inativo" && Number(f.salario) > 0);
+    if (!fixos.length) return alert("Nenhum funcionário fixo com salário cadastrado.");
+    const agora = new Date();
+    const mesKey = `${String(agora.getMonth() + 1).padStart(2, "0")}/${agora.getFullYear()}`;
+    const total = fixos.reduce((s, f) => s + Number(f.salario || 0), 0);
+    // Vencimento: dia 05 do mês seguinte
+    const prox = new Date(agora.getFullYear(), agora.getMonth() + 1, 5);
+    const venc = `${prox.getFullYear()}-${String(prox.getMonth() + 1).padStart(2, "0")}-05`;
+    if (!confirm(`Lançar a folha de ${mesKey} no Financeiro?\n\n${fixos.length} funcionário(s) fixo(s) · total ${fmtBRL(total)}\nCada salário vira uma conta a pagar (mão de obra) com vencimento 05/${String(prox.getMonth() + 1).padStart(2, "0")}.\n\nQuem já foi lançado neste mês não duplica.`)) return;
+
+    const { data: contasExistentes } = await fetchContas(unidadeAtiva, "");
+    const jaLancadas = new Set((contasExistentes || []).map(c => c.descricao));
+    let ok = 0, pulados = 0;
+    for (const f of fixos) {
+      const descricao = `Folha ${mesKey}: ${f.nome} - ${f.cargo || "—"}`;
+      if (jaLancadas.has(descricao)) { pulados++; continue; }
+      const { error } = await salvarConta({
+        unidade_id: unidadeAtiva,
+        descricao,
+        valor: Number(f.salario) || 0,
+        data_vencimento: venc,
+        categoria: "cmo",
+        status: "pendente",
+      });
+      if (!error) ok++;
+    }
+    alert(`Folha lançada: ${ok} salário(s) criado(s) em Contas a Pagar${pulados ? ` · ${pulados} já estavam lançados` : ""}.`);
+  };
+
   // --- Funções de Consumo ---
   const carregarConsumo = async (funcId) => {
     setLoadingConsumo(true);

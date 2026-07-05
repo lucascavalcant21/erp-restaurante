@@ -39,6 +39,44 @@ export async function salvarConta(conta) {
   }
 }
 
+// Contas recorrentes (aluguel, luz...): ao abrir a tela de contas, recria no
+// mês atual as marcadas como recorrentes que ainda não existem neste mês
+// (dedup por descrição), mantendo o dia do vencimento.
+export async function gerarContasRecorrentes(unidadeId) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { criadas: 0 };
+  const { data: recorrentes, error } = await supabase.from("contas_pagar")
+    .select("*")
+    .eq("unidade_id", unidadeId)
+    .eq("recorrente", true)
+    .order("data_vencimento", { ascending: false });
+  if (error || !recorrentes?.length) return { criadas: 0, error: error?.message };
+
+  const mesAtual = new Date().toISOString().slice(0, 7);
+  // A instância mais recente de cada descrição é o modelo
+  const porDesc = {};
+  recorrentes.forEach(c => { if (!porDesc[c.descricao]) porDesc[c.descricao] = c; });
+
+  let criadas = 0;
+  for (const c of Object.values(porDesc)) {
+    const mesConta = String(c.data_vencimento || "").slice(0, 7);
+    if (mesConta >= mesAtual) continue; // já existe neste mês (ou é futura)
+    const [ano, mes] = mesAtual.split("-").map(Number);
+    const ultimoDia = new Date(ano, mes, 0).getDate();
+    const dia = Math.min(Number(String(c.data_vencimento || "").slice(8, 10)) || 5, ultimoDia);
+    const { error: errIns } = await supabase.from("contas_pagar").insert([{
+      unidade_id: unidadeId,
+      descricao: c.descricao,
+      valor: c.valor,
+      data_vencimento: `${mesAtual}-${String(dia).padStart(2, "0")}`,
+      categoria: c.categoria,
+      status: "pendente",
+      recorrente: true,
+    }]);
+    if (!errIns) criadas++;
+  }
+  return { criadas };
+}
+
 // Baixa (Paga) uma conta
 export async function pagarConta(contaId) {
   if (!isSupabaseReady()) return { error: "Offline" };

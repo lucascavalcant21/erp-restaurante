@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Users, ArrowLeft, Phone, CreditCard, Clock, Hourglass, CalendarHeart,
-  ShoppingBag, FileText, Star, Edit3, Printer, ChevronRight, IdCard, Network
+  ShoppingBag, FileText, Star, Edit3, Printer, ChevronRight, User, Network
 } from "lucide-react";
 import { PageHeader, PageBody, EmptyState, SearchBar, SkeletonList, fmtBRL, fmtData } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
@@ -92,14 +92,14 @@ export default function VidaColaboradorPage() {
 
     return (
       <div className="min-h-screen pb-24">
-        <PageHeader title={sel.nome} subtitle={`${sel.cargo || "—"} · ${isFree ? "Freelancer/Extra" : sel.tipo_contrato || "Fixo"} · ${unidadeInfo?.nome}`} icon={IdCard} back={false}>
+        <PageHeader title={sel.nome} subtitle={`${sel.cargo || "—"} · ${isFree ? "Freelancer/Extra" : sel.tipo_contrato || "Fixo"} · ${unidadeInfo?.nome}`} icon={User} back={false}>
           <button onClick={() => { setSel(null); setVida(null); }} className="erp-btn erp-btn-ghost !h-9 text-xs"><ArrowLeft size={14} /> Todos</button>
           <button onClick={() => router.push(`/dashboard/rh/espelho/${sel.id}?mes=${new Date().toISOString().slice(0, 7)}`)} className="erp-btn erp-btn-ghost !h-9 text-xs"><Printer size={14} /> Espelho de Ponto</button>
           <button onClick={() => router.push("/dashboard/rh")} className="erp-btn erp-btn-primary !h-9 text-xs"><Edit3 size={14} /> Editar no RH</button>
         </PageHeader>
         <PageBody>
           {/* Dados cadastrais */}
-          <Bloco icon={IdCard} titulo="Dados do colaborador">
+          <Bloco icon={User} titulo="Dados do colaborador">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-x-5 gap-y-3 text-sm">
               <div><p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>Telefone</p><p className="font-bold" style={{ color: "var(--fg-soft)" }}>{sel.telefone || "—"}</p></div>
               <div><p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>CPF</p><p className="font-bold" style={{ color: "var(--fg-soft)" }}>{sel.cpf || "—"}</p></div>

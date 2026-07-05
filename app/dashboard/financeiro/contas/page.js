@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useERP } from "../../../context/ERPContext";
-import { fetchContas, salvarConta, pagarConta, CATEGORIAS_CUSTO } from "../../../lib/financeiro";
+import { fetchContas, salvarConta, pagarConta, gerarContasRecorrentes, CATEGORIAS_CUSTO } from "../../../lib/financeiro";
 import { Plus, Search, CheckCircle2, CircleDashed, Filter, CalendarDays, Wallet } from "lucide-react";
 import { fmtBRL, SkeletonList } from "../../../components/ui";
 
@@ -13,10 +13,17 @@ export default function ContasAPagarPage() {
 
   // Form Modal
   const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState({ descricao: "", valor: "", data_vencimento: "", categoria: CATEGORIAS_CUSTO[0].id });
+  const [form, setForm] = useState({ descricao: "", valor: "", data_vencimento: "", categoria: CATEGORIAS_CUSTO[0].id, recorrente: false });
+  const [avisoRecorrentes, setAvisoRecorrentes] = useState("");
 
   const carregar = async () => {
     setLoading(true);
+    // Vira o mês: contas recorrentes se recriam sozinhas antes de listar
+    const { criadas } = await gerarContasRecorrentes(unidadeAtiva);
+    if (criadas > 0) {
+      setAvisoRecorrentes(`${criadas} conta(s) recorrente(s) do mês criada(s) automaticamente.`);
+      setTimeout(() => setAvisoRecorrentes(""), 5000);
+    }
     const { data } = await fetchContas(unidadeAtiva);
     setContas(data);
     setLoading(false);
@@ -37,11 +44,12 @@ export default function ContasAPagarPage() {
         valor: valorNum,
         data_vencimento: form.data_vencimento,
         categoria: form.categoria,
-        status: 'pendente'
+        status: 'pendente',
+        recorrente: !!form.recorrente
      });
-     
+
      setModalOpen(false);
-     setForm({ descricao: "", valor: "", data_vencimento: "", categoria: CATEGORIAS_CUSTO[0].id });
+     setForm({ descricao: "", valor: "", data_vencimento: "", categoria: CATEGORIAS_CUSTO[0].id, recorrente: false });
      carregar();
   };
 
@@ -57,7 +65,13 @@ export default function ContasAPagarPage() {
 
   return (
     <div className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50">
-      
+
+      {avisoRecorrentes && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-sky-600 text-white font-bold text-sm px-5 py-3 rounded-full shadow-xl animate-in fade-in slide-in-from-bottom-2">
+          {avisoRecorrentes}
+        </div>
+      )}
+
       <div className="bg-slate-900 pt-8 pb-10 px-8 shadow-lg text-white">
          <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div>
@@ -201,6 +215,13 @@ export default function ContasAPagarPage() {
                         <input required type="date" value={form.data_vencimento} onChange={e=>setForm({...form, data_vencimento: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500 focus:bg-white"/>
                      </div>
                   </div>
+                  <label className="flex items-start gap-3 bg-sky-50 border border-sky-200 rounded-xl p-3.5 cursor-pointer">
+                     <input type="checkbox" checked={!!form.recorrente} onChange={e=>setForm({...form, recorrente: e.target.checked})} className="w-4 h-4 accent-sky-600 mt-0.5"/>
+                     <span>
+                        <span className="text-xs font-black text-sky-700 uppercase tracking-widest block">Conta recorrente (todo mês)</span>
+                        <span className="text-[11px] font-medium text-sky-700/70">Aluguel, luz, internet... Na virada do mês ela se recria sozinha, com o mesmo dia de vencimento e valor (que você pode ajustar).</span>
+                     </span>
+                  </label>
                   <div className="pt-4 mt-2 border-t border-slate-100">
                      <button type="submit" className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-lg rounded-xl shadow-xl shadow-emerald-500/30 active:scale-95 transition-transform">
                         Salvar Despesa

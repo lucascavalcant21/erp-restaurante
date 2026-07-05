@@ -150,7 +150,7 @@ function FichasRunner() {
   const searchParams = useSearchParams();
   const deptUrl = searchParams.get("dept") || "cozinha"; // 'cozinha' ou 'bar'
   
-  const { unidadeAtiva } = useERP();
+  const { unidadeAtiva, unidadeInfo } = useERP();
   const [fichas, setFichas] = useState([]);
   const [insumosAtivos, setInsumosAtivos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -706,6 +706,98 @@ function FichasRunner() {
     setTimeout(() => win.print(), 400);
   };
 
+  // ── MANUAL estilo pôster (coquetelaria/cozinha): nome + foto + medidas ─────
+  // Gera um cartaz em 2 colunas com todas as fichas do departamento, no estilo
+  // "Manual de Coquetelaria": fundo creme, nome em destaque e ingredientes
+  // com as quantidades — para imprimir e colar na parede do bar/cozinha.
+  const fmtQtdManual = (q, un) => {
+    const u = String(un || "").toLowerCase();
+    const n = Number(q) || 0;
+    if (u === "kg") return n < 1 ? `${Math.round(n * 1000)}g` : `${(+n.toFixed(2)).toLocaleString("pt-BR")}kg`;
+    if (u === "l") return n < 1 ? `${Math.round(n * 1000)}ml` : `${(+n.toFixed(2)).toLocaleString("pt-BR")}L`;
+    if (u === "g" || u === "ml") return `${(+n.toFixed(1)).toLocaleString("pt-BR")}${u}`;
+    return `${(+n.toFixed(2)).toLocaleString("pt-BR")}un`;
+  };
+
+  const imprimirManual = () => {
+    const lista = [...filtradas].sort((a, b) => a.nome_receita.localeCompare(b.nome_receita, "pt-BR"));
+    if (!lista.length) return alert("Nenhuma ficha para montar o manual.");
+    const ehBar = deptUrl === "bar";
+    const titulo = ehBar ? "MANUAL DE COQUETELARIA" : "MANUAL DA COZINHA";
+
+    const itens = lista.map(f => {
+      const ings = (f.fichas_ingredientes || []).map(fi => {
+        if (fi.insumos) return { nome: fi.insumos.nome, qtd: fmtQtdManual(fi.quantidade, fi.insumos.unidade_medida) };
+        if (fi.subficha_id) {
+          const base = fichas.find(x => x.id === fi.subficha_id);
+          return base ? { nome: base.nome_receita, qtd: fmtQtdManual(fi.quantidade, base.rendimento_unidade || "un") } : null;
+        }
+        return null;
+      }).filter(Boolean);
+      const foto = f.imagem
+        ? `<img src="data:image/jpeg;base64,${f.imagem}" alt=""/>`
+        : `<span>${(f.nome_receita || "?")[0].toUpperCase()}</span>`;
+      return `
+      <div class="item">
+        <div class="foto">${foto}</div>
+        <div class="info">
+          <h3>${f.nome_receita}</h3>
+          <ul>${ings.map(i => `<li><b>${i.qtd}</b> ${i.nome}</li>`).join("") || "<li>Sem ingredientes cadastrados</li>"}</ul>
+        </div>
+      </div>`;
+    }).join("");
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${titulo} - ${unidadeAtiva}</title>
+      <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        html,body{background:#F3EBDC;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+        body{font-family:Georgia,'Times New Roman',serif;color:#2B2118;padding:9mm 8mm}
+        .cabeca{text-align:center;border-bottom:2px solid #2B2118;padding-bottom:10px;margin-bottom:14px}
+        .cabeca h1{font-size:24px;letter-spacing:6px;font-weight:bold}
+        .cabeca p{font-family:Arial,sans-serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#7A5C43;margin-top:4px}
+        .grade{column-count:2;column-gap:8mm}
+        .item{display:flex;gap:10px;align-items:flex-start;break-inside:avoid;margin-bottom:12px;padding-bottom:10px;border-bottom:1px dotted #C8B69A}
+        .foto{width:52px;height:52px;border-radius:50%;overflow:hidden;flex-shrink:0;background:#2B2118;color:#F3EBDC;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:bold;border:2px solid #7A5C43}
+        .foto img{width:100%;height:100%;object-fit:cover}
+        .info h3{font-family:Arial,sans-serif;font-size:12.5px;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+        .info ul{list-style:none}
+        .info li{font-family:Arial,sans-serif;font-size:10.5px;color:#4A3B2A;line-height:1.55}
+        .info li b{color:#8C2B2B}
+        .rodape{text-align:center;font-family:Arial,sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#7A5C43;margin-top:10px;border-top:2px solid #2B2118;padding-top:8px}
+        @media print{@page{margin:0}}
+      </style></head><body>
+      <div class="cabeca">
+        <h1>${titulo}</h1>
+        <p>${unidadeInfo?.nome || ""} · receituário padrão ${ehBar ? "do bar" : "da cozinha"}</p>
+      </div>
+      <div class="grade">${itens}</div>
+      <div class="rodape">${lista.length} receitas · uso interno · ${new Date().toLocaleDateString("pt-BR")}</div>
+      </body></html>`;
+
+    let win2 = null;
+    try { win2 = window.open("", "_blank", "width=860,height=1000"); } catch { win2 = null; }
+    if (!win2) {
+      try {
+        const iframe = document.createElement("iframe");
+        iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
+        document.body.appendChild(iframe);
+        iframe.srcdoc = html;
+        iframe.onload = () => {
+          setTimeout(() => {
+            try { iframe.contentWindow.focus(); iframe.contentWindow.print(); } catch (e) { alert("Não consegui abrir a impressão: " + e.message); }
+            setTimeout(() => iframe.remove(), 60000);
+          }, 400);
+        };
+        return;
+      } catch (e) {
+        return alert("O navegador bloqueou a impressão. Habilite os popups.\n\nDetalhe: " + e.message);
+      }
+    }
+    win2.document.write(html);
+    win2.document.close();
+    setTimeout(() => win2.print(), 500);
+  };
+
   return (
     <div className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50">
       
@@ -725,6 +817,9 @@ function FichasRunner() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+               <button onClick={imprimirManual} title={deptUrl === "bar" ? "Pôster com todos os drinks e medidas" : "Pôster com todas as receitas e medidas"} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-5 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm">
+                  <Printer size={18} /> {deptUrl === "bar" ? "Manual de Coquetelaria" : "Manual da Cozinha"}
+               </button>
                <button onClick={abrirModalIAFicha} className="flex items-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-5 py-3 rounded-xl font-bold hover:bg-emerald-50 transition-colors shadow-sm">
                   <Sparkles size={18} /> Montar com IA
                </button>

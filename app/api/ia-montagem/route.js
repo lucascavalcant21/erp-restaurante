@@ -1,83 +1,82 @@
 import { NextResponse } from "next/server";
 
+// Gera a ficha de montagem do prato/drink: a estrutura em camadas (de cima
+// para baixo) + um modo de preparo PROFISSIONAL passo a passo, a partir da
+// descrição informada. Usa a Anthropic (mesma chave das outras rotas de IA).
 export async function POST(request) {
   try {
-    const { descritivo } = await request.json();
+    const { descritivo, nome, tipo } = await request.json();
 
-    if (!descritivo || descritivo.trim() === "") {
-      return NextResponse.json({ error: "Descritivo não fornecido" }, { status: 400 });
+    if (!descritivo || !String(descritivo).trim()) {
+      return NextResponse.json({ error: "Descreva como o prato/drink é feito." }, { status: 400 });
+    }
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return NextResponse.json({ error: "Chave da IA não configurada no servidor." }, { status: 500 });
     }
 
-    if (!process.env.OPENAI_API_KEY) {
-      console.error("[IA Montagem] OPENAI_API_KEY não configurada.");
-      return NextResponse.json({ error: "Chave da OpenAI não configurada no servidor." }, { status: 500 });
-    }
+    const ehDrink = String(tipo || "").toLowerCase() === "drink";
+    const tiposCamada = ehDrink
+      ? `"copo", "gelo", "liquido", "decoracao", "outro"`
+      : `"pao_topo", "pao_base", "carne", "queijo", "molho", "vegetal", "bacon", "cebola", "fritura", "outro"`;
 
-    const prompt = `
-Você é um assistente de engenharia de cardápio especializado em explodir ingredientes de pratos (hambúrgueres, drinks, etc) em camadas visuais.
-O usuário vai enviar o texto de como o prato é feito.
-Você deve retornar estritamente um JSON estruturado com as camadas, DE CIMA PARA BAIXO (a camada mais alta do prato primeiro, e a base por último).
-Para cada camada, extraia:
-- "nome": O nome e a quantidade do ingrediente (ex: "Coroa Pão", "2 Fatias de Bacon", "150g Hambúrguer", "Alface").
-- "tipo": Classifique o ingrediente EXATAMENTE em um destes tipos: 
-  "pao_topo", "pao_base", "carne", "queijo", "molho", "vegetal", "bacon", "cebola", "fritura", "outro". (Para drinks: "copo", "liquido", "gelo", "decoracao").
+    const prompt = `Você é chef/bartender e monta FICHAS DE MONTAGEM profissionais para a equipe da cozinha/bar de um restaurante padronizar o prato${ehDrink ? "/drink" : ""}.
 
-Exemplo de entrada:
-"cheese burguer: 1 hamburguer 150g 2 queijos cheddar , 20g molho especial , alface, 1 fatia de tomate , molho na tampa"
+${nome ? `Item: ${nome}\n` : ""}Descrição do preparo (texto do usuário):
+"""${descritivo}"""
 
-Exemplo de saída esperada (SEMPRE EM JSON, formato array de objetos):
-[
-  { "nome": "Coroa Pão", "tipo": "pao_topo" },
-  { "nome": "Molho Especial na tampa (20g)", "tipo": "molho" },
-  { "nome": "1 Fatia de Tomate", "tipo": "vegetal" },
-  { "nome": "Alface", "tipo": "vegetal" },
-  { "nome": "2 Queijos Cheddar", "tipo": "queijo" },
-  { "nome": "1 Hambúrguer (150g)", "tipo": "carne" },
-  { "nome": "Base Pão", "tipo": "pao_base" }
-]
+Produza DOIS resultados:
 
-TEXTO DO USUÁRIO:
-${descritivo}
-`;
+1) "camadas": a estrutura de montagem do item, DE CIMA PARA BAIXO (o que fica no topo primeiro; a base por último). Para cada camada:
+   - "nome": ingrediente + quantidade quando houver (ex: "Coroa do pão", "2 fatias de bacon", "150g de hambúrguer", "Gelo até 3/4 do copo").
+   - "tipo": exatamente um destes: ${tiposCamada}.
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+2) "modo_preparo": um passo a passo PROFISSIONAL e detalhado, numerado, que qualquer cozinheiro${ehDrink ? "/bartender" : ""} consiga seguir para padronizar. Cada passo em uma linha começando por "1. ", "2. "... Inclua: mise en place/pré-aquecimento, ponto/tempo de cada elemento, ordem de montagem, temperatura de saída e finalização/apresentação no prato${ehDrink ? "/copo" : ""}. Seja específico com quantidades e pontos, mas não invente ingredientes que não estejam na descrição.
+
+Responda ESTRITAMENTE com JSON válido, sem texto antes ou depois:
+{ "camadas": [ { "nome": "...", "tipo": "..." } ], "modo_preparo": "1. ...\\n2. ..." }`;
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        "x-api-key": process.env.ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini", // ou "gpt-3.5-turbo" / "gpt-4o"
-        messages: [
-          { role: "system", content: "Você é um assistente que sempre responde exclusivamente com JSON válido." },
-          { role: "user", content: prompt }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.1,
+        model: "claude-opus-4-8",
+        max_tokens: 2000,
+        messages: [{ role: "user", content: prompt }],
       }),
     });
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error("[IA Montagem] Erro da OpenAI:", errorData);
+      console.error("[IA Montagem] Erro da Anthropic:", errorData);
       return NextResponse.json({ error: "Erro ao comunicar com a IA." }, { status: 500 });
     }
 
     const data = await response.json();
-    let resContent = data.choices[0].message.content;
-    
-    // Como pedimos json_object, a resposta deve ser um objeto.
-    // Vamos garantir que devolvemos o array.
-    const obj = JSON.parse(resContent);
-    const arrayCamadas = Array.isArray(obj) ? obj : (obj.camadas || obj.layers || Object.values(obj)[0]);
+    let texto = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("").trim();
+    texto = texto.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
 
-    if (!Array.isArray(arrayCamadas)) {
-      throw new Error("O retorno da IA não é um array válido.");
+    let obj;
+    try {
+      obj = JSON.parse(texto);
+    } catch {
+      const match = texto.match(/\{[\s\S]*\}/);
+      if (!match) throw new Error("Retorno da IA não é JSON válido.");
+      obj = JSON.parse(match[0]);
     }
 
-    return NextResponse.json({ camadas: arrayCamadas });
+    const camadas = Array.isArray(obj.camadas) ? obj.camadas : [];
+    const modo_preparo = String(obj.modo_preparo || "").trim();
+    if (!camadas.length && !modo_preparo) {
+      return NextResponse.json({ error: "A IA não conseguiu montar a ficha. Tente detalhar mais." }, { status: 422 });
+    }
+
+    return NextResponse.json({ camadas, modo_preparo });
   } catch (error) {
     console.error("[IA Montagem] Catch:", error);
-    return NextResponse.json({ error: "Erro interno no servidor." }, { status: 500 });
+    return NextResponse.json({ error: "Não consegui gerar a ficha. Tente novamente." }, { status: 500 });
   }
 }

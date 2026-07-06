@@ -269,12 +269,14 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar }) {
       const res = await fetch("/api/ia-montagem", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ descritivo: f.descritivo })
+        body: JSON.stringify({ descritivo: f.descritivo, nome: f.nome, tipo: f.tipo })
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Erro na IA");
-      
-      set("estrutura_ia", json.camadas);
+
+      if (Array.isArray(json.camadas) && json.camadas.length) set("estrutura_ia", json.camadas);
+      // Preenche o passo a passo profissional gerado (substitui a descrição curta)
+      if (json.modo_preparo) set("descritivo", json.modo_preparo);
     } catch (e) {
       setErro("Falha ao gerar com IA: " + e.message);
     }
@@ -466,77 +468,99 @@ function imprimirLote(fichas, porFolha, deptLabel) {
 }
 
 function imprimirFicha(m) {
-  let htmlCamadas = "";
-  if (m.estrutura_ia && Array.isArray(m.estrutura_ia)) {
-     // Na impressão, usamos uma lista limpa
-     const lista = m.estrutura_ia.map(c => `
-       <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-          <div style="width: 12px; height: 12px; border-radius: 2px; background: #94a3b8; flex-shrink: 0;"></div>
-          <div style="font-size: 14px; font-weight: bold; color: #334155; flex: 1; border-bottom: 1px dashed #cbd5e1; padding-bottom: 4px;">${c.nome}</div>
-          <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase;">${c.tipo.replace('_', ' ')}</div>
-       </div>
-     `).join("");
+  const isBar = m.departamento === "bar";
+  const accent = isBar ? "#7C3AED" : "#059669";
 
-     htmlCamadas = `
-       <div style="margin-top: 24px; padding: 16px; background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 12px;">
-         <h3 style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b; margin: 0 0 16px; text-align: center;">Estrutura de Montagem (De Cima para Baixo)</h3>
-         ${lista}
-       </div>
-     `;
+  // Sequência de montagem (de cima p/ baixo) numerada e com o tipo de camada
+  let seqMontagem = "";
+  if (Array.isArray(m.estrutura_ia) && m.estrutura_ia.length) {
+    const passos = m.estrutura_ia.map((c, i) => `
+      <div class="camada">
+        <span class="cnum">${i + 1}</span>
+        <div class="cinfo">
+          <span class="cnome">${c.nome}</span>
+          <span class="ctipo">${String(c.tipo || "").replace(/_/g, " ")}</span>
+        </div>
+      </div>`).join("");
+    seqMontagem = `
+      <div class="secao">
+        <h2>Sequência de Montagem <small>(de cima para baixo)</small></h2>
+        <div class="camadas">${passos}</div>
+      </div>`;
   }
 
-  const html = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Ficha de Montagem — ${m.nome}</title>
+  // Passo a passo: cada linha do descritivo vira uma etapa numerada
+  const etapas = String(m.descritivo || "").split("\n").map(s => s.trim().replace(/^\d+[\.\)]\s*/, "")).filter(Boolean);
+  const preparoHtml = etapas.length
+    ? `<ol class="passos">${etapas.map(e => `<li>${e.replace(/</g, "&lt;")}</li>`).join("")}</ol>`
+    : `<p class="vazio">Sem passo a passo cadastrado. Edite a ficha e gere o modo de preparo.</p>`;
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Ficha de Montagem — ${m.nome}</title>
   <style>
-    body { font-family: -apple-system, system-ui, sans-serif; max-width: 720px; margin: 24px auto; padding: 20px; color: #111; }
-    h1 { margin: 0 0 4px; font-size: 28px; }
-    .badges { display: flex; gap: 6px; margin-bottom: 16px; }
-    .badge { padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; text-transform: uppercase; background: #f1f5f9; color: #475569; }
-    .foto { max-width: 100%; max-height: 320px; object-fit: cover; border-radius: 12px; margin-bottom: 16px; display: block; margin-left: auto; margin-right: auto; }
-    h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; margin-top: 24px; margin-bottom: 8px; }
-    .descritivo { white-space: pre-wrap; line-height: 1.6; font-size: 15px; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
-    .info { padding: 12px; background: #f8fafc; border-radius: 8px; }
-    .info-label { font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 700; }
-    .info-val { font-size: 16px; font-weight: 600; margin-top: 2px; }
-    .obs { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 14px; border-radius: 6px; margin-top: 12px; font-size: 14px; }
-    .rodape { margin-top: 32px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8; }
-    @media print { body { margin: 0; padding: 12px; } }
-  </style>
-</head>
-<body>
-  <h1>${m.nome}</h1>
-  <div class="badges">
-    <span class="badge">${m.tipo}</span>
-    <span class="badge">${m.departamento}</span>
-  </div>
-  ${m.foto_url ? `<img src="${m.foto_url}" class="foto" alt="${m.nome}" />` : ""}
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Segoe UI',Helvetica,Arial,sans-serif;color:#1a1a1a;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .capa{position:relative;height:${m.foto_url ? "340px" : "150px"};background:${m.foto_url ? `url('${m.foto_url}') center/cover no-repeat` : `linear-gradient(135deg, ${accent}, #0b1020)`};color:#fff;display:flex;flex-direction:column;justify-content:flex-end;padding:24px}
+    .capa::after{content:"";position:absolute;inset:0;background:linear-gradient(to top, rgba(0,0,0,.82) 0%, rgba(0,0,0,.15) 55%, rgba(0,0,0,.35) 100%)}
+    .capa .conteudo{position:relative;z-index:1}
+    .tag{display:inline-block;background:${accent};color:#fff;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:4px 12px;border-radius:999px;margin-bottom:8px}
+    .capa h1{font-size:38px;font-weight:900;line-height:1.05;text-shadow:0 2px 12px rgba(0,0,0,.5)}
+    .capa .chips{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+    .chip{background:rgba(255,255,255,.2);backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.3);font-size:12px;font-weight:700;padding:5px 12px;border-radius:8px}
+    .corpo{padding:24px 26px}
+    .secao{margin-bottom:22px}
+    h2{font-size:13px;text-transform:uppercase;letter-spacing:2px;color:${accent};font-weight:800;border-bottom:2px solid ${accent}33;padding-bottom:6px;margin-bottom:12px}
+    h2 small{color:#94a3b8;font-weight:600;letter-spacing:1px;text-transform:none}
+    .camadas{display:flex;flex-direction:column;gap:6px}
+    .camada{display:flex;align-items:center;gap:12px;background:#f8fafc;border:1px solid #eef2f7;border-left:4px solid ${accent};border-radius:8px;padding:9px 12px}
+    .cnum{width:24px;height:24px;border-radius:50%;background:${accent};color:#fff;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .cinfo{display:flex;justify-content:space-between;align-items:baseline;flex:1;gap:10px}
+    .cnome{font-weight:700;font-size:14.5px;color:#1e293b}
+    .ctipo{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;font-weight:800;white-space:nowrap}
+    .passos{list-style:none;counter-reset:p}
+    .passos li{counter-increment:p;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed #e2e8f0;font-size:15px;line-height:1.5;color:#334155}
+    .passos li:last-child{border-bottom:none}
+    .passos li::before{content:counter(p);position:absolute;left:0;top:8px;width:28px;height:28px;border-radius:8px;background:${accent}18;color:${accent};font-weight:900;font-size:13px;display:flex;align-items:center;justify-content:center}
+    .vazio{color:#94a3b8;font-style:italic}
+    .infos{display:flex;gap:12px;margin-bottom:22px}
+    .info{flex:1;background:#f8fafc;border:1px solid #eef2f7;border-radius:10px;padding:12px 14px}
+    .info .l{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;font-weight:800}
+    .info .v{font-size:20px;font-weight:900;color:#1e293b;margin-top:2px}
+    .obs{background:#fffbeb;border:1px solid #fde68a;border-left:4px solid #f59e0b;border-radius:8px;padding:12px 14px;font-size:14px;color:#78350f;line-height:1.5;white-space:pre-wrap}
+    .rodape{border-top:1px solid #e2e8f0;padding:14px 26px;font-size:10px;color:#94a3b8;display:flex;justify-content:space-between}
+    @media print{@page{margin:0}.secao,.camada,.info{break-inside:avoid}}
+  </style></head><body>
+    <div class="capa"><div class="conteudo">
+      <span class="tag">Ficha de Montagem · ${isBar ? "Bar" : "Cozinha"}</span>
+      <h1>${m.nome}</h1>
+      <div class="chips">
+        <span class="chip">${m.tipo || (isBar ? "drink" : "prato")}</span>
+        ${m.tempo_preparo ? `<span class="chip">⏱ ${m.tempo_preparo} min</span>` : ""}
+        ${m.rendimento ? `<span class="chip">Rende: ${m.rendimento}</span>` : ""}
+      </div>
+    </div></div>
 
-  ${htmlCamadas}
-
-  <h2>Passo a Passo / Descritivo</h2>
-  <div class="descritivo">${m.descritivo}</div>
-
-  ${(m.tempo_preparo || m.rendimento) ? `
-    <div class="grid">
-      ${m.tempo_preparo ? `<div class="info"><div class="info-label">Tempo de preparo</div><div class="info-val">${m.tempo_preparo} min</div></div>` : ""}
-      ${m.rendimento ? `<div class="info"><div class="info-label">Rendimento</div><div class="info-val">${m.rendimento}</div></div>` : ""}
+    <div class="corpo">
+      ${seqMontagem}
+      <div class="secao">
+        <h2>Modo de Preparo — Passo a Passo</h2>
+        ${preparoHtml}
+      </div>
+      ${m.observacoes && !String(m.observacoes).startsWith("Criado automaticamente") ? `
+      <div class="secao">
+        <h2>Padrão de Finalização e Dicas</h2>
+        <div class="obs">${m.observacoes}</div>
+      </div>` : ""}
     </div>
-  ` : ""}
 
-  ${m.observacoes ? `<h2>Observações</h2><div class="obs">${m.observacoes}</div>` : ""}
-
-  <div class="rodape">Ficha gerada em ${new Date().toLocaleString("pt-BR")} · Hefisto ERP</div>
-  <script>window.onload = () => { window.print(); }</script>
-</body>
-</html>
-`;
+    <div class="rodape">
+      <span>${m.nome} · ${isBar ? "Bar" : "Cozinha"} · uso interno</span>
+      <span>Gerado em ${new Date().toLocaleDateString("pt-BR")}</span>
+    </div>
+    <script>window.onload=function(){setTimeout(function(){window.print();},250);};</script>
+  </body></html>`;
   const w = window.open("", "_blank");
   if (w) { w.document.write(html); w.document.close(); }
+  else alert("O navegador bloqueou a impressão. Habilite os popups.");
 }
 
 // =========================================================================

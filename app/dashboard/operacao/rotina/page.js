@@ -9,7 +9,7 @@ import {
   PageHeader, PageBody, Card, SectionLabel, Field, TextInput, Btn, EmptyState,
 } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
-import { fetchTemplates, salvarExecucao } from "../../../lib/checklists";
+import { fetchTemplates, salvarExecucao, fetchHistoricoExecucoes } from "../../../lib/checklists";
 import { fetchColaboradores } from "../../../lib/rh";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
@@ -61,14 +61,19 @@ function RotinaRunner() {
 
   const t = TEMAS[dept];
 
+  const [historico, setHistorico] = useState([]);
+
   const carregar = async () => {
     setLoading(true);
-    const [resT, resC] = await Promise.all([
+    const hoje = new Date().toISOString().split("T")[0];
+    const [resT, resC, resH] = await Promise.all([
       fetchTemplates(unidadeAtiva, dept),
       fetchColaboradores(unidadeAtiva),
+      fetchHistoricoExecucoes(unidadeAtiva, hoje, dept),
     ]);
     setTemplates(resT.data || []);
     setColaboradores(resC.data || []);
+    setHistorico(resH.data || []);
     setLoading(false);
   };
 
@@ -429,19 +434,27 @@ function RotinaRunner() {
               <div key={tipo}>
                 <SectionLabel>{ROTULOS_TIPO[tipo] || tipo}</SectionLabel>
                 <div className="space-y-3">
-                  {templates.filter(x => x.tipo === tipo).map(tmpl => (
+                  {templates.filter(x => x.tipo === tipo).map(tmpl => {
+                    const execHoje = historico.find(h => h.template_id === tmpl.id);
+                    return (
                     <div key={tmpl.id} className="erp-card !p-0 overflow-hidden hover:shadow-lg transition-all duration-200"
-                      style={{ borderLeft: `4px solid ${t.cor}` }}>
+                      style={{ borderLeft: `4px solid ${execHoje ? t.cor : t.cor}` }}>
                       <div className="flex items-center gap-4 p-5">
-                        <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${t.cor}15` }}>
-                          <DIcon size={22} style={{ color: t.cor }} />
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: execHoje ? t.cor : `${t.cor}15` }}>
+                          {execHoje ? <CheckCircle2 size={22} color="#fff" /> : <DIcon size={22} style={{ color: t.cor }} />}
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="text-base font-black leading-tight truncate" style={{ color: "var(--fg)" }}>{tmpl.titulo}</h3>
-                          <p className="text-[11px] font-medium mt-0.5" style={{ color: "var(--dim)" }}>
-                            {tmpl.itens?.length || 0} tarefas
-                            {(tmpl.itens || []).some(i => i.responsavel) && <span style={{ color: t.cor }}> · responsáveis definidos</span>}
-                          </p>
+                          {execHoje ? (
+                            <p className="text-[11px] font-bold mt-0.5" style={{ color: t.cor }}>
+                              ✓ Feito hoje por {execHoje.colaboradores?.nome || "colaborador"} · {new Date(execHoje.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                            </p>
+                          ) : (
+                            <p className="text-[11px] font-medium mt-0.5" style={{ color: "var(--dim)" }}>
+                              {tmpl.itens?.length || 0} tarefas
+                              {(tmpl.itens || []).some(i => i.responsavel) && <span style={{ color: t.cor }}> · responsáveis definidos</span>}
+                            </p>
+                          )}
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <button onClick={() => imprimir(tmpl)} title="Imprimir"
@@ -451,13 +464,13 @@ function RotinaRunner() {
                           </button>
                           <button onClick={() => iniciar(tmpl)}
                             className="px-5 py-2.5 rounded-xl font-black text-sm transition-all duration-200 active:scale-95"
-                            style={{ background: t.cor, color: "#fff", boxShadow: `0 4px 16px ${t.cor}30` }}>
-                            Preencher
+                            style={{ background: execHoje ? "var(--elevated)" : t.cor, color: execHoje ? "var(--muted)" : "#fff", boxShadow: execHoje ? "none" : `0 4px 16px ${t.cor}30` }}>
+                            {execHoje ? "Refazer" : "Preencher"}
                           </button>
                         </div>
                       </div>
                     </div>
-                  ))}
+                  );})}
                 </div>
               </div>
             ))}

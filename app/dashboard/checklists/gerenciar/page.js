@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchTemplates, salvarTemplate, desativarTemplate } from "../../../lib/checklists";
 import { SkeletonList } from "../../../components/ui";
-import { CheckSquare, Plus, Trash2, Edit3, X, Save, Printer, User } from "lucide-react";
+import { CheckSquare, Plus, Trash2, Edit3, X, Save, Printer, User, Sparkles, Layers, Loader2 } from "lucide-react";
+import { MODELOS_CHECKLIST, modeloDe } from "../modelos";
 
 // Tipos de checklist por setor:
 // - Cozinha: mise en place, abertura, pré-preparos p/ outro dia, fechamento, limpeza
@@ -47,6 +48,8 @@ export default function GerenciarChecklistsPage() {
   const [deptFiltro, setDeptFiltro] = useState("todos");
 
   const [modalNovo, setModalNovo] = useState(false);
+  const [modalModelos, setModalModelos] = useState(false);
+  const [criandoTudo, setCriandoTudo] = useState(false);
   const [form, setForm] = useState({ id: null, departamento: "cozinha", tipo: "abertura", titulo: "", itens: [{ id: 1, texto: "", responsavel: "" }] });
 
   const carregar = async () => {
@@ -75,6 +78,39 @@ export default function GerenciarChecklistsPage() {
     const tipos = TIPOS_POR_DEPT[dept] || [];
     const tipoValido = tipos.some(([id]) => id === form.tipo) ? form.tipo : tipos[0]?.[0] || "abertura";
     setForm({ ...form, departamento: dept, tipo: tipoValido });
+  };
+
+  // Preenche o formulário atual com um modelo pronto (título + tarefas)
+  const aplicarModeloNoForm = () => {
+    const modelo = modeloDe(form.departamento, form.tipo);
+    if (!modelo) return alert("Não há modelo pronto para este setor/momento — monte manualmente.");
+    setForm(f => ({
+      ...f,
+      titulo: f.titulo.trim() || modelo.titulo,
+      itens: modelo.itens.map((texto, i) => ({ id: Date.now() + i, texto, responsavel: "" })),
+    }));
+  };
+
+  // Cria de uma vez TODOS os modelos de um setor que ainda não existem
+  const criarTodosDoSetor = async (dept) => {
+    const modelos = MODELOS_CHECKLIST[dept] || {};
+    const existentes = new Set(templates.filter(t => t.departamento === dept).map(t => (t.titulo || "").toLowerCase().trim()));
+    const paraCriar = Object.entries(modelos).filter(([, m]) => !existentes.has(m.titulo.toLowerCase().trim()));
+    if (!paraCriar.length) return alert(`Todos os checklists de ${dept} já existem.`);
+    if (!confirm(`Criar ${paraCriar.length} checklist(s) completo(s) de ${dept} (${paraCriar.map(([, m]) => m.titulo).join(", ")})?`)) return;
+    setCriandoTudo(true);
+    for (const [tipo, m] of paraCriar) {
+      await salvarTemplate({
+        unidade_id: unidadeAtiva,
+        departamento: dept,
+        tipo,
+        titulo: m.titulo,
+        itens: m.itens.map((texto, i) => ({ id: i + 1, texto, responsavel: "" })),
+      });
+    }
+    setCriandoTudo(false);
+    setModalModelos(false);
+    carregar();
   };
 
   const handleSalvar = async () => {
@@ -202,10 +238,29 @@ export default function GerenciarChecklistsPage() {
             <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Cozinha · Bar · Salão — crie, designe responsáveis e imprima</p>
           </div>
         </div>
-        <button onClick={abrirNovo} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
-          <Plus size={18} /> Novo Checklist
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setModalModelos(true)} className="flex items-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-5 py-3 rounded-xl font-bold hover:bg-emerald-50 transition-colors shadow-sm">
+            <Sparkles size={18} /> Modelos prontos
+          </button>
+          <button onClick={abrirNovo} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
+            <Plus size={18} /> Novo Checklist
+          </button>
+        </div>
       </div>
+
+      {/* Faixa: começar rápido com os modelos completos por setor */}
+      {!loading && templates.length === 0 && (
+        <div className="max-w-5xl mx-auto px-6 mb-6">
+          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex flex-col sm:flex-row items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0"><Sparkles size={22} /></div>
+            <div className="flex-1 text-center sm:text-left">
+              <p className="font-black text-slate-800">Comece com checklists completos</p>
+              <p className="text-sm font-medium text-slate-600">Modelos prontos de abertura, fechamento, mise en place e limpeza — com as tarefas certas do dia a dia. É só ajustar.</p>
+            </div>
+            <button onClick={() => setModalModelos(true)} className="bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shrink-0">Ver modelos</button>
+          </div>
+        </div>
+      )}
 
       {/* Filtro por setor */}
       <div className="max-w-5xl mx-auto px-6 mb-6 flex gap-2">
@@ -252,6 +307,61 @@ export default function GerenciarChecklistsPage() {
         )}
       </div>
 
+      {/* MODAL: MODELOS PRONTOS (biblioteca por setor) */}
+      {modalModelos && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-[32px] w-full max-w-2xl max-h-[88vh] overflow-y-auto custom-scrollbar p-8 shadow-2xl animate-in zoom-in-95">
+            <div className="flex justify-between items-center mb-5 sticky top-0 bg-white z-10 pb-4 border-b border-slate-100">
+              <div>
+                <h2 className="font-black text-2xl text-slate-800 flex items-center gap-2"><Sparkles size={22} className="text-emerald-600" /> Modelos Prontos</h2>
+                <p className="text-sm font-bold text-slate-500 mt-0.5">Checklists completos com as tarefas do dia a dia — clique para criar</p>
+              </div>
+              <button onClick={() => setModalModelos(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20} /></button>
+            </div>
+
+            <div className="space-y-6">
+              {Object.entries(MODELOS_CHECKLIST).map(([dept, modelos]) => {
+                const existentes = new Set(templates.filter(t => t.departamento === dept).map(t => (t.titulo || "").toLowerCase().trim()));
+                const faltam = Object.values(modelos).filter(m => !existentes.has(m.titulo.toLowerCase().trim())).length;
+                return (
+                  <div key={dept}>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[11px] font-black uppercase tracking-widest text-slate-500">{dept === "salao" ? "Salão" : dept}</p>
+                      {faltam > 0 && (
+                        <button onClick={() => criarTodosDoSetor(dept)} disabled={criandoTudo}
+                          className="flex items-center gap-1 text-[11px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg hover:bg-emerald-100 disabled:opacity-50">
+                          {criandoTudo ? <Loader2 size={12} className="animate-spin" /> : <Layers size={12} />} Criar todos ({faltam})
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {Object.entries(modelos).map(([tipo, m]) => {
+                        const jaExiste = existentes.has(m.titulo.toLowerCase().trim());
+                        return (
+                          <button key={tipo} disabled={jaExiste}
+                            onClick={() => {
+                              setForm({ id: null, departamento: dept, tipo, titulo: m.titulo, itens: m.itens.map((texto, i) => ({ id: Date.now() + i, texto, responsavel: "" })) });
+                              setModalModelos(false);
+                              setModalNovo(true);
+                            }}
+                            className={`text-left p-3.5 rounded-xl border transition-all ${jaExiste ? "bg-slate-50 border-slate-100 opacity-60 cursor-default" : "bg-white border-slate-200 hover:border-emerald-400 hover:shadow-sm"}`}>
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="font-bold text-slate-800 text-sm">{m.titulo}</p>
+                              {jaExiste && <span className="text-[9px] font-black uppercase text-emerald-600 shrink-0">criado</span>}
+                            </div>
+                            <p className="text-[11px] font-medium text-slate-400 mt-0.5">{m.itens.length} tarefas · {rotuloTipo(tipo)}</p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       {modalNovo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
           <div className="bg-white rounded-[32px] w-full max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar p-8 shadow-2xl animate-in zoom-in-95">
@@ -278,6 +388,12 @@ export default function GerenciarChecklistsPage() {
                   </select>
                 </div>
               </div>
+
+              {modeloDe(form.departamento, form.tipo) && (
+                <button type="button" onClick={aplicarModeloNoForm} className="w-full flex items-center justify-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold text-sm py-3 rounded-xl hover:bg-emerald-100 transition-colors">
+                  <Sparkles size={16} /> Preencher com o modelo pronto de {rotuloTipo(form.tipo)} ({modeloDe(form.departamento, form.tipo).itens.length} tarefas)
+                </button>
+              )}
 
               <div>
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Título do Checklist</label>

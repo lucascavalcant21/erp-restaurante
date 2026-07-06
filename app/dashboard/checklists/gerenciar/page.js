@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useERP } from "../../../context/ERPContext";
-import { fetchTemplates, salvarTemplate, desativarTemplate } from "../../../lib/checklists";
+import { fetchTemplates, salvarTemplate, desativarTemplate, fetchExecucoesMes } from "../../../lib/checklists";
 import { SkeletonList } from "../../../components/ui";
-import { CheckSquare, Plus, Trash2, Edit3, X, Save, Printer, User, Sparkles, Layers, Loader2 } from "lucide-react";
+import { CheckSquare, Plus, Trash2, Edit3, X, Save, Printer, User, Sparkles, Layers, Loader2, BarChart3 } from "lucide-react";
 import { MODELOS_CHECKLIST, modeloDe } from "../modelos";
 
 // Tipos de checklist por setor:
@@ -50,7 +50,7 @@ export default function GerenciarChecklistsPage() {
   const [modalNovo, setModalNovo] = useState(false);
   const [modalModelos, setModalModelos] = useState(false);
   const [criandoTudo, setCriandoTudo] = useState(false);
-  const [form, setForm] = useState({ id: null, departamento: "cozinha", tipo: "abertura", titulo: "", itens: [{ id: 1, texto: "", responsavel: "" }] });
+  const [form, setForm] = useState({ id: null, departamento: "cozinha", tipo: "abertura", titulo: "", frequencia: "diario", itens: [{ id: 1, texto: "", responsavel: "" }] });
 
   const carregar = async () => {
     setLoading(true);
@@ -62,11 +62,11 @@ export default function GerenciarChecklistsPage() {
   useEffect(() => { if (unidadeAtiva) carregar(); }, [unidadeAtiva]);
 
   const abrirNovo = () => {
-    setForm({ id: null, departamento: "cozinha", tipo: "abertura", titulo: "", itens: [{ id: 1, texto: "", responsavel: "" }] });
+    setForm({ id: null, departamento: "cozinha", tipo: "abertura", titulo: "", frequencia: "diario", itens: [{ id: 1, texto: "", responsavel: "" }] });
     setModalNovo(true);
   };
   const abrirEditar = (t) => {
-    setForm({ ...t, itens: t.itens?.length ? t.itens.map(i => ({ responsavel: "", ...i })) : [{ id: 1, texto: "", responsavel: "" }] });
+    setForm({ frequencia: "diario", ...t, itens: t.itens?.length ? t.itens.map(i => ({ responsavel: "", ...i })) : [{ id: 1, texto: "", responsavel: "" }] });
     setModalNovo(true);
   };
 
@@ -124,6 +124,7 @@ export default function GerenciarChecklistsPage() {
       departamento: form.departamento,
       tipo: form.tipo,
       titulo: form.titulo,
+      frequencia: form.frequencia || "diario",
       itens: itensValidos,
     });
     setModalNovo(false);
@@ -132,6 +133,83 @@ export default function GerenciarChecklistsPage() {
 
   const handleDesativar = async (id) => {
     if (confirm("Deseja apagar este checklist?")) { await desativarTemplate(id); carregar(); }
+  };
+
+  // ── Relatório mensal imprimível: o que foi feito, por quem, quantas vezes ──
+  const [gerandoRel, setGerandoRel] = useState(false);
+  const imprimirRelatorioMes = async () => {
+    setGerandoRel(true);
+    const mes = new Date().toISOString().slice(0, 7);
+    const { data: execs } = await fetchExecucoesMes(unidadeAtiva, mes);
+    setGerandoRel(false);
+    const mesNome = new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+
+    // Agrupa por checklist: quantas execuções, quem fez, últimas datas
+    const porTemplate = {};
+    (execs || []).forEach(e => {
+      const key = e.template_id;
+      if (!porTemplate[key]) porTemplate[key] = {
+        titulo: e.checklists_templates?.titulo || "Checklist",
+        dept: e.checklists_templates?.departamento || "",
+        execucoes: [],
+      };
+      porTemplate[key].execucoes.push({
+        data: e.data_referencia,
+        quem: e.colaboradores?.nome || "—",
+        hora: e.created_at ? new Date(e.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "",
+      });
+    });
+
+    // Inclui checklists sem execução no mês (aparecem como "0x")
+    templates.forEach(t => { if (!porTemplate[t.id]) porTemplate[t.id] = { titulo: t.titulo, dept: t.departamento, execucoes: [] }; });
+
+    const grupos = Object.values(porTemplate).sort((a, b) => a.dept.localeCompare(b.dept) || a.titulo.localeCompare(b.titulo));
+    const totalExec = (execs || []).length;
+    const deptNome = (d) => d === "salao" ? "Salão" : d === "bar" ? "Bar" : "Cozinha";
+
+    const linhas = grupos.map(g => {
+      const n = g.execucoes.length;
+      const quemContagem = {};
+      g.execucoes.forEach(x => { quemContagem[x.quem] = (quemContagem[x.quem] || 0) + 1; });
+      const quem = Object.entries(quemContagem).map(([nome, c]) => `${nome} (${c})`).join(", ") || "—";
+      return `<tr>
+        <td class="c">${deptNome(g.dept)}</td>
+        <td><b>${g.titulo}</b></td>
+        <td class="cnt ${n === 0 ? "zero" : ""}">${n}x</td>
+        <td>${quem}</td>
+      </tr>`;
+    }).join("");
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Relatório de Checklists — ${mesNome}</title>
+      <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:9mm 10mm}
+        .head{border-bottom:3px solid #059669;padding-bottom:10px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:flex-end}
+        .tag{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#059669;font-weight:bold}
+        h1{font-size:22px;margin-top:3px}
+        .resumo{text-align:right;font-size:12px;color:#475569}.resumo b{font-size:22px;display:block;color:#059669}
+        table{width:100%;border-collapse:collapse;font-size:12px}
+        th,td{border:1px solid #333;padding:8px 8px;text-align:left}
+        th{background:#ecfdf5;text-transform:uppercase;letter-spacing:.5px;font-size:9px;color:#065f46}
+        td.c,th.c{text-align:center}
+        td.cnt{text-align:center;font-weight:bold}td.cnt.zero{color:#dc2626}
+        .obs{margin-top:14px;font-size:10px;color:#94a3b8}
+        @media print{@page{margin:0}}
+      </style></head><body>
+      <div class="head">
+        <div><div class="tag">Relatório de Checklists · ${unidadeInfo?.nome || ""}</div><h1>${mesNome}</h1></div>
+        <div class="resumo">execuções no mês<b>${totalExec}</b></div>
+      </div>
+      <table>
+        <thead><tr><th class="c">Setor</th><th>Checklist</th><th class="c">Vezes feito</th><th>Responsáveis (nº de vezes)</th></tr></thead>
+        <tbody>${linhas || '<tr><td colspan="4">Nenhum checklist cadastrado.</td></tr>'}</tbody>
+      </table>
+      <div class="obs">Contagem por execução registrada no sistema. Checklists com "0x" não foram preenchidos no mês. Gerado em ${new Date().toLocaleDateString("pt-BR")}.</div>
+      </body></html>`;
+
+    const win = window.open("", "_blank", "width=860,height=1000");
+    if (win) { win.document.write(html); win.document.close(); setTimeout(() => win.print(), 400); }
+    else alert("Habilite os popups para imprimir o relatório.");
   };
 
   // ── Impressão: folha do checklist com responsáveis, check e visto ─────────
@@ -238,7 +316,10 @@ export default function GerenciarChecklistsPage() {
             <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Cozinha · Bar · Salão — crie, designe responsáveis e imprima</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button onClick={imprimirRelatorioMes} disabled={gerandoRel} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-5 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm disabled:opacity-50">
+            {gerandoRel ? <Loader2 size={18} className="animate-spin" /> : <BarChart3 size={18} />} Relatório do mês
+          </button>
           <button onClick={() => setModalModelos(true)} className="flex items-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-5 py-3 rounded-xl font-bold hover:bg-emerald-50 transition-colors shadow-sm">
             <Sparkles size={18} /> Modelos prontos
           </button>
@@ -287,6 +368,9 @@ export default function GerenciarChecklistsPage() {
                   </span>
                   <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-slate-100 text-slate-600">
                     {rotuloTipo(t.tipo)}
+                  </span>
+                  <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-700">
+                    {t.frequencia === "semanal" ? "Semanal" : t.frequencia === "mensal" ? "Mensal" : "Diário"}
                   </span>
                 </div>
               </div>
@@ -398,6 +482,18 @@ export default function GerenciarChecklistsPage() {
               <div>
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Título do Checklist</label>
                 <input type="text" placeholder={form.departamento === "cozinha" ? "Ex: Mise en Place do Almoço" : "Ex: Abertura do Salão"} value={form.titulo} onChange={e => setForm({ ...form, titulo: e.target.value })} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500" />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Frequência</label>
+                <div className="flex gap-2">
+                  {[["diario", "Diário"], ["semanal", "Semanal"], ["mensal", "Mensal"]].map(([v, l]) => (
+                    <button key={v} type="button" onClick={() => setForm({ ...form, frequencia: v })}
+                      className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all border-2 ${(form.frequencia || "diario") === v ? "bg-emerald-600 border-emerald-600 text-white" : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"}`}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="pt-4 border-t border-slate-100">

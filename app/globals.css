@@ -356,13 +356,16 @@ button, a { cursor: pointer; transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
   .erp-btn-danger:hover, .erp-input:focus { transform: none; }
 }
 
-/* Animação suave para as páginas (Fade In) */
+/* Animação suave para as páginas (Fade In)
+   IMPORTANTE: sem transform. Um transform que fica no <main> (fill-mode forwards)
+   cria um "containing block" e faz os modais position:fixed ancorarem no <main>
+   rolável em vez da viewport — abrindo lá no topo, fora da tela. */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 .animate-page-in {
-  animation: fadeIn 500ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeIn 400ms ease forwards;
 }
 
 /* KDS — piscar quando o item passa do tempo de preparo */

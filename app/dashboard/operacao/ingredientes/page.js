@@ -114,6 +114,7 @@ function IngredientesRunner() {
   // Busca por nome OU marca; filtro por categoria
   const buscaLower = busca.toLowerCase();
   const filtrados = insumos.filter(i =>
+    (!deptUrl || (i.departamento || "").toLowerCase() === deptUrl) &&
     (i.nome.toLowerCase().includes(buscaLower) || (i.marca || "").toLowerCase().includes(buscaLower)) &&
     (catFiltro === "Todas" || (i.categoria || "Outros") === catFiltro)
   );
@@ -567,15 +568,15 @@ function IngredientesRunner() {
                </div>
 
                <div className="space-y-4 overflow-y-auto pr-2" style={{ scrollbarWidth: 'thin' }}>
-                  {!deptUrl && (
-                    <div>
-                       <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Departamento</label>
-                       <select value={form.departamento} onChange={e=>setForm({...form, departamento: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500">
-                          <option value="cozinha">Cozinha</option>
-                          <option value="bar">Bar</option>
-                       </select>
-                    </div>
-                  )}
+                  {/* Sempre visível: permite atribuir/mover o ingrediente entre Cozinha e Bar,
+                      inclusive quando você entrou por um setor específico. */}
+                  <div>
+                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Departamento</label>
+                     <select value={form.departamento} onChange={e=>setForm({...form, departamento: e.target.value, categoria: form.categoria_manual ? form.categoria : ""})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500">
+                        <option value="cozinha">Cozinha</option>
+                        <option value="bar">Bar</option>
+                     </select>
+                  </div>
 
                   <div>
                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nome do Ingrediente</label>

@@ -3,11 +3,17 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
-import { fetchFichas, salvarFicha, removerFicha, fetchInsumos, salvarInsumo } from "../../../lib/operacao";
+import { fetchFichas, salvarFicha, removerFicha, fetchInsumos, salvarInsumo, atualizarOrdemFicha } from "../../../lib/operacao";
 import { fetchProdutos, salvarProduto } from "../../../lib/vendas";
 import { fetchMontagens, inserirMontagem } from "../../../lib/montagem";
-import { LayoutList, Plus, Search, Trash2, Edit3, X, Save, ArrowLeft, UtensilsCrossed, Wine, ChevronRight, Printer, Sparkles, Loader2, Camera, CheckCircle2, AlertTriangle } from "lucide-react";
+import { LayoutList, Plus, Search, Trash2, Edit3, X, Save, ArrowLeft, UtensilsCrossed, Wine, ChevronRight, Printer, Sparkles, Loader2, Camera, CheckCircle2, AlertTriangle, GripVertical } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
+
+// Categorias do cardápio (cozinha). Os pratos são divididos nessas seções.
+const CATEGORIAS_CARDAPIO = [
+  "Entradas", "Executivo", "Moquecas e Caldeirada", "Vatapá", "Maniçoba",
+  "Menu Degustação", "Sobremesas", "Sucos",
+];
 
 // Converte um File de imagem em base64 puro (sem o prefixo "data:...;base64,")
 function fileParaBase64(file) {
@@ -163,12 +169,14 @@ function FichasRunner() {
   const [autoSoma, setAutoSoma] = useState(true);
 
   const [selecionadas, setSelecionadas] = useState([]);
-  
+  const [dragId, setDragId] = useState(null); // arrastar para reordenar
+
   // Estado do formulário da Ficha
   const [form, setForm] = useState({
     id: null,
     departamento: deptUrl,
     nome_receita: "",
+    categoria: "",
     rendimento_porcoes: "1",
     modo_preparo: "",
     eh_base: false,
@@ -441,13 +449,39 @@ function FichasRunner() {
   // Divisão do receituário: Pratos (prontos p/ cardápio) × Pré-preparos (bases
   // usadas dentro de outros pratos: molhos, massas, caldos...)
   const [tipoFiltro, setTipoFiltro] = useState("Pratos");
-  const filtradas = fichas.filter(f =>
-    f.nome_receita.toLowerCase().includes(busca.toLowerCase()) &&
-    (tipoFiltro === "Todos" || (tipoFiltro === "Pré-preparos" ? !!f.eh_base : !f.eh_base))
-  );
+  const ordenarFichas = (a, b) => {
+    const oa = a.ordem ?? 1e9, ob = b.ordem ?? 1e9;
+    if (oa !== ob) return oa - ob;
+    return a.nome_receita.localeCompare(b.nome_receita, "pt-BR");
+  };
+  const passaFiltro = (f) => {
+    if (tipoFiltro === "Todos") return true;
+    if (tipoFiltro === "Pré-preparos") return !!f.eh_base;
+    if (tipoFiltro === "Pratos") return !f.eh_base;
+    return !f.eh_base && (f.categoria || "") === tipoFiltro; // categoria específica
+  };
+  const filtradas = fichas
+    .filter(f => f.nome_receita.toLowerCase().includes(busca.toLowerCase()) && passaFiltro(f))
+    .sort(ordenarFichas);
+
+  // Arrastar para reordenar: reposiciona o item arrastado antes do alvo e grava a ordem
+  const reordenar = async (arrastadoId, alvoId) => {
+    if (!arrastadoId || arrastadoId === alvoId) return;
+    const ids = filtradas.map(f => f.id);
+    const from = ids.indexOf(arrastadoId), to = ids.indexOf(alvoId);
+    if (from < 0 || to < 0) return;
+    const nova = [...ids];
+    nova.splice(from, 1);
+    nova.splice(to, 0, arrastadoId);
+    const ordemMap = {};
+    nova.forEach((id, i) => { ordemMap[id] = i; });
+    setFichas(prev => prev.map(f => ordemMap[f.id] !== undefined ? { ...f, ordem: ordemMap[f.id] } : f));
+    setDragId(null);
+    for (const id of nova) await atualizarOrdemFicha(id, ordemMap[id]);
+  };
 
   const abrirNova = () => {
-    setForm({ id: null, departamento: deptUrl, nome_receita: "", rendimento_porcoes: "1", modo_preparo: "", eh_base: false, rendimento_unidade: "porcao", peso_porcao_g: "", imagem: "" });
+    setForm({ id: null, departamento: deptUrl, nome_receita: "", categoria: "", rendimento_porcoes: "1", modo_preparo: "", eh_base: false, rendimento_unidade: "porcao", peso_porcao_g: "", imagem: "" });
     setIngFicha([]);
     setAutoSoma(true);
     setCalcQtd("");
@@ -461,6 +495,7 @@ function FichasRunner() {
        id: ficha.id,
        departamento: ficha.departamento,
        nome_receita: ficha.nome_receita,
+       categoria: ficha.categoria || "",
        rendimento_porcoes: ficha.rendimento_porcoes,
        modo_preparo: ficha.modo_preparo || "",
        eh_base: !!ficha.eh_base,
@@ -589,6 +624,7 @@ function FichasRunner() {
           unidade_id: unidadeAtiva,
           departamento: form.departamento,
           nome_receita: form.nome_receita,
+          categoria: form.eh_base ? null : (form.categoria || null),
           rendimento_porcoes: Number(form.rendimento_porcoes),
           modo_preparo: form.modo_preparo,
           eh_base: !!form.eh_base,
@@ -909,15 +945,16 @@ function FichasRunner() {
       </div>
 
       <div className="max-w-5xl mx-auto px-6 mt-8">
-         {/* Abas: Pratos/Drinks (prontos p/ cardápio) × Pré-preparos (bases) */}
-         <div className="flex gap-3 mb-4">
+         {/* Abas: Pratos + categorias do cardápio + Pré-preparos + Todos */}
+         <div className="flex gap-2 mb-4 overflow-x-auto pb-1" style={{ scrollbarWidth: "thin" }}>
             {[
               ["Pratos", deptUrl === "bar" ? "Drinks" : "Pratos", fichas.filter(f => !f.eh_base).length],
+              ...(deptUrl === "bar" ? [] : CATEGORIAS_CARDAPIO.map(c => [c, c, fichas.filter(f => !f.eh_base && (f.categoria || "") === c).length])),
               ["Pré-preparos", "Pré-preparos", fichas.filter(f => !!f.eh_base).length],
               ["Todos", "Todos", fichas.length],
             ].map(([t, label, n]) => (
               <button key={t} onClick={() => setTipoFiltro(t)}
-                className={`flex-1 py-3 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${tipoFiltro === t ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>
+                className={`shrink-0 px-4 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${tipoFiltro === t ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>
                 {label} <span className={tipoFiltro === t ? "text-emerald-200" : "text-slate-400"}>({n})</span>
               </button>
             ))}
@@ -972,7 +1009,10 @@ function FichasRunner() {
                   const pesoTxt = peso ? `Peso: ${fmtG(peso.pesoTotalG)}` : `Rende: ${Number(f.rendimento_porcoes).toLocaleString("pt-BR")} ${labelUn}${unR === "porcao" && f.peso_porcao_g ? ` de ${f.peso_porcao_g}g` : ''}`;
 
                   return (
-                     <div key={f.id} className={`bg-white rounded-3xl border shadow-sm hover:shadow-md transition-shadow relative group flex flex-col overflow-hidden ${selecionadas.includes(f.id) ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-slate-200'}`}>
+                     <div key={f.id}
+                        onDragOver={e => { if (dragId) e.preventDefault(); }}
+                        onDrop={() => reordenar(dragId, f.id)}
+                        className={`bg-white rounded-3xl border shadow-sm hover:shadow-md transition-all relative group flex flex-col overflow-hidden ${dragId === f.id ? 'opacity-50' : ''} ${selecionadas.includes(f.id) ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-slate-200'}`}>
                         {/* Foto do prato em destaque */}
                         <div className="h-44 bg-slate-100 relative">
                            {f.imagem ? (
@@ -982,6 +1022,12 @@ function FichasRunner() {
                                  {f.departamento === 'bar' ? <Wine size={52}/> : <UtensilsCrossed size={52}/>}
                               </div>
                            )}
+                           {/* Alça para arrastar e reordenar */}
+                           <div draggable onDragStart={() => setDragId(f.id)} onDragEnd={() => setDragId(null)}
+                              title="Arraste para reordenar"
+                              className="absolute bottom-3 left-3 bg-white/90 backdrop-blur rounded-lg p-1.5 text-slate-500 shadow-sm cursor-grab active:cursor-grabbing">
+                              <GripVertical size={16} />
+                           </div>
                            <label className="absolute top-3 left-3 bg-white/90 backdrop-blur rounded-md p-1 cursor-pointer shadow-sm">
                               <input type="checkbox" checked={selecionadas.includes(f.id)} onChange={() => toggleSelecionar(f.id)} className="w-5 h-5 accent-emerald-600 cursor-pointer rounded-md block"/>
                            </label>
@@ -1054,6 +1100,16 @@ function FichasRunner() {
                            <span className="block text-[9px] font-bold normal-case tracking-normal mt-0.5 opacity-80">{deptUrl === "bar" ? "xarope, mix, infusão — usado dentro dos drinks" : "molho, massa, caldo — usado dentro dos pratos"}</span>
                         </button>
                      </div>
+                     {/* Categoria do cardápio (só para pratos, não para bases) */}
+                     {!form.eh_base && deptUrl !== "bar" && (
+                        <div>
+                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Categoria no cardápio</label>
+                           <select value={form.categoria || ""} onChange={e => setForm({ ...form, categoria: e.target.value })} className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500 shadow-sm">
+                              <option value="">Sem categoria</option>
+                              {CATEGORIAS_CARDAPIO.map(c => <option key={c} value={c}>{c}</option>)}
+                           </select>
+                        </div>
+                     )}
                      {/* RENDIMENTO — automático pela soma dos ingredientes (peso + custo de 1 kg) */}
                      <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
                         <div className="flex items-center justify-between mb-3">

@@ -133,14 +133,20 @@ export async function salvarFicha(ficha, ingredientes) {
   // `id` nulo quebra o INSERT (mesma constraint NOT NULL da tabela insumos)
   const { id: _id, created_at, ...camposFicha } = ficha;
 
-  // 1. Salva a Capa da Ficha
+  // 1. Salva a Capa da Ficha (retry tira colunas ainda não migradas: categoria, ordem)
   if (fichaId) {
-    const { error } = await supabase.from("fichas_tecnicas").update(camposFicha).eq("id", fichaId);
+    let { error } = await supabase.from("fichas_tecnicas").update(camposFicha).eq("id", fichaId);
+    error = await retrySemColunaAusente(error, async () => {
+      const r = await supabase.from("fichas_tecnicas").update(camposFicha).eq("id", fichaId); return r.error;
+    }, camposFicha);
     if(error) return { error: error.message };
   } else {
-    const { data, error } = await supabase.from("fichas_tecnicas").insert([camposFicha]).select("id").single();
+    let res = await supabase.from("fichas_tecnicas").insert([camposFicha]).select("id").single();
+    let error = await retrySemColunaAusente(res.error, async () => {
+      const r = await supabase.from("fichas_tecnicas").insert([camposFicha]).select("id").single(); res = r; return r.error;
+    }, camposFicha);
     if(error) return { error: error.message };
-    fichaId = data.id;
+    fichaId = res.data.id;
   }
 
   // 2. Apaga ingredientes antigos e insere os novos (forma mais simples)
@@ -162,5 +168,17 @@ export async function salvarFicha(ficha, ingredientes) {
 export async function removerFicha(id) {
   if (!isSupabaseReady()) return { error: "Offline" };
   const { error } = await supabase.from("fichas_tecnicas").delete().eq("id", id);
+  return { error: error?.message };
+}
+
+// Atualiza só a ordem de exibição (arrastar para reordenar). Se a coluna `ordem`
+// ainda não existir, o retry a remove e a operação vira no-op silencioso.
+export async function atualizarOrdemFicha(id, ordem) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const campos = { ordem };
+  let { error } = await supabase.from("fichas_tecnicas").update(campos).eq("id", id);
+  error = await retrySemColunaAusente(error, async () => {
+    const r = await supabase.from("fichas_tecnicas").update(campos).eq("id", id); return r.error;
+  }, campos);
   return { error: error?.message };
 }

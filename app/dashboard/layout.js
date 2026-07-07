@@ -95,6 +95,7 @@ const SIDEBAR_MENU = [
     icon: Store,
     items: [
       { label: "Inventário da Unidade", href: "/dashboard/gestao/inventario" },
+      { label: "Serviços de Manutenção", href: "/dashboard/gestao/manutencao" },
       { label: "Relatórios Gerais", href: "/dashboard/relatorios" },
       { label: "Configurações", href: "/dashboard/configuracoes" }
     ]

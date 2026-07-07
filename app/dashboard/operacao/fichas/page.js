@@ -6,7 +6,7 @@ import { useERP } from "../../../context/ERPContext";
 import { fetchFichas, salvarFicha, removerFicha, fetchInsumos, salvarInsumo, atualizarOrdemFicha } from "../../../lib/operacao";
 import { fetchProdutos, salvarProduto } from "../../../lib/vendas";
 import { fetchMontagens, inserirMontagem } from "../../../lib/montagem";
-import { LayoutList, Plus, Search, Trash2, Edit3, X, Save, ArrowLeft, UtensilsCrossed, Wine, ChevronRight, Printer, Sparkles, Loader2, Camera, CheckCircle2, AlertTriangle, GripVertical } from "lucide-react";
+import { LayoutList, Plus, Search, Trash2, Edit3, X, Save, ArrowLeft, UtensilsCrossed, Wine, ChevronRight, Printer, Sparkles, Loader2, Camera, CheckCircle2, AlertTriangle, GripVertical, Calculator } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
 // Categorias do cardápio (cozinha). Os pratos são divididos nessas seções.
@@ -238,6 +238,11 @@ function FichasRunner() {
   // Remoção de ingrediente: pergunta se quer substituir por outro cadastrado
   const [substituirAlvo, setSubstituirAlvo] = useState(null); // ingrediente sendo removido
   const [substitutoValor, setSubstitutoValor] = useState(""); // "insumo:<id>" | "base:<id>"
+
+  // Simulação de rendimento: recalcula os ingredientes para outra quantidade
+  const [modalSim, setModalSim] = useState(null); // ficha sendo simulada
+  const [simAlvo, setSimAlvo] = useState("");      // rendimento desejado (mesma unidade)
+  const abrirSimulacao = (f) => { setModalSim(f); setSimAlvo(String(f.rendimento_porcoes || 1)); };
 
   // Bases disponíveis (fichas marcadas como pré-preparo), exceto a própria ficha em edição
   const basesDisponiveis = fichas.filter(f => f.eh_base && f.id !== form.id);
@@ -609,6 +614,42 @@ function FichasRunner() {
   };
 
   const fecharSubstituicao = () => { setSubstituirAlvo(null); setSubstitutoValor(""); };
+
+  // Escala os ingredientes de uma ficha por um fator (simulação de rendimento)
+  const linhasSimuladas = (f, factor) => {
+    const SUB = { kg: { s: "g", fa: 1000 }, l: { s: "ml", fa: 1000 } };
+    const fmt = (qtd, un) => {
+      const c = SUB[String(un || "").toLowerCase()];
+      return c ? `${(+(qtd * c.fa)).toLocaleString("pt-BR", { maximumFractionDigits: 0 })} ${c.s}`
+        : `${(+qtd.toFixed(3)).toLocaleString("pt-BR")} ${String(un || "").toUpperCase()}`;
+    };
+    return (f.fichas_ingredientes || []).map(fi => {
+      let nome = "", unidade = "", custoU = 0;
+      if (fi.insumos) { nome = fi.insumos.nome; unidade = fi.insumos.unidade_medida; custoU = fi.insumos.custo_unitario || 0; }
+      else if (fi.subficha_id) { const base = fichas.find(x => x.id === fi.subficha_id); nome = base ? base.nome_receita : "Base"; unidade = base?.rendimento_unidade || "un"; custoU = base ? custoUnitBase(base, fichas) : 0; }
+      const qtd = (Number(fi.quantidade) || 0) * factor;
+      return { nome, qtdFmt: fmt(qtd, unidade), custo: qtd * custoU };
+    });
+  };
+
+  const imprimirSimulacao = (f, factor, alvoTxt) => {
+    const win = window.open("", "_blank");
+    if (!win) return alert("Habilite pop-ups para imprimir.");
+    const linhas = linhasSimuladas(f, factor);
+    const rows = linhas.map(l => `<tr><td>${l.nome}</td><td style="text-align:right;font-weight:bold">${l.qtdFmt}</td></tr>`).join("");
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Simulação — ${f.nome_receita}</title>
+      <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;padding:24px;max-width:620px;margin:0 auto}
+      .tag{font-size:13px;letter-spacing:3px;text-transform:uppercase;color:#64748b;font-weight:bold}
+      h1{font-size:34px;margin:6px 0}.meta{font-size:20px;font-weight:bold;color:#0f172a;margin-bottom:16px}
+      table{width:100%;border-collapse:collapse;font-size:22px}td{padding:12px 6px;border-bottom:2px solid #e2e8f0;font-weight:600}
+      @media print{@page{margin:14mm}}</style></head><body>
+      <div class="tag">Simulação de Rendimento</div><h1>${f.nome_receita}</h1>
+      <div class="meta">Para produzir: ${alvoTxt}</div>
+      <table><tbody>${rows || '<tr><td>Sem ingredientes.</td></tr>'}</tbody></table>
+      </body></html>`);
+    win.document.close();
+    setTimeout(() => win.print(), 400);
+  };
 
   const handleSalvar = async () => {
     if(!form.nome_receita.trim()) return alert("Digite o nome da receita");
@@ -1036,6 +1077,7 @@ function FichasRunner() {
                               <input type="checkbox" checked={selecionadas.includes(f.id)} onChange={() => toggleSelecionar(f.id)} className="w-5 h-5 accent-emerald-600 cursor-pointer rounded-md block"/>
                            </label>
                            <div className="absolute top-3 right-3 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button onClick={() => abrirSimulacao(f)} title="Simular outro rendimento" className="p-2 bg-white/90 backdrop-blur rounded-lg text-slate-600 hover:text-emerald-600 shadow-sm"><Calculator size={16}/></button>
                               <button onClick={() => imprimirFicha(f)} title="Imprimir ficha técnica" className="p-2 bg-white/90 backdrop-blur rounded-lg text-slate-600 hover:text-emerald-600 shadow-sm"><Printer size={16}/></button>
                               <button onClick={() => abrirEditar(f)} className="p-2 bg-white/90 backdrop-blur rounded-lg text-slate-600 hover:text-emerald-600 shadow-sm"><Edit3 size={16}/></button>
                               <button onClick={() => handleRemover(f.id)} className="p-2 bg-white/90 backdrop-blur rounded-lg text-slate-600 hover:text-rose-600 shadow-sm"><Trash2 size={16}/></button>
@@ -1553,6 +1595,69 @@ function FichasRunner() {
             </div>
          </div>
       )}
+
+      {/* SIMULAÇÃO DE RENDIMENTO — recalcula os ingredientes para outra quantidade */}
+      {modalSim && (() => {
+         const unLabel = { porcao: "porções", kg: "kg", g: "g", l: "L", ml: "ml", un: "un" }[String(modalSim.rendimento_unidade || "porcao").toLowerCase()] || modalSim.rendimento_unidade;
+         const original = Number(modalSim.rendimento_porcoes) || 1;
+         const alvo = Number(String(simAlvo).replace(",", ".")) || 0;
+         const factor = original > 0 ? alvo / original : 0;
+         const linhas = linhasSimuladas(modalSim, factor);
+         const custoOrig = custoTotalDaFicha(modalSim, fichas);
+         const custoSim = custoOrig * factor;
+         const alvoTxt = `${(+alvo.toFixed(3)).toLocaleString("pt-BR")} ${unLabel}`;
+         return (
+         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={() => setModalSim(null)}>
+            <div className="bg-white rounded-[28px] w-full max-w-lg max-h-[88vh] p-6 shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
+               <div className="flex items-start justify-between mb-1">
+                  <h2 className="text-xl font-black text-slate-800 flex items-center gap-2"><Calculator size={20} className="text-emerald-600" /> Simular rendimento</h2>
+                  <button onClick={() => setModalSim(null)} className="w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={17} /></button>
+               </div>
+               <p className="text-sm font-bold text-slate-700">{modalSim.nome_receita}</p>
+               <p className="text-xs font-medium text-slate-500 mb-4">Receita original rende <b>{(+original).toLocaleString("pt-BR")} {unLabel}</b>. Escolha o quanto quer produzir e os ingredientes se ajustam.</p>
+
+               <div className="flex items-center gap-3 mb-4">
+                  <div className="flex-1">
+                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Quero produzir</label>
+                     <div className="flex bg-slate-50 border border-slate-200 rounded-xl overflow-hidden focus-within:border-emerald-500">
+                        <input type="text" inputMode="decimal" value={simAlvo} onChange={e => setSimAlvo(e.target.value.replace(/[^0-9.,]/g, ""))} className="w-full p-3 text-center bg-transparent font-black text-lg text-slate-700 outline-none" />
+                        <div className="flex items-center justify-center px-3 bg-slate-100 border-l border-slate-200 text-sm font-bold text-slate-500 shrink-0">{unLabel}</div>
+                     </div>
+                  </div>
+                  <div className="text-center">
+                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fator</p>
+                     <p className="text-lg font-black text-emerald-600">{factor > 0 ? `${(+factor.toFixed(3)).toLocaleString("pt-BR")}×` : "—"}</p>
+                  </div>
+               </div>
+
+               <div className="flex-1 overflow-y-auto -mx-1 px-1">
+                  <div className="rounded-xl border border-slate-200 overflow-hidden">
+                     <div className="bg-slate-50 px-4 py-2 grid grid-cols-[1fr_auto] text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-200">
+                        <span>Ingrediente</span><span>Quantidade</span>
+                     </div>
+                     {linhas.length === 0 ? (
+                        <p className="p-4 text-sm text-slate-400 font-medium">Esta ficha não tem ingredientes cadastrados.</p>
+                     ) : linhas.map((l, i) => (
+                        <div key={i} className="px-4 py-2.5 grid grid-cols-[1fr_auto] items-center border-b border-slate-50 last:border-0">
+                           <span className="font-bold text-slate-700 text-sm truncate">{l.nome}</span>
+                           <span className="font-black text-slate-800 text-sm">{l.qtdFmt}</span>
+                        </div>
+                     ))}
+                  </div>
+               </div>
+
+               <div className="flex items-center justify-between mt-4 mb-3 px-1">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Custo desta produção</span>
+                  <span className="text-xl font-black text-emerald-600">{fmtBRL(custoSim)}</span>
+               </div>
+               <div className="flex gap-3">
+                  <button onClick={() => setModalSim(null)} className="flex-1 py-3 rounded-xl font-bold bg-slate-100 text-slate-700 hover:bg-slate-200">Fechar</button>
+                  <button onClick={() => imprimirSimulacao(modalSim, factor, alvoTxt)} disabled={!(factor > 0)} className="flex-1 py-3 rounded-xl font-black bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40 flex items-center justify-center gap-2"><Printer size={16} /> Imprimir</button>
+               </div>
+            </div>
+         </div>
+         );
+      })()}
 
       {/* REMOVER / SUBSTITUIR INGREDIENTE DA FICHA */}
       {substituirAlvo && (

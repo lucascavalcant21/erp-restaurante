@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchInsumos, salvarInsumo, removerInsumo, fetchHistoricoPrecos } from "../../../lib/operacao";
 import { CATEGORIAS_INSUMO, adivinharCategoria } from "../../../lib/categorias-insumo";
-import { FlaskConical, Plus, Search, Trash2, Edit3, X, Save, ArrowLeft, CheckCircle2, AlertTriangle, Sparkles, Loader2, Camera, History, TrendingUp, TrendingDown } from "lucide-react";
+import { FlaskConical, Plus, Search, Trash2, Edit3, X, Save, ArrowLeft, CheckCircle2, AlertTriangle, Sparkles, Loader2, Camera, History, TrendingUp, TrendingDown, ArrowLeftRight } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
 // Converte um File de imagem em base64 puro (sem o prefixo "data:...;base64,")
@@ -324,6 +324,22 @@ function IngredientesRunner() {
     }
   };
 
+  // Move o ingrediente entre Cozinha e Bar com um clique (na etiqueta do setor).
+  // Envia custo_unitario junto p/ não registrar falsa mudança de preço.
+  const moverDepartamento = async (ins) => {
+    const novo = (ins.departamento || "").toLowerCase() === "bar" ? "cozinha" : "bar";
+    const { error } = await salvarInsumo({
+      id: ins.id,
+      departamento: novo,
+      custo_unitario: ins.custo_unitario,
+      unidade_id: unidadeAtiva,
+      nome: ins.nome,
+    });
+    if (error) { showToast("Erro ao mover: " + error, "erro"); return; }
+    showToast(`"${ins.nome}" movido para ${novo === "bar" ? "Bar" : "Cozinha"}.`);
+    await carregar();
+  };
+
   if(!unidadeAtiva) {
     return (
       <div className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50 flex items-center justify-center">
@@ -422,7 +438,7 @@ function IngredientesRunner() {
                        <div className="min-w-0">
                          <p className="font-bold text-slate-800 text-[15px] leading-tight truncate">{ins.nome}{ins.marca ? <span className="text-slate-400 font-medium"> · {ins.marca}</span> : null}</p>
                          <div className="flex items-center gap-1.5 mt-1">
-                           <span className={`inline-block text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${deptColor}`}>{ins.departamento}</span>
+                           <button onClick={() => moverDepartamento(ins)} title={`Clique para mover para ${dept === 'bar' ? 'Cozinha' : 'Bar'}`} className={`inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${deptColor} hover:ring-2 hover:ring-offset-1 hover:ring-slate-300 transition-all`}>{ins.departamento} <ArrowLeftRight size={9} /></button>
                            {ins.categoria && <span className="inline-block text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">{ins.categoria}</span>}
                            {ins.eh_empanado && Number(ins.fator_empanamento) > 0 && (
                              <span className="inline-block text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-sky-100 text-sky-700" title={`1 kg in natura vira ${Number(ins.fator_empanamento).toLocaleString('pt-BR', { maximumFractionDigits: 3 })} kg empanado`}>

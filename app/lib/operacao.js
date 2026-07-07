@@ -165,6 +165,13 @@ export async function salvarFicha(ficha, ingredientes) {
   return { success: true, id: fichaId };
 }
 
+// Atualiza só o custo por unidade de um insumo (usado no "Recalcular custos").
+export async function atualizarCustoUnitario(id, custo_unitario) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase.from("insumos").update({ custo_unitario }).eq("id", id);
+  return { error: error?.message };
+}
+
 export async function removerFicha(id) {
   if (!isSupabaseReady()) return { error: "Offline" };
   const { error } = await supabase.from("fichas_tecnicas").delete().eq("id", id);

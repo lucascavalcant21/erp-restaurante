@@ -3,9 +3,9 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
-import { fetchInsumos, salvarInsumo, removerInsumo, fetchHistoricoPrecos } from "../../../lib/operacao";
+import { fetchInsumos, salvarInsumo, removerInsumo, fetchHistoricoPrecos, atualizarCustoUnitario } from "../../../lib/operacao";
 import { CATEGORIAS_INSUMO, adivinharCategoria } from "../../../lib/categorias-insumo";
-import { FlaskConical, Plus, Search, Trash2, Edit3, X, Save, ArrowLeft, CheckCircle2, AlertTriangle, Sparkles, Loader2, Camera, History, TrendingUp, TrendingDown, ArrowLeftRight } from "lucide-react";
+import { FlaskConical, Plus, Search, Trash2, Edit3, X, Save, ArrowLeft, CheckCircle2, AlertTriangle, Sparkles, Loader2, Camera, History, TrendingUp, TrendingDown, ArrowLeftRight, Calculator } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
 // Converte um File de imagem em base64 puro (sem o prefixo "data:...;base64,")
@@ -94,6 +94,47 @@ function IngredientesRunner() {
   const showToast = (msg, tipo = "ok") => {
     setToast({ msg, tipo });
     setTimeout(() => setToast(null), 2800);
+  };
+
+  // Recalcular custo por unidade (corrige itens salvos com o cálculo antigo)
+  const [modalRecalc, setModalRecalc] = useState(null); // lista de {ins, atual, novo}
+  const [recalcLoading, setRecalcLoading] = useState(false);
+
+  // Custo por unidade CORRETO a partir dos campos gravados (valor pago / volume,
+  // corrigido por perda de limpeza e empanamento quando houver).
+  const custoUnitarioCorreto = (ins) => {
+    const valorPago = Number(ins.custo_compra);
+    const tam = Number(ins.tamanho_embalagem) || 1;
+    if (!valorPago || valorPago <= 0 || tam <= 0) return null;
+    const custoPorUnidade = valorPago / tam;
+    const pct = Number(ins.aproveitamento_pct) || 100;
+    const custoLimpo = custoPorUnidade / (pct / 100);
+    const fator = Number(ins.fator_empanamento) || 0;
+    const custoEmp = Number(ins.custo_empanamento) || 0;
+    const real = fator > 0 ? (custoLimpo + custoEmp) / fator : custoLimpo;
+    return Math.round(real * 10000) / 10000;
+  };
+
+  const abrirRecalc = () => {
+    const mudancas = insumos.map(ins => {
+      const novo = custoUnitarioCorreto(ins);
+      return novo === null ? null : { ins, atual: Number(ins.custo_unitario) || 0, novo };
+    }).filter(m => m && Math.abs(m.novo - m.atual) > 0.005);
+    setModalRecalc(mudancas);
+  };
+
+  const aplicarRecalc = async () => {
+    if (!modalRecalc || modalRecalc.length === 0) return;
+    setRecalcLoading(true);
+    let ok = 0;
+    for (const m of modalRecalc) {
+      const { error } = await atualizarCustoUnitario(m.ins.id, m.novo);
+      if (!error) ok++;
+    }
+    setRecalcLoading(false);
+    setModalRecalc(null);
+    await carregar();
+    showToast(`${ok} ingrediente(s) recalculado(s).`);
   };
 
   // Paginação client-side
@@ -377,6 +418,9 @@ function IngredientesRunner() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+               <button onClick={abrirRecalc} title="Recalcular o custo por unidade de todos os ingredientes" className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-5 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm">
+                  <Calculator size={18} /> Recalcular custos
+               </button>
                <button onClick={abrirModalIA} className="flex items-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-5 py-3 rounded-xl font-bold hover:bg-emerald-50 transition-colors shadow-sm">
                   <Sparkles size={18} /> Importar com IA
                </button>
@@ -535,6 +579,51 @@ function IngredientesRunner() {
         <div className="fixed bottom-6 right-6 z-[60] animate-in slide-in-from-bottom-4 fade-in">
           <div className={`px-5 py-3 rounded-xl shadow-2xl font-bold text-white flex items-center gap-2 ${toast.tipo === 'erro' ? 'bg-red-600' : 'bg-emerald-600'}`}>
             {toast.tipo === 'erro' ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />} {toast.msg}
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: RECALCULAR CUSTO POR UNIDADE (prévia antes de aplicar) */}
+      {modalRecalc && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={() => setModalRecalc(null)}>
+          <div className="bg-white rounded-[28px] w-full max-w-lg max-h-[85vh] p-6 shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between mb-1">
+              <h2 className="text-xl font-black text-slate-800 flex items-center gap-2"><Calculator size={20} className="text-slate-600" /> Recalcular custos</h2>
+              <button onClick={() => setModalRecalc(null)} className="w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={17} /></button>
+            </div>
+            <p className="text-sm font-medium text-slate-500 mb-4">Corrige o custo por unidade (valor pago ÷ volume) usado na ficha técnica e no CMV. Confira antes de aplicar.</p>
+
+            {modalRecalc.length === 0 ? (
+              <div className="text-center py-10">
+                <CheckCircle2 size={40} className="text-emerald-500 mx-auto mb-3" />
+                <p className="font-bold text-slate-700">Tudo certo! Nenhum custo precisa de correção.</p>
+              </div>
+            ) : (
+              <>
+                <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+                  {modalRecalc.map(({ ins, atual, novo }) => (
+                    <div key={ins.id} className="flex items-center justify-between gap-2 p-3 bg-slate-50 border border-slate-100 rounded-xl">
+                      <div className="min-w-0">
+                        <p className="font-bold text-slate-800 text-sm truncate">{ins.nome}</p>
+                        <p className="text-[10px] font-bold text-slate-400">{Number(ins.tamanho_embalagem).toLocaleString('pt-BR')} {ins.unidade_medida} · pago {fmtBRL(ins.custo_compra)}</p>
+                      </div>
+                      <div className="text-right shrink-0 text-sm font-black">
+                        <span className="text-slate-400 line-through">{fmtBRL(atual)}</span>
+                        <span className="text-slate-300 mx-1">→</span>
+                        <span className="text-emerald-600">{fmtBRL(novo)}</span>
+                        <span className="text-[10px] font-bold text-slate-400"> /{ins.unidade_medida}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-3 mt-4 shrink-0">
+                  <button onClick={() => setModalRecalc(null)} className="flex-1 py-3 rounded-xl font-bold bg-slate-100 text-slate-700 hover:bg-slate-200">Cancelar</button>
+                  <button onClick={aplicarRecalc} disabled={recalcLoading} className="flex-1 py-3 rounded-xl font-black bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2">
+                    {recalcLoading ? <Loader2 size={16} className="animate-spin" /> : <Calculator size={16} />} Aplicar em {modalRecalc.length}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

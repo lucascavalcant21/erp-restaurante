@@ -32,7 +32,9 @@ export default function RHPage() {
   const [cargos, setCargos] = useState([]);
   const [busca, setBusca] = useState("");
   const [abaAtiva, setAbaAtiva] = useState("Fixo");
-  const statePadrao = { nome: "", cargo: "", salario: "", vale_alimentacao: "", taxa_servico_mes: "", horario_entrada: "", horario_saida: "", dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60, tipo_contrato: "Fixo", telefone: "", cpf: "", chave_pix: "", avaliacao_estrelas: 0, anotacoes_rh: "", data_admissao: "", status_contrato: "Definitivo", supervisor_id: "" };
+  const statePadrao = { nome: "", cargo: "", salario: "", vale_alimentacao: "", taxa_servico_mes: "", horario_entrada: "", horario_saida: "", horario_dom_entrada: "", horario_dom_saida: "", dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60, tipo_contrato: "Fixo", telefone: "", cpf: "", chave_pix: "", avaliacao_estrelas: 0, anotacoes_rh: "", data_admissao: "", status_contrato: "Definitivo", supervisor_id: "", supervisores_ids: [] };
+  // Cargos de liderança sempre disponíveis, além dos cargos cadastrados
+  const CARGOS_LIDERANCA = ["CEO", "Supervisor", "Gerente"];
   const [modalNovo, setModalNovo] = useState(false);
   const [novoFunc, setNovoFunc] = useState(statePadrao);
   
@@ -628,9 +630,11 @@ export default function RHPage() {
        nome: f.nome || "", 
        cargo: f.cargo || "", 
        salario: f.salario || "", 
-       horario_entrada: f.horario_entrada || "", 
-       horario_saida: f.horario_saida || "", 
-       dias_trabalho: f.dias_trabalho || "1,2,3,4,5,6", 
+       horario_entrada: f.horario_entrada || "",
+       horario_saida: f.horario_saida || "",
+       horario_dom_entrada: f.horario_dom_entrada || "",
+       horario_dom_saida: f.horario_dom_saida || "",
+       dias_trabalho: f.dias_trabalho || "1,2,3,4,5,6",
        tempo_intervalo: f.tempo_intervalo || 60,
        tipo_contrato: f.tipo_contrato || "Fixo",
        telefone: f.telefone || "",
@@ -641,6 +645,7 @@ export default function RHPage() {
        data_admissao: f.data_admissao || "",
        status_contrato: f.status_contrato || "Definitivo",
        supervisor_id: f.supervisor_id || "",
+       supervisores_ids: Array.isArray(f.supervisores_ids) ? f.supervisores_ids : (f.supervisor_id ? [f.supervisor_id] : []),
        vale_alimentacao: f.vale_alimentacao || "",
        taxa_servico_mes: f.taxa_servico_mes || ""
     });
@@ -657,6 +662,8 @@ export default function RHPage() {
       salario: Number(novoFunc.salario) || 0,
       horario_entrada: novoFunc.horario_entrada,
       horario_saida: novoFunc.horario_saida,
+      horario_dom_entrada: novoFunc.horario_dom_entrada || null,
+      horario_dom_saida: novoFunc.horario_dom_saida || null,
       dias_trabalho: novoFunc.dias_trabalho,
       tempo_intervalo: Number(novoFunc.tempo_intervalo) || 60,
       tipo_contrato: novoFunc.tipo_contrato,
@@ -667,7 +674,8 @@ export default function RHPage() {
       anotacoes_rh: novoFunc.anotacoes_rh,
       data_admissao: novoFunc.data_admissao || null,
       status_contrato: novoFunc.status_contrato,
-      supervisor_id: novoFunc.supervisor_id || null,
+      supervisor_id: (novoFunc.supervisores_ids && novoFunc.supervisores_ids[0]) || novoFunc.supervisor_id || null,
+      supervisores_ids: novoFunc.supervisores_ids && novoFunc.supervisores_ids.length ? novoFunc.supervisores_ids : null,
       vale_alimentacao: Number(novoFunc.vale_alimentacao) || 0,
       taxa_servico_mes: Number(novoFunc.taxa_servico_mes) || 0
     };
@@ -1215,26 +1223,41 @@ export default function RHPage() {
                         <input type="text" value={novoFunc.nome} onChange={e=>setNovoFunc({...novoFunc, nome: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
                      </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div>
                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Função / Cargo</label>
-                     {cargos.length > 0 ? (
-                       <select value={novoFunc.cargo} onChange={e=>setNovoFunc({...novoFunc, cargo: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500 appearance-none text-slate-700">
-                          <option value="">Selecione um Cargo</option>
-                          {cargos.map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
-                       </select>
-                     ) : (
-                       <input type="text" value={novoFunc.cargo} onChange={e=>setNovoFunc({...novoFunc, cargo: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500" placeholder="Digite ou crie cargos nas Configurações" />
-                     )}
+                     <select value={novoFunc.cargo} onChange={e=>setNovoFunc({...novoFunc, cargo: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500 appearance-none text-slate-700">
+                        <option value="">Selecione um Cargo</option>
+                        <optgroup label="Liderança">
+                           {CARGOS_LIDERANCA.map(c => <option key={c} value={c}>{c}</option>)}
+                        </optgroup>
+                        {cargos.length > 0 && (
+                           <optgroup label="Cargos da unidade">
+                              {cargos.filter(c => !CARGOS_LIDERANCA.includes(c.nome)).map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
+                           </optgroup>
+                        )}
+                        {novoFunc.cargo && ![...CARGOS_LIDERANCA, ...cargos.map(c => c.nome)].includes(novoFunc.cargo) && <option value={novoFunc.cargo}>{novoFunc.cargo}</option>}
+                     </select>
                   </div>
                   <div>
-                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Supervisor direto (organograma)</label>
-                     <select value={novoFunc.supervisor_id || ""} onChange={e=>setNovoFunc({...novoFunc, supervisor_id: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500 appearance-none text-slate-700">
-                        <option value="">Ninguém — topo da hierarquia</option>
-                        {funcionarios.filter(f => f.id !== editandoId).map(f => (
-                           <option key={f.id} value={f.id}>{f.nome} ({f.cargo || "—"})</option>
-                        ))}
-                     </select>
-                     <p className="text-[10px] text-slate-400 font-medium mt-1">Define a posição no Organograma: quem não tem supervisor aparece no topo.</p>
+                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Supervisor(es) diretos — organograma</label>
+                     <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 max-h-32 overflow-y-auto space-y-1">
+                        {funcionarios.filter(f => f.id !== editandoId && (f.status || "ativo") !== "inativo").length === 0 ? (
+                           <p className="text-xs font-medium text-slate-400">Nenhum outro colaborador cadastrado ainda.</p>
+                        ) : funcionarios.filter(f => f.id !== editandoId && (f.status || "ativo") !== "inativo").map(f => {
+                           const marcado = (novoFunc.supervisores_ids || []).includes(f.id);
+                           return (
+                              <label key={f.id} className={`flex items-center gap-2.5 p-2 rounded-lg cursor-pointer ${marcado ? "bg-emerald-100" : "hover:bg-slate-100"}`}>
+                                 <input type="checkbox" checked={marcado} onChange={e=>{
+                                    const atual = novoFunc.supervisores_ids || [];
+                                    setNovoFunc({...novoFunc, supervisores_ids: e.target.checked ? [...atual, f.id] : atual.filter(x => x !== f.id)});
+                                 }} className="w-4 h-4 accent-emerald-600"/>
+                                 <span className="text-sm font-bold text-slate-700">{f.nome}</span>
+                                 <span className="text-[10px] font-medium text-slate-400 ml-auto">{f.cargo || "—"}</span>
+                              </label>
+                           );
+                        })}
+                     </div>
+                     <p className="text-[10px] text-slate-400 font-medium mt-1">Pode marcar mais de um. Sem supervisor = topo da hierarquia no Organograma.</p>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                      <div>
@@ -1293,14 +1316,28 @@ export default function RHPage() {
                      </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-4 mt-4">
-                     <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Entrada (HH:MM)</label>
-                        <input type="time" value={novoFunc.horario_entrada || ""} onChange={e=>setNovoFunc({...novoFunc, horario_entrada: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                  <div className="border-t border-slate-100 pt-4 mt-4">
+                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Horário — dias normais (seg a sáb)</p>
+                     <div className="grid grid-cols-2 gap-4">
+                        <div>
+                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Entrada</label>
+                           <input type="time" value={novoFunc.horario_entrada || ""} onChange={e=>setNovoFunc({...novoFunc, horario_entrada: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                        </div>
+                        <div>
+                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Saída</label>
+                           <input type="time" value={novoFunc.horario_saida || ""} onChange={e=>setNovoFunc({...novoFunc, horario_saida: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                        </div>
                      </div>
-                     <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Saída (HH:MM)</label>
-                        <input type="time" value={novoFunc.horario_saida || ""} onChange={e=>setNovoFunc({...novoFunc, horario_saida: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 mt-3">Horário de domingo <span className="normal-case font-medium text-slate-400">(deixe vazio se for igual)</span></p>
+                     <div className="grid grid-cols-2 gap-4">
+                        <div>
+                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Entrada (dom)</label>
+                           <input type="time" value={novoFunc.horario_dom_entrada || ""} onChange={e=>setNovoFunc({...novoFunc, horario_dom_entrada: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                        </div>
+                        <div>
+                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Saída (dom)</label>
+                           <input type="time" value={novoFunc.horario_dom_saida || ""} onChange={e=>setNovoFunc({...novoFunc, horario_dom_saida: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                        </div>
                      </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">

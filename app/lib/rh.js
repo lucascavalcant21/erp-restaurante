@@ -12,9 +12,26 @@ export async function fetchColaboradores(unidadeId) {
   return { data: data || [], error: error?.message };
 }
 
+// Remove do payload qualquer coluna que o banco não reconheça e tenta de novo
+// (evita quebrar cadastro por falta de migração de colunas novas).
+async function colabRetrySemColuna(error, tentar, campos, n = 0) {
+  const m = error?.message || "";
+  const match = m.match(/column "?([a-z_]+)"? (?:of relation "colaboradores" )?does not exist/i)
+    || (m.includes("Could not find") && m.match(/'([a-z_]+)' column/i));
+  if (error && match && n < 8 && match[1] in campos) {
+    delete campos[match[1]];
+    return colabRetrySemColuna(await tentar(), tentar, campos, n + 1);
+  }
+  return error;
+}
+
 export async function inserirColaborador(colab) {
   if (!isSupabaseReady()) return { data: null, error: "Offline" };
-  const { data, error } = await supabase.from("colaboradores").insert([colab]).select().single();
+  let res = await supabase.from("colaboradores").insert([colab]).select().single();
+  let data = res.data;
+  const error = await colabRetrySemColuna(res.error, async () => {
+    const r = await supabase.from("colaboradores").insert([colab]).select().single(); data = r.data; return r.error;
+  }, colab);
   return { data, error: error?.message };
 }
 
@@ -140,7 +157,11 @@ export const inserirFuncionario = inserirColaborador;
 export const removerFuncionario = removerColaborador;
 export const atualizarFuncionario = async (id, dados) => {
   if (!isSupabaseReady()) return { data: null, error: "Offline" };
-  const { data, error } = await supabase.from("colaboradores").update(dados).eq("id", id).select().single();
+  let res = await supabase.from("colaboradores").update(dados).eq("id", id).select().single();
+  let data = res.data;
+  const error = await colabRetrySemColuna(res.error, async () => {
+    const r = await supabase.from("colaboradores").update(dados).eq("id", id).select().single(); data = r.data; return r.error;
+  }, dados);
   return { data, error: error?.message };
 };
 export const atualizarColaborador = atualizarFuncionario;

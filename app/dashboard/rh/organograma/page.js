@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Users, User, Search, Network, ChevronDown } from "lucide-react";
+import { Users, User, Search, Network, ChevronDown, Printer } from "lucide-react";
 import { PageHeader, PageBody, EmptyState } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
 import { fetchColaboradores } from "../../../lib/rh";
@@ -118,10 +118,16 @@ export default function OrganogramaCorporativoPage() {
       return { roots: dados, childrenMap: {} };
     }
 
+    // Supervisor(es) de cada um: usa supervisores_ids (múltiplos) ou supervisor_id
+    const supsDe = (f) => {
+      if (Array.isArray(f.supervisores_ids) && f.supervisores_ids.length) return f.supervisores_ids;
+      if (f.supervisor_id) return [f.supervisor_id];
+      return [];
+    };
     dados.forEach(f => {
-      if (f.supervisor_id) {
-        if (!map[f.supervisor_id]) map[f.supervisor_id] = [];
-        map[f.supervisor_id].push(f);
+      const sups = supsDe(f).filter(id => dados.some(x => x.id === id));
+      if (sups.length) {
+        sups.forEach(sid => { if (!map[sid]) map[sid] = []; map[sid].push(f); });
       } else {
         rootNodes.push(f);
       }
@@ -129,6 +135,51 @@ export default function OrganogramaCorporativoPage() {
 
     return { roots: rootNodes, childrenMap: map };
   }, [lista, busca]);
+
+  // ── Impressão do organograma (lista hierárquica indentada) ────────────────
+  const imprimirOrganograma = () => {
+    if (!lista.length) return alert("Nenhum colaborador para o organograma.");
+    const filhosDe = (id) => lista.filter(f => {
+      const sups = Array.isArray(f.supervisores_ids) && f.supervisores_ids.length ? f.supervisores_ids : (f.supervisor_id ? [f.supervisor_id] : []);
+      return sups.includes(id);
+    });
+    const topo = lista.filter(f => {
+      const sups = Array.isArray(f.supervisores_ids) && f.supervisores_ids.length ? f.supervisores_ids : (f.supervisor_id ? [f.supervisor_id] : []);
+      return !sups.some(id => lista.some(x => x.id === id));
+    });
+    const render = (f, nivel, visto = new Set()) => {
+      if (visto.has(f.id)) return "";
+      visto.add(f.id);
+      const filhos = filhosDe(f.id);
+      const linha = `<div class="no" style="margin-left:${nivel * 24}px">
+        <span class="dot" style="background:${nivel === 0 ? "#059669" : nivel === 1 ? "#0ea5e9" : "#94a3b8"}"></span>
+        <b>${f.nome}</b><span class="cargo">${f.cargo || "—"}</span>
+        ${filhos.length ? `<span class="lid">${filhos.length} liderado(s)</span>` : ""}
+      </div>`;
+      return linha + filhos.map(c => render(c, nivel + 1, visto)).join("");
+    };
+    const corpo = topo.map(f => render(f, 0)).join("");
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Organograma — ${unidadeInfo?.nome || ""}</title>
+      <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:12mm}
+        .head{border-bottom:3px solid #0f172a;padding-bottom:10px;margin-bottom:16px}
+        .tag{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#64748b;font-weight:bold}
+        h1{font-size:24px;margin-top:3px}
+        .no{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px dashed #e2e8f0;font-size:14px}
+        .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+        .no b{font-weight:800}
+        .cargo{color:#64748b;font-size:12px}
+        .lid{margin-left:auto;font-size:10px;font-weight:800;text-transform:uppercase;color:#059669;background:#ecfdf5;padding:2px 8px;border-radius:999px}
+        @media print{@page{margin:10mm}}
+      </style></head><body>
+      <div class="head"><div class="tag">Organograma · Estrutura Hierárquica</div><h1>${unidadeInfo?.nome || "Equipe"}</h1></div>
+      ${corpo}
+      </body></html>`;
+    const win = window.open("", "_blank", "width=820,height=1000");
+    if (win) { win.document.write(html); win.document.close(); setTimeout(() => win.print(), 400); }
+    else alert("Habilite os popups para imprimir.");
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans pb-24">
@@ -146,15 +197,20 @@ export default function OrganogramaCorporativoPage() {
                <p className="text-sm font-medium text-slate-500 mt-2">Estrutura Hierárquica da {unidadeInfo.nome}</p>
             </div>
             
-            <div className="w-full md:w-96 relative">
-               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500" size={18} />
-               <input 
-                 type="text" 
-                 value={busca} 
-                 onChange={e => setBusca(e.target.value)} 
-                 placeholder="Pesquisar funcionário..." 
-                 className="w-full pl-12 pr-4 py-4 bg-slate-800/80 border border-slate-700 rounded-2xl text-white font-bold placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 outline-none backdrop-blur-sm"
-               />
+            <div className="flex items-center gap-3 w-full md:w-auto">
+               <div className="flex-1 md:w-96 relative">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500" size={18} />
+                  <input
+                    type="text"
+                    value={busca}
+                    onChange={e => setBusca(e.target.value)}
+                    placeholder="Pesquisar funcionário..."
+                    className="w-full pl-12 pr-4 py-4 bg-slate-800/80 border border-slate-700 rounded-2xl text-white font-bold placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 outline-none backdrop-blur-sm"
+                  />
+               </div>
+               <button onClick={imprimirOrganograma} title="Imprimir organograma" className="shrink-0 flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold px-4 py-4 rounded-2xl transition-colors">
+                  <Printer size={18} /> <span className="hidden md:inline">Imprimir</span>
+               </button>
             </div>
          </div>
       </div>

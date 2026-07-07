@@ -17,6 +17,10 @@ import {
 import { fetchPontoHoje, fetchPontosMes } from "../../lib/ponto";
 import { calcularAdicionaisMes } from "../../lib/rh";
 import { salvarConta, fetchContas } from "../../lib/financeiro";
+import { fetchCardapio } from "../../lib/cardapio";
+
+// Desconto do funcionário sobre o valor de cardápio (funcionário paga o restante)
+const DESCONTO_FUNC = 0.30;
 import { 
   Users, UserPlus, FileText, Upload, Save, X, Search, Trash2, Loader2, CalendarHeart, Star, Phone, CreditCard, ClipboardList, Clock, CalendarDays, ShoppingBag, CheckCircle, Store, Printer, UtensilsCrossed, LogOut, RotateCcw
 } from "lucide-react";
@@ -203,6 +207,8 @@ export default function RHPage() {
   const [modalConsumo, setModalConsumo] = useState(false);
   const [funcionarioConsumo, setFuncionarioConsumo] = useState(null);
   const [listaConsumo, setListaConsumo] = useState([]);
+  const [cardapioConsumo, setCardapioConsumo] = useState([]);
+  const [buscaPrato, setBuscaPrato] = useState("");
   const stateConsumo = { descricao: "", valor_original: "", forma_pagamento: "Desconto em Folha", data_consumo: new Date().toISOString().substring(0,16) };
   const [novoConsumo, setNovoConsumo] = useState(stateConsumo);
   const [loadingConsumo, setLoadingConsumo] = useState(false);
@@ -345,19 +351,27 @@ export default function RHPage() {
     setLoadingConsumo(false);
   };
 
-  const abrirModalConsumo = (f) => {
+  const abrirModalConsumo = async (f) => {
     setFuncionarioConsumo(f);
     setNovoConsumo({ ...stateConsumo, data_consumo: new Date().toISOString().substring(0,16) });
     setListaConsumo([]);
+    setBuscaPrato("");
     setModalConsumo(true);
     carregarConsumo(f.id);
+    const { data } = await fetchCardapio(unidadeAtiva);
+    setCardapioConsumo((data || []).filter(p => p.ativo !== false));
+  };
+
+  // Seleciona um prato do cardápio: preenche descrição e valor original
+  const escolherPrato = (prato) => {
+    setNovoConsumo(nc => ({ ...nc, descricao: prato.nome, valor_original: String(prato.preco ?? "") }));
   };
 
   const salvarConsumo = async () => {
     if (!novoConsumo.descricao || !novoConsumo.valor_original) return alert("Preencha descrição e valor.");
     
     const valOriginal = Number(novoConsumo.valor_original);
-    const valDesconto = valOriginal * 0.8; // 20% de desconto
+    const valDesconto = valOriginal * (1 - DESCONTO_FUNC); // funcionário paga o restante
     const statPagto = novoConsumo.forma_pagamento === "Desconto em Folha" ? "Pendente" : "Pago";
     
     const payload = {
@@ -1779,10 +1793,45 @@ export default function RHPage() {
                   {/* Lado Esquerdo: Adicionar Consumo */}
                   <div className="flex flex-col">
                      <div className="bg-teal-50 p-4 rounded-2xl mb-6 border border-teal-100">
-                        <p className="text-xs font-bold text-teal-700 uppercase tracking-widest mb-1">20% de Desconto Automático</p>
+                        <p className="text-xs font-bold text-teal-700 uppercase tracking-widest mb-1">{Math.round(DESCONTO_FUNC * 100)}% de Desconto Automático</p>
                         <p className="text-sm font-medium text-teal-800 leading-snug">
-                           Os funcionários têm desconto em produtos e refeições. O sistema calculará o valor a pagar com base no valor original informado.
+                           Escolha um prato do cardápio ou digite manualmente. O sistema aplica o desconto do funcionário sobre o valor original.
                         </p>
+                     </div>
+
+                     {/* Pratos do cardápio: clique para preencher descrição + valor */}
+                     <div className="mb-5">
+                        <div className="flex items-center justify-between mb-2">
+                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5"><UtensilsCrossed size={13} /> Pratos do Cardápio</label>
+                           {cardapioConsumo.length > 0 && <span className="text-[10px] font-bold text-slate-400">{cardapioConsumo.length} itens</span>}
+                        </div>
+                        {cardapioConsumo.length === 0 ? (
+                           <p className="text-xs font-medium text-slate-400 bg-slate-50 border border-slate-100 rounded-xl p-3">Nenhum prato no cardápio desta unidade. Cadastre em Catálogo e Preços, ou digite manualmente abaixo.</p>
+                        ) : (
+                           <>
+                              <div className="relative mb-2">
+                                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                 <input type="text" value={buscaPrato} onChange={e => setBuscaPrato(e.target.value)} placeholder="Buscar prato..." className="w-full p-2.5 pl-9 bg-slate-50 border border-slate-200 rounded-xl font-medium text-sm outline-none focus:border-teal-500 text-slate-700" />
+                              </div>
+                              <div className="max-h-40 overflow-y-auto pr-1 space-y-1.5">
+                                 {cardapioConsumo
+                                    .filter(p => !buscaPrato || (p.nome || "").toLowerCase().includes(buscaPrato.toLowerCase()) || (p.categoria || "").toLowerCase().includes(buscaPrato.toLowerCase()))
+                                    .map(p => {
+                                       const selecionado = novoConsumo.descricao === p.nome;
+                                       return (
+                                          <button key={p.id} type="button" onClick={() => escolherPrato(p)}
+                                             className={`w-full flex items-center justify-between gap-2 p-2.5 rounded-xl border text-left transition-all ${selecionado ? "bg-teal-50 border-teal-400" : "bg-white border-slate-200 hover:border-teal-300"}`}>
+                                             <div className="min-w-0">
+                                                <p className="font-bold text-sm text-slate-800 truncate">{p.nome}</p>
+                                                {p.categoria && <p className="text-[10px] font-medium text-slate-400">{p.categoria}</p>}
+                                             </div>
+                                             <span className="font-black text-sm text-slate-700 shrink-0">{fmtBRL(p.preco)}</span>
+                                          </button>
+                                       );
+                                    })}
+                              </div>
+                           </>
+                        )}
                      </div>
 
                      <div className="space-y-4 flex-1">
@@ -1816,8 +1865,8 @@ export default function RHPage() {
                      <div className="mt-6 pt-6 border-t border-slate-100">
                         {novoConsumo.valor_original && (
                            <div className="flex items-center justify-between bg-slate-800 p-4 rounded-xl text-white mb-4">
-                              <span className="font-bold">Total a Pagar (com 20% desc.):</span>
-                              <span className="font-black text-xl text-emerald-400">{fmtBRL(Number(novoConsumo.valor_original) * 0.8)}</span>
+                              <span className="font-bold">Total a Pagar (com {Math.round(DESCONTO_FUNC * 100)}% desc.):</span>
+                              <span className="font-black text-xl text-emerald-400">{fmtBRL(Number(novoConsumo.valor_original) * (1 - DESCONTO_FUNC))}</span>
                            </div>
                         )}
                         <button onClick={salvarConsumo} disabled={!novoConsumo.descricao || !novoConsumo.valor_original} className="w-full py-4 bg-teal-600 hover:bg-teal-700 disabled:bg-slate-300 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-teal-600/20 active:scale-95">

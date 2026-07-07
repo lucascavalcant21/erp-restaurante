@@ -2,6 +2,8 @@ import "./globals.css";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { ERPProvider } from "./context/ERPContext";
 import RegisterSW from "./components/RegisterSW";
+import PullToRefresh from "./components/PullToRefresh";
+import InstallPrompt from "./components/InstallPrompt";
 
 // Fonte oficial do app (variável, hospedada pelo próprio Next — sem CDN externo)
 const fonteApp = Plus_Jakarta_Sans({
@@ -38,9 +40,11 @@ export default function RootLayout({ children }) {
       </head>
       <body className={fonteApp.className}>
         <RegisterSW />
+        <PullToRefresh />
         <ERPProvider>
           {children}
         </ERPProvider>
+        <InstallPrompt />
       </body>
     </html>
   );

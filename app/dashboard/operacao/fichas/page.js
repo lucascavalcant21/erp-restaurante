@@ -227,6 +227,9 @@ function FichasRunner() {
   // Ingredientes da ficha. Cada item tem `chave` (insumo_id OU subficha_id),
   // `tipo` ('insumo'|'base'), `custo_unitario` (por unidade-base) e `unidade`.
   const [ingFicha, setIngFicha] = useState([]);
+  // Remoção de ingrediente: pergunta se quer substituir por outro cadastrado
+  const [substituirAlvo, setSubstituirAlvo] = useState(null); // ingrediente sendo removido
+  const [substitutoValor, setSubstitutoValor] = useState(""); // "insumo:<id>" | "base:<id>"
 
   // Bases disponíveis (fichas marcadas como pré-preparo), exceto a própria ficha em edição
   const basesDisponiveis = fichas.filter(f => f.eh_base && f.id !== form.id);
@@ -497,32 +500,38 @@ function FichasRunner() {
   };
 
   // Adiciona insumo ou base. `valor` = "insumo:<id>" ou "base:<id>"
-  const addIngrediente = (valor) => {
-    if (!valor) return;
+  // Constrói um item de ingFicha a partir de "insumo:<id>" ou "base:<id>"
+  const construirIng = (valor, quantidade = 0) => {
     const [tipo, id] = valor.split(":");
-    if (ingFicha.find(i => i.chave === id)) return; // já existe
-    setAutoSoma(true);
-
     if (tipo === "base") {
        const base = fichas.find(f => f.id === id);
-       if (!base) return;
-       setIngFicha([...ingFicha, {
+       if (!base) return null;
+       return {
           chave: base.id, tipo: "base", subficha_id: base.id,
           nome: base.nome_receita, unidade: base.rendimento_unidade || "un",
-          custo_unitario: custoUnitBase(base, fichas), quantidade: 0,
+          custo_unitario: custoUnitBase(base, fichas), quantidade,
           modo: getSub(base.rendimento_unidade) ? "sub" : "base",
-       }]);
-    } else {
-       const insumoDb = insumosAtivos.find(i => i.id === id);
-       if (!insumoDb) return;
-       setIngFicha([...ingFicha, {
-          chave: insumoDb.id, tipo: "insumo", insumo_id: insumoDb.id,
-          nome: insumoDb.nome, unidade: insumoDb.unidade_medida,
-          custo_unitario: insumoDb.custo_unitario, quantidade: 0,
-          peso_medio_g: insumoDb.peso_medio_g || null,
-          modo: getSub(insumoDb.unidade_medida) ? "sub" : "base",
-       }]);
+       };
     }
+    const insumoDb = insumosAtivos.find(i => i.id === id);
+    if (!insumoDb) return null;
+    return {
+       chave: insumoDb.id, tipo: "insumo", insumo_id: insumoDb.id,
+       nome: insumoDb.nome, unidade: insumoDb.unidade_medida,
+       custo_unitario: insumoDb.custo_unitario, quantidade,
+       peso_medio_g: insumoDb.peso_medio_g || null,
+       modo: getSub(insumoDb.unidade_medida) ? "sub" : "base",
+    };
+  };
+
+  const addIngrediente = (valor) => {
+    if (!valor) return;
+    const [, id] = valor.split(":");
+    if (ingFicha.find(i => i.chave === id)) return; // já existe
+    const novo = construirIng(valor, 0);
+    if (!novo) return;
+    setAutoSoma(true);
+    setIngFicha([...ingFicha, novo]);
   };
 
   // Recebe a quantidade JÁ em unidade-base (a conversão acontece no onChange do input)
@@ -540,6 +549,31 @@ function FichasRunner() {
     setAutoSoma(true);
     setIngFicha(lista => lista.filter(i => i.chave !== chave));
   };
+
+  // Confirma a substituição do ingrediente-alvo por outro cadastrado (mantém a qtd)
+  const confirmarSubstituicao = () => {
+    const alvo = substituirAlvo;
+    if (!alvo || !substitutoValor) return;
+    const [, novoId] = substitutoValor.split(":");
+    if (novoId === alvo.chave) { fecharSubstituicao(); return; }
+    const novo = construirIng(substitutoValor, alvo.quantidade || 0);
+    if (!novo) return;
+    setAutoSoma(true);
+    setIngFicha(lista => {
+      // Se o substituto já está na ficha, apenas remove o alvo (evita duplicar)
+      if (lista.find(i => i.chave === novo.chave)) return lista.filter(i => i.chave !== alvo.chave);
+      return lista.map(i => i.chave === alvo.chave ? novo : i);
+    });
+    fecharSubstituicao();
+  };
+
+  // Só remover (sem substituir)
+  const soRemover = () => {
+    if (substituirAlvo) removeIngrediente(substituirAlvo.chave);
+    fecharSubstituicao();
+  };
+
+  const fecharSubstituicao = () => { setSubstituirAlvo(null); setSubstitutoValor(""); };
 
   const handleSalvar = async () => {
     if(!form.nome_receita.trim()) return alert("Digite o nome da receita");
@@ -667,9 +701,9 @@ function FichasRunner() {
           body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;padding:24px;max-width:720px;margin:0 auto}
           .page-break { page-break-after: always; margin-bottom: 40px; }
           .page-break:last-child { page-break-after: auto; margin-bottom: 0; }
-          .head{border-bottom:3px solid #0f172a;padding-bottom:12px;margin-bottom:16px;display:flex;gap:16px;align-items:flex-start;}
+          .head{border-bottom:3px solid #0f172a;padding-bottom:12px;margin-bottom:16px;display:block;}
           .head-info { flex: 1; }
-          .head-foto { width: 120px; height: 120px; border-radius: 8px; object-fit: cover; border: 1px solid #cbd5e1; }
+          .head-foto { width: 100%; height: 360px; border-radius: 14px; object-fit: cover; border: 1px solid #cbd5e1; display: block; margin-bottom: 14px; }
           .tag{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#64748b;font-weight:bold}
           h1{font-size:26px;margin:4px 0}
           .meta{font-size:13px;color:#475569;font-weight:bold}
@@ -701,54 +735,43 @@ function FichasRunner() {
     listaDeFichas.forEach((f) => {
       const custoTotal = custoTotalDaFicha(f, fichas);
       const rows = (f.fichas_ingredientes || []).map(fi => {
-         let nome = '', unidade = '', custo = 0;
+         let nome = '', unidade = '';
          if (fi.insumos) {
             nome = fi.insumos.nome;
             unidade = fi.insumos.unidade_medida;
-            custo = fi.quantidade * (fi.insumos.custo_unitario || 0);
          } else if (fi.subficha_id) {
             const base = fichas.find(x => x.id === fi.subficha_id);
             nome = base ? base.nome_receita : 'Base excluída';
             unidade = base?.rendimento_unidade || 'un';
-            custo = base ? fi.quantidade * custoUnitBase(base, fichas) : 0;
          }
-         return `<tr><td>${nome}</td><td class="c">${fmtQtd(fi.quantidade, unidade)}</td><td class="r">R$ ${custo.toFixed(2)}</td></tr>`;
+         return `<tr><td>${nome}</td><td class="c">${fmtQtd(fi.quantidade, unidade)}</td></tr>`;
       }).join('');
       const rende = f.rendimento_porcoes || 1;
       const peso = infoPesoFicha(f, fichas);
-      const porcoesReais = peso?.porcoes || rende;
-      const custoPorcao = custoTotal / (porcoesReais || 1);
       const unR = String(f.rendimento_unidade || 'porcao').toLowerCase();
       const labelUnPrint = { porcao: `porç${rende > 1 ? 'ões' : 'ão'}`, kg: 'kg', g: 'g', l: 'L', ml: 'ml', un: 'un' }[unR] || unR;
-      const linhaRendeu = (unR !== 'porcao' && unR !== 'un' && peso?.porcoes && peso?.pesoPorcaoG)
-         ? ` — rendeu ${(+peso.porcoes.toFixed(1)).toLocaleString('pt-BR')} porções de ${peso.pesoPorcaoG}g`
-         : '';
-      const linhaPeso = peso
-         ? `<div class="meta">Peso total: ${fmtG(peso.pesoTotalG)}${peso.pesoPorcaoG ? ` (${peso.pesoPorcaoG}g por porção)` : ''} · ${peso.liquido ? '1 L' : '1 kg'} = R$ ${peso.custoKg.toFixed(2)}</div>`
-         : '';
+      // No lugar do rendimento por quantidade, mostra o PESO do prato (quando dá)
+      const linhaPesoOuRende = peso
+         ? `<div class="meta">Peso do prato: ${fmtG(peso.pesoTotalG)}</div>`
+         : `<div class="meta">Rendimento: ${Number(rende).toLocaleString('pt-BR')} ${labelUnPrint}</div>`;
 
       const tagFoto = f.imagem ? `<img src="data:image/jpeg;base64,${f.imagem}" class="head-foto" />` : '';
 
       conteudoHTML += `
          <div class="page-break">
             <div class="head">
+               ${tagFoto}
                <div class="head-info">
                   <div class="tag">Ficha Técnica${f.departamento ? ' — ' + f.departamento : ''}</div>
                   <h1>${f.nome_receita}</h1>
-                  <div class="meta">Rendimento: ${Number(rende).toLocaleString('pt-BR')} ${labelUnPrint}${linhaRendeu}</div>
-                  ${linhaPeso}
+                  ${linhaPesoOuRende}
                </div>
-               ${tagFoto}
             </div>
             <h2>Ingredientes</h2>
             <table>
-               <thead><tr><th>Ingrediente</th><th class="c">Quantidade</th><th class="r">Custo</th></tr></thead>
-               <tbody>${rows || '<tr><td colspan="3">Sem ingredientes cadastrados.</td></tr>'}</tbody>
+               <thead><tr><th>Ingrediente</th><th class="c">Quantidade</th></tr></thead>
+               <tbody>${rows || '<tr><td colspan="2">Sem ingredientes cadastrados.</td></tr>'}</tbody>
             </table>
-            <div class="totais">
-               <div>Custo por porção: <b>R$ ${custoPorcao.toFixed(2)}</b></div>
-               <div>Custo total: <b>R$ ${custoTotal.toFixed(2)}</b></div>
-            </div>
             <h2>Modo de Preparo</h2>
             <div class="preparo">${f.modo_preparo ? f.modo_preparo : 'Não informado.'}</div>
          </div>
@@ -943,57 +966,34 @@ function FichasRunner() {
          ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                {filtradas.map(f => {
-                  // Custo recursivo (resolve bases/sub-receitas)
-                  const custoFicha = custoTotalDaFicha(f, fichas);
                   const peso = infoPesoFicha(f, fichas);
-                  // Custo por porção: usa as porções REAIS (derivadas do peso quando
-                  // o rendimento é em kg/g/l/ml), senão divide pelo rendimento direto
-                  const custoPorcao = peso?.custoPorcao ?? (custoFicha / (f.rendimento_porcoes || 1));
                   const unR = String(f.rendimento_unidade || "porcao").toLowerCase();
-                  const labelUn = { porcao: "Porções", kg: "kg", g: "g", l: "L", ml: "ml", un: "un" }[unR] || unR;
+                  const labelUn = { porcao: "porções", kg: "kg", g: "g", l: "L", ml: "ml", un: "un" }[unR] || unR;
+                  const pesoTxt = peso ? `Peso: ${fmtG(peso.pesoTotalG)}` : `Rende: ${Number(f.rendimento_porcoes).toLocaleString("pt-BR")} ${labelUn}${unR === "porcao" && f.peso_porcao_g ? ` de ${f.peso_porcao_g}g` : ''}`;
 
                   return (
-                     <div key={f.id} className={`bg-white p-6 rounded-3xl border shadow-sm hover:shadow-md transition-shadow relative group flex flex-col ${selecionadas.includes(f.id) ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-slate-200'}`}>
-                        <div className="flex justify-between items-start mb-4">
-                           <div className="flex items-center gap-3">
-                              <label className="cursor-pointer">
-                                 <input type="checkbox" checked={selecionadas.includes(f.id)} onChange={() => toggleSelecionar(f.id)} className="w-5 h-5 accent-emerald-600 cursor-pointer rounded-md"/>
-                              </label>
-                              <span className={`w-10 h-10 rounded-full flex items-center justify-center ${f.departamento === 'bar' ? 'bg-slate-50 text-emerald-600' : 'bg-slate-50 text-emerald-600'}`}>
-                                 {f.departamento === 'bar' ? <Wine size={18}/> : <UtensilsCrossed size={18}/>}
-                              </span>
-                           </div>
-                           <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button onClick={() => imprimirFicha(f)} title="Imprimir ficha técnica" className="p-2 bg-slate-50 rounded-lg text-slate-500 hover:text-emerald-600"><Printer size={16}/></button>
-                              <button onClick={() => abrirEditar(f)} className="p-2 bg-slate-50 rounded-lg text-slate-500 hover:text-emerald-600"><Edit3 size={16}/></button>
-                              <button onClick={() => handleRemover(f.id)} className="p-2 bg-slate-50 rounded-lg text-slate-500 hover:text-emerald-600"><Trash2 size={16}/></button>
+                     <div key={f.id} className={`bg-white rounded-3xl border shadow-sm hover:shadow-md transition-shadow relative group flex flex-col overflow-hidden ${selecionadas.includes(f.id) ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-slate-200'}`}>
+                        {/* Foto do prato em destaque */}
+                        <div className="h-44 bg-slate-100 relative">
+                           {f.imagem ? (
+                              <img src={`data:image/jpeg;base64,${f.imagem}`} alt={f.nome_receita} className="w-full h-full object-cover" />
+                           ) : (
+                              <div className="w-full h-full flex items-center justify-center text-slate-300">
+                                 {f.departamento === 'bar' ? <Wine size={52}/> : <UtensilsCrossed size={52}/>}
+                              </div>
+                           )}
+                           <label className="absolute top-3 left-3 bg-white/90 backdrop-blur rounded-md p-1 cursor-pointer shadow-sm">
+                              <input type="checkbox" checked={selecionadas.includes(f.id)} onChange={() => toggleSelecionar(f.id)} className="w-5 h-5 accent-emerald-600 cursor-pointer rounded-md block"/>
+                           </label>
+                           <div className="absolute top-3 right-3 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button onClick={() => imprimirFicha(f)} title="Imprimir ficha técnica" className="p-2 bg-white/90 backdrop-blur rounded-lg text-slate-600 hover:text-emerald-600 shadow-sm"><Printer size={16}/></button>
+                              <button onClick={() => abrirEditar(f)} className="p-2 bg-white/90 backdrop-blur rounded-lg text-slate-600 hover:text-emerald-600 shadow-sm"><Edit3 size={16}/></button>
+                              <button onClick={() => handleRemover(f.id)} className="p-2 bg-white/90 backdrop-blur rounded-lg text-slate-600 hover:text-rose-600 shadow-sm"><Trash2 size={16}/></button>
                            </div>
                         </div>
-                        <h3 className="text-xl font-black text-slate-800 leading-tight mb-1">{f.nome_receita}</h3>
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">
-                           Rende: {Number(f.rendimento_porcoes).toLocaleString("pt-BR")} {labelUn}
-                           {unR === "porcao" && f.peso_porcao_g ? ` de ${f.peso_porcao_g}g` : ''}
-                        </p>
-                        {!peso ? <div className="mb-4"/> : (
-                           <div className="mb-4">
-                              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                 Peso total: {fmtG(peso.pesoTotalG)} · {peso.liquido ? '1 L' : '1 kg'} = <span className="text-emerald-600">{fmtBRL(peso.custoKg)}</span>
-                              </p>
-                              {/* Quando rende em peso e tem porção definida: mostra quantas porções saíram */}
-                              {unR !== "porcao" && unR !== "un" && peso.porcoes !== null && peso.pesoPorcaoG && (
-                                 <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mt-0.5">
-                                    = {(+peso.porcoes.toFixed(1)).toLocaleString("pt-BR")} porções de {peso.pesoPorcaoG}g
-                                 </p>
-                              )}
-                           </div>
-                        )}
-
-                        <div className="mt-auto pt-4 border-t border-slate-100 flex justify-between items-end">
-                           <div>
-                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Custo / Porção</p>
-                              <p className="text-2xl font-black text-emerald-600">{fmtBRL(custoPorcao)}</p>
-                           </div>
-                           <p className="text-[10px] font-bold text-slate-500 bg-slate-50 px-2 py-1 rounded-md">Total: {fmtBRL(custoFicha)}</p>
+                        <div className="p-5">
+                           <h3 className="text-xl font-black text-slate-800 leading-tight mb-1">{f.nome_receita}</h3>
+                           <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{pesoTxt}</p>
                         </div>
                      </div>
                   );
@@ -1472,7 +1472,7 @@ function FichasRunner() {
                                     <span className="text-[10px] font-black text-slate-500 uppercase w-9 text-center">{unidadeLabel}</span>
                                  )}
                               </div>
-                              <button onClick={() => removeIngrediente(ing.chave)} className="p-2 text-slate-500 hover:text-slate-600 transition-colors bg-white rounded-lg border border-slate-200">
+                              <button onClick={() => { setSubstitutoValor(""); setSubstituirAlvo(ing); }} title="Remover ou substituir" className="p-2 text-slate-500 hover:text-rose-600 transition-colors bg-white rounded-lg border border-slate-200">
                                  <Trash2 size={14}/>
                               </button>
                            </div>
@@ -1489,6 +1489,37 @@ function FichasRunner() {
                   <button onClick={handleSalvar} className="w-full py-5 bg-slate-900 hover:bg-slate-800 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-slate-900/20 active:scale-95 flex items-center justify-center gap-2">
                      <Save size={20}/> Salvar Receita ({fmtBRL(calcularCustoTotal(ingFicha))})
                   </button>
+               </div>
+            </div>
+         </div>
+      )}
+
+      {/* REMOVER / SUBSTITUIR INGREDIENTE DA FICHA */}
+      {substituirAlvo && (
+         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4" onClick={fecharSubstituicao}>
+            <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
+               <div className="flex items-start justify-between mb-1">
+                  <h3 className="text-xl font-black text-slate-800">Remover “{substituirAlvo.nome}”</h3>
+                  <button onClick={fecharSubstituicao} className="text-slate-400 hover:text-slate-600 p-1"><X size={20}/></button>
+               </div>
+               <p className="text-sm font-medium text-slate-500 mb-4">Quer substituir por outro ingrediente cadastrado ou só remover?</p>
+
+               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Substituir por (opcional)</label>
+               <select value={substitutoValor} onChange={e => setSubstitutoValor(e.target.value)} className="w-full mt-1 mb-4 p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-600 outline-none focus:border-emerald-500 text-sm">
+                  <option value="">Escolher um ingrediente...</option>
+                  <optgroup label="Insumos">
+                     {insumosAtivos.filter(i => i.id !== substituirAlvo.chave).map(i => <option key={i.id} value={`insumo:${i.id}`}>{i.nome} ({i.unidade_medida})</option>)}
+                  </optgroup>
+                  {basesDisponiveis.filter(b => b.id !== substituirAlvo.chave).length > 0 && (
+                     <optgroup label="Bases / Pré-preparos">
+                        {basesDisponiveis.filter(b => b.id !== substituirAlvo.chave).map(b => <option key={b.id} value={`base:${b.id}`}>{b.nome_receita} ({b.rendimento_unidade})</option>)}
+                     </optgroup>
+                  )}
+               </select>
+
+               <div className="flex gap-3">
+                  <button onClick={soRemover} className="flex-1 py-3 rounded-xl font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors">Não, só remover</button>
+                  <button onClick={confirmarSubstituicao} disabled={!substitutoValor} className="flex-1 py-3 rounded-xl font-black bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">Substituir</button>
                </div>
             </div>
          </div>

@@ -166,16 +166,20 @@ export const atualizarFuncionario = async (id, dados) => {
 };
 export const atualizarColaborador = atualizarFuncionario;
 
-// Ordem do colaborador dentro da área na escala (arrastar para reordenar).
-// Se a coluna `ordem_escala` ainda não existir, o retry a remove (no-op).
-export async function atualizarOrdemEscala(id, ordem_escala) {
+// Escala: grava a ordem e/ou a área do colaborador (arrastar para reordenar e
+// mover entre áreas). Se as colunas `ordem_escala`/`area_escala` ainda não
+// existirem, o retry as remove (no-op) até rodar a migração.
+export async function atualizarEscalaColab(id, campos) {
   if (!isSupabaseReady()) return { error: "Offline" };
-  const campos = { ordem_escala };
-  let { error } = await supabase.from("colaboradores").update(campos).eq("id", id);
+  const c = { ...campos };
+  let { error } = await supabase.from("colaboradores").update(c).eq("id", id);
   error = await colabRetrySemColuna(error, async () => {
-    const r = await supabase.from("colaboradores").update(campos).eq("id", id); return r.error;
-  }, campos);
+    const r = await supabase.from("colaboradores").update(c).eq("id", id); return r.error;
+  }, c);
   return { error: error?.message };
+}
+export async function atualizarOrdemEscala(id, ordem_escala) {
+  return atualizarEscalaColab(id, { ordem_escala });
 }
 
 export async function fetchPontoMes(unidadeId, mesAno) { return { data: [], error: null }; }

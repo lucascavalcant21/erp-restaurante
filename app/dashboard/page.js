@@ -12,7 +12,7 @@ import { fmtBRL, fmtPct } from "../components/ui";
 
 import { fetchFichas } from "../lib/operacao";
 import { fetchProdutos } from "../lib/vendas";
-import { fetchColaboradores, fetchAllFolgasDaUnidade, fetchBancoHoras, atualizarOrdemEscala, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN } from "../lib/rh";
+import { fetchColaboradores, fetchAllFolgasDaUnidade, fetchBancoHoras, atualizarEscalaColab, atualizarOrdemEscala, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN } from "../lib/rh";
 import { fetchContas } from "../lib/financeiro";
 import { fetchEstoque } from "../lib/estoque";
 import { fetchManutencoes } from "../lib/controles_cozinha";
@@ -165,13 +165,13 @@ export default function DashboardGestao() {
       .map(([id, min]) => ({ id, min, nome: colaboradores.find(c => c.id === id)?.nome || "Colaborador", estourou: min >= BANCO_LIMITE_MIN }))
       .sort((a, b) => b.min - a.min);
 
-    // Escala da semana por área (extras entram junto, marcados)
-    const comArea = ativos.map(c => ({ ...c, _area: areaDoCargo(c.cargo), _extra: ehExtra(c) }));
+    // Escala da semana por área (extras entram junto, marcados).
+    // Área = a atribuída manualmente (area_escala) ou deduzida do cargo.
+    const comArea = ativos.map(c => ({ ...c, _area: c.area_escala || areaDoCargo(c.cargo), _extra: ehExtra(c) }));
     const escalaPorArea = {};
     AREAS_ESCALA.forEach(a => {
-      const lista = comArea.filter(c => c._area === a)
+      escalaPorArea[a] = comArea.filter(c => c._area === a)
         .sort((x, y) => ((x.ordem_escala ?? 1e9) - (y.ordem_escala ?? 1e9)) || String(x.nome).localeCompare(String(y.nome), "pt-BR"));
-      if (lista.length) escalaPorArea[a] = lista;
     });
     const extrasCount = comArea.filter(c => c._extra).length;
 
@@ -184,18 +184,28 @@ export default function DashboardGestao() {
     };
   }, [dados]);
 
-  // Arrastar para reordenar um colaborador dentro da sua área na escala
+  // Arrastar na escala: move o colaborador para uma área (mesma ou outra) na
+  // posição do alvo. Grava a área e a nova ordem de todos da área.
   const [dragEscalaId, setDragEscalaId] = useState(null);
-  const reordenarEscala = async (area, fromId, toId) => {
-    if (!fromId || fromId === toId || !m?.escalaPorArea?.[area]) return;
-    const ids = m.escalaPorArea[area].map(c => c.id);
-    const from = ids.indexOf(fromId), to = ids.indexOf(toId);
-    if (from < 0 || to < 0) return;
-    const nova = [...ids]; nova.splice(from, 1); nova.splice(to, 0, fromId);
-    const ordemMap = {}; nova.forEach((id, i) => { ordemMap[id] = i; });
-    setDados(d => ({ ...d, colaboradores: d.colaboradores.map(c => ordemMap[c.id] !== undefined ? { ...c, ordem_escala: ordemMap[c.id] } : c) }));
+  const moverParaArea = async (area, colabId, alvoId) => {
+    if (!colabId || !m?.escalaPorArea) return;
+    const atual = (m.escalaPorArea[area] || []).filter(c => c.id !== colabId);
+    const ids = atual.map(c => c.id);
+    let pos = alvoId ? ids.indexOf(alvoId) : ids.length;
+    if (pos < 0) pos = ids.length;
+    ids.splice(pos, 0, colabId);
+    const ordemMap = {}; ids.forEach((id, i) => { ordemMap[id] = i; });
+    setDados(d => ({
+      ...d,
+      colaboradores: d.colaboradores.map(c => {
+        if (c.id === colabId) return { ...c, area_escala: area, ordem_escala: ordemMap[c.id] };
+        if (ordemMap[c.id] !== undefined) return { ...c, ordem_escala: ordemMap[c.id] };
+        return c;
+      }),
+    }));
     setDragEscalaId(null);
-    for (const id of nova) await atualizarOrdemEscala(id, ordemMap[id]);
+    await atualizarEscalaColab(colabId, { area_escala: area, ordem_escala: ordemMap[colabId] });
+    for (const id of ids) if (id !== colabId) await atualizarOrdemEscala(id, ordemMap[id]);
   };
 
   if (!unidadeAtiva || unidadeAtiva === "todas") {
@@ -281,7 +291,7 @@ export default function DashboardGestao() {
         escalaPorArea={m.escalaPorArea}
         dragId={dragEscalaId}
         setDragId={setDragEscalaId}
-        onReorder={reordenarEscala}
+        onMover={moverParaArea}
         onVerTudo={() => router.push("/dashboard/rh")}
       />
 
@@ -411,8 +421,10 @@ const CORES_AREA = {
 
 // Escala da semana: colaboradores agrupados por área, extras marcados,
 // arraste para reordenar cada um dentro da sua área.
-function EscalaSemana({ escalaPorArea, dragId, setDragId, onReorder, onVerTudo }) {
-  const areas = AREAS_ESCALA.filter(a => escalaPorArea[a]?.length);
+function EscalaSemana({ escalaPorArea, dragId, setDragId, onMover, onVerTudo }) {
+  // Áreas fixas sempre visíveis (mesmo vazias) + "Outros" só quando tiver gente
+  const areas = ["Salão", "Bar", "Cozinha", "Caixa", "Louça"];
+  if (escalaPorArea["Outros"]?.length) areas.push("Outros");
   return (
     <div className="erp-card p-6">
       <div className="flex items-center justify-between mb-5">
@@ -424,59 +436,64 @@ function EscalaSemana({ escalaPorArea, dragId, setDragId, onReorder, onVerTudo }
         </button>
       </div>
 
-      {areas.length === 0 ? (
-        <p className="text-sm font-medium py-6 text-center" style={{ color: "var(--dim)" }}>Nenhum colaborador ativo para escalar.</p>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {areas.map(area => {
-            const cor = CORES_AREA[area] || "#94A3B8";
-            return (
-              <div key={area} className="rounded-2xl border p-3" style={{ borderColor: "var(--line)" }}>
-                <div className="flex items-center gap-2 mb-2.5 px-1">
-                  <span className="w-2.5 h-2.5 rounded-full" style={{ background: cor }} />
-                  <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: "var(--fg-soft)" }}>{area}</span>
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "var(--elevated)", color: "var(--muted)" }}>{escalaPorArea[area].length}</span>
-                </div>
-                <div className="space-y-1.5">
-                  {escalaPorArea[area].map(c => (
-                    <div key={c.id}
-                      draggable onDragStart={() => setDragId(c.id)} onDragEnd={() => setDragId(null)}
-                      onDragOver={e => { if (dragId) e.preventDefault(); }}
-                      onDrop={() => onReorder(area, dragId, c.id)}
-                      className={`flex items-center gap-2 p-2 rounded-xl flex-wrap sm:flex-nowrap ${dragId === c.id ? "opacity-50" : ""}`}
-                      style={{ background: "var(--elevated)" }}>
-                      <GripVertical size={14} className="cursor-grab active:cursor-grabbing shrink-0" style={{ color: "var(--dim)" }} />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-bold truncate flex items-center gap-1.5" style={{ color: "var(--fg-soft)" }}>
-                          {c.nome}
-                          {c._extra && <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: "rgba(245,158,11,0.15)", color: "#B45309" }}>Extra</span>}
-                        </p>
-                        <p className="text-[10px] font-medium truncate" style={{ color: "var(--dim)" }}>{c.cargo || "—"}</p>
-                      </div>
-                      <div className="flex gap-0.5 shrink-0">
-                        {DIAS_SEMANA.map(([d, lbl]) => {
-                          const on = String(c.dias_trabalho || "").split(",").map(s => s.trim()).includes(d);
-                          return (
-                            <span key={d} title={lbl} className="w-5 h-5 rounded flex items-center justify-center text-[9px] font-black"
-                              style={{ background: on ? cor + "22" : "transparent", color: on ? cor : "var(--faint)", border: on ? `1px solid ${cor}55` : "1px solid var(--line)" }}>
-                              {lbl[0]}
-                            </span>
-                          );
-                        })}
-                      </div>
-                      <span className="text-[10px] font-bold shrink-0 text-right w-[86px]" style={{ color: "var(--muted)" }}>
-                        {(c.horario_entrada || c.horario_saida) ? `${c.horario_entrada || "?"}–${c.horario_saida || "?"}` : "—"}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {areas.map(area => {
+          const cor = CORES_AREA[area] || "#94A3B8";
+          const lista = escalaPorArea[area] || [];
+          return (
+            <div key={area}
+              onDragOver={e => { if (dragId) e.preventDefault(); }}
+              onDrop={() => onMover(area, dragId, null)}
+              className="rounded-2xl border p-3 transition-colors"
+              style={{ borderColor: dragId ? cor + "66" : "var(--line)", background: dragId ? cor + "08" : "transparent" }}>
+              <div className="flex items-center gap-2 mb-2.5 px-1">
+                <span className="w-2.5 h-2.5 rounded-full" style={{ background: cor }} />
+                <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: "var(--fg-soft)" }}>{area}</span>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "var(--elevated)", color: "var(--muted)" }}>{lista.length}</span>
               </div>
-            );
-          })}
-        </div>
-      )}
+              <div className="space-y-1.5 min-h-[44px]">
+                {lista.length === 0 ? (
+                  <div className="flex items-center justify-center h-11 rounded-xl border border-dashed text-[11px] font-bold" style={{ borderColor: "var(--line)", color: "var(--dim)" }}>
+                    Arraste alguém para cá
+                  </div>
+                ) : lista.map(c => (
+                  <div key={c.id}
+                    draggable onDragStart={() => setDragId(c.id)} onDragEnd={() => setDragId(null)}
+                    onDragOver={e => { if (dragId) e.preventDefault(); }}
+                    onDrop={e => { e.stopPropagation(); onMover(area, dragId, c.id); }}
+                    className={`flex items-center gap-2 p-2 rounded-xl flex-wrap sm:flex-nowrap ${dragId === c.id ? "opacity-50" : ""}`}
+                    style={{ background: "var(--elevated)" }}>
+                    <GripVertical size={14} className="cursor-grab active:cursor-grabbing shrink-0" style={{ color: "var(--dim)" }} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold truncate flex items-center gap-1.5" style={{ color: "var(--fg-soft)" }}>
+                        {c.nome}
+                        {c._extra && <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: "rgba(245,158,11,0.15)", color: "#B45309" }}>Extra</span>}
+                      </p>
+                      <p className="text-[10px] font-medium truncate" style={{ color: "var(--dim)" }}>{c.cargo || "—"}</p>
+                    </div>
+                    <div className="flex gap-0.5 shrink-0">
+                      {DIAS_SEMANA.map(([d, lbl]) => {
+                        const on = String(c.dias_trabalho || "").split(",").map(s => s.trim()).includes(d);
+                        return (
+                          <span key={d} title={lbl} className="w-5 h-5 rounded flex items-center justify-center text-[9px] font-black"
+                            style={{ background: on ? cor + "22" : "transparent", color: on ? cor : "var(--faint)", border: on ? `1px solid ${cor}55` : "1px solid var(--line)" }}>
+                            {lbl[0]}
+                          </span>
+                        );
+                      })}
+                    </div>
+                    <span className="text-[10px] font-bold shrink-0 text-right w-[86px]" style={{ color: "var(--muted)" }}>
+                      {(c.horario_entrada || c.horario_saida) ? `${c.horario_entrada || "?"}–${c.horario_saida || "?"}` : "—"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
       <p className="text-[10px] font-medium mt-4" style={{ color: "var(--dim)" }}>
-        Letras = dias da semana (Dom → Sáb). Arraste pela alça para reordenar cada pessoa na sua área.
+        Arraste uma pessoa para outra área para trocá-la de função. Letras = dias da semana (Dom → Sáb).
       </p>
     </div>
   );

@@ -4,20 +4,36 @@ import { useState, useEffect, useMemo } from "react";
 import { useERP } from "../context/ERPContext";
 import {
   Percent, Users, Wallet, ShoppingCart, PackageX, CalendarClock,
-  Sparkles, Wind, AlertCircle, Clock, Megaphone, ChefHat, ArrowRight, CheckCircle2
+  Sparkles, Wind, AlertCircle, Clock, Megaphone, ChefHat, ArrowRight, CheckCircle2,
+  GripVertical, UserPlus, CalendarDays
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { fmtBRL, fmtPct } from "../components/ui";
 
 import { fetchFichas } from "../lib/operacao";
 import { fetchProdutos } from "../lib/vendas";
-import { fetchColaboradores, fetchAllFolgasDaUnidade, fetchBancoHoras, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN } from "../lib/rh";
+import { fetchColaboradores, fetchAllFolgasDaUnidade, fetchBancoHoras, atualizarOrdemEscala, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN } from "../lib/rh";
 import { fetchContas } from "../lib/financeiro";
 import { fetchEstoque } from "../lib/estoque";
 import { fetchManutencoes } from "../lib/controles_cozinha";
 import { fetchCampanhas } from "../lib/clientes";
 
 const META_CMV = 30; // % alvo máximo de CMV
+
+// Áreas da escala e como deduzir a área pelo cargo
+const AREAS_ESCALA = ["Salão", "Bar", "Cozinha", "Caixa", "Louça", "Outros"];
+function areaDoCargo(cargo) {
+  const c = (cargo || "").toLowerCase();
+  if (/(caixa|financ|tesour|recep)/.test(c)) return "Caixa";
+  if (/(lou[çc]a|copa|steward|lavagem|higieniz)/.test(c)) return "Louça";
+  if (/(cozinh|chapeir|confeit|pizzai|sushi|salgad|padeir|churrasqueir|a[cç]ougue|chefe de fila)/.test(c)) return "Cozinha";
+  if (/(\bbar\b|barman|bartender|barista|copeir)/.test(c)) return "Bar";
+  if (/(gar[çc]|atendente|sal[aã]o|hostess|maitre|maître|comand|gerente|supervisor)/.test(c)) return "Salão";
+  return "Outros";
+}
+const ehExtra = (c) => /(freela|extra|diarist|volante|tempor)/i.test(c?.tipo_contrato || "");
+// getDay(): 0=Dom … 6=Sáb
+const DIAS_SEMANA = [["0", "Dom"], ["1", "Seg"], ["2", "Ter"], ["3", "Qua"], ["4", "Qui"], ["5", "Sex"], ["6", "Sáb"]];
 
 // ── Cálculo de custo de ficha (reaproveitado da tela de CMV) ──────────────────
 function custoTotalDaFicha(f, todasFichas, guard = new Set()) {
@@ -149,13 +165,38 @@ export default function DashboardGestao() {
       .map(([id, min]) => ({ id, min, nome: colaboradores.find(c => c.id === id)?.nome || "Colaborador", estourou: min >= BANCO_LIMITE_MIN }))
       .sort((a, b) => b.min - a.min);
 
+    // Escala da semana por área (extras entram junto, marcados)
+    const comArea = ativos.map(c => ({ ...c, _area: areaDoCargo(c.cargo), _extra: ehExtra(c) }));
+    const escalaPorArea = {};
+    AREAS_ESCALA.forEach(a => {
+      const lista = comArea.filter(c => c._area === a)
+        .sort((x, y) => ((x.ordem_escala ?? 1e9) - (y.ordem_escala ?? 1e9)) || String(x.nome).localeCompare(String(y.nome), "pt-BR"));
+      if (lista.length) escalaPorArea[a] = lista;
+    });
+    const extrasCount = comArea.filter(c => c._extra).length;
+
     return {
       cmvMedio, cmvAcima, cmvCount: cmvs.length,
       folhaMes, ativosCount: ativos.length,
       equipeHoje, totalContasMes, contasVencendo,
       semEstoque, limpezasVencendo, campanhasAtivas, bancoAlertas,
+      escalaPorArea, extrasCount,
     };
   }, [dados]);
+
+  // Arrastar para reordenar um colaborador dentro da sua área na escala
+  const [dragEscalaId, setDragEscalaId] = useState(null);
+  const reordenarEscala = async (area, fromId, toId) => {
+    if (!fromId || fromId === toId || !m?.escalaPorArea?.[area]) return;
+    const ids = m.escalaPorArea[area].map(c => c.id);
+    const from = ids.indexOf(fromId), to = ids.indexOf(toId);
+    if (from < 0 || to < 0) return;
+    const nova = [...ids]; nova.splice(from, 1); nova.splice(to, 0, fromId);
+    const ordemMap = {}; nova.forEach((id, i) => { ordemMap[id] = i; });
+    setDados(d => ({ ...d, colaboradores: d.colaboradores.map(c => ordemMap[c.id] !== undefined ? { ...c, ordem_escala: ordemMap[c.id] } : c) }));
+    setDragEscalaId(null);
+    for (const id of nova) await atualizarOrdemEscala(id, ordemMap[id]);
+  };
 
   if (!unidadeAtiva || unidadeAtiva === "todas") {
     return (
@@ -207,7 +248,7 @@ export default function DashboardGestao() {
 
       {/* KPIs de gestão */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-        <Kpi icon={Percent} label="CMV médio da carta"
+        <Kpi icon={Percent} label="CMV médio"
           value={m.cmvCount ? fmtPct(m.cmvMedio) : "—"}
           sub={m.cmvCount ? (cmvBom ? "dentro da meta de 30%" : `${m.cmvAcima} prato(s) acima da meta`) : "sem fichas precificadas"}
           tintBg={cmvBom ? "rgba(5,150,105,0.12)" : "rgba(239,68,68,0.12)"}
@@ -228,21 +269,24 @@ export default function DashboardGestao() {
           value={m.equipeHoje.length} sub="funcionários escalados hoje"
           tintBg="rgba(139,92,246,0.10)" tintFg="#7C3AED"
           onClick={() => router.push("/dashboard/rh/ponto")} />
+
+        <Kpi icon={UserPlus} label="Extras contratados"
+          value={m.extrasCount} sub="freelancers / diaristas ativos"
+          tintBg="rgba(245,158,11,0.12)" tintFg="#B45309"
+          onClick={() => router.push("/dashboard/rh")} />
       </div>
 
-      {/* Painéis operacionais */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      {/* Escala da semana — por área, com extras e ordenação por arraste */}
+      <EscalaSemana
+        escalaPorArea={m.escalaPorArea}
+        dragId={dragEscalaId}
+        setDragId={setDragEscalaId}
+        onReorder={reordenarEscala}
+        onVerTudo={() => router.push("/dashboard/rh")}
+      />
 
-        {/* Programação de funcionários — hoje */}
-        <PainelLista
-          titulo="Programação de Hoje" icon={Users} corIcon="#7C3AED"
-          vazio="Ninguém escalado para hoje." acao={() => router.push("/dashboard/rh/ponto")}
-          itens={m.equipeHoje.slice(0, 6).map(c => ({
-            id: c.id, principal: c.nome, secundario: c.cargo || "—",
-            direita: (c.horario_entrada || c.horario_saida) ? `${c.horario_entrada || "?"} – ${c.horario_saida || "?"}` : "",
-          }))}
-          contador={m.equipeHoje.length}
-        />
+      {/* Painéis operacionais */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
         {/* Comprar / repor estoque */}
         <PainelLista
@@ -355,6 +399,85 @@ function PainelLista({ titulo, icon: Icon, corIcon, itens, vazio, acao, contador
       <button onClick={acao} className="mt-4 text-xs font-bold flex items-center gap-1 self-start" style={{ color: "var(--accent-strong)" }}>
         Ver tudo <ArrowRight size={13} />
       </button>
+    </div>
+  );
+}
+
+// Cores por área da escala
+const CORES_AREA = {
+  "Salão": "#0EA5E9", "Bar": "#8B5CF6", "Cozinha": "#F59E0B",
+  "Caixa": "#10B981", "Louça": "#64748B", "Outros": "#94A3B8",
+};
+
+// Escala da semana: colaboradores agrupados por área, extras marcados,
+// arraste para reordenar cada um dentro da sua área.
+function EscalaSemana({ escalaPorArea, dragId, setDragId, onReorder, onVerTudo }) {
+  const areas = AREAS_ESCALA.filter(a => escalaPorArea[a]?.length);
+  return (
+    <div className="erp-card p-6">
+      <div className="flex items-center justify-between mb-5">
+        <h3 className="text-lg font-black flex items-center gap-2" style={{ color: "var(--fg)" }}>
+          <CalendarDays size={20} style={{ color: "#7C3AED" }} /> Escala da Semana
+        </h3>
+        <button onClick={onVerTudo} className="text-xs font-bold flex items-center gap-1" style={{ color: "var(--accent-strong)" }}>
+          Gerir no RH <ArrowRight size={13} />
+        </button>
+      </div>
+
+      {areas.length === 0 ? (
+        <p className="text-sm font-medium py-6 text-center" style={{ color: "var(--dim)" }}>Nenhum colaborador ativo para escalar.</p>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {areas.map(area => {
+            const cor = CORES_AREA[area] || "#94A3B8";
+            return (
+              <div key={area} className="rounded-2xl border p-3" style={{ borderColor: "var(--line)" }}>
+                <div className="flex items-center gap-2 mb-2.5 px-1">
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ background: cor }} />
+                  <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: "var(--fg-soft)" }}>{area}</span>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "var(--elevated)", color: "var(--muted)" }}>{escalaPorArea[area].length}</span>
+                </div>
+                <div className="space-y-1.5">
+                  {escalaPorArea[area].map(c => (
+                    <div key={c.id}
+                      draggable onDragStart={() => setDragId(c.id)} onDragEnd={() => setDragId(null)}
+                      onDragOver={e => { if (dragId) e.preventDefault(); }}
+                      onDrop={() => onReorder(area, dragId, c.id)}
+                      className={`flex items-center gap-2 p-2 rounded-xl flex-wrap sm:flex-nowrap ${dragId === c.id ? "opacity-50" : ""}`}
+                      style={{ background: "var(--elevated)" }}>
+                      <GripVertical size={14} className="cursor-grab active:cursor-grabbing shrink-0" style={{ color: "var(--dim)" }} />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold truncate flex items-center gap-1.5" style={{ color: "var(--fg-soft)" }}>
+                          {c.nome}
+                          {c._extra && <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: "rgba(245,158,11,0.15)", color: "#B45309" }}>Extra</span>}
+                        </p>
+                        <p className="text-[10px] font-medium truncate" style={{ color: "var(--dim)" }}>{c.cargo || "—"}</p>
+                      </div>
+                      <div className="flex gap-0.5 shrink-0">
+                        {DIAS_SEMANA.map(([d, lbl]) => {
+                          const on = String(c.dias_trabalho || "").split(",").map(s => s.trim()).includes(d);
+                          return (
+                            <span key={d} title={lbl} className="w-5 h-5 rounded flex items-center justify-center text-[9px] font-black"
+                              style={{ background: on ? cor + "22" : "transparent", color: on ? cor : "var(--faint)", border: on ? `1px solid ${cor}55` : "1px solid var(--line)" }}>
+                              {lbl[0]}
+                            </span>
+                          );
+                        })}
+                      </div>
+                      <span className="text-[10px] font-bold shrink-0 text-right w-[86px]" style={{ color: "var(--muted)" }}>
+                        {(c.horario_entrada || c.horario_saida) ? `${c.horario_entrada || "?"}–${c.horario_saida || "?"}` : "—"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <p className="text-[10px] font-medium mt-4" style={{ color: "var(--dim)" }}>
+        Letras = dias da semana (Dom → Sáb). Arraste pela alça para reordenar cada pessoa na sua área.
+      </p>
     </div>
   );
 }

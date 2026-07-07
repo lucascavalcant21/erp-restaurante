@@ -50,7 +50,11 @@ export default function GerenciarChecklistsPage() {
   const [modalNovo, setModalNovo] = useState(false);
   const [modalModelos, setModalModelos] = useState(false);
   const [criandoTudo, setCriandoTudo] = useState(false);
-  const [form, setForm] = useState({ id: null, departamento: "cozinha", tipo: "abertura", titulo: "", frequencia: "diario", itens: [{ id: 1, texto: "", responsavel: "" }] });
+  const [form, setForm] = useState({ id: null, departamento: "cozinha", tipo: "abertura", titulo: "", frequencia: "diario", itens: [{ id: 1, texto: "", categoria: "", responsavel: "" }] });
+
+  // Montar por IA (organiza em título + categorias + tópicos)
+  const [contextoIA, setContextoIA] = useState("");
+  const [montandoIA, setMontandoIA] = useState(false);
 
   const carregar = async () => {
     setLoading(true);
@@ -62,15 +66,18 @@ export default function GerenciarChecklistsPage() {
   useEffect(() => { if (unidadeAtiva) carregar(); }, [unidadeAtiva]);
 
   const abrirNovo = () => {
-    setForm({ id: null, departamento: "cozinha", tipo: "abertura", titulo: "", frequencia: "diario", itens: [{ id: 1, texto: "", responsavel: "" }] });
+    setForm({ id: null, departamento: "cozinha", tipo: "abertura", titulo: "", frequencia: "diario", itens: [{ id: 1, texto: "", categoria: "", responsavel: "" }] });
+    setContextoIA("");
     setModalNovo(true);
   };
   const abrirEditar = (t) => {
-    setForm({ frequencia: "diario", ...t, itens: t.itens?.length ? t.itens.map(i => ({ responsavel: "", ...i })) : [{ id: 1, texto: "", responsavel: "" }] });
+    setForm({ frequencia: "diario", ...t, itens: t.itens?.length ? t.itens.map(i => ({ categoria: "", responsavel: "", ...i })) : [{ id: 1, texto: "", categoria: "", responsavel: "" }] });
+    setContextoIA("");
     setModalNovo(true);
   };
 
-  const addTarefa = () => setForm(f => ({ ...f, itens: [...f.itens, { id: Date.now(), texto: "", responsavel: "" }] }));
+  // Nova tarefa herda a categoria da última (facilita montar por blocos)
+  const addTarefa = () => setForm(f => ({ ...f, itens: [...f.itens, { id: Date.now(), texto: "", categoria: f.itens[f.itens.length - 1]?.categoria || "", responsavel: "" }] }));
   const mudaTarefa = (id, patch) => setForm(f => ({ ...f, itens: f.itens.map(i => i.id === id ? { ...i, ...patch } : i) }));
   const removeTarefa = (id) => setForm(f => ({ ...f, itens: f.itens.filter(i => i.id !== id) }));
 
@@ -89,6 +96,24 @@ export default function GerenciarChecklistsPage() {
       titulo: f.titulo.trim() || modelo.titulo,
       itens: modelo.itens.map((texto, i) => ({ id: Date.now() + i, texto, responsavel: "" })),
     }));
+  };
+
+  // Monta o checklist inteiro por IA: título + tarefas organizadas em categorias
+  const montarPorIA = async () => {
+    setMontandoIA(true);
+    try {
+      const res = await fetch("/api/ia-checklist", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ departamento: form.departamento, tipo: form.tipo, contexto: contextoIA, unidade_nome: unidadeInfo?.nome }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) { alert(data.error || "Falha ao montar o checklist."); return; }
+      setForm(f => ({
+        ...f,
+        titulo: f.titulo.trim() || data.titulo || "",
+        itens: (data.itens || []).map((i, idx) => ({ id: Date.now() + idx, texto: i.texto || "", categoria: i.categoria || "", responsavel: "" })),
+      }));
+    } catch { alert("Não consegui falar com a IA."); } finally { setMontandoIA(false); }
   };
 
   // Cria de uma vez TODOS os modelos de um setor que ainda não existem
@@ -215,14 +240,18 @@ export default function GerenciarChecklistsPage() {
   // ── Impressão: folha do checklist com responsáveis, check e visto ─────────
   const imprimirChecklist = (t) => {
     const itens = t.itens || [];
-    const linhas = itens.map((it, i) => `
-      <tr>
+    let catAtual = null;
+    const linhas = itens.map((it, i) => {
+      const cat = (it.categoria || "").trim();
+      const header = cat && cat !== catAtual ? (catAtual = cat, `<tr class="cat"><td colspan="5">${cat}</td></tr>`) : "";
+      return `${header}<tr>
         <td class="n">${i + 1}</td>
         <td class="tarefa">${it.texto || ""}</td>
         <td class="resp">${it.responsavel || ""}</td>
         <td class="check"><span class="box"></span></td>
         <td class="visto"></td>
-      </tr>`).join("");
+      </tr>`;
+    }).join("");
     const extras = Array.from({ length: 3 }).map((_, i) => `
       <tr>
         <td class="n">${itens.length + i + 1}</td>
@@ -247,6 +276,7 @@ export default function GerenciarChecklistsPage() {
         table{width:100%;border-collapse:collapse}
         th,td{border:1px solid #333;padding:7px 6px;font-size:12px;vertical-align:middle}
         th{background:#eee;text-transform:uppercase;letter-spacing:.5px;font-size:9px}
+        tr.cat td{background:#f3e8ff;color:#6b21a8;font-weight:bold;text-transform:uppercase;letter-spacing:1px;font-size:10px;height:auto;padding:5px 6px}
         td{height:30px}
         td.n{width:5%;text-align:center;color:#666}
         td.tarefa{width:45%}
@@ -479,6 +509,24 @@ export default function GerenciarChecklistsPage() {
                 </button>
               )}
 
+              {/* Montar tudo por IA: organiza em título + categorias + tópicos */}
+              <div className="rounded-2xl border border-violet-200 bg-violet-50/60 p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-8 h-8 rounded-xl bg-violet-600 text-white flex items-center justify-center shrink-0"><Sparkles size={16} /></div>
+                  <div>
+                    <p className="font-black text-sm text-violet-900 leading-tight">Montar tudo por IA</p>
+                    <p className="text-[11px] font-medium text-violet-700">Organiza o checklist em categorias e tópicos para o {form.departamento === "bar" ? "barman/bartender" : "responsável"} executar</p>
+                  </div>
+                </div>
+                <textarea rows={2} value={contextoIA} onChange={e => setContextoIA(e.target.value)}
+                  placeholder="Opcional: detalhe o que não pode faltar (ex: conferir chopeira, repor gelo, higienizar dosadores...)"
+                  className="w-full p-3 bg-white border border-violet-200 rounded-xl font-medium text-sm outline-none focus:border-violet-500 resize-none mb-2" />
+                <button type="button" onClick={montarPorIA} disabled={montandoIA}
+                  className="w-full flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-bold text-sm py-3 rounded-xl transition-colors disabled:opacity-60">
+                  {montandoIA ? <><Loader2 size={16} className="animate-spin" /> Montando checklist...</> : <><Sparkles size={16} /> Montar por IA</>}
+                </button>
+              </div>
+
               <div>
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Título do Checklist</label>
                 <input type="text" placeholder={form.departamento === "cozinha" ? "Ex: Mise en Place do Almoço" : "Ex: Abertura do Salão"} value={form.titulo} onChange={e => setForm({ ...form, titulo: e.target.value })} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500" />
@@ -496,35 +544,60 @@ export default function GerenciarChecklistsPage() {
                 </div>
               </div>
 
+              <datalist id="categorias-checklist">
+                {[...new Set(form.itens.map(i => (i.categoria || "").trim()).filter(Boolean))].map(c => <option key={c} value={c} />)}
+              </datalist>
+
               <div className="pt-4 border-t border-slate-100">
                 <div className="flex items-baseline justify-between mb-3">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tarefas</label>
-                  <span className="text-[10px] font-medium text-slate-400">Responsável em branco = quem executar escreve o nome na folha</span>
+                  <span className="text-[10px] font-medium text-slate-400">Categoria agrupa as tarefas · responsável em branco = quem executar escreve o nome</span>
                 </div>
                 <div className="space-y-2.5">
-                  {form.itens.map((it, i) => (
-                    <div key={it.id} className="flex items-center gap-2">
-                      <span className="w-6 text-center font-black text-slate-400 text-sm shrink-0">{i + 1}.</span>
-                      <input
-                        type="text"
-                        placeholder="O que deve ser feito?"
-                        value={it.texto}
-                        onChange={e => mudaTarefa(it.id, { texto: e.target.value })}
-                        className="flex-1 p-3 bg-white border border-slate-200 rounded-lg font-medium outline-none focus:border-emerald-500"
-                      />
-                      <div className="relative shrink-0 w-40">
-                        <User size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  {form.itens.map((it, i) => {
+                    const catAnterior = i > 0 ? (form.itens[i - 1].categoria || "").trim() : null;
+                    const catAtual = (it.categoria || "").trim();
+                    const novaCategoria = catAtual && catAtual !== catAnterior;
+                    return (
+                    <div key={it.id}>
+                      {novaCategoria && (
+                        <div className="flex items-center gap-2 mt-4 mb-1.5">
+                          <Layers size={13} className="text-violet-500 shrink-0" />
+                          <span className="text-[11px] font-black uppercase tracking-widest text-violet-700">{catAtual}</span>
+                          <div className="flex-1 h-px bg-violet-100" />
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 text-center font-black text-slate-400 text-sm shrink-0">{i + 1}.</span>
                         <input
                           type="text"
-                          placeholder="Responsável"
-                          value={it.responsavel || ""}
-                          onChange={e => mudaTarefa(it.id, { responsavel: e.target.value })}
-                          className="w-full p-3 pl-8 bg-slate-50 border border-slate-200 rounded-lg font-medium text-sm outline-none focus:border-emerald-500"
+                          placeholder="O que deve ser feito?"
+                          value={it.texto}
+                          onChange={e => mudaTarefa(it.id, { texto: e.target.value })}
+                          className="flex-1 p-3 bg-white border border-slate-200 rounded-lg font-medium outline-none focus:border-emerald-500"
                         />
+                        <input
+                          type="text"
+                          list="categorias-checklist"
+                          placeholder="Categoria"
+                          value={it.categoria || ""}
+                          onChange={e => mudaTarefa(it.id, { categoria: e.target.value })}
+                          className="shrink-0 w-32 p-3 bg-violet-50 border border-violet-200 rounded-lg font-medium text-sm outline-none focus:border-violet-500"
+                        />
+                        <div className="relative shrink-0 w-36">
+                          <User size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                          <input
+                            type="text"
+                            placeholder="Responsável"
+                            value={it.responsavel || ""}
+                            onChange={e => mudaTarefa(it.id, { responsavel: e.target.value })}
+                            className="w-full p-3 pl-8 bg-slate-50 border border-slate-200 rounded-lg font-medium text-sm outline-none focus:border-emerald-500"
+                          />
+                        </div>
+                        <button onClick={() => removeTarefa(it.id)} className="p-2.5 text-slate-400 hover:text-red-500 transition-colors shrink-0"><Trash2 size={17} /></button>
                       </div>
-                      <button onClick={() => removeTarefa(it.id)} className="p-2.5 text-slate-400 hover:text-red-500 transition-colors shrink-0"><Trash2 size={17} /></button>
                     </div>
-                  ))}
+                  );})}
                 </div>
                 <button onClick={addTarefa} className="mt-4 text-emerald-600 font-bold text-sm flex items-center gap-1 hover:text-emerald-800">
                   <Plus size={16} /> Adicionar Tarefa

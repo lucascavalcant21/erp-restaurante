@@ -141,14 +141,18 @@ function RotinaRunner() {
 
   /* ─── Impressão ─── */
   const imprimir = (tmpl) => {
-    const itensHtml = (tmpl.itens || []).map((it, i) => `
-      <tr>
+    let catImpr = null;
+    const itensHtml = (tmpl.itens || []).map((it, i) => {
+      const cat = (it.categoria || "").trim();
+      const header = cat && cat !== catImpr ? (catImpr = cat, `<tr class="cat"><td colspan="5">${cat}</td></tr>`) : "";
+      return `${header}<tr>
         <td class="n">${i + 1}</td>
         <td class="tarefa">${it.texto || ""}</td>
         <td class="resp">${it.responsavel || ""}</td>
         <td class="check"><span class="box"></span></td>
         <td class="visto"></td>
-      </tr>`).join("");
+      </tr>`;
+    }).join("");
     const extras = Array.from({ length: 3 }).map((_, i) => `
       <tr>
         <td class="n">${(tmpl.itens?.length || 0) + i + 1}</td>
@@ -174,6 +178,7 @@ function RotinaRunner() {
         table{width:100%;border-collapse:collapse}
         th,td{border:1px solid #333;padding:8px 6px;font-size:12px;vertical-align:middle}
         th{background:${corDept}22;text-transform:uppercase;letter-spacing:.5px;font-size:9px;color:${corDept}}
+        tr.cat td{background:${corDept}18;color:${corDept};font-weight:bold;text-transform:uppercase;letter-spacing:1px;font-size:10px;height:auto;padding:5px 6px}
         td{height:32px}
         td.n{width:5%;text-align:center;color:#666}
         td.tarefa{width:45%}
@@ -213,8 +218,12 @@ function RotinaRunner() {
     if (!templates.length) return alert("Nenhum checklist para imprimir.");
     const corDept = t.cor;
     const bloco = (tmpl) => {
-      const linhas = (tmpl.itens || []).map((it, i) => `
-        <tr><td class="n">${i + 1}</td><td class="tarefa">${it.texto || ""}</td><td class="resp">${it.responsavel || ""}</td><td class="check"><span class="box"></span></td><td class="visto"></td></tr>`).join("");
+      let catB = null;
+      const linhas = (tmpl.itens || []).map((it, i) => {
+        const cat = (it.categoria || "").trim();
+        const header = cat && cat !== catB ? (catB = cat, `<tr class="cat"><td colspan="5">${cat}</td></tr>`) : "";
+        return `${header}<tr><td class="n">${i + 1}</td><td class="tarefa">${it.texto || ""}</td><td class="resp">${it.responsavel || ""}</td><td class="check"><span class="box"></span></td><td class="visto"></td></tr>`;
+      }).join("");
       const extras = Array.from({ length: 2 }).map((_, i) => `
         <tr><td class="n">${(tmpl.itens?.length || 0) + i + 1}</td><td class="tarefa"></td><td class="resp"></td><td class="check"><span class="box"></span></td><td class="visto"></td></tr>`).join("");
       return `<section>
@@ -241,6 +250,7 @@ function RotinaRunner() {
         table{width:100%;border-collapse:collapse}
         th,td{border:1px solid #333;padding:8px 6px;font-size:12px;vertical-align:middle}
         th{background:${corDept}22;text-transform:uppercase;letter-spacing:.5px;font-size:9px;color:${corDept}}
+        tr.cat td{background:${corDept}18;color:${corDept};font-weight:bold;text-transform:uppercase;letter-spacing:1px;font-size:10px;height:auto;padding:5px 6px}
         td{height:32px}td.n{width:5%;text-align:center;color:#666}td.tarefa{width:45%}td.resp{width:22%}td.check{width:8%;text-align:center}td.visto{width:20%}
         .box{display:inline-block;width:14px;height:14px;border:2px solid #333;border-radius:3px}
         .assin{margin-top:24px;display:flex;justify-content:space-between;gap:40px}.assin div{flex:1;border-top:1px solid #333;padding-top:5px;font-size:10px;text-align:center;color:#444}
@@ -307,8 +317,15 @@ function RotinaRunner() {
               {itens.map((it, i) => {
                 const ok = !!respostas[it.id]?.marcado;
                 const aberto = exp === it.id;
+                const cat = (it.categoria || "").trim();
+                const catAnterior = i > 0 ? (itens[i - 1].categoria || "").trim() : null;
+                const mostrarCat = cat && cat !== catAnterior;
                 return (
-                  <div key={it.id} className="erp-card !p-0 overflow-hidden transition-all duration-200"
+                  <div key={it.id}>
+                  {mostrarCat && (
+                    <p className="text-[10px] font-black uppercase tracking-widest mt-4 mb-1.5 px-1" style={{ color: t.cor }}>{cat}</p>
+                  )}
+                  <div className="erp-card !p-0 overflow-hidden transition-all duration-200"
                     style={{ borderColor: ok ? t.cor : undefined, borderWidth: ok ? 2 : undefined, boxShadow: ok ? `0 4px 20px ${t.cor}15` : undefined }}>
                     <div className="flex items-center gap-3 px-4 py-3.5">
                       <button onClick={() => toggle(it.id)} className="flex-shrink-0 active:scale-90 transition-all duration-200">
@@ -345,6 +362,7 @@ function RotinaRunner() {
                           onClick={e => e.stopPropagation()} />
                       </div>
                     )}
+                  </div>
                   </div>
                 );
               })}

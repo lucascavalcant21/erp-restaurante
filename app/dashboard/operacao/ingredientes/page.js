@@ -46,8 +46,9 @@ function IngredientesRunner() {
   
   const tamanhoReal = Number(form.tamanho_embalagem) || 1;
   const valorPagoReal = Number(form.valor_embalagem) || 0;
-  // Sem cálculo: o valor pago é usado direto (não divide pelo volume)
-  const custoBase = valorPagoReal;
+  // Exibimos o valor pago cheio, mas o CUSTO POR UNIDADE (usado na ficha/CMV) é o
+  // valor pago dividido pelo tamanho: 200 ml por R$2 = R$0,01/ml (100 ml = R$1).
+  const custoBase = valorPagoReal / tamanhoReal;
   const custoRealForm = custoBase ? custoBase / (aproveitamentoForm / 100) : 0;
 
   // Empanamento: fator de ganho de peso (1000g in natura -> 1360g empanado = 1,36)
@@ -115,7 +116,7 @@ function IngredientesRunner() {
   const buscaLower = busca.toLowerCase();
   const filtrados = insumos.filter(i =>
     (!deptUrl || (i.departamento || "").toLowerCase() === deptUrl) &&
-    (i.nome.toLowerCase().includes(buscaLower) || (i.marca || "").toLowerCase().includes(buscaLower)) &&
+    (i.nome.toLowerCase().includes(buscaLower) || (i.marca || "").toLowerCase().includes(buscaLower) || (i.categoria || "").toLowerCase().includes(buscaLower)) &&
     (catFiltro === "Todas" || (i.categoria || "Outros") === catFiltro)
   );
   const categoriasDept = CATEGORIAS_INSUMO[deptUrl || "cozinha"] || CATEGORIAS_INSUMO.cozinha;
@@ -249,9 +250,12 @@ function IngredientesRunner() {
     const tamEmb = Number(form.tamanho_embalagem) || 1;
     if(tamEmb <= 0) return alert("Tamanho/Volume da embalagem deve ser maior que zero");
 
-    // Sem cálculo: o custo é o valor pago (+ frete quando houver), sem dividir pelo volume
+    // valorPago = valor cheio pago (para exibir na lista, sem cálculo).
+    // custoPorUnidade = valor pago dividido pelo tamanho (para a ficha/CMV usarem
+    // proporcionalmente: 200 ml por R$2 → R$0,01/ml → 100 ml custam R$1).
     const freteTotal = Number(form.frete) || 0;
-    const custoCompra = valorEmb + freteTotal;
+    const valorPago = valorEmb + freteTotal;
+    const custoPorUnidade = valorPago / tamEmb;
 
     const bruto = Number(form.peso_bruto_g) || 0;
     const limpo = Number(form.peso_liquido_g) || 0;
@@ -259,7 +263,7 @@ function IngredientesRunner() {
     if (bruto > 0 && limpo > bruto) return alert("O peso limpo não pode ser maior que o peso bruto.");
 
     const pct = bruto > 0 ? (limpo / bruto) * 100 : 100;
-    const custoLimpo = custoCompra / (pct / 100);
+    const custoLimpo = custoPorUnidade / (pct / 100);
 
     // Empanamento: soma o custo dos ingredientes de empanar e divide pelo ganho de peso
     let fator = null;
@@ -284,7 +288,7 @@ function IngredientesRunner() {
        categoria: form.categoria || adivinharCategoria(form.nome, form.departamento, form.marca) || "Outros",
        unidade_medida: form.unidade_medida,
        unidade_id: unidadeAtiva,
-       custo_compra: custoCompra,
+       custo_compra: valorPago,
        frete: freteTotal || null,
        tamanho_embalagem: tamEmb,
        peso_medio_g: form.peso_medio_g ? Number(form.peso_medio_g) : null,
@@ -386,7 +390,7 @@ function IngredientesRunner() {
       <div className="max-w-5xl mx-auto px-6 mt-8">
          <div className="bg-white p-3 rounded-2xl border border-slate-200 mb-4 flex items-center gap-3 shadow-sm">
             <Search size={20} className="text-slate-500 ml-2" />
-            <input type="text" placeholder="Buscar por nome ou marca..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-bold text-slate-700 p-2" />
+            <input type="text" placeholder="Buscar por nome, marca ou categoria..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-bold text-slate-700 p-2" />
          </div>
 
          {/* Filtro por categoria (varia conforme cozinha/bar) */}
@@ -459,9 +463,14 @@ function IngredientesRunner() {
                          <span className="text-[9px] font-black text-slate-400">≈ {Number(ins.peso_medio_g).toLocaleString('pt-BR')}{String(ins.departamento).toLowerCase() === 'bar' ? 'ml' : 'g'}</span>
                        )}
                      </div>
-                     {/* Valor pago (direto, sem cálculo; corrige só se houver perda de limpeza) */}
+                     {/* Valor pago cheio + custo por unidade (usado na ficha) */}
                      <div className="w-36 text-center">
-                       <span className="font-black text-xl text-emerald-600">{fmtBRL(ins.custo_unitario)}</span>
+                       <span className="font-black text-xl text-emerald-600">{fmtBRL(ins.custo_compra ?? ins.custo_unitario)}</span>
+                       {Number(ins.tamanho_embalagem) > 1 && (
+                         <p className="text-[10px] font-bold text-slate-500 mt-0.5" title="Custo por unidade usado na ficha técnica e no CMV">
+                           {fmtBRL(ins.custo_unitario)} / {ins.unidade_medida}
+                         </p>
+                       )}
                        {Number(ins.aproveitamento_pct) > 0 && Number(ins.aproveitamento_pct) < 100 && (
                          <p className="text-[9px] font-black uppercase tracking-widest text-red-500 mt-0.5" title={`Valor pago: ${fmtBRL(ins.custo_compra)} · aproveitamento ${Number(ins.aproveitamento_pct).toFixed(0)}%`}>
                            perda {(100 - Number(ins.aproveitamento_pct)).toFixed(0)}%
@@ -643,7 +652,7 @@ function IngredientesRunner() {
                   <div>
                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Frete (opcional)</label>
                      <input type="number" step="0.01" min="0" placeholder="0,00" value={form.frete || ""} onChange={e=>setForm({...form, frete: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500"/>
-                     <p className="text-[10px] text-slate-400 font-medium mt-1">Para produtos de fora: o valor do frete é somado direto ao valor pago.</p>
+                     <p className="text-[10px] text-slate-400 font-medium mt-1">Para produtos de fora: o valor do frete é somado ao valor pago antes de calcular o custo por unidade.</p>
                   </div>
 
                   {/* Medida de referência: quanto pesa/rende 1 unidade (tomate 1 un = 100g,
@@ -730,7 +739,7 @@ function IngredientesRunner() {
                   </div>
 
                   <p className="text-[11px] font-medium text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-100 mt-4">
-                     Dica: informe o volume, a unidade e o valor que você pagou — sem cálculo. Ex.: leite condensado 395 ml por R$ 2,50 → Vol "395", Unidade "ML", Valor "2,50". Fica assim mesmo e já pode ir para a ficha técnica.
+                     Dica: informe o volume, a unidade e o valor que você pagou. Ex.: creme de leite 200 ml por R$ 2,00 → Vol "200", Unidade "ML", Valor "2,00". Na lista aparece o valor cheio (R$ 2,00) e o custo por ml (R$ 0,01); na ficha técnica, ao usar 100 ml ele já sai R$ 1,00.
                   </p>
                </div>
 

@@ -13,6 +13,20 @@ export async function fetchInsumos(unidadeId, dept) {
   return { data: data || [], error: error?.message };
 }
 
+// Se o banco reclamar de uma coluna ainda não criada (ex: categoria, frete,
+// preco_atualizado_em), remove essa coluna do payload e tenta de novo — assim
+// o cadastro nunca quebra por falta de migração.
+async function retrySemColunaAusente(error, tentar, campos, tentativas = 0) {
+  const m = error?.message || "";
+  const match = m.match(/column "?([a-z_]+)"? (?:of relation "insumos" )?does not exist/i)
+    || (m.includes("Could not find") && m.match(/'([a-z_]+)' column/i));
+  if (error && match && tentativas < 6) {
+    const col = match[1];
+    if (col in campos) { delete campos[col]; return retrySemColunaAusente(await tentar(), tentar, campos, tentativas + 1); }
+  }
+  return error;
+}
+
 export async function salvarInsumo(insumo) {
   if (!isSupabaseReady()) return { error: "Offline" };
 
@@ -41,21 +55,17 @@ export async function salvarInsumo(insumo) {
       }
     } catch { /* histórico é acessório */ }
     let { error } = await supabase.from("insumos").update(campos).eq("id", id);
-    // Colunas novas ainda não criadas no banco: salva sem elas
-    if (error?.message?.includes("preco_atualizado_em") || error?.message?.includes("tamanho_embalagem")) {
-      delete campos.preco_atualizado_em;
-      delete campos.tamanho_embalagem;
-      ({ error } = await supabase.from("insumos").update(campos).eq("id", id));
-    }
+    error = await retrySemColunaAusente(error, async () => {
+      const r = await supabase.from("insumos").update(campos).eq("id", id); return r.error;
+    }, campos);
     return { id, error: error?.message };
   } else {
     campos.preco_atualizado_em = new Date().toISOString();
-    let { data, error } = await supabase.from("insumos").insert([campos]).select("id").single();
-    if (error?.message?.includes("preco_atualizado_em") || error?.message?.includes("tamanho_embalagem")) {
-      delete campos.preco_atualizado_em;
-      delete campos.tamanho_embalagem;
-      ({ data, error } = await supabase.from("insumos").insert([campos]).select("id").single());
-    }
+    let res = await supabase.from("insumos").insert([campos]).select("id").single();
+    let data = res.data, error = res.error;
+    error = await retrySemColunaAusente(error, async () => {
+      const r = await supabase.from("insumos").insert([campos]).select("id").single(); data = r.data; return r.error;
+    }, campos);
     // Registro inicial de preço no histórico (custo_anterior nulo = cadastro)
     if (data?.id) {
       try {

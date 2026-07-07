@@ -21,6 +21,10 @@ function fmtDataHora(d) {
   const p = (n) => String(n).padStart(2, "0");
   return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${String(d.getFullYear()).slice(2)} - ${p(d.getHours())}H${p(d.getMinutes())}`;
 }
+function fmtData(d) {
+  const p = (n) => String(n).padStart(2, "0");
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`;
+}
 
 function EtiquetasRunner() {
   const { unidadeAtiva, unidadeInfo } = useERP();
@@ -36,6 +40,9 @@ function EtiquetasRunner() {
   const [codigo, setCodigo] = useState(gerarCodigo());
   const [tamanho, setTamanho] = useState("60x60"); // "60x60" | "60x40"
   const [validadeModo, setValidadeModo] = useState("dias"); // "dias" | "data"
+  // "aberto" = produto aberto/manipulado (mostra data e hora de manipulação);
+  // "dia" = só validade (etiquetar a data de validade, sem manipulação)
+  const [tipoEtiqueta, setTipoEtiqueta] = useState("aberto");
   const [dataValidade, setDataValidade] = useState("");
   const [presets, setPresets] = useState([]);
   const [novoPreset, setNovoPreset] = useState({ nome: "", dias: "" });
@@ -181,6 +188,19 @@ function EtiquetasRunner() {
             </Card>
 
             <Card>
+              {/* Tipo da etiqueta: produto aberto (manipulação) ou só validade */}
+              <div className="mb-4">
+                <p className="erp-label mb-2">Tipo de etiqueta</p>
+                <div className="flex gap-1.5">
+                  {[["aberto", "Produto aberto (manipulação)"], ["dia", "Só validade do dia"]].map(([m, l]) => (
+                    <button key={m} onClick={() => setTipoEtiqueta(m)} className="flex-1 py-2.5 rounded-lg text-[12px] font-bold transition-all"
+                      style={tipoEtiqueta === m ? { background: "var(--accent-strong)", color: "#fff" } : { background: "var(--panel)", color: "var(--muted)", border: "1px solid var(--line)" }}>{l}</button>
+                  ))}
+                </div>
+                <p className="text-[10px] font-medium mt-1.5" style={{ color: "var(--dim)" }}>
+                  {tipoEtiqueta === "aberto" ? "Registra data e hora da abertura/manipulação + a validade." : "Só a validade — para etiquetar produto lacrado ou preparo do dia."}
+                </p>
+              </div>
               <div className="grid grid-cols-3 gap-3">
                 <Field label="Peso do Produto"><NumberInput value={form.quantidade} onChange={(e) => set("quantidade", e.target.value)} placeholder="0.00" /></Field>
                 <Field label="Unidade"><Select value={form.unidade} onChange={(e) => set("unidade", e.target.value)}>{UNIDADES.map((u) => <option key={u}>{u}</option>)}</Select></Field>
@@ -251,10 +271,12 @@ function EtiquetasRunner() {
                       <span>{form.conservacao.toUpperCase()}</span>
                       <span>PESO: {form.quantidade}{form.unidade !== "UN" ? " " + form.unidade : ""}</span>
                     </div>
-                    {/* manipulação + validade */}
+                    {/* manipulação (só se produto aberto) + validade */}
                     <div style={{ padding: "0.8mm 0", borderBottom: "0.4mm solid #000" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", whiteSpace: "nowrap", fontSize: dim.linha, fontWeight: 700 }}><span>MANIPULACAO:</span><span>{fmtDataHora(agora)}</span></div>
-                      <div style={{ display: "flex", justifyContent: "space-between", whiteSpace: "nowrap", fontSize: dim.linha, fontWeight: 700, marginTop: "0.4mm" }}><span>VALIDADE:</span><span>{fmtDataHora(validadeEm)}</span></div>
+                      {tipoEtiqueta === "aberto" && (
+                        <div style={{ display: "flex", justifyContent: "space-between", whiteSpace: "nowrap", fontSize: dim.linha, fontWeight: 700 }}><span>MANIPULACAO:</span><span>{fmtDataHora(agora)}</span></div>
+                      )}
+                      <div style={{ display: "flex", justifyContent: "space-between", whiteSpace: "nowrap", fontSize: dim.linha, fontWeight: 700, marginTop: tipoEtiqueta === "aberto" ? "0.4mm" : 0 }}><span>VALIDADE:</span><span>{tipoEtiqueta === "aberto" ? fmtDataHora(validadeEm) : fmtData(validadeEm)}</span></div>
                     </div>
                     {/* responsável */}
                     <div style={{ fontSize: dim.linha, fontWeight: 700, marginTop: "1mm" }}>RESP.: {(form.responsavel || "—").toUpperCase()}</div>

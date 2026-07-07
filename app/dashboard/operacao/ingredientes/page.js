@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchInsumos, salvarInsumo, removerInsumo, fetchHistoricoPrecos } from "../../../lib/operacao";
+import { CATEGORIAS_INSUMO, adivinharCategoria } from "../../../lib/categorias-insumo";
 import { FlaskConical, Plus, Search, Trash2, Edit3, X, Save, ArrowLeft, CheckCircle2, AlertTriangle, Sparkles, Loader2, Camera, History, TrendingUp, TrendingDown } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
@@ -32,7 +33,8 @@ function IngredientesRunner() {
   // custo_compra = preço como comprado; peso bruto/limpo calculam a perda de limpeza
   // (casca, espinha, apara). Se for empanado, soma o custo do empanamento e divide
   // pelo ganho de peso. custo_unitario salvo no banco = custo REAL do kg PRONTO.
-  const [form, setForm] = useState({ id: null, departamento: deptUrl || "cozinha", nome: "", marca: "", unidade_medida: "kg", tamanho_embalagem: "1", valor_embalagem: "", custo_compra: "", peso_medio_g: "", peso_bruto_g: "", peso_liquido_g: "", eh_empanado: false, custo_empanamento: "", peso_in_natura_g: "", peso_empanado_g: "" });
+  const [form, setForm] = useState({ id: null, departamento: deptUrl || "cozinha", nome: "", marca: "", categoria: "", unidade_medida: "kg", tamanho_embalagem: "1", valor_embalagem: "", custo_compra: "", frete: "", peso_medio_g: "", peso_bruto_g: "", peso_liquido_g: "", eh_empanado: false, custo_empanamento: "", peso_in_natura_g: "", peso_empanado_g: "", categoria_manual: false });
+  const [catFiltro, setCatFiltro] = useState("Todas");
 
   // Aproveitamento (%) derivado dos pesos: 650g limpos de 1000g brutos = 65%
   const aproveitamentoForm = (() => {
@@ -108,17 +110,23 @@ function IngredientesRunner() {
     if (unidadeAtiva) carregar();
   }, [unidadeAtiva, deptUrl]);
 
-  const filtrados = insumos.filter(i => i.nome.toLowerCase().includes(busca.toLowerCase()));
+  // Busca por nome OU marca; filtro por categoria
+  const buscaLower = busca.toLowerCase();
+  const filtrados = insumos.filter(i =>
+    (i.nome.toLowerCase().includes(buscaLower) || (i.marca || "").toLowerCase().includes(buscaLower)) &&
+    (catFiltro === "Todas" || (i.categoria || "Outros") === catFiltro)
+  );
+  const categoriasDept = CATEGORIAS_INSUMO[deptUrl || "cozinha"] || CATEGORIAS_INSUMO.cozinha;
 
   // Reseta para a 1ª página quando a busca, o filtro ou os dados mudam
-  useEffect(() => { setPagina(1); }, [busca, deptUrl, insumos.length]);
+  useEffect(() => { setPagina(1); }, [busca, catFiltro, deptUrl, insumos.length]);
 
   const totalPaginas = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
   const paginaAtual = Math.min(pagina, totalPaginas);
   const paginados = filtrados.slice((paginaAtual - 1) * PAGE_SIZE, paginaAtual * PAGE_SIZE);
 
   const abrirNovo = () => {
-    setForm({ id: null, departamento: deptUrl || "cozinha", nome: "", marca: "", unidade_medida: "kg", tamanho_embalagem: "1", valor_embalagem: "", custo_compra: "", peso_medio_g: "", peso_bruto_g: "", peso_liquido_g: "", eh_empanado: false, custo_empanamento: "", peso_in_natura_g: "", peso_empanado_g: "" });
+    setForm({ id: null, departamento: deptUrl || "cozinha", nome: "", marca: "", categoria: "", unidade_medida: "kg", tamanho_embalagem: "1", valor_embalagem: "", custo_compra: "", frete: "", peso_medio_g: "", peso_bruto_g: "", peso_liquido_g: "", eh_empanado: false, custo_empanamento: "", peso_in_natura_g: "", peso_empanado_g: "", categoria_manual: false });
     setModalNovo(true);
   };
 
@@ -131,10 +139,13 @@ function IngredientesRunner() {
       departamento: ins.departamento,
       nome: ins.nome,
       marca: ins.marca || "",
+      categoria: ins.categoria || adivinharCategoria(ins.nome, ins.departamento, ins.marca) || "",
+      categoria_manual: !!ins.categoria,
+      frete: ins.frete || "",
       unidade_medida: ins.unidade_medida,
       tamanho_embalagem: String(ins.tamanho_embalagem || "1"),
       valor_embalagem: ins.tamanho_embalagem
-        ? Math.round((ins.custo_compra ?? ins.custo_unitario) * ins.tamanho_embalagem * 100) / 100
+        ? Math.round(((ins.custo_compra ?? ins.custo_unitario) * ins.tamanho_embalagem - (Number(ins.frete) || 0)) * 100) / 100
         : (ins.custo_compra ?? ins.custo_unitario),
       custo_compra: ins.custo_compra ?? ins.custo_unitario,
       peso_medio_g: ins.peso_medio_g || "",
@@ -238,7 +249,9 @@ function IngredientesRunner() {
     const tamEmb = Number(form.tamanho_embalagem) || 1;
     if(tamEmb <= 0) return alert("Tamanho/Volume da embalagem deve ser maior que zero");
 
-    const custoCompra = valorEmb / tamEmb;
+    // Frete (produtos de fora): rateado pelo tamanho da embalagem e somado ao custo/un
+    const freteTotal = Number(form.frete) || 0;
+    const custoCompra = (valorEmb + freteTotal) / tamEmb;
 
     const bruto = Number(form.peso_bruto_g) || 0;
     const limpo = Number(form.peso_liquido_g) || 0;
@@ -268,9 +281,11 @@ function IngredientesRunner() {
        departamento: form.departamento,
        nome: form.nome,
        marca: form.marca,
+       categoria: form.categoria || adivinharCategoria(form.nome, form.departamento, form.marca) || "Outros",
        unidade_medida: form.unidade_medida,
        unidade_id: unidadeAtiva,
        custo_compra: custoCompra,
+       frete: freteTotal || null,
        tamanho_embalagem: tamEmb,
        peso_medio_g: form.peso_medio_g ? Number(form.peso_medio_g) : null,
        aproveitamento_pct: pct < 100 ? Math.round(pct * 100) / 100 : null,
@@ -353,9 +368,19 @@ function IngredientesRunner() {
       </div>
 
       <div className="max-w-5xl mx-auto px-6 mt-8">
-         <div className="bg-white p-3 rounded-2xl border border-slate-200 mb-6 flex items-center gap-3 shadow-sm">
+         <div className="bg-white p-3 rounded-2xl border border-slate-200 mb-4 flex items-center gap-3 shadow-sm">
             <Search size={20} className="text-slate-500 ml-2" />
-            <input type="text" placeholder="Buscar ingrediente..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-bold text-slate-700 p-2" />
+            <input type="text" placeholder="Buscar por nome ou marca..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-bold text-slate-700 p-2" />
+         </div>
+
+         {/* Filtro por categoria (varia conforme cozinha/bar) */}
+         <div className="flex gap-2 overflow-x-auto pb-2 mb-4" style={{ scrollbarWidth: "none" }}>
+            {["Todas", ...categoriasDept].map(c => (
+               <button key={c} onClick={() => setCatFiltro(c)}
+                  className={`flex-shrink-0 px-3.5 py-1.5 rounded-full font-bold text-xs transition-all ${catFiltro === c ? "bg-slate-900 text-white shadow-md" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>
+                  {c}
+               </button>
+            ))}
          </div>
 
          <div className="inline-flex gap-1 p-1 mb-6 rounded-xl bg-slate-100">
@@ -398,6 +423,7 @@ function IngredientesRunner() {
                          <p className="font-bold text-slate-800 text-[15px] leading-tight truncate">{ins.nome}{ins.marca ? <span className="text-slate-400 font-medium"> · {ins.marca}</span> : null}</p>
                          <div className="flex items-center gap-1.5 mt-1">
                            <span className={`inline-block text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${deptColor}`}>{ins.departamento}</span>
+                           {ins.categoria && <span className="inline-block text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">{ins.categoria}</span>}
                            {ins.eh_empanado && Number(ins.fator_empanamento) > 0 && (
                              <span className="inline-block text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-sky-100 text-sky-700" title={`1 kg in natura vira ${Number(ins.fator_empanamento).toLocaleString('pt-BR', { maximumFractionDigits: 3 })} kg empanado`}>
                                empanado {Number(ins.fator_empanamento) > 1 ? '+' : ''}{((Number(ins.fator_empanamento) - 1) * 100).toFixed(0)}%
@@ -555,12 +581,26 @@ function IngredientesRunner() {
 
                   <div>
                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nome do Ingrediente</label>
-                     <input type="text" placeholder="Ex: Tomate" value={form.nome} onChange={e=>setForm({...form, nome: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                     <input type="text" placeholder="Ex: Tomate" value={form.nome} onChange={e=>{
+                        const nome = e.target.value;
+                        // Enquanto você digita, o sistema adivinha a categoria (se você não escolheu manualmente)
+                        const sugerida = form.categoria_manual ? form.categoria : (adivinharCategoria(nome, form.departamento, form.marca) || form.categoria);
+                        setForm({...form, nome, categoria: sugerida});
+                     }} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
                   </div>
 
-                  <div>
-                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Marca (opcional)</label>
-                     <input type="text" placeholder="Ex: Carmem" value={form.marca || ""} onChange={e=>setForm({...form, marca: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
+                  <div className="grid grid-cols-2 gap-4">
+                     <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Marca (opcional)</label>
+                        <input type="text" placeholder="Ex: Carmem" value={form.marca || ""} onChange={e=>setForm({...form, marca: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
+                     </div>
+                     <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1">Categoria {!form.categoria_manual && form.categoria && <span className="text-[9px] font-black text-emerald-600">(auto)</span>}</label>
+                        <select value={form.categoria || ""} onChange={e=>setForm({...form, categoria: e.target.value, categoria_manual: true})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500">
+                           <option value="">Selecione...</option>
+                           {(CATEGORIAS_INSUMO[form.departamento] || CATEGORIAS_INSUMO.cozinha).map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                     </div>
                   </div>
 
                   <div className="grid grid-cols-3 gap-4">
@@ -582,6 +622,13 @@ function IngredientesRunner() {
                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Valor Pago</label>
                         <input type="number" step="0.01" min="0" max="999999.99" placeholder="0.00" value={form.valor_embalagem} onChange={e=>setForm({...form, valor_embalagem: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-emerald-600 outline-none focus:border-emerald-500"/>
                      </div>
+                  </div>
+
+                  {/* Frete (produtos que vêm de fora): soma no custo do ingrediente */}
+                  <div>
+                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Frete (opcional)</label>
+                     <input type="number" step="0.01" min="0" placeholder="0,00" value={form.frete || ""} onChange={e=>setForm({...form, frete: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500"/>
+                     <p className="text-[10px] text-slate-400 font-medium mt-1">Para produtos de fora: o valor do frete é somado ao custo e rateado pela embalagem.</p>
                   </div>
 
                   {/* Medida de referência: quanto pesa/rende 1 unidade (tomate 1 un = 100g,

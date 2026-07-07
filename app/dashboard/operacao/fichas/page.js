@@ -734,24 +734,26 @@ function FichasRunner() {
        <!DOCTYPE html><html><head><meta charset="utf-8"/><title>Livro de Receitas</title>
        <style>
           *{margin:0;padding:0;box-sizing:border-box}
-          body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;padding:24px;max-width:720px;margin:0 auto}
+          body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;padding:22px;max-width:760px;margin:0 auto}
           .page-break { page-break-after: always; margin-bottom: 40px; }
           .page-break:last-child { page-break-after: auto; margin-bottom: 0; }
-          .head{border-bottom:3px solid #0f172a;padding-bottom:12px;margin-bottom:16px;display:block;}
+          .head{border-bottom:4px solid #0f172a;padding-bottom:14px;margin-bottom:18px;display:block;}
           .head-info { flex: 1; }
-          .head-foto { width: 100%; height: 360px; border-radius: 14px; object-fit: cover; border: 1px solid #cbd5e1; display: block; margin-bottom: 14px; }
-          .tag{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#64748b;font-weight:bold}
-          h1{font-size:26px;margin:4px 0}
-          .meta{font-size:13px;color:#475569;font-weight:bold}
-          h2{font-size:13px;text-transform:uppercase;letter-spacing:2px;color:#64748b;margin:20px 0 8px}
-          table{width:100%;border-collapse:collapse;font-size:14px}
-          th,td{text-align:left;padding:8px 6px;border-bottom:1px solid #e2e8f0}
-          th{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#64748b}
+          /* Foto do prato para MONTAGEM: mostra o prato inteiro (sem cortar) */
+          .head-foto { width: 100%; height: 420px; border-radius: 16px; object-fit: contain; background:#f1f5f9; border: 1px solid #cbd5e1; display: block; margin-bottom: 16px; }
+          .tag{font-size:15px;letter-spacing:3px;text-transform:uppercase;color:#475569;font-weight:bold}
+          h1{font-size:46px;line-height:1.05;margin:6px 0}
+          .meta{font-size:24px;color:#0f172a;font-weight:bold;margin-top:4px}
+          h2{font-size:22px;text-transform:uppercase;letter-spacing:2px;color:#0f172a;margin:26px 0 10px;border-bottom:2px solid #cbd5e1;padding-bottom:6px}
+          table{width:100%;border-collapse:collapse;font-size:22px}
+          th,td{text-align:left;padding:12px 8px;border-bottom:2px solid #e2e8f0}
+          th{font-size:15px;text-transform:uppercase;letter-spacing:1px;color:#64748b}
+          td{font-weight:600}
           td.c{text-align:center}td.r,th.r{text-align:right}
           .totais{display:flex;justify-content:flex-end;gap:24px;margin-top:12px;font-size:14px}
           .totais b{font-size:18px}
-          .preparo{margin-top:8px;font-size:14px;line-height:1.6;white-space:pre-wrap;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px}
-          @media print{@page{margin:14mm}}
+          .preparo{margin-top:8px;font-size:23px;line-height:1.7;white-space:pre-wrap;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px 18px;font-weight:500}
+          @media print{@page{margin:12mm}}
           .capa { height: 90vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
           .capa h1 { font-size: 48px; margin-bottom: 16px; }
           .capa p { font-size: 18px; color: #64748b; }
@@ -793,12 +795,14 @@ function FichasRunner() {
 
       const tagFoto = f.imagem ? `<img src="data:image/jpeg;base64,${f.imagem}" class="head-foto" />` : '';
 
+      const tagCat = f.categoria ? ` — ${f.categoria}` : (f.departamento ? ' — ' + f.departamento : '');
+
       conteudoHTML += `
          <div class="page-break">
             <div class="head">
                ${tagFoto}
                <div class="head-info">
-                  <div class="tag">Ficha Técnica${f.departamento ? ' — ' + f.departamento : ''}</div>
+                  <div class="tag">Ficha de Montagem${tagCat}</div>
                   <h1>${f.nome_receita}</h1>
                   ${linhaPesoOuRende}
                </div>
@@ -808,7 +812,7 @@ function FichasRunner() {
                <thead><tr><th>Ingrediente</th><th class="c">Quantidade</th></tr></thead>
                <tbody>${rows || '<tr><td colspan="2">Sem ingredientes cadastrados.</td></tr>'}</tbody>
             </table>
-            <h2>Modo de Preparo</h2>
+            <h2>Montagem e Modo de Preparo</h2>
             <div class="preparo">${f.modo_preparo ? f.modo_preparo : 'Não informado.'}</div>
          </div>
       `;

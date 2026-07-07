@@ -11,13 +11,14 @@ import {
   fetchConsumoFuncionario, inserirConsumoFuncionario, atualizarStatusConsumo, removerConsumoFuncionario,
   fetchBancoHoras, inserirBancoHoras, removerBancoHoras, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN,
   fetchAdvertenciasColab, inserirAdvertencia, removerAdvertencia,
-  fetchFeriados, inserirFeriado, removerFeriado
+  fetchFeriados, inserirFeriado, removerFeriado,
+  desligarColaborador
 } from "../../lib/rh";
 import { fetchPontoHoje, fetchPontosMes } from "../../lib/ponto";
 import { calcularAdicionaisMes } from "../../lib/rh";
 import { salvarConta, fetchContas } from "../../lib/financeiro";
 import { 
-  Users, UserPlus, FileText, Upload, Save, X, Search, Trash2, Loader2, CalendarHeart, Star, Phone, CreditCard, ClipboardList, Clock, CalendarDays, ShoppingBag, CheckCircle, Store, Printer, UtensilsCrossed
+  Users, UserPlus, FileText, Upload, Save, X, Search, Trash2, Loader2, CalendarHeart, Star, Phone, CreditCard, ClipboardList, Clock, CalendarDays, ShoppingBag, CheckCircle, Store, Printer, UtensilsCrossed, LogOut, RotateCcw
 } from "lucide-react";
 import { fmtBRL } from "../../components/ui";
 import BancoTalentos from "./components/BancoTalentos";
@@ -396,7 +397,10 @@ export default function RHPage() {
     else carregarConsumo(funcionarioConsumo.id);
   };
 
-  const filtrados = funcionarios.filter(f => f.nome.toLowerCase().includes(busca.toLowerCase()) && (f.tipo_contrato || "Fixo") === abaAtiva);
+  const ehInativo = (f) => (f.status || "ativo") === "inativo";
+  const filtrados = abaAtiva === "Ex-funcionários"
+    ? funcionarios.filter(f => f.nome.toLowerCase().includes(busca.toLowerCase()) && ehInativo(f))
+    : funcionarios.filter(f => f.nome.toLowerCase().includes(busca.toLowerCase()) && (f.tipo_contrato || "Fixo") === abaAtiva && !ehInativo(f));
 
   const imprimirFichaExtra = (funcionario, opcoes = {}) => {
     const hoje = new Date().toLocaleDateString('pt-BR');
@@ -682,8 +686,29 @@ export default function RHPage() {
     carregar();
   };
 
+  // Desligamento: arquiva (não apaga) — a vida do funcionário fica preservada
+  const [modalDeslig, setModalDeslig] = useState(false);
+  const [funcDeslig, setFuncDeslig] = useState(null);
+  const [desligForm, setDesligForm] = useState({ data: "", tipo: "Pedido de demissão", motivo: "" });
+  const abrirDesligamento = (f) => {
+    setFuncDeslig(f);
+    setDesligForm({ data: new Date().toISOString().split("T")[0], tipo: "Pedido de demissão", motivo: "" });
+    setModalDeslig(true);
+  };
+  const confirmarDesligamento = async (e) => {
+    e.preventDefault();
+    const { error } = await desligarColaborador(funcDeslig.id, {
+      data_desligamento: desligForm.data,
+      tipo_desligamento: desligForm.tipo,
+      motivo_desligamento: desligForm.motivo,
+    });
+    if (error) return alert("Erro: " + error);
+    setModalDeslig(false);
+    carregar();
+  };
+
   const handleRemover = async (id) => {
-    if(confirm("Remover este funcionário?")) {
+    if(confirm("Apagar DEFINITIVAMENTE este funcionário e toda a vida dele?\n\nPara manter o histórico, use 'Desligar' — ele vai para o arquivo de ex-funcionários.")) {
       await removerColaborador(id);
       carregar();
     }
@@ -956,6 +981,7 @@ export default function RHPage() {
             <button onClick={()=>setAbaAtiva("Fixo")} className={`flex-1 py-3 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${abaAtiva === "Fixo" ? "bg-slate-800 text-white shadow-lg shadow-slate-800/20" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>Equipe Fixa</button>
             <button onClick={()=>setAbaAtiva("Freelancer")} className={`flex-1 py-3 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${abaAtiva === "Freelancer" ? "bg-slate-800 text-white shadow-lg shadow-slate-800/20" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>Freelancers Extras</button>
             <button onClick={()=>setAbaAtiva("Banco de Talentos")} className={`flex-1 py-3 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${abaAtiva === "Banco de Talentos" ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" : "bg-white text-indigo-500 border border-indigo-200 hover:bg-indigo-50"}`}>Banco de Talentos</button>
+            <button onClick={()=>setAbaAtiva("Ex-funcionários")} className={`flex-1 py-3 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${abaAtiva === "Ex-funcionários" ? "bg-slate-600 text-white shadow-lg shadow-slate-600/20" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>Ex-funcionários</button>
          </div>
 
          {abaAtiva === "Banco de Talentos" ? (
@@ -985,6 +1011,11 @@ export default function RHPage() {
                      <tr key={f.id} className="hover:bg-slate-50 transition-colors">
                         <td className="p-4">
                            <div className="font-black text-slate-800 text-base">{f.nome}</div>
+                           {ehInativo(f) && (
+                             <div className="text-[10px] font-black uppercase tracking-widest text-orange-600 bg-orange-50 border border-orange-200 rounded px-1.5 py-0.5 mt-1 inline-block">
+                               {f.tipo_desligamento || "Desligado"}{f.data_desligamento ? ` · ${f.data_desligamento.split("-").reverse().join("/")}` : ""}
+                             </div>
+                           )}
                            {f.tipo_contrato === "Freelancer" && (
                               <div className="flex text-amber-400 mt-1">
                                  {[...Array(5)].map((_, i) => (
@@ -1140,7 +1171,10 @@ export default function RHPage() {
                                    {uploadingId === f.id ? "Enviando..." : "Anexar Doc"}
                                  </button>
                                  <button onClick={() => abrirModalEdicao(f)} className="text-slate-600 hover:bg-slate-50 p-1.5 rounded transition-colors text-[10px] font-bold uppercase border border-slate-200">Editar</button>
-                                 <button onClick={() => handleRemover(f.id)} className="text-slate-600 hover:bg-slate-50 p-1.5 rounded transition-colors"><Trash2 size={16}/></button>
+                                 {abaAtiva !== "Ex-funcionários" && (
+                                   <button onClick={() => abrirDesligamento(f)} className="flex items-center gap-1 text-xs font-black text-orange-600 bg-orange-50 px-3 py-1.5 rounded-lg hover:bg-orange-100 transition-colors" title="Desligar (arquiva com o histórico)"><LogOut size={14}/> Desligar</button>
+                                 )}
+                                 <button onClick={() => handleRemover(f.id)} className="text-slate-600 hover:bg-slate-50 p-1.5 rounded transition-colors" title="Apagar definitivamente"><Trash2 size={16}/></button>
                               </div>
                            </div>
                         </td>
@@ -1422,6 +1456,49 @@ export default function RHPage() {
                      </div>
                   ))}
                </div>
+            </div>
+         </div>
+      )}
+
+      {/* MODAL: DESLIGAMENTO (arquiva o funcionário com a vida dele) */}
+      {modalDeslig && funcDeslig && (
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-[32px] w-full max-w-md p-8 shadow-2xl animate-in zoom-in-95">
+               <div className="flex justify-between items-center mb-5">
+                  <div>
+                     <h2 className="font-black text-2xl text-slate-800">Desligar Funcionário</h2>
+                     <p className="text-sm font-bold text-slate-500 mt-1">{funcDeslig.nome} · {funcDeslig.cargo || "—"}</p>
+                  </div>
+                  <button onClick={() => setModalDeslig(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+               </div>
+               <p className="text-xs font-medium text-slate-500 mb-4 bg-slate-50 border border-slate-100 rounded-xl p-3">Ele sai da equipe ativa e vai para o arquivo de <b>Ex-funcionários</b>. Todo o histórico (ponto, advertências, documentos, banco de horas) fica preservado.</p>
+               <form onSubmit={confirmarDesligamento} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                     <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Data</label>
+                        <input type="date" value={desligForm.data} onChange={e=>setDesligForm({...desligForm, data: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-orange-400"/>
+                     </div>
+                     <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Tipo</label>
+                        <select value={desligForm.tipo} onChange={e=>setDesligForm({...desligForm, tipo: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-orange-400">
+                           <option>Pedido de demissão</option>
+                           <option>Demissão sem justa causa</option>
+                           <option>Demissão por justa causa</option>
+                           <option>Fim de contrato</option>
+                           <option>Fim de experiência</option>
+                           <option>Acordo</option>
+                        </select>
+                     </div>
+                  </div>
+                  <div>
+                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Motivo / observações (opcional)</label>
+                     <textarea rows={2} value={desligForm.motivo} onChange={e=>setDesligForm({...desligForm, motivo: e.target.value})} placeholder="Ex: reestruturação, desempenho, iniciativa do colaborador..." className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-medium text-sm text-slate-700 outline-none focus:border-orange-400 resize-none"/>
+                  </div>
+                  <div className="flex gap-3">
+                     <button type="button" onClick={() => setModalDeslig(false)} className="flex-1 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl">Cancelar</button>
+                     <button type="submit" className="flex-1 py-3.5 bg-orange-600 hover:bg-orange-700 text-white font-black rounded-xl flex items-center justify-center gap-2"><LogOut size={18}/> Desligar</button>
+                  </div>
+               </form>
             </div>
          </div>
       )}

@@ -81,6 +81,7 @@ const SIDEBAR_MENU = [
     items: [
       { label: "Gestão de RH", href: "/dashboard/rh" },
       { label: "Atas de Reunião", href: "/dashboard/rh/atas" },
+      { label: "Gastos Administrativos", href: "/dashboard/rh/gastos-admin" },
       { label: "Ponto Eletrônico", href: "/dashboard/rh/ponto" },
       { label: "Colaboradores", href: "/dashboard/rh/colaborador" },
       { label: "Fechamento de Folha", href: "/dashboard/rh/fechamento" },

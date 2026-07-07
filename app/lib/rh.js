@@ -24,6 +24,58 @@ export async function removerColaborador(id) {
   return { error: error?.message };
 }
 
+// ─── DESLIGAMENTO (arquivo de ex-funcionários) ───────────────────────────────
+// Não apaga: marca como inativo e guarda data/motivo/tipo. A vida (ponto,
+// advertências, docs, banco...) fica preservada pelo mesmo id.
+export async function desligarColaborador(id, { data_desligamento, motivo_desligamento, tipo_desligamento }) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase.from("colaboradores").update({
+    status: "inativo",
+    data_desligamento: data_desligamento || new Date().toISOString().split("T")[0],
+    motivo_desligamento: motivo_desligamento || null,
+    tipo_desligamento: tipo_desligamento || null,
+  }).eq("id", id);
+  return { error: error?.message };
+}
+
+export async function reativarColaborador(id) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase.from("colaboradores").update({
+    status: "ativo", data_desligamento: null, motivo_desligamento: null, tipo_desligamento: null,
+  }).eq("id", id);
+  return { error: error?.message };
+}
+
+// ─── GASTOS ADMINISTRATIVOS (material de escritório, cartões, etc.) ──────────
+export async function fetchGastosAdmin(unidadeId, mesAno = null) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: [] };
+  let q = supabase.from("gastos_administrativos").select("*").eq("unidade_id", unidadeId).order("data", { ascending: false });
+  if (mesAno) {
+    const [ano, mes] = String(mesAno).split("-").map(Number);
+    const fim = new Date(ano, mes, 1).toISOString().split("T")[0];
+    q = q.gte("data", `${mesAno}-01`).lt("data", fim);
+  }
+  const { data, error } = await q;
+  return { data: data || [], error: error?.message };
+}
+
+export async function salvarGastoAdmin(gasto) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { id, created_at, ...campos } = gasto;
+  if (id) {
+    const { error } = await supabase.from("gastos_administrativos").update(campos).eq("id", id);
+    return { error: error?.message };
+  }
+  const { error } = await supabase.from("gastos_administrativos").insert([campos]);
+  return { error: error?.message };
+}
+
+export async function removerGastoAdmin(id) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase.from("gastos_administrativos").delete().eq("id", id);
+  return { error: error?.message };
+}
+
 // Upload de Documentos para o Storage
 export async function fetchDocumentos(colabId) {
   if (!isSupabaseReady()) return { data: [] };

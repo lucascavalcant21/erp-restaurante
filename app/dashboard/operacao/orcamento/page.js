@@ -5,7 +5,7 @@ import { useERP } from "../../../context/ERPContext";
 import { fetchFichas, fetchInsumos } from "../../../lib/operacao";
 import { fetchProdutos } from "../../../lib/vendas";
 import { fetchOrcamentosEventos, salvarOrcamentoEvento, removerOrcamentoEvento } from "../../../lib/orcamentos";
-import { PartyPopper, Printer, Trash2, ArrowLeft, Users, ShoppingCart, FileText, Save, History, X, Loader2, ChefHat, ClipboardList, Image as ImageIcon } from "lucide-react";
+import { PartyPopper, Printer, Trash2, ArrowLeft, Users, ShoppingCart, FileText, Save, History, X, Loader2, ChefHat, ClipboardList, Image as ImageIcon, GripVertical } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
 // Fator "in natura" de uma ficha: quanto o preço deve subir para cobrar o item
@@ -200,6 +200,7 @@ export default function OrcamentoEventoPage() {
 
   // ── Salvar evento + histórico (banco) ────────────────────────────────────
   const [orcamentoId, setOrcamentoId] = useState(null); // id do evento carregado (null = novo)
+  const [dragItemId, setDragItemId] = useState(null);    // arrastar prato para reordenar
   const [salvando, setSalvando] = useState(false);
   const [modalHistorico, setModalHistorico] = useState(false);
   const [historico, setHistorico] = useState([]);
@@ -424,6 +425,31 @@ export default function OrcamentoEventoPage() {
   };
   const updateItem = (produtoId, patch) => setItens(lista => lista.map(i => i.produto_id === produtoId ? { ...i, ...patch } : i));
   const removeItem = (produtoId) => setItens(lista => lista.filter(i => i.produto_id !== produtoId));
+
+  // Arrastar para reordenar os pratos do buffet
+  const reordenarItens = (fromId, toId) => {
+    if (!fromId || fromId === toId) return;
+    setItens(lista => {
+      const arr = [...lista];
+      const from = arr.findIndex(i => i.produto_id === fromId);
+      const to = arr.findIndex(i => i.produto_id === toId);
+      if (from < 0 || to < 0) return lista;
+      const [m] = arr.splice(from, 1);
+      arr.splice(to, 0, m);
+      return arr;
+    });
+    setDragItemId(null);
+  };
+
+  // Planejar por KG: usuário digita o total em kg e o sistema converte em
+  // porções por convidado (mantém o cálculo de custo/venda consistente).
+  const setTotalKg = (l, kgStr) => {
+    const kg = Number(String(kgStr).replace(',', '.')) || 0;
+    if (!(l.pesoUn > 0)) return; // precisa da porção em gramas
+    const porcoesTotais = (kg * 1000) / l.pesoUn;
+    const qtdPorPessoa = convidados > 0 ? porcoesTotais / convidados : porcoesTotais;
+    updateItem(l.produto_id, { qtd: String(+qtdPorPessoa.toFixed(4)) });
+  };
   const limparTudo = () => {
     if (confirm("Limpar todo o orçamento?")) { setEvento({ ...EVENTO_VAZIO }); setItens([]); }
   };
@@ -996,15 +1022,24 @@ export default function OrcamentoEventoPage() {
                ) : (
                   <div className="space-y-3">
                      {linhas.map(l => (
-                        <div key={l.produto_id} className="rounded-2xl border border-slate-200 overflow-hidden hover:border-slate-300 transition-colors">
+                        <div key={l.produto_id}
+                           onDragOver={e => { if (dragItemId) e.preventDefault(); }}
+                           onDrop={() => reordenarItens(dragItemId, l.produto_id)}
+                           className={`rounded-2xl border overflow-hidden transition-colors ${dragItemId === l.produto_id ? 'opacity-50 border-emerald-400' : 'border-slate-200 hover:border-slate-300'}`}>
                            {/* CABEÇALHO DO ITEM — nome + categoria */}
-                           <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-5 py-3 flex items-center justify-between">
-                              <div className="min-w-0">
-                                 <p className="font-black text-white text-[15px] truncate">{l.nome}</p>
-                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                                    {l.categoria}
-                                    {!l.ficha && <span className="text-red-400 bg-red-500/20 px-1.5 py-0.5 rounded">sem ficha técnica</span>}
-                                 </p>
+                           <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-5 py-3 flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                 <div draggable onDragStart={() => setDragItemId(l.produto_id)} onDragEnd={() => setDragItemId(null)}
+                                    title="Arraste para reordenar os pratos" className="text-slate-400 hover:text-white cursor-grab active:cursor-grabbing shrink-0">
+                                    <GripVertical size={18} />
+                                 </div>
+                                 <div className="min-w-0">
+                                    <p className="font-black text-white text-[15px] truncate">{l.nome}</p>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                       {l.categoria}
+                                       {!l.ficha && <span className="text-red-400 bg-red-500/20 px-1.5 py-0.5 rounded">sem ficha técnica</span>}
+                                    </p>
+                                 </div>
                               </div>
                               <button onClick={() => removeItem(l.produto_id)} className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all shrink-0"><Trash2 size={16}/></button>
                            </div>
@@ -1050,6 +1085,30 @@ export default function OrcamentoEventoPage() {
                                     <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest text-center">Preço de Venda</span>
                                     <span className="font-black text-xl text-emerald-700">{fmtBRL(l.vendaTotal)}</span>
                                     <span className="text-[9px] font-bold text-emerald-600 mt-0.5 text-center">{convidados > 0 ? `${fmtBRL(l.precoPorPessoa)} / pessoa` : ''}</span>
+                                 </div>
+                              </div>
+
+                              {/* PLANEJAR POR KG — digite o total em kg e veja quanto rende por pessoa */}
+                              <div className="mt-3 bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-wrap items-center gap-3">
+                                 <div className="shrink-0">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Total do prato (kg)</label>
+                                    <input type="text" inputMode="decimal" placeholder="ex: 1"
+                                       value={l.kgTotal ? +l.kgTotal.toFixed(3) : ""}
+                                       onChange={e => setTotalKg(l, e.target.value.replace(/[^0-9.,]/g, ''))}
+                                       disabled={!(l.pesoUn > 0)}
+                                       className="w-24 p-2.5 text-center bg-white border border-slate-200 rounded-lg font-black text-slate-700 outline-none focus:border-emerald-500 disabled:opacity-50"/>
+                                 </div>
+                                 <div className="flex-1 min-w-[180px] text-xs font-bold text-slate-600 leading-snug">
+                                    {l.pesoUn > 0 ? (
+                                       <>
+                                          <p>{l.kgTotal ? `${(+l.kgTotal.toFixed(3)).toLocaleString('pt-BR')} kg` : '—'} = <b className="text-slate-800">{(+l.porcoes.toFixed(1)).toLocaleString('pt-BR')}</b> porções de {l.pesoUn}g <span className="text-slate-400 font-medium">(serve {Math.floor(l.porcoes)} com 1 porção cada)</span></p>
+                                          {convidados > 0 && (
+                                             <p className="text-[11px] text-emerald-700 mt-0.5">Dividido entre {convidados} convidados: <b>{(l.pesoUn * l.qtd).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} g por pessoa</b></p>
+                                          )}
+                                       </>
+                                    ) : (
+                                       <span className="text-slate-400 font-medium">Preencha a “Porção (g)” para planejar por kg.</span>
+                                    )}
                                  </div>
                               </div>
 
@@ -1173,53 +1232,66 @@ export default function OrcamentoEventoPage() {
 
          {/* COLUNA DIREITA: resumo + compras */}
          <div className="space-y-6 lg:sticky lg:top-28">
-            <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-xl">
-               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Resumo do Evento</p>
-               <div className="space-y-2.5 text-sm">
-                  <div className="flex justify-between items-baseline">
-                     <span className="text-slate-400 font-bold">Faturamento (buffet{vendaExtras > 0 ? " + extras" : ""})</span>
-                     <div>
-                        <span className="text-slate-500 font-medium text-[11px] mr-2">({fmtBRL(totalCliente / Math.max(1, convidados))}/pes)</span>
-                        <span className="font-black text-base">{fmtBRL(totalCliente)}</span>
+            {(() => {
+               const pes = Math.max(1, convidados);
+               const margemPct = totalCliente > 0 ? (lucroEvento / totalCliente) * 100 : 0;
+               const markupPct = (custoEvento + custoExtras) > 0 ? ((totalCliente / (custoEvento + custoExtras)) - 1) * 100 : 0;
+               // Linha do resumo: rótulo + explicação + valor total + valor/pessoa
+               const Linha = ({ cor = "text-slate-200", sinal = "", label, ajuda, total, porPes, forte }) => (
+                  <div className="py-2 border-b border-slate-800/60 last:border-0">
+                     <div className="flex justify-between items-baseline gap-2">
+                        <span className={`font-bold ${cor} ${forte ? 'text-base' : 'text-sm'}`}>{sinal}{label}</span>
+                        <span className={`font-black ${forte ? 'text-xl' : 'text-base'} ${cor}`}>{sinal}{fmtBRL(total)}</span>
+                     </div>
+                     <div className="flex justify-between items-baseline gap-2 mt-0.5">
+                        <span className="text-[10px] font-medium text-slate-500">{ajuda}</span>
+                        {convidados > 0 && porPes !== undefined && <span className="text-[10px] font-bold text-slate-500 shrink-0">{sinal}{fmtBRL(porPes)}/pessoa</span>}
                      </div>
                   </div>
-                  {vendaExtras > 0 && (
-                     <div className="flex justify-between text-[12px]">
-                        <span className="text-slate-500 font-medium pl-3">buffet {fmtBRL(vendaEvento)} + serviços extras {fmtBRL(vendaExtras)}</span>
-                     </div>
-                  )}
-                  {custoExtras > 0 && (
-                     <div className="flex justify-between">
-                        <span className="text-slate-400 font-bold">− Custo dos extras</span>
-                        <span className="font-black">{fmtBRL(custoExtras)}</span>
-                     </div>
-                  )}
-                  <div className="flex justify-between items-baseline">
-                     <span className="text-slate-400 font-bold">− Custo ingredientes</span>
-                     <div>
-                        <span className="text-slate-500 font-medium text-[11px] mr-2">({fmtBRL(custoEvento / Math.max(1, convidados))}/pes)</span>
-                        <span className="font-black text-base">{fmtBRL(custoEvento)}</span>
-                     </div>
+               );
+               return (
+               <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-xl">
+                  <div className="flex items-center justify-between mb-3">
+                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Resumo do Evento</p>
+                     {convidados > 0 && <span className="text-[10px] font-bold text-slate-400 bg-slate-800 px-2.5 py-1 rounded-full">{convidados} convidados</span>}
                   </div>
-                  {comissao > 0 && <div className="flex justify-between"><span className="text-slate-400 font-bold">− Comissão ({comissaoPct}%)</span><span className="font-black">{fmtBRL(comissao)}</span></div>}
-                  {parceriaBar > 0 && <div className="flex justify-between"><span className="text-slate-400 font-bold">− Parceria bar ({parceriaBarPct}%)</span><span className="font-black">{fmtBRL(parceriaBar)}</span></div>}
+
+                  <Linha cor="text-white" label="Faturamento (o que você recebe)" ajuda={vendaExtras > 0 ? `buffet ${fmtBRL(vendaEvento)} + extras ${fmtBRL(vendaExtras)}` : "buffet contratado"} total={totalCliente} porPes={totalCliente / pes} forte />
+                  <Linha cor="text-rose-300" sinal="− " label="Custo dos ingredientes" ajuda="somado das fichas técnicas dos pratos" total={custoEvento} porPes={custoEvento / pes} />
+                  {custoExtras > 0 && <Linha cor="text-rose-300" sinal="− " label="Custo dos extras" ajuda="equipe, música, espaço, energia..." total={custoExtras} porPes={custoExtras / pes} />}
+                  {comissao > 0 && <Linha cor="text-rose-300" sinal="− " label={`Comissão (${comissaoPct}%)`} ajuda="comissão sobre o faturamento" total={comissao} porPes={comissao / pes} />}
+                  {parceriaBar > 0 && <Linha cor="text-rose-300" sinal="− " label={`Parceria do bar (${parceriaBarPct}%)`} ajuda="repasse sobre as bebidas" total={parceriaBar} porPes={parceriaBar / pes} />}
                   {(economiaEmpanadoTotal > 0 || ganhoInNaturaTotal > 0) && (
-                     <div className="flex justify-between bg-sky-500/10 -mx-2 px-2 py-1.5 rounded-lg">
-                        <span className="text-sky-300 font-bold">Benefício empanado</span>
-                        <span className="font-black text-sky-300">+{fmtBRL(economiaEmpanadoTotal + ganhoInNaturaTotal)}</span>
-                     </div>
+                     <Linha cor="text-sky-300" sinal="+ " label="Benefício empanado / in natura" ajuda="ganho de peso já embutido no cálculo" total={economiaEmpanadoTotal + ganhoInNaturaTotal} porPes={(economiaEmpanadoTotal + ganhoInNaturaTotal) / pes} />
                   )}
-                  <div className="border-t border-slate-700 pt-3 mt-3">
-                     <div className="flex justify-between items-baseline">
-                        <span className="text-slate-300 font-bold text-xs uppercase tracking-widest">Lucro do evento</span>
-                        <div>
-                           <span className="text-slate-500 font-medium text-xs mr-2">({fmtBRL(lucroEvento / Math.max(1, convidados))}/pes)</span>
-                           <span className={`font-black text-2xl ${lucroEvento >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{fmtBRL(lucroEvento)}</span>
+
+                  <div className="mt-3 pt-3 border-t-2 border-slate-700">
+                     <div className="flex justify-between items-baseline gap-2">
+                        <span className="text-slate-300 font-black text-xs uppercase tracking-widest">Lucro do evento</span>
+                        <span className={`font-black text-3xl ${lucroEvento >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{fmtBRL(lucroEvento)}</span>
+                     </div>
+                     {convidados > 0 && (
+                        <p className="text-right text-[11px] font-bold text-slate-400 mt-0.5">{fmtBRL(lucroEvento / pes)} por pessoa</p>
+                     )}
+                     <div className="grid grid-cols-2 gap-2 mt-3">
+                        <div className="bg-slate-800 rounded-xl p-2.5 text-center">
+                           <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Margem de lucro</p>
+                           <p className={`text-lg font-black ${margemPct >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{margemPct.toFixed(0)}%</p>
+                        </div>
+                        <div className="bg-slate-800 rounded-xl p-2.5 text-center">
+                           <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Preço sobre o custo</p>
+                           <p className="text-lg font-black text-slate-200">{markupPct >= 0 ? '+' : ''}{markupPct.toFixed(0)}%</p>
                         </div>
                      </div>
+                     {lucroEvento < 0 && (
+                        <p className="text-[11px] font-bold text-red-300 bg-red-500/10 rounded-lg px-3 py-2 mt-3 leading-snug">
+                           Prejuízo: o custo está maior que o faturamento. Confira o preço por pessoa e os custos das fichas — se os ingredientes parecerem altos, use "Recalcular custos" em Ingredientes.
+                        </p>
+                     )}
                   </div>
                </div>
-            </div>
+               );
+            })()}
 
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2"><ShoppingCart size={14}/> Lista de Compras</p>

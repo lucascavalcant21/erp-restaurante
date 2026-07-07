@@ -3,15 +3,38 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Clock, Search, ArrowLeft, CheckCircle2, LogIn, LogOut, Coffee, Undo2,
-  AlertTriangle, Maximize, Loader2, Hourglass
+  AlertTriangle, Maximize, Loader2, Hourglass, Ban, Timer, X
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { useRouter } from "next/navigation";
-import { fetchColaboradores, inserirBancoHoras, fetchBancoHorasColaborador, somaMinutosBanco, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN } from "../../../lib/rh";
+import { fetchColaboradores, inserirBancoHoras, fetchBancoHorasColaborador, somaMinutosBanco, fetchAllFolgasDaUnidade, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN } from "../../../lib/rh";
 import { fetchPontoHoje, fetchHistoricoPonto, registrarBatida, pularIntervalo } from "../../../lib/ponto";
 
 const fmtMin = (m) => `${Math.floor(m / 60)}h${String(Math.round(m) % 60).padStart(2, "0")}`;
 const horaDe = (iso) => iso ? new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : null;
+const strToMin = (hhmm) => { const [h, m] = String(hhmm || "").split(":").map(Number); return (h || 0) * 60 + (m || 0); };
+const isoLocal = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+// Só pode bater a ENTRADA a partir de X min antes do horário
+const TOLERANCIA_ENTRADA_MIN = 5;
+
+// Mensagens prontas para justificar (voltar antes do intervalo ou não tirar)
+const MOTIVOS_RAPIDOS = [
+  "Movimento alto, precisei ficar",
+  "A pedido da gerência",
+  "Por conta própria, estava tranquilo",
+];
+
+// Categorias de função para agrupar os cards
+const ORDEM_CATEGORIAS = ["Liderança", "Cozinha", "Bar", "Salão", "Outros"];
+function categoriaFuncao(cargo) {
+  const c = (cargo || "").toLowerCase();
+  if (/(cozinh|chapeir|confeit|pizzai|sushi|salgad|padeir|churrasqueir|a[cç]ougue|chefe de fila|copa)/.test(c)) return "Cozinha";
+  if (/(\bbar\b|barman|bartender|barista|drinks)/.test(c)) return "Bar";
+  if (/(gar[çc]|atendente|sal[aã]o|recep|hostess|maitre|maître|caixa|comand)/.test(c)) return "Salão";
+  if (/(gerente|supervisor|\bceo\b|coordenad|encarregad|gestor|propriet|diretor|s[oó]cio)/.test(c)) return "Liderança";
+  return "Outros";
+}
 
 // Próxima batida com base no que já foi registrado hoje
 function proximaEtapa(reg) {
@@ -30,31 +53,90 @@ const ETAPAS = [
   { id: "saida_trabalho", label: "Saída do Trabalho", icon: LogOut, campo: "hora_saida" },
 ];
 
+// Horário de entrada do dia (usa o de domingo quando for domingo)
+function entradaDoDia(c, base) {
+  if (!c) return null;
+  const dom = base.getDay() === 0;
+  return (dom ? (c.horario_dom_entrada || c.horario_entrada) : c.horario_entrada) || null;
+}
+
+// Está de folga hoje? (folga semanal via dias_trabalho + folga esporádica)
+function folgaHoje(c, folgas, base) {
+  const diasStr = String(c?.dias_trabalho || "").trim();
+  if (diasStr) {
+    const dias = diasStr.split(",").map(s => s.trim()).filter(Boolean);
+    if (dias.length && !dias.includes(String(base.getDay()))) {
+      return { folga: true, motivo: "Folga semanal" };
+    }
+  }
+  const hoje = isoLocal(base);
+  const esp = (folgas || []).find(f => f.colaborador_id === c?.id && String(f.data_folga).slice(0, 10) === hoje);
+  if (esp) return { folga: true, motivo: esp.descricao ? `Folga programada — ${esp.descricao}` : "Folga programada" };
+  return { folga: false };
+}
+
+// Modal de justificativa (3 opções prontas + texto livre)
+function ModalJustificativa({ titulo, subtitulo, onConfirm, onClose, confirmando }) {
+  const [texto, setTexto] = useState("");
+  return (
+    <div className="fixed inset-0 z-[10000] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-5">
+      <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 w-full max-w-md">
+        <div className="flex items-start justify-between mb-1">
+          <h3 className="text-xl font-black text-white">{titulo}</h3>
+          <button onClick={onClose} className="text-slate-500 hover:text-white p-1"><X size={20} /></button>
+        </div>
+        <p className="text-slate-400 font-medium text-sm mb-4">{subtitulo}</p>
+
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Toque em um motivo (rápido)</p>
+        <div className="space-y-2 mb-4">
+          {MOTIVOS_RAPIDOS.map((m) => (
+            <button key={m} disabled={confirmando} onClick={() => onConfirm(m)}
+              className="w-full text-left px-4 py-3 rounded-2xl bg-slate-800 hover:bg-emerald-600 hover:text-white text-slate-200 font-bold transition-colors disabled:opacity-50">
+              {m}
+            </button>
+          ))}
+        </div>
+
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Ou escreva o motivo</p>
+        <textarea value={texto} onChange={e => setTexto(e.target.value)} rows={2}
+          placeholder="Motivo..." className="w-full p-3 bg-slate-800 border border-slate-700 rounded-2xl text-white font-medium outline-none focus:border-emerald-500 resize-none mb-3" />
+        <button disabled={confirmando || !texto.trim()} onClick={() => onConfirm(texto.trim())}
+          className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-2xl font-black flex items-center justify-center gap-2">
+          {confirmando ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />} Confirmar
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function PontoPage() {
   const { unidadeAtiva, unidadeInfo } = useERP();
   const router = useRouter();
 
   const [colaboradores, setColaboradores] = useState([]);
   const [pontosHoje, setPontosHoje] = useState([]);
+  const [folgas, setFolgas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
   const [horaLocal, setHoraLocal] = useState(new Date());
 
-  // Funcionário selecionado (tela de bater ponto)
   const [selecionado, setSelecionado] = useState(null);
   const [historico, setHistorico] = useState([]);
   const [bancoMes, setBancoMes] = useState([]);
   const [batendo, setBatendo] = useState(false);
-  const [sucesso, setSucesso] = useState(null); // { titulo, detalhe }
+  const [sucesso, setSucesso] = useState(null); // { titulo, detalhe, tone }
+  const [justif, setJustif] = useState(null);    // { tipo: 'retorno_cedo' | 'pular_intervalo', ... }
 
   const carregar = useCallback(async () => {
     setLoading(true);
-    const [rColab, rPontos] = await Promise.all([
+    const [rColab, rPontos, rFolgas] = await Promise.all([
       fetchColaboradores(unidadeAtiva),
       fetchPontoHoje(unidadeAtiva),
+      fetchAllFolgasDaUnidade(unidadeAtiva),
     ]);
     setColaboradores((rColab.data || []).filter(c => (c.status || "ativo") !== "inativo"));
     setPontosHoje(rPontos.data || []);
+    setFolgas(rFolgas.data || []);
     setLoading(false);
   }, [unidadeAtiva]);
 
@@ -66,23 +148,20 @@ export default function PontoPage() {
 
   const registroDe = (colabId) => pontosHoje.find(p => p.colaborador_id === colabId) || null;
 
-  // Abre a tela do funcionário: histórico de 7 dias + banco de horas do mês
-  const abrirFuncionario = async (c) => {
+  // Abre a tela do funcionário INSTANTANEAMENTE; histórico/banco carregam em segundo plano
+  const abrirFuncionario = (c) => {
     setSelecionado(c);
     setBusca("");
+    setHistorico([]);
+    setBancoMes([]);
     const mes = new Date().toISOString().slice(0, 7);
-    const [rHist, rBanco] = await Promise.all([
-      fetchHistoricoPonto(c.id),
-      fetchBancoHorasColaborador(c.id, mes),
-    ]);
-    setHistorico(rHist.data || []);
-    setBancoMes(rBanco.data || []);
+    fetchHistoricoPonto(c.id).then(r => setHistorico(r.data || [])).catch(() => {});
+    fetchBancoHorasColaborador(c.id, mes).then(r => setBancoMes(r.data || [])).catch(() => {});
   };
 
   const totalBancoMes = somaMinutosBanco(bancoMes);
   const intervaloPadrao = selecionado ? (Number(selecionado.tempo_intervalo) || 60) : 60;
 
-  // Credita minutos no banco respeitando o teto de 8h/mês
   const creditarBanco = async (minutos, motivo) => {
     const restante = BANCO_LIMITE_MIN - totalBancoMes;
     if (restante <= 0) {
@@ -100,56 +179,29 @@ export default function PontoPage() {
 
   const mostrarSucesso = (titulo, detalhe, tone = "ok") => {
     setSucesso({ titulo, detalhe, tone });
-    setTimeout(() => { setSucesso(null); setSelecionado(null); carregar(); }, tone === "alerta" ? 6000 : 4000);
+    setTimeout(() => { setSucesso(null); setSelecionado(null); carregar(); }, tone === "alerta" ? 6000 : 3500);
   };
 
-  // Bater a próxima etapa do ponto
-  const bater = async () => {
-    if (batendo) return;
-    const reg = registroDe(selecionado.id);
-    const etapa = proximaEtapa(reg);
-    if (etapa === "concluido") return;
+  // Registra a batida "normal" de uma etapa (com aviso de excesso de intervalo)
+  const executarBatida = async (etapa, reg) => {
     setBatendo(true);
     try {
       const { error } = await registrarBatida(selecionado.id, unidadeAtiva, etapa);
       if (error) { alert(error); return; }
-
       const agoraStr = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
       const primeiro = selecionado.nome.split(" ")[0];
 
-      // Volta do intervalo: compara com o intervalo padrão (1h)
+      // Volta do intervalo com tempo IGUAL/ACIMA do padrão: registra excesso se passou
       if (etapa === "retorno_intervalo" && reg?.hora_saida_intervalo) {
         const tirou = Math.round((Date.now() - new Date(reg.hora_saida_intervalo).getTime()) / 60000);
-        const faltou = intervaloPadrao - tirou;
-
-        // Tirou MENOS que o padrão: a diferença vira crédito no banco de horas
-        if (faltou >= 1) {
-          const { creditado, aviso } = await creditarBanco(
-            faltou,
-            `Intervalo de ${tirou}min em vez de ${intervaloPadrao}min (automático do ponto)`
-          );
-          mostrarSucesso(
-            `Volta registrada às ${agoraStr}`,
-            `${primeiro}, você tirou ${tirou} min de intervalo. ${creditado > 0 ? `${fmtMin(creditado)} foram para o seu banco de horas.` : ""} ${aviso}`
-          );
-          return;
-        }
-
-        // Tirou MAIS que o padrão: aviso de atenção + ocorrência no histórico
-        // (não vira crédito — é só registro para acompanhamento)
-        if (faltou <= -1) {
-          const passou = -faltou;
+        const passou = tirou - intervaloPadrao;
+        if (passou >= 1) {
           const hoje = new Date().toISOString().split("T")[0];
-          await inserirBancoHoras(
-            unidadeAtiva, selecionado.id, hoje, passou,
-            `Passou ${passou}min do intervalo (tirou ${tirou}min de ${intervaloPadrao}min)`,
-            "excesso"
-          );
-          mostrarSucesso(
-            "Atenção ao horário de intervalo!",
-            `${primeiro}, você tirou ${fmtMin(tirou)} — ${passou} minuto(s) além do intervalo de ${fmtMin(intervaloPadrao)}. Isso ficou registrado no seu histórico. Fique de olho no relógio na próxima!`,
-            "alerta"
-          );
+          await inserirBancoHoras(unidadeAtiva, selecionado.id, hoje, passou,
+            `Passou ${passou}min do intervalo (tirou ${tirou}min de ${intervaloPadrao}min)`, "excesso");
+          mostrarSucesso("Atenção ao horário de intervalo!",
+            `${primeiro}, você tirou ${fmtMin(tirou)} — ${passou} minuto(s) além do intervalo de ${fmtMin(intervaloPadrao)}. Ficou registrado no seu histórico.`,
+            "alerta");
           return;
         }
       }
@@ -166,25 +218,51 @@ export default function PontoPage() {
     }
   };
 
-  // "Não vou conseguir tirar o intervalo hoje" → 1h inteira vai pro banco
-  const naoTirarIntervalo = async () => {
-    if (!confirm(`${selecionado.nome.split(" ")[0]}, confirma que você NÃO vai tirar o intervalo de ${fmtMin(intervaloPadrao)} hoje?\n\nEsse tempo vai para o seu banco de horas.`)) return;
+  // Ação principal de bater. Faz as travas (folga/janela) e pede justificativa
+  // quando a volta do intervalo é antes de 1h.
+  const bater = async () => {
+    if (batendo || !selecionado) return;
+    const reg = registroDe(selecionado.id);
+    const etapa = proximaEtapa(reg);
+    if (etapa === "concluido") return;
+
+    // Volta do intervalo antes do tempo → exige justificativa (3 opções prontas)
+    if (etapa === "retorno_intervalo" && reg?.hora_saida_intervalo) {
+      const tirou = Math.round((Date.now() - new Date(reg.hora_saida_intervalo).getTime()) / 60000);
+      const faltou = intervaloPadrao - tirou;
+      if (faltou >= 1) { setJustif({ tipo: "retorno_cedo", tirou, faltou }); return; }
+    }
+    await executarBatida(etapa, reg);
+  };
+
+  // Confirma a justificativa (motivo escolhido ou digitado)
+  const confirmarJustificativa = async (motivo) => {
+    if (!justif || !selecionado) return;
+    const j = justif;
     setBatendo(true);
     try {
-      const { error } = await pularIntervalo(selecionado.id);
-      if (error) { alert(error); return; }
-      const { creditado, aviso } = await creditarBanco(intervaloPadrao, "Intervalo não tirado (registrado no ponto)");
-      mostrarSucesso(
-        "Intervalo não tirado — registrado!",
-        `${creditado > 0 ? `${fmtMin(creditado)} creditados no seu banco de horas.` : ""} ${aviso}`
-      );
+      const primeiro = selecionado.nome.split(" ")[0];
+      if (j.tipo === "retorno_cedo") {
+        const { error } = await registrarBatida(selecionado.id, unidadeAtiva, "retorno_intervalo");
+        if (error) { alert(error); return; }
+        const { creditado, aviso } = await creditarBanco(j.faltou, `Voltou ${j.tirou}min de intervalo (de ${intervaloPadrao}min). Motivo: ${motivo}`);
+        const agoraStr = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+        setJustif(null);
+        mostrarSucesso(`Volta registrada às ${agoraStr}`,
+          `${primeiro}, ${j.tirou} min de intervalo. ${creditado > 0 ? `${fmtMin(creditado)} foram pro seu banco de horas.` : ""} ${aviso}`);
+      } else if (j.tipo === "pular_intervalo") {
+        const { error } = await pularIntervalo(selecionado.id);
+        if (error) { alert(error); return; }
+        const { creditado, aviso } = await creditarBanco(intervaloPadrao, `Não tirou o intervalo. Motivo: ${motivo}`);
+        setJustif(null);
+        mostrarSucesso("Intervalo não tirado — registrado!",
+          `${creditado > 0 ? `${fmtMin(creditado)} creditados no seu banco de horas.` : ""} ${aviso}`);
+      }
     } finally {
       setBatendo(false);
     }
   };
 
-  // Hooks SEMPRE antes de qualquer return condicional (regra do React —
-  // declarar depois derruba o componente na hora que a tela de sucesso abre)
   const containerRef = useRef(null);
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) containerRef.current?.requestFullscreen?.();
@@ -212,8 +290,41 @@ export default function PontoPage() {
     const etapaInfo = ETAPAS.find(e => e.id === etapa);
     const pulouIntervalo = reg?.status_jornada === 3 && !reg?.hora_saida_intervalo;
 
+    // Travas da ENTRADA: folga e janela de horário
+    const info = folgaHoje(selecionado, folgas, horaLocal);
+    const entradaStr = entradaDoDia(selecionado, horaLocal);
+    let janela = null; // { permiteEm: Date, faltaMs }
+    if (etapa === "entrada" && entradaStr) {
+      const [hh, mm] = entradaStr.split(":").map(Number);
+      const permiteEm = new Date(horaLocal);
+      permiteEm.setHours(hh, mm - TOLERANCIA_ENTRADA_MIN, 0, 0);
+      const faltaMs = permiteEm.getTime() - horaLocal.getTime();
+      janela = { permiteEm, faltaMs, entradaStr };
+    }
+    const bloqueiaFolga = etapa === "entrada" && info.folga;
+    const bloqueiaJanela = etapa === "entrada" && janela && janela.faltaMs > 0;
+    const podeBater = etapa !== "concluido" && !bloqueiaFolga && !bloqueiaJanela;
+
+    const fmtFalta = (ms) => {
+      const s = Math.max(0, Math.ceil(ms / 1000));
+      const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+      return h > 0 ? `${h}h ${String(m).padStart(2, "0")}min` : `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+    };
+
     return (
       <div ref={containerRef} className="fixed inset-0 z-[9999] bg-slate-950 overflow-y-auto font-sans">
+        {justif && (
+          <ModalJustificativa
+            titulo={justif.tipo === "pular_intervalo" ? "Não vai tirar o intervalo?" : `Voltando ${justif.tirou}min de intervalo`}
+            subtitulo={justif.tipo === "pular_intervalo"
+              ? `O intervalo de ${fmtMin(intervaloPadrao)} vai pro seu banco de horas. Diga o porquê:`
+              : `Faltam ${justif.faltou}min para completar ${fmtMin(intervaloPadrao)}. Diga o porquê de voltar antes:`}
+            confirmando={batendo}
+            onConfirm={confirmarJustificativa}
+            onClose={() => setJustif(null)}
+          />
+        )}
+
         <div className="max-w-3xl mx-auto p-6 md:p-10">
           <div className="flex items-center justify-between mb-8">
             <button onClick={() => setSelecionado(null)} className="flex items-center gap-2 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-2xl font-bold transition-colors">
@@ -233,6 +344,7 @@ export default function PontoPage() {
             <div className="flex-1 min-w-0">
               <h2 className="text-2xl font-black text-white truncate">{selecionado.nome}</h2>
               <p className="text-slate-400 font-bold text-sm">{selecionado.cargo || "—"} · {unidadeInfo?.nome}</p>
+              {entradaStr && <p className="text-slate-500 font-bold text-xs mt-0.5">Horário de entrada: {entradaStr}{selecionado.horario_saida ? ` — ${selecionado.horario_saida}` : ""}</p>}
             </div>
             <div className={`text-right px-4 py-2 rounded-2xl border shrink-0 ${totalBancoMes >= BANCO_LIMITE_MIN ? "bg-red-500/10 border-red-500/40" : totalBancoMes >= BANCO_ALERTA_MIN ? "bg-amber-500/10 border-amber-500/40" : "bg-slate-800 border-slate-700"}`}>
               <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1"><Hourglass size={10} /> Banco de horas</p>
@@ -265,6 +377,23 @@ export default function PontoPage() {
               <p className="text-xl font-black text-white">Jornada de hoje concluída!</p>
               <p className="text-slate-400 font-bold text-sm mt-1">Todas as batidas foram registradas.</p>
             </div>
+          ) : bloqueiaFolga ? (
+            <div className="bg-rose-500/10 border border-rose-500/40 rounded-3xl p-8 text-center mb-6">
+              <Ban size={44} className="text-rose-400 mx-auto mb-3" />
+              <p className="text-2xl font-black text-white">Hoje é sua folga</p>
+              <p className="text-rose-200 font-bold text-base mt-2">{info.motivo}. Não é possível bater o ponto em dia de folga.</p>
+              <p className="text-slate-400 font-medium text-sm mt-2">Se isso está errado, procure a gerência para ajustar sua escala.</p>
+            </div>
+          ) : bloqueiaJanela ? (
+            <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 text-center mb-6">
+              <Timer size={44} className="text-amber-400 mx-auto mb-3" />
+              <p className="text-lg font-black text-white">Ainda não dá para bater a entrada</p>
+              <p className="text-slate-400 font-bold text-sm mt-1">
+                Seu horário é {janela.entradaStr}. A entrada libera às {janela.permiteEm.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} (até {TOLERANCIA_ENTRADA_MIN} min antes).
+              </p>
+              <p className="text-5xl font-black text-amber-400 tabular-nums mt-5">{fmtFalta(janela.faltaMs)}</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-1">faltam para liberar</p>
+            </div>
           ) : (
             <button onClick={bater} disabled={batendo}
               className="w-full py-8 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white rounded-3xl font-black text-2xl md:text-3xl transition-all active:scale-[0.98] shadow-2xl shadow-emerald-600/30 flex items-center justify-center gap-4 mb-4">
@@ -273,11 +402,11 @@ export default function PontoPage() {
             </button>
           )}
 
-          {/* Não vou tirar intervalo — só aparece na etapa certa */}
-          {etapa === "saida_intervalo" && (
-            <button onClick={naoTirarIntervalo} disabled={batendo}
+          {/* Não vou tirar o intervalo — só aparece na etapa certa */}
+          {etapa === "saida_intervalo" && podeBater && (
+            <button onClick={() => setJustif({ tipo: "pular_intervalo" })} disabled={batendo}
               className="w-full py-4 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 text-amber-400 rounded-2xl font-black text-base transition-colors flex items-center justify-center gap-2 mb-6">
-              <AlertTriangle size={18} /> Não vou conseguir tirar o intervalo hoje ({fmtMin(intervaloPadrao)} vai pro banco de horas)
+              <AlertTriangle size={18} /> Não vou tirar a folga de {fmtMin(intervaloPadrao)} hoje
             </button>
           )}
 
@@ -315,8 +444,36 @@ export default function PontoPage() {
     );
   }
 
-  // ── Tela inicial: relógio + busca do nome ─────────────────────────────────
-  const filtrados = colaboradores.filter(c => c.nome.toLowerCase().includes(busca.toLowerCase()));
+  // ── Tela inicial: relógio + busca + cards agrupados por função ─────────────
+  const q = busca.toLowerCase();
+  const filtrados = colaboradores.filter(c =>
+    c.nome.toLowerCase().includes(q) || (c.cargo || "").toLowerCase().includes(q)
+  );
+  const grupos = ORDEM_CATEGORIAS
+    .map(cat => ({ cat, itens: filtrados.filter(c => categoriaFuncao(c.cargo) === cat) }))
+    .filter(g => g.itens.length);
+
+  const renderCard = (c) => {
+    const reg = registroDe(c.id);
+    const etapa = proximaEtapa(reg);
+    const concluido = etapa === "concluido";
+    const info = folgaHoje(c, folgas, horaLocal);
+    return (
+      <button key={c.id} onClick={() => abrirFuncionario(c)}
+        className={`p-5 rounded-3xl border-2 text-left transition-all hover:-translate-y-1 ${info.folga ? "bg-rose-500/5 border-rose-500/30" : concluido ? "bg-slate-900/40 border-slate-800 opacity-60" : "bg-slate-900 border-slate-800 hover:border-emerald-500/60"}`}>
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-11 h-11 rounded-full bg-slate-800 flex items-center justify-center text-lg font-black text-emerald-400 shrink-0">{c.nome[0].toUpperCase()}</div>
+          <div className="min-w-0">
+            <p className="font-black text-white truncate">{c.nome.split(" ").slice(0, 2).join(" ")}</p>
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">{c.cargo || "—"}</p>
+          </div>
+        </div>
+        <div className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1.5 ${info.folga ? "bg-rose-500/10 text-rose-400" : concluido ? "bg-emerald-500/10 text-emerald-500" : reg?.hora_entrada ? "bg-sky-500/10 text-sky-400" : "bg-slate-800 text-slate-500"}`}>
+          {info.folga ? <><Ban size={11} /> Folga hoje</> : concluido ? <><CheckCircle2 size={11} /> Jornada concluída</> : reg?.hora_entrada ? <><Clock size={11} /> Próx: {ETAPAS.find(e => e.id === etapa)?.label}</> : <><LogIn size={11} /> Aguardando entrada</>}
+        </div>
+      </button>
+    );
+  };
 
   return (
     <div ref={containerRef} className="fixed inset-0 z-[9999] bg-slate-950 overflow-y-auto font-sans">
@@ -340,12 +497,12 @@ export default function PontoPage() {
           </p>
         </div>
 
-        {/* Busca do nome */}
+        {/* Busca por nome OU função */}
         <div className="relative mb-6">
           <Search size={22} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500" />
           <input
             type="text" value={busca} onChange={e => setBusca(e.target.value)}
-            placeholder="Digite seu nome para bater o ponto..."
+            placeholder="Buscar por nome ou função..."
             className="w-full pl-14 pr-5 py-5 bg-slate-900 border-2 border-slate-800 focus:border-emerald-500 rounded-3xl text-white text-xl font-bold outline-none placeholder:text-slate-600 transition-colors"
             autoFocus
           />
@@ -354,29 +511,21 @@ export default function PontoPage() {
         {loading ? (
           <div className="text-center py-16"><Loader2 size={40} className="animate-spin text-slate-600 mx-auto" /></div>
         ) : filtrados.length === 0 ? (
-          <p className="text-center text-slate-600 font-bold py-12">{colaboradores.length === 0 ? "Nenhum colaborador cadastrado no RH." : "Nenhum nome encontrado."}</p>
+          <p className="text-center text-slate-600 font-bold py-12">{colaboradores.length === 0 ? "Nenhum colaborador cadastrado no RH." : "Nenhum nome ou função encontrado."}</p>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {filtrados.map(c => {
-              const reg = registroDe(c.id);
-              const etapa = proximaEtapa(reg);
-              const concluido = etapa === "concluido";
-              return (
-                <button key={c.id} onClick={() => abrirFuncionario(c)}
-                  className={`p-5 rounded-3xl border-2 text-left transition-all hover:-translate-y-1 ${concluido ? "bg-slate-900/40 border-slate-800 opacity-60" : "bg-slate-900 border-slate-800 hover:border-emerald-500/60"}`}>
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-11 h-11 rounded-full bg-slate-800 flex items-center justify-center text-lg font-black text-emerald-400 shrink-0">{c.nome[0].toUpperCase()}</div>
-                    <div className="min-w-0">
-                      <p className="font-black text-white truncate">{c.nome.split(" ").slice(0, 2).join(" ")}</p>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">{c.cargo || "—"}</p>
-                    </div>
-                  </div>
-                  <div className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1.5 ${concluido ? "bg-emerald-500/10 text-emerald-500" : reg?.hora_entrada ? "bg-sky-500/10 text-sky-400" : "bg-slate-800 text-slate-500"}`}>
-                    {concluido ? <><CheckCircle2 size={11} /> Jornada concluída</> : reg?.hora_entrada ? <><Clock size={11} /> Próx: {ETAPAS.find(e => e.id === etapa)?.label}</> : <><LogIn size={11} /> Aguardando entrada</>}
-                  </div>
-                </button>
-              );
-            })}
+          <div className="space-y-7">
+            {grupos.map(g => (
+              <div key={g.cat}>
+                <div className="flex items-center gap-3 mb-3">
+                  <p className="text-xs font-black uppercase tracking-widest text-slate-400">{g.cat}</p>
+                  <span className="text-[10px] font-black text-slate-600 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded-full">{g.itens.length}</span>
+                  <div className="flex-1 h-px bg-slate-800/70" />
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {g.itens.map(renderCard)}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

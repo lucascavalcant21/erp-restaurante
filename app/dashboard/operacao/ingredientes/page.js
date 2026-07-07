@@ -46,7 +46,8 @@ function IngredientesRunner() {
   
   const tamanhoReal = Number(form.tamanho_embalagem) || 1;
   const valorPagoReal = Number(form.valor_embalagem) || 0;
-  const custoBase = valorPagoReal / tamanhoReal;
+  // Sem cálculo: o valor pago é usado direto (não divide pelo volume)
+  const custoBase = valorPagoReal;
   const custoRealForm = custoBase ? custoBase / (aproveitamentoForm / 100) : 0;
 
   // Empanamento: fator de ganho de peso (1000g in natura -> 1360g empanado = 1,36)
@@ -144,9 +145,7 @@ function IngredientesRunner() {
       frete: ins.frete || "",
       unidade_medida: ins.unidade_medida,
       tamanho_embalagem: String(ins.tamanho_embalagem || "1"),
-      valor_embalagem: ins.tamanho_embalagem
-        ? Math.round(((ins.custo_compra ?? ins.custo_unitario) * ins.tamanho_embalagem - (Number(ins.frete) || 0)) * 100) / 100
-        : (ins.custo_compra ?? ins.custo_unitario),
+      valor_embalagem: Math.round((((ins.custo_compra ?? ins.custo_unitario) || 0) - (Number(ins.frete) || 0)) * 100) / 100,
       custo_compra: ins.custo_compra ?? ins.custo_unitario,
       peso_medio_g: ins.peso_medio_g || "",
       peso_bruto_g: pct > 0 && pct < 100 ? "1000" : "",
@@ -249,9 +248,9 @@ function IngredientesRunner() {
     const tamEmb = Number(form.tamanho_embalagem) || 1;
     if(tamEmb <= 0) return alert("Tamanho/Volume da embalagem deve ser maior que zero");
 
-    // Frete (produtos de fora): rateado pelo tamanho da embalagem e somado ao custo/un
+    // Sem cálculo: o custo é o valor pago (+ frete quando houver), sem dividir pelo volume
     const freteTotal = Number(form.frete) || 0;
-    const custoCompra = (valorEmb + freteTotal) / tamEmb;
+    const custoCompra = valorEmb + freteTotal;
 
     const bruto = Number(form.peso_bruto_g) || 0;
     const limpo = Number(form.peso_liquido_g) || 0;
@@ -399,8 +398,8 @@ function IngredientesRunner() {
             {/* Header */}
             <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center">
                <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Ingrediente</span>
-               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-24">Unid. / Vol.</span>
-               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-36">Custo / Base</span>
+               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-28">Volume / Unid.</span>
+               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-36">Valor Pago</span>
                <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-right w-32">Ações</span>
             </div>
             {/* Linhas */}
@@ -432,23 +431,22 @@ function IngredientesRunner() {
                          </div>
                        </div>
                      </div>
-                     {/* Unidade + volume da embalagem comprada (quando houver) */}
-                     <div className="w-24 flex flex-col items-center gap-0.5">
-                       <span className="bg-slate-800 text-white px-3 py-1.5 rounded-lg font-black text-xs uppercase tracking-wider shadow-sm">{ins.unidade_medida}</span>
-                       {Number(ins.tamanho_embalagem) > 0 && (
-                         <span className="text-[9px] font-black text-slate-500" title={`Embalagem comprada: ${Number(ins.tamanho_embalagem).toLocaleString('pt-BR')} ${ins.unidade_medida} por ${fmtBRL((ins.custo_compra ?? ins.custo_unitario) * ins.tamanho_embalagem)}`}>
-                           {Number(ins.tamanho_embalagem).toLocaleString('pt-BR')} {ins.unidade_medida} · {fmtBRL((ins.custo_compra ?? ins.custo_unitario) * ins.tamanho_embalagem)}
-                         </span>
-                       )}
+                     {/* Volume + unidade de medida, bem visível */}
+                     <div className="w-28 flex flex-col items-center gap-0.5">
+                       <span className="bg-slate-800 text-white px-3 py-2 rounded-lg font-black text-sm uppercase tracking-wide shadow-sm whitespace-nowrap">
+                         {Number(ins.tamanho_embalagem) > 0
+                           ? `${Number(ins.tamanho_embalagem).toLocaleString('pt-BR')} ${ins.unidade_medida}`
+                           : ins.unidade_medida}
+                       </span>
                        {ins.unidade_medida === 'un' && Number(ins.peso_medio_g) > 0 && (
                          <span className="text-[9px] font-black text-slate-400">≈ {Number(ins.peso_medio_g).toLocaleString('pt-BR')}{String(ins.departamento).toLowerCase() === 'bar' ? 'ml' : 'g'}</span>
                        )}
                      </div>
-                     {/* Custo (real, já corrigido pela perda de limpeza quando houver) */}
+                     {/* Valor pago (direto, sem cálculo; corrige só se houver perda de limpeza) */}
                      <div className="w-36 text-center">
                        <span className="font-black text-xl text-emerald-600">{fmtBRL(ins.custo_unitario)}</span>
                        {Number(ins.aproveitamento_pct) > 0 && Number(ins.aproveitamento_pct) < 100 && (
-                         <p className="text-[9px] font-black uppercase tracking-widest text-red-500 mt-0.5" title={`Compra: ${fmtBRL(ins.custo_compra)} · aproveitamento ${Number(ins.aproveitamento_pct).toFixed(0)}%`}>
+                         <p className="text-[9px] font-black uppercase tracking-widest text-red-500 mt-0.5" title={`Valor pago: ${fmtBRL(ins.custo_compra)} · aproveitamento ${Number(ins.aproveitamento_pct).toFixed(0)}%`}>
                            perda {(100 - Number(ins.aproveitamento_pct)).toFixed(0)}%
                          </p>
                        )}
@@ -628,7 +626,7 @@ function IngredientesRunner() {
                   <div>
                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Frete (opcional)</label>
                      <input type="number" step="0.01" min="0" placeholder="0,00" value={form.frete || ""} onChange={e=>setForm({...form, frete: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500"/>
-                     <p className="text-[10px] text-slate-400 font-medium mt-1">Para produtos de fora: o valor do frete é somado ao custo e rateado pela embalagem.</p>
+                     <p className="text-[10px] text-slate-400 font-medium mt-1">Para produtos de fora: o valor do frete é somado direto ao valor pago.</p>
                   </div>
 
                   {/* Medida de referência: quanto pesa/rende 1 unidade (tomate 1 un = 100g,
@@ -715,7 +713,7 @@ function IngredientesRunner() {
                   </div>
 
                   <p className="text-[11px] font-medium text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-100 mt-4">
-                     Dica: Cadastre o custo da unidade de compra. Ex.: garrafa de Vodka de 1 Litro por R$ 60,00 → Unidade Base "L" e Custo "60". Se tem perda na limpeza, o custo salvo é o REAL do produto pronto.
+                     Dica: informe o volume, a unidade e o valor que você pagou — sem cálculo. Ex.: leite condensado 395 ml por R$ 2,50 → Vol "395", Unidade "ML", Valor "2,50". Fica assim mesmo e já pode ir para a ficha técnica.
                   </p>
                </div>
 

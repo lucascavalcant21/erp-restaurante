@@ -23,7 +23,7 @@ const SIDEBAR_MENU = [
     icon: Users,
     items: [
       { label: "Checklist", href: "/dashboard/operacao/rotina?dept=salao" },
-      { label: "Treinamentos", href: "/dashboard/rh/treinamentos" },
+      { label: "Treinamentos", href: "/dashboard/salao/treinamento" },
       { label: "Observações Padrão", href: "/dashboard/operacao/observacoes" }
     ]
   },

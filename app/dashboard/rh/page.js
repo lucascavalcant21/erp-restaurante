@@ -22,7 +22,7 @@ import { fetchCardapio } from "../../lib/cardapio";
 // Desconto do funcionário sobre o valor de cardápio (funcionário paga o restante)
 const DESCONTO_FUNC = 0.30;
 import { 
-  Users, UserPlus, FileText, Upload, Save, X, Search, Trash2, Loader2, CalendarHeart, Star, Phone, CreditCard, ClipboardList, Clock, CalendarDays, ShoppingBag, CheckCircle, Store, Printer, UtensilsCrossed, LogOut, RotateCcw
+  Users, UserPlus, FileText, Upload, Save, X, Search, Trash2, Loader2, CalendarHeart, Star, Phone, CreditCard, ClipboardList, Clock, CalendarDays, ShoppingBag, CheckCircle, Store, Printer, UtensilsCrossed, LogOut, RotateCcw, ChevronDown
 } from "lucide-react";
 import { fmtBRL } from "../../components/ui";
 import BancoTalentos from "./components/BancoTalentos";
@@ -40,6 +40,7 @@ export default function RHPage() {
   // Cargos de liderança sempre disponíveis, além dos cargos cadastrados
   const CARGOS_LIDERANCA = ["CEO", "Supervisor", "Gerente"];
   const [modalNovo, setModalNovo] = useState(false);
+  const [menuAcoes, setMenuAcoes] = useState(null); // funcionário com o menu "Ações" aberto
   const [novoFunc, setNovoFunc] = useState(statePadrao);
   
   const [modalLancamento, setModalLancamento] = useState(false);
@@ -954,46 +955,52 @@ export default function RHPage() {
     <div className="min-h-screen font-sans pb-24 text-slate-800">
       <input type="file" ref={fileInputRef} className="hidden" onChange={handleUploadFile} accept=".pdf,.png,.jpg,.jpeg" />
       
-      {/* HEADER */}
-      <div className="pt-6 pb-8 px-6 max-w-5xl mx-auto flex items-center justify-between">
-         <div className="flex items-center gap-4">
-           <div className="w-16 h-16 rounded-3xl bg-slate-100 text-emerald-600 flex items-center justify-center shadow-inner">
-              <Users size={32} />
-           </div>
-           <div>
-              <h1 className="text-4xl font-black tracking-tighter text-slate-900">RH & Equipe</h1>
-              <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Gestão de Funcionários</p>
-           </div>
+      {/* HEADER: título + destaque; barra de ferramentas em linha própria, sem estourar */}
+      <div className="pt-6 pb-6 px-6 max-w-5xl mx-auto">
+         <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-3xl bg-slate-100 text-emerald-600 flex items-center justify-center shadow-inner">
+                 <Users size={32} />
+              </div>
+              <div>
+                 <h1 className="text-4xl font-black tracking-tighter text-slate-900">RH & Equipe</h1>
+                 <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Gestão de Funcionários</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+               <button onClick={() => router.push('/dashboard/rh/fechamento')} className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-600/20">
+                  <ClipboardList size={16} /> Fechar Folha
+               </button>
+               <button onClick={abrirModalNovo} className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-700 transition-colors shadow-md shadow-emerald-600/20">
+                  <UserPlus size={16} /> Contratar
+               </button>
+            </div>
          </div>
-         <div className="flex items-center gap-3">
+
+         {/* Ferramentas secundárias: linha própria, compactas, com quebra */}
+         <div className="flex items-center gap-2 flex-wrap mt-4">
+            <button onClick={lancarFolhaMes} title="Cria uma conta a pagar por funcionário fixo (mão de obra), sem duplicar" className="flex items-center gap-1.5 bg-white text-emerald-700 border border-emerald-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-emerald-50 transition-colors">
+               <CreditCard size={14} /> Lançar Folha (mês)
+            </button>
+            <button onClick={abrirModalFeriados} title="Dias de feriado pagam +100% para quem trabalhar (CLT)" className="flex items-center gap-1.5 bg-white text-rose-600 border border-slate-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-rose-50 transition-colors">
+               <CalendarDays size={14} /> Feriados
+            </button>
+            <button onClick={() => router.push('/dashboard/rh/cardapio-funcionarios')} className="flex items-center gap-1.5 bg-white text-slate-700 border border-slate-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-slate-50 transition-colors">
+               <UtensilsCrossed size={14} /> Cardápio Equipe
+            </button>
+            <a
+               href={(!unidadeAtiva || unidadeAtiva === "todas") ? "#" : `/exportar-afd?unidadeId=${unidadeAtiva}`}
+               onClick={(e) => { if(!unidadeAtiva || unidadeAtiva === "todas") { e.preventDefault(); alert("Por favor, selecione uma unidade específica no menu lateral esquerdo para exportar o AFD daquela empresa."); } }}
+               target={(!unidadeAtiva || unidadeAtiva === "todas") ? "_self" : "_blank"}
+               rel="noreferrer"
+               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg font-bold text-xs transition-colors border ${(!unidadeAtiva || unidadeAtiva === "todas") ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed" : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"}`}>
+               <FileText size={14} /> Exportar AFD
+            </a>
             {abaAtiva === "Freelancer" && (
-               <button onClick={() => abrirModalFicha(null)} className="flex items-center gap-2 bg-amber-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-amber-700 transition-colors shadow-lg shadow-amber-600/20">
-                  <Printer size={18} /> Ficha em Branco
+               <button onClick={() => abrirModalFicha(null)} className="flex items-center gap-1.5 bg-white text-amber-700 border border-amber-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-amber-50 transition-colors">
+                  <Printer size={14} /> Ficha em Branco
                </button>
             )}
-            <button onClick={() => router.push('/dashboard/rh/cardapio-funcionarios')} className="flex items-center gap-2 bg-white text-slate-800 border border-slate-200 px-5 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm">
-               <UtensilsCrossed size={18} /> Cardápio Equipe
-            </button>
-            <a 
-               href={(!unidadeAtiva || unidadeAtiva === "todas") ? "#" : `/exportar-afd?unidadeId=${unidadeAtiva}`} 
-               onClick={(e) => { if(!unidadeAtiva || unidadeAtiva === "todas") { e.preventDefault(); alert("Por favor, selecione uma unidade específica no menu lateral esquerdo para exportar o AFD daquela empresa."); } }}
-               target={(!unidadeAtiva || unidadeAtiva === "todas") ? "_self" : "_blank"} 
-               rel="noreferrer" 
-               className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold transition-colors shadow-lg ${(!unidadeAtiva || unidadeAtiva === "todas") ? "bg-slate-300 text-slate-500 cursor-not-allowed" : "bg-slate-800 text-white hover:bg-slate-900 shadow-slate-800/20"}`}>
-               <FileText size={18} /> Exportar AFD
-            </a>
-            <button onClick={abrirModalFeriados} title="Dias de feriado pagam +100% para quem trabalhar (CLT)" className="flex items-center gap-2 bg-white text-rose-600 border border-rose-200 px-5 py-3 rounded-xl font-bold hover:bg-rose-50 transition-colors shadow-sm">
-               <CalendarDays size={18} /> Feriados
-            </button>
-            <button onClick={lancarFolhaMes} title="Cria uma conta a pagar por funcionário fixo (mão de obra), sem duplicar" className="flex items-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-5 py-3 rounded-xl font-bold hover:bg-emerald-50 transition-colors shadow-sm">
-               <CreditCard size={18} /> Lançar Folha (mês)
-            </button>
-            <button onClick={() => router.push('/dashboard/rh/fechamento')} className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-600/20">
-               <ClipboardList size={18} /> Fechar Folha
-            </button>
-            <button onClick={abrirModalNovo} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
-               <UserPlus size={18} /> Contratar
-            </button>
          </div>
       </div>
 
@@ -1145,58 +1152,27 @@ export default function RHPage() {
                         </td>
                         <td className="p-4 text-right">
                            <div className="flex flex-col items-end gap-2">
-                              {f.docs?.length > 0 ? f.docs.map((d) => (
-                                <div key={d.id} className="flex items-center gap-2">
-                                  <a href={d.url_arquivo} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-[10px] font-bold bg-slate-100 text-emerald-600 px-2 py-1 rounded-md hover:bg-slate-50 hover:underline">
-                                    <FileText size={10}/> {d.nome_arquivo}
-                                  </a>
-                                  <button onClick={() => handleApagarDoc(d.id, d.url_arquivo)} className="text-slate-500 hover:text-emerald-600"><X size={12}/></button>
-                                </div>
-                              )) : <span className="text-[10px] text-slate-500">Sem docs</span>}
-                              
-                              <div className="flex items-center gap-3 mt-2 flex-wrap justify-end">
-                                 <button onClick={() => router.push(`/dashboard/rh/espelho/${f.id}?mes=${new Date().toISOString().slice(0,7)}`)} className="flex items-center gap-1 text-xs font-black text-slate-600 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-200 transition-colors">
-                                    Espelho de Ponto
-                                 </button>
-                                 {f.tipo_contrato === "Freelancer" && (
-                                     <button onClick={() => abrirModalFicha(f)} className="flex items-center gap-1 text-xs font-black text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg hover:bg-amber-100 transition-colors">
-                                        <Printer size={14}/> Ficha Controle
-                                     </button>
-                                  )}
-                                 <button onClick={() => router.push(`/dashboard/rh/contrato/${f.id}`)} className="flex items-center gap-1 text-xs font-black text-slate-600 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-200 transition-colors">
-                                    <FileText size={14}/> Regulamento
-                                 </button>
-                                 <button onClick={() => abrirModalFolgas(f)} className="flex items-center gap-1 text-xs font-black text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg hover:bg-rose-100 transition-colors">
-                                    <CalendarHeart size={14}/> Folgas
-                                 </button>
+                              {/* Resumo: docs + alerta de banco de horas (só o que precisa de olho) */}
+                              <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                                 {f.docs?.length > 0
+                                   ? <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-md flex items-center gap-1"><FileText size={10}/> {f.docs.length} doc(s)</span>
+                                   : <span className="text-[10px] text-slate-400">Sem docs</span>}
                                  {(() => {
                                     const tb = totalBancoDe(f.id);
+                                    if (tb < BANCO_ALERTA_MIN) return null;
                                     const critico = tb >= BANCO_LIMITE_MIN;
-                                    const alerta = tb >= BANCO_ALERTA_MIN;
                                     return (
-                                       <button onClick={() => abrirModalBanco(f)} className={`flex items-center gap-1 text-xs font-black px-3 py-1.5 rounded-lg transition-colors ${critico ? "text-red-700 bg-red-100 hover:bg-red-200" : alerta ? "text-amber-700 bg-amber-100 hover:bg-amber-200" : "text-sky-700 bg-sky-50 hover:bg-sky-100"}`}>
-                                          <Clock size={14}/> Banco de Horas{tb > 0 ? `: ${fmtMin(tb)}` : ""}{critico ? " (LIMITE!)" : alerta ? " (atenção)" : ""}
+                                       <button onClick={() => abrirModalBanco(f)} className={`text-[10px] font-black px-2 py-1 rounded-md flex items-center gap-1 ${critico ? "text-red-700 bg-red-100" : "text-amber-700 bg-amber-100"}`}>
+                                          <Clock size={10}/> {fmtMin(tb)}{critico ? " LIMITE!" : ""}
                                        </button>
                                     );
                                  })()}
-                                 <button onClick={() => abrirModalConsumo(f)} className="flex items-center gap-1 text-xs font-black text-teal-600 bg-teal-50 px-3 py-1.5 rounded-lg hover:bg-teal-100 transition-colors">
-                                    <ShoppingBag size={14}/> Consumo / Vales
+                              </div>
+                              <div className="flex items-center gap-2">
+                                 <button onClick={() => abrirModalEdicao(f)} className="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3.5 py-2 rounded-lg hover:bg-slate-50 transition-colors">Editar</button>
+                                 <button onClick={() => setMenuAcoes(f)} className="flex items-center gap-1.5 text-xs font-black text-white bg-slate-800 px-3.5 py-2 rounded-lg hover:bg-slate-900 transition-colors">
+                                    Ações <ChevronDown size={13}/>
                                  </button>
-                                 <button onClick={() => abrirModalAdv(f)} className="flex items-center gap-1 text-xs font-black text-red-600 bg-red-50 px-3 py-1.5 rounded-lg hover:bg-red-100 transition-colors">
-                                    <FileText size={14}/> Advertências
-                                 </button>
-                                 <button onClick={() => handleLancarFinanceiro(f)} className="flex items-center gap-1 text-xs font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition-colors">
-                                    Lançar {f.tipo_contrato === "Freelancer" ? "Diária" : "Salário"}
-                                 </button>
-                                 <button onClick={() => acionarUpload(f)} disabled={uploadingId === f.id} className="flex items-center gap-1 text-xs font-bold text-emerald-600 hover:text-indigo-800 disabled:opacity-50">
-                                   {uploadingId === f.id ? <Loader2 size={14} className="animate-spin"/> : <Upload size={14}/>} 
-                                   {uploadingId === f.id ? "Enviando..." : "Anexar Doc"}
-                                 </button>
-                                 <button onClick={() => abrirModalEdicao(f)} className="text-slate-600 hover:bg-slate-50 p-1.5 rounded transition-colors text-[10px] font-bold uppercase border border-slate-200">Editar</button>
-                                 {abaAtiva !== "Ex-funcionários" && (
-                                   <button onClick={() => abrirDesligamento(f)} className="flex items-center gap-1 text-xs font-black text-orange-600 bg-orange-50 px-3 py-1.5 rounded-lg hover:bg-orange-100 transition-colors" title="Desligar (arquiva com o histórico)"><LogOut size={14}/> Desligar</button>
-                                 )}
-                                 <button onClick={() => handleRemover(f.id)} className="text-slate-600 hover:bg-slate-50 p-1.5 rounded transition-colors" title="Apagar definitivamente"><Trash2 size={16}/></button>
                               </div>
                            </div>
                         </td>
@@ -1213,6 +1189,80 @@ export default function RHPage() {
          )}
 
       </div>
+
+      {/* MENU DE AÇÕES DO FUNCIONÁRIO — tudo organizado por grupo */}
+      {menuAcoes && (() => {
+         const f = menuAcoes;
+         const fechar = () => setMenuAcoes(null);
+         const ir = (fn) => { fechar(); fn(); };
+         const tb = totalBancoDe(f.id);
+         const critico = tb >= BANCO_LIMITE_MIN, alerta = tb >= BANCO_ALERTA_MIN;
+         const Acao = ({ icon: Icon, cor = "text-slate-700", bg = "bg-slate-50 hover:bg-slate-100", onClick, children, extra }) => (
+            <button onClick={onClick} className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl font-bold text-sm text-left transition-colors ${bg} ${cor}`}>
+               <Icon size={16} className="shrink-0" /> <span className="flex-1">{children}</span> {extra}
+            </button>
+         );
+         const Grupo = ({ titulo, children }) => (
+            <div>
+               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 px-1">{titulo}</p>
+               <div className="space-y-1.5">{children}</div>
+            </div>
+         );
+         return (
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={fechar}>
+            <div className="bg-white rounded-[28px] w-full max-w-md max-h-[88vh] overflow-y-auto p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+               <div className="flex items-center justify-between mb-4">
+                  <div className="min-w-0">
+                     <h2 className="font-black text-xl text-slate-800 truncate">{f.nome}</h2>
+                     <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">{f.cargo || "—"}</p>
+                  </div>
+                  <button onClick={fechar} className="w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200 shrink-0"><X size={17}/></button>
+               </div>
+
+               <div className="space-y-4">
+                  <Grupo titulo="Ponto e Jornada">
+                     <Acao icon={Clock} onClick={() => ir(() => router.push(`/dashboard/rh/espelho/${f.id}?mes=${new Date().toISOString().slice(0,7)}`))}>Espelho de Ponto</Acao>
+                     <Acao icon={Clock} cor={critico ? "text-red-700" : alerta ? "text-amber-700" : "text-sky-700"} bg={critico ? "bg-red-50 hover:bg-red-100" : alerta ? "bg-amber-50 hover:bg-amber-100" : "bg-sky-50 hover:bg-sky-100"}
+                        onClick={() => ir(() => abrirModalBanco(f))}
+                        extra={tb > 0 && <span className="text-xs font-black">{fmtMin(tb)}{critico ? " LIMITE!" : ""}</span>}>
+                        Banco de Horas
+                     </Acao>
+                     <Acao icon={CalendarHeart} cor="text-rose-600" bg="bg-rose-50 hover:bg-rose-100" onClick={() => ir(() => abrirModalFolgas(f))}>Folgas</Acao>
+                  </Grupo>
+
+                  <Grupo titulo="Financeiro">
+                     <Acao icon={ShoppingBag} cor="text-teal-700" bg="bg-teal-50 hover:bg-teal-100" onClick={() => ir(() => abrirModalConsumo(f))}>Consumo / Vales</Acao>
+                     <Acao icon={CreditCard} cor="text-emerald-700" bg="bg-emerald-50 hover:bg-emerald-100" onClick={() => ir(() => handleLancarFinanceiro(f))}>Lançar {f.tipo_contrato === "Freelancer" ? "Diária" : "Salário"}</Acao>
+                  </Grupo>
+
+                  <Grupo titulo="Documentos">
+                     <Acao icon={FileText} onClick={() => ir(() => router.push(`/dashboard/rh/contrato/${f.id}`))}>Regulamento</Acao>
+                     {f.tipo_contrato === "Freelancer" && (
+                        <Acao icon={Printer} cor="text-amber-700" bg="bg-amber-50 hover:bg-amber-100" onClick={() => ir(() => abrirModalFicha(f))}>Ficha Controle</Acao>
+                     )}
+                     <Acao icon={Upload} onClick={() => ir(() => acionarUpload(f))}>Anexar Documento</Acao>
+                     {(f.docs || []).map(d => (
+                        <div key={d.id} className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-50">
+                           <a href={d.url_arquivo} target="_blank" rel="noreferrer" className="flex-1 flex items-center gap-2 text-xs font-bold text-emerald-700 hover:underline min-w-0">
+                              <FileText size={13} className="shrink-0"/> <span className="truncate">{d.nome_arquivo}</span>
+                           </a>
+                           <button onClick={() => handleApagarDoc(d.id, d.url_arquivo)} className="text-slate-400 hover:text-red-500 shrink-0"><X size={14}/></button>
+                        </div>
+                     ))}
+                  </Grupo>
+
+                  <Grupo titulo="Gestão e Disciplina">
+                     <Acao icon={FileText} cor="text-red-600" bg="bg-red-50 hover:bg-red-100" onClick={() => ir(() => abrirModalAdv(f))}>Advertências</Acao>
+                     {abaAtiva !== "Ex-funcionários" && (
+                        <Acao icon={LogOut} cor="text-orange-600" bg="bg-orange-50 hover:bg-orange-100" onClick={() => ir(() => abrirDesligamento(f))}>Desligar (arquiva com histórico)</Acao>
+                     )}
+                     <Acao icon={Trash2} cor="text-slate-500" onClick={() => ir(() => handleRemover(f.id))}>Apagar definitivamente</Acao>
+                  </Grupo>
+               </div>
+            </div>
+         </div>
+         );
+      })()}
 
       {/* Modal Adicionar/Editar Funcionário */}
       {modalNovo && (

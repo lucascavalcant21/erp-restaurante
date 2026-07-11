@@ -65,8 +65,7 @@ export async function fetchProducoesPeriodo(unidadeId, dias = 30) {
 export async function registrarProducao(unidadeId, ficha, qtdProduzida, colaboradorId) {
   if (!isSupabaseReady()) return { error: "Offline" };
   
-  // 1. Inserimos o log da produção
-  // 2. Buscamos o estoque atual dos INSUMOS dessa ficha (ignora sub-fichas/bases)
+  // Calcula e valida a baixa antes de registrar o histórico da produção.
   const insumosFicha = (ficha.fichas_ingredientes || []).filter(i => i.insumos);
   const consumoPorInsumo = {};
   insumosFicha.forEach(ing => {
@@ -76,19 +75,22 @@ export async function registrarProducao(unidadeId, ficha, qtdProduzida, colabora
   });
   const ingIds = Object.keys(consumoPorInsumo);
   
-  const { data: estoqueDB, error: errConsultaEstoque } = await supabase.from("estoque_atual")
-     .select("insumo_id, quantidade_atual")
-     .eq("unidade_id", unidadeId)
-     .in("insumo_id", ingIds);
-
-  if (errConsultaEstoque) return { error: errConsultaEstoque.message };
+  let estoqueDB = [];
+  if (ingIds.length > 0) {
+     const { data, error: errConsultaEstoque } = await supabase.from("estoque_atual")
+        .select("insumo_id, quantidade_atual")
+        .eq("unidade_id", unidadeId)
+        .in("insumo_id", ingIds);
+     if (errConsultaEstoque) return { error: errConsultaEstoque.message };
+     estoqueDB = data || [];
+  }
 
   const mapaEstoque = {};
   if(estoqueDB) {
      estoqueDB.forEach(e => mapaEstoque[e.insumo_id] = e.quantidade_atual);
   }
 
-  // 3. Calculamos o novo saldo e preparamos o array de Upsert
+  // Impede saldo negativo e informa exatamente o que está faltando.
   const faltantes = Object.entries(consumoPorInsumo).map(([id, item]) => ({
      id,
      nome: item.insumo.nome,
@@ -113,7 +115,7 @@ export async function registrarProducao(unidadeId, ficha, qtdProduzida, colabora
      };
   });
 
-  // 4. Salva as baixas no estoque de uma vez só!
+  // Salva a baixa e só então grava o histórico.
   if (atualizacoesEstoque.length > 0) {
      const { error: errUpsert } = await supabase.from("estoque_atual").upsert(atualizacoesEstoque, { onConflict: 'unidade_id, insumo_id' });
      if(errUpsert) return { error: errUpsert.message };

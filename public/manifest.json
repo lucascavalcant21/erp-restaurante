@@ -8,7 +8,7 @@
   "lang": "pt-BR",
   "dir": "ltr",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
+  "display_override": ["fullscreen", "standalone", "minimal-ui"],
   "orientation": "portrait-primary",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",

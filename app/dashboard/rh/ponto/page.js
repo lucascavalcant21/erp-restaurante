@@ -216,6 +216,29 @@ export default function PontoPage() {
     if (kiosk && typeof document !== "undefined" && !document.fullscreenElement) pedirFullscreen();
   };
 
+  // Modo Tablet: mantém a TELA SEMPRE ACESA (Wake Lock) — assim ela não apaga
+  // e não cai da tela cheia. Se o app for pro fundo e voltar, retoma o lock.
+  useEffect(() => {
+    if (!kiosk) return;
+    let lock = null;
+    let ativo = true;
+    const pedirLock = async () => {
+      try {
+        if (ativo && typeof navigator !== "undefined" && "wakeLock" in navigator) {
+          lock = await navigator.wakeLock.request("screen");
+        }
+      } catch { /* alguns navegadores negam sem bateria/energia — segue sem */ }
+    };
+    pedirLock();
+    const onVis = () => { if (document.visibilityState === "visible") pedirLock(); };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      ativo = false;
+      document.removeEventListener("visibilitychange", onVis);
+      try { if (lock) lock.release(); } catch {}
+    };
+  }, [kiosk]);
+
   const carregar = useCallback(async () => {
     setLoading(true);
     const [rColab, rPontos, rFolgas] = await Promise.all([

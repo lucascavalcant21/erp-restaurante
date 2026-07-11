@@ -137,8 +137,11 @@ function SidebarItem({ item, pathname }) {
 }
 
 function SidebarSection({ section, idx, pathname }) {
-  // Inicialmente vamos deixar aberto. O usuário pode fechar os que não usa.
-  const [isOpen, setIsOpen] = useState(true);
+  // Módulos sempre começam recolhidos; abre só o que tem a página atual dentro.
+  const contemAtual = section.items.some(item =>
+    item.href !== "/dashboard" && (pathname === item.href.split("?")[0] || pathname.startsWith(item.href.split("?")[0] + "/"))
+  );
+  const [isOpen, setIsOpen] = useState(contemAtual);
 
   return (
     <div className="animate-in fade-in slide-in-from-left-2" style={{ animationDelay: `${idx * 50}ms`, animationFillMode: 'both' }}>

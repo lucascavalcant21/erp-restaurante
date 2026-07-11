@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { lerSessao, encerrarSessao } from "../lib/auth";
 import { useERP } from "../context/ERPContext";
@@ -237,9 +237,25 @@ function TopHeader({ onSair, onToggleSidebar }) {
   const { unidades, unidadeAtiva, setUnidadeAtiva, podeTrocar, unidadeInfo } = useERP();
   const router = useRouter();
 
+  // Seletor de unidade: abre por CLIQUE e fica fixo até escolher ou clicar fora.
+  // Trocar de unidade mantém você na MESMA página (os dados recarregam sozinhos).
+  const [unidadesAberto, setUnidadesAberto] = useState(false);
+  const seletorRef = useRef(null);
+  useEffect(() => {
+    const fecharFora = (e) => {
+      if (seletorRef.current && !seletorRef.current.contains(e.target)) setUnidadesAberto(false);
+    };
+    document.addEventListener("mousedown", fecharFora);
+    document.addEventListener("touchstart", fecharFora);
+    return () => {
+      document.removeEventListener("mousedown", fecharFora);
+      document.removeEventListener("touchstart", fecharFora);
+    };
+  }, []);
+
   const handleTrocaUnidade = (id) => {
     setUnidadeAtiva(id);
-    router.push("/dashboard");
+    setUnidadesAberto(false);
   };
 
   return (
@@ -256,20 +272,22 @@ function TopHeader({ onSair, onToggleSidebar }) {
 
       <div className="flex items-center gap-2 sm:gap-4">
          {podeTrocar && (
-           <div className="relative group">
-             <button className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200/60 text-slate-700 px-3 py-2 rounded-xl transition-all shadow-sm text-xs font-bold uppercase">
-                <Store size={14} className="text-slate-400"/> 
-                <span className="max-w-[120px] sm:max-w-xs truncate">{unidadeInfo?.nome || 'Nenhuma Lj.'}</span> 
-                <ChevronDown size={14} className="text-slate-400"/>
+           <div className="relative" ref={seletorRef}>
+             <button onClick={() => setUnidadesAberto(a => !a)} className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200/60 text-slate-700 px-3 py-2 rounded-xl transition-all shadow-sm text-xs font-bold uppercase">
+                <Store size={14} className="text-slate-400"/>
+                <span className="max-w-[120px] sm:max-w-xs truncate">{unidadeInfo?.nome || 'Nenhuma Lj.'}</span>
+                <ChevronDown size={14} className="text-slate-400 transition-transform" style={{ transform: unidadesAberto ? "rotate(180deg)" : "none" }}/>
              </button>
-             <div className="absolute right-0 top-full mt-2 w-64 bg-white text-slate-800 rounded-2xl shadow-xl shadow-slate-200/50 hidden group-hover:block border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 origin-top-right">
-               {unidades.map(u => (
-                 <button key={u.id} onClick={() => handleTrocaUnidade(u.id)} className="w-full text-left px-4 py-3 text-sm font-bold hover:bg-slate-50 border-b border-slate-50 last:border-0 flex justify-between items-center group/btn transition-colors">
-                   {u.nome}
-                   {u.id === unidadeAtiva && <Check size={16} className="text-emerald-500"/>}
-                 </button>
-               ))}
-             </div>
+             {unidadesAberto && (
+               <div className="absolute right-0 top-full mt-2 w-64 bg-white text-slate-800 rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 origin-top-right z-50">
+                 {unidades.map(u => (
+                   <button key={u.id} onClick={() => handleTrocaUnidade(u.id)} className="w-full text-left px-4 py-3 text-sm font-bold hover:bg-slate-50 border-b border-slate-50 last:border-0 flex justify-between items-center transition-colors">
+                     {u.nome}
+                     {u.id === unidadeAtiva && <Check size={16} className="text-emerald-500"/>}
+                   </button>
+                 ))}
+               </div>
+             )}
            </div>
          )}
 

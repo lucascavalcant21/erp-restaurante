@@ -775,27 +775,27 @@ function FichasRunner() {
        <!DOCTYPE html><html><head><meta charset="utf-8"/><title>Livro de Receitas</title>
        <style>
           *{margin:0;padding:0;box-sizing:border-box}
-          body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;padding:22px;max-width:760px;margin:0 auto}
-          .page-break { page-break-after: always; margin-bottom: 40px; }
-          .page-break:last-child { page-break-after: auto; margin-bottom: 0; }
-          .head{border-bottom:4px solid #0f172a;padding-bottom:14px;margin-bottom:18px;display:block;}
-          .head-info { flex: 1; }
-          /* Foto do prato para MONTAGEM: mostra o prato inteiro (sem cortar) */
-          .head-foto { width: 100%; height: 420px; border-radius: 16px; object-fit: contain; background:#f1f5f9; border: 1px solid #cbd5e1; display: block; margin-bottom: 16px; }
-          .tag{font-size:15px;letter-spacing:3px;text-transform:uppercase;color:#475569;font-weight:bold}
-          h1{font-size:46px;line-height:1.05;margin:6px 0}
-          .meta{font-size:24px;color:#0f172a;font-weight:bold;margin-top:4px}
-          h2{font-size:22px;text-transform:uppercase;letter-spacing:2px;color:#0f172a;margin:26px 0 10px;border-bottom:2px solid #cbd5e1;padding-bottom:6px}
-          table{width:100%;border-collapse:collapse;font-size:22px}
-          th,td{text-align:left;padding:12px 8px;border-bottom:2px solid #e2e8f0}
-          th{font-size:15px;text-transform:uppercase;letter-spacing:1px;color:#64748b}
+          body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;padding:18px;max-width:780px;margin:0 auto}
+          /* Bloco compacto: cabem 2 pratos por página */
+          .bloco{page-break-inside:avoid;border-bottom:3px double #94a3b8;padding-bottom:14px;margin-bottom:16px}
+          .bloco:last-child{border-bottom:none;margin-bottom:0}
+          .quebra{page-break-after:always}
+          .head{display:flex;gap:14px;align-items:flex-start;border-bottom:3px solid #0f172a;padding-bottom:10px;margin-bottom:8px}
+          .head-info{flex:1;min-width:0}
+          /* Foto do prato: mostra inteira (sem cortar), tamanho compacto */
+          .head-foto{width:250px;height:180px;border-radius:12px;object-fit:contain;background:#f1f5f9;border:1px solid #cbd5e1;display:block;flex-shrink:0}
+          .tag{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#475569;font-weight:bold}
+          h1{font-size:26px;line-height:1.1;margin:4px 0}
+          .meta{font-size:16px;color:#0f172a;font-weight:bold;margin-top:2px}
+          h2{font-size:13px;text-transform:uppercase;letter-spacing:2px;color:#0f172a;margin:10px 0 4px;border-bottom:1px solid #cbd5e1;padding-bottom:3px}
+          table{width:100%;border-collapse:collapse;font-size:15px}
+          th,td{text-align:left;padding:5px 6px;border-bottom:1px solid #e2e8f0}
+          th{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#64748b}
           td{font-weight:600}
           td.c{text-align:center}td.r,th.r{text-align:right}
-          .totais{display:flex;justify-content:flex-end;gap:24px;margin-top:12px;font-size:14px}
-          .totais b{font-size:18px}
-          .preparo{margin-top:8px;font-size:23px;line-height:1.7;white-space:pre-wrap;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px 18px;font-weight:500}
-          @media print{@page{margin:12mm}}
-          .capa { height: 90vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+          .preparo{margin-top:4px;font-size:14px;line-height:1.55;white-space:pre-wrap;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-weight:500}
+          @media print{@page{margin:10mm}}
+          .capa { height: 90vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; page-break-after: always; }
           .capa h1 { font-size: 48px; margin-bottom: 16px; }
           .capa p { font-size: 18px; color: #64748b; }
        </style></head><body>
@@ -803,7 +803,7 @@ function FichasRunner() {
 
     if (listaDeFichas.length > 1) {
        conteudoHTML += `
-         <div class="capa page-break">
+         <div class="capa">
            <h1>Livro de Receitas</h1>
            <p>${listaDeFichas.length} receitas catalogadas</p>
            <p style="margin-top: 40px; font-size: 14px; text-transform: uppercase; letter-spacing: 2px;">Hephaestus ERP</p>
@@ -811,7 +811,7 @@ function FichasRunner() {
        `;
     }
 
-    listaDeFichas.forEach((f) => {
+    listaDeFichas.forEach((f, idxFicha) => {
       const custoTotal = custoTotalDaFicha(f, fichas);
       const rows = (f.fichas_ingredientes || []).map(fi => {
          let nome = '', unidade = '';
@@ -838,8 +838,11 @@ function FichasRunner() {
 
       const tagCat = f.categoria ? ` — ${f.categoria}` : (f.departamento ? ' — ' + f.departamento : '');
 
+      // Quebra de página a cada 2 pratos (o bloco é compacto: tudo na mesma página)
+      const quebra = (idxFicha % 2 === 1 && idxFicha < listaDeFichas.length - 1) ? ' quebra' : '';
+
       conteudoHTML += `
-         <div class="page-break">
+         <div class="bloco${quebra}">
             <div class="head">
                ${tagFoto}
                <div class="head-info">

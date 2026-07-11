@@ -36,7 +36,7 @@ export default function RHPage() {
   const [cargos, setCargos] = useState([]);
   const [busca, setBusca] = useState("");
   const [abaAtiva, setAbaAtiva] = useState("Fixo");
-  const statePadrao = { nome: "", cargo: "", salario: "", vale_alimentacao: "", taxa_servico_mes: "", horario_entrada: "", horario_saida: "", horario_dom_entrada: "", horario_dom_saida: "", dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60, tipo_contrato: "Fixo", telefone: "", cpf: "", chave_pix: "", avaliacao_estrelas: 0, anotacoes_rh: "", data_admissao: "", status_contrato: "Definitivo", supervisor_id: "", supervisores_ids: [] };
+  const statePadrao = { nome: "", cargo: "", salario: "", vale_alimentacao: "", taxa_servico_mes: "", horario_entrada: "", horario_saida: "", horario_dom_entrada: "", horario_dom_saida: "", dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60, tipo_contrato: "Fixo", telefone: "", cpf: "", chave_pix: "", avaliacao_estrelas: 0, anotacoes_rh: "", data_admissao: "", status_contrato: "Definitivo", supervisor_id: "", supervisores_ids: [], endereco: "", cep: "", cidade_nascimento: "", data_nascimento: "", tem_filhos: false, qtd_filhos: "", tem_transporte: false, usa_vale_transporte: false, genero: "", escolaridade: "" };
   // Cargos de liderança sempre disponíveis, além dos cargos cadastrados
   const CARGOS_LIDERANCA = ["CEO", "Supervisor", "Gerente"];
   const [modalNovo, setModalNovo] = useState(false);
@@ -662,7 +662,17 @@ export default function RHPage() {
        supervisor_id: f.supervisor_id || "",
        supervisores_ids: Array.isArray(f.supervisores_ids) ? f.supervisores_ids : (f.supervisor_id ? [f.supervisor_id] : []),
        vale_alimentacao: f.vale_alimentacao || "",
-       taxa_servico_mes: f.taxa_servico_mes || ""
+       taxa_servico_mes: f.taxa_servico_mes || "",
+       endereco: f.endereco || "",
+       cep: f.cep || "",
+       cidade_nascimento: f.cidade_nascimento || "",
+       data_nascimento: f.data_nascimento || "",
+       tem_filhos: !!f.tem_filhos,
+       qtd_filhos: f.qtd_filhos || "",
+       tem_transporte: !!f.tem_transporte,
+       usa_vale_transporte: !!f.usa_vale_transporte,
+       genero: f.genero || "",
+       escolaridade: f.escolaridade || ""
     });
     setModalNovo(true);
   };
@@ -692,7 +702,17 @@ export default function RHPage() {
       supervisor_id: (novoFunc.supervisores_ids && novoFunc.supervisores_ids[0]) || novoFunc.supervisor_id || null,
       supervisores_ids: novoFunc.supervisores_ids && novoFunc.supervisores_ids.length ? novoFunc.supervisores_ids : null,
       vale_alimentacao: Number(novoFunc.vale_alimentacao) || 0,
-      taxa_servico_mes: Number(novoFunc.taxa_servico_mes) || 0
+      taxa_servico_mes: Number(novoFunc.taxa_servico_mes) || 0,
+      endereco: novoFunc.endereco || null,
+      cep: novoFunc.cep || null,
+      cidade_nascimento: novoFunc.cidade_nascimento || null,
+      data_nascimento: novoFunc.data_nascimento || null,
+      tem_filhos: !!novoFunc.tem_filhos,
+      qtd_filhos: novoFunc.tem_filhos ? (Number(novoFunc.qtd_filhos) || 0) : null,
+      tem_transporte: !!novoFunc.tem_transporte,
+      usa_vale_transporte: !!novoFunc.usa_vale_transporte,
+      genero: novoFunc.genero || null,
+      escolaridade: novoFunc.escolaridade || null
     };
 
     if (editandoId) {
@@ -1073,7 +1093,15 @@ export default function RHPage() {
                               );
                            })()}
                         </td>
-                        <td className="p-4 font-black text-emerald-700">{fmtBRL(f.salario)}</td>
+                        <td className="p-4">
+                           <div className="font-black text-emerald-700">{fmtBRL(f.salario)}</div>
+                           {Number(f.vale_alimentacao) > 0 && (
+                              <div className="text-[10px] font-bold text-teal-700 bg-teal-50 border border-teal-100 rounded px-1.5 py-0.5 mt-1 inline-block">VA: {fmtBRL(f.vale_alimentacao)}</div>
+                           )}
+                           {Number(f.taxa_servico_mes) > 0 && (
+                              <div className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded px-1.5 py-0.5 mt-1 inline-block ml-1">Taxa: {fmtBRL(f.taxa_servico_mes)}</div>
+                           )}
+                        </td>
                         <td className="p-4">
                            {(() => {
                               const pt = pontosHoje.find(p => p.colaborador_id === f.id);
@@ -1333,6 +1361,83 @@ export default function RHPage() {
                         <input type="text" value={novoFunc.cpf} onChange={e=>setNovoFunc({...novoFunc, cpf: e.target.value})} placeholder="000.000.000-00" className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
                      </div>
                   </div>
+
+                  {/* ── DADOS PESSOAIS ─────────────────────────────────────── */}
+                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-4">
+                     <p className="text-[11px] font-black uppercase tracking-widest text-slate-500">Dados Pessoais</p>
+                     <div className="grid grid-cols-3 gap-3">
+                        <div className="col-span-2">
+                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Endereço</label>
+                           <input type="text" value={novoFunc.endereco} onChange={e=>setNovoFunc({...novoFunc, endereco: e.target.value})} placeholder="Rua, número, bairro" className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
+                        </div>
+                        <div>
+                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">CEP</label>
+                           <input type="text" value={novoFunc.cep} onChange={e=>setNovoFunc({...novoFunc, cep: e.target.value})} placeholder="00000-000" className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
+                        </div>
+                     </div>
+                     <div className="grid grid-cols-3 gap-3">
+                        <div>
+                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Data de Nascimento</label>
+                           <input type="date" value={novoFunc.data_nascimento || ""} onChange={e=>setNovoFunc({...novoFunc, data_nascimento: e.target.value})} className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
+                           {novoFunc.data_nascimento && (() => {
+                              const n = new Date(novoFunc.data_nascimento + "T12:00:00");
+                              const hoje = new Date();
+                              let idade = hoje.getFullYear() - n.getFullYear();
+                              if (hoje.getMonth() < n.getMonth() || (hoje.getMonth() === n.getMonth() && hoje.getDate() < n.getDate())) idade--;
+                              return <p className="text-[10px] font-black text-emerald-600 mt-1">{idade} anos</p>;
+                           })()}
+                        </div>
+                        <div>
+                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Cidade de Nascimento</label>
+                           <input type="text" value={novoFunc.cidade_nascimento} onChange={e=>setNovoFunc({...novoFunc, cidade_nascimento: e.target.value})} placeholder="Ex: Belém - PA" className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
+                        </div>
+                        <div>
+                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Gênero</label>
+                           <select value={novoFunc.genero} onChange={e=>setNovoFunc({...novoFunc, genero: e.target.value})} className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500">
+                              <option value="">Selecione...</option>
+                              <option value="Feminino">Feminino</option>
+                              <option value="Masculino">Masculino</option>
+                              <option value="Outro">Outro</option>
+                              <option value="Prefere não dizer">Prefere não dizer</option>
+                           </select>
+                        </div>
+                     </div>
+                     <div className="grid grid-cols-2 gap-3">
+                        <div>
+                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Escolaridade</label>
+                           <select value={novoFunc.escolaridade} onChange={e=>setNovoFunc({...novoFunc, escolaridade: e.target.value})} className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500">
+                              <option value="">Selecione...</option>
+                              <option value="Fundamental incompleto">Fundamental incompleto</option>
+                              <option value="Fundamental completo">Fundamental completo</option>
+                              <option value="Médio incompleto">Médio incompleto</option>
+                              <option value="Médio completo">Médio completo</option>
+                              <option value="Superior incompleto">Superior incompleto</option>
+                              <option value="Superior completo">Superior completo</option>
+                              <option value="Pós-graduação">Pós-graduação</option>
+                           </select>
+                        </div>
+                        <div className="flex flex-col justify-end gap-2">
+                           <label className="flex items-center gap-2 cursor-pointer">
+                              <input type="checkbox" checked={novoFunc.tem_filhos} onChange={e=>setNovoFunc({...novoFunc, tem_filhos: e.target.checked})} className="w-4 h-4 accent-emerald-600"/>
+                              <span className="text-xs font-bold text-slate-600">Possui filhos</span>
+                           </label>
+                           {novoFunc.tem_filhos && (
+                              <input type="number" min="1" value={novoFunc.qtd_filhos} onChange={e=>setNovoFunc({...novoFunc, qtd_filhos: e.target.value})} placeholder="Quantos?" className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-medium text-sm outline-none focus:border-emerald-500"/>
+                           )}
+                        </div>
+                     </div>
+                     <div className="flex flex-wrap gap-5">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                           <input type="checkbox" checked={novoFunc.tem_transporte} onChange={e=>setNovoFunc({...novoFunc, tem_transporte: e.target.checked})} className="w-4 h-4 accent-emerald-600"/>
+                           <span className="text-xs font-bold text-slate-600">Possui transporte próprio</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                           <input type="checkbox" checked={novoFunc.usa_vale_transporte} onChange={e=>setNovoFunc({...novoFunc, usa_vale_transporte: e.target.checked})} className="w-4 h-4 accent-emerald-600"/>
+                           <span className="text-xs font-bold text-slate-600">Usa vale transporte</span>
+                        </label>
+                     </div>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4">
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Chave PIX</label>

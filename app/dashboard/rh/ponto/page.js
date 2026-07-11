@@ -81,14 +81,16 @@ function categoriaFuncao(cargo) {
   return "Outros";
 }
 
-// Próxima batida com base no que já foi registrado hoje
+// Próxima batida com base no que já foi registrado hoje.
+// ORDEM IMPORTA: a saída final encerra o dia mesmo sem horários de intervalo
+// (quem pulou o intervalo), senão o sistema voltava a pedir "saída p/ intervalo".
 function proximaEtapa(reg) {
   if (!reg || !reg.hora_entrada) return "entrada";
-  if (reg.status_jornada === 3 && !reg.hora_retorno_intervalo && !reg.hora_saida_intervalo) return "saida_trabalho"; // pulou intervalo
+  if (reg.hora_saida) return "concluido"; // dia encerrado (com ou sem intervalo)
+  if (reg.status_jornada >= 3 && !reg.hora_retorno_intervalo && !reg.hora_saida_intervalo) return "saida_trabalho"; // pulou intervalo
   if (!reg.hora_saida_intervalo) return "saida_intervalo";
   if (!reg.hora_retorno_intervalo) return "retorno_intervalo";
-  if (!reg.hora_saida) return "saida_trabalho";
-  return "concluido";
+  return "saida_trabalho";
 }
 
 const ETAPAS = [
@@ -363,7 +365,7 @@ export default function PontoPage() {
     const reg = registroDe(selecionado.id);
     const etapa = proximaEtapa(reg);
     const etapaInfo = ETAPAS.find(e => e.id === etapa);
-    const pulouIntervalo = reg?.status_jornada === 3 && !reg?.hora_saida_intervalo;
+    const pulouIntervalo = !!reg?.hora_entrada && !reg?.hora_saida_intervalo && (reg?.status_jornada >= 3 || !!reg?.hora_saida);
 
     // Travas da ENTRADA: folga e janela de horário
     const info = folgaHoje(selecionado, folgas, horaLocal);

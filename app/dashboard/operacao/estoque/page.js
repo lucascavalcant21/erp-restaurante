@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchEstoque, ajustarEstoque } from "../../../lib/estoque";
-import { PackageSearch, Edit3, X, Save, ArrowLeft, RefreshCw, AlertCircle, Search, Plus, TrendingUp } from "lucide-react";
+import { PackageSearch, Edit3, X, Save, ArrowLeft, RefreshCw, AlertCircle, Search, Plus, TrendingUp, Printer } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
 function EstoqueRunner() {
@@ -13,7 +13,7 @@ function EstoqueRunner() {
   const searchParams = useSearchParams();
   const deptUrl = searchParams.get("dept"); // 'cozinha' ou 'bar'
   
-  const { unidadeAtiva } = useERP();
+  const { unidadeAtiva, unidadeInfo } = useERP();
   const [itens, setItens] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
@@ -37,6 +37,67 @@ function EstoqueRunner() {
   }, [unidadeAtiva, deptUrl]);
 
   const filtrados = itens.filter(i => i.nome.toLowerCase().includes(busca.toLowerCase()));
+
+  // Planilha de contagem imprimível: saldo do sistema + colunas em branco para
+  // a contagem física e a diferença — agrupada por departamento.
+  const imprimirPlanilha = () => {
+    if (!itens.length) return alert("Estoque vazio — nada para imprimir.");
+    const grupos = {};
+    itens.forEach(i => { const d = (i.departamento || "geral").toLowerCase(); (grupos[d] = grupos[d] || []).push(i); });
+    let corpo = "";
+    Object.keys(grupos).sort().forEach(dep => {
+      const lista = grupos[dep].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+      corpo += `<tr class="cat"><td colspan="7">${dep.toUpperCase()}</td></tr>` + lista.map(i => {
+        const saldo = Number(i.quantidade_atual) || 0;
+        const custo = Number(i.custo_unitario) || 0;
+        return `<tr>
+          <td><b>${i.nome}</b></td>
+          <td class="c">${String(i.unidade_medida || "").toUpperCase()}</td>
+          <td class="c">${saldo.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}</td>
+          <td class="r">${custo > 0 ? fmtBRL(custo) : ""}</td>
+          <td class="r">${custo > 0 ? fmtBRL(custo * saldo) : ""}</td>
+          <td class="conta"></td>
+          <td class="conta"></td>
+        </tr>`;
+      }).join("");
+    });
+    const valorTotal = itens.reduce((s, i) => s + (Number(i.custo_unitario) || 0) * (Number(i.quantidade_atual) || 0), 0);
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Estoque — ${unidadeInfo?.nome || ""}</title>
+      <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:8mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+        .head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #111;padding-bottom:8px;margin-bottom:10px}
+        h1{font-size:20px}
+        .tag{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#555;font-weight:bold}
+        .meta{font-size:11px;color:#555;font-weight:bold;text-align:right}
+        table{width:100%;border-collapse:collapse;font-size:11px}
+        th,td{border:1px solid #94a3b8;padding:5px 6px;text-align:left}
+        th{background:#e2e8f0;font-size:9px;text-transform:uppercase;letter-spacing:1px}
+        tr{page-break-inside:avoid}
+        tr.cat td{background:#f1f5f9;font-weight:bold;letter-spacing:1px;font-size:10px;color:#334155}
+        td.c{text-align:center;font-weight:bold}
+        td.r{text-align:right}
+        td.conta{width:20mm;background:#fff}
+        .totais{display:flex;justify-content:flex-end;margin-top:8px;font-size:12px;font-weight:bold}
+        .assin{margin-top:16mm;display:flex;gap:30px}
+        .assin div{flex:1;border-top:1px solid #111;padding-top:4px;font-size:10px;text-align:center;color:#444}
+        @media print{@page{margin:8mm}}
+      </style></head><body>
+      <div class="head">
+        <div><div class="tag">Planilha de Contagem — Estoque${deptUrl ? ` · ${deptUrl}` : ""}</div><h1>${unidadeInfo?.nome || "Unidade"}</h1></div>
+        <div class="meta">${itens.length} ingrediente(s)<br/>Impresso em ${new Date().toLocaleDateString("pt-BR")}</div>
+      </div>
+      <table>
+        <thead><tr><th>Ingrediente</th><th>Unid.</th><th>Saldo sistema</th><th>Custo/un.</th><th>Valor em estoque</th><th>Contagem física</th><th>Diferença</th></tr></thead>
+        <tbody>${corpo}</tbody>
+      </table>
+      <div class="totais"><span>Valor total em estoque: ${fmtBRL(valorTotal)}</span></div>
+      <div class="assin"><div>Contado por</div><div>Data da contagem</div><div>Assinatura do responsável</div></div>
+      </body></html>`;
+    const win = window.open("", "_blank", "width=900,height=1000");
+    if (win) { win.document.write(html); win.document.close(); setTimeout(() => win.print(), 400); }
+    else alert("Habilite os popups para imprimir a planilha.");
+  };
 
   const abrirAjuste = (item) => {
     setItemAtual(item);
@@ -86,6 +147,9 @@ function EstoqueRunner() {
                  <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Saldos e Entradas {deptUrl ? `- ${deptUrl}` : ''}</p>
               </div>
             </div>
+            <button onClick={imprimirPlanilha} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-5 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm">
+               <Printer size={18} /> Planilha
+            </button>
          </div>
       </div>
 

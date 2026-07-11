@@ -29,18 +29,36 @@ export async function fetchInventario(unidadeId) {
   return { data: data || [], error: error?.message };
 }
 
+// Coluna ainda não migrada (ex: foto)? Remove do payload e tenta de novo,
+// para o cadastro nunca quebrar antes do SQL.
+async function invRetrySemColuna(error, tentar, campos, n = 0) {
+  const m = error?.message || "";
+  const match = m.match(/column "?([a-z_]+)"? (?:of relation "inventario_itens" )?does not exist/i)
+    || (m.includes("Could not find") && m.match(/'([a-z_]+)' column/i));
+  if (error && match && n < 6 && match[1] in campos) {
+    delete campos[match[1]];
+    return invRetrySemColuna(await tentar(), tentar, campos, n + 1);
+  }
+  return error;
+}
+
 export async function salvarItemInventario(item) {
   if (!isSupabaseReady()) return { error: "Offline" };
   // id nulo quebra o INSERT (default gen_random_uuid) — remove antes
   const { id, created_at, updated_at, ...campos } = item;
   if (id) {
-    const { error } = await supabase.from("inventario_itens")
-      .update({ ...campos, updated_at: new Date().toISOString() }).eq("id", id);
+    const payload = { ...campos, updated_at: new Date().toISOString() };
+    let { error } = await supabase.from("inventario_itens").update(payload).eq("id", id);
+    error = await invRetrySemColuna(error, async () => {
+      const r = await supabase.from("inventario_itens").update(payload).eq("id", id); return r.error;
+    }, payload);
     return { id, error: error?.message };
   }
-  const { data, error } = await supabase.from("inventario_itens")
-    .insert([campos]).select("id").single();
-  return { id: data?.id, error: error?.message };
+  let res = await supabase.from("inventario_itens").insert([campos]).select("id").single();
+  const error = await invRetrySemColuna(res.error, async () => {
+    const r = await supabase.from("inventario_itens").insert([campos]).select("id").single(); res = r; return r.error;
+  }, campos);
+  return { id: res.data?.id, error: error?.message };
 }
 
 export async function removerItemInventario(id) {

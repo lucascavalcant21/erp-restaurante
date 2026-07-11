@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import {
-  Warehouse, Plus, Minus, History, Trash2, Edit3, Boxes, Layers, PackageX, X, Sparkles, Loader2, Camera
+  Warehouse, Plus, Minus, History, Trash2, Edit3, Boxes, Layers, PackageX, X, Sparkles, Loader2, Camera, Printer
 } from "lucide-react";
 import {
   PageHeader, PageBody, EmptyState, Modal, Field, TextInput, NumberInput, Select, Btn, Toast, SearchBar, Chips, SkeletonList, fmtBRL
@@ -108,12 +108,21 @@ export default function InventarioPage() {
 
   // ── Ações ─────────────────────────────────────────────────────────────────
   const abrirNovo = () => {
-    setForm({ id: null, nome: "", categoria: catFiltro !== "Todas" ? catFiltro : "Talheres", quantidade: "", valor_unitario: "", localizacao: "", observacao: "" });
+    setForm({ id: null, nome: "", categoria: catFiltro !== "Todas" ? catFiltro : "Talheres", quantidade: "", valor_unitario: "", localizacao: "", observacao: "", foto: "" });
     setModalItem(true);
   };
   const abrirEditar = (item) => {
-    setForm({ id: item.id, nome: item.nome, categoria: item.categoria || "Outros", quantidade: String(item.quantidade ?? ""), valor_unitario: item.valor_unitario ?? "", localizacao: item.localizacao || "", observacao: item.observacao || "" });
+    setForm({ id: item.id, nome: item.nome, categoria: item.categoria || "Outros", quantidade: String(item.quantidade ?? ""), valor_unitario: item.valor_unitario ?? "", localizacao: item.localizacao || "", observacao: item.observacao || "", foto: item.foto || "" });
     setModalItem(true);
+  };
+
+  // Foto do item (guardada em base64, junto do cadastro)
+  const escolherFotoItem = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const base64 = await fileParaBase64(file);
+    setForm(f => ({ ...f, foto: base64 }));
+    e.target.value = "";
   };
 
   const salvarItem = async (e) => {
@@ -130,6 +139,7 @@ export default function InventarioPage() {
       valor_unitario: form.valor_unitario === "" ? null : Number(form.valor_unitario),
       localizacao: form.localizacao || null,
       observacao: form.observacao || null,
+      foto: form.foto || null,
     });
     if (!error && ehNovo && id && (Number(form.quantidade) || 0) > 0) {
       // Primeira contagem entra no histórico como entrada (com data/hora)
@@ -148,6 +158,73 @@ export default function InventarioPage() {
       { id: novoId, unidade_id: unidadeAtiva, quantidade: 0 },
       { tipo: "entrada", quantidade: Number(form.quantidade) || 0, motivo: "Cadastro inicial" }
     );
+  };
+
+  // Planilha de controle imprimível: foto + item + qtd + valores + colunas de
+  // contagem manual — agrupada por categoria, com totais e assinatura.
+  const imprimirPlanilha = () => {
+    if (!itens.length) return alert("Inventário vazio — nada para imprimir.");
+    const grupos = {};
+    itens.forEach(i => { const c = i.categoria || "Outros"; (grupos[c] = grupos[c] || []).push(i); });
+    const cats = Object.keys(grupos).sort((a, b) => a.localeCompare(b, "pt-BR"));
+    let corpo = "";
+    cats.forEach(cat => {
+      const lista = grupos[cat].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+      const linhas = lista.map(i => {
+        const qtd = Number(i.quantidade) || 0;
+        const vu = Number(i.valor_unitario) || 0;
+        return `<tr>
+          <td class="foto">${i.foto ? `<img src="data:image/jpeg;base64,${i.foto}"/>` : ""}</td>
+          <td><b>${i.nome}</b>${i.observacao ? `<div class="mini">${i.observacao}</div>` : ""}</td>
+          <td>${i.localizacao || ""}</td>
+          <td class="c">${qtd.toLocaleString("pt-BR")}</td>
+          <td class="r">${vu > 0 ? fmtBRL(vu) : ""}</td>
+          <td class="r">${vu > 0 ? fmtBRL(vu * qtd) : ""}</td>
+          <td class="conta"></td>
+          <td class="conta"></td>
+        </tr>`;
+      }).join("");
+      const totCat = lista.reduce((s, i) => s + (Number(i.quantidade) || 0), 0);
+      corpo += `<tr class="cat"><td colspan="3">${cat}</td><td class="c">${totCat.toLocaleString("pt-BR")}</td><td colspan="4"></td></tr>${linhas}`;
+    });
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Inventário — ${unidadeInfo?.nome || ""}</title>
+      <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:8mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+        .head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #111;padding-bottom:8px;margin-bottom:10px}
+        h1{font-size:20px}
+        .tag{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#555;font-weight:bold}
+        .meta{font-size:11px;color:#555;font-weight:bold;text-align:right}
+        table{width:100%;border-collapse:collapse;font-size:11px}
+        th,td{border:1px solid #94a3b8;padding:4px 6px;text-align:left;vertical-align:middle}
+        th{background:#e2e8f0;font-size:9px;text-transform:uppercase;letter-spacing:1px}
+        tr{page-break-inside:avoid}
+        tr.cat td{background:#f1f5f9;font-weight:bold;text-transform:uppercase;letter-spacing:1px;font-size:10px;color:#334155}
+        td.foto{width:16mm;height:16mm;text-align:center;padding:1.5mm}
+        td.foto img{width:13mm;height:13mm;object-fit:cover;border-radius:2mm}
+        td.c{text-align:center;font-weight:bold}
+        td.r{text-align:right}
+        td.conta{width:18mm;background:#fff}
+        .mini{font-size:9px;color:#64748b;font-weight:normal}
+        .totais{display:flex;justify-content:flex-end;gap:20px;margin-top:8px;font-size:12px;font-weight:bold}
+        .assin{margin-top:18mm;display:flex;gap:30px}
+        .assin div{flex:1;border-top:1px solid #111;padding-top:4px;font-size:10px;text-align:center;color:#444}
+        @media print{@page{margin:8mm}}
+      </style></head><body>
+      <div class="head">
+        <div><div class="tag">Planilha de Controle — Inventário</div><h1>${unidadeInfo?.nome || "Unidade"}</h1></div>
+        <div class="meta">${itens.length} tipo(s) · ${resumo.totalUnidades.toLocaleString("pt-BR")} unidades<br/>Impresso em ${new Date().toLocaleDateString("pt-BR")}</div>
+      </div>
+      <table>
+        <thead><tr><th>Foto</th><th>Item</th><th>Onde fica</th><th>Qtd sistema</th><th>Valor un.</th><th>Valor total</th><th>Contagem física</th><th>Diferença</th></tr></thead>
+        <tbody>${corpo}</tbody>
+      </table>
+      <div class="totais"><span>Patrimônio informado: ${fmtBRL(resumo.valorTotal)}</span></div>
+      <div class="assin"><div>Conferido por</div><div>Data da contagem</div><div>Assinatura do responsável</div></div>
+      </body></html>`;
+    const win = window.open("", "_blank", "width=900,height=1000");
+    if (win) { win.document.write(html); win.document.close(); setTimeout(() => win.print(), 500); }
+    else alert("Habilite os popups para imprimir a planilha.");
   };
 
   const excluirItem = async (item) => {
@@ -274,6 +351,9 @@ export default function InventarioPage() {
         <Btn variant="ghost" className="!h-9 text-xs" onClick={() => setModalHist(true)}>
           <History size={14} /> Histórico
         </Btn>
+        <Btn variant="ghost" className="!h-10 text-xs" onClick={imprimirPlanilha}>
+          <Printer size={14} /> Planilha
+        </Btn>
       </PageHeader>
 
       <PageBody>
@@ -332,6 +412,13 @@ export default function InventarioPage() {
                     const zerado = (Number(item.quantidade) || 0) <= 0;
                     return (
                       <div key={item.id} className="px-4 py-3 flex items-center gap-3" style={{ borderColor: "var(--line-soft)" }}>
+                        {item.foto ? (
+                          <img src={`data:image/jpeg;base64,${item.foto}`} alt="" className="w-11 h-11 rounded-lg object-cover shrink-0 border" style={{ borderColor: "var(--line)" }} />
+                        ) : (
+                          <div className="w-11 h-11 rounded-lg flex items-center justify-center shrink-0" style={{ background: "var(--elevated)" }}>
+                            <Boxes size={16} style={{ color: "var(--dim)" }} />
+                          </div>
+                        )}
                         <div className="flex-1 min-w-0">
                           <p className="font-bold text-sm truncate" style={{ color: "var(--fg)" }}>{item.nome}</p>
                           <p className="text-[10px] font-medium truncate" style={{ color: "var(--dim)" }}>
@@ -375,6 +462,20 @@ export default function InventarioPage() {
       <Modal open={modalItem} onClose={() => setModalItem(false)} title={form?.id ? "Editar Item" : "Novo Item do Inventário"}>
         {form && (
           <form onSubmit={salvarItem}>
+            {/* Foto do item (opcional) */}
+            <div className="flex items-center gap-3 mb-4">
+              <label className="w-20 h-20 shrink-0 rounded-2xl border-2 border-dashed flex items-center justify-center cursor-pointer overflow-hidden" style={{ borderColor: "var(--line)", background: "var(--elevated)" }}>
+                {form.foto
+                  ? <img src={`data:image/jpeg;base64,${form.foto}`} className="w-full h-full object-cover" alt="Foto do item" />
+                  : <Camera size={22} style={{ color: "var(--dim)" }} />}
+                <input type="file" accept="image/*" className="hidden" onChange={escolherFotoItem} />
+              </label>
+              <div className="text-xs font-medium" style={{ color: "var(--dim)" }}>
+                <p className="font-bold" style={{ color: "var(--fg-soft)" }}>Foto do item (opcional)</p>
+                <p>Toque para {form.foto ? "trocar" : "adicionar"} — sai na planilha impressa.</p>
+                {form.foto && <button type="button" onClick={() => setForm(f => ({ ...f, foto: "" }))} className="font-bold text-rose-500 hover:text-rose-600 mt-1">Remover foto</button>}
+              </div>
+            </div>
             <Field label="Nome do item">
               <TextInput value={form.nome} onChange={e => setForm({ ...form, nome: e.target.value })} placeholder="Ex: Garfo de mesa inox, Freezer horizontal 400L..." required />
             </Field>

@@ -483,18 +483,6 @@ export async function removerConsumoFuncionario(id) {
   return { error: error?.message };
 }
 
-// Vales/consumos pendentes com desconto em folha da unidade inteira
-// (uma query só — abastece o "salário previsto" da tabela do RH)
-export async function fetchValesPendentes(unidadeId) {
-  if (!isSupabaseReady()) return { data: [] };
-  let q = supabase.from("rh_consumo_funcionarios").select("*")
-    .eq("forma_pagamento", "Desconto em Folha")
-    .eq("status_pagamento", "Pendente");
-  if (unidadeId && unidadeId !== "todas") q = q.eq("unidade_id", unidadeId);
-  const { data, error } = await q;
-  return { data: data || [], error: error?.message };
-}
-
 // ============================================================================
 // FECHAMENTO DE FOLHA
 // ============================================================================
@@ -596,7 +584,16 @@ export async function fecharFolhaMensal(unidadeId, mesAno, pagamentos) {
     dia++;
   }
 
-  const contasParaInserir = pagamentos.map(p => ({
+  const descricoes = pagamentos.map(p => `Salário ${mesStr}/${anoStr} - ${p.nome}`);
+  const { data: contasExistentes, error: erroConsultaContas } = await supabase
+    .from("contas_pagar")
+    .select("descricao")
+    .eq("unidade_id", unidadeId)
+    .in("descricao", descricoes);
+  if (erroConsultaContas) return { error: erroConsultaContas.message };
+
+  const descricoesExistentes = new Set((contasExistentes || []).map(c => c.descricao));
+  const contasParaInserir = pagamentos.filter(p => !descricoesExistentes.has(`Salário ${mesStr}/${anoStr} - ${p.nome}`)).map(p => ({
     unidade_id: unidadeId,
     descricao: `Salário ${mesStr}/${anoStr} - ${p.nome}`,
     valor: Number(p.valor_liquido),
@@ -605,8 +602,48 @@ export async function fecharFolhaMensal(unidadeId, mesAno, pagamentos) {
     status: 'pendente'
   }));
 
-  const { error } = await supabase.from("contas_pagar").insert(contasParaInserir);
-  if (error) return { error: error.message };
+  if (contasParaInserir.length > 0) {
+    const { error } = await supabase.from("contas_pagar").insert(contasParaInserir);
+    if (error) return { error: error.message };
+  }
+
+  const { data: holeritesExistentes, error: erroConsultaHolerites } = await supabase
+    .from("holerites")
+    .select("id, func_id")
+    .eq("unidade_id", unidadeId)
+    .eq("mes", Number(mesStr))
+    .eq("ano", Number(anoStr));
+  if (erroConsultaHolerites) return { error: erroConsultaHolerites.message };
+
+  const holeritePorFuncionario = new Map((holeritesExistentes || []).map(h => [h.func_id, h]));
+  for (const p of pagamentos) {
+    const payload = {
+      func_id: p.colaborador_id,
+      mes: Number(mesStr),
+      ano: Number(anoStr),
+      bruto: Number(p.base_calculada || 0) + Number(p.acrescimos || 0),
+      liquido: Number(p.valor_liquido || 0),
+      unidade_id: unidadeId,
+      detalhes: {
+        nome: p.nome,
+        cargo: p.cargo || "",
+        tipo_contrato: p.tipo_contrato || "",
+        dias_trabalhados: Number(p.dias_trabalhados || 0),
+        salario_base: Number(p.base_calculada || 0),
+        acrescimos: Number(p.acrescimos || 0),
+        vales: Number(p.total_vales_pendentes || 0),
+        outros_descontos: Number(p.descontos_manuais || 0),
+        competencia: mesAno,
+        fechado_em: new Date().toISOString()
+      }
+    };
+    const existente = holeritePorFuncionario.get(p.colaborador_id);
+    const operacao = existente
+      ? supabase.from("holerites").update(payload).eq("id", existente.id)
+      : supabase.from("holerites").insert([payload]);
+    const { error: erroHolerite } = await operacao;
+    if (erroHolerite) return { error: `Holerite de ${p.nome}: ${erroHolerite.message}` };
+  }
 
   const valesParaBaixar = pagamentos.flatMap(p => p.vales_descontados_ids || []);
   if (valesParaBaixar.length > 0) {
@@ -616,5 +653,10 @@ export async function fecharFolhaMensal(unidadeId, mesAno, pagamentos) {
       .in('id', valesParaBaixar);
   }
 
-  return { success: true };
+  return {
+    success: true,
+    holeritesGerados: pagamentos.length,
+    contasCriadas: contasParaInserir.length,
+    contasJaExistentes: pagamentos.length - contasParaInserir.length
+  };
 }

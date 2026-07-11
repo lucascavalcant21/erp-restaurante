@@ -66,13 +66,13 @@ export default function FechamentoFolhaPage() {
     if(!confirm(`Deseja fechar a folha de ${mesAno.split('-').reverse().join('/')}? Isso enviará R$ ${pagamentos.reduce((acc,p)=>acc+p.valor_liquido,0).toFixed(2)} para o Contas a Pagar.`)) return;
 
     setSalvando(true);
-    const { error } = await fecharFolhaMensal(unidadeAtiva, mesAno, pagamentos);
+    const resultado = await fecharFolhaMensal(unidadeAtiva, mesAno, pagamentos);
     setSalvando(false);
 
-    if (error) {
-      alert("Erro ao fechar folha: " + error);
+    if (resultado.error) {
+      alert("Erro ao fechar folha: " + resultado.error);
     } else {
-      alert("Folha fechada com sucesso! As contas a pagar foram geradas.");
+      alert(`Folha fechada com sucesso!\n\n${resultado.holeritesGerados} holerite(s) enviado(s) ao Portal do Colaborador.\n${resultado.contasCriadas} conta(s) criada(s) no financeiro.${resultado.contasJaExistentes ? `\n${resultado.contasJaExistentes} conta(s) já existiam e não foram duplicadas.` : ""}`);
       router.push("/dashboard/financeiro/contas");
     }
   };
@@ -233,7 +233,7 @@ export default function FechamentoFolhaPage() {
                   className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-8 py-4 rounded-2xl font-black text-lg transition-all shadow-xl shadow-indigo-600/20 active:scale-95"
                >
                   {salvando ? <Loader2 size={24} className="animate-spin" /> : <Save size={24} />}
-                  Confirmar e Gerar CMO
+                  Confirmar, gerar holerites e CMO
                </button>
             </div>
 

@@ -11,6 +11,7 @@ import { useERP } from "../../../context/ERPContext";
 import { lerSessao } from "../../../lib/auth";
 import { fetchEstoque } from "../../../lib/estoque";
 import { fetchProdutos } from "../../../lib/vendas";
+import { fetchColaboradores } from "../../../lib/rh";
 import { CONSERVACAO, gerarCodigo, criarEtiqueta } from "../../../lib/etiquetas";
 import { UNIDADES as UNIDADES_REDE } from "../../../lib/unidades";
 
@@ -32,6 +33,7 @@ function EtiquetasRunner() {
   const searchParams = useSearchParams();
   const deptUrl = searchParams.get("dept"); // 'cozinha' | 'bar' | null (todos)
   const [produtos, setProdutos] = useState([]);
+  const [colaboradores, setColaboradores] = useState([]);
   const [form, setForm] = useState({ 
     produto: "", conservacao: "Congelado", quantidade: "1", unidade: "UN", 
     dias: 30, lote: "", responsavel: "" 
@@ -48,6 +50,7 @@ function EtiquetasRunner() {
   const [novoPreset, setNovoPreset] = useState({ nome: "", dias: "" });
   const [showPreset, setShowPreset] = useState(false);
   const [salvou, setSalvou] = useState("");
+  const [salvando, setSalvando] = useState(false);
   const [copias, setCopias] = useState(1);
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -75,9 +78,10 @@ function EtiquetasRunner() {
     (async () => {
       // Produtos do cardápio + insumos do estoque, filtrados pelo departamento
       // da URL (?dept=cozinha ou ?dept=bar) — cada área vê só o que é dela.
-      const [e, pr] = await Promise.all([
+      const [e, pr, colab] = await Promise.all([
         fetchEstoque(unidadeAtiva, deptUrl || undefined),
         fetchProdutos(unidadeAtiva, deptUrl || undefined),
+        fetchColaboradores(unidadeAtiva),
       ]);
       const nomes = [...new Set([
         ...(e.data || []).map((x) => x.nome),
@@ -87,6 +91,7 @@ function EtiquetasRunner() {
       const mapa = {};
       (e.data || []).forEach((x) => { mapa[x.nome] = Number(x.custo_unitario) || Number(x.preco_unit) || mapa[x.nome] || 0; });
       setCustoMap(mapa);
+      setColaboradores((colab.data || []).filter((c) => c.ativo !== false && c.status !== "inativo"));
     })();
   }, [unidadeAtiva, deptUrl]);
 
@@ -110,20 +115,43 @@ function EtiquetasRunner() {
   function salvarCnpj(v) { setCnpj(v); try { localStorage.setItem("erp_cnpj", v); } catch (_) {} }
 
   async function salvar(imprimir) {
+    if (salvando) return;
     if (!nomeProduto) { setSalvou("Informe o produto"); setTimeout(() => setSalvou(""), 2000); return; }
     if (!form.responsavel.trim()) { setSalvou("Informe o responsável"); setTimeout(() => setSalvou(""), 2000); return; }
-    await criarEtiqueta({
-      codigo, produto: nomeProduto, conservacao: form.conservacao,
-      quantidade: Number(form.quantidade) || 0, unidade: form.unidade,
-      validade_dias: diasEfetivo,
-      manipulacao_em: agora.toISOString(), validade_em: validadeEm.toISOString(),
-      lote: form.lote || null, responsavel: form.responsavel.trim(),
-      custo_unit: custoMap[nomeProduto] || 0, status: "ativa",
-      copias: copias > 0 ? copias : 1,
-    }, unidadeAtiva);
-    if (imprimir) { setTimeout(() => window.print(), 150); }
-    setSalvou(imprimir ? "Etiqueta salva e enviada para impressão!" : "Etiqueta salva!");
-    setTimeout(() => { setSalvou(""); setCodigo(gerarCodigo()); }, 2200);
+    if (Number(form.quantidade) <= 0) { setSalvou("Informe uma quantidade maior que zero"); setTimeout(() => setSalvou(""), 2500); return; }
+    if (Number(copias) < 1) { setSalvou("Informe pelo menos uma etiqueta"); setTimeout(() => setSalvou(""), 2500); return; }
+    if (!Number.isFinite(validadeEm.getTime()) || validadeEm.getTime() < agora.getTime()) {
+      setSalvou("A validade não pode estar no passado"); setTimeout(() => setSalvou(""), 2500); return;
+    }
+
+    setSalvando(true);
+    try {
+      const resultado = await criarEtiqueta({
+        codigo, produto: nomeProduto, conservacao: form.conservacao,
+        quantidade: Number(form.quantidade), unidade: form.unidade,
+        validade_dias: diasEfetivo,
+        manipulacao_em: agora.toISOString(),
+        validade_em: validadeEm.toISOString(),
+        lote: form.lote || null, responsavel: form.responsavel.trim(),
+        custo_unit: custoMap[nomeProduto] || 0, status: "ativa",
+        copias: Number(copias),
+      }, unidadeAtiva);
+
+      if (resultado.error) {
+        setSalvou("Não foi possível salvar: " + resultado.error);
+        setTimeout(() => setSalvou(""), 4000);
+        return;
+      }
+
+      if (imprimir) setTimeout(() => window.print(), 150);
+      setSalvou(imprimir ? "Etiqueta salva. Abrindo impressão..." : "Etiqueta salva!");
+      setTimeout(() => { setSalvou(""); setCodigo(gerarCodigo()); }, 2200);
+    } catch (erro) {
+      setSalvou("Falha ao salvar a etiqueta: " + (erro?.message || "erro inesperado"));
+      setTimeout(() => setSalvou(""), 4000);
+    } finally {
+      setSalvando(false);
+    }
   }
 
   return (
@@ -234,13 +262,19 @@ function EtiquetasRunner() {
                 </div>
               )}
               <Field label="Lote / SIF (opcional)"><TextInput value={form.lote} onChange={(e) => set("lote", e.target.value)} placeholder="SIF 1234" /></Field>
-              <Field label="Responsável"><TextInput value={form.responsavel} onChange={(e) => set("responsavel", e.target.value)} placeholder="Nome" /></Field>
+              <Field label="Responsável">
+                <Select value={form.responsavel} onChange={(e) => set("responsavel", e.target.value)}>
+                  <option value="">Selecione um funcionário...</option>
+                  {form.responsavel && !colaboradores.some((c) => c.nome === form.responsavel) && <option value={form.responsavel}>{form.responsavel}</option>}
+                  {colaboradores.map((c) => <option key={c.id} value={c.nome}>{c.nome} ({c.cargo || "Equipe"})</option>)}
+                </Select>
+              </Field>
               <Field label="CNPJ da empresa (sai na etiqueta)"><TextInput value={cnpj} onChange={(e) => salvarCnpj(e.target.value)} placeholder="00.000.000/0001-00" /></Field>
             </Card>
 
             <div className="flex gap-3">
-              <Btn variant="ghost" className="flex-1" onClick={() => salvar(false)}><Save size={16} /> Salvar</Btn>
-              <Btn variant="primary" className="flex-1" onClick={() => salvar(true)}><Printer size={16} /> Imprimir</Btn>
+              <Btn variant="ghost" className="flex-1" disabled={salvando} onClick={() => salvar(false)}><Save size={16} /> {salvando ? "Salvando..." : "Salvar"}</Btn>
+              <Btn variant="primary" className="flex-1" disabled={salvando} onClick={() => salvar(true)}><Printer size={16} /> {salvando ? "Aguarde..." : "Imprimir"}</Btn>
             </div>
           </div>
 

@@ -1169,10 +1169,13 @@ export default function RHPage() {
                               if (ehFreela) return <div className="font-black text-emerald-700">{fmtBRL(f.salario)}</div>;
                               const p = previsaoDe(f);
                               const mudou = Math.abs(p.previsto - p.base) > 0.005;
+                              const nDias = (f.dias_trabalho || "").split(",").filter(Boolean).length;
+                              const valorDia = nDias > 0 && p.base > 0 ? p.base / (nDias * 4.345) : null;
                               return (
                                  <>
                                     <div className="font-black text-emerald-700">{fmtBRL(p.previsto)}</div>
                                     {mudou && <div className="text-[10px] font-bold text-slate-400">Base: {fmtBRL(p.base)}</div>}
+                                    {valorDia && <div className="text-[10px] font-bold text-slate-500" title={`${nDias} dia(s)/semana ≈ ${Math.round(nDias * 4.345)} dias/mês`}>≈ {fmtBRL(valorDia)} por dia trabalhado</div>}
                                     <div className="flex flex-wrap gap-1 mt-1">
                                        {p.descontos > 0 && <span className="text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-100 rounded px-1.5 py-0.5" title="Vales/consumos pendentes com desconto em folha">− Vales: {fmtBRL(p.descontos)}</span>}
                                        {p.ad.valorExtra > 0 && <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded px-1.5 py-0.5" title="Horas extras do mês (após 00:00, +50%)">+ Extra: {fmtBRL(p.ad.valorExtra)}</span>}

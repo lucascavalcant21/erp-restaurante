@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchFichas } from "../../../lib/operacao";
-import { registrarProducao } from "../../../lib/estoque";
+import { calcularConsumoProducao, registrarProducao } from "../../../lib/estoque";
 import { fetchColaboradores } from "../../../lib/rh";
 import { fetchProdutos } from "../../../lib/vendas";
 import { Flame, Droplets, Save, ArrowLeft, X, UtensilsCrossed, Wine, Maximize, Printer, ClipboardList } from "lucide-react";
@@ -237,13 +237,16 @@ function ProducaoRunner() {
     if(numQtd <= 0) return alert("Digite uma quantidade válida.");
 
     // O pulo do gato: registrarProducao abate do estoque automaticamente!
-    const erro = await registrarProducao(unidadeAtiva, fichaAtual, numQtd, colabSelecionado);
+    const erro = await registrarProducao(unidadeAtiva, fichaAtual, numQtd, colabSelecionado, fichas);
     
     if (erro.codigo === "ESTOQUE_INSUFICIENTE") {
       const lista = (erro.faltantes || []).map(i =>
         `• ${i.nome}: precisa ${i.necessario.toLocaleString("pt-BR")} ${i.unidade || ""}, disponível ${i.disponivel.toLocaleString("pt-BR")}`
       ).join("\n");
       return alert(`Produção não registrada. Estoque insuficiente:\n\n${lista}\n\nAjuste o estoque ou reduza a quantidade.`);
+    }
+    if (erro.codigo === "FICHA_INVALIDA") {
+      return alert("Produção não registrada. Revise a ficha técnica: " + erro.error);
     }
     if(erro.error) return alert("Falha ao registrar produção: " + erro.error);
 
@@ -461,12 +464,11 @@ function ProducaoRunner() {
                   <div className="pt-2">
                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Previsão de Baixa no Estoque:</p>
                      <div className="space-y-2 max-h-32 overflow-y-auto custom-scrollbar pr-2">
-                        {fichaAtual.fichas_ingredientes?.filter(ing => ing.insumos).map(ing => {
-                           const consumo = ing.quantidade * Number(qtdProd);
+                        {calcularConsumoProducao(fichaAtual, Number(qtdProd), fichas).itens.map(item => {
                            return (
-                              <div key={ing.insumos.id} className="flex justify-between items-center bg-white p-2 rounded border border-slate-100">
-                                 <span className="font-bold text-slate-600 text-sm">{ing.insumos.nome}</span>
-                                 <span className="font-black text-slate-600 text-sm">- {consumo.toFixed(3)} {ing.insumos.unidade_medida}</span>
+                              <div key={item.insumo.id} className="flex justify-between items-center bg-white p-2 rounded border border-slate-100">
+                                 <span className="font-bold text-slate-600 text-sm">{item.insumo.nome}</span>
+                                 <span className="font-black text-slate-600 text-sm">- {item.quantidade.toFixed(3)} {item.insumo.unidade_medida}</span>
                               </div>
                            )
                         })}

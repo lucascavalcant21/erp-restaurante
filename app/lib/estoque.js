@@ -62,16 +62,62 @@ export async function fetchProducoesPeriodo(unidadeId, dias = 30) {
   return { data: data || [], error: error?.message };
 }
 
-export async function registrarProducao(unidadeId, ficha, qtdProduzida, colaboradorId) {
+export function calcularConsumoProducao(ficha, qtdProduzida, todasFichas = []) {
+  const fichasPorId = new Map((todasFichas || []).map(item => [item.id, item]));
+  if (ficha?.id) fichasPorId.set(ficha.id, ficha);
+
+  const consumo = new Map();
+  const erros = [];
+
+  function visitar(atual, fator, trilha = new Set()) {
+    if (!atual) return;
+    if (trilha.has(atual.id)) {
+      erros.push(`Referência circular encontrada na receita ${atual.nome_receita || "sem nome"}.`);
+      return;
+    }
+
+    const proximaTrilha = new Set(trilha);
+    proximaTrilha.add(atual.id);
+
+    (atual.fichas_ingredientes || []).forEach(item => {
+      if (item.insumos) {
+        const id = item.insumos.id;
+        const quantidade = Number(item.quantidade || 0) * fator;
+        const existente = consumo.get(id) || { insumo: item.insumos, quantidade: 0 };
+        existente.quantidade += quantidade;
+        consumo.set(id, existente);
+        return;
+      }
+
+      if (item.subficha_id) {
+        const base = fichasPorId.get(item.subficha_id);
+        if (!base) {
+          erros.push(`Base não encontrada na receita ${atual.nome_receita || "sem nome"}.`);
+          return;
+        }
+        const rendimentoBase = Number(base.rendimento_porcoes) || 1;
+        const fatorBase = fator * Number(item.quantidade || 0) / rendimentoBase;
+        visitar(base, fatorBase, proximaTrilha);
+      }
+    });
+  }
+
+  visitar(ficha, Number(qtdProduzida || 0));
+  return { itens: Array.from(consumo.values()), erros };
+}
+
+export async function registrarProducao(unidadeId, ficha, qtdProduzida, colaboradorId, todasFichas = []) {
   if (!isSupabaseReady()) return { error: "Offline" };
   
   // Calcula e valida a baixa antes de registrar o histórico da produção.
-  const insumosFicha = (ficha.fichas_ingredientes || []).filter(i => i.insumos);
+  const calculo = calcularConsumoProducao(ficha, qtdProduzida, todasFichas);
+  if (calculo.erros.length > 0) {
+     return { error: calculo.erros.join(" "), codigo: "FICHA_INVALIDA" };
+  }
   const consumoPorInsumo = {};
-  insumosFicha.forEach(ing => {
-     const id = ing.insumos.id;
-     if (!consumoPorInsumo[id]) consumoPorInsumo[id] = { insumo: ing.insumos, quantidade: 0 };
-     consumoPorInsumo[id].quantidade += Number(ing.quantidade || 0) * Number(qtdProduzida || 0);
+  calculo.itens.forEach(item => {
+     const id = item.insumo.id;
+     consumoPorInsumo[id] = item;
   });
   const ingIds = Object.keys(consumoPorInsumo);
   

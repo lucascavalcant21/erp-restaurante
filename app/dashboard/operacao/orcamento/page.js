@@ -806,41 +806,57 @@ export default function OrcamentoEventoPage() {
   return (
     <div className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50">
 
-      {/* TOPBAR */}
-      <div className="bg-white border-b border-slate-200 pt-6 pb-6 px-6 sticky top-0 z-10">
-         <div className="max-w-5xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button onClick={() => abrirMenu()} className="p-3 text-slate-500 hover:text-slate-800 bg-slate-50 rounded-full border border-slate-200">
-                 <ArrowLeft size={20}/>
-              </button>
-              <div className="w-14 h-14 rounded-2xl bg-slate-100 text-emerald-600 flex items-center justify-center shadow-inner">
-                 <PartyPopper size={28} />
-              </div>
-              <div>
-                 <h1 className="text-3xl font-black tracking-tighter text-slate-900">Orçamento de Eventos</h1>
-                 <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Buffet: custos, compras e valor por convidado</p>
-              </div>
+      {/* TOPBAR — linha 1: título + ações do evento; linha 2: documentos p/ imprimir */}
+      <div className="bg-white border-b border-slate-200 pt-5 pb-4 px-6 sticky top-0 z-10">
+         <div className="max-w-5xl mx-auto">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+               <div className="flex items-center gap-4">
+                 <button onClick={() => abrirMenu()} className="p-3 text-slate-500 hover:text-slate-800 bg-slate-50 rounded-full border border-slate-200">
+                    <ArrowLeft size={20}/>
+                 </button>
+                 <div className="w-12 h-12 rounded-2xl bg-slate-100 text-emerald-600 flex items-center justify-center shadow-inner">
+                    <PartyPopper size={24} />
+                 </div>
+                 <div>
+                    <h1 className="text-2xl font-black tracking-tighter text-slate-900">Orçamento de Eventos</h1>
+                    <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mt-0.5">Buffet: custos, compras e valor por convidado</p>
+                 </div>
+               </div>
+               <div className="flex items-center gap-2">
+                  {orcamentoId && <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-full">salvo</span>}
+                  <button onClick={abrirHistorico} className="flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3.5 py-2.5 rounded-xl hover:bg-slate-50 transition-colors">
+                     <History size={14}/> Histórico
+                  </button>
+                  <button onClick={novoEvento} className="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3.5 py-2.5 rounded-xl hover:bg-slate-50 transition-colors">Novo evento</button>
+                  <button onClick={salvarEvento} disabled={salvando} className="flex items-center gap-1.5 text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 px-4 py-2.5 rounded-xl transition-colors shadow-md shadow-emerald-600/20">
+                     {salvando ? <Loader2 size={14} className="animate-spin"/> : <Save size={14}/>} {orcamentoId ? "Atualizar" : "Salvar Evento"}
+                  </button>
+               </div>
             </div>
-            <div className="flex items-center gap-3">
-               <div className="inline-flex p-1 rounded-xl bg-slate-100 mr-1">
+
+            {/* Documentos: escolha o destino (imprimir/PDF) e o documento */}
+            <div className="flex items-center gap-2 flex-wrap mt-3 pt-3 border-t border-slate-100">
+               <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Gerar:</span>
+               <div className="inline-flex p-1 rounded-xl bg-slate-100">
                   <button onClick={() => setModoSaida("imprimir")} className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all ${modoSaida === "imprimir" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>Imprimir</button>
                   <button onClick={() => setModoSaida("pdf")} className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all ${modoSaida === "pdf" ? "bg-white text-emerald-600 shadow-sm" : "text-slate-500"}`}>Baixar PDF</button>
                </div>
-               <button type="button" onClick={seguro(imprimirOrcamento)} className="flex items-center gap-2 bg-slate-900 text-white px-5 py-3 rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-lg">
-                  <FileText size={18} /> Orçamento (Cliente)
+               <span className="w-px h-6 bg-slate-200 mx-1" />
+               <button type="button" onClick={seguro(imprimirOrcamento)} className="flex items-center gap-1.5 bg-slate-900 text-white px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-slate-800 transition-colors">
+                  <FileText size={14} /> Orçamento (Cliente)
                </button>
-               <button type="button" onClick={seguro(imprimirInterno)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-5 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm">
-                  <Printer size={18} /> Compras (Interno)
+               <button type="button" onClick={seguro(imprimirInterno)} className="flex items-center gap-1.5 bg-white text-slate-700 border border-slate-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-slate-50 transition-colors">
+                  <Printer size={14} /> Compras (Interno)
                </button>
-               <button type="button" onClick={seguro(imprimirProgramacao)} className="flex items-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-5 py-3 rounded-xl font-bold hover:bg-emerald-50 transition-colors shadow-sm">
-                  <ClipboardList size={18} /> Programação (Cozinha)
+               <button type="button" onClick={seguro(imprimirProgramacao)} className="flex items-center gap-1.5 bg-white text-emerald-700 border border-emerald-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-emerald-50 transition-colors">
+                  <ClipboardList size={14} /> Programação (Cozinha)
                </button>
-               <button type="button" onClick={seguro(imprimirRelatorio)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-5 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm">
-                  <FileText size={18} /> Relatório Gerencial
+               <button type="button" onClick={seguro(imprimirRelatorio)} className="flex items-center gap-1.5 bg-white text-slate-700 border border-slate-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-slate-50 transition-colors">
+                  <FileText size={14} /> Relatório Gerencial
                </button>
                {propostas.length > 1 && (
-                  <button type="button" onClick={seguro(imprimirComparacao)} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg">
-                     <FileText size={18} /> Comparar Propostas
+                  <button type="button" onClick={seguro(imprimirComparacao)} className="flex items-center gap-1.5 bg-emerald-600 text-white px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-emerald-700 transition-colors">
+                     <FileText size={14} /> Comparar Propostas
                   </button>
                )}
             </div>
@@ -852,38 +868,24 @@ export default function OrcamentoEventoPage() {
          {/* COLUNA ESQUERDA: dados do evento + itens */}
          <div className="space-y-6">
 
-            {/* Abas de propostas (ex.: R$60/pessoa, R$90/pessoa) */}
-            <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
-               <div className="flex items-center gap-2 flex-wrap">
-                  {propostas.map(p => {
-                     const r = resumoProposta(p);
-                     const ativoTab = p.id === ativa.id;
-                     return (
-                        <button key={p.id} onClick={() => setAtivaId(p.id)} className={`px-3 py-2 rounded-xl font-bold text-sm transition-all ${ativoTab ? 'bg-slate-900 text-white shadow-md' : 'bg-slate-50 text-slate-500 hover:text-slate-800 border border-slate-200'}`}>
-                           {p.nome}
-                           {r.porConvidado !== null && <span className={`ml-1.5 ${ativoTab ? 'text-emerald-300' : 'text-emerald-600'}`}>{fmtBRL(r.porConvidado)}/pes</span>}
-                        </button>
-                     );
-                  })}
-                  <button onClick={addProposta} className="px-3 py-2 rounded-xl font-bold text-sm bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100">+ Nova</button>
-               </div>
-               <div className="flex items-center gap-3 mt-2 pt-2 border-t border-slate-100">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Proposta ativa: {ativa.nome}</span>
-                  <button onClick={renomearProposta} className="text-[10px] font-bold text-slate-500 hover:text-slate-800">Renomear</button>
-                  <button onClick={duplicarProposta} className="text-[10px] font-bold text-slate-500 hover:text-slate-800">Duplicar</button>
-                  {propostas.length > 1 && <button onClick={removerProposta} className="text-[10px] font-bold text-red-400 hover:text-red-600">Remover</button>}
-
-                  {/* Salvar no banco + histórico de eventos */}
-                  <span className="flex-1" />
-                  {orcamentoId && <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">salvo no histórico</span>}
-                  <button onClick={salvarEvento} disabled={salvando} className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors">
-                     {salvando ? <Loader2 size={11} className="animate-spin"/> : <Save size={11}/>} {orcamentoId ? "Atualizar" : "Salvar Evento"}
-                  </button>
-                  <button onClick={abrirHistorico} className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-colors">
-                     <History size={11}/> Histórico
-                  </button>
-                  <button onClick={novoEvento} className="text-[10px] font-bold text-slate-500 hover:text-slate-800">Novo evento</button>
-               </div>
+            {/* Propostas do mesmo evento (ex.: R$60/pessoa, R$90/pessoa) */}
+            <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-2 flex-wrap">
+               <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mr-1">Propostas:</span>
+               {propostas.map(p => {
+                  const r = resumoProposta(p);
+                  const ativoTab = p.id === ativa.id;
+                  return (
+                     <button key={p.id} onClick={() => setAtivaId(p.id)} className={`px-3 py-2 rounded-xl font-bold text-sm transition-all ${ativoTab ? 'bg-slate-900 text-white shadow-md' : 'bg-slate-50 text-slate-500 hover:text-slate-800 border border-slate-200'}`}>
+                        {p.nome}
+                        {r.porConvidado !== null && <span className={`ml-1.5 ${ativoTab ? 'text-emerald-300' : 'text-emerald-600'}`}>{fmtBRL(r.porConvidado)}/pes</span>}
+                     </button>
+                  );
+               })}
+               <button onClick={addProposta} className="px-3 py-2 rounded-xl font-bold text-sm bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100">+ Nova</button>
+               <span className="flex-1" />
+               <button onClick={renomearProposta} className="text-[10px] font-bold text-slate-500 hover:text-slate-800 px-1.5">Renomear</button>
+               <button onClick={duplicarProposta} className="text-[10px] font-bold text-slate-500 hover:text-slate-800 px-1.5">Duplicar</button>
+               {propostas.length > 1 && <button onClick={removerProposta} className="text-[10px] font-bold text-red-400 hover:text-red-600 px-1.5">Remover</button>}
             </div>
 
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
@@ -1060,10 +1062,11 @@ export default function OrcamentoEventoPage() {
                                        </div>
                                     </div>
                                  </div>
-                                 {/* Porção em gramas */}
+                                 {/* Porção em gramas — sem ela não dá pra calcular R$/kg */}
                                  <div>
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Porção (g)</label>
-                                    <input type="number" min="0" step="0.1" placeholder="ex: 200" value={(() => { const raw = itens.find(i=>i.produto_id===l.produto_id)?.pesoUn; return raw === undefined ? (l.pesoUn || "") : raw; })()} onChange={e=>updateItem(l.produto_id, { pesoUn: e.target.value })} className="w-full p-2.5 text-center bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-600 outline-none focus:border-emerald-500"/>
+                                    <label className={`text-[9px] font-black uppercase tracking-widest block mb-1 ${l.pesoUn > 0 ? "text-slate-400" : "text-amber-600"}`}>Porção (g)</label>
+                                    <input type="number" min="0" step="0.1" placeholder="ex: 200" value={(() => { const raw = itens.find(i=>i.produto_id===l.produto_id)?.pesoUn; return raw === undefined ? (l.pesoUn || "") : raw; })()} onChange={e=>updateItem(l.produto_id, { pesoUn: e.target.value })} className={`w-full p-2.5 text-center rounded-lg font-bold text-slate-600 outline-none focus:border-emerald-500 ${l.pesoUn > 0 ? "bg-slate-50 border border-slate-200" : "bg-amber-50 border-2 border-amber-400"}`}/>
+                                    {!(l.pesoUn > 0) && <p className="text-[9px] font-bold text-amber-600 mt-1 leading-tight">Comece aqui: o peso da porção destrava o R$/kg e o preço</p>}
                                  </div>
                                  {/* Preço por KG — input principal */}
                                  <div>
@@ -1249,6 +1252,30 @@ export default function OrcamentoEventoPage() {
                      </div>
                   </div>
                );
+               // Nada configurado ainda: mostra o passo a passo em vez de zeros
+               if (linhas.length === 0 && totalCliente <= 0) {
+                  return (
+                     <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-xl">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Resumo do Evento</p>
+                        <p className="text-sm font-bold text-slate-200 mb-4">Monte o orçamento em 3 passos:</p>
+                        <div className="space-y-3">
+                           {[
+                              ["1", "Preencha os dados do evento", "nome, nº de convidados e o valor por pessoa que vai cobrar"],
+                              ["2", "Adicione os pratos do buffet", "escolha os produtos do cardápio e ajuste porção e quantidade"],
+                              ["3", "Acompanhe aqui o resultado", "faturamento, custos e lucro aparecem sozinhos"],
+                           ].map(([n, t, s]) => (
+                              <div key={n} className="flex gap-3 items-start">
+                                 <span className="w-7 h-7 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 font-black text-sm flex items-center justify-center shrink-0">{n}</span>
+                                 <div>
+                                    <p className="text-sm font-bold text-white leading-tight">{t}</p>
+                                    <p className="text-[11px] font-medium text-slate-400">{s}</p>
+                                 </div>
+                              </div>
+                           ))}
+                        </div>
+                     </div>
+                  );
+               }
                return (
                <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-xl">
                   <div className="flex items-center justify-between mb-3">
@@ -1273,17 +1300,24 @@ export default function OrcamentoEventoPage() {
                      {convidados > 0 && (
                         <p className="text-right text-[11px] font-bold text-slate-400 mt-0.5">{fmtBRL(lucroEvento / pes)} por pessoa</p>
                      )}
-                     <div className="grid grid-cols-2 gap-2 mt-3">
-                        <div className="bg-slate-800 rounded-xl p-2.5 text-center">
-                           <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Margem de lucro</p>
-                           <p className={`text-lg font-black ${margemPct >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{margemPct.toFixed(0)}%</p>
+                     {totalCliente > 0 && (
+                        <div className="grid grid-cols-2 gap-2 mt-3">
+                           <div className="bg-slate-800 rounded-xl p-2.5 text-center">
+                              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Margem de lucro</p>
+                              <p className={`text-lg font-black ${margemPct >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{margemPct.toFixed(0)}%</p>
+                           </div>
+                           <div className="bg-slate-800 rounded-xl p-2.5 text-center">
+                              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Preço sobre o custo</p>
+                              <p className="text-lg font-black text-slate-200">{markupPct >= 0 ? '+' : ''}{markupPct.toFixed(0)}%</p>
+                           </div>
                         </div>
-                        <div className="bg-slate-800 rounded-xl p-2.5 text-center">
-                           <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Preço sobre o custo</p>
-                           <p className="text-lg font-black text-slate-200">{markupPct >= 0 ? '+' : ''}{markupPct.toFixed(0)}%</p>
-                        </div>
-                     </div>
-                     {lucroEvento < 0 && (
+                     )}
+                     {totalCliente <= 0 && custoEvento > 0 && (
+                        <p className="text-[11px] font-bold text-slate-300 bg-slate-800 rounded-lg px-3 py-2 mt-3 leading-snug">
+                           Defina o que vai cobrar (R$ por pessoa ou valor total) nos Dados do Evento — o lucro e a margem aparecem aqui.
+                        </p>
+                     )}
+                     {lucroEvento < 0 && totalCliente > 0 && (
                         <p className="text-[11px] font-bold text-red-300 bg-red-500/10 rounded-lg px-3 py-2 mt-3 leading-snug">
                            Prejuízo: o custo está maior que o faturamento. Confira o preço por pessoa e os custos das fichas — se os ingredientes parecerem altos, use "Recalcular custos" em Ingredientes.
                         </p>

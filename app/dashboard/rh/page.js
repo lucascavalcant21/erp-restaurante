@@ -249,17 +249,21 @@ export default function RHPage() {
     setLoading(false);
   };
 
-  // Salário previsto do mês: base + feriado/extra/noturno (do ponto) − vales
-  // pendentes com desconto em folha. Atualiza conforme o mês acontece.
+  // Salário previsto do mês. A remuneração cheia = FIXO + VALE + TAXA DE SERVIÇO;
+  // em cima entram feriado/extra/noturno (calculados sobre o fixo, regra CLT) e
+  // saem os vales pendentes com desconto em folha. Atualiza conforme o mês anda.
   const previsaoDe = (f) => {
-    const base = Number(f.salario) || 0;
+    const fixo = Number(f.salario) || 0;
+    const va = Number(f.vale_alimentacao) || 0;
+    const taxa = Number(f.taxa_servico_mes) || 0;
+    const base = fixo + va + taxa; // remuneração cheia
     const meusPontos = pontosMesUnidade.filter(p => p.colaborador_id === f.id);
-    const ad = calcularAdicionaisMes(meusPontos, base, feriadosMesAtual);
+    const ad = calcularAdicionaisMes(meusPontos, fixo, feriadosMesAtual);
     const descontos = valesPendentes
       .filter(v => v.funcionario_id === f.id)
       .reduce((s, v) => s + (Number(v.valor_final ?? v.valor_desconto ?? v.valor_original) || 0), 0);
     const adicionais = (ad.valorExtra || 0) + (ad.valorFeriado || 0) + (ad.valorNoturno || 0);
-    return { base, adicionais, descontos, ad, previsto: base + adicionais - descontos };
+    return { fixo, va, taxa, base, adicionais, descontos, ad, previsto: base + adicionais - descontos };
   };
 
   useEffect(() => {
@@ -1055,7 +1059,8 @@ export default function RHPage() {
             const ativos = funcionarios.filter(f => (f.status || "ativo") !== "inativo");
             const fixos = ativos.filter(f => f.tipo_contrato !== "Freelancer");
             const extras = ativos.filter(f => f.tipo_contrato === "Freelancer");
-            const folhaFixa = fixos.reduce((s, f) => s + (Number(f.salario) || 0), 0);
+            // Remuneração cheia: fixo + vale alimentação + taxa de serviço
+            const folhaFixa = fixos.reduce((s, f) => s + (Number(f.salario) || 0) + (Number(f.vale_alimentacao) || 0) + (Number(f.taxa_servico_mes) || 0), 0);
             // Extras: diária × dias efetivamente trabalhados no mês (pelo ponto)
             const gastoExtras = extras.reduce((s, f) => {
                const dias = new Set(pontosMesUnidade.filter(p => p.colaborador_id === f.id).map(p => p.data_referencia)).size;
@@ -1072,7 +1077,7 @@ export default function RHPage() {
                   <div>
                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Folha fixa (mês)</p>
                      <p className="text-lg font-black">{fmtBRL(folhaFixa)}</p>
-                     <p className="text-[10px] font-bold text-slate-500">{fixos.length} fixo(s)</p>
+                     <p className="text-[10px] font-bold text-slate-500">{fixos.length} fixo(s) · salário + VA + taxa</p>
                   </div>
                   <div>
                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Gasto com extras (mês)</p>
@@ -1618,16 +1623,16 @@ export default function RHPage() {
                               );
                            })}
                         </div>
-                        {/* Valor por dia trabalhado: salário / (dias por semana × 4,345 semanas) */}
+                        {/* Valor por dia trabalhado: (fixo + VA + taxa) / (dias por semana × 4,345) */}
                         {(() => {
                            const nDias = (novoFunc.dias_trabalho || "").split(",").filter(Boolean).length;
-                           const sal = Number(novoFunc.salario) || 0;
+                           const sal = (Number(novoFunc.salario) || 0) + (Number(novoFunc.vale_alimentacao) || 0) + (Number(novoFunc.taxa_servico_mes) || 0);
                            if (!nDias || !sal || novoFunc.tipo_contrato === "Freelancer") return null;
                            const diasMes = nDias * 4.345;
                            return (
                               <p className="text-[11px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-2.5 py-1.5 mt-2 inline-block">
                                  {fmtBRL(sal / diasMes)} por dia trabalhado
-                                 <span className="text-emerald-600/70 font-bold"> · {nDias} dia(s)/semana ≈ {Math.round(diasMes)} dias/mês</span>
+                                 <span className="text-emerald-600/70 font-bold"> · fixo + VA + taxa · {nDias} dia(s)/semana ≈ {Math.round(diasMes)} dias/mês</span>
                               </p>
                            );
                         })()}

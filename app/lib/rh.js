@@ -483,6 +483,18 @@ export async function removerConsumoFuncionario(id) {
   return { error: error?.message };
 }
 
+// Vales/consumos pendentes com desconto em folha da unidade inteira
+// (uma query só — abastece o "salário previsto" da tabela do RH)
+export async function fetchValesPendentes(unidadeId) {
+  if (!isSupabaseReady()) return { data: [] };
+  let q = supabase.from("rh_consumo_funcionarios").select("*")
+    .eq("forma_pagamento", "Desconto em Folha")
+    .eq("status_pagamento", "Pendente");
+  if (unidadeId && unidadeId !== "todas") q = q.eq("unidade_id", unidadeId);
+  const { data, error } = await q;
+  return { data: data || [], error: error?.message };
+}
+
 // ============================================================================
 // FECHAMENTO DE FOLHA
 // ============================================================================

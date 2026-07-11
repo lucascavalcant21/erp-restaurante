@@ -14,7 +14,8 @@ import {
   fetchFeriados, inserirFeriado, removerFeriado,
   desligarColaborador
 } from "../../lib/rh";
-import { fetchPontoHoje, fetchPontosMes } from "../../lib/ponto";
+import { fetchPontoHoje, fetchPontosMes, fetchPontosMesUnidade } from "../../lib/ponto";
+import { fetchValesPendentes } from "../../lib/rh";
 import { calcularAdicionaisMes } from "../../lib/rh";
 import { salvarConta, fetchContas } from "../../lib/financeiro";
 import { fetchCardapio } from "../../lib/cardapio";
@@ -33,6 +34,9 @@ export default function RHPage() {
   
   const [funcionarios, setFuncionarios] = useState([]);
   const [pontosHoje, setPontosHoje] = useState([]);
+  const [valesPendentes, setValesPendentes] = useState([]);       // desconto em folha pendente
+  const [pontosMesUnidade, setPontosMesUnidade] = useState([]);   // p/ extras e feriados do mês
+  const [feriadosMesAtual, setFeriadosMesAtual] = useState([]);
   const [cargos, setCargos] = useState([]);
   const [busca, setBusca] = useState("");
   const [abaAtiva, setAbaAtiva] = useState("Fixo");
@@ -217,11 +221,14 @@ export default function RHPage() {
   const carregar = async () => {
     setLoading(true);
     const mesAtual = new Date().toISOString().slice(0, 7);
-    const [resRh, resPonto, resCargos, resBanco] = await Promise.all([
+    const [resRh, resPonto, resCargos, resBanco, resVales, resPontosMes, resFeriadosMes] = await Promise.all([
       fetchColaboradores(unidadeAtiva),
       fetchPontoHoje(unidadeAtiva),
       fetchCargos(unidadeAtiva),
-      fetchBancoHoras(unidadeAtiva, mesAtual)
+      fetchBancoHoras(unidadeAtiva, mesAtual),
+      fetchValesPendentes(unidadeAtiva),
+      fetchPontosMesUnidade(unidadeAtiva, mesAtual),
+      fetchFeriados(unidadeAtiva, mesAtual),
     ]);
 
     const comDocs = await Promise.all((resRh.data || []).map(async (f) => {
@@ -233,7 +240,23 @@ export default function RHPage() {
     setPontosHoje(resPonto.data || []);
     setCargos(resCargos.data || []);
     setBancoHoras(resBanco.data || []);
+    setValesPendentes(resVales.data || []);
+    setPontosMesUnidade(resPontosMes.data || []);
+    setFeriadosMesAtual(resFeriadosMes.data || []);
     setLoading(false);
+  };
+
+  // Salário previsto do mês: base + feriado/extra/noturno (do ponto) − vales
+  // pendentes com desconto em folha. Atualiza conforme o mês acontece.
+  const previsaoDe = (f) => {
+    const base = Number(f.salario) || 0;
+    const meusPontos = pontosMesUnidade.filter(p => p.colaborador_id === f.id);
+    const ad = calcularAdicionaisMes(meusPontos, base, feriadosMesAtual);
+    const descontos = valesPendentes
+      .filter(v => v.funcionario_id === f.id)
+      .reduce((s, v) => s + (Number(v.valor_final ?? v.valor_desconto ?? v.valor_original) || 0), 0);
+    const adicionais = (ad.valorExtra || 0) + (ad.valorFeriado || 0) + (ad.valorNoturno || 0);
+    return { base, adicionais, descontos, ad, previsto: base + adicionais - descontos };
   };
 
   useEffect(() => {
@@ -1094,7 +1117,24 @@ export default function RHPage() {
                            })()}
                         </td>
                         <td className="p-4">
-                           <div className="font-black text-emerald-700">{fmtBRL(f.salario)}</div>
+                           {(() => {
+                              const ehFreela = f.tipo_contrato === "Freelancer";
+                              if (ehFreela) return <div className="font-black text-emerald-700">{fmtBRL(f.salario)}</div>;
+                              const p = previsaoDe(f);
+                              const mudou = Math.abs(p.previsto - p.base) > 0.005;
+                              return (
+                                 <>
+                                    <div className="font-black text-emerald-700">{fmtBRL(p.previsto)}</div>
+                                    {mudou && <div className="text-[10px] font-bold text-slate-400">Base: {fmtBRL(p.base)}</div>}
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                       {p.descontos > 0 && <span className="text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-100 rounded px-1.5 py-0.5" title="Vales/consumos pendentes com desconto em folha">− Vales: {fmtBRL(p.descontos)}</span>}
+                                       {p.ad.valorExtra > 0 && <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded px-1.5 py-0.5" title="Horas extras do mês (após 00:00, +50%)">+ Extra: {fmtBRL(p.ad.valorExtra)}</span>}
+                                       {p.ad.valorFeriado > 0 && <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5" title="Feriados trabalhados no mês (+100%)">+ Feriado: {fmtBRL(p.ad.valorFeriado)}</span>}
+                                       {p.ad.valorNoturno > 0 && <span className="text-[10px] font-bold text-sky-700 bg-sky-50 border border-sky-100 rounded px-1.5 py-0.5" title="Adicional noturno (23:30–00:00, +20%)">+ Noturno: {fmtBRL(p.ad.valorNoturno)}</span>}
+                                    </div>
+                                 </>
+                              );
+                           })()}
                            {Number(f.vale_alimentacao) > 0 && (
                               <div className="text-[10px] font-bold text-teal-700 bg-teal-50 border border-teal-100 rounded px-1.5 py-0.5 mt-1 inline-block">VA: {fmtBRL(f.vale_alimentacao)}</div>
                            )}

@@ -62,6 +62,21 @@ export async function fetchPontosMes(colaboradorId, anoMes) {
   return { data };
 }
 
+// Pontos do mês da UNIDADE inteira (uma query só — usado no salário previsto do RH)
+export async function fetchPontosMesUnidade(unidadeId, anoMes) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: [] };
+  const ano = parseInt(anoMes.split('-')[0]);
+  const mes = parseInt(anoMes.split('-')[1]);
+  const ultimoDia = new Date(ano, mes, 0).getDate();
+  const { data, error } = await supabase
+    .from("registro_ponto")
+    .select("colaborador_id, data_referencia, hora_entrada, hora_saida, hora_saida_intervalo, hora_retorno_intervalo")
+    .eq("unidade_id", unidadeId)
+    .gte("data_referencia", `${anoMes}-01`)
+    .lte("data_referencia", `${anoMes}-${ultimoDia.toString().padStart(2, '0')}`);
+  return { data: data || [], error: error?.message };
+}
+
 // Funcionário declarou que NÃO vai tirar o intervalo hoje: pula direto para o
 // estado "voltou do intervalo" (sem horários de intervalo) — a próxima batida
 // é a saída. Os minutos não tirados vão para o banco de horas (feito na tela).

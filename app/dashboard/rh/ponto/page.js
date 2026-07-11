@@ -19,6 +19,49 @@ const isoLocal = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
 const TOLERANCIA_ENTRADA_MIN = 5;
 // Passou X min do horário de entrada sem bater: bloqueia e conta como falta
 const LIMITE_ATRASO_MIN = 60;
+// PIN do gerente para liberar a entrada bloqueada por atraso
+const PIN_GERENTE = "1234";
+
+// Teclado de PIN (libera a entrada atrasada com autorização do gerente)
+function ModalPinGerente({ onSuccess, onClose }) {
+  const [pin, setPin] = useState("");
+  const [erro, setErro] = useState("");
+  const digito = (d) => {
+    if (pin.length >= 4) return;
+    const novo = pin + d;
+    setPin(novo);
+    if (novo.length === 4) {
+      setTimeout(() => {
+        if (novo === PIN_GERENTE) onSuccess();
+        else { setErro("PIN incorreto"); setPin(""); }
+      }, 150);
+    }
+  };
+  return (
+    <div className="fixed inset-0 z-[10001] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-5">
+      <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 w-full max-w-xs text-center">
+        <p className="text-lg font-black text-white">PIN do Gerente</p>
+        <p className="text-slate-400 font-medium text-xs mb-5">Autorizar entrada fora do horário</p>
+        <div className="flex gap-3 justify-center mb-5">
+          {[0, 1, 2, 3].map(i => (
+            <div key={i} className={`w-4 h-4 rounded-full transition-colors ${i < pin.length ? "bg-emerald-400" : "bg-slate-700"}`} />
+          ))}
+        </div>
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, "", 0, "⌫"].map((d, i) => (
+            <button key={i} disabled={d === ""}
+              onClick={() => d === "⌫" ? setPin(p => p.slice(0, -1)) : d !== "" && digito(String(d))}
+              className={`h-14 rounded-xl text-xl font-black transition-colors ${d === "" ? "invisible" : d === "⌫" ? "bg-slate-700 text-slate-300 hover:bg-slate-600" : "bg-slate-800 text-white hover:bg-slate-700"}`}>
+              {d}
+            </button>
+          ))}
+        </div>
+        {erro && <p className="text-red-400 text-xs font-bold mb-2">{erro}</p>}
+        <button onClick={onClose} className="text-slate-500 hover:text-slate-300 text-xs font-bold">Cancelar</button>
+      </div>
+    </div>
+  );
+}
 
 // Mensagens prontas para justificar (voltar antes do intervalo ou não tirar)
 const MOTIVOS_RAPIDOS = [
@@ -128,6 +171,8 @@ export default function PontoPage() {
   const [batendo, setBatendo] = useState(false);
   const [sucesso, setSucesso] = useState(null); // { titulo, detalhe, tone }
   const [justif, setJustif] = useState(null);    // { tipo: 'retorno_cedo' | 'pular_intervalo', ... }
+  const [liberados, setLiberados] = useState({}); // { [colabId]: true } — atraso liberado pelo gerente hoje
+  const [pinAberto, setPinAberto] = useState(false);
 
   const carregar = useCallback(async () => {
     setLoading(true);
@@ -310,7 +355,7 @@ export default function PontoPage() {
     }
     const bloqueiaFolga = etapa === "entrada" && info.folga;
     const bloqueiaJanela = etapa === "entrada" && janela && janela.faltaMs > 0;
-    const bloqueiaAtraso = etapa === "entrada" && janela && janela.atrasoMs > 0;
+    const bloqueiaAtraso = etapa === "entrada" && janela && janela.atrasoMs > 0 && !liberados[selecionado.id];
     const podeBater = etapa !== "concluido" && !bloqueiaFolga && !bloqueiaJanela && !bloqueiaAtraso;
 
     const fmtFalta = (ms) => {
@@ -321,6 +366,15 @@ export default function PontoPage() {
 
     return (
       <div ref={containerRef} className="fixed inset-0 z-[9999] bg-slate-950 overflow-y-auto font-sans">
+        {pinAberto && (
+          <ModalPinGerente
+            onClose={() => setPinAberto(false)}
+            onSuccess={() => {
+              setLiberados(prev => ({ ...prev, [selecionado.id]: true }));
+              setPinAberto(false);
+            }}
+          />
+        )}
         {justif && (
           <ModalJustificativa
             titulo={justif.tipo === "pular_intervalo" ? "Não vai tirar o intervalo?" : `Voltando ${justif.tirou}min de intervalo`}
@@ -400,6 +454,10 @@ export default function PontoPage() {
                 Seu horário era {janela.entradaStr} e já passou mais de {Math.floor(LIMITE_ATRASO_MIN / 60) > 0 ? `${Math.floor(LIMITE_ATRASO_MIN / 60)}h` : `${LIMITE_ATRASO_MIN}min`} — não é mais possível bater o ponto hoje.
               </p>
               <p className="text-slate-400 font-medium text-sm mt-2">O dia sem batida conta como falta no espelho de ponto. Procure a gerência para justificar.</p>
+              <button onClick={() => setPinAberto(true)}
+                className="mt-5 px-5 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-black text-sm transition-colors">
+                Liberar entrada — PIN do gerente
+              </button>
             </div>
           ) : bloqueiaJanela ? (
             <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 text-center mb-6">

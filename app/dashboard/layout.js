@@ -43,8 +43,7 @@ const SIDEBAR_MENU = [
       { label: "Validade e Etiquetas", href: "/dashboard/operacao/etiquetas?dept=cozinha" },
       { label: "Limpeza, Gás e Óleo", href: "/dashboard/operacao/controles" },
       { label: "Checklist", href: "/dashboard/operacao/rotina?dept=cozinha" },
-      { label: "Orçamento de Eventos", href: "/dashboard/operacao/orcamento?dept=cozinha" },
-      { label: "Impressões Térmicas", href: "/dashboard/gestao/impressoes?dept=cozinha" }
+      { label: "Orçamento de Eventos", href: "/dashboard/operacao/orcamento?dept=cozinha" }
     ]
   },
   {
@@ -61,8 +60,7 @@ const SIDEBAR_MENU = [
       { label: "Produção do Bar", href: "/dashboard/operacao/producao?dept=bar" },
       { label: "Etiquetas do Bar", href: "/dashboard/operacao/etiquetas?dept=bar" },
       { label: "Checklist", href: "/dashboard/operacao/rotina?dept=bar" },
-      { label: "Orçamento de Eventos", href: "/dashboard/operacao/orcamento?dept=bar" },
-      { label: "Impressões Térmicas", href: "/dashboard/gestao/impressoes?dept=bar" }
+      { label: "Orçamento de Eventos", href: "/dashboard/operacao/orcamento?dept=bar" }
     ]
   },
   {

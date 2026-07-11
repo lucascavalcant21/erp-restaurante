@@ -15,10 +15,23 @@ const horaDe = (iso) => iso ? new Date(iso).toLocaleTimeString("pt-BR", { hour: 
 const strToMin = (hhmm) => { const [h, m] = String(hhmm || "").split(":").map(Number); return (h || 0) * 60 + (m || 0); };
 const isoLocal = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-// Só pode bater a ENTRADA a partir de X min antes do horário
-const TOLERANCIA_ENTRADA_MIN = 5;
+// Só pode bater a ENTRADA a partir de X min antes do horário (contagem regressiva)
+const TOLERANCIA_ENTRADA_MIN = 2;
 // Passou X min do horário de entrada sem bater: bloqueia e conta como falta
 const LIMITE_ATRASO_MIN = 60;
+// Tolerâncias de marcação (Súmula 366 TST) — aplicadas por dentro, SEM exibir
+// ao funcionário: entrada/saída até 5 min gravam o horário do turno (8h05→8h;
+// 8h06 já grava real + atraso); volta do intervalo até 2 min grava a prevista.
+const TOLERANCIA_MARCACAO_MIN = 5;
+const TOLERANCIA_RETORNO_MIN = 2;
+
+// Data de hoje (ou da base) com o horário HH:MM
+function comHora(base, hhmm) {
+  const [h, m] = String(hhmm || "0:0").split(":").map(Number);
+  const d = new Date(base);
+  d.setHours(h || 0, m || 0, 0, 0);
+  return d;
+}
 // PIN do gerente para liberar a entrada bloqueada por atraso
 const PIN_GERENTE = "1234";
 
@@ -259,18 +272,20 @@ export default function PontoPage() {
     setTimeout(() => { setSucesso(null); setSelecionado(null); carregar(); }, tone === "alerta" ? 3500 : 2000);
   };
 
-  // Registra a batida "normal" de uma etapa (com aviso de excesso de intervalo)
-  const executarBatida = async (etapa, reg) => {
+  // Registra a batida de uma etapa. horaMarcada = hora ajustada pela tolerância
+  // (grava e mostra o horário "cheio"); atrasoMin > 0 = entrada fora da tolerância.
+  const executarBatida = async (etapa, reg, horaMarcada = null, atrasoMin = 0) => {
     setBatendo(true);
     try {
-      const { error } = await registrarBatida(selecionado.id, unidadeAtiva, etapa);
+      const { error } = await registrarBatida(selecionado.id, unidadeAtiva, etapa, horaMarcada ? horaMarcada.toISOString() : null);
       if (error) { alert(error); return; }
-      const agoraStr = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+      const agoraStr = (horaMarcada || new Date()).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
       const primeiro = selecionado.nome.split(" ")[0];
 
-      // Volta do intervalo com tempo IGUAL/ACIMA do padrão: registra excesso se passou
+      // Volta do intervalo com tempo ACIMA do padrão (fora da tolerância): excesso
       if (etapa === "retorno_intervalo" && reg?.hora_saida_intervalo) {
-        const tirou = Math.round((Date.now() - new Date(reg.hora_saida_intervalo).getTime()) / 60000);
+        const base = horaMarcada ? horaMarcada.getTime() : Date.now();
+        const tirou = Math.round((base - new Date(reg.hora_saida_intervalo).getTime()) / 60000);
         const passou = tirou - intervaloPadrao;
         if (passou >= 1) {
           const hoje = new Date().toISOString().split("T")[0];
@@ -281,6 +296,12 @@ export default function PontoPage() {
             "alerta");
           return;
         }
+      }
+
+      // Entrada com atraso (fora da tolerância): mostra os minutos
+      if (etapa === "entrada" && atrasoMin > 0) {
+        mostrarSucesso(`Entrada às ${agoraStr}`, `${primeiro}, ${atrasoMin} min de atraso — ficou registrado no espelho.`, "alerta");
+        return;
       }
 
       const msgs = {
@@ -295,21 +316,53 @@ export default function PontoPage() {
     }
   };
 
-  // Ação principal de bater. Faz as travas (folga/janela) e pede justificativa
-  // quando a volta do intervalo é antes de 1h.
+  // Ação principal de bater: aplica as tolerâncias (invisíveis pro funcionário)
+  // e pede justificativa quando a volta do intervalo é antes da hora.
   const bater = async () => {
     if (batendo || !selecionado) return;
     const reg = registroDe(selecionado.id);
     const etapa = proximaEtapa(reg);
     if (etapa === "concluido") return;
+    const agora = new Date();
+    let horaMarcada = null;
+    let atrasoMin = 0;
 
-    // Volta do intervalo antes do tempo → exige justificativa (3 opções prontas)
-    if (etapa === "retorno_intervalo" && reg?.hora_saida_intervalo) {
-      const tirou = Math.round((Date.now() - new Date(reg.hora_saida_intervalo).getTime()) / 60000);
-      const faltou = intervaloPadrao - tirou;
-      if (faltou >= 1) { setJustif({ tipo: "retorno_cedo", tirou, faltou }); return; }
+    // ENTRADA: até 5 min depois (ou adiantado, já liberado) grava o horário do turno
+    if (etapa === "entrada") {
+      const entradaStr = entradaDoDia(selecionado, agora);
+      if (entradaStr) {
+        const prevista = comHora(agora, entradaStr);
+        const diffMin = (agora.getTime() - prevista.getTime()) / 60000;
+        if (diffMin <= TOLERANCIA_MARCACAO_MIN) horaMarcada = prevista;
+        else atrasoMin = Math.round(diffMin);
+      }
     }
-    await executarBatida(etapa, reg);
+
+    // VOLTA DO INTERVALO: antes da hora → justificativa; até 2 min depois → hora prevista
+    if (etapa === "retorno_intervalo" && reg?.hora_saida_intervalo) {
+      const prevista = new Date(new Date(reg.hora_saida_intervalo).getTime() + intervaloPadrao * 60000);
+      const diffMin = (agora.getTime() - prevista.getTime()) / 60000;
+      if (diffMin < 0) {
+        const tirou = Math.round((agora.getTime() - new Date(reg.hora_saida_intervalo).getTime()) / 60000);
+        setJustif({ tipo: "retorno_cedo", tirou, faltou: intervaloPadrao - tirou });
+        return;
+      }
+      if (diffMin <= TOLERANCIA_RETORNO_MIN) horaMarcada = prevista;
+    }
+
+    // SAÍDA DO TRABALHO: até 5 min de diferença do horário grava o horário do turno
+    // (turnos que viram a meia-noite: testa a previsão em ±1 dia e usa a mais próxima)
+    if (etapa === "saida_trabalho") {
+      const dom = agora.getDay() === 0;
+      const saidaStr = (dom ? (selecionado.horario_dom_saida || selecionado.horario_saida) : selecionado.horario_saida) || null;
+      if (saidaStr) {
+        const cands = [-1, 0, 1].map(d => { const c = comHora(agora, saidaStr); c.setDate(c.getDate() + d); return c; });
+        const prevista = cands.reduce((a, b) => Math.abs(agora - b) < Math.abs(agora - a) ? b : a);
+        if (Math.abs(agora.getTime() - prevista.getTime()) / 60000 <= TOLERANCIA_MARCACAO_MIN) horaMarcada = prevista;
+      }
+    }
+
+    await executarBatida(etapa, reg, horaMarcada, atrasoMin);
   };
 
   // Confirma a justificativa (motivo escolhido ou digitado)
@@ -461,6 +514,28 @@ export default function PontoPage() {
             })}
           </div>
 
+          {/* EM INTERVALO: contagem regressiva até a hora de voltar */}
+          {etapa === "retorno_intervalo" && reg?.hora_saida_intervalo && (() => {
+            const prevista = new Date(new Date(reg.hora_saida_intervalo).getTime() + intervaloPadrao * 60000);
+            const resta = prevista.getTime() - horaLocal.getTime();
+            const estourou = resta <= 0;
+            return (
+              <div className={`rounded-3xl p-6 text-center mb-4 border ${estourou ? "bg-rose-500/10 border-rose-500/40" : "bg-amber-500/10 border-amber-500/30"}`}>
+                <p className={`text-[10px] font-black uppercase tracking-widest ${estourou ? "text-rose-300" : "text-amber-300"}`}>
+                  {estourou ? "Intervalo estourado" : "Em intervalo"}
+                </p>
+                <p className={`text-5xl font-black tabular-nums mt-2 ${estourou ? "text-rose-400" : "text-amber-400"}`}>
+                  {estourou ? `+${Math.floor(-resta / 60000)}min` : fmtFalta(resta)}
+                </p>
+                <p className="text-slate-400 font-bold text-xs mt-2">
+                  {estourou
+                    ? `A volta era às ${prevista.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} — bata a volta agora`
+                    : `volta às ${prevista.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`}
+                </p>
+              </div>
+            );
+          })()}
+
           {/* Ação principal */}
           {etapa === "concluido" ? (
             <div className="bg-emerald-500/10 border border-emerald-500/40 rounded-3xl p-8 text-center mb-6">
@@ -493,7 +568,7 @@ export default function PontoPage() {
               <Timer size={44} className="text-amber-400 mx-auto mb-3" />
               <p className="text-lg font-black text-white">Ainda não dá para bater a entrada</p>
               <p className="text-slate-400 font-bold text-sm mt-1">
-                Seu horário é {janela.entradaStr}. A entrada libera às {janela.permiteEm.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} (até {TOLERANCIA_ENTRADA_MIN} min antes).
+                Seu horário é {janela.entradaStr}. A entrada libera às {janela.permiteEm.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}.
               </p>
               <p className="text-5xl font-black text-amber-400 tabular-nums mt-5">{fmtFalta(janela.faltaMs)}</p>
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-1">faltam para liberar</p>

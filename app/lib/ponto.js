@@ -99,11 +99,13 @@ export async function pularIntervalo(colaboradorId) {
   return { error: error?.message };
 }
 
-export async function registrarBatida(colaboradorId, unidadeId, tipoBatida) {
+// horaMarcada (ISO, opcional): hora AJUSTADA pela tolerância (Súmula 366 TST) —
+// ex.: bateu 15:39 com turno 15:40 => grava 15:40. Sem ela, usa a hora real.
+export async function registrarBatida(colaboradorId, unidadeId, tipoBatida, horaMarcada = null) {
   if (!isSupabaseReady()) return { error: "Offline" };
   const dataLocal = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
   const hoje = dataLocal.getFullYear() + "-" + String(dataLocal.getMonth() + 1).padStart(2, '0') + "-" + String(dataLocal.getDate()).padStart(2, '0');
-  const agora = new Date().toISOString();
+  const agora = horaMarcada || new Date().toISOString();
   
   // Buscar se já tem registro hoje
   let { data: registros, error: err } = await supabase

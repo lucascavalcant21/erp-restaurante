@@ -13,12 +13,12 @@
     "@supabase/supabase-js": "^2.49.0",
     "cors": "^2.8.5",
     "date-fns": "^4.4.0",
-    "express": "^4.18.2",
-    "firebase-admin": "^12.0.0",
+    "express": "^4.21.2",
+    "firebase-admin": "^14.1.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.383.0",
     "morgan": "^1.10.0",
-    "next": "^14.2.0",
+    "next": "15.5.20",
     "puppeteer": "^25.1.0",
     "qrcode.react": "^4.2.0",
     "react": "^18.3.0",
@@ -30,11 +30,11 @@
   "devDependencies": {
     "autoprefixer": "^10.4.19",
     "nodemon": "^3.1.0",
-    "postcss": "^8.4.38",
+    "postcss": "^8.5.10",
     "tailwindcss": "^3.4.4"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "author": "Lucas Cavalcante",
   "license": "MIT"

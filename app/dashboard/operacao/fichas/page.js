@@ -1114,23 +1114,32 @@ function FichasRunner() {
                    {/* COLUNA ESQUERDA: Dados Básicos e Foto */}
                   <div className="space-y-4">
                      <div className="flex gap-4">
-                        <div onClick={() => fileInputRef.current?.click()} className="w-24 h-24 shrink-0 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center cursor-pointer hover:bg-slate-100 hover:border-emerald-400 overflow-hidden relative group transition-colors">
-                           {form.imagem ? (
-                              <>
-                                 <img src={`data:image/jpeg;base64,${form.imagem}`} className="w-full h-full object-cover" alt="Foto do Prato" />
-                                 <div className="absolute inset-0 bg-black/50 hidden group-hover:flex items-center justify-center text-white"><Camera size={24}/></div>
-                              </>
-                           ) : (
-                              <div className="text-center">
-                                 <Camera size={24} className="mx-auto text-slate-400 mb-1"/>
-                                 <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Foto</span>
-                              </div>
+                        <div className="w-24 h-24 shrink-0 relative">
+                           <div onClick={() => fileInputRef.current?.click()} className="w-full h-full rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center cursor-pointer hover:bg-slate-100 hover:border-emerald-400 overflow-hidden relative group transition-colors">
+                              {form.imagem ? (
+                                 <>
+                                    <img src={`data:image/jpeg;base64,${form.imagem}`} className="w-full h-full object-cover" alt="Foto do Prato" />
+                                    <div className="absolute inset-0 bg-black/50 hidden group-hover:flex items-center justify-center text-white"><Camera size={24}/></div>
+                                 </>
+                              ) : (
+                                 <div className="text-center">
+                                    <Camera size={24} className="mx-auto text-slate-400 mb-1"/>
+                                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Foto</span>
+                                 </div>
+                              )}
+                              <input type="file" ref={fileInputRef} onChange={handleMudarFotoForm} accept="image/*" className="hidden" />
+                           </div>
+                           {form.imagem && (
+                              <button type="button" onClick={() => setForm({ ...form, imagem: "" })} title="Remover foto"
+                                 className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-md hover:bg-rose-600">
+                                 <X size={14} />
+                              </button>
                            )}
-                           <input type="file" ref={fileInputRef} onChange={handleMudarFotoForm} accept="image/*" className="hidden" />
                         </div>
                         <div className="flex-1">
                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nome da Receita</label>
                            <input type="text" placeholder="Ex: Caipirinha de Morango" value={form.nome_receita} onChange={e=>setForm({...form, nome_receita: e.target.value})} className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500 shadow-sm"/>
+                           {form.imagem && <button type="button" onClick={() => setForm({ ...form, imagem: "" })} className="text-[11px] font-bold text-rose-500 hover:text-rose-600 mt-1.5">Remover foto</button>}
                         </div>
                      </div>
                      {/* Tipo da ficha: PRATO/DRINK (vai pro cardápio) ou PRÉ-PREPARO (base) */}

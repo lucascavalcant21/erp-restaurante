@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchEstoque, ajustarEstoque, atualizarMinimoInsumo } from "../../../lib/estoque";
+import { fetchParams, PARAMS_PADRAO } from "../../../lib/parametros";
 import { PackageSearch, Edit3, X, Save, ArrowLeft, RefreshCw, AlertCircle, Search, Plus, TrendingUp, Printer } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
@@ -23,6 +24,8 @@ function EstoqueRunner() {
   const [itemAtual, setItemAtual] = useState(null);
   const [novoSaldo, setNovoSaldo] = useState("");
   const [minimoInput, setMinimoInput] = useState("");
+  const [fatorRep, setFatorRep] = useState(PARAMS_PADRAO.fator_reposicao);
+  useEffect(() => { if (unidadeAtiva && unidadeAtiva !== "todas") fetchParams(unidadeAtiva).then(r => setFatorRep(r.data.fator_reposicao)); }, [unidadeAtiva]);
   const [qtdEntrada, setQtdEntrada] = useState("");
   const [valorEntrada, setValorEntrada] = useState("");
 
@@ -128,7 +131,7 @@ function EstoqueRunner() {
       .map(i => {
         const saldo = Number(i.quantidade_atual) || 0;
         const min = Number(i.estoque_minimo) || 0;
-        const sugerido = Math.max(0, +(min * 2 - saldo).toFixed(2)); // repõe até 2x o mínimo
+        const sugerido = Math.max(0, +(min * fatorRep - saldo).toFixed(2)); // repõe até (fator × mínimo)
         const custo = (Number(i.custo_unitario) || 0) * sugerido;
         return { i, saldo, min, sugerido, custo };
       });
@@ -168,7 +171,7 @@ function EstoqueRunner() {
           <tr class="tot"><td colspan="6">TOTAL ESTIMADO</td><td class="r">${fmtBRL(total)}</td></tr>
         </tbody>
       </table>
-      <p style="font-size:9px;color:#94a3b8;margin-top:8px">Sugestão de compra = repor até 2x o estoque mínimo. Custo estimado pelo último custo unitário.</p>
+      <p style="font-size:9px;color:#94a3b8;margin-top:8px">Sugestão de compra = repor até ${fatorRep}x o estoque mínimo. Custo estimado pelo último custo unitário.</p>
       </body></html>`;
     const win = window.open("", "_blank", "width=900,height=1000");
     if (win) { win.document.write(html); win.document.close(); setTimeout(() => win.print(), 400); }

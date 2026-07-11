@@ -19,9 +19,10 @@ import { fetchValesPendentes } from "../../lib/rh";
 import { calcularAdicionaisMes } from "../../lib/rh";
 import { salvarConta, fetchContas, fetchLancamentos } from "../../lib/financeiro";
 import { fetchCardapio } from "../../lib/cardapio";
+import { fetchParams, PARAMS_PADRAO } from "../../lib/parametros";
 
 // Desconto do funcionário sobre o valor de cardápio (funcionário paga o restante)
-const DESCONTO_FUNC = 0.30;
+// Desconto do funcionário: ajustável em Configurações > Parâmetros (paramsSis)
 import { 
   Users, UserPlus, FileText, Upload, Save, X, Search, Trash2, Loader2, CalendarHeart, Star, Phone, CreditCard, ClipboardList, Clock, CalendarDays, ShoppingBag, CheckCircle, Store, Printer, UtensilsCrossed, LogOut, RotateCcw, ChevronDown
 } from "lucide-react";
@@ -38,6 +39,8 @@ export default function RHPage() {
   const [pontosMesUnidade, setPontosMesUnidade] = useState([]);   // p/ extras e feriados do mês
   const [feriadosMesAtual, setFeriadosMesAtual] = useState([]);
   const [folgasUnidade, setFolgasUnidade] = useState([]);       // p/ relatório de faltas
+  const [paramsSis, setParamsSis] = useState(PARAMS_PADRAO);     // parâmetros ajustáveis
+  useEffect(() => { if (unidadeAtiva && unidadeAtiva !== "todas") fetchParams(unidadeAtiva).then(r => setParamsSis(r.data)); }, [unidadeAtiva]);
   const [lancamentos, setLancamentos] = useState([]);             // p/ faturamento do mês (CMO %)
   const [cargos, setCargos] = useState([]);
   const [busca, setBusca] = useState("");
@@ -512,7 +515,7 @@ export default function RHPage() {
     if (!novoConsumo.descricao || !novoConsumo.valor_original) return alert("Preencha descrição e valor.");
     
     const valOriginal = Number(novoConsumo.valor_original);
-    const valDesconto = valOriginal * (1 - DESCONTO_FUNC); // funcionário paga o restante
+    const valDesconto = valOriginal * (1 - (paramsSis.desconto_func_pct / 100)); // funcionário paga o restante
     const statPagto = novoConsumo.forma_pagamento === "Desconto em Folha" ? "Pendente" : "Pago";
     
     const payload = {
@@ -1186,7 +1189,7 @@ export default function RHPage() {
             // Fica EM BRANCO até o faturamento do mês ser lançado de verdade
             // (abaixo de R$ 1.000 trata como ainda não informado — evita %
             // absurdo com lançamentos de teste). Ao lançar, o % aparece sozinho.
-            const FAT_MINIMO = 1000;
+            const FAT_MINIMO = paramsSis.faturamento_minimo_cmo;
             const pct = fat >= FAT_MINIMO ? (total / fat) * 100 : null;
             if (!ativos.length) return null;
             return (
@@ -2204,7 +2207,7 @@ export default function RHPage() {
                   {/* Lado Esquerdo: Adicionar Consumo */}
                   <div className="flex flex-col">
                      <div className="bg-teal-50 p-4 rounded-2xl mb-6 border border-teal-100">
-                        <p className="text-xs font-bold text-teal-700 uppercase tracking-widest mb-1">{Math.round(DESCONTO_FUNC * 100)}% de Desconto Automático</p>
+                        <p className="text-xs font-bold text-teal-700 uppercase tracking-widest mb-1">{Math.round((paramsSis.desconto_func_pct / 100) * 100)}% de Desconto Automático</p>
                         <p className="text-sm font-medium text-teal-800 leading-snug">
                            Escolha um prato do cardápio ou digite manualmente. O sistema aplica o desconto do funcionário sobre o valor original.
                         </p>
@@ -2276,8 +2279,8 @@ export default function RHPage() {
                      <div className="mt-6 pt-6 border-t border-slate-100">
                         {novoConsumo.valor_original && (
                            <div className="flex items-center justify-between bg-slate-800 p-4 rounded-xl text-white mb-4">
-                              <span className="font-bold">Total a Pagar (com {Math.round(DESCONTO_FUNC * 100)}% desc.):</span>
-                              <span className="font-black text-xl text-emerald-400">{fmtBRL(Number(novoConsumo.valor_original) * (1 - DESCONTO_FUNC))}</span>
+                              <span className="font-bold">Total a Pagar (com {Math.round((paramsSis.desconto_func_pct / 100) * 100)}% desc.):</span>
+                              <span className="font-black text-xl text-emerald-400">{fmtBRL(Number(novoConsumo.valor_original) * (1 - (paramsSis.desconto_func_pct / 100)))}</span>
                            </div>
                         )}
                         <button onClick={salvarConsumo} disabled={!novoConsumo.descricao || !novoConsumo.valor_original} className="w-full py-4 bg-teal-600 hover:bg-teal-700 disabled:bg-slate-300 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-teal-600/20 active:scale-95">

@@ -10,7 +10,84 @@ import {
 } from "lucide-react";
 import { gerarDadosFicticios, limparAmbienteTeste } from "../../lib/mock";
 import { fetchPins, salvarPins } from "../../lib/seguranca";
-import { Lock } from "lucide-react";
+import { fetchParams, salvarParams, PARAMS_PADRAO } from "../../lib/parametros";
+import { Lock, SlidersHorizontal } from "lucide-react";
+
+// Parâmetros ajustáveis: tolerâncias do ponto, descontos, metas... O sistema
+// passa a usar o valor novo assim que salvar.
+function CardParametros({ unidadeAtiva }) {
+  const [p, setP] = useState(null);
+  const [salvando, setSalvando] = useState(false);
+  const [ok, setOk] = useState(false);
+
+  useEffect(() => {
+    if (!unidadeAtiva) return;
+    fetchParams(unidadeAtiva).then(r => setP(r.data));
+  }, [unidadeAtiva]);
+
+  const salvar = async () => {
+    setSalvando(true);
+    const { error } = await salvarParams(unidadeAtiva, p);
+    setSalvando(false);
+    if (error) return alert("Erro ao salvar (rode o SQL da tabela config_sistema): " + error);
+    setOk(true); setTimeout(() => setOk(false), 2500);
+  };
+
+  if (!p) return null;
+  const GRUPOS = [
+    ["Ponto Eletrônico", [
+      ["tolerancia_entrada", "Liberar entrada (min antes do turno)", "A batida libera X minutos antes do horário"],
+      ["tolerancia_marcacao", "Tolerância entrada/saída (min)", "Até X min grava o horário do turno (Súmula 366)"],
+      ["tolerancia_retorno", "Tolerância volta do intervalo (min)", "Até X min depois grava a hora prevista"],
+      ["limite_atraso", "Atraso que vira falta (min)", "Passou disso, a entrada bloqueia e conta falta"],
+      ["lembrete_min", "Antecedência dos lembretes (min)", "Alerta de entrada/fim de intervalo no relógio"],
+    ]],
+    ["RH e Consumo", [
+      ["desconto_func_pct", "Desconto do funcionário no consumo (%)", "Aplicado nos consumos e vales da equipe"],
+    ]],
+    ["Financeiro", [
+      ["meta_cmv", "Meta de CMV (%)", "Acima disso o painel alerta em vermelho"],
+      ["faturamento_minimo_cmo", "Faturamento mínimo p/ CMO % (R$)", "Abaixo disso o CMO % fica em branco"],
+    ]],
+    ["Estoque", [
+      ["fator_reposicao", "Fator de reposição da lista de compras", "Sugere comprar até (fator × estoque mínimo)"],
+    ]],
+  ];
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-6">
+      <div className="bg-slate-50 border-b border-slate-100 p-4 flex items-center gap-2">
+        <SlidersHorizontal size={18} className="text-slate-500" />
+        <h2 className="font-bold text-slate-800">Parâmetros do Sistema</h2>
+      </div>
+      <div className="p-6 space-y-6">
+        {GRUPOS.map(([titulo, campos]) => (
+          <div key={titulo}>
+            <p className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-3">{titulo}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {campos.map(([k, label, hint]) => (
+                <div key={k}>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{label}</label>
+                  <input type="number" min="0" step="1" value={p[k]}
+                    onChange={e => setP(prev => ({ ...prev, [k]: e.target.value === "" ? "" : Number(e.target.value) }))}
+                    className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-slate-700 outline-none focus:border-emerald-500" />
+                  <p className="text-[10px] text-slate-400 font-medium mt-1">{hint} · padrão: {PARAMS_PADRAO[k]}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={salvar} disabled={salvando}
+            className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 px-6 rounded-xl flex items-center gap-2 transition-colors disabled:opacity-50">
+            {salvando ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Salvar parâmetros
+          </button>
+          <button type="button" onClick={() => setP({ ...PARAMS_PADRAO })} className="text-xs font-bold text-slate-500 hover:text-slate-700">Voltar aos padrões</button>
+          {ok && <span className="text-emerald-600 font-bold text-sm flex items-center gap-1"><CheckCircle size={15}/> Salvo — já valendo!</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // Senhas e PINs: PIN do gerente (ponto) + senhas de saída das estações
 function CardSenhas({ unidadeAtiva }) {
@@ -310,6 +387,9 @@ export default function ConfiguracoesPage() {
 
       {/* Senhas e PINs do sistema */}
       <CardSenhas unidadeAtiva={unidadeAtiva} />
+
+      {/* Parâmetros ajustáveis (tolerâncias, metas, descontos) */}
+      <CardParametros unidadeAtiva={unidadeAtiva} />
 
       {/* Sandbox de testes */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-6">

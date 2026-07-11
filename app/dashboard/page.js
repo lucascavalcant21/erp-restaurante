@@ -18,8 +18,9 @@ import { fetchEstoque } from "../lib/estoque";
 import { fetchManutencoes } from "../lib/controles_cozinha";
 import { fetchCampanhas } from "../lib/clientes";
 import { fetchTemplates, fetchHistoricoExecucoes } from "../lib/checklists";
+import { fetchParams, PARAMS_PADRAO } from "../lib/parametros";
 
-const META_CMV = 30; // % alvo máximo de CMV
+// Meta de CMV: ajustável em Configurações > Parâmetros (metaCmv)
 
 // Áreas da escala e como deduzir a área pelo cargo.
 // "Descanso" só recebe gente por arraste (quem está de folga/descanso no dia).
@@ -79,6 +80,8 @@ export default function DashboardGestao() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [dados, setDados] = useState(null);
+  const [metaCmv, setMetaCmv] = useState(PARAMS_PADRAO.meta_cmv);
+  useEffect(() => { if (unidadeAtiva && unidadeAtiva !== "todas") fetchParams(unidadeAtiva).then(r => setMetaCmv(r.data.meta_cmv)); }, [unidadeAtiva]);
 
   useEffect(() => {
     if (!unidadeAtiva || unidadeAtiva === "todas") { setLoading(false); setDados(null); return; }
@@ -126,7 +129,7 @@ export default function DashboardGestao() {
         return tem && preco > 0 ? (custo / preco) * 100 : null;
       }).filter(v => v !== null);
     const cmvMedio = cmvs.length ? cmvs.reduce((a, b) => a + b, 0) / cmvs.length : 0;
-    const cmvAcima = cmvs.filter(v => v > META_CMV).length;
+    const cmvAcima = cmvs.filter(v => v > metaCmv).length;
 
     // Folha / custo de mão de obra (colaboradores ativos)
     const ativos = colaboradores.filter(c => (c.status || "ativo") !== "inativo");
@@ -196,7 +199,7 @@ export default function DashboardGestao() {
       semEstoque, limpezasVencendo, campanhasAtivas, bancoAlertas,
       escalaPorArea, extrasCount, checklistsPend,
     };
-  }, [dados]);
+  }, [dados, metaCmv]);
 
   // Arrastar na escala: move o colaborador para uma área (mesma ou outra) na
   // posição do alvo. Grava a área e a nova ordem de todos da área.
@@ -338,7 +341,7 @@ export default function DashboardGestao() {
     );
   }
 
-  const cmvBom = m.cmvMedio <= META_CMV;
+  const cmvBom = m.cmvMedio <= metaCmv;
 
   const Kpi = ({ icon: Icon, label, value, sub, tintBg, tintFg, onClick, alerta }) => (
     <button onClick={onClick} className="erp-card p-6 flex flex-col justify-between text-left group" style={{ minHeight: 140 }}>
@@ -368,7 +371,7 @@ export default function DashboardGestao() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
         <Kpi icon={Percent} label="CMV médio"
           value={m.cmvCount ? fmtPct(m.cmvMedio) : "—"}
-          sub={m.cmvCount ? (cmvBom ? "dentro da meta de 30%" : `${m.cmvAcima} prato(s) acima da meta`) : "sem fichas precificadas"}
+          sub={m.cmvCount ? (cmvBom ? `dentro da meta de ${metaCmv}%` : `${m.cmvAcima} prato(s) acima da meta`) : "sem fichas precificadas"}
           tintBg={cmvBom ? "rgba(5,150,105,0.12)" : "rgba(239,68,68,0.12)"}
           tintFg={cmvBom ? "#047857" : "#DC2626"} alerta={!cmvBom && m.cmvCount > 0}
           onClick={() => router.push("/dashboard/financeiro/cmv")} />

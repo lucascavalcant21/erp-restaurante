@@ -10,21 +10,15 @@ import { useRouter } from "next/navigation";
 import { fetchColaboradores, inserirBancoHoras, fetchBancoHorasColaborador, somaMinutosBanco, fetchAllFolgasDaUnidade, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN } from "../../../lib/rh";
 import { fetchPontoHoje, fetchHistoricoPonto, registrarBatida, pularIntervalo } from "../../../lib/ponto";
 import { fetchPins } from "../../../lib/seguranca";
+import { fetchParams, PARAMS_PADRAO } from "../../../lib/parametros";
 
 const fmtMin = (m) => `${Math.floor(m / 60)}h${String(Math.round(m) % 60).padStart(2, "0")}`;
 const horaDe = (iso) => iso ? new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : null;
 const strToMin = (hhmm) => { const [h, m] = String(hhmm || "").split(":").map(Number); return (h || 0) * 60 + (m || 0); };
 const isoLocal = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-// Só pode bater a ENTRADA a partir de X min antes do horário (contagem regressiva)
-const TOLERANCIA_ENTRADA_MIN = 2;
-// Passou X min do horário de entrada sem bater: bloqueia e conta como falta
-const LIMITE_ATRASO_MIN = 60;
-// Tolerâncias de marcação (Súmula 366 TST) — aplicadas por dentro, SEM exibir
-// ao funcionário: entrada/saída até 5 min gravam o horário do turno (8h05→8h;
-// 8h06 já grava real + atraso); volta do intervalo até 2 min grava a prevista.
-const TOLERANCIA_MARCACAO_MIN = 5;
-const TOLERANCIA_RETORNO_MIN = 2;
+// Tolerâncias e limites do ponto: valores AJUSTÁVEIS em Configurações >
+// Parâmetros do Sistema (cfgP). Os padrões vêm de PARAMS_PADRAO na lib.
 
 // Data de hoje (ou da base) com o horário HH:MM
 function comHora(base, hhmm) {
@@ -42,8 +36,6 @@ function linkZap(colab, msg) {
   return `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
 }
 
-// Antecedência dos lembretes (minutos)
-const LEMBRETE_MIN = 10;
 // PIN do gerente para liberar a entrada bloqueada por atraso
 const PIN_GERENTE = "1234";
 
@@ -201,10 +193,14 @@ export default function PontoPage() {
   const [liberados, setLiberados] = useState({}); // { [colabId]: true } — atraso liberado pelo gerente hoje
   const [pinAberto, setPinAberto] = useState(false);
 
-  // PIN do gerente configurável (Configurações > Senhas e PINs)
+  // PIN do gerente e parâmetros do ponto (Configurações > Senhas / Parâmetros)
   const [pinGerente, setPinGerente] = useState(PIN_GERENTE);
+  const [cfgP, setCfgP] = useState(PARAMS_PADRAO);
   useEffect(() => {
-    if (unidadeAtiva && unidadeAtiva !== "todas") fetchPins(unidadeAtiva).then(r => setPinGerente(r.data.pin_gerente));
+    if (unidadeAtiva && unidadeAtiva !== "todas") {
+      fetchPins(unidadeAtiva).then(r => setPinGerente(r.data.pin_gerente));
+      fetchParams(unidadeAtiva).then(r => setCfgP(r.data));
+    }
   }, [unidadeAtiva]);
 
   // ── MODO TABLET (quiosque): trava a tela do ponto; só sai com o PIN ────────
@@ -374,7 +370,7 @@ export default function PontoPage() {
       if (entradaStr) {
         const prevista = comHora(agora, entradaStr);
         const diffMin = (agora.getTime() - prevista.getTime()) / 60000;
-        if (diffMin <= TOLERANCIA_MARCACAO_MIN) horaMarcada = prevista;
+        if (diffMin <= cfgP.tolerancia_marcacao) horaMarcada = prevista;
         else atrasoMin = Math.round(diffMin);
       }
     }
@@ -388,7 +384,7 @@ export default function PontoPage() {
         setJustif({ tipo: "retorno_cedo", tirou, faltou: intervaloPadrao - tirou });
         return;
       }
-      if (diffMin <= TOLERANCIA_RETORNO_MIN) horaMarcada = prevista;
+      if (diffMin <= cfgP.tolerancia_retorno) horaMarcada = prevista;
     }
 
     // SAÍDA DO TRABALHO: até 5 min de diferença do horário grava o horário do turno
@@ -399,7 +395,7 @@ export default function PontoPage() {
       if (saidaStr) {
         const cands = [-1, 0, 1].map(d => { const c = comHora(agora, saidaStr); c.setDate(c.getDate() + d); return c; });
         const prevista = cands.reduce((a, b) => Math.abs(agora - b) < Math.abs(agora - a) ? b : a);
-        if (Math.abs(agora.getTime() - prevista.getTime()) / 60000 <= TOLERANCIA_MARCACAO_MIN) horaMarcada = prevista;
+        if (Math.abs(agora.getTime() - prevista.getTime()) / 60000 <= cfgP.tolerancia_marcacao) horaMarcada = prevista;
       }
     }
 
@@ -468,11 +464,11 @@ export default function PontoPage() {
     if (etapa === "entrada" && entradaStr) {
       const [hh, mm] = entradaStr.split(":").map(Number);
       const permiteEm = new Date(horaLocal);
-      permiteEm.setHours(hh, mm - TOLERANCIA_ENTRADA_MIN, 0, 0);
+      permiteEm.setHours(hh, mm - cfgP.tolerancia_entrada, 0, 0);
       const faltaMs = permiteEm.getTime() - horaLocal.getTime();
       // Limite do atraso: depois disso não bate mais — conta como falta
       const limiteEm = new Date(horaLocal);
-      limiteEm.setHours(hh, mm + LIMITE_ATRASO_MIN, 0, 0);
+      limiteEm.setHours(hh, mm + cfgP.limite_atraso, 0, 0);
       const atrasoMs = horaLocal.getTime() - limiteEm.getTime();
       janela = { permiteEm, faltaMs, atrasoMs, entradaStr };
     }
@@ -596,7 +592,7 @@ export default function PontoPage() {
               <Ban size={44} className="text-rose-400 mx-auto mb-3" />
               <p className="text-2xl font-black text-white">Entrada bloqueada — falta registrada</p>
               <p className="text-rose-200 font-bold text-base mt-2">
-                Seu horário era {janela.entradaStr} e já passou mais de {Math.floor(LIMITE_ATRASO_MIN / 60) > 0 ? `${Math.floor(LIMITE_ATRASO_MIN / 60)}h` : `${LIMITE_ATRASO_MIN}min`} — não é mais possível bater o ponto hoje.
+                Seu horário era {janela.entradaStr} e já passou mais de {Math.floor(cfgP.limite_atraso / 60) > 0 ? `${Math.floor(cfgP.limite_atraso / 60)}h` : `${cfgP.limite_atraso}min`} — não é mais possível bater o ponto hoje.
               </p>
               <p className="text-slate-400 font-medium text-sm mt-2">O dia sem batida conta como falta no espelho de ponto. Procure a gerência para justificar.</p>
               <button onClick={() => setPinAberto(true)}
@@ -684,7 +680,7 @@ export default function PontoPage() {
     if (!info.folga && !reg?.hora_entrada && entradaStr) {
       const [hh, mm] = entradaStr.split(":").map(Number);
       const limite = new Date(horaLocal);
-      limite.setHours(hh, mm + LIMITE_ATRASO_MIN, 0, 0);
+      limite.setHours(hh, mm + cfgP.limite_atraso, 0, 0);
       faltou = horaLocal.getTime() > limite.getTime();
     }
     return (
@@ -699,7 +695,7 @@ export default function PontoPage() {
         </div>
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1.5 ${info.folga || faltou ? "bg-rose-500/10 text-rose-400" : concluido ? "bg-emerald-500/10 text-emerald-500" : reg?.hora_entrada ? "bg-sky-500/10 text-sky-400" : "bg-slate-800 text-slate-500"}`}>
-            {info.folga ? <><Ban size={11} /> Folga hoje</> : faltou ? <><Ban size={11} /> Falta — não bateu até {entradaStr}+{LIMITE_ATRASO_MIN}min</> : concluido ? <><CheckCircle2 size={11} /> Jornada concluída</> : reg?.hora_entrada ? <><Clock size={11} /> Próx: {ETAPAS.find(e => e.id === etapa)?.label}</> : <><LogIn size={11} /> Aguardando entrada</>}
+            {info.folga ? <><Ban size={11} /> Folga hoje</> : faltou ? <><Ban size={11} /> Falta — não bateu até {entradaStr}+{cfgP.limite_atraso}min</> : concluido ? <><CheckCircle2 size={11} /> Jornada concluída</> : reg?.hora_entrada ? <><Clock size={11} /> Próx: {ETAPAS.find(e => e.id === etapa)?.label}</> : <><LogIn size={11} /> Aguardando entrada</>}
           </div>
           {entradaStr && !info.folga && (
             <span className="text-[10px] font-bold text-slate-600">{entradaStr}{c.horario_saida ? `–${c.horario_saida}` : ""}</span>
@@ -765,7 +761,7 @@ export default function PontoPage() {
               if (eStr) {
                 const prev = comHora(horaLocal, eStr);
                 const falta = Math.round((prev.getTime() - horaLocal.getTime()) / 60000);
-                if (falta > 0 && falta <= LEMBRETE_MIN) {
+                if (falta > 0 && falta <= cfgP.lembrete_min) {
                   alertas.push({
                     tipo: "entrada", c, falta, hora: eStr,
                     msg: `Ola ${c.nome.split(" ")[0]}! Faltam ${falta} min para o seu horario (${eStr}). Nao esqueca de bater o ponto de entrada. — ${unidadeInfo?.nome || "Hefisto"}`,
@@ -778,7 +774,7 @@ export default function PontoPage() {
               const intervalo = Number(c.tempo_intervalo) || 60;
               const prev = new Date(new Date(reg.hora_saida_intervalo).getTime() + intervalo * 60000);
               const falta = Math.round((prev.getTime() - horaLocal.getTime()) / 60000);
-              if (falta > 0 && falta <= LEMBRETE_MIN) {
+              if (falta > 0 && falta <= cfgP.lembrete_min) {
                 const hStr = prev.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
                 alertas.push({
                   tipo: "intervalo", c, falta, hora: hStr,

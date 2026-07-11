@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Clock, Search, ArrowLeft, CheckCircle2, LogIn, LogOut, Coffee, Undo2,
-  AlertTriangle, Maximize, Loader2, Hourglass, Ban, Timer, X, Lock, Tablet
+  AlertTriangle, Maximize, Loader2, Hourglass, Ban, Timer, X, Lock, Tablet, MessageCircle
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { useRouter } from "next/navigation";
@@ -32,6 +32,17 @@ function comHora(base, hhmm) {
   d.setHours(h || 0, m || 0, 0, 0);
   return d;
 }
+
+// Link do WhatsApp do funcionário (telefone do cadastro) com a mensagem pronta
+function linkZap(colab, msg) {
+  const dig = String(colab.telefone || "").replace(/\D/g, "");
+  if (!dig) return null;
+  const num = dig.length >= 12 ? dig : `55${dig}`;
+  return `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
+}
+
+// Antecedência dos lembretes (minutos)
+const LEMBRETE_MIN = 10;
 // PIN do gerente para liberar a entrada bloqueada por atraso
 const PIN_GERENTE = "1234";
 
@@ -733,6 +744,71 @@ export default function PontoPage() {
             {horaLocal.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })} · {unidadeInfo?.nome}
           </p>
         </div>
+
+        {/* LEMBRETES: 10 min para a entrada ou para o fim do intervalo */}
+        {(() => {
+          const alertas = [];
+          colaboradores.forEach(c => {
+            const reg = registroDe(c.id);
+            const info = folgaHoje(c, folgas, horaLocal);
+            if (info.folga) return;
+            // Faltam até 10 min para o horário de entrada (e ainda não bateu)
+            if (!reg?.hora_entrada) {
+              const eStr = entradaDoDia(c, horaLocal);
+              if (eStr) {
+                const prev = comHora(horaLocal, eStr);
+                const falta = Math.round((prev.getTime() - horaLocal.getTime()) / 60000);
+                if (falta > 0 && falta <= LEMBRETE_MIN) {
+                  alertas.push({
+                    tipo: "entrada", c, falta, hora: eStr,
+                    msg: `Ola ${c.nome.split(" ")[0]}! Faltam ${falta} min para o seu horario (${eStr}). Nao esqueca de bater o ponto de entrada. — ${unidadeInfo?.nome || "Hefisto"}`,
+                  });
+                }
+              }
+            }
+            // Faltam até 10 min para o fim do intervalo
+            if (reg?.hora_saida_intervalo && !reg?.hora_retorno_intervalo && !reg?.hora_saida) {
+              const intervalo = Number(c.tempo_intervalo) || 60;
+              const prev = new Date(new Date(reg.hora_saida_intervalo).getTime() + intervalo * 60000);
+              const falta = Math.round((prev.getTime() - horaLocal.getTime()) / 60000);
+              if (falta > 0 && falta <= LEMBRETE_MIN) {
+                const hStr = prev.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+                alertas.push({
+                  tipo: "intervalo", c, falta, hora: hStr,
+                  msg: `Ola ${c.nome.split(" ")[0]}! Faltam ${falta} min para o fim do seu intervalo — volta as ${hStr}. — ${unidadeInfo?.nome || "Hefisto"}`,
+                });
+              }
+            }
+          });
+          if (!alertas.length) return null;
+          return (
+            <div className="mb-6 space-y-2">
+              {alertas.map((a, i) => {
+                const zap = linkZap(a.c, a.msg);
+                return (
+                  <div key={i} className="flex items-center gap-3 p-3.5 rounded-2xl border bg-amber-500/10 border-amber-500/30 animate-pulse">
+                    <Timer size={20} className="text-amber-400 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-black text-amber-300 leading-tight">
+                        {a.tipo === "entrada" ? `${a.c.nome.split(" ").slice(0, 2).join(" ")} entra às ${a.hora}` : `${a.c.nome.split(" ").slice(0, 2).join(" ")} volta do intervalo às ${a.hora}`}
+                      </p>
+                      <p className="text-[11px] font-bold text-amber-500/80">faltam {a.falta} min</p>
+                    </div>
+                    {zap ? (
+                      <a href={zap} target="_blank" rel="noreferrer"
+                        className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl font-black text-xs text-white shrink-0 active:scale-95 transition-transform"
+                        style={{ background: "#25D366" }}>
+                        <MessageCircle size={14} /> Lembrar no WhatsApp
+                      </a>
+                    ) : (
+                      <span className="text-[10px] font-bold text-slate-500 shrink-0">sem telefone no cadastro</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
 
         {/* Busca por nome OU função */}
         <div className="relative mb-6">

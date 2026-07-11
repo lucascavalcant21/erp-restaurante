@@ -38,6 +38,16 @@ export const removerDocumento = (id) => supabase.from("func_documentos").delete(
 
 // ── Holerites (folha) ──────────────────────────────────────────
 export const fetchHolerites = (funcId) => listarPorFunc("holerites", funcId);
+export async function confirmarRecebimentoHolerite(id, detalhesAtuais = {}) {
+  if (!isSupabaseReady() || !id) return { error: "Holerite inválido" };
+  const detalhes = {
+    ...(detalhesAtuais || {}),
+    recebimento_confirmado: true,
+    recebido_em: new Date().toISOString()
+  };
+  const { data, error } = await supabase.from("holerites").update({ detalhes }).eq("id", id).select().single();
+  return { data, error: error?.message || null };
+}
 export async function inserirHolerite(h, unidadeId) {
   const { data, error } = await supabase.from("holerites").insert([carimbarUnidade(h, unidadeId)]).select().single();
   return { data, error: error?.message || null };

@@ -15,6 +15,7 @@ import {
   fetchAdvertenciasColab, calcularAdicionaisMes, fetchFeriados
 } from "../../../lib/rh";
 import { fetchHistoricoPonto, fetchPontosMes } from "../../../lib/ponto";
+import { fetchHolerites, confirmarRecebimentoHolerite } from "../../../lib/pessoas";
 
 const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const fmtMin = (m) => `${Math.floor(m / 60)}h${String(Math.round(m) % 60).padStart(2, "0")}`;
@@ -59,7 +60,7 @@ export default function VidaColaboradorPage() {
     setVida(null);
     setVidaLoading(true);
     const mes = new Date().toISOString().slice(0, 7);
-    const [rDocs, rFolgas, rConsumo, rBanco, rPonto, rAdv, rPontosMes, rFeriados] = await Promise.all([
+    const [rDocs, rFolgas, rConsumo, rBanco, rPonto, rAdv, rPontosMes, rFeriados, rHolerites] = await Promise.all([
       fetchDocumentos(c.id),
       fetchFolgasEsporadicas(c.id),
       fetchConsumoFuncionario(c.id),
@@ -68,13 +69,32 @@ export default function VidaColaboradorPage() {
       fetchAdvertenciasColab(c.id),
       fetchPontosMes(c.id, mes),
       fetchFeriados(unidadeAtiva, mes),
+      fetchHolerites(c.id),
     ]);
     setVida({
       docs: rDocs.data || [], folgas: rFolgas.data || [], consumo: rConsumo.data || [],
       banco: rBanco.data || [], ponto: rPonto.data || [],
       advertencias: rAdv.data || [], pontosMes: rPontosMes.data || [], feriados: rFeriados.data || [],
+      holerites: Array.isArray(rHolerites) ? rHolerites : [],
     });
     setVidaLoading(false);
+  };
+
+  const imprimirHolerite = (h, colaborador) => {
+    const d = h.detalhes || {};
+    const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+    const moeda = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    const win = window.open("", "_blank", "width=850,height=900");
+    if (!win) return alert("O navegador bloqueou a janela. Habilite pop-ups para imprimir ou salvar em PDF.");
+    win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Holerite ${esc(colaborador.nome)}</title><style>*{box-sizing:border-box}body{font-family:Arial,sans-serif;padding:28px;color:#111}.folha{max-width:760px;margin:auto;border:1px solid #111}.cab{padding:18px;border-bottom:2px solid #111;display:flex;justify-content:space-between}.cab h1{font-size:19px;margin:0}.cab p{font-size:12px;margin:5px 0 0}.dados{padding:14px 18px;border-bottom:1px solid #777;font-size:13px}.linha{display:grid;grid-template-columns:1fr 130px;padding:11px 18px;border-bottom:1px solid #ddd;font-size:13px}.linha b{text-align:right}.total{background:#eee;font-size:15px}.assinaturas{display:grid;grid-template-columns:1fr 1fr;gap:50px;padding:70px 28px 25px;text-align:center;font-size:11px}.assinaturas div{border-top:1px solid #111;padding-top:6px}.recebido{padding:10px 18px;background:#ecfdf5;color:#166534;font-size:11px}@media print{@page{size:A4;margin:12mm}body{padding:0}}</style></head><body><div class="folha"><div class="cab"><div><h1>Demonstrativo de Pagamento</h1><p>${esc(unidadeInfo?.nome || "Empresa")} · Competência ${String(h.mes).padStart(2,"0")}/${h.ano}</p></div><strong>${esc(d.tipo_contrato || "")}</strong></div><div class="dados"><b>Colaborador:</b> ${esc(colaborador.nome)}<br><b>Cargo:</b> ${esc(colaborador.cargo || d.cargo || "—")} · <b>Dias trabalhados:</b> ${d.dias_trabalhados || 0}</div><div class="linha"><span>Salário / base calculada</span><b>${moeda(d.salario_base)}</b></div><div class="linha"><span>Acréscimos e bônus</span><b>${moeda(d.acrescimos)}</b></div><div class="linha"><span>Vales e adiantamentos</span><b>− ${moeda(d.vales)}</b></div><div class="linha"><span>Outros descontos</span><b>− ${moeda(d.outros_descontos)}</b></div><div class="linha total"><strong>Valor líquido</strong><b>${moeda(h.liquido)}</b></div>${d.recebimento_confirmado ? `<div class="recebido">Recebimento confirmado em ${new Date(d.recebido_em).toLocaleString("pt-BR")}</div>` : ""}<div class="assinaturas"><div>Assinatura do colaborador</div><div>Responsável pelo RH</div></div></div><script>window.onload=()=>setTimeout(()=>window.print(),250)</script></body></html>`);
+    win.document.close();
+  };
+
+  const confirmarHolerite = async (h) => {
+    if (!confirm(`Confirmar o recebimento do holerite de ${String(h.mes).padStart(2,"0")}/${h.ano}?`)) return;
+    const { data, error } = await confirmarRecebimentoHolerite(h.id, h.detalhes);
+    if (error) return alert("Não foi possível confirmar: " + error);
+    setVida(v => ({ ...v, holerites: v.holerites.map(x => x.id === h.id ? data : x) }));
   };
 
   if (!unidadeAtiva || unidadeAtiva === "todas") {
@@ -294,6 +314,28 @@ export default function VidaColaboradorPage() {
                         <span className="font-black shrink-0 ml-2" style={{ color: "var(--fg)" }}>{fmtBRL(x.valor_final ?? x.valor_original)}</span>
                       </div>
                     ))}
+                  </div>
+                )}
+              </Bloco>
+
+              {/* Documentos */}
+              <Bloco icon={DollarSign} titulo="Holerites"
+                extra={vida.holerites.length > 0 && <span className="erp-badge erp-badge-ok">{vida.holerites.length}</span>}>
+                {vida.holerites.length === 0 ? <p className="text-xs font-medium" style={{ color: "var(--dim)" }}>Nenhum holerite gerado ainda.</p> : (
+                  <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                    {vida.holerites.map(h => {
+                      const recebido = h.detalhes?.recebimento_confirmado;
+                      return <div key={h.id} className="p-3 rounded-xl" style={{ background: "var(--elevated)" }}>
+                        <div className="flex justify-between items-center gap-3">
+                          <div><p className="text-sm font-black" style={{ color: "var(--fg)" }}>{String(h.mes).padStart(2,"0")}/{h.ano}</p><p className="text-[10px] font-bold" style={{ color: recebido ? "#15803D" : "var(--dim)" }}>{recebido ? `Recebido em ${new Date(h.detalhes.recebido_em).toLocaleDateString("pt-BR")}` : "Aguardando confirmação"}</p></div>
+                          <div className="text-right"><p className="text-sm font-black" style={{ color: "var(--accent-strong)" }}>{fmtBRL(h.liquido)}</p><p className="text-[10px]" style={{ color: "var(--dim)" }}>líquido</p></div>
+                        </div>
+                        <div className="flex gap-2 mt-2">
+                          <button onClick={() => imprimirHolerite(h, sel)} className="erp-btn erp-btn-ghost !h-8 text-[10px]"><Printer size={12}/> Imprimir / PDF</button>
+                          {!recebido && <button onClick={() => confirmarHolerite(h)} className="erp-btn erp-btn-primary !h-8 text-[10px]">Confirmar recebimento</button>}
+                        </div>
+                      </div>;
+                    })}
                   </div>
                 )}
               </Bloco>

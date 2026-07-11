@@ -467,6 +467,74 @@ function imprimirLote(fichas, porFolha, deptLabel) {
   setTimeout(() => win.print(), 400);
 }
 
+// =========================================================================
+// MODELO DO CHEF — título + foto + descritivo (padrão do PDF do usuário),
+// com tamanhos e negrito ajustáveis e 1 ou 2 fichas por página (A4).
+// =========================================================================
+function imprimirModelo(fichas, cfg, deptLabel) {
+  if (!fichas.length) return alert("Nenhuma ficha para imprimir.");
+  const duas = Number(cfg.porPagina) === 2;
+  const alturaFicha = duas ? 135 : 275;                 // mm úteis por ficha
+  const fotoBase = duas ? 58 : 130;                     // mm de altura da foto no 100%
+  const fotoH = Math.round(fotoBase * (cfg.fotoPct / 100));
+
+  const cardHTML = (m, i) => {
+    const etapas = String(m.descritivo || "").split("\n").map(s => s.trim().replace(/^\d+[\.\)]\s*/, "")).filter(Boolean);
+    const descr = etapas.length > 1
+      ? `<ol>${etapas.map(e => `<li>${e.replace(/</g, "&lt;")}</li>`).join("")}</ol>`
+      : `<p>${(etapas[0] || "").replace(/</g, "&lt;") || "<i>Sem descritivo cadastrado.</i>"}</p>`;
+    // Quebra: a cada ficha (1/pág) ou a cada 2 (2/pág), exceto na última
+    const quebra = (i < fichas.length - 1) && (!duas || i % 2 === 1) ? " quebra" : "";
+    return `
+    <div class="fichaM${quebra}">
+      <h1>${m.nome}</h1>
+      ${m.foto_url ? `<div class="fotoBox"><img src="${m.foto_url}"/></div>` : ""}
+      <div class="descr">${descr}</div>
+    </div>`;
+  };
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Fichas — ${deptLabel}</title>
+    <style>
+      *{margin:0;padding:0;box-sizing:border-box}
+      body{font-family:'Segoe UI',Arial,Helvetica,sans-serif;color:#111;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      .fichaM{height:${alturaFicha}mm;display:flex;flex-direction:column;align-items:center;padding:8mm 12mm;overflow:hidden;page-break-inside:avoid}
+      .fichaM.quebra{page-break-after:always}
+      .fichaM + .fichaM{border-top:2px dashed #cbd5e1}
+      h1{font-size:${cfg.tituloPx}px;font-weight:${cfg.tituloNegrito ? 900 : 500};text-align:center;text-transform:uppercase;letter-spacing:1px;line-height:1.1;margin-bottom:5mm}
+      .fotoBox{width:100%;height:${fotoH}mm;display:flex;justify-content:center;align-items:center;margin-bottom:5mm;flex-shrink:0}
+      .fotoBox img{max-width:${Math.min(100, cfg.fotoPct)}%;max-height:100%;object-fit:contain;border-radius:14px}
+      .descr{font-size:${cfg.textoPx}px;font-weight:${cfg.textoNegrito ? 700 : 400};width:100%;line-height:1.6;color:#1e293b;overflow:hidden}
+      .descr ol{padding-left:1.6em}
+      .descr li{margin-bottom:.35em}
+      @media print{@page{margin:6mm}}
+    </style></head><body>
+    ${fichas.map(cardHTML).join("")}
+    </body></html>`;
+
+  let win = null;
+  try { win = window.open("", "_blank", "width=880,height=1000"); } catch { win = null; }
+  if (!win) {
+    try {
+      const iframe = document.createElement("iframe");
+      iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
+      document.body.appendChild(iframe);
+      iframe.srcdoc = html;
+      iframe.onload = () => {
+        setTimeout(() => {
+          try { iframe.contentWindow.focus(); iframe.contentWindow.print(); } catch (e) { alert("Não consegui abrir a impressão: " + e.message); }
+          setTimeout(() => iframe.remove(), 60000);
+        }, 400);
+      };
+      return;
+    } catch (e) {
+      return alert("O navegador bloqueou a impressão. Habilite os popups.\n\nDetalhe: " + e.message);
+    }
+  }
+  win.document.write(html);
+  win.document.close();
+  setTimeout(() => win.print(), 500);
+}
+
 function imprimirFicha(m) {
   const isBar = m.departamento === "bar";
   const accent = isBar ? "#7C3AED" : "#059669";
@@ -581,6 +649,21 @@ function MontagemPageInner() {
   const [salvou, setSalvou] = useState("");
   const [porFolha, setPorFolha] = useState(4); // fichas por página na impressão
 
+  // Modelo do Chef (título + foto + descritivo) — ajustes salvos no aparelho
+  const CFG_PADRAO = { porPagina: 1, fotoPct: 80, tituloPx: 34, textoPx: 15, tituloNegrito: true, textoNegrito: false };
+  const [cfgModelo, setCfgModelo] = useState(CFG_PADRAO);
+  useEffect(() => {
+    try {
+      const salvo = localStorage.getItem("hefisto_modelo_montagem");
+      if (salvo) setCfgModelo({ ...CFG_PADRAO, ...JSON.parse(salvo) });
+    } catch {}
+  }, []);
+  const mudarCfg = (patch) => setCfgModelo(c => {
+    const novo = { ...c, ...patch };
+    try { localStorage.setItem("hefisto_modelo_montagem", JSON.stringify(novo)); } catch {}
+    return novo;
+  });
+
   async function carregar() {
     setLoading(true);
     // Sincroniza com o Cardápio: todo produto do setor sem ficha de montagem
@@ -678,6 +761,61 @@ function MontagemPageInner() {
           <Btn variant="primary" className="!h-9 text-xs ml-auto" onClick={() => imprimirLote(filtrados, porFolha, dept === "bar" ? "Bar" : "Cozinha")}>
             <Printer size={14} /> Imprimir {filtrados.length} ficha{filtrados.length !== 1 ? "s" : ""}
           </Btn>
+        </div>
+
+        {/* MODELO DO CHEF: título + foto + descritivo, tudo ajustável */}
+        <div className="erp-card p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-widest" style={{ color: "var(--fg-soft)" }}>Modelo com foto (título + foto + descritivo)</p>
+              <p className="text-[11px] font-medium" style={{ color: "var(--dim)" }}>Ajuste os tamanhos e o negrito; as preferências ficam salvas.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--muted)" }}>Por página:</span>
+              {[1, 2].map(n => (
+                <button key={n} onClick={() => mudarCfg({ porPagina: n })}
+                  className="w-9 h-9 rounded-lg font-black text-sm transition-all"
+                  style={cfgModelo.porPagina === n
+                    ? { background: "var(--accent-strong)", color: "var(--accent-fg)" }
+                    : { background: "var(--elevated)", color: "var(--muted)" }}>
+                  {n}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-3">
+            <div>
+              <div className="flex justify-between text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: "var(--muted)" }}>
+                <span>Foto</span><span>{cfgModelo.fotoPct}%</span>
+              </div>
+              <input type="range" min="40" max="120" step="5" value={cfgModelo.fotoPct} onChange={e => mudarCfg({ fotoPct: Number(e.target.value) })} className="w-full accent-emerald-600" />
+            </div>
+            <div>
+              <div className="flex justify-between text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: "var(--muted)" }}>
+                <span>Título</span><span>{cfgModelo.tituloPx}px</span>
+              </div>
+              <input type="range" min="18" max="56" step="2" value={cfgModelo.tituloPx} onChange={e => mudarCfg({ tituloPx: Number(e.target.value) })} className="w-full accent-emerald-600" />
+            </div>
+            <div>
+              <div className="flex justify-between text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: "var(--muted)" }}>
+                <span>Texto</span><span>{cfgModelo.textoPx}px</span>
+              </div>
+              <input type="range" min="10" max="26" step="1" value={cfgModelo.textoPx} onChange={e => mudarCfg({ textoPx: Number(e.target.value) })} className="w-full accent-emerald-600" />
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-4">
+            <label className="flex items-center gap-2 cursor-pointer text-xs font-bold" style={{ color: "var(--fg-soft)" }}>
+              <input type="checkbox" checked={cfgModelo.tituloNegrito} onChange={e => mudarCfg({ tituloNegrito: e.target.checked })} className="w-4 h-4 accent-emerald-600" />
+              Título em negrito
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer text-xs font-bold" style={{ color: "var(--fg-soft)" }}>
+              <input type="checkbox" checked={cfgModelo.textoNegrito} onChange={e => mudarCfg({ textoNegrito: e.target.checked })} className="w-4 h-4 accent-emerald-600" />
+              Texto em negrito
+            </label>
+            <Btn variant="primary" className="!h-9 text-xs ml-auto" onClick={() => imprimirModelo(filtrados, cfgModelo, dept === "bar" ? "Bar" : "Cozinha")}>
+              <Printer size={14} /> Imprimir modelo ({filtrados.length})
+            </Btn>
+          </div>
         </div>
 
         <div>

@@ -12,7 +12,7 @@ import { fmtBRL, fmtPct } from "../components/ui";
 
 import { fetchFichas } from "../lib/operacao";
 import { fetchProdutos } from "../lib/vendas";
-import { fetchColaboradores, fetchAllFolgasDaUnidade, fetchBancoHoras, atualizarEscalaColab, atualizarOrdemEscala, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN } from "../lib/rh";
+import { fetchColaboradores, fetchAllFolgasDaUnidade, fetchBancoHoras, atualizarEscalaColab, atualizarOrdemEscala, salvarEscalaDia, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN } from "../lib/rh";
 import { fetchContas } from "../lib/financeiro";
 import { fetchEstoque } from "../lib/estoque";
 import { fetchManutencoes } from "../lib/controles_cozinha";
@@ -20,8 +20,9 @@ import { fetchCampanhas } from "../lib/clientes";
 
 const META_CMV = 30; // % alvo máximo de CMV
 
-// Áreas da escala e como deduzir a área pelo cargo
-const AREAS_ESCALA = ["Salão", "Bar", "Cozinha", "Caixa", "Louça", "Outros"];
+// Áreas da escala e como deduzir a área pelo cargo.
+// "Descanso" só recebe gente por arraste (quem está de folga/descanso no dia).
+const AREAS_ESCALA = ["Salão", "Bar", "Cozinha", "Caixa", "Louça", "Descanso", "Outros"];
 function areaDoCargo(cargo) {
   const c = (cargo || "").toLowerCase();
   if (/(caixa|financ|tesour|recep)/.test(c)) return "Caixa";
@@ -208,6 +209,90 @@ export default function DashboardGestao() {
     for (const id of ids) if (id !== colabId) await atualizarOrdemEscala(id, ordemMap[id]);
   };
 
+  // ── Escala do dia: montar, salvar, compartilhar e imprimir ────────────────
+  const montarEscalaDia = () => {
+    const out = [];
+    AREAS_ESCALA.forEach(a => {
+      const lista = m?.escalaPorArea?.[a] || [];
+      if (!lista.length) return;
+      out.push({
+        area: a,
+        pessoas: lista.map(c => ({
+          nome: c.nome,
+          cargo: c.cargo || "",
+          extra: !!c._extra,
+          horario: (c.horario_entrada || c.horario_saida) ? `${c.horario_entrada || "?"}–${c.horario_saida || "?"}` : "",
+        })),
+      });
+    });
+    return out;
+  };
+
+  const salvarDia = async () => {
+    const escala = montarEscalaDia();
+    if (!escala.length) return alert("Nenhum colaborador na escala.");
+    const hoje = new Date().toISOString().split("T")[0];
+    const { error, atualizada } = await salvarEscalaDia(unidadeAtiva, hoje, escala);
+    if (error) return alert("Erro ao salvar a escala: " + error);
+    alert(atualizada ? "Escala de hoje atualizada!" : "Escala de hoje salva!");
+  };
+
+  const textoEscalaDia = () => {
+    const hoje = new Date();
+    const linhas = montarEscalaDia().map(g =>
+      `*${g.area.toUpperCase()}*\n` + g.pessoas.map(p =>
+        `- ${p.nome}${p.extra ? " (extra)" : ""}${p.horario ? ` — ${p.horario}` : ""}`
+      ).join("\n")
+    );
+    return `*Escala do dia* — ${unidadeInfo?.nome || ""}\n${hoje.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit" })}\n\n${linhas.join("\n\n")}`;
+  };
+
+  const compartilharDia = async () => {
+    const texto = textoEscalaDia();
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try { await navigator.share({ text: texto }); return; } catch (e) { if (e && e.name === "AbortError") return; }
+    }
+    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank");
+  };
+
+  const imprimirDia = () => {
+    const escala = montarEscalaDia();
+    if (!escala.length) return alert("Nenhum colaborador na escala.");
+    const hoje = new Date();
+    const blocos = escala.map(g => `
+      <tr class="cat"><td colspan="3">${g.area}</td></tr>
+      ${g.pessoas.map(p => `<tr><td><b>${p.nome}</b>${p.extra ? ' <span class="ext">EXTRA</span>' : ""}</td><td>${p.cargo}</td><td class="c">${p.horario || "—"}</td></tr>`).join("")}
+    `).join("");
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Escala do dia</title>
+      <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:10mm}
+        .head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #111;padding-bottom:8px;margin-bottom:10px}
+        h1{font-size:22px}
+        .tag{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#555;font-weight:bold}
+        .meta{font-size:12px;color:#555;font-weight:bold;text-transform:capitalize}
+        table{width:100%;border-collapse:collapse;font-size:13px}
+        th,td{border:1px solid #94a3b8;padding:6px 8px;text-align:left}
+        th{background:#e2e8f0;font-size:9px;text-transform:uppercase;letter-spacing:1px}
+        tr.cat td{background:#f1f5f9;font-weight:bold;text-transform:uppercase;letter-spacing:1px;font-size:11px;color:#334155}
+        td.c{text-align:center;font-weight:bold;width:28mm}
+        .ext{font-size:8px;font-weight:bold;background:#fef3c7;border:1px solid #f59e0b;color:#92400e;border-radius:3px;padding:1px 4px}
+        @media print{@page{margin:8mm}}
+      </style></head><body>
+      <div class="head">
+        <div><div class="tag">Escala do Dia</div><h1>${unidadeInfo?.nome || "Unidade"}</h1></div>
+        <div class="meta">${hoje.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}</div>
+      </div>
+      <table>
+        <thead><tr><th>Colaborador</th><th>Função</th><th>Horário</th></tr></thead>
+        <tbody>${blocos}</tbody>
+      </table>
+      </body></html>`;
+    const win = window.open("", "_blank", "width=860,height=1000");
+    if (win) { win.document.write(html); win.document.close(); setTimeout(() => win.print(), 400); }
+    else alert("Habilite os popups para imprimir.");
+  };
+
   if (!unidadeAtiva || unidadeAtiva === "todas") {
     return (
       <div className="p-6 sm:p-8 max-w-7xl mx-auto">
@@ -293,6 +378,9 @@ export default function DashboardGestao() {
         setDragId={setDragEscalaId}
         onMover={moverParaArea}
         onVerTudo={() => router.push("/dashboard/rh")}
+        onSalvarDia={salvarDia}
+        onWhats={compartilharDia}
+        onImprimir={imprimirDia}
       />
 
       {/* Painéis operacionais */}
@@ -416,24 +504,35 @@ function PainelLista({ titulo, icon: Icon, corIcon, itens, vazio, acao, contador
 // Cores por área da escala
 const CORES_AREA = {
   "Salão": "#0EA5E9", "Bar": "#8B5CF6", "Cozinha": "#F59E0B",
-  "Caixa": "#10B981", "Louça": "#64748B", "Outros": "#94A3B8",
+  "Caixa": "#10B981", "Louça": "#64748B", "Descanso": "#F43F5E", "Outros": "#94A3B8",
 };
 
 // Escala da semana: colaboradores agrupados por área, extras marcados,
 // arraste para reordenar cada um dentro da sua área.
-function EscalaSemana({ escalaPorArea, dragId, setDragId, onMover, onVerTudo }) {
+function EscalaSemana({ escalaPorArea, dragId, setDragId, onMover, onVerTudo, onSalvarDia, onWhats, onImprimir }) {
   // Áreas fixas sempre visíveis (mesmo vazias) + "Outros" só quando tiver gente
-  const areas = ["Salão", "Bar", "Cozinha", "Caixa", "Louça"];
+  const areas = ["Salão", "Bar", "Cozinha", "Caixa", "Louça", "Descanso"];
   if (escalaPorArea["Outros"]?.length) areas.push("Outros");
   return (
     <div className="erp-card p-6">
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between gap-2 flex-wrap mb-5">
         <h3 className="text-lg font-black flex items-center gap-2" style={{ color: "var(--fg)" }}>
           <CalendarDays size={20} style={{ color: "#7C3AED" }} /> Escala da Semana
         </h3>
-        <button onClick={onVerTudo} className="text-xs font-bold flex items-center gap-1" style={{ color: "var(--accent-strong)" }}>
-          Gerir no RH <ArrowRight size={13} />
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button onClick={onSalvarDia} className="text-xs font-bold px-3 py-2 rounded-lg transition-colors" style={{ background: "var(--accent-soft)", color: "var(--accent-strong)" }}>
+            Salvar escala do dia
+          </button>
+          <button onClick={onWhats} className="text-xs font-black px-3 py-2 rounded-lg text-white transition-colors" style={{ background: "#25D366" }}>
+            WhatsApp
+          </button>
+          <button onClick={onImprimir} className="text-xs font-bold px-3 py-2 rounded-lg transition-colors" style={{ background: "var(--elevated)", color: "var(--muted)" }}>
+            Imprimir
+          </button>
+          <button onClick={onVerTudo} className="text-xs font-bold flex items-center gap-1 px-1" style={{ color: "var(--accent-strong)" }}>
+            Gerir no RH <ArrowRight size={13} />
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -454,7 +553,7 @@ function EscalaSemana({ escalaPorArea, dragId, setDragId, onMover, onVerTudo }) 
               <div className="space-y-1.5 min-h-[44px]">
                 {lista.length === 0 ? (
                   <div className="flex items-center justify-center h-11 rounded-xl border border-dashed text-[11px] font-bold" style={{ borderColor: "var(--line)", color: "var(--dim)" }}>
-                    Arraste alguém para cá
+                    {area === "Descanso" ? "Arraste quem está de descanso hoje" : "Arraste alguém para cá"}
                   </div>
                 ) : lista.map(c => (
                   <div key={c.id}

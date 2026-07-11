@@ -182,6 +182,19 @@ export async function atualizarOrdemEscala(id, ordem_escala) {
   return atualizarEscalaColab(id, { ordem_escala });
 }
 
+// Salva a foto da escala do dia (1 registro por unidade+data; regrava se já existir)
+export async function salvarEscalaDia(unidadeId, dataDia, escala) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { data: exist } = await supabase.from("escalas_dia")
+    .select("id").eq("unidade_id", unidadeId).eq("data", dataDia).limit(1);
+  if (exist && exist.length) {
+    const { error } = await supabase.from("escalas_dia").update({ escala }).eq("id", exist[0].id);
+    return { error: error?.message, atualizada: true };
+  }
+  const { error } = await supabase.from("escalas_dia").insert([{ unidade_id: unidadeId, data: dataDia, escala }]);
+  return { error: error?.message };
+}
+
 export async function fetchPontoMes(unidadeId, mesAno) { return { data: [], error: null }; }
 export async function registrarPonto(dados) { return { data: null, error: null }; }
 

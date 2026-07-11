@@ -17,6 +17,8 @@ const isoLocal = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
 
 // Só pode bater a ENTRADA a partir de X min antes do horário
 const TOLERANCIA_ENTRADA_MIN = 5;
+// Passou X min do horário de entrada sem bater: bloqueia e conta como falta
+const LIMITE_ATRASO_MIN = 60;
 
 // Mensagens prontas para justificar (voltar antes do intervalo ou não tirar)
 const MOTIVOS_RAPIDOS = [
@@ -179,7 +181,8 @@ export default function PontoPage() {
 
   const mostrarSucesso = (titulo, detalhe, tone = "ok") => {
     setSucesso({ titulo, detalhe, tone });
-    setTimeout(() => { setSucesso(null); setSelecionado(null); carregar(); }, tone === "alerta" ? 6000 : 3500);
+    // Rápido: 2s no ok; alertas (têm mais texto) ganham um pouco mais
+    setTimeout(() => { setSucesso(null); setSelecionado(null); carregar(); }, tone === "alerta" ? 3500 : 2000);
   };
 
   // Registra a batida "normal" de uma etapa (com aviso de excesso de intervalo)
@@ -293,17 +296,22 @@ export default function PontoPage() {
     // Travas da ENTRADA: folga e janela de horário
     const info = folgaHoje(selecionado, folgas, horaLocal);
     const entradaStr = entradaDoDia(selecionado, horaLocal);
-    let janela = null; // { permiteEm: Date, faltaMs }
+    let janela = null; // { permiteEm: Date, faltaMs, atrasoMs }
     if (etapa === "entrada" && entradaStr) {
       const [hh, mm] = entradaStr.split(":").map(Number);
       const permiteEm = new Date(horaLocal);
       permiteEm.setHours(hh, mm - TOLERANCIA_ENTRADA_MIN, 0, 0);
       const faltaMs = permiteEm.getTime() - horaLocal.getTime();
-      janela = { permiteEm, faltaMs, entradaStr };
+      // Limite do atraso: depois disso não bate mais — conta como falta
+      const limiteEm = new Date(horaLocal);
+      limiteEm.setHours(hh, mm + LIMITE_ATRASO_MIN, 0, 0);
+      const atrasoMs = horaLocal.getTime() - limiteEm.getTime();
+      janela = { permiteEm, faltaMs, atrasoMs, entradaStr };
     }
     const bloqueiaFolga = etapa === "entrada" && info.folga;
     const bloqueiaJanela = etapa === "entrada" && janela && janela.faltaMs > 0;
-    const podeBater = etapa !== "concluido" && !bloqueiaFolga && !bloqueiaJanela;
+    const bloqueiaAtraso = etapa === "entrada" && janela && janela.atrasoMs > 0;
+    const podeBater = etapa !== "concluido" && !bloqueiaFolga && !bloqueiaJanela && !bloqueiaAtraso;
 
     const fmtFalta = (ms) => {
       const s = Math.max(0, Math.ceil(ms / 1000));
@@ -342,7 +350,7 @@ export default function PontoPage() {
               {selecionado.nome[0].toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <h2 className="text-2xl font-black text-white truncate">{selecionado.nome}</h2>
+              <h2 className="text-xl md:text-2xl font-black text-white leading-tight break-words">{selecionado.nome}</h2>
               <p className="text-slate-400 font-bold text-sm">{selecionado.cargo || "—"} · {unidadeInfo?.nome}</p>
               {entradaStr && <p className="text-slate-500 font-bold text-xs mt-0.5">Horário de entrada: {entradaStr}{selecionado.horario_saida ? ` — ${selecionado.horario_saida}` : ""}</p>}
             </div>
@@ -383,6 +391,15 @@ export default function PontoPage() {
               <p className="text-2xl font-black text-white">Hoje é sua folga</p>
               <p className="text-rose-200 font-bold text-base mt-2">{info.motivo}. Não é possível bater o ponto em dia de folga.</p>
               <p className="text-slate-400 font-medium text-sm mt-2">Se isso está errado, procure a gerência para ajustar sua escala.</p>
+            </div>
+          ) : bloqueiaAtraso ? (
+            <div className="bg-rose-500/10 border border-rose-500/40 rounded-3xl p-8 text-center mb-6">
+              <Ban size={44} className="text-rose-400 mx-auto mb-3" />
+              <p className="text-2xl font-black text-white">Entrada bloqueada — falta registrada</p>
+              <p className="text-rose-200 font-bold text-base mt-2">
+                Seu horário era {janela.entradaStr} e já passou mais de {Math.floor(LIMITE_ATRASO_MIN / 60) > 0 ? `${Math.floor(LIMITE_ATRASO_MIN / 60)}h` : `${LIMITE_ATRASO_MIN}min`} — não é mais possível bater o ponto hoje.
+              </p>
+              <p className="text-slate-400 font-medium text-sm mt-2">O dia sem batida conta como falta no espelho de ponto. Procure a gerência para justificar.</p>
             </div>
           ) : bloqueiaJanela ? (
             <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 text-center mb-6">
@@ -458,18 +475,27 @@ export default function PontoPage() {
     const etapa = proximaEtapa(reg);
     const concluido = etapa === "concluido";
     const info = folgaHoje(c, folgas, horaLocal);
+    // Passou do limite de atraso sem bater a entrada: falta
+    let faltou = false;
+    const entradaStr = entradaDoDia(c, horaLocal);
+    if (!info.folga && !reg?.hora_entrada && entradaStr) {
+      const [hh, mm] = entradaStr.split(":").map(Number);
+      const limite = new Date(horaLocal);
+      limite.setHours(hh, mm + LIMITE_ATRASO_MIN, 0, 0);
+      faltou = horaLocal.getTime() > limite.getTime();
+    }
     return (
       <button key={c.id} onClick={() => abrirFuncionario(c)}
-        className={`p-5 rounded-3xl border-2 text-left transition-all hover:-translate-y-1 ${info.folga ? "bg-rose-500/5 border-rose-500/30" : concluido ? "bg-slate-900/40 border-slate-800 opacity-60" : "bg-slate-900 border-slate-800 hover:border-emerald-500/60"}`}>
+        className={`p-5 rounded-3xl border-2 text-left transition-all hover:-translate-y-1 ${info.folga || faltou ? "bg-rose-500/5 border-rose-500/30" : concluido ? "bg-slate-900/40 border-slate-800 opacity-60" : "bg-slate-900 border-slate-800 hover:border-emerald-500/60"}`}>
         <div className="flex items-center gap-3 mb-3">
           <div className="w-11 h-11 rounded-full bg-slate-800 flex items-center justify-center text-lg font-black text-emerald-400 shrink-0">{c.nome[0].toUpperCase()}</div>
           <div className="min-w-0">
-            <p className="font-black text-white truncate">{c.nome.split(" ").slice(0, 2).join(" ")}</p>
+            <p className="font-black text-white leading-tight break-words">{c.nome}</p>
             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">{c.cargo || "—"}</p>
           </div>
         </div>
-        <div className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1.5 ${info.folga ? "bg-rose-500/10 text-rose-400" : concluido ? "bg-emerald-500/10 text-emerald-500" : reg?.hora_entrada ? "bg-sky-500/10 text-sky-400" : "bg-slate-800 text-slate-500"}`}>
-          {info.folga ? <><Ban size={11} /> Folga hoje</> : concluido ? <><CheckCircle2 size={11} /> Jornada concluída</> : reg?.hora_entrada ? <><Clock size={11} /> Próx: {ETAPAS.find(e => e.id === etapa)?.label}</> : <><LogIn size={11} /> Aguardando entrada</>}
+        <div className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1.5 ${info.folga || faltou ? "bg-rose-500/10 text-rose-400" : concluido ? "bg-emerald-500/10 text-emerald-500" : reg?.hora_entrada ? "bg-sky-500/10 text-sky-400" : "bg-slate-800 text-slate-500"}`}>
+          {info.folga ? <><Ban size={11} /> Folga hoje</> : faltou ? <><Ban size={11} /> Falta — não bateu até {entradaStr}+{LIMITE_ATRASO_MIN}min</> : concluido ? <><CheckCircle2 size={11} /> Jornada concluída</> : reg?.hora_entrada ? <><Clock size={11} /> Próx: {ETAPAS.find(e => e.id === etapa)?.label}</> : <><LogIn size={11} /> Aguardando entrada</>}
         </div>
       </button>
     );

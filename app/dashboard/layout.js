@@ -22,6 +22,7 @@ const SIDEBAR_MENU = [
     category: "Operação Garçons",
     icon: Users,
     items: [
+      { label: "Estação Salão (tela cheia)", href: "/dashboard/area?dept=salao" },
       { label: "Checklist", href: "/dashboard/operacao/rotina?dept=salao" },
       { label: "Treinamentos", href: "/dashboard/salao/treinamento" },
       { label: "Observações Padrão", href: "/dashboard/operacao/observacoes" }
@@ -32,6 +33,7 @@ const SIDEBAR_MENU = [
     category: "Operação Cozinha",
     icon: ChefHat,
     items: [
+      { label: "Estação Cozinha (tela cheia)", href: "/dashboard/area?dept=cozinha" },
       { label: "Catálogo e Preços", href: "/dashboard/operacao/produtos" },
       { label: "Fichas Técnicas", href: "/dashboard/operacao/fichas?dept=cozinha" },
       { label: "Guia de Montagem", href: "/dashboard/operacao/montagem?dept=cozinha" },
@@ -50,6 +52,7 @@ const SIDEBAR_MENU = [
     category: "Operação Bar",
     icon: GlassWater,
     items: [
+      { label: "Estação Bar (tela cheia)", href: "/dashboard/area?dept=bar" },
       { label: "Drinks e Coquetéis", href: "/dashboard/operacao/drinks" },
       { label: "Fichas de Drinks", href: "/dashboard/operacao/fichas?dept=bar" },
       { label: "Guia de Montagem", href: "/dashboard/operacao/montagem?dept=bar" },
@@ -317,6 +320,13 @@ export default function DashboardLayout({ children }) {
     try { setCollapsed(localStorage.getItem("erp_sidebar_collapsed") === "1"); } catch (_) {}
   }, []);
 
+  // Rotas liberadas em cada área travada (estação Cozinha/Bar/Salão)
+  const ROTAS_AREA = {
+    cozinha: ["/dashboard/area", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/controles", "/dashboard/operacao/ingredientes", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem", "/dashboard/operacao/produtos", "/dashboard/operacao/orcamento"],
+    bar: ["/dashboard/area", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/ingredientes", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/drinks", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem"],
+    salao: ["/dashboard/area", "/dashboard/operacao/rotina", "/dashboard/salao/treinamento", "/dashboard/operacao/observacoes"],
+  };
+
   useEffect(() => {
     let vivo = true;
     // Modo Ponto (tablet travado): enquanto ativo, qualquer rota volta para o
@@ -325,6 +335,16 @@ export default function DashboardLayout({ children }) {
       if (localStorage.getItem("hefisto_modo_ponto") === "1" && !pathname.startsWith("/dashboard/rh/ponto")) {
         router.replace("/dashboard/rh/ponto");
         return;
+      }
+      // Estação de área travada (Cozinha/Bar/Salão): só circula nos submódulos
+      // daquela área; qualquer outra rota volta para o quadro da área.
+      const areaTravada = localStorage.getItem("hefisto_modo_area");
+      if (areaTravada && ROTAS_AREA[areaTravada]) {
+        const permitido = ROTAS_AREA[areaTravada].some(r => pathname === r || pathname.startsWith(r + "/"));
+        if (!permitido) {
+          router.replace(`/dashboard/area?dept=${areaTravada}`);
+          return;
+        }
       }
     } catch (_) {}
     lerSessao().then((s) => {

@@ -300,6 +300,14 @@ export default function DashboardLayout({ children }) {
 
   useEffect(() => {
     let vivo = true;
+    // Modo Ponto (tablet travado): enquanto ativo, qualquer rota volta para o
+    // relógio — mesmo fechando e reabrindo o app. Só sai com o PIN do gerente.
+    try {
+      if (localStorage.getItem("hefisto_modo_ponto") === "1" && !pathname.startsWith("/dashboard/rh/ponto")) {
+        router.replace("/dashboard/rh/ponto");
+        return;
+      }
+    } catch (_) {}
     lerSessao().then((s) => {
       if (!vivo) return;
       if (!s) { router.replace("/login"); return; }

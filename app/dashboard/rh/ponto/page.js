@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Clock, Search, ArrowLeft, CheckCircle2, LogIn, LogOut, Coffee, Undo2,
-  AlertTriangle, Maximize, Loader2, Hourglass, Ban, Timer, X
+  AlertTriangle, Maximize, Loader2, Hourglass, Ban, Timer, X, Lock, Tablet
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { useRouter } from "next/navigation";
@@ -22,8 +22,8 @@ const LIMITE_ATRASO_MIN = 60;
 // PIN do gerente para liberar a entrada bloqueada por atraso
 const PIN_GERENTE = "1234";
 
-// Teclado de PIN (libera a entrada atrasada com autorização do gerente)
-function ModalPinGerente({ onSuccess, onClose }) {
+// Teclado de PIN (libera entrada atrasada ou destrava o modo tablet)
+function ModalPinGerente({ onSuccess, onClose, titulo = "PIN do Gerente", subtitulo = "Autorizar entrada fora do horário" }) {
   const [pin, setPin] = useState("");
   const [erro, setErro] = useState("");
   const digito = (d) => {
@@ -40,8 +40,8 @@ function ModalPinGerente({ onSuccess, onClose }) {
   return (
     <div className="fixed inset-0 z-[10001] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-5">
       <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 w-full max-w-xs text-center">
-        <p className="text-lg font-black text-white">PIN do Gerente</p>
-        <p className="text-slate-400 font-medium text-xs mb-5">Autorizar entrada fora do horário</p>
+        <p className="text-lg font-black text-white">{titulo}</p>
+        <p className="text-slate-400 font-medium text-xs mb-5">{subtitulo}</p>
         <div className="flex gap-3 justify-center mb-5">
           {[0, 1, 2, 3].map(i => (
             <div key={i} className={`w-4 h-4 rounded-full transition-colors ${i < pin.length ? "bg-emerald-400" : "bg-slate-700"}`} />
@@ -173,6 +173,33 @@ export default function PontoPage() {
   const [justif, setJustif] = useState(null);    // { tipo: 'retorno_cedo' | 'pular_intervalo', ... }
   const [liberados, setLiberados] = useState({}); // { [colabId]: true } — atraso liberado pelo gerente hoje
   const [pinAberto, setPinAberto] = useState(false);
+
+  // ── MODO TABLET (quiosque): trava a tela do ponto; só sai com o PIN ────────
+  // Persiste no aparelho: fechar/reabrir o app volta direto para cá.
+  const [kiosk, setKiosk] = useState(false);
+  const [pinSair, setPinSair] = useState(false);
+  useEffect(() => {
+    try { setKiosk(localStorage.getItem("hefisto_modo_ponto") === "1"); } catch {}
+  }, []);
+  const pedirFullscreen = () => {
+    try { const p = containerRef.current?.requestFullscreen?.(); if (p && p.catch) p.catch(() => {}); } catch {}
+  };
+  const ativarKiosk = () => {
+    try { localStorage.setItem("hefisto_modo_ponto", "1"); } catch {}
+    setKiosk(true);
+    pedirFullscreen();
+  };
+  const sairKiosk = () => {
+    try { localStorage.removeItem("hefisto_modo_ponto"); } catch {}
+    setKiosk(false);
+    setPinSair(false);
+    try { if (document.fullscreenElement) document.exitFullscreen?.(); } catch {}
+    router.push("/dashboard");
+  };
+  // Qualquer toque tenta voltar à tela cheia (o navegador só permite com gesto)
+  const reforcarFullscreen = () => {
+    if (kiosk && typeof document !== "undefined" && !document.fullscreenElement) pedirFullscreen();
+  };
 
   const carregar = useCallback(async () => {
     setLoading(true);
@@ -546,37 +573,63 @@ export default function PontoPage() {
       <button key={c.id} onClick={() => abrirFuncionario(c)}
         className={`p-5 rounded-3xl border-2 text-left transition-all hover:-translate-y-1 ${info.folga || faltou ? "bg-rose-500/5 border-rose-500/30" : concluido ? "bg-slate-900/40 border-slate-800 opacity-60" : "bg-slate-900 border-slate-800 hover:border-emerald-500/60"}`}>
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-11 h-11 rounded-full bg-slate-800 flex items-center justify-center text-lg font-black text-emerald-400 shrink-0">{c.nome[0].toUpperCase()}</div>
+          <div className={`w-11 h-11 rounded-full bg-slate-800 flex items-center justify-center text-lg font-black shrink-0 ring-2 ${info.folga || faltou ? "ring-rose-500/40 text-rose-300" : concluido ? "ring-slate-700 text-slate-500" : reg?.hora_entrada ? "ring-emerald-500/70 text-emerald-400" : "ring-slate-700 text-emerald-400"}`}>{c.nome[0].toUpperCase()}</div>
           <div className="min-w-0">
             <p className="font-black text-white leading-tight break-words">{c.nome}</p>
             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">{c.cargo || "—"}</p>
           </div>
         </div>
-        <div className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1.5 ${info.folga || faltou ? "bg-rose-500/10 text-rose-400" : concluido ? "bg-emerald-500/10 text-emerald-500" : reg?.hora_entrada ? "bg-sky-500/10 text-sky-400" : "bg-slate-800 text-slate-500"}`}>
-          {info.folga ? <><Ban size={11} /> Folga hoje</> : faltou ? <><Ban size={11} /> Falta — não bateu até {entradaStr}+{LIMITE_ATRASO_MIN}min</> : concluido ? <><CheckCircle2 size={11} /> Jornada concluída</> : reg?.hora_entrada ? <><Clock size={11} /> Próx: {ETAPAS.find(e => e.id === etapa)?.label}</> : <><LogIn size={11} /> Aguardando entrada</>}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1.5 ${info.folga || faltou ? "bg-rose-500/10 text-rose-400" : concluido ? "bg-emerald-500/10 text-emerald-500" : reg?.hora_entrada ? "bg-sky-500/10 text-sky-400" : "bg-slate-800 text-slate-500"}`}>
+            {info.folga ? <><Ban size={11} /> Folga hoje</> : faltou ? <><Ban size={11} /> Falta — não bateu até {entradaStr}+{LIMITE_ATRASO_MIN}min</> : concluido ? <><CheckCircle2 size={11} /> Jornada concluída</> : reg?.hora_entrada ? <><Clock size={11} /> Próx: {ETAPAS.find(e => e.id === etapa)?.label}</> : <><LogIn size={11} /> Aguardando entrada</>}
+          </div>
+          {entradaStr && !info.folga && (
+            <span className="text-[10px] font-bold text-slate-600">{entradaStr}{c.horario_saida ? `–${c.horario_saida}` : ""}</span>
+          )}
         </div>
       </button>
     );
   };
 
+  const hNow = horaLocal.getHours();
+  const saudacao = hNow >= 5 && hNow < 12 ? "Bom dia" : hNow >= 12 && hNow < 18 ? "Boa tarde" : "Boa noite";
+
   return (
-    <div ref={containerRef} className="fixed inset-0 z-[9999] bg-slate-950 overflow-y-auto font-sans">
+    <div ref={containerRef} onClick={reforcarFullscreen} className="fixed inset-0 z-[9999] bg-slate-950 overflow-y-auto font-sans">
+      {pinSair && (
+        <ModalPinGerente
+          titulo="Sair do Modo Ponto"
+          subtitulo="Digite o PIN do gerente para destravar o tablet"
+          onClose={() => setPinSair(false)}
+          onSuccess={sairKiosk}
+        />
+      )}
       <div className="max-w-4xl mx-auto p-6 md:p-10">
-        <div className="flex items-center justify-between mb-8">
-          <button onClick={() => router.push("/dashboard")} className="flex items-center gap-2 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-2xl font-bold transition-colors">
-            <ArrowLeft size={18} /> Painel
-          </button>
-          <button onClick={toggleFullscreen} className="p-3.5 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-2xl transition-colors" title="Tela cheia">
-            <Maximize size={20} />
-          </button>
+        <div className="flex items-center justify-between mb-6">
+          {kiosk ? (
+            <button onClick={() => setPinSair(true)} className="flex items-center gap-2 px-4 py-3 bg-slate-900 hover:bg-slate-800 text-slate-600 hover:text-slate-400 rounded-2xl font-bold text-xs transition-colors border border-slate-800" title="Destravar com PIN do gerente">
+              <Lock size={14} /> Travado
+            </button>
+          ) : (
+            <button onClick={() => router.push("/dashboard")} className="flex items-center gap-2 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-2xl font-bold transition-colors">
+              <ArrowLeft size={18} /> Painel
+            </button>
+          )}
+          {!kiosk && (
+            <button onClick={ativarKiosk} className="flex items-center gap-2 px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black text-sm transition-colors shadow-lg shadow-emerald-600/25" title="Trava em tela cheia para tablet/celular — só sai com o PIN do gerente">
+              <Tablet size={17} /> Modo Tablet
+            </button>
+          )}
         </div>
 
-        <div className="text-center mb-8">
-          <h1 className="text-7xl md:text-8xl font-black text-white tabular-nums tracking-tight">
+        <div className="text-center mb-8 relative">
+          <div className="absolute left-1/2 -translate-x-1/2 -top-8 w-[420px] max-w-full h-44 bg-emerald-500/10 blur-3xl rounded-full pointer-events-none" />
+          <p className="text-emerald-400 font-black uppercase tracking-[0.3em] text-xs mb-1 relative">{saudacao}, Equipe</p>
+          <h1 className="text-7xl md:text-8xl font-black tabular-nums tracking-tight relative bg-gradient-to-b from-white via-white to-slate-500 bg-clip-text text-transparent">
             {horaLocal.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-            <span className="text-2xl text-slate-600 ml-2">{String(horaLocal.getSeconds()).padStart(2, "0")}</span>
+            <span className="text-2xl text-emerald-500/70 ml-2">{String(horaLocal.getSeconds()).padStart(2, "0")}</span>
           </h1>
-          <p className="text-slate-500 font-bold uppercase tracking-widest mt-2">
+          <p className="text-slate-500 font-bold uppercase tracking-widest mt-2 relative">
             {horaLocal.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })} · {unidadeInfo?.nome}
           </p>
         </div>

@@ -9,6 +9,7 @@ import { useERP } from "../../../context/ERPContext";
 import { useRouter } from "next/navigation";
 import { fetchColaboradores, inserirBancoHoras, fetchBancoHorasColaborador, somaMinutosBanco, fetchAllFolgasDaUnidade, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN } from "../../../lib/rh";
 import { fetchPontoHoje, fetchHistoricoPonto, registrarBatida, pularIntervalo } from "../../../lib/ponto";
+import { fetchPins } from "../../../lib/seguranca";
 
 const fmtMin = (m) => `${Math.floor(m / 60)}h${String(Math.round(m) % 60).padStart(2, "0")}`;
 const horaDe = (iso) => iso ? new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : null;
@@ -47,7 +48,7 @@ const LEMBRETE_MIN = 10;
 const PIN_GERENTE = "1234";
 
 // Teclado de PIN (libera entrada atrasada ou destrava o modo tablet)
-function ModalPinGerente({ onSuccess, onClose, titulo = "PIN do Gerente", subtitulo = "Autorizar entrada fora do horário" }) {
+function ModalPinGerente({ onSuccess, onClose, titulo = "PIN do Gerente", subtitulo = "Autorizar entrada fora do horário", senha = PIN_GERENTE }) {
   const [pin, setPin] = useState("");
   const [erro, setErro] = useState("");
   const digito = (d) => {
@@ -56,7 +57,7 @@ function ModalPinGerente({ onSuccess, onClose, titulo = "PIN do Gerente", subtit
     setPin(novo);
     if (novo.length === 4) {
       setTimeout(() => {
-        if (novo === PIN_GERENTE) onSuccess();
+        if (novo === senha) onSuccess();
         else { setErro("PIN incorreto"); setPin(""); }
       }, 150);
     }
@@ -199,6 +200,12 @@ export default function PontoPage() {
   const [justif, setJustif] = useState(null);    // { tipo: 'retorno_cedo' | 'pular_intervalo', ... }
   const [liberados, setLiberados] = useState({}); // { [colabId]: true } — atraso liberado pelo gerente hoje
   const [pinAberto, setPinAberto] = useState(false);
+
+  // PIN do gerente configurável (Configurações > Senhas e PINs)
+  const [pinGerente, setPinGerente] = useState(PIN_GERENTE);
+  useEffect(() => {
+    if (unidadeAtiva && unidadeAtiva !== "todas") fetchPins(unidadeAtiva).then(r => setPinGerente(r.data.pin_gerente));
+  }, [unidadeAtiva]);
 
   // ── MODO TABLET (quiosque): trava a tela do ponto; só sai com o PIN ────────
   // Persiste no aparelho: fechar/reabrir o app volta direto para cá.
@@ -483,7 +490,7 @@ export default function PontoPage() {
     return (
       <div ref={containerRef} className="fixed inset-0 z-[9999] bg-slate-950 overflow-y-auto font-sans">
         {pinAberto && (
-          <ModalPinGerente
+          <ModalPinGerente senha={pinGerente}
             onClose={() => setPinAberto(false)}
             onSuccess={() => {
               setLiberados(prev => ({ ...prev, [selecionado.id]: true }));
@@ -708,7 +715,7 @@ export default function PontoPage() {
   return (
     <div ref={containerRef} onClick={reforcarFullscreen} className="fixed inset-0 z-[9999] bg-slate-950 overflow-y-auto font-sans">
       {pinSair && (
-        <ModalPinGerente
+        <ModalPinGerente senha={pinGerente}
           titulo="Sair do Modo Ponto"
           subtitulo="Digite o PIN do gerente para destravar o tablet"
           onClose={() => setPinSair(false)}

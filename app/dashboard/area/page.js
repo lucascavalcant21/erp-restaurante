@@ -8,8 +8,9 @@ import {
   Wine, GraduationCap, MessageSquare, PartyPopper, Droplets
 } from "lucide-react";
 import { useERP } from "../../context/ERPContext";
+import { fetchPins } from "../../lib/seguranca";
 
-// Senha de saída de CADA área (troque aqui)
+// Senha PADRÃO de saída de cada área (configurável em Configurações > Senhas)
 export const SENHAS_AREA = { cozinha: "1111", bar: "2222", salao: "3333" };
 
 // Submódulos de cada área, organizados em colunas (kanban)
@@ -153,6 +154,16 @@ function AreaRunner() {
   const area = AREAS[dept];
   const [pedindoSenha, setPedindoSenha] = useState(false);
 
+  // Senha da área configurável (Configurações > Senhas e PINs)
+  const { unidadeAtiva } = useERP();
+  const [senhaArea, setSenhaArea] = useState(SENHAS_AREA[dept]);
+  useEffect(() => {
+    setSenhaArea(SENHAS_AREA[dept]);
+    if (unidadeAtiva && unidadeAtiva !== "todas") {
+      fetchPins(unidadeAtiva).then(r => setSenhaArea(r.data[`senha_${dept}`] || SENHAS_AREA[dept]));
+    }
+  }, [unidadeAtiva, dept]);
+
   // Entrar aqui TRAVA o aparelho nesta área (persiste; só sai com a senha).
   // Se já existe OUTRA área travada, não deixa trocar sem a senha: volta pra ela.
   useEffect(() => {
@@ -177,7 +188,7 @@ function AreaRunner() {
   return (
     <div className="fixed inset-0 z-[9999] overflow-y-auto font-sans" style={{ background: "#0b1220" }}>
       {pedindoSenha && (
-        <TecladoSenha cor={area.cor} senha={SENHAS_AREA[dept]} onSuccess={destravar} onClose={() => setPedindoSenha(false)} />
+        <TecladoSenha cor={area.cor} senha={senhaArea} onSuccess={destravar} onClose={() => setPedindoSenha(false)} />
       )}
 
       <div className="max-w-6xl mx-auto p-6 md:p-10">

@@ -9,6 +9,65 @@ import {
   Landmark, MapPin, Mail, Loader2
 } from "lucide-react";
 import { gerarDadosFicticios, limparAmbienteTeste } from "../../lib/mock";
+import { fetchPins, salvarPins } from "../../lib/seguranca";
+import { Lock } from "lucide-react";
+
+// Senhas e PINs: PIN do gerente (ponto) + senhas de saída das estações
+function CardSenhas({ unidadeAtiva }) {
+  const [pins, setPins] = useState(null);
+  const [salvando, setSalvando] = useState(false);
+  const [ok, setOk] = useState(false);
+
+  useEffect(() => {
+    if (!unidadeAtiva) return;
+    fetchPins(unidadeAtiva).then(r => setPins(r.data));
+  }, [unidadeAtiva]);
+
+  const salvar = async () => {
+    for (const [k, v] of Object.entries(pins)) {
+      if (!/^\d{4}$/.test(String(v || ""))) return alert("Todas as senhas devem ter exatamente 4 números.");
+    }
+    setSalvando(true);
+    const { error } = await salvarPins(unidadeAtiva, pins);
+    setSalvando(false);
+    if (error) return alert("Erro ao salvar (rode o SQL da tabela config_pins): " + error);
+    setOk(true); setTimeout(() => setOk(false), 2500);
+  };
+
+  if (!pins) return null;
+  const CAMPOS_PIN = [
+    ["pin_gerente", "PIN do Gerente (ponto)", "Libera entrada atrasada e destrava o Modo Tablet"],
+    ["senha_cozinha", "Senha da Estação Cozinha", "Sair da estação Cozinha"],
+    ["senha_bar", "Senha da Estação Bar", "Sair da estação Bar"],
+    ["senha_salao", "Senha da Estação Salão", "Sair da estação Salão"],
+  ];
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-6">
+      <div className="bg-slate-50 border-b border-slate-100 p-4 flex items-center gap-2">
+        <Lock size={18} className="text-slate-500" />
+        <h2 className="font-bold text-slate-800">Senhas e PINs (4 números)</h2>
+      </div>
+      <div className="p-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+          {CAMPOS_PIN.map(([k, label, hint]) => (
+            <div key={k}>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{label}</label>
+              <input type="text" inputMode="numeric" maxLength={4} value={pins[k] || ""}
+                onChange={e => setPins(p => ({ ...p, [k]: e.target.value.replace(/\D/g, "").slice(0, 4) }))}
+                className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-slate-700 tracking-[0.5em] text-center outline-none focus:border-emerald-500" />
+              <p className="text-[10px] text-slate-400 font-medium mt-1">{hint}</p>
+            </div>
+          ))}
+        </div>
+        <button type="button" onClick={salvar} disabled={salvando}
+          className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 px-6 rounded-xl flex items-center gap-2 transition-colors disabled:opacity-50">
+          {salvando ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Salvar senhas
+        </button>
+        {ok && <p className="text-emerald-600 font-bold text-sm mt-2 flex items-center gap-1"><CheckCircle size={15}/> Senhas atualizadas!</p>}
+      </div>
+    </div>
+  );
+}
 
 const CAMPOS = {
   // públicos
@@ -248,6 +307,9 @@ export default function ConfiguracoesPage() {
         </div>
 
       </form>
+
+      {/* Senhas e PINs do sistema */}
+      <CardSenhas unidadeAtiva={unidadeAtiva} />
 
       {/* Sandbox de testes */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-6">

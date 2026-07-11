@@ -37,6 +37,7 @@ export default function RHPage() {
   const [valesPendentes, setValesPendentes] = useState([]);       // desconto em folha pendente
   const [pontosMesUnidade, setPontosMesUnidade] = useState([]);   // p/ extras e feriados do mês
   const [feriadosMesAtual, setFeriadosMesAtual] = useState([]);
+  const [folgasUnidade, setFolgasUnidade] = useState([]);       // p/ relatório de faltas
   const [lancamentos, setLancamentos] = useState([]);             // p/ faturamento do mês (CMO %)
   const [cargos, setCargos] = useState([]);
   const [busca, setBusca] = useState("");
@@ -222,7 +223,7 @@ export default function RHPage() {
   const carregar = async () => {
     setLoading(true);
     const mesAtual = new Date().toISOString().slice(0, 7);
-    const [resRh, resPonto, resCargos, resBanco, resVales, resPontosMes, resFeriadosMes] = await Promise.all([
+    const [resRh, resPonto, resCargos, resBanco, resVales, resPontosMes, resFeriadosMes, resFolgas] = await Promise.all([
       fetchColaboradores(unidadeAtiva),
       fetchPontoHoje(unidadeAtiva),
       fetchCargos(unidadeAtiva),
@@ -230,6 +231,7 @@ export default function RHPage() {
       fetchValesPendentes(unidadeAtiva),
       fetchPontosMesUnidade(unidadeAtiva, mesAtual),
       fetchFeriados(unidadeAtiva, mesAtual),
+      fetchAllFolgasDaUnidade(unidadeAtiva),
     ]);
     const resLanc = await fetchLancamentos(unidadeAtiva);
     setLancamentos(resLanc.data || []);
@@ -246,7 +248,115 @@ export default function RHPage() {
     setValesPendentes(resVales.data || []);
     setPontosMesUnidade(resPontosMes.data || []);
     setFeriadosMesAtual(resFeriadosMes.data || []);
+    setFolgasUnidade(resFolgas.data || []);
     setLoading(false);
+  };
+
+  // ── Relatório do mês: faltas e atrasos dos fixos + extras por dia ──────────
+  const imprimirFaltasAtrasos = () => {
+    const hoje = new Date();
+    const mesAtual = hoje.toISOString().slice(0, 7);
+    const diaHoje = hoje.getDate();
+    const ativos = funcionarios.filter(f => (f.status || "ativo") !== "inativo");
+    const fixos = ativos.filter(f => f.tipo_contrato !== "Freelancer");
+    const extras = ativos.filter(f => f.tipo_contrato === "Freelancer");
+
+    const dataStr = (d) => `${mesAtual}-${String(d).padStart(2, "0")}`;
+    const pontoDe = (fid, dStr) => pontosMesUnidade.find(p => p.colaborador_id === fid && p.data_referencia === dStr);
+    const temFolga = (fid, dStr) => folgasUnidade.some(fl => fl.colaborador_id === fid && String(fl.data_folga).slice(0, 10) === dStr);
+
+    const linhasFixos = fixos.map(f => {
+      const dias = String(f.dias_trabalho || "").split(",").map(s => s.trim()).filter(Boolean);
+      let previstos = 0, presencas = 0, faltas = [], atrasos = 0, minAtraso = 0;
+      for (let d = 1; d <= diaHoje; d++) {
+        const dt = new Date(hoje.getFullYear(), hoje.getMonth(), d);
+        if (dias.length && !dias.includes(String(dt.getDay()))) continue; // folga semanal
+        const dStr = dataStr(d);
+        if (temFolga(f.id, dStr)) continue; // folga programada
+        previstos++;
+        const p = pontoDe(f.id, dStr);
+        if (!p || !p.hora_entrada) { faltas.push(d); continue; }
+        presencas++;
+        // Atraso: entrada gravada depois da prevista (a tolerância já ajusta por dentro)
+        const prevStr = dt.getDay() === 0 ? (f.horario_dom_entrada || f.horario_entrada) : f.horario_entrada;
+        if (prevStr) {
+          const [hh, mm] = prevStr.split(":").map(Number);
+          const prev = new Date(dt); prev.setHours(hh || 0, mm || 0, 0, 0);
+          const atrasoMin = Math.round((new Date(p.hora_entrada).getTime() - prev.getTime()) / 60000);
+          if (atrasoMin >= 1) { atrasos++; minAtraso += atrasoMin; }
+        }
+      }
+      return { f, previstos, presencas, faltas, atrasos, minAtraso };
+    }).sort((a, b) => (b.faltas.length - a.faltas.length) || (b.minAtraso - a.minAtraso));
+
+    // Extras por dia: quem bateu ponto em cada dia × diária
+    const linhasExtras = [];
+    for (let d = 1; d <= diaHoje; d++) {
+      const dStr = dataStr(d);
+      const doDia = extras.filter(f => pontoDe(f.id, dStr));
+      if (!doDia.length) continue;
+      linhasExtras.push({
+        dia: `${String(d).padStart(2, "0")}/${String(hoje.getMonth() + 1).padStart(2, "0")}`,
+        qtd: doDia.length,
+        nomes: doDia.map(f => f.nome.split(" ")[0]).join(", "),
+        custo: doDia.reduce((s, f) => s + (Number(f.salario) || 0), 0),
+      });
+    }
+    const totalDiarias = linhasExtras.reduce((s, l) => s + l.qtd, 0);
+    const totalCustoExtras = linhasExtras.reduce((s, l) => s + l.custo, 0);
+
+    const mesNome = hoje.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Faltas e Atrasos — ${mesNome}</title>
+      <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:9mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+        .head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #111;padding-bottom:8px;margin-bottom:10px}
+        h1{font-size:20px;text-transform:capitalize}
+        .tag{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#555;font-weight:bold}
+        .meta{font-size:11px;color:#555;font-weight:bold;text-align:right}
+        h2{font-size:12px;text-transform:uppercase;letter-spacing:2px;color:#334155;margin:14px 0 6px}
+        table{width:100%;border-collapse:collapse;font-size:11px}
+        th,td{border:1px solid #94a3b8;padding:5px 6px;text-align:left}
+        th{background:#e2e8f0;font-size:9px;text-transform:uppercase;letter-spacing:1px}
+        td.c{text-align:center;font-weight:bold}
+        td.falta{color:#dc2626;font-weight:bold}
+        td.r{text-align:right;font-weight:bold}
+        tr{page-break-inside:avoid}
+        .tot{background:#f1f5f9;font-weight:bold}
+        @media print{@page{margin:8mm}}
+      </style></head><body>
+      <div class="head">
+        <div><div class="tag">Relatório de Presença — RH</div><h1>${mesNome}</h1></div>
+        <div class="meta">${unidadeAtiva ? "" : ""}até ${hoje.toLocaleDateString("pt-BR")}<br/>${fixos.length} fixo(s) · ${extras.length} extra(s)</div>
+      </div>
+
+      <h2>Faltas e Atrasos — Equipe Fixa</h2>
+      <table>
+        <thead><tr><th>Colaborador</th><th>Função</th><th>Dias previstos</th><th>Presenças</th><th>Faltas</th><th>Dias das faltas</th><th>Atrasos</th><th>Min. de atraso</th></tr></thead>
+        <tbody>
+          ${linhasFixos.map(l => `<tr>
+            <td><b>${l.f.nome}</b></td><td>${l.f.cargo || ""}</td>
+            <td class="c">${l.previstos}</td><td class="c">${l.presencas}</td>
+            <td class="c ${l.faltas.length ? "falta" : ""}">${l.faltas.length}</td>
+            <td>${l.faltas.map(d => String(d).padStart(2, "0")).join(", ") || "—"}</td>
+            <td class="c">${l.atrasos}</td><td class="c">${l.minAtraso > 0 ? l.minAtraso + " min" : "—"}</td>
+          </tr>`).join("") || '<tr><td colspan="8">Nenhum fixo ativo.</td></tr>'}
+        </tbody>
+      </table>
+
+      <h2>Extras por Dia (diárias pelo ponto)</h2>
+      <table>
+        <thead><tr><th>Dia</th><th>Qtd extras</th><th>Quem</th><th>Custo (diárias)</th></tr></thead>
+        <tbody>
+          ${linhasExtras.map(l => `<tr><td class="c">${l.dia}</td><td class="c">${l.qtd}</td><td>${l.nomes}</td><td class="r">${fmtBRL(l.custo)}</td></tr>`).join("") || '<tr><td colspan="4">Nenhum extra bateu ponto no mês.</td></tr>'}
+          ${linhasExtras.length ? `<tr class="tot"><td>TOTAL</td><td class="c">${totalDiarias} diária(s)</td><td></td><td class="r">${fmtBRL(totalCustoExtras)}</td></tr>` : ""}
+        </tbody>
+      </table>
+      <p style="font-size:9px;color:#94a3b8;margin-top:8px">Falta = dia de trabalho previsto sem batida de ponto (desconta folgas semanais e programadas). Atraso = entrada gravada após o horário; a tolerância legal já é aplicada na marcação. Gerado em ${new Date().toLocaleString("pt-BR")}.</p>
+      </body></html>`;
+    const win = window.open("", "_blank", "width=980,height=1000");
+    if (win) { win.document.write(html); win.document.close(); setTimeout(() => win.print(), 400); }
+    else alert("Habilite os popups para imprimir o relatório.");
   };
 
   // Salário previsto do mês. A remuneração cheia = FIXO + VALE + TAXA DE SERVIÇO;
@@ -1031,6 +1141,9 @@ export default function RHPage() {
          <div className="flex items-center gap-2 flex-wrap mt-4">
             <button onClick={lancarFolhaMes} title="Cria uma conta a pagar por funcionário fixo (mão de obra), sem duplicar" className="flex items-center gap-1.5 bg-white text-emerald-700 border border-emerald-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-emerald-50 transition-colors">
                <CreditCard size={14} /> Lançar Folha (mês)
+            </button>
+            <button onClick={imprimirFaltasAtrasos} title="Faltas e atrasos dos fixos + extras por dia (mês atual)" className="flex items-center gap-1.5 bg-white text-rose-700 border border-rose-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-rose-50 transition-colors">
+               <Clock size={14} /> Faltas e Atrasos
             </button>
             <button onClick={abrirModalFeriados} title="Dias de feriado pagam +100% para quem trabalhar (CLT)" className="flex items-center gap-1.5 bg-white text-rose-600 border border-slate-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-rose-50 transition-colors">
                <CalendarDays size={14} /> Feriados

@@ -1097,6 +1097,37 @@ export default function RHPage() {
                </div>
             );
          })()}
+
+         {(() => {
+            const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+            const alertas = [];
+            funcionarios.filter(f => !ehInativo(f) && f.tipo_contrato !== "Freelancer").forEach(f => {
+               if (!f.data_admissao) {
+                  alertas.push({ id: f.id, nome: f.nome, texto: "Sem data de admissão", nivel: "erro" });
+                  return;
+               }
+               const adm = new Date(`${f.data_admissao}T12:00:00`); adm.setHours(0, 0, 0, 0);
+               const diasDesdeAdmissao = Math.floor((hoje - adm) / 86400000);
+               if (f.status_contrato?.startsWith("Experiência")) {
+                  const prazo = Number(f.status_contrato.match(/\d+/)?.[0] || 90);
+                  const faltam = prazo - diasDesdeAdmissao;
+                  if (faltam <= 15) alertas.push({ id: f.id, nome: f.nome, texto: faltam < 0 ? `Experiência vencida há ${Math.abs(faltam)} dia(s)` : `Experiência termina em ${faltam} dia(s)`, nivel: faltam < 0 ? "erro" : "aviso" });
+               } else {
+                  const aniversario = new Date(adm); aniversario.setFullYear(hoje.getFullYear());
+                  if (aniversario < hoje) aniversario.setFullYear(hoje.getFullYear() + 1);
+                  const faltam = Math.floor((aniversario - hoje) / 86400000);
+                  if (faltam <= 45) alertas.push({ id: f.id, nome: f.nome, texto: `Aniversário de admissão em ${faltam} dia(s) — revisar férias`, nivel: "info" });
+               }
+            });
+            if (!alertas.length) return null;
+            const cores = { erro: "bg-rose-50 border-rose-200 text-rose-700", aviso: "bg-amber-50 border-amber-200 text-amber-700", info: "bg-indigo-50 border-indigo-200 text-indigo-700" };
+            return <div className="mt-4 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+               <div className="flex items-center justify-between mb-3"><div><p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Central de prazos</p><h3 className="font-black text-slate-800">Experiência, admissão e revisão de férias</h3></div><span className="text-xs font-black bg-rose-100 text-rose-700 px-2.5 py-1 rounded-full">{alertas.length}</span></div>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">{alertas.slice(0, 8).map(a => <div key={`${a.id}-${a.texto}`} className={`border rounded-xl px-3 py-2 ${cores[a.nivel]}`}><p className="text-xs font-black">{a.nome}</p><p className="text-[10px] font-bold mt-0.5">{a.texto}</p></div>)}</div>
+               {alertas.length > 8 && <p className="text-[10px] font-bold text-slate-400 mt-2">Mais {alertas.length - 8} alerta(s) nos cadastros abaixo.</p>}
+               <p className="text-[9px] font-medium text-slate-400 mt-3">Avisos operacionais para conferência do RH. A concessão de férias e decisões contratuais devem ser validadas pelo responsável e pela contabilidade.</p>
+            </div>;
+         })()}
       </div>
 
       <div className="max-w-5xl mx-auto px-6">

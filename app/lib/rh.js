@@ -483,6 +483,23 @@ export async function removerConsumoFuncionario(id) {
   return { error: error?.message };
 }
 
+export async function fetchValesPendentes(unidadeId) {
+  if (!isSupabaseReady()) return { data: [], error: "Offline" };
+
+  let query = supabase
+    .from("rh_consumo_funcionarios")
+    .select("*")
+    .eq("forma_pagamento", "Desconto em Folha")
+    .eq("status_pagamento", "Pendente");
+
+  if (unidadeId && unidadeId !== "todas") {
+    query = query.eq("unidade_id", unidadeId);
+  }
+
+  const { data, error } = await query;
+  return { data: data || [], error: error?.message };
+}
+
 // ============================================================================
 // FECHAMENTO DE FOLHA
 // ============================================================================

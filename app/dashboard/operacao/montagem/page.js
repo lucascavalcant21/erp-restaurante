@@ -230,9 +230,52 @@ function EditorCamadas({ camadas, setCamadas }) {
 
 
 // =========================================================================
+// PRÉVIA DA FICHA IMPRESSA (Modelo com foto) — espelha imprimirModelo
+// =========================================================================
+function PreviaModeloChef({ m }) {
+  // Usa os mesmos ajustes salvos do "Modelo com foto" (escala reduzida p/ tela)
+  let cfg = { fotoPct: 80, tituloPx: 34, textoPx: 15, tituloNegrito: true, textoNegrito: false };
+  try {
+    const salvo = typeof window !== "undefined" && localStorage.getItem("hefisto_modelo_montagem");
+    if (salvo) cfg = { ...cfg, ...JSON.parse(salvo) };
+  } catch {}
+  const ESC = 0.72; // escala da folha para caber na coluna
+
+  if (!m || !m.nome) {
+    return (
+      <div className="rounded-2xl border-2 border-dashed p-10 text-center text-sm font-medium" style={{ borderColor: "var(--line)", color: "var(--dim)" }}>
+        Preencha o nome do prato — a prévia aparece aqui.
+      </div>
+    );
+  }
+  const etapas = String(m.descritivo || "").split("\n").map(s => s.trim().replace(/^\d+[\.\)]\s*/, "")).filter(Boolean);
+  return (
+    <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-6 flex flex-col items-center" style={{ minHeight: 320 }}>
+      <h1 className="text-center uppercase leading-tight mb-4" style={{ fontSize: cfg.tituloPx * ESC, fontWeight: cfg.tituloNegrito ? 900 : 500, letterSpacing: 1, color: "#0f172a" }}>
+        {m.nome}
+      </h1>
+      {m.foto_url && (
+        <div className="w-full flex justify-center mb-4" style={{ height: 170 }}>
+          <img src={m.foto_url} alt="Foto do prato" className="max-h-full rounded-xl border border-slate-200 bg-slate-50 object-contain" style={{ maxWidth: `${Math.min(100, cfg.fotoPct)}%` }} />
+        </div>
+      )}
+      <div className="w-full" style={{ fontSize: cfg.textoPx * ESC + 2, fontWeight: cfg.textoNegrito ? 700 : 400, color: "#1e293b", lineHeight: 1.6 }}>
+        {etapas.length > 1 ? (
+          <ol className="list-decimal pl-6 space-y-1">
+            {etapas.map((e, i) => <li key={i}>{e}</li>)}
+          </ol>
+        ) : (
+          <p className={etapas[0] ? "" : "italic text-slate-400"}>{etapas[0] || "Sem descritivo — escreva o passo a passo no formulário."}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// =========================================================================
 // FORMULÁRIO DE MONTAGEM
 // =========================================================================
-function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar }) {
+function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview }) {
   const [f, setF] = useState(
     inicial
       ? {
@@ -245,8 +288,11 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar }) {
   const [uploadando, setUploadando] = useState(false);
   const [gerandoIA, setGerandoIA] = useState(false);
   const inputRef = useRef(null);
-  
+
   const set = (k, v) => { setF((p) => ({ ...p, [k]: v })); setErro(""); };
+
+  // Alimenta a prévia ao lado (a ficha como vai sair impressa)
+  useEffect(() => { if (onPreview) onPreview(f); }, [f]);
 
   async function escolherFoto(e) {
     const file = e.target.files?.[0];
@@ -326,9 +372,14 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar }) {
           </div>
         )}
         <input ref={inputRef} type="file" accept="image/*" onChange={escolherFoto} style={{ display: "none" }} />
-        <Btn variant="ghost" onClick={() => inputRef.current?.click()} disabled={uploadando}>
-          <Camera size={14} /> {uploadando ? "Enviando..." : (f.foto_url ? "Trocar foto" : "Adicionar foto")}
-        </Btn>
+        <div className="flex items-center gap-2">
+          <Btn variant="ghost" onClick={() => inputRef.current?.click()} disabled={uploadando}>
+            <Camera size={14} /> {uploadando ? "Enviando..." : (f.foto_url ? "Trocar foto" : "Adicionar foto")}
+          </Btn>
+          {f.foto_url && (
+            <button type="button" onClick={() => set("foto_url", "")} className="text-xs font-bold text-rose-500 hover:text-rose-600">Remover foto</button>
+          )}
+        </div>
       </Field>
 
       <div className="relative">
@@ -646,6 +697,7 @@ function MontagemPageInner() {
   const [dept, setDept] = useState(deptInicial);
   const [modal, setModal] = useState(false);
   const [editar, setEditar] = useState(null);
+  const [previewFicha, setPreviewFicha] = useState(null); // estado vivo do formulário p/ prévia
   const [salvou, setSalvou] = useState("");
   const [porFolha, setPorFolha] = useState(4); // fichas por página na impressão
 
@@ -895,19 +947,16 @@ function MontagemPageInner() {
                 
                 {/* Coluna 1: Dados e Editor */}
                 <div className="space-y-4">
-                   <FormMontagem inicial={editar} deptInicial={dept} onSalvar={salvar} onCancelar={() => { setModal(false); setEditar(null); }} />
+                   <FormMontagem inicial={editar} deptInicial={dept} onSalvar={salvar} onCancelar={() => { setModal(false); setEditar(null); }} onPreview={setPreviewFicha} />
                 </div>
-                
-                {/* Coluna 2: Preview em tempo real da IA */}
-                <div className="hidden lg:block border-l border-[var(--line)] pl-8 sticky top-0">
-                   <h3 className="font-black text-[var(--fg)] text-lg mb-4">Prévia do Gráfico</h3>
-                   <div className="text-[var(--subtle)] text-xs mb-4">
-                      Veja em tempo real como o painel visual será gerado. Ele se adapta dependendo do tipo (Prato vs Drink) e da presença de foto.
-                   </div>
-                   <div className="scale-90 origin-top-left w-[110%]">
-                      {/* A prévia foi movida para dentro do próprio formulário por simplicidade de estado, 
-                          mas caso a tela seja grande, o layout continuará consistente */}
-                   </div>
+
+                {/* Coluna 2: prévia da FICHA IMPRESSA (modelo com foto), em tempo real */}
+                <div className="hidden lg:block border-l border-[var(--line)] pl-8">
+                   <h3 className="font-black text-[var(--fg)] text-lg mb-1">Prévia da Ficha Impressa</h3>
+                   <p className="text-[var(--subtle)] text-xs mb-4">
+                      É assim que ela sai no "Modelo com foto": título, foto inteira e o passo a passo. Os tamanhos seguem os ajustes salvos na tela de impressão.
+                   </p>
+                   <PreviaModeloChef m={previewFicha} />
                 </div>
 
              </div>

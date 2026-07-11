@@ -182,6 +182,15 @@ export async function atualizarOrdemEscala(id, ordem_escala) {
   return atualizarEscalaColab(id, { ordem_escala });
 }
 
+// Escalas salvas (mais recentes primeiro) — para rever/reimprimir dias passados
+export async function fetchEscalasDia(unidadeId, limite = 30) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: [] };
+  const { data, error } = await supabase.from("escalas_dia")
+    .select("*").eq("unidade_id", unidadeId)
+    .order("data", { ascending: false }).limit(limite);
+  return { data: data || [], error: error?.message };
+}
+
 // Salva a foto da escala do dia (1 registro por unidade+data; regrava se já existir)
 export async function salvarEscalaDia(unidadeId, dataDia, escala) {
   if (!isSupabaseReady()) return { error: "Offline" };

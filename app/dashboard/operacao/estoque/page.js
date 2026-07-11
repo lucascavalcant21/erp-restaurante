@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
-import { fetchEstoque, ajustarEstoque } from "../../../lib/estoque";
+import { fetchEstoque, ajustarEstoque, atualizarMinimoInsumo } from "../../../lib/estoque";
 import { PackageSearch, Edit3, X, Save, ArrowLeft, RefreshCw, AlertCircle, Search, Plus, TrendingUp, Printer } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
@@ -22,6 +22,7 @@ function EstoqueRunner() {
   const [modalEntrada, setModalEntrada] = useState(false);
   const [itemAtual, setItemAtual] = useState(null);
   const [novoSaldo, setNovoSaldo] = useState("");
+  const [minimoInput, setMinimoInput] = useState("");
   const [qtdEntrada, setQtdEntrada] = useState("");
   const [valorEntrada, setValorEntrada] = useState("");
 
@@ -102,14 +103,76 @@ function EstoqueRunner() {
   const abrirAjuste = (item) => {
     setItemAtual(item);
     setNovoSaldo(item.quantidade_atual === 0 ? "" : item.quantidade_atual);
+    setMinimoInput(item.estoque_minimo ?? "");
     setModalAjuste(true);
   };
 
   const handleSalvarAjuste = async () => {
     if(novoSaldo === "") return alert("Digite o saldo atual");
     await ajustarEstoque(unidadeAtiva, itemAtual.insumo_id, Number(novoSaldo));
+    // Estoque mínimo (opcional): abaixo dele o item entra na lista de compras
+    if (String(minimoInput) !== String(itemAtual.estoque_minimo ?? "")) {
+      const { error } = await atualizarMinimoInsumo(itemAtual.insumo_id, minimoInput);
+      if (error) alert(error);
+    }
     setModalAjuste(false);
     carregar();
+  };
+
+  // Lista de compras automática: tudo que está abaixo do mínimo definido
+  const abaixoDoMinimo = itens.filter(i => Number(i.estoque_minimo) > 0 && Number(i.quantidade_atual) < Number(i.estoque_minimo));
+  const imprimirCompras = () => {
+    if (!abaixoDoMinimo.length) return alert("Nada abaixo do mínimo. Defina o estoque mínimo dos insumos no botão Ajustar.");
+    const linhas = abaixoDoMinimo
+      .sort((a, b) => (a.departamento || "").localeCompare(b.departamento || "") || a.nome.localeCompare(b.nome, "pt-BR"))
+      .map(i => {
+        const saldo = Number(i.quantidade_atual) || 0;
+        const min = Number(i.estoque_minimo) || 0;
+        const sugerido = Math.max(0, +(min * 2 - saldo).toFixed(2)); // repõe até 2x o mínimo
+        const custo = (Number(i.custo_unitario) || 0) * sugerido;
+        return { i, saldo, min, sugerido, custo };
+      });
+    const total = linhas.reduce((s, l) => s + l.custo, 0);
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Lista de Compras — abaixo do mínimo</title>
+      <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:9mm}
+        .head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #111;padding-bottom:8px;margin-bottom:10px}
+        h1{font-size:20px}
+        .tag{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#555;font-weight:bold}
+        .meta{font-size:11px;color:#555;font-weight:bold;text-align:right}
+        table{width:100%;border-collapse:collapse;font-size:12px}
+        th,td{border:1px solid #94a3b8;padding:6px 7px;text-align:left}
+        th{background:#e2e8f0;font-size:9px;text-transform:uppercase;letter-spacing:1px}
+        td.c{text-align:center;font-weight:bold}td.r{text-align:right;font-weight:bold}
+        td.baixo{color:#dc2626}
+        .tot{background:#f1f5f9;font-weight:bold}
+        .check{width:10mm}
+        @media print{@page{margin:8mm}}
+      </style></head><body>
+      <div class="head">
+        <div><div class="tag">Lista de Compras — abaixo do estoque mínimo</div><h1>${unidadeInfo?.nome || "Unidade"}</h1></div>
+        <div class="meta">${linhas.length} item(ns)<br/>${new Date().toLocaleDateString("pt-BR")}</div>
+      </div>
+      <table>
+        <thead><tr><th class="check">OK</th><th>Ingrediente</th><th>Depto</th><th>Saldo</th><th>Mínimo</th><th>Comprar (sug.)</th><th>Custo estimado</th></tr></thead>
+        <tbody>
+          ${linhas.map(l => `<tr>
+            <td class="check"></td>
+            <td><b>${l.i.nome}</b></td><td>${l.i.departamento || ""}</td>
+            <td class="c baixo">${l.saldo.toLocaleString("pt-BR")} ${l.i.unidade_medida}</td>
+            <td class="c">${l.min.toLocaleString("pt-BR")}</td>
+            <td class="c">${l.sugerido.toLocaleString("pt-BR")} ${l.i.unidade_medida}</td>
+            <td class="r">${fmtBRL(l.custo)}</td>
+          </tr>`).join("")}
+          <tr class="tot"><td colspan="6">TOTAL ESTIMADO</td><td class="r">${fmtBRL(total)}</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:9px;color:#94a3b8;margin-top:8px">Sugestão de compra = repor até 2x o estoque mínimo. Custo estimado pelo último custo unitário.</p>
+      </body></html>`;
+    const win = window.open("", "_blank", "width=900,height=1000");
+    if (win) { win.document.write(html); win.document.close(); setTimeout(() => win.print(), 400); }
+    else alert("Habilite os popups para imprimir.");
   };
 
   const abrirEntrada = (item) => {
@@ -147,9 +210,14 @@ function EstoqueRunner() {
                  <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Saldos e Entradas {deptUrl ? `- ${deptUrl}` : ''}</p>
               </div>
             </div>
-            <button onClick={imprimirPlanilha} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-5 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm">
-               <Printer size={18} /> Planilha
-            </button>
+            <div className="flex items-center gap-2">
+               <button onClick={imprimirCompras} className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold transition-colors shadow-sm ${abaixoDoMinimo.length ? "bg-amber-500 text-white hover:bg-amber-600" : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"}`}>
+                  <Plus size={18} /> Compras{abaixoDoMinimo.length ? ` (${abaixoDoMinimo.length})` : ""}
+               </button>
+               <button onClick={imprimirPlanilha} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-5 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm">
+                  <Printer size={18} /> Planilha
+               </button>
+            </div>
          </div>
       </div>
 
@@ -187,7 +255,9 @@ function EstoqueRunner() {
                )}
                {!loading && filtrados.map((ins, idx) => {
                  const zerado = ins.quantidade_atual <= 0;
-                 const critico = !zerado && ins.quantidade_atual < 5;
+                 const min = Number(ins.estoque_minimo) || 0;
+                 // Com mínimo definido, o alerta segue o mínimo; sem, mantém o padrão (<5)
+                 const critico = !zerado && (min > 0 ? ins.quantidade_atual < min : ins.quantidade_atual < 5);
                  const dept = ins.departamento?.toLowerCase();
                  const deptColor = dept === 'bar' ? 'bg-purple-100 text-purple-700' : 'bg-amber-100 text-amber-700';
                  return (
@@ -214,7 +284,7 @@ function EstoqueRunner() {
                          {Number(ins.quantidade_atual).toFixed(2)}
                        </span>
                        {zerado && <span className="text-[9px] font-black uppercase tracking-widest text-red-400 mt-1">● Zerado</span>}
-                       {critico && <span className="text-[9px] font-black uppercase tracking-widest text-amber-500 mt-1">⚠ Crítico</span>}
+                       {critico && <span className="text-[9px] font-black uppercase tracking-widest text-amber-500 mt-1">⚠ {min > 0 ? `Abaixo do mín (${min})` : "Crítico"}</span>}
                        {!zerado && !critico && <span className="text-[9px] font-black uppercase tracking-widest text-emerald-400 mt-1">✓ Normal</span>}
                      </div>
                      {/* Ação */}
@@ -256,13 +326,26 @@ function EstoqueRunner() {
                   <div>
                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Novo Saldo Real (Balanço)</label>
                      <div className="relative">
-                        <input 
-                           type="number" step="0.001" placeholder="0.00" 
-                           value={novoSaldo} onChange={e=>setNovoSaldo(e.target.value)} 
+                        <input
+                           type="number" step="0.001" placeholder="0.00"
+                           value={novoSaldo} onChange={e=>setNovoSaldo(e.target.value)}
                            className="w-full p-5 text-2xl bg-white border-2 border-slate-200 rounded-2xl font-black text-slate-800 outline-none focus:border-emerald-500"
                         />
                         <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-slate-500">{itemAtual.unidade_medida}</span>
                      </div>
+                  </div>
+
+                  <div>
+                     <label className="text-xs font-bold text-amber-600 uppercase tracking-widest block mb-2">Estoque mínimo (opcional)</label>
+                     <div className="relative">
+                        <input
+                           type="number" step="0.001" min="0" placeholder="Ex: 5"
+                           value={minimoInput} onChange={e=>setMinimoInput(e.target.value)}
+                           className="w-full p-4 bg-amber-50 border-2 border-amber-200 rounded-2xl font-black text-amber-800 outline-none focus:border-amber-500"
+                        />
+                        <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-amber-500">{itemAtual.unidade_medida}</span>
+                     </div>
+                     <p className="text-[10px] text-slate-400 font-medium mt-1">Abaixo desse valor o item entra sozinho na lista de Compras.</p>
                   </div>
                </div>
 

@@ -12,11 +12,12 @@ import { fmtBRL, fmtPct } from "../components/ui";
 
 import { fetchFichas } from "../lib/operacao";
 import { fetchProdutos } from "../lib/vendas";
-import { fetchColaboradores, fetchAllFolgasDaUnidade, fetchBancoHoras, atualizarEscalaColab, atualizarOrdemEscala, salvarEscalaDia, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN } from "../lib/rh";
+import { fetchColaboradores, fetchAllFolgasDaUnidade, fetchBancoHoras, atualizarEscalaColab, atualizarOrdemEscala, salvarEscalaDia, fetchEscalasDia, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN } from "../lib/rh";
 import { fetchContas } from "../lib/financeiro";
 import { fetchEstoque } from "../lib/estoque";
 import { fetchManutencoes } from "../lib/controles_cozinha";
 import { fetchCampanhas } from "../lib/clientes";
+import { fetchTemplates, fetchHistoricoExecucoes } from "../lib/checklists";
 
 const META_CMV = 30; // % alvo máximo de CMV
 
@@ -84,11 +85,13 @@ export default function DashboardGestao() {
     let vivo = true;
     (async () => {
       setLoading(true);
-      const [rF, rP, rColab, rFolgas, rContas, rEstoque, rManut, rCamp, rBanco] = await Promise.all([
+      const hojeISO = new Date().toISOString().split("T")[0];
+      const [rF, rP, rColab, rFolgas, rContas, rEstoque, rManut, rCamp, rBanco, rTpl, rExec] = await Promise.all([
         fetchFichas(unidadeAtiva), fetchProdutos(unidadeAtiva), fetchColaboradores(unidadeAtiva),
         fetchAllFolgasDaUnidade(unidadeAtiva), fetchContas(unidadeAtiva, ""), fetchEstoque(unidadeAtiva),
         fetchManutencoes(unidadeAtiva), fetchCampanhas(unidadeAtiva),
         fetchBancoHoras(unidadeAtiva, new Date().toISOString().slice(0, 7)),
+        fetchTemplates(unidadeAtiva), fetchHistoricoExecucoes(unidadeAtiva, hojeISO),
       ]);
       if (!vivo) return;
       setDados({
@@ -96,6 +99,7 @@ export default function DashboardGestao() {
         folgas: rFolgas.data || [], contas: rContas.data || [], estoque: rEstoque.data || [],
         manutencoes: rManut.data || [], campanhas: rCamp.fromSeed ? [] : (rCamp.data || []),
         bancoHoras: rBanco.data || [],
+        checklistTpls: rTpl.data || [], checklistExecs: rExec.data || [],
       });
       setLoading(false);
     })();
@@ -176,12 +180,21 @@ export default function DashboardGestao() {
     });
     const extrasCount = comArea.filter(c => c._extra).length;
 
+    // Checklists de hoje por área: pendências (feitos < total)
+    const { checklistTpls = [], checklistExecs = [] } = dados;
+    const checklistsPend = ["cozinha", "bar", "salao"].map(d => {
+      const tpls = checklistTpls.filter(t => t.departamento === d);
+      if (!tpls.length) return null;
+      const feitos = new Set(checklistExecs.filter(e => e.checklists_templates?.departamento === d).map(e => e.template_id)).size;
+      return feitos < tpls.length ? { dept: d, feitos: Math.min(feitos, tpls.length), total: tpls.length } : null;
+    }).filter(Boolean);
+
     return {
       cmvMedio, cmvAcima, cmvCount: cmvs.length,
       folhaMes, ativosCount: ativos.length,
       equipeHoje, totalContasMes, contasVencendo,
       semEstoque, limpezasVencendo, campanhasAtivas, bancoAlertas,
-      escalaPorArea, extrasCount,
+      escalaPorArea, extrasCount, checklistsPend,
     };
   }, [dados]);
 
@@ -255,10 +268,20 @@ export default function DashboardGestao() {
     window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank");
   };
 
-  const imprimirDia = () => {
-    const escala = montarEscalaDia();
-    if (!escala.length) return alert("Nenhum colaborador na escala.");
-    const hoje = new Date();
+  const imprimirDia = () => imprimirEscala(montarEscalaDia(), new Date());
+
+  // Histórico de escalas salvas (rever/reimprimir dias passados)
+  const [modalEscalas, setModalEscalas] = useState(null);
+  const abrirHistoricoEscalas = async () => {
+    setModalEscalas([]);
+    const { data } = await fetchEscalasDia(unidadeAtiva);
+    setModalEscalas(data || []);
+  };
+
+  // Imprime uma escala (de hoje ou uma salva do histórico)
+  const imprimirEscala = (escala, dataRef) => {
+    if (!escala || !escala.length) return alert("Nenhum colaborador na escala.");
+    const hoje = dataRef || new Date();
     const blocos = escala.map(g => `
       <tr class="cat"><td colspan="3">${g.area}</td></tr>
       ${g.pessoas.map(p => `<tr><td><b>${p.nome}</b>${p.extra ? ' <span class="ext">EXTRA</span>' : ""}</td><td>${p.cargo}</td><td class="c">${p.horario || "—"}</td></tr>`).join("")}
@@ -381,7 +404,41 @@ export default function DashboardGestao() {
         onSalvarDia={salvarDia}
         onWhats={compartilharDia}
         onImprimir={imprimirDia}
+        onHistorico={abrirHistoricoEscalas}
       />
+
+      {/* Histórico de escalas salvas */}
+      {modalEscalas !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={() => setModalEscalas(null)}>
+          <div className="erp-card w-full max-w-md max-h-[80vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-black flex items-center gap-2" style={{ color: "var(--fg)" }}>
+                <CalendarDays size={18} style={{ color: "#7C3AED" }} /> Escalas salvas
+              </h3>
+              <button onClick={() => setModalEscalas(null)} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "var(--elevated)", color: "var(--muted)" }}>×</button>
+            </div>
+            {modalEscalas.length === 0 ? (
+              <p className="text-sm font-medium py-6 text-center" style={{ color: "var(--dim)" }}>Nenhuma escala salva ainda — use "Salvar escala do dia".</p>
+            ) : (
+              <div className="space-y-2">
+                {modalEscalas.map(e => {
+                  const dt = new Date(String(e.data).slice(0, 10) + "T12:00:00");
+                  const total = (e.escala || []).reduce((s, g) => s + (g.pessoas?.length || 0), 0);
+                  return (
+                    <div key={e.id} className="flex items-center justify-between gap-2 p-3 rounded-xl" style={{ background: "var(--elevated)" }}>
+                      <div>
+                        <p className="text-sm font-bold capitalize" style={{ color: "var(--fg-soft)" }}>{dt.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit" })}</p>
+                        <p className="text-[10px] font-medium" style={{ color: "var(--dim)" }}>{total} pessoa(s) · {(e.escala || []).length} área(s)</p>
+                      </div>
+                      <button onClick={() => imprimirEscala(e.escala, dt)} className="text-xs font-bold px-3 py-2 rounded-lg" style={{ background: "var(--accent-soft)", color: "var(--accent-strong)" }}>Imprimir</button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Painéis operacionais */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -417,6 +474,19 @@ export default function DashboardGestao() {
                     <span className="text-[11px] font-black shrink-0 ml-2" style={{ color: atras ? "#DC2626" : "#B45309" }}>
                       {atras ? `Atrasada ${Math.abs(l.dias)}d` : l.dias === 0 ? "Hoje" : `${l.dias}d`}
                     </span>
+                  </div>
+                );
+              })}
+            </BlocoAlerta>
+
+            <BlocoAlerta titulo="Checklists de hoje" icon={CheckCircle2}
+              vazio="Todos os checklists de hoje foram feitos." acao={() => router.push("/dashboard/operacao/rotina")}>
+              {m.checklistsPend.map(c => {
+                const nome = c.dept === "salao" ? "Salão" : c.dept === "bar" ? "Bar" : "Cozinha";
+                return (
+                  <div key={c.dept} className="flex justify-between items-center p-2.5 rounded-xl" style={{ background: "rgba(245,158,11,0.10)" }}>
+                    <span className="text-sm font-bold" style={{ color: "var(--fg-soft)" }}>{nome}</span>
+                    <span className="text-[11px] font-black shrink-0 ml-2" style={{ color: "#B45309" }}>{c.feitos}/{c.total} — faltam {c.total - c.feitos}</span>
                   </div>
                 );
               })}
@@ -509,7 +579,7 @@ const CORES_AREA = {
 
 // Escala da semana: colaboradores agrupados por área, extras marcados,
 // arraste para reordenar cada um dentro da sua área.
-function EscalaSemana({ escalaPorArea, dragId, setDragId, onMover, onVerTudo, onSalvarDia, onWhats, onImprimir }) {
+function EscalaSemana({ escalaPorArea, dragId, setDragId, onMover, onVerTudo, onSalvarDia, onWhats, onImprimir, onHistorico }) {
   // Áreas fixas sempre visíveis (mesmo vazias) + "Outros" só quando tiver gente
   const areas = ["Salão", "Bar", "Cozinha", "Caixa", "Louça", "Descanso"];
   if (escalaPorArea["Outros"]?.length) areas.push("Outros");
@@ -528,6 +598,9 @@ function EscalaSemana({ escalaPorArea, dragId, setDragId, onMover, onVerTudo, on
           </button>
           <button onClick={onImprimir} className="text-xs font-bold px-3 py-2 rounded-lg transition-colors" style={{ background: "var(--elevated)", color: "var(--muted)" }}>
             Imprimir
+          </button>
+          <button onClick={onHistorico} className="text-xs font-bold px-3 py-2 rounded-lg transition-colors" style={{ background: "var(--elevated)", color: "var(--muted)" }}>
+            Histórico
           </button>
           <button onClick={onVerTudo} className="text-xs font-bold flex items-center gap-1 px-1" style={{ color: "var(--accent-strong)" }}>
             Gerir no RH <ArrowRight size={13} />

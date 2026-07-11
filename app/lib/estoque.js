@@ -5,19 +5,17 @@ import { supabase, isSupabaseReady } from "./supabase";
 export async function fetchEstoque(unidadeId, deptUrl) {
   if (!isSupabaseReady()) return { data: [], error: "Offline" };
   
-  // Trazemos todos os insumos e fazemos um LEFT JOIN com o estoque_atual
+  // Trazemos todos os insumos (o * inclui estoque_minimo quando a coluna
+  // existir) e fazemos um LEFT JOIN com o estoque_atual
   let query = supabase.from("insumos")
-    .select(`
-      id, nome, unidade_medida, custo_unitario, departamento,
-      estoque_atual (quantidade_atual)
-    `)
+    .select(`*, estoque_atual (quantidade_atual)`)
     .order("nome");
 
   if (unidadeId && unidadeId !== "matriz") query = query.eq("unidade_id", unidadeId);
   if (deptUrl) query = query.eq("departamento", deptUrl);
 
   const { data, error } = await query;
-  
+
   // Formata o array para facilitar o uso na tela
   const formatado = (data || []).map(ins => ({
      insumo_id: ins.id,
@@ -25,10 +23,24 @@ export async function fetchEstoque(unidadeId, deptUrl) {
      departamento: ins.departamento,
      unidade_medida: ins.unidade_medida,
      custo_unitario: ins.custo_unitario,
+     estoque_minimo: ins.estoque_minimo ?? null,
      quantidade_atual: ins.estoque_atual?.[0]?.quantidade_atual || 0
   }));
 
   return { data: formatado, error: error?.message };
+}
+
+// Estoque mínimo do insumo (abaixo dele o item entra na lista de compras).
+// Se a coluna ainda não existir no banco, avisa para rodar o SQL.
+export async function atualizarMinimoInsumo(insumoId, estoque_minimo) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase.from("insumos")
+    .update({ estoque_minimo: estoque_minimo === "" || estoque_minimo === null ? null : Number(estoque_minimo) })
+    .eq("id", insumoId);
+  if (error && /estoque_minimo/.test(error.message || "")) {
+    return { error: "Rode o SQL que cria a coluna estoque_minimo (te passei no chat)." };
+  }
+  return { error: error?.message };
 }
 
 // Para ajustes manuais (Balanço, Compras)

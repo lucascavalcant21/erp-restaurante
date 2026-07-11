@@ -17,7 +17,7 @@ import {
 import { fetchPontoHoje, fetchPontosMes, fetchPontosMesUnidade } from "../../lib/ponto";
 import { fetchValesPendentes } from "../../lib/rh";
 import { calcularAdicionaisMes } from "../../lib/rh";
-import { salvarConta, fetchContas } from "../../lib/financeiro";
+import { salvarConta, fetchContas, fetchLancamentos } from "../../lib/financeiro";
 import { fetchCardapio } from "../../lib/cardapio";
 
 // Desconto do funcionário sobre o valor de cardápio (funcionário paga o restante)
@@ -37,6 +37,7 @@ export default function RHPage() {
   const [valesPendentes, setValesPendentes] = useState([]);       // desconto em folha pendente
   const [pontosMesUnidade, setPontosMesUnidade] = useState([]);   // p/ extras e feriados do mês
   const [feriadosMesAtual, setFeriadosMesAtual] = useState([]);
+  const [lancamentos, setLancamentos] = useState([]);             // p/ faturamento do mês (CMO %)
   const [cargos, setCargos] = useState([]);
   const [busca, setBusca] = useState("");
   const [abaAtiva, setAbaAtiva] = useState("Fixo");
@@ -230,6 +231,8 @@ export default function RHPage() {
       fetchPontosMesUnidade(unidadeAtiva, mesAtual),
       fetchFeriados(unidadeAtiva, mesAtual),
     ]);
+    const resLanc = await fetchLancamentos(unidadeAtiva);
+    setLancamentos(resLanc.data || []);
 
     const comDocs = await Promise.all((resRh.data || []).map(async (f) => {
        const docsResp = await fetchDocumentos(f.id);
@@ -1045,6 +1048,50 @@ export default function RHPage() {
                </button>
             )}
          </div>
+
+         {/* ── RESUMO CMO: folha fixa + gasto com extras + % sobre o faturamento ── */}
+         {(() => {
+            const mes = new Date().toISOString().slice(0, 7);
+            const ativos = funcionarios.filter(f => (f.status || "ativo") !== "inativo");
+            const fixos = ativos.filter(f => f.tipo_contrato !== "Freelancer");
+            const extras = ativos.filter(f => f.tipo_contrato === "Freelancer");
+            const folhaFixa = fixos.reduce((s, f) => s + (Number(f.salario) || 0), 0);
+            // Extras: diária × dias efetivamente trabalhados no mês (pelo ponto)
+            const gastoExtras = extras.reduce((s, f) => {
+               const dias = new Set(pontosMesUnidade.filter(p => p.colaborador_id === f.id).map(p => p.data_referencia)).size;
+               return s + dias * (Number(f.salario) || 0);
+            }, 0);
+            const total = folhaFixa + gastoExtras;
+            const fat = lancamentos
+               .filter(l => l.tipo === "entrada" && String(l.data || "").slice(0, 7) === mes)
+               .reduce((s, l) => s + (Number(l.valor) || 0), 0);
+            const pct = fat > 0 ? (total / fat) * 100 : null;
+            if (!ativos.length) return null;
+            return (
+               <div className="mt-4 bg-slate-900 text-white rounded-2xl px-5 py-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Folha fixa (mês)</p>
+                     <p className="text-lg font-black">{fmtBRL(folhaFixa)}</p>
+                     <p className="text-[10px] font-bold text-slate-500">{fixos.length} fixo(s)</p>
+                  </div>
+                  <div>
+                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Gasto com extras (mês)</p>
+                     <p className="text-lg font-black text-amber-400">{fmtBRL(gastoExtras)}</p>
+                     <p className="text-[10px] font-bold text-slate-500">{extras.length} extra(s) · diária × dias batidos</p>
+                  </div>
+                  <div>
+                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">CMO total</p>
+                     <p className="text-lg font-black text-emerald-400">{fmtBRL(total)}</p>
+                     <p className="text-[10px] font-bold text-slate-500">folha + extras</p>
+                  </div>
+                  <div>
+                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">CMO % do faturamento</p>
+                     <p className={`text-lg font-black ${pct === null ? "text-slate-500" : pct <= 30 ? "text-emerald-400" : pct <= 40 ? "text-amber-400" : "text-red-400"}`}>{pct === null ? "—" : `${pct.toFixed(1)}%`}</p>
+                     <p className="text-[10px] font-bold text-slate-500">{pct === null ? "sem entradas lançadas no mês" : `faturamento ${fmtBRL(fat)}`}</p>
+                  </div>
+               </div>
+            );
+         })()}
       </div>
 
       <div className="max-w-5xl mx-auto px-6">
@@ -1568,6 +1615,19 @@ export default function RHPage() {
                               );
                            })}
                         </div>
+                        {/* Valor por dia trabalhado: salário / (dias por semana × 4,345 semanas) */}
+                        {(() => {
+                           const nDias = (novoFunc.dias_trabalho || "").split(",").filter(Boolean).length;
+                           const sal = Number(novoFunc.salario) || 0;
+                           if (!nDias || !sal || novoFunc.tipo_contrato === "Freelancer") return null;
+                           const diasMes = nDias * 4.345;
+                           return (
+                              <p className="text-[11px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-2.5 py-1.5 mt-2 inline-block">
+                                 {fmtBRL(sal / diasMes)} por dia trabalhado
+                                 <span className="text-emerald-600/70 font-bold"> · {nDias} dia(s)/semana ≈ {Math.round(diasMes)} dias/mês</span>
+                              </p>
+                           );
+                        })()}
                      </div>
                      <div>
                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Intervalo (Minutos)</label>

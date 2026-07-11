@@ -206,7 +206,7 @@ function ProducaoRunner() {
     ]);
     setFichas(resFichas.data || []);
     setProdutos(resProdutos.data || []);
-    setColaboradores(resColab.data || []);
+    setColaboradores((resColab.data || []).filter(c => c.ativo !== false && c.status !== "inativo"));
     setLoading(false);
   };
 
@@ -239,6 +239,12 @@ function ProducaoRunner() {
     // O pulo do gato: registrarProducao abate do estoque automaticamente!
     const erro = await registrarProducao(unidadeAtiva, fichaAtual, numQtd, colabSelecionado);
     
+    if (erro.codigo === "ESTOQUE_INSUFICIENTE") {
+      const lista = (erro.faltantes || []).map(i =>
+        `• ${i.nome}: precisa ${i.necessario.toLocaleString("pt-BR")} ${i.unidade || ""}, disponível ${i.disponivel.toLocaleString("pt-BR")}`
+      ).join("\n");
+      return alert(`Produção não registrada. Estoque insuficiente:\n\n${lista}\n\nAjuste o estoque ou reduza a quantidade.`);
+    }
     if(erro.error) return alert("Falha ao registrar produção: " + erro.error);
 
     alert("Produção registrada e estoque abatido com sucesso!");

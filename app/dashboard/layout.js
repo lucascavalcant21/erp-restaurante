@@ -173,24 +173,25 @@ function Sidebar({ mobileOpen, setMobileOpen, collapsed }) {
 
   return (
     <>
-      {/* Overlay só no celular (quando aberta por cima do conteúdo) */}
+      {/* Overlay no celular E no tablet (a sidebar abre por cima do conteúdo) */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 bg-slate-900/80 z-40 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 bg-slate-900/80 z-40 backdrop-blur-sm lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
       {/* Sidebar Container
-          Celular: fixa, entra/sai deslizando (overlay).
-          Desktop: encaixada no layout; recolhe para largura 0 e o
+          Celular/Tablet (< lg): fixa, entra/sai deslizando (overlay) — nunca
+          fica "meio aparecendo" na lateral.
+          Desktop (lg+): encaixada no layout; recolhe para largura 0 e o
           conteúdo cresce para ocupar o espaço. */}
       <aside className={`
         fixed inset-y-0 left-0 z-50 bg-[#0A1128] border-r border-slate-800/50
         flex flex-col transition-all duration-300 ease-in-out shadow-2xl whitespace-nowrap overflow-hidden
-        md:static md:z-auto md:shadow-none
+        lg:static lg:z-auto lg:shadow-none
         ${mobileOpen ? "translate-x-0 w-72" : "-translate-x-full w-72"}
-        ${collapsed ? "md:translate-x-0 md:w-0 md:border-r-0" : "md:translate-x-0 md:w-72"}
+        ${collapsed ? "lg:translate-x-0 lg:w-0 lg:border-r-0" : "lg:translate-x-0 lg:w-72"}
       `}>
         {/* Logo Area */}
         <div className="h-16 flex items-center justify-between px-6 shrink-0 relative overflow-hidden">
@@ -204,7 +205,7 @@ function Sidebar({ mobileOpen, setMobileOpen, collapsed }) {
           </button>
           
           {/* Fechar: no celular fecha o overlay */}
-          <button onClick={() => setMobileOpen(false)} className="text-slate-400 hover:text-white relative z-10 p-2 md:hidden">
+          <button onClick={() => setMobileOpen(false)} className="text-slate-400 hover:text-white relative z-10 p-2 lg:hidden">
             <X size={20} />
           </button>
         </div>
@@ -336,7 +337,7 @@ export default function DashboardLayout({ children }) {
 
   // Hambúrguer: no desktop recolhe/expande a sidebar; no celular abre o overlay.
   function toggleSidebar() {
-    if (typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches) {
+    if (typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches) {
       setCollapsed((c) => {
         const novo = !c;
         try { localStorage.setItem("erp_sidebar_collapsed", novo ? "1" : "0"); } catch (_) {}

@@ -66,23 +66,22 @@ export async function registrarProducao(unidadeId, ficha, qtdProduzida, colabora
   if (!isSupabaseReady()) return { error: "Offline" };
   
   // 1. Inserimos o log da produção
-  const { error: errLog } = await supabase.from("producao_diaria").insert([{
-     unidade_id: unidadeId,
-     ficha_id: ficha.id,
-     colaborador_id: colaboradorId,
-     quantidade_produzida: qtdProduzida
-  }]);
-
-  if(errLog) return { error: errLog.message };
-
   // 2. Buscamos o estoque atual dos INSUMOS dessa ficha (ignora sub-fichas/bases)
   const insumosFicha = (ficha.fichas_ingredientes || []).filter(i => i.insumos);
-  const ingIds = insumosFicha.map(i => i.insumos.id);
+  const consumoPorInsumo = {};
+  insumosFicha.forEach(ing => {
+     const id = ing.insumos.id;
+     if (!consumoPorInsumo[id]) consumoPorInsumo[id] = { insumo: ing.insumos, quantidade: 0 };
+     consumoPorInsumo[id].quantidade += Number(ing.quantidade || 0) * Number(qtdProduzida || 0);
+  });
+  const ingIds = Object.keys(consumoPorInsumo);
   
-  const { data: estoqueDB } = await supabase.from("estoque_atual")
+  const { data: estoqueDB, error: errConsultaEstoque } = await supabase.from("estoque_atual")
      .select("insumo_id, quantidade_atual")
      .eq("unidade_id", unidadeId)
      .in("insumo_id", ingIds);
+
+  if (errConsultaEstoque) return { error: errConsultaEstoque.message };
 
   const mapaEstoque = {};
   if(estoqueDB) {
@@ -90,14 +89,25 @@ export async function registrarProducao(unidadeId, ficha, qtdProduzida, colabora
   }
 
   // 3. Calculamos o novo saldo e preparamos o array de Upsert
-  const atualizacoesEstoque = insumosFicha.map(ing => {
-     const qtdConsumidaTotal = ing.quantidade * qtdProduzida;
-     const saldoAnterior = mapaEstoque[ing.insumos.id] || 0;
-     const novoSaldo = saldoAnterior - qtdConsumidaTotal;
+  const faltantes = Object.entries(consumoPorInsumo).map(([id, item]) => ({
+     id,
+     nome: item.insumo.nome,
+     unidade: item.insumo.unidade_medida,
+     necessario: item.quantidade,
+     disponivel: Number(mapaEstoque[id] || 0),
+  })).filter(item => item.disponivel < item.necessario);
+
+  if (faltantes.length > 0) {
+     return { error: "Estoque insuficiente", codigo: "ESTOQUE_INSUFICIENTE", faltantes };
+  }
+
+  const atualizacoesEstoque = Object.entries(consumoPorInsumo).map(([id, item]) => {
+     const saldoAnterior = Number(mapaEstoque[id] || 0);
+     const novoSaldo = saldoAnterior - item.quantidade;
 
      return {
         unidade_id: unidadeId,
-        insumo_id: ing.insumos.id,
+        insumo_id: id,
         quantidade_atual: novoSaldo,
         updated_at: new Date().toISOString()
      };
@@ -107,6 +117,26 @@ export async function registrarProducao(unidadeId, ficha, qtdProduzida, colabora
   if (atualizacoesEstoque.length > 0) {
      const { error: errUpsert } = await supabase.from("estoque_atual").upsert(atualizacoesEstoque, { onConflict: 'unidade_id, insumo_id' });
      if(errUpsert) return { error: errUpsert.message };
+  }
+
+  const { error: errLog } = await supabase.from("producao_diaria").insert([{
+     unidade_id: unidadeId,
+     ficha_id: ficha.id,
+     colaborador_id: colaboradorId,
+     quantidade_produzida: qtdProduzida
+  }]);
+
+  if (errLog) {
+     const reversao = Object.keys(consumoPorInsumo).map(id => ({
+        unidade_id: unidadeId,
+        insumo_id: id,
+        quantidade_atual: Number(mapaEstoque[id] || 0),
+        updated_at: new Date().toISOString()
+     }));
+     if (reversao.length > 0) {
+        await supabase.from("estoque_atual").upsert(reversao, { onConflict: 'unidade_id, insumo_id' });
+     }
+     return { error: errLog.message };
   }
 
   return { success: true };

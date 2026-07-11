@@ -134,17 +134,13 @@ function SidebarItem({ item, pathname }) {
   );
 }
 
-function SidebarSection({ section, idx, pathname }) {
-  // Módulos sempre começam recolhidos; abre só o que tem a página atual dentro.
-  const contemAtual = section.items.some(item =>
-    item.href !== "/dashboard" && (pathname === item.href.split("?")[0] || pathname.startsWith(item.href.split("?")[0] + "/"))
-  );
-  const [isOpen, setIsOpen] = useState(contemAtual);
-
+function SidebarSection({ section, idx, pathname, isOpen, onToggle }) {
+  // Acordeão controlado pelo pai: só um módulo aberto por vez, e ao navegar
+  // para um submódulo tudo recolhe de novo.
   return (
     <div className="animate-in fade-in slide-in-from-left-2" style={{ animationDelay: `${idx * 50}ms`, animationFillMode: 'both' }}>
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
+      <button
+        onClick={onToggle}
         className="w-full px-3 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-300 mb-2 flex items-center justify-between transition-colors group outline-none"
       >
         <div className="flex items-center gap-2">
@@ -170,6 +166,10 @@ function SidebarSection({ section, idx, pathname }) {
 function Sidebar({ mobileOpen, setMobileOpen, collapsed }) {
   const pathname = usePathname();
   const router = useRouter();
+
+  // Acordeão: índice do único módulo aberto; navegar recolhe tudo
+  const [moduloAberto, setModuloAberto] = useState(null);
+  useEffect(() => { setModuloAberto(null); }, [pathname]);
 
   return (
     <>
@@ -213,7 +213,9 @@ function Sidebar({ mobileOpen, setMobileOpen, collapsed }) {
         {/* Scrollable Menu */}
         <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
           {SIDEBAR_MENU.map((section, idx) => (
-            <SidebarSection key={idx} section={section} idx={idx} pathname={pathname} />
+            <SidebarSection key={idx} section={section} idx={idx} pathname={pathname}
+              isOpen={moduloAberto === idx}
+              onToggle={() => setModuloAberto(a => a === idx ? null : idx)} />
           ))}
         </div>
         

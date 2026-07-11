@@ -1070,7 +1070,11 @@ export default function RHPage() {
             const fat = lancamentos
                .filter(l => l.tipo === "entrada" && String(l.data || "").slice(0, 7) === mes)
                .reduce((s, l) => s + (Number(l.valor) || 0), 0);
-            const pct = fat > 0 ? (total / fat) * 100 : null;
+            // Fica EM BRANCO até o faturamento do mês ser lançado de verdade
+            // (abaixo de R$ 1.000 trata como ainda não informado — evita %
+            // absurdo com lançamentos de teste). Ao lançar, o % aparece sozinho.
+            const FAT_MINIMO = 1000;
+            const pct = fat >= FAT_MINIMO ? (total / fat) * 100 : null;
             if (!ativos.length) return null;
             return (
                <div className="mt-4 bg-slate-900 text-white rounded-2xl px-5 py-4 grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -1092,7 +1096,7 @@ export default function RHPage() {
                   <div>
                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">CMO % do faturamento</p>
                      <p className={`text-lg font-black ${pct === null ? "text-slate-500" : pct <= 30 ? "text-emerald-400" : pct <= 40 ? "text-amber-400" : "text-red-400"}`}>{pct === null ? "—" : `${pct.toFixed(1)}%`}</p>
-                     <p className="text-[10px] font-bold text-slate-500">{pct === null ? "sem entradas lançadas no mês" : `faturamento ${fmtBRL(fat)}`}</p>
+                     <p className="text-[10px] font-bold text-slate-500">{pct === null ? "aparece ao lançar o faturamento do mês" : `faturamento ${fmtBRL(fat)}`}</p>
                   </div>
                </div>
             );

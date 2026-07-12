@@ -19,11 +19,18 @@ export default function InstallPrompt() {
       window.navigator.standalone === true;
     if (jaInstalado) return;
 
-    if (localStorage.getItem("hefisto_install_dispensado") === "1") return;
+    // Dispensa EXPIRA em 3 dias (antes era pra sempre e o banner sumia de vez)
+    try {
+      localStorage.removeItem("hefisto_install_dispensado"); // chave antiga, permanente
+      const ate = Number(localStorage.getItem("hefisto_install_dispensado_ate") || 0);
+      if (ate && Date.now() < ate) return;
+    } catch {}
 
     const onBIP = (e) => {
       e.preventDefault();
       setDeferred(e);
+      // Guarda global: o botão "Instalar aplicativo" das Configurações usa isto
+      try { window.__hefistoInstallPrompt = e; } catch {}
       setVisivel(true);
     };
     window.addEventListener("beforeinstallprompt", onBIP);
@@ -48,7 +55,8 @@ export default function InstallPrompt() {
 
   const dispensar = () => {
     setVisivel(false);
-    try { localStorage.setItem("hefisto_install_dispensado", "1"); } catch {}
+    // Volta a oferecer depois de 3 dias
+    try { localStorage.setItem("hefisto_install_dispensado_ate", String(Date.now() + 3 * 86400000)); } catch {}
   };
 
   if (!visivel) return null;

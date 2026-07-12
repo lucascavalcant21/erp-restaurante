@@ -11,7 +11,64 @@ import {
 import { gerarDadosFicticios, limparAmbienteTeste } from "../../lib/mock";
 import { fetchPins, salvarPins } from "../../lib/seguranca";
 import { fetchParams, salvarParams, PARAMS_PADRAO } from "../../lib/parametros";
-import { Lock, SlidersHorizontal } from "lucide-react";
+import { Lock, SlidersHorizontal, Download, Smartphone } from "lucide-react";
+
+// Instalar o app no aparelho (tablet/celular/PC). Usa o instalador nativo se o
+// navegador ofereceu; senão mostra o caminho manual de cada aparelho.
+function CardInstalar() {
+  const [instalado, setInstalado] = useState(false);
+  const [temPrompt, setTemPrompt] = useState(false);
+  const [mostrarComo, setMostrarComo] = useState(false);
+
+  useEffect(() => {
+    try {
+      setInstalado(window.matchMedia?.("(display-mode: standalone)").matches || window.navigator.standalone === true);
+      setTemPrompt(!!window.__hefistoInstallPrompt);
+      const t = setInterval(() => setTemPrompt(!!window.__hefistoInstallPrompt), 1500);
+      return () => clearInterval(t);
+    } catch {}
+  }, []);
+
+  const instalar = async () => {
+    const p = typeof window !== "undefined" && window.__hefistoInstallPrompt;
+    if (!p) { setMostrarComo(true); return; }
+    try { p.prompt(); await p.userChoice; window.__hefistoInstallPrompt = null; setTemPrompt(false); } catch {}
+  };
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-6">
+      <div className="bg-emerald-50 border-b border-emerald-100 p-4 flex items-center gap-2">
+        <Smartphone size={18} className="text-emerald-600" />
+        <h2 className="font-bold text-emerald-800">Instalar o Aplicativo (tablet, celular e computador)</h2>
+      </div>
+      <div className="p-6">
+        {instalado ? (
+          <p className="text-sm font-bold text-emerald-700 flex items-center gap-2"><CheckCircle size={16}/> Você já está usando o app instalado.</p>
+        ) : (
+          <>
+            <p className="text-sm text-slate-600 mb-4">Instalado, o Hefisto abre em tela cheia como um app de verdade — sem barra de navegador, e o Modo Ponto/Estações funcionam como quiosque.</p>
+            <button type="button" onClick={instalar} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-6 rounded-xl flex items-center gap-2 transition-colors">
+              <Download size={18} /> {temPrompt ? "Instalar agora" : "Como instalar neste aparelho"}
+            </button>
+            {(mostrarComo || !temPrompt) && (
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                  <p className="font-black text-slate-700 mb-1">Android (Chrome)</p>
+                  <p className="text-slate-600 font-medium">Toque no menu <b>⋮</b> (canto superior direito) → <b>"Instalar app"</b> ou <b>"Adicionar à tela inicial"</b>.</p>
+                </div>
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                  <p className="font-black text-slate-700 mb-1">iPhone / iPad (Safari)</p>
+                  <p className="text-slate-600 font-medium">Toque em <b>Compartilhar</b> (quadrado com seta) → <b>"Adicionar à Tela de Início"</b>.</p>
+                </div>
+              </div>
+            )}
+            <p className="text-[11px] text-slate-400 font-medium mt-3">Se já instalou antes e mudou a versão, desinstale e instale de novo para pegar a tela cheia nova.</p>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // Parâmetros ajustáveis: tolerâncias do ponto, descontos, metas... O sistema
 // passa a usar o valor novo assim que salvar.
@@ -390,6 +447,9 @@ export default function ConfiguracoesPage() {
 
       {/* Parâmetros ajustáveis (tolerâncias, metas, descontos) */}
       <CardParametros unidadeAtiva={unidadeAtiva} />
+
+      {/* Instalar o app no aparelho */}
+      <CardInstalar />
 
       {/* Sandbox de testes */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-6">

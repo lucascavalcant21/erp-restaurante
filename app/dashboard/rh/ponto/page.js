@@ -551,6 +551,13 @@ export default function PontoPage() {
             })}
           </div>
 
+          {/* Folga hoje mas com jornada de ONTEM aberta: pode (e deve) fechar */}
+          {info.folga && etapa !== "entrada" && etapa !== "concluido" && (
+            <div className="rounded-2xl px-4 py-3 mb-4 bg-slate-800/70 border border-slate-700">
+              <p className="text-xs font-bold text-slate-300">Hoje é sua folga — você está fechando a jornada de ontem, que virou a madrugada. Bata normalmente.</p>
+            </div>
+          )}
+
           {/* EM INTERVALO: contagem regressiva até a hora de voltar */}
           {etapa === "retorno_intervalo" && reg?.hora_saida_intervalo && (() => {
             const prevista = new Date(new Date(reg.hora_saida_intervalo).getTime() + intervaloPadrao * 60000);
@@ -685,7 +692,7 @@ export default function PontoPage() {
     }
     return (
       <button key={c.id} onClick={() => abrirFuncionario(c)}
-        className={`p-5 rounded-3xl border-2 text-left transition-all hover:-translate-y-1 ${info.folga || faltou ? "bg-rose-500/5 border-rose-500/30" : concluido ? "bg-slate-900/40 border-slate-800 opacity-60" : "bg-slate-900 border-slate-800 hover:border-emerald-500/60"}`}>
+        className={`p-5 rounded-3xl border-2 text-left transition-all hover:-translate-y-1 ${reg?.hora_entrada && !concluido ? "bg-slate-900 border-sky-500/40 hover:border-sky-400/70" : info.folga || faltou ? "bg-rose-500/5 border-rose-500/30" : concluido ? "bg-slate-900/40 border-slate-800 opacity-60" : "bg-slate-900 border-slate-800 hover:border-emerald-500/60"}`}>
         <div className="flex items-center gap-3 mb-3">
           <div className={`w-11 h-11 rounded-full bg-slate-800 flex items-center justify-center text-lg font-black shrink-0 ring-2 ${info.folga || faltou ? "ring-rose-500/40 text-rose-300" : concluido ? "ring-slate-700 text-slate-500" : reg?.hora_entrada ? "ring-emerald-500/70 text-emerald-400" : "ring-slate-700 text-emerald-400"}`}>{c.nome[0].toUpperCase()}</div>
           <div className="min-w-0">
@@ -694,8 +701,10 @@ export default function PontoPage() {
           </div>
         </div>
         <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1.5 ${info.folga || faltou ? "bg-rose-500/10 text-rose-400" : concluido ? "bg-emerald-500/10 text-emerald-500" : reg?.hora_entrada ? "bg-sky-500/10 text-sky-400" : "bg-slate-800 text-slate-500"}`}>
-            {info.folga ? <><Ban size={11} /> Folga hoje</> : faltou ? <><Ban size={11} /> Falta — não bateu até {entradaStr}+{cfgP.limite_atraso}min</> : concluido ? <><CheckCircle2 size={11} /> Jornada concluída</> : reg?.hora_entrada ? <><Clock size={11} /> Próx: {ETAPAS.find(e => e.id === etapa)?.label}</> : <><LogIn size={11} /> Aguardando entrada</>}
+          {/* PRIORIDADE: jornada aberta (mesmo em dia de folga — turno de ontem
+              que virou a madrugada) vem antes do selo de folga */}
+          <div className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1.5 ${reg?.hora_entrada && !concluido ? "bg-sky-500/10 text-sky-400" : info.folga || faltou ? "bg-rose-500/10 text-rose-400" : concluido ? "bg-emerald-500/10 text-emerald-500" : "bg-slate-800 text-slate-500"}`}>
+            {reg?.hora_entrada && !concluido ? <><Clock size={11} /> Próx: {ETAPAS.find(e => e.id === etapa)?.label}</> : info.folga ? <><Ban size={11} /> Folga hoje</> : faltou ? <><Ban size={11} /> Falta — não bateu até {entradaStr}+{cfgP.limite_atraso}min</> : concluido ? <><CheckCircle2 size={11} /> Jornada concluída</> : <><LogIn size={11} /> Aguardando entrada</>}
           </div>
           {entradaStr && !info.folga && (
             <span className="text-[10px] font-bold text-slate-600">{entradaStr}{c.horario_saida ? `–${c.horario_saida}` : ""}</span>

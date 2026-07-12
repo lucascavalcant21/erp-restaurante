@@ -594,17 +594,18 @@ export default function RHPage() {
         <head>
           <title>Ficha de Controle de Extras</title>
           <style>
-            body { font-family: sans-serif; padding: 40px; color: #1e293b; line-height: 1.5; }
-            h1 { text-align: center; margin-bottom: 5px; font-size: 24px; text-transform: uppercase; }
-            h2 { text-align: center; font-size: 14px; font-weight: normal; margin-top: 0; color: #64748b; margin-bottom: 30px; }
-            .header-info { display: flex; justify-content: space-between; margin-bottom: 20px; font-weight: bold; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
-            .section { margin-bottom: 30px; }
-            .section-title { font-size: 16px; font-weight: bold; background: #f1f5f9; padding: 10px; border-radius: 4px; margin-bottom: 15px; text-transform: uppercase; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-            th, td { border: 1px solid #cbd5e1; padding: 12px; text-align: left; }
-            th { background: #f8fafc; font-size: 12px; text-transform: uppercase; color: #64748b; }
-            .signature-box { height: 60px; }
-            .checkbox { width: 16px; height: 16px; border: 1px solid #94a3b8; display: inline-block; margin-right: 10px; vertical-align: middle; border-radius: 3px; }
+            @page { size: A4 portrait; margin: 8mm; }
+            * { box-sizing: border-box; }
+            body { font-family: sans-serif; padding: 12px; color: #1e293b; line-height: 1.35; font-size: 11px; }
+            h1 { text-align: center; margin: 0 0 2px; font-size: 17px; text-transform: uppercase; }
+            h2 { text-align: center; font-size: 10px; font-weight: normal; margin: 0 0 10px; color: #64748b; }
+            .section { margin-bottom: 8px; }
+            .section-title { font-size: 11px; font-weight: bold; background: #f1f5f9; padding: 4px 8px; border-radius: 4px; margin-bottom: 6px; text-transform: uppercase; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+            th, td { border: 1px solid #cbd5e1; padding: 3px 6px; text-align: left; font-size: 10px; }
+            th { background: #f8fafc; font-size: 9px; text-transform: uppercase; color: #64748b; }
+            .signature-box { height: 24px; }
+            .checkbox { width: 11px; height: 11px; border: 1px solid #94a3b8; display: inline-block; margin-right: 6px; vertical-align: middle; border-radius: 2px; }
             @media print { body { padding: 0; } }
           </style>
         </head>
@@ -614,7 +615,7 @@ export default function RHPage() {
 
           <div class="section">
              <div class="section-title">Dados Pessoais</div>
-             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
                 <div><strong>Nome:</strong> ${nome}</div>
                 <div><strong>CPF:</strong> ${cpf} &nbsp;&nbsp; <strong>RG:</strong> __________________</div>
                 <div style="grid-column: 1 / -1;"><strong>Endereço:</strong> ________________________________________________________________________________</div>
@@ -625,14 +626,14 @@ export default function RHPage() {
 
           <div class="section">
              <div class="section-title">Acordo do Dia</div>
-             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
                 <div><strong>Data do trabalho:</strong> ____/____/______</div>
                 <div><strong>Evento / Ocasião:</strong> ______________________________</div>
                 <div><strong>Função no dia:</strong> ${cargo}</div>
                 <div><strong>Carga acordada:</strong> das ${horaIni} às ${horaFim} · Intervalo: __________</div>
-                <div style="grid-column: 1 / -1; background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px; padding:10px;">
+                <div style="grid-column: 1 / -1; background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px; padding:5px 8px;">
                    <strong>Valor da diária acordado: ${diariaAcordada}</strong>
-                   <span style="color:#64748b; font-size:12px;"> (desmembramento detalhado no acerto financeiro abaixo)</span>
+                   <span style="color:#64748b; font-size:9px;"> (desmembramento detalhado no acerto financeiro abaixo)</span>
                 </div>
              </div>
           </div>
@@ -659,16 +660,17 @@ export default function RHPage() {
              </table>
           </div>
 
-          <div class="section">
+          <div class="section" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start;">
+            <div>
              <div class="section-title">Itens Disponibilizados pela Empresa</div>
-             <p style="font-size: 12px; color: #64748b; margin-bottom: 15px;"><strong>Declaro ter recebido os itens abaixo em perfeito estado</strong> para uso em serviço, e me comprometo a <strong>devolvê-los em perfeito estado, no CAIXA, ao término do turno</strong>. Em caso de perda ou dano, o valor poderá ser descontado do acerto da diária.</p>
-             
+             <p style="font-size: 9px; color: #64748b; margin: 0 0 5px;"><strong>Declaro ter recebido os itens abaixo em perfeito estado</strong> para uso em serviço, e me comprometo a <strong>devolvê-los em perfeito estado, no CAIXA, ao término do turno</strong>. Em caso de perda ou dano, o valor poderá ser descontado do acerto da diária.</p>
+
              <table>
                <thead>
                  <tr>
-                   <th style="width: 50%;">Item Emprestado</th>
-                   <th>Visto Recebimento (Início)</th>
-                   <th>Visto Devolução (Fim)</th>
+                   <th style="width: 46%;">Item Emprestado</th>
+                   <th>Visto Receb.</th>
+                   <th>Visto Devol.</th>
                  </tr>
                </thead>
                <tbody>
@@ -679,23 +681,23 @@ export default function RHPage() {
                    <td class="signature-box"></td>
                  </tr>`).join("")}
                  <tr>
-                   <td><span class="checkbox"></span> Outro: __________________</td>
+                   <td><span class="checkbox"></span> Outro: ____________</td>
                    <td class="signature-box"></td>
                    <td class="signature-box"></td>
                  </tr>
                </tbody>
             </table>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 5px; font-size: 13px;">
-               <div><strong>Itens entregues por (responsável):</strong><br/>_________________________________</div>
-               <div><strong>Local / setor da entrega:</strong><br/>_________________________________</div>
-               <div><strong>Devolução no caixa — conferida por:</strong><br/>_________________________________</div>
-               <div><strong>Horário da devolução:</strong> ____:____ &nbsp;&nbsp; <strong>Tudo em perfeito estado?</strong> <span class="checkbox"></span> Sim <span class="checkbox" style="margin-left:10px;"></span> Não</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 4px; font-size: 9px;">
+               <div><strong>Itens entregues por (responsável):</strong><br/>_______________________</div>
+               <div><strong>Local / setor da entrega:</strong><br/>_______________________</div>
+               <div><strong>Devolução no caixa — conferida por:</strong><br/>_______________________</div>
+               <div><strong>Horário da devolução:</strong> ____:____<br/><strong>Tudo em perfeito estado?</strong> <span class="checkbox"></span> Sim <span class="checkbox" style="margin-left:6px;"></span> Não</div>
             </div>
             </div>
 
-            <div class="section">
-               <div class="section-title">Acerto Financeiro (Desmembramento da Diária)</div>
+            <div>
+               <div class="section-title">Acerto Financeiro (Desmembramento)</div>
                <table>
                  <thead>
                    <tr>
@@ -743,32 +745,33 @@ export default function RHPage() {
                  </tbody>
                </table>
                
-               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; font-size: 10px;">
                   <div>
                     <strong>Forma de Pagamento:</strong><br/>
-                    <span class="checkbox" style="margin-top:5px;"></span> Pix
-                    <span class="checkbox" style="margin-top:5px; margin-left: 15px;"></span> Dinheiro
+                    <span class="checkbox" style="margin-top:3px;"></span> Pix
+                    <span class="checkbox" style="margin-top:3px; margin-left: 10px;"></span> Dinheiro
                   </div>
                   <div>
                     <strong>Assinatura de Recebimento:</strong><br/>
-                    <div style="border-bottom: 1px solid #000; width: 100%; height: 25px;"></div>
+                    <div style="border-bottom: 1px solid #000; width: 100%; height: 18px;"></div>
                   </div>
                </div>
             </div>
+            </div>
 
-            <div class="section" style="margin-top: 30px;">
-               <p style="font-size: 12px; color: #334155; border: 1px solid #cbd5e1; border-radius: 6px; padding: 12px; line-height: 1.6;">
+            <div class="section" style="margin-top: 8px;">
+               <p style="font-size: 9px; color: #334155; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 8px; line-height: 1.4; margin: 0;">
                   Declaro que <strong>li e estou de acordo</strong> com o valor da diária e seu desmembramento (valor fixo, INSS, FGTS e taxa de serviço), com a carga de trabalho acordada para o dia e com a responsabilidade pela devolução dos itens recebidos, em perfeito estado, no caixa, ao término do turno.
                </p>
-               <div style="display: flex; justify-content: space-between; gap: 40px; margin-top: 45px;">
-                  <div style="flex:1; border-top: 1px solid #000; padding-top: 5px; text-align: center; font-size: 12px;">
+               <div style="display: flex; justify-content: space-between; gap: 40px; margin-top: 28px;">
+                  <div style="flex:1; border-top: 1px solid #000; padding-top: 3px; text-align: center; font-size: 10px;">
                      Assinatura do Extra / Diarista
                   </div>
-                  <div style="flex:1; border-top: 1px solid #000; padding-top: 5px; text-align: center; font-size: 12px;">
+                  <div style="flex:1; border-top: 1px solid #000; padding-top: 3px; text-align: center; font-size: 10px;">
                      Gerente / Responsável da Empresa
                   </div>
                </div>
-               <p style="font-size: 10px; color: #94a3b8; margin-top: 20px; text-align: center;">Via única — este documento fica arquivado com a empresa.</p>
+               <p style="font-size: 8px; color: #94a3b8; margin-top: 8px; text-align: center; margin-bottom: 0;">Via única — este documento fica arquivado com a empresa.</p>
             </div>
           </body>
         </html>

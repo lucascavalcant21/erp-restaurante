@@ -106,17 +106,18 @@ export default function EspelhoDePonto() {
       </div>
 
       {/* Folha A4 */}
-      <div className="max-w-[210mm] mx-auto bg-white py-0 px-[10mm] shadow-md print:shadow-none print:p-0 print:m-0 min-h-[297mm] print:min-h-0">
+      <div className="folha-espelho max-w-[210mm] mx-auto bg-white py-0 px-[10mm] shadow-md print:shadow-none print:p-0 print:m-0 min-h-[297mm] print:min-h-0">
          <style dangerouslySetInnerHTML={{__html: `
            @media print {
-             @page { margin: 5mm; }
+             @page { size: A4 portrait; margin: 5mm; }
              body { -webkit-print-color-adjust: exact; }
+             .folha-espelho { page-break-inside: avoid; }
            }
            .tabela-ponto th, .tabela-ponto td {
-             font-size: 10px !important;
-             line-height: 1.1 !important;
+             font-size: 9px !important;
+             line-height: 1 !important;
              padding: 1px !important;
-             height: 14px !important;
+             height: 12px !important;
            }
          `}} />
          
@@ -210,9 +211,9 @@ export default function EspelhoDePonto() {
             const totalMin = bancoMes.filter(b => b.tipo !== "excesso").reduce((s, b) => s + (Number(b.minutos) || 0), 0);
             const fmtM = (m) => `${Math.floor(m / 60)}h${String(m % 60).padStart(2, "0")}`;
             return (
-               <div className="mt-6">
-                  <p className="text-[10px] font-black uppercase tracking-widest mb-1">Banco de Horas — intervalos não tirados (limite 8h/mês)</p>
-                  <table className="w-full border-collapse text-[10px]">
+               <div className="mt-2 print:mt-1">
+                  <p className="text-[9px] font-black uppercase tracking-widest mb-0.5">Banco de Horas — intervalos não tirados (limite 8h/mês)</p>
+                  <table className="w-full border-collapse text-[9px]">
                      <thead>
                         <tr className="bg-slate-100">
                            <th className="border border-slate-800 !py-1 !px-2 text-left">Data</th>
@@ -241,7 +242,7 @@ export default function EspelhoDePonto() {
          })()}
 
          {/* Assinaturas */}
-         <div className="mt-12 flex justify-between w-full px-12 text-[10px] font-bold uppercase text-center gap-10">
+         <div className="mt-6 print:mt-4 flex justify-between w-full px-12 text-[10px] font-bold uppercase text-center gap-10">
             <div className="w-[45%]">
                <div className="border-b border-slate-800 mb-1"></div>
                {colaborador.unidade?.nome ? `Responsável ${colaborador.unidade.nome}` : "Responsável pela Empresa"}
@@ -252,7 +253,7 @@ export default function EspelhoDePonto() {
             </div>
          </div>
          
-         <div className="mt-4 text-[8px] text-center text-slate-500">
+         <div className="mt-2 text-[8px] text-center text-slate-500">
             Documento gerado pelo sistema REP-A. Reconhecimento de marcação de ponto nos termos da Portaria MTP nº 671/2021.
          </div>
 

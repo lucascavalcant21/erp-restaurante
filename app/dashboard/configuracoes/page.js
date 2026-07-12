@@ -6,11 +6,14 @@ import { fetchUnidades, atualizarUnidade } from "../../lib/unidades";
 import { SkeletonList } from "../../components/ui";
 import {
   Settings, Store, Phone, Clock, Save, CheckCircle, AlertCircle, Beaker, Trash2, RefreshCw,
-  Landmark, MapPin, Mail, Loader2
+  Landmark, MapPin, Mail, Loader2, Plus, Tag
 } from "lucide-react";
 import { gerarDadosFicticios, limparAmbienteTeste } from "../../lib/mock";
 import { fetchPins, salvarPins } from "../../lib/seguranca";
-import { fetchParams, salvarParams, PARAMS_PADRAO } from "../../lib/parametros";
+import {
+  fetchParams, salvarParams, PARAMS_PADRAO,
+  fetchValidadesEtiqueta, salvarValidadesEtiqueta,
+} from "../../lib/parametros";
 import { Lock, SlidersHorizontal, Download, Smartphone } from "lucide-react";
 
 // Instalar o app no aparelho (tablet/celular/PC). Usa o instalador nativo se o
@@ -69,7 +72,6 @@ function CardInstalar() {
     </div>
   );
 }
-
 // Parâmetros ajustáveis: tolerâncias do ponto, descontos, metas... O sistema
 // passa a usar o valor novo assim que salvar.
 function CardParametros({ unidadeAtiva }) {
@@ -140,6 +142,98 @@ function CardParametros({ unidadeAtiva }) {
           </button>
           <button type="button" onClick={() => setP({ ...PARAMS_PADRAO })} className="text-xs font-bold text-slate-500 hover:text-slate-700">Voltar aos padrões</button>
           {ok && <span className="text-emerald-600 font-bold text-sm flex items-center gap-1"><CheckCircle size={15}/> Salvo — já valendo!</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Validades padrão usadas por cozinha e bar ao gerar etiquetas. Os dados são
+// persistidos por unidade no mesmo registro de configurações do sistema.
+function CardValidadesEtiquetas({ unidadeAtiva }) {
+  const [categorias, setCategorias] = useState(null);
+  const [salvando, setSalvando] = useState(false);
+  const [ok, setOk] = useState(false);
+
+  useEffect(() => {
+    if (!unidadeAtiva || unidadeAtiva === "todas") return;
+    fetchValidadesEtiqueta(unidadeAtiva).then((r) => setCategorias(r.data));
+  }, [unidadeAtiva]);
+
+  const alterar = (indice, campo, valor) => {
+    setCategorias((lista) => lista.map((item, i) => i === indice ? {
+      ...item,
+      [campo]: campo === "dias" ? valor : valor,
+    } : item));
+  };
+
+  const adicionar = () => {
+    setCategorias((lista) => [...(lista || []), {
+      id: `categoria-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      nome: "",
+      dias: 1,
+    }]);
+  };
+
+  const salvar = async () => {
+    const limpas = (categorias || []).map((item) => ({
+      ...item,
+      nome: String(item.nome || "").trim(),
+      dias: Number(item.dias),
+    }));
+    if (!limpas.length) return alert("Cadastre pelo menos uma categoria de validade.");
+    if (limpas.some((item) => !item.nome || !Number.isFinite(item.dias) || item.dias < 0)) {
+      return alert("Preencha o nome e uma quantidade válida de dias em todas as categorias.");
+    }
+    setSalvando(true);
+    const { error, data } = await salvarValidadesEtiqueta(unidadeAtiva, limpas);
+    setSalvando(false);
+    if (error) return alert("Erro ao salvar as validades: " + error);
+    setCategorias(data);
+    setOk(true); setTimeout(() => setOk(false), 2500);
+  };
+
+  if (!categorias) return null;
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-6">
+      <div className="bg-slate-50 border-b border-slate-100 p-4 flex items-center gap-2">
+        <Tag size={18} className="text-emerald-600" />
+        <div>
+          <h2 className="font-bold text-slate-800">Validades padrão das etiquetas</h2>
+          <p className="text-[11px] text-slate-500 font-medium">Defina uma vez por unidade; cozinha e bar usam estas opções automaticamente.</p>
+        </div>
+      </div>
+      <div className="p-6 space-y-3">
+        {categorias.map((item, indice) => (
+          <div key={item.id} className="grid grid-cols-[1fr_110px_40px] gap-2 items-end">
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Categoria</label>
+              <input value={item.nome} onChange={(e) => alterar(indice, "nome", e.target.value)}
+                placeholder="Ex.: Molhos e bases"
+                className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500" />
+            </div>
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Validade (dias)</label>
+              <input type="number" min="0" max="3650" value={item.dias}
+                onChange={(e) => alterar(indice, "dias", e.target.value)}
+                className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-slate-700 outline-none focus:border-emerald-500" />
+            </div>
+            <button type="button" onClick={() => setCategorias((lista) => lista.filter((_, i) => i !== indice))}
+              title="Remover categoria" className="h-11 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center">
+              <Trash2 size={16} />
+            </button>
+          </div>
+        ))}
+        <button type="button" onClick={adicionar}
+          className="text-sm font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1.5 py-2">
+          <Plus size={16} /> Adicionar categoria
+        </button>
+        <div className="flex items-center gap-3 pt-2">
+          <button type="button" onClick={salvar} disabled={salvando}
+            className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 px-6 rounded-xl flex items-center gap-2 disabled:opacity-50">
+            {salvando ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Salvar validades
+          </button>
+          {ok && <span className="text-emerald-600 font-bold text-sm flex items-center gap-1"><CheckCircle size={15}/> Salvo — já disponível nas etiquetas!</span>}
         </div>
       </div>
     </div>
@@ -222,7 +316,7 @@ const mascaraCNPJ = (v) => {
 };
 
 export default function ConfiguracoesPage() {
-  const { unidadeAtiva } = useERP();
+  const { unidadeAtiva, recarregarUnidades } = useERP();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -282,7 +376,10 @@ export default function ConfiguracoesPage() {
     const { error } = await atualizarUnidade(unidadeAtiva, updates);
     setSaving(false);
     if (error) alert("Erro ao salvar: " + error);
-    else { setSucesso(true); setTimeout(() => setSucesso(false), 3000); }
+    else {
+      await recarregarUnidades();
+      setSucesso(true); setTimeout(() => setSucesso(false), 3000);
+    }
   };
 
   const [mockLoading, setMockLoading] = useState(false);
@@ -441,6 +538,9 @@ export default function ConfiguracoesPage() {
         </div>
 
       </form>
+
+      {/* Categorias e dias padrão usados na geração de etiquetas */}
+      <CardValidadesEtiquetas unidadeAtiva={unidadeAtiva} />
 
       {/* Senhas e PINs do sistema */}
       <CardSenhas unidadeAtiva={unidadeAtiva} />

@@ -18,13 +18,16 @@ export function gerarCodigo() {
   return (Date.now().toString(36) + Math.random().toString(36).slice(2, 5)).toUpperCase();
 }
 
-// Coluna ainda não migrada (ex: copias, tipo_etiqueta)? Remove do payload e
-// tenta de novo — o salvar nunca quebra por falta de migração.
+const COLUNAS_OPCIONAIS_ETIQUETA = new Set(["copias", "tipo_etiqueta"]);
+
+// Coluna opcional ainda não migrada? Remove do payload e tenta de novo.
+// Campos essenciais nunca são descartados silenciosamente.
 async function etqRetrySemColuna(error, tentar, campos, n = 0) {
   const m = error?.message || "";
   const match = m.match(/column "?([a-z_]+)"? (?:of relation "etiquetas" )?does not exist/i)
     || (m.includes("Could not find") && m.match(/'([a-z_]+)' column/i));
-  if (error && match && n < 6 && match[1] in campos) {
+  if (error && match && n < COLUNAS_OPCIONAIS_ETIQUETA.size
+    && COLUNAS_OPCIONAIS_ETIQUETA.has(match[1]) && match[1] in campos) {
     delete campos[match[1]];
     return etqRetrySemColuna(await tentar(), tentar, campos, n + 1);
   }

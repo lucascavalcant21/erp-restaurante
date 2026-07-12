@@ -28,6 +28,13 @@ export function ERPProvider({ children }) {
   const abrirMenu = useCallback(() => setMegaMenuOpen(true), []);
   const fecharMenu = useCallback(() => setMegaMenuOpen(false), []);
 
+  const recarregarUnidades = useCallback(async () => {
+    const { data } = await fetchUnidades();
+    const lista = data || [];
+    setUnidades(lista);
+    return lista;
+  }, []);
+
   useEffect(() => {
     let vivo = true;
     Promise.all([fetchUnidades(), lerSessao()]).then(([resUnidades, sessaoObj]) => {
@@ -163,7 +170,7 @@ export function ERPProvider({ children }) {
   return (
     <ERPContext.Provider value={{
       sessao,
-      unidades, unidadeAtiva, setUnidadeAtiva, podeTrocar,
+      unidades, unidadeAtiva, setUnidadeAtiva, podeTrocar, recarregarUnidades,
       unidadeInfo: getUnidade(unidades, unidadeAtiva),
       departamento, setDepartamento,
       estoque, setEstoque, estoqueReady,

@@ -12,6 +12,13 @@ function fmtDataHora(iso) {
   return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} às ${p(d.getHours())}h${p(d.getMinutes())}`;
 }
 
+function fmtData(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  const p = (n) => String(n).padStart(2, "0");
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`;
+}
+
 export default function RastreioPage() {
   const { codigo } = useParams();
   const [et, setEt] = useState(null);
@@ -22,6 +29,7 @@ export default function RastreioPage() {
   const vencido = et && et.validade_em && new Date(et.validade_em) < new Date();
   const dias = et && et.validade_em ? Math.floor((new Date(et.validade_em).getTime() - Date.now()) / 86400000) : null;
   const textoDias = dias === null ? "" : dias < 0 ? `Vencido há ${Math.abs(dias)} dia${Math.abs(dias) !== 1 ? "s" : ""}` : dias === 0 ? "Vence hoje" : `Faltam ${dias} dia${dias !== 1 ? "s" : ""}`;
+  const etiquetaFechada = et?.tipo_etiqueta === "fechado" || et?.tipo_etiqueta === "dia";
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-5 py-10" style={{ background: "var(--surface)" }}>
@@ -54,8 +62,8 @@ export default function RastreioPage() {
             <div className="p-4 space-y-0">
               <Linha k="Conservação" v={et.conservacao} />
               <Linha k="Quantidade" v={`${et.quantidade} ${et.unidade || ""}`} />
-              <Linha k="Manipulação" v={fmtDataHora(et.manipulacao_em)} />
-              <Linha k="Validade" v={fmtDataHora(et.validade_em)} forte cor={vencido ? "#DC2626" : "var(--accent-fg)"} />
+              <Linha k={etiquetaFechada ? "Etiquetado em" : "Manipulação"} v={etiquetaFechada ? fmtData(et.manipulacao_em) : fmtDataHora(et.manipulacao_em)} />
+              <Linha k="Validade" v={etiquetaFechada ? fmtData(et.validade_em) : fmtDataHora(et.validade_em)} forte cor={vencido ? "#DC2626" : "var(--accent-fg)"} />
               {et.lote && <Linha k="Lote / SIF" v={et.lote} />}
               <Linha k="Responsável" v={et.responsavel} />
               <Linha k="Código" v={et.codigo} />

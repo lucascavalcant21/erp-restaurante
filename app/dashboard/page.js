@@ -19,6 +19,7 @@ import { fetchManutencoes } from "../lib/controles_cozinha";
 import { fetchCampanhas } from "../lib/clientes";
 import { fetchTemplates, fetchHistoricoExecucoes } from "../lib/checklists";
 import { fetchParams, PARAMS_PADRAO } from "../lib/parametros";
+import { useTempoReal } from "../lib/realtime";
 
 // Meta de CMV: ajustável em Configurações > Parâmetros (metaCmv)
 
@@ -80,6 +81,9 @@ export default function DashboardGestao() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [dados, setDados] = useState(null);
+  const [versaoDados, setVersaoDados] = useState(0);
+  // Tempo real: qualquer lançamento no sistema atualiza o painel sozinho
+  useTempoReal(null, () => setVersaoDados(v => v + 1));
   const [metaCmv, setMetaCmv] = useState(PARAMS_PADRAO.meta_cmv);
   useEffect(() => { if (unidadeAtiva && unidadeAtiva !== "todas") fetchParams(unidadeAtiva).then(r => setMetaCmv(r.data.meta_cmv)); }, [unidadeAtiva]);
 
@@ -87,7 +91,7 @@ export default function DashboardGestao() {
     if (!unidadeAtiva || unidadeAtiva === "todas") { setLoading(false); setDados(null); return; }
     let vivo = true;
     (async () => {
-      setLoading(true);
+      if (!dados) setLoading(true); // recargas do tempo real são silenciosas
       const hojeISO = new Date().toISOString().split("T")[0];
       const [rF, rP, rColab, rFolgas, rContas, rEstoque, rManut, rCamp, rBanco, rTpl, rExec] = await Promise.all([
         fetchFichas(unidadeAtiva), fetchProdutos(unidadeAtiva), fetchColaboradores(unidadeAtiva),
@@ -107,7 +111,7 @@ export default function DashboardGestao() {
       setLoading(false);
     })();
     return () => { vivo = false; };
-  }, [unidadeAtiva]);
+  }, [unidadeAtiva, versaoDados]);
 
   const m = useMemo(() => {
     if (!dados) return null;

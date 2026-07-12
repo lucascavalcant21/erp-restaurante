@@ -20,6 +20,7 @@ import { calcularAdicionaisMes } from "../../lib/rh";
 import { salvarConta, fetchContas, fetchLancamentos } from "../../lib/financeiro";
 import { fetchCardapio } from "../../lib/cardapio";
 import { fetchParams, PARAMS_PADRAO } from "../../lib/parametros";
+import { useTempoReal } from "../../lib/realtime";
 
 // Desconto do funcionário sobre o valor de cardápio (funcionário paga o restante)
 // Desconto do funcionário: ajustável em Configurações > Parâmetros (paramsSis)
@@ -223,8 +224,8 @@ export default function RHPage() {
   const [novoConsumo, setNovoConsumo] = useState(stateConsumo);
   const [loadingConsumo, setLoadingConsumo] = useState(false);
 
-  const carregar = async () => {
-    setLoading(true);
+  const carregar = async (silencioso = false) => {
+    if (!silencioso) setLoading(true);
     const mesAtual = new Date().toISOString().slice(0, 7);
     const [resRh, resPonto, resCargos, resBanco, resVales, resPontosMes, resFeriadosMes, resFolgas] = await Promise.all([
       fetchColaboradores(unidadeAtiva),
@@ -382,6 +383,9 @@ export default function RHPage() {
   useEffect(() => {
     if (unidadeAtiva) carregar();
   }, [unidadeAtiva]);
+
+  // Tempo real: lançamentos (ponto, vales, folgas, contas...) aparecem sozinhos
+  useTempoReal(["colaboradores", "registro_ponto", "rh_consumo_funcionarios", "rh_banco_horas", "rh_folgas_esporadicas", "lancamentos", "contas_pagar", "documentos_rh"], () => { if (unidadeAtiva) carregar(true); });
 
   // --- Banco de Horas ---
   const fmtMin = (m) => `${Math.floor(m / 60)}h${String(Math.round(m) % 60).padStart(2, "0")}`;

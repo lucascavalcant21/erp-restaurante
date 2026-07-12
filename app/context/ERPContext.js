@@ -5,12 +5,15 @@ import { fetchEstoque } from "../lib/estoque";
 import { fetchEtiquetas } from "../lib/etiquetas";
 import { fetchUnidades, unidadeDaSessao, podeVerTodas, getUnidade } from "../lib/unidades";
 import { lerSessao } from "../lib/auth";
+import { iniciarTempoReal } from "../lib/realtime";
 
 const UNIDADE_KEY = "erp_unidade_ativa";
 
 const ERPContext = createContext(null);
 
 export function ERPProvider({ children }) {
+  // Tempo real: o banco avisa e as telas recarregam sozinhas
+  useEffect(() => { iniciarTempoReal(); }, []);
   const [estoque,      setEstoque]      = useState([]);
   const [estoqueReady, setEstoqueReady] = useState(false);
   const [notificacoes, setNotificacoes] = useState([]);

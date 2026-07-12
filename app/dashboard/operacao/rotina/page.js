@@ -12,6 +12,7 @@ import {
 import { useERP } from "../../../context/ERPContext";
 import { fetchTemplates, salvarExecucao, fetchHistoricoExecucoes, fetchExecucoesMes } from "../../../lib/checklists";
 import { fetchColaboradores } from "../../../lib/rh";
+import { useTempoReal } from "../../../lib/realtime";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
@@ -98,8 +99,8 @@ function RotinaRunner() {
 
   const t = TEMAS[dept];
 
-  const carregar = async () => {
-    setLoading(true);
+  const carregar = async (silencioso = false) => {
+    if (!silencioso) setLoading(true);
     const hoje = new Date().toISOString().split("T")[0];
     // Carrega TODOS os setores de uma vez: alimenta a lista do setor ativo e
     // as porcentagens de progresso nas abas Cozinha/Bar/Salão
@@ -117,6 +118,11 @@ function RotinaRunner() {
   useEffect(() => {
     if (unidadeAtiva && unidadeAtiva !== "todas") carregar();
   }, [unidadeAtiva]);
+
+  // Tempo real: checklist marcado em outro aparelho atualiza aqui sozinho
+  useTempoReal(["checklists_execucoes", "checklists_templates", "colaboradores"], () => {
+    if (unidadeAtiva && unidadeAtiva !== "todas") carregar(true);
+  });
 
   // Derivados por setor
   const templates = templatesAll.filter(t => t.departamento === dept);

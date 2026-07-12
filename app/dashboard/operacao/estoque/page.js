@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchEstoque, ajustarEstoque, atualizarMinimoInsumo } from "../../../lib/estoque";
 import { fetchParams, PARAMS_PADRAO } from "../../../lib/parametros";
+import { useTempoReal } from "../../../lib/realtime";
 import { PackageSearch, Edit3, X, Save, ArrowLeft, RefreshCw, AlertCircle, Search, Plus, TrendingUp, Printer } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
@@ -29,8 +30,8 @@ function EstoqueRunner() {
   const [qtdEntrada, setQtdEntrada] = useState("");
   const [valorEntrada, setValorEntrada] = useState("");
 
-  const carregar = async () => {
-    setLoading(true);
+  const carregar = async (silencioso = false) => {
+    if (!silencioso) setLoading(true);
     const { data } = await fetchEstoque(unidadeAtiva, deptUrl);
     setItens(data);
     setLoading(false);
@@ -39,6 +40,9 @@ function EstoqueRunner() {
   useEffect(() => {
     if (unidadeAtiva) carregar();
   }, [unidadeAtiva, deptUrl]);
+
+  // Tempo real: entradas, baixas e produções atualizam os saldos sozinhos
+  useTempoReal(["estoque_atual", "insumos", "producao_diaria"], () => { if (unidadeAtiva) carregar(true); });
 
   const filtrados = itens.filter(i => i.nome.toLowerCase().includes(busca.toLowerCase()));
 

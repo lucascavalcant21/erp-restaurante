@@ -11,6 +11,7 @@ import { fetchColaboradores, inserirBancoHoras, fetchBancoHorasColaborador, soma
 import { fetchPontoHoje, fetchHistoricoPonto, registrarBatida, pularIntervalo } from "../../../lib/ponto";
 import { fetchPins } from "../../../lib/seguranca";
 import { fetchParams, PARAMS_PADRAO } from "../../../lib/parametros";
+import { useTempoReal } from "../../../lib/realtime";
 
 const fmtMin = (m) => `${Math.floor(m / 60)}h${String(Math.round(m) % 60).padStart(2, "0")}`;
 const horaDe = (iso) => iso ? new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : null;
@@ -258,8 +259,8 @@ export default function PontoPage() {
     };
   }, [kiosk]);
 
-  const carregar = useCallback(async () => {
-    setLoading(true);
+  const carregar = useCallback(async (silencioso = false) => {
+    if (!silencioso) setLoading(true);
     const [rColab, rPontos, rFolgas] = await Promise.all([
       fetchColaboradores(unidadeAtiva),
       fetchPontoHoje(unidadeAtiva),
@@ -270,6 +271,9 @@ export default function PontoPage() {
     setFolgas(rFolgas.data || []);
     setLoading(false);
   }, [unidadeAtiva]);
+
+  // Tempo real: batida em QUALQUER aparelho aparece aqui na hora, sem atualizar
+  useTempoReal(["registro_ponto", "colaboradores", "rh_folgas_esporadicas", "rh_banco_horas"], () => carregar(true));
 
   useEffect(() => {
     if (unidadeAtiva) carregar();

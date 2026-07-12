@@ -709,6 +709,10 @@ function MontagemPageInner() {
   const [editar, setEditar] = useState(null);
   const [previewFicha, setPreviewFicha] = useState(null); // estado vivo do formulário p/ prévia
   const [modalImpressao, setModalImpressao] = useState(false); // impressão em lote
+  // Seleção de fichas para imprimir juntas (ex.: 2 receitas na mesma página)
+  const [selecionadas, setSelecionadas] = useState([]);
+  const toggleSel = (id) => setSelecionadas(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
+  useEffect(() => { setSelecionadas([]); }, [dept]);
   const [salvou, setSalvou] = useState("");
   const [porFolha, setPorFolha] = useState(4); // fichas por página na impressão
 
@@ -768,6 +772,9 @@ function MontagemPageInner() {
     return mb && mt;
   }), [lista, busca, tipo]);
 
+  // O que vai pra impressora: as marcadas nos cards; sem marcação, as filtradas
+  const alvoImpressao = selecionadas.length ? lista.filter(m => selecionadas.includes(m.id)) : filtrados;
+
   async function salvar(dados) {
     if (editar) {
       await atualizarMontagem(editar.id, dados);
@@ -793,7 +800,7 @@ function MontagemPageInner() {
   return (
     <div className="min-h-screen">
       <PageHeader title={titulo} subtitle={subtitle} icon={ClipboardList} onAction={() => { setEditar(null); setModal(true); }} actionLabel="Nova Ficha">
-        <button onClick={() => setModalImpressao(true)} className="erp-btn erp-btn-ghost !h-9 text-xs"><Printer size={14} /> Impressão</button>
+        <button onClick={() => setModalImpressao(true)} className="erp-btn erp-btn-ghost !h-9 text-xs"><Printer size={14} /> Impressão{selecionadas.length ? ` (${selecionadas.length})` : ""}</button>
       </PageHeader>
       <PageBody>
         <Toast show={!!salvou}>{salvou}</Toast>
@@ -826,6 +833,10 @@ function MontagemPageInner() {
                   
                   {/* Foto de Capa / Layout Central */}
                   <div className="w-full h-40 bg-slate-100 relative">
+                    {/* Seleção p/ imprimir juntas (ex.: 2 receitas na mesma página) */}
+                    <label className="absolute top-3 left-3 z-10 bg-white/90 backdrop-blur rounded-md p-1 cursor-pointer shadow-sm" title="Selecionar para impressão">
+                      <input type="checkbox" checked={selecionadas.includes(m.id)} onChange={() => toggleSel(m.id)} className="w-5 h-5 accent-emerald-600 block cursor-pointer" />
+                    </label>
                     {m.foto_url ? (
                       <img src={m.foto_url} alt={m.nome} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
                     ) : (
@@ -871,10 +882,15 @@ function MontagemPageInner() {
       {modalImpressao && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={() => setModalImpressao(false)}>
           <div className="erp-card w-full max-w-lg max-h-[85vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-1">
               <h3 className="text-lg font-black flex items-center gap-2" style={{ color: "var(--fg)" }}><Printer size={18} /> Impressão das fichas</h3>
               <button onClick={() => setModalImpressao(false)} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "var(--elevated)", color: "var(--muted)" }}>×</button>
             </div>
+            <p className="text-[11px] font-medium mb-4" style={{ color: "var(--dim)" }}>
+              {selecionadas.length
+                ? `Imprimindo as ${alvoImpressao.length} ficha(s) MARCADAS nos cards (desmarque para voltar a todas).`
+                : "Marque fichas nos cards para imprimir só algumas (ex.: 2 receitas na mesma página)."}
+            </p>
 
             {/* Padrão: várias por folha, com passo a passo */}
             <div className="rounded-2xl border p-4 mb-4" style={{ borderColor: "var(--line)" }}>
@@ -889,8 +905,8 @@ function MontagemPageInner() {
                   </button>
                 ))}
               </div>
-              <Btn variant="primary" className="!h-9 text-xs w-full" onClick={() => imprimirLote(filtrados, porFolha, dept === "bar" ? "Bar" : "Cozinha")}>
-                <Printer size={14} /> Imprimir {filtrados.length} ficha{filtrados.length !== 1 ? "s" : ""}
+              <Btn variant="primary" className="!h-9 text-xs w-full" onClick={() => imprimirLote(alvoImpressao, porFolha, dept === "bar" ? "Bar" : "Cozinha")}>
+                <Printer size={14} /> Imprimir {alvoImpressao.length} ficha{alvoImpressao.length !== 1 ? "s" : ""}
               </Btn>
             </div>
 
@@ -916,8 +932,8 @@ function MontagemPageInner() {
                   </button>
                 ))}
               </div>
-              <Btn variant="ghost" className="!h-9 text-xs w-full" onClick={() => imprimirModelo(filtrados, cfgModelo, dept === "bar" ? "Bar" : "Cozinha")}>
-                <Printer size={14} /> Imprimir modelo ({filtrados.length})
+              <Btn variant="ghost" className="!h-9 text-xs w-full" onClick={() => imprimirModelo(alvoImpressao, cfgModelo, dept === "bar" ? "Bar" : "Cozinha")}>
+                <Printer size={14} /> Imprimir modelo ({alvoImpressao.length})
               </Btn>
             </div>
           </div>
@@ -967,13 +983,13 @@ function MontagemPageInner() {
                             <div className="flex justify-between text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: "var(--muted)" }}>
                                <span>Título</span><span>{cfgModelo.tituloPx}px</span>
                             </div>
-                            <input type="range" min="18" max="56" step="2" value={cfgModelo.tituloPx} onChange={e => mudarCfg({ tituloPx: Number(e.target.value) })} className="w-full accent-emerald-600" />
+                            <input type="range" min="18" max="72" step="2" value={cfgModelo.tituloPx} onChange={e => mudarCfg({ tituloPx: Number(e.target.value) })} className="w-full accent-emerald-600" />
                          </div>
                          <div>
                             <div className="flex justify-between text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: "var(--muted)" }}>
                                <span>Texto</span><span>{cfgModelo.textoPx}px</span>
                             </div>
-                            <input type="range" min="10" max="26" step="1" value={cfgModelo.textoPx} onChange={e => mudarCfg({ textoPx: Number(e.target.value) })} className="w-full accent-emerald-600" />
+                            <input type="range" min="10" max="48" step="1" value={cfgModelo.textoPx} onChange={e => mudarCfg({ textoPx: Number(e.target.value) })} className="w-full accent-emerald-600" />
                          </div>
                       </div>
                       <div className="flex flex-wrap items-center gap-3">

@@ -66,6 +66,16 @@ function EtiquetasRunner() {
     ? { h: "40mm", pad: "2.5mm", titulo: "3.8mm", linha: "2.5mm", resp: "2.4mm", qr: 42, gap: "0.5mm" }
     : { h: "60mm", pad: "3.5mm", titulo: "4.6mm", linha: "3mm",   resp: "2.8mm", qr: 64, gap: "0.8mm" };
 
+  // Endereço fiscal da unidade (Configurações da Loja) — sai no rodapé da etiqueta
+  const endLinha1 = [
+    [unidadeInfo?.endereco, unidadeInfo?.numero].filter(Boolean).join(", "),
+    unidadeInfo?.bairro,
+  ].filter(Boolean).join(" - ").toUpperCase();
+  const endLinha2 = [
+    unidadeInfo?.cep ? `CEP ${unidadeInfo.cep}` : null,
+    [unidadeInfo?.cidade, unidadeInfo?.uf].filter(Boolean).join("/"),
+  ].filter(Boolean).join(" - ").toUpperCase();
+
   useEffect(() => {
     lerSessao().then((s) => s?.nome && setForm((f) => ({ ...f, responsavel: f.responsavel || s.nome })));
     try {
@@ -338,9 +348,11 @@ function EtiquetasRunner() {
                     <div style={{ flex: 1, minHeight: "1mm" }} />
                     {/* rodapé: empresa (esq) + QR encaixado (dir) */}
                     <div style={{ borderTop: "0.5mm solid #000", paddingTop: dim.gap, display: "flex", justifyContent: "space-between", alignItems: "flex-end", fontSize: dim.resp, fontWeight: 700, gap: "2mm" }}>
-                      <div style={{ minWidth: 0, lineHeight: 1.35 }}>
-                        {cnpj && <div>CNPJ: {fmtCNPJ(cnpj)}</div>}
+                      <div style={{ minWidth: 0, lineHeight: 1.3 }}>
                         <div>{(unidadeInfo.nome || "").toUpperCase()}</div>
+                        {cnpj && <div>CNPJ: {fmtCNPJ(cnpj)}</div>}
+                        {endLinha1 && <div>{endLinha1}</div>}
+                        {endLinha2 && <div>{endLinha2}</div>}
                         <div style={{ opacity: 0.7 }}>#{codigo}</div>
                       </div>
                       <div style={{ flexShrink: 0, lineHeight: 0 }}>

@@ -117,11 +117,16 @@ const ETAPAS = [
   { id: "saida_trabalho", label: "Saída do Trabalho", icon: LogOut, campo: "hora_saida" },
 ];
 
-// Horário de entrada do dia (usa o de domingo quando for domingo)
+// Horários do dia (domingo pode ter turno diferente do resto da semana)
 function entradaDoDia(c, base) {
   if (!c) return null;
   const dom = base.getDay() === 0;
   return (dom ? (c.horario_dom_entrada || c.horario_entrada) : c.horario_entrada) || null;
+}
+function saidaDoDia(c, base) {
+  if (!c) return null;
+  const dom = base.getDay() === 0;
+  return (dom ? (c.horario_dom_saida || c.horario_saida) : c.horario_saida) || null;
 }
 
 // Está de folga hoje? (folga semanal via dias_trabalho + folga esporádica)
@@ -391,7 +396,7 @@ export default function PontoPage() {
     // (turnos que viram a meia-noite: testa a previsão em ±1 dia e usa a mais próxima)
     if (etapa === "saida_trabalho") {
       const dom = agora.getDay() === 0;
-      const saidaStr = (dom ? (selecionado.horario_dom_saida || selecionado.horario_saida) : selecionado.horario_saida) || null;
+      const saidaStr = saidaDoDia(selecionado, agora);
       if (saidaStr) {
         const cands = [-1, 0, 1].map(d => { const c = comHora(agora, saidaStr); c.setDate(c.getDate() + d); return c; });
         const prevista = cands.reduce((a, b) => Math.abs(agora - b) < Math.abs(agora - a) ? b : a);
@@ -525,7 +530,7 @@ export default function PontoPage() {
             <div className="flex-1 min-w-0">
               <h2 className="text-xl md:text-2xl font-black text-white leading-tight break-words">{selecionado.nome}</h2>
               <p className="text-slate-400 font-bold text-sm">{selecionado.cargo || "—"} · {unidadeInfo?.nome}</p>
-              {entradaStr && <p className="text-slate-500 font-bold text-xs mt-0.5">Horário de entrada: {entradaStr}{selecionado.horario_saida ? ` — ${selecionado.horario_saida}` : ""}</p>}
+              {entradaStr && <p className="text-slate-500 font-bold text-xs mt-0.5">Horário de entrada: {entradaStr}{saidaDoDia(selecionado, horaLocal) ? ` — ${saidaDoDia(selecionado, horaLocal)}` : ""}</p>}
             </div>
             <div className={`text-right px-4 py-2 rounded-2xl border shrink-0 ${totalBancoMes >= BANCO_LIMITE_MIN ? "bg-red-500/10 border-red-500/40" : totalBancoMes >= BANCO_ALERTA_MIN ? "bg-amber-500/10 border-amber-500/40" : "bg-slate-800 border-slate-700"}`}>
               <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1"><Hourglass size={10} /> Banco de horas</p>
@@ -707,7 +712,7 @@ export default function PontoPage() {
             {reg?.hora_entrada && !concluido ? <><Clock size={11} /> Próx: {ETAPAS.find(e => e.id === etapa)?.label}</> : info.folga ? <><Ban size={11} /> Folga hoje</> : faltou ? <><Ban size={11} /> Falta — não bateu até {entradaStr}+{cfgP.limite_atraso}min</> : concluido ? <><CheckCircle2 size={11} /> Jornada concluída</> : <><LogIn size={11} /> Aguardando entrada</>}
           </div>
           {entradaStr && !info.folga && (
-            <span className="text-[10px] font-bold text-slate-600">{entradaStr}{c.horario_saida ? `–${c.horario_saida}` : ""}</span>
+            <span className="text-[10px] font-bold text-slate-600">{entradaStr}{saidaDoDia(c, horaLocal) ? `–${saidaDoDia(c, horaLocal)}` : ""}</span>
           )}
         </div>
       </button>

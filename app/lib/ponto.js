@@ -1,22 +1,51 @@
 import { supabase, isSupabaseReady } from "./supabase";
 
+// Data local (São Paulo) em YYYY-MM-DD, com deslocamento opcional de dias
+function dataLocalISO(offsetDias = 0) {
+  const d = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+  d.setDate(d.getDate() + offsetDias);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+
+// Jornada da VÉSPERA ainda aberta (turno que virou a meia-noite): tem entrada,
+// não tem saída, e a entrada foi há menos de 20h (não confunde com dia esquecido).
+function jornadaAbertaDeOntem(reg) {
+  if (!reg || !reg.hora_entrada || reg.hora_saida) return false;
+  return (Date.now() - new Date(reg.hora_entrada).getTime()) < 20 * 3600000;
+}
+
 export async function fetchPontoHoje(unidadeId) {
   if (!isSupabaseReady()) return { data: [] };
-  const dataLocal = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
-  const hoje = dataLocal.getFullYear() + "-" + String(dataLocal.getMonth() + 1).padStart(2, '0') + "-" + String(dataLocal.getDate()).padStart(2, '0');
-  
+  const hoje = dataLocalISO(0);
+  const ontem = dataLocalISO(-1);
+
+  // Busca hoje E ontem: quem trabalha até depois da meia-noite continua na
+  // jornada de ontem (sem isso, à 00h o sistema pedia ENTRADA de novo e a
+  // saída ficava sem registro).
   const { data, error } = await supabase
     .from("registro_ponto")
     .select("*")
     .eq("unidade_id", unidadeId)
-    .eq("data_referencia", hoje)
+    .in("data_referencia", [hoje, ontem])
     .order("created_at", { ascending: false });
-    
+
   if (error) {
     console.error("Erro ao buscar pontos:", error);
     return { data: [] };
   }
-  return { data };
+
+  // Um registro por colaborador: o de HOJE vence; sem hoje, vale o de ontem
+  // apenas se a jornada ainda estiver aberta (madrugada do turno noturno).
+  const porColab = {};
+  (data || []).forEach(r => {
+    const atual = porColab[r.colaborador_id];
+    if (r.data_referencia === hoje) {
+      if (!atual || atual.data_referencia !== hoje) porColab[r.colaborador_id] = r;
+    } else if (!atual && jornadaAbertaDeOntem(r)) {
+      porColab[r.colaborador_id] = r;
+    }
+  });
+  return { data: Object.values(porColab) };
 }
 
 export async function fetchHistoricoPonto(colaboradorId) {
@@ -82,16 +111,17 @@ export async function fetchPontosMesUnidade(unidadeId, anoMes) {
 // é a saída. Os minutos não tirados vão para o banco de horas (feito na tela).
 export async function pularIntervalo(colaboradorId) {
   if (!isSupabaseReady()) return { error: "Offline" };
-  const dataLocal = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
-  const hoje = dataLocal.getFullYear() + "-" + String(dataLocal.getMonth() + 1).padStart(2, '0') + "-" + String(dataLocal.getDate()).padStart(2, '0');
+  const hoje = dataLocalISO(0);
+  const ontem = dataLocalISO(-1);
   const { data: registros } = await supabase
     .from("registro_ponto")
-    .select("id, hora_entrada")
+    .select("id, hora_entrada, hora_saida, data_referencia")
     .eq("colaborador_id", colaboradorId)
-    .eq("data_referencia", hoje)
-    .order("created_at", { ascending: false })
-    .limit(1);
-  const registro = registros?.[0];
+    .in("data_referencia", [hoje, ontem])
+    .order("data_referencia", { ascending: false });
+  // Hoje primeiro; senão a jornada de ontem ainda aberta (madrugada)
+  const registro = (registros || []).find(r => r.data_referencia === hoje)
+    || (registros || []).find(r => r.data_referencia === ontem && jornadaAbertaDeOntem(r));
   if (!registro || !registro.hora_entrada) return { error: "Precisa bater a entrada primeiro." };
   const { error } = await supabase.from("registro_ponto")
     .update({ status_jornada: 3 })
@@ -103,20 +133,30 @@ export async function pularIntervalo(colaboradorId) {
 // ex.: bateu 15:39 com turno 15:40 => grava 15:40. Sem ela, usa a hora real.
 export async function registrarBatida(colaboradorId, unidadeId, tipoBatida, horaMarcada = null) {
   if (!isSupabaseReady()) return { error: "Offline" };
-  const dataLocal = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
-  const hoje = dataLocal.getFullYear() + "-" + String(dataLocal.getMonth() + 1).padStart(2, '0') + "-" + String(dataLocal.getDate()).padStart(2, '0');
+  const hoje = dataLocalISO(0);
+  const ontem = dataLocalISO(-1);
   const agora = horaMarcada || new Date().toISOString();
-  
-  // Buscar se já tem registro hoje
+
+  // Busca o registro de hoje E o de ontem (turno noturno que virou a madrugada)
   let { data: registros, error: err } = await supabase
     .from("registro_ponto")
     .select("*")
     .eq("colaborador_id", colaboradorId)
-    .eq("data_referencia", hoje)
-    .order("created_at", { ascending: false })
-    .limit(1);
-    
-  let registro = registros && registros.length > 0 ? registros[0] : null;
+    .in("data_referencia", [hoje, ontem])
+    .order("data_referencia", { ascending: false });
+
+  const regHoje = (registros || []).find(r => r.data_referencia === hoje) || null;
+  const regOntem = (registros || []).find(r => r.data_referencia === ontem) || null;
+
+  // Sem registro hoje mas com a jornada de ONTEM aberta: as batidas continuam
+  // nela (a saída depois da meia-noite fecha o dia de ontem, não abre um novo).
+  let registro = regHoje;
+  if (!registro && jornadaAbertaDeOntem(regOntem)) {
+    if (tipoBatida === "entrada") {
+      return { error: "A jornada de ontem ainda está aberta — bata a SAÍDA DO TRABALHO para encerrá-la antes de iniciar um novo dia." };
+    }
+    registro = regOntem;
+  }
     
   let updates = {};
   let novoStatus = 0;

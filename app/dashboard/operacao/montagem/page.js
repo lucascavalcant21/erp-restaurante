@@ -232,10 +232,11 @@ function EditorCamadas({ camadas, setCamadas }) {
 // =========================================================================
 // PRÉVIA DA FICHA IMPRESSA (Modelo com foto) — espelha imprimirModelo
 // =========================================================================
-function PreviaModeloChef({ m }) {
-  // Usa os mesmos ajustes salvos do "Modelo com foto" (escala reduzida p/ tela)
+function PreviaModeloChef({ m, cfg: cfgProp }) {
+  // Ajustes do "Modelo com foto": vem por prop (ao vivo no Editar) ou do salvo
   let cfg = { fotoPct: 80, tituloPx: 34, textoPx: 15, tituloNegrito: true, textoNegrito: false };
-  try {
+  if (cfgProp) cfg = { ...cfg, ...cfgProp };
+  else try {
     const salvo = typeof window !== "undefined" && localStorage.getItem("hefisto_modelo_montagem");
     if (salvo) cfg = { ...cfg, ...JSON.parse(salvo) };
   } catch {}
@@ -698,6 +699,7 @@ function MontagemPageInner() {
   const [modal, setModal] = useState(false);
   const [editar, setEditar] = useState(null);
   const [previewFicha, setPreviewFicha] = useState(null); // estado vivo do formulário p/ prévia
+  const [modalImpressao, setModalImpressao] = useState(false); // impressão em lote
   const [salvou, setSalvou] = useState("");
   const [porFolha, setPorFolha] = useState(4); // fichas por página na impressão
 
@@ -781,7 +783,9 @@ function MontagemPageInner() {
 
   return (
     <div className="min-h-screen">
-      <PageHeader title={titulo} subtitle={subtitle} icon={ClipboardList} onAction={() => { setEditar(null); setModal(true); }} actionLabel="Nova Ficha" />
+      <PageHeader title={titulo} subtitle={subtitle} icon={ClipboardList} onAction={() => { setEditar(null); setModal(true); }} actionLabel="Nova Ficha">
+        <button onClick={() => setModalImpressao(true)} className="erp-btn erp-btn-ghost !h-9 text-xs"><Printer size={14} /> Impressão</button>
+      </PageHeader>
       <PageBody>
         <Toast show={!!salvou}>{salvou}</Toast>
 
@@ -794,81 +798,6 @@ function MontagemPageInner() {
         <SearchBar value={busca} onChange={setBusca} placeholder="Buscar prato/drink..." />
         <Chips options={["bar", "cozinha"]} value={dept} onChange={setDept} />
         <Chips options={["Todos", "Prato", "Drink"]} value={tipo} onChange={setTipo} />
-
-        {/* Impressão em lote: escolhe quantas fichas por folha */}
-        <div className="erp-card p-3.5 flex flex-wrap items-center gap-3">
-          <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--muted)" }}>Imprimir na mesma folha:</span>
-          <div className="flex gap-1.5">
-            {[1, 2, 4, 6, 8].map(n => (
-              <button key={n} onClick={() => setPorFolha(n)}
-                className="w-9 h-9 rounded-lg font-black text-sm transition-all"
-                style={porFolha === n
-                  ? { background: "var(--accent-strong)", color: "var(--accent-fg)" }
-                  : { background: "var(--elevated)", color: "var(--muted)" }}>
-                {n}
-              </button>
-            ))}
-          </div>
-          <span className="text-[11px] font-medium" style={{ color: "var(--dim)" }}>por página, com o passo a passo</span>
-          <Btn variant="primary" className="!h-9 text-xs ml-auto" onClick={() => imprimirLote(filtrados, porFolha, dept === "bar" ? "Bar" : "Cozinha")}>
-            <Printer size={14} /> Imprimir {filtrados.length} ficha{filtrados.length !== 1 ? "s" : ""}
-          </Btn>
-        </div>
-
-        {/* MODELO DO CHEF: título + foto + descritivo, tudo ajustável */}
-        <div className="erp-card p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-            <div>
-              <p className="text-[11px] font-black uppercase tracking-widest" style={{ color: "var(--fg-soft)" }}>Modelo com foto (título + foto + descritivo)</p>
-              <p className="text-[11px] font-medium" style={{ color: "var(--dim)" }}>Ajuste os tamanhos e o negrito; as preferências ficam salvas.</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--muted)" }}>Por página:</span>
-              {[1, 2].map(n => (
-                <button key={n} onClick={() => mudarCfg({ porPagina: n })}
-                  className="w-9 h-9 rounded-lg font-black text-sm transition-all"
-                  style={cfgModelo.porPagina === n
-                    ? { background: "var(--accent-strong)", color: "var(--accent-fg)" }
-                    : { background: "var(--elevated)", color: "var(--muted)" }}>
-                  {n}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-3">
-            <div>
-              <div className="flex justify-between text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: "var(--muted)" }}>
-                <span>Foto</span><span>{cfgModelo.fotoPct}%</span>
-              </div>
-              <input type="range" min="40" max="120" step="5" value={cfgModelo.fotoPct} onChange={e => mudarCfg({ fotoPct: Number(e.target.value) })} className="w-full accent-emerald-600" />
-            </div>
-            <div>
-              <div className="flex justify-between text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: "var(--muted)" }}>
-                <span>Título</span><span>{cfgModelo.tituloPx}px</span>
-              </div>
-              <input type="range" min="18" max="56" step="2" value={cfgModelo.tituloPx} onChange={e => mudarCfg({ tituloPx: Number(e.target.value) })} className="w-full accent-emerald-600" />
-            </div>
-            <div>
-              <div className="flex justify-between text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: "var(--muted)" }}>
-                <span>Texto</span><span>{cfgModelo.textoPx}px</span>
-              </div>
-              <input type="range" min="10" max="26" step="1" value={cfgModelo.textoPx} onChange={e => mudarCfg({ textoPx: Number(e.target.value) })} className="w-full accent-emerald-600" />
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-4">
-            <label className="flex items-center gap-2 cursor-pointer text-xs font-bold" style={{ color: "var(--fg-soft)" }}>
-              <input type="checkbox" checked={cfgModelo.tituloNegrito} onChange={e => mudarCfg({ tituloNegrito: e.target.checked })} className="w-4 h-4 accent-emerald-600" />
-              Título em negrito
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer text-xs font-bold" style={{ color: "var(--fg-soft)" }}>
-              <input type="checkbox" checked={cfgModelo.textoNegrito} onChange={e => mudarCfg({ textoNegrito: e.target.checked })} className="w-4 h-4 accent-emerald-600" />
-              Texto em negrito
-            </label>
-            <Btn variant="primary" className="!h-9 text-xs ml-auto" onClick={() => imprimirModelo(filtrados, cfgModelo, dept === "bar" ? "Bar" : "Cozinha")}>
-              <Printer size={14} /> Imprimir modelo ({filtrados.length})
-            </Btn>
-          </div>
-        </div>
 
         <div>
           <SectionLabel>{filtrados.length} ficha{filtrados.length !== 1 ? "s" : ""}</SectionLabel>
@@ -929,6 +858,55 @@ function MontagemPageInner() {
       </PageBody>
 
       {/* MODAL GIGANTE para comportar o editor */}
+      {/* MODAL DE IMPRESSÃO EM LOTE (padrão compacto + modelo com foto) */}
+      {modalImpressao && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={() => setModalImpressao(false)}>
+          <div className="erp-card w-full max-w-lg max-h-[85vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-black flex items-center gap-2" style={{ color: "var(--fg)" }}><Printer size={18} /> Impressão das fichas</h3>
+              <button onClick={() => setModalImpressao(false)} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "var(--elevated)", color: "var(--muted)" }}>×</button>
+            </div>
+
+            {/* Padrão: várias por folha, com passo a passo */}
+            <div className="rounded-2xl border p-4 mb-4" style={{ borderColor: "var(--line)" }}>
+              <p className="text-[11px] font-black uppercase tracking-widest mb-2" style={{ color: "var(--fg-soft)" }}>Padrão (passo a passo)</p>
+              <div className="flex items-center gap-2 flex-wrap mb-3">
+                <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--muted)" }}>Por folha:</span>
+                {[1, 2, 4, 6, 8].map(n => (
+                  <button key={n} onClick={() => setPorFolha(n)}
+                    className="w-9 h-9 rounded-lg font-black text-sm transition-all"
+                    style={porFolha === n ? { background: "var(--accent-strong)", color: "var(--accent-fg)" } : { background: "var(--elevated)", color: "var(--muted)" }}>
+                    {n}
+                  </button>
+                ))}
+              </div>
+              <Btn variant="primary" className="!h-9 text-xs w-full" onClick={() => imprimirLote(filtrados, porFolha, dept === "bar" ? "Bar" : "Cozinha")}>
+                <Printer size={14} /> Imprimir {filtrados.length} ficha{filtrados.length !== 1 ? "s" : ""}
+              </Btn>
+            </div>
+
+            {/* Modelo com foto (os ajustes finos ficam no Editar de cada ficha) */}
+            <div className="rounded-2xl border p-4" style={{ borderColor: "var(--line)" }}>
+              <p className="text-[11px] font-black uppercase tracking-widest mb-1" style={{ color: "var(--fg-soft)" }}>Modelo com foto (título + foto + descritivo)</p>
+              <p className="text-[11px] font-medium mb-3" style={{ color: "var(--dim)" }}>Usa os tamanhos e negrito ajustados no Editar de cada ficha.</p>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--muted)" }}>Por página:</span>
+                {[1, 2].map(n => (
+                  <button key={n} onClick={() => mudarCfg({ porPagina: n })}
+                    className="w-9 h-9 rounded-lg font-black text-sm transition-all"
+                    style={cfgModelo.porPagina === n ? { background: "var(--accent-strong)", color: "var(--accent-fg)" } : { background: "var(--elevated)", color: "var(--muted)" }}>
+                    {n}
+                  </button>
+                ))}
+              </div>
+              <Btn variant="ghost" className="!h-9 text-xs w-full" onClick={() => imprimirModelo(filtrados, cfgModelo, dept === "bar" ? "Bar" : "Cozinha")}>
+                <Printer size={14} /> Imprimir modelo ({filtrados.length})
+              </Btn>
+            </div>
+          </div>
+        </div>
+      )}
+
       {modal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-2 md:p-6 overflow-y-auto">
            <div className="bg-[var(--surface)] rounded-[24px] shadow-2xl w-full max-w-4xl my-auto animate-in zoom-in-95 duration-200 border border-[var(--line)]">
@@ -950,13 +928,52 @@ function MontagemPageInner() {
                    <FormMontagem inicial={editar} deptInicial={dept} onSalvar={salvar} onCancelar={() => { setModal(false); setEditar(null); }} onPreview={setPreviewFicha} />
                 </div>
 
-                {/* Coluna 2: prévia da FICHA IMPRESSA (modelo com foto), em tempo real */}
+                {/* Coluna 2: prévia da FICHA IMPRESSA + ajustes ao vivo */}
                 <div className="hidden lg:block border-l border-[var(--line)] pl-8">
                    <h3 className="font-black text-[var(--fg)] text-lg mb-1">Prévia da Ficha Impressa</h3>
-                   <p className="text-[var(--subtle)] text-xs mb-4">
-                      É assim que ela sai no "Modelo com foto": título, foto inteira e o passo a passo. Os tamanhos seguem os ajustes salvos na tela de impressão.
+                   <p className="text-[var(--subtle)] text-xs mb-3">
+                      É assim que ela sai no "Modelo com foto". Ajuste abaixo e veja mudar na hora — os ajustes ficam salvos para todas as fichas.
                    </p>
-                   <PreviaModeloChef m={previewFicha} />
+
+                   {/* Ajustes: mexa e a prévia acompanha */}
+                   <div className="rounded-2xl border p-3 mb-4" style={{ borderColor: "var(--line)", background: "var(--elevated)" }}>
+                      <div className="grid grid-cols-3 gap-3 mb-2">
+                         <div>
+                            <div className="flex justify-between text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: "var(--muted)" }}>
+                               <span>Foto</span><span>{cfgModelo.fotoPct}%</span>
+                            </div>
+                            <input type="range" min="40" max="120" step="5" value={cfgModelo.fotoPct} onChange={e => mudarCfg({ fotoPct: Number(e.target.value) })} className="w-full accent-emerald-600" />
+                         </div>
+                         <div>
+                            <div className="flex justify-between text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: "var(--muted)" }}>
+                               <span>Título</span><span>{cfgModelo.tituloPx}px</span>
+                            </div>
+                            <input type="range" min="18" max="56" step="2" value={cfgModelo.tituloPx} onChange={e => mudarCfg({ tituloPx: Number(e.target.value) })} className="w-full accent-emerald-600" />
+                         </div>
+                         <div>
+                            <div className="flex justify-between text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: "var(--muted)" }}>
+                               <span>Texto</span><span>{cfgModelo.textoPx}px</span>
+                            </div>
+                            <input type="range" min="10" max="26" step="1" value={cfgModelo.textoPx} onChange={e => mudarCfg({ textoPx: Number(e.target.value) })} className="w-full accent-emerald-600" />
+                         </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3">
+                         <label className="flex items-center gap-1.5 cursor-pointer text-[11px] font-bold" style={{ color: "var(--fg-soft)" }}>
+                            <input type="checkbox" checked={cfgModelo.tituloNegrito} onChange={e => mudarCfg({ tituloNegrito: e.target.checked })} className="w-4 h-4 accent-emerald-600" />
+                            Título negrito
+                         </label>
+                         <label className="flex items-center gap-1.5 cursor-pointer text-[11px] font-bold" style={{ color: "var(--fg-soft)" }}>
+                            <input type="checkbox" checked={cfgModelo.textoNegrito} onChange={e => mudarCfg({ textoNegrito: e.target.checked })} className="w-4 h-4 accent-emerald-600" />
+                            Texto negrito
+                         </label>
+                         <button onClick={() => previewFicha?.nome && imprimirModelo([previewFicha], cfgModelo, dept === "bar" ? "Bar" : "Cozinha")}
+                            className="ml-auto flex items-center gap-1.5 text-[11px] font-black text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded-lg transition-colors">
+                            <Printer size={13} /> Imprimir esta ficha
+                         </button>
+                      </div>
+                   </div>
+
+                   <PreviaModeloChef m={previewFicha} cfg={cfgModelo} />
                 </div>
 
              </div>

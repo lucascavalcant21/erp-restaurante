@@ -1058,22 +1058,17 @@ export default function RHPage() {
      setModalFolgas(true);
      setNovaFolgaData("");
      
+     // Só os PRÓXIMOS domingos (de hoje em diante, 5 semanas à frente) —
+     // domingo que já passou some da lista e não pode mais ser agendado.
      const domingos = [];
      const hoje = new Date();
-     const anoAtual = hoje.getFullYear();
-     const mesAtual = hoje.getMonth();
-     
-     for(let i=1; i<=31; i++) {
-        const d = new Date(Date.UTC(anoAtual, mesAtual, i, 12, 0, 0));
-        if(d.getUTCMonth() !== mesAtual) break;
-        if(d.getUTCDay() === 0) {
-           const isoDate = d.toISOString().split('T')[0];
-           if(!domingos.some(x => x.data === isoDate)) {
-              domingos.push({
-                 data: isoDate,
-                 label: d.toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit', timeZone: 'UTC'})
-              });
-           }
+     for (let i = 0; i <= 35 && domingos.length < 5; i++) {
+        const d = new Date(Date.UTC(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + i, 12, 0, 0));
+        if (d.getUTCDay() === 0) {
+           domingos.push({
+              data: d.toISOString().split('T')[0],
+              label: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'UTC' }),
+           });
         }
      }
      setDomingosProximos(domingos);
@@ -1087,6 +1082,9 @@ export default function RHPage() {
   
   const handleAdicionarFolga = async (dataAdicionar, descricao) => {
      if(!dataAdicionar) return;
+     // Data que já passou não vira folga (o dia já aconteceu)
+     const hojeISO = new Date().toISOString().split("T")[0];
+     if (dataAdicionar < hojeISO) return alert("Essa data já passou — escolha um dia de hoje em diante.");
      const { error } = await inserirFolgaEsporadica(unidadeAtiva, funcParaFolgas.id, dataAdicionar, descricao);
      if (error) {
         alert("Erro ao salvar folga: " + error);
@@ -2158,7 +2156,7 @@ export default function RHPage() {
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Folga Extra (Feriado ou Outro)</label>
                         <div className="flex gap-2">
-                           <input type="date" value={novaFolgaData} onChange={e=>setNovaFolgaData(e.target.value)} className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500 text-slate-700"/>
+                           <input type="date" min={new Date().toISOString().split("T")[0]} value={novaFolgaData} onChange={e=>setNovaFolgaData(e.target.value)} className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500 text-slate-700"/>
                            <button onClick={() => handleAdicionarFolga(novaFolgaData, "Extra / Feriado")} className="bg-emerald-600 text-white px-4 font-bold rounded-xl hover:bg-emerald-700 transition-colors">Adicionar</button>
                         </div>
                      </div>

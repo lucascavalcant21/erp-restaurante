@@ -526,41 +526,50 @@ function imprimirLote(fichas, porFolha, deptLabel) {
 function imprimirModelo(fichas, cfg, deptLabel) {
   if (!fichas.length) return alert("Nenhuma ficha para imprimir.");
   const duas = Number(cfg.porPagina) === 2;
-  const alturaFicha = duas ? 135 : 275;                 // mm úteis por ficha
-  const fotoBase = duas ? 58 : 130;                     // mm de altura da foto no 100%
+  const paisagem = cfg.orientacao === "paisagem";
+  // Área útil do A4 com margem de 6mm (retrato 198×285 / paisagem 285×198)
+  const alturaPagina = paisagem ? 194 : 281;
+  // Foto no 100%: proporcional à página e ao nº de fichas
+  const fotoBase = paisagem ? (duas ? 85 : 105) : (duas ? 58 : 130);
   const fotoH = Math.round(fotoBase * (cfg.fotoPct / 100));
 
-  const cardHTML = (m, i) => {
+  const cardHTML = (m) => {
     const etapas = String(m.descritivo || "").split("\n").map(s => s.trim().replace(/^\d+[\.\)]\s*/, "")).filter(Boolean);
     const descr = etapas.length > 1
       ? `<ol>${etapas.map(e => `<li>${e.replace(/</g, "&lt;")}</li>`).join("")}</ol>`
       : `<p>${(etapas[0] || "").replace(/</g, "&lt;") || "<i>Sem descritivo cadastrado.</i>"}</p>`;
-    // Quebra: a cada ficha (1/pág) ou a cada 2 (2/pág), exceto na última
-    const quebra = (i < fichas.length - 1) && (!duas || i % 2 === 1) ? " quebra" : "";
     return `
-    <div class="fichaM${quebra}">
+    <div class="fichaM">
       <h1>${m.nome}</h1>
       ${m.foto_url ? `<div class="fotoBox"><img src="${m.foto_url}"/></div>` : ""}
       <div class="descr">${descr}</div>
     </div>`;
   };
 
+  // Páginas fechadas: cada uma tem altura FIXA de 1 folha — nada vaza para a
+  // página seguinte (a foto encolhe se o texto precisar de espaço).
+  const porPag = duas ? 2 : 1;
+  const paginas = [];
+  for (let i = 0; i < fichas.length; i += porPag) paginas.push(fichas.slice(i, i + porPag));
+
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Fichas — ${deptLabel}</title>
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
+      @page{size:A4 ${paisagem ? "landscape" : "portrait"};margin:6mm}
       body{font-family:'Segoe UI',Arial,Helvetica,sans-serif;color:#111;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-      .fichaM{height:${alturaFicha}mm;display:flex;flex-direction:column;align-items:center;padding:8mm 12mm;overflow:hidden;page-break-inside:avoid}
-      .fichaM.quebra{page-break-after:always}
-      .fichaM + .fichaM{border-top:2px dashed #cbd5e1}
-      h1{font-size:${cfg.tituloPx}px;font-weight:${cfg.tituloNegrito ? 900 : 500};text-align:center;text-transform:uppercase;letter-spacing:1px;line-height:1.1;margin-bottom:5mm}
-      .fotoBox{width:100%;height:${fotoH}mm;display:flex;justify-content:center;align-items:center;margin-bottom:5mm;flex-shrink:0}
+      .pagina{display:flex;flex-direction:${paisagem ? "row" : "column"};height:${alturaPagina}mm;page-break-after:always;overflow:hidden}
+      .pagina:last-child{page-break-after:auto}
+      .fichaM{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;align-items:center;padding:6mm 8mm;overflow:hidden}
+      .fichaM + .fichaM{border-${paisagem ? "left" : "top"}:2px dashed #cbd5e1}
+      h1{font-size:${cfg.tituloPx}px;font-weight:${cfg.tituloNegrito ? 900 : 500};text-align:center;text-transform:uppercase;letter-spacing:1px;line-height:1.1;margin-bottom:4mm;flex-shrink:0}
+      /* A foto pode ENCOLHER (flex 0 1) para o descritivo caber na página */
+      .fotoBox{width:100%;flex:0 1 ${fotoH}mm;min-height:22mm;display:flex;justify-content:center;align-items:center;margin-bottom:4mm}
       .fotoBox img{max-width:${Math.min(100, cfg.fotoPct)}%;max-height:100%;object-fit:contain;border-radius:14px}
-      .descr{font-size:${cfg.textoPx}px;font-weight:${cfg.textoNegrito ? 700 : 400};width:100%;line-height:1.6;color:#1e293b;overflow:hidden}
+      .descr{font-size:${cfg.textoPx}px;font-weight:${cfg.textoNegrito ? 700 : 400};width:100%;line-height:1.55;color:#1e293b;flex:0 1 auto;overflow:hidden}
       .descr ol{padding-left:1.6em}
-      .descr li{margin-bottom:.35em}
-      @media print{@page{margin:6mm}}
+      .descr li{margin-bottom:.3em}
     </style></head><body>
-    ${fichas.map(cardHTML).join("")}
+    ${paginas.map(pg => `<div class="pagina">${pg.map(cardHTML).join("")}</div>`).join("")}
     </body></html>`;
 
   let win = null;
@@ -704,7 +713,7 @@ function MontagemPageInner() {
   const [porFolha, setPorFolha] = useState(4); // fichas por página na impressão
 
   // Modelo do Chef (título + foto + descritivo) — ajustes salvos no aparelho
-  const CFG_PADRAO = { porPagina: 1, fotoPct: 80, tituloPx: 34, textoPx: 15, tituloNegrito: true, textoNegrito: false };
+  const CFG_PADRAO = { porPagina: 1, fotoPct: 80, tituloPx: 34, textoPx: 15, tituloNegrito: true, textoNegrito: false, orientacao: "retrato" };
   const [cfgModelo, setCfgModelo] = useState(CFG_PADRAO);
   useEffect(() => {
     try {
@@ -889,13 +898,21 @@ function MontagemPageInner() {
             <div className="rounded-2xl border p-4" style={{ borderColor: "var(--line)" }}>
               <p className="text-[11px] font-black uppercase tracking-widest mb-1" style={{ color: "var(--fg-soft)" }}>Modelo com foto (título + foto + descritivo)</p>
               <p className="text-[11px] font-medium mb-3" style={{ color: "var(--dim)" }}>Usa os tamanhos e negrito ajustados no Editar de cada ficha.</p>
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-3 flex-wrap">
                 <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--muted)" }}>Por página:</span>
                 {[1, 2].map(n => (
                   <button key={n} onClick={() => mudarCfg({ porPagina: n })}
                     className="w-9 h-9 rounded-lg font-black text-sm transition-all"
                     style={cfgModelo.porPagina === n ? { background: "var(--accent-strong)", color: "var(--accent-fg)" } : { background: "var(--elevated)", color: "var(--muted)" }}>
                     {n}
+                  </button>
+                ))}
+                <span className="text-[10px] font-black uppercase tracking-widest ml-2" style={{ color: "var(--muted)" }}>Folha:</span>
+                {[["retrato", "Vertical"], ["paisagem", "Horizontal"]].map(([v, l]) => (
+                  <button key={v} onClick={() => mudarCfg({ orientacao: v })}
+                    className="px-3 h-9 rounded-lg font-black text-xs transition-all"
+                    style={cfgModelo.orientacao === v ? { background: "var(--accent-strong)", color: "var(--accent-fg)" } : { background: "var(--elevated)", color: "var(--muted)" }}>
+                    {l}
                   </button>
                 ))}
               </div>
@@ -928,8 +945,10 @@ function MontagemPageInner() {
                    <FormMontagem inicial={editar} deptInicial={dept} onSalvar={salvar} onCancelar={() => { setModal(false); setEditar(null); }} onPreview={setPreviewFicha} />
                 </div>
 
-                {/* Coluna 2: prévia da FICHA IMPRESSA + ajustes ao vivo */}
+                {/* Coluna 2: prévia da FICHA IMPRESSA + ajustes ao vivo.
+                    sticky: desce junto com a rolagem do formulário */}
                 <div className="hidden lg:block border-l border-[var(--line)] pl-8">
+                  <div className="sticky top-0">
                    <h3 className="font-black text-[var(--fg)] text-lg mb-1">Prévia da Ficha Impressa</h3>
                    <p className="text-[var(--subtle)] text-xs mb-3">
                       É assim que ela sai no "Modelo com foto". Ajuste abaixo e veja mudar na hora — os ajustes ficam salvos para todas as fichas.
@@ -966,6 +985,22 @@ function MontagemPageInner() {
                             <input type="checkbox" checked={cfgModelo.textoNegrito} onChange={e => mudarCfg({ textoNegrito: e.target.checked })} className="w-4 h-4 accent-emerald-600" />
                             Texto negrito
                          </label>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 mt-2 pt-2" style={{ borderTop: "1px solid var(--line)" }}>
+                         {[["retrato", "Vertical"], ["paisagem", "Horizontal"]].map(([v, l]) => (
+                            <button key={v} onClick={() => mudarCfg({ orientacao: v })}
+                               className="px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all"
+                               style={cfgModelo.orientacao === v ? { background: "var(--accent-strong)", color: "var(--accent-fg)" } : { background: "var(--card)", color: "var(--muted)", border: "1px solid var(--line)" }}>
+                               {l}
+                            </button>
+                         ))}
+                         {[1, 2].map(n => (
+                            <button key={n} onClick={() => mudarCfg({ porPagina: n })}
+                               className="px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all"
+                               style={cfgModelo.porPagina === n ? { background: "var(--accent-strong)", color: "var(--accent-fg)" } : { background: "var(--card)", color: "var(--muted)", border: "1px solid var(--line)" }}>
+                               {n}/pág
+                            </button>
+                         ))}
                          <button onClick={() => previewFicha?.nome && imprimirModelo([previewFicha], cfgModelo, dept === "bar" ? "Bar" : "Cozinha")}
                             className="ml-auto flex items-center gap-1.5 text-[11px] font-black text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded-lg transition-colors">
                             <Printer size={13} /> Imprimir esta ficha
@@ -974,6 +1009,7 @@ function MontagemPageInner() {
                    </div>
 
                    <PreviaModeloChef m={previewFicha} cfg={cfgModelo} />
+                  </div>
                 </div>
 
              </div>

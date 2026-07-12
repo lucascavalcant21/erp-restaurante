@@ -72,8 +72,8 @@ function EtiquetasRunner() {
 
   // Dimensões/escala da etiqueta conforme o tamanho escolhido
   const dim = tamanho === "60x40"
-    ? { w: "66mm", h: "40mm", paginaH: "42mm", offsetX: "6mm", pad: "2.2mm", titulo: "3.6mm", linha: "2.35mm", resp: "2.05mm", qr: 42, gap: "0.45mm" }
-    : { w: "60mm", h: "60mm", paginaH: "62mm", offsetX: "8mm", pad: "3.2mm", titulo: "4.4mm", linha: "2.9mm", resp: "2.55mm", qr: 64, gap: "0.7mm" };
+    ? { w: "66mm", h: "40mm", paginaH: "42mm", pad: "2.2mm", titulo: "3.6mm", linha: "2.35mm", resp: "2.05mm", qr: 42, gap: "0.45mm" }
+    : { w: "60mm", h: "60mm", paginaH: "62mm", pad: "3.2mm", titulo: "4.4mm", linha: "2.9mm", resp: "2.55mm", qr: 64, gap: "0.7mm" };
 
   useEffect(() => {
     lerSessao().then((s) => s?.nome && setForm((f) => ({ ...f, responsavel: f.responsavel || s.nome })));
@@ -298,9 +298,9 @@ function EtiquetasRunner() {
         @media print {
           body * { visibility: hidden !important; }
           #area-impressao, #area-impressao * { visibility: visible !important; }
-          #area-impressao { position: absolute !important; left: 0; top: 0; margin: 0; padding: 0; background: #fff !important; color: #000 !important; width: 72mm !important; display: flex !important; flex-direction: column !important; gap: 0 !important; }
-          .etiqueta-print { page-break-after: always; overflow: hidden; border-radius: 0 !important; box-shadow: none !important; border: none !important; margin-left: ${dim.offsetX} !important; margin-right: 0 !important; margin-top: 0 !important; margin-bottom: 2mm !important; }
-          @page { size: 72mm ${dim.paginaH}; margin: 0; }
+          #area-impressao { position: absolute !important; left: 0; top: 0; margin: 0; padding: 0; background: #fff !important; color: #000 !important; width: 80mm !important; display: flex !important; flex-direction: column !important; gap: 0 !important; }
+          .etiqueta-print { page-break-after: always; overflow: hidden; border-radius: 0 !important; box-shadow: none !important; border: none !important; margin-left: auto !important; margin-right: auto !important; margin-top: 0 !important; margin-bottom: 2mm !important; }
+          @page { size: 80mm ${dim.paginaH}; margin: 0; }
         }
       `}} />
       <PageHeader title={`Etiquetas${deptUrl ? ` — ${deptUrl === 'bar' ? 'Bar' : 'Cozinha'}` : ''}`} subtitle={`QR Code + rastreio · ${unidadeInfo.nome}`} icon={Tag} />
@@ -496,9 +496,9 @@ function EtiquetasRunner() {
               </div>
             </div>
             <div className="flex justify-center overflow-auto p-4 bg-slate-100 rounded-2xl border border-slate-200">
-              <div id="area-impressao" className="flex flex-col gap-4" style={{ width: "72mm" }}>
+              <div id="area-impressao" className="flex flex-col gap-4" style={{ width: "80mm" }}>
                 {Array.from({ length: quantidadeCopias }).map((_, idx) => (
-                  <div key={idx} className="etiqueta-print shadow-sm" style={{ width: dim.w, height: dim.h, marginLeft: dim.offsetX, background: "#fff", color: "#000", padding: dim.pad, fontFamily: "'Courier New', monospace", borderRadius: 8, display: "flex", flexDirection: "column", overflow: "hidden", flexShrink: 0 }}>
+                  <div key={idx} className="etiqueta-print shadow-sm" style={{ width: dim.w, height: dim.h, marginLeft: "auto", marginRight: "auto", background: "#fff", color: "#000", padding: dim.pad, fontFamily: "'Courier New', monospace", borderRadius: 8, display: "flex", flexDirection: "column", overflow: "hidden", flexShrink: 0 }}>
                     {/* produto */}
                     <div style={{ fontSize: dim.titulo, fontWeight: 800, lineHeight: 1.0, textTransform: "uppercase", paddingBottom: dim.gap, borderBottom: "0.5mm solid #000" }}>
                       {nomeProduto || "PRODUTO"}

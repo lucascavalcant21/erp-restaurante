@@ -135,6 +135,7 @@ function EtiquetasRunner() {
         lote: form.lote || null, responsavel: form.responsavel.trim(),
         custo_unit: custoMap[nomeProduto] || 0, status: "ativa",
         copias: Number(copias),
+        tipo_etiqueta: tipoEtiqueta, // "aberto" (manipulação) ou "dia" (só validade)
       }, unidadeAtiva);
 
       if (resultado.error) {

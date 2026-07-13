@@ -5,7 +5,7 @@ import { useERP } from "../context/ERPContext";
 import {
   Percent, Users, Wallet, ShoppingCart, PackageX, CalendarClock,
   Sparkles, Wind, AlertCircle, Clock, Megaphone, ChefHat, ArrowRight, CheckCircle2,
-  GripVertical, UserPlus, CalendarDays
+  GripVertical, UserPlus, CalendarDays, ArrowRightLeft
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { fmtBRL, fmtPct } from "../components/ui";
@@ -590,10 +590,12 @@ function EscalaSemana({ escalaPorArea, dragId, setDragId, onMover, onVerTudo, on
   // Áreas fixas sempre visíveis (mesmo vazias) + "Outros" só quando tiver gente
   const areas = ["Salão", "Bar", "Cozinha", "Caixa", "Louça", "Descanso"];
   if (escalaPorArea["Outros"]?.length) areas.push("Outros");
+  // Celular/tablet: sem arrastar. Toca em "Mover" e escolhe a área de destino.
+  const [mover, setMover] = useState(null); // { id, area } do colaborador sendo movido
   return (
-    <div className="erp-card p-6">
-      <div className="flex items-center justify-between gap-2 flex-wrap mb-5">
-        <h3 className="text-lg font-black flex items-center gap-2" style={{ color: "var(--fg)" }}>
+    <div className="erp-card p-3 sm:p-6">
+      <div className="flex items-center justify-between gap-2 flex-wrap mb-4 sm:mb-5">
+        <h3 className="text-base sm:text-lg font-black flex items-center gap-2" style={{ color: "var(--fg)" }}>
           <CalendarDays size={20} style={{ color: "#7C3AED" }} /> Escala da Semana
         </h3>
         <div className="flex items-center gap-2 flex-wrap">
@@ -636,21 +638,26 @@ function EscalaSemana({ escalaPorArea, dragId, setDragId, onMover, onVerTudo, on
                     {area === "Descanso" ? "Arraste quem está de descanso hoje" : "Arraste alguém para cá"}
                   </div>
                 ) : lista.map(c => (
-                  <div key={c.id}
+                  <div key={c.id} className="relative">
+                  <div
                     draggable onDragStart={() => setDragId(c.id)} onDragEnd={() => setDragId(null)}
                     onDragOver={e => { if (dragId) e.preventDefault(); }}
                     onDrop={e => { e.stopPropagation(); onMover(area, dragId, c.id); }}
-                    className={`flex items-center gap-2 p-2 rounded-xl flex-wrap sm:flex-nowrap ${dragId === c.id ? "opacity-50" : ""}`}
+                    className={`flex items-center gap-2 p-2 rounded-xl ${dragId === c.id ? "opacity-50" : ""}`}
                     style={{ background: "var(--elevated)" }}>
-                    <GripVertical size={14} className="cursor-grab active:cursor-grabbing shrink-0" style={{ color: "var(--dim)" }} />
+                    <GripVertical size={14} className="cursor-grab active:cursor-grabbing shrink-0 hidden sm:block" style={{ color: "var(--dim)" }} />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-bold truncate flex items-center gap-1.5" style={{ color: "var(--fg-soft)" }}>
                         {c.nome}
                         {c._extra && <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: "rgba(245,158,11,0.15)", color: "#B45309" }}>Extra</span>}
                       </p>
-                      <p className="text-[10px] font-medium truncate" style={{ color: "var(--dim)" }}>{c.cargo || "—"}</p>
+                      <p className="text-[10px] font-medium truncate" style={{ color: "var(--dim)" }}>
+                        {c.cargo || "—"}
+                        <span className="sm:hidden">{(c.horario_entrada || c.horario_saida) ? ` · ${c.horario_entrada || "?"}–${c.horario_saida || "?"}` : ""}</span>
+                      </p>
                     </div>
-                    <div className="flex gap-0.5 shrink-0">
+                    {/* Dias da semana: só no desktop (no celular ocupam o nome) */}
+                    <div className="gap-0.5 shrink-0 hidden sm:flex">
                       {DIAS_SEMANA.map(([d, lbl]) => {
                         const on = String(c.dias_trabalho || "").split(",").map(s => s.trim()).includes(d);
                         return (
@@ -661,9 +668,30 @@ function EscalaSemana({ escalaPorArea, dragId, setDragId, onMover, onVerTudo, on
                         );
                       })}
                     </div>
-                    <span className="text-[10px] font-bold shrink-0 text-right w-[86px]" style={{ color: "var(--muted)" }}>
+                    <span className="text-[10px] font-bold shrink-0 text-right w-[86px] hidden sm:block" style={{ color: "var(--muted)" }}>
                       {(c.horario_entrada || c.horario_saida) ? `${c.horario_entrada || "?"}–${c.horario_saida || "?"}` : "—"}
                     </span>
+                    {/* Mover (funciona no toque): abre a escolha da área de destino */}
+                    <button type="button" onClick={() => setMover(mover?.id === c.id ? null : { id: c.id, area })}
+                      title="Mover para outra área"
+                      className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg"
+                      style={{ background: "var(--card)", color: mover?.id === c.id ? cor : "var(--muted)", border: "1px solid var(--line)" }}>
+                      <ArrowRightLeft size={14} />
+                    </button>
+                  </div>
+                  {mover?.id === c.id && (
+                    <div className="mt-1 p-2 rounded-xl border flex flex-wrap gap-1.5 relative z-10" style={{ borderColor: cor + "55", background: "var(--card)" }}>
+                      <span className="w-full text-[10px] font-black uppercase tracking-widest mb-0.5" style={{ color: "var(--dim)" }}>Mover para:</span>
+                      {areas.filter(a => a !== area).map(a => (
+                        <button key={a} type="button"
+                          onClick={() => { onMover(a, c.id, null); setMover(null); }}
+                          className="text-[11px] font-bold px-2.5 py-1.5 rounded-lg"
+                          style={{ background: (CORES_AREA[a] || "#94A3B8") + "18", color: CORES_AREA[a] || "#64748b", border: `1px solid ${(CORES_AREA[a] || "#94A3B8")}44` }}>
+                          {a}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   </div>
                 ))}
               </div>
@@ -672,7 +700,7 @@ function EscalaSemana({ escalaPorArea, dragId, setDragId, onMover, onVerTudo, on
         })}
       </div>
       <p className="text-[10px] font-medium mt-4" style={{ color: "var(--dim)" }}>
-        Arraste uma pessoa para outra área para trocá-la de função. Letras = dias da semana (Dom → Sáb).
+        No computador, arraste uma pessoa para outra área. No celular/tablet, toque no botão <ArrowRightLeft size={11} className="inline align-[-1px]" /> e escolha a área. Letras = dias da semana (Dom → Sáb).
       </p>
     </div>
   );

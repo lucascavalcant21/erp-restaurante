@@ -5,7 +5,7 @@ import { useERP } from "../../../context/ERPContext";
 import { fetchFichas, fetchInsumos } from "../../../lib/operacao";
 import { fetchProdutos } from "../../../lib/vendas";
 import { fetchOrcamentosEventos, salvarOrcamentoEvento, removerOrcamentoEvento } from "../../../lib/orcamentos";
-import { PartyPopper, Printer, Trash2, ArrowLeft, Users, ShoppingCart, FileText, Save, History, X, Loader2, ChefHat, ClipboardList, Image as ImageIcon, GripVertical } from "lucide-react";
+import { PartyPopper, Printer, Trash2, ArrowLeft, Users, ShoppingCart, FileText, Save, History, X, Loader2, ChefHat, ClipboardList, Image as ImageIcon, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
 // Fator "in natura" de uma ficha: quanto o preço deve subir para cobrar o item
@@ -439,6 +439,18 @@ export default function OrcamentoEventoPage() {
       return arr;
     });
     setDragItemId(null);
+  };
+
+  // Reordenar por toque (celular/tablet): move um prato uma posição p/ cima/baixo.
+  const moverItem = (produtoId, dir) => {
+    setItens(lista => {
+      const arr = [...lista];
+      const i = arr.findIndex(x => x.produto_id === produtoId);
+      const j = i + dir;
+      if (i < 0 || j < 0 || j >= arr.length) return lista;
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+      return arr;
+    });
   };
 
   // Planejar por KG: usuário digita o total em kg e o sistema converte em
@@ -1023,16 +1035,21 @@ export default function OrcamentoEventoPage() {
                   </div>
                ) : (
                   <div className="space-y-3">
-                     {linhas.map(l => (
+                     {linhas.map((l, idxL) => (
                         <div key={l.produto_id}
                            onDragOver={e => { if (dragItemId) e.preventDefault(); }}
                            onDrop={() => reordenarItens(dragItemId, l.produto_id)}
                            className={`rounded-2xl border overflow-hidden transition-colors ${dragItemId === l.produto_id ? 'opacity-50 border-emerald-400' : 'border-slate-200 hover:border-slate-300'}`}>
                            {/* CABEÇALHO DO ITEM — nome + categoria */}
-                           <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-5 py-3 flex items-center justify-between gap-2">
+                           <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-4 sm:px-5 py-3 flex items-center justify-between gap-2">
                               <div className="flex items-center gap-2 min-w-0">
+                                 {/* Setas para reordenar no toque (celular/tablet) + alça de arrastar no desktop */}
+                                 <div className="flex flex-col shrink-0 -my-1">
+                                    <button type="button" onClick={() => moverItem(l.produto_id, -1)} disabled={idxL === 0} title="Subir" className="text-slate-400 hover:text-white disabled:opacity-25 leading-none"><ChevronUp size={16} /></button>
+                                    <button type="button" onClick={() => moverItem(l.produto_id, 1)} disabled={idxL === linhas.length - 1} title="Descer" className="text-slate-400 hover:text-white disabled:opacity-25 leading-none"><ChevronDown size={16} /></button>
+                                 </div>
                                  <div draggable onDragStart={() => setDragItemId(l.produto_id)} onDragEnd={() => setDragItemId(null)}
-                                    title="Arraste para reordenar os pratos" className="text-slate-400 hover:text-white cursor-grab active:cursor-grabbing shrink-0">
+                                    title="Arraste para reordenar os pratos" className="text-slate-400 hover:text-white cursor-grab active:cursor-grabbing shrink-0 hidden sm:block">
                                     <GripVertical size={18} />
                                  </div>
                                  <div className="min-w-0">

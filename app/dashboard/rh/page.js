@@ -1278,10 +1278,10 @@ export default function RHPage() {
                   <table className="w-full text-left min-w-[860px]">
                <thead>
                   <tr className="bg-slate-50 border-b border-slate-100">
-                     <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Colaborador</th>
-                     <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Perfil & Contato</th>
-                     <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">{abaAtiva === "Freelancer" ? "Diária Base" : "Remuneração Base"}</th>
-                     <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Ponto Hoje</th>
+                     <th className="p-2.5 sm:p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Colaborador</th>
+                     <th className="p-2.5 sm:p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Perfil & Contato</th>
+                     <th className="p-2.5 sm:p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">{abaAtiva === "Freelancer" ? "Diária Base" : "Remuneração Base"}</th>
+                     <th className="p-2.5 sm:p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Ponto Hoje</th>
                      <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">Documentos / Ações</th>
                   </tr>
                </thead>
@@ -1289,7 +1289,7 @@ export default function RHPage() {
                   {loading && <tr><td colSpan={5} className="p-10 text-center text-slate-500 font-bold">Carregando...</td></tr>}
                   {!loading && filtrados.map(f => (
                      <tr key={f.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="p-4">
+                        <td className="p-2.5 sm:p-4">
                            <div className="font-black text-slate-800 text-base">{f.nome}</div>
                            {ehInativo(f) && (
                              <div className="text-[10px] font-black uppercase tracking-widest text-orange-600 bg-orange-50 border border-orange-200 rounded px-1.5 py-0.5 mt-1 inline-block">
@@ -1305,7 +1305,7 @@ export default function RHPage() {
                            )}
                            {f.anotacoes_rh && <div className="text-[10px] font-bold text-slate-400 mt-1 flex items-start gap-1"><ClipboardList size={10} className="mt-0.5 shrink-0"/> <span className="line-clamp-1">{f.anotacoes_rh}</span></div>}
                         </td>
-                        <td className="p-4">
+                        <td className="p-2.5 sm:p-4">
                            <div className="font-bold text-slate-700">{f.cargo}</div>
                            {f.telefone && <div className="text-[11px] font-semibold text-slate-500 flex items-center gap-1 mt-1"><Phone size={10}/> {f.telefone}</div>}
                            {f.chave_pix && <div className="text-[11px] font-semibold text-slate-500 flex items-center gap-1 mt-0.5"><CreditCard size={10}/> PIX: {f.chave_pix}</div>}
@@ -1324,7 +1324,7 @@ export default function RHPage() {
                               );
                            })()}
                         </td>
-                        <td className="p-4">
+                        <td className="p-2.5 sm:p-4">
                            {(() => {
                               const ehFreela = f.tipo_contrato === "Freelancer";
                               if (ehFreela) return <div className="font-black text-emerald-700">{fmtBRL(f.salario)}</div>;
@@ -1353,7 +1353,7 @@ export default function RHPage() {
                               <div className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded px-1.5 py-0.5 mt-1 inline-block ml-1">Taxa: {fmtBRL(f.taxa_servico_mes)}</div>
                            )}
                         </td>
-                        <td className="p-4">
+                        <td className="p-2.5 sm:p-4">
                            {(() => {
                               const pt = pontosHoje.find(p => p.colaborador_id === f.id);
                               

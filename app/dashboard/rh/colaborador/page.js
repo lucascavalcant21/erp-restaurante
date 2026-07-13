@@ -379,8 +379,8 @@ export default function VidaColaboradorPage() {
               const inativo = (c.status || "ativo") === "inativo";
               return (
                 <button key={c.id} onClick={() => abrir(c)} className={`erp-card p-5 text-left flex items-center gap-3 ${inativo ? "opacity-50" : ""}`}>
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-black shrink-0" style={{ background: "var(--accent-soft)", color: "var(--accent-strong)" }}>
-                    {c.nome[0].toUpperCase()}
+                  <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center text-lg font-black shrink-0" style={{ background: "var(--accent-soft)", color: "var(--accent-strong)" }}>
+                    {c.foto ? <img src={`data:image/jpeg;base64,${c.foto}`} alt={c.nome} className="w-full h-full object-cover" /> : c.nome[0].toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-bold truncate" style={{ color: "var(--fg)" }}>{c.nome}</p>

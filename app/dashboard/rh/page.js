@@ -25,7 +25,7 @@ import { useTempoReal } from "../../lib/realtime";
 // Desconto do funcionário sobre o valor de cardápio (funcionário paga o restante)
 // Desconto do funcionário: ajustável em Configurações > Parâmetros (paramsSis)
 import { 
-  Users, UserPlus, FileText, Upload, Save, X, Search, Trash2, Loader2, CalendarHeart, Star, Phone, CreditCard, ClipboardList, Clock, CalendarDays, ShoppingBag, CheckCircle, Store, Printer, UtensilsCrossed, LogOut, RotateCcw, ChevronDown
+  Users, UserPlus, FileText, Upload, Save, X, Search, Trash2, Loader2, CalendarHeart, Star, Phone, CreditCard, ClipboardList, Clock, CalendarDays, ShoppingBag, CheckCircle, Store, Printer, UtensilsCrossed, LogOut, RotateCcw, ChevronDown, Camera
 } from "lucide-react";
 import { fmtBRL } from "../../components/ui";
 import BancoTalentos from "./components/BancoTalentos";
@@ -46,7 +46,7 @@ export default function RHPage() {
   const [cargos, setCargos] = useState([]);
   const [busca, setBusca] = useState("");
   const [abaAtiva, setAbaAtiva] = useState("Fixo");
-  const statePadrao = { nome: "", cargo: "", salario: "", vale_alimentacao: "", taxa_servico_mes: "", horario_entrada: "", horario_saida: "", horario_dom_entrada: "", horario_dom_saida: "", dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60, tipo_contrato: "Fixo", telefone: "", cpf: "", chave_pix: "", avaliacao_estrelas: 0, anotacoes_rh: "", data_admissao: "", status_contrato: "Definitivo", supervisor_id: "", supervisores_ids: [], endereco: "", cep: "", cidade_nascimento: "", data_nascimento: "", tem_filhos: false, qtd_filhos: "", tem_transporte: false, usa_vale_transporte: false, genero: "", escolaridade: "" };
+  const statePadrao = { foto: "", nome: "", cargo: "", salario: "", vale_alimentacao: "", taxa_servico_mes: "", horario_entrada: "", horario_saida: "", horario_dom_entrada: "", horario_dom_saida: "", dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60, tipo_contrato: "Fixo", telefone: "", cpf: "", chave_pix: "", avaliacao_estrelas: 0, anotacoes_rh: "", data_admissao: "", status_contrato: "Definitivo", supervisor_id: "", supervisores_ids: [], endereco: "", cep: "", cidade_nascimento: "", data_nascimento: "", tem_filhos: false, qtd_filhos: "", tem_transporte: false, usa_vale_transporte: false, genero: "", escolaridade: "" };
   // Cargos de liderança sempre disponíveis, além dos cargos cadastrados
   const CARGOS_LIDERANCA = ["CEO", "Supervisor", "Gerente"];
   const [modalNovo, setModalNovo] = useState(false);
@@ -789,12 +789,33 @@ export default function RHPage() {
     setModalNovo(true);
   };
 
+  // Foto do colaborador: comprime (máx. 400px, jpeg) e guarda em base64.
+  const fotoInputRef = useRef(null);
+  const escolherFotoColab = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const MAX = 400;
+      const escala = Math.min(1, MAX / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * escala);
+      canvas.height = Math.round(img.height * escala);
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      setNovoFunc(nf => ({ ...nf, foto: canvas.toDataURL("image/jpeg", 0.7).split(",")[1] || "" }));
+    };
+    img.src = url;
+  };
+
   const abrirModalEdicao = (f) => {
     setEditandoId(f.id);
-    setNovoFunc({ 
-       nome: f.nome || "", 
-       cargo: f.cargo || "", 
-       salario: f.salario || "", 
+    setNovoFunc({
+       foto: f.foto || "",
+       nome: f.nome || "",
+       cargo: f.cargo || "",
+       salario: f.salario || "",
        horario_entrada: f.horario_entrada || "",
        horario_saida: f.horario_saida || "",
        horario_dom_entrada: f.horario_dom_entrada || "",
@@ -862,7 +883,8 @@ export default function RHPage() {
       tem_transporte: !!novoFunc.tem_transporte,
       usa_vale_transporte: !!novoFunc.usa_vale_transporte,
       genero: novoFunc.genero || null,
-      escolaridade: novoFunc.escolaridade || null
+      escolaridade: novoFunc.escolaridade || null,
+      foto: novoFunc.foto || null
     };
 
     if (editandoId) {
@@ -1474,7 +1496,23 @@ export default function RHPage() {
                      </div>
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nome Completo</label>
-                        <input type="text" value={novoFunc.nome} onChange={e=>setNovoFunc({...novoFunc, nome: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                        <div className="flex items-center gap-3 mt-1">
+                           {/* Foto do colaborador (aparece no ponto, organograma e portal) */}
+                           <div className="relative shrink-0">
+                              <button type="button" onClick={() => fotoInputRef.current?.click()} title="Adicionar/trocar foto"
+                                 className="w-14 h-14 rounded-full overflow-hidden border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center hover:border-emerald-400">
+                                 {novoFunc.foto
+                                    ? <img src={`data:image/jpeg;base64,${novoFunc.foto}`} alt="Foto" className="w-full h-full object-cover" />
+                                    : <Camera size={18} className="text-slate-400" />}
+                              </button>
+                              {novoFunc.foto && (
+                                 <button type="button" onClick={() => setNovoFunc({ ...novoFunc, foto: "" })} title="Remover foto"
+                                    className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-rose-500 text-white flex items-center justify-center text-xs">×</button>
+                              )}
+                              <input ref={fotoInputRef} type="file" accept="image/*" onChange={escolherFotoColab} className="hidden" />
+                           </div>
+                           <input type="text" value={novoFunc.nome} onChange={e=>setNovoFunc({...novoFunc, nome: e.target.value})} className="flex-1 p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                        </div>
                      </div>
                   </div>
                   <div>

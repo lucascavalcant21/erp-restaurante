@@ -528,8 +528,8 @@ export default function PontoPage() {
 
           {/* Identificação */}
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 mb-5 flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-emerald-500/15 border-2 border-emerald-500/40 flex items-center justify-center text-3xl font-black text-emerald-400 shrink-0">
-              {selecionado.nome[0].toUpperCase()}
+            <div className="w-16 h-16 rounded-full overflow-hidden bg-emerald-500/15 border-2 border-emerald-500/40 flex items-center justify-center text-3xl font-black text-emerald-400 shrink-0">
+              {selecionado.foto ? <img src={`data:image/jpeg;base64,${selecionado.foto}`} alt={selecionado.nome} className="w-full h-full object-cover" /> : selecionado.nome[0].toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
               <h2 className="text-xl md:text-2xl font-black text-white leading-tight break-words">{selecionado.nome}</h2>
@@ -703,7 +703,7 @@ export default function PontoPage() {
       <button key={c.id} onClick={() => abrirFuncionario(c)}
         className={`p-5 rounded-3xl border-2 text-left transition-all hover:-translate-y-1 ${reg?.hora_entrada && !concluido ? "bg-slate-900 border-sky-500/40 hover:border-sky-400/70" : info.folga || faltou ? "bg-rose-500/5 border-rose-500/30" : concluido ? "bg-slate-900/40 border-slate-800 opacity-60" : "bg-slate-900 border-slate-800 hover:border-emerald-500/60"}`}>
         <div className="flex items-center gap-3 mb-3">
-          <div className={`w-11 h-11 rounded-full bg-slate-800 flex items-center justify-center text-lg font-black shrink-0 ring-2 ${info.folga || faltou ? "ring-rose-500/40 text-rose-300" : concluido ? "ring-slate-700 text-slate-500" : reg?.hora_entrada ? "ring-emerald-500/70 text-emerald-400" : "ring-slate-700 text-emerald-400"}`}>{c.nome[0].toUpperCase()}</div>
+          <div className={`w-11 h-11 rounded-full overflow-hidden bg-slate-800 flex items-center justify-center text-lg font-black shrink-0 ring-2 ${info.folga || faltou ? "ring-rose-500/40 text-rose-300" : concluido ? "ring-slate-700 text-slate-500" : reg?.hora_entrada ? "ring-emerald-500/70 text-emerald-400" : "ring-slate-700 text-emerald-400"}`}>{c.foto ? <img src={`data:image/jpeg;base64,${c.foto}`} alt={c.nome} className="w-full h-full object-cover" /> : c.nome[0].toUpperCase()}</div>
           <div className="min-w-0">
             <p className="font-black text-white leading-tight break-words">{c.nome}</p>
             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">{c.cargo || "—"}</p>

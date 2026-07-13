@@ -30,9 +30,11 @@ function TreeNode({ func, childrenMap, level, isLast, isRoot }) {
       <div className={`relative z-10 flex flex-col items-center p-6 rounded-[32px] border transition-all hover:-translate-y-1 hover:shadow-xl w-64 ${bgCard}`}>
          
          {/* Avatar */}
-         <div className={`w-20 h-20 rounded-full flex items-center justify-center font-black text-2xl mb-4 shadow-inner border-4 ${isCLevel ? 'border-slate-800' : 'border-white'} ${avatarBg}`}>
-            {func.foto_url ? (
-              <img src={func.foto_url} alt={func.nome} className="w-full h-full rounded-full object-cover" />
+         <div className={`w-20 h-20 rounded-full overflow-hidden flex items-center justify-center font-black text-2xl mb-4 shadow-inner border-4 ${isCLevel ? 'border-slate-800' : 'border-white'} ${avatarBg}`}>
+            {func.foto ? (
+              <img src={`data:image/jpeg;base64,${func.foto}`} alt={func.nome} className="w-full h-full object-cover" />
+            ) : func.foto_url ? (
+              <img src={func.foto_url} alt={func.nome} className="w-full h-full object-cover" />
             ) : (
               func.nome?.[0]?.toUpperCase()
             )}
@@ -225,8 +227,8 @@ export default function OrganogramaCorporativoPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
              {roots.map(func => (
                 <div key={func.id} className="bg-white p-5 rounded-2xl border border-slate-200 flex items-center gap-4">
-                   <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-600 font-black flex items-center justify-center">
-                      {func.nome[0].toUpperCase()}
+                   <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-100 text-slate-600 font-black flex items-center justify-center">
+                      {func.foto ? <img src={`data:image/jpeg;base64,${func.foto}`} alt={func.nome} className="w-full h-full object-cover" /> : func.nome[0].toUpperCase()}
                    </div>
                    <div>
                       <p className="font-bold text-slate-900">{func.nome}</p>

@@ -205,29 +205,36 @@ function RotinaRunner() {
     });
   })();
 
-  // Produtividade individual do mês: tarefas marcadas por pessoa
+  // Produtividade individual do mês, de TODAS as áreas, agrupada por setor.
+  // Cada tarefa marcada é atribuída à pessoa que a fez e ao setor do checklist.
   const abrirProdutividade = async () => {
     setModalProd(true);
     setProdLoading(true);
     const mes = dataHojeLocal().slice(0, 7);
-    const { data: execs } = await fetchExecucoesMes(unidadeAtiva, mes, dept);
-    const porPessoa = {};
+    // Sem filtro de dept: traz cozinha, bar e salão de uma vez
+    const { data: execs } = await fetchExecucoesMes(unidadeAtiva, mes);
+    const porArea = {}; // area -> pessoa -> { tarefas, checklists }
     (execs || []).forEach(e => {
+      const area = e.checklists_templates?.departamento || "outros";
       (Array.isArray(e.respostas) ? e.respostas : []).forEach(r => {
         if (!r.marcado) return;
-        // Atribui à pessoa da tarefa (se marcada) ou a quem preencheu o checklist
         const id = r.feito_por || e.colaborador_id;
         const nome = r.feito_por_nome || e.colaboradores?.nome || "Sem identificação";
         const key = id || nome;
-        if (!porPessoa[key]) porPessoa[key] = { nome, tarefas: 0, checklists: new Set() };
-        porPessoa[key].tarefas++;
-        porPessoa[key].checklists.add(e.id);
+        porArea[area] = porArea[area] || {};
+        porArea[area][key] = porArea[area][key] || { nome, tarefas: 0, checklists: new Set() };
+        porArea[area][key].tarefas++;
+        porArea[area][key].checklists.add(e.id);
       });
     });
-    const lista = Object.values(porPessoa)
-      .map(p => ({ nome: p.nome, tarefas: p.tarefas, checklists: p.checklists.size }))
-      .sort((a, b) => b.tarefas - a.tarefas);
-    setProdDados(lista);
+    const ordem = ["cozinha", "bar", "salao", "outros"];
+    const grupos = Object.entries(porArea).map(([area, pessoas]) => {
+      const lista = Object.values(pessoas)
+        .map(p => ({ nome: p.nome, tarefas: p.tarefas, checklists: p.checklists.size }))
+        .sort((a, b) => b.tarefas - a.tarefas);
+      return { area, pessoas: lista, total: lista.reduce((s, p) => s + p.tarefas, 0) };
+    }).sort((a, b) => ordem.indexOf(a.area) - ordem.indexOf(b.area));
+    setProdDados(grupos);
     setProdLoading(false);
   };
 
@@ -992,40 +999,51 @@ function RotinaRunner() {
 
       </PageBody>
 
-      {/* PRODUTIVIDADE INDIVIDUAL — tarefas concluídas por pessoa no mês */}
+      {/* PRODUTIVIDADE INDIVIDUAL POR ÁREA — tarefas concluídas por pessoa no mês */}
       {modalProd && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={() => setModalProd(false)}>
-          <div className="bg-white rounded-[28px] w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-[28px] w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-1">
-              <h2 className="text-xl font-black text-slate-800 flex items-center gap-2"><BarChart3 size={20} className="text-emerald-600" /> Produtividade</h2>
+              <h2 className="text-xl font-black text-slate-800 flex items-center gap-2"><BarChart3 size={20} className="text-emerald-600" /> Produtividade por área</h2>
               <button onClick={() => setModalProd(false)} className="w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={17} /></button>
             </div>
-            <p className="text-xs font-medium text-slate-500 mb-4">Tarefas de checklist concluídas por pessoa em {new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}.</p>
+            <p className="text-xs font-medium text-slate-500 mb-4">Tarefas de checklist concluídas por pessoa, por setor, em {new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}.</p>
             {prodLoading ? (
               <p className="text-center font-bold text-slate-400 py-8"><Loader2 size={20} className="animate-spin inline mr-2" />Calculando...</p>
             ) : !prodDados || prodDados.length === 0 ? (
               <p className="text-sm font-medium text-slate-400 text-center py-8">Nenhum checklist registrado neste mês ainda.</p>
-            ) : (() => {
-              const max = prodDados[0].tarefas || 1;
-              return (
-                <div className="space-y-3">
-                  {prodDados.map((p, i) => (
-                    <div key={i}>
-                      <div className="flex justify-between items-baseline text-sm mb-1">
-                        <span className="font-bold text-slate-700 truncate flex items-center gap-1.5">
-                          {i === 0 && <span className="text-[9px] font-black uppercase tracking-widest text-amber-600 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">top</span>}
-                          {p.nome}
-                        </span>
-                        <span className="font-black text-slate-800 shrink-0 ml-2">{p.tarefas} <span className="text-[10px] font-bold text-slate-400">tarefa(s) · {p.checklists} checklist(s)</span></span>
+            ) : (
+              <div className="space-y-6">
+                {prodDados.map((g) => {
+                  const ia = TEMAS[g.area] || { nome: "Outros", cor: "#64748b", corTexto: "#334155", corBg: "#F1F5F9", corBorda: "#E2E8F0" };
+                  const max = g.pessoas[0]?.tarefas || 1;
+                  return (
+                    <div key={g.area}>
+                      <div className="flex items-center justify-between mb-2.5">
+                        <span className="text-[11px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg" style={{ color: ia.corTexto, background: ia.corBg, border: `1px solid ${ia.corBorda}` }}>{ia.nome}</span>
+                        <span className="text-[10px] font-bold text-slate-400">{g.total} tarefa(s) · {g.pessoas.length} pessoa(s)</span>
                       </div>
-                      <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden">
-                        <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-500" style={{ width: `${Math.max(4, (p.tarefas / max) * 100)}%` }} />
+                      <div className="space-y-2.5">
+                        {g.pessoas.map((p, i) => (
+                          <div key={i}>
+                            <div className="flex justify-between items-baseline text-sm mb-1">
+                              <span className="font-bold text-slate-700 truncate flex items-center gap-1.5">
+                                {i === 0 && <span className="text-[9px] font-black uppercase tracking-widest rounded px-1.5 py-0.5" style={{ color: ia.corTexto, background: ia.corBg, border: `1px solid ${ia.corBorda}` }}>top</span>}
+                                {p.nome}
+                              </span>
+                              <span className="font-black text-slate-800 shrink-0 ml-2">{p.tarefas} <span className="text-[10px] font-bold text-slate-400">tarefa(s) · {p.checklists} check.</span></span>
+                            </div>
+                            <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden">
+                              <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.max(4, (p.tarefas / max) * 100)}%`, background: ia.cor }} />
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  ))}
-                </div>
-              );
-            })()}
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}

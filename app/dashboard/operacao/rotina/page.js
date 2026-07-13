@@ -11,7 +11,7 @@ import {
   PageHeader, PageBody, Card, SectionLabel, Field, TextInput, Btn, EmptyState,
 } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
-import { fetchTemplates, salvarExecucao, fetchHistoricoExecucoes, fetchExecucoesMes } from "../../../lib/checklists";
+import { fetchTemplates, salvarExecucao, fetchHistoricoExecucoes, fetchExecucoesMes, fetchExecucoesIntervalo } from "../../../lib/checklists";
 import { fetchColaboradores } from "../../../lib/rh";
 import { useTempoReal } from "../../../lib/realtime";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -124,6 +124,10 @@ function RotinaRunner() {
   const [modalProd, setModalProd] = useState(false);
   const [prodDados, setProdDados] = useState(null);
   const [prodLoading, setProdLoading] = useState(false);
+  const [prodTipo, setProdTipo] = useState("mes"); // "dia" | "mes" | "ano"
+  const [prodDia, setProdDia] = useState(() => dataHojeLocal());
+  const [prodMes, setProdMes] = useState(() => dataHojeLocal().slice(0, 7));
+  const [prodAno, setProdAno] = useState(() => dataHojeLocal().slice(0, 4));
 
   // Execução
   const [checklistAtual, setChecklistAtual] = useState(null);
@@ -205,37 +209,85 @@ function RotinaRunner() {
     });
   })();
 
-  // Produtividade individual do mês, de TODAS as áreas, agrupada por setor.
-  // Cada tarefa marcada é atribuída à pessoa que a fez e ao setor do checklist.
-  const abrirProdutividade = async () => {
-    setModalProd(true);
+  // Intervalo [inicio, fim) e um rótulo conforme o período escolhido.
+  const intervaloProd = () => {
+    if (prodTipo === "dia") {
+      const d = new Date(`${prodDia}T00:00:00`);
+      const prox = new Date(d); prox.setDate(prox.getDate() + 1);
+      const fim = `${prox.getFullYear()}-${String(prox.getMonth() + 1).padStart(2, "0")}-${String(prox.getDate()).padStart(2, "0")}`;
+      const rotulo = d.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
+      return { inicio: prodDia, fim, rotulo };
+    }
+    if (prodTipo === "ano") {
+      return { inicio: `${prodAno}-01-01`, fim: `${Number(prodAno) + 1}-01-01`, rotulo: `Ano de ${prodAno}` };
+    }
+    const [a, m] = prodMes.split("-").map(Number);
+    const prox = new Date(a, m, 1);
+    const fim = `${prox.getFullYear()}-${String(prox.getMonth() + 1).padStart(2, "0")}-01`;
+    const rotulo = new Date(`${prodMes}-01T00:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+    return { inicio: `${prodMes}-01`, fim, rotulo };
+  };
+
+  // Produtividade individual — SOMENTE do setor atual (cada área vê só a sua).
+  const carregarProdutividade = async () => {
     setProdLoading(true);
-    const mes = dataHojeLocal().slice(0, 7);
-    // Sem filtro de dept: traz cozinha, bar e salão de uma vez
-    const { data: execs } = await fetchExecucoesMes(unidadeAtiva, mes);
-    const porArea = {}; // area -> pessoa -> { tarefas, checklists }
+    const { inicio, fim } = intervaloProd();
+    // Filtra pelo dept da tela: a produtividade de uma área não vaza para outra
+    const { data: execs } = await fetchExecucoesIntervalo(unidadeAtiva, inicio, fim, dept);
+    const porPessoa = {};
     (execs || []).forEach(e => {
-      const area = e.checklists_templates?.departamento || "outros";
       (Array.isArray(e.respostas) ? e.respostas : []).forEach(r => {
         if (!r.marcado) return;
         const id = r.feito_por || e.colaborador_id;
         const nome = r.feito_por_nome || e.colaboradores?.nome || "Sem identificação";
         const key = id || nome;
-        porArea[area] = porArea[area] || {};
-        porArea[area][key] = porArea[area][key] || { nome, tarefas: 0, checklists: new Set() };
-        porArea[area][key].tarefas++;
-        porArea[area][key].checklists.add(e.id);
+        porPessoa[key] = porPessoa[key] || { nome, tarefas: 0, checklists: new Set() };
+        porPessoa[key].tarefas++;
+        porPessoa[key].checklists.add(e.id);
       });
     });
-    const ordem = ["cozinha", "bar", "salao", "outros"];
-    const grupos = Object.entries(porArea).map(([area, pessoas]) => {
-      const lista = Object.values(pessoas)
-        .map(p => ({ nome: p.nome, tarefas: p.tarefas, checklists: p.checklists.size }))
-        .sort((a, b) => b.tarefas - a.tarefas);
-      return { area, pessoas: lista, total: lista.reduce((s, p) => s + p.tarefas, 0) };
-    }).sort((a, b) => ordem.indexOf(a.area) - ordem.indexOf(b.area));
-    setProdDados(grupos);
+    const lista = Object.values(porPessoa)
+      .map(p => ({ nome: p.nome, tarefas: p.tarefas, checklists: p.checklists.size }))
+      .sort((a, b) => b.tarefas - a.tarefas);
+    setProdDados(lista);
     setProdLoading(false);
+  };
+
+  const abrirProdutividade = () => { setModalProd(true); carregarProdutividade(); };
+
+  // Recarrega ao trocar período enquanto o painel está aberto
+  useEffect(() => { if (modalProd) carregarProdutividade(); /* eslint-disable-next-line */ }, [prodTipo, prodDia, prodMes, prodAno]);
+
+  // Impressão do relatório de produtividade (para levar à reunião)
+  const imprimirProdutividade = () => {
+    const { rotulo } = intervaloProd();
+    const lista = prodDados || [];
+    const linhas = lista.map((p, i) => `<tr><td class="pos">${i + 1}º</td><td>${p.nome}</td><td class="num">${p.tarefas}</td><td class="num">${p.checklists}</td></tr>`).join("");
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Produtividade — ${t.nome}</title>
+      <style>
+        @page { size: A4 portrait; margin: 14mm; }
+        body { font-family: sans-serif; color: #0f172a; }
+        h1 { font-size: 20px; margin: 0 0 2px; }
+        .sub { color: #64748b; font-size: 12px; margin: 0 0 16px; }
+        .selo { display:inline-block; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color:#fff; background:${t.cor}; padding: 3px 10px; border-radius: 6px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+        th, td { border: 1px solid #cbd5e1; padding: 7px 10px; text-align: left; font-size: 12px; }
+        th { background: #f1f5f9; text-transform: uppercase; font-size: 10px; color: #475569; }
+        td.num, th.num { text-align: right; }
+        td.pos { width: 36px; font-weight: 800; color:#64748b; }
+        .rod { margin-top: 18px; font-size: 10px; color:#94a3b8; }
+      </style></head><body>
+      <span class="selo">${t.nome}</span>
+      <h1>Produtividade da equipe</h1>
+      <p class="sub">Tarefas de checklist concluídas por pessoa · ${rotulo} · ${unidadeInfo?.nome || ""}</p>
+      ${lista.length ? `<table><thead><tr><th></th><th>Colaborador</th><th class="num">Tarefas</th><th class="num">Checklists</th></tr></thead><tbody>${linhas}</tbody></table>`
+        : `<p style="color:#94a3b8;font-weight:bold;">Nenhum checklist registrado neste período.</p>`}
+      <p class="rod">Gerado pelo Hefisto em ${new Date().toLocaleString("pt-BR")}.</p>
+      </body></html>`;
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.write(html); win.document.close();
+    setTimeout(() => win.print(), 400);
   };
 
   const iniciar = (tmpl) => {
@@ -999,51 +1051,71 @@ function RotinaRunner() {
 
       </PageBody>
 
-      {/* PRODUTIVIDADE INDIVIDUAL POR ÁREA — tarefas concluídas por pessoa no mês */}
+      {/* PRODUTIVIDADE INDIVIDUAL — só do setor atual, por dia/mês/ano */}
       {modalProd && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={() => setModalProd(false)}>
           <div className="bg-white rounded-[28px] w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-1">
-              <h2 className="text-xl font-black text-slate-800 flex items-center gap-2"><BarChart3 size={20} className="text-emerald-600" /> Produtividade por área</h2>
+              <h2 className="text-xl font-black text-slate-800 flex items-center gap-2"><BarChart3 size={20} style={{ color: t.cor }} /> Produtividade · {t.nome}</h2>
               <button onClick={() => setModalProd(false)} className="w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={17} /></button>
             </div>
-            <p className="text-xs font-medium text-slate-500 mb-4">Tarefas de checklist concluídas por pessoa, por setor, em {new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}.</p>
+            <p className="text-xs font-medium text-slate-500 mb-3">Tarefas concluídas por pessoa, somente da equipe {t.nome}.</p>
+
+            {/* Período: dia / mês / ano */}
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              <div className="inline-flex gap-1 p-1 rounded-xl bg-slate-100">
+                {[["dia", "Dia"], ["mes", "Mês"], ["ano", "Ano"]].map(([v, l]) => (
+                  <button key={v} onClick={() => setProdTipo(v)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                    style={prodTipo === v ? { background: "#fff", color: t.corTexto, boxShadow: "0 1px 2px rgba(0,0,0,.12)" } : { color: "#64748b" }}>
+                    {l}
+                  </button>
+                ))}
+              </div>
+              {prodTipo === "dia" && (
+                <input type="date" value={prodDia} onChange={e => setProdDia(e.target.value)}
+                  className="h-9 rounded-lg border border-slate-200 px-2 text-sm font-bold text-slate-700" />
+              )}
+              {prodTipo === "mes" && (
+                <input type="month" value={prodMes} onChange={e => setProdMes(e.target.value)}
+                  className="h-9 rounded-lg border border-slate-200 px-2 text-sm font-bold text-slate-700" />
+              )}
+              {prodTipo === "ano" && (
+                <input type="number" min="2020" max="2100" value={prodAno} onChange={e => setProdAno(e.target.value)}
+                  className="h-9 w-24 rounded-lg border border-slate-200 px-2 text-sm font-bold text-slate-700" />
+              )}
+              <button onClick={imprimirProdutividade} disabled={!prodDados || prodDados.length === 0}
+                className="ml-auto h-9 px-3 rounded-lg text-xs font-bold flex items-center gap-1.5 disabled:opacity-40"
+                style={{ background: t.cor, color: "#fff" }}>
+                <Printer size={14} /> Imprimir
+              </button>
+            </div>
+
             {prodLoading ? (
               <p className="text-center font-bold text-slate-400 py-8"><Loader2 size={20} className="animate-spin inline mr-2" />Calculando...</p>
             ) : !prodDados || prodDados.length === 0 ? (
-              <p className="text-sm font-medium text-slate-400 text-center py-8">Nenhum checklist registrado neste mês ainda.</p>
-            ) : (
-              <div className="space-y-6">
-                {prodDados.map((g) => {
-                  const ia = TEMAS[g.area] || { nome: "Outros", cor: "#64748b", corTexto: "#334155", corBg: "#F1F5F9", corBorda: "#E2E8F0" };
-                  const max = g.pessoas[0]?.tarefas || 1;
-                  return (
-                    <div key={g.area}>
-                      <div className="flex items-center justify-between mb-2.5">
-                        <span className="text-[11px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg" style={{ color: ia.corTexto, background: ia.corBg, border: `1px solid ${ia.corBorda}` }}>{ia.nome}</span>
-                        <span className="text-[10px] font-bold text-slate-400">{g.total} tarefa(s) · {g.pessoas.length} pessoa(s)</span>
+              <p className="text-sm font-medium text-slate-400 text-center py-8">Nenhum checklist registrado neste período.</p>
+            ) : (() => {
+              const max = prodDados[0].tarefas || 1;
+              return (
+                <div className="space-y-2.5">
+                  {prodDados.map((p, i) => (
+                    <div key={i}>
+                      <div className="flex justify-between items-baseline text-sm mb-1">
+                        <span className="font-bold text-slate-700 truncate flex items-center gap-1.5">
+                          {i === 0 && <span className="text-[9px] font-black uppercase tracking-widest rounded px-1.5 py-0.5" style={{ color: t.corTexto, background: t.corBg, border: `1px solid ${t.corBorda}` }}>top</span>}
+                          {p.nome}
+                        </span>
+                        <span className="font-black text-slate-800 shrink-0 ml-2">{p.tarefas} <span className="text-[10px] font-bold text-slate-400">tarefa(s) · {p.checklists} check.</span></span>
                       </div>
-                      <div className="space-y-2.5">
-                        {g.pessoas.map((p, i) => (
-                          <div key={i}>
-                            <div className="flex justify-between items-baseline text-sm mb-1">
-                              <span className="font-bold text-slate-700 truncate flex items-center gap-1.5">
-                                {i === 0 && <span className="text-[9px] font-black uppercase tracking-widest rounded px-1.5 py-0.5" style={{ color: ia.corTexto, background: ia.corBg, border: `1px solid ${ia.corBorda}` }}>top</span>}
-                                {p.nome}
-                              </span>
-                              <span className="font-black text-slate-800 shrink-0 ml-2">{p.tarefas} <span className="text-[10px] font-bold text-slate-400">tarefa(s) · {p.checklists} check.</span></span>
-                            </div>
-                            <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden">
-                              <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.max(4, (p.tarefas / max) * 100)}%`, background: ia.cor }} />
-                            </div>
-                          </div>
-                        ))}
+                      <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden">
+                        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.max(4, (p.tarefas / max) * 100)}%`, background: t.cor }} />
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}

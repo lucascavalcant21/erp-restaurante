@@ -51,7 +51,7 @@ const CFG_MODELO_PADRAO = {
 const PRESETS_MODELO = {
   chef: {
     estilo: "chef", fotoPct: 100, tituloPx: 38, textoPx: 15, porPagina: 1,
-    ajusteFoto: "cover", mostrarDetalhes: true, mostrarCamadas: false,
+    ajusteFoto: "contain", mostrarDetalhes: true, mostrarCamadas: false,
     mostrarObservacoes: true, corDestaque: "#059669",
   },
   operacional: {
@@ -1439,12 +1439,14 @@ function MontagemPageInner() {
                    <FormMontagem inicial={editar} deptInicial={dept} onSalvar={salvar} onCancelar={() => { setModal(false); setEditar(null); }} onPreview={setPreviewFicha} />
                 </div>
 
-                {/* Designer e prévia também aparecem no tablet e no celular. */}
+                {/* Designer e prévia também aparecem no tablet e no celular.
+                    A prévia fica FIXA (sticky) para acompanhar cada ajuste de
+                    imagem, título, texto, designer e margem sem sair da tela. */}
                 <div className="min-w-0 border-t border-[var(--line)] pt-6 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
                   <div className="space-y-4">
-                    <div>
+                    <div className="lg:sticky lg:top-0 lg:z-10 lg:self-start pb-2" style={{ background: "var(--surface)" }}>
                       <h3 className="font-black text-[var(--fg)] text-lg mb-1">Prévia da ficha impressa</h3>
-                      <p className="text-[var(--subtle)] text-xs mb-3">O que aparece aqui é o que será enviado para a impressão, inclusive foto e tamanho das letras.</p>
+                      <p className="text-[var(--subtle)] text-xs mb-3">Ela acompanha cada ajuste em tempo real. É exatamente o que vai para a impressão, com a foto inteira e sem cortes.</p>
                       <PreviaModeloChef m={previewFicha} cfg={cfgModelo} />
                     </div>
                     <ControlesDesigner

@@ -59,6 +59,20 @@ export async function fetchExecucoesMes(unidadeId, mesAno, dept) {
   return { data: data || [], error: error?.message };
 }
 
+// Execuções em um intervalo [inicio, fim) — para produtividade por dia/mês/ano
+export async function fetchExecucoesIntervalo(unidadeId, inicio, fim, dept) {
+  if (!isSupabaseReady()) return { data: [] };
+  let query = supabase.from("checklists_execucoes")
+    .select(`*, checklists_templates!inner(titulo, departamento, tipo), colaboradores(nome)`)
+    .gte("data_referencia", inicio)
+    .lt("data_referencia", fim)
+    .order("data_referencia", { ascending: true });
+  if (unidadeId && unidadeId !== "matriz") query = query.eq("unidade_id", unidadeId);
+  if (dept) query = query.eq("checklists_templates.departamento", dept);
+  const { data, error } = await query;
+  return { data: data || [], error: error?.message };
+}
+
 export async function fetchHistoricoExecucoes(unidadeId, dataRef, dept) {
   if (!isSupabaseReady()) return { data: [] };
   

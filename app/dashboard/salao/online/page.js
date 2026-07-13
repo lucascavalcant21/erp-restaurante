@@ -102,10 +102,10 @@ export default function GestorOnlinePage() {
   };
 
   return (
-    <div ref={containerRef} className="h-screen w-full flex font-sans overflow-hidden bg-[#EAEAEA]">
+    <div ref={containerRef} className="h-[100dvh] w-full flex font-sans overflow-hidden bg-[#EAEAEA]">
       
       {/* SIDEBAR ESQUERDA (TIRINHA VERMELHA) */}
-      <div className="w-12 bg-[#D12B2B] flex flex-col items-center py-4 z-20 shrink-0 border-r border-red-800">
+      <div className="w-10 sm:w-12 bg-[#D12B2B] flex flex-col items-center py-4 z-20 shrink-0 border-r border-red-800">
          <button onClick={() => abrirMenu()} className="text-white hover:text-red-200 mb-8 transition-colors"><ArrowLeft size={20}/></button>
          <div className="text-white font-black text-xl flex flex-col items-center tracking-widest" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>
             SIGA
@@ -116,14 +116,14 @@ export default function GestorOnlinePage() {
       <div className="flex-1 flex flex-col overflow-hidden">
          
          {/* TOPBAR */}
-         <div className="bg-[#2D2D2D] h-14 flex items-center px-4 justify-between shrink-0 shadow-md z-10 text-white">
-            <div className="flex items-center h-full">
-               <button onClick={() => setAba('DELIVERY')} className={`h-full px-6 font-bold text-xs transition-colors ${aba === 'DELIVERY' ? 'bg-black/20 border-b-4 border-red-500 text-white' : 'text-slate-400 hover:text-white'}`}>DELIVERY</button>
-               <button onClick={() => setAba('IFOOD')} className={`h-full px-6 font-bold text-xs transition-colors ${aba === 'IFOOD' ? 'bg-black/20 border-b-4 border-red-500 text-white' : 'text-slate-400 hover:text-white'}`}>IFOOD</button>
-               <button onClick={() => setAba('CARDAPIO')} className={`h-full px-6 font-bold text-xs transition-colors flex items-center gap-2 ${aba === 'CARDAPIO' ? 'bg-black/20 border-b-4 border-red-500 text-white' : 'text-slate-400 hover:text-white'}`}>CARDÁPIO DIGITAL</button>
+         <div className="bg-[#2D2D2D] min-h-14 flex items-center px-2 sm:px-4 justify-between gap-2 shrink-0 shadow-md z-10 text-white">
+            <div className="flex items-center self-stretch min-w-0 overflow-x-auto">
+               <button onClick={() => setAba('DELIVERY')} className={`h-full px-3 sm:px-6 shrink-0 font-bold text-xs transition-colors ${aba === 'DELIVERY' ? 'bg-black/20 border-b-4 border-red-500 text-white' : 'text-slate-400 hover:text-white'}`}>DELIVERY</button>
+               <button onClick={() => setAba('IFOOD')} className={`h-full px-3 sm:px-6 shrink-0 font-bold text-xs transition-colors ${aba === 'IFOOD' ? 'bg-black/20 border-b-4 border-red-500 text-white' : 'text-slate-400 hover:text-white'}`}>IFOOD</button>
+               <button onClick={() => setAba('CARDAPIO')} className={`h-full px-3 sm:px-6 shrink-0 font-bold text-xs transition-colors flex items-center gap-2 ${aba === 'CARDAPIO' ? 'bg-black/20 border-b-4 border-red-500 text-white' : 'text-slate-400 hover:text-white'}`}>CARDÁPIO DIGITAL</button>
             </div>
             
-            <div className="flex items-center gap-6">
+            <div className="hidden lg:flex items-center gap-6">
                <div className="flex items-center gap-2 bg-[#1A1A1A] rounded px-3 py-1.5 border border-slate-700 w-64">
                   <input type="text" placeholder="Nome, telefone, ID, bairro..." className="bg-transparent border-none outline-none text-xs w-full placeholder-slate-500 text-white" />
                </div>
@@ -135,7 +135,7 @@ export default function GestorOnlinePage() {
                </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-2 shrink-0">
                <button className="px-3 py-1.5 flex items-center gap-1.5 bg-[#4A4A4A] hover:bg-[#5A5A5A] rounded text-[10px] font-bold uppercase transition-colors">
                   <Bike size={14}/> Entregadores
                </button>
@@ -146,7 +146,7 @@ export default function GestorOnlinePage() {
          </div>
 
          {/* KANBAN BOARD */}
-         <div className="flex-1 flex p-2 gap-2 overflow-x-auto">
+         <div className="flex-1 flex p-2 gap-2 overflow-x-auto snap-x snap-mandatory">
             
             {(() => {
                const pedidosFiltrados = pedidos.filter(p => {
@@ -159,7 +159,7 @@ export default function GestorOnlinePage() {
                return (
                   <>
                      {/* COLUNA 1: NOVOS */}
-            <div className="flex-1 min-w-[280px] flex flex-col bg-[#F3F3F3] rounded shadow-sm border border-slate-300">
+            <div className="flex-1 min-w-[calc(100vw-4rem)] sm:min-w-[300px] lg:min-w-[280px] snap-start flex flex-col bg-[#F3F3F3] rounded shadow-sm border border-slate-300">
                <div className="bg-[#D12B2B] text-white p-2 text-center font-black text-xs uppercase tracking-widest rounded-t">
                   Novos
                </div>
@@ -186,7 +186,7 @@ export default function GestorOnlinePage() {
             </div>
 
             {/* COLUNA 2: EM PREPARO */}
-            <div className="flex-1 min-w-[280px] flex flex-col bg-[#F3F3F3] rounded shadow-sm border border-slate-300">
+            <div className="flex-1 min-w-[calc(100vw-4rem)] sm:min-w-[300px] lg:min-w-[280px] snap-start flex flex-col bg-[#F3F3F3] rounded shadow-sm border border-slate-300">
                <div className="bg-[#F39C12] text-white p-2 text-center font-black text-xs uppercase tracking-widest rounded-t">
                   Em Preparo
                </div>
@@ -209,7 +209,7 @@ export default function GestorOnlinePage() {
             </div>
 
             {/* COLUNA 3: PRONTOS */}
-            <div className="flex-1 min-w-[280px] flex flex-col bg-[#F3F3F3] rounded shadow-sm border border-slate-300">
+            <div className="flex-1 min-w-[calc(100vw-4rem)] sm:min-w-[300px] lg:min-w-[280px] snap-start flex flex-col bg-[#F3F3F3] rounded shadow-sm border border-slate-300">
                <div className="bg-[#27AE60] text-white p-2 text-center font-black text-xs uppercase tracking-widest rounded-t">
                   Prontos p/ Despacho
                </div>
@@ -233,7 +233,7 @@ export default function GestorOnlinePage() {
             </div>
 
             {/* COLUNA 4: EM ROTA (SAIU) */}
-            <div className="flex-1 min-w-[280px] flex flex-col bg-[#F3F3F3] rounded shadow-sm border border-slate-300">
+            <div className="flex-1 min-w-[calc(100vw-4rem)] sm:min-w-[300px] lg:min-w-[280px] snap-start flex flex-col bg-[#F3F3F3] rounded shadow-sm border border-slate-300">
                <div className="bg-[#7F8C8D] text-white p-2 text-center font-black text-xs uppercase tracking-widest rounded-t">
                   Em Rota (Saiu)
                </div>
@@ -266,8 +266,8 @@ export default function GestorOnlinePage() {
 
       {/* Painel de detalhe do pedido (clique no card) */}
       {detalhe && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={() => setDetalhe(null)}>
-          <div className="bg-white rounded-2xl w-full max-w-md max-h-[85vh] overflow-hidden flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-2 sm:p-4" onClick={() => setDetalhe(null)}>
+          <div className="bg-white rounded-2xl w-full max-w-md max-h-[calc(100dvh-1rem)] sm:max-h-[85vh] overflow-hidden flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="p-5 border-b border-slate-100 flex items-start justify-between">
               <div>
                 <div className="flex items-center gap-2">

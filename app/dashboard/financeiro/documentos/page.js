@@ -28,16 +28,16 @@ function FormDoc({ onSalvar, onCancelar }) {
   }
   return (
     <>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Tipo"><Select value={f.tipo} onChange={(e) => set("tipo", e.target.value)}>{TIPOS.map((t) => <option key={t}>{t}</option>)}</Select></Field>
         <Field label="Categoria"><Select value={f.categoria} onChange={(e) => set("categoria", e.target.value)}>{CATS.map((c) => <option key={c}>{c}</option>)}</Select></Field>
       </div>
       <Field label="Descrição"><TextInput value={f.descricao} onChange={(e) => set("descricao", e.target.value)} placeholder="ex: Conta de energia" /></Field>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Valor (R$)"><NumberInput value={f.valor} onChange={(e) => set("valor", e.target.value)} placeholder="0,00" step="0.01" /></Field>
         <Field label="Status"><Select value={f.status} onChange={(e) => set("status", e.target.value)}>{STATUS.map((s) => <option key={s}>{s}</option>)}</Select></Field>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Emissão"><TextInput type="date" value={f.emissao} onChange={(e) => set("emissao", e.target.value)} /></Field>
         <Field label="Vencimento"><TextInput type="date" value={f.vencimento} onChange={(e) => set("vencimento", e.target.value)} /></Field>
       </div>

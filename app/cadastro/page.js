@@ -65,8 +65,8 @@ export default function CadastroPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-5 py-10" style={{ background: "var(--surface)" }}>
-      <div className="w-full max-w-sm erp-card p-6">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 sm:px-5 py-6 sm:py-10" style={{ background: "var(--surface)" }}>
+      <div className="w-full max-w-sm erp-card p-5 sm:p-6">
         <button onClick={() => step === 0 ? router.push("/login") : setStep((s) => s - 1)}
           className="flex items-center gap-1.5 text-[12px] font-bold mb-5" style={{ color: "var(--dim)" }}>
           <ArrowLeft size={14} /> {step === 0 ? "Voltar ao login" : "Voltar"}

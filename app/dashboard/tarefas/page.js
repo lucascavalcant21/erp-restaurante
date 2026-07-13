@@ -49,7 +49,7 @@ export default function MinhasTarefasPage() {
       <div className="min-h-screen pb-20">
         <PageHeader title={tpl.titulo} subtitle="Execução de Tarefa" onBack={() => setExecutando(null)} />
         <PageBody>
-          <div className="erp-card p-6 mb-6" style={{ background: "var(--panel)" }}>
+          <div className="erp-card p-4 sm:p-6 mb-6" style={{ background: "var(--panel)" }}>
             <p className="text-sm font-medium" style={{ color: "var(--fg)" }}>{tpl.descricao}</p>
           </div>
 
@@ -108,17 +108,17 @@ export default function MinhasTarefasPage() {
               ) : (
                 <div className="space-y-3">
                   {pendentes.map(t => (
-                    <Card key={t.id} className="p-4 flex items-center gap-4 cursor-pointer hover:border-accent transition-colors" onClick={() => iniciarExecucao(t)}>
-                      <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "rgba(245,158,11,0.15)" }}>
+                    <Card key={t.id} className="!p-3 sm:!p-4 flex items-center gap-3 sm:gap-4 cursor-pointer hover:border-accent transition-colors" onClick={() => iniciarExecucao(t)}>
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "rgba(245,158,11,0.15)" }}>
                         <AlertTriangle size={24} color="#F59E0B" />
                       </div>
-                      <div className="flex-1">
-                        <p className="font-bold text-base" style={{ color: "var(--fg)" }}>{t.tarefas_templates?.titulo}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm sm:text-base break-words" style={{ color: "var(--fg)" }}>{t.tarefas_templates?.titulo}</p>
                         <p className="text-xs font-medium" style={{ color: "var(--dim)" }}>
                           Prazo: {t.prazo ? fmtData(t.prazo) : "Sem prazo definido"}
                         </p>
                       </div>
-                      <ArrowRight size={20} style={{ color: "var(--muted)" }} />
+                      <ArrowRight size={20} className="flex-shrink-0" style={{ color: "var(--muted)" }} />
                     </Card>
                   ))}
                 </div>
@@ -131,12 +131,12 @@ export default function MinhasTarefasPage() {
                 <SectionLabel>Concluídas ({concluidas.length})</SectionLabel>
                 <div className="space-y-3 opacity-70">
                   {concluidas.map(t => (
-                    <Card key={t.id} className="p-4 flex items-center gap-4">
+                    <Card key={t.id} className="!p-3 sm:!p-4 flex items-center gap-3 sm:gap-4">
                       <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "rgba(16,185,129,0.15)" }}>
                         <CheckCircle size={20} color="#10B981" />
                       </div>
-                      <div className="flex-1">
-                        <p className="font-bold text-sm line-through" style={{ color: "var(--fg)" }}>{t.tarefas_templates?.titulo}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm line-through break-words" style={{ color: "var(--fg)" }}>{t.tarefas_templates?.titulo}</p>
                         <p className="text-xs font-medium" style={{ color: "var(--dim)" }}>
                           Feito por {t.funcionario_nome} em {fmtData(t.concluida_em)}
                         </p>

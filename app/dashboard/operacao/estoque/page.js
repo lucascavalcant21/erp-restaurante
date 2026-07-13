@@ -242,9 +242,9 @@ function EstoqueRunner() {
             <input type="text" placeholder="Buscar ingrediente..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-bold text-slate-700 p-2" />
          </div>
 
-         <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200">
+         <div className="rounded-2xl overflow-x-auto shadow-md border border-slate-200">
             {/* Header da tabela */}
-            <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 items-center">
+            <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 items-center min-w-[720px]">
                <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Ingrediente</span>
                <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-24">Custo/Un.</span>
                <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-20">Unid.</span>
@@ -268,7 +268,7 @@ function EstoqueRunner() {
                  const dept = ins.departamento?.toLowerCase();
                  const deptColor = dept === 'bar' ? 'bg-purple-100 text-purple-700' : 'bg-amber-100 text-amber-700';
                  return (
-                   <div key={ins.insumo_id} className={`px-6 py-4 grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 items-center group transition-all duration-150 ${zerado ? 'bg-red-50/40 hover:bg-red-50' : 'hover:bg-emerald-50/40'}`}>
+                   <div key={ins.insumo_id} className={`px-6 py-4 grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 items-center min-w-[720px] group transition-all duration-150 ${zerado ? 'bg-red-50/40 hover:bg-red-50' : 'hover:bg-emerald-50/40'}`}>
                      {/* Nome + Dept */}
                      <div className="flex items-center gap-3 min-w-0">
                        <div className={`w-1 h-10 rounded-full shrink-0 ${zerado ? 'bg-red-400' : critico ? 'bg-amber-400' : 'bg-emerald-400'}`} />
@@ -318,7 +318,7 @@ function EstoqueRunner() {
 
       {modalAjuste && itemAtual && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-[32px] w-full max-w-sm p-8 shadow-2xl animate-in zoom-in-95">
+            <div className="bg-white rounded-[32px] w-full max-w-sm p-5 sm:p-8 max-h-[calc(100dvh-1rem)] overflow-y-auto shadow-2xl animate-in zoom-in-95">
                <div className="flex justify-between items-center mb-6">
                   <h2 className="font-black text-2xl text-slate-800">Ajuste de Saldo</h2>
                   <button onClick={() => setModalAjuste(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
@@ -365,7 +365,7 @@ function EstoqueRunner() {
 
       {modalEntrada && itemAtual && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-[32px] w-full max-w-sm p-8 shadow-2xl animate-in zoom-in-95">
+            <div className="bg-white rounded-[32px] w-full max-w-sm p-5 sm:p-8 max-h-[calc(100dvh-1rem)] overflow-y-auto shadow-2xl animate-in zoom-in-95">
                <div className="flex justify-between items-center mb-6">
                   <h2 className="font-black text-2xl text-slate-800">Lançar Entrada</h2>
                   <button onClick={() => setModalEntrada(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>

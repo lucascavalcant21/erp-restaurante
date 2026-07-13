@@ -137,13 +137,13 @@ export default function CmvPage() {
             </KpiGrid>
 
             {resumo.melhor && (
-              <Card className="flex items-center gap-3">
+              <Card className="flex items-start sm:items-center gap-3">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "var(--accent-soft)" }}>
                   <Crown size={18} style={{ color: "var(--accent-fg)" }} />
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <p className="text-[11px] font-medium" style={{ color: "var(--dim)" }}>Melhor CMV da carta</p>
-                  <p className="text-sm font-bold" style={{ color: "var(--fg)" }}>{resumo.melhor.nome} · {fmtPct(resumo.melhor.cmv)}</p>
+                  <p className="text-sm font-bold break-words" style={{ color: "var(--fg)" }}>{resumo.melhor.nome} · {fmtPct(resumo.melhor.cmv)}</p>
                 </div>
               </Card>
             )}
@@ -156,7 +156,7 @@ export default function CmvPage() {
                   return (
                     <Card key={l.id} className="!p-3">
                       <div className="flex items-center justify-between mb-1.5 gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0 flex-wrap">
                           <p className="text-sm font-bold truncate" style={{ color: "var(--fg)" }}>{l.nome}</p>
                           {l.departamento && (
                             <span className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded flex-shrink-0" style={{ background: "var(--elevated)", color: "var(--dim)" }}>{l.departamento}</span>
@@ -194,12 +194,12 @@ export default function CmvPage() {
 
       {/* MODAL: histórico de alterações de ingredientes do prato */}
       {modalHistPrato && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={() => setModalHistPrato(null)}>
-          <div className="w-full max-w-md max-h-[85vh] rounded-3xl border flex flex-col p-6" style={{ background: "var(--card)", borderColor: "var(--line)", boxShadow: "var(--shadow-float)" }} onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-4 shrink-0">
-              <div>
-                <h2 className="font-black text-lg" style={{ color: "var(--fg)" }}>Alterações de Ingredientes</h2>
-                <p className="text-xs font-bold mt-0.5" style={{ color: "var(--muted)" }}>{modalHistPrato.nome} · {modalHistPrato.mudancas.length} mudança(s) de preço</p>
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-slate-900/60 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto" onClick={() => setModalHistPrato(null)}>
+          <div className="w-full max-w-md max-h-[calc(100dvh-1.5rem)] sm:max-h-[85vh] rounded-2xl sm:rounded-3xl border flex flex-col p-4 sm:p-6 my-auto" style={{ background: "var(--card)", borderColor: "var(--line)", boxShadow: "var(--shadow-float)" }} onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-start gap-3 mb-4 shrink-0">
+              <div className="min-w-0">
+                <h2 className="font-black text-base sm:text-lg break-words" style={{ color: "var(--fg)" }}>Alterações de Ingredientes</h2>
+                <p className="text-xs font-bold mt-0.5 break-words" style={{ color: "var(--muted)" }}>{modalHistPrato.nome} · {modalHistPrato.mudancas.length} mudança(s) de preço</p>
               </div>
               <button onClick={() => setModalHistPrato(null)} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "var(--elevated)", color: "var(--muted)" }}><X size={16} /></button>
             </div>

@@ -59,24 +59,24 @@ export default function ContratoRhPage() {
     <div className="min-h-screen bg-slate-100 font-sans text-slate-800 pb-20">
       
       {/* Barra de Ferramentas (Não sai na impressão) */}
-      <div className="print:hidden bg-slate-900 text-white p-4 flex items-center justify-between sticky top-0 z-50 shadow-xl">
+      <div className="print:hidden bg-slate-900 text-white p-3 sm:p-4 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-50 shadow-xl">
         <button onClick={() => abrirMenu()} className="flex items-center gap-2 font-bold hover:text-emerald-400 transition-colors">
           <ArrowLeft size={18}/> Voltar
         </button>
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-2 sm:gap-4 w-full sm:w-auto">
           {regulamento?.url_pdf && (
-            <a href={regulamento.url_pdf} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-xl font-bold transition-colors">
+            <a href={regulamento.url_pdf} target="_blank" rel="noreferrer" className="flex flex-1 sm:flex-none items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600 px-3 sm:px-4 py-2 rounded-xl font-bold transition-colors">
               <FileText size={16}/> Ver PDF Original
             </a>
           )}
-          <button onClick={handlePrint} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 px-6 py-2 rounded-xl font-black transition-colors shadow-lg shadow-emerald-900/20">
+          <button onClick={handlePrint} className="flex flex-1 sm:flex-none items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 px-4 sm:px-6 py-2 rounded-xl font-black transition-colors shadow-lg shadow-emerald-900/20">
             <Printer size={18}/> Imprimir / Salvar PDF
           </button>
         </div>
       </div>
 
       {/* Papel (A4) */}
-      <div className="max-w-[21cm] mx-auto bg-white p-[2cm] mt-8 shadow-2xl print:shadow-none print:m-0 print:p-0">
+      <div className="max-w-[21cm] mx-3 sm:mx-auto bg-white p-4 sm:p-8 lg:p-[2cm] mt-4 sm:mt-8 shadow-2xl print:shadow-none print:m-0 print:p-0">
         
         {/* Cabeçalho */}
         <div className="text-center border-b-2 border-slate-900 pb-6 mb-8">
@@ -121,14 +121,14 @@ export default function ContratoRhPage() {
              Pelo presente termo, declaro para os devidos fins que recebi, li e estou ciente de todas as normas estipuladas no <strong>Regulamento Interno</strong> da empresa <strong>{unidadeInfo?.nome}</strong>, bem como compreendo integralmente a <strong>Descrição do meu Cargo</strong> e as funções inerentes à minha contratação. Comprometo-me a cumpri-las fielmente, sob pena de sofrer as sanções disciplinares cabíveis.
            </p>
 
-           <div className="flex justify-between items-end mt-24">
-              <div className="text-center w-1/2 px-4">
+           <div className="flex flex-col sm:flex-row print:flex-row justify-between items-end gap-16 sm:gap-0 mt-16 sm:mt-24">
+              <div className="text-center w-full sm:w-1/2 print:w-1/2 px-4">
                  <div className="border-t border-slate-900 pt-2">
                     <p className="font-bold text-sm text-slate-900">{unidadeInfo?.nome}</p>
                     <p className="text-xs text-slate-500">Contratante</p>
                  </div>
               </div>
-              <div className="text-center w-1/2 px-4">
+              <div className="text-center w-full sm:w-1/2 print:w-1/2 px-4">
                  <div className="border-t border-slate-900 pt-2">
                     <p className="font-bold text-sm text-slate-900">{colaborador.nome}</p>
                     <p className="text-xs text-slate-500">Colaborador(a)</p>

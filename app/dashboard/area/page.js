@@ -121,8 +121,8 @@ function TecladoSenha({ cor, onSuccess, onClose, senha }) {
     }
   };
   return (
-    <div className="fixed inset-0 z-[10001] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-5">
-      <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 w-full max-w-xs text-center">
+    <div className="fixed inset-0 z-[10001] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+      <div className="bg-slate-900 border border-slate-700 rounded-3xl p-4 sm:p-6 w-full max-w-xs text-center max-h-[calc(100dvh-1.5rem)] overflow-y-auto">
         <p className="text-lg font-black text-white">Sair da área</p>
         <p className="text-slate-400 font-medium text-xs mb-5">Digite a senha desta área para destravar</p>
         <div className="flex gap-3 justify-center mb-5">
@@ -191,28 +191,28 @@ function AreaRunner() {
         <TecladoSenha cor={area.cor} senha={senhaArea} onSuccess={destravar} onClose={() => setPedindoSenha(false)} />
       )}
 
-      <div className="max-w-6xl mx-auto p-6 md:p-10">
+      <div className="max-w-6xl mx-auto p-3 sm:p-6 md:p-10">
         {/* Cabeçalho da área */}
-        <div className="flex items-center justify-between gap-3 mb-8">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: `${area.cor}20`, border: `2px solid ${area.cor}55` }}>
+        <div className="flex items-start sm:items-center justify-between gap-3 mb-5 sm:mb-8">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+            <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: `${area.cor}20`, border: `2px solid ${area.cor}55` }}>
               <AIcon size={28} style={{ color: area.cor }} />
             </div>
-            <div>
-              <h1 className="text-3xl font-black text-white tracking-tight">{area.nome}</h1>
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">{area.nome}</h1>
               <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">{unidadeInfo?.nome || ""} · estação de trabalho</p>
             </div>
           </div>
           <button onClick={() => setPedindoSenha(true)} title="Sair da área (senha)"
-            className="flex items-center gap-2 px-4 py-3 rounded-2xl font-bold text-xs text-slate-500 hover:text-slate-300 bg-slate-900 border border-slate-800 transition-colors">
-            <Lock size={14} /> Travado
+            className="flex items-center justify-center gap-2 min-w-11 min-h-11 px-3 sm:px-4 py-3 rounded-2xl font-bold text-xs text-slate-500 hover:text-slate-300 bg-slate-900 border border-slate-800 transition-colors flex-shrink-0">
+            <Lock size={14} /> <span className="hidden sm:inline">Travado</span>
           </button>
         </div>
 
         {/* Kanban de submódulos */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
           {area.colunas.map(col => (
-            <div key={col.titulo} className="rounded-3xl p-4" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
+            <div key={col.titulo} className="rounded-2xl sm:rounded-3xl p-3 sm:p-4" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
               <div className="flex items-center gap-2 mb-3 px-1">
                 <span className="w-2 h-2 rounded-full" style={{ background: area.cor }} />
                 <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">{col.titulo}</p>
@@ -220,7 +220,7 @@ function AreaRunner() {
               <div className="space-y-2.5">
                 {col.itens.map(item => (
                   <button key={item.label} onClick={() => router.push(item.href)}
-                    className="w-full flex items-center gap-3 p-4 rounded-2xl text-left transition-all active:scale-[0.98] hover:-translate-y-0.5"
+                    className="w-full flex items-center gap-3 p-3 sm:p-4 rounded-2xl text-left transition-all active:scale-[0.98] hover:-translate-y-0.5"
                     style={{ background: "#111a2e", border: "1px solid rgba(255,255,255,0.08)" }}>
                     <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${area.cor}18` }}>
                       <item.Icon size={20} style={{ color: area.cor }} />

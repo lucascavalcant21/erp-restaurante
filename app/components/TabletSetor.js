@@ -52,8 +52,8 @@ function ModalPIN({ cor, onSuccess, onClose }) {
   }
 
   return (
-    <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999,backdropFilter:"blur(6px)" }}>
-      <div style={{ background:"#1E293B",borderRadius:24,padding:"40px 32px",width:"min(360px,90vw)",textAlign:"center",border:"1px solid #334155",boxShadow:"0 32px 64px rgba(0,0,0,0.6)" }}>
+    <div className="erp-tablet-modal-backdrop" role="dialog" aria-modal="true" style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999,backdropFilter:"blur(6px)" }}>
+      <div className="erp-tablet-pin-panel" style={{ background:"#1E293B",borderRadius:24,padding:"40px 32px",width:"min(360px,90vw)",textAlign:"center",border:"1px solid #334155",boxShadow:"0 32px 64px rgba(0,0,0,0.6)" }}>
         <div style={{ width:64,height:64,borderRadius:999,background:`${cor}22`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 20px" }}>
           <Lock size={28} color={cor} />
         </div>
@@ -90,16 +90,16 @@ function ModalRetirada({ item, funcionarios, fichas, cor, onConfirmar, onClose, 
   }
 
   return (
-    <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,backdropFilter:"blur(4px)",padding:16 }}>
-      <div style={{ background:"#1E293B",borderRadius:24,width:"min(480px,100%)",border:"1px solid #334155",boxShadow:"0 32px 64px rgba(0,0,0,0.5)",overflow:"hidden" }}>
-        <div style={{ padding:"20px 24px",borderBottom:"1px solid #334155",display:"flex",alignItems:"center",justifyContent:"space-between" }}>
+    <div className="erp-tablet-modal-backdrop" role="dialog" aria-modal="true" style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,backdropFilter:"blur(4px)",padding:16 }}>
+      <div className="erp-tablet-modal-panel" style={{ background:"#1E293B",borderRadius:24,width:"min(480px,100%)",border:"1px solid #334155",boxShadow:"0 32px 64px rgba(0,0,0,0.5)",overflow:"hidden" }}>
+        <div className="erp-tablet-modal-header" style={{ padding:"20px 24px",borderBottom:"1px solid #334155",display:"flex",alignItems:"center",justifyContent:"space-between" }}>
           <div style={{ display:"flex",alignItems:"center",gap:12 }}>
             <div style={{ width:40,height:40,borderRadius:12,background:"rgba(239,68,68,0.15)",display:"flex",alignItems:"center",justifyContent:"center" }}><PackageMinus size={20} color="#EF4444"/></div>
             <div><p style={{ color:"#94A3B8",fontSize:12,fontWeight:600 }}>RETIRADA</p><p style={{ color:"#F1F5F9",fontSize:18,fontWeight:700 }}>{item.nome}</p></div>
           </div>
           <button onClick={onClose} style={{ color:"#64748B",background:"none",border:"none",cursor:"pointer" }}><X size={22}/></button>
         </div>
-        <div style={{ padding:24,display:"flex",flexDirection:"column",gap:18 }}>
+        <div className="erp-tablet-modal-body" style={{ padding:24,display:"flex",flexDirection:"column",gap:18 }}>
           {/* Funcionário */}
           <div>
             <label style={{ display:"flex",alignItems:"center",gap:6,color:"#64748B",fontSize:12,fontWeight:700,marginBottom:8,textTransform:"uppercase",letterSpacing:"0.05em" }}><User size={14}/> Quem está retirando?</label>
@@ -111,7 +111,7 @@ function ModalRetirada({ item, funcionarios, fichas, cor, onConfirmar, onClose, 
           {/* Quantidade */}
           <div>
             <label style={{ color:"#64748B",fontSize:12,fontWeight:700,display:"block",marginBottom:8,textTransform:"uppercase",letterSpacing:"0.05em" }}>Quantidade ({item.unidade})</label>
-            <div style={{ display:"flex",alignItems:"center",gap:12 }}>
+            <div className="erp-tablet-quantity-row" style={{ display:"flex",alignItems:"center",gap:12 }}>
               <button onClick={()=>setQtd(q=>Math.max(0.5,q-(q>1?1:0.5)))} style={{ width:52,height:52,borderRadius:12,background:"#334155",border:"none",color:"#F1F5F9",fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}><Minus size={20}/></button>
               <input type="number" value={qtd} min="0.1" step="0.5" onChange={e=>setQtd(e.target.value)} style={{ flex:1,height:52,textAlign:"center",borderRadius:12,background:"#0F172A",border:"1.5px solid #334155",color:"#F1F5F9",fontSize:22,fontWeight:700,outline:"none" }}/>
               <button onClick={()=>setQtd(q=>q+1)} style={{ width:52,height:52,borderRadius:12,background:"#334155",border:"none",color:"#F1F5F9",fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}><Plus size={20}/></button>
@@ -133,7 +133,7 @@ function ModalRetirada({ item, funcionarios, fichas, cor, onConfirmar, onClose, 
             }
           </div>
           {erro && <p style={{ background:"rgba(239,68,68,0.12)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:10,padding:"10px 14px",color:"#EF4444",fontSize:13,fontWeight:600 }}>{erro}</p>}
-          <div style={{ display:"flex",gap:12 }}>
+          <div className="erp-tablet-modal-actions" style={{ display:"flex",gap:12 }}>
             <button onClick={onClose} style={{ flex:1,height:52,borderRadius:14,background:"#334155",border:"none",color:"#94A3B8",fontSize:16,fontWeight:700,cursor:"pointer" }}>Cancelar</button>
             <button onClick={ok} disabled={loading} style={{ flex:2,height:52,borderRadius:14,background:loading?"#475569":"#EF4444",border:"none",color:"#fff",fontSize:16,fontWeight:700,cursor:loading?"default":"pointer" }}>{loading?"Registrando...":`Retirar ${qtd} ${item.unidade}`}</button>
           </div>
@@ -148,19 +148,19 @@ function ModalEntrada({ item, cor, onConfirmar, onClose, loading }) {
   const [qtd, setQtd] = useState(1);
   const [obs, setObs] = useState("");
   return (
-    <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,backdropFilter:"blur(4px)",padding:16 }}>
-      <div style={{ background:"#1E293B",borderRadius:24,width:"min(420px,100%)",border:"1px solid #334155",overflow:"hidden" }}>
-        <div style={{ padding:"20px 24px",borderBottom:"1px solid #334155",display:"flex",alignItems:"center",justifyContent:"space-between" }}>
+    <div className="erp-tablet-modal-backdrop" role="dialog" aria-modal="true" style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,backdropFilter:"blur(4px)",padding:16 }}>
+      <div className="erp-tablet-modal-panel" style={{ background:"#1E293B",borderRadius:24,width:"min(420px,100%)",border:"1px solid #334155",overflow:"hidden" }}>
+        <div className="erp-tablet-modal-header" style={{ padding:"20px 24px",borderBottom:"1px solid #334155",display:"flex",alignItems:"center",justifyContent:"space-between" }}>
           <div style={{ display:"flex",alignItems:"center",gap:12 }}>
             <div style={{ width:40,height:40,borderRadius:12,background:`${cor}22`,display:"flex",alignItems:"center",justifyContent:"center" }}><PackagePlus size={20} color={cor}/></div>
             <div><p style={{ color:"#94A3B8",fontSize:12,fontWeight:600 }}>ENTRADA</p><p style={{ color:"#F1F5F9",fontSize:18,fontWeight:700 }}>{item.nome}</p></div>
           </div>
           <button onClick={onClose} style={{ color:"#64748B",background:"none",border:"none",cursor:"pointer" }}><X size={22}/></button>
         </div>
-        <div style={{ padding:24,display:"flex",flexDirection:"column",gap:18 }}>
+        <div className="erp-tablet-modal-body" style={{ padding:24,display:"flex",flexDirection:"column",gap:18 }}>
           <div>
             <label style={{ color:"#64748B",fontSize:12,fontWeight:700,display:"block",marginBottom:8,textTransform:"uppercase",letterSpacing:"0.05em" }}>Quantidade ({item.unidade})</label>
-            <div style={{ display:"flex",alignItems:"center",gap:12 }}>
+            <div className="erp-tablet-quantity-row" style={{ display:"flex",alignItems:"center",gap:12 }}>
               <button onClick={()=>setQtd(q=>Math.max(0.5,q-(q>1?1:0.5)))} style={{ width:52,height:52,borderRadius:12,background:"#334155",border:"none",color:"#F1F5F9",fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}><Minus size={20}/></button>
               <input type="number" value={qtd} min="0.1" step="0.5" onChange={e=>setQtd(e.target.value)} style={{ flex:1,height:52,textAlign:"center",borderRadius:12,background:"#0F172A",border:"1.5px solid #334155",color:"#F1F5F9",fontSize:22,fontWeight:700,outline:"none" }}/>
               <button onClick={()=>setQtd(q=>q+1)} style={{ width:52,height:52,borderRadius:12,background:"#334155",border:"none",color:"#F1F5F9",fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}><Plus size={20}/></button>
@@ -170,7 +170,7 @@ function ModalEntrada({ item, cor, onConfirmar, onClose, loading }) {
             <label style={{ color:"#64748B",fontSize:12,fontWeight:700,display:"block",marginBottom:8,textTransform:"uppercase",letterSpacing:"0.05em" }}>Observação (opcional)</label>
             <input value={obs} onChange={e=>setObs(e.target.value)} placeholder="Ex: Chegou nota fiscal..." style={{ width:"100%",height:52,padding:"0 16px",borderRadius:12,background:"#0F172A",border:"1.5px solid #334155",color:"#F1F5F9",fontSize:15,outline:"none" }}/>
           </div>
-          <div style={{ display:"flex",gap:12 }}>
+          <div className="erp-tablet-modal-actions" style={{ display:"flex",gap:12 }}>
             <button onClick={onClose} style={{ flex:1,height:52,borderRadius:14,background:"#334155",border:"none",color:"#94A3B8",fontSize:16,fontWeight:700,cursor:"pointer" }}>Cancelar</button>
             <button onClick={()=>onConfirmar({qtd,obs})} disabled={loading} style={{ flex:2,height:52,borderRadius:14,background:loading?"#475569":cor,border:"none",color:"#fff",fontSize:16,fontWeight:700,cursor:loading?"default":"pointer" }}>{loading?"Registrando...":`Adicionar ${qtd} ${item.unidade}`}</button>
           </div>
@@ -184,7 +184,7 @@ function ModalEntrada({ item, cor, onConfirmar, onClose, loading }) {
 function Toast({ msg, tipo, onClose }) {
   useEffect(()=>{ const t=setTimeout(onClose,3000); return()=>clearTimeout(t); },[onClose]);
   return (
-    <div style={{ position:"fixed",bottom:32,left:"50%",transform:"translateX(-50%)",background:tipo==="ok"?"#10B981":"#EF4444",color:"#fff",borderRadius:14,padding:"14px 24px",fontSize:15,fontWeight:700,zIndex:9999,boxShadow:"0 8px 32px rgba(0,0,0,0.4)",display:"flex",alignItems:"center",gap:10 }}>
+    <div className="erp-tablet-toast" style={{ position:"fixed",bottom:32,left:"50%",transform:"translateX(-50%)",background:tipo==="ok"?"#10B981":"#EF4444",color:"#fff",borderRadius:14,padding:"14px 24px",fontSize:15,fontWeight:700,zIndex:9999,boxShadow:"0 8px 32px rgba(0,0,0,0.4)",display:"flex",alignItems:"center",gap:10 }}>
       {tipo==="ok"?<CheckCircle size={18}/>:<XCircle size={18}/>} {msg}
     </div>
   );

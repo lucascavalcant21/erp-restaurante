@@ -479,7 +479,7 @@ export default function InventarioPage() {
             <Field label="Nome do item">
               <TextInput value={form.nome} onChange={e => setForm({ ...form, nome: e.target.value })} placeholder="Ex: Garfo de mesa inox, Freezer horizontal 400L..." required />
             </Field>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="Categoria">
                 <Select value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })}>
                   {CATEGORIAS_INVENTARIO.map(c => <option key={c} value={c}>{c}</option>)}
@@ -489,7 +489,7 @@ export default function InventarioPage() {
                 <NumberInput value={form.quantidade} onChange={e => setForm({ ...form, quantidade: e.target.value })} placeholder="Ex: 50" min="0" step="1" required />
               </Field>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="Valor por unidade (opcional)">
                 <NumberInput value={form.valor_unitario} onChange={e => setForm({ ...form, valor_unitario: e.target.value })} placeholder="Ex: 4,50" min="0" step="0.01" />
               </Field>
@@ -543,8 +543,8 @@ export default function InventarioPage() {
       {/* Modal: importação em massa via IA */}
       {modalIA && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto" onClick={() => !iaLoading && !iaSalvando && setModalIA(false)}>
-          <div className="w-full max-w-2xl my-8 rounded-3xl border flex flex-col max-h-[88vh]" style={{ background: "var(--card)", borderColor: "var(--line)", boxShadow: "var(--shadow-float)" }} onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-center p-6 border-b shrink-0" style={{ borderColor: "var(--line-soft)" }}>
+          <div className="w-full max-w-2xl my-3 sm:my-8 rounded-2xl sm:rounded-3xl border flex flex-col max-h-[94vh] sm:max-h-[88vh]" style={{ background: "var(--card)", borderColor: "var(--line)", boxShadow: "var(--shadow-float)" }} onClick={e => e.stopPropagation()}>
+            <div className="flex flex-wrap justify-between items-center gap-2 p-4 sm:p-6 border-b shrink-0" style={{ borderColor: "var(--line-soft)" }}>
               <div>
                 <h2 className="font-black text-xl flex items-center gap-2" style={{ color: "var(--fg)" }}><Sparkles size={20} style={{ color: "var(--accent-strong)" }} /> Importar Inventário com IA</h2>
                 <p className="text-xs font-bold mt-0.5" style={{ color: "var(--muted)" }}>Cole a lista ou envie uma foto — a IA monta os itens e você revisa antes de salvar</p>
@@ -586,7 +586,7 @@ export default function InventarioPage() {
                       <div key={idx} className="p-3 rounded-xl border" style={{ background: it.incluir ? "var(--card)" : "var(--elevated)", borderColor: "var(--line)", opacity: it.incluir ? 1 : 0.55 }}>
                         <div className="flex items-center gap-2 flex-wrap">
                           <input type="checkbox" checked={it.incluir} onChange={e => atualizarItemIA(idx, { incluir: e.target.checked })} className="w-4 h-4 accent-emerald-600 shrink-0" />
-                          <input type="text" value={it.nome} onChange={e => atualizarItemIA(idx, { nome: e.target.value })} className="flex-1 min-w-[140px] p-2 rounded-lg border font-bold text-sm outline-none" style={{ background: "var(--surface)", borderColor: "var(--line)", color: "var(--fg)" }} />
+                          <input type="text" value={it.nome} onChange={e => atualizarItemIA(idx, { nome: e.target.value })} className="w-full sm:flex-1 sm:min-w-[140px] p-2 rounded-lg border font-bold text-sm outline-none" style={{ background: "var(--surface)", borderColor: "var(--line)", color: "var(--fg)" }} />
                           <select value={it.categoria} onChange={e => atualizarItemIA(idx, { categoria: e.target.value })} className="p-2 rounded-lg border font-bold text-xs outline-none" style={{ background: "var(--surface)", borderColor: "var(--line)", color: "var(--fg-soft)" }}>
                             {CATEGORIAS_INVENTARIO.map(c => <option key={c} value={c}>{c}</option>)}
                           </select>
@@ -596,7 +596,7 @@ export default function InventarioPage() {
                           <input type="number" min="0" value={it.quantidade} onChange={e => atualizarItemIA(idx, { quantidade: e.target.value })} className="w-20 p-2 text-center rounded-lg border font-black text-sm outline-none" style={{ background: "var(--surface)", borderColor: "var(--line)", color: "var(--fg)" }} />
                           <label className="text-[10px] font-bold ml-1" style={{ color: "var(--dim)" }}>R$/un</label>
                           <input type="number" min="0" step="0.01" value={it.valor_unitario || ""} onChange={e => atualizarItemIA(idx, { valor_unitario: e.target.value })} placeholder="0,00" className="w-24 p-2 text-center rounded-lg border font-bold text-sm outline-none" style={{ background: "var(--surface)", borderColor: "var(--line)", color: "var(--accent-strong)" }} />
-                          <input type="text" value={it.localizacao || ""} onChange={e => atualizarItemIA(idx, { localizacao: e.target.value })} placeholder="Onde fica (opcional)" className="flex-1 min-w-[120px] p-2 rounded-lg border font-medium text-xs outline-none" style={{ background: "var(--surface)", borderColor: "var(--line)", color: "var(--fg-soft)" }} />
+                          <input type="text" value={it.localizacao || ""} onChange={e => atualizarItemIA(idx, { localizacao: e.target.value })} placeholder="Onde fica (opcional)" className="w-full sm:flex-1 sm:min-w-[120px] p-2 rounded-lg border font-medium text-xs outline-none" style={{ background: "var(--surface)", borderColor: "var(--line)", color: "var(--fg-soft)" }} />
                         </div>
                       </div>
                     ))}
@@ -617,8 +617,8 @@ export default function InventarioPage() {
       {/* Modal: histórico de movimentos com data e hora */}
       {modalHist && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto" onClick={() => setModalHist(false)}>
-          <div className="w-full max-w-2xl my-8 rounded-3xl border flex flex-col max-h-[85vh]" style={{ background: "var(--card)", borderColor: "var(--line)", boxShadow: "var(--shadow-float)" }} onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-center p-6 border-b shrink-0" style={{ borderColor: "var(--line-soft)" }}>
+          <div className="w-full max-w-2xl my-3 sm:my-8 rounded-2xl sm:rounded-3xl border flex flex-col max-h-[94vh] sm:max-h-[85vh]" style={{ background: "var(--card)", borderColor: "var(--line)", boxShadow: "var(--shadow-float)" }} onClick={e => e.stopPropagation()}>
+            <div className="flex flex-wrap justify-between items-center gap-2 p-4 sm:p-6 border-b shrink-0" style={{ borderColor: "var(--line-soft)" }}>
               <div>
                 <h2 className="font-black text-xl" style={{ color: "var(--fg)" }}>Histórico do Inventário</h2>
                 <p className="text-xs font-bold mt-0.5" style={{ color: "var(--muted)" }}>Entradas, quebras, perdas e ajustes — com data e hora</p>

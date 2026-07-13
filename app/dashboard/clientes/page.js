@@ -155,7 +155,7 @@ export default function CRMPage() {
           </div>
           <div className="divide-y divide-slate-100">
             {clientes.slice(0,5).map((cliente, idx) => (
-              <div key={cliente.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+              <div key={cliente.id} className="p-4 flex flex-wrap items-center justify-between gap-3 hover:bg-slate-50 transition-colors">
                 <div className="flex items-center gap-4">
                   <div className="w-8 h-8 rounded-full bg-slate-800 text-white flex items-center justify-center font-black text-xs">
                     {idx + 1}º
@@ -335,7 +335,7 @@ export default function CRMPage() {
                 </div>
                 <p className="text-sm text-slate-600 mb-6">{c.descricao}</p>
                 
-                <div className="grid grid-cols-3 gap-2 border-t border-slate-100 pt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 border-t border-slate-100 pt-4">
                    <div>
                       <p className="text-[10px] font-bold text-slate-500 uppercase">Atingidos</p>
                       <p className="font-black text-slate-800 text-lg">{c.clientes_atingidos || 0}</p>
@@ -421,8 +421,8 @@ export default function CRMPage() {
 
       {/* MODAL NOVA CAMPANHA */}
       {modalCampanha && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-[32px] w-full max-w-lg p-8 shadow-2xl animate-in zoom-in-95">
+         <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-slate-900/60 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-lg p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 my-3 sm:my-0 max-h-[94vh] overflow-y-auto">
                <div className="flex justify-between items-center mb-6">
                   <h2 className="font-black text-2xl text-slate-800">Criar Campanha</h2>
                   <button onClick={() => setModalCampanha(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
@@ -439,7 +439,7 @@ export default function CRMPage() {
                      <textarea value={novaCampanha.descricao} onChange={e=>setNovaCampanha({...novaCampanha, descricao: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500 resize-none h-24" placeholder="Sua msg aqui..."/>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Código do Cupom</label>
                         <input type="text" value={novaCampanha.cupom} onChange={e=>setNovaCampanha({...novaCampanha, cupom: e.target.value.toUpperCase()})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-emerald-600 outline-none focus:border-emerald-500" placeholder="Ex: VOLTA10"/>

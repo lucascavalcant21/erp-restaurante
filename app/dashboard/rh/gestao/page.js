@@ -108,7 +108,7 @@ function FormFunc({ inicial, onSalvar, onCancelar, listaFuncionarios = [], cargo
         </Field>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Cargo">
           <Select value={f.cargo} onChange={(e) => set("cargo", e.target.value)}>
             <option value="">Selecione...</option>
@@ -127,7 +127,7 @@ function FormFunc({ inicial, onSalvar, onCancelar, listaFuncionarios = [], cargo
         <TextInput value={f.funcoes_exercidas || ""} onChange={e => set("funcoes_exercidas", e.target.value)} placeholder="Ex: Limpeza, Atendimento, etc." />
       </Field>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Tipo de Contrato">
           <Select value={f.tipo_contrato || "CLT Fixo"} onChange={e => set("tipo_contrato", e.target.value)}>
             {TIPOS_CONTRATO.map(tc => <option key={tc} value={tc}>{tc}</option>)}
@@ -140,15 +140,15 @@ function FormFunc({ inicial, onSalvar, onCancelar, listaFuncionarios = [], cargo
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Salário (R$)"><NumberInput value={f.salario} onChange={(e) => set("salario", e.target.value)} placeholder="0,00" step="0.01" /></Field>
         <Field label="Admissão"><TextInput type="date" value={f.admissao} onChange={(e) => set("admissao", e.target.value)} /></Field>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Telefone"><TextInput value={f.telefone} onChange={(e) => set("telefone", e.target.value)} placeholder="(11) 9..." /></Field>
         <Field label="Situação"><Select value={f.ativo ? "1" : "0"} onChange={(e) => set("ativo", e.target.value === "1")}><option value="1">Ativo</option><option value="0">Inativo</option></Select></Field>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="E-mail"><TextInput value={f.email} onChange={(e) => set("email", e.target.value)} placeholder="email@..." /></Field>
         <Field label="Supervisor (Opcional)">
           <Select value={f.supervisor_id} onChange={(e) => set("supervisor_id", e.target.value)}>

@@ -142,7 +142,7 @@ export default function LojasPage() {
         <div>
            <div className="flex items-center gap-3 mb-2">
               <Building2 size={32} className="text-slate-800" />
-              <h1 className="text-4xl font-black text-slate-900 tracking-tighter">Unidades</h1>
+              <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tighter">Unidades</h1>
            </div>
            <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">Gerenciador de Lojas e Dados Fiscais</p>
         </div>
@@ -233,7 +233,7 @@ export default function LojasPage() {
                           <p className="text-sm font-medium text-slate-600">Estes dados serão utilizados para emissão de notas, cupons e recibos de forma automática por todos os módulos dessa unidade.</p>
                        </div>
                        
-                       <div className="grid grid-cols-2 gap-4">
+                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">CNPJ</label>
                              <input type="text" value={form.cnpj} onChange={e=>setForm({...form, cnpj: mascaraCNPJ(e.target.value)})} placeholder="00.000.000/0000-00" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-slate-900"/>
@@ -256,7 +256,7 @@ export default function LojasPage() {
 
                   {abaAtual === "endereco" && (
                     <div className="animate-in fade-in slide-in-from-right-4 space-y-4">
-                       <div className="grid grid-cols-2 gap-4">
+                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Telefone da Unidade</label>
                              <input type="text" value={form.telefone_unidade} onChange={e=>setForm({...form, telefone_unidade: mascaraTelefone(e.target.value)})} placeholder="(00) 00000-0000" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-slate-900"/>
@@ -269,7 +269,7 @@ export default function LojasPage() {
                        
                        <div className="w-full h-px bg-slate-100 my-4"></div>
                        
-                       <div className="grid grid-cols-3 gap-4">
+                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                           <div>
                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">CEP</label>
                              <input type="text" value={form.cep} onChange={e=>{
@@ -283,7 +283,7 @@ export default function LojasPage() {
                              <input type="text" value={form.endereco} onChange={e=>setForm({...form, endereco: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-slate-900"/>
                           </div>
                        </div>
-                       <div className="grid grid-cols-4 gap-4">
+                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                           <div>
                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Nº</label>
                              <input type="text" value={form.numero} onChange={e=>setForm({...form, numero: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-slate-900"/>
@@ -293,7 +293,7 @@ export default function LojasPage() {
                              <input type="text" value={form.bairro} onChange={e=>setForm({...form, bairro: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-slate-900"/>
                           </div>
                        </div>
-                       <div className="grid grid-cols-4 gap-4">
+                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                           <div className="col-span-3">
                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Cidade</label>
                              <input type="text" value={form.cidade} onChange={e=>setForm({...form, cidade: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-slate-900"/>

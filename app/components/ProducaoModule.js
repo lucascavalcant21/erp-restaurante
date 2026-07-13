@@ -113,19 +113,19 @@ function ModalNovaProducao({ pratos, estoque, funcionarios, setor, onConfirmar, 
   }
 
   return (
-    <div style={{
+    <div className="erp-production-modal-backdrop" role="dialog" aria-modal="true" style={{
       position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)",
       display: "flex", alignItems: "center", justifyContent: "center",
       zIndex: 1000, backdropFilter: "blur(4px)", padding: 16,
       overflowY: "auto",
     }}>
-      <div style={{
+      <div className="erp-production-modal-panel" style={{
         background: "#1E293B", borderRadius: 24, width: "min(600px, 100%)",
         border: "1px solid #334155", boxShadow: "0 32px 64px rgba(0,0,0,0.5)",
         maxHeight: "90vh", overflowY: "auto",
       }}>
         {/* Header */}
-        <div style={{
+        <div className="erp-production-modal-header" style={{
           padding: "20px 24px", borderBottom: "1px solid #334155",
           display: "flex", alignItems: "center", justifyContent: "space-between",
           position: "sticky", top: 0, background: "#1E293B", zIndex: 10,
@@ -149,7 +149,7 @@ function ModalNovaProducao({ pratos, estoque, funcionarios, setor, onConfirmar, 
         </div>
 
         {/* Body */}
-        <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 20 }}>
+        <div className="erp-production-modal-body" style={{ padding: 24, display: "flex", flexDirection: "column", gap: 20 }}>
 
           {/* O que foi produzido */}
           <div>
@@ -196,7 +196,7 @@ function ModalNovaProducao({ pratos, estoque, funcionarios, setor, onConfirmar, 
             <label style={{ display: "flex", alignItems: "center", gap: 6, color: "#64748B", fontSize: 12, fontWeight: 700, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>
               <Scale size={14} /> Quantidade produzida *
             </label>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div className="erp-production-quantity-row" style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <button onClick={() => setQuantidade((q) => String(Math.max(0.1, (Number(q) || 1) - 1)))}
                 style={{ width: 52, height: 52, borderRadius: 12, background: "#334155", border: "none", color: "#F1F5F9", fontSize: 22, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <Minus size={20} />
@@ -260,7 +260,7 @@ function ModalNovaProducao({ pratos, estoque, funcionarios, setor, onConfirmar, 
                             </span>
                           )}
                         </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
+                        <div className="erp-production-ingredient-row" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
                           <span style={{ color: "#64748B", fontSize: 12, minWidth: 100 }}>
                             Receita: {ing.qtd_ficha} {ing.unidade}
                           </span>
@@ -352,7 +352,7 @@ function ModalNovaProducao({ pratos, estoque, funcionarios, setor, onConfirmar, 
           )}
 
           {/* Botões */}
-          <div style={{ display: "flex", gap: 12, marginTop: 4 }}>
+          <div className="erp-production-modal-actions" style={{ display: "flex", gap: 12, marginTop: 4 }}>
             <button onClick={onClose} style={{
               flex: 1, height: 52, borderRadius: 14, background: "#334155",
               border: "none", color: "#94A3B8", fontSize: 16, fontWeight: 700, cursor: "pointer",

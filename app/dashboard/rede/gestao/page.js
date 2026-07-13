@@ -159,7 +159,7 @@ export default function GestaoUnidadesPage() {
               placeholder="Ex: Tico Tico Saladas" 
             />
           </Field>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Nome Curto (3 a 5 letras)">
               <TextInput 
                 value={form.curto} 

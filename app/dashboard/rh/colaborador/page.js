@@ -126,7 +126,7 @@ export default function VidaColaboradorPage() {
         <PageBody>
           {/* Dados cadastrais */}
           <Bloco icon={User} titulo="Dados do colaborador">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-5 gap-y-3 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-5 gap-y-3 text-sm">
               <div><p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>Telefone</p><p className="font-bold" style={{ color: "var(--fg-soft)" }}>{sel.telefone || "—"}</p></div>
               <div><p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>CPF</p><p className="font-bold" style={{ color: "var(--fg-soft)" }}>{sel.cpf || "—"}</p></div>
               <div><p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>Chave PIX</p><p className="font-bold truncate" style={{ color: "var(--fg-soft)" }}>{sel.chave_pix || "—"}</p></div>

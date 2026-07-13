@@ -124,7 +124,7 @@ export default function RedePage() {
         {/* Consolidado da rede */}
         <div>
           <p className="erp-label mb-2">Consolidado da rede (30 dias)</p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <KpiCentral icon={TrendingUp}    label="Receita da rede"   valor={fmtBRL(total.receita)} />
             <KpiCentral icon={DollarSign}    label="Lucro da rede"     valor={fmtBRL(total.lucro)} cor={total.lucro < 0 ? "#DC2626" : undefined} />
             <KpiCentral icon={DollarSign}    label="Valor em estoque"  valor={fmtBRL(total.valorEstoque)} />
@@ -185,7 +185,7 @@ export default function RedePage() {
                       <span className="erp-badge erp-badge-danger ml-auto">{u.criticos} crítico{u.criticos > 1 ? "s" : ""}</span>
                     )}
                   </div>
-                  <div className="grid grid-cols-3 gap-3 text-center">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
                     <Metric icon={TrendingUp} label="Receita 30d" valor={fmtBRL(u.receita30 || 0)} />
                     <Metric icon={DollarSign} label="Lucro 30d"  valor={fmtBRL(u.lucro30 || 0)} />
                     <Metric icon={Package}   label="Estoque" valor={fmtBRL(u.valorEstoque)} />

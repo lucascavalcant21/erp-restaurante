@@ -40,9 +40,9 @@ export default function RastreioPage() {
         </div>
 
         {loading ? (
-          <div className="erp-card p-8 text-center text-sm" style={{ color: "var(--subtle)" }}>Buscando etiqueta...</div>
+          <div className="erp-card p-5 sm:p-8 text-center text-sm" style={{ color: "var(--subtle)" }}>Buscando etiqueta...</div>
         ) : !et ? (
-          <div className="erp-card p-8 text-center">
+          <div className="erp-card p-5 sm:p-8 text-center">
             <AlertTriangle size={36} style={{ color: "#DC2626", margin: "0 auto 8px" }} />
             <p className="text-base font-bold" style={{ color: "var(--fg)" }}>Etiqueta não encontrada</p>
             <p className="text-sm mt-1" style={{ color: "var(--dim)" }}>Código <b>{codigo}</b> não existe ou foi removido.</p>
@@ -78,9 +78,9 @@ export default function RastreioPage() {
 
 function Linha({ k, v, forte, cor }) {
   return (
-    <div className="flex items-center justify-between py-2.5" style={{ borderBottom: "1px solid var(--line)" }}>
-      <span className="text-[12px] font-medium" style={{ color: "var(--dim)" }}>{k}</span>
-      <span className="text-sm" style={{ color: cor || "var(--fg)", fontWeight: forte ? 700 : 500 }}>{v}</span>
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-4 py-2.5 min-w-0" style={{ borderBottom: "1px solid var(--line)" }}>
+      <span className="text-[12px] font-medium shrink-0" style={{ color: "var(--dim)" }}>{k}</span>
+      <span className="text-sm break-words sm:text-right min-w-0" style={{ color: cor || "var(--fg)", fontWeight: forte ? 700 : 500 }}>{v}</span>
     </div>
   );
 }

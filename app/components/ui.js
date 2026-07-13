@@ -6,6 +6,7 @@
 // acelera a criação/recriação de telas.
 // ═══════════════════════════════════════════════════════════════
 
+import { useEffect, useId } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Search, X, Plus, Inbox } from "lucide-react";
 
@@ -23,32 +24,33 @@ export function fmtData(iso) { return iso ? new Date(iso).toLocaleDateString("pt
 export function PageHeader({ title, subtitle, icon: Icon, onAction, actionLabel = "Novo", back = true, children }) {
   const router = useRouter();
   return (
-    <div className="sticky top-0 z-20 border-b px-4 pt-4 md:pt-12 pb-3 flex flex-col md:flex-row md:items-center gap-3 glass-panel"
+    <div className="erp-page-header sticky top-0 z-20 border-b px-3 sm:px-4 pt-3 sm:pt-4 md:pt-8 lg:pt-12 pb-3 flex flex-col md:flex-row md:items-center gap-3 glass-panel min-w-0"
       style={{ borderColor: "var(--line-soft)" }}>
-      <div className="flex items-center gap-3 w-full md:w-auto">
+      <div className="erp-page-header-main flex items-center gap-2.5 sm:gap-3 w-full md:w-auto min-w-0">
         {back && (
           <button onClick={() => router.back()}
-            className="w-9 h-9 rounded-xl flex items-center justify-center erp-card active:scale-95 transition-transform flex-shrink-0">
+            aria-label="Voltar"
+            className="w-10 h-10 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center erp-card active:scale-95 transition-transform flex-shrink-0">
             <ArrowLeft size={18} style={{ color: "var(--muted)" }} />
           </button>
         )}
         <div className="flex-1 min-w-0">
-          <h1 className="text-lg md:text-xl font-bold leading-tight flex items-center gap-2.5" style={{ color: "var(--fg)" }}>
+          <h1 className="text-lg md:text-xl font-bold leading-tight flex items-center gap-2 min-w-0" style={{ color: "var(--fg)" }}>
             {Icon && (
               <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "var(--accent-soft)" }}>
                 <Icon size={16} style={{ color: "var(--accent-strong)" }} />
               </span>
             )}
-            <span className="truncate">{title}</span>
+            <span className="erp-page-title min-w-0">{title}</span>
           </h1>
-          {subtitle && <p className="text-[11px] md:text-xs font-medium truncate" style={{ color: "var(--dim)" }}>{subtitle}</p>}
+          {subtitle && <p className="erp-page-subtitle text-[11px] md:text-xs font-medium mt-0.5" style={{ color: "var(--dim)" }}>{subtitle}</p>}
         </div>
       </div>
-      <div className="flex items-center gap-2 w-full md:w-auto md:ml-auto">
+      <div className="erp-page-header-actions flex flex-wrap items-center gap-2 w-full md:w-auto md:ml-auto min-w-0">
         {children}
         {onAction && (
           <button onClick={onAction}
-            className="erp-btn erp-btn-primary !h-9 text-xs md:text-sm active:scale-95 transition-transform w-full md:w-auto">
+            className="erp-btn erp-btn-primary !min-h-10 !h-auto text-xs md:text-sm active:scale-95 transition-transform w-full md:w-auto">
             <Plus size={14} /> {actionLabel}
           </button>
         )}
@@ -58,13 +60,13 @@ export function PageHeader({ title, subtitle, icon: Icon, onAction, actionLabel 
 }
 
 // ── Container de conteúdo ──────────────────────────────────────
-export function PageBody({ children }) {
-  return <div className="px-3 md:px-5 pt-4 pb-28 space-y-4 md:space-y-6">{children}</div>;
+export function PageBody({ children, className = "", ...rest }) {
+  return <div className={`erp-page-body w-full min-w-0 px-3 sm:px-4 md:px-5 pt-4 pb-28 space-y-4 md:space-y-6 ${className}`} {...rest}>{children}</div>;
 }
 
 // ── Cartão genérico ────────────────────────────────────────────
 export function Card({ children, className = "", ...rest }) {
-  return <div className={`erp-card p-4 ${className}`} {...rest}>{children}</div>;
+  return <div className={`erp-card erp-shared-card min-w-0 p-3.5 sm:p-4 ${className}`} {...rest}>{children}</div>;
 }
 
 export function SectionLabel({ children }) {
@@ -73,19 +75,19 @@ export function SectionLabel({ children }) {
 
 // ── KPI ────────────────────────────────────────────────────────
 export function KpiGrid({ children }) {
-  return <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">{children}</div>;
+  return <div className="erp-kpi-grid grid gap-3 md:gap-4 min-w-0">{children}</div>;
 }
 export function Kpi({ icon: Icon, label, value }) {
   // Estilo Takeat Premium: Layout flex, número grande, ícone colorido sutil
   return (
-    <div className="erp-card p-6 md:p-8 relative overflow-hidden flex flex-col justify-between group" style={{ minHeight: '140px' }}>
-      <div className="flex items-start justify-between mb-4">
-        <p className="text-xs md:text-sm font-bold tracking-widest uppercase" style={{ color: "var(--muted)" }}>{label}</p>
-        <div className="w-12 h-12 rounded-[16px] flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110" style={{ background: "var(--accent-soft)" }}>
+    <div className="erp-card erp-kpi-card p-4 sm:p-5 md:p-6 xl:p-8 relative overflow-hidden flex flex-col justify-between group min-w-0">
+      <div className="flex items-start justify-between gap-2 mb-4 min-w-0">
+        <p className="text-[10px] sm:text-xs md:text-sm font-bold tracking-widest uppercase min-w-0 break-words" style={{ color: "var(--muted)" }}>{label}</p>
+        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-[16px] flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110" style={{ background: "var(--accent-soft)" }}>
           {Icon && <Icon size={22} style={{ color: "var(--accent-strong)" }} />}
         </div>
       </div>
-      <p className="text-3xl md:text-4xl font-extrabold tracking-tight mt-auto" style={{ color: "var(--fg)" }}>{value}</p>
+      <p className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight mt-auto min-w-0 break-words" style={{ color: "var(--fg)" }}>{value}</p>
     </div>
   );
 }
@@ -93,7 +95,7 @@ export function Kpi({ icon: Icon, label, value }) {
 // ── Busca ──────────────────────────────────────────────────────
 export function SearchBar({ value, onChange, placeholder = "Buscar..." }) {
   return (
-    <div className="relative">
+    <div className="relative min-w-0 w-full">
       <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: "var(--dim)" }} />
       <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
         className="erp-input" style={{ paddingLeft: 42, paddingRight: 38, height: 44 }} />
@@ -109,7 +111,7 @@ export function SearchBar({ value, onChange, placeholder = "Buscar..." }) {
 // ── Chips de filtro ────────────────────────────────────────────
 export function Chips({ options, value, onChange }) {
   return (
-    <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+    <div className="erp-chips flex gap-2 overflow-x-auto overscroll-x-contain pb-1 min-w-0" style={{ scrollbarWidth: "none" }}>
       {options.map((o) => {
         const v = typeof o === "string" ? o : o.value;
         const label = typeof o === "string" ? o : o.label;
@@ -136,7 +138,7 @@ export function SkeletonList({ rows = 4 }) {
   return (
     <div className="space-y-3" aria-busy="true">
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="erp-card p-4 flex items-center gap-4">
+        <div key={i} className="erp-card p-3 sm:p-4 flex items-center gap-3 sm:gap-4 min-w-0">
           <Skeleton className="w-11 h-11 rounded-xl flex-shrink-0" />
           <div className="flex-1 space-y-2">
             <Skeleton className="h-3.5 w-2/5" />
@@ -156,7 +158,7 @@ export function SkeletonList({ rows = 4 }) {
 export function EmptyState({ icon: Icon = Inbox, title = "Nada por aqui ainda", hint, actionLabel, onAction }) {
   if (/^carregando/i.test(String(title))) return <SkeletonList />;
   return (
-    <div className="erp-card p-10 flex flex-col items-center text-center gap-2">
+    <div className="erp-card p-6 sm:p-10 flex flex-col items-center text-center gap-2 min-w-0">
       <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-1" style={{ background: "var(--elevated)" }}>
         <Icon size={24} style={{ color: "var(--subtle)" }} />
       </div>
@@ -172,16 +174,31 @@ export function EmptyState({ icon: Icon = Inbox, title = "Nada por aqui ainda", 
 }
 
 // ── Modal (bottom sheet) ───────────────────────────────────────
-export function Modal({ open, onClose, title, children }) {
+export function Modal({ open, onClose, title, children, maxWidth = "md:max-w-md", className = "" }) {
+  const titleId = useId();
+
+  useEffect(() => {
+    if (!open || typeof document === "undefined") return undefined;
+    const anterior = document.body.style.overflow;
+    const fecharComEsc = (event) => { if (event.key === "Escape") onClose?.(); };
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", fecharComEsc);
+    return () => {
+      document.body.style.overflow = anterior;
+      document.removeEventListener("keydown", fecharComEsc);
+    };
+  }, [open, onClose]);
+
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center backdrop-blur-sm bg-slate-900/40" onClick={onClose}>
-      <div className="w-full max-w-md max-h-[92vh] overflow-y-auto rounded-t-3xl md:rounded-3xl p-6 pb-10 animate-in fade-in zoom-in-95 duration-200 border"
+    <div className="erp-modal-backdrop fixed inset-0 z-50 flex items-end md:items-center justify-center backdrop-blur-sm bg-slate-900/40" onClick={onClose}>
+      <div className={`erp-modal-panel w-full ${maxWidth} overflow-y-auto overscroll-contain rounded-t-3xl md:rounded-3xl p-4 sm:p-6 pb-8 sm:pb-10 animate-in fade-in zoom-in-95 duration-200 border min-w-0 ${className}`}
         style={{ background: "var(--card)", borderColor: "var(--line)", boxShadow: "var(--shadow-float)" }}
+        role="dialog" aria-modal="true" aria-labelledby={titleId}
         onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-base font-bold" style={{ color: "var(--fg)" }}>{title}</p>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "var(--elevated)" }}>
+        <div className="flex items-center justify-between gap-3 mb-4 min-w-0">
+          <p id={titleId} className="text-base font-bold min-w-0 break-words" style={{ color: "var(--fg)" }}>{title}</p>
+          <button onClick={onClose} aria-label="Fechar" className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "var(--elevated)" }}>
             <X size={16} style={{ color: "var(--muted)" }} />
           </button>
         </div>
@@ -194,17 +211,17 @@ export function Modal({ open, onClose, title, children }) {
 // ── Campos de formulário ───────────────────────────────────────
 export function Field({ label, children }) {
   return (
-    <div className="mb-3">
-      <label className="erp-label block mb-1.5">{label}</label>
+    <div className="mb-3 min-w-0">
+      <label className="erp-label block mb-1.5 break-words">{label}</label>
       {children}
     </div>
   );
 }
-export function TextInput(props) { return <input {...props} className="erp-input" />; }
-export function NumberInput(props) { return <input type="number" inputMode="decimal" {...props} className="erp-input" />; }
-export function Select({ children, ...props }) {
+export function TextInput({ className = "", ...props }) { return <input {...props} className={`erp-input min-w-0 ${className}`} />; }
+export function NumberInput({ className = "", ...props }) { return <input type="number" inputMode="decimal" {...props} className={`erp-input min-w-0 ${className}`} />; }
+export function Select({ children, className = "", ...props }) {
   return (
-    <select {...props} className="erp-input" style={{ appearance: "none", ...(props.style || {}) }}>
+    <select {...props} className={`erp-input min-w-0 ${className}`} style={{ appearance: "none", ...(props.style || {}) }}>
       {children}
     </select>
   );

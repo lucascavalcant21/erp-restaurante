@@ -55,13 +55,13 @@ export default function MargemPage() {
             </KpiGrid>
 
             {resumo.top && (
-              <Card className="flex items-center gap-3">
+              <Card className="flex items-start sm:items-center gap-3">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "var(--accent-soft)" }}>
                   <Crown size={18} style={{ color: "var(--accent-fg)" }} />
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <p className="text-[11px] font-medium" style={{ color: "var(--dim)" }}>Maior lucro por unidade vendida</p>
-                  <p className="text-sm font-bold" style={{ color: "var(--fg)" }}>{resumo.top.nome} · {fmtBRL(resumo.top.mcR)} ({fmtPct(resumo.top.mc)})</p>
+                  <p className="text-sm font-bold break-words" style={{ color: "var(--fg)" }}>{resumo.top.nome} · {fmtBRL(resumo.top.mcR)} ({fmtPct(resumo.top.mc)})</p>
                 </div>
               </Card>
             )}
@@ -73,9 +73,9 @@ export default function MargemPage() {
                   const ok = l.mc >= META_MC;
                   return (
                     <Card key={l.id} className="!p-3">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <p className="text-sm font-bold truncate" style={{ color: "var(--fg)" }}>{l.nome}</p>
-                        <span className="text-sm font-bold" style={{ color: ok ? "var(--accent-fg)" : "#DC2626" }}>{fmtBRL(l.mcR)}</span>
+                      <div className="flex items-center justify-between mb-1.5 gap-2">
+                        <p className="text-sm font-bold truncate min-w-0" style={{ color: "var(--fg)" }}>{l.nome}</p>
+                        <span className="text-sm font-bold shrink-0" style={{ color: ok ? "var(--accent-fg)" : "#DC2626" }}>{fmtBRL(l.mcR)}</span>
                       </div>
                       <div className="h-2 rounded-full overflow-hidden mb-1" style={{ background: "var(--elevated)" }}>
                         <div className="h-full rounded-full" style={{ width: `${Math.min(Math.max(l.mc, 0), 100)}%`, background: ok ? "#10B981" : "#F59E0B" }} />

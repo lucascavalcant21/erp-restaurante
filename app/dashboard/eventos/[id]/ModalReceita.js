@@ -221,7 +221,7 @@ export default function ModalReceita({ open, onClose, eventoId, ingredientesEven
       {/* ETAPA 2: ANÁLISE DA RECEITA */}
       {etapa === "analisar" && receita && (
         <>
-          <div className="grid grid-cols-3 gap-2 mb-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
             <div style={{ padding: 10, background: "var(--elevated)", borderRadius: 6 }}>
               <p className="text-[10px]" style={{ color: "var(--dim)" }}>TOTAL DE INGREDIENTES</p>
               <strong style={{ fontSize: 22, color: "var(--fg)" }}>{totalIngs}</strong>
@@ -327,7 +327,7 @@ export default function ModalReceita({ open, onClose, eventoId, ingredientesEven
                   <p className="text-[10px] mb-2" style={{ color: "var(--dim)" }}>
                     Receita pede: <strong style={{ color: "var(--fg)" }}>{f._qtdUsada.toFixed(f._qtdUsada < 1 ? 2 : 0)}{f._unidadeUsada}</strong>
                   </p>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <NumberInput
                       value={f.custo_unit}
                       onChange={(e) => setFaltantes((prev) => prev.map((p) => p._id === f._id ? { ...p, custo_unit: e.target.value } : p))}
@@ -387,7 +387,7 @@ export default function ModalReceita({ open, onClose, eventoId, ingredientesEven
               onChange={(e) => setDadosPrato({ ...dadosPrato, nome: e.target.value })}
               placeholder="ex: Bolo de Cenoura" />
           </Field>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Categoria">
               <Select value={dadosPrato.categoria}
                 onChange={(e) => setDadosPrato({ ...dadosPrato, categoria: e.target.value })}>
@@ -407,7 +407,7 @@ export default function ModalReceita({ open, onClose, eventoId, ingredientesEven
               Calculadora de Proporção
             </p>
 
-            <div className="grid grid-cols-2 gap-3 mb-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
               <Field label="Receita original rende">
                 <div className="flex items-center gap-2">
                   <NumberInput value={porcoesOriginais}

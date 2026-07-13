@@ -449,11 +449,11 @@ export default function PontoPage() {
   if (sucesso) {
     const alerta = sucesso.tone === "alerta";
     return (
-      <div className={`fixed inset-0 z-[9999] ${alerta ? "bg-amber-500" : "bg-emerald-600"} flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-300`}>
-        <div className="w-28 h-28 bg-white rounded-[32px] flex items-center justify-center mb-8 shadow-2xl">
+      <div className={`fixed inset-0 z-[9999] ${alerta ? "bg-amber-500" : "bg-emerald-600"} flex flex-col items-center justify-center p-4 sm:p-8 text-center animate-in fade-in duration-300`}>
+        <div className="w-20 h-20 sm:w-28 sm:h-28 bg-white rounded-2xl sm:rounded-[32px] flex items-center justify-center mb-5 sm:mb-8 shadow-2xl">
           {alerta ? <AlertTriangle size={64} className="text-amber-500" /> : <CheckCircle2 size={64} className="text-emerald-600" />}
         </div>
-        <h1 className="text-white font-black text-4xl md:text-6xl tracking-tight max-w-3xl">{sucesso.titulo}</h1>
+        <h1 className="text-white font-black text-3xl sm:text-4xl md:text-6xl tracking-tight max-w-3xl">{sucesso.titulo}</h1>
         {sucesso.detalhe && <p className={`${alerta ? "text-amber-50" : "text-emerald-100"} font-bold text-lg md:text-2xl mt-5 max-w-2xl leading-relaxed`}>{sucesso.detalhe}</p>}
       </div>
     );
@@ -516,12 +516,12 @@ export default function PontoPage() {
         )}
 
         <div className="max-w-3xl mx-auto p-6 md:p-10">
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-6 sm:mb-8">
             <button onClick={() => setSelecionado(null)} className="flex items-center gap-2 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-2xl font-bold transition-colors">
               <ArrowLeft size={18} /> Voltar
             </button>
             <div className="text-right">
-              <p className="text-4xl font-black text-white tabular-nums">{horaLocal.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</p>
+              <p className="text-3xl sm:text-4xl font-black text-white tabular-nums">{horaLocal.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</p>
               <p className="text-slate-500 font-bold text-xs uppercase tracking-widest">{horaLocal.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}</p>
             </div>
           </div>
@@ -577,7 +577,7 @@ export default function PontoPage() {
                 <p className={`text-[10px] font-black uppercase tracking-widest ${estourou ? "text-rose-300" : "text-amber-300"}`}>
                   {estourou ? "Intervalo estourado" : "Em intervalo"}
                 </p>
-                <p className={`text-5xl font-black tabular-nums mt-2 ${estourou ? "text-rose-400" : "text-amber-400"}`}>
+                <p className={`text-4xl sm:text-5xl font-black tabular-nums mt-2 ${estourou ? "text-rose-400" : "text-amber-400"}`}>
                   {estourou ? `+${Math.floor(-resta / 60000)}min` : fmtFalta(resta)}
                 </p>
                 <p className="text-slate-400 font-bold text-xs mt-2">
@@ -591,20 +591,20 @@ export default function PontoPage() {
 
           {/* Ação principal */}
           {etapa === "concluido" ? (
-            <div className="bg-emerald-500/10 border border-emerald-500/40 rounded-3xl p-8 text-center mb-6">
+            <div className="bg-emerald-500/10 border border-emerald-500/40 rounded-3xl p-5 sm:p-8 text-center mb-6">
               <CheckCircle2 size={40} className="text-emerald-400 mx-auto mb-3" />
               <p className="text-xl font-black text-white">Jornada de hoje concluída!</p>
               <p className="text-slate-400 font-bold text-sm mt-1">Todas as batidas foram registradas.</p>
             </div>
           ) : bloqueiaFolga ? (
-            <div className="bg-rose-500/10 border border-rose-500/40 rounded-3xl p-8 text-center mb-6">
+            <div className="bg-rose-500/10 border border-rose-500/40 rounded-3xl p-5 sm:p-8 text-center mb-6">
               <Ban size={44} className="text-rose-400 mx-auto mb-3" />
               <p className="text-2xl font-black text-white">Hoje é sua folga</p>
               <p className="text-rose-200 font-bold text-base mt-2">{info.motivo}. Não é possível bater o ponto em dia de folga.</p>
               <p className="text-slate-400 font-medium text-sm mt-2">Se isso está errado, procure a gerência para ajustar sua escala.</p>
             </div>
           ) : bloqueiaAtraso ? (
-            <div className="bg-rose-500/10 border border-rose-500/40 rounded-3xl p-8 text-center mb-6">
+            <div className="bg-rose-500/10 border border-rose-500/40 rounded-3xl p-5 sm:p-8 text-center mb-6">
               <Ban size={44} className="text-rose-400 mx-auto mb-3" />
               <p className="text-2xl font-black text-white">Entrada bloqueada — falta registrada</p>
               <p className="text-rose-200 font-bold text-base mt-2">
@@ -617,13 +617,13 @@ export default function PontoPage() {
               </button>
             </div>
           ) : bloqueiaJanela ? (
-            <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 text-center mb-6">
+            <div className="bg-slate-900 border border-slate-700 rounded-3xl p-5 sm:p-8 text-center mb-6">
               <Timer size={44} className="text-amber-400 mx-auto mb-3" />
               <p className="text-lg font-black text-white">Ainda não dá para bater a entrada</p>
               <p className="text-slate-400 font-bold text-sm mt-1">
                 Seu horário é {janela.entradaStr}. A entrada libera às {janela.permiteEm.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}.
               </p>
-              <p className="text-5xl font-black text-amber-400 tabular-nums mt-5">{fmtFalta(janela.faltaMs)}</p>
+              <p className="text-4xl sm:text-5xl font-black text-amber-400 tabular-nums mt-5">{fmtFalta(janela.faltaMs)}</p>
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-1">faltam para liberar</p>
             </div>
           ) : (
@@ -855,7 +855,7 @@ export default function PontoPage() {
                   <span className="text-[10px] font-black text-slate-600 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded-full">{g.itens.length}</span>
                   <div className="flex-1 h-px bg-slate-800/70" />
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   {g.itens.map(renderCard)}
                 </div>
               </div>

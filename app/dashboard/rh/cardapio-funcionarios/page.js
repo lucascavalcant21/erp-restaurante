@@ -138,14 +138,14 @@ export default function CardapioFuncionarios() {
   return (
     <div className="min-h-screen font-sans pb-24 text-slate-800">
       {/* HEADER */}
-      <div className="pt-6 pb-8 px-6 max-w-5xl mx-auto flex items-center justify-between">
+      <div className="pt-5 sm:pt-6 pb-6 sm:pb-8 px-4 sm:px-6 max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-3">
          <div className="flex items-center gap-4">
            <button onClick={() => router.back()} className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 transition-colors shadow-sm"><ArrowLeft size={18}/></button>
            <div className="w-16 h-16 rounded-3xl bg-slate-100 text-emerald-600 flex items-center justify-center shadow-inner">
               <Utensils size={32} />
            </div>
            <div>
-              <h1 className="text-4xl font-black tracking-tighter text-slate-900">Cardápio da Equipe</h1>
+              <h1 className="text-3xl sm:text-4xl font-black tracking-tighter text-slate-900">Cardápio da Equipe</h1>
               <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Refeitório de Funcionários</p>
            </div>
          </div>

@@ -91,34 +91,34 @@ export default function KDSPage() {
       <audio ref={audioRef} src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3?filename=service-bell-ring-14610.mp3" preload="auto" />
 
       {toast && (
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[10000] bg-emerald-500 text-white px-8 py-4 rounded-full shadow-[0_10px_40px_rgba(16,185,129,0.3)] font-black text-lg animate-in slide-in-from-top-4 duration-300">
+        <div className="absolute top-3 sm:top-6 left-1/2 -translate-x-1/2 z-[10000] max-w-[calc(100%-2rem)] bg-emerald-500 text-white px-4 sm:px-8 py-3 sm:py-4 rounded-full shadow-[0_10px_40px_rgba(16,185,129,0.3)] font-black text-sm sm:text-lg text-center animate-in slide-in-from-top-4 duration-300">
           {toast}
         </div>
       )}
 
       {/* HEADER DO KDS */}
-      <div className="px-6 py-4 bg-slate-900 border-b border-slate-800 flex items-center justify-between shadow-sm z-50">
-         <div className="flex items-center gap-6">
-            <button onClick={() => router.push("/dashboard")} className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-500 hover:text-white rounded-xl transition-colors active:scale-95">
+      <div className="px-3 sm:px-6 py-3 sm:py-4 bg-slate-900 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm z-50">
+         <div className="flex items-center gap-2 sm:gap-6 min-w-0">
+            <button onClick={() => router.push("/dashboard")} className="p-2.5 sm:p-3 shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-500 hover:text-white rounded-xl transition-colors active:scale-95">
                <ArrowLeft size={24} />
             </button>
             
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 shadow-[0_0_20px_rgba(249,115,22,0.15)]">
+            <div className="hidden sm:flex w-12 h-12 shrink-0 rounded-2xl bg-emerald-500/20 items-center justify-center border border-emerald-500/30 shadow-[0_0_20px_rgba(249,115,22,0.15)]">
                <ChefHat size={28} className="text-slate-600" />
             </div>
 
             <div>
-               <h1 className="text-2xl font-black text-white tracking-tight">KDS Produção</h1>
-               <p className="text-sm font-bold text-slate-500 flex items-center gap-2 mt-0.5">
+               <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight truncate">KDS Produção</h1>
+               <p className="text-xs sm:text-sm font-bold text-slate-500 flex items-center gap-2 mt-0.5 truncate">
                  {unidadeInfo.nome} <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span> Sync ON
                </p>
             </div>
          </div>
 
-         <div className="flex items-center gap-4">
+         <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-4">
             <button 
               onClick={() => setSomAtivo(!somAtivo)}
-              className={`flex items-center gap-2 px-5 py-3 rounded-xl font-black text-sm uppercase tracking-widest transition-colors ${
+              className={`flex items-center justify-center gap-2 px-3 sm:px-5 py-2.5 sm:py-3 rounded-xl font-black text-xs sm:text-sm uppercase tracking-widest transition-colors ${
                 somAtivo 
                   ? "bg-emerald-500/20 text-emerald-500 border border-emerald-500/30" 
                   : "bg-emerald-500/20 text-slate-600 border border-emerald-500/30"
@@ -130,7 +130,7 @@ export default function KDSPage() {
             <button 
                onClick={() => carregar(false)} 
                disabled={loading}
-               className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white font-black text-sm uppercase tracking-widest rounded-xl transition-colors shadow-md active:scale-95 disabled:opacity-50"
+               className="px-3 sm:px-6 py-2.5 sm:py-3 bg-slate-800 hover:bg-slate-700 text-white font-black text-xs sm:text-sm uppercase tracking-wide sm:tracking-widest rounded-xl transition-colors shadow-md active:scale-95 disabled:opacity-50"
             >
                {loading ? "Sincronizando..." : "Forçar Sync"}
             </button>
@@ -138,15 +138,15 @@ export default function KDSPage() {
       </div>
 
       {/* ÁREA DOS TICKETS */}
-      <div className="flex-1 overflow-y-auto p-6 md:p-8 hide-scrollbar">
+      <div className="flex-1 overflow-y-auto p-3 sm:p-6 md:p-8 hide-scrollbar">
          {pedidos.length === 0 && !loading ? (
-            <div className="h-full flex flex-col items-center justify-center text-slate-600">
+            <div className="h-full flex flex-col items-center justify-center text-slate-600 px-4 text-center">
                <LayoutGrid size={100} className="mb-6 opacity-20" />
-               <h2 className="text-4xl font-black text-slate-500 tracking-tight">Cozinha Limpa</h2>
-               <p className="text-xl font-bold mt-3 text-slate-600">Nenhum pedido na fila de preparo.</p>
+               <h2 className="text-2xl sm:text-4xl font-black text-slate-500 tracking-tight">Cozinha Limpa</h2>
+               <p className="text-base sm:text-xl font-bold mt-3 text-slate-600">Nenhum pedido na fila de preparo.</p>
             </div>
          ) : (
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(360px,1fr))] gap-6 items-start pb-24">
+            <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-3 sm:gap-6 items-start pb-24">
                {pedidos.map(pedido => {
                   const minutos = diffMinutos(pedido.created_at);
                   const isAtrasado = minutos >= SLA_MINUTOS; 
@@ -170,7 +170,7 @@ export default function KDSPage() {
                         </div>
 
                         {/* Cabeçalho Ticket */}
-                        <div className={`p-5 flex items-center justify-between border-b ${isAtrasado ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-slate-900 border-slate-800'}`}>
+                         <div className={`p-3 sm:p-5 flex items-center justify-between gap-3 border-b ${isAtrasado ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-slate-900 border-slate-800'}`}>
                            <div>
                               <p className={`text-xl font-black tracking-tight ${isAtrasado ? 'text-slate-500' : 'text-white'}`}>
                                  #{pedido.id.slice(0, 4).toUpperCase()}
@@ -190,7 +190,7 @@ export default function KDSPage() {
                         </div>
 
                         {/* Corpo dos Itens */}
-                        <div className="p-4 flex flex-col gap-3">
+                        <div className="p-3 sm:p-4 flex flex-col gap-3">
                            {pedido.venda_itens.map(item => {
                               const st = item.status_preparo || "pendente";
                               
@@ -216,10 +216,10 @@ export default function KDSPage() {
                                  <button
                                     key={item.id}
                                     onClick={() => handleClickStatus(item)}
-                                    className={`w-full p-5 rounded-[20px] border-2 flex items-center gap-4 transition-all active:scale-[0.98] text-left ${stBg} ${stBorder}`}
+                                    className={`w-full p-3 sm:p-5 rounded-[20px] border-2 flex items-center gap-3 sm:gap-4 transition-all active:scale-[0.98] text-left ${stBg} ${stBorder}`}
                                  >
                                     <div className="flex-shrink-0">{stIcon}</div>
-                                    <div className={`flex-1 text-lg font-bold leading-tight ${stText}`}>
+                                    <div className={`flex-1 text-base sm:text-lg font-bold leading-tight ${stText}`}>
                                        <span className="font-black bg-black/30 px-2 py-1 rounded-lg text-sm mr-2">{item.quantidade}x</span>
                                        {item.nome}
                                     </div>

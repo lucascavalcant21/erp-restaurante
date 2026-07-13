@@ -75,7 +75,7 @@ export default function FinanceiroDREPage() {
       {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
          <div>
-            <h1 className="text-4xl font-black text-slate-800 tracking-tight flex items-center gap-3">
+            <h1 className="text-3xl sm:text-4xl font-black text-slate-800 tracking-tight flex items-center gap-3">
                <Wallet className="text-[#10B981]" size={36}/> DRE & Financeiro
             </h1>
             <p className="text-slate-500 font-medium mt-1">Gestão de Contas a Pagar e Lucratividade (DRE)</p>
@@ -115,7 +115,7 @@ export default function FinanceiroDREPage() {
                      <h3 className="font-bold text-emerald-100 text-sm uppercase tracking-widest mb-4 flex items-center gap-2">
                         <Target size={18}/> Lucro Líquido Real
                      </h3>
-                     <p className="text-5xl font-black">{fmtBRL(dre.lucroLiquido)}</p>
+                     <p className="text-3xl sm:text-5xl font-black break-words">{fmtBRL(dre.lucroLiquido)}</p>
                   </div>
                   <div className="text-right">
                      <p className="text-emerald-100 text-sm font-bold uppercase tracking-widest mb-1">Margem Líquida</p>
@@ -196,8 +196,8 @@ export default function FinanceiroDREPage() {
 
       {/* MODAL NOVA CONTA */}
       {modalConta && (
-         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col">
+         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl sm:rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col my-3 sm:my-0 max-h-[94vh]">
                <div className="bg-slate-900 text-white p-6 flex justify-between items-center">
                   <h2 className="font-black text-xl">Registrar Nova Despesa</h2>
                   <button onClick={() => setModalConta(false)} className="text-slate-400 hover:text-white"><X size={24} /></button>
@@ -209,7 +209,7 @@ export default function FinanceiroDREPage() {
                      <input type="text" placeholder="Ex: Conta de Luz (Maio), Salário João..." required value={formConta.descricao} onChange={e=>setFormConta({...formConta, descricao: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-indigo-500 focus:bg-white" />
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Valor (R$)</label>
                         <input type="number" step="0.01" placeholder="0.00" required value={formConta.valor} onChange={e=>setFormConta({...formConta, valor: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-black text-slate-700 outline-none focus:border-indigo-500 focus:bg-white" />

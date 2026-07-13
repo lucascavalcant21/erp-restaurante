@@ -38,6 +38,7 @@ function VendasPDVContent() {
   const [modalCheckout, setModalCheckout] = useState(false);
   const [formaPgto, setFormaPgto] = useState("dinheiro");
   const [salvando, setSalvando] = useState(false);
+  const containerRef = useRef(null);
 
   const showToast = useCallback((msg, dur = 3000) => {
     setToast(msg); setTimeout(() => setToast(""), dur);
@@ -164,7 +165,6 @@ function VendasPDVContent() {
 
   if (loading) return <div className="flex h-screen items-center justify-center font-black text-2xl text-slate-500 bg-slate-50">Iniciando PDV...</div>;
 
-  const containerRef = useRef(null);
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
        containerRef.current?.requestFullscreen?.();
@@ -174,7 +174,7 @@ function VendasPDVContent() {
   };
 
   return (
-    <div ref={containerRef} className="flex h-screen bg-slate-100 overflow-hidden font-sans">
+    <div ref={containerRef} className="flex flex-col lg:flex-row min-h-screen lg:h-screen bg-slate-100 overflow-y-auto lg:overflow-hidden font-sans">
       {toast && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[999] bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl font-black text-sm transition-all animate-bounce">
           {toast}
@@ -182,9 +182,9 @@ function VendasPDVContent() {
       )}
 
       {/* COLUNA ESQUERDA: PRODUTOS (CARDÁPIO) */}
-      <div className="flex-1 flex flex-col min-w-0 bg-white shadow-xl z-10">
+      <div className="flex-1 flex flex-col min-w-0 min-h-[65vh] lg:min-h-0 bg-white shadow-xl z-10">
          {/* HEADER ESQUERDO */}
-         <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-4 bg-white z-20">
+          <div className="px-3 sm:px-6 py-3 sm:py-4 border-b border-slate-100 flex flex-wrap items-center gap-2 sm:gap-4 bg-white z-20">
             {isMesa && (
                <button onClick={() => router.push("/dashboard/mesas")} className="p-4 bg-slate-50 rounded-2xl hover:bg-slate-100 text-slate-500 transition-colors shadow-sm">
                  <ArrowLeft size={24} />
@@ -197,7 +197,7 @@ function VendasPDVContent() {
                  placeholder="Buscar produto..." 
                  value={busca} 
                  onChange={e => setBusca(e.target.value)} 
-                 className="w-full pl-14 pr-6 py-4 bg-slate-50 rounded-2xl text-slate-800 font-bold text-lg outline-none focus:ring-2 focus:ring-emerald-500 transition-all placeholder:font-medium" 
+                 className="w-full pl-12 sm:pl-14 pr-3 sm:pr-6 py-3 sm:py-4 bg-slate-50 rounded-2xl text-slate-800 font-bold text-base sm:text-lg outline-none focus:ring-2 focus:ring-emerald-500 transition-all placeholder:font-medium"
                />
             </div>
             {isMesa && (
@@ -211,12 +211,12 @@ function VendasPDVContent() {
          </div>
 
          {/* CARROSSEL DE CATEGORIAS */}
-         <div className="border-b border-slate-100 bg-white px-6 py-4 overflow-x-auto custom-scrollbar flex gap-3">
+          <div className="border-b border-slate-100 bg-white px-3 sm:px-6 py-3 sm:py-4 overflow-x-auto custom-scrollbar flex gap-2 sm:gap-3">
             {categorias.map(c => (
                <button 
                  key={c} 
                  onClick={() => setCategoriaSelecionada(c)} 
-                 className={`flex-shrink-0 px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all duration-200 ${
+                  className={`flex-shrink-0 px-4 sm:px-8 py-3 sm:py-4 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-widest transition-all duration-200 ${
                    categoriaSelecionada === c 
                      ? 'bg-emerald-600 text-white shadow-lg shadow-blue-600/30 transform scale-105' 
                      : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
@@ -228,7 +228,7 @@ function VendasPDVContent() {
          </div>
 
          {/* GRID DE PRODUTOS */}
-         <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50">
+          <div className="flex-1 overflow-y-auto p-3 sm:p-6 bg-slate-50/50">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-20">
                {filtrados.map(p => {
                  const qtdNoCarrinho = itensCarrinho.find(x => x.id === p.id)?.quantidade || 0;
@@ -244,11 +244,11 @@ function VendasPDVContent() {
                         </div>
                       )}
                       
-                      <div className="h-40 bg-slate-100 flex items-center justify-center text-slate-500 relative overflow-hidden group-hover:bg-slate-200 transition-colors">
+                      <div className="h-28 sm:h-40 bg-slate-100 flex items-center justify-center text-slate-500 relative overflow-hidden group-hover:bg-slate-200 transition-colors">
                          <ImageIcon size={48} className="opacity-50" />
                       </div>
                       
-                      <div className="p-5 flex-1 flex flex-col justify-between">
+                      <div className="p-3 sm:p-5 flex-1 flex flex-col justify-between">
                          <h3 className="font-bold text-slate-800 text-base leading-tight mb-2 line-clamp-2">{p.nome}</h3>
                          <span className="font-black text-emerald-600 text-xl">{fmtBRL(p.preco)}</span>
                       </div>
@@ -260,10 +260,10 @@ function VendasPDVContent() {
       </div>
 
       {/* COLUNA DIREITA: CUPOM FISCAL / CARRINHO */}
-      <div className="w-[420px] bg-slate-50 flex flex-col flex-shrink-0 shadow-[-10px_0_30px_rgba(0,0,0,0.05)] z-20 border-l border-slate-200">
+      <div className="w-full lg:w-[420px] max-h-[70vh] lg:max-h-none bg-slate-50 flex flex-col flex-shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.05)] lg:shadow-[-10px_0_30px_rgba(0,0,0,0.05)] z-20 border-t lg:border-t-0 lg:border-l border-slate-200">
          
          {/* Cabeçalho Cupom */}
-         <div className="p-6 bg-white border-b border-slate-200 shadow-sm">
+          <div className="p-4 sm:p-6 bg-white border-b border-slate-200 shadow-sm">
             <h2 className="font-black text-2xl text-slate-800 tracking-tight">
               {isMesa ? `Comanda: ${comandaAberta.nome_cliente}` : "Venda Balcão"}
             </h2>
@@ -307,7 +307,7 @@ function VendasPDVContent() {
          </div>
 
          {/* Rodapé Totais e Botão Cobrar */}
-         <div className="bg-white border-t border-slate-200 p-6 shadow-[0_-10px_20px_rgba(0,0,0,0.02)]">
+          <div className="bg-white border-t border-slate-200 p-4 sm:p-6 shadow-[0_-10px_20px_rgba(0,0,0,0.02)]">
             <div className="flex justify-between items-center mb-2">
                <span className="text-sm font-bold text-slate-500">Subtotal</span>
                <span className="text-base font-black text-slate-800">{fmtBRL(subtotal)}</span>
@@ -321,7 +321,7 @@ function VendasPDVContent() {
             
             <div className="flex justify-between items-center py-4 mt-2 border-t-2 border-dashed border-slate-200 mb-6">
                <span className="font-black text-2xl text-slate-800 uppercase tracking-tight">Total</span>
-               <span className="font-black text-4xl text-emerald-600">{fmtBRL(totalFinal)}</span>
+               <span className="font-black text-3xl sm:text-4xl text-emerald-600 break-words text-right">{fmtBRL(totalFinal)}</span>
             </div>
 
             <button 
@@ -337,7 +337,7 @@ function VendasPDVContent() {
       {/* MODAL NOVA COMANDA */}
       {modalNovaComanda && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-md p-8 animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-2xl sm:rounded-[32px] shadow-2xl w-full max-w-md p-4 sm:p-8 animate-in zoom-in-95 duration-200 max-h-[94vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-8">
               <h2 className="font-black text-3xl text-slate-800 tracking-tight">Nova Mesa</h2>
               <button onClick={() => router.push("/dashboard/mesas")} className="text-slate-500 hover:text-slate-800 bg-slate-100 w-12 h-12 rounded-full flex items-center justify-center transition-colors"><X size={24}/></button>
@@ -368,7 +368,7 @@ function VendasPDVContent() {
       {modalCheckout && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
           <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col">
-            <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white">
+            <div className="p-4 sm:p-8 border-b border-slate-100 flex flex-wrap justify-between items-center gap-3 bg-white">
               <div>
                 <h2 className="font-black text-3xl text-slate-800 tracking-tight">Pagamento</h2>
                 <p className="text-sm font-bold text-slate-500 uppercase mt-2 tracking-widest">{isMesa ? comandaAberta.nome_cliente : "Venda Balcão"}</p>
@@ -376,12 +376,12 @@ function VendasPDVContent() {
               <button onClick={() => setModalCheckout(false)} className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition-colors"><X size={24}/></button>
             </div>
 
-            <div className="p-8 bg-slate-50 flex-1">
+            <div className="p-4 sm:p-8 bg-slate-50 flex-1 overflow-y-auto">
                {/* Resumo Total Gigante */}
-               <div className="flex justify-between items-center p-8 bg-emerald-600 text-white rounded-[28px] mb-8 shadow-xl shadow-emerald-600/20">
+               <div className="flex flex-wrap justify-between items-center gap-3 p-5 sm:p-8 bg-emerald-600 text-white rounded-2xl sm:rounded-[28px] mb-6 sm:mb-8 shadow-xl shadow-emerald-600/20">
                  <div>
                    <p className="text-sm font-bold text-blue-200 uppercase tracking-widest mb-2">Total a Pagar</p>
-                   <p className="font-black text-6xl tracking-tight">{fmtBRL(totalFinal)}</p>
+                   <p className="font-black text-4xl sm:text-6xl tracking-tight break-words">{fmtBRL(totalFinal)}</p>
                  </div>
                  <div className="w-20 h-20 rounded-full bg-emerald-500 flex items-center justify-center shadow-inner">
                    <CreditCard size={32} className="text-white" />
@@ -390,7 +390,7 @@ function VendasPDVContent() {
 
                {/* Métodos de Pagamento */}
                <label className="block text-sm font-bold text-slate-500 uppercase tracking-widest mb-4">Escolha a Forma</label>
-               <div className="grid grid-cols-2 gap-4 mb-10">
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 sm:mb-10">
                  {[
                    { id: 'dinheiro', icon: Banknote, label: 'Dinheiro' },
                    { id: 'credito', icon: CreditCard, label: 'Cartão Crédito' },

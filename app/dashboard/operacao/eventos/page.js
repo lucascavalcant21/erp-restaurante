@@ -40,17 +40,17 @@ function FormEvento({ inicial, onSalvar, onCancelar }) {
   return (
     <>
       <Field label="Nome do evento"><TextInput value={f.nome} onChange={(e) => set("nome", e.target.value)} placeholder="ex: Casamento Silva & Costa" /></Field>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Tipo"><Select value={f.tipo} onChange={(e) => set("tipo", e.target.value)}>{TIPOS.map((t) => <option key={t}>{t}</option>)}</Select></Field>
         <Field label="Status"><Select value={f.status} onChange={(e) => set("status", e.target.value)}>{STATUS.map((s) => <option key={s}>{s}</option>)}</Select></Field>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Data e hora"><TextInput type="datetime-local" value={f.data} onChange={(e) => set("data", e.target.value)} /></Field>
         <Field label="Convidados"><NumberInput value={f.convidados} onChange={(e) => set("convidados", e.target.value)} placeholder="0" /></Field>
       </div>
       <Field label="Local"><TextInput value={f.local} onChange={(e) => set("local", e.target.value)} placeholder="ex: Salão Villa Bella" /></Field>
       <Field label="Responsável"><TextInput value={f.responsavel} onChange={(e) => set("responsavel", e.target.value)} placeholder="Nome do responsável" /></Field>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Valor do contrato (R$)"><NumberInput value={f.valor_contrato} onChange={(e) => set("valor_contrato", e.target.value)} placeholder="0,00" step="0.01" /></Field>
         <Field label="Custo estimado (R$)"><NumberInput value={f.custo_estimado} onChange={(e) => set("custo_estimado", e.target.value)} placeholder="0,00" step="0.01" /></Field>
       </div>

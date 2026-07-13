@@ -92,7 +92,7 @@ export default function FechamentoFolhaPage() {
                <button onClick={() => abrirMenu()} className="text-slate-400 hover:text-white mb-4 flex items-center gap-2 font-bold transition-colors">
                   <ArrowLeft size={18}/> Voltar
                </button>
-               <h1 className="text-4xl font-black tracking-tighter">Fechamento de Folha</h1>
+               <h1 className="text-3xl sm:text-4xl font-black tracking-tighter">Fechamento de Folha</h1>
                <p className="text-slate-400 font-bold uppercase tracking-widest text-xs mt-1">Geração de Holerites e CMO Automático</p>
             </div>
             

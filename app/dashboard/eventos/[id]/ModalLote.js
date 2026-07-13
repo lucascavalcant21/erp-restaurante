@@ -186,7 +186,7 @@ export default function ModalLote({ open, onClose, eventoId, tipo, ingredientesE
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     <TextInput
                       value={item.nome}
                       onChange={(e) => atualizarItem(item._id, { nome: e.target.value })}

@@ -136,8 +136,8 @@ export default function VagasPage() {
 
   if (sucesso) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 font-sans">
-        <div className="bg-white max-w-md w-full p-8 rounded-3xl shadow-xl text-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 sm:p-6 font-sans">
+        <div className="bg-white max-w-md w-full p-5 sm:p-8 rounded-2xl sm:rounded-3xl shadow-xl text-center">
           <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle size={40} />
           </div>
@@ -154,7 +154,7 @@ export default function VagasPage() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans pb-24">
       {/* Header */}
-      <div className="bg-emerald-950 text-white pt-12 pb-24 px-6 relative overflow-hidden">
+      <div className="bg-emerald-950 text-white pt-8 sm:pt-12 pb-20 sm:pb-24 px-4 sm:px-6 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
            {/* Abstract pattern */}
            <div className="absolute w-96 h-96 bg-emerald-500 rounded-full blur-3xl -top-20 -left-20"></div>
@@ -163,15 +163,15 @@ export default function VagasPage() {
           <div className="w-16 h-16 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-6">
             <Store size={32} className="text-emerald-300" />
           </div>
-          <h1 className="text-4xl md:text-5xl font-black tracking-tighter mb-4">Trabalhe Conosco - Seldeestrela</h1>
-          <p className="text-emerald-200 text-lg md:text-xl font-medium max-w-xl mx-auto">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter mb-4">Trabalhe Conosco - Seldeestrela</h1>
+          <p className="text-emerald-200 text-base sm:text-lg md:text-xl font-medium max-w-xl mx-auto">
             Estamos em busca de talentos apaixonados para integrar nossa equipe e levar o melhor da culinária amazônica aos nossos clientes. Preencha seus dados e faça o teste de perfil.
           </p>
         </div>
       </div>
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 -mt-16 relative z-20">
-        <div className="bg-white rounded-[32px] shadow-xl shadow-slate-200/50 overflow-hidden border border-slate-100">
+        <div className="bg-white rounded-2xl sm:rounded-[32px] shadow-xl shadow-slate-200/50 overflow-hidden border border-slate-100">
           
           {/* Progress Bar */}
           <div className="flex border-b border-slate-100">
@@ -180,7 +180,7 @@ export default function VagasPage() {
              </div>
           </div>
 
-          <div className="p-6 md:p-10">
+          <div className="p-4 sm:p-6 md:p-10">
             {step === 1 && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
                 
@@ -365,7 +365,7 @@ export default function VagasPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="flex gap-4">
+                  <div className="flex flex-col sm:flex-row gap-4">
                     <div className="flex-1">
                       <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Possui filhos? *</label>
                       <select 
@@ -378,7 +378,7 @@ export default function VagasPage() {
                       </select>
                     </div>
                     {dadosPessoais.temFilhos === 'Sim' && (
-                      <div className="w-1/3">
+                      <div className="w-full sm:w-1/3">
                         <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Quantos?</label>
                         <select 
                           value={dadosPessoais.qtdFilhos}
@@ -395,7 +395,7 @@ export default function VagasPage() {
                       </div>
                     )}
                   </div>
-                  <div className="flex gap-4">
+                  <div className="flex flex-col sm:flex-row gap-4">
                     <div className="flex-1">
                       <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Possui Automóvel? *</label>
                       <select 
@@ -408,7 +408,7 @@ export default function VagasPage() {
                       </select>
                     </div>
                     {dadosPessoais.temAutomovel === 'Sim' && (
-                      <div className="w-1/2">
+                      <div className="w-full sm:w-1/2">
                         <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Qual?</label>
                         <select 
                           value={dadosPessoais.qualAutomovel}
@@ -442,7 +442,7 @@ export default function VagasPage() {
                     </div>
 
                     {VAGAS_DETALHES[dadosPessoais.cargoPretendido] && (
-                      <div className="mt-4 bg-emerald-50 border border-emerald-100 rounded-2xl p-4 grid grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-2">
+                      <div className="mt-4 bg-emerald-50 border border-emerald-100 rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-2">
                         <div>
                           <p className="text-[10px] font-black text-emerald-600/70 uppercase tracking-widest mb-1">Salário Base</p>
                           <p className="font-bold text-emerald-900">{VAGAS_DETALHES[dadosPessoais.cargoPretendido].salario}</p>
@@ -488,10 +488,10 @@ export default function VagasPage() {
                   </div>
                 </div>
 
-                <div className="pt-6 border-t border-slate-100 flex justify-end">
+                <div className="pt-6 border-t border-slate-100 flex justify-stretch sm:justify-end">
                   <button 
                     onClick={handleNextStep}
-                    className="flex items-center gap-2 bg-emerald-600 text-white px-8 py-4 rounded-xl font-black hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20"
+                    className="w-full sm:w-auto justify-center flex items-center gap-2 bg-emerald-600 text-white px-6 sm:px-8 py-4 rounded-xl font-black hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20"
                   >
                     Próxima Etapa <ChevronRight size={20} />
                   </button>
@@ -508,7 +508,7 @@ export default function VagasPage() {
                 </div>
 
                 {PERGUNTAS_RECRUTAMENTO.map((q, qIndex) => (
-                  <div key={q.id} className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                  <div key={q.id} className="bg-slate-50 p-4 sm:p-6 rounded-2xl border border-slate-100">
                     <p className="font-black text-slate-800 mb-4">{qIndex + 1}. {q.pergunta}</p>
                     <div className="space-y-3">
                       {q.opcoes.map((op, opIndex) => (
@@ -530,7 +530,7 @@ export default function VagasPage() {
                   </div>
                 ))}
 
-                <div className="pt-6 border-t border-slate-100 flex justify-between items-center">
+                <div className="pt-6 border-t border-slate-100 flex flex-col-reverse sm:flex-row justify-between items-stretch sm:items-center gap-3">
                   <button 
                     onClick={() => setStep(1)}
                     className="text-slate-500 font-bold hover:text-slate-800 px-4 py-2"
@@ -540,7 +540,7 @@ export default function VagasPage() {
                   <button 
                     onClick={handleSubmit}
                     disabled={loading}
-                    className="flex items-center gap-2 bg-emerald-600 text-white px-8 py-4 rounded-xl font-black hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20 disabled:opacity-50"
+                    className="justify-center flex items-center gap-2 bg-emerald-600 text-white px-6 sm:px-8 py-4 rounded-xl font-black hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20 disabled:opacity-50"
                   >
                     {loading ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
                     {loading ? "Enviando..." : "Finalizar Candidatura"}

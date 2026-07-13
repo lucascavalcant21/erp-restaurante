@@ -41,8 +41,8 @@ export default function NovaSenhaPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-5" style={{ background: "var(--surface)" }}>
-      <div className="w-full max-w-sm erp-card p-6 space-y-4">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 sm:px-5 py-6" style={{ background: "var(--surface)" }}>
+      <div className="w-full max-w-sm erp-card p-5 sm:p-6 space-y-4">
         {pronto ? (
           <div className="flex flex-col items-center text-center gap-2 py-4">
             <CheckCircle size={40} style={{ color: "var(--accent-fg)" }} />

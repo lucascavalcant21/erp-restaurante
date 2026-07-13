@@ -35,11 +35,11 @@ function FormDrink({ inicial, onSalvar, onCancelar }) {
   return (
     <>
       <Field label="Nome do drink"><TextInput value={f.nome} onChange={(e) => set("nome", e.target.value)} placeholder="ex: Mojito, Caipirinha, Água com Limão" /></Field>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Tipo"><Select value={f.tipo} onChange={(e) => set("tipo", e.target.value)}>{TIPOS.map((t) => <option key={t}>{t}</option>)}</Select></Field>
         <Field label="Copo"><Select value={f.copo} onChange={(e) => set("copo", e.target.value)}>{COPOS.map((c) => <option key={c}>{c}</option>)}</Select></Field>
       </div>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Field label="Volume (mL)"><NumberInput value={f.ml} onChange={(e) => set("ml", e.target.value)} placeholder="250" step="10" /></Field>
         <Field label="Sabor"><Select value={f.sabor} onChange={(e) => set("sabor", e.target.value)}><option value="">Nenhum</option>{SABORES.map((s) => <option key={s}>{s}</option>)}</Select></Field>
         <Field label="Guarnação"><Select value={f.guarnacao} onChange={(e) => set("guarnacao", e.target.value)}><option value="">Nenhuma</option>{GUARNACOES.map((g) => <option key={g}>{g}</option>)}</Select></Field>
@@ -47,7 +47,7 @@ function FormDrink({ inicial, onSalvar, onCancelar }) {
       {f.tipo === "Drink" && (
         <Field label="Destilado"><Select value={f.destilado} onChange={(e) => set("destilado", e.target.value)}>{DESTILADOS.map((d) => <option key={d}>{d}</option>)}</Select></Field>
       )}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="erp-label block mb-1.5 text-[12px]">Xarope?</label>
           <div className="flex gap-2">
@@ -57,7 +57,7 @@ function FormDrink({ inicial, onSalvar, onCancelar }) {
         </div>
         {f.xarope_sim && <Field label="Qual xarope?"><TextInput value={f.xarope_qual} onChange={(e) => set("xarope_qual", e.target.value)} placeholder="ex: Xarope de Framboesa" /></Field>}
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="erp-label block mb-1.5 text-[12px]">Chantilly?</label>
           <div className="flex gap-2">
@@ -66,7 +66,7 @@ function FormDrink({ inicial, onSalvar, onCancelar }) {
           </div>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Preço de venda (R$)"><NumberInput value={f.preco_venda} onChange={(e) => set("preco_venda", e.target.value)} placeholder="0,00" step="0.01" /></Field>
         <Field label="Preço de custo (R$)"><NumberInput value={f.preco_custo} onChange={(e) => set("preco_custo", e.target.value)} placeholder="0,00" step="0.01" /></Field>
       </div>

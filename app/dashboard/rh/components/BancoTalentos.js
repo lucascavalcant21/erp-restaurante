@@ -153,7 +153,7 @@ export default function BancoTalentos({ unidadeAtiva }) {
                <div className="flex-1 overflow-y-auto pr-2 pb-4 space-y-6 custom-scrollbar">
                   
                   {/* Info Pessoais */}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
                         <Phone size={20} className="text-slate-400" />
                         <div>

@@ -155,7 +155,7 @@ function FormReserva({ inicial, evento, reservas, pratos, drinks, ingredientes, 
       <Field label="Nome do cliente">
         <TextInput value={f.nome} onChange={(e) => set("nome", e.target.value)} placeholder="ex: Lucas e Maria" />
       </Field>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Field label="Mesa">
           <Select value={f.mesa || ""} onChange={(e) => set("mesa", e.target.value ? Number(e.target.value) : "")}>
             <option value="">{disponiveis.length === 0 ? "Todas ocupadas" : `Sel... (${disponiveis.length})`}</option>
@@ -655,7 +655,7 @@ export default function TabReservas({ eventoId, evento, reservas, pratos, drinks
   return (
     <div className="space-y-4">
       <Card className="!p-4">
-        <div className="grid grid-cols-4 gap-3 mb-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
           <div><p className="text-[10px]" style={{ color: "var(--dim)" }}>CONFIRMADAS</p><strong style={{ fontSize: 20, color: "var(--accent-fg)" }}>{reservas.length}/{evento.capacidade}</strong></div>
           <div><p className="text-[10px]" style={{ color: "var(--dim)" }}>PAGAS</p><strong style={{ fontSize: 20, color: "#10B981" }}>{stats.pagas}</strong></div>
           <div><p className="text-[10px]" style={{ color: "var(--dim)" }}>SINAIS</p><strong style={{ fontSize: 16, color: "var(--fg)" }}>{fmtBRL(stats.totalSinal)}</strong></div>

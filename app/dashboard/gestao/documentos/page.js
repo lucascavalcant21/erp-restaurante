@@ -104,14 +104,14 @@ export default function DocumentosLegaisPage() {
       <div className="sticky top-0 z-20 border-b px-4 pt-12 pb-3 flex items-center gap-3"
         style={{ background: "var(--surface)", borderColor: "var(--line)" }}>
         <button onClick={() => abrirMenu()}
-          className="w-9 h-9 rounded-xl flex items-center justify-center erp-card">
+          className="w-9 h-9 rounded-xl flex items-center justify-center erp-card shrink-0">
           <ArrowLeft size={18} style={{ color: "var(--muted)" }} />
         </button>
-        <div className="flex-1">
-          <h1 className="text-lg font-bold leading-tight flex items-center gap-2" style={{ color: "var(--fg)" }}>
-            <FileText size={18} style={{ color: "var(--muted)" }} /> Documentos Legais
+        <div className="flex-1 min-w-0">
+          <h1 className="text-base sm:text-lg font-bold leading-tight flex items-center gap-2 min-w-0" style={{ color: "var(--fg)" }}>
+            <FileText size={18} className="shrink-0" style={{ color: "var(--muted)" }} /> <span className="truncate">Documentos Legais</span>
           </h1>
-          <p className="text-[11px] font-medium" style={{ color: "var(--dim)" }}>
+          <p className="text-[11px] font-medium truncate" style={{ color: "var(--dim)" }}>
             Alvarás, Contratos e Certidões · {unidadeInfo.nome}
           </p>
         </div>
@@ -120,9 +120,9 @@ export default function DocumentosLegaisPage() {
       <PageBody>
         <Toast show={!!toast}>{toast}</Toast>
 
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex flex-wrap justify-between items-center gap-2 mb-4">
           <p className="erp-label">Arquivos ({docs.length})</p>
-          <Btn variant="primary" className="!h-8 text-[11px]" onClick={() => setModal(true)}>
+          <Btn variant="primary" className="!h-8 text-[11px] w-full sm:w-auto" onClick={() => setModal(true)}>
             + Anexar Documento
           </Btn>
         </div>
@@ -136,18 +136,18 @@ export default function DocumentosLegaisPage() {
             {docs.map(d => {
               const st = statusVencimento(d.data_vencimento);
               return (
-                <Card key={d.id} className="p-4">
-                  <div className="flex items-start gap-4">
+                <Card key={d.id} className="!p-3 sm:!p-4">
+                  <div className="flex items-start gap-3 sm:gap-4">
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "var(--elevated)" }}>
                       <FileText size={18} style={{ color: "var(--accent-fg)" }} />
                     </div>
                     
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-bold truncate" style={{ color: "var(--fg)" }}>{d.titulo}</p>
                         <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-500">{d.tipo}</span>
                       </div>
-                      {d.descricao && <p className="text-xs mt-0.5" style={{ color: "var(--subtle)" }}>{d.descricao}</p>}
+                      {d.descricao && <p className="text-xs mt-0.5 break-words" style={{ color: "var(--subtle)" }}>{d.descricao}</p>}
                       
                       {d.data_vencimento && (
                         <div className="flex items-center gap-1.5 mt-2">
@@ -159,7 +159,7 @@ export default function DocumentosLegaisPage() {
                       )}
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 shrink-0">
                       {d.arquivo_url && (
                         <a href={d.arquivo_url} target="_blank" rel="noreferrer" title="Baixar/Ver" className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "var(--accent-soft)", color: "var(--accent-fg)" }}>
                           <Download size={14} />

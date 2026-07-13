@@ -599,38 +599,38 @@ function CardapioRunner() {
     <div className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50">
       
       {/* TOPBAR */}
-      <div className="bg-white border-b border-slate-200 pt-6 pb-6 px-6 sticky top-0 z-10">
-         <div className="max-w-5xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-4">
+      <div className="bg-white border-b border-slate-200 py-4 sm:py-6 px-4 sm:px-6 sticky top-0 z-10">
+         <div className="max-w-5xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
               <button onClick={() => abrirMenu()} className="p-3 text-slate-500 hover:text-slate-800 bg-slate-50 rounded-full border border-slate-200">
                  <ArrowLeft size={20}/>
               </button>
-              <div className="w-14 h-14 rounded-2xl bg-slate-100 text-emerald-600 flex items-center justify-center shadow-inner">
+               <div className="hidden sm:flex w-14 h-14 shrink-0 rounded-2xl bg-slate-100 text-emerald-600 items-center justify-center shadow-inner">
                  <Tag size={28} />
               </div>
               <div>
-                 <h1 className="text-3xl font-black tracking-tighter text-slate-900">Cardápio</h1>
-                 <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Precificação · liga direto no PDV · CMV automático</p>
+                  <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-slate-900">Cardápio</h1>
+                  <p className="text-slate-700 font-bold uppercase tracking-wide sm:tracking-widest text-[10px] sm:text-xs mt-1">Precificação · liga direto no PDV · CMV automático</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto">
                {cmvMedio !== null && (
                   <div className={`px-4 py-2.5 rounded-2xl border ${corCmv(cmvMedio).bg} ${corCmv(cmvMedio).border}`}>
                      <p className={`text-[9px] font-black uppercase tracking-widest ${corCmv(cmvMedio).text}`}>CMV Médio</p>
                      <p className={`text-xl font-black ${corCmv(cmvMedio).text}`}>{cmvMedio.toFixed(1)}%</p>
                   </div>
                )}
-               <button onClick={imprimirTabelaCmv} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-5 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm" title="Planilha com preços, custos e CMV">
-                  <Printer size={18} /> Imprimir Tabela
+               <button onClick={imprimirTabelaCmv} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-slate-50 transition-colors shadow-sm" title="Planilha com preços, custos e CMV">
+                  <Printer size={18} /> <span className="hidden sm:inline">Imprimir Tabela</span>
                </button>
-               <button onClick={abrirNovo} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
+               <button onClick={abrirNovo} className="flex items-center gap-2 bg-emerald-600 text-white px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
                   <Plus size={18} /> Novo Produto
                </button>
             </div>
          </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 mt-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 mt-6 sm:mt-8">
          <div className="bg-white p-3 rounded-2xl border border-slate-200 mb-4 flex items-center gap-3 shadow-sm">
             <Search size={20} className="text-slate-500 ml-2" />
             <input type="text" placeholder="Buscar produto no cardápio..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-bold text-slate-700 p-2" />
@@ -680,12 +680,12 @@ function CardapioRunner() {
       {modalNovo && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
             <div className="bg-white rounded-[32px] w-full max-w-2xl shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[92vh]">
-               <div className="flex justify-between items-center p-8 pb-6 border-b border-slate-100 shrink-0">
+               <div className="flex justify-between items-center p-4 sm:p-8 pb-4 sm:pb-6 border-b border-slate-100 shrink-0">
                   <h2 className="font-black text-2xl text-slate-800">{form.id ? "Editar Produto" : "Novo Produto"}</h2>
                   <button onClick={() => setModalNovo(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
                </div>
 
-               <div className="p-8 overflow-y-auto custom-scrollbar space-y-6">
+               <div className="p-4 sm:p-8 overflow-y-auto custom-scrollbar space-y-6">
                   {/* Básico */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                      <div className="md:col-span-2">
@@ -927,7 +927,7 @@ function CardapioRunner() {
                   </div>
                </div>
 
-               <div className="p-8 pt-4 border-t border-slate-100 bg-slate-50 rounded-b-[32px] shrink-0">
+               <div className="p-4 sm:p-8 sm:pt-4 border-t border-slate-100 bg-slate-50 rounded-b-[32px] shrink-0">
                   <button onClick={handleSalvar} className="w-full py-5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-2">
                      <Save size={20}/> Salvar Produto
                   </button>
@@ -940,7 +940,7 @@ function CardapioRunner() {
       {modalGuia && guiaProduto && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
             <div className="bg-white rounded-[32px] w-full max-w-2xl shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[92vh]">
-               <div className="flex justify-between items-center p-8 pb-6 border-b border-slate-100 shrink-0">
+               <div className="flex justify-between items-center p-4 sm:p-8 pb-4 sm:pb-6 border-b border-slate-100 shrink-0">
                   <div className="flex items-center gap-3">
                      <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center"><ClipboardList size={22}/></div>
                      <div>
@@ -951,7 +951,7 @@ function CardapioRunner() {
                   <button onClick={() => setModalGuia(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
                </div>
 
-               <div className="p-8 overflow-y-auto custom-scrollbar space-y-5">
+               <div className="p-4 sm:p-8 overflow-y-auto custom-scrollbar space-y-5">
                   {componentesDoProduto(guiaProduto).length === 0 && (
                      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-[11px] font-bold text-amber-700">
                         Este produto não tem Ficha Técnica vinculada — a IA vai montar o guia só pelo nome. Para quantidades exatas, vincule uma ficha.
@@ -1018,7 +1018,7 @@ function CardapioRunner() {
                </div>
 
                {guiaResultado && (
-                  <div className="p-8 pt-4 border-t border-slate-100 bg-slate-50 rounded-b-[32px] shrink-0">
+                  <div className="p-4 sm:p-8 sm:pt-4 border-t border-slate-100 bg-slate-50 rounded-b-[32px] shrink-0">
                      <button onClick={imprimirGuia} className="w-full py-5 bg-slate-900 hover:bg-slate-800 text-white font-black text-lg rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2">
                         <Printer size={20}/> Imprimir guia (colar na parede)
                      </button>

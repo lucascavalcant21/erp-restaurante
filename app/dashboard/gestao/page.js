@@ -19,12 +19,12 @@ export default function GestaoPage() {
       <PageBody>
         <div className="space-y-3">
           {opcoes.map((op) => (
-            <Card key={op.id} className="!p-4 cursor-pointer hover:opacity-80 transition" onClick={() => router.push(op.href)}>
-              <div className="flex items-center gap-4">
-                <div className="text-3xl">{op.emoji}</div>
-                <div className="flex-1">
-                  <p className="text-lg font-bold" style={{ color: "var(--fg)" }}>{op.titulo}</p>
-                  <p className="text-sm" style={{ color: "var(--dim)" }}>{op.desc}</p>
+            <Card key={op.id} className="!p-3 sm:!p-4 cursor-pointer hover:opacity-80 transition" onClick={() => router.push(op.href)}>
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="text-2xl sm:text-3xl shrink-0">{op.emoji}</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-base sm:text-lg font-bold break-words" style={{ color: "var(--fg)" }}>{op.titulo}</p>
+                  <p className="text-xs sm:text-sm break-words" style={{ color: "var(--dim)" }}>{op.desc}</p>
                 </div>
                 <div style={{ color: "var(--muted)" }}>→</div>
               </div>

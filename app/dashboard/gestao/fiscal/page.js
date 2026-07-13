@@ -76,15 +76,15 @@ export default function ConfiguracoesFiscaisPage() {
   };
 
   if (loading) {
-    return <div className="p-8 text-slate-500 animate-pulse flex items-center gap-3">
+    return <div className="p-4 sm:p-8 text-slate-500 animate-pulse flex items-center gap-3">
       <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
       Carregando dados fiscais...
     </div>;
   }
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
-      <div className="flex items-center justify-between mb-8">
+    <div className="p-4 sm:p-8 max-w-4xl mx-auto">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6 sm:mb-8">
         <div>
           <h1 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">
             <FileText className="text-emerald-500" size={32} />
@@ -230,7 +230,7 @@ export default function ConfiguracoesFiscaisPage() {
           <button 
             type="submit" 
             disabled={saving}
-            className="flex-1 md:flex-none bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-500/30 disabled:opacity-50"
+            className="w-full sm:w-auto flex-1 md:flex-none bg-emerald-500 hover:bg-emerald-600 text-white px-5 sm:px-8 py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-500/30 disabled:opacity-50"
           >
             {saving ? (
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

@@ -74,7 +74,7 @@ export default function NpsPage() {
 
         <Card className="text-center">
           <p className="erp-label">Net Promoter Score</p>
-          <p className="text-5xl font-bold mt-1" style={{ color: npsColor }}>{resumo.nps}</p>
+          <p className="text-4xl sm:text-5xl font-bold mt-1" style={{ color: npsColor }}>{resumo.nps}</p>
           <p className="text-[11px] mt-1" style={{ color: "var(--dim)" }}>{resumo.total} avaliações · média {resumo.media.toFixed(1)}/10</p>
         </Card>
 

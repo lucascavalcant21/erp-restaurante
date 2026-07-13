@@ -191,11 +191,11 @@ export default function GastosAdminPage() {
         {form && (
           <form onSubmit={salvar}>
             <Field label="Item"><TextInput value={form.item} onChange={e => setForm({ ...form, item: e.target.value })} placeholder="Ex: Caneta esferográfica azul (cx)" required /></Field>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="Categoria"><Select value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })}>{CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}</Select></Field>
               <Field label="Data"><input type="date" value={form.data} onChange={e => setForm({ ...form, data: e.target.value })} className="erp-input" /></Field>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="Quantidade"><NumberInput value={form.quantidade} onChange={e => setForm({ ...form, quantidade: e.target.value })} min="1" step="1" /></Field>
               <Field label="Valor unitário (R$)"><NumberInput value={form.valor_unitario} onChange={e => setForm({ ...form, valor_unitario: e.target.value })} min="0" step="0.01" placeholder="0,00" /></Field>
             </div>

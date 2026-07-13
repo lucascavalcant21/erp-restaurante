@@ -106,35 +106,35 @@ export default function CerebroDashboard() {
   }
 
   const kpiBox = (label, value, Icon, color, sub) => (
-    <Card className="p-5 flex flex-col justify-between" style={{ borderBottom: `4px solid ${color}`, boxShadow: `0 10px 30px -10px ${color}20` }}>
-      <div className="flex justify-between items-start mb-4">
+    <Card className="!p-4 sm:!p-5 flex flex-col justify-between min-w-0" style={{ borderBottom: `4px solid ${color}`, boxShadow: `0 10px 30px -10px ${color}20` }}>
+      <div className="flex justify-between items-start gap-2 mb-4 min-w-0">
         <div className="w-11 h-11 rounded-2xl flex items-center justify-center" style={{ background: `${color}15` }}>
           <Icon size={22} style={{ color }} />
         </div>
-        <p className="text-[11px] uppercase font-bold tracking-widest mt-2" style={{ color: "var(--dim)" }}>{label}</p>
+        <p className="text-[10px] sm:text-[11px] uppercase font-bold tracking-widest mt-2 min-w-0 break-words text-right" style={{ color: "var(--dim)" }}>{label}</p>
       </div>
       <div>
-        <p className="text-3xl font-black tracking-tight" style={{ color: "var(--fg)" }}>{value}</p>
+        <p className="text-2xl sm:text-3xl font-black tracking-tight break-words" style={{ color: "var(--fg)" }}>{value}</p>
         {sub && <p className="text-xs font-semibold mt-1" style={{ color: "var(--muted)" }}>{sub}</p>}
       </div>
     </Card>
   );
 
   return (
-    <div className="p-4 space-y-6 pb-20">
-      <div className="flex items-center gap-3">
+    <div className="p-3 sm:p-4 space-y-5 sm:space-y-6 pb-20 min-w-0">
+      <div className="flex items-center gap-3 min-w-0">
         <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #8B5CF6, #6D28D9)", boxShadow: "0 8px 16px rgba(139, 92, 246, 0.25)" }}>
           <Brain size={24} color="#fff" />
         </div>
-        <div>
-          <h1 className="text-2xl font-black tracking-tight" style={{ color: "var(--fg)" }}>Cérebro ERP</h1>
-          <p className="text-sm font-semibold" style={{ color: "var(--dim)" }}>Central de Inteligência • Últimos 30 dias</p>
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-black tracking-tight" style={{ color: "var(--fg)" }}>Cérebro ERP</h1>
+          <p className="text-xs sm:text-sm font-semibold break-words" style={{ color: "var(--dim)" }}>Central de Inteligência • Últimos 30 dias</p>
         </div>
       </div>
 
       <div>
         <SectionLabel>Visão Macro da Rede</SectionLabel>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 min-[400px]:grid-cols-2 xl:grid-cols-4 gap-3 min-w-0">
           {kpiBox("Receita Total", fmtBRL(rede.receita), TrendingUp, "#10B981", "Faturamento somado")}
           {kpiBox("Lucro Líquido", fmtBRL(rede.lucro), DollarSign, rede.lucro >= 0 ? "#3B82F6" : "#EF4444", "Receitas - Despesas")}
           {kpiBox("CMV Médio", fmtPct(rede.cmv), Package, rede.cmv > 35 ? "#EF4444" : "#F59E0B", "Custo da Mercadoria Vendida")}
@@ -150,7 +150,7 @@ export default function CerebroDashboard() {
           </div>
           <div className="space-y-2">
             {alertasLimpeza.map((alerta, idx) => (
-              <div key={idx} className="flex justify-between items-center text-sm font-semibold" style={{ color: "var(--fg)" }}>
+              <div key={idx} className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 text-sm font-semibold" style={{ color: "var(--fg)" }}>
                 <span>Unidade <span className="uppercase text-[#EF4444]">{alerta.unidade_id}</span> precisa de <strong>{alerta.item}</strong></span>
                 <span className="text-xs" style={{ color: "var(--dim)" }}>Estoque: {alerta.quantidade} (Mín: {alerta.minimo})</span>
               </div>
@@ -160,12 +160,12 @@ export default function CerebroDashboard() {
       )}
 
       {/* Gráficos Recharts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 min-w-0">
         
         {/* Gráfico de Evolução (Ocupa 2 colunas) */}
         <div className="lg:col-span-2">
           <SectionLabel>Evolução de Crescimento (30 Dias)</SectionLabel>
-          <Card className="p-4 h-[350px]">
+          <Card className="!p-3 sm:!p-4 h-[300px] sm:h-[350px] overflow-hidden">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={dadosEvolucao} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                 <defs>

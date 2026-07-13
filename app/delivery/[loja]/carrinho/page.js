@@ -83,7 +83,7 @@ export default function CarrinhoPage({ params }) {
 
   if (etapa === "sucesso") {
     return (
-      <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-6 text-center">
+      <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-4 sm:p-6 text-center">
         <div className="w-24 h-24 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mb-6 animate-bounce">
           <CheckCircle2 size={48} />
         </div>
@@ -223,7 +223,7 @@ export default function CarrinhoPage({ params }) {
       </main>
 
       {/* FOOTER TOTAL */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 px-6 z-30 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 px-4 sm:px-6 z-30 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]" style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
         <div className="flex justify-between items-end mb-4">
           <span className="text-slate-500 font-medium">Total a Pagar</span>
           <span className="text-2xl font-bold text-slate-900">R$ {totalGeral.toFixed(2).replace('.', ',')}</span>

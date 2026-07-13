@@ -811,7 +811,7 @@ export default function SaloesMesasPage() {
   if (!caixa) {
     return (
       <div className="flex-1 flex items-center justify-center bg-slate-100 min-h-[calc(100vh-72px)] p-6">
-        <div className="max-w-md w-full bg-white rounded-3xl p-8 shadow-2xl text-center border border-slate-100">
+        <div className="max-w-md w-full bg-white rounded-3xl p-5 sm:p-8 shadow-2xl text-center border border-slate-100">
            <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6">
              <Lock size={32} className="text-emerald-500" />
            </div>
@@ -842,11 +842,11 @@ export default function SaloesMesasPage() {
 
   // --- CAIXA ABERTO ---
   return (
-    <div className="flex flex-col h-[calc(100vh-72px)] bg-slate-100 overflow-hidden font-sans">
+    <div className="flex flex-col h-[calc(100dvh-72px)] bg-slate-100 overflow-hidden font-sans">
       
       {/* BANNER DE ALERTA — PEDIDO NOVO VIA QR CODE */}
       {showAlertaOnline && pedidosOnline.length > 0 && (
-        <div className="bg-gradient-to-r from-orange-500 to-rose-500 text-white px-4 py-3 flex items-center justify-between z-50 shadow-lg animate-pulse shrink-0">
+        <div className="bg-gradient-to-r from-orange-500 to-rose-500 text-white px-3 sm:px-4 py-3 flex flex-wrap items-center justify-between gap-2 z-50 shadow-lg animate-pulse shrink-0">
           <div className="flex items-center gap-3 font-bold">
             <Bell size={22} />
             <div>
@@ -877,12 +877,12 @@ export default function SaloesMesasPage() {
       )}
 
       {/* HEADER DE COMANDO */}
-      <header className="bg-slate-800 text-white px-4 py-3 flex items-center justify-between shrink-0 shadow-lg z-20">
-         <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-emerald-400">
+      <header className="bg-slate-800 text-white px-3 sm:px-4 py-3 flex items-center justify-between gap-3 overflow-x-auto shrink-0 shadow-lg z-20">
+         <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+            <div className="hidden sm:flex w-10 h-10 rounded-full bg-white/10 items-center justify-center text-emerald-400">
                <DollarSign size={20} />
             </div>
-            <div>
+            <div className="hidden sm:block">
                <h1 className="text-sm font-black tracking-widest uppercase">Frente de Loja</h1>
                <div className="flex items-center gap-2 mt-0.5">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -890,23 +890,23 @@ export default function SaloesMesasPage() {
                </div>
             </div>
             
-            <div className="ml-8 bg-black/20 p-1 rounded-xl flex gap-1 items-center">
-               <button onClick={() => setAbaAtiva('salao')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${abaAtiva === 'salao' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-300 hover:text-white'}`}>
+            <div className="sm:ml-4 lg:ml-8 bg-black/20 p-1 rounded-xl flex gap-1 items-center">
+               <button onClick={() => setAbaAtiva('salao')} className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${abaAtiva === 'salao' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-300 hover:text-white'}`}>
                   <Users size={14} /> Salão (Mesas)
                </button>
-               <button onClick={() => setAbaAtiva('balcao')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${abaAtiva === 'balcao' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-300 hover:text-white'}`}>
+               <button onClick={() => setAbaAtiva('balcao')} className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${abaAtiva === 'balcao' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-300 hover:text-white'}`}>
                   <ShoppingBag size={14} /> Balcão Rápido
                </button>
-               <button onClick={() => setAbaAtiva('ifood')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${abaAtiva === 'ifood' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-300 hover:text-white'}`}>
+               <button onClick={() => setAbaAtiva('ifood')} className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${abaAtiva === 'ifood' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-300 hover:text-white'}`}>
                   <Utensils size={14} /> iFood
                </button>
-               <button onClick={() => setAbaAtiva('cardapio')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${abaAtiva === 'cardapio' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-300 hover:text-white'}`}>
+               <button onClick={() => setAbaAtiva('cardapio')} className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${abaAtiva === 'cardapio' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-300 hover:text-white'}`}>
                   <ShoppingBag size={14} /> Cardápio Digital
                </button>
             </div>
          </div>
 
-         <div className="flex gap-2">
+         <div className="hidden lg:flex gap-2 shrink-0">
             <button onClick={abrirPainelOnline} className="relative flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 font-bold text-xs rounded-lg transition-colors text-white">
                <Bell size={16} /> Pedidos Online
                {pedidosOnline.length > 0 && (
@@ -938,13 +938,13 @@ export default function SaloesMesasPage() {
       </header>
 
       {/* BODY PRINCIPAL */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-col lg:flex-row flex-1 min-h-0 overflow-hidden">
          
          {/* SE ESTIVER NO SALÃO E UMA MESA ESTIVER ABERTA (MODO PDV/POS) */}
          {abaAtiva === 'salao' && mesaAtiva && pedidoAtivo ? (
             <>
                {/* SIDEBAR ESQUERDA: DETALHES DA CONTA */}
-               <div className="w-[320px] bg-white border-r border-slate-200 shadow-xl flex flex-col shrink-0 z-20">
+               <div className="w-full lg:w-[320px] h-[42%] lg:h-auto bg-white border-b lg:border-b-0 lg:border-r border-slate-200 shadow-xl flex flex-col shrink-0 z-20">
                   <div className="px-5 py-4 bg-slate-50 border-b border-slate-200 flex flex-col gap-1">
                      <div className="flex justify-between items-start">
                         <span className="font-bold text-slate-700 text-lg">Ident: <span className="font-normal">{pedidoAtivo.identificacao || 'Sem Ident'}</span></span>
@@ -1007,7 +1007,7 @@ export default function SaloesMesasPage() {
                   </div>
                   {/* Grid de Produtos */}
                   <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-                     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7 gap-3">
                         {produtosFiltrados.map(prod => (
                            <button key={prod.id} onClick={() => adicionarItemMesa(prod)} className="bg-white rounded-xl p-0 border border-slate-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all text-center flex flex-col group h-full overflow-hidden">
                               <div className="p-3 flex-1 flex flex-col items-center justify-center">
@@ -1041,19 +1041,19 @@ export default function SaloesMesasPage() {
                            </div>
                         )}
                         <div className="flex-1 flex flex-col h-full overflow-hidden">
-                           <div className="bg-white border-b border-slate-200 shrink-0 z-10 flex flex-col sm:flex-row items-center p-2 gap-4">
+                            <div className="bg-white border-b border-slate-200 shrink-0 z-10 flex flex-col md:flex-row md:items-center p-2 gap-2 md:gap-4">
                            <div className="flex gap-2 w-full sm:w-auto">
                               <input type="text" placeholder="Mesa" className="w-24 px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 outline-none focus:border-blue-500 rounded" />
                               <input type="text" placeholder="Comanda" className="w-32 px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 outline-none focus:border-blue-500 rounded" />
                            </div>
                            
-                           <div className="flex items-center gap-4 text-xs font-bold text-slate-400">
+                            <div className="flex items-center gap-2 sm:gap-4 text-[10px] sm:text-xs font-bold text-slate-400 flex-wrap">
                               <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-[#4CAF50]"></div> Disponível</div>
                               <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-blue-500"></div> Em consumo</div>
                               <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-amber-500"></div> Pediu a conta</div>
                            </div>
 
-                           <div className="flex-1"></div>
+                            <div className="hidden md:block flex-1"></div>
                            <button onClick={() => setModalGestaoMesas(true)} className="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs transition-colors rounded"><Settings size={14} className="inline mr-1"/> Config. Mesas</button>
                            <button onClick={() => setModalGestaoGarcons(true)} className="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs transition-colors rounded"><Users size={14} className="inline mr-1"/> Garçons</button>
                         </div>
@@ -1065,7 +1065,7 @@ export default function SaloesMesasPage() {
                                  <button onClick={() => setModalGestaoMesas(true)} className="px-6 py-3 bg-blue-500 text-white font-black rounded-xl">Gerenciar Mesas</button>
                               </div>
                            ) : (
-                              <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-7 lg:grid-cols-9 xl:grid-cols-10 gap-2.5">
+                               <div className="grid grid-cols-3 xs:grid-cols-4 sm:grid-cols-6 md:grid-cols-7 lg:grid-cols-9 xl:grid-cols-10 gap-2 sm:gap-2.5">
                                  {mesas.map(m => {
                                     const st = m.status === 'ocupada'
                                        ? { bg: 'bg-blue-500', label: 'Em consumo' }
@@ -1124,7 +1124,7 @@ export default function SaloesMesasPage() {
 
                {/* LADO DIREITO: CARRINHO BALCÃO */}
                {abaAtiva !== 'salao' && (
-                  <div className="w-[400px] bg-white border-l border-slate-200 shadow-2xl flex flex-col shrink-0 z-20">
+                   <div className="w-full lg:w-[400px] h-[42dvh] lg:h-auto bg-white border-t lg:border-t-0 lg:border-l border-slate-200 shadow-2xl flex flex-col shrink-0 z-20">
                      <div className="px-5 py-4 bg-emerald-50 border-b border-emerald-100 flex items-center justify-between">
                         <h2 className="font-black text-emerald-800 flex items-center gap-2 uppercase"><ShoppingCart size={18}/> Cupom {abaAtiva}</h2>
                      </div>
@@ -1186,7 +1186,7 @@ export default function SaloesMesasPage() {
       {/* MODAL: MODIFICADORES BALCÃO */}
       {modalMod && prodModAtual && (
          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-[32px] p-8 w-full max-w-md shadow-2xl animate-in zoom-in-95">
+             <div className="bg-white rounded-[32px] p-5 sm:p-8 w-full max-w-md max-h-[calc(100dvh-1rem)] overflow-y-auto shadow-2xl animate-in zoom-in-95">
                <div className="flex justify-between items-center mb-6">
                   <div>
                      <h2 className="text-2xl font-black text-slate-800">{prodModAtual.nome_produto}</h2>
@@ -1290,11 +1290,11 @@ export default function SaloesMesasPage() {
 
       {/* MODAL DE PAGAMENTO (MEGAZORD) */}
       {modalPagamento && (
-         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
-            <div className="bg-white rounded-[32px] w-full max-w-4xl shadow-2xl flex overflow-hidden max-h-[95vh]">
+          <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-4 animate-in fade-in">
+             <div className="bg-white rounded-[24px] sm:rounded-[32px] w-full max-w-4xl shadow-2xl flex flex-col md:flex-row overflow-y-auto md:overflow-hidden max-h-[calc(100dvh-1rem)] sm:max-h-[95vh]">
                
                {/* Lado Esquerdo: Identificação e Descontos */}
-               <div className="w-1/3 bg-slate-50 border-r border-slate-200 p-6 overflow-y-auto custom-scrollbar">
+               <div className="w-full md:w-1/3 bg-slate-50 border-b md:border-b-0 md:border-r border-slate-200 p-4 sm:p-6 overflow-y-visible md:overflow-y-auto custom-scrollbar">
                   <h3 className="font-black text-slate-800 mb-6 flex items-center gap-2"><Users size={18}/> Cliente na Nota</h3>
                   <div className="space-y-4 mb-8">
                      <div>
@@ -1350,18 +1350,18 @@ export default function SaloesMesasPage() {
                </div>
 
                {/* Lado Direito: Recebimento Split */}
-               <div className="flex-1 p-8 flex flex-col bg-white">
+               <div className="flex-1 p-4 sm:p-8 flex flex-col bg-white min-w-0">
                   
-                  <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-100">
-                     <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><CreditCard className="text-blue-500"/> Fechar Pagamento</h2>
+                  <div className="flex items-center justify-between gap-3 mb-5 sm:mb-8 pb-4 border-b border-slate-100">
+                     <h2 className="text-xl sm:text-2xl font-black text-slate-800 flex items-center gap-2"><CreditCard className="text-blue-500"/> Fechar Pagamento</h2>
                      <button onClick={() => setModalPagamento(false)} className="text-slate-400 hover:text-slate-600 font-bold uppercase text-sm">Cancelar</button>
                   </div>
 
                   <div className="flex justify-between items-center bg-slate-800 text-white rounded-2xl p-5 mb-6 shadow-md">
                      <div>
                         <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Líquido</p>
-                        <div className="flex items-end gap-2">
-                           <span className="text-4xl font-black text-emerald-400">{fmtBRL(valorTotalFinal)}</span>
+                         <div className="flex flex-wrap items-end gap-2">
+                            <span className="text-3xl sm:text-4xl font-black text-emerald-400">{fmtBRL(valorTotalFinal)}</span>
                            {(Number(descontoPerc)>0 || Number(descontoRs)>0) && <span className="text-sm font-bold text-red-400 line-through pb-1">{fmtBRL(subtotalPagamento)}</span>}
                         </div>
                      </div>
@@ -1399,19 +1399,19 @@ export default function SaloesMesasPage() {
 
                      <div className="space-y-3">
                         {pagamentos.map((p) => (
-                           <div key={p.id} className="flex gap-3 items-center bg-slate-50 p-3 rounded-xl border border-slate-200">
+                            <div key={p.id} className="flex flex-col sm:flex-row gap-3 sm:items-center bg-slate-50 p-3 rounded-xl border border-slate-200">
                               <select value={p.forma} onChange={e => {
                                   const n = [...pagamentos];
                                   n.find(x=>x.id===p.id).forma = e.target.value;
                                   setPagamentos(n);
-                              }} className="w-1/2 px-3 py-2 bg-white border border-slate-300 rounded-lg font-bold text-slate-700 outline-none">
+                              }} className="w-full sm:w-1/2 px-3 py-2 bg-white border border-slate-300 rounded-lg font-bold text-slate-700 outline-none">
                                  <option value="dinheiro">Dinheiro</option>
                                  <option value="pix">PIX</option>
                                  <option value="credito">Cartão Crédito</option>
                                  <option value="debito">Cartão Débito</option>
                                  <option value="vr">Vale Refeição</option>
                               </select>
-                              <div className="relative w-1/2 flex items-center">
+                              <div className="relative w-full sm:w-1/2 flex items-center">
                                  <span className="absolute left-3 text-slate-400 font-bold">R$</span>
                                  <input type="number" step="0.01" value={p.valor || ''} onChange={e => {
                                       const n = [...pagamentos];
@@ -1454,7 +1454,7 @@ export default function SaloesMesasPage() {
       {/* RECIBO FINAL */}
       {modalRecibo && dadosRecibo && (
          <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-2xl p-6 w-[320px] shadow-2xl flex flex-col font-mono relative">
+             <div className="bg-white rounded-2xl p-4 sm:p-6 w-[min(320px,calc(100vw-1rem))] max-h-[calc(100dvh-1rem)] overflow-y-auto shadow-2xl flex flex-col font-mono relative">
                
                {/* Cabeçalho */}
                <div className="text-center mb-4 border-b border-dashed border-slate-400 pb-4">
@@ -1625,9 +1625,9 @@ export default function SaloesMesasPage() {
                <span className="font-bold">Mesa: {mesaAtiva?.numero_mesa}</span>
                <button onClick={() => setModalGarcom(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={20}/></button>
             </div>
-            <div className="flex-1 overflow-y-auto p-10 bg-[#F1F5F9] flex flex-col items-center">
-               <h2 className="text-2xl font-black text-[#1E293B] mb-12 tracking-tight">SELECIONE O GARÇOM</h2>
-               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-x-12 gap-y-10 max-w-5xl w-full">
+             <div className="flex-1 overflow-y-auto p-4 sm:p-10 bg-[#F1F5F9] flex flex-col items-center">
+                <h2 className="text-xl sm:text-2xl font-black text-[#1E293B] mb-6 sm:mb-12 tracking-tight text-center">SELECIONE O GARÇOM</h2>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-5 sm:gap-x-12 sm:gap-y-10 max-w-5xl w-full">
                   {garcons.length === 0 ? <p className="col-span-full text-center text-slate-500 font-bold">Nenhum garçom cadastrado. Vá em 'Garçons' no topo do mapa de mesas para cadastrar.</p> : garcons.map(g => (
                      <button key={g.id} onClick={async () => { 
                         setGarcomAtivo(g); 
@@ -1696,7 +1696,7 @@ export default function SaloesMesasPage() {
                <span className="font-bold">Comandas - Mesa: {mesaAtiva?.numero_mesa}</span>
                <button onClick={() => setModalListaComandas(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={20}/></button>
             </div>
-            <div className="flex-1 overflow-y-auto p-10 bg-[#F1F5F9] flex flex-col items-center">
+             <div className="flex-1 overflow-y-auto p-4 sm:p-10 bg-[#F1F5F9] flex flex-col items-center">
                <h2 className="text-2xl font-black text-[#1E293B] mb-8 tracking-tight">SELECIONE UMA COMANDA</h2>
                
                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 w-full max-w-5xl">
@@ -1744,8 +1744,8 @@ export default function SaloesMesasPage() {
                <span className="font-bold">Abertura de comanda</span>
                <span className="font-bold">Mesa: {mesaAtiva?.numero_mesa}</span>
             </div>
-            <div className="flex-1 flex flex-col items-center p-10 bg-[#fafafa]">
-               <div className="w-full max-w-2xl mt-10">
+             <div className="flex-1 flex flex-col items-center p-4 sm:p-10 bg-[#fafafa] overflow-y-auto">
+                <div className="w-full max-w-2xl mt-4 sm:mt-10">
                   <p className="text-slate-500 font-normal mb-2 text-sm">Digite uma identificação a ser adicionada à venda:</p>
                   <form onSubmit={async (e) => {
                      e.preventDefault();
@@ -1758,7 +1758,7 @@ export default function SaloesMesasPage() {
                      setModalComanda(false);
                   }} className="w-full">
                      <input type="text" autoFocus value={identAtiva} onChange={e => setIdentAtiva(e.target.value)} required 
-                        className="w-full bg-[#E5E7EB] border-none text-center text-5xl p-6 font-normal text-slate-700 outline-none mb-10 tracking-wider" />
+                         className="w-full bg-[#E5E7EB] border-none text-center text-3xl sm:text-5xl p-4 sm:p-6 font-normal text-slate-700 outline-none mb-6 sm:mb-10 tracking-wider" />
                      
                      <div className="flex gap-4 border-t border-slate-200 pt-8">
                         <button type="button" onClick={() => { setModalComanda(false); setModalGarcom(true); }} className="px-6 py-3 bg-[#F44336] hover:bg-red-600 text-white font-bold text-sm rounded shadow transition-colors">VOLTAR</button>
@@ -1855,7 +1855,7 @@ export default function SaloesMesasPage() {
       {/* PAINEL LATERAL: PEDIDOS ONLINE (QR CODE / DELIVERY) */}
       {painelOnline && (
         <div className="fixed inset-0 z-[100] flex justify-end bg-black/60 backdrop-blur-sm">
-          <div className="w-[400px] bg-white h-full shadow-2xl flex flex-col animate-slide-in-right">
+           <div className="w-full sm:w-[400px] bg-white h-full shadow-2xl flex flex-col animate-slide-in-right">
             
             {/* Header do Painel */}
             <div className="bg-orange-500 text-white p-4 flex justify-between items-center shrink-0 shadow-md z-10 relative">

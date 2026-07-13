@@ -23,8 +23,8 @@ export default function RecuperarPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-5" style={{ background: "var(--surface)" }}>
-      <div className="w-full max-w-sm erp-card p-6 space-y-4">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 sm:px-5 py-6" style={{ background: "var(--surface)" }}>
+      <div className="w-full max-w-sm erp-card p-5 sm:p-6 space-y-4">
         <button onClick={() => router.push("/login")} className="flex items-center gap-1.5 text-[12px] font-bold" style={{ color: "var(--dim)" }}>
           <ArrowLeft size={14} /> Voltar ao login
         </button>

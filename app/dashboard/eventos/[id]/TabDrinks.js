@@ -77,7 +77,7 @@ function FormIngrediente({ inicial, onSalvar, onCancelar }) {
         )}
       </Field>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Field label="Preço pago (R$)">
           <NumberInput value={f.custo_unit} onChange={(e) => set("custo_unit", e.target.value)} placeholder="120,00" step="0.01" />
         </Field>
@@ -152,7 +152,7 @@ function FormPreparo({ inicial, ingredientes, onSalvar, onCancelar }) {
   return (
     <>
       <Field label="Nome do preparo"><TextInput value={f.nome} onChange={(e) => set("nome", e.target.value)} placeholder="ex: Xarope de morango caseiro" /></Field>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Rendimento"><NumberInput value={f.rendimento} onChange={(e) => set("rendimento", e.target.value)} placeholder="1000" step="1" /></Field>
         <Field label="Unidade">
           <Select value={f.unidade} onChange={(e) => set("unidade", e.target.value)}>
@@ -237,7 +237,7 @@ function FormDrink({ inicial, ingredientes, preparos, onSalvar, onCancelar }) {
   return (
     <>
       <Field label="Nome do drink"><TextInput value={f.nome} onChange={(e) => set("nome", e.target.value)} placeholder="ex: Gin Tônica, Mojito" /></Field>
-      <div className="grid grid-cols-2 gap-3 mb-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
         <label className="flex items-center gap-2 p-2 rounded cursor-pointer" style={{ background: "var(--elevated)" }}>
           <input type="checkbox" checked={f.has_alcohol} onChange={(e) => set("has_alcohol", e.target.checked)} />
           <span className="text-[12px]" style={{ color: "var(--fg)" }}>Com álcool</span>

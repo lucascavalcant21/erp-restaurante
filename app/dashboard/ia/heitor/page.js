@@ -79,22 +79,22 @@ export default function HeitorPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
+    <div className="min-h-[100dvh] flex flex-col bg-slate-50">
       {/* HEADER COCKPIT IA PREMIUM */}
-      <div className="px-4 py-6 bg-slate-900 sticky top-0 z-30 shadow-2xl shadow-slate-900/20 border-b border-slate-800">
+      <div className="px-3 sm:px-4 py-3 sm:py-6 bg-slate-900 sticky top-0 z-30 shadow-2xl shadow-slate-900/20 border-b border-slate-800">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/30">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/30 flex-shrink-0">
               <Brain size={24} color="#fff" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-xl md:text-2xl font-black text-white tracking-tight">Hefisto AI</h1>
                 <span className="px-2 py-0.5 rounded-full bg-slate-800 text-emerald-400 text-[10px] font-bold uppercase tracking-widest flex items-center gap-1 border border-slate-700">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Online
                 </span>
               </div>
-              <p className="text-xs font-medium text-slate-500 flex items-center gap-1 mt-0.5">
+              <p className="text-[11px] sm:text-xs font-medium text-slate-500 flex items-start sm:items-center gap-1 mt-0.5 min-w-0 leading-snug">
                 <Cpu size={12}/> Analisando dados da unidade <span className="text-white font-bold">{unidadeInfo.nome}</span>
               </p>
             </div>
@@ -103,7 +103,7 @@ export default function HeitorPage() {
       </div>
 
       {/* ÁREA DO CHAT */}
-      <div className="flex-1 w-full max-w-4xl mx-auto px-4 pt-8 pb-40 space-y-6 overflow-y-auto">
+      <div className="flex-1 w-full max-w-4xl mx-auto px-3 sm:px-4 pt-4 sm:pt-8 pb-44 sm:pb-40 space-y-4 sm:space-y-6 overflow-y-auto">
         {msgs.map((m, i) => (
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
             {m.role === "bot" && (
@@ -112,7 +112,7 @@ export default function HeitorPage() {
               </div>
             )}
             
-            <div className={`max-w-[85%] md:max-w-[75%] px-5 py-4 text-sm shadow-sm ${
+            <div className={`max-w-[calc(100%-2.75rem)] sm:max-w-[85%] md:max-w-[75%] px-4 sm:px-5 py-3 sm:py-4 text-sm shadow-sm break-words ${
                 m.role === "user"
                   ? "bg-slate-800 text-white rounded-2xl rounded-tr-sm"
                   : "bg-white text-slate-700 border border-slate-200 rounded-2xl rounded-tl-sm"
@@ -132,8 +132,8 @@ export default function HeitorPage() {
       </div>
 
       {/* ÁREA DE INPUT (FIXA NO RODAPÉ) */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
-        <div className="max-w-4xl mx-auto px-4 pb-6 pt-3">
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 pb-3 sm:pb-6 pt-2 sm:pt-3">
           
           {/* Sugestões Rápidas */}
           <div className="flex gap-2 overflow-x-auto pb-3 custom-scrollbar">
@@ -147,7 +147,7 @@ export default function HeitorPage() {
           </div>
           
           {/* Caixa de Texto Premium */}
-          <div className="flex items-end gap-3 bg-slate-50 p-2 border border-slate-200 rounded-3xl focus-within:ring-2 focus-within:ring-purple-500 focus-within:border-emerald-500 transition-all">
+          <div className="flex items-end gap-2 sm:gap-3 bg-slate-50 p-2 border border-slate-200 rounded-2xl sm:rounded-3xl focus-within:ring-2 focus-within:ring-purple-500 focus-within:border-emerald-500 transition-all">
             <textarea 
               value={input} 
               onChange={(e) => setInput(e.target.value)} 
@@ -158,17 +158,17 @@ export default function HeitorPage() {
                 }
               }}
               placeholder="Pergunte ao seu ERP..." 
-              className="w-full bg-transparent border-none focus:ring-0 resize-none px-4 py-3 text-sm text-slate-800 placeholder-slate-400 max-h-32 min-h-[48px]" 
+              className="w-full min-w-0 bg-transparent border-none focus:ring-0 resize-none px-2 sm:px-4 py-3 text-sm text-slate-800 placeholder-slate-400 max-h-32 min-h-[48px]"
               rows={1}
             />
             <button 
               onClick={() => enviar()} 
-              className="w-12 h-12 rounded-2xl bg-slate-800 hover:bg-slate-900 flex items-center justify-center flex-shrink-0 shadow-md transition-colors"
+              className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-slate-800 hover:bg-slate-900 flex items-center justify-center flex-shrink-0 shadow-md transition-colors"
             >
               <Send size={18} color="#fff" className="ml-1" />
             </button>
           </div>
-          <p className="text-center text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-3">
+          <p className="hidden sm:block text-center text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-3">
             Hefisto AI processa os dados em tempo real.
           </p>
         </div>

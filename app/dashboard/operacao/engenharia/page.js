@@ -49,15 +49,15 @@ function EngenhariaRunner() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans pb-24">
       {/* HEADER */}
-      <div className="pt-6 pb-8 px-6 max-w-5xl mx-auto flex items-center gap-4">
+      <div className="pt-5 sm:pt-6 pb-6 sm:pb-8 px-4 sm:px-6 max-w-5xl mx-auto flex items-center gap-3 sm:gap-4">
          <button onClick={() => abrirMenu()} className="w-12 h-12 rounded-full bg-white border border-slate-200 text-slate-500 flex items-center justify-center hover:bg-slate-100 transition-colors">
             <ArrowLeft size={20} />
          </button>
-         <div className="w-16 h-16 rounded-3xl bg-slate-100 text-emerald-600 flex items-center justify-center shadow-inner">
+         <div className="hidden sm:flex w-16 h-16 shrink-0 rounded-3xl bg-slate-100 text-emerald-600 items-center justify-center shadow-inner">
             <BarChart size={32} />
          </div>
          <div>
-            <h1 className="text-3xl font-black tracking-tighter text-slate-900">Engenharia de Cardápio</h1>
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-slate-900">Engenharia de Cardápio</h1>
             <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Matriz de Lucratividade • {unidadeInfo?.nome}</p>
          </div>
       </div>
@@ -71,19 +71,19 @@ function EngenhariaRunner() {
            <div className="space-y-6">
               
               {/* KPIs de Referência */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                  <Card className="flex items-center gap-4 border-l-4 border-l-indigo-500">
                     <div className="p-3 bg-slate-50 rounded-xl text-emerald-600"><TrendingUp size={24}/></div>
                     <div>
                        <p className="text-xs font-bold text-slate-500 uppercase">Média de Volume Vendido</p>
-                       <p className="text-2xl font-black text-slate-800">{medias.avgVolume.toFixed(1)} un / prato</p>
+                       <p className="text-xl sm:text-2xl font-black text-slate-800">{medias.avgVolume.toFixed(1)} un / prato</p>
                     </div>
                  </Card>
                  <Card className="flex items-center gap-4 border-l-4 border-l-emerald-500">
                     <div className="p-3 bg-emerald-50 rounded-xl text-emerald-600"><TrendingUp size={24}/></div>
                     <div>
                        <p className="text-xs font-bold text-slate-500 uppercase">Média de Margem Bruta</p>
-                       <p className="text-2xl font-black text-slate-800">{fmtBRL(medias.avgMargem)} / prato</p>
+                       <p className="text-xl sm:text-2xl font-black text-slate-800">{fmtBRL(medias.avgMargem)} / prato</p>
                     </div>
                  </Card>
               </div>
@@ -96,7 +96,7 @@ function EngenhariaRunner() {
                     const Icon = cfg.icon;
 
                     return (
-                       <div key={tipo} className="bg-white rounded-[32px] p-6 border border-slate-200 shadow-sm flex flex-col h-[400px]">
+                       <div key={tipo} className="bg-white rounded-[32px] p-4 sm:p-6 border border-slate-200 shadow-sm flex flex-col min-h-[360px] sm:h-[400px]">
                           <div className="flex items-start justify-between mb-4">
                              <div className="flex items-center gap-3">
                                 <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-inner" style={{backgroundColor: cfg.bg, color: cfg.cor}}>
@@ -107,7 +107,7 @@ function EngenhariaRunner() {
                                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">{grupo.length} ITENS</p>
                                 </div>
                              </div>
-                             <span className="text-xs font-bold px-2 py-1 rounded-md" style={{backgroundColor: cfg.bg, color: cfg.cor}}>
+                             <span className="text-[10px] sm:text-xs font-bold px-2 py-1 rounded-md text-right" style={{backgroundColor: cfg.bg, color: cfg.cor}}>
                                 {tipo === "Estrela" ? "++ Volume / ++ Margem" : tipo === "Burro de Carga" ? "++ Volume / -- Margem" : tipo === "Quebra-Cabeça" ? "-- Volume / ++ Margem" : "-- Volume / -- Margem"}
                              </span>
                           </div>

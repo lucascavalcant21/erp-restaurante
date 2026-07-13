@@ -462,7 +462,7 @@ export default function ControlesCozinha() {
               <Field label="Nome da limpeza">
                 <TextInput value={form.nome || ""} onChange={e => setForm({ ...form, nome: e.target.value })} placeholder="Ex: Limpeza da Coifa" required />
               </Field>
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-4">
                 <Field label="Tipo">
                   <Select value={form.categoria || "outro"} onChange={e => setForm({ ...form, categoria: e.target.value })}>
                     <option value="coifa">Coifa</option>
@@ -474,7 +474,7 @@ export default function ControlesCozinha() {
                   <NumberInput value={form.frequencia_dias || ""} onChange={e => setForm({ ...form, frequencia_dias: e.target.value })} placeholder="30" required />
                 </Field>
               </div>
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-4">
                 <Field label="Última vez feita (opcional)">
                   <input type="date" value={form.ultima_execucao || ""} onChange={e => setForm({ ...form, ultima_execucao: e.target.value })} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-slate-400" />
                 </Field>
@@ -482,7 +482,7 @@ export default function ControlesCozinha() {
                   <input type="date" value={form.proxima_prevista || ""} onChange={e => setForm({ ...form, proxima_prevista: e.target.value })} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-slate-400" />
                 </Field>
               </div>
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-4">
                 <Field label="Função responsável">
                   <TextInput value={form.funcao || ""} onChange={e => setForm({ ...form, funcao: e.target.value })} placeholder="Ex: Aux. de Limpeza, Cozinheiro..." />
                 </Field>
@@ -501,7 +501,7 @@ export default function ControlesCozinha() {
               <Field label="Nome do Produto">
                 <TextInput value={form.produto || ""} onChange={e => setForm({...form, produto: e.target.value})} placeholder="Ex: Detergente Neutro, Desengordurante..." required />
               </Field>
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-4">
                 <Field label="Volume / Qtd">
                   <TextInput value={form.volume || ""} onChange={e => setForm({...form, volume: e.target.value})} placeholder="Ex: 5 Litros" required />
                 </Field>
@@ -509,7 +509,7 @@ export default function ControlesCozinha() {
                   <NumberInput value={form.preco || ""} onChange={e => setForm({...form, preco: e.target.value})} placeholder="0.00" />
                 </Field>
               </div>
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-4">
                 <Field label="Fornecedor / Loja">
                   <TextInput value={form.fornecedor_nome || ""} onChange={e => setForm({...form, fornecedor_nome: e.target.value})} placeholder="Ex: Atacadão..." />
                 </Field>

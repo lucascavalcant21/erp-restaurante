@@ -92,9 +92,9 @@ function EstruturaRadial({ camadas, fotoUrl }) {
   const dir = camadas.slice(meio);
 
   return (
-    <div className="bg-[var(--panel)] border border-[var(--line)] rounded-2xl p-6 md:p-8 shadow-sm mt-4 overflow-hidden relative">
+    <div className="bg-[var(--panel)] border border-[var(--line)] rounded-2xl p-4 md:p-8 shadow-sm mt-4 overflow-x-auto relative">
       <h3 className="text-[10px] font-black uppercase tracking-widest text-[var(--subtle)] mb-8 text-center">Visão Radial</h3>
-      <div className="flex items-center justify-between gap-4 md:gap-8 relative min-h-[250px]">
+      <div className="flex items-center justify-between gap-4 md:gap-8 relative min-h-[250px] min-w-[520px] md:min-w-0">
         
         {/* Coluna Esquerda */}
         <div className="flex-1 flex flex-col justify-around h-full gap-6 items-end z-20">
@@ -351,7 +351,7 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
       <Field label="Nome do prato/drink">
         <TextInput value={f.nome} onChange={(e) => set("nome", e.target.value)} placeholder="ex: Mojito, Banzai Burger" />
       </Field>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Tipo (Muda a visão IA)">
           <Select value={f.tipo} onChange={(e) => set("tipo", e.target.value)}>
             <option value="prato">Prato (Visão Radial)</option>
@@ -417,7 +417,7 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3 mt-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
         <Field label="Tempo de preparo (min)">
           <NumberInput value={f.tempo_preparo} onChange={(e) => set("tempo_preparo", e.target.value)} placeholder="5" step="1" />
         </Field>
@@ -881,7 +881,7 @@ function MontagemPageInner() {
       {/* MODAL DE IMPRESSÃO EM LOTE (padrão compacto + modelo com foto) */}
       {modalImpressao && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={() => setModalImpressao(false)}>
-          <div className="erp-card w-full max-w-lg max-h-[85vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
+          <div className="erp-card w-full max-w-lg max-h-[calc(100dvh-1rem)] sm:max-h-[85vh] overflow-y-auto p-4 sm:p-6" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-lg font-black flex items-center gap-2" style={{ color: "var(--fg)" }}><Printer size={18} /> Impressão das fichas</h3>
               <button onClick={() => setModalImpressao(false)} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "var(--elevated)", color: "var(--muted)" }}>×</button>
@@ -954,7 +954,7 @@ function MontagemPageInner() {
              </div>
              
              {/* Layout Split: Esquerda Formulário, Direita Prévia */}
-             <div className="p-4 md:p-6 grid grid-cols-1 lg:grid-cols-2 gap-8 max-h-[75vh] overflow-y-auto custom-scrollbar">
+             <div className="p-4 md:p-6 grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-8 max-h-[calc(100dvh-8rem)] lg:max-h-[75vh] overflow-y-auto custom-scrollbar">
                 
                 {/* Coluna 1: Dados e Editor */}
                 <div className="space-y-4">

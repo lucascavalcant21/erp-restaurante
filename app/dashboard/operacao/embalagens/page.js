@@ -109,7 +109,7 @@ export default function EmbalagensPage() {
 
   return (
     <div className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50">
-      <div className="bg-slate-900 pt-8 pb-10 px-8 shadow-lg text-white">
+      <div className="bg-slate-900 pt-6 sm:pt-8 pb-8 sm:pb-10 px-4 sm:px-8 shadow-lg text-white">
          <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div className="flex items-center gap-4">
               <button onClick={() => abrirMenu()} className="p-3 bg-slate-800 hover:bg-slate-700 rounded-full transition-colors">
@@ -200,7 +200,7 @@ export default function EmbalagensPage() {
               <div className="animate-in fade-in slide-in-from-bottom-4 grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
                 
                 {/* Lado Esquerdo: Formulário */}
-                <div className="bg-white border border-slate-200 rounded-[32px] p-8 shadow-xl">
+                <div className="bg-white border border-slate-200 rounded-[32px] p-5 sm:p-8 shadow-xl">
                    <h2 className="text-2xl font-black text-slate-800 mb-2 flex items-center gap-2">
                       <PackageMinus size={24} className="text-teal-600"/> Registrar Saída
                    </h2>
@@ -297,8 +297,8 @@ export default function EmbalagensPage() {
                     Estoque saudável. Nada a comprar por enquanto!
                   </div>
                 ) : (
-                  <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200">
-                    <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 grid grid-cols-[1fr_120px_140px_140px] gap-4 items-center">
+                  <div className="rounded-2xl overflow-x-auto shadow-md border border-slate-200">
+                    <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 grid grid-cols-[1fr_120px_140px_140px] gap-4 items-center min-w-[680px]">
                       <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Item</span>
                       <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center">Saldo</span>
                       <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center">Mínimo Ideal</span>
@@ -306,7 +306,7 @@ export default function EmbalagensPage() {
                     </div>
                     <div className="bg-white divide-y divide-slate-100">
                       {compras.map(emb => (
-                        <div key={emb.id} className="px-5 py-4 grid grid-cols-[1fr_120px_140px_140px] gap-4 items-center hover:bg-rose-50/40 transition-all duration-150">
+                        <div key={emb.id} className="px-5 py-4 grid grid-cols-[1fr_120px_140px_140px] gap-4 items-center min-w-[680px] hover:bg-rose-50/40 transition-all duration-150">
                           <div className="flex items-center gap-3">
                             <div className="w-1 h-10 rounded-full bg-rose-400 shrink-0" />
                             <div>
@@ -339,7 +339,7 @@ export default function EmbalagensPage() {
       {/* Modal Novo/Editar Estoque */}
       {modalEstoque && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-[32px] w-full max-w-md p-8 shadow-2xl animate-in zoom-in-95">
+            <div className="bg-white rounded-[32px] w-full max-w-md p-5 sm:p-8 max-h-[calc(100dvh-1rem)] overflow-y-auto shadow-2xl animate-in zoom-in-95">
                <h2 className="font-black text-2xl text-slate-800 mb-6">{formEmbalagem.id ? 'Editar' : 'Nova'} Embalagem</h2>
                <form onSubmit={handleSalvarEstoque} className="space-y-4">
                   <div>

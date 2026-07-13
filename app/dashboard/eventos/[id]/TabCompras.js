@@ -349,7 +349,7 @@ export default function TabCompras({ evento, reservas, pratos, drinks, ingredien
         </div>
 
         {/* Toggle de modo de cálculo */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <button
             onClick={() => setModo("estimado")}
             style={{

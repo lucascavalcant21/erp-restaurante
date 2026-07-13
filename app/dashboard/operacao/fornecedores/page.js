@@ -31,17 +31,17 @@ function FormFornecedor({ inicial, onSalvar, onCancelar }) {
   return (
     <>
       <Field label="Nome / Razão social"><TextInput value={f.nome} onChange={(e) => set("nome", e.target.value)} placeholder="ex: Frigorífico São Paulo" /></Field>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Segmento"><Select value={f.segmento} onChange={(e) => set("segmento", e.target.value)}>{SEGMENTOS.map((s) => <option key={s}>{s}</option>)}</Select></Field>
         <Field label="Pagamento"><Select value={f.forma_pagamento} onChange={(e) => set("forma_pagamento", e.target.value)}>{PAGAMENTOS.map((s) => <option key={s}>{s}</option>)}</Select></Field>
       </div>
       <Field label="Contato"><TextInput value={f.contato} onChange={(e) => set("contato", e.target.value)} placeholder="Nome do vendedor" /></Field>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Telefone"><TextInput value={f.telefone} onChange={(e) => set("telefone", e.target.value)} placeholder="(11) 9..." /></Field>
         <Field label="Cidade"><TextInput value={f.cidade} onChange={(e) => set("cidade", e.target.value)} placeholder="Cidade, UF" /></Field>
       </div>
       <Field label="E-mail"><TextInput value={f.email} onChange={(e) => set("email", e.target.value)} placeholder="vendas@fornecedor.com" /></Field>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Pedido mínimo (R$)"><NumberInput value={f.pedido_minimo} onChange={(e) => set("pedido_minimo", e.target.value)} placeholder="0" /></Field>
         <Field label="Avaliação (estrelas)"><Select value={f.estrelas} onChange={(e) => set("estrelas", e.target.value)}>{[5,4,3,2,1].map((n) => <option key={n} value={n}>{n} ★</option>)}</Select></Field>
       </div>

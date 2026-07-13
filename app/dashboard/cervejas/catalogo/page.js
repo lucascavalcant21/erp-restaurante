@@ -36,16 +36,16 @@ function FormCerveja({ inicial, onSalvar, onCancelar }) {
   return (
     <>
       <Field label="Marca"><TextInput value={f.marca} onChange={(e) => set("marca", e.target.value)} placeholder="ex: Heineken, Skol, Brahma" /></Field>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Estilo"><Select value={f.estilo} onChange={(e) => set("estilo", e.target.value)}>{ESTILOS.map((e) => <option key={e}>{e}</option>)}</Select></Field>
         <Field label="Origem"><Select value={f.origem} onChange={(e) => set("origem", e.target.value)}>{ORIGENS.map((o) => <option key={o}>{o}</option>)}</Select></Field>
       </div>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Field label="Volume (mL)"><Select value={f.volume_ml} onChange={(e) => set("volume_ml", e.target.value)}>{VOLUMES.map((v) => <option key={v}>{v}</option>)}</Select></Field>
         <Field label="Álcool (%)"><NumberInput value={f.alcool} onChange={(e) => set("alcool", e.target.value)} placeholder="4.5" step="0.1" /></Field>
         <Field label="Mínimo"><NumberInput value={f.minimo} onChange={(e) => set("minimo", e.target.value)} placeholder="10" step="1" /></Field>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Preço de compra (R$)"><NumberInput value={f.preco_compra} onChange={(e) => set("preco_compra", e.target.value)} placeholder="0,00" step="0.01" /></Field>
         <Field label="Preço de venda (R$)"><NumberInput value={f.preco_venda} onChange={(e) => set("preco_venda", e.target.value)} placeholder="0,00" step="0.01" /></Field>
       </div>

@@ -59,28 +59,28 @@ export default function ComprasPage() {
   return (
     <div className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50">
       
-      <div className="bg-slate-900 pt-8 pb-10 px-8 shadow-lg text-white">
+      <div className="bg-slate-900 pt-6 sm:pt-8 pb-8 sm:pb-10 px-4 sm:px-8 shadow-lg text-white">
          <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
               <button onClick={() => abrirMenu()} className="p-3 bg-slate-800 hover:bg-slate-700 rounded-full transition-colors">
                  <ArrowLeft size={20}/>
               </button>
-              <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 text-slate-500 flex items-center justify-center">
+              <div className="hidden sm:flex w-16 h-16 shrink-0 rounded-2xl bg-emerald-500/20 text-slate-500 items-center justify-center">
                  <ShoppingCart size={32} />
               </div>
               <div>
-                 <h1 className="text-4xl font-black tracking-tighter">Entrada de Compras</h1>
+                 <h1 className="text-3xl sm:text-4xl font-black tracking-tighter">Entrada de Compras</h1>
                  <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Integração: Estoque e Financeiro</p>
               </div>
             </div>
-            <button onClick={() => setModalOpen(true)} className="px-6 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl flex items-center gap-2 shadow-xl shadow-emerald-500/20 active:scale-95 transition-all">
+            <button onClick={() => setModalOpen(true)} className="w-full md:w-auto px-5 sm:px-6 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl flex items-center justify-center gap-2 shadow-xl shadow-emerald-500/20 active:scale-95 transition-all">
                <PackagePlus size={20}/> Lançar Nota de Compra
             </button>
          </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 mt-8">
-         <div className="bg-slate-50 border border-slate-200 p-6 rounded-[24px] flex items-start gap-4 mb-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 mt-6 sm:mt-8">
+         <div className="bg-slate-50 border border-slate-200 p-4 sm:p-6 rounded-[24px] flex items-start gap-3 sm:gap-4 mb-6 sm:mb-8">
             <AlertCircle className="text-slate-600 flex-shrink-0" size={28}/>
             <div>
                <h3 className="font-black text-amber-800 text-lg mb-1">Como funciona a Hiper-Automação?</h3>
@@ -114,7 +114,7 @@ export default function ComprasPage() {
 
       {modalOpen && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-[32px] w-full max-w-md p-8 shadow-2xl animate-in zoom-in-95">
+            <div className="bg-white rounded-[32px] w-full max-w-md p-5 sm:p-8 max-h-[calc(100dvh-1rem)] overflow-y-auto shadow-2xl animate-in zoom-in-95">
                <h2 className="font-black text-2xl text-slate-800 mb-6">Registrar Compra</h2>
                <form onSubmit={handleComprar} className="space-y-4">
                   <div>
@@ -131,7 +131,7 @@ export default function ComprasPage() {
                         {fornecedores.map(f => <option key={f.id} value={f.id}>{f.nome}</option>)}
                      </select>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Qtd (Em {insumos.find(i=>i.insumo_id===form.insumoId)?.unidade_medida || 'un'})</label>
                         <input required type="number" step="0.01" min="0" value={form.quantidade} onChange={e=>setForm({...form, quantidade: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-800 outline-none focus:border-emerald-500"/>

@@ -54,7 +54,7 @@ function FormCustoFixo({ inicial, onSalvar, onCancelar }) {
       </Field>
 
       {isCmo && (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Área">
             <Select value={f.area} onChange={(e) => { set("area", e.target.value); set("role", ""); }}>
               {CMO_AREAS.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
@@ -69,7 +69,7 @@ function FormCustoFixo({ inicial, onSalvar, onCancelar }) {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Qtd pessoas / unidades">
           <NumberInput value={f.person_count} onChange={(e) => set("person_count", e.target.value)} placeholder="2" step="1" />
         </Field>
@@ -163,7 +163,7 @@ export default function TabFinanceiro({ eventoId, evento, custosFixos, reservas,
       {/* Resumo financeiro */}
       <Card className="!p-4">
         <h3 style={{ fontWeight: 700, color: "var(--fg)", marginBottom: 12 }}>Resumo por {calc.unitName}</h3>
-        <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
           <div><p className="text-[10px]" style={{ color: "var(--dim)" }}>PREÇO POR {calc.unitName.toUpperCase()}</p><strong style={{ fontSize: 20, color: "#10B981" }}>{fmtBRL(evento.preco_unit)}</strong></div>
           <div><p className="text-[10px]" style={{ color: "var(--dim)" }}>LUCRO POR {calc.unitName.toUpperCase()}</p><strong style={{ fontSize: 20, color: calc.contributionPerUnit > 0 ? "#10B981" : "#EF4444" }}>{fmtBRL(calc.contributionPerUnit - (reservas.length > 0 ? calc.totalFixos / reservas.length : 0))}</strong></div>
         </div>
@@ -240,7 +240,7 @@ export default function TabFinanceiro({ eventoId, evento, custosFixos, reservas,
               </p>
             ) : (
               <>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <p className="text-[10px]" style={{ color: "var(--dim)" }}>CMV ESTIMADO</p>
                     <strong style={{ fontSize: 18, color: "#F59E0B" }}>{fmtBRL(totalCmvEstimado)}</strong>

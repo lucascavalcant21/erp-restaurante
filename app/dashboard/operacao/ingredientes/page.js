@@ -459,9 +459,9 @@ function IngredientesRunner() {
            </button>
          </div>
 
-         <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200">
+         <div className="rounded-2xl overflow-x-auto shadow-md border border-slate-200">
             {/* Header */}
-            <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center">
+            <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center min-w-[640px]">
                <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Ingrediente</span>
                <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-28">Volume / Unid.</span>
                <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-36">Valor Pago</span>
@@ -479,7 +479,7 @@ function IngredientesRunner() {
                  const dept = ins.departamento?.toLowerCase();
                  const deptColor = dept === 'bar' ? 'bg-purple-100 text-purple-700' : 'bg-amber-100 text-amber-700';
                  return (
-                   <div key={ins.id} className="px-6 py-4 grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center group hover:bg-emerald-50/40 transition-all duration-150">
+                   <div key={ins.id} className="px-6 py-4 grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center min-w-[640px] group hover:bg-emerald-50/40 transition-all duration-150">
                      {/* Nome + Dept */}
                      <div className="flex items-center gap-3 min-w-0">
                        <div className="w-1 h-10 rounded-full bg-emerald-400 shrink-0" />
@@ -843,7 +843,7 @@ function IngredientesRunner() {
       {modalIA && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
             <div className="bg-white rounded-[32px] w-full max-w-3xl my-8 shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[90vh]">
-               <div className="flex justify-between items-center p-8 pb-6 border-b border-slate-100 shrink-0">
+               <div className="flex justify-between items-center p-4 sm:p-8 pb-4 sm:pb-6 border-b border-slate-100 shrink-0">
                   <div className="flex items-center gap-3">
                      <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center"><Sparkles size={22}/></div>
                      <div>
@@ -854,7 +854,7 @@ function IngredientesRunner() {
                   <button onClick={() => setModalIA(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
                </div>
 
-               <div className="p-8 overflow-y-auto custom-scrollbar space-y-5">
+               <div className="p-4 sm:p-8 overflow-y-auto custom-scrollbar space-y-5">
                   {!iaItens ? (
                      <>
                         {!deptUrl && (
@@ -930,7 +930,7 @@ function IngredientesRunner() {
                </div>
 
                {iaItens && (
-                  <div className="p-8 pt-4 border-t border-slate-100 bg-slate-50 rounded-b-[32px] shrink-0">
+                  <div className="p-4 sm:p-8 sm:pt-4 border-t border-slate-100 bg-slate-50 rounded-b-[32px] shrink-0">
                      <button onClick={salvarItensIA} disabled={iaSalvando} className="w-full py-5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-2">
                         {iaSalvando ? <><Loader2 size={20} className="animate-spin"/> Salvando...</> : <><Save size={20}/> Salvar {iaItens.filter(i=>i.incluir).length} Ingrediente(s)</>}
                      </button>

@@ -25,7 +25,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-5" style={{ background: "var(--surface)" }}>
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 sm:px-5 py-6" style={{ background: "var(--surface)" }}>
       <div className="mb-8 flex flex-col items-center">
         <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ background: "linear-gradient(135deg,#F97316,#EA580C)" }}>
           <svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.2}>
@@ -36,7 +36,7 @@ export default function LoginPage() {
         <p className="text-sm font-medium mt-0.5" style={{ color: "var(--dim)" }}>Gestão inteligente para food service</p>
       </div>
 
-      <form onSubmit={handleLogin} className="w-full max-w-sm erp-card p-6 space-y-4">
+      <form onSubmit={handleLogin} className="w-full max-w-sm erp-card p-5 sm:p-6 space-y-4">
         <div>
           <h1 className="text-xl font-bold" style={{ color: "var(--fg)" }}>Entrar</h1>
           <p className="text-sm font-medium" style={{ color: "var(--dim)" }}>Acesse sua conta para continuar.</p>

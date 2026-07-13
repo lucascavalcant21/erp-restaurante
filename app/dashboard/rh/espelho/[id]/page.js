@@ -96,7 +96,7 @@ export default function EspelhoDePonto() {
     <div className="min-h-screen bg-slate-100 font-sans pb-20 print:bg-white print:pb-0">
       
       {/* Barra de Ações (Oculta na impressão) */}
-      <div className="bg-white border-b border-slate-200 p-4 flex items-center justify-between print:hidden max-w-[210mm] mx-auto mt-6 rounded-t-xl">
+      <div className="bg-white border-b border-slate-200 p-4 flex flex-wrap items-center justify-between gap-3 print:hidden max-w-[210mm] mx-3 sm:mx-auto mt-4 sm:mt-6 rounded-t-xl">
          <button onClick={() => abrirMenu()} className="flex items-center gap-2 text-slate-600 font-bold hover:text-slate-800">
             <ArrowLeft size={20}/> Voltar
          </button>
@@ -106,7 +106,7 @@ export default function EspelhoDePonto() {
       </div>
 
       {/* Folha A4 */}
-      <div className="folha-espelho max-w-[210mm] mx-auto bg-white py-0 px-[10mm] shadow-md print:shadow-none print:p-0 print:m-0 min-h-[297mm] print:min-h-0">
+      <div className="folha-espelho max-w-[210mm] mx-3 sm:mx-auto bg-white py-0 px-3 sm:px-[10mm] shadow-md print:shadow-none print:p-0 print:m-0 min-h-[297mm] print:min-h-0 overflow-x-auto print:overflow-visible">
          <style dangerouslySetInnerHTML={{__html: `
            @media print {
              @page { size: A4 portrait; margin: 5mm; }
@@ -139,7 +139,7 @@ export default function EspelhoDePonto() {
          </div>
 
          {/* Tabela de Pontos */}
-         <table className="tabela-ponto w-full border-collapse border border-slate-800 text-center">
+          <table className="tabela-ponto w-full min-w-[680px] print:min-w-0 border-collapse border border-slate-800 text-center">
             <thead>
                <tr className="bg-slate-100">
                   <th className="border border-slate-800 !py-0 !px-1 w-8">DIA</th>

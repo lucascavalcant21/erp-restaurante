@@ -25,16 +25,16 @@ function FormCampanha({ onSalvar, onCancelar }) {
   return (
     <>
       <Field label="Nome da campanha"><TextInput value={f.nome} onChange={(e) => set("nome", e.target.value)} placeholder="ex: Quinta do Suco" /></Field>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Tipo"><Select value={f.tipo} onChange={(e) => set("tipo", e.target.value)}>{TIPOS.map((t) => <option key={t}>{t}</option>)}</Select></Field>
         <Field label="Status"><Select value={f.status} onChange={(e) => set("status", e.target.value)}>{STATUS.map((s) => <option key={s}>{s}</option>)}</Select></Field>
       </div>
       <Field label="Descrição"><TextInput value={f.descricao} onChange={(e) => set("descricao", e.target.value)} placeholder="O que a campanha oferece" /></Field>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Cupom"><TextInput value={f.cupom} onChange={(e) => set("cupom", e.target.value.toUpperCase())} placeholder="EX: SUCO30" /></Field>
         <Field label="Desconto (%)"><NumberInput value={f.desconto} onChange={(e) => set("desconto", e.target.value)} placeholder="0" /></Field>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Início"><TextInput type="date" value={f.inicio} onChange={(e) => set("inicio", e.target.value)} /></Field>
         <Field label="Fim"><TextInput type="date" value={f.fim} onChange={(e) => set("fim", e.target.value)} /></Field>
       </div>

@@ -126,7 +126,7 @@ export default function DeliveryKanbanPage() {
       <div className="flex flex-col h-[calc(100vh-80px)] bg-slate-50 relative overflow-hidden">
         {toast && <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[999] bg-slate-800 text-white px-6 py-3 rounded-full font-bold">{toast}</div>}
         
-        <div className="bg-white border-b border-slate-200 p-6 flex justify-between items-center z-10 shadow-sm">
+        <div className="bg-white border-b border-slate-200 p-4 sm:p-6 flex flex-wrap justify-between items-center gap-3 z-10 shadow-sm">
            <div>
               <h1 className="text-2xl font-black text-slate-800 flex items-center gap-2"><Settings className="text-emerald-600"/> Ajustes do Delivery</h1>
               <p className="text-sm font-bold text-slate-500 mt-1">Taxas, Zonas de Entrega e Motoboys</p>
@@ -136,10 +136,10 @@ export default function DeliveryKanbanPage() {
            </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-8 hide-scrollbar">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8 hide-scrollbar">
            <div className="max-w-4xl mx-auto space-y-8">
               {/* Regras Gerais */}
-              <div className="bg-white p-8 rounded-[24px] shadow-sm border border-slate-200">
+              <div className="bg-white p-4 sm:p-8 rounded-2xl sm:rounded-[24px] shadow-sm border border-slate-200">
                  <h2 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2"><Map size={24} className="text-slate-600" /> Regras de Raio e Taxa</h2>
                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                     <Field label="Raio de Atendimento (KM)">
@@ -158,7 +158,7 @@ export default function DeliveryKanbanPage() {
               </div>
 
               {/* Tabela de Motoboys Simplificada pro Walkthrough */}
-              <div className="bg-white p-8 rounded-[24px] shadow-sm border border-slate-200">
+              <div className="bg-white p-4 sm:p-8 rounded-2xl sm:rounded-[24px] shadow-sm border border-slate-200">
                  <h2 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2"><Bike size={24} className="text-slate-600" /> Frota de Entregadores</h2>
                  
                  {motoboys.length === 0 ? (
@@ -329,9 +329,9 @@ export default function DeliveryKanbanPage() {
 
       {/* MODAL DE DESPACHO */}
       {modalDespacho && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
-             <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <div className="fixed inset-0 z-[1000] flex items-start sm:items-center justify-center bg-slate-900/60 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl sm:rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 my-3 sm:my-0 max-h-[94vh]">
+             <div className="p-4 sm:p-8 border-b border-slate-100 flex flex-wrap justify-between items-center gap-3 bg-slate-50">
                 <div>
                    <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-1">Despachar Pedido</p>
                    <h2 className="font-black text-3xl text-slate-800 tracking-tight">#{modalDespacho.id.slice(0,4).toUpperCase()}</h2>
@@ -339,7 +339,7 @@ export default function DeliveryKanbanPage() {
                 <button onClick={() => setModalDespacho(null)} className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"><X size={20}/></button>
              </div>
 
-             <div className="p-8">
+             <div className="p-4 sm:p-8 overflow-y-auto">
                 <h3 className="font-black text-lg text-slate-800 mb-4">Selecione o Entregador</h3>
                 
                 <div className="space-y-3 mb-8 max-h-60 overflow-y-auto hide-scrollbar pr-2">

@@ -66,25 +66,25 @@ export default function TreinamentoPage() {
     <div className="min-h-screen bg-slate-50 font-sans pb-24 text-slate-800">
       
       {/* HEADER */}
-      <div className="pt-6 pb-8 px-6 max-w-5xl mx-auto flex items-center justify-between">
-         <div className="flex items-center gap-4">
+      <div className="pt-5 sm:pt-6 pb-6 sm:pb-8 px-4 sm:px-6 max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+         <div className="flex items-center gap-3 sm:gap-4 min-w-0">
            <button onClick={() => abrirMenu()} className="w-12 h-12 rounded-full bg-white border border-slate-200 text-slate-500 flex items-center justify-center hover:bg-slate-100 transition-colors">
               <ArrowLeft size={20} />
            </button>
-           <div className="w-16 h-16 rounded-3xl bg-slate-100 text-emerald-600 flex items-center justify-center shadow-inner">
+           <div className="hidden sm:flex w-16 h-16 shrink-0 rounded-3xl bg-slate-100 text-emerald-600 items-center justify-center shadow-inner">
               <PlaySquare size={32} />
            </div>
            <div>
-              <h1 className="text-3xl font-black tracking-tighter text-slate-900">Portal de Treinamento</h1>
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-slate-900">Portal de Treinamento</h1>
               <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">{unidadeInfo?.nome}</p>
            </div>
          </div>
-         <button onClick={() => setModalNovo(true)} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
+         <button onClick={() => setModalNovo(true)} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
             <Plus size={18} /> Novo Módulo
          </button>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6">
          {loading ? (
             <p className="text-center font-bold text-slate-500 mt-10">Carregando portal...</p>
          ) : treinamentos.length === 0 ? (
@@ -127,7 +127,7 @@ export default function TreinamentoPage() {
 
       {modalNovo && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-[32px] w-full max-w-md p-8 shadow-2xl animate-in zoom-in-95">
+            <div className="bg-white rounded-[32px] w-full max-w-md p-5 sm:p-8 max-h-[calc(100dvh-1rem)] overflow-y-auto shadow-2xl animate-in zoom-in-95">
                <h2 className="font-black text-2xl text-slate-800 mb-6 flex items-center gap-3"><BookOpen size={24} className="text-slate-600"/> Novo Treinamento</h2>
                
                <div className="space-y-4">
@@ -145,7 +145,7 @@ export default function TreinamentoPage() {
                   </div>
                </div>
 
-               <div className="flex gap-3 mt-8">
+               <div className="flex flex-col sm:flex-row gap-3 mt-8">
                   <button onClick={() => setModalNovo(false)} className="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl transition-all">Cancelar</button>
                   <button onClick={handleSalvar} disabled={!form.titulo || !form.link_video} className="flex-[2] py-4 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-black rounded-2xl transition-all shadow-lg shadow-emerald-600/20">Publicar Módulo</button>
                </div>

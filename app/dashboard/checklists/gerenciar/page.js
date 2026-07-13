@@ -342,7 +342,7 @@ export default function GerenciarChecklistsPage() {
             <CheckSquare size={32} />
           </div>
           <div>
-            <h1 className="text-4xl font-black tracking-tighter text-slate-900">Checklists</h1>
+            <h1 className="text-3xl sm:text-4xl font-black tracking-tighter text-slate-900">Checklists</h1>
             <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Cozinha · Bar · Salão — crie, designe responsáveis e imprima</p>
           </div>
         </div>
@@ -424,7 +424,7 @@ export default function GerenciarChecklistsPage() {
       {/* MODAL: MODELOS PRONTOS (biblioteca por setor) */}
       {modalModelos && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-[32px] w-full max-w-2xl max-h-[88vh] overflow-y-auto custom-scrollbar p-8 shadow-2xl animate-in zoom-in-95">
+          <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-2xl max-h-[94vh] sm:max-h-[88vh] overflow-y-auto custom-scrollbar p-4 sm:p-8 shadow-2xl animate-in zoom-in-95">
             <div className="flex justify-between items-center mb-5 sticky top-0 bg-white z-10 pb-4 border-b border-slate-100">
               <div>
                 <h2 className="font-black text-2xl text-slate-800 flex items-center gap-2"><Sparkles size={22} className="text-emerald-600" /> Modelos Prontos</h2>
@@ -478,7 +478,7 @@ export default function GerenciarChecklistsPage() {
 
       {modalNovo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-[32px] w-full max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar p-8 shadow-2xl animate-in zoom-in-95">
+          <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-2xl max-h-[94vh] sm:max-h-[90vh] overflow-y-auto custom-scrollbar p-4 sm:p-8 shadow-2xl animate-in zoom-in-95">
 
             <div className="flex justify-between items-center mb-6 sticky top-0 bg-white z-10 pb-4 border-b border-slate-100">
               <h2 className="font-black text-2xl text-slate-800">{form.id ? "Editar Checklist" : "Novo Checklist"}</h2>
@@ -486,7 +486,7 @@ export default function GerenciarChecklistsPage() {
             </div>
 
             <div className="space-y-5">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Setor</label>
                   <select value={form.departamento} onChange={e => mudarDept(e.target.value)} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500">

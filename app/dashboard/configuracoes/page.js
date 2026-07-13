@@ -405,7 +405,7 @@ export default function ConfiguracoesPage() {
   const labelCls = "block text-xs font-bold text-slate-500 mb-1.5 uppercase";
 
   return (
-    <div className="p-6 md:p-8 max-w-4xl mx-auto w-full font-sans">
+    <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto w-full font-sans">
 
       <div className="flex items-center gap-3 mb-8">
         <div className="w-12 h-12 bg-slate-800 text-white rounded-xl flex items-center justify-center shadow-lg">
@@ -491,7 +491,7 @@ export default function ConfiguracoesPage() {
             <MapPin size={18} className="text-emerald-600" />
             <h2 className="font-bold text-slate-700">Endereço Físico</h2>
           </div>
-          <div className="p-6 grid grid-cols-2 md:grid-cols-6 gap-4">
+          <div className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-4">
             <div className="col-span-2 md:col-span-2">
               <label className={`${labelCls} flex items-center gap-1`}>CEP {buscandoCep && <Loader2 size={11} className="animate-spin" />}</label>
               <input type="text" name="cep" value={dadosLoja.cep} onChange={handleChange} onBlur={e => buscarCep(e.target.value)} className={inputCls} placeholder="00000-000" />
@@ -521,7 +521,7 @@ export default function ConfiguracoesPage() {
         </div>
 
         {/* BOTÕES */}
-        <div className="flex items-center justify-between pt-4 border-t border-slate-200">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-slate-200">
           {sucesso ? (
             <div className="flex items-center gap-2 text-emerald-600 font-bold text-sm bg-emerald-50 px-4 py-2 rounded-lg">
               <CheckCircle size={16} /> Configurações salvas com sucesso!
@@ -532,7 +532,7 @@ export default function ConfiguracoesPage() {
             </div>
           )}
           <button type="submit" disabled={saving}
-            className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-emerald-500/30 transition-all flex items-center gap-2">
+            className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold py-3 px-5 sm:px-8 rounded-xl shadow-lg shadow-emerald-500/30 transition-all flex items-center justify-center gap-2">
             {saving ? "Salvando..." : <><Save size={18} /> Salvar Alterações</>}
           </button>
         </div>

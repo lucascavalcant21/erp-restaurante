@@ -72,10 +72,10 @@ export default function ContasAPagarPage() {
         </div>
       )}
 
-      <div className="bg-slate-900 pt-8 pb-10 px-8 shadow-lg text-white">
+      <div className="bg-slate-900 pt-6 sm:pt-8 pb-8 sm:pb-10 px-4 sm:px-8 shadow-lg text-white">
          <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div>
-               <h1 className="text-4xl font-black tracking-tighter">Contas a Pagar</h1>
+               <h1 className="text-3xl sm:text-4xl font-black tracking-tighter">Contas a Pagar</h1>
                <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Gestão de Custos e Despesas</p>
             </div>
             <button onClick={() => setModalOpen(true)} className="px-6 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl flex items-center gap-2 shadow-xl shadow-emerald-500/20 active:scale-95 transition-all">
@@ -106,7 +106,7 @@ export default function ContasAPagarPage() {
          </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 mt-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 mt-6 sm:mt-8">
          <div className="bg-white rounded-[32px] p-6 sm:p-8 border border-slate-200 shadow-xl shadow-slate-200/50">
             
             <div className="flex items-center gap-4 mb-6 pb-6 border-b border-slate-100">
@@ -188,8 +188,8 @@ export default function ContasAPagarPage() {
 
       {/* MODAL NOVA CONTA */}
       {modalOpen && (
-         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white rounded-[32px] w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-start sm:items-center justify-center p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 my-3 sm:my-0">
                <div className="p-6 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
                   <h2 className="text-xl font-black text-slate-800">Lançar Despesa</h2>
                   <button onClick={() => setModalOpen(false)} className="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 rounded-full text-slate-500 hover:bg-slate-100">x</button>
@@ -205,7 +205,7 @@ export default function ContasAPagarPage() {
                         {CATEGORIAS_CUSTO.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
                      </select>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Valor (R$)</label>
                         <input required type="text" placeholder="150,00" value={form.valor} onChange={e=>setForm({...form, valor: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500 focus:bg-white"/>

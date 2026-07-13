@@ -92,7 +92,7 @@ export default function CuponsPage() {
   if (loading) return <div className="p-6"><SkeletonList /></div>;
 
   return (
-    <div className="p-8 max-w-6xl mx-auto animate-in fade-in">
+    <div className="p-4 sm:p-8 max-w-6xl mx-auto animate-in fade-in">
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-black text-slate-800 flex items-center gap-3">
@@ -154,7 +154,7 @@ export default function CuponsPage() {
 
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-[32px] p-8 w-full max-w-md shadow-2xl animate-in zoom-in-95">
+          <div className="bg-white rounded-2xl sm:rounded-[32px] p-4 sm:p-8 w-full max-w-md shadow-2xl animate-in zoom-in-95 max-h-[94vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-black text-slate-800">{cupomEdit ? 'Editar Cupom' : 'Novo Cupom'}</h2>
               <button onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-slate-600"><X size={24}/></button>
@@ -165,7 +165,7 @@ export default function CuponsPage() {
                 <input type="text" required value={formCodigo} onChange={e => setFormCodigo(e.target.value.toUpperCase())} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-black text-slate-700 uppercase outline-none focus:border-[#4970AF]" placeholder="CÓDIGO" />
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                    <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Tipo de Desconto</label>
                    <select value={formTipo} onChange={e => setFormTipo(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-700 outline-none focus:border-[#4970AF]">

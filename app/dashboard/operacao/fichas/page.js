@@ -964,35 +964,35 @@ function FichasRunner() {
     <div className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50">
       
       {/* TOPBAR */}
-      <div className="bg-white border-b border-slate-200 pt-6 pb-6 px-6 sticky top-0 z-10">
-         <div className="max-w-5xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-4">
+      <div className="bg-white border-b border-slate-200 py-4 sm:py-6 px-4 sm:px-6 sticky top-0 z-10">
+         <div className="max-w-5xl mx-auto flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
               <button onClick={() => abrirMenu()} className="p-3 text-slate-500 hover:text-slate-800 bg-slate-50 rounded-full border border-slate-200">
                  <ArrowLeft size={20}/>
               </button>
-              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner ${deptUrl === 'bar' ? 'bg-slate-100 text-emerald-600' : 'bg-slate-100 text-slate-800'}`}>
+               <div className={`hidden sm:flex w-14 h-14 shrink-0 rounded-2xl items-center justify-center shadow-inner ${deptUrl === 'bar' ? 'bg-slate-100 text-emerald-600' : 'bg-slate-100 text-slate-800'}`}>
                  <LayoutList size={28} />
               </div>
               <div>
-                 <h1 className="text-3xl font-black tracking-tighter text-slate-900">Fichas Técnicas</h1>
+                  <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-slate-900">Fichas Técnicas</h1>
                  <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Receituário e Custos - {deptUrl}</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-               <button onClick={imprimirManual} title={deptUrl === "bar" ? "Pôster com todos os drinks e medidas" : "Pôster com todas as receitas e medidas"} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-5 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm">
-                  <Printer size={18} /> {deptUrl === "bar" ? "Manual de Coquetelaria" : "Manual da Cozinha"}
+            <div className="flex items-center gap-2 sm:gap-3 w-full lg:w-auto overflow-x-auto">
+               <button onClick={imprimirManual} title={deptUrl === "bar" ? "Pôster com todos os drinks e medidas" : "Pôster com todas as receitas e medidas"} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-slate-50 transition-colors shadow-sm">
+                  <Printer size={18} /> <span className="hidden md:inline">{deptUrl === "bar" ? "Manual de Coquetelaria" : "Manual da Cozinha"}</span><span className="md:hidden">Manual</span>
                </button>
-               <button onClick={abrirModalIAFicha} className="flex items-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-5 py-3 rounded-xl font-bold hover:bg-emerald-50 transition-colors shadow-sm">
+               <button onClick={abrirModalIAFicha} className="flex items-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-emerald-50 transition-colors shadow-sm">
                   <Sparkles size={18} /> Montar com IA
                </button>
-               <button onClick={abrirNova} className="flex items-center gap-2 text-white px-5 py-3 rounded-xl font-bold transition-colors shadow-lg bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20">
+               <button onClick={abrirNova} className="flex items-center gap-2 text-white px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap transition-colors shadow-lg bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20">
                   <Plus size={18} /> Nova Ficha
                </button>
             </div>
          </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 mt-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 mt-6 sm:mt-8">
          {/* Abas: Pratos + categorias do cardápio + Pré-preparos + Todos */}
          <div className="flex gap-2 mb-4 overflow-x-auto pb-1" style={{ scrollbarWidth: "thin" }}>
             {[
@@ -1028,8 +1028,8 @@ function FichasRunner() {
             </div>
             
             {/* Controles de Livro de Receitas */}
-            <div className="flex items-center gap-3 border-t sm:border-t-0 sm:border-l border-slate-200 pt-3 sm:pt-0 sm:pl-3 w-full sm:w-auto">
-               <button onClick={toggleSelecionarTodas} className="text-xs font-bold text-slate-500 hover:text-emerald-600 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200">
+             <div className="flex flex-wrap items-center gap-2 sm:gap-3 border-t sm:border-t-0 sm:border-l border-slate-200 pt-3 sm:pt-0 sm:pl-3 w-full sm:w-auto">
+                <button onClick={toggleSelecionarTodas} className="text-xs font-bold text-slate-500 hover:text-emerald-600 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 whitespace-nowrap">
                   {selecionadas.length === filtradas.length && filtradas.length > 0 ? "Desmarcar Todas" : "Selecionar Todas"}
                </button>
                {selecionadas.length > 0 && (
@@ -1079,7 +1079,7 @@ function FichasRunner() {
                            <label className="absolute top-3 left-3 bg-white/90 backdrop-blur rounded-md p-1 cursor-pointer shadow-sm">
                               <input type="checkbox" checked={selecionadas.includes(f.id)} onChange={() => toggleSelecionar(f.id)} className="w-5 h-5 accent-emerald-600 cursor-pointer rounded-md block"/>
                            </label>
-                           <div className="absolute top-3 right-3 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="absolute top-3 right-3 flex gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                               <button onClick={() => abrirSimulacao(f)} title="Simular outro rendimento" className="p-2 bg-white/90 backdrop-blur rounded-lg text-slate-600 hover:text-emerald-600 shadow-sm"><Calculator size={16}/></button>
                               <button onClick={() => imprimirFicha(f)} title="Imprimir ficha técnica" className="p-2 bg-white/90 backdrop-blur rounded-lg text-slate-600 hover:text-emerald-600 shadow-sm"><Printer size={16}/></button>
                               <button onClick={() => abrirEditar(f)} className="p-2 bg-white/90 backdrop-blur rounded-lg text-slate-600 hover:text-emerald-600 shadow-sm"><Edit3 size={16}/></button>
@@ -1099,20 +1099,20 @@ function FichasRunner() {
 
       {/* MODAL DE CRIAÇÃO DA FICHA TÉCNICA */}
       {modalNovo && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-[32px] w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl animate-in zoom-in-95 flex flex-col">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-2 sm:p-4">
+             <div className="bg-white rounded-3xl sm:rounded-[32px] w-full max-w-4xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-hidden shadow-2xl animate-in zoom-in-95 flex flex-col">
                
                {/* HEADER DO MODAL */}
-               <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-white">
+               <div className="flex justify-between items-center gap-3 p-4 sm:p-6 border-b border-slate-100 bg-white">
                   <div>
-                     <h2 className="font-black text-2xl text-slate-800">{form.id ? "Editar Receita" : "Nova Receita"}</h2>
+                     <h2 className="font-black text-xl sm:text-2xl text-slate-800">{form.id ? "Editar Receita" : "Nova Receita"}</h2>
                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mt-1">Custo Total Atual: <span className="text-emerald-600 font-black">{fmtBRL(calcularCustoTotal(ingFicha))}</span></p>
                   </div>
                   <button onClick={() => setModalNovo(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
                </div>
 
                {/* BODY DO MODAL COM SCROLL */}
-               <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50 custom-scrollbar grid grid-cols-1 md:grid-cols-2 gap-8">
+               <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-50/50 custom-scrollbar grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-8">
                   
                    {/* COLUNA ESQUERDA: Dados Básicos e Foto */}
                   <div className="space-y-4">
@@ -1704,20 +1704,20 @@ function FichasRunner() {
 
       {/* MONTAR FICHA COM IA (texto/foto da receita) */}
       {modalIAFicha && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
-            <div className="bg-white rounded-[32px] w-full max-w-3xl my-8 shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[90vh]">
-               <div className="flex justify-between items-center p-8 pb-6 border-b border-slate-100 shrink-0">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-2 sm:p-4 overflow-y-auto">
+             <div className="bg-white rounded-3xl sm:rounded-[32px] w-full max-w-3xl my-2 sm:my-8 shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+               <div className="flex justify-between items-center gap-3 p-4 sm:p-8 pb-4 sm:pb-6 border-b border-slate-100 shrink-0">
                   <div className="flex items-center gap-3">
                      <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center"><Sparkles size={22}/></div>
                      <div>
-                        <h2 className="font-black text-2xl text-slate-800">Montar Ficha Técnica com IA</h2>
+                         <h2 className="font-black text-xl sm:text-2xl text-slate-800">Montar Ficha Técnica com IA</h2>
                         <p className="text-xs font-bold text-slate-500 mt-0.5">Cole a receita ou envie uma foto — a IA monta nome, ingredientes e modo de preparo</p>
                      </div>
                   </div>
                   <button onClick={() => setModalIAFicha(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
                </div>
 
-               <div className="p-8 overflow-y-auto custom-scrollbar space-y-5">
+               <div className="p-4 sm:p-8 overflow-y-auto custom-scrollbar space-y-5">
                   {!iaFResultado ? (
                      <>
                         <div>
@@ -1842,7 +1842,7 @@ function FichasRunner() {
                </div>
 
                {iaFResultado && (
-                  <div className="p-8 pt-4 border-t border-slate-100 bg-slate-50 rounded-b-[32px] shrink-0">
+                  <div className="p-4 sm:p-8 sm:pt-4 border-t border-slate-100 bg-slate-50 rounded-b-[32px] shrink-0">
                      <button onClick={usarFichaIA} className="w-full py-5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-2">
                         <Save size={20}/> Usar esta ficha
                      </button>

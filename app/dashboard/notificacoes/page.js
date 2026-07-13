@@ -84,7 +84,7 @@ export default function NotificacoesPage() {
           <div>
             <SectionLabel>Inteligência da Rede</SectionLabel>
             {loadingInsights ? (
-              <div className="flex flex-col items-center justify-center p-10 gap-4">
+              <div className="flex flex-col items-center justify-center p-6 sm:p-10 gap-4 text-center">
                 <Brain size={48} className="animate-pulse" style={{ color: "var(--accent)" }} />
                 <p style={{ color: "var(--dim)", fontWeight: 600 }}>O Cérebro está calculando os alertas e dicas...</p>
               </div>
@@ -101,8 +101,8 @@ export default function NotificacoesPage() {
                     default: color = "#3B82F6"; bg = "rgba(59,130,246,0.08)"; borderColor = "rgba(59,130,246,0.3)"; break;
                   }
                   return (
-                    <div key={i} className="flex items-start gap-4 p-4 rounded-2xl" style={{ background: bg, border: `1px solid ${borderColor}` }}>
-                      <div className="mt-0.5">
+                    <div key={i} className="flex items-start gap-3 sm:gap-4 p-3 sm:p-4 rounded-2xl" style={{ background: bg, border: `1px solid ${borderColor}` }}>
+                      <div className="mt-0.5 flex-shrink-0">
                         {ins.tipo === "perigo" || ins.tipo === "alerta" ? <AlertTriangle size={20} color={color} /> : <Lightbulb size={20} color={color} />}
                       </div>
                       <div>
@@ -132,13 +132,13 @@ export default function NotificacoesPage() {
                           <cfg.Icon size={16} style={{ color: cfg.cor }} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
                             <span className="erp-badge" style={{ background: cfg.cor + "22", color: cfg.cor }}>{cfg.label}</span>
-                            <span className="text-[10px]" style={{ color: "var(--dim)" }}>{tempoRel(n.data)}</span>
+                            <span className="text-[10px] whitespace-nowrap" style={{ color: "var(--dim)" }}>{tempoRel(n.data)}</span>
                           </div>
                           <p className="text-sm font-bold mt-1" style={{ color: n.lida ? "var(--muted)" : "var(--fg)" }}>{n.titulo}</p>
-                          <p className="text-[11px] mt-0.5" style={{ color: "var(--subtle)" }}>{n.corpo}</p>
-                          <div className="flex items-center gap-3 mt-2">
+                          <p className="text-[11px] mt-0.5 break-words" style={{ color: "var(--subtle)" }}>{n.corpo}</p>
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mt-2">
                             {cfg.href && <button onClick={() => router.push(cfg.href)} className="text-[11px] font-bold flex items-center gap-0.5" style={{ color: "var(--muted)" }}>Ver módulo <ChevronRight size={12} /></button>}
                             {!n.lida && <button onClick={() => marcarLida(n.id)} className="text-[11px] font-bold" style={{ color: "var(--accent-fg)" }}>Marcar lida</button>}
                             <button onClick={() => removerNotificacao(n.id)} className="text-[11px] font-bold flex items-center gap-0.5" style={{ color: "#DC2626" }}><Trash2 size={11} /> Remover</button>

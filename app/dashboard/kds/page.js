@@ -179,17 +179,17 @@ function KDSRunner() {
   return (
     <div ref={containerRef} className="min-h-screen bg-slate-100 font-sans text-slate-800 flex flex-col">
       {/* Topbar */}
-      <div className="bg-white border-b border-slate-200 px-5 py-3 flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-3">
+      <div className="bg-white border-b border-slate-200 px-3 sm:px-5 py-3 flex items-center justify-between gap-3 sticky top-0 z-10">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <button onClick={() => abrirMenu()} className="p-2.5 text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">
             <ArrowLeft size={20} />
           </button>
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+          <div className="hidden sm:flex w-10 h-10 shrink-0 rounded-xl bg-emerald-50 text-emerald-600 items-center justify-center">
             {deptUrl === "bar" ? <GlassWater size={20} /> : <ChefHat size={20} />}
           </div>
-          <div>
-            <h1 className="text-lg font-black tracking-tight text-slate-900">Cozinha — KDS</h1>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{deptUrl === "todos" ? "Todos os setores" : deptUrl} • Tempo real</p>
+          <div className="min-w-0">
+            <h1 className="text-base sm:text-lg font-black tracking-tight text-slate-900 truncate">Cozinha — KDS</h1>
+            <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wide sm:tracking-widest truncate">{deptUrl === "todos" ? "Todos os setores" : deptUrl} • Tempo real</p>
           </div>
         </div>
 
@@ -213,7 +213,7 @@ function KDSRunner() {
       </div>
 
       {/* Quadro */}
-      <div className="flex-1 p-4 grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+      <div className="flex-1 p-3 sm:p-4 grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 items-start">
         {COLUNAS.map(col => {
           const lista = pedidosPorColuna(col.id);
           const ordemAtual = lista.map(p => p.pedidoId);
@@ -312,8 +312,8 @@ function KDSRunner() {
 
       {/* Confirmacao ao tocar num item (pergunta em vez de avancar direto) */}
       {confirmItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4" onClick={() => setConfirmItem(null)}>
-          <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-2 sm:p-4" onClick={() => setConfirmItem(null)}>
+          <div className="bg-white rounded-2xl w-full max-w-sm p-4 sm:p-6 max-h-[calc(100dvh-1rem)] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-black text-slate-900 leading-tight">{confirmItem.quantidade}x {confirmItem.produtos?.nome_produto}</h3>
             {confirmItem.observacao && <p className="text-xs font-bold text-amber-700 mt-1">Obs: {confirmItem.observacao}</p>}
             <p className="text-sm font-bold text-slate-500 mt-3">{acaoLabel(confirmItem.status_kds)}?</p>
@@ -333,8 +333,8 @@ function KDSRunner() {
         const horario = new Date(p.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
         const isDelivery = ehDelivery(p.tipo_pedido);
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4" onClick={() => setDetalhe(null)}>
-            <div className="bg-white rounded-2xl w-full max-w-md max-h-[85vh] overflow-hidden flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-2 sm:p-4" onClick={() => setDetalhe(null)}>
+            <div className="bg-white rounded-2xl w-full max-w-md max-h-[calc(100dvh-1rem)] sm:max-h-[85vh] overflow-hidden flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
               <div className="p-5 border-b border-slate-100 flex items-start justify-between">
                 <div className="flex items-center gap-2">
                   <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${badge.cls}`}>{badge.label}</span>

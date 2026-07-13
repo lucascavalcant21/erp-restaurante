@@ -103,7 +103,7 @@ const SIDEBAR_MENU = [
   }
 ];
 
-function SidebarItem({ item, pathname }) {
+function SidebarItem({ item, pathname, onNavigate }) {
   const router = useRouter();
   const { unidadeAtiva } = useERP();
   
@@ -115,6 +115,7 @@ function SidebarItem({ item, pathname }) {
   }
 
   const handleClick = () => {
+    onNavigate?.();
     if (item.href === "/chamada/dinamico") {
       window.open(`/chamada/${unidadeAtiva || 'todas'}`, "_blank");
       return;
@@ -125,7 +126,7 @@ function SidebarItem({ item, pathname }) {
   return (
     <button
       onClick={handleClick}
-      className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-bold transition-all ${
+      className={`w-full min-h-11 flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-bold text-left transition-all ${
         isActive 
           ? "bg-emerald-500/10 text-emerald-400" 
           : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
@@ -137,14 +138,15 @@ function SidebarItem({ item, pathname }) {
   );
 }
 
-function SidebarSection({ section, idx, pathname, isOpen, onToggle }) {
+function SidebarSection({ section, idx, pathname, isOpen, onToggle, onNavigate }) {
   // Acordeão controlado pelo pai: só um módulo aberto por vez, e ao navegar
   // para um submódulo tudo recolhe de novo.
   return (
     <div className="animate-in fade-in slide-in-from-left-2" style={{ animationDelay: `${idx * 50}ms`, animationFillMode: 'both' }}>
       <button
         onClick={onToggle}
-        className="w-full px-3 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-300 mb-2 flex items-center justify-between transition-colors group outline-none"
+        aria-expanded={isOpen}
+        className="w-full min-h-11 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-300 mb-1 flex items-center justify-between transition-colors group outline-none text-left"
       >
         <div className="flex items-center gap-2">
            <section.icon size={13} className="text-slate-600 group-hover:text-slate-400 transition-colors" /> 
@@ -157,7 +159,7 @@ function SidebarSection({ section, idx, pathname, isOpen, onToggle }) {
         <div className="overflow-hidden min-h-0 space-y-0.5">
           <div className="pb-2">
              {section.items.map((item, itemIdx) => (
-               <SidebarItem key={itemIdx} item={item} pathname={pathname} />
+               <SidebarItem key={itemIdx} item={item} pathname={pathname} onNavigate={onNavigate} />
              ))}
           </div>
         </div>
@@ -178,26 +180,26 @@ function Sidebar({ mobileOpen, setMobileOpen, collapsed }) {
     <>
       {/* Overlay no celular E no tablet (a sidebar abre por cima do conteúdo) */}
       {mobileOpen && (
-        <div
-          className="fixed inset-0 bg-slate-900/80 z-40 backdrop-blur-sm lg:hidden"
+        <button type="button" aria-label="Fechar menu"
+          className="fixed inset-0 bg-slate-900/80 z-40 backdrop-blur-sm xl:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
       {/* Sidebar Container
-          Celular/Tablet (< lg): fixa, entra/sai deslizando (overlay) — nunca
+          Celular/Tablet (< xl): fixa, entra/sai deslizando (overlay) — nunca
           fica "meio aparecendo" na lateral.
-          Desktop (lg+): encaixada no layout; recolhe para largura 0 e o
+          Desktop (xl+): encaixada no layout; recolhe para largura 0 e o
           conteúdo cresce para ocupar o espaço. */}
       <aside className={`
-        fixed inset-y-0 left-0 z-50 bg-[#0A1128] border-r border-slate-800/50
+        erp-sidebar fixed inset-y-0 left-0 z-50 bg-[#0A1128] border-r border-slate-800/50
         flex flex-col transition-all duration-300 ease-in-out shadow-2xl whitespace-nowrap overflow-hidden
-        lg:static lg:z-auto lg:shadow-none
-        ${mobileOpen ? "translate-x-0 w-72" : "-translate-x-full w-72"}
-        ${collapsed ? "lg:translate-x-0 lg:w-0 lg:border-r-0" : "lg:translate-x-0 lg:w-72"}
-      `}>
+        xl:static xl:z-auto xl:shadow-none
+        ${mobileOpen ? "translate-x-0 w-[min(18rem,calc(100vw-2rem))]" : "-translate-x-full w-[min(18rem,calc(100vw-2rem))]"}
+        ${collapsed ? "xl:translate-x-0 xl:w-0 xl:border-r-0" : "xl:translate-x-0 xl:w-72"}
+      `} aria-label="Menu principal">
         {/* Logo Area */}
-        <div className="h-16 flex items-center justify-between px-6 shrink-0 relative overflow-hidden">
+        <div className="erp-sidebar-logo min-h-16 flex items-center justify-between px-4 sm:px-6 shrink-0 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-emerald-600/10 to-transparent pointer-events-none" />
           
           <button onClick={() => router.push('/dashboard')} className="flex items-center gap-3 relative z-10 hover:opacity-80 transition-opacity text-left">
@@ -208,22 +210,23 @@ function Sidebar({ mobileOpen, setMobileOpen, collapsed }) {
           </button>
           
           {/* Fechar: no celular fecha o overlay */}
-          <button onClick={() => setMobileOpen(false)} className="text-slate-400 hover:text-white relative z-10 p-2 lg:hidden">
+          <button onClick={() => setMobileOpen(false)} aria-label="Fechar menu" className="w-11 h-11 flex items-center justify-center text-slate-400 hover:text-white relative z-10 rounded-xl xl:hidden">
             <X size={20} />
           </button>
         </div>
 
         {/* Scrollable Menu */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
+        <div className="erp-sidebar-scroll flex-1 overflow-y-auto overscroll-contain custom-scrollbar px-3 sm:px-4 py-3 space-y-4">
           {SIDEBAR_MENU.map((section, idx) => (
             <SidebarSection key={idx} section={section} idx={idx} pathname={pathname}
               isOpen={moduloAberto === idx}
-              onToggle={() => setModuloAberto(a => a === idx ? null : idx)} />
+              onToggle={() => setModuloAberto(a => a === idx ? null : idx)}
+              onNavigate={() => setMobileOpen(false)} />
           ))}
         </div>
         
         {/* User Profile Footer */}
-        <div className="p-4 border-t border-slate-800/50 shrink-0">
+        <div className="erp-sidebar-footer p-3 sm:p-4 border-t border-slate-800/50 shrink-0">
           <div className="bg-slate-800/30 rounded-xl p-3 flex items-center gap-3 border border-slate-700/50 hover:bg-slate-800/50 transition-colors cursor-pointer group">
              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-700 to-slate-600 flex items-center justify-center text-slate-200 font-bold shadow-inner group-hover:scale-105 transition-transform">
                A
@@ -265,30 +268,31 @@ function TopHeader({ onSair, onToggleSidebar }) {
   };
 
   return (
-    <header className="h-16 border-b border-slate-200/60 bg-white/80 backdrop-blur-md flex items-center justify-between px-4 sm:px-6 shrink-0 sticky top-0 z-30 shadow-sm">
+    <header className="erp-top-header min-h-16 border-b border-slate-200/60 bg-white/80 backdrop-blur-md flex items-center justify-between gap-2 px-2 sm:px-4 md:px-6 py-2 shrink-0 sticky top-0 z-30 shadow-sm min-w-0">
 
-      <div className="flex items-center gap-4">
-         <button onClick={onToggleSidebar} title="Menu" className="p-2 -ml-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors">
+      <div className="flex flex-1 items-center gap-2 md:gap-4 min-w-0">
+         <button onClick={onToggleSidebar} title="Menu" aria-label="Abrir menu" className="w-11 h-11 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors shrink-0">
             <Menu size={22} />
          </button>
-         <h1 className="text-lg font-black text-slate-800 hidden sm:block tracking-tight">
+         <h1 className="text-base lg:text-lg font-black text-slate-800 hidden md:block tracking-tight truncate min-w-0">
             {unidadeInfo?.nome ? `Dashboard · ${unidadeInfo.nome}` : "Painel de Controle"}
          </h1>
       </div>
 
-      <div className="flex items-center gap-2 sm:gap-4">
+      <div className="flex items-center justify-end gap-1.5 sm:gap-3 min-w-0 shrink">
          {podeTrocar && (
-           <div className="relative" ref={seletorRef}>
-             <button onClick={() => setUnidadesAberto(a => !a)} className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200/60 text-slate-700 px-3 py-2 rounded-xl transition-all shadow-sm text-xs font-bold uppercase">
-                <Store size={14} className="text-slate-400"/>
-                <span className="max-w-[120px] sm:max-w-xs truncate">{unidadeInfo?.nome || 'Nenhuma Lj.'}</span>
+           <div className="relative min-w-0" ref={seletorRef}>
+             <button onClick={() => setUnidadesAberto(a => !a)} aria-expanded={unidadesAberto}
+               className="h-11 max-w-[150px] sm:max-w-[240px] md:max-w-xs flex items-center gap-1.5 sm:gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200/60 text-slate-700 px-2.5 sm:px-3 rounded-xl transition-all shadow-sm text-[10px] sm:text-xs font-bold uppercase min-w-0">
+                <Store size={14} className="text-slate-400 shrink-0"/>
+                <span className="truncate min-w-0">{unidadeInfo?.nome || 'Nenhuma Lj.'}</span>
                 <ChevronDown size={14} className="text-slate-400 transition-transform" style={{ transform: unidadesAberto ? "rotate(180deg)" : "none" }}/>
              </button>
              {unidadesAberto && (
-               <div className="absolute right-0 top-full mt-2 w-64 bg-white text-slate-800 rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 origin-top-right z-50">
+               <div className="erp-unit-menu absolute right-0 top-full mt-2 w-[min(16rem,calc(100vw-1rem))] max-h-[min(28rem,calc(100dvh-5rem))] overflow-y-auto overscroll-contain bg-white text-slate-800 rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 animate-in fade-in zoom-in-95 origin-top-right z-50">
                  {unidades.map(u => (
-                   <button key={u.id} onClick={() => handleTrocaUnidade(u.id)} className="w-full text-left px-4 py-3 text-sm font-bold hover:bg-slate-50 border-b border-slate-50 last:border-0 flex justify-between items-center transition-colors">
-                     {u.nome}
+                   <button key={u.id} onClick={() => handleTrocaUnidade(u.id)} className="w-full min-h-12 text-left px-4 py-3 text-sm font-bold hover:bg-slate-50 border-b border-slate-50 last:border-0 flex justify-between items-center gap-3 transition-colors">
+                     <span className="min-w-0 break-words">{u.nome}</span>
                      {u.id === unidadeAtiva && <Check size={16} className="text-emerald-500"/>}
                    </button>
                  ))}
@@ -299,7 +303,7 @@ function TopHeader({ onSair, onToggleSidebar }) {
 
          <div className="w-px h-6 bg-slate-200 hidden sm:block mx-1"></div>
 
-         <button onClick={onSair} className="flex items-center gap-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 p-2 sm:px-3 sm:py-2 rounded-xl transition-colors group" title="Sair do Sistema">
+         <button onClick={onSair} className="w-11 h-11 sm:w-auto flex items-center justify-center gap-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 sm:px-3 rounded-xl transition-colors group shrink-0" title="Sair do Sistema">
            <LogOut size={18} className="group-hover:-translate-x-0.5 transition-transform" />
            <span className="text-sm font-bold hidden sm:block">Sair</span>
          </button>
@@ -357,9 +361,9 @@ export default function DashboardLayout({ children }) {
     return () => { vivo = false; };
   }, [pathname, router]);
 
-  // Hambúrguer: no desktop recolhe/expande a sidebar; no celular abre o overlay.
+  // Hambúrguer: em desktop largo recolhe/expande; celular e tablet usam overlay.
   function toggleSidebar() {
-    if (typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches) {
+    if (typeof window !== "undefined" && window.matchMedia("(min-width: 1280px)").matches) {
       setCollapsed((c) => {
         const novo = !c;
         try { localStorage.setItem("erp_sidebar_collapsed", novo ? "1" : "0"); } catch (_) {}
@@ -376,7 +380,7 @@ export default function DashboardLayout({ children }) {
   }
 
   return (
-    <div className="flex h-screen bg-[#F8FAFC] overflow-hidden print:bg-white print:block print:h-auto print:min-h-0">
+    <div className="erp-app-shell flex h-screen h-[100dvh] min-h-0 bg-[#F8FAFC] overflow-hidden print:bg-white print:block print:h-auto print:min-h-0">
       
       {/* Sidebar Lateral Escura */}
       <div className="print:hidden h-full flex shrink-0">
@@ -390,7 +394,7 @@ export default function DashboardLayout({ children }) {
         </div>
         
         {/* Main Content Area com Scrollbar customizada */}
-        <main className="flex-1 overflow-y-auto custom-scrollbar animate-page-in relative print:overflow-visible print:block">
+        <main className="erp-main-content flex-1 min-w-0 overflow-y-auto overscroll-y-contain custom-scrollbar animate-page-in relative print:overflow-visible print:block">
           {children}
         </main>
       </div>

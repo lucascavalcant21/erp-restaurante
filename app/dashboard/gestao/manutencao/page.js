@@ -192,16 +192,16 @@ export default function ManutencaoPage() {
         {form && (
           <form onSubmit={salvar}>
             <Field label="Serviço"><TextInput value={form.servico} onChange={e => setForm({ ...form, servico: e.target.value })} placeholder="Ex: Troca do compressor da câmara fria" required /></Field>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="Categoria"><Select value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })}>{CATEGORIAS_MANUTENCAO.map(c => <option key={c} value={c}>{c}</option>)}</Select></Field>
               <Field label="Data"><input type="date" value={form.data} onChange={e => setForm({ ...form, data: e.target.value })} className="erp-input" /></Field>
             </div>
             <Field label="Detalhes (opcional)"><TextInput value={form.descricao} onChange={e => setForm({ ...form, descricao: e.target.value })} placeholder="Peças trocadas, garantia..." /></Field>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="Valor (R$)"><NumberInput value={form.valor} onChange={e => setForm({ ...form, valor: e.target.value })} min="0" step="0.01" placeholder="0,00" required /></Field>
               <Field label="Forma de pagamento"><Select value={form.forma_pagamento} onChange={e => setForm({ ...form, forma_pagamento: e.target.value })}>{FORMAS.map(f => <option key={f} value={f}>{f}</option>)}</Select></Field>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="Prestador (quem recebe)"><TextInput value={form.prestador} onChange={e => setForm({ ...form, prestador: e.target.value })} placeholder="Nome do técnico/empresa" /></Field>
               <Field label="CPF/CNPJ (opcional)"><TextInput value={form.prestador_doc} onChange={e => setForm({ ...form, prestador_doc: e.target.value })} placeholder="000.000.000-00" /></Field>
             </div>

@@ -67,7 +67,7 @@ function FormEvento({ inicial, onSalvar, onCancelar }) {
       <Field label="Subtítulo">
         <TextInput value={f.subtitulo} onChange={(e) => set("subtitulo", e.target.value)} placeholder="uma noite inesquecível" />
       </Field>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Tag / Loja">
           <TextInput value={f.tag} onChange={(e) => set("tag", e.target.value)} placeholder="Seldeestrela" />
         </Field>
@@ -81,7 +81,7 @@ function FormEvento({ inicial, onSalvar, onCancelar }) {
         </Field>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Cobrança por">
           <Select value={f.charge_mode} onChange={(e) => set("charge_mode", e.target.value)}>
             <option value="couple">Casal</option>
@@ -98,7 +98,7 @@ function FormEvento({ inicial, onSalvar, onCancelar }) {
       </Field>
 
       <SectionLabel>Menu incluído</SectionLabel>
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <Field label="Entradas">
           <NumberInput value={f.entradas_inc} onChange={(e) => set("entradas_inc", e.target.value)} placeholder="1" step="1" />
         </Field>

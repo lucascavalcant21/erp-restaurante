@@ -25,7 +25,7 @@ function FormCliente({ inicial, onSalvar, onCancelar }) {
     <>
       <Field label="Nome"><TextInput value={f.nome} onChange={(e) => set("nome", e.target.value)} placeholder="ex: Maria Oliveira" /></Field>
       <Field label="Telefone / WhatsApp"><TextInput value={f.tel} onChange={(e) => set("tel", e.target.value)} placeholder="(31) 9..." /></Field>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Total gasto (R$)"><NumberInput value={f.total_gasto} onChange={(e) => set("total_gasto", e.target.value)} placeholder="0,00" step="0.01" /></Field>
         <Field label="Nº de pedidos"><NumberInput value={f.total_pedidos} onChange={(e) => set("total_pedidos", e.target.value)} placeholder="0" /></Field>
       </div>

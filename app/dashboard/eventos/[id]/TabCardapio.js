@@ -82,7 +82,7 @@ function FormIngrediente({ inicial, onSalvar, onCancelar }) {
         )}
       </Field>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Field label="Preço pago (R$)">
           <NumberInput value={f.custo_unit} onChange={(e) => set("custo_unit", e.target.value)} placeholder="65,00" step="0.01" />
         </Field>
@@ -196,7 +196,7 @@ function FormPreparo({ inicial, ingredientes, onSalvar, onCancelar }) {
         <TextInput value={f.nome} onChange={(e) => set("nome", e.target.value)} placeholder="ex: Bolo de cenoura, Purê de batata, Molho de tomate" />
       </Field>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Field label="Rende quanto?">
           <NumberInput value={f.rendimento} onChange={(e) => set("rendimento", e.target.value)} placeholder="5" step="0.01" />
         </Field>
@@ -325,7 +325,7 @@ function FormPrato({ inicial, ingredientes, preparos, onSalvar, onCancelar }) {
   return (
     <>
       <Field label="Nome do prato"><TextInput value={f.nome} onChange={(e) => set("nome", e.target.value)} placeholder="ex: Filé Wellington" /></Field>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Categoria">
           <Select value={f.categoria} onChange={(e) => set("categoria", e.target.value)}>
             {CATEGORIAS_PRATO.map((c) => <option key={c}>{c}</option>)}

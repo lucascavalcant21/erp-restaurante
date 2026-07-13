@@ -1124,14 +1124,14 @@ export default function RHPage() {
       <input type="file" ref={fileInputRef} className="hidden" onChange={handleUploadFile} accept=".pdf,.png,.jpg,.jpeg" />
       
       {/* HEADER: título + destaque; barra de ferramentas em linha própria, sem estourar */}
-      <div className="pt-6 pb-6 px-6 max-w-5xl mx-auto">
+      <div className="pt-5 sm:pt-6 pb-6 px-4 sm:px-6 max-w-5xl mx-auto">
          <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-3xl bg-slate-100 text-emerald-600 flex items-center justify-center shadow-inner">
                  <Users size={32} />
               </div>
               <div>
-                 <h1 className="text-4xl font-black tracking-tighter text-slate-900">RH & Equipe</h1>
+                 <h1 className="text-3xl sm:text-4xl font-black tracking-tighter text-slate-900">RH & Equipe</h1>
                  <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Gestão de Funcionários</p>
               </div>
             </div>
@@ -1255,7 +1255,7 @@ export default function RHPage() {
          })()}
       </div>
 
-      <div className="max-w-5xl mx-auto px-6">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6">
          
          <div className="flex gap-4 mb-4">
             <button onClick={()=>setAbaAtiva("Fixo")} className={`flex-1 py-3 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${abaAtiva === "Fixo" ? "bg-slate-800 text-white shadow-lg shadow-slate-800/20" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>Equipe Fixa</button>
@@ -1553,7 +1553,7 @@ export default function RHPage() {
                </div>
 
                <div className="space-y-4 flex-1 overflow-y-auto pr-2 pb-4 custom-scrollbar">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Tipo de Contrato</label>
                         <select value={novoFunc.tipo_contrato} onChange={e=>setNovoFunc({...novoFunc, tipo_contrato: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500 text-slate-700 appearance-none">
@@ -1602,7 +1602,7 @@ export default function RHPage() {
                      </div>
                      <p className="text-[10px] text-slate-400 font-medium mt-1">Pode marcar mais de um. Sem supervisor = topo da hierarquia no Organograma.</p>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Telefone / WhatsApp</label>
                         <input type="text" value={novoFunc.telefone} onChange={e=>setNovoFunc({...novoFunc, telefone: e.target.value})} placeholder="(00) 00000-0000" className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
@@ -1616,7 +1616,7 @@ export default function RHPage() {
                   {/* ── DADOS PESSOAIS ─────────────────────────────────────── */}
                   <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-4">
                      <p className="text-[11px] font-black uppercase tracking-widest text-slate-500">Dados Pessoais</p>
-                     <div className="grid grid-cols-3 gap-3">
+                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div className="col-span-2">
                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Endereço</label>
                            <input type="text" value={novoFunc.endereco} onChange={e=>setNovoFunc({...novoFunc, endereco: e.target.value})} placeholder="Rua, número, bairro" className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
@@ -1626,7 +1626,7 @@ export default function RHPage() {
                            <input type="text" value={novoFunc.cep} onChange={e=>setNovoFunc({...novoFunc, cep: e.target.value})} placeholder="00000-000" className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
                         </div>
                      </div>
-                     <div className="grid grid-cols-3 gap-3">
+                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div>
                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Data de Nascimento</label>
                            <input type="date" value={novoFunc.data_nascimento || ""} onChange={e=>setNovoFunc({...novoFunc, data_nascimento: e.target.value})} className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
@@ -1653,7 +1653,7 @@ export default function RHPage() {
                            </select>
                         </div>
                      </div>
-                     <div className="grid grid-cols-2 gap-3">
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Escolaridade</label>
                            <select value={novoFunc.escolaridade} onChange={e=>setNovoFunc({...novoFunc, escolaridade: e.target.value})} className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500">
@@ -1689,7 +1689,7 @@ export default function RHPage() {
                      </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Chave PIX</label>
                         <input type="text" value={novoFunc.chave_pix} onChange={e=>setNovoFunc({...novoFunc, chave_pix: e.target.value})} placeholder="Chave para pagamento" className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
@@ -1703,7 +1703,7 @@ export default function RHPage() {
                   {novoFunc.tipo_contrato !== "Freelancer" && (
                      <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-4">
                         <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700 mb-3">Composição da remuneração (além do fixo)</p>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                            <div>
                               <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Vale Alimentação (R$/mês)</label>
                               <input type="number" min="0" step="0.01" placeholder="0,00" value={novoFunc.vale_alimentacao} onChange={e=>setNovoFunc({...novoFunc, vale_alimentacao: e.target.value})} className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500"/>
@@ -1719,7 +1719,7 @@ export default function RHPage() {
                   )}
 
                   {novoFunc.tipo_contrato === "Fixo" && (
-                     <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-4 mt-4 bg-indigo-50/30 p-4 rounded-2xl">
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-slate-100 pt-4 mt-4 bg-indigo-50/30 p-4 rounded-2xl">
                         <div>
                            <label className="text-xs font-bold text-indigo-600 uppercase tracking-widest block mb-1">Data de Admissão</label>
                            <input type="date" value={novoFunc.data_admissao || ""} onChange={e=>setNovoFunc({...novoFunc, data_admissao: e.target.value})} className="w-full p-4 bg-white border border-slate-200 rounded-xl font-bold outline-none focus:border-indigo-500 text-slate-700"/>
@@ -1738,7 +1738,7 @@ export default function RHPage() {
 
                   <div className="border-t border-slate-100 pt-4 mt-4">
                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Horário — dias normais (seg a sáb)</p>
-                     <div className="grid grid-cols-2 gap-4">
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Entrada</label>
                            <input type="time" value={novoFunc.horario_entrada || ""} onChange={e=>setNovoFunc({...novoFunc, horario_entrada: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
@@ -1749,7 +1749,7 @@ export default function RHPage() {
                         </div>
                      </div>
                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 mt-3">Horário de domingo <span className="normal-case font-medium text-slate-400">(deixe vazio se for igual)</span></p>
-                     <div className="grid grid-cols-2 gap-4">
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Entrada (dom)</label>
                            <input type="time" value={novoFunc.horario_dom_entrada || ""} onChange={e=>setNovoFunc({...novoFunc, horario_dom_entrada: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
@@ -1760,7 +1760,7 @@ export default function RHPage() {
                         </div>
                      </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div>
                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2">Dias Trabalho</label>
                         <div className="flex flex-wrap gap-1">
@@ -1837,8 +1837,8 @@ export default function RHPage() {
          const fmt = (v) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
          return (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
-            <div className="bg-white rounded-[32px] w-full max-w-lg my-8 p-8 shadow-2xl animate-in zoom-in-95 max-h-[88vh] overflow-y-auto">
-               <div className="flex justify-between items-center mb-5">
+            <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-lg my-3 sm:my-8 p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[94vh] sm:max-h-[88vh] overflow-y-auto">
+               <div className="flex flex-wrap justify-between items-center gap-2 mb-5">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">Preparar Ficha de Extra</h2>
                      <p className="text-sm font-bold text-slate-500 mt-1">{fichaFunc ? fichaFunc.nome : "Ficha em branco (extra não cadastrado)"}</p>
@@ -1852,7 +1852,7 @@ export default function RHPage() {
                   <input type="number" min="0" step="0.01" value={fichaValor} onChange={e=>setFichaValor(e.target.value)} placeholder="Ex: 150,00"
                      className="w-full p-3.5 bg-white border-2 border-emerald-300 rounded-xl font-black text-2xl text-emerald-700 outline-none focus:border-emerald-500"/>
                   {total > 0 ? (
-                     <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-3 text-xs font-bold text-slate-600">
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 mt-3 text-xs font-bold text-slate-600">
                         <span>Valor Fixo: <b className="text-slate-800">{fmt(fixo)}</b></span>
                         <span>INSS (5%): <b className="text-slate-800">{fmt(inss)}</b></span>
                         <span>FGTS (8%): <b className="text-slate-800">{fmt(fgts)}</b></span>
@@ -1893,8 +1893,8 @@ export default function RHPage() {
       {/* MODAL: FERIADOS da unidade (dias que pagam +100% p/ quem trabalhar) */}
       {modalFeriados && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
-            <div className="bg-white rounded-[32px] w-full max-w-md my-8 p-8 shadow-2xl animate-in zoom-in-95 max-h-[85vh] flex flex-col">
-               <div className="flex justify-between items-center mb-5 shrink-0">
+            <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-md my-3 sm:my-8 p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[94vh] sm:max-h-[85vh] flex flex-col">
+               <div className="flex flex-wrap justify-between items-center gap-2 mb-5 shrink-0">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">Feriados</h2>
                      <p className="text-sm font-bold text-slate-500 mt-1">Quem trabalhar nesses dias recebe +100% (dobro, CLT)</p>
@@ -1933,8 +1933,8 @@ export default function RHPage() {
       {/* MODAL: DESLIGAMENTO (arquiva o funcionário com a vida dele) */}
       {modalDeslig && funcDeslig && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-[32px] w-full max-w-md p-8 shadow-2xl animate-in zoom-in-95">
-               <div className="flex justify-between items-center mb-5">
+            <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-md p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[94vh] overflow-y-auto">
+               <div className="flex flex-wrap justify-between items-center gap-2 mb-5">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">Desligar Funcionário</h2>
                      <p className="text-sm font-bold text-slate-500 mt-1">{funcDeslig.nome} · {funcDeslig.cargo || "—"}</p>
@@ -1943,7 +1943,7 @@ export default function RHPage() {
                </div>
                <p className="text-xs font-medium text-slate-500 mb-4 bg-slate-50 border border-slate-100 rounded-xl p-3">Ele sai da equipe ativa e vai para o arquivo de <b>Ex-funcionários</b>. Todo o histórico (ponto, advertências, documentos, banco de horas) fica preservado.</p>
                <form onSubmit={confirmarDesligamento} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Data</label>
                         <input type="date" value={desligForm.data} onChange={e=>setDesligForm({...desligForm, data: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-orange-400"/>
@@ -1976,7 +1976,7 @@ export default function RHPage() {
       {/* MODAL: ADVERTÊNCIAS do colaborador */}
       {modalAdv && funcAdv && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
-            <div className="bg-white rounded-[32px] w-full max-w-lg my-8 p-8 shadow-2xl animate-in zoom-in-95 max-h-[88vh] flex flex-col">
+            <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-lg my-3 sm:my-8 p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[94vh] sm:max-h-[88vh] flex flex-col">
                <div className="flex justify-between items-center mb-5 shrink-0">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">Advertências</h2>
@@ -2028,7 +2028,7 @@ export default function RHPage() {
          const alerta = total >= BANCO_ALERTA_MIN;
          return (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
-            <div className="bg-white rounded-[32px] w-full max-w-lg my-8 p-8 shadow-2xl animate-in zoom-in-95 max-h-[88vh] flex flex-col">
+            <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-lg my-3 sm:my-8 p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[94vh] sm:max-h-[88vh] flex flex-col">
                <div className="flex justify-between items-center mb-5 shrink-0">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">Banco de Horas</h2>
@@ -2106,8 +2106,8 @@ export default function RHPage() {
 
       {modalFolgas && funcParaFolgas && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-[32px] w-full max-w-[800px] p-8 shadow-2xl animate-in zoom-in-95 max-h-[90vh] overflow-hidden flex flex-col">
-               <div className="flex justify-between items-center mb-6 shrink-0">
+            <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-[800px] p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[94vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
+               <div className="flex flex-wrap justify-between items-center gap-2 mb-5 sm:mb-6 shrink-0">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">Gerenciar Folgas</h2>
                      <p className="text-xs font-bold text-slate-500">{funcParaFolgas.nome}</p>
@@ -2115,7 +2115,7 @@ export default function RHPage() {
                   <button onClick={() => setModalFolgas(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
                </div>
 
-               <div className="flex-1 overflow-y-auto pr-2 grid grid-cols-1 md:grid-cols-2 gap-8">
+               <div className="flex-1 overflow-y-auto pr-0 sm:pr-2 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8">
                   {/* Coluna 1: Adicionar Folgas */}
                   <div>
                      <div className="bg-slate-50 p-4 rounded-2xl mb-6 border border-slate-100">
@@ -2194,8 +2194,8 @@ export default function RHPage() {
       {/* Modal Consumo de Funcionários (Vales / Lanches / etc) */}
       {modalConsumo && funcionarioConsumo && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-[32px] w-full max-w-[900px] p-8 shadow-2xl animate-in zoom-in-95 max-h-[90vh] overflow-hidden flex flex-col">
-               <div className="flex justify-between items-center mb-6 shrink-0 border-b border-slate-100 pb-4">
+            <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-[900px] p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[94vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
+               <div className="flex flex-wrap justify-between items-center gap-2 mb-5 sm:mb-6 shrink-0 border-b border-slate-100 pb-4">
                   <div className="flex items-center gap-3">
                      <div className="w-12 h-12 bg-teal-100 text-teal-600 rounded-2xl flex items-center justify-center">
                         <ShoppingBag size={24} />
@@ -2208,7 +2208,7 @@ export default function RHPage() {
                   <button onClick={() => setModalConsumo(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors"><X size={20}/></button>
                </div>
 
-               <div className="flex-1 overflow-y-auto pr-2 grid grid-cols-1 md:grid-cols-2 gap-8">
+               <div className="flex-1 overflow-y-auto pr-0 sm:pr-2 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8">
                   {/* Lado Esquerdo: Adicionar Consumo */}
                   <div className="flex flex-col">
                      <div className="bg-teal-50 p-4 rounded-2xl mb-6 border border-teal-100">
@@ -2259,7 +2259,7 @@ export default function RHPage() {
                            <input type="text" value={novoConsumo.descricao} onChange={e=>setNovoConsumo({...novoConsumo, descricao: e.target.value})} placeholder="Ex: Almoço, Cerveja, Hambúrguer..." className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-teal-500 text-slate-700"/>
                         </div>
                         
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                            <div>
                               <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Data / Hora</label>
                               <input type="datetime-local" value={novoConsumo.data_consumo} onChange={e=>setNovoConsumo({...novoConsumo, data_consumo: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-teal-500 text-slate-700"/>
@@ -2402,7 +2402,7 @@ export default function RHPage() {
                      <input type="text" value={formLancamento.total} onChange={e => handleTotalLancamentoChange(e.target.value)} className="w-full bg-transparent text-2xl font-black text-emerald-800 outline-none" />
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div>
                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">INSS (5%)</label>
                         <input type="text" value={formLancamento.inss} onChange={e => setFormLancamento({...formLancamento, inss: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500" />

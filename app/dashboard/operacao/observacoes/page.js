@@ -46,28 +46,28 @@ export default function ObservacoesPage() {
   if (loading) return <div className="p-10 text-center font-bold text-slate-500">Carregando...</div>;
 
   return (
-    <div className="p-8 max-w-4xl mx-auto animate-in fade-in">
-      <div className="flex justify-between items-center mb-8">
+    <div className="p-4 sm:p-8 max-w-4xl mx-auto animate-in fade-in">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
         <div>
-          <h1 className="text-3xl font-black text-slate-800 flex items-center gap-3">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-800 flex items-center gap-3">
             <MessageSquareText size={28} className="text-[#4970AF]" /> Observações Fixas
           </h1>
           <p className="text-slate-500 font-bold mt-1">Crie botões rápidos para o garçom usar no Salão (Ex: "Com gelo", "Para Viagem")</p>
         </div>
-        <button onClick={() => setModalOpen(true)} className="bg-[#4970AF] hover:bg-[#3A5B99] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg transition-all active:scale-95">
+        <button onClick={() => setModalOpen(true)} className="w-full sm:w-auto bg-[#4970AF] hover:bg-[#3A5B99] text-white px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95">
           <Plus size={18} /> Nova Observação
         </button>
       </div>
 
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+      <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-4 sm:p-6">
          {observacoes.length === 0 ? (
             <p className="text-center text-slate-400 font-bold py-10">Nenhuma observação cadastrada. Crie a primeira!</p>
          ) : (
             <div className="flex flex-wrap gap-3">
                {observacoes.map(obs => (
-                  <div key={obs.id} className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 flex items-center gap-4 hover:border-[#4970AF] transition-colors group">
-                     <span className="font-bold text-slate-700 uppercase">{obs.texto}</span>
-                     <button onClick={() => handleExcluir(obs.id)} className="text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100">
+                  <div key={obs.id} className="max-w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 flex items-center gap-3 hover:border-[#4970AF] transition-colors group">
+                     <span className="font-bold text-slate-700 uppercase break-words min-w-0">{obs.texto}</span>
+                     <button onClick={() => handleExcluir(obs.id)} className="text-slate-400 hover:text-red-500 transition-colors sm:opacity-0 sm:group-hover:opacity-100 shrink-0">
                         <Trash2 size={16}/>
                      </button>
                   </div>
@@ -78,7 +78,7 @@ export default function ObservacoesPage() {
 
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-[32px] p-8 w-full max-w-sm shadow-2xl animate-in zoom-in-95">
+          <div className="bg-white rounded-[32px] p-5 sm:p-8 w-full max-w-sm max-h-[calc(100dvh-1rem)] overflow-y-auto shadow-2xl animate-in zoom-in-95">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-black text-slate-800">Nova Observação</h2>
               <button onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-slate-600"><X size={24}/></button>

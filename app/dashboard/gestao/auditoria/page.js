@@ -68,7 +68,7 @@ export default function AuditoriaPerdasPage() {
 
       <PageBody>
         {/* Filtro de Dias (Chips) */}
-        <div className="flex justify-center mb-6">
+        <div className="flex justify-start sm:justify-center mb-6 overflow-x-auto -mx-4 px-4 pb-1">
           <Chips 
             options={[
               { value: 7, label: "Últimos 7 dias" },
@@ -85,7 +85,7 @@ export default function AuditoriaPerdasPage() {
         {resumo.taxaGeral > 5 && (
           <Card style={{ background: "rgba(239,68,68,0.12)", borderColor: "#EF4444", marginBottom: 20 }} className="flex items-start gap-3">
             <TrendingDown size={22} style={{ color: "#EF4444", flexShrink: 0, marginTop: 2 }} />
-            <div>
+            <div className="min-w-0">
               <p className="text-sm font-bold" style={{ color: "#DC2626" }}>Alerta Crítico: Desperdício Acima da Média!</p>
               <p className="text-[12px]" style={{ color: "var(--fg-soft)" }}>A taxa média de perdas da sua operação está em <b style={{ color: "#DC2626" }}>{resumo.taxaGeral.toFixed(1)}%</b> (o normal é manter abaixo de 3~5%). Faça uma contagem urgente dos insumos com selo vermelho.</p>
             </div>
@@ -102,7 +102,7 @@ export default function AuditoriaPerdasPage() {
         <SearchBar value={busca} onChange={setBusca} placeholder="Procurar insumo analisado..." />
 
         {loading ? (
-          <div className="flex flex-col items-center justify-center p-12 gap-4">
+          <div className="flex flex-col items-center justify-center p-6 sm:p-12 gap-4 text-center">
             <Activity size={48} className="animate-pulse" style={{ color: "var(--dim)" }} />
             <p style={{ color: "var(--dim)", fontWeight: 600 }}>Cruzando fichas técnicas com baixas de inventário...</p>
           </div>
@@ -120,8 +120,8 @@ export default function AuditoriaPerdasPage() {
               return (
                 <Card key={item.estoque_id} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4" style={critico ? { borderLeft: "4px solid #EF4444", background: "rgba(239,68,68,0.03)" } : { borderLeft: "4px solid var(--line)" }}>
                   
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <p className="font-bold text-base" style={{ color: "var(--fg)" }}>{item.nome}</p>
                       {critico && <span className="erp-badge erp-badge-danger">Vazamento Crítico</span>}
                       {alerta && <span className="erp-badge erp-badge-warning">Alerta</span>}
@@ -131,23 +131,23 @@ export default function AuditoriaPerdasPage() {
                     </p>
                   </div>
 
-                  <div className="flex gap-6 items-center flex-wrap">
-                    <div className="text-right">
+                  <div className="grid grid-cols-2 gap-3 w-full md:w-auto md:grid-cols-4 md:gap-6 md:items-center">
+                    <div className="text-left md:text-right min-w-0">
                       <p className="text-[10px] font-bold uppercase" style={{ color: "var(--dim)" }}>Vendas (Teórico)</p>
                       <p className="text-lg font-black" style={{ color: "var(--fg)" }}>{item.teorico_vendas}</p>
                     </div>
 
-                    <div className="text-right">
+                    <div className="text-left md:text-right min-w-0">
                       <p className="text-[10px] font-bold uppercase" style={{ color: "var(--dim)" }}>Baixa Manual</p>
                       <p className="text-lg font-black" style={{ color: critico ? "#EF4444" : "var(--fg)" }}>{item.perda_manual}</p>
                     </div>
 
-                    <div className="text-right bg-black/20 px-3 py-1.5 rounded-lg border border-white/5">
+                    <div className="text-left md:text-right bg-black/20 px-3 py-1.5 rounded-lg border border-white/5 min-w-0">
                       <p className="text-[10px] font-bold uppercase" style={{ color: "var(--dim)" }}>Taxa %</p>
                       <p className="text-xl font-black" style={{ color: corStatus }}>{item.taxa_perda.toFixed(1)}%</p>
                     </div>
 
-                    <div className="text-right bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20 w-28">
+                    <div className="text-left md:text-right bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20 w-full md:w-28 min-w-0">
                       <p className="text-[10px] font-bold uppercase text-slate-600">Ralo Financeiro</p>
                       <p className="text-lg font-black text-slate-600">{fmtBRL(item.prejuizo)}</p>
                     </div>

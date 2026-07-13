@@ -84,14 +84,14 @@ export default function DreGerencialPage() {
              <div className="lg:col-span-1 space-y-6">
                 
                 {/* O Grande Termômetro de Lucratividade */}
-                <div className={`p-8 rounded-[32px] shadow-lg border relative overflow-hidden text-white ${isLucro ? 'bg-emerald-600 border-emerald-500' : 'bg-emerald-600 border-emerald-500'}`}>
+                <div className={`p-5 sm:p-8 rounded-2xl sm:rounded-[32px] shadow-lg border relative overflow-hidden text-white ${isLucro ? 'bg-emerald-600 border-emerald-500' : 'bg-emerald-600 border-emerald-500'}`}>
                    <div className="absolute top-0 right-0 p-6 opacity-10">
                       {isLucro ? <TrendingUp size={120} /> : <TrendingDown size={120} />}
                    </div>
                    
                    <p className="text-xs font-bold uppercase tracking-widest text-white/70 mb-4">Resultado Líquido ({periodoLetra})</p>
                    
-                   <h2 className="text-4xl font-black tracking-tighter drop-shadow-sm mb-2">{fmtBRL(dre.ebitda)}</h2>
+                   <h2 className="text-3xl sm:text-4xl font-black tracking-tighter drop-shadow-sm mb-2 break-words">{fmtBRL(dre.ebitda)}</h2>
                    
                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/20 backdrop-blur-md mt-2">
                       <span className="font-bold text-sm">Margem Líquida</span>
@@ -129,7 +129,7 @@ export default function DreGerencialPage() {
                 <div className="bg-white rounded-[32px] shadow-sm border border-slate-200 overflow-hidden">
                    
                    {/* Cabeçalho Tabela */}
-                   <div className="bg-slate-50 px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+                   <div className="bg-slate-50 px-4 sm:px-6 py-4 border-b border-slate-200 flex flex-wrap justify-between items-center gap-2">
                       <span className="text-xs font-black uppercase tracking-widest text-slate-500">Descrição da Conta</span>
                       <span className="text-xs font-black uppercase tracking-widest text-slate-500">Valor Acumulado</span>
                    </div>
@@ -155,7 +155,7 @@ export default function DreGerencialPage() {
                    {/* Listagem de Despesas Indentada */}
                    <div className="pb-4">
                       {Object.entries(dre.categorias).sort((a, b) => b[1] - a[1]).map(([cat, val], idx) => (
-                         <div key={cat} className="flex justify-between items-center px-6 py-2.5 hover:bg-slate-50 transition-colors group">
+                         <div key={cat} className="flex flex-wrap justify-between items-center gap-2 px-4 sm:px-6 py-2.5 hover:bg-slate-50 transition-colors group">
                             <div className="flex items-center gap-3">
                                <span className="text-[10px] font-bold text-slate-500 w-4">{idx + 1}</span>
                                <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900 transition-colors">{cat}</span>
@@ -182,7 +182,7 @@ export default function DreGerencialPage() {
                    <div className="h-4"></div>
 
                    {/* Linha Mestra: Resultado Líquido */}
-                   <div className={`px-6 py-6 border-t-2 border-slate-900 flex justify-between items-center ${isLucro ? 'bg-emerald-50' : 'bg-slate-50'}`}>
+                   <div className={`px-4 sm:px-6 py-5 sm:py-6 border-t-2 border-slate-900 flex flex-wrap justify-between items-center gap-2 ${isLucro ? 'bg-emerald-50' : 'bg-slate-50'}`}>
                       <div className="flex items-center gap-3">
                          <span className="w-6 h-6 rounded-md bg-slate-900 text-white flex items-center justify-center text-xs font-black">3</span>
                          <div>
@@ -207,7 +207,7 @@ export default function DreGerencialPage() {
 
 function LinhaTotal({ codigo, label, valor, cor, bg }) {
   return (
-    <div className={`flex justify-between items-center px-6 py-4 border-b border-slate-200 ${bg}`}>
+    <div className={`flex flex-wrap justify-between items-center gap-2 px-4 sm:px-6 py-4 border-b border-slate-200 ${bg}`}>
       <div className="flex items-center gap-3">
          <span className="text-[10px] font-black text-slate-500 border border-slate-300 w-5 h-5 rounded-md flex items-center justify-center bg-white">{codigo}</span>
          <span className={`text-sm font-black uppercase tracking-widest ${cor}`}>{label}</span>

@@ -26,11 +26,11 @@ function FormItem({ inicial, onSalvar, onCancelar }) {
   return (
     <>
       <Field label="Nome do item (Ex: Sabão em pó)"><TextInput value={f.nome} onChange={(e) => setF({ ...f, nome: e.target.value })} placeholder="Nome..." /></Field>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Categoria"><Select value={f.categoria} onChange={(e) => setF({ ...f, categoria: e.target.value })}>{CATEGORIAS_SUP.map(c => <option key={c}>{c}</option>)}</Select></Field>
         <Field label="Unidade"><Select value={f.unidade_medida} onChange={(e) => setF({ ...f, unidade_medida: e.target.value })}>{UNIDADES_SUP.map(u => <option key={u}>{u}</option>)}</Select></Field>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Custo Unitário (Global)"><NumberInput value={f.custo_unitario} onChange={(e) => setF({ ...f, custo_unitario: e.target.value })} placeholder="0,00" step="0.01" /></Field>
         <Field label="Fornecedor Principal"><TextInput value={f.fornecedor} onChange={(e) => setF({ ...f, fornecedor: e.target.value })} placeholder="Distribuidora..." /></Field>
       </div>
@@ -81,7 +81,7 @@ function FormTransferencia({ item, onConfirmar, onCancelar }) {
           {unidades.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
         </Select>
       </Field>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label={`Qtd a Enviar (${item.unidade_medida})`}><NumberInput value={qtd} onChange={(e) => setQtd(e.target.value)} placeholder="0" /></Field>
         <Field label="Novo Mínimo na Loja"><NumberInput value={minimo} onChange={(e) => setMinimo(e.target.value)} placeholder="Opcional" /></Field>
       </div>

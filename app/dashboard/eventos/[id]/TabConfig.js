@@ -100,7 +100,7 @@ export default function TabConfig({ evento, onChange }) {
 
         <Field label="Nome do evento"><TextInput value={f.nome} onChange={(e) => set("nome", e.target.value)} /></Field>
         <Field label="Subtítulo"><TextInput value={f.subtitulo} onChange={(e) => set("subtitulo", e.target.value)} /></Field>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Tag / Loja"><TextInput value={f.tag} onChange={(e) => set("tag", e.target.value)} /></Field>
           <Field label="Data">
             <input type="date" value={f.data_evento} onChange={(e) => set("data_evento", e.target.value)}
@@ -111,7 +111,7 @@ export default function TabConfig({ evento, onChange }) {
 
       <Card className="!p-4">
         <h3 style={{ fontWeight: 700, color: "var(--fg)", marginBottom: 12 }}>Menu e Capacidade</h3>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Cobrança por">
             <Select value={f.charge_mode} onChange={(e) => set("charge_mode", e.target.value)}>
               <option value="couple">Casal</option>
@@ -125,7 +125,7 @@ export default function TabConfig({ evento, onChange }) {
         </Field>
 
         <SectionLabel>Itens incluídos no menu</SectionLabel>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <Field label="Entradas"><NumberInput value={f.entradas_inc} onChange={(e) => set("entradas_inc", e.target.value)} step="1" /></Field>
           <Field label="Principais"><NumberInput value={f.principais_inc} onChange={(e) => set("principais_inc", e.target.value)} step="1" /></Field>
           <Field label="Sobremesas"><NumberInput value={f.sobremesas_inc} onChange={(e) => set("sobremesas_inc", e.target.value)} step="1" /></Field>
@@ -135,11 +135,11 @@ export default function TabConfig({ evento, onChange }) {
 
       <Card className="!p-4">
         <h3 style={{ fontWeight: 700, color: "var(--fg)", marginBottom: 12 }}>Taxas Financeiras</h3>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Impostos (%)"><NumberInput value={f.impostos_rate} onChange={(e) => set("impostos_rate", e.target.value)} step="0.01" /></Field>
           <Field label="Margem segurança compras (%)"><NumberInput value={f.margem_seg} onChange={(e) => set("margem_seg", e.target.value)} step="1" /></Field>
         </div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Field label="Taxa crédito (%)"><NumberInput value={f.credito_rate} onChange={(e) => set("credito_rate", e.target.value)} step="0.01" /></Field>
           <Field label="Taxa débito (%)"><NumberInput value={f.debito_rate} onChange={(e) => set("debito_rate", e.target.value)} step="0.01" /></Field>
           <Field label="Mix crédito (%)"><NumberInput value={f.credito_mix} onChange={(e) => set("credito_mix", e.target.value)} step="1" /></Field>

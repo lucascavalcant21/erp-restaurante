@@ -98,7 +98,7 @@ export default function MotorDeTarefasPage() {
         <SectionLabel>Meus Templates ({templates.length})</SectionLabel>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
           {templates.map(t => (
-            <Card key={t.id} className="p-5 flex flex-col justify-between">
+            <Card key={t.id} className="!p-4 sm:!p-5 flex flex-col justify-between">
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <FileText size={18} style={{ color: "var(--accent)" }} />
@@ -131,26 +131,26 @@ export default function MotorDeTarefasPage() {
         <SectionLabel className="mt-4">Campos do Formulário</SectionLabel>
         <div className="space-y-2 mb-4 max-h-60 overflow-y-auto">
           {fCampos.map((c, i) => (
-            <div key={i} className="flex gap-2 items-center p-2 rounded-lg" style={{ background: "rgba(255,255,255,0.05)" }}>
-              <div className="flex-1">
+            <div key={i} className="flex flex-col sm:flex-row gap-2 sm:items-center p-2 rounded-lg" style={{ background: "rgba(255,255,255,0.05)" }}>
+              <div className="w-full sm:flex-1 min-w-0">
                 <TextInput value={c.label} onChange={(e) => alteraCampo(i, e.target.value)} />
               </div>
-              <div className="w-24 text-[10px] font-bold text-center uppercase" style={{ color: "var(--accent)" }}>{c.tipo}</div>
-              <button onClick={() => removeCampo(i)} className="p-2 rounded hover:bg-emerald-500/20"><Trash size={16} color="#ef4444" /></button>
+              <div className="w-full sm:w-24 text-[10px] font-bold text-left sm:text-center uppercase" style={{ color: "var(--accent)" }}>{c.tipo}</div>
+              <button onClick={() => removeCampo(i)} className="p-2 rounded hover:bg-emerald-500/20 self-end sm:self-auto" aria-label="Remover campo"><Trash size={16} color="#ef4444" /></button>
             </div>
           ))}
           {fCampos.length === 0 && <p className="text-xs text-center p-4 text-gray-500">Nenhum campo. Adicione um abaixo.</p>}
         </div>
 
-        <div className="flex gap-2 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-6">
           <button onClick={() => addCampo("checkbox")} className="flex-1 p-2 rounded-lg text-xs font-bold bg-white/5 hover:bg-white/10">+ Checkbox</button>
           <button onClick={() => addCampo("text")} className="flex-1 p-2 rounded-lg text-xs font-bold bg-white/5 hover:bg-white/10">+ Texto</button>
           <button onClick={() => addCampo("number")} className="flex-1 p-2 rounded-lg text-xs font-bold bg-white/5 hover:bg-white/10">+ Número</button>
         </div>
 
-        <div className="flex gap-3">
-          <Btn variant="ghost" className="flex-1" onClick={() => setModalNovo(false)}>Cancelar</Btn>
-          <Btn variant="primary" className="flex-1" onClick={salvarTemplate}>Salvar Template</Btn>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Btn variant="ghost" className="w-full" onClick={() => setModalNovo(false)}>Cancelar</Btn>
+          <Btn variant="primary" className="w-full" onClick={salvarTemplate}>Salvar Template</Btn>
         </div>
       </Modal>
 
@@ -170,9 +170,9 @@ export default function MotorDeTarefasPage() {
               <input type="datetime-local" className="erp-input w-full" value={envioPrazo} onChange={(e) => setEnvioPrazo(e.target.value)} />
             </Field>
 
-            <div className="flex gap-3 mt-6">
-              <Btn variant="ghost" className="flex-1" onClick={() => setModalEnviar(null)}>Cancelar</Btn>
-              <Btn variant="primary" className="flex-1" onClick={despacharTarefa}>Enviar Agora</Btn>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6">
+              <Btn variant="ghost" className="w-full" onClick={() => setModalEnviar(null)}>Cancelar</Btn>
+              <Btn variant="primary" className="w-full" onClick={despacharTarefa}>Enviar Agora</Btn>
             </div>
           </>
         )}

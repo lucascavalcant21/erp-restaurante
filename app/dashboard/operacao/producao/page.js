@@ -269,23 +269,23 @@ function ProducaoRunner() {
     <div ref={containerRef} className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50">
       
       {/* TOPBAR */}
-      <div className="bg-white border-b border-slate-200 pt-6 pb-6 px-6 sticky top-0 z-10">
-         <div className="max-w-5xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-4">
+      <div className="bg-white border-b border-slate-200 py-4 sm:py-6 px-4 sm:px-6 sticky top-0 z-10">
+         <div className="max-w-5xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
               <button onClick={() => abrirMenu()} className="p-3 text-slate-500 hover:text-slate-800 bg-slate-50 rounded-full border border-slate-200">
                  <ArrowLeft size={20}/>
               </button>
-              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner ${isBar ? 'bg-slate-100 text-emerald-600' : 'bg-slate-100 text-emerald-600'}`}>
+               <div className={`hidden sm:flex w-14 h-14 shrink-0 rounded-2xl items-center justify-center shadow-inner ${isBar ? 'bg-slate-100 text-emerald-600' : 'bg-slate-100 text-emerald-600'}`}>
                  {isBar ? <Droplets size={28} /> : <Flame size={28} />}
               </div>
               <div>
-                 <h1 className="text-3xl font-black tracking-tighter text-slate-900">Produção do Dia</h1>
+                  <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-slate-900">Produção do Dia</h1>
                  <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Baixa Automática de Estoque</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-               <button onClick={() => setModalPlanejar(true)} className="flex items-center gap-2 bg-slate-900 text-white px-5 py-3 rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-lg">
-                  <ClipboardList size={18}/> Planejar & Imprimir o Dia
+            <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto">
+               <button onClick={() => setModalPlanejar(true)} className="flex items-center gap-2 bg-slate-900 text-white px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-slate-800 transition-colors shadow-lg">
+                  <ClipboardList size={18}/> <span className="hidden sm:inline">Planejar & Imprimir o Dia</span><span className="sm:hidden">Planejar</span>
                   {itensPlanejados.length > 0 && <span className="bg-emerald-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">{itensPlanejados.length}</span>}
                </button>
                {cmvMedio !== null && (
@@ -301,7 +301,7 @@ function ProducaoRunner() {
          </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 mt-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 mt-6 sm:mt-8">
          <div className="mb-6">
             <h2 className="text-xl font-black text-slate-800 mb-2">O que você vai produzir agora?</h2>
             <p className="text-slate-500 font-medium">Selecione a ficha técnica. O sistema vai calcular e retirar os ingredientes do estoque físico.</p>
@@ -353,7 +353,7 @@ function ProducaoRunner() {
       {modalPlanejar && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
             <div className="bg-white rounded-[32px] w-full max-w-2xl my-8 shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[88vh]">
-               <div className="flex justify-between items-center p-8 pb-5 border-b border-slate-100 shrink-0">
+               <div className="flex justify-between items-center p-4 sm:p-8 pb-4 sm:pb-5 border-b border-slate-100 shrink-0">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">Produção do Dia — Planejamento</h2>
                      <p className="text-xs font-bold text-slate-500 mt-1">Defina o que produzir e quanto. Designe quem faz (ou deixe em branco para escreverem o nome na folha).</p>
@@ -361,7 +361,7 @@ function ProducaoRunner() {
                   <button onClick={() => setModalPlanejar(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
                </div>
 
-               <div className="p-8 pt-5 overflow-y-auto space-y-3">
+               <div className="p-4 sm:p-8 pt-4 sm:pt-5 overflow-y-auto space-y-3">
                   <div className="flex items-center gap-3">
                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Data da produção</label>
                      <input type="date" value={dataPlano} onChange={e=>setDataPlano(e.target.value)} className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-700 outline-none focus:border-emerald-500"/>
@@ -391,7 +391,7 @@ function ProducaoRunner() {
                   })}
                </div>
 
-               <div className="p-8 pt-4 border-t border-slate-100 bg-slate-50 rounded-b-[32px] shrink-0 flex items-center gap-3">
+               <div className="p-4 sm:p-8 sm:pt-4 border-t border-slate-100 bg-slate-50 rounded-b-[32px] shrink-0 flex flex-col sm:flex-row sm:items-center gap-3">
                   <p className="flex-1 text-xs font-bold text-slate-500">{itensPlanejados.length} item(ns) no plano</p>
                   <button onClick={imprimirPlanoDoDia} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-4 rounded-2xl font-black transition-all active:scale-95 shadow-xl shadow-emerald-600/20">
                      <Printer size={18}/> Imprimir Planilha do Dia
@@ -403,7 +403,7 @@ function ProducaoRunner() {
 
       {modalProduzir && fichaAtual && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-[32px] w-full max-w-lg p-8 shadow-2xl animate-in zoom-in-95">
+            <div className="bg-white rounded-[32px] w-full max-w-lg p-5 sm:p-8 max-h-[calc(100dvh-1rem)] overflow-y-auto shadow-2xl animate-in zoom-in-95">
                <div className="flex justify-between items-center mb-6">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">Registrar Produção</h2>

@@ -33,12 +33,12 @@ export default function DepartamentosPage() {
       <PageBody>
         <div className="space-y-3">
           {departamentos.map((dept) => (
-            <Card key={dept.id} className="!p-4 cursor-pointer hover:opacity-80 transition" onClick={() => { setDepartamento(dept.id); router.push(dept.href); }}>
-              <div className="flex items-center gap-4">
-                <div className="text-3xl">{dept.label.split(" ")[0]}</div>
-                <div className="flex-1">
-                  <p className="text-lg font-bold" style={{ color: "var(--fg)" }}>{dept.label}</p>
-                  <p className="text-sm" style={{ color: "var(--dim)" }}>{dept.desc}</p>
+            <Card key={dept.id} className="!p-3 sm:!p-4 cursor-pointer hover:opacity-80 transition" onClick={() => { setDepartamento(dept.id); router.push(dept.href); }}>
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="text-2xl sm:text-3xl flex-shrink-0">{dept.label.split(" ")[0]}</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-base sm:text-lg font-bold break-words" style={{ color: "var(--fg)" }}>{dept.label}</p>
+                  <p className="text-xs sm:text-sm break-words" style={{ color: "var(--dim)" }}>{dept.desc}</p>
                 </div>
                 <div style={{ color: "var(--muted)" }}>→</div>
               </div>

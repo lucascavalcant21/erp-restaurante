@@ -373,9 +373,9 @@ export default function NotasFiscaisPage() {
 
                 {/* Área Expansível (Foto da Nota) */}
                 {notaExpandida === n.id && (
-                  <div className="p-4 mt-2 rounded-xl mb-6 flex gap-4" style={{ background: "var(--card)", border: "1px dashed var(--line)" }}>
+                  <div className="p-4 mt-2 rounded-xl mb-6 flex flex-col sm:flex-row gap-4" style={{ background: "var(--card)", border: "1px dashed var(--line)" }}>
                     <div className="flex flex-col gap-2">
-                      <div onClick={() => n.imagem_url && setFotoAberta(n.imagem_url)} title="Clique para ampliar na mesma tela" className="w-32 h-40 rounded-lg overflow-hidden border flex items-center justify-center bg-black/5 hover:ring-2 hover:ring-blue-500 transition-all cursor-pointer" style={{ borderColor: "var(--line)" }}>
+                      <div onClick={() => n.imagem_url && setFotoAberta(n.imagem_url)} title="Clique para ampliar na mesma tela" className="w-full sm:w-32 h-48 sm:h-40 rounded-lg overflow-hidden border flex items-center justify-center bg-black/5 hover:ring-2 hover:ring-blue-500 transition-all cursor-pointer" style={{ borderColor: "var(--line)" }}>
                         {n.imagem_url ? (
                           /* eslint-disable-next-line @next/next/no-img-element */
                           <img src={n.imagem_url} alt="Nota Fisical" className="w-full h-full object-cover hover:object-contain transition-all" />
@@ -417,8 +417,8 @@ export default function NotasFiscaisPage() {
           <div className="flex flex-col items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={fotoAberta} alt="Nota Ampliada" className="max-h-[70vh] object-contain rounded-xl border mb-4" style={{ borderColor: "var(--line)" }} />
-            <div className="flex gap-4 w-full justify-center">
-              <a href={fotoAberta} download="nota_fiscal_erp.jpg" className="px-6 py-2 rounded-lg font-bold transition-all text-white flex items-center gap-2" style={{ background: "#3B82F6" }}>
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full justify-center">
+              <a href={fotoAberta} download="nota_fiscal_erp.jpg" className="px-6 py-2 rounded-lg font-bold transition-all text-white flex items-center justify-center gap-2" style={{ background: "#3B82F6" }}>
                 <UploadCloud size={18} className="rotate-180" /> Baixar Imagem
               </a>
               <Btn variant="ghost" onClick={() => setFotoAberta(null)}>Fechar Visualizador</Btn>

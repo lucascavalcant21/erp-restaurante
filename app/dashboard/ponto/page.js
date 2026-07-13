@@ -125,7 +125,7 @@ function ModalHistorico({ onClose, colaborador }) {
              return (
                <div key={reg.id} className="p-4 rounded-2xl border border-slate-200 bg-slate-50 flex flex-col gap-2">
                  <p className="text-sm font-black text-slate-700 border-b border-slate-200 pb-2 mb-1">{dataFormatada}</p>
-                 <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-xs">
                     <div>
                        <p className="text-slate-400 font-bold uppercase text-[10px]">Entrada</p>
                        <p className="font-bold text-slate-800">{reg.hora_entrada ? new Date(reg.hora_entrada).toLocaleTimeString('pt-BR').slice(0,5) : '--:--'}</p>
@@ -335,7 +335,7 @@ export default function PontoPage() {
                        <div className="w-full text-left">
                           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-2 mb-3">Registro do Dia:</p>
                           
-                          <div className="grid grid-cols-2 gap-3 w-full mb-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full mb-4">
                              {/* Botão 1 */}
                              <button onClick={() => handleBaterPonto('entrada')} disabled={st !== 0} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 0 ? 'bg-emerald-600 text-white shadow-xl shadow-emerald-600/20 hover:bg-emerald-700 scale-105' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
                                 <div className="flex items-center gap-2">

@@ -76,8 +76,8 @@ export default function LojaDeliveryPage({ params }) {
         </div>
 
         {/* Info do Restaurante (Logo por cima) */}
-        <div className="px-5 relative">
-          <div className="absolute -top-12 md:-top-16 left-5">
+        <div className="px-4 sm:px-5 relative">
+          <div className="absolute -top-12 md:-top-16 left-4 sm:left-5">
             <div className="w-24 h-24 md:w-32 md:h-32 bg-white rounded-full p-1.5 shadow-xl">
               <img src={logoUrl} alt="Logo" className="w-full h-full object-cover rounded-full" />
             </div>
@@ -88,7 +88,7 @@ export default function LojaDeliveryPage({ params }) {
               {lojaSlug.replace("-", " ")}
             </h1>
             
-            <div className="flex items-center gap-3 mt-2 text-sm font-bold text-slate-500">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-2 text-sm font-bold text-slate-500">
               <span className="flex items-center gap-1 text-orange-500 bg-orange-50 px-2 py-0.5 rounded-md">
                 <Star size={14} className="fill-orange-500" /> 4.9
               </span>
@@ -118,7 +118,7 @@ export default function LojaDeliveryPage({ params }) {
       </div>
 
       {/* NAVEGAÇÃO DE CATEGORIAS (STICKY) */}
-      <div className="sticky top-0 z-30 bg-slate-50/90 backdrop-blur-xl py-3 px-5 border-b border-slate-200">
+      <div className="sticky top-0 z-30 bg-slate-50/90 backdrop-blur-xl py-3 px-4 sm:px-5 border-b border-slate-200">
         <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-1">
           {categorias.map(cat => (
             <button 
@@ -137,7 +137,7 @@ export default function LojaDeliveryPage({ params }) {
       </div>
 
       {/* VITRINE DE PRODUTOS */}
-      <div className="px-5 py-6 max-w-3xl mx-auto">
+      <div className="px-4 sm:px-5 py-6 max-w-3xl mx-auto">
         <h2 className="text-xl font-black text-slate-800 mb-4">{categoriaAtiva}</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -147,10 +147,10 @@ export default function LojaDeliveryPage({ params }) {
             </div>
           ) : (
             filtrados.map((prato, idx) => (
-              <div key={prato.id} className="bg-white rounded-[24px] p-4 shadow-sm border border-slate-100 flex gap-4 transition-transform active:scale-[0.98] relative overflow-hidden group">
+              <div key={prato.id} className="bg-white rounded-[24px] p-4 shadow-sm border border-slate-100 flex gap-3 sm:gap-4 transition-transform active:scale-[0.98] relative overflow-hidden group min-w-0">
                 
                 {/* Info Textual */}
-                <div className="flex-1 flex flex-col justify-center">
+                <div className="flex-1 min-w-0 flex flex-col justify-center">
                   <h3 className="font-black text-slate-800 text-[15px] leading-tight mb-1">{prato.nome}</h3>
                   <p className="text-[12px] font-medium text-slate-500 line-clamp-2 leading-relaxed mb-3">
                     {prato.descricao || "Acompanha molho especial da casa e aquele toque de chef."}
@@ -167,7 +167,7 @@ export default function LojaDeliveryPage({ params }) {
                 
                 {/* Imagem do Produto + Botão Adicionar */}
                 <div className="relative">
-                  <div className="w-28 h-28 bg-slate-100 rounded-[20px] bg-cover bg-center border border-slate-100 shadow-inner flex items-center justify-center text-slate-300 overflow-hidden"
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 bg-slate-100 rounded-[20px] bg-cover bg-center border border-slate-100 shadow-inner flex items-center justify-center text-slate-300 overflow-hidden"
                        style={{ backgroundImage: prato.imagem_url ? `url(${prato.imagem_url})` : 'none' }}>
                     {!prato.imagem_url && <Flame size={32} className="opacity-20"/>}
                   </div>

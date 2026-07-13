@@ -60,7 +60,7 @@ function FormLancamento({ isReceita, onSalvar, onCancelar }) {
           <TextInput value={descricao} onChange={(e) => { setDescricao(e.target.value); setErro(""); }} placeholder="ex: Compra de hortifruti..." className="!bg-slate-50" />
         </Field>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Categoria Contábil">
             <Select value={categoria} onChange={(e) => setCategoria(e.target.value)} className="!bg-slate-50">
                {cats.map((c) => <option key={c}>{c}</option>)}
@@ -138,7 +138,7 @@ export default function FluxoCaixaFintechPage() {
          
          <div className="relative z-10 max-w-3xl mx-auto text-center">
             <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Conta da Unidade · {unidadeInfo.nome}</p>
-            <h1 className="text-5xl md:text-7xl font-black tracking-tighter mb-2">{fmtBRL(resumo.saldo)}</h1>
+            <h1 className="text-4xl sm:text-5xl md:text-7xl font-black tracking-tighter mb-2 break-words">{fmtBRL(resumo.saldo)}</h1>
             <p className="text-sm font-medium text-slate-500">Saldo Atual do Período Operacional</p>
          </div>
       </div>
@@ -146,7 +146,7 @@ export default function FluxoCaixaFintechPage() {
       <PageBody className="max-w-3xl mx-auto -mt-16 relative z-20">
          
          {/* ACTION BUTTONS (Nova Receita / Nova Despesa) */}
-         <div className="grid grid-cols-2 gap-4 mb-10">
+         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 sm:mb-10">
             <button 
               onClick={() => setModalReceita(true)} 
               className="bg-white p-6 rounded-[32px] shadow-lg border border-slate-100 flex flex-col items-center justify-center gap-3 group hover:shadow-xl hover:-translate-y-1 transition-all"
@@ -169,7 +169,7 @@ export default function FluxoCaixaFintechPage() {
          </div>
 
          {/* RESUMO RÁPIDO */}
-         <div className="bg-white p-2 rounded-2xl border border-slate-200 flex justify-between items-center mb-10 shadow-sm">
+         <div className="bg-white p-2 rounded-2xl border border-slate-200 flex flex-wrap justify-between items-center gap-2 mb-8 sm:mb-10 shadow-sm">
             <div className="flex-1 text-center py-3 border-r border-slate-100">
                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Entradas</p>
                <p className="text-lg font-black text-emerald-600">{fmtBRL(resumo.entradas)}</p>
@@ -204,7 +204,7 @@ export default function FluxoCaixaFintechPage() {
                   {filtrados.map((l) => {
                     const isEntrada = l.tipo === "entrada";
                     return (
-                      <div key={l.id} className="p-5 flex items-center justify-between hover:bg-slate-50 transition-colors group">
+                      <div key={l.id} className="p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3 hover:bg-slate-50 transition-colors group">
                          
                          <div className="flex items-center gap-4">
                             {/* Ícone FinTech */}

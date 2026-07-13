@@ -138,7 +138,16 @@ export async function fazerLogin(email, senha) {
 // ── Sessão ─────────────────────────────────────────────────────
 export async function lerSessao() {
   if (!isSupabaseReady()) return null;
-  const { data } = await supabase.auth.getSession();
+  let { data } = await supabase.auth.getSession();
+  // Se não achou a sessão de primeira (token expirado ou rede oscilou ao voltar
+  // do segundo plano), tenta renovar pelo refresh token antes de dar como
+  // deslogado — assim o usuário não é expulso à toa no celular/tablet.
+  if (!data?.session) {
+    try {
+      const r = await supabase.auth.refreshSession();
+      if (r?.data?.session) data = r.data;
+    } catch (_) {}
+  }
   return data?.session?.user ? mapUser(data.session.user) : null;
 }
 

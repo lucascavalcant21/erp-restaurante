@@ -13,9 +13,28 @@ export default function PullToRefresh() {
   const distRef = useRef(0);
   const startY = useRef(null);
   const ativo = useRef(false);
+  const container = useRef(null);   // quem realmente rola sob o dedo
 
-  const THRESHOLD = 70;   // puxada mínima para disparar
-  const MAX = 130;        // deslocamento máximo (com resistência)
+  const THRESHOLD = 110;  // puxada mínima para disparar (firme e deliberada)
+  const MAX = 150;        // deslocamento máximo (com resistência)
+
+  // Encontra o elemento que de fato rola sob o toque. No painel, quem rola é o
+  // <main> interno (a janela fica sempre em scrollY 0) — por isso não dá para
+  // confiar em window.scrollY. Sobe na árvore até achar um container rolável.
+  const acharContainer = (alvo) => {
+    let node = alvo;
+    while (node && node.nodeType === 1 && node !== document.body) {
+      const st = window.getComputedStyle(node);
+      const oy = st.overflowY;
+      if ((oy === "auto" || oy === "scroll") && node.scrollHeight > node.clientHeight + 1) {
+        return node;
+      }
+      node = node.parentNode;
+    }
+    return document.scrollingElement || document.documentElement;
+  };
+
+  const noTopo = (c) => (c ? c.scrollTop <= 0 : window.scrollY <= 0);
 
   useEffect(() => {
     const ehStandalone =
@@ -25,13 +44,20 @@ export default function PullToRefresh() {
     if (!ehStandalone) return; // só dentro do app instalado
 
     const onStart = (e) => {
-      if (window.scrollY > 0 || refreshing) { ativo.current = false; return; }
+      // Um dedo só; se estiver recarregando, ignora
+      if (refreshing || e.touches.length !== 1) { ativo.current = false; return; }
+      const c = acharContainer(e.target);
+      container.current = c;
+      // Só arma o gesto se o conteúdo já está encostado no topo
+      if (!noTopo(c)) { ativo.current = false; return; }
       startY.current = e.touches[0].clientY;
       ativo.current = true;
     };
     const onMove = (e) => {
       if (!ativo.current || startY.current == null) return;
-      if (window.scrollY > 0) { ativo.current = false; distRef.current = 0; setDist(0); return; }
+      // Se durante o movimento o conteúdo saiu do topo (o usuário está rolando
+      // a página, não puxando), cancela na hora — nada de recarregar.
+      if (!noTopo(container.current)) { ativo.current = false; distRef.current = 0; setDist(0); return; }
       const dy = e.touches[0].clientY - startY.current;
       if (dy <= 0) { distRef.current = 0; setDist(0); return; }
       const d = Math.min(MAX, dy * 0.5); // resistência

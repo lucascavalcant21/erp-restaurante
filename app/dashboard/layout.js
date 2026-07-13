@@ -410,6 +410,7 @@ export default function DashboardLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
   const [sessao, setSessao] = useState(null);
+  const sessaoRef = useRef(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   // Recolher a sidebar no desktop (lembra a preferência entre sessões)
   const [collapsed, setCollapsed] = useState(false);
@@ -440,8 +441,12 @@ export default function DashboardLayout({ children }) {
     } catch (_) {}
     lerSessao().then((s) => {
       if (!vivo) return;
-      if (!s) { router.replace("/login"); return; }
-      setSessao(s);
+      if (s) { sessaoRef.current = s; setSessao(s); return; }
+      // Só manda para o login se o usuário AINDA não estava logado nesta sessão.
+      // Se já tínhamos sessão, um retorno vazio aqui é quase sempre um tropeço
+      // momentâneo (token renovando / rede oscilando ao voltar do 2º plano) —
+      // nesse caso não expulsamos: mantemos a tela e seguimos.
+      if (!sessaoRef.current) router.replace("/login");
     });
     // Fecha o menu mobile quando mudar de rota
     setMobileOpen(false);
@@ -462,6 +467,7 @@ export default function DashboardLayout({ children }) {
   }
 
   async function sair() {
+    sessaoRef.current = null;
     await encerrarSessao();
     router.replace("/login");
   }

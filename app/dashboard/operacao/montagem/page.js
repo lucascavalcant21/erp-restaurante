@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { ClipboardList, Plus, Trash2, Edit3, Printer, Camera, Clock, Sparkles, Loader2, ArrowUp, ArrowDown, SlidersHorizontal, Save, RotateCcw, ImageIcon, Type, Palette, ListChecks } from "lucide-react";
+import { ClipboardList, Plus, Trash2, Edit3, Printer, Camera, Clock, Sparkles, Loader2, ArrowUp, ArrowDown, SlidersHorizontal, Save, RotateCcw, ImageIcon, Type, Palette, ListChecks, Download, Share2, X, Eye } from "lucide-react";
 import {
   PageHeader, PageBody, Card, SectionLabel, KpiGrid, Kpi,
   SearchBar, Chips, EmptyState, Modal, Field, TextInput, NumberInput, Select, Btn, Toast,
@@ -1062,6 +1062,7 @@ function MontagemPageInner() {
   const [modal, setModal] = useState(false);
   const [editar, setEditar] = useState(null);
   const [previewFicha, setPreviewFicha] = useState(null); // estado vivo do formulário p/ prévia
+  const [previewCard, setPreviewCard] = useState(null); // ficha aberta ao clicar num card (modelo pronto)
   const [modalImpressao, setModalImpressao] = useState(false); // impressão em lote
   // Seleção de fichas para imprimir juntas (ex.: 2 receitas na mesma página)
   const [selecionadas, setSelecionadas] = useState([]);
@@ -1196,6 +1197,55 @@ function MontagemPageInner() {
     if (!confirm("Remover esta ficha de montagem?")) return;
     await removerMontagem(id);
     setLista((p) => p.filter((m) => m.id !== id));
+    setPreviewCard((atual) => (atual && atual.id === id ? null : atual));
+  }
+
+  const deptLabelAtual = () => (dept === "bar" ? "Bar" : "Cozinha");
+
+  // Baixar em PDF: abre a janela de impressão do modelo — o usuário escolhe
+  // "Salvar como PDF". É o caminho nativo (sem depender de bibliotecas extras).
+  function baixarPdf(m) {
+    imprimirModelo([m], cfgModelo, deptLabelAtual());
+    setSalvou('Na janela de impressão, escolha "Salvar como PDF".');
+    setTimeout(() => setSalvou(""), 4000);
+  }
+
+  // Compartilhar: usa o compartilhamento nativo do aparelho. Manda a foto do
+  // prato como imagem quando possível; se não der, envia o texto; por último,
+  // copia para a área de transferência.
+  async function compartilharFicha(m) {
+    const texto = `${m.nome || "Ficha"}${m.descritivo ? " — " + m.descritivo : ""}`;
+    try {
+      if (m.foto_url && typeof navigator !== "undefined" && navigator.canShare) {
+        try {
+          const resp = await fetch(m.foto_url);
+          const blob = await resp.blob();
+          const ext = (blob.type.split("/")[1] || "jpg").replace("jpeg", "jpg");
+          const file = new File([blob], `${(m.nome || "ficha").replace(/[^\w.-]+/g, "_")}.${ext}`, { type: blob.type || "image/jpeg" });
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: m.nome, text: texto });
+            return;
+          }
+        } catch (_) { /* cai para o compartilhamento de texto abaixo */ }
+      }
+      if (typeof navigator !== "undefined" && navigator.share) {
+        await navigator.share({ title: m.nome, text: texto });
+        return;
+      }
+      await navigator.clipboard.writeText(texto);
+      setSalvou("Ficha copiada para a área de transferência.");
+      setTimeout(() => setSalvou(""), 2600);
+    } catch (e) {
+      if (e && e.name === "AbortError") return; // usuário cancelou
+      try {
+        await navigator.clipboard.writeText(texto);
+        setSalvou("Ficha copiada para a área de transferência.");
+        setTimeout(() => setSalvou(""), 2600);
+      } catch (_) {
+        setSalvou("Não foi possível compartilhar neste aparelho.");
+        setTimeout(() => setSalvou(""), 3000);
+      }
+    }
   }
 
   const titulo = dept === "bar" ? "Montagem — Bar" : "Montagem — Cozinha";
@@ -1228,60 +1278,83 @@ function MontagemPageInner() {
           ) : filtrados.length === 0 ? (
             <EmptyState icon={ClipboardList} title={busca ? "Nenhuma ficha encontrada" : "Sem fichas cadastradas"} hint={busca ? "Ajuste a busca" : "Clique em Nova para adicionar"} />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <>
+            <p className="text-[11px] font-medium mb-3" style={{ color: "var(--dim)" }}>Toque num card para ver o modelo pronto e escolher imprimir, baixar, compartilhar ou excluir.</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
               {filtrados.map((m) => (
-                <Card key={m.id} className="!p-0 hover:shadow-xl transition-shadow relative overflow-hidden group flex flex-col justify-between">
+                <button key={m.id} type="button" onClick={() => setPreviewCard(m)} title="Ver modelo pronto"
+                  className="text-left rounded-2xl bg-white border border-slate-200 hover:shadow-lg hover:border-slate-300 transition-all relative overflow-hidden group">
                   {m.estrutura_ia && (
-                    <div className="absolute top-4 right-4 bg-slate-100 text-emerald-700 w-8 h-8 rounded-full flex items-center justify-center shadow-md z-10" title="Criado com Inteligência Artificial">
-                       <Sparkles size={14} />
+                    <div className="absolute top-2 right-2 bg-white/90 text-emerald-700 w-6 h-6 rounded-full flex items-center justify-center shadow z-10" title="Criado com Inteligência Artificial">
+                       <Sparkles size={12} />
                     </div>
                   )}
-                  
-                  {/* Foto de Capa / Layout Central */}
-                  <div className="w-full h-40 bg-slate-100 relative">
-                    {/* Seleção p/ imprimir juntas (ex.: 2 receitas na mesma página) */}
-                    <label className="absolute top-3 left-3 z-10 bg-white/90 backdrop-blur rounded-md p-1 cursor-pointer shadow-sm" title="Selecionar para impressão">
-                      <input type="checkbox" checked={selecionadas.includes(m.id)} onChange={() => toggleSel(m.id)} className="w-5 h-5 accent-emerald-600 block cursor-pointer" />
+
+                  {/* Foto de capa (menor) */}
+                  <div className="w-full h-28 sm:h-32 bg-slate-100 relative">
+                    {/* Seleção p/ imprimir juntas (não abre o preview) */}
+                    <label className="absolute top-2 left-2 z-10 bg-white/90 backdrop-blur rounded-md p-1 cursor-pointer shadow-sm" title="Selecionar para impressão" onClick={(e) => e.stopPropagation()}>
+                      <input type="checkbox" checked={selecionadas.includes(m.id)} onChange={() => toggleSel(m.id)} className="w-4 h-4 accent-emerald-600 block cursor-pointer" />
                     </label>
                     {m.foto_url ? (
-                      <img src={m.foto_url} alt={m.nome} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
+                      <img src={m.foto_url} alt={m.nome} className="w-full h-full object-cover opacity-95 group-hover:opacity-100 transition-opacity" />
                     ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center text-slate-500">
-                         <Camera size={32} />
-                         <span className="text-[10px] uppercase font-bold mt-2">Sem foto</span>
+                      <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
+                         <Camera size={24} />
+                         <span className="text-[9px] uppercase font-bold mt-1">Sem foto</span>
                       </div>
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                    <div className="absolute bottom-3 left-4 right-4 flex items-end justify-between">
-                       <div className="text-white">
-                         <span className="px-2 py-0.5 rounded uppercase font-bold text-[9px] bg-white/20 backdrop-blur-sm mb-1 inline-block">{m.tipo}</span>
-                         <h3 className="font-black text-lg leading-tight">{m.nome}</h3>
-                       </div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
+                    <span className="absolute top-2 left-9 px-1.5 py-0.5 rounded uppercase font-bold text-[8px] bg-black/30 text-white backdrop-blur-sm">{m.tipo}</span>
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                       <span className="flex items-center gap-1.5 text-white text-xs font-bold bg-black/45 rounded-full px-3 py-1.5 backdrop-blur-sm"><Eye size={14} /> Ver modelo</span>
                     </div>
                   </div>
 
-                  <div className="p-4 flex flex-col flex-1 justify-between">
-                    <p className="text-[12px] line-clamp-2 text-slate-500 font-medium mb-3">{m.descritivo}</p>
-                    
-                    {/* Botões */}
-                    <div className="flex gap-2 border-t border-slate-100 pt-3 mt-auto">
-                       <button onClick={() => { setEditar(m); setModal(true); }} className="flex-1 py-2 rounded-lg flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs transition-colors" title="Editar Ficha e Layout IA">
-                         <Edit3 size={14} /> Editar
-                       </button>
-                       <button onClick={() => imprimirModelo([m], cfgModelo, dept === "bar" ? "Bar" : "Cozinha")} className="w-10 h-10 rounded-lg flex items-center justify-center bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors" title="Imprimir com o designer atual">
-                         <Printer size={16} />
-                       </button>
-                       <button onClick={() => remover(m.id)} className="w-10 h-10 rounded-lg flex items-center justify-center bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors" title="Remover">
-                         <Trash2 size={16} />
-                       </button>
-                    </div>
+                  <div className="px-3 py-2.5">
+                    <h3 className="font-black text-sm leading-tight text-slate-800 line-clamp-2">{m.nome}</h3>
                   </div>
-                </Card>
+                </button>
               ))}
             </div>
+            </>
           )}
         </div>
       </PageBody>
+
+      {/* PREVIEW DO MODELO PRONTO (ao clicar num card) + ações discretas */}
+      {previewCard && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={() => setPreviewCard(null)}>
+          <div className="erp-card w-full max-w-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[92vh] overflow-y-auto p-4 sm:p-5" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <h3 className="text-base font-black truncate" style={{ color: "var(--fg)" }}>{previewCard.nome}</h3>
+              <button onClick={() => setPreviewCard(null)} title="Sair" className="w-8 h-8 shrink-0 flex items-center justify-center rounded-full" style={{ background: "var(--elevated)", color: "var(--muted)" }}><X size={16} /></button>
+            </div>
+
+            <PreviaModeloChef m={previewCard} cfg={cfgModelo} />
+
+            {/* Ações discretas */}
+            <div className="mt-4 grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+              {[
+                { icon: X, label: "Sair", onClick: () => setPreviewCard(null) },
+                { icon: Edit3, label: "Editar", onClick: () => { setEditar(previewCard); setModal(true); setPreviewCard(null); } },
+                { icon: Printer, label: "Imprimir", onClick: () => imprimirModelo([previewCard], cfgModelo, deptLabelAtual()) },
+                { icon: Download, label: "PDF", onClick: () => baixarPdf(previewCard) },
+                { icon: Share2, label: "Compartilhar", onClick: () => compartilharFicha(previewCard) },
+                { icon: Trash2, label: "Excluir", onClick: () => remover(previewCard.id), perigo: true },
+              ].map(({ icon: Ic, label, onClick, perigo }) => (
+                <button key={label} onClick={onClick}
+                  className="flex flex-col items-center justify-center gap-1 rounded-xl py-2.5 text-[11px] font-bold transition-colors"
+                  style={{ background: "var(--elevated)", color: perigo ? "#DC2626" : "var(--muted)" }}
+                  title={label}>
+                  <Ic size={16} />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL GIGANTE para comportar o editor */}
       {/* MODAL DE IMPRESSÃO EM LOTE (padrão compacto + modelo com foto) */}

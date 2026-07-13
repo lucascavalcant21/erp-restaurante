@@ -15,6 +15,7 @@ import { fetchColaboradores } from "../../../lib/rh";
 import { CONSERVACAO, gerarCodigo, criarEtiqueta } from "../../../lib/etiquetas";
 import { fetchValidadesEtiqueta } from "../../../lib/parametros";
 import { ControleValidade } from "../validade/page";
+import { useRascunho } from "../../../lib/rascunho";
 import {
   conectarAssistenteImpressao, observarAssistenteImpressao,
   imprimirEtiquetasTp20, PERFIS_TP20,
@@ -71,6 +72,19 @@ function EtiquetasRunner() {
   }), [unidadeAtiva, form, tipoEtiqueta, validadeModo, dataValidade, copias]);
   const assinaturaAnterior = useRef(assinaturaConteudo);
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  // Rascunho: se atualizar a página, o que foi digitado volta. Ao sair da
+  // página e voltar, começa em branco.
+  useRascunho(
+    "rascunho_etiqueta",
+    { form, tipoEtiqueta, validadeModo, dataValidade },
+    (s) => {
+      if (s.form) setForm((f) => ({ ...f, ...s.form }));
+      if (s.tipoEtiqueta) setTipoEtiqueta(s.tipoEtiqueta);
+      if (s.validadeModo) setValidadeModo(s.validadeModo);
+      if (typeof s.dataValidade === "string") setDataValidade(s.dataValidade);
+    }
+  );
 
   // Dimensões/escala da etiqueta conforme o tamanho escolhido
   const dim = tamanho === "60x40"

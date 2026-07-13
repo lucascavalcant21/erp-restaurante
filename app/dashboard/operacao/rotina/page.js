@@ -17,13 +17,17 @@ import { useTempoReal } from "../../../lib/realtime";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
-// Área do colaborador pelo cargo (para mostrar só a equipe do setor)
+// Área do colaborador pelo cargo (para mostrar só a equipe do setor).
+// Salão é avaliado antes da cozinha para "chef de fila" não cair na cozinha.
 function areaDoCargo(cargo) {
   const c = (cargo || "").toLowerCase();
-  if (/(cozinh|chapeir|confeit|pizzai|sushi|salgad|padeir|churrasqueir|a[cç]ougue|chefe de fila|copa|lou[çc]a)/.test(c)) return "cozinha";
-  if (/(\bbar\b|barman|bartender|barista|copeir)/.test(c)) return "bar";
-  if (/(gar[çc]|atendente|sal[aã]o|hostess|maitre|maître|caixa|comand)/.test(c)) return "salao";
-  if (/(gerente|supervisor|\bceo\b|coordenad|encarregad|gestor)/.test(c)) return "lideranca";
+  // Salão: garçom, chef/chefe de fila, atendimento, caixa, recepção
+  if (/(gar[çc]|chefe? de fila|atendente|sal[aã]o|hostess|maitre|maître|caixa|comand|runner|recep)/.test(c)) return "salao";
+  // Cozinha: cozinheiro, auxiliar de cozinha, chef de cozinha e afins
+  if (/(cozinh|cozinheir|auxiliar de coz|chapeir|confeit|pizzai|sushi|salgad|padeir|churrasqueir|a[cç]ougue|copa|lou[çc]a)/.test(c)) return "cozinha";
+  // Bar: barman/barmen, bartender, barista
+  if (/(\bbar\b|barm|bartender|barista|copeir|garrafeir)/.test(c)) return "bar";
+  if (/(gerente|supervisor|\bceo\b|coordenad|encarregad|gestor|propriet|s[oó]cio)/.test(c)) return "lideranca";
   return "outros";
 }
 
@@ -180,15 +184,25 @@ function RotinaRunner() {
     if (unidadeAtiva && unidadeAtiva !== "todas") carregar(true);
   });
 
-  // Equipe do setor (liderança e cadastros ainda sem área aparecem em todos).
-  // Pessoas classificadas em outro setor nunca são misturadas aqui.
+  // Equipe do setor: aparece automaticamente conforme a área/cargo cadastrado.
+  // - Se a pessoa tem área definida no cadastro (area_escala), vale essa área.
+  // - Senão, classifica pelo cargo (garçom→salão, barman→bar, cozinheiro→cozinha).
+  // A liderança (gerente/supervisor) aparece em todos para poder assinar.
+  // Quem está em OUTRO setor — ou sem cargo reconhecido — não aparece aqui.
   const colaboradoresDoSetor = (() => {
-    const doSetor = colaboradores.filter(c => {
-      const areaCadastro = String(c.area_escala || "").toLowerCase();
+    // Normaliza a área do cadastro para a chave usada nos temas (sem acento).
+    const normArea = (s) => {
+      const v = String(s || "").toLowerCase().trim();
+      if (v === "salão" || v === "salao") return "salao";
+      if (v === "cozinha") return "cozinha";
+      if (v === "bar") return "bar";
+      return v;
+    };
+    return colaboradores.filter(c => {
+      const areaCadastro = normArea(c.area_escala);
       const a = TEMAS[areaCadastro] ? areaCadastro : areaDoCargo(c.cargo);
-      return a === dept || a === "lideranca" || a === "outros";
+      return a === dept || a === "lideranca";
     });
-    return doSetor;
   })();
 
   // Produtividade individual do mês: tarefas marcadas por pessoa

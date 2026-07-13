@@ -7,12 +7,14 @@ import { useEffect } from "react";
 function Redirecionar() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const dept = searchParams.get("dept") || "";
+  const consultaAtual = searchParams.toString();
 
   useEffect(() => {
     // Redireciona para a nova tela unificada de Rotina Operacional
-    router.replace("/dashboard/operacao/rotina" + (dept ? `?dept=${dept}` : ""));
-  }, []);
+    const params = new URLSearchParams(consultaAtual);
+    const consulta = params.toString();
+    router.replace(`/dashboard/operacao/rotina${consulta ? `?${consulta}` : ""}`);
+  }, [consultaAtual, router]);
 
   return <div className="min-h-[40vh] px-4 py-8 sm:p-10 flex items-center justify-center text-center font-bold text-slate-500">Redirecionando para Rotina Operacional...</div>;
 }

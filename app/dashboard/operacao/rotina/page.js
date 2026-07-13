@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Sun, Moon, CheckCircle2, Check, ChevronDown, User, Printer,
   ChefHat, Wine, Armchair, ClipboardList, Plus, Settings, Loader2,
-  Camera, X, Share2, BarChart3
+  Camera, X, Share2, BarChart3, Users, UserCheck, Clock3, Image as ImageIcon,
+  ShieldCheck, ListChecks
 } from "lucide-react";
 import {
   PageHeader, PageBody, Card, SectionLabel, Field, TextInput, Btn, EmptyState,
@@ -72,15 +73,46 @@ const ROTULOS_TIPO = {
 // Ordem lógica do dia para agrupar os checklists na tela
 const ORDEM_TIPOS = ["abertura", "mise_en_place", "pre_preparos", "operacional", "limpeza_organizacao", "limpeza", "fechamento"];
 
+function dataHojeLocal() {
+  const agora = new Date();
+  const ano = agora.getFullYear();
+  const mes = String(agora.getMonth() + 1).padStart(2, "0");
+  const dia = String(agora.getDate()).padStart(2, "0");
+  return `${ano}-${mes}-${dia}`;
+}
+
+function horaCurta(data) {
+  if (!data) return "--:--";
+  const valor = new Date(data);
+  if (Number.isNaN(valor.getTime())) return "--:--";
+  return valor.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
+function VisualizadorFoto({ foto, onClose }) {
+  if (!foto) return null;
+  return (
+    <div className="fixed inset-0 z-[80] bg-slate-950/90 backdrop-blur-sm p-3 sm:p-6 flex items-center justify-center" onClick={onClose}>
+      <button type="button" onClick={onClose} aria-label="Fechar foto"
+        className="absolute top-4 right-4 w-11 h-11 rounded-full bg-white/15 text-white flex items-center justify-center hover:bg-white/25 focus-visible:ring-2 focus-visible:ring-white">
+        <X size={22} />
+      </button>
+      <img src={`data:image/jpeg;base64,${foto}`} alt="Foto de comprovação ampliada"
+        className="max-w-full max-h-[calc(100dvh-2rem)] object-contain rounded-2xl shadow-2xl"
+        onClick={e => e.stopPropagation()} />
+    </div>
+  );
+}
+
 function RotinaRunner() {
   const { unidadeAtiva, unidadeInfo } = useERP();
   const router = useRouter();
   const searchParams = useSearchParams();
   const deptUrl = searchParams.get("dept");
+  const tipoUrl = searchParams.get("tipo");
 
-  const [dept, setDept] = useState(TEMAS[deptUrl] ? deptUrl : "cozinha");
-  const [templatesAll, setTemplatesAll] = useState([]);   // todos os setores (p/ % nas abas)
-  const [historicoAll, setHistoricoAll] = useState([]);   // execuções de hoje, todos os setores
+  const dept = TEMAS[deptUrl] ? deptUrl : "cozinha";
+  const [templates, setTemplates] = useState([]);
+  const [historico, setHistorico] = useState([]);
   const [colaboradores, setColaboradores] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -93,64 +125,78 @@ function RotinaRunner() {
   const [checklistAtual, setChecklistAtual] = useState(null);
   const [respostas, setRespostas] = useState({});
   const [colabSelecionado, setColabSelecionado] = useState("");
+  const [modoAtribuicao, setModoAtribuicao] = useState("uma_pessoa");
   const [exp, setExp] = useState(null);
+  const [historicoAberto, setHistoricoAberto] = useState(null);
+  const [fotoAmpliada, setFotoAmpliada] = useState("");
   const [registrado, setRegistrado] = useState(false);
   const [salvando, setSalvando] = useState(false);
+  const [estacaoTravada, setEstacaoTravada] = useState(false);
+  const cargaAtual = useRef(0);
+  const registroConcluido = useRef(false);
+  const salvamentoEmAndamento = useRef(false);
 
   const t = TEMAS[dept];
+  const filtroTipo = tipoUrl === "limpeza" || tipoUrl === "operacional" ? tipoUrl : null;
+  const templatesExibidos = templates.filter(template => {
+    if (!filtroTipo) return true;
+    const limpeza = template.tipo === "limpeza" || template.tipo === "limpeza_organizacao" || /(limp|higien|organiza)/i.test(template.titulo || "");
+    return filtroTipo === "limpeza" ? limpeza : !limpeza;
+  });
 
   const carregar = async (silencioso = false) => {
+    const idCarga = ++cargaAtual.current;
     if (!silencioso) setLoading(true);
-    const hoje = new Date().toISOString().split("T")[0];
-    // Carrega TODOS os setores de uma vez: alimenta a lista do setor ativo e
-    // as porcentagens de progresso nas abas Cozinha/Bar/Salão
+    const hoje = dataHojeLocal();
     const [resT, resC, resH] = await Promise.all([
-      fetchTemplates(unidadeAtiva),
+      fetchTemplates(unidadeAtiva, dept),
       fetchColaboradores(unidadeAtiva),
-      fetchHistoricoExecucoes(unidadeAtiva, hoje),
+      fetchHistoricoExecucoes(unidadeAtiva, hoje, dept),
     ]);
-    setTemplatesAll(resT.data || []);
-    setColaboradores((resC.data || []).filter(c => (c.status || "ativo") !== "inativo"));
-    setHistoricoAll(resH.data || []);
+    if (idCarga !== cargaAtual.current) return;
+    setTemplates(resT.data || []);
+    setColaboradores((resC.data || []).filter(c => c.ativo !== false && String(c.status || "ativo").toLowerCase() !== "inativo"));
+    setHistorico(resH.data || []);
     setLoading(false);
   };
 
   useEffect(() => {
+    setChecklistAtual(null);
+    setHistoricoAberto(null);
     if (unidadeAtiva && unidadeAtiva !== "todas") carregar();
-  }, [unidadeAtiva]);
+  }, [unidadeAtiva, dept]);
+
+  useEffect(() => {
+    setChecklistAtual(null);
+    setHistoricoAberto(null);
+  }, [filtroTipo]);
+
+  useEffect(() => {
+    try { setEstacaoTravada(Boolean(localStorage.getItem("hefisto_modo_area"))); } catch { setEstacaoTravada(false); }
+  }, [dept]);
 
   // Tempo real: checklist marcado em outro aparelho atualiza aqui sozinho
   useTempoReal(["checklists_execucoes", "checklists_templates", "colaboradores"], () => {
     if (unidadeAtiva && unidadeAtiva !== "todas") carregar(true);
   });
 
-  // Derivados por setor
-  const templates = templatesAll.filter(t => t.departamento === dept);
-  const historico = historicoAll.filter(h => h.checklists_templates?.departamento === dept);
-
-  // Equipe do setor (liderança aparece em todos); se ninguém casar, mostra todos
+  // Equipe do setor (liderança e cadastros ainda sem área aparecem em todos).
+  // Pessoas classificadas em outro setor nunca são misturadas aqui.
   const colaboradoresDoSetor = (() => {
     const doSetor = colaboradores.filter(c => {
-      const a = areaDoCargo(c.cargo);
-      return a === dept || a === "lideranca";
+      const areaCadastro = String(c.area_escala || "").toLowerCase();
+      const a = TEMAS[areaCadastro] ? areaCadastro : areaDoCargo(c.cargo);
+      return a === dept || a === "lideranca" || a === "outros";
     });
-    return doSetor.length ? doSetor : colaboradores;
+    return doSetor;
   })();
-
-  // Progresso de HOJE por setor: checklists feitos / total de checklists
-  const progressoDept = (d) => {
-    const tpls = templatesAll.filter(t => t.departamento === d);
-    if (!tpls.length) return null;
-    const feitos = new Set(historicoAll.filter(h => h.checklists_templates?.departamento === d).map(h => h.template_id)).size;
-    return { feitos: Math.min(feitos, tpls.length), total: tpls.length, pct: Math.round(Math.min(feitos, tpls.length) / tpls.length * 100) };
-  };
 
   // Produtividade individual do mês: tarefas marcadas por pessoa
   const abrirProdutividade = async () => {
     setModalProd(true);
     setProdLoading(true);
-    const mes = new Date().toISOString().slice(0, 7);
-    const { data: execs } = await fetchExecucoesMes(unidadeAtiva, mes);
+    const mes = dataHojeLocal().slice(0, 7);
+    const { data: execs } = await fetchExecucoesMes(unidadeAtiva, mes, dept);
     const porPessoa = {};
     (execs || []).forEach(e => {
       (Array.isArray(e.respostas) ? e.respostas : []).forEach(r => {
@@ -171,58 +217,127 @@ function RotinaRunner() {
     setProdLoading(false);
   };
 
-  // Segue o ?dept= da URL (clicar em Checklist na Cozinha/Bar/Salão troca a aba)
-  useEffect(() => {
-    if (TEMAS[deptUrl] && deptUrl !== dept) { setDept(deptUrl); setChecklistAtual(null); }
-  }, [deptUrl]);
-
-  const trocarDept = (d) => {
-    setDept(d);
-    setChecklistAtual(null);
-    setRegistrado(false);
-  };
-
   const iniciar = (tmpl) => {
     setChecklistAtual(tmpl);
     const ini = {};
-    (tmpl.itens || []).forEach(i => ini[i.id] = { marcado: false, obs: "", feito_por: "", foto: "" });
+    (tmpl.itens || []).forEach(i => ini[i.id] = {
+      marcado: false,
+      obs: "",
+      feito_por: "",
+      atribuido_para: "",
+      foto: "",
+      concluido_em: null,
+    });
     setRespostas(ini);
     setColabSelecionado("");
+    setModoAtribuicao("uma_pessoa");
     setRegistrado(false);
+    registroConcluido.current = false;
+    salvamentoEmAndamento.current = false;
     setExp(null);
   };
 
+  const atribuirTodos = (quem) => {
+    if (registroConcluido.current || salvamentoEmAndamento.current) return;
+    if (concluidas > 0 && String(quem) !== String(colabSelecionado)) {
+      alert("Não é possível trocar o responsável das atividades que já foram concluídas.");
+      return;
+    }
+    setColabSelecionado(quem);
+    setRespostas(atuais => Object.fromEntries(
+      Object.entries(atuais).map(([id, resposta]) => [id, {
+        ...resposta,
+        feito_por: resposta.marcado ? resposta.feito_por : quem,
+        atribuido_para: resposta.marcado ? (resposta.atribuido_para || resposta.feito_por) : quem,
+      }])
+    ));
+  };
+
+  const trocarModoAtribuicao = (modo) => {
+    if (registroConcluido.current || salvamentoEmAndamento.current || modo === modoAtribuicao) return;
+    if (concluidas > 0) {
+      alert("A forma de divisão não pode ser alterada depois que uma atividade foi concluída.");
+      return;
+    }
+    setModoAtribuicao(modo);
+    if (modo === "uma_pessoa" && colabSelecionado) atribuirTodos(colabSelecionado);
+  };
+
+  const atribuirCategoria = (categoria, quem) => {
+    if (registroConcluido.current || salvamentoEmAndamento.current) return;
+    const idsDaCategoria = new Set(
+      (checklistAtual?.itens || [])
+        .filter(item => (item.categoria || "Sem categoria").trim() === String(categoria).trim())
+        .map(item => String(item.id))
+    );
+    setRespostas(atuais => Object.fromEntries(
+      Object.entries(atuais).map(([id, resposta]) => [id, idsDaCategoria.has(String(id)) ? {
+        ...resposta,
+        feito_por: resposta.marcado ? resposta.feito_por : quem,
+        atribuido_para: resposta.marcado ? (resposta.atribuido_para || resposta.feito_por) : quem,
+      } : resposta])
+    ));
+  };
+
   const toggle = (id) => {
+    if (registroConcluido.current || salvamentoEmAndamento.current) return;
+    const atual = respostas[id] || {};
+    const responsavel = atual.feito_por || (modoAtribuicao === "uma_pessoa" ? colabSelecionado : "");
+    if (!atual.marcado && !responsavel) {
+      alert(modoAtribuicao === "uma_pessoa"
+        ? "Selecione quem fará todas as atividades."
+        : "Escolha o funcionário responsável por esta atividade antes de concluir.");
+      return;
+    }
     setRespostas(r => {
-      const atual = r[id] || {};
-      const marcado = !atual.marcado;
-      // Ao marcar, a tarefa é atribuída a quem está preenchendo (dá pra trocar)
-      return { ...r, [id]: { ...atual, marcado, feito_por: marcado ? (atual.feito_por || colabSelecionado) : "" } };
+      const respostaAtual = r[id] || {};
+      const marcado = !respostaAtual.marcado;
+      return { ...r, [id]: {
+        ...respostaAtual,
+        marcado,
+        feito_por: respostaAtual.feito_por || responsavel,
+        atribuido_para: respostaAtual.atribuido_para || responsavel,
+        concluido_em: marcado ? new Date().toISOString() : null,
+      } };
     });
-    setRegistrado(false);
+    if (!atual.marcado) setExp(id);
   };
 
   const mudaObs = (id, txt) => {
+    if (registroConcluido.current || salvamentoEmAndamento.current) return;
     setRespostas(r => ({ ...r, [id]: { ...r[id], obs: txt } }));
   };
 
   const mudaFeitoPor = (id, quem) => {
-    setRespostas(r => ({ ...r, [id]: { ...r[id], feito_por: quem } }));
+    if (registroConcluido.current || salvamentoEmAndamento.current) return;
+    if (respostas[id]?.marcado) {
+      alert("Desmarque a atividade antes de trocar o funcionário responsável.");
+      return;
+    }
+    setRespostas(r => ({ ...r, [id]: { ...r[id], feito_por: quem, atribuido_para: quem } }));
   };
 
   // Foto de comprovação da tarefa (comprimida)
   const anexarFotoTarefa = async (id, file) => {
-    if (!file) return;
+    if (!file || registroConcluido.current || salvamentoEmAndamento.current) return;
     try {
       const base64 = await comprimirFoto(file);
+      if (registroConcluido.current || salvamentoEmAndamento.current) return;
       setRespostas(r => ({ ...r, [id]: { ...r[id], foto: base64 } }));
     } catch { alert("Não consegui ler a foto."); }
   };
-  const removerFotoTarefa = (id) => setRespostas(r => ({ ...r, [id]: { ...r[id], foto: "" } }));
+  const removerFotoTarefa = (id) => {
+    if (registroConcluido.current || salvamentoEmAndamento.current) return;
+    setRespostas(r => ({ ...r, [id]: { ...r[id], foto: "" } }));
+  };
 
   const itens = checklistAtual?.itens || [];
   const concluidas = itens.filter(i => respostas[i.id]?.marcado).length;
   const pct = itens.length > 0 ? Math.round((concluidas / itens.length) * 100) : 0;
+  const naoAtribuidas = itens.filter(i => !respostas[i.id]?.feito_por).length;
+  const pessoasAtribuidas = new Set(
+    itens.map(i => respostas[i.id]?.feito_por).filter(Boolean)
+  ).size;
 
   // Envia a comprovação pro WhatsApp: abre o compartilhar do aparelho com o
   // resumo + as fotos das tarefas — você escolhe o grupo e envia.
@@ -264,8 +379,13 @@ function RotinaRunner() {
   };
 
   const finalizar = async () => {
-    if (!colabSelecionado) return alert("Selecione quem está preenchendo.");
+    if (!colabSelecionado) return alert(modoAtribuicao === "uma_pessoa"
+      ? "Selecione quem fez todas as atividades."
+      : "Selecione quem conferiu e está finalizando o checklist.");
     if (pct < 100) return;
+    if (naoAtribuidas > 0) return alert(`Ainda existem ${naoAtribuidas} atividade(s) sem funcionário responsável.`);
+    if (salvamentoEmAndamento.current) return;
+    salvamentoEmAndamento.current = true;
     setSalvando(true);
 
     const nomeDe = (id) => colaboradores.find(c => c.id === id)?.nome || null;
@@ -276,20 +396,33 @@ function RotinaRunner() {
       obs: respostas[k].obs,
       feito_por: respostas[k].feito_por || colabSelecionado,
       feito_por_nome: nomeDe(respostas[k].feito_por || colabSelecionado),
+      atribuido_para: respostas[k].atribuido_para || respostas[k].feito_por || colabSelecionado,
+      concluido_em: respostas[k].concluido_em || new Date().toISOString(),
       foto: respostas[k].foto || null,
     }));
 
-    await salvarExecucao({
-      template_id: checklistAtual.id,
-      unidade_id: unidadeAtiva,
-      colaborador_id: colabSelecionado,
-      data_referencia: new Date().toISOString().split("T")[0],
-      respostas: arrRespostas,
-    });
-
-    setSalvando(false);
+    let resultado;
+    try {
+      resultado = await salvarExecucao({
+        template_id: checklistAtual.id,
+        unidade_id: unidadeAtiva,
+        colaborador_id: colabSelecionado,
+        data_referencia: dataHojeLocal(),
+        respostas: arrRespostas,
+      });
+    } catch (erro) {
+      resultado = { error: erro?.message || "Falha de conexão" };
+    } finally {
+      setSalvando(false);
+      salvamentoEmAndamento.current = false;
+    }
+    if (resultado?.error) {
+      alert(`Não foi possível registrar o checklist: ${resultado.error}`);
+      return;
+    }
+    registroConcluido.current = true;
     setRegistrado(true);
-    carregar(); // atualiza "feito hoje" e as porcentagens das áreas
+    carregar(true);
   };
 
   /* ─── Impressão ─── */
@@ -368,7 +501,7 @@ function RotinaRunner() {
 
   /* ─── Imprime TODOS os checklists do setor, cada um numa folha ─── */
   const imprimirTodos = () => {
-    if (!templates.length) return alert("Nenhum checklist para imprimir.");
+    if (!templatesExibidos.length) return alert("Nenhum checklist para imprimir.");
     const corDept = t.cor;
     const bloco = (tmpl) => {
       let catB = null;
@@ -408,7 +541,7 @@ function RotinaRunner() {
         .box{display:inline-block;width:14px;height:14px;border:2px solid #333;border-radius:3px}
         .assin{margin-top:24px;display:flex;justify-content:space-between;gap:40px}.assin div{flex:1;border-top:1px solid #333;padding-top:5px;font-size:10px;text-align:center;color:#444}
         @media print{@page{margin:0}}
-      </style></head><body>${templates.map(bloco).join("")}</body></html>`;
+      </style></head><body>${templatesExibidos.map(bloco).join("")}</body></html>`;
     const win = window.open("", "_blank");
     if (win) { win.document.write(html); win.document.close(); setTimeout(() => win.print(), 400); }
     else alert("O navegador bloqueou a impressão. Habilite os popups.");
@@ -422,8 +555,8 @@ function RotinaRunner() {
     return (
       <div className="min-h-screen pb-28">
         <PageHeader title={checklistAtual.titulo} subtitle={`${t.nome} · ${tipoLabel} · ${unidadeInfo?.nome || ""}`} icon={DIcon} back={false}>
-          <button onClick={() => setChecklistAtual(null)} className="erp-btn erp-btn-ghost !h-9 text-xs">← Voltar</button>
-          <button onClick={() => imprimir(checklistAtual)} className="erp-btn erp-btn-ghost !h-9 text-xs"><Printer size={14} /> Imprimir</button>
+          <button onClick={() => setChecklistAtual(null)} className="erp-btn erp-btn-ghost !h-11 text-xs">← Voltar</button>
+          <button onClick={() => imprimir(checklistAtual)} className="erp-btn erp-btn-ghost !h-11 text-xs"><Printer size={14} /> Imprimir</button>
         </PageHeader>
         <PageBody>
           {/* Progresso */}
@@ -447,21 +580,79 @@ function RotinaRunner() {
             {pct === 100 && <p className="text-xs font-black mt-2 flex items-center gap-1" style={{ color: t.cor }}><CheckCircle2 size={14} /> Todas concluídas!</p>}
           </div>
 
-          {/* Quem preenche */}
+          {/* Distribuição da equipe */}
           <Card>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: `${t.cor}15` }}>
-                <User size={15} style={{ color: t.cor }} />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `${t.cor}15` }}>
+                  <Users size={17} style={{ color: t.cor }} />
+                </div>
+                <div>
+                  <p className="text-sm font-black" style={{ color: "var(--fg)" }}>Como as atividades serão divididas?</p>
+                  <p className="text-[10px] font-medium" style={{ color: "var(--dim)" }}>Escolha antes de iniciar. Você pode alterar durante a execução.</p>
+                </div>
               </div>
-              <p className="text-sm font-bold" style={{ color: "var(--fg)" }}>Quem está preenchendo?</p>
+              <span className="self-start sm:self-auto px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider"
+                style={{ background: `${t.cor}12`, color: t.corTexto }}>
+                {naoAtribuidas === 0 ? `${pessoasAtribuidas} pessoa(s)` : `${naoAtribuidas} sem responsável`}
+              </span>
             </div>
-            <select value={colabSelecionado} onChange={e => setColabSelecionado(e.target.value)}
-              className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500"
-              style={{ borderColor: colabSelecionado ? t.cor : undefined }}>
-              <option value="">-- Selecione seu nome --</option>
-              {colaboradoresDoSetor.map(c => <option key={c.id} value={c.id}>{c.nome} ({c.cargo})</option>)}
-            </select>
-            <p className="text-[10px] font-medium mt-1.5" style={{ color: "var(--dim)" }}>Mostrando a equipe de {t.nome}. Cada tarefa pode ser atribuída a outra pessoa ao marcar.</p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
+              <button type="button" onClick={() => trocarModoAtribuicao("uma_pessoa")} disabled={registrado || salvando || concluidas > 0}
+                aria-pressed={modoAtribuicao === "uma_pessoa"}
+                className="text-left rounded-2xl p-4 transition-all active:scale-[0.99]"
+                style={{
+                  border: `2px solid ${modoAtribuicao === "uma_pessoa" ? t.cor : "var(--line)"}`,
+                  background: modoAtribuicao === "uma_pessoa" ? `${t.cor}0D` : "var(--card-bg)",
+                }}>
+                <div className="flex items-center gap-2 mb-1">
+                  <UserCheck size={18} style={{ color: modoAtribuicao === "uma_pessoa" ? t.cor : "var(--muted)" }} />
+                  <span className="text-sm font-black" style={{ color: "var(--fg)" }}>Uma pessoa faz tudo</span>
+                </div>
+                <p className="text-[11px] font-medium" style={{ color: "var(--dim)" }}>Um funcionário fica responsável por todas as atividades.</p>
+              </button>
+              <button type="button" onClick={() => trocarModoAtribuicao("dividir")} disabled={registrado || salvando || concluidas > 0}
+                aria-pressed={modoAtribuicao === "dividir"}
+                className="text-left rounded-2xl p-4 transition-all active:scale-[0.99]"
+                style={{
+                  border: `2px solid ${modoAtribuicao === "dividir" ? t.cor : "var(--line)"}`,
+                  background: modoAtribuicao === "dividir" ? `${t.cor}0D` : "var(--card-bg)",
+                }}>
+                <div className="flex items-center gap-2 mb-1">
+                  <Users size={18} style={{ color: modoAtribuicao === "dividir" ? t.cor : "var(--muted)" }} />
+                  <span className="text-sm font-black" style={{ color: "var(--fg)" }}>Dividir entre a equipe</span>
+                </div>
+                <p className="text-[11px] font-medium" style={{ color: "var(--dim)" }}>Cada atividade ou categoria pode ficar com uma pessoa.</p>
+              </button>
+            </div>
+
+            {colaboradoresDoSetor.length === 0 ? (
+              <div className="rounded-xl p-3 text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                Nenhum funcionário ativo foi encontrado para {t.nome}. Revise a área ou o cargo no cadastro de funcionários.
+              </div>
+            ) : modoAtribuicao === "uma_pessoa" ? (
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest" style={{ color: t.cor }}>Pessoa responsável por tudo</label>
+                <select value={colabSelecionado} onChange={e => atribuirTodos(e.target.value)} disabled={registrado || salvando || concluidas > 0}
+                  className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none"
+                  style={{ borderColor: colabSelecionado ? t.cor : undefined }}>
+                  <option value="">-- Selecione o funcionário --</option>
+                  {colaboradoresDoSetor.map(c => <option key={c.id} value={c.id}>{c.nome}{c.cargo ? ` (${c.cargo})` : ""}</option>)}
+                </select>
+              </div>
+            ) : (
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest" style={{ color: t.cor }}>Quem confere e finaliza?</label>
+                <select value={colabSelecionado} onChange={e => setColabSelecionado(e.target.value)} disabled={registrado || salvando}
+                  className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none"
+                  style={{ borderColor: colabSelecionado ? t.cor : undefined }}>
+                  <option value="">-- Selecione quem vai conferir --</option>
+                  {colaboradoresDoSetor.map(c => <option key={c.id} value={c.id}>{c.nome}{c.cargo ? ` (${c.cargo})` : ""}</option>)}
+                </select>
+                <p className="text-[10px] font-medium mt-1.5" style={{ color: "var(--dim)" }}>O responsável de cada atividade é escolhido logo abaixo. Esta pessoa apenas confere e encerra o checklist.</p>
+              </div>
+            )}
           </Card>
 
           {/* Itens */}
@@ -474,15 +665,32 @@ function RotinaRunner() {
                 const cat = (it.categoria || "").trim();
                 const catAnterior = i > 0 ? (itens[i - 1].categoria || "").trim() : null;
                 const mostrarCat = cat && cat !== catAnterior;
+                const responsavelAtual = respostas[it.id]?.feito_por || "";
+                const nomeResponsavel = colaboradoresDoSetor.find(c => String(c.id) === String(responsavelAtual))?.nome || "";
+                const itensDaCategoria = cat ? itens.filter(item => (item.categoria || "").trim() === cat) : [];
+                const responsaveisCategoria = new Set(itensDaCategoria.map(item => respostas[item.id]?.feito_por).filter(Boolean));
+                const responsavelCategoria = responsaveisCategoria.size === 1 ? [...responsaveisCategoria][0] : "";
                 return (
                   <div key={it.id}>
                   {mostrarCat && (
-                    <p className="text-[10px] font-black uppercase tracking-widest mt-4 mb-1.5 px-1" style={{ color: t.cor }}>{cat}</p>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mt-5 mb-2 px-1">
+                      <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: t.cor }}>{cat}</p>
+                      {modoAtribuicao === "dividir" && (
+                        <select value={responsavelCategoria} onChange={e => atribuirCategoria(cat, e.target.value)} disabled={registrado || salvando}
+                          className="w-full sm:w-auto min-w-[220px] p-2.5 text-base font-bold rounded-lg outline-none focus-visible:ring-2"
+                          style={{ background: `${t.cor}0D`, border: `1px solid ${t.cor}35`, color: t.corTexto }}>
+                          <option value="">Atribuir categoria inteira...</option>
+                          {colaboradoresDoSetor.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                        </select>
+                      )}
+                    </div>
                   )}
                   <div className="erp-card !p-0 overflow-hidden transition-all duration-200"
                     style={{ borderColor: ok ? t.cor : undefined, borderWidth: ok ? 2 : undefined, boxShadow: ok ? `0 4px 20px ${t.cor}15` : undefined }}>
                     <div className="flex items-center gap-3 px-4 py-3.5">
-                      <button onClick={() => toggle(it.id)} className="flex-shrink-0 active:scale-90 transition-all duration-200">
+                      <button onClick={() => toggle(it.id)} disabled={registrado || salvando}
+                        aria-label={ok ? `Desmarcar atividade ${i + 1}` : `Concluir atividade ${i + 1}`}
+                        className="w-11 h-11 flex items-center justify-center flex-shrink-0 active:scale-90 transition-all duration-200 rounded-xl focus-visible:ring-2">
                         {ok ? (
                           <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: t.cor }}>
                             <Check size={18} color="#fff" />
@@ -498,38 +706,54 @@ function RotinaRunner() {
                           style={{ color: ok ? t.cor : "var(--fg)", textDecoration: ok ? "line-through" : "none", opacity: ok ? 0.85 : 1 }}>
                           {it.texto}
                         </p>
-                        {it.responsavel && <p className="text-[10px] font-bold mt-0.5" style={{ color: "var(--dim)" }}>Responsável: {it.responsavel}</p>}
-                      </div>
-                      {ok && (
-                        <button onClick={() => setExp(aberto ? null : it.id)} className="flex-shrink-0 p-1">
-                          <ChevronDown size={16} style={{ color: "var(--dim)", transform: aberto ? "rotate(180deg)" : "none", transition: "transform 200ms" }} />
-                        </button>
-                      )}
-                    </div>
-                    {ok && aberto && (
-                      <div className="px-4 pb-3 pt-2 space-y-2" style={{ borderTop: "1px solid var(--line)" }}>
-                        {/* Quem fez ESTA tarefa (pode ser diferente de quem preenche) */}
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-black uppercase tracking-widest shrink-0" style={{ color: t.cor }}>Feito por</span>
-                          <select value={respostas[it.id]?.feito_por || ""} onChange={e => mudaFeitoPor(it.id, e.target.value)}
-                            className="flex-1 p-2 text-xs font-bold rounded-lg outline-none"
-                            style={{ background: `${t.cor}08`, border: `1px solid ${t.cor}30`, color: t.corTexto }}>
-                            <option value="">— quem preenche —</option>
-                            {colaboradoresDoSetor.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                          </select>
+                        {it.responsavel && <p className="text-[11px] font-bold mt-0.5" style={{ color: "var(--dim)" }}>Responsável: {it.responsavel}</p>}
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+                          <span className="text-[11px] font-bold flex items-center gap-1" style={{ color: nomeResponsavel ? t.corTexto : "var(--dim)" }}>
+                            <User size={11} /> {nomeResponsavel || "Sem funcionário atribuído"}
+                          </span>
+                          {ok && (
+                            <span className="text-[11px] font-bold flex items-center gap-1" style={{ color: t.cor }}>
+                              <Clock3 size={11} /> {horaCurta(respostas[it.id]?.concluido_em)}
+                            </span>
+                          )}
+                          {respostas[it.id]?.foto && <span className="text-[11px] font-bold flex items-center gap-1" style={{ color: t.cor }}><ImageIcon size={11} /> foto</span>}
                         </div>
+                      </div>
+                      <button onClick={() => setExp(aberto ? null : it.id)} aria-expanded={aberto}
+                        className="w-11 h-11 flex items-center justify-center flex-shrink-0 rounded-xl focus-visible:ring-2" title="Foto e observação">
+                        <ChevronDown size={16} style={{ color: "var(--dim)", transform: aberto ? "rotate(180deg)" : "none", transition: "transform 200ms" }} />
+                      </button>
+                    </div>
+                    {modoAtribuicao === "dividir" && (
+                      <div className="px-4 pb-3">
+                        <label className="block text-[11px] font-black uppercase tracking-wider mb-1" style={{ color: t.cor }}>Funcionário desta atividade</label>
+                        <select value={responsavelAtual} onChange={e => mudaFeitoPor(it.id, e.target.value)} disabled={registrado || salvando || ok}
+                          className="w-full p-3 text-base font-bold rounded-xl outline-none focus-visible:ring-2"
+                          style={{ background: `${t.cor}08`, border: `1px solid ${responsavelAtual ? t.cor : `${t.cor}45`}`, color: t.corTexto }}>
+                          <option value="">-- Escolha quem vai fazer --</option>
+                          {colaboradoresDoSetor.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                        </select>
+                      </div>
+                    )}
+                    {aberto && (
+                      <div className="px-4 pb-3 pt-2 space-y-2" style={{ borderTop: "1px solid var(--line)" }}>
                         {/* Foto de comprovação */}
                         <div className="flex items-center gap-2">
                           {respostas[it.id]?.foto ? (
                             <div className="relative">
-                              <img src={`data:image/jpeg;base64,${respostas[it.id].foto}`} alt="Comprovação" className="h-16 w-24 object-cover rounded-lg border" style={{ borderColor: `${t.cor}50` }} />
-                              <button onClick={() => removerFotoTarefa(it.id)} className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-rose-500 text-white flex items-center justify-center shadow"><X size={12} /></button>
+                              <button type="button" onClick={() => setFotoAmpliada(respostas[it.id].foto)} className="rounded-lg focus-visible:ring-2" title="Ampliar foto">
+                                <img src={`data:image/jpeg;base64,${respostas[it.id].foto}`} alt="Comprovação" className="h-16 w-24 object-cover rounded-lg border" style={{ borderColor: `${t.cor}50` }} />
+                              </button>
+                              {!registrado && !salvando && <button onClick={() => removerFotoTarefa(it.id)} aria-label="Remover foto"
+                                className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-rose-500 text-white flex items-center justify-center shadow focus-visible:ring-2"><X size={15} /></button>}
                             </div>
+                          ) : registrado ? (
+                            <span className="text-xs font-bold" style={{ color: "var(--dim)" }}>Atividade registrada sem foto.</span>
                           ) : (
-                            <label className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold cursor-pointer"
+                            <label className="min-h-11 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm sm:text-xs font-bold cursor-pointer"
                               style={{ background: `${t.cor}12`, color: t.corTexto, border: `1px dashed ${t.cor}50` }}>
                               <Camera size={14} /> Foto de comprovação
-                              <input type="file" accept="image/*" capture="environment" className="hidden"
+                              <input type="file" accept="image/*" capture="environment" className="hidden" disabled={salvando}
                                 onChange={e => { anexarFotoTarefa(it.id, e.target.files?.[0]); e.target.value = ""; }} />
                             </label>
                           )}
@@ -537,7 +761,8 @@ function RotinaRunner() {
                         <input type="text" placeholder="Observação (opcional)"
                           value={respostas[it.id]?.obs || ""}
                           onChange={e => mudaObs(it.id, e.target.value)}
-                          className="w-full p-2.5 text-sm font-medium rounded-lg outline-none"
+                          disabled={registrado || salvando}
+                          className="w-full p-3 text-base font-medium rounded-lg outline-none focus-visible:ring-2"
                           style={{ background: `${t.cor}08`, border: `1px solid ${t.cor}30`, color: t.corTexto }}
                           onClick={e => e.stopPropagation()} />
                       </div>
@@ -555,7 +780,7 @@ function RotinaRunner() {
               <CheckCircle2 size={40} style={{ color: t.cor }} />
               <p className="text-lg font-black" style={{ color: t.corTexto }}>Checklist registrado!</p>
               <p className="text-xs font-medium" style={{ color: t.corTexto }}>
-                {t.nome} · {tipoLabel} · {unidadeInfo?.nome} — por <b>{colaboradores.find(c => c.id === colabSelecionado)?.nome || ""}</b>
+                {t.nome} · {tipoLabel} · {unidadeInfo?.nome} — {modoAtribuicao === "dividir" ? "conferido por" : "feito por"} <b>{colaboradores.find(c => c.id === colabSelecionado)?.nome || ""}</b>
               </p>
               <button onClick={compartilharWhatsApp}
                 className="mt-2 flex items-center gap-2 px-5 py-3 rounded-xl font-black text-sm text-white transition-all active:scale-95"
@@ -566,72 +791,82 @@ function RotinaRunner() {
             </div>
           ) : (
             <button className="w-full py-4 rounded-2xl font-black text-base transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
-              disabled={pct < 100 || !colabSelecionado || salvando}
+              disabled={pct < 100 || !colabSelecionado || naoAtribuidas > 0 || salvando}
               onClick={finalizar}
               style={{
-                background: pct === 100 && colabSelecionado ? t.cor : "var(--elevated)",
-                color: pct === 100 && colabSelecionado ? "#fff" : "var(--dim)",
-                boxShadow: pct === 100 && colabSelecionado ? `0 8px 30px ${t.cor}40` : "none",
-                cursor: pct < 100 || !colabSelecionado ? "not-allowed" : "pointer",
+                background: pct === 100 && colabSelecionado && naoAtribuidas === 0 ? t.cor : "var(--elevated)",
+                color: pct === 100 && colabSelecionado && naoAtribuidas === 0 ? "#fff" : "var(--dim)",
+                boxShadow: pct === 100 && colabSelecionado && naoAtribuidas === 0 ? `0 8px 30px ${t.cor}40` : "none",
+                cursor: pct < 100 || !colabSelecionado || naoAtribuidas > 0 ? "not-allowed" : "pointer",
               }}>
               {salvando ? <><Loader2 size={18} className="animate-spin" /> Salvando...</> :
+                naoAtribuidas > 0 ? `Atribua ${naoAtribuidas} atividade(s)` :
                 pct === 100 ? "Finalizar e registrar" : `Conclua as tarefas (${itens.length - concluidas} restantes)`}
             </button>
           )}
         </PageBody>
+        <VisualizadorFoto foto={fotoAmpliada} onClose={() => setFotoAmpliada("")} />
       </div>
     );
   }
 
   /* ─── LISTA DE CHECKLISTS POR DEPARTAMENTO ─── */
   const DIcon = t.Icon;
+  const idsExecutadosHoje = new Set(historico.map(h => String(h.template_id)));
+  const templatesDoDia = templatesExibidos.filter(template =>
+    (template.frequencia || "diario") === "diario" || idsExecutadosHoje.has(String(template.id))
+  );
+  const idsDoDia = new Set(templatesDoDia.map(template => String(template.id)));
+  const feitosHoje = new Set(historico.filter(h => idsDoDia.has(String(h.template_id))).map(h => String(h.template_id))).size;
+  const progressoHoje = templatesDoDia.length ? Math.round(Math.min(feitosHoje, templatesDoDia.length) / templatesDoDia.length * 100) : 0;
+  const pendentesHoje = Math.max(0, templatesDoDia.length - feitosHoje);
+  const tituloSetor = dept === "cozinha" ? "da Cozinha" : dept === "bar" ? "do Bar" : "do Salão";
+  const escopoTipo = filtroTipo === "limpeza" ? "Limpeza" : filtroTipo === "operacional" ? "Operação" : null;
 
   return (
     <div className="min-h-screen pb-24">
-      <PageHeader title="Checklist" subtitle={`${t.nome} · ${unidadeInfo?.nome || ""}`} icon={DIcon}
-        onAction={() => router.push("/dashboard/checklists/gerenciar")} actionLabel="Gerenciar">
-        <button onClick={abrirProdutividade} className="erp-btn erp-btn-ghost !h-9 text-xs"><BarChart3 size={14} /> Produtividade</button>
-        {templates.length > 0 && (
-          <button onClick={imprimirTodos} className="erp-btn erp-btn-ghost !h-9 text-xs"><Printer size={14} /> Imprimir todos</button>
+      <PageHeader title={`Checklist ${tituloSetor}`} subtitle={`${t.nome}${escopoTipo ? ` · ${escopoTipo}` : ""} · ${unidadeInfo?.nome || ""} · área exclusiva`} icon={DIcon}
+        onAction={estacaoTravada ? undefined : () => router.push(`/dashboard/checklists/gerenciar?dept=${dept}`)}
+        actionLabel={estacaoTravada ? undefined : "Gerenciar"}>
+        <button onClick={abrirProdutividade} className="erp-btn erp-btn-ghost !h-11 text-xs"><BarChart3 size={14} /> Produtividade</button>
+        {templatesExibidos.length > 0 && (
+          <button onClick={imprimirTodos} className="erp-btn erp-btn-ghost !h-11 text-xs"><Printer size={14} /> Imprimir todos</button>
         )}
       </PageHeader>
       <PageBody>
 
-        {/* Seletor de Departamento */}
-        <div className="grid grid-cols-3 gap-3 mb-1">
-          {Object.entries(TEMAS).map(([key, tema]) => {
-            const ativo = dept === key;
-            const DepIcon = tema.Icon;
-            const prog = progressoDept(key);
-            return (
-              <button key={key} onClick={() => trocarDept(key)}
-                className="relative flex flex-col items-center gap-2 py-4 rounded-2xl font-bold text-sm transition-all duration-300 active:scale-95 overflow-hidden"
-                style={{
-                  background: ativo ? tema.corBg : "var(--card-bg)",
-                  border: `2px solid ${ativo ? tema.cor : "var(--line)"}`,
-                  color: ativo ? tema.corTexto : "var(--dim)",
-                  boxShadow: ativo ? `0 8px 30px ${tema.cor}25` : "none",
-                }}>
-                <div className="w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-300"
-                  style={{ background: ativo ? `${tema.cor}20` : "var(--elevated)" }}>
-                  <DepIcon size={22} style={{ color: ativo ? tema.cor : "var(--muted)" }} />
-                </div>
-                <span className="text-xs font-black uppercase tracking-widest">{tema.nome}</span>
-                {/* Progresso de hoje da área: checklists feitos / total */}
-                {prog && (
-                  <div className="w-full px-4">
-                    <div className="flex justify-between text-[9px] font-black mb-0.5" style={{ color: ativo ? tema.corTexto : "var(--dim)" }}>
-                      <span>{prog.feitos}/{prog.total} hoje</span><span>{prog.pct}%</span>
-                    </div>
-                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: ativo ? `${tema.cor}25` : "var(--elevated)" }}>
-                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${prog.pct}%`, background: tema.cor }} />
-                    </div>
-                  </div>
-                )}
-                {ativo && <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-1 rounded-t-full" style={{ background: tema.cor }} />}
-              </button>
-            );
-          })}
+        {/* Resumo exclusivo do setor */}
+        <div className="relative overflow-hidden rounded-3xl p-5 sm:p-6 mb-2" style={{ background: t.corBg, border: `1px solid ${t.corBorda}` }}>
+          <DIcon size={150} className="absolute -right-8 -bottom-10 opacity-[0.08]" style={{ color: t.corTexto }} />
+          <div className="relative z-[1] flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0" style={{ background: t.cor, boxShadow: `0 10px 30px ${t.cor}35` }}>
+                <DIcon size={27} color="#fff" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: t.corTexto }}>Operação separada</p>
+                <h2 className="text-xl sm:text-2xl font-black" style={{ color: t.corTexto }}>Somente {t.nome}</h2>
+                <p className="text-xs font-medium mt-0.5" style={{ color: t.corTexto, opacity: 0.8 }}>Os checklists, a equipe e o histórico desta tela pertencem apenas a este setor.</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2 sm:gap-3 min-w-0 lg:min-w-[390px]">
+              <div className="rounded-2xl p-3 text-center" style={{ background: "rgba(255,255,255,.68)" }}>
+                <p className="text-xl font-black" style={{ color: t.corTexto }}>{progressoHoje}%</p>
+                <p className="text-[11px] font-black uppercase tracking-wide" style={{ color: t.corTexto, opacity: 0.7 }}>progresso</p>
+              </div>
+              <div className="rounded-2xl p-3 text-center" style={{ background: "rgba(255,255,255,.68)" }}>
+                <p className="text-xl font-black" style={{ color: t.corTexto }}>{feitosHoje}</p>
+                <p className="text-[11px] font-black uppercase tracking-wide" style={{ color: t.corTexto, opacity: 0.7 }}>feitos hoje</p>
+              </div>
+              <div className="rounded-2xl p-3 text-center" style={{ background: "rgba(255,255,255,.68)" }}>
+                <p className="text-xl font-black" style={{ color: t.corTexto }}>{pendentesHoje}</p>
+                <p className="text-[11px] font-black uppercase tracking-wide" style={{ color: t.corTexto, opacity: 0.7 }}>pendentes</p>
+              </div>
+            </div>
+          </div>
+          <div className="relative z-[1] h-2 rounded-full overflow-hidden mt-5" style={{ background: "rgba(255,255,255,.62)" }}>
+            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${progressoHoje}%`, background: t.cor }} />
+          </div>
         </div>
 
         {/* Lista de Templates */}
@@ -640,30 +875,36 @@ function RotinaRunner() {
             <Loader2 size={24} className="animate-spin" />
             <span className="font-bold text-sm">Carregando checklists...</span>
           </div>
-        ) : templates.length === 0 ? (
+        ) : templatesExibidos.length === 0 ? (
           <EmptyState icon={ClipboardList} title={`Nenhum checklist de ${t.nome}`}
-            hint="Crie modelos de abertura, fechamento, mise en place etc. pelo Gerenciar."
-            actionLabel="Criar checklists" onAction={() => router.push("/dashboard/checklists/gerenciar")} />
+            hint={estacaoTravada ? "Peça a um gerente para criar os modelos deste setor." : "Crie modelos de abertura, fechamento, mise en place etc. pelo Gerenciar."}
+            actionLabel={estacaoTravada ? undefined : "Criar checklists"}
+            onAction={estacaoTravada ? undefined : () => router.push(`/dashboard/checklists/gerenciar?dept=${dept}`)} />
         ) : (
           <div className="space-y-6">
-            {ORDEM_TIPOS.filter(tipo => templates.some(x => x.tipo === tipo)).map(tipo => (
+            {ORDEM_TIPOS.filter(tipo => templatesExibidos.some(x => x.tipo === tipo)).map(tipo => (
               <div key={tipo}>
                 <SectionLabel>{ROTULOS_TIPO[tipo] || tipo}</SectionLabel>
                 <div className="space-y-3">
-                  {templates.filter(x => x.tipo === tipo).map(tmpl => {
-                    const execHoje = historico.find(h => h.template_id === tmpl.id);
+                  {templatesExibidos.filter(x => x.tipo === tipo).map(tmpl => {
+                    const execucoesHoje = historico
+                      .filter(h => h.template_id === tmpl.id)
+                      .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+                    const execHoje = execucoesHoje[0];
+                    const detalhesAbertos = historicoAberto === tmpl.id;
                     return (
                     <div key={tmpl.id} className="erp-card !p-0 overflow-hidden hover:shadow-lg transition-all duration-200"
                       style={{ borderLeft: `4px solid ${execHoje ? t.cor : t.cor}` }}>
-                      <div className="flex items-center gap-4 p-5">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 sm:p-5">
                         <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: execHoje ? t.cor : `${t.cor}15` }}>
                           {execHoje ? <CheckCircle2 size={22} color="#fff" /> : <DIcon size={22} style={{ color: t.cor }} />}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-base font-black leading-tight truncate" style={{ color: "var(--fg)" }}>{tmpl.titulo}</h3>
+                          <h3 className="text-base font-black leading-tight break-words sm:truncate" style={{ color: "var(--fg)" }}>{tmpl.titulo}</h3>
                           {execHoje ? (
                             <p className="text-[11px] font-bold mt-0.5" style={{ color: t.cor }}>
-                              ✓ Feito hoje por {execHoje.colaboradores?.nome || "colaborador"} · {new Date(execHoje.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                              ✓ Feito hoje por {execHoje.colaboradores?.nome || "colaborador"} · {horaCurta(execHoje.created_at)}
+                              {execucoesHoje.length > 1 ? ` · ${execucoesHoje.length} execuções` : ""}
                             </p>
                           ) : (
                             <p className="text-[11px] font-medium mt-0.5" style={{ color: "var(--dim)" }}>
@@ -672,19 +913,61 @@ function RotinaRunner() {
                             </p>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
+                        <div className="flex items-center gap-2 sm:flex-shrink-0 w-full sm:w-auto">
                           <button onClick={() => imprimir(tmpl)} title="Imprimir"
-                            className="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200"
+                            className="w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200"
                             style={{ background: "var(--elevated)", color: "var(--muted)" }}>
                             <Printer size={17} />
                           </button>
                           <button onClick={() => iniciar(tmpl)}
-                            className="px-5 py-2.5 rounded-xl font-black text-sm transition-all duration-200 active:scale-95"
+                            className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl font-black text-sm transition-all duration-200 active:scale-95"
                             style={{ background: execHoje ? "var(--elevated)" : t.cor, color: execHoje ? "var(--muted)" : "#fff", boxShadow: execHoje ? "none" : `0 4px 16px ${t.cor}30` }}>
                             {execHoje ? "Refazer" : "Preencher"}
                           </button>
                         </div>
                       </div>
+                      {execHoje && (
+                        <div style={{ borderTop: "1px solid var(--line)" }}>
+                          <button type="button" onClick={() => setHistoricoAberto(detalhesAbertos ? null : tmpl.id)}
+                            className="w-full px-4 sm:px-5 py-3 flex items-center justify-between text-xs font-black"
+                            style={{ color: t.corTexto, background: `${t.cor}08` }}>
+                            <span className="flex items-center gap-2"><Clock3 size={14} /> Histórico detalhado de hoje</span>
+                            <ChevronDown size={15} style={{ transform: detalhesAbertos ? "rotate(180deg)" : "none", transition: "transform 200ms" }} />
+                          </button>
+                          {detalhesAbertos && (
+                            <div className="p-4 sm:p-5 space-y-4" style={{ background: `${t.cor}04` }}>
+                              {execucoesHoje.map((execucao, execIndex) => (
+                                <div key={execucao.id || execIndex} className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${t.cor}25`, background: "var(--card-bg)" }}>
+                                  <div className="px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-1" style={{ background: `${t.cor}0C` }}>
+                                    <span className="text-xs font-black" style={{ color: t.corTexto }}>Execução {execucoesHoje.length - execIndex} · {horaCurta(execucao.created_at)}</span>
+                                    <span className="text-[10px] font-bold" style={{ color: "var(--dim)" }}>Conferido por {execucao.colaboradores?.nome || "colaborador"}</span>
+                                  </div>
+                                  <div className="divide-y" style={{ borderColor: "var(--line)" }}>
+                                    {(Array.isArray(execucao.respostas) ? execucao.respostas : []).filter(r => r.marcado).map((resposta, respostaIndex) => (
+                                      <div key={resposta.id_tarefa || respostaIndex} className="p-3 sm:p-4 flex items-start gap-3">
+                                        <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: t.cor }}><Check size={14} color="#fff" /></div>
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-xs font-bold" style={{ color: "var(--fg)" }}>{resposta.texto_tarefa || "Atividade concluída"}</p>
+                                          <p className="text-[11px] font-bold mt-1 flex flex-wrap gap-x-3 gap-y-1" style={{ color: t.corTexto }}>
+                                            <span className="flex items-center gap-1"><User size={10} /> {resposta.feito_por_nome || execucao.colaboradores?.nome || "Sem identificação"}</span>
+                                            <span className="flex items-center gap-1"><Clock3 size={10} /> {horaCurta(resposta.concluido_em || execucao.created_at)}</span>
+                                          </p>
+                                          {resposta.obs && <p className="text-[11px] mt-1" style={{ color: "var(--dim)" }}>Observação: {resposta.obs}</p>}
+                                        </div>
+                                        {resposta.foto && (
+                                          <button type="button" onClick={() => setFotoAmpliada(resposta.foto)} className="rounded-xl shrink-0 focus-visible:ring-2" title="Ampliar foto">
+                                            <img src={`data:image/jpeg;base64,${resposta.foto}`} alt="Foto da atividade" className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover" style={{ border: `1px solid ${t.cor}35` }} />
+                                          </button>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );})}
                 </div>
@@ -698,7 +981,7 @@ function RotinaRunner() {
       {/* PRODUTIVIDADE INDIVIDUAL — tarefas concluídas por pessoa no mês */}
       {modalProd && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={() => setModalProd(false)}>
-          <div className="bg-white rounded-[28px] w-full max-w-md max-h-[85vh] overflow-y-auto p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-[28px] w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-1">
               <h2 className="text-xl font-black text-slate-800 flex items-center gap-2"><BarChart3 size={20} className="text-emerald-600" /> Produtividade</h2>
               <button onClick={() => setModalProd(false)} className="w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={17} /></button>
@@ -732,6 +1015,7 @@ function RotinaRunner() {
           </div>
         </div>
       )}
+      <VisualizadorFoto foto={fotoAmpliada} onClose={() => setFotoAmpliada("")} />
     </div>
   );
 }

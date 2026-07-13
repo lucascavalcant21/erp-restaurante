@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { Suspense, useState, useEffect, useRef } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { lerSessao, encerrarSessao } from "../lib/auth";
 import { useERP } from "../context/ERPContext";
 import {
@@ -103,6 +103,100 @@ const SIDEBAR_MENU = [
   }
 ];
 
+// Rotas liberadas em cada área travada (estação Cozinha/Bar/Salão).
+const ROTAS_AREA = {
+  cozinha: ["/dashboard/area", "/dashboard/checklists", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/controles", "/dashboard/operacao/ingredientes", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem", "/dashboard/operacao/produtos", "/dashboard/operacao/orcamento"],
+  bar: ["/dashboard/area", "/dashboard/checklists", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/ingredientes", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/drinks", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem"],
+  salao: ["/dashboard/area", "/dashboard/checklists", "/dashboard/operacao/rotina", "/dashboard/salao/treinamento", "/dashboard/operacao/observacoes"],
+};
+
+// Nestas telas o setor é definido por ?dept=. Uma estação travada nunca pode
+// trocar silenciosamente de Cozinha para Bar/Salão apenas alterando a URL.
+const ROTAS_SETORIZADAS = [
+  "/dashboard/area",
+  "/dashboard/checklists",
+  "/dashboard/operacao/rotina",
+  "/dashboard/checklists/gerenciar",
+  "/dashboard/operacao/producao",
+  "/dashboard/operacao/etiquetas",
+  "/dashboard/operacao/ingredientes",
+  "/dashboard/operacao/estoque",
+  "/dashboard/operacao/compras",
+  "/dashboard/operacao/notas",
+  "/dashboard/operacao/fichas",
+  "/dashboard/operacao/montagem",
+  "/dashboard/operacao/orcamento",
+];
+
+const correspondeRota = (pathname, rota) => {
+  if (rota === "/dashboard/checklists") return pathname === rota;
+  return pathname === rota || pathname.startsWith(`${rota}/`);
+};
+
+function ajustarHrefParaAreaTravada(href) {
+  if (typeof window === "undefined") return href;
+  try {
+    const areaTravada = localStorage.getItem("hefisto_modo_area");
+    if (!areaTravada || !ROTAS_AREA[areaTravada]) return href;
+
+    const url = new URL(href, window.location.origin);
+    if (!ROTAS_SETORIZADAS.some(rota => correspondeRota(url.pathname, rota))) return href;
+    url.searchParams.set("dept", areaTravada);
+    return `${url.pathname}${url.search}`;
+  } catch (_) {
+    return href;
+  }
+}
+
+// Observa também mudanças que alteram somente a consulta da URL. O pathname
+// não muda entre ?dept=cozinha e ?dept=bar, por isso esta proteção é separada.
+function ProtecaoSetorDaArea({ children }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const consulta = searchParams.toString();
+  const deptAtual = searchParams.get("dept");
+  const [areaTravada, setAreaTravada] = useState(undefined);
+  const areaValida = areaTravada && ROTAS_AREA[areaTravada] ? areaTravada : "";
+  const rotaPermitida = !areaValida || ROTAS_AREA[areaValida].some(rota => correspondeRota(pathname, rota));
+  const rotaSetorizada = ROTAS_SETORIZADAS.some(rota => correspondeRota(pathname, rota));
+  const setorCorreto = !areaValida || !rotaSetorizada || deptAtual === areaValida;
+
+  useEffect(() => {
+    const atualizarArea = (evento) => {
+      const area = evento?.detail?.area;
+      setAreaTravada(area && ROTAS_AREA[area] ? area : "");
+    };
+    window.addEventListener("hefisto:area-mudou", atualizarArea);
+    return () => window.removeEventListener("hefisto:area-mudou", atualizarArea);
+  }, []);
+
+  useEffect(() => {
+    try {
+      const area = localStorage.getItem("hefisto_modo_area");
+      const areaAtiva = area && ROTAS_AREA[area] ? area : "";
+      setAreaTravada(areaAtiva);
+      if (!areaAtiva) return;
+
+      const permitido = ROTAS_AREA[areaAtiva].some(rota => correspondeRota(pathname, rota));
+      if (!permitido) {
+        router.replace(`/dashboard/area?dept=${areaAtiva}`);
+        return;
+      }
+      if (!ROTAS_SETORIZADAS.some(rota => correspondeRota(pathname, rota)) || deptAtual === areaAtiva) return;
+
+      const params = new URLSearchParams(consulta);
+      params.set("dept", areaAtiva);
+      router.replace(`${pathname}?${params.toString()}`);
+    } catch (_) {}
+  }, [consulta, deptAtual, pathname, router]);
+
+  if (areaTravada === undefined || !rotaPermitida || !setorCorreto) {
+    return <div className="min-h-[40vh] flex items-center justify-center px-4 text-sm font-bold text-slate-500">Carregando área correta...</div>;
+  }
+  return children;
+}
+
 function SidebarItem({ item, pathname, onNavigate }) {
   const router = useRouter();
   const { unidadeAtiva } = useERP();
@@ -120,7 +214,7 @@ function SidebarItem({ item, pathname, onNavigate }) {
       window.open(`/chamada/${unidadeAtiva || 'todas'}`, "_blank");
       return;
     }
-    router.push(item.href);
+    router.push(ajustarHrefParaAreaTravada(item.href));
   };
 
   return (
@@ -324,13 +418,6 @@ export default function DashboardLayout({ children }) {
     try { setCollapsed(localStorage.getItem("erp_sidebar_collapsed") === "1"); } catch (_) {}
   }, []);
 
-  // Rotas liberadas em cada área travada (estação Cozinha/Bar/Salão)
-  const ROTAS_AREA = {
-    cozinha: ["/dashboard/area", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/controles", "/dashboard/operacao/ingredientes", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem", "/dashboard/operacao/produtos", "/dashboard/operacao/orcamento"],
-    bar: ["/dashboard/area", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/ingredientes", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/drinks", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem"],
-    salao: ["/dashboard/area", "/dashboard/operacao/rotina", "/dashboard/salao/treinamento", "/dashboard/operacao/observacoes"],
-  };
-
   useEffect(() => {
     let vivo = true;
     // Modo Ponto (tablet travado): enquanto ativo, qualquer rota volta para o
@@ -344,7 +431,7 @@ export default function DashboardLayout({ children }) {
       // daquela área; qualquer outra rota volta para o quadro da área.
       const areaTravada = localStorage.getItem("hefisto_modo_area");
       if (areaTravada && ROTAS_AREA[areaTravada]) {
-        const permitido = ROTAS_AREA[areaTravada].some(r => pathname === r || pathname.startsWith(r + "/"));
+        const permitido = ROTAS_AREA[areaTravada].some(r => correspondeRota(pathname, r));
         if (!permitido) {
           router.replace(`/dashboard/area?dept=${areaTravada}`);
           return;
@@ -381,7 +468,6 @@ export default function DashboardLayout({ children }) {
 
   return (
     <div className="erp-app-shell flex h-screen h-[100dvh] min-h-0 bg-[#F8FAFC] overflow-hidden print:bg-white print:block print:h-auto print:min-h-0">
-      
       {/* Sidebar Lateral Escura */}
       <div className="print:hidden h-full flex shrink-0">
          <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} collapsed={collapsed} />
@@ -395,7 +481,9 @@ export default function DashboardLayout({ children }) {
         
         {/* Main Content Area com Scrollbar customizada */}
         <main className="erp-main-content flex-1 min-w-0 overflow-y-auto overscroll-y-contain custom-scrollbar animate-page-in relative print:overflow-visible print:block">
-          {children}
+          <Suspense fallback={<div className="min-h-[40vh] flex items-center justify-center px-4 text-sm font-bold text-slate-500">Carregando...</div>}>
+            <ProtecaoSetorDaArea>{children}</ProtecaoSetorDaArea>
+          </Suspense>
         </main>
       </div>
       

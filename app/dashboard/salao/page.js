@@ -33,7 +33,7 @@ export default function SalaoHubPage() {
             </div>
          </button>
 
-         <button onClick={() => router.push("/dashboard/checklists?dept=salao&tipo=operacional")} className="rounded-[32px] p-6 sm:p-10 bg-white border-2 border-slate-200 hover:border-slate-400 transition-all shadow-sm flex flex-col justify-between group text-left min-h-56 sm:h-64">
+         <button onClick={() => router.push("/dashboard/operacao/rotina?dept=salao&tipo=operacional")} className="rounded-[32px] p-6 sm:p-10 bg-white border-2 border-slate-200 hover:border-slate-400 transition-all shadow-sm flex flex-col justify-between group text-left min-h-56 sm:h-64">
             <div className="w-16 h-16 rounded-2xl bg-slate-100 text-slate-800 flex items-center justify-center mb-6">
                <CheckSquare size={32} />
             </div>

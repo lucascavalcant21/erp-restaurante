@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchTemplates, salvarTemplate, desativarTemplate, fetchExecucoesMes } from "../../../lib/checklists";
 import { SkeletonList } from "../../../components/ui";
@@ -20,10 +21,12 @@ const TIPOS_POR_DEPT = {
   ],
   bar: [
     ["abertura", "Abertura"],
+    ["limpeza_organizacao", "Limpeza e Organização"],
     ["fechamento", "Fechamento"],
   ],
   salao: [
     ["abertura", "Abertura"],
+    ["limpeza_organizacao", "Limpeza e Organização"],
     ["fechamento", "Fechamento"],
   ],
 };
@@ -41,36 +44,60 @@ const CORES_DEPT = {
   salao: "bg-sky-100 text-sky-700",
 };
 
-export default function GerenciarChecklistsPage() {
+const NOMES_DEPT = { cozinha: "Cozinha", bar: "Bar", salao: "Salão" };
+const ESCOPO_DEPT = { cozinha: "da Cozinha", bar: "do Bar", salao: "do Salão" };
+const deptValido = (dept) => Object.prototype.hasOwnProperty.call(TIPOS_POR_DEPT, dept);
+
+function GerenciarChecklistsContent() {
   const { unidadeAtiva, unidadeInfo } = useERP();
+  const searchParams = useSearchParams();
+  const deptUrl = searchParams.get("dept");
+  const deptFixo = deptValido(deptUrl) ? deptUrl : null;
+  const deptPadrao = deptFixo || "cozinha";
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [deptFiltro, setDeptFiltro] = useState("todos");
+  const [deptFiltro, setDeptFiltro] = useState(deptFixo || "todos");
+  const cargaAtual = useRef(0);
 
   const [modalNovo, setModalNovo] = useState(false);
   const [modalModelos, setModalModelos] = useState(false);
   const [criandoTudo, setCriandoTudo] = useState(false);
-  const [form, setForm] = useState({ id: null, departamento: "cozinha", tipo: "abertura", titulo: "", frequencia: "diario", itens: [{ id: 1, texto: "", categoria: "", responsavel: "" }] });
+  const [form, setForm] = useState({ id: null, departamento: deptPadrao, tipo: "abertura", titulo: "", frequencia: "diario", itens: [{ id: 1, texto: "", categoria: "", responsavel: "" }] });
 
   // Montar por IA (organiza em título + categorias + tópicos)
   const [contextoIA, setContextoIA] = useState("");
   const [montandoIA, setMontandoIA] = useState(false);
 
   const carregar = async () => {
+    const idCarga = ++cargaAtual.current;
     setLoading(true);
-    const { data } = await fetchTemplates(unidadeAtiva);
-    setTemplates(data);
+    const { data } = await fetchTemplates(unidadeAtiva, deptFixo || undefined);
+    if (idCarga !== cargaAtual.current) return;
+    setTemplates(data || []);
     setLoading(false);
   };
 
-  useEffect(() => { if (unidadeAtiva) carregar(); }, [unidadeAtiva]);
+  useEffect(() => { if (unidadeAtiva) carregar(); }, [unidadeAtiva, deptFixo]);
+
+  useEffect(() => {
+    if (!deptFixo) {
+      setDeptFiltro("todos");
+      return;
+    }
+    setDeptFiltro(deptFixo);
+    setModalNovo(false);
+    setModalModelos(false);
+    setForm({ id: null, departamento: deptFixo, tipo: TIPOS_POR_DEPT[deptFixo][0][0], titulo: "", frequencia: "diario", itens: [{ id: 1, texto: "", categoria: "", responsavel: "" }] });
+  }, [deptFixo]);
 
   const abrirNovo = () => {
-    setForm({ id: null, departamento: "cozinha", tipo: "abertura", titulo: "", frequencia: "diario", itens: [{ id: 1, texto: "", categoria: "", responsavel: "" }] });
+    const departamento = deptFixo || (deptFiltro !== "todos" && deptValido(deptFiltro) ? deptFiltro : "cozinha");
+    setForm({ id: null, departamento, tipo: TIPOS_POR_DEPT[departamento][0][0], titulo: "", frequencia: "diario", itens: [{ id: 1, texto: "", categoria: "", responsavel: "" }] });
     setContextoIA("");
     setModalNovo(true);
   };
   const abrirEditar = (t) => {
+    if (deptFixo && t.departamento !== deptFixo) return;
     setForm({ frequencia: "diario", ...t, itens: t.itens?.length ? t.itens.map(i => ({ categoria: "", responsavel: "", ...i })) : [{ id: 1, texto: "", categoria: "", responsavel: "" }] });
     setContextoIA("");
     setModalNovo(true);
@@ -82,6 +109,7 @@ export default function GerenciarChecklistsPage() {
   const removeTarefa = (id) => setForm(f => ({ ...f, itens: f.itens.filter(i => i.id !== id) }));
 
   const mudarDept = (dept) => {
+    if (deptFixo) return;
     const tipos = TIPOS_POR_DEPT[dept] || [];
     const tipoValido = tipos.some(([id]) => id === form.tipo) ? form.tipo : tipos[0]?.[0] || "abertura";
     setForm({ ...form, departamento: dept, tipo: tipoValido });
@@ -118,6 +146,7 @@ export default function GerenciarChecklistsPage() {
 
   // Cria de uma vez TODOS os modelos de um setor que ainda não existem
   const criarTodosDoSetor = async (dept) => {
+    if (deptFixo && dept !== deptFixo) return;
     const modelos = MODELOS_CHECKLIST[dept] || {};
     const existentes = new Set(templates.filter(t => t.departamento === dept).map(t => (t.titulo || "").toLowerCase().trim()));
     const paraCriar = Object.entries(modelos).filter(([, m]) => !existentes.has(m.titulo.toLowerCase().trim()));
@@ -146,7 +175,7 @@ export default function GerenciarChecklistsPage() {
     await salvarTemplate({
       id: form.id,
       unidade_id: unidadeAtiva,
-      departamento: form.departamento,
+      departamento: deptFixo || form.departamento,
       tipo: form.tipo,
       titulo: form.titulo,
       frequencia: form.frequencia || "diario",
@@ -165,7 +194,8 @@ export default function GerenciarChecklistsPage() {
   const imprimirRelatorioMes = async () => {
     setGerandoRel(true);
     const mes = new Date().toISOString().slice(0, 7);
-    const { data: execs } = await fetchExecucoesMes(unidadeAtiva, mes);
+    const deptRelatorio = deptFixo || (deptFiltro !== "todos" ? deptFiltro : undefined);
+    const { data: execs } = await fetchExecucoesMes(unidadeAtiva, mes, deptRelatorio);
     setGerandoRel(false);
     const mesNome = new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 
@@ -186,7 +216,9 @@ export default function GerenciarChecklistsPage() {
     });
 
     // Inclui checklists sem execução no mês (aparecem como "0x")
-    templates.forEach(t => { if (!porTemplate[t.id]) porTemplate[t.id] = { titulo: t.titulo, dept: t.departamento, execucoes: [] }; });
+    templates
+      .filter(t => !deptRelatorio || t.departamento === deptRelatorio)
+      .forEach(t => { if (!porTemplate[t.id]) porTemplate[t.id] = { titulo: t.titulo, dept: t.departamento, execucoes: [] }; });
 
     const grupos = Object.values(porTemplate).sort((a, b) => a.dept.localeCompare(b.dept) || a.titulo.localeCompare(b.titulo));
     const totalExec = (execs || []).length;
@@ -205,7 +237,8 @@ export default function GerenciarChecklistsPage() {
       </tr>`;
     }).join("");
 
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Relatório de Checklists — ${mesNome}</title>
+    const escopoRelatorio = deptRelatorio ? ` · ${NOMES_DEPT[deptRelatorio]}` : "";
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Relatório de Checklists${escopoRelatorio} — ${mesNome}</title>
       <style>
         *{margin:0;padding:0;box-sizing:border-box}
         body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:9mm 10mm}
@@ -222,7 +255,7 @@ export default function GerenciarChecklistsPage() {
         @media print{@page{margin:0}}
       </style></head><body>
       <div class="head">
-        <div><div class="tag">Relatório de Checklists · ${unidadeInfo?.nome || ""}</div><h1>${mesNome}</h1></div>
+        <div><div class="tag">Relatório de Checklists${escopoRelatorio} · ${unidadeInfo?.nome || ""}</div><h1>${mesNome}</h1></div>
         <div class="resumo">execuções no mês<b>${totalExec}</b></div>
       </div>
       <table>
@@ -330,30 +363,32 @@ export default function GerenciarChecklistsPage() {
     setTimeout(() => win.print(), 400);
   };
 
-  const filtrados = templates.filter(t => deptFiltro === "todos" || t.departamento === deptFiltro);
+  const filtrados = templates.filter(t => deptFixo ? t.departamento === deptFixo : deptFiltro === "todos" || t.departamento === deptFiltro);
 
   return (
     <div className="min-h-screen pb-24 font-sans text-slate-800">
 
       {/* HEADER */}
-      <div className="pt-6 pb-6 px-6 max-w-5xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="pt-5 sm:pt-6 pb-6 px-4 sm:px-6 max-w-5xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-3xl bg-slate-100 text-emerald-600 flex items-center justify-center shadow-inner">
+          <div className="w-16 h-16 rounded-3xl bg-slate-100 text-emerald-600 flex items-center justify-center shadow-inner shrink-0">
             <CheckSquare size={32} />
           </div>
           <div>
-            <h1 className="text-3xl sm:text-4xl font-black tracking-tighter text-slate-900">Checklists</h1>
-            <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Cozinha · Bar · Salão — crie, designe responsáveis e imprima</p>
+            <h1 className="text-3xl sm:text-4xl font-black tracking-tighter text-slate-900">{deptFixo ? `Checklists ${ESCOPO_DEPT[deptFixo]}` : "Checklists"}</h1>
+            <p className="text-slate-700 font-bold uppercase tracking-widest text-[10px] sm:text-xs mt-1">
+              {deptFixo ? `${NOMES_DEPT[deptFixo]} · crie, organize responsáveis e imprima` : "Cozinha · Bar · Salão — crie, organize responsáveis e imprima"}
+            </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <button onClick={imprimirRelatorioMes} disabled={gerandoRel} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-5 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm disabled:opacity-50">
+        <div className="grid grid-cols-2 md:flex w-full md:w-auto items-stretch gap-2">
+          <button onClick={imprimirRelatorioMes} disabled={gerandoRel} className="min-h-12 flex items-center justify-center gap-2 bg-white text-slate-700 border border-slate-200 px-3 sm:px-5 py-3 rounded-xl font-bold text-sm leading-tight hover:bg-slate-50 transition-colors shadow-sm disabled:opacity-50">
             {gerandoRel ? <Loader2 size={18} className="animate-spin" /> : <BarChart3 size={18} />} Relatório do mês
           </button>
-          <button onClick={() => setModalModelos(true)} className="flex items-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-5 py-3 rounded-xl font-bold hover:bg-emerald-50 transition-colors shadow-sm">
+          <button onClick={() => setModalModelos(true)} className="min-h-12 flex items-center justify-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-3 sm:px-5 py-3 rounded-xl font-bold text-sm leading-tight hover:bg-emerald-50 transition-colors shadow-sm">
             <Sparkles size={18} /> Modelos prontos
           </button>
-          <button onClick={abrirNovo} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
+          <button onClick={abrirNovo} className="col-span-2 md:col-auto min-h-12 flex w-full md:w-auto items-center justify-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
             <Plus size={18} /> Novo Checklist
           </button>
         </div>
@@ -361,7 +396,7 @@ export default function GerenciarChecklistsPage() {
 
       {/* Faixa: começar rápido com os modelos completos por setor */}
       {!loading && templates.length === 0 && (
-        <div className="max-w-5xl mx-auto px-6 mb-6">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 mb-6">
           <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex flex-col sm:flex-row items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0"><Sparkles size={22} /></div>
             <div className="flex-1 text-center sm:text-left">
@@ -373,17 +408,19 @@ export default function GerenciarChecklistsPage() {
         </div>
       )}
 
-      {/* Filtro por setor */}
-      <div className="max-w-5xl mx-auto px-6 mb-6 flex gap-2">
-        {[["todos", "Todos"], ["cozinha", "Cozinha"], ["bar", "Bar"], ["salao", "Salão"]].map(([d, l]) => (
-          <button key={d} onClick={() => setDeptFiltro(d)}
-            className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${deptFiltro === d ? "bg-slate-900 text-white shadow-md" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>
-            {l}
-          </button>
-        ))}
-      </div>
+      {/* Filtro por setor: aparece somente no modo administrativo geral */}
+      {!deptFixo && (
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 mb-6 flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+          {[["todos", "Todos"], ["cozinha", "Cozinha"], ["bar", "Bar"], ["salao", "Salão"]].map(([d, l]) => (
+            <button key={d} onClick={() => setDeptFiltro(d)}
+              className={`shrink-0 min-h-11 px-4 py-2 rounded-xl font-bold text-sm transition-all ${deptFiltro === d ? "bg-slate-900 text-white shadow-md" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>
+              {l}
+            </button>
+          ))}
+        </div>
+      )}
 
-      <div className="max-w-5xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {loading ? (
           <div className="col-span-full"><SkeletonList /></div>
         ) : filtrados.length === 0 ? (
@@ -410,11 +447,11 @@ export default function GerenciarChecklistsPage() {
                 {(t.itens || []).some(i => i.responsavel) && <span className="text-emerald-600"> · com responsáveis definidos</span>}
               </p>
               <div className="flex gap-2 border-t border-slate-100 pt-3 mt-4">
-                <button onClick={() => imprimirChecklist(t)} className="flex-1 py-2.5 rounded-xl flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors">
+                <button onClick={() => imprimirChecklist(t)} className="flex-1 min-h-11 py-2.5 rounded-xl flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors">
                   <Printer size={14} /> Imprimir
                 </button>
-                <button onClick={() => abrirEditar(t)} className="w-10 h-10 rounded-xl flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors" title="Editar"><Edit3 size={15} /></button>
-                <button onClick={() => handleDesativar(t.id)} className="w-10 h-10 rounded-xl flex items-center justify-center bg-slate-100 hover:bg-red-100 text-slate-600 hover:text-red-500 transition-colors" title="Excluir"><Trash2 size={15} /></button>
+                <button onClick={() => abrirEditar(t)} className="w-11 h-11 rounded-xl flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors" title="Editar"><Edit3 size={15} /></button>
+                <button onClick={() => handleDesativar(t.id)} className="w-11 h-11 rounded-xl flex items-center justify-center bg-slate-100 hover:bg-red-100 text-slate-600 hover:text-red-500 transition-colors" title="Excluir"><Trash2 size={15} /></button>
               </div>
             </div>
           ))
@@ -424,26 +461,26 @@ export default function GerenciarChecklistsPage() {
       {/* MODAL: MODELOS PRONTOS (biblioteca por setor) */}
       {modalModelos && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-2xl max-h-[94vh] sm:max-h-[88vh] overflow-y-auto custom-scrollbar p-4 sm:p-8 shadow-2xl animate-in zoom-in-95">
+          <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-2xl max-h-[calc(100dvh-2rem)] sm:max-h-[88dvh] overflow-y-auto custom-scrollbar p-4 sm:p-8 shadow-2xl animate-in zoom-in-95">
             <div className="flex justify-between items-center mb-5 sticky top-0 bg-white z-10 pb-4 border-b border-slate-100">
               <div>
                 <h2 className="font-black text-2xl text-slate-800 flex items-center gap-2"><Sparkles size={22} className="text-emerald-600" /> Modelos Prontos</h2>
                 <p className="text-sm font-bold text-slate-500 mt-0.5">Checklists completos com as tarefas do dia a dia — clique para criar</p>
               </div>
-              <button onClick={() => setModalModelos(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20} /></button>
+              <button onClick={() => setModalModelos(false)} className="w-11 h-11 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20} /></button>
             </div>
 
             <div className="space-y-6">
-              {Object.entries(MODELOS_CHECKLIST).map(([dept, modelos]) => {
+              {Object.entries(MODELOS_CHECKLIST).filter(([dept]) => !deptFixo || dept === deptFixo).map(([dept, modelos]) => {
                 const existentes = new Set(templates.filter(t => t.departamento === dept).map(t => (t.titulo || "").toLowerCase().trim()));
                 const faltam = Object.values(modelos).filter(m => !existentes.has(m.titulo.toLowerCase().trim())).length;
                 return (
                   <div key={dept}>
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-[11px] font-black uppercase tracking-widest text-slate-500">{dept === "salao" ? "Salão" : dept}</p>
+                      <p className="text-[11px] font-black uppercase tracking-widest text-slate-500">{NOMES_DEPT[dept] || dept}</p>
                       {faltam > 0 && (
                         <button onClick={() => criarTodosDoSetor(dept)} disabled={criandoTudo}
-                          className="flex items-center gap-1 text-[11px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg hover:bg-emerald-100 disabled:opacity-50">
+                          className="min-h-11 flex items-center gap-1 text-[11px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-2 rounded-lg hover:bg-emerald-100 disabled:opacity-50">
                           {criandoTudo ? <Loader2 size={12} className="animate-spin" /> : <Layers size={12} />} Criar todos ({faltam})
                         </button>
                       )}
@@ -454,7 +491,7 @@ export default function GerenciarChecklistsPage() {
                         return (
                           <button key={tipo} disabled={jaExiste}
                             onClick={() => {
-                              setForm({ id: null, departamento: dept, tipo, titulo: m.titulo, itens: m.itens.map((texto, i) => ({ id: Date.now() + i, texto, responsavel: "" })) });
+                              setForm({ id: null, departamento: dept, tipo, titulo: m.titulo, frequencia: "diario", itens: m.itens.map((texto, i) => ({ id: Date.now() + i, texto, responsavel: "" })) });
                               setModalModelos(false);
                               setModalNovo(true);
                             }}
@@ -478,23 +515,25 @@ export default function GerenciarChecklistsPage() {
 
       {modalNovo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-2xl max-h-[94vh] sm:max-h-[90vh] overflow-y-auto custom-scrollbar p-4 sm:p-8 shadow-2xl animate-in zoom-in-95">
+          <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-2xl max-h-[calc(100dvh-2rem)] sm:max-h-[90dvh] overflow-y-auto custom-scrollbar p-4 sm:p-8 shadow-2xl animate-in zoom-in-95">
 
             <div className="flex justify-between items-center mb-6 sticky top-0 bg-white z-10 pb-4 border-b border-slate-100">
-              <h2 className="font-black text-2xl text-slate-800">{form.id ? "Editar Checklist" : "Novo Checklist"}</h2>
-              <button onClick={() => setModalNovo(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20} /></button>
+              <h2 className="font-black text-xl sm:text-2xl text-slate-800">
+                {form.id ? "Editar Checklist" : "Novo Checklist"}{deptFixo ? ` · ${NOMES_DEPT[deptFixo]}` : ""}
+              </h2>
+              <button onClick={() => setModalNovo(false)} className="w-11 h-11 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20} /></button>
             </div>
 
             <div className="space-y-5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
+              <div className={`grid grid-cols-1 gap-4 ${deptFixo ? "" : "sm:grid-cols-2"}`}>
+                {!deptFixo && <div>
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Setor</label>
                   <select value={form.departamento} onChange={e => mudarDept(e.target.value)} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500">
                     <option value="cozinha">Cozinha</option>
                     <option value="bar">Bar</option>
                     <option value="salao">Salão</option>
                   </select>
-                </div>
+                </div>}
                 <div>
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Momento do dia</label>
                   <select value={form.tipo} onChange={e => setForm({ ...form, tipo: e.target.value })} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500">
@@ -520,7 +559,7 @@ export default function GerenciarChecklistsPage() {
                 </div>
                 <textarea rows={2} value={contextoIA} onChange={e => setContextoIA(e.target.value)}
                   placeholder="Opcional: detalhe o que não pode faltar (ex: conferir chopeira, repor gelo, higienizar dosadores...)"
-                  className="w-full p-3 bg-white border border-violet-200 rounded-xl font-medium text-sm outline-none focus:border-violet-500 resize-none mb-2" />
+                  className="w-full p-3 bg-white border border-violet-200 rounded-xl font-medium text-base outline-none focus:border-violet-500 resize-none mb-2" />
                 <button type="button" onClick={montarPorIA} disabled={montandoIA}
                   className="w-full flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-bold text-sm py-3 rounded-xl transition-colors disabled:opacity-60">
                   {montandoIA ? <><Loader2 size={16} className="animate-spin" /> Montando checklist...</> : <><Sparkles size={16} /> Montar por IA</>}
@@ -549,7 +588,7 @@ export default function GerenciarChecklistsPage() {
               </datalist>
 
               <div className="pt-4 border-t border-slate-100">
-                <div className="flex items-baseline justify-between mb-3">
+                <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 mb-3">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tarefas</label>
                   <span className="text-[10px] font-medium text-slate-400">Categoria agrupa as tarefas · responsável em branco = quem executar escreve o nome</span>
                 </div>
@@ -567,14 +606,14 @@ export default function GerenciarChecklistsPage() {
                           <div className="flex-1 h-px bg-violet-100" />
                         </div>
                       )}
-                      <div className="flex items-center gap-2">
+                      <div className="grid grid-cols-[1.5rem_minmax(0,1fr)] sm:flex sm:items-center gap-2 rounded-xl border border-slate-100 p-2 sm:p-0 sm:border-0">
                         <span className="w-6 text-center font-black text-slate-400 text-sm shrink-0">{i + 1}.</span>
                         <input
                           type="text"
                           placeholder="O que deve ser feito?"
                           value={it.texto}
                           onChange={e => mudaTarefa(it.id, { texto: e.target.value })}
-                          className="flex-1 p-3 bg-white border border-slate-200 rounded-lg font-medium outline-none focus:border-emerald-500"
+                          className="w-full min-w-0 sm:flex-1 p-3 bg-white border border-slate-200 rounded-lg font-medium outline-none focus:border-emerald-500"
                         />
                         <input
                           type="text"
@@ -582,19 +621,19 @@ export default function GerenciarChecklistsPage() {
                           placeholder="Categoria"
                           value={it.categoria || ""}
                           onChange={e => mudaTarefa(it.id, { categoria: e.target.value })}
-                          className="shrink-0 w-32 p-3 bg-violet-50 border border-violet-200 rounded-lg font-medium text-sm outline-none focus:border-violet-500"
+                          className="col-start-2 w-full sm:col-auto sm:shrink-0 sm:w-32 p-3 bg-violet-50 border border-violet-200 rounded-lg font-medium text-base outline-none focus:border-violet-500"
                         />
-                        <div className="relative shrink-0 w-36">
+                        <div className="relative col-start-2 w-full sm:col-auto sm:shrink-0 sm:w-36">
                           <User size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                           <input
                             type="text"
                             placeholder="Responsável"
                             value={it.responsavel || ""}
                             onChange={e => mudaTarefa(it.id, { responsavel: e.target.value })}
-                            className="w-full p-3 pl-8 bg-slate-50 border border-slate-200 rounded-lg font-medium text-sm outline-none focus:border-emerald-500"
+                            className="w-full p-3 pl-8 bg-slate-50 border border-slate-200 rounded-lg font-medium text-base outline-none focus:border-emerald-500"
                           />
                         </div>
-                        <button onClick={() => removeTarefa(it.id)} className="p-2.5 text-slate-400 hover:text-red-500 transition-colors shrink-0"><Trash2 size={17} /></button>
+                        <button onClick={() => removeTarefa(it.id)} className="col-start-2 justify-self-end sm:col-auto w-11 h-11 flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors shrink-0" aria-label={`Remover tarefa ${i + 1}`}><Trash2 size={17} /></button>
                       </div>
                     </div>
                   );})}
@@ -616,5 +655,13 @@ export default function GerenciarChecklistsPage() {
       )}
 
     </div>
+  );
+}
+
+export default function GerenciarChecklistsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-[40vh] flex items-center justify-center px-4 font-bold text-slate-500">Carregando checklists...</div>}>
+      <GerenciarChecklistsContent />
+    </Suspense>
   );
 }

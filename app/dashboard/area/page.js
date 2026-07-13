@@ -174,11 +174,15 @@ function AreaRunner() {
         return;
       }
       localStorage.setItem("hefisto_modo_area", dept);
+      window.dispatchEvent(new CustomEvent("hefisto:area-mudou", { detail: { area: dept } }));
     } catch {}
   }, [dept]);
 
   const destravar = () => {
-    try { localStorage.removeItem("hefisto_modo_area"); } catch {}
+    try {
+      localStorage.removeItem("hefisto_modo_area");
+      window.dispatchEvent(new CustomEvent("hefisto:area-mudou", { detail: { area: "" } }));
+    } catch {}
     setPedindoSenha(false);
     router.push("/dashboard");
   };

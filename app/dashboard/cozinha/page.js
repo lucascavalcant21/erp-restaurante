@@ -117,12 +117,12 @@ export default function CozinhaHubPage() {
          {/* DOCK INFERIOR (Checklists) */}
          <div className="col-span-2 lg:col-span-5 flex flex-col md:flex-row gap-4 mt-2">
             
-            <button onClick={() => router.push("/dashboard/checklists?dept=cozinha&tipo=operacional")} className="flex-1 rounded-[20px] p-5 bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-all flex items-center gap-4 group">
+            <button onClick={() => router.push("/dashboard/operacao/rotina?dept=cozinha&tipo=operacional")} className="flex-1 rounded-[20px] p-5 bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-all flex items-center gap-4 group">
                <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-emerald-600 shadow-sm"><CheckSquare size={20} /></div>
                <div className="text-left"><p className="font-bold text-indigo-900">Checklist Operacional</p><p className="text-[10px] uppercase font-bold text-slate-500">Abertura e Fechamento</p></div>
             </button>
 
-            <button onClick={() => router.push("/dashboard/checklists?dept=cozinha&tipo=limpeza")} className="flex-1 rounded-[20px] p-5 bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-all flex items-center gap-4 group">
+            <button onClick={() => router.push("/dashboard/operacao/rotina?dept=cozinha&tipo=limpeza")} className="flex-1 rounded-[20px] p-5 bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-all flex items-center gap-4 group">
                <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-emerald-600 shadow-sm"><Sparkles size={20} /></div>
                <div className="text-left"><p className="font-bold text-cyan-900">Checklist de Limpeza</p><p className="text-[10px] uppercase font-bold text-slate-500">Higiene Diária e Semanal</p></div>
             </button>

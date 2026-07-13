@@ -14,7 +14,8 @@ import {
   fetchParams, salvarParams, PARAMS_PADRAO,
   fetchValidadesEtiqueta, salvarValidadesEtiqueta,
 } from "../../lib/parametros";
-import { Lock, SlidersHorizontal, Download, Smartphone } from "lucide-react";
+import { Lock, SlidersHorizontal, Download, Smartphone, Users, KeyRound } from "lucide-react";
+import { MODULOS_ACESSO, listarAcessos, criarAcesso, removerAcesso } from "../../lib/acessos";
 
 // Instalar o app no aparelho (tablet/celular/PC). Usa o instalador nativo se o
 // navegador ofereceu; senão mostra o caminho manual de cada aparelho.
@@ -241,6 +242,95 @@ function CardValidadesEtiquetas({ unidadeAtiva }) {
 }
 
 // Senhas e PINs: PIN do gerente (ponto) + senhas de saída das estações
+// Usuários e Acessos por módulo — o master cria login (e-mail + senha) que
+// enxerga só um módulo de uma unidade. Substitui as senhas de estação.
+function CardAcessos({ unidadeAtiva }) {
+  const { unidades } = useERP();
+  const [lista, setLista] = useState([]);
+  const [form, setForm] = useState({ email: "", senha: "", modulo: MODULOS_ACESSO[0].id, unidade_id: "" });
+  const [erro, setErro] = useState("");
+  const [ok, setOk] = useState("");
+  const [salvando, setSalvando] = useState(false);
+  const inputCls = "w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500";
+
+  const carregar = () => listarAcessos().then(r => setLista(r.data || []));
+  useEffect(() => { carregar(); }, []);
+  useEffect(() => { if (!form.unidade_id && unidadeAtiva && unidadeAtiva !== "todas") setForm(f => ({ ...f, unidade_id: unidadeAtiva })); }, [unidadeAtiva]);
+
+  const salvar = async () => {
+    setErro("");
+    if (!form.email.trim() || !form.senha.trim()) return setErro("Informe e-mail e senha.");
+    if (!form.unidade_id) return setErro("Escolha a unidade.");
+    setSalvando(true);
+    const { error } = await criarAcesso(form);
+    setSalvando(false);
+    if (error) return setErro("Erro ao criar (rode o SQL da tabela acessos_modulo): " + error);
+    setForm(f => ({ ...f, email: "", senha: "" }));
+    setOk("Acesso criado! A pessoa já pode entrar com esse e-mail e senha."); setTimeout(() => setOk(""), 3500);
+    carregar();
+  };
+  const excluir = async (a) => { if (!confirm(`Excluir o acesso de ${a.email}?`)) return; await removerAcesso(a.id); carregar(); };
+  const nomeUnidade = (id) => unidades.find(u => u.id === id)?.nome || id;
+  const nomeModulo = (id) => MODULOS_ACESSO.find(m => m.id === id)?.label || id;
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-6">
+      <div className="bg-slate-50 border-b border-slate-100 p-4 flex items-center gap-2">
+        <Users size={18} className="text-slate-500" />
+        <div>
+          <h2 className="font-bold text-slate-800">Usuários e Acessos por módulo</h2>
+          <p className="text-[11px] text-slate-500 font-medium">Crie um login (e-mail + senha) que enxerga exclusivamente um módulo de uma unidade.</p>
+        </div>
+      </div>
+      <div className="p-6 space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">E-mail do acesso</label>
+            <input value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="ex: ponto.matriz" className={inputCls + " mt-1"} />
+          </div>
+          <div>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Senha</label>
+            <input value={form.senha} onChange={e => setForm({ ...form, senha: e.target.value })} placeholder="senha do acesso" className={inputCls + " mt-1"} />
+          </div>
+          <div>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Módulo liberado</label>
+            <select value={form.modulo} onChange={e => setForm({ ...form, modulo: e.target.value })} className={inputCls + " mt-1"}>
+              {MODULOS_ACESSO.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Unidade</label>
+            <select value={form.unidade_id} onChange={e => setForm({ ...form, unidade_id: e.target.value })} className={inputCls + " mt-1"}>
+              <option value="">Selecione a unidade...</option>
+              {unidades.filter(u => u.id !== "todas").map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
+            </select>
+          </div>
+        </div>
+        {erro && <p className="text-rose-600 text-sm font-bold">{erro}</p>}
+        {ok && <p className="text-emerald-600 text-sm font-bold">{ok}</p>}
+        <button onClick={salvar} disabled={salvando} className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold py-2.5 px-5 rounded-xl flex items-center gap-2">
+          <KeyRound size={16} /> {salvando ? "Criando..." : "Criar acesso"}
+        </button>
+
+        {lista.length > 0 && (
+          <div className="space-y-2 pt-2">
+            <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Acessos criados</p>
+            {lista.map(a => (
+              <div key={a.id} className="flex items-center justify-between gap-2 border border-slate-200 rounded-xl p-3">
+                <div className="min-w-0">
+                  <p className="font-bold text-slate-800 truncate">{a.email}</p>
+                  <p className="text-[11px] font-medium text-slate-500 truncate">{nomeModulo(a.modulo)} · {nomeUnidade(a.unidade_id)}</p>
+                </div>
+                <button onClick={() => excluir(a)} title="Excluir acesso" className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100"><Trash2 size={15} /></button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function CardSenhas({ unidadeAtiva }) {
   const [pins, setPins] = useState(null);
   const [salvando, setSalvando] = useState(false);
@@ -264,10 +354,7 @@ function CardSenhas({ unidadeAtiva }) {
 
   if (!pins) return null;
   const CAMPOS_PIN = [
-    ["pin_gerente", "PIN do Gerente (ponto)", "Libera entrada atrasada e destrava o Modo Tablet"],
-    ["senha_cozinha", "Senha da Estação Cozinha", "Sair da estação Cozinha"],
-    ["senha_bar", "Senha da Estação Bar", "Sair da estação Bar"],
-    ["senha_salao", "Senha da Estação Salão", "Sair da estação Salão"],
+    ["pin_gerente", "PIN do Gerente", "Libera entrada atrasada, destrava o Modo Tablet e sai das estações de área"],
   ];
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-6">
@@ -541,6 +628,9 @@ export default function ConfiguracoesPage() {
 
       {/* Categorias e dias padrão usados na geração de etiquetas */}
       <CardValidadesEtiquetas unidadeAtiva={unidadeAtiva} />
+
+      {/* Usuários e Acessos por módulo (novo controle de acesso) */}
+      <CardAcessos unidadeAtiva={unidadeAtiva} />
 
       {/* Senhas e PINs do sistema */}
       <CardSenhas unidadeAtiva={unidadeAtiva} />

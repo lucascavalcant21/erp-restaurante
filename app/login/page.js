@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, LogIn } from "lucide-react";
 import { fazerLogin, homeDoPapel, formatarParaEmailFantasma } from "../lib/auth";
+import { loginAcesso, salvarAcessoLocal, limparAcessoLocal } from "../lib/acessos";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,6 +19,18 @@ export default function LoginPage() {
     e.preventDefault();
     if (!email || !senha) { setErro("Preencha o usuário e a senha."); return; }
     setLoading(true); setErro("");
+    // 1) Tenta um acesso por módulo (login criado pelo master em Configurações).
+    //    Se casar, entra travado exclusivamente no módulo daquela unidade.
+    const acesso = await loginAcesso(email, senha);
+    if (acesso) {
+      salvarAcessoLocal(acesso);
+      try { localStorage.setItem("erp_lembrar", lembrar ? "1" : "0"); } catch (_) {}
+      const mod = (await import("../lib/acessos")).moduloDoAcesso(acesso.modulo);
+      router.push(mod?.rota || "/dashboard");
+      return;
+    }
+    // 2) Login normal (master/papéis) via Supabase Auth.
+    limparAcessoLocal();
     const r = await fazerLogin(formatarParaEmailFantasma(email), senha);
     if (!r.ok) { setErro(r.erro); setLoading(false); return; }
     try { localStorage.setItem("erp_lembrar", lembrar ? "1" : "0"); } catch (_) {}

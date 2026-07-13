@@ -137,6 +137,20 @@ export async function fazerLogin(email, senha) {
 
 // ── Sessão ─────────────────────────────────────────────────────
 export async function lerSessao() {
+  // Acesso por módulo (criado pelo master): sessão local e restrita a 1 módulo.
+  if (typeof window !== "undefined") {
+    try {
+      const bruto = localStorage.getItem("hefisto_acesso");
+      if (bruto) {
+        const a = JSON.parse(bruto);
+        return {
+          id: a.email, email: a.email, nome: a.nome || "Acesso",
+          papel: "acesso", unidade: a.unidade_id,
+          restrito: true, modulo: a.modulo, rota: a.rota,
+        };
+      }
+    } catch (_) {}
+  }
   if (!isSupabaseReady()) return null;
   let { data } = await supabase.auth.getSession();
   // Se não achou a sessão de primeira (token expirado ou rede oscilou ao voltar

@@ -154,13 +154,14 @@ function AreaRunner() {
   const area = AREAS[dept];
   const [pedindoSenha, setPedindoSenha] = useState(false);
 
-  // Senha da área configurável (Configurações > Senhas e PINs)
+  // Sair da estação usa o PIN do Gerente (as senhas por estação foram
+  // substituídas pelo controle de Usuários e Acessos).
   const { unidadeAtiva } = useERP();
-  const [senhaArea, setSenhaArea] = useState(SENHAS_AREA[dept]);
+  const [senhaArea, setSenhaArea] = useState("1234");
   useEffect(() => {
-    setSenhaArea(SENHAS_AREA[dept]);
+    setSenhaArea("1234");
     if (unidadeAtiva && unidadeAtiva !== "todas") {
-      fetchPins(unidadeAtiva).then(r => setSenhaArea(r.data[`senha_${dept}`] || SENHAS_AREA[dept]));
+      fetchPins(unidadeAtiva).then(r => setSenhaArea(r.data.pin_gerente || "1234"));
     }
   }, [unidadeAtiva, dept]);
 

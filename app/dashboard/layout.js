@@ -336,7 +336,7 @@ function Sidebar({ mobileOpen, setMobileOpen, collapsed }) {
   );
 }
 
-function TopHeader({ onSair, onToggleSidebar }) {
+function TopHeader({ onSair, onToggleSidebar, acessoRestrito }) {
   const { unidades, unidadeAtiva, setUnidadeAtiva, podeTrocar, unidadeInfo } = useERP();
   const router = useRouter();
 
@@ -365,9 +365,11 @@ function TopHeader({ onSair, onToggleSidebar }) {
     <header className="erp-top-header min-h-16 border-b border-slate-200/60 bg-white/80 backdrop-blur-md flex items-center justify-between gap-2 px-2 sm:px-4 md:px-6 py-2 shrink-0 sticky top-0 z-30 shadow-sm min-w-0">
 
       <div className="flex flex-1 items-center gap-2 md:gap-4 min-w-0">
+         {!acessoRestrito && (
          <button onClick={onToggleSidebar} title="Menu" aria-label="Abrir menu" className="w-11 h-11 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors shrink-0">
             <Menu size={22} />
          </button>
+         )}
          <h1 className="text-base lg:text-lg font-black text-slate-800 hidden md:block tracking-tight truncate min-w-0">
             {unidadeInfo?.nome ? `Dashboard · ${unidadeInfo.nome}` : "Painel de Controle"}
          </h1>
@@ -441,11 +443,18 @@ export default function DashboardLayout({ children }) {
     } catch (_) {}
     lerSessao().then((s) => {
       if (!vivo) return;
-      if (s) { sessaoRef.current = s; setSessao(s); return; }
-      // Só manda para o login se o usuário AINDA não estava logado nesta sessão.
-      // Se já tínhamos sessão, um retorno vazio aqui é quase sempre um tropeço
-      // momentâneo (token renovando / rede oscilando ao voltar do 2º plano) —
-      // nesse caso não expulsamos: mantemos a tela e seguimos.
+      if (s) {
+        sessaoRef.current = s; setSessao(s);
+        // Acesso por módulo: só pode circular na rota do seu módulo. Qualquer
+        // outra rota volta para ela — vê exclusivamente o módulo liberado.
+        if (s.restrito && s.rota) {
+          const base = s.rota.split("?")[0];
+          if (!(pathname === base || pathname.startsWith(base + "/"))) {
+            router.replace(s.rota);
+          }
+        }
+        return;
+      }
       if (!sessaoRef.current) router.replace("/login");
     });
     // Fecha o menu mobile quando mudar de rota
@@ -468,21 +477,27 @@ export default function DashboardLayout({ children }) {
 
   async function sair() {
     sessaoRef.current = null;
+    try { localStorage.removeItem("hefisto_acesso"); } catch (_) {}
     await encerrarSessao();
     router.replace("/login");
   }
 
+  // Acesso por módulo: esconde a barra lateral (vê só o módulo liberado).
+  const acessoRestrito = !!sessao?.restrito;
+
   return (
     <div className="erp-app-shell flex h-screen h-[100dvh] min-h-0 bg-[#F8FAFC] overflow-hidden print:bg-white print:block print:h-auto print:min-h-0">
-      {/* Sidebar Lateral Escura */}
-      <div className="print:hidden h-full flex shrink-0">
-         <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} collapsed={collapsed} />
-      </div>
+      {/* Sidebar Lateral Escura — oculta para acessos restritos a um módulo */}
+      {!acessoRestrito && (
+        <div className="print:hidden h-full flex shrink-0">
+           <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} collapsed={collapsed} />
+        </div>
+      )}
 
       {/* Área Principal de Conteúdo */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden print:h-auto print:block print:overflow-visible relative">
         <div className="print:hidden shrink-0">
-           <TopHeader onSair={sair} onToggleSidebar={toggleSidebar} />
+           <TopHeader onSair={sair} onToggleSidebar={toggleSidebar} acessoRestrito={acessoRestrito} />
         </div>
         
         {/* Main Content Area com Scrollbar customizada */}

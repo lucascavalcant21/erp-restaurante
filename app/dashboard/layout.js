@@ -220,13 +220,13 @@ function SidebarItem({ item, pathname, onNavigate }) {
   return (
     <button
       onClick={handleClick}
-      className={`w-full min-h-11 flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-bold text-left transition-all ${
-        isActive 
-          ? "bg-emerald-500/10 text-emerald-400" 
+      className={`w-full min-h-12 xl:min-h-11 flex items-center gap-3 px-3 py-3 xl:py-2.5 rounded-xl text-[15px] xl:text-[13px] font-bold text-left transition-all ${
+        isActive
+          ? "bg-emerald-500/10 text-emerald-400"
           : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
       }`}
     >
-      <div className={`w-1.5 h-1.5 rounded-full transition-colors ${isActive ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' : 'bg-transparent'}`} />
+      <div className={`w-2 h-2 xl:w-1.5 xl:h-1.5 rounded-full transition-colors shrink-0 ${isActive ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' : 'bg-transparent'}`} />
       <span className="truncate">{item.label}</span>
     </button>
   );
@@ -240,13 +240,13 @@ function SidebarSection({ section, idx, pathname, isOpen, onToggle, onNavigate }
       <button
         onClick={onToggle}
         aria-expanded={isOpen}
-        className="w-full min-h-11 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-300 mb-1 flex items-center justify-between transition-colors group outline-none text-left"
+        className="w-full min-h-12 xl:min-h-11 px-3 py-2.5 xl:py-2 text-[12px] xl:text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-300 mb-1 flex items-center justify-between transition-colors group outline-none text-left"
       >
-        <div className="flex items-center gap-2">
-           <section.icon size={13} className="text-slate-600 group-hover:text-slate-400 transition-colors" /> 
+        <div className="flex items-center gap-2.5">
+           <section.icon size={16} className="text-slate-600 group-hover:text-slate-400 transition-colors shrink-0 xl:w-[13px] xl:h-[13px]" />
            {section.category}
         </div>
-        <ChevronDown size={14} className={`text-slate-600 transition-transform duration-200 ${isOpen ? '' : '-rotate-90'}`} />
+        <ChevronDown size={16} className={`text-slate-600 transition-transform duration-200 shrink-0 ${isOpen ? '' : '-rotate-90'}`} />
       </button>
       
       <div className={`grid transition-all duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>

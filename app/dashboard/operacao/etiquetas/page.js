@@ -72,8 +72,8 @@ function EtiquetasRunner() {
 
   // Dimensões/escala da etiqueta conforme o tamanho escolhido
   const dim = tamanho === "60x40"
-    ? { w: "66mm", h: "40mm", paginaH: "42mm", pad: "2.2mm", titulo: "3.6mm", linha: "2.35mm", resp: "2.05mm", qr: 42, gap: "0.45mm" }
-    : { w: "60mm", h: "60mm", paginaH: "62mm", pad: "3.2mm", titulo: "4.4mm", linha: "2.9mm", resp: "2.55mm", qr: 64, gap: "0.7mm" };
+    ? { w: "66mm", h: "40mm", paginaH: "42mm", pad: "1.8mm", titulo: "3.2mm", linha: "2.15mm", resp: "1.85mm", qr: 40, gap: "0.4mm", secPad: "0.45mm", footLh: 1.15, respMt: "0.5mm" }
+    : { w: "60mm", h: "60mm", paginaH: "62mm", pad: "3.2mm", titulo: "4.4mm", linha: "2.9mm", resp: "2.55mm", qr: 64, gap: "0.7mm", secPad: "0.8mm", footLh: 1.35, respMt: "1mm" };
 
   useEffect(() => {
     lerSessao().then((s) => s?.nome && setForm((f) => ({ ...f, responsavel: f.responsavel || s.nome })));
@@ -504,13 +504,13 @@ function EtiquetasRunner() {
                       {nomeProduto || "PRODUTO"}
                     </div>
                     {/* conservação + qtd */}
-                    <div style={{ display: "flex", justifyContent: "space-between", whiteSpace: "nowrap", fontSize: dim.linha, fontWeight: 700, padding: "0.8mm 0", borderBottom: "0.4mm solid #000" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", whiteSpace: "nowrap", fontSize: dim.linha, fontWeight: 700, padding: `${dim.secPad} 0`, borderBottom: "0.4mm solid #000" }}>
                       <span>{form.conservacao.toUpperCase()}</span>
                       <span>PESO: {form.quantidade}{form.unidade !== "UN" ? " " + form.unidade : ""}</span>
                     </div>
                     {/* aberto: manipulação + validade com hora; fechado:
                         quando foi etiquetado + validade em destaque */}
-                    <div style={{ padding: "0.8mm 0", borderBottom: "0.4mm solid #000" }}>
+                    <div style={{ padding: `${dim.secPad} 0`, borderBottom: "0.4mm solid #000" }}>
                       {tipoEtiqueta === "aberto" ? (
                         <>
                           <div style={{ display: "flex", justifyContent: "space-between", whiteSpace: "nowrap", fontSize: dim.linha, fontWeight: 700 }}><span>MANIPULACAO:</span><span>{fmtDataHora(agora)}</span></div>
@@ -519,25 +519,35 @@ function EtiquetasRunner() {
                       ) : (
                         <>
                           <div style={{ display: "flex", justifyContent: "space-between", whiteSpace: "nowrap", fontSize: dim.linha, fontWeight: 700 }}><span>ETIQUETADO:</span><span>{fmtData(agora)}</span></div>
-                          <div style={{ background: "#000", color: "#fff", textAlign: "center", whiteSpace: "nowrap", fontSize: dim.titulo, fontWeight: 900, letterSpacing: "0.3mm", padding: "0.7mm 0", marginTop: "0.5mm", borderRadius: "0.8mm" }}>
+                          <div style={{ background: "#000", color: "#fff", textAlign: "center", whiteSpace: "nowrap", fontSize: dim.titulo, fontWeight: 900, letterSpacing: "0.3mm", padding: "0.7mm 0", marginTop: "0.4mm", borderRadius: "0.8mm" }}>
                             VAL: {fmtData(validadeEm)}
                           </div>
                         </>
                       )}
                     </div>
                     {/* responsável */}
-                    <div style={{ fontSize: dim.linha, fontWeight: 700, marginTop: "1mm" }}>RESP.: {(form.responsavel || "—").toUpperCase()}</div>
-                    {form.lote && <div style={{ fontSize: dim.resp, fontWeight: 700, marginTop: "0.5mm" }}>LOTE/SIF: {form.lote}</div>}
+                    <div style={{ fontSize: dim.linha, fontWeight: 700, marginTop: dim.respMt }}>RESP.: {(form.responsavel || "—").toUpperCase()}</div>
+                    {form.lote && <div style={{ fontSize: dim.resp, fontWeight: 700, marginTop: "0.4mm" }}>LOTE/SIF: {form.lote}</div>}
                     {/* espaço flexível empurra o rodapé pra baixo */}
-                    <div style={{ flex: 1, minHeight: "1mm" }} />
+                    <div style={{ flex: 1, minHeight: "0.5mm" }} />
                     {/* rodapé: empresa (esq) + QR encaixado (dir) */}
-                    <div style={{ borderTop: "0.5mm solid #000", paddingTop: dim.gap, display: "flex", justifyContent: "space-between", alignItems: "flex-end", fontSize: dim.resp, fontWeight: 700, gap: "2mm" }}>
-                      <div style={{ minWidth: 0, lineHeight: 1.35 }}>
+                    <div style={{ borderTop: "0.5mm solid #000", paddingTop: dim.gap, display: "flex", justifyContent: "space-between", alignItems: "flex-end", fontSize: dim.resp, fontWeight: 700, gap: "1.5mm" }}>
+                      <div style={{ minWidth: 0, lineHeight: dim.footLh }}>
                         <div>{(unidadeInfo.nome_fantasia || unidadeInfo.nome || "").toUpperCase()}</div>
-                        {cnpjUnidade && <div>CNPJ: {fmtCNPJ(cnpjUnidade)}</div>}
-                        {enderecoUnidade && <div>{enderecoUnidade.toUpperCase()}</div>}
-                        {localizacaoUnidade && <div>{localizacaoUnidade.toUpperCase()}</div>}
-                        <div style={{ opacity: 0.7 }}>#{codigo}</div>
+                        {tamanho === "60x40" ? (
+                          <>
+                            {(cnpjUnidade || codigo) && <div>{cnpjUnidade ? `CNPJ: ${fmtCNPJ(cnpjUnidade)}` : ""}{cnpjUnidade && codigo ? "  " : ""}{codigo ? `#${codigo}` : ""}</div>}
+                            {enderecoUnidade && <div>{enderecoUnidade.toUpperCase()}</div>}
+                            {localizacaoUnidade && <div>{localizacaoUnidade.toUpperCase()}</div>}
+                          </>
+                        ) : (
+                          <>
+                            {cnpjUnidade && <div>CNPJ: {fmtCNPJ(cnpjUnidade)}</div>}
+                            {enderecoUnidade && <div>{enderecoUnidade.toUpperCase()}</div>}
+                            {localizacaoUnidade && <div>{localizacaoUnidade.toUpperCase()}</div>}
+                            <div style={{ opacity: 0.7 }}>#{codigo}</div>
+                          </>
+                        )}
                       </div>
                       <div style={{ flexShrink: 0, lineHeight: 0 }}>
                         <QRCodeSVG data-qr-etiqueta="true" value={rastreioUrl} size={dim.qr} level="M" />

@@ -486,7 +486,7 @@ function FichasRunner() {
   };
 
   const abrirNova = () => {
-    setForm({ id: null, departamento: deptUrl, nome_receita: "", categoria: "", rendimento_porcoes: "1", modo_preparo: "", eh_base: false, rendimento_unidade: "porcao", peso_porcao_g: "", imagem: "" });
+    setForm({ id: null, departamento: deptUrl, nome_receita: "", categoria: "", rendimento_porcoes: "1", modo_preparo: "", eh_base: false, rendimento_unidade: "porcao", peso_porcao_g: "", imagem: "", tempo_preparo: "", validade_dias: "", observacoes: "" });
     setIngFicha([]);
     setAutoSoma(true);
     setCalcQtd("");
@@ -506,7 +506,10 @@ function FichasRunner() {
        eh_base: !!ficha.eh_base,
        rendimento_unidade: ficha.rendimento_unidade || "porcao",
        peso_porcao_g: ficha.peso_porcao_g || "",
-       imagem: ficha.imagem || ""
+       imagem: ficha.imagem || "",
+       tempo_preparo: ficha.tempo_preparo != null ? String(ficha.tempo_preparo) : "",
+       validade_dias: ficha.validade_dias != null ? String(ficha.validade_dias) : "",
+       observacoes: ficha.observacoes || ""
     });
     setCalcQtd("");
     // Reconstrói os ingredientes: cada um é um INSUMO ou uma BASE (sub-ficha).
@@ -671,7 +674,10 @@ function FichasRunner() {
           eh_base: !!form.eh_base,
           rendimento_unidade: form.rendimento_unidade || "porcao",
           peso_porcao_g: form.peso_porcao_g ? Number(form.peso_porcao_g) : null,
-          imagem: form.imagem || null
+          imagem: form.imagem || null,
+          tempo_preparo: form.tempo_preparo ? Number(form.tempo_preparo) : null,
+          validade_dias: form.validade_dias ? Number(form.validade_dias) : null,
+          observacoes: form.observacoes || null
        },
        ingValidos.map(i => ({
           insumo_id: i.tipo === "insumo" ? i.insumo_id : null,
@@ -879,10 +885,13 @@ function FichasRunner() {
                   <div class="grid">
                      <div class="campo"><b>Tipo:</b> ${esc(tipoFicha)}</div>
                      <div class="campo"><b>Categoria:</b> ${esc(f.categoria || deptLabel)}</div>
-                     <div class="campo"><b>Área:</b> ${esc(deptLabel)}</div>
-                     <div class="campo"><b>Custo total:</b> ${fmtBRL(custoTotal)}</div>
+                     <div class="campo"><b>Tempo de preparo:</b> ${f.tempo_preparo != null && f.tempo_preparo !== '' ? esc(String(f.tempo_preparo)) + ' min' : '—'}</div>
+                     <div class="campo"><b>Validade:</b> ${f.validade_dias != null && f.validade_dias !== '' ? esc(String(f.validade_dias)) + ' dia(s)' : '—'}</div>
                      <div class="campo"><b>Data de criação:</b> ${fmtDataBR(f.created_at)}</div>
                      <div class="campo"><b>Última atualização:</b> ${fmtDataBR(f.updated_at)}</div>
+                     <div class="campo"><b>Área:</b> ${esc(deptLabel)}</div>
+                     <div class="campo"><b>Custo total:</b> ${fmtBRL(custoTotal)}</div>
+                     ${f.observacoes ? `<div class="campo full"><b>Observações:</b> ${esc(f.observacoes)}</div>` : ''}
                   </div>
                </div>
             </div>
@@ -1550,6 +1559,22 @@ function FichasRunner() {
                         </div>
 
                         <textarea placeholder="Passo a passo da execução..." value={form.modo_preparo} onChange={e=>setForm({...form, modo_preparo: e.target.value})} className="w-full h-40 p-4 mt-1 bg-white border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:border-emerald-500 shadow-sm resize-none"></textarea>
+                     </div>
+
+                     {/* Dados extras da ficha técnica: tempo, validade e observações */}
+                     <div>
+                        <div className="grid grid-cols-2 gap-3">
+                           <div>
+                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tempo de preparo (min)</label>
+                              <input type="number" min="0" step="1" placeholder="Ex: 15" value={form.tempo_preparo} onChange={e=>setForm({...form, tempo_preparo: e.target.value})} className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500 shadow-sm"/>
+                           </div>
+                           <div>
+                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Validade (dias)</label>
+                              <input type="number" min="0" step="1" placeholder="Ex: 3" value={form.validade_dias} onChange={e=>setForm({...form, validade_dias: e.target.value})} className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500 shadow-sm"/>
+                           </div>
+                        </div>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-3 block">Observações</label>
+                        <textarea placeholder="Observações da ficha (opcional)..." value={form.observacoes} onChange={e=>setForm({...form, observacoes: e.target.value})} className="w-full h-20 p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:border-emerald-500 shadow-sm resize-none"></textarea>
                      </div>
                   </div>
 

@@ -44,12 +44,27 @@ export async function criarEtiqueta(dados, unidadeId) {
   return { data: res.data, error: error?.message || null };
 }
 
-export async function fetchEtiquetas(unidadeId, limite = 30) {
+export async function fetchEtiquetas(unidadeId, limite = 30, status) {
   if (!isSupabaseReady()) return [];
   let q = supabase.from("etiquetas").select("*").order("created_at", { ascending: false }).limit(limite);
   if (unidadeId && unidadeId !== "todas") q = q.eq("unidade_id", unidadeId);
+  if (status) q = q.eq("status", status);
   const { data } = await q;
   return data || [];
+}
+
+// Promove uma etiqueta SALVA para GERADA (status 'ativa') — sem baixar estoque.
+export async function gerarEtiquetaSalva(id) {
+  if (!isSupabaseReady()) return { error: "Sistema indisponível" };
+  const { error } = await supabase.from("etiquetas").update({ status: "ativa" }).eq("id", id);
+  return { error: error?.message || null };
+}
+
+// Exclui de vez uma etiqueta (usado na lista de salvas).
+export async function excluirEtiqueta(id) {
+  if (!isSupabaseReady()) return { error: "Sistema indisponível" };
+  const { error } = await supabase.from("etiquetas").delete().eq("id", id);
+  return { error: error?.message || null };
 }
 
 // Busca pública por código (usada na página de rastreio ao escanear o QR)

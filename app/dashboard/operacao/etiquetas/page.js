@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
-import { Tag, Printer, Save, Snowflake, Thermometer, Box, QrCode, MapPin, AlertTriangle, Settings, RefreshCw, CheckCircle2, WifiOff } from "lucide-react";
+import { Tag, Printer, Save, Snowflake, Thermometer, Box, QrCode, MapPin, AlertTriangle, Settings, RefreshCw, CheckCircle2, WifiOff, Smartphone, Tablet, Trash2, X, Check } from "lucide-react";
 import {
   PageHeader, PageBody, Card, SectionLabel, Field, TextInput, NumberInput, Select, Btn, Toast, EmptyState
 } from "../../../components/ui";
@@ -12,7 +12,7 @@ import { lerSessao } from "../../../lib/auth";
 import { fetchEstoque } from "../../../lib/estoque";
 import { fetchProdutos } from "../../../lib/vendas";
 import { fetchColaboradores } from "../../../lib/rh";
-import { CONSERVACAO, gerarCodigo, criarEtiqueta } from "../../../lib/etiquetas";
+import { CONSERVACAO, gerarCodigo, criarEtiqueta, fetchEtiquetas, gerarEtiquetaSalva, excluirEtiqueta } from "../../../lib/etiquetas";
 import { fetchValidadesEtiqueta } from "../../../lib/parametros";
 import { ControleValidade } from "../validade/page";
 import { useRascunho } from "../../../lib/rascunho";
@@ -33,6 +33,94 @@ function fmtData(d) {
   if (!(d instanceof Date) || !Number.isFinite(d.getTime())) return "—";
   const p = (n) => String(n).padStart(2, "0");
   return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`;
+}
+
+// ─── ETIQUETAS SALVAS ────────────────────────────────────────────────────────
+// Lista das etiquetas que foram apenas SALVAS (ainda não geradas). Aqui é
+// possível gerar (mandar para as "Etiquetas geradas"), excluir, deixar como
+// está, e simular no telefone/tablet como o QR apareceria ao ser escaneado.
+function EtiquetasSalvas({ unidadeAtiva }) {
+  const [lista, setLista] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [sim, setSim] = useState(null);          // etiqueta em simulação
+  const [aparelho, setAparelho] = useState("telefone"); // "telefone" | "tablet"
+
+  const carregar = async () => {
+    setLoading(true);
+    setLista(await fetchEtiquetas(unidadeAtiva, 300, "salva"));
+    setLoading(false);
+  };
+  useEffect(() => { if (unidadeAtiva) carregar(); /* eslint-disable-next-line */ }, [unidadeAtiva]);
+
+  const gerar = async (e) => { await gerarEtiquetaSalva(e.id); setLista((p) => p.filter((x) => x.id !== e.id)); };
+  const remover = async (e) => { if (!confirm(`Excluir a etiqueta salva de ${e.produto}?`)) return; await excluirEtiqueta(e.id); setLista((p) => p.filter((x) => x.id !== e.id)); };
+
+  const fmtDH = (iso) => { if (!iso) return "—"; const d = new Date(iso); return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }); };
+  const origem = typeof window !== "undefined" ? window.location.origin : "";
+  const molduraTel = aparelho === "tablet" ? { w: 460, h: 620 } : { w: 300, h: 600 };
+
+  return (
+    <div>
+      <p className="text-[12px] font-medium mb-4" style={{ color: "var(--dim)" }}>
+        Etiquetas apenas <b>salvas</b> (ainda não geradas). Você pode gerar (envia para “Etiquetas geradas”), excluir, deixar aqui, ou simular no telefone como o QR apareceria ao ser lido.
+      </p>
+      {loading ? (
+        <EmptyState icon={Tag} title="Carregando..." />
+      ) : lista.length === 0 ? (
+        <EmptyState icon={Save} title="Nenhuma etiqueta salva" hint="Ao clicar em Salvar na aba Gerar, a etiqueta aparece aqui." />
+      ) : (
+        <div className="space-y-2.5">
+          {lista.map((e) => (
+            <div key={e.id} className="rounded-2xl border p-3 flex flex-wrap items-center gap-3" style={{ borderColor: "var(--line)", background: "var(--card)" }}>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-black truncate" style={{ color: "var(--fg)" }}>{e.produto}</p>
+                <p className="text-[11px]" style={{ color: "var(--dim)" }}>
+                  {e.quantidade} {e.unidade} · vence {fmtDH(e.validade_em)} · #{e.codigo}
+                  {e.responsavel ? ` · ${e.responsavel}` : ""}
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button onClick={() => setSim(e)} title="Simular no telefone" className="h-9 px-3 rounded-lg text-[11px] font-bold flex items-center gap-1.5" style={{ background: "var(--panel)", color: "var(--accent-fg)", border: "1px solid var(--line)" }}>
+                  <Smartphone size={14} /> Simular
+                </button>
+                <button onClick={() => gerar(e)} title="Gerar (enviar para Geradas)" className="h-9 px-3 rounded-lg text-[11px] font-bold flex items-center gap-1.5 text-white" style={{ background: "var(--accent-strong)" }}>
+                  <Check size={14} /> Gerar
+                </button>
+                <button onClick={() => remover(e)} title="Excluir" className="h-9 w-9 rounded-lg flex items-center justify-center" style={{ background: "var(--panel)", color: "#DC2626", border: "1px solid var(--line)" }}>
+                  <Trash2 size={15} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* SIMULAÇÃO NO TELEFONE / TABLET — como o QR (rastreio) aparece ao ser lido */}
+      {sim && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4" onClick={() => setSim(null)}>
+          <div className="bg-white rounded-3xl w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto p-5 shadow-2xl" onClick={(ev) => ev.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-base font-black text-slate-800">Como aparece no {aparelho}</h3>
+              <button onClick={() => setSim(null)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><X size={16} /></button>
+            </div>
+            <div className="flex gap-1 p-1 rounded-xl bg-slate-100 mb-4 w-max mx-auto">
+              {[["telefone", "Telefone", Smartphone], ["tablet", "Tablet", Tablet]].map(([v, l, Ic]) => (
+                <button key={v} onClick={() => setAparelho(v)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5"
+                  style={aparelho === v ? { background: "#fff", color: "#0f172a", boxShadow: "0 1px 2px rgba(0,0,0,.12)" } : { color: "#64748b" }}>
+                  <Ic size={14} /> {l}
+                </button>
+              ))}
+            </div>
+            {/* Moldura do aparelho com a página de rastreio dentro */}
+            <div className="mx-auto rounded-[34px] border-[10px] border-slate-900 bg-slate-900 shadow-xl overflow-hidden" style={{ width: molduraTel.w, maxWidth: "100%", height: molduraTel.h, maxHeight: "62vh" }}>
+              <iframe title={`Simulação ${sim.codigo}`} src={`${origem}/rastreio/${sim.codigo}`} className="w-full h-full bg-white border-0" />
+            </div>
+            <p className="text-[11px] text-center text-slate-400 mt-3">É exatamente a página que abre quando alguém aponta a câmera para o QR desta etiqueta.</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function EtiquetasRunner() {
@@ -246,7 +334,9 @@ function EtiquetasRunner() {
           manipulacao_em: momentoImpressao.toISOString(),
           validade_em: validadeImpressao.toISOString(),
           lote: form.lote || null, responsavel: form.responsavel.trim(),
-          custo_unit: custoMap[nomeProduto] || 0, status: "ativa",
+          custo_unit: custoMap[nomeProduto] || 0,
+          // Só "Salvar" (sem imprimir) fica em SALVAS; imprimir já gera (ativa).
+          status: modoImpressao ? "ativa" : "salva",
           copias: quantidadeCopias,
           tipo_etiqueta: tipoEtiqueta,
         }, unidadeAtiva);
@@ -323,10 +413,10 @@ function EtiquetasRunner() {
       <PageBody>
         <Toast show={!!salvou}>{salvou}</Toast>
 
-        {/* Abas em forma de botões: gerar novas etiquetas OU consultar as já
-            geradas (validade). Cores fixas para garantir contraste sempre. */}
+        {/* Abas em forma de botões: gerar, salvas (só salvas) e geradas.
+            Cores fixas para garantir contraste sempre. */}
         <div className="flex flex-wrap gap-2 mb-4">
-          {[["gerar", "Gerar etiqueta"], ["geradas", "Etiquetas geradas"]].map(([v, l]) => (
+          {[["gerar", "Gerar etiqueta"], ["salvas", "Etiquetas salvas"], ["geradas", "Etiquetas geradas"]].map(([v, l]) => (
             <button key={v} onClick={() => setAba(v)}
               className="px-5 py-2.5 font-bold text-sm rounded-xl transition-all"
               style={aba === v
@@ -339,6 +429,8 @@ function EtiquetasRunner() {
 
         {aba === "geradas" ? (
           <ControleValidade embutido />
+        ) : aba === "salvas" ? (
+          <EtiquetasSalvas unidadeAtiva={unidadeAtiva} />
         ) : (
         <>
         {/* Filtro por departamento: cada área imprime etiquetas só dos seus itens */}

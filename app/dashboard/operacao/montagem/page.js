@@ -1419,36 +1419,40 @@ function MontagemPageInner() {
       )}
 
       {modal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-2 md:p-6 overflow-y-auto">
-           <div className="bg-[var(--surface)] rounded-[24px] shadow-2xl w-full max-w-7xl my-auto animate-in zoom-in-95 duration-200 border border-[var(--line)]">
-             <div className="p-4 md:p-6 border-b border-[var(--line)] flex justify-between items-center bg-[var(--panel)] rounded-t-[24px]">
-                <h2 className="font-black text-lg md:text-xl text-[var(--fg)] flex items-center gap-2">
-                  <ClipboardList size={22} className="text-slate-600" />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4 md:p-6 overflow-y-auto">
+           <div className="bg-[var(--surface)] sm:rounded-[24px] shadow-2xl w-full max-w-7xl min-h-full sm:min-h-0 my-auto animate-in zoom-in-95 duration-200 border border-[var(--line)]">
+             <div className="p-3 sm:p-5 md:p-6 border-b border-[var(--line)] flex justify-between items-center bg-[var(--panel)] sm:rounded-t-[24px] sticky top-0 z-20">
+                <h2 className="font-black text-base sm:text-lg md:text-xl text-[var(--fg)] flex items-center gap-2">
+                  <ClipboardList size={20} className="text-slate-600 shrink-0" />
                   {editar ? "Editar Ficha de Montagem" : "Nova Ficha de Montagem"}
                 </h2>
-                <button onClick={() => { setModal(false); setEditar(null); }} className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--surface)] text-[var(--subtle)] border border-[var(--line)] hover:bg-[var(--elevated)] hover:text-[var(--fg)]">
+                <button onClick={() => { setModal(false); setEditar(null); }} className="w-8 h-8 shrink-0 flex items-center justify-center rounded-full bg-[var(--surface)] text-[var(--subtle)] border border-[var(--line)] hover:bg-[var(--elevated)] hover:text-[var(--fg)]">
                    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
              </div>
-             
-             {/* Layout Split: Esquerda Formulário, Direita Prévia */}
-             <div className="p-4 md:p-6 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(360px,.95fr)] gap-5 lg:gap-8 max-h-[calc(100dvh-8rem)] lg:max-h-[78vh] overflow-y-auto custom-scrollbar">
-                
-                {/* Coluna 1: Dados e Editor */}
-                <div className="space-y-4">
+
+             {/* Celular/tablet: prévia FIXA no topo, formulário abaixo e designer por último.
+                 Desktop: formulário à esquerda, prévia (fixa) + designer à direita. */}
+             <div className="p-3 sm:p-5 md:p-6 flex flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(340px,.9fr)] lg:grid-rows-[auto_1fr] gap-4 lg:gap-x-8 lg:gap-y-4 max-h-[calc(100dvh-4rem)] lg:max-h-[78vh] overflow-y-auto custom-scrollbar">
+
+                {/* PRÉVIA — celular ordem 1 (fixa no topo); desktop coluna direita, linha 1 */}
+                <div className="order-1 lg:order-none lg:col-start-2 lg:row-start-1 sticky top-0 z-10 -mx-3 sm:mx-0 px-3 sm:px-0 pb-2 lg:pb-0" style={{ background: "var(--surface)" }}>
+                  <div className="lg:sticky lg:top-0">
+                    <h3 className="font-black text-[var(--fg)] text-sm sm:text-lg mb-0.5">Prévia da ficha impressa</h3>
+                    <p className="text-[var(--subtle)] text-[11px] sm:text-xs mb-2 hidden sm:block">Acompanha cada ajuste em tempo real — é exatamente o que vai para a impressão, com a foto inteira.</p>
+                    <div className="max-w-[240px] sm:max-w-[300px] lg:max-w-none mx-auto">
+                      <PreviaModeloChef m={previewFicha} cfg={cfgModelo} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* FORMULÁRIO — celular ordem 2; desktop coluna esquerda (2 linhas) */}
+                <div className="order-2 lg:order-none lg:col-start-1 lg:row-start-1 lg:row-span-2 space-y-4">
                    <FormMontagem inicial={editar} deptInicial={dept} onSalvar={salvar} onCancelar={() => { setModal(false); setEditar(null); }} onPreview={setPreviewFicha} />
                 </div>
 
-                {/* Designer e prévia também aparecem no tablet e no celular.
-                    A prévia fica FIXA (sticky) para acompanhar cada ajuste de
-                    imagem, título, texto, designer e margem sem sair da tela. */}
-                <div className="min-w-0 border-t border-[var(--line)] pt-6 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
-                  <div className="space-y-4">
-                    <div className="lg:sticky lg:top-0 lg:z-10 lg:self-start pb-2" style={{ background: "var(--surface)" }}>
-                      <h3 className="font-black text-[var(--fg)] text-lg mb-1">Prévia da ficha impressa</h3>
-                      <p className="text-[var(--subtle)] text-xs mb-3">Ela acompanha cada ajuste em tempo real. É exatamente o que vai para a impressão, com a foto inteira e sem cortes.</p>
-                      <PreviaModeloChef m={previewFicha} cfg={cfgModelo} />
-                    </div>
+                {/* DESIGNER — celular ordem 3; desktop coluna direita, linha 2 */}
+                <div className="order-3 lg:order-none lg:col-start-2 lg:row-start-2 space-y-4 border-t border-[var(--line)] pt-4 lg:border-0 lg:pt-0">
                     <ControlesDesigner
                       cfg={cfgModelo}
                       onChange={mudarCfg}
@@ -1460,7 +1464,6 @@ function MontagemPageInner() {
                     <button type="button" onClick={() => previewFicha?.nome && imprimirModelo([previewFicha], cfgModelo, dept === "bar" ? "Bar" : "Cozinha")} disabled={!previewFicha?.nome} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-black text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40">
                       <Printer size={15} /> Imprimir esta ficha com o designer
                     </button>
-                  </div>
                 </div>
 
              </div>

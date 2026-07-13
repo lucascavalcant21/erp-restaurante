@@ -1273,197 +1273,108 @@ export default function RHPage() {
                   <input type="text" placeholder="Buscar funcionário..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-medium text-slate-700" />
                </div>
 
-               <div className="bg-white rounded-b-3xl border border-slate-200 overflow-hidden shadow-sm">
-                  <div className="table-responsive-wrapper">
-                  <table className="w-full text-left min-w-[860px]">
-               <thead>
-                  <tr className="bg-slate-50 border-b border-slate-100">
-                     <th className="p-2.5 sm:p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Colaborador</th>
-                     <th className="p-2.5 sm:p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Perfil & Contato</th>
-                     <th className="p-2.5 sm:p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">{abaAtiva === "Freelancer" ? "Diária Base" : "Remuneração Base"}</th>
-                     <th className="p-2.5 sm:p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Ponto Hoje</th>
-                     <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">Documentos / Ações</th>
-                  </tr>
-               </thead>
-               <tbody className="divide-y divide-slate-100">
-                  {loading && <tr><td colSpan={5} className="p-10 text-center text-slate-500 font-bold">Carregando...</td></tr>}
-                  {!loading && filtrados.map(f => (
-                     <tr key={f.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="p-2.5 sm:p-4">
-                           <div className="font-black text-slate-800 text-base">{f.nome}</div>
-                           {ehInativo(f) && (
-                             <div className="text-[10px] font-black uppercase tracking-widest text-orange-600 bg-orange-50 border border-orange-200 rounded px-1.5 py-0.5 mt-1 inline-block">
-                               {f.tipo_desligamento || "Desligado"}{f.data_desligamento ? ` · ${f.data_desligamento.split("-").reverse().join("/")}` : ""}
-                             </div>
-                           )}
-                           {f.tipo_contrato === "Freelancer" && (
-                              <div className="flex text-amber-400 mt-1">
-                                 {[...Array(5)].map((_, i) => (
-                                    <Star key={i} size={12} className={i < (f.avaliacao_estrelas || 0) ? "fill-amber-400" : "text-slate-200"} />
-                                 ))}
+               <div className="bg-white rounded-b-3xl border border-slate-200 border-t-0 shadow-sm p-3 sm:p-4">
+                  {loading ? (
+                     <p className="p-10 text-center text-slate-500 font-bold">Carregando...</p>
+                  ) : filtrados.length === 0 ? (
+                     <p className="p-10 text-center text-slate-500 font-bold">Nenhum funcionário cadastrado.</p>
+                  ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                  {filtrados.map(f => {
+                     const ehFreela = f.tipo_contrato === "Freelancer";
+                     const p = ehFreela ? null : previsaoDe(f);
+                     const pontoBadge = (() => {
+                        const pt = pontosHoje.find(x => x.colaborador_id === f.id);
+                        const strToMin = (s) => { if (!s) return null; const [h, m] = s.split(':').map(Number); return h * 60 + m; };
+                        const dateToMin = (d) => { if (!d) return null; const x = new Date(d); return x.getHours() * 60 + x.getMinutes(); };
+                        const minToStr = (m) => { if (m < 0) m += 1440; const hh = Math.floor(m / 60), mm = m % 60; return hh === 0 ? `${mm}min` : `${hh}h${String(mm).padStart(2, '0')}`; };
+                        const cls = (c) => `text-[11px] font-bold px-2.5 py-1 rounded-md border ${c}`;
+                        if (!pt) {
+                           if (f.horario_entrada && f.dias_trabalho && f.dias_trabalho.split(',').includes(new Date().getDay().toString())) {
+                              const minAgora = new Date().getHours() * 60 + new Date().getMinutes();
+                              if (minAgora > strToMin(f.horario_entrada)) return <span className={cls("text-rose-700 bg-rose-100 border-rose-200")}>Atrasado (Era p/ {f.horario_entrada})</span>;
+                           }
+                           return <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md">Não iniciou</span>;
+                        }
+                        const hrEntrada = new Date(pt.hora_entrada).toLocaleTimeString('pt-BR').slice(0, 5);
+                        if (pt.status_jornada === 1) {
+                           let extra = "";
+                           if (f.horario_entrada) { const mPt = dateToMin(pt.hora_entrada), mAg = strToMin(f.horario_entrada); extra = mPt > mAg + 5 ? ` (Era p/ ${f.horario_entrada})` : ` (No horário)`; }
+                           const atrasado = extra.includes("Era p/");
+                           return <span className={cls(atrasado ? "text-rose-700 bg-rose-100 border-rose-200" : "text-emerald-700 bg-emerald-100 border-emerald-200")}>Entrou {hrEntrada}{extra}</span>;
+                        }
+                        if (pt.status_jornada === 2) return <span className={cls("text-amber-700 bg-amber-100 border-amber-200")}>No intervalo: {new Date(pt.hora_saida_intervalo).toLocaleTimeString('pt-BR').slice(0, 5)}</span>;
+                        if (pt.status_jornada === 3) {
+                           const hrVolta = new Date(pt.hora_retorno_intervalo).toLocaleTimeString('pt-BR').slice(0, 5);
+                           const minSaida = dateToMin(pt.hora_saida_intervalo); let minVolta = dateToMin(pt.hora_retorno_intervalo); if (minVolta < minSaida) minVolta += 1440;
+                           const duracao = minVolta - minSaida, limite = f.tempo_intervalo || 60;
+                           if (duracao > limite) return <span className={cls("text-rose-700 bg-rose-100 border-rose-200")}>Voltou {hrVolta} (Tirou {minToStr(duracao)}/{minToStr(limite)})</span>;
+                           return <span className={cls("text-emerald-700 bg-emerald-100 border-emerald-200")}>Voltou {hrVolta} (OK)</span>;
+                        }
+                        if (pt.status_jornada === 4) return <span className={cls("text-blue-700 bg-blue-100 border-blue-200")}>Concluído: saiu {new Date(pt.hora_saida).toLocaleTimeString('pt-BR').slice(0, 5)}</span>;
+                        return <span className="text-[11px] font-bold text-slate-400">--</span>;
+                     })();
+                     const tb = totalBancoDe(f.id);
+                     return (
+                        <div key={f.id} onClick={() => abrirModalEdicao(f)}
+                           className="text-left rounded-2xl border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all p-3 cursor-pointer flex flex-col gap-2.5">
+                           <div className="flex items-center gap-3">
+                              {f.foto
+                                 ? <img src={`data:image/jpeg;base64,${f.foto}`} alt={f.nome} className="w-12 h-12 rounded-full object-cover border border-slate-200 shrink-0" />
+                                 : <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center font-black text-slate-500 shrink-0">{(f.nome || "?")[0].toUpperCase()}</div>}
+                              <div className="min-w-0 flex-1">
+                                 <p className="font-black text-slate-800 truncate">{f.nome}</p>
+                                 <p className="text-xs font-bold text-slate-500 truncate">{f.cargo || "—"}</p>
+                                 {ehFreela && (
+                                    <div className="flex text-amber-400 mt-0.5">{[...Array(5)].map((_, i) => <Star key={i} size={11} className={i < (f.avaliacao_estrelas || 0) ? "fill-amber-400" : "text-slate-200"} />)}</div>
+                                 )}
+                              </div>
+                              {ehInativo(f) && <span className="text-[9px] font-black uppercase tracking-widest text-orange-600 bg-orange-50 border border-orange-200 rounded px-1.5 py-0.5 shrink-0">{f.tipo_desligamento || "Desligado"}</span>}
+                           </div>
+                           {(f.telefone || f.chave_pix) && (
+                              <div className="text-[11px] font-semibold text-slate-500 flex flex-wrap gap-x-3 gap-y-0.5">
+                                 {f.telefone && <span className="flex items-center gap-1"><Phone size={10} /> {f.telefone}</span>}
+                                 {f.chave_pix && <span className="flex items-center gap-1"><CreditCard size={10} /> {f.chave_pix}</span>}
                               </div>
                            )}
-                           {f.anotacoes_rh && <div className="text-[10px] font-bold text-slate-400 mt-1 flex items-start gap-1"><ClipboardList size={10} className="mt-0.5 shrink-0"/> <span className="line-clamp-1">{f.anotacoes_rh}</span></div>}
-                        </td>
-                        <td className="p-2.5 sm:p-4">
-                           <div className="font-bold text-slate-700">{f.cargo}</div>
-                           {f.telefone && <div className="text-[11px] font-semibold text-slate-500 flex items-center gap-1 mt-1"><Phone size={10}/> {f.telefone}</div>}
-                           {f.chave_pix && <div className="text-[11px] font-semibold text-slate-500 flex items-center gap-1 mt-0.5"><CreditCard size={10}/> PIX: {f.chave_pix}</div>}
-                           {(() => {
-                              const badges = calcularProgresso(f);
-                              if(!badges || badges.length === 0) return null;
-                              return (
-                                 <div className="flex flex-col gap-1 mt-2">
-                                    {badges.map((b, idx) => (
-                                       <div key={idx} className={`text-[10px] font-bold px-2 py-0.5 rounded border inline-block w-fit ${b.color}`}>
-                                          <Clock size={10} className="inline mr-1 -mt-0.5" />
-                                          {b.text}
-                                       </div>
-                                    ))}
-                                 </div>
-                              );
-                           })()}
-                        </td>
-                        <td className="p-2.5 sm:p-4">
-                           {(() => {
-                              const ehFreela = f.tipo_contrato === "Freelancer";
-                              if (ehFreela) return <div className="font-black text-emerald-700">{fmtBRL(f.salario)}</div>;
-                              const p = previsaoDe(f);
-                              const mudou = Math.abs(p.previsto - p.base) > 0.005;
-                              const nDias = (f.dias_trabalho || "").split(",").filter(Boolean).length;
-                              const valorDia = nDias > 0 && p.base > 0 ? p.base / (nDias * 4.345) : null;
-                              return (
+                           <div>{pontoBadge}</div>
+                           <div>
+                              {ehFreela ? (
+                                 <div className="font-black text-emerald-700">{fmtBRL(f.salario)} <span className="text-[10px] font-bold text-slate-400">/ diária</span></div>
+                              ) : (
                                  <>
                                     <div className="font-black text-emerald-700">{fmtBRL(p.previsto)}</div>
-                                    {mudou && <div className="text-[10px] font-bold text-slate-400">Base: {fmtBRL(p.base)}</div>}
-                                    {valorDia && <div className="text-[10px] font-bold text-slate-500" title={`${nDias} dia(s)/semana ≈ ${Math.round(nDias * 4.345)} dias/mês`}>≈ {fmtBRL(valorDia)} por dia trabalhado</div>}
                                     <div className="flex flex-wrap gap-1 mt-1">
-                                       {p.descontos > 0 && <span className="text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-100 rounded px-1.5 py-0.5" title="Vales/consumos pendentes com desconto em folha">− Vales: {fmtBRL(p.descontos)}</span>}
-                                       {p.ad.valorExtra > 0 && <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded px-1.5 py-0.5" title="Horas extras do mês (após 00:00, +50%)">+ Extra: {fmtBRL(p.ad.valorExtra)}</span>}
-                                       {p.ad.valorFeriado > 0 && <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5" title="Feriados trabalhados no mês (+100%)">+ Feriado: {fmtBRL(p.ad.valorFeriado)}</span>}
-                                       {p.ad.valorNoturno > 0 && <span className="text-[10px] font-bold text-sky-700 bg-sky-50 border border-sky-100 rounded px-1.5 py-0.5" title="Adicional noturno (23:30–00:00, +20%)">+ Noturno: {fmtBRL(p.ad.valorNoturno)}</span>}
+                                       {p.descontos > 0 && <span className="text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-100 rounded px-1.5 py-0.5">Vales: {fmtBRL(p.descontos)}</span>}
+                                       {p.ad.valorExtra > 0 && <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded px-1.5 py-0.5">Extra: {fmtBRL(p.ad.valorExtra)}</span>}
+                                       {Number(f.vale_alimentacao) > 0 && <span className="text-[10px] font-bold text-teal-700 bg-teal-50 border border-teal-100 rounded px-1.5 py-0.5">VA: {fmtBRL(f.vale_alimentacao)}</span>}
+                                       {Number(f.taxa_servico_mes) > 0 && <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded px-1.5 py-0.5">Taxa: {fmtBRL(f.taxa_servico_mes)}</span>}
                                     </div>
                                  </>
-                              );
-                           })()}
-                           {Number(f.vale_alimentacao) > 0 && (
-                              <div className="text-[10px] font-bold text-teal-700 bg-teal-50 border border-teal-100 rounded px-1.5 py-0.5 mt-1 inline-block">VA: {fmtBRL(f.vale_alimentacao)}</div>
-                           )}
-                           {Number(f.taxa_servico_mes) > 0 && (
-                              <div className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded px-1.5 py-0.5 mt-1 inline-block ml-1">Taxa: {fmtBRL(f.taxa_servico_mes)}</div>
-                           )}
-                        </td>
-                        <td className="p-2.5 sm:p-4">
-                           {(() => {
-                              const pt = pontosHoje.find(p => p.colaborador_id === f.id);
-                              
-                              const strToMin = (str) => {
-                                 if(!str) return null;
-                                 const [h,m] = str.split(':').map(Number);
-                                 return h*60+m;
-                              };
-                              const dateToMin = (dStr) => {
-                                 if(!dStr) return null;
-                                 const d = new Date(dStr);
-                                 return d.getHours()*60 + d.getMinutes();
-                              };
-                              const minToStr = (m) => {
-                                 if (m < 0) m += 24 * 60; 
-                                 const hh = Math.floor(m/60);
-                                 const mm = m%60;
-                                 if(hh === 0) return `${mm}min`;
-                                 return `${hh}h${mm.toString().padStart(2,'0')}`;
-                              };
-
-                              if (!pt) {
-                                 if(f.horario_entrada && f.dias_trabalho && f.dias_trabalho.split(',').includes(new Date().getDay().toString())) {
-                                    const minAgora = new Date().getHours() * 60 + new Date().getMinutes();
-                                    const minEntrada = strToMin(f.horario_entrada);
-                                    if(minAgora > minEntrada) {
-                                       return <span className="text-[11px] font-bold text-rose-700 bg-rose-100 px-2.5 py-1 rounded-md border border-rose-200">Atrasado (Era p/ {f.horario_entrada})</span>;
-                                    }
-                                 }
-                                 return <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md">Não iniciou</span>;
-                              }
-
-                              const hrEntrada = new Date(pt.hora_entrada).toLocaleTimeString('pt-BR').slice(0,5);
-
-                              if (pt.status_jornada === 1) {
-                                 let extra = "";
-                                 if(f.horario_entrada) {
-                                    const mPt = dateToMin(pt.hora_entrada);
-                                    const mAg = strToMin(f.horario_entrada);
-                                    if(mPt > mAg + 5) extra = ` (Era p/ ${f.horario_entrada})`;
-                                    else extra = ` (No horário)`;
-                                 }
-                                 const atrasado = extra.includes("Era p/");
-                                 return <span className={`text-[11px] font-bold px-2.5 py-1 rounded-md border ${atrasado ? 'text-rose-700 bg-rose-100 border-rose-200' : 'text-emerald-700 bg-emerald-100 border-emerald-200'}`}>Trab: Entrou {hrEntrada}{extra}</span>;
-                              }
-
-                              if (pt.status_jornada === 2) {
-                                 const hrSaidaInt = new Date(pt.hora_saida_intervalo).toLocaleTimeString('pt-BR').slice(0,5);
-                                 return <span className="text-[11px] font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-md border border-amber-200">No Intervalo: Saiu {hrSaidaInt}</span>;
-                              }
-
-                              if (pt.status_jornada === 3) {
-                                 const hrVolta = new Date(pt.hora_retorno_intervalo).toLocaleTimeString('pt-BR').slice(0,5);
-                                 let intTexto = "";
-                                 const minSaida = dateToMin(pt.hora_saida_intervalo);
-                                 let minVolta = dateToMin(pt.hora_retorno_intervalo);
-                                 if (minVolta < minSaida) minVolta += 24 * 60; 
-                                 const duracao = minVolta - minSaida; 
-                                 const limite = f.tempo_intervalo || 60;
-                                 
-                                 if(duracao > limite) {
-                                    intTexto = ` (Tirou ${minToStr(duracao)}, o limite é ${minToStr(limite)})`;
-                                    return <span className="text-[11px] font-bold text-rose-700 bg-rose-100 px-2.5 py-1 rounded-md border border-rose-200">Voltou {hrVolta}{intTexto}</span>;
-                                 }
-                                 return <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-md border border-emerald-200">Voltou {hrVolta} (Intervalo OK)</span>;
-                              }
-
-                              if (pt.status_jornada === 4) {
-                                 const hrSaida = new Date(pt.hora_saida).toLocaleTimeString('pt-BR').slice(0,5);
-                                 return <span className="text-[11px] font-bold text-blue-700 bg-blue-100 px-2.5 py-1 rounded-md border border-blue-200">Expediente Concluído: Saiu {hrSaida}</span>;
-                              }
-
-                              return <span className="text-[11px] font-bold text-slate-400">--</span>;
-                           })()}
-                        </td>
-                        <td className="p-4 text-right">
-                           <div className="flex flex-col items-end gap-2">
-                              {/* Resumo: docs + alerta de banco de horas (só o que precisa de olho) */}
-                              <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                              )}
+                           </div>
+                           <div className="flex items-center justify-between gap-2 mt-auto pt-2 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center gap-1.5 flex-wrap">
                                  {f.docs?.length > 0
-                                   ? <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-md flex items-center gap-1"><FileText size={10}/> {f.docs.length} doc(s)</span>
-                                   : <span className="text-[10px] text-slate-400">Sem docs</span>}
-                                 {(() => {
-                                    const tb = totalBancoDe(f.id);
-                                    if (tb < BANCO_ALERTA_MIN) return null;
-                                    const critico = tb >= BANCO_LIMITE_MIN;
-                                    return (
-                                       <button onClick={() => abrirModalBanco(f)} className={`text-[10px] font-black px-2 py-1 rounded-md flex items-center gap-1 ${critico ? "text-red-700 bg-red-100" : "text-amber-700 bg-amber-100"}`}>
-                                          <Clock size={10}/> {fmtMin(tb)}{critico ? " LIMITE!" : ""}
-                                       </button>
-                                    );
-                                 })()}
+                                    ? <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-md flex items-center gap-1"><FileText size={10} /> {f.docs.length}</span>
+                                    : <span className="text-[10px] text-slate-400">Sem docs</span>}
+                                 {tb >= BANCO_ALERTA_MIN && (
+                                    <button onClick={() => abrirModalBanco(f)} className={`text-[10px] font-black px-2 py-1 rounded-md flex items-center gap-1 ${tb >= BANCO_LIMITE_MIN ? "text-red-700 bg-red-100" : "text-amber-700 bg-amber-100"}`}>
+                                       <Clock size={10} /> {fmtMin(tb)}{tb >= BANCO_LIMITE_MIN ? "!" : ""}
+                                    </button>
+                                 )}
                               </div>
-                              <div className="flex items-center gap-2">
-                                 <button onClick={() => abrirModalEdicao(f)} className="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3.5 py-2 rounded-lg hover:bg-slate-50 transition-colors">Editar</button>
-                                 <button onClick={() => setMenuAcoes(f)} className="flex items-center gap-1.5 text-xs font-black text-white bg-slate-800 px-3.5 py-2 rounded-lg hover:bg-slate-900 transition-colors">
-                                    Ações <ChevronDown size={13}/>
-                                 </button>
+                              <div className="flex items-center gap-1.5">
+                                 <button onClick={() => abrirModalEdicao(f)} className="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-50">Editar</button>
+                                 <button onClick={() => setMenuAcoes(f)} className="flex items-center gap-1 text-xs font-black text-white bg-slate-800 px-3 py-1.5 rounded-lg hover:bg-slate-900">Ações <ChevronDown size={12} /></button>
                               </div>
                            </div>
-                        </td>
-                     </tr>
-                  ))}
-                  {!loading && filtrados.length === 0 && (
-                     <tr><td colSpan={5} className="p-10 text-center text-slate-500 font-bold">Nenhum funcionário cadastrado.</td></tr>
+                        </div>
+                     );
+                  })}
+                  </div>
                   )}
-               </tbody>
-            </table>
-            </div>
-         </div>
+               </div>
          </>
          )}
 

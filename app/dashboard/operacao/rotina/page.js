@@ -844,9 +844,9 @@ function RotinaRunner() {
                 <DIcon size={27} color="#fff" />
               </div>
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: t.corTexto }}>Operação separada</p>
-                <h2 className="text-xl sm:text-2xl font-black" style={{ color: t.corTexto }}>Somente {t.nome}</h2>
-                <p className="text-xs font-medium mt-0.5" style={{ color: t.corTexto, opacity: 0.8 }}>Os checklists, a equipe e o histórico desta tela pertencem apenas a este setor.</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: t.corTexto }}>Rotina do setor</p>
+                <h2 className="text-xl sm:text-2xl font-black" style={{ color: t.corTexto }}>{t.nome}</h2>
+                <p className="text-xs font-medium mt-0.5" style={{ color: t.corTexto, opacity: 0.8 }}>Checklists, equipe e histórico deste setor reunidos em um só lugar.</p>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-2 sm:gap-3 min-w-0 lg:min-w-[390px]">

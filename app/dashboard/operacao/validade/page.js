@@ -20,7 +20,10 @@ function textoDias(dias) {
 }
 function fmtHora(iso) { const d = new Date(iso); return `${String(d.getHours()).padStart(2, "0")}h${String(d.getMinutes()).padStart(2, "0")}`; }
 
-export default function ValidadePage() {
+// Conteúdo do Controle de Validade. Pode rodar como página inteira (rota
+// própria) ou embutido dentro do módulo de Etiquetas, na aba "Etiquetas
+// geradas" — nesse caso `embutido` remove o cabeçalho/duplo enquadramento.
+export function ControleValidade({ embutido = false }) {
   const { unidadeAtiva, unidadeInfo, unidades } = useERP();
   const [lista, setLista] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -75,11 +78,8 @@ export default function ValidadePage() {
     }).sort((a, b) => new Date(a.items[0].validade_em) - new Date(b.items[0].validade_em));
   }, [filtradas]);
 
-  return (
-    <div className="min-h-screen">
-      <PageHeader title="Controle de Validade" subtitle={`FEFO + perdas · ${unidadeInfo.nome}`} icon={CalendarClock}
-        onAction={carregar} actionLabel="Atualizar" />
-      <PageBody>
+  const conteudo = (
+      <>
         {/* Alertas */}
         {resumo.vencidosSemBaixa > 0 && (
           <Card style={{ background: "rgba(239,68,68,0.12)", borderColor: "#EF4444" }} className="flex items-center gap-3">
@@ -165,7 +165,35 @@ export default function ValidadePage() {
             </div>
           )}
         </div>
+      </>
+  );
+
+  // Embutido na aba de Etiquetas: só o conteúdo, com um botão leve de atualizar.
+  if (embutido) {
+    return (
+      <div>
+        <div className="flex justify-end mb-3">
+          <button onClick={carregar} className="text-[12px] font-bold px-3 py-1.5 rounded-lg"
+            style={{ background: "var(--panel)", color: "var(--accent-fg)", border: "1px solid var(--line)" }}>
+            Atualizar lista
+          </button>
+        </div>
+        {conteudo}
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen">
+      <PageHeader title="Controle de Validade" subtitle={`FEFO + perdas · ${unidadeInfo.nome}`} icon={CalendarClock}
+        onAction={carregar} actionLabel="Atualizar" />
+      <PageBody>
+        {conteudo}
       </PageBody>
     </div>
   );
+}
+
+export default function ValidadePage() {
+  return <ControleValidade />;
 }

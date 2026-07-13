@@ -14,6 +14,7 @@ import { fetchProdutos } from "../../../lib/vendas";
 import { fetchColaboradores } from "../../../lib/rh";
 import { CONSERVACAO, gerarCodigo, criarEtiqueta } from "../../../lib/etiquetas";
 import { fetchValidadesEtiqueta } from "../../../lib/parametros";
+import { ControleValidade } from "../validade/page";
 import {
   conectarAssistenteImpressao, observarAssistenteImpressao,
   imprimirEtiquetasTp20, PERFIS_TP20,
@@ -46,6 +47,7 @@ function EtiquetasRunner() {
   });
   const [codigo, setCodigo] = useState(gerarCodigo());
   const [momentoEtiqueta, setMomentoEtiqueta] = useState(() => new Date());
+  const [aba, setAba] = useState("gerar"); // "gerar" | "geradas" (Controle de Validade)
   const [tamanho, setTamanho] = useState("60x60"); // "60x60" | "60x40"
   const [validadeModo, setValidadeModo] = useState("dias"); // "dias" | "data"
   // "aberto" = produto aberto/manipulado (mostra data e hora de manipulação);
@@ -307,8 +309,25 @@ function EtiquetasRunner() {
       <PageBody>
         <Toast show={!!salvou}>{salvou}</Toast>
 
+        {/* Abas: gerar novas etiquetas OU consultar as já geradas (validade) */}
+        <div className="flex gap-2 mb-4 border-b" style={{ borderColor: "var(--line)" }}>
+          {[["gerar", "Gerar etiqueta"], ["geradas", "Etiquetas geradas"]].map(([v, l]) => (
+            <button key={v} onClick={() => setAba(v)}
+              className="px-4 py-2.5 font-bold text-sm transition-all -mb-px border-b-2"
+              style={aba === v
+                ? { color: "var(--accent-fg)", borderColor: "var(--accent-strong)" }
+                : { color: "var(--muted)", borderColor: "transparent" }}>
+              {l}
+            </button>
+          ))}
+        </div>
+
+        {aba === "geradas" ? (
+          <ControleValidade embutido />
+        ) : (
+        <>
         {/* Filtro por departamento: cada área imprime etiquetas só dos seus itens */}
-        <div className="inline-flex gap-1 p-1 mb-4 rounded-xl" style={{ background: "var(--elevated)" }}>
+        <div className="inline-flex gap-1 mb-4 rounded-xl p-1" style={{ background: "var(--elevated)" }}>
           {[["", "Todos"], ["cozinha", "Cozinha"], ["bar", "Bar"]].map(([d, l]) => (
             <button key={d} onClick={() => router.push(`/dashboard/operacao/etiquetas${d ? `?dept=${d}` : ""}`)}
               className="px-4 py-2 rounded-lg font-bold text-sm transition-all"
@@ -562,6 +581,8 @@ function EtiquetasRunner() {
             </p>
           </div>
         </div>
+        )}
+        </>
         )}
       </PageBody>
     </div>

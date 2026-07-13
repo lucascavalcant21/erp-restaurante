@@ -596,16 +596,16 @@ export default function RHPage() {
           <style>
             @page { size: A4 portrait; margin: 8mm; }
             * { box-sizing: border-box; }
-            body { font-family: sans-serif; padding: 12px; color: #1e293b; line-height: 1.35; font-size: 11px; }
-            h1 { text-align: center; margin: 0 0 2px; font-size: 17px; text-transform: uppercase; }
-            h2 { text-align: center; font-size: 10px; font-weight: normal; margin: 0 0 10px; color: #64748b; }
-            .section { margin-bottom: 8px; }
-            .section-title { font-size: 11px; font-weight: bold; background: #f1f5f9; padding: 4px 8px; border-radius: 4px; margin-bottom: 6px; text-transform: uppercase; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
-            th, td { border: 1px solid #cbd5e1; padding: 3px 6px; text-align: left; font-size: 10px; }
-            th { background: #f8fafc; font-size: 9px; text-transform: uppercase; color: #64748b; }
-            .signature-box { height: 24px; }
-            .checkbox { width: 11px; height: 11px; border: 1px solid #94a3b8; display: inline-block; margin-right: 6px; vertical-align: middle; border-radius: 2px; }
+            body { font-family: sans-serif; padding: 12px; color: #1e293b; line-height: 1.4; font-size: 12px; }
+            h1 { text-align: center; margin: 0 0 3px; font-size: 21px; text-transform: uppercase; }
+            h2 { text-align: center; font-size: 11px; font-weight: normal; margin: 0 0 14px; color: #64748b; }
+            .section { margin-bottom: 14px; }
+            .section-title { font-size: 12px; font-weight: bold; background: #f1f5f9; padding: 6px 10px; border-radius: 4px; margin-bottom: 8px; text-transform: uppercase; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+            th, td { border: 1px solid #cbd5e1; padding: 5px 7px; text-align: left; font-size: 11px; }
+            th { background: #f8fafc; font-size: 10px; text-transform: uppercase; color: #64748b; }
+            .signature-box { height: 34px; }
+            .checkbox { width: 12px; height: 12px; border: 1px solid #94a3b8; display: inline-block; margin-right: 6px; vertical-align: middle; border-radius: 2px; }
             @media print { body { padding: 0; } }
           </style>
         </head>
@@ -663,7 +663,7 @@ export default function RHPage() {
           <div class="section" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start;">
             <div>
              <div class="section-title">Itens Disponibilizados pela Empresa</div>
-             <p style="font-size: 9px; color: #64748b; margin: 0 0 5px;"><strong>Declaro ter recebido os itens abaixo em perfeito estado</strong> para uso em serviço, e me comprometo a <strong>devolvê-los em perfeito estado, no CAIXA, ao término do turno</strong>. Em caso de perda ou dano, o valor poderá ser descontado do acerto da diária.</p>
+             <p style="font-size: 10px; color: #64748b; margin: 0 0 6px;"><strong>Declaro ter recebido os itens abaixo em perfeito estado</strong> para uso em serviço, e me comprometo a <strong>devolvê-los em perfeito estado, no CAIXA, ao término do turno</strong>. Em caso de perda ou dano, o valor poderá ser descontado do acerto da diária.</p>
 
              <table>
                <thead>
@@ -688,7 +688,7 @@ export default function RHPage() {
                </tbody>
             </table>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 4px; font-size: 9px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; font-size: 10px;">
                <div><strong>Itens entregues por (responsável):</strong><br/>_______________________</div>
                <div><strong>Local / setor da entrega:</strong><br/>_______________________</div>
                <div><strong>Devolução no caixa — conferida por:</strong><br/>_______________________</div>
@@ -759,19 +759,19 @@ export default function RHPage() {
             </div>
             </div>
 
-            <div class="section" style="margin-top: 8px;">
-               <p style="font-size: 9px; color: #334155; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 8px; line-height: 1.4; margin: 0;">
+            <div class="section" style="margin-top: 14px;">
+               <p style="font-size: 10px; color: #334155; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 10px; line-height: 1.5; margin: 0;">
                   Declaro que <strong>li e estou de acordo</strong> com o valor da diária e seu desmembramento (valor fixo, INSS, FGTS e taxa de serviço), com a carga de trabalho acordada para o dia e com a responsabilidade pela devolução dos itens recebidos, em perfeito estado, no caixa, ao término do turno.
                </p>
-               <div style="display: flex; justify-content: space-between; gap: 40px; margin-top: 28px;">
-                  <div style="flex:1; border-top: 1px solid #000; padding-top: 3px; text-align: center; font-size: 10px;">
+               <div style="display: flex; justify-content: space-between; gap: 40px; margin-top: 42px;">
+                  <div style="flex:1; border-top: 1px solid #000; padding-top: 4px; text-align: center; font-size: 11px;">
                      Assinatura do Extra / Diarista
                   </div>
-                  <div style="flex:1; border-top: 1px solid #000; padding-top: 3px; text-align: center; font-size: 10px;">
+                  <div style="flex:1; border-top: 1px solid #000; padding-top: 4px; text-align: center; font-size: 11px;">
                      Gerente / Responsável da Empresa
                   </div>
                </div>
-               <p style="font-size: 8px; color: #94a3b8; margin-top: 8px; text-align: center; margin-bottom: 0;">Via única — este documento fica arquivado com a empresa.</p>
+               <p style="font-size: 9px; color: #94a3b8; margin-top: 12px; text-align: center; margin-bottom: 0;">Via única — este documento fica arquivado com a empresa.</p>
             </div>
           </body>
         </html>

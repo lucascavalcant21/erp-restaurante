@@ -309,14 +309,15 @@ function EtiquetasRunner() {
       <PageBody>
         <Toast show={!!salvou}>{salvou}</Toast>
 
-        {/* Abas: gerar novas etiquetas OU consultar as já geradas (validade) */}
-        <div className="flex gap-2 mb-4 border-b" style={{ borderColor: "var(--line)" }}>
+        {/* Abas em forma de botões: gerar novas etiquetas OU consultar as já
+            geradas (validade). Cores fixas para garantir contraste sempre. */}
+        <div className="flex flex-wrap gap-2 mb-4">
           {[["gerar", "Gerar etiqueta"], ["geradas", "Etiquetas geradas"]].map(([v, l]) => (
             <button key={v} onClick={() => setAba(v)}
-              className="px-4 py-2.5 font-bold text-sm transition-all -mb-px border-b-2"
+              className="px-5 py-2.5 font-bold text-sm rounded-xl transition-all"
               style={aba === v
-                ? { color: "var(--accent-fg)", borderColor: "var(--accent-strong)" }
-                : { color: "var(--muted)", borderColor: "transparent" }}>
+                ? { background: "var(--accent-strong)", color: "#fff", boxShadow: "0 2px 8px rgba(16,185,129,0.28)" }
+                : { background: "var(--panel)", color: "var(--fg)", border: "1px solid var(--line)" }}>
               {l}
             </button>
           ))}

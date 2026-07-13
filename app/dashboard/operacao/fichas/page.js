@@ -771,33 +771,48 @@ function FichasRunner() {
        return c ? `${(+(qtd * c.fa)).toLocaleString('pt-BR')} ${c.s}` : `${qtd} ${String(un || '').toUpperCase()}`;
     };
     
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    const fmtBRL = (v) => 'R$ ' + (Number(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const fmtDataBR = (d) => { if (!d) return '—'; const dt = new Date(d); return Number.isNaN(dt.getTime()) ? '—' : dt.toLocaleDateString('pt-BR'); };
+
     let conteudoHTML = `
        <!DOCTYPE html><html><head><meta charset="utf-8"/><title>Livro de Receitas</title>
        <style>
           *{margin:0;padding:0;box-sizing:border-box}
-          body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;padding:18px;max-width:780px;margin:0 auto}
-          /* Bloco compacto: cabem 2 pratos por página */
-          .bloco{page-break-inside:avoid;border-bottom:3px double #94a3b8;padding-bottom:14px;margin-bottom:16px}
-          .bloco:last-child{border-bottom:none;margin-bottom:0}
+          body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;padding:16mm 14mm;max-width:820px;margin:0 auto;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+          .ficha{page-break-inside:avoid;margin-bottom:26px}
+          .ficha + .ficha{border-top:1px solid #e2e8f0;padding-top:22px}
           .quebra{page-break-after:always}
-          .head{display:flex;gap:14px;align-items:flex-start;border-bottom:3px solid #0f172a;padding-bottom:10px;margin-bottom:8px}
-          .head-info{flex:1;min-width:0}
-          /* Foto do prato: mostra inteira (sem cortar), tamanho compacto */
-          .head-foto{width:250px;height:180px;border-radius:12px;object-fit:contain;background:#f1f5f9;border:1px solid #cbd5e1;display:block;flex-shrink:0}
-          .tag{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#475569;font-weight:bold}
-          h1{font-size:26px;line-height:1.1;margin:4px 0}
-          .meta{font-size:16px;color:#0f172a;font-weight:bold;margin-top:2px}
-          h2{font-size:13px;text-transform:uppercase;letter-spacing:2px;color:#0f172a;margin:10px 0 4px;border-bottom:1px solid #cbd5e1;padding-bottom:3px}
-          table{width:100%;border-collapse:collapse;font-size:15px}
-          th,td{text-align:left;padding:5px 6px;border-bottom:1px solid #e2e8f0}
-          th{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#64748b}
-          td{font-weight:600}
-          td.c{text-align:center}td.r,th.r{text-align:right}
-          .preparo{margin-top:4px;font-size:14px;line-height:1.55;white-space:pre-wrap;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-weight:500}
-          @media print{@page{margin:10mm}}
-          .capa { height: 90vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; page-break-after: always; }
-          .capa h1 { font-size: 48px; margin-bottom: 16px; }
-          .capa p { font-size: 18px; color: #64748b; }
+          /* Cabeçalho: foto quadrada à esquerda, dados à direita */
+          .topo{display:flex;gap:18px;align-items:flex-start;margin-bottom:16px}
+          .foto{width:230px;height:230px;object-fit:cover;border-radius:6px;background:#f1f5f9;border:1px solid #cbd5e1;flex-shrink:0}
+          .foto-vazia{width:230px;height:230px;border-radius:6px;background:#f1f5f9;border:1px dashed #cbd5e1;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:12px;font-weight:bold}
+          .cab{flex:1;min-width:0}
+          .rotulo{text-align:right;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#64748b;font-weight:bold}
+          .titulo{text-align:right;font-size:22px;font-weight:800;line-height:1.15;margin:2px 0 14px;color:#0f172a}
+          /* Metadados em grade (linhas e colunas) */
+          .grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 22px}
+          .campo{font-size:12.5px;color:#334155}
+          .campo b{color:#0f172a}
+          .campo.full{grid-column:1 / -1}
+          /* Seções e tabelas */
+          h2{font-size:12px;text-transform:uppercase;letter-spacing:2px;color:#0f172a;margin:18px 0 6px;text-align:right;border-bottom:2px solid #0f172a;padding-bottom:4px}
+          table{width:100%;border-collapse:collapse;font-size:13px}
+          th,td{text-align:left;padding:7px 10px}
+          thead th{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#475569;border-bottom:2px solid #cbd5e1;font-weight:bold}
+          tbody td{font-weight:600;border-bottom:1px solid #eef2f7}
+          tbody tr:nth-child(even){background:#f5f7fa}
+          td.r,th.r{text-align:right}
+          .rende td,.rende th{white-space:nowrap}
+          /* Modo de preparo em passos com linhas alternadas */
+          .passos{margin-top:4px}
+          .passo{font-size:13px;line-height:1.5;padding:7px 10px;font-weight:600}
+          .passo:nth-child(even){background:#f5f7fa}
+          .passo b{color:#0f172a;margin-right:4px}
+          @media print{@page{margin:12mm}}
+          .capa{height:88vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;page-break-after:always}
+          .capa h1{font-size:46px;margin-bottom:14px}
+          .capa p{font-size:18px;color:#64748b}
        </style></head><body>
     `;
 
@@ -806,58 +821,92 @@ function FichasRunner() {
          <div class="capa">
            <h1>Livro de Receitas</h1>
            <p>${listaDeFichas.length} receitas catalogadas</p>
-           <p style="margin-top: 40px; font-size: 14px; text-transform: uppercase; letter-spacing: 2px;">Hephaestus ERP</p>
+           <p style="margin-top: 40px; font-size: 14px; text-transform: uppercase; letter-spacing: 2px;">${esc(unidadeInfo?.nome || 'Hefisto')}</p>
          </div>
        `;
     }
 
     listaDeFichas.forEach((f, idxFicha) => {
       const custoTotal = custoTotalDaFicha(f, fichas);
+      const rende = Number(f.rendimento_porcoes) || 1;
+      const peso = infoPesoFicha(f, fichas);
+      const unR = String(f.rendimento_unidade || 'porcao').toLowerCase();
+      const labelUnPrint = { porcao: `porç${rende > 1 ? 'ões' : 'ão'}`, kg: 'kg', g: 'g', l: 'L', ml: 'ml', un: 'un' }[unR] || unR;
+      const porcoesTxt = unR === 'porcao'
+         ? Number(rende).toLocaleString('pt-BR')
+         : (peso && peso.porcoes ? Number(peso.porcoes).toLocaleString('pt-BR') : '—');
+      const custoPorcaoBase = unR === 'porcao' ? rende : (peso && peso.porcoes ? peso.porcoes : 0);
+      const custoPorcao = custoPorcaoBase > 0 ? custoTotal / custoPorcaoBase : 0;
+
+      // Itens do preparo: Tipo | Nome | Medida | Quantidade total
       const rows = (f.fichas_ingredientes || []).map(fi => {
-         let nome = '', unidade = '';
+         let tipo = 'Insumo', nome = '', unidade = '';
          if (fi.insumos) {
+            tipo = fi.insumos.categoria || 'Insumo';
             nome = fi.insumos.nome;
             unidade = fi.insumos.unidade_medida;
          } else if (fi.subficha_id) {
             const base = fichas.find(x => x.id === fi.subficha_id);
+            tipo = 'Receita';
             nome = base ? base.nome_receita : 'Base excluída';
             unidade = base?.rendimento_unidade || 'un';
          }
-         return `<tr><td>${nome}</td><td class="c">${fmtQtd(fi.quantidade, unidade)}</td></tr>`;
+         return `<tr><td>${esc(tipo)}</td><td>${esc(nome)}</td><td>${esc(String(unidade || '').toUpperCase())}</td><td class="r">${fmtQtd(fi.quantidade, unidade)}</td></tr>`;
       }).join('');
-      const rende = f.rendimento_porcoes || 1;
-      const peso = infoPesoFicha(f, fichas);
-      const unR = String(f.rendimento_unidade || 'porcao').toLowerCase();
-      const labelUnPrint = { porcao: `porç${rende > 1 ? 'ões' : 'ão'}`, kg: 'kg', g: 'g', l: 'L', ml: 'ml', un: 'un' }[unR] || unR;
-      // No lugar do rendimento por quantidade, mostra o PESO do prato (quando dá)
-      const linhaPesoOuRende = peso
-         ? `<div class="meta">Peso do prato: ${fmtG(peso.pesoTotalG)}</div>`
-         : `<div class="meta">Rendimento: ${Number(rende).toLocaleString('pt-BR')} ${labelUnPrint}</div>`;
 
-      const tagFoto = f.imagem ? `<img src="data:image/jpeg;base64,${f.imagem}" class="head-foto" />` : '';
+      const foto = f.imagem
+         ? `<img src="data:image/jpeg;base64,${f.imagem}" class="foto" />`
+         : `<div class="foto-vazia">SEM FOTO</div>`;
+      const tipoFicha = f.eh_base ? 'Receita base' : 'Produto de venda';
+      const deptLabel = f.departamento === 'bar' ? 'Bar' : (f.departamento === 'cozinha' ? 'Cozinha' : (f.departamento || '—'));
 
-      const tagCat = f.categoria ? ` — ${f.categoria}` : (f.departamento ? ' — ' + f.departamento : '');
+      // Passos do modo de preparo (remove numeração já existente e re-enumera)
+      const passos = String(f.modo_preparo || '')
+         .split(/\r?\n+/).map(s => s.trim().replace(/^\d+[.)-]\s*/, '')).filter(Boolean);
+      const passosHTML = passos.length
+         ? passos.map((s, i) => `<div class="passo"><b>${i + 1}.</b> ${esc(s)}</div>`).join('')
+         : `<div class="passo">Não informado.</div>`;
 
-      // Quebra de página a cada 2 pratos (o bloco é compacto: tudo na mesma página)
       const quebra = (idxFicha % 2 === 1 && idxFicha < listaDeFichas.length - 1) ? ' quebra' : '';
 
       conteudoHTML += `
-         <div class="bloco${quebra}">
-            <div class="head">
-               ${tagFoto}
-               <div class="head-info">
-                  <div class="tag">Ficha de Montagem${tagCat}</div>
-                  <h1>${f.nome_receita}</h1>
-                  ${linhaPesoOuRende}
+         <div class="ficha${quebra}">
+            <div class="topo">
+               ${foto}
+               <div class="cab">
+                  <div class="rotulo">Ficha Técnica</div>
+                  <div class="titulo">${esc(f.nome_receita)}</div>
+                  <div class="grid">
+                     <div class="campo"><b>Tipo:</b> ${esc(tipoFicha)}</div>
+                     <div class="campo"><b>Categoria:</b> ${esc(f.categoria || deptLabel)}</div>
+                     <div class="campo"><b>Área:</b> ${esc(deptLabel)}</div>
+                     <div class="campo"><b>Custo total:</b> ${fmtBRL(custoTotal)}</div>
+                     <div class="campo"><b>Data de criação:</b> ${fmtDataBR(f.created_at)}</div>
+                     <div class="campo"><b>Última atualização:</b> ${fmtDataBR(f.updated_at)}</div>
+                  </div>
                </div>
             </div>
-            <h2>Ingredientes</h2>
-            <table>
-               <thead><tr><th>Ingrediente</th><th class="c">Quantidade</th></tr></thead>
-               <tbody>${rows || '<tr><td colspan="2">Sem ingredientes cadastrados.</td></tr>'}</tbody>
+
+            <h2>Rendimento</h2>
+            <table class="rende">
+               <thead><tr><th>Rendimento</th><th>Unidade</th><th>Peso do prato</th><th>Porções</th><th class="r">Custo / porção</th></tr></thead>
+               <tbody><tr>
+                  <td>${Number(rende).toLocaleString('pt-BR')}</td>
+                  <td>${esc(labelUnPrint)}</td>
+                  <td>${peso ? fmtG(peso.pesoTotalG) : '—'}</td>
+                  <td>${porcoesTxt}</td>
+                  <td class="r">${custoPorcao > 0 ? fmtBRL(custoPorcao) : '—'}</td>
+               </tr></tbody>
             </table>
-            <h2>Montagem e Modo de Preparo</h2>
-            <div class="preparo">${f.modo_preparo ? f.modo_preparo : 'Não informado.'}</div>
+
+            <h2>Itens do preparo</h2>
+            <table>
+               <thead><tr><th>Tipo</th><th>Nome</th><th>Medida</th><th class="r">Quantidade total</th></tr></thead>
+               <tbody>${rows || '<tr><td colspan="4">Sem itens cadastrados.</td></tr>'}</tbody>
+            </table>
+
+            <h2>Modo de preparo</h2>
+            <div class="passos">${passosHTML}</div>
          </div>
       `;
     });
@@ -1049,7 +1098,7 @@ function FichasRunner() {
                <p className="text-slate-500 mt-2 font-medium">Cadastre suas receitas para calcular automaticamente o custo do prato.</p>
             </div>
          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                {filtradas.map(f => {
                   const peso = infoPesoFicha(f, fichas);
                   const unR = String(f.rendimento_unidade || "porcao").toLowerCase();
@@ -1060,35 +1109,35 @@ function FichasRunner() {
                      <div key={f.id}
                         onDragOver={e => { if (dragId) e.preventDefault(); }}
                         onDrop={() => reordenar(dragId, f.id)}
-                        className={`bg-white rounded-3xl border shadow-sm hover:shadow-md transition-all relative group flex flex-col overflow-hidden ${dragId === f.id ? 'opacity-50' : ''} ${selecionadas.includes(f.id) ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-slate-200'}`}>
-                        {/* Foto do prato em destaque */}
-                        <div className="h-44 bg-slate-100 relative">
+                        className={`bg-white rounded-2xl border shadow-sm hover:shadow-md transition-all relative group flex flex-col overflow-hidden ${dragId === f.id ? 'opacity-50' : ''} ${selecionadas.includes(f.id) ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-slate-200'}`}>
+                        {/* Foto do prato (compacta) */}
+                        <div className="h-28 sm:h-32 bg-slate-100 relative">
                            {f.imagem ? (
                               <img src={`data:image/jpeg;base64,${f.imagem}`} alt={f.nome_receita} className="w-full h-full object-cover" />
                            ) : (
                               <div className="w-full h-full flex items-center justify-center text-slate-300">
-                                 {f.departamento === 'bar' ? <Wine size={52}/> : <UtensilsCrossed size={52}/>}
+                                 {f.departamento === 'bar' ? <Wine size={34}/> : <UtensilsCrossed size={34}/>}
                               </div>
                            )}
                            {/* Alça para arrastar e reordenar */}
                            <div draggable onDragStart={() => setDragId(f.id)} onDragEnd={() => setDragId(null)}
                               title="Arraste para reordenar"
-                              className="absolute bottom-3 left-3 bg-white/90 backdrop-blur rounded-lg p-1.5 text-slate-500 shadow-sm cursor-grab active:cursor-grabbing">
-                              <GripVertical size={16} />
+                              className="absolute bottom-2 left-2 bg-white/90 backdrop-blur rounded-md p-1 text-slate-500 shadow-sm cursor-grab active:cursor-grabbing">
+                              <GripVertical size={13} />
                            </div>
-                           <label className="absolute top-3 left-3 bg-white/90 backdrop-blur rounded-md p-1 cursor-pointer shadow-sm">
-                              <input type="checkbox" checked={selecionadas.includes(f.id)} onChange={() => toggleSelecionar(f.id)} className="w-5 h-5 accent-emerald-600 cursor-pointer rounded-md block"/>
+                           <label className="absolute top-2 left-2 bg-white/90 backdrop-blur rounded-md p-0.5 cursor-pointer shadow-sm">
+                              <input type="checkbox" checked={selecionadas.includes(f.id)} onChange={() => toggleSelecionar(f.id)} className="w-4 h-4 accent-emerald-600 cursor-pointer rounded block"/>
                            </label>
-                            <div className="absolute top-3 right-3 flex gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                              <button onClick={() => abrirSimulacao(f)} title="Simular outro rendimento" className="p-2 bg-white/90 backdrop-blur rounded-lg text-slate-600 hover:text-emerald-600 shadow-sm"><Calculator size={16}/></button>
-                              <button onClick={() => imprimirFicha(f)} title="Imprimir ficha técnica" className="p-2 bg-white/90 backdrop-blur rounded-lg text-slate-600 hover:text-emerald-600 shadow-sm"><Printer size={16}/></button>
-                              <button onClick={() => abrirEditar(f)} className="p-2 bg-white/90 backdrop-blur rounded-lg text-slate-600 hover:text-emerald-600 shadow-sm"><Edit3 size={16}/></button>
-                              <button onClick={() => handleRemover(f.id)} className="p-2 bg-white/90 backdrop-blur rounded-lg text-slate-600 hover:text-rose-600 shadow-sm"><Trash2 size={16}/></button>
+                            <div className="absolute top-2 right-2 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                              <button onClick={() => abrirSimulacao(f)} title="Simular outro rendimento" className="p-1.5 bg-white/90 backdrop-blur rounded-md text-slate-600 hover:text-emerald-600 shadow-sm"><Calculator size={13}/></button>
+                              <button onClick={() => imprimirFicha(f)} title="Imprimir ficha técnica" className="p-1.5 bg-white/90 backdrop-blur rounded-md text-slate-600 hover:text-emerald-600 shadow-sm"><Printer size={13}/></button>
+                              <button onClick={() => abrirEditar(f)} title="Editar" className="p-1.5 bg-white/90 backdrop-blur rounded-md text-slate-600 hover:text-emerald-600 shadow-sm"><Edit3 size={13}/></button>
+                              <button onClick={() => handleRemover(f.id)} title="Remover" className="p-1.5 bg-white/90 backdrop-blur rounded-md text-slate-600 hover:text-rose-600 shadow-sm"><Trash2 size={13}/></button>
                            </div>
                         </div>
-                        <div className="p-5">
-                           <h3 className="text-xl font-black text-slate-800 leading-tight mb-1">{f.nome_receita}</h3>
-                           <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{pesoTxt}</p>
+                        <div className="p-3">
+                           <h3 className="text-sm font-black text-slate-800 leading-tight mb-0.5 line-clamp-2">{f.nome_receita}</h3>
+                           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{pesoTxt}</p>
                         </div>
                      </div>
                   );

@@ -9,6 +9,7 @@ import { fetchFichas } from "../../../lib/operacao"; // Pra linkar o custo
 import { fetchEmbalagens } from "../../../lib/embalagens";
 import { supabase } from "../../../lib/supabase";
 import { UtensilsCrossed, Plus, Search, Edit3, X, Save, ArrowLeft, Tag, Barcode, Image as ImageIcon, Trash2, ListPlus, Percent, Sparkles, Loader2, Printer, ClipboardList, Package, UploadCloud } from "lucide-react";
+import { comFecharImpressao } from "../../../lib/imprimir";
 import { fmtBRL } from "../../../components/ui";
 
 // Custo total de PRODUZIR uma ficha, resolvendo bases (sub-receitas) em cascata.
@@ -192,7 +193,7 @@ function CardapioRunner() {
     const win = window.open("", "_blank", "width=800,height=1000");
     if (!win) return alert("Habilite os popups para imprimir o guia.");
     const li = (arr) => (arr || []).map(x => `<li>${x}</li>`).join("");
-    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Guia - ${guiaProduto.nome_produto}</title>
+    win.document.write(comFecharImpressao(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Guia - ${guiaProduto.nome_produto}</title>
       <style>
         *{margin:0;padding:0;box-sizing:border-box}
         body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;padding:28px;max-width:760px;margin:0 auto}
@@ -219,7 +220,7 @@ function CardapioRunner() {
       ${g.finalizacao ? `<h2>Finalização</h2><div class="box">${g.finalizacao}</div>` : ""}
       ${g.visual ? `<h2>Visual do prato pronto</h2><div class="box">${g.visual}</div>` : ""}
       ${(g.dicas || []).length ? `<h2>Dicas de padronização</h2><div class="dicas"><ul>${li(g.dicas)}</ul></div>` : ""}
-      </body></html>`);
+      </body></html>`));
     win.document.close();
     setTimeout(() => win.print(), 400);
   };
@@ -517,7 +518,7 @@ function CardapioRunner() {
         return alert("O navegador bloqueou a janela de impressão. Habilite os popups para este site.\n\nDetalhe: " + e.message);
       }
     }
-    win.document.write(html);
+    win.document.write(comFecharImpressao(html));
     win.document.close();
     setTimeout(() => win.print(), 400);
   };

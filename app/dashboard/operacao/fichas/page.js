@@ -9,6 +9,16 @@ import { fetchMontagens, inserirMontagem } from "../../../lib/montagem";
 import { LayoutList, Plus, Search, Trash2, Edit3, X, Save, ArrowLeft, UtensilsCrossed, Wine, ChevronRight, Printer, Sparkles, Loader2, Camera, CheckCircle2, AlertTriangle, GripVertical, Calculator } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
+// Botão "Fechar" + fechamento automático após imprimir — no celular a aba de
+// impressão ficava presa e o usuário não conseguia voltar ao app.
+function comFecharImpressao(html) {
+  const extra = `
+    <style>@media print{.__fechar-imp{display:none!important}}</style>
+    <button class="__fechar-imp" onclick="window.close()" style="position:fixed;top:10px;right:10px;z-index:2147483647;padding:12px 18px;font:700 15px sans-serif;background:#0f172a;color:#fff;border:0;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.35);cursor:pointer">✕ Fechar</button>
+    <script>window.onafterprint=function(){setTimeout(function(){try{window.close()}catch(e){}},200)}<\/script>`;
+  return html.includes("</body>") ? html.replace("</body>", extra + "</body>") : html + extra;
+}
+
 // Categorias do cardápio (cozinha). Os pratos são divididos nessas seções.
 const CATEGORIAS_CARDAPIO = [
   "Entradas", "Executivo", "Moquecas e Caldeirada", "Vatapá", "Maniçoba",
@@ -640,7 +650,7 @@ function FichasRunner() {
     if (!win) return alert("Habilite pop-ups para imprimir.");
     const linhas = linhasSimuladas(f, factor);
     const rows = linhas.map(l => `<tr><td>${l.nome}</td><td style="text-align:right;font-weight:bold">${l.qtdFmt}</td></tr>`).join("");
-    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Simulação — ${f.nome_receita}</title>
+    win.document.write(comFecharImpressao(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Simulação — ${f.nome_receita}</title>
       <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;padding:24px;max-width:620px;margin:0 auto}
       .tag{font-size:13px;letter-spacing:3px;text-transform:uppercase;color:#64748b;font-weight:bold}
       h1{font-size:34px;margin:6px 0}.meta{font-size:20px;font-weight:bold;color:#0f172a;margin-bottom:16px}
@@ -649,7 +659,7 @@ function FichasRunner() {
       <div class="tag">Simulação de Rendimento</div><h1>${f.nome_receita}</h1>
       <div class="meta">Para produzir: ${alvoTxt}</div>
       <table><tbody>${rows || '<tr><td>Sem ingredientes.</td></tr>'}</tbody></table>
-      </body></html>`);
+      </body></html>`));
     win.document.close();
     setTimeout(() => win.print(), 400);
   };
@@ -921,7 +931,7 @@ function FichasRunner() {
     });
 
     conteudoHTML += `</body></html>`;
-    win.document.write(conteudoHTML);
+    win.document.write(comFecharImpressao(conteudoHTML));
     win.document.close();
     setTimeout(() => win.print(), 400);
   };
@@ -1013,7 +1023,7 @@ function FichasRunner() {
         return alert("O navegador bloqueou a impressão. Habilite os popups.\n\nDetalhe: " + e.message);
       }
     }
-    win2.document.write(html);
+    win2.document.write(comFecharImpressao(html));
     win2.document.close();
     setTimeout(() => win2.print(), 500);
   };

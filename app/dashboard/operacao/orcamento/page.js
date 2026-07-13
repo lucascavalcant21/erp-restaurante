@@ -6,6 +6,7 @@ import { fetchFichas, fetchInsumos } from "../../../lib/operacao";
 import { fetchProdutos } from "../../../lib/vendas";
 import { fetchOrcamentosEventos, salvarOrcamentoEvento, removerOrcamentoEvento } from "../../../lib/orcamentos";
 import { PartyPopper, Printer, Trash2, ArrowLeft, Users, ShoppingCart, FileText, Save, History, X, Loader2, ChefHat, ClipboardList, Image as ImageIcon, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
+import { comFecharImpressao } from "../../../lib/imprimir";
 import { fmtBRL } from "../../../components/ui";
 
 // Fator "in natura" de uma ficha: quanto o preço deve subir para cobrar o item
@@ -534,7 +535,7 @@ export default function OrcamentoEventoPage() {
       win.document.write(html.replace('</body>', script + '</body>'));
       win.document.close();
     } else {
-      win.document.write(html);
+      win.document.write(comFecharImpressao(html));
       win.document.close();
       setTimeout(() => win.print(), 400);
     }

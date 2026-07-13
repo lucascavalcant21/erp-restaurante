@@ -281,12 +281,7 @@ function ControlesDesigner({ cfg, onChange, onPreset, onReset, onSave, salvando 
       </SecaoDesigner>
 
       <SecaoDesigner icon={ListChecks} titulo="Papel" abertoInicial={!compacto}>
-          <div className="grid grid-cols-2 gap-2">
-            <BotaoOpcao ativo={cfg.orientacao === "retrato"} onClick={() => onChange({ orientacao: "retrato" })}>A4 vertical</BotaoOpcao>
-            <BotaoOpcao ativo={cfg.orientacao === "paisagem"} onClick={() => onChange({ orientacao: "paisagem" })}>A4 horizontal</BotaoOpcao>
-            <BotaoOpcao ativo={cfg.porPagina === 1} onClick={() => onChange({ porPagina: 1 })}>1 por página</BotaoOpcao>
-            <BotaoOpcao ativo={cfg.porPagina === 2} onClick={() => onChange({ porPagina: 2 })}>2 por página</BotaoOpcao>
-          </div>
+          {/* Orientação e "por página" agora são escolhidos na hora de imprimir. */}
           <ControleFaixa label="Margem da folha" valor={cfg.margemMm} sufixo=" mm" min={3} max={14} onChange={(margemMm) => onChange({ margemMm })} />
       </SecaoDesigner>
 
@@ -746,7 +741,18 @@ async function aguardarRecursosImpressao(contexto) {
   ]);
 }
 
-function abrirImpressaoHtml(html, prepararAntesDeImprimir) {
+// Injeta um botão "Fechar" e fecha a aba sozinha após imprimir/cancelar — no
+// celular a aba de impressão ficava aberta e o usuário não conseguia voltar.
+function injetarFecharImpressao(html) {
+  const extra = `
+    <style>@media print{.__fechar-imp{display:none!important}}</style>
+    <button class="__fechar-imp" onclick="window.close()" style="position:fixed;top:10px;right:10px;z-index:2147483647;padding:12px 18px;font:700 15px sans-serif;background:#0f172a;color:#fff;border:0;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.35);cursor:pointer">✕ Fechar</button>
+    <script>window.onafterprint=function(){setTimeout(function(){try{window.close()}catch(e){}},200)}<\/script>`;
+  return html.includes("</body>") ? html.replace("</body>", extra + "</body>") : html + extra;
+}
+
+function abrirImpressaoHtml(htmlEntrada, prepararAntesDeImprimir) {
+  const html = injetarFecharImpressao(htmlEntrada);
   let popup = null;
   try { popup = window.open("", "_blank", "width=980,height=1000"); } catch { popup = null; }
   try { if (popup) popup.opener = null; } catch {}
@@ -1063,6 +1069,9 @@ function MontagemPageInner() {
   const [editar, setEditar] = useState(null);
   const [previewFicha, setPreviewFicha] = useState(null); // estado vivo do formulário p/ prévia
   const [previewCard, setPreviewCard] = useState(null); // ficha aberta ao clicar num card (modelo pronto)
+  // Opções escolhidas na hora de imprimir (saíram do editor)
+  const [impOrient, setImpOrient] = useState("retrato");   // "retrato" | "paisagem"
+  const [impPorPagina, setImpPorPagina] = useState(1);      // 1 | 2 (fichas por folha)
   const [modalImpressao, setModalImpressao] = useState(false); // impressão em lote
   // Seleção de fichas para imprimir juntas (ex.: 2 receitas na mesma página)
   const [selecionadas, setSelecionadas] = useState([]);
@@ -1205,7 +1214,7 @@ function MontagemPageInner() {
   // Baixar em PDF: abre a janela de impressão do modelo — o usuário escolhe
   // "Salvar como PDF". É o caminho nativo (sem depender de bibliotecas extras).
   function baixarPdf(m) {
-    imprimirModelo([m], cfgModelo, deptLabelAtual());
+    imprimirModelo([m], { ...cfgModelo, orientacao: impOrient, porPagina: impPorPagina }, deptLabelAtual());
     setSalvou('Na janela de impressão, escolha "Salvar como PDF".');
     setTimeout(() => setSalvou(""), 4000);
   }
@@ -1331,14 +1340,31 @@ function MontagemPageInner() {
               <button onClick={() => setPreviewCard(null)} title="Sair" className="w-8 h-8 shrink-0 flex items-center justify-center rounded-full" style={{ background: "var(--elevated)", color: "var(--muted)" }}><X size={16} /></button>
             </div>
 
-            <PreviaModeloChef m={previewCard} cfg={cfgModelo} />
+            <PreviaModeloChef m={previewCard} cfg={{ ...cfgModelo, orientacao: impOrient, porPagina: impPorPagina }} />
+
+            {/* Opções de impressão (saíram do editor): orientação e por folha */}
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-widest w-full" style={{ color: "var(--dim)" }}>Ao imprimir</span>
+              <div className="inline-flex gap-1 p-1 rounded-xl" style={{ background: "var(--elevated)" }}>
+                {[["retrato", "Vertical"], ["paisagem", "Horizontal"]].map(([v, l]) => (
+                  <button key={v} onClick={() => setImpOrient(v)} className="px-3 py-1.5 rounded-lg text-xs font-bold"
+                    style={impOrient === v ? { background: "var(--card)", color: "var(--fg)", boxShadow: "0 1px 2px rgba(0,0,0,.15)" } : { color: "var(--muted)" }}>{l}</button>
+                ))}
+              </div>
+              <div className="inline-flex gap-1 p-1 rounded-xl" style={{ background: "var(--elevated)" }}>
+                {[[1, "1 por folha"], [2, "2 por folha"]].map(([v, l]) => (
+                  <button key={v} onClick={() => setImpPorPagina(v)} className="px-3 py-1.5 rounded-lg text-xs font-bold"
+                    style={impPorPagina === v ? { background: "var(--card)", color: "var(--fg)", boxShadow: "0 1px 2px rgba(0,0,0,.15)" } : { color: "var(--muted)" }}>{l}</button>
+                ))}
+              </div>
+            </div>
 
             {/* Ações discretas */}
-            <div className="mt-4 grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+            <div className="mt-3 grid grid-cols-3 sm:grid-cols-6 gap-1.5">
               {[
                 { icon: X, label: "Sair", onClick: () => setPreviewCard(null) },
                 { icon: Edit3, label: "Editar", onClick: () => { setEditar(previewCard); setModal(true); setPreviewCard(null); } },
-                { icon: Printer, label: "Imprimir", onClick: () => imprimirModelo([previewCard], cfgModelo, deptLabelAtual()) },
+                { icon: Printer, label: "Imprimir", onClick: () => imprimirModelo([previewCard], { ...cfgModelo, orientacao: impOrient, porPagina: impPorPagina }, deptLabelAtual()) },
                 { icon: Download, label: "PDF", onClick: () => baixarPdf(previewCard) },
                 { icon: Share2, label: "Compartilhar", onClick: () => compartilharFicha(previewCard) },
                 { icon: Trash2, label: "Excluir", onClick: () => remover(previewCard.id), perigo: true },

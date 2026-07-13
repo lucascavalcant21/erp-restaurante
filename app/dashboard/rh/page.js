@@ -28,6 +28,7 @@ import {
   Users, UserPlus, FileText, Upload, Save, X, Search, Trash2, Loader2, CalendarHeart, Star, Phone, CreditCard, ClipboardList, Clock, CalendarDays, ShoppingBag, CheckCircle, Store, Printer, UtensilsCrossed, LogOut, RotateCcw, ChevronDown, Camera
 } from "lucide-react";
 import { fmtBRL } from "../../components/ui";
+import { comFecharImpressao } from "../../lib/imprimir";
 import BancoTalentos from "./components/BancoTalentos";
 
 export default function RHPage() {
@@ -204,7 +205,7 @@ export default function RHPage() {
     let win = null;
     try { win = window.open("", "_blank", "width=820,height=1000"); } catch { win = null; }
     if (!win) return alert("Habilite os popups para imprimir o termo.");
-    win.document.write(html);
+    win.document.write(comFecharImpressao(html));
     win.document.close();
     setTimeout(() => win.print(), 400);
   };
@@ -359,7 +360,7 @@ export default function RHPage() {
       <p style="font-size:9px;color:#94a3b8;margin-top:8px">Falta = dia de trabalho previsto sem batida de ponto (desconta folgas semanais e programadas). Atraso = entrada gravada após o horário; a tolerância legal já é aplicada na marcação. Gerado em ${new Date().toLocaleString("pt-BR")}.</p>
       </body></html>`;
     const win = window.open("", "_blank", "width=980,height=1000");
-    if (win) { win.document.write(html); win.document.close(); setTimeout(() => win.print(), 400); }
+    if (win) { win.document.write(comFecharImpressao(html)); win.document.close(); setTimeout(() => win.print(), 400); }
     else alert("Habilite os popups para imprimir o relatório.");
   };
 
@@ -778,7 +779,7 @@ export default function RHPage() {
     `;
 
     const win = window.open("", "_blank");
-    win.document.write(html);
+    win.document.write(comFecharImpressao(html));
     win.document.close();
     setTimeout(() => win.print(), 500);
   };

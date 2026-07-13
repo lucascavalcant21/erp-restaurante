@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { ClipboardList, Plus, Trash2, Edit3, Printer, Camera, Clock, Sparkles, Loader2, ArrowUp, ArrowDown } from "lucide-react";
+import { ClipboardList, Plus, Trash2, Edit3, Printer, Camera, Clock, Sparkles, Loader2, ArrowUp, ArrowDown, SlidersHorizontal, Save, RotateCcw, ImageIcon, Type, Palette, ListChecks } from "lucide-react";
 import {
   PageHeader, PageBody, Card, SectionLabel, KpiGrid, Kpi,
   SearchBar, Chips, EmptyState, Modal, Field, TextInput, NumberInput, Select, Btn, Toast,
@@ -13,12 +13,290 @@ import {
   uploadFotoMontagem,
 } from "../../../lib/montagem";
 import { fetchProdutos } from "../../../lib/vendas";
+import { fetchModeloMontagem, salvarModeloMontagem } from "../../../lib/parametros";
 
 const VAZIO = {
   nome: "", tipo: "prato", departamento: "cozinha",
   descritivo: "", foto_url: "", estrutura_ia: null,
   tempo_preparo: "", rendimento: "", observacoes: "",
 };
+
+const CFG_MODELO_PADRAO = {
+  porPagina: 1,
+  fotoPct: 80,
+  tituloPx: 34,
+  textoPx: 15,
+  tituloNegrito: true,
+  textoNegrito: false,
+  orientacao: "retrato",
+  estilo: "chef",
+  corDestaque: "#059669",
+  fonte: "Segoe UI",
+  ajusteFoto: "contain",
+  posicaoFoto: "center",
+  cantosFoto: "suave",
+  alinhamentoTitulo: "center",
+  alinhamentoTexto: "left",
+  tituloMaiusculo: true,
+  entrelinha: 1.5,
+  margemMm: 6,
+  mostrarFoto: true,
+  mostrarDetalhes: true,
+  mostrarCamadas: true,
+  mostrarObservacoes: true,
+  mostrarRodape: true,
+  numerarPassos: true,
+};
+
+const PRESETS_MODELO = {
+  chef: {
+    estilo: "chef", fotoPct: 100, tituloPx: 38, textoPx: 15, porPagina: 1,
+    ajusteFoto: "cover", mostrarDetalhes: true, mostrarCamadas: false,
+    mostrarObservacoes: true, corDestaque: "#059669",
+  },
+  operacional: {
+    estilo: "operacional", fotoPct: 65, tituloPx: 30, textoPx: 14, porPagina: 1,
+    ajusteFoto: "contain", mostrarDetalhes: true, mostrarCamadas: true,
+    mostrarObservacoes: true, corDestaque: "#0F766E",
+  },
+  compacto: {
+    estilo: "compacto", fotoPct: 45, tituloPx: 26, textoPx: 12, porPagina: 2,
+    ajusteFoto: "contain", mostrarDetalhes: true, mostrarCamadas: false,
+    mostrarObservacoes: false, corDestaque: "#334155",
+  },
+};
+
+const CORES_MODELO = ["#059669", "#0F766E", "#2563EB", "#7C3AED", "#EA580C", "#334155", "#111827"];
+const FONTES_MODELO = ["Segoe UI", "Arial", "Georgia", "Trebuchet MS"];
+
+function limitarNumero(valor, min, max, fallback) {
+  const numero = Number(valor);
+  if (!Number.isFinite(numero)) return fallback;
+  return Math.min(max, Math.max(min, numero));
+}
+
+function normalizarCfgModelo(valor = {}) {
+  const cfg = { ...CFG_MODELO_PADRAO, ...(valor || {}) };
+  return {
+    ...cfg,
+    _updatedAt: Number.isFinite(Number(cfg._updatedAt)) ? Number(cfg._updatedAt) : 0,
+    porPagina: Number(cfg.porPagina) === 2 ? 2 : 1,
+    fotoPct: limitarNumero(cfg.fotoPct, 30, 100, CFG_MODELO_PADRAO.fotoPct),
+    tituloPx: limitarNumero(cfg.tituloPx, 18, 64, CFG_MODELO_PADRAO.tituloPx),
+    textoPx: limitarNumero(cfg.textoPx, 10, 30, CFG_MODELO_PADRAO.textoPx),
+    entrelinha: limitarNumero(cfg.entrelinha, 1.15, 2, CFG_MODELO_PADRAO.entrelinha),
+    margemMm: limitarNumero(cfg.margemMm, 3, 14, CFG_MODELO_PADRAO.margemMm),
+    orientacao: cfg.orientacao === "paisagem" ? "paisagem" : "retrato",
+    estilo: ["chef", "operacional", "compacto"].includes(cfg.estilo) ? cfg.estilo : "chef",
+    corDestaque: CORES_MODELO.includes(cfg.corDestaque) ? cfg.corDestaque : CFG_MODELO_PADRAO.corDestaque,
+    fonte: FONTES_MODELO.includes(cfg.fonte) ? cfg.fonte : CFG_MODELO_PADRAO.fonte,
+    ajusteFoto: cfg.ajusteFoto === "cover" ? "cover" : "contain",
+    posicaoFoto: ["top", "center", "bottom"].includes(cfg.posicaoFoto) ? cfg.posicaoFoto : "center",
+    cantosFoto: ["reto", "suave", "redondo"].includes(cfg.cantosFoto) ? cfg.cantosFoto : "suave",
+    alinhamentoTitulo: cfg.alinhamentoTitulo === "left" ? "left" : "center",
+    alinhamentoTexto: ["left", "center", "justify"].includes(cfg.alinhamentoTexto) ? cfg.alinhamentoTexto : "left",
+  };
+}
+
+function escaparHtml(valor) {
+  return String(valor ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function raioFoto(cfg) {
+  if (cfg.cantosFoto === "reto") return "0";
+  if (cfg.cantosFoto === "redondo") return "999px";
+  return "14px";
+}
+
+function dimensoesPapel(cfg) {
+  const paisagem = cfg.orientacao === "paisagem";
+  const largura = paisagem ? 297 : 210;
+  const altura = paisagem ? 210 : 297;
+  return {
+    larguraUtil: largura - (cfg.margemMm * 2),
+    alturaUtil: altura - (cfg.margemMm * 2),
+  };
+}
+
+function alturaFotoMm(cfg) {
+  const duas = Number(cfg.porPagina) === 2;
+  const paisagem = cfg.orientacao === "paisagem";
+  const base = paisagem ? (duas ? 82 : 108) : (duas ? 56 : 132);
+  const fatorEstilo = cfg.estilo === "compacto" ? 0.82 : cfg.estilo === "operacional" ? 0.92 : 1;
+  return Math.round(base * (cfg.fotoPct / 100) * fatorEstilo);
+}
+
+function chaveLocalModelo(unidadeId) {
+  return `hefisto_modelo_montagem:${unidadeId || "local"}`;
+}
+
+function BotaoOpcao({ ativo, children, onClick, className = "" }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`min-h-10 rounded-xl border px-3 py-2 text-[11px] font-black transition-all ${className}`}
+      style={ativo
+        ? { background: "var(--accent-strong)", color: "var(--accent-fg)", borderColor: "var(--accent-strong)" }
+        : { background: "var(--card)", color: "var(--muted)", borderColor: "var(--line)" }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function ControleFaixa({ label, valor, sufixo, min, max, step = 1, onChange }) {
+  return (
+    <label className="block rounded-xl border p-3" style={{ borderColor: "var(--line)", background: "var(--card)" }}>
+      <span className="mb-2 flex items-center justify-between gap-2 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--muted)" }}>
+        <span>{label}</span>
+        <span className="rounded-md px-2 py-1" style={{ background: "var(--elevated)", color: "var(--fg)" }}>{valor}{sufixo}</span>
+      </span>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={valor}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="h-6 w-full cursor-pointer accent-emerald-600"
+      />
+    </label>
+  );
+}
+
+function AlternadorDesigner({ marcado, onChange, children }) {
+  return (
+    <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border px-3 py-2 text-xs font-bold" style={{ borderColor: "var(--line)", background: "var(--card)", color: "var(--fg-soft)" }}>
+      <input type="checkbox" checked={marcado} onChange={(e) => onChange(e.target.checked)} className="h-5 w-5 shrink-0 accent-emerald-600" />
+      <span>{children}</span>
+    </label>
+  );
+}
+
+function SecaoDesigner({ icon: Icon, titulo, abertoInicial = true, children }) {
+  const [aberto, setAberto] = useState(abertoInicial);
+  return (
+    <section className="rounded-2xl border p-3 sm:p-4" style={{ borderColor: "var(--line)", background: "var(--elevated)" }}>
+      <button type="button" onClick={() => setAberto((valor) => !valor)} aria-expanded={aberto} className="flex min-h-10 w-full items-center gap-2 text-left text-[10px] font-black uppercase tracking-[0.16em]" style={{ color: "var(--fg-soft)" }}>
+        <Icon size={15} /> {titulo}
+        <span className="ml-auto flex h-7 w-7 items-center justify-center rounded-full text-base" style={{ background: "var(--card)", color: "var(--muted)" }}>{aberto ? "−" : "+"}</span>
+      </button>
+      {aberto && <div className="mt-3 space-y-3">{children}</div>}
+    </section>
+  );
+}
+
+function ControlesDesigner({ cfg, onChange, onPreset, onReset, onSave, salvando = false, compacto = false }) {
+  return (
+    <div className="space-y-3">
+      <div className="rounded-2xl border p-3 sm:p-4" style={{ borderColor: "var(--line)", background: "var(--elevated)" }}>
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <div>
+            <p className="flex items-center gap-2 text-sm font-black" style={{ color: "var(--fg)" }}><SlidersHorizontal size={16} /> Designer da ficha</p>
+            <p className="mt-1 text-[11px] leading-relaxed" style={{ color: "var(--dim)" }}>A prévia e a impressão usam exatamente estas escolhas.</p>
+          </div>
+          <button type="button" onClick={onReset} title="Restaurar o padrão" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border" style={{ borderColor: "var(--line)", color: "var(--muted)", background: "var(--card)" }}><RotateCcw size={15} /></button>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2">
+          <BotaoOpcao ativo={cfg.estilo === "chef"} onClick={() => onPreset("chef")}>Chef</BotaoOpcao>
+          <BotaoOpcao ativo={cfg.estilo === "operacional"} onClick={() => onPreset("operacional")}>Operacional</BotaoOpcao>
+          <BotaoOpcao ativo={cfg.estilo === "compacto"} onClick={() => onPreset("compacto")}>Compacto</BotaoOpcao>
+        </div>
+      </div>
+
+      <SecaoDesigner icon={ImageIcon} titulo="Foto">
+          <ControleFaixa label="Tamanho real" valor={cfg.fotoPct} sufixo="%" min={30} max={100} step={5} onChange={(fotoPct) => onChange({ fotoPct })} />
+          <div className="grid grid-cols-2 gap-2">
+            {[['contain', 'Foto inteira'], ['cover', 'Preencher área']].map(([valor, label]) => (
+              <BotaoOpcao key={valor} ativo={cfg.ajusteFoto === valor} onClick={() => onChange({ ajusteFoto: valor })}>{label}</BotaoOpcao>
+            ))}
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {[['top', 'Topo'], ['center', 'Centro'], ['bottom', 'Base']].map(([valor, label]) => (
+              <BotaoOpcao key={valor} ativo={cfg.posicaoFoto === valor} onClick={() => onChange({ posicaoFoto: valor })}>{label}</BotaoOpcao>
+            ))}
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {[['reto', 'Reto'], ['suave', 'Suave'], ['redondo', 'Redondo']].map(([valor, label]) => (
+              <BotaoOpcao key={valor} ativo={cfg.cantosFoto === valor} onClick={() => onChange({ cantosFoto: valor })}>{label}</BotaoOpcao>
+            ))}
+          </div>
+      </SecaoDesigner>
+
+      <SecaoDesigner icon={Type} titulo="Letras e leitura" abertoInicial={!compacto}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <ControleFaixa label="Título" valor={cfg.tituloPx} sufixo=" px" min={18} max={64} step={2} onChange={(tituloPx) => onChange({ tituloPx })} />
+            <ControleFaixa label="Texto" valor={cfg.textoPx} sufixo=" px" min={10} max={30} onChange={(textoPx) => onChange({ textoPx })} />
+          </div>
+          <ControleFaixa label="Espaço entre linhas" valor={cfg.entrelinha} sufixo="" min={1.15} max={2} step={0.05} onChange={(entrelinha) => onChange({ entrelinha })} />
+          <label className="block text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--muted)" }}>
+            Fonte
+            <select value={cfg.fonte} onChange={(e) => onChange({ fonte: e.target.value })} className="mt-2 h-11 w-full rounded-xl border px-3 text-sm font-bold outline-none" style={{ borderColor: "var(--line)", background: "var(--card)", color: "var(--fg)" }}>
+              {FONTES_MODELO.map((fonte) => <option key={fonte} value={fonte}>{fonte}</option>)}
+            </select>
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <AlternadorDesigner marcado={cfg.tituloNegrito} onChange={(tituloNegrito) => onChange({ tituloNegrito })}>Título em negrito</AlternadorDesigner>
+            <AlternadorDesigner marcado={cfg.textoNegrito} onChange={(textoNegrito) => onChange({ textoNegrito })}>Texto em negrito</AlternadorDesigner>
+            <AlternadorDesigner marcado={cfg.tituloMaiusculo} onChange={(tituloMaiusculo) => onChange({ tituloMaiusculo })}>Título maiúsculo</AlternadorDesigner>
+            <AlternadorDesigner marcado={cfg.numerarPassos} onChange={(numerarPassos) => onChange({ numerarPassos })}>Numerar passos</AlternadorDesigner>
+          </div>
+          <div>
+            <p className="mb-2 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--muted)" }}>Alinhamento do título</p>
+            <div className="grid grid-cols-2 gap-2">
+              {[['left', 'Esquerda'], ['center', 'Centro']].map(([valor, label]) => <BotaoOpcao key={valor} ativo={cfg.alinhamentoTitulo === valor} onClick={() => onChange({ alinhamentoTitulo: valor })}>{label}</BotaoOpcao>)}
+            </div>
+          </div>
+          <div>
+            <p className="mb-2 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--muted)" }}>Alinhamento do texto</p>
+            <div className="grid grid-cols-3 gap-2">
+              {[['left', 'Esquerda'], ['center', 'Centro'], ['justify', 'Justificado']].map(([valor, label]) => <BotaoOpcao key={valor} ativo={cfg.alinhamentoTexto === valor} onClick={() => onChange({ alinhamentoTexto: valor })}>{label}</BotaoOpcao>)}
+            </div>
+          </div>
+      </SecaoDesigner>
+
+      <SecaoDesigner icon={Palette} titulo="Visual e conteúdo" abertoInicial={!compacto}>
+          <div>
+            <p className="mb-2 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--muted)" }}>Cor de destaque</p>
+            <div className="flex flex-wrap gap-2">
+              {CORES_MODELO.map((cor) => (
+                <button key={cor} type="button" aria-label={`Usar cor ${cor}`} onClick={() => onChange({ corDestaque: cor })} className="h-10 w-10 rounded-full border-4 transition-transform hover:scale-105" style={{ background: cor, borderColor: cfg.corDestaque === cor ? "var(--fg)" : "transparent", boxShadow: "0 0 0 1px var(--line)" }} />
+              ))}
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <AlternadorDesigner marcado={cfg.mostrarFoto} onChange={(mostrarFoto) => onChange({ mostrarFoto })}>Exibir foto</AlternadorDesigner>
+            <AlternadorDesigner marcado={cfg.mostrarDetalhes} onChange={(mostrarDetalhes) => onChange({ mostrarDetalhes })}>Tipo, setor e tempo</AlternadorDesigner>
+            <AlternadorDesigner marcado={cfg.mostrarCamadas} onChange={(mostrarCamadas) => onChange({ mostrarCamadas })}>Sequência de camadas</AlternadorDesigner>
+            <AlternadorDesigner marcado={cfg.mostrarObservacoes} onChange={(mostrarObservacoes) => onChange({ mostrarObservacoes })}>Observações</AlternadorDesigner>
+            <AlternadorDesigner marcado={cfg.mostrarRodape} onChange={(mostrarRodape) => onChange({ mostrarRodape })}>Rodapé e data</AlternadorDesigner>
+          </div>
+      </SecaoDesigner>
+
+      <SecaoDesigner icon={ListChecks} titulo="Papel" abertoInicial={!compacto}>
+          <div className="grid grid-cols-2 gap-2">
+            <BotaoOpcao ativo={cfg.orientacao === "retrato"} onClick={() => onChange({ orientacao: "retrato" })}>A4 vertical</BotaoOpcao>
+            <BotaoOpcao ativo={cfg.orientacao === "paisagem"} onClick={() => onChange({ orientacao: "paisagem" })}>A4 horizontal</BotaoOpcao>
+            <BotaoOpcao ativo={cfg.porPagina === 1} onClick={() => onChange({ porPagina: 1 })}>1 por página</BotaoOpcao>
+            <BotaoOpcao ativo={cfg.porPagina === 2} onClick={() => onChange({ porPagina: 2 })}>2 por página</BotaoOpcao>
+          </div>
+          <ControleFaixa label="Margem da folha" valor={cfg.margemMm} sufixo=" mm" min={3} max={14} onChange={(margemMm) => onChange({ margemMm })} />
+      </SecaoDesigner>
+
+      <button type="button" onClick={onSave} disabled={salvando} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-black text-white transition-colors hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-60">
+        {salvando ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+        {salvando ? "Salvando..." : "Salvar como padrão da unidade"}
+      </button>
+    </div>
+  );
+}
 
 // =========================================================================
 // VISUALIZAÇÃO: Desenho Vertical Explodido (Hambúrgueres/Drinks)
@@ -233,15 +511,7 @@ function EditorCamadas({ camadas, setCamadas }) {
 // PRÉVIA DA FICHA IMPRESSA (Modelo com foto) — espelha imprimirModelo
 // =========================================================================
 function PreviaModeloChef({ m, cfg: cfgProp }) {
-  // Ajustes do "Modelo com foto": vem por prop (ao vivo no Editar) ou do salvo
-  let cfg = { fotoPct: 80, tituloPx: 34, textoPx: 15, tituloNegrito: true, textoNegrito: false };
-  if (cfgProp) cfg = { ...cfg, ...cfgProp };
-  else try {
-    const salvo = typeof window !== "undefined" && localStorage.getItem("hefisto_modelo_montagem");
-    if (salvo) cfg = { ...cfg, ...JSON.parse(salvo) };
-  } catch {}
-  const ESC = 0.72; // escala da folha para caber na coluna
-
+  const cfg = normalizarCfgModelo(cfgProp);
   if (!m || !m.nome) {
     return (
       <div className="rounded-2xl border-2 border-dashed p-10 text-center text-sm font-medium" style={{ borderColor: "var(--line)", color: "var(--dim)" }}>
@@ -249,26 +519,33 @@ function PreviaModeloChef({ m, cfg: cfgProp }) {
       </div>
     );
   }
-  const etapas = String(m.descritivo || "").split("\n").map(s => s.trim().replace(/^\d+[\.\)]\s*/, "")).filter(Boolean);
+  const deptLabel = m.departamento === "bar" ? "Bar" : "Cozinha";
+  const html = gerarHtmlModelo([m], cfg, deptLabel, { previsualizacao: true });
+  const larguraPapel = cfg.orientacao === "paisagem" ? 297 : 210;
+  const alturaPapel = cfg.orientacao === "paisagem" ? 210 : 297;
   return (
-    <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-6 flex flex-col items-center" style={{ minHeight: 320 }}>
-      <h1 className="text-center uppercase leading-tight mb-4" style={{ fontSize: cfg.tituloPx * ESC, fontWeight: cfg.tituloNegrito ? 900 : 500, letterSpacing: 1, color: "#0f172a" }}>
-        {m.nome}
-      </h1>
-      {m.foto_url && (
-        <div className="w-full flex justify-center mb-4" style={{ height: 170 }}>
-          <img src={m.foto_url} alt="Foto do prato" className="max-h-full rounded-xl border border-slate-200 bg-slate-50 object-contain" style={{ maxWidth: `${Math.min(100, cfg.fotoPct)}%` }} />
-        </div>
-      )}
-      <div className="w-full" style={{ fontSize: cfg.textoPx * ESC + 2, fontWeight: cfg.textoNegrito ? 700 : 400, color: "#1e293b", lineHeight: 1.6 }}>
-        {etapas.length > 1 ? (
-          <ol className="list-decimal pl-6 space-y-1">
-            {etapas.map((e, i) => <li key={i}>{e}</li>)}
-          </ol>
-        ) : (
-          <p className={etapas[0] ? "" : "italic text-slate-400"}>{etapas[0] || "Sem descritivo — escreva o passo a passo no formulário."}</p>
-        )}
+    <div>
+      <div className="mb-2 flex items-center justify-between gap-2 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>
+        <span>Prévia real do A4</span>
+        <span>{cfg.orientacao === "paisagem" ? "A4 horizontal" : "A4 vertical"} · {cfg.porPagina}/pág.</span>
       </div>
+      <div
+        className="mx-auto w-full overflow-hidden rounded-xl border bg-white shadow-lg"
+        style={{
+          aspectRatio: `${larguraPapel} / ${alturaPapel}`,
+          borderColor: "var(--line)",
+          maxWidth: cfg.orientacao === "paisagem" ? 620 : 430,
+        }}
+      >
+        <iframe
+          key={`${cfg.orientacao}-${cfg.porPagina}-${cfg.fotoPct}-${cfg.tituloPx}-${cfg.textoPx}-${cfg.estilo}`}
+          title={`Prévia de impressão de ${m.nome}`}
+          srcDoc={html}
+          sandbox="allow-scripts"
+          className="block h-full w-full border-0"
+        />
+      </div>
+      <p className="mt-2 text-center text-[10px] font-medium" style={{ color: "var(--dim)" }}>A folha acima usa o mesmo HTML, margens, fonte e conteúdo enviados à impressora. Se algo não couber, o sistema amplia para uma folha inteira sem cortar.</p>
     </div>
   );
 }
@@ -452,6 +729,68 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
 // =========================================================================
 // IMPRESSÃO (Inclui IA se houver)
 // =========================================================================
+async function aguardarRecursosImpressao(contexto) {
+  const doc = contexto?.document;
+  if (!doc) return;
+  const fontes = doc.fonts?.ready || Promise.resolve();
+  const imagens = Array.from(doc.images || []).map((img) => {
+    if (img.complete) return typeof img.decode === "function" ? img.decode().catch(() => {}) : Promise.resolve();
+    return new Promise((resolve) => {
+      img.addEventListener("load", resolve, { once: true });
+      img.addEventListener("error", resolve, { once: true });
+    });
+  });
+  await Promise.race([
+    Promise.all([fontes, ...imagens]),
+    new Promise((resolve) => setTimeout(resolve, 10000)),
+  ]);
+}
+
+function abrirImpressaoHtml(html, prepararAntesDeImprimir) {
+  let popup = null;
+  try { popup = window.open("", "_blank", "width=980,height=1000"); } catch { popup = null; }
+  try { if (popup) popup.opener = null; } catch {}
+
+  const imprimirQuandoPronto = async (contexto, limpar) => {
+    await aguardarRecursosImpressao(contexto);
+    if (prepararAntesDeImprimir) await prepararAntesDeImprimir(contexto.document);
+    try {
+      contexto.focus();
+      contexto.print();
+    } catch (e) {
+      alert("Não consegui abrir a impressão: " + e.message);
+    }
+    if (limpar) setTimeout(limpar, 60000);
+  };
+
+  if (!popup) {
+    try {
+      const iframe = document.createElement("iframe");
+      iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
+      document.body.appendChild(iframe);
+      iframe.onload = () => imprimirQuandoPronto(iframe.contentWindow, () => iframe.remove());
+      iframe.srcdoc = html;
+      return;
+    } catch (e) {
+      alert("O navegador bloqueou a impressão. Habilite os popups.\n\nDetalhe: " + e.message);
+      return;
+    }
+  }
+
+  let iniciou = false;
+  const iniciar = () => {
+    if (iniciou) return;
+    iniciou = true;
+    imprimirQuandoPronto(popup);
+  };
+  popup.document.open();
+  popup.document.write(html);
+  popup.document.close();
+  popup.addEventListener("load", iniciar, { once: true });
+  if (popup.document.readyState === "complete") setTimeout(iniciar, 80);
+  else setTimeout(iniciar, 1200);
+}
+
 // Imprime VÁRIAS fichas na mesma folha (1, 2, 4, 6 ou 8 por página),
 // cada uma com o passo a passo — para colar na parede da cozinha/bar.
 function imprimirLote(fichas, porFolha, deptLabel) {
@@ -467,24 +806,25 @@ function imprimirLote(fichas, porFolha, deptLabel) {
     return `
     <div class="card">
       <div class="topo">
-        <h3>${m.nome}</h3>
-        <span class="tag">${m.tipo || ""}${m.tempo_preparo ? ` · ${m.tempo_preparo} min` : ""}</span>
+        <h3>${escaparHtml(m.nome)}</h3>
+        <span class="tag">${escaparHtml(m.tipo || "")}${m.tempo_preparo ? ` · ${escaparHtml(m.tempo_preparo)} min` : ""}</span>
       </div>
-      ${camadas.length ? `<div class="camadas"><b>Montagem (de cima p/ baixo):</b> ${camadas.map(c => c.nome).join(" → ")}</div>` : ""}
-      ${passos.length ? `<ol>${passos.map(p => `<li>${p.replace(/^\d+[\.\)]\s*/, "")}</li>`).join("")}</ol>` : `<p class="vazio">Sem passo a passo cadastrado — edite a ficha para adicionar.</p>`}
-      ${m.observacoes && !String(m.observacoes).startsWith("Criado automaticamente") ? `<p class="obs">${m.observacoes}</p>` : ""}
+      ${camadas.length ? `<div class="camadas"><b>Montagem (de cima p/ baixo):</b> ${camadas.map(c => escaparHtml(c.nome || c.tipo || "Camada")).join(" → ")}</div>` : ""}
+      ${passos.length ? `<ol>${passos.map(p => `<li>${escaparHtml(p.replace(/^\d+[\.\)]\s*/, ""))}</li>`).join("")}</ol>` : `<p class="vazio">Sem passo a passo cadastrado — edite a ficha para adicionar.</p>`}
+      ${m.observacoes && !String(m.observacoes).startsWith("Criado automaticamente") ? `<p class="obs">${escaparHtml(m.observacoes)}</p>` : ""}
     </div>`;
   };
 
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Montagens — ${deptLabel}</title>
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Montagens — ${escaparHtml(deptLabel)}</title>
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
       body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:5mm 6mm;font-size:${escala}px}
       .grade{display:grid;grid-template-columns:repeat(${cols},1fr);gap:4mm}
-      .card{border:1.5px solid #333;border-radius:8px;padding:${porFolha <= 2 ? "6mm" : "3.5mm"};height:${alturaCard};overflow:hidden;break-inside:avoid;page-break-inside:avoid;display:flex;flex-direction:column}
+      .card{border:1.5px solid #333;border-radius:8px;padding:${porFolha <= 2 ? "6mm" : "3.5mm"};height:${alturaCard};overflow:hidden;overflow-wrap:anywhere;break-inside:avoid;page-break-inside:avoid;display:flex;flex-direction:column}
+      .card.card-longo{height:auto;min-height:${alturaCard};overflow:visible;grid-column:1/-1;break-inside:auto;page-break-inside:auto}
       .topo{display:flex;justify-content:space-between;align-items:baseline;gap:6px;border-bottom:2px solid #111;padding-bottom:3px;margin-bottom:5px}
       h3{font-size:1.25em;text-transform:uppercase;letter-spacing:.5px}
-      .tag{font-size:.75em;text-transform:uppercase;color:#555;font-weight:bold;white-space:nowrap}
+      .tag{font-size:.75em;text-transform:uppercase;color:#555;font-weight:bold}
       .camadas{font-size:.85em;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:5px;padding:4px 6px;margin-bottom:5px;color:#334155}
       ol{padding-left:1.4em;flex:1}
       li{font-size:.95em;line-height:1.45;margin-bottom:2px;color:#222}
@@ -495,201 +835,215 @@ function imprimirLote(fichas, porFolha, deptLabel) {
     <div class="grade">${fichas.map(cardHTML).join("")}</div>
     </body></html>`;
 
-  let win = null;
-  try { win = window.open("", "_blank", "width=880,height=1000"); } catch { win = null; }
-  if (!win) {
-    try {
-      const iframe = document.createElement("iframe");
-      iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
-      document.body.appendChild(iframe);
-      iframe.srcdoc = html;
-      iframe.onload = () => {
-        setTimeout(() => {
-          try { iframe.contentWindow.focus(); iframe.contentWindow.print(); } catch (e) { alert("Não consegui abrir a impressão: " + e.message); }
-          setTimeout(() => iframe.remove(), 60000);
-        }, 300);
-      };
-      return;
-    } catch (e) {
-      return alert("O navegador bloqueou a impressão. Habilite os popups.\n\nDetalhe: " + e.message);
-    }
-  }
-  win.document.write(html);
-  win.document.close();
-  setTimeout(() => win.print(), 400);
+  abrirImpressaoHtml(html, (doc) => {
+    let encontrouLonga = false;
+    doc.querySelectorAll(".card").forEach((card) => {
+      if (card.scrollHeight > card.clientHeight + 2 || card.scrollWidth > card.clientWidth + 2) {
+        card.classList.add("card-longo");
+        encontrouLonga = true;
+      }
+    });
+    if (encontrouLonga) alert("Uma ou mais fichas compactas precisaram de espaço extra. Todo o conteúdo será mantido, sem cortes.");
+  });
 }
 
 // =========================================================================
 // MODELO DO CHEF — título + foto + descritivo (padrão do PDF do usuário),
 // com tamanhos e negrito ajustáveis e 1 ou 2 fichas por página (A4).
 // =========================================================================
-function imprimirModelo(fichas, cfg, deptLabel) {
-  if (!fichas.length) return alert("Nenhuma ficha para imprimir.");
-  const duas = Number(cfg.porPagina) === 2;
+// Único renderizador do modelo personalizado. A prévia e todos os botões de
+// impressão entregam a mesma configuração para esta função.
+function gerarHtmlModelo(fichas, cfgEntrada, deptLabel, { previsualizacao = false } = {}) {
+  if (!fichas.length) return "";
+  const cfg = normalizarCfgModelo(cfgEntrada);
+  const duas = cfg.porPagina === 2;
   const paisagem = cfg.orientacao === "paisagem";
-  // Área útil do A4 com margem de 6mm (retrato 198×285 / paisagem 285×198)
-  const alturaPagina = paisagem ? 194 : 281;
-  // Foto no 100%: proporcional à página e ao nº de fichas
-  const fotoBase = paisagem ? (duas ? 85 : 105) : (duas ? 58 : 130);
-  const fotoH = Math.round(fotoBase * (cfg.fotoPct / 100));
+  const larguraPapel = paisagem ? 297 : 210;
+  const alturaPapel = paisagem ? 210 : 297;
+  const { larguraUtil, alturaUtil } = dimensoesPapel(cfg);
+  const fotoH = alturaFotoMm(cfg);
+  const porPagina = duas ? 2 : 1;
+  const paginas = [];
+  for (let i = 0; i < fichas.length; i += porPagina) paginas.push(fichas.slice(i, i + porPagina));
 
   const cardHTML = (m) => {
-    const etapas = String(m.descritivo || "").split("\n").map(s => s.trim().replace(/^\d+[\.\)]\s*/, "")).filter(Boolean);
-    const descr = etapas.length > 1
-      ? `<ol>${etapas.map(e => `<li>${e.replace(/</g, "&lt;")}</li>`).join("")}</ol>`
-      : `<p>${(etapas[0] || "").replace(/</g, "&lt;") || "<i>Sem descritivo cadastrado.</i>"}</p>`;
-    return `
-    <div class="fichaM">
-      <h1>${m.nome}</h1>
-      ${m.foto_url ? `<div class="fotoBox"><img src="${m.foto_url}"/></div>` : ""}
-      <div class="descr">${descr}</div>
-    </div>`;
+    const nome = escaparHtml(m.nome || "Ficha de montagem");
+    const etapas = String(m.descritivo || "").split("\n").map((s) => s.trim().replace(/^\d+[\.\)]\s*/, "")).filter(Boolean);
+    const camadas = Array.isArray(m.estrutura_ia) ? m.estrutura_ia : [];
+    const detalhes = [
+      m.tipo ? escaparHtml(String(m.tipo).toUpperCase()) : "",
+      escaparHtml(deptLabel || m.departamento || "Operação"),
+      m.tempo_preparo ? `${escaparHtml(m.tempo_preparo)} min` : "",
+      m.rendimento ? escaparHtml(m.rendimento) : "",
+    ].filter(Boolean);
+
+    const passos = etapas.length
+      ? (cfg.numerarPassos
+        ? `<ol class="passos">${etapas.map((etapa) => `<li>${escaparHtml(etapa)}</li>`).join("")}</ol>`
+        : `<div class="passosLivres">${etapas.map((etapa) => `<p>${escaparHtml(etapa)}</p>`).join("")}</div>`)
+      : `<p class="vazio">Sem modo de montagem cadastrado.</p>`;
+
+    const blocoDetalhes = cfg.mostrarDetalhes && detalhes.length
+      ? `<div class="detalhes">${detalhes.map((item) => `<span>${item}</span>`).join("")}</div>`
+      : "";
+    const blocoFoto = cfg.mostrarFoto && m.foto_url
+      ? `<div class="fotoBox"><img src="${escaparHtml(m.foto_url)}" alt="Foto de ${nome}"/></div>`
+      : "";
+    const blocoCamadas = cfg.mostrarCamadas && camadas.length
+      ? `<section class="secao blocoCamadas"><h2>Sequência de montagem</h2><div class="camadas">${camadas.map((camada, indice) => `<span><b>${indice + 1}</b>${escaparHtml(camada.nome || camada.tipo || `Camada ${indice + 1}`)}</span>`).join("")}</div></section>`
+      : "";
+    const observacaoValida = m.observacoes && !String(m.observacoes).startsWith("Criado automaticamente");
+    const blocoObservacao = cfg.mostrarObservacoes && observacaoValida
+      ? `<section class="observacao"><b>Observações</b><p>${escaparHtml(m.observacoes)}</p></section>`
+      : "";
+    const blocoRodape = cfg.mostrarRodape
+      ? `<footer><span>Uso interno · ${escaparHtml(deptLabel || m.departamento || "Operação")}</span><span>${new Date().toLocaleDateString("pt-BR")}</span></footer>`
+      : "";
+
+    return `<article class="fichaM estilo-${cfg.estilo}">
+      <header class="cabecalho">
+        <div class="kicker">Ficha de montagem · ${escaparHtml(deptLabel || m.departamento || "Operação")}</div>
+        <h1>${nome}</h1>
+      </header>
+      ${blocoDetalhes}
+      ${blocoFoto}
+      ${blocoCamadas}
+      <section class="secao modo"><h2>Modo de montagem</h2>${passos}</section>
+      ${blocoObservacao}
+      ${blocoRodape}
+    </article>`;
   };
 
-  // Páginas fechadas: cada uma tem altura FIXA de 1 folha — nada vaza para a
-  // página seguinte (a foto encolhe se o texto precisar de espaço).
-  const porPag = duas ? 2 : 1;
-  const paginas = [];
-  for (let i = 0; i < fichas.length; i += porPag) paginas.push(fichas.slice(i, i + porPag));
-
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Fichas — ${deptLabel}</title>
+  const colunasPagina = duas && paisagem ? "repeat(2,minmax(0,1fr))" : "1fr";
+  const linhasPagina = duas && !paisagem ? "repeat(2,minmax(0,1fr))" : "1fr";
+  const alturaFicha = duas && !paisagem ? alturaUtil / 2 : alturaUtil;
+  const fotoSoloH = alturaFotoMm({ ...cfg, porPagina: 1 });
+  const preenchimento = cfg.estilo === "compacto" ? 4 : 6;
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Fichas — ${escaparHtml(deptLabel)}</title>
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
-      @page{size:A4 ${paisagem ? "landscape" : "portrait"};margin:6mm}
-      body{font-family:'Segoe UI',Arial,Helvetica,sans-serif;color:#111;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-      .pagina{display:flex;flex-direction:${paisagem ? "row" : "column"};height:${alturaPagina}mm;page-break-after:always;overflow:hidden}
-      .pagina:last-child{page-break-after:auto}
-      .fichaM{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;align-items:center;padding:6mm 8mm;overflow:hidden}
+      @page{size:A4 ${paisagem ? "landscape" : "portrait"};margin:${cfg.margemMm}mm}
+      html,body{background:#fff}
+      body{font-family:'${cfg.fonte}',Arial,sans-serif;color:#172033;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      .pagina{width:${larguraUtil}mm;height:${alturaUtil}mm;display:grid;grid-template-columns:${colunasPagina};grid-template-rows:${linhasPagina};overflow:hidden;break-after:page;page-break-after:always}
+      .pagina:last-child{break-after:auto;page-break-after:auto}
+      .fichaM{--foto-altura:${fotoH}mm;position:relative;width:100%;min-width:0;height:${alturaFicha}mm;padding:${preenchimento}mm;display:flex;flex-direction:column;align-items:stretch;overflow:hidden;overflow-wrap:anywhere;break-inside:avoid;page-break-inside:avoid;background:#fff;border-top:5px solid ${cfg.corDestaque}}
+      .pagina.pagina-solo{grid-template-columns:1fr;grid-template-rows:1fr}
+      .pagina.pagina-solo .fichaM{--foto-altura:${fotoSoloH}mm;height:${alturaUtil}mm}
+      .pagina.pagina-longa{height:auto;min-height:${alturaUtil}mm;overflow:visible}
+      .pagina.pagina-longa .fichaM{height:auto;min-height:${alturaUtil}mm;overflow:visible;break-inside:auto;page-break-inside:auto}
       .fichaM + .fichaM{border-${paisagem ? "left" : "top"}:2px dashed #cbd5e1}
-      h1{font-size:${cfg.tituloPx}px;font-weight:${cfg.tituloNegrito ? 900 : 500};text-align:center;text-transform:uppercase;letter-spacing:1px;line-height:1.1;margin-bottom:4mm;flex-shrink:0}
-      /* A foto pode ENCOLHER (flex 0 1) para o descritivo caber na página */
-      .fotoBox{width:100%;flex:0 1 ${fotoH}mm;min-height:22mm;display:flex;justify-content:center;align-items:center;margin-bottom:4mm}
-      .fotoBox img{max-width:${Math.min(100, cfg.fotoPct)}%;max-height:100%;object-fit:contain;border-radius:14px}
-      .descr{font-size:${cfg.textoPx}px;font-weight:${cfg.textoNegrito ? 700 : 400};width:100%;line-height:1.55;color:#1e293b;flex:0 1 auto;overflow:hidden}
-      .descr ol{padding-left:1.6em}
-      .descr li{margin-bottom:.3em}
+      .fichaM.estilo-operacional{border:2px solid ${cfg.corDestaque};border-top-width:8px}
+      .fichaM.estilo-compacto{border-top-width:3px}
+      .cabecalho{padding-bottom:3mm;border-bottom:1px solid ${cfg.corDestaque}38}
+      .kicker{margin-bottom:1.5mm;color:${cfg.corDestaque};font-size:9px;font-weight:900;letter-spacing:1.6px;text-transform:uppercase}
+      h1{font-size:${cfg.tituloPx}px;font-weight:${cfg.tituloNegrito ? 900 : 500};line-height:1.08;text-align:${cfg.alinhamentoTitulo};text-transform:${cfg.tituloMaiusculo ? "uppercase" : "none"};letter-spacing:${cfg.tituloMaiusculo ? "1px" : "0"};overflow-wrap:anywhere}
+      .detalhes{display:flex;flex-wrap:wrap;gap:2mm;margin:3mm 0}
+      .detalhes span{padding:1.3mm 2.6mm;border-radius:999px;background:${cfg.corDestaque}12;border:1px solid ${cfg.corDestaque}30;color:${cfg.corDestaque};font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.5px}
+      .fotoBox{width:100%;height:var(--foto-altura);flex:0 0 var(--foto-altura);display:flex;align-items:center;justify-content:center;margin:4mm 0}
+      .fotoBox img{display:block;width:${cfg.fotoPct}%;height:100%;max-width:none;max-height:none;object-fit:${cfg.ajusteFoto};object-position:center ${cfg.posicaoFoto};border-radius:${raioFoto(cfg)};border:1px solid #e2e8f0;background:#f8fafc}
+      .secao{width:100%;margin-top:3mm}
+      .secao h2,.observacao b{display:block;margin-bottom:2mm;color:${cfg.corDestaque};font-size:.78em;font-weight:900;letter-spacing:1.2px;text-transform:uppercase}
+      .modo{font-size:${cfg.textoPx}px;font-weight:${cfg.textoNegrito ? 700 : 400};line-height:${cfg.entrelinha};text-align:${cfg.alinhamentoTexto}}
+      .passos{padding-left:1.55em}
+      .passos li{padding-left:.25em;margin-bottom:.28em;break-inside:avoid}
+      .passos li::marker{color:${cfg.corDestaque};font-weight:900}
+      .passosLivres p{margin-bottom:.35em}
+      .vazio{color:#94a3b8;font-style:italic}
+      .blocoCamadas{padding:3mm;border:1px solid ${cfg.corDestaque}32;border-radius:10px;background:${cfg.corDestaque}0D;font-size:${Math.max(10, cfg.textoPx - 2)}px}
+      .camadas{display:grid;gap:1.4mm}
+      .camadas span{display:flex;align-items:center;gap:2mm}
+      .camadas b{width:6mm;height:6mm;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:${cfg.corDestaque};color:#fff;font-size:9px;flex:none}
+      .observacao{margin-top:4mm;padding:3mm 3.5mm;border-left:4px solid ${cfg.corDestaque};background:#f8fafc;border-radius:6px;font-size:${Math.max(10, cfg.textoPx - 2)}px;line-height:${cfg.entrelinha}}
+      footer{margin-top:auto;padding-top:4mm;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;gap:4mm;color:#64748b;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.5px}
+      .avisoOverflow{position:absolute;z-index:5;left:3mm;right:3mm;bottom:3mm;padding:2mm;border-radius:5px;background:#fff7ed;border:1px solid #fb923c;color:#9a3412;font-size:10px;font-weight:900;text-align:center;text-transform:uppercase}
+      @media screen{body{padding:20px;background:#e2e8f0}.pagina{margin:0 auto 20px;background:#fff;box-shadow:0 12px 35px rgba(15,23,42,.16)}}
+      @media print{body{padding:0}.pagina{margin:0;box-shadow:none}}
+      ${previsualizacao ? `html,body{width:100%;height:100%;overflow:hidden}body{padding:0!important;background:#e2e8f0}.papelPreview{position:relative;width:${larguraPapel}mm;height:${alturaPapel}mm;background:#fff;transform-origin:top left}.papelPreview>.pagina{position:absolute;left:${cfg.margemMm}mm;top:${cfg.margemMm}mm;margin:0!important;box-shadow:none!important}.avisoAjuste{position:absolute;z-index:10;right:2mm;top:2mm;max-width:70mm;padding:1.4mm 2mm;border-radius:4px;background:#fff7ed;border:1px solid #fb923c;color:#9a3412;font-size:8px;font-weight:900;text-align:center;text-transform:uppercase}` : ""}
     </style></head><body>
-    ${paginas.map(pg => `<div class="pagina">${pg.map(cardHTML).join("")}</div>`).join("")}
+      ${previsualizacao ? `<div class="papelPreview">` : ""}
+      ${paginas.map((pagina) => `<main class="pagina">${pagina.map(cardHTML).join("")}</main>`).join("")}
+      ${previsualizacao ? `</div>` : ""}
+      ${previsualizacao ? `<script>
+        (function(){
+          var papel=document.querySelector('.papelPreview');
+          var pagina=document.querySelector('.pagina');
+          if(!papel||!pagina)return;
+          function ajustar(){papel.style.transform='none';papel.style.transform='scale('+(document.documentElement.clientWidth/papel.offsetWidth)+')';}
+          requestAnimationFrame(function(){
+            var ficha=pagina.querySelector('.fichaM');
+            if(ficha&&(ficha.scrollHeight>ficha.clientHeight+2||ficha.scrollWidth>ficha.clientWidth+2)){
+              if(${duas ? "true" : "false"}){
+                pagina.classList.add('pagina-solo');
+                var ajuste=document.createElement('div');
+                ajuste.className='avisoAjuste';
+                ajuste.textContent='Ajustado para 1 por página para não cortar';
+                papel.appendChild(ajuste);
+              }
+              requestAnimationFrame(function(){
+                if(ficha.scrollHeight>ficha.clientHeight+2||ficha.scrollWidth>ficha.clientWidth+2){
+                var aviso=document.createElement('div');
+                aviso.className='avisoOverflow';
+                  aviso.textContent='Esta ficha usará mais de uma folha para não cortar';
+                ficha.appendChild(aviso);
+                }
+                ajustar();
+              });
+            }
+            ajustar();
+          });
+          addEventListener('resize',ajustar);
+        })();
+      </script>` : ""}
     </body></html>`;
 
-  let win = null;
-  try { win = window.open("", "_blank", "width=880,height=1000"); } catch { win = null; }
-  if (!win) {
-    try {
-      const iframe = document.createElement("iframe");
-      iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
-      document.body.appendChild(iframe);
-      iframe.srcdoc = html;
-      iframe.onload = () => {
-        setTimeout(() => {
-          try { iframe.contentWindow.focus(); iframe.contentWindow.print(); } catch (e) { alert("Não consegui abrir a impressão: " + e.message); }
-          setTimeout(() => iframe.remove(), 60000);
-        }, 400);
-      };
-      return;
-    } catch (e) {
-      return alert("O navegador bloqueou a impressão. Habilite os popups.\n\nDetalhe: " + e.message);
-    }
-  }
-  win.document.write(html);
-  win.document.close();
-  setTimeout(() => win.print(), 500);
+  return html;
 }
 
-function imprimirFicha(m) {
-  const isBar = m.departamento === "bar";
-  const accent = isBar ? "#7C3AED" : "#059669";
-
-  // Sequência de montagem (de cima p/ baixo) numerada e com o tipo de camada
-  let seqMontagem = "";
-  if (Array.isArray(m.estrutura_ia) && m.estrutura_ia.length) {
-    const passos = m.estrutura_ia.map((c, i) => `
-      <div class="camada">
-        <span class="cnum">${i + 1}</span>
-        <div class="cinfo">
-          <span class="cnome">${c.nome}</span>
-          <span class="ctipo">${String(c.tipo || "").replace(/_/g, " ")}</span>
-        </div>
-      </div>`).join("");
-    seqMontagem = `
-      <div class="secao">
-        <h2>Sequência de Montagem <small>(de cima para baixo)</small></h2>
-        <div class="camadas">${passos}</div>
-      </div>`;
+async function ajustarFichasQueExcedemFolha(doc, cfg) {
+  if (cfg.porPagina !== 2) {
+    let encontrouLonga = false;
+    doc.querySelectorAll(".pagina").forEach((pagina) => {
+      const ficha = pagina.querySelector(".fichaM");
+      if (ficha && (ficha.scrollHeight > ficha.clientHeight + 2 || ficha.scrollWidth > ficha.clientWidth + 2)) {
+        pagina.classList.add("pagina-longa");
+        encontrouLonga = true;
+      }
+    });
+    if (encontrouLonga) alert("Uma ficha precisa de mais de uma folha com os tamanhos escolhidos. Todo o conteúdo será mantido, sem cortes.");
+    return;
   }
+  let mudouParaFolhaInteira = false;
+  const paginas = Array.from(doc.querySelectorAll(".pagina"));
+  paginas.forEach((pagina) => {
+    const fichas = Array.from(pagina.querySelectorAll(":scope > .fichaM"));
+    const excedeu = fichas.some((ficha) => ficha.scrollHeight > ficha.clientHeight + 2 || ficha.scrollWidth > ficha.clientWidth + 2);
+    if (!excedeu) return;
+    const novasPaginas = doc.createDocumentFragment();
+    fichas.forEach((ficha) => {
+      const paginaSolo = doc.createElement("main");
+      paginaSolo.className = "pagina pagina-solo";
+      paginaSolo.appendChild(ficha);
+      novasPaginas.appendChild(paginaSolo);
+    });
+    pagina.replaceWith(novasPaginas);
+    mudouParaFolhaInteira = true;
+  });
 
-  // Passo a passo: cada linha do descritivo vira uma etapa numerada
-  const etapas = String(m.descritivo || "").split("\n").map(s => s.trim().replace(/^\d+[\.\)]\s*/, "")).filter(Boolean);
-  const preparoHtml = etapas.length
-    ? `<ol class="passos">${etapas.map(e => `<li>${e.replace(/</g, "&lt;")}</li>`).join("")}</ol>`
-    : `<p class="vazio">Sem passo a passo cadastrado. Edite a ficha e gere o modo de preparo.</p>`;
+  if (!mudouParaFolhaInteira) return;
+  await new Promise((resolve) => doc.defaultView.requestAnimationFrame(() => doc.defaultView.requestAnimationFrame(resolve)));
+  doc.querySelectorAll(".pagina-solo").forEach((pagina) => {
+    const ficha = pagina.querySelector(".fichaM");
+    if (ficha && (ficha.scrollHeight > ficha.clientHeight + 2 || ficha.scrollWidth > ficha.clientWidth + 2)) pagina.classList.add("pagina-longa");
+  });
+  alert("Uma ou mais fichas não cabiam em meia folha com os tamanhos escolhidos. Para não cortar informações, elas serão impressas em uma folha inteira.");
+}
 
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Ficha de Montagem — ${m.nome}</title>
-  <style>
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:'Segoe UI',Helvetica,Arial,sans-serif;color:#1a1a1a;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-    .capa{position:relative;height:${m.foto_url ? "340px" : "150px"};background:${m.foto_url ? `url('${m.foto_url}') center/cover no-repeat` : `linear-gradient(135deg, ${accent}, #0b1020)`};color:#fff;display:flex;flex-direction:column;justify-content:flex-end;padding:24px}
-    .capa::after{content:"";position:absolute;inset:0;background:linear-gradient(to top, rgba(0,0,0,.82) 0%, rgba(0,0,0,.15) 55%, rgba(0,0,0,.35) 100%)}
-    .capa .conteudo{position:relative;z-index:1}
-    .tag{display:inline-block;background:${accent};color:#fff;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:4px 12px;border-radius:999px;margin-bottom:8px}
-    .capa h1{font-size:38px;font-weight:900;line-height:1.05;text-shadow:0 2px 12px rgba(0,0,0,.5)}
-    .capa .chips{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
-    .chip{background:rgba(255,255,255,.2);backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.3);font-size:12px;font-weight:700;padding:5px 12px;border-radius:8px}
-    .corpo{padding:24px 26px}
-    .secao{margin-bottom:22px}
-    h2{font-size:13px;text-transform:uppercase;letter-spacing:2px;color:${accent};font-weight:800;border-bottom:2px solid ${accent}33;padding-bottom:6px;margin-bottom:12px}
-    h2 small{color:#94a3b8;font-weight:600;letter-spacing:1px;text-transform:none}
-    .camadas{display:flex;flex-direction:column;gap:6px}
-    .camada{display:flex;align-items:center;gap:12px;background:#f8fafc;border:1px solid #eef2f7;border-left:4px solid ${accent};border-radius:8px;padding:9px 12px}
-    .cnum{width:24px;height:24px;border-radius:50%;background:${accent};color:#fff;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-    .cinfo{display:flex;justify-content:space-between;align-items:baseline;flex:1;gap:10px}
-    .cnome{font-weight:700;font-size:14.5px;color:#1e293b}
-    .ctipo{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;font-weight:800;white-space:nowrap}
-    .passos{list-style:none;counter-reset:p}
-    .passos li{counter-increment:p;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed #e2e8f0;font-size:15px;line-height:1.5;color:#334155}
-    .passos li:last-child{border-bottom:none}
-    .passos li::before{content:counter(p);position:absolute;left:0;top:8px;width:28px;height:28px;border-radius:8px;background:${accent}18;color:${accent};font-weight:900;font-size:13px;display:flex;align-items:center;justify-content:center}
-    .vazio{color:#94a3b8;font-style:italic}
-    .infos{display:flex;gap:12px;margin-bottom:22px}
-    .info{flex:1;background:#f8fafc;border:1px solid #eef2f7;border-radius:10px;padding:12px 14px}
-    .info .l{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;font-weight:800}
-    .info .v{font-size:20px;font-weight:900;color:#1e293b;margin-top:2px}
-    .obs{background:#fffbeb;border:1px solid #fde68a;border-left:4px solid #f59e0b;border-radius:8px;padding:12px 14px;font-size:14px;color:#78350f;line-height:1.5;white-space:pre-wrap}
-    .rodape{border-top:1px solid #e2e8f0;padding:14px 26px;font-size:10px;color:#94a3b8;display:flex;justify-content:space-between}
-    @media print{@page{margin:0}.secao,.camada,.info{break-inside:avoid}}
-  </style></head><body>
-    <div class="capa"><div class="conteudo">
-      <span class="tag">Ficha de Montagem · ${isBar ? "Bar" : "Cozinha"}</span>
-      <h1>${m.nome}</h1>
-      <div class="chips">
-        <span class="chip">${m.tipo || (isBar ? "drink" : "prato")}</span>
-        ${m.tempo_preparo ? `<span class="chip">⏱ ${m.tempo_preparo} min</span>` : ""}
-        ${m.rendimento ? `<span class="chip">Rende: ${m.rendimento}</span>` : ""}
-      </div>
-    </div></div>
-
-    <div class="corpo">
-      ${seqMontagem}
-      <div class="secao">
-        <h2>Modo de Preparo — Passo a Passo</h2>
-        ${preparoHtml}
-      </div>
-      ${m.observacoes && !String(m.observacoes).startsWith("Criado automaticamente") ? `
-      <div class="secao">
-        <h2>Padrão de Finalização e Dicas</h2>
-        <div class="obs">${m.observacoes}</div>
-      </div>` : ""}
-    </div>
-
-    <div class="rodape">
-      <span>${m.nome} · ${isBar ? "Bar" : "Cozinha"} · uso interno</span>
-      <span>Gerado em ${new Date().toLocaleDateString("pt-BR")}</span>
-    </div>
-    <script>window.onload=function(){setTimeout(function(){window.print();},250);};</script>
-  </body></html>`;
-  const w = window.open("", "_blank");
-  if (w) { w.document.write(html); w.document.close(); }
-  else alert("O navegador bloqueou a impressão. Habilite os popups.");
+function imprimirModelo(fichas, cfgEntrada, deptLabel) {
+  if (!fichas.length) return alert("Nenhuma ficha para imprimir.");
+  const cfg = normalizarCfgModelo(cfgEntrada);
+  const html = gerarHtmlModelo(fichas, cfg, deptLabel);
+  abrirImpressaoHtml(html, (doc) => ajustarFichasQueExcedemFolha(doc, cfg));
 }
 
 // =========================================================================
@@ -716,20 +1070,72 @@ function MontagemPageInner() {
   const [salvou, setSalvou] = useState("");
   const [porFolha, setPorFolha] = useState(4); // fichas por página na impressão
 
-  // Modelo do Chef (título + foto + descritivo) — ajustes salvos no aparelho
-  const CFG_PADRAO = { porPagina: 1, fotoPct: 80, tituloPx: 34, textoPx: 15, tituloNegrito: true, textoNegrito: false, orientacao: "retrato" };
-  const [cfgModelo, setCfgModelo] = useState(CFG_PADRAO);
+  // Designer compartilhado: responde imediatamente na tela, fica salvo neste
+  // aparelho e pode ser definido como padrão para toda a unidade.
+  const [cfgModelo, setCfgModelo] = useState(() => normalizarCfgModelo(CFG_MODELO_PADRAO));
+  const [salvandoModelo, setSalvandoModelo] = useState(false);
   useEffect(() => {
+    let ativo = true;
+    const chave = chaveLocalModelo(unidadeAtiva);
+    let local = null;
+    let temLocalDaUnidade = false;
     try {
-      const salvo = localStorage.getItem("hefisto_modelo_montagem");
-      if (salvo) setCfgModelo({ ...CFG_PADRAO, ...JSON.parse(salvo) });
+      const salvoDaUnidade = localStorage.getItem(chave);
+      const salvo = salvoDaUnidade || localStorage.getItem("hefisto_modelo_montagem");
+      if (salvo) {
+        local = JSON.parse(salvo);
+        temLocalDaUnidade = !!salvoDaUnidade;
+      }
     } catch {}
-  }, []);
+    const localNormalizado = normalizarCfgModelo(local || CFG_MODELO_PADRAO);
+    if (ativo) setCfgModelo(localNormalizado);
+
+    if (unidadeAtiva && unidadeAtiva !== "todas") {
+      fetchModeloMontagem(unidadeAtiva).then(({ data }) => {
+        if (!ativo || !data) return;
+        const remoto = normalizarCfgModelo(data);
+        if (temLocalDaUnidade && localNormalizado._updatedAt > remoto._updatedAt) return;
+        setCfgModelo(remoto);
+        try { localStorage.setItem(chave, JSON.stringify(remoto)); } catch {}
+      }).catch(() => {});
+    }
+    return () => { ativo = false; };
+  }, [unidadeAtiva]);
+
   const mudarCfg = (patch) => setCfgModelo(c => {
-    const novo = { ...c, ...patch };
-    try { localStorage.setItem("hefisto_modelo_montagem", JSON.stringify(novo)); } catch {}
+    const novo = normalizarCfgModelo({ ...c, ...patch, _updatedAt: Date.now() });
+    try { localStorage.setItem(chaveLocalModelo(unidadeAtiva), JSON.stringify(novo)); } catch {}
     return novo;
   });
+
+  const aplicarPreset = (nome) => mudarCfg(PRESETS_MODELO[nome] || {});
+  const restaurarModelo = () => {
+    const padrao = normalizarCfgModelo({ ...CFG_MODELO_PADRAO, _updatedAt: Date.now() });
+    setCfgModelo(padrao);
+    try { localStorage.setItem(chaveLocalModelo(unidadeAtiva), JSON.stringify(padrao)); } catch {}
+  };
+  const salvarPadraoUnidade = async () => {
+    if (!unidadeAtiva || unidadeAtiva === "todas") {
+      setSalvou("Selecione uma unidade para salvar o designer.");
+      setTimeout(() => setSalvou(""), 3200);
+      return;
+    }
+    setSalvandoModelo(true);
+    let error = "";
+    try {
+      const modeloSalvar = normalizarCfgModelo({ ...cfgModelo, _updatedAt: Date.now() });
+      setCfgModelo(modeloSalvar);
+      try { localStorage.setItem(chaveLocalModelo(unidadeAtiva), JSON.stringify(modeloSalvar)); } catch {}
+      const resultado = await salvarModeloMontagem(unidadeAtiva, modeloSalvar);
+      error = resultado.error || "";
+    } catch (e) {
+      error = e?.message || "Falha de conexão";
+    } finally {
+      setSalvandoModelo(false);
+    }
+    setSalvou(error ? `Não foi possível salvar o designer: ${error}` : "Designer salvo como padrão da unidade!");
+    setTimeout(() => setSalvou(""), 3500);
+  };
 
   async function carregar() {
     setLoading(true);
@@ -862,7 +1268,7 @@ function MontagemPageInner() {
                        <button onClick={() => { setEditar(m); setModal(true); }} className="flex-1 py-2 rounded-lg flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs transition-colors" title="Editar Ficha e Layout IA">
                          <Edit3 size={14} /> Editar
                        </button>
-                       <button onClick={() => imprimirFicha(m)} className="w-10 h-10 rounded-lg flex items-center justify-center bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors" title="Imprimir">
+                       <button onClick={() => imprimirModelo([m], cfgModelo, dept === "bar" ? "Bar" : "Cozinha")} className="w-10 h-10 rounded-lg flex items-center justify-center bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors" title="Imprimir com o designer atual">
                          <Printer size={16} />
                        </button>
                        <button onClick={() => remover(m.id)} className="w-10 h-10 rounded-lg flex items-center justify-center bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors" title="Remover">
@@ -881,8 +1287,8 @@ function MontagemPageInner() {
       {/* MODAL DE IMPRESSÃO EM LOTE (padrão compacto + modelo com foto) */}
       {modalImpressao && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={() => setModalImpressao(false)}>
-          <div className="erp-card w-full max-w-lg max-h-[calc(100dvh-1rem)] sm:max-h-[85vh] overflow-y-auto p-4 sm:p-6" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-1">
+          <div className="erp-card w-full max-w-6xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6" onClick={e => e.stopPropagation()}>
+            <div className="sticky -top-4 sm:-top-6 z-20 flex items-center justify-between mb-1 py-2" style={{ background: "var(--card)" }}>
               <h3 className="text-lg font-black flex items-center gap-2" style={{ color: "var(--fg)" }}><Printer size={18} /> Impressão das fichas</h3>
               <button onClick={() => setModalImpressao(false)} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "var(--elevated)", color: "var(--muted)" }}>×</button>
             </div>
@@ -910,31 +1316,30 @@ function MontagemPageInner() {
               </Btn>
             </div>
 
-            {/* Modelo com foto (os ajustes finos ficam no Editar de cada ficha) */}
-            <div className="rounded-2xl border p-4" style={{ borderColor: "var(--line)" }}>
-              <p className="text-[11px] font-black uppercase tracking-widest mb-1" style={{ color: "var(--fg-soft)" }}>Modelo com foto (título + foto + descritivo)</p>
-              <p className="text-[11px] font-medium mb-3" style={{ color: "var(--dim)" }}>Usa os tamanhos e negrito ajustados no Editar de cada ficha.</p>
-              <div className="flex items-center gap-2 mb-3 flex-wrap">
-                <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--muted)" }}>Por página:</span>
-                {[1, 2].map(n => (
-                  <button key={n} onClick={() => mudarCfg({ porPagina: n })}
-                    className="w-9 h-9 rounded-lg font-black text-sm transition-all"
-                    style={cfgModelo.porPagina === n ? { background: "var(--accent-strong)", color: "var(--accent-fg)" } : { background: "var(--elevated)", color: "var(--muted)" }}>
-                    {n}
-                  </button>
-                ))}
-                <span className="text-[10px] font-black uppercase tracking-widest ml-2" style={{ color: "var(--muted)" }}>Folha:</span>
-                {[["retrato", "Vertical"], ["paisagem", "Horizontal"]].map(([v, l]) => (
-                  <button key={v} onClick={() => mudarCfg({ orientacao: v })}
-                    className="px-3 h-9 rounded-lg font-black text-xs transition-all"
-                    style={cfgModelo.orientacao === v ? { background: "var(--accent-strong)", color: "var(--accent-fg)" } : { background: "var(--elevated)", color: "var(--muted)" }}>
-                    {l}
-                  </button>
-                ))}
+            {/* Modelo personalizado — as mesmas definições da prévia vão à impressora */}
+            <div className="rounded-2xl border p-3 sm:p-4" style={{ borderColor: "var(--line)" }}>
+              <div className="mb-4">
+                <p className="text-[11px] font-black uppercase tracking-widest" style={{ color: "var(--fg-soft)" }}>Modelo personalizado</p>
+                <p className="mt-1 text-[11px] font-medium" style={{ color: "var(--dim)" }}>Ajuste aqui e confira a primeira ficha antes de imprimir. Foto, letras e detalhes serão mantidos no papel.</p>
               </div>
-              <Btn variant="ghost" className="!h-9 text-xs w-full" onClick={() => imprimirModelo(alvoImpressao, cfgModelo, dept === "bar" ? "Bar" : "Cozinha")}>
-                <Printer size={14} /> Imprimir modelo ({alvoImpressao.length})
-              </Btn>
+              <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,.95fr)] gap-5">
+                <ControlesDesigner
+                  cfg={cfgModelo}
+                  onChange={mudarCfg}
+                  onPreset={aplicarPreset}
+                  onReset={restaurarModelo}
+                  onSave={salvarPadraoUnidade}
+                  salvando={salvandoModelo}
+                  compacto
+                />
+                <div className="min-w-0 lg:sticky lg:top-0 lg:self-start">
+                  <PreviaModeloChef m={alvoImpressao[0]} cfg={cfgModelo} />
+                  {alvoImpressao.length > 1 && <p className="mt-2 text-center text-[10px] font-bold" style={{ color: "var(--dim)" }}>A mesma configuração será aplicada às {alvoImpressao.length} fichas.</p>}
+                </div>
+              </div>
+              <button type="button" onClick={() => imprimirModelo(alvoImpressao, cfgModelo, dept === "bar" ? "Bar" : "Cozinha")} className="mt-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-black text-white hover:bg-emerald-700">
+                <Printer size={16} /> Imprimir personalizado ({alvoImpressao.length})
+              </button>
             </div>
           </div>
         </div>
@@ -942,7 +1347,7 @@ function MontagemPageInner() {
 
       {modal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-2 md:p-6 overflow-y-auto">
-           <div className="bg-[var(--surface)] rounded-[24px] shadow-2xl w-full max-w-4xl my-auto animate-in zoom-in-95 duration-200 border border-[var(--line)]">
+           <div className="bg-[var(--surface)] rounded-[24px] shadow-2xl w-full max-w-7xl my-auto animate-in zoom-in-95 duration-200 border border-[var(--line)]">
              <div className="p-4 md:p-6 border-b border-[var(--line)] flex justify-between items-center bg-[var(--panel)] rounded-t-[24px]">
                 <h2 className="font-black text-lg md:text-xl text-[var(--fg)] flex items-center gap-2">
                   <ClipboardList size={22} className="text-slate-600" />
@@ -954,77 +1359,32 @@ function MontagemPageInner() {
              </div>
              
              {/* Layout Split: Esquerda Formulário, Direita Prévia */}
-             <div className="p-4 md:p-6 grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-8 max-h-[calc(100dvh-8rem)] lg:max-h-[75vh] overflow-y-auto custom-scrollbar">
+             <div className="p-4 md:p-6 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(360px,.95fr)] gap-5 lg:gap-8 max-h-[calc(100dvh-8rem)] lg:max-h-[78vh] overflow-y-auto custom-scrollbar">
                 
                 {/* Coluna 1: Dados e Editor */}
                 <div className="space-y-4">
                    <FormMontagem inicial={editar} deptInicial={dept} onSalvar={salvar} onCancelar={() => { setModal(false); setEditar(null); }} onPreview={setPreviewFicha} />
                 </div>
 
-                {/* Coluna 2: prévia da FICHA IMPRESSA + ajustes ao vivo.
-                    sticky: desce junto com a rolagem do formulário */}
-                <div className="hidden lg:block border-l border-[var(--line)] pl-8">
-                  <div className="sticky top-0">
-                   <h3 className="font-black text-[var(--fg)] text-lg mb-1">Prévia da Ficha Impressa</h3>
-                   <p className="text-[var(--subtle)] text-xs mb-3">
-                      É assim que ela sai no "Modelo com foto". Ajuste abaixo e veja mudar na hora — os ajustes ficam salvos para todas as fichas.
-                   </p>
-
-                   {/* Ajustes: mexa e a prévia acompanha */}
-                   <div className="rounded-2xl border p-3 mb-4" style={{ borderColor: "var(--line)", background: "var(--elevated)" }}>
-                      <div className="grid grid-cols-3 gap-3 mb-2">
-                         <div>
-                            <div className="flex justify-between text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: "var(--muted)" }}>
-                               <span>Foto</span><span>{cfgModelo.fotoPct}%</span>
-                            </div>
-                            <input type="range" min="40" max="120" step="5" value={cfgModelo.fotoPct} onChange={e => mudarCfg({ fotoPct: Number(e.target.value) })} className="w-full accent-emerald-600" />
-                         </div>
-                         <div>
-                            <div className="flex justify-between text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: "var(--muted)" }}>
-                               <span>Título</span><span>{cfgModelo.tituloPx}px</span>
-                            </div>
-                            <input type="range" min="18" max="72" step="2" value={cfgModelo.tituloPx} onChange={e => mudarCfg({ tituloPx: Number(e.target.value) })} className="w-full accent-emerald-600" />
-                         </div>
-                         <div>
-                            <div className="flex justify-between text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: "var(--muted)" }}>
-                               <span>Texto</span><span>{cfgModelo.textoPx}px</span>
-                            </div>
-                            <input type="range" min="10" max="48" step="1" value={cfgModelo.textoPx} onChange={e => mudarCfg({ textoPx: Number(e.target.value) })} className="w-full accent-emerald-600" />
-                         </div>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-3">
-                         <label className="flex items-center gap-1.5 cursor-pointer text-[11px] font-bold" style={{ color: "var(--fg-soft)" }}>
-                            <input type="checkbox" checked={cfgModelo.tituloNegrito} onChange={e => mudarCfg({ tituloNegrito: e.target.checked })} className="w-4 h-4 accent-emerald-600" />
-                            Título negrito
-                         </label>
-                         <label className="flex items-center gap-1.5 cursor-pointer text-[11px] font-bold" style={{ color: "var(--fg-soft)" }}>
-                            <input type="checkbox" checked={cfgModelo.textoNegrito} onChange={e => mudarCfg({ textoNegrito: e.target.checked })} className="w-4 h-4 accent-emerald-600" />
-                            Texto negrito
-                         </label>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2 mt-2 pt-2" style={{ borderTop: "1px solid var(--line)" }}>
-                         {[["retrato", "Vertical"], ["paisagem", "Horizontal"]].map(([v, l]) => (
-                            <button key={v} onClick={() => mudarCfg({ orientacao: v })}
-                               className="px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all"
-                               style={cfgModelo.orientacao === v ? { background: "var(--accent-strong)", color: "var(--accent-fg)" } : { background: "var(--card)", color: "var(--muted)", border: "1px solid var(--line)" }}>
-                               {l}
-                            </button>
-                         ))}
-                         {[1, 2].map(n => (
-                            <button key={n} onClick={() => mudarCfg({ porPagina: n })}
-                               className="px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all"
-                               style={cfgModelo.porPagina === n ? { background: "var(--accent-strong)", color: "var(--accent-fg)" } : { background: "var(--card)", color: "var(--muted)", border: "1px solid var(--line)" }}>
-                               {n}/pág
-                            </button>
-                         ))}
-                         <button onClick={() => previewFicha?.nome && imprimirModelo([previewFicha], cfgModelo, dept === "bar" ? "Bar" : "Cozinha")}
-                            className="ml-auto flex items-center gap-1.5 text-[11px] font-black text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded-lg transition-colors">
-                            <Printer size={13} /> Imprimir esta ficha
-                         </button>
-                      </div>
-                   </div>
-
-                   <PreviaModeloChef m={previewFicha} cfg={cfgModelo} />
+                {/* Designer e prévia também aparecem no tablet e no celular. */}
+                <div className="min-w-0 border-t border-[var(--line)] pt-6 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="font-black text-[var(--fg)] text-lg mb-1">Prévia da ficha impressa</h3>
+                      <p className="text-[var(--subtle)] text-xs mb-3">O que aparece aqui é o que será enviado para a impressão, inclusive foto e tamanho das letras.</p>
+                      <PreviaModeloChef m={previewFicha} cfg={cfgModelo} />
+                    </div>
+                    <ControlesDesigner
+                      cfg={cfgModelo}
+                      onChange={mudarCfg}
+                      onPreset={aplicarPreset}
+                      onReset={restaurarModelo}
+                      onSave={salvarPadraoUnidade}
+                      salvando={salvandoModelo}
+                    />
+                    <button type="button" onClick={() => previewFicha?.nome && imprimirModelo([previewFicha], cfgModelo, dept === "bar" ? "Bar" : "Cozinha")} disabled={!previewFicha?.nome} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-black text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40">
+                      <Printer size={15} /> Imprimir esta ficha com o designer
+                    </button>
                   </div>
                 </div>
 

@@ -95,6 +95,31 @@ export async function salvarParams(unidadeId, params) {
   return { error: error?.message };
 }
 
+// Designer da ficha de montagem. Fica no mesmo JSON de configurações da
+// unidade, mas separado dos parâmetros numéricos para poder guardar opções
+// visuais (fonte, cor, foto, campos exibidos etc.).
+export async function fetchModeloMontagem(unidadeId) {
+  const registro = await fetchRegistroConfig(unidadeId);
+  const modelo = registro?.params?.modelo_montagem;
+  return { data: modelo && typeof modelo === "object" ? modelo : null };
+}
+
+export async function salvarModeloMontagem(unidadeId, modelo) {
+  if (!isSupabaseReady()) return { error: "Sistema sem conexão com o banco" };
+  if (!unidadeId || unidadeId === "todas") return { error: "Selecione uma unidade" };
+  const patch = { modelo_montagem: modelo };
+  const mergeAtomico = await tentarMergeAtomico(unidadeId, patch);
+  if (mergeAtomico) return { error: undefined };
+  const registro = await fetchRegistroConfig(unidadeId);
+  const params = { ...(registro?.params || {}), ...patch };
+  if (registro) {
+    const { error } = await supabase.from("config_sistema").update({ params }).eq("id", registro.id);
+    return { error: error?.message };
+  }
+  const { error } = await supabase.from("config_sistema").insert([{ unidade_id: unidadeId, params }]);
+  return { error: error?.message };
+}
+
 export async function fetchValidadesEtiqueta(unidadeId) {
   const registro = await fetchRegistroConfig(unidadeId);
   return { data: normalizarValidades(registro?.params?.validade_categorias) };

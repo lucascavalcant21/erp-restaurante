@@ -232,6 +232,32 @@ export async function removerCargo(id) {
   return { error: error?.message };
 }
 
+// ── Liberação de ponto do EXTRA/FREELANCER por dia ─────────────────────────────
+// O gerente libera a diária de um dia; só então o extra pode bater o ponto.
+export async function liberarPontoDia(colaboradorId, unidadeId, data, valorDiaria) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const payload = { colaborador_id: colaboradorId, unidade_id: unidadeId, data, valor_diaria: Number(valorDiaria) || 0 };
+  const { error } = await supabase.from("rh_ponto_liberado").insert([payload]);
+  return { error: error?.message };
+}
+export async function fetchLiberacoesDia(unidadeId, data) {
+  if (!isSupabaseReady()) return { data: [] };
+  let q = supabase.from("rh_ponto_liberado").select("*").eq("data", data);
+  if (unidadeId && unidadeId !== "todas") q = q.eq("unidade_id", unidadeId);
+  const { data: d, error } = await q;
+  return { data: d || [], error: error?.message };
+}
+export async function fetchLiberacoesColab(colaboradorId, limite = 90) {
+  if (!isSupabaseReady()) return { data: [] };
+  const { data, error } = await supabase.from("rh_ponto_liberado").select("*").eq("colaborador_id", colaboradorId).order("data", { ascending: false }).limit(limite);
+  return { data: data || [], error: error?.message };
+}
+export async function removerLiberacao(id) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase.from("rh_ponto_liberado").delete().eq("id", id);
+  return { error: error?.message };
+}
+
 export async function fetchRegulamento(unidadeId) {
   if (!isSupabaseReady()) return { data: null, error: "Offline" };
   const { data, error } = await supabase.from("rh_regulamentos").select("*").eq("unidade_id", unidadeId).single();

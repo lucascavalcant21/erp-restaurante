@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { useRouter } from "next/navigation";
-import { fetchColaboradores, inserirBancoHoras, fetchBancoHorasColaborador, somaMinutosBanco, fetchAllFolgasDaUnidade, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN } from "../../../lib/rh";
+import { fetchColaboradores, inserirBancoHoras, fetchBancoHorasColaborador, somaMinutosBanco, fetchAllFolgasDaUnidade, fetchLiberacoesDia, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN } from "../../../lib/rh";
 import { fetchPontoHoje, fetchHistoricoPonto, registrarBatida, pularIntervalo } from "../../../lib/ponto";
 import { fetchPins } from "../../../lib/seguranca";
 import { fetchParams, PARAMS_PADRAO } from "../../../lib/parametros";
@@ -191,6 +191,7 @@ export default function PontoPage() {
   const [colaboradores, setColaboradores] = useState([]);
   const [pontosHoje, setPontosHoje] = useState([]);
   const [folgas, setFolgas] = useState([]);
+  const [liberadosHoje, setLiberadosHoje] = useState([]); // ids de freelancers liberados hoje
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
   const [horaLocal, setHoraLocal] = useState(new Date());
@@ -266,16 +267,23 @@ export default function PontoPage() {
 
   const carregar = useCallback(async (silencioso = false) => {
     if (!silencioso) setLoading(true);
-    const [rColab, rPontos, rFolgas] = await Promise.all([
+    const d = new Date();
+    const hojeISO = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const [rColab, rPontos, rFolgas, rLib] = await Promise.all([
       fetchColaboradores(unidadeAtiva),
       fetchPontoHoje(unidadeAtiva),
       fetchAllFolgasDaUnidade(unidadeAtiva),
+      fetchLiberacoesDia(unidadeAtiva, hojeISO),
     ]);
     setColaboradores((rColab.data || []).filter(c => (c.status || "ativo") !== "inativo"));
     setPontosHoje(rPontos.data || []);
     setFolgas(rFolgas.data || []);
+    setLiberadosHoje((rLib.data || []).map(l => l.colaborador_id));
     setLoading(false);
   }, [unidadeAtiva]);
+
+  // Extra/freelancer só bate ponto no dia em que o gerente liberou.
+  const bloqueadoFreela = (c) => c?.tipo_contrato === "Freelancer" && !liberadosHoje.includes(c.id);
 
   // Tempo real: batida em QUALQUER aparelho aparece aqui na hora, sem atualizar
   useTempoReal(["registro_ponto", "colaboradores", "rh_folgas_esporadicas", "rh_banco_horas"], () => carregar(true));
@@ -290,6 +298,10 @@ export default function PontoPage() {
 
   // Abre a tela do funcionário INSTANTANEAMENTE; histórico/banco carregam em segundo plano
   const abrirFuncionario = (c) => {
+    if (bloqueadoFreela(c)) {
+      alert(`${c.nome} é extra/freelancer e o ponto de hoje ainda não foi liberado.\n\nPeça ao gerente para liberar em RH → Ações → "Liberar ponto de hoje".`);
+      return;
+    }
     setSelecionado(c);
     setBusca("");
     setHistorico([]);
@@ -697,6 +709,7 @@ export default function PontoPage() {
     const etapa = proximaEtapa(reg);
     const concluido = etapa === "concluido";
     const info = folgaHoje(c, folgas, horaLocal);
+    const bloqueado = bloqueadoFreela(c); // extra sem liberação do dia
     // Passou do limite de atraso sem bater a entrada: falta
     let faltou = false;
     const entradaStr = entradaDoDia(c, horaLocal);
@@ -719,8 +732,8 @@ export default function PontoPage() {
         <div className="flex items-center justify-between gap-2 flex-wrap">
           {/* PRIORIDADE: jornada aberta (mesmo em dia de folga — turno de ontem
               que virou a madrugada) vem antes do selo de folga */}
-          <div className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1.5 ${reg?.hora_entrada && !concluido ? "bg-sky-500/10 text-sky-400" : info.folga || faltou ? "bg-rose-500/10 text-rose-400" : concluido ? "bg-emerald-500/10 text-emerald-500" : "bg-slate-800 text-slate-500"}`}>
-            {reg?.hora_entrada && !concluido ? <><Clock size={11} /> Próx: {ETAPAS.find(e => e.id === etapa)?.label}</> : info.folga ? <><Ban size={11} /> Folga hoje</> : faltou ? <><Ban size={11} /> Falta — não bateu até {entradaStr}+{cfgP.limite_atraso}min</> : concluido ? <><CheckCircle2 size={11} /> Jornada concluída</> : <><LogIn size={11} /> Aguardando entrada</>}
+          <div className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1.5 ${bloqueado && !reg?.hora_entrada ? "bg-violet-500/10 text-violet-300" : reg?.hora_entrada && !concluido ? "bg-sky-500/10 text-sky-400" : info.folga || faltou ? "bg-rose-500/10 text-rose-400" : concluido ? "bg-emerald-500/10 text-emerald-500" : "bg-slate-800 text-slate-500"}`}>
+            {bloqueado && !reg?.hora_entrada ? <><Ban size={11} /> Aguardando liberação</> : reg?.hora_entrada && !concluido ? <><Clock size={11} /> Próx: {ETAPAS.find(e => e.id === etapa)?.label}</> : info.folga ? <><Ban size={11} /> Folga hoje</> : faltou ? <><Ban size={11} /> Falta — não bateu até {entradaStr}+{cfgP.limite_atraso}min</> : concluido ? <><CheckCircle2 size={11} /> Jornada concluída</> : <><LogIn size={11} /> Aguardando entrada</>}
           </div>
           {entradaStr && !info.folga && (
             <span className="text-[10px] font-bold text-slate-600">{entradaStr}{saidaDoDia(c, horaLocal) ? `–${saidaDoDia(c, horaLocal)}` : ""}</span>

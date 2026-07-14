@@ -12,6 +12,7 @@ import {
   fetchBancoHoras, inserirBancoHoras, removerBancoHoras, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN,
   fetchAdvertenciasColab, inserirAdvertencia, removerAdvertencia,
   fetchFeriados, inserirFeriado, removerFeriado,
+  liberarPontoDia, fetchLiberacoesColab, removerLiberacao,
   desligarColaborador
 } from "../../lib/rh";
 import { fetchPontoHoje, fetchPontosMes, fetchPontosMesUnidade } from "../../lib/ponto";
@@ -95,6 +96,25 @@ export default function RHPage() {
   const [fichaDias, setFichaDias] = useState("1"); // nº de dias combinados
   const [fichaItens, setFichaItens] = useState([]);
   const [fichaNovoItem, setFichaNovoItem] = useState("");
+
+  // Liberar o ponto do extra/freelancer para hoje (com a diária combinada).
+  const dataHojeISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+  const liberarPontoHoje = async (f) => {
+    const bruto = prompt(`Liberar o ponto de HOJE para ${f.nome}.\n\nValor da diária combinada (R$):`, f?.salario ? String(f.salario) : "");
+    if (bruto === null) return;
+    const valor = parseFloat(String(bruto).replace(",", ".")) || 0;
+    const { error } = await liberarPontoDia(f.id, unidadeAtiva, dataHojeISO(), valor);
+    if (error) return alert(/rh_ponto_liberado/.test(error) ? "Rode o SQL da tabela rh_ponto_liberado (te passei no chat)." : "Erro ao liberar: " + error);
+    alert(`Ponto liberado para ${f.nome} hoje. Diária: ${fmtBRL(valor)}. Ele já pode bater o ponto.`);
+  };
+
+  // Histórico diário do extra: cada dia liberado (diária) + total.
+  const [modalDiarias, setModalDiarias] = useState(null); // { func, lista, loading }
+  const abrirHistoricoDiarias = async (f) => {
+    setModalDiarias({ func: f, lista: [], loading: true });
+    const { data } = await fetchLiberacoesColab(f.id);
+    setModalDiarias({ func: f, lista: data || [], loading: false });
+  };
 
   const abrirModalFicha = (f) => {
     setFichaFunc(f);
@@ -1590,6 +1610,12 @@ export default function RHPage() {
                   <Grupo titulo="Financeiro">
                      <Acao icon={ShoppingBag} cor="text-teal-700" bg="bg-teal-50 hover:bg-teal-100" onClick={() => ir(() => abrirModalConsumo(f))}>Consumo / Vales</Acao>
                      <Acao icon={CreditCard} cor="text-emerald-700" bg="bg-emerald-50 hover:bg-emerald-100" onClick={() => ir(() => handleLancarFinanceiro(f))}>Lançar {f.tipo_contrato === "Freelancer" ? "Diária" : "Salário"}</Acao>
+                     {f.tipo_contrato === "Freelancer" && (
+                        <>
+                          <Acao icon={CheckCircle} cor="text-violet-700" bg="bg-violet-50 hover:bg-violet-100" onClick={() => ir(() => liberarPontoHoje(f))}>Liberar ponto de hoje</Acao>
+                          <Acao icon={Clock} cor="text-slate-700" onClick={() => ir(() => abrirHistoricoDiarias(f))}>Histórico diário (diárias)</Acao>
+                        </>
+                     )}
                   </Grupo>
 
                   <Grupo titulo="Documentos">
@@ -2049,6 +2075,46 @@ export default function RHPage() {
                <button onClick={imprimirFichaPreparada} className="w-full py-4 bg-amber-600 hover:bg-amber-700 text-white font-black text-lg rounded-2xl transition-all active:scale-95 shadow-xl shadow-amber-600/20 flex items-center justify-center gap-2">
                   <Printer size={20}/> Imprimir Ficha
                </button>
+            </div>
+         </div>
+         );
+      })()}
+
+      {/* MODAL: HISTÓRICO DIÁRIO do extra (dias liberados + diária + total) */}
+      {modalDiarias && (() => {
+         const lista = modalDiarias.lista || [];
+         const total = lista.reduce((s, l) => s + (Number(l.valor_diaria) || 0), 0);
+         return (
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={() => setModalDiarias(null)}>
+            <div className="bg-white rounded-[28px] w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto p-5 sm:p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+               <div className="flex items-center justify-between mb-1">
+                  <h2 className="text-lg font-black text-slate-800 flex items-center gap-2"><Clock size={18} className="text-slate-500" /> Histórico diário</h2>
+                  <button onClick={() => setModalDiarias(null)} className="w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={17} /></button>
+               </div>
+               <p className="text-xs font-bold text-slate-500 mb-4">{modalDiarias.func?.nome} — dias liberados para bater ponto e receber a diária.</p>
+               {modalDiarias.loading ? (
+                  <p className="text-center font-bold text-slate-400 py-8">Carregando...</p>
+               ) : lista.length === 0 ? (
+                  <p className="text-sm font-medium text-slate-400 text-center py-8">Nenhum dia liberado ainda. Use "Liberar ponto de hoje".</p>
+               ) : (
+                  <>
+                     <div className="space-y-1.5">
+                        {lista.map(l => (
+                           <div key={l.id} className="flex items-center justify-between gap-2 border border-slate-200 rounded-xl px-3 py-2">
+                              <span className="font-bold text-slate-700 text-sm">{String(l.data).slice(0, 10).split("-").reverse().join("/")}</span>
+                              <div className="flex items-center gap-2">
+                                 <span className="font-black text-emerald-700">{fmtBRL(Number(l.valor_diaria) || 0)}</span>
+                                 <button onClick={async () => { if (confirm("Remover esta liberação?")) { await removerLiberacao(l.id); abrirHistoricoDiarias(modalDiarias.func); } }} className="w-8 h-8 flex items-center justify-center rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100"><Trash2 size={14} /></button>
+                              </div>
+                           </div>
+                        ))}
+                     </div>
+                     <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-200">
+                        <span className="font-black text-slate-700">Total ({lista.length} dia(s))</span>
+                        <span className="font-black text-emerald-700 text-lg">{fmtBRL(total)}</span>
+                     </div>
+                  </>
+               )}
             </div>
          </div>
          );

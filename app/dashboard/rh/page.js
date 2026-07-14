@@ -92,12 +92,14 @@ export default function RHPage() {
   const [modalFicha, setModalFicha] = useState(false);
   const [fichaFunc, setFichaFunc] = useState(null);
   const [fichaValor, setFichaValor] = useState("");
+  const [fichaDias, setFichaDias] = useState("1"); // nº de dias combinados
   const [fichaItens, setFichaItens] = useState([]);
   const [fichaNovoItem, setFichaNovoItem] = useState("");
 
   const abrirModalFicha = (f) => {
     setFichaFunc(f);
     setFichaValor(f?.salario ? String(f.salario) : "");
+    setFichaDias("1");
     setFichaItens(ITENS_FICHA_PADRAO.map(nome => ({ nome, incluir: true })));
     setFichaNovoItem("");
     setModalFicha(true);
@@ -113,6 +115,7 @@ export default function RHPage() {
   const imprimirFichaPreparada = () => {
     imprimirFichaExtra(fichaFunc, {
       diaria: fichaValor,
+      dias: Math.max(1, Number(fichaDias) || 1),
       itens: fichaItens.filter(i => i.incluir).map(i => i.nome),
     });
     setModalFicha(false);
@@ -695,6 +698,9 @@ export default function RHPage() {
     // Diária desmembrada (mesma regra do "Lançar Diária"): fixo + INSS 5% + FGTS 8% + taxa de serviço 10%
     // O valor digitado na hora da impressão tem prioridade sobre o cadastro.
     const diariaTotal = parseFloat(String(opcoes.diaria ?? (funcionario?.salario || "")).replace(",", ".")) || 0;
+    // Nº de dias combinados (ex.: terça a domingo = 6). O total soma diária × dias.
+    const dias = Math.max(1, Number(opcoes.dias) || 1);
+    const totalGeral = diariaTotal * dias;
     // Itens escolhidos na hora (ou o kit padrão)
     const itensLista = Array.isArray(opcoes.itens) && opcoes.itens.length ? opcoes.itens : ITENS_FICHA_PADRAO;
     const dInss = diariaTotal * 0.05;
@@ -752,8 +758,9 @@ export default function RHPage() {
                 <div><strong>Função no dia:</strong> ${cargo}</div>
                 <div><strong>Carga acordada:</strong> das ${horaIni} às ${horaFim} · Intervalo: __________</div>
                 <div style="grid-column: 1 / -1; background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px; padding:5px 8px;">
-                   <strong>Valor da diária acordado: ${diariaAcordada}</strong>
-                   <span style="color:#64748b; font-size:9px;"> (desmembramento detalhado no acerto financeiro abaixo)</span>
+                   <strong>Diária acordada: ${diariaAcordada}</strong>
+                   ${dias > 1 ? `&nbsp;·&nbsp; <strong>Dias combinados: ${dias}</strong> &nbsp;·&nbsp; <strong>Total: ${diariaTotal > 0 ? money(totalGeral) : "R$ ______________"}</strong>` : ""}
+                   <span style="color:#64748b; font-size:9px; display:block; margin-top:2px;">${dias > 1 ? `${dias} dia(s) × ${diariaAcordada} = ${diariaTotal > 0 ? money(totalGeral) : "—"}. ` : ""}Desmembramento (por diária) detalhado no acerto financeiro abaixo.</span>
                 </div>
              </div>
           </div>
@@ -846,6 +853,10 @@ export default function RHPage() {
                      <td><strong>Diária Base (soma)</strong></td>
                      <td><strong>${money(diariaTotal)}</strong></td>
                    </tr>
+                   ${dias > 1 ? `<tr style="background:#f1f5f9;">
+                     <td><strong>Total dos dias (${dias} × ${money(diariaTotal) || "diária"})</strong></td>
+                     <td><strong>${diariaTotal > 0 ? money(totalGeral) : ""}</strong></td>
+                   </tr>` : ""}
                    <tr>
                      <td>Vale Transporte / Passagem</td>
                      <td></td>
@@ -859,8 +870,8 @@ export default function RHPage() {
                      <td></td>
                    </tr>
                    <tr>
-                     <td><strong>Total a Pagar</strong></td>
-                     <td><strong></strong></td>
+                     <td><strong>Total a Pagar${dias > 1 ? ` (${dias} dias)` : ""}</strong></td>
+                     <td><strong>${diariaTotal > 0 ? money(totalGeral) : ""}</strong></td>
                    </tr>
                  </tbody>
                </table>
@@ -1965,6 +1976,8 @@ export default function RHPage() {
       {/* MODAL: PREPARAR FICHA DE EXTRA (valor pago + itens emprestados) */}
       {modalFicha && (() => {
          const total = parseFloat(String(fichaValor).replace(",", ".")) || 0;
+         const nDias = Math.max(1, Number(fichaDias) || 1);
+         const totalGeral = total * nDias;
          const inss = total * 0.05, fgts = total * 0.08, taxa = total * 0.10;
          const fixo = total - inss - fgts - taxa;
          const fmt = (v) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -1984,13 +1997,31 @@ export default function RHPage() {
                   <label className="text-[10px] font-black uppercase tracking-widest text-emerald-700 block mb-1">Valor pago da diária (R$)</label>
                   <input type="number" min="0" step="0.01" value={fichaValor} onChange={e=>setFichaValor(e.target.value)} placeholder="Ex: 150,00"
                      className="w-full p-3.5 bg-white border-2 border-emerald-300 rounded-xl font-black text-2xl text-emerald-700 outline-none focus:border-emerald-500"/>
+
+                  {/* Nº de dias combinados: soma o total (ex.: terça a domingo = 6 dias) */}
+                  <div className="flex items-center gap-3 mt-3">
+                     <label className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Dias combinados</label>
+                     <div className="flex items-center gap-1">
+                        <button type="button" onClick={()=>setFichaDias(String(Math.max(1, nDias-1)))} className="w-8 h-8 rounded-lg bg-white border border-emerald-300 font-black text-emerald-700">−</button>
+                        <input type="number" min="1" step="1" value={fichaDias} onChange={e=>setFichaDias(e.target.value)} className="w-16 p-2 text-center bg-white border-2 border-emerald-300 rounded-lg font-black text-emerald-700 outline-none focus:border-emerald-500"/>
+                        <button type="button" onClick={()=>setFichaDias(String(nDias+1))} className="w-8 h-8 rounded-lg bg-white border border-emerald-300 font-black text-emerald-700">+</button>
+                     </div>
+                     <div className="flex flex-wrap gap-1">
+                        {[1,3,6,7].map(n => <button key={n} type="button" onClick={()=>setFichaDias(String(n))} className={`text-[10px] font-bold px-2 py-1 rounded-md ${nDias===n?"bg-emerald-600 text-white":"bg-white border border-emerald-200 text-emerald-700"}`}>{n}d</button>)}
+                     </div>
+                  </div>
+
                   {total > 0 ? (
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 mt-3 text-xs font-bold text-slate-600">
                         <span>Valor Fixo: <b className="text-slate-800">{fmt(fixo)}</b></span>
                         <span>INSS (5%): <b className="text-slate-800">{fmt(inss)}</b></span>
                         <span>FGTS (8%): <b className="text-slate-800">{fmt(fgts)}</b></span>
                         <span>Taxa de Serviço (10%): <b className="text-slate-800">{fmt(taxa)}</b></span>
-                        <span className="col-span-2 pt-1 border-t border-emerald-200">Sai impresso já desmembrado na ficha.</span>
+                        <span className="col-span-2 pt-2 mt-1 border-t border-emerald-200 text-sm">
+                           {nDias > 1
+                              ? <>Total: <b className="text-emerald-700">{fmt(totalGeral)}</b> <span className="font-medium text-slate-500">({nDias} dias × {fmt(total)})</span></>
+                              : <>Total do dia: <b className="text-emerald-700">{fmt(total)}</b></>}
+                        </span>
                      </div>
                   ) : (
                      <p className="text-[10px] font-medium text-emerald-700/70 mt-2">Sem valor, o acerto sai em branco para preencher à mão.</p>

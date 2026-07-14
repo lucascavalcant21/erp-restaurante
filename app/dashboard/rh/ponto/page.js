@@ -532,18 +532,20 @@ export default function PontoPage() {
           </div>
 
           {/* Identificação */}
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 mb-5 flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full overflow-hidden bg-emerald-500/15 border-2 border-emerald-500/40 flex items-center justify-center text-3xl font-black text-emerald-400 shrink-0">
-              {selecionado.foto ? <img src={`data:image/jpeg;base64,${selecionado.foto}`} alt={selecionado.nome} className="w-full h-full object-cover" /> : selecionado.nome[0].toUpperCase()}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-6 mb-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden bg-emerald-500/15 border-2 border-emerald-500/40 flex items-center justify-center text-2xl sm:text-3xl font-black text-emerald-400 shrink-0">
+                {selecionado.foto ? <img src={`data:image/jpeg;base64,${selecionado.foto}`} alt={selecionado.nome} className="w-full h-full object-cover" /> : selecionado.nome[0].toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-lg sm:text-2xl font-black text-white leading-tight line-clamp-2">{selecionado.nome}</h2>
+                <p className="text-slate-400 font-bold text-xs sm:text-sm truncate">{selecionado.cargo || "—"}</p>
+                {entradaStr && <p className="text-slate-500 font-bold text-[11px] sm:text-xs mt-0.5">Entrada: {entradaStr}{saidaDoDia(selecionado, horaLocal) ? ` — ${saidaDoDia(selecionado, horaLocal)}` : ""}</p>}
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <h2 className="text-xl md:text-2xl font-black text-white leading-tight break-words">{selecionado.nome}</h2>
-              <p className="text-slate-400 font-bold text-sm">{selecionado.cargo || "—"} · {unidadeInfo?.nome}</p>
-              {entradaStr && <p className="text-slate-500 font-bold text-xs mt-0.5">Horário de entrada: {entradaStr}{saidaDoDia(selecionado, horaLocal) ? ` — ${saidaDoDia(selecionado, horaLocal)}` : ""}</p>}
-            </div>
-            <div className={`text-right px-4 py-2 rounded-2xl border shrink-0 ${totalBancoMes >= BANCO_LIMITE_MIN ? "bg-red-500/10 border-red-500/40" : totalBancoMes >= BANCO_ALERTA_MIN ? "bg-amber-500/10 border-amber-500/40" : "bg-slate-800 border-slate-700"}`}>
+            <div className={`flex sm:flex-col items-center justify-between sm:justify-center sm:text-center px-4 py-2 rounded-2xl border shrink-0 w-full sm:w-auto ${totalBancoMes >= BANCO_LIMITE_MIN ? "bg-red-500/10 border-red-500/40" : totalBancoMes >= BANCO_ALERTA_MIN ? "bg-amber-500/10 border-amber-500/40" : "bg-slate-800 border-slate-700"}`}>
               <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1"><Hourglass size={10} /> Banco de horas</p>
-              <p className={`text-xl font-black ${totalBancoMes >= BANCO_LIMITE_MIN ? "text-red-400" : totalBancoMes >= BANCO_ALERTA_MIN ? "text-amber-400" : "text-white"}`}>{fmtMin(totalBancoMes)} <span className="text-xs text-slate-500">/ 8h</span></p>
+              <p className={`text-lg sm:text-xl font-black ${totalBancoMes >= BANCO_LIMITE_MIN ? "text-red-400" : totalBancoMes >= BANCO_ALERTA_MIN ? "text-amber-400" : "text-white"}`}>{fmtMin(totalBancoMes)} <span className="text-xs text-slate-500">/ 8h</span></p>
             </div>
           </div>
 

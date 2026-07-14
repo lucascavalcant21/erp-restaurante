@@ -24,8 +24,8 @@ import { useTempoReal } from "../lib/realtime";
 // Meta de CMV: ajustável em Configurações > Parâmetros (metaCmv)
 
 // Áreas da escala e como deduzir a área pelo cargo.
-// "Descanso" só recebe gente por arraste (quem está de folga/descanso no dia).
-const AREAS_ESCALA = ["Salão", "Bar", "Cozinha", "Caixa", "Louça", "Descanso", "Outros"];
+// "Folga" só recebe gente por arraste (quem está de folga/descanso no dia).
+const AREAS_ESCALA = ["Salão", "Bar", "Cozinha", "Caixa", "Louça", "Folga", "Outros"];
 function areaDoCargo(cargo) {
   const c = (cargo || "").toLowerCase();
   if (/(caixa|financ|tesour|recep)/.test(c)) return "Caixa";
@@ -581,14 +581,14 @@ function PainelLista({ titulo, icon: Icon, corIcon, itens, vazio, acao, contador
 // Cores por área da escala
 const CORES_AREA = {
   "Salão": "#0EA5E9", "Bar": "#8B5CF6", "Cozinha": "#F59E0B",
-  "Caixa": "#10B981", "Louça": "#64748B", "Descanso": "#F43F5E", "Outros": "#94A3B8",
+  "Caixa": "#10B981", "Louça": "#64748B", "Folga": "#F43F5E", "Outros": "#94A3B8",
 };
 
 // Escala da semana: colaboradores agrupados por área, extras marcados,
 // arraste para reordenar cada um dentro da sua área.
 function EscalaSemana({ escalaPorArea, dragId, setDragId, onMover, onVerTudo, onSalvarDia, onWhats, onImprimir, onHistorico }) {
   // Áreas fixas sempre visíveis (mesmo vazias) + "Outros" só quando tiver gente
-  const areas = ["Salão", "Bar", "Cozinha", "Caixa", "Louça", "Descanso"];
+  const areas = ["Salão", "Bar", "Cozinha", "Caixa", "Louça", "Folga"];
   if (escalaPorArea["Outros"]?.length) areas.push("Outros");
   // Celular/tablet: sem arrastar. Toca em "Mover" e escolhe a área de destino.
   const [mover, setMover] = useState(null); // { id, area } do colaborador sendo movido
@@ -635,7 +635,7 @@ function EscalaSemana({ escalaPorArea, dragId, setDragId, onMover, onVerTudo, on
               <div className="space-y-1.5 min-h-[44px]">
                 {lista.length === 0 ? (
                   <div className="flex items-center justify-center h-11 rounded-xl border border-dashed text-[11px] font-bold" style={{ borderColor: "var(--line)", color: "var(--dim)" }}>
-                    {area === "Descanso" ? "Arraste quem está de descanso hoje" : "Arraste alguém para cá"}
+                    {area === "Folga" ? "Quem está de folga hoje" : "Arraste alguém para cá"}
                   </div>
                 ) : lista.map(c => (
                   <div key={c.id} className="relative">

@@ -19,7 +19,14 @@ export async function fetchUnidades() {
 export async function inserirUnidade(u) {
   if (!isSupabaseReady()) return { data: null, error: "Offline" };
   const { data, error } = await supabase.from("unidades").insert([u]).select().single();
-  return { data, error: error?.message };
+  if (error) {
+    const m = error.message || "";
+    if (/row-level security|violates row-level|permission denied|policy/i.test(m)) {
+      return { data: null, error: "Sem permissão para criar unidades (política RLS). Rode o SQL das políticas da tabela unidades que te passei no chat." };
+    }
+    return { data: null, error: m };
+  }
+  return { data, error: null };
 }
 
 export async function atualizarUnidade(id, updates) {
@@ -28,10 +35,36 @@ export async function atualizarUnidade(id, updates) {
   return { error: error?.message };
 }
 
+// Exclui a unidade E todos os dados vinculados a ela. Sem isso, os vínculos
+// (chaves estrangeiras) impedem a exclusão — inclusive das unidades de teste.
 export async function removerUnidade(id) {
   if (!isSupabaseReady()) return { error: "Offline" };
-  const { error } = await supabase.from("unidades").delete().eq("id", id);
-  return { error: error?.message };
+  if (!id) return { error: "Unidade inválida." };
+  try {
+    // 1) Sub-filhos que dependem de "pais" da unidade
+    const { data: fichas } = await supabase.from("fichas_tecnicas").select("id").eq("unidade_id", id);
+    if (fichas?.length) await supabase.from("fichas_ingredientes").delete().in("ficha_id", fichas.map(f => f.id));
+    const { data: pedidos } = await supabase.from("pedidos").select("id").eq("unidade_id", id);
+    if (pedidos?.length) await supabase.from("pedidos_itens").delete().in("pedido_id", pedidos.map(p => p.id));
+    const { data: tpls } = await supabase.from("checklists_templates").select("id").eq("unidade_id", id);
+    if (tpls?.length) await supabase.from("checklists_execucoes").delete().in("template_id", tpls.map(t => t.id));
+
+    // 2) Tabelas com unidade_id direto (as inexistentes retornam erro que ignoramos)
+    const tabelas = [
+      "fichas_tecnicas", "produtos", "cardapio", "insumos", "estoque_atual", "producao_diaria",
+      "pedidos", "etiquetas", "registro_ponto", "rh_folgas_esporadicas", "rh_banco_horas",
+      "rh_consumo_funcionarios", "rh_cargos", "rh_ponto_liberado", "documentos_rh", "colaboradores",
+      "lancamentos", "contas_pagar", "config_sistema", "config_pins", "checklists_templates",
+      "acessos_modulo", "escalas_dia", "rh_advertencias", "rh_feriados", "fornecedores",
+    ];
+    for (const t of tabelas) { await supabase.from(t).delete().eq("unidade_id", id); }
+
+    // 3) Por fim, a própria unidade
+    const { error } = await supabase.from("unidades").delete().eq("id", id);
+    return { error: error?.message };
+  } catch (e) {
+    return { error: e?.message || "Falha ao excluir a unidade." };
+  }
 }
 
 export const DEPARTAMENTOS = [

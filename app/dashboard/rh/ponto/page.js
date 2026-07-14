@@ -119,13 +119,18 @@ const ETAPAS = [
 ];
 
 // Horários do dia (domingo pode ter turno diferente do resto da semana)
+// Jornada por dia da semana (0=Dom..6=Sáb) tem prioridade; senão domingo; senão fixo.
 function entradaDoDia(c, base) {
   if (!c) return null;
+  const wd = String(base.getDay());
+  if (c.horario_por_dia && c.horarios_dia && c.horarios_dia[wd] && c.horarios_dia[wd].e) return c.horarios_dia[wd].e;
   const dom = base.getDay() === 0;
   return (dom ? (c.horario_dom_entrada || c.horario_entrada) : c.horario_entrada) || null;
 }
 function saidaDoDia(c, base) {
   if (!c) return null;
+  const wd = String(base.getDay());
+  if (c.horario_por_dia && c.horarios_dia && c.horarios_dia[wd] && c.horarios_dia[wd].s) return c.horarios_dia[wd].s;
   const dom = base.getDay() === 0;
   return (dom ? (c.horario_dom_saida || c.horario_saida) : c.horario_saida) || null;
 }

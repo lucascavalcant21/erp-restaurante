@@ -31,6 +31,20 @@ import { fmtBRL } from "../../components/ui";
 import { comFecharImpressao } from "../../lib/imprimir";
 import BancoTalentos from "./components/BancoTalentos";
 
+// Horário esperado de um colaborador para um dia da semana (0=Dom..6=Sáb).
+// Usa a jornada por-dia se ativada; senão o horário de domingo; senão o fixo.
+export function horarioDoDia(f, weekday) {
+  const wd = String(weekday);
+  if (f?.horario_por_dia && f?.horarios_dia && f.horarios_dia[wd]) {
+    const h = f.horarios_dia[wd];
+    return { entrada: h.e || "", saida: h.s || "" };
+  }
+  if (Number(weekday) === 0 && (f?.horario_dom_entrada || f?.horario_dom_saida)) {
+    return { entrada: f.horario_dom_entrada || f.horario_entrada || "", saida: f.horario_dom_saida || f.horario_saida || "" };
+  }
+  return { entrada: f?.horario_entrada || "", saida: f?.horario_saida || "" };
+}
+
 export default function RHPage() {
   const router = useRouter();
   const { unidadeAtiva } = useERP();
@@ -47,7 +61,7 @@ export default function RHPage() {
   const [cargos, setCargos] = useState([]);
   const [busca, setBusca] = useState("");
   const [abaAtiva, setAbaAtiva] = useState("Fixo");
-  const statePadrao = { foto: "", nome: "", cargo: "", salario: "", vale_alimentacao: "", taxa_servico_mes: "", horario_entrada: "", horario_saida: "", horario_dom_entrada: "", horario_dom_saida: "", dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60, tipo_contrato: "Fixo", telefone: "", cpf: "", chave_pix: "", avaliacao_estrelas: 0, anotacoes_rh: "", data_admissao: "", status_contrato: "Definitivo", supervisor_id: "", supervisores_ids: [], endereco: "", cep: "", cidade_nascimento: "", data_nascimento: "", tem_filhos: false, qtd_filhos: "", tem_transporte: false, usa_vale_transporte: false, genero: "", escolaridade: "" };
+  const statePadrao = { foto: "", nome: "", cargo: "", salario: "", vale_alimentacao: "", taxa_servico_mes: "", horario_entrada: "", horario_saida: "", horario_dom_entrada: "", horario_dom_saida: "", horario_por_dia: false, horarios_dia: {}, dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60, tipo_contrato: "Fixo", telefone: "", cpf: "", chave_pix: "", avaliacao_estrelas: 0, anotacoes_rh: "", data_admissao: "", status_contrato: "Definitivo", supervisor_id: "", supervisores_ids: [], endereco: "", cep: "", cidade_nascimento: "", data_nascimento: "", tem_filhos: false, qtd_filhos: "", tem_transporte: false, usa_vale_transporte: false, genero: "", escolaridade: "" };
   // Cargos de liderança sempre disponíveis, além dos cargos cadastrados
   const CARGOS_LIDERANCA = ["CEO", "Supervisor", "Gerente"];
   const [modalNovo, setModalNovo] = useState(false);
@@ -821,6 +835,8 @@ export default function RHPage() {
        horario_saida: f.horario_saida || "",
        horario_dom_entrada: f.horario_dom_entrada || "",
        horario_dom_saida: f.horario_dom_saida || "",
+       horario_por_dia: !!f.horario_por_dia,
+       horarios_dia: (f.horarios_dia && typeof f.horarios_dia === "object") ? f.horarios_dia : {},
        dias_trabalho: f.dias_trabalho || "1,2,3,4,5,6",
        tempo_intervalo: f.tempo_intervalo || 60,
        tipo_contrato: f.tipo_contrato || "Fixo",
@@ -861,7 +877,12 @@ export default function RHPage() {
       horario_saida: novoFunc.horario_saida,
       horario_dom_entrada: novoFunc.horario_dom_entrada || null,
       horario_dom_saida: novoFunc.horario_dom_saida || null,
-      dias_trabalho: novoFunc.dias_trabalho,
+      horario_por_dia: !!novoFunc.horario_por_dia,
+      horarios_dia: novoFunc.horario_por_dia ? (novoFunc.horarios_dia || {}) : null,
+      // No modo por-dia, os dias de trabalho (para folga) são os dias com horário preenchido.
+      dias_trabalho: novoFunc.horario_por_dia
+        ? Object.entries(novoFunc.horarios_dia || {}).filter(([, h]) => h && h.e && h.s).map(([d]) => d).sort().join(",")
+        : novoFunc.dias_trabalho,
       tempo_intervalo: Number(novoFunc.tempo_intervalo) || 60,
       tipo_contrato: novoFunc.tipo_contrato,
       telefone: novoFunc.telefone,
@@ -1315,23 +1336,24 @@ export default function RHPage() {
                         const hoje = new Date();
                         const hojeStr = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(hoje.getDate()).padStart(2, "0")}`;
                         const diaSemana = hoje.getDay(); // 0 = domingo
+                        const entradaEsperada = horarioDoDia(f, diaSemana).entrada;
                         if (!pt) {
                            const ehFeriado = (feriadosMesAtual || []).some(fe => String(fe.data).slice(0, 10) === hojeStr);
                            if (ehFeriado) return <span className={cls("text-violet-700 bg-violet-100 border-violet-200")}>Feriado</span>;
                            const folgaEsporadica = (folgasUnidade || []).some(fl => fl.colaborador_id === f.id && String(fl.data_folga).slice(0, 10) === hojeStr);
                            const folgaFixa = f.dias_trabalho ? !f.dias_trabalho.split(',').includes(String(diaSemana)) : false;
                            if (folgaEsporadica || folgaFixa) return <span className={cls("text-sky-700 bg-sky-100 border-sky-200")}>{diaSemana === 0 ? "Folga (domingo)" : "Folga hoje"}</span>;
-                           if (f.horario_entrada) {
+                           if (entradaEsperada) {
                               const minAgora = hoje.getHours() * 60 + hoje.getMinutes();
-                              if (minAgora > strToMin(f.horario_entrada)) return <span className={cls("text-rose-700 bg-rose-100 border-rose-200")}>Atrasado (era p/ {f.horario_entrada})</span>;
+                              if (minAgora > strToMin(entradaEsperada)) return <span className={cls("text-rose-700 bg-rose-100 border-rose-200")}>Atrasado (era p/ {entradaEsperada})</span>;
                            }
                            return <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md">Ainda não bateu</span>;
                         }
                         const hrEntrada = new Date(pt.hora_entrada).toLocaleTimeString('pt-BR').slice(0, 5);
                         if (pt.status_jornada === 1) {
                            let atrasado = false;
-                           if (f.horario_entrada) { const mPt = dateToMin(pt.hora_entrada), mAg = strToMin(f.horario_entrada); atrasado = mPt > mAg + 5; }
-                           return <span className={cls(atrasado ? "text-rose-700 bg-rose-100 border-rose-200" : "text-emerald-700 bg-emerald-100 border-emerald-200")}>Trabalhando · entrou {hrEntrada}{atrasado ? ` (era p/ ${f.horario_entrada})` : ""}</span>;
+                           if (entradaEsperada) { const mPt = dateToMin(pt.hora_entrada), mAg = strToMin(entradaEsperada); atrasado = mPt > mAg + 5; }
+                           return <span className={cls(atrasado ? "text-rose-700 bg-rose-100 border-rose-200" : "text-emerald-700 bg-emerald-100 border-emerald-200")}>Trabalhando · entrou {hrEntrada}{atrasado ? ` (era p/ ${entradaEsperada})` : ""}</span>;
                         }
                         if (pt.status_jornada === 2) return <span className={cls("text-amber-700 bg-amber-100 border-amber-200")}>No intervalo · saiu {new Date(pt.hora_saida_intervalo).toLocaleTimeString('pt-BR').slice(0, 5)}</span>;
                         if (pt.status_jornada === 3) {
@@ -1693,6 +1715,16 @@ export default function RHPage() {
                   )}
 
                   <div className="border-t border-slate-100 pt-4 mt-4">
+                     <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Jornada de trabalho</p>
+                        <label className="flex items-center gap-2 text-[11px] font-bold text-slate-600 cursor-pointer">
+                           <input type="checkbox" checked={novoFunc.horario_por_dia} onChange={e=>setNovoFunc({...novoFunc, horario_por_dia: e.target.checked})} style={{accentColor:"#059669"}} />
+                           Horário diferente por dia da semana
+                        </label>
+                     </div>
+
+                     {!novoFunc.horario_por_dia ? (
+                     <>
                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Horário — dias normais (seg a sáb)</p>
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
@@ -1715,6 +1747,45 @@ export default function RHPage() {
                            <input type="time" value={novoFunc.horario_dom_saida || ""} onChange={e=>setNovoFunc({...novoFunc, horario_dom_saida: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
                         </div>
                      </div>
+                     </>
+                     ) : (
+                     <div className="space-y-1.5">
+                        <p className="text-[10px] font-medium text-slate-400 mb-2">Preencha entrada e saída de cada dia. Dia em branco = folga. O intervalo (abaixo) é descontado de cada dia.</p>
+                        {[['0','Domingo'],['1','Segunda'],['2','Terça'],['3','Quarta'],['4','Quinta'],['5','Sexta'],['6','Sábado']].map(([d,lbl]) => {
+                           const hd = (novoFunc.horarios_dia && novoFunc.horarios_dia[d]) || {};
+                           const setDia = (campo,val) => setNovoFunc(nf => ({...nf, horarios_dia: {...(nf.horarios_dia||{}), [d]: {...((nf.horarios_dia||{})[d]||{}), [campo]: val}}}));
+                           const limpar = () => setNovoFunc(nf => { const c={...(nf.horarios_dia||{})}; delete c[d]; return {...nf, horarios_dia:c}; });
+                           const trabalha = !!(hd.e || hd.s);
+                           return (
+                              <div key={d} className="flex items-center gap-2">
+                                 <span className="w-16 text-[10px] font-black uppercase text-slate-500 shrink-0">{lbl}</span>
+                                 <input type="time" value={hd.e||""} onChange={e=>setDia('e',e.target.value)} className="flex-1 min-w-0 p-2 bg-slate-50 border border-slate-200 rounded-lg font-bold text-sm outline-none focus:border-emerald-500"/>
+                                 <span className="text-slate-300 shrink-0">→</span>
+                                 <input type="time" value={hd.s||""} onChange={e=>setDia('s',e.target.value)} className="flex-1 min-w-0 p-2 bg-slate-50 border border-slate-200 rounded-lg font-bold text-sm outline-none focus:border-emerald-500"/>
+                                 <button type="button" onClick={limpar} title="Marcar folga neste dia" className="text-[10px] font-bold shrink-0 w-12 text-center rounded-md py-1 border border-slate-200 text-slate-400 hover:text-rose-500 hover:border-rose-200">{trabalha ? "folga" : "—"}</button>
+                              </div>
+                           );
+                        })}
+                        {(() => {
+                           const interv = Number(novoFunc.tempo_intervalo)||0;
+                           let totalMin = 0, diasTrab = 0;
+                           Object.values(novoFunc.horarios_dia||{}).forEach(h => {
+                              if (!h || !h.e || !h.s) return;
+                              const [eh,em]=h.e.split(':').map(Number), [sh,sm]=h.s.split(':').map(Number);
+                              let dur = (sh*60+sm)-(eh*60+em); if (dur<0) dur+=1440; dur -= interv;
+                              if (dur>0){ totalMin+=dur; diasTrab++; }
+                           });
+                           const horas = totalMin/60;
+                           const acima = horas > 44;
+                           return (
+                              <div className={`mt-2 rounded-lg px-3 py-2 text-[12px] font-bold ${acima ? "bg-rose-50 border border-rose-200 text-rose-700" : "bg-emerald-50 border border-emerald-100 text-emerald-700"}`}>
+                                 Carga semanal: {Math.floor(horas)}h{String(Math.round((horas%1)*60)).padStart(2,'0')} em {diasTrab} dia(s) (intervalo já descontado).
+                                 {acima ? " Acima do limite CLT de 44h/semana — ajuste os horários." : " Dentro do limite CLT (44h/semana)."}
+                              </div>
+                           );
+                        })()}
+                     </div>
+                     )}
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div>

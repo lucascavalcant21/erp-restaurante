@@ -47,7 +47,7 @@ export function horarioDoDia(f, weekday) {
 
 export default function RHPage() {
   const router = useRouter();
-  const { unidadeAtiva } = useERP();
+  const { unidadeAtiva, unidadeInfo } = useERP();
   
   const [funcionarios, setFuncionarios] = useState([]);
   const [pontosHoje, setPontosHoje] = useState([]);
@@ -393,6 +393,111 @@ export default function RHPage() {
       .reduce((s, v) => s + (Number(v.valor_final ?? v.valor_desconto ?? v.valor_original) || 0), 0);
     const adicionais = (ad.valorExtra || 0) + (ad.valorFeriado || 0) + (ad.valorNoturno || 0);
     return { fixo, va, taxa, base, adicionais, descontos, ad, previsto: base + adicionais - descontos };
+  };
+
+  // ── Gera o CONTRATO DE TRABALHO já preenchido com os dados e a jornada ────────
+  const gerarContrato = (f) => {
+    const esc = (s) => String(s == null ? "" : s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+    const linha = (v) => v ? esc(v) : "_______________________________";
+    const dataBR = (d) => { if (!d) return "____/____/______"; const x = new Date(d); return Number.isNaN(x.getTime()) ? "____/____/______" : x.toLocaleDateString("pt-BR"); };
+    const emp = unidadeInfo || {};
+    const empNome = emp.nome_fantasia || emp.nome || "";
+    const fixo = Number(f.salario) || 0, va = Number(f.vale_alimentacao) || 0, taxa = Number(f.taxa_servico_mes) || 0;
+    const ehFree = f.tipo_contrato === "Freelancer";
+    const DIAS = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+
+    // Jornada (usa horário por dia se existir; senão fixo + domingo)
+    let jornadaHTML = "", cargaMin = 0, diasTrab = 0;
+    const interv = Number(f.tempo_intervalo) || 0;
+    const linhasJ = [];
+    for (let d = 0; d <= 6; d++) {
+      const h = horarioDoDia(f, d);
+      const trabalha = (String(f.dias_trabalho || "").split(",").includes(String(d))) && h.entrada;
+      if (trabalha) {
+        linhasJ.push(`<tr><td>${DIAS[d]}</td><td>${esc(h.entrada || "—")}</td><td>${esc(h.saida || "—")}</td></tr>`);
+        if (h.entrada && h.saida) {
+          const [eh, em] = h.entrada.split(":").map(Number), [sh, sm] = h.saida.split(":").map(Number);
+          let dur = (sh * 60 + sm) - (eh * 60 + em); if (dur < 0) dur += 1440; dur -= interv;
+          if (dur > 0) { cargaMin += dur; diasTrab++; }
+        }
+      } else {
+        linhasJ.push(`<tr><td>${DIAS[d]}</td><td colspan="2" style="text-align:center;color:#94a3b8">Folga / descanso</td></tr>`);
+      }
+    }
+    const horasSem = cargaMin / 60;
+    jornadaHTML = `<table class="jt"><thead><tr><th>Dia</th><th>Entrada</th><th>Saída</th></tr></thead><tbody>${linhasJ.join("")}</tbody></table>
+      <p class="obs">Intervalo para refeição e descanso: <b>${interv} minutos</b> por dia trabalhado. Carga horária semanal aproximada: <b>${Math.floor(horasSem)}h${String(Math.round((horasSem % 1) * 60)).padStart(2, "0")}</b> em ${diasTrab} dia(s), respeitado o limite legal de 44 horas semanais.</p>`;
+
+    const remHTML = ehFree
+      ? `<p>3.1. Pela prestação dos serviços, o(a) CONTRATADO(A) receberá o valor de <b>${fmtBRL(fixo)}</b> por diária efetivamente trabalhada, sem vínculo empregatício de natureza mensal.</p>`
+      : `<p>3.1. O(A) EMPREGADO(A) perceberá salário mensal de <b>${fmtBRL(fixo)}</b>${va > 0 ? `, acrescido de vale-alimentação de <b>${fmtBRL(va)}</b>` : ""}${taxa > 0 ? `, além da participação na taxa de serviço estimada em <b>${fmtBRL(taxa)}</b>` : ""}, pago até o 5º dia útil do mês subsequente.</p>`;
+
+    const titulo = ehFree ? "CONTRATO DE PRESTAÇÃO DE SERVIÇO (DIARISTA / EXTRA)" : "CONTRATO INDIVIDUAL DE TRABALHO";
+    const experiencia = !ehFree && (f.status_contrato === "Experiência" || String(f.status_contrato || "").toLowerCase().includes("experi"));
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Contrato — ${esc(f.nome)}</title>
+      <style>
+        @page { size: A4 portrait; margin: 18mm; }
+        body { font-family: 'Times New Roman', Georgia, serif; color: #0f172a; line-height: 1.55; font-size: 12.5px; }
+        h1 { text-align: center; font-size: 17px; margin: 0 0 4px; text-transform: uppercase; }
+        h2 { text-align: center; font-size: 12px; font-weight: normal; color: #475569; margin: 0 0 18px; }
+        .clausula { margin: 12px 0 4px; font-weight: bold; text-transform: uppercase; font-size: 12px; }
+        p { margin: 4px 0; text-align: justify; }
+        .partes p { margin: 2px 0; }
+        table.jt { width: 100%; border-collapse: collapse; margin: 6px 0; font-family: Arial, sans-serif; font-size: 11px; }
+        table.jt th, table.jt td { border: 1px solid #cbd5e1; padding: 4px 8px; text-align: left; }
+        table.jt th { background: #f1f5f9; text-transform: uppercase; font-size: 10px; }
+        .obs { font-size: 11px; color: #334155; }
+        .assinaturas { margin-top: 40px; display: flex; justify-content: space-between; gap: 40px; }
+        .assinaturas div { flex: 1; border-top: 1px solid #000; padding-top: 4px; text-align: center; font-size: 11px; }
+        .test { margin-top: 30px; font-size: 11px; }
+        .test div { border-top: 1px solid #94a3b8; margin-top: 26px; padding-top: 3px; }
+      </style></head><body>
+      <h1>${titulo}</h1>
+      <h2>${empNome ? esc(empNome) : "Empregador"}${emp.cnpj ? " — CNPJ " + esc(emp.cnpj) : ""}</h2>
+
+      <div class="partes">
+        <p><b>EMPREGADOR(A):</b> ${linha(empNome)}, inscrita no CNPJ sob o nº ${linha(emp.cnpj)}, com estabelecimento em ${linha(emp.endereco || emp.cidade)}, doravante denominada CONTRATANTE.</p>
+        <p><b>EMPREGADO(A):</b> ${linha(f.nome)}, portador(a) do CPF nº ${linha(f.cpf)}${f.data_nascimento ? `, nascido(a) em ${dataBR(f.data_nascimento)}` : ""}${f.cidade_nascimento ? `, natural de ${esc(f.cidade_nascimento)}` : ""}, residente em ${linha(f.endereco)}${f.cep ? `, CEP ${esc(f.cep)}` : ""}, doravante denominado(a) CONTRATADO(A).</p>
+      </div>
+
+      <p>As partes acima identificadas têm, entre si, justo e acordado o presente contrato, que se regerá pelas cláusulas seguintes e pelas condições da <b>Consolidação das Leis do Trabalho (CLT)</b>.</p>
+
+      <div class="clausula">Cláusula 1ª — Da função</div>
+      <p>1.1. O(A) CONTRATADO(A) exercerá a função de <b>${linha(f.cargo)}</b>, comprometendo-se a desempenhar as atividades correlatas com zelo e assiduidade, no estabelecimento da CONTRATANTE.</p>
+
+      <div class="clausula">Cláusula 2ª — Da jornada de trabalho</div>
+      <p>2.1. A jornada semanal, conforme os dados cadastrais, é a seguinte:</p>
+      ${jornadaHTML}
+
+      <div class="clausula">Cláusula 3ª — Da remuneração</div>
+      ${remHTML}
+
+      <div class="clausula">Cláusula 4ª — Da vigência</div>
+      <p>4.1. O presente contrato terá início em <b>${dataBR(f.data_admissao)}</b>${experiencia ? ", a título de <b>experiência</b>, pelo prazo de até 90 (noventa) dias, nos termos do art. 445, parágrafo único, da CLT, podendo ser prorrogado uma única vez dentro desse período." : ", por prazo indeterminado."}</p>
+
+      <div class="clausula">Cláusula 5ª — Das obrigações</div>
+      <p>5.1. O(A) CONTRATADO(A) obriga-se a cumprir as normas internas, o horário e as determinações da CONTRATANTE, zelando pelo patrimônio e pela higiene do ambiente de trabalho.</p>
+      <p>5.2. Aplicam-se ao presente contrato todas as demais disposições da CLT e das convenções coletivas da categoria.</p>
+
+      <p style="margin-top:18px">E, por estarem assim justos e contratados, firmam o presente em duas vias de igual teor.</p>
+      <p style="text-align:right;margin-top:10px">${esc(emp.cidade || "")}${emp.cidade ? ", " : ""}____ de _______________ de ${new Date().getFullYear()}.</p>
+
+      <div class="assinaturas">
+        <div>${linha(f.nome)}<br/>Empregado(a)</div>
+        <div>${linha(empNome)}<br/>Empregador(a)</div>
+      </div>
+      <div class="test">
+        <div>Testemunha 1 — Nome / CPF</div>
+        <div>Testemunha 2 — Nome / CPF</div>
+      </div>
+      </body></html>`;
+
+    const win = window.open("", "_blank");
+    if (!win) return alert("Habilite pop-ups para gerar o contrato.");
+    win.document.write(comFecharImpressao(html));
+    win.document.close();
+    setTimeout(() => win.print(), 400);
   };
 
   useEffect(() => {
@@ -1477,6 +1582,7 @@ export default function RHPage() {
                   </Grupo>
 
                   <Grupo titulo="Documentos">
+                     <Acao icon={FileText} cor="text-emerald-700" bg="bg-emerald-50 hover:bg-emerald-100" onClick={() => ir(() => gerarContrato(f))}>Contrato de Trabalho</Acao>
                      <Acao icon={FileText} onClick={() => ir(() => router.push(`/dashboard/rh/contrato/${f.id}`))}>Regulamento</Acao>
                      {f.tipo_contrato === "Freelancer" && (
                         <Acao icon={Printer} cor="text-amber-700" bg="bg-amber-50 hover:bg-amber-100" onClick={() => ir(() => abrirModalFicha(f))}>Ficha Controle</Acao>

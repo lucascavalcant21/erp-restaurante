@@ -16,6 +16,18 @@ export const PARAMS_PADRAO = {
   faturamento_minimo_cmo: 1000, // piso de entradas p/ exibir o CMO %
   // Estoque
   fator_reposicao: 2,      // lista de compras repõe até (fator × mínimo)
+  // Custos operacionais do mês (para o Ponto de Equilíbrio e a "pizza" do prato)
+  custo_aluguel_mes: 0,
+  custo_luz_mes: 0,        // energia elétrica
+  custo_gas_mes: 0,
+  custo_agua_mes: 0,
+  custo_limpeza_mes: 0,    // produtos de limpeza
+  custo_cmo_mes: 0,        // folha (mão de obra) do mês
+  custo_outros_mes: 0,
+  imposto_pct: 0,          // % de imposto sobre a venda
+  embalagem_pct: 0,        // % de embalagem sobre a venda
+  dias_operacao_mes: 26,   // dias que a loja abre no mês
+  pratos_por_dia: 100,     // média de pratos vendidos por dia (rateio dos fixos)
 };
 
 // Categorias de validade usadas na tela de etiquetas. Ficam dentro do JSON

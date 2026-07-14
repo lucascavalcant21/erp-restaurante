@@ -1311,30 +1311,37 @@ export default function RHPage() {
                         const strToMin = (s) => { if (!s) return null; const [h, m] = s.split(':').map(Number); return h * 60 + m; };
                         const dateToMin = (d) => { if (!d) return null; const x = new Date(d); return x.getHours() * 60 + x.getMinutes(); };
                         const minToStr = (m) => { if (m < 0) m += 1440; const hh = Math.floor(m / 60), mm = m % 60; return hh === 0 ? `${mm}min` : `${hh}h${String(mm).padStart(2, '0')}`; };
-                        const cls = (c) => `text-[11px] font-bold px-2.5 py-1 rounded-md border ${c}`;
+                        const cls = (c) => `text-[11px] font-bold px-2.5 py-1 rounded-md border inline-flex items-center gap-1 ${c}`;
+                        const hoje = new Date();
+                        const hojeStr = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(hoje.getDate()).padStart(2, "0")}`;
+                        const diaSemana = hoje.getDay(); // 0 = domingo
                         if (!pt) {
-                           if (f.horario_entrada && f.dias_trabalho && f.dias_trabalho.split(',').includes(new Date().getDay().toString())) {
-                              const minAgora = new Date().getHours() * 60 + new Date().getMinutes();
-                              if (minAgora > strToMin(f.horario_entrada)) return <span className={cls("text-rose-700 bg-rose-100 border-rose-200")}>Atrasado (Era p/ {f.horario_entrada})</span>;
+                           const ehFeriado = (feriadosMesAtual || []).some(fe => String(fe.data).slice(0, 10) === hojeStr);
+                           if (ehFeriado) return <span className={cls("text-violet-700 bg-violet-100 border-violet-200")}>Feriado</span>;
+                           const folgaEsporadica = (folgasUnidade || []).some(fl => fl.colaborador_id === f.id && String(fl.data_folga).slice(0, 10) === hojeStr);
+                           const folgaFixa = f.dias_trabalho ? !f.dias_trabalho.split(',').includes(String(diaSemana)) : false;
+                           if (folgaEsporadica || folgaFixa) return <span className={cls("text-sky-700 bg-sky-100 border-sky-200")}>{diaSemana === 0 ? "Folga (domingo)" : "Folga hoje"}</span>;
+                           if (f.horario_entrada) {
+                              const minAgora = hoje.getHours() * 60 + hoje.getMinutes();
+                              if (minAgora > strToMin(f.horario_entrada)) return <span className={cls("text-rose-700 bg-rose-100 border-rose-200")}>Atrasado (era p/ {f.horario_entrada})</span>;
                            }
-                           return <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md">Não iniciou</span>;
+                           return <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md">Ainda não bateu</span>;
                         }
                         const hrEntrada = new Date(pt.hora_entrada).toLocaleTimeString('pt-BR').slice(0, 5);
                         if (pt.status_jornada === 1) {
-                           let extra = "";
-                           if (f.horario_entrada) { const mPt = dateToMin(pt.hora_entrada), mAg = strToMin(f.horario_entrada); extra = mPt > mAg + 5 ? ` (Era p/ ${f.horario_entrada})` : ` (No horário)`; }
-                           const atrasado = extra.includes("Era p/");
-                           return <span className={cls(atrasado ? "text-rose-700 bg-rose-100 border-rose-200" : "text-emerald-700 bg-emerald-100 border-emerald-200")}>Entrou {hrEntrada}{extra}</span>;
+                           let atrasado = false;
+                           if (f.horario_entrada) { const mPt = dateToMin(pt.hora_entrada), mAg = strToMin(f.horario_entrada); atrasado = mPt > mAg + 5; }
+                           return <span className={cls(atrasado ? "text-rose-700 bg-rose-100 border-rose-200" : "text-emerald-700 bg-emerald-100 border-emerald-200")}>Trabalhando · entrou {hrEntrada}{atrasado ? ` (era p/ ${f.horario_entrada})` : ""}</span>;
                         }
-                        if (pt.status_jornada === 2) return <span className={cls("text-amber-700 bg-amber-100 border-amber-200")}>No intervalo: {new Date(pt.hora_saida_intervalo).toLocaleTimeString('pt-BR').slice(0, 5)}</span>;
+                        if (pt.status_jornada === 2) return <span className={cls("text-amber-700 bg-amber-100 border-amber-200")}>No intervalo · saiu {new Date(pt.hora_saida_intervalo).toLocaleTimeString('pt-BR').slice(0, 5)}</span>;
                         if (pt.status_jornada === 3) {
                            const hrVolta = new Date(pt.hora_retorno_intervalo).toLocaleTimeString('pt-BR').slice(0, 5);
                            const minSaida = dateToMin(pt.hora_saida_intervalo); let minVolta = dateToMin(pt.hora_retorno_intervalo); if (minVolta < minSaida) minVolta += 1440;
                            const duracao = minVolta - minSaida, limite = f.tempo_intervalo || 60;
-                           if (duracao > limite) return <span className={cls("text-rose-700 bg-rose-100 border-rose-200")}>Voltou {hrVolta} (Tirou {minToStr(duracao)}/{minToStr(limite)})</span>;
-                           return <span className={cls("text-emerald-700 bg-emerald-100 border-emerald-200")}>Voltou {hrVolta} (OK)</span>;
+                           if (duracao > limite) return <span className={cls("text-rose-700 bg-rose-100 border-rose-200")}>Voltou {hrVolta} · passou do intervalo ({minToStr(duracao)}/{minToStr(limite)})</span>;
+                           return <span className={cls("text-emerald-700 bg-emerald-100 border-emerald-200")}>Trabalhando · voltou {hrVolta}</span>;
                         }
-                        if (pt.status_jornada === 4) return <span className={cls("text-blue-700 bg-blue-100 border-blue-200")}>Concluído: saiu {new Date(pt.hora_saida).toLocaleTimeString('pt-BR').slice(0, 5)}</span>;
+                        if (pt.status_jornada === 4) return <span className={cls("text-blue-700 bg-blue-100 border-blue-200")}>Saiu do trabalho · {new Date(pt.hora_saida).toLocaleTimeString('pt-BR').slice(0, 5)}</span>;
                         return <span className="text-[11px] font-bold text-slate-400">--</span>;
                      })();
                      const tb = totalBancoDe(f.id);
@@ -1367,11 +1374,11 @@ export default function RHPage() {
                               ) : (
                                  <>
                                     <div className="font-black text-emerald-700">{fmtBRL(p.previsto)}</div>
-                                    <div className="flex flex-wrap gap-1 mt-1">
-                                       {p.descontos > 0 && <span className="text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-100 rounded px-1.5 py-0.5">Vales: {fmtBRL(p.descontos)}</span>}
-                                       {p.ad.valorExtra > 0 && <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded px-1.5 py-0.5">Extra: {fmtBRL(p.ad.valorExtra)}</span>}
-                                       {Number(f.vale_alimentacao) > 0 && <span className="text-[10px] font-bold text-teal-700 bg-teal-50 border border-teal-100 rounded px-1.5 py-0.5">VA: {fmtBRL(f.vale_alimentacao)}</span>}
-                                       {Number(f.taxa_servico_mes) > 0 && <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded px-1.5 py-0.5">Taxa: {fmtBRL(f.taxa_servico_mes)}</span>}
+                                    <div className="flex flex-wrap gap-1 mt-1" onClick={(e) => e.stopPropagation()}>
+                                       {p.descontos > 0 && <span onClick={() => alert(`VALES / DESCONTOS: ${fmtBRL(p.descontos)}\n\nÉ a soma dos vales e consumos pendentes deste funcionário (adiantamentos e consumo no cardápio da equipe). Entra como desconto na folha do mês. Detalhe em Ações → Consumo / Vales.`)} className="text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-100 rounded px-1.5 py-0.5 cursor-pointer" title="Clique para entender">Vales: {fmtBRL(p.descontos)}</span>}
+                                       {p.ad.valorExtra > 0 && <span onClick={() => alert(`EXTRA (adicionais do mês): ${fmtBRL(p.ad.valorExtra)}\n\nVem das BATIDAS DE PONTO do mês, calculado pela CLT:\n• Hora extra (após a jornada / pós-00h): +50%\n• Feriado trabalhado: +100% ${p.ad.valorFeriado > 0 ? `(${fmtBRL(p.ad.valorFeriado)})` : ""}\n• Adicional noturno (23:30–00:00): +20% ${p.ad.valorNoturno > 0 ? `(${fmtBRL(p.ad.valorNoturno)})` : ""}\n\nBase da hora = salário ÷ 220. Só aparece quando há ponto que gere adicional.`)} className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded px-1.5 py-0.5 cursor-pointer" title="Clique para entender">Extra: {fmtBRL(p.ad.valorExtra)}</span>}
+                                       {Number(f.vale_alimentacao) > 0 && <span onClick={() => alert(`VA — Vale-alimentação: ${fmtBRL(f.vale_alimentacao)}\n\nValor fixo definido no cadastro do funcionário (aba de remuneração). É somado ao pagamento do mês. Para alterar, edite o funcionário.`)} className="text-[10px] font-bold text-teal-700 bg-teal-50 border border-teal-100 rounded px-1.5 py-0.5 cursor-pointer" title="Clique para entender">VA: {fmtBRL(f.vale_alimentacao)}</span>}
+                                       {Number(f.taxa_servico_mes) > 0 && <span onClick={() => alert(`TAXA de serviço (gorjeta): ${fmtBRL(f.taxa_servico_mes)}\n\nParte da taxa de serviço (10%) rateada para este funcionário no mês. Somada ao pagamento.`)} className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded px-1.5 py-0.5 cursor-pointer" title="Clique para entender">Taxa: {fmtBRL(f.taxa_servico_mes)}</span>}
                                     </div>
                                  </>
                               )}
@@ -1423,7 +1430,7 @@ export default function RHPage() {
          );
          return (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={fechar}>
-            <div className="bg-white rounded-[28px] w-full max-w-md max-h-[88vh] overflow-y-auto p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="bg-white rounded-[28px] w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto p-5 sm:p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
                <div className="flex items-center justify-between mb-4">
                   <div className="min-w-0">
                      <h2 className="font-black text-xl text-slate-800 truncate">{f.nome}</h2>
@@ -1480,7 +1487,7 @@ export default function RHPage() {
       {/* Modal Adicionar/Editar Funcionário */}
       {modalNovo && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-[32px] w-full max-w-md p-6 sm:p-8 shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[95vh] overflow-hidden">
+            <div className="bg-white rounded-[32px] w-full max-w-md p-5 sm:p-8 shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[calc(100dvh-2rem)] overflow-hidden">
                <div className="flex justify-between items-center mb-6 shrink-0 border-b border-slate-100 pb-4">
                   <h2 className="font-black text-2xl text-slate-800">{editandoId ? "Editar Colaborador" : "Novo Funcionário"}</h2>
                   <button onClick={() => setModalNovo(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>

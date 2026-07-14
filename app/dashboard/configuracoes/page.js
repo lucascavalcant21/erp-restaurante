@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useERP } from "../../context/ERPContext";
-import { fetchUnidades, atualizarUnidade } from "../../lib/unidades";
+import { fetchUnidades, atualizarUnidade, inserirUnidade, removerUnidade } from "../../lib/unidades";
 import { SkeletonList } from "../../components/ui";
 import {
   Settings, Store, Phone, Clock, Save, CheckCircle, AlertCircle, Beaker, Trash2, RefreshCw,
@@ -242,6 +242,77 @@ function CardValidadesEtiquetas({ unidadeAtiva }) {
 }
 
 // Senhas e PINs: PIN do gerente (ponto) + senhas de saída das estações
+// Unidades (lojas): trocar a ativa, criar novas e excluir.
+function CardUnidades() {
+  const { unidades, unidadeAtiva, setUnidadeAtiva, recarregarUnidades } = useERP();
+  const [nova, setNova] = useState("");
+  const [erro, setErro] = useState("");
+  const [salvando, setSalvando] = useState(false);
+  const reais = (unidades || []).filter(u => u.id !== "todas");
+
+  const criar = async () => {
+    setErro("");
+    if (!nova.trim()) return setErro("Digite o nome da unidade.");
+    setSalvando(true);
+    const { data, error } = await inserirUnidade({ nome: nova.trim() });
+    setSalvando(false);
+    if (error) return setErro("Erro ao criar: " + error);
+    setNova("");
+    await recarregarUnidades();
+    if (data?.id) setUnidadeAtiva(data.id);
+  };
+  const excluir = async (u) => {
+    if (!confirm(`Excluir a unidade "${u.nome}"? Os dados vinculados a ela deixam de aparecer. Esta ação não pode ser desfeita.`)) return;
+    const { error } = await removerUnidade(u.id);
+    if (error) return alert("Erro ao excluir: " + error);
+    const restantes = await recarregarUnidades();
+    if (unidadeAtiva === u.id) {
+      const outra = (restantes || []).find(x => x.id !== "todas");
+      if (outra) setUnidadeAtiva(outra.id);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-6">
+      <div className="bg-slate-50 border-b border-slate-100 p-4 flex items-center gap-2">
+        <Store size={18} className="text-slate-500" />
+        <div>
+          <h2 className="font-bold text-slate-800">Unidades (lojas)</h2>
+          <p className="text-[11px] text-slate-500 font-medium">Troque a unidade ativa, crie novas ou exclua.</p>
+        </div>
+      </div>
+      <div className="p-6 space-y-4">
+        <div className="space-y-2">
+          {reais.map(u => (
+            <div key={u.id} className={`flex items-center justify-between gap-2 border rounded-xl p-3 ${unidadeAtiva === u.id ? "border-emerald-400 bg-emerald-50/40" : "border-slate-200"}`}>
+              <div className="min-w-0">
+                <p className="font-bold text-slate-800 truncate">{u.nome}{unidadeAtiva === u.id && <span className="ml-2 text-[10px] font-black uppercase tracking-widest text-emerald-600">Ativa</span>}</p>
+                {u.cidade && <p className="text-[11px] text-slate-500 truncate">{u.cidade}</p>}
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {unidadeAtiva !== u.id && (
+                  <button onClick={() => setUnidadeAtiva(u.id)} className="text-[11px] font-bold px-3 h-9 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200">Usar</button>
+                )}
+                <button onClick={() => excluir(u)} title="Excluir unidade" className="w-9 h-9 flex items-center justify-center rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100"><Trash2 size={15} /></button>
+              </div>
+            </div>
+          ))}
+          {reais.length === 0 && <p className="text-sm text-slate-400 font-medium">Nenhuma unidade cadastrada ainda.</p>}
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-slate-100">
+          <input value={nova} onChange={e => setNova(e.target.value)} placeholder="Nome da nova unidade (ex: Filial Centro)"
+            className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500" />
+          <button onClick={criar} disabled={salvando} className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold py-2.5 px-5 rounded-xl flex items-center justify-center gap-2 whitespace-nowrap">
+            <Plus size={16} /> {salvando ? "Criando..." : "Criar unidade"}
+          </button>
+        </div>
+        {erro && <p className="text-rose-600 text-sm font-bold">{erro}</p>}
+      </div>
+    </div>
+  );
+}
+
 // Usuários e Acessos por módulo — o master cria login (e-mail + senha) que
 // enxerga só um módulo de uma unidade. Substitui as senhas de estação.
 function CardAcessos({ unidadeAtiva }) {
@@ -629,6 +700,9 @@ export default function ConfiguracoesPage() {
       {/* Categorias e dias padrão usados na geração de etiquetas */}
       <CardValidadesEtiquetas unidadeAtiva={unidadeAtiva} />
 
+      {/* Unidades (lojas): trocar, criar e excluir */}
+      <CardUnidades />
+
       {/* Usuários e Acessos por módulo (novo controle de acesso) */}
       <CardAcessos unidadeAtiva={unidadeAtiva} />
 
@@ -640,28 +714,6 @@ export default function ConfiguracoesPage() {
 
       {/* Instalar o app no aparelho */}
       <CardInstalar />
-
-      {/* Sandbox de testes */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-6">
-        <div className="bg-purple-50 border-b border-purple-100 p-4 flex items-center gap-2">
-          <Beaker size={18} className="text-purple-600" />
-          <h2 className="font-bold text-purple-800">Desenvolvimento e Testes (Sandbox)</h2>
-        </div>
-        <div className="p-6">
-          <p className="text-sm text-slate-600 mb-6">
-            Crie um <strong>Ambiente de Teste</strong> para visualizar o ERP funcionando sem sujar a sua loja oficial.
-            Uma unidade falsa será criada com fichas técnicas, produtos e dados de exemplo.
-          </p>
-          <div className="flex items-center gap-4">
-            <button type="button" onClick={handleGerarMock} disabled={mockLoading} className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 px-6 rounded-xl flex items-center gap-2 transition-colors disabled:opacity-50">
-              <RefreshCw size={18} className={mockLoading ? "animate-spin" : ""} /> {mockLoading ? "Processando..." : "Gerar Ambiente de Teste"}
-            </button>
-            <button type="button" onClick={handleLimparMock} disabled={mockLoading} className="bg-red-50 text-red-600 hover:bg-red-100 font-bold py-2.5 px-6 rounded-xl flex items-center gap-2 transition-colors disabled:opacity-50">
-              <Trash2 size={18} /> Apagar Ambiente
-            </button>
-          </div>
-        </div>
-      </div>
 
     </div>
   );

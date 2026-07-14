@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
-import { fetchEstoque, ajustarEstoque, atualizarMinimoInsumo } from "../../../lib/estoque";
+import { fetchEstoque, ajustarEstoque, atualizarMinimoInsumo, atualizarMaximoInsumo } from "../../../lib/estoque";
 import { fetchParams, PARAMS_PADRAO } from "../../../lib/parametros";
 import { useTempoReal } from "../../../lib/realtime";
 import { PackageSearch, Edit3, X, Save, ArrowLeft, RefreshCw, AlertCircle, Search, Plus, TrendingUp, Printer } from "lucide-react";
@@ -25,6 +25,7 @@ function EstoqueRunner() {
   const [itemAtual, setItemAtual] = useState(null);
   const [novoSaldo, setNovoSaldo] = useState("");
   const [minimoInput, setMinimoInput] = useState("");
+  const [maximoInput, setMaximoInput] = useState("");
   const [fatorRep, setFatorRep] = useState(PARAMS_PADRAO.fator_reposicao);
   useEffect(() => { if (unidadeAtiva && unidadeAtiva !== "todas") fetchParams(unidadeAtiva).then(r => setFatorRep(r.data.fator_reposicao)); }, [unidadeAtiva]);
   const [qtdEntrada, setQtdEntrada] = useState("");
@@ -111,15 +112,24 @@ function EstoqueRunner() {
     setItemAtual(item);
     setNovoSaldo(item.quantidade_atual === 0 ? "" : item.quantidade_atual);
     setMinimoInput(item.estoque_minimo ?? "");
+    setMaximoInput(item.estoque_maximo ?? "");
     setModalAjuste(true);
   };
 
   const handleSalvarAjuste = async () => {
     if(novoSaldo === "") return alert("Digite o saldo atual");
+    if (minimoInput !== "" && maximoInput !== "" && Number(maximoInput) < Number(minimoInput)) {
+      return alert("O estoque máximo não pode ser menor que o mínimo.");
+    }
     await ajustarEstoque(unidadeAtiva, itemAtual.insumo_id, Number(novoSaldo));
     // Estoque mínimo (opcional): abaixo dele o item entra na lista de compras
     if (String(minimoInput) !== String(itemAtual.estoque_minimo ?? "")) {
       const { error } = await atualizarMinimoInsumo(itemAtual.insumo_id, minimoInput);
+      if (error) alert(error);
+    }
+    // Estoque máximo (opcional): acima dele avisa que está sobrando
+    if (String(maximoInput) !== String(itemAtual.estoque_maximo ?? "")) {
+      const { error } = await atualizarMaximoInsumo(itemAtual.insumo_id, maximoInput);
       if (error) alert(error);
     }
     setModalAjuste(false);
@@ -263,15 +273,18 @@ function EstoqueRunner() {
                {!loading && filtrados.map((ins, idx) => {
                  const zerado = ins.quantidade_atual <= 0;
                  const min = Number(ins.estoque_minimo) || 0;
+                 const max = Number(ins.estoque_maximo) || 0;
                  // Com mínimo definido, o alerta segue o mínimo; sem, mantém o padrão (<5)
                  const critico = !zerado && (min > 0 ? ins.quantidade_atual < min : ins.quantidade_atual < 5);
+                 // Acima do máximo definido: está sobrando estoque
+                 const acima = !zerado && !critico && max > 0 && ins.quantidade_atual > max;
                  const dept = ins.departamento?.toLowerCase();
                  const deptColor = dept === 'bar' ? 'bg-purple-100 text-purple-700' : 'bg-amber-100 text-amber-700';
                  return (
                    <div key={ins.insumo_id} className={`px-6 py-4 grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 items-center min-w-[720px] group transition-all duration-150 ${zerado ? 'bg-red-50/40 hover:bg-red-50' : 'hover:bg-emerald-50/40'}`}>
                      {/* Nome + Dept */}
                      <div className="flex items-center gap-3 min-w-0">
-                       <div className={`w-1 h-10 rounded-full shrink-0 ${zerado ? 'bg-red-400' : critico ? 'bg-amber-400' : 'bg-emerald-400'}`} />
+                       <div className={`w-1 h-10 rounded-full shrink-0 ${zerado ? 'bg-red-400' : critico ? 'bg-amber-400' : acima ? 'bg-sky-400' : 'bg-emerald-400'}`} />
                        <div className="min-w-0">
                          <p className="font-bold text-slate-800 text-[15px] leading-tight truncate">{ins.nome}</p>
                          <span className={`inline-block text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mt-1 ${deptColor}`}>{ins.departamento}</span>
@@ -287,12 +300,13 @@ function EstoqueRunner() {
                      </div>
                      {/* Saldo */}
                      <div className="w-32 flex flex-col items-center">
-                       <span className={`font-black text-2xl leading-none ${zerado ? 'text-red-500' : critico ? 'text-amber-500' : 'text-emerald-600'}`}>
+                       <span className={`font-black text-2xl leading-none ${zerado ? 'text-red-500' : critico ? 'text-amber-500' : acima ? 'text-sky-600' : 'text-emerald-600'}`}>
                          {Number(ins.quantidade_atual).toFixed(2)}
                        </span>
-                       {zerado && <span className="text-[9px] font-black uppercase tracking-widest text-red-400 mt-1">● Zerado</span>}
-                       {critico && <span className="text-[9px] font-black uppercase tracking-widest text-amber-500 mt-1">⚠ {min > 0 ? `Abaixo do mín (${min})` : "Crítico"}</span>}
-                       {!zerado && !critico && <span className="text-[9px] font-black uppercase tracking-widest text-emerald-400 mt-1">✓ Normal</span>}
+                       {zerado && <span className="text-[9px] font-black uppercase tracking-widest text-red-400 mt-1">Zerado</span>}
+                       {critico && <span className="text-[9px] font-black uppercase tracking-widest text-amber-500 mt-1">{min > 0 ? `Abaixo do mín (${min})` : "Crítico"}</span>}
+                       {acima && <span className="text-[9px] font-black uppercase tracking-widest text-sky-500 mt-1">Acima do máx ({max})</span>}
+                       {!zerado && !critico && !acima && <span className="text-[9px] font-black uppercase tracking-widest text-emerald-400 mt-1">Normal</span>}
                      </div>
                      {/* Ação */}
                      <div className="w-48 flex items-center justify-end gap-2">
@@ -342,17 +356,31 @@ function EstoqueRunner() {
                      </div>
                   </div>
 
-                  <div>
-                     <label className="text-xs font-bold text-amber-600 uppercase tracking-widest block mb-2">Estoque mínimo (opcional)</label>
-                     <div className="relative">
-                        <input
-                           type="number" step="0.001" min="0" placeholder="Ex: 5"
-                           value={minimoInput} onChange={e=>setMinimoInput(e.target.value)}
-                           className="w-full p-4 bg-amber-50 border-2 border-amber-200 rounded-2xl font-black text-amber-800 outline-none focus:border-amber-500"
-                        />
-                        <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-amber-500">{itemAtual.unidade_medida}</span>
+                  <div className="grid grid-cols-2 gap-3">
+                     <div>
+                        <label className="text-xs font-bold text-amber-600 uppercase tracking-widest block mb-2">Mínimo (avisa)</label>
+                        <div className="relative">
+                           <input
+                              type="number" step="0.001" min="0" placeholder="Ex: 5"
+                              value={minimoInput} onChange={e=>setMinimoInput(e.target.value)}
+                              className="w-full p-4 bg-amber-50 border-2 border-amber-200 rounded-2xl font-black text-amber-800 outline-none focus:border-amber-500"
+                           />
+                           <span className="absolute right-4 top-1/2 -translate-y-1/2 font-black text-amber-500 text-sm">{itemAtual.unidade_medida}</span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 font-medium mt-1">Abaixo dele: alerta e entra na lista de Compras.</p>
                      </div>
-                     <p className="text-[10px] text-slate-400 font-medium mt-1">Abaixo desse valor o item entra sozinho na lista de Compras.</p>
+                     <div>
+                        <label className="text-xs font-bold text-sky-600 uppercase tracking-widest block mb-2">Máximo (opcional)</label>
+                        <div className="relative">
+                           <input
+                              type="number" step="0.001" min="0" placeholder="Ex: 50"
+                              value={maximoInput} onChange={e=>setMaximoInput(e.target.value)}
+                              className="w-full p-4 bg-sky-50 border-2 border-sky-200 rounded-2xl font-black text-sky-800 outline-none focus:border-sky-500"
+                           />
+                           <span className="absolute right-4 top-1/2 -translate-y-1/2 font-black text-sky-500 text-sm">{itemAtual.unidade_medida}</span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 font-medium mt-1">Acima dele: avisa que está sobrando.</p>
+                     </div>
                   </div>
                </div>
 

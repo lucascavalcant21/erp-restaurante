@@ -43,6 +43,17 @@ export async function atualizarMinimoInsumo(insumoId, estoque_minimo) {
   return { error: error?.message };
 }
 
+export async function atualizarMaximoInsumo(insumoId, estoque_maximo) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase.from("insumos")
+    .update({ estoque_maximo: estoque_maximo === "" || estoque_maximo === null ? null : Number(estoque_maximo) })
+    .eq("id", insumoId);
+  if (error && /estoque_maximo/.test(error.message || "")) {
+    return { error: "Rode o SQL que cria a coluna estoque_maximo (alter table insumos add column if not exists estoque_maximo numeric)." };
+  }
+  return { error: error?.message };
+}
+
 // Para ajustes manuais (Balanço, Compras)
 export async function ajustarEstoque(unidadeId, insumoId, novaQuantidade) {
   if (!isSupabaseReady()) return { error: "Offline" };

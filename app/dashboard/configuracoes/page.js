@@ -14,8 +14,9 @@ import {
   fetchParams, salvarParams, PARAMS_PADRAO,
   fetchValidadesEtiqueta, salvarValidadesEtiqueta,
 } from "../../lib/parametros";
-import { Lock, SlidersHorizontal, Download, Smartphone, Users, KeyRound } from "lucide-react";
+import { Lock, SlidersHorizontal, Download, Smartphone, Users, KeyRound, Briefcase, ShieldCheck } from "lucide-react";
 import { MODULOS_ACESSO, SETORES_ACESSO, listarAcessos, criarAcesso, removerAcesso } from "../../lib/acessos";
+import { fetchCargos, inserirCargo, atualizarCargo, removerCargo } from "../../lib/rh";
 
 // Instalar o app no aparelho (tablet/celular/PC). Usa o instalador nativo se o
 // navegador ofereceu; senão mostra o caminho manual de cada aparelho.
@@ -242,6 +243,71 @@ function CardValidadesEtiquetas({ unidadeAtiva }) {
 }
 
 // Senhas e PINs: PIN do gerente (ponto) + senhas de saída das estações
+// Funções / Cargos: criar, marcar quais são de supervisão (organograma) e excluir.
+function CardCargos({ unidadeAtiva }) {
+  const [lista, setLista] = useState([]);
+  const [nome, setNome] = useState("");
+  const [ehSup, setEhSup] = useState(false);
+  const [erro, setErro] = useState("");
+  const [salvando, setSalvando] = useState(false);
+
+  const carregar = () => { if (unidadeAtiva && unidadeAtiva !== "todas") fetchCargos(unidadeAtiva).then(r => setLista(r.data || [])); };
+  useEffect(() => { carregar(); /* eslint-disable-next-line */ }, [unidadeAtiva]);
+
+  const criar = async () => {
+    setErro("");
+    if (!nome.trim()) return setErro("Digite o nome da função.");
+    setSalvando(true);
+    const { error } = await inserirCargo({ nome: nome.trim(), eh_supervisor: ehSup }, unidadeAtiva);
+    setSalvando(false);
+    if (error) return setErro(/eh_supervisor/.test(error) ? "Rode o SQL da coluna eh_supervisor (te passei no chat)." : "Erro ao criar: " + error);
+    setNome(""); setEhSup(false); carregar();
+  };
+  const alternarSup = async (c) => { await atualizarCargo(c.id, { eh_supervisor: !c.eh_supervisor }); carregar(); };
+  const excluir = async (c) => { if (!confirm(`Excluir a função "${c.nome}"?`)) return; await removerCargo(c.id); setLista(p => p.filter(x => x.id !== c.id)); };
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-6">
+      <div className="bg-slate-50 border-b border-slate-100 p-4 flex items-center gap-2">
+        <Briefcase size={18} className="text-slate-500" />
+        <div>
+          <h2 className="font-bold text-slate-800">Funções / Cargos</h2>
+          <p className="text-[11px] text-slate-500 font-medium">Crie as funções e marque quais são de supervisão (aparecem como chefia no organograma).</p>
+        </div>
+      </div>
+      <div className="p-6 space-y-4">
+        {lista.length > 0 && (
+          <div className="space-y-2">
+            {lista.map(c => (
+              <div key={c.id} className="flex items-center justify-between gap-2 border border-slate-200 rounded-xl p-3">
+                <div className="min-w-0 flex items-center gap-2">
+                  <span className="font-bold text-slate-800 truncate">{c.nome}</span>
+                  {c.eh_supervisor && <span className="text-[9px] font-black uppercase tracking-widest text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 flex items-center gap-1"><ShieldCheck size={11} /> Supervisor</span>}
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button onClick={() => alternarSup(c)} className="text-[11px] font-bold px-3 h-9 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 whitespace-nowrap">{c.eh_supervisor ? "Tirar supervisão" : "Marcar supervisor"}</button>
+                  <button onClick={() => excluir(c)} title="Excluir" className="w-9 h-9 flex items-center justify-center rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100"><Trash2 size={15} /></button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-slate-100">
+          <input value={nome} onChange={e => setNome(e.target.value)} placeholder="Nova função (ex: Chef de Fila)"
+            className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500" />
+          <label className="flex items-center gap-2 text-sm font-bold text-slate-600 px-2 whitespace-nowrap cursor-pointer">
+            <input type="checkbox" checked={ehSup} onChange={e => setEhSup(e.target.checked)} style={{ accentColor: "#F59E0B" }} /> É supervisor
+          </label>
+          <button onClick={criar} disabled={salvando} className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold py-2.5 px-5 rounded-xl flex items-center justify-center gap-2 whitespace-nowrap">
+            {salvando ? "Criando..." : "Criar função"}
+          </button>
+        </div>
+        {erro && <p className="text-rose-600 text-sm font-bold">{erro}</p>}
+      </div>
+    </div>
+  );
+}
+
 // Unidades (lojas): trocar a ativa, criar novas e excluir.
 function CardUnidades() {
   const { unidades, unidadeAtiva, setUnidadeAtiva, recarregarUnidades } = useERP();
@@ -704,6 +770,9 @@ export default function ConfiguracoesPage() {
 
       {/* Categorias e dias padrão usados na geração de etiquetas */}
       <CardValidadesEtiquetas unidadeAtiva={unidadeAtiva} />
+
+      {/* Funções / Cargos + supervisor */}
+      <CardCargos unidadeAtiva={unidadeAtiva} />
 
       {/* Unidades (lojas): trocar, criar e excluir */}
       <CardUnidades />

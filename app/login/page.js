@@ -1,10 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, LogIn } from "lucide-react";
 import { fazerLogin, homeDoPapel, formatarParaEmailFantasma } from "../lib/auth";
-import { loginAcesso, salvarAcessoLocal, limparAcessoLocal } from "../lib/acessos";
+import { loginAcesso, salvarAcessoLocal, limparAcessoLocal, moduloDoAcesso } from "../lib/acessos";
+
+// Guarda/recupera as credenciais lembradas (só neste aparelho).
+function guardarCred(email, senha, lembrar) {
+  try {
+    if (lembrar) {
+      localStorage.setItem("erp_lembrar", "1");
+      localStorage.setItem("erp_cred", btoa(unescape(encodeURIComponent(JSON.stringify({ email, senha })))));
+    } else {
+      localStorage.setItem("erp_lembrar", "0");
+      localStorage.removeItem("erp_cred");
+    }
+  } catch (_) {}
+}
+function lerCred() {
+  try {
+    if (localStorage.getItem("erp_lembrar") !== "1") return null;
+    const raw = localStorage.getItem("erp_cred");
+    if (!raw) return null;
+    return JSON.parse(decodeURIComponent(escape(atob(raw))));
+  } catch (_) { return null; }
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -14,27 +35,47 @@ export default function LoginPage() {
   const [lembrar, setLembrar] = useState(true);
   const [erro, setErro] = useState("");
   const [loading, setLoading] = useState(false);
+  const autoTentou = useRef(false);
+
+  // Núcleo do login (usado no botão e no auto-login).
+  async function entrar(em, se, lembrarAgora) {
+    setLoading(true); setErro("");
+    // 1) Acesso por módulo (login criado pelo master em Configurações).
+    const acesso = await loginAcesso(em, se);
+    if (acesso) {
+      salvarAcessoLocal(acesso);
+      guardarCred(em, se, lembrarAgora);
+      const mod = moduloDoAcesso(acesso.modulo);
+      router.push(mod?.rota || "/dashboard");
+      return true;
+    }
+    // 2) Login normal (master/papéis) via Supabase Auth.
+    limparAcessoLocal();
+    const r = await fazerLogin(formatarParaEmailFantasma(em), se);
+    if (!r.ok) { setErro(r.erro); setLoading(false); return false; }
+    guardarCred(em, se, lembrarAgora);
+    router.push(homeDoPapel(r.usuario.papel));
+    return true;
+  }
+
+  // Ao abrir: preenche e-mail/senha lembrados e já entra sozinho (entra rápido
+  // e evita ficar refazendo login quando a sessão cai).
+  useEffect(() => {
+    const c = lerCred();
+    if (!c) return;
+    if (c.email) setEmail(c.email);
+    if (c.senha) setSenha(c.senha);
+    if (c.email && c.senha && !autoTentou.current) {
+      autoTentou.current = true;
+      entrar(c.email, c.senha, true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleLogin(e) {
     e.preventDefault();
     if (!email || !senha) { setErro("Preencha o usuário e a senha."); return; }
-    setLoading(true); setErro("");
-    // 1) Tenta um acesso por módulo (login criado pelo master em Configurações).
-    //    Se casar, entra travado exclusivamente no módulo daquela unidade.
-    const acesso = await loginAcesso(email, senha);
-    if (acesso) {
-      salvarAcessoLocal(acesso);
-      try { localStorage.setItem("erp_lembrar", lembrar ? "1" : "0"); } catch (_) {}
-      const mod = (await import("../lib/acessos")).moduloDoAcesso(acesso.modulo);
-      router.push(mod?.rota || "/dashboard");
-      return;
-    }
-    // 2) Login normal (master/papéis) via Supabase Auth.
-    limparAcessoLocal();
-    const r = await fazerLogin(formatarParaEmailFantasma(email), senha);
-    if (!r.ok) { setErro(r.erro); setLoading(false); return; }
-    try { localStorage.setItem("erp_lembrar", lembrar ? "1" : "0"); } catch (_) {}
-    router.push(homeDoPapel(r.usuario.papel));
+    await entrar(email, senha, lembrar);
   }
 
   return (
@@ -75,7 +116,7 @@ export default function LoginPage() {
         <div className="flex items-center justify-between">
           <label className="flex items-center gap-2 text-[12px] font-medium cursor-pointer" style={{ color: "var(--muted)" }}>
             <input type="checkbox" checked={lembrar} onChange={(e) => setLembrar(e.target.checked)} style={{ accentColor: "var(--accent)" }} />
-            Lembrar de mim
+            Lembrar e entrar automático
           </label>
           <button type="button" onClick={() => router.push("/recuperar")} className="text-[12px] font-bold" style={{ color: "var(--accent-fg)" }}>
             Esqueci minha senha

@@ -477,7 +477,14 @@ export default function DashboardLayout({ children }) {
 
   async function sair() {
     sessaoRef.current = null;
-    try { localStorage.removeItem("hefisto_acesso"); } catch (_) {}
+    // Sair de propósito também esquece o login lembrado (senão o auto-login
+    // reconectaria na hora). O "lembrar" vale para quedas de sessão, não para
+    // quando a pessoa escolhe sair.
+    try {
+      localStorage.removeItem("hefisto_acesso");
+      localStorage.removeItem("erp_cred");
+      localStorage.setItem("erp_lembrar", "0");
+    } catch (_) {}
     await encerrarSessao();
     router.replace("/login");
   }

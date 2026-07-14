@@ -147,6 +147,7 @@ export async function lerSessao() {
           id: a.email, email: a.email, nome: a.nome || "Acesso",
           papel: "acesso", unidade: a.unidade_id,
           restrito: true, modulo: a.modulo, rota: a.rota,
+          rotas: Array.isArray(a.rotas) && a.rotas.length ? a.rotas : (a.rota ? [a.rota] : []),
         };
       }
     } catch (_) {}

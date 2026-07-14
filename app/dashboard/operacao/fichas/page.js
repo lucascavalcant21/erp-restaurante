@@ -853,6 +853,11 @@ function FichasRunner() {
          : (peso && peso.porcoes ? Number(peso.porcoes).toLocaleString('pt-BR') : '—');
       const custoPorcaoBase = unR === 'porcao' ? rende : (peso && peso.porcoes ? peso.porcoes : 0);
       const custoPorcao = custoPorcaoBase > 0 ? custoTotal / custoPorcaoBase : 0;
+      // Rendimento = só o peso em GRAMAS. Se estiver em kg (ou L), converte p/ g.
+      const pesoGramas = (peso && peso.pesoTotalG) ? peso.pesoTotalG
+         : (unR === 'kg' || unR === 'l') ? rende * 1000
+         : (unR === 'g' || unR === 'ml') ? rende
+         : 0;
 
       // Itens do preparo: Tipo | Nome | Medida | Quantidade total
       const rows = (f.fichas_ingredientes || []).map(fi => {
@@ -893,14 +898,11 @@ function FichasRunner() {
                   <div class="rotulo">Ficha Técnica</div>
                   <div class="titulo">${esc(f.nome_receita)}</div>
                   <div class="grid">
-                     <div class="campo"><b>Tipo:</b> ${esc(tipoFicha)}</div>
                      <div class="campo"><b>Categoria:</b> ${esc(f.categoria || deptLabel)}</div>
+                     <div class="campo"><b>Área:</b> ${esc(deptLabel)}</div>
                      <div class="campo"><b>Tempo de preparo:</b> ${f.tempo_preparo != null && f.tempo_preparo !== '' ? esc(String(f.tempo_preparo)) + ' min' : '—'}</div>
-                     <div class="campo"><b>Validade:</b> ${f.validade_dias != null && f.validade_dias !== '' ? esc(String(f.validade_dias)) + ' dia(s)' : '—'}</div>
                      <div class="campo"><b>Data de criação:</b> ${fmtDataBR(f.created_at)}</div>
                      <div class="campo"><b>Última atualização:</b> ${fmtDataBR(f.updated_at)}</div>
-                     <div class="campo"><b>Área:</b> ${esc(deptLabel)}</div>
-                     <div class="campo"><b>Custo total:</b> ${fmtBRL(custoTotal)}</div>
                      ${f.observacoes ? `<div class="campo full"><b>Observações:</b> ${esc(f.observacoes)}</div>` : ''}
                   </div>
                </div>
@@ -908,14 +910,8 @@ function FichasRunner() {
 
             <h2>Rendimento</h2>
             <table class="rende">
-               <thead><tr><th>Rendimento</th><th>Unidade</th><th>Peso do prato</th><th>Porções</th><th class="r">Custo / porção</th></tr></thead>
-               <tbody><tr>
-                  <td>${Number(rende).toLocaleString('pt-BR')}</td>
-                  <td>${esc(labelUnPrint)}</td>
-                  <td>${peso ? fmtG(peso.pesoTotalG) : '—'}</td>
-                  <td>${porcoesTxt}</td>
-                  <td class="r">${custoPorcao > 0 ? fmtBRL(custoPorcao) : '—'}</td>
-               </tr></tbody>
+               <thead><tr><th>Peso total</th></tr></thead>
+               <tbody><tr><td>${pesoGramas > 0 ? Math.round(pesoGramas).toLocaleString('pt-BR') + ' g' : '—'}</td></tr></tbody>
             </table>
 
             <h2>Itens do preparo</h2>

@@ -15,7 +15,7 @@ import {
   fetchValidadesEtiqueta, salvarValidadesEtiqueta,
 } from "../../lib/parametros";
 import { Lock, SlidersHorizontal, Download, Smartphone, Users, KeyRound } from "lucide-react";
-import { MODULOS_ACESSO, listarAcessos, criarAcesso, removerAcesso } from "../../lib/acessos";
+import { MODULOS_ACESSO, SETORES_ACESSO, listarAcessos, criarAcesso, removerAcesso } from "../../lib/acessos";
 
 // Instalar o app no aparelho (tablet/celular/PC). Usa o instalador nativo se o
 // navegador ofereceu; senão mostra o caminho manual de cada aparelho.
@@ -342,7 +342,7 @@ function CardAcessos({ unidadeAtiva }) {
   };
   const excluir = async (a) => { if (!confirm(`Excluir o acesso de ${a.email}?`)) return; await removerAcesso(a.id); carregar(); };
   const nomeUnidade = (id) => unidades.find(u => u.id === id)?.nome || id;
-  const nomeModulo = (id) => MODULOS_ACESSO.find(m => m.id === id)?.label || id;
+  const nomeModulo = (id) => SETORES_ACESSO.find(s => s.id === id)?.label || MODULOS_ACESSO.find(m => m.id === id)?.label || id;
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-6">
@@ -364,9 +364,14 @@ function CardAcessos({ unidadeAtiva }) {
             <input value={form.senha} onChange={e => setForm({ ...form, senha: e.target.value })} placeholder="senha do acesso" className={inputCls + " mt-1"} />
           </div>
           <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Módulo liberado</label>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">O que liberar</label>
             <select value={form.modulo} onChange={e => setForm({ ...form, modulo: e.target.value })} className={inputCls + " mt-1"}>
-              {MODULOS_ACESSO.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+              <optgroup label="Setor inteiro">
+                {SETORES_ACESSO.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+              </optgroup>
+              <optgroup label="Só um módulo">
+                {MODULOS_ACESSO.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+              </optgroup>
             </select>
           </div>
           <div>

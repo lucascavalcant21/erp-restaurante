@@ -480,27 +480,6 @@ function EtiquetasRunner() {
             </Card>
 
             <Card>
-              {/* Tipo da etiqueta: produto aberto ou produto fechado sem validade visível */}
-              <div className="mb-4">
-                <p className="erp-label mb-2">Tipo de etiqueta</p>
-                <div className="flex gap-1.5">
-                  {[
-                    ["aberto", "Produto aberto", "manipulação + validade com hora"],
-                    ["fechado", "Produto fechado sem validade impressa", "data da etiqueta + validade"],
-                  ].map(([m, l, s]) => (
-                    <button key={m} onClick={() => setTipoEtiqueta(m)} className="flex-1 py-2.5 px-2 rounded-lg transition-all flex flex-col items-center gap-0.5"
-                      style={tipoEtiqueta === m ? { background: "var(--accent-strong)", color: "#fff" } : { background: "var(--panel)", color: "var(--muted)", border: "1px solid var(--line)" }}>
-                      <span className="text-[12px] font-black">{l}</span>
-                      <span className="text-[9px] font-medium opacity-80 leading-tight">{s}</span>
-                    </button>
-                  ))}
-                </div>
-                <p className="text-[10px] font-medium mt-1.5" style={{ color: "var(--dim)" }}>
-                  {tipoEtiqueta === "aberto"
-                    ? "Registra data e hora da abertura/manipulação e a validade."
-                    : "Para produto fechado sem validade impressa: mostra a data da etiqueta e a validade em destaque."}
-                </p>
-              </div>
               <div className="grid grid-cols-3 gap-3">
                 <Field label="Peso do Produto"><NumberInput value={form.quantidade} onChange={(e) => set("quantidade", e.target.value)} placeholder="0.00" /></Field>
                 <Field label="Unidade"><Select value={form.unidade} onChange={(e) => set("unidade", e.target.value)}>{UNIDADES.map((u) => <option key={u}>{u}</option>)}</Select></Field>
@@ -600,10 +579,12 @@ function EtiquetasRunner() {
               </a>
             </Card>
 
-            <div className="grid sm:grid-cols-3 gap-3">
+            <div className="grid sm:grid-cols-2 gap-3">
               <Btn variant="ghost" disabled={salvando} onClick={() => salvar("")}><Save size={16} /> {salvando ? "Salvando..." : "Salvar"}</Btn>
-              <Btn variant="ghost" disabled={salvando} onClick={() => salvar("navegador")}><Printer size={16} /> Impressão comum</Btn>
-              <Btn variant="primary" disabled={salvando || impressoraStatus !== "conectada"} onClick={() => salvar("tp20")}><Printer size={16} /> {salvando ? "Aguarde..." : "Imprimir na TP20"}</Btn>
+              {/* Um único botão Imprimir: usa a TP20 se estiver conectada; senão, impressão comum */}
+              <Btn variant="primary" disabled={salvando} onClick={() => salvar(impressoraStatus === "conectada" ? "tp20" : "navegador")}>
+                <Printer size={16} /> {salvando ? "Aguarde..." : "Imprimir"}
+              </Btn>
             </div>
           </div>
 

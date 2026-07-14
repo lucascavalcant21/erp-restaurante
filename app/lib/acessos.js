@@ -20,8 +20,31 @@ export const MODULOS_ACESSO = [
   { id: "orcamento", label: "Orçamento de Eventos", rota: "/dashboard/operacao/orcamento" },
 ];
 
+// Setores inteiros: liberam VÁRIAS telas daquele setor de uma vez.
+export const SETORES_ACESSO = [
+  { id: "setor_salao", label: "Salão (setor inteiro)", home: "/dashboard/operacao/rotina?dept=salao",
+    rotas: ["/dashboard/area", "/dashboard/operacao/rotina", "/dashboard/salao/treinamento", "/dashboard/operacao/observacoes"] },
+  { id: "setor_cozinha", label: "Cozinha (setor inteiro)", home: "/dashboard/operacao/produtos",
+    rotas: ["/dashboard/area", "/dashboard/operacao/produtos", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem", "/dashboard/operacao/ingredientes", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/controles", "/dashboard/operacao/rotina", "/dashboard/operacao/orcamento"] },
+  { id: "setor_bar", label: "Bar (setor inteiro)", home: "/dashboard/operacao/drinks",
+    rotas: ["/dashboard/area", "/dashboard/operacao/drinks", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem", "/dashboard/operacao/ingredientes", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/rotina", "/dashboard/operacao/orcamento"] },
+  { id: "setor_rh", label: "Equipe & RH (setor inteiro)", home: "/dashboard/rh",
+    rotas: ["/dashboard/rh"] },
+  { id: "setor_financeiro", label: "Financeiro (setor inteiro)", home: "/dashboard/financeiro",
+    rotas: ["/dashboard/financeiro", "/dashboard/gestao/fiscal"] },
+];
+
 export function moduloDoAcesso(id) {
   return MODULOS_ACESSO.find((m) => m.id === id) || null;
+}
+
+// Resolve um id de acesso (setor OU submódulo) para onde ele entra e o que pode ver.
+export function resolverAcesso(id) {
+  const setor = SETORES_ACESSO.find((s) => s.id === id);
+  if (setor) return { home: setor.home, rotas: setor.rotas, label: setor.label };
+  const mod = MODULOS_ACESSO.find((m) => m.id === id);
+  if (mod) return { home: mod.rota, rotas: [mod.rota.split("?")[0]], label: mod.label };
+  return { home: "/dashboard", rotas: ["/dashboard"], label: "Acesso" };
 }
 
 // ── Operações no banco (tabela acessos_modulo) ─────────────────────────────────
@@ -63,10 +86,10 @@ const CHAVE_ACESSO = "hefisto_acesso";
 
 export function salvarAcessoLocal(acesso) {
   try {
-    const mod = moduloDoAcesso(acesso.modulo);
+    const r = resolverAcesso(acesso.modulo);
     localStorage.setItem(CHAVE_ACESSO, JSON.stringify({
       email: acesso.email, modulo: acesso.modulo, unidade_id: acesso.unidade_id,
-      rota: mod?.rota || "/dashboard", nome: mod?.label || "Acesso",
+      rota: r.home, rotas: r.rotas, nome: r.label,
     }));
   } catch (_) {}
 }

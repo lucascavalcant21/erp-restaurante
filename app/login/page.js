@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, LogIn } from "lucide-react";
 import { fazerLogin, homeDoPapel, formatarParaEmailFantasma } from "../lib/auth";
-import { loginAcesso, salvarAcessoLocal, limparAcessoLocal, moduloDoAcesso } from "../lib/acessos";
+import { loginAcesso, salvarAcessoLocal, limparAcessoLocal, resolverAcesso } from "../lib/acessos";
 
 // Guarda/recupera as credenciais lembradas (só neste aparelho).
 function guardarCred(email, senha, lembrar) {
@@ -45,8 +45,7 @@ export default function LoginPage() {
     if (acesso) {
       salvarAcessoLocal(acesso);
       guardarCred(em, se, lembrarAgora);
-      const mod = moduloDoAcesso(acesso.modulo);
-      router.push(mod?.rota || "/dashboard");
+      router.push(resolverAcesso(acesso.modulo).home || "/dashboard");
       return true;
     }
     // 2) Login normal (master/papéis) via Supabase Auth.

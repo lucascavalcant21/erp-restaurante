@@ -5,7 +5,7 @@ import { useERP } from "../context/ERPContext";
 import {
   Percent, Users, Wallet, ShoppingCart, PackageX, CalendarClock,
   Sparkles, Wind, AlertCircle, Clock, Megaphone, ChefHat, ArrowRight, CheckCircle2,
-  GripVertical, UserPlus, CalendarDays, ArrowRightLeft
+  GripVertical, UserPlus, CalendarDays, ArrowRightLeft, X
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { fmtBRL, fmtPct } from "../components/ui";
@@ -208,7 +208,35 @@ export default function DashboardGestao() {
   // Arrastar na escala: move o colaborador para uma área (mesma ou outra) na
   // posição do alvo. Grava a área e a nova ordem de todos da área.
   const [dragEscalaId, setDragEscalaId] = useState(null);
+  // Extras pontuais do dia (não cadastrados): guardados neste aparelho, por dia.
+  const chaveExtrasDia = () => `escala_extras_${unidadeAtiva}_${new Date().toISOString().slice(0, 10)}`;
+  const [extrasDia, setExtrasDia] = useState([]);
+  useEffect(() => {
+    try { setExtrasDia(JSON.parse(localStorage.getItem(chaveExtrasDia()) || "[]")); } catch { setExtrasDia([]); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unidadeAtiva]);
+  const persistirExtras = (lista) => { setExtrasDia(lista); try { localStorage.setItem(chaveExtrasDia(), JSON.stringify(lista)); } catch (_) {} };
+  const adicionarExtraDia = (nome, area) => {
+    if (!nome || !nome.trim()) return;
+    persistirExtras([...extrasDia, { id: "extra_" + Date.now(), nome: nome.trim(), cargo: "Extra do dia", _area: area || "Salão", _extra: true, _temp: true, dias_trabalho: "" }]);
+  };
+  const removerExtraDia = (id) => persistirExtras(extrasDia.filter(e => e.id !== id));
+
+  // Escala (áreas) já com os extras pontuais do dia mesclados
+  const escalaComExtras = useMemo(() => {
+    const base = m?.escalaPorArea || {};
+    const clone = {}; Object.keys(base).forEach(a => { clone[a] = [...base[a]]; });
+    extrasDia.forEach(e => { const a = e._area || "Outros"; (clone[a] = clone[a] || []).push(e); });
+    return clone;
+  }, [m, extrasDia]);
+
   const moverParaArea = async (area, colabId, alvoId) => {
+    // Extra pontual do dia: só muda de área (não vai ao banco).
+    if (String(colabId || "").startsWith("extra_")) {
+      persistirExtras(extrasDia.map(e => e.id === colabId ? { ...e, _area: area } : e));
+      setDragEscalaId(null);
+      return;
+    }
     if (!colabId || !m?.escalaPorArea) return;
     const atual = (m.escalaPorArea[area] || []).filter(c => c.id !== colabId);
     const ids = atual.map(c => c.id);
@@ -233,7 +261,7 @@ export default function DashboardGestao() {
   const montarEscalaDia = () => {
     const out = [];
     AREAS_ESCALA.forEach(a => {
-      const lista = m?.escalaPorArea?.[a] || [];
+      const lista = escalaComExtras?.[a] || [];
       if (!lista.length) return;
       out.push({
         area: a,
@@ -403,10 +431,12 @@ export default function DashboardGestao() {
 
       {/* Escala da semana — por área, com extras e ordenação por arraste */}
       <EscalaSemana
-        escalaPorArea={m.escalaPorArea}
+        escalaPorArea={escalaComExtras}
         dragId={dragEscalaId}
         setDragId={setDragEscalaId}
         onMover={moverParaArea}
+        onAddExtra={adicionarExtraDia}
+        onRemoveExtra={removerExtraDia}
         onVerTudo={() => router.push("/dashboard/rh")}
         onSalvarDia={salvarDia}
         onWhats={compartilharDia}
@@ -586,12 +616,16 @@ const CORES_AREA = {
 
 // Escala da semana: colaboradores agrupados por área, extras marcados,
 // arraste para reordenar cada um dentro da sua área.
-function EscalaSemana({ escalaPorArea, dragId, setDragId, onMover, onVerTudo, onSalvarDia, onWhats, onImprimir, onHistorico }) {
+function EscalaSemana({ escalaPorArea, dragId, setDragId, onMover, onAddExtra, onRemoveExtra, onVerTudo, onSalvarDia, onWhats, onImprimir, onHistorico }) {
   // Áreas fixas sempre visíveis (mesmo vazias) + "Outros" só quando tiver gente
   const areas = ["Salão", "Bar", "Cozinha", "Caixa", "Louça", "Folga"];
   if (escalaPorArea["Outros"]?.length) areas.push("Outros");
   // Celular/tablet: sem arrastar. Toca em "Mover" e escolhe a área de destino.
   const [mover, setMover] = useState(null); // { id, area } do colaborador sendo movido
+  const [addAberto, setAddAberto] = useState(false);
+  const [novoNome, setNovoNome] = useState("");
+  const [novaArea, setNovaArea] = useState("Salão");
+  const confirmarExtra = () => { if (novoNome.trim()) { onAddExtra?.(novoNome, novaArea); setNovoNome(""); setAddAberto(false); } };
   return (
     <div className="erp-card p-3 sm:p-6">
       <div className="flex items-center justify-between gap-2 flex-wrap mb-4 sm:mb-5">
@@ -599,6 +633,9 @@ function EscalaSemana({ escalaPorArea, dragId, setDragId, onMover, onVerTudo, on
           <CalendarDays size={20} style={{ color: "#7C3AED" }} /> Escala da Semana
         </h3>
         <div className="flex items-center gap-2 flex-wrap">
+          <button onClick={() => setAddAberto(v => !v)} className="text-xs font-black px-3 py-2 rounded-lg transition-colors" style={{ background: "#7C3AED", color: "#fff" }}>
+            + Extra do dia
+          </button>
           <button onClick={onSalvarDia} className="text-xs font-bold px-3 py-2 rounded-lg transition-colors" style={{ background: "var(--accent-soft)", color: "var(--accent-strong)" }}>
             Salvar escala do dia
           </button>
@@ -616,6 +653,19 @@ function EscalaSemana({ escalaPorArea, dragId, setDragId, onMover, onVerTudo, on
           </button>
         </div>
       </div>
+
+      {/* Adicionar um extra pontual (só para hoje, sem cadastrar) */}
+      {addAberto && (
+        <div className="flex flex-wrap items-center gap-2 mb-4 p-3 rounded-2xl" style={{ background: "var(--elevated)" }}>
+          <input value={novoNome} onChange={e => setNovoNome(e.target.value)} onKeyDown={e => { if (e.key === "Enter") confirmarExtra(); }} placeholder="Nome do extra de hoje"
+            className="flex-1 min-w-[140px] px-3 py-2 rounded-lg text-sm font-bold outline-none" style={{ background: "var(--card)", color: "var(--fg)", border: "1px solid var(--line)" }} autoFocus />
+          <select value={novaArea} onChange={e => setNovaArea(e.target.value)} className="px-3 py-2 rounded-lg text-sm font-bold outline-none" style={{ background: "var(--card)", color: "var(--fg)", border: "1px solid var(--line)" }}>
+            {["Salão", "Bar", "Cozinha", "Caixa", "Louça", "Folga"].map(a => <option key={a} value={a}>{a}</option>)}
+          </select>
+          <button onClick={confirmarExtra} className="px-4 py-2 rounded-lg text-sm font-black text-white" style={{ background: "#7C3AED" }}>Adicionar</button>
+          <button onClick={() => setAddAberto(false)} className="px-3 py-2 rounded-lg text-sm font-bold" style={{ color: "var(--muted)" }}>Cancelar</button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {areas.map(area => {
@@ -678,6 +728,14 @@ function EscalaSemana({ escalaPorArea, dragId, setDragId, onMover, onVerTudo, on
                       style={{ background: "var(--card)", color: mover?.id === c.id ? cor : "var(--muted)", border: "1px solid var(--line)" }}>
                       <ArrowRightLeft size={14} />
                     </button>
+                    {/* Extra pontual do dia: pode remover */}
+                    {c._temp && (
+                      <button type="button" onClick={() => onRemoveExtra?.(c.id)} title="Remover extra do dia"
+                        className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg"
+                        style={{ background: "var(--card)", color: "#DC2626", border: "1px solid var(--line)" }}>
+                        <X size={14} />
+                      </button>
+                    )}
                   </div>
                   {mover?.id === c.id && (
                     <div className="mt-1 p-2 rounded-xl border flex flex-wrap gap-1.5 relative z-10" style={{ borderColor: cor + "55", background: "var(--card)" }}>

@@ -1,10 +1,36 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchParams, salvarParams, PARAMS_PADRAO } from "../../../lib/parametros";
+import { fetchFichas } from "../../../lib/operacao";
+import { fetchProdutos } from "../../../lib/vendas";
 import { PageHeader, PageBody, Card, fmtBRL } from "../../../components/ui";
 import { PieChart, Save, TrendingUp, AlertTriangle } from "lucide-react";
+
+// Custo real de produzir 1 porção da ficha (resolve sub-receitas em cascata)
+function custoFicha(f, todas, guard = new Set()) {
+  if (!f || guard.has(f.id)) return 0;
+  guard.add(f.id);
+  let total = 0;
+  (f.fichas_ingredientes || []).forEach(fi => {
+    if (fi.insumos) total += (fi.insumos.custo_unitario || 0) * (fi.quantidade || 0);
+    else if (fi.subficha_id) {
+      const base = todas.find(x => x.id === fi.subficha_id);
+      const rend = Number(base?.rendimento_porcoes) || 1;
+      total += (base ? custoFicha(base, todas, guard) / rend : 0) * (fi.quantidade || 0);
+    }
+  });
+  return total;
+}
+function porcoesDaFicha(f) {
+  const rend = Number(f?.rendimento_porcoes) || 1;
+  const un = String(f?.rendimento_unidade || "porcao").toLowerCase();
+  if (un === "porcao" || un === "un") return rend;
+  const pesoPorcao = Number(f?.peso_porcao_g) || 0;
+  const pesoTotalG = (un === "kg" || un === "l") ? rend * 1000 : rend;
+  return pesoPorcao > 0 ? pesoTotalG / pesoPorcao : rend;
+}
 
 // Cada fatia da "pizza" do prato
 const COR = {
@@ -19,10 +45,35 @@ export default function PontoEquilibrioPage() {
   const [precoPrato, setPrecoPrato] = useState("40");
   const [salvando, setSalvando] = useState(false);
   const [salvou, setSalvou] = useState(false);
+  const [fichas, setFichas] = useState([]);
+  const [produtos, setProdutos] = useState([]);
+  const [pratoSel, setPratoSel] = useState("");   // id do prato escolhido (CMV real) ou "" = manual
 
   useEffect(() => {
-    if (unidadeAtiva && unidadeAtiva !== "todas") fetchParams(unidadeAtiva).then(r => setP({ ...PARAMS_PADRAO, ...r.data }));
+    if (unidadeAtiva && unidadeAtiva !== "todas") {
+      fetchParams(unidadeAtiva).then(r => setP({ ...PARAMS_PADRAO, ...r.data }));
+      Promise.all([fetchFichas(unidadeAtiva), fetchProdutos(unidadeAtiva)]).then(([rf, rp]) => {
+        setFichas(rf.data || []); setProdutos(rp.data || []);
+      });
+    }
   }, [unidadeAtiva]);
+
+  // Pratos do cardápio com PREÇO e CUSTO REAL de ingredientes (via fichas)
+  const pratos = useMemo(() => {
+    const porId = {}; fichas.forEach(f => { porId[f.id] = f; });
+    return (produtos || [])
+      .filter(pr => (Number(pr.preco_venda) || 0) > 0)
+      .map(pr => {
+        const comps = Array.isArray(pr.composicao) && pr.composicao.length ? pr.composicao : (pr.ficha_id ? [{ ficha_id: pr.ficha_id, qtd: 1 }] : []);
+        let custo = 0, temFicha = false;
+        comps.forEach(c => { const fi = porId[c.ficha_id]; if (!fi) return; temFicha = true; custo += (custoFicha(fi, fichas) / porcoesDaFicha(fi)) * (Number(c.qtd) || 1); });
+        return temFicha ? { id: pr.id, nome: pr.nome_produto, preco: Number(pr.preco_venda) || 0, custo } : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  }, [produtos, fichas]);
+
+  const pratoAtual = pratos.find(x => x.id === pratoSel) || null;
 
   const num = (v) => Number(v) || 0;
   const set = (k, v) => setP(o => ({ ...o, [k]: v === "" ? "" : Number(v) }));
@@ -49,9 +100,12 @@ export default function PontoEquilibrioPage() {
 
   // Custo fixo rateado por prato (para a pizza)
   const porPrato = (custoMes) => (num(custoMes) / dias) / pratosDia;
-  const P = num(precoPrato);
+  // Se escolheu um prato do cardápio, usa PREÇO e CUSTO REAL de ingredientes;
+  // senão, usa o preço digitado e o CMV % alvo como estimativa.
+  const P = pratoAtual ? pratoAtual.preco : num(precoPrato);
+  const ingredientes = pratoAtual ? pratoAtual.custo : (P * num(p.meta_cmv) / 100);
   const fatias = [
-    { id: "ingredientes", nome: "Ingredientes (CMV)", valor: P * num(p.meta_cmv) / 100 },
+    { id: "ingredientes", nome: "Ingredientes (CMV)", valor: ingredientes },
     { id: "imposto", nome: "Imposto", valor: P * num(p.imposto_pct) / 100 },
     { id: "embalagem", nome: "Embalagem", valor: P * num(p.embalagem_pct) / 100 },
     { id: "aluguel", nome: "Aluguel", valor: porPrato(p.custo_aluguel_mes) },
@@ -152,14 +206,24 @@ export default function PontoEquilibrioPage() {
 
             {/* Pizza do prato */}
             <Card>
-              <div className="flex items-center justify-between gap-2 mb-3">
-                <h3 className="font-black text-slate-800 flex items-center gap-2"><PieChart size={18} className="text-slate-500" /> A pizza de um prato</h3>
-                <div className="relative">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">R$</span>
-                  <input type="number" min="0" step="0.5" value={precoPrato} onChange={e => setPrecoPrato(e.target.value)}
-                    className="w-24 pl-8 pr-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg font-black text-slate-700 outline-none focus:border-emerald-500" />
-                </div>
+              <h3 className="font-black text-slate-800 flex items-center gap-2 mb-3"><PieChart size={18} className="text-slate-500" /> A pizza de um prato</h3>
+              <div className="flex flex-wrap items-center gap-2 mb-4">
+                <select value={pratoSel} onChange={e => setPratoSel(e.target.value)}
+                  className="flex-1 min-w-[160px] py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-700 text-sm outline-none focus:border-emerald-500">
+                  <option value="">Preço manual</option>
+                  {pratos.map(pr => <option key={pr.id} value={pr.id}>{pr.nome} — {fmtBRL(pr.preco)}</option>)}
+                </select>
+                {!pratoAtual && (
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">R$</span>
+                    <input type="number" min="0" step="0.5" value={precoPrato} onChange={e => setPrecoPrato(e.target.value)}
+                      className="w-24 pl-8 pr-2 py-2 bg-slate-50 border border-slate-200 rounded-lg font-black text-slate-700 outline-none focus:border-emerald-500" />
+                  </div>
+                )}
               </div>
+              {pratoAtual
+                ? <p className="text-[11px] text-emerald-600 font-bold mb-3 -mt-1">Ingredientes vindos da ficha técnica deste prato (CMV real).</p>
+                : <p className="text-[11px] text-slate-400 font-medium mb-3 -mt-1">Escolha um prato para usar o CMV real da ficha, ou digite um preço (usa o CMV % alvo).</p>}
               <div className="flex flex-col sm:flex-row items-center gap-5">
                 <div className="shrink-0 rounded-full" style={{ width: 150, height: 150, background: `conic-gradient(${gradiente})` }}>
                   <div className="w-full h-full flex items-center justify-center">

@@ -333,7 +333,7 @@ export default function InventarioPage() {
   if (!unidadeAtiva || unidadeAtiva === "todas") {
     return (
       <div className="min-h-screen">
-        <PageHeader title="Inventário da Unidade" subtitle="Patrimônio físico da loja" icon={Warehouse} />
+        <PageHeader title="Bens e Equipamentos" subtitle="Patrimônio físico da loja" icon={Warehouse} />
         <PageBody>
           <EmptyState icon={Warehouse} title="Selecione uma unidade" hint="Escolha a unidade no topo para ver o inventário dela." />
         </PageBody>
@@ -343,7 +343,7 @@ export default function InventarioPage() {
 
   return (
     <div className="min-h-screen pb-24">
-      <PageHeader title="Inventário da Unidade" subtitle={`Tudo que ${unidadeInfo?.nome || "a loja"} possui — com histórico de entradas, quebras e perdas`} icon={Warehouse}
+      <PageHeader title="Bens e Equipamentos" subtitle={`Tudo que ${unidadeInfo?.nome || "a loja"} possui — com histórico de entradas, quebras e perdas`} icon={Warehouse}
         onAction={abrirNovo} actionLabel="Novo Item">
         <Btn variant="ghost" className="!h-9 text-xs" onClick={abrirModalIA}>
           <Sparkles size={14} /> Importar com IA

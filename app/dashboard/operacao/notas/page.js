@@ -307,7 +307,7 @@ export default function NotasFiscaisPage() {
   return (
     <div className="min-h-screen">
       <PageHeader 
-        title="Notas Fiscais & DANFEs" 
+        title="Notas Fiscais"
         subtitle={`Gestão Eletrônica de Documentos · ${unidadeInfo.nome}`} 
         icon={ReceiptText} 
         actionLabel="Escanear Nota"

@@ -88,7 +88,7 @@ export default function ConfiguracoesFiscaisPage() {
         <div>
           <h1 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">
             <FileText className="text-emerald-500" size={32} />
-            Configurações Fiscais
+            Dados Fiscais
           </h1>
           <p className="text-slate-500 mt-2">Dados obrigatórios para emissão de NFC-e e SAT</p>
         </div>

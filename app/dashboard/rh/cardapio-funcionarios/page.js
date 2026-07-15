@@ -145,7 +145,7 @@ export default function CardapioFuncionarios() {
               <Utensils size={32} />
            </div>
            <div>
-              <h1 className="text-3xl sm:text-4xl font-black tracking-tighter text-slate-900">Cardápio da Equipe</h1>
+              <h1 className="text-3xl sm:text-4xl font-black tracking-tighter text-slate-900">Refeições da Equipe</h1>
               <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Refeitório de Funcionários</p>
            </div>
          </div>

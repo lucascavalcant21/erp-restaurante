@@ -728,7 +728,7 @@ function FichasRunner() {
           }, unidadeAtiva);
         }
 
-        alert(`"${nome}" salvo!\n\nJá foi enviado para:\n· Cardápio — defina o preço de venda lá\n· Guia de Montagem — crie o passo a passo lá`);
+        alert(`"${nome}" salvo!\n\nJá foi enviado para:\n· Produtos e Preços — defina o preço de venda lá\n· Montagem — crie o passo a passo lá`);
       } catch { /* integrações não bloqueiam o salvar da ficha */ }
     }
   };
@@ -974,7 +974,7 @@ function FichasRunner() {
                  <LayoutList size={28} />
               </div>
               <div>
-                  <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-slate-900">Fichas Técnicas</h1>
+                  <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-slate-900">{deptUrl === "bar" ? "Receitas de Drinks" : "Receitas"}</h1>
                  <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Receituário e Custos - {deptUrl}</p>
               </div>
             </div>
@@ -986,7 +986,7 @@ function FichasRunner() {
                   <Sparkles size={18} /> Montar com IA
                </button>
                <button onClick={abrirNova} className="flex items-center gap-2 text-white px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap transition-colors shadow-lg bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20">
-                  <Plus size={18} /> Nova Ficha
+                  <Plus size={18} /> Nova Receita
                </button>
             </div>
          </div>
@@ -1010,8 +1010,8 @@ function FichasRunner() {
          {tipoFiltro === "Pratos" && (
             <p className="text-[11px] font-bold text-slate-400 mb-4 px-1">
               {deptUrl === "bar"
-                ? "Monte o drink aqui: adicione os insumos e os pré-preparos (xaropes, mixes, infusões) como componentes. O Cardápio só precifica em cima do que você montar."
-                : "Monte o prato aqui: adicione insumos e os pré-preparos como componentes. O Cardápio só precifica em cima do que você montar."}
+                ? "Monte o drink aqui: adicione os insumos e os pré-preparos (xaropes, mixes, infusões) como componentes. Produtos e Preços só faz a precificação."
+                : "Monte o prato aqui: adicione insumos e os pré-preparos como componentes. Produtos e Preços só faz a precificação."}
             </p>
          )}
          {tipoFiltro === "Pré-preparos" && (
@@ -1710,7 +1710,7 @@ function FichasRunner() {
                   <div className="flex items-center gap-3">
                      <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center"><Sparkles size={22}/></div>
                      <div>
-                         <h2 className="font-black text-xl sm:text-2xl text-slate-800">Montar Ficha Técnica com IA</h2>
+                         <h2 className="font-black text-xl sm:text-2xl text-slate-800">Montar Receita com IA</h2>
                         <p className="text-xs font-bold text-slate-500 mt-0.5">Cole a receita ou envie uma foto — a IA monta nome, ingredientes e modo de preparo</p>
                      </div>
                   </div>

@@ -259,13 +259,13 @@ export default function GestaoRhPage() {
 
   return (
     <div className="min-h-screen">
-      <PageHeader title="RH" subtitle={`Equipe · ${unidadeInfo.nome}`} icon={Users}
-        onAction={podeEditar ? () => { setEditar(null); setModal(true); } : undefined} actionLabel={podeEditar ? "Novo" : undefined} />
+      <PageHeader title="Painel da Equipe" subtitle={`Funcionários · ${unidadeInfo.nome}`} icon={Users}
+        onAction={podeEditar ? () => { setEditar(null); setModal(true); } : undefined} actionLabel={podeEditar ? "Novo funcionário" : undefined} />
       <PageBody>
-        <Toast show={salvou}>Colaborador salvo!</Toast>
+        <Toast show={salvou}>Funcionário salvo!</Toast>
 
         <KpiGrid>
-          <Kpi icon={Users} label="Colaboradores" value={resumo.total} tint="var(--accent-fg)" />
+          <Kpi icon={Users} label="Funcionários" value={resumo.total} tint="var(--accent-fg)" />
           <Kpi icon={UserCheck} label="Ativos" value={resumo.ativos} tint="#10B981" />
         </KpiGrid>
         <Card className="flex items-center justify-between">
@@ -274,16 +274,16 @@ export default function GestaoRhPage() {
         </Card>
 
         <div className="space-y-3">
-          <SearchBar value={busca} onChange={setBusca} placeholder="Buscar colaborador..." />
+          <SearchBar value={busca} onChange={setBusca} placeholder="Buscar funcionário..." />
           <Chips options={chipsOpcoes} value={cargoFiltro} onChange={setCargoFiltro} />
         </div>
 
         <div>
-          <SectionLabel>{filtrados.length} colaborador{filtrados.length !== 1 ? "es" : ""}</SectionLabel>
+          <SectionLabel>{filtrados.length} funcionário{filtrados.length !== 1 ? "s" : ""}</SectionLabel>
           {loading ? (
             <EmptyState icon={Users} title="Carregando..." />
           ) : filtrados.length === 0 ? (
-            <EmptyState icon={Users} title={busca || cargoFiltro !== "Todos" ? "Nenhum colaborador encontrado" : "Nenhum colaborador cadastrado"}
+            <EmptyState icon={Users} title={busca || cargoFiltro !== "Todos" ? "Nenhum funcionário encontrado" : "Nenhum funcionário cadastrado"}
               hint={busca || cargoFiltro !== "Todos" ? "Ajuste a busca ou o filtro" : "Toque em Novo para cadastrar a equipe"} />
           ) : (
             <div className="space-y-2">
@@ -327,7 +327,7 @@ export default function GestaoRhPage() {
         </div>
       </PageBody>
 
-      <Modal open={modal} onClose={() => { setModal(false); setEditar(null); }} title={editar ? "Editar colaborador" : "Novo colaborador"}>
+      <Modal open={modal} onClose={() => { setModal(false); setEditar(null); }} title={editar ? "Editar funcionário" : "Novo funcionário"}>
         <FormFunc inicial={editar} onSalvar={salvar} onCancelar={() => { setModal(false); setEditar(null); }} 
           listaFuncionarios={lista} cargos={cargos} turnos={turnos} isAdmin={isAdmin} unidades={unidades} unidadeAtiva={unidadeAtiva} />
       </Modal>

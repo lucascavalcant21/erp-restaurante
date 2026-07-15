@@ -94,7 +94,7 @@ function CardParametros({ unidadeAtiva }) {
 
   if (!p) return null;
   const GRUPOS = [
-    ["Ponto Eletrônico", [
+    ["Ponto", [
       ["tolerancia_entrada", "Liberar entrada (min antes do turno)", "A batida libera X minutos antes do horário"],
       ["tolerancia_marcacao", "Tolerância entrada/saída (min)", "Até X min grava o horário do turno (Súmula 366)"],
       ["tolerancia_retorno", "Tolerância volta do intervalo (min)", "Até X min depois grava a hora prevista"],
@@ -265,9 +265,9 @@ function CardSenhas({ unidadeAtiva }) {
   if (!pins) return null;
   const CAMPOS_PIN = [
     ["pin_gerente", "PIN do Gerente (ponto)", "Libera entrada atrasada e destrava o Modo Tablet"],
-    ["senha_cozinha", "Senha da Estação Cozinha", "Sair da estação Cozinha"],
-    ["senha_bar", "Senha da Estação Bar", "Sair da estação Bar"],
-    ["senha_salao", "Senha da Estação Salão", "Sair da estação Salão"],
+    ["senha_cozinha", "Senha da Cozinha", "Sair da Cozinha"],
+    ["senha_bar", "Senha do Bar", "Sair do Bar"],
+    ["senha_salao", "Senha do Salão", "Sair do Salão"],
   ];
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-6">
@@ -412,7 +412,7 @@ export default function ConfiguracoesPage() {
           <Settings size={24} />
         </div>
         <div>
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight">Configurações da Loja</h1>
+          <h1 className="text-2xl font-black text-slate-800 tracking-tight">Configurações</h1>
           <p className="text-sm text-slate-500 font-medium">Dados cadastrais, fiscais e físicos da unidade — usados nos documentos impressos (atas, orçamentos, fichas).</p>
         </div>
       </div>

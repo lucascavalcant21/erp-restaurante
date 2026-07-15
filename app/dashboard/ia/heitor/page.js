@@ -30,10 +30,10 @@ function gerarResposta(texto, erp) {
       : `Você está em dia — nenhuma notificação não lida. `;
   }
   if (t.includes("cmv") || t.includes("margem") || t.includes("lucro")) {
-    return `O CMV e a margem são calculados a partir dos preços e custos do **Cardápio** desta unidade. Cadastre/atualize os pratos e veja os números em Financeiro → CMV e Lucro.`;
+    return `O CMV e a margem são calculados a partir dos preços e custos de **Produtos e Preços** desta unidade. Cadastre ou atualize os pratos e veja os números em Financeiro → Custos (CMV).`;
   }
   if (t.includes("faturamento") || t.includes("receita") || t.includes("dre") || t.includes("caixa")) {
-    return `O faturamento vem dos lançamentos do **Fluxo de Caixa** (e do PDV, quando integrado). Registre entradas/saídas e o DRE é gerado automaticamente.`;
+    return `O faturamento vem dos lançamentos financeiros (e do PDV, quando integrado). Registre as entradas e saídas; o Resultado (DRE) é gerado automaticamente.`;
   }
   if (t.includes("prioridade") || t.includes("o que fazer") || t.includes("recomend") || t.includes("hoje")) {
     const linhas = [];
@@ -47,7 +47,7 @@ function gerarResposta(texto, erp) {
   if (t.includes("oi") || t.includes("olá") || t.includes("bom dia") || t.includes("boa")) {
     return `Olá! Sou a **Hefisto AI**, inteligência baseada nos dados da rede.${erp.criticos.length > 0 ? ` Atenção: ${erp.criticos.length} item(ns) em estoque crítico em ${erp.unidade}.` : ` Tudo tranquilo no estoque de ${erp.unidade}.`} Como posso ajudar?`;
   }
-  return `Posso te ajudar com base nos dados reais do ERP da unidade **${erp.unidade}**: estoque, notificações, CMV/margem (Cardápio) e faturamento (Fluxo de Caixa). Pergunte algo específico desses temas.`;
+  return `Posso te ajudar com base nos dados reais do ERP da unidade **${erp.unidade}**: estoque, notificações, custos e margens de Produtos e Preços, além das movimentações financeiras. Pergunte algo específico desses temas.`;
 }
 
 export default function HeitorPage() {

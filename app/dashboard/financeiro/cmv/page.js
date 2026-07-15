@@ -122,13 +122,13 @@ export default function CmvPage() {
 
   return (
     <div className="min-h-screen">
-      <PageHeader title="CMV" subtitle={`Custo da mercadoria vendida · ${unidadeInfo.nome}`} icon={Percent} />
+      <PageHeader title="Custos (CMV)" subtitle={`Custo da mercadoria vendida · ${unidadeInfo.nome}`} icon={Percent} />
       <PageBody>
         {loading ? (
           <EmptyState icon={Percent} title="Carregando..." />
         ) : linhas.length === 0 ? (
           <EmptyState icon={Percent} title="Sem dados de CMV"
-            hint="Cadastre produtos com preço de venda e vincule uma Ficha Técnica a eles para calcular o CMV." />
+            hint="Cadastre produtos com preço de venda e vincule uma receita para calcular o CMV." />
         ) : (
           <>
             <KpiGrid>

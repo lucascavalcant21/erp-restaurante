@@ -254,7 +254,7 @@ export default function ControlesCozinha() {
   if (!unidadeAtiva || unidadeAtiva === "todas") {
     return (
       <div className="min-h-screen">
-        <PageHeader title="Controles Operacionais" subtitle="Limpeza, Gás e Óleo" icon={CalendarClock} />
+        <PageHeader title="Limpeza, Gás e Óleo" subtitle="Controles operacionais" icon={CalendarClock} />
         <PageBody>
           <EmptyState icon={CalendarClock} title="Selecione uma unidade" hint="Para acessar os controles, selecione a unidade no menu lateral." />
         </PageBody>
@@ -265,7 +265,7 @@ export default function ControlesCozinha() {
   return (
     <div className="min-h-screen pb-24">
       <PageHeader 
-        title={`Controles da Cozinha: ${unidadeInfo?.nome}`} 
+        title="Limpeza, Gás e Óleo"
         subtitle="Monitore o uso e ciclo de vida de insumos de limpeza, gás e óleo." 
         icon={CalendarClock} 
       />

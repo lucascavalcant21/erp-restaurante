@@ -12,92 +12,92 @@ import {
 // NOVO MENU SIDEBAR (PDV e KDS REMOVIDOS)
 const SIDEBAR_MENU = [
   {
-    category: "Visão Geral",
+    category: "Início",
     icon: BarChart,
     items: [
-      { label: "Dashboard Principal", href: "/dashboard" }
+      { label: "Resumo da Loja", href: "/dashboard" }
     ]
   },
   {
-    category: "Operação Garçons",
+    category: "Salão",
     icon: Users,
     items: [
-      { label: "Estação Salão (tela cheia)", href: "/dashboard/area?dept=salao" },
+      { label: "Abrir Salão", href: "/dashboard/area?dept=salao" },
       { label: "Checklist", href: "/dashboard/operacao/rotina?dept=salao" },
       { label: "Treinamentos", href: "/dashboard/salao/treinamento" },
-      { label: "Observações Padrão", href: "/dashboard/operacao/observacoes" }
+      { label: "Observações dos Pedidos", href: "/dashboard/operacao/observacoes" }
     ]
   },
 
   {
-    category: "Operação Cozinha",
+    category: "Cozinha",
     icon: ChefHat,
     items: [
-      { label: "Estação Cozinha (tela cheia)", href: "/dashboard/area?dept=cozinha" },
-      { label: "Catálogo e Preços", href: "/dashboard/operacao/produtos" },
-      { label: "Fichas Técnicas", href: "/dashboard/operacao/fichas?dept=cozinha" },
-      { label: "Guia de Montagem", href: "/dashboard/operacao/montagem?dept=cozinha" },
-      { label: "Ingredientes e Insumos", href: "/dashboard/operacao/ingredientes?dept=cozinha" },
-      { label: "Controle de Estoque", href: "/dashboard/operacao/estoque?dept=cozinha" },
-      { label: "Lista de Compras", href: "/dashboard/operacao/compras?dept=cozinha" },
-      { label: "Notas de Entrada (NF)", href: "/dashboard/operacao/notas?dept=cozinha" },
-      { label: "Produção Diária", href: "/dashboard/operacao/producao?dept=cozinha" },
-      { label: "Validade e Etiquetas", href: "/dashboard/operacao/etiquetas?dept=cozinha" },
+      { label: "Abrir Cozinha", href: "/dashboard/area?dept=cozinha" },
+      { label: "Produtos e Preços", href: "/dashboard/operacao/produtos" },
+      { label: "Receitas", href: "/dashboard/operacao/fichas?dept=cozinha" },
+      { label: "Montagem de Pratos", href: "/dashboard/operacao/montagem?dept=cozinha" },
+      { label: "Ingredientes", href: "/dashboard/operacao/ingredientes?dept=cozinha" },
+      { label: "Estoque", href: "/dashboard/operacao/estoque?dept=cozinha" },
+      { label: "Compras", href: "/dashboard/operacao/compras?dept=cozinha" },
+      { label: "Notas Fiscais", href: "/dashboard/operacao/notas?dept=cozinha" },
+      { label: "Produção", href: "/dashboard/operacao/producao?dept=cozinha" },
+      { label: "Etiquetas e Validades", href: "/dashboard/operacao/etiquetas?dept=cozinha" },
       { label: "Limpeza, Gás e Óleo", href: "/dashboard/operacao/controles" },
       { label: "Checklist", href: "/dashboard/operacao/rotina?dept=cozinha" },
-      { label: "Orçamento de Eventos", href: "/dashboard/operacao/orcamento?dept=cozinha" }
+      { label: "Orçamentos de Eventos", href: "/dashboard/operacao/orcamento?dept=cozinha" }
     ]
   },
   {
-    category: "Operação Bar",
+    category: "Bar",
     icon: GlassWater,
     items: [
-      { label: "Estação Bar (tela cheia)", href: "/dashboard/area?dept=bar" },
-      { label: "Drinks e Coquetéis", href: "/dashboard/operacao/drinks" },
-      { label: "Fichas de Drinks", href: "/dashboard/operacao/fichas?dept=bar" },
-      { label: "Guia de Montagem", href: "/dashboard/operacao/montagem?dept=bar" },
-      { label: "Ingredientes Bar", href: "/dashboard/operacao/ingredientes?dept=bar" },
-      { label: "Estoque do Bar", href: "/dashboard/operacao/estoque?dept=bar" },
-      { label: "Lista de Compras", href: "/dashboard/operacao/compras?dept=bar" },
-      { label: "Notas de Entrada (NF)", href: "/dashboard/operacao/notas?dept=bar" },
-      { label: "Produção do Bar", href: "/dashboard/operacao/producao?dept=bar" },
-      { label: "Etiquetas do Bar", href: "/dashboard/operacao/etiquetas?dept=bar" },
+      { label: "Abrir Bar", href: "/dashboard/area?dept=bar" },
+      { label: "Drinks", href: "/dashboard/operacao/drinks" },
+      { label: "Receitas de Drinks", href: "/dashboard/operacao/fichas?dept=bar" },
+      { label: "Montagem de Drinks", href: "/dashboard/operacao/montagem?dept=bar" },
+      { label: "Ingredientes", href: "/dashboard/operacao/ingredientes?dept=bar" },
+      { label: "Estoque", href: "/dashboard/operacao/estoque?dept=bar" },
+      { label: "Compras", href: "/dashboard/operacao/compras?dept=bar" },
+      { label: "Notas Fiscais", href: "/dashboard/operacao/notas?dept=bar" },
+      { label: "Produção", href: "/dashboard/operacao/producao?dept=bar" },
+      { label: "Etiquetas e Validades", href: "/dashboard/operacao/etiquetas?dept=bar" },
       { label: "Checklist", href: "/dashboard/operacao/rotina?dept=bar" },
-      { label: "Orçamento de Eventos", href: "/dashboard/operacao/orcamento?dept=bar" }
+      { label: "Orçamentos de Eventos", href: "/dashboard/operacao/orcamento?dept=bar" }
     ]
   },
   {
-    category: "Financeiro & Contábil",
+    category: "Financeiro",
     icon: Wallet,
     items: [
-      { label: "Fluxo de Caixa", href: "/dashboard/financeiro" },
-      { label: "DRE Gerencial", href: "/dashboard/financeiro/dre" },
-      { label: "Análise de CMV", href: "/dashboard/financeiro/cmv" },
+      { label: "Contas e Despesas", href: "/dashboard/financeiro" },
+      { label: "Resultado (DRE)", href: "/dashboard/financeiro/dre" },
+      { label: "Custos (CMV)", href: "/dashboard/financeiro/cmv" },
       { label: "Dados Fiscais", href: "/dashboard/gestao/fiscal" }
     ]
   },
   {
-    category: "Recursos Humanos",
+    category: "Equipe",
     icon: Users,
     items: [
-      { label: "Gestão de RH", href: "/dashboard/rh" },
-      { label: "Atas de Reunião", href: "/dashboard/rh/atas" },
+      { label: "Painel da Equipe", href: "/dashboard/rh" },
+      { label: "Reuniões", href: "/dashboard/rh/atas" },
       { label: "Gastos Administrativos", href: "/dashboard/rh/gastos-admin" },
-      { label: "Ponto Eletrônico", href: "/dashboard/rh/ponto" },
-      { label: "Colaboradores", href: "/dashboard/rh/colaborador" },
-      { label: "Fechamento de Folha", href: "/dashboard/rh/fechamento" },
-      { label: "Organograma", href: "/dashboard/rh/organograma" },
-      { label: "Recrutamento", href: "/dashboard/rh/recrutamento" },
-      { label: "Cardápio Equipe", href: "/dashboard/rh/cardapio-funcionarios" }
+      { label: "Ponto", href: "/dashboard/rh/ponto" },
+      { label: "Funcionários", href: "/dashboard/rh/colaborador" },
+      { label: "Folha de Pagamento", href: "/dashboard/rh/fechamento" },
+      { label: "Estrutura da Equipe", href: "/dashboard/rh/organograma" },
+      { label: "Candidatos", href: "/dashboard/rh/recrutamento" },
+      { label: "Refeições da Equipe", href: "/dashboard/rh/cardapio-funcionarios" }
     ]
   },
   {
-    category: "Gestão da Loja",
+    category: "Administração",
     icon: Store,
     items: [
-      { label: "Inventário da Unidade", href: "/dashboard/gestao/inventario" },
-      { label: "Serviços de Manutenção", href: "/dashboard/gestao/manutencao" },
-      { label: "Relatórios Gerais", href: "/dashboard/relatorios" },
+      { label: "Bens e Equipamentos", href: "/dashboard/gestao/inventario" },
+      { label: "Manutenção", href: "/dashboard/gestao/manutencao" },
+      { label: "Relatórios", href: "/dashboard/relatorios" },
       { label: "Configurações", href: "/dashboard/configuracoes" }
     ]
   }
@@ -369,7 +369,7 @@ function TopHeader({ onSair, onToggleSidebar }) {
             <Menu size={22} />
          </button>
          <h1 className="text-base lg:text-lg font-black text-slate-800 hidden md:block tracking-tight truncate min-w-0">
-            {unidadeInfo?.nome ? `Dashboard · ${unidadeInfo.nome}` : "Painel de Controle"}
+            {unidadeInfo?.nome ? `Hefisto · ${unidadeInfo.nome}` : "Hefisto"}
          </h1>
       </div>
 

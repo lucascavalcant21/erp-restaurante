@@ -75,7 +75,7 @@ export default function TreinamentoPage() {
               <PlaySquare size={32} />
            </div>
            <div>
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-slate-900">Portal de Treinamento</h1>
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-slate-900">Treinamentos</h1>
               <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">{unidadeInfo?.nome}</p>
            </div>
          </div>

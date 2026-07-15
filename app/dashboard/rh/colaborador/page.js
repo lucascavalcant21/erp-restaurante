@@ -100,7 +100,7 @@ export default function VidaColaboradorPage() {
   if (!unidadeAtiva || unidadeAtiva === "todas") {
     return (
       <div className="min-h-screen">
-        <PageHeader title="Colaboradores" subtitle="A vida completa de cada funcionário" icon={Users} />
+        <PageHeader title="Funcionários" subtitle="A vida completa de cada funcionário" icon={Users} />
         <PageBody><EmptyState icon={Users} title="Selecione uma unidade" hint="Escolha a unidade no topo." /></PageBody>
       </div>
     );
@@ -245,7 +245,7 @@ export default function VidaColaboradorPage() {
                     ))}
                   </div>
                 )}
-                <p className="text-[10px] font-medium mt-2" style={{ color: "var(--dim)" }}>Registradas e impressas pela Gestão de RH (botão Advertências).</p>
+                <p className="text-[10px] font-medium mt-2" style={{ color: "var(--dim)" }}>Registradas e impressas no Painel da Equipe (botão Advertências).</p>
               </Bloco>
               {/* Ponto */}
               <Bloco icon={Clock} titulo="Ponto — últimos dias"
@@ -342,7 +342,7 @@ export default function VidaColaboradorPage() {
 
               {/* Documentos */}
               <Bloco icon={FileText} titulo="Documentos anexados">
-                {vida.docs.length === 0 ? <p className="text-xs font-medium" style={{ color: "var(--dim)" }}>Nenhum documento. Anexe pela Gestão de RH.</p> : (
+                {vida.docs.length === 0 ? <p className="text-xs font-medium" style={{ color: "var(--dim)" }}>Nenhum documento. Anexe pelo Painel da Equipe.</p> : (
                   <div className="flex flex-wrap gap-2">
                     {vida.docs.map(doc => (
                       <a key={doc.id} href={doc.url_arquivo} target="_blank" rel="noreferrer" className="erp-badge erp-badge-ok flex items-center gap-1"><FileText size={11} /> {doc.nome_arquivo}</a>
@@ -364,14 +364,14 @@ export default function VidaColaboradorPage() {
 
   return (
     <div className="min-h-screen pb-24">
-      <PageHeader title="Colaboradores" subtitle={`A vida completa de cada funcionário · ${unidadeInfo?.nome || ""}`} icon={Users}
-        onAction={() => router.push("/dashboard/rh")} actionLabel="Cadastrar no RH" />
+      <PageHeader title="Funcionários" subtitle={`A vida completa de cada funcionário · ${unidadeInfo?.nome || ""}`} icon={Users}
+        onAction={() => router.push("/dashboard/rh")} actionLabel="Cadastrar funcionário" />
       <PageBody>
         <SearchBar value={busca} onChange={setBusca} placeholder="Buscar por nome ou cargo..." />
         {loading ? <SkeletonList rows={5} /> : filtrados.length === 0 ? (
-          <EmptyState icon={Users} title={colaboradores.length === 0 ? "Nenhum colaborador" : "Nada encontrado"}
-            hint={colaboradores.length === 0 ? "Cadastre a equipe na Gestão de RH — aqui você acompanha a vida de cada um." : "Tente outro nome ou cargo."}
-            actionLabel={colaboradores.length === 0 ? "Ir para Gestão de RH" : undefined}
+          <EmptyState icon={Users} title={colaboradores.length === 0 ? "Nenhum funcionário" : "Nada encontrado"}
+            hint={colaboradores.length === 0 ? "Cadastre a equipe no Painel da Equipe — aqui você acompanha a vida de cada um." : "Tente outro nome ou cargo."}
+            actionLabel={colaboradores.length === 0 ? "Abrir Painel da Equipe" : undefined}
             onAction={colaboradores.length === 0 ? () => router.push("/dashboard/rh") : undefined} />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

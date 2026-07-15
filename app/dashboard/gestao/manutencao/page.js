@@ -133,12 +133,12 @@ export default function ManutencaoPage() {
   }, [servicos]);
 
   if (!unidadeAtiva || unidadeAtiva === "todas") {
-    return <div className="min-h-screen"><PageHeader title="Serviços de Manutenção" subtitle="Prestadores de serviço" icon={Wrench} /><PageBody><EmptyState icon={Wrench} title="Selecione uma unidade" /></PageBody></div>;
+    return <div className="min-h-screen"><PageHeader title="Manutenção" subtitle="Prestadores de serviço" icon={Wrench} /><PageBody><EmptyState icon={Wrench} title="Selecione uma unidade" /></PageBody></div>;
   }
 
   return (
     <div className="min-h-screen pb-24">
-      <PageHeader title="Serviços de Manutenção" subtitle={`Prestadores, recibos e custos · ${unidadeInfo?.nome || ""}`} icon={Wrench} onAction={abrirNovo} actionLabel="Novo Serviço" />
+      <PageHeader title="Manutenção" subtitle={`Prestadores, recibos e custos · ${unidadeInfo?.nome || ""}`} icon={Wrench} onAction={abrirNovo} actionLabel="Novo Serviço" />
       <PageBody>
         <Toast show={!!toast}>{toast}</Toast>
 

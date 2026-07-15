@@ -70,8 +70,16 @@ function EtiquetasRunner() {
   const assinaturaAnterior = useRef(assinaturaConteudo);
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
+  // Durante uma atualização, o navegador pode manter temporariamente o estado
+  // de uma versão anterior da tela. Se o tamanho não existir mais no mapa de
+  // perfis, volta ao 60x60 sem derrubar a página nem imprimir com perfil inválido.
+  const tamanhoSeguro = PERFIS_TP20?.[tamanho]
+    ? tamanho
+    : (PERFIS_TP20?.["60x60"] ? "60x60" : Object.keys(PERFIS_TP20 || {})[0] || "60x60");
+  const perfilTp20 = PERFIS_TP20?.[tamanhoSeguro] || null;
+
   // Dimensões/escala da etiqueta conforme o tamanho escolhido
-  const dim = tamanho === "60x40"
+  const dim = tamanhoSeguro === "60x40"
     ? { w: "66mm", h: "40mm", paginaH: "42mm", pad: "2.2mm", titulo: "3.6mm", linha: "2.35mm", resp: "2.05mm", qr: 42, gap: "0.45mm" }
     : { w: "60mm", h: "60mm", paginaH: "62mm", pad: "3.2mm", titulo: "4.4mm", linha: "2.9mm", resp: "2.55mm", qr: 64, gap: "0.7mm" };
 
@@ -248,7 +256,7 @@ function EtiquetasRunner() {
       if (modoImpressao === "tp20") {
         await imprimirEtiquetasTp20({
           impressora: impressoraNome,
-          tamanho,
+          tamanho: tamanhoSeguro,
           copias: quantidadeCopias,
           dados: {
             codigo,
@@ -303,7 +311,7 @@ function EtiquetasRunner() {
           @page { size: 80mm ${dim.paginaH}; margin: 0; }
         }
       `}} />
-      <PageHeader title={`Etiquetas${deptUrl ? ` — ${deptUrl === 'bar' ? 'Bar' : 'Cozinha'}` : ''}`} subtitle={`QR Code + rastreio · ${unidadeInfo.nome}`} icon={Tag} />
+      <PageHeader title="Etiquetas e Validades" subtitle={`QR Code + rastreio · ${unidadeInfo.nome}`} icon={Tag} />
       <PageBody>
         <Toast show={!!salvou}>{salvou}</Toast>
 
@@ -466,7 +474,7 @@ function EtiquetasRunner() {
               )}
               {impressoraErro && <p className="text-[11px] font-bold text-red-600 bg-red-50 rounded-lg px-3 py-2 mb-2">{impressoraErro}</p>}
               <p className="text-[10px] font-medium" style={{ color: "var(--dim)" }}>
-                Perfil {PERFIS_TP20[tamanho].descricao}. A guilhotina permanece desligada para proteger a bobina adesiva.
+                Perfil {perfilTp20?.descricao || "padrão"}. A guilhotina permanece desligada para proteger a bobina adesiva.
               </p>
               <a href="https://qz.io/download/" target="_blank" rel="noreferrer"
                 className="inline-block text-[10px] font-bold mt-1.5" style={{ color: "var(--accent-fg)" }}>
@@ -489,7 +497,7 @@ function EtiquetasRunner() {
                 {["60x40", "60x60"].map((t) => (
                   <button key={t} onClick={() => setTamanho(t)}
                     className="text-[11px] font-bold px-3 py-1.5 rounded-lg transition-all"
-                    style={tamanho === t ? { background: "var(--accent-strong)", color: "#fff" } : { background: "var(--card)", color: "var(--muted)", border: "1px solid var(--line)" }}>
+                    style={tamanhoSeguro === t ? { background: "var(--accent-strong)", color: "#fff" } : { background: "var(--card)", color: "var(--muted)", border: "1px solid var(--line)" }}>
                     {t.replace("x", "×")}
                   </button>
                 ))}

@@ -365,7 +365,7 @@ export default function DashboardGestao() {
   return (
     <div className="p-5 sm:p-8 max-w-7xl mx-auto space-y-7 pb-16">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-black tracking-tight" style={{ color: "var(--fg)" }}>Painel de Gestão</h1>
+        <h1 className="text-2xl sm:text-3xl font-black tracking-tight" style={{ color: "var(--fg)" }}>Resumo da Loja</h1>
         <p className="mt-1 font-medium" style={{ color: "var(--muted)" }}>
           Controle operacional de <strong style={{ color: "var(--accent-strong)" }}>{unidadeInfo?.nome || "sua loja"}</strong>.
         </p>
@@ -381,7 +381,7 @@ export default function DashboardGestao() {
           onClick={() => router.push("/dashboard/financeiro/cmv")} />
 
         <Kpi icon={Wallet} label="Folha do mês (mão de obra)"
-          value={fmtBRL(m.folhaMes)} sub={`${m.ativosCount} colaborador(es) ativo(s)`}
+          value={fmtBRL(m.folhaMes)} sub={`${m.ativosCount} funcionário(s) ativo(s)`}
           tintBg="rgba(59,130,246,0.10)" tintFg="#2563EB"
           onClick={() => router.push("/dashboard/rh")} />
 
@@ -452,7 +452,7 @@ export default function DashboardGestao() {
 
         {/* Comprar / repor estoque */}
         <PainelLista
-          titulo="Repor / Comprar" icon={PackageX} corIcon="#DC2626"
+          titulo="Compras" icon={PackageX} corIcon="#DC2626"
           vazio="Nenhum insumo zerado. Estoque ok." acao={() => router.push("/dashboard/operacao/compras")}
           itens={m.semEstoque.slice(0, 6).map(e => ({
             id: e.insumo_id, principal: e.nome, secundario: e.departamento || "",
@@ -610,7 +610,7 @@ function EscalaSemana({ escalaPorArea, dragId, setDragId, onMover, onVerTudo, on
             Histórico
           </button>
           <button onClick={onVerTudo} className="text-xs font-bold flex items-center gap-1 px-1" style={{ color: "var(--accent-strong)" }}>
-            Gerir no RH <ArrowRight size={13} />
+            Abrir Equipe <ArrowRight size={13} />
           </button>
         </div>
       </div>

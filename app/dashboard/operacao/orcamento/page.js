@@ -818,7 +818,7 @@ export default function OrcamentoEventoPage() {
                     <PartyPopper size={24} />
                  </div>
                  <div>
-                    <h1 className="text-2xl font-black tracking-tighter text-slate-900">Orçamento de Eventos</h1>
+                    <h1 className="text-2xl font-black tracking-tighter text-slate-900">Orçamentos de Eventos</h1>
                     <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mt-0.5">Buffet: custos, compras e valor por convidado</p>
                  </div>
                </div>

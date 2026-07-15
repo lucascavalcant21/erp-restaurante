@@ -55,7 +55,7 @@ export default function DreGerencialPage() {
                <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 flex items-center gap-2">
                   <BarChart3 size={14}/> Engenharia Financeira
                </p>
-               <h1 className="text-3xl md:text-5xl font-black tracking-tighter">DRE Gerencial.</h1>
+               <h1 className="text-3xl md:text-5xl font-black tracking-tighter">Resultado (DRE)</h1>
                <p className="text-sm font-medium text-slate-500 mt-2">Demonstrativo de Resultados do Exercício da {unidadeInfo.nome}</p>
             </div>
             
@@ -76,7 +76,7 @@ export default function DreGerencialPage() {
         {loading ? (
           <EmptyState icon={Calculator} title="Processando balanço..." />
         ) : !temDados ? (
-          <EmptyState icon={BarChart3} title="Extrato Limpo" hint="Registre entradas e saídas no Fluxo de Caixa para o motor financeiro montar seu DRE." />
+          <EmptyState icon={BarChart3} title="Sem movimentações" hint="Registre as entradas e saídas financeiras para o sistema montar seu resultado (DRE)." />
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
              

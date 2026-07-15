@@ -76,7 +76,7 @@ export default function FinanceiroDREPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
          <div>
             <h1 className="text-3xl sm:text-4xl font-black text-slate-800 tracking-tight flex items-center gap-3">
-               <Wallet className="text-[#10B981]" size={36}/> DRE & Financeiro
+               <Wallet className="text-[#10B981]" size={36}/> Contas e Despesas
             </h1>
             <p className="text-slate-500 font-medium mt-1">Gestão de Contas a Pagar e Lucratividade (DRE)</p>
          </div>
@@ -227,7 +227,7 @@ export default function FinanceiroDREPage() {
                            <option key={c.id} value={c.id}>{c.label}</option>
                         ))}
                      </select>
-                     <p className="text-xs text-slate-400 mt-2 font-medium">* O custo CMV é gerado automaticamente pelas Fichas Técnicas dos Pratos.</p>
+                     <p className="text-xs text-slate-400 mt-2 font-medium">* O custo CMV é gerado automaticamente pelas receitas dos pratos.</p>
                   </div>
 
                   <div className="flex gap-3 mt-4">

@@ -63,7 +63,7 @@ export default function RecrutamentoPage() {
         </button>
         <div className="flex-1">
           <h1 className="text-lg font-bold leading-tight flex items-center gap-2" style={{ color: "var(--fg)" }}>
-            <Users size={18} style={{ color: "var(--muted)" }} /> Banco de Talentos
+            <Users size={18} style={{ color: "var(--muted)" }} /> Candidatos
           </h1>
           <p className="text-[11px] font-medium" style={{ color: "var(--dim)" }}>
             Triagem Automática · {unidadeInfo.nome}

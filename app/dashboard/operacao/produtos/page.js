@@ -210,7 +210,7 @@ function CardapioRunner() {
         @media print{@page{margin:12mm}}
       </style></head><body>
       <div class="head">
-        <div class="tag">Guia de Montagem${guiaProduto.categoria ? " — " + guiaProduto.categoria : ""}</div>
+        <div class="tag">Montagem${guiaProduto.categoria ? " — " + guiaProduto.categoria : ""}</div>
         <h1>${guiaProduto.nome_produto}</h1>
       </div>
       ${g.louca ? `<h2>Louça / Recipiente</h2><div class="box">${g.louca}</div>` : ""}
@@ -259,7 +259,7 @@ function CardapioRunner() {
         });
       }
       if (faltantes.length) {
-        alert(`${faltantes.length} prato(s)/drink(s) das Fichas Técnicas entraram no Cardápio aguardando preço (R$ 0,00). Defina o preço de venda de cada um.`);
+        alert(`${faltantes.length} prato(s)/drink(s) das Receitas entraram em Produtos e Preços aguardando preço (R$ 0,00). Defina o preço de venda de cada um.`);
         prodRes = await fetchProdutos(unidadeAtiva);
       }
     } catch { /* sincronização é acessória */ }
@@ -489,8 +489,8 @@ function CardapioRunner() {
       </style></head><body>
       <div class="head">
         <div>
-          <div class="tag">Cardápio — Preços, Custos e CMV · ${unidadeInfo?.nome || ""}</div>
-          <h1>Tabela do Cardápio</h1>
+          <div class="tag">Produtos e Preços — Custos e CMV · ${unidadeInfo?.nome || ""}</div>
+          <h1>Tabela de Produtos e Preços</h1>
         </div>
         ${cmvMedio !== null ? `<div class="resumo">CMV médio da carta<b style="color:${cmvMedio > 30 ? "#DC2626" : "#047857"}">${cmvMedio.toFixed(1)}%</b></div>` : ""}
       </div>
@@ -579,7 +579,7 @@ function CardapioRunner() {
               )}
            </div>
            <div className="text-right">
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Ficha Técnica</p>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Receita</p>
               {(() => {
                  const comps = componentesDoProduto(p);
                  if (!comps.length) return <p className="font-bold text-[10px] uppercase text-red-500">Não vinculada</p>;
@@ -609,7 +609,7 @@ function CardapioRunner() {
                  <Tag size={28} />
               </div>
               <div>
-                  <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-slate-900">Cardápio</h1>
+                  <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-slate-900">Produtos e Preços</h1>
                   <p className="text-slate-700 font-bold uppercase tracking-wide sm:tracking-widest text-[10px] sm:text-xs mt-1">Precificação · liga direto no PDV · CMV automático</p>
               </div>
             </div>
@@ -757,7 +757,7 @@ function CardapioRunner() {
                         <option value="">{form.departamento === "bar" ? "Selecione o drink..." : "Selecione o prato..."}</option>
                         {fichas.filter(f => f.departamento === form.departamento && !f.eh_base).map(f => <option key={f.id} value={f.id}>{f.nome_receita}</option>)}
                      </select>
-                     <p className="text-[10px] text-slate-400 font-medium mt-1">A montagem (insumos + pré-preparos) é feita em Fichas Técnicas. Aqui você só precifica.</p>
+                     <p className="text-[10px] text-slate-400 font-medium mt-1">A montagem (insumos + pré-preparos) é feita em Receitas. Aqui você só define o preço.</p>
                   </div>
 
                   {/* Compatibilidade: produto antigo montado com VÁRIOS componentes
@@ -944,7 +944,7 @@ function CardapioRunner() {
                   <div className="flex items-center gap-3">
                      <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center"><ClipboardList size={22}/></div>
                      <div>
-                        <h2 className="font-black text-2xl text-slate-800">Guia de Montagem</h2>
+                        <h2 className="font-black text-2xl text-slate-800">{guiaProduto.departamento === "bar" ? "Montagem do Drink" : "Montagem do Prato"}</h2>
                         <p className="text-xs font-bold text-slate-500 mt-0.5">{guiaProduto.nome_produto} — padronize e cole na parede</p>
                      </div>
                   </div>
@@ -954,7 +954,7 @@ function CardapioRunner() {
                <div className="p-4 sm:p-8 overflow-y-auto custom-scrollbar space-y-5">
                   {componentesDoProduto(guiaProduto).length === 0 && (
                      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-[11px] font-bold text-amber-700">
-                        Este produto não tem Ficha Técnica vinculada — a IA vai montar o guia só pelo nome. Para quantidades exatas, vincule uma ficha.
+                        Este produto não tem uma receita vinculada — a IA vai montar o passo a passo só pelo nome. Para quantidades exatas, vincule uma receita.
                      </div>
                   )}
 
@@ -1034,7 +1034,7 @@ function CardapioRunner() {
 
 export default function ProdutosPage() {
   return (
-    <Suspense fallback={<div className="p-10 text-center font-bold text-slate-500">Carregando Cardápio...</div>}>
+    <Suspense fallback={<div className="p-10 text-center font-bold text-slate-500">Carregando Produtos...</div>}>
        <CardapioRunner />
     </Suspense>
   );

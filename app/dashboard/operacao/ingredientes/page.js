@@ -413,7 +413,7 @@ function IngredientesRunner() {
                  <FlaskConical size={28} />
               </div>
               <div>
-                 <h1 className="text-3xl font-black tracking-tighter text-slate-900">Banco de Ingredientes</h1>
+                 <h1 className="text-3xl font-black tracking-tighter text-slate-900">Ingredientes</h1>
                  <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Custo Base de Insumos {deptUrl ? `- ${deptUrl}` : ''}</p>
               </div>
             </div>

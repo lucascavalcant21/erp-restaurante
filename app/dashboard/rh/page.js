@@ -1131,7 +1131,7 @@ export default function RHPage() {
                  <Users size={32} />
               </div>
               <div>
-                 <h1 className="text-3xl sm:text-4xl font-black tracking-tighter text-slate-900">RH & Equipe</h1>
+                 <h1 className="text-3xl sm:text-4xl font-black tracking-tighter text-slate-900">Painel da Equipe</h1>
                  <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Gestão de Funcionários</p>
               </div>
             </div>
@@ -1157,7 +1157,7 @@ export default function RHPage() {
                <CalendarDays size={14} /> Feriados
             </button>
             <button onClick={() => router.push('/dashboard/rh/cardapio-funcionarios')} className="flex items-center gap-1.5 bg-white text-slate-700 border border-slate-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-slate-50 transition-colors">
-               <UtensilsCrossed size={14} /> Cardápio Equipe
+               <UtensilsCrossed size={14} /> Refeições da Equipe
             </button>
             <a
                href={(!unidadeAtiva || unidadeAtiva === "todas") ? "#" : `/exportar-afd?unidadeId=${unidadeAtiva}`}
@@ -1260,7 +1260,7 @@ export default function RHPage() {
          <div className="flex gap-4 mb-4">
             <button onClick={()=>setAbaAtiva("Fixo")} className={`flex-1 py-3 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${abaAtiva === "Fixo" ? "bg-slate-800 text-white shadow-lg shadow-slate-800/20" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>Equipe Fixa</button>
             <button onClick={()=>setAbaAtiva("Freelancer")} className={`flex-1 py-3 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${abaAtiva === "Freelancer" ? "bg-slate-800 text-white shadow-lg shadow-slate-800/20" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>Freelancers Extras</button>
-            <button onClick={()=>setAbaAtiva("Banco de Talentos")} className={`flex-1 py-3 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${abaAtiva === "Banco de Talentos" ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" : "bg-white text-indigo-500 border border-indigo-200 hover:bg-indigo-50"}`}>Banco de Talentos</button>
+            <button onClick={()=>setAbaAtiva("Banco de Talentos")} className={`flex-1 py-3 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${abaAtiva === "Banco de Talentos" ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" : "bg-white text-indigo-500 border border-indigo-200 hover:bg-indigo-50"}`}>Candidatos</button>
             <button onClick={()=>setAbaAtiva("Ex-funcionários")} className={`flex-1 py-3 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${abaAtiva === "Ex-funcionários" ? "bg-slate-600 text-white shadow-lg shadow-slate-600/20" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>Ex-funcionários</button>
          </div>
 
@@ -1278,7 +1278,7 @@ export default function RHPage() {
                   <table className="w-full text-left min-w-[860px]">
                <thead>
                   <tr className="bg-slate-50 border-b border-slate-100">
-                     <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Colaborador</th>
+                     <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Funcionário</th>
                      <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Perfil & Contato</th>
                      <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">{abaAtiva === "Freelancer" ? "Diária Base" : "Remuneração Base"}</th>
                      <th className="p-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Ponto Hoje</th>
@@ -1548,7 +1548,7 @@ export default function RHPage() {
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
             <div className="bg-white rounded-[32px] w-full max-w-md p-6 sm:p-8 shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[95vh] overflow-hidden">
                <div className="flex justify-between items-center mb-6 shrink-0 border-b border-slate-100 pb-4">
-                  <h2 className="font-black text-2xl text-slate-800">{editandoId ? "Editar Colaborador" : "Novo Funcionário"}</h2>
+                  <h2 className="font-black text-2xl text-slate-800">{editandoId ? "Editar Funcionário" : "Novo Funcionário"}</h2>
                   <button onClick={() => setModalNovo(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
                </div>
 
@@ -1585,7 +1585,7 @@ export default function RHPage() {
                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Supervisor(es) diretos — organograma</label>
                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 max-h-32 overflow-y-auto space-y-1">
                         {funcionarios.filter(f => f.id !== editandoId && (f.status || "ativo") !== "inativo").length === 0 ? (
-                           <p className="text-xs font-medium text-slate-400">Nenhum outro colaborador cadastrado ainda.</p>
+                           <p className="text-xs font-medium text-slate-400">Nenhum outro funcionário cadastrado ainda.</p>
                         ) : funcionarios.filter(f => f.id !== editandoId && (f.status || "ativo") !== "inativo").map(f => {
                            const marcado = (novoFunc.supervisores_ids || []).includes(f.id);
                            return (
@@ -1980,7 +1980,7 @@ export default function RHPage() {
                <div className="flex justify-between items-center mb-5 shrink-0">
                   <div>
                      <h2 className="font-black text-2xl text-slate-800">Advertências</h2>
-                     <p className="text-sm font-bold text-slate-500 mt-1">{funcAdv.nome} · aparecem na vida do colaborador</p>
+                     <p className="text-sm font-bold text-slate-500 mt-1">{funcAdv.nome} · aparecem no histórico do funcionário</p>
                   </div>
                   <button onClick={() => setModalAdv(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
                </div>
@@ -2225,7 +2225,7 @@ export default function RHPage() {
                            {cardapioConsumo.length > 0 && <span className="text-[10px] font-bold text-slate-400">{cardapioConsumo.length} itens</span>}
                         </div>
                         {cardapioConsumo.length === 0 ? (
-                           <p className="text-xs font-medium text-slate-400 bg-slate-50 border border-slate-100 rounded-xl p-3">Nenhum prato no cardápio desta unidade. Cadastre em Catálogo e Preços, ou digite manualmente abaixo.</p>
+                           <p className="text-xs font-medium text-slate-400 bg-slate-50 border border-slate-100 rounded-xl p-3">Nenhum prato cadastrado nesta unidade. Cadastre em Produtos e Preços ou digite manualmente abaixo.</p>
                         ) : (
                            <>
                               <div className="relative mb-2">

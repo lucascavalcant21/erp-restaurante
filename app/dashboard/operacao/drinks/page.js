@@ -129,7 +129,7 @@ export default function DrinksPage() {
 
   return (
     <div className="min-h-screen">
-      <PageHeader title="Cardápio de Drinks" subtitle="Drinks e mocktails detalhados" icon={Wine} onAction={() => { setEditar(null); setModal(true); }} actionLabel="Novo" />
+      <PageHeader title="Drinks" subtitle="Drinks e mocktails detalhados" icon={Wine} onAction={() => { setEditar(null); setModal(true); }} actionLabel="Novo" />
       <PageBody>
         <Toast show={!!salvou}>{salvou}</Toast>
 

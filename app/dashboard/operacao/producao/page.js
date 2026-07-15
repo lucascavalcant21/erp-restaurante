@@ -279,7 +279,7 @@ function ProducaoRunner() {
                  {isBar ? <Droplets size={28} /> : <Flame size={28} />}
               </div>
               <div>
-                  <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-slate-900">Produção do Dia</h1>
+                  <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-slate-900">{isBar ? "Produção do Bar" : "Produção da Cozinha"}</h1>
                  <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Baixa Automática de Estoque</p>
               </div>
             </div>
@@ -312,7 +312,7 @@ function ProducaoRunner() {
          ) : fichas.length === 0 ? (
             <div className="text-center p-10 bg-white border border-slate-200 rounded-3xl">
                <h3 className="text-xl font-black text-slate-700">Nenhuma ficha cadastrada</h3>
-               <p className="text-slate-500 mt-2 font-medium">Crie suas Fichas Técnicas primeiro para poder produzir.</p>
+               <p className="text-slate-500 mt-2 font-medium">Crie suas receitas primeiro para poder produzir.</p>
             </div>
          ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
@@ -355,7 +355,7 @@ function ProducaoRunner() {
             <div className="bg-white rounded-[32px] w-full max-w-2xl my-8 shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[88vh]">
                <div className="flex justify-between items-center p-4 sm:p-8 pb-4 sm:pb-5 border-b border-slate-100 shrink-0">
                   <div>
-                     <h2 className="font-black text-2xl text-slate-800">Produção do Dia — Planejamento</h2>
+                     <h2 className="font-black text-2xl text-slate-800">Planejamento da Produção</h2>
                      <p className="text-xs font-bold text-slate-500 mt-1">Defina o que produzir e quanto. Designe quem faz (ou deixe em branco para escreverem o nome na folha).</p>
                   </div>
                   <button onClick={() => setModalPlanejar(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>

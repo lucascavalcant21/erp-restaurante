@@ -50,7 +50,7 @@ export default function ObservacoesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
         <div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-800 flex items-center gap-3">
-            <MessageSquareText size={28} className="text-[#4970AF]" /> Observações Fixas
+            <MessageSquareText size={28} className="text-[#4970AF]" /> Observações dos Pedidos
           </h1>
           <p className="text-slate-500 font-bold mt-1">Crie botões rápidos para o garçom usar no Salão (Ex: "Com gelo", "Para Viagem")</p>
         </div>

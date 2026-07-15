@@ -69,12 +69,12 @@ export default function ComprasPage() {
                  <ShoppingCart size={32} />
               </div>
               <div>
-                 <h1 className="text-3xl sm:text-4xl font-black tracking-tighter">Entrada de Compras</h1>
+                 <h1 className="text-3xl sm:text-4xl font-black tracking-tighter">Compras</h1>
                  <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Integração: Estoque e Financeiro</p>
               </div>
             </div>
             <button onClick={() => setModalOpen(true)} className="w-full md:w-auto px-5 sm:px-6 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl flex items-center justify-center gap-2 shadow-xl shadow-emerald-500/20 active:scale-95 transition-all">
-               <PackagePlus size={20}/> Lançar Nota de Compra
+               <PackagePlus size={20}/> Registrar Compra
             </button>
          </div>
       </div>
@@ -86,7 +86,7 @@ export default function ComprasPage() {
                <h3 className="font-black text-amber-800 text-lg mb-1">Como funciona a Hiper-Automação?</h3>
                <p className="text-emerald-700 font-medium text-sm leading-relaxed">
                   Ao registrar uma compra de insumo (como Tomate ou Vodka) aqui, o sistema automaticamente: <br/>
-                  1. Adiciona a quantidade comprada no <strong>Estoque Físico</strong> da Cozinha/Bar. <br/>
+                  1. Adiciona a quantidade comprada no <strong>Estoque</strong> da Cozinha/Bar. <br/>
                   2. Gera uma conta pendente em <strong>Contas a Pagar</strong> no módulo Financeiro (como CMV).
                </p>
             </div>

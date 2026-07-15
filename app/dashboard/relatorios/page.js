@@ -177,7 +177,7 @@ export default function RelatorioGerencial() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-7 gap-4">
         <div>
           <h1 className="text-3xl font-black tracking-tight flex items-center gap-3" style={{ color: "var(--fg)" }}>
-            <TrendingUp style={{ color: "var(--accent-strong)" }} size={32} /> Relatório Gerencial
+            <TrendingUp style={{ color: "var(--accent-strong)" }} size={32} /> Relatórios
           </h1>
           <p className="font-medium mt-1" style={{ color: "var(--muted)" }}>
             {unidadeInfo?.nome} · últimos {dias} dias · gerado em {new Date().toLocaleDateString("pt-BR")}
@@ -248,7 +248,7 @@ export default function RelatorioGerencial() {
         <div className="erp-card p-6 print:border print:border-slate-300 print:shadow-none print:rounded-lg">
           <h3 className="font-black mb-5 flex items-center gap-2" style={{ color: "var(--fg)" }}><Flame size={18} /> Produção da cozinha ({dias} dias)</h3>
           {m.producoesResumo.length === 0 ? (
-            <p className="text-sm font-medium" style={{ color: "var(--dim)" }}>Nenhuma produção registrada no período. Registre em Operação → Produção Diária para aparecer aqui.</p>
+            <p className="text-sm font-medium" style={{ color: "var(--dim)" }}>Nenhuma produção registrada no período. Registre em Cozinha ou Bar → Produção para aparecer aqui.</p>
           ) : (
             <div className="space-y-2">
               {m.producoesResumo.slice(0, 10).map(p => (

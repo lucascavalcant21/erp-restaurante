@@ -138,7 +138,7 @@ export default function OrganogramaCorporativoPage() {
 
   // ── Impressão do organograma (lista hierárquica indentada) ────────────────
   const imprimirOrganograma = () => {
-    if (!lista.length) return alert("Nenhum colaborador para o organograma.");
+    if (!lista.length) return alert("Nenhum funcionário na estrutura da equipe.");
     const filhosDe = (id) => lista.filter(f => {
       const sups = Array.isArray(f.supervisores_ids) && f.supervisores_ids.length ? f.supervisores_ids : (f.supervisor_id ? [f.supervisor_id] : []);
       return sups.includes(id);
@@ -159,7 +159,7 @@ export default function OrganogramaCorporativoPage() {
       return linha + filhos.map(c => render(c, nivel + 1, visto)).join("");
     };
     const corpo = topo.map(f => render(f, 0)).join("");
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Organograma — ${unidadeInfo?.nome || ""}</title>
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Estrutura da Equipe — ${unidadeInfo?.nome || ""}</title>
       <style>
         *{margin:0;padding:0;box-sizing:border-box}
         body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:12mm}
@@ -173,7 +173,7 @@ export default function OrganogramaCorporativoPage() {
         .lid{margin-left:auto;font-size:10px;font-weight:800;text-transform:uppercase;color:#059669;background:#ecfdf5;padding:2px 8px;border-radius:999px}
         @media print{@page{margin:10mm}}
       </style></head><body>
-      <div class="head"><div class="tag">Organograma · Estrutura Hierárquica</div><h1>${unidadeInfo?.nome || "Equipe"}</h1></div>
+      <div class="head"><div class="tag">Estrutura da Equipe</div><h1>${unidadeInfo?.nome || "Equipe"}</h1></div>
       ${corpo}
       </body></html>`;
     const win = window.open("", "_blank", "width=820,height=1000");
@@ -193,7 +193,7 @@ export default function OrganogramaCorporativoPage() {
                <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 flex items-center gap-2">
                   <Network size={14}/> Gestão de Pessoas
                </p>
-               <h1 className="text-3xl md:text-5xl font-black tracking-tighter">Quadro Corporativo.</h1>
+               <h1 className="text-3xl md:text-5xl font-black tracking-tighter">Estrutura da Equipe</h1>
                <p className="text-sm font-medium text-slate-500 mt-2">Estrutura Hierárquica da {unidadeInfo.nome}</p>
             </div>
             
@@ -208,7 +208,7 @@ export default function OrganogramaCorporativoPage() {
                     className="w-full pl-12 pr-4 py-4 bg-slate-800/80 border border-slate-700 rounded-2xl text-white font-bold placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 outline-none backdrop-blur-sm"
                   />
                </div>
-               <button onClick={imprimirOrganograma} title="Imprimir organograma" className="shrink-0 flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold px-4 py-4 rounded-2xl transition-colors">
+               <button onClick={imprimirOrganograma} title="Imprimir estrutura da equipe" className="shrink-0 flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold px-4 py-4 rounded-2xl transition-colors">
                   <Printer size={18} /> <span className="hidden md:inline">Imprimir</span>
                </button>
             </div>
@@ -219,7 +219,7 @@ export default function OrganogramaCorporativoPage() {
         {loading ? (
           <EmptyState icon={Network} title="Desenhando estrutura..." />
         ) : lista.length === 0 ? (
-          <EmptyState icon={User} title="Organograma Vazio" hint="Cadastre funcionários no RH e defina seus supervisores." />
+          <EmptyState icon={User} title="Estrutura vazia" hint="Cadastre funcionários no Painel da Equipe e defina seus supervisores." />
         ) : busca ? (
           // Visualização de Busca (Lista Flat)
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">

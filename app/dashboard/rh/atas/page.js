@@ -240,7 +240,7 @@ export default function AtasReuniaoPage() {
   if (!unidadeAtiva || unidadeAtiva === "todas") {
     return (
       <div className="min-h-screen">
-        <PageHeader title="Atas de Reunião" subtitle="Gere, imprima e arquive atas" icon={ScrollText} />
+        <PageHeader title="Reuniões" subtitle="Gere, imprima e arquive atas" icon={ScrollText} />
         <PageBody><EmptyState icon={ScrollText} title="Selecione uma unidade" hint="Escolha a unidade no topo." /></PageBody>
       </div>
     );
@@ -248,7 +248,7 @@ export default function AtasReuniaoPage() {
 
   return (
     <div className="min-h-screen pb-24">
-      <PageHeader title="Atas de Reunião" subtitle={`Tema + pauta → a IA redige · logo, dados da empresa e assinaturas · ${unidadeInfo?.nome || ""}`} icon={ScrollText} />
+      <PageHeader title="Reuniões" subtitle={`Tema + pauta → a IA redige · logo, dados da empresa e assinaturas · ${unidadeInfo?.nome || ""}`} icon={ScrollText} />
       <PageBody>
         <Toast show={!!toast}>{toast}</Toast>
 

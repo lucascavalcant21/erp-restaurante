@@ -213,7 +213,7 @@ function EstoqueRunner() {
                  <PackageSearch size={28} />
               </div>
               <div>
-                 <h1 className="text-3xl font-black tracking-tighter text-slate-900">Estoque Físico</h1>
+                 <h1 className="text-3xl font-black tracking-tighter text-slate-900">Estoque</h1>
                  <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Saldos e Entradas {deptUrl ? `- ${deptUrl}` : ''}</p>
               </div>
             </div>
@@ -233,7 +233,7 @@ function EstoqueRunner() {
             <AlertCircle className="text-slate-600 flex-shrink-0 mt-0.5" />
             <div>
                <h3 className="font-bold text-amber-800">Atenção ao Saldo Base</h3>
-               <p className="text-emerald-700 text-sm mt-1">Para que a <strong>Produção do Dia</strong> funcione perfeitamente descontando insumos, certifique-se de que os ingredientes possuem saldo positivo aqui nesta tela.</p>
+               <p className="text-emerald-700 text-sm mt-1">Para que a <strong>Produção</strong> desconte os insumos corretamente, verifique se os ingredientes possuem saldo positivo nesta tela.</p>
             </div>
          </div>
 

@@ -19,30 +19,30 @@ const AREAS = {
     nome: "Cozinha", Icon: ChefHat, cor: "#F59E0B",
     colunas: [
       {
-        titulo: "Rotina do Dia",
+        titulo: "Rotina",
         itens: [
           { label: "Checklist", href: "/dashboard/operacao/rotina?dept=cozinha", Icon: ClipboardList },
-          { label: "Produção Diária", href: "/dashboard/operacao/producao?dept=cozinha", Icon: Sparkles },
-          { label: "Validade e Etiquetas", href: "/dashboard/operacao/etiquetas?dept=cozinha", Icon: Tag },
+          { label: "Produção", href: "/dashboard/operacao/producao?dept=cozinha", Icon: Sparkles },
+          { label: "Etiquetas e Validades", href: "/dashboard/operacao/etiquetas?dept=cozinha", Icon: Tag },
           { label: "Limpeza, Gás e Óleo", href: "/dashboard/operacao/controles", Icon: Droplets },
         ],
       },
       {
-        titulo: "Insumos e Estoque",
+        titulo: "Estoque e Compras",
         itens: [
           { label: "Ingredientes", href: "/dashboard/operacao/ingredientes?dept=cozinha", Icon: FlaskConical },
           { label: "Estoque", href: "/dashboard/operacao/estoque?dept=cozinha", Icon: PackageSearch },
-          { label: "Lista de Compras", href: "/dashboard/operacao/compras?dept=cozinha", Icon: ShoppingCart },
-          { label: "Notas de Entrada", href: "/dashboard/operacao/notas?dept=cozinha", Icon: FileText },
+          { label: "Compras", href: "/dashboard/operacao/compras?dept=cozinha", Icon: ShoppingCart },
+          { label: "Notas Fiscais", href: "/dashboard/operacao/notas?dept=cozinha", Icon: FileText },
         ],
       },
       {
-        titulo: "Receitas e Cardápio",
+        titulo: "Receitas e Pratos",
         itens: [
-          { label: "Fichas Técnicas", href: "/dashboard/operacao/fichas?dept=cozinha", Icon: BookOpen },
-          { label: "Guia de Montagem", href: "/dashboard/operacao/montagem?dept=cozinha", Icon: LayoutList },
-          { label: "Catálogo e Preços", href: "/dashboard/operacao/produtos", Icon: Tag },
-          { label: "Orçamento de Eventos", href: "/dashboard/operacao/orcamento?dept=cozinha", Icon: PartyPopper },
+          { label: "Receitas", href: "/dashboard/operacao/fichas?dept=cozinha", Icon: BookOpen },
+          { label: "Montagem de Pratos", href: "/dashboard/operacao/montagem?dept=cozinha", Icon: LayoutList },
+          { label: "Produtos e Preços", href: "/dashboard/operacao/produtos", Icon: Tag },
+          { label: "Orçamentos de Eventos", href: "/dashboard/operacao/orcamento?dept=cozinha", Icon: PartyPopper },
         ],
       },
     ],
@@ -51,28 +51,28 @@ const AREAS = {
     nome: "Bar", Icon: GlassWater, cor: "#8B5CF6",
     colunas: [
       {
-        titulo: "Rotina do Dia",
+        titulo: "Rotina",
         itens: [
           { label: "Checklist", href: "/dashboard/operacao/rotina?dept=bar", Icon: ClipboardList },
-          { label: "Produção do Bar", href: "/dashboard/operacao/producao?dept=bar", Icon: Sparkles },
-          { label: "Etiquetas do Bar", href: "/dashboard/operacao/etiquetas?dept=bar", Icon: Tag },
+          { label: "Produção", href: "/dashboard/operacao/producao?dept=bar", Icon: Sparkles },
+          { label: "Etiquetas e Validades", href: "/dashboard/operacao/etiquetas?dept=bar", Icon: Tag },
         ],
       },
       {
-        titulo: "Insumos e Estoque",
+        titulo: "Estoque e Compras",
         itens: [
-          { label: "Ingredientes Bar", href: "/dashboard/operacao/ingredientes?dept=bar", Icon: FlaskConical },
-          { label: "Estoque do Bar", href: "/dashboard/operacao/estoque?dept=bar", Icon: PackageSearch },
-          { label: "Lista de Compras", href: "/dashboard/operacao/compras?dept=bar", Icon: ShoppingCart },
-          { label: "Notas de Entrada", href: "/dashboard/operacao/notas?dept=bar", Icon: FileText },
+          { label: "Ingredientes", href: "/dashboard/operacao/ingredientes?dept=bar", Icon: FlaskConical },
+          { label: "Estoque", href: "/dashboard/operacao/estoque?dept=bar", Icon: PackageSearch },
+          { label: "Compras", href: "/dashboard/operacao/compras?dept=bar", Icon: ShoppingCart },
+          { label: "Notas Fiscais", href: "/dashboard/operacao/notas?dept=bar", Icon: FileText },
         ],
       },
       {
-        titulo: "Drinks e Receitas",
+        titulo: "Receitas e Montagem",
         itens: [
-          { label: "Drinks e Coquetéis", href: "/dashboard/operacao/drinks", Icon: Wine },
-          { label: "Fichas de Drinks", href: "/dashboard/operacao/fichas?dept=bar", Icon: BookOpen },
-          { label: "Guia de Montagem", href: "/dashboard/operacao/montagem?dept=bar", Icon: LayoutList },
+          { label: "Drinks", href: "/dashboard/operacao/drinks", Icon: Wine },
+          { label: "Receitas de Drinks", href: "/dashboard/operacao/fichas?dept=bar", Icon: BookOpen },
+          { label: "Montagem de Drinks", href: "/dashboard/operacao/montagem?dept=bar", Icon: LayoutList },
         ],
       },
     ],
@@ -81,7 +81,7 @@ const AREAS = {
     nome: "Salão", Icon: Armchair, cor: "#0EA5E9",
     colunas: [
       {
-        titulo: "Rotina do Dia",
+        titulo: "Rotina",
         itens: [
           { label: "Checklist", href: "/dashboard/operacao/rotina?dept=salao", Icon: ClipboardList },
         ],
@@ -90,7 +90,7 @@ const AREAS = {
         titulo: "Equipe",
         itens: [
           { label: "Treinamentos", href: "/dashboard/salao/treinamento", Icon: GraduationCap },
-          { label: "Observações Padrão", href: "/dashboard/operacao/observacoes", Icon: MessageSquare },
+          { label: "Observações dos Pedidos", href: "/dashboard/operacao/observacoes", Icon: MessageSquare },
         ],
       },
     ],

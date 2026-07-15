@@ -1198,7 +1198,7 @@ function MontagemPageInner() {
     setLista((p) => p.filter((m) => m.id !== id));
   }
 
-  const titulo = dept === "bar" ? "Montagem — Bar" : "Montagem — Cozinha";
+  const titulo = dept === "bar" ? "Montagem de Drinks" : "Montagem de Pratos";
   const subtitle = dept === "bar"
     ? "Fichas de montagem de drinks e coquetéis"
     : "Fichas de montagem e engenharia de cardápio com Inteligência Artificial";

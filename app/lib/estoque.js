@@ -64,7 +64,40 @@ export async function ajustarEstoque(unidadeId, insumoId, novaQuantidade) {
 // Produções registradas nos últimos N dias (para o relatório gerencial)
 export async function fetchProducoesPeriodo(unidadeId, dias = 30) {
   if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: [] };
-  const inicio = new Date(Date.now() - dias * 86400000).toISOString();
+  const inicio = new Date(Date.now() - dias * 86400000).toISOString().slice(0, 10);
+
+  const { data: lotes, error: erroLotes } = await supabase
+    .from("producao_lotes")
+    .select("*")
+    .eq("unidade_id", unidadeId)
+    .eq("status", "concluido")
+    .gte("data_producao", inicio)
+    .order("data_producao", { ascending: false });
+
+  if (!erroLotes) {
+    return {
+      data: (lotes || []).map(lote => ({
+        ...lote,
+        fichas_tecnicas: { nome_receita: lote.ficha_nome || "Receita" },
+        quantidade_produzida: Number(lote.quantidade_produzida) || 0,
+        quantidade_produzida_base: lote.quantidade_produzida_base == null
+          ? null
+          : Number(lote.quantidade_produzida_base) || 0,
+        unidade_base: lote.unidade_base || null,
+        custo_total: Number(lote.custo_real ?? lote.custo_previsto) || 0,
+      })),
+      error: null,
+    };
+  }
+
+  const tabelaNovaNaoExiste = erroLotes.code === "42P01"
+    || erroLotes.code === "PGRST205"
+    || /(?:relation|table).*producao_lotes.*(?:does not exist|schema cache)/i.test(erroLotes.message || "");
+
+  if (!tabelaNovaNaoExiste) {
+    return { data: [], error: erroLotes.message };
+  }
+
   const { data, error } = await supabase
     .from("producao_diaria")
     .select("*, fichas_tecnicas(nome_receita), colaboradores(nome)")

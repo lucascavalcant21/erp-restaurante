@@ -1,6 +1,5 @@
-"use client";
-import ProducaoModule from "../../../components/ProducaoModule";
+import { redirect } from "next/navigation";
 
 export default function CozinhaProducaoPage() {
-  return <ProducaoModule setor="cozinha" />;
+  redirect("/dashboard/operacao/producao?dept=cozinha");
 }

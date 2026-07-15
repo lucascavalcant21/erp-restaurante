@@ -43,6 +43,11 @@ function porcoesDaFicha(f) {
 
 const fmtMin = (m) => `${Math.floor(m / 60)}h${String(Math.round(m) % 60).padStart(2, "0")}`;
 
+function formatarQuantidadeProducao(quantidade, unidade) {
+  const rotulo = { g: "g", kg: "kg", ml: "ml", l: "L", un: "un", porcoes: "porções" }[unidade] || unidade;
+  return `${quantidade.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} ${rotulo}`;
+}
+
 export default function RelatorioGerencial() {
   const { unidadeAtiva, unidadeInfo } = useERP();
   const [loading, setLoading] = useState(true);
@@ -126,16 +131,25 @@ export default function RelatorioGerencial() {
     // Banco de horas da equipe (mês)
     const totalBanco = bancoHoras.filter(b => b.tipo !== "excesso").reduce((s, b) => s + (Number(b.minutos) || 0), 0);
 
-    // Produções do período: agrupa por ficha + custo estimado
+    // Produções do período: preserva o custo congelado quando o registro vem
+    // do novo controle. Registros antigos ainda usam o custo atual da ficha.
     const prodPorFicha = {};
     producoes.forEach(p => {
       const nome = p.fichas_tecnicas?.nome_receita || "Receita";
       const ficha = fichas.find(f => f.id === p.ficha_id);
       const custoPorcao = ficha ? custoTotalDaFicha(ficha, fichas) / porcoesDaFicha(ficha) : 0;
-      const qtd = Number(p.quantidade_produzida) || 0;
-      if (!prodPorFicha[nome]) prodPorFicha[nome] = { nome, qtd: 0, custo: 0 };
-      prodPorFicha[nome].qtd += qtd;
-      prodPorFicha[nome].custo += custoPorcao * qtd;
+      const qtdLegada = Number(p.quantidade_produzida) || 0;
+      const temQuantidadeBase = p.quantidade_produzida_base != null && Boolean(p.unidade_base);
+      const qtd = temQuantidadeBase ? Number(p.quantidade_produzida_base) || 0 : qtdLegada;
+      const unidade = String(temQuantidadeBase
+        ? p.unidade_base
+        : (p.unidade_produzida || p.unidade || "porcoes")).toLowerCase();
+      const chave = `${p.ficha_id || nome}::${unidade}`;
+      if (!prodPorFicha[chave]) prodPorFicha[chave] = { chave, nome, unidade, qtd: 0, custo: 0 };
+      prodPorFicha[chave].qtd += qtd;
+      prodPorFicha[chave].custo += p.custo_total != null
+        ? Number(p.custo_total) || 0
+        : custoPorcao * qtdLegada;
     });
     const producoesResumo = Object.values(prodPorFicha).sort((a, b) => b.custo - a.custo);
     const custoProducao = producoesResumo.reduce((s, p) => s + p.custo, 0);
@@ -252,10 +266,10 @@ export default function RelatorioGerencial() {
           ) : (
             <div className="space-y-2">
               {m.producoesResumo.slice(0, 10).map(p => (
-                <div key={p.nome} className="flex justify-between items-center py-1.5 border-b" style={{ borderColor: "var(--line-soft)" }}>
+                <div key={p.chave} className="flex justify-between items-center py-1.5 border-b" style={{ borderColor: "var(--line-soft)" }}>
                   <div className="min-w-0">
                     <p className="text-sm font-bold truncate" style={{ color: "var(--fg-soft)" }}>{p.nome}</p>
-                    <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>{p.qtd.toLocaleString("pt-BR")} porções</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>{formatarQuantidadeProducao(p.qtd, p.unidade)} produzidos</p>
                   </div>
                   <span className="font-black text-sm shrink-0 ml-2" style={{ color: "var(--fg)" }}>{fmtBRL(p.custo)}</span>
                 </div>

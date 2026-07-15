@@ -963,11 +963,14 @@ function FichasRunner() {
       const foto = f.imagem
         ? `<img src="data:image/jpeg;base64,${f.imagem}" alt=""/>`
         : `<span>${(f.nome_receita || "?")[0].toUpperCase()}</span>`;
+      const peso = infoPesoFicha(f, fichas);
+      const unR = String(f.rendimento_unidade || 'porcao').toLowerCase();
+      const pesoG = (peso && peso.pesoTotalG) ? peso.pesoTotalG : (unR === 'kg' || unR === 'l') ? (Number(f.rendimento_porcoes) || 0) * 1000 : (unR === 'g' || unR === 'ml') ? (Number(f.rendimento_porcoes) || 0) : 0;
       return `
       <div class="item">
         <div class="foto">${foto}</div>
         <div class="info">
-          <h3>${f.nome_receita}</h3>
+          <h3>${f.nome_receita}${pesoG > 0 ? `<span class="peso"> · ${Math.round(pesoG).toLocaleString("pt-BR")} g</span>` : ""}</h3>
           <ul>${ings.map(i => `<li><b>${i.qtd}</b> ${i.nome}</li>`).join("") || "<li>Sem ingredientes cadastrados</li>"}</ul>
         </div>
       </div>`;
@@ -976,25 +979,27 @@ function FichasRunner() {
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${titulo} - ${unidadeAtiva}</title>
       <style>
         *{margin:0;padding:0;box-sizing:border-box}
-        html,body{background:#F3EBDC;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-        body{font-family:Georgia,'Times New Roman',serif;color:#2B2118;padding:9mm 8mm}
-        .cabeca{text-align:center;border-bottom:2px solid #2B2118;padding-bottom:10px;margin-bottom:14px}
-        .cabeca h1{font-size:24px;letter-spacing:6px;font-weight:bold}
-        .cabeca p{font-family:Arial,sans-serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#7A5C43;margin-top:4px}
-        .grade{column-count:2;column-gap:8mm}
-        .item{display:flex;gap:10px;align-items:flex-start;break-inside:avoid;margin-bottom:12px;padding-bottom:10px;border-bottom:1px dotted #C8B69A}
-        .foto{width:52px;height:52px;border-radius:50%;overflow:hidden;flex-shrink:0;background:#2B2118;color:#F3EBDC;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:bold;border:2px solid #7A5C43}
+        html,body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+        body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;padding:12mm 10mm}
+        .cabeca{border-bottom:3px solid #0f172a;padding-bottom:8px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-end}
+        .cabeca h1{font-size:20px;letter-spacing:2px;font-weight:800;text-transform:uppercase}
+        .cabeca p{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#64748b;font-weight:bold}
+        .grade{column-count:2;column-gap:9mm}
+        .item{display:flex;gap:10px;align-items:flex-start;break-inside:avoid;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #e2e8f0}
+        .foto{width:50px;height:50px;border-radius:6px;overflow:hidden;flex-shrink:0;background:#f1f5f9;color:#334155;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;border:1px solid #cbd5e1}
         .foto img{width:100%;height:100%;object-fit:cover}
-        .info h3{font-family:Arial,sans-serif;font-size:12.5px;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+        .info{min-width:0}
+        .info h3{font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;color:#0f172a}
+        .info h3 .peso{font-weight:700;color:#64748b;text-transform:none;letter-spacing:0}
         .info ul{list-style:none}
-        .info li{font-family:Arial,sans-serif;font-size:10.5px;color:#4A3B2A;line-height:1.55}
-        .info li b{color:#8C2B2B}
-        .rodape{text-align:center;font-family:Arial,sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#7A5C43;margin-top:10px;border-top:2px solid #2B2118;padding-top:8px}
-        @media print{@page{margin:0}}
+        .info li{font-size:10.5px;color:#334155;line-height:1.55}
+        .info li b{color:#059669}
+        .rodape{text-align:center;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:#94a3b8;margin-top:12px;border-top:1px solid #cbd5e1;padding-top:8px}
+        @media print{@page{margin:10mm}}
       </style></head><body>
       <div class="cabeca">
         <h1>${titulo}</h1>
-        <p>${unidadeInfo?.nome || ""} · receituário padrão ${ehBar ? "do bar" : "da cozinha"}</p>
+        <p>${unidadeInfo?.nome || ""} · receituário ${ehBar ? "do bar" : "da cozinha"}</p>
       </div>
       <div class="grade">${itens}</div>
       <div class="rodape">${lista.length} receitas · uso interno · ${new Date().toLocaleDateString("pt-BR")}</div>

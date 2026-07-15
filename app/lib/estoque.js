@@ -246,5 +246,17 @@ export async function registrarCompra(unidadeId, insumoId, nomeInsumo, departame
   return { success: true };
 }
 
+// Total de reposição (compras) lançado no mês — soma dos valores das entradas.
+export async function fetchReposicaoMes(unidadeId, mesAno) {
+  if (!isSupabaseReady()) return { total: 0 };
+  const [ano, mes] = String(mesAno).split("-").map(Number);
+  const inicio = `${mesAno}-01`;
+  const fim = new Date(ano, mes, 1).toISOString().slice(0, 10); // 1º dia do mês seguinte
+  let q = supabase.from("contas_pagar").select("valor").gte("data_vencimento", inicio).lt("data_vencimento", fim).ilike("descricao", "Compra:%");
+  if (unidadeId && unidadeId !== "todas") q = q.eq("unidade_id", unidadeId);
+  const { data } = await q;
+  return { total: (data || []).reduce((s, c) => s + (Number(c.valor) || 0), 0) };
+}
+
 export const fetchHistoricoTablet = async () => { return { data: [], error: null }; };
 export const movimentarTablet = async () => { return { error: null }; };

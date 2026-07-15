@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
-import { fetchEstoque, ajustarEstoque, atualizarMinimoInsumo, atualizarMaximoInsumo } from "../../../lib/estoque";
+import { fetchEstoque, ajustarEstoque, atualizarMinimoInsumo, atualizarMaximoInsumo, registrarCompra, fetchReposicaoMes } from "../../../lib/estoque";
 import { fetchParams, PARAMS_PADRAO } from "../../../lib/parametros";
 import { useTempoReal } from "../../../lib/realtime";
 import { PackageSearch, Edit3, X, Save, ArrowLeft, RefreshCw, AlertCircle, Search, Plus, TrendingUp, Printer } from "lucide-react";
@@ -31,10 +31,16 @@ function EstoqueRunner() {
   const [qtdEntrada, setQtdEntrada] = useState("");
   const [valorEntrada, setValorEntrada] = useState("");
 
+  const [reposicaoMes, setReposicaoMes] = useState(0);
   const carregar = async (silencioso = false) => {
     if (!silencioso) setLoading(true);
-    const { data } = await fetchEstoque(unidadeAtiva, deptUrl);
-    setItens(data);
+    const mes = new Date().toISOString().slice(0, 7);
+    const [rEst, rRep] = await Promise.all([
+      fetchEstoque(unidadeAtiva, deptUrl),
+      fetchReposicaoMes(unidadeAtiva, mes),
+    ]);
+    setItens(rEst.data);
+    setReposicaoMes(rRep.total || 0);
     setLoading(false);
   };
 
@@ -202,11 +208,18 @@ function EstoqueRunner() {
   const handleSalvarEntrada = async () => {
     if(!qtdEntrada || Number(qtdEntrada) <= 0) return alert("Digite a quantidade comprada.");
     const saldoAtual = Number(itemAtual.quantidade_atual || 0);
-    const novaQtd = saldoAtual + Number(qtdEntrada);
-    await ajustarEstoque(unidadeAtiva, itemAtual.insumo_id, novaQtd);
+    const qtd = Number(qtdEntrada);
+    const novaQtd = saldoAtual + qtd; // sempre SOMA ao saldo atual
+    const valor = parseFloat(String(valorEntrada).replace(",", ".")) || 0;
+    if (valor > 0) {
+      // Registra a compra: soma o estoque E lança o valor (entra na reposição do mês)
+      await registrarCompra(unidadeAtiva, itemAtual.insumo_id, itemAtual.nome, itemAtual.departamento, qtd, valor);
+    } else {
+      await ajustarEstoque(unidadeAtiva, itemAtual.insumo_id, novaQtd);
+    }
     setModalEntrada(false);
     carregar();
-    alert(`Entrada registrada! Novo saldo de ${itemAtual.nome} é ${novaQtd} ${itemAtual.unidade_medida}`);
+    alert(`Entrada somada ao estoque! ${itemAtual.nome}: ${saldoAtual} + ${qtd} = ${novaQtd} ${itemAtual.unidade_medida}${valor > 0 ? `\nReposição de ${fmtBRL(valor)} lançada no mês.` : ""}`);
   };
 
   return (
@@ -239,6 +252,29 @@ function EstoqueRunner() {
       </div>
 
       <div className="max-w-5xl mx-auto px-6 mt-8">
+         {/* Resumo: valor total parado no estoque + reposição (compras) do mês */}
+         {(() => {
+            const valorEstoque = itens.reduce((s, i) => s + (Number(i.custo_unitario) || 0) * (Number(i.quantidade_atual) || 0), 0);
+            return (
+               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+                  <div className="bg-white border border-slate-200 rounded-2xl p-4 text-center shadow-sm">
+                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Valor total em estoque</p>
+                     <p className="text-2xl font-black text-slate-800 mt-1">{fmtBRL(valorEstoque)}</p>
+                     <p className="text-[10px] font-bold text-slate-400 mt-0.5">soma de todos os itens (custo × saldo)</p>
+                  </div>
+                  <div className="bg-white border border-slate-200 rounded-2xl p-4 text-center shadow-sm">
+                     <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Reposição do mês</p>
+                     <p className="text-2xl font-black text-emerald-700 mt-1">{fmtBRL(reposicaoMes)}</p>
+                     <p className="text-[10px] font-bold text-slate-400 mt-0.5">compras lançadas neste mês</p>
+                  </div>
+                  <div className="bg-slate-900 rounded-2xl p-4 text-center shadow-sm">
+                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Estoque total do mês</p>
+                     <p className="text-2xl font-black text-white mt-1">{fmtBRL(valorEstoque + reposicaoMes)}</p>
+                     <p className="text-[10px] font-bold text-slate-500 mt-0.5">valor parado + reposição do mês</p>
+                  </div>
+               </div>
+            );
+         })()}
          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-6 flex items-start gap-4">
             <AlertCircle className="text-slate-600 flex-shrink-0 mt-0.5" />
             <div>

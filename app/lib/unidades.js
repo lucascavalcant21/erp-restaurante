@@ -41,33 +41,38 @@ export async function removerUnidade(id) {
   if (!isSupabaseReady()) return { error: "Offline" };
   if (!id) return { error: "Unidade inválida." };
   try {
-    // 1) Sub-filhos que dependem de "pais" da unidade
-    const { data: fichas } = await supabase.from("fichas_tecnicas").select("id").eq("unidade_id", id);
-    if (fichas?.length) await supabase.from("fichas_ingredientes").delete().in("ficha_id", fichas.map(f => f.id));
-    const { data: pedidos } = await supabase.from("pedidos").select("id").eq("unidade_id", id);
-    if (pedidos?.length) await supabase.from("pedidos_itens").delete().in("pedido_id", pedidos.map(p => p.id));
-    const { data: tpls } = await supabase.from("checklists_templates").select("id").eq("unidade_id", id);
-    if (tpls?.length) await supabase.from("checklists_execucoes").delete().in("template_id", tpls.map(t => t.id));
+    // 1) Sub-filhos que dependem de "pais" da unidade (referenciam por id do pai,
+    //    não por unidade_id) — precisam ser apagados antes.
+    const limparSubfilhos = async () => {
+      const { data: fichas } = await supabase.from("fichas_tecnicas").select("id").eq("unidade_id", id);
+      if (fichas?.length) await supabase.from("fichas_ingredientes").delete().in("ficha_id", fichas.map(f => f.id));
+      const { data: pedidos } = await supabase.from("pedidos").select("id").eq("unidade_id", id);
+      if (pedidos?.length) await supabase.from("pedidos_itens").delete().in("pedido_id", pedidos.map(p => p.id));
+      const { data: tpls } = await supabase.from("checklists_templates").select("id").eq("unidade_id", id);
+      if (tpls?.length) await supabase.from("checklists_execucoes").delete().in("template_id", tpls.map(t => t.id));
+    };
+    await limparSubfilhos();
 
-    // 2) Tabelas com unidade_id direto (as inexistentes retornam erro que ignoramos)
-    const tabelas = [
-      "fichas_tecnicas", "produtos", "cardapio", "insumos", "estoque_atual", "producao_diaria",
-      "pedidos", "etiquetas", "registro_ponto", "rh_folgas_esporadicas", "rh_banco_horas",
-      "rh_consumo_funcionarios", "rh_cargos", "rh_ponto_liberado", "documentos_rh",
-      "funcionarios", "colaboradores",
-      "lancamentos", "contas_pagar", "config_sistema", "config_pins", "checklists_templates",
-      "acessos_modulo", "escalas_dia", "rh_advertencias", "rh_feriados", "fornecedores",
-      "vendas", "mesas", "notas_entrada", "compras", "rh_regulamentos", "rh_documentos",
-      "cardapio_funcionarios", "atas_reuniao", "gastos_administrativos", "manutencao", "inventario",
-    ];
-    // Duas passadas: cobre dependências que só liberam após apagar as anteriores.
-    for (let volta = 0; volta < 2; volta++) {
-      for (const t of tabelas) { await supabase.from(t).delete().eq("unidade_id", id); }
+    // 2) Loop dinâmico: tenta apagar a unidade; se travar por vínculo (FK), lê a
+    //    tabela citada no próprio erro e apaga as linhas dela dessa unidade —
+    //    assim cobre QUALQUER tabela sem precisar listar uma por uma.
+    const tabelasTratadas = new Set();
+    for (let i = 0; i < 60; i++) {
+      const { error } = await supabase.from("unidades").delete().eq("id", id);
+      if (!error) return { error: null };
+      const tabela = (error.message || "").match(/on table "([a-z0-9_]+)"/i)?.[1];
+      if (!tabela || tabela === "unidades") return { error: error.message };
+      const { error: eDel } = await supabase.from(tabela).delete().eq("unidade_id", id);
+      if (eDel) {
+        // A tabela filha tem seus próprios vínculos: apaga a citada e segue.
+        const filha = (eDel.message || "").match(/on table "([a-z0-9_]+)"/i)?.[1];
+        if (filha && filha !== tabela) await supabase.from(filha).delete().eq("unidade_id", id);
+        else if (tabelasTratadas.has(tabela)) return { error: `Não consegui apagar os dados de "${tabela}". Rode o SQL de CASCADE que te passei.` };
+      }
+      tabelasTratadas.add(tabela);
+      await limparSubfilhos();
     }
-
-    // 3) Por fim, a própria unidade
-    const { error } = await supabase.from("unidades").delete().eq("id", id);
-    return { error: error?.message };
+    return { error: "Muitas dependências. Rode o SQL de CASCADE que te passei para excluir de vez." };
   } catch (e) {
     return { error: e?.message || "Falha ao excluir a unidade." };
   }

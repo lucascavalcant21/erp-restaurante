@@ -137,7 +137,7 @@ function EtiquetasRunner() {
   const [codigo, setCodigo] = useState(gerarCodigo());
   const [momentoEtiqueta, setMomentoEtiqueta] = useState(() => new Date());
   const [aba, setAba] = useState("gerar"); // "gerar" | "geradas" (Controle de Validade)
-  const [tamanho, setTamanho] = useState("60x40"); // "60x40" (bobina) | "80x40" | "60x60"
+  const [tamanho, setTamanho] = useState("80x40"); // "80x40" (bobina) | "60x40" | "60x60"
   const [validadeModo, setValidadeModo] = useState("dias"); // "dias" | "data"
   // "aberto" = produto aberto/manipulado (mostra data e hora de manipulação);
   // "fechado" = produto lacrado sem validade visível (mostra etiquetagem + validade)
@@ -617,7 +617,7 @@ function EtiquetasRunner() {
             <div className="flex items-center justify-between mb-2">
               <SectionLabel>Pré-visualização</SectionLabel>
               <div className="flex gap-1.5">
-                {["60x40", "80x40", "60x60"].map((t) => (
+                {["80x40", "60x40", "60x60"].map((t) => (
                   <button key={t} onClick={() => setTamanho(t)}
                     className="text-[11px] font-bold px-3 py-1.5 rounded-lg transition-all"
                     style={tamanho === t ? { background: "var(--accent-strong)", color: "#fff" } : { background: "var(--card)", color: "var(--muted)", border: "1px solid var(--line)" }}>

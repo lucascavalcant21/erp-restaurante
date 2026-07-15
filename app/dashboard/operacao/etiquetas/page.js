@@ -376,8 +376,28 @@ function EtiquetasRunner() {
         setSalvou(`${quantidadeCopias} etiqueta${quantidadeCopias !== 1 ? "s" : ""} enviada${quantidadeCopias !== 1 ? "s" : ""} para ${impressoraNome}`);
       } else if (modoImpressao === "navegador") {
         await new Promise((resolve) => setTimeout(resolve, 150));
-        window.print();
-        setSalvou("Etiqueta salva. Impressão comum aberta.");
+        // Impressão ISOLADA: abre uma janela só com as etiquetas (o resto da tela
+        // fazia o navegador gerar várias folhas em branco).
+        const area = document.getElementById("area-impressao");
+        const win = area ? window.open("", "_blank", "width=420,height=640") : null;
+        if (win && area) {
+          win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Etiquetas</title>
+            <style>
+              @page { size: 80mm ${dim.paginaH}; margin: 0; }
+              *{box-sizing:border-box} html,body{margin:0;padding:0;background:#fff}
+              #wrap{width:80mm;margin:0 auto;display:flex;flex-direction:column;gap:0}
+              .etiqueta-print{page-break-after:always;overflow:hidden;box-shadow:none!important;border-radius:0!important;margin:0 auto!important}
+              .etiqueta-print:last-child{page-break-after:auto}
+            </style></head><body>
+            <div id="wrap">${area.innerHTML}</div>
+            <script>window.onafterprint=function(){setTimeout(function(){try{window.close()}catch(e){}},200)}<\/script>
+            </body></html>`);
+          win.document.close();
+          setTimeout(() => { try { win.focus(); win.print(); } catch (_) {} }, 350);
+        } else {
+          window.print();
+        }
+        setSalvou("Etiqueta salva. Impressão aberta.");
       } else {
         setSalvou("Etiqueta salva!");
       }

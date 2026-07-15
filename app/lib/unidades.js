@@ -53,11 +53,17 @@ export async function removerUnidade(id) {
     const tabelas = [
       "fichas_tecnicas", "produtos", "cardapio", "insumos", "estoque_atual", "producao_diaria",
       "pedidos", "etiquetas", "registro_ponto", "rh_folgas_esporadicas", "rh_banco_horas",
-      "rh_consumo_funcionarios", "rh_cargos", "rh_ponto_liberado", "documentos_rh", "colaboradores",
+      "rh_consumo_funcionarios", "rh_cargos", "rh_ponto_liberado", "documentos_rh",
+      "funcionarios", "colaboradores",
       "lancamentos", "contas_pagar", "config_sistema", "config_pins", "checklists_templates",
       "acessos_modulo", "escalas_dia", "rh_advertencias", "rh_feriados", "fornecedores",
+      "vendas", "mesas", "notas_entrada", "compras", "rh_regulamentos", "rh_documentos",
+      "cardapio_funcionarios", "atas_reuniao", "gastos_administrativos", "manutencao", "inventario",
     ];
-    for (const t of tabelas) { await supabase.from(t).delete().eq("unidade_id", id); }
+    // Duas passadas: cobre dependências que só liberam após apagar as anteriores.
+    for (let volta = 0; volta < 2; volta++) {
+      for (const t of tabelas) { await supabase.from(t).delete().eq("unidade_id", id); }
+    }
 
     // 3) Por fim, a própria unidade
     const { error } = await supabase.from("unidades").delete().eq("id", id);

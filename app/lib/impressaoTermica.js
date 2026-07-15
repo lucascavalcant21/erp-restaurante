@@ -1,8 +1,32 @@
 "use client";
 
-// Perfis medidos fisicamente na EPSON TM-T20 deste computador (203 dpi).
-// O corte fica deliberadamente desligado: a bobina adesiva precisa de uma
+// Perfis medidos fisicamente na EPSON TM-T20/M249A deste computador (203 dpi).
+// O sistema não envia comando de corte: a bobina adesiva precisa de uma
 // calibração separada da distância entre a cabeça e a guilhotina.
+const DPI_TMT20 = 203;
+const MM_POR_POLEGADA = 25.4;
+
+export const CALIBRACAO_PADRAO_TMT20 = Object.freeze({ gapMm: 2 });
+
+function limitar(numero, minimo, maximo) {
+  return Math.min(maximo, Math.max(minimo, numero));
+}
+
+export function mmParaPontosTmT20(valorMm) {
+  const mm = Number(valorMm);
+  if (!Number.isFinite(mm)) return 0;
+  return Math.round((mm * DPI_TMT20) / MM_POR_POLEGADA);
+}
+
+export function normalizarCalibracaoTmT20(calibracao = {}) {
+  const bruto = calibracao?.gapMm;
+  const informado = bruto === "" || bruto == null ? Number.NaN : Number(bruto);
+  const gapMm = Number.isFinite(informado)
+    ? limitar(informado, 0, 10)
+    : CALIBRACAO_PADRAO_TMT20.gapMm;
+  return { gapMm, gapPontos: limitar(mmParaPontosTmT20(gapMm), 0, 255) };
+}
+
 export const PERFIS_TP20 = {
   "60x40": {
     id: "t20-60x40-v1",
@@ -10,8 +34,7 @@ export const PERFIS_TP20 = {
     alturaPontos: 320,
     xConteudo: 48,
     larguraConteudo: 528,
-    gapPontos: 16,
-    descricao: "66 mm úteis × 40 mm · vão de 2 mm",
+    descricao: "66 mm úteis × 40 mm",
   },
   "60x60": {
     id: "t20-60x60-v1",
@@ -19,8 +42,7 @@ export const PERFIS_TP20 = {
     alturaPontos: 480,
     xConteudo: 64,
     larguraConteudo: 480,
-    gapPontos: 16,
-    descricao: "60 mm úteis × 60 mm · vão de 2 mm",
+    descricao: "60 mm úteis × 60 mm",
   },
 };
 
@@ -193,6 +215,45 @@ function criarCanvasEtiqueta(perfil, dados, qrImagem) {
   return canvas;
 }
 
+function criarCanvasTeste(perfil, calibracao, numero) {
+  const canvas = document.createElement("canvas");
+  canvas.width = perfil.larguraPontos;
+  canvas.height = perfil.alturaPontos;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#000";
+  ctx.strokeStyle = "#000";
+  ctx.lineWidth = 4;
+
+  const margem = 5;
+  const esquerda = limitar(perfil.xConteudo + margem, margem, canvas.width - margem - 40);
+  const largura = Math.max(40, Math.min(perfil.larguraConteudo - (margem * 2), canvas.width - esquerda - margem));
+  ctx.strokeRect(esquerda, margem, largura, canvas.height - (margem * 2));
+
+  ctx.setLineDash([10, 8]);
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(esquerda, Math.round(canvas.height / 2));
+  ctx.lineTo(esquerda + largura, Math.round(canvas.height / 2));
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  const etiqueta40 = perfil.id.includes("60x40");
+  const tamanho = etiqueta40 ? "60 x 40 mm" : "60 x 60 mm";
+  const alturaMm = etiqueta40 ? 40 : 60;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = "700 32px Arial, sans-serif";
+  ctx.fillText(`TESTE ${numero} DE 2`, esquerda + (largura / 2), canvas.height * 0.27);
+  ctx.font = "700 24px Arial, sans-serif";
+  ctx.fillText(`EPSON TM-T20 · ${tamanho}`, esquerda + (largura / 2), canvas.height * 0.43);
+  ctx.font = "600 20px Arial, sans-serif";
+  ctx.fillText(`PASSO: ${(alturaMm + calibracao.gapMm).toFixed(1)} mm`, esquerda + (largura / 2), canvas.height * 0.66);
+  ctx.fillText("SEM COMANDO DE CORTE", esquerda + (largura / 2), canvas.height * 0.78);
+  return canvas;
+}
+
 function canvasParaRaster(canvas) {
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
@@ -210,8 +271,12 @@ function canvasParaRaster(canvas) {
   return { raster, bytesPorLinha };
 }
 
-function criarComandosEscPos(perfil, raster, bytesPorLinha, copias) {
-  const partes = [[0x1b, 0x40]]; // ESC @
+function criarComandosEscPos(perfil, raster, bytesPorLinha, copias, calibracao = {}) {
+  const ajuste = normalizarCalibracaoTmT20(calibracao);
+  const partes = [
+    [0x1b, 0x40], // ESC @: inicializa a impressora
+    [0x1d, 0x50, 0xcb, 0xcb], // GS P 203 203: unidade vertical exata de 1/203"
+  ];
   const xL = bytesPorLinha & 0xff;
   const xH = (bytesPorLinha >> 8) & 0xff;
   const yL = perfil.alturaPontos & 0xff;
@@ -219,14 +284,26 @@ function criarComandosEscPos(perfil, raster, bytesPorLinha, copias) {
   for (let i = 0; i < copias; i += 1) {
     partes.push([0x1d, 0x76, 0x30, 0x00, xL, xH, yL, yH]);
     partes.push(raster);
-    partes.push([0x1b, 0x4a, perfil.gapPontos]); // avanço fixo de 2 mm
+    if (ajuste.gapPontos > 0) partes.push([0x1b, 0x4a, ajuste.gapPontos]);
   }
+  // Compatibilidade TM-T20/M249A: não enviar ESC i, ESC m ou GS V (corte).
   const tamanho = partes.reduce((total, parte) => total + parte.length, 0);
   const saida = new Uint8Array(tamanho);
   let offset = 0;
   partes.forEach((parte) => {
     saida.set(parte, offset);
     offset += parte.length;
+  });
+  return saida;
+}
+
+function juntarBytes(...blocos) {
+  const tamanho = blocos.reduce((total, bloco) => total + bloco.length, 0);
+  const saida = new Uint8Array(tamanho);
+  let offset = 0;
+  blocos.forEach((bloco) => {
+    saida.set(bloco, offset);
+    offset += bloco.length;
   });
   return saida;
 }
@@ -240,21 +317,13 @@ function bytesParaBase64(bytes) {
   return btoa(binario);
 }
 
-export async function imprimirEtiquetasTp20({ impressora, tamanho, copias, dados }) {
-  const perfil = PERFIS_TP20[tamanho];
-  if (!perfil) throw new Error("Perfil de etiqueta não configurado");
-  const quantidade = Math.max(1, Math.min(100, Number(copias) || 1));
+async function enviarRaw({ impressora, comandos, jobName }) {
   const qz = await obterQz();
   if (!qz.websocket.isActive()) throw new Error("Conecte e autorize a impressora antes de imprimir");
   if (!impressora) throw new Error("Selecione a impressora térmica");
-
-  const qrImagem = await carregarQrDaPrevia();
-  const canvas = criarCanvasEtiqueta(perfil, dados, qrImagem);
-  const { raster, bytesPorLinha } = canvasParaRaster(canvas);
-  const comandos = criarComandosEscPos(perfil, raster, bytesPorLinha, quantidade);
   const config = qz.configs.create(impressora, {
     encoding: "ISO-8859-1",
-    jobName: `ERP Etiquetas ${dados.codigo}`,
+    jobName,
   });
   await qz.print(config, [{
     type: "raw",
@@ -262,5 +331,44 @@ export async function imprimirEtiquetasTp20({ impressora, tamanho, copias, dados
     flavor: "base64",
     data: bytesParaBase64(comandos),
   }]);
-  return { perfil: perfil.id, copias: quantidade };
+}
+
+export async function imprimirEtiquetasTp20({ impressora, tamanho, copias, dados, calibracao }) {
+  const perfil = PERFIS_TP20[tamanho];
+  if (!perfil) throw new Error("Perfil de etiqueta não configurado");
+  const quantidade = Math.max(1, Math.min(100, Number(copias) || 1));
+
+  const qrImagem = await carregarQrDaPrevia();
+  const canvas = criarCanvasEtiqueta(perfil, dados, qrImagem);
+  const { raster, bytesPorLinha } = canvasParaRaster(canvas);
+  const ajuste = normalizarCalibracaoTmT20(calibracao);
+  const comandos = criarComandosEscPos(perfil, raster, bytesPorLinha, quantidade, ajuste);
+  await enviarRaw({ impressora, comandos, jobName: `ERP Etiquetas ${dados.codigo}` });
+  return { perfil: perfil.id, copias: quantidade, gapMm: ajuste.gapMm, comandoCorte: false };
+}
+
+export async function imprimirTesteTmT20({ impressora, tamanho, calibracao }) {
+  const perfil = PERFIS_TP20[tamanho];
+  if (!perfil) throw new Error("Perfil de etiqueta não configurado");
+  const ajuste = normalizarCalibracaoTmT20(calibracao);
+  const comandos = juntarBytes(...[1, 2].map((numero) => {
+    const canvas = criarCanvasTeste(perfil, ajuste, numero);
+    const { raster, bytesPorLinha } = canvasParaRaster(canvas);
+    return criarComandosEscPos(perfil, raster, bytesPorLinha, 1, ajuste);
+  }));
+  await enviarRaw({ impressora, comandos, jobName: `Teste Epson TM-T20 ${tamanho}` });
+  return { perfil: perfil.id, copias: 2, gapMm: ajuste.gapMm, comandoCorte: false };
+}
+
+export async function avancarPapelTmT20({ impressora, milimetros }) {
+  const mm = limitar(Number(milimetros) || 0, 0, 20);
+  const pontos = limitar(mmParaPontosTmT20(mm), 0, 255);
+  if (pontos < 1) return { milimetros: 0, pontos: 0 };
+  const comandos = Uint8Array.from([
+    0x1b, 0x40,
+    0x1d, 0x50, 0xcb, 0xcb,
+    0x1b, 0x4a, pontos,
+  ]);
+  await enviarRaw({ impressora, comandos, jobName: `Avanço Epson TM-T20 ${mm}mm` });
+  return { milimetros: mm, pontos, comandoCorte: false };
 }

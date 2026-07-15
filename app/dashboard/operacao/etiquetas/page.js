@@ -16,7 +16,8 @@ import { CONSERVACAO, gerarCodigo, criarEtiqueta } from "../../../lib/etiquetas"
 import { fetchValidadesEtiqueta } from "../../../lib/parametros";
 import {
   conectarAssistenteImpressao, observarAssistenteImpressao,
-  imprimirEtiquetasTp20, PERFIS_TP20,
+  imprimirEtiquetasTp20, imprimirTesteTmT20, avancarPapelTmT20,
+  normalizarCalibracaoTmT20, CALIBRACAO_PADRAO_TMT20, PERFIS_TP20,
 } from "../../../lib/impressaoTermica";
 
 const UNIDADES = ["UN", "KG", "G", "L", "ML", "CX", "PCT", "BANDEJA"];
@@ -31,6 +32,33 @@ function fmtData(d) {
   if (!(d instanceof Date) || !Number.isFinite(d.getTime())) return "—";
   const p = (n) => String(n).padStart(2, "0");
   return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`;
+}
+
+function chaveCalibracaoTmT20(impressora, tamanho) {
+  return `erp_etiquetas_calibracao_v1:${encodeURIComponent(impressora || "epson-tm-t20")}:${tamanho}`;
+}
+
+function chaveTamanhoTmT20(impressora) {
+  return `erp_etiquetas_tamanho_v1:${encodeURIComponent(impressora || "epson-tm-t20")}`;
+}
+
+function lerGapCalibracaoTmT20(impressora, tamanho) {
+  try {
+    const salvo = localStorage.getItem(chaveCalibracaoTmT20(impressora, tamanho));
+    const valor = salvo ? JSON.parse(salvo)?.gapMm : CALIBRACAO_PADRAO_TMT20.gapMm;
+    return normalizarCalibracaoTmT20({ gapMm: valor }).gapMm;
+  } catch (_) {
+    return CALIBRACAO_PADRAO_TMT20.gapMm;
+  }
+}
+
+function lerTamanhoTmT20(impressora) {
+  try {
+    const salvo = localStorage.getItem(chaveTamanhoTmT20(impressora));
+    return PERFIS_TP20[salvo] ? salvo : "60x60";
+  } catch (_) {
+    return "60x60";
+  }
 }
 
 function EtiquetasRunner() {
@@ -64,6 +92,8 @@ function EtiquetasRunner() {
   const [impressoras, setImpressoras] = useState([]);
   const [impressoraNome, setImpressoraNome] = useState("");
   const [conectando, setConectando] = useState(false);
+  const [gapMm, setGapMm] = useState(String(CALIBRACAO_PADRAO_TMT20.gapMm));
+  const [ajustandoImpressora, setAjustandoImpressora] = useState(false);
   const assinaturaConteudo = useMemo(() => JSON.stringify({
     unidadeAtiva, form, tipoEtiqueta, validadeModo, dataValidade, copias,
   }), [unidadeAtiva, form, tipoEtiqueta, validadeModo, dataValidade, copias]);
@@ -77,15 +107,24 @@ function EtiquetasRunner() {
     ? tamanho
     : (PERFIS_TP20?.["60x60"] ? "60x60" : Object.keys(PERFIS_TP20 || {})[0] || "60x60");
   const perfilTp20 = PERFIS_TP20?.[tamanhoSeguro] || null;
+  const calibracaoTmT20 = useMemo(() => normalizarCalibracaoTmT20({ gapMm }), [gapMm]);
+  const alturaEtiquetaMm = tamanhoSeguro === "60x40" ? 40 : 60;
+  const passoEtiquetaMm = alturaEtiquetaMm + calibracaoTmT20.gapMm;
 
   // Dimensões/escala da etiqueta conforme o tamanho escolhido
   const dim = tamanhoSeguro === "60x40"
-    ? { w: "66mm", h: "40mm", paginaH: "42mm", pad: "2.2mm", titulo: "3.6mm", linha: "2.35mm", resp: "2.05mm", qr: 42, gap: "0.45mm" }
-    : { w: "60mm", h: "60mm", paginaH: "62mm", pad: "3.2mm", titulo: "4.4mm", linha: "2.9mm", resp: "2.55mm", qr: 64, gap: "0.7mm" };
+    ? { w: "66mm", h: "40mm", pad: "2.2mm", titulo: "3.6mm", linha: "2.35mm", resp: "2.05mm", qr: 42, gap: "0.45mm" }
+    : { w: "60mm", h: "60mm", pad: "3.2mm", titulo: "4.4mm", linha: "2.9mm", resp: "2.55mm", qr: 64, gap: "0.7mm" };
 
   useEffect(() => {
     lerSessao().then((s) => s?.nome && setForm((f) => ({ ...f, responsavel: f.responsavel || s.nome })));
-    try { setImpressoraNome(localStorage.getItem("erp_impressora_termica") || ""); } catch (_) {}
+    try {
+      const nomeSalvo = localStorage.getItem("erp_impressora_termica") || "";
+      const tamanhoSalvo = lerTamanhoTmT20(nomeSalvo);
+      setImpressoraNome(nomeSalvo);
+      setTamanho(tamanhoSalvo);
+      setGapMm(String(lerGapCalibracaoTmT20(nomeSalvo, tamanhoSalvo)));
+    } catch (_) {}
     observarAssistenteImpressao({
       aoFechar: () => setImpressoraStatus("desconectada"),
       aoErro: () => setImpressoraStatus("erro"),
@@ -143,7 +182,7 @@ function EtiquetasRunner() {
   }
 
   async function conectarImpressora() {
-    if (conectando) return;
+    if (conectando || salvando || ajustandoImpressora) return;
     setConectando(true);
     setImpressoraErro("");
     setImpressoraStatus("conectando");
@@ -155,9 +194,7 @@ function EtiquetasRunner() {
         setImpressoraErro("O assistente conectou, mas não reconheceu uma térmica automaticamente. Selecione abaixo a fila correta.");
         return;
       }
-      setImpressoraNome(resultado.nome);
-      setImpressoraStatus("conectada");
-      try { localStorage.setItem("erp_impressora_termica", resultado.nome); } catch (_) {}
+      escolherImpressora(resultado.nome);
     } catch (erro) {
       setImpressoraStatus("erro");
       setImpressoraErro("Não foi possível abrir o assistente. Confirme que o QZ Tray está instalado e aceite a autorização do navegador.");
@@ -167,10 +204,75 @@ function EtiquetasRunner() {
   }
 
   function escolherImpressora(nome) {
+    if (salvando || ajustandoImpressora) return;
+    const tamanhoSalvo = lerTamanhoTmT20(nome);
     setImpressoraNome(nome);
+    setTamanho(tamanhoSalvo);
+    setGapMm(String(lerGapCalibracaoTmT20(nome, tamanhoSalvo)));
     setImpressoraStatus(nome ? "conectada" : "selecionar");
     setImpressoraErro("");
     try { localStorage.setItem("erp_impressora_termica", nome); } catch (_) {}
+  }
+
+  function escolherTamanhoEtiqueta(novoTamanho) {
+    if (salvando || ajustandoImpressora || !PERFIS_TP20[novoTamanho]) return;
+    setTamanho(novoTamanho);
+    setGapMm(String(lerGapCalibracaoTmT20(impressoraNome, novoTamanho)));
+    try { localStorage.setItem(chaveTamanhoTmT20(impressoraNome), novoTamanho); } catch (_) {}
+  }
+
+  function alterarGap(valor) {
+    setGapMm(valor);
+    if (String(valor).trim() === "") return;
+    const ajuste = normalizarCalibracaoTmT20({ gapMm: valor });
+    try {
+      localStorage.setItem(
+        chaveCalibracaoTmT20(impressoraNome, tamanhoSeguro),
+        JSON.stringify({ gapMm: ajuste.gapMm }),
+      );
+    } catch (_) {}
+  }
+
+  function restaurarCalibracao() {
+    const padrao = CALIBRACAO_PADRAO_TMT20.gapMm;
+    setGapMm(String(padrao));
+    try { localStorage.removeItem(chaveCalibracaoTmT20(impressoraNome, tamanhoSeguro)); } catch (_) {}
+    setSalvou("Calibração restaurada para 2 mm entre as etiquetas");
+    setTimeout(() => setSalvou(""), 2500);
+  }
+
+  async function avancarBobina(milimetros) {
+    if (ajustandoImpressora || salvando || impressoraStatus !== "conectada") return;
+    setAjustandoImpressora(true);
+    setImpressoraErro("");
+    try {
+      await avancarPapelTmT20({ impressora: impressoraNome, milimetros });
+      setSalvou(`Bobina avançada ${milimetros} mm, sem comando de corte`);
+      setTimeout(() => setSalvou(""), 2200);
+    } catch (erro) {
+      setImpressoraErro(erro?.message || "Não foi possível avançar a bobina");
+    } finally {
+      setAjustandoImpressora(false);
+    }
+  }
+
+  async function imprimirTesteCalibracao() {
+    if (ajustandoImpressora || salvando || impressoraStatus !== "conectada") return;
+    setAjustandoImpressora(true);
+    setImpressoraErro("");
+    try {
+      await imprimirTesteTmT20({
+        impressora: impressoraNome,
+        tamanho: tamanhoSeguro,
+        calibracao: calibracaoTmT20,
+      });
+      setSalvou("Duas etiquetas de teste foram enviadas. Confira se a segunda começa no mesmo ponto da primeira.");
+      setTimeout(() => setSalvou(""), 6000);
+    } catch (erro) {
+      setImpressoraErro(erro?.message || "Não foi possível imprimir o teste de alinhamento");
+    } finally {
+      setAjustandoImpressora(false);
+    }
   }
 
   const agora = momentoEtiqueta;
@@ -192,7 +294,7 @@ function EtiquetasRunner() {
   const cadastroUnidadeCompleto = Boolean(cnpjUnidade && unidadeInfo?.cep && enderecoUnidade && unidadeInfo?.cidade && unidadeInfo?.uf);
 
   async function salvar(modoImpressao = "") {
-    if (salvando) return;
+    if (salvando || ajustandoImpressora) return;
     if (codigoSalvo === codigo && assinaturaSalva !== assinaturaConteudo) {
       setCodigo(gerarCodigo());
       setCodigoSalvo(null);
@@ -219,7 +321,7 @@ function EtiquetasRunner() {
       setTimeout(() => setSalvou(""), 4000); return;
     }
     if (modoImpressao === "tp20" && impressoraStatus !== "conectada") {
-      setSalvou("Conecte e autorize a TP20 antes de imprimir"); setTimeout(() => setSalvou(""), 3000); return;
+      setSalvou("Conecte e autorize a Epson TM-T20 antes de imprimir"); setTimeout(() => setSalvou(""), 3000); return;
     }
     if (!Number.isFinite(validadeImpressao.getTime()) || validadeImpressao.getTime() < momentoImpressao.getTime()) {
       setSalvou("A validade não pode estar no passado"); setTimeout(() => setSalvou(""), 2500); return;
@@ -258,6 +360,7 @@ function EtiquetasRunner() {
           impressora: impressoraNome,
           tamanho: tamanhoSeguro,
           copias: quantidadeCopias,
+          calibracao: calibracaoTmT20,
           dados: {
             codigo,
             produto: nomeProduto,
@@ -307,8 +410,8 @@ function EtiquetasRunner() {
           body * { visibility: hidden !important; }
           #area-impressao, #area-impressao * { visibility: visible !important; }
           #area-impressao { position: absolute !important; left: 0; top: 0; margin: 0; padding: 0; background: #fff !important; color: #000 !important; width: 80mm !important; display: flex !important; flex-direction: column !important; gap: 0 !important; }
-          .etiqueta-print { page-break-after: always; overflow: hidden; border-radius: 0 !important; box-shadow: none !important; border: none !important; margin-left: auto !important; margin-right: auto !important; margin-top: 0 !important; margin-bottom: 2mm !important; }
-          @page { size: 80mm ${dim.paginaH}; margin: 0; }
+          .etiqueta-print { page-break-after: always; overflow: hidden; border-radius: 0 !important; box-shadow: none !important; border: none !important; margin-left: auto !important; margin-right: auto !important; margin-top: 0 !important; margin-bottom: ${calibracaoTmT20.gapMm}mm !important; }
+          @page { size: 80mm ${passoEtiquetaMm}mm; margin: 0; }
         }
       `}} />
       <PageHeader title="Etiquetas e Validades" subtitle={`QR Code + rastreio · ${unidadeInfo.nome}`} icon={Tag} />
@@ -457,7 +560,7 @@ function EtiquetasRunner() {
                     </span>
                   </div>
                 </div>
-                <button type="button" onClick={conectarImpressora} disabled={conectando}
+                <button type="button" onClick={conectarImpressora} disabled={conectando || salvando || ajustandoImpressora}
                   className="px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 disabled:opacity-50"
                   style={{ background: "var(--accent-soft)", color: "var(--accent-fg)" }}>
                   <RefreshCw size={13} className={conectando ? "animate-spin" : ""} />
@@ -466,15 +569,74 @@ function EtiquetasRunner() {
               </div>
               {impressoras.length > 0 && (
                 <Field label="Fila de impressão do Windows">
-                  <Select value={impressoraNome} onChange={(e) => escolherImpressora(e.target.value)}>
+                  <Select value={impressoraNome} disabled={salvando || ajustandoImpressora} onChange={(e) => escolherImpressora(e.target.value)}>
                     <option value="">Selecione a impressora térmica...</option>
                     {impressoras.map((nome) => <option key={nome} value={nome}>{nome}</option>)}
                   </Select>
                 </Field>
               )}
               {impressoraErro && <p className="text-[11px] font-bold text-red-600 bg-red-50 rounded-lg px-3 py-2 mb-2">{impressoraErro}</p>}
+              <div className="mt-3 rounded-xl p-3" style={{ background: "var(--panel)", border: "1px solid var(--line)" }}>
+                <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
+                  <div>
+                    <p className="text-[12px] font-black" style={{ color: "var(--fg)" }}>Modo térmico ESC/POS 203 dpi</p>
+                    <p className="text-[10px] font-medium" style={{ color: "var(--dim)" }}>Calibrado para Epson TM-T20/M249A · sem comando de corte</p>
+                  </div>
+                  <span className="text-[9px] font-black uppercase px-2 py-1 rounded-full bg-amber-100 text-amber-800">Sem sensor de gap</span>
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                  <span className="text-[10px] font-bold" style={{ color: "var(--muted)" }}>Tamanho da etiqueta</span>
+                  <div className="flex gap-1.5">
+                    {["60x40", "60x60"].map((t) => (
+                      <button key={t} type="button" disabled={salvando || ajustandoImpressora} onClick={() => escolherTamanhoEtiqueta(t)}
+                        className="text-[11px] font-bold px-3 py-1.5 rounded-lg transition-all disabled:opacity-40"
+                        style={tamanhoSeguro === t ? { background: "var(--accent-strong)", color: "#fff" } : { background: "var(--card)", color: "var(--muted)", border: "1px solid var(--line)" }}>
+                        {t.replace("x", "×")}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-3 items-end">
+                  <Field label="Espaço entre as etiquetas (mm)">
+                    <NumberInput
+                      value={gapMm}
+                      min="0"
+                      max="10"
+                      step="0.1"
+                      disabled={salvando || ajustandoImpressora}
+                      onChange={(e) => alterarGap(e.target.value)}
+                      onBlur={() => alterarGap(String(calibracaoTmT20.gapMm))}
+                    />
+                  </Field>
+                  <div className="rounded-lg px-3 py-2.5" style={{ background: "var(--card)", border: "1px solid var(--line)" }}>
+                    <p className="text-[9px] font-bold uppercase" style={{ color: "var(--dim)" }}>Avanço total</p>
+                    <p className="text-sm font-black" style={{ color: "var(--fg)" }}>{passoEtiquetaMm.toFixed(1)} mm por etiqueta</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  <button type="button" disabled={ajustandoImpressora || salvando || impressoraStatus !== "conectada"} onClick={() => avancarBobina(1)}
+                    className="px-3 py-2 rounded-lg text-[10px] font-bold disabled:opacity-40" style={{ background: "var(--card)", border: "1px solid var(--line)", color: "var(--muted)" }}>
+                    Avançar 1 mm
+                  </button>
+                  <button type="button" disabled={ajustandoImpressora || salvando || impressoraStatus !== "conectada"} onClick={() => avancarBobina(5)}
+                    className="px-3 py-2 rounded-lg text-[10px] font-bold disabled:opacity-40" style={{ background: "var(--card)", border: "1px solid var(--line)", color: "var(--muted)" }}>
+                    Avançar 5 mm
+                  </button>
+                  <button type="button" disabled={ajustandoImpressora || salvando || impressoraStatus !== "conectada"} onClick={imprimirTesteCalibracao}
+                    className="px-3 py-2 rounded-lg text-[10px] font-black disabled:opacity-40" style={{ background: "var(--accent-soft)", color: "var(--accent-fg)" }}>
+                    {ajustandoImpressora ? "Aguarde..." : "Imprimir 2 testes"}
+                  </button>
+                  <button type="button" disabled={ajustandoImpressora || salvando} onClick={restaurarCalibracao}
+                    className="px-3 py-2 rounded-lg text-[10px] font-bold disabled:opacity-40" style={{ color: "var(--muted)" }}>
+                    Restaurar 2 mm
+                  </button>
+                </div>
+                <p className="text-[10px] font-medium mt-3" style={{ color: "var(--dim)" }}>
+                  Posicione a primeira etiqueta com os botões de avanço. O teste não cria registro no histórico. O sistema não envia comando de corte; confirme também que “Auto Cut” está desativado nas Preferências da impressora no Windows.
+                </p>
+              </div>
               <p className="text-[10px] font-medium" style={{ color: "var(--dim)" }}>
-                Perfil {perfilTp20?.descricao || "padrão"}. A guilhotina permanece desligada para proteger a bobina adesiva.
+                Perfil {perfilTp20?.descricao || "padrão"} · espaço configurado em {calibracaoTmT20.gapMm.toFixed(1)} mm.
               </p>
               <a href="https://qz.io/download/" target="_blank" rel="noreferrer"
                 className="inline-block text-[10px] font-bold mt-1.5" style={{ color: "var(--accent-fg)" }}>
@@ -483,26 +645,15 @@ function EtiquetasRunner() {
             </Card>
 
             <div className="grid sm:grid-cols-3 gap-3">
-              <Btn variant="ghost" disabled={salvando} onClick={() => salvar("")}><Save size={16} /> {salvando ? "Salvando..." : "Salvar"}</Btn>
-              <Btn variant="ghost" disabled={salvando} onClick={() => salvar("navegador")}><Printer size={16} /> Impressão comum</Btn>
-              <Btn variant="primary" disabled={salvando || impressoraStatus !== "conectada"} onClick={() => salvar("tp20")}><Printer size={16} /> {salvando ? "Aguarde..." : "Imprimir na TP20"}</Btn>
+              <Btn variant="ghost" disabled={salvando || ajustandoImpressora} onClick={() => salvar("")}><Save size={16} /> {salvando ? "Salvando..." : "Salvar"}</Btn>
+              <Btn variant="ghost" disabled={salvando || ajustandoImpressora} onClick={() => salvar("navegador")}><Printer size={16} /> Impressão comum</Btn>
+              <Btn variant="primary" disabled={salvando || ajustandoImpressora || impressoraStatus !== "conectada"} onClick={() => salvar("tp20")}><Printer size={16} /> {salvando ? "Aguarde..." : "Imprimir etiqueta"}</Btn>
             </div>
           </div>
 
           {/* ── Preview / Etiqueta ── */}
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <SectionLabel>Pré-visualização</SectionLabel>
-              <div className="flex gap-1.5">
-                {["60x40", "60x60"].map((t) => (
-                  <button key={t} onClick={() => setTamanho(t)}
-                    className="text-[11px] font-bold px-3 py-1.5 rounded-lg transition-all"
-                    style={tamanhoSeguro === t ? { background: "var(--accent-strong)", color: "#fff" } : { background: "var(--card)", color: "var(--muted)", border: "1px solid var(--line)" }}>
-                    {t.replace("x", "×")}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <div className="mb-2"><SectionLabel>Pré-visualização</SectionLabel></div>
             <div className="flex justify-center overflow-auto p-4 bg-slate-100 rounded-2xl border border-slate-200">
               <div id="area-impressao" className="flex flex-col gap-4" style={{ width: "80mm" }}>
                 {Array.from({ length: quantidadeCopias }).map((_, idx) => (

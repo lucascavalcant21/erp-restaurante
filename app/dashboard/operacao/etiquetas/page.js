@@ -137,7 +137,7 @@ function EtiquetasRunner() {
   const [codigo, setCodigo] = useState(gerarCodigo());
   const [momentoEtiqueta, setMomentoEtiqueta] = useState(() => new Date());
   const [aba, setAba] = useState("gerar"); // "gerar" | "geradas" (Controle de Validade)
-  const [tamanho, setTamanho] = useState("80x40"); // "80x40" (bobina) | "60x40" | "60x60"
+  const [tamanho, setTamanho] = useState("60x40"); // "60x40" (bobina) | "80x40" | "60x60"
   const [validadeModo, setValidadeModo] = useState("dias"); // "dias" | "data"
   // "aberto" = produto aberto/manipulado (mostra data e hora de manipulação);
   // "fechado" = produto lacrado sem validade visível (mostra etiquetagem + validade)
@@ -177,9 +177,9 @@ function EtiquetasRunner() {
   // Dimensões/escala da etiqueta conforme o tamanho escolhido.
   // 80x40 = bobina adesiva com divisórias (die-cut) de 80mm × 40mm.
   const DIMENSOES = {
+    "60x40": { w: "60mm", h: "40mm", paginaW: "60mm", paginaH: "40mm", pad: "1.6mm", titulo: "3mm", linha: "2.05mm", resp: "1.8mm", qr: 38, gap: "0.35mm", secPad: "0.4mm", footLh: 1.12, respMt: "0.4mm" },
     "80x40": { w: "80mm", h: "40mm", paginaW: "80mm", paginaH: "40mm", pad: "2mm", titulo: "3.4mm", linha: "2.3mm", resp: "2mm", qr: 44, gap: "0.4mm", secPad: "0.5mm", footLh: 1.15, respMt: "0.5mm" },
-    "60x40": { w: "66mm", h: "40mm", paginaW: "80mm", paginaH: "42mm", pad: "1.8mm", titulo: "3.2mm", linha: "2.15mm", resp: "1.85mm", qr: 40, gap: "0.4mm", secPad: "0.45mm", footLh: 1.15, respMt: "0.5mm" },
-    "60x60": { w: "60mm", h: "60mm", paginaW: "80mm", paginaH: "62mm", pad: "3.2mm", titulo: "4.4mm", linha: "2.9mm", resp: "2.55mm", qr: 64, gap: "0.7mm", secPad: "0.8mm", footLh: 1.35, respMt: "1mm" },
+    "60x60": { w: "60mm", h: "60mm", paginaW: "60mm", paginaH: "60mm", pad: "3.2mm", titulo: "4.4mm", linha: "2.9mm", resp: "2.55mm", qr: 64, gap: "0.7mm", secPad: "0.8mm", footLh: 1.35, respMt: "1mm" },
   };
   const dim = DIMENSOES[tamanho] || DIMENSOES["60x40"];
 
@@ -617,7 +617,7 @@ function EtiquetasRunner() {
             <div className="flex items-center justify-between mb-2">
               <SectionLabel>Pré-visualização</SectionLabel>
               <div className="flex gap-1.5">
-                {["80x40", "60x40", "60x60"].map((t) => (
+                {["60x40", "80x40", "60x60"].map((t) => (
                   <button key={t} onClick={() => setTamanho(t)}
                     className="text-[11px] font-bold px-3 py-1.5 rounded-lg transition-all"
                     style={tamanho === t ? { background: "var(--accent-strong)", color: "#fff" } : { background: "var(--card)", color: "var(--muted)", border: "1px solid var(--line)" }}>

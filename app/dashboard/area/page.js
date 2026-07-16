@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   ChefHat, GlassWater, Armchair, Lock, ClipboardList, FlaskConical, PackageSearch,
   ShoppingCart, FileText, CalendarClock, Tag, Sparkles, BookOpen, LayoutList,
-  Wine, GraduationCap, MessageSquare, PartyPopper, Droplets
+  Wine, GraduationCap, PartyPopper, Droplets
 } from "lucide-react";
 import { useERP } from "../../context/ERPContext";
 import { fetchPins } from "../../lib/seguranca";
@@ -24,7 +24,8 @@ const AREAS = {
           { label: "Checklist", href: "/dashboard/operacao/rotina?dept=cozinha", Icon: ClipboardList },
           { label: "Produção", href: "/dashboard/operacao/producao?dept=cozinha", Icon: Sparkles },
           { label: "Etiquetas e Validades", href: "/dashboard/operacao/etiquetas?dept=cozinha", Icon: Tag },
-          { label: "Limpeza, Gás e Óleo", href: "/dashboard/operacao/controles", Icon: Droplets },
+          { label: "Controles da Cozinha", href: "/dashboard/operacao/controles", Icon: Droplets },
+          { label: "Limpeza da Coifa", href: "/dashboard/operacao/controles?aba=agenda", Icon: Sparkles },
         ],
       },
       {
@@ -89,7 +90,6 @@ const AREAS = {
         titulo: "Equipe",
         itens: [
           { label: "Treinamentos", href: "/dashboard/salao/treinamento", Icon: GraduationCap },
-          { label: "Observações dos Pedidos", href: "/dashboard/operacao/observacoes", Icon: MessageSquare },
         ],
       },
     ],

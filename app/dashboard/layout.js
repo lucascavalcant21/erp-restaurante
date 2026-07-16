@@ -25,7 +25,6 @@ const SIDEBAR_MENU = [
       { label: "Abrir Salão", href: "/dashboard/area?dept=salao" },
       { label: "Checklist", href: "/dashboard/operacao/rotina?dept=salao" },
       { label: "Treinamentos", href: "/dashboard/salao/treinamento" },
-      { label: "Observações dos Pedidos", href: "/dashboard/operacao/observacoes" }
     ]
   },
 
@@ -33,7 +32,6 @@ const SIDEBAR_MENU = [
     category: "Cozinha",
     icon: ChefHat,
     items: [
-      { label: "Abrir Cozinha", href: "/dashboard/area?dept=cozinha" },
       { label: "Ficha Técnica", href: "/dashboard/operacao/fichas?dept=cozinha" },
       { label: "Montagem de Pratos", href: "/dashboard/operacao/montagem?dept=cozinha" },
       { label: "Ingredientes", href: "/dashboard/operacao/ingredientes?dept=cozinha" },
@@ -42,7 +40,8 @@ const SIDEBAR_MENU = [
       { label: "Notas Fiscais", href: "/dashboard/operacao/notas?dept=cozinha" },
       { label: "Produção", href: "/dashboard/operacao/producao?dept=cozinha" },
       { label: "Etiquetas e Validades", href: "/dashboard/operacao/etiquetas?dept=cozinha" },
-      { label: "Limpeza, Gás e Óleo", href: "/dashboard/operacao/controles" },
+      { label: "Controles da Cozinha", href: "/dashboard/operacao/controles" },
+      { label: "Limpeza da Coifa", href: "/dashboard/operacao/controles?aba=agenda" },
       { label: "Checklist", href: "/dashboard/operacao/rotina?dept=cozinha" },
       { label: "Orçamentos de Eventos", href: "/dashboard/operacao/orcamento?dept=cozinha" }
     ]
@@ -51,7 +50,6 @@ const SIDEBAR_MENU = [
     category: "Bar",
     icon: GlassWater,
     items: [
-      { label: "Abrir Bar", href: "/dashboard/area?dept=bar" },
       { label: "Drinks", href: "/dashboard/operacao/drinks" },
       { label: "Ficha Técnica", href: "/dashboard/operacao/fichas?dept=bar" },
       { label: "Montagem de Drinks", href: "/dashboard/operacao/montagem?dept=bar" },

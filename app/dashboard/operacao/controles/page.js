@@ -128,7 +128,8 @@ function calcularDuracao(inicio, fim) {
 
 export default function ControlesCozinha() {
   const { unidadeAtiva, unidadeInfo } = useERP();
-  const [abaAtiva, setAbaAtiva] = useState("limpeza"); // limpeza, gas, oleo
+  const [abaAtiva, setAbaAtiva] = useState("limpeza"); // limpeza, gas, oleo, agenda
+  const [rotaInicialLida, setRotaInicialLida] = useState(false);
   const [loading, setLoading] = useState(true);
   const [dados, setDados] = useState([]);
   const [toast, setToast] = useState("");
@@ -139,7 +140,14 @@ export default function ControlesCozinha() {
   const [execAlvo, setExecAlvo] = useState(null);
   const [execForm, setExecForm] = useState({});
 
+  useEffect(() => {
+    const abaDaUrl = new URLSearchParams(window.location.search).get("aba");
+    if (["limpeza", "gas", "oleo", "agenda"].includes(abaDaUrl)) setAbaAtiva(abaDaUrl);
+    setRotaInicialLida(true);
+  }, []);
+
   const carregar = useCallback(async () => {
+    if (!rotaInicialLida) return;
     if (!unidadeAtiva || unidadeAtiva === "todas") {
       setDados([]);
       setLoading(false);
@@ -154,7 +162,7 @@ export default function ControlesCozinha() {
 
     setDados(res.data || []);
     setLoading(false);
-  }, [unidadeAtiva, abaAtiva]);
+  }, [unidadeAtiva, abaAtiva, rotaInicialLida]);
 
   useEffect(() => { carregar(); }, [carregar]);
 
@@ -254,7 +262,7 @@ export default function ControlesCozinha() {
   if (!unidadeAtiva || unidadeAtiva === "todas") {
     return (
       <div className="min-h-screen">
-        <PageHeader title="Limpeza, Gás e Óleo" subtitle="Controles operacionais" icon={CalendarClock} />
+        <PageHeader title="Controles da Cozinha" subtitle="Limpeza, gás, óleo e manutenções" icon={CalendarClock} />
         <PageBody>
           <EmptyState icon={CalendarClock} title="Selecione uma unidade" hint="Para acessar os controles, selecione a unidade no menu lateral." />
         </PageBody>
@@ -265,8 +273,8 @@ export default function ControlesCozinha() {
   return (
     <div className="min-h-screen pb-24">
       <PageHeader 
-        title="Limpeza, Gás e Óleo"
-        subtitle="Monitore o uso e ciclo de vida de insumos de limpeza, gás e óleo." 
+        title="Controles da Cozinha"
+        subtitle="Monitore limpeza, gás, óleo e manutenções programadas."
         icon={CalendarClock} 
       />
       
@@ -285,7 +293,7 @@ export default function ControlesCozinha() {
             <Droplets size={16} /> Óleo de Fritura
           </button>
           <button onClick={() => setAbaAtiva("agenda")} className={`pb-3 font-bold text-sm tracking-wide transition-colors flex items-center gap-2 border-b-2 ${abaAtiva === "agenda" ? "border-emerald-600 text-emerald-700" : "border-transparent text-slate-400 hover:text-slate-600"}`}>
-            <CalendarCheck size={16} /> Agenda de Limpezas
+            <CalendarCheck size={16} /> Coifa e Outras Limpezas
           </button>
         </div>
 

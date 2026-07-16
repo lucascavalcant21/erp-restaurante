@@ -14,9 +14,8 @@ const SIDEBAR_MENU = [
   {
     category: "Início",
     icon: BarChart,
-    items: [
-      { label: "Resumo da Loja", href: "/dashboard" }
-    ]
+    href: "/dashboard",
+    items: []
   },
   {
     category: "Salão",
@@ -197,6 +196,7 @@ function ProtecaoSetorDaArea({ children }) {
 function SidebarItem({ item, pathname, onNavigate }) {
   const router = useRouter();
   const { unidadeAtiva } = useERP();
+  const ItemIcon = item.icon;
   
   let isActive = false;
   if (item.href === "/dashboard") {
@@ -223,7 +223,9 @@ function SidebarItem({ item, pathname, onNavigate }) {
           : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
       }`}
     >
-      <div className={`w-1.5 h-1.5 rounded-full transition-colors ${isActive ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' : 'bg-transparent'}`} />
+      {ItemIcon
+        ? <ItemIcon size={15} className={isActive ? "text-emerald-400" : "text-slate-500"} />
+        : <div className={`w-1.5 h-1.5 rounded-full transition-colors ${isActive ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' : 'bg-transparent'}`} />}
       <span className="truncate">{item.label}</span>
     </button>
   );
@@ -232,6 +234,14 @@ function SidebarItem({ item, pathname, onNavigate }) {
 function SidebarSection({ section, idx, pathname, isOpen, onToggle, onNavigate }) {
   // Acordeão controlado pelo pai: só um módulo aberto por vez, e ao navegar
   // para um submódulo tudo recolhe de novo.
+  if (section.href) {
+    return (
+      <div className="animate-in fade-in slide-in-from-left-2" style={{ animationDelay: `${idx * 50}ms`, animationFillMode: "both" }}>
+        <SidebarItem item={{ label: section.category, href: section.href, icon: section.icon }} pathname={pathname} onNavigate={onNavigate} />
+      </div>
+    );
+  }
+
   return (
     <div className="animate-in fade-in slide-in-from-left-2" style={{ animationDelay: `${idx * 50}ms`, animationFillMode: 'both' }}>
       <button

@@ -1,8 +1,9 @@
 import { supabase, isSupabaseReady } from "./supabase";
+import { quantidadeVendaDaFicha } from "./custos-receita";
 
 // ─── PRODUTOS (Cardápio Físico/Digital) ──────────────────────────────────────
 
-export async function fetchProdutos(unidadeId, dept) {
+export async function fetchProdutos(unidadeId, dept, opcoes = {}) {
   if (!isSupabaseReady()) return { data: [], error: "Offline" };
   
   let query = supabase.from("produtos")
@@ -13,26 +14,89 @@ export async function fetchProdutos(unidadeId, dept) {
     .order("categoria")
     .order("nome_produto");
 
-  if (unidadeId && unidadeId !== "matriz") query = query.eq("unidade_id", unidadeId);
+  if (unidadeId && (opcoes?.escopoEstrito === true || unidadeId !== "matriz")) query = query.eq("unidade_id", unidadeId);
   if (dept) query = query.eq("departamento", dept);
 
   const { data, error } = await query;
   return { data: data || [], error: error?.message };
 }
 
-export async function salvarProduto(produto) {
+export async function salvarProduto(produto, opcoes = {}) {
   if (!isSupabaseReady()) return { error: "Offline" };
 
-  // `id` nulo quebra o INSERT (coluna id NOT NULL com default no Postgres)
-  const { id, created_at, ...campos } = produto;
+  const { id, created_at: _criadoEm, updated_at: _atualizadoEm, unidade_id: unidadeRecebida, fichas_tecnicas: _fichaJoin, ...campos } = produto;
+  const unidadeEsperada = opcoes.unidadeId || unidadeRecebida;
+  if (!unidadeEsperada) return { error: "Unidade do produto não informada." };
+  if (campos.preco_venda !== undefined) {
+    const precoVenda = Number(campos.preco_venda);
+    if (!Number.isFinite(precoVenda) || precoVenda < 0) {
+      return { error: "Preço de venda inválido. Informe um valor maior ou igual a zero." };
+    }
+  }
+  if (campos.tempo_preparo_base !== undefined) {
+    const tempoPreparo = Number(campos.tempo_preparo_base);
+    if (!Number.isFinite(tempoPreparo) || tempoPreparo < 0) {
+      return { error: "Tempo de preparo inválido. Informe um valor maior ou igual a zero." };
+    }
+  }
+  if (campos.peso_porcao_g !== undefined && campos.peso_porcao_g !== null) {
+    const pesoPorcao = Number(campos.peso_porcao_g);
+    if (!Number.isFinite(pesoPorcao) || pesoPorcao <= 0) {
+      return { error: "Peso da porção inválido. Informe um valor maior que zero ou deixe-o vazio." };
+    }
+  }
+
+  const fichasReferenciadas = [...new Set([
+    campos.ficha_id || null,
+    ...(Array.isArray(campos.composicao) ? campos.composicao.map(item => item?.ficha_id) : []),
+  ].filter(Boolean))];
+  if (fichasReferenciadas.length) {
+    const respostaFichas = await supabase
+      .from("fichas_tecnicas")
+      .select("id")
+      .in("id", fichasReferenciadas)
+      .eq("unidade_id", unidadeEsperada);
+    if (respostaFichas.error) return { error: respostaFichas.error.message };
+    if ((respostaFichas.data || []).length !== fichasReferenciadas.length) {
+      return { error: "A composição contém uma ficha inexistente ou de outra unidade." };
+    }
+  }
 
   if (id) {
-    const { error } = await supabase.from("produtos").update(campos).eq("id", id);
-    return { error: error?.message };
-  } else {
-    const { error } = await supabase.from("produtos").insert([campos]);
-    return { error: error?.message };
+    const existente = await supabase
+      .from("produtos")
+      .select("id")
+      .eq("id", id)
+      .eq("unidade_id", unidadeEsperada)
+      .maybeSingle();
+    if (existente.error) return { error: existente.error.message };
+    if (existente.data) {
+      const resposta = await supabase
+        .from("produtos")
+        .update(campos)
+        .eq("id", id)
+        .eq("unidade_id", unidadeEsperada)
+        .select("id")
+        .single();
+      return { id: resposta.data?.id || id, error: resposta.error?.message };
+    }
+    if (opcoes.permitirInserirComId !== true) {
+      return { error: "O produto não existe nesta unidade ou foi removido." };
+    }
+    const resposta = await supabase
+      .from("produtos")
+      .insert([{ ...campos, id, unidade_id: unidadeEsperada }])
+      .select("id")
+      .single();
+    return { id: resposta.data?.id || null, error: resposta.error?.message };
   }
+
+  const resposta = await supabase
+    .from("produtos")
+    .insert([{ ...campos, unidade_id: unidadeEsperada }])
+    .select("id")
+    .single();
+  return { id: resposta.data?.id || null, error: resposta.error?.message };
 }
 
 export async function removerProduto(id) {
@@ -212,14 +276,7 @@ export async function processarBaixaEstoqueECMV(pedidoId, unidadeId) {
   const todasFichas = fichasDB || [];
 
   // Nº real de porções da ficha (mesma regra das telas de CMV/orçamento)
-  const porcoesDaFicha = (f) => {
-     const rend = Number(f?.rendimento_porcoes) || 1;
-     const un = String(f?.rendimento_unidade || "porcao").toLowerCase();
-     if (un === "porcao" || un === "un") return rend;
-     const pesoPorcao = Number(f?.peso_porcao_g) || 0;
-     const pesoTotalG = (un === "kg" || un === "l") ? rend * 1000 : rend;
-     return pesoPorcao > 0 ? pesoTotalG / pesoPorcao : rend;
-  };
+  const porcoesDaFicha = (f) => quantidadeVendaDaFicha(f) || 1;
 
   // Gasta `fracao` × a receita completa da ficha, descendo nas sub-receitas
   const gastarReceita = (ficha, fracao, acc, guard = new Set()) => {

@@ -6,6 +6,7 @@ import { supabase } from "../../lib/supabase";
 import { enviarPedidoOnline } from "../../lib/vendas";
 import { UtensilsCrossed, ArrowDown, ShoppingBag, X, CheckCircle, Info, Plus, Minus, Send } from "lucide-react";
 import { fmtBRL } from "../../components/ui";
+import { unidadeVendaDaFicha } from "../../lib/custos-receita";
 
 export default function CardapioPublicoPage() {
   const { unidadeId } = useParams();
@@ -45,7 +46,7 @@ export default function CardapioPublicoPage() {
        }
 
        const { data: prod } = await supabase.from("produtos")
-          .select("*")
+          .select("*, fichas_tecnicas(rendimento_porcoes, rendimento_unidade, peso_porcao_g)")
           .eq("unidade_id", unidadeId)
           .eq("ativo", true)
           .order("categoria")
@@ -58,22 +59,28 @@ export default function CardapioPublicoPage() {
   }, [unidadeId]);
 
   // LOGICA DO CARRINHO
+  const unidadeDoProduto = (produto) => produto?.fichas_tecnicas
+    ? unidadeVendaDaFicha(produto.fichas_tecnicas)
+    : { rotulo: "unidade", rotuloPlural: "unidades" };
+  const passoDoProduto = (produto) => ["kg", "L"].includes(unidadeDoProduto(produto).rotulo) ? 0.1 : 1;
+
   const addAoCarrinho = (produto) => {
+     const passo = passoDoProduto(produto);
      setCarrinho(atual => {
         const index = atual.findIndex(i => i.id === produto.id);
         if(index >= 0) {
            const novo = [...atual];
-           novo[index].quantidade += 1;
+           novo[index].quantidade = Number((novo[index].quantidade + passo).toFixed(3));
            return novo;
         } else {
-           return [...atual, { ...produto, quantidade: 1, observacao: "" }];
+           return [...atual, { ...produto, quantidade: passo, observacao: "" }];
         }
      });
   };
 
   const alterarQtd = (id, delta) => {
      setCarrinho(atual => atual.map(i => {
-        if(i.id === id) return { ...i, quantidade: Math.max(0, i.quantidade + delta) };
+        if(i.id === id) return { ...i, quantidade: Number(Math.max(0, i.quantidade + delta).toFixed(3)) };
         return i;
      }).filter(i => i.quantidade > 0));
   };
@@ -168,17 +175,21 @@ export default function CardapioPublicoPage() {
                      {categorias[cat].map(p => {
                         const qtdNoCart = carrinho.find(i => i.id === p.id)?.quantidade || 0;
                         return (
-                           <div key={p.id} className="bg-white p-4 sm:p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col sm:flex-row justify-between sm:items-center gap-3 relative overflow-hidden">
-                              <div className="sm:pr-4 z-10 min-w-0">
+                           <div key={p.id} className="bg-white p-3 sm:p-4 rounded-3xl shadow-sm border border-slate-100 flex flex-col sm:flex-row sm:items-center gap-3 relative overflow-hidden">
+                              {p.imagem_url && (
+                                 <img src={p.imagem_url} alt={p.nome_produto} loading="lazy" decoding="async" className="w-full sm:w-28 h-40 sm:h-28 rounded-2xl object-cover bg-slate-100 shrink-0" />
+                              )}
+                              <div className="sm:pr-4 z-10 min-w-0 flex-1">
                                  <h3 className="font-bold text-lg text-slate-800 leading-tight mb-1">{p.nome_produto}</h3>
-                                 <p className="font-black text-indigo-600 text-lg">{fmtBRL(p.preco_venda)}</p>
+                                 {p.descricao && <p className="text-xs font-medium text-slate-500 line-clamp-2 mb-2">{p.descricao}</p>}
+                                 <p className="font-black text-indigo-600 text-lg">{fmtBRL(p.preco_venda)} <span className="text-xs text-slate-500">/{unidadeDoProduto(p).rotulo}</span></p>
                               </div>
                               <div className="z-10 w-full sm:w-auto">
                                  {qtdNoCart > 0 ? (
                                     <div className="flex items-center justify-between sm:justify-start gap-3 bg-indigo-50 border border-indigo-100 rounded-2xl p-1">
-                                       <button onClick={()=>alterarQtd(p.id, -1)} className="w-10 h-10 flex items-center justify-center bg-white rounded-xl text-indigo-600 shadow-sm"><Minus size={18}/></button>
-                                       <span className="font-black text-indigo-900">{qtdNoCart}</span>
-                                       <button onClick={()=>alterarQtd(p.id, 1)} className="w-10 h-10 flex items-center justify-center bg-indigo-600 rounded-xl text-white shadow-sm shadow-indigo-600/30"><Plus size={18}/></button>
+                                       <button onClick={()=>alterarQtd(p.id, -passoDoProduto(p))} className="w-10 h-10 flex items-center justify-center bg-white rounded-xl text-indigo-600 shadow-sm"><Minus size={18}/></button>
+                                       <span className="font-black text-indigo-900">{qtdNoCart.toLocaleString("pt-BR")} {unidadeDoProduto(p).rotulo}</span>
+                                       <button onClick={()=>alterarQtd(p.id, passoDoProduto(p))} className="w-10 h-10 flex items-center justify-center bg-indigo-600 rounded-xl text-white shadow-sm shadow-indigo-600/30"><Plus size={18}/></button>
                                     </div>
                                  ) : (
                                     <button onClick={()=>addAoCarrinho(p)} className="w-full sm:w-auto justify-center px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl transition-colors text-sm flex items-center gap-2">
@@ -234,9 +245,9 @@ export default function CardapioPublicoPage() {
                            </div>
                            <input type="text" placeholder="Alguma observação? (Ex: Sem gelo)" value={it.observacao} onChange={e=>alterarObs(it.id, e.target.value)} className="w-full text-sm p-3 bg-slate-50 rounded-xl outline-none focus:bg-indigo-50 border border-transparent focus:border-indigo-100 transition-colors mb-4"/>
                            <div className="flex items-center justify-end gap-3 bg-slate-50 rounded-xl w-max ml-auto p-1 border border-slate-100">
-                              <button onClick={()=>alterarQtd(it.id, -1)} className="w-10 h-10 flex items-center justify-center bg-white rounded-lg text-slate-500 font-black shadow-sm">-</button>
-                              <span className="font-black text-slate-800 w-6 text-center">{it.quantidade}</span>
-                              <button onClick={()=>alterarQtd(it.id, 1)} className="w-10 h-10 flex items-center justify-center bg-white rounded-lg text-slate-500 font-black shadow-sm">+</button>
+                              <button onClick={()=>alterarQtd(it.id, -passoDoProduto(it))} className="w-10 h-10 flex items-center justify-center bg-white rounded-lg text-slate-500 font-black shadow-sm">-</button>
+                              <span className="font-black text-slate-800 min-w-16 text-center">{it.quantidade.toLocaleString("pt-BR")} {unidadeDoProduto(it).rotulo}</span>
+                              <button onClick={()=>alterarQtd(it.id, passoDoProduto(it))} className="w-10 h-10 flex items-center justify-center bg-white rounded-lg text-slate-500 font-black shadow-sm">+</button>
                            </div>
                         </div>
                      ))}

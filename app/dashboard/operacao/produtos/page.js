@@ -10,18 +10,20 @@ import { fetchEmbalagens } from "../../../lib/embalagens";
 import { supabase } from "../../../lib/supabase";
 import { UtensilsCrossed, Plus, Search, Edit3, X, Save, ArrowLeft, Tag, Barcode, Image as ImageIcon, Trash2, ListPlus, Percent, Sparkles, Loader2, Printer, ClipboardList, Package, UploadCloud } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
+import { quantidadeVendaDaFicha, unidadeVendaDaFicha } from "../../../lib/custos-receita";
 
 // Custo total de PRODUZIR uma ficha, resolvendo bases (sub-receitas) em cascata.
 function custoTotalDaFicha(f, todasFichas, guard = new Set()) {
   if (!f || guard.has(f.id)) return 0;
-  guard.add(f.id);
+  const caminho = new Set(guard);
+  caminho.add(f.id);
   let total = 0;
   (f.fichas_ingredientes || []).forEach(fi => {
     if (fi.insumos) {
       total += (fi.insumos.custo_unitario || 0) * (fi.quantidade || 0);
     } else if (fi.subficha_id) {
       const base = todasFichas.find(x => x.id === fi.subficha_id);
-      const custoBaseUnit = base ? custoTotalDaFicha(base, todasFichas, guard) / (base.rendimento_porcoes || 1) : 0;
+      const custoBaseUnit = base ? custoTotalDaFicha(base, todasFichas, caminho) / (base.rendimento_porcoes || 1) : 0;
       total += custoBaseUnit * (fi.quantidade || 0);
     }
   });
@@ -30,12 +32,7 @@ function custoTotalDaFicha(f, todasFichas, guard = new Set()) {
 // Nº real de porções de uma ficha: direto (porções/un) ou derivado do peso
 // total quando o rendimento é em kg/g/l/ml (peso total ÷ peso da porção).
 function porcoesDaFicha(f) {
-  const rend = Number(f?.rendimento_porcoes) || 1;
-  const un = String(f?.rendimento_unidade || "porcao").toLowerCase();
-  if (un === "porcao" || un === "un") return rend;
-  const pesoPorcao = Number(f?.peso_porcao_g) || 0;
-  const pesoTotalG = (un === "kg" || un === "l") ? rend * 1000 : rend;
-  return pesoPorcao > 0 ? pesoTotalG / pesoPorcao : rend;
+  return quantidadeVendaDaFicha(f) || 1;
 }
 
 // Componentes do produto: a composição múltipla (várias fichas com quantidade)
@@ -231,38 +228,6 @@ function CardapioRunner() {
       fetchFichas(unidadeAtiva),
       fetchEmbalagens(unidadeAtiva)
     ]);
-
-    // Sincroniza com as Fichas Técnicas: toda ficha de PRATO/DRINK sem
-    // produto correspondente vira produto aguardando preço (retroativo)
-    try {
-      const prods = prodRes.data || [];
-      const fichasPrato = (fichasRes.data || []).filter(f => !f.eh_base);
-      const vinculadas = new Set();
-      prods.forEach(p => {
-        if (p.ficha_id) vinculadas.add(p.ficha_id);
-        (Array.isArray(p.composicao) ? p.composicao : []).forEach(c => vinculadas.add(c.ficha_id));
-      });
-      const nomesProd = new Set(prods.map(p => (p.nome_produto || "").toLowerCase().trim()));
-      const faltantes = fichasPrato.filter(f =>
-        !vinculadas.has(f.id) && !nomesProd.has((f.nome_receita || "").toLowerCase().trim())
-      );
-      for (const f of faltantes) {
-        await salvarProduto({
-          unidade_id: unidadeAtiva,
-          nome_produto: f.nome_receita,
-          categoria: f.departamento === "bar" ? "Drinks" : "Pratos Principais",
-          departamento: f.departamento,
-          tempo_preparo_base: 15,
-          preco_venda: 0,
-          ficha_id: f.id,
-          composicao: [{ ficha_id: f.id, qtd: 1 }],
-        });
-      }
-      if (faltantes.length) {
-        alert(`${faltantes.length} prato(s)/drink(s) das Receitas entraram em Produtos e Preços aguardando preço (R$ 0,00). Defina o preço de venda de cada um.`);
-        prodRes = await fetchProdutos(unidadeAtiva);
-      }
-    } catch { /* sincronização é acessória */ }
 
     setProdutos(prodRes.data || []);
     setFichas(fichasRes.data || []);
@@ -768,20 +733,22 @@ function CardapioRunner() {
                         {(form.composicao || []).map((c, idx) => {
                            const f = fichas.find(x => x.id === c.ficha_id);
                            const custoUnit = f ? custoTotalDaFicha(f, fichas) / porcoesDaFicha(f) : 0;
+                           const unidadeVenda = unidadeVendaDaFicha(f);
+                           const ehLiquido = ["l", "ml"].includes(String(f?.rendimento_unidade || "").toLowerCase());
                            return (
                               <div key={c.ficha_id} className="flex items-center gap-2 bg-white border border-slate-100 rounded-xl p-2.5">
                                  <div className="flex-1 min-w-0">
                                     <p className="font-bold text-slate-700 text-sm truncate">{f?.nome_receita || "Ficha removida"}</p>
                                      {f?.peso_porcao_g ? (
-                                        <p className="text-[10px] font-bold text-emerald-600">{fmtBRL(custoUnit / (f.peso_porcao_g / 1000))} / kg</p>
+                                        <p className="text-[10px] font-bold text-emerald-600">{fmtBRL(custoUnit / (f.peso_porcao_g / 1000))} / {ehLiquido ? "L" : "kg"}</p>
                                      ) : (
-                                        <p className="text-[10px] font-bold text-emerald-600">{fmtBRL(custoUnit)} / porção</p>
+                                        <p className="text-[10px] font-bold text-emerald-600">{fmtBRL(custoUnit)} / {unidadeVenda.rotulo}</p>
                                      )}
                                  </div>
                                  <div className="text-center flex gap-2">
                                     {f?.peso_porcao_g ? (
                                        <div className="text-center">
-                                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Gramas</label>
+                                          <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">{ehLiquido ? "Mililitros" : "Gramas"}</label>
                                           <input type="number" min="0" step="1" 
                                              value={c.qtd !== "" && c.qtd != null ? Math.round(Number(c.qtd) * f.peso_porcao_g) : ""} 
                                              onChange={e => setForm({ ...form, composicao: form.composicao.map((x, i) => i === idx ? { ...x, qtd: e.target.value === "" ? "" : Number(e.target.value) / f.peso_porcao_g } : x) })} 
@@ -790,7 +757,7 @@ function CardapioRunner() {
                                        </div>
                                     ) : (
                                        <div className="text-center">
-                                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Porções</label>
+                                          <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">{unidadeVenda.rotuloPlural}</label>
                                           <input type="number" min="0" step="0.5" value={c.qtd} 
                                              onChange={e => setForm({ ...form, composicao: form.composicao.map((x, i) => i === idx ? { ...x, qtd: e.target.value } : x) })} 
                                              className="w-16 p-1.5 text-center bg-slate-50 border border-slate-200 rounded-lg font-black text-slate-700 outline-none focus:border-emerald-500"

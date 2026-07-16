@@ -34,8 +34,8 @@ const SIDEBAR_MENU = [
     icon: ChefHat,
     items: [
       { label: "Abrir Cozinha", href: "/dashboard/area?dept=cozinha" },
-      { label: "Produtos e Preços", href: "/dashboard/operacao/produtos" },
-      { label: "Receitas", href: "/dashboard/operacao/fichas?dept=cozinha" },
+      { label: "Cardápio e Receitas", href: "/dashboard/operacao/fichas?dept=cozinha" },
+      { label: "Cardápio Digital / QR Code", href: "/dashboard/operacao/cardapio" },
       { label: "Montagem de Pratos", href: "/dashboard/operacao/montagem?dept=cozinha" },
       { label: "Ingredientes", href: "/dashboard/operacao/ingredientes?dept=cozinha" },
       { label: "Estoque", href: "/dashboard/operacao/estoque?dept=cozinha" },
@@ -54,7 +54,8 @@ const SIDEBAR_MENU = [
     items: [
       { label: "Abrir Bar", href: "/dashboard/area?dept=bar" },
       { label: "Drinks", href: "/dashboard/operacao/drinks" },
-      { label: "Receitas de Drinks", href: "/dashboard/operacao/fichas?dept=bar" },
+      { label: "Cardápio e Receitas", href: "/dashboard/operacao/fichas?dept=bar" },
+      { label: "Cardápio Digital / QR Code", href: "/dashboard/operacao/cardapio" },
       { label: "Montagem de Drinks", href: "/dashboard/operacao/montagem?dept=bar" },
       { label: "Ingredientes", href: "/dashboard/operacao/ingredientes?dept=bar" },
       { label: "Estoque", href: "/dashboard/operacao/estoque?dept=bar" },
@@ -105,8 +106,8 @@ const SIDEBAR_MENU = [
 
 // Rotas liberadas em cada área travada (estação Cozinha/Bar/Salão).
 const ROTAS_AREA = {
-  cozinha: ["/dashboard/area", "/dashboard/checklists", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/controles", "/dashboard/operacao/ingredientes", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem", "/dashboard/operacao/produtos", "/dashboard/operacao/orcamento"],
-  bar: ["/dashboard/area", "/dashboard/checklists", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/ingredientes", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/drinks", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem"],
+  cozinha: ["/dashboard/area", "/dashboard/checklists", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/controles", "/dashboard/operacao/ingredientes", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/fichas", "/dashboard/operacao/cardapio", "/dashboard/operacao/montagem", "/dashboard/operacao/produtos", "/dashboard/operacao/orcamento"],
+  bar: ["/dashboard/area", "/dashboard/checklists", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/ingredientes", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/drinks", "/dashboard/operacao/fichas", "/dashboard/operacao/cardapio", "/dashboard/operacao/montagem", "/dashboard/operacao/produtos", "/dashboard/operacao/orcamento"],
   salao: ["/dashboard/area", "/dashboard/checklists", "/dashboard/operacao/rotina", "/dashboard/salao/treinamento", "/dashboard/operacao/observacoes"],
 };
 

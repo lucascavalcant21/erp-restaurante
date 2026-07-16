@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   ChefHat, GlassWater, Armchair, Lock, ClipboardList, FlaskConical, PackageSearch,
   ShoppingCart, FileText, CalendarClock, Tag, Sparkles, BookOpen, LayoutList,
-  Wine, GraduationCap, MessageSquare, PartyPopper, Droplets
+  Wine, GraduationCap, MessageSquare, PartyPopper, Droplets, QrCode
 } from "lucide-react";
 import { useERP } from "../../context/ERPContext";
 import { fetchPins } from "../../lib/seguranca";
@@ -37,11 +37,11 @@ const AREAS = {
         ],
       },
       {
-        titulo: "Receitas e Pratos",
+        titulo: "Cardápio e Receitas",
         itens: [
-          { label: "Receitas", href: "/dashboard/operacao/fichas?dept=cozinha", Icon: BookOpen },
+          { label: "Cardápio e Receitas", href: "/dashboard/operacao/fichas?dept=cozinha", Icon: BookOpen },
+          { label: "Cardápio Digital / QR Code", href: "/dashboard/operacao/cardapio", Icon: QrCode },
           { label: "Montagem de Pratos", href: "/dashboard/operacao/montagem?dept=cozinha", Icon: LayoutList },
-          { label: "Produtos e Preços", href: "/dashboard/operacao/produtos", Icon: Tag },
           { label: "Orçamentos de Eventos", href: "/dashboard/operacao/orcamento?dept=cozinha", Icon: PartyPopper },
         ],
       },
@@ -68,10 +68,11 @@ const AREAS = {
         ],
       },
       {
-        titulo: "Receitas e Montagem",
+        titulo: "Cardápio e Receitas",
         itens: [
           { label: "Drinks", href: "/dashboard/operacao/drinks", Icon: Wine },
-          { label: "Receitas de Drinks", href: "/dashboard/operacao/fichas?dept=bar", Icon: BookOpen },
+          { label: "Cardápio e Receitas", href: "/dashboard/operacao/fichas?dept=bar", Icon: BookOpen },
+          { label: "Cardápio Digital / QR Code", href: "/dashboard/operacao/cardapio", Icon: QrCode },
           { label: "Montagem de Drinks", href: "/dashboard/operacao/montagem?dept=bar", Icon: LayoutList },
         ],
       },

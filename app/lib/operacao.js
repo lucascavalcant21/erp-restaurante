@@ -2,11 +2,11 @@ import { supabase, isSupabaseReady } from "./supabase";
 
 // ─── INSUMOS (Ingredientes Brutos) ──────────────────────────────────────────
 
-export async function fetchInsumos(unidadeId, dept) {
+export async function fetchInsumos(unidadeId, dept, opcoes = {}) {
   if (!isSupabaseReady()) return { data: [], error: "Offline" };
   
   let query = supabase.from("insumos").select("*").order("nome");
-  if (unidadeId && unidadeId !== "matriz") query = query.eq("unidade_id", unidadeId);
+  if (unidadeId && (opcoes?.escopoEstrito === true || unidadeId !== "matriz")) query = query.eq("unidade_id", unidadeId);
   if (dept) query = query.eq("departamento", dept);
 
   const { data, error } = await query;
@@ -126,43 +126,97 @@ export async function fetchFichas(unidadeId, dept, opcoes = {}) {
   return { data: data || [], error: error?.message };
 }
 
-export async function salvarFicha(ficha, ingredientes) {
+export async function salvarFicha(ficha, ingredientes, opcoes = {}) {
   if (!isSupabaseReady()) return { error: "Offline" };
-  
-  let fichaId = ficha.id;
-  // `id` nulo quebra o INSERT (mesma constraint NOT NULL da tabela insumos)
-  const { id: _id, created_at, ...camposFicha } = ficha;
-
-  // 1. Salva a Capa da Ficha (retry tira colunas ainda não migradas: categoria, ordem)
-  if (fichaId) {
-    let { error } = await supabase.from("fichas_tecnicas").update(camposFicha).eq("id", fichaId);
-    error = await retrySemColunaAusente(error, async () => {
-      const r = await supabase.from("fichas_tecnicas").update(camposFicha).eq("id", fichaId); return r.error;
-    }, camposFicha);
-    if(error) return { error: error.message };
-  } else {
-    let res = await supabase.from("fichas_tecnicas").insert([camposFicha]).select("id").single();
-    let error = await retrySemColunaAusente(res.error, async () => {
-      const r = await supabase.from("fichas_tecnicas").insert([camposFicha]).select("id").single(); res = r; return r.error;
-    }, camposFicha);
-    if(error) return { error: error.message };
-    fichaId = res.data.id;
+  if (!Array.isArray(ingredientes)) return { error: "A lista de ingredientes não foi informada." };
+  if (ingredientes.length === 0 && opcoes.permitirSemIngredientes !== true) {
+    return { error: "A ficha precisa ter pelo menos um ingrediente." };
   }
 
-  // 2. Apaga ingredientes antigos e insere os novos (forma mais simples)
-  await supabase.from("fichas_ingredientes").delete().eq("ficha_id", fichaId);
-  
-  if (ingredientes && ingredientes.length > 0) {
-    const itens = ingredientes.map(i => ({
-      ficha_id: fichaId,
-      insumo_id: i.insumo_id || null,
-      subficha_id: i.subficha_id || null,
-      quantidade: i.quantidade
-    }));
-    await supabase.from("fichas_ingredientes").insert(itens);
+  const unidadeEsperada = opcoes.unidadeId || ficha.unidade_id;
+  if (!unidadeEsperada) return { error: "Unidade da ficha não informada." };
+
+  const gerarUuid = () => globalThis.crypto?.randomUUID?.()
+    || "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, caractere => {
+      const aleatorio = Math.floor(Math.random() * 16);
+      return (caractere === "x" ? aleatorio : (aleatorio & 0x3) | 0x8).toString(16);
+    });
+  const fichaId = ficha.id || gerarUuid();
+  const chaves = new Set();
+  const itens = [];
+
+  for (const item of ingredientes) {
+    const temInsumo = !!item?.insumo_id;
+    const temBase = !!item?.subficha_id;
+    if (temInsumo === temBase) return { error: "Cada item deve ser um ingrediente ou um pré-preparo." };
+    if (!Number.isFinite(Number(item.quantidade)) || Number(item.quantidade) <= 0) {
+      return { error: "Todas as quantidades precisam ser maiores que zero." };
+    }
+    const chave = temInsumo ? `insumo:${item.insumo_id}` : `base:${item.subficha_id}`;
+    if (chaves.has(chave)) return { error: "O mesmo ingrediente não pode aparecer duas vezes na ficha." };
+    if (temBase && item.subficha_id === fichaId) return { error: "Uma ficha não pode usar a si mesma como pré-preparo." };
+    chaves.add(chave);
+    itens.push({
+      id: item.id || gerarUuid(),
+      insumo_id: item.insumo_id || null,
+      subficha_id: item.subficha_id || null,
+      quantidade: Number(item.quantidade),
+    });
   }
 
-  return { success: true, id: fichaId };
+  const {
+    id: _id,
+    created_at: _criadoEm,
+    updated_at: _atualizadoEm,
+    unidade_id: _unidadeRecebida,
+    fichas_ingredientes: _itensRecebidos,
+    ...camposFicha
+  } = ficha;
+
+  const assinaturaItens = lista => (lista || [])
+    .map(item => `${item.insumo_id || ""}:${item.subficha_id || ""}:${Number(item.quantidade).toFixed(8)}`)
+    .sort()
+    .join("|");
+  const valorConfere = (atual, esperado) => {
+    if (esperado === null || esperado === undefined || esperado === "") {
+      return atual === null || atual === undefined || atual === "";
+    }
+    if (typeof esperado === "number") return Math.abs(Number(atual) - esperado) < 0.000001;
+    if (typeof esperado === "boolean") return Boolean(atual) === esperado;
+    return String(atual ?? "") === String(esperado);
+  };
+  const confirmarGravacao = async () => {
+    const [capa, composicao] = await Promise.all([
+      supabase.from("fichas_tecnicas").select("*")
+        .eq("id", fichaId).eq("unidade_id", unidadeEsperada).maybeSingle(),
+      supabase.from("fichas_ingredientes")
+        .select("insumo_id, subficha_id, quantidade").eq("ficha_id", fichaId),
+    ]);
+    if (capa.error || composicao.error || !capa.data) return false;
+    const capaConfere = Object.entries(camposFicha).every(([campo, valor]) => valorConfere(capa.data[campo], valor));
+    return capaConfere && assinaturaItens(composicao.data) === assinaturaItens(itens);
+  };
+
+  const { data, error } = await supabase.rpc("salvar_ficha_tecnica_atomica", {
+    p_unidade_id: unidadeEsperada,
+    p_ficha_id: fichaId,
+    p_ficha: camposFicha,
+    p_ingredientes: itens,
+    p_permitir_inserir_com_id: opcoes.permitirInserirComId === true,
+    p_permitir_sem_ingredientes: opcoes.permitirSemIngredientes === true,
+  });
+
+  if (!error) return { success: true, id: data || fichaId };
+
+  const mensagem = error.message || "Não foi possível salvar a ficha.";
+  const funcaoPendente = error.code === "PGRST202"
+    || /salvar_ficha_tecnica_atomica|schema cache|could not find the function/i.test(mensagem);
+  if (funcaoPendente) {
+    return { error: "A atualização segura do banco de receitas ainda não foi instalada. Atualize o banco antes de salvar." };
+  }
+
+  if (await confirmarGravacao()) return { success: true, id: fichaId, confirmadoAposFalha: true };
+  return { error: mensagem, estadoIncerto: !error.code || /fetch|network|conexão|connection/i.test(mensagem) };
 }
 
 // Atualiza só o custo por unidade de um insumo (usado no "Recalcular custos").
@@ -172,20 +226,41 @@ export async function atualizarCustoUnitario(id, custo_unitario) {
   return { error: error?.message };
 }
 
-export async function removerFicha(id) {
+export async function removerFicha(id, unidadeId) {
   if (!isSupabaseReady()) return { error: "Offline" };
-  const { error } = await supabase.from("fichas_tecnicas").delete().eq("id", id);
+  if (!unidadeId) return { error: "Unidade da ficha não informada." };
+  const { data, error } = await supabase
+    .from("fichas_tecnicas")
+    .delete()
+    .eq("id", id)
+    .eq("unidade_id", unidadeId)
+    .select("id")
+    .maybeSingle();
+  if (!error && !data) return { error: "A ficha não existe nesta unidade ou já foi removida." };
   return { error: error?.message };
 }
 
-// Atualiza só a ordem de exibição (arrastar para reordenar). Se a coluna `ordem`
-// ainda não existir, o retry a remove e a operação vira no-op silencioso.
-export async function atualizarOrdemFicha(id, ordem) {
+// Salva toda a ordem numa única transação para nunca deixar posições parciais.
+export async function atualizarOrdemFichas(idsOrdenados, idsEsperados, unidadeId, departamento) {
   if (!isSupabaseReady()) return { error: "Offline" };
-  const campos = { ordem };
-  let { error } = await supabase.from("fichas_tecnicas").update(campos).eq("id", id);
-  error = await retrySemColunaAusente(error, async () => {
-    const r = await supabase.from("fichas_tecnicas").update(campos).eq("id", id); return r.error;
-  }, campos);
-  return { error: error?.message };
+  if (!unidadeId) return { error: "Unidade da ficha não informada." };
+  if (!Array.isArray(idsOrdenados)) return { error: "A nova ordem não foi informada." };
+  if (new Set(idsOrdenados).size !== idsOrdenados.length) return { error: "A nova ordem contém receitas repetidas." };
+
+  const { data, error } = await supabase.rpc("reordenar_fichas_tecnicas", {
+    p_unidade_id: unidadeId,
+    p_departamento: departamento || null,
+    p_ids_esperados: idsEsperados,
+    p_ids: idsOrdenados,
+  });
+  if (!error) return { success: true, atualizadas: Number(data) || 0 };
+
+  const mensagem = error.message || "Não foi possível salvar a nova ordem.";
+  const funcaoPendente = error.code === "PGRST202"
+    || /reordenar_fichas_tecnicas|schema cache|could not find the function/i.test(mensagem);
+  return {
+    error: funcaoPendente
+      ? "A atualização segura de ordenação ainda não foi instalada no banco."
+      : mensagem,
+  };
 }

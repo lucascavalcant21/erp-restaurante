@@ -8,6 +8,8 @@ import {
 import { useERP } from "../../../context/ERPContext";
 import { fetchFichas, fetchHistoricoPrecos } from "../../../lib/operacao";
 import { fetchProdutos } from "../../../lib/vendas";
+import { fetchEmbalagens } from "../../../lib/embalagens";
+import { quantidadeVendaDaFicha, custoEmbalagensDoProduto } from "../../../lib/custos-receita";
 
 // Todos os insumo_ids usados por uma ficha (resolvendo sub-receitas)
 function insumosDaFichaRec(f, todasFichas, acc = new Set(), guard = new Set()) {
@@ -28,14 +30,15 @@ const META_CMV = 30; // % alvo máximo de CMV (acima disso = atenção)
 // Custo total de PRODUZIR uma ficha, resolvendo bases (sub-receitas) em cascata.
 function custoTotalDaFicha(f, todasFichas, guard = new Set()) {
   if (!f || guard.has(f.id)) return 0;
-  guard.add(f.id);
+  const caminho = new Set(guard);
+  caminho.add(f.id);
   let total = 0;
   (f.fichas_ingredientes || []).forEach(fi => {
     if (fi.insumos) {
       total += (fi.insumos.custo_unitario || 0) * (fi.quantidade || 0);
     } else if (fi.subficha_id) {
       const base = todasFichas.find(x => x.id === fi.subficha_id);
-      const custoBaseUnit = base ? custoTotalDaFicha(base, todasFichas, guard) / (base.rendimento_porcoes || 1) : 0;
+      const custoBaseUnit = base ? custoTotalDaFicha(base, todasFichas, caminho) / (base.rendimento_porcoes || 1) : 0;
       total += custoBaseUnit * (fi.quantidade || 0);
     }
   });
@@ -45,27 +48,24 @@ function custoTotalDaFicha(f, todasFichas, guard = new Set()) {
 // Nº real de porções: direto (porções/un) ou derivado do peso total quando
 // o rendimento é em kg/g/l/ml (peso total ÷ peso da porção).
 function porcoesDaFicha(f) {
-  const rend = Number(f?.rendimento_porcoes) || 1;
-  const un = String(f?.rendimento_unidade || "porcao").toLowerCase();
-  if (un === "porcao" || un === "un") return rend;
-  const pesoPorcao = Number(f?.peso_porcao_g) || 0;
-  const pesoTotalG = (un === "kg" || un === "l") ? rend * 1000 : rend;
-  return pesoPorcao > 0 ? pesoTotalG / pesoPorcao : rend;
+  return quantidadeVendaDaFicha(f) || 1;
 }
 
 export default function CmvPage() {
   const { unidadeAtiva, unidadeInfo } = useERP();
   const [fichas, setFichas] = useState([]);
   const [produtos, setProdutos] = useState([]);
+  const [embalagens, setEmbalagens] = useState([]);
   const [historico, setHistorico] = useState([]); // alterações de preço dos insumos
   const [loading, setLoading] = useState(true);
   const [modalHistPrato, setModalHistPrato] = useState(null); // { nome, mudancas }
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([fetchFichas(unidadeAtiva), fetchProdutos(unidadeAtiva), fetchHistoricoPrecos(unidadeAtiva)]).then(([resFichas, resProdutos, resHist]) => {
+    Promise.all([fetchFichas(unidadeAtiva), fetchProdutos(unidadeAtiva), fetchEmbalagens(unidadeAtiva), fetchHistoricoPrecos(unidadeAtiva)]).then(([resFichas, resProdutos, resEmbalagens, resHist]) => {
       setFichas(resFichas.data || []);
       setProdutos(resProdutos.data || []);
+      setEmbalagens(resEmbalagens.data || []);
       setHistorico(resHist.data || []);
       setLoading(false);
     });
@@ -104,13 +104,15 @@ export default function CmvPage() {
           temFicha = true;
           custo += (custoTotalDaFicha(ficha, fichas) / porcoesDaFicha(ficha)) * (Number(c.qtd) || 1);
         });
+        const custoEmbalagens = custoEmbalagensDoProduto(p, embalagens);
+        if (custoEmbalagens > 0) { custo += custoEmbalagens; temFicha = true; }
         if (!temFicha) return null;
         const preco = Number(p.preco_venda) || 0;
         return { id: p.id, nome: p.nome_produto, departamento: p.departamento, preco, custo, cmv: preco > 0 ? (custo / preco) * 100 : 0 };
       })
       .filter(Boolean)
       .sort((a, b) => b.cmv - a.cmv);
-  }, [produtos, fichas]);
+  }, [produtos, fichas, embalagens]);
 
   const resumo = useMemo(() => {
     if (!linhas.length) return { medio: 0, acima: 0, melhor: null };

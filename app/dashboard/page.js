@@ -20,6 +20,8 @@ import { fetchCampanhas } from "../lib/clientes";
 import { fetchTemplates, fetchHistoricoExecucoes } from "../lib/checklists";
 import { fetchParams, PARAMS_PADRAO } from "../lib/parametros";
 import { useTempoReal } from "../lib/realtime";
+import { fetchEmbalagens } from "../lib/embalagens";
+import { quantidadeVendaDaFicha, custoEmbalagensDoProduto } from "../lib/custos-receita";
 
 // Meta de CMV: ajustável em Configurações > Parâmetros (metaCmv)
 
@@ -42,26 +44,22 @@ const DIAS_SEMANA = [["0", "Dom"], ["1", "Seg"], ["2", "Ter"], ["3", "Qua"], ["4
 // ── Cálculo de custo de ficha (reaproveitado da tela de CMV) ──────────────────
 function custoTotalDaFicha(f, todasFichas, guard = new Set()) {
   if (!f || guard.has(f.id)) return 0;
-  guard.add(f.id);
+  const caminho = new Set(guard);
+  caminho.add(f.id);
   let total = 0;
   (f.fichas_ingredientes || []).forEach(fi => {
     if (fi.insumos) {
       total += (fi.insumos.custo_unitario || 0) * (fi.quantidade || 0);
     } else if (fi.subficha_id) {
       const base = todasFichas.find(x => x.id === fi.subficha_id);
-      const custoBaseUnit = base ? custoTotalDaFicha(base, todasFichas, guard) / (base.rendimento_porcoes || 1) : 0;
+      const custoBaseUnit = base ? custoTotalDaFicha(base, todasFichas, caminho) / (base.rendimento_porcoes || 1) : 0;
       total += custoBaseUnit * (fi.quantidade || 0);
     }
   });
   return total;
 }
 function porcoesDaFicha(f) {
-  const rend = Number(f?.rendimento_porcoes) || 1;
-  const un = String(f?.rendimento_unidade || "porcao").toLowerCase();
-  if (un === "porcao" || un === "un") return rend;
-  const pesoPorcao = Number(f?.peso_porcao_g) || 0;
-  const pesoTotalG = (un === "kg" || un === "l") ? rend * 1000 : rend;
-  return pesoPorcao > 0 ? pesoTotalG / pesoPorcao : rend;
+  return quantidadeVendaDaFicha(f) || 1;
 }
 
 function diasAte(dataStr) {
@@ -93,8 +91,9 @@ export default function DashboardGestao() {
     (async () => {
       if (!dados) setLoading(true); // recargas do tempo real são silenciosas
       const hojeISO = new Date().toISOString().split("T")[0];
-      const [rF, rP, rColab, rFolgas, rContas, rEstoque, rManut, rCamp, rBanco, rTpl, rExec] = await Promise.all([
-        fetchFichas(unidadeAtiva), fetchProdutos(unidadeAtiva), fetchColaboradores(unidadeAtiva),
+      const [rF, rP, rEmb, rColab, rFolgas, rContas, rEstoque, rManut, rCamp, rBanco, rTpl, rExec] = await Promise.all([
+        fetchFichas(unidadeAtiva), fetchProdutos(unidadeAtiva), fetchEmbalagens(unidadeAtiva),
+        fetchColaboradores(unidadeAtiva),
         fetchAllFolgasDaUnidade(unidadeAtiva), fetchContas(unidadeAtiva, ""), fetchEstoque(unidadeAtiva),
         fetchManutencoes(unidadeAtiva), fetchCampanhas(unidadeAtiva),
         fetchBancoHoras(unidadeAtiva, new Date().toISOString().slice(0, 7)),
@@ -102,7 +101,7 @@ export default function DashboardGestao() {
       ]);
       if (!vivo) return;
       setDados({
-        fichas: rF.data || [], produtos: rP.data || [], colaboradores: rColab.data || [],
+        fichas: rF.data || [], produtos: rP.data || [], embalagens: rEmb.data || [], colaboradores: rColab.data || [],
         folgas: rFolgas.data || [], contas: rContas.data || [], estoque: rEstoque.data || [],
         manutencoes: rManut.data || [], campanhas: rCamp.fromSeed ? [] : (rCamp.data || []),
         bancoHoras: rBanco.data || [],
@@ -115,7 +114,7 @@ export default function DashboardGestao() {
 
   const m = useMemo(() => {
     if (!dados) return null;
-    const { fichas, produtos, colaboradores, folgas, contas, estoque, manutencoes, campanhas, bancoHoras = [] } = dados;
+    const { fichas, produtos, embalagens = [], colaboradores, folgas, contas, estoque, manutencoes, campanhas, bancoHoras = [] } = dados;
 
     // CMV médio da carta
     const fichasPorId = {}; fichas.forEach(f => { fichasPorId[f.id] = f; });
@@ -129,6 +128,8 @@ export default function DashboardGestao() {
           const ficha = fichasPorId[c.ficha_id]; if (!ficha) return; tem = true;
           custo += (custoTotalDaFicha(ficha, fichas) / porcoesDaFicha(ficha)) * (Number(c.qtd) || 1);
         });
+        const custoEmbalagens = custoEmbalagensDoProduto(p, embalagens);
+        if (custoEmbalagens > 0) { custo += custoEmbalagens; tem = true; }
         const preco = Number(p.preco_venda) || 0;
         return tem && preco > 0 ? (custo / preco) * 100 : null;
       }).filter(v => v !== null);

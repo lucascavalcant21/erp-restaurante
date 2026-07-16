@@ -14,31 +14,29 @@ import { fetchFichas } from "../../lib/operacao";
 import { fetchProdutos } from "../../lib/vendas";
 import { fetchEstoque, fetchProducoesPeriodo } from "../../lib/estoque";
 import { fetchInventario, fetchMovimentosInventario } from "../../lib/inventario";
+import { fetchEmbalagens } from "../../lib/embalagens";
+import { quantidadeVendaDaFicha, custoEmbalagensDoProduto } from "../../lib/custos-receita";
 
 const META_CMV = 30;
 
 // ── Custo de ficha (mesmo cálculo do CMV/Dashboard) ──────────────────────────
 function custoTotalDaFicha(f, todasFichas, guard = new Set()) {
   if (!f || guard.has(f.id)) return 0;
-  guard.add(f.id);
+  const caminho = new Set(guard);
+  caminho.add(f.id);
   let total = 0;
   (f.fichas_ingredientes || []).forEach(fi => {
     if (fi.insumos) total += (fi.insumos.custo_unitario || 0) * (fi.quantidade || 0);
     else if (fi.subficha_id) {
       const base = todasFichas.find(x => x.id === fi.subficha_id);
-      const custoBaseUnit = base ? custoTotalDaFicha(base, todasFichas, guard) / (base.rendimento_porcoes || 1) : 0;
+      const custoBaseUnit = base ? custoTotalDaFicha(base, todasFichas, caminho) / (base.rendimento_porcoes || 1) : 0;
       total += custoBaseUnit * (fi.quantidade || 0);
     }
   });
   return total;
 }
 function porcoesDaFicha(f) {
-  const rend = Number(f?.rendimento_porcoes) || 1;
-  const un = String(f?.rendimento_unidade || "porcao").toLowerCase();
-  if (un === "porcao" || un === "un") return rend;
-  const pesoPorcao = Number(f?.peso_porcao_g) || 0;
-  const pesoTotalG = (un === "kg" || un === "l") ? rend * 1000 : rend;
-  return pesoPorcao > 0 ? pesoTotalG / pesoPorcao : rend;
+  return quantidadeVendaDaFicha(f) || 1;
 }
 
 const fmtMin = (m) => `${Math.floor(m / 60)}h${String(Math.round(m) % 60).padStart(2, "0")}`;
@@ -60,11 +58,12 @@ export default function RelatorioGerencial() {
     (async () => {
       setLoading(true);
       const mes = new Date().toISOString().slice(0, 7);
-      const [rContas, rColab, rFichas, rProd, rEstoque, rInv, rMov, rBanco, rProducoes] = await Promise.all([
+      const [rContas, rColab, rFichas, rProd, rEmb, rEstoque, rInv, rMov, rBanco, rProducoes] = await Promise.all([
         fetchContas(unidadeAtiva, ""),
         fetchColaboradores(unidadeAtiva),
         fetchFichas(unidadeAtiva),
         fetchProdutos(unidadeAtiva),
+        fetchEmbalagens(unidadeAtiva),
         fetchEstoque(unidadeAtiva),
         fetchInventario(unidadeAtiva),
         fetchMovimentosInventario(unidadeAtiva, 500),
@@ -74,7 +73,7 @@ export default function RelatorioGerencial() {
       if (!vivo) return;
       setDados({
         contas: rContas.data || [], colaboradores: rColab.data || [], fichas: rFichas.data || [],
-        produtos: rProd.data || [], estoque: rEstoque.data || [], inventario: rInv.data || [],
+        produtos: rProd.data || [], embalagens: rEmb.data || [], estoque: rEstoque.data || [], inventario: rInv.data || [],
         movInventario: rMov.data || [], bancoHoras: rBanco.data || [], producoes: rProducoes.data || [],
       });
       setLoading(false);
@@ -84,7 +83,7 @@ export default function RelatorioGerencial() {
 
   const m = useMemo(() => {
     if (!dados) return null;
-    const { contas, colaboradores, fichas, produtos, estoque, inventario, movInventario, bancoHoras, producoes } = dados;
+    const { contas, colaboradores, fichas, produtos, embalagens = [], estoque, inventario, movInventario, bancoHoras, producoes } = dados;
     const corte = new Date(Date.now() - dias * 86400000);
     const corteISO = corte.toISOString().split("T")[0];
 
@@ -114,6 +113,8 @@ export default function RelatorioGerencial() {
       const comps = Array.isArray(p.composicao) && p.composicao.length ? p.composicao : (p.ficha_id ? [{ ficha_id: p.ficha_id, qtd: 1 }] : []);
       let custo = 0, tem = false;
       comps.forEach(c => { const f = fichasPorId[c.ficha_id]; if (!f) return; tem = true; custo += (custoTotalDaFicha(f, fichas) / porcoesDaFicha(f)) * (Number(c.qtd) || 1); });
+      const custoEmbalagens = custoEmbalagensDoProduto(p, embalagens);
+      if (custoEmbalagens > 0) { custo += custoEmbalagens; tem = true; }
       const preco = Number(p.preco_venda) || 0;
       return tem && preco > 0 ? (custo / preco) * 100 : null;
     }).filter(v => v !== null);

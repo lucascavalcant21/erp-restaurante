@@ -5,8 +5,10 @@ import { useERP } from "../../../context/ERPContext";
 import { fetchFichas, fetchInsumos } from "../../../lib/operacao";
 import { fetchProdutos } from "../../../lib/vendas";
 import { fetchOrcamentosEventos, salvarOrcamentoEvento, removerOrcamentoEvento } from "../../../lib/orcamentos";
+import { fetchEmbalagens } from "../../../lib/embalagens";
 import { PartyPopper, Printer, Trash2, ArrowLeft, Users, ShoppingCart, FileText, Save, History, X, Loader2, ChefHat, ClipboardList, Image as ImageIcon, GripVertical } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
+import { quantidadeVendaDaFicha, custoEmbalagensDoProduto } from "../../../lib/custos-receita";
 
 // Fator "in natura" de uma ficha: quanto o preço deve subir para cobrar o item
 // como se o ingrediente fosse in natura (sem empanar). Ex.: peixe que rende 1,36x
@@ -32,14 +34,15 @@ function fatorInNaturaDaFicha(f, todasFichas, mapaFatores, guard = new Set()) {
 // Custo total de PRODUZIR uma ficha, resolvendo bases (sub-receitas) em cascata.
 function custoTotalDaFicha(f, todasFichas, guard = new Set()) {
   if (!f || guard.has(f.id)) return 0;
-  guard.add(f.id);
+  const caminho = new Set(guard);
+  caminho.add(f.id);
   let total = 0;
   (f.fichas_ingredientes || []).forEach(fi => {
     if (fi.insumos) {
       total += (fi.insumos.custo_unitario || 0) * (fi.quantidade || 0);
     } else if (fi.subficha_id) {
       const base = todasFichas.find(x => x.id === fi.subficha_id);
-      const custoBaseUnit = base ? custoTotalDaFicha(base, todasFichas, guard) / (base.rendimento_porcoes || 1) : 0;
+      const custoBaseUnit = base ? custoTotalDaFicha(base, todasFichas, caminho) / (base.rendimento_porcoes || 1) : 0;
       total += custoBaseUnit * (fi.quantidade || 0);
     }
   });
@@ -69,12 +72,7 @@ function acumularInsumos(ficha, porcoes, todasFichas, acc, guard = new Set()) {
 // Nº real de porções: direto (porções/un) ou derivado do peso total quando
 // o rendimento é em kg/g/l/ml (peso total ÷ peso da porção).
 function porcoesDaFicha(f) {
-  const rend = Number(f?.rendimento_porcoes) || 1;
-  const un = String(f?.rendimento_unidade || "porcao").toLowerCase();
-  if (un === "porcao" || un === "un") return rend;
-  const pesoPorcao = Number(f?.peso_porcao_g) || 0;
-  const pesoTotalG = (un === "kg" || un === "l") ? rend * 1000 : rend;
-  return pesoPorcao > 0 ? pesoTotalG / pesoPorcao : rend;
+  return quantidadeVendaDaFicha(f) || 1;
 }
 
 // Formata quantidade de compra: kg/l pequenos viram g/ml; un arredonda pra cima
@@ -121,6 +119,7 @@ export default function OrcamentoEventoPage() {
 
   const [produtos, setProdutos] = useState([]);
   const [fichas, setFichas] = useState([]);
+  const [embalagens, setEmbalagens] = useState([]);
   const [mapaFatores, setMapaFatores] = useState({}); // insumo_id -> fator_empanamento
   const [loading, setLoading] = useState(true);
   const [modoSaida, setModoSaida] = useState("imprimir"); // 'imprimir' | 'pdf'
@@ -142,13 +141,15 @@ export default function OrcamentoEventoPage() {
     if (!unidadeAtiva) return;
     (async () => {
       setLoading(true);
-      const [resProd, resFichas, resInsumos] = await Promise.all([
+      const [resProd, resFichas, resInsumos, resEmbalagens] = await Promise.all([
         fetchProdutos(unidadeAtiva),
         fetchFichas(unidadeAtiva),
         fetchInsumos(unidadeAtiva),
+        fetchEmbalagens(unidadeAtiva),
       ]);
       setProdutos(resProd.data || []);
       setFichas(resFichas.data || []);
+      setEmbalagens(resEmbalagens.data || []);
       const mapa = {};
       (resInsumos.data || []).forEach(i => {
         const fator = Number(i.fator_empanamento) || 0;
@@ -314,7 +315,8 @@ export default function OrcamentoEventoPage() {
 
     const gramasTotal = pesoUn > 0 ? porcoes * pesoUn : null;
     // Custo por porção do prato = soma dos componentes
-    const custoPorcao = fichasComp.reduce((a, x) => a + (custoTotalDaFicha(x.ficha, fichas) / porcoesDaFicha(x.ficha)) * x.qtd, 0);
+    const custoPorcao = fichasComp.reduce((a, x) => a + (custoTotalDaFicha(x.ficha, fichas) / porcoesDaFicha(x.ficha)) * x.qtd, 0)
+      + custoEmbalagensDoProduto(produto, embalagens);
     const custoKg = pesoUn > 0 ? custoPorcao * (1000 / pesoUn) : 0;
 
     // Preço por KG: input principal. Se o user definiu precoKg, usa ele.

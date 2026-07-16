@@ -99,6 +99,9 @@ const subtrairDias = (data, dias) => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 
+const gerarIdOperacao = () => globalThis.crypto?.randomUUID?.()
+  || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
 const numerosFalados = {
   zero: 0, um: 1, uma: 1, dois: 2, duas: 2, tres: 3, quatro: 4, cinco: 5,
   seis: 6, sete: 7, oito: 8, nove: 9, dez: 10, onze: 11, doze: 12,
@@ -107,6 +110,9 @@ const numerosFalados = {
   quarenta: 40, cinquenta: 50, sessenta: 60, setenta: 70, oitenta: 80,
   noventa: 90, cem: 100,
 };
+
+const ACOES_PRODUCAO = ["produzir", "fazer", "planejar", "preciso", "falta", "faltam", "meta"];
+const ACOES_CONTAGEM = ["tenho", "tem", "pronto", "pronta", "estoque", "contagem", "sobrou", "sobraram"];
 
 function extrairNumeroFalado(texto) {
   const numeroDigitado = texto.match(/\d+(?:[.,]\d+)?/);
@@ -123,36 +129,64 @@ function extrairNumeroFalado(texto) {
   return encontrou ? total : 0;
 }
 
+function trechoDepoisDoMarcador(texto, marcadores) {
+  let melhor = null;
+  marcadores.forEach((marcador) => {
+    const correspondencia = new RegExp(`\\b${marcador}\\b`).exec(texto);
+    if (correspondencia && (!melhor || correspondencia.index < melhor.indice)) {
+      melhor = { indice: correspondencia.index, fim: correspondencia.index + correspondencia[0].length };
+    }
+  });
+  return melhor ? texto.slice(melhor.fim).trim() : texto;
+}
+
+function extrairQuantidadeDaVoz(transcricao, ficha, acao) {
+  const nome = normalizarTexto(ficha?.nome_receita);
+  const semNome = normalizarTexto(transcricao).replace(nome, " ").replace(/\s+/g, " ").trim();
+  const marcadores = acao === "planejamento" ? ACOES_PRODUCAO : ACOES_CONTAGEM;
+  const depoisDaAcao = trechoDepoisDoMarcador(semNome, marcadores);
+  return extrairNumeroFalado(depoisDaAcao) || extrairNumeroFalado(semNome);
+}
+
 function interpretarVoz(transcricao, fichas) {
   const texto = normalizarTexto(transcricao);
-  const correspondencias = fichas.filter((ficha) => texto.includes(normalizarTexto(ficha.nome_receita)));
-  if (correspondencias.length !== 1) {
-    return { erro: correspondencias.length ? "Encontrei mais de uma receita. Diga um produto por vez." : "Não reconheci o produto. Diga o nome como está na receita." };
-  }
-  const quantidade = extrairNumeroFalado(transcricao);
+  const encontradas = fichas
+    .map((ficha) => ({ ficha, nome: normalizarTexto(ficha.nome_receita) }))
+    .filter(({ nome }) => nome && texto.includes(nome))
+    .sort((a, b) => b.nome.length - a.nome.length);
+  if (!encontradas.length) return { erro: "Não reconheci o produto. Diga o nome como está na receita." };
+  const maiorNome = encontradas[0].nome.length;
+  const correspondencias = encontradas.filter(({ nome }) => nome.length === maiorNome);
+  if (correspondencias.length !== 1) return { erro: "Encontrei mais de uma receita. Diga um produto por vez." };
+  const ficha = correspondencias[0].ficha;
+
+  // Frases como "tenho que produzir" são planejamento, não contagem.
+  const acao = new RegExp(`\\b(${ACOES_PRODUCAO.join("|")})\\b`).test(texto)
+    ? "planejamento"
+    : new RegExp(`\\b(${ACOES_CONTAGEM.join("|")})\\b`).test(texto)
+      ? "contagem"
+      : null;
+  if (!acao) return { erro: "Diga se é uma contagem ou produção. Exemplo: ‘Tenho 3 kg’ ou ‘Produzir 5 kg’." };
+
+  // Remove primeiro o nome da receita para não usar números como o "4" de
+  // "molho 4 queijos" e procura a quantidade depois do verbo da ação.
+  const quantidade = extrairQuantidadeDaVoz(transcricao, ficha, acao);
   if (quantidade <= 0) return { erro: "Não reconheci a quantidade. Exemplo: ‘Feijão, tenho cinco quilos’." };
 
-  let unidade = unidadePadraoFicha(correspondencias[0]);
+  let unidade = unidadePadraoFicha(ficha);
   if (/\b(kg|quilo|quilos)\b/.test(texto)) unidade = "kg";
   else if (/\b(g|grama|gramas)\b/.test(texto)) unidade = "g";
   else if (/\b(ml|mililitro|mililitros)\b/.test(texto)) unidade = "ml";
   else if (/\b(l|litro|litros)\b/.test(texto)) unidade = "L";
   else if (/\b(unidade|unidades|porcao|porcoes)\b/.test(texto)) unidade = "un";
 
-  const acao = /\b(tenho|tem|pronto|pronta|estoque|contagem|sobrou|sobraram)\b/.test(texto)
-    ? "contagem"
-    : /\b(produzir|fazer|planejar|preciso|falta|faltam|meta)\b/.test(texto)
-      ? "planejamento"
-      : null;
-  if (!acao) return { erro: "Diga se é uma contagem ou produção. Exemplo: ‘Tenho 3 kg’ ou ‘Produzir 5 kg’." };
-
-  const familiaEsperada = unidadeBase(unidadePadraoFicha(correspondencias[0]));
+  const familiaEsperada = unidadeBase(unidadePadraoFicha(ficha));
   const familiaInformada = unidadeBase(unidade);
   const quantidadeBase = converterParaBase(quantidade, unidade);
   if (familiaInformada !== familiaEsperada || !Number.isFinite(quantidadeBase)) {
     return { erro: "A unidade informada não combina com essa receita." };
   }
-  return { ficha: correspondencias[0], quantidade, unidade, acao, transcricao };
+  return { ficha, quantidade, unidade, acao, transcricao };
 }
 
 function StatusBadge({ status }) {
@@ -186,6 +220,7 @@ function ProducaoRunner() {
   const [saldos, setSaldos] = useState([]);
   const [plano, setPlano] = useState({});
   const [loading, setLoading] = useState(true);
+  const [dadosConfiaveis, setDadosConfiaveis] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [acaoId, setAcaoId] = useState(null);
   const [erroBanco, setErroBanco] = useState("");
@@ -195,10 +230,14 @@ function ProducaoRunner() {
   const [ouvindo, setOuvindo] = useState(false);
   const [rascunhoVoz, setRascunhoVoz] = useState(null);
   const [planoSujo, setPlanoSujo] = useState(false);
+  const [hoje, setHoje] = useState(() => dataSaoPaulo());
   const recognitionRef = useRef(null);
-  const hoje = useMemo(() => dataSaoPaulo(), []);
+  const carregarRequestIdRef = useRef(0);
+  const mutacaoRef = useRef(false);
+  const chavesContagemRef = useRef(new Map());
   const modoDia = periodo === "dia";
   const contagemEditavel = modoDia && dataReferencia === hoje;
+  const mutacaoEmCurso = salvando || acaoId !== null;
 
   const intervalo = useMemo(() => intervaloPeriodo(dataReferencia, periodo), [dataReferencia, periodo]);
   const lotesDoPeriodo = useMemo(() => lotes.filter((lote) => {
@@ -210,7 +249,44 @@ function ProducaoRunner() {
     return data >= intervalo.inicio && data <= intervalo.fim;
   }), [contagens, intervalo]);
 
+  useEffect(() => {
+    const atualizarHoje = () => setHoje((anterior) => {
+      const atual = dataSaoPaulo();
+      return anterior === atual ? anterior : atual;
+    });
+    const aoVisibilizar = () => { if (!document.hidden) atualizarHoje(); };
+    const timer = window.setInterval(atualizarHoje, 15000);
+    document.addEventListener("visibilitychange", aoVisibilizar);
+    window.addEventListener("focus", atualizarHoje);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", aoVisibilizar);
+      window.removeEventListener("focus", atualizarHoje);
+    };
+  }, []);
+
+  useEffect(() => {
+    chavesContagemRef.current.clear();
+  }, [unidadeAtiva, departamento, dataReferencia]);
+
+  const adquirirMutacao = (id = "__global__") => {
+    if (mutacaoRef.current) return false;
+    if (!dadosConfiaveis) {
+      alert("Os dados de produção não estão confirmados. Atualize a tela antes de continuar.");
+      return false;
+    }
+    mutacaoRef.current = true;
+    setAcaoId(id);
+    return true;
+  };
+
+  const liberarMutacao = () => {
+    mutacaoRef.current = false;
+    setAcaoId(null);
+  };
+
   const carregar = useCallback(async (silencioso = false) => {
+    const requestId = ++carregarRequestIdRef.current;
     if (!unidadeAtiva || unidadeAtiva === "todas") {
       setFichas([]);
       setColaboradores([]);
@@ -220,42 +296,63 @@ function ProducaoRunner() {
       setSaldos([]);
       setPlano({});
       setErroBanco("");
+      setDadosConfiaveis(false);
       setLoading(false);
-      return;
+      return { error: "Selecione uma unidade." };
     }
     if (!silencioso) setLoading(true);
+    setDadosConfiaveis(false);
     setErroBanco("");
     try {
       const inicioHistorico = subtrairDias(hoje, 400);
-      // A consulta cobre o mês da data escolhida. Trocar apenas Dia/Semana/Mês
-      // passa a ser uma visualização local e não substitui o rascunho em edição.
       const fimDoMes = intervaloPeriodo(dataReferencia, "mes").fim;
-      const fimConsulta = fimDoMes > hoje ? fimDoMes : hoje;
+      const fimDaSemana = intervaloPeriodo(dataReferencia, "semana").fim;
+      // Carrega antecipadamente o mês e a semana completa. Assim a alternância
+      // Dia/Semana/Mês continua local e não apaga o rascunho diário.
+      const fimConsulta = [fimDoMes, fimDaSemana, hoje].sort().at(-1);
       const [rFichas, rColab, rEstoque, rLotes, rContagens, rSaldos] = await Promise.all([
-        fetchFichas(unidadeAtiva, departamento),
+        // Fichas e estoque completos são necessários para resolver sub-receitas
+        // e ingredientes compartilhados. O departamento filtra somente os cards.
+        fetchFichas(unidadeAtiva),
         fetchColaboradores(unidadeAtiva),
-        fetchEstoque(unidadeAtiva, departamento),
+        fetchEstoque(unidadeAtiva),
         fetchLotesProducao(unidadeAtiva, { departamento, inicio: inicioHistorico, fim: fimConsulta, limite: 3000 }),
         fetchContagensProducao(unidadeAtiva, { departamento, inicio: inicioHistorico, fim: fimConsulta, limite: 3000 }),
         fetchSaldosProducao(unidadeAtiva, departamento),
       ]);
-      const respostaComErro = [rFichas, rColab, rEstoque, rLotes, rContagens, rSaldos].find((r) => r?.codigo === "MIGRACAO_PENDENTE");
-      if (respostaComErro) setErroBanco("A atualização do banco de produção ainda não foi aplicada.");
+      if (requestId !== carregarRequestIdRef.current) return { ignorado: true };
+      const respostas = [rFichas, rColab, rEstoque, rLotes, rContagens, rSaldos];
+      const respostaComErro = respostas.find((r) => r?.error);
+      if (respostaComErro) {
+        const erro = new Error(respostaComErro.codigo === "MIGRACAO_PENDENTE"
+          ? "A atualização do banco de produção ainda não foi aplicada."
+          : respostaComErro.error || "Não foi possível confirmar os dados de produção.");
+        erro.codigo = respostaComErro.codigo;
+        throw erro;
+      }
       setFichas(rFichas.data || []);
       setColaboradores((rColab.data || []).filter((c) => c.ativo !== false && c.status !== "inativo"));
       setEstoque(rEstoque.data || []);
       setLotes(rLotes.data || []);
       setContagens(rContagens.data || []);
       setSaldos(rSaldos.data || []);
+      setDadosConfiaveis(true);
+      return { error: null };
     } catch (error) {
+      if (requestId !== carregarRequestIdRef.current) return { ignorado: true };
+      setDadosConfiaveis(false);
       setErroBanco(error?.message || "Não foi possível carregar os dados de produção.");
+      return { error: error?.message || "Falha ao carregar" };
     } finally {
-      setLoading(false);
+      if (requestId === carregarRequestIdRef.current) setLoading(false);
     }
   }, [unidadeAtiva, departamento, dataReferencia, hoje]);
 
   useEffect(() => { carregar(); }, [carregar]);
 
+  const fichasDoDepartamento = useMemo(() => fichas.filter((ficha) => (
+    normalizarTexto(ficha.departamento) === departamento
+  )), [fichas, departamento]);
   const medias = useMemo(() => calcularMediasProducao(fichas, lotes, dataReferencia), [fichas, lotes, dataReferencia]);
   const saldoPorFicha = useMemo(() => Object.fromEntries(saldos.map((s) => [s.ficha_id, s])), [saldos]);
   const loteDoDiaPorFicha = useMemo(() => {
@@ -278,7 +375,7 @@ function ProducaoRunner() {
 
   useEffect(() => {
     const proximo = {};
-    fichas.forEach((ficha) => {
+    fichasDoDepartamento.forEach((ficha) => {
       const lote = loteDoDiaPorFicha[ficha.id];
       const unidade = lote?.unidade_planejada || unidadePadraoFicha(ficha);
       // O saldo mostrado é sempre o saldo pronto atual. O valor gravado no lote é
@@ -295,7 +392,7 @@ function ProducaoRunner() {
     });
     setPlano(proximo);
     setPlanoSujo(false);
-  }, [fichas, loteDoDiaPorFicha, saldoPorFicha]);
+  }, [fichasDoDepartamento, loteDoDiaPorFicha, saldoPorFicha]);
 
   const mediaDaFicha = useCallback((fichaId) => {
     if (medias instanceof Map) return medias.get(fichaId) || {};
@@ -303,7 +400,7 @@ function ProducaoRunner() {
     return medias?.[fichaId] || {};
   }, [medias]);
 
-  const cards = useMemo(() => fichas.map((ficha) => {
+  const cards = useMemo(() => fichasDoDepartamento.map((ficha) => {
     const item = plano[ficha.id] || { quantidade: "", unidade: unidadePadraoFicha(ficha), estoquePronto: 0 };
     const media = mediaDaFicha(ficha.id);
     const saldoBase = converterParaBase(numero(item.estoquePronto), item.unidade);
@@ -347,7 +444,7 @@ function ProducaoRunner() {
       capacidadeBase, capacidadeCalculada, lote, lotesFichaPeriodo,
       produzidoPeriodoBase, custoRealPeriodo,
     };
-  }), [fichas, plano, mediaDaFicha, lotes, estoque, loteDoDiaPorFicha, lotesDoPeriodo, periodo]);
+  }), [fichasDoDepartamento, fichas, plano, mediaDaFicha, lotes, estoque, loteDoDiaPorFicha, lotesDoPeriodo, periodo]);
 
   const concluidosPeriodo = lotesDoPeriodo.filter((l) => l.status === "concluido");
   const emProducao = lotes.filter((l) => l.status === "em_producao");
@@ -356,6 +453,7 @@ function ProducaoRunner() {
   const produtosPrevistos = cards.filter((c) => c.previsaoBase > 0).length;
 
   const alterarPlano = (fichaId, patch) => {
+    if (mutacaoRef.current || !dadosConfiaveis) return;
     setPlanoSujo(true);
     setPlano((atual) => ({
       ...atual,
@@ -405,60 +503,94 @@ function ProducaoRunner() {
     };
   });
 
-  const persistirPlano = async ({ mostrarMensagem = true } = {}) => {
+  const chaveContagemEstavel = (item) => {
+    const assinatura = JSON.stringify({
+      unidadeAtiva,
+      departamento,
+      dataReferencia,
+      fichaId: item.ficha_id,
+      quantidadeBase: Number(item.estoque_pronto_informado_base).toFixed(6),
+      unidadeBase: item.unidade_base,
+      origem: item.origem,
+      transcricao: item.transcricao_audio,
+      colaboradorId: item.responsavel_planejado_id,
+    });
+    if (!chavesContagemRef.current.has(assinatura)) {
+      chavesContagemRef.current.set(assinatura, `producao-web-${gerarIdOperacao()}`);
+    }
+    return chavesContagemRef.current.get(assinatura);
+  };
+
+  const persistirPlano = async ({ mostrarMensagem = true, mutacaoAdquirida = false } = {}) => {
     if (!modoDia) {
       alert("A semana e o mês são previsões consolidadas. Para salvar ou iniciar, volte para Dia.");
       return { error: "Edição disponível somente no modo Dia." };
     }
+    const donaDaMutacao = !mutacaoAdquirida;
+    if (donaDaMutacao && !adquirirMutacao("__salvar__")) return { error: "Outra operação está em andamento." };
     setSalvando(true);
     setMensagem("");
     const itens = montarItensParaSalvar();
+    let planoFoiSalvo = false;
+    try {
+      // Primeiro persiste o plano. A contagem do saldo pronto vem depois e só
+      // pode alterar o saldo do dia atual.
+      const resposta = await salvarPlanoProducao(unidadeAtiva, {
+        departamento,
+        data_producao: dataReferencia,
+      }, itens);
+      if (resposta.error) {
+        if (resposta.codigo === "MIGRACAO_PENDENTE") setErroBanco("A atualização do banco de produção ainda não foi aplicada.");
+        await carregar(true);
+        alert(`Não foi possível salvar o plano: ${resposta.error}`);
+        return resposta;
+      }
+      planoFoiSalvo = true;
 
-    // Primeiro persiste o plano. A contagem do saldo pronto vem depois e só
-    // pode alterar o saldo do dia atual.
-    const resposta = await salvarPlanoProducao(unidadeAtiva, {
-      departamento,
-      data_producao: dataReferencia,
-    }, itens);
-    if (resposta.error) {
-      setSalvando(false);
-      if (resposta.codigo === "MIGRACAO_PENDENTE") setErroBanco("A atualização do banco de produção ainda não foi aplicada.");
-      alert(`Não foi possível salvar o plano: ${resposta.error}`);
-      return resposta;
-    }
-
-    if (contagemEditavel) {
-      for (const item of itens) {
-        const saldoAtual = numero(saldoPorFicha[item.ficha_id]?.quantidade_base);
-        if (Math.abs(saldoAtual - item.estoque_pronto_informado_base) > 0.0001) {
-          const contagem = await registrarContagemProducao({
-            unidadeId: unidadeAtiva,
-            fichaId: item.ficha_id,
-            dataReferencia,
-            quantidadeBase: item.estoque_pronto_informado_base,
-            unidadeBase: item.unidade_base,
-            origem: item.origem,
-            transcricao: item.transcricao_audio,
-            colaboradorId: item.responsavel_planejado_id,
-          });
-          if (contagem.error) {
-            setSalvando(false);
-            alert(`O plano foi salvo, mas não foi possível salvar a contagem: ${contagem.error}`);
-            return contagem;
+      if (contagemEditavel) {
+        for (const item of itens) {
+          const saldoAtual = numero(saldoPorFicha[item.ficha_id]?.quantidade_base);
+          if (Math.abs(saldoAtual - item.estoque_pronto_informado_base) > 0.0001) {
+            const contagem = await registrarContagemProducao({
+              unidadeId: unidadeAtiva,
+              fichaId: item.ficha_id,
+              dataReferencia,
+              quantidadeBase: item.estoque_pronto_informado_base,
+              unidadeBase: item.unidade_base,
+              origem: item.origem,
+              transcricao: item.transcricao_audio,
+              colaboradorId: item.responsavel_planejado_id,
+              chaveIdempotencia: chaveContagemEstavel(item),
+            });
+            if (contagem.error) {
+              // O plano ou contagens anteriores desta tentativa podem ter sido
+              // gravados. Recarregar evita repetir o histórico com saldo antigo.
+              await carregar(true);
+              alert(`O plano foi salvo, mas não foi possível salvar a contagem: ${contagem.error}`);
+              return contagem;
+            }
           }
         }
       }
-    }
 
-    setSalvando(false);
-    setPlanoSujo(false);
-    if (mostrarMensagem) {
-      setMensagem(contagemEditavel
-        ? "Plano e contagens de hoje salvos para toda a equipe."
-        : "Plano salvo. O saldo pronto é somente leitura fora da data de hoje.");
+      setPlanoSujo(false);
+      if (mostrarMensagem) {
+        setMensagem(contagemEditavel
+          ? "Plano e contagens de hoje salvos para toda a equipe."
+          : "Plano salvo. O saldo pronto é somente leitura fora da data de hoje.");
+      }
+      const recarga = await carregar(true);
+      if (!recarga?.error) chavesContagemRef.current.clear();
+      return resposta;
+    } catch (error) {
+      if (planoFoiSalvo) await carregar(true);
+      const detalhe = error?.message || "erro inesperado";
+      alert(`Não foi possível concluir o salvamento: ${detalhe}`);
+      return { error: detalhe };
+    } finally {
+      setSalvando(false);
+      if (donaDaMutacao) liberarMutacao();
     }
-    await carregar(true);
-    return resposta;
   };
 
   const usarSugestao = (card) => {
@@ -481,35 +613,38 @@ function ProducaoRunner() {
       return alert(`O estoque permite produzir no máximo ${formatarQuantidadeBase(card.capacidadeBase, card.item.unidade)}.`);
     }
 
-    setAcaoId(card.ficha.id);
-    const salvo = await persistirPlano({ mostrarMensagem: false });
-    if (salvo.error) { setAcaoId(null); return; }
-    const lote = (salvo.data || []).find((l) => l.ficha_id === card.ficha.id)
-      || loteDoDiaPorFicha[card.ficha.id];
-    if (!lote?.id) {
-      setAcaoId(null);
-      return alert("O plano foi salvo. Clique novamente em Iniciar produção.");
+    if (!adquirirMutacao(card.ficha.id)) return;
+    try {
+      const salvo = await persistirPlano({ mostrarMensagem: false, mutacaoAdquirida: true });
+      if (salvo.error) return;
+      const lote = (salvo.data || []).find((l) => l.ficha_id === card.ficha.id)
+        || loteDoDiaPorFicha[card.ficha.id];
+      if (!lote?.id) return alert("O plano foi salvo. Clique novamente em Iniciar produção.");
+      const colaborador = colaboradores.find((c) => c.id === card.item.responsavelId);
+      const ingredientes = (card.calculo.itens || []).map((i) => ({
+        insumo_id: i.insumo?.id || i.insumo_id,
+        nome: i.insumo?.nome || i.nome,
+        quantidade: numero(i.quantidade),
+        unidade: i.insumo?.unidade_medida || i.unidade,
+        custo_unitario: numero(i.insumo?.custo_unitario ?? i.custo_unitario),
+      })).sort((a, b) => String(a.insumo_id).localeCompare(String(b.insumo_id)));
+      const resposta = await iniciarLoteProducao({
+        loteId: lote.id,
+        colaboradorId: colaborador?.id,
+        colaboradorNome: colaborador?.nome,
+        ingredientes,
+        custoPrevisto: numero(card.calculo.custoTotal),
+      });
+      if (resposta.error) return alert(`Não foi possível iniciar: ${resposta.error}`);
+      setMensagem(`${card.ficha.nome_receita} iniciado. Os ingredientes foram baixados do estoque.`);
+      await carregar(true);
+      setAba("andamento");
+    } catch (error) {
+      alert(`Não foi possível iniciar: ${error?.message || "erro inesperado"}`);
+      await carregar(true);
+    } finally {
+      liberarMutacao();
     }
-    const colaborador = colaboradores.find((c) => c.id === card.item.responsavelId);
-    const ingredientes = (card.calculo.itens || []).map((i) => ({
-      insumo_id: i.insumo?.id || i.insumo_id,
-      nome: i.insumo?.nome || i.nome,
-      quantidade: numero(i.quantidade),
-      unidade: i.insumo?.unidade_medida || i.unidade,
-      custo_unitario: numero(i.insumo?.custo_unitario ?? i.custo_unitario),
-    })).sort((a, b) => String(a.insumo_id).localeCompare(String(b.insumo_id)));
-    const resposta = await iniciarLoteProducao({
-      loteId: lote.id,
-      colaboradorId: colaborador?.id,
-      colaboradorNome: colaborador?.nome,
-      ingredientes,
-      custoPrevisto: numero(card.calculo.custoTotal),
-    });
-    setAcaoId(null);
-    if (resposta.error) return alert(`Não foi possível iniciar: ${resposta.error}`);
-    setMensagem(`${card.ficha.nome_receita} iniciado. Os ingredientes foram baixados do estoque.`);
-    await carregar(true);
-    setAba("andamento");
   };
 
   const abrirFinalizacao = (lote) => {
@@ -533,29 +668,41 @@ function ProducaoRunner() {
   const finalizar = async () => {
     const quantidade = numero(finalizacao.quantidade);
     if (quantidade <= 0) return alert("Informe o peso ou quantidade realmente produzida.");
-    setAcaoId(modalFinalizar.id);
-    const resposta = await finalizarLoteProducao({
-      loteId: modalFinalizar.id,
-      quantidade,
-      unidade: finalizacao.unidade,
-      quantidadeBase: converterParaBase(quantidade, finalizacao.unidade),
-      observacoes: finalizacao.observacoes,
-    });
-    setAcaoId(null);
-    if (resposta.error) return alert(`Não foi possível finalizar: ${resposta.error}`);
-    setModalFinalizar(null);
-    setMensagem("Produção finalizada, pesada e adicionada ao saldo de produto pronto.");
-    await carregar(true);
+    if (!modalFinalizar?.id || !adquirirMutacao(modalFinalizar.id)) return;
+    try {
+      const resposta = await finalizarLoteProducao({
+        loteId: modalFinalizar.id,
+        quantidade,
+        unidade: finalizacao.unidade,
+        quantidadeBase: converterParaBase(quantidade, finalizacao.unidade),
+        observacoes: finalizacao.observacoes,
+      });
+      if (resposta.error) return alert(`Não foi possível finalizar: ${resposta.error}`);
+      setModalFinalizar(null);
+      setMensagem("Produção finalizada, pesada e adicionada ao saldo de produto pronto.");
+      await carregar(true);
+    } catch (error) {
+      alert(`Não foi possível finalizar: ${error?.message || "erro inesperado"}`);
+      await carregar(true);
+    } finally {
+      liberarMutacao();
+    }
   };
 
   const cancelar = async (lote) => {
     if (!confirm(`Cancelar a produção de ${lote.ficha_nome} e devolver os ingredientes ao estoque?`)) return;
-    setAcaoId(lote.id);
-    const resposta = await cancelarLoteProducao({ loteId: lote.id, devolverEstoque: true, motivo: "Cancelado pelo responsável" });
-    setAcaoId(null);
-    if (resposta.error) return alert(`Não foi possível cancelar: ${resposta.error}`);
-    setMensagem("Produção cancelada e ingredientes devolvidos ao estoque.");
-    await carregar(true);
+    if (!adquirirMutacao(lote.id)) return;
+    try {
+      const resposta = await cancelarLoteProducao({ loteId: lote.id, devolverEstoque: true, motivo: "Cancelado pelo responsável" });
+      if (resposta.error) return alert(`Não foi possível cancelar: ${resposta.error}`);
+      setMensagem("Produção cancelada e ingredientes devolvidos ao estoque.");
+      await carregar(true);
+    } catch (error) {
+      alert(`Não foi possível cancelar: ${error?.message || "erro inesperado"}`);
+      await carregar(true);
+    } finally {
+      liberarMutacao();
+    }
   };
 
   useEffect(() => () => {
@@ -571,7 +718,7 @@ function ProducaoRunner() {
 
   const iniciarVoz = () => {
     if (!modoDia) return alert("A entrada por áudio altera o plano diário. Volte para Dia para usar o microfone.");
-    if (ouvindo) return;
+    if (ouvindo || mutacaoRef.current || !dadosConfiaveis) return;
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) return alert("O reconhecimento por áudio não está disponível neste navegador. Use o Chrome atualizado ou preencha manualmente.");
     try { recognitionRef.current?.abort?.(); } catch { /* noop */ }
@@ -590,7 +737,7 @@ function ProducaoRunner() {
     };
     recognition.onresult = (evento) => {
       const transcricao = evento.results?.[0]?.[0]?.transcript || "";
-      setRascunhoVoz({ transcricao, ...interpretarVoz(transcricao, fichas) });
+      setRascunhoVoz({ transcricao, ...interpretarVoz(transcricao, fichasDoDepartamento) });
     };
     recognitionRef.current = recognition;
     try {
@@ -604,6 +751,7 @@ function ProducaoRunner() {
 
   const confirmarVoz = () => {
     if (!rascunhoVoz?.ficha || rascunhoVoz.erro) return;
+    if (mutacaoRef.current || !dadosConfiaveis) return alert("Aguarde a atualização dos dados antes de aplicar o áudio.");
     if (rascunhoVoz.acao === "contagem" && !contagemEditavel) {
       alert("A contagem por áudio só pode alterar o saldo pronto de hoje.");
       return;
@@ -641,6 +789,7 @@ function ProducaoRunner() {
   };
 
   const imprimir = () => {
+    if (mutacaoRef.current || loading || !dadosConfiaveis) return alert("Aguarde a confirmação dos dados antes de imprimir.");
     const tituloPeriodo = periodo === "dia" ? `Dia ${formatarData(dataReferencia)}`
       : periodo === "semana" ? `Semana de ${formatarData(intervalo.inicio)} a ${formatarData(intervalo.fim)}`
         : `Mês de ${formatarData(dataReferencia).slice(3)}`;
@@ -706,13 +855,18 @@ function ProducaoRunner() {
   };
 
   const limparPlanejamento = () => {
-    if (!modoDia) return;
+    if (!modoDia || mutacaoRef.current || !dadosConfiaveis) return;
     if (!confirm("Limpar as quantidades ainda não iniciadas deste dia?")) return;
-    setPlano((atual) => Object.fromEntries(Object.entries(atual).map(([id, item]) => [id, { ...item, quantidade: "" }])));
+    setPlano((atual) => Object.fromEntries(Object.entries(atual).map(([id, item]) => {
+      const lote = loteDoDiaPorFicha[id];
+      const podeLimpar = !lote || lote.status === "planejado";
+      return [id, podeLimpar ? { ...item, quantidade: "" } : item];
+    })));
     setPlanoSujo(true);
   };
 
   const trocarData = (novaData) => {
+    if (mutacaoRef.current) return;
     if (!novaData || novaData === dataReferencia) return;
     if (planoSujo && !confirm("Há alterações não salvas no plano deste dia. Deseja trocar a data e descartar o rascunho?")) return;
     setPlanoSujo(false);
@@ -724,7 +878,7 @@ function ProducaoRunner() {
       <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col lg:flex-row lg:items-center gap-4 justify-between">
           <div className="flex items-center gap-3 min-w-0">
-            <button onClick={abrirMenu} className="w-11 h-11 shrink-0 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-600"><ArrowLeft size={20} /></button>
+            <button onClick={abrirMenu} disabled={mutacaoEmCurso} className="w-11 h-11 shrink-0 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-600 disabled:opacity-40"><ArrowLeft size={20} /></button>
             <div className="w-11 h-11 shrink-0 rounded-xl bg-emerald-50 text-emerald-600 hidden sm:flex items-center justify-center"><ChefHat size={22} /></div>
             <div className="min-w-0">
               <h1 className="text-xl sm:text-3xl font-black tracking-tight text-slate-950 truncate">Produção inteligente · {departamento === "bar" ? "Bar" : "Cozinha"}</h1>
@@ -732,16 +886,16 @@ function ProducaoRunner() {
             </div>
           </div>
           <div className="flex gap-2 overflow-x-auto pb-1 lg:pb-0">
-            <button onClick={iniciarVoz} disabled={ouvindo || loading || !modoDia || !unidadeAtiva || unidadeAtiva === "todas"} className={`min-h-11 px-4 rounded-xl border font-black text-sm whitespace-nowrap flex items-center gap-2 disabled:opacity-50 ${ouvindo ? "bg-red-50 border-red-200 text-red-600 animate-pulse" : "bg-white border-slate-200 text-slate-700"}`}><Mic size={17} /> {ouvindo ? "Ouvindo..." : "Contar por áudio"}</button>
-            <button onClick={imprimir} className="min-h-11 px-4 rounded-xl bg-slate-900 text-white font-black text-sm whitespace-nowrap flex items-center gap-2"><Printer size={17} /> Imprimir</button>
-            <button onClick={() => carregar()} disabled={loading} className="w-11 h-11 shrink-0 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-600"><RefreshCw size={18} className={loading ? "animate-spin" : ""} /></button>
+            <button onClick={iniciarVoz} disabled={ouvindo || loading || mutacaoEmCurso || !dadosConfiaveis || !modoDia || !unidadeAtiva || unidadeAtiva === "todas"} className={`min-h-11 px-4 rounded-xl border font-black text-sm whitespace-nowrap flex items-center gap-2 disabled:opacity-50 ${ouvindo ? "bg-red-50 border-red-200 text-red-600 animate-pulse" : "bg-white border-slate-200 text-slate-700"}`}><Mic size={17} /> {ouvindo ? "Ouvindo..." : "Contar por áudio"}</button>
+            <button onClick={imprimir} disabled={loading || mutacaoEmCurso || !dadosConfiaveis} className="min-h-11 px-4 rounded-xl bg-slate-900 text-white font-black text-sm whitespace-nowrap flex items-center gap-2 disabled:opacity-40"><Printer size={17} /> Imprimir</button>
+            <button onClick={() => carregar()} disabled={loading || mutacaoEmCurso} className="w-11 h-11 shrink-0 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-600 disabled:opacity-40"><RefreshCw size={18} className={loading ? "animate-spin" : ""} /></button>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-5 sm:pt-8 space-y-6">
         {(!unidadeAtiva || unidadeAtiva === "todas") && <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 flex gap-3 text-blue-800"><AlertTriangle className="shrink-0" size={21} /><div><p className="font-black">Selecione uma unidade</p><p className="text-sm font-semibold mt-1">O planejamento de produção usa o estoque e o histórico de uma unidade específica.</p></div></div>}
-        {erroBanco && <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 flex gap-3 text-amber-800"><AlertTriangle className="shrink-0" size={21} /><div><p className="font-black">Atualização necessária</p><p className="text-sm font-semibold mt-1">{erroBanco} O restante do ERP continua funcionando.</p></div></div>}
+        {erroBanco && <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 flex gap-3 text-amber-800"><AlertTriangle className="shrink-0" size={21} /><div><p className="font-black">Dados de produção indisponíveis</p><p className="text-sm font-semibold mt-1">{erroBanco} As ações desta tela ficam bloqueadas até a atualização ser confirmada; o restante do ERP continua funcionando.</p></div></div>}
         {mensagem && <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 flex gap-3 text-emerald-800"><CheckCircle2 className="shrink-0" size={21} /><p className="font-bold text-sm">{mensagem}</p></div>}
 
         <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -757,12 +911,12 @@ function ProducaoRunner() {
               ["planejamento", "Planejamento", ClipboardList],
               ["andamento", `Em produção (${emProducao.length})`, Clock3],
               ["historico", "Médias e histórico", History],
-            ].map(([id, label, Icon]) => <button key={id} onClick={() => setAba(id)} className={`min-h-11 px-4 rounded-xl font-black text-sm whitespace-nowrap flex items-center gap-2 ${aba === id ? "bg-emerald-600 text-white" : "bg-slate-50 text-slate-600 hover:bg-slate-100"}`}><Icon size={16} />{label}</button>)}
+            ].map(([id, label, Icon]) => <button key={id} disabled={mutacaoEmCurso} onClick={() => setAba(id)} className={`min-h-11 px-4 rounded-xl font-black text-sm whitespace-nowrap flex items-center gap-2 disabled:opacity-50 ${aba === id ? "bg-emerald-600 text-white" : "bg-slate-50 text-slate-600 hover:bg-slate-100"}`}><Icon size={16} />{label}</button>)}
           </div>
           <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-            <label className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 min-h-11"><CalendarDays size={17} className="text-slate-400" /><input type="date" value={dataReferencia} onChange={(e) => trocarData(e.target.value)} className="bg-transparent outline-none font-bold text-sm text-slate-700" /></label>
+            <label className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 min-h-11"><CalendarDays size={17} className="text-slate-400" /><input type="date" disabled={mutacaoEmCurso} value={dataReferencia} onChange={(e) => trocarData(e.target.value)} className="min-w-0 bg-transparent outline-none font-bold text-sm text-slate-700 disabled:opacity-50" /></label>
             <div className="grid grid-cols-3 bg-slate-100 p-1 rounded-xl">
-              {[['dia','Dia'],['semana','Semana'],['mes','Mês']].map(([id,label]) => <button key={id} onClick={() => setPeriodo(id)} className={`px-3 py-2 rounded-lg text-xs font-black ${periodo === id ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>{label}</button>)}
+              {[['dia','Dia'],['semana','Semana'],['mes','Mês']].map(([id,label]) => <button key={id} disabled={mutacaoEmCurso} onClick={() => setPeriodo(id)} className={`px-3 py-2 rounded-lg text-xs font-black disabled:opacity-50 ${periodo === id ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>{label}</button>)}
             </div>
           </div>
         </section>
@@ -773,11 +927,11 @@ function ProducaoRunner() {
           <section className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-end gap-3 justify-between">
               <div><h2 className="text-2xl font-black text-slate-900">{modoDia ? "O que precisa ser produzido?" : `Previsão consolidada do ${periodo === "semana" ? "período semanal" : "mês"}`}</h2><p className="text-sm font-semibold text-slate-500 mt-1">{modoDia ? "A necessidade usa a média deste dia da semana e o saldo pronto atual." : `Uma única previsão por produto, baseada na média ${periodo === "semana" ? "semanal" : "mensal"}. A execução continua sendo registrada por dia.`}</p></div>
-              {modoDia && <button onClick={limparPlanejamento} className="text-xs font-black text-slate-500 flex items-center gap-1.5"><RotateCcw size={14} /> Limpar quantidades</button>}
+              {modoDia && <button onClick={limparPlanejamento} disabled={mutacaoEmCurso || !dadosConfiaveis} className="text-xs font-black text-slate-500 flex items-center gap-1.5 disabled:opacity-40"><RotateCcw size={14} /> Limpar quantidades</button>}
             </div>
             {!modoDia && <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm font-bold text-blue-800">Visualização somente para previsão e impressão. Seu rascunho do Dia continua preservado; volte para Dia para salvar ou iniciar uma produção.</div>}
             {modoDia && !contagemEditavel && <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-800">O plano desta data pode ser consultado e ajustado, mas o saldo pronto é somente leitura. Contagens só alteram o estoque na data de hoje ({formatarData(hoje)}).</div>}
-            {fichas.length === 0 ? <div className="bg-white border border-slate-200 rounded-3xl p-10 text-center"><ChefHat size={34} className="mx-auto text-slate-300" /><p className="font-black text-slate-700 mt-3">Nenhuma receita cadastrada neste setor.</p></div> : (
+            {fichasDoDepartamento.length === 0 ? <div className="bg-white border border-slate-200 rounded-3xl p-10 text-center"><ChefHat size={34} className="mx-auto text-slate-300" /><p className="font-black text-slate-700 mt-3">Nenhuma receita cadastrada neste setor.</p></div> : (
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                 {cards.map((card) => {
                   const bloqueado = card.lote && card.lote.status !== "planejado";
@@ -809,12 +963,12 @@ function ProducaoRunner() {
                       <div className="rounded-xl border border-slate-200 p-3"><p className="text-[9px] font-black uppercase text-slate-500">Realizado no período</p><p className="text-lg font-black text-slate-800 mt-1">{formatarQuantidadeBase(card.produzidoPeriodoBase, card.item.unidade)}</p><p className="text-[10px] font-bold text-slate-500 mt-1">Gasto {fmtBRL(card.custoRealPeriodo)}</p></div>
                     </div> : <>
                       <div className="grid sm:grid-cols-2 gap-3 mt-4">
-                        <label className="block"><span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Saldo pronto atual {contagemEditavel ? "(contagem de hoje)" : "(somente leitura)"}</span><div className="flex mt-1.5"><input type="number" min="0" step="0.001" disabled={bloqueado || !contagemEditavel} value={card.item.estoquePronto ?? ""} onChange={(e) => alterarPlano(card.ficha.id, { estoquePronto: e.target.value })} className="min-w-0 w-full h-12 px-3 rounded-l-xl border border-slate-200 bg-slate-50 font-black outline-none focus:border-emerald-400 disabled:text-slate-500" /><select disabled={bloqueado} value={card.item.unidade} onChange={(e) => alterarUnidadePlano(card, e.target.value)} className="h-12 px-2 rounded-r-xl border-y border-r border-slate-200 bg-white font-black text-sm outline-none">{unidadeBase(unidadePadraoFicha(card.ficha)) === "g" ? <><option value="kg">kg</option><option value="g">g</option></> : unidadeBase(unidadePadraoFicha(card.ficha)) === "ml" ? <><option value="L">L</option><option value="ml">ml</option></> : <option value="un">porção</option>}</select></div></label>
-                        <div className="rounded-xl border border-dashed border-emerald-300 bg-emerald-50/40 p-3"><p className="text-[10px] font-black uppercase text-emerald-700">Falta sugerida para o dia</p><div className="flex items-center justify-between gap-2 mt-1"><p className="text-xl font-black text-emerald-800">{formatarQuantidadeBase(card.sugestaoBase, card.item.unidade)}</p><button disabled={bloqueado || card.sugestaoBase <= 0} onClick={() => usarSugestao(card)} className="text-[10px] font-black bg-white border border-emerald-200 text-emerald-700 rounded-lg px-2 py-1.5 disabled:opacity-40"><Sparkles size={12} className="inline mr-1" />Usar</button></div></div>
+                        <label className="block"><span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Saldo pronto atual {contagemEditavel ? "(contagem de hoje)" : "(somente leitura)"}</span><div className="flex mt-1.5"><input type="number" min="0" step="0.001" disabled={bloqueado || !contagemEditavel || mutacaoEmCurso || !dadosConfiaveis} value={card.item.estoquePronto ?? ""} onChange={(e) => alterarPlano(card.ficha.id, { estoquePronto: e.target.value })} className="min-w-0 w-full h-12 px-3 rounded-l-xl border border-slate-200 bg-slate-50 font-black outline-none focus:border-emerald-400 disabled:text-slate-500" /><select disabled={bloqueado || mutacaoEmCurso || !dadosConfiaveis} value={card.item.unidade} onChange={(e) => alterarUnidadePlano(card, e.target.value)} className="h-12 px-2 rounded-r-xl border-y border-r border-slate-200 bg-white font-black text-sm outline-none disabled:opacity-50">{unidadeBase(unidadePadraoFicha(card.ficha)) === "g" ? <><option value="kg">kg</option><option value="g">g</option></> : unidadeBase(unidadePadraoFicha(card.ficha)) === "ml" ? <><option value="L">L</option><option value="ml">ml</option></> : <option value="un">porção</option>}</select></div></label>
+                        <div className="rounded-xl border border-dashed border-emerald-300 bg-emerald-50/40 p-3"><p className="text-[10px] font-black uppercase text-emerald-700">Falta sugerida para o dia</p><div className="flex items-center justify-between gap-2 mt-1"><p className="text-xl font-black text-emerald-800">{formatarQuantidadeBase(card.sugestaoBase, card.item.unidade)}</p><button disabled={bloqueado || card.sugestaoBase <= 0 || mutacaoEmCurso || !dadosConfiaveis} onClick={() => usarSugestao(card)} className="text-[10px] font-black bg-white border border-emerald-200 text-emerald-700 rounded-lg px-2 py-1.5 disabled:opacity-40"><Sparkles size={12} className="inline mr-1" />Usar</button></div></div>
                       </div>
                       <div className="grid sm:grid-cols-[1fr_1fr] gap-3 mt-3">
-                        <label><span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Quanto será produzido?</span><input type="number" min="0" step="0.001" disabled={bloqueado} value={card.item.quantidade ?? ""} onChange={(e) => alterarPlano(card.ficha.id, { quantidade: e.target.value })} className="w-full h-12 px-3 mt-1.5 rounded-xl border border-slate-200 bg-white font-black text-lg outline-none focus:border-emerald-400" /></label>
-                        <label><span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Responsável</span><select disabled={bloqueado} value={card.item.responsavelId || ""} onChange={(e) => alterarPlano(card.ficha.id, { responsavelId: e.target.value })} className="w-full h-12 px-3 mt-1.5 rounded-xl border border-slate-200 bg-white font-bold text-sm outline-none focus:border-emerald-400"><option value="">Selecionar...</option>{colaboradores.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></label>
+                        <label><span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Quanto será produzido?</span><input type="number" min="0" step="0.001" disabled={bloqueado || mutacaoEmCurso || !dadosConfiaveis} value={card.item.quantidade ?? ""} onChange={(e) => alterarPlano(card.ficha.id, { quantidade: e.target.value })} className="w-full h-12 px-3 mt-1.5 rounded-xl border border-slate-200 bg-white font-black text-lg outline-none focus:border-emerald-400 disabled:opacity-50" /></label>
+                        <label><span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Responsável</span><select disabled={bloqueado || mutacaoEmCurso || !dadosConfiaveis} value={card.item.responsavelId || ""} onChange={(e) => alterarPlano(card.ficha.id, { responsavelId: e.target.value })} className="w-full h-12 px-3 mt-1.5 rounded-xl border border-slate-200 bg-white font-bold text-sm outline-none focus:border-emerald-400 disabled:opacity-50"><option value="">Selecionar...</option>{colaboradores.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></label>
                       </div>
                       <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
                         <div><p className="font-bold text-slate-400">Capacidade do estoque</p><p className={`font-black mt-0.5 ${podeProduzir ? "text-slate-700" : "text-red-600"}`}>{card.capacidadeCalculada ? formatarQuantidadeBase(card.capacidadeBase, card.item.unidade) : "Não calculada"}</p></div>
@@ -822,16 +976,16 @@ function ProducaoRunner() {
                         <div className="col-span-2 sm:col-span-1"><p className="font-bold text-slate-400">Ingredientes</p><p className="font-black text-slate-700 mt-0.5">{card.calculo.itens?.length || 0} itens</p></div>
                       </div>
                       {erroCapacidade && <p className="mt-3 rounded-xl bg-red-50 border border-red-100 px-3 py-2 text-xs font-bold text-red-700">{erroCapacidade}</p>}
-                      <button onClick={() => iniciar(card)} disabled={bloqueado || card.quantidadeBase <= 0 || !podeProduzir || salvando || acaoId === card.ficha.id} className="w-full min-h-12 mt-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-black flex items-center justify-center gap-2 transition-colors">{acaoId === card.ficha.id ? <Loader2 size={18} className="animate-spin" /> : <Play size={18} />} {bloqueado ? STATUS[card.lote.status]?.texto : "Iniciar produção e baixar estoque"}</button>
+                      <button onClick={() => iniciar(card)} disabled={bloqueado || card.quantidadeBase <= 0 || !podeProduzir || mutacaoEmCurso || !dadosConfiaveis} className="w-full min-h-12 mt-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-black flex items-center justify-center gap-2 transition-colors">{acaoId === card.ficha.id ? <Loader2 size={18} className="animate-spin" /> : <Play size={18} />} {bloqueado ? STATUS[card.lote.status]?.texto : "Iniciar produção e baixar estoque"}</button>
                     </>}
                   </article>;
                 })}
               </div>
             )}
-            {modoDia && <div className="sticky bottom-4 z-10 bg-slate-900 text-white rounded-2xl p-3 sm:p-4 shadow-2xl flex flex-col sm:flex-row sm:items-center gap-3 justify-between"><div><p className="font-black">{planejadosHoje} item(ns) com quantidade {planoSujo ? "· alterações não salvas" : ""}</p><p className="text-xs font-semibold text-slate-300">{contagemEditavel ? "O plano será salvo primeiro; depois, as contagens de hoje atualizam o saldo pronto." : "O plano será salvo sem alterar o saldo pronto atual."}</p></div><button onClick={() => persistirPlano()} disabled={salvando} className="min-h-12 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-60 font-black flex items-center justify-center gap-2">{salvando ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} {contagemEditavel ? "Salvar plano e contagens" : "Salvar plano"}</button></div>}
+            {modoDia && <div className="sticky bottom-4 z-10 bg-slate-900 text-white rounded-2xl p-3 sm:p-4 shadow-2xl flex flex-col sm:flex-row sm:items-center gap-3 justify-between"><div><p className="font-black">{planejadosHoje} item(ns) com quantidade {planoSujo ? "· alterações não salvas" : ""}</p><p className="text-xs font-semibold text-slate-300">{contagemEditavel ? "O plano será salvo primeiro; depois, as contagens de hoje atualizam o saldo pronto." : "O plano será salvo sem alterar o saldo pronto atual."}</p></div><button onClick={() => persistirPlano()} disabled={mutacaoEmCurso || !dadosConfiaveis} className="min-h-12 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-60 font-black flex items-center justify-center gap-2">{salvando ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} {contagemEditavel ? "Salvar plano e contagens" : "Salvar plano"}</button></div>}
           </section>
         ) : aba === "andamento" ? (
-          <section><div className="mb-4"><h2 className="text-2xl font-black text-slate-900">Produções em andamento</h2><p className="text-sm font-semibold text-slate-500 mt-1">Os ingredientes já foram baixados. Finalize informando o peso real.</p></div>{emProducao.length === 0 ? <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center"><PackageCheck size={38} className="mx-auto text-slate-300" /><p className="font-black text-slate-700 mt-3">Nenhuma produção aberta.</p></div> : <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">{emProducao.map((lote) => <article key={lote.id} className="bg-white border border-amber-200 rounded-3xl p-5 shadow-sm"><div className="flex justify-between gap-2"><StatusBadge status={lote.status} /><span className="text-xs font-bold text-slate-400">{formatarData(lote.data_producao)}</span></div><h3 className="text-xl font-black text-slate-900 mt-4">{lote.ficha_nome}</h3><p className="text-sm font-bold text-slate-500 mt-1">Planejado: {lote.quantidade_planejada} {lote.unidade_planejada}</p><div className="grid grid-cols-2 gap-2 mt-4"><div className="rounded-xl bg-slate-50 p-3"><p className="text-[9px] font-black uppercase text-slate-400">Responsável</p><p className="font-bold text-sm text-slate-700 mt-1">{lote.colaborador_nome || lote.responsavel_planejado_nome || "—"}</p></div><div className="rounded-xl bg-slate-50 p-3"><p className="text-[9px] font-black uppercase text-slate-400">Início</p><p className="font-bold text-sm text-slate-700 mt-1">{lote.iniciado_em ? new Date(lote.iniciado_em).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "—"}</p></div></div><button onClick={() => abrirFinalizacao(lote)} className="w-full min-h-12 mt-4 rounded-xl bg-emerald-600 text-white font-black flex items-center justify-center gap-2"><Scale size={18} /> Pesar e finalizar</button><button onClick={() => cancelar(lote)} disabled={acaoId === lote.id} className="w-full mt-2 py-2 text-xs font-black text-red-500 disabled:opacity-50">Cancelar e devolver ingredientes</button></article>)}</div>}</section>
+          <section><div className="mb-4"><h2 className="text-2xl font-black text-slate-900">Produções em andamento</h2><p className="text-sm font-semibold text-slate-500 mt-1">Os ingredientes já foram baixados. Finalize informando o peso real.</p></div>{emProducao.length === 0 ? <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center"><PackageCheck size={38} className="mx-auto text-slate-300" /><p className="font-black text-slate-700 mt-3">Nenhuma produção aberta.</p></div> : <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">{emProducao.map((lote) => <article key={lote.id} className="bg-white border border-amber-200 rounded-3xl p-5 shadow-sm"><div className="flex justify-between gap-2"><StatusBadge status={lote.status} /><span className="text-xs font-bold text-slate-400">{formatarData(lote.data_producao)}</span></div><h3 className="text-xl font-black text-slate-900 mt-4">{lote.ficha_nome}</h3><p className="text-sm font-bold text-slate-500 mt-1">Planejado: {lote.quantidade_planejada} {lote.unidade_planejada}</p><div className="grid grid-cols-2 gap-2 mt-4"><div className="rounded-xl bg-slate-50 p-3"><p className="text-[9px] font-black uppercase text-slate-400">Responsável</p><p className="font-bold text-sm text-slate-700 mt-1">{lote.colaborador_nome || lote.responsavel_planejado_nome || "—"}</p></div><div className="rounded-xl bg-slate-50 p-3"><p className="text-[9px] font-black uppercase text-slate-400">Início</p><p className="font-bold text-sm text-slate-700 mt-1">{lote.iniciado_em ? new Date(lote.iniciado_em).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "—"}</p></div></div><button onClick={() => abrirFinalizacao(lote)} disabled={mutacaoEmCurso || !dadosConfiaveis} className="w-full min-h-12 mt-4 rounded-xl bg-emerald-600 text-white font-black flex items-center justify-center gap-2 disabled:opacity-50"><Scale size={18} /> Pesar e finalizar</button><button onClick={() => cancelar(lote)} disabled={mutacaoEmCurso || !dadosConfiaveis} className="w-full mt-2 py-2 text-xs font-black text-red-500 disabled:opacity-50">Cancelar e devolver ingredientes</button></article>)}</div>}</section>
         ) : (
           <section className="space-y-5">
             <div>
@@ -885,7 +1039,7 @@ function ProducaoRunner() {
         )}
       </main>
 
-      {modalFinalizar && <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm p-3 sm:p-4 flex items-start sm:items-center justify-center overflow-y-auto"><div className="bg-white rounded-3xl w-full max-w-lg max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)] overflow-y-auto p-5 sm:p-7 shadow-2xl"><div className="flex justify-between gap-3"><div><p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Finalizar produção</p><h2 className="text-2xl font-black text-slate-900 mt-1">{modalFinalizar.ficha_nome}</h2></div><button onClick={() => setModalFinalizar(null)} className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><X size={19} /></button></div><div className="rounded-2xl bg-amber-50 border border-amber-100 p-4 mt-5"><p className="text-xs font-bold text-amber-800">Planejado: {modalFinalizar.quantidade_planejada} {modalFinalizar.unidade_planejada}. Informe o resultado real após pesar.</p></div><label className="block mt-5"><span className="text-xs font-black uppercase tracking-wider text-slate-500">Quantidade realmente produzida</span><div className="flex mt-2"><input type="number" min="0" step="0.001" value={finalizacao.quantidade} onChange={(e) => setFinalizacao((f) => ({ ...f, quantidade: e.target.value }))} className="w-full h-14 px-4 rounded-l-xl border border-slate-200 text-2xl font-black outline-none focus:border-emerald-500" /><select value={finalizacao.unidade} onChange={(e) => alterarUnidadeFinalizacao(e.target.value)} className="h-14 px-3 rounded-r-xl border-y border-r border-slate-200 bg-slate-50 font-black">{unidadeBase(modalFinalizar.unidade_planejada) === "g" ? <><option value="kg">kg</option><option value="g">g</option></> : unidadeBase(modalFinalizar.unidade_planejada) === "ml" ? <><option value="L">L</option><option value="ml">ml</option></> : <option value="un">un</option>}</select></div></label><label className="block mt-4"><span className="text-xs font-black uppercase tracking-wider text-slate-500">Observações / perdas</span><textarea value={finalizacao.observacoes} onChange={(e) => setFinalizacao((f) => ({ ...f, observacoes: e.target.value }))} placeholder="Opcional" className="w-full min-h-24 mt-2 p-3 rounded-xl border border-slate-200 outline-none focus:border-emerald-500" /></label><button onClick={finalizar} disabled={acaoId === modalFinalizar.id} className="w-full min-h-14 mt-5 rounded-xl bg-emerald-600 text-white text-lg font-black flex items-center justify-center gap-2">{acaoId === modalFinalizar.id ? <Loader2 size={20} className="animate-spin" /> : <CheckCircle2 size={20} />} Confirmar peso e finalizar</button></div></div>}
+      {modalFinalizar && <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm p-3 sm:p-4 flex items-start sm:items-center justify-center overflow-y-auto"><div className="bg-white rounded-3xl w-full max-w-lg max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)] overflow-y-auto p-5 sm:p-7 shadow-2xl"><div className="flex justify-between gap-3"><div className="min-w-0"><p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Finalizar produção</p><h2 className="text-2xl font-black text-slate-900 mt-1 break-words">{modalFinalizar.ficha_nome}</h2></div><button onClick={() => setModalFinalizar(null)} disabled={mutacaoEmCurso} className="w-10 h-10 shrink-0 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 disabled:opacity-40"><X size={19} /></button></div><div className="rounded-2xl bg-amber-50 border border-amber-100 p-4 mt-5"><p className="text-xs font-bold text-amber-800">Planejado: {modalFinalizar.quantidade_planejada} {modalFinalizar.unidade_planejada}. Informe o resultado real após pesar.</p></div><label className="block mt-5"><span className="text-xs font-black uppercase tracking-wider text-slate-500">Quantidade realmente produzida</span><div className="flex mt-2 min-w-0"><input type="number" min="0" step="0.001" disabled={mutacaoEmCurso} value={finalizacao.quantidade} onChange={(e) => setFinalizacao((f) => ({ ...f, quantidade: e.target.value }))} className="min-w-0 flex-1 h-14 px-4 rounded-l-xl border border-slate-200 text-2xl font-black outline-none focus:border-emerald-500 disabled:opacity-50" /><select disabled={mutacaoEmCurso} value={finalizacao.unidade} onChange={(e) => alterarUnidadeFinalizacao(e.target.value)} className="h-14 max-w-[7rem] px-3 rounded-r-xl border-y border-r border-slate-200 bg-slate-50 font-black disabled:opacity-50">{unidadeBase(modalFinalizar.unidade_planejada) === "g" ? <><option value="kg">kg</option><option value="g">g</option></> : unidadeBase(modalFinalizar.unidade_planejada) === "ml" ? <><option value="L">L</option><option value="ml">ml</option></> : <option value="un">un</option>}</select></div></label><label className="block mt-4"><span className="text-xs font-black uppercase tracking-wider text-slate-500">Observações / perdas</span><textarea disabled={mutacaoEmCurso} value={finalizacao.observacoes} onChange={(e) => setFinalizacao((f) => ({ ...f, observacoes: e.target.value }))} placeholder="Opcional" className="w-full min-h-24 mt-2 p-3 rounded-xl border border-slate-200 outline-none focus:border-emerald-500 disabled:opacity-50" /></label><button onClick={finalizar} disabled={mutacaoEmCurso} className="w-full min-h-14 mt-5 rounded-xl bg-emerald-600 text-white text-lg font-black flex items-center justify-center gap-2 disabled:opacity-50">{acaoId === modalFinalizar.id ? <Loader2 size={20} className="animate-spin" /> : <CheckCircle2 size={20} />} Confirmar peso e finalizar</button></div></div>}
 
       {rascunhoVoz && <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm p-3 sm:p-4 flex items-start sm:items-center justify-center overflow-y-auto"><div className="bg-white rounded-3xl w-full max-w-md max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)] overflow-y-auto p-5 sm:p-6 shadow-2xl"><div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center"><Mic size={23} /></div><h2 className="text-xl font-black text-slate-900 mt-4">Revisar o que ouvi</h2><p className="mt-2 p-3 rounded-xl bg-slate-50 text-sm font-semibold text-slate-600">“{rascunhoVoz.transcricao}”</p>{rascunhoVoz.erro ? <div className="mt-4 rounded-xl bg-red-50 border border-red-100 p-3 text-sm font-bold text-red-700">{rascunhoVoz.erro}</div> : <div className="mt-4 rounded-xl bg-emerald-50 border border-emerald-100 p-3"><p className="font-black text-emerald-900">{rascunhoVoz.ficha.nome_receita}</p><p className="text-sm font-bold text-emerald-700 mt-1">{rascunhoVoz.acao === "contagem" ? "Contagem pronta" : "Produzir"}: {rascunhoVoz.quantidade} {rascunhoVoz.unidade}</p></div>}<div className="grid grid-cols-2 gap-2 mt-5"><button onClick={() => setRascunhoVoz(null)} className="min-h-12 rounded-xl bg-slate-100 text-slate-600 font-black">Cancelar</button><button onClick={confirmarVoz} disabled={!!rascunhoVoz.erro} className="min-h-12 rounded-xl bg-emerald-600 disabled:bg-slate-200 text-white font-black">Aplicar rascunho</button></div></div></div>}
     </div>

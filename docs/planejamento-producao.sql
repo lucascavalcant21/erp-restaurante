@@ -12,7 +12,62 @@ begin;
 create extension if not exists pgcrypto;
 
 -- ---------------------------------------------------------------------------
--- Tabelas
+-- Acesso: fonte de autorizacao controlada exclusivamente pelo banco.
+-- Nunca confiar em user_metadata para papel ou unidade, pois esse conteudo
+-- pode ser alterado pelo proprio usuario no Supabase Auth.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.producao_acessos (
+  id          uuid primary key default gen_random_uuid(),
+  usuario_id  uuid not null references auth.users(id) on delete cascade,
+  papel       text not null,
+  unidade_id  text references public.unidades(id) on delete cascade,
+  ativo       boolean not null default true,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now(),
+
+  constraint producao_acessos_papel_ck check (papel in ('admin', 'unidade')),
+  constraint producao_acessos_escopo_ck check (
+    (papel = 'admin' and unidade_id is null)
+    or (papel = 'unidade' and unidade_id is not null)
+  )
+);
+
+create unique index if not exists producao_acessos_admin_uidx
+  on public.producao_acessos (usuario_id)
+  where papel = 'admin';
+
+create unique index if not exists producao_acessos_unidade_uidx
+  on public.producao_acessos (usuario_id, unidade_id)
+  where papel = 'unidade';
+
+-- Nesta fase o modulo foi autorizado apenas para o proprietario do ERP.
+-- Novos acessos devem ser concedidos nessa tabela por uma operacao
+-- administrativa no servidor, nunca pelo navegador do usuario.
+insert into public.producao_acessos (usuario_id, papel, unidade_id, ativo)
+select u.id, 'admin', null, true
+  from auth.users u
+ where lower(u.email) = 'lucascavalcant21@gmail.com'
+   and not exists (
+     select 1
+       from public.producao_acessos a
+      where a.usuario_id = u.id
+        and a.papel = 'admin'
+   );
+
+update public.producao_acessos a
+   set ativo = true,
+       updated_at = now()
+  from auth.users u
+ where u.id = a.usuario_id
+   and lower(u.email) = 'lucascavalcant21@gmail.com'
+   and a.papel = 'admin';
+
+alter table public.producao_acessos enable row level security;
+revoke all on public.producao_acessos from public, anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Tabelas de operacao
 -- ---------------------------------------------------------------------------
 
 create table if not exists public.producao_lotes (
@@ -205,15 +260,18 @@ create trigger producao_lotes_set_updated_at
 before update on public.producao_lotes
 for each row execute function public._producao_set_updated_at();
 
+drop trigger if exists producao_acessos_set_updated_at on public.producao_acessos;
+create trigger producao_acessos_set_updated_at
+before update on public.producao_acessos
+for each row execute function public._producao_set_updated_at();
+
 drop trigger if exists producao_saldos_set_updated_at on public.producao_saldos;
 create trigger producao_saldos_set_updated_at
 before update on public.producao_saldos
 for each row execute function public._producao_set_updated_at();
 
--- O escopo vem do JWT. Administrador pode operar todas as unidades; qualquer
--- outro papel precisa ter a unidade exata nos metadados. App metadata tem
--- precedencia, mas user_metadata e mantido por compatibilidade com o login
--- atual do ERP.
+-- O escopo vem somente da tabela protegida producao_acessos. Administrador
+-- pode operar todas as unidades; os demais precisam de vinculo exato.
 create or replace function public._producao_pode_acessar_unidade(p_unidade_id text)
 returns boolean
 language sql
@@ -222,24 +280,67 @@ security definer
 set search_path = pg_catalog, public
 as $$
   select auth.uid() is not null
-     and (
-       lower(btrim(coalesce(
-         auth.jwt() -> 'app_metadata' ->> 'papel',
-         auth.jwt() -> 'user_metadata' ->> 'papel',
-         ''
-       ))) = 'admin'
-       or p_unidade_id = coalesce(
-         nullif(auth.jwt() -> 'app_metadata' ->> 'unidade', ''),
-         nullif(auth.jwt() -> 'app_metadata' ->> 'unidade_id', ''),
-         nullif(auth.jwt() -> 'user_metadata' ->> 'unidade', ''),
-         nullif(auth.jwt() -> 'user_metadata' ->> 'unidade_id', ''),
-         ''
-       )
+     and exists (
+       select 1
+         from public.producao_acessos a
+        where a.usuario_id = auth.uid()
+          and a.ativo
+          and (
+            a.papel = 'admin'
+            or (a.papel = 'unidade' and a.unidade_id = p_unidade_id)
+          )
      );
 $$;
 
 revoke all on function public._producao_pode_acessar_unidade(text) from public, anon;
 grant execute on function public._producao_pode_acessar_unidade(text) to authenticated;
+
+-- Impede que uma corrida de tela ou uma requisicao manual crie plano com
+-- ficha, setor ou responsavel pertencente a outro escopo.
+create or replace function public._producao_validar_plano()
+returns trigger
+language plpgsql
+security definer
+set search_path = pg_catalog, public
+as $$
+declare
+  v_departamento text;
+begin
+  select coalesce(nullif(btrim(f.departamento), ''), 'cozinha')
+    into v_departamento
+    from public.fichas_tecnicas f
+   where f.id = new.ficha_id
+     and f.unidade_id = new.unidade_id;
+
+  if not found then
+    raise exception using errcode = '23503', message = 'Ficha inexistente ou pertencente a outra unidade.';
+  end if;
+
+  if new.departamento <> v_departamento then
+    raise exception using errcode = '23514', message = 'O departamento do lote nao corresponde ao departamento da ficha.';
+  end if;
+
+  if new.responsavel_planejado_id is not null
+     and not exists (
+       select 1
+         from public.colaboradores c
+        where c.id = new.responsavel_planejado_id
+          and c.unidade_id = new.unidade_id
+     ) then
+    raise exception using errcode = '23503', message = 'Responsavel planejado inexistente ou pertencente a outra unidade.';
+  end if;
+
+  return new;
+end;
+$$;
+
+revoke all on function public._producao_validar_plano() from public, anon, authenticated;
+
+drop trigger if exists producao_lotes_validar_plano on public.producao_lotes;
+create trigger producao_lotes_validar_plano
+before insert or update of unidade_id, departamento, ficha_id, responsavel_planejado_id
+on public.producao_lotes
+for each row execute function public._producao_validar_plano();
 
 -- ---------------------------------------------------------------------------
 -- RLS: leitura e planejamento para autenticados; mutacoes de saldo e ciclo de
@@ -1190,6 +1291,8 @@ grant execute on function public.registrar_contagem_producao(text, uuid, date, n
 
 comment on table public.producao_lotes is
   'Plano e execucao diaria de producao, com snapshots de medias, custos e ingredientes.';
+comment on table public.producao_acessos is
+  'Permissoes do modulo de producao mantidas no servidor; nunca derivadas de user_metadata.';
 comment on table public.producao_saldos is
   'Saldo atual de produto pronto por unidade e ficha, normalizado em g, ml ou un.';
 comment on table public.producao_contagens is

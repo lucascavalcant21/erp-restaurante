@@ -34,7 +34,7 @@ const SIDEBAR_MENU = [
     icon: ChefHat,
     items: [
       { label: "Abrir Cozinha", href: "/dashboard/area?dept=cozinha" },
-      { label: "Cardápio e Receitas", href: "/dashboard/operacao/fichas?dept=cozinha" },
+      { label: "Ficha Técnica", href: "/dashboard/operacao/fichas?dept=cozinha" },
       { label: "Montagem de Pratos", href: "/dashboard/operacao/montagem?dept=cozinha" },
       { label: "Ingredientes", href: "/dashboard/operacao/ingredientes?dept=cozinha" },
       { label: "Estoque", href: "/dashboard/operacao/estoque?dept=cozinha" },
@@ -53,7 +53,7 @@ const SIDEBAR_MENU = [
     items: [
       { label: "Abrir Bar", href: "/dashboard/area?dept=bar" },
       { label: "Drinks", href: "/dashboard/operacao/drinks" },
-      { label: "Cardápio e Receitas", href: "/dashboard/operacao/fichas?dept=bar" },
+      { label: "Ficha Técnica", href: "/dashboard/operacao/fichas?dept=bar" },
       { label: "Montagem de Drinks", href: "/dashboard/operacao/montagem?dept=bar" },
       { label: "Ingredientes", href: "/dashboard/operacao/ingredientes?dept=bar" },
       { label: "Estoque", href: "/dashboard/operacao/estoque?dept=bar" },

@@ -50,7 +50,7 @@ export default function BarHubPage() {
          <button onClick={() => router.push("/dashboard/operacao/fichas?dept=bar")} className="col-span-1 lg:col-span-2 row-span-1 rounded-[24px] p-4 sm:p-6 bg-white border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all flex flex-col justify-between group">
             <div className="w-10 h-10 rounded-xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors"><LayoutList size={20} /></div>
             <div>
-               <h3 className="font-bold text-slate-800 text-lg">Cardápio e Receitas</h3>
+               <h3 className="font-bold text-slate-800 text-lg">Ficha Técnica</h3>
                <p className="text-[10px] uppercase font-bold text-slate-500 mt-0.5">Ficha técnica, custos e preços</p>
             </div>
          </button>

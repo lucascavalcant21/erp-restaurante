@@ -1791,7 +1791,7 @@ function FichasRunner() {
                  <UtensilsCrossed size={27} />
                </div>
               <div className="min-w-0">
-                 <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 truncate">Cardápio e Receitas</h1>
+                 <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 truncate">Ficha Técnica</h1>
                  <p className="text-slate-500 font-bold text-xs mt-1">Ficha técnica, custos e preço em um só lugar · {deptUrl === "bar" ? "Bar" : "Cozinha"}</p>
               </div>
             </div>

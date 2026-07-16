@@ -37,9 +37,9 @@ const AREAS = {
         ],
       },
       {
-        titulo: "Cardápio e Receitas",
+        titulo: "Ficha Técnica",
         itens: [
-          { label: "Cardápio e Receitas", href: "/dashboard/operacao/fichas?dept=cozinha", Icon: BookOpen },
+          { label: "Ficha Técnica", href: "/dashboard/operacao/fichas?dept=cozinha", Icon: BookOpen },
           { label: "Montagem de Pratos", href: "/dashboard/operacao/montagem?dept=cozinha", Icon: LayoutList },
           { label: "Orçamentos de Eventos", href: "/dashboard/operacao/orcamento?dept=cozinha", Icon: PartyPopper },
         ],
@@ -67,10 +67,10 @@ const AREAS = {
         ],
       },
       {
-        titulo: "Cardápio e Receitas",
+        titulo: "Ficha Técnica",
         itens: [
           { label: "Drinks", href: "/dashboard/operacao/drinks", Icon: Wine },
-          { label: "Cardápio e Receitas", href: "/dashboard/operacao/fichas?dept=bar", Icon: BookOpen },
+          { label: "Ficha Técnica", href: "/dashboard/operacao/fichas?dept=bar", Icon: BookOpen },
           { label: "Montagem de Drinks", href: "/dashboard/operacao/montagem?dept=bar", Icon: LayoutList },
         ],
       },

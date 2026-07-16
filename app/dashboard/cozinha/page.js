@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { 
   ChefHat, FlaskConical, Package, ShoppingCart, LayoutList, 
-  FileText, Link, CheckSquare, Sparkles,
+  CheckSquare, Sparkles,
   Flame, Tags, BarChart, CalendarClock 
 } from "lucide-react";
 
@@ -47,17 +47,6 @@ export default function CozinhaHubPage() {
          </button>
 
          {/* ITENS MÉDIOS: Cardápio e Fichas */}
-         <button onClick={() => router.push("/dashboard/operacao/cardapio")} className="col-span-2 row-span-1 rounded-[24px] p-4 sm:p-6 bg-white border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all flex flex-col justify-between group">
-            <div className="flex justify-between items-start">
-               <div className="w-10 h-10 rounded-xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-slate-50 group-hover:text-emerald-600 transition-colors"><FileText size={20} /></div>
-               <Link size={16} className="text-slate-500" />
-            </div>
-            <div>
-               <h3 className="font-bold text-slate-800 text-lg">Cardápio Digital / QR Code</h3>
-               <p className="text-[10px] uppercase font-bold text-slate-500 mt-0.5">Link público e QR Code</p>
-            </div>
-         </button>
-
          <button onClick={() => router.push("/dashboard/operacao/fichas?dept=cozinha")} className="col-span-1 lg:col-span-2 row-span-1 rounded-[24px] p-4 sm:p-6 bg-white border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all flex flex-col justify-between group">
             <div className="w-10 h-10 rounded-xl bg-slate-50 text-slate-600 flex items-center justify-center group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors"><LayoutList size={20} /></div>
             <div>

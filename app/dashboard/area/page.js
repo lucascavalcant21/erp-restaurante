@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   ChefHat, GlassWater, Armchair, Lock, ClipboardList, FlaskConical, PackageSearch,
   ShoppingCart, FileText, CalendarClock, Tag, Sparkles, BookOpen, LayoutList,
-  Wine, GraduationCap, MessageSquare, PartyPopper, Droplets, QrCode
+  Wine, GraduationCap, MessageSquare, PartyPopper, Droplets
 } from "lucide-react";
 import { useERP } from "../../context/ERPContext";
 import { fetchPins } from "../../lib/seguranca";
@@ -40,7 +40,6 @@ const AREAS = {
         titulo: "Cardápio e Receitas",
         itens: [
           { label: "Cardápio e Receitas", href: "/dashboard/operacao/fichas?dept=cozinha", Icon: BookOpen },
-          { label: "Cardápio Digital / QR Code", href: "/dashboard/operacao/cardapio", Icon: QrCode },
           { label: "Montagem de Pratos", href: "/dashboard/operacao/montagem?dept=cozinha", Icon: LayoutList },
           { label: "Orçamentos de Eventos", href: "/dashboard/operacao/orcamento?dept=cozinha", Icon: PartyPopper },
         ],
@@ -72,7 +71,6 @@ const AREAS = {
         itens: [
           { label: "Drinks", href: "/dashboard/operacao/drinks", Icon: Wine },
           { label: "Cardápio e Receitas", href: "/dashboard/operacao/fichas?dept=bar", Icon: BookOpen },
-          { label: "Cardápio Digital / QR Code", href: "/dashboard/operacao/cardapio", Icon: QrCode },
           { label: "Montagem de Drinks", href: "/dashboard/operacao/montagem?dept=bar", Icon: LayoutList },
         ],
       },

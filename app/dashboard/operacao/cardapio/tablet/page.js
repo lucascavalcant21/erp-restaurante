@@ -8,7 +8,7 @@ export default function CozinhaTabletPage() {
       titulo="Cozinha"
       emoji="👨‍🍳"
       cor="#10B981"
-      voltarHref="/dashboard/operacao/cardapio"
+      voltarHref="/dashboard/operacao/fichas?dept=cozinha"
     />
   );
 }

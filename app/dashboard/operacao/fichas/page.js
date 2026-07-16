@@ -1571,64 +1571,128 @@ function FichasRunner() {
   const imprimirLivroSelecionadas = () => {
     if (selecionadas.length === 0) return;
     const fichasParaImprimir = fichas.filter(f => selecionadas.includes(f.id));
-    imprimirFichas(fichasParaImprimir);
+    imprimirFichas(fichasParaImprimir, { incluirCapa: true, incluirIndice: true });
   };
 
   const imprimirFicha = (f) => {
     imprimirFichas([f]);
   };
 
-  const imprimirFichas = (listaDeFichas) => {
+  const imprimirFichas = (listaDeFichas, opcoes = {}) => {
+    const listaLivro = (listaDeFichas || []).filter(Boolean);
+    if (!listaLivro.length) return alert("Nenhuma receita disponível para imprimir.");
+    const incluirCapa = opcoes.incluirCapa ?? listaLivro.length > 1;
+    const incluirIndice = opcoes.incluirIndice ?? listaLivro.length > 1;
+    const tituloLivro = deptUrl === "bar" ? "Livro de Coquetelaria" : "Livro de Receitas";
+    const setorLivro = deptUrl === "bar" ? "Bar" : "Cozinha";
+    const setorLivroMaiusculo = setorLivro.toLocaleUpperCase("pt-BR");
+    const nomeUnidadeLivro = unidadeInfo?.nome || unidadeAtiva || "Unidade";
+    const dataLivro = new Date().toLocaleDateString("pt-BR");
     const win = window.open('', '_blank');
     if(!win) return alert("Habilite pop-ups para imprimir a ficha.");
+    const escaparHtml = (valor) => String(valor ?? "").replace(/[&<>"']/g, caractere => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    })[caractere]);
     const SUB = { kg: { s: 'g', fa: 1000 }, l: { s: 'ml', fa: 1000 } };
     const fmtQtd = (qtd, un) => {
+       const quantidade = Number(qtd) || 0;
        const c = SUB[String(un || '').toLowerCase()];
-       return c ? `${(+(qtd * c.fa)).toLocaleString('pt-BR')} ${c.s}` : `${qtd} ${String(un || '').toUpperCase()}`;
+       return c
+         ? `${(quantidade * c.fa).toLocaleString('pt-BR')} ${c.s}`
+         : `${quantidade.toLocaleString('pt-BR')} ${String(un || '').toUpperCase()}`;
     };
     
     let conteudoHTML = `
-       <!DOCTYPE html><html><head><meta charset="utf-8"/><title>Livro de Receitas</title>
+       <!DOCTYPE html><html><head><meta charset="utf-8"/><title>${escaparHtml(tituloLivro)}</title>
        <style>
           *{margin:0;padding:0;box-sizing:border-box}
-          body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;padding:18px;max-width:780px;margin:0 auto}
-          /* Bloco compacto: cabem 2 pratos por página */
-          .bloco{page-break-inside:avoid;border-bottom:3px double #94a3b8;padding-bottom:14px;margin-bottom:16px}
-          .bloco:last-child{border-bottom:none;margin-bottom:0}
-          .quebra{page-break-after:always}
-          .head{display:flex;gap:14px;align-items:flex-start;border-bottom:3px solid #0f172a;padding-bottom:10px;margin-bottom:8px}
+          body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;max-width:210mm;margin:0 auto;background:#eef2f7;padding:10mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+          .bloco,.capa,.indice{background:#fff;min-height:277mm;padding:12mm;position:relative}
+          /* Cada ficha começa em sua própria folha A4. */
+          .bloco{display:flex;flex-direction:column;page-break-after:always;break-after:page}
+          .bloco:last-child{page-break-after:auto;break-after:auto}
+          .head{display:grid;grid-template-columns:minmax(68mm,42%) 1fr;gap:7mm;align-items:start;border-bottom:4px solid #0f172a;padding-bottom:5mm;margin-bottom:4mm}
           .head-info{flex:1;min-width:0}
-          /* Foto do prato: mostra inteira (sem cortar), tamanho compacto */
-          .head-foto{width:250px;height:180px;border-radius:12px;object-fit:contain;background:#f1f5f9;border:1px solid #cbd5e1;display:block;flex-shrink:0}
-          .tag{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#475569;font-weight:bold}
-          h1{font-size:26px;line-height:1.1;margin:4px 0}
-          .meta{font-size:16px;color:#0f172a;font-weight:bold;margin-top:2px}
-          h2{font-size:13px;text-transform:uppercase;letter-spacing:2px;color:#0f172a;margin:10px 0 4px;border-bottom:1px solid #cbd5e1;padding-bottom:3px}
-          table{width:100%;border-collapse:collapse;font-size:15px}
-          th,td{text-align:left;padding:5px 6px;border-bottom:1px solid #e2e8f0}
-          th{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#64748b}
+          .head-foto{width:100%;height:67mm;border-radius:5mm;object-fit:contain;background:#f8fafc;border:1px solid #cbd5e1;display:block}
+          .foto-vazia{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2mm;color:#64748b;background:linear-gradient(145deg,#f8fafc,#e2e8f0);text-align:center}
+          .foto-vazia strong{font-size:34px;line-height:1;color:#94a3b8}
+          .foto-vazia span{font-size:9px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase}
+          .tag{font-size:10px;letter-spacing:2.4px;text-transform:uppercase;color:#475569;font-weight:900;margin-top:1mm}
+          .categoria-ficha{font-size:10px;letter-spacing:1.3px;text-transform:uppercase;color:#b45309;font-weight:900;margin-top:2mm}
+          h1{font-size:28px;line-height:1.08;margin:3mm 0;overflow-wrap:anywhere}
+          .metas{display:flex;flex-direction:column;gap:1.5mm;margin-top:3mm}
+          .meta{font-size:14px;color:#0f172a;font-weight:800}
+          h2{font-size:14px;text-transform:uppercase;letter-spacing:2.4px;color:#0f172a;margin:5mm 0 2mm;border-bottom:1px solid #cbd5e1;padding-bottom:2mm}
+          table{width:100%;border-collapse:collapse;font-size:14px}
+          tr{break-inside:avoid;page-break-inside:avoid}
+          th,td{text-align:left;padding:2.5mm 2mm;border-bottom:1px solid #e2e8f0}
+          th{font-size:9px;text-transform:uppercase;letter-spacing:1.4px;color:#475569}
           td{font-weight:600}
           td.c{text-align:center}td.r,th.r{text-align:right}
-          .preparo{margin-top:4px;font-size:14px;line-height:1.55;white-space:pre-wrap;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-weight:500}
-          @media print{@page{margin:10mm}}
-          .capa { height: 90vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; page-break-after: always; }
-          .capa h1 { font-size: 48px; margin-bottom: 16px; }
-          .capa p { font-size: 18px; color: #64748b; }
+          .preparo{margin-top:2mm;font-size:13px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;background:#f8fafc;border:1px solid #cbd5e1;border-radius:4mm;padding:4mm;font-weight:500}
+          .rodape-ficha{margin-top:auto;padding-top:6mm;display:flex;justify-content:space-between;gap:8px;border-top:1px solid #cbd5e1;color:#64748b;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1.2px}
+          .capa{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;page-break-after:always;break-after:page;border:1px solid #cbd5e1}
+          .capa:before{content:'';position:absolute;inset:8mm;border:2px solid #0f172a;pointer-events:none}
+          .capa-selo,.indice-selo{font-size:11px!important;letter-spacing:4px;text-transform:uppercase;color:#475569!important;font-weight:900}
+          .capa h1{font-size:52px;line-height:1;margin:8mm 0 4mm;max-width:150mm}
+          .capa-setor{font-size:22px!important;color:#b45309!important;text-transform:uppercase;letter-spacing:5px;font-weight:900}
+          .capa-dados{margin-top:25mm;display:flex;flex-direction:column;gap:2mm;color:#475569;font-size:13px}
+          .capa-dados strong{font-size:18px;color:#0f172a}
+          .indice{page-break-after:always;break-after:page}
+          .indice h1{font-size:38px;margin:4mm 0 10mm}
+          .indice ol{list-style:none;border-top:3px solid #0f172a}
+          .indice li{display:grid;grid-template-columns:12mm minmax(0,1fr) auto;gap:4mm;align-items:center;padding:4mm 1mm;border-bottom:1px solid #cbd5e1;break-inside:avoid}
+          .indice-numero{font-size:11px;font-weight:900;color:#b45309}
+          .indice-nome{font-size:15px;font-weight:900;overflow-wrap:anywhere}
+          .indice-categoria{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#64748b;text-align:right}
+          @media screen{.bloco,.capa,.indice{box-shadow:0 10px 30px rgba(15,23,42,.12);margin-bottom:10mm}}
+          @media print{
+            @page{size:A4 portrait;margin:10mm}
+            body{max-width:none;background:#fff;padding:0}
+            .bloco,.capa,.indice{min-height:277mm;padding:7mm;box-shadow:none;margin:0;border:none}
+            .capa:before{inset:2mm}
+          }
        </style></head><body>
     `;
 
-    if (listaDeFichas.length > 1) {
+    if (incluirCapa) {
        conteudoHTML += `
          <div class="capa">
-           <h1>Livro de Receitas</h1>
-           <p>${listaDeFichas.length} receitas catalogadas</p>
-           <p style="margin-top: 40px; font-size: 14px; text-transform: uppercase; letter-spacing: 2px;">Hephaestus ERP</p>
+           <p class="capa-selo">RECEITUÁRIO PADRÃO</p>
+           <h1>${escaparHtml(tituloLivro)}</h1>
+           <p class="capa-setor">${escaparHtml(setorLivro)}</p>
+           <div class="capa-dados">
+             <strong>${escaparHtml(nomeUnidadeLivro)}</strong>
+             <span>${listaLivro.length} receita${listaLivro.length === 1 ? "" : "s"} catalogada${listaLivro.length === 1 ? "" : "s"}</span>
+             <span>Atualizado em ${escaparHtml(dataLivro)}</span>
+           </div>
          </div>
        `;
     }
 
-    listaDeFichas.forEach((f, idxFicha) => {
-      const custoTotal = custoTotalDaFicha(f, fichas);
+    if (incluirIndice) {
+       conteudoHTML += `
+         <section class="indice">
+           <p class="indice-selo">${escaparHtml(tituloLivro)} · ${escaparHtml(setorLivro)}</p>
+           <h1>Índice</h1>
+           <ol>
+             ${listaLivro.map((f, indice) => `
+               <li>
+                 <span class="indice-numero">${String(indice + 1).padStart(2, "0")}</span>
+                 <span class="indice-nome">${escaparHtml(f.nome_receita)}</span>
+                 <span class="indice-categoria">${escaparHtml(f.categoria || (f.eh_base ? "Pré-preparo" : "Receita"))}</span>
+               </li>
+             `).join("")}
+           </ol>
+         </section>
+       `;
+    }
+
+    listaLivro.forEach((f, idxFicha) => {
       const rows = (f.fichas_ingredientes || []).map(fi => {
          let nome = '', unidade = '';
          if (fi.insumos) {
@@ -1639,33 +1703,38 @@ function FichasRunner() {
             nome = base ? base.nome_receita : 'Base excluída';
             unidade = base?.rendimento_unidade || 'un';
          }
-         return `<tr><td>${nome}</td><td class="c">${fmtQtd(fi.quantidade, unidade)}</td></tr>`;
+         return `<tr><td>${escaparHtml(nome)}</td><td class="c">${escaparHtml(fmtQtd(fi.quantidade, unidade))}</td></tr>`;
       }).join('');
       const rende = f.rendimento_porcoes || 1;
       const peso = infoPesoFicha(f, fichas);
       const unR = String(f.rendimento_unidade || 'porcao').toLowerCase();
       const labelUnPrint = { porcao: `porç${rende > 1 ? 'ões' : 'ão'}`, kg: 'kg', g: 'g', l: 'L', ml: 'ml', un: 'un' }[unR] || unR;
-      // No lugar do rendimento por quantidade, mostra o PESO do prato (quando dá)
-      const linhaPesoOuRende = peso
-         ? `<div class="meta">Peso do prato: ${fmtG(peso.pesoTotalG)}</div>`
-         : `<div class="meta">Rendimento: ${Number(rende).toLocaleString('pt-BR')} ${labelUnPrint}</div>`;
+      const rendimentoTexto = `${Number(rende).toLocaleString('pt-BR')} ${labelUnPrint}`;
+      const produto = produtoVinculado(f, produtos);
+      const tempoPreparo = Number(produto?.tempo_preparo_base) || 0;
+      const linhasCabecalho = [
+        peso ? `<div class="meta">Peso do prato: ${escaparHtml(fmtG(peso.pesoTotalG))}</div>` : "",
+        `<div class="meta">Rendimento: ${escaparHtml(rendimentoTexto)}</div>`,
+        `<div class="meta">Tempo de preparo: ${tempoPreparo > 0 ? `${tempoPreparo.toLocaleString('pt-BR')} min` : "Não informado"}</div>`,
+      ].filter(Boolean).join("");
 
       const urlFoto = fotoDaFicha(f, produtos);
-      const tagFoto = urlFoto ? `<img src="${urlFoto}" class="head-foto" alt="Foto de ${f.nome_receita}" />` : '';
-
-      const tagCat = f.categoria ? ` — ${f.categoria}` : (f.departamento ? ' — ' + f.departamento : '');
-
-      // Quebra de página a cada 2 pratos (o bloco é compacto: tudo na mesma página)
-      const quebra = (idxFicha % 2 === 1 && idxFicha < listaDeFichas.length - 1) ? ' quebra' : '';
+      const nomeFicha = escaparHtml(f.nome_receita || "Receita sem nome");
+      const inicialFicha = escaparHtml(String(f.nome_receita || "?").trim().charAt(0).toLocaleUpperCase("pt-BR") || "?");
+      const tagFoto = urlFoto
+        ? `<img src="${escaparHtml(urlFoto)}" class="head-foto" alt="Foto de ${nomeFicha}" />`
+        : `<div class="head-foto foto-vazia" role="img" aria-label="Foto não cadastrada para ${nomeFicha}"><strong>${inicialFicha}</strong><span>Foto não cadastrada</span></div>`;
+      const categoriaFicha = f.categoria || (f.eh_base ? "Pré-preparo" : "Receita");
 
       conteudoHTML += `
-         <div class="bloco${quebra}">
+         <div class="bloco">
             <div class="head">
                ${tagFoto}
                <div class="head-info">
-                  <div class="tag">Ficha de Montagem${tagCat}</div>
-                  <h1>${f.nome_receita}</h1>
-                  ${linhaPesoOuRende}
+                  <div class="tag">FICHA DE MONTAGEM — ${escaparHtml(setorLivroMaiusculo)}</div>
+                  <div class="categoria-ficha">${escaparHtml(categoriaFicha)}</div>
+                  <h1>${nomeFicha}</h1>
+                  <div class="metas">${linhasCabecalho}</div>
                </div>
             </div>
             <h2>Ingredientes</h2>
@@ -1674,7 +1743,11 @@ function FichasRunner() {
                <tbody>${rows || '<tr><td colspan="2">Sem ingredientes cadastrados.</td></tr>'}</tbody>
             </table>
             <h2>Montagem e Modo de Preparo</h2>
-            <div class="preparo">${f.modo_preparo ? f.modo_preparo : 'Não informado.'}</div>
+            <div class="preparo">${escaparHtml(f.modo_preparo || 'Não informado.')}</div>
+            <div class="rodape-ficha">
+              <span>${escaparHtml(nomeUnidadeLivro)}</span>
+              <span>Receita ${idxFicha + 1} de ${listaLivro.length}</span>
+            </div>
          </div>
       `;
     });
@@ -1682,100 +1755,26 @@ function FichasRunner() {
     conteudoHTML += `</body></html>`;
     win.document.write(conteudoHTML);
     win.document.close();
-    setTimeout(() => win.print(), 400);
-  };
-
-  // ── MANUAL estilo pôster (coquetelaria/cozinha): nome + foto + medidas ─────
-  // Gera um cartaz em 2 colunas com todas as fichas do departamento, no estilo
-  // "Manual de Coquetelaria": fundo creme, nome em destaque e ingredientes
-  // com as quantidades — para imprimir e colar na parede do bar/cozinha.
-  const fmtQtdManual = (q, un) => {
-    const u = String(un || "").toLowerCase();
-    const n = Number(q) || 0;
-    if (u === "kg") return n < 1 ? `${Math.round(n * 1000)}g` : `${(+n.toFixed(2)).toLocaleString("pt-BR")}kg`;
-    if (u === "l") return n < 1 ? `${Math.round(n * 1000)}ml` : `${(+n.toFixed(2)).toLocaleString("pt-BR")}L`;
-    if (u === "g" || u === "ml") return `${(+n.toFixed(1)).toLocaleString("pt-BR")}${u}`;
-    return `${(+n.toFixed(2)).toLocaleString("pt-BR")}un`;
-  };
-
-  const imprimirManual = () => {
-    const lista = [...filtradas].sort((a, b) => a.nome_receita.localeCompare(b.nome_receita, "pt-BR"));
-    if (!lista.length) return alert("Nenhuma ficha para montar o manual.");
-    const ehBar = deptUrl === "bar";
-    const titulo = ehBar ? "MANUAL DE COQUETELARIA" : "MANUAL DA COZINHA";
-
-    const itens = lista.map(f => {
-      const ings = (f.fichas_ingredientes || []).map(fi => {
-        if (fi.insumos) return { nome: fi.insumos.nome, qtd: fmtQtdManual(fi.quantidade, fi.insumos.unidade_medida) };
-        if (fi.subficha_id) {
-          const base = fichas.find(x => x.id === fi.subficha_id);
-          return base ? { nome: base.nome_receita, qtd: fmtQtdManual(fi.quantidade, base.rendimento_unidade || "un") } : null;
-        }
-        return null;
-      }).filter(Boolean);
-      const urlFoto = fotoDaFicha(f, produtos);
-      const foto = urlFoto
-        ? `<img src="${urlFoto}" alt="Foto de ${f.nome_receita}"/>`
-        : `<span>${(f.nome_receita || "?")[0].toUpperCase()}</span>`;
-      return `
-      <div class="item">
-        <div class="foto">${foto}</div>
-        <div class="info">
-          <h3>${f.nome_receita}</h3>
-          <ul>${ings.map(i => `<li><b>${i.qtd}</b> ${i.nome}</li>`).join("") || "<li>Sem ingredientes cadastrados</li>"}</ul>
-        </div>
-      </div>`;
-    }).join("");
-
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${titulo} - ${unidadeAtiva}</title>
-      <style>
-        *{margin:0;padding:0;box-sizing:border-box}
-        html,body{background:#F3EBDC;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-        body{font-family:Georgia,'Times New Roman',serif;color:#2B2118;padding:9mm 8mm}
-        .cabeca{text-align:center;border-bottom:2px solid #2B2118;padding-bottom:10px;margin-bottom:14px}
-        .cabeca h1{font-size:24px;letter-spacing:6px;font-weight:bold}
-        .cabeca p{font-family:Arial,sans-serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#7A5C43;margin-top:4px}
-        .grade{column-count:2;column-gap:8mm}
-        .item{display:flex;gap:10px;align-items:flex-start;break-inside:avoid;margin-bottom:12px;padding-bottom:10px;border-bottom:1px dotted #C8B69A}
-        .foto{width:52px;height:52px;border-radius:50%;overflow:hidden;flex-shrink:0;background:#2B2118;color:#F3EBDC;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:bold;border:2px solid #7A5C43}
-        .foto img{width:100%;height:100%;object-fit:cover}
-        .info h3{font-family:Arial,sans-serif;font-size:12.5px;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
-        .info ul{list-style:none}
-        .info li{font-family:Arial,sans-serif;font-size:10.5px;color:#4A3B2A;line-height:1.55}
-        .info li b{color:#8C2B2B}
-        .rodape{text-align:center;font-family:Arial,sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#7A5C43;margin-top:10px;border-top:2px solid #2B2118;padding-top:8px}
-        @media print{@page{margin:0}}
-      </style></head><body>
-      <div class="cabeca">
-        <h1>${titulo}</h1>
-        <p>${unidadeInfo?.nome || ""} · receituário padrão ${ehBar ? "do bar" : "da cozinha"}</p>
-      </div>
-      <div class="grade">${itens}</div>
-      <div class="rodape">${lista.length} receitas · uso interno · ${new Date().toLocaleDateString("pt-BR")}</div>
-      </body></html>`;
-
-    let win2 = null;
-    try { win2 = window.open("", "_blank", "width=860,height=1000"); } catch { win2 = null; }
-    if (!win2) {
-      try {
-        const iframe = document.createElement("iframe");
-        iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
-        document.body.appendChild(iframe);
-        iframe.srcdoc = html;
-        iframe.onload = () => {
-          setTimeout(() => {
-            try { iframe.contentWindow.focus(); iframe.contentWindow.print(); } catch (e) { alert("Não consegui abrir a impressão: " + e.message); }
-            setTimeout(() => iframe.remove(), 60000);
-          }, 400);
-        };
-        return;
-      } catch (e) {
-        return alert("O navegador bloqueou a impressão. Habilite os popups.\n\nDetalhe: " + e.message);
-      }
-    }
-    win2.document.write(html);
-    win2.document.close();
-    setTimeout(() => win2.print(), 500);
+    const aguardarRecursosEImprimir = async () => {
+      const imagens = [...win.document.images];
+      const imagensProntas = imagens.map(imagem => {
+        if (imagem.complete) return Promise.resolve();
+        return new Promise(resolve => {
+          imagem.addEventListener("load", resolve, { once: true });
+          imagem.addEventListener("error", resolve, { once: true });
+        });
+      });
+      const fontesProntas = win.document.fonts?.ready
+        ? Promise.resolve(win.document.fonts.ready).catch(() => undefined)
+        : Promise.resolve();
+      const recursosProntos = Promise.allSettled([fontesProntas, ...imagensProntas]);
+      const timeoutSeguro = new Promise(resolve => win.setTimeout(resolve, 5000));
+      await Promise.race([recursosProntos, timeoutSeguro]);
+      if (win.closed) return;
+      win.focus();
+      win.print();
+    };
+    void aguardarRecursosEImprimir();
   };
 
   return (
@@ -1797,11 +1796,13 @@ function FichasRunner() {
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 w-full lg:w-auto overflow-x-auto">
-               <button onClick={() => router.push("/dashboard/operacao/cardapio")} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-3 sm:px-4 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-slate-50 transition-colors shadow-sm">
-                  <Store size={18} /> <span className="hidden md:inline">Cardápio Digital / QR</span><span className="md:hidden">QR</span>
-               </button>
-               <button onClick={imprimirManual} title={deptUrl === "bar" ? "Pôster com todos os drinks e medidas" : "Pôster com todas as receitas e medidas"} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-3 sm:px-4 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-slate-50 transition-colors shadow-sm">
-                  <Printer size={18} /> Manual
+               <button
+                  onClick={() => imprimirFichas(fichas, { incluirCapa: true, incluirIndice: true })}
+                  disabled={loading || !!erroCarregamento || fichas.length === 0}
+                  title={deptUrl === "bar" ? "Imprimir todas as fichas do bar" : "Imprimir todas as fichas da cozinha"}
+                  className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-3 sm:px-4 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-slate-50 transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
+               >
+                  <Printer size={18} /> <span className="hidden sm:inline">{deptUrl === "bar" ? "Livro de Coquetelaria" : "Livro de Receitas"} ({fichas.length})</span><span className="sm:hidden">Livro ({fichas.length})</span>
                </button>
                <button onClick={abrirModalIAFicha} disabled={!!erroCarregamento} className="flex items-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-3 sm:px-4 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-emerald-50 transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">
                   <Sparkles size={18} /> <span className="hidden sm:inline">Montar com IA</span><span className="sm:hidden">IA</span>

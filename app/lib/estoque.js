@@ -2,7 +2,7 @@ import { supabase, isSupabaseReady } from "./supabase";
 
 // ─── ESTOQUE FÍSICO ──────────────────────────────────────────────────────────
 
-export async function fetchEstoque(unidadeId, deptUrl) {
+export async function fetchEstoque(unidadeId, deptUrl, opcoes = {}) {
   if (!isSupabaseReady()) return { data: [], error: "Offline" };
   
   // Trazemos todos os insumos (o * inclui estoque_minimo quando a coluna
@@ -11,7 +11,7 @@ export async function fetchEstoque(unidadeId, deptUrl) {
     .select(`*, estoque_atual (quantidade_atual)`)
     .order("nome");
 
-  if (unidadeId && unidadeId !== "matriz") query = query.eq("unidade_id", unidadeId);
+  if (unidadeId && (opcoes?.escopoEstrito === true || unidadeId !== "matriz")) query = query.eq("unidade_id", unidadeId);
   if (deptUrl) query = query.eq("departamento", deptUrl);
 
   const { data, error } = await query;

@@ -233,11 +233,14 @@ function ProducaoRunner() {
   const [hoje, setHoje] = useState(() => dataSaoPaulo());
   const recognitionRef = useRef(null);
   const carregarRequestIdRef = useRef(0);
+  const escopoAtualRef = useRef("");
   const mutacaoRef = useRef(false);
   const chavesContagemRef = useRef(new Map());
   const modoDia = periodo === "dia";
   const contagemEditavel = modoDia && dataReferencia === hoje;
   const mutacaoEmCurso = salvando || acaoId !== null;
+  const escopoAtual = `${unidadeAtiva || ""}|${departamento}|${dataReferencia}|${hoje}`;
+  escopoAtualRef.current = escopoAtual;
 
   const intervalo = useMemo(() => intervaloPeriodo(dataReferencia, periodo), [dataReferencia, periodo]);
   const lotesDoPeriodo = useMemo(() => lotes.filter((lote) => {
@@ -286,6 +289,11 @@ function ProducaoRunner() {
   };
 
   const carregar = useCallback(async (silencioso = false) => {
+    const escopoDaChamada = `${unidadeAtiva || ""}|${departamento}|${dataReferencia}|${hoje}`;
+    // Uma mutação iniciada numa unidade pode terminar depois que o usuário já
+    // trocou de unidade no seletor global. Nesse caso, a recarga antiga não
+    // toca no estado nem invalida os dados da nova tela.
+    if (escopoAtualRef.current !== escopoDaChamada) return { ignorado: true };
     const requestId = ++carregarRequestIdRef.current;
     if (!unidadeAtiva || unidadeAtiva === "todas") {
       setFichas([]);
@@ -313,14 +321,14 @@ function ProducaoRunner() {
       const [rFichas, rColab, rEstoque, rLotes, rContagens, rSaldos] = await Promise.all([
         // Fichas e estoque completos são necessários para resolver sub-receitas
         // e ingredientes compartilhados. O departamento filtra somente os cards.
-        fetchFichas(unidadeAtiva),
+        fetchFichas(unidadeAtiva, null, { escopoEstrito: true }),
         fetchColaboradores(unidadeAtiva),
-        fetchEstoque(unidadeAtiva),
+        fetchEstoque(unidadeAtiva, null, { escopoEstrito: true }),
         fetchLotesProducao(unidadeAtiva, { departamento, inicio: inicioHistorico, fim: fimConsulta, limite: 3000 }),
         fetchContagensProducao(unidadeAtiva, { departamento, inicio: inicioHistorico, fim: fimConsulta, limite: 3000 }),
         fetchSaldosProducao(unidadeAtiva, departamento),
       ]);
-      if (requestId !== carregarRequestIdRef.current) return { ignorado: true };
+      if (requestId !== carregarRequestIdRef.current || escopoAtualRef.current !== escopoDaChamada) return { ignorado: true };
       const respostas = [rFichas, rColab, rEstoque, rLotes, rContagens, rSaldos];
       const respostaComErro = respostas.find((r) => r?.error);
       if (respostaComErro) {
@@ -339,12 +347,12 @@ function ProducaoRunner() {
       setDadosConfiaveis(true);
       return { error: null };
     } catch (error) {
-      if (requestId !== carregarRequestIdRef.current) return { ignorado: true };
+      if (requestId !== carregarRequestIdRef.current || escopoAtualRef.current !== escopoDaChamada) return { ignorado: true };
       setDadosConfiaveis(false);
       setErroBanco(error?.message || "Não foi possível carregar os dados de produção.");
       return { error: error?.message || "Falha ao carregar" };
     } finally {
-      if (requestId === carregarRequestIdRef.current) setLoading(false);
+      if (requestId === carregarRequestIdRef.current && escopoAtualRef.current === escopoDaChamada) setLoading(false);
     }
   }, [unidadeAtiva, departamento, dataReferencia, hoje]);
 

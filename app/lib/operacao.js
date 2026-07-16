@@ -105,7 +105,7 @@ export async function removerInsumo(id) {
 
 // ─── FICHAS TÉCNICAS (Receitas) ──────────────────────────────────────────────
 
-export async function fetchFichas(unidadeId, dept) {
+export async function fetchFichas(unidadeId, dept, opcoes = {}) {
   if (!isSupabaseReady()) return { data: [], error: "Offline" };
   
   // Fazemos um select aninhado para trazer os ingredientes e as infos do insumo
@@ -119,7 +119,7 @@ export async function fetchFichas(unidadeId, dept) {
     `)
     .order("nome_receita");
 
-  if (unidadeId && unidadeId !== "matriz") query = query.eq("unidade_id", unidadeId);
+  if (unidadeId && (opcoes?.escopoEstrito === true || unidadeId !== "matriz")) query = query.eq("unidade_id", unidadeId);
   if (dept) query = query.eq("departamento", dept);
 
   const { data, error } = await query;

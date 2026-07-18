@@ -1002,14 +1002,20 @@ function FichasRunner() {
       // Distribui: duas receitas PEQUENAS da mesma seção dividem a página;
       // as demais ganham página inteira (e o script comprime se estourar).
       const paginasLivro = [];
+      // Empacota até 4 receitas curtas da mesma seção por página (cards de
+      // preparo rápido); as maiores ficam sozinhas e o script comprime.
       let i = 0;
       while (i < dados.length) {
-        const a = dados[i], b = dados[i + 1];
-        if (b && a.secao === b.secao && (a.score + b.score + 14) <= 226) {
-          paginasLivro.push([a, b]); i += 2;
-        } else {
-          paginasLivro.push([a]); i += 1;
+        const pg = [dados[i]];
+        let soma = dados[i].score;
+        let j = i + 1;
+        while (j < dados.length && pg.length < 4 && dados[j].secao === dados[i].secao && (soma + dados[j].score + 14 * pg.length) <= 226) {
+          soma += dados[j].score;
+          pg.push(dados[j]);
+          j++;
         }
+        paginasLivro.push(pg);
+        i = j;
       }
       const paginaPorFicha = {};
       paginasLivro.forEach((pg, pi) => pg.forEach(x => { paginaPorFicha[x.f.id] = pi + 3; }));
@@ -1040,7 +1046,7 @@ function FichasRunner() {
       paginasLivro.forEach((pg, pi) => {
         conteudoHTML += `
          <div class="pagina-livro">
-            <div class="conteudo-pg">${pg.map(x => `<div class="ficha${pg.length === 2 ? ' ficha-metade' : ''}">${x.corpo}</div>`).join('')}</div>
+            <div class="conteudo-pg">${pg.map(x => `<div class="ficha${pg.length >= 2 ? ' ficha-metade' : ''}">${x.corpo}</div>`).join('')}</div>
             <div class="rodape-livro"><span>${esc(pg[0].secao)} · ${esc(unidadeInfo?.nome || '')}</span><span>Página ${pi + 3}</span></div>
          </div>`;
       });
@@ -1054,6 +1060,101 @@ function FichasRunner() {
     win.document.write(comFecharImpressao(conteudoHTML));
     win.document.close();
     setTimeout(() => win.print(), 800);
+  };
+
+  // ── PLANILHA DE CUSTOS: custo, venda, CMV por receita + CMV médio ──────────
+  const imprimirPlanilhaCustos = () => {
+    const win = window.open('', '_blank');
+    if (!win) return alert('Habilite pop-ups para imprimir.');
+    const esc2 = (v) => String(v == null ? '' : v).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    const brl = (v) => 'R$ ' + (Number(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const linhas = fichas.filter(f => !f.eh_base).map(f => {
+      const custoTotal = custoTotalDaFicha(f, fichas);
+      const peso = infoPesoFicha(f, fichas);
+      const unR = String(f.rendimento_unidade || 'porcao').toLowerCase();
+      const porcoes = (unR === 'porcao' || unR === 'un') ? (Number(f.rendimento_porcoes) || 1) : (peso?.porcoes || 0);
+      const custoPorcao = porcoes > 0 ? custoTotal / porcoes : custoTotal;
+      const prod = produtos.find(x => x.ficha_id === f.id || String(x.nome_produto || '').toLowerCase() === String(f.nome_receita || '').toLowerCase());
+      const preco = Number(prod?.preco_venda) || 0;
+      const cmv = preco > 0 ? (custoPorcao / preco) * 100 : null;
+      return { nome: f.nome_receita, cat: f.categoria || (f.departamento === 'bar' ? 'Bar' : 'Cozinha'), custoTotal, custoPorcao, preco, cmv };
+    }).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+    const comCmv = linhas.filter(l => l.cmv !== null);
+    const cmvMedio = comCmv.length ? comCmv.reduce((s, l) => s + l.cmv, 0) / comCmv.length : null;
+    const rows = linhas.map(l => `<tr><td>${esc2(l.nome)}</td><td>${esc2(l.cat)}</td><td class="r">${brl(l.custoTotal)}</td><td class="r">${brl(l.custoPorcao)}</td><td class="r">${l.preco > 0 ? brl(l.preco) : '—'}</td><td class="r ${l.cmv === null ? '' : l.cmv > 35 ? 'ruim' : 'bom'}">${l.cmv !== null ? l.cmv.toFixed(1) + '%' : '—'}</td></tr>`).join('');
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Planilha de Custos</title><style>
+      *{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;color:#0f172a;padding:12mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      h1{font-size:20px;text-transform:uppercase;letter-spacing:2px;border-bottom:3px solid #0f172a;padding-bottom:6px;margin-bottom:4px}
+      .sub{font-size:11px;color:#64748b;font-weight:bold;margin-bottom:12px}
+      table{width:100%;border-collapse:collapse;font-size:12px}
+      th,td{padding:6px 8px;border-bottom:1px solid #e2e8f0;text-align:left}
+      th{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#475569;border-bottom:2px solid #cbd5e1}
+      td.r,th.r{text-align:right}tbody tr:nth-child(even){background:#f5f7fa}
+      td.bom{color:#047857;font-weight:900}td.ruim{color:#dc2626;font-weight:900}
+      tfoot td{border-top:2px solid #0f172a;font-weight:900;font-size:13px;padding-top:8px}
+      @media print{@page{margin:10mm}}
+    </style></head><body>
+      <h1>Planilha de Custos e CMV</h1>
+      <div class="sub">${esc2(unidadeInfo?.nome || '')} · ${new Date().toLocaleDateString('pt-BR')} · ${linhas.length} receita(s)</div>
+      <table><thead><tr><th>Receita</th><th>Categoria</th><th class="r">Custo total</th><th class="r">Custo/porção</th><th class="r">Preço de venda</th><th class="r">CMV</th></tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr><td colspan="5">CMV médio da carta (${comCmv.length} precificada(s))</td><td class="r">${cmvMedio !== null ? cmvMedio.toFixed(1) + '%' : '—'}</td></tr></tfoot></table>
+    </body></html>`);
+    win.document.close();
+    setTimeout(() => win.print(), 400);
+  };
+
+  // ── IMPORTAR CARDÁPIO (foto): IA extrai pratos/sobremesas/sucos com preço ──
+  const inputCardapioRef = useRef(null);
+  const [importandoCardapio, setImportandoCardapio] = useState(false);
+  const importarCardapioFoto = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setImportandoCardapio(true);
+    try {
+      const base64 = await fileParaBase64(file);
+      const res = await fetch("/api/ia-cardapio", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imagem_base64: base64, media_type: file.type || "image/jpeg" }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) { alert(data.error || "Falha ao ler o cardápio."); return; }
+      const jaExiste = new Set(fichas.map(f => String(f.nome_receita || "").toLowerCase()));
+      const novos = data.itens.filter(i => !jaExiste.has(i.nome.toLowerCase()));
+      if (!novos.length) { alert("Todos os itens da foto já estão cadastrados."); return; }
+      const resumo = novos.map(i => `• ${i.nome} (${i.categoria}) — R$ ${i.preco.toFixed(2)}`).join("\n");
+      if (!confirm(`A IA leu ${novos.length} item(ns) novos no cardápio:\n\n${resumo}\n\nCriar as fichas já com o preço de venda? (depois é só abrir cada uma e pôr os ingredientes)`)) return;
+      let ok = 0;
+      for (const item of novos) {
+        const catFicha = item.categoria === "Sobremesa" ? "Sobremesas" : item.categoria === "Suco" ? "Sucos" : "";
+        const r = await salvarFicha({
+          unidade_id: unidadeAtiva,
+          departamento: item.categoria === "Drink" ? "bar" : (deptUrl || "cozinha"),
+          nome_receita: item.nome,
+          categoria: catFicha || null,
+          rendimento_porcoes: 1,
+          rendimento_unidade: "porcao",
+          modo_preparo: "",
+          eh_base: false,
+        }, []);
+        if (r?.id) {
+          await salvarProduto({
+            unidade_id: unidadeAtiva,
+            nome_produto: item.nome,
+            categoria: item.categoria === "Drink" ? "Drinks" : (catFicha || "Pratos Principais"),
+            departamento: item.categoria === "Drink" ? "bar" : (deptUrl || "cozinha"),
+            tempo_preparo_base: 15,
+            preco_venda: item.preco,
+            ficha_id: r.id,
+            composicao: [{ ficha_id: r.id, qtd: 1 }],
+          });
+          ok++;
+        }
+      }
+      alert(`${ok} ficha(s) criadas com preço de venda! Abra cada uma e adicione os ingredientes.`);
+      carregar();
+    } catch { alert("Não consegui falar com a IA."); } finally { setImportandoCardapio(false); }
   };
 
   // ── MANUAL estilo pôster (coquetelaria/cozinha): nome + foto + medidas ─────
@@ -1179,6 +1280,13 @@ function FichasRunner() {
                   title="Livro completo: capa, índice, páginas numeradas e seções (pré-preparos, preparos, molhos, pratos, sobremesas, sucos)"
                   className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-slate-50 transition-colors shadow-sm">
                   <Printer size={18} /> <span className="hidden md:inline">Livro de Receitas</span><span className="md:hidden">Livro</span>
+               </button>
+               <button onClick={imprimirPlanilhaCustos} title="Tabela com custo, preço de venda, CMV de cada receita e o CMV médio" className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-slate-50 transition-colors shadow-sm">
+                  <Calculator size={18} /> <span className="hidden md:inline">Planilha de Custos</span><span className="md:hidden">Custos</span>
+               </button>
+               <input ref={inputCardapioRef} type="file" accept="image/*" onChange={importarCardapioFoto} className="hidden" />
+               <button onClick={() => inputCardapioRef.current?.click()} disabled={importandoCardapio} title="Envie a FOTO do seu cardápio: a IA cria as fichas de pratos, sobremesas e sucos já com o preço de venda — depois é só pôr os ingredientes" className="flex items-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-emerald-50 transition-colors shadow-sm disabled:opacity-60">
+                  {importandoCardapio ? <Loader2 size={18} className="animate-spin" /> : <Camera size={18} />} <span className="hidden md:inline">Importar Cardápio</span><span className="md:hidden">Cardápio</span>
                </button>
                <button onClick={abrirModalIAFicha} className="flex items-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-emerald-50 transition-colors shadow-sm">
                   <Sparkles size={18} /> Montar com IA

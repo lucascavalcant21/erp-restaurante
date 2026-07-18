@@ -12,10 +12,19 @@ const fonteApp = Plus_Jakarta_Sans({
   variable: "--font-app",
 });
 
+// IMPORTANTE: manifest/ícones declarados AQUI (metadata API) e não em <head>
+// manual — o <head> manual não entra no HTML inicial quando a rota redireciona
+// (ex.: "/" -> /login), e sem o manifest no HTML o Android instala só um
+// atalho de navegador em vez do app de verdade.
 export const metadata = {
   title: "Hefisto",
   description: "Sistema de Gestão para Food Service",
   applicationName: "Hefisto",
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/icon-192x192.png",
+    apple: "/icon-192x192.png",
+  },
   appleWebApp: {
     capable: true,
     title: "Hefisto",
@@ -29,16 +38,12 @@ export const viewport = {
   maximumScale: 5,
   userScalable: true,
   viewportFit: "cover",
+  themeColor: "#0f172a",
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="pt-BR" className={fonteApp.variable}>
-      <head>
-        <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#0f172a" />
-        <link rel="apple-touch-icon" href="/icon-192x192.png" />
-      </head>
       <body className={fonteApp.className}>
         <RegisterSW />
         <PullToRefresh />

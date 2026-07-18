@@ -163,7 +163,35 @@ export async function lerSessao() {
       if (r?.data?.session) data = r.data;
     } catch (_) {}
   }
-  return data?.session?.user ? mapUser(data.session.user) : null;
+  if (data?.session?.user) return mapUser(data.session.user);
+
+  // TOLERÂNCIA OFFLINE: no celular/tablet o app reabre muitas vezes SEM rede no
+  // primeiro instante — a renovação falha e o usuário era expulso pro login
+  // mesmo com a sessão válida guardada no aparelho. Se a sessão persistida
+  // ainda existe (o Supabase a apaga quando o refresh token é realmente
+  // inválido), seguimos logados; o autoRefresh renova quando a rede voltar.
+  const guardado = sessaoGuardadaNoAparelho();
+  if (guardado) return mapUser(guardado);
+  return null;
+}
+
+// Lê a sessão que o Supabase persistiu no localStorage (chave sb-<ref>-auth-token)
+function sessaoGuardadaNoAparelho() {
+  if (typeof window === "undefined") return null;
+  try {
+    let bruto = null;
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith("sb-") && k.endsWith("-auth-token")) {
+        bruto = localStorage.getItem(k);
+        break;
+      }
+    }
+    if (!bruto) return null;
+    const p = JSON.parse(bruto);
+    const sess = p?.currentSession || p; // cobre formatos antigos e novos
+    return sess?.user || null;
+  } catch (_) { return null; }
 }
 
 export async function encerrarSessao() {

@@ -595,7 +595,7 @@ function EtiquetasRunner() {
               )}
               {impressoraErro && <p className="text-[11px] font-bold text-red-600 bg-red-50 rounded-lg px-3 py-2 mb-2">{impressoraErro}</p>}
               <p className="text-[10px] font-medium" style={{ color: "var(--dim)" }}>
-                Perfil {PERFIS_TP20[tamanho].descricao}. A guilhotina permanece desligada para proteger a bobina adesiva.
+                Perfil {PERFIS_TP20[tamanho]?.descricao || tamanho}. A guilhotina permanece desligada para proteger a bobina adesiva.
               </p>
               <a href="https://qz.io/download/" target="_blank" rel="noreferrer"
                 className="inline-block text-[10px] font-bold mt-1.5" style={{ color: "var(--accent-fg)" }}>

@@ -4,6 +4,17 @@
 // O corte fica deliberadamente desligado: a bobina adesiva precisa de uma
 // calibração separada da distância entre a cabeça e a guilhotina.
 export const PERFIS_TP20 = {
+  // Bobina contínua de 80 mm (cabeça imprime 72 mm = 576 pontos), altura 40 mm.
+  // Sem vão: bobina corrida — o comprimento é definido pelo conteúdo.
+  "80x40": {
+    id: "t20-80x40-v1",
+    larguraPontos: 576,
+    alturaPontos: 320,
+    xConteudo: 0,
+    larguraConteudo: 576,
+    gapPontos: 0,
+    descricao: "bobina 80 mm (72 mm úteis) × 40 mm",
+  },
   "60x40": {
     id: "t20-60x40-v1",
     larguraPontos: 576,

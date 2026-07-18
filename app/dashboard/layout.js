@@ -31,6 +31,7 @@ const SIDEBAR_MENU = [
     category: "Cozinha",
     icon: ChefHat,
     items: [
+      { label: "Produtos e Preços", href: "/dashboard/operacao/produtos" },
       { label: "Fichas Técnicas", href: "/dashboard/operacao/fichas?dept=cozinha" },
       { label: "Guia de Montagem", href: "/dashboard/operacao/montagem?dept=cozinha" },
       { label: "Ingredientes", href: "/dashboard/operacao/ingredientes?dept=cozinha" },

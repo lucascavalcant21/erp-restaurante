@@ -697,6 +697,33 @@ export default function RHPage() {
   };
   const unidadeInfoRH = () => (unidadeInfo?.nome ? `Unidade: ${unidadeInfo.nome}` : "");
 
+  // ── Ler a ficha do EXTRA preenchida à mão (foto) via IA e anexar ──────────
+  const inputFichaExtraRef = useRef(null);
+  const [lendoFichaExtra, setLendoFichaExtra] = useState(false);
+  const lerFichaExtraFoto = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setLendoFichaExtra(true);
+    try {
+      const base64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1] || ""); r.onerror = rej; r.readAsDataURL(file); });
+      const resp = await fetch("/api/ia-ficha-extra", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ imagem_base64: base64, media_type: file.type || "image/jpeg" }) });
+      const d = await resp.json();
+      if (!resp.ok || d.error) { alert(d.error || "Falha ao ler a ficha."); return; }
+      if (!confirm(`A IA leu na ficha:\n\nNome: ${d.nome}\nDiária: R$ ${(d.diaria || 0).toFixed(2)}\nTelefone: ${d.telefone || "—"}\nCPF: ${d.cpf || "—"}\nPIX: ${d.chave_pix || "—"}\n\nCadastrar como EXTRA e anexar a foto da ficha no sistema?`)) return;
+      const jaExiste = funcionarios.find(f => (f.nome || "").toLowerCase() === d.nome.toLowerCase());
+      let colabId = jaExiste?.id;
+      if (!colabId) {
+        const r = await inserirColaborador({ unidade_id: unidadeAtiva, nome: d.nome, cargo: "Extra", tipo_contrato: "Freelancer", salario: d.diaria || 0, telefone: d.telefone || null, cpf: d.cpf || null, chave_pix: d.chave_pix || null, anotacoes_rh: d.observacoes || null, dias_trabalho: "" });
+        if (r.error || !r.data?.id) { alert("Erro ao cadastrar: " + (r.error || "desconhecido")); return; }
+        colabId = r.data.id;
+      }
+      const up = await uploadDocumentoRH(colabId, file);
+      alert(`${jaExiste ? `Ficha anexada em ${d.nome} (já estava cadastrado).` : `${d.nome} cadastrado como extra!`}${up?.error ? "\nAtenção: a foto não subiu (" + up.error + ")" : "\nFoto da ficha anexada nos documentos."}`);
+      carregar();
+    } catch { alert("Não consegui falar com a IA."); } finally { setLendoFichaExtra(false); }
+  };
+
   const carregarConsumo = async (funcId) => {
     setLoadingConsumo(true);
     const { data } = await fetchConsumoFuncionario(funcId);
@@ -1427,9 +1454,17 @@ export default function RHPage() {
                <FileText size={14} /> Exportar AFD
             </a>
             {abaAtiva === "Freelancer" && (
+               <>
                <button onClick={() => abrirModalFicha(null)} className="flex items-center gap-1.5 bg-white text-amber-700 border border-amber-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-amber-50 transition-colors">
                   <Printer size={14} /> Ficha em Branco
                </button>
+               <input ref={inputFichaExtraRef} type="file" accept="image/*" onChange={lerFichaExtraFoto} className="hidden" />
+               <button onClick={() => inputFichaExtraRef.current?.click()} disabled={lendoFichaExtra}
+                  title="Tire a foto da ficha preenchida à mão: a IA lê os dados, cadastra o extra e anexa a foto como documento"
+                  className="flex items-center gap-1.5 bg-white text-emerald-700 border border-emerald-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-emerald-50 transition-colors disabled:opacity-60">
+                  {lendoFichaExtra ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} Ler Ficha Preenchida (IA)
+               </button>
+               </>
             )}
          </div>
 
@@ -1446,6 +1481,14 @@ export default function RHPage() {
                const dias = new Set(pontosMesUnidade.filter(p => p.colaborador_id === f.id).map(p => p.data_referencia)).size;
                return s + dias * (Number(f.salario) || 0);
             }, 0);
+            // Gasto POR DIA: fixos = salário rateado pelos dias da escala;
+            // extras = diárias de quem bateu ponto hoje
+            const fixosDia = fixos.reduce((s, f) => {
+               const n = (f.dias_trabalho || "").split(",").filter(Boolean).length;
+               return s + (n ? (Number(f.salario) || 0) / (n * 4.345) : 0);
+            }, 0);
+            const idsPontoHoje = new Set(pontosHoje.map(p => p.colaborador_id));
+            const extrasDiaHoje = extras.filter(f => idsPontoHoje.has(f.id)).reduce((s, f) => s + (Number(f.salario) || 0), 0);
             const total = folhaFixa + gastoExtras;
             const fat = lancamentos
                .filter(l => l.tipo === "entrada" && String(l.data || "").slice(0, 7) === mes)
@@ -1457,7 +1500,12 @@ export default function RHPage() {
             const pct = fat >= FAT_MINIMO ? (total / fat) * 100 : null;
             if (!ativos.length) return null;
             return (
-               <div className="mt-4 bg-slate-900 text-white rounded-2xl px-5 py-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+               <div className="mt-4 bg-slate-900 text-white rounded-2xl px-5 py-4 grid grid-cols-2 md:grid-cols-5 gap-4">
+                  <div className="cursor-pointer" title="Clique para entender" onClick={() => alert(`GASTO POR DIA (hoje): ${fmtBRL(fixosDia + extrasDiaHoje)}\n\n• Fixos: ${fmtBRL(fixosDia)}/dia — soma do valor-dia de cada funcionário fixo (salário ÷ dias da escala no mês).\n• Extras: ${fmtBRL(extrasDiaHoje)} — diárias dos extras que bateram ponto HOJE (${extras.filter(f => idsPontoHoje.has(f.id)).length} extra(s)).\n\nÉ quanto a operação custa de mão de obra num dia como hoje.`)}>
+                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Gasto por dia (hoje)</p>
+                     <p className="text-lg font-black text-sky-400">{fmtBRL(fixosDia + extrasDiaHoje)}</p>
+                     <p className="text-[10px] font-bold text-slate-500">fixos {fmtBRL(fixosDia)} + extras {fmtBRL(extrasDiaHoje)}</p>
+                  </div>
                   <div>
                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Folha fixa (mês)</p>
                      <p className="text-lg font-black">{fmtBRL(folhaFixa)}</p>

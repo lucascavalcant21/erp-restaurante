@@ -137,7 +137,8 @@ function EtiquetasRunner() {
   const [codigo, setCodigo] = useState(gerarCodigo());
   const [momentoEtiqueta, setMomentoEtiqueta] = useState(() => new Date());
   const [aba, setAba] = useState("gerar"); // "gerar" | "geradas" (Controle de Validade)
-  const [tamanho, setTamanho] = useState("80x40"); // "80x40" (bobina) | "60x40" | "60x60"
+  const [tamanho, setTamanho] = useState(() => { try { return localStorage.getItem("hefisto_etq_tamanho") || "80x40"; } catch { return "80x40"; } });
+  useEffect(() => { try { localStorage.setItem("hefisto_etq_tamanho", tamanho); } catch {} }, [tamanho]); // "80x40" (bobina) | "60x40" | "60x60"
   const [validadeModo, setValidadeModo] = useState("dias"); // "dias" | "data"
   // "aberto" = produto aberto/manipulado (mostra data e hora de manipulação);
   // "fechado" = produto lacrado sem validade visível (mostra etiquetagem + validade)

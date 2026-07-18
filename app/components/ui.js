@@ -93,11 +93,11 @@ export function Kpi({ icon: Icon, label, value }) {
 }
 
 // ── Busca ──────────────────────────────────────────────────────
-export function SearchBar({ value, onChange, placeholder = "Buscar..." }) {
+export function SearchBar({ value, onChange, placeholder = "Buscar...", autoFocus = false }) {
   return (
     <div className="relative min-w-0 w-full">
       <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: "var(--dim)" }} />
-      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
+      <input autoFocus={autoFocus} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
         className="erp-input" style={{ paddingLeft: 42, paddingRight: 38, height: 44 }} />
       {value && (
         <button onClick={() => onChange("")} className="absolute right-3 top-1/2 -translate-y-1/2">

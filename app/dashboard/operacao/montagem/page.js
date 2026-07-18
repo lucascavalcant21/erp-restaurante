@@ -1343,7 +1343,7 @@ function MontagemPageInner() {
           <Kpi icon={Clock} label="Tempo médio" value={`${lista.length ? Math.round(lista.reduce((a, m) => a + (m.tempo_preparo || 0), 0) / lista.length) : 0} min`} tint="#3B82F6" />
         </KpiGrid>
 
-        <SearchBar value={busca} onChange={setBusca} placeholder="Buscar prato/drink..." />
+        <SearchBar value={busca} onChange={setBusca} placeholder="Buscar prato/drink..." autoFocus />
         <Chips options={["bar", "cozinha"]} value={dept} onChange={setDept} />
         <Chips options={["Todos", "Prato", "Drink"]} value={tipo} onChange={setTipo} />
 

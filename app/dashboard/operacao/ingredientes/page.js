@@ -443,12 +443,12 @@ function IngredientesRunner() {
 
          {/* Filtro por categoria (varia conforme cozinha/bar) */}
          <div className="flex gap-2 overflow-x-auto pb-2 mb-4" style={{ scrollbarWidth: "none" }}>
-            {["Todas", ...categoriasDept].map(c => (
+            {["Todas", ...categoriasDept].map(c => { const nCat = c === "Todas" ? insumos.filter(i => !deptUrl || (i.departamento || "").toLowerCase() === deptUrl).length : insumos.filter(i => (!deptUrl || (i.departamento || "").toLowerCase() === deptUrl) && (i.categoria || "Outros") === c).length; return (
                <button key={c} onClick={() => setCatFiltro(c)}
                   className={`flex-shrink-0 px-3.5 py-1.5 rounded-full font-bold text-xs transition-all ${catFiltro === c ? "bg-slate-900 text-white shadow-md" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>
-                  {c}
+                  {c} <span className={catFiltro === c ? "text-slate-300" : "text-slate-400"}>({nCat})</span>
                </button>
-            ))}
+            );})}
          </div>
 
          <div className="inline-flex gap-1 p-1 mb-6 rounded-xl bg-slate-100">

@@ -959,7 +959,7 @@ function RotinaRunner() {
               <div key={tipo}>
                 <SectionLabel>{ROTULOS_TIPO[tipo] || tipo}</SectionLabel>
                 <div className="space-y-3">
-                  {templatesExibidos.filter(x => x.tipo === tipo).map(tmpl => {
+                  {templatesExibidos.filter(x => x.tipo === tipo).sort((a, b) => (historico.some(h => h.template_id === a.id) ? 1 : 0) - (historico.some(h => h.template_id === b.id) ? 1 : 0)).map(tmpl => {
                     const execucoesHoje = historico
                       .filter(h => h.template_id === tmpl.id)
                       .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));

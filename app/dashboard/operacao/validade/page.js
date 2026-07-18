@@ -67,7 +67,7 @@ export function ControleValidade({ embutido = false }) {
     if (filtro === "vencendo") mf = e.dias >= 0 && e.dias <= 7;
     if (filtro === "vencidos") mf = e.dias < 0;
     return mb && mf;
-  }), [base, busca, filtro]);
+  }).sort((a, b) => a.dias - b.dias), [base, busca, filtro]);
 
   const grupos = useMemo(() => {
     const map = {};

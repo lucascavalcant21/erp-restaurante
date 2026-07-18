@@ -147,7 +147,7 @@ function EstoqueRunner() {
   const imprimirCompras = () => {
     if (!abaixoDoMinimo.length) return alert("Nada abaixo do mínimo. Defina o estoque mínimo dos insumos no botão Ajustar.");
     const linhas = abaixoDoMinimo
-      .sort((a, b) => (a.departamento || "").localeCompare(b.departamento || "") || a.nome.localeCompare(b.nome, "pt-BR"))
+      .sort((a, b) => (((Number(a.quantidade_atual) || 0) <= 0 ? 0 : 1) - ((Number(b.quantidade_atual) || 0) <= 0 ? 0 : 1)) || (a.departamento || "").localeCompare(b.departamento || "") || a.nome.localeCompare(b.nome, "pt-BR"))
       .map(i => {
         const saldo = Number(i.quantidade_atual) || 0;
         const min = Number(i.estoque_minimo) || 0;

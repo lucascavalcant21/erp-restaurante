@@ -1023,7 +1023,7 @@ export default function OrcamentoEventoPage() {
                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Configurar Itens do Buffet</p>
                <select onChange={e => { addItem(e.target.value); e.target.value = ""; }} disabled={loading} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-600 outline-none focus:border-emerald-500 mb-4">
                   <option value="">{loading ? "Carregando cardápio..." : "+ Adicionar produto do cardápio..."}</option>
-                  {produtos.filter(p => !itens.find(i => i.produto_id === p.id)).map(p => (
+                  {produtos.filter(p => !itens.find(i => i.produto_id === p.id)).sort((a, b) => String(a.categoria || "").localeCompare(String(b.categoria || ""), "pt-BR") || String(a.nome_produto).localeCompare(String(b.nome_produto), "pt-BR")).map(p => (
                      <option key={p.id} value={p.id}>{p.nome_produto} ({p.categoria}) — {fmtBRL(p.preco_venda)}</option>
                   ))}
                </select>

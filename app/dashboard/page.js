@@ -617,6 +617,7 @@ const CORES_AREA = {
 // Escala da semana: colaboradores agrupados por área, extras marcados,
 // arraste para reordenar cada um dentro da sua área.
 function EscalaSemana({ escalaPorArea, dragId, setDragId, onMover, onAddExtra, onRemoveExtra, onVerTudo, onSalvarDia, onWhats, onImprimir, onHistorico }) {
+  const [aberto, setAberto] = useState(true); // recolhe a escala para o painel respirar
   // Áreas fixas sempre visíveis (mesmo vazias) + "Outros" só quando tiver gente
   const areas = ["Salão", "Bar", "Cozinha", "Caixa", "Louça", "Folga"];
   if (escalaPorArea["Outros"]?.length) areas.push("Outros");
@@ -630,7 +631,7 @@ function EscalaSemana({ escalaPorArea, dragId, setDragId, onMover, onAddExtra, o
     <div className="erp-card p-3 sm:p-6">
       <div className="flex items-center justify-between gap-2 flex-wrap mb-4 sm:mb-5">
         <h3 className="text-base sm:text-lg font-black flex items-center gap-2" style={{ color: "var(--fg)" }}>
-          <CalendarDays size={20} style={{ color: "#7C3AED" }} /> Escala da Semana
+          <CalendarDays size={20} style={{ color: "#7C3AED" }} /> <button onClick={() => setAberto(v => !v)} className="flex items-center gap-1">Escala da Semana <span className="text-xs font-bold" style={{ color: "var(--muted)" }}>{aberto ? "▲" : "▼ mostrar"}</span></button>
         </h3>
         <div className="flex items-center gap-2 flex-wrap">
           <button onClick={() => setAddAberto(v => !v)} className="text-xs font-black px-3 py-2 rounded-lg transition-colors" style={{ background: "#7C3AED", color: "#fff" }}>
@@ -667,6 +668,7 @@ function EscalaSemana({ escalaPorArea, dragId, setDragId, onMover, onAddExtra, o
         </div>
       )}
 
+      {aberto && (<>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {areas.map(area => {
           const cor = CORES_AREA[area] || "#94A3B8";
@@ -760,6 +762,7 @@ function EscalaSemana({ escalaPorArea, dragId, setDragId, onMover, onAddExtra, o
       <p className="text-[10px] font-medium mt-4" style={{ color: "var(--dim)" }}>
         No computador, arraste uma pessoa para outra área. No celular/tablet, toque no botão <ArrowRightLeft size={11} className="inline align-[-1px]" /> e escolha a área. Letras = dias da semana (Dom → Sáb).
       </p>
+      </>)}
     </div>
   );
 }

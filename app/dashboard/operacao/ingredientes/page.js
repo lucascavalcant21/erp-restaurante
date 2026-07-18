@@ -33,7 +33,7 @@ function IngredientesRunner() {
   // custo_compra = preço como comprado; peso bruto/limpo calculam a perda de limpeza
   // (casca, espinha, apara). Se for empanado, soma o custo do empanamento e divide
   // pelo ganho de peso. custo_unitario salvo no banco = custo REAL do kg PRONTO.
-  const [form, setForm] = useState({ id: null, departamento: deptUrl || "cozinha", nome: "", marca: "", categoria: "", unidade_medida: "kg", tamanho_embalagem: "1", valor_embalagem: "", custo_compra: "", frete: "", peso_medio_g: "", peso_bruto_g: "", peso_liquido_g: "", eh_empanado: false, custo_empanamento: "", peso_in_natura_g: "", peso_empanado_g: "", categoria_manual: false });
+  const [form, setForm] = useState({ id: null, departamento: deptUrl || "cozinha", nome: "", marca: "", categoria: "", unidade_medida: "kg", tamanho_embalagem: "1", valor_embalagem: "", custo_compra: "", frete: "", peso_medio_g: "", peso_bruto_g: "", peso_liquido_g: "", eh_empanado: false, custo_empanamento: "", peso_in_natura_g: "", peso_empanado_g: "", categoria_manual: false, fornecedor: "", observacoes: "" });
   const [catFiltro, setCatFiltro] = useState("Todas");
 
   // Aproveitamento (%) derivado dos pesos: 650g limpos de 1000g brutos = 65%
@@ -170,7 +170,7 @@ function IngredientesRunner() {
   const paginados = filtrados.slice((paginaAtual - 1) * PAGE_SIZE, paginaAtual * PAGE_SIZE);
 
   const abrirNovo = () => {
-    setForm({ id: null, departamento: deptUrl || "cozinha", nome: "", marca: "", categoria: "", unidade_medida: "kg", tamanho_embalagem: "1", valor_embalagem: "", custo_compra: "", frete: "", peso_medio_g: "", peso_bruto_g: "", peso_liquido_g: "", eh_empanado: false, custo_empanamento: "", peso_in_natura_g: "", peso_empanado_g: "", categoria_manual: false });
+    setForm({ id: null, departamento: deptUrl || "cozinha", nome: "", marca: "", categoria: "", unidade_medida: "kg", tamanho_embalagem: "1", valor_embalagem: "", custo_compra: "", frete: "", peso_medio_g: "", peso_bruto_g: "", peso_liquido_g: "", eh_empanado: false, custo_empanamento: "", peso_in_natura_g: "", peso_empanado_g: "", categoria_manual: false, fornecedor: "", observacoes: "" });
     setModalNovo(true);
   };
 
@@ -197,6 +197,8 @@ function IngredientesRunner() {
       custo_empanamento: ins.custo_empanamento || "",
       peso_in_natura_g: fator > 0 ? "1000" : "",
       peso_empanado_g: fator > 0 ? String(Math.round(fator * 1000)) : "",
+      fornecedor: ins.fornecedor || "",
+      observacoes: ins.observacoes || "",
     });
     setModalNovo(true);
   };
@@ -337,6 +339,8 @@ function IngredientesRunner() {
        eh_empanado: !!form.eh_empanado,
        custo_empanamento: form.eh_empanado ? custoEmp : null,
        fator_empanamento: form.eh_empanado ? Math.round(fator * 10000) / 10000 : null,
+       fornecedor: form.fornecedor || null,
+       observacoes: form.observacoes || null,
        custo_unitario: Math.round(custoReal * 10000) / 10000
     });
 
@@ -709,11 +713,35 @@ function IngredientesRunner() {
                      </div>
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1">Categoria {!form.categoria_manual && form.categoria && <span className="text-[9px] font-black text-emerald-600">(auto)</span>}</label>
-                        <select value={form.categoria || ""} onChange={e=>setForm({...form, categoria: e.target.value, categoria_manual: true})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500">
-                           <option value="">Selecione...</option>
-                           {(CATEGORIAS_INSUMO[form.departamento] || CATEGORIAS_INSUMO.cozinha).map(c => <option key={c} value={c}>{c}</option>)}
-                        </select>
+                        <div className="flex gap-2 mt-1">
+                           <select value={form.categoria || ""} onChange={e=>setForm({...form, categoria: e.target.value, categoria_manual: true})} className="flex-1 min-w-0 p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500">
+                              <option value="">Selecione...</option>
+                              {(() => {
+                                 const padrao = CATEGORIAS_INSUMO[form.departamento] || CATEGORIAS_INSUMO.cozinha;
+                                 const extras = [...new Set(insumos.map(i => i.categoria).filter(c => c && !padrao.includes(c)))].sort();
+                                 return [...padrao, ...extras].map(c => <option key={c} value={c}>{c}</option>);
+                              })()}
+                              {form.categoria && !(CATEGORIAS_INSUMO[form.departamento] || CATEGORIAS_INSUMO.cozinha).includes(form.categoria) && !insumos.some(i => i.categoria === form.categoria) && <option value={form.categoria}>{form.categoria}</option>}
+                           </select>
+                           <button type="button" title="Criar nova categoria" onClick={() => {
+                              const nova = prompt("Nome da nova categoria:");
+                              if (nova && nova.trim()) setForm({ ...form, categoria: nova.trim(), categoria_manual: true });
+                           }} className="w-12 shrink-0 rounded-xl bg-slate-100 hover:bg-emerald-100 text-slate-600 hover:text-emerald-700 font-black text-xl border border-slate-200">+</button>
+                        </div>
                      </div>
+                  </div>
+
+                  {/* Fornecedor e observações (opcionais) — padrão de cadastro completo */}
+                  <div>
+                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Fornecedor — opcional</label>
+                     <input type="text" list="fornecedores-insumo" placeholder="Selecionar ou digitar..." value={form.fornecedor || ""} onChange={e=>setForm({...form, fornecedor: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
+                     <datalist id="fornecedores-insumo">
+                        {[...new Set(insumos.map(i => i.fornecedor).filter(Boolean))].sort().map(fn => <option key={fn} value={fn} />)}
+                     </datalist>
+                  </div>
+                  <div>
+                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Observações — opcional</label>
+                     <textarea rows={2} placeholder="Notas sobre o insumo..." value={form.observacoes || ""} onChange={e=>setForm({...form, observacoes: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500 resize-none"/>
                   </div>
 
                   <div className="grid grid-cols-3 gap-4">

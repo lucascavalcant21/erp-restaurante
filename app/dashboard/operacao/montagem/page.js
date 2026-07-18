@@ -82,7 +82,7 @@ function normalizarCfgModelo(valor = {}) {
     ...cfg,
     _updatedAt: Number.isFinite(Number(cfg._updatedAt)) ? Number(cfg._updatedAt) : 0,
     porPagina: Number(cfg.porPagina) === 2 ? 2 : 1,
-    fotoPct: limitarNumero(cfg.fotoPct, 30, 100, CFG_MODELO_PADRAO.fotoPct),
+    fotoPct: limitarNumero(cfg.fotoPct, 20, 150, CFG_MODELO_PADRAO.fotoPct),
     tituloPx: limitarNumero(cfg.tituloPx, 18, 64, CFG_MODELO_PADRAO.tituloPx),
     textoPx: limitarNumero(cfg.textoPx, 10, 30, CFG_MODELO_PADRAO.textoPx),
     entrelinha: limitarNumero(cfg.entrelinha, 1.15, 2, CFG_MODELO_PADRAO.entrelinha),
@@ -214,7 +214,7 @@ function ControlesDesigner({ cfg, onChange, onPreset, onReset, onSave, salvando 
       </div>
 
       <SecaoDesigner icon={ImageIcon} titulo="Foto">
-          <ControleFaixa label="Tamanho real" valor={cfg.fotoPct} sufixo="%" min={30} max={100} step={5} onChange={(fotoPct) => onChange({ fotoPct })} />
+          <ControleFaixa label="Tamanho da imagem" valor={cfg.fotoPct} sufixo="%" min={20} max={150} step={5} onChange={(fotoPct) => onChange({ fotoPct })} />
           <div className="grid grid-cols-2 gap-2">
             {[['contain', 'Foto inteira'], ['cover', 'Preencher área']].map(([valor, label]) => (
               <BotaoOpcao key={valor} ativo={cfg.ajusteFoto === valor} onClick={() => onChange({ ajusteFoto: valor })}>{label}</BotaoOpcao>
@@ -978,7 +978,7 @@ function gerarHtmlModelo(fichas, cfgEntrada, deptLabel, { previsualizacao = fals
       .detalhes{display:flex;flex-wrap:wrap;gap:2mm;margin:3mm 0}
       .detalhes span{padding:1.3mm 2.6mm;border-radius:999px;background:${cfg.corDestaque}12;border:1px solid ${cfg.corDestaque}30;color:${cfg.corDestaque};font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.5px}
       .fotoBox{width:100%;height:var(--foto-altura);flex:0 0 var(--foto-altura);display:flex;align-items:center;justify-content:center;margin:4mm 0}
-      .fotoBox img{display:block;width:${cfg.fotoPct}%;height:100%;max-width:none;max-height:none;object-fit:${cfg.ajusteFoto};object-position:center ${cfg.posicaoFoto};border-radius:${raioFoto(cfg)};border:1px solid #e2e8f0;background:#f8fafc}
+      .fotoBox img{display:block;width:${Math.min(cfg.fotoPct, 100)}%;height:100%;max-width:none;max-height:none;object-fit:${cfg.ajusteFoto};object-position:center ${cfg.posicaoFoto};border-radius:${raioFoto(cfg)};border:1px solid #e2e8f0;background:#f8fafc}
       .secao{width:100%;margin-top:3mm}
       .secao h2,.observacao b{display:block;margin-bottom:2mm;color:${cfg.corDestaque};font-size:.78em;font-weight:900;letter-spacing:1.2px;text-transform:uppercase}
       .modo{font-size:${cfg.textoPx}px;font-weight:${cfg.textoNegrito ? 700 : 400};line-height:${cfg.entrelinha};text-align:${cfg.alinhamentoTexto}}
@@ -1012,23 +1012,33 @@ function gerarHtmlModelo(fichas, cfgEntrada, deptLabel, { previsualizacao = fals
             var estourou=fichas.some(function(fc){return fc.scrollHeight>fc.clientHeight+2||fc.scrollWidth>fc.clientWidth+2;});
             if(estourou){
               if(${duas ? "true" : "false"}){
-                // "2 na mesma página": ENCOLHE as fichas proporcionalmente até
-                // as duas caberem juntas — nunca troca sozinho para 1 por página.
+                // "2 na mesma página": encolhe TODAS as fichas pelo MESMO fator
+                // (o menor necessário) — assim ficam alinhadas e do mesmo tamanho.
+                var rMin=1;
                 fichas.forEach(function(fc){
-                  var r=Math.min(fc.clientHeight/fc.scrollHeight,fc.clientWidth/fc.scrollWidth,1)*0.98;
-                  if(r<1) fc.style.zoom=Math.max(0.45,r);
+                  var r=Math.min(fc.clientHeight/fc.scrollHeight,fc.clientWidth/fc.scrollWidth,1);
+                  if(r<rMin) rMin=r;
                 });
+                if(rMin<1){
+                  var z=Math.max(0.45,rMin*0.98);
+                  fichas.forEach(function(fc){fc.style.zoom=z;});
+                }
                 var ajuste=document.createElement('div');
                 ajuste.className='avisoAjuste';
                 ajuste.textContent='Fichas reduzidas para caberem as 2 juntas';
                 papel.appendChild(ajuste);
                 requestAnimationFrame(function(){
+                  var r2min=1;
                   fichas.forEach(function(fc){
                     if(fc.scrollHeight>fc.clientHeight+2){
-                      var r2=(fc.clientHeight/fc.scrollHeight)*0.98;
-                      fc.style.zoom=Math.max(0.4,(parseFloat(fc.style.zoom)||1)*r2);
+                      var r2=fc.clientHeight/fc.scrollHeight;
+                      if(r2<r2min) r2min=r2;
                     }
                   });
+                  if(r2min<1){
+                    var z2=Math.max(0.4,(parseFloat(fichas[0].style.zoom)||1)*r2min*0.98);
+                    fichas.forEach(function(fc){fc.style.zoom=z2;});
+                  }
                   ajustar();
                 });
               } else {
@@ -1077,10 +1087,8 @@ async function ajustarFichasQueExcedemFolha(doc, cfg) {
     // folha inteira se a redução necessária deixar ilegível (abaixo de 45%).
     const menorR = Math.min(...excedidas.map((ficha) => Math.min(ficha.clientHeight / ficha.scrollHeight, ficha.clientWidth / ficha.scrollWidth))) * 0.98;
     if (menorR >= 0.45) {
-      excedidas.forEach((ficha) => {
-        const r = Math.min(ficha.clientHeight / ficha.scrollHeight, ficha.clientWidth / ficha.scrollWidth) * 0.98;
-        ficha.style.zoom = r;
-      });
+      // Mesmo fator para TODAS as fichas da página — imprime alinhado e uniforme
+      fichas.forEach((ficha) => { ficha.style.zoom = menorR; });
       return;
     }
     const novasPaginas = doc.createDocumentFragment();

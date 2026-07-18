@@ -67,7 +67,8 @@ export default function RHPage() {
   // Cargos de liderança sempre disponíveis, além dos cargos cadastrados
   const CARGOS_LIDERANCA = ["CEO", "Supervisor", "Gerente"];
   const [modalNovo, setModalNovo] = useState(false);
-  const [menuAcoes, setMenuAcoes] = useState(null); // funcionário com o menu "Ações" aberto
+  const [menuAcoes, setMenuAcoes] = useState(null);
+  const [detAberto, setDetAberto] = useState({}); // detalhamento salarial por card // funcionário com o menu "Ações" aberto
   const [novoFunc, setNovoFunc] = useState(statePadrao);
   
   const [modalLancamento, setModalLancamento] = useState(false);
@@ -1648,7 +1649,7 @@ export default function RHPage() {
                            </div>
                            {(f.telefone || f.chave_pix) && (
                               <div className="text-[11px] font-semibold text-slate-500 flex flex-wrap gap-x-3 gap-y-0.5">
-                                 {f.telefone && <span className="flex items-center gap-1"><Phone size={10} /> {f.telefone}</span>}
+                                 {f.telefone && <a href={`https://wa.me/55${String(f.telefone).replace(/D/g, "")}`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 text-emerald-700 hover:underline"><Phone size={10} /> {f.telefone}</a>}
                                  {f.chave_pix && <span className="flex items-center gap-1"><CreditCard size={10} /> {f.chave_pix}</span>}
                               </div>
                            )}
@@ -1678,26 +1679,29 @@ export default function RHPage() {
                                  };
                                  return (
                                  <div className="rounded-xl bg-slate-50 border border-slate-100 p-2.5 text-[12px]" onClick={(e) => e.stopPropagation()}>
-                                    <div className="flex justify-between"><span className="text-slate-500 font-semibold">Salário base</span><span className="font-bold text-slate-700">{fmtBRL(p.fixo)}</span></div>
+                                    {detAberto[f.id] && (<><div className="flex justify-between"><span className="text-slate-500 font-semibold">Salário base</span><span className="font-bold text-slate-700">{fmtBRL(p.fixo)}</span></div>
                                     {p.va > 0 && <div className="flex justify-between cursor-pointer" title="Clique para entender" onClick={() => alert(`VA — Vale-alimentação: ${fmtBRL(p.va)}\n\nValor fixo definido no cadastro do funcionário. Somado ao pagamento do mês.`)}><span className="text-teal-600 font-semibold">+ Vale-alimentação</span><span className="font-bold text-teal-700">{fmtBRL(p.va)}</span></div>}
                                     {p.taxa > 0 && <div className="flex justify-between cursor-pointer" title="Clique para entender" onClick={() => alert(`TAXA de serviço (gorjeta): ${fmtBRL(p.taxa)}\n\nValor mensal definido no cadastro (rateio da taxa de 10%). Entra no total e no holerite no fim do mês.\n\nTrabalhou até agora: ${diasTrab.length} dia(s) — por dia dá ${fmtBRL(p.taxa / Math.max(1, diasTrab.length))}.`)}><span className="text-indigo-600 font-semibold">+ Taxa de serviço</span><span className="font-bold text-indigo-700">{fmtBRL(p.taxa)}</span></div>}
                                     {p.ad.valorExtra > 0 && <div className="flex justify-between cursor-pointer" title="Clique para ver os dias" onClick={() => alertaDias(`HORA EXTRA (+50%): ${fmtBRL(p.ad.valorExtra)}`, "minExtra", "Regra: após 00:00, hora + 50% (base = salário ÷ 220).")}><span className="text-emerald-600 font-semibold">+ Hora extra (+50%)</span><span className="font-bold text-emerald-700">{fmtBRL(p.ad.valorExtra)}</span></div>}
                                     {p.ad.valorNoturno > 0 && <div className="flex justify-between cursor-pointer" title="Clique para ver os dias" onClick={() => alertaDias(`ADICIONAL NOTURNO (+20%): ${fmtBRL(p.ad.valorNoturno)}`, "minNoturno", "Regra: minutos entre 23:30 e 00:00 pagam +20%.")}><span className="text-sky-600 font-semibold">+ Ad. noturno (+20%)</span><span className="font-bold text-sky-700">{fmtBRL(p.ad.valorNoturno)}</span></div>}
                                     {p.ad.valorFeriado > 0 && <div className="flex justify-between cursor-pointer" title="Clique para ver os dias" onClick={() => alertaDias(`FERIADO TRABALHADO (+100% — pago em dobro): ${fmtBRL(p.ad.valorFeriado)}`, "minFeriado", "Regra: todas as horas do feriado pagam em dobro (Lei 605/49).")}><span className="text-amber-600 font-semibold">+ Feriado (+100%)</span><span className="font-bold text-amber-700">{fmtBRL(p.ad.valorFeriado)}</span></div>}
                                     {p.descontos > 0 && <div className="flex justify-between cursor-pointer" title="Clique para entender" onClick={() => alert(`VALES / DESCONTOS: ${fmtBRL(p.descontos)}\n\nSoma dos vales e consumos pendentes (adiantamentos e consumo no cardápio da equipe). Desconto na folha. Detalhe em Ações → Consumo / Vales.`)}><span className="text-rose-600 font-semibold">− Vales / descontos</span><span className="font-bold text-rose-700">{fmtBRL(p.descontos)}</span></div>}
+                                    </>)}
                                     <div className="flex justify-between pt-1.5 mt-1.5 border-t border-slate-200"><span className="font-black text-slate-700">Total previsto</span><span className="font-black text-emerald-700">{fmtBRL(p.previsto)}</span></div>
                                     {(() => {
                                        const nDias = (f.dias_trabalho || "").split(",").filter(Boolean).length;
                                        if (!nDias || !p.fixo) return null;
                                        return <div className="flex justify-between mt-0.5"><span className="text-[10px] font-bold text-slate-400">Valor por dia trabalhado</span><span className="text-[10px] font-black text-slate-500">{fmtBRL(p.fixo / (nDias * 4.345))}/dia</span></div>;
                                     })()}
-                                    {/* Dias do mês: previstos, trabalhados até agora, feriados (dobro) e folgas vendidas */}
+                                    {detAberto[f.id] && (<>{/* Dias do mês: previstos, trabalhados até agora, feriados (dobro) e folgas vendidas */}
                                     <div className="grid grid-cols-2 gap-1 mt-2 pt-2 border-t border-slate-200 text-[10px] font-bold">
                                        <span className="text-slate-500">Dias no mês (escala)</span><span className="text-right text-slate-700 font-black">{diasPrevistos}</span>
                                        <span className="text-slate-500">Trabalhou até agora</span><span className="text-right text-emerald-700 font-black">{diasTrab.length}</span>
                                        <span className={feriadosTrab.length ? "text-amber-700 cursor-pointer" : "text-slate-500"} onClick={() => feriadosTrab.length && alert(`FERIADOS TRABALHADOS (pagos em dobro):\n\n${feriadosTrab.map(fmtDia).map(d => `• ${d}`).join("\n")}`)}>Feriados (em dobro)</span><span className="text-right text-amber-700 font-black">{feriadosTrab.length}</span>
                                        <span className={folgasVendidas.length ? "text-purple-700 cursor-pointer" : "text-slate-500"} onClick={() => folgasVendidas.length && alert(`FOLGAS VENDIDAS (trabalhou no dia de folga):\n\n${folgasVendidas.map(fmtDia).map(d => `• ${d}`).join("\n")}`)}>Folgas vendidas</span><span className="text-right text-purple-700 font-black">{folgasVendidas.length}</span>
                                     </div>
+                                    </>)}
+                                    <button onClick={(e) => { e.stopPropagation(); setDetAberto(prev => ({ ...prev, [f.id]: !prev[f.id] })); }} className="w-full text-[10px] font-black text-slate-400 hover:text-slate-600 mt-1.5 uppercase tracking-widest">{detAberto[f.id] ? "ocultar detalhes" : "ver detalhes"}</button>
                                     <button onClick={() => gerarHolerite(f, p)} className="w-full mt-2 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white font-black text-[11px] flex items-center justify-center gap-1.5">
                                        <Printer size={12} /> Holerite (INSS + FGTS)
                                     </button>
@@ -1753,7 +1757,7 @@ export default function RHPage() {
          );
          return (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={fechar}>
-            <div className="bg-white rounded-[28px] w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto p-5 sm:p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="bg-white rounded-[28px] w-full max-w-md md:max-w-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto p-5 sm:p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
                <div className="flex items-center justify-between mb-4">
                   <div className="min-w-0">
                      <h2 className="font-black text-xl text-slate-800 truncate">{f.nome}</h2>
@@ -1762,7 +1766,7 @@ export default function RHPage() {
                   <button onClick={fechar} className="w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200 shrink-0"><X size={17}/></button>
                </div>
 
-               <div className="space-y-4">
+               <div className="space-y-4 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
                   <Grupo titulo="Ponto e Jornada">
                      <Acao icon={Clock} onClick={() => ir(() => router.push(`/dashboard/rh/espelho/${f.id}?mes=${new Date().toISOString().slice(0,7)}`))}>Espelho de Ponto</Acao>
                      <Acao icon={Clock} cor={critico ? "text-red-700" : alerta ? "text-amber-700" : "text-sky-700"} bg={critico ? "bg-red-50 hover:bg-red-100" : alerta ? "bg-amber-50 hover:bg-amber-100" : "bg-sky-50 hover:bg-sky-100"}
@@ -1774,7 +1778,7 @@ export default function RHPage() {
                   </Grupo>
 
                   <Grupo titulo="Financeiro">
-                     <Acao icon={ShoppingBag} cor="text-teal-700" bg="bg-teal-50 hover:bg-teal-100" onClick={() => ir(() => abrirModalConsumo(f))}>Consumo / Vales</Acao>
+                     <Acao icon={ShoppingBag} cor="text-teal-700" bg="bg-teal-50 hover:bg-teal-100" onClick={() => ir(() => abrirModalConsumo(f))} extra={(() => { const t = valesPendentes.filter(v => v.funcionario_id === f.id).reduce((sm, v) => sm + (Number(v.valor_final ?? v.valor_desconto ?? v.valor_original) || 0), 0); return t > 0 ? <span className="text-xs font-black">{fmtBRL(t)} pend.</span> : null; })()}>Consumo / Vales</Acao>
                      <Acao icon={CreditCard} cor="text-emerald-700" bg="bg-emerald-50 hover:bg-emerald-100" onClick={() => ir(() => handleLancarFinanceiro(f))}>Lançar {f.tipo_contrato === "Freelancer" ? "Diária" : "Salário"}</Acao>
                      {f.tipo_contrato === "Freelancer" && (
                         <>

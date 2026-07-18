@@ -194,6 +194,7 @@ export default function PontoPage() {
   const [liberadosHoje, setLiberadosHoje] = useState([]); // ids de freelancers liberados hoje
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
+  const [letra, setLetra] = useState(""); // filtro A-Z (toque rapido no tablet)
   const [horaLocal, setHoraLocal] = useState(new Date());
 
   const [selecionado, setSelecionado] = useState(null);
@@ -333,6 +334,8 @@ export default function PontoPage() {
   };
 
   const mostrarSucesso = (titulo, detalhe, tone = "ok") => {
+    // Feedback sem olhar a tela: vibra e apita ao confirmar
+    try { navigator.vibrate && navigator.vibrate(tone === "alerta" ? [120,80,120] : 180); const A = window.AudioContext || window.webkitAudioContext; if (A) { const ctx = new A(), o = ctx.createOscillator(), g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value = tone === "alerta" ? 320 : 880; g.gain.value = 0.08; o.start(); o.stop(ctx.currentTime + 0.18); } } catch (_) {}
     setSucesso({ titulo, detalhe, tone });
     // Rápido: 2s no ok; alertas (têm mais texto) ganham um pouco mais
     setTimeout(() => { setSucesso(null); setSelecionado(null); carregar(); }, tone === "alerta" ? 3500 : 2000);
@@ -820,11 +823,12 @@ export default function PontoPage() {
 
   // ── Tela inicial: relógio + busca + cards agrupados por função ─────────────
   const q = busca.toLowerCase();
-  const filtrados = colaboradores.filter(c =>
+  const filtrados = colaboradores.filter(c => (!letra || (c.nome || "").toUpperCase().startsWith(letra)) &&
     c.nome.toLowerCase().includes(q) || (c.cargo || "").toLowerCase().includes(q)
   );
+  const rankPonto = (c) => { const r = registroDe(c.id); if (folgaHoje(c, folgas, horaLocal).folga) return 3; if (r?.hora_saida) return 2; if (r?.hora_entrada) return 0; return 1; };
   const grupos = ORDEM_CATEGORIAS
-    .map(cat => ({ cat, itens: filtrados.filter(c => categoriaFuncao(c.cargo) === cat) }))
+    .map(cat => ({ cat, itens: filtrados.filter(c => categoriaFuncao(c.cargo) === cat).sort((a, b) => rankPonto(a) - rankPonto(b)) }))
     .filter(g => g.itens.length);
 
   const renderCard = (c) => {
@@ -985,6 +989,7 @@ export default function PontoPage() {
           />
         </div>
 
+        <div className="flex flex-wrap gap-1 mb-4">{[...new Set(colaboradores.map(c => (c.nome || "?")[0].toUpperCase()))].sort().map(L => (<button key={L} onClick={() => setLetra(letra === L ? "" : L)} className={`w-9 h-9 rounded-lg font-black text-sm ${letra === L ? "bg-emerald-600 text-white" : "bg-slate-900 text-slate-400 border border-slate-800"}`}>{L}</button>))}{letra && <button onClick={() => setLetra("")} className="px-3 h-9 rounded-lg font-bold text-xs bg-slate-800 text-slate-300">limpar</button>}</div>
         {loading ? (
           <div className="text-center py-16"><Loader2 size={40} className="animate-spin text-slate-600 mx-auto" /></div>
         ) : filtrados.length === 0 ? (

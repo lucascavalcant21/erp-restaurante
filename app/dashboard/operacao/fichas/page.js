@@ -892,15 +892,17 @@ function FichasRunner() {
     `;
 
     // ── LIVRO DE RECEITAS: seções, capa, índice e páginas numeradas ──────────
-    const ORDEM_SECOES = ['Pré-preparos', 'Preparos', 'Molhos', 'Pratos', 'Sobremesas', 'Sucos'];
+    // Seções do livro (nesta ordem). Tudo que não é pré-preparo, molho/geleia,
+    // sobremesa ou suco entra em "Preparos" (pratos e receitas base).
+    const ORDEM_SECOES = ['Pré-preparos', 'Preparos', 'Sobremesas', 'Sucos', 'Molhos e Geleias'];
     const secaoDe = (f) => {
       const nome = String(f.nome_receita || '').toLowerCase();
       const cat = String(f.categoria || '').toLowerCase();
-      if (nome.includes('molho') || cat.includes('molho')) return 'Molhos';
-      if (f.eh_base) return f.tipo_base === 'receita' ? 'Preparos' : 'Pré-preparos';
+      if (nome.includes('molho') || cat.includes('molho') || nome.includes('geleia') || nome.includes('geléia') || cat.includes('geleia')) return 'Molhos e Geleias';
+      if (f.eh_base && f.tipo_base !== 'receita') return 'Pré-preparos';
       if (cat === 'sobremesas') return 'Sobremesas';
       if (cat === 'sucos') return 'Sucos';
-      return 'Pratos';
+      return 'Preparos';
     };
     const ehLivro = listaDeFichas.length > 1;
     const lista = ehLivro

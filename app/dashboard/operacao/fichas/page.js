@@ -1149,8 +1149,13 @@ function FichasRunner() {
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 w-full lg:w-auto overflow-x-auto">
-               <button onClick={imprimirManual} title={deptUrl === "bar" ? "Pôster com todos os drinks e medidas" : "Pôster com todas as receitas e medidas"} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-slate-50 transition-colors shadow-sm">
-                  <Printer size={18} /> <span className="hidden md:inline">{deptUrl === "bar" ? "Manual de Coquetelaria" : "Manual da Cozinha"}</span><span className="md:hidden">Manual</span>
+               <button onClick={() => {
+                     if (!fichas.length) return alert("Nenhuma ficha para o livro.");
+                     imprimirFichas(fichas); // livro completo: capa, índice, páginas e seções
+                  }}
+                  title="Livro completo: capa, índice, páginas numeradas e seções (pré-preparos, preparos, molhos, pratos, sobremesas, sucos)"
+                  className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-slate-50 transition-colors shadow-sm">
+                  <Printer size={18} /> <span className="hidden md:inline">Livro de Receitas</span><span className="md:hidden">Livro</span>
                </button>
                <button onClick={abrirModalIAFicha} className="flex items-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-emerald-50 transition-colors shadow-sm">
                   <Sparkles size={18} /> Montar com IA

@@ -11,6 +11,10 @@ export default function RegisterSW() {
     let reg = null;
     const onLoad = () => {
       navigator.serviceWorker.register("/sw.js").then((r) => { reg = r; }).catch(() => {});
+      // Armazenamento PERSISTENTE: pede ao Android/Chrome para nunca apagar os
+      // dados do app (é o que guarda o login). Sem isso, sob pressão de espaço
+      // o sistema pode limpar o site e o usuário "desloga sozinho".
+      try { navigator.storage?.persist?.().catch(() => {}); } catch (_) {}
     };
     const onFocus = () => { if (reg) reg.update().catch(() => {}); };
 

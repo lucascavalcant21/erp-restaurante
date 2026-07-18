@@ -17,7 +17,7 @@ import {
 } from "../../lib/rh";
 import { fetchPontoHoje, fetchPontosMes, fetchPontosMesUnidade } from "../../lib/ponto";
 import { fetchValesPendentes } from "../../lib/rh";
-import { calcularAdicionaisMes } from "../../lib/rh";
+import { calcularAdicionaisMes, calcularAdicionaisPorDia } from "../../lib/rh";
 import { salvarConta, fetchContas, fetchLancamentos } from "../../lib/financeiro";
 import { fetchCardapio } from "../../lib/cardapio";
 import { fetchProdutos } from "../../lib/vendas";
@@ -1609,13 +1609,33 @@ export default function RHPage() {
                               {ehFreela ? (
                                  <div className="font-black text-emerald-700">{fmtBRL(f.salario)} <span className="text-[10px] font-bold text-slate-400">/ diária</span></div>
                               ) : (
+                                 (() => {
+                                 // Dia a dia do mês: alimenta os cliques (extra/noturno/feriado) e os contadores
+                                 const meusPontos = pontosMesUnidade.filter(x => x.colaborador_id === f.id);
+                                 const porDia = calcularAdicionaisPorDia(meusPontos, feriadosMesAtual);
+                                 const fSet = new Set((feriadosMesAtual || []).map(x => x.data || x));
+                                 const diasTrab = [...new Set(meusPontos.filter(x => x.hora_entrada).map(x => x.data_referencia))];
+                                 const escala = new Set(String(f.dias_trabalho || "").split(",").filter(Boolean));
+                                 const feriadosTrab = diasTrab.filter(d => fSet.has(d));
+                                 const folgasVendidas = diasTrab.filter(d => escala.size && !escala.has(String(new Date(d + "T12:00:00").getDay())));
+                                 const agoraD = new Date();
+                                 const totalDiasMes = new Date(agoraD.getFullYear(), agoraD.getMonth() + 1, 0).getDate();
+                                 let diasPrevistos = 0;
+                                 for (let d = 1; d <= totalDiasMes; d++) if (escala.has(String(new Date(agoraD.getFullYear(), agoraD.getMonth(), d).getDay()))) diasPrevistos++;
+                                 const fmtDia = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+                                 const alertaDias = (titulo, campo, regra) => {
+                                    const ls = porDia.filter(x => x[campo] > 0).map(x => `• ${fmtDia(x.data)} — ${x[campo]} min`);
+                                    const tot = porDia.reduce((s, x) => s + x[campo], 0);
+                                    alert(`${titulo}\n\n${ls.join("\n") || "Nenhum dia registrado."}\n\nTotal: ${tot} min\n${regra}`);
+                                 };
+                                 return (
                                  <div className="rounded-xl bg-slate-50 border border-slate-100 p-2.5 text-[12px]" onClick={(e) => e.stopPropagation()}>
                                     <div className="flex justify-between"><span className="text-slate-500 font-semibold">Salário base</span><span className="font-bold text-slate-700">{fmtBRL(p.fixo)}</span></div>
                                     {p.va > 0 && <div className="flex justify-between cursor-pointer" title="Clique para entender" onClick={() => alert(`VA — Vale-alimentação: ${fmtBRL(p.va)}\n\nValor fixo definido no cadastro do funcionário. Somado ao pagamento do mês.`)}><span className="text-teal-600 font-semibold">+ Vale-alimentação</span><span className="font-bold text-teal-700">{fmtBRL(p.va)}</span></div>}
-                                    {p.taxa > 0 && <div className="flex justify-between cursor-pointer" title="Clique para entender" onClick={() => alert(`TAXA de serviço (gorjeta): ${fmtBRL(p.taxa)}\n\nParte da taxa de serviço (10%) rateada para este funcionário no mês.`)}><span className="text-indigo-600 font-semibold">+ Taxa de serviço</span><span className="font-bold text-indigo-700">{fmtBRL(p.taxa)}</span></div>}
-                                    {p.ad.valorExtra > 0 && <div className="flex justify-between" title="Após 00:00 — hora + 50% (base salário ÷ 220)"><span className="text-emerald-600 font-semibold">+ Hora extra (+50%)</span><span className="font-bold text-emerald-700">{fmtBRL(p.ad.valorExtra)}</span></div>}
-                                    {p.ad.valorNoturno > 0 && <div className="flex justify-between" title="23:30–00:00 — adicional de 20%"><span className="text-sky-600 font-semibold">+ Ad. noturno (+20%)</span><span className="font-bold text-sky-700">{fmtBRL(p.ad.valorNoturno)}</span></div>}
-                                    {p.ad.valorFeriado > 0 && <div className="flex justify-between" title="Feriado trabalhado — adicional de 100%"><span className="text-amber-600 font-semibold">+ Feriado (+100%)</span><span className="font-bold text-amber-700">{fmtBRL(p.ad.valorFeriado)}</span></div>}
+                                    {p.taxa > 0 && <div className="flex justify-between cursor-pointer" title="Clique para entender" onClick={() => alert(`TAXA de serviço (gorjeta): ${fmtBRL(p.taxa)}\n\nValor mensal definido no cadastro (rateio da taxa de 10%). Entra no total e no holerite no fim do mês.\n\nTrabalhou até agora: ${diasTrab.length} dia(s) — por dia dá ${fmtBRL(p.taxa / Math.max(1, diasTrab.length))}.`)}><span className="text-indigo-600 font-semibold">+ Taxa de serviço</span><span className="font-bold text-indigo-700">{fmtBRL(p.taxa)}</span></div>}
+                                    {p.ad.valorExtra > 0 && <div className="flex justify-between cursor-pointer" title="Clique para ver os dias" onClick={() => alertaDias(`HORA EXTRA (+50%): ${fmtBRL(p.ad.valorExtra)}`, "minExtra", "Regra: após 00:00, hora + 50% (base = salário ÷ 220).")}><span className="text-emerald-600 font-semibold">+ Hora extra (+50%)</span><span className="font-bold text-emerald-700">{fmtBRL(p.ad.valorExtra)}</span></div>}
+                                    {p.ad.valorNoturno > 0 && <div className="flex justify-between cursor-pointer" title="Clique para ver os dias" onClick={() => alertaDias(`ADICIONAL NOTURNO (+20%): ${fmtBRL(p.ad.valorNoturno)}`, "minNoturno", "Regra: minutos entre 23:30 e 00:00 pagam +20%.")}><span className="text-sky-600 font-semibold">+ Ad. noturno (+20%)</span><span className="font-bold text-sky-700">{fmtBRL(p.ad.valorNoturno)}</span></div>}
+                                    {p.ad.valorFeriado > 0 && <div className="flex justify-between cursor-pointer" title="Clique para ver os dias" onClick={() => alertaDias(`FERIADO TRABALHADO (+100% — pago em dobro): ${fmtBRL(p.ad.valorFeriado)}`, "minFeriado", "Regra: todas as horas do feriado pagam em dobro (Lei 605/49).")}><span className="text-amber-600 font-semibold">+ Feriado (+100%)</span><span className="font-bold text-amber-700">{fmtBRL(p.ad.valorFeriado)}</span></div>}
                                     {p.descontos > 0 && <div className="flex justify-between cursor-pointer" title="Clique para entender" onClick={() => alert(`VALES / DESCONTOS: ${fmtBRL(p.descontos)}\n\nSoma dos vales e consumos pendentes (adiantamentos e consumo no cardápio da equipe). Desconto na folha. Detalhe em Ações → Consumo / Vales.`)}><span className="text-rose-600 font-semibold">− Vales / descontos</span><span className="font-bold text-rose-700">{fmtBRL(p.descontos)}</span></div>}
                                     <div className="flex justify-between pt-1.5 mt-1.5 border-t border-slate-200"><span className="font-black text-slate-700">Total previsto</span><span className="font-black text-emerald-700">{fmtBRL(p.previsto)}</span></div>
                                     {(() => {
@@ -1623,10 +1643,19 @@ export default function RHPage() {
                                        if (!nDias || !p.fixo) return null;
                                        return <div className="flex justify-between mt-0.5"><span className="text-[10px] font-bold text-slate-400">Valor por dia trabalhado</span><span className="text-[10px] font-black text-slate-500">{fmtBRL(p.fixo / (nDias * 4.345))}/dia</span></div>;
                                     })()}
+                                    {/* Dias do mês: previstos, trabalhados até agora, feriados (dobro) e folgas vendidas */}
+                                    <div className="grid grid-cols-2 gap-1 mt-2 pt-2 border-t border-slate-200 text-[10px] font-bold">
+                                       <span className="text-slate-500">Dias no mês (escala)</span><span className="text-right text-slate-700 font-black">{diasPrevistos}</span>
+                                       <span className="text-slate-500">Trabalhou até agora</span><span className="text-right text-emerald-700 font-black">{diasTrab.length}</span>
+                                       <span className={feriadosTrab.length ? "text-amber-700 cursor-pointer" : "text-slate-500"} onClick={() => feriadosTrab.length && alert(`FERIADOS TRABALHADOS (pagos em dobro):\n\n${feriadosTrab.map(fmtDia).map(d => `• ${d}`).join("\n")}`)}>Feriados (em dobro)</span><span className="text-right text-amber-700 font-black">{feriadosTrab.length}</span>
+                                       <span className={folgasVendidas.length ? "text-purple-700 cursor-pointer" : "text-slate-500"} onClick={() => folgasVendidas.length && alert(`FOLGAS VENDIDAS (trabalhou no dia de folga):\n\n${folgasVendidas.map(fmtDia).map(d => `• ${d}`).join("\n")}`)}>Folgas vendidas</span><span className="text-right text-purple-700 font-black">{folgasVendidas.length}</span>
+                                    </div>
                                     <button onClick={() => gerarHolerite(f, p)} className="w-full mt-2 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white font-black text-[11px] flex items-center justify-center gap-1.5">
                                        <Printer size={12} /> Holerite (INSS + FGTS)
                                     </button>
                                  </div>
+                                 );
+                                 })()
                               )}
                            </div>
                            <div className="flex items-center justify-between gap-2 mt-auto pt-2 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>

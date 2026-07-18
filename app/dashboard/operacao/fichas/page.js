@@ -68,12 +68,14 @@ function custoTotalDaFicha(f, todasFichas, guard = new Set()) {
   guard.add(f.id);
   let total = 0;
   (f.fichas_ingredientes || []).forEach(fi => {
+    // Fator de correção (%) do item: a quantidade BRUTA (líquida × 1+fc) é a que custa
+    const fc = 1 + (Number(fi.fator_correcao) || 0) / 100;
     if (fi.insumos) {
-      total += (fi.insumos.custo_unitario || 0) * (fi.quantidade || 0);
+      total += (fi.insumos.custo_unitario || 0) * (fi.quantidade || 0) * fc;
     } else if (fi.subficha_id) {
       const base = todasFichas.find(x => x.id === fi.subficha_id);
       const custoBaseUnit = base ? custoTotalDaFicha(base, todasFichas, guard) / (base.rendimento_porcoes || 1) : 0;
-      total += custoBaseUnit * (fi.quantidade || 0);
+      total += custoBaseUnit * (fi.quantidade || 0) * fc;
     }
   });
   return total;
@@ -544,6 +546,7 @@ function FichasRunner() {
              unidade: base?.rendimento_unidade || "un",
              custo_unitario: base ? custoUnitBase(base, fichas) : 0,
              quantidade: fi.quantidade,
+             fator: Number(fi.fator_correcao) || 0,
              modo: getSub(base?.rendimento_unidade) ? "sub" : "base",
           };
        }
@@ -551,6 +554,7 @@ function FichasRunner() {
           chave: fi.insumos.id, tipo: "insumo", insumo_id: fi.insumos.id,
           nome: fi.insumos.nome, unidade: fi.insumos.unidade_medida,
           custo_unitario: fi.insumos.custo_unitario, quantidade: fi.quantidade,
+          fator: Number(fi.fator_correcao) || 0,
           peso_medio_g: fi.insumos.peso_medio_g || null,
           modo: getSub(fi.insumos.unidade_medida) ? "sub" : "base",
        };
@@ -560,8 +564,9 @@ function FichasRunner() {
     setModalNovo(true);
   };
 
+  // Custo considera o Fator de Correção (%) do item: bruta = líquida × (1 + fc)
   const calcularCustoTotal = (ingredientesLista) => {
-    return ingredientesLista.reduce((acc, ing) => acc + (ing.custo_unitario * ing.quantidade), 0);
+    return ingredientesLista.reduce((acc, ing) => acc + (ing.custo_unitario * ing.quantidade * (1 + (Number(ing.fator) || 0) / 100)), 0);
   };
 
   // Adiciona insumo ou base. `valor` = "insumo:<id>" ou "base:<id>"
@@ -608,6 +613,11 @@ function FichasRunner() {
   const toggleModo = (chave) => {
     setAutoSoma(true);
     setIngFicha(lista => lista.map(i => i.chave === chave ? { ...i, modo: i.modo === 'sub' ? 'base' : 'sub' } : i));
+  };
+
+  // Fator de correção (%) do item — a bruta é calculada e o custo acompanha
+  const updateFator = (chave, fator) => {
+    setIngFicha(lista => lista.map(i => i.chave === chave ? { ...i, fator: Number(fator) || 0 } : i));
   };
 
   const removeIngrediente = (chave) => {
@@ -676,7 +686,7 @@ function FichasRunner() {
     setTimeout(() => win.print(), 400);
   };
 
-  const handleSalvar = async () => {
+  const handleSalvar = async (criarOutra = false) => {
     if(!form.nome_receita.trim()) return alert("Digite o nome da receita");
     if(!form.rendimento_porcoes) return alert("Digite o rendimento");
 
@@ -706,13 +716,14 @@ function FichasRunner() {
        ingValidos.map(i => ({
           insumo_id: i.tipo === "insumo" ? i.insumo_id : null,
           subficha_id: i.tipo === "base" ? i.subficha_id : null,
-          quantidade: i.quantidade
+          quantidade: i.quantidade,
+          fator_correcao: Number(i.fator) || 0
        }))
     );
 
     if(erro.error) return alert("Erro ao salvar: " + erro.error);
 
-    setModalNovo(false);
+    if (!criarOutra) setModalNovo(false);
     carregar();
 
     // O PREÇO DE VENDA agora é definido AQUI na ficha (seção CMV e Precificação)
@@ -776,6 +787,14 @@ function FichasRunner() {
 
         alert(`"${nome}" salvo!\n\n· Preço de venda: ${precoVendaNum > 0 ? "definido na ficha" : "pendente — edite a ficha e preencha em CMV e Precificação"}\n· Guia de Montagem — crie o passo a passo lá`);
       } catch { /* integrações não bloqueiam o salvar da ficha */ }
+    }
+
+    // "Salvar e criar outra": limpa o formulário e continua no modal
+    if (criarOutra) {
+      setForm({ id: null, departamento: form.departamento, nome_receita: "", categoria: "", rendimento_porcoes: "1", modo_preparo: "", eh_base: false, rendimento_unidade: "porcao", peso_porcao_g: "", imagem: "", tempo_preparo: "", validade_dias: "", observacoes: "", preco_venda: "", cmv_meta: 30 });
+      setIngFicha([]);
+      setAutoSoma(true);
+      setIaExplicacao("");
     }
   };
 
@@ -1809,7 +1828,17 @@ function FichasRunner() {
                                     {ing.nome}
                                     {ing.tipo === "base" && <span className="text-[8px] font-black uppercase tracking-widest bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">Base</span>}
                                  </p>
-                                 <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">Custo: {fmtBRL(ing.custo_unitario * ing.quantidade)}</p>
+                                 <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">Custo: {fmtBRL(ing.custo_unitario * ing.quantidade * (1 + (Number(ing.fator) || 0) / 100))}</p>
+                                 {/* Fator de correção (%): qtd bruta = líquida × (1 + fc) — o custo usa a bruta */}
+                                 <div className="flex items-center gap-1.5 mt-1">
+                                    <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">FC %</span>
+                                    <input type="number" min="0" max="300" step="1" value={ing.fator || ""} placeholder="0"
+                                       onChange={e => updateFator(ing.chave, e.target.value)}
+                                       className="w-14 p-1 text-center bg-white border border-slate-200 rounded-md font-bold text-[11px] text-slate-700 outline-none focus:border-emerald-500" />
+                                    {Number(ing.fator) > 0 && ing.quantidade > 0 && (
+                                       <span className="text-[9px] font-bold text-amber-600">bruta: {(+(ing.quantidade * (emSub ? fator : 1) * (1 + Number(ing.fator) / 100)).toFixed(2)).toLocaleString("pt-BR")} {unidadeLabel}</span>
+                                    )}
+                                 </div>
                                  {/* Equivalência em peso: 5 un de bolinho de 35g = 175 g (0,175 kg) */}
                                  {(() => {
                                     if (ing.tipo !== "base" || String(ing.unidade).toLowerCase() !== "un" || !ing.quantidade) return null;
@@ -1860,10 +1889,15 @@ function FichasRunner() {
                </div>
 
                {/* FOOTER DO MODAL */}
-               <div className="p-6 border-t border-slate-100 bg-white">
-                  <button onClick={handleSalvar} className="w-full py-5 bg-slate-900 hover:bg-slate-800 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-slate-900/20 active:scale-95 flex items-center justify-center gap-2">
+               <div className="p-6 border-t border-slate-100 bg-white flex flex-col sm:flex-row gap-3">
+                  <button onClick={() => handleSalvar(false)} className="flex-1 py-5 bg-slate-900 hover:bg-slate-800 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-slate-900/20 active:scale-95 flex items-center justify-center gap-2">
                      <Save size={20}/> Salvar Receita ({fmtBRL(calcularCustoTotal(ingFicha))})
                   </button>
+                  {!form.id && (
+                     <button onClick={() => handleSalvar(true)} className="sm:w-56 py-5 bg-white border-2 border-slate-300 hover:border-slate-900 text-slate-800 font-black text-base rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2">
+                        <Plus size={18}/> Salvar e criar outra
+                     </button>
+                  )}
                </div>
             </div>
          </div>

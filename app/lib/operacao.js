@@ -108,12 +108,13 @@ export async function removerInsumo(id) {
 export async function fetchFichas(unidadeId, dept) {
   if (!isSupabaseReady()) return { data: [], error: "Offline" };
   
-  // Fazemos um select aninhado para trazer os ingredientes e as infos do insumo
+  // Select aninhado: `*` nos ingredientes traz colunas novas (ex: fator_correcao)
+  // sem quebrar quando a migração ainda não rodou.
   let query = supabase.from("fichas_tecnicas")
     .select(`
       *,
       fichas_ingredientes!ficha_id(
-        id, quantidade, subficha_id,
+        *,
         insumos(id, nome, unidade_medida, custo_unitario, peso_medio_g)
       )
     `)
@@ -157,9 +158,14 @@ export async function salvarFicha(ficha, ingredientes) {
       ficha_id: fichaId,
       insumo_id: i.insumo_id || null,
       subficha_id: i.subficha_id || null,
-      quantidade: i.quantidade
+      quantidade: i.quantidade,
+      fator_correcao: Number(i.fator_correcao) || 0,
     }));
-    await supabase.from("fichas_ingredientes").insert(itens);
+    let { error: errItens } = await supabase.from("fichas_ingredientes").insert(itens);
+    // Coluna fator_correcao ainda não migrada? Regrava sem ela (não perde a ficha)
+    if (errItens && /fator_correcao/i.test(errItens.message || "")) {
+      await supabase.from("fichas_ingredientes").insert(itens.map(({ fator_correcao, ...resto }) => resto));
+    }
   }
 
   return { success: true, id: fichaId };

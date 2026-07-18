@@ -170,6 +170,7 @@ function FichasRunner() {
   
   const { unidadeAtiva, unidadeInfo } = useERP();
   const [fichas, setFichas] = useState([]);
+  const [produtos, setProdutos] = useState([]); // preços de venda (vêm do cardápio interno)
   const [insumosAtivos, setInsumosAtivos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
@@ -192,7 +193,9 @@ function FichasRunner() {
     eh_base: false,
     rendimento_unidade: "porcao",
     peso_porcao_g: "",
-    imagem: "" // Base64 da foto
+    imagem: "", // Base64 da foto
+    preco_venda: "",
+    cmv_meta: 30
   });
   
   const fileInputRef = useRef(null);
@@ -436,12 +439,14 @@ function FichasRunner() {
 
   const carregar = async () => {
     setLoading(true);
-    const [resFichas, resInsumos] = await Promise.all([
+    const [resFichas, resInsumos, resProd] = await Promise.all([
        fetchFichas(unidadeAtiva, deptUrl),
-       fetchInsumos(unidadeAtiva, deptUrl)
+       fetchInsumos(unidadeAtiva, deptUrl),
+       fetchProdutos(unidadeAtiva)
     ]);
     setFichas(resFichas.data || []);
     setInsumosAtivos(resInsumos.data || []);
+    setProdutos(resProd.data || []);
     setLoading(false);
   };
 
@@ -497,7 +502,7 @@ function FichasRunner() {
   };
 
   const abrirNova = () => {
-    setForm({ id: null, departamento: deptUrl, nome_receita: "", categoria: "", rendimento_porcoes: "1", modo_preparo: "", eh_base: false, rendimento_unidade: "porcao", peso_porcao_g: "", imagem: "", tempo_preparo: "", validade_dias: "", observacoes: "" });
+    setForm({ id: null, departamento: deptUrl, nome_receita: "", categoria: "", rendimento_porcoes: "1", modo_preparo: "", eh_base: false, rendimento_unidade: "porcao", peso_porcao_g: "", imagem: "", tempo_preparo: "", validade_dias: "", observacoes: "", preco_venda: "", cmv_meta: 30 });
     setIngFicha([]);
     setAutoSoma(true);
     setCalcQtd("");
@@ -521,7 +526,12 @@ function FichasRunner() {
        imagem: ficha.imagem || "",
        tempo_preparo: ficha.tempo_preparo != null ? String(ficha.tempo_preparo) : "",
        validade_dias: ficha.validade_dias != null ? String(ficha.validade_dias) : "",
-       observacoes: ficha.observacoes || ""
+       observacoes: ficha.observacoes || "",
+       cmv_meta: ficha.cmv_meta != null ? Number(ficha.cmv_meta) : 30,
+       preco_venda: (() => {
+          const prod = produtos.find(x => x.ficha_id === ficha.id || String(x.nome_produto || "").toLowerCase() === String(ficha.nome_receita || "").toLowerCase());
+          return prod && Number(prod.preco_venda) > 0 ? String(prod.preco_venda) : "";
+       })()
     });
     setCalcQtd("");
     // Reconstrói os ingredientes: cada um é um INSUMO ou uma BASE (sub-ficha).
@@ -685,6 +695,7 @@ function FichasRunner() {
           modo_preparo: form.modo_preparo,
           eh_base: !!form.eh_base,
           tipo_base: form.eh_base ? (form.tipo_base || "pre") : null,
+          cmv_meta: form.cmv_meta != null && form.cmv_meta !== "" ? Number(form.cmv_meta) : 30,
           rendimento_unidade: form.rendimento_unidade || "porcao",
           peso_porcao_g: form.peso_porcao_g ? Number(form.peso_porcao_g) : null,
           imagem: form.imagem || null,
@@ -704,15 +715,31 @@ function FichasRunner() {
     setModalNovo(false);
     carregar();
 
-    // PRATO/DRINK novo: cai automaticamente no Cardápio (aguardando preço) e
-    // no Guia de Montagem. Pré-preparo não dispara nada (é só uma base).
+    // O PREÇO DE VENDA agora é definido AQUI na ficha (seção CMV e Precificação)
+    // e sincroniza com o produto do cardápio interno em toda gravação.
     const fichaIdSalva = erro.id;
+    const precoVendaNum = Number(String(form.preco_venda ?? "").replace(",", ".")) || 0;
+    if (!form.eh_base && fichaIdSalva) {
+      try {
+        const nome = form.nome_receita.trim();
+        const { data: prodsAtu } = await fetchProdutos(unidadeAtiva, form.departamento);
+        const prodExistente = (prodsAtu || []).find(p =>
+          p.ficha_id === fichaIdSalva || (p.nome_produto || "").toLowerCase() === nome.toLowerCase()
+        );
+        if (prodExistente && Math.abs((Number(prodExistente.preco_venda) || 0) - precoVendaNum) > 0.004) {
+          await salvarProduto({ id: prodExistente.id, preco_venda: precoVendaNum });
+        }
+      } catch { /* sincronização de preço não bloqueia o salvar */ }
+    }
+
+    // PRATO/DRINK novo: cai automaticamente no Cardápio e no Guia de Montagem.
+    // Pré-preparo não dispara nada (é só uma base).
     if (!form.id && !form.eh_base && fichaIdSalva) {
       try {
         const nome = form.nome_receita.trim();
         const ehBarDept = form.departamento === "bar";
 
-        // 1) Cardápio: cria o produto com preço 0 (você precifica lá)
+        // 1) Cardápio: cria o produto já com o preço definido na ficha
         const { data: prods } = await fetchProdutos(unidadeAtiva, form.departamento);
         const jaTemProduto = (prods || []).some(p =>
           p.ficha_id === fichaIdSalva || (p.nome_produto || "").toLowerCase() === nome.toLowerCase()
@@ -724,7 +751,7 @@ function FichasRunner() {
             categoria: ehBarDept ? "Drinks" : "Pratos Principais",
             departamento: form.departamento,
             tempo_preparo_base: 15,
-            preco_venda: 0,
+            preco_venda: precoVendaNum,
             ficha_id: fichaIdSalva,
             composicao: [{ ficha_id: fichaIdSalva, qtd: 1 }],
           });
@@ -747,7 +774,7 @@ function FichasRunner() {
           }, unidadeAtiva);
         }
 
-        alert(`"${nome}" salvo!\n\nJá foi enviado para:\n· Cardápio — defina o preço de venda lá\n· Guia de Montagem — crie o passo a passo lá`);
+        alert(`"${nome}" salvo!\n\n· Preço de venda: ${precoVendaNum > 0 ? "definido na ficha" : "pendente — edite a ficha e preencha em CMV e Precificação"}\n· Guia de Montagem — crie o passo a passo lá`);
       } catch { /* integrações não bloqueiam o salvar da ficha */ }
     }
   };
@@ -1215,8 +1242,41 @@ function FichasRunner() {
                            </div>
                         </div>
                         <div className="p-3">
-                           <h3 className="text-sm font-black text-slate-800 leading-tight mb-0.5 line-clamp-2">{f.nome_receita}</h3>
-                           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{pesoTxt}</p>
+                           {(() => {
+                              // Métricas estilo "app de gestão": custo, preço, CMV e margem
+                              const custoTotal = custoTotalDaFicha(f, fichas);
+                              const rend = Number(f.rendimento_porcoes) || 1;
+                              const porcoes = (unR === "porcao" || unR === "un") ? rend : (peso?.porcoes || 0);
+                              const custoPorcao = porcoes > 0 ? custoTotal / porcoes : custoTotal;
+                              const custoKg = peso?.pesoTotalG > 0 ? custoTotal / (peso.pesoTotalG / 1000) : null;
+                              const prod = produtos.find(x => x.ficha_id === f.id || String(x.nome_produto || "").toLowerCase() === String(f.nome_receita || "").toLowerCase());
+                              const precoPorcao = Number(prod?.preco_venda) || 0;
+                              const meta = Number(f.cmv_meta) || 30;
+                              const cmv = precoPorcao > 0 ? (custoPorcao / precoPorcao) * 100 : null;
+                              const margem = cmv !== null ? 100 - cmv : null;
+                              return (
+                                 <>
+                                    {cmv !== null && cmv > meta && (
+                                       <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-red-700 bg-red-50 border border-red-200 rounded-full px-2 py-0.5 mb-1">Acima do CMV meta</span>
+                                    )}
+                                    <h3 className="text-sm font-black text-slate-800 leading-tight mb-0.5 line-clamp-2">{f.nome_receita}</h3>
+                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">{pesoTxt}</p>
+                                    {!f.eh_base && (
+                                       <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px] border-t border-slate-100 pt-1.5">
+                                          <div><span className="block text-slate-400 font-bold">Custo total</span><span className="font-black text-slate-700">{fmtBRL(custoTotal)}</span></div>
+                                          <div><span className="block text-slate-400 font-bold">Custo/porção</span><span className="font-black text-slate-700">{fmtBRL(custoPorcao)}</span></div>
+                                          {custoKg !== null && <div><span className="block text-slate-400 font-bold">Custo/kg</span><span className="font-black text-slate-700">{fmtBRL(custoKg)}</span></div>}
+                                          <div><span className="block text-slate-400 font-bold">Venda/porção</span><span className="font-black text-slate-700">{precoPorcao > 0 ? fmtBRL(precoPorcao) : "—"}</span></div>
+                                          <div><span className="block text-slate-400 font-bold">CMV teórico</span><span className={`font-black ${cmv === null ? "text-slate-400" : cmv > meta ? "text-red-600" : "text-emerald-600"}`}>{cmv !== null ? `${cmv.toFixed(1)}%` : "—"}</span></div>
+                                          <div><span className="block text-slate-400 font-bold">Margem</span><span className={`font-black ${margem === null ? "text-slate-400" : "text-emerald-600"}`}>{margem !== null ? `${margem.toFixed(1)}%` : "—"}</span></div>
+                                       </div>
+                                    )}
+                                    {!f.eh_base && precoPorcao === 0 && (
+                                       <p className="text-[9px] font-bold text-amber-600 mt-1">Sem preço — defina em Editar → CMV e Precificação</p>
+                                    )}
+                                 </>
+                              );
+                           })()}
                         </div>
                      </div>
                   );
@@ -1601,6 +1661,58 @@ function FichasRunner() {
                                     </span>
                                  )}
                               </div>
+                           </div>
+                        );
+                     })()}
+
+                     {/* CMV E PRECIFICAÇÃO — o preço de venda vive AQUI (Produtos e Preços saiu do menu) */}
+                     {!form.eh_base && (() => {
+                        const custoTotalForm = calcularCustoTotal(ingFicha);
+                        const rendForm = Number(String(form.rendimento_porcoes).replace(",", ".")) || 0;
+                        const unRF = String(form.rendimento_unidade || "porcao").toLowerCase();
+                        const pesoPorcaoF = Number(form.peso_porcao_g) || 0;
+                        const pesoTotalF = pesoTotalDaFicha(rendForm, unRF, pesoPorcaoF);
+                        const nPorc = (unRF === "porcao" || unRF === "un") ? rendForm : (pesoPorcaoF > 0 && pesoTotalF > 0 ? pesoTotalF / pesoPorcaoF : 0);
+                        const custoPorc = nPorc > 0 ? custoTotalForm / nPorc : custoTotalForm;
+                        const meta = Number(form.cmv_meta) || 30;
+                        const sugerido = meta > 0 ? custoPorc / (meta / 100) : 0;
+                        const precoNum = Number(String(form.preco_venda ?? "").replace(",", ".")) || 0;
+                        const cmvTeo = precoNum > 0 ? (custoPorc / precoNum) * 100 : null;
+                        const margem = cmvTeo !== null ? 100 - cmvTeo : null;
+                        return (
+                           <div className="bg-white border-2 border-emerald-200 rounded-2xl p-4 shadow-sm">
+                              <p className="text-xs font-black uppercase tracking-widest text-emerald-700 mb-3">CMV e Precificação</p>
+                              <div className="grid grid-cols-2 gap-3">
+                                 <div>
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">CMV meta (%)</label>
+                                    <input type="number" min="1" max="90" value={form.cmv_meta} onChange={e => setForm({ ...form, cmv_meta: e.target.value })} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500" />
+                                 </div>
+                                 <div>
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Preço de venda/porção (R$)</label>
+                                    <input type="text" inputMode="decimal" placeholder={sugerido > 0 ? sugerido.toFixed(2) : "0,00"} value={form.preco_venda} onChange={e => setForm({ ...form, preco_venda: e.target.value.replace(/[^0-9.,]/g, "") })} className="w-full p-3 mt-1 bg-emerald-50 border-2 border-emerald-300 rounded-xl font-black text-emerald-700 outline-none focus:border-emerald-500" />
+                                 </div>
+                              </div>
+                              {sugerido > 0 && (
+                                 <button type="button" onClick={() => setForm({ ...form, preco_venda: sugerido.toFixed(2) })} className="mt-2 w-full text-left bg-slate-50 border border-slate-200 rounded-xl p-2.5 hover:border-emerald-400 transition-colors">
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Preço sugerido/porção (CMV {meta}%)</span>
+                                    <span className="text-lg font-black text-slate-800">{fmtBRL(sugerido)}</span>
+                                    <span className="text-[10px] font-bold text-slate-400 ml-2">toque para usar</span>
+                                 </button>
+                              )}
+                              {cmvTeo !== null ? (
+                                 <div className="grid grid-cols-2 gap-3 mt-2">
+                                    <div className={`rounded-xl p-2.5 text-center border ${cmvTeo > meta ? "bg-red-50 border-red-200" : "bg-emerald-50 border-emerald-200"}`}>
+                                       <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">CMV teórico</p>
+                                       <p className={`text-xl font-black ${cmvTeo > meta ? "text-red-600" : "text-emerald-700"}`}>{cmvTeo.toFixed(1)}%</p>
+                                    </div>
+                                    <div className="rounded-xl p-2.5 text-center border bg-emerald-50 border-emerald-200">
+                                       <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Margem</p>
+                                       <p className="text-xl font-black text-emerald-700">{margem.toFixed(1)}%</p>
+                                    </div>
+                                 </div>
+                              ) : (
+                                 <p className="text-[11px] font-medium text-slate-400 mt-2">Defina o preço de venda para ver o CMV teórico e a margem. Custo/porção atual: <b className="text-slate-600">{fmtBRL(custoPorc)}</b></p>
+                              )}
                            </div>
                         );
                      })()}

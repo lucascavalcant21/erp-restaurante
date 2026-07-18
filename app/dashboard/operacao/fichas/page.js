@@ -1964,7 +1964,7 @@ function FichasRunner() {
                                     {ing.nome}
                                     {ing.tipo === "base" && <span className="text-[8px] font-black uppercase tracking-widest bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">Base</span>}
                                  </p>
-                                 <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">Custo: {fmtBRL(ing.custo_unitario * ing.quantidade * (1 + (Number(ing.fator) || 0) / 100))}</p>
+                                 <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">Custo: {fmtBRL(ing.custo_unitario * ing.quantidade * (1 + (Number(ing.fator) || 0) / 100))} <span className="text-slate-400 normal-case">· {fmtBRL(ing.custo_unitario)}/{String(ing.unidade).toUpperCase()}</span></p>
                                  {/* Fator de correção (%): qtd bruta = líquida × (1 + fc) — o custo usa a bruta */}
                                  <div className="flex items-center gap-1.5 mt-1">
                                     <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">FC %</span>

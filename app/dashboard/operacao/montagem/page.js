@@ -46,6 +46,7 @@ const CFG_MODELO_PADRAO = {
   mostrarObservacoes: true,
   mostrarRodape: true,
   numerarPassos: true,
+  borda: "nenhuma", // "nenhuma" | "simples" | "dupla"
 };
 
 const PRESETS_MODELO = {
@@ -95,6 +96,7 @@ function normalizarCfgModelo(valor = {}) {
     cantosFoto: ["reto", "suave", "redondo"].includes(cfg.cantosFoto) ? cfg.cantosFoto : "suave",
     alinhamentoTitulo: cfg.alinhamentoTitulo === "left" ? "left" : "center",
     alinhamentoTexto: ["left", "center", "justify"].includes(cfg.alinhamentoTexto) ? cfg.alinhamentoTexto : "left",
+    borda: ["nenhuma", "simples", "dupla"].includes(cfg.borda) ? cfg.borda : "nenhuma",
   };
 }
 
@@ -268,6 +270,14 @@ function ControlesDesigner({ cfg, onChange, onPreset, onReset, onSave, salvando 
             <div className="flex flex-wrap gap-2">
               {CORES_MODELO.map((cor) => (
                 <button key={cor} type="button" aria-label={`Usar cor ${cor}`} onClick={() => onChange({ corDestaque: cor })} className="h-10 w-10 rounded-full border-4 transition-transform hover:scale-105" style={{ background: cor, borderColor: cfg.corDestaque === cor ? "var(--fg)" : "transparent", boxShadow: "0 0 0 1px var(--line)" }} />
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="mb-2 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--muted)" }}>Borda da ficha</p>
+            <div className="grid grid-cols-3 gap-2">
+              {[["nenhuma", "Sem borda"], ["simples", "Simples"], ["dupla", "Dupla"]].map(([valor, label]) => (
+                <BotaoOpcao key={valor} ativo={cfg.borda === valor} onClick={() => onChange({ borda: valor })}>{label}</BotaoOpcao>
               ))}
             </div>
           </div>
@@ -505,17 +515,20 @@ function EditorCamadas({ camadas, setCamadas }) {
 // =========================================================================
 // PRÉVIA DA FICHA IMPRESSA (Modelo com foto) — espelha imprimirModelo
 // =========================================================================
-function PreviaModeloChef({ m, cfg: cfgProp }) {
+function PreviaModeloChef({ m, lista, cfg: cfgProp }) {
   const cfg = normalizarCfgModelo(cfgProp);
-  if (!m || !m.nome) {
+  // Com lista (impressão de várias), a prévia mostra a PRIMEIRA PÁGINA real —
+  // inclusive as 2 fichas juntas quando for 2 por página.
+  const fichasPrevia = (Array.isArray(lista) && lista.length ? lista : (m ? [m] : [])).slice(0, cfg.porPagina);
+  if (!fichasPrevia.length || !fichasPrevia[0]?.nome) {
     return (
       <div className="rounded-2xl border-2 border-dashed p-10 text-center text-sm font-medium" style={{ borderColor: "var(--line)", color: "var(--dim)" }}>
         Preencha o nome do prato — a prévia aparece aqui.
       </div>
     );
   }
-  const deptLabel = m.departamento === "bar" ? "Bar" : "Cozinha";
-  const html = gerarHtmlModelo([m], cfg, deptLabel, { previsualizacao: true });
+  const deptLabel = fichasPrevia[0].departamento === "bar" ? "Bar" : "Cozinha";
+  const html = gerarHtmlModelo(fichasPrevia, cfg, deptLabel, { previsualizacao: true });
   const larguraPapel = cfg.orientacao === "paisagem" ? 297 : 210;
   const alturaPapel = cfg.orientacao === "paisagem" ? 210 : 297;
   return (
@@ -533,8 +546,8 @@ function PreviaModeloChef({ m, cfg: cfgProp }) {
         }}
       >
         <iframe
-          key={`${cfg.orientacao}-${cfg.porPagina}-${cfg.fotoPct}-${cfg.tituloPx}-${cfg.textoPx}-${cfg.estilo}`}
-          title={`Prévia de impressão de ${m.nome}`}
+          key={`${cfg.orientacao}-${cfg.porPagina}-${cfg.fotoPct}-${cfg.tituloPx}-${cfg.textoPx}-${cfg.estilo}-${cfg.borda}-${fichasPrevia.length}`}
+          title={`Prévia de impressão de ${fichasPrevia[0].nome}`}
           srcDoc={html}
           sandbox="allow-scripts"
           className="block h-full w-full border-0"
@@ -564,8 +577,14 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
 
   const set = (k, v) => { setF((p) => ({ ...p, [k]: v })); setErro(""); };
 
-  // Alimenta a prévia ao lado (a ficha como vai sair impressa)
-  useEffect(() => { if (onPreview) onPreview(f); }, [f]);
+  // Alimenta a prévia ao lado (a ficha como vai sair impressa).
+  // COM PAUSA: atualizar a cada tecla recarregava o iframe da prévia sem parar
+  // e ele ficava em branco enquanto se digita. Espera 500ms de pausa.
+  useEffect(() => {
+    if (!onPreview) return;
+    const t = setTimeout(() => onPreview(f), 500);
+    return () => clearTimeout(t);
+  }, [f]);
 
   async function escolherFoto(e) {
     const file = e.target.files?.[0];
@@ -876,11 +895,14 @@ function gerarHtmlModelo(fichas, cfgEntrada, deptLabel, { previsualizacao = fals
     const nome = escaparHtml(m.nome || "Ficha de montagem");
     const etapas = String(m.descritivo || "").split("\n").map((s) => s.trim().replace(/^\d+[\.\)]\s*/, "")).filter(Boolean);
     const camadas = Array.isArray(m.estrutura_ia) ? m.estrutura_ia : [];
+    // Em cima só o tipo/setor; tempo e rendimento vão ABAIXO dos ingredientes
     const detalhes = [
       m.tipo ? escaparHtml(String(m.tipo).toUpperCase()) : "",
       escaparHtml(deptLabel || m.departamento || "Operação"),
-      m.tempo_preparo ? `${escaparHtml(m.tempo_preparo)} min` : "",
-      m.rendimento ? escaparHtml(m.rendimento) : "",
+    ].filter(Boolean);
+    const infoFinal = [
+      m.tempo_preparo ? `Tempo de preparo: ${escaparHtml(m.tempo_preparo)} min` : "",
+      m.rendimento ? `Rendimento: ${escaparHtml(m.rendimento)}` : "",
     ].filter(Boolean);
 
     const passos = etapas.length
@@ -906,7 +928,11 @@ function gerarHtmlModelo(fichas, cfgEntrada, deptLabel, { previsualizacao = fals
       ? `<footer><span>Uso interno · ${escaparHtml(deptLabel || m.departamento || "Operação")}</span><span>${new Date().toLocaleDateString("pt-BR")}</span></footer>`
       : "";
 
-    return `<article class="fichaM estilo-${cfg.estilo}">
+    const blocoInfoFinal = cfg.mostrarDetalhes && infoFinal.length
+      ? `<div class="infoFinal">${infoFinal.map((item) => `<span>${item}</span>`).join("")}</div>`
+      : "";
+
+    return `<article class="fichaM estilo-${cfg.estilo} borda-${cfg.borda}">
       <header class="cabecalho">
         <div class="kicker">Ficha de montagem · ${escaparHtml(deptLabel || m.departamento || "Operação")}</div>
         <h1>${nome}</h1>
@@ -915,6 +941,7 @@ function gerarHtmlModelo(fichas, cfgEntrada, deptLabel, { previsualizacao = fals
       ${blocoFoto}
       ${blocoCamadas}
       <section class="secao modo"><h2>Modo de montagem</h2>${passos}</section>
+      ${blocoInfoFinal}
       ${blocoObservacao}
       ${blocoRodape}
     </article>`;
@@ -941,6 +968,10 @@ function gerarHtmlModelo(fichas, cfgEntrada, deptLabel, { previsualizacao = fals
       .fichaM + .fichaM{border-${paisagem ? "left" : "top"}:2px dashed #cbd5e1}
       .fichaM.estilo-operacional{border:2px solid ${cfg.corDestaque};border-top-width:8px}
       .fichaM.estilo-compacto{border-top-width:3px}
+      .fichaM.borda-simples{border:1.5px solid ${cfg.corDestaque};border-top-width:5px;border-radius:8px}
+      .fichaM.borda-dupla{border:5px double ${cfg.corDestaque};border-radius:8px}
+      .infoFinal{display:flex;flex-wrap:wrap;gap:2mm;margin-top:3.5mm}
+      .infoFinal span{padding:1.6mm 3mm;border-radius:6px;background:${cfg.corDestaque}10;border:1px solid ${cfg.corDestaque}30;color:#172033;font-size:${Math.max(10, cfg.textoPx - 2)}px;font-weight:800}
       .cabecalho{padding-bottom:3mm;border-bottom:1px solid ${cfg.corDestaque}38}
       .kicker{margin-bottom:1.5mm;color:${cfg.corDestaque};font-size:9px;font-weight:900;letter-spacing:1.6px;text-transform:uppercase}
       h1{font-size:${cfg.tituloPx}px;font-weight:${cfg.tituloNegrito ? 900 : 500};line-height:1.08;text-align:${cfg.alinhamentoTitulo};text-transform:${cfg.tituloMaiusculo ? "uppercase" : "none"};letter-spacing:${cfg.tituloMaiusculo ? "1px" : "0"};overflow-wrap:anywhere}
@@ -1421,6 +1452,25 @@ function MontagemPageInner() {
                 <p className="text-[11px] font-black uppercase tracking-widest" style={{ color: "var(--fg-soft)" }}>Modelo personalizado</p>
                 <p className="mt-1 text-[11px] font-medium" style={{ color: "var(--dim)" }}>Ajuste aqui e confira a primeira ficha antes de imprimir. Foto, letras e detalhes serão mantidos no papel.</p>
               </div>
+              {/* Como montar a folha: 2 juntas ou cada uma na sua, em pé ou deitada.
+                  O sistema encolhe/amplia as fichas para completar a página e a
+                  prévia ao lado mostra o resultado na hora. */}
+              <div className="rounded-2xl border p-3 sm:p-4 mb-4" style={{ borderColor: "var(--accent-strong)", background: "var(--accent-soft)" }}>
+                <p className="text-[11px] font-black uppercase tracking-widest mb-2" style={{ color: "var(--accent-strong)" }}>
+                  {alvoImpressao.length >= 2 ? `Como imprimir as ${alvoImpressao.length} montagens?` : "Como imprimir esta ficha?"}
+                </p>
+                {alvoImpressao.length >= 2 && (
+                  <div className="grid grid-cols-2 gap-2 mb-2">
+                    <BotaoOpcao ativo={cfgModelo.porPagina === 2} onClick={() => mudarCfg({ porPagina: 2 })}>2 na mesma página<span className="block text-[9px] font-bold normal-case opacity-75">encolhe para caber as duas</span></BotaoOpcao>
+                    <BotaoOpcao ativo={cfgModelo.porPagina === 1} onClick={() => mudarCfg({ porPagina: 1 })}>Cada uma em 1 página<span className="block text-[9px] font-bold normal-case opacity-75">amplia para completar a folha</span></BotaoOpcao>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-2">
+                  <BotaoOpcao ativo={cfgModelo.orientacao === "retrato"} onClick={() => mudarCfg({ orientacao: "retrato" })}>Vertical (A4 em pé){cfgModelo.porPagina === 2 && <span className="block text-[9px] font-bold normal-case opacity-75">uma sobre a outra</span>}</BotaoOpcao>
+                  <BotaoOpcao ativo={cfgModelo.orientacao === "paisagem"} onClick={() => mudarCfg({ orientacao: "paisagem" })}>Horizontal (A4 deitado){cfgModelo.porPagina === 2 && <span className="block text-[9px] font-bold normal-case opacity-75">lado a lado</span>}</BotaoOpcao>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,.95fr)] gap-5">
                 <ControlesDesigner
                   cfg={cfgModelo}
@@ -1432,8 +1482,8 @@ function MontagemPageInner() {
                   compacto
                 />
                 <div className="min-w-0 lg:sticky lg:top-0 lg:self-start">
-                  <PreviaModeloChef m={alvoImpressao[0]} cfg={cfgModelo} />
-                  {alvoImpressao.length > 1 && <p className="mt-2 text-center text-[10px] font-bold" style={{ color: "var(--dim)" }}>A mesma configuração será aplicada às {alvoImpressao.length} fichas.</p>}
+                  <PreviaModeloChef lista={alvoImpressao} cfg={cfgModelo} />
+                  {alvoImpressao.length > 1 && <p className="mt-2 text-center text-[10px] font-bold" style={{ color: "var(--dim)" }}>A prévia mostra a 1ª página — a mesma configuração vale para as {alvoImpressao.length} fichas.</p>}
                 </div>
               </div>
               <button type="button" onClick={() => imprimirModelo(alvoImpressao, cfgModelo, dept === "bar" ? "Bar" : "Cozinha")} className="mt-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-black text-white hover:bg-emerald-700">

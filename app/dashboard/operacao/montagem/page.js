@@ -1008,24 +1008,41 @@ function gerarHtmlModelo(fichas, cfgEntrada, deptLabel, { previsualizacao = fals
           if(!papel||!pagina)return;
           function ajustar(){papel.style.transform='none';papel.style.transform='scale('+(document.documentElement.clientWidth/papel.offsetWidth)+')';}
           requestAnimationFrame(function(){
-            var ficha=pagina.querySelector('.fichaM');
-            if(ficha&&(ficha.scrollHeight>ficha.clientHeight+2||ficha.scrollWidth>ficha.clientWidth+2)){
+            var fichas=[].slice.call(pagina.querySelectorAll('.fichaM'));
+            var estourou=fichas.some(function(fc){return fc.scrollHeight>fc.clientHeight+2||fc.scrollWidth>fc.clientWidth+2;});
+            if(estourou){
               if(${duas ? "true" : "false"}){
-                pagina.classList.add('pagina-solo');
+                // "2 na mesma página": ENCOLHE as fichas proporcionalmente até
+                // as duas caberem juntas — nunca troca sozinho para 1 por página.
+                fichas.forEach(function(fc){
+                  var r=Math.min(fc.clientHeight/fc.scrollHeight,fc.clientWidth/fc.scrollWidth,1)*0.98;
+                  if(r<1) fc.style.zoom=Math.max(0.45,r);
+                });
                 var ajuste=document.createElement('div');
                 ajuste.className='avisoAjuste';
-                ajuste.textContent='Ajustado para 1 por página para não cortar';
+                ajuste.textContent='Fichas reduzidas para caberem as 2 juntas';
                 papel.appendChild(ajuste);
+                requestAnimationFrame(function(){
+                  fichas.forEach(function(fc){
+                    if(fc.scrollHeight>fc.clientHeight+2){
+                      var r2=(fc.clientHeight/fc.scrollHeight)*0.98;
+                      fc.style.zoom=Math.max(0.4,(parseFloat(fc.style.zoom)||1)*r2);
+                    }
+                  });
+                  ajustar();
+                });
+              } else {
+                var fc0=fichas[0];
+                requestAnimationFrame(function(){
+                  if(fc0&&(fc0.scrollHeight>fc0.clientHeight+2||fc0.scrollWidth>fc0.clientWidth+2)){
+                    var aviso=document.createElement('div');
+                    aviso.className='avisoOverflow';
+                    aviso.textContent='Esta ficha usará mais de uma folha para não cortar';
+                    fc0.appendChild(aviso);
+                  }
+                  ajustar();
+                });
               }
-              requestAnimationFrame(function(){
-                if(ficha.scrollHeight>ficha.clientHeight+2||ficha.scrollWidth>ficha.clientWidth+2){
-                var aviso=document.createElement('div');
-                aviso.className='avisoOverflow';
-                  aviso.textContent='Esta ficha usará mais de uma folha para não cortar';
-                ficha.appendChild(aviso);
-                }
-                ajustar();
-              });
             }
             ajustar();
           });
@@ -1054,8 +1071,18 @@ async function ajustarFichasQueExcedemFolha(doc, cfg) {
   const paginas = Array.from(doc.querySelectorAll(".pagina"));
   paginas.forEach((pagina) => {
     const fichas = Array.from(pagina.querySelectorAll(":scope > .fichaM"));
-    const excedeu = fichas.some((ficha) => ficha.scrollHeight > ficha.clientHeight + 2 || ficha.scrollWidth > ficha.clientWidth + 2);
-    if (!excedeu) return;
+    const excedidas = fichas.filter((ficha) => ficha.scrollHeight > ficha.clientHeight + 2 || ficha.scrollWidth > ficha.clientWidth + 2);
+    if (!excedidas.length) return;
+    // "2 na mesma página" promete ENCOLHER para caber as duas — só cai para
+    // folha inteira se a redução necessária deixar ilegível (abaixo de 45%).
+    const menorR = Math.min(...excedidas.map((ficha) => Math.min(ficha.clientHeight / ficha.scrollHeight, ficha.clientWidth / ficha.scrollWidth))) * 0.98;
+    if (menorR >= 0.45) {
+      excedidas.forEach((ficha) => {
+        const r = Math.min(ficha.clientHeight / ficha.scrollHeight, ficha.clientWidth / ficha.scrollWidth) * 0.98;
+        ficha.style.zoom = r;
+      });
+      return;
+    }
     const novasPaginas = doc.createDocumentFragment();
     fichas.forEach((ficha) => {
       const paginaSolo = doc.createElement("main");

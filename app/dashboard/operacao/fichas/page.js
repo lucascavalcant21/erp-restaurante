@@ -1267,12 +1267,13 @@ function FichasRunner() {
                <div className={`hidden sm:flex w-14 h-14 shrink-0 rounded-2xl items-center justify-center shadow-inner ${deptUrl === 'bar' ? 'bg-slate-100 text-emerald-600' : 'bg-slate-100 text-slate-800'}`}>
                  <LayoutList size={28} />
               </div>
-              <div>
-                  <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-slate-900">Fichas Técnicas</h1>
-                 <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Receituário e Custos - {deptUrl}</p>
+              <div className="min-w-0">
+                  <h1 className="text-xl sm:text-3xl font-black tracking-tighter text-slate-900 whitespace-nowrap">Fichas Técnicas</h1>
+                 <p className="text-slate-700 font-bold uppercase tracking-widest text-[10px] sm:text-xs mt-1 whitespace-nowrap">Receituário e Custos - {deptUrl}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3 w-full lg:w-auto overflow-x-auto">
+            {/* Botões em GRADE que quebra linha — nada de rolagem lateral cortando texto */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:flex xl:items-center gap-2 w-full lg:w-auto">
                <button onClick={() => {
                      if (!fichas.length) return alert("Nenhuma ficha para o livro.");
                      imprimirFichas(fichas); // livro completo: capa, índice, páginas e seções

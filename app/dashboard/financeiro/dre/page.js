@@ -7,6 +7,7 @@ import {
 } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
 import { fetchLancamentos } from "../../../lib/financeiro";
+import FechamentoMes from "./FechamentoMes";
 
 export default function DreGerencialPage() {
   const { unidadeAtiva, unidadeInfo } = useERP();
@@ -72,6 +73,7 @@ export default function DreGerencialPage() {
          </div>
       </div>
 
+      <FechamentoMes unidadeAtiva={unidadeAtiva} unidadeInfo={unidadeInfo} />
       <PageBody className="max-w-5xl mx-auto -mt-8 relative z-20">
         {loading ? (
           <EmptyState icon={Calculator} title="Processando balanço..." />

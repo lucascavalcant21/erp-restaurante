@@ -1153,6 +1153,9 @@ function FichasRunner() {
                               <input type="checkbox" checked={selecionadas.includes(f.id)} onChange={() => toggleSelecionar(f.id)} className="w-4 h-4 accent-emerald-600 cursor-pointer rounded block"/>
                            </label>
                             <div className="absolute top-2 right-2 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                              {!f.eh_base && (
+                                 <button onClick={() => router.push(`/dashboard/operacao/montagem?dept=${f.departamento || deptUrl}&q=${encodeURIComponent(f.nome_receita)}`)} title="Abrir a Guia de Montagem deste prato" className="p-1.5 bg-white/90 backdrop-blur rounded-md text-slate-600 hover:text-emerald-600 shadow-sm"><LayoutList size={13}/></button>
+                              )}
                               <button onClick={() => abrirSimulacao(f)} title="Simular outro rendimento" className="p-1.5 bg-white/90 backdrop-blur rounded-md text-slate-600 hover:text-emerald-600 shadow-sm"><Calculator size={13}/></button>
                               <button onClick={() => imprimirFicha(f)} title="Imprimir ficha técnica" className="p-1.5 bg-white/90 backdrop-blur rounded-md text-slate-600 hover:text-emerald-600 shadow-sm"><Printer size={13}/></button>
                               <button onClick={() => abrirEditar(f)} title="Editar" className="p-1.5 bg-white/90 backdrop-blur rounded-md text-slate-600 hover:text-emerald-600 shadow-sm"><Edit3 size={13}/></button>

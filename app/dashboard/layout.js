@@ -22,10 +22,8 @@ const SIDEBAR_MENU = [
     category: "Salão",
     icon: Users,
     items: [
-      { label: "Modo Estação (tela cheia)", href: "/dashboard/area?dept=salao" },
       { label: "Checklist do Salão", href: "/dashboard/operacao/rotina?dept=salao" },
-      { label: "Treinamentos", href: "/dashboard/salao/treinamento" },
-      { label: "Observações de Atendimento", href: "/dashboard/operacao/observacoes" }
+      { label: "Treinamentos", href: "/dashboard/salao/treinamento" }
     ]
   },
 
@@ -33,8 +31,6 @@ const SIDEBAR_MENU = [
     category: "Cozinha",
     icon: ChefHat,
     items: [
-      { label: "Modo Estação (tela cheia)", href: "/dashboard/area?dept=cozinha" },
-      { label: "Produtos e Preços", href: "/dashboard/operacao/produtos" },
       { label: "Fichas Técnicas", href: "/dashboard/operacao/fichas?dept=cozinha" },
       { label: "Guia de Montagem", href: "/dashboard/operacao/montagem?dept=cozinha" },
       { label: "Ingredientes", href: "/dashboard/operacao/ingredientes?dept=cozinha" },
@@ -52,7 +48,6 @@ const SIDEBAR_MENU = [
     category: "Bar",
     icon: GlassWater,
     items: [
-      { label: "Modo Estação (tela cheia)", href: "/dashboard/area?dept=bar" },
       { label: "Drinks e Coquetéis", href: "/dashboard/operacao/drinks" },
       { label: "Fichas de Drinks", href: "/dashboard/operacao/fichas?dept=bar" },
       { label: "Guia de Montagem", href: "/dashboard/operacao/montagem?dept=bar" },

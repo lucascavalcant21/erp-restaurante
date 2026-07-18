@@ -1093,7 +1093,8 @@ function MontagemPageInner() {
 
   const [lista, setLista] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [busca, setBusca] = useState("");
+  // ?q=Nome abre já filtrado (link vindo da Ficha Técnica do prato)
+  const [busca, setBusca] = useState(searchParams.get("q") || "");
   const [tipo, setTipo] = useState("Todos");
   const [dept, setDept] = useState(deptInicial);
   const [modal, setModal] = useState(false);

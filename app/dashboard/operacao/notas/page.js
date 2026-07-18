@@ -8,17 +8,26 @@ import {
 } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
 import {
-  fetchNotas, salvarNota, deletarNota, simularLeituraOCR, uploadImagemNota, CATEGORIAS_NOTA
+  fetchNotas, salvarNota, atualizarNota, deletarNota, simularLeituraOCR, uploadImagemNota, CATEGORIAS_NOTA
 } from "../../../lib/notas";
 import { inserirDocumento } from "../../../lib/financeiro";
 import { inserirSuprimentoCentral, entradaEstoqueCentral } from "../../../lib/suprimentos";
+
+const CONTAS_PAGAMENTO = ["Caixa / Dinheiro", "Conta PJ", "Conta Física", "Cartão de Crédito", "Outra"];
+const FORMAS_PAGAMENTO = ["Pix", "Boleto", "Dinheiro", "Débito", "Crédito", "Transferência"];
 
 function FormScanner({ onSalvar, onCancelar }) {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [loadingIA, setLoadingIA] = useState(false);
   const [dadosIA, setDadosIA] = useState(null);
-  
+
+  // Pagamento
+  const [vencimento, setVencimento] = useState("");
+  const [jaPaga, setJaPaga] = useState(false);
+  const [conta, setConta] = useState(CONTAS_PAGAMENTO[0]);
+  const [forma, setForma] = useState(FORMAS_PAGAMENTO[0]);
+
   // Automações
   const [lancarFinanceiro, setLancarFinanceiro] = useState(true);
   const [alimentarEstoque, setAlimentarEstoque] = useState(false);
@@ -73,7 +82,10 @@ function FormScanner({ onSalvar, onCancelar }) {
   }
 
   function confirmar() {
-    onSalvar(dadosIA, preview, lancarFinanceiro, alimentarEstoque); // Passa os dados lidos, foto e as opções de automação
+    const pagamento = jaPaga
+      ? { status_pagamento: "pago", pago_em: new Date().toISOString().slice(0, 10), conta_pagamento: conta, forma_pagamento: forma, data_vencimento: vencimento || null }
+      : { status_pagamento: "pendente", data_vencimento: vencimento || null };
+    onSalvar({ ...dadosIA, ...pagamento }, preview, lancarFinanceiro, alimentarEstoque);
   }
 
   if (!preview) {
@@ -148,6 +160,24 @@ function FormScanner({ onSalvar, onCancelar }) {
               <Field label="Hora"><TextInput className="py-1.5 text-sm" type="time" value={dadosIA.hora_emissao} onChange={e => setDadosIA({...dadosIA, hora_emissao: e.target.value})} /></Field>
             </div>
             <Field label="Valor Total (R$)"><NumberInput className="py-1.5 text-sm font-bold text-emerald-600" value={dadosIA.valor_total} onChange={e => setDadosIA({...dadosIA, valor_total: e.target.value})} /></Field>
+
+            <div className="p-3 rounded-xl space-y-2" style={{ background: "var(--elevated)", border: "1px solid var(--line)" }}>
+              <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "var(--dim)" }}>Pagamento</p>
+              <Field label="Vencimento (para o aviso de pagamento)">
+                <TextInput className="py-1.5 text-sm" type="date" value={vencimento} onChange={e => setVencimento(e.target.value)} />
+              </Field>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" className="w-5 h-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                  checked={jaPaga} onChange={(e) => setJaPaga(e.target.checked)} />
+                <span className="text-sm font-bold" style={{ color: "var(--fg)" }}>Esta nota já está paga</span>
+              </label>
+              {jaPaga && (
+                <div className="grid grid-cols-2 gap-2">
+                  <Field label="Conta usada"><Select className="py-1.5 text-sm" value={conta} onChange={e => setConta(e.target.value)}>{CONTAS_PAGAMENTO.map(c => <option key={c}>{c}</option>)}</Select></Field>
+                  <Field label="Forma"><Select className="py-1.5 text-sm" value={forma} onChange={e => setForma(e.target.value)}>{FORMAS_PAGAMENTO.map(f => <option key={f}>{f}</option>)}</Select></Field>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -191,8 +221,15 @@ export default function NotasFiscaisPage() {
   // Filtros e Ordenação solicitados
   const [busca, setBusca] = useState("");
   const [cat, setCat] = useState("Todas");
+  const [situacao, setSituacao] = useState("Todas"); // Todas, A pagar, Vencidas, Pagas
   const [ordem, setOrdem] = useState("data_desc"); // data_desc, data_asc, hora, az
-  
+
+  // Modal de "Marcar como paga": guarda a nota + conta e forma escolhidas
+  const [notaPagar, setNotaPagar] = useState(null);
+  const [pagtoConta, setPagtoConta] = useState(CONTAS_PAGAMENTO[0]);
+  const [pagtoForma, setPagtoForma] = useState(FORMAS_PAGAMENTO[0]);
+  const [pagtoData, setPagtoData] = useState(new Date().toISOString().slice(0, 10));
+
   const [modalScanner, setModalScanner] = useState(false);
   const [toast, setToast] = useState("");
   const [notaExpandida, setNotaExpandida] = useState(null); // ID da nota para mostrar a foto e itens
@@ -207,14 +244,34 @@ export default function NotasFiscaisPage() {
 
   useEffect(() => { carregar(); /* eslint-disable-next-line */ }, [unidadeAtiva]);
 
+  // Situação de pagamento da nota: pago, vencida, vence hoje/em breve ou a pagar
+  const infoPagamento = (n) => {
+    if ((n.status_pagamento || "pendente") === "pago") {
+      const detalhe = [n.conta_pagamento, n.forma_pagamento].filter(Boolean).join(" · ");
+      return { chave: "Pagas", rotulo: `Paga${n.pago_em ? " em " + fmtData(n.pago_em) : ""}${detalhe ? " · " + detalhe : ""}`, cor: "#15803D", fundo: "rgba(34,197,94,0.12)", urgencia: 9 };
+    }
+    if (!n.data_vencimento) return { chave: "A pagar", rotulo: "A pagar · sem vencimento", cor: "#B45309", fundo: "rgba(245,158,11,0.12)", urgencia: 3 };
+    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    const dias = Math.round((new Date(n.data_vencimento + "T00:00:00") - hoje) / 86400000);
+    if (dias < 0) return { chave: "Vencidas", rotulo: `VENCIDA há ${-dias} dia(s)`, cor: "#DC2626", fundo: "rgba(239,68,68,0.14)", urgencia: 0 };
+    if (dias === 0) return { chave: "A pagar", rotulo: "Vence HOJE", cor: "#DC2626", fundo: "rgba(239,68,68,0.14)", urgencia: 1 };
+    if (dias <= 3) return { chave: "A pagar", rotulo: `Vence em ${dias} dia(s)`, cor: "#B45309", fundo: "rgba(245,158,11,0.12)", urgencia: 2 };
+    return { chave: "A pagar", rotulo: `Vence ${fmtData(n.data_vencimento)}`, cor: "var(--muted)", fundo: "var(--elevated)", urgencia: 4 };
+  };
+
   const filtrados = useMemo(() => {
     let list = notas.filter(n => {
       const mb = n.fornecedor?.toLowerCase().includes(busca.toLowerCase()) || n.cnpj?.includes(busca);
       const mc = cat === "Todas" || n.categoria === cat;
-      return mb && mc;
+      const ip = infoPagamento(n);
+      const ms = situacao === "Todas" || ip.chave === situacao || (situacao === "A pagar" && ip.chave === "Vencidas");
+      return mb && mc && ms;
     });
 
     list.sort((a, b) => {
+      // Vencidas e prestes a vencer sempre no topo, depois a ordem escolhida
+      const u = infoPagamento(a).urgencia - infoPagamento(b).urgencia;
+      if (u !== 0) return u;
       if (ordem === "data_desc") return new Date(b.data_emissao) - new Date(a.data_emissao);
       if (ordem === "data_asc") return new Date(a.data_emissao) - new Date(b.data_emissao);
       if (ordem === "hora") return (b.hora_emissao || "00:00").localeCompare(a.hora_emissao || "00:00");
@@ -223,12 +280,31 @@ export default function NotasFiscaisPage() {
     });
 
     return list;
-  }, [notas, busca, cat, ordem]);
+  }, [notas, busca, cat, situacao, ordem]);
 
-  const resumo = useMemo(() => ({
-    total: filtrados.length,
-    valorMes: filtrados.reduce((acc, n) => acc + (Number(n.valor_total) || 0), 0)
-  }), [filtrados]);
+  const resumo = useMemo(() => {
+    const aPagar = notas.filter(n => (n.status_pagamento || "pendente") !== "pago");
+    const vencidas = aPagar.filter(n => infoPagamento(n).chave === "Vencidas");
+    return {
+      total: filtrados.length,
+      valorMes: filtrados.reduce((acc, n) => acc + (Number(n.valor_total) || 0), 0),
+      aPagarQtd: aPagar.length,
+      aPagarValor: aPagar.reduce((acc, n) => acc + (Number(n.valor_total) || 0), 0),
+      vencidasQtd: vencidas.length,
+      vencidasValor: vencidas.reduce((acc, n) => acc + (Number(n.valor_total) || 0), 0),
+    };
+  }, [notas, filtrados]);
+
+  async function marcarComoPaga() {
+    const { error } = await atualizarNota(notaPagar.id, {
+      status_pagamento: "pago", pago_em: pagtoData, conta_pagamento: pagtoConta, forma_pagamento: pagtoForma,
+    });
+    if (error) return alert("Não foi possível marcar como paga: " + error);
+    setToast(`Nota de ${notaPagar.fornecedor} marcada como paga (${pagtoConta} · ${pagtoForma}).`);
+    setNotaPagar(null);
+    setTimeout(() => setToast(""), 3000);
+    carregar();
+  }
 
   async function salvar(dadosIA, imagemBase64, lancarFinanceiro, alimentarEstoque) {
     // 1. Upload da imagem para o Supabase Storage
@@ -266,8 +342,8 @@ export default function NotasFiscaisPage() {
         categoria: dadosIA.categoria || "Geral",
         valor: Number(dadosIA.valor_total) || 0,
         emissao: dadosIA.data_emissao || new Date().toISOString().slice(0, 10),
-        vencimento: dadosIA.data_emissao || new Date().toISOString().slice(0, 10), // Vence no dia da emissão (pode alterar no módulo financeiro)
-        status: "pendente"
+        vencimento: dadosIA.data_vencimento || dadosIA.data_emissao || new Date().toISOString().slice(0, 10),
+        status: dadosIA.status_pagamento === "pago" ? "pago" : "pendente"
       }, unidadeAtiva);
     }
 
@@ -320,10 +396,13 @@ export default function NotasFiscaisPage() {
         <KpiGrid>
           <Kpi icon={ReceiptText} label="Notas Filtradas" value={resumo.total} tint="#3B82F6" />
           <Kpi icon={CheckCircle} label="Valor Total (Filtro)" value={fmtBRL(resumo.valorMes)} tint="#10B981" />
+          <Kpi icon={Clock} label={`A Pagar (${resumo.aPagarQtd})`} value={fmtBRL(resumo.aPagarValor)} tint="#F59E0B" />
+          <Kpi icon={ReceiptText} label={`Vencidas (${resumo.vencidasQtd})`} value={fmtBRL(resumo.vencidasValor)} tint="#EF4444" />
         </KpiGrid>
 
         <div className="space-y-3">
           <SearchBar value={busca} onChange={setBusca} placeholder="Buscar por fornecedor ou CNPJ..." />
+          <Chips options={["Todas", "A pagar", "Vencidas", "Pagas"]} value={situacao} onChange={setSituacao} />
           <Chips options={["Todas", ...CATEGORIAS_NOTA]} value={cat} onChange={setCat} />
           
           <div className="flex gap-2 items-center flex-wrap" style={{ background: "var(--panel)", padding: "12px", borderRadius: "12px", border: "1px solid var(--line)" }}>
@@ -349,24 +428,36 @@ export default function NotasFiscaisPage() {
           <EmptyState icon={ScanLine} title="Nenhuma nota fiscal" hint="Clique em 'Escanear Nota' e aponte a câmera para uma nota ou DANFE." />
         ) : (
           <div className="space-y-3 mt-4">
-            {filtrados.map(n => (
+            {filtrados.map(n => {
+              const ip = infoPagamento(n);
+              const paga = (n.status_pagamento || "pendente") === "pago";
+              return (
               <div key={n.id}>
                 <Card className="!p-4 cursor-pointer hover:opacity-90 transition" onClick={() => setNotaExpandida(notaExpandida === n.id ? null : n.id)}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-md" style={{ background: "var(--elevated)", color: "var(--dim)" }}>{n.categoria}</span>
                         <span className="text-[11px] font-bold" style={{ color: "var(--dim)" }}>{fmtData(n.data_emissao)} • {n.hora_emissao}</span>
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md" style={{ background: ip.fundo, color: ip.cor }}>{ip.rotulo}</span>
                       </div>
                       <p className="font-black text-lg leading-tight" style={{ color: "var(--fg)" }}>{n.fornecedor}</p>
                       <p className="text-xs font-bold mt-1" style={{ color: "var(--muted)" }}>CNPJ: {n.cnpj || "Não lido"}</p>
                     </div>
-                    
+
                     <div className="text-right flex flex-col items-end">
                       <p className="text-xl font-black" style={{ color: "var(--accent-fg)" }}>{fmtBRL(n.valor_total)}</p>
-                      <button onClick={(e) => { e.stopPropagation(); remover(n.id); }} className="p-1.5 mt-2 rounded-md hover:bg-emerald-500/10 text-slate-600 transition">
-                        <Trash2 size={16} />
-                      </button>
+                      <div className="flex items-center gap-1 mt-2">
+                        {!paga && (
+                          <button onClick={(e) => { e.stopPropagation(); setNotaPagar(n); setPagtoData(new Date().toISOString().slice(0, 10)); }}
+                            className="px-2.5 py-1.5 rounded-md text-[11px] font-black transition" style={{ background: "rgba(34,197,94,0.14)", color: "#15803D" }}>
+                            <CheckCircle size={12} className="inline align-[-2px] mr-1" />Marcar paga
+                          </button>
+                        )}
+                        <button onClick={(e) => { e.stopPropagation(); remover(n.id); }} className="p-1.5 rounded-md hover:bg-emerald-500/10 text-slate-600 transition">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </Card>
@@ -402,10 +493,30 @@ export default function NotasFiscaisPage() {
                   </div>
                 )}
               </div>
-            ))}
+            );})}
           </div>
         )}
       </PageBody>
+
+      {/* Modal: marcar nota como paga (conta + forma + data) */}
+      <Modal open={!!notaPagar} onClose={() => setNotaPagar(null)} title="Marcar nota como paga">
+        {notaPagar && (
+          <div className="space-y-3">
+            <p className="text-sm font-bold" style={{ color: "var(--fg)" }}>
+              {notaPagar.fornecedor} · <span style={{ color: "var(--accent-strong)" }}>{fmtBRL(notaPagar.valor_total)}</span>
+            </p>
+            <Field label="Data do pagamento"><TextInput type="date" value={pagtoData} onChange={e => setPagtoData(e.target.value)} /></Field>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Field label="Paga por qual conta"><Select value={pagtoConta} onChange={e => setPagtoConta(e.target.value)}>{CONTAS_PAGAMENTO.map(c => <option key={c}>{c}</option>)}</Select></Field>
+              <Field label="Forma de pagamento"><Select value={pagtoForma} onChange={e => setPagtoForma(e.target.value)}>{FORMAS_PAGAMENTO.map(f => <option key={f}>{f}</option>)}</Select></Field>
+            </div>
+            <div className="flex gap-3 pt-1">
+              <Btn variant="ghost" className="flex-1" onClick={() => setNotaPagar(null)}>Cancelar</Btn>
+              <Btn variant="primary" className="flex-1" onClick={marcarComoPaga}><CheckCircle size={16} /> Confirmar pagamento</Btn>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       <Modal open={modalScanner} onClose={() => setModalScanner(false)} title="Escaneamento Inteligente">
         <FormScanner onSalvar={salvar} onCancelar={() => setModalScanner(false)} />

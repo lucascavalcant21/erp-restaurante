@@ -22,6 +22,13 @@
  * 
  *   alter table notas_fiscais enable row level security;
  *   create policy "auth_all" on notas_fiscais for all to authenticated using (true) with check (true);
+ *
+ *   -- Controle de pagamento (rodar no SQL Editor do Supabase):
+ *   alter table notas_fiscais add column if not exists data_vencimento date;
+ *   alter table notas_fiscais add column if not exists status_pagamento text default 'pendente';
+ *   alter table notas_fiscais add column if not exists pago_em date;
+ *   alter table notas_fiscais add column if not exists conta_pagamento text;
+ *   alter table notas_fiscais add column if not exists forma_pagamento text;
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -46,14 +53,41 @@ export async function fetchNotas(unidadeId) {
   return { data: data || [], error: null };
 }
 
+// Antes da migração as colunas de pagamento não existem: tira a coluna que o
+// banco reclamou e tenta de novo, para o salvar nunca quebrar.
+function colunaAusente(msg) {
+  const m = /column "?([a-z_]+)"?/i.exec(msg || "");
+  return /does not exist|could not find/i.test(msg || "") ? m?.[1] : null;
+}
+
 export async function salvarNota(dados, unidadeId) {
   if (!isSupabaseReady()) return { data: null, error: "Supabase offline" };
   const nota = carimbarUnidade(dados, unidadeId);
   if (!nota.unidade_id) nota.unidade_id = "todas"; // notas_fiscais exige unidade_id NOT NULL
-  
-  const { data, error } = await supabase.from("notas_fiscais").insert([nota]).select().single();
-  if (error) return { data: null, error: error.message };
-  return { data, error: null };
+
+  for (let tentativa = 0; tentativa < 6; tentativa++) {
+    const { data, error } = await supabase.from("notas_fiscais").insert([nota]).select().single();
+    if (!error) return { data, error: null };
+    const col = colunaAusente(error.message);
+    if (!col || !(col in nota)) return { data: null, error: error.message };
+    delete nota[col];
+  }
+  return { data: null, error: "Não foi possível salvar a nota." };
+}
+
+export async function atualizarNota(id, patch) {
+  if (!isSupabaseReady()) return { data: null, error: "Supabase offline" };
+  const campos = { ...patch };
+  for (let tentativa = 0; tentativa < 6; tentativa++) {
+    const { data, error } = await supabase.from("notas_fiscais").update(campos).eq("id", id).select().single();
+    if (!error) return { data, error: null };
+    const col = colunaAusente(error.message);
+    if (!col || !(col in campos)) return { data: null, error: error.message };
+    delete campos[col];
+    if (Object.keys(campos).length === 0)
+      return { data: null, error: "As colunas de pagamento ainda não existem no banco. Rode a migração indicada no topo de app/lib/notas.js no SQL Editor do Supabase." };
+  }
+  return { data: null, error: "Não foi possível atualizar a nota." };
 }
 
 export async function deletarNota(id) {

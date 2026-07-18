@@ -471,7 +471,8 @@ function FichasRunner() {
   };
   const passaFiltro = (f) => {
     if (tipoFiltro === "Todos") return true;
-    if (tipoFiltro === "Pré-preparos") return !!f.eh_base;
+    if (tipoFiltro === "Pré-preparos") return !!f.eh_base && f.tipo_base !== "receita";
+    if (tipoFiltro === "Receitas base") return !!f.eh_base && f.tipo_base === "receita";
     if (tipoFiltro === "Pratos") return !f.eh_base;
     return !f.eh_base && (f.categoria || "") === tipoFiltro; // categoria específica
   };
@@ -514,6 +515,7 @@ function FichasRunner() {
        rendimento_porcoes: ficha.rendimento_porcoes,
        modo_preparo: ficha.modo_preparo || "",
        eh_base: !!ficha.eh_base,
+       tipo_base: ficha.tipo_base || "pre",
        rendimento_unidade: ficha.rendimento_unidade || "porcao",
        peso_porcao_g: ficha.peso_porcao_g || "",
        imagem: ficha.imagem || "",
@@ -682,6 +684,7 @@ function FichasRunner() {
           rendimento_porcoes: Number(form.rendimento_porcoes),
           modo_preparo: form.modo_preparo,
           eh_base: !!form.eh_base,
+          tipo_base: form.eh_base ? (form.tipo_base || "pre") : null,
           rendimento_unidade: form.rendimento_unidade || "porcao",
           peso_porcao_g: form.peso_porcao_g ? Number(form.peso_porcao_g) : null,
           imagem: form.imagem || null,
@@ -1067,7 +1070,8 @@ function FichasRunner() {
             {[
               ["Pratos", deptUrl === "bar" ? "Drinks" : "Pratos", fichas.filter(f => !f.eh_base).length],
               ...(deptUrl === "bar" ? [] : CATEGORIAS_CARDAPIO.map(c => [c, c, fichas.filter(f => !f.eh_base && (f.categoria || "") === c).length])),
-              ["Pré-preparos", "Pré-preparos", fichas.filter(f => !!f.eh_base).length],
+              ["Pré-preparos", "Pré-preparos", fichas.filter(f => !!f.eh_base && f.tipo_base !== "receita").length],
+              ["Receitas base", "Receitas base", fichas.filter(f => !!f.eh_base && f.tipo_base === "receita").length],
               ["Todos", "Todos", fichas.length],
             ].map(([t, label, n]) => (
               <button key={t} onClick={() => setTipoFiltro(t)}
@@ -1214,17 +1218,22 @@ function FichasRunner() {
                            {form.imagem && <button type="button" onClick={() => setForm({ ...form, imagem: "" })} className="text-[11px] font-bold text-rose-500 hover:text-rose-600 mt-1.5">Remover foto</button>}
                         </div>
                      </div>
-                     {/* Tipo da ficha: PRATO/DRINK (vai pro cardápio) ou PRÉ-PREPARO (base) */}
+                     {/* Tipo da ficha: PRATO/DRINK (cardápio), PRÉ-PREPARO ou RECEITA BASE */}
                      <div className="flex gap-2">
-                        <button type="button" onClick={() => setForm({ ...form, eh_base: false })}
+                        <button type="button" onClick={() => setForm({ ...form, eh_base: false, tipo_base: null })}
                            className={`flex-1 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all border-2 ${!form.eh_base ? "bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-600/20" : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"}`}>
                            {deptUrl === "bar" ? "Drink" : "Prato"}
-                           <span className="block text-[9px] font-bold normal-case tracking-normal mt-0.5 opacity-80">vai pro cardápio · monte com insumos e pré-preparos</span>
+                           <span className="block text-[9px] font-bold normal-case tracking-normal mt-0.5 opacity-80">vai pro cardápio</span>
                         </button>
-                        <button type="button" onClick={() => setForm({ ...form, eh_base: true })}
-                           className={`flex-1 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all border-2 ${form.eh_base ? "bg-purple-600 border-purple-600 text-white shadow-lg shadow-purple-600/20" : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"}`}>
+                        <button type="button" onClick={() => setForm({ ...form, eh_base: true, tipo_base: "pre" })}
+                           className={`flex-1 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all border-2 ${form.eh_base && form.tipo_base !== "receita" ? "bg-purple-600 border-purple-600 text-white shadow-lg shadow-purple-600/20" : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"}`}>
                            Pré-preparo
-                           <span className="block text-[9px] font-bold normal-case tracking-normal mt-0.5 opacity-80">{deptUrl === "bar" ? "xarope, mix, infusão — usado dentro dos drinks" : "molho, massa, caldo — usado dentro dos pratos"}</span>
+                           <span className="block text-[9px] font-bold normal-case tracking-normal mt-0.5 opacity-80">{deptUrl === "bar" ? "xarope, mix, infusão" : "molho, massa, caldo"}</span>
+                        </button>
+                        <button type="button" onClick={() => setForm({ ...form, eh_base: true, tipo_base: "receita" })}
+                           className={`flex-1 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all border-2 ${form.eh_base && form.tipo_base === "receita" ? "bg-sky-600 border-sky-600 text-white shadow-lg shadow-sky-600/20" : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"}`}>
+                           Receita base
+                           <span className="block text-[9px] font-bold normal-case tracking-normal mt-0.5 opacity-80">arroz, feijão, farofa — produção do dia</span>
                         </button>
                      </div>
                      {/* Categoria do cardápio (só para pratos, não para bases) */}

@@ -1245,7 +1245,7 @@ function MontagemPageInner() {
   // Baixar em PDF: abre a janela de impressão do modelo — o usuário escolhe
   // "Salvar como PDF". É o caminho nativo (sem depender de bibliotecas extras).
   function baixarPdf(m) {
-    imprimirModelo([m], { ...cfgModelo, orientacao: impOrient, porPagina: impPorPagina }, deptLabelAtual());
+    imprimirModelo([m], { ...cfgModelo, porPagina: 1 }, deptLabelAtual());
     setSalvou('Na janela de impressão, escolha "Salvar como PDF".');
     setTimeout(() => setSalvou(""), 4000);
   }
@@ -1371,31 +1371,14 @@ function MontagemPageInner() {
               <button onClick={() => setPreviewCard(null)} title="Sair" className="w-8 h-8 shrink-0 flex items-center justify-center rounded-full" style={{ background: "var(--elevated)", color: "var(--muted)" }}><X size={16} /></button>
             </div>
 
-            <PreviaModeloChef m={previewCard} cfg={{ ...cfgModelo, orientacao: impOrient, porPagina: impPorPagina }} />
-
-            {/* Opções de impressão (saíram do editor): orientação e por folha */}
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <span className="text-[10px] font-black uppercase tracking-widest w-full" style={{ color: "var(--dim)" }}>Ao imprimir</span>
-              <div className="inline-flex gap-1 p-1 rounded-xl" style={{ background: "var(--elevated)" }}>
-                {[["retrato", "Vertical"], ["paisagem", "Horizontal"]].map(([v, l]) => (
-                  <button key={v} onClick={() => setImpOrient(v)} className="px-3 py-1.5 rounded-lg text-xs font-bold"
-                    style={impOrient === v ? { background: "var(--card)", color: "var(--fg)", boxShadow: "0 1px 2px rgba(0,0,0,.15)" } : { color: "var(--muted)" }}>{l}</button>
-                ))}
-              </div>
-              <div className="inline-flex gap-1 p-1 rounded-xl" style={{ background: "var(--elevated)" }}>
-                {[[1, "1 por folha"], [2, "2 por folha"]].map(([v, l]) => (
-                  <button key={v} onClick={() => setImpPorPagina(v)} className="px-3 py-1.5 rounded-lg text-xs font-bold"
-                    style={impPorPagina === v ? { background: "var(--card)", color: "var(--fg)", boxShadow: "0 1px 2px rgba(0,0,0,.15)" } : { color: "var(--muted)" }}>{l}</button>
-                ))}
-              </div>
-            </div>
+            <PreviaModeloChef m={previewCard} cfg={{ ...cfgModelo, porPagina: 1 }} />
 
             {/* Ações discretas */}
             <div className="mt-3 grid grid-cols-3 sm:grid-cols-6 gap-1.5">
               {[
                 { icon: X, label: "Sair", onClick: () => setPreviewCard(null) },
                 { icon: Edit3, label: "Editar", onClick: () => { setEditar(previewCard); setModal(true); setPreviewCard(null); } },
-                { icon: Printer, label: "Imprimir", onClick: () => imprimirModelo([previewCard], { ...cfgModelo, orientacao: impOrient, porPagina: impPorPagina }, deptLabelAtual()) },
+                { icon: Printer, label: "Imprimir", onClick: () => imprimirModelo([previewCard], { ...cfgModelo, porPagina: 1 }, deptLabelAtual()) },
                 { icon: Download, label: "PDF", onClick: () => baixarPdf(previewCard) },
                 { icon: Share2, label: "Compartilhar", onClick: () => compartilharFicha(previewCard) },
                 { icon: Trash2, label: "Excluir", onClick: () => remover(previewCard.id), perigo: true },
@@ -1455,21 +1438,21 @@ function MontagemPageInner() {
               {/* Como montar a folha: 2 juntas ou cada uma na sua, em pé ou deitada.
                   O sistema encolhe/amplia as fichas para completar a página e a
                   prévia ao lado mostra o resultado na hora. */}
+              {alvoImpressao.length >= 2 && (
               <div className="rounded-2xl border p-3 sm:p-4 mb-4" style={{ borderColor: "var(--accent-strong)", background: "var(--accent-soft)" }}>
                 <p className="text-[11px] font-black uppercase tracking-widest mb-2" style={{ color: "var(--accent-strong)" }}>
-                  {alvoImpressao.length >= 2 ? `Como imprimir as ${alvoImpressao.length} montagens?` : "Como imprimir esta ficha?"}
+                  Como imprimir as {alvoImpressao.length} montagens?
                 </p>
-                {alvoImpressao.length >= 2 && (
-                  <div className="grid grid-cols-2 gap-2 mb-2">
-                    <BotaoOpcao ativo={cfgModelo.porPagina === 2} onClick={() => mudarCfg({ porPagina: 2 })}>2 na mesma página<span className="block text-[9px] font-bold normal-case opacity-75">encolhe para caber as duas</span></BotaoOpcao>
-                    <BotaoOpcao ativo={cfgModelo.porPagina === 1} onClick={() => mudarCfg({ porPagina: 1 })}>Cada uma em 1 página<span className="block text-[9px] font-bold normal-case opacity-75">amplia para completar a folha</span></BotaoOpcao>
-                  </div>
-                )}
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <BotaoOpcao ativo={cfgModelo.porPagina === 2} onClick={() => mudarCfg({ porPagina: 2 })}>2 na mesma página<span className="block text-[9px] font-bold normal-case opacity-75">encolhe para caber as duas</span></BotaoOpcao>
+                  <BotaoOpcao ativo={cfgModelo.porPagina === 1} onClick={() => mudarCfg({ porPagina: 1 })}>Cada uma em 1 página<span className="block text-[9px] font-bold normal-case opacity-75">amplia para completar a folha</span></BotaoOpcao>
+                </div>
                 <div className="grid grid-cols-2 gap-2">
                   <BotaoOpcao ativo={cfgModelo.orientacao === "retrato"} onClick={() => mudarCfg({ orientacao: "retrato" })}>Vertical (A4 em pé){cfgModelo.porPagina === 2 && <span className="block text-[9px] font-bold normal-case opacity-75">uma sobre a outra</span>}</BotaoOpcao>
                   <BotaoOpcao ativo={cfgModelo.orientacao === "paisagem"} onClick={() => mudarCfg({ orientacao: "paisagem" })}>Horizontal (A4 deitado){cfgModelo.porPagina === 2 && <span className="block text-[9px] font-bold normal-case opacity-75">lado a lado</span>}</BotaoOpcao>
                 </div>
               </div>
+              )}
 
               <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,.95fr)] gap-5">
                 <ControlesDesigner

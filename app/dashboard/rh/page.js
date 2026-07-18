@@ -20,6 +20,7 @@ import { fetchValesPendentes } from "../../lib/rh";
 import { calcularAdicionaisMes } from "../../lib/rh";
 import { salvarConta, fetchContas, fetchLancamentos } from "../../lib/financeiro";
 import { fetchCardapio } from "../../lib/cardapio";
+import { fetchProdutos } from "../../lib/vendas";
 import { fetchParams, PARAMS_PADRAO } from "../../lib/parametros";
 import { useTempoReal } from "../../lib/realtime";
 
@@ -635,6 +636,67 @@ export default function RHPage() {
   };
 
   // --- Funções de Consumo ---
+  // ── HOLERITE (recibo de pagamento) com INSS progressivo e FGTS ────────────
+  // Tabela INSS vigente (2025) — atualizar as faixas quando o governo reajustar.
+  const INSS_FAIXAS = [
+    { ate: 1518.00, aliq: 0.075 },
+    { ate: 2793.88, aliq: 0.09 },
+    { ate: 4190.83, aliq: 0.12 },
+    { ate: 8157.41, aliq: 0.14 },
+  ];
+  const calcularINSS = (base) => {
+    let inss = 0, anterior = 0;
+    for (const fx of INSS_FAIXAS) {
+      if (base > anterior) inss += (Math.min(base, fx.ate) - anterior) * fx.aliq;
+      anterior = fx.ate;
+    }
+    return Math.round(inss * 100) / 100;
+  };
+
+  const gerarHolerite = (f, p) => {
+    const mesLabel = new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+    const brutoTrib = (p.fixo || 0) + (p.adicionais || 0) + (p.taxa || 0); // base de INSS/FGTS
+    const inss = calcularINSS(brutoTrib);
+    const fgts = Math.round(brutoTrib * 0.08 * 100) / 100; // depósito do empregador (informativo)
+    const liquido = brutoTrib + (p.va || 0) - inss - (p.descontos || 0);
+    const linha = (desc, prov, descto) => `<tr><td>${desc}</td><td class="r">${prov ? fmtBRL(prov) : ""}</td><td class="r">${descto ? fmtBRL(descto) : ""}</td></tr>`;
+    let linhas = linha("Salário base", p.fixo, 0);
+    if (p.ad?.valorExtra > 0) linhas += linha("Horas extras (+50%)", p.ad.valorExtra, 0);
+    if (p.ad?.valorNoturno > 0) linhas += linha("Adicional noturno (+20%)", p.ad.valorNoturno, 0);
+    if (p.ad?.valorFeriado > 0) linhas += linha("Feriado trabalhado (+100%)", p.ad.valorFeriado, 0);
+    if (p.taxa > 0) linhas += linha("Taxa de serviço (gorjeta)", p.taxa, 0);
+    if (p.va > 0) linhas += linha("Vale-alimentação (benefício)", p.va, 0);
+    linhas += linha("INSS (tabela progressiva)", 0, inss);
+    if (p.descontos > 0) linhas += linha("Vales / adiantamentos", 0, p.descontos);
+    const win = window.open("", "_blank", "width=820,height=1000");
+    if (!win) return alert("Habilite os popups para gerar o holerite.");
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Holerite — ${f.nome}</title><style>
+      *{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;color:#111;padding:12mm;max-width:720px;margin:0 auto;font-size:13px}
+      .head{border-bottom:3px solid #111;padding-bottom:8px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:flex-end}
+      h1{font-size:20px;text-transform:uppercase;letter-spacing:2px}.mes{font-weight:900;font-size:14px;text-transform:capitalize}
+      .dados{font-size:12px;color:#333;margin-bottom:10px;line-height:1.6}
+      table{width:100%;border-collapse:collapse}th,td{border:1px solid #333;padding:7px 8px;font-size:12px}
+      th{background:#f1f5f9;text-transform:uppercase;font-size:10px;letter-spacing:1px}td.r{text-align:right;width:110px;font-weight:bold}
+      .tot{background:#f8fafc;font-weight:900}
+      .liq{margin-top:10px;display:flex;justify-content:space-between;border:2px solid #111;border-radius:8px;padding:10px 14px;font-size:16px;font-weight:900}
+      .fgts{margin-top:8px;font-size:11px;color:#475569}
+      .assin{margin-top:34px;display:flex;justify-content:space-between;gap:40px}.assin div{flex:1;border-top:1px solid #111;padding-top:4px;font-size:10px;text-align:center;color:#444}
+      @media print{@page{margin:10mm}}
+    </style></head><body>
+      <div class="head"><h1>Recibo de Pagamento</h1><span class="mes">${mesLabel}</span></div>
+      <div class="dados"><b>${f.nome}</b> · ${f.cargo || "—"}${f.cpf ? ` · CPF: ${f.cpf}` : ""}<br/>${unidadeInfoRH()}</div>
+      <table><thead><tr><th>Descrição</th><th>Proventos</th><th>Descontos</th></tr></thead>
+      <tbody>${linhas}</tbody>
+      <tfoot><tr class="tot"><td>Totais</td><td class="r">${fmtBRL(brutoTrib + (p.va || 0))}</td><td class="r">${fmtBRL(inss + (p.descontos || 0))}</td></tr></tfoot></table>
+      <div class="liq"><span>LÍQUIDO A RECEBER</span><span>${fmtBRL(liquido)}</span></div>
+      <div class="fgts">FGTS do mês (depósito do empregador, não descontado): <b>${fmtBRL(fgts)}</b> (8% sobre ${fmtBRL(brutoTrib)}) · Base INSS: ${fmtBRL(brutoTrib)} · DSR incluso na remuneração mensal (Lei 605/49).</div>
+      <div class="assin"><div>Empregador</div><div>${f.nome}</div></div>
+    </body></html>`);
+    win.document.close();
+    setTimeout(() => win.print(), 400);
+  };
+  const unidadeInfoRH = () => (unidadeInfo?.nome ? `Unidade: ${unidadeInfo.nome}` : "");
+
   const carregarConsumo = async (funcId) => {
     setLoadingConsumo(true);
     const { data } = await fetchConsumoFuncionario(funcId);
@@ -649,8 +711,25 @@ export default function RHPage() {
     setBuscaPrato("");
     setModalConsumo(true);
     carregarConsumo(f.id);
-    const { data } = await fetchCardapio(unidadeAtiva);
-    setCardapioConsumo((data || []).filter(p => p.ativo !== false));
+    // Pratos E drinks gerados pelas FICHAS TÉCNICAS (Catálogo e Preços) +
+    // itens cadastrados direto no cardápio — sem duplicar pelo nome.
+    const [rProd, rCard] = await Promise.all([fetchProdutos(unidadeAtiva), fetchCardapio(unidadeAtiva)]);
+    const itens = [];
+    const vistos = new Set();
+    (rProd.data || []).forEach(x => {
+      const chave = String(x.nome_produto || "").toLowerCase().trim();
+      if (!chave || vistos.has(chave)) return;
+      vistos.add(chave);
+      itens.push({ id: `p-${x.id}`, nome: x.nome_produto, preco: x.preco_venda, categoria: x.categoria || (String(x.departamento).toLowerCase() === "bar" ? "Drinks" : "Pratos") });
+    });
+    (rCard.data || []).filter(p => p.ativo !== false).forEach(x => {
+      const chave = String(x.nome || "").toLowerCase().trim();
+      if (!chave || vistos.has(chave)) return;
+      vistos.add(chave);
+      itens.push({ id: `c-${x.id}`, nome: x.nome, preco: x.preco, categoria: x.categoria });
+    });
+    itens.sort((a, b) => String(a.nome).localeCompare(String(b.nome), "pt-BR"));
+    setCardapioConsumo(itens);
   };
 
   // Seleciona um prato do cardápio: preenche descrição e valor original
@@ -1534,9 +1613,19 @@ export default function RHPage() {
                                     <div className="flex justify-between"><span className="text-slate-500 font-semibold">Salário base</span><span className="font-bold text-slate-700">{fmtBRL(p.fixo)}</span></div>
                                     {p.va > 0 && <div className="flex justify-between cursor-pointer" title="Clique para entender" onClick={() => alert(`VA — Vale-alimentação: ${fmtBRL(p.va)}\n\nValor fixo definido no cadastro do funcionário. Somado ao pagamento do mês.`)}><span className="text-teal-600 font-semibold">+ Vale-alimentação</span><span className="font-bold text-teal-700">{fmtBRL(p.va)}</span></div>}
                                     {p.taxa > 0 && <div className="flex justify-between cursor-pointer" title="Clique para entender" onClick={() => alert(`TAXA de serviço (gorjeta): ${fmtBRL(p.taxa)}\n\nParte da taxa de serviço (10%) rateada para este funcionário no mês.`)}><span className="text-indigo-600 font-semibold">+ Taxa de serviço</span><span className="font-bold text-indigo-700">{fmtBRL(p.taxa)}</span></div>}
-                                    {p.adicionais > 0 && <div className="flex justify-between cursor-pointer" title="Clique para entender" onClick={() => alert(`EXTRA (adicionais do mês): ${fmtBRL(p.adicionais)}\n\nVem das BATIDAS DE PONTO do mês (CLT):\n• Hora extra: +50%\n• Feriado: +100% ${p.ad.valorFeriado > 0 ? `(${fmtBRL(p.ad.valorFeriado)})` : ""}\n• Noturno (23:30–00:00): +20% ${p.ad.valorNoturno > 0 ? `(${fmtBRL(p.ad.valorNoturno)})` : ""}\n\nBase da hora = salário ÷ 220.`)}><span className="text-emerald-600 font-semibold">+ Extras (ponto)</span><span className="font-bold text-emerald-700">{fmtBRL(p.adicionais)}</span></div>}
+                                    {p.ad.valorExtra > 0 && <div className="flex justify-between" title="Após 00:00 — hora + 50% (base salário ÷ 220)"><span className="text-emerald-600 font-semibold">+ Hora extra (+50%)</span><span className="font-bold text-emerald-700">{fmtBRL(p.ad.valorExtra)}</span></div>}
+                                    {p.ad.valorNoturno > 0 && <div className="flex justify-between" title="23:30–00:00 — adicional de 20%"><span className="text-sky-600 font-semibold">+ Ad. noturno (+20%)</span><span className="font-bold text-sky-700">{fmtBRL(p.ad.valorNoturno)}</span></div>}
+                                    {p.ad.valorFeriado > 0 && <div className="flex justify-between" title="Feriado trabalhado — adicional de 100%"><span className="text-amber-600 font-semibold">+ Feriado (+100%)</span><span className="font-bold text-amber-700">{fmtBRL(p.ad.valorFeriado)}</span></div>}
                                     {p.descontos > 0 && <div className="flex justify-between cursor-pointer" title="Clique para entender" onClick={() => alert(`VALES / DESCONTOS: ${fmtBRL(p.descontos)}\n\nSoma dos vales e consumos pendentes (adiantamentos e consumo no cardápio da equipe). Desconto na folha. Detalhe em Ações → Consumo / Vales.`)}><span className="text-rose-600 font-semibold">− Vales / descontos</span><span className="font-bold text-rose-700">{fmtBRL(p.descontos)}</span></div>}
                                     <div className="flex justify-between pt-1.5 mt-1.5 border-t border-slate-200"><span className="font-black text-slate-700">Total previsto</span><span className="font-black text-emerald-700">{fmtBRL(p.previsto)}</span></div>
+                                    {(() => {
+                                       const nDias = (f.dias_trabalho || "").split(",").filter(Boolean).length;
+                                       if (!nDias || !p.fixo) return null;
+                                       return <div className="flex justify-between mt-0.5"><span className="text-[10px] font-bold text-slate-400">Valor por dia trabalhado</span><span className="text-[10px] font-black text-slate-500">{fmtBRL(p.fixo / (nDias * 4.345))}/dia</span></div>;
+                                    })()}
+                                    <button onClick={() => gerarHolerite(f, p)} className="w-full mt-2 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white font-black text-[11px] flex items-center justify-center gap-1.5">
+                                       <Printer size={12} /> Holerite (INSS + FGTS)
+                                    </button>
                                  </div>
                               )}
                            </div>

@@ -12,12 +12,24 @@ import { useERP } from "../../../context/ERPContext";
 import {
   fetchColaboradores, fetchDocumentos, fetchFolgasEsporadicas, fetchConsumoFuncionario,
   fetchBancoHorasColaborador, somaMinutosBanco, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN,
-  fetchAdvertenciasColab, calcularAdicionaisMes, fetchFeriados
+  fetchAdvertenciasColab, calcularAdicionaisMes, fetchFeriados, fetchAllFolgasDaUnidade
 } from "../../../lib/rh";
-import { fetchHistoricoPonto, fetchPontosMes } from "../../../lib/ponto";
+import { fetchHistoricoPonto, fetchPontosMes, fetchPontoHoje } from "../../../lib/ponto";
 import { fetchHolerites, confirmarRecebimentoHolerite } from "../../../lib/pessoas";
 
 const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+// Mesma dedução de área usada na Escala da Semana do painel
+const AREAS = ["Salão", "Bar", "Cozinha", "Caixa", "Louça", "Outros"];
+function areaDoCargo(cargo) {
+  const c = (cargo || "").toLowerCase();
+  if (/(caixa|financ|tesour|recep)/.test(c)) return "Caixa";
+  if (/(lou[çc]a|copa|steward|lavagem|higieniz)/.test(c)) return "Louça";
+  if (/(cozinh|chapeir|confeit|pizzai|sushi|salgad|padeir|churrasqueir|a[cç]ougue|chefe de fila)/.test(c)) return "Cozinha";
+  if (/(\bbar\b|barman|bartender|barista|copeir)/.test(c)) return "Bar";
+  if (/(gar[çc]|atendente|sal[aã]o|hostess|maitre|maître|comand|gerente|supervisor)/.test(c)) return "Salão";
+  return "Outros";
+}
 const fmtMin = (m) => `${Math.floor(m / 60)}h${String(Math.round(m) % 60).padStart(2, "0")}`;
 const horaDe = (iso) => iso ? new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "--:--";
 
@@ -39,6 +51,9 @@ export default function VidaColaboradorPage() {
   const [colaboradores, setColaboradores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
+  const [areaFiltro, setAreaFiltro] = useState("Todos");
+  const [pontosHoje, setPontosHoje] = useState({});   // colaborador_id → registro de hoje
+  const [folgasHoje, setFolgasHoje] = useState(new Set()); // ids com folga esporádica hoje
 
   // Colaborador aberto + a vida dele
   const [sel, setSel] = useState(null);
@@ -49,8 +64,17 @@ export default function VidaColaboradorPage() {
     (async () => {
       if (!unidadeAtiva || unidadeAtiva === "todas") { setLoading(false); return; }
       setLoading(true);
-      const { data } = await fetchColaboradores(unidadeAtiva);
+      const hojeISO = new Date().toISOString().split("T")[0];
+      const [{ data }, rPonto, rFolgas] = await Promise.all([
+        fetchColaboradores(unidadeAtiva),
+        fetchPontoHoje(unidadeAtiva),
+        fetchAllFolgasDaUnidade(unidadeAtiva),
+      ]);
       setColaboradores(data || []);
+      const mapa = {};
+      (rPonto.data || []).forEach(r => { mapa[r.colaborador_id] = r; });
+      setPontosHoje(mapa);
+      setFolgasHoje(new Set((rFolgas.data || []).filter(f => f.data_folga === hojeISO).map(f => f.colaborador_id)));
       setLoading(false);
     })();
   }, [unidadeAtiva]);
@@ -359,8 +383,21 @@ export default function VidaColaboradorPage() {
 
   // ── Lista de colaboradores ────────────────────────────────────────────────
   const filtrados = colaboradores.filter(c =>
-    c.nome.toLowerCase().includes(busca.toLowerCase()) || (c.cargo || "").toLowerCase().includes(busca.toLowerCase())
+    (c.nome.toLowerCase().includes(busca.toLowerCase()) || (c.cargo || "").toLowerCase().includes(busca.toLowerCase())) &&
+    (areaFiltro === "Todos" || areaDoCargo(c.cargo) === areaFiltro)
   );
+
+  // Situação de agora: folga > saiu > trabalhando > sem ponto
+  const statusDoDia = (c) => {
+    if ((c.status || "ativo") === "inativo") return null;
+    const diaSemana = String(new Date().getDay());
+    const folga = folgasHoje.has(c.id) || !(c.dias_trabalho || "").split(",").includes(diaSemana);
+    if (folga) return { rotulo: "Folga hoje", cor: "var(--dim)", fundo: "var(--elevated)" };
+    const r = pontosHoje[c.id];
+    if (r?.hora_saida) return { rotulo: `Saiu ${horaDe(r.hora_saida)}`, cor: "#1D4ED8", fundo: "rgba(59,130,246,0.12)" };
+    if (r?.hora_entrada) return { rotulo: `Trabalhando · ${horaDe(r.hora_entrada)}`, cor: "#15803D", fundo: "rgba(34,197,94,0.12)" };
+    return { rotulo: "Sem ponto hoje", cor: "#B45309", fundo: "rgba(245,158,11,0.12)" };
+  };
 
   return (
     <div className="min-h-screen pb-24">
@@ -368,6 +405,19 @@ export default function VidaColaboradorPage() {
         onAction={() => router.push("/dashboard/rh")} actionLabel="Cadastrar no RH" />
       <PageBody>
         <SearchBar value={busca} onChange={setBusca} placeholder="Buscar por nome ou cargo..." />
+        <div className="flex gap-1.5 overflow-x-auto pb-1 -mt-1 mb-3">
+          {["Todos", ...AREAS].map(a => {
+            const n = a === "Todos" ? colaboradores.length : colaboradores.filter(c => areaDoCargo(c.cargo) === a).length;
+            if (a !== "Todos" && n === 0) return null;
+            return (
+              <button key={a} onClick={() => setAreaFiltro(a)}
+                className={`px-3 py-1.5 rounded-full text-[11px] font-black whitespace-nowrap transition-colors ${areaFiltro === a ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900" : ""}`}
+                style={areaFiltro === a ? {} : { background: "var(--elevated)", color: "var(--muted)" }}>
+                {a} <span className={areaFiltro === a ? "opacity-60" : ""} style={areaFiltro === a ? {} : { color: "var(--dim)" }}>({n})</span>
+              </button>
+            );
+          })}
+        </div>
         {loading ? <SkeletonList rows={5} /> : filtrados.length === 0 ? (
           <EmptyState icon={Users} title={colaboradores.length === 0 ? "Nenhum colaborador" : "Nada encontrado"}
             hint={colaboradores.length === 0 ? "Cadastre a equipe na Gestão de RH — aqui você acompanha a vida de cada um." : "Tente outro nome ou cargo."}
@@ -377,6 +427,7 @@ export default function VidaColaboradorPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtrados.map(c => {
               const inativo = (c.status || "ativo") === "inativo";
+              const st = statusDoDia(c);
               return (
                 <button key={c.id} onClick={() => abrir(c)} className={`erp-card p-5 text-left flex items-center gap-3 ${inativo ? "opacity-50" : ""}`}>
                   <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center text-lg font-black shrink-0" style={{ background: "var(--accent-soft)", color: "var(--accent-strong)" }}>
@@ -387,6 +438,11 @@ export default function VidaColaboradorPage() {
                     <p className="text-[11px] font-bold uppercase tracking-widest truncate" style={{ color: "var(--dim)" }}>
                       {c.cargo || "—"}{c.tipo_contrato === "Freelancer" ? " · Extra" : ""}{inativo ? " · inativo" : ""}
                     </p>
+                    {st && (
+                      <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-black" style={{ background: st.fundo, color: st.cor }}>
+                        {st.rotulo}
+                      </span>
+                    )}
                   </div>
                   <ChevronRight size={16} style={{ color: "var(--dim)" }} className="shrink-0" />
                 </button>

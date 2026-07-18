@@ -438,6 +438,39 @@ export function calcularAdicionaisMes(pontosMes, salarioBase, feriados = []) {
   };
 }
 
+// Mesmas regras, mas DIA A DIA — alimenta o relatório do espelho de ponto
+// ("quais dias teve hora extra / adicional noturno e quantos minutos").
+export function calcularAdicionaisPorDia(pontosMes, feriados = []) {
+  const feriadosSet = new Set((feriados || []).map(f => f.data || f));
+  const dias = [];
+  (pontosMes || []).forEach(reg => {
+    if (!reg.hora_entrada || !reg.hora_saida) return;
+    const entrada = new Date(reg.hora_entrada);
+    const saida = new Date(reg.hora_saida);
+    if (saida <= entrada) return;
+
+    const marco2330 = new Date(entrada); marco2330.setHours(23, 30, 0, 0);
+    const meiaNoite = new Date(marco2330); meiaNoite.setMinutes(meiaNoite.getMinutes() + 30);
+
+    let minNoturno = 0, minExtra = 0, minFeriado = 0;
+    const iniNot = Math.max(entrada.getTime(), marco2330.getTime());
+    const fimNot = Math.min(saida.getTime(), meiaNoite.getTime());
+    if (fimNot > iniNot) minNoturno = Math.round((fimNot - iniNot) / 60000);
+    if (saida.getTime() > meiaNoite.getTime()) minExtra = Math.round((saida.getTime() - meiaNoite.getTime()) / 60000);
+    if (feriadosSet.has(reg.data_referencia)) {
+      let minDia = Math.round((saida - entrada) / 60000);
+      if (reg.hora_saida_intervalo && reg.hora_retorno_intervalo) {
+        minDia -= Math.max(0, Math.round((new Date(reg.hora_retorno_intervalo) - new Date(reg.hora_saida_intervalo)) / 60000));
+      }
+      if (minDia > 0) minFeriado = minDia;
+    }
+    if (minNoturno > 0 || minExtra > 0 || minFeriado > 0) {
+      dias.push({ data: reg.data_referencia, minNoturno, minExtra, minFeriado });
+    }
+  });
+  return dias.sort((a, b) => String(a.data).localeCompare(String(b.data)));
+}
+
 // ─── FERIADOS DA UNIDADE ─────────────────────────────────────────────────────
 export async function fetchFeriados(unidadeId, mesAno = null) {
   if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: [] };

@@ -204,6 +204,9 @@ export default function PontoPage() {
   const [justif, setJustif] = useState(null);    // { tipo: 'retorno_cedo' | 'pular_intervalo', ... }
   const [liberados, setLiberados] = useState({}); // { [colabId]: true } — atraso liberado pelo gerente hoje
   const [pinAberto, setPinAberto] = useState(false);
+  const [pinAntecipada, setPinAntecipada] = useState(false);      // entrar ANTES do horário (reunião)
+  const [escolhaAntecipada, setEscolhaAntecipada] = useState(null); // { min } — decisão do gerente
+  const [escolhaAtraso, setEscolhaAtraso] = useState(null);         // { min } — descontar do banco?
 
   // PIN do gerente e parâmetros do ponto (Configurações > Senhas / Parâmetros)
   const [pinGerente, setPinGerente] = useState(PIN_GERENTE);
@@ -337,7 +340,7 @@ export default function PontoPage() {
 
   // Registra a batida de uma etapa. horaMarcada = hora ajustada pela tolerância
   // (grava e mostra o horário "cheio"); atrasoMin > 0 = entrada fora da tolerância.
-  const executarBatida = async (etapa, reg, horaMarcada = null, atrasoMin = 0) => {
+  const executarBatida = async (etapa, reg, horaMarcada = null, atrasoMin = 0, extrasSaida = {}) => {
     setBatendo(true);
     try {
       const { error } = await registrarBatida(selecionado.id, unidadeAtiva, etapa, horaMarcada ? horaMarcada.toISOString() : null);
@@ -364,6 +367,22 @@ export default function PontoPage() {
       // Entrada com atraso (fora da tolerância): mostra os minutos
       if (etapa === "entrada" && atrasoMin > 0) {
         mostrarSucesso(`Entrada às ${agoraStr}`, `${primeiro}, ${atrasoMin} min de atraso — ficou registrado no espelho.`, "alerta");
+        return;
+      }
+
+      // Saída DEPOIS do horário → vira hora extra no banco, automaticamente
+      if (etapa === "saida_trabalho" && extrasSaida.extraMin > 0) {
+        const { creditado, aviso } = await creditarBanco(extrasSaida.extraMin, `Hora extra: saiu às ${agoraStr} (previsto ${extrasSaida.prevStr})`);
+        mostrarSucesso(`Saída às ${agoraStr}`,
+          `${primeiro}, você passou ${extrasSaida.extraMin} min do horário (${extrasSaida.prevStr}). ${creditado > 0 ? `${fmtMin(creditado)} viraram hora extra no seu banco de horas.` : ""} ${aviso}`,
+          "alerta");
+        return;
+      }
+      // Saída ANTES do horário → registrada como saída antecipada
+      if (etapa === "saida_trabalho" && extrasSaida.saiuAntesMin > 0) {
+        mostrarSucesso(`Saída às ${agoraStr}`,
+          `${primeiro}, saída ${extrasSaida.saiuAntesMin} min antes do previsto (${extrasSaida.prevStr}) — registrado no espelho de ponto.`,
+          "alerta");
         return;
       }
 
@@ -414,18 +433,64 @@ export default function PontoPage() {
     }
 
     // SAÍDA DO TRABALHO: até 5 min de diferença do horário grava o horário do turno
-    // (turnos que viram a meia-noite: testa a previsão em ±1 dia e usa a mais próxima)
+    // (turnos que viram a meia-noite: testa a previsão em ±1 dia e usa a mais próxima).
+    // PASSOU do horário → os minutos viram HORA EXTRA no banco, automaticamente.
+    // Saiu ANTES → fica registrado no espelho como saída antecipada.
+    let extrasSaida = {};
     if (etapa === "saida_trabalho") {
-      const dom = agora.getDay() === 0;
       const saidaStr = saidaDoDia(selecionado, agora);
       if (saidaStr) {
         const cands = [-1, 0, 1].map(d => { const c = comHora(agora, saidaStr); c.setDate(c.getDate() + d); return c; });
         const prevista = cands.reduce((a, b) => Math.abs(agora - b) < Math.abs(agora - a) ? b : a);
-        if (Math.abs(agora.getTime() - prevista.getTime()) / 60000 <= cfgP.tolerancia_marcacao) horaMarcada = prevista;
+        const difMin = (agora.getTime() - prevista.getTime()) / 60000;
+        if (Math.abs(difMin) <= cfgP.tolerancia_marcacao) horaMarcada = prevista;
+        else if (difMin > 0) extrasSaida = { extraMin: Math.round(difMin), prevStr: saidaStr };
+        else extrasSaida = { saiuAntesMin: Math.round(-difMin), prevStr: saidaStr };
       }
     }
 
-    await executarBatida(etapa, reg, horaMarcada, atrasoMin);
+    await executarBatida(etapa, reg, horaMarcada, atrasoMin, extrasSaida);
+  };
+
+  // Entrada ANTECIPADA autorizada (reunião/serviço): o gerente decide se os
+  // minutos antes do horário viram hora extra ou se o funcionário sai mais cedo.
+  const confirmarAntecipada = async (modo) => {
+    if (!escolhaAntecipada || !selecionado || batendo) return;
+    const min = escolhaAntecipada.min;
+    setBatendo(true);
+    try {
+      const { error } = await registrarBatida(selecionado.id, unidadeAtiva, "entrada");
+      if (error) { alert(error); return; }
+      const agoraStr = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+      const primeiro = selecionado.nome.split(" ")[0];
+      const hoje = new Date().toISOString().split("T")[0];
+      setEscolhaAntecipada(null);
+      if (modo === "extra") {
+        const { creditado, aviso } = await creditarBanco(min, `Entrada antecipada (reunião/serviço): ${min}min antes do horário — autorizada pelo gerente`);
+        mostrarSucesso(`Entrada às ${agoraStr}`,
+          `${primeiro}, entrada ${min} min antes do horário. ${creditado > 0 ? `${fmtMin(creditado)} viraram hora extra no banco.` : ""} ${aviso}`);
+      } else {
+        await inserirBancoHoras(unidadeAtiva, selecionado.id, hoje, min,
+          `Entrou ${min}min mais cedo (reunião/serviço) — combinado ser liberado mais cedo hoje`, "excesso");
+        mostrarSucesso(`Entrada às ${agoraStr}`,
+          `${primeiro}, combinado: você será liberado ${min} min mais cedo hoje. Ficou registrado.`);
+      }
+    } finally {
+      setBatendo(false);
+    }
+  };
+
+  // Atraso liberado pelo gerente: descontar do banco de horas ou só liberar
+  const confirmarAtraso = async (descontar) => {
+    if (!escolhaAtraso || !selecionado) return;
+    const min = escolhaAtraso.min;
+    if (descontar) {
+      const hoje = new Date().toISOString().split("T")[0];
+      await inserirBancoHoras(unidadeAtiva, selecionado.id, hoje, -min,
+        `Atraso de ${min}min descontado do banco de horas (autorizado pelo gerente)`);
+    }
+    setLiberados(prev => ({ ...prev, [selecionado.id]: true }));
+    setEscolhaAtraso(null);
   };
 
   // Confirma a justificativa (motivo escolhido ou digitado)
@@ -515,10 +580,64 @@ export default function PontoPage() {
           <ModalPinGerente senha={pinGerente}
             onClose={() => setPinAberto(false)}
             onSuccess={() => {
-              setLiberados(prev => ({ ...prev, [selecionado.id]: true }));
               setPinAberto(false);
+              const prevista = comHora(new Date(), entradaDoDia(selecionado, horaLocal) || "00:00");
+              const min = Math.max(1, Math.round((Date.now() - prevista.getTime()) / 60000));
+              setEscolhaAtraso({ min });
             }}
           />
+        )}
+        {pinAntecipada && (
+          <ModalPinGerente senha={pinGerente}
+            titulo="Entrada antecipada"
+            subtitulo="PIN do gerente para autorizar entrar antes do horário"
+            onClose={() => setPinAntecipada(false)}
+            onSuccess={() => {
+              setPinAntecipada(false);
+              const prevista = comHora(new Date(), entradaDoDia(selecionado, horaLocal) || "00:00");
+              const min = Math.max(1, Math.round((prevista.getTime() - Date.now()) / 60000));
+              setEscolhaAntecipada({ min });
+            }}
+          />
+        )}
+        {/* Decisão do gerente: minutos ANTES do horário viram extra ou saída antecipada */}
+        {escolhaAntecipada && (
+          <div className="fixed inset-0 z-[10001] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-5">
+            <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 w-full max-w-sm text-center">
+              <p className="text-lg font-black text-white">{escolhaAntecipada.min} min antes do horário</p>
+              <p className="text-slate-400 font-medium text-xs mb-5">Como tratar esse tempo adiantado (reunião/serviço)?</p>
+              <div className="space-y-2">
+                <button disabled={batendo} onClick={() => confirmarAntecipada("extra")} className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm disabled:opacity-50">
+                  Contar como hora extra
+                  <span className="block text-[10px] font-bold opacity-80">vai para o banco de horas</span>
+                </button>
+                <button disabled={batendo} onClick={() => confirmarAntecipada("liberar")} className="w-full py-3.5 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-black text-sm disabled:opacity-50">
+                  Vai ser liberado mais cedo hoje
+                  <span className="block text-[10px] font-bold opacity-70">só registra o combinado</span>
+                </button>
+              </div>
+              <button onClick={() => setEscolhaAntecipada(null)} className="text-slate-500 hover:text-slate-300 text-xs font-bold mt-4">Cancelar</button>
+            </div>
+          </div>
+        )}
+        {/* Decisão do gerente: atraso liberado — desconta do banco de horas? */}
+        {escolhaAtraso && (
+          <div className="fixed inset-0 z-[10001] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-5">
+            <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 w-full max-w-sm text-center">
+              <p className="text-lg font-black text-white">Atraso de {escolhaAtraso.min} min</p>
+              <p className="text-slate-400 font-medium text-xs mb-5">Entrada liberada. Como tratar o atraso?</p>
+              <div className="space-y-2">
+                <button onClick={() => confirmarAtraso(true)} className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm">
+                  Descontar do banco de horas
+                  <span className="block text-[10px] font-bold opacity-80">tira {escolhaAtraso.min} min do saldo</span>
+                </button>
+                <button onClick={() => confirmarAtraso(false)} className="w-full py-3.5 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-black text-sm">
+                  Só liberar a entrada
+                  <span className="block text-[10px] font-bold opacity-70">o atraso fica registrado no espelho</span>
+                </button>
+              </div>
+            </div>
+          </div>
         )}
         {justif && (
           <ModalJustificativa
@@ -644,6 +763,10 @@ export default function PontoPage() {
               </p>
               <p className="text-4xl sm:text-5xl font-black text-amber-400 tabular-nums mt-5">{fmtFalta(janela.faltaMs)}</p>
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-1">faltam para liberar</p>
+              <button onClick={() => setPinAntecipada(true)}
+                className="mt-5 px-5 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-black text-sm transition-colors">
+                Reunião / serviço mais cedo? Liberar — PIN do gerente
+              </button>
             </div>
           ) : (
             <button onClick={bater} disabled={batendo}

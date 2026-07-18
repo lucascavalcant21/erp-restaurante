@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabase";
 import { fetchPontosMes } from "../../../../lib/ponto";
-import { fetchFolgasEsporadicas, fetchBancoHorasColaborador } from "../../../../lib/rh";
+import { fetchFolgasEsporadicas, fetchBancoHorasColaborador, fetchFeriados, calcularAdicionaisPorDia } from "../../../../lib/rh";
 import { Printer, ArrowLeft } from "lucide-react";
 
 export default function EspelhoDePonto() {
@@ -21,6 +21,7 @@ export default function EspelhoDePonto() {
   const [pontos, setPontos] = useState([]);
   const [folgasEsporadicas, setFolgasEsporadicas] = useState([]);
   const [bancoMes, setBancoMes] = useState([]);
+  const [feriadosMes, setFeriadosMes] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -53,6 +54,12 @@ export default function EspelhoDePonto() {
       // Banco de horas do mês (intervalos não tirados)
       const resBanco = await fetchBancoHorasColaborador(colabId, mesParam);
       setBancoMes(resBanco.data || []);
+
+      // Feriados do mês (para o relatório de adicionais dia a dia)
+      if (colab?.unidade_id) {
+        const resFer = await fetchFeriados(colab.unidade_id, mesParam);
+        setFeriadosMes(resFer.data || []);
+      }
 
       setLoading(false);
     }
@@ -240,6 +247,51 @@ export default function EspelhoDePonto() {
                </div>
             );
          })()}
+
+         {/* Hora extra e adicional noturno — dia a dia */}
+         {(() => {
+            const dias = calcularAdicionaisPorDia(pontos, feriadosMes);
+            if (!dias.length) return null;
+            const tot = dias.reduce((a, d) => ({ e: a.e + d.minExtra, n: a.n + d.minNoturno, f: a.f + d.minFeriado }), { e: 0, n: 0, f: 0 });
+            const fmtM = (m) => m > 0 ? `${m} min` : "—";
+            return (
+               <div className="mt-2 print:mt-1">
+                  <p className="text-[9px] font-black uppercase tracking-widest mb-0.5">Hora extra e adicionais — dia a dia</p>
+                  <table className="w-full border-collapse text-[9px]">
+                     <thead>
+                        <tr className="bg-slate-100">
+                           <th className="border border-slate-800 !py-1 !px-2 text-left">Dia</th>
+                           <th className="border border-slate-800 !py-1 !px-2 text-right">Hora extra (+50%)</th>
+                           <th className="border border-slate-800 !py-1 !px-2 text-right">Ad. noturno (+20%)</th>
+                           <th className="border border-slate-800 !py-1 !px-2 text-right">Feriado (+100%)</th>
+                        </tr>
+                     </thead>
+                     <tbody>
+                        {dias.map(d => (
+                           <tr key={d.data}>
+                              <td className="border border-slate-800 !py-0.5 !px-2">{d.data ? d.data.split("-").reverse().join("/") : "—"}</td>
+                              <td className="border border-slate-800 !py-0.5 !px-2 text-right font-bold">{fmtM(d.minExtra)}</td>
+                              <td className="border border-slate-800 !py-0.5 !px-2 text-right font-bold">{fmtM(d.minNoturno)}</td>
+                              <td className="border border-slate-800 !py-0.5 !px-2 text-right font-bold">{fmtM(d.minFeriado)}</td>
+                           </tr>
+                        ))}
+                     </tbody>
+                     <tfoot>
+                        <tr className="bg-slate-100">
+                           <td className="border border-slate-800 !py-1 !px-2 text-right font-black uppercase text-[10px]">Totais:</td>
+                           <td className="border border-slate-800 !py-1 !px-2 text-right font-black">{fmtM(tot.e)}</td>
+                           <td className="border border-slate-800 !py-1 !px-2 text-right font-black">{fmtM(tot.n)}</td>
+                           <td className="border border-slate-800 !py-1 !px-2 text-right font-black">{fmtM(tot.f)}</td>
+                        </tr>
+                     </tfoot>
+                  </table>
+               </div>
+            );
+         })()}
+
+         <div className="mt-2 text-[8px] text-slate-600 leading-snug">
+            <b>Descanso Semanal Remunerado (DSR):</b> incluso na remuneração mensal (Lei 605/49). Adicional noturno de 20% entre 23h30 e 00h00; após 00h00, hora extra com acréscimo de 50%; feriado trabalhado com adicional de 100%.
+         </div>
 
          {/* Assinaturas */}
          <div className="mt-6 print:mt-4 flex justify-between w-full px-12 text-[10px] font-bold uppercase text-center gap-10">

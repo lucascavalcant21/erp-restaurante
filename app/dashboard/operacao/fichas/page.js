@@ -832,20 +832,67 @@ function FichasRunner() {
           .capa{height:88vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;page-break-after:always}
           .capa h1{font-size:46px;margin-bottom:14px}
           .capa p{font-size:18px;color:#64748b}
+          /* Livro: cada ficha em 1 página numerada; índice por seções */
+          .pagina-livro{page-break-after:always;display:flex;flex-direction:column;min-height:246mm;margin-bottom:0}
+          .pagina-livro:last-child{page-break-after:auto}
+          .rodape-livro{margin-top:auto;padding-top:8px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:10px;color:#64748b;font-weight:bold;text-transform:uppercase;letter-spacing:1px}
+          .indice{page-break-after:always;min-height:246mm;display:flex;flex-direction:column}
+          .indice h1{font-size:24px;text-transform:uppercase;letter-spacing:4px;margin-bottom:16px;border-bottom:3px solid #0f172a;padding-bottom:8px}
+          .ind-sec{font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:2px;color:#0f172a;margin:12px 0 5px}
+          .ind-item{display:flex;align-items:baseline;gap:6px;font-size:13px;font-weight:600;padding:2.5px 0;color:#334155}
+          .ind-item .pontos{flex:1;border-bottom:2px dotted #cbd5e1}
+          .ind-item .pg{font-weight:900;color:#0f172a}
        </style></head><body>
     `;
 
-    if (listaDeFichas.length > 1) {
+    // ── LIVRO DE RECEITAS: seções, capa, índice e páginas numeradas ──────────
+    const ORDEM_SECOES = ['Pré-preparos', 'Preparos', 'Molhos', 'Pratos', 'Sobremesas', 'Sucos'];
+    const secaoDe = (f) => {
+      const nome = String(f.nome_receita || '').toLowerCase();
+      const cat = String(f.categoria || '').toLowerCase();
+      if (nome.includes('molho') || cat.includes('molho')) return 'Molhos';
+      if (f.eh_base) return f.tipo_base === 'receita' ? 'Preparos' : 'Pré-preparos';
+      if (cat === 'sobremesas') return 'Sobremesas';
+      if (cat === 'sucos') return 'Sucos';
+      return 'Pratos';
+    };
+    const ehLivro = listaDeFichas.length > 1;
+    const lista = ehLivro
+      ? [...listaDeFichas].sort((a, b) =>
+          (ORDEM_SECOES.indexOf(secaoDe(a)) - ORDEM_SECOES.indexOf(secaoDe(b))) ||
+          String(a.nome_receita).localeCompare(String(b.nome_receita), 'pt-BR'))
+      : listaDeFichas;
+    // Capa = pág. 1, Índice = pág. 2, fichas a partir da pág. 3 (1 por página)
+    const paginaDe = (idx) => idx + 3;
+
+    if (ehLivro) {
        conteudoHTML += `
          <div class="capa">
            <h1>Livro de Receitas</h1>
-           <p>${listaDeFichas.length} receitas catalogadas</p>
+           <p>${lista.length} receitas catalogadas</p>
+           <p style="margin-top:8px;font-size:14px;color:#94a3b8">${new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</p>
            <p style="margin-top: 40px; font-size: 14px; text-transform: uppercase; letter-spacing: 2px;">${esc(unidadeInfo?.nome || 'Hefisto')}</p>
+         </div>
+       `;
+       // Índice agrupado por seção, com o número da página de cada receita
+       let indiceHTML = '';
+       ORDEM_SECOES.forEach((sec) => {
+         const doGrupo = lista.map((f, i) => ({ f, i })).filter(x => secaoDe(x.f) === sec);
+         if (!doGrupo.length) return;
+         indiceHTML += `<div class="ind-sec">${sec}</div>` + doGrupo.map(x =>
+           `<div class="ind-item"><span>${esc(x.f.nome_receita)}</span><span class="pontos"></span><span class="pg">${paginaDe(x.i)}</span></div>`
+         ).join('');
+       });
+       conteudoHTML += `
+         <div class="indice">
+           <h1>Índice</h1>
+           ${indiceHTML}
+           <div class="rodape-livro"><span>${esc(unidadeInfo?.nome || '')}</span><span>Página 2</span></div>
          </div>
        `;
     }
 
-    listaDeFichas.forEach((f, idxFicha) => {
+    lista.forEach((f, idxFicha) => {
       const custoTotal = custoTotalDaFicha(f, fichas);
       const rende = Number(f.rendimento_porcoes) || 1;
       const peso = infoPesoFicha(f, fichas);
@@ -891,14 +938,18 @@ function FichasRunner() {
          ? passos.map((s, i) => `<div class="passo"><b>${i + 1}.</b> ${esc(s)}</div>`).join('')
          : `<div class="passo">Não informado.</div>`;
 
-      const quebra = (idxFicha % 2 === 1 && idxFicha < listaDeFichas.length - 1) ? ' quebra' : '';
+      // Livro: 1 receita por página, com rodapé numerado e a seção; avulsa: como antes
+      const classeFicha = ehLivro ? 'ficha pagina-livro' : 'ficha';
+      const rodapeLivro = ehLivro
+         ? `<div class="rodape-livro"><span>${esc(secaoDe(f))} · ${esc(unidadeInfo?.nome || '')}</span><span>Página ${paginaDe(idxFicha)}</span></div>`
+         : '';
 
       conteudoHTML += `
-         <div class="ficha${quebra}">
+         <div class="${classeFicha}">
             <div class="topo">
                ${foto}
                <div class="cab">
-                  <div class="rotulo">Ficha Técnica</div>
+                  <div class="rotulo">${ehLivro ? 'Livro de Receitas · ' + esc(secaoDe(f)) : 'Ficha Técnica'}</div>
                   <div class="titulo">${esc(f.nome_receita)}</div>
                   <div class="grid">
                      <div class="campo"><b>Categoria:</b> ${esc(f.categoria || deptLabel)}</div>
@@ -925,6 +976,7 @@ function FichasRunner() {
 
             <h2>Modo de preparo</h2>
             <div class="passos">${passosHTML}</div>
+            ${rodapeLivro}
          </div>
       `;
     });

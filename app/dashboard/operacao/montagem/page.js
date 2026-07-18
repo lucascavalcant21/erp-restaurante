@@ -1412,24 +1412,6 @@ function MontagemPageInner() {
                 : "Marque fichas nos cards para imprimir só algumas (ex.: 2 receitas na mesma página)."}
             </p>
 
-            {/* Padrão: várias por folha, com passo a passo */}
-            <div className="rounded-2xl border p-4 mb-4" style={{ borderColor: "var(--line)" }}>
-              <p className="text-[11px] font-black uppercase tracking-widest mb-2" style={{ color: "var(--fg-soft)" }}>Padrão (passo a passo)</p>
-              <div className="flex items-center gap-2 flex-wrap mb-3">
-                <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--muted)" }}>Por folha:</span>
-                {[1, 2, 4, 6, 8].map(n => (
-                  <button key={n} onClick={() => setPorFolha(n)}
-                    className="w-9 h-9 rounded-lg font-black text-sm transition-all"
-                    style={porFolha === n ? { background: "var(--accent-strong)", color: "var(--accent-fg)" } : { background: "var(--elevated)", color: "var(--muted)" }}>
-                    {n}
-                  </button>
-                ))}
-              </div>
-              <Btn variant="primary" className="!h-9 text-xs w-full" onClick={() => imprimirLote(alvoImpressao, porFolha, dept === "bar" ? "Bar" : "Cozinha")}>
-                <Printer size={14} /> Imprimir {alvoImpressao.length} ficha{alvoImpressao.length !== 1 ? "s" : ""}
-              </Btn>
-            </div>
-
             {/* Modelo personalizado — as mesmas definições da prévia vão à impressora */}
             <div className="rounded-2xl border p-3 sm:p-4" style={{ borderColor: "var(--line)" }}>
               <div className="mb-4">

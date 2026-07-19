@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { comprimirFotoParaIA } from "../../lib/imagem";
 import { useRouter } from "next/navigation";
 import { useERP } from "../../context/ERPContext";
 import {
@@ -707,8 +708,8 @@ export default function RHPage() {
     if (!file) return;
     setLendoFichaExtra(true);
     try {
-      const base64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1] || ""); r.onerror = rej; r.readAsDataURL(file); });
-      const resp = await fetch("/api/ia-ficha-extra", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ imagem_base64: base64, media_type: file.type || "image/jpeg" }) });
+      const base64 = await comprimirFotoParaIA(file); // comprime: foto de celular estourava o limite da Vercel
+      const resp = await fetch("/api/ia-ficha-extra", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ imagem_base64: base64, media_type: "image/jpeg" }) });
       const d = await resp.json();
       if (!resp.ok || d.error) { alert(d.error || "Falha ao ler a ficha."); return; }
       if (!confirm(`A IA leu na ficha:\n\nNome: ${d.nome}\nDiária: R$ ${(d.diaria || 0).toFixed(2)}\nTelefone: ${d.telefone || "—"}\nCPF: ${d.cpf || "—"}\nPIX: ${d.chave_pix || "—"}\n\nCadastrar como EXTRA e anexar a foto da ficha no sistema?`)) return;

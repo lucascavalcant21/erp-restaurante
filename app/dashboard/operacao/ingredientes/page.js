@@ -7,16 +7,10 @@ import { fetchInsumos, salvarInsumo, removerInsumo, fetchHistoricoPrecos, atuali
 import { CATEGORIAS_INSUMO, adivinharCategoria } from "../../../lib/categorias-insumo";
 import { FlaskConical, Plus, Search, Trash2, Edit3, X, Save, ArrowLeft, CheckCircle2, AlertTriangle, Sparkles, Loader2, Camera, History, TrendingUp, TrendingDown, ArrowLeftRight, Calculator } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
+import { comprimirFotoParaIA } from "../../../lib/imagem";
 
 // Converte um File de imagem em base64 puro (sem o prefixo "data:...;base64,")
-function fileParaBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result).split(",")[1] || "");
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
+const fileParaBase64 = (file) => comprimirFotoParaIA(file); // comprime: foto crua estourava o limite da Vercel
 
 function IngredientesRunner() {
   const router = useRouter();

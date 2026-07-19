@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchEstoque, ajustarEstoque, atualizarMinimoInsumo, atualizarMaximoInsumo, registrarCompra, fetchReposicaoMes } from "../../../lib/estoque";
 import { salvarInsumo } from "../../../lib/operacao";
+import { comprimirFotoParaIA } from "../../../lib/imagem";
 import { criarEtiqueta, gerarCodigo } from "../../../lib/etiquetas";
 import { fetchParams, PARAMS_PADRAO } from "../../../lib/parametros";
 import { useTempoReal } from "../../../lib/realtime";
@@ -83,15 +84,10 @@ function EstoqueRunner() {
     if (!file) return;
     setListaLendo(true);
     try {
-      const base64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result).split(",")[1]);
-        reader.onerror = () => reject(new Error("Falha ao ler a imagem"));
-        reader.readAsDataURL(file);
-      });
+      const base64 = await comprimirFotoParaIA(file); // comprimida: foto crua estourava o limite da Vercel
       const res = await fetch("/api/ia-lista-estoque", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imagem_base64: base64, media_type: file.type || "image/jpeg" }),
+        body: JSON.stringify({ imagem_base64: base64, media_type: "image/jpeg" }),
       });
       const data = await res.json();
       if (!res.ok || data.error) { alert(data.error || "Falha ao ler a lista."); return; }
@@ -172,15 +168,10 @@ function EstoqueRunner() {
     if (!file) return;
     setContagemLendo(true);
     try {
-      const base64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result).split(",")[1]);
-        reader.onerror = () => reject(new Error("Falha ao ler a imagem"));
-        reader.readAsDataURL(file);
-      });
+      const base64 = await comprimirFotoParaIA(file); // comprimida: foto crua estourava o limite da Vercel
       const res = await fetch("/api/ia-contagem", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imagem_base64: base64, media_type: file.type || "image/jpeg" }),
+        body: JSON.stringify({ imagem_base64: base64, media_type: "image/jpeg" }),
       });
       const data = await res.json();
       if (!res.ok || data.error) { alert(data.error || "Falha ao ler a contagem."); return; }

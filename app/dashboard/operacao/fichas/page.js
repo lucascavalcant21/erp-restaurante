@@ -26,10 +26,31 @@ const CATEGORIAS_CARDAPIO = [
 ];
 
 // Converte um File de imagem em base64 puro (sem o prefixo "data:...;base64,")
+// Comprime a foto antes de enviar: celulares tiram fotos de 5-10MB, que estouram
+// o limite de ~4,5MB da Vercel e faziam a IA "sempre dar erro". Reduz para no
+// máximo 1800px (nitidez suficiente para ler cardápio/receita) em JPEG 85%.
 function fileParaBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result).split(",")[1] || "");
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          let w = img.width, h = img.height;
+          const MAX = 1800;
+          if (w > h && w > MAX) { h = Math.round((h * MAX) / w); w = MAX; }
+          else if (h > MAX) { w = Math.round((w * MAX) / h); h = MAX; }
+          canvas.width = w; canvas.height = h;
+          canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL("image/jpeg", 0.85).split(",")[1] || "");
+        } catch {
+          resolve(String(ev.target.result).split(",")[1] || "");
+        }
+      };
+      img.onerror = () => resolve(String(ev.target.result).split(",")[1] || "");
+      img.src = ev.target.result;
+    };
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
@@ -281,7 +302,7 @@ function FichasRunner() {
     const file = e.target.files?.[0];
     if (!file) return;
     const base64 = await fileParaBase64(file);
-    setIaFImagem({ base64, mediaType: file.type || "image/jpeg", previewUrl: URL.createObjectURL(file), nomeArquivo: file.name });
+    setIaFImagem({ base64, mediaType: "image/jpeg", previewUrl: URL.createObjectURL(file), nomeArquivo: file.name });
   };
 
   // Tenta casar o nome extraído pela IA com um insumo já cadastrado no departamento
@@ -1116,7 +1137,7 @@ function FichasRunner() {
       const base64 = await fileParaBase64(file);
       const res = await fetch("/api/ia-cardapio", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imagem_base64: base64, media_type: file.type || "image/jpeg" }),
+        body: JSON.stringify({ imagem_base64: base64, media_type: "image/jpeg" }),
       });
       const data = await res.json();
       if (!res.ok || data.error) { alert(data.error || "Falha ao ler o cardápio."); return; }

@@ -1,6 +1,8 @@
 "use client";
+// tempo real: recarrega sozinho a cada 15s e quando o banco muda
 
 import { useState, useEffect } from "react";
+import { useTempoReal } from "../../lib/realtime";
 import { ListChecks, CheckCircle, Clock, AlertTriangle, ArrowRight } from "lucide-react";
 import { PageHeader, PageBody, Card, EmptyState, SectionLabel, Btn, Toast, fmtData } from "../../components/ui";
 import { useERP } from "../../context/ERPContext";
@@ -17,9 +19,10 @@ export default function MinhasTarefasPage() {
   useEffect(() => {
     carregar();
   }, [unidadeAtiva]);
+  useTempoReal(null, () => carregar(true)); // atualiza sozinho (15s / mudanca no banco)
 
-  async function carregar() {
-    setLoading(true);
+  async function carregar(silencioso = false) {
+    if (!silencioso) setLoading(true);
     const { data } = await fetchMinhasTarefas(unidadeAtiva);
     setTarefas(data || []);
     setLoading(false);

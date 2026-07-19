@@ -1,6 +1,8 @@
 "use client";
+// tempo real: recarrega sozinho a cada 15s e quando o banco muda
 
 import { useState, useEffect, Suspense, useRef } from "react";
+import { useTempoReal } from "../../../lib/realtime";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchFichas } from "../../../lib/operacao";
@@ -197,8 +199,8 @@ function ProducaoRunner() {
   const [qtdProd, setQtdProd] = useState("1");
   const [colabSelecionado, setColabSelecionado] = useState("");
 
-  const carregar = async () => {
-    setLoading(true);
+  const carregar = async (silencioso = false) => {
+    if (!silencioso) setLoading(true);
     const [resFichas, resProdutos, resColab] = await Promise.all([
        fetchFichas(unidadeAtiva, deptUrl),
        fetchProdutos(unidadeAtiva, deptUrl),
@@ -223,6 +225,7 @@ function ProducaoRunner() {
   useEffect(() => {
     if (unidadeAtiva) carregar();
   }, [unidadeAtiva, deptUrl]);
+  useTempoReal(null, () => carregar(true)); // atualiza sozinho (15s / mudanca no banco)
 
   const abrirProduzir = (ficha) => {
     setFichaAtual(ficha);

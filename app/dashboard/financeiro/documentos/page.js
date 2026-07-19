@@ -1,6 +1,8 @@
 "use client";
+// tempo real: recarrega sozinho a cada 15s e quando o banco muda
 
 import { useState, useEffect, useMemo } from "react";
+import { useTempoReal } from "../../../lib/realtime";
 import { FileText, Trash2, CheckCircle, Clock, AlertTriangle } from "lucide-react";
 import {
   PageHeader, PageBody, Card, SectionLabel, KpiGrid, Kpi,
@@ -58,13 +60,14 @@ export default function DocumentosPage() {
   const [modal, setModal] = useState(false);
   const [salvou, setSalvou] = useState(false);
 
-  async function carregar() {
-    setLoading(true);
+  async function carregar(silencioso = false) {
+    if (!silencioso) setLoading(true);
     const { data } = await fetchDocumentos(unidadeAtiva);
     setLista(data || []);
     setLoading(false);
   }
   useEffect(() => { carregar(); /* eslint-disable-next-line */ }, [unidadeAtiva]);
+  useTempoReal(null, () => carregar(true)); // atualiza sozinho (15s / mudanca no banco)
 
   const resumo = useMemo(() => {
     const pendente = lista.filter((d) => d.status === "Pendente").reduce((a, d) => a + (Number(d.valor) || 0), 0);

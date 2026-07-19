@@ -1,6 +1,8 @@
 "use client";
+// tempo real: recarrega sozinho a cada 15s e quando o banco muda
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useTempoReal } from "../../../lib/realtime";
 import { Clock, CheckCircle, ChefHat, Check, Flame, LayoutGrid, Volume2, VolumeX, ArrowLeft, TriangleAlert } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchPedidosAtivos, atualizarStatusItem, finalizarPedidoTodo } from "../../../lib/kds";
@@ -61,6 +63,7 @@ export default function KDSPage() {
     const tick = setInterval(() => setAgora(Date.now()), 15000);
     return () => { clearInterval(intervalo); clearInterval(tick); };
   }, [carregar]);
+  useTempoReal(null, () => carregar(true)); // pedido novo aparece na hora
 
   async function handleClickStatus(item) {
     let novoStatus = "pendente";

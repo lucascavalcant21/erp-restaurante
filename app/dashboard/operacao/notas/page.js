@@ -1,6 +1,8 @@
 "use client";
+// tempo real: recarrega sozinho a cada 15s e quando o banco muda
 
 import { useState, useEffect, useMemo, useRef } from "react";
+import { useTempoReal } from "../../../lib/realtime";
 import { ReceiptText, ScanLine, Camera, Trash2, Calendar, Clock, ArrowDownAZ, CheckCircle, BrainCircuit, UploadCloud, X } from "lucide-react";
 import {
   PageHeader, PageBody, Card, KpiGrid, Kpi,
@@ -235,14 +237,15 @@ export default function NotasFiscaisPage() {
   const [notaExpandida, setNotaExpandida] = useState(null); // ID da nota para mostrar a foto e itens
   const [fotoAberta, setFotoAberta] = useState(null); // URL da imagem para o modal de tela cheia
 
-  async function carregar() {
-    setLoading(true);
+  async function carregar(silencioso = false) {
+    if (!silencioso) setLoading(true);
     const { data } = await fetchNotas(unidadeAtiva);
     setNotas(data || []);
     setLoading(false);
   }
 
   useEffect(() => { carregar(); /* eslint-disable-next-line */ }, [unidadeAtiva]);
+  useTempoReal(null, () => carregar(true)); // atualiza sozinho (15s / mudanca no banco)
 
   // Situação de pagamento da nota: pago, vencida, vence hoje/em breve ou a pagar
   const infoPagamento = (n) => {

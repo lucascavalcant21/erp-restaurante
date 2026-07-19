@@ -1,6 +1,8 @@
 "use client";
+// tempo real: recarrega sozinho a cada 15s e quando o banco muda
 
 import { useState, useEffect, useMemo } from "react";
+import { useTempoReal } from "../../../lib/realtime";
 import { CalendarClock, AlertTriangle, CheckCircle, Clock, Check, XCircle, TrendingDown } from "lucide-react";
 import { PageHeader, PageBody, Card, SectionLabel, KpiGrid, Kpi, Chips, SearchBar, EmptyState, fmtData, fmtBRL } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
@@ -30,12 +32,13 @@ export function ControleValidade({ embutido = false }) {
   const [filtro, setFiltro] = useState("todos");
   const [busca, setBusca] = useState("");
 
-  async function carregar() {
-    setLoading(true);
+  async function carregar(silencioso = false) {
+    if (!silencioso) setLoading(true);
     setLista(await fetchEtiquetas(unidadeAtiva, 500));
     setLoading(false);
   }
   useEffect(() => { carregar(); /* eslint-disable-next-line */ }, [unidadeAtiva]);
+  useTempoReal(null, () => carregar(true)); // atualiza sozinho (15s / mudanca no banco)
 
   async function mudarStatus(e, status) {
     setLista((p) => p.map((item) => item.id === e.id ? { ...item, status } : item));

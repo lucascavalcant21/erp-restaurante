@@ -1,6 +1,8 @@
 "use client";
+// tempo real: recarrega sozinho a cada 15s e quando o banco muda
 
 import { useState, useEffect } from "react";
+import { useTempoReal } from "../../../lib/realtime";
 import { useRouter } from "next/navigation";
 import {
   Users, ArrowLeft, Phone, CreditCard, Clock, Hourglass, CalendarHeart,
@@ -60,24 +62,25 @@ export default function VidaColaboradorPage() {
   const [vida, setVida] = useState(null); // { docs, folgas, consumo, banco, ponto }
   const [vidaLoading, setVidaLoading] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      if (!unidadeAtiva || unidadeAtiva === "todas") { setLoading(false); return; }
-      setLoading(true);
-      const hojeISO = new Date().toISOString().split("T")[0];
-      const [{ data }, rPonto, rFolgas] = await Promise.all([
-        fetchColaboradores(unidadeAtiva),
-        fetchPontoHoje(unidadeAtiva),
-        fetchAllFolgasDaUnidade(unidadeAtiva),
-      ]);
-      setColaboradores(data || []);
-      const mapa = {};
-      (rPonto.data || []).forEach(r => { mapa[r.colaborador_id] = r; });
-      setPontosHoje(mapa);
-      setFolgasHoje(new Set((rFolgas.data || []).filter(f => f.data_folga === hojeISO).map(f => f.colaborador_id)));
-      setLoading(false);
-    })();
-  }, [unidadeAtiva]);
+  const carregarLista = async (silencioso = false) => {
+    if (!unidadeAtiva || unidadeAtiva === "todas") { setLoading(false); return; }
+    if (!silencioso) setLoading(true);
+    const hojeISO = new Date().toISOString().split("T")[0];
+    const [{ data }, rPonto, rFolgas] = await Promise.all([
+      fetchColaboradores(unidadeAtiva),
+      fetchPontoHoje(unidadeAtiva),
+      fetchAllFolgasDaUnidade(unidadeAtiva),
+    ]);
+    setColaboradores(data || []);
+    const mapa = {};
+    (rPonto.data || []).forEach(r => { mapa[r.colaborador_id] = r; });
+    setPontosHoje(mapa);
+    setFolgasHoje(new Set((rFolgas.data || []).filter(f => f.data_folga === hojeISO).map(f => f.colaborador_id)));
+    setLoading(false);
+  };
+
+  useEffect(() => { carregarLista(); /* eslint-disable-next-line */ }, [unidadeAtiva]);
+  useTempoReal(null, () => carregarLista(true)); // batidas de ponto aparecem sozinhas nos cards
 
   const abrir = async (c) => {
     setSel(c);

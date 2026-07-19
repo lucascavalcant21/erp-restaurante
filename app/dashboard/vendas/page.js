@@ -1,6 +1,8 @@
 "use client";
+// tempo real: recarrega sozinho a cada 15s e quando o banco muda
 
 import { useState, useEffect, useMemo, useCallback, Suspense, useRef } from "react";
+import { useTempoReal } from "../../lib/realtime";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, Minus, Trash2, Search as SearchIcon, ArrowLeft, Image as ImageIcon, ChevronRight, X, CreditCard, Banknote, QrCode, Maximize } from "lucide-react";
 import { useERP } from "../../context/ERPContext";
@@ -44,8 +46,8 @@ function VendasPDVContent() {
     setToast(msg); setTimeout(() => setToast(""), dur);
   }, []);
 
-  const carregar = useCallback(async () => {
-    setLoading(true);
+  const carregar = useCallback(async (silencioso = false) => {
+    if (!silencioso) setLoading(true);
     const [pRes, cxRes, mRes] = await Promise.all([
       fetchCardapio(unidadeAtiva),
       fetchCaixaAberto(unidadeAtiva),
@@ -69,6 +71,7 @@ function VendasPDVContent() {
   }, [unidadeAtiva, comandaIdQuery]);
 
   useEffect(() => { carregar(); }, [carregar]);
+  useTempoReal(null, () => carregar(true)); // atualiza sozinho (15s / mudanca no banco)
 
   // CATEGORIAS (Top Carousel)
   const categorias = useMemo(() => {

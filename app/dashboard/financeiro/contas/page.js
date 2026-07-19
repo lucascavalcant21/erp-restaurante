@@ -1,6 +1,8 @@
 "use client";
+// tempo real: recarrega sozinho a cada 15s e quando o banco muda
 
 import { useState, useEffect } from "react";
+import { useTempoReal } from "../../../lib/realtime";
 import { useERP } from "../../../context/ERPContext";
 import { fetchContas, salvarConta, pagarConta, gerarContasRecorrentes, CATEGORIAS_CUSTO } from "../../../lib/financeiro";
 import { Plus, Search, CheckCircle2, CircleDashed, Filter, CalendarDays, Wallet } from "lucide-react";
@@ -16,8 +18,8 @@ export default function ContasAPagarPage() {
   const [form, setForm] = useState({ descricao: "", valor: "", data_vencimento: "", categoria: CATEGORIAS_CUSTO[0].id, recorrente: false });
   const [avisoRecorrentes, setAvisoRecorrentes] = useState("");
 
-  const carregar = async () => {
-    setLoading(true);
+  const carregar = async (silencioso = false) => {
+    if (!silencioso) setLoading(true);
     // Vira o mês: contas recorrentes se recriam sozinhas antes de listar
     const { criadas } = await gerarContasRecorrentes(unidadeAtiva);
     if (criadas > 0) {
@@ -32,6 +34,7 @@ export default function ContasAPagarPage() {
   useEffect(() => {
     if (unidadeAtiva) carregar();
   }, [unidadeAtiva]);
+  useTempoReal(null, () => carregar(true)); // atualiza sozinho (15s / mudanca no banco)
 
   const handleSalvar = async (e) => {
      e.preventDefault();

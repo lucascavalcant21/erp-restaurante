@@ -1,6 +1,8 @@
 "use client";
+// tempo real: recarrega sozinho a cada 15s e quando o banco muda
 
 import { useState, useEffect, useMemo } from "react";
+import { useTempoReal } from "../../../lib/realtime";
 import { ArrowDownUp, ArrowUpRight, ArrowDownRight, Wallet, Trash2, Plus, Minus, Search, Calendar, FileText } from "lucide-react";
 import {
   PageBody, Card, Chips, EmptyState, Modal, Field, TextInput, NumberInput, Select, Btn, Toast, fmtBRL, fmtData,
@@ -95,13 +97,14 @@ export default function FluxoCaixaFintechPage() {
   const [modalDespesa, setModalDespesa] = useState(false);
   const [salvou, setSalvou] = useState(false);
 
-  async function carregar() {
-    setLoading(true);
+  async function carregar(silencioso = false) {
+    if (!silencioso) setLoading(true);
     const { data } = await fetchLancamentos(unidadeAtiva);
     setLista(data || []);
     setLoading(false);
   }
   useEffect(() => { carregar(); /* eslint-disable-next-line */ }, [unidadeAtiva]);
+  useTempoReal(null, () => carregar(true)); // atualiza sozinho (15s / mudanca no banco)
 
   const resumo = useMemo(() => {
     const entradas = lista.filter((l) => l.tipo === "entrada").reduce((a, l) => a + (Number(l.valor) || 0), 0);

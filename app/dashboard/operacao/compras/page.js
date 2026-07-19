@@ -1,6 +1,8 @@
 "use client";
+// tempo real: recarrega sozinho a cada 15s e quando o banco muda
 
 import { useState, useEffect } from "react";
+import { useTempoReal } from "../../../lib/realtime";
 import { useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchEstoque, registrarCompra } from "../../../lib/estoque";
@@ -20,8 +22,8 @@ export default function ComprasPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState({ insumoId: "", quantidade: 1, valorPago: "", fornecedorId: "" });
 
-  const carregar = async () => {
-    setLoading(true);
+  const carregar = async (silencioso = false) => {
+    if (!silencioso) setLoading(true);
     const [ resEstoque, resFornecedores ] = await Promise.all([
       fetchEstoque(unidadeAtiva),
       fetchFornecedores(unidadeAtiva)
@@ -34,6 +36,7 @@ export default function ComprasPage() {
   useEffect(() => {
     if (unidadeAtiva) carregar();
   }, [unidadeAtiva]);
+  useTempoReal(null, () => carregar(true)); // atualiza sozinho (15s / mudanca no banco)
 
   const handleComprar = async (e) => {
      e.preventDefault();

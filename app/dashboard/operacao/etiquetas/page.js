@@ -311,37 +311,43 @@ function EtiquetasRunner() {
     const area = document.getElementById("area-impressao");
     const primeira = area?.querySelector(".etiqueta-print");
     if (!primeira) { setSalvou("A pré-visualização ainda não está pronta"); setTimeout(() => setSalvou(""), 2500); return; }
-    setSalvando(true);
-    try {
-      const resultado = await criarEtiqueta({
-        codigo, produto: nomeProduto, conservacao: form.conservacao,
-        quantidade: Number(form.quantidade), unidade: form.unidade,
-        validade_dias: Math.max(0, Math.round((validadeImpressao.getTime() - momentoImpressao.getTime()) / 86400000)),
-        manipulacao_em: momentoImpressao.toISOString(),
-        validade_em: validadeImpressao.toISOString(),
-        lote: form.lote || null, responsavel: form.responsavel.trim(),
-        custo_unit: custoMap[nomeProduto] || 0,
-        status: "ativa",
-        copias: quantidadeCopias,
-        tipo_etiqueta: tipoEtiqueta,
-      }, unidadeAtiva);
-      if (resultado.error) { setSalvou("Não foi possível registrar: " + resultado.error); setTimeout(() => setSalvou(""), 4000); return; }
-      setFila((p) => [...p, {
-        codigo, produto: nomeProduto, copias: quantidadeCopias,
-        html: primeira.outerHTML,
-        alturaMm: parseFloat(dim.h) || 40,
-        larguraMm: parseFloat(dim.paginaW) || 80,
-      }]);
-      setSalvou(`${nomeProduto} × ${quantidadeCopias} na fila`);
-      // Prepara o próximo produto: novo código, mantém responsável/conservação
-      setCodigo(gerarCodigo());
-      setCodigoSalvo(null);
-      setAssinaturaSalva(null);
-      setMomentoEtiqueta(new Date());
-      set("produto", "");
-      setCopias(1);
-      setTimeout(() => setSalvou(""), 2500);
-    } finally { setSalvando(false); }
+    // Entra na fila NA HORA; o registro no banco roda em segundo plano e, se
+    // falhar, o item sai da fila com aviso.
+    const codigoItem = codigo;
+    const nomeItem = nomeProduto;
+    setFila((p) => [...p, {
+      codigo: codigoItem, produto: nomeItem, copias: quantidadeCopias,
+      html: primeira.outerHTML,
+      alturaMm: parseFloat(dim.h) || 40,
+      larguraMm: parseFloat(dim.paginaW) || 80,
+    }]);
+    setSalvou(`${nomeItem} × ${quantidadeCopias} na fila`);
+    // Prepara o próximo produto: novo código, mantém responsável/conservação
+    setCodigo(gerarCodigo());
+    setCodigoSalvo(null);
+    setAssinaturaSalva(null);
+    setMomentoEtiqueta(new Date());
+    set("produto", "");
+    setCopias(1);
+    setTimeout(() => setSalvou(""), 2500);
+    criarEtiqueta({
+      codigo: codigoItem, produto: nomeItem, conservacao: form.conservacao,
+      quantidade: Number(form.quantidade), unidade: form.unidade,
+      validade_dias: Math.max(0, Math.round((validadeImpressao.getTime() - momentoImpressao.getTime()) / 86400000)),
+      manipulacao_em: momentoImpressao.toISOString(),
+      validade_em: validadeImpressao.toISOString(),
+      lote: form.lote || null, responsavel: form.responsavel.trim(),
+      custo_unit: custoMap[nomeItem] || 0,
+      status: "ativa",
+      copias: quantidadeCopias,
+      tipo_etiqueta: tipoEtiqueta,
+    }, unidadeAtiva).then((resultado) => {
+      if (resultado?.error) {
+        setFila((p) => p.filter((x) => x.codigo !== codigoItem));
+        setSalvou(`${nomeItem} saiu da fila — não foi possível registrar: ` + resultado.error);
+        setTimeout(() => setSalvou(""), 6000);
+      }
+    });
   }
 
   function imprimirFila() {
@@ -359,10 +365,10 @@ function EtiquetasRunner() {
         .etiqueta-print{page-break-after:auto;page-break-inside:avoid;overflow:hidden;box-shadow:none!important;border-radius:0!important;margin:0 auto!important}
       </style></head><body>
       <div id="wrap">${corpo}</div>
-      <script>window.onafterprint=function(){setTimeout(function(){try{window.close()}catch(e){}},200)}<\/script>
+      <script>window.onload=function(){setTimeout(function(){window.print()},30)};window.onafterprint=function(){setTimeout(function(){try{window.close()}catch(e){}},200)}<\/script>
       </body></html>`);
     win.document.close();
-    setTimeout(() => { try { win.focus(); win.print(); } catch (_) {} }, 350);
+    try { win.focus(); } catch (_) {}
     setSalvou("Fila enviada para impressão.");
     setTimeout(() => setSalvou(""), 2500);
   }
@@ -405,8 +411,11 @@ function EtiquetasRunner() {
     setSalvando(true);
     let etiquetaRegistrada = etiquetaJaRegistrada;
     try {
+      // O registro no banco roda EM PARALELO com a impressão: o papel sai na
+      // hora e o resultado do registro é confirmado logo em seguida.
+      let promessaRegistro = null;
       if (!etiquetaRegistrada) {
-        const resultado = await criarEtiqueta({
+        promessaRegistro = criarEtiqueta({
           codigo, produto: nomeProduto, conservacao: form.conservacao,
           quantidade: Number(form.quantidade), unidade: form.unidade,
           validade_dias: diasImpressao,
@@ -420,15 +429,6 @@ function EtiquetasRunner() {
           copias: quantidadeCopias,
           tipo_etiqueta: tipoEtiqueta,
         }, unidadeAtiva);
-
-        if (resultado.error) {
-          setSalvou("Não foi possível salvar: " + resultado.error);
-          setTimeout(() => setSalvou(""), 4000);
-          return;
-        }
-        etiquetaRegistrada = true;
-        setCodigoSalvo(codigo);
-        setAssinaturaSalva(assinaturaConteudo);
       }
 
       if (modoImpressao === "tp20") {
@@ -455,7 +455,6 @@ function EtiquetasRunner() {
         });
         setSalvou(`${quantidadeCopias} etiqueta${quantidadeCopias !== 1 ? "s" : ""} enviada${quantidadeCopias !== 1 ? "s" : ""} para ${impressoraNome}`);
       } else if (modoImpressao === "navegador") {
-        await new Promise((resolve) => setTimeout(resolve, 150));
         // Impressão ISOLADA: abre uma janela só com as etiquetas (o resto da tela
         // fazia o navegador gerar várias folhas em branco).
         const area = document.getElementById("area-impressao");
@@ -474,16 +473,30 @@ function EtiquetasRunner() {
               .etiqueta-print{page-break-after:auto;page-break-inside:avoid;overflow:hidden;box-shadow:none!important;border-radius:0!important;margin:0 auto!important}
             </style></head><body>
             <div id="wrap">${area.innerHTML}</div>
-            <script>window.onafterprint=function(){setTimeout(function(){try{window.close()}catch(e){}},200)}<\/script>
+            <script>window.onload=function(){setTimeout(function(){window.print()},30)};window.onafterprint=function(){setTimeout(function(){try{window.close()}catch(e){}},200)}<\/script>
             </body></html>`);
           win.document.close();
-          setTimeout(() => { try { win.focus(); win.print(); } catch (_) {} }, 350);
+          try { win.focus(); } catch (_) {}
         } else {
           window.print();
         }
-        setSalvou("Etiqueta salva. Impressão aberta.");
-      } else {
-        setSalvou("Etiqueta salva!");
+        setSalvou("Impressão aberta.");
+      }
+
+      // Confirma o registro que rodou em paralelo com a impressão
+      if (promessaRegistro) {
+        const resultado = await promessaRegistro;
+        if (resultado.error) {
+          setSalvou(modoImpressao
+            ? "Atenção: a etiqueta foi impressa mas NÃO ficou registrada: " + resultado.error + ". Imprima novamente para registrar."
+            : "Não foi possível salvar: " + resultado.error);
+          setTimeout(() => setSalvou(""), 7000);
+          return;
+        }
+        etiquetaRegistrada = true;
+        setCodigoSalvo(codigo);
+        setAssinaturaSalva(assinaturaConteudo);
+        if (!modoImpressao) setSalvou("Etiqueta salva!");
       }
       setTimeout(() => {
         setSalvou("");

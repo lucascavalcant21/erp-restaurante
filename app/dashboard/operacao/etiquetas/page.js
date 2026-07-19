@@ -151,6 +151,8 @@ function EtiquetasRunner() {
   const [codigoSalvo, setCodigoSalvo] = useState(null);
   const [assinaturaSalva, setAssinaturaSalva] = useState(null);
   const [copias, setCopias] = useState(1);
+  // Fila de impressão: vários produtos, cada um com suas cópias, numa tirada só
+  const [fila, setFila] = useState([]); // { codigo, produto, copias, html, alturaMm, larguraMm }
   const [impressoraStatus, setImpressoraStatus] = useState("desconectada");
   const [impressoraErro, setImpressoraErro] = useState("");
   const [impressoras, setImpressoras] = useState([]);
@@ -291,6 +293,79 @@ function EtiquetasRunner() {
   const cidadeUfUnidade = [unidadeInfo?.cidade, unidadeInfo?.uf].filter(Boolean).join("/");
   const localizacaoUnidade = [unidadeInfo?.cep ? `CEP ${fmtCEP(unidadeInfo.cep)}` : "", cidadeUfUnidade].filter(Boolean).join(" - ");
   const cadastroUnidadeCompleto = Boolean(cnpjUnidade && unidadeInfo?.cep && enderecoUnidade && unidadeInfo?.cidade && unidadeInfo?.uf);
+
+  // ── FILA: adiciona a etiqueta atual (produto × cópias) e limpa para o próximo ──
+  async function adicionarNaFila() {
+    if (salvando) return;
+    const momentoImpressao = new Date();
+    const validadeImpressao = validadeModo === "data"
+      ? (dataValidade ? new Date(`${dataValidade}T23:59:00`) : new Date(Number.NaN))
+      : new Date(momentoImpressao.getTime() + (Number(form.dias) || 0) * 86400000);
+    if (!nomeProduto) { setSalvou("Informe o produto"); setTimeout(() => setSalvou(""), 2000); return; }
+    if (!form.responsavel.trim()) { setSalvou("Informe o responsável"); setTimeout(() => setSalvou(""), 2000); return; }
+    if (Number(form.quantidade) <= 0) { setSalvou("Informe uma quantidade maior que zero"); setTimeout(() => setSalvou(""), 2500); return; }
+    if (!cadastroUnidadeCompleto) { setSalvou("Complete CNPJ, CEP, endereço, cidade e UF da unidade antes de imprimir"); setTimeout(() => setSalvou(""), 4000); return; }
+    if (!Number.isFinite(validadeImpressao.getTime()) || validadeImpressao.getTime() < momentoImpressao.getTime()) {
+      setSalvou("A validade não pode estar no passado"); setTimeout(() => setSalvou(""), 2500); return;
+    }
+    const area = document.getElementById("area-impressao");
+    const primeira = area?.querySelector(".etiqueta-print");
+    if (!primeira) { setSalvou("A pré-visualização ainda não está pronta"); setTimeout(() => setSalvou(""), 2500); return; }
+    setSalvando(true);
+    try {
+      const resultado = await criarEtiqueta({
+        codigo, produto: nomeProduto, conservacao: form.conservacao,
+        quantidade: Number(form.quantidade), unidade: form.unidade,
+        validade_dias: Math.max(0, Math.round((validadeImpressao.getTime() - momentoImpressao.getTime()) / 86400000)),
+        manipulacao_em: momentoImpressao.toISOString(),
+        validade_em: validadeImpressao.toISOString(),
+        lote: form.lote || null, responsavel: form.responsavel.trim(),
+        custo_unit: custoMap[nomeProduto] || 0,
+        status: "ativa",
+        copias: quantidadeCopias,
+        tipo_etiqueta: tipoEtiqueta,
+      }, unidadeAtiva);
+      if (resultado.error) { setSalvou("Não foi possível registrar: " + resultado.error); setTimeout(() => setSalvou(""), 4000); return; }
+      setFila((p) => [...p, {
+        codigo, produto: nomeProduto, copias: quantidadeCopias,
+        html: primeira.outerHTML,
+        alturaMm: parseFloat(dim.h) || 40,
+        larguraMm: parseFloat(dim.paginaW) || 80,
+      }]);
+      setSalvou(`${nomeProduto} × ${quantidadeCopias} na fila`);
+      // Prepara o próximo produto: novo código, mantém responsável/conservação
+      setCodigo(gerarCodigo());
+      setCodigoSalvo(null);
+      setAssinaturaSalva(null);
+      setMomentoEtiqueta(new Date());
+      set("produto", "");
+      setCopias(1);
+      setTimeout(() => setSalvou(""), 2500);
+    } finally { setSalvando(false); }
+  }
+
+  function imprimirFila() {
+    if (!fila.length) return;
+    const totalMm = fila.reduce((s, f) => s + f.alturaMm * f.copias, 0);
+    const larguraMm = Math.max(...fila.map(f => f.larguraMm));
+    const corpo = fila.map(f => Array.from({ length: f.copias }).map(() => f.html).join("")).join("");
+    const win = window.open("", "_blank", "width=420,height=640");
+    if (!win) { alert("Habilite os popups para imprimir a fila."); return; }
+    win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Fila de Etiquetas</title>
+      <style>
+        @page { size: ${larguraMm}mm ${totalMm}mm; margin: 0; }
+        *{box-sizing:border-box} html,body{margin:0;padding:0;background:#fff}
+        #wrap{width:${larguraMm}mm;margin:0 auto;display:flex;flex-direction:column;gap:0}
+        .etiqueta-print{page-break-after:auto;page-break-inside:avoid;overflow:hidden;box-shadow:none!important;border-radius:0!important;margin:0 auto!important}
+      </style></head><body>
+      <div id="wrap">${corpo}</div>
+      <script>window.onafterprint=function(){setTimeout(function(){try{window.close()}catch(e){}},200)}<\/script>
+      </body></html>`);
+    win.document.close();
+    setTimeout(() => { try { win.focus(); win.print(); } catch (_) {} }, 350);
+    setSalvou("Fila enviada para impressão.");
+    setTimeout(() => setSalvou(""), 2500);
+  }
 
   async function salvar(modoImpressao = "") {
     if (salvando) return;
@@ -615,6 +690,36 @@ function EtiquetasRunner() {
                 <Printer size={16} /> {salvando ? "Aguarde..." : "Imprimir"}
               </Btn>
             </div>
+
+            {/* FILA: vários produtos, cada um com suas cópias, numa impressão só */}
+            <Card className="!p-4 mt-3">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <SectionLabel>Fila de impressão (vários produtos)</SectionLabel>
+                {fila.length > 0 && <button onClick={() => setFila([])} className="text-[10px] font-bold" style={{ color: "#DC2626" }}>Limpar fila</button>}
+              </div>
+              <Btn variant="ghost" className="w-full" disabled={salvando} onClick={adicionarNaFila}>
+                <Tag size={15} /> Adicionar à fila: {nomeProduto || "produto"} × {quantidadeCopias}
+              </Btn>
+              {fila.length > 0 && (
+                <>
+                  <div className="space-y-1.5 mt-3 max-h-40 overflow-y-auto pr-1">
+                    {fila.map((f, idx) => (
+                      <div key={f.codigo} className="flex items-center justify-between gap-2 text-xs p-2 rounded-lg" style={{ background: "var(--elevated)" }}>
+                        <span className="font-bold truncate" style={{ color: "var(--fg-soft)" }}>{f.produto}</span>
+                        <span className="flex items-center gap-2 shrink-0">
+                          <span className="font-black" style={{ color: "var(--accent-strong)" }}>× {f.copias}</span>
+                          <button onClick={() => setFila((p) => p.filter((_, i) => i !== idx))} className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: "var(--card)", color: "#DC2626" }}><X size={12} /></button>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <Btn variant="primary" className="w-full mt-3" onClick={imprimirFila}>
+                    <Printer size={15} /> Imprimir fila ({fila.reduce((s, f) => s + f.copias, 0)} etiquetas)
+                  </Btn>
+                  <p className="text-[10px] font-medium mt-2" style={{ color: "var(--dim)" }}>Sai tudo numa tira contínua, uma etiqueta colada na outra, pela impressão do navegador. Cada produto já fica registrado no Controle de Validade ao entrar na fila.</p>
+                </>
+              )}
+            </Card>
           </div>
 
           {/* ── Preview / Etiqueta ── */}

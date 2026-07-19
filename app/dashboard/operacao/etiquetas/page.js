@@ -186,7 +186,7 @@ function EtiquetasRunner() {
   const DIMENSOES = {
     "60x40": { w: "60mm", h: "40mm", paginaW: "60mm", paginaH: "40mm", pad: "1.6mm", titulo: "3.6mm", linha: "2.5mm", resp: "2mm", qr: 36, gap: "0.35mm", secPad: "0.4mm", footLh: 1.12, respMt: "0.4mm" },
     "80x40": { w: "80mm", h: "40mm", paginaW: "80mm", paginaH: "40mm", pad: "2mm", titulo: "4.2mm", linha: "2.9mm", resp: "2.3mm", qr: 42, gap: "0.4mm", secPad: "0.5mm", footLh: 1.15, respMt: "0.5mm" },
-    "60x60": { w: "60mm", h: "60mm", paginaW: "60mm", paginaH: "60mm", pad: "3.2mm", titulo: "4.8mm", linha: "3.2mm", resp: "2.8mm", qr: 62, gap: "0.7mm", secPad: "0.8mm", footLh: 1.35, respMt: "1mm" },
+    "60x60": { w: "60mm", h: "60mm", paginaW: "60mm", paginaH: "60mm", pad: "2.8mm", titulo: "4.4mm", linha: "3mm", resp: "2.6mm", qr: 58, gap: "0.6mm", secPad: "0.7mm", footLh: 1.25, respMt: "0.7mm" },
   };
   const dim = DIMENSOES[tamanho] || DIMENSOES["60x40"];
 
@@ -791,7 +791,7 @@ function EtiquetasRunner() {
                     {/* espaço flexível empurra o rodapé pra baixo */}
                     <div style={{ flex: 1, minHeight: "0.5mm" }} />
                     {/* rodapé: empresa (esq) + QR encaixado (dir) */}
-                    <div style={{ borderTop: "0.5mm solid #000", paddingTop: dim.gap, display: "flex", justifyContent: "space-between", alignItems: "flex-end", fontSize: dim.resp, fontWeight: 800, gap: "1.5mm" }}>
+                    <div style={{ borderTop: "0.5mm solid #000", paddingTop: dim.gap, display: "flex", justifyContent: "space-between", alignItems: "flex-end", fontSize: dim.resp, fontWeight: 800, gap: "1.5mm", flexShrink: 0 }}>
                       <div style={{ minWidth: 0, lineHeight: dim.footLh }}>
                         <div>{(unidadeInfo.nome_fantasia || unidadeInfo.nome || "").toUpperCase()}</div>
                         {tamanho === "60x40" ? (

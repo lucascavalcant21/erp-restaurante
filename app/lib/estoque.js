@@ -24,6 +24,10 @@ export async function fetchEstoque(unidadeId, deptUrl) {
      unidade_medida: ins.unidade_medida,
      custo_unitario: ins.custo_unitario,
      estoque_minimo: ins.estoque_minimo ?? null,
+     estoque_maximo: ins.estoque_maximo ?? null,
+     // "ingrediente" (padrão) ou "produto" (pronto: bebidas, embalados etc.)
+     tipo: ins.tipo || "ingrediente",
+     marca: ins.marca || "",
      quantidade_atual: ins.estoque_atual?.[0]?.quantidade_atual || 0
   }));
 

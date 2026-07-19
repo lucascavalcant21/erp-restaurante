@@ -90,7 +90,7 @@ function textoLimitado(ctx, texto, largura) {
 }
 
 function desenharTexto(ctx, texto, x, y, largura, { fonte = 18, negrito = true, alinhar = "left" } = {}) {
-  ctx.font = `${negrito ? 700 : 500} ${fonte}px Arial, sans-serif`;
+  ctx.font = `${negrito ? 900 : 700} ${fonte}px Arial, sans-serif`;
   ctx.textAlign = alinhar;
   ctx.textBaseline = "top";
   const valor = textoLimitado(ctx, texto, largura);
@@ -148,17 +148,17 @@ function criarCanvasEtiqueta(perfil, dados, qrImagem) {
   const larguraInterna = direita - esquerda;
 
   const tituloFim = alto ? 70 : 48;
-  desenharTexto(ctx, String(dados.produto || "PRODUTO").toUpperCase(), esquerda, alto ? 18 : 11, larguraInterna, { fonte: alto ? 35 : 27 });
+  desenharTexto(ctx, String(dados.produto || "PRODUTO").toUpperCase(), esquerda, alto ? 18 : 11, larguraInterna, { fonte: alto ? 38 : 30 });
   desenharLinha(ctx, esquerda, tituloFim, direita, alto ? 4 : 3);
 
   const infoY = alto ? 82 : 57;
-  desenharTexto(ctx, String(dados.conservacao || "").toUpperCase(), esquerda, infoY, larguraInterna * 0.55, { fonte: alto ? 24 : 18 });
-  desenharTexto(ctx, `PESO: ${dados.quantidade}${dados.unidade !== "UN" ? ` ${dados.unidade}` : ""}`, direita, infoY, larguraInterna * 0.45, { fonte: alto ? 24 : 18, alinhar: "right" });
+  desenharTexto(ctx, String(dados.conservacao || "").toUpperCase(), esquerda, infoY, larguraInterna * 0.55, { fonte: alto ? 26 : 20 });
+  desenharTexto(ctx, `PESO: ${dados.quantidade}${dados.unidade !== "UN" ? ` ${dados.unidade}` : ""}`, direita, infoY, larguraInterna * 0.45, { fonte: alto ? 26 : 20, alinhar: "right" });
   const infoFim = alto ? 116 : 84;
   desenharLinha(ctx, esquerda, infoFim, direita, alto ? 4 : 3);
 
   const dataY = alto ? 130 : 94;
-  const fonteData = alto ? 22 : 17;
+  const fonteData = alto ? 24 : 19;
   const fechado = dados.tipoEtiqueta === "fechado" || dados.tipoEtiqueta === "dia";
   const rotuloData = fechado ? "ETIQUETADO:" : "MANIPULACAO:";
   const valorData = formatarData(dados.momento, !fechado);
@@ -170,7 +170,7 @@ function criarCanvasEtiqueta(perfil, dados, qrImagem) {
     ctx.fillStyle = "#000";
     ctx.fillRect(esquerda, faixaY, larguraInterna, faixaH);
     ctx.fillStyle = "#fff";
-    desenharTexto(ctx, `VAL: ${formatarData(dados.validade)}`, esquerda + 7, faixaY + 3, larguraInterna - 14, { fonte: alto ? 23 : 18 });
+    desenharTexto(ctx, `VAL: ${formatarData(dados.validade)}`, esquerda + 7, faixaY + 3, larguraInterna - 14, { fonte: alto ? 25 : 20 });
     ctx.fillStyle = "#000";
   } else {
     desenharTexto(ctx, "VALIDADE:", esquerda, dataY + (alto ? 31 : 24), larguraInterna * 0.43, { fonte: fonteData });
@@ -179,8 +179,8 @@ function criarCanvasEtiqueta(perfil, dados, qrImagem) {
   const datasFim = alto ? 194 : 146;
   desenharLinha(ctx, esquerda, datasFim, direita, alto ? 4 : 3);
 
-  desenharTexto(ctx, `RESP.: ${String(dados.responsavel || "—").toUpperCase()}`, esquerda, alto ? 210 : 158, larguraInterna, { fonte: alto ? 22 : 17 });
-  if (dados.lote) desenharTexto(ctx, `LOTE/SIF: ${dados.lote}`, esquerda, alto ? 240 : 181, larguraInterna, { fonte: alto ? 19 : 14 });
+  desenharTexto(ctx, `RESP.: ${String(dados.responsavel || "—").toUpperCase()}`, esquerda, alto ? 210 : 158, larguraInterna, { fonte: alto ? 24 : 19 });
+  if (dados.lote) desenharTexto(ctx, `LOTE/SIF: ${dados.lote}`, esquerda, alto ? 240 : 181, larguraInterna, { fonte: alto ? 21 : 16 });
 
   const rodapeY = alto ? 300 : 210;
   desenharLinha(ctx, esquerda, rodapeY, direita, alto ? 4 : 3);
@@ -194,7 +194,7 @@ function criarCanvasEtiqueta(perfil, dados, qrImagem) {
   const cnpj = dados.cnpj ? `CNPJ ${dados.cnpj}` : "";
   const endereco = String(dados.endereco || "").toUpperCase();
   const localizacao = String(dados.localizacao || "").toUpperCase();
-  const fonteRodape = alto ? 17 : 13;
+  const fonteRodape = alto ? 18 : 14;
   let y = rodapeY + (alto ? 12 : 8);
   [unidade, cnpj, endereco, localizacao, `#${dados.codigo}`].filter(Boolean).forEach((linha) => {
     desenharTexto(ctx, linha, esquerda, y, textoRodapeW, { fonte: fonteRodape });

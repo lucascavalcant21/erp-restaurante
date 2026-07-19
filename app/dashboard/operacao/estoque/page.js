@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchEstoque, ajustarEstoque, atualizarMinimoInsumo, atualizarMaximoInsumo, registrarCompra, fetchReposicaoMes } from "../../../lib/estoque";
+import { salvarInsumo } from "../../../lib/operacao";
+import { criarEtiqueta, gerarCodigo } from "../../../lib/etiquetas";
 import { fetchParams, PARAMS_PADRAO } from "../../../lib/parametros";
 import { useTempoReal } from "../../../lib/realtime";
-import { PackageSearch, Edit3, X, Save, ArrowLeft, RefreshCw, AlertCircle, Search, Plus, TrendingUp, Printer } from "lucide-react";
+import { PackageSearch, Edit3, X, Save, ArrowLeft, RefreshCw, AlertCircle, Search, Plus, TrendingUp, Printer, Camera, Loader2, CheckCircle2 } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
 function EstoqueRunner() {
@@ -19,6 +21,14 @@ function EstoqueRunner() {
   const [itens, setItens] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
+  const [tipoFiltro, setTipoFiltro] = useState("Todos"); // Todos | Ingredientes | Produtos prontos
+
+  // Importar lista por IA (foto de planilha/caderno com nome, marca, quantidade)
+  const [modalLista, setModalLista] = useState(false);
+  const [listaLendo, setListaLendo] = useState(false);
+  const [listaItens, setListaItens] = useState(null); // itens lidos p/ revisão
+  const [listaSalvando, setListaSalvando] = useState(false);
+  const inputListaRef = useRef(null);
   
   const [modalAjuste, setModalAjuste] = useState(false);
   const [modalEntrada, setModalEntrada] = useState(false);
@@ -51,7 +61,110 @@ function EstoqueRunner() {
   // Tempo real: entradas, baixas e produções atualizam os saldos sozinhos
   useTempoReal(["estoque_atual", "insumos", "producao_diaria"], () => { if (unidadeAtiva) carregar(true); });
 
-  const filtrados = itens.filter(i => i.nome.toLowerCase().includes(busca.toLowerCase()));
+  const filtrados = itens.filter(i =>
+    i.nome.toLowerCase().includes(busca.toLowerCase()) &&
+    (tipoFiltro === "Todos" || (tipoFiltro === "Produtos prontos" ? i.tipo === "produto" : i.tipo !== "produto"))
+  );
+
+  // ── Importar lista por IA: foto → itens revisáveis → estoque + validade ──
+  const lerFotoLista = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setListaLendo(true);
+    try {
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(",")[1]);
+        reader.onerror = () => reject(new Error("Falha ao ler a imagem"));
+        reader.readAsDataURL(file);
+      });
+      const res = await fetch("/api/ia-lista-estoque", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imagem_base64: base64, media_type: file.type || "image/jpeg" }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) { alert(data.error || "Falha ao ler a lista."); return; }
+      // Cada item ganha campos para o usuário completar: validade e preço de compra
+      setListaItens(data.itens.map(i => ({ ...i, validade: "", preco: "" })));
+    } catch { alert("Não consegui falar com a IA. Verifique a conexão."); } finally { setListaLendo(false); }
+  };
+
+  const salvarListaImportada = async () => {
+    const validos = (listaItens || []).filter(i => i.nome.trim() && Number(i.quantidade) > 0);
+    if (!validos.length) return alert("Nenhum item válido para dar entrada.");
+    setListaSalvando(true);
+    try {
+      let ok = 0;
+      for (const item of validos) {
+        const qtd = Number(item.quantidade) || 1;
+        const preco = parseFloat(String(item.preco).replace(",", ".")) || 0;
+        // Já existe no estoque? Reaproveita; senão cadastra como produto pronto
+        const existente = itens.find(x => x.nome.trim().toLowerCase() === item.nome.trim().toLowerCase());
+        let insumoId = existente?.insumo_id;
+        if (!insumoId) {
+          const r = await salvarInsumo({
+            unidade_id: unidadeAtiva,
+            nome: item.nome.trim(),
+            marca: item.marca || "",
+            tipo: "produto",
+            departamento: deptUrl || "cozinha",
+            unidade_medida: String(item.unidade || "UN").toLowerCase(),
+            custo_unitario: preco > 0 ? +(preco / qtd).toFixed(4) : 0,
+          });
+          if (r.error) { alert(`${item.nome}: ${r.error}`); continue; }
+          insumoId = r.id;
+        }
+        // Entrada no saldo: com preço vira compra (entra na reposição do mês)
+        if (preco > 0) {
+          await registrarCompra(unidadeAtiva, insumoId, item.nome.trim(), deptUrl || "cozinha", qtd, preco);
+        } else {
+          const saldoAtual = Number(existente?.quantidade_atual || 0);
+          await ajustarEstoque(unidadeAtiva, insumoId, saldoAtual + qtd);
+        }
+        // Com validade informada, gera uma etiqueta ativa: o Controle de Validade
+        // passa a avisar o que vence primeiro (o que entrou deve sair primeiro)
+        if (item.validade) {
+          await criarEtiqueta({
+            codigo: gerarCodigo(),
+            produto: item.nome.trim() + (item.marca ? ` (${item.marca})` : ""),
+            conservacao: "Ambiente",
+            quantidade: qtd,
+            unidade: String(item.unidade || "UN").toUpperCase(),
+            manipulacao_em: new Date().toISOString(),
+            validade_em: new Date(item.validade + "T12:00:00").toISOString(),
+            responsavel: "Entrada por lista (IA)",
+            custo_unit: preco > 0 ? +(preco / qtd).toFixed(4) : 0,
+            status: "ativa",
+            tipo_etiqueta: "fechado",
+          }, unidadeAtiva);
+        }
+        ok++;
+      }
+      alert(`${ok} item(ns) deram entrada no estoque.${validos.some(i => i.validade) ? "\nOs que têm validade já estão no Controle de Validade — ele avisa o que deve sair primeiro." : ""}`);
+      setModalLista(false);
+      setListaItens(null);
+      carregar();
+    } finally { setListaSalvando(false); }
+  };
+
+  // Planilha em branco para preencher à mão e depois fotografar para a IA
+  const imprimirPlanilhaLista = () => {
+    const linhas = Array.from({ length: 22 }).map(() => `<tr><td></td><td></td><td></td><td></td><td></td></tr>`).join("");
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Lista de Entrada de Produtos</title>
+      <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial;color:#111;padding:10mm}
+      h1{font-size:18px;margin-bottom:2px}p{font-size:10px;color:#555;margin-bottom:8px}
+      table{width:100%;border-collapse:collapse}th,td{border:1px solid #555;padding:9px 8px;font-size:12px;text-align:left}
+      th{background:#eee;font-size:9px;text-transform:uppercase;letter-spacing:1px}td{height:9mm}
+      @media print{@page{margin:8mm}}</style></head><body>
+      <h1>Lista de Entrada de Produtos — ${unidadeInfo?.nome || ""}</h1>
+      <p>Preencha à mão e depois tire uma foto no botão "Importar Lista (IA)" do Estoque: o sistema dá entrada sozinho.</p>
+      <table><thead><tr><th style="width:34%">Produto</th><th style="width:18%">Marca</th><th style="width:12%">Qtd</th><th style="width:18%">Validade</th><th style="width:18%">Preço de compra</th></tr></thead>
+      <tbody>${linhas}</tbody></table></body></html>`;
+    const win = window.open("", "_blank", "width=900,height=1000");
+    if (win) { win.document.write(html); win.document.close(); setTimeout(() => win.print(), 300); }
+    else alert("Habilite os popups para imprimir.");
+  };
 
   // Planilha de contagem imprimível: saldo do sistema + colunas em branco para
   // a contagem física e a diferença — agrupada por departamento.
@@ -240,11 +353,14 @@ function EstoqueRunner() {
                  <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Saldos e Entradas {deptUrl ? `- ${deptUrl}` : ''}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-               <button onClick={imprimirCompras} className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold transition-colors shadow-sm ${abaixoDoMinimo.length ? "bg-amber-500 text-white hover:bg-amber-600" : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"}`}>
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+               <button onClick={() => { setModalLista(true); setListaItens(null); }} className="flex items-center justify-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-4 py-3 rounded-xl font-bold hover:bg-emerald-50 transition-colors shadow-sm">
+                  <Camera size={18} /> <span className="hidden sm:inline">Importar Lista (IA)</span><span className="sm:hidden">Lista IA</span>
+               </button>
+               <button onClick={imprimirCompras} className={`flex items-center gap-2 px-4 py-3 rounded-xl font-bold transition-colors shadow-sm ${abaixoDoMinimo.length ? "bg-amber-500 text-white hover:bg-amber-600" : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"}`}>
                   <Plus size={18} /> Compras{abaixoDoMinimo.length ? ` (${abaixoDoMinimo.length})` : ""}
                </button>
-               <button onClick={imprimirPlanilha} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-5 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm">
+               <button onClick={imprimirPlanilha} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-4 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm">
                   <Printer size={18} /> Planilha
                </button>
             </div>
@@ -283,9 +399,22 @@ function EstoqueRunner() {
             </div>
          </div>
 
-         <div className="bg-white p-3 rounded-2xl border border-slate-200 mb-6 flex items-center gap-3 shadow-sm">
+         <div className="bg-white p-3 rounded-2xl border border-slate-200 mb-3 flex items-center gap-3 shadow-sm">
             <Search size={20} className="text-slate-500 ml-2" />
-            <input type="text" placeholder="Buscar ingrediente..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-bold text-slate-700 p-2" />
+            <input type="text" placeholder="Buscar ingrediente ou produto..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-bold text-slate-700 p-2" />
+         </div>
+
+         {/* Ingredientes × produtos prontos */}
+         <div className="flex gap-1.5 mb-6 overflow-x-auto pb-1">
+            {["Todos", "Ingredientes", "Produtos prontos"].map(t => {
+               const n = t === "Todos" ? itens.length : itens.filter(i => t === "Produtos prontos" ? i.tipo === "produto" : i.tipo !== "produto").length;
+               return (
+                  <button key={t} onClick={() => setTipoFiltro(t)}
+                     className={`px-3.5 py-1.5 rounded-full text-[11px] font-black whitespace-nowrap transition-colors ${tipoFiltro === t ? "bg-slate-900 text-white" : "bg-white text-slate-500 border border-slate-200"}`}>
+                     {t} <span className={tipoFiltro === t ? "text-slate-400" : "text-slate-400"}>({n})</span>
+                  </button>
+               );
+            })}
          </div>
 
          <div className="rounded-2xl overflow-x-auto shadow-md border border-slate-200">
@@ -322,8 +451,9 @@ function EstoqueRunner() {
                      <div className="flex items-center gap-3 min-w-0">
                        <div className={`w-1 h-10 rounded-full shrink-0 ${zerado ? 'bg-red-400' : critico ? 'bg-amber-400' : acima ? 'bg-sky-400' : 'bg-emerald-400'}`} />
                        <div className="min-w-0">
-                         <p className="font-bold text-slate-800 text-[15px] leading-tight truncate">{ins.nome}</p>
+                         <p className="font-bold text-slate-800 text-[15px] leading-tight truncate">{ins.nome}{ins.marca ? <span className="text-slate-400 font-medium"> · {ins.marca}</span> : null}</p>
                          <span className={`inline-block text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mt-1 ${deptColor}`}>{ins.departamento}</span>
+                         {ins.tipo === "produto" && <span className="inline-block text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mt-1 ml-1 bg-sky-100 text-sky-700">Produto pronto</span>}
                        </div>
                      </div>
                      {/* Custo */}
@@ -457,6 +587,73 @@ function EstoqueRunner() {
                <button onClick={handleSalvarEntrada} className="w-full mt-8 py-5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-500/20 active:scale-95 flex items-center justify-center gap-2">
                   <TrendingUp size={20}/> Somar ao Estoque
                </button>
+            </div>
+         </div>
+      )}
+
+      {/* IMPORTAR LISTA POR IA */}
+      {modalLista && (
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-[32px] w-full max-w-2xl p-5 sm:p-8 max-h-[calc(100dvh-1rem)] overflow-y-auto shadow-2xl animate-in zoom-in-95">
+               <div className="flex justify-between items-center mb-4">
+                  <h2 className="font-black text-2xl text-slate-800">Importar Lista de Produtos</h2>
+                  <button onClick={() => { setModalLista(false); setListaItens(null); }} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+               </div>
+
+               <input ref={inputListaRef} type="file" accept="image/*" className="hidden" onChange={lerFotoLista} />
+
+               {!listaItens ? (
+                  <div className="flex flex-col items-center gap-4 p-8 border-2 border-dashed border-slate-200 rounded-2xl">
+                     {listaLendo ? (
+                        <>
+                           <Loader2 size={40} className="animate-spin text-emerald-600" />
+                           <p className="font-bold text-slate-600">A IA está lendo a lista (nome, marca e quantidade)...</p>
+                        </>
+                     ) : (
+                        <>
+                           <Camera size={40} className="text-emerald-600" />
+                           <p className="font-bold text-slate-700 text-center">Tire uma foto da lista ou planilha de produtos<br/><span className="text-sm font-medium text-slate-400">A IA lê nome, marca e quantidade — você só completa validade e preço de compra</span></p>
+                           <button onClick={() => inputListaRef.current?.click()} className="px-6 py-3 rounded-xl bg-emerald-600 text-white font-bold flex items-center gap-2"><Camera size={16}/> Abrir câmera / galeria</button>
+                           <button onClick={imprimirPlanilhaLista} className="text-xs font-bold text-slate-500 flex items-center gap-1.5"><Printer size={13}/> Imprimir planilha em branco para preencher à mão</button>
+                        </>
+                     )}
+                  </div>
+               ) : (
+                  <>
+                     <p className="text-xs font-bold text-slate-500 mb-3">{listaItens.length} item(ns) lidos. Confira e complete a <span className="text-amber-600">validade</span> e o <span className="text-emerald-600">preço de compra</span> (opcionais):</p>
+                     <div className="space-y-2 max-h-[46vh] overflow-y-auto pr-1">
+                        {listaItens.map((it, idx) => (
+                           <div key={idx} className="p-3 rounded-xl border border-slate-200 bg-slate-50">
+                              <div className="grid grid-cols-[1fr_auto] gap-2 items-center">
+                                 <input value={it.nome} onChange={e => setListaItens(p => p.map((x, i) => i === idx ? { ...x, nome: e.target.value } : x))}
+                                    className="font-bold text-slate-800 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm outline-none focus:border-emerald-500" placeholder="Nome do produto" />
+                                 <button onClick={() => setListaItens(p => p.filter((_, i) => i !== idx))} className="w-8 h-8 rounded-lg bg-white border border-slate-200 text-red-500 flex items-center justify-center"><X size={14}/></button>
+                              </div>
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
+                                 <input value={it.marca} onChange={e => setListaItens(p => p.map((x, i) => i === idx ? { ...x, marca: e.target.value } : x))}
+                                    className="bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-600 outline-none" placeholder="Marca" />
+                                 <div className="flex items-center gap-1">
+                                    <input type="number" value={it.quantidade} onChange={e => setListaItens(p => p.map((x, i) => i === idx ? { ...x, quantidade: e.target.value } : x))}
+                                       className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-black text-slate-800 outline-none" placeholder="Qtd" />
+                                    <span className="text-[10px] font-black text-slate-400">{it.unidade}</span>
+                                 </div>
+                                 <input type="date" value={it.validade} onChange={e => setListaItens(p => p.map((x, i) => i === idx ? { ...x, validade: e.target.value } : x))}
+                                    className="bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5 text-xs font-bold text-amber-800 outline-none" title="Validade" />
+                                 <input type="number" step="0.01" value={it.preco} onChange={e => setListaItens(p => p.map((x, i) => i === idx ? { ...x, preco: e.target.value } : x))}
+                                    className="bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-emerald-800 outline-none" placeholder="Preço R$ (total)" />
+                              </div>
+                           </div>
+                        ))}
+                     </div>
+                     <div className="flex gap-3 mt-5">
+                        <button onClick={() => setListaItens(null)} className="flex-1 py-4 rounded-2xl bg-slate-100 text-slate-600 font-bold">Ler outra foto</button>
+                        <button onClick={salvarListaImportada} disabled={listaSalvando} className="flex-1 py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black flex items-center justify-center gap-2 disabled:opacity-60">
+                           {listaSalvando ? <Loader2 size={18} className="animate-spin"/> : <CheckCircle2 size={18}/>} Dar entrada no estoque
+                        </button>
+                     </div>
+                     <p className="text-[10px] font-medium text-slate-400 mt-3">Itens com validade entram no Controle de Validade e no aviso de "sai primeiro". Itens com preço entram como compra na reposição do mês.</p>
+                  </>
+               )}
             </div>
          </div>
       )}

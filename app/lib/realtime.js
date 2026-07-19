@@ -26,23 +26,39 @@ export function iniciarTempoReal() {
   }
 }
 
-// Hook: chama onMudou quando alguma das tabelas mudar (debounce de 700ms para
+// Hook: chama onMudou quando alguma das tabelas mudar (debounce de 300ms para
 // rajadas — ex.: salvar a escala grava várias linhas de uma vez).
 // tabelas = null/[] escuta TUDO.
+// Além do aviso do Supabase, recarrega sozinho a cada 15s com a aba visível e
+// na hora em que o usuário volta para o app — assim uma batida de ponto aparece
+// no RH mesmo se o realtime do banco não estiver habilitado.
 export function useTempoReal(tabelas, onMudou) {
   const cb = useRef(onMudou);
   cb.current = onMudou;
   const timer = useRef(null);
 
   useEffect(() => {
+    const disparar = (t) => {
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => { if (cb.current) cb.current(t); }, 300);
+    };
     const h = (e) => {
       const t = e.detail && e.detail.tabela;
       if (tabelas && tabelas.length && !tabelas.includes(t)) return;
-      clearTimeout(timer.current);
-      timer.current = setTimeout(() => { if (cb.current) cb.current(t); }, 700);
+      disparar(t);
     };
+    const aoVoltar = () => { if (document.visibilityState === "visible") disparar(null); };
+    const intervalo = setInterval(() => { if (document.visibilityState === "visible") disparar(null); }, 15000);
     window.addEventListener("hefisto:mudou", h);
-    return () => { clearTimeout(timer.current); window.removeEventListener("hefisto:mudou", h); };
+    window.addEventListener("focus", aoVoltar);
+    document.addEventListener("visibilitychange", aoVoltar);
+    return () => {
+      clearTimeout(timer.current);
+      clearInterval(intervalo);
+      window.removeEventListener("hefisto:mudou", h);
+      window.removeEventListener("focus", aoVoltar);
+      document.removeEventListener("visibilitychange", aoVoltar);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(tabelas || [])]);
 }

@@ -1279,20 +1279,20 @@ function FichasRunner() {
                      imprimirFichas(fichas); // livro completo: capa, índice, páginas e seções
                   }}
                   title="Livro completo: capa, índice, páginas numeradas e seções (pré-preparos, preparos, molhos, pratos, sobremesas, sucos)"
-                  className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-slate-50 transition-colors shadow-sm">
-                  <Printer size={18} /> <span className="hidden md:inline">Livro de Receitas</span><span className="md:hidden">Livro</span>
+                  className="flex items-center justify-center gap-2 min-w-0 overflow-hidden bg-white text-slate-700 border border-slate-200 px-2 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-slate-50 transition-colors shadow-sm">
+                  <Printer size={18} /> <span className="hidden xl:inline">Livro de Receitas</span><span className="xl:hidden">Livro</span>
                </button>
-               <button onClick={imprimirPlanilhaCustos} title="Tabela com custo, preço de venda, CMV de cada receita e o CMV médio" className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-slate-50 transition-colors shadow-sm">
-                  <Calculator size={18} /> <span className="hidden md:inline">Planilha de Custos</span><span className="md:hidden">Custos</span>
+               <button onClick={imprimirPlanilhaCustos} title="Tabela com custo, preço de venda, CMV de cada receita e o CMV médio" className="flex items-center justify-center gap-2 min-w-0 overflow-hidden bg-white text-slate-700 border border-slate-200 px-2 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-slate-50 transition-colors shadow-sm">
+                  <Calculator size={18} /> <span className="hidden xl:inline">Planilha de Custos</span><span className="xl:hidden">Custos</span>
                </button>
                <input ref={inputCardapioRef} type="file" accept="image/*" onChange={importarCardapioFoto} className="hidden" />
-               <button onClick={() => inputCardapioRef.current?.click()} disabled={importandoCardapio} title="Envie a FOTO do seu cardápio: a IA cria as fichas de pratos, sobremesas e sucos já com o preço de venda — depois é só pôr os ingredientes" className="flex items-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-emerald-50 transition-colors shadow-sm disabled:opacity-60">
-                  {importandoCardapio ? <Loader2 size={18} className="animate-spin" /> : <Camera size={18} />} <span className="hidden md:inline">Importar Cardápio</span><span className="md:hidden">Cardápio</span>
+               <button onClick={() => inputCardapioRef.current?.click()} disabled={importandoCardapio} title="Envie a FOTO do seu cardápio: a IA cria as fichas de pratos, sobremesas e sucos já com o preço de venda — depois é só pôr os ingredientes" className="flex items-center justify-center gap-2 min-w-0 overflow-hidden bg-white text-emerald-700 border border-emerald-200 px-2 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-emerald-50 transition-colors shadow-sm disabled:opacity-60">
+                  {importandoCardapio ? <Loader2 size={18} className="animate-spin" /> : <Camera size={18} />} <span className="hidden xl:inline">Importar Cardápio</span><span className="xl:hidden">Cardápio</span>
                </button>
-               <button onClick={abrirModalIAFicha} className="flex items-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-emerald-50 transition-colors shadow-sm">
+               <button onClick={abrirModalIAFicha} className="flex items-center justify-center gap-2 min-w-0 overflow-hidden bg-white text-emerald-700 border border-emerald-200 px-2 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-emerald-50 transition-colors shadow-sm">
                   <Sparkles size={18} /> Montar com IA
                </button>
-               <button onClick={abrirNova} className="flex items-center gap-2 text-white px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap transition-colors shadow-lg bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20">
+               <button onClick={abrirNova} className="flex items-center justify-center gap-2 min-w-0 overflow-hidden text-white px-2 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap transition-colors shadow-lg bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20">
                   <Plus size={18} /> Nova Ficha
                </button>
             </div>

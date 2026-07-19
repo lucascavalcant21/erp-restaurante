@@ -178,9 +178,9 @@ function EtiquetasRunner() {
   // Dimensões/escala da etiqueta conforme o tamanho escolhido.
   // 80x40 = bobina adesiva com divisórias (die-cut) de 80mm × 40mm.
   const DIMENSOES = {
-    "60x40": { w: "60mm", h: "40mm", paginaW: "60mm", paginaH: "40mm", pad: "1.6mm", titulo: "3mm", linha: "2.05mm", resp: "1.8mm", qr: 38, gap: "0.35mm", secPad: "0.4mm", footLh: 1.12, respMt: "0.4mm" },
-    "80x40": { w: "80mm", h: "40mm", paginaW: "80mm", paginaH: "40mm", pad: "2mm", titulo: "3.4mm", linha: "2.3mm", resp: "2mm", qr: 44, gap: "0.4mm", secPad: "0.5mm", footLh: 1.15, respMt: "0.5mm" },
-    "60x60": { w: "60mm", h: "60mm", paginaW: "60mm", paginaH: "60mm", pad: "3.2mm", titulo: "4.4mm", linha: "2.9mm", resp: "2.55mm", qr: 64, gap: "0.7mm", secPad: "0.8mm", footLh: 1.35, respMt: "1mm" },
+    "60x40": { w: "60mm", h: "40mm", paginaW: "60mm", paginaH: "40mm", pad: "1.6mm", titulo: "3.6mm", linha: "2.5mm", resp: "2mm", qr: 36, gap: "0.35mm", secPad: "0.4mm", footLh: 1.12, respMt: "0.4mm" },
+    "80x40": { w: "80mm", h: "40mm", paginaW: "80mm", paginaH: "40mm", pad: "2mm", titulo: "4.2mm", linha: "2.9mm", resp: "2.3mm", qr: 42, gap: "0.4mm", secPad: "0.5mm", footLh: 1.15, respMt: "0.5mm" },
+    "60x60": { w: "60mm", h: "60mm", paginaW: "60mm", paginaH: "60mm", pad: "3.2mm", titulo: "4.8mm", linha: "3.2mm", resp: "2.8mm", qr: 62, gap: "0.7mm", secPad: "0.8mm", footLh: 1.35, respMt: "1mm" },
   };
   const dim = DIMENSOES[tamanho] || DIMENSOES["60x40"];
 
@@ -386,13 +386,17 @@ function EtiquetasRunner() {
         const area = document.getElementById("area-impressao");
         const win = area ? window.open("", "_blank", "width=420,height=640") : null;
         if (win && area) {
+          // Uma TIRA CONTÍNUA única (altura = cópias × altura da etiqueta): uma
+          // página por etiqueta fazia o driver arredondar a altura e as etiquetas
+          // saíam espaçadas em vez de uma colada na outra.
+          const alturaEtqMm = parseFloat(dim.h) || 40;
+          const alturaTiraMm = alturaEtqMm * quantidadeCopias;
           win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Etiquetas</title>
             <style>
-              @page { size: ${dim.paginaW} ${dim.paginaH}; margin: 0; }
+              @page { size: ${dim.paginaW} ${alturaTiraMm}mm; margin: 0; }
               *{box-sizing:border-box} html,body{margin:0;padding:0;background:#fff}
               #wrap{width:${dim.paginaW};margin:0 auto;display:flex;flex-direction:column;gap:0}
-              .etiqueta-print{page-break-after:always;overflow:hidden;box-shadow:none!important;border-radius:0!important;margin:0 auto!important}
-              .etiqueta-print:last-child{page-break-after:auto}
+              .etiqueta-print{page-break-after:auto;page-break-inside:avoid;overflow:hidden;box-shadow:none!important;border-radius:0!important;margin:0 auto!important}
             </style></head><body>
             <div id="wrap">${area.innerHTML}</div>
             <script>window.onafterprint=function(){setTimeout(function(){try{window.close()}catch(e){}},200)}<\/script>
@@ -430,8 +434,8 @@ function EtiquetasRunner() {
           body * { visibility: hidden !important; }
           #area-impressao, #area-impressao * { visibility: visible !important; }
           #area-impressao { position: absolute !important; left: 0; top: 0; margin: 0; padding: 0; background: #fff !important; color: #000 !important; width: 80mm !important; display: flex !important; flex-direction: column !important; gap: 0 !important; }
-          .etiqueta-print { page-break-after: always; overflow: hidden; border-radius: 0 !important; box-shadow: none !important; border: none !important; margin-left: auto !important; margin-right: auto !important; margin-top: 0 !important; margin-bottom: 2mm !important; }
-          @page { size: 80mm ${dim.paginaH}; margin: 0; }
+          .etiqueta-print { page-break-after: auto; page-break-inside: avoid; overflow: hidden; border-radius: 0 !important; box-shadow: none !important; border: none !important; margin: 0 auto !important; }
+          @page { size: ${dim.paginaW} ${dim.paginaH}; margin: 0; }
         }
       `}} />
       <PageHeader title={`Etiquetas${deptUrl ? ` — ${deptUrl === 'bar' ? 'Bar' : 'Cozinha'}` : ''}`} subtitle={`QR Code + rastreio · ${unidadeInfo.nome}`} icon={Tag} />
@@ -632,11 +636,11 @@ function EtiquetasRunner() {
                 {Array.from({ length: quantidadeCopias }).map((_, idx) => (
                   <div key={idx} className="etiqueta-print shadow-sm" style={{ width: dim.w, height: dim.h, marginLeft: "auto", marginRight: "auto", background: "#fff", color: "#000", padding: dim.pad, fontFamily: "'Courier New', monospace", borderRadius: 8, display: "flex", flexDirection: "column", overflow: "hidden", flexShrink: 0 }}>
                     {/* produto */}
-                    <div style={{ fontSize: dim.titulo, fontWeight: 800, lineHeight: 1.0, textTransform: "uppercase", paddingBottom: dim.gap, borderBottom: "0.5mm solid #000" }}>
+                    <div style={{ fontSize: dim.titulo, fontWeight: 900, lineHeight: 1.0, textTransform: "uppercase", paddingBottom: dim.gap, borderBottom: "0.5mm solid #000" }}>
                       {nomeProduto || "PRODUTO"}
                     </div>
                     {/* conservação + qtd */}
-                    <div style={{ display: "flex", justifyContent: "space-between", whiteSpace: "nowrap", fontSize: dim.linha, fontWeight: 700, padding: `${dim.secPad} 0`, borderBottom: "0.4mm solid #000" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", whiteSpace: "nowrap", fontSize: dim.linha, fontWeight: 800, padding: `${dim.secPad} 0`, borderBottom: "0.4mm solid #000" }}>
                       <span>{form.conservacao.toUpperCase()}</span>
                       <span>PESO: {form.quantidade}{form.unidade !== "UN" ? " " + form.unidade : ""}</span>
                     </div>
@@ -645,12 +649,12 @@ function EtiquetasRunner() {
                     <div style={{ padding: `${dim.secPad} 0`, borderBottom: "0.4mm solid #000" }}>
                       {tipoEtiqueta === "aberto" ? (
                         <>
-                          <div style={{ display: "flex", justifyContent: "space-between", whiteSpace: "nowrap", fontSize: dim.linha, fontWeight: 700 }}><span>MANIPULACAO:</span><span>{fmtDataHora(agora)}</span></div>
+                          <div style={{ display: "flex", justifyContent: "space-between", whiteSpace: "nowrap", fontSize: dim.linha, fontWeight: 800 }}><span>MANIPULACAO:</span><span>{fmtDataHora(agora)}</span></div>
                           <div style={{ display: "flex", justifyContent: "space-between", whiteSpace: "nowrap", fontSize: dim.linha, fontWeight: 900, marginTop: "0.4mm" }}><span>VALIDADE:</span><span>{fmtDataHora(validadeEm)}</span></div>
                         </>
                       ) : (
                         <>
-                          <div style={{ display: "flex", justifyContent: "space-between", whiteSpace: "nowrap", fontSize: dim.linha, fontWeight: 700 }}><span>ETIQUETADO:</span><span>{fmtData(agora)}</span></div>
+                          <div style={{ display: "flex", justifyContent: "space-between", whiteSpace: "nowrap", fontSize: dim.linha, fontWeight: 800 }}><span>ETIQUETADO:</span><span>{fmtData(agora)}</span></div>
                           <div style={{ background: "#000", color: "#fff", textAlign: "center", whiteSpace: "nowrap", fontSize: dim.titulo, fontWeight: 900, letterSpacing: "0.3mm", padding: "0.7mm 0", marginTop: "0.4mm", borderRadius: "0.8mm" }}>
                             VAL: {fmtData(validadeEm)}
                           </div>
@@ -658,12 +662,12 @@ function EtiquetasRunner() {
                       )}
                     </div>
                     {/* responsável */}
-                    <div style={{ fontSize: dim.linha, fontWeight: 700, marginTop: dim.respMt }}>RESP.: {(form.responsavel || "—").toUpperCase()}</div>
-                    {form.lote && <div style={{ fontSize: dim.resp, fontWeight: 700, marginTop: "0.4mm" }}>LOTE/SIF: {form.lote}</div>}
+                    <div style={{ fontSize: dim.linha, fontWeight: 800, marginTop: dim.respMt }}>RESP.: {(form.responsavel || "—").toUpperCase()}</div>
+                    {form.lote && <div style={{ fontSize: dim.resp, fontWeight: 800, marginTop: "0.4mm" }}>LOTE/SIF: {form.lote}</div>}
                     {/* espaço flexível empurra o rodapé pra baixo */}
                     <div style={{ flex: 1, minHeight: "0.5mm" }} />
                     {/* rodapé: empresa (esq) + QR encaixado (dir) */}
-                    <div style={{ borderTop: "0.5mm solid #000", paddingTop: dim.gap, display: "flex", justifyContent: "space-between", alignItems: "flex-end", fontSize: dim.resp, fontWeight: 700, gap: "1.5mm" }}>
+                    <div style={{ borderTop: "0.5mm solid #000", paddingTop: dim.gap, display: "flex", justifyContent: "space-between", alignItems: "flex-end", fontSize: dim.resp, fontWeight: 800, gap: "1.5mm" }}>
                       <div style={{ minWidth: 0, lineHeight: dim.footLh }}>
                         <div>{(unidadeInfo.nome_fantasia || unidadeInfo.nome || "").toUpperCase()}</div>
                         {tamanho === "60x40" ? (

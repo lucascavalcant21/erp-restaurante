@@ -29,6 +29,16 @@ function EstoqueRunner() {
   const [listaItens, setListaItens] = useState(null); // itens lidos p/ revisão
   const [listaSalvando, setListaSalvando] = useState(false);
   const inputListaRef = useRef(null);
+
+  // Contagem de estoque por IA: foto da planilha preenchida ou ditado por voz
+  const [modalContagem, setModalContagem] = useState(false);
+  const [contagemLendo, setContagemLendo] = useState(false);
+  const [contagemItens, setContagemItens] = useState(null); // [{nome, quantidade, insumo}]
+  const [contagemSalvando, setContagemSalvando] = useState(false);
+  const [ditado, setDitado] = useState("");
+  const [gravando, setGravando] = useState(false);
+  const inputContagemRef = useRef(null);
+  const reconhecimentoRef = useRef(null);
   
   const [modalAjuste, setModalAjuste] = useState(false);
   const [modalEntrada, setModalEntrada] = useState(false);
@@ -146,6 +156,88 @@ function EstoqueRunner() {
       setListaItens(null);
       carregar();
     } finally { setListaSalvando(false); }
+  };
+
+  // ── Contagem por IA: casa o que foi lido com os itens do estoque ──────────
+  const casarContagem = (lidos) => lidos.map(l => {
+    const alvo = l.nome.trim().toLowerCase();
+    const insumo = itens.find(x => x.nome.trim().toLowerCase() === alvo)
+      || itens.find(x => x.nome.toLowerCase().includes(alvo) || alvo.includes(x.nome.toLowerCase()));
+    return { ...l, insumo: insumo || null };
+  });
+
+  const lerFotoContagem = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setContagemLendo(true);
+    try {
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(",")[1]);
+        reader.onerror = () => reject(new Error("Falha ao ler a imagem"));
+        reader.readAsDataURL(file);
+      });
+      const res = await fetch("/api/ia-contagem", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imagem_base64: base64, media_type: file.type || "image/jpeg" }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) { alert(data.error || "Falha ao ler a contagem."); return; }
+      setContagemItens(casarContagem(data.itens));
+    } catch { alert("Não consegui falar com a IA. Verifique a conexão."); } finally { setContagemLendo(false); }
+  };
+
+  const interpretarDitado = async () => {
+    if (!ditado.trim()) return alert("Fale ou digite a contagem primeiro.");
+    setContagemLendo(true);
+    try {
+      const res = await fetch("/api/ia-contagem", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ texto: ditado }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) { alert(data.error || "Falha ao interpretar a contagem."); return; }
+      setContagemItens(casarContagem(data.itens));
+    } catch { alert("Não consegui falar com a IA. Verifique a conexão."); } finally { setContagemLendo(false); }
+  };
+
+  // Voz → texto direto no navegador (Chrome/Android, em pt-BR), sem custo de IA
+  const alternarGravacao = () => {
+    if (gravando) { try { reconhecimentoRef.current?.stop(); } catch {} setGravando(false); return; }
+    const SR = typeof window !== "undefined" && (window.SpeechRecognition || window.webkitSpeechRecognition);
+    if (!SR) return alert("Este navegador não tem ditado por voz. Use o Chrome no celular/tablet, ou digite a contagem no campo abaixo.");
+    const rec = new SR();
+    rec.lang = "pt-BR";
+    rec.continuous = true;
+    rec.interimResults = false;
+    rec.onresult = (ev) => {
+      const trecho = Array.from(ev.results).slice(ev.resultIndex).map(r => r[0]?.transcript || "").join(" ");
+      if (trecho.trim()) setDitado(p => (p ? p + ", " : "") + trecho.trim());
+    };
+    rec.onerror = () => setGravando(false);
+    rec.onend = () => setGravando(false);
+    reconhecimentoRef.current = rec;
+    setDitado("");
+    setGravando(true);
+    try { rec.start(); } catch { setGravando(false); }
+  };
+
+  const aplicarContagem = async () => {
+    const validos = (contagemItens || []).filter(c => c.insumo && Number.isFinite(Number(c.quantidade)));
+    if (!validos.length) return alert("Nenhum item casou com o estoque. Confira os nomes.");
+    setContagemSalvando(true);
+    try {
+      for (const c of validos) {
+        await ajustarEstoque(unidadeAtiva, c.insumo.insumo_id, Number(c.quantidade));
+      }
+      const ignorados = (contagemItens || []).length - validos.length;
+      alert(`Contagem aplicada: ${validos.length} item(ns) com saldo atualizado.${ignorados ? `\n${ignorados} item(ns) não encontrados no estoque foram ignorados.` : ""}`);
+      setModalContagem(false);
+      setContagemItens(null);
+      setDitado("");
+      carregar();
+    } finally { setContagemSalvando(false); }
   };
 
   // Planilha em branco para preencher à mão e depois fotografar para a IA
@@ -360,8 +452,8 @@ function EstoqueRunner() {
                <button onClick={imprimirCompras} className={`flex items-center gap-2 px-4 py-3 rounded-xl font-bold transition-colors shadow-sm ${abaixoDoMinimo.length ? "bg-amber-500 text-white hover:bg-amber-600" : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"}`}>
                   <Plus size={18} /> Compras{abaixoDoMinimo.length ? ` (${abaixoDoMinimo.length})` : ""}
                </button>
-               <button onClick={imprimirPlanilha} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-4 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm">
-                  <Printer size={18} /> Planilha
+               <button onClick={() => { setModalContagem(true); setContagemItens(null); }} className="flex items-center gap-2 bg-slate-900 text-white px-4 py-3 rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-sm">
+                  <RefreshCw size={18} /> <span className="hidden sm:inline">Contagem (IA)</span><span className="sm:hidden">Contagem</span>
                </button>
             </div>
          </div>
@@ -587,6 +679,86 @@ function EstoqueRunner() {
                <button onClick={handleSalvarEntrada} className="w-full mt-8 py-5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-500/20 active:scale-95 flex items-center justify-center gap-2">
                   <TrendingUp size={20}/> Somar ao Estoque
                </button>
+            </div>
+         </div>
+      )}
+
+      {/* CONTAGEM DE ESTOQUE POR IA (foto da planilha preenchida ou voz) */}
+      {modalContagem && (
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-[32px] w-full max-w-2xl p-5 sm:p-8 max-h-[calc(100dvh-1rem)] overflow-y-auto shadow-2xl animate-in zoom-in-95">
+               <div className="flex justify-between items-center mb-4">
+                  <h2 className="font-black text-2xl text-slate-800">Contagem de Estoque</h2>
+                  <button onClick={() => { setModalContagem(false); setContagemItens(null); try { reconhecimentoRef.current?.stop(); } catch {} }} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+               </div>
+
+               <input ref={inputContagemRef} type="file" accept="image/*" className="hidden" onChange={lerFotoContagem} />
+
+               {contagemLendo ? (
+                  <div className="flex flex-col items-center gap-4 p-10">
+                     <Loader2 size={40} className="animate-spin text-emerald-600" />
+                     <p className="font-bold text-slate-600">A IA está lendo a contagem...</p>
+                  </div>
+               ) : !contagemItens ? (
+                  <div className="space-y-4">
+                     <div className="grid sm:grid-cols-2 gap-3">
+                        <button onClick={imprimirPlanilha} className="p-4 rounded-2xl border-2 border-slate-200 text-left hover:border-slate-400 transition-colors">
+                           <Printer size={22} className="text-slate-600 mb-2" />
+                           <p className="font-black text-slate-800 text-sm">1. Imprimir planilha</p>
+                           <p className="text-xs font-medium text-slate-400 mt-0.5">Sai com todos os itens e a coluna "Contagem física" em branco para preencher à mão.</p>
+                        </button>
+                        <button onClick={() => inputContagemRef.current?.click()} className="p-4 rounded-2xl border-2 border-emerald-200 bg-emerald-50/40 text-left hover:border-emerald-400 transition-colors">
+                           <Camera size={22} className="text-emerald-600 mb-2" />
+                           <p className="font-black text-slate-800 text-sm">2. Fotografar planilha preenchida</p>
+                           <p className="text-xs font-medium text-slate-400 mt-0.5">A IA lê a coluna preenchida e atualiza os saldos sozinha.</p>
+                        </button>
+                     </div>
+                     <div className="p-4 rounded-2xl border-2 border-slate-200">
+                        <p className="font-black text-slate-800 text-sm mb-1">Ou conte por voz</p>
+                        <p className="text-xs font-medium text-slate-400 mb-3">Aperte o microfone e fale: "banana cinco, tomate dois e meio, leite condensado doze". Confira o texto e mande interpretar.</p>
+                        <div className="flex gap-2">
+                           <button onClick={alternarGravacao} className={`px-4 py-3 rounded-xl font-black text-sm flex items-center gap-2 transition-colors ${gravando ? "bg-red-600 text-white animate-pulse" : "bg-slate-900 text-white"}`}>
+                              {gravando ? "Parar" : "Falar"}
+                           </button>
+                           <textarea value={ditado} onChange={e => setDitado(e.target.value)} rows={2} placeholder="O que você falar aparece aqui (dá para corrigir antes de enviar)"
+                              className="flex-1 border-2 border-slate-200 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 resize-none" />
+                        </div>
+                        <button onClick={interpretarDitado} disabled={!ditado.trim()} className="w-full mt-3 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm disabled:opacity-50">
+                           Interpretar contagem com IA
+                        </button>
+                     </div>
+                  </div>
+               ) : (
+                  <>
+                     <p className="text-xs font-bold text-slate-500 mb-3">Confira antes de aplicar — o saldo será <span className="text-red-600">sobrescrito</span> pelo valor contado:</p>
+                     <div className="space-y-2 max-h-[46vh] overflow-y-auto pr-1">
+                        {contagemItens.map((c, idx) => (
+                           <div key={idx} className={`p-3 rounded-xl border ${c.insumo ? "border-slate-200 bg-slate-50" : "border-red-200 bg-red-50/50"}`}>
+                              <div className="flex items-center justify-between gap-3">
+                                 <div className="min-w-0">
+                                    <p className="font-bold text-slate-800 text-sm truncate">{c.insumo ? c.insumo.nome : c.nome}</p>
+                                    {c.insumo
+                                       ? <p className="text-[10px] font-bold text-slate-400">saldo atual {Number(c.insumo.quantidade_atual).toFixed(2)} {c.insumo.unidade_medida} → vira {Number(c.quantidade) || 0}</p>
+                                       : <p className="text-[10px] font-black text-red-600">"{c.nome}" não encontrado no estoque — será ignorado</p>}
+                                 </div>
+                                 <div className="flex items-center gap-1.5 shrink-0">
+                                    <input type="number" step="0.001" value={c.quantidade}
+                                       onChange={e => setContagemItens(p => p.map((x, i) => i === idx ? { ...x, quantidade: e.target.value } : x))}
+                                       className="w-24 bg-white border-2 border-slate-200 rounded-lg px-2.5 py-2 text-sm font-black text-slate-800 text-center outline-none focus:border-emerald-500" />
+                                    <button onClick={() => setContagemItens(p => p.filter((_, i) => i !== idx))} className="w-8 h-8 rounded-lg bg-white border border-slate-200 text-red-500 flex items-center justify-center"><X size={14}/></button>
+                                 </div>
+                              </div>
+                           </div>
+                        ))}
+                     </div>
+                     <div className="flex gap-3 mt-5">
+                        <button onClick={() => setContagemItens(null)} className="flex-1 py-4 rounded-2xl bg-slate-100 text-slate-600 font-bold">Voltar</button>
+                        <button onClick={aplicarContagem} disabled={contagemSalvando} className="flex-1 py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black flex items-center justify-center gap-2 disabled:opacity-60">
+                           {contagemSalvando ? <Loader2 size={18} className="animate-spin"/> : <CheckCircle2 size={18}/>} Aplicar contagem
+                        </button>
+                     </div>
+                  </>
+               )}
             </div>
          </div>
       )}

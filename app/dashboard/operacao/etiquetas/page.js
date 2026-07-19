@@ -139,6 +139,10 @@ function EtiquetasRunner() {
   const [aba, setAba] = useState("gerar"); // "gerar" | "geradas" (Controle de Validade)
   const [tamanho, setTamanho] = useState(() => { try { return localStorage.getItem("hefisto_etq_tamanho") || "80x40"; } catch { return "80x40"; } });
   useEffect(() => { try { localStorage.setItem("hefisto_etq_tamanho", tamanho); } catch {} }, [tamanho]); // "80x40" (bobina) | "60x40" | "60x60"
+  // "tira" = todas numa página contínua (uma colada na outra); "paginas" = uma
+  // etiqueta por página (para drivers que rejeitam página de altura fora do padrão)
+  const [modoTira, setModoTira] = useState(() => { try { return localStorage.getItem("hefisto_etq_modo") || "tira"; } catch { return "tira"; } });
+  useEffect(() => { try { localStorage.setItem("hefisto_etq_modo", modoTira); } catch {} }, [modoTira]);
   const [validadeModo, setValidadeModo] = useState("dias"); // "dias" | "data"
   // "aberto" = produto aberto/manipulado (mostra data e hora de manipulação);
   // "fechado" = produto lacrado sem validade visível (mostra etiquetagem + validade)
@@ -353,16 +357,17 @@ function EtiquetasRunner() {
   function imprimirFila() {
     if (!fila.length) return;
     const totalMm = fila.reduce((s, f) => s + f.alturaMm * f.copias, 0);
-    const larguraMm = Math.max(...fila.map(f => f.larguraMm));
+    const alturaPagMm = modoTira === "tira" ? totalMm : Math.max(...fila.map(f => f.alturaMm));
     const corpo = fila.map(f => Array.from({ length: f.copias }).map(() => f.html).join("")).join("");
     const win = window.open("", "_blank", "width=420,height=640");
     if (!win) { alert("Habilite os popups para imprimir a fila."); return; }
     win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Fila de Etiquetas</title>
       <style>
-        @page { size: ${larguraMm}mm ${totalMm}mm; margin: 0; }
+        @page { size: 80mm ${alturaPagMm}mm; margin: 0; }
         *{box-sizing:border-box} html,body{margin:0;padding:0;background:#fff}
-        #wrap{width:${larguraMm}mm;margin:0 auto;display:flex;flex-direction:column;gap:0}
-        .etiqueta-print{page-break-after:auto;page-break-inside:avoid;overflow:hidden;box-shadow:none!important;border-radius:0!important;margin:0 auto!important}
+        #wrap{width:80mm;margin:0 auto;display:flex;flex-direction:column;gap:0}
+        .etiqueta-print{page-break-after:${modoTira === "tira" ? "auto" : "always"};page-break-inside:avoid;overflow:hidden;box-shadow:none!important;border-radius:0!important;margin:0 auto!important}
+        .etiqueta-print:last-child{page-break-after:auto}
       </style></head><body>
       <div id="wrap">${corpo}</div>
       <script>window.onload=function(){setTimeout(function(){window.print()},30)};window.onafterprint=function(){setTimeout(function(){try{window.close()}catch(e){}},200)}<\/script>
@@ -460,17 +465,18 @@ function EtiquetasRunner() {
         const area = document.getElementById("area-impressao");
         const win = area ? window.open("", "_blank", "width=420,height=640") : null;
         if (win && area) {
-          // Uma TIRA CONTÍNUA única (altura = cópias × altura da etiqueta): uma
-          // página por etiqueta fazia o driver arredondar a altura e as etiquetas
-          // saíam espaçadas em vez de uma colada na outra.
+          // Largura SEMPRE 80mm (largura do papel da térmica — o driver rejeita
+          // larguras fora do padrão com "Falha na impressão"). Modo tira: altura
+          // = cópias × etiqueta, tudo numa página; modo páginas: uma por página.
           const alturaEtqMm = parseFloat(dim.h) || 40;
-          const alturaTiraMm = alturaEtqMm * quantidadeCopias;
+          const alturaTiraMm = modoTira === "tira" ? alturaEtqMm * quantidadeCopias : alturaEtqMm;
           win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Etiquetas</title>
             <style>
-              @page { size: ${dim.paginaW} ${alturaTiraMm}mm; margin: 0; }
+              @page { size: 80mm ${alturaTiraMm}mm; margin: 0; }
               *{box-sizing:border-box} html,body{margin:0;padding:0;background:#fff}
-              #wrap{width:${dim.paginaW};margin:0 auto;display:flex;flex-direction:column;gap:0}
-              .etiqueta-print{page-break-after:auto;page-break-inside:avoid;overflow:hidden;box-shadow:none!important;border-radius:0!important;margin:0 auto!important}
+              #wrap{width:80mm;margin:0 auto;display:flex;flex-direction:column;gap:0}
+              .etiqueta-print{page-break-after:${modoTira === "tira" ? "auto" : "always"};page-break-inside:avoid;overflow:hidden;box-shadow:none!important;border-radius:0!important;margin:0 auto!important}
+              .etiqueta-print:last-child{page-break-after:auto}
             </style></head><body>
             <div id="wrap">${area.innerHTML}</div>
             <script>window.onload=function(){setTimeout(function(){window.print()},30)};window.onafterprint=function(){setTimeout(function(){try{window.close()}catch(e){}},200)}<\/script>
@@ -523,7 +529,7 @@ function EtiquetasRunner() {
           #area-impressao, #area-impressao * { visibility: visible !important; }
           #area-impressao { position: absolute !important; left: 0; top: 0; margin: 0; padding: 0; background: #fff !important; color: #000 !important; width: 80mm !important; display: flex !important; flex-direction: column !important; gap: 0 !important; }
           .etiqueta-print { page-break-after: auto; page-break-inside: avoid; overflow: hidden; border-radius: 0 !important; box-shadow: none !important; border: none !important; margin: 0 auto !important; }
-          @page { size: ${dim.paginaW} ${dim.paginaH}; margin: 0; }
+          @page { size: 80mm ${dim.paginaH}; margin: 0; }
         }
       `}} />
       <PageHeader title={`Etiquetas${deptUrl ? ` — ${deptUrl === 'bar' ? 'Bar' : 'Cozinha'}` : ''}`} subtitle={`QR Code + rastreio · ${unidadeInfo.nome}`} icon={Tag} />
@@ -814,6 +820,17 @@ function EtiquetasRunner() {
             <p className="text-[11px] text-center mt-3 flex items-center justify-center gap-1.5" style={{ color: "var(--dim)" }}>
               <QrCode size={13} /> {tamanho.replace("x", "×")}mm · código {codigo}
             </p>
+            {/* Como o navegador manda para o driver: tira única ou 1 por página */}
+            <div className="flex items-center justify-center gap-1.5 mt-2">
+              <span className="text-[10px] font-bold" style={{ color: "var(--dim)" }}>Impressão:</span>
+              {[["tira", "Tira contínua"], ["paginas", "Uma por página"]].map(([v, l]) => (
+                <button key={v} onClick={() => setModoTira(v)}
+                  className="text-[10px] font-bold px-2.5 py-1 rounded-lg transition-all"
+                  style={modoTira === v ? { background: "var(--accent-strong)", color: "#fff" } : { background: "var(--card)", color: "var(--muted)", border: "1px solid var(--line)" }}>
+                  {l}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
         )}

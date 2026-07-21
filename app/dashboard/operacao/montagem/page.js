@@ -1313,6 +1313,22 @@ function drinkCardCSS(colunas) {
     .vazio{font-size:13px;color:#999;font-style:italic}`;
 }
 
+// Prévia na tela do card do drink — o MESMO HTML/CSS do Guia impresso.
+function PreviaCardDrink({ m }) {
+  const html = `<!doctype html><html><head><meta charset="utf-8"><style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Poppins','Segoe UI',Arial,sans-serif;color:#111;background:#e2e8f0;display:flex;justify-content:center;padding:14px}
+    #w{width:100mm;max-width:100%}
+    ${drinkCardCSS(1)}
+  </style></head><body><div id="w">${drinkCardHTML(m)}</div></body></html>`;
+  return (
+    <div>
+      <p className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: "var(--dim)" }}>Prévia real do card do Guia de Drinks</p>
+      <iframe title={`Prévia ${m.nome}`} srcDoc={html} className="w-full rounded-2xl border" style={{ height: 460, borderColor: "var(--line)", background: "#e2e8f0" }} />
+    </div>
+  );
+}
+
 // PÔSTER (kanban) — cards em grade, seções Com/Sem Álcool/Doses. Margem mínima.
 function imprimirGuiaDrinks(fichas, colunas = 3) {
   const drinks = (fichas || []).filter(Boolean);
@@ -1462,6 +1478,44 @@ function MontagemPageInner() {
   const [impPorPagina, setImpPorPagina] = useState(1);      // 1 | 2 (fichas por folha)
   const [modalImpressao, setModalImpressao] = useState(false); // impressão em lote
   const [modalGuia, setModalGuia] = useState(false); // escolha cartões × livro (bar)
+  const [preenchendoIA, setPreenchendoIA] = useState(false); // receitas em lote (bar)
+
+  // Preenche de uma vez, via IA, todas as bebidas do bar que estão sem receita:
+  // cada drink ganha copo, ingredientes com dosagem e preparo clássicos — para
+  // você revisar e editar. Engarrafadas (água/cerveja) ficam sem receita mesmo.
+  const preencherVaziosIA = async () => {
+    const vazios = lista.filter((m) => !temConteudoDrink(m));
+    if (!vazios.length) return alert("Todas as bebidas do bar já têm receita.");
+    if (!confirm(`A IA vai montar a receita clássica de ${vazios.length} bebida(s) sem conteúdo — copo, dosagens e preparo — para você editar depois.\nÁgua/cerveja engarrafada ficam de fora. Continuar?`)) return;
+    setPreenchendoIA(true);
+    try {
+      const res = await fetch("/api/ia-drinks", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nomes: vazios.map((v) => v.nome) }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) { alert(data.error || "Falha ao montar as receitas."); return; }
+      const porNome = new Map(vazios.map((v) => [v.nome.trim().toLowerCase(), v]));
+      let ok = 0, engarrafadas = 0;
+      for (const d of (data.drinks || [])) {
+        const alvo = porNome.get(d.nome.trim().toLowerCase());
+        if (!alvo) continue;
+        if (d.engarrafada) { engarrafadas++; continue; }
+        if (!d.ingredientes.length && !d.preparo.length) continue;
+        const camadas = [
+          ...(d.copo ? [{ tipo: "copo", nome: d.copo }] : []),
+          ...d.ingredientes.map((nome) => ({ tipo: "liquido", nome })),
+        ];
+        await atualizarMontagem(alvo.id, {
+          estrutura_ia: camadas.length ? camadas : null,
+          descritivo: d.preparo.map((p, i) => `${i + 1}. ${p}`).join("\n"),
+        });
+        ok++;
+      }
+      alert(`${ok} receita(s) montadas pela IA — revise e edite como quiser.${engarrafadas ? `\n${engarrafadas} bebida(s) engarrafada(s) seguem sem receita (não entram no guia).` : ""}`);
+      carregar();
+    } catch { alert("Não consegui falar com a IA. Verifique a conexão."); } finally { setPreenchendoIA(false); }
+  };
   // Seleção de fichas para imprimir juntas (ex.: 2 receitas na mesma página)
   const [selecionadas, setSelecionadas] = useState([]);
   const toggleSel = (id) => setSelecionadas(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
@@ -1658,11 +1712,22 @@ function MontagemPageInner() {
           // Só drinks COM receita/montagem entram no guia (a IA identifica; as
           // bebidas engarrafadas sem preparo ficam de fora).
           const drinksGuia = drinksDoGuia(alvoImpressao);
+          const vazios = lista.filter((m) => !temConteudoDrink(m)).length;
           return (
-            <button onClick={() => drinksGuia.length ? setModalGuia(true) : alert("Nenhum drink com receita para o guia. Cadastre os ingredientes/preparo de uma bebida para ela entrar.")}
-              title="Guia de Drinks: pôster em cartões ou livro com capa e índice — só os drinks com receita" className="erp-btn erp-btn-primary !h-9 text-xs">
-              <Wine size={14} /> Guia de Drinks{drinksGuia.length ? ` (${drinksGuia.length})` : ""}
-            </button>
+            <>
+              {vazios > 0 && (
+                <button onClick={preencherVaziosIA} disabled={preenchendoIA}
+                  title="A IA monta a receita clássica (copo, dosagem e preparo) de todas as bebidas sem conteúdo — para você editar depois"
+                  className="erp-btn erp-btn-ghost !h-9 text-xs">
+                  {preenchendoIA ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                  {preenchendoIA ? "Montando..." : `Receitas com IA (${vazios})`}
+                </button>
+              )}
+              <button onClick={() => drinksGuia.length ? setModalGuia(true) : alert(vazios ? `Nenhum drink com receita ainda. Use o botão "Receitas com IA" para a IA montar as ${vazios} bebidas de uma vez, ou cadastre manualmente.` : "Nenhum drink com receita para o guia.")}
+                title="Guia de Drinks: pôster em cartões ou livro com capa e índice — só os drinks com receita" className="erp-btn erp-btn-primary !h-9 text-xs">
+                <Wine size={14} /> Guia de Drinks{drinksGuia.length ? ` (${drinksGuia.length})` : ""}
+              </button>
+            </>
           );
         })()}
         <button onClick={() => setModalImpressao(true)} className="erp-btn erp-btn-ghost !h-9 text-xs"><Printer size={14} /> Impressão{selecionadas.length ? ` (${selecionadas.length})` : ""}</button>
@@ -1740,7 +1805,11 @@ function MontagemPageInner() {
               <button onClick={() => setPreviewCard(null)} title="Sair" className="w-8 h-8 shrink-0 flex items-center justify-center rounded-full" style={{ background: "var(--elevated)", color: "var(--muted)" }}><X size={16} /></button>
             </div>
 
-            <PreviaModeloChef m={previewCard} cfg={{ ...cfgModelo, porPagina: 1 }} />
+            {/* No bar, o drink aparece exatamente como sai no Guia (card kanban);
+                na cozinha continua a prévia do A4. */}
+            {dept === "bar" && ehDrinkGuia(previewCard)
+              ? <PreviaCardDrink m={previewCard} />
+              : <PreviaModeloChef m={previewCard} cfg={{ ...cfgModelo, porPagina: 1 }} />}
 
             {/* Ações discretas */}
             <div className="mt-3 grid grid-cols-3 sm:grid-cols-6 gap-1.5">

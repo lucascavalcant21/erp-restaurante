@@ -1656,8 +1656,24 @@ function MontagemPageInner() {
 
   // Baixar em PDF: abre a janela de impressão do modelo — o usuário escolhe
   // "Salvar como PDF". É o caminho nativo (sem depender de bibliotecas extras).
+  // Toda impressão respeita o setor: no BAR os drinks saem no modelo kanban do
+  // Guia (não na ficha A4 da cozinha); petisco do bar sem cara de drink e toda
+  // a cozinha continuam no modelo A4.
+  function imprimirFichasSetor(fichas) {
+    const lote = (fichas || []).filter(Boolean);
+    if (!lote.length) return alert("Nenhuma ficha para imprimir.");
+    if (dept === "bar") {
+      const drinks = lote.filter(ehDrinkGuia);
+      const outros = lote.filter((m) => !ehDrinkGuia(m));
+      if (drinks.length) imprimirGuiaDrinks(drinks, drinks.length === 1 ? 2 : 3);
+      if (outros.length) imprimirModelo(outros, cfgModelo, "Bar");
+      return;
+    }
+    imprimirModelo(lote, cfgModelo, "Cozinha");
+  }
+
   function baixarPdf(m) {
-    imprimirModelo([m], { ...cfgModelo, porPagina: 1 }, deptLabelAtual());
+    imprimirFichasSetor([m]);
     setSalvou('Na janela de impressão, escolha "Salvar como PDF".');
     setTimeout(() => setSalvou(""), 4000);
   }
@@ -1816,7 +1832,7 @@ function MontagemPageInner() {
               {[
                 { icon: X, label: "Sair", onClick: () => setPreviewCard(null) },
                 { icon: Edit3, label: "Editar", onClick: () => { setEditar(previewCard); setModal(true); setPreviewCard(null); } },
-                { icon: Printer, label: "Imprimir", onClick: () => (dept === "bar" && ehDrinkGuia(previewCard)) ? imprimirGuiaDrinks([previewCard], 2) : imprimirModelo([previewCard], { ...cfgModelo, porPagina: 1 }, deptLabelAtual()) },
+                { icon: Printer, label: "Imprimir", onClick: () => imprimirFichasSetor([previewCard]) },
                 { icon: Download, label: "PDF", onClick: () => baixarPdf(previewCard) },
                 { icon: Share2, label: "Compartilhar", onClick: () => compartilharFicha(previewCard) },
                 { icon: Trash2, label: "Excluir", onClick: () => remover(previewCard.id), perigo: true },
@@ -1878,6 +1894,11 @@ function MontagemPageInner() {
                 ? `Imprimindo as ${alvoImpressao.length} ficha(s) MARCADAS nos cards (desmarque para voltar a todas).`
                 : "Marque fichas nos cards para imprimir só algumas (ex.: 2 receitas na mesma página)."}
             </p>
+            {dept === "bar" && (
+              <p className="text-[11px] font-black mb-4 px-3 py-2 rounded-xl" style={{ background: "rgba(34,197,94,0.10)", color: "#15803D" }}>
+                No Bar, os drinks saem no modelo do GUIA DE DRINKS (card com foto, dosagem e preparo) — o designer abaixo vale só para itens que não são drinks.
+              </p>
+            )}
 
             {/* Modelo personalizado — as mesmas definições da prévia vão à impressora */}
             <div className="rounded-2xl border p-3 sm:p-4" style={{ borderColor: "var(--line)" }}>
@@ -1919,7 +1940,7 @@ function MontagemPageInner() {
                   {alvoImpressao.length > 1 && <p className="mt-2 text-center text-[10px] font-bold" style={{ color: "var(--dim)" }}>A prévia mostra a 1ª página — a mesma configuração vale para as {alvoImpressao.length} fichas.</p>}
                 </div>
               </div>
-              <button type="button" onClick={() => imprimirModelo(alvoImpressao, cfgModelo, dept === "bar" ? "Bar" : "Cozinha")} className="mt-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-black text-white hover:bg-emerald-700">
+              <button type="button" onClick={() => imprimirFichasSetor(alvoImpressao)} className="mt-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-black text-white hover:bg-emerald-700">
                 <Printer size={16} /> Imprimir personalizado ({alvoImpressao.length})
               </button>
             </div>
@@ -1970,7 +1991,7 @@ function MontagemPageInner() {
                       onSave={salvarPadraoUnidade}
                       salvando={salvandoModelo}
                     />
-                    <button type="button" onClick={() => previewFicha?.nome && imprimirModelo([previewFicha], cfgModelo, dept === "bar" ? "Bar" : "Cozinha")} disabled={!previewFicha?.nome} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-black text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40">
+                    <button type="button" onClick={() => previewFicha?.nome && imprimirFichasSetor([previewFicha])} disabled={!previewFicha?.nome} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-black text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40">
                       <Printer size={15} /> Imprimir esta ficha com o designer
                     </button>
                 </div>

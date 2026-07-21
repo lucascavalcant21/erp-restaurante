@@ -578,6 +578,24 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
 
   const set = (k, v) => { setF((p) => ({ ...p, [k]: v })); setErro(""); };
 
+  // Abas do drink: as mesmas informações que saem no Guia de Drinks —
+  // copo/taça, ingredientes com dosagem e o modo de preparo.
+  const [abaDrink, setAbaDrink] = useState("ingredientes");
+  const camadasAtuais = Array.isArray(f.estrutura_ia) ? f.estrutura_ia : [];
+  const copoAtual = camadasAtuais.find((c) => c.tipo === "copo")?.nome || "";
+  const ingredientesTexto = camadasAtuais.filter((c) => c.tipo !== "copo").map((c) => c.nome).join("\n");
+  const setCopo = (valor) => {
+    const outras = camadasAtuais.filter((c) => c.tipo !== "copo");
+    const nova = valor.trim() ? [{ tipo: "copo", nome: valor }, ...outras] : outras;
+    set("estrutura_ia", nova.length ? nova : null);
+  };
+  const setIngredientesTexto = (txt) => {
+    const copo = camadasAtuais.find((c) => c.tipo === "copo");
+    const linhas = txt.split("\n").map((s) => s.replace(/^[-•\d.\)\s]+/, "").trim()).filter(Boolean).map((nome) => ({ tipo: "liquido", nome }));
+    const nova = copo ? [copo, ...linhas] : linhas;
+    set("estrutura_ia", nova.length ? nova : null);
+  };
+
   // Alimenta a prévia ao lado (a ficha como vai sair impressa).
   // COM PAUSA: atualizar a cada tecla recarregava o iframe da prévia sem parar
   // e ele ficava em branco enquanto se digita. Espera 500ms de pausa.
@@ -598,8 +616,10 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
   }
 
   async function invocarIA() {
-    if (!f.descritivo.trim()) {
-      setErro("Escreva o descritivo dos ingredientes primeiro!");
+    // Nos drinks, a IA parte dos ingredientes digitados na aba; nos pratos, do descritivo.
+    const fonte = f.tipo === "drink" ? (ingredientesTexto || f.descritivo) : f.descritivo;
+    if (!fonte.trim()) {
+      setErro(f.tipo === "drink" ? "Escreva os ingredientes primeiro!" : "Escreva o descritivo dos ingredientes primeiro!");
       return;
     }
     setGerandoIA(true);
@@ -608,7 +628,7 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
       const res = await fetch("/api/ia-montagem", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ descritivo: f.descritivo, nome: f.nome, tipo: f.tipo })
+        body: JSON.stringify({ descritivo: fonte, nome: f.nome, tipo: f.tipo })
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Erro na IA");
@@ -624,7 +644,11 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
 
   function salvar() {
     if (!f.nome.trim()) return setErro("Informe o nome do prato/drink.");
-    if (!f.descritivo.trim()) return setErro("Informe o passo a passo de montagem.");
+    if (f.tipo === "drink") {
+      if (!f.descritivo.trim() && !ingredientesTexto.trim()) return setErro("Preencha os ingredientes ou o modo de preparo do drink.");
+    } else if (!f.descritivo.trim()) {
+      return setErro("Informe o passo a passo de montagem.");
+    }
     onSalvar({
       nome: f.nome.trim(),
       tipo: f.tipo,
@@ -675,34 +699,88 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
         </div>
       </Field>
 
-      <div className="relative">
-        <div className="flex items-center justify-between mb-1">
-           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Ingredientes e Passo a passo</label>
-           <button onClick={invocarIA} disabled={gerandoIA || !f.descritivo} className="flex items-center gap-1.5 text-[11px] font-black uppercase text-emerald-600 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 shadow-sm border border-slate-200">
-             {gerandoIA ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-             {gerandoIA ? "Mágica rolando..." : "Desenhar com IA"}
-           </button>
-        </div>
-        <textarea
-          value={f.descritivo}
-          onChange={(e) => set("descritivo", e.target.value)}
-          placeholder="Ex: 1 hamburguer 150g, 2 fatias de queijo cheddar, alface, tomate, molho especial na tampa"
-          rows={4}
-          style={{
-            width: "100%", padding: "10px 12px", borderRadius: 8,
-            background: "var(--elevated)", color: "var(--fg)",
-            border: "1px solid var(--line)", fontSize: 13, fontFamily: "inherit", resize: "vertical",
-          }}
-        />
-      </div>
+      {f.tipo === "drink" ? (
+        <div>
+          {/* Abas com as informações que saem no Guia de Drinks */}
+          <div className="flex gap-1 mb-3 border-b border-slate-200">
+            {[["ingredientes", "Ingredientes & Dosagem"], ["copo", "Copo / Taça"], ["preparo", "Modo de Preparo"]].map(([id, label]) => (
+              <button key={id} type="button" onClick={() => setAbaDrink(id)}
+                className={`px-3 py-2 text-[11px] font-black uppercase tracking-wide border-b-2 -mb-px transition-colors ${abaDrink === id ? "border-emerald-600 text-emerald-700" : "border-transparent text-slate-400 hover:text-slate-600"}`}>
+                {label}
+              </button>
+            ))}
+          </div>
 
-      {/* EDitor Interativo da Estrutura */}
-      {f.estrutura_ia && (
+          {abaDrink === "ingredientes" && (
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Um ingrediente por linha, com a dosagem</label>
+                <button onClick={invocarIA} disabled={gerandoIA || (!ingredientesTexto && !f.descritivo)} className="flex items-center gap-1.5 text-[11px] font-black uppercase text-emerald-600 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 shadow-sm border border-slate-200">
+                  {gerandoIA ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                  {gerandoIA ? "Gerando..." : "Preparo com IA"}
+                </button>
+              </div>
+              <textarea
+                value={ingredientesTexto}
+                onChange={(e) => setIngredientesTexto(e.target.value)}
+                placeholder={"50 ml de vodka\n100 ml de espuma de gengibre\nSuco de 1/2 limão\nCubos de gelo"}
+                rows={6}
+                style={{ width: "100%", padding: "10px 12px", borderRadius: 8, background: "var(--elevated)", color: "var(--fg)", border: "1px solid var(--line)", fontSize: 13, fontFamily: "inherit", resize: "vertical" }}
+              />
+              <p className="text-[11px] text-slate-400 mt-1">Cada linha vira um item de ingrediente no guia. O botão &quot;Preparo com IA&quot; gera o passo a passo a partir daqui.</p>
+            </div>
+          )}
+
+          {abaDrink === "copo" && (
+            <Field label="Copo / Taça (subtítulo do drink no guia)">
+              <TextInput value={copoAtual} onChange={(e) => setCopo(e.target.value)} placeholder="ex: Taça Coupette, Caneca de Cobre, Copo Long Drink" />
+            </Field>
+          )}
+
+          {abaDrink === "preparo" && (
+            <div>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Um passo por linha (sai numerado no guia)</label>
+              <textarea
+                value={f.descritivo}
+                onChange={(e) => set("descritivo", e.target.value)}
+                placeholder={"Coloque o gelo na caneca\nJunte a vodka e o suco de limão\nComplete com a espuma de gengibre\nFinalize com rodela de limão"}
+                rows={6}
+                style={{ width: "100%", padding: "10px 12px", borderRadius: 8, background: "var(--elevated)", color: "var(--fg)", border: "1px solid var(--line)", fontSize: 13, fontFamily: "inherit", resize: "vertical" }}
+              />
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="relative">
+          <div className="flex items-center justify-between mb-1">
+             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Ingredientes e Passo a passo</label>
+             <button onClick={invocarIA} disabled={gerandoIA || !f.descritivo} className="flex items-center gap-1.5 text-[11px] font-black uppercase text-emerald-600 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 shadow-sm border border-slate-200">
+               {gerandoIA ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+               {gerandoIA ? "Mágica rolando..." : "Desenhar com IA"}
+             </button>
+          </div>
+          <textarea
+            value={f.descritivo}
+            onChange={(e) => set("descritivo", e.target.value)}
+            placeholder="Ex: 1 hamburguer 150g, 2 fatias de queijo cheddar, alface, tomate, molho especial na tampa"
+            rows={4}
+            style={{
+              width: "100%", padding: "10px 12px", borderRadius: 8,
+              background: "var(--elevated)", color: "var(--fg)",
+              border: "1px solid var(--line)", fontSize: 13, fontFamily: "inherit", resize: "vertical",
+            }}
+          />
+        </div>
+      )}
+
+      {/* Editor interativo da estrutura — só nos pratos (nos drinks as abas já
+          cuidam de copo/ingredientes) */}
+      {f.tipo !== "drink" && f.estrutura_ia && (
         <EditorCamadas camadas={f.estrutura_ia} setCamadas={(nova) => set("estrutura_ia", nova)} />
       )}
 
-      {/* Renderiza a prévia visual se existir */}
-      {f.estrutura_ia && (
+      {/* Renderiza a prévia visual se existir (só pratos) */}
+      {f.tipo !== "drink" && f.estrutura_ia && (
         <div className="mt-4">
            <SectionLabel>Prévia do Gráfico Visual</SectionLabel>
            <EstruturaVisual camadas={f.estrutura_ia} tipo={f.tipo} fotoUrl={f.foto_url} />

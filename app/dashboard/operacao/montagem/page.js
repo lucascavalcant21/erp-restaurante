@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { ClipboardList, Plus, Trash2, Edit3, Printer, Camera, Clock, Sparkles, Loader2, ArrowUp, ArrowDown, SlidersHorizontal, Save, RotateCcw, ImageIcon, Type, Palette, ListChecks, Download, Share2, X, Eye } from "lucide-react";
+import { ClipboardList, Plus, Trash2, Edit3, Printer, Camera, Clock, Sparkles, Loader2, ArrowUp, ArrowDown, SlidersHorizontal, Save, RotateCcw, ImageIcon, Type, Palette, ListChecks, Download, Share2, X, Eye, Wine } from "lucide-react";
 import {
   PageHeader, PageBody, Card, SectionLabel, KpiGrid, Kpi,
   SearchBar, Chips, EmptyState, Modal, Field, TextInput, NumberInput, Select, Btn, Toast,
@@ -1119,6 +1119,83 @@ function imprimirModelo(fichas, cfgEntrada, deptLabel) {
 }
 
 // =========================================================================
+// GUIA DE DRINKS (Bar) — pôster estilo kanban p/ o bartender imprimir e usar.
+// Grade de cards com FOTO REAL quadrada, nome grande, copo, INGREDIENTES com
+// dosagem e PREPARO numerado em sequência. Diferente das fichas da cozinha.
+// =========================================================================
+function imprimirGuiaDrinks(fichas, colunas = 3) {
+  const drinks = (fichas || []).filter(Boolean);
+  if (!drinks.length) return alert("Nenhum drink para o guia.");
+
+  const cardHTML = (m) => {
+    const nome = escaparHtml((m.nome || "Drink").toUpperCase());
+    const camadas = Array.isArray(m.estrutura_ia) ? m.estrutura_ia : [];
+    // O copo (tipo "copo") vira o subtítulo; o resto são os ingredientes.
+    const copo = camadas.find((c) => c.tipo === "copo");
+    const ingredientes = camadas.filter((c) => c.tipo !== "copo" && (c.nome || "").trim());
+    const passos = String(m.descritivo || "")
+      .split("\n").map((s) => s.trim().replace(/^\d+[\.\)]\s*/, "")).filter(Boolean);
+
+    const foto = m.foto_url
+      ? `<div class="foto"><img src="${escaparHtml(m.foto_url)}" alt="${nome}"/></div>`
+      : `<div class="foto semFoto">sem foto</div>`;
+
+    const subtitulo = copo
+      ? `<p class="copo">${escaparHtml(copo.nome)}</p>`
+      : (m.rendimento ? `<p class="copo">${escaparHtml(m.rendimento)}</p>` : "");
+
+    const blocoIngredientes = ingredientes.length
+      ? `<div class="bloco"><p class="rot">Ingredientes</p><ul>${ingredientes.map((c) => `<li>${escaparHtml(c.nome)}</li>`).join("")}</ul></div>`
+      : "";
+
+    const blocoPreparo = passos.length
+      ? `<div class="bloco"><p class="rot">Preparo</p><ol>${passos.map((p) => `<li>${escaparHtml(p)}</li>`).join("")}</ol></div>`
+      : `<div class="bloco"><p class="rot">Preparo</p><p class="vazio">Sem passo a passo cadastrado.</p></div>`;
+
+    return `<article class="drink">
+      ${foto}
+      <h2>${nome}</h2>
+      ${subtitulo}
+      ${blocoIngredientes}
+      ${blocoPreparo}
+    </article>`;
+  };
+
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"/><title>Guia de Drinks</title>
+    <style>
+      *{margin:0;padding:0;box-sizing:border-box}
+      @page{size:A4 portrait;margin:8mm}
+      html,body{background:#fff}
+      body{font-family:'Poppins','Segoe UI',Arial,sans-serif;color:#111;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      .cabeca{display:flex;align-items:center;gap:10px;border-bottom:4px solid #111;padding-bottom:8px;margin-bottom:10px}
+      .cabeca h1{font-size:34px;font-weight:900;letter-spacing:3px;text-transform:uppercase;flex:1}
+      .cabeca .risco{flex:1;height:3px;background:#111}
+      .grade{display:grid;grid-template-columns:repeat(${colunas},1fr);gap:7mm}
+      .drink{border:2.5px solid #111;border-radius:12px;padding:5mm;display:flex;flex-direction:column;break-inside:avoid;page-break-inside:avoid}
+      .foto{width:100%;aspect-ratio:1/1;border:2px solid #111;border-radius:10px;overflow:hidden;background:#f4f4f5;margin-bottom:4mm}
+      .foto img{width:100%;height:100%;object-fit:cover;display:block}
+      .foto.semFoto{display:flex;align-items:center;justify-content:center;color:#a1a1aa;font-weight:800;text-transform:uppercase;font-size:12px;letter-spacing:1px}
+      .drink h2{font-size:${colunas >= 4 ? 20 : colunas === 3 ? 24 : 30}px;font-weight:900;line-height:1.05;letter-spacing:.5px;text-transform:uppercase}
+      .copo{font-size:${colunas >= 4 ? 12 : 14}px;font-weight:800;color:#444;margin-top:2px;margin-bottom:4mm}
+      .bloco{margin-top:3mm}
+      .rot{font-size:${colunas >= 4 ? 12 : 14}px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;border-bottom:2px solid #111;padding-bottom:2px;margin-bottom:3px}
+      .drink ul,.drink ol{padding-left:1.3em}
+      .drink li{font-size:${colunas >= 4 ? 13 : colunas === 3 ? 15 : 17}px;font-weight:700;line-height:1.4;margin-bottom:2.5px}
+      .drink ol li::marker{font-weight:900}
+      .vazio{font-size:13px;color:#999;font-style:italic}
+      @media screen{body{padding:20px;background:#e2e8f0}.folha{background:#fff;box-shadow:0 12px 35px rgba(15,23,42,.16);padding:8mm;max-width:210mm;margin:0 auto}}
+      @media print{.folha{padding:0}}
+    </style></head><body>
+      <div class="folha">
+        <div class="cabeca"><h1>Guia de Drinks</h1><span class="risco"></span></div>
+        <div class="grade">${drinks.map(cardHTML).join("")}</div>
+      </div>
+    </body></html>`;
+
+  abrirImpressaoHtml(html);
+}
+
+// =========================================================================
 // PÁGINA PRINCIPAL
 // =========================================================================
 function MontagemPageInner() {
@@ -1332,6 +1409,9 @@ function MontagemPageInner() {
   return (
     <div className="min-h-screen">
       <PageHeader title={titulo} subtitle={subtitle} icon={ClipboardList} onAction={() => { setEditar(null); setModal(true); }} actionLabel="Nova Ficha">
+        {dept === "bar" && (
+          <button onClick={() => imprimirGuiaDrinks(alvoImpressao, 3)} title="Pôster estilo kanban com foto, dosagem e preparo — para o bartender imprimir e usar" className="erp-btn erp-btn-primary !h-9 text-xs"><Wine size={14} /> Guia de Drinks{selecionadas.length ? ` (${selecionadas.length})` : ""}</button>
+        )}
         <button onClick={() => setModalImpressao(true)} className="erp-btn erp-btn-ghost !h-9 text-xs"><Printer size={14} /> Impressão{selecionadas.length ? ` (${selecionadas.length})` : ""}</button>
       </PageHeader>
       <PageBody>

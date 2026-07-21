@@ -1123,6 +1123,19 @@ function imprimirModelo(fichas, cfgEntrada, deptLabel) {
 // Grade de cards com FOTO REAL quadrada, nome grande, copo, INGREDIENTES com
 // dosagem e PREPARO numerado em sequência. Diferente das fichas da cozinha.
 // =========================================================================
+// A IA identifica o que é drink sem depender só do tipo marcado à mão: além do
+// tipo "drink", reconhece pela estrutura (copo/gelo/líquido/decoração) e pelo
+// nome (coquetéis clássicos e bebidas) — mas nunca pega pratos/petiscos.
+const PALAVRAS_DRINK = /(caipir|mojito|margarita|negroni|spritz|\bgin\b|vodka|tequila|\brum\b|whisk|\bdrink|coquetel|batida|daiquiri|martini|mule|t[ôo]nica|licor|sangria|espumante|\bshot\b|\bdose\b|soda|aperol|campari|cuba|pi[ñn]a colada|bloody mary|cosmopolitan)/i;
+const TIPOS_CAMADA_DRINK = new Set(["copo", "gelo", "liquido", "decoracao"]);
+function ehDrinkGuia(m) {
+  if (!m) return false;
+  if (m.tipo === "drink") return true;
+  const camadas = Array.isArray(m.estrutura_ia) ? m.estrutura_ia : [];
+  if (camadas.some((c) => TIPOS_CAMADA_DRINK.has(c.tipo))) return true;
+  return PALAVRAS_DRINK.test(m.nome || "");
+}
+
 function imprimirGuiaDrinks(fichas, colunas = 3) {
   const drinks = (fichas || []).filter(Boolean);
   if (!drinks.length) return alert("Nenhum drink para o guia.");
@@ -1153,9 +1166,10 @@ function imprimirGuiaDrinks(fichas, colunas = 3) {
       : `<div class="bloco"><p class="rot">Preparo</p><p class="vazio">Sem passo a passo cadastrado.</p></div>`;
 
     return `<article class="drink">
-      ${foto}
-      <h2>${nome}</h2>
-      ${subtitulo}
+      <div class="cab">
+        ${foto}
+        <div class="tit"><h2>${nome}</h2>${subtitulo}</div>
+      </div>
       ${blocoIngredientes}
       ${blocoPreparo}
     </article>`;
@@ -1174,11 +1188,14 @@ function imprimirGuiaDrinks(fichas, colunas = 3) {
       .cabeca .risco{flex:1;height:3px;background:#111}
       .grade{display:grid;grid-template-columns:repeat(${colunas},1fr);gap:3.5mm}
       .drink{border:2.5px solid #111;border-radius:10px;padding:3.5mm;display:flex;flex-direction:column;break-inside:avoid;page-break-inside:avoid}
-      .foto{width:100%;aspect-ratio:1/1;border:2px solid #111;border-radius:8px;overflow:hidden;background:#f4f4f5;margin-bottom:2.5mm}
+      /* Foto menor, como miniatura ao lado do nome, para caber mais drinks/folha */
+      .cab{display:flex;gap:3mm;align-items:center;margin-bottom:2.5mm}
+      .foto{width:${colunas >= 4 ? 16 : colunas === 3 ? 20 : 26}mm;height:${colunas >= 4 ? 16 : colunas === 3 ? 20 : 26}mm;flex:none;border:2px solid #111;border-radius:8px;overflow:hidden;background:#f4f4f5}
       .foto img{width:100%;height:100%;object-fit:cover;display:block}
-      .foto.semFoto{display:flex;align-items:center;justify-content:center;color:#a1a1aa;font-weight:800;text-transform:uppercase;font-size:12px;letter-spacing:1px}
-      .drink h2{font-size:${colunas >= 4 ? 20 : colunas === 3 ? 24 : 30}px;font-weight:900;line-height:1.05;letter-spacing:.5px;text-transform:uppercase}
-      .copo{font-size:${colunas >= 4 ? 12 : 14}px;font-weight:800;color:#444;margin-top:2px;margin-bottom:2.5mm}
+      .foto.semFoto{display:flex;align-items:center;justify-content:center;text-align:center;color:#a1a1aa;font-weight:800;text-transform:uppercase;font-size:8px;letter-spacing:.5px}
+      .tit{min-width:0;flex:1}
+      .drink h2{font-size:${colunas >= 4 ? 18 : colunas === 3 ? 22 : 28}px;font-weight:900;line-height:1.05;letter-spacing:.5px;text-transform:uppercase}
+      .copo{font-size:${colunas >= 4 ? 11 : 13}px;font-weight:800;color:#444;margin-top:2px}
       .bloco{margin-top:2.5mm}
       .rot{font-size:${colunas >= 4 ? 12 : 14}px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;border-bottom:2px solid #111;padding-bottom:2px;margin-bottom:3px}
       .drink ul,.drink ol{padding-left:1.3em}
@@ -1427,12 +1444,12 @@ function MontagemPageInner() {
     <div className="min-h-screen">
       <PageHeader title={titulo} subtitle={subtitle} icon={ClipboardList} onAction={() => { setEditar(null); setModal(true); }} actionLabel="Nova Ficha">
         {dept === "bar" && (() => {
-          // Só vão para o guia as fichas marcadas como "drink" (o bar pode ter
-          // petiscos/porções, que não entram no guia de coquetelaria).
-          const drinksGuia = alvoImpressao.filter(m => m.tipo === "drink");
+          // A IA identifica os drinks (tipo, estrutura ou nome) — petiscos e
+          // porções do bar ficam de fora do guia de coquetelaria.
+          const drinksGuia = alvoImpressao.filter(ehDrinkGuia);
           return (
-            <button onClick={() => drinksGuia.length ? imprimirGuiaDrinks(drinksGuia, 3) : alert("Nenhum item marcado como Drink. No cadastro, defina o tipo como Drink para entrar no guia.")}
-              title="Pôster estilo kanban com foto, dosagem e preparo — só entram os itens do tipo Drink" className="erp-btn erp-btn-primary !h-9 text-xs">
+            <button onClick={() => drinksGuia.length ? imprimirGuiaDrinks(drinksGuia, 3) : alert("Nenhum drink identificado. Cadastre a bebida (ou marque o tipo como Drink) para entrar no guia.")}
+              title="Pôster estilo kanban com foto, dosagem e preparo — a IA identifica os drinks automaticamente" className="erp-btn erp-btn-primary !h-9 text-xs">
               <Wine size={14} /> Guia de Drinks{drinksGuia.length ? ` (${drinksGuia.length})` : ""}
             </button>
           );

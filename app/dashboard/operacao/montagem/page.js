@@ -1161,29 +1161,31 @@ function imprimirGuiaDrinks(fichas, colunas = 3) {
     </article>`;
   };
 
+  // Margem mínima da impressora (a maior área útil) para caber mais drinks.
+  const margemMm = 4;
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"/><title>Guia de Drinks</title>
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
-      @page{size:A4 portrait;margin:8mm}
+      @page{size:A4 portrait;margin:${margemMm}mm}
       html,body{background:#fff}
       body{font-family:'Poppins','Segoe UI',Arial,sans-serif;color:#111;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-      .cabeca{display:flex;align-items:center;gap:10px;border-bottom:4px solid #111;padding-bottom:8px;margin-bottom:10px}
-      .cabeca h1{font-size:34px;font-weight:900;letter-spacing:3px;text-transform:uppercase;flex:1}
+      .cabeca{display:flex;align-items:center;gap:8px;border-bottom:3px solid #111;padding-bottom:5px;margin-bottom:5mm}
+      .cabeca h1{font-size:28px;font-weight:900;letter-spacing:3px;text-transform:uppercase;flex:1}
       .cabeca .risco{flex:1;height:3px;background:#111}
-      .grade{display:grid;grid-template-columns:repeat(${colunas},1fr);gap:7mm}
-      .drink{border:2.5px solid #111;border-radius:12px;padding:5mm;display:flex;flex-direction:column;break-inside:avoid;page-break-inside:avoid}
-      .foto{width:100%;aspect-ratio:1/1;border:2px solid #111;border-radius:10px;overflow:hidden;background:#f4f4f5;margin-bottom:4mm}
+      .grade{display:grid;grid-template-columns:repeat(${colunas},1fr);gap:3.5mm}
+      .drink{border:2.5px solid #111;border-radius:10px;padding:3.5mm;display:flex;flex-direction:column;break-inside:avoid;page-break-inside:avoid}
+      .foto{width:100%;aspect-ratio:1/1;border:2px solid #111;border-radius:8px;overflow:hidden;background:#f4f4f5;margin-bottom:2.5mm}
       .foto img{width:100%;height:100%;object-fit:cover;display:block}
       .foto.semFoto{display:flex;align-items:center;justify-content:center;color:#a1a1aa;font-weight:800;text-transform:uppercase;font-size:12px;letter-spacing:1px}
       .drink h2{font-size:${colunas >= 4 ? 20 : colunas === 3 ? 24 : 30}px;font-weight:900;line-height:1.05;letter-spacing:.5px;text-transform:uppercase}
-      .copo{font-size:${colunas >= 4 ? 12 : 14}px;font-weight:800;color:#444;margin-top:2px;margin-bottom:4mm}
-      .bloco{margin-top:3mm}
+      .copo{font-size:${colunas >= 4 ? 12 : 14}px;font-weight:800;color:#444;margin-top:2px;margin-bottom:2.5mm}
+      .bloco{margin-top:2.5mm}
       .rot{font-size:${colunas >= 4 ? 12 : 14}px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;border-bottom:2px solid #111;padding-bottom:2px;margin-bottom:3px}
       .drink ul,.drink ol{padding-left:1.3em}
-      .drink li{font-size:${colunas >= 4 ? 13 : colunas === 3 ? 15 : 17}px;font-weight:700;line-height:1.4;margin-bottom:2.5px}
+      .drink li{font-size:${colunas >= 4 ? 13 : colunas === 3 ? 15 : 17}px;font-weight:700;line-height:1.35;margin-bottom:2px}
       .drink ol li::marker{font-weight:900}
       .vazio{font-size:13px;color:#999;font-style:italic}
-      @media screen{body{padding:20px;background:#e2e8f0}.folha{background:#fff;box-shadow:0 12px 35px rgba(15,23,42,.16);padding:8mm;max-width:210mm;margin:0 auto}}
+      @media screen{body{padding:16px;background:#e2e8f0}.folha{background:#fff;box-shadow:0 12px 35px rgba(15,23,42,.16);padding:${margemMm}mm;max-width:210mm;margin:0 auto}}
       @media print{.folha{padding:0}}
     </style></head><body>
       <div class="folha">
@@ -1192,7 +1194,22 @@ function imprimirGuiaDrinks(fichas, colunas = 3) {
       </div>
     </body></html>`;
 
-  abrirImpressaoHtml(html);
+  // Auto-ajuste: se um card ficar mais alto que a página (muito ingrediente/
+  // passo), ele é reduzido proporcionalmente para caber sem cortar.
+  abrirImpressaoHtml(html, (doc) => {
+    const ref = doc.createElement("div");
+    ref.style.cssText = `position:absolute;visibility:hidden;width:1mm;height:${297 - 2 * margemMm}mm`;
+    doc.body.appendChild(ref);
+    const alturaPagina = ref.offsetHeight;
+    ref.remove();
+    if (!alturaPagina) return;
+    doc.querySelectorAll(".drink").forEach((card) => {
+      const alturaCard = card.offsetHeight;
+      if (alturaCard > alturaPagina) {
+        card.style.zoom = Math.max(0.5, (alturaPagina - 6) / alturaCard);
+      }
+    });
+  });
 }
 
 // =========================================================================

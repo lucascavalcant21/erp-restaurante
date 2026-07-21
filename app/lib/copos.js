@@ -81,6 +81,28 @@ export function desenhoCopoSVG(texto, { altura = 48, corLiquido = null, traco = 
   return `<svg viewBox="0 0 100 140" width="${largura}" height="${altura}" xmlns="http://www.w3.org/2000/svg" style="display:block">${liquido}${linhas}</svg>`;
 }
 
+// ── Fotos REAIS dos copos (tiradas pelo usuário) ────────────────────────────
+// Carregadas da unidade ao abrir a tela; quando existem, substituem o desenho.
+let FOTOS_COPOS = {};
+export function definirFotosCopos(mapa) {
+  FOTOS_COPOS = mapa && typeof mapa === "object" ? mapa : {};
+}
+export function fotoCopoReal(texto) {
+  return FOTOS_COPOS[identificarCopo(texto).id] || null;
+}
+
+// Imagem do copo para os cards impressos: a FOTO real se o usuário tirou uma;
+// senão, o desenho em SVG.
+export function imagemCopoHTML(texto, { altura = 58 } = {}) {
+  const url = fotoCopoReal(texto);
+  if (url) {
+    const seguro = String(url).replace(/"/g, "&quot;");
+    const larg = Math.round(altura * 0.78);
+    return `<img src="${seguro}" alt="" style="height:${altura}px;width:${larg}px;object-fit:cover;border-radius:6px;border:1.5px solid #111;display:block;background:#f4f4f5"/>`;
+  }
+  return desenhoCopoSVG(texto, { altura });
+}
+
 // Cor do líquido deduzida dos ingredientes/nome do drink.
 const CORES_DRINK = [
   [/campari|negroni|morango|cranberry|hibisco|frutas vermelhas|bloody/i, "#dc2626"],

@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 
+// Receitas em lote demoram: estende o tempo máximo da função na Vercel.
+export const maxDuration = 60;
+
 // Recebe uma LISTA de nomes de bebidas do bar e devolve, numa chamada só, a
 // receita clássica de cada drink (copo, ingredientes com dosagem e preparo).
 // Bebidas engarrafadas prontas (água, cerveja, refrigerante) voltam marcadas
@@ -35,7 +38,7 @@ Responda ESTRITAMENTE com JSON válido, sem markdown, mantendo os nomes EXATAMEN
       },
       body: JSON.stringify({
         model: "claude-opus-4-8",
-        max_tokens: 12000,
+        max_tokens: 6000,
         messages: [{ role: "user", content: prompt }],
       }),
     });

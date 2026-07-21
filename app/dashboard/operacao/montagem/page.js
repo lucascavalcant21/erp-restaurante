@@ -13,9 +13,9 @@ import {
   uploadFotoMontagem,
 } from "../../../lib/montagem";
 import { fetchProdutos } from "../../../lib/vendas";
-import { fetchModeloMontagem, salvarModeloMontagem } from "../../../lib/parametros";
+import { fetchModeloMontagem, salvarModeloMontagem, fetchFotosCopos, salvarFotoCopo } from "../../../lib/parametros";
 import { logoSeldeestrelaSVG } from "../../../lib/marca";
-import { CATALOGO_COPOS, desenhoCopoSVG, ilustracaoDrinkSVG } from "../../../lib/copos";
+import { CATALOGO_COPOS, desenhoCopoSVG, ilustracaoDrinkSVG, identificarCopo, definirFotosCopos, fotoCopoReal, imagemCopoHTML } from "../../../lib/copos";
 
 const VAZIO = {
   nome: "", tipo: "prato", departamento: "cozinha",
@@ -616,6 +616,34 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
     set("foto_url", url);
   }
 
+  // Foto REAL do copo (tirada pelo usuário): vale para a unidade toda — todos
+  // os drinks que usam este copo passam a mostrar a foto no lugar do desenho.
+  const { unidadeAtiva: unidadeFotoCopo } = useERP();
+  const inputFotoCopoRef = useRef(null);
+  const [, setFotoCopoVersao] = useState(0);
+  async function escolherFotoCopo(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    const idCopo = identificarCopo(copoAtual || "copo").id;
+    setUploadando(true);
+    try {
+      const { url, error } = await uploadFotoMontagem(file, `copo_${idCopo}`);
+      if (error || !url) { setErro("Erro ao enviar a foto do copo: " + (error || "sem URL")); return; }
+      const { data, error: e2 } = await salvarFotoCopo(unidadeFotoCopo, idCopo, url);
+      if (e2) { setErro("Erro ao salvar a foto do copo: " + e2); return; }
+      definirFotosCopos(data);
+      setFotoCopoVersao((v) => v + 1);
+    } finally { setUploadando(false); }
+  }
+  async function removerFotoCopo() {
+    const idCopo = identificarCopo(copoAtual || "copo").id;
+    const { data, error } = await salvarFotoCopo(unidadeFotoCopo, idCopo, null);
+    if (error) { setErro("Erro ao remover: " + error); return; }
+    definirFotosCopos(data);
+    setFotoCopoVersao((v) => v + 1);
+  }
+
   async function invocarIA() {
     // Nos drinks, a IA parte dos ingredientes digitados na aba; nos pratos, do descritivo.
     const fonte = f.tipo === "drink" ? (ingredientesTexto || f.descritivo) : f.descritivo;
@@ -761,12 +789,16 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
             />
           </div>
 
-          {/* SEÇÃO: Copo / Taça — com o desenho que sai no guia */}
+          {/* SEÇÃO: Copo / Taça — foto real (tirada por você) ou desenho */}
           <div>
-            <label className="text-xs font-black text-slate-600 uppercase tracking-widest block mb-1">Copo / Taça (sai com o desenho no guia)</label>
+            <label className="text-xs font-black text-slate-600 uppercase tracking-widest block mb-1">Copo / Taça (sai no guia com a foto ou o desenho)</label>
             <div className="flex items-stretch gap-3">
-              <div className="w-14 flex items-center justify-center rounded-xl border shrink-0" style={{ borderColor: "var(--line)", background: "#fdf9ef" }}
-                dangerouslySetInnerHTML={{ __html: desenhoCopoSVG(copoAtual || "copo", { altura: 52 }) }} />
+              {fotoCopoReal(copoAtual || "copo") ? (
+                <img src={fotoCopoReal(copoAtual || "copo")} alt="Copo" className="w-14 h-[76px] object-cover rounded-xl border shrink-0" style={{ borderColor: "var(--line)", background: "#f4f4f5" }} />
+              ) : (
+                <div className="w-14 flex items-center justify-center rounded-xl border shrink-0" style={{ borderColor: "var(--line)", background: "#fdf9ef" }}
+                  dangerouslySetInnerHTML={{ __html: desenhoCopoSVG(copoAtual || "copo", { altura: 52 }) }} />
+              )}
               <div className="flex-1 min-w-0 space-y-2">
                 <Select value={CATALOGO_COPOS.find((c) => c.nome === copoAtual)?.nome || ""} onChange={(e) => e.target.value && setCopo(e.target.value)}>
                   <option value="">Escolher do catálogo...</option>
@@ -775,6 +807,17 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
                 <TextInput value={copoAtual} onChange={(e) => setCopo(e.target.value)} placeholder="ou digite: ex. Taça Coupette, Caneca de Cobre" />
               </div>
             </div>
+            <input ref={inputFotoCopoRef} type="file" accept="image/*" capture="environment" onChange={escolherFotoCopo} className="hidden" />
+            <div className="flex items-center gap-3 mt-2">
+              <button type="button" onClick={() => inputFotoCopoRef.current?.click()} disabled={uploadando}
+                className="flex items-center gap-1.5 text-[11px] font-black uppercase text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-full border border-emerald-200 transition-colors disabled:opacity-50">
+                <Camera size={12} /> {uploadando ? "Enviando..." : (fotoCopoReal(copoAtual || "copo") ? "Trocar foto deste copo" : "Tirar foto deste copo")}
+              </button>
+              {fotoCopoReal(copoAtual || "copo") && (
+                <button type="button" onClick={removerFotoCopo} className="text-[11px] font-bold text-rose-500 hover:text-rose-600">Voltar ao desenho</button>
+              )}
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1">A foto vale para TODOS os drinks que usam este copo — tira uma vez e o guia inteiro usa.</p>
           </div>
 
           {/* SEÇÃO: Modo de Preparo */}
@@ -1293,12 +1336,15 @@ function drinkCardHTML(m) {
   const copo = camadas.find((c) => c.tipo === "copo");
   const ingredientes = camadas.filter((c) => c.tipo !== "copo" && (c.nome || "").trim());
   const passos = String(m.descritivo || "").split("\n").map((s) => s.trim().replace(/^\d+[\.\)]\s*/, "")).filter(Boolean);
-  // Sem foto real, a IA ilustra: o copo certo pintado com a cor do líquido
-  // deduzida dos ingredientes.
+  // Sem foto do drink: usa a FOTO REAL do copo (tirada pelo usuário) se
+  // existir; senão a ilustração — o copo certo pintado com a cor do líquido.
   const textoIngredientes = ingredientes.map((c) => c.nome).join(" ") + " " + (m.nome || "");
+  const fotoRealCopo = fotoCopoReal(copo?.nome || "");
   const foto = m.foto_url
     ? `<div class="foto"><img src="${escaparHtml(m.foto_url)}" alt="${nome}"/></div>`
-    : `<div class="foto ilustrada">${ilustracaoDrinkSVG(copo?.nome || m.nome, textoIngredientes, 96)}</div>`;
+    : fotoRealCopo
+      ? `<div class="foto"><img src="${escaparHtml(fotoRealCopo)}" alt="${nome}"/></div>`
+      : `<div class="foto ilustrada">${ilustracaoDrinkSVG(copo?.nome || m.nome, textoIngredientes, 96)}</div>`;
   const subtitulo = m.rendimento ? `<p class="copo">${escaparHtml(m.rendimento)}</p>` : "";
   const blocoIngredientes = ingredientes.length
     ? `<div class="bloco"><p class="rot">Ingredientes</p><ul>${ingredientes.map((c) => `<li>${escaparHtml(c.nome)}</li>`).join("")}</ul></div>` : "";
@@ -1307,7 +1353,7 @@ function drinkCardHTML(m) {
     : `<div class="bloco"><p class="rot">Preparo</p><p class="vazio">Sem passo a passo cadastrado.</p></div>`;
   // Seção "Copo" abaixo do preparo: desenho da taça/copo + nome.
   const blocoCopo = copo && (copo.nome || "").trim()
-    ? `<div class="bloco"><p class="rot">Copo</p><div class="copoRow">${desenhoCopoSVG(copo.nome, { altura: 58 })}<span>${escaparHtml(copo.nome)}</span></div></div>`
+    ? `<div class="bloco"><p class="rot">Copo</p><div class="copoRow">${imagemCopoHTML(copo.nome, { altura: 58 })}<span>${escaparHtml(copo.nome)}</span></div></div>`
     : "";
   return `<article class="drink"><div class="cab">${foto}<div class="tit"><h2>${nome}</h2>${subtitulo}</div></div>${blocoIngredientes}${blocoPreparo}${blocoCopo}</article>`;
 }
@@ -1511,6 +1557,13 @@ function MontagemPageInner() {
   const [modalGuia, setModalGuia] = useState(false); // escolha cartões × livro (bar)
   const [preenchendoIA, setPreenchendoIA] = useState(false); // receitas em lote (bar)
 
+  // Fotos reais dos copos (tiradas pelo usuário) — valem para a unidade toda
+  const [, setVersaoFotosCopos] = useState(0);
+  useEffect(() => {
+    if (!unidadeAtiva || unidadeAtiva === "todas") return;
+    fetchFotosCopos(unidadeAtiva).then(({ data }) => { definirFotosCopos(data); setVersaoFotosCopos((v) => v + 1); });
+  }, [unidadeAtiva]);
+
   // Preenche de uma vez, via IA, todas as bebidas do bar que estão sem receita:
   // cada drink ganha copo, ingredientes com dosagem e preparo clássicos — para
   // você revisar e editar. Engarrafadas (água/cerveja) ficam sem receita mesmo.
@@ -1520,15 +1573,29 @@ function MontagemPageInner() {
     if (!confirm(`A IA vai montar a receita clássica de ${vazios.length} bebida(s) sem conteúdo — copo, dosagens e preparo — para você editar depois.\nÁgua/cerveja engarrafada ficam de fora. Continuar?`)) return;
     setPreenchendoIA(true);
     try {
-      const res = await fetch("/api/ia-drinks", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nomes: vazios.map((v) => v.nome) }),
-      });
-      const data = await res.json();
-      if (!res.ok || data.error) { alert(data.error || "Falha ao montar as receitas."); return; }
+      // Em BLOCOS de 8: um pedido único com muitas bebidas estourava o tempo
+      // máximo da função na Vercel e caía em "Erro ao comunicar com a IA".
+      const BLOCO = 8;
+      const recebidos = [];
+      let falhas = 0;
+      for (let i = 0; i < vazios.length; i += BLOCO) {
+        const parte = vazios.slice(i, i + BLOCO);
+        setSalvou(`Montando receitas com IA... ${Math.min(i + BLOCO, vazios.length)}/${vazios.length}`);
+        try {
+          const res = await fetch("/api/ia-drinks", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ nomes: parte.map((v) => v.nome) }),
+          });
+          const data = await res.json();
+          if (!res.ok || data.error) { falhas += parte.length; continue; }
+          recebidos.push(...(data.drinks || []));
+        } catch { falhas += parte.length; }
+      }
+      setSalvou("");
+      if (!recebidos.length) { alert("Não consegui montar as receitas agora. Tente novamente em instantes."); return; }
       const porNome = new Map(vazios.map((v) => [v.nome.trim().toLowerCase(), v]));
       let ok = 0, engarrafadas = 0;
-      for (const d of (data.drinks || [])) {
+      for (const d of recebidos) {
         const alvo = porNome.get(d.nome.trim().toLowerCase());
         if (!alvo) continue;
         if (d.engarrafada) { engarrafadas++; continue; }
@@ -1543,7 +1610,7 @@ function MontagemPageInner() {
         });
         ok++;
       }
-      alert(`${ok} receita(s) montadas pela IA — revise e edite como quiser.${engarrafadas ? `\n${engarrafadas} bebida(s) engarrafada(s) seguem sem receita (não entram no guia).` : ""}`);
+      alert(`${ok} receita(s) montadas pela IA — revise e edite como quiser.${engarrafadas ? `\n${engarrafadas} bebida(s) engarrafada(s) seguem sem receita (não entram no guia).` : ""}${falhas ? `\n${falhas} bebida(s) falharam — clique de novo para tentar só as que faltam.` : ""}`);
       carregar();
     } catch { alert("Não consegui falar com a IA. Verifique a conexão."); } finally { setPreenchendoIA(false); }
   };

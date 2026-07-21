@@ -132,6 +132,32 @@ export async function salvarModeloMontagem(unidadeId, modelo) {
   return { error: error?.message };
 }
 
+// Fotos REAIS dos copos do bar (tiradas pelo usuário): { idCopo: url }.
+// A foto vale para todos os drinks que usam aquele copo — substitui o desenho
+// no Guia de Drinks.
+export async function fetchFotosCopos(unidadeId) {
+  const registro = await fetchRegistroConfig(unidadeId);
+  const fotos = registro?.params?.fotos_copos;
+  return { data: fotos && typeof fotos === "object" ? fotos : {} };
+}
+
+export async function salvarFotoCopo(unidadeId, idCopo, url) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  if (!unidadeId || unidadeId === "todas") return { error: "Selecione uma unidade" };
+  const registro = await fetchRegistroConfig(unidadeId);
+  const fotos_copos = { ...(registro?.params?.fotos_copos || {}) };
+  if (url) fotos_copos[idCopo] = url; else delete fotos_copos[idCopo];
+  const mergeAtomico = await tentarMergeAtomico(unidadeId, { fotos_copos });
+  if (mergeAtomico) return { error: undefined, data: fotos_copos };
+  const params = { ...(registro?.params || {}), fotos_copos };
+  if (registro) {
+    const { error } = await supabase.from("config_sistema").update({ params }).eq("id", registro.id);
+    return { error: error?.message, data: fotos_copos };
+  }
+  const { error } = await supabase.from("config_sistema").insert([{ unidade_id: unidadeId, params }]);
+  return { error: error?.message, data: fotos_copos };
+}
+
 export async function fetchValidadesEtiqueta(unidadeId) {
   const registro = await fetchRegistroConfig(unidadeId);
   return { data: normalizarValidades(registro?.params?.validade_categorias) };

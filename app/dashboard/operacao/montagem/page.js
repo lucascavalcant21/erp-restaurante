@@ -15,6 +15,7 @@ import {
 import { fetchProdutos } from "../../../lib/vendas";
 import { fetchModeloMontagem, salvarModeloMontagem } from "../../../lib/parametros";
 import { logoSeldeestrelaSVG } from "../../../lib/marca";
+import { CATALOGO_COPOS, desenhoCopoSVG, ilustracaoDrinkSVG } from "../../../lib/copos";
 
 const VAZIO = {
   nome: "", tipo: "prato", departamento: "cozinha",
@@ -760,10 +761,21 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
             />
           </div>
 
-          {/* SEÇÃO: Copo / Taça */}
-          <Field label="Copo / Taça (subtítulo do drink no guia)">
-            <TextInput value={copoAtual} onChange={(e) => setCopo(e.target.value)} placeholder="ex: Taça Coupette, Caneca de Cobre, Copo Long Drink" />
-          </Field>
+          {/* SEÇÃO: Copo / Taça — com o desenho que sai no guia */}
+          <div>
+            <label className="text-xs font-black text-slate-600 uppercase tracking-widest block mb-1">Copo / Taça (sai com o desenho no guia)</label>
+            <div className="flex items-stretch gap-3">
+              <div className="w-14 flex items-center justify-center rounded-xl border shrink-0" style={{ borderColor: "var(--line)", background: "#fdf9ef" }}
+                dangerouslySetInnerHTML={{ __html: desenhoCopoSVG(copoAtual || "copo", { altura: 52 }) }} />
+              <div className="flex-1 min-w-0 space-y-2">
+                <Select value={CATALOGO_COPOS.find((c) => c.nome === copoAtual)?.nome || ""} onChange={(e) => e.target.value && setCopo(e.target.value)}>
+                  <option value="">Escolher do catálogo...</option>
+                  {CATALOGO_COPOS.map((c) => <option key={c.id} value={c.nome}>{c.nome}</option>)}
+                </Select>
+                <TextInput value={copoAtual} onChange={(e) => setCopo(e.target.value)} placeholder="ou digite: ex. Taça Coupette, Caneca de Cobre" />
+              </div>
+            </div>
+          </div>
 
           {/* SEÇÃO: Modo de Preparo */}
           <div>
@@ -1281,16 +1293,23 @@ function drinkCardHTML(m) {
   const copo = camadas.find((c) => c.tipo === "copo");
   const ingredientes = camadas.filter((c) => c.tipo !== "copo" && (c.nome || "").trim());
   const passos = String(m.descritivo || "").split("\n").map((s) => s.trim().replace(/^\d+[\.\)]\s*/, "")).filter(Boolean);
+  // Sem foto real, a IA ilustra: o copo certo pintado com a cor do líquido
+  // deduzida dos ingredientes.
+  const textoIngredientes = ingredientes.map((c) => c.nome).join(" ") + " " + (m.nome || "");
   const foto = m.foto_url
     ? `<div class="foto"><img src="${escaparHtml(m.foto_url)}" alt="${nome}"/></div>`
-    : `<div class="foto semFoto">sem foto</div>`;
-  const subtitulo = copo ? `<p class="copo">${escaparHtml(copo.nome)}</p>` : (m.rendimento ? `<p class="copo">${escaparHtml(m.rendimento)}</p>` : "");
+    : `<div class="foto ilustrada">${ilustracaoDrinkSVG(copo?.nome || m.nome, textoIngredientes, 96)}</div>`;
+  const subtitulo = m.rendimento ? `<p class="copo">${escaparHtml(m.rendimento)}</p>` : "";
   const blocoIngredientes = ingredientes.length
     ? `<div class="bloco"><p class="rot">Ingredientes</p><ul>${ingredientes.map((c) => `<li>${escaparHtml(c.nome)}</li>`).join("")}</ul></div>` : "";
   const blocoPreparo = passos.length
     ? `<div class="bloco"><p class="rot">Preparo</p><ol>${passos.map((p) => `<li>${escaparHtml(p)}</li>`).join("")}</ol></div>`
     : `<div class="bloco"><p class="rot">Preparo</p><p class="vazio">Sem passo a passo cadastrado.</p></div>`;
-  return `<article class="drink"><div class="cab">${foto}<div class="tit"><h2>${nome}</h2>${subtitulo}</div></div>${blocoIngredientes}${blocoPreparo}</article>`;
+  // Seção "Copo" abaixo do preparo: desenho da taça/copo + nome.
+  const blocoCopo = copo && (copo.nome || "").trim()
+    ? `<div class="bloco"><p class="rot">Copo</p><div class="copoRow">${desenhoCopoSVG(copo.nome, { altura: 58 })}<span>${escaparHtml(copo.nome)}</span></div></div>`
+    : "";
+  return `<article class="drink"><div class="cab">${foto}<div class="tit"><h2>${nome}</h2>${subtitulo}</div></div>${blocoIngredientes}${blocoPreparo}${blocoCopo}</article>`;
 }
 
 // CSS dos cards (compartilhado). `colunas` controla o tamanho de fonte/foto.
@@ -1310,7 +1329,12 @@ function drinkCardCSS(colunas) {
     .drink ul,.drink ol{padding-left:1.3em}
     .drink li{font-size:${colunas >= 4 ? 13 : colunas === 3 ? 15 : 17}px;font-weight:700;line-height:1.35;margin-bottom:2px}
     .drink ol li::marker{font-weight:900}
-    .vazio{font-size:13px;color:#999;font-style:italic}`;
+    .vazio{font-size:13px;color:#999;font-style:italic}
+    .foto.ilustrada{display:flex;align-items:center;justify-content:center;background:#fdf9ef}
+    .foto.ilustrada svg{width:76%;height:86%}
+    .copoRow{display:flex;align-items:center;gap:2.5mm}
+    .copoRow svg{height:${colunas >= 4 ? 12 : 15}mm;width:auto;flex:none}
+    .copoRow span{font-size:${colunas >= 4 ? 12 : 14}px;font-weight:800}`;
 }
 
 // Prévia na tela do card do drink — o MESMO HTML/CSS do Guia impresso.

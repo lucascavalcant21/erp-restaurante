@@ -1312,10 +1312,12 @@ function drinkCardHTML(m) {
   return `<article class="drink"><div class="cab">${foto}<div class="tit"><h2>${nome}</h2>${subtitulo}</div></div>${blocoIngredientes}${blocoPreparo}${blocoCopo}</article>`;
 }
 
-// CSS dos cards (compartilhado). `colunas` controla o tamanho de fonte/foto.
-function drinkCardCSS(colunas) {
+// CSS dos cards (compartilhado). `colunas` controla o tamanho de fonte/foto;
+// `gridCols` (opcional) permite grade diferente do tamanho da letra — usado no
+// livro A5, que tem 2 colunas mas letras compactas.
+function drinkCardCSS(colunas, gridCols = colunas) {
   return `
-    .grade{display:grid;grid-template-columns:repeat(${colunas},1fr);gap:3.5mm}
+    .grade{display:grid;grid-template-columns:repeat(${gridCols},1fr);gap:3.5mm}
     .drink{border:2.5px solid #111;border-radius:10px;padding:3.5mm;display:flex;flex-direction:column;break-inside:avoid;page-break-inside:avoid;background:#fff}
     .cab{display:flex;gap:3mm;align-items:center;margin-bottom:2.5mm}
     .foto{width:${colunas >= 4 ? 16 : colunas === 3 ? 20 : 26}mm;height:${colunas >= 4 ? 16 : colunas === 3 ? 20 : 26}mm;flex:none;border:2px solid #111;border-radius:8px;overflow:hidden;background:#f4f4f5}
@@ -1404,11 +1406,16 @@ function imprimirGuiaDrinks(fichas, colunas = 3) {
 
 // LIVRO — capa, índice e páginas numeradas; drinks por ordem alfabética dentro
 // de cada categoria (Com Álcool, Sem Álcool, Doses).
-function imprimirLivroDrinks(fichas) {
+function imprimirLivroDrinks(fichas, formato = "a4") {
   const drinks = (fichas || []).filter(Boolean);
   if (!drinks.length) return alert("Nenhum drink para o livro.");
-  const CARDS_POR_PAGINA = 6; // 2 colunas × 3 linhas
-  const colunas = 2;
+  // A4 = folha inteira; A5 = metade da A4 (148×210mm), para um livro menor.
+  const a5 = formato === "a5";
+  const CARDS_POR_PAGINA = a5 ? 4 : 6; // A4: 2×3 · A5: 2×2
+  const colunas = a5 ? 4 : 2;          // A5 usa letras/fotos compactas
+  const gridCols = 2;
+  const larguraPapelMm = a5 ? 148 : 210;
+  const alturaPapelMm = a5 ? 210 : 297;
 
   const porCat = {};
   drinks.forEach((d) => { const c = categoriaDrink(d); (porCat[c] = porCat[c] || []).push(d); });
@@ -1435,34 +1442,34 @@ function imprimirLivroDrinks(fichas) {
       <div class="rodape-livro"><span>${escaparHtml(pg.cat)}</span><span>Página ${pi + 3}</span></div>
     </section>`).join("");
 
-  // Margem esquerda maior (18mm): folga para furar/encadernar o livro.
-  const margemMm = 8;
-  const margemEncadernacaoMm = 18;
-  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"/><title>Livro de Drinks</title>
+  // Margem esquerda maior: folga para furar/encadernar o livro.
+  const margemMm = a5 ? 6 : 8;
+  const margemEncadernacaoMm = a5 ? 14 : 18;
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"/><title>Livro de Drinks${a5 ? " A5" : ""}</title>
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
-      @page{size:A4 portrait;margin:${margemMm}mm ${margemMm}mm ${margemMm}mm ${margemEncadernacaoMm}mm}
+      @page{size:${larguraPapelMm}mm ${alturaPapelMm}mm;margin:${margemMm}mm ${margemMm}mm ${margemMm}mm ${margemEncadernacaoMm}mm}
       html,body{background:#fff}
       body{font-family:'Poppins','Segoe UI',Arial,sans-serif;color:#111;-webkit-print-color-adjust:exact;print-color-adjust:exact}
       .capa,.indice,.pagina{break-after:page;page-break-after:always}
-      .capa{height:${297 - 2 * margemMm}mm;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
-      .capa h1{font-size:44px;font-weight:900;letter-spacing:3px;text-transform:uppercase;margin:24px 0 10px}
-      .capa p{font-size:16px;color:#64748b;font-weight:700}
-      .indice h1{font-size:30px;font-weight:900;text-transform:uppercase;letter-spacing:2px;border-bottom:3px solid #111;padding-bottom:8px;margin-bottom:14px}
+      .capa{height:${alturaPapelMm - 2 * margemMm}mm;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+      .capa h1{font-size:${a5 ? 32 : 44}px;font-weight:900;letter-spacing:3px;text-transform:uppercase;margin:24px 0 10px}
+      .capa p{font-size:${a5 ? 13 : 16}px;color:#64748b;font-weight:700}
+      .indice h1{font-size:${a5 ? 24 : 30}px;font-weight:900;text-transform:uppercase;letter-spacing:2px;border-bottom:3px solid #111;padding-bottom:8px;margin-bottom:14px}
       .ind-sec{font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;margin:14px 0 6px;padding-bottom:3px;border-bottom:2px solid;display:flex;gap:8px;align-items:center}
       .ind-sec span{font-size:11px;background:currentColor;color:#fff;border-radius:999px;padding:1px 8px}
       .ind-item{display:flex;align-items:baseline;gap:6px;font-size:13px;font-weight:700;margin:3px 0}
       .ind-item .pontos{flex:1;border-bottom:1.5px dotted #cbd5e1;transform:translateY(-3px)}
       .ind-item .pg{font-weight:900}
-      .pagina{height:${297 - 2 * margemMm}mm;display:flex;flex-direction:column}
-      .cat-band{color:#fff;font-weight:900;text-transform:uppercase;letter-spacing:2px;font-size:15px;padding:5px 10px;border-radius:8px;margin-bottom:4mm}
+      .pagina{height:${alturaPapelMm - 2 * margemMm}mm;display:flex;flex-direction:column}
+      .cat-band{color:#fff;font-weight:900;text-transform:uppercase;letter-spacing:2px;font-size:${a5 ? 12 : 15}px;padding:5px 10px;border-radius:8px;margin-bottom:4mm}
       .conteudo{flex:1;overflow:hidden}
       .grade{align-content:start}
       .rodape-livro{margin-top:4mm;padding-top:5px;border-top:1px solid #cbd5e1;display:flex;justify-content:space-between;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#64748b}
-      ${drinkCardCSS(colunas)}
-      @media screen{body{padding:16px;background:#e2e8f0}.capa,.indice,.pagina{background:#fff;box-shadow:0 12px 35px rgba(15,23,42,.16);max-width:210mm;margin:0 auto 16px;padding:${margemMm}mm ${margemMm}mm ${margemMm}mm ${margemEncadernacaoMm}mm}}
+      ${drinkCardCSS(colunas, gridCols)}
+      @media screen{body{padding:16px;background:#e2e8f0}.capa,.indice,.pagina{background:#fff;box-shadow:0 12px 35px rgba(15,23,42,.16);max-width:${larguraPapelMm}mm;margin:0 auto 16px;padding:${margemMm}mm ${margemMm}mm ${margemMm}mm ${margemEncadernacaoMm}mm}}
     </style></head><body>
-      <section class="capa">${logoSeldeestrelaSVG(80)}<h1>Guia de Drinks</h1><p>${drinks.length} drinks catalogados</p><p style="margin-top:6px;font-size:13px;color:#94a3b8">${new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}</p></section>
+      <section class="capa">${logoSeldeestrelaSVG(a5 ? 58 : 80)}<h1>Guia de Drinks</h1><p>${drinks.length} drinks catalogados</p><p style="margin-top:6px;font-size:13px;color:#94a3b8">${new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}</p></section>
       <section class="indice"><h1>Índice</h1>${indiceHTML}<div class="rodape-livro"><span>Guia de Drinks</span><span>Página 2</span></div></section>
       ${conteudo}
     </body></html>`;
@@ -1894,9 +1901,13 @@ function MontagemPageInner() {
                   <ClipboardList size={22} className="text-emerald-600 shrink-0 mt-0.5" />
                   <div><p className="font-black text-slate-800 text-sm">Cartões (pôster)</p><p className="text-xs font-medium text-slate-400 mt-0.5">Grade compacta para colar na parede/bancada. Margem mínima, cabe o máximo por folha.</p></div>
                 </button>
-                <button onClick={() => { fechar(); imprimirLivroDrinks(drinksGuia); }} className="flex items-start gap-3 rounded-2xl border-2 p-4 text-left transition-colors hover:bg-emerald-50" style={{ borderColor: "var(--line)" }}>
+                <button onClick={() => { fechar(); imprimirLivroDrinks(drinksGuia, "a4"); }} className="flex items-start gap-3 rounded-2xl border-2 p-4 text-left transition-colors hover:bg-emerald-50" style={{ borderColor: "var(--line)" }}>
                   <Printer size={22} className="text-emerald-600 shrink-0 mt-0.5" />
-                  <div><p className="font-black text-slate-800 text-sm">Livro (capa + índice)</p><p className="text-xs font-medium text-slate-400 mt-0.5">Capa, índice com páginas, categorias em ordem alfabética e páginas numeradas.</p></div>
+                  <div><p className="font-black text-slate-800 text-sm">Livro A4 (folha inteira)</p><p className="text-xs font-medium text-slate-400 mt-0.5">Capa, índice com páginas, categorias em ordem alfabética, páginas numeradas e margem esquerda de 18mm para encadernar.</p></div>
+                </button>
+                <button onClick={() => { fechar(); imprimirLivroDrinks(drinksGuia, "a5"); }} className="flex items-start gap-3 rounded-2xl border-2 p-4 text-left transition-colors hover:bg-emerald-50" style={{ borderColor: "var(--line)" }}>
+                  <Printer size={18} className="text-emerald-600 shrink-0 mt-0.5" />
+                  <div><p className="font-black text-slate-800 text-sm">Livro A5 (metade da A4 — livro menor)</p><p className="text-xs font-medium text-slate-400 mt-0.5">Mesmo livro em página 148×210mm, com margem de 14mm para encadernar. Na impressora, escolha o papel A5 (ou 2 por folha em A4).</p></div>
                 </button>
               </div>
               <p className="text-[10px] font-medium mt-4" style={{ color: "var(--dim)" }}>Dica: marque drinks nos cards para imprimir só alguns (ex.: 2 ou mais). Sem marcar, entra todo o bar.</p>

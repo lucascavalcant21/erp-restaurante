@@ -707,6 +707,97 @@ export default function OrcamentoEventoPage() {
     </body></html>`);
   };
 
+  // Documento: FICHA TÉCNICA DO EVENTO — para cada prato, os ingredientes JÁ
+  // ESCALADOS para as porções do evento (puxados da ficha técnica da cozinha) +
+  // custo do prato + modo de preparo. É a ficha técnica própria do evento.
+  const imprimirFichaTecnica = () => {
+    if (linhas.length === 0) return alert("Adicione itens ao evento primeiro.");
+    const itemPorId = (id) => itens.find(i => i.produto_id === id) || {};
+
+    const cards = linhas.map(l => {
+      const it = itemPorId(l.produto_id);
+      // Ingredientes deste prato, escalados para as porções do evento —
+      // vindos das fichas técnicas da cozinha (mesma fonte da Lista de Compras).
+      const accDish = {};
+      if (l.porcoes > 0) (l.fichasComp || []).forEach(x => acumularInsumos(x.ficha, l.porcoes * x.qtd, fichas, accDish));
+      const ingredientes = Object.values(accDish).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+      const custoPrato = ingredientes.reduce((a, c) => a + c.qtd * (c.custo_unitario || 0), 0);
+
+      const rowsIng = ingredientes.length
+        ? ingredientes.map(c => `<tr><td>${c.nome}</td><td class="c">${fmtCompra(c.qtd, c.unidade)}</td></tr>`).join("")
+        : `<tr><td colspan="2" class="vazio">Prato sem ficha técnica vinculada — cadastre a ficha na cozinha.</td></tr>`;
+
+      const preparo = (l.fichasComp || []).map(x => x.ficha?.modo_preparo).filter(Boolean).join("\n\n");
+      const preparoHtml = preparo
+        ? preparo.split("\n").filter(t => t.trim()).map(t => `<p>${t.replace(/</g, "&lt;")}</p>`).join("")
+        : '<p class="vazio">Sem modo de preparo cadastrado na ficha técnica.</p>';
+
+      return `
+      <div class="prato">
+        <div class="prato-head">
+          <div>
+            <h3>${l.nome}</h3>
+            <span class="qtd">${descQtd(l)}${l.categoria ? ` · ${l.categoria}` : ""}</span>
+          </div>
+          ${it.foto ? `<img src="${it.foto}" alt="" class="foto"/>` : ""}
+        </div>
+        <div class="cols">
+          <div class="colIng">
+            <b class="rot">Ingredientes (para o evento)</b>
+            <table><thead><tr><th>Ingrediente</th><th class="c">Quantidade</th></tr></thead><tbody>${rowsIng}</tbody></table>
+            <div class="custoPrato">Custo dos ingredientes deste prato: <b>${fmtBRL(custoPrato)}</b></div>
+          </div>
+          <div class="colPrep">
+            <b class="rot">Modo de preparo</b>${preparoHtml}
+          </div>
+        </div>
+      </div>`;
+    }).join("");
+
+    const dataHora = [
+      evento.data ? evento.data.split("-").reverse().join("/") : null,
+      evento.hora || null,
+    ].filter(Boolean).join(" às ");
+
+    abrirDoc(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Ficha Tecnica - ${evento.nome || "Evento"}</title>
+      <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;padding:22px;max-width:820px;margin:0 auto}
+        .head{border-bottom:3px solid #0f172a;padding-bottom:12px;margin-bottom:14px}
+        .tag{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#64748b;font-weight:bold}
+        h1{font-size:25px;margin:4px 0}
+        .quando{display:inline-block;background:#0f172a;color:#fff;font-weight:bold;font-size:14px;padding:5px 12px;border-radius:8px;margin-top:4px}
+        .meta{font-size:13px;color:#475569;margin-top:6px}
+        .prato{border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin-bottom:14px;page-break-inside:avoid}
+        .prato-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;border-bottom:1px solid #e2e8f0;padding-bottom:8px;margin-bottom:10px}
+        .prato h3{font-size:19px;margin:0}
+        .qtd{font-size:12px;color:#64748b;font-weight:bold}
+        .foto{width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid #cbd5e1;flex-shrink:0}
+        .cols{display:flex;gap:16px;align-items:flex-start}
+        .colIng{flex:1;min-width:0}
+        .colPrep{flex:1.1;min-width:0;font-size:13px;color:#334155}
+        .rot{display:block;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#64748b;margin-bottom:6px}
+        table{width:100%;border-collapse:collapse;font-size:13px}
+        th,td{text-align:left;padding:5px 6px;border-bottom:1px solid #eef2f6}
+        th{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#64748b}
+        td.c,th.c{text-align:right;font-weight:bold;white-space:nowrap}
+        .custoPrato{margin-top:8px;font-size:12px;color:#166534;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:6px 8px}
+        .colPrep p{margin:3px 0;line-height:1.45}
+        .vazio{color:#94a3b8;font-style:italic}
+        @media print{@page{margin:12mm}}
+        @media(max-width:640px){.cols{flex-direction:column}}
+      </style></head><body>
+      <div class="head">
+        <div class="tag">Ficha Técnica do Evento — uso interno · ${unidadeInfo?.nome || ""}</div>
+        <h1>${evento.nome || "Evento"}</h1>
+        ${dataHora ? `<div class="quando">${dataHora}</div>` : ""}
+        <div class="meta">${evento.cliente ? `Cliente: <b>${evento.cliente}</b> · ` : ""}Convidados: <b>${convidados || "—"}</b> · Ingredientes puxados das fichas técnicas da cozinha</div>
+      </div>
+      ${cards}
+      <div class="obs" style="margin-top:22px;font-size:11px;color:#94a3b8">Ficha técnica gerada em ${new Date().toLocaleDateString("pt-BR")}. Quantidades já escaladas para as porções do evento.</div>
+    </body></html>`);
+  };
+
   // Documento 3: RELATÓRIO GERENCIAL — faturamento, custos, lucro, comissão,
   // parceria de bar e o duplo benefício do empanado (uso interno).
   const imprimirRelatorio = () => {
@@ -863,6 +954,9 @@ export default function OrcamentoEventoPage() {
                </button>
                <button type="button" onClick={seguro(imprimirProgramacao)} className="flex items-center gap-1.5 bg-white text-emerald-700 border border-emerald-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-emerald-50 transition-colors">
                   <ClipboardList size={14} /> Programação (Cozinha)
+               </button>
+               <button type="button" onClick={seguro(imprimirFichaTecnica)} className="flex items-center gap-1.5 bg-white text-emerald-700 border border-emerald-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-emerald-50 transition-colors">
+                  <ChefHat size={14} /> Ficha Técnica (Evento)
                </button>
                <button type="button" onClick={seguro(imprimirRelatorio)} className="flex items-center gap-1.5 bg-white text-slate-700 border border-slate-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-slate-50 transition-colors">
                   <FileText size={14} /> Relatório Gerencial

@@ -1129,23 +1129,38 @@ function FichasRunner() {
   const inputCardapioRef = useRef(null);
   const [importandoCardapio, setImportandoCardapio] = useState(false);
   const importarCardapioFoto = async (e) => {
-    const file = e.target.files?.[0];
+    const files = Array.from(e.target.files || []);
     e.target.value = "";
-    if (!file) return;
+    if (!files.length) return;
     setImportandoCardapio(true);
     try {
-      const base64 = await fileParaBase64(file);
-      const res = await fetch("/api/ia-cardapio", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imagem_base64: base64, media_type: "image/jpeg" }),
-      });
-      const data = await res.json();
-      if (!res.ok || data.error) { alert(data.error || "Falha ao ler o cardápio."); return; }
+      // Lê cada foto do cardápio (várias páginas de uma vez) e junta os itens,
+      // sem repetir o mesmo prato que aparece em duas fotos.
+      const itensTotais = [];
+      const vistos = new Set();
+      let falhas = 0;
+      for (const file of files) {
+        try {
+          const base64 = await fileParaBase64(file);
+          const res = await fetch("/api/ia-cardapio", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ imagem_base64: base64, media_type: "image/jpeg" }),
+          });
+          const data = await res.json();
+          if (!res.ok || data.error) { falhas++; continue; }
+          for (const i of (data.itens || [])) {
+            const chave = i.nome.toLowerCase().trim();
+            if (!vistos.has(chave)) { vistos.add(chave); itensTotais.push(i); }
+          }
+        } catch { falhas++; }
+      }
+      if (!itensTotais.length) { alert(falhas ? "Não consegui ler nenhuma das fotos. Tente fotos mais nítidas." : "Nenhum item lido no cardápio."); return; }
       const jaExiste = new Set(fichas.map(f => String(f.nome_receita || "").toLowerCase()));
-      const novos = data.itens.filter(i => !jaExiste.has(i.nome.toLowerCase()));
-      if (!novos.length) { alert("Todos os itens da foto já estão cadastrados."); return; }
+      const novos = itensTotais.filter(i => !jaExiste.has(i.nome.toLowerCase()));
+      if (!novos.length) { alert("Todos os itens das fotos já estão cadastrados."); return; }
+      const avisoFalhas = falhas ? `\n(${falhas} foto(s) não puderam ser lidas.)` : "";
       const resumo = novos.map(i => `• ${i.nome} (${i.categoria}) — R$ ${i.preco.toFixed(2)}`).join("\n");
-      if (!confirm(`A IA leu ${novos.length} item(ns) novos no cardápio:\n\n${resumo}\n\nCriar as fichas já com o preço de venda? (depois é só abrir cada uma e pôr os ingredientes)`)) return;
+      if (!confirm(`A IA leu ${novos.length} item(ns) novos em ${files.length} foto(s):\n\n${resumo}${avisoFalhas}\n\nCriar as fichas já com o preço de venda? (depois é só abrir cada uma e pôr os ingredientes)`)) return;
       let ok = 0;
       for (const item of novos) {
         const catFicha = item.categoria === "Sobremesa" ? "Sobremesas" : item.categoria === "Suco" ? "Sucos" : "";
@@ -1173,7 +1188,7 @@ function FichasRunner() {
           ok++;
         }
       }
-      alert(`${ok} ficha(s) criadas com preço de venda! Abra cada uma e adicione os ingredientes.`);
+      alert(`${ok} ficha(s) criadas com preço de venda a partir de ${files.length} foto(s)! Abra cada uma e adicione os ingredientes.`);
       carregar();
     } catch { alert("Não consegui falar com a IA."); } finally { setImportandoCardapio(false); }
   };
@@ -1306,7 +1321,7 @@ function FichasRunner() {
                <button onClick={imprimirPlanilhaCustos} title="Tabela com custo, preço de venda, CMV de cada receita e o CMV médio" className="flex items-center justify-center gap-2 min-w-0 overflow-hidden bg-white text-slate-700 border border-slate-200 px-2 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-slate-50 transition-colors shadow-sm">
                   <Calculator size={18} /> <span className="hidden xl:inline">Planilha de Custos</span><span className="xl:hidden">Custos</span>
                </button>
-               <input ref={inputCardapioRef} type="file" accept="image/*" onChange={importarCardapioFoto} className="hidden" />
+               <input ref={inputCardapioRef} type="file" accept="image/*" multiple onChange={importarCardapioFoto} className="hidden" />
                <button onClick={() => inputCardapioRef.current?.click()} disabled={importandoCardapio} title="Envie a FOTO do seu cardápio: a IA cria as fichas de pratos, sobremesas e sucos já com o preço de venda — depois é só pôr os ingredientes" className="flex items-center justify-center gap-2 min-w-0 overflow-hidden bg-white text-emerald-700 border border-emerald-200 px-2 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-emerald-50 transition-colors shadow-sm disabled:opacity-60">
                   {importandoCardapio ? <Loader2 size={18} className="animate-spin" /> : <Camera size={18} />} <span className="hidden xl:inline">Importar Cardápio</span><span className="xl:hidden">Cardápio</span>
                </button>

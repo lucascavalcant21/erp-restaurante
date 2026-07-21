@@ -1409,9 +1409,17 @@ function MontagemPageInner() {
   return (
     <div className="min-h-screen">
       <PageHeader title={titulo} subtitle={subtitle} icon={ClipboardList} onAction={() => { setEditar(null); setModal(true); }} actionLabel="Nova Ficha">
-        {dept === "bar" && (
-          <button onClick={() => imprimirGuiaDrinks(alvoImpressao, 3)} title="Pôster estilo kanban com foto, dosagem e preparo — para o bartender imprimir e usar" className="erp-btn erp-btn-primary !h-9 text-xs"><Wine size={14} /> Guia de Drinks{selecionadas.length ? ` (${selecionadas.length})` : ""}</button>
-        )}
+        {dept === "bar" && (() => {
+          // Só vão para o guia as fichas marcadas como "drink" (o bar pode ter
+          // petiscos/porções, que não entram no guia de coquetelaria).
+          const drinksGuia = alvoImpressao.filter(m => m.tipo === "drink");
+          return (
+            <button onClick={() => drinksGuia.length ? imprimirGuiaDrinks(drinksGuia, 3) : alert("Nenhum item marcado como Drink. No cadastro, defina o tipo como Drink para entrar no guia.")}
+              title="Pôster estilo kanban com foto, dosagem e preparo — só entram os itens do tipo Drink" className="erp-btn erp-btn-primary !h-9 text-xs">
+              <Wine size={14} /> Guia de Drinks{drinksGuia.length ? ` (${drinksGuia.length})` : ""}
+            </button>
+          );
+        })()}
         <button onClick={() => setModalImpressao(true)} className="erp-btn erp-btn-ghost !h-9 text-xs"><Printer size={14} /> Impressão{selecionadas.length ? ` (${selecionadas.length})` : ""}</button>
       </PageHeader>
       <PageBody>

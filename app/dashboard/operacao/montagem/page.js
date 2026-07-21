@@ -578,9 +578,9 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
 
   const set = (k, v) => { setF((p) => ({ ...p, [k]: v })); setErro(""); };
 
-  // Abas do drink: as mesmas informações que saem no Guia de Drinks —
+  // Seções do drink: as mesmas informações que saem no Guia de Drinks —
   // copo/taça, ingredientes com dosagem e o modo de preparo.
-  const [abaDrink, setAbaDrink] = useState("ingredientes");
+  const [receitaIA, setReceitaIA] = useState(""); // receita colada para a IA montar tudo
   const camadasAtuais = Array.isArray(f.estrutura_ia) ? f.estrutura_ia : [];
   const copoAtual = camadasAtuais.find((c) => c.tipo === "copo")?.nome || "";
   const ingredientesTexto = camadasAtuais.filter((c) => c.tipo !== "copo").map((c) => c.nome).join("\n");
@@ -638,6 +638,29 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
       if (json.modo_preparo) set("descritivo", json.modo_preparo);
     } catch (e) {
       setErro("Falha ao gerar com IA: " + e.message);
+    }
+    setGerandoIA(false);
+  }
+
+  // Cola a RECEITA COMPLETA do drink e a IA preenche tudo: copo, ingredientes
+  // com dosagem e o modo de preparo numerado.
+  async function montarDrinkComIA() {
+    if (!receitaIA.trim()) { setErro("Cole a receita do drink primeiro!"); return; }
+    setGerandoIA(true);
+    setErro("");
+    try {
+      const res = await fetch("/api/ia-montagem", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ descritivo: receitaIA, nome: f.nome, tipo: "drink" })
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Erro na IA");
+      if (Array.isArray(json.camadas) && json.camadas.length) set("estrutura_ia", json.camadas);
+      if (json.modo_preparo) set("descritivo", json.modo_preparo);
+      setReceitaIA("");
+    } catch (e) {
+      setErro("Falha ao montar com IA: " + e.message);
     }
     setGerandoIA(false);
   }
@@ -700,55 +723,59 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
       </Field>
 
       {f.tipo === "drink" ? (
-        <div>
-          {/* Abas com as informações que saem no Guia de Drinks */}
-          <div className="flex gap-1 mb-3 border-b border-slate-200">
-            {[["ingredientes", "Ingredientes & Dosagem"], ["copo", "Copo / Taça"], ["preparo", "Modo de Preparo"]].map(([id, label]) => (
-              <button key={id} type="button" onClick={() => setAbaDrink(id)}
-                className={`px-3 py-2 text-[11px] font-black uppercase tracking-wide border-b-2 -mb-px transition-colors ${abaDrink === id ? "border-emerald-600 text-emerald-700" : "border-transparent text-slate-400 hover:text-slate-600"}`}>
-                {label}
-              </button>
-            ))}
+        <div className="space-y-4">
+          {/* MONTAR COM IA: cola a receita inteira e ela preenche as seções */}
+          <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50/40 p-3">
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs font-black text-emerald-700 uppercase tracking-widest flex items-center gap-1.5"><Sparkles size={13} /> Montar com IA</label>
+            </div>
+            <textarea
+              value={receitaIA}
+              onChange={(e) => setReceitaIA(e.target.value)}
+              placeholder={"Cole a receita do drink aqui (de qualquer jeito) e a IA separa copo, ingredientes com dosagem e o preparo.\nEx: Moscow Mule: 50ml de vodka, suco de meio limão e espuma de gengibre na caneca de cobre com gelo..."}
+              rows={3}
+              style={{ width: "100%", padding: "10px 12px", borderRadius: 8, background: "#fff", color: "var(--fg)", border: "1px solid var(--line)", fontSize: 13, fontFamily: "inherit", resize: "vertical" }}
+            />
+            <button onClick={montarDrinkComIA} disabled={gerandoIA || !receitaIA.trim()} className="mt-2 w-full flex items-center justify-center gap-1.5 text-[12px] font-black uppercase text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-2.5 rounded-xl transition-colors disabled:opacity-50">
+              {gerandoIA ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+              {gerandoIA ? "Montando o drink..." : "Montar drink automaticamente"}
+            </button>
           </div>
 
-          {abaDrink === "ingredientes" && (
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Um ingrediente por linha, com a dosagem</label>
-                <button onClick={invocarIA} disabled={gerandoIA || (!ingredientesTexto && !f.descritivo)} className="flex items-center gap-1.5 text-[11px] font-black uppercase text-emerald-600 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 shadow-sm border border-slate-200">
-                  {gerandoIA ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                  {gerandoIA ? "Gerando..." : "Preparo com IA"}
-                </button>
-              </div>
-              <textarea
-                value={ingredientesTexto}
-                onChange={(e) => setIngredientesTexto(e.target.value)}
-                placeholder={"50 ml de vodka\n100 ml de espuma de gengibre\nSuco de 1/2 limão\nCubos de gelo"}
-                rows={6}
-                style={{ width: "100%", padding: "10px 12px", borderRadius: 8, background: "var(--elevated)", color: "var(--fg)", border: "1px solid var(--line)", fontSize: 13, fontFamily: "inherit", resize: "vertical" }}
-              />
-              <p className="text-[11px] text-slate-400 mt-1">Cada linha vira um item de ingrediente no guia. O botão &quot;Preparo com IA&quot; gera o passo a passo a partir daqui.</p>
+          {/* SEÇÃO: Ingredientes & Dosagem */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs font-black text-slate-600 uppercase tracking-widest">Ingredientes &amp; Dosagem</label>
+              <button onClick={invocarIA} disabled={gerandoIA || (!ingredientesTexto && !f.descritivo)} title="Gera só o passo a passo a partir dos ingredientes abaixo" className="flex items-center gap-1.5 text-[11px] font-black uppercase text-emerald-600 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 shadow-sm border border-slate-200">
+                {gerandoIA ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                {gerandoIA ? "Gerando..." : "Preparo com IA"}
+              </button>
             </div>
-          )}
+            <textarea
+              value={ingredientesTexto}
+              onChange={(e) => setIngredientesTexto(e.target.value)}
+              placeholder={"Um por linha, com a dosagem:\n50 ml de vodka\n100 ml de espuma de gengibre\nSuco de 1/2 limão\nCubos de gelo"}
+              rows={5}
+              style={{ width: "100%", padding: "10px 12px", borderRadius: 8, background: "var(--elevated)", color: "var(--fg)", border: "1px solid var(--line)", fontSize: 13, fontFamily: "inherit", resize: "vertical" }}
+            />
+          </div>
 
-          {abaDrink === "copo" && (
-            <Field label="Copo / Taça (subtítulo do drink no guia)">
-              <TextInput value={copoAtual} onChange={(e) => setCopo(e.target.value)} placeholder="ex: Taça Coupette, Caneca de Cobre, Copo Long Drink" />
-            </Field>
-          )}
+          {/* SEÇÃO: Copo / Taça */}
+          <Field label="Copo / Taça (subtítulo do drink no guia)">
+            <TextInput value={copoAtual} onChange={(e) => setCopo(e.target.value)} placeholder="ex: Taça Coupette, Caneca de Cobre, Copo Long Drink" />
+          </Field>
 
-          {abaDrink === "preparo" && (
-            <div>
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Um passo por linha (sai numerado no guia)</label>
-              <textarea
-                value={f.descritivo}
-                onChange={(e) => set("descritivo", e.target.value)}
-                placeholder={"Coloque o gelo na caneca\nJunte a vodka e o suco de limão\nComplete com a espuma de gengibre\nFinalize com rodela de limão"}
-                rows={6}
-                style={{ width: "100%", padding: "10px 12px", borderRadius: 8, background: "var(--elevated)", color: "var(--fg)", border: "1px solid var(--line)", fontSize: 13, fontFamily: "inherit", resize: "vertical" }}
-              />
-            </div>
-          )}
+          {/* SEÇÃO: Modo de Preparo */}
+          <div>
+            <label className="text-xs font-black text-slate-600 uppercase tracking-widest block mb-1">Modo de Preparo</label>
+            <textarea
+              value={f.descritivo}
+              onChange={(e) => set("descritivo", e.target.value)}
+              placeholder={"Um passo por linha (sai numerado no guia):\nColoque o gelo na caneca\nJunte a vodka e o suco de limão\nComplete com a espuma de gengibre\nFinalize com rodela de limão"}
+              rows={5}
+              style={{ width: "100%", padding: "10px 12px", borderRadius: 8, background: "var(--elevated)", color: "var(--fg)", border: "1px solid var(--line)", fontSize: 13, fontFamily: "inherit", resize: "vertical" }}
+            />
+          </div>
         </div>
       ) : (
         <div className="relative">
@@ -1222,50 +1249,84 @@ function temAlcool(m) {
   const texto = camadas.map((c) => c.nome).join(" ") + " " + (m.nome || "") + " " + (m.descritivo || "");
   return PALAVRAS_ALCOOL.test(texto);
 }
+// Dose/shot: uma medida única de destilado.
+const PALAVRAS_DOSE = /(\bdose\b|\bshot\b|\bshots\b|\bcavalinho\b)/i;
+function categoriaDrink(m) {
+  const camadas = Array.isArray(m.estrutura_ia) ? m.estrutura_ia : [];
+  const texto = camadas.map((c) => c.nome).join(" ") + " " + (m.nome || "");
+  if (PALAVRAS_DOSE.test(texto)) return "Doses";
+  return temAlcool(m) ? "Com Álcool" : "Sem Álcool";
+}
+// Um drink só entra no guia se tiver conteúdo de montagem (ingredientes ou
+// preparo). Bebidas engarrafadas (água, cerveja) importadas do cardápio ficam
+// sem conteúdo e não aparecem no guia.
+function temConteudoDrink(m) {
+  const camadas = Array.isArray(m.estrutura_ia) ? m.estrutura_ia : [];
+  const temIng = camadas.some((c) => c.tipo !== "copo" && (c.nome || "").trim());
+  return temIng || String(m.descritivo || "").trim().length > 0;
+}
+// Só os drinks que valem para o guia (é drink + tem receita/montagem).
+function drinksDoGuia(lista) {
+  return (lista || []).filter((m) => ehDrinkGuia(m) && temConteudoDrink(m));
+}
 
+// Cor de cada categoria (usada nos títulos e no índice/livro).
+const COR_CATEGORIA = { "Com Álcool": "#1f7a33", "Sem Álcool": "#b45309", "Doses": "#7c3aed" };
+const ORDEM_CATEGORIA = ["Com Álcool", "Sem Álcool", "Doses"];
+
+// HTML de um card de drink (kanban) — reaproveitado pelo pôster e pelo livro.
+function drinkCardHTML(m) {
+  const nome = escaparHtml((m.nome || "Drink").toUpperCase());
+  const camadas = Array.isArray(m.estrutura_ia) ? m.estrutura_ia : [];
+  const copo = camadas.find((c) => c.tipo === "copo");
+  const ingredientes = camadas.filter((c) => c.tipo !== "copo" && (c.nome || "").trim());
+  const passos = String(m.descritivo || "").split("\n").map((s) => s.trim().replace(/^\d+[\.\)]\s*/, "")).filter(Boolean);
+  const foto = m.foto_url
+    ? `<div class="foto"><img src="${escaparHtml(m.foto_url)}" alt="${nome}"/></div>`
+    : `<div class="foto semFoto">sem foto</div>`;
+  const subtitulo = copo ? `<p class="copo">${escaparHtml(copo.nome)}</p>` : (m.rendimento ? `<p class="copo">${escaparHtml(m.rendimento)}</p>` : "");
+  const blocoIngredientes = ingredientes.length
+    ? `<div class="bloco"><p class="rot">Ingredientes</p><ul>${ingredientes.map((c) => `<li>${escaparHtml(c.nome)}</li>`).join("")}</ul></div>` : "";
+  const blocoPreparo = passos.length
+    ? `<div class="bloco"><p class="rot">Preparo</p><ol>${passos.map((p) => `<li>${escaparHtml(p)}</li>`).join("")}</ol></div>`
+    : `<div class="bloco"><p class="rot">Preparo</p><p class="vazio">Sem passo a passo cadastrado.</p></div>`;
+  return `<article class="drink"><div class="cab">${foto}<div class="tit"><h2>${nome}</h2>${subtitulo}</div></div>${blocoIngredientes}${blocoPreparo}</article>`;
+}
+
+// CSS dos cards (compartilhado). `colunas` controla o tamanho de fonte/foto.
+function drinkCardCSS(colunas) {
+  return `
+    .grade{display:grid;grid-template-columns:repeat(${colunas},1fr);gap:3.5mm}
+    .drink{border:2.5px solid #111;border-radius:10px;padding:3.5mm;display:flex;flex-direction:column;break-inside:avoid;page-break-inside:avoid;background:#fff}
+    .cab{display:flex;gap:3mm;align-items:center;margin-bottom:2.5mm}
+    .foto{width:${colunas >= 4 ? 16 : colunas === 3 ? 20 : 26}mm;height:${colunas >= 4 ? 16 : colunas === 3 ? 20 : 26}mm;flex:none;border:2px solid #111;border-radius:8px;overflow:hidden;background:#f4f4f5}
+    .foto img{width:100%;height:100%;object-fit:cover;display:block}
+    .foto.semFoto{display:flex;align-items:center;justify-content:center;text-align:center;color:#a1a1aa;font-weight:800;text-transform:uppercase;font-size:8px;letter-spacing:.5px}
+    .tit{min-width:0;flex:1}
+    .drink h2{font-size:${colunas >= 4 ? 18 : colunas === 3 ? 22 : 28}px;font-weight:900;line-height:1.05;letter-spacing:.5px;text-transform:uppercase}
+    .copo{font-size:${colunas >= 4 ? 11 : 13}px;font-weight:800;color:#444;margin-top:2px}
+    .bloco{margin-top:2.5mm}
+    .rot{font-size:${colunas >= 4 ? 12 : 14}px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;border-bottom:2px solid #111;padding-bottom:2px;margin-bottom:3px}
+    .drink ul,.drink ol{padding-left:1.3em}
+    .drink li{font-size:${colunas >= 4 ? 13 : colunas === 3 ? 15 : 17}px;font-weight:700;line-height:1.35;margin-bottom:2px}
+    .drink ol li::marker{font-weight:900}
+    .vazio{font-size:13px;color:#999;font-style:italic}`;
+}
+
+// PÔSTER (kanban) — cards em grade, seções Com/Sem Álcool/Doses. Margem mínima.
 function imprimirGuiaDrinks(fichas, colunas = 3) {
   const drinks = (fichas || []).filter(Boolean);
   if (!drinks.length) return alert("Nenhum drink para o guia.");
-  const comAlcool = drinks.filter(temAlcool);
-  const semAlcool = drinks.filter((d) => !temAlcool(d));
+  const porCat = {};
+  drinks.forEach((d) => { const c = categoriaDrink(d); (porCat[c] = porCat[c] || []).push(d); });
+  ORDEM_CATEGORIA.forEach((c) => (porCat[c] || []).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")));
 
-  const cardHTML = (m) => {
-    const nome = escaparHtml((m.nome || "Drink").toUpperCase());
-    const camadas = Array.isArray(m.estrutura_ia) ? m.estrutura_ia : [];
-    // O copo (tipo "copo") vira o subtítulo; o resto são os ingredientes.
-    const copo = camadas.find((c) => c.tipo === "copo");
-    const ingredientes = camadas.filter((c) => c.tipo !== "copo" && (c.nome || "").trim());
-    const passos = String(m.descritivo || "")
-      .split("\n").map((s) => s.trim().replace(/^\d+[\.\)]\s*/, "")).filter(Boolean);
-
-    const foto = m.foto_url
-      ? `<div class="foto"><img src="${escaparHtml(m.foto_url)}" alt="${nome}"/></div>`
-      : `<div class="foto semFoto">sem foto</div>`;
-
-    const subtitulo = copo
-      ? `<p class="copo">${escaparHtml(copo.nome)}</p>`
-      : (m.rendimento ? `<p class="copo">${escaparHtml(m.rendimento)}</p>` : "");
-
-    const blocoIngredientes = ingredientes.length
-      ? `<div class="bloco"><p class="rot">Ingredientes</p><ul>${ingredientes.map((c) => `<li>${escaparHtml(c.nome)}</li>`).join("")}</ul></div>`
-      : "";
-
-    const blocoPreparo = passos.length
-      ? `<div class="bloco"><p class="rot">Preparo</p><ol>${passos.map((p) => `<li>${escaparHtml(p)}</li>`).join("")}</ol></div>`
-      : `<div class="bloco"><p class="rot">Preparo</p><p class="vazio">Sem passo a passo cadastrado.</p></div>`;
-
-    return `<article class="drink">
-      <div class="cab">
-        ${foto}
-        <div class="tit"><h2>${nome}</h2>${subtitulo}</div>
-      </div>
-      ${blocoIngredientes}
-      ${blocoPreparo}
-    </article>`;
-  };
-
-  // Margem mínima da impressora (a maior área útil) para caber mais drinks.
   const margemMm = 4;
+  const secoes = ORDEM_CATEGORIA.filter((c) => (porCat[c] || []).length).map((c) => {
+    const cor = COR_CATEGORIA[c];
+    return `<h2 class="secao-titulo" style="color:${cor};border-color:${cor}">${c} <span class="cont" style="background:${cor}">${porCat[c].length}</span></h2><div class="grade">${porCat[c].map(drinkCardHTML).join("")}</div>`;
+  }).join("");
+
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"/><title>Guia de Drinks</title>
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
@@ -1275,39 +1336,19 @@ function imprimirGuiaDrinks(fichas, colunas = 3) {
       .cabeca{display:flex;align-items:center;gap:12px;border-bottom:3px solid #111;padding-bottom:5px;margin-bottom:5mm}
       .cabeca h1{font-size:26px;font-weight:900;letter-spacing:2px;text-transform:uppercase}
       .cabeca .risco{flex:1;height:3px;background:#111}
-      .secao-titulo{font-size:17px;font-weight:900;text-transform:uppercase;letter-spacing:2px;color:#1f7a33;margin:6mm 0 3mm;padding-bottom:3px;border-bottom:2.5px solid #1f7a33;display:flex;align-items:center;gap:8px}
+      .secao-titulo{font-size:17px;font-weight:900;text-transform:uppercase;letter-spacing:2px;margin:6mm 0 3mm;padding-bottom:3px;border-bottom:2.5px solid;display:flex;align-items:center;gap:8px}
       .secao-titulo:first-of-type{margin-top:2mm}
-      .secao-titulo .cont{font-size:12px;background:#1f7a33;color:#fff;border-radius:999px;padding:1px 9px}
-      .secao-titulo.sem{color:#b45309;border-color:#b45309}
-      .secao-titulo.sem .cont{background:#b45309}
-      .grade{display:grid;grid-template-columns:repeat(${colunas},1fr);gap:3.5mm}
-      .drink{border:2.5px solid #111;border-radius:10px;padding:3.5mm;display:flex;flex-direction:column;break-inside:avoid;page-break-inside:avoid}
-      /* Foto menor, como miniatura ao lado do nome, para caber mais drinks/folha */
-      .cab{display:flex;gap:3mm;align-items:center;margin-bottom:2.5mm}
-      .foto{width:${colunas >= 4 ? 16 : colunas === 3 ? 20 : 26}mm;height:${colunas >= 4 ? 16 : colunas === 3 ? 20 : 26}mm;flex:none;border:2px solid #111;border-radius:8px;overflow:hidden;background:#f4f4f5}
-      .foto img{width:100%;height:100%;object-fit:cover;display:block}
-      .foto.semFoto{display:flex;align-items:center;justify-content:center;text-align:center;color:#a1a1aa;font-weight:800;text-transform:uppercase;font-size:8px;letter-spacing:.5px}
-      .tit{min-width:0;flex:1}
-      .drink h2{font-size:${colunas >= 4 ? 18 : colunas === 3 ? 22 : 28}px;font-weight:900;line-height:1.05;letter-spacing:.5px;text-transform:uppercase}
-      .copo{font-size:${colunas >= 4 ? 11 : 13}px;font-weight:800;color:#444;margin-top:2px}
-      .bloco{margin-top:2.5mm}
-      .rot{font-size:${colunas >= 4 ? 12 : 14}px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;border-bottom:2px solid #111;padding-bottom:2px;margin-bottom:3px}
-      .drink ul,.drink ol{padding-left:1.3em}
-      .drink li{font-size:${colunas >= 4 ? 13 : colunas === 3 ? 15 : 17}px;font-weight:700;line-height:1.35;margin-bottom:2px}
-      .drink ol li::marker{font-weight:900}
-      .vazio{font-size:13px;color:#999;font-style:italic}
+      .secao-titulo .cont{font-size:12px;color:#fff;border-radius:999px;padding:1px 9px}
+      ${drinkCardCSS(colunas)}
       @media screen{body{padding:16px;background:#e2e8f0}.folha{background:#fff;box-shadow:0 12px 35px rgba(15,23,42,.16);padding:${margemMm}mm;max-width:210mm;margin:0 auto}}
       @media print{.folha{padding:0}}
     </style></head><body>
       <div class="folha">
         <div class="cabeca">${logoSeldeestrelaSVG(38)}<h1>Guia de Drinks</h1><span class="risco"></span></div>
-        ${comAlcool.length ? `<h2 class="secao-titulo">Com Álcool <span class="cont">${comAlcool.length}</span></h2><div class="grade">${comAlcool.map(cardHTML).join("")}</div>` : ""}
-        ${semAlcool.length ? `<h2 class="secao-titulo sem">Sem Álcool <span class="cont">${semAlcool.length}</span></h2><div class="grade">${semAlcool.map(cardHTML).join("")}</div>` : ""}
+        ${secoes}
       </div>
     </body></html>`;
 
-  // Auto-ajuste: se um card ficar mais alto que a página (muito ingrediente/
-  // passo), ele é reduzido proporcionalmente para caber sem cortar.
   abrirImpressaoHtml(html, (doc) => {
     const ref = doc.createElement("div");
     ref.style.cssText = `position:absolute;visibility:hidden;width:1mm;height:${297 - 2 * margemMm}mm`;
@@ -1316,9 +1357,83 @@ function imprimirGuiaDrinks(fichas, colunas = 3) {
     ref.remove();
     if (!alturaPagina) return;
     doc.querySelectorAll(".drink").forEach((card) => {
-      const alturaCard = card.offsetHeight;
-      if (alturaCard > alturaPagina) {
-        card.style.zoom = Math.max(0.5, (alturaPagina - 6) / alturaCard);
+      if (card.offsetHeight > alturaPagina) card.style.zoom = Math.max(0.5, (alturaPagina - 6) / card.offsetHeight);
+    });
+  });
+}
+
+// LIVRO — capa, índice e páginas numeradas; drinks por ordem alfabética dentro
+// de cada categoria (Com Álcool, Sem Álcool, Doses).
+function imprimirLivroDrinks(fichas) {
+  const drinks = (fichas || []).filter(Boolean);
+  if (!drinks.length) return alert("Nenhum drink para o livro.");
+  const CARDS_POR_PAGINA = 6; // 2 colunas × 3 linhas
+  const colunas = 2;
+
+  const porCat = {};
+  drinks.forEach((d) => { const c = categoriaDrink(d); (porCat[c] = porCat[c] || []).push(d); });
+  ORDEM_CATEGORIA.forEach((c) => (porCat[c] || []).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")));
+
+  // Páginas de conteúdo: cada categoria começa em página nova.
+  const paginas = [];
+  ORDEM_CATEGORIA.forEach((cat) => {
+    const items = porCat[cat] || [];
+    for (let i = 0; i < items.length; i += CARDS_POR_PAGINA) paginas.push({ cat, cor: COR_CATEGORIA[cat], cards: items.slice(i, i + CARDS_POR_PAGINA) });
+  });
+  const pagPorDrink = {};
+  paginas.forEach((pg, pi) => pg.cards.forEach((c) => { pagPorDrink[c.id] = pi + 3; })); // capa=1, índice=2
+
+  const indiceHTML = ORDEM_CATEGORIA.filter((c) => (porCat[c] || []).length).map((cat) => {
+    const cor = COR_CATEGORIA[cat];
+    return `<div class="ind-sec" style="color:${cor};border-color:${cor}">${cat} <span>${porCat[cat].length}</span></div>` +
+      porCat[cat].map((d) => `<div class="ind-item"><span>${escaparHtml(d.nome)}</span><span class="pontos"></span><span class="pg">${pagPorDrink[d.id]}</span></div>`).join("");
+  }).join("");
+
+  const conteudo = paginas.map((pg, pi) => `<section class="pagina">
+      <div class="cat-band" style="background:${pg.cor}">${pg.cat}</div>
+      <div class="conteudo"><div class="grade">${pg.cards.map(drinkCardHTML).join("")}</div></div>
+      <div class="rodape-livro"><span>${escaparHtml(pg.cat)}</span><span>Página ${pi + 3}</span></div>
+    </section>`).join("");
+
+  // Margem esquerda maior (18mm): folga para furar/encadernar o livro.
+  const margemMm = 8;
+  const margemEncadernacaoMm = 18;
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"/><title>Livro de Drinks</title>
+    <style>
+      *{margin:0;padding:0;box-sizing:border-box}
+      @page{size:A4 portrait;margin:${margemMm}mm ${margemMm}mm ${margemMm}mm ${margemEncadernacaoMm}mm}
+      html,body{background:#fff}
+      body{font-family:'Poppins','Segoe UI',Arial,sans-serif;color:#111;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      .capa,.indice,.pagina{break-after:page;page-break-after:always}
+      .capa{height:${297 - 2 * margemMm}mm;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+      .capa h1{font-size:44px;font-weight:900;letter-spacing:3px;text-transform:uppercase;margin:24px 0 10px}
+      .capa p{font-size:16px;color:#64748b;font-weight:700}
+      .indice h1{font-size:30px;font-weight:900;text-transform:uppercase;letter-spacing:2px;border-bottom:3px solid #111;padding-bottom:8px;margin-bottom:14px}
+      .ind-sec{font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;margin:14px 0 6px;padding-bottom:3px;border-bottom:2px solid;display:flex;gap:8px;align-items:center}
+      .ind-sec span{font-size:11px;background:currentColor;color:#fff;border-radius:999px;padding:1px 8px}
+      .ind-item{display:flex;align-items:baseline;gap:6px;font-size:13px;font-weight:700;margin:3px 0}
+      .ind-item .pontos{flex:1;border-bottom:1.5px dotted #cbd5e1;transform:translateY(-3px)}
+      .ind-item .pg{font-weight:900}
+      .pagina{height:${297 - 2 * margemMm}mm;display:flex;flex-direction:column}
+      .cat-band{color:#fff;font-weight:900;text-transform:uppercase;letter-spacing:2px;font-size:15px;padding:5px 10px;border-radius:8px;margin-bottom:4mm}
+      .conteudo{flex:1;overflow:hidden}
+      .grade{align-content:start}
+      .rodape-livro{margin-top:4mm;padding-top:5px;border-top:1px solid #cbd5e1;display:flex;justify-content:space-between;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#64748b}
+      ${drinkCardCSS(colunas)}
+      @media screen{body{padding:16px;background:#e2e8f0}.capa,.indice,.pagina{background:#fff;box-shadow:0 12px 35px rgba(15,23,42,.16);max-width:210mm;margin:0 auto 16px;padding:${margemMm}mm ${margemMm}mm ${margemMm}mm ${margemEncadernacaoMm}mm}}
+    </style></head><body>
+      <section class="capa">${logoSeldeestrelaSVG(80)}<h1>Guia de Drinks</h1><p>${drinks.length} drinks catalogados</p><p style="margin-top:6px;font-size:13px;color:#94a3b8">${new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}</p></section>
+      <section class="indice"><h1>Índice</h1>${indiceHTML}<div class="rodape-livro"><span>Guia de Drinks</span><span>Página 2</span></div></section>
+      ${conteudo}
+    </body></html>`;
+
+  // Se os 6 cards não couberem na página, reduz a grade proporcionalmente.
+  abrirImpressaoHtml(html, (doc) => {
+    doc.querySelectorAll(".pagina").forEach((pg) => {
+      const cont = pg.querySelector(".conteudo");
+      const grade = pg.querySelector(".grade");
+      if (cont && grade && cont.scrollHeight > cont.clientHeight + 4) {
+        grade.style.zoom = Math.max(0.5, cont.clientHeight / cont.scrollHeight);
       }
     });
   });
@@ -1346,6 +1461,7 @@ function MontagemPageInner() {
   const [impOrient, setImpOrient] = useState("retrato");   // "retrato" | "paisagem"
   const [impPorPagina, setImpPorPagina] = useState(1);      // 1 | 2 (fichas por folha)
   const [modalImpressao, setModalImpressao] = useState(false); // impressão em lote
+  const [modalGuia, setModalGuia] = useState(false); // escolha cartões × livro (bar)
   // Seleção de fichas para imprimir juntas (ex.: 2 receitas na mesma página)
   const [selecionadas, setSelecionadas] = useState([]);
   const toggleSel = (id) => setSelecionadas(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
@@ -1539,12 +1655,12 @@ function MontagemPageInner() {
     <div className="min-h-screen">
       <PageHeader title={titulo} subtitle={subtitle} icon={ClipboardList} onAction={() => { setEditar(null); setModal(true); }} actionLabel="Nova Ficha">
         {dept === "bar" && (() => {
-          // A IA identifica os drinks (tipo, estrutura ou nome) — petiscos e
-          // porções do bar ficam de fora do guia de coquetelaria.
-          const drinksGuia = alvoImpressao.filter(ehDrinkGuia);
+          // Só drinks COM receita/montagem entram no guia (a IA identifica; as
+          // bebidas engarrafadas sem preparo ficam de fora).
+          const drinksGuia = drinksDoGuia(alvoImpressao);
           return (
-            <button onClick={() => drinksGuia.length ? imprimirGuiaDrinks(drinksGuia, 3) : alert("Nenhum drink identificado. Cadastre a bebida (ou marque o tipo como Drink) para entrar no guia.")}
-              title="Pôster estilo kanban com foto, dosagem e preparo — a IA identifica os drinks automaticamente" className="erp-btn erp-btn-primary !h-9 text-xs">
+            <button onClick={() => drinksGuia.length ? setModalGuia(true) : alert("Nenhum drink com receita para o guia. Cadastre os ingredientes/preparo de uma bebida para ela entrar.")}
+              title="Guia de Drinks: pôster em cartões ou livro com capa e índice — só os drinks com receita" className="erp-btn erp-btn-primary !h-9 text-xs">
               <Wine size={14} /> Guia de Drinks{drinksGuia.length ? ` (${drinksGuia.length})` : ""}
             </button>
           );
@@ -1631,7 +1747,7 @@ function MontagemPageInner() {
               {[
                 { icon: X, label: "Sair", onClick: () => setPreviewCard(null) },
                 { icon: Edit3, label: "Editar", onClick: () => { setEditar(previewCard); setModal(true); setPreviewCard(null); } },
-                { icon: Printer, label: "Imprimir", onClick: () => imprimirModelo([previewCard], { ...cfgModelo, porPagina: 1 }, deptLabelAtual()) },
+                { icon: Printer, label: "Imprimir", onClick: () => (dept === "bar" && ehDrinkGuia(previewCard)) ? imprimirGuiaDrinks([previewCard], 2) : imprimirModelo([previewCard], { ...cfgModelo, porPagina: 1 }, deptLabelAtual()) },
                 { icon: Download, label: "PDF", onClick: () => baixarPdf(previewCard) },
                 { icon: Share2, label: "Compartilhar", onClick: () => compartilharFicha(previewCard) },
                 { icon: Trash2, label: "Excluir", onClick: () => remover(previewCard.id), perigo: true },
@@ -1650,6 +1766,36 @@ function MontagemPageInner() {
       )}
 
       {/* MODAL GIGANTE para comportar o editor */}
+      {/* MODAL DO GUIA DE DRINKS: cartões (pôster) ou livro (capa + índice) */}
+      {modalGuia && (() => {
+        const drinksGuia = drinksDoGuia(alvoImpressao);
+        const fechar = () => setModalGuia(false);
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={fechar}>
+            <div className="erp-card w-full max-w-md p-5 sm:p-6" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-lg font-black flex items-center gap-2" style={{ color: "var(--fg)" }}><Wine size={18} /> Guia de Drinks</h3>
+                <button onClick={fechar} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "var(--elevated)", color: "var(--muted)" }}>×</button>
+              </div>
+              <p className="text-[11px] font-medium mb-4" style={{ color: "var(--dim)" }}>
+                {selecionadas.length ? `${drinksGuia.length} drink(s) marcado(s).` : `${drinksGuia.length} drink(s) com receita.`} Divididos em Com Álcool, Sem Álcool e Doses, em ordem alfabética.
+              </p>
+              <div className="grid gap-3">
+                <button onClick={() => { fechar(); imprimirGuiaDrinks(drinksGuia, 3); }} className="flex items-start gap-3 rounded-2xl border-2 p-4 text-left transition-colors hover:bg-emerald-50" style={{ borderColor: "var(--line)" }}>
+                  <ClipboardList size={22} className="text-emerald-600 shrink-0 mt-0.5" />
+                  <div><p className="font-black text-slate-800 text-sm">Cartões (pôster)</p><p className="text-xs font-medium text-slate-400 mt-0.5">Grade compacta para colar na parede/bancada. Margem mínima, cabe o máximo por folha.</p></div>
+                </button>
+                <button onClick={() => { fechar(); imprimirLivroDrinks(drinksGuia); }} className="flex items-start gap-3 rounded-2xl border-2 p-4 text-left transition-colors hover:bg-emerald-50" style={{ borderColor: "var(--line)" }}>
+                  <Printer size={22} className="text-emerald-600 shrink-0 mt-0.5" />
+                  <div><p className="font-black text-slate-800 text-sm">Livro (capa + índice)</p><p className="text-xs font-medium text-slate-400 mt-0.5">Capa, índice com páginas, categorias em ordem alfabética e páginas numeradas.</p></div>
+                </button>
+              </div>
+              <p className="text-[10px] font-medium mt-4" style={{ color: "var(--dim)" }}>Dica: marque drinks nos cards para imprimir só alguns (ex.: 2 ou mais). Sem marcar, entra todo o bar.</p>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* MODAL DE IMPRESSÃO EM LOTE (padrão compacto + modelo com foto) */}
       {modalImpressao && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={() => setModalImpressao(false)}>

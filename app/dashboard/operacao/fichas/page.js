@@ -8,6 +8,7 @@ import { fetchProdutos, salvarProduto } from "../../../lib/vendas";
 import { fetchMontagens, inserirMontagem } from "../../../lib/montagem";
 import { LayoutList, Plus, Search, Trash2, Edit3, X, Save, ArrowLeft, UtensilsCrossed, Wine, ChevronRight, Printer, Sparkles, Loader2, Camera, CheckCircle2, AlertTriangle, GripVertical, Calculator } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
+import { logoSeldeestrelaSVG } from "../../../lib/marca";
 
 // Botão "Fechar" + fechamento automático após imprimir — no celular a aba de
 // impressão ficava presa e o usuário não conseguia voltar ao app.
@@ -1043,10 +1044,10 @@ function FichasRunner() {
 
       conteudoHTML += `
          <div class="capa">
+           <div style="margin-bottom:26px">${logoSeldeestrelaSVG(70)}</div>
            <h1>Livro de Receitas</h1>
            <p>${lista.length} receitas catalogadas</p>
            <p style="margin-top:8px;font-size:14px;color:#94a3b8">${new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</p>
-           <p style="margin-top: 40px; font-size: 14px; text-transform: uppercase; letter-spacing: 2px;">${esc(unidadeInfo?.nome || 'Hefisto')}</p>
          </div>
        `;
       let indiceHTML = '';
@@ -1074,7 +1075,8 @@ function FichasRunner() {
       // Receita/página maior que a folha? Comprime até caber — nunca vaza.
       conteudoHTML += `<script>addEventListener('load',function(){document.querySelectorAll('.pagina-livro').forEach(function(pg){var c=pg.querySelector('.conteudo-pg');if(!c)return;if(c.scrollHeight>c.clientHeight+4){c.style.zoom=Math.max(0.5,c.clientHeight/c.scrollHeight);}});});<\/script>`;
     } else {
-      conteudoHTML += dados.map(x => `<div class="ficha">${x.corpo}</div>`).join('');
+      // Ficha(s) avulsa(s): logo da marca no topo de cada folha impressa.
+      conteudoHTML += dados.map(x => `<div class="ficha"><div style="display:flex;justify-content:center;margin-bottom:10px">${logoSeldeestrelaSVG(40)}</div>${x.corpo}</div>`).join('');
     }
 
     conteudoHTML += `</body></html>`;
@@ -1115,6 +1117,7 @@ function FichasRunner() {
       tfoot td{border-top:2px solid #0f172a;font-weight:900;font-size:13px;padding-top:8px}
       @media print{@page{margin:10mm}}
     </style></head><body>
+      <div style="display:flex;justify-content:center;margin-bottom:10px">${logoSeldeestrelaSVG(42)}</div>
       <h1>Planilha de Custos e CMV</h1>
       <div class="sub">${esc2(unidadeInfo?.nome || '')} · ${new Date().toLocaleDateString('pt-BR')} · ${linhas.length} receita(s)</div>
       <table><thead><tr><th>Receita</th><th>Categoria</th><th class="r">Custo total</th><th class="r">Custo/porção</th><th class="r">Preço de venda</th><th class="r">CMV</th></tr></thead>
@@ -1259,6 +1262,7 @@ function FichasRunner() {
         @media print{@page{margin:10mm}}
       </style></head><body>
       <div class="cabeca">
+        <div style="display:flex;justify-content:center;margin-bottom:8px">${logoSeldeestrelaSVG(40)}</div>
         <h1>${titulo}</h1>
         <p>${unidadeInfo?.nome || ""} · receituário ${ehBar ? "do bar" : "da cozinha"}</p>
       </div>

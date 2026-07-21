@@ -14,6 +14,7 @@ import {
 } from "../../../lib/montagem";
 import { fetchProdutos } from "../../../lib/vendas";
 import { fetchModeloMontagem, salvarModeloMontagem } from "../../../lib/parametros";
+import { logoSeldeestrelaSVG } from "../../../lib/marca";
 
 const VAZIO = {
   nome: "", tipo: "prato", departamento: "cozinha",
@@ -1136,9 +1137,19 @@ function ehDrinkGuia(m) {
   return PALAVRAS_DRINK.test(m.nome || "");
 }
 
+// Bebida alcoólica: detecta pelo texto dos ingredientes/nome/preparo.
+const PALAVRAS_ALCOOL = /(vodka|\bgin\b|\bgim\b|tequila|\brum\b|cacha[çc]a|whisk|u[íi]sque|licor|vermute|campari|aperol|conhaque|cognac|\bvinho|espumante|champa|cerveja|chopp|saqu[êe]|\bsak[êe]|cointreau|triple sec|cura[çc]au|bourbon|absinto|fernet|amaretto|prosecco|pisco|catuaba|steinhaeger|j[äa]ger|\bbitter|licoroso|steinhager|contreau)/i;
+function temAlcool(m) {
+  const camadas = Array.isArray(m.estrutura_ia) ? m.estrutura_ia : [];
+  const texto = camadas.map((c) => c.nome).join(" ") + " " + (m.nome || "") + " " + (m.descritivo || "");
+  return PALAVRAS_ALCOOL.test(texto);
+}
+
 function imprimirGuiaDrinks(fichas, colunas = 3) {
   const drinks = (fichas || []).filter(Boolean);
   if (!drinks.length) return alert("Nenhum drink para o guia.");
+  const comAlcool = drinks.filter(temAlcool);
+  const semAlcool = drinks.filter((d) => !temAlcool(d));
 
   const cardHTML = (m) => {
     const nome = escaparHtml((m.nome || "Drink").toUpperCase());
@@ -1183,9 +1194,14 @@ function imprimirGuiaDrinks(fichas, colunas = 3) {
       @page{size:A4 portrait;margin:${margemMm}mm}
       html,body{background:#fff}
       body{font-family:'Poppins','Segoe UI',Arial,sans-serif;color:#111;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-      .cabeca{display:flex;align-items:center;gap:8px;border-bottom:3px solid #111;padding-bottom:5px;margin-bottom:5mm}
-      .cabeca h1{font-size:28px;font-weight:900;letter-spacing:3px;text-transform:uppercase;flex:1}
+      .cabeca{display:flex;align-items:center;gap:12px;border-bottom:3px solid #111;padding-bottom:5px;margin-bottom:5mm}
+      .cabeca h1{font-size:26px;font-weight:900;letter-spacing:2px;text-transform:uppercase}
       .cabeca .risco{flex:1;height:3px;background:#111}
+      .secao-titulo{font-size:17px;font-weight:900;text-transform:uppercase;letter-spacing:2px;color:#1f7a33;margin:6mm 0 3mm;padding-bottom:3px;border-bottom:2.5px solid #1f7a33;display:flex;align-items:center;gap:8px}
+      .secao-titulo:first-of-type{margin-top:2mm}
+      .secao-titulo .cont{font-size:12px;background:#1f7a33;color:#fff;border-radius:999px;padding:1px 9px}
+      .secao-titulo.sem{color:#b45309;border-color:#b45309}
+      .secao-titulo.sem .cont{background:#b45309}
       .grade{display:grid;grid-template-columns:repeat(${colunas},1fr);gap:3.5mm}
       .drink{border:2.5px solid #111;border-radius:10px;padding:3.5mm;display:flex;flex-direction:column;break-inside:avoid;page-break-inside:avoid}
       /* Foto menor, como miniatura ao lado do nome, para caber mais drinks/folha */
@@ -1206,8 +1222,9 @@ function imprimirGuiaDrinks(fichas, colunas = 3) {
       @media print{.folha{padding:0}}
     </style></head><body>
       <div class="folha">
-        <div class="cabeca"><h1>Guia de Drinks</h1><span class="risco"></span></div>
-        <div class="grade">${drinks.map(cardHTML).join("")}</div>
+        <div class="cabeca">${logoSeldeestrelaSVG(38)}<h1>Guia de Drinks</h1><span class="risco"></span></div>
+        ${comAlcool.length ? `<h2 class="secao-titulo">Com Álcool <span class="cont">${comAlcool.length}</span></h2><div class="grade">${comAlcool.map(cardHTML).join("")}</div>` : ""}
+        ${semAlcool.length ? `<h2 class="secao-titulo sem">Sem Álcool <span class="cont">${semAlcool.length}</span></h2><div class="grade">${semAlcool.map(cardHTML).join("")}</div>` : ""}
       </div>
     </body></html>`;
 

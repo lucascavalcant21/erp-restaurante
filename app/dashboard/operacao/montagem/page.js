@@ -16,6 +16,7 @@ import { fetchProdutos } from "../../../lib/vendas";
 import { fetchModeloMontagem, salvarModeloMontagem, fetchFotosCopos, salvarFotoCopo } from "../../../lib/parametros";
 import { logoSeldeestrelaSVG } from "../../../lib/marca";
 import { CATALOGO_COPOS, desenhoCopoSVG, ilustracaoDrinkSVG, identificarCopo, definirFotosCopos, fotoCopoReal, imagemCopoHTML } from "../../../lib/copos";
+import { baixarPdfDeHtml } from "../../../lib/pdf";
 
 const VAZIO = {
   nome: "", tipo: "prato", departamento: "cozinha",
@@ -1402,9 +1403,10 @@ function PreviaCardDrink({ m }) {
 }
 
 // PÔSTER (kanban) — cards em grade, seções Com/Sem Álcool/Doses. Margem mínima.
-function imprimirGuiaDrinks(fichas, colunas = 3) {
+// Gera o HTML (com o auto-ajuste embutido, que vale para impressão E PDF).
+function gerarHtmlGuiaDrinks(fichas, colunas = 3) {
   const drinks = (fichas || []).filter(Boolean);
-  if (!drinks.length) return alert("Nenhum drink para o guia.");
+  if (!drinks.length) { alert("Nenhum drink para o guia."); return null; }
   const porCat = {};
   drinks.forEach((d) => { const c = categoriaDrink(d); (porCat[c] = porCat[c] || []).push(d); });
   ORDEM_CATEGORIA.forEach((c) => (porCat[c] || []).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")));
@@ -1435,26 +1437,29 @@ function imprimirGuiaDrinks(fichas, colunas = 3) {
         <div class="cabeca">${logoSeldeestrelaSVG(38)}<h1>Guia de Drinks</h1><span class="risco"></span></div>
         ${secoes}
       </div>
+      <script>addEventListener('load',function(){
+        var ref=document.createElement('div');
+        ref.style.cssText='position:absolute;visibility:hidden;width:1mm;height:${297 - 2 * margemMm}mm';
+        document.body.appendChild(ref);var alturaPagina=ref.offsetHeight;ref.remove();
+        if(!alturaPagina)return;
+        document.querySelectorAll('.drink').forEach(function(card){
+          if(card.offsetHeight>alturaPagina)card.style.zoom=Math.max(0.5,(alturaPagina-6)/card.offsetHeight);
+        });
+      });<\/script>
     </body></html>`;
+  return html;
+}
 
-  abrirImpressaoHtml(html, (doc) => {
-    const ref = doc.createElement("div");
-    ref.style.cssText = `position:absolute;visibility:hidden;width:1mm;height:${297 - 2 * margemMm}mm`;
-    doc.body.appendChild(ref);
-    const alturaPagina = ref.offsetHeight;
-    ref.remove();
-    if (!alturaPagina) return;
-    doc.querySelectorAll(".drink").forEach((card) => {
-      if (card.offsetHeight > alturaPagina) card.style.zoom = Math.max(0.5, (alturaPagina - 6) / card.offsetHeight);
-    });
-  });
+function imprimirGuiaDrinks(fichas, colunas = 3) {
+  const html = gerarHtmlGuiaDrinks(fichas, colunas);
+  if (html) abrirImpressaoHtml(html);
 }
 
 // LIVRO — capa, índice e páginas numeradas; drinks por ordem alfabética dentro
 // de cada categoria (Com Álcool, Sem Álcool, Doses).
-function imprimirLivroDrinks(fichas, formato = "a4") {
+function gerarHtmlLivroDrinks(fichas, formato = "a4") {
   const drinks = (fichas || []).filter(Boolean);
-  if (!drinks.length) return alert("Nenhum drink para o livro.");
+  if (!drinks.length) { alert("Nenhum drink para o livro."); return null; }
   // A4 = folha inteira; A5 = metade da A4 (148×210mm), para um livro menor.
   const a5 = formato === "a5";
   const CARDS_POR_PAGINA = a5 ? 4 : 6; // A4: 2×3 · A5: 2×2
@@ -1518,18 +1523,31 @@ function imprimirLivroDrinks(fichas, formato = "a4") {
       <section class="capa">${logoSeldeestrelaSVG(a5 ? 58 : 80)}<h1>Guia de Drinks</h1><p>${drinks.length} drinks catalogados</p><p style="margin-top:6px;font-size:13px;color:#94a3b8">${new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}</p></section>
       <section class="indice"><h1>Índice</h1>${indiceHTML}<div class="rodape-livro"><span>Guia de Drinks</span><span>Página 2</span></div></section>
       ${conteudo}
+      <script>addEventListener('load',function(){
+        document.querySelectorAll('.pagina').forEach(function(pg){
+          var cont=pg.querySelector('.conteudo');var grade=pg.querySelector('.grade');
+          if(cont&&grade&&cont.scrollHeight>cont.clientHeight+4){
+            grade.style.zoom=Math.max(0.5,cont.clientHeight/cont.scrollHeight);
+          }
+        });
+      });<\/script>
     </body></html>`;
+  return html;
+}
 
-  // Se os 6 cards não couberem na página, reduz a grade proporcionalmente.
-  abrirImpressaoHtml(html, (doc) => {
-    doc.querySelectorAll(".pagina").forEach((pg) => {
-      const cont = pg.querySelector(".conteudo");
-      const grade = pg.querySelector(".grade");
-      if (cont && grade && cont.scrollHeight > cont.clientHeight + 4) {
-        grade.style.zoom = Math.max(0.5, cont.clientHeight / cont.scrollHeight);
-      }
-    });
-  });
+function imprimirLivroDrinks(fichas, formato = "a4") {
+  const html = gerarHtmlLivroDrinks(fichas, formato);
+  if (html) abrirImpressaoHtml(html);
+}
+
+function pdfLivroDrinks(fichas, formato = "a4") {
+  const html = gerarHtmlLivroDrinks(fichas, formato);
+  if (html) baixarPdfDeHtml(html, formato === "a5" ? "livro-de-drinks-a5" : "livro-de-drinks", { formatoMm: formato === "a5" ? [148, 210] : null });
+}
+
+function pdfGuiaDrinks(fichas, colunas = 3) {
+  const html = gerarHtmlGuiaDrinks(fichas, colunas);
+  if (html) baixarPdfDeHtml(html, "guia-de-drinks");
 }
 
 // =========================================================================
@@ -1555,6 +1573,7 @@ function MontagemPageInner() {
   const [impPorPagina, setImpPorPagina] = useState(1);      // 1 | 2 (fichas por folha)
   const [modalImpressao, setModalImpressao] = useState(false); // impressão em lote
   const [modalGuia, setModalGuia] = useState(false); // escolha cartões × livro (bar)
+  const [saidaGuia, setSaidaGuia] = useState("imprimir"); // "imprimir" | "pdf"
   const [preenchendoIA, setPreenchendoIA] = useState(false); // receitas em lote (bar)
 
   // Fotos reais dos copos (tiradas pelo usuário) — valem para a unidade toda
@@ -1770,10 +1789,27 @@ function MontagemPageInner() {
     imprimirModelo(lote, cfgModelo, "Cozinha");
   }
 
+  // PDF de verdade (download direto), respeitando o setor como na impressão.
+  function pdfFichasSetor(fichas) {
+    const lote = (fichas || []).filter(Boolean);
+    if (!lote.length) return alert("Nenhuma ficha para o PDF.");
+    // Ajuste embutido: encolhe fichas do modelo A4 que passarem da folha.
+    const scriptZoom = `<script>addEventListener('load',function(){document.querySelectorAll('.pagina').forEach(function(pg){var f=pg.querySelector('.fichaM');if(!f)return;var r=Math.min(f.clientHeight/f.scrollHeight,f.clientWidth/f.scrollWidth,1);if(r<1){pg.querySelectorAll('.fichaM').forEach(function(x){x.style.zoom=Math.max(0.5,r*0.98);});}});});<\/script>`;
+    if (dept === "bar") {
+      const drinks = lote.filter(ehDrinkGuia);
+      const outros = lote.filter((m) => !ehDrinkGuia(m));
+      if (drinks.length) pdfGuiaDrinks(drinks, drinks.length === 1 ? 2 : 3);
+      if (outros.length) baixarPdfDeHtml(gerarHtmlModelo(outros, cfgModelo, "Bar").replace("</body>", scriptZoom + "</body>"), "fichas-bar");
+      return;
+    }
+    const nome = lote.length === 1 ? (lote[0].nome || "ficha") : "fichas-cozinha";
+    baixarPdfDeHtml(gerarHtmlModelo(lote, cfgModelo, "Cozinha").replace("</body>", scriptZoom + "</body>"), nome);
+  }
+
   function baixarPdf(m) {
-    imprimirFichasSetor([m]);
-    setSalvou('Na janela de impressão, escolha "Salvar como PDF".');
-    setTimeout(() => setSalvou(""), 4000);
+    pdfFichasSetor([m]);
+    setSalvou("Gerando o PDF para download...");
+    setTimeout(() => setSalvou(""), 3500);
   }
 
   // Compartilhar: usa o compartilhamento nativo do aparelho. Manda a foto do
@@ -1960,19 +1996,28 @@ function MontagemPageInner() {
                 <h3 className="text-lg font-black flex items-center gap-2" style={{ color: "var(--fg)" }}><Wine size={18} /> Guia de Drinks</h3>
                 <button onClick={fechar} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "var(--elevated)", color: "var(--muted)" }}>×</button>
               </div>
-              <p className="text-[11px] font-medium mb-4" style={{ color: "var(--dim)" }}>
+              <p className="text-[11px] font-medium mb-3" style={{ color: "var(--dim)" }}>
                 {selecionadas.length ? `${drinksGuia.length} drink(s) marcado(s).` : `${drinksGuia.length} drink(s) com receita.`} Divididos em Com Álcool, Sem Álcool e Doses, em ordem alfabética.
               </p>
+              {/* Saída: imprimir na hora ou baixar o arquivo PDF */}
+              <div className="flex gap-1 p-1 rounded-xl mb-4 w-max" style={{ background: "var(--elevated)" }}>
+                {[["imprimir", "Imprimir"], ["pdf", "Baixar PDF"]].map(([v, l]) => (
+                  <button key={v} onClick={() => setSaidaGuia(v)} className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                    style={saidaGuia === v ? { background: "var(--card)", color: "var(--fg)", boxShadow: "0 1px 2px rgba(0,0,0,.12)" } : { color: "var(--muted)" }}>
+                    {l}
+                  </button>
+                ))}
+              </div>
               <div className="grid gap-3">
-                <button onClick={() => { fechar(); imprimirGuiaDrinks(drinksGuia, 3); }} className="flex items-start gap-3 rounded-2xl border-2 p-4 text-left transition-colors hover:bg-emerald-50" style={{ borderColor: "var(--line)" }}>
+                <button onClick={() => { fechar(); (saidaGuia === "pdf" ? pdfGuiaDrinks : imprimirGuiaDrinks)(drinksGuia, 3); }} className="flex items-start gap-3 rounded-2xl border-2 p-4 text-left transition-colors hover:bg-emerald-50" style={{ borderColor: "var(--line)" }}>
                   <ClipboardList size={22} className="text-emerald-600 shrink-0 mt-0.5" />
                   <div><p className="font-black text-slate-800 text-sm">Cartões (pôster)</p><p className="text-xs font-medium text-slate-400 mt-0.5">Grade compacta para colar na parede/bancada. Margem mínima, cabe o máximo por folha.</p></div>
                 </button>
-                <button onClick={() => { fechar(); imprimirLivroDrinks(drinksGuia, "a4"); }} className="flex items-start gap-3 rounded-2xl border-2 p-4 text-left transition-colors hover:bg-emerald-50" style={{ borderColor: "var(--line)" }}>
+                <button onClick={() => { fechar(); (saidaGuia === "pdf" ? pdfLivroDrinks : imprimirLivroDrinks)(drinksGuia, "a4"); }} className="flex items-start gap-3 rounded-2xl border-2 p-4 text-left transition-colors hover:bg-emerald-50" style={{ borderColor: "var(--line)" }}>
                   <Printer size={22} className="text-emerald-600 shrink-0 mt-0.5" />
                   <div><p className="font-black text-slate-800 text-sm">Livro A4 (folha inteira)</p><p className="text-xs font-medium text-slate-400 mt-0.5">Capa, índice com páginas, categorias em ordem alfabética, páginas numeradas e margem esquerda de 18mm para encadernar.</p></div>
                 </button>
-                <button onClick={() => { fechar(); imprimirLivroDrinks(drinksGuia, "a5"); }} className="flex items-start gap-3 rounded-2xl border-2 p-4 text-left transition-colors hover:bg-emerald-50" style={{ borderColor: "var(--line)" }}>
+                <button onClick={() => { fechar(); (saidaGuia === "pdf" ? pdfLivroDrinks : imprimirLivroDrinks)(drinksGuia, "a5"); }} className="flex items-start gap-3 rounded-2xl border-2 p-4 text-left transition-colors hover:bg-emerald-50" style={{ borderColor: "var(--line)" }}>
                   <Printer size={18} className="text-emerald-600 shrink-0 mt-0.5" />
                   <div><p className="font-black text-slate-800 text-sm">Livro A5 (metade da A4 — livro menor)</p><p className="text-xs font-medium text-slate-400 mt-0.5">Mesmo livro em página 148×210mm, com margem de 14mm para encadernar. Na impressora, escolha o papel A5 (ou 2 por folha em A4).</p></div>
                 </button>
@@ -2042,9 +2087,14 @@ function MontagemPageInner() {
                   {alvoImpressao.length > 1 && <p className="mt-2 text-center text-[10px] font-bold" style={{ color: "var(--dim)" }}>A prévia mostra a 1ª página — a mesma configuração vale para as {alvoImpressao.length} fichas.</p>}
                 </div>
               </div>
-              <button type="button" onClick={() => imprimirFichasSetor(alvoImpressao)} className="mt-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-black text-white hover:bg-emerald-700">
-                <Printer size={16} /> Imprimir personalizado ({alvoImpressao.length})
-              </button>
+              <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button type="button" onClick={() => imprimirFichasSetor(alvoImpressao)} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-black text-white hover:bg-emerald-700">
+                  <Printer size={16} /> Imprimir ({alvoImpressao.length})
+                </button>
+                <button type="button" onClick={() => pdfFichasSetor(alvoImpressao)} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-black text-white hover:bg-slate-800">
+                  <Download size={16} /> Baixar PDF ({alvoImpressao.length})
+                </button>
+              </div>
             </div>
           </div>
         </div>

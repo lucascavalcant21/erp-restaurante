@@ -6,9 +6,10 @@ import { useERP } from "../../../context/ERPContext";
 import { fetchFichas, salvarFicha, removerFicha, fetchInsumos, salvarInsumo, atualizarOrdemFicha } from "../../../lib/operacao";
 import { fetchProdutos, salvarProduto } from "../../../lib/vendas";
 import { fetchMontagens, inserirMontagem } from "../../../lib/montagem";
-import { LayoutList, Plus, Search, Trash2, Edit3, X, Save, ArrowLeft, UtensilsCrossed, Wine, ChevronRight, Printer, Sparkles, Loader2, Camera, CheckCircle2, AlertTriangle, GripVertical, Calculator } from "lucide-react";
+import { LayoutList, Plus, Search, Trash2, Edit3, X, Save, ArrowLeft, UtensilsCrossed, Wine, ChevronRight, Printer, Sparkles, Loader2, Camera, CheckCircle2, AlertTriangle, GripVertical, Calculator, Download } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 import { logoSeldeestrelaSVG } from "../../../lib/marca";
+import { baixarPdfDeHtml } from "../../../lib/pdf";
 
 // Botão "Fechar" + fechamento automático após imprimir — no celular a aba de
 // impressão ficava presa e o usuário não conseguia voltar ao app.
@@ -850,8 +851,23 @@ function FichasRunner() {
   };
 
   const imprimirFichas = (listaDeFichas) => {
+    const html = montarHtmlFichas(listaDeFichas);
     const win = window.open('', '_blank');
     if(!win) return alert("Habilite pop-ups para imprimir a ficha.");
+    win.document.write(comFecharImpressao(html));
+    win.document.close();
+    setTimeout(() => win.print(), 800);
+  };
+
+  // PDF de verdade (download direto) — a ficha avulsa ou o Livro completo.
+  const baixarPdfFichas = (listaDeFichas, nomeArquivo) => {
+    const nome = nomeArquivo || (listaDeFichas.length === 1
+      ? (listaDeFichas[0].nome_receita || "ficha-tecnica")
+      : "livro-de-receitas");
+    baixarPdfDeHtml(montarHtmlFichas(listaDeFichas), nome);
+  };
+
+  const montarHtmlFichas = (listaDeFichas) => {
     const SUB = { kg: { s: 'g', fa: 1000 }, l: { s: 'ml', fa: 1000 } };
     const fmtQtd = (qtd, un) => {
        const c = SUB[String(un || '').toLowerCase()];
@@ -1080,9 +1096,7 @@ function FichasRunner() {
     }
 
     conteudoHTML += `</body></html>`;
-    win.document.write(comFecharImpressao(conteudoHTML));
-    win.document.close();
-    setTimeout(() => win.print(), 800);
+    return conteudoHTML;
   };
 
   // ── PLANILHA DE CUSTOS: custo, venda, CMV por receita + CMV médio ──────────
@@ -1322,6 +1336,14 @@ function FichasRunner() {
                   className="flex items-center justify-center gap-2 min-w-0 overflow-hidden bg-white text-slate-700 border border-slate-200 px-2 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-slate-50 transition-colors shadow-sm">
                   <Printer size={18} /> <span className="hidden xl:inline">Livro de Receitas</span><span className="xl:hidden">Livro</span>
                </button>
+               <button onClick={() => {
+                     if (!fichas.length) return alert("Nenhuma ficha para o livro.");
+                     baixarPdfFichas(fichas, "livro-de-receitas");
+                  }}
+                  title="Baixar o Livro de Receitas completo em PDF"
+                  className="flex items-center justify-center gap-2 min-w-0 overflow-hidden bg-slate-900 text-white px-2 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-slate-800 transition-colors shadow-sm">
+                  <Download size={18} /> <span className="hidden xl:inline">Livro em PDF</span><span className="xl:hidden">PDF</span>
+               </button>
                <button onClick={imprimirPlanilhaCustos} title="Tabela com custo, preço de venda, CMV de cada receita e o CMV médio" className="flex items-center justify-center gap-2 min-w-0 overflow-hidden bg-white text-slate-700 border border-slate-200 px-2 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-slate-50 transition-colors shadow-sm">
                   <Calculator size={18} /> <span className="hidden xl:inline">Planilha de Custos</span><span className="xl:hidden">Custos</span>
                </button>
@@ -1433,6 +1455,7 @@ function FichasRunner() {
                               )}
                               <button onClick={() => abrirSimulacao(f)} title="Simular outro rendimento" className="p-1.5 bg-white/90 backdrop-blur rounded-md text-slate-600 hover:text-emerald-600 shadow-sm"><Calculator size={13}/></button>
                               <button onClick={() => imprimirFicha(f)} title="Imprimir ficha técnica" className="p-1.5 bg-white/90 backdrop-blur rounded-md text-slate-600 hover:text-emerald-600 shadow-sm"><Printer size={13}/></button>
+                              <button onClick={() => baixarPdfFichas([f], f.nome_receita)} title="Baixar ficha técnica em PDF" className="p-1.5 bg-white/90 backdrop-blur rounded-md text-slate-600 hover:text-emerald-600 shadow-sm"><Download size={13}/></button>
                               <button onClick={() => abrirEditar(f)} title="Editar" className="p-1.5 bg-white/90 backdrop-blur rounded-md text-slate-600 hover:text-emerald-600 shadow-sm"><Edit3 size={13}/></button>
                               <button onClick={() => handleRemover(f.id)} title="Remover" className="p-1.5 bg-white/90 backdrop-blur rounded-md text-slate-600 hover:text-rose-600 shadow-sm"><Trash2 size={13}/></button>
                            </div>

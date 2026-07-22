@@ -593,7 +593,9 @@ export default function DashboardLayout({ children }) {
         <div className="print:hidden shrink-0">
            <TopHeader onSair={sair} onToggleSidebar={toggleSidebar} acessoRestrito={acessoRestrito} />
         </div>
-        <ModuleBar rotasPermitidas={rotasPermitidas} />
+        <Suspense fallback={null}>
+          <ModuleBar rotasPermitidas={rotasPermitidas} />
+        </Suspense>
         
         {/* Main Content Area com Scrollbar customizada */}
         <main className="erp-main-content flex-1 min-w-0 overflow-y-auto overscroll-y-contain custom-scrollbar animate-page-in relative print:overflow-visible print:block">

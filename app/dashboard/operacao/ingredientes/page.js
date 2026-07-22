@@ -8,6 +8,7 @@ import { CATEGORIAS_INSUMO, adivinharCategoria } from "../../../lib/categorias-i
 import { FlaskConical, Plus, Search, Trash2, Edit3, X, Save, ArrowLeft, CheckCircle2, AlertTriangle, Sparkles, Loader2, Camera, History, TrendingUp, TrendingDown, ArrowLeftRight, Calculator } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 import { comprimirFotoParaIA } from "../../../lib/imagem";
+import RecipeWorkspace from "../../../components/RecipeWorkspace";
 
 // Converte um File de imagem em base64 puro (sem o prefixo "data:...;base64,")
 const fileParaBase64 = (file) => comprimirFotoParaIA(file); // comprime: foto crua estourava o limite da Vercel
@@ -16,7 +17,7 @@ function IngredientesRunner() {
   const router = useRouter();
   const { abrirMenu } = useERP();
   const searchParams = useSearchParams();
-  const deptUrl = searchParams.get("dept"); // 'cozinha' ou 'bar'
+  const deptUrl = searchParams.get("dept") || "cozinha"; // fluxo sempre separado por Cozinha ou Bar
   
   const { unidadeAtiva } = useERP();
   const [insumos, setInsumos] = useState([]);
@@ -399,44 +400,33 @@ function IngredientesRunner() {
 
   return (
     <div className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50">
-
-      {/* TOPBAR */}
-      <div className="bg-white border-b border-slate-200 pt-6 pb-6 px-6 sticky top-0 z-10">
-         <div className="max-w-5xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button onClick={() => abrirMenu()} className="p-3 text-slate-500 hover:text-slate-800 bg-slate-50 rounded-full border border-slate-200">
-                 <ArrowLeft size={20}/>
-              </button>
-              <div className="w-14 h-14 rounded-2xl bg-slate-100 text-emerald-600 flex items-center justify-center shadow-inner">
-                 <FlaskConical size={28} />
-              </div>
-              <div>
-                 <h1 className="text-3xl font-black tracking-tighter text-slate-900">Banco de Ingredientes</h1>
-                 <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Custo Base de Insumos {deptUrl ? `- ${deptUrl}` : ''}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-               <button onClick={abrirRecalc} title="Recalcular o custo por unidade de todos os ingredientes" className="flex items-center gap-2 bg-white text-slate-700 border border-slate-200 px-5 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm">
+      <RecipeWorkspace
+        active="ingredientes"
+        dept={deptUrl || "cozinha"}
+        title={deptUrl === "bar" ? "Ingredientes do Bar" : "Ingredientes da Cozinha"}
+        description={deptUrl === "bar"
+          ? "Centralize bebidas, frutas, xaropes e insumos com o custo correto para alimentar drinks e fichas do bar."
+          : "Cadastre insumos, perdas, rendimento e preços. Esses custos alimentam automaticamente fichas, CMV e montagem."}
+        total={filtrados.length}
+        onPrimary={abrirNovo}
+        primaryLabel="Cadastrar insumo"
+      >
+               <button onClick={abrirRecalc} title="Recalcular o custo por unidade de todos os ingredientes" className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15">
                   <Calculator size={18} /> Recalcular custos
                </button>
-               <button onClick={abrirModalIA} className="flex items-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-5 py-3 rounded-xl font-bold hover:bg-emerald-50 transition-colors shadow-sm">
+               <button onClick={abrirModalIA} className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15">
                   <Sparkles size={18} /> Importar com IA
                </button>
-               <button onClick={abrirNovo} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
-                  <Plus size={18} /> Cadastrar Insumo
-               </button>
-            </div>
-         </div>
-      </div>
+      </RecipeWorkspace>
 
-      <div className="max-w-5xl mx-auto px-6 mt-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-5 mt-5 sm:mt-6">
          <div className="bg-white p-3 rounded-2xl border border-slate-200 mb-4 flex items-center gap-3 shadow-sm">
             <Search size={20} className="text-slate-500 ml-2" />
             <input type="text" placeholder="Buscar por nome, marca ou categoria..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-bold text-slate-700 p-2" />
          </div>
 
-         {/* Filtro por categoria (varia conforme cozinha/bar) */}
-         <div className="flex gap-2 overflow-x-auto pb-2 mb-4" style={{ scrollbarWidth: "none" }}>
+         {/* Filtro por categoria (quebra em linhas, sem rolagem horizontal) */}
+         <div className="flex flex-wrap gap-2 mb-5">
             {["Todas", ...categoriasDept].map(c => { const nCat = c === "Todas" ? insumos.filter(i => !deptUrl || (i.departamento || "").toLowerCase() === deptUrl).length : insumos.filter(i => (!deptUrl || (i.departamento || "").toLowerCase() === deptUrl) && (i.categoria || "Outros") === c).length; return (
                <button key={c} onClick={() => setCatFiltro(c)}
                   className={`flex-shrink-0 px-3.5 py-1.5 rounded-full font-bold text-xs transition-all ${catFiltro === c ? "bg-slate-900 text-white shadow-md" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>
@@ -445,21 +435,9 @@ function IngredientesRunner() {
             );})}
          </div>
 
-         <div className="inline-flex gap-1 p-1 mb-6 rounded-xl bg-slate-100">
-           <button onClick={() => router.push(`/dashboard/operacao/ingredientes`)} className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${!deptUrl ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>
-             Todos
-           </button>
-           <button onClick={() => router.push(`/dashboard/operacao/ingredientes?dept=cozinha`)} className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${deptUrl === 'cozinha' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>
-             Cozinha
-           </button>
-           <button onClick={() => router.push(`/dashboard/operacao/ingredientes?dept=bar`)} className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${deptUrl === 'bar' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>
-             Bar
-           </button>
-         </div>
-
-         <div className="rounded-2xl overflow-x-auto shadow-md border border-slate-200">
+         <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200">
             {/* Header */}
-            <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center min-w-[640px]">
+            <div className="hidden md:grid bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 grid-cols-[1fr_auto_auto_auto] gap-4 items-center">
                <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Ingrediente</span>
                <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-28">Volume / Unid.</span>
                <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-36">Valor Pago</span>
@@ -477,10 +455,10 @@ function IngredientesRunner() {
                  const dept = ins.departamento?.toLowerCase();
                  const deptColor = dept === 'bar' ? 'bg-purple-100 text-purple-700' : 'bg-amber-100 text-amber-700';
                  return (
-                   <div key={ins.id} className="px-6 py-4 grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center min-w-[640px] group hover:bg-emerald-50/40 transition-all duration-150">
+                   <div key={ins.id} className={`p-4 sm:px-6 sm:py-4 grid grid-cols-2 md:grid-cols-[1fr_auto_auto_auto] gap-4 items-center group transition-all duration-150 ${dept === "bar" ? "hover:bg-violet-50/50" : "hover:bg-emerald-50/40"}`}>
                      {/* Nome + Dept */}
-                     <div className="flex items-center gap-3 min-w-0">
-                       <div className="w-1 h-10 rounded-full bg-emerald-400 shrink-0" />
+                     <div className="col-span-2 md:col-span-1 flex items-center gap-3 min-w-0">
+                       <div className={`w-1 h-10 rounded-full shrink-0 ${dept === "bar" ? "bg-violet-400" : "bg-emerald-400"}`} />
                        <div className="min-w-0">
                          <p className="font-bold text-slate-800 text-[15px] leading-tight truncate">{ins.nome}{ins.marca ? <span className="text-slate-400 font-medium"> · {ins.marca}</span> : null}</p>
                          <div className="flex items-center gap-1.5 mt-1">
@@ -495,7 +473,8 @@ function IngredientesRunner() {
                        </div>
                      </div>
                      {/* Volume + unidade de medida, bem visível */}
-                     <div className="w-28 flex flex-col items-center gap-0.5">
+                     <div className="w-auto md:w-28 flex flex-col items-start md:items-center gap-0.5">
+                       <span className="md:hidden text-[9px] font-black uppercase tracking-widest text-slate-400">Volume</span>
                        <span className="bg-slate-800 text-white px-3 py-2 rounded-lg font-black text-sm uppercase tracking-wide shadow-sm whitespace-nowrap">
                          {Number(ins.tamanho_embalagem) > 0
                            ? `${Number(ins.tamanho_embalagem).toLocaleString('pt-BR')} ${ins.unidade_medida}`
@@ -506,7 +485,8 @@ function IngredientesRunner() {
                        )}
                      </div>
                      {/* Valor pago cheio + custo por unidade (usado na ficha) */}
-                     <div className="w-36 text-center">
+                     <div className="w-auto md:w-36 text-right md:text-center">
+                       <span className="md:hidden block text-[9px] font-black uppercase tracking-widest text-slate-400">Valor pago</span>
                        <span className="font-black text-xl text-emerald-600">{fmtBRL(ins.custo_compra ?? ins.custo_unitario)}</span>
                        {Number(ins.tamanho_embalagem) > 1 && (
                          <p className="text-[10px] font-bold text-slate-500 mt-0.5" title="Custo por unidade usado na ficha técnica e no CMV">
@@ -523,7 +503,7 @@ function IngredientesRunner() {
                        </p>
                      </div>
                      {/* Ações */}
-                     <div className="w-32 flex justify-end gap-1">
+                     <div className="col-span-2 md:col-span-1 w-full md:w-32 flex justify-end gap-2 border-t border-slate-100 pt-3 md:border-0 md:pt-0">
                        <button onClick={() => abrirHistorico(ins)} className="p-2 bg-slate-100 hover:bg-amber-100 text-slate-500 hover:text-amber-600 rounded-lg transition-all" title="Histórico de preços">
                          <History size={16}/>
                        </button>

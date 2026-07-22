@@ -99,6 +99,25 @@ const SIDEBAR_MENU = [
   }
 ];
 
+const baseDaRota = (href = "") => href.split("?")[0];
+
+function moduloDaRota(pathname, dept) {
+  const setor = String(dept || "").toLowerCase();
+  const categoriaSetor = { salao: "Salão", cozinha: "Cozinha", bar: "Bar" }[setor];
+  if (categoriaSetor) {
+    const modulo = SIDEBAR_MENU.find((sec) => sec.category === categoriaSetor);
+    if (modulo?.items.some((item) => correspondeRota(pathname, baseDaRota(item.href)))) return modulo;
+  }
+
+  const candidatos = SIDEBAR_MENU.flatMap((sec, sectionIndex) =>
+    sec.items.map((item) => ({ sec, item, sectionIndex, rota: baseDaRota(item.href) }))
+  )
+    .filter(({ rota }) => correspondeRota(pathname, rota))
+    .sort((a, b) => b.rota.length - a.rota.length);
+
+  return candidatos[0]?.sec || SIDEBAR_MENU[0];
+}
+
 // Rotas liberadas em cada área travada (estação Cozinha/Bar/Salão).
 const ROTAS_AREA = {
   cozinha: ["/dashboard/area", "/dashboard/checklists", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/controles", "/dashboard/operacao/ingredientes", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem", "/dashboard/operacao/produtos", "/dashboard/operacao/orcamento"],
@@ -260,10 +279,8 @@ function SidebarSection({ section, idx, pathname, isOpen, onToggle, onNavigate }
 
 function Sidebar({ mobileOpen, setMobileOpen, collapsed, rotasPermitidas }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
-
-  // Acordeão: índice do único módulo aberto; navegar recolhe tudo
-  const [moduloAberto, setModuloAberto] = useState(null);
 
   // Acesso restrito: mostra só os itens cujas rotas estão liberadas.
   const menu = Array.isArray(rotasPermitidas)
@@ -275,7 +292,13 @@ function Sidebar({ mobileOpen, setMobileOpen, collapsed, rotasPermitidas }) {
         }),
       })).filter((sec) => sec.items.length > 0)
     : SIDEBAR_MENU;
-  useEffect(() => { setModuloAberto(null); }, [pathname]);
+  const moduloAtivo = moduloDaRota(pathname, searchParams.get("dept"));
+  const indiceAtivo = menu.findIndex((sec) => sec.category === moduloAtivo.category);
+  // O módulo atual permanece aberto durante a navegação entre suas telas.
+  const [moduloAberto, setModuloAberto] = useState(indiceAtivo >= 0 ? indiceAtivo : 0);
+  useEffect(() => {
+    if (indiceAtivo >= 0) setModuloAberto(indiceAtivo);
+  }, [indiceAtivo, pathname]);
 
   return (
     <>
@@ -413,6 +436,64 @@ function TopHeader({ onSair, onToggleSidebar, acessoRestrito }) {
   );
 }
 
+function ModuleBar({ rotasPermitidas }) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const dept = searchParams.get("dept");
+
+  const modulo = moduloDaRota(pathname, dept);
+  const itens = Array.isArray(rotasPermitidas)
+    ? modulo.items.filter((item) => {
+        const base = baseDaRota(item.href);
+        return rotasPermitidas.some((rota) => {
+          const permitida = baseDaRota(rota);
+          return base === permitida || base.startsWith(`${permitida}/`);
+        });
+      })
+    : modulo.items;
+
+  // Ingredientes, fichas e montagem formam um fluxo próprio e compartilham um
+  // cabeçalho operacional mais completo. Evita duas barras de navegação iguais.
+  if ([
+    "/dashboard/operacao/ingredientes",
+    "/dashboard/operacao/fichas",
+    "/dashboard/operacao/montagem",
+  ].some((rota) => pathname === rota || pathname.startsWith(`${rota}/`))) return null;
+
+  if (!itens.length) return null;
+  const Icone = modulo.icon;
+
+  return (
+    <nav aria-label={`Menu do módulo ${modulo.category}`}
+      className="print:hidden shrink-0 border-b border-slate-200/70 bg-white px-3 sm:px-5 py-2">
+      <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-2 pr-3 border-r border-slate-200 shrink-0">
+          <span className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <Icone size={16} />
+          </span>
+          <span className="hidden sm:block text-xs font-black uppercase tracking-wider text-slate-700">{modulo.category}</span>
+        </div>
+        <div className="flex-1 flex gap-1.5 overflow-x-auto overscroll-x-contain custom-scrollbar pb-0.5">
+          {itens.map((item) => {
+            const base = baseDaRota(item.href);
+            const ativo = pathname === base || pathname.startsWith(`${base}/`);
+            return (
+              <button key={item.href} type="button"
+                onClick={() => router.push(ajustarHrefParaAreaTravada(item.href))}
+                className={`h-9 px-3 rounded-lg text-xs font-bold whitespace-nowrap transition-colors ${ativo
+                  ? "bg-emerald-600 text-white shadow-sm"
+                  : "bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}>
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </nav>
+  );
+}
+
 export default function DashboardLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -512,6 +593,7 @@ export default function DashboardLayout({ children }) {
         <div className="print:hidden shrink-0">
            <TopHeader onSair={sair} onToggleSidebar={toggleSidebar} acessoRestrito={acessoRestrito} />
         </div>
+        <ModuleBar rotasPermitidas={rotasPermitidas} />
         
         {/* Main Content Area com Scrollbar customizada */}
         <main className="erp-main-content flex-1 min-w-0 overflow-y-auto overscroll-y-contain custom-scrollbar animate-page-in relative print:overflow-visible print:block">

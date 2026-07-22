@@ -17,6 +17,7 @@ import { fetchModeloMontagem, salvarModeloMontagem, fetchFotosCopos, salvarFotoC
 import { logoSeldeestrelaSVG } from "../../../lib/marca";
 import { CATALOGO_COPOS, desenhoCopoSVG, ilustracaoDrinkSVG, identificarCopo, definirFotosCopos, fotoCopoReal, imagemCopoHTML } from "../../../lib/copos";
 import { baixarPdfDeHtml } from "../../../lib/pdf";
+import RecipeWorkspace from "../../../components/RecipeWorkspace";
 
 const VAZIO = {
   nome: "", tipo: "prato", departamento: "cozinha",
@@ -1857,7 +1858,18 @@ function MontagemPageInner() {
 
   return (
     <div className="min-h-screen">
-      <PageHeader title={titulo} subtitle={subtitle} icon={ClipboardList} onAction={() => { setEditar(null); setModal(true); }} actionLabel="Nova Ficha">
+      <RecipeWorkspace
+        active="montagem"
+        dept={dept}
+        title={dept === "bar" ? "Guia de montagem do Bar" : "Guia de montagem da Cozinha"}
+        description={dept === "bar"
+          ? "Converta as fichas em instruções visuais de copo, dosagem, finalização e serviço para toda a equipe."
+          : "Converta receitas em padrões visuais claros de porcionamento, montagem, acabamento e apresentação."}
+        total={lista.length}
+        onDeptChange={setDept}
+        onPrimary={() => { setEditar(null); setModal(true); }}
+        primaryLabel="Nova montagem"
+      >
         {dept === "bar" && (() => {
           // Só drinks COM receita/montagem entram no guia (a IA identifica; as
           // bebidas engarrafadas sem preparo ficam de fora).
@@ -1868,21 +1880,21 @@ function MontagemPageInner() {
               {vazios > 0 && (
                 <button onClick={preencherVaziosIA} disabled={preenchendoIA}
                   title="A IA monta a receita clássica (copo, dosagem e preparo) de todas as bebidas sem conteúdo — para você editar depois"
-                  className="erp-btn erp-btn-ghost !h-9 text-xs">
+                  className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15">
                   {preenchendoIA ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
                   {preenchendoIA ? "Montando..." : `Receitas com IA (${vazios})`}
                 </button>
               )}
               <button onClick={() => drinksGuia.length ? setModalGuia(true) : alert(vazios ? `Nenhum drink com receita ainda. Use o botão "Receitas com IA" para a IA montar as ${vazios} bebidas de uma vez, ou cadastre manualmente.` : "Nenhum drink com receita para o guia.")}
-                title="Guia de Drinks: pôster em cartões ou livro com capa e índice — só os drinks com receita" className="erp-btn erp-btn-primary !h-9 text-xs">
+                title="Guia de Drinks: pôster em cartões ou livro com capa e índice — só os drinks com receita" className="flex items-center gap-2 rounded-xl border border-violet-300/30 bg-violet-500/30 px-4 py-2 text-sm font-bold text-white hover:bg-violet-500/40">
                 <Wine size={14} /> Guia de Drinks{drinksGuia.length ? ` (${drinksGuia.length})` : ""}
               </button>
             </>
           );
         })()}
-        <button onClick={() => setModalImpressao(true)} className="erp-btn erp-btn-ghost !h-9 text-xs"><Printer size={14} /> Impressão{selecionadas.length ? ` (${selecionadas.length})` : ""}</button>
-      </PageHeader>
-      <PageBody>
+        <button onClick={() => setModalImpressao(true)} className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15"><Printer size={14} /> Imprimir{selecionadas.length ? ` (${selecionadas.length})` : ""}</button>
+      </RecipeWorkspace>
+      <PageBody className="max-w-7xl mx-auto">
         <Toast show={!!salvou}>{salvou}</Toast>
 
         <KpiGrid>
@@ -1891,9 +1903,10 @@ function MontagemPageInner() {
           <Kpi icon={Clock} label="Tempo médio" value={`${lista.length ? Math.round(lista.reduce((a, m) => a + (m.tempo_preparo || 0), 0) / lista.length) : 0} min`} tint="#3B82F6" />
         </KpiGrid>
 
-        <SearchBar value={busca} onChange={setBusca} placeholder="Buscar prato/drink..." autoFocus />
-        <Chips options={["bar", "cozinha"]} value={dept} onChange={setDept} />
-        <Chips options={["Todos", "Prato", "Drink"]} value={tipo} onChange={setTipo} />
+        <div className="erp-card p-3 sm:p-4 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_auto] gap-3 items-center">
+          <SearchBar value={busca} onChange={setBusca} placeholder={dept === "bar" ? "Buscar drink ou montagem..." : "Buscar prato ou montagem..."} autoFocus />
+          <Chips options={["Todos", "Prato", "Drink"]} value={tipo} onChange={setTipo} />
+        </div>
 
         <div>
           <SectionLabel>{filtrados.length} ficha{filtrados.length !== 1 ? "s" : ""}</SectionLabel>

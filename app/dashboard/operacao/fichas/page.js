@@ -10,6 +10,7 @@ import { LayoutList, Plus, Search, Trash2, Edit3, X, Save, ArrowLeft, UtensilsCr
 import { fmtBRL } from "../../../components/ui";
 import { logoSeldeestrelaSVG } from "../../../lib/marca";
 import { baixarPdfDeHtml } from "../../../lib/pdf";
+import RecipeWorkspace from "../../../components/RecipeWorkspace";
 
 // Botão "Fechar" + fechamento automático após imprimir — no celular a aba de
 // impressão ficava presa e o usuário não conseguia voltar ao app.
@@ -1310,60 +1311,48 @@ function FichasRunner() {
 
   return (
     <div className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50">
-      
-      {/* TOPBAR */}
-      <div className="bg-white border-b border-slate-200 py-4 sm:py-6 px-4 sm:px-6 sticky top-0 z-10">
-         <div className="max-w-5xl mx-auto flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-              <button onClick={() => abrirMenu()} className="p-3 text-slate-500 hover:text-slate-800 bg-slate-50 rounded-full border border-slate-200">
-                 <ArrowLeft size={20}/>
-              </button>
-               <div className={`hidden sm:flex w-14 h-14 shrink-0 rounded-2xl items-center justify-center shadow-inner ${deptUrl === 'bar' ? 'bg-slate-100 text-emerald-600' : 'bg-slate-100 text-slate-800'}`}>
-                 <LayoutList size={28} />
-              </div>
-              <div className="min-w-0">
-                  <h1 className="text-xl sm:text-3xl font-black tracking-tighter text-slate-900 whitespace-nowrap">Fichas Técnicas</h1>
-                 <p className="text-slate-700 font-bold uppercase tracking-widest text-[10px] sm:text-xs mt-1 whitespace-nowrap">Receituário e Custos - {deptUrl}</p>
-              </div>
-            </div>
-            {/* Botões em GRADE que quebra linha — nada de rolagem lateral cortando texto */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 xl:flex xl:items-center gap-2 w-full lg:w-auto">
+      <RecipeWorkspace
+        active="fichas"
+        dept={deptUrl}
+        title={deptUrl === "bar" ? "Fichas técnicas do Bar" : "Fichas técnicas da Cozinha"}
+        description={deptUrl === "bar"
+          ? "Organize drinks, bases, dosagens, custos e margem em um receituário conectado ao guia de montagem."
+          : "Transforme ingredientes em receitas padronizadas, acompanhe custo, rendimento, CMV e envie o resultado para a montagem."}
+        total={fichas.length}
+        onPrimary={abrirNova}
+        primaryLabel="Nova ficha"
+      >
                <button onClick={() => {
                      if (!fichas.length) return alert("Nenhuma ficha para o livro.");
                      imprimirFichas(fichas); // livro completo: capa, índice, páginas e seções
                   }}
                   title="Livro completo: capa, índice, páginas numeradas e seções (pré-preparos, preparos, molhos, pratos, sobremesas, sucos)"
-                  className="flex items-center justify-center gap-2 min-w-0 overflow-hidden bg-white text-slate-700 border border-slate-200 px-2 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-slate-50 transition-colors shadow-sm">
-                  <Printer size={18} /> <span className="hidden xl:inline">Livro de Receitas</span><span className="xl:hidden">Livro</span>
+                  className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15">
+                  <Printer size={17} /> Livro de receitas
                </button>
                <button onClick={() => {
                      if (!fichas.length) return alert("Nenhuma ficha para o livro.");
                      baixarPdfFichas(fichas, "livro-de-receitas");
                   }}
                   title="Baixar o Livro de Receitas completo em PDF"
-                  className="flex items-center justify-center gap-2 min-w-0 overflow-hidden bg-slate-900 text-white px-2 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-slate-800 transition-colors shadow-sm">
-                  <Download size={18} /> <span className="hidden xl:inline">Livro em PDF</span><span className="xl:hidden">PDF</span>
+                  className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15">
+                  <Download size={17} /> Baixar PDF
                </button>
-               <button onClick={imprimirPlanilhaCustos} title="Tabela com custo, preço de venda, CMV de cada receita e o CMV médio" className="flex items-center justify-center gap-2 min-w-0 overflow-hidden bg-white text-slate-700 border border-slate-200 px-2 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-slate-50 transition-colors shadow-sm">
-                  <Calculator size={18} /> <span className="hidden xl:inline">Planilha de Custos</span><span className="xl:hidden">Custos</span>
+               <button onClick={imprimirPlanilhaCustos} title="Tabela com custo, preço de venda, CMV de cada receita e o CMV médio" className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15">
+                  <Calculator size={17} /> Custos e CMV
                </button>
                <input ref={inputCardapioRef} type="file" accept="image/*" multiple onChange={importarCardapioFoto} className="hidden" />
-               <button onClick={() => inputCardapioRef.current?.click()} disabled={importandoCardapio} title="Envie a FOTO do seu cardápio: a IA cria as fichas de pratos, sobremesas e sucos já com o preço de venda — depois é só pôr os ingredientes" className="flex items-center justify-center gap-2 min-w-0 overflow-hidden bg-white text-emerald-700 border border-emerald-200 px-2 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-emerald-50 transition-colors shadow-sm disabled:opacity-60">
-                  {importandoCardapio ? <Loader2 size={18} className="animate-spin" /> : <Camera size={18} />} <span className="hidden xl:inline">Importar Cardápio</span><span className="xl:hidden">Cardápio</span>
+               <button onClick={() => inputCardapioRef.current?.click()} disabled={importandoCardapio} title="Envie a foto do cardápio para criar fichas" className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15 disabled:opacity-60">
+                  {importandoCardapio ? <Loader2 size={17} className="animate-spin" /> : <Camera size={17} />} Importar cardápio
                </button>
-               <button onClick={abrirModalIAFicha} className="flex items-center justify-center gap-2 min-w-0 overflow-hidden bg-white text-emerald-700 border border-emerald-200 px-2 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-emerald-50 transition-colors shadow-sm">
-                  <Sparkles size={18} /> Montar com IA
+               <button onClick={abrirModalIAFicha} className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15">
+                  <Sparkles size={17} /> Criar com IA
                </button>
-               <button onClick={abrirNova} className="flex items-center justify-center gap-2 min-w-0 overflow-hidden text-white px-2 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap transition-colors shadow-lg bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20">
-                  <Plus size={18} /> Nova Ficha
-               </button>
-            </div>
-         </div>
-      </div>
+      </RecipeWorkspace>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 mt-6 sm:mt-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-5 mt-5 sm:mt-6">
          {/* Abas: Pratos + categorias do cardápio + Pré-preparos + Todos */}
-         <div className="flex gap-2 mb-4 overflow-x-auto pb-1" style={{ scrollbarWidth: "thin" }}>
+         <div className="flex flex-wrap gap-2 mb-4">
             {[
               ["Pratos", deptUrl === "bar" ? "Drinks" : "Pratos", fichas.filter(f => !f.eh_base).length],
               ...(deptUrl === "bar" ? [] : CATEGORIAS_CARDAPIO.map(c => [c, c, fichas.filter(f => !f.eh_base && (f.categoria || "") === c).length])),
@@ -1372,7 +1361,7 @@ function FichasRunner() {
               ["Todos", "Todos", fichas.length],
             ].map(([t, label, n]) => (
               <button key={t} onClick={() => setTipoFiltro(t)}
-                className={`shrink-0 px-4 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${tipoFiltro === t ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>
+                className={`px-3 sm:px-4 py-2.5 rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-wider transition-all ${tipoFiltro === t ? (deptUrl === "bar" ? "bg-violet-600 text-white shadow-lg shadow-violet-600/20" : "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20") : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>
                 {label} <span className={tipoFiltro === t ? "text-emerald-200" : "text-slate-400"}>({n})</span>
               </button>
             ))}

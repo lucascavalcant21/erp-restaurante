@@ -70,8 +70,7 @@ const AREAS = {
       {
         titulo: "Drinks e Receitas",
         itens: [
-          { label: "Drinks e Coquetéis", href: "/dashboard/operacao/drinks", Icon: Wine },
-          { label: "Fichas de Drinks", href: "/dashboard/operacao/fichas?dept=bar", Icon: BookOpen },
+          { label: "Fichas e Cardápio do Bar", href: "/dashboard/operacao/fichas?dept=bar", Icon: Wine },
           { label: "Guia de Montagem", href: "/dashboard/operacao/montagem?dept=bar", Icon: LayoutList },
         ],
       },

@@ -44,7 +44,7 @@ const COMPLEMENTOS = {
     { label: "Orçamento de eventos", hint: "Custos e planejamento", icon: ReceiptText, href: "/dashboard/operacao/orcamento" },
   ],
   bar: [
-    { label: "Drinks e coquetéis", hint: "Catálogo e receitas", icon: Wine, href: "/dashboard/operacao/drinks" },
+    { label: "Drinks e produtos", hint: "Tudo no receituário integrado", icon: Wine, href: "/dashboard/operacao/fichas?dept=bar" },
     { label: "Estoque", hint: "Bebidas e insumos", icon: Boxes, href: "/dashboard/operacao/estoque" },
     { label: "Compras", hint: "Pedidos e fornecedores", icon: ShoppingCart, href: "/dashboard/operacao/compras" },
     { label: "Entrada de notas", hint: "Recebimento e conferência", icon: FileInput, href: "/dashboard/operacao/notas" },

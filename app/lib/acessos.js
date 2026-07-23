@@ -22,16 +22,18 @@ export const MODULOS_ACESSO = [
 
 // Setores inteiros: liberam VÁRIAS telas daquele setor de uma vez.
 export const SETORES_ACESSO = [
-  { id: "setor_salao", label: "Salão (setor inteiro)", home: "/dashboard/operacao/rotina?dept=salao",
-    rotas: ["/dashboard/area", "/dashboard/operacao/rotina", "/dashboard/salao/treinamento", "/dashboard/operacao/observacoes"] },
+  { id: "setor_salao", label: "Salão (setor inteiro)", home: "/dashboard/modulo/salao",
+    rotas: ["/dashboard/modulo/salao", "/dashboard/area", "/dashboard/checklists", "/dashboard/mesas", "/dashboard/tarefas", "/dashboard/operacao/rotina", "/dashboard/salao/treinamento", "/dashboard/operacao/observacoes"] },
   { id: "setor_cozinha", label: "Cozinha (setor inteiro)", home: "/dashboard/operacao/produtos",
     rotas: ["/dashboard/area", "/dashboard/operacao/produtos", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem", "/dashboard/operacao/ingredientes", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/controles", "/dashboard/operacao/rotina", "/dashboard/operacao/orcamento"] },
-  { id: "setor_bar", label: "Bar (setor inteiro)", home: "/dashboard/operacao/drinks",
+  { id: "setor_bar", label: "Bar (setor inteiro)", home: "/dashboard/operacao/fichas?dept=bar",
     rotas: ["/dashboard/area", "/dashboard/operacao/drinks", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem", "/dashboard/operacao/ingredientes", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/rotina", "/dashboard/operacao/orcamento"] },
-  { id: "setor_rh", label: "Equipe & RH (setor inteiro)", home: "/dashboard/rh",
-    rotas: ["/dashboard/rh"] },
-  { id: "setor_financeiro", label: "Financeiro (setor inteiro)", home: "/dashboard/financeiro",
-    rotas: ["/dashboard/financeiro", "/dashboard/gestao/fiscal"] },
+  { id: "setor_rh", label: "Equipe & RH (setor inteiro)", home: "/dashboard/modulo/rh",
+    rotas: ["/dashboard/modulo/rh", "/dashboard/rh"] },
+  { id: "setor_financeiro", label: "Financeiro (setor inteiro)", home: "/dashboard/modulo/financeiro",
+    rotas: ["/dashboard/modulo/financeiro", "/dashboard/financeiro", "/dashboard/gestao/fiscal"] },
+  { id: "setor_gestao", label: "Gestão & Ajustes (setor inteiro)", home: "/dashboard/modulo/gestao",
+    rotas: ["/dashboard/modulo/gestao", "/dashboard/gestao", "/dashboard/relatorios", "/dashboard/configuracoes"] },
 ];
 
 export function moduloDoAcesso(id) {

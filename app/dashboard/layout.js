@@ -15,6 +15,7 @@ import {
 const SIDEBAR_MENU = [
   {
     category: "Início",
+    home: "/dashboard",
     icon: BarChart,
     items: [
       { label: "Painel Geral", href: "/dashboard" }
@@ -22,6 +23,7 @@ const SIDEBAR_MENU = [
   },
   {
     category: "Salão",
+    home: "/dashboard/modulo/salao",
     icon: Users,
     items: [
       { label: "Checklist do Salão", href: "/dashboard/operacao/rotina?dept=salao" },
@@ -31,6 +33,7 @@ const SIDEBAR_MENU = [
 
   {
     category: "Cozinha",
+    home: "/dashboard/operacao/fichas?dept=cozinha",
     icon: ChefHat,
     items: [
       { label: "Fichas Técnicas", href: "/dashboard/operacao/fichas?dept=cozinha" },
@@ -48,9 +51,9 @@ const SIDEBAR_MENU = [
   },
   {
     category: "Bar",
+    home: "/dashboard/operacao/fichas?dept=bar",
     icon: GlassWater,
     items: [
-      { label: "Drinks e Coquetéis", href: "/dashboard/operacao/drinks" },
       { label: "Fichas de Drinks", href: "/dashboard/operacao/fichas?dept=bar" },
       { label: "Guia de Montagem", href: "/dashboard/operacao/montagem?dept=bar" },
       { label: "Ingredientes", href: "/dashboard/operacao/ingredientes?dept=bar" },
@@ -65,6 +68,7 @@ const SIDEBAR_MENU = [
   },
   {
     category: "Financeiro",
+    home: "/dashboard/modulo/financeiro",
     icon: Wallet,
     items: [
       { label: "Fluxo de Caixa", href: "/dashboard/financeiro" },
@@ -76,6 +80,7 @@ const SIDEBAR_MENU = [
   },
   {
     category: "Equipe & RH",
+    home: "/dashboard/modulo/rh",
     icon: Users,
     items: [
       { label: "Painel de RH", href: "/dashboard/rh" },
@@ -91,6 +96,7 @@ const SIDEBAR_MENU = [
   },
   {
     category: "Gestão & Ajustes",
+    home: "/dashboard/modulo/gestao",
     icon: Store,
     items: [
       { label: "Inventário", href: "/dashboard/gestao/inventario" },
@@ -171,6 +177,9 @@ function moduloDaRota(pathname, dept) {
     if (modulo?.items.some((item) => correspondeRota(pathname, baseDaRota(item.href)))) return modulo;
   }
 
+  const moduloHome = SIDEBAR_MENU.find((sec) => sec.home && pathname === baseDaRota(sec.home));
+  if (moduloHome) return moduloHome;
+
   const candidatos = SIDEBAR_MENU.flatMap((sec, sectionIndex) =>
     sec.items.map((item) => ({ sec, item, sectionIndex, rota: baseDaRota(item.href) }))
   )
@@ -184,7 +193,7 @@ function moduloDaRota(pathname, dept) {
 const ROTAS_AREA = {
   cozinha: ["/dashboard/area", "/dashboard/checklists", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/controles", "/dashboard/operacao/ingredientes", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem", "/dashboard/operacao/produtos", "/dashboard/operacao/orcamento"],
   bar: ["/dashboard/area", "/dashboard/checklists", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/ingredientes", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/drinks", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem"],
-  salao: ["/dashboard/area", "/dashboard/checklists", "/dashboard/operacao/rotina", "/dashboard/salao/treinamento", "/dashboard/operacao/observacoes"],
+  salao: ["/dashboard/modulo/salao", "/dashboard/area", "/dashboard/checklists", "/dashboard/mesas", "/dashboard/tarefas", "/dashboard/operacao/rotina", "/dashboard/salao/treinamento", "/dashboard/operacao/observacoes"],
 };
 
 // Nestas telas o setor é definido por ?dept=. Uma estação travada nunca pode
@@ -354,7 +363,12 @@ function Sidebar({ mobileOpen, setMobileOpen, collapsed, rotasPermitidas, sessao
           {menu.map((section, idx) => (
             <SidebarSection key={idx} section={section} idx={idx} ativo={moduloAtivo.category === section.category}
               onOpen={() => {
-                const destino = section.items[0]?.href || "/dashboard";
+                const homeBase = baseDaRota(section.home);
+                const homePermitida = !Array.isArray(rotasPermitidas) || !section.home || rotasPermitidas.some((rota) => {
+                  const permitida = baseDaRota(rota);
+                  return homeBase === permitida || homeBase.startsWith(`${permitida}/`);
+                });
+                const destino = homePermitida && section.home ? section.home : (section.items[0]?.href || "/dashboard");
                 setMobileOpen(false);
                 router.push(ajustarHrefParaAreaTravada(destino));
               }} />
@@ -461,6 +475,8 @@ function ModuleBar({ rotasPermitidas }) {
   const router = useRouter();
   const dept = searchParams.get("dept");
   const [aberto, setAberto] = useState(false);
+
+  if (pathname === "/dashboard/modulo" || pathname.startsWith("/dashboard/modulo/")) return null;
 
   const modulo = moduloDaRota(pathname, dept);
   const itens = Array.isArray(rotasPermitidas)

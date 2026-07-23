@@ -1869,6 +1869,15 @@ export default function RHPage() {
                      </div>
                   </div>
                   <div>
+                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Função / Cargo</label>
+                     <select value={novoFunc.cargo} onChange={e=>setNovoFunc({...novoFunc, cargo: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500 appearance-none text-slate-700">
+                        <option value="">Selecione um Cargo</option>
+                        <optgroup label="Liderança">
+                           {CARGOS_LIDERANCA.map(c => <option key={c} value={c}>{c}</option>)}
+                        </optgroup>
+                        {cargos.length > 0 && (
+                           <optgroup label="Cargos da unidade">
+                              {cargos.filter(c => !CARGOS_LIDERANCA.includes(c.nome)).map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
                            </optgroup>
                         )}
                         {novoFunc.cargo && ![...CARGOS_LIDERANCA, ...cargos.map(c => c.nome)].includes(novoFunc.cargo) && <option value={novoFunc.cargo}>{novoFunc.cargo}</option>}

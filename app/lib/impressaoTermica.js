@@ -38,8 +38,17 @@ export const PERFIS_TP20 = {
 let qzCarregado;
 
 async function obterQz() {
+  if (typeof window === "undefined") return null;
   if (!qzCarregado) {
-    qzCarregado = import("qz-tray").then((modulo) => modulo.default || modulo);
+    qzCarregado = (async () => {
+      try {
+        const modulo = await import(/* webpackIgnore: true */ "qz-tray");
+        return modulo?.default || modulo;
+      } catch (e) {
+        console.warn("Módulo qz-tray não carregado:", e);
+        return null;
+      }
+    })();
   }
   return qzCarregado;
 }

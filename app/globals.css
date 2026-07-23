@@ -181,6 +181,49 @@ tbody tr:last-child td {
   border-bottom: none;
 }
 
+/* Listas operacionais: leitura rápida, cabeçalho persistente e densidade
+   escolhida pelo usuário. As impressões mantêm sua geometria própria. */
+.erp-app-shell table:not([data-print-table]) {
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--card);
+}
+.erp-app-shell table:not([data-print-table]) thead th {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: color-mix(in srgb, var(--card) 94%, var(--surface));
+  box-shadow: 0 1px 0 var(--line);
+}
+.erp-app-shell table:not([data-print-table]) tbody tr:nth-child(even) td {
+  background: color-mix(in srgb, var(--surface) 55%, transparent);
+}
+.erp-app-shell table:not([data-print-table]) tbody tr:hover td {
+  background: var(--accent-soft);
+}
+.erp-density-compact table:not([data-print-table]) th,
+.erp-density-compact table:not([data-print-table]) td {
+  padding-block: 9px;
+  padding-inline: 12px;
+  font-size: 12px;
+}
+.erp-list-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 8;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--card) 92%, transparent);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-sm);
+}
+
 /* Transições padrão em botões e links */
 button, a { cursor: pointer; transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1); }
 
@@ -345,6 +388,30 @@ button, a { cursor: pointer; transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
   animation: toastIn 260ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.erp-sync-feedback {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(360px, calc(100vw - 24px));
+  padding: 11px 15px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--card);
+  color: var(--fg-soft);
+  box-shadow: var(--shadow-float);
+  font-size: 12px;
+  font-weight: 800;
+  animation: fadeIn 180ms ease;
+}
+.erp-sync-feedback.ok { border-color: color-mix(in srgb, var(--success) 35%, var(--line)); color: var(--success-strong); }
+.erp-sync-feedback.salvando { border-color: color-mix(in srgb, var(--accent) 30%, var(--line)); color: var(--accent-strong); }
+.erp-sync-feedback.erro,
+.erp-sync-feedback.offline { border-color: color-mix(in srgb, var(--danger) 35%, var(--line)); color: var(--danger-strong); }
+
 /* Acessibilidade: respeita quem prefere menos movimento */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -495,9 +562,40 @@ button,
   .erp-main-content td {
     padding: 12px 14px;
   }
+
+  .erp-app-shell table:not([data-print-table]) th:first-child,
+  .erp-app-shell table:not([data-print-table]) td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    background: var(--card);
+    box-shadow: 1px 0 0 var(--line);
+  }
+
+  .erp-app-shell table:not([data-print-table]) thead th:first-child {
+    z-index: 6;
+  }
 }
 
 @media screen and (max-width: 767px) {
+  .erp-main-content {
+    padding-bottom: calc(66px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .erp-mobile-nav {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-shadow: 0 -10px 30px rgba(15, 23, 42, 0.08);
+  }
+
+  .erp-sync-feedback {
+    right: 12px;
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .erp-toast {
+    bottom: calc(78px + env(safe-area-inset-bottom, 0px));
+  }
+
   .erp-top-header {
     padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
     min-height: calc(4rem + env(safe-area-inset-top, 0px));

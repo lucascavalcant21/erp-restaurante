@@ -146,8 +146,8 @@ export default function RecipeWorkspace({
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className={`block text-[9px] font-black uppercase tracking-widest ${ativo ? "text-slate-400" : "text-slate-500"}`}>Etapa {index + 1}</span>
-                    <span className="block truncate text-sm font-black">{etapa.label}</span>
-                    <span className={`block truncate text-[11px] font-medium ${ativo ? "text-slate-500" : "text-slate-400"}`}>{etapa.hint}</span>
+                    <span className="block text-sm font-black leading-tight break-words">{etapa.label}</span>
+                    <span className={`block text-[11px] font-medium leading-snug break-words ${ativo ? "text-slate-500" : "text-slate-400"}`}>{etapa.hint}</span>
                   </span>
                   <ArrowRight size={15} className={`shrink-0 transition-transform group-hover:translate-x-0.5 ${ativo ? "text-slate-400" : "text-slate-600"}`} />
                 </button>
@@ -171,17 +171,17 @@ export default function RecipeWorkspace({
 
             <div className={`grid transition-all duration-300 ${fluxoAberto ? "grid-rows-[1fr] border-t border-white/10" : "grid-rows-[0fr]"}`}>
               <div className="min-h-0 overflow-hidden">
-                <div className="grid grid-cols-1 gap-2 p-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid grid-cols-1 gap-2 p-3 sm:grid-cols-2 xl:grid-cols-3">
                   {COMPLEMENTOS[setor].map((item, index) => {
                     const Icon = item.icon;
                     return (
                       <button key={item.href} type="button" onClick={() => router.push(`${item.href}?dept=${setor}`)}
-                        className="group flex min-w-0 items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3 text-left text-white transition-all hover:border-white/20 hover:bg-white/10">
+                        className="group flex min-h-[88px] min-w-0 items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3 text-left text-white transition-all hover:border-white/20 hover:bg-white/10">
                         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10 text-slate-200"><Icon size={16} /></span>
                         <span className="min-w-0 flex-1">
                           <span className="block text-[9px] font-black uppercase tracking-widest text-slate-500">Etapa {ETAPAS.length + index + 1}</span>
-                          <span className="block truncate text-xs font-black">{item.label}</span>
-                          <span className="block truncate text-[10px] font-medium text-slate-400">{item.hint}</span>
+                          <span className="block text-xs font-black leading-tight break-words">{item.label}</span>
+                          <span className="mt-0.5 block text-[10px] font-medium leading-snug text-slate-400 break-words">{item.hint}</span>
                         </span>
                         <ArrowRight size={13} className="shrink-0 text-slate-600 transition-transform group-hover:translate-x-0.5" />
                       </button>

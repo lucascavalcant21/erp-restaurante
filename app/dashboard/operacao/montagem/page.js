@@ -1718,7 +1718,11 @@ function MontagemPageInner() {
         fetchProdutos(unidadeAtiva, dept),
       ]);
       const nomes = new Set((rMont.data || []).map(m => (m.nome || "").toLowerCase().trim()));
-      const faltantes = (rProds.data || []).filter(p => p.nome_produto && !nomes.has(p.nome_produto.toLowerCase().trim()));
+      const faltantes = (rProds.data || []).filter(p =>
+        p.nome_produto &&
+        p.fichas_tecnicas?.tipo_base !== "produto_pronto" &&
+        !nomes.has(p.nome_produto.toLowerCase().trim())
+      );
       for (const p of faltantes) {
         await inserirMontagem({
           nome: p.nome_produto,

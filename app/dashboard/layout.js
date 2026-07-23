@@ -6,7 +6,9 @@ import { lerSessao, encerrarSessao } from "../lib/auth";
 import { useERP } from "../context/ERPContext";
 import {
   Users, BarChart, Store, Settings, LogOut, ChevronDown, Check,
-  UtensilsCrossed, Package, Wallet, Menu, X, Truck, ChefHat, GlassWater
+  UtensilsCrossed, Package, Wallet, Menu, X, Truck, ChefHat, GlassWater,
+  Home, ClipboardList, UserRound, ShoppingCart, Bell, SlidersHorizontal,
+  Loader2, CheckCircle2, AlertTriangle, WifiOff
 } from "lucide-react";
 
 // NOVO MENU SIDEBAR (PDV e KDS REMOVIDOS)
@@ -100,6 +102,66 @@ const SIDEBAR_MENU = [
 ];
 
 const baseDaRota = (href = "") => href.split("?")[0];
+
+const ATALHOS_POR_PAPEL = {
+  admin: [
+    { label: "Início", href: "/dashboard", icon: Home },
+    { label: "Cozinha", href: "/dashboard/operacao/fichas?dept=cozinha", icon: ChefHat },
+    { label: "Financeiro", href: "/dashboard/financeiro", icon: Wallet },
+    { label: "Equipe", href: "/dashboard/rh", icon: Users },
+  ],
+  gerente: [
+    { label: "Início", href: "/dashboard", icon: Home },
+    { label: "Tarefas", href: "/dashboard/tarefas", icon: ClipboardList },
+    { label: "Operação", href: "/dashboard/operacao/rotina?dept=cozinha", icon: ChefHat },
+    { label: "Financeiro", href: "/dashboard/financeiro", icon: Wallet },
+  ],
+  financeiro: [
+    { label: "Financeiro", href: "/dashboard/financeiro", icon: Wallet },
+    { label: "DRE", href: "/dashboard/financeiro/dre", icon: BarChart },
+    { label: "Fluxo", href: "/dashboard/financeiro/fluxo", icon: ClipboardList },
+    { label: "Fiscal", href: "/dashboard/gestao/fiscal", icon: Store },
+  ],
+  rh: [
+    { label: "RH", href: "/dashboard/rh", icon: Users },
+    { label: "Ponto", href: "/dashboard/rh/ponto", icon: Check },
+    { label: "Equipe", href: "/dashboard/rh/gestao", icon: UserRound },
+    { label: "Vagas", href: "/dashboard/rh/recrutamento", icon: ClipboardList },
+  ],
+  estoque: [
+    { label: "Tarefas", href: "/dashboard/tarefas", icon: ClipboardList },
+    { label: "Estoque", href: "/dashboard/operacao/estoque?dept=cozinha", icon: Package },
+    { label: "Compras", href: "/dashboard/operacao/compras?dept=cozinha", icon: ShoppingCart },
+    { label: "Validade", href: "/dashboard/operacao/etiquetas?dept=cozinha", icon: Check },
+  ],
+  cozinha: [
+    { label: "Tarefas", href: "/dashboard/tarefas", icon: ClipboardList },
+    { label: "Receitas", href: "/dashboard/operacao/fichas?dept=cozinha", icon: ChefHat },
+    { label: "Produção", href: "/dashboard/operacao/producao?dept=cozinha", icon: Package },
+    { label: "Validade", href: "/dashboard/operacao/etiquetas?dept=cozinha", icon: Check },
+  ],
+  marketing: [
+    { label: "Clientes", href: "/dashboard/clientes/crm", icon: Users },
+    { label: "Campanhas", href: "/dashboard/clientes/campanhas", icon: Bell },
+    { label: "NPS", href: "/dashboard/clientes/nps", icon: BarChart },
+    { label: "Início", href: "/dashboard", icon: Home },
+  ],
+  caixa: [
+    { label: "Vendas", href: "/dashboard/vendas", icon: ShoppingCart },
+    { label: "Mesas", href: "/dashboard/mesas", icon: Users },
+    { label: "Tarefas", href: "/dashboard/tarefas", icon: ClipboardList },
+    { label: "Alertas", href: "/dashboard/notificacoes", icon: Bell },
+  ],
+  garcom: [
+    { label: "Mesas", href: "/dashboard/mesas", icon: Users },
+  ],
+};
+
+const rotuloPapel = (papel) => ({
+  admin: "Administrador", gerente: "Gerente", financeiro: "Financeiro",
+  rh: "Recursos Humanos", estoque: "Estoque", cozinha: "Cozinha",
+  marketing: "Marketing", caixa: "Caixa", garcom: "Atendimento", acesso: "Acesso restrito",
+}[papel] || "Usuário");
 
 function moduloDaRota(pathname, dept) {
   const setor = String(dept || "").toLowerCase();
@@ -212,72 +274,26 @@ function ProtecaoSetorDaArea({ children }) {
   return children;
 }
 
-function SidebarItem({ item, pathname, onNavigate }) {
-  const router = useRouter();
-  const { unidadeAtiva } = useERP();
-  
-  let isActive = false;
-  if (item.href === "/dashboard") {
-     isActive = pathname === "/dashboard";
-  } else {
-     isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-  }
-
-  const handleClick = () => {
-    onNavigate?.();
-    if (item.href === "/chamada/dinamico") {
-      window.open(`/chamada/${unidadeAtiva || 'todas'}`, "_blank");
-      return;
-    }
-    router.push(ajustarHrefParaAreaTravada(item.href));
-  };
-
-  return (
-    <button
-      onClick={handleClick}
-      className={`w-full min-h-12 xl:min-h-11 flex items-center gap-3 px-3 py-3 xl:py-2.5 rounded-xl text-[15px] xl:text-[13px] font-bold text-left transition-all ${
-        isActive
-          ? "bg-emerald-500/10 text-emerald-400"
-          : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
-      }`}
-    >
-      <div className={`w-2 h-2 xl:w-1.5 xl:h-1.5 rounded-full transition-colors shrink-0 ${isActive ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' : 'bg-transparent'}`} />
-      <span className="truncate">{item.label}</span>
-    </button>
-  );
-}
-
-function SidebarSection({ section, idx, pathname, isOpen, onToggle, onNavigate }) {
-  // Acordeão controlado pelo pai: só um módulo aberto por vez, e ao navegar
-  // para um submódulo tudo recolhe de novo.
+function SidebarSection({ section, idx, ativo, onOpen }) {
   return (
     <div className="animate-in fade-in slide-in-from-left-2" style={{ animationDelay: `${idx * 50}ms`, animationFillMode: 'both' }}>
       <button
-        onClick={onToggle}
-        aria-expanded={isOpen}
-        className="w-full min-h-12 xl:min-h-11 px-3 py-2.5 xl:py-2 text-[12px] xl:text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-300 mb-1 flex items-center justify-between transition-colors group outline-none text-left"
+        onClick={onOpen}
+        className={`w-full min-h-12 xl:min-h-11 px-3 py-2.5 text-[12px] xl:text-[10px] font-black uppercase tracking-widest mb-1 flex items-center justify-between rounded-xl transition-colors group outline-none text-left ${ativo
+          ? "bg-emerald-500/10 text-emerald-300"
+          : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/40"}`}
       >
         <div className="flex items-center gap-2.5">
-           <section.icon size={16} className="text-slate-600 group-hover:text-slate-400 transition-colors shrink-0 xl:w-[13px] xl:h-[13px]" />
+           <section.icon size={16} className={`transition-colors shrink-0 xl:w-[13px] xl:h-[13px] ${ativo ? "text-emerald-400" : "text-slate-600 group-hover:text-slate-400"}`} />
            {section.category}
         </div>
-        <ChevronDown size={16} className={`text-slate-600 transition-transform duration-200 shrink-0 ${isOpen ? '' : '-rotate-90'}`} />
+        <ChevronDown size={16} className="-rotate-90 text-slate-600 shrink-0" />
       </button>
-      
-      <div className={`grid transition-all duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
-        <div className="overflow-hidden min-h-0 space-y-0.5">
-          <div className="pb-2">
-             {section.items.map((item, itemIdx) => (
-               <SidebarItem key={itemIdx} item={item} pathname={pathname} onNavigate={onNavigate} />
-             ))}
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
 
-function Sidebar({ mobileOpen, setMobileOpen, collapsed, rotasPermitidas }) {
+function Sidebar({ mobileOpen, setMobileOpen, collapsed, rotasPermitidas, sessao }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -293,12 +309,6 @@ function Sidebar({ mobileOpen, setMobileOpen, collapsed, rotasPermitidas }) {
       })).filter((sec) => sec.items.length > 0)
     : SIDEBAR_MENU;
   const moduloAtivo = moduloDaRota(pathname, searchParams.get("dept"));
-  const indiceAtivo = menu.findIndex((sec) => sec.category === moduloAtivo.category);
-  // O módulo atual permanece aberto durante a navegação entre suas telas.
-  const [moduloAberto, setModuloAberto] = useState(indiceAtivo >= 0 ? indiceAtivo : 0);
-  useEffect(() => {
-    if (indiceAtivo >= 0) setModuloAberto(indiceAtivo);
-  }, [indiceAtivo, pathname]);
 
   return (
     <>
@@ -342,22 +352,24 @@ function Sidebar({ mobileOpen, setMobileOpen, collapsed, rotasPermitidas }) {
         {/* Scrollable Menu */}
         <div className="erp-sidebar-scroll flex-1 overflow-y-auto overscroll-contain custom-scrollbar px-3 sm:px-4 py-3 space-y-4">
           {menu.map((section, idx) => (
-            <SidebarSection key={idx} section={section} idx={idx} pathname={pathname}
-              isOpen={Array.isArray(rotasPermitidas) ? true : moduloAberto === idx}
-              onToggle={() => setModuloAberto(a => a === idx ? null : idx)}
-              onNavigate={() => setMobileOpen(false)} />
+            <SidebarSection key={idx} section={section} idx={idx} ativo={moduloAtivo.category === section.category}
+              onOpen={() => {
+                const destino = section.items[0]?.href || "/dashboard";
+                setMobileOpen(false);
+                router.push(ajustarHrefParaAreaTravada(destino));
+              }} />
           ))}
         </div>
         
         {/* User Profile Footer */}
         <div className="erp-sidebar-footer p-3 sm:p-4 border-t border-slate-800/50 shrink-0">
-          <div className="bg-slate-800/30 rounded-xl p-3 flex items-center gap-3 border border-slate-700/50 hover:bg-slate-800/50 transition-colors cursor-pointer group">
+          <div className="bg-slate-800/30 rounded-xl p-3 flex items-center gap-3 border border-slate-700/50 group">
              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-700 to-slate-600 flex items-center justify-center text-slate-200 font-bold shadow-inner group-hover:scale-105 transition-transform">
-               A
+               {String(sessao?.nome || sessao?.email || "U").trim().charAt(0).toUpperCase()}
              </div>
              <div className="min-w-0">
-                <p className="text-sm font-bold text-slate-200 leading-tight truncate">Admin</p>
-                <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider truncate">Gestor Hefisto</p>
+                <p className="text-sm font-bold text-slate-200 leading-tight truncate">{sessao?.nome || "Usuário"}</p>
+                <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider truncate">{rotuloPapel(sessao?.papel)}</p>
              </div>
           </div>
         </div>
@@ -366,7 +378,7 @@ function Sidebar({ mobileOpen, setMobileOpen, collapsed, rotasPermitidas }) {
   );
 }
 
-function TopHeader({ onSair, onToggleSidebar, acessoRestrito }) {
+function TopHeader({ onSair, onToggleSidebar, acessoRestrito, sessao, compacto, onToggleDensidade }) {
   const { unidades, unidadeAtiva, setUnidadeAtiva, podeTrocar, unidadeInfo } = useERP();
   const router = useRouter();
 
@@ -427,6 +439,13 @@ function TopHeader({ onSair, onToggleSidebar, acessoRestrito }) {
 
          <div className="w-px h-6 bg-slate-200 hidden sm:block mx-1"></div>
 
+         <button onClick={onToggleDensidade}
+           className={`hidden md:flex h-11 items-center justify-center gap-2 px-3 rounded-xl transition-colors ${compacto ? "bg-emerald-50 text-emerald-700" : "text-slate-400 hover:text-slate-700 hover:bg-slate-100"}`}
+           title={compacto ? "Usar visual confortável" : "Usar visual compacto"}>
+           <SlidersHorizontal size={17} />
+           <span className="text-xs font-bold">{compacto ? "Compacto" : "Confortável"}</span>
+         </button>
+
          <button onClick={onSair} className="w-11 h-11 sm:w-auto flex items-center justify-center gap-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 sm:px-3 rounded-xl transition-colors group shrink-0" title="Sair do Sistema">
            <LogOut size={18} className="group-hover:-translate-x-0.5 transition-transform" />
            <span className="text-sm font-bold hidden sm:block">Sair</span>
@@ -479,8 +498,8 @@ function ModuleBar({ rotasPermitidas }) {
             <Icone size={18} />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.16em] text-slate-400 truncate">Módulo · {modulo.category}</p>
-            <p className="text-xs sm:text-sm font-black text-slate-800 truncate">{itemAtivo?.label || modulo.category}</p>
+            <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.16em] text-slate-400 break-words">Módulo · {modulo.category}</p>
+            <p className="text-xs sm:text-sm font-black text-slate-800 break-words">{itemAtivo?.label || modulo.category}</p>
           </div>
           <span className="hidden md:block text-[10px] font-bold text-slate-400">{itens.length} submódulos conectados</span>
           <button type="button" onClick={() => setAberto((valor) => !valor)} aria-expanded={aberto}
@@ -506,7 +525,7 @@ function ModuleBar({ rotasPermitidas }) {
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className={`block text-[9px] font-black uppercase tracking-widest ${ativo ? "text-emerald-600" : "text-slate-400"}`}>{ativo ? "Tela atual" : modulo.category}</span>
-                      <span className="block truncate text-xs font-black text-slate-800">{item.label}</span>
+                      <span className="block text-xs font-black leading-tight text-slate-800 break-words">{item.label}</span>
                     </span>
                     <ChevronDown size={14} className="-rotate-90 shrink-0 text-slate-300 transition-transform group-hover:-translate-y-0.5" />
                   </button>
@@ -520,6 +539,99 @@ function ModuleBar({ rotasPermitidas }) {
   );
 }
 
+function MobileBottomNav({ sessao, onMenu }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const atalhos = ATALHOS_POR_PAPEL[sessao?.papel] || ATALHOS_POR_PAPEL.admin;
+  const visiveis = atalhos.slice(0, 4);
+
+  return (
+    <nav aria-label="Atalhos do meu perfil"
+      className="erp-mobile-nav print:hidden fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur-xl md:hidden">
+      <div className="grid min-h-[62px] items-stretch" style={{ gridTemplateColumns: `repeat(${visiveis.length + 1}, minmax(0, 1fr))` }}>
+        {visiveis.map((item) => {
+          const Icon = item.icon;
+          const base = baseDaRota(item.href);
+          const ativo = pathname === base || (base !== "/dashboard" && pathname.startsWith(`${base}/`));
+          return (
+            <button key={item.href} type="button" onClick={() => router.push(ajustarHrefParaAreaTravada(item.href))}
+              className={`flex min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 text-[9px] font-black transition-colors ${ativo ? "text-emerald-700" : "text-slate-400"}`}>
+              <span className={`flex h-8 w-10 items-center justify-center rounded-xl ${ativo ? "bg-emerald-100" : "bg-transparent"}`}><Icon size={18} /></span>
+              <span className="w-full truncate">{item.label}</span>
+            </button>
+          );
+        })}
+        <button type="button" onClick={onMenu}
+          className="flex min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 text-[9px] font-black text-slate-400">
+          <span className="flex h-8 w-10 items-center justify-center rounded-xl"><Menu size={19} /></span>
+          <span>Menu</span>
+        </button>
+      </div>
+    </nav>
+  );
+}
+
+function SyncFeedback() {
+  const [estado, setEstado] = useState({ tipo: "oculto", texto: "" });
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    const mostrar = (tipo, texto, duracao = 2400) => {
+      clearTimeout(timerRef.current);
+      setEstado({ tipo, texto });
+      if (duracao) timerRef.current = setTimeout(() => setEstado({ tipo: "oculto", texto: "" }), duracao);
+    };
+
+    const aoFeedback = (evento) => {
+      const detalhe = evento?.detail || {};
+      mostrar(detalhe.tipo || "ok", detalhe.texto || detalhe.mensagem || "Alteração concluída", detalhe.duracao ?? 2400);
+    };
+    const offline = () => mostrar("offline", "Sem internet · alterações podem não sincronizar", 0);
+    const online = () => mostrar("ok", "Conexão restabelecida", 2200);
+    window.addEventListener("erp:feedback", aoFeedback);
+    window.addEventListener("offline", offline);
+    window.addEventListener("online", online);
+    if (!navigator.onLine) offline();
+
+    const fetchOriginal = window.fetch.bind(window);
+    window.fetch = async (...args) => {
+      const input = args[0];
+      const opcoes = args[1] || {};
+      const metodo = String(opcoes.method || input?.method || "GET").toUpperCase();
+      const url = String(typeof input === "string" ? input : input?.url || "");
+      const mutacao = ["POST", "PUT", "PATCH", "DELETE"].includes(metodo) && (url.includes("supabase") || url.includes("/api/"));
+      if (mutacao) mostrar("salvando", "Salvando alterações...", 0);
+      try {
+        const resposta = await fetchOriginal(...args);
+        if (mutacao) mostrar(resposta.ok ? "ok" : "erro", resposta.ok ? "Alterações salvas" : "Não foi possível salvar", resposta.ok ? 1800 : 4200);
+        return resposta;
+      } catch (erro) {
+        if (mutacao) mostrar("erro", "Falha de conexão ao salvar", 4200);
+        throw erro;
+      }
+    };
+
+    window.erpFeedback = (texto, tipo = "ok") => mostrar(tipo, texto);
+    return () => {
+      clearTimeout(timerRef.current);
+      window.fetch = fetchOriginal;
+      delete window.erpFeedback;
+      window.removeEventListener("erp:feedback", aoFeedback);
+      window.removeEventListener("offline", offline);
+      window.removeEventListener("online", online);
+    };
+  }, []);
+
+  if (estado.tipo === "oculto") return null;
+  const Icone = estado.tipo === "salvando" ? Loader2 : estado.tipo === "ok" ? CheckCircle2 : estado.tipo === "offline" ? WifiOff : AlertTriangle;
+  return (
+    <div className={`erp-sync-feedback ${estado.tipo}`} role="status" aria-live="polite">
+      <Icone size={16} className={estado.tipo === "salvando" ? "animate-spin" : ""} />
+      <span>{estado.texto}</span>
+    </div>
+  );
+}
+
 export default function DashboardLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -528,9 +640,13 @@ export default function DashboardLayout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   // Recolher a sidebar no desktop (lembra a preferência entre sessões)
   const [collapsed, setCollapsed] = useState(false);
+  const [compacto, setCompacto] = useState(false);
 
   useEffect(() => {
-    try { setCollapsed(localStorage.getItem("erp_sidebar_collapsed") === "1"); } catch (_) {}
+    try {
+      setCollapsed(localStorage.getItem("erp_sidebar_collapsed") === "1");
+      setCompacto(localStorage.getItem("erp_densidade") === "compacta");
+    } catch (_) {}
   }, []);
 
   useEffect(() => {
@@ -588,6 +704,14 @@ export default function DashboardLayout({ children }) {
     }
   }
 
+  function toggleDensidade() {
+    setCompacto((atual) => {
+      const novo = !atual;
+      try { localStorage.setItem("erp_densidade", novo ? "compacta" : "confortavel"); } catch (_) {}
+      return novo;
+    });
+  }
+
   async function sair() {
     sessaoRef.current = null;
     // Sair de propósito também esquece o login lembrado (senão o auto-login
@@ -608,18 +732,19 @@ export default function DashboardLayout({ children }) {
   const rotasPermitidas = acessoRestrito ? (sessao?.rotas || []) : null;
 
   return (
-    <div className="erp-app-shell flex h-screen h-[100dvh] min-h-0 bg-[#F8FAFC] overflow-hidden print:bg-white print:block print:h-auto print:min-h-0">
+    <div className={`erp-app-shell ${compacto ? "erp-density-compact" : "erp-density-comfortable"} flex h-screen h-[100dvh] min-h-0 bg-[#F8FAFC] overflow-hidden print:bg-white print:block print:h-auto print:min-h-0`}>
       {/* Sidebar — para acessos restritos, mostra só as telas liberadas */}
       <div className="print:hidden h-full flex shrink-0">
          <Suspense fallback={null}>
-           <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} collapsed={collapsed} rotasPermitidas={rotasPermitidas} />
+           <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} collapsed={collapsed} rotasPermitidas={rotasPermitidas} sessao={sessao} />
          </Suspense>
       </div>
 
       {/* Área Principal de Conteúdo */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden print:h-auto print:block print:overflow-visible relative">
         <div className="print:hidden shrink-0">
-           <TopHeader onSair={sair} onToggleSidebar={toggleSidebar} acessoRestrito={acessoRestrito} />
+           <TopHeader onSair={sair} onToggleSidebar={toggleSidebar} acessoRestrito={acessoRestrito}
+             sessao={sessao} compacto={compacto} onToggleDensidade={toggleDensidade} />
         </div>
         <Suspense fallback={null}>
           <ModuleBar rotasPermitidas={rotasPermitidas} />
@@ -632,7 +757,8 @@ export default function DashboardLayout({ children }) {
           </Suspense>
         </main>
       </div>
-      
+      <SyncFeedback />
+      <MobileBottomNav sessao={sessao} onMenu={() => setMobileOpen(true)} />
     </div>
   );
 }

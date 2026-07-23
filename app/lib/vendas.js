@@ -8,7 +8,7 @@ export async function fetchProdutos(unidadeId, dept) {
   let query = supabase.from("produtos")
     .select(`
       *,
-      fichas_tecnicas ( nome_receita )
+      fichas_tecnicas ( nome_receita, tipo_base )
     `)
     .order("categoria")
     .order("nome_produto");

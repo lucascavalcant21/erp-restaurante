@@ -66,6 +66,73 @@ export const imprimirCertificadoPromocao = (colaboradorNome, cargoAnterior, carg
   setTimeout(() => win.print(), 400);
 };
 
+// ── DESCRITIVO OFICIAL DE CARGO E FUNÇÃO (PDF A4) ────────────────────────────
+export const imprimirDescritivoFuncao = (cargoObj, unidadeInfo) => {
+  const empNome = unidadeInfo?.nome_fantasia || unidadeInfo?.nome || "Nossa Empresa";
+  const reqs = Array.isArray(cargoObj.requisitos) ? cargoObj.requisitos : [];
+  const funcoesStr = cargoObj.funcoes_padrao || cargoObj.descricao || "Executar as atividades diárias do setor conforme orientações do supervisor.";
+  const fixo = Number(cargoObj.salario_base) || 0;
+  const va = Number(cargoObj.vale_alimentacao) || 0;
+  const taxa = Number(cargoObj.taxa_servico) || 0;
+  const remTotal = fixo + va + taxa;
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Descritivo de Função - ${cargoObj.nome}</title>
+    <style>
+      @page { size: A4 portrait; margin: 15mm; }
+      * { box-sizing: border-box; }
+      body { font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; padding: 10px; line-height: 1.5; font-size: 12px; }
+      .header { border-bottom: 2px solid #0f766e; padding-bottom: 10px; margin-bottom: 20px; text-align: center; }
+      .header h1 { margin: 0; font-size: 20px; font-weight: 900; color: #0f766e; text-transform: uppercase; }
+      .header p { margin: 4px 0 0; font-size: 11px; color: #64748b; font-weight: bold; }
+      .card-info { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; padding: 14px; margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      .section-title { font-size: 13px; font-weight: 900; color: #0f766e; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-top: 18px; margin-bottom: 8px; }
+      ul { padding-left: 20px; margin-top: 6px; }
+      li { margin-bottom: 4px; }
+      .signatures { margin-top: 50px; display: flex; justify-content: space-around; text-align: center; }
+      .sig-line { width: 220px; border-top: 1px solid #334155; padding-top: 4px; font-size: 11px; font-weight: bold; }
+      @media print { body { padding: 0; } }
+    </style></head><body>
+      <div class="header">
+        <h1>DESCRITIVO DE CARGO E FUNÇÃO OFICIAL</h1>
+        <p>${empNome} · Módulo de Recursos Humanos</p>
+      </div>
+
+      <div class="card-info">
+        <div><b>Cargo / Função:</b> ${cargoObj.nome}</div>
+        <div><b>Departamento:</b> ${cargoObj.departamento || "Operacional"}</div>
+        <div><b>Nível Hierárquico:</b> ${cargoObj.nivel || "Padrão"}</div>
+        <div><b>Remuneração Total:</b> ${fmtBRL(remTotal)} (Base: ${fmtBRL(fixo)})</div>
+      </div>
+
+      <div class="section-title">📋 1. Atribuições & Responsabilidades Diárias</div>
+      <p style="white-space: pre-wrap; font-size: 12px; color: #334155;">${funcoesStr}</p>
+
+      ${reqs.length > 0 ? `
+        <div class="section-title">🎯 2. Requisitos & Competências Necessárias</div>
+        <ul>
+          ${reqs.map(r => `<li>${r}</li>`).join("")}
+        </ul>
+      ` : ''}
+
+      <div class="section-title">⚖️ 3. Termo de Ciência e Compromisso</div>
+      <p style="font-size: 11px; color: #475569; text-align: justify;">
+        Declaro ter tomado ciência integral das funções, atribuições e responsabilidades inerentes ao meu cargo acima descrito, comprometendo-me a desempenhá-las com zelo, assiduidade e ética profissional.
+      </p>
+
+      <div class="signatures">
+        <div class="sig-line">Assinatura do Colaborador<br/><span style="font-size:9px; font-weight:normal;">Data: ___/___/______</span></div>
+        <div class="sig-line">Gestão de RH / Empregador<br/><span style="font-size:9px; font-weight:normal;">${empNome}</span></div>
+      </div>
+    </body></html>`;
+
+  const win = window.open("", "_blank");
+  if (!win) return alert("Habilite pop-ups para imprimir o Descritivo de Função.");
+  win.document.write(comFecharImpressao(html));
+  win.document.close();
+  setTimeout(() => win.print(), 400);
+};
+
+
 export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAtiva, unidadeInfo, onRecarregar }) {
   const [departamentoFiltro, setDepartamentoFiltro] = useState("Todos");
   const [modalEdit, setModalEdit] = useState(false);
@@ -599,23 +666,32 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                   )}
 
                   {/* BOTOES DE EDICAO/REMOCAO DO CARGO */}
-                  <div className="flex items-center justify-end gap-2 pt-2">
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 mt-2">
                     <button
-                      onClick={() => abrirEdicaoCargo(c)}
-                      className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors"
-                      title="Editar Cargo"
+                      onClick={() => imprimirDescritivoFuncao(c, unidadeInfo)}
+                      className="px-2.5 py-1.5 text-sky-700 bg-sky-50 hover:bg-sky-100 rounded-xl transition-colors flex items-center gap-1.5 text-xs font-bold"
+                      title="Imprimir Termo/Descritivo de Função em PDF"
                     >
-                      <Edit2 size={16} />
+                      <FileText size={14} /> Descritivo PDF
                     </button>
-                    {!String(c.id).startsWith("cfg-") && (
+                    <div className="flex items-center gap-1">
                       <button
-                        onClick={() => handleExcluirCargo(c.id)}
-                        className="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition-colors"
-                        title="Remover Cargo"
+                        onClick={() => abrirEdicaoCargo(c)}
+                        className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors"
+                        title="Editar Cargo"
                       >
-                        <Trash2 size={16} />
+                        <Edit2 size={16} />
                       </button>
-                    )}
+                      {!String(c.id).startsWith("cfg-") && (
+                        <button
+                          onClick={() => handleExcluirCargo(c.id)}
+                          className="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition-colors"
+                          title="Remover Cargo"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

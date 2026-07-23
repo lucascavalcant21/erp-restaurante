@@ -596,7 +596,10 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
   };
   const setIngredientesTexto = (txt) => {
     const copo = camadasAtuais.find((c) => c.tipo === "copo");
-    const linhas = txt.split("\n").map((s) => s.replace(/^[-•\d.\)\s]+/, "").trim()).filter(Boolean).map((nome) => ({ tipo: "liquido", nome }));
+    const linhas = txt.split("\n")
+      .map((s) => s.replace(/^\s*(?:[-•]\s+|\d+[.)]\s+)/, "").trim())
+      .filter(Boolean)
+      .map((nome) => ({ tipo: "liquido", nome }));
     const nova = copo ? [copo, ...linhas] : linhas;
     set("estrutura_ia", nova.length ? nova : null);
   };

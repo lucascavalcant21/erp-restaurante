@@ -1453,9 +1453,6 @@ export default function RHPage() {
             <button onClick={abrirModalFeriados} title="Dias de feriado pagam +100% para quem trabalhar (CLT)" className="flex items-center gap-1.5 bg-white text-rose-600 border border-slate-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-rose-50 transition-colors">
                <CalendarDays size={14} /> Feriados
             </button>
-            <button onClick={() => router.push('/dashboard/rh/cardapio-funcionarios')} className="flex items-center gap-1.5 bg-white text-slate-700 border border-slate-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-slate-50 transition-colors">
-               <UtensilsCrossed size={14} /> Cardápio Equipe
-            </button>
             <a
                href={(!unidadeAtiva || unidadeAtiva === "todas") ? "#" : `/exportar-afd?unidadeId=${unidadeAtiva}`}
                onClick={(e) => { if(!unidadeAtiva || unidadeAtiva === "todas") { e.preventDefault(); alert("Por favor, selecione uma unidade específica no menu lateral esquerdo para exportar o AFD daquela empresa."); } }}

@@ -156,51 +156,6 @@ function IngredientesRunner() {
     (catFiltro === "Todas" || (i.categoria || "Outros") === catFiltro)
   );
   const categoriasDept = CATEGORIAS_INSUMO[deptUrl || "cozinha"] || CATEGORIAS_INSUMO.cozinha;
-
-  // Reseta para a 1ª página quando a busca, o filtro ou os dados mudam
-  useEffect(() => { setPagina(1); }, [busca, catFiltro, deptUrl, insumos.length]);
-
-  const totalPaginas = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
-  const paginaAtual = Math.min(pagina, totalPaginas);
-  const paginados = filtrados.slice((paginaAtual - 1) * PAGE_SIZE, paginaAtual * PAGE_SIZE);
-
-  const abrirNovo = () => {
-    setForm({ id: null, departamento: deptUrl || "cozinha", nome: "", marca: "", categoria: "", unidade_medida: "kg", tamanho_embalagem: "1", valor_embalagem: "", custo_compra: "", frete: "", peso_medio_g: "", peso_bruto_g: "", peso_liquido_g: "", eh_empanado: false, custo_empanamento: "", peso_in_natura_g: "", peso_empanado_g: "", categoria_manual: false, fornecedor: "", observacoes: "" });
-    setModalNovo(true);
-  };
-
-  const abrirEditar = (ins) => {
-    // Reconstrói os pesos a partir do aproveitamento salvo ("por kg comprado": 1000g -> Xg)
-    const pct = Number(ins.aproveitamento_pct) || 0;
-    const fator = Number(ins.fator_empanamento) || 0;
-    setForm({
-      id: ins.id,
-      departamento: ins.departamento,
-      nome: ins.nome,
-      marca: ins.marca || "",
-      categoria: ins.categoria || adivinharCategoria(ins.nome, ins.departamento, ins.marca) || "",
-      categoria_manual: !!ins.categoria,
-      frete: ins.frete || "",
-      unidade_medida: ins.unidade_medida,
-      tamanho_embalagem: String(ins.tamanho_embalagem || "1"),
-      valor_embalagem: Math.round((((ins.custo_compra ?? ins.custo_unitario) || 0) - (Number(ins.frete) || 0)) * 100) / 100,
-      custo_compra: ins.custo_compra ?? ins.custo_unitario,
-      peso_medio_g: ins.peso_medio_g || "",
-      peso_bruto_g: pct > 0 && pct < 100 ? "1000" : "",
-      peso_liquido_g: pct > 0 && pct < 100 ? String(Math.round(pct * 10)) : "",
-      eh_empanado: !!ins.eh_empanado,
-      custo_empanamento: ins.custo_empanamento || "",
-      peso_in_natura_g: fator > 0 ? "1000" : "",
-      peso_empanado_g: fator > 0 ? String(Math.round(fator * 1000)) : "",
-      fornecedor: ins.fornecedor || "",
-      observacoes: ins.observacoes || "",
-    });
-    setModalNovo(true);
-  };
-
-  // ─── Importação em massa via IA (foto ou lista colada) ─────────────────────
-  const abrirModalIA = () => {
-    setIaDept(deptUrl || "cozinha");
     setIaTexto("");
     setIaImagem(null);
     setIaItens(null);
@@ -312,35 +267,6 @@ function IngredientesRunner() {
        if (!inNatura || !empanado) return alert("Produto empanado: preencha os DOIS pesos (in natura e empanado).");
        custoEmp = Number(form.custo_empanamento) || 0;
        fator = empanado / inNatura;
-    }
-
-    // custo_unitario gravado = custo REAL do kg PRONTO (limpeza + empanamento).
-    // Assim todas as fichas/CMV já usam o custo corrigido sem mudar nada nos cálculos.
-    const custoReal = form.eh_empanado ? (custoLimpo + custoEmp) / fator : custoLimpo;
-
-    const erro = await salvarInsumo({
-       id: form.id,
-       departamento: form.departamento,
-       nome: form.nome,
-       marca: form.marca,
-       categoria: form.categoria || adivinharCategoria(form.nome, form.departamento, form.marca) || "Outros",
-       unidade_medida: form.unidade_medida,
-       unidade_id: unidadeAtiva,
-       custo_compra: valorPago,
-       frete: freteTotal || null,
-       tamanho_embalagem: tamEmb,
-       peso_medio_g: form.peso_medio_g ? Number(form.peso_medio_g) : null,
-       aproveitamento_pct: pct < 100 ? Math.round(pct * 100) / 100 : null,
-       eh_empanado: !!form.eh_empanado,
-       custo_empanamento: form.eh_empanado ? custoEmp : null,
-       fator_empanamento: form.eh_empanado ? Math.round(fator * 10000) / 10000 : null,
-       fornecedor: form.fornecedor || null,
-       observacoes: form.observacoes || null,
-       custo_unitario: Math.round(custoReal * 10000) / 10000
-    });
-
-    if(erro.error) {
-      return alert("Erro ao salvar ingrediente: " + erro.error);
     }
 
     const editando = !!form.id;
@@ -829,8 +755,64 @@ function IngredientesRunner() {
                      )}
                   </div>
 
+                  {/* ESTOQUE INICIAL E PARÂMETROS */}
+                  {!form.id && (
+                    <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-4 space-y-3">
+                       <div className="flex items-center justify-between">
+                          <p className="text-xs font-black uppercase tracking-widest text-emerald-800 flex items-center gap-1.5">
+                             📦 Estoque Inicial no Cadastro (opcional)
+                          </p>
+                          <span className="text-[10px] font-bold bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded-md">Entrada Automática</span>
+                       </div>
+                       <div>
+                          <label className="text-[11px] font-bold text-slate-600 uppercase tracking-widest block mb-1">
+                             Quantas unidades / embalagens você já tem no estoque hoje?
+                          </label>
+                          <div className="relative">
+                             <input
+                                type="number" step="1" min="0" placeholder="Ex: 24 (garrafas / pacotes / caixas)"
+                                value={form.estoque_inicial}
+                                onChange={e => setForm({ ...form, estoque_inicial: e.target.value })}
+                                className="w-full p-3.5 bg-white border border-emerald-300 rounded-xl font-black text-slate-800 outline-none focus:border-emerald-500"
+                             />
+                             <span className="absolute right-4 top-1/2 -translate-y-1/2 font-black text-slate-400 text-xs">unidades</span>
+                          </div>
+                          {Number(form.tamanho_embalagem) > 1 && Number(form.estoque_inicial) > 0 && (
+                             <p className="text-[11px] font-bold text-emerald-700 mt-1">
+                                ✓ {form.estoque_inicial} unidades × {form.tamanho_embalagem} {form.unidade_medida} = <b>{(Number(form.estoque_inicial) * Number(form.tamanho_embalagem)).toLocaleString('pt-BR')} {form.unidade_medida}</b> serão adicionados ao estoque.
+                             </p>
+                          )}
+                       </div>
+                    </div>
+                  )}
+
+                  {/* ESTOQUE MÍNIMO E MÁXIMO (ALERTAS) */}
+                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+                     <p className="text-xs font-black uppercase tracking-widest text-slate-700">⚙️ Alertas de Reposição (Estoque Mínimo / Máximo)</p>
+                     <div className="grid grid-cols-2 gap-3">
+                        <div>
+                           <label className="text-[10px] font-bold text-amber-700 uppercase tracking-widest block mb-1">Mínimo (em unidades)</label>
+                           <input
+                              type="number" step="1" min="0" placeholder="Ex: 5 un."
+                              value={form.estoque_minimo}
+                              onChange={e => setForm({ ...form, estoque_minimo: e.target.value })}
+                              className="w-full p-3 bg-white border border-amber-200 rounded-xl font-bold text-amber-900 outline-none focus:border-amber-500"
+                           />
+                        </div>
+                        <div>
+                           <label className="text-[10px] font-bold text-sky-700 uppercase tracking-widest block mb-1">Máximo (em unidades)</label>
+                           <input
+                              type="number" step="1" min="0" placeholder="Ex: 50 un."
+                              value={form.estoque_maximo}
+                              onChange={e => setForm({ ...form, estoque_maximo: e.target.value })}
+                              className="w-full p-3 bg-white border border-sky-200 rounded-xl font-bold text-sky-900 outline-none focus:border-sky-500"
+                           />
+                        </div>
+                     </div>
+                  </div>
+
                   <p className="text-[11px] font-medium text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-100 mt-4">
-                     Dica: informe o volume, a unidade e o valor que você pagou. Ex.: creme de leite 200 ml por R$ 2,00 → Vol "200", Unidade "ML", Valor "2,00". Na lista aparece o valor cheio (R$ 2,00) e o custo por ml (R$ 0,01); na ficha técnica, ao usar 100 ml ele já sai R$ 1,00.
+                     Dica: informe o volume, a unidade e o valor pago. Ex.: Heineken 600 ml por R$ 8,50 → Vol "600", Unidade "ML", Valor "8,50". Se informar 24 unidades no estoque inicial, o produto já entra disponível no estoque do bar/cozinha automaticamente.
                   </p>
                </div>
 

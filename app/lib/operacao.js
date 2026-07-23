@@ -27,17 +27,16 @@ async function retrySemColunaAusente(error, tentar, campos, tentativas = 0) {
   return error;
 }
 
+import { ajustarEstoque } from "./estoque";
+
 export async function salvarInsumo(insumo) {
   if (!isSupabaseReady()) return { error: "Offline" };
 
-  // Remove campos que não devem ir no payload: `id` nulo quebra o INSERT
-  // (coluna id é NOT NULL com default gen_random_uuid; enviar null viola a constraint)
-  // e `created_at` é gerenciado pelo banco.
-  const { id, created_at, ...campos } = insumo;
+  // Remove campos que não devem ir no payload do insumos: `id`, `created_at` e `estoque_inicial`
+  const { id, created_at, estoque_inicial, ...campos } = insumo;
 
   if (id) {
     // Preço mudou? Grava no histórico e carimba a data da atualização.
-    // O histórico nunca pode impedir o salvamento (erro dele é ignorado).
     try {
       const { data: atual } = await supabase.from("insumos")
         .select("custo_unitario, unidade_id, nome").eq("id", id).single();
@@ -66,7 +65,8 @@ export async function salvarInsumo(insumo) {
     error = await retrySemColunaAusente(error, async () => {
       const r = await supabase.from("insumos").insert([campos]).select("id").single(); data = r.data; return r.error;
     }, campos);
-    // Registro inicial de preço no histórico (custo_anterior nulo = cadastro)
+
+    // Registro inicial no histórico de preços e estoque inicial se informado
     if (data?.id) {
       try {
         await supabase.from("insumos_precos_historico").insert([{
@@ -77,6 +77,32 @@ export async function salvarInsumo(insumo) {
           custo_novo: Number(campos.custo_unitario) || 0,
         }]);
       } catch { /* histórico é acessório */ }
+
+      // Inicialização dinâmica do Estoque se informado no cadastro
+      if (Number(estoque_inicial) > 0) {
+        try {
+          const conteudo = Number(campos.tamanho_embalagem) || 1;
+          const qtdBase = Number(estoque_inicial) * conteudo;
+          await ajustarEstoque(campos.unidade_id, data.id, qtdBase);
+          await supabase.from("estoque_movimentos").insert([{
+            unidade_id: campos.unidade_id,
+            insumo_id: data.id,
+            departamento: campos.departamento || "cozinha",
+            tipo: "entrada",
+            quantidade_unidades: Number(estoque_inicial),
+            conteudo_por_unidade: conteudo,
+            quantidade_base: qtdBase,
+            unidade_medida: campos.unidade_medida || "UN",
+            saldo_anterior: 0,
+            saldo_posterior: qtdBase,
+            responsavel: "Cadastro Inicial",
+            motivo: "Estoque Inicial no Cadastro",
+            data_movimento: new Date().toISOString(),
+          }]);
+        } catch (e) {
+          console.warn("Aviso ao inicializar estoque:", e);
+        }
+      }
     }
     return { id: data?.id, error: error?.message };
   }

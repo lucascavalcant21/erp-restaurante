@@ -332,6 +332,7 @@ function IngredientesRunner() {
        if (!inNatura || !empanado) return alert("Produto empanado: preencha os DOIS pesos (in natura e empanado).");
        custoEmp = Number(form.custo_empanamento) || 0;
        fator = empanado / inNatura;
+    }
     const custoFinalKg = (form.eh_empanado && fator && fator > 0)
        ? (custoLimpo + (custoEmp / fator)) / fator
        : custoLimpo;

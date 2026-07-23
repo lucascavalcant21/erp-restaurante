@@ -1594,6 +1594,10 @@ function MontagemPageInner() {
   const [saidaGuia, setSaidaGuia] = useState("imprimir"); // "imprimir" | "pdf"
   const [preenchendoIA, setPreenchendoIA] = useState(false); // receitas em lote (bar)
 
+  // A Cozinha e o Bar são áreas separadas. Se a navegação mudar apenas o
+  // parâmetro do setor, atualiza a tela inteira sem reaproveitar dados do outro.
+  useEffect(() => { setDept(deptInicial); }, [deptInicial]);
+
   // Preenche de uma vez, via IA, todas as bebidas do bar que estão sem receita:
   // cada drink ganha copo, ingredientes com dosagem e preparo clássicos — para
   // você revisar e editar. Engarrafadas (água/cerveja) ficam sem receita mesmo.
@@ -1880,7 +1884,6 @@ function MontagemPageInner() {
           ? "Converta as fichas em instruções visuais de copo, dosagem, finalização e serviço para toda a equipe."
           : "Converta receitas em padrões visuais claros de porcionamento, montagem, acabamento e apresentação."}
         total={lista.length}
-        onDeptChange={setDept}
         onPrimary={() => { setEditar(null); setModal(true); }}
         primaryLabel="Nova montagem"
       >

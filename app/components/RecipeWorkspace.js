@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight, Beaker, BookOpen, ChefHat, ClipboardList, GlassWater,
   Boxes, CalendarCheck, ChevronDown, Factory, FileInput, Layers3,
@@ -61,25 +61,16 @@ export default function RecipeWorkspace({
   title,
   description,
   total,
-  onDeptChange,
   onPrimary,
   primaryLabel = "Novo item",
   primaryIcon: PrimaryIcon = Plus,
   children,
 }) {
   const router = useRouter();
-  const pathname = usePathname();
   const [fluxoAberto, setFluxoAberto] = useState(false);
   const setor = dept === "bar" ? "bar" : "cozinha";
   const bar = setor === "bar";
   const SetorIcon = bar ? GlassWater : ChefHat;
-
-  const trocarSetor = (novo) => {
-    onDeptChange?.(novo);
-    const params = new URLSearchParams();
-    params.set("dept", novo);
-    router.replace(`${pathname}?${params.toString()}`);
-  };
 
   return (
     <section className="px-3 sm:px-5 pt-4 sm:pt-6">
@@ -105,20 +96,6 @@ export default function RecipeWorkspace({
             </div>
 
             <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row xl:justify-end">
-              <div className="grid grid-cols-2 rounded-2xl border border-white/10 bg-white/5 p-1 backdrop-blur-sm">
-                {["cozinha", "bar"].map((opcao) => {
-                  const ativo = setor === opcao;
-                  const Icon = opcao === "bar" ? GlassWater : ChefHat;
-                  return (
-                    <button key={opcao} type="button" onClick={() => trocarSetor(opcao)}
-                      className={`flex min-h-11 items-center justify-center gap-2 rounded-xl px-3 text-xs font-black capitalize transition-all ${ativo
-                        ? "bg-white text-slate-950 shadow-lg"
-                        : "text-slate-300 hover:bg-white/10 hover:text-white"}`}>
-                      <Icon size={15} /> {opcao}
-                    </button>
-                  );
-                })}
-              </div>
               {onPrimary && (
                 <button type="button" onClick={onPrimary}
                   className={`flex min-h-12 items-center justify-center gap-2 rounded-2xl px-5 text-sm font-black text-white shadow-lg transition-all active:scale-[.98] ${bar

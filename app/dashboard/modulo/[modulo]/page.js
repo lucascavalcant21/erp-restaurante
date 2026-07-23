@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import {
-  AlertTriangle, Armchair, BarChart3, BriefcaseBusiness, Calculator,
+  AlertTriangle, Armchair, Award, BarChart3, BriefcaseBusiness, Calculator,
   CalendarCheck, ClipboardCheck, ClipboardList, FileBarChart, FileText,
   GraduationCap, Landmark, LayoutDashboard, ListChecks, Network,
   PackageSearch, ReceiptText, ScrollText, Settings, ShieldCheck,
@@ -67,6 +67,7 @@ const MODULOS = {
       { label: "Folha de pagamento", hint: "Fechamento e valores", href: "/dashboard/rh/fechamento", icon: ReceiptText },
     ],
     items: [
+      { label: "Cargos & Carreiras", hint: "Descritivo de funções e salários", href: "/dashboard/rh/cargos", icon: Award },
       { label: "Portal do colaborador", hint: "Acesso da equipe", href: "/dashboard/rh/colaborador", icon: Users },
       { label: "Organograma", hint: "Estrutura e lideranças", href: "/dashboard/rh/organograma", icon: Network },
       { label: "Recrutamento", hint: "Vagas e candidatos", href: "/dashboard/rh/recrutamento", icon: BriefcaseBusiness },
@@ -75,9 +76,9 @@ const MODULOS = {
       { label: "Gastos administrativos", hint: "Custos com pessoas", href: "/dashboard/rh/gastos-admin", icon: Calculator },
     ],
     tools: [
+      { label: "Plano de Cargos", href: "/dashboard/rh/cargos", icon: Award },
       { label: "Bater ponto", href: "/dashboard/rh/ponto", icon: UserRoundCheck },
       { label: "Organograma", href: "/dashboard/rh/organograma", icon: Network },
-      { label: "Recrutamento", href: "/dashboard/rh/recrutamento", icon: BriefcaseBusiness },
     ],
   },
   gestao: {

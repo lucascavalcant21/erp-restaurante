@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   ArrowRight, Beaker, BookOpen, ChefHat, ClipboardList, GlassWater,
-  Plus, Sparkles,
+  Boxes, CalendarCheck, ChevronDown, Factory, FileInput, Layers3,
+  ListChecks, Plus, ReceiptText, ShoppingCart, Sparkles, Tags, Wine,
 } from "lucide-react";
 
 const ETAPAS = [
@@ -30,6 +32,29 @@ const ETAPAS = [
   },
 ];
 
+const COMPLEMENTOS = {
+  cozinha: [
+    { label: "Estoque", hint: "Saldos e movimentações", icon: Boxes, href: "/dashboard/operacao/estoque" },
+    { label: "Compras", hint: "Pedidos e fornecedores", icon: ShoppingCart, href: "/dashboard/operacao/compras" },
+    { label: "Entrada de notas", hint: "Recebimento e conferência", icon: FileInput, href: "/dashboard/operacao/notas" },
+    { label: "Produção do dia", hint: "Planejamento e execução", icon: Factory, href: "/dashboard/operacao/producao" },
+    { label: "Etiquetas e validade", hint: "Rastreio, FEFO e perdas", icon: Tags, href: "/dashboard/operacao/etiquetas" },
+    { label: "Controles de limpeza", hint: "Rotinas e registros", icon: ListChecks, href: "/dashboard/operacao/controles" },
+    { label: "Checklist da cozinha", hint: "Abertura e fechamento", icon: CalendarCheck, href: "/dashboard/operacao/rotina" },
+    { label: "Orçamento de eventos", hint: "Custos e planejamento", icon: ReceiptText, href: "/dashboard/operacao/orcamento" },
+  ],
+  bar: [
+    { label: "Drinks e coquetéis", hint: "Catálogo e receitas", icon: Wine, href: "/dashboard/operacao/drinks" },
+    { label: "Estoque", hint: "Bebidas e insumos", icon: Boxes, href: "/dashboard/operacao/estoque" },
+    { label: "Compras", hint: "Pedidos e fornecedores", icon: ShoppingCart, href: "/dashboard/operacao/compras" },
+    { label: "Entrada de notas", hint: "Recebimento e conferência", icon: FileInput, href: "/dashboard/operacao/notas" },
+    { label: "Produção do dia", hint: "Bases, xaropes e preparos", icon: Factory, href: "/dashboard/operacao/producao" },
+    { label: "Etiquetas e validade", hint: "Rastreio e perdas", icon: Tags, href: "/dashboard/operacao/etiquetas" },
+    { label: "Checklist do bar", hint: "Abertura e fechamento", icon: CalendarCheck, href: "/dashboard/operacao/rotina" },
+    { label: "Orçamento de eventos", hint: "Bebidas e planejamento", icon: ReceiptText, href: "/dashboard/operacao/orcamento" },
+  ],
+};
+
 export default function RecipeWorkspace({
   active,
   dept = "cozinha",
@@ -44,6 +69,7 @@ export default function RecipeWorkspace({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const [fluxoAberto, setFluxoAberto] = useState(false);
   const setor = dept === "bar" ? "bar" : "cozinha";
   const bar = setor === "bar";
   const SetorIcon = bar ? GlassWater : ChefHat;
@@ -127,6 +153,43 @@ export default function RecipeWorkspace({
                 </button>
               );
             })}
+          </div>
+
+          <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.035]">
+            <button type="button" onClick={() => setFluxoAberto((valor) => !valor)} aria-expanded={fluxoAberto}
+              className="flex w-full items-center gap-3 px-4 py-3 text-left text-white transition-colors hover:bg-white/5 sm:px-5">
+              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${bar ? "bg-violet-400/15 text-violet-200" : "bg-emerald-400/15 text-emerald-200"}`}>
+                <Layers3 size={17} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-black">Fluxo completo de {bar ? "Bar" : "Cozinha"}</span>
+                <span className="block text-[11px] font-medium text-slate-400">Acesse estoque, compras, notas, produção, validade e demais rotinas</span>
+              </span>
+              <span className="hidden rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-black text-slate-300 sm:block">{ETAPAS.length + COMPLEMENTOS[setor].length} submódulos</span>
+              <ChevronDown size={17} className={`shrink-0 text-slate-400 transition-transform ${fluxoAberto ? "rotate-180" : ""}`} />
+            </button>
+
+            <div className={`grid transition-all duration-300 ${fluxoAberto ? "grid-rows-[1fr] border-t border-white/10" : "grid-rows-[0fr]"}`}>
+              <div className="min-h-0 overflow-hidden">
+                <div className="grid grid-cols-1 gap-2 p-3 sm:grid-cols-2 lg:grid-cols-4">
+                  {COMPLEMENTOS[setor].map((item, index) => {
+                    const Icon = item.icon;
+                    return (
+                      <button key={item.href} type="button" onClick={() => router.push(`${item.href}?dept=${setor}`)}
+                        className="group flex min-w-0 items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3 text-left text-white transition-all hover:border-white/20 hover:bg-white/10">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10 text-slate-200"><Icon size={16} /></span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[9px] font-black uppercase tracking-widest text-slate-500">Etapa {ETAPAS.length + index + 1}</span>
+                          <span className="block truncate text-xs font-black">{item.label}</span>
+                          <span className="block truncate text-[10px] font-medium text-slate-400">{item.hint}</span>
+                        </span>
+                        <ArrowRight size={13} className="shrink-0 text-slate-600 transition-transform group-hover:translate-x-0.5" />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
           </div>
 
           {children && (

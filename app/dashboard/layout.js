@@ -441,6 +441,7 @@ function ModuleBar({ rotasPermitidas }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const dept = searchParams.get("dept");
+  const [aberto, setAberto] = useState(false);
 
   const modulo = moduloDaRota(pathname, dept);
   const itens = Array.isArray(rotasPermitidas)
@@ -452,6 +453,11 @@ function ModuleBar({ rotasPermitidas }) {
         });
       })
     : modulo.items;
+  const itemAtivo = itens
+    .filter((item) => correspondeRota(pathname, baseDaRota(item.href)))
+    .sort((a, b) => baseDaRota(b.href).length - baseDaRota(a.href).length)[0] || itens[0];
+
+  useEffect(() => { setAberto(false); }, [pathname]);
 
   // Ingredientes, fichas e montagem formam um fluxo próprio e compartilham um
   // cabeçalho operacional mais completo. Evita duas barras de navegação iguais.
@@ -461,33 +467,53 @@ function ModuleBar({ rotasPermitidas }) {
     "/dashboard/operacao/montagem",
   ].some((rota) => pathname === rota || pathname.startsWith(`${rota}/`))) return null;
 
-  if (!itens.length) return null;
+  if (itens.length <= 1) return null;
   const Icone = modulo.icon;
 
   return (
     <nav aria-label={`Menu do módulo ${modulo.category}`}
-      className="print:hidden shrink-0 border-b border-slate-200/70 bg-white px-3 sm:px-5 py-2">
-      <div className="flex items-center gap-2 min-w-0">
-        <div className="flex items-center gap-2 pr-3 border-r border-slate-200 shrink-0">
-          <span className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-            <Icone size={16} />
+      className="print:hidden shrink-0 border-b border-slate-200/70 bg-white px-3 sm:px-5 py-2.5 shadow-sm">
+      <div className="mx-auto max-w-[1600px]">
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="w-10 h-10 rounded-xl bg-slate-900 text-emerald-300 flex items-center justify-center shrink-0 shadow-sm">
+            <Icone size={18} />
           </span>
-          <span className="hidden sm:block text-xs font-black uppercase tracking-wider text-slate-700">{modulo.category}</span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.16em] text-slate-400 truncate">Módulo · {modulo.category}</p>
+            <p className="text-xs sm:text-sm font-black text-slate-800 truncate">{itemAtivo?.label || modulo.category}</p>
+          </div>
+          <span className="hidden md:block text-[10px] font-bold text-slate-400">{itens.length} submódulos conectados</span>
+          <button type="button" onClick={() => setAberto((valor) => !valor)} aria-expanded={aberto}
+            className={`min-h-10 flex items-center gap-2 rounded-xl px-3 sm:px-4 text-xs font-black transition-all ${aberto ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>
+            <Menu size={15} /> <span className="hidden sm:inline">{aberto ? "Fechar mapa" : "Explorar módulo"}</span>
+            <ChevronDown size={14} className={`transition-transform ${aberto ? "rotate-180" : ""}`} />
+          </button>
         </div>
-        <div className="flex-1 flex gap-1.5 overflow-x-auto overscroll-x-contain custom-scrollbar pb-0.5">
-          {itens.map((item) => {
-            const base = baseDaRota(item.href);
-            const ativo = pathname === base || pathname.startsWith(`${base}/`);
-            return (
-              <button key={item.href} type="button"
-                onClick={() => router.push(ajustarHrefParaAreaTravada(item.href))}
-                className={`h-9 px-3 rounded-lg text-xs font-bold whitespace-nowrap transition-colors ${ativo
-                  ? "bg-emerald-600 text-white shadow-sm"
-                  : "bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}>
-                {item.label}
-              </button>
-            );
-          })}
+
+        <div className={`grid transition-all duration-300 ${aberto ? "grid-rows-[1fr] opacity-100 mt-3" : "grid-rows-[0fr] opacity-0"}`}>
+          <div className="min-h-0 overflow-hidden">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2 sm:p-3">
+              {itens.map((item, index) => {
+                const base = baseDaRota(item.href);
+                const ativo = pathname === base || pathname.startsWith(`${base}/`);
+                return (
+                  <button key={item.href} type="button" onClick={() => router.push(ajustarHrefParaAreaTravada(item.href))}
+                    className={`group min-w-0 flex items-center gap-3 rounded-xl border p-3 text-left transition-all ${ativo
+                      ? "border-emerald-300 bg-white shadow-sm ring-2 ring-emerald-100"
+                      : "border-transparent bg-white/70 hover:border-slate-200 hover:bg-white hover:shadow-sm"}`}>
+                    <span className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 text-xs font-black ${ativo ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className={`block text-[9px] font-black uppercase tracking-widest ${ativo ? "text-emerald-600" : "text-slate-400"}`}>{ativo ? "Tela atual" : modulo.category}</span>
+                      <span className="block truncate text-xs font-black text-slate-800">{item.label}</span>
+                    </span>
+                    <ChevronDown size={14} className="-rotate-90 shrink-0 text-slate-300 transition-transform group-hover:-translate-y-0.5" />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
     </nav>

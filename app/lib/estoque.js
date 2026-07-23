@@ -18,11 +18,14 @@ export async function fetchEstoque(unidadeId, deptUrl) {
 
   // Formata o array para facilitar o uso na tela
   const formatado = (data || []).map(ins => ({
+     id: ins.id,
      insumo_id: ins.id,
      nome: ins.nome,
      departamento: ins.departamento,
      unidade_medida: ins.unidade_medida,
+     tamanho_embalagem: Number(ins.tamanho_embalagem) || 1,
      custo_unitario: ins.custo_unitario,
+     custo_compra: Number(ins.custo_compra) || 0,
      estoque_minimo: ins.estoque_minimo ?? null,
      estoque_maximo: ins.estoque_maximo ?? null,
      // "ingrediente" (padrão) ou "produto" (pronto: bebidas, embalados etc.)
@@ -262,5 +265,126 @@ export async function fetchReposicaoMes(unidadeId, mesAno) {
   return { total: (data || []).reduce((s, c) => s + (Number(c.valor) || 0), 0) };
 }
 
-export const fetchHistoricoTablet = async () => { return { data: [], error: null }; };
-export const movimentarTablet = async () => { return { error: null }; };
+// ─── MOVIMENTAÇÕES INTEGRADAS ───────────────────────────────────────────────
+
+export async function fetchMovimentosEstoque(unidadeId, departamento, limite = 300) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: [], error: null };
+
+  let query = supabase
+    .from("estoque_movimentos")
+    .select("id, unidade_id, insumo_id, departamento, tipo, quantidade_unidades, conteudo_por_unidade, quantidade_base, unidade_medida, saldo_anterior, saldo_posterior, responsavel, motivo, data_movimento, created_at, insumo:insumo_id(nome, marca)")
+    .eq("unidade_id", unidadeId)
+    .order("data_movimento", { ascending: false })
+    .limit(limite);
+
+  if (departamento) query = query.eq("departamento", departamento);
+  const { data, error } = await query;
+  return { data: data || [], error: error?.message };
+}
+
+export async function registrarMovimentoEstoque({
+  unidadeId,
+  insumoId,
+  departamento,
+  tipo,
+  quantidadeUnidades,
+  responsavel = "",
+  motivo = "",
+  dataMovimento,
+}) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  if (!unidadeId || !insumoId) return { error: "Produto ou unidade não informado." };
+  if (!["entrada", "saida"].includes(tipo)) return { error: "Tipo de movimentação inválido." };
+  if (!Number.isFinite(Number(quantidadeUnidades)) || Number(quantidadeUnidades) <= 0) {
+    return { error: "Informe uma quantidade maior que zero." };
+  }
+
+  // 1. Tenta via RPC do Supabase
+  const { data, error } = await supabase.rpc("registrar_movimento_estoque", {
+    p_unidade_id: unidadeId,
+    p_insumo_id: insumoId,
+    p_departamento: departamento || null,
+    p_tipo: tipo,
+    p_quantidade_unidades: Number(quantidadeUnidades),
+    p_responsavel: responsavel.trim() || null,
+    p_motivo: motivo.trim() || null,
+    p_data_movimento: dataMovimento ? new Date(dataMovimento).toISOString() : new Date().toISOString(),
+  });
+
+  // Se a RPC não existir ou falhar, executa o fallback diretamente pelas tabelas do Supabase
+  if (error) {
+    console.warn("RPC registrar_movimento_estoque falhou/ausente, executando fallback JS:", error.message);
+    const { data: insumo } = await supabase.from("insumos").select("*").eq("id", insumoId).single();
+    if (!insumo) return { error: "Insumo não encontrado." };
+
+    const conteudo = Number(insumo.tamanho_embalagem) || 1;
+    const qtdBase = Number(quantidadeUnidades) * conteudo;
+
+    const { data: estoqueDB } = await supabase.from("estoque_atual")
+      .select("quantidade_atual")
+      .eq("unidade_id", unidadeId)
+      .eq("insumo_id", insumoId)
+      .maybeSingle();
+
+    const saldoAnterior = Number(estoqueDB?.quantidade_atual) || 0;
+    const MathSaldo = tipo === "entrada" ? saldoAnterior + qtdBase : saldoAnterior - qtdBase;
+    const novoSaldo = Math.max(0, MathSaldo);
+
+    const { error: errEstoque } = await ajustarEstoque(unidadeId, insumoId, novoSaldo);
+    if (errEstoque) return { error: errEstoque };
+
+    const dataIso = dataMovimento ? new Date(dataMovimento).toISOString() : new Date().toISOString();
+    await supabase.from("estoque_movimentos").insert([{
+      unidade_id: unidadeId,
+      insumo_id: insumoId,
+      departamento: departamento || insumo.departamento,
+      tipo: tipo,
+      quantidade_unidades: Number(quantidadeUnidades),
+      conteudo_por_unidade: conteudo,
+      quantidade_base: qtdBase,
+      unidade_medida: insumo.unidade_medida,
+      saldo_anterior: saldoAnterior,
+      saldo_posterior: novoSaldo,
+      responsavel: responsavel.trim() || "Sistema",
+      motivo: motivo.trim() || (tipo === "entrada" ? "Entrada de estoque" : "Baixa de estoque"),
+      data_movimento: dataIso,
+    }]);
+
+    return { success: true, novoSaldo, error: null };
+  }
+
+  return { data: Array.isArray(data) ? data[0] : data, error: null };
+}
+
+// Compatibilidade com a tela de operação rápida (tablet).
+export async function fetchHistoricoTablet(unidadeId, setor) {
+  const { data, error } = await fetchMovimentosEstoque(unidadeId, setor, 100);
+  return {
+    data: (data || []).map(mov => ({
+      id: mov.id,
+      tipo: mov.tipo === "saida" ? "SAIDA" : "ENTRADA",
+      quantidade: Number(mov.quantidade_unidades) || 0,
+      motivo: mov.motivo || "",
+      responsavel: mov.responsavel || "",
+      created_at: mov.data_movimento || mov.created_at,
+      estoque: {
+        id: mov.insumo_id,
+        nome: mov.insumo?.nome || "Produto",
+        unidade: "un.",
+      },
+    })),
+    error,
+  };
+}
+
+export async function movimentarTablet({ unidadeId, estoqueId, setor, tipo, quantidade, motivo, responsavel }) {
+  return registrarMovimentoEstoque({
+    unidadeId,
+    insumoId: estoqueId,
+    departamento: setor,
+    tipo: String(tipo).toLowerCase() === "saida" ? "saida" : "entrada",
+    quantidadeUnidades: quantidade,
+    motivo,
+    responsavel,
+  });
+}

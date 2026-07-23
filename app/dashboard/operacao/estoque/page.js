@@ -3,14 +3,39 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
-import { fetchEstoque, ajustarEstoque, atualizarMinimoInsumo, atualizarMaximoInsumo, registrarCompra, fetchReposicaoMes } from "../../../lib/estoque";
+import {
+  fetchEstoque,
+  ajustarEstoque,
+  atualizarMinimoInsumo,
+  atualizarMaximoInsumo,
+  registrarCompra,
+  fetchReposicaoMes,
+  fetchMovimentosEstoque,
+  registrarMovimentoEstoque
+} from "../../../lib/estoque";
 import { salvarInsumo } from "../../../lib/operacao";
 import { comprimirFotoParaIA } from "../../../lib/imagem";
 import { criarEtiqueta, gerarCodigo } from "../../../lib/etiquetas";
 import { fetchParams, PARAMS_PADRAO } from "../../../lib/parametros";
 import { useTempoReal } from "../../../lib/realtime";
-import { PackageSearch, Edit3, X, Save, ArrowLeft, RefreshCw, AlertCircle, Search, Plus, TrendingUp, Printer, Camera, Loader2, CheckCircle2 } from "lucide-react";
+import {
+  PackageSearch, Edit3, X, Save, ArrowLeft, RefreshCw, AlertCircle, Search,
+  Plus, TrendingUp, TrendingDown, Printer, Camera, Loader2, CheckCircle2,
+  History, PackageMinus, PackagePlus, CalendarDays, UserRound, Filter, ShieldAlert
+} from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
+
+const agoraLocal = () => {
+  const data = new Date();
+  data.setMinutes(data.getMinutes() - data.getTimezoneOffset());
+  return data.toISOString().slice(0, 16);
+};
+
+const fmtDataHora = (iso) => {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+};
 
 function EstoqueRunner() {
   const router = useRouter();
@@ -23,45 +48,66 @@ function EstoqueRunner() {
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
   const [tipoFiltro, setTipoFiltro] = useState("Todos"); // Todos | Ingredientes | Produtos prontos
+  const [abaEstoque, setAbaEstoque] = useState("atual"); // "atual" | "historico"
+  const [movimentos, setMovimentos] = useState([]);
+  const [filtroMovimento, setFiltroMovimento] = useState("todos"); // "todos" | "entrada" | "saida"
 
-  // Importar lista por IA (foto de planilha/caderno com nome, marca, quantidade)
+  // Importar lista por IA
   const [modalLista, setModalLista] = useState(false);
   const [listaLendo, setListaLendo] = useState(false);
-  const [listaItens, setListaItens] = useState(null); // itens lidos p/ revisão
+  const [listaItens, setListaItens] = useState(null);
   const [listaSalvando, setListaSalvando] = useState(false);
   const inputListaRef = useRef(null);
 
-  // Contagem de estoque por IA: foto da planilha preenchida ou ditado por voz
+  // Contagem de estoque por IA
   const [modalContagem, setModalContagem] = useState(false);
   const [contagemLendo, setContagemLendo] = useState(false);
-  const [contagemItens, setContagemItens] = useState(null); // [{nome, quantidade, insumo}]
+  const [contagemItens, setContagemItens] = useState(null);
   const [contagemSalvando, setContagemSalvando] = useState(false);
   const [ditado, setDitado] = useState("");
   const [gravando, setGravando] = useState(false);
   const inputContagemRef = useRef(null);
   const reconhecimentoRef = useRef(null);
   
+  // Modais de Operações em Itens
   const [modalAjuste, setModalAjuste] = useState(false);
-  const [modalEntrada, setModalEntrada] = useState(false);
+  const [modalMovimento, setModalMovimento] = useState(false);
   const [itemAtual, setItemAtual] = useState(null);
-  const [novoSaldo, setNovoSaldo] = useState("");
-  const [minimoInput, setMinimoInput] = useState("");
-  const [maximoInput, setMaximoInput] = useState("");
+  const [tipoMovimento, setTipoMovimento] = useState("entrada"); // "entrada" ou "saida"
+
+  // Campos de Entrada / Saída
+  const [qtdUnidades, setQtdUnidades] = useState("");
+  const [valorPago, setValorPago] = useState("");
+  const [responsavelMov, setResponsavelMov] = useState("");
+  const [motivoMov, setMotivoMov] = useState("");
+  const [dataMov, setDataMov] = useState(agoraLocal());
+  const [salvandoMov, setSalvandoMov] = useState(false);
+
+  // Campos de Ajuste Balanço
+  const [novoSaldoUnidades, setNovoSaldoUnidades] = useState("");
+  const [minimoUnidades, setMinimoUnidades] = useState("");
+  const [maximoUnidades, setMaximoUnidades] = useState("");
+
   const [fatorRep, setFatorRep] = useState(PARAMS_PADRAO.fator_reposicao);
-  useEffect(() => { if (unidadeAtiva && unidadeAtiva !== "todas") fetchParams(unidadeAtiva).then(r => setFatorRep(r.data.fator_reposicao)); }, [unidadeAtiva]);
-  const [qtdEntrada, setQtdEntrada] = useState("");
-  const [valorEntrada, setValorEntrada] = useState("");
+  useEffect(() => {
+    if (unidadeAtiva && unidadeAtiva !== "todas") {
+      fetchParams(unidadeAtiva).then(r => setFatorRep(r.data.fator_reposicao));
+    }
+  }, [unidadeAtiva]);
 
   const [reposicaoMes, setReposicaoMes] = useState(0);
+
   const carregar = async (silencioso = false) => {
     if (!silencioso) setLoading(true);
     const mes = new Date().toISOString().slice(0, 7);
-    const [rEst, rRep] = await Promise.all([
+    const [rEst, rRep, rMov] = await Promise.all([
       fetchEstoque(unidadeAtiva, deptUrl),
       fetchReposicaoMes(unidadeAtiva, mes),
+      fetchMovimentosEstoque(unidadeAtiva, deptUrl),
     ]);
-    setItens(rEst.data);
+    setItens(rEst.data || []);
     setReposicaoMes(rRep.total || 0);
+    setMovimentos(rMov.data || []);
     setLoading(false);
   };
 
@@ -69,29 +115,34 @@ function EstoqueRunner() {
     if (unidadeAtiva) carregar();
   }, [unidadeAtiva, deptUrl]);
 
-  // Tempo real: entradas, baixas e produções atualizam os saldos sozinhos
-  useTempoReal(["estoque_atual", "insumos", "producao_diaria"], () => { if (unidadeAtiva) carregar(true); });
+  // Tempo real
+  useTempoReal(["estoque_atual", "estoque_movimentos", "insumos", "producao_diaria"], () => {
+    if (unidadeAtiva) carregar(true);
+  });
 
   const filtrados = itens.filter(i =>
     i.nome.toLowerCase().includes(busca.toLowerCase()) &&
     (tipoFiltro === "Todos" || (tipoFiltro === "Produtos prontos" ? i.tipo === "produto" : i.tipo !== "produto"))
   );
 
-  // ── Importar lista por IA: foto → itens revisáveis → estoque + validade ──
+  const movimentosFiltrados = movimentos.filter(m =>
+    filtroMovimento === "todos" || m.tipo === filtroMovimento
+  );
+
+  // ── Importar lista por IA ──
   const lerFotoLista = async (e) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
     setListaLendo(true);
     try {
-      const base64 = await comprimirFotoParaIA(file); // comprimida: foto crua estourava o limite da Vercel
+      const base64 = await comprimirFotoParaIA(file);
       const res = await fetch("/api/ia-lista-estoque", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ imagem_base64: base64, media_type: "image/jpeg" }),
       });
       const data = await res.json();
       if (!res.ok || data.error) { alert(data.error || "Falha ao ler a lista."); return; }
-      // Cada item ganha campos para o usuário completar: validade e preço de compra
       setListaItens(data.itens.map(i => ({ ...i, validade: "", preco: "" })));
     } catch { alert("Não consegui falar com a IA. Verifique a conexão."); } finally { setListaLendo(false); }
   };
@@ -105,7 +156,6 @@ function EstoqueRunner() {
       for (const item of validos) {
         const qtd = Number(item.quantidade) || 1;
         const preco = parseFloat(String(item.preco).replace(",", ".")) || 0;
-        // Já existe no estoque? Reaproveita; senão cadastra como produto pronto
         const existente = itens.find(x => x.nome.trim().toLowerCase() === item.nome.trim().toLowerCase());
         let insumoId = existente?.insumo_id;
         if (!insumoId) {
@@ -121,15 +171,21 @@ function EstoqueRunner() {
           if (r.error) { alert(`${item.nome}: ${r.error}`); continue; }
           insumoId = r.id;
         }
-        // Entrada no saldo: com preço vira compra (entra na reposição do mês)
+
         if (preco > 0) {
           await registrarCompra(unidadeAtiva, insumoId, item.nome.trim(), deptUrl || "cozinha", qtd, preco);
-        } else {
-          const saldoAtual = Number(existente?.quantidade_atual || 0);
-          await ajustarEstoque(unidadeAtiva, insumoId, saldoAtual + qtd);
         }
-        // Com validade informada, gera uma etiqueta ativa: o Controle de Validade
-        // passa a avisar o que vence primeiro (o que entrou deve sair primeiro)
+        
+        await registrarMovimentoEstoque({
+          unidadeId: unidadeAtiva,
+          insumoId,
+          departamento: deptUrl || "cozinha",
+          tipo: "entrada",
+          quantidadeUnidades: qtd,
+          responsavel: "Lista IA",
+          motivo: "Importação por Foto (IA)",
+        });
+
         if (item.validade) {
           await criarEtiqueta({
             codigo: gerarCodigo(),
@@ -147,14 +203,14 @@ function EstoqueRunner() {
         }
         ok++;
       }
-      alert(`${ok} item(ns) deram entrada no estoque.${validos.some(i => i.validade) ? "\nOs que têm validade já estão no Controle de Validade — ele avisa o que deve sair primeiro." : ""}`);
+      alert(`${ok} item(ns) deram entrada no estoque.`);
       setModalLista(false);
       setListaItens(null);
       carregar();
     } finally { setListaSalvando(false); }
   };
 
-  // ── Contagem por IA: casa o que foi lido com os itens do estoque ──────────
+  // ── Contagem por IA ──
   const casarContagem = (lidos) => lidos.map(l => {
     const alvo = l.nome.trim().toLowerCase();
     const insumo = itens.find(x => x.nome.trim().toLowerCase() === alvo)
@@ -168,7 +224,7 @@ function EstoqueRunner() {
     if (!file) return;
     setContagemLendo(true);
     try {
-      const base64 = await comprimirFotoParaIA(file); // comprimida: foto crua estourava o limite da Vercel
+      const base64 = await comprimirFotoParaIA(file);
       const res = await fetch("/api/ia-contagem", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ imagem_base64: base64, media_type: "image/jpeg" }),
@@ -193,11 +249,10 @@ function EstoqueRunner() {
     } catch { alert("Não consegui falar com a IA. Verifique a conexão."); } finally { setContagemLendo(false); }
   };
 
-  // Voz → texto direto no navegador (Chrome/Android, em pt-BR), sem custo de IA
   const alternarGravacao = () => {
     if (gravando) { try { reconhecimentoRef.current?.stop(); } catch {} setGravando(false); return; }
     const SR = typeof window !== "undefined" && (window.SpeechRecognition || window.webkitSpeechRecognition);
-    if (!SR) return alert("Este navegador não tem ditado por voz. Use o Chrome no celular/tablet, ou digite a contagem no campo abaixo.");
+    if (!SR) return alert("Navegador sem suporte a ditado por voz. Use o Chrome ou digite.");
     const rec = new SR();
     rec.lang = "pt-BR";
     rec.continuous = true;
@@ -220,10 +275,10 @@ function EstoqueRunner() {
     setContagemSalvando(true);
     try {
       for (const c of validos) {
-        await ajustarEstoque(unidadeAtiva, c.insumo.insumo_id, Number(c.quantidade));
+        const conteudo = Number(c.insumo.tamanho_embalagem) || 1;
+        await ajustarEstoque(unidadeAtiva, c.insumo.insumo_id, Number(c.quantidade) * conteudo);
       }
-      const ignorados = (contagemItens || []).length - validos.length;
-      alert(`Contagem aplicada: ${validos.length} item(ns) com saldo atualizado.${ignorados ? `\n${ignorados} item(ns) não encontrados no estoque foram ignorados.` : ""}`);
+      alert(`Contagem aplicada: ${validos.length} item(ns) atualizados.`);
       setModalContagem(false);
       setContagemItens(null);
       setDitado("");
@@ -231,7 +286,7 @@ function EstoqueRunner() {
     } finally { setContagemSalvando(false); }
   };
 
-  // Planilha em branco para preencher à mão e depois fotografar para a IA
+  // ── Impressão de Planilhas ──
   const imprimirPlanilhaLista = () => {
     const linhas = Array.from({ length: 22 }).map(() => `<tr><td></td><td></td><td></td><td></td><td></td></tr>`).join("");
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Lista de Entrada de Produtos</title>
@@ -241,65 +296,62 @@ function EstoqueRunner() {
       th{background:#eee;font-size:9px;text-transform:uppercase;letter-spacing:1px}td{height:9mm}
       @media print{@page{margin:8mm}}</style></head><body>
       <h1>Lista de Entrada de Produtos — ${unidadeInfo?.nome || ""}</h1>
-      <p>Preencha à mão e depois tire uma foto no botão "Importar Lista (IA)" do Estoque: o sistema dá entrada sozinho.</p>
+      <p>Preencha à mão e tire foto no botão "Importar Lista (IA)" do Estoque.</p>
       <table><thead><tr><th style="width:34%">Produto</th><th style="width:18%">Marca</th><th style="width:12%">Qtd</th><th style="width:18%">Validade</th><th style="width:18%">Preço de compra</th></tr></thead>
       <tbody>${linhas}</tbody></table></body></html>`;
     const win = window.open("", "_blank", "width=900,height=1000");
     if (win) { win.document.write(html); win.document.close(); setTimeout(() => win.print(), 300); }
-    else alert("Habilite os popups para imprimir.");
   };
 
-  // Planilha de contagem imprimível: saldo do sistema + colunas em branco para
-  // a contagem física e a diferença — agrupada por departamento.
   const imprimirPlanilha = () => {
-    if (!itens.length) return alert("Estoque vazio — nada para imprimir.");
+    if (!itens.length) return alert("Estoque vazio.");
     const grupos = {};
     itens.forEach(i => { const d = (i.departamento || "geral").toLowerCase(); (grupos[d] = grupos[d] || []).push(i); });
     let corpo = "";
     Object.keys(grupos).sort().forEach(dep => {
       const lista = grupos[dep].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
       corpo += `<tr class="cat"><td colspan="7">${dep.toUpperCase()}</td></tr>` + lista.map(i => {
-        const saldo = Number(i.quantidade_atual) || 0;
+        const conteudo = Number(i.tamanho_embalagem) || 1;
+        const unDisponiveis = (Number(i.quantidade_atual) || 0) / conteudo;
         const custo = Number(i.custo_unitario) || 0;
         return `<tr>
-          <td><b>${i.nome}</b></td>
-          <td class="c">${String(i.unidade_medida || "").toUpperCase()}</td>
-          <td class="c">${saldo.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}</td>
+          <td><b>${i.nome}</b> ${i.marca ? `(${i.marca})` : ''}</td>
+          <td class="c">${conteudo > 1 ? `${conteudo} ${i.unidade_medida}` : String(i.unidade_medida).toUpperCase()}</td>
+          <td class="c">${unDisponiveis.toFixed(2)} un.</td>
           <td class="r">${custo > 0 ? fmtBRL(custo) : ""}</td>
-          <td class="r">${custo > 0 ? fmtBRL(custo * saldo) : ""}</td>
+          <td class="r">${custo > 0 ? fmtBRL(custo * unDisponiveis) : ""}</td>
           <td class="conta"></td>
           <td class="conta"></td>
         </tr>`;
       }).join("");
     });
-    const valorTotal = itens.reduce((s, i) => s + (Number(i.custo_unitario) || 0) * (Number(i.quantidade_atual) || 0), 0);
+    const valorTotal = itens.reduce((s, i) => {
+      const un = (Number(i.quantidade_atual) || 0) / (Number(i.tamanho_embalagem) || 1);
+      return s + (Number(i.custo_unitario) || 0) * un;
+    }, 0);
+
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Estoque — ${unidadeInfo?.nome || ""}</title>
       <style>
         *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:8mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+        body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:8mm}
         .head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #111;padding-bottom:8px;margin-bottom:10px}
-        h1{font-size:20px}
-        .tag{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#555;font-weight:bold}
+        h1{font-size:20px}.tag{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#555;font-weight:bold}
         .meta{font-size:11px;color:#555;font-weight:bold;text-align:right}
         table{width:100%;border-collapse:collapse;font-size:11px}
         th,td{border:1px solid #94a3b8;padding:5px 6px;text-align:left}
         th{background:#e2e8f0;font-size:9px;text-transform:uppercase;letter-spacing:1px}
-        tr{page-break-inside:avoid}
         tr.cat td{background:#f1f5f9;font-weight:bold;letter-spacing:1px;font-size:10px;color:#334155}
-        td.c{text-align:center;font-weight:bold}
-        td.r{text-align:right}
-        td.conta{width:20mm;background:#fff}
+        td.c{text-align:center;font-weight:bold}td.r{text-align:right}td.conta{width:20mm;background:#fff}
         .totais{display:flex;justify-content:flex-end;margin-top:8px;font-size:12px;font-weight:bold}
         .assin{margin-top:16mm;display:flex;gap:30px}
         .assin div{flex:1;border-top:1px solid #111;padding-top:4px;font-size:10px;text-align:center;color:#444}
-        @media print{@page{margin:8mm}}
       </style></head><body>
       <div class="head">
         <div><div class="tag">Planilha de Contagem — Estoque${deptUrl ? ` · ${deptUrl}` : ""}</div><h1>${unidadeInfo?.nome || "Unidade"}</h1></div>
-        <div class="meta">${itens.length} ingrediente(s)<br/>Impresso em ${new Date().toLocaleDateString("pt-BR")}</div>
+        <div class="meta">${itens.length} produto(s)<br/>Impresso em ${new Date().toLocaleDateString("pt-BR")}</div>
       </div>
       <table>
-        <thead><tr><th>Ingrediente</th><th>Unid.</th><th>Saldo sistema</th><th>Custo/un.</th><th>Valor em estoque</th><th>Contagem física</th><th>Diferença</th></tr></thead>
+        <thead><tr><th>Produto</th><th>Embalagem</th><th>Saldo Sistema</th><th>Custo/un.</th><th>Valor Total</th><th>Contagem Física</th><th>Diferença</th></tr></thead>
         <tbody>${corpo}</tbody>
       </table>
       <div class="totais"><span>Valor total em estoque: ${fmtBRL(valorTotal)}</span></div>
@@ -307,115 +359,154 @@ function EstoqueRunner() {
       </body></html>`;
     const win = window.open("", "_blank", "width=900,height=1000");
     if (win) { win.document.write(html); win.document.close(); setTimeout(() => win.print(), 400); }
-    else alert("Habilite os popups para imprimir a planilha.");
   };
 
-  const abrirAjuste = (item) => {
-    setItemAtual(item);
-    setNovoSaldo(item.quantidade_atual === 0 ? "" : item.quantidade_atual);
-    setMinimoInput(item.estoque_minimo ?? "");
-    setMaximoInput(item.estoque_maximo ?? "");
-    setModalAjuste(true);
-  };
+  const abaixoDoMinimo = itens.filter(i => {
+    const conteudo = Number(i.tamanho_embalagem) || 1;
+    const minUn = i.estoque_minimo == null ? 0 : Number(i.estoque_minimo) / conteudo;
+    const saldoUn = Number(i.quantidade_atual || 0) / conteudo;
+    return minUn > 0 && saldoUn < minUn;
+  });
 
-  const handleSalvarAjuste = async () => {
-    if(novoSaldo === "") return alert("Digite o saldo atual");
-    if (minimoInput !== "" && maximoInput !== "" && Number(maximoInput) < Number(minimoInput)) {
-      return alert("O estoque máximo não pode ser menor que o mínimo.");
-    }
-    await ajustarEstoque(unidadeAtiva, itemAtual.insumo_id, Number(novoSaldo));
-    // Estoque mínimo (opcional): abaixo dele o item entra na lista de compras
-    if (String(minimoInput) !== String(itemAtual.estoque_minimo ?? "")) {
-      const { error } = await atualizarMinimoInsumo(itemAtual.insumo_id, minimoInput);
-      if (error) alert(error);
-    }
-    // Estoque máximo (opcional): acima dele avisa que está sobrando
-    if (String(maximoInput) !== String(itemAtual.estoque_maximo ?? "")) {
-      const { error } = await atualizarMaximoInsumo(itemAtual.insumo_id, maximoInput);
-      if (error) alert(error);
-    }
-    setModalAjuste(false);
-    carregar();
-  };
-
-  // Lista de compras automática: tudo que está abaixo do mínimo definido
-  const abaixoDoMinimo = itens.filter(i => Number(i.estoque_minimo) > 0 && Number(i.quantidade_atual) < Number(i.estoque_minimo));
   const imprimirCompras = () => {
-    if (!abaixoDoMinimo.length) return alert("Nada abaixo do mínimo. Defina o estoque mínimo dos insumos no botão Ajustar.");
-    const linhas = abaixoDoMinimo
-      .sort((a, b) => (((Number(a.quantidade_atual) || 0) <= 0 ? 0 : 1) - ((Number(b.quantidade_atual) || 0) <= 0 ? 0 : 1)) || (a.departamento || "").localeCompare(b.departamento || "") || a.nome.localeCompare(b.nome, "pt-BR"))
-      .map(i => {
-        const saldo = Number(i.quantidade_atual) || 0;
-        const min = Number(i.estoque_minimo) || 0;
-        const sugerido = Math.max(0, +(min * fatorRep - saldo).toFixed(2)); // repõe até (fator × mínimo)
-        const custo = (Number(i.custo_unitario) || 0) * sugerido;
-        return { i, saldo, min, sugerido, custo };
-      });
+    if (!abaixoDoMinimo.length) return alert("Nenhum item abaixo do estoque mínimo.");
+    const linhas = abaixoDoMinimo.map(i => {
+      const conteudo = Number(i.tamanho_embalagem) || 1;
+      const saldoUn = (Number(i.quantidade_atual) || 0) / conteudo;
+      const minUn = Number(i.estoque_minimo || 0) / conteudo;
+      const sugerido = Math.max(0, +(minUn * fatorRep - saldoUn).toFixed(2));
+      const custo = (Number(i.custo_unitario) || 0) * sugerido;
+      return { i, saldoUn, minUn, sugerido, custo, conteudo };
+    });
     const total = linhas.reduce((s, l) => s + l.custo, 0);
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Lista de Compras — abaixo do mínimo</title>
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Lista de Compras</title>
       <style>
         *{margin:0;padding:0;box-sizing:border-box}
         body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:9mm}
         .head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #111;padding-bottom:8px;margin-bottom:10px}
-        h1{font-size:20px}
-        .tag{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#555;font-weight:bold}
+        h1{font-size:20px}.tag{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#555;font-weight:bold}
         .meta{font-size:11px;color:#555;font-weight:bold;text-align:right}
         table{width:100%;border-collapse:collapse;font-size:12px}
         th,td{border:1px solid #94a3b8;padding:6px 7px;text-align:left}
         th{background:#e2e8f0;font-size:9px;text-transform:uppercase;letter-spacing:1px}
         td.c{text-align:center;font-weight:bold}td.r{text-align:right;font-weight:bold}
-        td.baixo{color:#dc2626}
-        .tot{background:#f1f5f9;font-weight:bold}
-        .check{width:10mm}
-        @media print{@page{margin:8mm}}
+        td.baixo{color:#dc2626}.tot{background:#f1f5f9;font-weight:bold}.check{width:10mm}
       </style></head><body>
       <div class="head">
-        <div><div class="tag">Lista de Compras — abaixo do estoque mínimo</div><h1>${unidadeInfo?.nome || "Unidade"}</h1></div>
+        <div><div class="tag">Lista de Compras — Reposição de Estoque</div><h1>${unidadeInfo?.nome || "Unidade"}</h1></div>
         <div class="meta">${linhas.length} item(ns)<br/>${new Date().toLocaleDateString("pt-BR")}</div>
       </div>
       <table>
-        <thead><tr><th class="check">OK</th><th>Ingrediente</th><th>Depto</th><th>Saldo</th><th>Mínimo</th><th>Comprar (sug.)</th><th>Custo estimado</th></tr></thead>
+        <thead><tr><th class="check">OK</th><th>Produto</th><th>Depto</th><th>Saldo Atual</th><th>Mínimo</th><th>Comprar (Sugestão)</th><th>Custo Estimado</th></tr></thead>
         <tbody>
           ${linhas.map(l => `<tr>
             <td class="check"></td>
-            <td><b>${l.i.nome}</b></td><td>${l.i.departamento || ""}</td>
-            <td class="c baixo">${l.saldo.toLocaleString("pt-BR")} ${l.i.unidade_medida}</td>
-            <td class="c">${l.min.toLocaleString("pt-BR")}</td>
-            <td class="c">${l.sugerido.toLocaleString("pt-BR")} ${l.i.unidade_medida}</td>
+            <td><b>${l.i.nome}</b> ${l.i.marca ? `(${l.i.marca})` : ''}</td>
+            <td>${l.i.departamento || ""}</td>
+            <td class="c baixo">${l.saldoUn.toFixed(1)} un.</td>
+            <td class="c">${l.minUn.toFixed(1)} un.</td>
+            <td class="c">${l.sugerido.toFixed(0)} un. (${(l.sugerido * l.conteudo).toLocaleString('pt-BR')} ${l.i.unidade_medida})</td>
             <td class="r">${fmtBRL(l.custo)}</td>
           </tr>`).join("")}
           <tr class="tot"><td colspan="6">TOTAL ESTIMADO</td><td class="r">${fmtBRL(total)}</td></tr>
         </tbody>
       </table>
-      <p style="font-size:9px;color:#94a3b8;margin-top:8px">Sugestão de compra = repor até ${fatorRep}x o estoque mínimo. Custo estimado pelo último custo unitário.</p>
       </body></html>`;
     const win = window.open("", "_blank", "width=900,height=1000");
     if (win) { win.document.write(html); win.document.close(); setTimeout(() => win.print(), 400); }
-    else alert("Habilite os popups para imprimir.");
   };
 
-  const abrirEntrada = (item) => {
+  // ── Abertura de Modais de Operação ──
+  const abrirMovimentoModal = (item, tipo) => {
     setItemAtual(item);
-    setQtdEntrada("");
-    setValorEntrada("");
-    setModalEntrada(true);
+    setTipoMovimento(tipo); // "entrada" ou "saida"
+    setQtdUnidades("");
+    setValorPago("");
+    setResponsavelMov("");
+    setMotivoMov(tipo === "entrada" ? "Compra / reposição" : "Uso na operação (Bar)");
+    setDataMov(agoraLocal());
+    setModalMovimento(true);
   };
 
-  const handleSalvarEntrada = async () => {
-    if(!qtdEntrada || Number(qtdEntrada) <= 0) return alert("Digite a quantidade comprada.");
-    const saldoAtual = Number(itemAtual.quantidade_atual || 0);
-    const qtd = Number(qtdEntrada);
-    const novaQtd = saldoAtual + qtd; // sempre SOMA ao saldo atual
-    const valor = parseFloat(String(valorEntrada).replace(",", ".")) || 0;
-    if (valor > 0) {
-      // Registra a compra: soma o estoque E lança o valor (entra na reposição do mês)
-      await registrarCompra(unidadeAtiva, itemAtual.insumo_id, itemAtual.nome, itemAtual.departamento, qtd, valor);
-    } else {
-      await ajustarEstoque(unidadeAtiva, itemAtual.insumo_id, novaQtd);
+  const handleSalvarMovimento = async () => {
+    if (!qtdUnidades || Number(qtdUnidades) <= 0) {
+      return alert("Digite quantas unidades foram " + (tipoMovimento === "entrada" ? "compradas/recebidas." : "retiradas."));
     }
-    setModalEntrada(false);
+    if (tipoMovimento === "saida" && !responsavelMov.trim()) {
+      return alert("Informe quem retirou o produto do estoque.");
+    }
+    setSalvandoMov(true);
+
+    try {
+      const un = Number(qtdUnidades);
+      const valor = parseFloat(String(valorPago).replace(",", ".")) || 0;
+
+      // Se for entrada e informou valor pago, registra no financeiro e atualiza custo unitário
+      if (tipoMovimento === "entrada" && valor > 0) {
+        await registrarCompra(
+          unidadeAtiva,
+          itemAtual.insumo_id,
+          itemAtual.nome,
+          itemAtual.departamento,
+          un,
+          valor,
+          motivoMov
+        );
+      }
+
+      const { error } = await registrarMovimentoEstoque({
+        unidadeId: unidadeAtiva,
+        insumoId: itemAtual.insumo_id,
+        departamento: itemAtual.departamento,
+        tipo: tipoMovimento,
+        quantidadeUnidades: un,
+        responsavel: responsavelMov,
+        motivo: motivoMov,
+        dataMovimento: dataMov,
+      });
+
+      if (error) { alert("Erro ao registrar: " + error); return; }
+
+      setModalMovimento(false);
+      await carregar(true);
+      alert(`${tipoMovimento === "entrada" ? "Entrada (+)" : "Baixa (-)"} de ${un} unidade(s) registrada com sucesso!`);
+    } finally {
+      setSalvandoMov(false);
+    }
+  };
+
+  const abrirAjuste = (item) => {
+    const conteudo = Number(item.tamanho_embalagem) || 1;
+    setItemAtual(item);
+    const saldoUn = Number(item.quantidade_atual || 0) / conteudo;
+    const minUn = item.estoque_minimo == null ? "" : Number(item.estoque_minimo) / conteudo;
+    const maxUn = item.estoque_maximo == null ? "" : Number(item.estoque_maximo) / conteudo;
+
+    setNovoSaldoUnidades(item.quantidade_atual === 0 ? "" : saldoUn);
+    setMinimoUnidades(minUn);
+    setMaximoUnidades(maxUn);
+    setModalAjuste(true);
+  };
+
+  const handleSalvarAjuste = async () => {
+    if (novoSaldoUnidades === "") return alert("Digite o saldo real em unidades.");
+    const conteudo = Number(itemAtual.tamanho_embalagem) || 1;
+    const novoSaldoBase = Number(novoSaldoUnidades) * conteudo;
+    const minBase = minimoUnidades === "" ? null : Number(minimoUnidades) * conteudo;
+    const maxBase = maximoUnidades === "" ? null : Number(maximoUnidades) * conteudo;
+
+    await ajustarEstoque(unidadeAtiva, itemAtual.insumo_id, novoSaldoBase);
+
+    if (String(minimoUnidades) !== String(itemAtual.estoque_minimo == null ? "" : Number(itemAtual.estoque_minimo) / conteudo)) {
+      await atualizarMinimoInsumo(itemAtual.insumo_id, minBase);
+    }
+    if (String(maximoUnidades) !== String(itemAtual.estoque_maximo == null ? "" : Number(itemAtual.estoque_maximo) / conteudo)) {
+      await atualizarMaximoInsumo(itemAtual.insumo_id, maxBase);
+    }
+
+    setModalAjuste(false);
     carregar();
-    alert(`Entrada somada ao estoque! ${itemAtual.nome}: ${saldoAtual} + ${qtd} = ${novaQtd} ${itemAtual.unidade_medida}${valor > 0 ? `\nReposição de ${fmtBRL(valor)} lançada no mês.` : ""}`);
+    alert("Saldo e parâmetros atualizados com sucesso!");
   };
 
   return (
@@ -432,8 +523,10 @@ function EstoqueRunner() {
                  <PackageSearch size={28} />
               </div>
               <div>
-                 <h1 className="text-3xl font-black tracking-tighter text-slate-900">Estoque Físico</h1>
-                 <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Saldos e Entradas {deptUrl ? `- ${deptUrl}` : ''}</p>
+                 <h1 className="text-3xl font-black tracking-tighter text-slate-900">Estoque do Bar e Cozinha</h1>
+                 <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">
+                   Controle de Entradas, Baixas e Saldos {deptUrl ? `- ${deptUrl}` : ''}
+                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap justify-end">
@@ -450,236 +543,462 @@ function EstoqueRunner() {
          </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 mt-8">
-         {/* Resumo: valor total parado no estoque + reposição (compras) do mês */}
+      <div className="max-w-5xl mx-auto px-6 mt-6">
+         {/* Resumo */}
          {(() => {
-            const valorEstoque = itens.reduce((s, i) => s + (Number(i.custo_unitario) || 0) * (Number(i.quantidade_atual) || 0), 0);
+            const valorTotalEstoque = itens.reduce((s, i) => {
+              const un = (Number(i.quantidade_atual) || 0) / (Number(i.tamanho_embalagem) || 1);
+              return s + (Number(i.custo_unitario) || 0) * un;
+            }, 0);
             return (
                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
                   <div className="bg-white border border-slate-200 rounded-2xl p-4 text-center shadow-sm">
                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Valor total em estoque</p>
-                     <p className="text-2xl font-black text-slate-800 mt-1">{fmtBRL(valorEstoque)}</p>
-                     <p className="text-[10px] font-bold text-slate-400 mt-0.5">soma de todos os itens (custo × saldo)</p>
+                     <p className="text-2xl font-black text-slate-800 mt-1">{fmtBRL(valorTotalEstoque)}</p>
+                     <p className="text-[10px] font-bold text-slate-400 mt-0.5">{itens.length} produtos cadastrados</p>
                   </div>
                   <div className="bg-white border border-slate-200 rounded-2xl p-4 text-center shadow-sm">
                      <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Reposição do mês</p>
                      <p className="text-2xl font-black text-emerald-700 mt-1">{fmtBRL(reposicaoMes)}</p>
-                     <p className="text-[10px] font-bold text-slate-400 mt-0.5">compras lançadas neste mês</p>
+                     <p className="text-[10px] font-bold text-slate-400 mt-0.5">entradas/compras neste mês</p>
                   </div>
                   <div className="bg-slate-900 rounded-2xl p-4 text-center shadow-sm">
-                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Estoque total do mês</p>
-                     <p className="text-2xl font-black text-white mt-1">{fmtBRL(valorEstoque + reposicaoMes)}</p>
-                     <p className="text-[10px] font-bold text-slate-500 mt-0.5">valor parado + reposição do mês</p>
+                     <p className="text-[10px] font-black uppercase tracking-widest text-amber-400">Abaixo do Mínimo</p>
+                     <p className="text-2xl font-black text-white mt-1">{abaixoDoMinimo.length} item(ns)</p>
+                     <p className="text-[10px] font-bold text-slate-400 mt-0.5">precisam de reposição rápida</p>
                   </div>
                </div>
             );
          })()}
-         <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-6 flex items-start gap-4">
-            <AlertCircle className="text-slate-600 flex-shrink-0 mt-0.5" />
-            <div>
-               <h3 className="font-bold text-amber-800">Atenção ao Saldo Base</h3>
-               <p className="text-emerald-700 text-sm mt-1">Para que a <strong>Produção do Dia</strong> funcione perfeitamente descontando insumos, certifique-se de que os ingredientes possuem saldo positivo aqui nesta tela.</p>
-            </div>
+
+         {/* ABAS DO ESTOQUE: ESTOQUE ATUAL vs HISTÓRICO DE MOVIMENTAÇÕES */}
+         <div className="flex gap-2 mb-6 border-b border-slate-200 pb-3">
+            <button
+              onClick={() => setAbaEstoque("atual")}
+              className={`flex items-center gap-2 px-5 py-3 rounded-xl font-black text-sm transition-all ${abaEstoque === "atual" ? "bg-slate-900 text-white shadow-md" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
+               <PackageSearch size={18} /> Estoque Atual ({itens.length})
+            </button>
+            <button
+              onClick={() => setAbaEstoque("historico")}
+              className={`flex items-center gap-2 px-5 py-3 rounded-xl font-black text-sm transition-all ${abaEstoque === "historico" ? "bg-slate-900 text-white shadow-md" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
+               <History size={18} /> Histórico de Entradas & Baixas ({movimentos.length})
+            </button>
          </div>
 
-         <div className="bg-white p-3 rounded-2xl border border-slate-200 mb-3 flex items-center gap-3 shadow-sm">
-            <Search size={20} className="text-slate-500 ml-2" />
-            <input type="text" placeholder="Buscar ingrediente ou produto..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-bold text-slate-700 p-2" />
-         </div>
+         {/* ABA 1: ESTOQUE ATUAL */}
+         {abaEstoque === "atual" && (
+           <>
+             <div className="bg-white p-3 rounded-2xl border border-slate-200 mb-3 flex items-center gap-3 shadow-sm">
+                <Search size={20} className="text-slate-500 ml-2" />
+                <input
+                  type="text"
+                  placeholder="Buscar produto por nome ou marca..."
+                  value={busca}
+                  onChange={e=>setBusca(e.target.value)}
+                  className="flex-1 outline-none font-bold text-slate-700 p-2"
+                />
+             </div>
 
-         {/* Ingredientes × produtos prontos */}
-         <div className="flex gap-1.5 mb-6 overflow-x-auto pb-1">
-            {["Todos", "Ingredientes", "Produtos prontos"].map(t => {
-               const n = t === "Todos" ? itens.length : itens.filter(i => t === "Produtos prontos" ? i.tipo === "produto" : i.tipo !== "produto").length;
-               return (
-                  <button key={t} onClick={() => setTipoFiltro(t)}
-                     className={`px-3.5 py-1.5 rounded-full text-[11px] font-black whitespace-nowrap transition-colors ${tipoFiltro === t ? "bg-slate-900 text-white" : "bg-white text-slate-500 border border-slate-200"}`}>
-                     {t} <span className={tipoFiltro === t ? "text-slate-400" : "text-slate-400"}>({n})</span>
-                  </button>
-               );
-            })}
-         </div>
+             <div className="flex gap-1.5 mb-6 overflow-x-auto pb-1">
+                {["Todos", "Ingredientes", "Produtos prontos"].map(t => {
+                   const n = t === "Todos" ? itens.length : itens.filter(i => t === "Produtos prontos" ? i.tipo === "produto" : i.tipo !== "produto").length;
+                   return (
+                      <button key={t} onClick={() => setTipoFiltro(t)}
+                         className={`px-3.5 py-1.5 rounded-full text-[11px] font-black whitespace-nowrap transition-colors ${tipoFiltro === t ? "bg-slate-900 text-white" : "bg-white text-slate-500 border border-slate-200"}`}>
+                         {t} <span className="text-slate-400">({n})</span>
+                      </button>
+                   );
+                })}
+             </div>
 
-         <div className="rounded-2xl overflow-x-auto shadow-md border border-slate-200">
-            {/* Header da tabela */}
-            <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 items-center min-w-[720px]">
-               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Ingrediente</span>
-               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-24">Custo/Un.</span>
-               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-20">Unid.</span>
-               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-32">Saldo Atual</span>
-               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-right w-48">Ação</span>
-            </div>
+             <div className="rounded-2xl overflow-x-auto shadow-md border border-slate-200">
+                <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 items-center min-w-[820px]">
+                   <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Produto & Marca</span>
+                   <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-28">Embalagem</span>
+                   <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-28">Custo/Un.</span>
+                   <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-36">Saldo Disponível</span>
+                   <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-right w-56">Movimentação</span>
+                </div>
 
-            {/* Linhas */}
-            <div className="bg-white divide-y divide-slate-100">
-               {loading && (
-                 <div className="p-12 text-center">
-                   <div className="w-8 h-8 border-4 border-slate-200 border-t-emerald-500 rounded-full animate-spin mx-auto mb-3" />
-                   <p className="text-slate-400 font-bold text-sm">Buscando saldos...</p>
-                 </div>
-               )}
-               {!loading && filtrados.map((ins, idx) => {
-                 const zerado = ins.quantidade_atual <= 0;
-                 const min = Number(ins.estoque_minimo) || 0;
-                 const max = Number(ins.estoque_maximo) || 0;
-                 // Com mínimo definido, o alerta segue o mínimo; sem, mantém o padrão (<5)
-                 const critico = !zerado && (min > 0 ? ins.quantidade_atual < min : ins.quantidade_atual < 5);
-                 // Acima do máximo definido: está sobrando estoque
-                 const acima = !zerado && !critico && max > 0 && ins.quantidade_atual > max;
-                 const dept = ins.departamento?.toLowerCase();
-                 const deptColor = dept === 'bar' ? 'bg-purple-100 text-purple-700' : 'bg-amber-100 text-amber-700';
-                 return (
-                   <div key={ins.insumo_id} className={`px-6 py-4 grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 items-center min-w-[720px] group transition-all duration-150 ${zerado ? 'bg-red-50/40 hover:bg-red-50' : 'hover:bg-emerald-50/40'}`}>
-                     {/* Nome + Dept */}
-                     <div className="flex items-center gap-3 min-w-0">
-                       <div className={`w-1 h-10 rounded-full shrink-0 ${zerado ? 'bg-red-400' : critico ? 'bg-amber-400' : acima ? 'bg-sky-400' : 'bg-emerald-400'}`} />
-                       <div className="min-w-0">
-                         <p className="font-bold text-slate-800 text-[15px] leading-tight truncate">{ins.nome}{ins.marca ? <span className="text-slate-400 font-medium"> · {ins.marca}</span> : null}</p>
-                         <span className={`inline-block text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mt-1 ${deptColor}`}>{ins.departamento}</span>
-                         {ins.tipo === "produto" && <span className="inline-block text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mt-1 ml-1 bg-sky-100 text-sky-700">Produto pronto</span>}
+                <div className="bg-white divide-y divide-slate-100">
+                   {loading && (
+                     <div className="p-12 text-center">
+                       <div className="w-8 h-8 border-4 border-slate-200 border-t-emerald-500 rounded-full animate-spin mx-auto mb-3" />
+                       <p className="text-slate-400 font-bold text-sm">Carregando estoque...</p>
+                     </div>
+                   )}
+                   {!loading && filtrados.map((ins) => {
+                     const conteudo = Number(ins.tamanho_embalagem) || 1;
+                     const saldoUnidades = (Number(ins.quantidade_atual) || 0) / conteudo;
+                     const zerado = saldoUnidades <= 0;
+                     
+                     const minUn = ins.estoque_minimo == null ? 0 : Number(ins.estoque_minimo) / conteudo;
+                     const maxUn = ins.estoque_maximo == null ? 0 : Number(ins.estoque_maximo) / conteudo;
+
+                     const critico = !zerado && (minUn > 0 ? saldoUnidades < minUn : saldoUnidades < 5);
+                     const acima = !zerado && !critico && maxUn > 0 && saldoUnidades > maxUn;
+                     const dept = ins.departamento?.toLowerCase();
+                     const deptColor = dept === 'bar' ? 'bg-purple-100 text-purple-700' : 'bg-amber-100 text-amber-700';
+
+                     return (
+                       <div key={ins.insumo_id} className={`px-6 py-4 grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 items-center min-w-[820px] group transition-all duration-150 ${zerado ? 'bg-red-50/40 hover:bg-red-50' : 'hover:bg-emerald-50/40'}`}>
+                         {/* Nome + Marca */}
+                         <div className="flex items-center gap-3 min-w-0">
+                           <div className={`w-1.5 h-12 rounded-full shrink-0 ${zerado ? 'bg-red-500' : critico ? 'bg-amber-500' : acima ? 'bg-sky-500' : 'bg-emerald-500'}`} />
+                           <div className="min-w-0">
+                             <p className="font-bold text-slate-800 text-[15px] leading-tight truncate">
+                               {ins.nome}
+                               {ins.marca ? <span className="text-slate-400 font-medium"> · {ins.marca}</span> : null}
+                             </p>
+                             <div className="flex items-center gap-1 mt-1">
+                               <span className={`inline-block text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${deptColor}`}>{ins.departamento}</span>
+                               {ins.tipo === "produto" && <span className="inline-block text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-sky-100 text-sky-700">Produto Pronto</span>}
+                             </div>
+                           </div>
+                         </div>
+
+                         {/* Embalagem */}
+                         <div className="w-28 flex flex-col items-center">
+                           <span className="font-black text-slate-700 text-xs uppercase bg-slate-100 px-2.5 py-1 rounded-lg">
+                             {conteudo > 1 ? `${conteudo} ${ins.unidade_medida}` : ins.unidade_medida}
+                           </span>
+                           <span className="text-[10px] text-slate-400 font-medium mt-0.5">conteúdo por un.</span>
+                         </div>
+
+                         {/* Custo */}
+                         <div className="w-28 flex flex-col items-center">
+                           <span className="font-bold text-slate-800 text-sm">{fmtBRL(ins.custo_unitario)}</span>
+                           <span className="text-[10px] text-slate-400 font-medium">por unidade</span>
+                         </div>
+
+                         {/* Saldo Atual */}
+                         <div className="w-36 flex flex-col items-center">
+                           <div className="flex items-baseline gap-1">
+                             <span className={`font-black text-2xl leading-none ${zerado ? 'text-red-500' : critico ? 'text-amber-500' : acima ? 'text-sky-600' : 'text-emerald-600'}`}>
+                               {saldoUnidades.toFixed(saldoUnidades % 1 === 0 ? 0 : 1)}
+                             </span>
+                             <span className="font-black text-xs text-slate-500">un.</span>
+                           </div>
+                           {conteudo > 1 && (
+                             <span className="text-[10px] font-bold text-slate-400 mt-0.5">
+                               ({(Number(ins.quantidade_atual) || 0).toLocaleString('pt-BR')} {ins.unidade_medida})
+                             </span>
+                           )}
+
+                           {zerado && <span className="text-[9px] font-black uppercase tracking-widest text-red-500 mt-1">Zerado</span>}
+                           {critico && <span className="text-[9px] font-black uppercase tracking-widest text-amber-600 mt-1">{minUn > 0 ? `Mín: ${minUn} un.` : "Crítico"}</span>}
+                           {acima && <span className="text-[9px] font-black uppercase tracking-widest text-sky-600 mt-1">Máx: {maxUn} un.</span>}
+                         </div>
+
+                         {/* Ações Rápidas */}
+                         <div className="w-56 flex items-center justify-end gap-1.5">
+                           <button
+                             onClick={() => abrirMovimentoModal(ins, "entrada")}
+                             className="flex items-center gap-1 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl transition-all shadow-sm active:scale-95"
+                             title="Dar entrada no estoque">
+                             <Plus size={13}/> Entrada
+                           </button>
+                           <button
+                             onClick={() => abrirMovimentoModal(ins, "saida")}
+                             className="flex items-center gap-1 px-3 py-2 bg-rose-500 hover:bg-rose-600 text-white font-black text-xs rounded-xl transition-all shadow-sm active:scale-95"
+                             title="Dar baixa / retirar do estoque">
+                             <PackageMinus size={13}/> Baixa
+                           </button>
+                           <button
+                             onClick={() => abrirAjuste(ins)}
+                             className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs rounded-xl transition-all"
+                             title="Ajuste manual de balanço e min/máx">
+                             <RefreshCw size={14}/>
+                           </button>
+                         </div>
                        </div>
+                     );
+                   })}
+                   {!loading && filtrados.length === 0 && (
+                     <div className="p-16 text-center">
+                       <PackageSearch size={40} className="text-slate-200 mx-auto mb-3" />
+                       <p className="text-slate-400 font-bold">Nenhum produto encontrado.</p>
                      </div>
-                     {/* Custo */}
-                     <div className="w-24 flex justify-center">
-                       <span className="font-bold text-slate-500 text-sm">{fmtBRL(ins.custo_unitario)}</span>
-                     </div>
-                     {/* Unidade */}
-                     <div className="w-20 flex justify-center">
-                       <span className="bg-slate-800 text-white px-3 py-1.5 rounded-lg font-black text-xs uppercase tracking-wider shadow-sm">{ins.unidade_medida}</span>
-                     </div>
-                     {/* Saldo */}
-                     <div className="w-32 flex flex-col items-center">
-                       <span className={`font-black text-2xl leading-none ${zerado ? 'text-red-500' : critico ? 'text-amber-500' : acima ? 'text-sky-600' : 'text-emerald-600'}`}>
-                         {Number(ins.quantidade_atual).toFixed(2)}
-                       </span>
-                       {zerado && <span className="text-[9px] font-black uppercase tracking-widest text-red-400 mt-1">Zerado</span>}
-                       {critico && <span className="text-[9px] font-black uppercase tracking-widest text-amber-500 mt-1">{min > 0 ? `Abaixo do mín (${min})` : "Crítico"}</span>}
-                       {acima && <span className="text-[9px] font-black uppercase tracking-widest text-sky-500 mt-1">Acima do máx ({max})</span>}
-                       {!zerado && !critico && !acima && <span className="text-[9px] font-black uppercase tracking-widest text-emerald-400 mt-1">Normal</span>}
-                     </div>
-                     {/* Ação */}
-                     <div className="w-48 flex items-center justify-end gap-2">
-                       <button onClick={() => abrirEntrada(ins)} className="flex items-center gap-1.5 px-3 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 font-bold text-xs rounded-xl transition-all shadow-sm active:scale-95">
-                         <Plus size={13}/> Entrada
-                       </button>
-                       <button onClick={() => abrirAjuste(ins)} className="flex items-center gap-1.5 px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl transition-all shadow-sm active:scale-95">
-                         <RefreshCw size={13}/> Ajustar
-                       </button>
-                     </div>
-                   </div>
-                 );
-               })}
-               {!loading && filtrados.length === 0 && (
-                 <div className="p-16 text-center">
-                   <PackageSearch size={40} className="text-slate-200 mx-auto mb-3" />
-                   <p className="text-slate-400 font-bold">Nenhum ingrediente cadastrado ainda.</p>
-                 </div>
-               )}
-            </div>
-         </div>
+                   )}
+                </div>
+             </div>
+           </>
+         )}
+
+         {/* ABA 2: HISTÓRICO DE MOVIMENTAÇÕES */}
+         {abaEstoque === "historico" && (
+           <div className="space-y-4">
+             <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <div className="flex items-center gap-2">
+                   <Filter size={18} className="text-slate-400" />
+                   <span className="text-xs font-black uppercase text-slate-500 tracking-widest">Filtrar Movimentos:</span>
+                </div>
+                <div className="flex gap-1.5">
+                   {[["todos", "Todos"], ["entrada", "🟢 Entradas"], ["saida", "🔴 Baixas / Saídas"]].map(([val, label]) => (
+                      <button key={val} onClick={() => setFiltroMovimento(val)}
+                         className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${filtroMovimento === val ? "bg-slate-900 text-white shadow-sm" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+                         {label}
+                      </button>
+                   ))}
+                </div>
+             </div>
+
+             <div className="rounded-2xl overflow-x-auto shadow-md border border-slate-200">
+                <div className="bg-slate-800 px-6 py-4 grid grid-cols-[auto_1fr_auto_auto_auto_auto] gap-4 items-center min-w-[850px]">
+                   <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 w-32">Data / Hora</span>
+                   <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Produto</span>
+                   <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-28">Tipo</span>
+                   <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-32">Qtd Unidades</span>
+                   <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-32">Saldo Anterior → Novo</span>
+                   <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-right w-44">Responsável / Motivo</span>
+                </div>
+
+                <div className="bg-white divide-y divide-slate-100">
+                   {movimentosFiltrados.length === 0 ? (
+                      <div className="p-12 text-center text-slate-400 font-bold">Nenhuma movimentação registrada no histórico.</div>
+                   ) : (
+                      movimentosFiltrados.map((mov) => {
+                        const eEntrada = mov.tipo === "entrada";
+                        const conteudo = Number(mov.conteudo_por_unidade) || 1;
+                        const qtdUn = Number(mov.quantidade_unidades) || 0;
+                        const saldoAntUn = (Number(mov.saldo_anterior) || 0) / conteudo;
+                        const saldoPostUn = (Number(mov.saldo_posterior) || 0) / conteudo;
+
+                        return (
+                          <div key={mov.id} className="px-6 py-3.5 grid grid-cols-[auto_1fr_auto_auto_auto_auto] gap-4 items-center min-w-[850px] hover:bg-slate-50">
+                             {/* Data */}
+                             <span className="text-xs font-bold text-slate-600 w-32">
+                               {fmtDataHora(mov.data_movimento || mov.created_at)}
+                             </span>
+
+                             {/* Produto */}
+                             <div>
+                                <p className="font-bold text-slate-800 text-sm">{mov.insumo?.nome || "Produto"}</p>
+                                {mov.insumo?.marca && <p className="text-[10px] text-slate-400 font-medium">{mov.insumo.marca}</p>}
+                             </div>
+
+                             {/* Tipo */}
+                             <div className="w-28 flex justify-center">
+                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1 ${eEntrada ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"}`}>
+                                   {eEntrada ? <TrendingUp size={12}/> : <TrendingDown size={12}/>}
+                                   {eEntrada ? "Entrada" : "Baixa"}
+                                </span>
+                             </div>
+
+                             {/* Qtd */}
+                             <div className="w-32 text-center">
+                                <span className={`font-black text-sm ${eEntrada ? "text-emerald-600" : "text-rose-600"}`}>
+                                   {eEntrada ? "+" : "-"}{qtdUn} un.
+                                </span>
+                                {conteudo > 1 && (
+                                   <p className="text-[10px] font-bold text-slate-400">({(qtdUn * conteudo).toLocaleString('pt-BR')} {mov.unidade_medida})</p>
+                                )}
+                             </div>
+
+                             {/* Saldo */}
+                             <div className="w-32 text-center">
+                                <span className="text-xs font-bold text-slate-500">
+                                   {saldoAntUn.toFixed(1)} un. → <b className="text-slate-800">{saldoPostUn.toFixed(1)} un.</b>
+                                </span>
+                             </div>
+
+                             {/* Responsável / Motivo */}
+                             <div className="w-44 text-right">
+                                <p className="text-xs font-bold text-slate-700 truncate">{mov.responsavel || "Sistema"}</p>
+                                <p className="text-[10px] text-slate-400 font-medium truncate">{mov.motivo || "—"}</p>
+                             </div>
+                          </div>
+                        );
+                      })
+                   )}
+                </div>
+             </div>
+           </div>
+         )}
       </div>
 
+      {/* MODAL DE ENTRADA OU BAIXA */}
+      {modalMovimento && itemAtual && (
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-[32px] w-full max-w-md p-6 sm:p-8 max-h-[calc(100dvh-1rem)] overflow-y-auto shadow-2xl animate-in zoom-in-95">
+               <div className="flex justify-between items-center mb-5">
+                  <h2 className="font-black text-2xl text-slate-800 flex items-center gap-2">
+                     {tipoMovimento === "entrada" ? (
+                       <span className="text-emerald-600 flex items-center gap-1.5"><TrendingUp size={24}/> Lançar Entrada</span>
+                     ) : (
+                       <span className="text-rose-600 flex items-center gap-1.5"><TrendingDown size={24}/> Lançar Baixa</span>
+                     )}
+                  </h2>
+                  <button onClick={() => setModalMovimento(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+               </div>
+
+               <div className="space-y-4">
+                  {/* Produto Selecionado */}
+                  <div className={`p-4 rounded-2xl border text-center ${tipoMovimento === "entrada" ? "bg-emerald-50 border-emerald-100" : "bg-rose-50 border-rose-100"}`}>
+                     <p className={`text-xs font-black uppercase tracking-widest mb-1 ${tipoMovimento === "entrada" ? "text-emerald-700" : "text-rose-700"}`}>{itemAtual.nome}</p>
+                     <p className="text-sm font-bold text-slate-700">
+                        Saldo Atual: <strong>{((Number(itemAtual.quantidade_atual) || 0) / (Number(itemAtual.tamanho_embalagem) || 1)).toFixed(1)} unidades</strong>
+                        {Number(itemAtual.tamanho_embalagem) > 1 && ` (${(Number(itemAtual.quantidade_atual) || 0).toLocaleString('pt-BR')} ${itemAtual.unidade_medida})`}
+                     </p>
+                  </div>
+
+                  {/* Quantidade em Unidades */}
+                  <div>
+                     <label className="text-xs font-bold text-slate-600 uppercase tracking-widest block mb-1.5">
+                        Quantas UNIDADES / EMBALAGENS {tipoMovimento === "entrada" ? "entraram?" : "saíram?"}
+                     </label>
+                     <div className="relative">
+                        <input 
+                           type="number" step="1" min="1" placeholder="Ex: 10" 
+                           value={qtdUnidades} onChange={e=>setQtdUnidades(e.target.value)} 
+                           className={`w-full p-4 text-2xl bg-white border-2 rounded-2xl font-black text-slate-800 outline-none ${tipoMovimento === "entrada" ? "focus:border-emerald-500 border-slate-200" : "focus:border-rose-500 border-slate-200"}`}
+                        />
+                        <span className="absolute right-5 top-1/2 -translate-y-1/2 font-black text-slate-500">un.</span>
+                     </div>
+
+                     {/* Explicação de conversão automática */}
+                     {Number(itemAtual.tamanho_embalagem) > 1 && Number(qtdUnidades) > 0 && (
+                        <div className="mt-2 p-3 bg-slate-100 rounded-xl text-xs font-bold text-slate-600 flex items-center justify-between">
+                           <span>1 unidade = {itemAtual.tamanho_embalagem} {itemAtual.unidade_medida}</span>
+                           <span className={tipoMovimento === "entrada" ? "text-emerald-700 font-black" : "text-rose-700 font-black"}>
+                              {tipoMovimento === "entrada" ? "+" : "-"}{(Number(qtdUnidades) * Number(itemAtual.tamanho_embalagem)).toLocaleString('pt-BR')} {itemAtual.unidade_medida}
+                           </span>
+                        </div>
+                     )}
+                  </div>
+
+                  {/* Se for saída, pede responsável obrigatório */}
+                  {tipoMovimento === "saida" && (
+                    <div>
+                       <label className="text-xs font-bold text-slate-600 uppercase tracking-widest block mb-1.5">
+                          Quem retirou? (Responsável) <span className="text-rose-500">*</span>
+                       </label>
+                       <input 
+                          type="text" placeholder="Ex: Bartender Ana, Garçom João..." 
+                          value={responsavelMov} onChange={e=>setResponsavelMov(e.target.value)}
+                          className="w-full p-3.5 bg-white border-2 border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-rose-500"
+                       />
+                    </div>
+                  )}
+
+                  {/* Se for entrada, valor pago opcional */}
+                  {tipoMovimento === "entrada" && (
+                    <div>
+                       <label className="text-xs font-bold text-slate-600 uppercase tracking-widest block mb-1.5">
+                          Valor total pago na compra R$ (Opcional)
+                       </label>
+                       <input 
+                          type="number" step="0.01" placeholder="Ex: 85.00" 
+                          value={valorPago} onChange={e=>setValorPago(e.target.value)}
+                          className="w-full p-3.5 bg-white border-2 border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500"
+                       />
+                       <p className="text-[10px] text-slate-400 font-medium mt-1">Lança a compra no financeiro do mês e atualiza o custo unitário.</p>
+                    </div>
+                  )}
+
+                  {/* Motivo */}
+                  <div>
+                     <label className="text-xs font-bold text-slate-600 uppercase tracking-widest block mb-1.5">Motivo / Observação</label>
+                     {tipoMovimento === "saida" ? (
+                       <select value={motivoMov} onChange={e=>setMotivoMov(e.target.value)} className="w-full p-3.5 bg-white border-2 border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-rose-500">
+                          <option value="Uso na operação (Bar)">Uso na Operação (Bar)</option>
+                          <option value="Consumo em Evento">Consumo em Evento</option>
+                          <option value="Quebra / Perda / Avaria">Quebra / Perda / Avaria</option>
+                          <option value="Validade Vencida">Validade Vencida</option>
+                          <option value="Ajuste de Balanço">Ajuste de Balanço</option>
+                       </select>
+                     ) : (
+                       <input 
+                          type="text" placeholder="Ex: Compra Distribuidora X" 
+                          value={motivoMov} onChange={e=>setMotivoMov(e.target.value)}
+                          className="w-full p-3.5 bg-white border-2 border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500"
+                       />
+                     )}
+                  </div>
+
+                  {/* Data e Horário */}
+                  <div>
+                     <label className="text-xs font-bold text-slate-600 uppercase tracking-widest block mb-1.5">Data e Horário</label>
+                     <input 
+                        type="datetime-local" value={dataMov} onChange={e=>setDataMov(e.target.value)}
+                        className="w-full p-3 bg-white border-2 border-slate-200 rounded-xl font-bold text-slate-700 text-sm outline-none"
+                     />
+                  </div>
+               </div>
+
+               <button
+                  onClick={handleSalvarMovimento}
+                  disabled={salvandoMov}
+                  className={`w-full mt-6 py-4 text-white font-black text-lg rounded-2xl transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2 ${tipoMovimento === "entrada" ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20" : "bg-rose-600 hover:bg-rose-700 shadow-rose-500/20"}`}>
+                  {salvandoMov ? <Loader2 size={20} className="animate-spin"/> : tipoMovimento === "entrada" ? <TrendingUp size={20}/> : <PackageMinus size={20}/>}
+                  {tipoMovimento === "entrada" ? "Somar ao Estoque" : "Confirmar Baixa de Estoque"}
+               </button>
+            </div>
+         </div>
+      )}
+
+      {/* MODAL DE AJUSTE DE BALANÇO MANUAL */}
       {modalAjuste && itemAtual && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-[32px] w-full max-w-sm p-5 sm:p-8 max-h-[calc(100dvh-1rem)] overflow-y-auto shadow-2xl animate-in zoom-in-95">
+            <div className="bg-white rounded-[32px] w-full max-w-sm p-6 sm:p-8 max-h-[calc(100dvh-1rem)] overflow-y-auto shadow-2xl animate-in zoom-in-95">
                <div className="flex justify-between items-center mb-6">
-                  <h2 className="font-black text-2xl text-slate-800">Ajuste de Saldo</h2>
+                  <h2 className="font-black text-2xl text-slate-800">Ajuste de Balanço</h2>
                   <button onClick={() => setModalAjuste(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
                </div>
 
                <div className="space-y-4">
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-center">
                      <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-1">{itemAtual.nome}</p>
-                     <p className="text-3xl font-black text-slate-800">{Number(itemAtual.quantidade_atual).toFixed(2)} <span className="text-lg text-slate-500">{itemAtual.unidade_medida}</span></p>
+                     <p className="text-3xl font-black text-slate-800">
+                       {((Number(itemAtual.quantidade_atual) || 0) / (Number(itemAtual.tamanho_embalagem) || 1)).toFixed(1)} <span className="text-lg text-slate-500">un.</span>
+                     </p>
                   </div>
 
                   <div>
-                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Novo Saldo Real (Balanço)</label>
+                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Novo Saldo Real em UNIDADES</label>
                      <div className="relative">
                         <input
-                           type="number" step="0.001" placeholder="0.00"
-                           value={novoSaldo} onChange={e=>setNovoSaldo(e.target.value)}
-                           className="w-full p-5 text-2xl bg-white border-2 border-slate-200 rounded-2xl font-black text-slate-800 outline-none focus:border-emerald-500"
+                           type="number" step="0.1" placeholder="Ex: 24"
+                           value={novoSaldoUnidades} onChange={e=>setNovoSaldoUnidades(e.target.value)}
+                           className="w-full p-4 text-2xl bg-white border-2 border-slate-200 rounded-2xl font-black text-slate-800 outline-none focus:border-emerald-500"
                         />
-                        <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-slate-500">{itemAtual.unidade_medida}</span>
+                        <span className="absolute right-5 top-1/2 -translate-y-1/2 font-black text-slate-500">un.</span>
                      </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                      <div>
-                        <label className="text-xs font-bold text-amber-600 uppercase tracking-widest block mb-2">Mínimo (avisa)</label>
-                        <div className="relative">
-                           <input
-                              type="number" step="0.001" min="0" placeholder="Ex: 5"
-                              value={minimoInput} onChange={e=>setMinimoInput(e.target.value)}
-                              className="w-full p-4 bg-amber-50 border-2 border-amber-200 rounded-2xl font-black text-amber-800 outline-none focus:border-amber-500"
-                           />
-                           <span className="absolute right-4 top-1/2 -translate-y-1/2 font-black text-amber-500 text-sm">{itemAtual.unidade_medida}</span>
-                        </div>
-                        <p className="text-[10px] text-slate-400 font-medium mt-1">Abaixo dele: alerta e entra na lista de Compras.</p>
+                        <label className="text-xs font-bold text-amber-600 uppercase tracking-widest block mb-2">Mínimo (un.)</label>
+                        <input
+                           type="number" step="1" min="0" placeholder="Ex: 5"
+                           value={minimoUnidades} onChange={e=>setMinimoUnidades(e.target.value)}
+                           className="w-full p-3 bg-amber-50 border-2 border-amber-200 rounded-xl font-black text-amber-800 outline-none focus:border-amber-500"
+                        />
                      </div>
                      <div>
-                        <label className="text-xs font-bold text-sky-600 uppercase tracking-widest block mb-2">Máximo (opcional)</label>
-                        <div className="relative">
-                           <input
-                              type="number" step="0.001" min="0" placeholder="Ex: 50"
-                              value={maximoInput} onChange={e=>setMaximoInput(e.target.value)}
-                              className="w-full p-4 bg-sky-50 border-2 border-sky-200 rounded-2xl font-black text-sky-800 outline-none focus:border-sky-500"
-                           />
-                           <span className="absolute right-4 top-1/2 -translate-y-1/2 font-black text-sky-500 text-sm">{itemAtual.unidade_medida}</span>
-                        </div>
-                        <p className="text-[10px] text-slate-400 font-medium mt-1">Acima dele: avisa que está sobrando.</p>
+                        <label className="text-xs font-bold text-sky-600 uppercase tracking-widest block mb-2">Máximo (un.)</label>
+                        <input
+                           type="number" step="1" min="0" placeholder="Ex: 50"
+                           value={maximoUnidades} onChange={e=>setMaximoUnidades(e.target.value)}
+                           className="w-full p-3 bg-sky-50 border-2 border-sky-200 rounded-xl font-black text-sky-800 outline-none focus:border-sky-500"
+                        />
                      </div>
                   </div>
                </div>
 
-               <button onClick={handleSalvarAjuste} className="w-full mt-8 py-5 bg-slate-800 hover:bg-slate-900 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-slate-500/20 active:scale-95 flex items-center justify-center gap-2">
+               <button onClick={handleSalvarAjuste} className="w-full mt-6 py-4 bg-slate-800 hover:bg-slate-900 text-white font-black text-lg rounded-2xl transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2">
                   <RefreshCw size={20}/> Sobrescrever Saldo
                </button>
             </div>
          </div>
       )}
 
-      {modalEntrada && itemAtual && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-[32px] w-full max-w-sm p-5 sm:p-8 max-h-[calc(100dvh-1rem)] overflow-y-auto shadow-2xl animate-in zoom-in-95">
-               <div className="flex justify-between items-center mb-6">
-                  <h2 className="font-black text-2xl text-slate-800">Lançar Entrada</h2>
-                  <button onClick={() => setModalEntrada(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
-               </div>
-
-               <div className="space-y-4">
-                  <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 text-center">
-                     <p className="text-sm font-bold text-emerald-600 uppercase tracking-widest mb-1">{itemAtual.nome}</p>
-                     <p className="text-sm font-medium text-emerald-700">Saldo Atual: {Number(itemAtual.quantidade_atual).toFixed(2)} {itemAtual.unidade_medida}</p>
-                  </div>
-
-                  <div>
-                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Quantas {itemAtual.unidade_medida}s foram compradas?</label>
-                     <div className="relative">
-                        <input 
-                           type="number" step="0.001" placeholder="Ex: 10" 
-                           value={qtdEntrada} onChange={e=>setQtdEntrada(e.target.value)} 
-                           className="w-full p-5 text-2xl bg-white border-2 border-slate-200 rounded-2xl font-black text-slate-800 outline-none focus:border-emerald-500"
-                        />
-                        <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-slate-500">{itemAtual.unidade_medida}</span>
-                     </div>
-                  </div>
-               </div>
-
-               <button onClick={handleSalvarEntrada} className="w-full mt-8 py-5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-500/20 active:scale-95 flex items-center justify-center gap-2">
-                  <TrendingUp size={20}/> Somar ao Estoque
-               </button>
-            </div>
-         </div>
-      )}
-
-      {/* CONTAGEM DE ESTOQUE POR IA (foto da planilha preenchida ou voz) */}
+      {/* CONTAGEM DE ESTOQUE POR IA */}
       {modalContagem && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
             <div className="bg-white rounded-[32px] w-full max-w-2xl p-5 sm:p-8 max-h-[calc(100dvh-1rem)] overflow-y-auto shadow-2xl animate-in zoom-in-95">
                <div className="flex justify-between items-center mb-4">
-                  <h2 className="font-black text-2xl text-slate-800">Contagem de Estoque</h2>
+                  <h2 className="font-black text-2xl text-slate-800">Contagem de Estoque por IA</h2>
                   <button onClick={() => { setModalContagem(false); setContagemItens(null); try { reconhecimentoRef.current?.stop(); } catch {} }} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
                </div>
 
@@ -696,22 +1015,22 @@ function EstoqueRunner() {
                         <button onClick={imprimirPlanilha} className="p-4 rounded-2xl border-2 border-slate-200 text-left hover:border-slate-400 transition-colors">
                            <Printer size={22} className="text-slate-600 mb-2" />
                            <p className="font-black text-slate-800 text-sm">1. Imprimir planilha</p>
-                           <p className="text-xs font-medium text-slate-400 mt-0.5">Sai com todos os itens e a coluna "Contagem física" em branco para preencher à mão.</p>
+                           <p className="text-xs font-medium text-slate-400 mt-0.5">Com coluna "Contagem física" em branco.</p>
                         </button>
                         <button onClick={() => inputContagemRef.current?.click()} className="p-4 rounded-2xl border-2 border-emerald-200 bg-emerald-50/40 text-left hover:border-emerald-400 transition-colors">
                            <Camera size={22} className="text-emerald-600 mb-2" />
                            <p className="font-black text-slate-800 text-sm">2. Fotografar planilha preenchida</p>
-                           <p className="text-xs font-medium text-slate-400 mt-0.5">A IA lê a coluna preenchida e atualiza os saldos sozinha.</p>
+                           <p className="text-xs font-medium text-slate-400 mt-0.5">A IA lê os números e atualiza os saldos.</p>
                         </button>
                      </div>
                      <div className="p-4 rounded-2xl border-2 border-slate-200">
                         <p className="font-black text-slate-800 text-sm mb-1">Ou conte por voz</p>
-                        <p className="text-xs font-medium text-slate-400 mb-3">Aperte o microfone e fale: "banana cinco, tomate dois e meio, leite condensado doze". Confira o texto e mande interpretar.</p>
+                        <p className="text-xs font-medium text-slate-400 mb-3">Fale: "heineken vinte quatro, agua dez, absolut duas".</p>
                         <div className="flex gap-2">
                            <button onClick={alternarGravacao} className={`px-4 py-3 rounded-xl font-black text-sm flex items-center gap-2 transition-colors ${gravando ? "bg-red-600 text-white animate-pulse" : "bg-slate-900 text-white"}`}>
                               {gravando ? "Parar" : "Falar"}
                            </button>
-                           <textarea value={ditado} onChange={e => setDitado(e.target.value)} rows={2} placeholder="O que você falar aparece aqui (dá para corrigir antes de enviar)"
+                           <textarea value={ditado} onChange={e => setDitado(e.target.value)} rows={2} placeholder="Sua fala aparece aqui..."
                               className="flex-1 border-2 border-slate-200 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 resize-none" />
                         </div>
                         <button onClick={interpretarDitado} disabled={!ditado.trim()} className="w-full mt-3 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm disabled:opacity-50">
@@ -721,7 +1040,7 @@ function EstoqueRunner() {
                   </div>
                ) : (
                   <>
-                     <p className="text-xs font-bold text-slate-500 mb-3">Confira antes de aplicar — o saldo será <span className="text-red-600">sobrescrito</span> pelo valor contado:</p>
+                     <p className="text-xs font-bold text-slate-500 mb-3">Confira o resultado da contagem física em unidades:</p>
                      <div className="space-y-2 max-h-[46vh] overflow-y-auto pr-1">
                         {contagemItens.map((c, idx) => (
                            <div key={idx} className={`p-3 rounded-xl border ${c.insumo ? "border-slate-200 bg-slate-50" : "border-red-200 bg-red-50/50"}`}>
@@ -729,11 +1048,11 @@ function EstoqueRunner() {
                                  <div className="min-w-0">
                                     <p className="font-bold text-slate-800 text-sm truncate">{c.insumo ? c.insumo.nome : c.nome}</p>
                                     {c.insumo
-                                       ? <p className="text-[10px] font-bold text-slate-400">saldo atual {Number(c.insumo.quantidade_atual).toFixed(2)} {c.insumo.unidade_medida} → vira {Number(c.quantidade) || 0}</p>
-                                       : <p className="text-[10px] font-black text-red-600">"{c.nome}" não encontrado no estoque — será ignorado</p>}
+                                       ? <p className="text-[10px] font-bold text-slate-400">virará {Number(c.quantidade) || 0} unidades</p>
+                                       : <p className="text-[10px] font-black text-red-600">"{c.nome}" não encontrado</p>}
                                  </div>
                                  <div className="flex items-center gap-1.5 shrink-0">
-                                    <input type="number" step="0.001" value={c.quantidade}
+                                    <input type="number" step="1" value={c.quantidade}
                                        onChange={e => setContagemItens(p => p.map((x, i) => i === idx ? { ...x, quantidade: e.target.value } : x))}
                                        className="w-24 bg-white border-2 border-slate-200 rounded-lg px-2.5 py-2 text-sm font-black text-slate-800 text-center outline-none focus:border-emerald-500" />
                                     <button onClick={() => setContagemItens(p => p.filter((_, i) => i !== idx))} className="w-8 h-8 rounded-lg bg-white border border-slate-200 text-red-500 flex items-center justify-center"><X size={14}/></button>
@@ -759,7 +1078,7 @@ function EstoqueRunner() {
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
             <div className="bg-white rounded-[32px] w-full max-w-2xl p-5 sm:p-8 max-h-[calc(100dvh-1rem)] overflow-y-auto shadow-2xl animate-in zoom-in-95">
                <div className="flex justify-between items-center mb-4">
-                  <h2 className="font-black text-2xl text-slate-800">Importar Lista de Produtos</h2>
+                  <h2 className="font-black text-2xl text-slate-800">Importar Lista por Foto (IA)</h2>
                   <button onClick={() => { setModalLista(false); setListaItens(null); }} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
                </div>
 
@@ -770,20 +1089,20 @@ function EstoqueRunner() {
                      {listaLendo ? (
                         <>
                            <Loader2 size={40} className="animate-spin text-emerald-600" />
-                           <p className="font-bold text-slate-600">A IA está lendo a lista (nome, marca e quantidade)...</p>
+                           <p className="font-bold text-slate-600">A IA está lendo a lista...</p>
                         </>
                      ) : (
                         <>
                            <Camera size={40} className="text-emerald-600" />
-                           <p className="font-bold text-slate-700 text-center">Tire uma foto da lista ou planilha de produtos<br/><span className="text-sm font-medium text-slate-400">A IA lê nome, marca e quantidade — você só completa validade e preço de compra</span></p>
-                           <button onClick={() => inputListaRef.current?.click()} className="px-6 py-3 rounded-xl bg-emerald-600 text-white font-bold flex items-center gap-2"><Camera size={16}/> Abrir câmera / galeria</button>
-                           <button onClick={imprimirPlanilhaLista} className="text-xs font-bold text-slate-500 flex items-center gap-1.5"><Printer size={13}/> Imprimir planilha em branco para preencher à mão</button>
+                           <p className="font-bold text-slate-700 text-center">Tire foto de uma lista ou nota fiscal de produtos<br/><span className="text-sm font-medium text-slate-400">O sistema dá entrada automática em cada item</span></p>
+                           <button onClick={() => inputListaRef.current?.click()} className="px-6 py-3 rounded-xl bg-emerald-600 text-white font-bold flex items-center gap-2"><Camera size={16}/> Abrir câmera / foto</button>
+                           <button onClick={imprimirPlanilhaLista} className="text-xs font-bold text-slate-500 flex items-center gap-1.5"><Printer size={13}/> Imprimir planilha em branco</button>
                         </>
                      )}
                   </div>
                ) : (
                   <>
-                     <p className="text-xs font-bold text-slate-500 mb-3">{listaItens.length} item(ns) lidos. Confira e complete a <span className="text-amber-600">validade</span> e o <span className="text-emerald-600">preço de compra</span> (opcionais):</p>
+                     <p className="text-xs font-bold text-slate-500 mb-3">{listaItens.length} item(ns) lidos. Confira as quantidades em unidades:</p>
                      <div className="space-y-2 max-h-[46vh] overflow-y-auto pr-1">
                         {listaItens.map((it, idx) => (
                            <div key={idx} className="p-3 rounded-xl border border-slate-200 bg-slate-50">
@@ -797,13 +1116,13 @@ function EstoqueRunner() {
                                     className="bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-600 outline-none" placeholder="Marca" />
                                  <div className="flex items-center gap-1">
                                     <input type="number" value={it.quantidade} onChange={e => setListaItens(p => p.map((x, i) => i === idx ? { ...x, quantidade: e.target.value } : x))}
-                                       className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-black text-slate-800 outline-none" placeholder="Qtd" />
-                                    <span className="text-[10px] font-black text-slate-400">{it.unidade}</span>
+                                       className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-black text-slate-800 outline-none" placeholder="Qtd un." />
+                                    <span className="text-[10px] font-black text-slate-400">un.</span>
                                  </div>
                                  <input type="date" value={it.validade} onChange={e => setListaItens(p => p.map((x, i) => i === idx ? { ...x, validade: e.target.value } : x))}
                                     className="bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5 text-xs font-bold text-amber-800 outline-none" title="Validade" />
                                  <input type="number" step="0.01" value={it.preco} onChange={e => setListaItens(p => p.map((x, i) => i === idx ? { ...x, preco: e.target.value } : x))}
-                                    className="bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-emerald-800 outline-none" placeholder="Preço R$ (total)" />
+                                    className="bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-emerald-800 outline-none" placeholder="Preço R$ total" />
                               </div>
                            </div>
                         ))}
@@ -814,7 +1133,6 @@ function EstoqueRunner() {
                            {listaSalvando ? <Loader2 size={18} className="animate-spin"/> : <CheckCircle2 size={18}/>} Dar entrada no estoque
                         </button>
                      </div>
-                     <p className="text-[10px] font-medium text-slate-400 mt-3">Itens com validade entram no Controle de Validade e no aviso de "sai primeiro". Itens com preço entram como compra na reposição do mês.</p>
                   </>
                )}
             </div>

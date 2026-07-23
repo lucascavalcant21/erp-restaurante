@@ -93,8 +93,8 @@ export function fotoCopoReal(texto) {
 
 // Imagem do copo para os cards impressos: a FOTO real se o usuário tirou uma;
 // senão, o desenho em SVG.
-export function imagemCopoHTML(texto, { altura = 58 } = {}) {
-  const url = fotoCopoReal(texto);
+export function imagemCopoHTML(texto, { altura = 58, fotoUrl = null, usarFotoGlobal = true } = {}) {
+  const url = fotoUrl || (usarFotoGlobal ? fotoCopoReal(texto) : null);
   if (url) {
     const seguro = String(url).replace(/"/g, "&quot;");
     const larg = Math.round(altura * 0.78);

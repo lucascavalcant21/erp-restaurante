@@ -33,6 +33,20 @@ const CATEGORIAS_PRODUTO_PRONTO_BAR = [
   "Espumantes", "Destilados", "Sucos prontos", "Outros produtos prontos",
 ];
 
+const CATEGORIAS_PREPARO_BAR = [
+  "Xaropes", "Espumas", "Geleias", "Mixes e infusões", "Outros pré-preparos",
+];
+
+function categoriaPreparoBar(ficha) {
+  if (CATEGORIAS_PREPARO_BAR.includes(ficha?.categoria)) return ficha.categoria;
+  const texto = normalizarNome(`${ficha?.categoria || ""} ${ficha?.nome_receita || ""}`);
+  if (texto.includes("xarope")) return "Xaropes";
+  if (texto.includes("espuma")) return "Espumas";
+  if (texto.includes("geleia")) return "Geleias";
+  if (texto.includes("mix") || texto.includes("infus")) return "Mixes e infusões";
+  return "Outros pré-preparos";
+}
+
 // Converte um File de imagem em base64 puro (sem o prefixo "data:...;base64,")
 // Comprime a foto antes de enviar: celulares tiram fotos de 5-10MB, que estouram
 // o limite de ~4,5MB da Vercel e faziam a IA "sempre dar erro". Reduz para no
@@ -518,6 +532,7 @@ function FichasRunner() {
     if (tipoFiltro === "Receitas base") return !!f.eh_base && f.tipo_base === "receita";
     if (tipoFiltro === "Produtos prontos") return !f.eh_base && f.tipo_base === "produto_pronto";
     if (tipoFiltro === "Pratos") return !f.eh_base && f.tipo_base !== "produto_pronto";
+    if (CATEGORIAS_PREPARO_BAR.includes(tipoFiltro)) return !!f.eh_base && f.tipo_base !== "receita" && categoriaPreparoBar(f) === tipoFiltro;
     return !f.eh_base && (f.categoria || "") === tipoFiltro; // categoria específica
   };
   const filtradas = fichas
@@ -555,7 +570,7 @@ function FichasRunner() {
        id: ficha.id,
        departamento: ficha.departamento,
        nome_receita: ficha.nome_receita,
-       categoria: ficha.categoria || "",
+       categoria: ficha.departamento === "bar" && ficha.eh_base && ficha.tipo_base !== "receita" ? categoriaPreparoBar(ficha) : (ficha.categoria || ""),
        rendimento_porcoes: ficha.rendimento_porcoes,
        modo_preparo: ficha.modo_preparo || "",
        eh_base: !!ficha.eh_base,
@@ -738,7 +753,7 @@ function FichasRunner() {
           unidade_id: unidadeAtiva,
           departamento: form.departamento,
           nome_receita: form.nome_receita,
-          categoria: form.eh_base ? null : (form.categoria || null),
+          categoria: form.eh_base && form.departamento !== "bar" ? null : (form.categoria || null),
           rendimento_porcoes: Number(form.rendimento_porcoes),
           modo_preparo: form.modo_preparo,
           eh_base: !!form.eh_base,
@@ -950,13 +965,17 @@ function FichasRunner() {
     `;
 
     // ── LIVRO DE RECEITAS: seções, capa, índice e páginas numeradas ──────────
-    // Seções do livro (nesta ordem). Tudo que não é pré-preparo, molho/geleia,
-    // sobremesa ou suco entra em "Preparos" (pratos e receitas base).
-    const ORDEM_SECOES = ['Pré-preparos', 'Preparos', 'Sobremesas', 'Sucos', 'Molhos e Geleias'];
+    // Seções do livro (nesta ordem). No Bar, xaropes, espumas e geleias ganham
+    // capítulos próprios para facilitar a produção e a consulta da equipe.
+    const ORDEM_SECOES = ['Xaropes', 'Espumas', 'Geleias', 'Mixes e Infusões', 'Pré-preparos', 'Preparos', 'Sobremesas', 'Sucos', 'Molhos'];
     const secaoDe = (f) => {
       const nome = String(f.nome_receita || '').toLowerCase();
       const cat = String(f.categoria || '').toLowerCase();
-      if (nome.includes('molho') || cat.includes('molho') || nome.includes('geleia') || nome.includes('geléia') || cat.includes('geleia')) return 'Molhos e Geleias';
+      if (nome.includes('xarope') || cat.includes('xarope')) return 'Xaropes';
+      if (nome.includes('espuma') || cat.includes('espuma')) return 'Espumas';
+      if (nome.includes('geleia') || nome.includes('geléia') || cat.includes('geleia')) return 'Geleias';
+      if (cat.includes('mix') || cat.includes('infus') || nome.includes('infusão') || nome.includes('infusao')) return 'Mixes e Infusões';
+      if (nome.includes('molho') || cat.includes('molho')) return 'Molhos';
       if (f.eh_base && f.tipo_base !== 'receita') return 'Pré-preparos';
       if (cat === 'sobremesas') return 'Sobremesas';
       if (cat === 'sucos') return 'Sucos';
@@ -1372,6 +1391,7 @@ function FichasRunner() {
             {[
               ["Pratos", deptUrl === "bar" ? "Drinks" : "Pratos", fichas.filter(f => !f.eh_base && f.tipo_base !== "produto_pronto").length],
               ...(deptUrl === "bar" ? [["Produtos prontos", "Produtos prontos", fichas.filter(f => !f.eh_base && f.tipo_base === "produto_pronto").length]] : []),
+              ...(deptUrl === "bar" ? CATEGORIAS_PREPARO_BAR.map(c => [c, c, fichas.filter(f => !!f.eh_base && f.tipo_base !== "receita" && categoriaPreparoBar(f) === c).length]) : []),
               ...(deptUrl === "bar" ? [] : CATEGORIAS_CARDAPIO.map(c => [c, c, fichas.filter(f => !f.eh_base && (f.categoria || "") === c).length])),
               ["Pré-preparos", "Pré-preparos", fichas.filter(f => !!f.eh_base && f.tipo_base !== "receita").length],
               ["Receitas base", "Receitas base", fichas.filter(f => !!f.eh_base && f.tipo_base === "receita").length],
@@ -1560,7 +1580,7 @@ function FichasRunner() {
                      </div>
                      {/* Tipo da ficha: PRATO/DRINK (cardápio), PRÉ-PREPARO ou RECEITA BASE */}
                      <div className={`grid gap-2 ${deptUrl === "bar" ? "grid-cols-2" : "grid-cols-3"}`}>
-                        <button type="button" onClick={() => setForm({ ...form, eh_base: false, produto_pronto: false, tipo_base: null })}
+                        <button type="button" onClick={() => setForm({ ...form, eh_base: false, produto_pronto: false, tipo_base: null, categoria: "" })}
                            className={`min-h-[92px] py-3 px-2 rounded-xl font-black text-xs uppercase tracking-widest transition-all border-2 ${!form.eh_base && !form.produto_pronto ? "bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-600/20" : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"}`}>
                            {deptUrl === "bar" ? "Drink" : "Prato"}
                            <span className="block text-[9px] font-bold normal-case tracking-normal mt-0.5 opacity-80">vai pro cardápio</span>
@@ -1572,18 +1592,18 @@ function FichasRunner() {
                             <span className="block text-[9px] font-bold normal-case tracking-normal mt-0.5 opacity-80">garrafa, lata, água, cerveja</span>
                           </button>
                         )}
-                        <button type="button" onClick={() => setForm({ ...form, eh_base: true, produto_pronto: false, tipo_base: "pre" })}
+                        <button type="button" onClick={() => setForm({ ...form, eh_base: true, produto_pronto: false, tipo_base: "pre", categoria: deptUrl === "bar" ? (CATEGORIAS_PREPARO_BAR.includes(form.categoria) ? form.categoria : "Xaropes") : "" })}
                            className={`min-h-[92px] py-3 px-2 rounded-xl font-black text-xs uppercase tracking-widest transition-all border-2 ${form.eh_base && form.tipo_base !== "receita" ? "bg-purple-600 border-purple-600 text-white shadow-lg shadow-purple-600/20" : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"}`}>
                            Pré-preparo
                            <span className="block text-[9px] font-bold normal-case tracking-normal mt-0.5 opacity-80">{deptUrl === "bar" ? "xarope, mix, infusão" : "molho, massa, caldo"}</span>
                         </button>
-                        <button type="button" onClick={() => setForm({ ...form, eh_base: true, produto_pronto: false, tipo_base: "receita" })}
+                        <button type="button" onClick={() => setForm({ ...form, eh_base: true, produto_pronto: false, tipo_base: "receita", categoria: "" })}
                            className={`min-h-[92px] py-3 px-2 rounded-xl font-black text-xs uppercase tracking-widest transition-all border-2 ${form.eh_base && form.tipo_base === "receita" ? "bg-sky-600 border-sky-600 text-white shadow-lg shadow-sky-600/20" : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"}`}>
                            Receita base
                            <span className="block text-[9px] font-bold normal-case tracking-normal mt-0.5 opacity-80">arroz, feijão, farofa — produção do dia</span>
                         </button>
                      </div>
-                     {form.produto_pronto && (
+                      {form.produto_pronto && (
                         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
                            <label className="text-xs font-bold text-amber-800 uppercase tracking-widest">Tipo de produto pronto</label>
                            <select value={form.categoria || ""} onChange={e => setForm({ ...form, categoria: e.target.value })} className="w-full p-4 mt-2 bg-white border border-amber-200 rounded-xl font-bold text-slate-700 outline-none focus:border-amber-500 shadow-sm">
@@ -1591,7 +1611,16 @@ function FichasRunner() {
                            </select>
                            <p className="mt-2 text-[11px] font-medium text-amber-700">Produto vendido como vem do fornecedor. Não exige ingredientes, receita ou guia de montagem.</p>
                         </div>
-                     )}
+                      )}
+                      {deptUrl === "bar" && form.eh_base && form.tipo_base !== "receita" && (
+                         <div className="rounded-2xl border border-purple-200 bg-purple-50 p-4">
+                            <label className="text-xs font-bold text-purple-800 uppercase tracking-widest">Tipo de preparo do Bar</label>
+                            <select value={form.categoria || "Xaropes"} onChange={e => setForm({ ...form, categoria: e.target.value })} className="w-full p-4 mt-2 bg-white border border-purple-200 rounded-xl font-bold text-slate-700 outline-none focus:border-purple-500 shadow-sm">
+                               {CATEGORIAS_PREPARO_BAR.map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                            <p className="mt-2 text-[11px] font-medium text-purple-700">Este preparo poderá ser usado como componente de vários drinks e aparecerá na seção correta do Livro de Receitas.</p>
+                         </div>
+                      )}
                      {/* Categoria do cardápio (só para pratos, não para bases) */}
                      {!form.eh_base && deptUrl !== "bar" && (
                         <div>

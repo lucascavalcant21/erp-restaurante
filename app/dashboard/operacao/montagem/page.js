@@ -13,9 +13,9 @@ import {
   uploadFotoMontagem,
 } from "../../../lib/montagem";
 import { fetchProdutos } from "../../../lib/vendas";
-import { fetchModeloMontagem, salvarModeloMontagem, fetchFotosCopos, salvarFotoCopo } from "../../../lib/parametros";
+import { fetchModeloMontagem, salvarModeloMontagem } from "../../../lib/parametros";
 import { logoSeldeestrelaSVG } from "../../../lib/marca";
-import { CATALOGO_COPOS, desenhoCopoSVG, ilustracaoDrinkSVG, identificarCopo, definirFotosCopos, fotoCopoReal, imagemCopoHTML } from "../../../lib/copos";
+import { CATALOGO_COPOS, desenhoCopoSVG, ilustracaoDrinkSVG, identificarCopo, imagemCopoHTML } from "../../../lib/copos";
 import { baixarPdfDeHtml } from "../../../lib/pdf";
 import RecipeWorkspace from "../../../components/RecipeWorkspace";
 
@@ -585,11 +585,13 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
   // copo/taça, ingredientes com dosagem e o modo de preparo.
   const [receitaIA, setReceitaIA] = useState(""); // receita colada para a IA montar tudo
   const camadasAtuais = Array.isArray(f.estrutura_ia) ? f.estrutura_ia : [];
-  const copoAtual = camadasAtuais.find((c) => c.tipo === "copo")?.nome || "";
+  const copoCamada = camadasAtuais.find((c) => c.tipo === "copo");
+  const copoAtual = copoCamada?.nome || "";
+  const fotoCopoAtual = copoCamada?.foto_url || "";
   const ingredientesTexto = camadasAtuais.filter((c) => c.tipo !== "copo").map((c) => c.nome).join("\n");
   const setCopo = (valor) => {
     const outras = camadasAtuais.filter((c) => c.tipo !== "copo");
-    const nova = valor.trim() ? [{ tipo: "copo", nome: valor }, ...outras] : outras;
+    const nova = valor.trim() ? [{ ...copoCamada, tipo: "copo", nome: valor }, ...outras] : outras;
     set("estrutura_ia", nova.length ? nova : null);
   };
   const setIngredientesTexto = (txt) => {
@@ -598,13 +600,19 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
     const nova = copo ? [copo, ...linhas] : linhas;
     set("estrutura_ia", nova.length ? nova : null);
   };
+  const aplicarCamadasGeradas = (camadas) => {
+    const novas = (camadas || []).map((camada) =>
+      camada.tipo === "copo" && fotoCopoAtual ? { ...camada, foto_url: fotoCopoAtual } : camada
+    );
+    set("estrutura_ia", novas.length ? novas : null);
+  };
 
   // Alimenta a prévia ao lado (a ficha como vai sair impressa).
   // COM PAUSA: atualizar a cada tecla recarregava o iframe da prévia sem parar
-  // e ele ficava em branco enquanto se digita. Espera 500ms de pausa.
+  // e ele ficava em branco enquanto se digita. Usa uma pausa bem curta.
   useEffect(() => {
     if (!onPreview) return;
-    const t = setTimeout(() => onPreview(f), 500);
+    const t = setTimeout(() => onPreview({ ...f }), 160);
     return () => clearTimeout(t);
   }, [f]);
 
@@ -618,11 +626,8 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
     set("foto_url", url);
   }
 
-  // Foto REAL do copo (tirada pelo usuário): vale para a unidade toda — todos
-  // os drinks que usam este copo passam a mostrar a foto no lugar do desenho.
-  const { unidadeAtiva: unidadeFotoCopo } = useERP();
+  // Foto do copo desta ficha: não altera a foto principal nem outros drinks.
   const inputFotoCopoRef = useRef(null);
-  const [, setFotoCopoVersao] = useState(0);
   async function escolherFotoCopo(e) {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -632,18 +637,15 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
     try {
       const { url, error } = await uploadFotoMontagem(file, `copo_${idCopo}`);
       if (error || !url) { setErro("Erro ao enviar a foto do copo: " + (error || "sem URL")); return; }
-      const { data, error: e2 } = await salvarFotoCopo(unidadeFotoCopo, idCopo, url);
-      if (e2) { setErro("Erro ao salvar a foto do copo: " + e2); return; }
-      definirFotosCopos(data);
-      setFotoCopoVersao((v) => v + 1);
+      const outras = camadasAtuais.filter((c) => c.tipo !== "copo");
+      const copo = { ...copoCamada, tipo: "copo", nome: copoAtual || identificarCopo("copo").nome, foto_url: url };
+      set("estrutura_ia", [copo, ...outras]);
     } finally { setUploadando(false); }
   }
-  async function removerFotoCopo() {
-    const idCopo = identificarCopo(copoAtual || "copo").id;
-    const { data, error } = await salvarFotoCopo(unidadeFotoCopo, idCopo, null);
-    if (error) { setErro("Erro ao remover: " + error); return; }
-    definirFotosCopos(data);
-    setFotoCopoVersao((v) => v + 1);
+  function removerFotoCopo() {
+    const outras = camadasAtuais.filter((c) => c.tipo !== "copo");
+    const copo = copoAtual ? [{ ...copoCamada, tipo: "copo", nome: copoAtual, foto_url: null }] : [];
+    set("estrutura_ia", [...copo, ...outras]);
   }
 
   async function invocarIA() {
@@ -664,7 +666,7 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Erro na IA");
 
-      if (Array.isArray(json.camadas) && json.camadas.length) set("estrutura_ia", json.camadas);
+      if (Array.isArray(json.camadas) && json.camadas.length) aplicarCamadasGeradas(json.camadas);
       // Preenche o passo a passo profissional gerado (substitui a descrição curta)
       if (json.modo_preparo) set("descritivo", json.modo_preparo);
     } catch (e) {
@@ -687,7 +689,7 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Erro na IA");
-      if (Array.isArray(json.camadas) && json.camadas.length) set("estrutura_ia", json.camadas);
+      if (Array.isArray(json.camadas) && json.camadas.length) aplicarCamadasGeradas(json.camadas);
       if (json.modo_preparo) set("descritivo", json.modo_preparo);
       setReceitaIA("");
     } catch (e) {
@@ -756,10 +758,13 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
       {f.tipo === "drink" ? (
         <div className="space-y-4">
           {/* MONTAR COM IA: cola a receita inteira e ela preenche as seções */}
-          <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50/40 p-3">
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-xs font-black text-emerald-700 uppercase tracking-widest flex items-center gap-1.5"><Sparkles size={13} /> Montar com IA</label>
-            </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-3">
+            <p className="text-xs font-black text-slate-700 uppercase tracking-widest">Preenchimento manual</p>
+            <p className="mt-1 text-[11px] font-medium text-slate-500">Digite nos campos abaixo. Ingredientes, copo e preparo aparecem imediatamente na prévia.</p>
+          </div>
+          <details className="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-3">
+            <summary className="cursor-pointer text-xs font-black text-emerald-700 uppercase tracking-widest flex items-center gap-1.5"><Sparkles size={13} /> Montar com IA (opcional)</summary>
+            <div className="mt-3">
             <textarea
               value={receitaIA}
               onChange={(e) => setReceitaIA(e.target.value)}
@@ -771,7 +776,8 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
               {gerandoIA ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
               {gerandoIA ? "Montando o drink..." : "Montar drink automaticamente"}
             </button>
-          </div>
+            </div>
+          </details>
 
           {/* SEÇÃO: Ingredientes & Dosagem */}
           <div>
@@ -795,8 +801,8 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
           <div>
             <label className="text-xs font-black text-slate-600 uppercase tracking-widest block mb-1">Copo / Taça (sai no guia com a foto ou o desenho)</label>
             <div className="flex items-stretch gap-3">
-              {fotoCopoReal(copoAtual || "copo") ? (
-                <img src={fotoCopoReal(copoAtual || "copo")} alt="Copo" className="w-14 h-[76px] object-cover rounded-xl border shrink-0" style={{ borderColor: "var(--line)", background: "#f4f4f5" }} />
+              {fotoCopoAtual ? (
+                <img src={fotoCopoAtual} alt="Copo" className="w-14 h-[76px] object-contain rounded-xl border shrink-0" style={{ borderColor: "var(--line)", background: "#f4f4f5" }} />
               ) : (
                 <div className="w-14 flex items-center justify-center rounded-xl border shrink-0" style={{ borderColor: "var(--line)", background: "#fdf9ef" }}
                   dangerouslySetInnerHTML={{ __html: desenhoCopoSVG(copoAtual || "copo", { altura: 52 }) }} />
@@ -813,13 +819,13 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
             <div className="flex items-center gap-3 mt-2">
               <button type="button" onClick={() => inputFotoCopoRef.current?.click()} disabled={uploadando}
                 className="flex items-center gap-1.5 text-[11px] font-black uppercase text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-full border border-emerald-200 transition-colors disabled:opacity-50">
-                <Camera size={12} /> {uploadando ? "Enviando..." : (fotoCopoReal(copoAtual || "copo") ? "Trocar foto deste copo" : "Tirar foto deste copo")}
+                <Camera size={12} /> {uploadando ? "Enviando..." : (fotoCopoAtual ? "Trocar foto deste copo" : "Adicionar foto do copo")}
               </button>
-              {fotoCopoReal(copoAtual || "copo") && (
+              {fotoCopoAtual && (
                 <button type="button" onClick={removerFotoCopo} className="text-[11px] font-bold text-rose-500 hover:text-rose-600">Voltar ao desenho</button>
               )}
             </div>
-            <p className="text-[11px] text-slate-400 mt-1">A foto vale para TODOS os drinks que usam este copo — tira uma vez e o guia inteiro usa.</p>
+            <p className="text-[11px] text-slate-400 mt-1">Esta foto pertence somente a esta ficha e fica separada da foto do drink.</p>
           </div>
 
           {/* SEÇÃO: Modo de Preparo */}
@@ -1334,19 +1340,18 @@ const ORDEM_CATEGORIA = ["Com Álcool", "Sem Álcool", "Doses"];
 // HTML de um card de drink (kanban) — reaproveitado pelo pôster e pelo livro.
 function drinkCardHTML(m) {
   const nome = escaparHtml((m.nome || "Drink").toUpperCase());
+  const categoria = categoriaDrink(m);
+  const classeCategoria = categoria === "Doses" ? " dose" : categoria === "Sem Álcool" ? " semAlcool" : "";
   const camadas = Array.isArray(m.estrutura_ia) ? m.estrutura_ia : [];
   const copo = camadas.find((c) => c.tipo === "copo");
   const ingredientes = camadas.filter((c) => c.tipo !== "copo" && (c.nome || "").trim());
   const passos = String(m.descritivo || "").split("\n").map((s) => s.trim().replace(/^\d+[\.\)]\s*/, "")).filter(Boolean);
-  // Sem foto do drink: usa a FOTO REAL do copo (tirada pelo usuário) se
-  // existir; senão a ilustração — o copo certo pintado com a cor do líquido.
+  // A imagem principal pertence ao drink. A foto do copo é independente e
+  // aparece somente no bloco "Copo" abaixo.
   const textoIngredientes = ingredientes.map((c) => c.nome).join(" ") + " " + (m.nome || "");
-  const fotoRealCopo = fotoCopoReal(copo?.nome || "");
   const foto = m.foto_url
     ? `<div class="foto"><img src="${escaparHtml(m.foto_url)}" alt="${nome}"/></div>`
-    : fotoRealCopo
-      ? `<div class="foto"><img src="${escaparHtml(fotoRealCopo)}" alt="${nome}"/></div>`
-      : `<div class="foto ilustrada">${ilustracaoDrinkSVG(copo?.nome || m.nome, textoIngredientes, 96)}</div>`;
+    : `<div class="foto ilustrada">${ilustracaoDrinkSVG(copo?.nome || m.nome, textoIngredientes, 96)}</div>`;
   const subtitulo = m.rendimento ? `<p class="copo">${escaparHtml(m.rendimento)}</p>` : "";
   const blocoIngredientes = ingredientes.length
     ? `<div class="bloco"><p class="rot">Ingredientes</p><ul>${ingredientes.map((c) => `<li>${escaparHtml(c.nome)}</li>`).join("")}</ul></div>` : "";
@@ -1355,9 +1360,9 @@ function drinkCardHTML(m) {
     : `<div class="bloco"><p class="rot">Preparo</p><p class="vazio">Sem passo a passo cadastrado.</p></div>`;
   // Seção "Copo" abaixo do preparo: desenho da taça/copo + nome.
   const blocoCopo = copo && (copo.nome || "").trim()
-    ? `<div class="bloco"><p class="rot">Copo</p><div class="copoRow">${imagemCopoHTML(copo.nome, { altura: 58 })}<span>${escaparHtml(copo.nome)}</span></div></div>`
+    ? `<div class="bloco"><p class="rot">Copo</p><div class="copoRow">${imagemCopoHTML(copo.nome, { altura: 58, fotoUrl: copo.foto_url || null, usarFotoGlobal: false })}<span>${escaparHtml(copo.nome)}</span></div></div>`
     : "";
-  return `<article class="drink"><div class="cab">${foto}<div class="tit"><h2>${nome}</h2>${subtitulo}</div></div>${blocoIngredientes}${blocoPreparo}${blocoCopo}</article>`;
+  return `<article class="drink${classeCategoria}"><div class="cab">${foto}<div class="tit"><h2>${nome}</h2>${subtitulo}</div></div>${blocoIngredientes}${blocoPreparo}${blocoCopo}</article>`;
 }
 
 // CSS dos cards (compartilhado). `colunas` controla o tamanho de fonte/foto;
@@ -1384,21 +1389,28 @@ function drinkCardCSS(colunas, gridCols = colunas) {
     .foto.ilustrada svg{width:76%;height:86%}
     .copoRow{display:flex;align-items:center;gap:2.5mm}
     .copoRow svg{height:${colunas >= 4 ? 12 : 15}mm;width:auto;flex:none}
-    .copoRow span{font-size:${colunas >= 4 ? 12 : 14}px;font-weight:800}`;
+    .copoRow span{font-size:${colunas >= 4 ? 12 : 14}px;font-weight:800}
+    .drink.semAlcool,.drink.dose{padding:2.6mm}
+    .drink.semAlcool .foto{width:18mm;height:18mm}
+    .drink.dose .foto{width:15mm;height:15mm}
+    .drink.semAlcool h2{font-size:${colunas >= 4 ? 16 : 19}px}
+    .drink.dose h2{font-size:${colunas >= 4 ? 15 : 18}px}
+    .drink.semAlcool li,.drink.dose li{font-size:${colunas >= 4 ? 11 : 13}px;line-height:1.25}`;
 }
 
 // Prévia na tela do card do drink — o MESMO HTML/CSS do Guia impresso.
 function PreviaCardDrink({ m }) {
+  const chavePrevia = `${m?.foto_url || ""}|${m?.descritivo || ""}|${JSON.stringify(m?.estrutura_ia || [])}`;
   const html = `<!doctype html><html><head><meta charset="utf-8"><style>
     *{margin:0;padding:0;box-sizing:border-box}
     body{font-family:'Poppins','Segoe UI',Arial,sans-serif;color:#111;background:#e2e8f0;display:flex;justify-content:center;padding:14px}
     #w{width:100mm;max-width:100%}
-    ${drinkCardCSS(1)}
+    ${drinkCardCSS(3, 1)}
   </style></head><body><div id="w">${drinkCardHTML(m)}</div></body></html>`;
   return (
     <div>
       <p className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: "var(--dim)" }}>Prévia real do card do Guia de Drinks</p>
-      <iframe title={`Prévia ${m.nome}`} srcDoc={html} className="w-full rounded-2xl border" style={{ height: 460, borderColor: "var(--line)", background: "#e2e8f0" }} />
+      <iframe key={chavePrevia} title={`Prévia ${m.nome}`} srcDoc={html} className="w-full rounded-2xl border" style={{ height: 360, borderColor: "var(--line)", background: "#e2e8f0" }} />
     </div>
   );
 }
@@ -1576,13 +1588,6 @@ function MontagemPageInner() {
   const [modalGuia, setModalGuia] = useState(false); // escolha cartões × livro (bar)
   const [saidaGuia, setSaidaGuia] = useState("imprimir"); // "imprimir" | "pdf"
   const [preenchendoIA, setPreenchendoIA] = useState(false); // receitas em lote (bar)
-
-  // Fotos reais dos copos (tiradas pelo usuário) — valem para a unidade toda
-  const [, setVersaoFotosCopos] = useState(0);
-  useEffect(() => {
-    if (!unidadeAtiva || unidadeAtiva === "todas") return;
-    fetchFotosCopos(unidadeAtiva).then(({ data }) => { definirFotosCopos(data); setVersaoFotosCopos((v) => v + 1); });
-  }, [unidadeAtiva]);
 
   // Preenche de uma vez, via IA, todas as bebidas do bar que estão sem receita:
   // cada drink ganha copo, ingredientes com dosagem e preparo clássicos — para
@@ -2137,10 +2142,12 @@ function MontagemPageInner() {
                 {/* PRÉVIA — celular ordem 1 (fixa no topo); desktop coluna direita, linha 1 */}
                 <div className="order-1 lg:order-none lg:col-start-2 lg:row-start-1 sticky top-0 z-10 -mx-3 sm:mx-0 px-3 sm:px-0 pb-2 lg:pb-0" style={{ background: "var(--surface)" }}>
                   <div className="lg:sticky lg:top-0">
-                    <h3 className="font-black text-[var(--fg)] text-sm sm:text-lg mb-0.5">Prévia da ficha impressa</h3>
-                    <p className="text-[var(--subtle)] text-[11px] sm:text-xs mb-2 hidden sm:block">Acompanha cada ajuste em tempo real — é exatamente o que vai para a impressão, com a foto inteira.</p>
+                    <h3 className="font-black text-[var(--fg)] text-sm sm:text-lg mb-0.5">{dept === "bar" ? "Prévia do Guia de Drinks" : "Prévia da ficha impressa"}</h3>
+                    <p className="text-[var(--subtle)] text-[11px] sm:text-xs mb-2 hidden sm:block">Acompanha cada ajuste em tempo real — é exatamente o que vai para a impressão.</p>
                     <div className="max-w-[240px] sm:max-w-[300px] lg:max-w-none mx-auto">
-                      <PreviaModeloChef m={previewFicha} cfg={cfgModelo} />
+                      {dept === "bar" && previewFicha
+                        ? <PreviaCardDrink m={previewFicha} />
+                        : <PreviaModeloChef m={previewFicha} cfg={cfgModelo} />}
                     </div>
                   </div>
                 </div>
@@ -2152,16 +2159,23 @@ function MontagemPageInner() {
 
                 {/* DESIGNER — celular ordem 3; desktop coluna direita, linha 2 */}
                 <div className="order-3 lg:order-none lg:col-start-2 lg:row-start-2 space-y-4 border-t border-[var(--line)] pt-4 lg:border-0 lg:pt-0">
-                    <ControlesDesigner
-                      cfg={cfgModelo}
-                      onChange={mudarCfg}
-                      onPreset={aplicarPreset}
-                      onReset={restaurarModelo}
-                      onSave={salvarPadraoUnidade}
-                      salvando={salvandoModelo}
-                    />
+                    {dept === "bar" ? (
+                      <div className="rounded-2xl border border-violet-200 bg-violet-50 p-4 text-sm text-violet-900">
+                        <p className="font-black">O cartão acima é o modelo real do Bar.</p>
+                        <p className="mt-1 text-xs font-medium leading-relaxed">Preencha manualmente ingredientes, dosagens, copo e preparo. A IA é opcional e serve apenas para acelerar o primeiro preenchimento.</p>
+                      </div>
+                    ) : (
+                      <ControlesDesigner
+                        cfg={cfgModelo}
+                        onChange={mudarCfg}
+                        onPreset={aplicarPreset}
+                        onReset={restaurarModelo}
+                        onSave={salvarPadraoUnidade}
+                        salvando={salvandoModelo}
+                      />
+                    )}
                     <button type="button" onClick={() => previewFicha?.nome && imprimirFichasSetor([previewFicha])} disabled={!previewFicha?.nome} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-black text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40">
-                      <Printer size={15} /> Imprimir esta ficha com o designer
+                      <Printer size={15} /> {dept === "bar" ? "Imprimir este cartão" : "Imprimir esta ficha com o designer"}
                     </button>
                 </div>
 

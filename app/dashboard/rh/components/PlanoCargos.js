@@ -460,7 +460,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">
                     Salário Base (R$)
@@ -472,7 +472,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                     placeholder="Ex: 2200"
                     value={form.salario_base}
                     onChange={e => setForm({ ...form, salario_base: e.target.value })}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-emerald-700 outline-none focus:border-emerald-500"
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-emerald-700 outline-none focus:border-emerald-500 text-sm"
                   />
                 </div>
                 <div>
@@ -486,7 +486,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                     placeholder="Ex: 350"
                     value={form.vale_alimentacao}
                     onChange={e => setForm({ ...form, vale_alimentacao: e.target.value })}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-teal-700 outline-none focus:border-emerald-500"
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-teal-700 outline-none focus:border-emerald-500 text-sm"
                   />
                 </div>
                 <div>
@@ -500,7 +500,7 @@ export default function PlanoCargos({ cargos = [], funcionarios = [], unidadeAti
                     placeholder="Ex: 400"
                     value={form.taxa_servico}
                     onChange={e => setForm({ ...form, taxa_servico: e.target.value })}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-indigo-700 outline-none focus:border-emerald-500"
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-indigo-700 outline-none focus:border-emerald-500 text-sm"
                   />
                 </div>
               </div>

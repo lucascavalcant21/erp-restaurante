@@ -585,7 +585,9 @@ export default function DashboardLayout({ children }) {
     <div className="erp-app-shell flex h-screen h-[100dvh] min-h-0 bg-[#F8FAFC] overflow-hidden print:bg-white print:block print:h-auto print:min-h-0">
       {/* Sidebar — para acessos restritos, mostra só as telas liberadas */}
       <div className="print:hidden h-full flex shrink-0">
-         <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} collapsed={collapsed} rotasPermitidas={rotasPermitidas} />
+         <Suspense fallback={null}>
+           <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} collapsed={collapsed} rotasPermitidas={rotasPermitidas} />
+         </Suspense>
       </div>
 
       {/* Área Principal de Conteúdo */}

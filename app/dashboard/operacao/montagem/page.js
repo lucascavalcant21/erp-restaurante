@@ -588,13 +588,19 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
   const copoCamada = camadasAtuais.find((c) => c.tipo === "copo");
   const copoAtual = copoCamada?.nome || "";
   const fotoCopoAtual = copoCamada?.foto_url || "";
-  const ingredientesTexto = camadasAtuais.filter((c) => c.tipo !== "copo").map((c) => c.nome).join("\n");
+  const [ingredientesTexto, setIngredientesRascunho] = useState(() =>
+    camadasAtuais.filter((c) => c.tipo !== "copo").map((c) => c.nome).join("\n")
+  );
   const setCopo = (valor) => {
     const outras = camadasAtuais.filter((c) => c.tipo !== "copo");
     const nova = valor.trim() ? [{ ...copoCamada, tipo: "copo", nome: valor }, ...outras] : outras;
     set("estrutura_ia", nova.length ? nova : null);
   };
   const setIngredientesTexto = (txt) => {
+    // Mantém exatamente o que está sendo digitado, inclusive a quebra de
+    // linha final. Sem este rascunho, a linha vazia era removida ao pressionar
+    // Enter e o cursor voltava para a linha anterior.
+    setIngredientesRascunho(txt);
     const copo = camadasAtuais.find((c) => c.tipo === "copo");
     const linhas = txt.split("\n")
       .map((s) => s.replace(/^\s*(?:[-•]\s+|\d+[.)]\s+)/, "").trim())
@@ -607,6 +613,7 @@ function FormMontagem({ inicial, deptInicial, onSalvar, onCancelar, onPreview })
     const novas = (camadas || []).map((camada) =>
       camada.tipo === "copo" && fotoCopoAtual ? { ...camada, foto_url: fotoCopoAtual } : camada
     );
+    setIngredientesRascunho(novas.filter((camada) => camada.tipo !== "copo").map((camada) => camada.nome).join("\n"));
     set("estrutura_ia", novas.length ? novas : null);
   };
 
@@ -1393,12 +1400,7 @@ function drinkCardCSS(colunas, gridCols = colunas) {
     .copoRow{display:flex;align-items:center;gap:2.5mm}
     .copoRow svg{height:${colunas >= 4 ? 12 : 15}mm;width:auto;flex:none}
     .copoRow span{font-size:${colunas >= 4 ? 12 : 14}px;font-weight:800}
-    .drink.semAlcool,.drink.dose{padding:2.6mm}
-    .drink.semAlcool .foto{width:18mm;height:18mm}
-    .drink.dose .foto{width:15mm;height:15mm}
-    .drink.semAlcool h2{font-size:${colunas >= 4 ? 16 : 19}px}
-    .drink.dose h2{font-size:${colunas >= 4 ? 15 : 18}px}
-    .drink.semAlcool li,.drink.dose li{font-size:${colunas >= 4 ? 11 : 13}px;line-height:1.25}`;
+    .drink.semAlcool,.drink.dose{padding:3.5mm}`;
 }
 
 // Prévia na tela do card do drink — o MESMO HTML/CSS do Guia impresso.

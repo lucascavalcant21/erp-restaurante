@@ -476,8 +476,6 @@ function ModuleBar({ rotasPermitidas }) {
   const dept = searchParams.get("dept");
   const [aberto, setAberto] = useState(false);
 
-  if (pathname === "/dashboard/modulo" || pathname.startsWith("/dashboard/modulo/")) return null;
-
   const modulo = moduloDaRota(pathname, dept);
   const itens = Array.isArray(rotasPermitidas)
     ? modulo.items.filter((item) => {
@@ -493,6 +491,8 @@ function ModuleBar({ rotasPermitidas }) {
     .sort((a, b) => baseDaRota(b.href).length - baseDaRota(a.href).length)[0] || itens[0];
 
   useEffect(() => { setAberto(false); }, [pathname]);
+
+  if (pathname === "/dashboard/modulo" || pathname.startsWith("/dashboard/modulo/")) return null;
 
   // Ingredientes, fichas e montagem formam um fluxo próprio e compartilham um
   // cabeçalho operacional mais completo. Evita duas barras de navegação iguais.

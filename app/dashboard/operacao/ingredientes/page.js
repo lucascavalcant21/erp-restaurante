@@ -28,7 +28,7 @@ function IngredientesRunner() {
   // custo_compra = preço como comprado; peso bruto/limpo calculam a perda de limpeza
   // (casca, espinha, apara). Se for empanado, soma o custo do empanamento e divide
   // pelo ganho de peso. custo_unitario salvo no banco = custo REAL do kg PRONTO.
-  const [form, setForm] = useState({ id: null, departamento: deptUrl || "cozinha", nome: "", marca: "", categoria: "", unidade_medida: "kg", tamanho_embalagem: "1", valor_embalagem: "", custo_compra: "", frete: "", peso_medio_g: "", peso_bruto_g: "", peso_liquido_g: "", eh_empanado: false, custo_empanamento: "", peso_in_natura_g: "", peso_empanado_g: "", categoria_manual: false, fornecedor: "", observacoes: "" });
+  const [form, setForm] = useState({ id: null, departamento: deptUrl || "cozinha", nome: "", marca: "", categoria: "", unidade_medida: "kg", tamanho_embalagem: "1", valor_embalagem: "", custo_compra: "", frete: "", peso_medio_g: "", peso_bruto_g: "", peso_liquido_g: "", eh_empanado: false, custo_empanamento: "", peso_in_natura_g: "", peso_empanado_g: "", categoria_manual: false, fornecedor: "", observacoes: "", estoque_inicial: "", estoque_minimo: "", estoque_maximo: "" });
   const [catFiltro, setCatFiltro] = useState("Todas");
 
   // Aproveitamento (%) derivado dos pesos: 650g limpos de 1000g brutos = 65%
@@ -267,6 +267,31 @@ function IngredientesRunner() {
        if (!inNatura || !empanado) return alert("Produto empanado: preencha os DOIS pesos (in natura e empanado).");
        custoEmp = Number(form.custo_empanamento) || 0;
        fator = empanado / inNatura;
+    const custoFinalKg = (form.eh_empanado && fator && fator > 0)
+       ? (custoLimpo + (custoEmp / fator)) / fator
+       : custoLimpo;
+
+    const payload = {
+       ...form,
+       departamento: form.departamento || deptUrl || "cozinha",
+       unidade_id: unidadeAtiva,
+       custo_compra: valorPago,
+       custo_unitario: custoFinalKg,
+       aproveitamento_pct: pct,
+       peso_bruto_g: bruto || null,
+       peso_liquido_g: limpo || null,
+       fator_empanamento: fator || null,
+       custo_empanamento: custoEmp || null,
+       tamanho_embalagem: tamEmb,
+       estoque_inicial: Number(form.estoque_inicial) || 0,
+       estoque_minimo: Number(form.estoque_minimo) || 0,
+       estoque_maximo: Number(form.estoque_maximo) || 0
+    };
+
+    const { error } = await salvarInsumo(payload);
+    if(error) {
+       alert("Erro ao salvar ingrediente: " + error);
+       return;
     }
 
     const editando = !!form.id;
@@ -683,6 +708,34 @@ function IngredientesRunner() {
                         <p className="text-[10px] text-slate-400 font-medium mt-1">Peso/volume médio de 1 unidade. Serve de referência para lançar na ficha e converter entre unidade e gramas/ml.</p>
                      </div>
                   )}
+
+                  {/* Controle de Estoque Inicial e Alertas Mínimo/Máximo */}
+                  <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-xl p-4 space-y-3">
+                     <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-xs">
+                           📦
+                        </div>
+                        <div>
+                           <p className="text-xs font-black uppercase tracking-wider text-emerald-900">Estoque Inicial & Alertas (Opcional)</p>
+                           <p className="text-[10px] text-emerald-700 font-medium">Informe a quantidade em unidades/embalagens para cadastrar o estoque inicial</p>
+                        </div>
+                     </div>
+
+                     <div className="grid grid-cols-3 gap-3 pt-1">
+                        <div>
+                           <label className="text-[10px] font-black text-emerald-800 uppercase tracking-wider">Qtd. Inicial (Un)</label>
+                           <input type="number" min="0" placeholder="Ex: 24" value={form.estoque_inicial} onChange={e=>setForm({...form, estoque_inicial: e.target.value})} className="w-full p-3 mt-1 bg-white border border-emerald-200 rounded-xl font-black text-emerald-700 outline-none focus:border-emerald-500 shadow-sm"/>
+                        </div>
+                        <div>
+                           <label className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">Qtd. Mínima</label>
+                           <input type="number" min="0" placeholder="Ex: 5" value={form.estoque_minimo} onChange={e=>setForm({...form, estoque_minimo: e.target.value})} className="w-full p-3 mt-1 bg-white border border-amber-200 rounded-xl font-bold text-amber-700 outline-none focus:border-amber-500 shadow-sm"/>
+                        </div>
+                        <div>
+                           <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Qtd. Máxima</label>
+                           <input type="number" min="0" placeholder="Ex: 50" value={form.estoque_maximo} onChange={e=>setForm({...form, estoque_maximo: e.target.value})} className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-slate-500 shadow-sm"/>
+                        </div>
+                     </div>
+                  </div>
 
                   {/* Perda na limpeza: pesa bruto (com casca/espinha) e limpo (aproveitável) */}
                   <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">

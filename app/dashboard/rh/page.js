@@ -28,11 +28,12 @@ import { useTempoReal } from "../../lib/realtime";
 // Desconto do funcionário sobre o valor de cardápio (funcionário paga o restante)
 // Desconto do funcionário: ajustável em Configurações > Parâmetros (paramsSis)
 import { 
-  Users, UserPlus, FileText, Upload, Save, X, Search, Trash2, Loader2, CalendarHeart, Star, Phone, CreditCard, ClipboardList, Clock, CalendarDays, ShoppingBag, CheckCircle, Store, Printer, UtensilsCrossed, LogOut, RotateCcw, ChevronDown, Camera
+  Users, UserPlus, FileText, Upload, Save, X, Search, Trash2, Loader2, CalendarHeart, Star, Phone, CreditCard, ClipboardList, Clock, CalendarDays, ShoppingBag, CheckCircle, Store, Printer, UtensilsCrossed, LogOut, RotateCcw, ChevronDown, Camera, Award
 } from "lucide-react";
 import { fmtBRL } from "../../components/ui";
 import { comFecharImpressao } from "../../lib/imprimir";
 import BancoTalentos from "./components/BancoTalentos";
+import PlanoCargos from "./components/PlanoCargos";
 
 // Horário esperado de um colaborador para um dia da semana (0=Dom..6=Sáb).
 // Usa a jornada por-dia se ativada; senão o horário de domingo; senão o fixo.
@@ -1566,14 +1567,23 @@ export default function RHPage() {
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6">
          
-         <div className="flex gap-4 mb-4">
-            <button onClick={()=>setAbaAtiva("Fixo")} className={`flex-1 py-3 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${abaAtiva === "Fixo" ? "bg-slate-800 text-white shadow-lg shadow-slate-800/20" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>Equipe Fixa</button>
-            <button onClick={()=>setAbaAtiva("Freelancer")} className={`flex-1 py-3 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${abaAtiva === "Freelancer" ? "bg-slate-800 text-white shadow-lg shadow-slate-800/20" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>Freelancers Extras</button>
-            <button onClick={()=>setAbaAtiva("Banco de Talentos")} className={`flex-1 py-3 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${abaAtiva === "Banco de Talentos" ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" : "bg-white text-indigo-500 border border-indigo-200 hover:bg-indigo-50"}`}>Banco de Talentos</button>
-            <button onClick={()=>setAbaAtiva("Ex-funcionários")} className={`flex-1 py-3 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${abaAtiva === "Ex-funcionários" ? "bg-slate-600 text-white shadow-lg shadow-slate-600/20" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>Ex-funcionários</button>
+         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none mb-4">
+            <button onClick={()=>setAbaAtiva("Fixo")} className={`px-4 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shrink-0 ${abaAtiva === "Fixo" ? "bg-slate-800 text-white shadow-lg shadow-slate-800/20" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>Equipe Fixa</button>
+            <button onClick={()=>setAbaAtiva("Freelancer")} className={`px-4 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shrink-0 ${abaAtiva === "Freelancer" ? "bg-slate-800 text-white shadow-lg shadow-slate-800/20" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>Freelancers Extras</button>
+            <button onClick={()=>setAbaAtiva("Cargos & Carreiras")} className={`px-4 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shrink-0 ${abaAtiva === "Cargos & Carreiras" ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20" : "bg-white text-emerald-600 border border-emerald-200 hover:bg-emerald-50"}`}>🏆 Cargos & Carreiras</button>
+            <button onClick={()=>setAbaAtiva("Banco de Talentos")} className={`px-4 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shrink-0 ${abaAtiva === "Banco de Talentos" ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" : "bg-white text-indigo-500 border border-indigo-200 hover:bg-indigo-50"}`}>Banco de Talentos</button>
+            <button onClick={()=>setAbaAtiva("Ex-funcionários")} className={`px-4 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shrink-0 ${abaAtiva === "Ex-funcionários" ? "bg-slate-600 text-white shadow-lg shadow-slate-600/20" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>Ex-funcionários</button>
          </div>
 
-         {abaAtiva === "Banco de Talentos" ? (
+         {abaAtiva === "Cargos & Carreiras" ? (
+            <PlanoCargos
+               cargos={cargos}
+               funcionarios={funcionarios}
+               unidadeAtiva={unidadeAtiva}
+               unidadeInfo={unidadeInfo}
+               onRecarregar={() => carregar(true)}
+            />
+         ) : abaAtiva === "Banco de Talentos" ? (
             <BancoTalentos unidadeAtiva={unidadeAtiva} />
          ) : (
             <>
@@ -1859,15 +1869,6 @@ export default function RHPage() {
                      </div>
                   </div>
                   <div>
-                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Função / Cargo</label>
-                     <select value={novoFunc.cargo} onChange={e=>setNovoFunc({...novoFunc, cargo: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500 appearance-none text-slate-700">
-                        <option value="">Selecione um Cargo</option>
-                        <optgroup label="Liderança">
-                           {CARGOS_LIDERANCA.map(c => <option key={c} value={c}>{c}</option>)}
-                        </optgroup>
-                        {cargos.length > 0 && (
-                           <optgroup label="Cargos da unidade">
-                              {cargos.filter(c => !CARGOS_LIDERANCA.includes(c.nome)).map(c => <option key={c.id} value={c.nome}>{c.nome}</option>)}
                            </optgroup>
                         )}
                         {novoFunc.cargo && ![...CARGOS_LIDERANCA, ...cargos.map(c => c.nome)].includes(novoFunc.cargo) && <option value={novoFunc.cargo}>{novoFunc.cargo}</option>}

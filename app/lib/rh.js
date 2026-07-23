@@ -208,20 +208,20 @@ export async function fetchPontoMes(unidadeId, mesAno) { return { data: [], erro
 export async function registrarPonto(dados) { return { data: null, error: null }; }
 
 export const CARGOS_PADRAO_INICIAIS = [
-  { id: "cfg-1", nome: "Auxiliar de Cozinha 1", departamento: "Cozinha", nivel: "Auxiliar I", salario_base: 1600, vale_alimentacao: 300, taxa_servico: 200, descricao: "Apoio no pré-preparo, higienização de insumos e organização da praça." },
-  { id: "cfg-2", nome: "Auxiliar de Cozinha 2", departamento: "Cozinha", nivel: "Auxiliar II", salario_base: 1800, vale_alimentacao: 300, taxa_servico: 250, descricao: "Pré-preparo avançado, corte de insumos, porcionamento e montagem de base." },
-  { id: "cfg-3", nome: "Auxiliar de Cozinha 3", departamento: "Cozinha", nivel: "Auxiliar III", salario_base: 2000, vale_alimentacao: 300, taxa_servico: 300, descricao: "Auxílio direto à chapa/fogão, controle de pré-preparo e reposição de praça." },
-  { id: "cfg-4", nome: "Cozinheiro 1", departamento: "Cozinha", nivel: "Cozinheiro I", salario_base: 2200, vale_alimentacao: 350, taxa_servico: 400, descricao: "Execução de pratos quentes/frios do cardápio, controle de tempo e porções." },
-  { id: "cfg-5", nome: "Cozinheiro 2", departamento: "Cozinha", nivel: "Cozinheiro II", salario_base: 2600, vale_alimentacao: 350, taxa_servico: 500, descricao: "Preparo de pratos complexos, controle de desperdício e auxílio no ritmo do passe." },
-  { id: "cfg-6", nome: "Cozinheiro 3", departamento: "Cozinha", nivel: "Cozinheiro III", salario_base: 3100, vale_alimentacao: 400, taxa_servico: 600, descricao: "Especialista de praça, padronização de fichas técnicas e liderança de turno." },
-  { id: "cfg-7", nome: "Chef de Cozinha", departamento: "Cozinha", nivel: "Liderança", salario_base: 4500, vale_alimentacao: 500, taxa_servico: 1000, descricao: "Gestão completa da cozinha, criação de pratos, controle de CMV e liderança da brigada." },
-  { id: "cfg-8", nome: "Steward", departamento: "Cozinha", nivel: "Operacional", salario_base: 1550, vale_alimentacao: 300, taxa_servico: 150, descricao: "Higienização de louças, utensílios, equipamentos pesados e organização da cozinha." },
-  { id: "cfg-9", nome: "Bartender / Barman", departamento: "Bar", nivel: "Operacional", salario_base: 2400, vale_alimentacao: 350, taxa_servico: 500, descricao: "Preparo de drinks clássicos e autorais, atendimento ao balcão e mise en place de bar." },
-  { id: "cfg-10", nome: "Chef de Bar", departamento: "Bar", nivel: "Liderança", salario_base: 3500, vale_alimentacao: 400, taxa_servico: 800, descricao: "Gestão da carta de drinks, inventário do bar, treinamento de bartenders e CMV de bebidas." },
-  { id: "cfg-11", nome: "Chef de Fila", departamento: "Salão", nivel: "Supervisão", salario_base: 2500, vale_alimentacao: 350, taxa_servico: 700, descricao: "Supervisão da equipe de garçons, atendimento V.I.P., fluxo de mesas e resolução de chamados." },
-  { id: "cfg-12", nome: "Compras", departamento: "Administração", nivel: "Administrativo", salario_base: 2800, vale_alimentacao: 400, taxa_servico: 300, descricao: "Cotação de insumos, negociação com fornecedores, pedidos de compra e recebimento." },
-  { id: "cfg-13", nome: "Supervisor", departamento: "Gestão", nivel: "Gestão", salario_base: 4000, vale_alimentacao: 500, taxa_servico: 800, descricao: "Supervisão geral da operação (salão/bar/cozinha), alinhamento de rotinas e resultados." },
-  { id: "cfg-14", nome: "CEO", departamento: "Diretoria", nivel: "Executivo", salario_base: 8000, vale_alimentacao: 600, taxa_servico: 0, descricao: "Direção estratégica do negócio, planejamento financeiro e expansão da marca." }
+  { id: "cfg-1", nome: "Auxiliar de Cozinha 1", departamento: "Cozinha", nivel: "Auxiliar I", salario_base: 1600, vale_alimentacao: 300, taxa_servico: 200, descricao: "Apoio no pré-preparo, higienização de insumos e organização da praça.", requisitos: ["Sem experiência prévia necessária", "Vontade de aprender e trabalho em equipe", "Pontualidade e cumprimento de higienização"] },
+  { id: "cfg-2", nome: "Auxiliar de Cozinha 2", departamento: "Cozinha", nivel: "Auxiliar II", salario_base: 1800, vale_alimentacao: 300, taxa_servico: 250, descricao: "Pré-preparo avançado, corte de insumos, porcionamento e montagem de base.", requisitos: ["3 meses como Auxiliar I ou equivalente", "Domínio de cortes básicos de vegetais e carnes", "Cumprimento de 90%+ dos checklists diários"] },
+  { id: "cfg-3", nome: "Auxiliar de Cozinha 3", departamento: "Cozinha", nivel: "Auxiliar III", salario_base: 2000, vale_alimentacao: 300, taxa_servico: 300, descricao: "Auxílio direto à chapa/fogão, controle de pré-preparo e reposição de praça.", requisitos: ["6 meses na operação de cozinha", "Agilidade na montagem e reposição de estoque", "Assiduidade exemplar e organização de bancada"] },
+  { id: "cfg-4", nome: "Cozinheiro 1", departamento: "Cozinha", nivel: "Cozinheiro I", salario_base: 2200, vale_alimentacao: 350, taxa_servico: 400, descricao: "Execução de pratos quentes/frios do cardápio, controle de tempo e porções.", requisitos: ["Domínio de fichas técnicas da praça quente/fria", "Conhecimento em boas práticas ANVISA", "Agilidade em horários de pico do salão"] },
+  { id: "cfg-5", nome: "Cozinheiro 2", departamento: "Cozinha", nivel: "Cozinheiro II", salario_base: 2600, vale_alimentacao: 350, taxa_servico: 500, descricao: "Preparo de pratos complexos, controle de desperdício e auxílio no ritmo do passe.", requisitos: ["1 ano como Cozinheiro I ou equivalente", "Controle rigoroso de CMV e desperdício de insumos", "Habilidade de orientar auxiliares no turno"] },
+  { id: "cfg-6", nome: "Cozinheiro 3", departamento: "Cozinha", nivel: "Cozinheiro III", salario_base: 3100, vale_alimentacao: 400, taxa_servico: 600, descricao: "Especialista de praça, padronização de fichas técnicas e liderança de turno.", requisitos: ["Liderança de praça e passe em alta demanda", "Abertura e fechamento completo de cozinha", "Treinamento e mentoria de novos funcionários"] },
+  { id: "cfg-7", nome: "Chef de Cozinha", departamento: "Cozinha", nivel: "Liderança", salario_base: 4500, vale_alimentacao: 500, taxa_servico: 1000, descricao: "Gestão completa da cozinha, criação de pratos, controle de CMV e liderança da brigada.", requisitos: ["Experiência comprovada em gestão de brigada", "Elaboração e controle de custos / Fichas técnicas", "Gestão de escalas, compras e metas de CMV"] },
+  { id: "cfg-8", nome: "Steward", departamento: "Cozinha", nivel: "Operacional", salario_base: 1550, vale_alimentacao: 300, taxa_servico: 150, descricao: "Higienização de louças, utensílios, equipamentos pesados e organização da cozinha.", requisitos: ["Cuidados com produtos de limpeza industrial", "Agilidade na devolução de pratos limpos ao passe", "Zelo e conservação dos utensílios da casa"] },
+  { id: "cfg-9", nome: "Bartender / Barman", departamento: "Bar", nivel: "Operacional", salario_base: 2400, vale_alimentacao: 350, taxa_servico: 500, descricao: "Preparo de drinks clássicos e autorais, atendimento ao balcão e mise en place de bar.", requisitos: ["Domínio de dosagens e coquetelaria da casa", "Atendimento ao cliente no balcão de bar", "Controle de estoque de destilados e xaropes"] },
+  { id: "cfg-10", nome: "Chef de Bar", departamento: "Bar", nivel: "Liderança", salario_base: 3500, vale_alimentacao: 400, taxa_servico: 800, descricao: "Gestão da carta de drinks, inventário do bar, treinamento de bartenders e CMV de bebidas.", requisitos: ["Criação e padronização da carta de drinks", "Controle quinzenal de estoque de bebidas", "Liderança e treinamento da equipe de bar"] },
+  { id: "cfg-11", nome: "Chef de Fila", departamento: "Salão", nivel: "Supervisão", salario_base: 2500, vale_alimentacao: 350, taxa_servico: 700, descricao: "Supervisão da equipe de garçons, atendimento V.I.P., fluxo de mesas e resolução de chamados.", requisitos: ["Excelência em atendimento ao cliente", "Resolução ágil de reclamações e imprevistos", "Orientação e apoio aos garçons da praça"] },
+  { id: "cfg-12", nome: "Compras", departamento: "Administração", nivel: "Administrativo", salario_base: 2800, vale_alimentacao: 400, taxa_servico: 300, descricao: "Cotação de insumos, negociação com fornecedores, pedidos de compra e recebimento.", requisitos: ["Negociação de prazos e preços com fornecedores", "Conferência rigorosa na entrada de notas fiscais", "Controle de giro e estoque mínimo dos setores"] },
+  { id: "cfg-13", nome: "Supervisor", departamento: "Gestão", nivel: "Gestão", salario_base: 4000, vale_alimentacao: 500, taxa_servico: 800, descricao: "Supervisão geral da operação (salão/bar/cozinha), alinhamento de rotinas e resultados.", requisitos: ["Supervisão integrada dos setores da operação", "Cumprimento das metas de faturamento e custos", "Feedback e desenvolvimento contínuo da equipe"] },
+  { id: "cfg-14", nome: "CEO", departamento: "Diretoria", nivel: "Executivo", salario_base: 8000, vale_alimentacao: 600, taxa_servico: 0, descricao: "Direção estratégica do negócio, planejamento financeiro e expansão da marca.", requisitos: ["Visão estratégica e planejamento financeiro", "Expansão e reputação da marca", "Liderança executiva do restaurante"] }
 ];
 
 export async function fetchCargos(unidadeId) {
@@ -235,13 +235,57 @@ export async function fetchCargos(unidadeId) {
     if (error || !data || data.length === 0) {
       return { data: CARGOS_PADRAO_INICIAIS, error: null };
     }
-    // Garante mesclagem caso faltem os cargos padrão solicitados
     const nomesExistentes = new Set(data.map(c => (c.nome || "").toLowerCase().trim()));
     const faltantes = CARGOS_PADRAO_INICIAIS.filter(cp => !nomesExistentes.has(cp.nome.toLowerCase().trim()));
     return { data: [...data, ...faltantes], error: null };
   } catch (e) {
     return { data: CARGOS_PADRAO_INICIAIS, error: null };
   }
+}
+
+export async function registrarPromocaoColaborador(dados) {
+  if (!isSupabaseReady()) return { error: null };
+  const payload = {
+    colaborador_id: dados.colaborador_id,
+    colaborador_nome: dados.colaborador_nome,
+    cargo_anterior: dados.cargo_anterior || "Sem cargo",
+    cargo_novo: dados.cargo_novo,
+    salario_anterior: Number(dados.salario_anterior) || 0,
+    salario_novo: Number(dados.salario_novo) || 0,
+    vale_alimentacao: Number(dados.vale_alimentacao) || 0,
+    taxa_servico: Number(dados.taxa_servico) || 0,
+    data_promocao: new Date().toISOString(),
+    responsavel: dados.responsavel || "Gestão",
+    motivo: dados.motivo || "Evolução no Plano de Carreiras"
+  };
+  try {
+    let { error } = await supabase.from("rh_historico_promocoes").insert([payload]);
+    if (error) {
+      const { data: colab } = await supabase.from("colaboradores").select("historico_promocoes").eq("id", dados.colaborador_id).single();
+      const hist = Array.isArray(colab?.historico_promocoes) ? colab.historico_promocoes : [];
+      hist.push(payload);
+      await supabase.from("colaboradores").update({ historico_promocoes: hist }).eq("id", dados.colaborador_id);
+    }
+  } catch (e) {
+    console.warn("Fallback histórico promoção:", e);
+  }
+  return { error: null };
+}
+
+export async function fetchHistoricoPromocoes(colaboradorId) {
+  if (!isSupabaseReady() || !colaboradorId) return { data: [] };
+  try {
+    const { data, error } = await supabase.from("rh_historico_promocoes").select("*").eq("colaborador_id", colaboradorId).order("data_promocao", { ascending: false });
+    if (!error && data && data.length > 0) return { data };
+    
+    const { data: colab } = await supabase.from("colaboradores").select("historico_promocoes").eq("id", colaboradorId).single();
+    if (colab?.historico_promocoes && Array.isArray(colab.historico_promocoes)) {
+      return { data: colab.historico_promocoes };
+    }
+  } catch (e) {
+    console.warn("Erro ao buscar histórico promoção:", e);
+  }
+  return { data: [] };
 }
 
 export async function salvarCargo(cargo, unidadeId) {

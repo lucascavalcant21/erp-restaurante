@@ -156,6 +156,71 @@ function IngredientesRunner() {
     (catFiltro === "Todas" || (i.categoria || "Outros") === catFiltro)
   );
   const categoriasDept = CATEGORIAS_INSUMO[deptUrl || "cozinha"] || CATEGORIAS_INSUMO.cozinha;
+
+  // Paginação client-side
+  const totalPaginas = Math.ceil(filtrados.length / PAGE_SIZE) || 1;
+  const paginaAtual = Math.min(pagina, totalPaginas);
+  const paginados = filtrados.slice((paginaAtual - 1) * PAGE_SIZE, paginaAtual * PAGE_SIZE);
+
+  const abrirNovo = () => {
+    setForm({
+      id: null,
+      departamento: deptUrl || "cozinha",
+      nome: "",
+      marca: "",
+      categoria: "",
+      unidade_medida: deptUrl === "bar" ? "ml" : "kg",
+      tamanho_embalagem: "1",
+      valor_embalagem: "",
+      custo_compra: "",
+      frete: "",
+      peso_medio_g: "",
+      peso_bruto_g: "",
+      peso_liquido_g: "",
+      eh_empanado: false,
+      custo_empanamento: "",
+      peso_in_natura_g: "",
+      peso_empanado_g: "",
+      categoria_manual: false,
+      fornecedor: "",
+      observacoes: "",
+      estoque_inicial: "",
+      estoque_minimo: "",
+      estoque_maximo: ""
+    });
+    setModalNovo(true);
+  };
+
+  const abrirEditar = (ins) => {
+    setForm({
+      id: ins.id,
+      departamento: ins.departamento || deptUrl || "cozinha",
+      nome: ins.nome || "",
+      marca: ins.marca || "",
+      categoria: ins.categoria || "",
+      unidade_medida: ins.unidade_medida || "kg",
+      tamanho_embalagem: String(ins.tamanho_embalagem || 1),
+      valor_embalagem: String(ins.custo_compra || ins.custo_unitario || ""),
+      custo_compra: String(ins.custo_compra || ""),
+      frete: String(ins.frete || ""),
+      peso_medio_g: String(ins.peso_medio_g || ""),
+      peso_bruto_g: String(ins.peso_bruto_g || ""),
+      peso_liquido_g: String(ins.peso_liquido_g || ""),
+      eh_empanado: !!ins.fator_empanamento,
+      custo_empanamento: String(ins.custo_empanamento || ""),
+      peso_in_natura_g: ins.fator_empanamento ? "1000" : "",
+      peso_empanado_g: ins.fator_empanamento ? String(Math.round(1000 * Number(ins.fator_empanamento))) : "",
+      categoria_manual: true,
+      fornecedor: ins.fornecedor || "",
+      observacoes: ins.observacoes || "",
+      estoque_inicial: "",
+      estoque_minimo: ins.estoque_minimo !== undefined && ins.estoque_minimo !== null ? String(ins.estoque_minimo) : "",
+      estoque_maximo: ins.estoque_maximo !== undefined && ins.estoque_maximo !== null ? String(ins.estoque_maximo) : ""
+    });
+    setModalNovo(true);
+  };
+
+  const abrirModalIA = () => {
     setIaTexto("");
     setIaImagem(null);
     setIaItens(null);
@@ -710,29 +775,64 @@ function IngredientesRunner() {
                   )}
 
                   {/* Controle de Estoque Inicial e Alertas Mínimo/Máximo */}
-                  <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-xl p-4 space-y-3">
-                     <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-xs">
-                           📦
-                        </div>
-                        <div>
-                           <p className="text-xs font-black uppercase tracking-wider text-emerald-900">Estoque Inicial & Alertas (Opcional)</p>
-                           <p className="text-[10px] text-emerald-700 font-medium">Informe a quantidade em unidades/embalagens para cadastrar o estoque inicial</p>
-                        </div>
+                  <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-4 space-y-4">
+                     <div className="flex items-center justify-between">
+                        <p className="text-xs font-black uppercase tracking-widest text-emerald-900 flex items-center gap-1.5">
+                           📦 Estoque Inicial & Alertas (Opcional)
+                        </p>
+                        {!form.id && (
+                           <span className="text-[10px] font-bold bg-emerald-200 text-emerald-800 px-2.5 py-0.5 rounded-full">Entrada Automática</span>
+                        )}
                      </div>
 
-                     <div className="grid grid-cols-3 gap-3 pt-1">
+                     {!form.id && (
                         <div>
-                           <label className="text-[10px] font-black text-emerald-800 uppercase tracking-wider">Qtd. Inicial (Un)</label>
-                           <input type="number" min="0" placeholder="Ex: 24" value={form.estoque_inicial} onChange={e=>setForm({...form, estoque_inicial: e.target.value})} className="w-full p-3 mt-1 bg-white border border-emerald-200 rounded-xl font-black text-emerald-700 outline-none focus:border-emerald-500 shadow-sm"/>
+                           <label className="text-[11px] font-bold text-slate-700 uppercase tracking-widest block mb-1">
+                              Quantidade de Entrada Inicial (Embalagens / Unidades)
+                           </label>
+                           <div className="relative">
+                              <input
+                                 type="number" step="1" min="0" placeholder="Ex: 24 (garrafas / pacotes / caixas)"
+                                 value={form.estoque_inicial}
+                                 onChange={e => setForm({ ...form, estoque_inicial: e.target.value })}
+                                 className="w-full p-3.5 bg-white border border-emerald-300 rounded-xl font-black text-slate-800 outline-none focus:border-emerald-500 shadow-sm"
+                              />
+                              <span className="absolute right-4 top-1/2 -translate-y-1/2 font-black text-slate-400 text-xs">unidades</span>
+                           </div>
+                           {Number(form.estoque_inicial) > 0 && (
+                              <div className="bg-white/80 border border-emerald-200 rounded-xl p-2.5 mt-2 flex items-center gap-2">
+                                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                 <p className="text-[11px] font-bold text-emerald-800">
+                                    O estoque iniciará com <b>{Number(form.estoque_inicial).toLocaleString('pt-BR')} un.</b>
+                                    {Number(form.tamanho_embalagem) > 1 && (
+                                       <> (equivalente a <b>{(Number(form.estoque_inicial) * Number(form.tamanho_embalagem)).toLocaleString('pt-BR')} {form.unidade_medida}</b>)</>
+                                    )} e registrará uma entrada no histórico!
+                                 </p>
+                              </div>
+                           )}
+                        </div>
+                     )}
+
+                     <div className="grid grid-cols-2 gap-3 pt-1">
+                        <div>
+                           <label className="text-[10px] font-bold text-amber-700 uppercase tracking-widest block mb-1">Estoque Mínimo (Alerta)</label>
+                           <input
+                              type="number" step="1" min="0" placeholder="Ex: 5 un."
+                              value={form.estoque_minimo}
+                              onChange={e => setForm({ ...form, estoque_minimo: e.target.value })}
+                              className="w-full p-3 bg-white border border-amber-200 rounded-xl font-bold text-amber-900 outline-none focus:border-amber-500 shadow-sm"
+                           />
+                           <span className="text-[9px] font-semibold text-amber-700 mt-1 block">Avisa quando faltar estoque</span>
                         </div>
                         <div>
-                           <label className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">Qtd. Mínima</label>
-                           <input type="number" min="0" placeholder="Ex: 5" value={form.estoque_minimo} onChange={e=>setForm({...form, estoque_minimo: e.target.value})} className="w-full p-3 mt-1 bg-white border border-amber-200 rounded-xl font-bold text-amber-700 outline-none focus:border-amber-500 shadow-sm"/>
-                        </div>
-                        <div>
-                           <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Qtd. Máxima</label>
-                           <input type="number" min="0" placeholder="Ex: 50" value={form.estoque_maximo} onChange={e=>setForm({...form, estoque_maximo: e.target.value})} className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-slate-500 shadow-sm"/>
+                           <label className="text-[10px] font-bold text-sky-700 uppercase tracking-widest block mb-1">Estoque Máximo (Ideal)</label>
+                           <input
+                              type="number" step="1" min="0" placeholder="Ex: 50 un."
+                              value={form.estoque_maximo}
+                              onChange={e => setForm({ ...form, estoque_maximo: e.target.value })}
+                              className="w-full p-3 bg-white border border-sky-200 rounded-xl font-bold text-sky-900 outline-none focus:border-sky-500 shadow-sm"
+                           />
+                           <span className="text-[9px] font-semibold text-sky-700 mt-1 block">Limite ideal de compras</span>
                         </div>
                      </div>
                   </div>
@@ -808,64 +908,8 @@ function IngredientesRunner() {
                      )}
                   </div>
 
-                  {/* ESTOQUE INICIAL E PARÂMETROS */}
-                  {!form.id && (
-                    <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-4 space-y-3">
-                       <div className="flex items-center justify-between">
-                          <p className="text-xs font-black uppercase tracking-widest text-emerald-800 flex items-center gap-1.5">
-                             📦 Estoque Inicial no Cadastro (opcional)
-                          </p>
-                          <span className="text-[10px] font-bold bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded-md">Entrada Automática</span>
-                       </div>
-                       <div>
-                          <label className="text-[11px] font-bold text-slate-600 uppercase tracking-widest block mb-1">
-                             Quantas unidades / embalagens você já tem no estoque hoje?
-                          </label>
-                          <div className="relative">
-                             <input
-                                type="number" step="1" min="0" placeholder="Ex: 24 (garrafas / pacotes / caixas)"
-                                value={form.estoque_inicial}
-                                onChange={e => setForm({ ...form, estoque_inicial: e.target.value })}
-                                className="w-full p-3.5 bg-white border border-emerald-300 rounded-xl font-black text-slate-800 outline-none focus:border-emerald-500"
-                             />
-                             <span className="absolute right-4 top-1/2 -translate-y-1/2 font-black text-slate-400 text-xs">unidades</span>
-                          </div>
-                          {Number(form.tamanho_embalagem) > 1 && Number(form.estoque_inicial) > 0 && (
-                             <p className="text-[11px] font-bold text-emerald-700 mt-1">
-                                ✓ {form.estoque_inicial} unidades × {form.tamanho_embalagem} {form.unidade_medida} = <b>{(Number(form.estoque_inicial) * Number(form.tamanho_embalagem)).toLocaleString('pt-BR')} {form.unidade_medida}</b> serão adicionados ao estoque.
-                             </p>
-                          )}
-                       </div>
-                    </div>
-                  )}
-
-                  {/* ESTOQUE MÍNIMO E MÁXIMO (ALERTAS) */}
-                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
-                     <p className="text-xs font-black uppercase tracking-widest text-slate-700">⚙️ Alertas de Reposição (Estoque Mínimo / Máximo)</p>
-                     <div className="grid grid-cols-2 gap-3">
-                        <div>
-                           <label className="text-[10px] font-bold text-amber-700 uppercase tracking-widest block mb-1">Mínimo (em unidades)</label>
-                           <input
-                              type="number" step="1" min="0" placeholder="Ex: 5 un."
-                              value={form.estoque_minimo}
-                              onChange={e => setForm({ ...form, estoque_minimo: e.target.value })}
-                              className="w-full p-3 bg-white border border-amber-200 rounded-xl font-bold text-amber-900 outline-none focus:border-amber-500"
-                           />
-                        </div>
-                        <div>
-                           <label className="text-[10px] font-bold text-sky-700 uppercase tracking-widest block mb-1">Máximo (em unidades)</label>
-                           <input
-                              type="number" step="1" min="0" placeholder="Ex: 50 un."
-                              value={form.estoque_maximo}
-                              onChange={e => setForm({ ...form, estoque_maximo: e.target.value })}
-                              className="w-full p-3 bg-white border border-sky-200 rounded-xl font-bold text-sky-900 outline-none focus:border-sky-500"
-                           />
-                        </div>
-                     </div>
-                  </div>
-
                   <p className="text-[11px] font-medium text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-100 mt-4">
-                     Dica: informe o volume, a unidade e o valor pago. Ex.: Heineken 600 ml por R$ 8,50 → Vol "600", Unidade "ML", Valor "8,50". Se informar 24 unidades no estoque inicial, o produto já entra disponível no estoque do bar/cozinha automaticamente.
+                     Dica: informe o volume/tamanho, a unidade e o valor pago. Ex.: Heineken 600 ml por R$ 8,50 → Vol "600", Unidade "ML", Valor "8,50". Se informar 24 unidades no estoque inicial, o produto entra disponível no estoque do bar/cozinha automaticamente.
                   </p>
                </div>
 

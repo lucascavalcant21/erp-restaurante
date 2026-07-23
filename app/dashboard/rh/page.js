@@ -7,7 +7,7 @@ import { useERP } from "../../context/ERPContext";
 import {
   fetchColaboradores, inserirColaborador, removerColaborador, atualizarColaborador, 
   fetchDocumentos, uploadDocumentoRH, removerDocumento,
-  fetchCargos,
+  fetchCargos, fetchHistoricoPromocoes,
   fetchAllFolgasDaUnidade, fetchFolgasEsporadicas, inserirFolgaEsporadica, removerFolgaEsporadica,
   fetchConsumoFuncionario, inserirConsumoFuncionario, atualizarStatusConsumo, removerConsumoFuncionario,
   fetchBancoHoras, inserirBancoHoras, removerBancoHoras, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN,
@@ -33,7 +33,7 @@ import {
 import { fmtBRL } from "../../components/ui";
 import { comFecharImpressao } from "../../lib/imprimir";
 import BancoTalentos from "./components/BancoTalentos";
-import PlanoCargos from "./components/PlanoCargos";
+import PlanoCargos, { imprimirCertificadoPromocao } from "./components/PlanoCargos";
 
 // Horário esperado de um colaborador para um dia da semana (0=Dom..6=Sáb).
 // Usa a jornada por-dia se ativada; senão o horário de domingo; senão o fixo.
@@ -118,6 +118,14 @@ export default function RHPage() {
     setModalDiarias({ func: f, lista: [], loading: true });
     const { data } = await fetchLiberacoesColab(f.id);
     setModalDiarias({ func: f, lista: data || [], loading: false });
+  };
+
+  // Trajetória / Linha do Tempo de Carreira
+  const [modalCarreira, setModalCarreira] = useState(null); // { func, lista, loading }
+  const abrirHistoricoCarreira = async (f) => {
+    setModalCarreira({ func: f, lista: [], loading: true });
+    const data = await fetchHistoricoPromocoes(f.id);
+    setModalCarreira({ func: f, lista: data || [], loading: false });
   };
 
   const abrirModalFicha = (f) => {
@@ -1786,6 +1794,7 @@ export default function RHPage() {
                         Banco de Horas
                      </Acao>
                      <Acao icon={CalendarHeart} cor="text-rose-600" bg="bg-rose-50 hover:bg-rose-100" onClick={() => ir(() => abrirModalFolgas(f))}>Folgas</Acao>
+                     <Acao icon={Award} cor="text-purple-600" bg="bg-purple-50 hover:bg-purple-100" onClick={() => ir(() => abrirHistoricoCarreira(f))}>Linha do Tempo de Carreira</Acao>
                   </Grupo>
 
                   <Grupo titulo="Financeiro">

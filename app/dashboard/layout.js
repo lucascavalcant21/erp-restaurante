@@ -288,11 +288,11 @@ function SidebarSection({ section, idx, ativo, onOpen }) {
     <div className="animate-in fade-in slide-in-from-left-2" style={{ animationDelay: `${idx * 50}ms`, animationFillMode: 'both' }}>
       <button
         onClick={onOpen}
-        className={`w-full min-h-12 xl:min-h-11 px-3 py-2.5 text-[12px] xl:text-[10px] font-black uppercase tracking-widest mb-1 flex items-center justify-between rounded-xl transition-colors group outline-none text-left ${ativo
+        className={`w-full min-h-10 px-2.5 py-2 text-[11px] xl:text-[10px] font-black uppercase tracking-wider flex items-center justify-between rounded-lg transition-colors group outline-none text-left ${ativo
           ? "bg-emerald-500/10 text-emerald-300"
           : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/40"}`}
       >
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
            <section.icon size={16} className={`transition-colors shrink-0 xl:w-[13px] xl:h-[13px] ${ativo ? "text-emerald-400" : "text-slate-600 group-hover:text-slate-400"}`} />
            {section.category}
         </div>
@@ -338,18 +338,18 @@ function Sidebar({ mobileOpen, setMobileOpen, collapsed, rotasPermitidas, sessao
         erp-sidebar fixed inset-y-0 left-0 z-50 bg-[#0A1128] border-r border-slate-800/50
         flex flex-col transition-all duration-300 ease-in-out shadow-2xl whitespace-nowrap overflow-hidden
         xl:static xl:z-auto xl:shadow-none
-        ${mobileOpen ? "translate-x-0 w-[min(18rem,calc(100vw-2rem))]" : "-translate-x-full w-[min(18rem,calc(100vw-2rem))]"}
-        ${collapsed ? "xl:translate-x-0 xl:w-0 xl:border-r-0" : "xl:translate-x-0 xl:w-72"}
+        ${mobileOpen ? "translate-x-0 w-[min(16rem,calc(100vw-2rem))]" : "-translate-x-full w-[min(16rem,calc(100vw-2rem))]"}
+        ${collapsed ? "xl:translate-x-0 xl:w-0 xl:border-r-0" : "xl:translate-x-0 xl:w-60"}
       `} aria-label="Menu principal">
         {/* Logo Area */}
-        <div className="erp-sidebar-logo min-h-16 flex items-center justify-between px-4 sm:px-6 shrink-0 relative overflow-hidden">
+        <div className="erp-sidebar-logo min-h-14 flex items-center justify-between px-3 sm:px-4 shrink-0 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-emerald-600/10 to-transparent pointer-events-none" />
           
-          <button onClick={() => router.push('/dashboard')} className="flex items-center gap-3 relative z-10 hover:opacity-80 transition-opacity text-left">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-              <UtensilsCrossed size={16} className="text-white" />
+          <button onClick={() => router.push('/dashboard')} className="flex items-center gap-2.5 relative z-10 hover:opacity-80 transition-opacity text-left">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+              <UtensilsCrossed size={14} className="text-white" />
             </div>
-            <span className="text-xl font-black text-white tracking-tight">Hefisto</span>
+            <span className="text-lg font-black text-white tracking-tight">Hefisto</span>
           </button>
           
           {/* Fechar: no celular fecha o overlay */}
@@ -359,7 +359,7 @@ function Sidebar({ mobileOpen, setMobileOpen, collapsed, rotasPermitidas, sessao
         </div>
 
         {/* Scrollable Menu */}
-        <div className="erp-sidebar-scroll flex-1 overflow-y-auto overscroll-contain custom-scrollbar px-3 sm:px-4 py-3 space-y-4">
+        <div className="erp-sidebar-scroll flex-1 overflow-y-auto overscroll-contain custom-scrollbar px-2.5 sm:px-3 py-2 space-y-2">
           {menu.map((section, idx) => (
             <SidebarSection key={idx} section={section} idx={idx} ativo={moduloAtivo.category === section.category}
               onOpen={() => {
@@ -376,9 +376,9 @@ function Sidebar({ mobileOpen, setMobileOpen, collapsed, rotasPermitidas, sessao
         </div>
         
         {/* User Profile Footer */}
-        <div className="erp-sidebar-footer p-3 sm:p-4 border-t border-slate-800/50 shrink-0">
-          <div className="bg-slate-800/30 rounded-xl p-3 flex items-center gap-3 border border-slate-700/50 group">
-             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-700 to-slate-600 flex items-center justify-center text-slate-200 font-bold shadow-inner group-hover:scale-105 transition-transform">
+        <div className="erp-sidebar-footer p-2 sm:p-3 border-t border-slate-800/50 shrink-0">
+          <div className="bg-slate-800/30 rounded-lg p-2.5 flex items-center gap-2.5 border border-slate-700/50 group">
+             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-700 to-slate-600 flex items-center justify-center text-slate-200 text-sm font-bold shadow-inner group-hover:scale-105 transition-transform">
                {String(sessao?.nome || sessao?.email || "U").trim().charAt(0).toUpperCase()}
              </div>
              <div className="min-w-0">

@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { fetchEstoque } from "../lib/estoque";
 import { fetchEtiquetas } from "../lib/etiquetas";
 import { fetchUnidades, unidadeDaSessao, podeVerTodas, getUnidade } from "../lib/unidades";
@@ -11,7 +12,33 @@ const UNIDADE_KEY = "erp_unidade_ativa";
 
 const ERPContext = createContext(null);
 
+function menuDoModuloAtual(pathname = "", departamento = "") {
+  const dept = String(departamento || "").toLowerCase();
+  if (["cozinha", "bar", "salao"].includes(dept)) return `/dashboard/modulo/${dept}`;
+  if (pathname.startsWith("/dashboard/financeiro")) return "/dashboard/modulo/financeiro";
+  if (pathname.startsWith("/dashboard/rh")) return "/dashboard/modulo/rh";
+  if (
+    pathname.startsWith("/dashboard/gestao")
+    || pathname.startsWith("/dashboard/rede")
+    || pathname.startsWith("/dashboard/configuracoes")
+    || pathname.startsWith("/dashboard/relatorios")
+  ) return "/dashboard/modulo/gestao";
+  if (
+    pathname.startsWith("/dashboard/salao")
+    || pathname.startsWith("/dashboard/mesas")
+    || pathname.startsWith("/dashboard/delivery")
+  ) return "/dashboard/modulo/salao";
+  if (
+    pathname.startsWith("/dashboard/cozinha")
+    || pathname.startsWith("/dashboard/kds")
+    || pathname.startsWith("/dashboard/operacao")
+  ) return "/dashboard/modulo/cozinha";
+  return "/dashboard";
+}
+
 export function ERPProvider({ children }) {
+  const router = useRouter();
+  const pathname = usePathname();
   // Tempo real: o banco avisa e as telas recarregam sozinhas
   useEffect(() => { iniciarTempoReal(); }, []);
   const [estoque,      setEstoque]      = useState([]);
@@ -25,7 +52,13 @@ export function ERPProvider({ children }) {
   const [sessao,       setSessao]            = useState(null);
   const [megaMenuOpen, setMegaMenuOpen]      = useState(false);
 
-  const abrirMenu = useCallback(() => setMegaMenuOpen(true), []);
+  const abrirMenu = useCallback(() => {
+    setMegaMenuOpen(false);
+    const dept = typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("dept")
+      : "";
+    router.push(menuDoModuloAtual(pathname, dept));
+  }, [pathname, router]);
   const fecharMenu = useCallback(() => setMegaMenuOpen(false), []);
 
   const recarregarUnidades = useCallback(async () => {

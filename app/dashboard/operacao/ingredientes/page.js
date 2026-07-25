@@ -97,8 +97,8 @@ function CalculadoraRapida({ insumo, estado, onChange }) {
   const resultado = calcularCustoSolicitado(insumo, quantidade, unidade);
 
   return (
-    <div className="min-w-[168px]">
-      <div className="flex h-9 overflow-hidden rounded-lg border border-slate-200 bg-white focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100">
+    <div className="min-w-[156px]">
+      <div className="flex h-8 overflow-hidden rounded-md border border-slate-200 bg-white focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100">
         <input
           aria-label={`Quantidade de ${insumo.nome}`}
           inputMode="decimal"
@@ -109,13 +109,13 @@ function CalculadoraRapida({ insumo, estado, onChange }) {
             if (valor.startsWith("-")) return;
             onChange({ quantidade: valor, unidade });
           }}
-          className="w-[74px] min-w-0 px-2.5 text-sm font-bold text-slate-700 outline-none"
+          className="w-[68px] min-w-0 px-2 text-xs font-bold text-slate-700 outline-none"
         />
         <select
           aria-label={`Unidade para ${insumo.nome}`}
           value={unidade}
           onChange={event => onChange({ quantidade, unidade: event.target.value })}
-          className="min-w-[58px] flex-1 border-l border-slate-200 bg-slate-50 px-1 text-xs font-bold text-slate-600 outline-none"
+          className="min-w-[54px] flex-1 border-l border-slate-200 bg-slate-50 px-1 text-[11px] font-bold text-slate-600 outline-none"
         >
           {UNIDADES_INGREDIENTE.map(item => (
             <option key={item.value} value={item.value}>{item.label}</option>
@@ -136,7 +136,7 @@ function CalculadoraRapida({ insumo, estado, onChange }) {
       {resultado.erro ? (
         <p className="mt-1 max-w-[190px] text-[10px] font-semibold leading-tight text-amber-700">{resultado.erro}</p>
       ) : (
-        <p className="mt-1 text-xs font-bold text-slate-500">
+        <p className="mt-0.5 text-[11px] font-bold text-slate-500">
           {resultado.valor === null ? "Informe uma quantidade" : `= ${fmtBRL(resultado.valor)}`}
         </p>
       )}
@@ -262,7 +262,7 @@ function IngredientesRunner() {
       codigo_interno: insumo.codigo_interno || "",
       tamanho_embalagem: String(insumo.tamanho_embalagem || 1),
       unidade_medida: insumo.unidade_medida || "kg",
-      valor_embalagem: String(insumo.custo_compra ?? ""),
+      valor_embalagem: String(Number(insumo.custo_compra) > 0 ? insumo.custo_compra : (insumo.custo_unitario || "")),
       fornecedor_atual_id: insumo.fornecedor_atual_id || "",
       fornecedor_ids: (insumo.fornecedores_vinculados || []).map(item => item.id).filter(Boolean),
       densidade_g_ml: insumo.densidade_g_ml ? String(insumo.densidade_g_ml) : "",
@@ -362,7 +362,7 @@ function IngredientesRunner() {
   return (
     <div className="min-h-screen bg-slate-50 pb-20 text-slate-800">
       <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-[1480px] flex-col gap-5 px-4 py-6 sm:px-6 xl:flex-row xl:items-center xl:justify-between">
+        <div className="mx-auto flex max-w-[1480px] flex-col gap-3 px-4 py-4 sm:px-5 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex items-center gap-4">
             <button
               onClick={abrirMenu}
@@ -372,7 +372,7 @@ function IngredientesRunner() {
               <ArrowLeft size={19} />
             </button>
             <div>
-              <h1 className="text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">Ingredientes cadastrados</h1>
+              <h1 className="text-2xl font-black tracking-tight text-slate-950">Ingredientes cadastrados</h1>
               <p className="mt-1 text-sm font-medium text-slate-500">Catálogo de ingredientes e histórico de preços</p>
             </div>
           </div>
@@ -401,7 +401,7 @@ function IngredientesRunner() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1480px] px-4 py-6 sm:px-6">
+      <main className="mx-auto max-w-[1480px] px-4 py-4 sm:px-5">
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[
             { icon: Package, label: "Total de ingredientes", value: estatisticas.total, note: "No catálogo", color: "emerald" },
@@ -416,13 +416,13 @@ function IngredientesRunner() {
               blue: "bg-blue-50 text-blue-600",
             };
             return (
-              <div key={card.label} className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-                <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${cores[card.color]}`}>
-                  <card.icon size={22} />
+              <div key={card.label} className="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+                <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${cores[card.color]}`}>
+                  <card.icon size={18} />
                 </div>
                 <div className="min-w-0">
                   <p className="truncate text-xs font-bold text-slate-500">{card.label}</p>
-                  <p className="text-xl font-black text-slate-900">{card.value}</p>
+                  <p className="text-lg font-black leading-tight text-slate-900">{card.value}</p>
                   <p className="hidden text-[11px] text-slate-400 sm:block">{card.note}</p>
                 </div>
               </div>
@@ -430,13 +430,13 @@ function IngredientesRunner() {
           })}
         </section>
 
-        <section className="mt-5 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <section className="mt-3 flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div className="flex gap-2 overflow-x-auto">
             {["Todas", ...categorias].map(item => (
               <button
                 key={item}
                 onClick={() => setCategoria(item)}
-                className={`shrink-0 rounded-lg px-3 py-2 text-xs font-bold transition ${
+                className={`shrink-0 rounded-lg px-2.5 py-1.5 text-[11px] font-bold transition ${
                   categoria === item ? "bg-slate-900 text-white" : "bg-slate-50 text-slate-500 hover:bg-slate-100"
                 }`}
               >
@@ -447,26 +447,26 @@ function IngredientesRunner() {
           <select
             value={ordenacao}
             onChange={event => setOrdenacao(event.target.value)}
-            className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 outline-none focus:border-emerald-500"
+            className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 outline-none focus:border-emerald-500"
             aria-label="Ordenação dos ingredientes"
           >
             {ORDENACOES.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
           </select>
         </section>
 
-        <section className="mt-5 hidden overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm lg:block">
-          <table className="w-full min-w-[1320px] table-fixed text-left">
+        <section className="mt-3 hidden overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm lg:block">
+          <table className="w-full min-w-[1050px] table-fixed text-left">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-black uppercase tracking-wide text-slate-500">
-                <th className="w-[240px] px-5 py-4">Ingrediente</th>
-                <th className="w-[115px] px-3 py-4">Marca</th>
-                <th className="w-[100px] px-3 py-4">Embalagem</th>
-                <th className="w-[165px] px-3 py-4">Fornecedor</th>
-                <th className="w-[130px] px-3 py-4">Valor atual</th>
-                <th className="w-[205px] px-3 py-4">Calcular quantidade</th>
-                <th className="w-[115px] px-3 py-4">Variação</th>
-                <th className="w-[115px] px-3 py-4">Histórico</th>
-                <th className="w-[110px] px-3 py-4 text-right">Ações</th>
+                <th className="w-[190px] px-4 py-3">Ingrediente</th>
+                <th className="w-[85px] px-2.5 py-3">Marca</th>
+                <th className="w-[80px] px-2.5 py-3">Embalagem</th>
+                <th className="w-[125px] px-2.5 py-3">Fornecedor</th>
+                <th className="w-[110px] px-2.5 py-3">Valor atual</th>
+                <th className="w-[170px] px-2.5 py-3">Calcular quantidade</th>
+                <th className="w-[95px] px-2.5 py-3">Variação</th>
+                <th className="w-[95px] px-2.5 py-3">Histórico</th>
+                <th className="sticky right-0 z-[6] w-[85px] bg-slate-50 px-2.5 py-3 text-right shadow-[-8px_0_14px_-12px_rgba(15,23,42,0.45)]">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -480,51 +480,51 @@ function IngredientesRunner() {
                 const normalizado = precoNormalizadoDoInsumo(insumo);
                 return (
                   <tr key={insumo.id} className="align-middle transition hover:bg-emerald-50/30">
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-2">
                       <p className="truncate text-sm font-black text-slate-900">{insumo.nome}</p>
-                      <p className="mt-1 truncate text-xs text-slate-500">
+                      <p className="mt-0.5 truncate text-[11px] text-slate-500">
                         {insumo.codigo_interno || "Sem código"}
                         {insumo.nome_interno ? ` · ${insumo.nome_interno}` : ""}
                         {insumo.categoria ? ` · ${insumo.categoria}` : ""}
                       </p>
                     </td>
-                    <td className="px-3 py-4 text-xs font-bold text-slate-600">{insumo.marca || "Sem marca"}</td>
-                    <td className="px-3 py-4 text-sm font-bold text-slate-700">
+                    <td className="px-2.5 py-2 text-xs font-bold text-slate-600">{insumo.marca || "Sem marca"}</td>
+                    <td className="px-2.5 py-2 text-xs font-bold text-slate-700">
                       {fmtQuantidade(insumo.tamanho_embalagem || 1)} {unidadeLabel(insumo.unidade_medida)}
                     </td>
-                    <td className="px-3 py-4">
+                    <td className="px-2.5 py-2">
                       <p className="truncate text-xs font-bold text-slate-700">{nomeFornecedorAtual(insumo)}</p>
                       {outros > 0 && <p className="mt-1 text-[11px] font-bold text-emerald-600">+{outros} fornecedor{outros > 1 ? "es" : ""}</p>}
                     </td>
-                    <td className="px-3 py-4">
+                    <td className="px-2.5 py-2">
                       <p className="text-sm font-black text-slate-900">{fmtBRL(insumo.custo_compra ?? 0)}</p>
-                      <p className="mt-1 text-xs font-medium text-slate-500">
+                      <p className="mt-0.5 text-[11px] font-medium text-slate-500">
                         {fmtBRL(normalizado)}/{unidadeNormalizada(insumo.unidade_medida)}
                       </p>
                     </td>
-                    <td className="px-3 py-4">
+                    <td className="px-2.5 py-2">
                       <CalculadoraRapida
                         insumo={insumo}
                         estado={calculos[insumo.id]}
                         onChange={estado => setCalculos(atual => ({ ...atual, [insumo.id]: estado }))}
                       />
                     </td>
-                    <td className="px-3 py-4"><VariacaoPreco insumo={insumo} /></td>
-                    <td className="px-3 py-4">
+                    <td className="px-2.5 py-2"><VariacaoPreco insumo={insumo} /></td>
+                    <td className="px-2.5 py-2">
                       <button
                         onClick={() => abrirHistorico(insumo)}
-                        className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
+                        className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-[11px] font-bold text-slate-600 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
                       >
                         Ver histórico
                       </button>
                     </td>
-                    <td className="px-3 py-4">
+                    <td className="sticky right-0 z-[3] bg-white px-2.5 py-2 shadow-[-8px_0_14px_-12px_rgba(15,23,42,0.45)]">
                       <div className="flex justify-end gap-1.5">
-                        <button onClick={() => abrirEditar(insumo)} title="Editar" className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-blue-50 hover:text-blue-600">
-                          <Edit3 size={15} />
+                        <button onClick={() => abrirEditar(insumo)} title="Editar" className="rounded-lg border border-slate-200 p-1.5 text-slate-500 hover:bg-blue-50 hover:text-blue-600">
+                          <Edit3 size={14} />
                         </button>
-                        <button onClick={() => handleRemover(insumo)} title="Remover" className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-red-50 hover:text-red-600">
-                          <Trash2 size={15} />
+                        <button onClick={() => handleRemover(insumo)} title="Remover" className="rounded-lg border border-slate-200 p-1.5 text-slate-500 hover:bg-red-50 hover:text-red-600">
+                          <Trash2 size={14} />
                         </button>
                       </div>
                     </td>
@@ -535,7 +535,7 @@ function IngredientesRunner() {
           </table>
         </section>
 
-        <section className="mt-5 space-y-3 lg:hidden">
+        <section className="mt-3 space-y-2 lg:hidden">
           {loading ? (
             <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-sm font-bold text-slate-400">Carregando ingredientes...</div>
           ) : paginados.length === 0 ? (
@@ -544,7 +544,7 @@ function IngredientesRunner() {
             const vinculados = insumo.fornecedores_vinculados || [];
             const normalizado = precoNormalizadoDoInsumo(insumo);
             return (
-              <article key={insumo.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <article key={insumo.id} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h2 className="truncate font-black text-slate-900">{insumo.nome}</h2>
@@ -554,7 +554,7 @@ function IngredientesRunner() {
                   </div>
                   <span className="shrink-0 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-black text-slate-600">{insumo.marca || "Sem marca"}</span>
                 </div>
-                <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Embalagem</p>
                     <p className="mt-1 font-bold">{fmtQuantidade(insumo.tamanho_embalagem || 1)} {unidadeLabel(insumo.unidade_medida)}</p>
@@ -574,7 +574,7 @@ function IngredientesRunner() {
                     <div className="mt-1"><VariacaoPreco insumo={insumo} /></div>
                   </div>
                 </div>
-                <div className="mt-4 border-t border-slate-100 pt-4">
+                <div className="mt-3 border-t border-slate-100 pt-3">
                   <p className="mb-2 text-[10px] font-black uppercase tracking-wide text-slate-400">Calcular quantidade</p>
                   <CalculadoraRapida
                     insumo={insumo}
@@ -582,7 +582,7 @@ function IngredientesRunner() {
                     onChange={estado => setCalculos(atual => ({ ...atual, [insumo.id]: estado }))}
                   />
                 </div>
-                <div className="mt-4 flex items-center gap-2">
+                <div className="mt-3 flex items-center gap-2">
                   <button onClick={() => abrirHistorico(insumo)} className="flex-1 rounded-lg border border-slate-200 py-2.5 text-xs font-bold text-slate-600">Ver histórico</button>
                   <button onClick={() => abrirEditar(insumo)} className="rounded-lg border border-slate-200 p-2.5 text-slate-500"><Edit3 size={16} /></button>
                   <button onClick={() => handleRemover(insumo)} className="rounded-lg border border-slate-200 p-2.5 text-slate-500"><Trash2 size={16} /></button>

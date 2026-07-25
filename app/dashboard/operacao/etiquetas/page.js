@@ -20,6 +20,7 @@ import {
   conectarAssistenteImpressao, observarAssistenteImpressao,
   imprimirEtiquetasTp20, PERFIS_TP20,
 } from "../../../lib/impressaoTermica";
+import { baixarPdfDeHtml } from "../../../lib/pdf";
 
 const UNIDADES = ["UN", "KG", "G", "L", "ML", "CX", "PCT", "BANDEJA"];
 const ICONE_CONS = { Resfriado: Thermometer, Congelado: Snowflake, Ambiente: Box };
@@ -490,6 +491,23 @@ function EtiquetasRunner() {
           window.print();
         }
         setSalvou("Impressão aberta.");
+      } else if (modoImpressao === "pdf") {
+        // PDF no TAMANHO EXATO da etiqueta: o arquivo carrega a geometria da
+        // página, então ao imprimir a 100% (Tamanho real) não vira miniatura —
+        // mesmo com o driver configurado em A4.
+        const area = document.getElementById("area-impressao");
+        if (area) {
+          const larguraMm = parseFloat(dim.paginaW) || 80;
+          const alturaEtqMm = parseFloat(dim.h) || 40;
+          const alturaTiraMm = modoTira === "tira" ? alturaEtqMm * quantidadeCopias : alturaEtqMm;
+          const htmlPdf = `<!doctype html><html><head><meta charset="utf-8"><style>
+            *{box-sizing:border-box} html,body{margin:0;padding:0;background:#fff}
+            #wrap{width:${dim.paginaW};margin:0 auto;display:flex;flex-direction:column;gap:0}
+            .etiqueta-print{overflow:hidden;box-shadow:none!important;border-radius:0!important;margin:0 auto!important}
+            </style></head><body><div id="wrap">${area.innerHTML}</div></body></html>`;
+          baixarPdfDeHtml(htmlPdf, `etiqueta_${codigo}`, { formatoMm: [larguraMm, modoTira === "tira" ? alturaTiraMm : alturaEtqMm] });
+          setSalvou('PDF gerado. Ao imprimir o PDF, escolha "Tamanho real / 100%".');
+        }
       }
 
       // Confirma o registro que rodou em paralelo com a impressão
@@ -705,13 +723,21 @@ function EtiquetasRunner() {
               </a>
             </Card>
 
-            <div className="grid sm:grid-cols-2 gap-3">
-              <Btn variant="ghost" disabled={salvando} onClick={() => salvar("")}><Save size={16} /> {salvando ? "Salvando..." : "Salvar"}</Btn>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <Btn variant="ghost" disabled={salvando} onClick={() => salvar("")}><Save size={16} /> {salvando ? "..." : "Salvar"}</Btn>
               {/* Um único botão Imprimir: usa a TP20 se estiver conectada; senão, impressão comum */}
               <Btn variant="primary" disabled={salvando} onClick={() => salvar(impressoraStatus === "conectada" ? "tp20" : "navegador")}>
-                <Printer size={16} /> {salvando ? "Aguarde..." : "Imprimir"}
+                <Printer size={16} /> {salvando ? "..." : "Imprimir"}
+              </Btn>
+              <Btn variant="ghost" disabled={salvando} onClick={() => salvar("pdf")} title="Gera um PDF no tamanho exato da etiqueta — imprima o PDF em 'Tamanho real / 100%' para não sair miniatura">
+                <Printer size={16} /> PDF exato
               </Btn>
             </div>
+            {impressoraStatus !== "conectada" && (
+              <p className="text-[11px] mt-2 px-3 py-2 rounded-xl" style={{ background: "rgba(245,158,11,0.12)", color: "#B45309" }}>
+                Saindo <b>miniatura</b> ou borrado? O navegador imprime em ~96dpi e o driver costuma forçar A4. Para etiqueta nítida no tamanho certo: use o <b>PDF exato</b> (e imprima em "Tamanho real / 100%"), ou conecte a <b>impressora térmica</b> no botão acima (qualidade nativa 203dpi).
+              </p>
+            )}
 
             {/* FILA: vários produtos, cada um com suas cópias, numa impressão só */}
             <Card className="!p-4 mt-3">

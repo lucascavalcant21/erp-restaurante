@@ -23,7 +23,10 @@ import { lerSessao } from "../lib/auth";
 
 const norm = (s) => Array.from(String(s || "").toLowerCase().normalize("NFD")).filter((c) => { const k = c.charCodeAt(0); return k < 0x300 || k > 0x36f; }).join("");
 
-export default function ModuleHub({ config }) {
+// Verde único da marca para TODAS as colunas de todos os módulos.
+const VERDE = "#059669";
+
+export default function ModuleHub({ config, counts = {} }) {
   const router = useRouter();
   const [busca, setBusca] = useState("");
   const [papel, setPapel] = useState(null);
@@ -100,7 +103,7 @@ export default function ModuleHub({ config }) {
           <div className="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:[grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
             {colunas.map((col, i) => {
               const ColIcon = col.icon;
-              const accent = col.accent || "var(--accent-strong, #047857)";
+              const accent = VERDE; // cor única (verde) para todos os módulos
               return (
                 <section key={col.title + i} className="rounded-2xl border p-3 sm:p-4 flex flex-col" style={{ background: "var(--card, #f8fafc)", borderColor: "var(--line, #e2e8f0)" }}>
                   {/* Cabeçalho da categoria */}
@@ -120,6 +123,7 @@ export default function ModuleHub({ config }) {
                   <div className="flex flex-col gap-1.5">
                     {col.itens.map((it, j) => {
                       const ItIcon = it.icon;
+                      const contador = it.count ?? (it.countKey ? counts?.[it.countKey] : undefined);
                       return (
                         <button
                           key={it.href + j}
@@ -139,8 +143,8 @@ export default function ModuleHub({ config }) {
                             </div>
                             {it.desc && <p className="text-[11px] font-medium truncate" style={{ color: "var(--dim, #94a3b8)" }}>{it.desc}</p>}
                           </div>
-                          {(it.count !== undefined && it.count !== null && it.count !== "") && (
-                            <span className="text-[11px] font-black px-2 py-0.5 rounded-full shrink-0" style={{ background: "var(--elevated, #eef2f7)", color: "var(--muted, #475569)" }}>{it.count}</span>
+                          {(contador !== undefined && contador !== null && contador !== "") && (
+                            <span className="text-[11px] font-black px-2 py-0.5 rounded-full shrink-0" style={{ background: accent + "1a", color: accent }}>{contador}</span>
                           )}
                         </button>
                       );

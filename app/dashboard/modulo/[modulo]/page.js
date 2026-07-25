@@ -1,6 +1,9 @@
 "use client";
 
 import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useERP } from "../../../context/ERPContext";
+import { fetchContadoresModulo } from "../../../lib/contadores";
 import {
   AlertTriangle, Armchair, Award, BarChart3, BriefcaseBusiness, Boxes, Calculator,
   CalendarCheck, ClipboardCheck, ClipboardList, FileBarChart, FileText, FlaskConical,
@@ -17,22 +20,22 @@ const MODULOS = {
     title: "Operação da Cozinha", subtitle: "Cadastros, estoque, produção, qualidade e rotinas da cozinha", icon: Utensils,
     columns: [
       { title: "Cadastros", subtitle: "Base da cozinha", icon: FlaskConical, accent: "#059669", items: [
-        { label: "Ingredientes", desc: "Matérias-primas e itens", href: "/dashboard/operacao/ingredientes?dept=cozinha", icon: FlaskConical },
-        { label: "Fichas Técnicas", desc: "Receitas e composições", href: "/dashboard/operacao/fichas?dept=cozinha", icon: LayoutList },
-        { label: "Fornecedores", desc: "Contatos e compras", href: "/dashboard/operacao/fornecedores", icon: Users },
+        { label: "Ingredientes", desc: "Matérias-primas e itens", href: "/dashboard/operacao/ingredientes?dept=cozinha", icon: FlaskConical, countKey: "insumos" },
+        { label: "Fichas Técnicas", desc: "Receitas e composições", href: "/dashboard/operacao/fichas?dept=cozinha", icon: LayoutList, countKey: "fichas" },
+        { label: "Fornecedores", desc: "Contatos e compras", href: "/dashboard/operacao/fornecedores", icon: Users, countKey: "fornecedores" },
       ]},
       { title: "Estoque e Compras", subtitle: "Movimentações e abastecimento", icon: PackageSearch, accent: "#0891b2", items: [
-        { label: "Estoque", desc: "Consulta de estoque atual", href: "/dashboard/operacao/estoque?dept=cozinha", icon: Boxes },
+        { label: "Estoque", desc: "Consulta de estoque atual", href: "/dashboard/operacao/estoque?dept=cozinha", icon: Boxes, countKey: "estoque" },
         { label: "Compras", desc: "Solicitações e pedidos", href: "/dashboard/operacao/compras?dept=cozinha", icon: ShoppingCart },
-        { label: "Entrada de Notas", desc: "Notas e documentos", href: "/dashboard/operacao/notas?dept=cozinha", icon: ReceiptText },
+        { label: "Entrada de Notas", desc: "Notas e documentos", href: "/dashboard/operacao/notas?dept=cozinha", icon: ReceiptText, countKey: "notas" },
       ]},
       { title: "Produção", subtitle: "Produção e fichas técnicas", icon: ClipboardList, accent: "#7c3aed", items: [
-        { label: "Guia de Montagem", desc: "Passo a passo das receitas", href: "/dashboard/operacao/montagem?dept=cozinha", icon: LayoutList },
+        { label: "Guia de Montagem", desc: "Passo a passo das receitas", href: "/dashboard/operacao/montagem?dept=cozinha", icon: LayoutList, countKey: "montagens" },
         { label: "Produção do Dia", desc: "Produção diária", href: "/dashboard/operacao/producao?dept=cozinha", icon: Package },
         { label: "Orçamento de Eventos", desc: "Buffet e eventos", href: "/dashboard/operacao/orcamento?dept=cozinha", icon: CalendarClock },
       ]},
       { title: "Controle e Qualidade", subtitle: "Qualidade e conformidade", icon: ShieldCheck, accent: "#ea580c", items: [
-        { label: "Etiquetas e Validade", desc: "Controle de validade", href: "/dashboard/operacao/etiquetas?dept=cozinha", icon: Tag },
+        { label: "Etiquetas e Validade", desc: "Controle de validade", href: "/dashboard/operacao/etiquetas?dept=cozinha", icon: Tag, countKey: "etiquetas" },
         { label: "Controle de Validade", desc: "Vencimentos", href: "/dashboard/operacao/validade", icon: CalendarClock },
         { label: "Checklist da Cozinha", desc: "Rotinas e conferências", href: "/dashboard/operacao/rotina?dept=cozinha", icon: ClipboardCheck },
         { label: "Controles de Limpeza", desc: "Higiene e conformidade", href: "/dashboard/operacao/controles", icon: ShieldCheck },
@@ -46,21 +49,21 @@ const MODULOS = {
     title: "Operação do Bar", subtitle: "Drinks, insumos, estoque e rotinas do bar", icon: Wine,
     columns: [
       { title: "Cadastros", subtitle: "Base do bar", icon: FlaskConical, accent: "#059669", items: [
-        { label: "Ingredientes", desc: "Insumos do bar", href: "/dashboard/operacao/ingredientes?dept=bar", icon: FlaskConical },
-        { label: "Fichas de Drinks", desc: "Receitas dos drinks", href: "/dashboard/operacao/fichas?dept=bar", icon: Wine },
+        { label: "Ingredientes", desc: "Insumos do bar", href: "/dashboard/operacao/ingredientes?dept=bar", icon: FlaskConical, countKey: "insumos" },
+        { label: "Fichas de Drinks", desc: "Receitas dos drinks", href: "/dashboard/operacao/fichas?dept=bar", icon: Wine, countKey: "fichas" },
       ]},
       { title: "Estoque e Compras", subtitle: "Abastecimento", icon: PackageSearch, accent: "#0891b2", items: [
-        { label: "Estoque", desc: "Consulta de estoque atual", href: "/dashboard/operacao/estoque?dept=bar", icon: Boxes },
+        { label: "Estoque", desc: "Consulta de estoque atual", href: "/dashboard/operacao/estoque?dept=bar", icon: Boxes, countKey: "estoque" },
         { label: "Compras", desc: "Solicitações e pedidos", href: "/dashboard/operacao/compras?dept=bar", icon: ShoppingCart },
-        { label: "Entrada de Notas", desc: "Notas e documentos", href: "/dashboard/operacao/notas?dept=bar", icon: ReceiptText },
+        { label: "Entrada de Notas", desc: "Notas e documentos", href: "/dashboard/operacao/notas?dept=bar", icon: ReceiptText, countKey: "notas" },
       ]},
       { title: "Produção", subtitle: "Montagem e produção", icon: ClipboardList, accent: "#7c3aed", items: [
-        { label: "Guia de Drinks", desc: "Montagem dos drinks", href: "/dashboard/operacao/montagem?dept=bar", icon: LayoutList },
+        { label: "Guia de Drinks", desc: "Montagem dos drinks", href: "/dashboard/operacao/montagem?dept=bar", icon: LayoutList, countKey: "montagens" },
         { label: "Produção do Dia", desc: "Produção diária", href: "/dashboard/operacao/producao?dept=bar", icon: Package },
         { label: "Orçamento de Eventos", desc: "Buffet e eventos", href: "/dashboard/operacao/orcamento?dept=bar", icon: CalendarClock },
       ]},
       { title: "Controle e Qualidade", subtitle: "Qualidade e rotinas", icon: ShieldCheck, accent: "#ea580c", items: [
-        { label: "Etiquetas e Validade", desc: "Controle de validade", href: "/dashboard/operacao/etiquetas?dept=bar", icon: Tag },
+        { label: "Etiquetas e Validade", desc: "Controle de validade", href: "/dashboard/operacao/etiquetas?dept=bar", icon: Tag, countKey: "etiquetas" },
         { label: "Checklist do Bar", desc: "Rotinas e conferências", href: "/dashboard/operacao/rotina?dept=bar", icon: ClipboardCheck },
       ]},
     ],
@@ -89,7 +92,7 @@ const MODULOS = {
         { label: "Fluxo de Caixa", desc: "Entradas e saídas", href: "/dashboard/financeiro", icon: Wallet },
         { label: "Fluxo detalhado", desc: "Movimentações e histórico", href: "/dashboard/financeiro/fluxo", icon: Landmark },
         { label: "Resultado (DRE)", desc: "Receita, custos e lucro", href: "/dashboard/financeiro/dre", icon: FileBarChart },
-        { label: "Contas", desc: "Compromissos financeiros", href: "/dashboard/financeiro/contas", icon: ReceiptText },
+        { label: "Contas", desc: "Compromissos financeiros", href: "/dashboard/financeiro/contas", icon: ReceiptText, countKey: "contasPendentes" },
       ]},
       { title: "Custos e Metas", subtitle: "Rentabilidade e segurança", icon: Calculator, accent: "#0891b2", items: [
         { label: "CMV", desc: "Custo de mercadoria", href: "/dashboard/financeiro/cmv", icon: Calculator },
@@ -113,7 +116,7 @@ const MODULOS = {
       ]},
       { title: "Pessoas", subtitle: "Estrutura e desenvolvimento", icon: Users, accent: "#7c3aed", items: [
         { label: "Cargos & Carreiras", desc: "Funções e salários", href: "/dashboard/rh/cargos", icon: Award },
-        { label: "Portal do Colaborador", desc: "Acesso da equipe", href: "/dashboard/rh/colaborador", icon: Users },
+        { label: "Portal do Colaborador", desc: "Acesso da equipe", href: "/dashboard/rh/colaborador", icon: Users, countKey: "colaboradores" },
         { label: "Organograma", desc: "Estrutura e lideranças", href: "/dashboard/rh/organograma", icon: Network },
         { label: "Recrutamento", desc: "Vagas e candidatos", href: "/dashboard/rh/recrutamento", icon: BriefcaseBusiness },
       ]},
@@ -127,8 +130,8 @@ const MODULOS = {
     title: "Gestão & Ajustes", subtitle: "Patrimônio, manutenção, auditoria, documentos e configurações", icon: Settings,
     columns: [
       { title: "Patrimônio", subtitle: "Bens e manutenção", icon: PackageSearch, accent: "#d97706", items: [
-        { label: "Inventário", desc: "Bens e equipamentos", href: "/dashboard/gestao/inventario", icon: PackageSearch },
-        { label: "Manutenção", desc: "Chamados e prevenção", href: "/dashboard/gestao/manutencao", icon: Wrench },
+        { label: "Inventário", desc: "Bens e equipamentos", href: "/dashboard/gestao/inventario", icon: PackageSearch, countKey: "inventario" },
+        { label: "Manutenção", desc: "Chamados e prevenção", href: "/dashboard/gestao/manutencao", icon: Wrench, countKey: "manutencoes" },
         { label: "Suprimentos", desc: "Recursos e abastecimento", href: "/dashboard/gestao/suprimentos", icon: ClipboardList },
       ]},
       { title: "Controle", subtitle: "Conferências e histórico", icon: ShieldCheck, accent: "#0891b2", items: [
@@ -147,7 +150,18 @@ const MODULOS = {
 
 export default function ModuloPage() {
   const params = useParams();
-  const config = MODULOS[String(params?.modulo || "").toLowerCase()];
+  const modulo = String(params?.modulo || "").toLowerCase();
+  const config = MODULOS[modulo];
+  const { unidadeAtiva } = useERP();
+  const [counts, setCounts] = useState({});
+
+  useEffect(() => {
+    if (!config || !unidadeAtiva) return;
+    let vivo = true;
+    fetchContadoresModulo(modulo, unidadeAtiva).then((c) => { if (vivo) setCounts(c || {}); }).catch(() => {});
+    return () => { vivo = false; };
+  }, [modulo, unidadeAtiva, config]);
+
   if (!config) {
     return (
       <div className="mx-auto max-w-xl px-5 py-16 text-center">
@@ -156,5 +170,5 @@ export default function ModuloPage() {
       </div>
     );
   }
-  return <ModuleHub config={config} />;
+  return <ModuleHub config={config} counts={counts} />;
 }

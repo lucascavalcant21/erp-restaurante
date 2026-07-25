@@ -1307,12 +1307,15 @@ function imprimirModelo(fichas, cfgEntrada, deptLabel) {
 // nome (coquetéis clássicos e bebidas) — mas nunca pega pratos/petiscos.
 const PALAVRAS_DRINK = /(caipir|mojito|margarita|negroni|spritz|\bgin\b|vodka|tequila|\brum\b|whisk|\bdrink|coquetel|batida|daiquiri|martini|mule|t[ôo]nica|licor|sangria|espumante|\bshot\b|\bdose\b|soda|aperol|campari|cuba|pi[ñn]a colada|bloody mary|cosmopolitan)/i;
 const TIPOS_CAMADA_DRINK = new Set(["copo", "gelo", "liquido", "decoracao"]);
+// Pré-preparos do bar (xaropes, espumas, geleias) — entram no guia como
+// categorias próprias, pelo nome.
+const PALAVRAS_PREPARO_BAR = /(xarope|espuma|geleia|gel[ée]ia|redu[çc][ãa]o|infus[ãa]o|calda|pur[êe]|tônico caseiro|bitters?\b)/i;
 function ehDrinkGuia(m) {
   if (!m) return false;
   if (m.tipo === "drink") return true;
   const camadas = Array.isArray(m.estrutura_ia) ? m.estrutura_ia : [];
   if (camadas.some((c) => TIPOS_CAMADA_DRINK.has(c.tipo))) return true;
-  return PALAVRAS_DRINK.test(m.nome || "");
+  return PALAVRAS_DRINK.test(m.nome || "") || PALAVRAS_PREPARO_BAR.test(m.nome || "");
 }
 
 // Bebida alcoólica: detecta pelo texto dos ingredientes/nome/preparo.
@@ -1324,9 +1327,17 @@ function temAlcool(m) {
 }
 // Dose/shot: uma medida única de destilado.
 const PALAVRAS_DOSE = /(\bdose\b|\bshot\b|\bshots\b|\bcavalinho\b)/i;
+const RE_XAROPE = /(xarope|calda|redu[çc][ãa]o|infus[ãa]o|tônico caseiro)/i;
+const RE_ESPUMA = /(espuma|\bfoam\b|\bair\b|\bespumante caseiro)/i;
+const RE_GELEIA = /(geleia|gel[ée]ia|pur[êe]|marmelada|compota)/i;
 function categoriaDrink(m) {
+  const nome = m.nome || "";
+  // Pré-preparos primeiro (pelo NOME): um xarope alcoólico ainda é xarope.
+  if (RE_XAROPE.test(nome)) return "Xaropes";
+  if (RE_ESPUMA.test(nome)) return "Espumas";
+  if (RE_GELEIA.test(nome)) return "Geleias";
   const camadas = Array.isArray(m.estrutura_ia) ? m.estrutura_ia : [];
-  const texto = camadas.map((c) => c.nome).join(" ") + " " + (m.nome || "");
+  const texto = camadas.map((c) => c.nome).join(" ") + " " + nome;
   if (PALAVRAS_DOSE.test(texto)) return "Doses";
   return temAlcool(m) ? "Com Álcool" : "Sem Álcool";
 }
@@ -1344,8 +1355,8 @@ function drinksDoGuia(lista) {
 }
 
 // Cor de cada categoria (usada nos títulos e no índice/livro).
-const COR_CATEGORIA = { "Com Álcool": "#1f7a33", "Sem Álcool": "#b45309", "Doses": "#7c3aed" };
-const ORDEM_CATEGORIA = ["Com Álcool", "Sem Álcool", "Doses"];
+const COR_CATEGORIA = { "Com Álcool": "#1f7a33", "Sem Álcool": "#b45309", "Doses": "#7c3aed", "Xaropes": "#0891b2", "Espumas": "#db2777", "Geleias": "#c2410c" };
+const ORDEM_CATEGORIA = ["Com Álcool", "Sem Álcool", "Doses", "Xaropes", "Espumas", "Geleias"];
 
 // HTML de um card de drink (kanban) — reaproveitado pelo pôster e pelo livro.
 function drinkCardHTML(m) {
@@ -1378,9 +1389,14 @@ function drinkCardHTML(m) {
 // CSS dos cards (compartilhado). `colunas` controla o tamanho de fonte/foto;
 // `gridCols` (opcional) permite grade diferente do tamanho da letra — usado no
 // livro A5, que tem 2 colunas mas letras compactas.
-function drinkCardCSS(colunas, gridCols = colunas) {
+function drinkCardCSS(colunas, gridCols = colunas, larguraCardMm = null) {
+  // Com larguraCardMm, as colunas têm largura fixa e a grade centraliza: uma
+  // categoria com poucos drinks NÃO estica o card para a folha inteira.
+  const colunasCss = larguraCardMm
+    ? `grid-template-columns:repeat(${gridCols},${larguraCardMm}mm);justify-content:center`
+    : `grid-template-columns:repeat(${gridCols},1fr)`;
   return `
-    .grade{display:grid;grid-template-columns:repeat(${gridCols},1fr);gap:3.5mm}
+    .grade{display:grid;${colunasCss};gap:3.5mm;align-content:start}
     .drink{border:2.5px solid #111;border-radius:10px;padding:3.5mm;display:flex;flex-direction:column;break-inside:avoid;page-break-inside:avoid;background:#fff}
     .cab{display:flex;gap:3mm;align-items:center;margin-bottom:2.5mm}
     .foto{width:${colunas >= 4 ? 16 : colunas === 3 ? 20 : 26}mm;height:${colunas >= 4 ? 16 : colunas === 3 ? 20 : 26}mm;flex:none;border:2px solid #111;border-radius:8px;overflow:hidden;background:#f4f4f5}
@@ -1447,7 +1463,7 @@ function gerarHtmlGuiaDrinks(fichas, colunas = 3) {
       .secao-titulo{font-size:17px;font-weight:900;text-transform:uppercase;letter-spacing:2px;margin:6mm 0 3mm;padding-bottom:3px;border-bottom:2.5px solid;display:flex;align-items:center;gap:8px}
       .secao-titulo:first-of-type{margin-top:2mm}
       .secao-titulo .cont{font-size:12px;color:#fff;border-radius:999px;padding:1px 9px}
-      ${drinkCardCSS(colunas)}
+      ${drinkCardCSS(colunas, colunas, colunas === 3 ? 63 : colunas === 2 ? 96 : null)}
       @media screen{body{padding:16px;background:#e2e8f0}.folha{background:#fff;box-shadow:0 12px 35px rgba(15,23,42,.16);padding:${margemMm}mm;max-width:210mm;margin:0 auto}}
       @media print{.folha{padding:0}}
     </style></head><body>
@@ -1485,6 +1501,8 @@ function gerarHtmlLivroDrinks(fichas, formato = "a4") {
   const gridCols = 2;
   const larguraPapelMm = a5 ? 148 : 210;
   const alturaPapelMm = a5 ? 210 : 297;
+  // Largura FIXA do card: categorias com poucos drinks não esticam pra folha.
+  const larguraCardMm = a5 ? 58 : 86;
 
   const porCat = {};
   drinks.forEach((d) => { const c = categoriaDrink(d); (porCat[c] = porCat[c] || []).push(d); });
@@ -1535,7 +1553,7 @@ function gerarHtmlLivroDrinks(fichas, formato = "a4") {
       .conteudo{flex:1;overflow:hidden}
       .grade{align-content:start}
       .rodape-livro{margin-top:4mm;padding-top:5px;border-top:1px solid #cbd5e1;display:flex;justify-content:space-between;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#64748b}
-      ${drinkCardCSS(colunas, gridCols)}
+      ${drinkCardCSS(colunas, gridCols, larguraCardMm)}
       @media screen{body{padding:16px;background:#e2e8f0}.capa,.indice,.pagina{background:#fff;box-shadow:0 12px 35px rgba(15,23,42,.16);max-width:${larguraPapelMm}mm;margin:0 auto 16px;padding:${margemMm}mm ${margemMm}mm ${margemMm}mm ${margemEncadernacaoMm}mm}}
     </style></head><body>
       <section class="capa">${logoSeldeestrelaSVG(a5 ? 58 : 80)}<h1>Guia de Drinks</h1><p>${drinks.length} drinks catalogados</p><p style="margin-top:6px;font-size:13px;color:#94a3b8">${new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}</p></section>

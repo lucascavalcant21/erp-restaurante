@@ -470,11 +470,14 @@ function EtiquetasRunner() {
           // = cópias × etiqueta, tudo numa página; modo páginas: uma por página.
           const alturaEtqMm = parseFloat(dim.h) || 40;
           const alturaTiraMm = modoTira === "tira" ? alturaEtqMm * quantidadeCopias : alturaEtqMm;
+          // Página do TAMANHO EXATO da etiqueta: se usar largura maior que a
+          // etiqueta física, o driver encolhe a folha e sai uma miniatura ruim.
           win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Etiquetas</title>
             <style>
-              @page { size: 80mm ${alturaTiraMm}mm; margin: 0; }
+              @page { size: ${dim.paginaW} ${alturaTiraMm}mm; margin: 0; }
               *{box-sizing:border-box} html,body{margin:0;padding:0;background:#fff}
-              #wrap{width:80mm;margin:0 auto;display:flex;flex-direction:column;gap:0}
+              #wrap{width:${dim.paginaW};margin:0 auto;display:flex;flex-direction:column;gap:0}
+              img,svg{image-rendering:crisp-edges}
               .etiqueta-print{page-break-after:${modoTira === "tira" ? "auto" : "always"};page-break-inside:avoid;overflow:hidden;box-shadow:none!important;border-radius:0!important;margin:0 auto!important}
               .etiqueta-print:last-child{page-break-after:auto}
             </style></head><body>
@@ -527,9 +530,9 @@ function EtiquetasRunner() {
         @media print {
           body * { visibility: hidden !important; }
           #area-impressao, #area-impressao * { visibility: visible !important; }
-          #area-impressao { position: absolute !important; left: 0; top: 0; margin: 0; padding: 0; background: #fff !important; color: #000 !important; width: 80mm !important; display: flex !important; flex-direction: column !important; gap: 0 !important; }
+          #area-impressao { position: absolute !important; left: 0; top: 0; margin: 0; padding: 0; background: #fff !important; color: #000 !important; width: ${dim.paginaW} !important; display: flex !important; flex-direction: column !important; gap: 0 !important; }
           .etiqueta-print { page-break-after: auto; page-break-inside: avoid; overflow: hidden; border-radius: 0 !important; box-shadow: none !important; border: none !important; margin: 0 auto !important; }
-          @page { size: 80mm ${dim.paginaH}; margin: 0; }
+          @page { size: ${dim.paginaW} ${dim.paginaH}; margin: 0; }
         }
       `}} />
       <PageHeader title={`Etiquetas${deptUrl ? ` — ${deptUrl === 'bar' ? 'Bar' : 'Cozinha'}` : ''}`} subtitle={`QR Code + rastreio · ${unidadeInfo.nome}`} icon={Tag} />

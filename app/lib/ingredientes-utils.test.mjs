@@ -6,6 +6,7 @@ import {
   normalizarBusca,
   ordenarIngredientes,
   parseNumeroBR,
+  precoNormalizadoDoInsumo,
   textoPesquisavel,
 } from "./ingredientes-utils.mjs";
 
@@ -34,6 +35,15 @@ test("calcula preço normalizado por kg e por litro", () => {
   assert.equal(calcularPrecoNormalizado(5, "kg", 75), 15);
   assert.equal(calcularPrecoNormalizado(500, "g", 10), 20);
   assert.equal(calcularPrecoNormalizado(250, "ml", 4.5), 18);
+});
+
+test("recalcula preço normalizado legado quando a migração deixou zero", () => {
+  assert.equal(precoNormalizadoDoInsumo({
+    tamanho_embalagem: 5,
+    unidade_medida: "kg",
+    custo_compra: 75,
+    preco_normalizado: 0,
+  }), 15);
 });
 
 test("calculadora aceita vírgula e converte g para kg", () => {

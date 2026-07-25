@@ -58,7 +58,9 @@ export function unidadeNormalizada(unidade) {
 
 export function precoNormalizadoDoInsumo(insumo) {
   const salvo = Number(insumo?.preco_normalizado);
-  if (Number.isFinite(salvo) && salvo >= 0) return salvo;
+  // Registros anteriores à migração receberam 0 como valor padrão. Esse zero
+  // não deve esconder o preço que já existe na embalagem.
+  if (Number.isFinite(salvo) && salvo > 0) return salvo;
   const tamanho = Number(insumo?.tamanho_embalagem) || 1;
   const valorTotal = Number(insumo?.custo_compra);
   const valor = Number.isFinite(valorTotal)

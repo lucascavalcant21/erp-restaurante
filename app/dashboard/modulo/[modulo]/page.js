@@ -2,107 +2,145 @@
 
 import { useParams } from "next/navigation";
 import {
-  AlertTriangle, Armchair, Award, BarChart3, BriefcaseBusiness, Calculator,
-  CalendarCheck, ClipboardCheck, ClipboardList, FileBarChart, FileText,
-  GraduationCap, Landmark, LayoutDashboard, ListChecks, Network,
-  PackageSearch, ReceiptText, ScrollText, Settings, ShieldCheck,
-  Target, Users, UserRoundCheck, Utensils, Wallet, Wrench,
+  AlertTriangle, Armchair, Award, BarChart3, BriefcaseBusiness, Boxes, Calculator,
+  CalendarCheck, ClipboardCheck, ClipboardList, FileBarChart, FileText, FlaskConical,
+  GraduationCap, Landmark, LayoutDashboard, LayoutList, ListChecks, Network, Package,
+  PackageSearch, ReceiptText, ScrollText, Settings, ShieldCheck, ShoppingCart,
+  Tag, Target, Users, UserRoundCheck, Utensils, Wallet, Wine, Wrench, CalendarClock,
 } from "lucide-react";
-import ModuleWorkspace from "../../../components/ModuleWorkspace";
+import ModuleHub from "../../../components/ModuleHub";
 
+// Central de navegação de cada módulo, em COLUNAS (kanban visual). Um único
+// componente (ModuleHub) para todos. As rotas e permissões são as existentes.
 const MODULOS = {
+  cozinha: {
+    title: "Operação da Cozinha", subtitle: "Cadastros, estoque, produção, qualidade e rotinas da cozinha", icon: Utensils,
+    columns: [
+      { title: "Cadastros", subtitle: "Base da cozinha", icon: FlaskConical, accent: "#059669", items: [
+        { label: "Ingredientes", desc: "Matérias-primas e itens", href: "/dashboard/operacao/ingredientes?dept=cozinha", icon: FlaskConical },
+        { label: "Fichas Técnicas", desc: "Receitas e composições", href: "/dashboard/operacao/fichas?dept=cozinha", icon: LayoutList },
+        { label: "Fornecedores", desc: "Contatos e compras", href: "/dashboard/operacao/fornecedores", icon: Users },
+      ]},
+      { title: "Estoque e Compras", subtitle: "Movimentações e abastecimento", icon: PackageSearch, accent: "#0891b2", items: [
+        { label: "Estoque", desc: "Consulta de estoque atual", href: "/dashboard/operacao/estoque?dept=cozinha", icon: Boxes },
+        { label: "Compras", desc: "Solicitações e pedidos", href: "/dashboard/operacao/compras?dept=cozinha", icon: ShoppingCart },
+        { label: "Entrada de Notas", desc: "Notas e documentos", href: "/dashboard/operacao/notas?dept=cozinha", icon: ReceiptText },
+      ]},
+      { title: "Produção", subtitle: "Produção e fichas técnicas", icon: ClipboardList, accent: "#7c3aed", items: [
+        { label: "Guia de Montagem", desc: "Passo a passo das receitas", href: "/dashboard/operacao/montagem?dept=cozinha", icon: LayoutList },
+        { label: "Produção do Dia", desc: "Produção diária", href: "/dashboard/operacao/producao?dept=cozinha", icon: Package },
+        { label: "Orçamento de Eventos", desc: "Buffet e eventos", href: "/dashboard/operacao/orcamento?dept=cozinha", icon: CalendarClock },
+      ]},
+      { title: "Controle e Qualidade", subtitle: "Qualidade e conformidade", icon: ShieldCheck, accent: "#ea580c", items: [
+        { label: "Etiquetas e Validade", desc: "Controle de validade", href: "/dashboard/operacao/etiquetas?dept=cozinha", icon: Tag },
+        { label: "Controle de Validade", desc: "Vencimentos", href: "/dashboard/operacao/validade", icon: CalendarClock },
+        { label: "Checklist da Cozinha", desc: "Rotinas e conferências", href: "/dashboard/operacao/rotina?dept=cozinha", icon: ClipboardCheck },
+        { label: "Controles de Limpeza", desc: "Higiene e conformidade", href: "/dashboard/operacao/controles", icon: ShieldCheck },
+      ]},
+      { title: "Ferramentas", subtitle: "Utilitários", icon: Settings, accent: "#0f766e", items: [
+        { label: "CMV da Cozinha", desc: "Custo de mercadoria", href: "/dashboard/financeiro/cmv", icon: Calculator },
+      ]},
+    ],
+  },
+  bar: {
+    title: "Operação do Bar", subtitle: "Drinks, insumos, estoque e rotinas do bar", icon: Wine,
+    columns: [
+      { title: "Cadastros", subtitle: "Base do bar", icon: FlaskConical, accent: "#059669", items: [
+        { label: "Ingredientes", desc: "Insumos do bar", href: "/dashboard/operacao/ingredientes?dept=bar", icon: FlaskConical },
+        { label: "Fichas de Drinks", desc: "Receitas dos drinks", href: "/dashboard/operacao/fichas?dept=bar", icon: Wine },
+      ]},
+      { title: "Estoque e Compras", subtitle: "Abastecimento", icon: PackageSearch, accent: "#0891b2", items: [
+        { label: "Estoque", desc: "Consulta de estoque atual", href: "/dashboard/operacao/estoque?dept=bar", icon: Boxes },
+        { label: "Compras", desc: "Solicitações e pedidos", href: "/dashboard/operacao/compras?dept=bar", icon: ShoppingCart },
+        { label: "Entrada de Notas", desc: "Notas e documentos", href: "/dashboard/operacao/notas?dept=bar", icon: ReceiptText },
+      ]},
+      { title: "Produção", subtitle: "Montagem e produção", icon: ClipboardList, accent: "#7c3aed", items: [
+        { label: "Guia de Drinks", desc: "Montagem dos drinks", href: "/dashboard/operacao/montagem?dept=bar", icon: LayoutList },
+        { label: "Produção do Dia", desc: "Produção diária", href: "/dashboard/operacao/producao?dept=bar", icon: Package },
+        { label: "Orçamento de Eventos", desc: "Buffet e eventos", href: "/dashboard/operacao/orcamento?dept=bar", icon: CalendarClock },
+      ]},
+      { title: "Controle e Qualidade", subtitle: "Qualidade e rotinas", icon: ShieldCheck, accent: "#ea580c", items: [
+        { label: "Etiquetas e Validade", desc: "Controle de validade", href: "/dashboard/operacao/etiquetas?dept=bar", icon: Tag },
+        { label: "Checklist do Bar", desc: "Rotinas e conferências", href: "/dashboard/operacao/rotina?dept=bar", icon: ClipboardCheck },
+      ]},
+    ],
+  },
   salao: {
-    shortTitle: "Salão", title: "Operação integrada do Salão", theme: "sky", icon: Armchair,
-    description: "Centralize abertura, atendimento, treinamento e padrões de serviço em um fluxo claro para toda a equipe.",
-    primary: { label: "Abrir checklist", href: "/dashboard/operacao/rotina?dept=salao", icon: ClipboardCheck },
-    flowHint: "Acesse rotina, mesas, tarefas, treinamento e registros do atendimento",
-    stages: [
-      { label: "Rotina do salão", hint: "Abertura e fechamento", href: "/dashboard/operacao/rotina?dept=salao", icon: CalendarCheck },
-      { label: "Mesas e atendimento", hint: "Operação em tempo real", href: "/dashboard/mesas", icon: Armchair },
-      { label: "Treinamentos", hint: "Padrão de serviço", href: "/dashboard/salao/treinamento", icon: GraduationCap },
-    ],
-    items: [
-      { label: "Tarefas da equipe", hint: "Responsáveis e prioridades", href: "/dashboard/tarefas", icon: ListChecks },
-      { label: "Observações", hint: "Ocorrências do atendimento", href: "/dashboard/operacao/observacoes", icon: ClipboardList },
-      { label: "Checklists", hint: "Modelos e acompanhamento", href: "/dashboard/checklists?dept=salao", icon: ClipboardCheck },
-    ],
-    tools: [
-      { label: "Mesas", href: "/dashboard/mesas", icon: Armchair },
-      { label: "Treinamentos", href: "/dashboard/salao/treinamento", icon: GraduationCap },
-      { label: "Tarefas", href: "/dashboard/tarefas", icon: ListChecks },
+    title: "Operação do Salão", subtitle: "Atendimento, mesas, treinamento e rotinas do salão", icon: Armchair,
+    columns: [
+      { title: "Atendimento", subtitle: "Operação em tempo real", icon: Armchair, accent: "#0284c7", items: [
+        { label: "Mesas", desc: "Operação e comandas", href: "/dashboard/mesas", icon: Armchair },
+        { label: "Observações", desc: "Ocorrências do atendimento", href: "/dashboard/operacao/observacoes", icon: ClipboardList },
+      ]},
+      { title: "Rotinas", subtitle: "Abertura e fechamento", icon: CalendarCheck, accent: "#7c3aed", items: [
+        { label: "Checklist do Salão", desc: "Abertura e fechamento", href: "/dashboard/operacao/rotina?dept=salao", icon: ClipboardCheck },
+        { label: "Checklists", desc: "Modelos e acompanhamento", href: "/dashboard/checklists?dept=salao", icon: ClipboardCheck },
+        { label: "Tarefas da equipe", desc: "Responsáveis e prioridades", href: "/dashboard/tarefas", icon: ListChecks },
+      ]},
+      { title: "Desenvolvimento", subtitle: "Padrão de serviço", icon: GraduationCap, accent: "#ea580c", items: [
+        { label: "Treinamentos", desc: "Padrão de serviço", href: "/dashboard/salao/treinamento", icon: GraduationCap },
+      ]},
     ],
   },
   financeiro: {
-    shortTitle: "Financeiro", title: "Gestão financeira integrada", theme: "indigo", icon: Wallet,
-    description: "Acompanhe caixa, resultado, custos, metas e obrigações fiscais sem perder o caminho entre os números.",
-    primary: { label: "Abrir fluxo de caixa", href: "/dashboard/financeiro", icon: Wallet },
-    flowHint: "Conecte caixa, DRE, CMV, margens, contas e documentos fiscais",
-    stages: [
-      { label: "Fluxo de caixa", hint: "Entradas e saídas", href: "/dashboard/financeiro", icon: Wallet },
-      { label: "Resultado (DRE)", hint: "Receita, custos e lucro", href: "/dashboard/financeiro/dre", icon: FileBarChart },
-      { label: "Ponto de equilíbrio", hint: "Metas e segurança", href: "/dashboard/financeiro/equilibrio", icon: Target },
-    ],
-    items: [
-      { label: "CMV", hint: "Custo de mercadoria", href: "/dashboard/financeiro/cmv", icon: Calculator },
-      { label: "Margens", hint: "Rentabilidade por produto", href: "/dashboard/financeiro/margem", icon: BarChart3 },
-      { label: "Contas", hint: "Compromissos financeiros", href: "/dashboard/financeiro/contas", icon: ReceiptText },
-      { label: "Fluxo detalhado", hint: "Movimentações e histórico", href: "/dashboard/financeiro/fluxo", icon: Landmark },
-      { label: "Dados fiscais", hint: "Cadastros e obrigações", href: "/dashboard/gestao/fiscal", icon: ShieldCheck },
-      { label: "Documentos", hint: "Arquivos financeiros", href: "/dashboard/financeiro/documentos", icon: FileText },
-    ],
-    tools: [
-      { label: "Ver DRE", href: "/dashboard/financeiro/dre", icon: FileBarChart },
-      { label: "Analisar CMV", href: "/dashboard/financeiro/cmv", icon: Calculator },
-      { label: "Dados fiscais", href: "/dashboard/gestao/fiscal", icon: ShieldCheck },
+    title: "Financeiro", subtitle: "Caixa, resultado, custos, metas e obrigações fiscais", icon: Wallet,
+    columns: [
+      { title: "Caixa e Resultado", subtitle: "Entradas, saídas e lucro", icon: Wallet, accent: "#4f46e5", items: [
+        { label: "Fluxo de Caixa", desc: "Entradas e saídas", href: "/dashboard/financeiro", icon: Wallet },
+        { label: "Fluxo detalhado", desc: "Movimentações e histórico", href: "/dashboard/financeiro/fluxo", icon: Landmark },
+        { label: "Resultado (DRE)", desc: "Receita, custos e lucro", href: "/dashboard/financeiro/dre", icon: FileBarChart },
+        { label: "Contas", desc: "Compromissos financeiros", href: "/dashboard/financeiro/contas", icon: ReceiptText },
+      ]},
+      { title: "Custos e Metas", subtitle: "Rentabilidade e segurança", icon: Calculator, accent: "#0891b2", items: [
+        { label: "CMV", desc: "Custo de mercadoria", href: "/dashboard/financeiro/cmv", icon: Calculator },
+        { label: "Margens", desc: "Rentabilidade por produto", href: "/dashboard/financeiro/margem", icon: BarChart3 },
+        { label: "Ponto de Equilíbrio", desc: "Metas e segurança", href: "/dashboard/financeiro/equilibrio", icon: Target },
+      ]},
+      { title: "Fiscal e Documentos", subtitle: "Obrigações e arquivos", icon: ShieldCheck, accent: "#ea580c", items: [
+        { label: "Dados Fiscais", desc: "Cadastros e obrigações", href: "/dashboard/gestao/fiscal", icon: ShieldCheck },
+        { label: "Documentos", desc: "Arquivos financeiros", href: "/dashboard/financeiro/documentos", icon: FileText },
+      ]},
     ],
   },
   rh: {
-    shortTitle: "Equipe & RH", title: "Gestão integrada de pessoas", theme: "rose", icon: Users,
-    description: "Organize equipe, ponto, folha, documentos e desenvolvimento dos colaboradores em uma visão única.",
-    primary: { label: "Abrir painel de RH", href: "/dashboard/rh", icon: Users },
-    flowHint: "Acesse jornada, folha, organograma, recrutamento, documentos e comunicação",
-    stages: [
-      { label: "Painel de RH", hint: "Equipe e indicadores", href: "/dashboard/rh", icon: LayoutDashboard },
-      { label: "Ponto", hint: "Jornada e registros", href: "/dashboard/rh/ponto", icon: UserRoundCheck },
-      { label: "Folha de pagamento", hint: "Fechamento e valores", href: "/dashboard/rh/fechamento", icon: ReceiptText },
-    ],
-    items: [
-      { label: "Cargos & Carreiras", hint: "Descritivo de funções e salários", href: "/dashboard/rh/cargos", icon: Award },
-      { label: "Portal do colaborador", hint: "Acesso da equipe", href: "/dashboard/rh/colaborador", icon: Users },
-      { label: "Organograma", hint: "Estrutura e lideranças", href: "/dashboard/rh/organograma", icon: Network },
-      { label: "Recrutamento", hint: "Vagas e candidatos", href: "/dashboard/rh/recrutamento", icon: BriefcaseBusiness },
-      { label: "Refeição da equipe", hint: "Cardápio dos funcionários", href: "/dashboard/rh/cardapio-funcionarios", icon: Utensils },
-      { label: "Atas de reunião", hint: "Decisões e alinhamentos", href: "/dashboard/rh/atas", icon: ScrollText },
-      { label: "Gastos administrativos", hint: "Custos com pessoas", href: "/dashboard/rh/gastos-admin", icon: Calculator },
-    ],
-    tools: [
-      { label: "Plano de Cargos", href: "/dashboard/rh/cargos", icon: Award },
-      { label: "Bater ponto", href: "/dashboard/rh/ponto", icon: UserRoundCheck },
-      { label: "Organograma", href: "/dashboard/rh/organograma", icon: Network },
+    title: "Equipe & RH", subtitle: "Equipe, ponto, folha, documentos e desenvolvimento", icon: Users,
+    columns: [
+      { title: "Jornada e Folha", subtitle: "Ponto e pagamento", icon: UserRoundCheck, accent: "#e11d48", items: [
+        { label: "Painel de RH", desc: "Equipe e indicadores", href: "/dashboard/rh", icon: LayoutDashboard },
+        { label: "Ponto", desc: "Jornada e registros", href: "/dashboard/rh/ponto", icon: UserRoundCheck },
+        { label: "Folha de Pagamento", desc: "Fechamento e valores", href: "/dashboard/rh/fechamento", icon: ReceiptText },
+        { label: "Gastos Administrativos", desc: "Custos com pessoas", href: "/dashboard/rh/gastos-admin", icon: Calculator },
+      ]},
+      { title: "Pessoas", subtitle: "Estrutura e desenvolvimento", icon: Users, accent: "#7c3aed", items: [
+        { label: "Cargos & Carreiras", desc: "Funções e salários", href: "/dashboard/rh/cargos", icon: Award },
+        { label: "Portal do Colaborador", desc: "Acesso da equipe", href: "/dashboard/rh/colaborador", icon: Users },
+        { label: "Organograma", desc: "Estrutura e lideranças", href: "/dashboard/rh/organograma", icon: Network },
+        { label: "Recrutamento", desc: "Vagas e candidatos", href: "/dashboard/rh/recrutamento", icon: BriefcaseBusiness },
+      ]},
+      { title: "Apoio", subtitle: "Rotinas e registros", icon: ScrollText, accent: "#0891b2", items: [
+        { label: "Refeição da Equipe", desc: "Cardápio dos funcionários", href: "/dashboard/rh/cardapio-funcionarios", icon: Utensils },
+        { label: "Atas de Reunião", desc: "Decisões e alinhamentos", href: "/dashboard/rh/atas", icon: ScrollText },
+      ]},
     ],
   },
   gestao: {
-    shortTitle: "Gestão & Ajustes", title: "Gestão e estrutura do negócio", theme: "amber", icon: Settings,
-    description: "Cuide de patrimônio, manutenção, auditoria, documentos e configurações com uma navegação organizada e previsível.",
-    primary: { label: "Abrir inventário", href: "/dashboard/gestao/inventario", icon: PackageSearch },
-    flowHint: "Acesse inventário, manutenção, auditoria, suprimentos, relatórios e configurações",
-    stages: [
-      { label: "Inventário", hint: "Bens e equipamentos", href: "/dashboard/gestao/inventario", icon: PackageSearch },
-      { label: "Manutenção", hint: "Chamados e prevenção", href: "/dashboard/gestao/manutencao", icon: Wrench },
-      { label: "Relatórios", hint: "Visão consolidada", href: "/dashboard/relatorios", icon: FileBarChart },
-    ],
-    items: [
-      { label: "Auditoria", hint: "Conferências e histórico", href: "/dashboard/gestao/auditoria", icon: ShieldCheck },
-      { label: "Suprimentos", hint: "Recursos e abastecimento", href: "/dashboard/gestao/suprimentos", icon: ClipboardList },
-      { label: "Documentos", hint: "Arquivos da gestão", href: "/dashboard/gestao/documentos", icon: FileText },
-      { label: "Tarefas de gestão", hint: "Pendências administrativas", href: "/dashboard/gestao/tarefas", icon: ListChecks },
-      { label: "Dados fiscais", hint: "Informações legais", href: "/dashboard/gestao/fiscal", icon: Landmark },
-      { label: "Configurações", hint: "Unidades, acessos e regras", href: "/dashboard/configuracoes", icon: Settings },
-    ],
-    tools: [
-      { label: "Manutenções", href: "/dashboard/gestao/manutencao", icon: Wrench },
-      { label: "Relatórios", href: "/dashboard/relatorios", icon: FileBarChart },
-      { label: "Configurações", href: "/dashboard/configuracoes", icon: Settings },
+    title: "Gestão & Ajustes", subtitle: "Patrimônio, manutenção, auditoria, documentos e configurações", icon: Settings,
+    columns: [
+      { title: "Patrimônio", subtitle: "Bens e manutenção", icon: PackageSearch, accent: "#d97706", items: [
+        { label: "Inventário", desc: "Bens e equipamentos", href: "/dashboard/gestao/inventario", icon: PackageSearch },
+        { label: "Manutenção", desc: "Chamados e prevenção", href: "/dashboard/gestao/manutencao", icon: Wrench },
+        { label: "Suprimentos", desc: "Recursos e abastecimento", href: "/dashboard/gestao/suprimentos", icon: ClipboardList },
+      ]},
+      { title: "Controle", subtitle: "Conferências e histórico", icon: ShieldCheck, accent: "#0891b2", items: [
+        { label: "Auditoria", desc: "Conferências e histórico", href: "/dashboard/gestao/auditoria", icon: ShieldCheck },
+        { label: "Tarefas de Gestão", desc: "Pendências administrativas", href: "/dashboard/gestao/tarefas", icon: ListChecks },
+        { label: "Dados Fiscais", desc: "Informações legais", href: "/dashboard/gestao/fiscal", icon: Landmark },
+      ]},
+      { title: "Relatórios e Ajustes", subtitle: "Visão e configuração", icon: Settings, accent: "#4f46e5", items: [
+        { label: "Relatórios", desc: "Visão consolidada", href: "/dashboard/relatorios", icon: FileBarChart },
+        { label: "Documentos", desc: "Arquivos da gestão", href: "/dashboard/gestao/documentos", icon: FileText },
+        { label: "Configurações", desc: "Unidades, acessos e regras", href: "/dashboard/configuracoes", icon: Settings },
+      ]},
     ],
   },
 };
@@ -111,7 +149,12 @@ export default function ModuloPage() {
   const params = useParams();
   const config = MODULOS[String(params?.modulo || "").toLowerCase()];
   if (!config) {
-    return <div className="mx-auto max-w-xl px-5 py-16 text-center"><AlertTriangle className="mx-auto text-amber-500" size={34} /><h1 className="mt-3 text-2xl font-black text-slate-900">Módulo não encontrado</h1></div>;
+    return (
+      <div className="mx-auto max-w-xl px-5 py-16 text-center">
+        <AlertTriangle className="mx-auto text-amber-500" size={34} />
+        <h1 className="mt-3 text-2xl font-black" style={{ color: "var(--fg, #0f172a)" }}>Módulo não encontrado</h1>
+      </div>
+    );
   }
-  return <ModuleWorkspace config={config} />;
+  return <ModuleHub config={config} />;
 }

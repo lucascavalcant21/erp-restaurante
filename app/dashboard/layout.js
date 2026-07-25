@@ -33,7 +33,7 @@ const SIDEBAR_MENU = [
 
   {
     category: "Cozinha",
-    home: "/dashboard/operacao/fichas?dept=cozinha",
+    home: "/dashboard/modulo/cozinha",
     icon: ChefHat,
     items: [
       { label: "Fichas Técnicas", href: "/dashboard/operacao/fichas?dept=cozinha" },
@@ -51,7 +51,7 @@ const SIDEBAR_MENU = [
   },
   {
     category: "Bar",
-    home: "/dashboard/operacao/fichas?dept=bar",
+    home: "/dashboard/modulo/bar",
     icon: GlassWater,
     items: [
       { label: "Fichas de Drinks", href: "/dashboard/operacao/fichas?dept=bar" },
@@ -191,8 +191,8 @@ function moduloDaRota(pathname, dept) {
 
 // Rotas liberadas em cada área travada (estação Cozinha/Bar/Salão).
 const ROTAS_AREA = {
-  cozinha: ["/dashboard/area", "/dashboard/checklists", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/controles", "/dashboard/operacao/ingredientes", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem", "/dashboard/operacao/produtos", "/dashboard/operacao/orcamento"],
-  bar: ["/dashboard/area", "/dashboard/checklists", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/ingredientes", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/drinks", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem"],
+  cozinha: ["/dashboard/modulo/cozinha", "/dashboard/area", "/dashboard/checklists", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/validade", "/dashboard/operacao/controles", "/dashboard/operacao/ingredientes", "/dashboard/operacao/fornecedores", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem", "/dashboard/operacao/produtos", "/dashboard/operacao/orcamento"],
+  bar: ["/dashboard/modulo/bar", "/dashboard/area", "/dashboard/checklists", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/ingredientes", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/drinks", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem", "/dashboard/operacao/orcamento"],
   salao: ["/dashboard/modulo/salao", "/dashboard/area", "/dashboard/checklists", "/dashboard/mesas", "/dashboard/tarefas", "/dashboard/operacao/rotina", "/dashboard/salao/treinamento", "/dashboard/operacao/observacoes"],
 };
 

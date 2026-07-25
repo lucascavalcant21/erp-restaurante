@@ -1,1184 +1,845 @@
 "use client";
 
-import { useState, useEffect, useRef, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import {
+  AlertTriangle,
+  ArrowDown,
+  ArrowLeft,
+  ArrowUp,
+  Calculator,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Clock3,
+  Edit3,
+  History,
+  Package,
+  Plus,
+  Search,
+  Tag,
+  Trash2,
+  Users,
+  X,
+} from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
-import { fetchInsumos, salvarInsumo, removerInsumo, fetchHistoricoPrecos, atualizarCustoUnitario } from "../../../lib/operacao";
+import { fetchFornecedores } from "../../../lib/fornecedores";
+import { fetchHistoricoPrecos, fetchInsumos, removerInsumo, salvarInsumo } from "../../../lib/operacao";
 import { CATEGORIAS_INSUMO, adivinharCategoria } from "../../../lib/categorias-insumo";
-import { FlaskConical, Plus, Search, Trash2, Edit3, X, Save, ArrowLeft, CheckCircle2, AlertTriangle, Sparkles, Loader2, Camera, History, TrendingUp, TrendingDown, ArrowLeftRight, Calculator } from "lucide-react";
+import {
+  UNIDADES_INGREDIENTE,
+  calcularCustoSolicitado,
+  calcularPrecoNormalizado,
+  normalizarBusca,
+  ordenarIngredientes,
+  parseNumeroBR,
+  precoNormalizadoDoInsumo,
+  textoPesquisavel,
+  unidadeNormalizada,
+} from "../../../lib/ingredientes-utils.mjs";
 import { fmtBRL } from "../../../components/ui";
-import { comprimirFotoParaIA } from "../../../lib/imagem";
-import RecipeWorkspace from "../../../components/RecipeWorkspace";
 
-// Converte um File de imagem em base64 puro (sem o prefixo "data:...;base64,")
-const fileParaBase64 = (file) => comprimirFotoParaIA(file); // comprime: foto crua estourava o limite da Vercel
+const PAGE_SIZE = 10;
+
+const ORDENACOES = [
+  { value: "nome-asc", label: "Nome A–Z" },
+  { value: "nome-desc", label: "Nome Z–A" },
+  { value: "maior-preco", label: "Maior preço" },
+  { value: "menor-preco", label: "Menor preço" },
+  { value: "recentes", label: "Atualizado recentemente" },
+];
+
+const unidadeLabel = unidade => UNIDADES_INGREDIENTE.find(item => item.value === unidade)?.label || unidade;
+
+function novoFormulario(departamento = "cozinha") {
+  return {
+    id: null,
+    departamento,
+    nome: "",
+    nome_interno: "",
+    marca: "",
+    categoria: "",
+    codigo_interno: "",
+    tamanho_embalagem: "1",
+    unidade_medida: "kg",
+    valor_embalagem: "",
+    fornecedor_atual_id: "",
+    fornecedor_ids: [],
+    densidade_g_ml: "",
+  };
+}
+
+function fmtQuantidade(valor) {
+  return Number(valor || 0).toLocaleString("pt-BR", { maximumFractionDigits: 3 });
+}
+
+function fmtDataHoraBR(iso) {
+  if (!iso) return "—";
+  const data = new Date(iso);
+  if (Number.isNaN(data.getTime())) return "—";
+  return `${data.toLocaleDateString("pt-BR")} às ${data.toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  })}`;
+}
+
+function nomeFornecedorAtual(insumo) {
+  const atual = (insumo.fornecedores_vinculados || []).find(
+    fornecedor => fornecedor.id === insumo.fornecedor_atual_id,
+  );
+  return atual?.nome || insumo.fornecedor || insumo.fornecedores_vinculados?.[0]?.nome || "Não informado";
+}
+
+function CalculadoraRapida({ insumo, estado, onChange }) {
+  const unidadeInicial = insumo.unidade_medida || "kg";
+  const quantidade = estado?.quantidade ?? "";
+  const unidade = estado?.unidade || unidadeInicial;
+  const resultado = calcularCustoSolicitado(insumo, quantidade, unidade);
+
+  return (
+    <div className="min-w-[168px]">
+      <div className="flex h-9 overflow-hidden rounded-lg border border-slate-200 bg-white focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100">
+        <input
+          aria-label={`Quantidade de ${insumo.nome}`}
+          inputMode="decimal"
+          value={quantidade}
+          placeholder="0"
+          onChange={event => {
+            const valor = event.target.value;
+            if (valor.startsWith("-")) return;
+            onChange({ quantidade: valor, unidade });
+          }}
+          className="w-[74px] min-w-0 px-2.5 text-sm font-bold text-slate-700 outline-none"
+        />
+        <select
+          aria-label={`Unidade para ${insumo.nome}`}
+          value={unidade}
+          onChange={event => onChange({ quantidade, unidade: event.target.value })}
+          className="min-w-[58px] flex-1 border-l border-slate-200 bg-slate-50 px-1 text-xs font-bold text-slate-600 outline-none"
+        >
+          {UNIDADES_INGREDIENTE.map(item => (
+            <option key={item.value} value={item.value}>{item.label}</option>
+          ))}
+        </select>
+        {quantidade !== "" && (
+          <button
+            type="button"
+            aria-label="Limpar cálculo"
+            title="Limpar cálculo"
+            onClick={() => onChange({ quantidade: "", unidade })}
+            className="border-l border-slate-200 px-2 text-slate-400 hover:bg-slate-50 hover:text-slate-700"
+          >
+            <X size={13} />
+          </button>
+        )}
+      </div>
+      {resultado.erro ? (
+        <p className="mt-1 max-w-[190px] text-[10px] font-semibold leading-tight text-amber-700">{resultado.erro}</p>
+      ) : (
+        <p className="mt-1 text-xs font-bold text-slate-500">
+          {resultado.valor === null ? "Informe uma quantidade" : `= ${fmtBRL(resultado.valor)}`}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function VariacaoPreco({ insumo }) {
+  const variacao = Number(insumo.variacao_preco_pct);
+  if (!Number.isFinite(variacao)) {
+    return (
+      <div className="min-w-[98px] text-xs">
+        <p className="font-bold text-slate-500">Primeiro valor</p>
+        <p className="mt-1 text-[10px] text-slate-400">Sem comparação</p>
+      </div>
+    );
+  }
+  const subiu = variacao > 0;
+  const caiu = variacao < 0;
+  return (
+    <div className="min-w-[98px] text-xs">
+      <p className={`flex items-center gap-1 font-black ${subiu ? "text-red-600" : caiu ? "text-emerald-600" : "text-slate-500"}`}>
+        {subiu ? <ArrowUp size={12} /> : caiu ? <ArrowDown size={12} /> : null}
+        {variacao > 0 ? "+" : ""}{variacao.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%
+      </p>
+      <p className="mt-1 text-[10px] text-slate-400">Preço normalizado</p>
+    </div>
+  );
+}
 
 function IngredientesRunner() {
-  const router = useRouter();
-  const { abrirMenu } = useERP();
   const searchParams = useSearchParams();
-  const deptUrl = searchParams.get("dept") || "cozinha"; // fluxo sempre separado por Cozinha ou Bar
-  
-  const { unidadeAtiva } = useERP();
+  const deptUrl = searchParams.get("dept");
+  const { abrirMenu, unidadeAtiva } = useERP();
+
   const [insumos, setInsumos] = useState([]);
+  const [fornecedores, setFornecedores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
-
-  const [modalNovo, setModalNovo] = useState(false);
-  // custo_compra = preço como comprado; peso bruto/limpo calculam a perda de limpeza
-  // (casca, espinha, apara). Se for empanado, soma o custo do empanamento e divide
-  // pelo ganho de peso. custo_unitario salvo no banco = custo REAL do kg PRONTO.
-  const [form, setForm] = useState({ id: null, departamento: deptUrl || "cozinha", nome: "", nome_interno: "", codigo_interno: "", densidade: "", marca: "", categoria: "", unidade_medida: "kg", tamanho_embalagem: "1", valor_embalagem: "", custo_compra: "", frete: "", peso_medio_g: "", peso_bruto_g: "", peso_liquido_g: "", eh_empanado: false, custo_empanamento: "", peso_in_natura_g: "", peso_empanado_g: "", categoria_manual: false, fornecedor: "", observacoes: "", estoque_inicial: "", estoque_minimo: "", estoque_maximo: "" });
-  const [catFiltro, setCatFiltro] = useState("Todas");
-
-  // Aproveitamento (%) derivado dos pesos: 650g limpos de 1000g brutos = 65%
-  const aproveitamentoForm = (() => {
-    const bruto = Number(form.peso_bruto_g) || 0;
-    const limpo = Number(form.peso_liquido_g) || 0;
-    if (bruto > 0 && limpo > 0 && limpo <= bruto) return (limpo / bruto) * 100;
-    return 100;
-  })();
-  
-  const tamanhoReal = Number(form.tamanho_embalagem) || 1;
-  const valorPagoReal = Number(form.valor_embalagem) || 0;
-  // Exibimos o valor pago cheio, mas o CUSTO POR UNIDADE (usado na ficha/CMV) é o
-  // valor pago dividido pelo tamanho: 200 ml por R$2 = R$0,01/ml (100 ml = R$1).
-  const custoBase = valorPagoReal / tamanhoReal;
-  const custoRealForm = custoBase ? custoBase / (aproveitamentoForm / 100) : 0;
-
-  // Empanamento: fator de ganho de peso (1000g in natura -> 1360g empanado = 1,36)
-  const fatorEmpanadoForm = (() => {
-    if (!form.eh_empanado) return 1;
-    const inNatura = Number(form.peso_in_natura_g) || 0;
-    const empanado = Number(form.peso_empanado_g) || 0;
-    if (inNatura > 0 && empanado > 0) return empanado / inNatura;
-    return 1;
-  })();
-  // Custo final do kg PRONTO: (kg limpo + empanamento) dividido pelo peso que virou
-  const custoFinalForm = form.eh_empanado
-    ? (custoRealForm + (Number(form.custo_empanamento) || 0)) / fatorEmpanadoForm
-    : custoRealForm;
-
-  // Importação em massa via IA (texto colado e/ou foto)
-  const [modalIA, setModalIA] = useState(false);
-  const [iaDept, setIaDept] = useState(deptUrl || "cozinha");
-  const [iaTexto, setIaTexto] = useState("");
-  const [iaImagem, setIaImagem] = useState(null); // { base64, mediaType, previewUrl, nomeArquivo }
-  const [iaLoading, setIaLoading] = useState(false);
-  const [iaItens, setIaItens] = useState(null); // array revisável antes de salvar
-  const [iaSalvando, setIaSalvando] = useState(false);
-  const fileInputRef = useRef(null);
-
-  // Feedback de sucesso (toast flutuante autodescartável)
-  const [toast, setToast] = useState(null); // { msg, tipo: 'ok' | 'erro' }
-
-  // Histórico de preços do ingrediente (cada alteração fica registrada)
-  const [modalHist, setModalHist] = useState(null); // insumo aberto
-  const [histPrecos, setHistPrecos] = useState([]);
-  const [histLoading, setHistLoading] = useState(false);
-  const abrirHistorico = async (ins) => {
-    setModalHist(ins);
-    setHistLoading(true);
-    const { data } = await fetchHistoricoPrecos(unidadeAtiva, ins.id);
-    setHistPrecos(data || []);
-    setHistLoading(false);
-  };
-  const fmtDataHoraBR = (iso) => iso
-    ? `${new Date(iso).toLocaleDateString("pt-BR")} às ${new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
-    : "—";
-  const showToast = (msg, tipo = "ok") => {
-    setToast({ msg, tipo });
-    setTimeout(() => setToast(null), 2800);
-  };
-
-  // Recalcular custo por unidade (corrige itens salvos com o cálculo antigo)
-  const [modalRecalc, setModalRecalc] = useState(null); // lista de {ins, atual, novo}
-  const [recalcLoading, setRecalcLoading] = useState(false);
-
-  // Custo por unidade CORRETO a partir dos campos gravados (valor pago / volume,
-  // corrigido por perda de limpeza e empanamento quando houver).
-  const custoUnitarioCorreto = (ins) => {
-    const valorPago = Number(ins.custo_compra);
-    const tam = Number(ins.tamanho_embalagem) || 1;
-    if (!valorPago || valorPago <= 0 || tam <= 0) return null;
-    const custoPorUnidade = valorPago / tam;
-    const pct = Number(ins.aproveitamento_pct) || 100;
-    const custoLimpo = custoPorUnidade / (pct / 100);
-    const fator = Number(ins.fator_empanamento) || 0;
-    const custoEmp = Number(ins.custo_empanamento) || 0;
-    const real = fator > 0 ? (custoLimpo + custoEmp) / fator : custoLimpo;
-    return Math.round(real * 10000) / 10000;
-  };
-
-  const abrirRecalc = () => {
-    const mudancas = insumos.map(ins => {
-      const novo = custoUnitarioCorreto(ins);
-      return novo === null ? null : { ins, atual: Number(ins.custo_unitario) || 0, novo };
-    }).filter(m => m && Math.abs(m.novo - m.atual) > 0.005);
-    setModalRecalc(mudancas);
-  };
-
-  const aplicarRecalc = async () => {
-    if (!modalRecalc || modalRecalc.length === 0) return;
-    setRecalcLoading(true);
-    let ok = 0;
-    for (const m of modalRecalc) {
-      const { error } = await atualizarCustoUnitario(m.ins.id, m.novo);
-      if (!error) ok++;
-    }
-    setRecalcLoading(false);
-    setModalRecalc(null);
-    await carregar();
-    showToast(`${ok} ingrediente(s) recalculado(s).`);
-  };
-
-  // Paginação client-side
-  const PAGE_SIZE = 10;
+  const [categoria, setCategoria] = useState("Todas");
+  const [ordenacao, setOrdenacao] = useState("nome-asc");
   const [pagina, setPagina] = useState(1);
+  const [calculos, setCalculos] = useState({});
+  const [form, setForm] = useState(() => novoFormulario(deptUrl || "cozinha"));
+  const [modalCadastro, setModalCadastro] = useState(false);
+  const [modalHistorico, setModalHistorico] = useState(null);
+  const [historico, setHistorico] = useState([]);
+  const [historicoLoading, setHistoricoLoading] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  const mostrarToast = (mensagem, tipo = "ok") => {
+    setToast({ mensagem, tipo });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const carregar = async () => {
+    if (!unidadeAtiva) return;
     setLoading(true);
-    // Se não tiver dept na URL, traz todos da unidade. Senão, filtra pelo dept.
-    const { data } = await fetchInsumos(unidadeAtiva, deptUrl);
-    setInsumos(data);
+    const [resInsumos, resFornecedores] = await Promise.all([
+      fetchInsumos(unidadeAtiva, deptUrl),
+      fetchFornecedores(unidadeAtiva),
+    ]);
+    setInsumos(resInsumos.data || []);
+    setFornecedores(resFornecedores.data || []);
     setLoading(false);
   };
 
   useEffect(() => {
-    if (unidadeAtiva) carregar();
+    carregar();
   }, [unidadeAtiva, deptUrl]);
 
-  // Normaliza para busca/ordenação: sem acento, minúsculo, sem hífen/espaço extra.
-  // Ex.: "Açafrão-da-terra", "açafrao da terra" e "ACAFRAO" viram a mesma chave.
-  const norm = (s) => Array.from(String(s || "").normalize("NFD")).filter((c) => { const k = c.charCodeAt(0); return k < 0x300 || k > 0x36f; }).join("").toLowerCase().replace(/[-\s]+/g, " ").trim();
-  const normSemEspaco = (s) => norm(s).replace(/ /g, "");
+  const categorias = useMemo(() => {
+    if (deptUrl) return CATEGORIAS_INSUMO[deptUrl] || [];
+    return [...new Set([
+      ...(CATEGORIAS_INSUMO.cozinha || []),
+      ...(CATEGORIAS_INSUMO.bar || []),
+      ...insumos.map(item => item.categoria).filter(Boolean),
+    ])].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [deptUrl, insumos]);
 
-  // Preço normalizado da embalagem: R$/kg (peso), R$/L (volume) ou R$/un.
-  const precoNormalizado = (ins) => {
-    const valor = Number(ins.valor_embalagem ?? ins.custo_compra);
-    const tam = Number(ins.tamanho_embalagem) || 0;
-    const un = String(ins.unidade_medida || "").toLowerCase();
-    if (!valor || valor <= 0 || tam <= 0) return null;
-    if (un === "g") return { valor: (valor / tam) * 1000, base: "kg" };
-    if (un === "kg") return { valor: valor / tam, base: "kg" };
-    if (un === "ml") return { valor: (valor / tam) * 1000, base: "L" };
-    if (un === "l") return { valor: valor / tam, base: "L" };
-    return { valor: valor / tam, base: "un" };
-  };
-
-  // Ordenação: A–Z padrão (ignorando acento/maiúscula/hífen), + secundárias.
-  const [ordenacao, setOrdenacao] = useState("az");
-
-  // Busca por nome, apelido, marca, fornecedor, código interno e categoria.
-  // Ignora acentos, maiúsculas e hífens. Casa também sem espaços (açafrão-da-terra).
-  const termo = norm(busca);
-  const termoSemEspaco = normSemEspaco(busca);
-  const casa = (ins) => {
-    if (!termo) return true;
-    const campos = [ins.nome, ins.nome_interno, ins.apelido, ins.marca, ins.fornecedor, ins.fornecedores, ins.codigo_interno, ins.categoria];
-    return campos.some((c) => {
-      const n = norm(c);
-      return n.includes(termo) || normSemEspaco(c).includes(termoSemEspaco);
+  const filtrados = useMemo(() => {
+    const termo = normalizarBusca(busca);
+    const lista = insumos.filter(insumo => {
+      const correspondeBusca = !termo || textoPesquisavel(insumo).includes(termo);
+      const correspondeCategoria = categoria === "Todas" || (insumo.categoria || "Outros") === categoria;
+      return correspondeBusca && correspondeCategoria;
     });
-  };
-  const filtrados = insumos
-    .filter(i =>
-      (!deptUrl || (i.departamento || "").toLowerCase() === deptUrl) &&
-      casa(i) &&
-      (catFiltro === "Todas" || (i.categoria || "Outros") === catFiltro)
-    )
-    .sort((a, b) => {
-      if (ordenacao === "za") return norm(b.nome).localeCompare(norm(a.nome), "pt-BR");
-      if (ordenacao === "maior" || ordenacao === "menor") {
-        const pa = precoNormalizado(a)?.valor ?? -1;
-        const pb = precoNormalizado(b)?.valor ?? -1;
-        return ordenacao === "maior" ? pb - pa : pa - pb;
-      }
-      if (ordenacao === "recente") {
-        return new Date(b.preco_atualizado_em || b.created_at || 0) - new Date(a.preco_atualizado_em || a.created_at || 0);
-      }
-      return norm(a.nome).localeCompare(norm(b.nome), "pt-BR"); // A–Z padrão
-    });
-  const categoriasDept = CATEGORIAS_INSUMO[deptUrl || "cozinha"] || CATEGORIAS_INSUMO.cozinha;
+    return ordenarIngredientes(lista, ordenacao);
+  }, [insumos, busca, categoria, ordenacao]);
 
-  // Calculadora rápida por linha: quanto custa X de um ingrediente (inline).
-  const [calcAberto, setCalcAberto] = useState(null); // insumo.id aberto
-  const [calcQtd, setCalcQtd] = useState("");
-  const [calcUn, setCalcUn] = useState("g");
-  const abrirCalc = (ins) => {
-    if (calcAberto === ins.id) { setCalcAberto(null); return; }
-    setCalcAberto(ins.id);
-    setCalcQtd("");
-    setCalcUn(String(ins.unidade_medida || "g").toLowerCase());
-  };
-  // Resultado do cálculo: converte g↔kg e ml↔L; peso↔volume só com densidade.
-  const calcularCusto = (ins, qtdStr, un) => {
-    const qtd = Math.max(0, parseFloat(String(qtdStr).replace(",", ".")) || 0);
-    const norml = precoNormalizado(ins);
-    if (!qtd || !norml) return { ok: false };
-    const unIng = String(ins.unidade_medida || "").toLowerCase();
-    const grupoPeso = ["g", "kg"], grupoVol = ["ml", "l"];
-    const ehPesoIng = grupoPeso.includes(unIng), ehVolIng = grupoVol.includes(unIng);
-    const ehPesoUsr = grupoPeso.includes(un), ehVolUsr = grupoVol.includes(un);
-    const densidade = Number(ins.densidade) || 0; // g/ml
-    // Conversão peso↔volume só com densidade cadastrada.
-    if ((ehPesoIng && ehVolUsr) || (ehVolIng && ehPesoUsr)) {
-      if (!densidade) return { ok: false, erro: "Não é possível converter peso em volume para este ingrediente." };
-    }
-    if (ehPesoIng || ehVolIng) {
-      // custo por unidade-base (kg ou L)
-      let qtdBase; // em kg ou L
-      if (ehPesoIng) {
-        // ingrediente é peso; usuário em g/kg (ou ml/L convertido por densidade)
-        if (un === "g") qtdBase = qtd / 1000;
-        else if (un === "kg") qtdBase = qtd;
-        else if (un === "ml") qtdBase = (qtd * densidade) / 1000; // ml→g→kg
-        else if (un === "l") qtdBase = (qtd * 1000 * densidade) / 1000;
-      } else {
-        // ingrediente é volume; usuário em ml/L (ou g/kg via densidade)
-        if (un === "ml") qtdBase = qtd / 1000;
-        else if (un === "l") qtdBase = qtd;
-        else if (un === "g") qtdBase = (qtd / densidade) / 1000; // g→ml→L
-        else if (un === "kg") qtdBase = ((qtd * 1000) / densidade) / 1000;
-      }
-      return { ok: true, valor: qtdBase * norml.valor };
-    }
-    // unidade: custo por unidade × quantidade
-    return { ok: true, valor: qtd * norml.valor };
-  };
+  useEffect(() => {
+    setPagina(1);
+  }, [busca, categoria, ordenacao, deptUrl, insumos.length]);
 
-  // Paginação client-side
-  const totalPaginas = Math.ceil(filtrados.length / PAGE_SIZE) || 1;
+  const totalPaginas = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
   const paginaAtual = Math.min(pagina, totalPaginas);
   const paginados = filtrados.slice((paginaAtual - 1) * PAGE_SIZE, paginaAtual * PAGE_SIZE);
 
+  const estatisticas = useMemo(() => {
+    const limiteRecente = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    return {
+      total: insumos.length,
+      semMarca: insumos.filter(item => !item.marca).length,
+      semFornecedor: insumos.filter(item => !item.fornecedor && !item.fornecedores_vinculados?.length).length,
+      recentes: insumos.filter(item => new Date(item.preco_atualizado_em || 0).getTime() >= limiteRecente).length,
+    };
+  }, [insumos]);
+
   const abrirNovo = () => {
+    setForm(novoFormulario(deptUrl || "cozinha"));
+    setModalCadastro(true);
+  };
+
+  const abrirEditar = insumo => {
     setForm({
-      id: null,
-      departamento: deptUrl || "cozinha",
-      nome: "",
-      nome_interno: "",
-      codigo_interno: "",
-      densidade: "",
-      marca: "",
-      categoria: "",
-      unidade_medida: deptUrl === "bar" ? "ml" : "kg",
-      tamanho_embalagem: "1",
-      valor_embalagem: "",
-      custo_compra: "",
-      frete: "",
-      peso_medio_g: "",
-      peso_bruto_g: "",
-      peso_liquido_g: "",
-      eh_empanado: false,
-      custo_empanamento: "",
-      peso_in_natura_g: "",
-      peso_empanado_g: "",
-      categoria_manual: false,
-      fornecedor: "",
-      observacoes: "",
-      estoque_inicial: "",
-      estoque_minimo: "",
-      estoque_maximo: ""
+      id: insumo.id,
+      departamento: insumo.departamento || deptUrl || "cozinha",
+      nome: insumo.nome || "",
+      nome_interno: insumo.nome_interno || "",
+      marca: insumo.marca || "",
+      categoria: insumo.categoria || "",
+      codigo_interno: insumo.codigo_interno || "",
+      tamanho_embalagem: String(insumo.tamanho_embalagem || 1),
+      unidade_medida: insumo.unidade_medida || "kg",
+      valor_embalagem: String(insumo.custo_compra ?? ""),
+      fornecedor_atual_id: insumo.fornecedor_atual_id || "",
+      fornecedor_ids: (insumo.fornecedores_vinculados || []).map(item => item.id).filter(Boolean),
+      densidade_g_ml: insumo.densidade_g_ml ? String(insumo.densidade_g_ml) : "",
     });
-    setModalNovo(true);
+    setModalCadastro(true);
   };
 
-  const abrirEditar = (ins) => {
-    setForm({
-      id: ins.id,
-      departamento: ins.departamento || deptUrl || "cozinha",
-      nome: ins.nome || "",
-      nome_interno: ins.nome_interno || ins.apelido || "",
-      codigo_interno: ins.codigo_interno || "",
-      densidade: ins.densidade !== undefined && ins.densidade !== null ? String(ins.densidade) : "",
-      marca: ins.marca || "",
-      categoria: ins.categoria || "",
-      unidade_medida: ins.unidade_medida || "kg",
-      tamanho_embalagem: String(ins.tamanho_embalagem || 1),
-      valor_embalagem: String(ins.custo_compra || ins.custo_unitario || ""),
-      custo_compra: String(ins.custo_compra || ""),
-      frete: String(ins.frete || ""),
-      peso_medio_g: String(ins.peso_medio_g || ""),
-      peso_bruto_g: String(ins.peso_bruto_g || ""),
-      peso_liquido_g: String(ins.peso_liquido_g || ""),
-      eh_empanado: !!ins.fator_empanamento,
-      custo_empanamento: String(ins.custo_empanamento || ""),
-      peso_in_natura_g: ins.fator_empanamento ? "1000" : "",
-      peso_empanado_g: ins.fator_empanamento ? String(Math.round(1000 * Number(ins.fator_empanamento))) : "",
-      categoria_manual: true,
-      fornecedor: ins.fornecedor || "",
-      observacoes: ins.observacoes || "",
-      estoque_inicial: "",
-      estoque_minimo: ins.estoque_minimo !== undefined && ins.estoque_minimo !== null ? String(ins.estoque_minimo) : "",
-      estoque_maximo: ins.estoque_maximo !== undefined && ins.estoque_maximo !== null ? String(ins.estoque_maximo) : ""
+  const selecionarFornecedorAtual = fornecedorId => {
+    setForm(atual => ({
+      ...atual,
+      fornecedor_atual_id: fornecedorId,
+      fornecedor_ids: fornecedorId
+        ? [...new Set([...atual.fornecedor_ids, fornecedorId])]
+        : atual.fornecedor_ids,
+    }));
+  };
+
+  const alternarFornecedor = fornecedorId => {
+    setForm(atual => {
+      const marcado = atual.fornecedor_ids.includes(fornecedorId);
+      if (marcado && atual.fornecedor_atual_id === fornecedorId) return atual;
+      return {
+        ...atual,
+        fornecedor_ids: marcado
+          ? atual.fornecedor_ids.filter(id => id !== fornecedorId)
+          : [...atual.fornecedor_ids, fornecedorId],
+      };
     });
-    setModalNovo(true);
-  };
-
-  const abrirModalIA = () => {
-    setIaTexto("");
-    setIaImagem(null);
-    setIaItens(null);
-    setModalIA(true);
-  };
-
-  const handleSelecionarImagem = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const base64 = await fileParaBase64(file);
-    setIaImagem({ base64, mediaType: file.type || "image/jpeg", previewUrl: URL.createObjectURL(file), nomeArquivo: file.name });
-  };
-
-  const gerarInsumosIA = async () => {
-    if (!iaTexto.trim() && !iaImagem) return alert("Cole uma lista de texto ou envie uma foto.");
-    setIaLoading(true);
-    setIaItens(null);
-    try {
-      const res = await fetch("/api/ia-insumos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          texto: iaTexto,
-          imagem_base64: iaImagem?.base64 || null,
-          imagem_media_type: iaImagem?.mediaType || null,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || data.error) {
-        alert(data.error || "Falha ao ler a lista/foto.");
-        return;
-      }
-      // Cada item vira uma linha revisável, com checkbox de inclusão
-      setIaItens(data.itens.map(it => ({ ...it, incluir: true })));
-    } catch {
-      alert("Não consegui falar com a IA. Verifique a conexão.");
-    } finally {
-      setIaLoading(false);
-    }
-  };
-
-  const atualizarItemIA = (idx, campo, valor) => {
-    setIaItens(lista => lista.map((it, i) => i === idx ? { ...it, [campo]: valor } : it));
-  };
-
-  const salvarItensIA = async () => {
-    const selecionados = (iaItens || []).filter(it => it.incluir);
-    if (selecionados.length === 0) return alert("Selecione ao menos um ingrediente.");
-    for (const it of selecionados) {
-      if (!it.nome.trim() || !it.custo_unitario || Number(it.custo_unitario) <= 0) {
-        return alert(`Confira o ingrediente "${it.nome || '(sem nome)'}": nome e custo são obrigatórios.`);
-      }
-    }
-    setIaSalvando(true);
-    let erros = 0;
-    for (const it of selecionados) {
-      const erro = await salvarInsumo({
-        departamento: iaDept,
-        nome: it.nome.trim(),
-        marca: (it.marca || "").trim(),
-        unidade_medida: it.unidade_medida,
-        custo_unitario: Number(it.custo_unitario),
-        unidade_id: unidadeAtiva,
-      });
-      if (erro.error) erros++;
-    }
-    setIaSalvando(false);
-    setModalIA(false);
-    await carregar();
-    if (erros > 0) {
-      showToast(`${selecionados.length - erros} salvos, ${erros} falharam.`, "erro");
-    } else {
-      showToast(`${selecionados.length} ingrediente(s) cadastrado(s)!`);
-    }
   };
 
   const handleSalvar = async () => {
-    if(!form.nome.trim()) return alert("Digite o nome do ingrediente");
-    if(form.nome.length > 100) return alert("Nome não pode ter mais de 100 caracteres");
-    
-    const valorEmb = Number(form.valor_embalagem);
-    if(valorEmb <= 0) return alert("Valor da embalagem deve ser um número maior que zero");
-    if(valorEmb > 999999.99) return alert("Valor não pode ser maior que R$ 999.999,99");
-
-    const tamEmb = Number(form.tamanho_embalagem) || 1;
-    if(tamEmb <= 0) return alert("Tamanho/Volume da embalagem deve ser maior que zero");
-
-    // valorPago = valor cheio pago (para exibir na lista, sem cálculo).
-    // custoPorUnidade = valor pago dividido pelo tamanho (para a ficha/CMV usarem
-    // proporcionalmente: 200 ml por R$2 → R$0,01/ml → 100 ml custam R$1).
-    const freteTotal = Number(form.frete) || 0;
-    const valorPago = valorEmb + freteTotal;
-    const custoPorUnidade = valorPago / tamEmb;
-
-    const bruto = Number(form.peso_bruto_g) || 0;
-    const limpo = Number(form.peso_liquido_g) || 0;
-    if ((bruto > 0) !== (limpo > 0)) return alert("Para calcular a perda, preencha os DOIS pesos (bruto e limpo) — ou deixe ambos vazios.");
-    if (bruto > 0 && limpo > bruto) return alert("O peso limpo não pode ser maior que o peso bruto.");
-
-    const pct = bruto > 0 ? (limpo / bruto) * 100 : 100;
-    const custoLimpo = custoPorUnidade / (pct / 100);
-
-    // Empanamento: soma o custo dos ingredientes de empanar e divide pelo ganho de peso
-    let fator = null;
-    let custoEmp = null;
-    if (form.eh_empanado) {
-       const inNatura = Number(form.peso_in_natura_g) || 0;
-       const empanado = Number(form.peso_empanado_g) || 0;
-       if (!inNatura || !empanado) return alert("Produto empanado: preencha os DOIS pesos (in natura e empanado).");
-       custoEmp = Number(form.custo_empanamento) || 0;
-       fator = empanado / inNatura;
-    }
-    const custoFinalKg = (form.eh_empanado && fator && fator > 0)
-       ? (custoLimpo + (custoEmp / fator)) / fator
-       : custoLimpo;
-
-    const payload = {
-       ...form,
-       departamento: form.departamento || deptUrl || "cozinha",
-       unidade_id: unidadeAtiva,
-       nome: (form.nome || "").trim(),
-       nome_interno: (form.nome_interno || "").trim() || null,
-       codigo_interno: (form.codigo_interno || "").trim() || null,
-       densidade: Number(String(form.densidade).replace(",", ".")) || null,
-       valor_embalagem: valorPago,
-       custo_compra: valorPago,
-       custo_unitario: custoFinalKg,
-       aproveitamento_pct: pct,
-       peso_bruto_g: bruto || null,
-       peso_liquido_g: limpo || null,
-       fator_empanamento: fator || null,
-       custo_empanamento: custoEmp || null,
-       tamanho_embalagem: tamEmb,
-       estoque_inicial: Number(form.estoque_inicial) || 0,
-       estoque_minimo: Number(form.estoque_minimo) || 0,
-       estoque_maximo: Number(form.estoque_maximo) || 0
-    };
-
-    const { error } = await salvarInsumo(payload);
-    if(error) {
-       alert("Erro ao salvar ingrediente: " + error);
-       return;
+    const nome = form.nome.trim();
+    const quantidade = parseNumeroBR(form.tamanho_embalagem);
+    const valor = parseNumeroBR(form.valor_embalagem);
+    const densidade = form.densidade_g_ml ? parseNumeroBR(form.densidade_g_ml) : null;
+    if (!nome) return alert("Informe o nome original/oficial do ingrediente.");
+    if (!Number.isFinite(quantidade) || quantidade <= 0) return alert("A quantidade da embalagem deve ser maior que zero.");
+    if (!Number.isFinite(valor) || valor <= 0) return alert("O valor da embalagem deve ser maior que zero.");
+    if (densidade !== null && (!Number.isFinite(densidade) || densidade <= 0)) {
+      return alert("A densidade precisa ser maior que zero.");
     }
 
-    const editando = !!form.id;
-    setModalNovo(false);
-    await carregar();
-    showToast(editando ? "Ingrediente atualizado!" : "Ingrediente cadastrado!");
-  };
-
-  const handleRemover = async (id) => {
-    const ingrediente = insumos.find(i => i.id === id);
-    if(!ingrediente) return;
-
-    if(confirm(`Deseja deletar "${ingrediente.nome}"?\n\nAviso: Se este ingrediente estiver em uso numa Ficha Técnica, a exclusão falhará.`)) {
-       const { error } = await removerInsumo(id);
-       if(error) {
-         if(error.toLowerCase().includes("foreign") || error.toLowerCase().includes("ficha")) {
-           alert(`Não é possível deletar "${ingrediente.nome}" pois ele está sendo usado em uma Ficha Técnica.\n\nDelete a ficha técnica primeiro.`);
-         } else {
-           alert(`Erro ao deletar "${ingrediente.nome}": ${error}`);
-         }
-       } else {
-         await carregar();
-         showToast(`"${ingrediente.nome}" removido.`);
-       }
-    }
-  };
-
-  // Move o ingrediente entre Cozinha e Bar com um clique (na etiqueta do setor).
-  // Envia custo_unitario junto p/ não registrar falsa mudança de preço.
-  const moverDepartamento = async (ins) => {
-    const novo = (ins.departamento || "").toLowerCase() === "bar" ? "cozinha" : "bar";
-    const { error } = await salvarInsumo({
-      id: ins.id,
-      departamento: novo,
-      custo_unitario: ins.custo_unitario,
+    const fornecedorAtual = fornecedores.find(item => item.id === form.fornecedor_atual_id);
+    const precoNormalizado = calcularPrecoNormalizado(quantidade, form.unidade_medida, valor);
+    setSalvando(true);
+    const resultado = await salvarInsumo({
+      id: form.id,
       unidade_id: unidadeAtiva,
-      nome: ins.nome,
-    });
-    if (error) { showToast("Erro ao mover: " + error, "erro"); return; }
-    showToast(`"${ins.nome}" movido para ${novo === "bar" ? "Bar" : "Cozinha"}.`);
+      departamento: form.departamento,
+      nome,
+      nome_interno: form.nome_interno.trim() || null,
+      marca: form.marca.trim() || null,
+      categoria: form.categoria || adivinharCategoria(nome, form.departamento, form.marca) || "Outros",
+      codigo_interno: form.codigo_interno.trim() || null,
+      tamanho_embalagem: quantidade,
+      unidade_medida: form.unidade_medida,
+      custo_compra: valor,
+      custo_unitario: valor / quantidade,
+      preco_normalizado: precoNormalizado,
+      fornecedor_atual_id: form.fornecedor_atual_id || null,
+      fornecedor: fornecedorAtual?.nome || null,
+      fornecedor_ids: form.fornecedor_ids,
+      densidade_g_ml: densidade,
+    }, { origem: form.id ? "Edição manual do ingrediente" : "Cadastro manual do ingrediente" });
+    setSalvando(false);
+
+    if (resultado.error) return alert(`Erro ao salvar ingrediente: ${resultado.error}`);
+    setModalCadastro(false);
     await carregar();
+    mostrarToast(form.id ? "Ingrediente atualizado." : "Ingrediente cadastrado.");
   };
 
-  if(!unidadeAtiva) {
-    return (
-      <div className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-4">
-            <FlaskConical size={32} />
-          </div>
-          <h2 className="text-2xl font-black text-slate-800 mb-2">Nenhuma Loja Ativa</h2>
-          <p className="text-slate-600 font-semibold">Selecione uma loja na barra superior para gerenciar ingredientes.</p>
-        </div>
-      </div>
-    );
+  const handleRemover = async insumo => {
+    if (!confirm(`Deseja remover "${insumo.nome}" do catálogo?`)) return;
+    const { error } = await removerInsumo(insumo.id);
+    if (error) {
+      mostrarToast("Não foi possível remover. Verifique se o ingrediente está sendo usado em uma ficha técnica.", "erro");
+      return;
+    }
+    await carregar();
+    mostrarToast("Ingrediente removido.");
+  };
+
+  const abrirHistorico = async insumo => {
+    setModalHistorico(insumo);
+    setHistorico([]);
+    setHistoricoLoading(true);
+    const resposta = await fetchHistoricoPrecos(unidadeAtiva, insumo.id);
+    setHistorico(resposta.data || []);
+    setHistoricoLoading(false);
+  };
+
+  if (!unidadeAtiva) {
+    return <div className="min-h-screen bg-slate-50 p-12 text-center font-bold text-slate-500">Selecione uma unidade para consultar os ingredientes.</div>;
   }
 
   return (
-    <div className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50">
-      <RecipeWorkspace
-        active="ingredientes"
-        dept={deptUrl || "cozinha"}
-        title={deptUrl === "bar" ? "Ingredientes do Bar" : "Ingredientes da Cozinha"}
-        description={deptUrl === "bar"
-          ? "Centralize bebidas, frutas, xaropes e insumos com o custo correto para alimentar drinks e fichas do bar."
-          : "Cadastre insumos, perdas, rendimento e preços. Esses custos alimentam automaticamente fichas, CMV e montagem."}
-        total={filtrados.length}
-        onPrimary={abrirNovo}
-        primaryLabel="Cadastrar insumo"
-      >
-               <button onClick={abrirRecalc} title="Recalcular o custo por unidade de todos os ingredientes" className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15">
-                  <Calculator size={18} /> Recalcular custos
-               </button>
-               <button onClick={abrirModalIA} className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15">
-                  <Sparkles size={18} /> Importar com IA
-               </button>
-      </RecipeWorkspace>
-
-      <div className="max-w-7xl mx-auto px-3 sm:px-5 mt-5 sm:mt-6">
-         <div className="flex flex-col sm:flex-row gap-3 mb-4">
-            <div className="bg-white p-3 rounded-2xl border border-slate-200 flex items-center gap-3 shadow-sm flex-1">
-               <Search size={20} className="text-slate-500 ml-2" />
-               <input type="text" placeholder="Buscar por nome original, nome interno, marca, fornecedor, código ou categoria..." value={busca} onChange={e=>{ setBusca(e.target.value); setPagina(1); }} className="flex-1 outline-none font-bold text-slate-700 p-2 min-w-0" />
+    <div className="min-h-screen bg-slate-50 pb-20 text-slate-800">
+      <header className="border-b border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-[1480px] flex-col gap-5 px-4 py-6 sm:px-6 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={abrirMenu}
+              className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500 hover:text-slate-900"
+              title="Voltar ao menu"
+            >
+              <ArrowLeft size={19} />
+            </button>
+            <div>
+              <h1 className="text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">Ingredientes cadastrados</h1>
+              <p className="mt-1 text-sm font-medium text-slate-500">Catálogo de ingredientes e histórico de preços</p>
             </div>
-            <select value={ordenacao} onChange={(e) => { setOrdenacao(e.target.value); setPagina(1); }}
-               className="bg-white px-4 py-3 rounded-2xl border border-slate-200 shadow-sm font-bold text-sm text-slate-700 outline-none cursor-pointer">
-               <option value="az">Nome A–Z</option>
-               <option value="za">Nome Z–A</option>
-               <option value="maior">Maior preço</option>
-               <option value="menor">Menor preço</option>
-               <option value="recente">Atualizado recentemente</option>
-            </select>
-         </div>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <label className="flex min-w-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 shadow-sm sm:w-[500px]">
+              <Search size={18} className="shrink-0 text-slate-400" />
+              <input
+                value={busca}
+                onChange={event => setBusca(event.target.value)}
+                placeholder="Buscar por nome, apelido, marca, fornecedor, código ou categoria..."
+                className="h-11 min-w-0 flex-1 bg-transparent text-sm font-medium outline-none placeholder:text-slate-400"
+              />
+              {busca && (
+                <button onClick={() => setBusca("")} className="text-slate-400 hover:text-slate-700" title="Limpar busca">
+                  <X size={16} />
+                </button>
+              )}
+            </label>
+            <button
+              onClick={abrirNovo}
+              className="flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-black text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700"
+            >
+              <Plus size={18} /> Novo ingrediente
+            </button>
+          </div>
+        </div>
+      </header>
 
-         {/* Filtro por categoria (quebra em linhas, sem rolagem horizontal) */}
-         <div className="flex flex-wrap gap-2 mb-5">
-            {["Todas", ...categoriasDept].map(c => { const nCat = c === "Todas" ? insumos.filter(i => !deptUrl || (i.departamento || "").toLowerCase() === deptUrl).length : insumos.filter(i => (!deptUrl || (i.departamento || "").toLowerCase() === deptUrl) && (i.categoria || "Outros") === c).length; return (
-               <button key={c} onClick={() => setCatFiltro(c)}
-                  className={`flex-shrink-0 px-3.5 py-1.5 rounded-full font-bold text-xs transition-all ${catFiltro === c ? "bg-slate-900 text-white shadow-md" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>
-                  {c} <span className={catFiltro === c ? "text-slate-300" : "text-slate-400"}>({nCat})</span>
-               </button>
-            );})}
-         </div>
-
-         <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200">
-            {/* Header */}
-            <div className="hidden md:grid bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 grid-cols-[1fr_auto_auto_auto] gap-4 items-center">
-               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Ingrediente</span>
-               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-28">Embalagem</span>
-               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-36">Valor atual</span>
-               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-right w-32">Calcular · Ações</span>
-            </div>
-            {/* Linhas */}
-            <div className="bg-white divide-y divide-slate-100">
-               {loading && (
-                 <div className="p-12 text-center">
-                   <div className="w-8 h-8 border-4 border-slate-200 border-t-emerald-500 rounded-full animate-spin mx-auto mb-3" />
-                   <p className="text-slate-400 font-bold text-sm">Carregando ingredientes{deptUrl ? ` de ${deptUrl}` : ''}...</p>
-                 </div>
-               )}
-               {!loading && paginados.map(ins => {
-                 const dept = ins.departamento?.toLowerCase();
-                 const deptColor = dept === 'bar' ? 'bg-purple-100 text-purple-700' : 'bg-amber-100 text-amber-700';
-                 return (
-                   <div key={ins.id} className={`p-4 sm:px-6 sm:py-4 grid grid-cols-2 md:grid-cols-[1fr_auto_auto_auto] gap-4 items-center group transition-all duration-150 ${dept === "bar" ? "hover:bg-violet-50/50" : "hover:bg-emerald-50/40"}`}>
-                     {/* Nome + Dept */}
-                     <div className="col-span-2 md:col-span-1 flex items-center gap-3 min-w-0">
-                       <div className={`w-1 h-10 rounded-full shrink-0 ${dept === "bar" ? "bg-violet-400" : "bg-emerald-400"}`} />
-                       <div className="min-w-0">
-                         <p className="font-bold text-slate-800 text-[15px] leading-tight truncate">{ins.nome}{ins.marca ? <span className="text-slate-400 font-medium"> · {ins.marca}</span> : null}</p>
-                         <div className="flex items-center gap-1.5 mt-1">
-                           <button onClick={() => moverDepartamento(ins)} title={`Clique para mover para ${dept === 'bar' ? 'Cozinha' : 'Bar'}`} className={`inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${deptColor} hover:ring-2 hover:ring-offset-1 hover:ring-slate-300 transition-all`}>{ins.departamento} <ArrowLeftRight size={9} /></button>
-                           {ins.categoria && <span className="inline-block text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">{ins.categoria}</span>}
-                           {ins.eh_empanado && Number(ins.fator_empanamento) > 0 && (
-                             <span className="inline-block text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-sky-100 text-sky-700" title={`1 kg in natura vira ${Number(ins.fator_empanamento).toLocaleString('pt-BR', { maximumFractionDigits: 3 })} kg empanado`}>
-                               empanado {Number(ins.fator_empanamento) > 1 ? '+' : ''}{((Number(ins.fator_empanamento) - 1) * 100).toFixed(0)}%
-                             </span>
-                           )}
-                         </div>
-                       </div>
-                     </div>
-                     {/* Volume + unidade de medida, bem visível */}
-                     <div className="w-auto md:w-28 flex flex-col items-start md:items-center gap-0.5">
-                       <span className="md:hidden text-[9px] font-black uppercase tracking-widest text-slate-400">Volume</span>
-                       <span className="bg-slate-800 text-white px-3 py-2 rounded-lg font-black text-sm uppercase tracking-wide shadow-sm whitespace-nowrap">
-                         {Number(ins.tamanho_embalagem) > 0
-                           ? `${Number(ins.tamanho_embalagem).toLocaleString('pt-BR')} ${ins.unidade_medida}`
-                           : ins.unidade_medida}
-                       </span>
-                       {ins.unidade_medida === 'un' && Number(ins.peso_medio_g) > 0 && (
-                         <span className="text-[9px] font-black text-slate-400">≈ {Number(ins.peso_medio_g).toLocaleString('pt-BR')}{String(ins.departamento).toLowerCase() === 'bar' ? 'ml' : 'g'}</span>
-                       )}
-                     </div>
-                     {/* Valor atual: total da embalagem + preço normalizado (R$/kg, R$/L, R$/un) */}
-                     <div className="w-auto md:w-36 text-right md:text-center">
-                       <span className="md:hidden block text-[9px] font-black uppercase tracking-widest text-slate-400">Valor atual</span>
-                       <span className="font-black text-xl text-emerald-600">{fmtBRL(ins.valor_embalagem ?? ins.custo_compra ?? ins.custo_unitario)}</span>
-                       {(() => { const pn = precoNormalizado(ins); return pn ? (
-                         <p className="text-[11px] font-bold text-slate-500 mt-0.5" title="Preço normalizado (base da comparação de preços)">
-                           {fmtBRL(pn.valor)}/{pn.base}
-                         </p>
-                       ) : null; })()}
-                       {ins.fornecedor && <p className="text-[9px] font-bold text-slate-400 mt-0.5 truncate">{ins.fornecedor}</p>}
-                     </div>
-                     {/* Ações + calculadora rápida */}
-                     <div className="col-span-2 md:col-span-1 w-full md:w-32 flex justify-end gap-2 border-t border-slate-100 pt-3 md:border-0 md:pt-0">
-                       <button onClick={() => abrirCalc(ins)} className={`p-2 rounded-lg transition-all ${calcAberto === ins.id ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 hover:bg-emerald-100 text-slate-500 hover:text-emerald-600"}`} title="Calcular quanto custa uma quantidade">
-                         <Calculator size={16}/>
-                       </button>
-                       <button onClick={() => abrirHistorico(ins)} className="p-2 bg-slate-100 hover:bg-amber-100 text-slate-500 hover:text-amber-600 rounded-lg transition-all" title="Histórico de preços">
-                         <History size={16}/>
-                       </button>
-                       <button onClick={() => abrirEditar(ins)} className="p-2 bg-slate-100 hover:bg-blue-100 text-slate-500 hover:text-blue-600 rounded-lg transition-all" title="Editar">
-                         <Edit3 size={16}/>
-                       </button>
-                       <button onClick={() => handleRemover(ins.id)} className="p-2 bg-slate-100 hover:bg-red-100 text-slate-500 hover:text-red-500 rounded-lg transition-all" title="Remover">
-                         <Trash2 size={16}/>
-                       </button>
-                     </div>
-                     {/* Painel da calculadora rápida (inline, não salva nada) */}
-                     {calcAberto === ins.id && (() => {
-                       const r = calcularCusto(ins, calcQtd, calcUn);
-                       return (
-                         <div className="col-span-2 md:col-span-4 mt-1 flex flex-wrap items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl p-3">
-                           <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Calcular quanto custa</span>
-                           <input type="number" min="0" step="any" inputMode="decimal" value={calcQtd} onChange={(e) => setCalcQtd(e.target.value)} placeholder="quantidade" autoFocus
-                             className="w-28 px-3 py-2 rounded-lg border-2 border-emerald-200 font-black text-slate-800 outline-none focus:border-emerald-500" />
-                           <select value={calcUn} onChange={(e) => setCalcUn(e.target.value)} className="px-3 py-2 rounded-lg border-2 border-emerald-200 font-bold text-slate-700 outline-none">
-                             {["g", "kg", "ml", "L", "un"].map(u => <option key={u} value={u.toLowerCase()}>{u}</option>)}
-                           </select>
-                           <span className="text-emerald-700 font-black">=</span>
-                           <span className="text-lg font-black text-emerald-700">
-                             {r.erro ? <span className="text-[11px] text-red-500 font-bold">{r.erro}</span> : r.ok ? fmtBRL(r.valor) : "R$ 0,00"}
-                           </span>
-                           {calcQtd && <button onClick={() => setCalcQtd("")} className="text-[11px] font-bold text-slate-500 hover:text-slate-700 ml-1">limpar</button>}
-                         </div>
-                       );
-                     })()}
-                   </div>
-                 );
-               })}
-               {!loading && filtrados.length === 0 && (
-                 <div className="p-16 text-center">
-                   <p className="text-slate-400 font-bold">Nenhum ingrediente encontrado.</p>
-                 </div>
-               )}
-            </div>
-
-            {/* Controles de paginação */}
-            {!loading && filtrados.length > PAGE_SIZE && (
-              <div className="bg-white border-t border-slate-100 px-6 py-3 flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500">
-                  Mostrando {(paginaAtual - 1) * PAGE_SIZE + 1}–{Math.min(paginaAtual * PAGE_SIZE, filtrados.length)} de {filtrados.length}
-                </span>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setPagina(p => Math.max(1, p - 1))}
-                    disabled={paginaAtual === 1}
-                    className="px-3 py-1.5 rounded-lg font-bold text-sm bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    ← Anterior
-                  </button>
-                  <span className="text-xs font-black text-slate-600 px-2">{paginaAtual} / {totalPaginas}</span>
-                  <button
-                    onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
-                    disabled={paginaAtual === totalPaginas}
-                    className="px-3 py-1.5 rounded-lg font-bold text-sm bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    Próxima →
-                  </button>
+      <main className="mx-auto max-w-[1480px] px-4 py-6 sm:px-6">
+        <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {[
+            { icon: Package, label: "Total de ingredientes", value: estatisticas.total, note: "No catálogo", color: "emerald" },
+            { icon: Tag, label: "Sem marca", value: estatisticas.semMarca, note: "Cadastro incompleto", color: "amber" },
+            { icon: Users, label: "Sem fornecedor", value: estatisticas.semFornecedor, note: "Nenhum vínculo", color: "violet" },
+            { icon: Clock3, label: "Preço atualizado", value: estatisticas.recentes, note: "Últimos 30 dias", color: "blue" },
+          ].map(card => {
+            const cores = {
+              emerald: "bg-emerald-50 text-emerald-600",
+              amber: "bg-amber-50 text-amber-600",
+              violet: "bg-violet-50 text-violet-600",
+              blue: "bg-blue-50 text-blue-600",
+            };
+            return (
+              <div key={card.label} className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+                <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${cores[card.color]}`}>
+                  <card.icon size={22} />
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-xs font-bold text-slate-500">{card.label}</p>
+                  <p className="text-xl font-black text-slate-900">{card.value}</p>
+                  <p className="hidden text-[11px] text-slate-400 sm:block">{card.note}</p>
                 </div>
               </div>
-            )}
-         </div>
-      </div>
+            );
+          })}
+        </section>
 
-      {/* Toast flutuante de feedback */}
-      {toast && (
-        <div className="fixed bottom-6 right-6 z-[60] animate-in slide-in-from-bottom-4 fade-in">
-          <div className={`px-5 py-3 rounded-xl shadow-2xl font-bold text-white flex items-center gap-2 ${toast.tipo === 'erro' ? 'bg-red-600' : 'bg-emerald-600'}`}>
-            {toast.tipo === 'erro' ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />} {toast.msg}
+        <section className="mt-5 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex gap-2 overflow-x-auto">
+            {["Todas", ...categorias].map(item => (
+              <button
+                key={item}
+                onClick={() => setCategoria(item)}
+                className={`shrink-0 rounded-lg px-3 py-2 text-xs font-bold transition ${
+                  categoria === item ? "bg-slate-900 text-white" : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+                }`}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+          <select
+            value={ordenacao}
+            onChange={event => setOrdenacao(event.target.value)}
+            className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 outline-none focus:border-emerald-500"
+            aria-label="Ordenação dos ingredientes"
+          >
+            {ORDENACOES.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
+          </select>
+        </section>
+
+        <section className="mt-5 hidden overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm lg:block">
+          <table className="w-full min-w-[1320px] table-fixed text-left">
+            <thead>
+              <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-black uppercase tracking-wide text-slate-500">
+                <th className="w-[240px] px-5 py-4">Ingrediente</th>
+                <th className="w-[115px] px-3 py-4">Marca</th>
+                <th className="w-[100px] px-3 py-4">Embalagem</th>
+                <th className="w-[165px] px-3 py-4">Fornecedor</th>
+                <th className="w-[130px] px-3 py-4">Valor atual</th>
+                <th className="w-[205px] px-3 py-4">Calcular quantidade</th>
+                <th className="w-[115px] px-3 py-4">Variação</th>
+                <th className="w-[115px] px-3 py-4">Histórico</th>
+                <th className="w-[110px] px-3 py-4 text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {loading ? (
+                <tr><td colSpan={9} className="py-16 text-center text-sm font-bold text-slate-400">Carregando ingredientes...</td></tr>
+              ) : paginados.length === 0 ? (
+                <tr><td colSpan={9} className="py-16 text-center text-sm font-bold text-slate-400">Nenhum ingrediente encontrado.</td></tr>
+              ) : paginados.map(insumo => {
+                const vinculados = insumo.fornecedores_vinculados || [];
+                const outros = Math.max(0, vinculados.length - 1);
+                const normalizado = precoNormalizadoDoInsumo(insumo);
+                return (
+                  <tr key={insumo.id} className="align-middle transition hover:bg-emerald-50/30">
+                    <td className="px-5 py-4">
+                      <p className="truncate text-sm font-black text-slate-900">{insumo.nome}</p>
+                      <p className="mt-1 truncate text-xs text-slate-500">
+                        {insumo.codigo_interno || "Sem código"}
+                        {insumo.nome_interno ? ` · ${insumo.nome_interno}` : ""}
+                        {insumo.categoria ? ` · ${insumo.categoria}` : ""}
+                      </p>
+                    </td>
+                    <td className="px-3 py-4 text-xs font-bold text-slate-600">{insumo.marca || "Sem marca"}</td>
+                    <td className="px-3 py-4 text-sm font-bold text-slate-700">
+                      {fmtQuantidade(insumo.tamanho_embalagem || 1)} {unidadeLabel(insumo.unidade_medida)}
+                    </td>
+                    <td className="px-3 py-4">
+                      <p className="truncate text-xs font-bold text-slate-700">{nomeFornecedorAtual(insumo)}</p>
+                      {outros > 0 && <p className="mt-1 text-[11px] font-bold text-emerald-600">+{outros} fornecedor{outros > 1 ? "es" : ""}</p>}
+                    </td>
+                    <td className="px-3 py-4">
+                      <p className="text-sm font-black text-slate-900">{fmtBRL(insumo.custo_compra ?? 0)}</p>
+                      <p className="mt-1 text-xs font-medium text-slate-500">
+                        {fmtBRL(normalizado)}/{unidadeNormalizada(insumo.unidade_medida)}
+                      </p>
+                    </td>
+                    <td className="px-3 py-4">
+                      <CalculadoraRapida
+                        insumo={insumo}
+                        estado={calculos[insumo.id]}
+                        onChange={estado => setCalculos(atual => ({ ...atual, [insumo.id]: estado }))}
+                      />
+                    </td>
+                    <td className="px-3 py-4"><VariacaoPreco insumo={insumo} /></td>
+                    <td className="px-3 py-4">
+                      <button
+                        onClick={() => abrirHistorico(insumo)}
+                        className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
+                      >
+                        Ver histórico
+                      </button>
+                    </td>
+                    <td className="px-3 py-4">
+                      <div className="flex justify-end gap-1.5">
+                        <button onClick={() => abrirEditar(insumo)} title="Editar" className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-blue-50 hover:text-blue-600">
+                          <Edit3 size={15} />
+                        </button>
+                        <button onClick={() => handleRemover(insumo)} title="Remover" className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-red-50 hover:text-red-600">
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </section>
+
+        <section className="mt-5 space-y-3 lg:hidden">
+          {loading ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-sm font-bold text-slate-400">Carregando ingredientes...</div>
+          ) : paginados.length === 0 ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-sm font-bold text-slate-400">Nenhum ingrediente encontrado.</div>
+          ) : paginados.map(insumo => {
+            const vinculados = insumo.fornecedores_vinculados || [];
+            const normalizado = precoNormalizadoDoInsumo(insumo);
+            return (
+              <article key={insumo.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h2 className="truncate font-black text-slate-900">{insumo.nome}</h2>
+                    <p className="mt-1 truncate text-xs text-slate-500">
+                      {insumo.nome_interno || insumo.codigo_interno || insumo.categoria || "Ingrediente"}
+                    </p>
+                  </div>
+                  <span className="shrink-0 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-black text-slate-600">{insumo.marca || "Sem marca"}</span>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Embalagem</p>
+                    <p className="mt-1 font-bold">{fmtQuantidade(insumo.tamanho_embalagem || 1)} {unidadeLabel(insumo.unidade_medida)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Fornecedor</p>
+                    <p className="mt-1 truncate font-bold">{nomeFornecedorAtual(insumo)}</p>
+                    {vinculados.length > 1 && <p className="text-[10px] font-bold text-emerald-600">+{vinculados.length - 1} outro(s)</p>}
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Valor atual</p>
+                    <p className="mt-1 font-black">{fmtBRL(insumo.custo_compra ?? 0)}</p>
+                    <p className="text-xs text-slate-500">{fmtBRL(normalizado)}/{unidadeNormalizada(insumo.unidade_medida)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Variação</p>
+                    <div className="mt-1"><VariacaoPreco insumo={insumo} /></div>
+                  </div>
+                </div>
+                <div className="mt-4 border-t border-slate-100 pt-4">
+                  <p className="mb-2 text-[10px] font-black uppercase tracking-wide text-slate-400">Calcular quantidade</p>
+                  <CalculadoraRapida
+                    insumo={insumo}
+                    estado={calculos[insumo.id]}
+                    onChange={estado => setCalculos(atual => ({ ...atual, [insumo.id]: estado }))}
+                  />
+                </div>
+                <div className="mt-4 flex items-center gap-2">
+                  <button onClick={() => abrirHistorico(insumo)} className="flex-1 rounded-lg border border-slate-200 py-2.5 text-xs font-bold text-slate-600">Ver histórico</button>
+                  <button onClick={() => abrirEditar(insumo)} className="rounded-lg border border-slate-200 p-2.5 text-slate-500"><Edit3 size={16} /></button>
+                  <button onClick={() => handleRemover(insumo)} className="rounded-lg border border-slate-200 p-2.5 text-slate-500"><Trash2 size={16} /></button>
+                </div>
+              </article>
+            );
+          })}
+        </section>
+
+        {!loading && filtrados.length > 0 && (
+          <footer className="mt-4 flex flex-col items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 sm:flex-row">
+            <p className="text-xs font-medium text-slate-500">
+              Mostrando {(paginaAtual - 1) * PAGE_SIZE + 1} a {Math.min(paginaAtual * PAGE_SIZE, filtrados.length)} de {filtrados.length} ingredientes
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPagina(valor => Math.max(1, valor - 1))}
+                disabled={paginaAtual === 1}
+                className="rounded-lg border border-slate-200 p-2 text-slate-500 disabled:opacity-30"
+                aria-label="Página anterior"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <span className="px-2 text-xs font-black text-slate-600">{paginaAtual} / {totalPaginas}</span>
+              <button
+                onClick={() => setPagina(valor => Math.min(totalPaginas, valor + 1))}
+                disabled={paginaAtual === totalPaginas}
+                className="rounded-lg border border-slate-200 p-2 text-slate-500 disabled:opacity-30"
+                aria-label="Próxima página"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </footer>
+        )}
+      </main>
+
+      {modalCadastro && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm">
+          <div className="flex max-h-[94vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
+            <div className="flex items-start justify-between border-b border-slate-100 px-5 py-5 sm:px-7">
+              <div>
+                <h2 className="text-xl font-black text-slate-900">{form.id ? "Editar ingrediente" : "Novo ingrediente"}</h2>
+                <p className="mt-1 text-xs font-medium text-slate-500">Cadastre a identificação, a embalagem e o preço atual.</p>
+              </div>
+              <button onClick={() => setModalCadastro(false)} className="rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200"><X size={18} /></button>
+            </div>
+
+            <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5 sm:px-7">
+              <section>
+                <h3 className="mb-3 text-xs font-black uppercase tracking-wider text-slate-400">Identificação</h3>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="sm:col-span-2">
+                    <span className="text-xs font-bold text-slate-600">Nome original/oficial *</span>
+                    <input
+                      value={form.nome}
+                      onChange={event => {
+                        const nome = event.target.value;
+                        setForm(atual => ({
+                          ...atual,
+                          nome,
+                          categoria: atual.categoria || adivinharCategoria(nome, atual.departamento, atual.marca) || "",
+                        }));
+                      }}
+                      placeholder="Ex.: Açafrão-da-terra"
+                      maxLength={100}
+                      className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 font-bold outline-none focus:border-emerald-500"
+                    />
+                  </label>
+                  <label>
+                    <span className="text-xs font-bold text-slate-600">Nome interno ou apelido</span>
+                    <input value={form.nome_interno} onChange={event => setForm({ ...form, nome_interno: event.target.value })} placeholder="Ex.: Açafrão" className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 outline-none focus:border-emerald-500" />
+                  </label>
+                  <label>
+                    <span className="text-xs font-bold text-slate-600">Código interno</span>
+                    <input value={form.codigo_interno} onChange={event => setForm({ ...form, codigo_interno: event.target.value })} placeholder="Ex.: IND-0001" className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 outline-none focus:border-emerald-500" />
+                  </label>
+                  <label>
+                    <span className="text-xs font-bold text-slate-600">Marca</span>
+                    <input value={form.marca} onChange={event => setForm({ ...form, marca: event.target.value })} placeholder="Deixe vazio para Sem marca" className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 outline-none focus:border-emerald-500" />
+                  </label>
+                  <label>
+                    <span className="text-xs font-bold text-slate-600">Categoria</span>
+                    <select value={form.categoria} onChange={event => setForm({ ...form, categoria: event.target.value })} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 font-bold outline-none focus:border-emerald-500">
+                      <option value="">Selecione...</option>
+                      {(CATEGORIAS_INSUMO[form.departamento] || []).map(item => <option key={item} value={item}>{item}</option>)}
+                    </select>
+                  </label>
+                  <label>
+                    <span className="text-xs font-bold text-slate-600">Departamento</span>
+                    <select value={form.departamento} onChange={event => setForm({ ...form, departamento: event.target.value, categoria: "" })} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 font-bold outline-none focus:border-emerald-500">
+                      <option value="cozinha">Cozinha</option>
+                      <option value="bar">Bar</option>
+                    </select>
+                  </label>
+                </div>
+              </section>
+
+              <section>
+                <h3 className="mb-3 text-xs font-black uppercase tracking-wider text-slate-400">Embalagem e valor</h3>
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                  <label>
+                    <span className="text-xs font-bold text-slate-600">Quantidade *</span>
+                    <input inputMode="decimal" value={form.tamanho_embalagem} onChange={event => !event.target.value.startsWith("-") && setForm({ ...form, tamanho_embalagem: event.target.value })} placeholder="500" className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 font-bold outline-none focus:border-emerald-500" />
+                  </label>
+                  <label>
+                    <span className="text-xs font-bold text-slate-600">Unidade *</span>
+                    <select value={form.unidade_medida} onChange={event => setForm({ ...form, unidade_medida: event.target.value })} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 font-bold outline-none focus:border-emerald-500">
+                      {UNIDADES_INGREDIENTE.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
+                    </select>
+                  </label>
+                  <label className="col-span-2">
+                    <span className="text-xs font-bold text-slate-600">Valor da embalagem *</span>
+                    <div className="mt-1.5 flex h-11 items-center rounded-xl border border-slate-200 bg-slate-50 px-3.5 focus-within:border-emerald-500">
+                      <span className="mr-2 text-sm font-bold text-slate-400">R$</span>
+                      <input inputMode="decimal" value={form.valor_embalagem} onChange={event => !event.target.value.startsWith("-") && setForm({ ...form, valor_embalagem: event.target.value })} placeholder="0,00" className="min-w-0 flex-1 bg-transparent font-black text-emerald-700 outline-none" />
+                    </div>
+                  </label>
+                </div>
+                {Number.isFinite(parseNumeroBR(form.tamanho_embalagem)) && Number.isFinite(parseNumeroBR(form.valor_embalagem)) && (
+                  <div className="mt-3 flex items-center justify-between rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
+                    <span className="text-xs font-bold text-emerald-800">Preço normalizado calculado</span>
+                    <span className="text-sm font-black text-emerald-700">
+                      {fmtBRL(calcularPrecoNormalizado(parseNumeroBR(form.tamanho_embalagem), form.unidade_medida, parseNumeroBR(form.valor_embalagem)))}/{unidadeNormalizada(form.unidade_medida)}
+                    </span>
+                  </div>
+                )}
+                <label className="mt-4 block">
+                  <span className="text-xs font-bold text-slate-600">Densidade em g/ml (opcional)</span>
+                  <input inputMode="decimal" value={form.densidade_g_ml} onChange={event => !event.target.value.startsWith("-") && setForm({ ...form, densidade_g_ml: event.target.value })} placeholder="Necessária apenas para converter peso ↔ volume" className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 outline-none focus:border-emerald-500" />
+                </label>
+              </section>
+
+              <section>
+                <h3 className="mb-3 text-xs font-black uppercase tracking-wider text-slate-400">Fornecedores</h3>
+                <label>
+                  <span className="text-xs font-bold text-slate-600">Fornecedor do valor atual</span>
+                  <select value={form.fornecedor_atual_id} onChange={event => selecionarFornecedorAtual(event.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 font-bold outline-none focus:border-emerald-500">
+                    <option value="">Não informado</option>
+                    {fornecedores.map(item => <option key={item.id} value={item.id}>{item.nome}</option>)}
+                  </select>
+                </label>
+                {fornecedores.length > 0 && (
+                  <div className="mt-3">
+                    <p className="mb-2 text-xs font-bold text-slate-600">Outros fornecedores vinculados</p>
+                    <div className="grid max-h-40 gap-2 overflow-y-auto rounded-xl border border-slate-200 p-3 sm:grid-cols-2">
+                      {fornecedores.map(item => (
+                        <label key={item.id} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-50">
+                          <input
+                            type="checkbox"
+                            checked={form.fornecedor_ids.includes(item.id)}
+                            disabled={form.fornecedor_atual_id === item.id}
+                            onChange={() => alternarFornecedor(item.id)}
+                            className="h-4 w-4 accent-emerald-600"
+                          />
+                          <span className="truncate text-xs font-semibold text-slate-600">{item.nome}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </section>
+            </div>
+
+            <div className="flex gap-3 border-t border-slate-100 bg-slate-50 px-5 py-4 sm:px-7">
+              <button onClick={() => setModalCadastro(false)} className="flex-1 rounded-xl border border-slate-200 bg-white py-3 text-sm font-bold text-slate-600 hover:bg-slate-100">Cancelar</button>
+              <button disabled={salvando} onClick={handleSalvar} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-50">
+                {salvando ? "Salvando..." : "Salvar ingrediente"}
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* MODAL: RECALCULAR CUSTO POR UNIDADE (prévia antes de aplicar) */}
-      {modalRecalc && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={() => setModalRecalc(null)}>
-          <div className="bg-white rounded-[28px] w-full max-w-lg max-h-[85vh] p-6 shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex items-start justify-between mb-1">
-              <h2 className="text-xl font-black text-slate-800 flex items-center gap-2"><Calculator size={20} className="text-slate-600" /> Recalcular custos</h2>
-              <button onClick={() => setModalRecalc(null)} className="w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={17} /></button>
-            </div>
-            <p className="text-sm font-medium text-slate-500 mb-4">Corrige o custo por unidade (valor pago ÷ volume) usado na ficha técnica e no CMV. Confira antes de aplicar.</p>
-
-            {modalRecalc.length === 0 ? (
-              <div className="text-center py-10">
-                <CheckCircle2 size={40} className="text-emerald-500 mx-auto mb-3" />
-                <p className="font-bold text-slate-700">Tudo certo! Nenhum custo precisa de correção.</p>
+      {modalHistorico && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm" onClick={() => setModalHistorico(null)}>
+          <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl" onClick={event => event.stopPropagation()}>
+            <div className="flex items-start justify-between border-b border-slate-100 px-5 py-5 sm:px-7">
+              <div>
+                <h2 className="flex items-center gap-2 text-xl font-black text-slate-900"><History size={20} className="text-emerald-600" /> Histórico de preços</h2>
+                <p className="mt-1 text-sm font-bold text-slate-500">{modalHistorico.nome}</p>
               </div>
-            ) : (
-              <>
-                <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-                  {modalRecalc.map(({ ins, atual, novo }) => (
-                    <div key={ins.id} className="flex items-center justify-between gap-2 p-3 bg-slate-50 border border-slate-100 rounded-xl">
-                      <div className="min-w-0">
-                        <p className="font-bold text-slate-800 text-sm truncate">{ins.nome}</p>
-                        <p className="text-[10px] font-bold text-slate-400">{Number(ins.tamanho_embalagem).toLocaleString('pt-BR')} {ins.unidade_medida} · pago {fmtBRL(ins.custo_compra)}</p>
+              <button onClick={() => setModalHistorico(null)} className="rounded-full bg-slate-100 p-2 text-slate-500"><X size={18} /></button>
+            </div>
+            <div className="flex-1 space-y-3 overflow-y-auto px-5 py-5 sm:px-7">
+              {historicoLoading ? (
+                <p className="py-12 text-center text-sm font-bold text-slate-400">Carregando histórico...</p>
+              ) : historico.length === 0 ? (
+                <p className="py-12 text-center text-sm font-bold text-slate-400">Nenhuma alteração de preço registrada.</p>
+              ) : historico.map(registro => {
+                const normalizadoAnterior = registro.preco_normalizado_anterior ?? registro.custo_anterior;
+                const normalizadoNovo = registro.preco_normalizado_novo ?? registro.custo_novo;
+                const percentual = registro.diferenca_percentual ?? (
+                  Number(normalizadoAnterior) > 0
+                    ? ((Number(normalizadoNovo) - Number(normalizadoAnterior)) / Number(normalizadoAnterior)) * 100
+                    : null
+                );
+                const subiu = Number(percentual) > 0;
+                return (
+                  <article key={registro.id} className="rounded-2xl border border-slate-200 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-black text-slate-800">{registro.fornecedor_nome || "Fornecedor não informado"}</p>
+                        <p className="mt-1 text-xs text-slate-500">{fmtDataHoraBR(registro.created_at)} · {registro.usuario_nome || "Usuário do sistema"}</p>
                       </div>
-                      <div className="text-right shrink-0 text-sm font-black">
-                        <span className="text-slate-400 line-through">{fmtBRL(atual)}</span>
-                        <span className="text-slate-300 mx-1">→</span>
-                        <span className="text-emerald-600">{fmtBRL(novo)}</span>
-                        <span className="text-[10px] font-bold text-slate-400"> /{ins.unidade_medida}</span>
+                      {percentual !== null && (
+                        <span className={`rounded-lg px-2.5 py-1 text-xs font-black ${subiu ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-600"}`}>
+                          {Number(percentual) > 0 ? "+" : ""}{Number(percentual).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-4 grid gap-3 rounded-xl bg-slate-50 p-3 sm:grid-cols-2">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Embalagem anterior</p>
+                        <p className="mt-1 text-xs font-bold text-slate-600">
+                          {registro.embalagem_quantidade_anterior
+                            ? `${fmtQuantidade(registro.embalagem_quantidade_anterior)} ${unidadeLabel(registro.embalagem_unidade_anterior)} por ${fmtBRL(registro.valor_anterior)}`
+                            : "Cadastro inicial"}
+                        </p>
+                        {normalizadoAnterior !== null && <p className="mt-1 text-xs text-slate-500">{fmtBRL(normalizadoAnterior)}/{unidadeNormalizada(registro.embalagem_unidade_anterior || modalHistorico.unidade_medida)}</p>}
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Nova embalagem</p>
+                        <p className="mt-1 text-xs font-bold text-slate-700">
+                          {fmtQuantidade(registro.embalagem_quantidade_nova || modalHistorico.tamanho_embalagem)} {unidadeLabel(registro.embalagem_unidade_nova || modalHistorico.unidade_medida)} por {fmtBRL(registro.valor_novo ?? modalHistorico.custo_compra)}
+                        </p>
+                        <p className="mt-1 text-xs font-bold text-emerald-700">{fmtBRL(normalizadoNovo)}/{unidadeNormalizada(registro.embalagem_unidade_nova || modalHistorico.unidade_medida)}</p>
                       </div>
                     </div>
-                  ))}
-                </div>
-                <div className="flex gap-3 mt-4 shrink-0">
-                  <button onClick={() => setModalRecalc(null)} className="flex-1 py-3 rounded-xl font-bold bg-slate-100 text-slate-700 hover:bg-slate-200">Cancelar</button>
-                  <button onClick={aplicarRecalc} disabled={recalcLoading} className="flex-1 py-3 rounded-xl font-black bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2">
-                    {recalcLoading ? <Loader2 size={16} className="animate-spin" /> : <Calculator size={16} />} Aplicar em {modalRecalc.length}
-                  </button>
-                </div>
-              </>
-            )}
+                    {registro.diferenca_valor !== null && registro.diferenca_valor !== undefined && (
+                      <p className="mt-3 text-xs font-semibold text-slate-500">
+                        Diferença normalizada: {Number(registro.diferenca_valor) > 0 ? "+" : ""}{fmtBRL(registro.diferenca_valor)}
+                      </p>
+                    )}
+                    <p className="mt-2 text-[10px] font-medium text-slate-400">Origem: {registro.origem || "Cadastro de ingredientes"}</p>
+                  </article>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
 
-      {/* MODAL: HISTÓRICO DE PREÇOS do ingrediente */}
-      {modalHist && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto" onClick={() => setModalHist(null)}>
-            <div className="bg-white rounded-[32px] w-full max-w-md my-8 p-7 shadow-2xl animate-in zoom-in-95 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
-               <div className="flex justify-between items-center mb-4 shrink-0">
-                  <div>
-                     <h2 className="font-black text-xl text-slate-800">Histórico de Preços</h2>
-                     <p className="text-sm font-bold text-slate-500 mt-0.5">{modalHist.nome} · atual {fmtBRL(modalHist.custo_unitario)}/{modalHist.unidade_medida}</p>
-                  </div>
-                  <button onClick={() => setModalHist(null)} className="w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={17}/></button>
-               </div>
-               <div className="overflow-y-auto space-y-2">
-                  {histLoading ? (
-                     <p className="text-center font-bold text-slate-400 py-6"><Loader2 size={20} className="animate-spin inline"/> Carregando...</p>
-                  ) : histPrecos.length === 0 ? (
-                     <p className="text-sm font-medium text-slate-400 text-center py-6">Nenhuma alteração registrada ainda. A partir de agora, toda mudança de preço fica salva aqui.</p>
-                  ) : histPrecos.map(h => {
-                     const antigo = Number(h.custo_anterior);
-                     const novo = Number(h.custo_novo) || 0;
-                     const temAntigo = h.custo_anterior !== null && antigo > 0;
-                     const varPct = temAntigo ? ((novo - antigo) / antigo) * 100 : null;
-                     const subiu = varPct !== null && varPct > 0;
-                     return (
-                        <div key={h.id} className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center gap-3">
-                           <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${varPct === null ? "bg-slate-200 text-slate-500" : subiu ? "bg-red-100 text-red-600" : "bg-emerald-100 text-emerald-600"}`}>
-                              {varPct === null ? <Plus size={15}/> : subiu ? <TrendingUp size={15}/> : <TrendingDown size={15}/>}
-                           </div>
-                           <div className="flex-1 min-w-0">
-                              <p className="text-sm font-bold text-slate-700">
-                                 {temAntigo ? <>{fmtBRL(antigo)} <span className="text-slate-400">→</span> {fmtBRL(novo)}</> : <>Cadastro inicial: {fmtBRL(novo)}</>}
-                              </p>
-                              <p className="text-[10px] font-medium text-slate-400">{fmtDataHoraBR(h.created_at)}</p>
-                           </div>
-                           {varPct !== null && (
-                              <span className={`text-xs font-black shrink-0 ${subiu ? "text-red-600" : "text-emerald-600"}`}>{subiu ? "+" : ""}{varPct.toFixed(1)}%</span>
-                           )}
-                        </div>
-                     );
-                  })}
-               </div>
-               <p className="text-[10px] font-medium text-slate-400 mt-3 shrink-0">Toda alteração de preço recalcula automaticamente as fichas, o cardápio e o CMV.</p>
-            </div>
-         </div>
+      {toast && (
+        <div className={`fixed bottom-5 right-5 z-[70] flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-bold text-white shadow-2xl ${toast.tipo === "erro" ? "bg-red-600" : "bg-emerald-600"}`}>
+          {toast.tipo === "erro" ? <AlertTriangle size={17} /> : <CheckCircle2 size={17} />}
+          {toast.mensagem}
+        </div>
       )}
-
-      {modalNovo && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-2 sm:p-4">
-            <div className="bg-white rounded-[32px] w-full max-w-md p-6 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[92vh] flex flex-col">
-               <div className="flex justify-between items-center mb-6 shrink-0">
-                  <h2 className="font-black text-2xl text-slate-800">{form.id ? "Editar Insumo" : "Novo Insumo"}</h2>
-                  <button onClick={() => setModalNovo(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
-               </div>
-
-               <div className="space-y-4 overflow-y-auto pr-2" style={{ scrollbarWidth: 'thin' }}>
-                  {/* Sempre visível: permite atribuir/mover o ingrediente entre Cozinha e Bar,
-                      inclusive quando você entrou por um setor específico. */}
-                  <div>
-                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Departamento</label>
-                     <select value={form.departamento} onChange={e=>setForm({...form, departamento: e.target.value, categoria: form.categoria_manual ? form.categoria : ""})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500">
-                        <option value="cozinha">Cozinha</option>
-                        <option value="bar">Bar</option>
-                     </select>
-                  </div>
-
-                  <div>
-                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nome original / oficial <span className="text-red-500">*</span></label>
-                     <input type="text" placeholder="Ex: Açafrão-da-terra" value={form.nome} onChange={e=>{
-                        const nome = e.target.value;
-                        // Enquanto você digita, o sistema adivinha a categoria (se você não escolheu manualmente)
-                        const sugerida = form.categoria_manual ? form.categoria : (adivinharCategoria(nome, form.departamento, form.marca) || form.categoria);
-                        setForm({...form, nome, categoria: sugerida});
-                     }} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
-                     <p className="text-[10px] font-medium text-slate-400 mt-1">Usado como referência principal e para a ordem alfabética.</p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                     <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nome interno / apelido (opcional)</label>
-                        <input type="text" placeholder="Ex: Açafrão" value={form.nome_interno || ""} onChange={e=>setForm({...form, nome_interno: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
-                     </div>
-                     <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Código interno (opcional)</label>
-                        <input type="text" placeholder="Ex: IND-0001" value={form.codigo_interno || ""} onChange={e=>setForm({...form, codigo_interno: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
-                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                     <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Marca (opcional)</label>
-                        <input type="text" placeholder="Ex: Carmem" value={form.marca || ""} onChange={e=>setForm({...form, marca: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
-                     </div>
-                     <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1">Categoria {!form.categoria_manual && form.categoria && <span className="text-[9px] font-black text-emerald-600">(auto)</span>}</label>
-                        <div className="flex gap-2 mt-1">
-                           <select value={form.categoria || ""} onChange={e=>setForm({...form, categoria: e.target.value, categoria_manual: true})} className="flex-1 min-w-0 p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500">
-                              <option value="">Selecione...</option>
-                              {(() => {
-                                 const padrao = CATEGORIAS_INSUMO[form.departamento] || CATEGORIAS_INSUMO.cozinha;
-                                 const extras = [...new Set(insumos.map(i => i.categoria).filter(c => c && !padrao.includes(c)))].sort();
-                                 return [...padrao, ...extras].map(c => <option key={c} value={c}>{c}</option>);
-                              })()}
-                              {form.categoria && !(CATEGORIAS_INSUMO[form.departamento] || CATEGORIAS_INSUMO.cozinha).includes(form.categoria) && !insumos.some(i => i.categoria === form.categoria) && <option value={form.categoria}>{form.categoria}</option>}
-                           </select>
-                           <button type="button" title="Criar nova categoria" onClick={() => {
-                              const nova = prompt("Nome da nova categoria:");
-                              if (nova && nova.trim()) setForm({ ...form, categoria: nova.trim(), categoria_manual: true });
-                           }} className="w-12 shrink-0 rounded-xl bg-slate-100 hover:bg-emerald-100 text-slate-600 hover:text-emerald-700 font-black text-xl border border-slate-200">+</button>
-                        </div>
-                     </div>
-                  </div>
-
-                  {/* Fornecedor e observações (opcionais) — padrão de cadastro completo */}
-                  <div>
-                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Fornecedor — opcional</label>
-                     <input type="text" list="fornecedores-insumo" placeholder="Selecionar ou digitar..." value={form.fornecedor || ""} onChange={e=>setForm({...form, fornecedor: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
-                     <datalist id="fornecedores-insumo">
-                        {[...new Set(insumos.map(i => i.fornecedor).filter(Boolean))].sort().map(fn => <option key={fn} value={fn} />)}
-                     </datalist>
-                  </div>
-                  <div>
-                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Observações — opcional</label>
-                     <textarea rows={2} placeholder="Notas sobre o insumo..." value={form.observacoes || ""} onChange={e=>setForm({...form, observacoes: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500 resize-none"/>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4">
-                     <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Vol / Tamanho</label>
-                        <input type="number" step="0.01" min="0" placeholder="Ex: 750" value={form.tamanho_embalagem} onChange={e=>setForm({...form, tamanho_embalagem: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500"/>
-                     </div>
-                     <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Unidade</label>
-                        <select value={form.unidade_medida} onChange={e=>setForm({...form, unidade_medida: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500">
-                           <option value="kg">Kilo (KG)</option>
-                           <option value="l">Litro (L)</option>
-                           <option value="un">Unid (UN)</option>
-                           <option value="g">Grama (G)</option>
-                           <option value="ml">Mililitro (ML)</option>
-                        </select>
-                     </div>
-                     <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Valor Pago</label>
-                        <input type="number" step="0.01" min="0" max="999999.99" placeholder="0.00" value={form.valor_embalagem} onChange={e=>setForm({...form, valor_embalagem: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-emerald-600 outline-none focus:border-emerald-500"/>
-                     </div>
-                  </div>
-                  {/* Preço normalizado (prévia): R$/kg, R$/L ou R$/un */}
-                  {(() => {
-                     const pn = precoNormalizado({ valor_embalagem: Number(form.valor_embalagem), tamanho_embalagem: Number(form.tamanho_embalagem), unidade_medida: form.unidade_medida });
-                     return pn ? <p className="text-xs font-bold text-emerald-700 -mt-1">Preço normalizado: <b>{fmtBRL(pn.valor)}/{pn.base}</b></p> : null;
-                  })()}
-                  {/* Densidade (opcional): libera converter peso ↔ volume na calculadora */}
-                  <div>
-                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Densidade — opcional (g/ml)</label>
-                     <input type="text" inputMode="decimal" placeholder="Ex: 0,92 (azeite) · 1,0 (água)" value={form.densidade || ""} onChange={e=>setForm({...form, densidade: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500"/>
-                     <p className="text-[10px] text-slate-400 font-medium mt-1">Só preencha se precisar converter peso em volume (ou vice-versa) na calculadora rápida. Sem densidade, essa conversão fica bloqueada.</p>
-                  </div>
-
-                  {/* Frete (produtos que vêm de fora): soma no custo do ingrediente */}
-                  <div>
-                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Frete (opcional)</label>
-                     <input type="number" step="0.01" min="0" placeholder="0,00" value={form.frete || ""} onChange={e=>setForm({...form, frete: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500"/>
-                     <p className="text-[10px] text-slate-400 font-medium mt-1">Para produtos de fora: o valor do frete é somado ao valor pago antes de calcular o custo por unidade.</p>
-                  </div>
-
-                  {/* Medida de referência: quanto pesa/rende 1 unidade (tomate 1 un = 100g,
-                      caixa de leite = 1000 ml). Aparece quando a unidade base é "un". */}
-                  {form.unidade_medida === "un" && (
-                     <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-                           Cada unidade equivale a ({form.departamento === "bar" ? "ml" : "g/ml"}) — opcional
-                        </label>
-                        <input type="number" step="0.1" min="0" placeholder="Ex: 100 (tomate) · 1000 (caixa de leite)" value={form.peso_medio_g} onChange={e=>setForm({...form, peso_medio_g: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500"/>
-                        <p className="text-[10px] text-slate-400 font-medium mt-1">Peso/volume médio de 1 unidade. Serve de referência para lançar na ficha e converter entre unidade e gramas/ml.</p>
-                     </div>
-                  )}
-
-                  {/* Controle de Estoque Inicial e Alertas Mínimo/Máximo */}
-                  <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-4 space-y-4">
-                     <div className="flex items-center justify-between">
-                        <p className="text-xs font-black uppercase tracking-widest text-emerald-900 flex items-center gap-1.5">
-                           📦 Estoque Inicial & Alertas (Opcional)
-                        </p>
-                        {!form.id && (
-                           <span className="text-[10px] font-bold bg-emerald-200 text-emerald-800 px-2.5 py-0.5 rounded-full">Entrada Automática</span>
-                        )}
-                     </div>
-
-                     {!form.id && (
-                        <div>
-                           <label className="text-[11px] font-bold text-slate-700 uppercase tracking-widest block mb-1">
-                              Quantidade de Entrada Inicial (Embalagens / Unidades)
-                           </label>
-                           <div className="relative">
-                              <input
-                                 type="number" step="1" min="0" placeholder="Ex: 24 (garrafas / pacotes / caixas)"
-                                 value={form.estoque_inicial}
-                                 onChange={e => setForm({ ...form, estoque_inicial: e.target.value })}
-                                 className="w-full p-3.5 bg-white border border-emerald-300 rounded-xl font-black text-slate-800 outline-none focus:border-emerald-500 shadow-sm"
-                              />
-                              <span className="absolute right-4 top-1/2 -translate-y-1/2 font-black text-slate-400 text-xs">unidades</span>
-                           </div>
-                           {Number(form.estoque_inicial) > 0 && (
-                              <div className="bg-white/80 border border-emerald-200 rounded-xl p-2.5 mt-2 flex items-center gap-2">
-                                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                 <p className="text-[11px] font-bold text-emerald-800">
-                                    O estoque iniciará com <b>{Number(form.estoque_inicial).toLocaleString('pt-BR')} un.</b>
-                                    {Number(form.tamanho_embalagem) > 1 && (
-                                       <> (equivalente a <b>{(Number(form.estoque_inicial) * Number(form.tamanho_embalagem)).toLocaleString('pt-BR')} {form.unidade_medida}</b>)</>
-                                    )} e registrará uma entrada no histórico!
-                                 </p>
-                              </div>
-                           )}
-                        </div>
-                     )}
-
-                     <div className="grid grid-cols-2 gap-3 pt-1">
-                        <div>
-                           <label className="text-[10px] font-bold text-amber-700 uppercase tracking-widest block mb-1">Estoque Mínimo (Alerta)</label>
-                           <input
-                              type="number" step="1" min="0" placeholder="Ex: 5 un."
-                              value={form.estoque_minimo}
-                              onChange={e => setForm({ ...form, estoque_minimo: e.target.value })}
-                              className="w-full p-3 bg-white border border-amber-200 rounded-xl font-bold text-amber-900 outline-none focus:border-amber-500 shadow-sm"
-                           />
-                           <span className="text-[9px] font-semibold text-amber-700 mt-1 block">Avisa quando faltar estoque</span>
-                        </div>
-                        <div>
-                           <label className="text-[10px] font-bold text-sky-700 uppercase tracking-widest block mb-1">Estoque Máximo (Ideal)</label>
-                           <input
-                              type="number" step="1" min="0" placeholder="Ex: 50 un."
-                              value={form.estoque_maximo}
-                              onChange={e => setForm({ ...form, estoque_maximo: e.target.value })}
-                              className="w-full p-3 bg-white border border-sky-200 rounded-xl font-bold text-sky-900 outline-none focus:border-sky-500 shadow-sm"
-                           />
-                           <span className="text-[9px] font-semibold text-sky-700 mt-1 block">Limite ideal de compras</span>
-                        </div>
-                     </div>
-                  </div>
-
-                  {/* Perda na limpeza: pesa bruto (com casca/espinha) e limpo (aproveitável) */}
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                     <p className="text-[11px] font-black uppercase tracking-widest text-amber-700 mb-1">Perda na limpeza (opcional)</p>
-                     <p className="text-[10px] font-medium text-amber-700/70 mb-3 leading-tight">Ex.: banana com casca vs sem casca, peixe inteiro vs filé. Meça uma amostra bruta e o que sobrou limpo — o sistema corrige o custo real.</p>
-                     <div className="grid grid-cols-2 gap-3">
-                        <div>
-                           <label className="text-[10px] font-bold text-amber-700 uppercase tracking-widest">Peso/Volume Bruto</label>
-                           <input type="number" step="1" min="0" placeholder="Ex: 1000" value={form.peso_bruto_g} onChange={e=>setForm({...form, peso_bruto_g: e.target.value})} className="w-full p-3 mt-1 bg-white border border-amber-200 rounded-lg font-bold text-slate-700 outline-none focus:border-amber-500"/>
-                        </div>
-                        <div>
-                           <label className="text-[10px] font-bold text-amber-700 uppercase tracking-widest">Peso/Volume Limpo</label>
-                           <input type="number" step="1" min="0" placeholder="Ex: 650" value={form.peso_liquido_g} onChange={e=>setForm({...form, peso_liquido_g: e.target.value})} className="w-full p-3 mt-1 bg-white border border-amber-200 rounded-lg font-bold text-slate-700 outline-none focus:border-amber-500"/>
-                        </div>
-                     </div>
-                     {aproveitamentoForm < 100 && (
-                        <div className="flex justify-between items-center mt-3 bg-white border border-amber-200 rounded-lg p-3">
-                           <div>
-                              <p className="text-[10px] font-black uppercase tracking-widest text-red-500">Perda: {(100 - aproveitamentoForm).toFixed(1)}%</p>
-                              <p className="text-[10px] font-bold text-slate-500">Aproveitamento: {aproveitamentoForm.toFixed(1)}%</p>
-                           </div>
-                           <div className="text-right">
-                              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Custo do kg limpo</p>
-                              <p className="text-xl font-black text-emerald-600">{fmtBRL(custoRealForm)}</p>
-                           </div>
-                        </div>
-                     )}
-                  </div>
-
-                  {/* Empanamento: o produto ganha peso ao empanar, e o empanamento tem custo próprio */}
-                  <div className="bg-sky-50 border border-sky-200 rounded-xl p-4">
-                     <label className="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" checked={form.eh_empanado} onChange={e=>setForm({...form, eh_empanado: e.target.checked})} className="w-4 h-4 accent-sky-600"/>
-                        <span className="text-[11px] font-black uppercase tracking-widest text-sky-700">Este produto é empanado</span>
-                     </label>
-                     {form.eh_empanado && (
-                        <div className="mt-3 space-y-3">
-                           <div>
-                              <label className="text-[10px] font-bold text-sky-700 uppercase tracking-widest">Custo do empanamento (R$ por kg in natura)</label>
-                              <input type="number" step="0.01" min="0" placeholder="Ex: 4.50 (farinha, ovo, temperos p/ empanar 1kg)" value={form.custo_empanamento} onChange={e=>setForm({...form, custo_empanamento: e.target.value})} className="w-full p-3 mt-1 bg-white border border-sky-200 rounded-lg font-bold text-slate-700 outline-none focus:border-sky-500"/>
-                           </div>
-                           <div className="grid grid-cols-2 gap-3">
-                              <div>
-                                 <label className="text-[10px] font-bold text-sky-700 uppercase tracking-widest">Peso in natura (g)</label>
-                                 <input type="number" step="1" min="0" placeholder="Ex: 1000" value={form.peso_in_natura_g} onChange={e=>setForm({...form, peso_in_natura_g: e.target.value})} className="w-full p-3 mt-1 bg-white border border-sky-200 rounded-lg font-bold text-slate-700 outline-none focus:border-sky-500"/>
-                              </div>
-                              <div>
-                                 <label className="text-[10px] font-bold text-sky-700 uppercase tracking-widest">Peso empanado (g)</label>
-                                 <input type="number" step="1" min="0" placeholder="Ex: 1360" value={form.peso_empanado_g} onChange={e=>setForm({...form, peso_empanado_g: e.target.value})} className="w-full p-3 mt-1 bg-white border border-sky-200 rounded-lg font-bold text-slate-700 outline-none focus:border-sky-500"/>
-                              </div>
-                           </div>
-                           {fatorEmpanadoForm !== 1 && (
-                              <div className="bg-white border border-sky-200 rounded-lg p-3 space-y-2">
-                                 <div className="flex justify-between items-center">
-                                    <div>
-                                       <p className="text-[10px] font-black uppercase tracking-widest text-sky-600">Rendimento: {fatorEmpanadoForm > 1 ? '+' : ''}{((fatorEmpanadoForm - 1) * 100).toFixed(1)}% no peso</p>
-                                       <p className="text-[10px] font-bold text-slate-500">1 kg in natura vira {(fatorEmpanadoForm).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} kg empanado</p>
-                                    </div>
-                                    <div className="text-right">
-                                       <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Custo do kg empanado</p>
-                                       <p className="text-xl font-black text-emerald-600">{fmtBRL(custoFinalForm)}</p>
-                                    </div>
-                                 </div>
-                                 <p className="text-[10px] font-bold text-slate-500 border-t border-sky-100 pt-2">
-                                    Em 1 kg empanado: {Math.round(1000 / fatorEmpanadoForm).toLocaleString("pt-BR")} g de {form.nome || 'produto'} + {Math.round(1000 - 1000 / fatorEmpanadoForm).toLocaleString("pt-BR")} g de empanamento
-                                 </p>
-                              </div>
-                           )}
-                        </div>
-                     )}
-                  </div>
-
-                  <p className="text-[11px] font-medium text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-100 mt-4">
-                     Dica: informe o volume/tamanho, a unidade e o valor pago. Ex.: Heineken 600 ml por R$ 8,50 → Vol "600", Unidade "ML", Valor "8,50". Se informar 24 unidades no estoque inicial, o produto entra disponível no estoque do bar/cozinha automaticamente.
-                  </p>
-               </div>
-
-               <button onClick={handleSalvar} className="w-full mt-6 shrink-0 py-5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-2">
-                  <Save size={20}/> Salvar Ingrediente
-               </button>
-            </div>
-         </div>
-      )}
-
-      {/* IMPORTAÇÃO EM MASSA VIA IA */}
-      {modalIA && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
-            <div className="bg-white rounded-[32px] w-full max-w-3xl my-8 shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[90vh]">
-               <div className="flex justify-between items-center p-4 sm:p-8 pb-4 sm:pb-6 border-b border-slate-100 shrink-0">
-                  <div className="flex items-center gap-3">
-                     <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center"><Sparkles size={22}/></div>
-                     <div>
-                        <h2 className="font-black text-2xl text-slate-800">Importar Ingredientes com IA</h2>
-                        <p className="text-xs font-bold text-slate-500 mt-0.5">Cole uma lista ou envie foto de nota fiscal / lista de compras</p>
-                     </div>
-                  </div>
-                  <button onClick={() => setModalIA(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
-               </div>
-
-               <div className="p-4 sm:p-8 overflow-y-auto custom-scrollbar space-y-5">
-                  {!iaItens ? (
-                     <>
-                        {!deptUrl && (
-                           <div>
-                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Departamento destes ingredientes</label>
-                              <select value={iaDept} onChange={e=>setIaDept(e.target.value)} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500">
-                                 <option value="cozinha">Cozinha</option>
-                                 <option value="bar">Bar</option>
-                              </select>
-                           </div>
-                        )}
-
-                        <div>
-                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Colar lista (opcional se enviar foto)</label>
-                           <textarea
-                              placeholder={"Ex:\nTomate Carmem 2kg R$ 15,80\nFilé de Frango Sadia 3kg R$ 42,00\nVodka Smirnoff 1L R$ 60,00"}
-                              value={iaTexto}
-                              onChange={e => setIaTexto(e.target.value)}
-                              className="w-full h-32 p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:border-emerald-500 resize-none"
-                           ></textarea>
-                        </div>
-
-                        <div>
-                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Ou enviar foto (nota fiscal, lista, etiqueta)</label>
-                           <input ref={fileInputRef} type="file" accept="image/*" onChange={handleSelecionarImagem} className="hidden" />
-                           {iaImagem ? (
-                              <div className="mt-1 flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-3">
-                                 <img src={iaImagem.previewUrl} alt="preview" className="w-16 h-16 object-cover rounded-lg border border-slate-200" />
-                                 <div className="flex-1 min-w-0">
-                                    <p className="font-bold text-sm text-slate-700 truncate">{iaImagem.nomeArquivo}</p>
-                                    <button onClick={() => setIaImagem(null)} className="text-xs font-bold text-red-500 hover:text-red-600 mt-1">Remover foto</button>
-                                 </div>
-                              </div>
-                           ) : (
-                              <button type="button" onClick={() => fileInputRef.current?.click()} className="w-full mt-1 p-6 bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center gap-2 text-slate-400 hover:text-emerald-600 hover:border-emerald-300 transition-colors">
-                                 <Camera size={24} />
-                                 <span className="font-bold text-sm">Tirar foto ou escolher da galeria</span>
-                              </button>
-                           )}
-                        </div>
-
-                        <button
-                           onClick={gerarInsumosIA}
-                           disabled={iaLoading}
-                           className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95"
-                        >
-                           {iaLoading ? <><Loader2 size={18} className="animate-spin"/> Lendo ingredientes...</> : <><Sparkles size={18}/> Extrair ingredientes</>}
-                        </button>
-                     </>
-                  ) : (
-                     <>
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Confira antes de salvar ({iaItens.filter(i=>i.incluir).length} de {iaItens.length} selecionados)</p>
-                        <div className="space-y-2">
-                           {iaItens.map((it, idx) => (
-                              <div key={idx} className={`p-3 rounded-xl border flex flex-wrap items-center gap-2 ${it.incluir ? 'bg-white border-slate-200' : 'bg-slate-50 border-slate-100 opacity-60'}`}>
-                                 <input type="checkbox" checked={it.incluir} onChange={e=>atualizarItemIA(idx, "incluir", e.target.checked)} className="w-5 h-5 accent-emerald-600" />
-                                 <input type="text" value={it.nome} onChange={e=>atualizarItemIA(idx, "nome", e.target.value)} placeholder="Nome" className="flex-1 min-w-[140px] p-2 bg-slate-50 border border-slate-200 rounded-lg font-bold text-sm outline-none focus:border-emerald-500" />
-                                 <input type="text" value={it.marca} onChange={e=>atualizarItemIA(idx, "marca", e.target.value)} placeholder="Marca" className="w-28 p-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:border-emerald-500" />
-                                 <select value={it.unidade_medida} onChange={e=>atualizarItemIA(idx, "unidade_medida", e.target.value)} className="w-24 p-2 bg-slate-50 border border-slate-200 rounded-lg font-bold text-sm outline-none focus:border-emerald-500">
-                                    <option value="kg">KG</option>
-                                    <option value="l">L</option>
-                                    <option value="un">UN</option>
-                                    <option value="g">G</option>
-                                    <option value="ml">ML</option>
-                                 </select>
-                                 <input type="number" step="0.01" value={it.custo_unitario} onChange={e=>atualizarItemIA(idx, "custo_unitario", e.target.value)} placeholder="Custo/base" className="w-28 p-2 bg-emerald-50 border border-emerald-200 rounded-lg font-black text-emerald-600 text-sm outline-none focus:border-emerald-500" />
-                              </div>
-                           ))}
-                        </div>
-                        <button onClick={() => setIaItens(null)} className="text-xs font-bold text-slate-500 hover:text-slate-700">← Voltar e enviar outra lista/foto</button>
-                     </>
-                  )}
-               </div>
-
-               {iaItens && (
-                  <div className="p-4 sm:p-8 sm:pt-4 border-t border-slate-100 bg-slate-50 rounded-b-[32px] shrink-0">
-                     <button onClick={salvarItensIA} disabled={iaSalvando} className="w-full py-5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-2">
-                        {iaSalvando ? <><Loader2 size={20} className="animate-spin"/> Salvando...</> : <><Save size={20}/> Salvar {iaItens.filter(i=>i.incluir).length} Ingrediente(s)</>}
-                     </button>
-                  </div>
-               )}
-            </div>
-         </div>
-      )}
-
     </div>
   );
 }
 
 export default function Page() {
   return (
-    <Suspense fallback={<div className="p-10 text-center font-bold text-slate-500">Carregando módulo...</div>}>
-       <IngredientesRunner />
+    <Suspense fallback={<div className="min-h-screen bg-slate-50 p-12 text-center font-bold text-slate-400">Carregando ingredientes...</div>}>
+      <IngredientesRunner />
     </Suspense>
   );
 }

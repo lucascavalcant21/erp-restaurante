@@ -28,7 +28,7 @@ function IngredientesRunner() {
   // custo_compra = preço como comprado; peso bruto/limpo calculam a perda de limpeza
   // (casca, espinha, apara). Se for empanado, soma o custo do empanamento e divide
   // pelo ganho de peso. custo_unitario salvo no banco = custo REAL do kg PRONTO.
-  const [form, setForm] = useState({ id: null, departamento: deptUrl || "cozinha", nome: "", marca: "", categoria: "", unidade_medida: "kg", tamanho_embalagem: "1", valor_embalagem: "", custo_compra: "", frete: "", peso_medio_g: "", peso_bruto_g: "", peso_liquido_g: "", eh_empanado: false, custo_empanamento: "", peso_in_natura_g: "", peso_empanado_g: "", categoria_manual: false, fornecedor: "", observacoes: "", estoque_inicial: "", estoque_minimo: "", estoque_maximo: "" });
+  const [form, setForm] = useState({ id: null, departamento: deptUrl || "cozinha", nome: "", nome_interno: "", codigo_interno: "", densidade: "", marca: "", categoria: "", unidade_medida: "kg", tamanho_embalagem: "1", valor_embalagem: "", custo_compra: "", frete: "", peso_medio_g: "", peso_bruto_g: "", peso_liquido_g: "", eh_empanado: false, custo_empanamento: "", peso_in_natura_g: "", peso_empanado_g: "", categoria_manual: false, fornecedor: "", observacoes: "", estoque_inicial: "", estoque_minimo: "", estoque_maximo: "" });
   const [catFiltro, setCatFiltro] = useState("Todas");
 
   // Aproveitamento (%) derivado dos pesos: 650g limpos de 1000g brutos = 65%
@@ -148,14 +148,104 @@ function IngredientesRunner() {
     if (unidadeAtiva) carregar();
   }, [unidadeAtiva, deptUrl]);
 
-  // Busca por nome OU marca; filtro por categoria
-  const buscaLower = busca.toLowerCase();
-  const filtrados = insumos.filter(i =>
-    (!deptUrl || (i.departamento || "").toLowerCase() === deptUrl) &&
-    (i.nome.toLowerCase().includes(buscaLower) || (i.marca || "").toLowerCase().includes(buscaLower) || (i.categoria || "").toLowerCase().includes(buscaLower)) &&
-    (catFiltro === "Todas" || (i.categoria || "Outros") === catFiltro)
-  );
+  // Normaliza para busca/ordenação: sem acento, minúsculo, sem hífen/espaço extra.
+  // Ex.: "Açafrão-da-terra", "açafrao da terra" e "ACAFRAO" viram a mesma chave.
+  const norm = (s) => Array.from(String(s || "").normalize("NFD")).filter((c) => { const k = c.charCodeAt(0); return k < 0x300 || k > 0x36f; }).join("").toLowerCase().replace(/[-\s]+/g, " ").trim();
+  const normSemEspaco = (s) => norm(s).replace(/ /g, "");
+
+  // Preço normalizado da embalagem: R$/kg (peso), R$/L (volume) ou R$/un.
+  const precoNormalizado = (ins) => {
+    const valor = Number(ins.valor_embalagem ?? ins.custo_compra);
+    const tam = Number(ins.tamanho_embalagem) || 0;
+    const un = String(ins.unidade_medida || "").toLowerCase();
+    if (!valor || valor <= 0 || tam <= 0) return null;
+    if (un === "g") return { valor: (valor / tam) * 1000, base: "kg" };
+    if (un === "kg") return { valor: valor / tam, base: "kg" };
+    if (un === "ml") return { valor: (valor / tam) * 1000, base: "L" };
+    if (un === "l") return { valor: valor / tam, base: "L" };
+    return { valor: valor / tam, base: "un" };
+  };
+
+  // Ordenação: A–Z padrão (ignorando acento/maiúscula/hífen), + secundárias.
+  const [ordenacao, setOrdenacao] = useState("az");
+
+  // Busca por nome, apelido, marca, fornecedor, código interno e categoria.
+  // Ignora acentos, maiúsculas e hífens. Casa também sem espaços (açafrão-da-terra).
+  const termo = norm(busca);
+  const termoSemEspaco = normSemEspaco(busca);
+  const casa = (ins) => {
+    if (!termo) return true;
+    const campos = [ins.nome, ins.nome_interno, ins.apelido, ins.marca, ins.fornecedor, ins.fornecedores, ins.codigo_interno, ins.categoria];
+    return campos.some((c) => {
+      const n = norm(c);
+      return n.includes(termo) || normSemEspaco(c).includes(termoSemEspaco);
+    });
+  };
+  const filtrados = insumos
+    .filter(i =>
+      (!deptUrl || (i.departamento || "").toLowerCase() === deptUrl) &&
+      casa(i) &&
+      (catFiltro === "Todas" || (i.categoria || "Outros") === catFiltro)
+    )
+    .sort((a, b) => {
+      if (ordenacao === "za") return norm(b.nome).localeCompare(norm(a.nome), "pt-BR");
+      if (ordenacao === "maior" || ordenacao === "menor") {
+        const pa = precoNormalizado(a)?.valor ?? -1;
+        const pb = precoNormalizado(b)?.valor ?? -1;
+        return ordenacao === "maior" ? pb - pa : pa - pb;
+      }
+      if (ordenacao === "recente") {
+        return new Date(b.preco_atualizado_em || b.created_at || 0) - new Date(a.preco_atualizado_em || a.created_at || 0);
+      }
+      return norm(a.nome).localeCompare(norm(b.nome), "pt-BR"); // A–Z padrão
+    });
   const categoriasDept = CATEGORIAS_INSUMO[deptUrl || "cozinha"] || CATEGORIAS_INSUMO.cozinha;
+
+  // Calculadora rápida por linha: quanto custa X de um ingrediente (inline).
+  const [calcAberto, setCalcAberto] = useState(null); // insumo.id aberto
+  const [calcQtd, setCalcQtd] = useState("");
+  const [calcUn, setCalcUn] = useState("g");
+  const abrirCalc = (ins) => {
+    if (calcAberto === ins.id) { setCalcAberto(null); return; }
+    setCalcAberto(ins.id);
+    setCalcQtd("");
+    setCalcUn(String(ins.unidade_medida || "g").toLowerCase());
+  };
+  // Resultado do cálculo: converte g↔kg e ml↔L; peso↔volume só com densidade.
+  const calcularCusto = (ins, qtdStr, un) => {
+    const qtd = Math.max(0, parseFloat(String(qtdStr).replace(",", ".")) || 0);
+    const norml = precoNormalizado(ins);
+    if (!qtd || !norml) return { ok: false };
+    const unIng = String(ins.unidade_medida || "").toLowerCase();
+    const grupoPeso = ["g", "kg"], grupoVol = ["ml", "l"];
+    const ehPesoIng = grupoPeso.includes(unIng), ehVolIng = grupoVol.includes(unIng);
+    const ehPesoUsr = grupoPeso.includes(un), ehVolUsr = grupoVol.includes(un);
+    const densidade = Number(ins.densidade) || 0; // g/ml
+    // Conversão peso↔volume só com densidade cadastrada.
+    if ((ehPesoIng && ehVolUsr) || (ehVolIng && ehPesoUsr)) {
+      if (!densidade) return { ok: false, erro: "Não é possível converter peso em volume para este ingrediente." };
+    }
+    if (ehPesoIng || ehVolIng) {
+      // custo por unidade-base (kg ou L)
+      let qtdBase; // em kg ou L
+      if (ehPesoIng) {
+        // ingrediente é peso; usuário em g/kg (ou ml/L convertido por densidade)
+        if (un === "g") qtdBase = qtd / 1000;
+        else if (un === "kg") qtdBase = qtd;
+        else if (un === "ml") qtdBase = (qtd * densidade) / 1000; // ml→g→kg
+        else if (un === "l") qtdBase = (qtd * 1000 * densidade) / 1000;
+      } else {
+        // ingrediente é volume; usuário em ml/L (ou g/kg via densidade)
+        if (un === "ml") qtdBase = qtd / 1000;
+        else if (un === "l") qtdBase = qtd;
+        else if (un === "g") qtdBase = (qtd / densidade) / 1000; // g→ml→L
+        else if (un === "kg") qtdBase = ((qtd * 1000) / densidade) / 1000;
+      }
+      return { ok: true, valor: qtdBase * norml.valor };
+    }
+    // unidade: custo por unidade × quantidade
+    return { ok: true, valor: qtd * norml.valor };
+  };
 
   // Paginação client-side
   const totalPaginas = Math.ceil(filtrados.length / PAGE_SIZE) || 1;
@@ -167,6 +257,9 @@ function IngredientesRunner() {
       id: null,
       departamento: deptUrl || "cozinha",
       nome: "",
+      nome_interno: "",
+      codigo_interno: "",
+      densidade: "",
       marca: "",
       categoria: "",
       unidade_medida: deptUrl === "bar" ? "ml" : "kg",
@@ -196,6 +289,9 @@ function IngredientesRunner() {
       id: ins.id,
       departamento: ins.departamento || deptUrl || "cozinha",
       nome: ins.nome || "",
+      nome_interno: ins.nome_interno || ins.apelido || "",
+      codigo_interno: ins.codigo_interno || "",
+      densidade: ins.densidade !== undefined && ins.densidade !== null ? String(ins.densidade) : "",
       marca: ins.marca || "",
       categoria: ins.categoria || "",
       unidade_medida: ins.unidade_medida || "kg",
@@ -341,6 +437,11 @@ function IngredientesRunner() {
        ...form,
        departamento: form.departamento || deptUrl || "cozinha",
        unidade_id: unidadeAtiva,
+       nome: (form.nome || "").trim(),
+       nome_interno: (form.nome_interno || "").trim() || null,
+       codigo_interno: (form.codigo_interno || "").trim() || null,
+       densidade: Number(String(form.densidade).replace(",", ".")) || null,
+       valor_embalagem: valorPago,
        custo_compra: valorPago,
        custo_unitario: custoFinalKg,
        aproveitamento_pct: pct,
@@ -437,9 +538,19 @@ function IngredientesRunner() {
       </RecipeWorkspace>
 
       <div className="max-w-7xl mx-auto px-3 sm:px-5 mt-5 sm:mt-6">
-         <div className="bg-white p-3 rounded-2xl border border-slate-200 mb-4 flex items-center gap-3 shadow-sm">
-            <Search size={20} className="text-slate-500 ml-2" />
-            <input type="text" placeholder="Buscar por nome, marca ou categoria..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-bold text-slate-700 p-2" />
+         <div className="flex flex-col sm:flex-row gap-3 mb-4">
+            <div className="bg-white p-3 rounded-2xl border border-slate-200 flex items-center gap-3 shadow-sm flex-1">
+               <Search size={20} className="text-slate-500 ml-2" />
+               <input type="text" placeholder="Buscar por nome original, nome interno, marca, fornecedor, código ou categoria..." value={busca} onChange={e=>{ setBusca(e.target.value); setPagina(1); }} className="flex-1 outline-none font-bold text-slate-700 p-2 min-w-0" />
+            </div>
+            <select value={ordenacao} onChange={(e) => { setOrdenacao(e.target.value); setPagina(1); }}
+               className="bg-white px-4 py-3 rounded-2xl border border-slate-200 shadow-sm font-bold text-sm text-slate-700 outline-none cursor-pointer">
+               <option value="az">Nome A–Z</option>
+               <option value="za">Nome Z–A</option>
+               <option value="maior">Maior preço</option>
+               <option value="menor">Menor preço</option>
+               <option value="recente">Atualizado recentemente</option>
+            </select>
          </div>
 
          {/* Filtro por categoria (quebra em linhas, sem rolagem horizontal) */}
@@ -456,9 +567,9 @@ function IngredientesRunner() {
             {/* Header */}
             <div className="hidden md:grid bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 grid-cols-[1fr_auto_auto_auto] gap-4 items-center">
                <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Ingrediente</span>
-               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-28">Volume / Unid.</span>
-               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-36">Valor Pago</span>
-               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-right w-32">Ações</span>
+               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-28">Embalagem</span>
+               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-center w-36">Valor atual</span>
+               <span className="text-[11px] font-black uppercase tracking-widest text-slate-300 text-right w-32">Calcular · Ações</span>
             </div>
             {/* Linhas */}
             <div className="bg-white divide-y divide-slate-100">
@@ -501,26 +612,22 @@ function IngredientesRunner() {
                          <span className="text-[9px] font-black text-slate-400">≈ {Number(ins.peso_medio_g).toLocaleString('pt-BR')}{String(ins.departamento).toLowerCase() === 'bar' ? 'ml' : 'g'}</span>
                        )}
                      </div>
-                     {/* Valor pago cheio + custo por unidade (usado na ficha) */}
+                     {/* Valor atual: total da embalagem + preço normalizado (R$/kg, R$/L, R$/un) */}
                      <div className="w-auto md:w-36 text-right md:text-center">
-                       <span className="md:hidden block text-[9px] font-black uppercase tracking-widest text-slate-400">Valor pago</span>
-                       <span className="font-black text-xl text-emerald-600">{fmtBRL(ins.custo_compra ?? ins.custo_unitario)}</span>
-                       {Number(ins.tamanho_embalagem) > 1 && (
-                         <p className="text-[10px] font-bold text-slate-500 mt-0.5" title="Custo por unidade usado na ficha técnica e no CMV">
-                           {fmtBRL(ins.custo_unitario)} / {ins.unidade_medida}
+                       <span className="md:hidden block text-[9px] font-black uppercase tracking-widest text-slate-400">Valor atual</span>
+                       <span className="font-black text-xl text-emerald-600">{fmtBRL(ins.valor_embalagem ?? ins.custo_compra ?? ins.custo_unitario)}</span>
+                       {(() => { const pn = precoNormalizado(ins); return pn ? (
+                         <p className="text-[11px] font-bold text-slate-500 mt-0.5" title="Preço normalizado (base da comparação de preços)">
+                           {fmtBRL(pn.valor)}/{pn.base}
                          </p>
-                       )}
-                       {Number(ins.aproveitamento_pct) > 0 && Number(ins.aproveitamento_pct) < 100 && (
-                         <p className="text-[9px] font-black uppercase tracking-widest text-red-500 mt-0.5" title={`Valor pago: ${fmtBRL(ins.custo_compra)} · aproveitamento ${Number(ins.aproveitamento_pct).toFixed(0)}%`}>
-                           perda {(100 - Number(ins.aproveitamento_pct)).toFixed(0)}%
-                         </p>
-                       )}
-                       <p className="text-[9px] font-bold text-slate-400 mt-0.5" title="Última atualização de preço">
-                         {fmtDataHoraBR(ins.preco_atualizado_em || ins.created_at)}
-                       </p>
+                       ) : null; })()}
+                       {ins.fornecedor && <p className="text-[9px] font-bold text-slate-400 mt-0.5 truncate">{ins.fornecedor}</p>}
                      </div>
-                     {/* Ações */}
+                     {/* Ações + calculadora rápida */}
                      <div className="col-span-2 md:col-span-1 w-full md:w-32 flex justify-end gap-2 border-t border-slate-100 pt-3 md:border-0 md:pt-0">
+                       <button onClick={() => abrirCalc(ins)} className={`p-2 rounded-lg transition-all ${calcAberto === ins.id ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 hover:bg-emerald-100 text-slate-500 hover:text-emerald-600"}`} title="Calcular quanto custa uma quantidade">
+                         <Calculator size={16}/>
+                       </button>
                        <button onClick={() => abrirHistorico(ins)} className="p-2 bg-slate-100 hover:bg-amber-100 text-slate-500 hover:text-amber-600 rounded-lg transition-all" title="Histórico de preços">
                          <History size={16}/>
                        </button>
@@ -531,6 +638,25 @@ function IngredientesRunner() {
                          <Trash2 size={16}/>
                        </button>
                      </div>
+                     {/* Painel da calculadora rápida (inline, não salva nada) */}
+                     {calcAberto === ins.id && (() => {
+                       const r = calcularCusto(ins, calcQtd, calcUn);
+                       return (
+                         <div className="col-span-2 md:col-span-4 mt-1 flex flex-wrap items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+                           <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Calcular quanto custa</span>
+                           <input type="number" min="0" step="any" inputMode="decimal" value={calcQtd} onChange={(e) => setCalcQtd(e.target.value)} placeholder="quantidade" autoFocus
+                             className="w-28 px-3 py-2 rounded-lg border-2 border-emerald-200 font-black text-slate-800 outline-none focus:border-emerald-500" />
+                           <select value={calcUn} onChange={(e) => setCalcUn(e.target.value)} className="px-3 py-2 rounded-lg border-2 border-emerald-200 font-bold text-slate-700 outline-none">
+                             {["g", "kg", "ml", "L", "un"].map(u => <option key={u} value={u.toLowerCase()}>{u}</option>)}
+                           </select>
+                           <span className="text-emerald-700 font-black">=</span>
+                           <span className="text-lg font-black text-emerald-700">
+                             {r.erro ? <span className="text-[11px] text-red-500 font-bold">{r.erro}</span> : r.ok ? fmtBRL(r.valor) : "R$ 0,00"}
+                           </span>
+                           {calcQtd && <button onClick={() => setCalcQtd("")} className="text-[11px] font-bold text-slate-500 hover:text-slate-700 ml-1">limpar</button>}
+                         </div>
+                       );
+                     })()}
                    </div>
                  );
                })}
@@ -688,13 +814,25 @@ function IngredientesRunner() {
                   </div>
 
                   <div>
-                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nome do Ingrediente</label>
-                     <input type="text" placeholder="Ex: Tomate" value={form.nome} onChange={e=>{
+                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nome original / oficial <span className="text-red-500">*</span></label>
+                     <input type="text" placeholder="Ex: Açafrão-da-terra" value={form.nome} onChange={e=>{
                         const nome = e.target.value;
                         // Enquanto você digita, o sistema adivinha a categoria (se você não escolheu manualmente)
                         const sugerida = form.categoria_manual ? form.categoria : (adivinharCategoria(nome, form.departamento, form.marca) || form.categoria);
                         setForm({...form, nome, categoria: sugerida});
                      }} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                     <p className="text-[10px] font-medium text-slate-400 mt-1">Usado como referência principal e para a ordem alfabética.</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                     <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nome interno / apelido (opcional)</label>
+                        <input type="text" placeholder="Ex: Açafrão" value={form.nome_interno || ""} onChange={e=>setForm({...form, nome_interno: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
+                     </div>
+                     <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Código interno (opcional)</label>
+                        <input type="text" placeholder="Ex: IND-0001" value={form.codigo_interno || ""} onChange={e=>setForm({...form, codigo_interno: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
+                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -754,6 +892,17 @@ function IngredientesRunner() {
                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Valor Pago</label>
                         <input type="number" step="0.01" min="0" max="999999.99" placeholder="0.00" value={form.valor_embalagem} onChange={e=>setForm({...form, valor_embalagem: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-emerald-600 outline-none focus:border-emerald-500"/>
                      </div>
+                  </div>
+                  {/* Preço normalizado (prévia): R$/kg, R$/L ou R$/un */}
+                  {(() => {
+                     const pn = precoNormalizado({ valor_embalagem: Number(form.valor_embalagem), tamanho_embalagem: Number(form.tamanho_embalagem), unidade_medida: form.unidade_medida });
+                     return pn ? <p className="text-xs font-bold text-emerald-700 -mt-1">Preço normalizado: <b>{fmtBRL(pn.valor)}/{pn.base}</b></p> : null;
+                  })()}
+                  {/* Densidade (opcional): libera converter peso ↔ volume na calculadora */}
+                  <div>
+                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Densidade — opcional (g/ml)</label>
+                     <input type="text" inputMode="decimal" placeholder="Ex: 0,92 (azeite) · 1,0 (água)" value={form.densidade || ""} onChange={e=>setForm({...form, densidade: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500"/>
+                     <p className="text-[10px] text-slate-400 font-medium mt-1">Só preencha se precisar converter peso em volume (ou vice-versa) na calculadora rápida. Sem densidade, essa conversão fica bloqueada.</p>
                   </div>
 
                   {/* Frete (produtos que vêm de fora): soma no custo do ingrediente */}

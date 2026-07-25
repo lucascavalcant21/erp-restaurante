@@ -46,10 +46,10 @@ const MODULOS = {
     ],
   },
   bar: {
-    title: "Operação do Bar", subtitle: "Drinks, insumos, estoque e rotinas do bar", icon: Wine,
+    title: "Operação do Bar", subtitle: "Drinks, produtos, estoque e rotinas do bar", icon: Wine,
     columns: [
       { title: "Cadastros", subtitle: "Base do bar", icon: FlaskConical, accent: "#059669", items: [
-        { label: "Ingredientes", desc: "Insumos do bar", href: "/dashboard/operacao/ingredientes?dept=bar", icon: FlaskConical, countKey: "insumos" },
+        { label: "Produtos", desc: "Bebidas e ingredientes do bar", href: "/dashboard/operacao/ingredientes?dept=bar", icon: FlaskConical, countKey: "insumos" },
         { label: "Fichas de Drinks", desc: "Receitas dos drinks", href: "/dashboard/operacao/fichas?dept=bar", icon: Wine, countKey: "fichas" },
       ]},
       { title: "Estoque e Compras", subtitle: "Abastecimento", icon: PackageSearch, accent: "#0891b2", items: [

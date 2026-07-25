@@ -56,7 +56,7 @@ const SIDEBAR_MENU = [
     items: [
       { label: "Fichas de Drinks", href: "/dashboard/operacao/fichas?dept=bar" },
       { label: "Guia de Montagem", href: "/dashboard/operacao/montagem?dept=bar" },
-      { label: "Ingredientes", href: "/dashboard/operacao/ingredientes?dept=bar" },
+      { label: "Produtos", href: "/dashboard/operacao/ingredientes?dept=bar" },
       { label: "Estoque", href: "/dashboard/operacao/estoque?dept=bar" },
       { label: "Compras", href: "/dashboard/operacao/compras?dept=bar" },
       { label: "Entrada de Notas", href: "/dashboard/operacao/notas?dept=bar" },

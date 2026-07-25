@@ -3,7 +3,7 @@
 
 export const CATEGORIAS_INSUMO = {
   cozinha: ["Peixes", "Aves", "Carne vermelha", "Hortifrúti", "Congelados", "Laticínios", "Secos", "Líquidos", "Temperos", "Outros"],
-  bar: ["Destilados", "Refrigerantes", "Sucos", "Águas", "Cervejas", "Vinhos", "Guarnições", "Geleias", "Frutas", "Hortaliças", "Outros"],
+  bar: ["Cervejas", "Refrigerantes", "Vinhos", "Ingredientes", "Whisky", "Vodka", "Cachaça", "Licor", "Suco industrializado", "Rum", "Conhaque"],
 };
 
 // Palavras-chave por categoria (minúsculas, sem acento tratado no matcher)
@@ -19,16 +19,17 @@ const KEYWORDS = {
   "Líquidos": ["oleo", "azeite", "vinagre", "molho", "shoyu", "agua", "caldo", "leite de coco", "leite condensado"],
   "Temperos": ["pimenta", "colorau", "cominho", "curry", "acafrao", "louro", "oregano", "canela", "cravo", "noz-moscada", "tempero", "cumaru", "gengibre", "paprica"],
   // bar
-  "Destilados": ["vodka", "gin", "rum", "cachaca", "whisky", "uisque", "tequila", "conhaque", "licor", "aperol", "campari", "vermute", "sake", "steinhaeger", "destilado", "bacardi", "smirnoff", "51"],
   "Refrigerantes": ["refrigerante", "coca", "guarana", "fanta", "sprite", "pepsi", "tonica", "soda", "schweppes", "antarctica"],
-  "Sucos": ["suco", "nectar", "polpa", "concentrado"],
-  "Águas": ["agua", "agua com gas", "agua mineral"],
   "Cervejas": ["cerveja", "chopp", "chope", "ipa", "pilsen", "lager", "heineken", "brahma", "skol", "budweiser", "corona", "long neck", "barril"],
   "Vinhos": ["vinho", "espumante", "prosecco", "champagne", "frisante", "tinto", "branco seco", "rose"],
-  "Guarnições": ["guarnicao", "azeitona", "cereja", "sal grosso", "rodela", "canudo", "palito", "guardanapo"],
-  "Geleias": ["geleia", "xarope", "grenadine", "mel"],
-  "Frutas": ["morango", "limao", "laranja", "abacaxi", "maracuja", "kiwi", "hortela", "menta", "framboesa", "amora", "fruta", "coco"],
-  "Hortaliças": ["gengibre", "pepino", "manjericao", "alecrim", "capim santo", "pimenta"],
+  "Whisky": ["whisky", "uisque", "bourbon", "scotch", "jack daniels", "johnnie walker", "chivas", "ballantines"],
+  "Vodka": ["vodka", "smirnoff", "absolut", "ciroc"],
+  "Cachaça": ["cachaca", "aguardente", "pinga", "caninha", "51"],
+  "Licor": ["licor", "amarula", "baileys", "cointreau"],
+  "Suco industrializado": ["suco", "nectar", "polpa", "concentrado", "del valle", "maguary"],
+  "Rum": ["rum", "bacardi", "havana club", "malibu"],
+  "Conhaque": ["conhaque", "brandy", "dreher", "domus"],
+  "Ingredientes": ["agua", "gelo", "gin", "tequila", "aperol", "campari", "vermute", "sake", "steinhaeger", "guarnicao", "azeitona", "cereja", "xarope", "grenadine", "mel", "morango", "limao", "laranja", "abacaxi", "maracuja", "kiwi", "hortela", "menta", "framboesa", "amora", "fruta", "coco", "gengibre", "pepino", "manjericao", "alecrim", "capim santo", "pimenta"],
 };
 
 function normalizar(s) {
@@ -52,4 +53,20 @@ export function adivinharCategoria(nome, departamento = "cozinha", marca = "") {
     }
   }
   return melhor;
+}
+
+// Converte categorias antigas do Bar para a nova organização de Produtos.
+// O valor é usado na listagem e passa a ser persistido quando o item for editado.
+export function categoriaDoProdutoBar(item = {}) {
+  const atual = String(item.categoria || "").trim();
+  if (CATEGORIAS_INSUMO.bar.includes(atual)) return atual;
+
+  const inferida = adivinharCategoria(item.nome, "bar", item.marca);
+  if (inferida) return inferida;
+
+  if (atual === "Sucos") return "Suco industrializado";
+  if (["Águas", "Guarnições", "Geleias", "Frutas", "Hortaliças", "Destilados", "Outros"].includes(atual)) {
+    return "Ingredientes";
+  }
+  return "Ingredientes";
 }

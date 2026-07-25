@@ -25,7 +25,7 @@ import {
 import { useERP } from "../../../context/ERPContext";
 import { fetchFornecedores } from "../../../lib/fornecedores";
 import { fetchHistoricoPrecos, fetchInsumos, removerInsumo, salvarInsumo } from "../../../lib/operacao";
-import { CATEGORIAS_INSUMO, adivinharCategoria } from "../../../lib/categorias-insumo";
+import { CATEGORIAS_INSUMO, adivinharCategoria, categoriaDoProdutoBar } from "../../../lib/categorias-insumo";
 import {
   UNIDADES_INGREDIENTE,
   calcularCustoSolicitado,
@@ -171,6 +171,9 @@ function IngredientesRunner() {
   const searchParams = useSearchParams();
   const deptUrl = searchParams.get("dept");
   const { abrirMenu, unidadeAtiva } = useERP();
+  const ehBar = deptUrl === "bar";
+  const rotuloItem = ehBar ? "produto" : "ingrediente";
+  const rotuloItens = ehBar ? "produtos" : "ingredientes";
 
   const [insumos, setInsumos] = useState([]);
   const [fornecedores, setFornecedores] = useState([]);
@@ -200,7 +203,9 @@ function IngredientesRunner() {
       fetchInsumos(unidadeAtiva, deptUrl),
       fetchFornecedores(unidadeAtiva),
     ]);
-    setInsumos(resInsumos.data || []);
+    setInsumos((resInsumos.data || []).map(item => (
+      ehBar ? { ...item, categoria: categoriaDoProdutoBar(item) } : item
+    )));
     setFornecedores(resFornecedores.data || []);
     setLoading(false);
   };
@@ -298,7 +303,7 @@ function IngredientesRunner() {
     const quantidade = parseNumeroBR(form.tamanho_embalagem);
     const valor = parseNumeroBR(form.valor_embalagem);
     const densidade = form.densidade_g_ml ? parseNumeroBR(form.densidade_g_ml) : null;
-    if (!nome) return alert("Informe o nome original/oficial do ingrediente.");
+    if (!nome) return alert(`Informe o nome original/oficial do ${rotuloItem}.`);
     if (!Number.isFinite(quantidade) || quantidade <= 0) return alert("A quantidade da embalagem deve ser maior que zero.");
     if (!Number.isFinite(valor) || valor <= 0) return alert("O valor da embalagem deve ser maior que zero.");
     if (densidade !== null && (!Number.isFinite(densidade) || densidade <= 0)) {
@@ -332,18 +337,18 @@ function IngredientesRunner() {
     if (resultado.error) return alert(`Erro ao salvar ingrediente: ${resultado.error}`);
     setModalCadastro(false);
     await carregar();
-    mostrarToast(form.id ? "Ingrediente atualizado." : "Ingrediente cadastrado.");
+    mostrarToast(form.id ? `${ehBar ? "Produto" : "Ingrediente"} atualizado.` : `${ehBar ? "Produto" : "Ingrediente"} cadastrado.`);
   };
 
   const handleRemover = async insumo => {
-    if (!confirm(`Deseja remover "${insumo.nome}" do catálogo?`)) return;
+    if (!confirm(`Deseja remover o ${rotuloItem} "${insumo.nome}" do catálogo?`)) return;
     const { error } = await removerInsumo(insumo.id);
     if (error) {
-      mostrarToast("Não foi possível remover. Verifique se o ingrediente está sendo usado em uma ficha técnica.", "erro");
+      mostrarToast(`Não foi possível remover. Verifique se o ${rotuloItem} está sendo usado em uma ficha técnica.`, "erro");
       return;
     }
     await carregar();
-    mostrarToast("Ingrediente removido.");
+    mostrarToast(`${ehBar ? "Produto" : "Ingrediente"} removido.`);
   };
 
   const abrirHistorico = async insumo => {
@@ -372,8 +377,8 @@ function IngredientesRunner() {
               <ArrowLeft size={19} />
             </button>
             <div>
-              <h1 className="text-2xl font-black tracking-tight text-slate-950">Ingredientes cadastrados</h1>
-              <p className="mt-1 text-sm font-medium text-slate-500">Catálogo de ingredientes e histórico de preços</p>
+              <h1 className="text-2xl font-black tracking-tight text-slate-950">{ehBar ? "Produtos cadastrados" : "Ingredientes cadastrados"}</h1>
+              <p className="mt-1 text-sm font-medium text-slate-500">{ehBar ? "Catálogo de produtos do Bar e histórico de preços" : "Catálogo de ingredientes e histórico de preços"}</p>
             </div>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
@@ -382,7 +387,7 @@ function IngredientesRunner() {
               <input
                 value={busca}
                 onChange={event => setBusca(event.target.value)}
-                placeholder="Buscar por nome, apelido, marca, fornecedor, código ou categoria..."
+                placeholder={`Buscar ${rotuloItem} por nome, apelido, marca, fornecedor, código ou categoria...`}
                 className="h-11 min-w-0 flex-1 bg-transparent text-sm font-medium outline-none placeholder:text-slate-400"
               />
               {busca && (
@@ -395,7 +400,7 @@ function IngredientesRunner() {
               onClick={abrirNovo}
               className="flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-black text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700"
             >
-              <Plus size={18} /> Novo ingrediente
+              <Plus size={18} /> Novo {rotuloItem}
             </button>
           </div>
         </div>
@@ -404,7 +409,7 @@ function IngredientesRunner() {
       <main className="mx-auto max-w-[1480px] px-4 py-4 sm:px-5">
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[
-            { icon: Package, label: "Total de ingredientes", value: estatisticas.total, note: "No catálogo", color: "emerald" },
+            { icon: Package, label: `Total de ${rotuloItens}`, value: estatisticas.total, note: "No catálogo", color: "emerald" },
             { icon: Tag, label: "Sem marca", value: estatisticas.semMarca, note: "Cadastro incompleto", color: "amber" },
             { icon: Users, label: "Sem fornecedor", value: estatisticas.semFornecedor, note: "Nenhum vínculo", color: "violet" },
             { icon: Clock3, label: "Preço atualizado", value: estatisticas.recentes, note: "Últimos 30 dias", color: "blue" },
@@ -448,7 +453,7 @@ function IngredientesRunner() {
             value={ordenacao}
             onChange={event => setOrdenacao(event.target.value)}
             className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 outline-none focus:border-emerald-500"
-            aria-label="Ordenação dos ingredientes"
+            aria-label={`Ordenação dos ${rotuloItens}`}
           >
             {ORDENACOES.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
           </select>
@@ -458,7 +463,7 @@ function IngredientesRunner() {
           <table className="w-full min-w-[1050px] table-fixed text-left">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-black uppercase tracking-wide text-slate-500">
-                <th className="w-[190px] px-4 py-3">Ingrediente</th>
+                <th className="w-[190px] px-4 py-3">{ehBar ? "Produto" : "Ingrediente"}</th>
                 <th className="w-[85px] px-2.5 py-3">Marca</th>
                 <th className="w-[80px] px-2.5 py-3">Embalagem</th>
                 <th className="w-[125px] px-2.5 py-3">Fornecedor</th>
@@ -471,9 +476,9 @@ function IngredientesRunner() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
-                <tr><td colSpan={9} className="py-16 text-center text-sm font-bold text-slate-400">Carregando ingredientes...</td></tr>
+                <tr><td colSpan={9} className="py-16 text-center text-sm font-bold text-slate-400">Carregando {rotuloItens}...</td></tr>
               ) : paginados.length === 0 ? (
-                <tr><td colSpan={9} className="py-16 text-center text-sm font-bold text-slate-400">Nenhum ingrediente encontrado.</td></tr>
+                <tr><td colSpan={9} className="py-16 text-center text-sm font-bold text-slate-400">Nenhum {rotuloItem} encontrado.</td></tr>
               ) : paginados.map(insumo => {
                 const vinculados = insumo.fornecedores_vinculados || [];
                 const outros = Math.max(0, vinculados.length - 1);
@@ -537,9 +542,9 @@ function IngredientesRunner() {
 
         <section className="mt-3 space-y-2 lg:hidden">
           {loading ? (
-            <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-sm font-bold text-slate-400">Carregando ingredientes...</div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-sm font-bold text-slate-400">Carregando {rotuloItens}...</div>
           ) : paginados.length === 0 ? (
-            <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-sm font-bold text-slate-400">Nenhum ingrediente encontrado.</div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-sm font-bold text-slate-400">Nenhum {rotuloItem} encontrado.</div>
           ) : paginados.map(insumo => {
             const vinculados = insumo.fornecedores_vinculados || [];
             const normalizado = precoNormalizadoDoInsumo(insumo);
@@ -549,7 +554,7 @@ function IngredientesRunner() {
                   <div className="min-w-0">
                     <h2 className="truncate font-black text-slate-900">{insumo.nome}</h2>
                     <p className="mt-1 truncate text-xs text-slate-500">
-                      {insumo.nome_interno || insumo.codigo_interno || insumo.categoria || "Ingrediente"}
+                      {insumo.nome_interno || insumo.codigo_interno || insumo.categoria || (ehBar ? "Produto" : "Ingrediente")}
                     </p>
                   </div>
                   <span className="shrink-0 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-black text-slate-600">{insumo.marca || "Sem marca"}</span>
@@ -595,7 +600,7 @@ function IngredientesRunner() {
         {!loading && filtrados.length > 0 && (
           <footer className="mt-4 flex flex-col items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 sm:flex-row">
             <p className="text-xs font-medium text-slate-500">
-              Mostrando {(paginaAtual - 1) * PAGE_SIZE + 1} a {Math.min(paginaAtual * PAGE_SIZE, filtrados.length)} de {filtrados.length} ingredientes
+              Mostrando {(paginaAtual - 1) * PAGE_SIZE + 1} a {Math.min(paginaAtual * PAGE_SIZE, filtrados.length)} de {filtrados.length} {rotuloItens}
             </p>
             <div className="flex items-center gap-2">
               <button
@@ -625,7 +630,7 @@ function IngredientesRunner() {
           <div className="flex max-h-[94vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
             <div className="flex items-start justify-between border-b border-slate-100 px-5 py-5 sm:px-7">
               <div>
-                <h2 className="text-xl font-black text-slate-900">{form.id ? "Editar ingrediente" : "Novo ingrediente"}</h2>
+                <h2 className="text-xl font-black text-slate-900">{form.id ? `Editar ${rotuloItem}` : `Novo ${rotuloItem}`}</h2>
                 <p className="mt-1 text-xs font-medium text-slate-500">Cadastre a identificação, a embalagem e o preço atual.</p>
               </div>
               <button onClick={() => setModalCadastro(false)} className="rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200"><X size={18} /></button>
@@ -636,7 +641,7 @@ function IngredientesRunner() {
                 <h3 className="mb-3 text-xs font-black uppercase tracking-wider text-slate-400">Identificação</h3>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <label className="sm:col-span-2">
-                    <span className="text-xs font-bold text-slate-600">Nome original/oficial *</span>
+                    <span className="text-xs font-bold text-slate-600">Nome original/oficial do {rotuloItem} *</span>
                     <input
                       value={form.nome}
                       onChange={event => {
@@ -750,7 +755,7 @@ function IngredientesRunner() {
             <div className="flex gap-3 border-t border-slate-100 bg-slate-50 px-5 py-4 sm:px-7">
               <button onClick={() => setModalCadastro(false)} className="flex-1 rounded-xl border border-slate-200 bg-white py-3 text-sm font-bold text-slate-600 hover:bg-slate-100">Cancelar</button>
               <button disabled={salvando} onClick={handleSalvar} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-50">
-                {salvando ? "Salvando..." : "Salvar ingrediente"}
+                {salvando ? "Salvando..." : `Salvar ${rotuloItem}`}
               </button>
             </div>
           </div>

@@ -6,10 +6,11 @@ import {
   AlertTriangle, ArrowLeft, ArrowRightLeft, Boxes, CalendarDays, Check,
   ChevronRight, ClipboardCheck, Clock3, Edit3, Filter, History, Loader2,
   MapPin, MoreVertical, Package, PackageMinus, PackagePlus, Plus, Search,
-  Settings2, Upload, Warehouse, X,
+  Settings2, Upload, User, Warehouse, X,
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchInsumos, salvarInsumo } from "../../../lib/operacao";
+import { fetchColaboradores } from "../../../lib/rh";
 import {
   atualizarItemEstoque, fetchEstoques, fetchItensEstoque, fetchMovimentosMulti,
   registrarContagemMulti, registrarMovimentoMulti, salvarEstoque,
@@ -83,6 +84,7 @@ function EstoqueRunner() {
   const [itens, setItens] = useState([]);
   const [movimentos, setMovimentos] = useState([]);
   const [catalogo, setCatalogo] = useState([]);
+  const [colaboradores, setColaboradores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
@@ -90,7 +92,7 @@ function EstoqueRunner() {
   const [aba, setAba] = useState("atual");
   const [filtros, setFiltros] = useState({ busca: "", categoria: "Todas", status: "todos", local: "Todos" });
   const [modal, setModal] = useState(null);
-  const [operacao, setOperacao] = useState({ insumo_id: "", quantidade: "", destino_id: "", observacao: "", data: "", modo: "unidade", fechadas: "", aberto: "" });
+  const [operacao, setOperacao] = useState({ insumo_id: "", quantidade: "", destino_id: "", observacao: "", responsavel_id: "", data: "", modo: "unidade", fechadas: "", aberto: "" });
   const [formItem, setFormItem] = useState({});
   const [formEstoque, setFormEstoque] = useState({});
   const [textoImportacao, setTextoImportacao] = useState("");
@@ -99,13 +101,15 @@ function EstoqueRunner() {
 
   const carregarEstoques = useCallback(async (manterId = "") => {
     if (!unidadeAtiva || unidadeAtiva === "todas") return;
-    const [resEstoques, resCatalogo] = await Promise.all([
+    const [resEstoques, resCatalogo, resColabs] = await Promise.all([
       fetchEstoques(unidadeAtiva, true),
       fetchInsumos(unidadeAtiva, null, { escopoEstrito: true }),
+      fetchColaboradores(unidadeAtiva),
     ]);
     if (resEstoques.error) setErro(resEstoques.error);
     setEstoques(resEstoques.data || []);
     setCatalogo(resCatalogo.data || []);
+    setColaboradores(resColabs.data || []);
     const preferencia = searchParams.get("dept");
     const escolhido = resEstoques.data?.find(item => item.id === manterId)
       || resEstoques.data?.find(item => item.slug === preferencia)
@@ -139,6 +143,36 @@ function EstoqueRunner() {
     await Promise.all([carregarArea(), carregarEstoques(estoqueId)]);
   };
 
+  const colaboradoresFiltrados = useMemo(() => {
+    if (!colaboradores?.length) return [];
+    const ativos = colaboradores.filter(c => c.status !== "inativo");
+    const nomeArea = (estoqueAtual?.nome || estoqueAtual?.slug || "").toLowerCase();
+
+    let areaChave = "";
+    if (nomeArea.includes("bar")) areaChave = "bar";
+    else if (nomeArea.includes("cozinha")) areaChave = "cozinha";
+    else if (nomeArea.includes("salão") || nomeArea.includes("salao")) areaChave = "salão";
+
+    if (!areaChave) return ativos;
+
+    const especificos = ativos.filter(c => {
+      const cargoStr = (c.cargo || "").toLowerCase();
+      const setorStr = (c.setor || "").toLowerCase();
+      if (areaChave === "bar") {
+        return /(\bbar\b|barman|bartender|barista|copeir)/.test(cargoStr) || setorStr.includes("bar");
+      }
+      if (areaChave === "cozinha") {
+        return /(cozinh|chapeir|confeit|pizzai|sushi|salgad|padeir|churrasqueir|a[cç]ougue|auxiliar|chefe)/.test(cargoStr) || setorStr.includes("cozinha");
+      }
+      if (areaChave === "salão") {
+        return /(gar[çc]|atendente|sal[aã]o|hostess|maitre|maître|comand|gerente|supervisor)/.test(cargoStr) || setorStr.includes("salão") || setorStr.includes("salao");
+      }
+      return false;
+    });
+
+    return especificos.length ? especificos : ativos;
+  }, [colaboradores, estoqueAtual]);
+
   const categorias = useMemo(() => ["Todas", ...new Set(itens.map(i => i.categoria || "Sem categoria"))], [itens]);
   const locais = useMemo(() => ["Todos", ...new Set(itens.map(i => i.local_interno).filter(Boolean))], [itens]);
   const itensFiltrados = useMemo(
@@ -163,6 +197,7 @@ function EstoqueRunner() {
       quantidade: tipo === "contagem" && !frac ? String(item?.quantidade_atual ?? "") : "",
       destino_id: "",
       observacao: "",
+      responsavel_id: "",
       data: "",
       // Bebidas: entrada por unidade fechada; baixa por conteúdo (mais comum).
       modo: tipo === "saida" ? "conteudo" : "unidade",
@@ -183,6 +218,13 @@ function EstoqueRunner() {
       const unidadeId = unidadeAtiva;
       let item = modal?.item || itens.find(i => i.insumo_id === operacao.insumo_id);
       const insumo = catalogo.find(i => i.id === operacao.insumo_id);
+      
+      const colabSel = colaboradores.find(c => String(c.id) === String(operacao.responsavel_id));
+      const responsavelNome = colabSel
+        ? `${colabSel.nome}${colabSel.cargo ? ` (${colabSel.cargo})` : ""}`
+        : (nomeUsuario(sessao) || "Usuário do sistema");
+      const usuarioIdFinal = colabSel ? colabSel.id : idUsuario(sessao);
+
       if (!item && insumo && modal?.tipo === "entrada") {
         const vinculo = await vincularItemEstoque({
           unidadeId, estoqueId, insumoId: insumo.id,
@@ -195,14 +237,19 @@ function EstoqueRunner() {
         item = { ...insumo, insumo_id: insumo.id, estoque_item_id: vinculo.data?.id, permite_transferencia: true };
       }
       let resposta;
-      // Bebidas/embalados fracionáveis: entrada por unidade, baixa por unidade ou
-      // conteúdo (abre garrafa automática), contagem com fechadas + aberto.
-      // Se a função de bebida falhar (ex.: migração ainda não rodada), CAI no
-      // fluxo normal com a quantidade equivalente — o botão nunca deixa de funcionar.
       const frac = ehFracionavel(item);
       const conteudoFrac = conteudoDe(item);
-      const bebArgs = { unidadeId, estoqueId, insumoId: item?.insumo_id, usuarioId: idUsuario(sessao), usuarioNome: nomeUsuario(sessao), observacao: operacao.observacao };
-      const stdMov = (tipo, qtd) => registrarMovimentoMulti({ unidadeId, estoqueId, insumoId: item?.insumo_id, tipo, quantidade: qtd, usuarioId: idUsuario(sessao), usuarioNome: nomeUsuario(sessao), observacao: operacao.observacao, dataMovimento: operacao.data || null });
+      const bebArgs = {
+        unidadeId, estoqueId, insumoId: item?.insumo_id,
+        usuarioId: usuarioIdFinal, usuarioNome: responsavelNome,
+        observacao: operacao.observacao,
+      };
+      const stdMov = (tipo, qtd) => registrarMovimentoMulti({
+        unidadeId, estoqueId, insumoId: item?.insumo_id, tipo,
+        quantidade: qtd, usuarioId: usuarioIdFinal, usuarioNome: responsavelNome,
+        observacao: operacao.observacao, dataMovimento: operacao.data || null,
+      });
+
       if (frac && modal?.tipo === "entrada") {
         resposta = await entradaBebidaUnidades({ ...bebArgs, unidades: operacao.quantidade });
         if (resposta?.error) resposta = await stdMov("entrada", (Number(operacao.quantidade) || 0) * conteudoFrac);
@@ -213,25 +260,25 @@ function EstoqueRunner() {
         if (resposta?.error) resposta = await stdMov("saida", operacao.modo === "unidade" ? (Number(operacao.quantidade) || 0) * conteudoFrac : (Number(operacao.quantidade) || 0));
       } else if (frac && modal?.tipo === "contagem") {
         resposta = await contagemBebida({ ...bebArgs, fechadas: operacao.fechadas, aberto: operacao.aberto });
-        if (resposta?.error) resposta = await registrarContagemMulti({ unidadeId, estoqueId, insumoId: item?.insumo_id, saldoContado: (Number(operacao.fechadas) || 0) * conteudoFrac + (Number(operacao.aberto) || 0), usuarioId: idUsuario(sessao), usuarioNome: nomeUsuario(sessao), observacao: operacao.observacao });
+        if (resposta?.error) resposta = await registrarContagemMulti({ unidadeId, estoqueId, insumoId: item?.insumo_id, saldoContado: (Number(operacao.fechadas) || 0) * conteudoFrac + (Number(operacao.aberto) || 0), usuarioId: usuarioIdFinal, usuarioNome: responsavelNome, observacao: operacao.observacao });
       } else if (modal?.tipo === "contagem") {
         resposta = await registrarContagemMulti({
           unidadeId, estoqueId, insumoId: item?.insumo_id,
-          saldoContado: operacao.quantidade, usuarioId: idUsuario(sessao),
-          usuarioNome: nomeUsuario(sessao), observacao: operacao.observacao,
+          saldoContado: operacao.quantidade, usuarioId: usuarioIdFinal,
+          usuarioNome: responsavelNome, observacao: operacao.observacao,
         });
       } else if (modal?.tipo === "transferencia") {
         resposta = await transferirEntreEstoques({
           unidadeId, estoqueOrigem: estoqueAtual,
           estoqueDestino: estoques.find(i => i.id === operacao.destino_id),
-          item, quantidade: operacao.quantidade, usuarioId: idUsuario(sessao),
-          usuarioNome: nomeUsuario(sessao), observacao: operacao.observacao,
+          item, quantidade: operacao.quantidade, usuarioId: usuarioIdFinal,
+          usuarioNome: responsavelNome, observacao: operacao.observacao,
         });
       } else {
         resposta = await registrarMovimentoMulti({
           unidadeId, estoqueId, insumoId: item?.insumo_id,
           tipo: modal?.tipo, quantidade: operacao.quantidade,
-          usuarioId: idUsuario(sessao), usuarioNome: nomeUsuario(sessao),
+          usuarioId: usuarioIdFinal, usuarioNome: responsavelNome,
           observacao: operacao.observacao, dataMovimento: operacao.data || null,
         });
       }
@@ -309,9 +356,9 @@ function EstoqueRunner() {
 
   const importarLista = async event => {
     event.preventDefault();
-    const linhas = textoImportacao.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-    if (!linhas.length) return avisar("Cole ao menos uma linha para importar.", "erro");
+    if (!textoImportacao.trim()) return;
     setSalvando(true);
+    const linhas = textoImportacao.split("\n").map(l => l.trim()).filter(Boolean);
     let importados = 0;
     for (const linha of linhas) {
       const [nome, saldo = "0", unidade = "un", minimo = "", local = ""] = linha.split(/[;\t]/).map(v => v.trim());
@@ -424,7 +471,7 @@ function EstoqueRunner() {
             <section className="rounded-2xl border border-slate-200 bg-white">
               <div className="grid grid-cols-2 gap-x-4 border-b border-slate-200 px-4 pt-1 sm:flex sm:gap-5 sm:overflow-x-auto sm:px-6">
                 {[
-                  ["atual", "Estoque atual"], ["historico", "Histórico"],
+                  ["atual", "Estoque atual"], ["historico", "Histórico completo"],
                   ["movimentacoes", "Movimentações"], ["alertas", `Alertas (${alertas.length})`],
                 ].map(([id, label]) => (
                   <button key={id} onClick={() => setAba(id)} className={`whitespace-nowrap border-b-2 px-1 py-3 text-xs font-extrabold sm:py-4 sm:text-sm ${aba === id ? "border-emerald-600 text-emerald-700" : "border-transparent text-slate-500"}`}>{label}</button>
@@ -470,6 +517,16 @@ function EstoqueRunner() {
                 {(modal.tipo === "entrada" ? catalogo : itens).map(item => <option key={item.id} value={item.insumo_id || item.id}>{item.nome} {item.marca ? `· ${item.marca}` : ""}</option>)}
               </select>
             </Campo>
+
+            <Campo label={`Responsável (${estoqueAtual?.nome || "Estoque"})`}>
+              <select value={operacao.responsavel_id} onChange={e => setOperacao({ ...operacao, responsavel_id: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3 font-semibold text-slate-800">
+                <option value="">Selecione o colaborador responsável...</option>
+                {colaboradoresFiltrados.map(c => (
+                  <option key={c.id} value={c.id}>{c.nome} {c.cargo ? `· ${c.cargo}` : ""}</option>
+                ))}
+              </select>
+            </Campo>
+
             {(() => {
               const itemMod = modal.item || itens.find(i => i.insumo_id === operacao.insumo_id) || catalogo.find(i => (i.insumo_id || i.id) === operacao.insumo_id);
               const frac = ehFracionavel(itemMod) && modal.tipo !== "transferencia";
@@ -552,7 +609,7 @@ function EstoqueRunner() {
                 </div>
               );
             })()}
-            <Campo label="Observação"><textarea value={operacao.observacao} onChange={e => setOperacao({ ...operacao, observacao: e.target.value })} className="min-h-24 w-full rounded-xl border border-slate-200 p-3" placeholder="Motivo, documento ou responsável..." /></Campo>
+            <Campo label="Observação"><textarea value={operacao.observacao} onChange={e => setOperacao({ ...operacao, observacao: e.target.value })} className="min-h-24 w-full rounded-xl border border-slate-200 p-3" placeholder="Motivo, documento ou observações adicionais..." /></Campo>
             {modal.tipo === "transferencia" && !destinosCompativeis.length && <p className="rounded-xl bg-amber-50 p-3 text-sm font-semibold text-amber-800">Não há outro estoque ativo e compatível com esta área.</p>}
             <div className="flex justify-end"><BotaoSalvar carregando={salvando}>Confirmar</BotaoSalvar></div>
           </form>
@@ -565,7 +622,12 @@ function EstoqueRunner() {
             <div className="grid grid-cols-2 gap-3">
               <Campo label="Estoque mínimo"><input type="number" min="0" step="0.001" value={formItem.estoque_minimo} onChange={e => setFormItem({ ...formItem, estoque_minimo: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" /></Campo>
               <Campo label="Estoque máximo"><input type="number" min="0" step="0.001" value={formItem.estoque_maximo} onChange={e => setFormItem({ ...formItem, estoque_maximo: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" /></Campo>
-              <Campo label="Custo unitário"><input type="number" min="0" step="0.01" value={formItem.custo_unitario} onChange={e => setFormItem({ ...formItem, custo_unitario: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" /></Campo>
+              <Campo label="Custo unitário">
+                <div className="relative">
+                  <span className="absolute left-3.5 top-3 text-sm font-extrabold text-slate-500">R$</span>
+                  <input type="number" min="0" step="0.01" value={formItem.custo_unitario} onChange={e => setFormItem({ ...formItem, custo_unitario: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 pl-10 pr-3 font-semibold" placeholder="0,00" />
+                </div>
+              </Campo>
               <Campo label="Local interno"><input value={formItem.local_interno || ""} onChange={e => setFormItem({ ...formItem, local_interno: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" placeholder="Ex.: Câmara fria 01" /></Campo>
               {estoqueAtual?.controla_validade && <Campo label="Validade"><input type="date" value={formItem.validade || ""} onChange={e => setFormItem({ ...formItem, validade: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" /></Campo>}
             </div>
@@ -655,9 +717,9 @@ function TabelaItens({ itens, estoque, loading, onEntrada, onSaida, onEditar }) 
   return (
     <>
       <div className="hidden overflow-x-auto lg:block">
-        <table className="w-full min-w-[1050px] text-left text-sm">
+        <table className="w-full min-w-[1100px] text-left text-sm">
           <thead className="bg-slate-900 text-xs uppercase tracking-wide text-white"><tr>
-            <th className="px-5 py-4">Produto</th><th className="px-4 py-4">Categoria</th><th className="px-4 py-4">Embalagem</th><th className="px-4 py-4">Custo/un.</th><th className="px-4 py-4">Saldo</th><th className="px-4 py-4">Mínimo</th>{estoque.controla_validade && <th className="px-4 py-4">Validade</th>}<th className="px-4 py-4">Local</th><th className="px-4 py-4">Última mov.</th><th className="px-4 py-4">Ações</th>
+            <th className="px-5 py-4">Produto</th><th className="px-4 py-4">Categoria</th><th className="px-4 py-4">Embalagem</th><th className="px-4 py-4 whitespace-nowrap">Custo/un.</th><th className="px-4 py-4">Saldo</th><th className="px-3 py-4">Mínimo</th><th className="px-3 py-4">Máximo</th>{estoque.controla_validade && <th className="px-4 py-4">Validade</th>}<th className="px-4 py-4">Local</th><th className="px-4 py-4">Última mov.</th><th className="px-4 py-4">Ações</th>
           </tr></thead>
           <tbody className="divide-y divide-slate-100">
             {itens.map(item => {
@@ -666,9 +728,10 @@ function TabelaItens({ itens, estoque, loading, onEntrada, onSaida, onEditar }) 
                 <td className="px-5 py-3"><strong className="block">{item.nome}</strong><span className="text-xs text-slate-500">{item.codigo_interno || item.marca || "Sem código"}</span></td>
                 <td className="px-4 py-3"><span className="rounded-lg bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">{item.categoria || "Sem categoria"}</span></td>
                 <td className="px-4 py-3">{fmtQtd(item.tamanho_embalagem || 1)} {mostrarUn(item.unidade_medida)}</td>
-                <td className="px-4 py-3"><strong>{fmtBRL(item.custo_unitario || 0)}</strong></td>
+                <td className="px-4 py-3 whitespace-nowrap"><strong className="font-extrabold text-slate-900">{fmtBRL(item.custo_unitario || 0)}</strong></td>
                 <td className={`px-4 py-3 font-black ${status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}`}>{(() => { const s = saldoEmbalado(item); return s ? <><span>{s.principal}</span><span className="block text-[10px] font-medium text-slate-400">{s.secundario}</span></> : <>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</>; })()}</td>
-                <td className="px-4 py-3">{item.estoque_minimo == null ? "—" : `${fmtQtd(item.estoque_minimo)} ${mostrarUn(item.unidade_medida)}`}</td>
+                <td className="px-3 py-3 font-semibold text-slate-700">{item.estoque_minimo == null || item.estoque_minimo === "" ? "—" : `${fmtQtd(item.estoque_minimo)} ${mostrarUn(item.unidade_medida)}`}</td>
+                <td className="px-3 py-3 font-semibold text-slate-700">{item.estoque_maximo == null || item.estoque_maximo === "" ? "—" : `${fmtQtd(item.estoque_maximo)} ${mostrarUn(item.unidade_medida)}`}</td>
                 {estoque.controla_validade && <td className={`px-4 py-3 ${status.vencido || status.validadeProxima ? "font-bold text-amber-700" : ""}`}>{fmtData(item.validade)}</td>}
                 <td className="px-4 py-3"><span className="inline-flex items-center gap-1"><MapPin size={14} />{item.local_interno || "Não definido"}</span></td>
                 <td className="px-4 py-3 text-xs text-slate-500">{fmtData(item.ultima_movimentacao_em, true)}</td>
@@ -687,7 +750,14 @@ function TabelaItens({ itens, estoque, loading, onEntrada, onSaida, onEditar }) 
         {itens.map(item => {
           const status = statusItemEstoque(item, estoque);
           return <article key={item.id} className="p-4">
-            <div className="flex items-start justify-between gap-3"><div><strong>{item.nome}</strong><p className="mt-1 text-xs text-slate-500">{item.categoria || "Sem categoria"} · {item.local_interno || "Sem local"}</p></div><div className="text-right">{(() => { const s = saldoEmbalado(item); return s ? <><strong className={status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}>{s.principal}</strong><span className="block text-[10px] font-medium text-slate-400">{s.secundario}</span></> : <strong className={status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</strong>; })()}</div></div>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <strong>{item.nome}</strong>
+                <p className="mt-1 text-xs text-slate-500">{item.categoria || "Sem categoria"} · {item.local_interno || "Sem local"}</p>
+                <p className="mt-0.5 text-xs text-slate-500">Mín: {item.estoque_minimo ?? "—"} · Máx: {item.estoque_maximo ?? "—"}</p>
+              </div>
+              <div className="text-right">{(() => { const s = saldoEmbalado(item); return s ? <><strong className={status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}>{s.principal}</strong><span className="block text-[10px] font-medium text-slate-400">{s.secundario}</span></> : <strong className={status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</strong>; })()}</div>
+            </div>
             <div className="mt-4 grid grid-cols-3 gap-2"><button onClick={() => onEntrada(item)} className="rounded-xl bg-emerald-50 py-2 text-sm font-bold text-emerald-700">+ Entrada</button><button onClick={() => onSaida(item)} className="rounded-xl bg-slate-100 py-2 text-sm font-bold">− Baixa</button><button onClick={() => onEditar(item)} className="rounded-xl bg-slate-100 py-2 text-sm font-bold">Configurar</button></div>
             <div className="mt-2"><SimuladorRendimento item={item} variant="full" /></div>
           </article>;
@@ -701,17 +771,50 @@ function ListaMovimentos({ movimentos, modo }) {
   const lista = modo === "movimentacoes"
     ? movimentos.filter(m => ["entrada", "saida", "transferencia_saida", "transferencia_entrada", "contagem"].includes(m.tipo))
     : movimentos;
+
   if (!lista.length) return <div className="grid min-h-64 place-items-center text-sm font-semibold text-slate-500">Nenhuma movimentação registrada nesta área.</div>;
-  return <div className="divide-y divide-slate-100">
-    {lista.map(mov => {
-      const positivo = ["entrada", "transferencia_entrada"].includes(mov.tipo) || (mov.tipo === "contagem" && Number(mov.quantidade) >= 0);
-      return <div key={mov.id} className="flex flex-wrap items-center gap-3 px-5 py-4">
-        <div className={`grid h-10 w-10 place-items-center rounded-full ${positivo ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"}`}>{mov.tipo.includes("transferencia") ? <ArrowRightLeft size={18} /> : <History size={18} />}</div>
-        <div className="min-w-0 flex-1"><strong className="block truncate">{mov.insumo?.nome || "Produto"}</strong><p className="text-xs text-slate-500">{mov.tipo.replaceAll("_", " ")} · {mov.usuario_nome || "Sistema"} · {fmtData(mov.data_movimento, true)}</p></div>
-        <div className="text-right"><strong className={positivo ? "text-emerald-700" : "text-red-600"}>{positivo ? "+" : "−"} {fmtQtd(Math.abs(Number(mov.quantidade) || 0))} {mostrarUn(mov.insumo?.unidade_medida)}</strong>{mov.destino?.nome && <p className="text-xs text-slate-500">Destino: {mov.destino.nome}</p>}</div>
-      </div>;
-    })}
-  </div>;
+
+  return (
+    <div className="divide-y divide-slate-100">
+      {lista.map(mov => {
+        const positivo = ["entrada", "transferencia_entrada"].includes(mov.tipo) || (mov.tipo === "contagem" && Number(mov.quantidade) >= 0);
+        const tipoRotulo = {
+          entrada: "Entrada",
+          saida: "Baixa",
+          contagem: "Contagem",
+          transferencia_saida: "Transferência (Saída)",
+          transferencia_entrada: "Transferência (Entrada)",
+        }[mov.tipo] || mov.tipo;
+
+        return (
+          <div key={mov.id} className="flex flex-wrap items-center justify-between gap-4 px-5 py-4 hover:bg-slate-50/80">
+            <div className="flex items-center gap-3.5 min-w-0 flex-1">
+              <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ${positivo ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"}`}>
+                {mov.tipo.includes("transferencia") ? <ArrowRightLeft size={18} /> : <History size={18} />}
+              </div>
+              <div className="min-w-0">
+                <strong className="block truncate text-sm font-black text-slate-900">{mov.insumo?.nome || "Produto"}</strong>
+                <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-slate-500">
+                  <span className={`font-bold ${positivo ? "text-emerald-700" : "text-slate-700"}`}>{tipoRotulo}</span>
+                  <span>·</span>
+                  <span className="inline-flex items-center gap-1 font-bold text-slate-800"><User size={13} className="text-slate-400" />{mov.usuario_nome || "Sistema"}</span>
+                  <span>·</span>
+                  <span className="font-medium text-slate-600">📅 {fmtData(mov.data_movimento, true)}</span>
+                </div>
+                {mov.observacao && <p className="mt-1 text-xs text-slate-400 italic">“{mov.observacao}”</p>}
+              </div>
+            </div>
+            <div className="text-right shrink-0">
+              <strong className={`text-base font-black ${positivo ? "text-emerald-700" : "text-red-600"}`}>
+                {positivo ? "+" : "−"} {fmtQtd(Math.abs(Number(mov.quantidade) || 0))} {mostrarUn(mov.insumo?.unidade_medida)}
+              </strong>
+              {mov.destino?.nome && <p className="text-xs font-medium text-slate-500">Destino: {mov.destino.nome}</p>}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 export default function EstoquePage() {

@@ -43,11 +43,11 @@ function calcularValorItem(item) {
   const qtd = Number(item.quantidade_atual) || 0;
   if (qtd <= 0) return 0;
 
-  const tamEmb = Number(item.tamanho_embalagem) || 1;
   const custoUnit = Number(item.custo_unitario) || 0;
   const custoCompra = Number(item.custo_compra) || 0;
 
-  if (tamEmb > 1) {
+  if (ehFracionavel(item)) {
+    const tamEmb = Number(item.tamanho_embalagem) || 1;
     const unComerciais = qtd / tamEmb;
     let custoEmbalagem = custoCompra;
     if (!custoEmbalagem || custoEmbalagem <= 0) {

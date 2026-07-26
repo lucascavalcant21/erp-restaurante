@@ -1784,9 +1784,9 @@ function FichasRunner() {
                         {/* Foto do prato (compacta) */}
                         <div className="h-28 sm:h-32 bg-slate-100 relative">
                            {f.imagem ? (
-                              <img src={`data:image/jpeg;base64,${f.imagem}`} alt={f.nome_receita} className="w-full h-full object-cover" />
+                              <img onClick={() => { setSimPesoView(""); setViewTab("ficha"); setFichaView(f); }} title="Ver ficha completa" src={`data:image/jpeg;base64,${f.imagem}`} alt={f.nome_receita} className="w-full h-full object-cover cursor-pointer" />
                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-slate-300">
+                              <div onClick={() => { setSimPesoView(""); setViewTab("ficha"); setFichaView(f); }} title="Ver ficha completa" className="w-full h-full flex items-center justify-center text-slate-300 cursor-pointer">
                                  {f.departamento === 'bar' ? <Wine size={34}/> : <UtensilsCrossed size={34}/>}
                               </div>
                            )}

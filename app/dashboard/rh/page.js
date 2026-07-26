@@ -907,7 +907,7 @@ export default function RHPage() {
     const html = `
       <html>
         <head>
-          <title>Recibo de Prestação de Serviço</title>
+          <title>Recibo de Trabalho Extra</title>
           <style>
             @page { size: A4 portrait; margin: 9mm; }
             * { box-sizing: border-box; }
@@ -938,7 +938,7 @@ export default function RHPage() {
           <header class="document-header">
             <div>
               <div class="brand">${seguro(unidadeInfo?.nome, "Seldeestrela")}</div>
-              <h1>Recibo de Prestação de Serviço</h1>
+              <h1>Recibo de Trabalho Extra</h1>
               <div class="subtitle">Acordo de diária, controle operacional e comprovante de pagamento</div>
             </div>
             <div class="receipt-id"><strong>${reciboNumero}</strong><br/>Emitido em ${hoje}<br/>Via da empresa</div>
@@ -1542,7 +1542,7 @@ export default function RHPage() {
             {abaAtiva === "Freelancer" && (
                <>
                <button onClick={() => abrirModalFicha(null)} className="flex items-center gap-1.5 bg-white text-amber-700 border border-amber-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-amber-50 transition-colors">
-                  <Printer size={14} /> Recibo de Prestação de Serviço
+                  <Printer size={14} /> Recibo de Trabalho Extra
                </button>
                <input ref={inputFichaExtraRef} type="file" accept="image/*" onChange={lerFichaExtraFoto} className="hidden" />
                <button onClick={() => inputFichaExtraRef.current?.click()} disabled={lendoFichaExtra}
@@ -1641,15 +1641,86 @@ export default function RHPage() {
             const cores = { erro: "bg-rose-50 border-rose-200 text-rose-700", aviso: "bg-emerald-50 border-emerald-200 text-emerald-800", info: "bg-emerald-50 border-emerald-100 text-emerald-700" };
             return <div className="mt-4 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
                <div className="flex items-center justify-between mb-3"><div><p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Central de prazos</p><h3 className="font-black text-slate-800">Experiência, admissão e revisão de férias</h3></div><span className="text-xs font-black bg-rose-100 text-rose-700 px-2.5 py-1 rounded-full">{alertas.length}</span></div>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">{alertas.slice(0, 8).map(a => <div key={`${a.id}-${a.texto}`} className={`border rounded-xl px-3 py-2 ${cores[a.nivel]}`}><p className="text-xs font-black">{a.nome}</p><p className="text-[10px] font-bold mt-0.5">{a.texto}</p></div>)}</div>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">{alertas.slice(0, 8).map(a => <button key={`${a.id}-${a.texto}`} onClick={() => router.push(`/dashboard/rh/funcionario/${a.id}`)} className={`text-left border rounded-xl px-3 py-2 transition-all hover:shadow-sm ${cores[a.nivel]}`}><p className="text-xs font-black">{a.nome}</p><p className="text-[10px] font-bold mt-0.5">{a.texto} · toque para abrir</p></button>)}</div>
                {alertas.length > 8 && <p className="text-[10px] font-bold text-slate-400 mt-2">Mais {alertas.length - 8} alerta(s) nos cadastros abaixo.</p>}
                <p className="text-[9px] font-medium text-slate-400 mt-3">Avisos operacionais para conferência do RH. A concessão de férias e decisões contratuais devem ser validadas pelo responsável e pela contabilidade.</p>
             </div>;
          })()}
       </div>
 
+      {/* Composição da equipe + Ações rápidas */}
+      {funcionarios.length > 0 && (
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 mb-4">
+         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_1.4fr] gap-3">
+            {/* Donut de composição */}
+            {(() => {
+               const todos = funcionarios;
+               const total = todos.length || 1;
+               const inativos = todos.filter(f => ehInativo(f)).length;
+               const ativos = todos.filter(f => !ehInativo(f));
+               const extras = ativos.filter(f => f.tipo_contrato === "Freelancer").length;
+               const exp = ativos.filter(f => f.tipo_contrato !== "Freelancer" && String(f.status_contrato || "").toLowerCase().includes("experi")).length;
+               const fixos = ativos.length - extras - exp;
+               const segs = [
+                  { rot: "Fixos ativos", n: fixos, cor: "#059669" },
+                  { rot: "Em experiência", n: exp, cor: "#6ee7b7" },
+                  { rot: "Extras", n: extras, cor: "#94a3b8" },
+                  { rot: "Inativos", n: inativos, cor: "#cbd5e1" },
+               ].filter(s => s.n > 0);
+               let acc = 0;
+               const stops = segs.map(s => { const ini = (acc / total) * 360; acc += s.n; const fim = (acc / total) * 360; return `${s.cor} ${ini}deg ${fim}deg`; }).join(", ");
+               return (
+                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex items-center gap-4">
+                     <div className="relative w-24 h-24 shrink-0 rounded-full" style={{ background: `conic-gradient(${stops || "#e2e8f0 0deg 360deg"})` }}>
+                        <div className="absolute inset-[14px] rounded-full bg-white flex flex-col items-center justify-center">
+                           <span className="text-xl font-black text-slate-800 leading-none">{todos.length}</span>
+                           <span className="text-[8px] font-black uppercase tracking-wider text-slate-400">Total</span>
+                        </div>
+                     </div>
+                     <div className="min-w-0 flex-1">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Composição da equipe</p>
+                        <div className="space-y-1">
+                           {segs.map(s => (
+                              <div key={s.rot} className="flex items-center gap-2 text-xs">
+                                 <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: s.cor }} />
+                                 <span className="font-bold text-slate-600 flex-1 truncate">{s.rot}</span>
+                                 <span className="font-black text-slate-800">{s.n}</span>
+                                 <span className="text-slate-400 font-bold w-10 text-right">{Math.round((s.n / total) * 100)}%</span>
+                              </div>
+                           ))}
+                        </div>
+                     </div>
+                  </div>
+               );
+            })()}
+
+            {/* Ações rápidas */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2.5">Ações rápidas</p>
+               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                     { icon: Printer, rot: "Recibo de extra", on: () => { setAbaAtiva("Freelancer"); abrirModalFicha(null); } },
+                     { icon: ClipboardList, rot: "Fechar folha", on: () => router.push('/dashboard/rh/fechamento') },
+                     { icon: Clock, rot: "Faltas e atrasos", on: () => imprimirFaltasAtrasos() },
+                     { icon: CalendarDays, rot: "Feriados", on: () => abrirModalFeriados() },
+                     { icon: Users, rot: "Organograma", on: () => router.push('/dashboard/rh/organograma') },
+                     { icon: Award, rot: "Cargos", on: () => setAbaAtiva("Cargos & Carreiras") },
+                     { icon: Star, rot: "Banco de talentos", on: () => setAbaAtiva("Banco de Talentos") },
+                     { icon: LogOut, rot: "Ex-funcionários", on: () => setAbaAtiva("Ex-funcionários") },
+                  ].map(a => (
+                     <button key={a.rot} onClick={a.on} className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 py-3 px-1 text-center transition-all">
+                        <a.icon size={18} className="text-emerald-600" />
+                        <span className="text-[10px] font-black text-slate-600 leading-tight">{a.rot}</span>
+                     </button>
+                  ))}
+               </div>
+            </div>
+         </div>
+      </div>
+      )}
+
       <div className="max-w-5xl mx-auto px-4 sm:px-6">
-         
+
          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none mb-4">
             {[["Fixo", "Equipe Fixa"], ["Freelancer", "Freelancers Extras"], ["Cargos & Carreiras", "Cargos & Carreiras"], ["Banco de Talentos", "Banco de Talentos"], ["Ex-funcionários", "Ex-funcionários"]].map(([id, rot]) => (
                <button key={id} onClick={() => setAbaAtiva(id)}
@@ -1888,7 +1959,7 @@ export default function RHPage() {
                      <Acao icon={FileText} cor="text-emerald-700" bg="bg-emerald-50 hover:bg-emerald-100" onClick={() => ir(() => gerarContrato(f))}>Contrato de Trabalho</Acao>
                      <Acao icon={FileText} onClick={() => ir(() => router.push(`/dashboard/rh/contrato/${f.id}`))}>Regulamento</Acao>
                      {f.tipo_contrato === "Freelancer" && (
-                        <Acao icon={Printer} cor="text-amber-700" bg="bg-amber-50 hover:bg-amber-100" onClick={() => ir(() => abrirModalFicha(f))}>Recibo de Prestação de Serviço</Acao>
+                        <Acao icon={Printer} cor="text-emerald-700" bg="bg-emerald-50 hover:bg-emerald-100" onClick={() => ir(() => abrirModalFicha(f))}>Recibo de Trabalho Extra</Acao>
                      )}
                      <Acao icon={Upload} onClick={() => ir(() => acionarUpload(f))}>Anexar Documento</Acao>
                      {(f.docs || []).map(d => (
@@ -2275,7 +2346,7 @@ export default function RHPage() {
              <div className="w-full max-w-xl overflow-hidden rounded-3xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
                <div className="flex items-start justify-between gap-3 border-b border-slate-200 p-5">
                  <div>
-                   <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Recibo de Prestação de Serviço</p>
+                   <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Recibo de Trabalho Extra</p>
                    <h2 className="mt-1 text-xl font-black text-slate-900">Escolha um extra cadastrado</h2>
                    <p className="mt-1 text-xs font-bold text-slate-500">Por segurança, não é possível gerar recibo para uma pessoa sem cadastro.</p>
                  </div>
@@ -2323,7 +2394,7 @@ export default function RHPage() {
             <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-3xl my-3 sm:my-8 p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[94vh] sm:max-h-[90vh] overflow-y-auto">
                <div className="flex flex-wrap justify-between items-center gap-2 mb-5">
                   <div>
-                     <h2 className="font-black text-2xl text-slate-800">Preparar Recibo de Prestação de Serviço</h2>
+                     <h2 className="font-black text-2xl text-slate-800">Preparar Recibo de Trabalho Extra</h2>
                      <p className="text-sm font-bold text-slate-500 mt-1">{fichaFunc ? `${fichaFunc.nome} · dados importados do cadastro` : "Preencha os dados pelo sistema; somente as assinaturas ficarão para a caneta."}</p>
                   </div>
                   <button onClick={() => setModalFicha(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>

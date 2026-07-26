@@ -486,6 +486,28 @@ function EstoqueRunner() {
   );
 }
 
+// Saldo de bebidas/embalados: mostra UNIDADES comerciais como principal e o
+// equivalente (ml/L/g/kg) como secundário — quando o item tem conteúdo por
+// embalagem (> 1). Ex.: 5000 ml de garrafas de 750 → "6 un + 500 ml".
+function saldoEmbalado(item) {
+  const conteudo = Number(item.tamanho_embalagem) || 1;
+  const total = Number(item.quantidade_atual) || 0;
+  const un = String(item.unidade_medida || "un").toLowerCase();
+  if (conteudo <= 1 || un === "un") return null; // sem embalagem fracionável
+  const unLabel = item.unidade_comercial || "un";
+  const fechadas = Math.floor(total / conteudo);
+  const aberto = +(total - fechadas * conteudo).toFixed(3);
+  const fmtEq = (q, u) => {
+    const n = Number(q) || 0;
+    if (u === "ml") return n >= 1000 ? `${(+(n / 1000).toFixed(3)).toLocaleString("pt-BR")} L` : `${fmtQtd(n)} ml`;
+    if (u === "g") return n >= 1000 ? `${(+(n / 1000).toFixed(3)).toLocaleString("pt-BR")} kg` : `${fmtQtd(n)} g`;
+    return `${fmtQtd(n)} ${u}`;
+  };
+  const principal = `${fechadas} ${unLabel}${aberto > 0 ? ` + ${fmtEq(aberto, un)}` : ""}`;
+  const secundario = `Conteúdo: ${fmtQtd(conteudo)} ${un}/un · Total: ${fmtEq(total, un)}`;
+  return { principal, secundario };
+}
+
 function TabelaItens({ itens, estoque, loading, onEntrada, onSaida, onEditar }) {
   if (loading) return <div className="grid min-h-64 place-items-center text-slate-500"><Loader2 className="animate-spin" /></div>;
   if (!itens.length) return <div className="grid min-h-64 place-items-center px-5 text-center"><div><Package size={42} className="mx-auto mb-3 text-slate-300" /><p className="font-black text-slate-700">Nenhum item encontrado neste estoque</p><p className="mt-1 text-sm text-slate-500">Use “Nova entrada” ou “Importar lista” para começar.</p></div></div>;
@@ -504,7 +526,7 @@ function TabelaItens({ itens, estoque, loading, onEntrada, onSaida, onEditar }) 
                 <td className="px-4 py-3"><span className="rounded-lg bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">{item.categoria || "Sem categoria"}</span></td>
                 <td className="px-4 py-3">{fmtQtd(item.tamanho_embalagem || 1)} {item.unidade_medida || "un"}</td>
                 <td className="px-4 py-3"><strong>{fmtBRL(item.custo_unitario || 0)}</strong></td>
-                <td className={`px-4 py-3 font-black ${status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}`}>{fmtQtd(item.quantidade_atual)} {item.unidade_medida || "un"}</td>
+                <td className={`px-4 py-3 font-black ${status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}`}>{(() => { const s = saldoEmbalado(item); return s ? <><span>{s.principal}</span><span className="block text-[10px] font-medium text-slate-400">{s.secundario}</span></> : <>{fmtQtd(item.quantidade_atual)} {item.unidade_medida || "un"}</>; })()}</td>
                 <td className="px-4 py-3">{item.estoque_minimo == null ? "—" : `${fmtQtd(item.estoque_minimo)} ${item.unidade_medida || "un"}`}</td>
                 {estoque.controla_validade && <td className={`px-4 py-3 ${status.vencido || status.validadeProxima ? "font-bold text-amber-700" : ""}`}>{fmtData(item.validade)}</td>}
                 <td className="px-4 py-3"><span className="inline-flex items-center gap-1"><MapPin size={14} />{item.local_interno || "Não definido"}</span></td>
@@ -524,7 +546,7 @@ function TabelaItens({ itens, estoque, loading, onEntrada, onSaida, onEditar }) 
         {itens.map(item => {
           const status = statusItemEstoque(item, estoque);
           return <article key={item.id} className="p-4">
-            <div className="flex items-start justify-between gap-3"><div><strong>{item.nome}</strong><p className="mt-1 text-xs text-slate-500">{item.categoria || "Sem categoria"} · {item.local_interno || "Sem local"}</p></div><strong className={status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}>{fmtQtd(item.quantidade_atual)} {item.unidade_medida || "un"}</strong></div>
+            <div className="flex items-start justify-between gap-3"><div><strong>{item.nome}</strong><p className="mt-1 text-xs text-slate-500">{item.categoria || "Sem categoria"} · {item.local_interno || "Sem local"}</p></div><div className="text-right">{(() => { const s = saldoEmbalado(item); return s ? <><strong className={status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}>{s.principal}</strong><span className="block text-[10px] font-medium text-slate-400">{s.secundario}</span></> : <strong className={status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}>{fmtQtd(item.quantidade_atual)} {item.unidade_medida || "un"}</strong>; })()}</div></div>
             <div className="mt-4 grid grid-cols-3 gap-2"><button onClick={() => onEntrada(item)} className="rounded-xl bg-emerald-50 py-2 text-sm font-bold text-emerald-700">+ Entrada</button><button onClick={() => onSaida(item)} className="rounded-xl bg-slate-100 py-2 text-sm font-bold">− Baixa</button><button onClick={() => onEditar(item)} className="rounded-xl bg-slate-100 py-2 text-sm font-bold">Configurar</button></div>
             <div className="mt-2"><SimuladorRendimento item={item} variant="full" /></div>
           </article>;

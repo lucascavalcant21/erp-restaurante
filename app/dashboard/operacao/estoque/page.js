@@ -16,7 +16,8 @@ import {
   transferirEntreEstoques, vincularItemEstoque,
 } from "../../../lib/estoques-multiplos";
 import {
-  filtrarItensEstoque, statusItemEstoque, TIPOS_ESTOQUE, tiposCompativeis,
+  filtrarItensEstoque, grupoOperacionalItem, gruposOperacionaisEstoque,
+  statusItemEstoque, TIPOS_ESTOQUE, tiposCompativeis,
 } from "../../../lib/estoques-multiplos-utils.mjs";
 import { fmtBRL } from "../../../components/ui";
 
@@ -72,7 +73,7 @@ function EstoqueRunner() {
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
   const [aba, setAba] = useState("atual");
-  const [filtros, setFiltros] = useState({ busca: "", categoria: "Todas", status: "todos", local: "Todos" });
+  const [filtros, setFiltros] = useState({ busca: "", grupo: "Todos", categoria: "Todas", status: "todos", local: "Todos" });
   const [modal, setModal] = useState(null);
   const [operacao, setOperacao] = useState({ insumo_id: "", quantidade: "", destino_id: "", observacao: "", data: "" });
   const [formItem, setFormItem] = useState({});
@@ -112,6 +113,9 @@ function EstoqueRunner() {
 
   useEffect(() => { carregarEstoques(); }, [carregarEstoques]);
   useEffect(() => { carregarArea(); }, [carregarArea]);
+  useEffect(() => {
+    setFiltros(atuais => ({ ...atuais, grupo: "Todos", categoria: "Todas", status: "todos", local: "Todos" }));
+  }, [estoqueId]);
 
   const avisar = (mensagem, tipo = "sucesso") => {
     if (tipo === "erro") setErro(mensagem);
@@ -125,6 +129,11 @@ function EstoqueRunner() {
 
   const categorias = useMemo(() => ["Todas", ...new Set(itens.map(i => i.categoria || "Sem categoria"))], [itens]);
   const locais = useMemo(() => ["Todos", ...new Set(itens.map(i => i.local_interno).filter(Boolean))], [itens]);
+  const grupos = useMemo(() => gruposOperacionaisEstoque(estoqueAtual), [estoqueAtual]);
+  const contagemGrupos = useMemo(() => Object.fromEntries(grupos.map(grupo => [
+    grupo,
+    grupo === "Todos" ? itens.length : itens.filter(item => grupoOperacionalItem(item, estoqueAtual) === grupo).length,
+  ])), [grupos, itens, estoqueAtual]);
   const itensFiltrados = useMemo(
     () => filtrarItensEstoque(itens, filtros, estoqueAtual),
     [itens, filtros, estoqueAtual],
@@ -377,6 +386,25 @@ function EstoqueRunner() {
 
               {aba === "atual" || aba === "alertas" ? (
                 <>
+                  {grupos.length > 1 && (
+                    <div className="border-b border-slate-100 px-4 py-4 sm:px-6">
+                      <div className="mb-3">
+                        <p className="text-sm font-black text-slate-800">Separação do estoque de {estoqueAtual.nome}</p>
+                        <p className="text-xs text-slate-500">Escolha um grupo para visualizar somente os itens correspondentes.</p>
+                      </div>
+                      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap">
+                        {grupos.map(grupo => (
+                          <button
+                            key={grupo}
+                            onClick={() => setFiltros(atuais => ({ ...atuais, grupo }))}
+                            className={`shrink-0 rounded-full border px-4 py-2 text-sm font-extrabold transition ${filtros.grupo === grupo ? "border-emerald-700 bg-emerald-700 text-white shadow-sm" : "border-slate-200 bg-white text-slate-600 hover:border-emerald-300"}`}
+                          >
+                            {grupo} <span className={filtros.grupo === grupo ? "text-emerald-100" : "text-slate-400"}>({contagemGrupos[grupo] || 0})</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <div className="grid gap-3 p-4 lg:grid-cols-[1fr_190px_170px_180px]">
                     <label className="relative"><Search className="absolute left-3 top-3 text-slate-400" size={19} /><input value={filtros.busca} onChange={e => setFiltros({ ...filtros, busca: e.target.value })} placeholder="Buscar produto por nome, marca ou código..." className="h-11 w-full rounded-xl border border-slate-200 pl-10 pr-3 outline-none focus:border-emerald-500" /></label>
                     <select value={filtros.categoria} onChange={e => setFiltros({ ...filtros, categoria: e.target.value })} className="h-11 rounded-xl border border-slate-200 px-3 font-semibold">{categorias.map(v => <option key={v}>{v}</option>)}</select>
@@ -500,7 +528,10 @@ function TabelaItens({ itens, estoque, loading, onEntrada, onSaida, onEditar }) 
               const status = statusItemEstoque(item, estoque);
               return <tr key={item.id} className="hover:bg-slate-50">
                 <td className="px-5 py-3"><strong className="block">{item.nome}</strong><span className="text-xs text-slate-500">{item.codigo_interno || item.marca || "Sem código"}</span></td>
-                <td className="px-4 py-3"><span className="rounded-lg bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">{item.categoria || "Sem categoria"}</span></td>
+                <td className="px-4 py-3">
+                  <span className="block w-fit rounded-lg bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">{grupoOperacionalItem(item, estoque)}</span>
+                  <span className="mt-1 block text-[11px] text-slate-500">{item.categoria || "Sem categoria"}</span>
+                </td>
                 <td className="px-4 py-3">{fmtQtd(item.tamanho_embalagem || 1)} {item.unidade_medida || "un"}</td>
                 <td className="px-4 py-3"><strong>{fmtBRL(item.custo_unitario || 0)}</strong></td>
                 <td className={`px-4 py-3 font-black ${status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}`}>{fmtQtd(item.quantidade_atual)} {item.unidade_medida || "un"}</td>
@@ -522,7 +553,7 @@ function TabelaItens({ itens, estoque, loading, onEntrada, onSaida, onEditar }) 
         {itens.map(item => {
           const status = statusItemEstoque(item, estoque);
           return <article key={item.id} className="p-4">
-            <div className="flex items-start justify-between gap-3"><div><strong>{item.nome}</strong><p className="mt-1 text-xs text-slate-500">{item.categoria || "Sem categoria"} · {item.local_interno || "Sem local"}</p></div><strong className={status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}>{fmtQtd(item.quantidade_atual)} {item.unidade_medida || "un"}</strong></div>
+            <div className="flex items-start justify-between gap-3"><div><strong>{item.nome}</strong><p className="mt-1 text-xs font-bold text-emerald-700">{grupoOperacionalItem(item, estoque)}</p><p className="mt-0.5 text-xs text-slate-500">{item.categoria || "Sem categoria"} · {item.local_interno || "Sem local"}</p></div><strong className={status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}>{fmtQtd(item.quantidade_atual)} {item.unidade_medida || "un"}</strong></div>
             <div className="mt-4 grid grid-cols-3 gap-2"><button onClick={() => onEntrada(item)} className="rounded-xl bg-emerald-50 py-2 text-sm font-bold text-emerald-700">+ Entrada</button><button onClick={() => onSaida(item)} className="rounded-xl bg-slate-100 py-2 text-sm font-bold">− Baixa</button><button onClick={() => onEditar(item)} className="rounded-xl bg-slate-100 py-2 text-sm font-bold">Configurar</button></div>
           </article>;
         })}

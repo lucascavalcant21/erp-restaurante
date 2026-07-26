@@ -14,6 +14,44 @@ export const ESTOQUES_PADRAO = [
   { nome: "Embalagens", slug: "embalagens", tipo: "embalagens", cor: "#db2777", controla_validade: false, controla_minimo: true },
 ];
 
+export const GRUPOS_OPERACIONAIS_ESTOQUE = {
+  cozinha: ["Todos", "Produtos prontos", "Ingredientes"],
+  bar: ["Todos", "Produtos", "Xaropes", "Guarnições", "Frutas"],
+};
+
+const textoNormalizado = valor => String(valor || "")
+  .normalize("NFD")
+  .replace(/[\u0300-\u036f]/g, "")
+  .toLowerCase()
+  .trim();
+
+export function gruposOperacionaisEstoque(estoque) {
+  return GRUPOS_OPERACIONAIS_ESTOQUE[slugEstoque(estoque?.slug || estoque?.nome)] || ["Todos"];
+}
+
+export function grupoOperacionalItem(item, estoque) {
+  const area = slugEstoque(estoque?.slug || estoque?.nome);
+  const categoria = textoNormalizado(item?.categoria);
+  const nome = textoNormalizado(item?.nome);
+  const tipo = textoNormalizado(item?.tipo_item || item?.tipo);
+  const texto = `${categoria} ${nome}`;
+
+  if (area === "cozinha") {
+    const produtoPronto = tipo === "produto"
+      || /produto pronto|prato pronto|bebida pronta|congelado|industrializado/.test(texto);
+    return produtoPronto ? "Produtos prontos" : "Ingredientes";
+  }
+
+  if (area === "bar") {
+    if (/xarope|cordial|syrup/.test(texto)) return "Xaropes";
+    if (/guarnic|decoracao|garnish|erva|especiaria/.test(texto)) return "Guarnições";
+    if (/fruta|hortifruti|limao|laranja|abacaxi|morango|maracuja|manga|uva|cereja/.test(texto)) return "Frutas";
+    return "Produtos";
+  }
+
+  return "Todos";
+}
+
 export function slugEstoque(valor) {
   return String(valor || "")
     .normalize("NFD")
@@ -62,6 +100,7 @@ export function filtrarItensEstoque(itens, filtros, estoque) {
       .join(" ").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
     const status = statusItemEstoque(item, estoque);
     if (termo && !texto.includes(termo)) return false;
+    if (filtros?.grupo && filtros.grupo !== "Todos" && grupoOperacionalItem(item, estoque) !== filtros.grupo) return false;
     if (filtros?.categoria && filtros.categoria !== "Todas" && item.categoria !== filtros.categoria) return false;
     if (filtros?.local && filtros.local !== "Todos" && item.local_interno !== filtros.local) return false;
     if (filtros?.status === "abaixo" && !status.abaixoMinimo) return false;

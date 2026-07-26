@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   filtrarItensEstoque,
+  grupoOperacionalItem,
+  gruposOperacionaisEstoque,
   slugEstoque,
   statusItemEstoque,
   tiposCompativeis,
@@ -47,4 +49,30 @@ test("pesquisa e filtros ficam restritos à lista do estoque ativo", () => {
     controla_validade: false,
   });
   assert.deepEqual(resultado.map(item => item.nome), ["Detergente"]);
+});
+
+test("separa cozinha entre produtos prontos e ingredientes", () => {
+  const estoque = { slug: "cozinha" };
+  assert.deepEqual(gruposOperacionaisEstoque(estoque), ["Todos", "Produtos prontos", "Ingredientes"]);
+  assert.equal(grupoOperacionalItem({ nome: "Arroz branco", categoria: "Secos", tipo_item: "ingrediente" }, estoque), "Ingredientes");
+  assert.equal(grupoOperacionalItem({ nome: "Lasanha congelada", categoria: "Congelados", tipo_item: "produto" }, estoque), "Produtos prontos");
+});
+
+test("separa bar entre produtos, xaropes, guarnições e frutas", () => {
+  const estoque = { slug: "bar" };
+  assert.deepEqual(gruposOperacionaisEstoque(estoque), ["Todos", "Produtos", "Xaropes", "Guarnições", "Frutas"]);
+  assert.equal(grupoOperacionalItem({ nome: "Xarope de baunilha", categoria: "Xaropes" }, estoque), "Xaropes");
+  assert.equal(grupoOperacionalItem({ nome: "Hortelã", categoria: "Guarnições" }, estoque), "Guarnições");
+  assert.equal(grupoOperacionalItem({ nome: "Limão tahiti", categoria: "Hortifruti" }, estoque), "Frutas");
+  assert.equal(grupoOperacionalItem({ nome: "Vodka", categoria: "Destilados" }, estoque), "Produtos");
+});
+
+test("filtro operacional mostra somente o grupo selecionado", () => {
+  const estoque = { slug: "bar", controla_minimo: true };
+  const itens = [
+    { nome: "Vodka", categoria: "Destilados" },
+    { nome: "Xarope de gengibre", categoria: "Xaropes" },
+  ];
+  const resultado = filtrarItensEstoque(itens, { grupo: "Xaropes" }, estoque);
+  assert.deepEqual(resultado.map(item => item.nome), ["Xarope de gengibre"]);
 });

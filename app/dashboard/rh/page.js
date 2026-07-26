@@ -14,9 +14,10 @@ import {
   fetchAdvertenciasColab, inserirAdvertencia, removerAdvertencia,
   fetchFeriados, inserirFeriado, removerFeriado,
   liberarPontoDia, fetchLiberacoesColab, removerLiberacao,
+  salvarReciboPrestacao, fetchRecibosPrestacao, atualizarPagamentoRecibo,
   desligarColaborador
 } from "../../lib/rh";
-import { fetchPontoHoje, fetchPontosMes, fetchPontosMesUnidade } from "../../lib/ponto";
+import { fetchPontoHoje, fetchPontosMes, fetchPontosMesUnidade, fetchHistoricoPontoCompleto } from "../../lib/ponto";
 import { fetchValesPendentes } from "../../lib/rh";
 import { calcularAdicionaisMes, calcularAdicionaisPorDia } from "../../lib/rh";
 import { salvarConta, fetchContas, fetchLancamentos } from "../../lib/financeiro";
@@ -110,8 +111,10 @@ export default function RHPage() {
     vale_transporte: "", adicional: "", descontos: "", forma_pagamento: "Pix",
     responsavel_entrega: "", setor_entrega: "", conferencia_devolucao: "", horario_devolucao: "",
     janta_ofertada: true,
+    pagamento_realizado: true, data_pagamento: new Date().toISOString().slice(0, 10),
   };
   const [fichaDados, setFichaDados] = useState(dadosReciboVazios);
+  const [salvandoRecibo, setSalvandoRecibo] = useState(false);
 
   // Liberar o ponto do extra/freelancer para hoje (com a diária combinada).
   const dataHojeISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
@@ -125,11 +128,24 @@ export default function RHPage() {
   };
 
   // Histórico diário do extra: cada dia liberado (diária) + total.
-  const [modalDiarias, setModalDiarias] = useState(null); // { func, lista, loading }
+  const [modalDiarias, setModalDiarias] = useState(null);
   const abrirHistoricoDiarias = async (f) => {
-    setModalDiarias({ func: f, lista: [], loading: true });
-    const { data } = await fetchLiberacoesColab(f.id);
-    setModalDiarias({ func: f, lista: data || [], loading: false });
+    setModalDiarias({ func: f, liberacoes: [], pontos: [], recibos: [], advertencias: [], loading: true });
+    const [liberacoes, pontos, recibos, advertencias] = await Promise.all([
+      fetchLiberacoesColab(f.id, 365),
+      fetchHistoricoPontoCompleto(f.id, 365),
+      fetchRecibosPrestacao(f.id),
+      fetchAdvertenciasColab(f.id),
+    ]);
+    setModalDiarias({
+      func: f,
+      liberacoes: liberacoes.data || [],
+      pontos: pontos.data || [],
+      recibos: recibos.data || [],
+      advertencias: advertencias.data || [],
+      erroRecibos: recibos.error || "",
+      loading: false,
+    });
   };
 
   // Trajetória / Linha do Tempo de Carreira
@@ -174,12 +190,57 @@ export default function RHPage() {
     setFichaNovoItem("");
   };
 
-  const imprimirFichaPreparada = () => {
+  const imprimirFichaPreparada = async () => {
     if (!fichaFunc?.id) return alert("Selecione um extra cadastrado antes de gerar o recibo.");
+    const diaria = parseFloat(String(fichaValor || "").replace(",", ".")) || 0;
+    const dias = Math.max(1, Number(fichaDias) || 1);
+    const vale = parseFloat(String(fichaDados.vale_transporte || "").replace(",", ".")) || 0;
+    const adicional = parseFloat(String(fichaDados.adicional || "").replace(",", ".")) || 0;
+    const descontos = parseFloat(String(fichaDados.descontos || "").replace(",", ".")) || 0;
+    const numero = `RPS-${new Date().toISOString().slice(0, 10).replaceAll("-", "")}-${String(Date.now()).slice(-6)}`;
+    const inicio = new Date(`${fichaDados.data_trabalho}T12:00:00`);
+    const datasContratadas = Array.from({ length: dias }, (_, indice) => {
+      const data = new Date(inicio);
+      data.setDate(data.getDate() + indice);
+      return data.toISOString().slice(0, 10);
+    });
+    const itens = fichaItens.filter(i => i.incluir).map(i => i.nome);
+    const valorTotal = Math.max(0, (diaria * dias) + vale + adicional - descontos);
+    setSalvandoRecibo(true);
+    const resposta = await salvarReciboPrestacao({
+      unidade_id: unidadeAtiva,
+      colaborador_id: fichaFunc.id,
+      numero,
+      data_trabalho: fichaDados.data_trabalho,
+      datas_contratadas: datasContratadas,
+      dias_contratados: dias,
+      valor_diaria: diaria,
+      valor_total: valorTotal,
+      pagamento_realizado: !!fichaDados.pagamento_realizado,
+      data_pagamento: fichaDados.pagamento_realizado ? fichaDados.data_pagamento : null,
+      forma_pagamento: fichaDados.forma_pagamento,
+      hora_entrada: fichaDados.entrada || null,
+      hora_saida_intervalo: fichaDados.saida_intervalo || null,
+      hora_retorno_intervalo: fichaDados.retorno_intervalo || null,
+      hora_saida: fichaDados.saida_final || null,
+      evento: fichaDados.evento || null,
+      funcao: fichaDados.funcao || null,
+      janta_ofertada: !!fichaDados.janta_ofertada,
+      itens,
+      dados: fichaDados,
+    });
+    setSalvandoRecibo(false);
+    if (resposta.error) {
+      if (!/rh_recibos_prestacao/.test(resposta.error)) {
+        return alert(`Erro ao salvar o recibo: ${resposta.error}`);
+      }
+      alert("O recibo será impresso, mas o histórico de recibos ainda precisa ser ativado no banco de dados.");
+    }
     imprimirFichaExtra(fichaFunc, {
-      diaria: fichaValor,
-      dias: Math.max(1, Number(fichaDias) || 1),
-      itens: fichaItens.filter(i => i.incluir).map(i => i.nome),
+      numero,
+      diaria,
+      dias,
+      itens,
       dados: fichaDados,
     });
     setModalFicha(false);
@@ -902,7 +963,7 @@ export default function RHPage() {
     const adicional = parseFloat(String(dados.adicional || "").replace(",", ".")) || 0;
     const descontos = parseFloat(String(dados.descontos || "").replace(",", ".")) || 0;
     const totalPagar = Math.max(0, totalGeral + valeTransporte + adicional - descontos);
-    const reciboNumero = `EXT-${new Date().toISOString().slice(0, 10).replaceAll("-", "")}-${String(funcionario?.id || Date.now()).slice(-6).toUpperCase()}`;
+    const reciboNumero = opcoes.numero || `RPS-${new Date().toISOString().slice(0, 10).replaceAll("-", "")}-${String(funcionario?.id || Date.now()).slice(-6).toUpperCase()}`;
     
     const html = `
       <html>
@@ -1088,6 +1149,9 @@ export default function RHPage() {
                     <strong>Assinatura de Recebimento:</strong><br/>
                     <div style="border-bottom: 1px solid #000; width: 100%; height: 18px;"></div>
                   </div>
+               </div>
+               <div style="margin-top:6px; padding:6px 8px; border-radius:6px; background:${dados.pagamento_realizado ? "#ecfdf5" : "#fff7ed"}; color:${dados.pagamento_realizado ? "#065f46" : "#9a3412"}; font-size:9px; font-weight:800;">
+                 ${dados.pagamento_realizado ? `Pagamento realizado em ${dataBR(dados.data_pagamento)}.` : "Pagamento pendente."}
                </div>
             </div>
             </div>
@@ -1872,7 +1936,7 @@ export default function RHPage() {
                      {f.tipo_contrato === "Freelancer" && (
                         <>
                           <Acao icon={CheckCircle} cor="text-violet-700" bg="bg-violet-50 hover:bg-violet-100" onClick={() => ir(() => liberarPontoHoje(f))}>Liberar ponto de hoje</Acao>
-                          <Acao icon={Clock} cor="text-slate-700" onClick={() => ir(() => abrirHistoricoDiarias(f))}>Histórico diário (diárias)</Acao>
+                          <Acao icon={Clock} cor="text-slate-700" onClick={() => ir(() => abrirHistoricoDiarias(f))}>Histórico completo do extra</Acao>
                         </>
                      )}
                   </Grupo>
@@ -2426,6 +2490,15 @@ export default function RHPage() {
                       </select>
                     </label>
                   </div>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-black text-emerald-800">
+                      <input type="checkbox" checked={!!fichaDados.pagamento_realizado} onChange={e => setFichaDados(d => ({ ...d, pagamento_realizado: e.target.checked }))} className="h-5 w-5 accent-emerald-700" />
+                      Pagamento já realizado
+                    </label>
+                    <label className="text-xs font-bold text-slate-600">Data do pagamento
+                      <input type="date" disabled={!fichaDados.pagamento_realizado} value={fichaDados.data_pagamento || ""} onChange={e => setFichaDados(d => ({ ...d, data_pagamento: e.target.value }))} className="mt-1 w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-emerald-500 disabled:bg-slate-100" />
+                    </label>
+                  </div>
                </div>
 
                {/* Itens emprestados: escolhe na hora */}
@@ -2460,46 +2533,125 @@ export default function RHPage() {
                   </div>
                </div>
 
-               <button onClick={imprimirFichaPreparada} className="w-full py-4 bg-emerald-700 hover:bg-emerald-800 text-white font-black text-lg rounded-2xl transition-all active:scale-95 shadow-xl shadow-emerald-700/20 flex items-center justify-center gap-2">
-                  <Printer size={20}/> Gerar e imprimir recibo
+               <button disabled={salvandoRecibo} onClick={imprimirFichaPreparada} className="w-full py-4 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 text-white font-black text-lg rounded-2xl transition-all active:scale-95 shadow-xl shadow-emerald-700/20 flex items-center justify-center gap-2">
+                  {salvandoRecibo ? <Loader2 size={20} className="animate-spin" /> : <Printer size={20}/>} {salvandoRecibo ? "Salvando no histórico..." : "Gerar e imprimir recibo"}
                </button>
             </div>
          </div>
          );
       })()}
 
-      {/* MODAL: HISTÓRICO DIÁRIO do extra (dias liberados + diária + total) */}
+      {/* MODAL: HISTÓRICO COMPLETO DO EXTRA */}
       {modalDiarias && (() => {
-         const lista = modalDiarias.lista || [];
-         const total = lista.reduce((s, l) => s + (Number(l.valor_diaria) || 0), 0);
+         const liberacoes = modalDiarias.liberacoes || [];
+         const pontos = modalDiarias.pontos || [];
+         const recibos = modalDiarias.recibos || [];
+         const advertencias = modalDiarias.advertencias || [];
+         const porData = new Map();
+         const linha = data => {
+            const chave = String(data || "").slice(0, 10);
+            if (!porData.has(chave)) porData.set(chave, { data: chave });
+            return porData.get(chave);
+         };
+         liberacoes.forEach(item => Object.assign(linha(item.data), { liberacao: item, valor: Number(item.valor_diaria) || 0 }));
+         pontos.forEach(item => Object.assign(linha(item.data_referencia), { ponto: item }));
+         recibos.forEach(recibo => {
+            let datas = Array.isArray(recibo.datas_contratadas) && recibo.datas_contratadas.length ? recibo.datas_contratadas : [recibo.data_trabalho];
+            datas.forEach(data => Object.assign(linha(data), { recibo, valor: Number(recibo.valor_diaria) || 0 }));
+         });
+         const dias = [...porData.values()].filter(item => item.data).sort((a, b) => b.data.localeCompare(a.data));
+         const diasContratados = dias.filter(item => item.liberacao || item.recibo).length;
+         const diasTrabalhados = dias.filter(item => item.ponto?.hora_entrada).length;
+         const totalPago = recibos.filter(item => item.pagamento_realizado).reduce((soma, item) => soma + (Number(item.valor_total) || 0), 0);
+         const hora = valor => {
+            if (!valor) return "—";
+            if (/^\d{2}:\d{2}/.test(String(valor))) return String(valor).slice(0, 5);
+            const data = new Date(valor);
+            return Number.isNaN(data.getTime()) ? String(valor) : data.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+         };
+         const dataBR = valor => String(valor || "").slice(0, 10).split("-").reverse().join("/");
          return (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={() => setModalDiarias(null)}>
-            <div className="bg-white rounded-[28px] w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto p-5 sm:p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="bg-white rounded-[28px] w-full max-w-5xl max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
                <div className="flex items-center justify-between mb-1">
-                  <h2 className="text-lg font-black text-slate-800 flex items-center gap-2"><Clock size={18} className="text-slate-500" /> Histórico diário</h2>
+                  <h2 className="text-lg font-black text-slate-800 flex items-center gap-2"><Clock size={18} className="text-emerald-600" /> Histórico completo do extra</h2>
                   <button onClick={() => setModalDiarias(null)} className="w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={17} /></button>
                </div>
-               <p className="text-xs font-bold text-slate-500 mb-4">{modalDiarias.func?.nome} — dias liberados para bater ponto e receber a diária.</p>
+               <p className="text-xs font-bold text-slate-500 mb-4">{modalDiarias.func?.nome} — dias, horários, recibos, pagamentos e ocorrências reunidos no cadastro.</p>
                {modalDiarias.loading ? (
                   <p className="text-center font-bold text-slate-400 py-8">Carregando...</p>
-               ) : lista.length === 0 ? (
-                  <p className="text-sm font-medium text-slate-400 text-center py-8">Nenhum dia liberado ainda. Use "Liberar ponto de hoje".</p>
                ) : (
                   <>
-                     <div className="space-y-1.5">
-                        {lista.map(l => (
-                           <div key={l.id} className="flex items-center justify-between gap-2 border border-slate-200 rounded-xl px-3 py-2">
-                              <span className="font-bold text-slate-700 text-sm">{String(l.data).slice(0, 10).split("-").reverse().join("/")}</span>
-                              <div className="flex items-center gap-2">
-                                 <span className="font-black text-emerald-700">{fmtBRL(Number(l.valor_diaria) || 0)}</span>
-                                 <button onClick={async () => { if (confirm("Remover esta liberação?")) { await removerLiberacao(l.id); abrirHistoricoDiarias(modalDiarias.func); } }} className="w-8 h-8 flex items-center justify-center rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100"><Trash2 size={14} /></button>
-                              </div>
-                           </div>
-                        ))}
+                     {modalDiarias.erroRecibos && (
+                       <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-bold text-amber-800">O histórico antigo de ponto está disponível, mas a tabela de recibos ainda precisa ser ativada no banco.</p>
+                     )}
+                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                       {[
+                         ["Dias contratados", diasContratados],
+                         ["Dias trabalhados", diasTrabalhados],
+                         ["Recibos emitidos", recibos.length],
+                         ["Total já pago", fmtBRL(totalPago)],
+                       ].map(([rotulo, valor]) => (
+                         <div key={rotulo} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                           <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">{rotulo}</p>
+                           <p className="mt-1 text-lg font-black text-slate-900">{valor}</p>
+                         </div>
+                       ))}
                      </div>
-                     <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-200">
-                        <span className="font-black text-slate-700">Total ({lista.length} dia(s))</span>
-                        <span className="font-black text-emerald-700 text-lg">{fmtBRL(total)}</span>
+
+                     <div className="mt-5">
+                       <h3 className="mb-2 text-sm font-black text-slate-800">Dias, valores e horários</h3>
+                       {dias.length === 0 ? (
+                         <p className="rounded-xl bg-slate-50 p-5 text-center text-sm font-medium text-slate-400">Nenhum dia contratado ou trabalhado registrado.</p>
+                       ) : (
+                         <div className="overflow-x-auto rounded-2xl border border-slate-200">
+                           <table className="w-full min-w-[720px] text-left text-xs">
+                             <thead className="bg-slate-900 text-white"><tr><th className="p-3">Data</th><th className="p-3">Situação</th><th className="p-3">Horário do dia</th><th className="p-3">Valor</th><th className="p-3">Pagamento</th><th className="p-3">Ação</th></tr></thead>
+                             <tbody className="divide-y divide-slate-100">
+                               {dias.map(item => (
+                                 <tr key={item.data}>
+                                   <td className="p-3 font-black">{dataBR(item.data)}</td>
+                                   <td className="p-3"><span className={`rounded-full px-2 py-1 font-black ${item.ponto?.hora_entrada ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>{item.ponto?.hora_entrada ? "Trabalhou" : "Contratado"}</span></td>
+                                   <td className="p-3 font-bold text-slate-600">{hora(item.ponto?.hora_entrada || item.recibo?.hora_entrada)} às {hora(item.ponto?.hora_saida || item.recibo?.hora_saida)}</td>
+                                   <td className="p-3 font-black text-emerald-700">{fmtBRL(item.valor || 0)}</td>
+                                   <td className="p-3 font-bold">{item.recibo ? (item.recibo.pagamento_realizado ? "Pago" : "Pendente") : "Sem recibo"}</td>
+                                   <td className="p-3">{item.liberacao && !item.recibo && <button onClick={async () => { if (confirm("Remover esta liberação?")) { await removerLiberacao(item.liberacao.id); abrirHistoricoDiarias(modalDiarias.func); } }} className="rounded-lg bg-rose-50 p-2 text-rose-600"><Trash2 size={14} /></button>}</td>
+                                 </tr>
+                               ))}
+                             </tbody>
+                           </table>
+                         </div>
+                       )}
+                     </div>
+
+                     <div className="mt-5 grid gap-5 lg:grid-cols-2">
+                       <section>
+                         <h3 className="mb-2 text-sm font-black text-slate-800">Histórico de recibos</h3>
+                         <div className="space-y-2">
+                           {recibos.length === 0 ? <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-400">Nenhum recibo emitido.</p> : recibos.map(recibo => (
+                             <div key={recibo.id} className="rounded-xl border border-slate-200 p-3">
+                               <div className="flex flex-wrap items-start justify-between gap-2">
+                                 <div><p className="font-black text-slate-800">{recibo.numero}</p><p className="text-xs text-slate-500">{dataBR(recibo.data_trabalho)} · {recibo.dias_contratados} dia(s) · {fmtBRL(recibo.valor_total)}</p></div>
+                                 <span className={`rounded-full px-2 py-1 text-[10px] font-black ${recibo.pagamento_realizado ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>{recibo.pagamento_realizado ? `Pago ${dataBR(recibo.data_pagamento)}` : "Pendente"}</span>
+                               </div>
+                               <div className="mt-2 flex flex-wrap gap-2">
+                                 <button onClick={() => imprimirFichaExtra(modalDiarias.func, { numero: recibo.numero, diaria: recibo.valor_diaria, dias: recibo.dias_contratados, itens: recibo.itens || [], dados: recibo.dados || {} })} className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-black text-slate-700"><Printer size={13} className="mr-1 inline" />Reimprimir</button>
+                                 <button onClick={async () => { const pago = !recibo.pagamento_realizado; const resposta = await atualizarPagamentoRecibo(recibo.id, pago); if (resposta.error) alert(resposta.error); else abrirHistoricoDiarias(modalDiarias.func); }} className="rounded-lg bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700">{recibo.pagamento_realizado ? "Marcar pendente" : "Marcar como pago"}</button>
+                               </div>
+                             </div>
+                           ))}
+                         </div>
+                       </section>
+
+                       <section>
+                         <h3 className="mb-2 text-sm font-black text-slate-800">Problemas e ocorrências</h3>
+                         {modalDiarias.func?.anotacoes_rh && <p className="mb-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-900"><b>Anotação do cadastro:</b> {modalDiarias.func.anotacoes_rh}</p>}
+                         <div className="space-y-2">
+                           {advertencias.length === 0 && !modalDiarias.func?.anotacoes_rh ? <p className="rounded-xl bg-emerald-50 p-4 text-sm font-bold text-emerald-700">Nenhum problema registrado.</p> : advertencias.map(adv => (
+                             <div key={adv.id} className="rounded-xl border border-rose-200 bg-rose-50 p-3"><p className="text-xs font-black text-rose-700">{dataBR(adv.data)} · {adv.tipo || "Ocorrência"}</p><p className="mt-1 text-sm text-slate-700">{adv.motivo || adv.descricao || adv.observacao || "Registro disciplinar"}</p></div>
+                           ))}
+                         </div>
+                       </section>
                      </div>
                   </>
                )}

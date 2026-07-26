@@ -65,6 +65,17 @@ export async function fetchHistoricoPonto(colaboradorId) {
   return { data };
 }
 
+export async function fetchHistoricoPontoCompleto(colaboradorId, limite = 365) {
+  if (!isSupabaseReady() || !colaboradorId) return { data: [] };
+  const { data, error } = await supabase
+    .from("registro_ponto")
+    .select("*")
+    .eq("colaborador_id", colaboradorId)
+    .order("data_referencia", { ascending: false })
+    .limit(limite);
+  return { data: data || [], error: error?.message };
+}
+
 export async function fetchPontosMes(colaboradorId, anoMes) {
   if (!isSupabaseReady()) return { data: [] };
   

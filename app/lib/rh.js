@@ -351,6 +351,42 @@ export async function removerLiberacao(id) {
   return { error: error?.message };
 }
 
+// Recibos emitidos para profissionais extras. O histórico fica vinculado ao
+// cadastro do colaborador e pode ser consultado mesmo depois do pagamento.
+export async function salvarReciboPrestacao(recibo) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { data, error } = await supabase
+    .from("rh_recibos_prestacao")
+    .insert([recibo])
+    .select("*")
+    .single();
+  return { data, error: error?.message };
+}
+
+export async function fetchRecibosPrestacao(colaboradorId) {
+  if (!isSupabaseReady() || !colaboradorId) return { data: [] };
+  const { data, error } = await supabase
+    .from("rh_recibos_prestacao")
+    .select("*")
+    .eq("colaborador_id", colaboradorId)
+    .order("data_trabalho", { ascending: false })
+    .order("created_at", { ascending: false });
+  return { data: data || [], error: error?.message };
+}
+
+export async function atualizarPagamentoRecibo(id, pagamentoRealizado, dataPagamento = null) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase
+    .from("rh_recibos_prestacao")
+    .update({
+      pagamento_realizado: !!pagamentoRealizado,
+      data_pagamento: pagamentoRealizado ? (dataPagamento || new Date().toISOString().slice(0, 10)) : null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+  return { error: error?.message };
+}
+
 export async function fetchRegulamento(unidadeId) {
   if (!isSupabaseReady()) return { data: null, error: "Offline" };
   const { data, error } = await supabase.from("rh_regulamentos").select("*").eq("unidade_id", unidadeId).single();

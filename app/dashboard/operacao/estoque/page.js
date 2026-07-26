@@ -265,23 +265,93 @@ function EstoqueRunner() {
       return true;
     });
 
-    return filtrados.length ? filtrados : catalogo;
+    return filtrados;
   }, [catalogo, estoqueAtual]);
 
-  const categorias = useMemo(() => ["Todas", ...new Set(itens.map(i => i.categoria || "Sem categoria"))], [itens]);
-  const locais = useMemo(() => ["Todos", ...new Set(itens.map(i => i.local_interno).filter(Boolean))], [itens]);
+  const itensDaArea = useMemo(() => {
+    if (!itens?.length) return [];
+    if (!estoqueAtual) return itens;
+
+    const slug = (estoqueAtual.slug || estoqueAtual.nome || "").toLowerCase();
+    const tipo = (estoqueAtual.tipo || "").toLowerCase();
+
+    return itens.filter(item => {
+      const dept = (item.departamento || "").toLowerCase();
+      const cat = (item.categoria || "").toLowerCase();
+      const nome = (item.nome || "").toLowerCase();
+
+      // 1. Limpeza
+      if (slug.includes("limpeza") || tipo === "limpeza") {
+        return (
+          dept.includes("limpeza") ||
+          cat.includes("limpeza") ||
+          cat.includes("higiene") ||
+          /(detergente|sabao|saboaria|desinfetante|cloro|alcool|papel toalha|bucha|esponja|vassoura|rodo|saco de lixo)/.test(nome) ||
+          /(limpeza|higiene)/.test(cat)
+        );
+      }
+
+      // 2. Embalagens
+      if (slug.includes("embalag") || tipo === "embalagens") {
+        return (
+          dept.includes("embalag") ||
+          dept.includes("descartav") ||
+          cat.includes("embalag") ||
+          cat.includes("descartav") ||
+          /(embalagem|caixa|sacola|copo|pote|marmita|isopor|papel acoplado|guardanapo|canudo|tampa|pelicula|filme pvc|aluminio)/.test(nome) ||
+          /(embalag|descartav)/.test(cat)
+        );
+      }
+
+      // 3. Bar
+      if (slug.includes("bar") || tipo === "bebidas") {
+        return (
+          dept.includes("bar") ||
+          dept.includes("bebida") ||
+          dept.includes("drink") ||
+          cat.includes("bebida") ||
+          cat.includes("drink") ||
+          cat.includes("cerveja") ||
+          cat.includes("destilado") ||
+          cat.includes("vinho") ||
+          cat.includes("refrigerante") ||
+          cat.includes("suco") ||
+          cat.includes("xarope") ||
+          cat.includes("gin") ||
+          cat.includes("vodka") ||
+          cat.includes("whisky") ||
+          cat.includes("cachaça") ||
+          cat.includes("rum") ||
+          cat.includes("chopp") ||
+          /(cerveja|chopp|vinho|vodka|gin|whisky|cachaca|rum|xarope|licor|tonica|energetico|refrigerante|suco|agua|ice|tequila|vermute|bitter|espumante|poupa|hortela|morango)/.test(nome) ||
+          /(bar|bebida|drink|adega)/.test(dept)
+        );
+      }
+
+      // 4. Cozinha
+      if (slug.includes("cozinha") || tipo === "alimentos") {
+        const ehOutraArea = dept.includes("limpeza") || dept.includes("embalag") || dept.includes("bar") || cat.includes("limpeza") || cat.includes("embalag") || cat.includes("bebida") || /(detergente|sabao|desinfetante|cloro|alcool|papel toalha|bucha|vassoura|rodo|saco de lixo|embalagem|caixa|sacola|copo|pote|marmita|isopor|cerveja|chopp|vodka|gin|whisky|cachaca|rum|xarope|refrigerante|suco|agua)/.test(nome);
+        return !ehOutraArea;
+      }
+
+      return true;
+    });
+  }, [itens, estoqueAtual]);
+
+  const categorias = useMemo(() => ["Todas", ...new Set(itensDaArea.map(i => i.categoria || "Sem categoria"))], [itensDaArea]);
+  const locais = useMemo(() => ["Todos", ...new Set(itensDaArea.map(i => i.local_interno).filter(Boolean))], [itensDaArea]);
   const itensFiltrados = useMemo(
-    () => filtrarItensEstoque(itens, filtros, estoqueAtual),
-    [itens, filtros, estoqueAtual],
+    () => filtrarItensEstoque(itensDaArea, filtros, estoqueAtual),
+    [itensDaArea, filtros, estoqueAtual],
   );
   const alertas = useMemo(
-    () => itens.filter(item => {
+    () => itensDaArea.filter(item => {
       const status = statusItemEstoque(item, estoqueAtual);
       return status.abaixoMinimo || status.validadeProxima || status.vencido;
     }),
-    [itens, estoqueAtual],
+    [itensDaArea, estoqueAtual],
   );
-  const valorTotal = itens.reduce((soma, item) => soma + Number(item.quantidade_atual || 0) * Number(item.custo_unitario || 0), 0);
+  const valorTotal = itensDaArea.reduce((soma, item) => soma + Number(item.quantidade_atual || 0) * Number(item.custo_unitario || 0), 0);
   const ultimaEntrada = movimentos.find(m => ["entrada", "transferencia_entrada"].includes(m.tipo));
 
   const abrirOperacao = (tipo, item = null) => {
@@ -550,10 +620,10 @@ function EstoqueRunner() {
             <section className="grid grid-cols-2 gap-3 xl:grid-cols-5">
               {[
                 { icon: Package, label: "Valor neste estoque", value: fmtBRL(valorTotal) },
-                { icon: AlertTriangle, label: "Abaixo do mínimo", value: `${itens.filter(i => statusItemEstoque(i, estoqueAtual).abaixoMinimo).length} itens` },
-                { icon: CalendarDays, label: "Próximas validades", value: estoqueAtual.controla_validade ? `${itens.filter(i => statusItemEstoque(i, estoqueAtual).validadeProxima).length} itens` : "Não controlada" },
+                { icon: AlertTriangle, label: "Abaixo do mínimo", value: `${itensDaArea.filter(i => statusItemEstoque(i, estoqueAtual).abaixoMinimo).length} itens` },
+                { icon: CalendarDays, label: "Próximas validades", value: estoqueAtual.controla_validade ? `${itensDaArea.filter(i => statusItemEstoque(i, estoqueAtual).validadeProxima).length} itens` : "Não controlada" },
                 { icon: Clock3, label: "Última reposição", value: ultimaEntrada ? fmtData(ultimaEntrada.data_movimento, true) : "Sem registro" },
-                { icon: Boxes, label: "Resumo da área", value: `${itens.length} itens` },
+                { icon: Boxes, label: "Resumo da área", value: `${itensDaArea.length} itens` },
               ].map(({ icon: Icon, label, value }) => (
                 <div key={label} className="rounded-2xl border border-slate-200 bg-white p-4">
                   <div className="mb-4 grid h-9 w-9 place-items-center rounded-full bg-emerald-50 text-emerald-700"><Icon size={18} /></div>
@@ -609,7 +679,7 @@ function EstoqueRunner() {
             <Campo label={`Produto (${modal.tipo === "entrada" ? `Estoque ${estoqueAtual?.nome || ""}` : "Disponível no estoque"})`}>
               <select required value={operacao.insumo_id} disabled={!!modal.item} onChange={e => setOperacao({ ...operacao, insumo_id: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3 disabled:bg-slate-100">
                 <option value="">Selecione o produto...</option>
-                {(modal.tipo === "entrada" ? catalogoFiltradoPorArea : itens).map(item => <option key={item.id} value={item.insumo_id || item.id}>{item.nome} {item.marca ? `· ${item.marca}` : ""}</option>)}
+                {(modal.tipo === "entrada" ? catalogoFiltradoPorArea : itensDaArea).map(item => <option key={item.id} value={item.insumo_id || item.id}>{item.nome} {item.marca ? `· ${item.marca}` : ""}</option>)}
               </select>
             </Campo>
 

@@ -310,7 +310,75 @@ export async function salvarFicha(ficha, ingredientes) {
     }
   }
 
+  // Sincronização automática com o Guia de Montagem
+  try {
+    await sincronizarFichaComMontagem({ ...ficha, id: fichaId }, ingredientes);
+  } catch (errSync) {
+    console.error("[salvarFicha] Erro ao sincronizar com Guia de Montagem:", errSync);
+  }
+
   return { success: true, id: fichaId };
+}
+
+export async function sincronizarFichaComMontagem(ficha, ingredientes) {
+  if (!isSupabaseReady()) return;
+  const nome = String(ficha.nome_receita || ficha.nome || "").trim();
+  if (!nome) return;
+
+  const deptLower = String(ficha.departamento || ficha.tipo_base || "").toLowerCase();
+  const departamento = deptLower.includes("bar") || deptLower.includes("drink") ? "bar" : "cozinha";
+  const tipo = departamento === "bar" ? "drink" : "prato";
+  const unidadeId = ficha.unidade_id || null;
+
+  let nomesIngredientes = [];
+  if (Array.isArray(ingredientes) && ingredientes.length > 0) {
+    const insumoIds = ingredientes.map(i => i.insumo_id).filter(Boolean);
+    const mapaInsumos = new Map();
+    if (insumoIds.length > 0) {
+      const { data: ins } = await supabase.from("insumos").select("id, nome, unidade_medida").in("id", insumoIds);
+      (ins || []).forEach(item => mapaInsumos.set(item.id, item));
+    }
+
+    nomesIngredientes = ingredientes.map(i => {
+      const insumo = mapaInsumos.get(i.insumo_id);
+      const nomeIng = i.nome || insumo?.nome || "Ingrediente";
+      const un = i.unidade_medida || insumo?.unidade_medida || "un";
+      const qtd = i.quantidade != null && i.quantidade !== "" ? i.quantidade : "";
+      return `• ${nomeIng}${qtd !== "" ? `: ${qtd} ${un}` : ""}`;
+    });
+  }
+
+  const passosModo = ficha.modo_preparo || ficha.preparo || ficha.descritivo || "";
+  const blocoIngredientes = nomesIngredientes.length > 0 ? `Ingredientes:\n${nomesIngredientes.join("\n")}` : "";
+
+  const descritivoCompleto = [passosModo, blocoIngredientes].filter(Boolean).join("\n\n");
+
+  const rendimentoStr = ficha.rendimento_porcoes
+    ? `${ficha.rendimento_porcoes} ${ficha.rendimento_unidade || "porção(ões)"}`
+    : (ficha.rendimento || null);
+
+  const payloadMontagem = {
+    nome,
+    tipo,
+    departamento,
+    descritivo: descritivoCompleto || null,
+    foto_url: ficha.foto_url || null,
+    tempo_preparo: Number(ficha.tempo_preparo) || null,
+    rendimento: rendimentoStr,
+    observacoes: ficha.observacoes || null,
+    unidade_id: unidadeId,
+    updated_at: new Date().toISOString(),
+  };
+
+  let query = supabase.from("montagem").select("id").eq("nome", nome);
+  if (unidadeId) query = query.eq("unidade_id", unidadeId);
+  const { data: existente } = await query.maybeSingle();
+
+  if (existente?.id) {
+    await supabase.from("montagem").update(payloadMontagem).eq("id", existente.id);
+  } else {
+    await supabase.from("montagem").insert([payloadMontagem]);
+  }
 }
 
 // Atualiza só o custo por unidade de um insumo (usado no "Recalcular custos").

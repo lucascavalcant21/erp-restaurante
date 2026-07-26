@@ -4,9 +4,9 @@ import React, { Fragment, Suspense, useCallback, useEffect, useMemo, useState } 
 import { useSearchParams } from "next/navigation";
 import {
   AlertTriangle, ArrowLeft, ArrowRightLeft, Boxes, CalendarDays, Check,
-  ChevronRight, ClipboardCheck, Clock3, Edit3, Filter, History, Loader2,
-  MapPin, MoreVertical, Package, PackageMinus, PackagePlus, Plus, Search,
-  Settings2, Upload, User, Warehouse, X,
+  ChevronRight, ClipboardCheck, Clock3, Copy, Download, Edit3, FileText, Filter, History, Loader2,
+  MapPin, MoreVertical, Package, PackageMinus, PackagePlus, Plus, Printer, Search,
+  Settings2, Share2, Upload, User, Warehouse, X,
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchInsumos, salvarInsumo } from "../../../lib/operacao";
@@ -62,6 +62,140 @@ function calcularValorItem(item) {
 
   const custo = custoUnit > 0 ? custoUnit : custoCompra;
   return qtd * custo;
+}
+
+function exportarExcel(estoque, itens, unidadeInfo) {
+  let csv = "\uFEFF";
+  csv += `Relatório de Estoque - ${estoque?.nome || "Estoque"} (${unidadeInfo?.nome || ""})\n`;
+  csv += `Emitido em: ${new Date().toLocaleDateString("pt-BR")}\n\n`;
+  csv += "Produto;Categoria;Embalagem;Unidade;Custo Unitário (R$);Saldo;Valor Total (R$);Estoque Mínimo;Local Interno;Validade\n";
+
+  for (const item of itens) {
+    const valTotal = calcularValorItem(item);
+    csv += `"${item.nome || ""}";"${item.categoria || "Sem categoria"}";"${item.tamanho_embalagem || 1}";"${item.unidade_medida || ""}";"${(item.custo_unitario || 0).toFixed(2)}";"${item.quantidade_atual || 0}";"${valTotal.toFixed(2)}";"${item.estoque_minimo ?? ""}";"${item.local_interno || ""}";"${item.validade || ""}"\n`;
+  }
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", `Estoque_${estoque?.slug || "estoque"}_${new Date().toISOString().slice(0, 10)}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+function gerarTextoWhatsApp(estoque, itens, unidadeInfo) {
+  const totalValor = itens.reduce((soma, i) => soma + (calcularValorItem(i) || 0), 0);
+  let txt = `📦 *ESTOQUE - ${estoque?.nome?.toUpperCase() || "ESTOQUE"}*\n`;
+  txt += `📍 Unidade: ${unidadeInfo?.nome || "Restaurante"}\n`;
+  txt += `📅 Data: ${new Date().toLocaleDateString("pt-BR")}\n`;
+  txt += `💰 Valor Total: ${fmtBRL(totalValor)}\n`;
+  txt += `-----------------------------------\n\n`;
+
+  const mapa = new Map();
+  for (const item of itens) {
+    const cat = item.categoria || "Sem categoria";
+    if (!mapa.has(cat)) mapa.set(cat, []);
+    mapa.get(cat).push(item);
+  }
+
+  for (const [cat, list] of mapa.entries()) {
+    txt += `📁 *${cat.toUpperCase()}* (${list.length} itens)\n`;
+    for (const i of list) {
+      const qtd = Number(i.quantidade_atual) || 0;
+      const un = i.unidade_medida || "un";
+      txt += `  • ${i.nome}: *${fmtQtd(qtd)} ${mostrarUn(un)}* (${fmtBRL(calcularValorItem(i))})\n`;
+    }
+    txt += `\n`;
+  }
+
+  return txt;
+}
+
+function imprimirRelatorio(estoque, itens, unidadeInfo) {
+  const totalValor = itens.reduce((soma, i) => soma + (calcularValorItem(i) || 0), 0);
+  const mapa = new Map();
+  for (const item of itens) {
+    const cat = item.categoria || "Sem categoria";
+    if (!mapa.has(cat)) mapa.set(cat, []);
+    mapa.get(cat).push(item);
+  }
+  const cats = Array.from(mapa.keys()).sort((a, b) => a.localeCompare(b, "pt-BR"));
+
+  let rowsHtml = "";
+  for (const cat of cats) {
+    const list = mapa.get(cat).sort((a, b) => (a.nome || "").localeCompare(b.nome || "", "pt-BR"));
+    const subtotal = list.reduce((s, i) => s + (calcularValorItem(i) || 0), 0);
+    rowsHtml += `
+      <tr style="background:#f1f5f9; font-weight:bold;">
+        <td colSpan="7" style="padding: 8px 12px; border-bottom: 2px solid #cbd5e1;">
+          ${cat.toUpperCase()} (${list.length} itens) — Subtotal: ${fmtBRL(subtotal)}
+        </td>
+      </tr>
+    `;
+    for (const i of list) {
+      const val = calcularValorItem(i);
+      rowsHtml += `
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 8px 12px;"><strong>${i.nome || ""}</strong></td>
+          <td style="padding: 8px 12px;">${i.categoria || "—"}</td>
+          <td style="padding: 8px 12px;">${fmtBRL(i.custo_unitario || 0)}</td>
+          <td style="padding: 8px 12px; font-weight:bold;">${fmtQtd(i.quantidade_atual)} ${mostrarUn(i.unidade_medida)}</td>
+          <td style="padding: 8px 12px; font-weight:bold; color:#047857;">${fmtBRL(val)}</td>
+          <td style="padding: 8px 12px;">${i.local_interno || "—"}</td>
+          <td style="padding: 8px 12px;">${i.validade ? fmtData(i.validade) : "—"}</td>
+        </tr>
+      `;
+    }
+  }
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Relatório de Estoque - ${estoque?.nome || ""}</title>
+      <meta charset="utf-8" />
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 24px; color: #1e293b; }
+        h1 { margin: 0 0 4px 0; font-size: 22px; }
+        p { margin: 0 0 16px 0; color: #64748b; font-size: 13px; }
+        .header { border-bottom: 2px solid #047857; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }
+        th { background: #0f172a; color: white; text-align: left; padding: 10px 12px; }
+        @media print { body { padding: 0; } }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <div>
+          <h1>${unidadeInfo?.nome || "Restaurante"} — Relatório de Estoque</h1>
+          <p>Área: <strong>${estoque?.nome || "Estoque"}</strong> · Emitido em: ${new Date().toLocaleString("pt-BR")}</p>
+        </div>
+        <div style="text-align:right;">
+          <p style="font-size:12px; margin-bottom:2px; color:#64748b;">VALOR TOTAL DA ÁREA</p>
+          <h2 style="margin:0; font-size:22px; color:#047857;">${fmtBRL(totalValor)}</h2>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Produto</th><th>Categoria</th><th>Custo un.</th><th>Saldo</th><th>Valor Total</th><th>Local</th><th>Validade</th>
+          </tr>
+        </thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </body>
+    </html>
+  `;
+
+  const win = window.open("", "_blank");
+  if (win) {
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); }, 500);
+  }
 }
 
 const fmtData = (valor, hora = false) => {
@@ -713,6 +847,7 @@ function EstoqueRunner() {
               <button disabled={!ativo || !itens.length} onClick={() => abrirOperacao("contagem")} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-extrabold disabled:opacity-40"><ClipboardCheck size={17} /> Contagem</button>
               <button disabled={!ativo || !itens.length || !destinosCompativeis.length} onClick={() => abrirOperacao("transferencia")} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-extrabold disabled:opacity-40"><ArrowRightLeft size={17} /> Transferência</button>
               <button disabled={!ativo} onClick={() => setModal({ tipo: "importar" })} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-extrabold disabled:opacity-40"><Upload size={17} /> Importar lista</button>
+              <button disabled={!itens.length} onClick={() => setModal({ tipo: "exportar_relatorio" })} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-emerald-50 px-4 text-sm font-extrabold text-emerald-800 hover:bg-emerald-100 disabled:opacity-40"><FileText size={17} /> Relatório / Exportar</button>
             </section>
 
             <section className="grid grid-cols-2 gap-3 xl:grid-cols-5">
@@ -757,6 +892,7 @@ function EstoqueRunner() {
                     onEntrada={item => abrirOperacao("entrada", item)}
                     onSaida={item => abrirOperacao("saida", item)}
                     onEditar={abrirEdicaoItem}
+                    onHistorico={item => setModal({ tipo: "historico_item", item })}
                   />
                 </>
               ) : (
@@ -948,6 +1084,113 @@ function EstoqueRunner() {
           </form>
         </Modal>
       )}
+
+      {modal?.tipo === "historico_item" && (
+        <Modal titulo={`Histórico — ${modal.item?.nome}`} descricao={`Todas as movimentações gravadas de ${modal.item?.nome} em ${estoqueAtual?.nome}.`} onClose={() => setModal(null)} largo>
+          <div className="space-y-4">
+            {(() => {
+              const movsItem = movimentos.filter(m => String(m.insumo_id) === String(modal.item?.insumo_id) || String(m.insumo_nome || "").toLowerCase() === String(modal.item?.nome || "").toLowerCase());
+              if (!movsItem.length) {
+                return <div className="p-8 text-center text-slate-500 font-bold">Nenhuma movimentação registrada para este produto.</div>;
+              }
+              return (
+                <div className="max-h-96 overflow-y-auto rounded-xl border border-slate-200">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-900 text-white">
+                      <tr>
+                        <th className="p-3">Data/Hora</th>
+                        <th className="p-3">Tipo</th>
+                        <th className="p-3">Qtd.</th>
+                        <th className="p-3">Responsável</th>
+                        <th className="p-3">Observação</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {movsItem.map(m => (
+                        <tr key={m.id} className="hover:bg-slate-50">
+                          <td className="p-3 font-medium text-slate-600">{fmtData(m.data_movimento, true)}</td>
+                          <td className="p-3"><span className={`rounded-md px-2 py-0.5 font-bold uppercase text-[10px] ${m.tipo === "entrada" ? "bg-emerald-100 text-emerald-800" : m.tipo === "saida" ? "bg-amber-100 text-amber-800" : "bg-sky-100 text-sky-800"}`}>{m.tipo}</span></td>
+                          <td className="p-3 font-extrabold text-slate-900">{fmtQtd(m.quantidade)} {mostrarUn(m.unidade_medida)}</td>
+                          <td className="p-3 text-slate-600">{m.usuario_nome || m.responsavel_nome || "Sistema"}</td>
+                          <td className="p-3 text-slate-500 italic">{m.observacao || "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()}
+            <div className="flex justify-end">
+              <button onClick={() => setModal(null)} className="h-11 rounded-xl bg-slate-100 px-5 font-bold text-slate-700 hover:bg-slate-200">Fechar</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {modal?.tipo === "exportar_relatorio" && (
+        <Modal titulo={`Exportar Relatório — ${estoqueAtual?.nome}`} descricao="Escolha o formato como deseja exportar o balanço do estoque." onClose={() => setModal(null)}>
+          <div className="space-y-3 pt-2">
+            <button
+              onClick={() => {
+                setModal(null);
+                imprimirRelatorio(estoqueAtual, itensDaArea, unidadeInfo);
+              }}
+              className="flex w-full items-center gap-4 rounded-2xl border-2 border-slate-200 p-4 text-left hover:border-emerald-500 hover:bg-emerald-50/50 transition-all group"
+            >
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-emerald-100 text-emerald-800 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                <Printer size={24} />
+              </div>
+              <div>
+                <strong className="block text-base font-extrabold text-slate-900">Gerar PDF / Imprimir Relatório</strong>
+                <p className="text-xs text-slate-500">Relatório formatado por categorias com subtotais e valor total.</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => {
+                setModal(null);
+                exportarExcel(estoqueAtual, itensDaArea, unidadeInfo);
+                avisar("Relatório em Excel (.csv) gerado com sucesso!");
+              }}
+              className="flex w-full items-center gap-4 rounded-2xl border-2 border-slate-200 p-4 text-left hover:border-emerald-500 hover:bg-emerald-50/50 transition-all group"
+            >
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-sky-100 text-sky-800 group-hover:bg-sky-600 group-hover:text-white transition-colors">
+                <Download size={24} />
+              </div>
+              <div>
+                <strong className="block text-base font-extrabold text-slate-900">Baixar Planilha Excel (.csv)</strong>
+                <p className="text-xs text-slate-500">Arquivo formatado compatível com Microsoft Excel e Google Sheets.</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => {
+                setModal(null);
+                const txt = gerarTextoWhatsApp(estoqueAtual, itensDaArea, unidadeInfo);
+                if (navigator.clipboard) {
+                  navigator.clipboard.writeText(txt);
+                  avisar("Texto formatado copiado! Cole direto no WhatsApp.");
+                } else {
+                  avisar("Não foi possível acessar a área de transferência.");
+                }
+              }}
+              className="flex w-full items-center gap-4 rounded-2xl border-2 border-slate-200 p-4 text-left hover:border-emerald-500 hover:bg-emerald-50/50 transition-all group"
+            >
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-teal-100 text-teal-800 group-hover:bg-teal-600 group-hover:text-white transition-colors">
+                <Share2 size={24} />
+              </div>
+              <div>
+                <strong className="block text-base font-extrabold text-slate-900">Copiar para WhatsApp</strong>
+                <p className="text-xs text-slate-500">Copia o resumo formatado em texto para enviar no grupo do WhatsApp.</p>
+              </div>
+            </button>
+
+            <div className="flex justify-end pt-2">
+              <button onClick={() => setModal(null)} className="h-11 rounded-xl bg-slate-100 px-5 font-bold text-slate-700 hover:bg-slate-200">Cancelar</button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
@@ -974,7 +1217,7 @@ function saldoEmbalado(item) {
   return { principal, secundario };
 }
 
-function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEditar }) {
+function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEditar, onHistorico }) {
   const agrupadoPorCategoria = useMemo(() => {
     if (!itens || !itens.length) return [];
     const mapa = new Map();
@@ -1034,10 +1277,11 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                     <td className="px-4 py-3"><span className="inline-flex items-center gap-1"><MapPin size={14} />{item.local_interno || "Não definido"}</span></td>
                     <td className="px-4 py-3 text-xs text-slate-500">{fmtData(item.ultima_movimentacao_em, true)}</td>
                     <td className="px-4 py-3"><div className="flex gap-2">
-                      <button onClick={() => onEntrada(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-emerald-600 text-emerald-700" title="Entrada"><Plus size={17} /></button>
-                      <button onClick={() => onSaida(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-emerald-600 text-emerald-700" title="Baixa"><span className="text-xl leading-none">−</span></button>
+                      <button onClick={() => onEntrada(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-emerald-600 text-emerald-700 hover:bg-emerald-50" title="Entrada"><Plus size={17} /></button>
+                      <button onClick={() => onSaida(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-emerald-600 text-emerald-700 hover:bg-emerald-50" title="Baixa"><span className="text-xl leading-none">−</span></button>
+                      <button onClick={() => onHistorico && onHistorico(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50" title="Histórico do produto"><History size={17} /></button>
                       <SimuladorRendimento item={item} variant="icon" />
-                      <button onClick={() => onEditar(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600" title="Configurar"><MoreVertical size={17} /></button>
+                      <button onClick={() => onEditar(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50" title="Configurar"><MoreVertical size={17} /></button>
                     </div></td>
                   </tr>;
                 })}
@@ -1066,7 +1310,12 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                   </div>
                   <div className="text-right">{(() => { const s = saldoEmbalado(item); return s ? <><strong className={status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}>{s.principal}</strong><span className="block text-[10px] font-medium text-slate-400">{s.secundario}</span></> : <strong className={status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</strong>; })()}</div>
                 </div>
-                <div className="mt-4 grid grid-cols-3 gap-2"><button onClick={() => onEntrada(item)} className="rounded-xl bg-emerald-50 py-2 text-sm font-bold text-emerald-700">+ Entrada</button><button onClick={() => onSaida(item)} className="rounded-xl bg-slate-100 py-2 text-sm font-bold">− Baixa</button><button onClick={() => onEditar(item)} className="rounded-xl bg-slate-100 py-2 text-sm font-bold">Configurar</button></div>
+                <div className="mt-4 grid grid-cols-4 gap-2">
+                  <button onClick={() => onEntrada(item)} className="rounded-xl bg-emerald-50 py-2 text-xs font-bold text-emerald-700">+ Entrada</button>
+                  <button onClick={() => onSaida(item)} className="rounded-xl bg-slate-100 py-2 text-xs font-bold">− Baixa</button>
+                  <button onClick={() => onHistorico && onHistorico(item)} className="rounded-xl bg-slate-100 py-2 text-xs font-bold text-slate-700">Histórico</button>
+                  <button onClick={() => onEditar(item)} className="rounded-xl bg-slate-100 py-2 text-xs font-bold">Configurar</button>
+                </div>
                 <div className="mt-2"><SimuladorRendimento item={item} variant="full" /></div>
               </article>;
             })}

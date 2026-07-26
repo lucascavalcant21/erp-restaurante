@@ -1695,7 +1695,7 @@ function FichasRunner() {
               ["Todos", "Todos", fichas.length],
             ].map(([t, label, n]) => (
               <button key={t} onClick={() => setTipoFiltro(t)}
-                className={`px-3 sm:px-4 py-2.5 rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-wider transition-all ${tipoFiltro === t ? (deptUrl === "bar" ? "bg-violet-600 text-white shadow-lg shadow-violet-600/20" : "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20") : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>
+                className={`px-3 sm:px-4 py-2.5 rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-wider transition-all ${tipoFiltro === t ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>
                 {label} <span className={tipoFiltro === t ? "text-emerald-200" : "text-slate-400"}>({n})</span>
               </button>
             ))}
@@ -2460,38 +2460,38 @@ function FichasRunner() {
                         </button>
                         {deptUrl === "bar" && (
                           <button type="button" onClick={() => { setForm({ ...form, eh_base: false, produto_pronto: true, tipo_base: "produto_pronto", categoria: form.categoria || "Cervejas", rendimento_porcoes: "1", rendimento_unidade: "un", peso_porcao_g: "", modo_preparo: "" }); setIngFicha([]); setAutoSoma(false); }}
-                            className={`min-h-[92px] py-3 px-2 rounded-xl font-black text-xs uppercase tracking-widest transition-all border-2 ${form.produto_pronto ? "bg-amber-500 border-amber-500 text-white shadow-lg shadow-amber-500/20" : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"}`}>
+                            className={`min-h-[92px] py-3 px-2 rounded-xl font-black text-xs uppercase tracking-widest transition-all border-2 ${form.produto_pronto ? "bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-600/20" : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"}`}>
                             Produto pronto
                             <span className="block text-[9px] font-bold normal-case tracking-normal mt-0.5 opacity-80">garrafa, lata, água, cerveja</span>
                           </button>
                         )}
                         <button type="button" onClick={() => setForm({ ...form, eh_base: true, produto_pronto: false, tipo_base: "pre", categoria: deptUrl === "bar" ? (CATEGORIAS_PREPARO_BAR.includes(form.categoria) ? form.categoria : "Xaropes") : "" })}
-                           className={`min-h-[92px] py-3 px-2 rounded-xl font-black text-xs uppercase tracking-widest transition-all border-2 ${form.eh_base && form.tipo_base !== "receita" ? "bg-purple-600 border-purple-600 text-white shadow-lg shadow-purple-600/20" : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"}`}>
+                           className={`min-h-[92px] py-3 px-2 rounded-xl font-black text-xs uppercase tracking-widest transition-all border-2 ${form.eh_base && form.tipo_base !== "receita" ? "bg-emerald-700 border-emerald-700 text-white shadow-lg shadow-emerald-700/20" : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"}`}>
                            Pré-preparo
                            <span className="block text-[9px] font-bold normal-case tracking-normal mt-0.5 opacity-80">{deptUrl === "bar" ? "xarope, mix, infusão" : "molho, massa, caldo"}</span>
                         </button>
                         <button type="button" onClick={() => setForm({ ...form, eh_base: true, produto_pronto: false, tipo_base: "receita", categoria: "" })}
-                           className={`min-h-[92px] py-3 px-2 rounded-xl font-black text-xs uppercase tracking-widest transition-all border-2 ${form.eh_base && form.tipo_base === "receita" ? "bg-sky-600 border-sky-600 text-white shadow-lg shadow-sky-600/20" : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"}`}>
+                           className={`min-h-[92px] py-3 px-2 rounded-xl font-black text-xs uppercase tracking-widest transition-all border-2 ${form.eh_base && form.tipo_base === "receita" ? "bg-teal-600 border-teal-600 text-white shadow-lg shadow-teal-600/20" : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"}`}>
                            Receita base
                            <span className="block text-[9px] font-bold normal-case tracking-normal mt-0.5 opacity-80">arroz, feijão, farofa — produção do dia</span>
                         </button>
                      </div>
                       {form.produto_pronto && (
-                        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                           <label className="text-xs font-bold text-amber-800 uppercase tracking-widest">Tipo de produto pronto</label>
-                           <select value={form.categoria || ""} onChange={e => setForm({ ...form, categoria: e.target.value })} className="w-full p-4 mt-2 bg-white border border-amber-200 rounded-xl font-bold text-slate-700 outline-none focus:border-amber-500 shadow-sm">
+                        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                           <label className="text-xs font-bold text-emerald-800 uppercase tracking-widest">Tipo de produto pronto</label>
+                           <select value={form.categoria || ""} onChange={e => setForm({ ...form, categoria: e.target.value })} className="w-full p-4 mt-2 bg-white border border-emerald-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500 shadow-sm">
                               {CATEGORIAS_PRODUTO_PRONTO_BAR.map(c => <option key={c} value={c}>{c}</option>)}
                            </select>
-                           <p className="mt-2 text-[11px] font-medium text-amber-700">Produto vendido como vem do fornecedor. Não exige ingredientes, receita ou guia de montagem.</p>
+                           <p className="mt-2 text-[11px] font-medium text-emerald-700">Produto vendido como vem do fornecedor. Não exige ingredientes, receita ou guia de montagem.</p>
                         </div>
                       )}
                       {deptUrl === "bar" && form.eh_base && form.tipo_base !== "receita" && (
-                         <div className="rounded-2xl border border-purple-200 bg-purple-50 p-4">
-                            <label className="text-xs font-bold text-purple-800 uppercase tracking-widest">Tipo de preparo do Bar</label>
-                            <select value={form.categoria || "Xaropes"} onChange={e => setForm({ ...form, categoria: e.target.value })} className="w-full p-4 mt-2 bg-white border border-purple-200 rounded-xl font-bold text-slate-700 outline-none focus:border-purple-500 shadow-sm">
+                         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                            <label className="text-xs font-bold text-emerald-800 uppercase tracking-widest">Tipo de preparo do Bar</label>
+                            <select value={form.categoria || "Xaropes"} onChange={e => setForm({ ...form, categoria: e.target.value })} className="w-full p-4 mt-2 bg-white border border-emerald-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500 shadow-sm">
                                {CATEGORIAS_PREPARO_BAR.map(c => <option key={c} value={c}>{c}</option>)}
                             </select>
-                            <p className="mt-2 text-[11px] font-medium text-purple-700">Este preparo poderá ser usado como componente de vários drinks e aparecerá na seção correta do Livro de Receitas.</p>
+                            <p className="mt-2 text-[11px] font-medium text-emerald-700">Este preparo poderá ser usado como componente de vários drinks e aparecerá na seção correta do Livro de Receitas.</p>
                          </div>
                       )}
                      {/* Categoria do cardápio (só para pratos, não para bases) */}
@@ -2936,13 +2936,13 @@ function FichasRunner() {
 
                   {/* COLUNA DIREITA: Ingredientes da Ficha */}
                   {form.produto_pronto ? (
-                  <div className="bg-gradient-to-br from-amber-50 to-white p-6 rounded-2xl border border-amber-200 shadow-sm flex flex-col items-center justify-center min-h-[320px] text-center">
-                     <div className="w-16 h-16 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mb-4"><Package size={28} /></div>
+                  <div className="bg-gradient-to-br from-emerald-50 to-white p-6 rounded-2xl border border-emerald-200 shadow-sm flex flex-col items-center justify-center min-h-[320px] text-center">
+                     <div className="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-4"><Package size={28} /></div>
                      <h3 className="text-xl font-black text-slate-800">Produto pronto para venda</h3>
                      <p className="mt-2 max-w-sm text-sm font-medium leading-relaxed text-slate-500">Cadastre a categoria e o preço. O item entrará no cardápio do Bar sem exigir ingredientes ou montagem.</p>
                      <div className="mt-5 grid w-full max-w-sm grid-cols-2 gap-2 text-left">
-                        <div className="rounded-xl border border-amber-100 bg-white p-3"><span className="block text-[9px] font-black uppercase tracking-widest text-slate-400">Quantidade</span><span className="font-black text-slate-800">1 unidade</span></div>
-                        <div className="rounded-xl border border-amber-100 bg-white p-3"><span className="block text-[9px] font-black uppercase tracking-widest text-slate-400">Composição</span><span className="font-black text-slate-800">Não se aplica</span></div>
+                        <div className="rounded-xl border border-emerald-100 bg-white p-3"><span className="block text-[9px] font-black uppercase tracking-widest text-slate-400">Quantidade</span><span className="font-black text-slate-800">1 unidade</span></div>
+                        <div className="rounded-xl border border-emerald-100 bg-white p-3"><span className="block text-[9px] font-black uppercase tracking-widest text-slate-400">Composição</span><span className="font-black text-slate-800">Não se aplica</span></div>
                      </div>
                   </div>
                   ) : (
@@ -2997,7 +2997,7 @@ function FichasRunner() {
                               <div className="flex-1 min-w-0">
                                  <p className="font-bold text-slate-800 text-sm truncate flex items-center gap-1.5">
                                     {ing.nome}
-                                    {ing.tipo === "base" && <span className="text-[8px] font-black uppercase tracking-widest bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">Base</span>}
+                                    {ing.tipo === "base" && <span className="text-[8px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">Base</span>}
                                  </p>
                                  <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">Custo: {fmtBRL(ing.custo_unitario * ing.quantidade * (1 + (Number(ing.fator) || 0) / 100))} <span className="text-slate-400 normal-case">· {fmtBRL(ing.custo_unitario)}/{String(ing.unidade).toUpperCase()}</span></p>
                                  {/* Fator de correção (%): qtd bruta = líquida × (1 + fc) — o custo usa a bruta */}

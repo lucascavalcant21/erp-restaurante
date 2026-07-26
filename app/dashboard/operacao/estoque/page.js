@@ -17,7 +17,7 @@ import {
   transferirEntreEstoques, vincularItemEstoque,
 } from "../../../lib/estoques-multiplos";
 import {
-  calcularValorItem, filtrarItensEstoque, statusItemEstoque, TIPOS_ESTOQUE, tiposCompativeis,
+  filtrarItensEstoque, statusItemEstoque, TIPOS_ESTOQUE, tiposCompativeis,
 } from "../../../lib/estoques-multiplos-utils.mjs";
 import { fmtBRL } from "../../../components/ui";
 import SimuladorRendimento from "../../../components/SimuladorRendimento";
@@ -38,6 +38,31 @@ const fmtEquiv = (q, un) => {
   if (u === "g") return n >= 1000 ? `${(+(n / 1000).toFixed(3)).toLocaleString("pt-BR")} kg` : `${(+n.toFixed(3)).toLocaleString("pt-BR")} g`;
   return `${(+n.toFixed(3)).toLocaleString("pt-BR")} ${mostrarUn(u)}`;
 };
+
+function calcularValorItem(item) {
+  if (!item) return 0;
+  const qtd = Number(item.quantidade_atual) || 0;
+  if (qtd <= 0) return 0;
+
+  const custoUnit = Number(item.custo_unitario) || 0;
+  const custoCompra = Number(item.custo_compra) || 0;
+  const tamEmb = Number(item.tamanho_embalagem) || 1;
+  const un = String(item.unidade_medida || "").toLowerCase();
+
+  const ehFrac = tamEmb > 1 && item.permite_fracionado !== false && un !== "un";
+
+  if (ehFrac) {
+    const unComerciais = qtd / tamEmb;
+    let custoEmbalagem = custoCompra;
+    if (!custoEmbalagem || custoEmbalagem <= 0) {
+      custoEmbalagem = custoUnit > 0 ? (custoUnit < 1 ? custoUnit * tamEmb : custoUnit) : 0;
+    }
+    return unComerciais * custoEmbalagem;
+  }
+
+  const custo = custoUnit > 0 ? custoUnit : custoCompra;
+  return qtd * custo;
+}
 
 const fmtData = (valor, hora = false) => {
   if (!valor) return "—";
@@ -949,19 +974,20 @@ function saldoEmbalado(item) {
   return { principal, secundario };
 }
 
-function TabelaItens({ itens, estoque, loading, onEntrada, onSaida, onEditar }) {
+function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEditar }) {
   const agrupadoPorCategoria = useMemo(() => {
     if (!itens || !itens.length) return [];
     const mapa = new Map();
     for (const item of itens) {
+      if (!item) continue;
       const cat = item.categoria || "Sem categoria";
       if (!mapa.has(cat)) mapa.set(cat, []);
       mapa.get(cat).push(item);
     }
-    const categoriasOrdenadas = Array.from(mapa.keys()).sort((a, b) => a.localeCompare(b, "pt-BR", { sensitivity: "base" }));
+    const categoriasOrdenadas = Array.from(mapa.keys()).sort((a, b) => String(a).localeCompare(String(b), "pt-BR", { sensitivity: "base" }));
     return categoriasOrdenadas.map(cat => {
-      const lista = mapa.get(cat).sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR", { sensitivity: "base" }));
-      const subtotal = lista.reduce((soma, i) => soma + calcularValorItem(i), 0);
+      const lista = (mapa.get(cat) || []).sort((a, b) => String(a?.nome || "").localeCompare(String(b?.nome || ""), "pt-BR", { sensitivity: "base" }));
+      const subtotal = lista.reduce((soma, i) => soma + (calcularValorItem(i) || 0), 0);
       return { categoria: cat, lista, subtotal };
     });
   }, [itens]);
@@ -974,13 +1000,13 @@ function TabelaItens({ itens, estoque, loading, onEntrada, onSaida, onEditar }) 
       <div className="hidden overflow-x-auto lg:block">
         <table className="w-full min-w-[1100px] text-left text-sm">
           <thead className="bg-slate-900 text-xs uppercase tracking-wide text-white"><tr>
-            <th className="px-5 py-4">Produto</th><th className="px-4 py-4">Categoria</th><th className="px-4 py-4">Embalagem</th><th className="px-4 py-4 whitespace-nowrap">Custo/un.</th><th className="px-4 py-4">Saldo</th><th className="px-4 py-4 whitespace-nowrap">Valor total</th><th className="px-3 py-4">Mínimo</th><th className="px-3 py-4">Máximo</th>{estoque.controla_validade && <th className="px-4 py-4">Validade</th>}<th className="px-4 py-4">Local</th><th className="px-4 py-4">Última mov.</th><th className="px-4 py-4">Ações</th>
+            <th className="px-5 py-4">Produto</th><th className="px-4 py-4">Categoria</th><th className="px-4 py-4">Embalagem</th><th className="px-4 py-4 whitespace-nowrap">Custo/un.</th><th className="px-4 py-4">Saldo</th><th className="px-4 py-4 whitespace-nowrap">Valor total</th><th className="px-3 py-4">Mínimo</th><th className="px-3 py-4">Máximo</th>{estoque?.controla_validade && <th className="px-4 py-4">Validade</th>}<th className="px-4 py-4">Local</th><th className="px-4 py-4">Última mov.</th><th className="px-4 py-4">Ações</th>
           </tr></thead>
           <tbody className="divide-y divide-slate-100">
             {agrupadoPorCategoria.map(({ categoria, lista, subtotal }) => (
               <Fragment key={categoria}>
                 <tr className="bg-slate-100/90 border-y border-slate-200">
-                  <td colSpan={estoque.controla_validade ? 12 : 11} className="px-5 py-2.5">
+                  <td colSpan={estoque?.controla_validade ? 12 : 11} className="px-5 py-2.5">
                     <div className="flex items-center justify-between">
                       <span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-800">
                         <span className="h-2.5 w-2.5 rounded-full bg-emerald-600"></span>
@@ -993,7 +1019,7 @@ function TabelaItens({ itens, estoque, loading, onEntrada, onSaida, onEditar }) 
                   </td>
                 </tr>
                 {lista.map(item => {
-                  const status = statusItemEstoque(item, estoque);
+                  const status = statusItemEstoque(item, estoque || {});
                   const valTotalItem = calcularValorItem(item);
                   return <tr key={item.id} className="hover:bg-slate-50">
                     <td className="px-5 py-3"><strong className="block">{item.nome}</strong><span className="text-xs text-slate-500">{item.codigo_interno || item.marca || "Sem código"}</span></td>
@@ -1004,7 +1030,7 @@ function TabelaItens({ itens, estoque, loading, onEntrada, onSaida, onEditar }) 
                     <td className="px-4 py-3 whitespace-nowrap"><strong className="font-black text-emerald-800">{fmtBRL(valTotalItem)}</strong></td>
                     <td className="px-3 py-3 font-semibold text-slate-700">{item.estoque_minimo == null || item.estoque_minimo === "" ? "—" : `${fmtQtd(item.estoque_minimo)} ${mostrarUn(item.unidade_medida)}`}</td>
                     <td className="px-3 py-3 font-semibold text-slate-700">{item.estoque_maximo == null || item.estoque_maximo === "" ? "—" : `${fmtQtd(item.estoque_maximo)} ${mostrarUn(item.unidade_medida)}`}</td>
-                    {estoque.controla_validade && <td className={`px-4 py-3 ${status.vencido || status.validadeProxima ? "font-bold text-amber-700" : ""}`}>{fmtData(item.validade)}</td>}
+                    {estoque?.controla_validade && <td className={`px-4 py-3 ${status.vencido || status.validadeProxima ? "font-bold text-amber-700" : ""}`}>{fmtData(item.validade)}</td>}
                     <td className="px-4 py-3"><span className="inline-flex items-center gap-1"><MapPin size={14} />{item.local_interno || "Não definido"}</span></td>
                     <td className="px-4 py-3 text-xs text-slate-500">{fmtData(item.ultima_movimentacao_em, true)}</td>
                     <td className="px-4 py-3"><div className="flex gap-2">

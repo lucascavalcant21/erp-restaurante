@@ -351,7 +351,7 @@ function EstoqueRunner() {
     }),
     [itensDaArea, estoqueAtual],
   );
-  const valorTotal = itensDaArea.reduce((soma, item) => soma + Number(item.quantidade_atual || 0) * Number(item.custo_unitario || 0), 0);
+  const valorTotal = itensDaArea.reduce((soma, item) => soma + calcularValorItem(item), 0);
   const ultimaEntrada = movimentos.find(m => ["entrada", "transferencia_entrada"].includes(m.tipo));
 
   const abrirOperacao = (tipo, item = null) => {
@@ -867,69 +867,6 @@ function saldoEmbalado(item) {
   const aberto = +(total - fechadas * conteudo).toFixed(3);
   const fmtEq = (q, u) => {
     const n = Number(q) || 0;
-    if (u === "ml") return n >= 1000 ? `${(+(n / 1000).toFixed(3)).toLocaleString("pt-BR")} L` : `${fmtQtd(n)} ml`;
-    if (u === "g") return n >= 1000 ? `${(+(n / 1000).toFixed(3)).toLocaleString("pt-BR")} kg` : `${fmtQtd(n)} g`;
-    return `${fmtQtd(n)} ${mostrarUn(u)}`;
-  };
-  const principal = `${fechadas} ${unLabel}${aberto > 0 ? ` + ${fmtEq(aberto, un)}` : ""}`;
-  const secundario = `Conteúdo: ${fmtQtd(conteudo)} ${mostrarUn(un)}/un · Total: ${fmtEq(total, un)}`;
-  return { principal, secundario };
-}
-
-function TabelaItens({ itens, estoque, loading, onEntrada, onSaida, onEditar }) {
-  if (loading) return <div className="grid min-h-64 place-items-center text-slate-500"><Loader2 className="animate-spin" /></div>;
-  if (!itens.length) return <div className="grid min-h-64 place-items-center px-5 text-center"><div><Package size={42} className="mx-auto mb-3 text-slate-300" /><p className="font-black text-slate-700">Nenhum item encontrado neste estoque</p><p className="mt-1 text-sm text-slate-500">Use “Nova entrada” ou “Importar lista” para começar.</p></div></div>;
-  return (
-    <>
-      <div className="hidden overflow-x-auto lg:block">
-        <table className="w-full min-w-[1100px] text-left text-sm">
-          <thead className="bg-slate-900 text-xs uppercase tracking-wide text-white"><tr>
-            <th className="px-5 py-4">Produto</th><th className="px-4 py-4">Categoria</th><th className="px-4 py-4">Embalagem</th><th className="px-4 py-4 whitespace-nowrap">Custo/un.</th><th className="px-4 py-4">Saldo</th><th className="px-3 py-4">Mínimo</th><th className="px-3 py-4">Máximo</th>{estoque.controla_validade && <th className="px-4 py-4">Validade</th>}<th className="px-4 py-4">Local</th><th className="px-4 py-4">Última mov.</th><th className="px-4 py-4">Ações</th>
-          </tr></thead>
-          <tbody className="divide-y divide-slate-100">
-            {itens.map(item => {
-              const status = statusItemEstoque(item, estoque);
-              return <tr key={item.id} className="hover:bg-slate-50">
-                <td className="px-5 py-3"><strong className="block">{item.nome}</strong><span className="text-xs text-slate-500">{item.codigo_interno || item.marca || "Sem código"}</span></td>
-                <td className="px-4 py-3"><span className="rounded-lg bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">{item.categoria || "Sem categoria"}</span></td>
-                <td className="px-4 py-3">{fmtQtd(item.tamanho_embalagem || 1)} {mostrarUn(item.unidade_medida)}</td>
-                <td className="px-4 py-3 whitespace-nowrap"><strong className="font-extrabold text-slate-900">{fmtBRL(item.custo_unitario || 0)}</strong></td>
-                <td className={`px-4 py-3 font-black ${status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}`}>{(() => { const s = saldoEmbalado(item); return s ? <><span>{s.principal}</span><span className="block text-[10px] font-medium text-slate-400">{s.secundario}</span></> : <>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</>; })()}</td>
-                <td className="px-3 py-3 font-semibold text-slate-700">{item.estoque_minimo == null || item.estoque_minimo === "" ? "—" : `${fmtQtd(item.estoque_minimo)} ${mostrarUn(item.unidade_medida)}`}</td>
-                <td className="px-3 py-3 font-semibold text-slate-700">{item.estoque_maximo == null || item.estoque_maximo === "" ? "—" : `${fmtQtd(item.estoque_maximo)} ${mostrarUn(item.unidade_medida)}`}</td>
-                {estoque.controla_validade && <td className={`px-4 py-3 ${status.vencido || status.validadeProxima ? "font-bold text-amber-700" : ""}`}>{fmtData(item.validade)}</td>}
-                <td className="px-4 py-3"><span className="inline-flex items-center gap-1"><MapPin size={14} />{item.local_interno || "Não definido"}</span></td>
-                <td className="px-4 py-3 text-xs text-slate-500">{fmtData(item.ultima_movimentacao_em, true)}</td>
-                <td className="px-4 py-3"><div className="flex gap-2">
-                  <button onClick={() => onEntrada(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-emerald-600 text-emerald-700" title="Entrada"><Plus size={17} /></button>
-                  <button onClick={() => onSaida(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-emerald-600 text-emerald-700" title="Baixa"><span className="text-xl leading-none">−</span></button>
-                  <SimuladorRendimento item={item} variant="icon" />
-                  <button onClick={() => onEditar(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600" title="Configurar"><MoreVertical size={17} /></button>
-                </div></td>
-              </tr>;
-            })}
-          </tbody>
-        </table>
-      </div>
-      <div className="divide-y divide-slate-100 lg:hidden">
-        {itens.map(item => {
-          const status = statusItemEstoque(item, estoque);
-          return <article key={item.id} className="p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <strong>{item.nome}</strong>
-                <p className="mt-1 text-xs text-slate-500">{item.categoria || "Sem categoria"} · {item.local_interno || "Sem local"}</p>
-                <p className="mt-0.5 text-xs text-slate-500">Mín: {item.estoque_minimo ?? "—"} · Máx: {item.estoque_maximo ?? "—"}</p>
-              </div>
-              <div className="text-right">{(() => { const s = saldoEmbalado(item); return s ? <><strong className={status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}>{s.principal}</strong><span className="block text-[10px] font-medium text-slate-400">{s.secundario}</span></> : <strong className={status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</strong>; })()}</div>
-            </div>
-            <div className="mt-4 grid grid-cols-3 gap-2"><button onClick={() => onEntrada(item)} className="rounded-xl bg-emerald-50 py-2 text-sm font-bold text-emerald-700">+ Entrada</button><button onClick={() => onSaida(item)} className="rounded-xl bg-slate-100 py-2 text-sm font-bold">− Baixa</button><button onClick={() => onEditar(item)} className="rounded-xl bg-slate-100 py-2 text-sm font-bold">Configurar</button></div>
-            <div className="mt-2"><SimuladorRendimento item={item} variant="full" /></div>
-          </article>;
-        })}
-      </div>
-    </>
-  );
 }
 
 function ListaMovimentos({ movimentos, modo }) {

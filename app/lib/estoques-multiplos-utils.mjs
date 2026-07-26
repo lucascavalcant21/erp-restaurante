@@ -57,7 +57,32 @@ export function statusItemEstoque(item, estoque, agora = new Date()) {
 
 export function filtrarItensEstoque(itens, filtros, estoque) {
   const termo = String(filtros?.busca || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  
+  const slug = (estoque?.slug || estoque?.nome || "").toLowerCase();
+  const tipo = (estoque?.tipo || "").toLowerCase();
+
   return (itens || []).filter(item => {
+    // Filtro estrito de pertencimento à área de estoque selecionada
+    if (estoque) {
+      const dept = (item.departamento || "").toLowerCase();
+      const cat = (item.categoria || "").toLowerCase();
+      const nome = (item.nome || "").toLowerCase();
+
+      if (slug.includes("limpeza") || tipo === "limpeza") {
+        const ehLimpeza = dept.includes("limpeza") || cat.includes("limpeza") || cat.includes("higiene") || /(detergente|sabao|saboaria|desinfetante|cloro|alcool|papel toalha|bucha|esponja|vassoura|rodo|saco de lixo|palha de aco|alvejante|multiuso|pano)/.test(nome);
+        if (!ehLimpeza) return false;
+      } else if (slug.includes("embalag") || tipo === "embalagens") {
+        const ehEmbalagem = dept.includes("embalag") || dept.includes("descartav") || cat.includes("embalag") || cat.includes("descartav") || /(embalagem|caixa|sacola|copo|pote|marmita|isopor|papel acoplado|guardanapo|canudo|tampa|pelicula|filme pvc|aluminio|bobina)/.test(nome);
+        if (!ehEmbalagem) return false;
+      } else if (slug.includes("bar") || tipo === "bebidas") {
+        const ehBar = dept.includes("bar") || dept.includes("bebida") || dept.includes("drink") || cat.includes("bebida") || cat.includes("drink") || cat.includes("cerveja") || cat.includes("destilado") || cat.includes("vinho") || cat.includes("refrigerante") || cat.includes("suco") || cat.includes("xarope") || /(cerveja|chopp|vinho|vodka|gin|whisky|cachaca|rum|xarope|licor|tonica|energetico|refrigerante|suco|agua|ice|tequila|poupa|hortela|morango)/.test(nome);
+        if (!ehBar) return false;
+      } else if (slug.includes("cozinha") || tipo === "alimentos") {
+        const ehOutraArea = dept.includes("limpeza") || dept.includes("embalag") || dept.includes("bar") || cat.includes("limpeza") || cat.includes("embalag") || cat.includes("bebida") || /(detergente|sabao|desinfetante|cloro|alcool|papel toalha|bucha|vassoura|rodo|saco de lixo|embalagem|caixa|sacola|copo|pote|marmita|isopor|cerveja|chopp|vodka|gin|whisky|cachaca|rum|xarope|refrigerante|suco|agua)/.test(nome);
+        if (ehOutraArea) return false;
+      }
+    }
+
     const texto = [item.nome, item.marca, item.codigo_interno, item.categoria, item.local_interno, item.fornecedor]
       .join(" ").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
     const status = statusItemEstoque(item, estoque);

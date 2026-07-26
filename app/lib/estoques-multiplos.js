@@ -42,9 +42,10 @@ export async function fetchEstoques(unidadeId, incluirInativos = false) {
   if (error || !estoques.length) return { data: estoques || [], error: erroMensagem(error) };
 
   const ids = estoques.map(item => item.id);
-  const [{ data: saldos }, { data: movimentos }] = await Promise.all([
+  const [{ data: saldos }, { data: movimentos }, { data: todosInsumos }] = await Promise.all([
     supabase.from("estoque_itens").select("estoque_id, quantidade_atual, estoque_minimo, custo_unitario").in("estoque_id", ids),
     supabase.from("estoque_movimentacoes_multi").select("estoque_id, estoque_destino_id, tipo, data_movimento").in("estoque_id", ids).order("data_movimento", { ascending: false }).limit(500),
+    supabase.from("insumos").select("id, departamento, categoria, nome").eq("unidade_id", unidadeId),
   ]);
 
   const metricas = new Map(ids.map(id => [id, { itens: 0, valor_total: 0, abaixo_minimo: 0, ultima_reposicao: null }]));
@@ -62,8 +63,22 @@ export async function fetchEstoques(unidadeId, incluirInativos = false) {
     if (metrica && !metrica.ultima_reposicao) metrica.ultima_reposicao = movimento.data_movimento;
   }
 
+  // Contagem de fallback por departamento se o estoque_itens ainda não tiver vínculos explícitos
+  const insumoContagem = new Map();
+  for (const ins of todosInsumos || []) {
+    const d = (ins.departamento || "cozinha").toLowerCase();
+    insumoContagem.set(d, (insumoContagem.get(d) || 0) + 1);
+  }
+
   return {
-    data: estoques.map(item => ({ ...item, ...(metricas.get(item.id) || {}) })),
+    data: estoques.map(item => {
+      const met = metricas.get(item.id) || {};
+      const slug = (item.slug || item.nome || "").toLowerCase();
+      if (!met.itens) {
+        met.itens = insumoContagem.get(slug) || 0;
+      }
+      return { ...item, ...met };
+    }),
     error: null,
   };
 }

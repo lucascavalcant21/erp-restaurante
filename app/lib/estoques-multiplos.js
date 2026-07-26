@@ -3,6 +3,65 @@ import { ESTOQUES_PADRAO, slugEstoque, tiposCompativeis } from "./estoques-multi
 
 const erroMensagem = error => error?.message || null;
 
+// Corrida com timeout: nenhuma chamada ao Supabase pode travar o botão para
+// sempre. Se a promessa não resolver no prazo, devolvemos um erro tratável.
+function comTimeout(promise, ms = 15000) {
+  return Promise.race([
+    Promise.resolve(promise),
+    new Promise(resolve => setTimeout(() => resolve({ __timeout: true, error: { message: "__timeout" } }), ms)),
+  ]);
+}
+
+// A RPC nova (registrar_movimento_estoque_multi / estoque_itens) pode não existir
+// no banco ainda. Detecta esse caso pelo texto do erro / timeout para acionar o
+// caminho legado direto na tabela estoque_atual.
+function precisaFallbackLegado(res) {
+  if (res?.__timeout) return true;
+  const m = (res?.error?.message || res?.error || "").toString().toLowerCase();
+  if (!m) return false;
+  return (
+    m.includes("__timeout") ||
+    m.includes("does not exist") ||
+    m.includes("could not find") ||
+    m.includes("schema cache") ||
+    m.includes("function") && m.includes("not") ||
+    m.includes("relation") ||
+    m.includes("404") ||
+    m.includes("undefined")
+  );
+}
+
+// Movimentação legada: lê o saldo atual em estoque_atual, ajusta e regrava.
+// Usada como rede de segurança quando a RPC multi não está disponível.
+export async function movimentoLegado({ unidadeId, insumoId, tipo, quantidade, saldoContado }) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  if (!unidadeId || !insumoId) return { error: "Item ou unidade inválidos." };
+  let novo;
+  if (tipo === "contagem") {
+    novo = Math.max(0, Number(saldoContado) || 0);
+  } else {
+    const q = Number(quantidade) || 0;
+    if (q <= 0) return { error: "Informe uma quantidade válida." };
+    const atualRes = await comTimeout(
+      supabase.from("estoque_atual").select("quantidade_atual").eq("unidade_id", unidadeId).eq("insumo_id", insumoId).maybeSingle(),
+      12000,
+    );
+    const atual = Number(atualRes?.data?.quantidade_atual) || 0;
+    novo = tipo === "entrada" ? atual + q : Math.max(0, atual - q);
+  }
+  const { error } = await comTimeout(
+    supabase.from("estoque_atual").upsert({
+      unidade_id: unidadeId,
+      insumo_id: insumoId,
+      quantidade_atual: novo,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "unidade_id,insumo_id" }),
+    12000,
+  );
+  if (error) return { error: erroMensagem(error) === "__timeout" ? "Sem resposta do servidor. Verifique a conexão." : erroMensagem(error) };
+  return { data: { quantidade_atual: novo }, error: null };
+}
+
 export async function garantirEstoquesPadrao(unidadeId) {
   if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: [], error: "Unidade inválida." };
   const registros = ESTOQUES_PADRAO.map((item, ordem) => ({
@@ -277,7 +336,7 @@ export async function registrarMovimentoMulti({
   if (!["entrada", "saida"].includes(tipo) || !Number.isFinite(valor) || valor <= 0) {
     return { error: "Informe uma movimentação válida." };
   }
-  const { data, error } = await supabase.rpc("registrar_movimento_estoque_multi", {
+  const res = await comTimeout(supabase.rpc("registrar_movimento_estoque_multi", {
     p_unidade_id: unidadeId,
     p_estoque_id: estoqueId,
     p_insumo_id: insumoId,
@@ -287,8 +346,12 @@ export async function registrarMovimentoMulti({
     p_usuario_nome: usuarioNome || null,
     p_observacao: observacao || null,
     p_data_movimento: dataMovimento ? new Date(dataMovimento).toISOString() : new Date().toISOString(),
-  });
-  if (!error) await sincronizarSaldoLegado(unidadeId, insumoId);
+  }));
+  if (precisaFallbackLegado(res)) {
+    return movimentoLegado({ unidadeId, insumoId, tipo, quantidade: valor });
+  }
+  const { data, error } = res;
+  if (!error) await sincronizarSaldoLegado(unidadeId, insumoId).catch(() => {});
   return { data: Array.isArray(data) ? data[0] : data, error: erroMensagem(error) };
 }
 
@@ -304,7 +367,7 @@ export async function registrarContagemMulti({
   if (!isSupabaseReady()) return { error: "Offline" };
   const saldo = Number(saldoContado);
   if (!Number.isFinite(saldo) || saldo < 0) return { error: "Informe um saldo válido." };
-  const { data, error } = await supabase.rpc("registrar_contagem_estoque_multi", {
+  const res = await comTimeout(supabase.rpc("registrar_contagem_estoque_multi", {
     p_unidade_id: unidadeId,
     p_estoque_id: estoqueId,
     p_insumo_id: insumoId,
@@ -312,8 +375,12 @@ export async function registrarContagemMulti({
     p_usuario_id: usuarioId,
     p_usuario_nome: usuarioNome || null,
     p_observacao: observacao || null,
-  });
-  if (!error) await sincronizarSaldoLegado(unidadeId, insumoId);
+  }));
+  if (precisaFallbackLegado(res)) {
+    return movimentoLegado({ unidadeId, insumoId, tipo: "contagem", saldoContado: saldo });
+  }
+  const { data, error } = res;
+  if (!error) await sincronizarSaldoLegado(unidadeId, insumoId).catch(() => {});
   return { data: Array.isArray(data) ? data[0] : data, error: erroMensagem(error) };
 }
 

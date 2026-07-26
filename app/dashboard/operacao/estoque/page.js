@@ -417,11 +417,13 @@ function EstoqueRunner() {
           unidadeId, estoqueId, insumoId: insumo.id,
           custoUnitario: insumo.custo_compra ?? insumo.custo_unitario,
         });
-        if (vinculo.error) {
-          avisar(vinculo.error, "erro");
-          return;
-        }
+        // Se o vínculo falhar (ex.: tabela estoque_itens ainda não migrada),
+        // seguimos com um item sintético — o movimento cai no fallback legado.
         item = { ...insumo, insumo_id: insumo.id, estoque_item_id: vinculo.data?.id, permite_transferencia: true };
+      }
+      if (!item?.insumo_id) {
+        avisar("Selecione um produto válido.", "erro");
+        return;
       }
       let resposta;
       const frac = ehFracionavel(item);

@@ -196,16 +196,23 @@ function EstoqueRunner() {
     let resposta;
     // Bebidas/embalados fracionáveis: entrada por unidade, baixa por unidade ou
     // conteúdo (abre garrafa automática), contagem com fechadas + aberto.
+    // Se a função de bebida falhar (ex.: migração ainda não rodada), CAI no
+    // fluxo normal com a quantidade equivalente — o botão nunca deixa de funcionar.
     const frac = ehFracionavel(item);
+    const conteudoFrac = conteudoDe(item);
     const bebArgs = { unidadeId, estoqueId, insumoId: item?.insumo_id, usuarioId: idUsuario(sessao), usuarioNome: nomeUsuario(sessao), observacao: operacao.observacao };
+    const stdMov = (tipo, qtd) => registrarMovimentoMulti({ unidadeId, estoqueId, insumoId: item?.insumo_id, tipo, quantidade: qtd, usuarioId: idUsuario(sessao), usuarioNome: nomeUsuario(sessao), observacao: operacao.observacao, dataMovimento: operacao.data || null });
     if (frac && modal?.tipo === "entrada") {
       resposta = await entradaBebidaUnidades({ ...bebArgs, unidades: operacao.quantidade });
+      if (resposta?.error) resposta = await stdMov("entrada", (Number(operacao.quantidade) || 0) * conteudoFrac);
     } else if (frac && modal?.tipo === "saida") {
       resposta = operacao.modo === "unidade"
         ? await baixaBebidaUnidades({ ...bebArgs, unidades: operacao.quantidade })
         : await baixaBebidaConteudo({ ...bebArgs, quantidade: operacao.quantidade });
+      if (resposta?.error) resposta = await stdMov("saida", operacao.modo === "unidade" ? (Number(operacao.quantidade) || 0) * conteudoFrac : (Number(operacao.quantidade) || 0));
     } else if (frac && modal?.tipo === "contagem") {
       resposta = await contagemBebida({ ...bebArgs, fechadas: operacao.fechadas, aberto: operacao.aberto });
+      if (resposta?.error) resposta = await registrarContagemMulti({ unidadeId, estoqueId, insumoId: item?.insumo_id, saldoContado: (Number(operacao.fechadas) || 0) * conteudoFrac + (Number(operacao.aberto) || 0), usuarioId: idUsuario(sessao), usuarioNome: nomeUsuario(sessao), observacao: operacao.observacao });
     } else if (modal?.tipo === "contagem") {
       resposta = await registrarContagemMulti({
         unidadeId, estoqueId, insumoId: item?.insumo_id,

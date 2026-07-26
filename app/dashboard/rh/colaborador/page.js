@@ -204,6 +204,41 @@ export default function VidaColaboradorPage() {
                 );
               })()}
 
+              {/* Diárias trabalhadas do extra: cada dia com horário e valor + total pago */}
+              {isFree && (() => {
+                const diaria = Number(sel.salario) || 0;
+                const dias = (vida.pontosMes || [])
+                  .filter(p => p.hora_entrada)
+                  .sort((a, b) => (b.data_referencia || "").localeCompare(a.data_referencia || ""));
+                const pagos = (vida.holerites || []).filter(h => h.detalhes?.recebimento_confirmado).length;
+                const totalPago = (vida.holerites || []).filter(h => h.detalhes?.recebimento_confirmado).reduce((s, h) => s + (Number(h.liquido) || 0), 0);
+                return (
+                  <Bloco icon={CalendarHeart} titulo="Diárias trabalhadas (mês)"
+                    extra={<span className="text-sm font-black" style={{ color: "var(--accent-strong)" }}>{dias.length} dia(s) · {fmtBRL(dias.length * diaria)}</span>}>
+                    {dias.length === 0 ? (
+                      <p className="text-xs font-medium" style={{ color: "var(--dim)" }}>Nenhuma diária registrada neste mês.</p>
+                    ) : (
+                      <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
+                        {dias.map(p => (
+                          <div key={p.id} className="flex items-center justify-between text-xs p-2 rounded-lg" style={{ background: "var(--elevated)" }}>
+                            <div className="min-w-0">
+                              <p className="font-bold" style={{ color: "var(--fg-soft)" }}>{p.data_referencia?.split("-").reverse().join("/")}</p>
+                              <p className="text-[10px] font-medium" style={{ color: "var(--dim)" }}>{horaDe(p.hora_entrada)} às {horaDe(p.hora_saida)}</p>
+                            </div>
+                            <span className="font-black shrink-0 ml-2" style={{ color: "var(--accent-strong)" }}>{fmtBRL(diaria)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 pt-2 border-t text-[11px] font-bold" style={{ borderColor: "var(--line-soft)", color: "var(--dim)" }}>
+                      <span>Recibos pagos: <b style={{ color: "#15803D" }}>{pagos}</b></span>
+                      <span>Total pago: <b style={{ color: "#15803D" }}>{fmtBRL(totalPago)}</b></span>
+                    </div>
+                    <p className="text-[10px] font-medium mt-1" style={{ color: "var(--dim)" }}>Diária base {fmtBRL(diaria)} × dias com ponto. Advertências e recibos completos nos blocos ao lado.</p>
+                  </Bloco>
+                );
+              })()}
+
               {/* Mini calendário do mês: feriados, folgas e dias com ponto */}
               {(() => {
                 const agora = new Date();

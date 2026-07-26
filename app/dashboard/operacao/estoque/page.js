@@ -121,7 +121,7 @@ function EstoqueRunner() {
     if (!estoqueId || !unidadeAtiva) return;
     setLoading(true);
     const [resItens, resMovimentos] = await Promise.all([
-      fetchItensEstoque(estoqueId),
+      fetchItensEstoque(estoqueId, unidadeAtiva),
       fetchMovimentosMulti(unidadeAtiva, estoqueId),
     ]);
     setItens(resItens.data || []);

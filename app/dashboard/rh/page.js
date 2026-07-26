@@ -1504,12 +1504,18 @@ export default function RHPage() {
                  <p className="text-slate-700 font-bold uppercase tracking-widest text-xs mt-1">Gestão de Funcionários</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-               <button onClick={() => router.push('/dashboard/rh/fechamento')} className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-600/20">
-                  <ClipboardList size={16} /> Fechar Folha
-               </button>
+            <div className="flex items-center gap-2 flex-wrap">
                <button onClick={abrirModalNovo} className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-700 transition-colors shadow-md shadow-emerald-600/20">
-                  <UserPlus size={16} /> Contratar
+                  <UserPlus size={16} /> Novo funcionário
+               </button>
+               <button onClick={() => setAbaAtiva("Freelancer")} className="flex items-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-50 transition-colors">
+                  <UserPlus size={16} /> Novo extra
+               </button>
+               <button onClick={() => router.push('/dashboard/rh/fechamento')} className="flex items-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-50 transition-colors">
+                  <ClipboardList size={16} /> Fechar folha
+               </button>
+               <button onClick={() => { setAbaAtiva("Freelancer"); abrirModalFicha(null); }} className="flex items-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-50 transition-colors">
+                  <Printer size={16} /> Recibos de extras
                </button>
             </div>
          </div>
@@ -1579,33 +1585,33 @@ export default function RHPage() {
             const FAT_MINIMO = paramsSis.faturamento_minimo_cmo;
             const pct = fat >= FAT_MINIMO ? (total / fat) * 100 : null;
             if (!ativos.length) return null;
+            const trabalhandoAgora = new Set(pontosHoje.map(p => p.colaborador_id)).size;
+            const emExperiencia = fixos.filter(f => String(f.status_contrato || "").toLowerCase().includes("experi")).length;
+            const incompletos = ativos.filter(f => !f.data_admissao || !f.cpf).length;
+            const cards = [
+               { rot: "Funcionários", val: ativos.length, sub: `${fixos.length} fixos · ${extras.length} extras` },
+               { rot: "Bateram ponto hoje", val: trabalhandoAgora, sub: "presença registrada" },
+               { rot: "Em experiência", val: emExperiencia, sub: "contrato de experiência" },
+               { rot: "Folha prevista (mês)", val: fmtBRL(folhaFixa), sub: `${fixos.length} fixos · salário + VA + taxa` },
+               { rot: "Gasto com extras (mês)", val: fmtBRL(gastoExtras), sub: `${extras.length} extras · diárias batidas` },
+               { rot: "CMO total", val: fmtBRL(total), sub: pct === null ? "folha + extras" : `${pct.toFixed(1)}% do faturamento` },
+            ];
             return (
-               <div className="mt-4 bg-slate-900 text-white rounded-2xl px-5 py-4 grid grid-cols-2 md:grid-cols-5 gap-4">
-                  <div className="cursor-pointer" title="Clique para entender" onClick={() => alert(`GASTO POR DIA (hoje): ${fmtBRL(fixosDia + extrasDiaHoje)}\n\n• Fixos: ${fmtBRL(fixosDia)}/dia — soma do valor-dia de cada funcionário fixo (salário ÷ dias da escala no mês).\n• Extras: ${fmtBRL(extrasDiaHoje)} — diárias dos extras que bateram ponto HOJE (${extras.filter(f => idsPontoHoje.has(f.id)).length} extra(s)).\n\nÉ quanto a operação custa de mão de obra num dia como hoje.`)}>
-                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Gasto por dia (hoje)</p>
-                     <p className="text-lg font-black text-sky-400">{fmtBRL(fixosDia + extrasDiaHoje)}</p>
-                     <p className="text-[10px] font-bold text-slate-500">fixos {fmtBRL(fixosDia)} + extras {fmtBRL(extrasDiaHoje)}</p>
-                  </div>
-                  <div>
-                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Folha fixa (mês)</p>
-                     <p className="text-lg font-black">{fmtBRL(folhaFixa)}</p>
-                     <p className="text-[10px] font-bold text-slate-500">{fixos.length} fixo(s) · salário + VA + taxa</p>
-                  </div>
-                  <div>
-                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Gasto com extras (mês)</p>
-                     <p className="text-lg font-black text-amber-400">{fmtBRL(gastoExtras)}</p>
-                     <p className="text-[10px] font-bold text-slate-500">{extras.length} extra(s) · diária × dias batidos</p>
-                  </div>
-                  <div>
-                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">CMO total</p>
-                     <p className="text-lg font-black text-emerald-400">{fmtBRL(total)}</p>
-                     <p className="text-[10px] font-bold text-slate-500">folha + extras</p>
-                  </div>
-                  <div>
-                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">CMO % do faturamento</p>
-                     <p className={`text-lg font-black ${pct === null ? "text-slate-500" : pct <= 30 ? "text-emerald-400" : pct <= 40 ? "text-amber-400" : "text-red-400"}`}>{pct === null ? "—" : `${pct.toFixed(1)}%`}</p>
-                     <p className="text-[10px] font-bold text-slate-500">{pct === null ? "aparece ao lançar o faturamento do mês" : `faturamento ${fmtBRL(fat)}`}</p>
-                  </div>
+               <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+                  {cards.map(c => (
+                     <div key={c.rot} className="bg-white rounded-2xl border border-slate-200 shadow-sm px-3 py-2.5">
+                        <p className="text-[9px] font-black uppercase tracking-wider text-slate-400 leading-tight">{c.rot}</p>
+                        <p className="text-lg font-black text-emerald-700 mt-0.5">{c.val}</p>
+                        <p className="text-[10px] font-bold text-slate-400 truncate">{c.sub}</p>
+                     </div>
+                  ))}
+                  {incompletos > 0 && (
+                     <div className="bg-red-50 rounded-2xl border border-red-200 shadow-sm px-3 py-2.5">
+                        <p className="text-[9px] font-black uppercase tracking-wider text-red-400 leading-tight">Cadastros incompletos</p>
+                        <p className="text-lg font-black text-red-600 mt-0.5">{incompletos}</p>
+                        <p className="text-[10px] font-bold text-red-400 truncate">sem admissão / CPF</p>
+                     </div>
+                  )}
                </div>
             );
          })()}
@@ -1632,7 +1638,7 @@ export default function RHPage() {
                }
             });
             if (!alertas.length) return null;
-            const cores = { erro: "bg-rose-50 border-rose-200 text-rose-700", aviso: "bg-amber-50 border-amber-200 text-amber-700", info: "bg-indigo-50 border-indigo-200 text-indigo-700" };
+            const cores = { erro: "bg-rose-50 border-rose-200 text-rose-700", aviso: "bg-emerald-50 border-emerald-200 text-emerald-800", info: "bg-emerald-50 border-emerald-100 text-emerald-700" };
             return <div className="mt-4 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
                <div className="flex items-center justify-between mb-3"><div><p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Central de prazos</p><h3 className="font-black text-slate-800">Experiência, admissão e revisão de férias</h3></div><span className="text-xs font-black bg-rose-100 text-rose-700 px-2.5 py-1 rounded-full">{alertas.length}</span></div>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">{alertas.slice(0, 8).map(a => <div key={`${a.id}-${a.texto}`} className={`border rounded-xl px-3 py-2 ${cores[a.nivel]}`}><p className="text-xs font-black">{a.nome}</p><p className="text-[10px] font-bold mt-0.5">{a.texto}</p></div>)}</div>
@@ -1645,11 +1651,12 @@ export default function RHPage() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6">
          
          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none mb-4">
-            <button onClick={()=>setAbaAtiva("Fixo")} className={`px-4 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shrink-0 ${abaAtiva === "Fixo" ? "bg-slate-800 text-white shadow-lg shadow-slate-800/20" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>Equipe Fixa</button>
-            <button onClick={()=>setAbaAtiva("Freelancer")} className={`px-4 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shrink-0 ${abaAtiva === "Freelancer" ? "bg-slate-800 text-white shadow-lg shadow-slate-800/20" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>Freelancers Extras</button>
-            <button onClick={()=>setAbaAtiva("Cargos & Carreiras")} className={`px-4 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shrink-0 ${abaAtiva === "Cargos & Carreiras" ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20" : "bg-white text-emerald-600 border border-emerald-200 hover:bg-emerald-50"}`}>🏆 Cargos & Carreiras</button>
-            <button onClick={()=>setAbaAtiva("Banco de Talentos")} className={`px-4 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shrink-0 ${abaAtiva === "Banco de Talentos" ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" : "bg-white text-indigo-500 border border-indigo-200 hover:bg-indigo-50"}`}>Banco de Talentos</button>
-            <button onClick={()=>setAbaAtiva("Ex-funcionários")} className={`px-4 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shrink-0 ${abaAtiva === "Ex-funcionários" ? "bg-slate-600 text-white shadow-lg shadow-slate-600/20" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>Ex-funcionários</button>
+            {[["Fixo", "Equipe Fixa"], ["Freelancer", "Freelancers Extras"], ["Cargos & Carreiras", "Cargos & Carreiras"], ["Banco de Talentos", "Banco de Talentos"], ["Ex-funcionários", "Ex-funcionários"]].map(([id, rot]) => (
+               <button key={id} onClick={() => setAbaAtiva(id)}
+                  className={`px-4 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shrink-0 ${abaAtiva === id ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>
+                  {rot}
+               </button>
+            ))}
          </div>
 
          {abaAtiva === "Cargos & Carreiras" ? (

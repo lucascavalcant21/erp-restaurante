@@ -297,6 +297,8 @@ function EstoqueRunner() {
     const tipo = (estoqueAtual.tipo || "").toLowerCase();
 
     return itens.filter(item => {
+      if (item.estoque_id && String(item.estoque_id) === String(estoqueAtual.id)) return true;
+
       const dept = (item.departamento || "").toLowerCase();
       const cat = (item.categoria || "").toLowerCase();
       const nome = (item.nome || "").toLowerCase();
@@ -307,7 +309,7 @@ function EstoqueRunner() {
           dept.includes("limpeza") ||
           cat.includes("limpeza") ||
           cat.includes("higiene") ||
-          /(detergente|sabao|saboaria|desinfetante|cloro|alcool|papel toalha|bucha|esponja|vassoura|rodo|saco de lixo)/.test(nome) ||
+          /(detergente|sabao|saboaria|desinfetante|cloro|alcool|papel toalha|bucha|esponja|vassoura|rodo|saco de lixo|palha|alvejante|multiuso|pano)/.test(nome) ||
           /(limpeza|higiene)/.test(cat)
         );
       }
@@ -319,7 +321,7 @@ function EstoqueRunner() {
           dept.includes("descartav") ||
           cat.includes("embalag") ||
           cat.includes("descartav") ||
-          /(embalagem|caixa|sacola|copo|pote|marmita|isopor|papel acoplado|guardanapo|canudo|tampa|pelicula|filme pvc|aluminio)/.test(nome) ||
+          /(embalagem|caixa|sacola|copo|pote|marmita|isopor|papel acoplado|guardanapo|canudo|tampa|pelicula|filme pvc|aluminio|bobina)/.test(nome) ||
           /(embalag|descartav)/.test(cat)
         );
       }
@@ -344,15 +346,17 @@ function EstoqueRunner() {
           cat.includes("cachaça") ||
           cat.includes("rum") ||
           cat.includes("chopp") ||
-          /(cerveja|chopp|vinho|vodka|gin|whisky|cachaca|rum|xarope|licor|tonica|energetico|refrigerante|suco|agua|ice|tequila|vermute|bitter|espumante|poupa|hortela|morango)/.test(nome) ||
+          /(cerveja|chopp|vinho|vodka|gin|whisky|cachaca|rum|xarope|licor|tonica|energetico|refrigerante|suco|agua|ice|tequila|vermute|bitter|espumante|poupa|hortela|morango|red bull|skol|brahma|heineken|amstel|stella|corona|budweiser|eisenbahn|sol|spaten|antarctica|coca|fanta|sprite|schweppes)/.test(nome) ||
           /(bar|bebida|drink|adega)/.test(dept)
         );
       }
 
-      // 4. Cozinha
+      // 4. Cozinha (padrão para insumos alimentícios e gerais)
       if (slug.includes("cozinha") || tipo === "alimentos") {
-        const ehOutraArea = dept.includes("limpeza") || dept.includes("embalag") || dept.includes("bar") || cat.includes("limpeza") || cat.includes("embalag") || cat.includes("bebida") || /(detergente|sabao|desinfetante|cloro|alcool|papel toalha|bucha|vassoura|rodo|saco de lixo|embalagem|caixa|sacola|copo|pote|marmita|isopor|cerveja|chopp|vodka|gin|whisky|cachaca|rum|xarope|refrigerante|suco|agua)/.test(nome);
-        return !ehOutraArea;
+        const ehLimpezaOuEmbalagem = dept.includes("limpeza") || dept.includes("embalag") || cat.includes("limpeza") || cat.includes("embalag");
+        if (ehLimpezaOuEmbalagem) return false;
+        if (dept.includes("bar") || dept.includes("bebida") || dept.includes("drink")) return false;
+        return true;
       }
 
       return true;
@@ -362,7 +366,10 @@ function EstoqueRunner() {
   const categorias = useMemo(() => ["Todas", ...new Set(itensDaArea.map(i => i.categoria || "Sem categoria"))], [itensDaArea]);
   const locais = useMemo(() => ["Todos", ...new Set(itensDaArea.map(i => i.local_interno).filter(Boolean))], [itensDaArea]);
   const itensFiltrados = useMemo(
-    () => filtrarItensEstoque(itensDaArea, filtros, estoqueAtual),
+    () => {
+      const res = filtrarItensEstoque(itensDaArea, filtros, estoqueAtual);
+      return res.sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR", { sensitivity: "base" }));
+    },
     [itensDaArea, filtros, estoqueAtual],
   );
   const alertas = useMemo(

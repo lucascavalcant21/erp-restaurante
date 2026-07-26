@@ -934,19 +934,43 @@ function EstoqueRunner() {
               const unLabel = itemMod?.unidade_comercial || "unidade";
               if (!frac) {
                 return (
-                  <div className="grid grid-cols-2 gap-3">
-                    <Campo label={modal.tipo === "contagem" ? "Saldo contado" : "Quantidade"}>
-                      <input required min="0" step="0.001" type="number" value={operacao.quantidade} onChange={e => setOperacao({ ...operacao, quantidade: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" />
-                    </Campo>
-                    {modal.tipo === "transferencia" ? (
-                      <Campo label="Estoque de destino">
-                        <select required value={operacao.destino_id} onChange={e => setOperacao({ ...operacao, destino_id: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3">
-                          <option value="">Selecione...</option>{destinosCompativeis.map(item => <option key={item.id} value={item.id}>{item.nome}</option>)}
-                        </select>
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-3">
+                      <Campo label={modal.tipo === "contagem" ? "Saldo contado" : "Quantidade"}>
+                        <input required min="0" step="0.001" type="number" value={operacao.quantidade} onChange={e => setOperacao({ ...operacao, quantidade: e.target.value })} className="h-14 w-full rounded-2xl border-2 border-slate-300 px-4 text-center font-black text-xl text-slate-900 outline-none focus:border-emerald-500" placeholder="0" />
                       </Campo>
-                    ) : modal.tipo !== "contagem" ? (
-                      <Campo label="Data (opcional)"><input type="datetime-local" value={operacao.data} onChange={e => setOperacao({ ...operacao, data: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" /></Campo>
-                    ) : <div />}
+                      {modal.tipo === "transferencia" ? (
+                        <Campo label="Estoque de destino">
+                          <select required value={operacao.destino_id} onChange={e => setOperacao({ ...operacao, destino_id: e.target.value })} className="h-14 w-full rounded-2xl border border-slate-200 px-3 font-bold text-slate-800">
+                            <option value="">Selecione...</option>{destinosCompativeis.map(item => <option key={item.id} value={item.id}>{item.nome}</option>)}
+                          </select>
+                        </Campo>
+                      ) : modal.tipo !== "contagem" ? (
+                        <Campo label="Data (opcional)"><input type="datetime-local" value={operacao.data} onChange={e => setOperacao({ ...operacao, data: e.target.value })} className="h-14 w-full rounded-2xl border border-slate-200 px-3 font-medium text-slate-800" /></Campo>
+                      ) : <div />}
+                    </div>
+                    {modal.tipo !== "contagem" && (
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        <span className="w-full text-[11px] font-black uppercase text-slate-400 tracking-wider">Atalhos Rápidos de Quantidade:</span>
+                        {[1, 2, 5, 10, 20, 50].map(val => (
+                          <button
+                            key={val}
+                            type="button"
+                            onClick={() => setOperacao(prev => ({ ...prev, quantidade: String((Number(prev.quantidade) || 0) + val) }))}
+                            className="flex-1 min-w-[48px] py-2.5 rounded-xl bg-slate-100 hover:bg-emerald-100 text-slate-900 hover:text-emerald-900 font-black text-sm border border-slate-200 active:scale-95 transition-all"
+                          >
+                            +{val}
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => setOperacao(prev => ({ ...prev, quantidade: "" }))}
+                          className="px-3 py-2.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 font-black text-xs border border-red-200 active:scale-95 transition-all"
+                        >
+                          Zerar
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               }
@@ -1300,23 +1324,48 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
             {lista.map(item => {
               const status = statusItemEstoque(item, estoque);
               const valTotalItem = calcularValorItem(item);
-              return <article key={item.id} className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-sm">
+              return <article key={item.id} className="p-4 bg-white rounded-2xl border-2 border-slate-200 shadow-sm active:border-emerald-500 transition-all">
                 <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <strong className="text-slate-900">{item.nome}</strong>
-                    <p className="mt-1 text-xs text-slate-500">{item.categoria || "Sem categoria"} · {item.local_interno || "Sem local"}</p>
-                    <p className="mt-0.5 text-xs text-slate-500">Mín: {item.estoque_minimo ?? "—"} · Máx: {item.estoque_maximo ?? "—"}</p>
-                    <p className="mt-0.5 text-xs font-black text-emerald-800">Valor total: {fmtBRL(valTotalItem)}</p>
+                  <div className="min-w-0 flex-1">
+                    <strong className="text-base sm:text-lg font-black text-slate-900 leading-snug block truncate">{item.nome}</strong>
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                      <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700">{item.categoria || "Sem categoria"}</span>
+                      {item.local_interno && <span className="rounded-md bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-500">📍 {item.local_interno}</span>}
+                    </div>
+                    <p className="mt-1.5 text-xs font-semibold text-slate-500">Mín: {item.estoque_minimo ?? "—"} · Máx: {item.estoque_maximo ?? "—"} · Valor: <strong className="text-emerald-800">{fmtBRL(valTotalItem)}</strong></p>
                   </div>
-                  <div className="text-right">{(() => { const s = saldoEmbalado(item); return s ? <><strong className={status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}>{s.principal}</strong><span className="block text-[10px] font-medium text-slate-400">{s.secundario}</span></> : <strong className={status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</strong>; })()}</div>
+                  <div className="text-right shrink-0 rounded-2xl bg-slate-900 px-3.5 py-2.5 text-white shadow-inner min-w-[100px]">
+                    <span className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Saldo Atual</span>
+                    {(() => {
+                      const s = saldoEmbalado(item);
+                      return s ? (
+                        <>
+                          <strong className={`text-base sm:text-lg font-black ${status.abaixoMinimo ? "text-red-400" : "text-emerald-400"}`}>{s.principal}</strong>
+                          <span className="block text-[9px] font-semibold text-slate-300">{s.secundario}</span>
+                        </>
+                      ) : (
+                        <strong className={`text-lg sm:text-xl font-black ${status.abaixoMinimo ? "text-red-400" : "text-emerald-400"}`}>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</strong>
+                      );
+                    })()}
+                  </div>
                 </div>
-                <div className="mt-4 grid grid-cols-4 gap-2">
-                  <button onClick={() => onEntrada(item)} className="rounded-xl bg-emerald-50 py-2 text-xs font-bold text-emerald-700">+ Entrada</button>
-                  <button onClick={() => onSaida(item)} className="rounded-xl bg-slate-100 py-2 text-xs font-bold">− Baixa</button>
-                  <button onClick={() => onHistorico && onHistorico(item)} className="rounded-xl bg-slate-100 py-2 text-xs font-bold text-slate-700">Histórico</button>
-                  <button onClick={() => onEditar(item)} className="rounded-xl bg-slate-100 py-2 text-xs font-bold">Configurar</button>
+                <div className="mt-4 grid grid-cols-2 gap-2.5">
+                  <button onClick={() => onEntrada(item)} className="h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 active:scale-95 transition-all">
+                    <Plus size={20} /> + ENTRADA
+                  </button>
+                  <button onClick={() => onSaida(item)} className="h-14 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md shadow-amber-500/20 active:scale-95 transition-all">
+                    <span className="text-2xl leading-none">−</span> − BAIXA
+                  </button>
                 </div>
-                <div className="mt-2"><SimuladorRendimento item={item} variant="full" /></div>
+                <div className="mt-2.5 grid grid-cols-2 gap-2.5">
+                  <button onClick={() => onHistorico && onHistorico(item)} className="h-11 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold text-xs flex items-center justify-center gap-1.5 active:bg-slate-300 transition-all">
+                    <History size={16} /> Histórico
+                  </button>
+                  <button onClick={() => onEditar(item)} className="h-11 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold text-xs flex items-center justify-center gap-1.5 active:bg-slate-300 transition-all">
+                    <Settings2 size={16} /> Configurar
+                  </button>
+                </div>
+                <div className="mt-2.5"><SimuladorRendimento item={item} variant="full" /></div>
               </article>;
             })}
           </div>

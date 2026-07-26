@@ -2405,9 +2405,27 @@ function FichasRunner() {
                         const precoNum = Number(String(form.preco_venda ?? "").replace(",", ".")) || 0;
                         const cmvTeo = precoNum > 0 ? (custoPorc / precoNum) * 100 : null;
                         const margem = cmvTeo !== null ? 100 - cmvTeo : null;
+                        const markup = precoNum > 0 && custoPorc > 0 ? precoNum / custoPorc : null;
+                        const lucro = precoNum > 0 ? precoNum - custoPorc : null;
+                        const custoKgForm = pesoTotalF > 0 ? custoTotalForm / (pesoTotalF / 1000) : 0;
                         return (
                            <div className="bg-white border-2 border-emerald-200 rounded-2xl p-4 shadow-sm">
                               <p className="text-xs font-black uppercase tracking-widest text-emerald-700 mb-3">CMV e Precificação</p>
+                              {/* Custos base — sempre visíveis, recalculam ao digitar */}
+                              <div className="grid grid-cols-3 gap-2 mb-3">
+                                 <div className="rounded-xl bg-slate-50 border border-slate-200 p-2 text-center">
+                                    <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Custo total</p>
+                                    <p className="text-sm font-black text-slate-800">{fmtBRL(custoTotalForm)}</p>
+                                 </div>
+                                 <div className="rounded-xl bg-slate-50 border border-slate-200 p-2 text-center">
+                                    <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Custo/porção</p>
+                                    <p className="text-sm font-black text-slate-800">{fmtBRL(custoPorc)}</p>
+                                 </div>
+                                 <div className="rounded-xl bg-slate-50 border border-slate-200 p-2 text-center">
+                                    <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Custo/kg</p>
+                                    <p className="text-sm font-black text-slate-800">{custoKgForm > 0 ? fmtBRL(custoKgForm) : "—"}</p>
+                                 </div>
+                              </div>
                               <div className="grid grid-cols-2 gap-3">
                                  <div>
                                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">CMV meta (%)</label>
@@ -2426,18 +2444,26 @@ function FichasRunner() {
                                  </button>
                               )}
                               {cmvTeo !== null ? (
-                                 <div className="grid grid-cols-2 gap-3 mt-2">
+                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
                                     <div className={`rounded-xl p-2.5 text-center border ${cmvTeo > meta ? "bg-red-50 border-red-200" : "bg-emerald-50 border-emerald-200"}`}>
-                                       <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">CMV teórico</p>
-                                       <p className={`text-xl font-black ${cmvTeo > meta ? "text-red-600" : "text-emerald-700"}`}>{cmvTeo.toFixed(1)}%</p>
+                                       <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">CMV teórico</p>
+                                       <p className={`text-lg font-black ${cmvTeo > meta ? "text-red-600" : "text-emerald-700"}`}>{cmvTeo.toFixed(1)}%</p>
                                     </div>
                                     <div className="rounded-xl p-2.5 text-center border bg-emerald-50 border-emerald-200">
-                                       <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Margem</p>
-                                       <p className="text-xl font-black text-emerald-700">{margem.toFixed(1)}%</p>
+                                       <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">Margem</p>
+                                       <p className="text-lg font-black text-emerald-700">{margem.toFixed(1)}%</p>
+                                    </div>
+                                    <div className="rounded-xl p-2.5 text-center border bg-emerald-50 border-emerald-200">
+                                       <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">Markup</p>
+                                       <p className="text-lg font-black text-emerald-700">{markup ? markup.toFixed(2) + "×" : "—"}</p>
+                                    </div>
+                                    <div className={`rounded-xl p-2.5 text-center border ${lucro < 0 ? "bg-red-50 border-red-200" : "bg-emerald-50 border-emerald-200"}`}>
+                                       <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">Lucro/porção</p>
+                                       <p className={`text-lg font-black ${lucro < 0 ? "text-red-600" : "text-emerald-700"}`}>{fmtBRL(lucro)}</p>
                                     </div>
                                  </div>
                               ) : (
-                                 <p className="text-[11px] font-medium text-slate-400 mt-2">Defina o preço de venda para ver o CMV teórico e a margem. Custo/porção atual: <b className="text-slate-600">{fmtBRL(custoPorc)}</b></p>
+                                 <p className="text-[11px] font-medium text-slate-400 mt-2">Defina o preço de venda para ver CMV teórico, margem, markup e lucro por porção.</p>
                               )}
                            </div>
                         );

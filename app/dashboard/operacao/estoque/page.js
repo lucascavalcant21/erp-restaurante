@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import React, { Fragment, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   AlertTriangle, ArrowLeft, ArrowRightLeft, Boxes, CalendarDays, Check,
@@ -978,7 +978,7 @@ function TabelaItens({ itens, estoque, loading, onEntrada, onSaida, onEditar }) 
           </tr></thead>
           <tbody className="divide-y divide-slate-100">
             {agrupadoPorCategoria.map(({ categoria, lista, subtotal }) => (
-              <React.Fragment key={categoria}>
+              <Fragment key={categoria}>
                 <tr className="bg-slate-100/90 border-y border-slate-200">
                   <td colSpan={estoque.controla_validade ? 12 : 11} className="px-5 py-2.5">
                     <div className="flex items-center justify-between">
@@ -1015,7 +1015,7 @@ function TabelaItens({ itens, estoque, loading, onEntrada, onSaida, onEditar }) 
                     </div></td>
                   </tr>;
                 })}
-              </React.Fragment>
+              </Fragment>
             ))}
           </tbody>
         </table>

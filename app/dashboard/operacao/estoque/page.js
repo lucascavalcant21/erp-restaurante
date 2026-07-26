@@ -179,66 +179,72 @@ function EstoqueRunner() {
     event.preventDefault();
     setSalvando(true);
     setErro("");
-    let item = modal?.item || itens.find(i => i.insumo_id === operacao.insumo_id);
-    const insumo = catalogo.find(i => i.id === operacao.insumo_id);
-    if (!item && insumo && modal?.tipo === "entrada") {
-      const vinculo = await vincularItemEstoque({
-        unidadeId: unidadeAtiva, estoqueId, insumoId: insumo.id,
-        custoUnitario: insumo.custo_compra ?? insumo.custo_unitario,
-      });
-      if (vinculo.error) {
-        setSalvando(false);
-        avisar(vinculo.error, "erro");
-        return;
+    try {
+      const unidadeId = unidadeAtiva;
+      let item = modal?.item || itens.find(i => i.insumo_id === operacao.insumo_id);
+      const insumo = catalogo.find(i => i.id === operacao.insumo_id);
+      if (!item && insumo && modal?.tipo === "entrada") {
+        const vinculo = await vincularItemEstoque({
+          unidadeId, estoqueId, insumoId: insumo.id,
+          custoUnitario: insumo.custo_compra ?? insumo.custo_unitario,
+        });
+        if (vinculo.error) {
+          avisar(vinculo.error, "erro");
+          return;
+        }
+        item = { ...insumo, insumo_id: insumo.id, estoque_item_id: vinculo.data?.id, permite_transferencia: true };
       }
-      item = { ...insumo, insumo_id: insumo.id, estoque_item_id: vinculo.data?.id, permite_transferencia: true };
+      let resposta;
+      // Bebidas/embalados fracionáveis: entrada por unidade, baixa por unidade ou
+      // conteúdo (abre garrafa automática), contagem com fechadas + aberto.
+      // Se a função de bebida falhar (ex.: migração ainda não rodada), CAI no
+      // fluxo normal com a quantidade equivalente — o botão nunca deixa de funcionar.
+      const frac = ehFracionavel(item);
+      const conteudoFrac = conteudoDe(item);
+      const bebArgs = { unidadeId, estoqueId, insumoId: item?.insumo_id, usuarioId: idUsuario(sessao), usuarioNome: nomeUsuario(sessao), observacao: operacao.observacao };
+      const stdMov = (tipo, qtd) => registrarMovimentoMulti({ unidadeId, estoqueId, insumoId: item?.insumo_id, tipo, quantidade: qtd, usuarioId: idUsuario(sessao), usuarioNome: nomeUsuario(sessao), observacao: operacao.observacao, dataMovimento: operacao.data || null });
+      if (frac && modal?.tipo === "entrada") {
+        resposta = await entradaBebidaUnidades({ ...bebArgs, unidades: operacao.quantidade });
+        if (resposta?.error) resposta = await stdMov("entrada", (Number(operacao.quantidade) || 0) * conteudoFrac);
+      } else if (frac && modal?.tipo === "saida") {
+        resposta = operacao.modo === "unidade"
+          ? await baixaBebidaUnidades({ ...bebArgs, unidades: operacao.quantidade })
+          : await baixaBebidaConteudo({ ...bebArgs, quantidade: operacao.quantidade });
+        if (resposta?.error) resposta = await stdMov("saida", operacao.modo === "unidade" ? (Number(operacao.quantidade) || 0) * conteudoFrac : (Number(operacao.quantidade) || 0));
+      } else if (frac && modal?.tipo === "contagem") {
+        resposta = await contagemBebida({ ...bebArgs, fechadas: operacao.fechadas, aberto: operacao.aberto });
+        if (resposta?.error) resposta = await registrarContagemMulti({ unidadeId, estoqueId, insumoId: item?.insumo_id, saldoContado: (Number(operacao.fechadas) || 0) * conteudoFrac + (Number(operacao.aberto) || 0), usuarioId: idUsuario(sessao), usuarioNome: nomeUsuario(sessao), observacao: operacao.observacao });
+      } else if (modal?.tipo === "contagem") {
+        resposta = await registrarContagemMulti({
+          unidadeId, estoqueId, insumoId: item?.insumo_id,
+          saldoContado: operacao.quantidade, usuarioId: idUsuario(sessao),
+          usuarioNome: nomeUsuario(sessao), observacao: operacao.observacao,
+        });
+      } else if (modal?.tipo === "transferencia") {
+        resposta = await transferirEntreEstoques({
+          unidadeId, estoqueOrigem: estoqueAtual,
+          estoqueDestino: estoques.find(i => i.id === operacao.destino_id),
+          item, quantidade: operacao.quantidade, usuarioId: idUsuario(sessao),
+          usuarioNome: nomeUsuario(sessao), observacao: operacao.observacao,
+        });
+      } else {
+        resposta = await registrarMovimentoMulti({
+          unidadeId, estoqueId, insumoId: item?.insumo_id,
+          tipo: modal?.tipo, quantidade: operacao.quantidade,
+          usuarioId: idUsuario(sessao), usuarioNome: nomeUsuario(sessao),
+          observacao: operacao.observacao, dataMovimento: operacao.data || null,
+        });
+      }
+      if (resposta?.error) return avisar(resposta.error, "erro");
+      setModal(null);
+      avisar(modal?.tipo === "transferencia" ? "Transferência concluída nos dois estoques." : "Movimentação registrada.");
+      await atualizarTudo();
+    } catch (e) {
+      console.error(e);
+      avisar(e?.message || "Erro inesperado ao registrar operação.", "erro");
+    } finally {
+      setSalvando(false);
     }
-    let resposta;
-    // Bebidas/embalados fracionáveis: entrada por unidade, baixa por unidade ou
-    // conteúdo (abre garrafa automática), contagem com fechadas + aberto.
-    // Se a função de bebida falhar (ex.: migração ainda não rodada), CAI no
-    // fluxo normal com a quantidade equivalente — o botão nunca deixa de funcionar.
-    const frac = ehFracionavel(item);
-    const conteudoFrac = conteudoDe(item);
-    const bebArgs = { unidadeId, estoqueId, insumoId: item?.insumo_id, usuarioId: idUsuario(sessao), usuarioNome: nomeUsuario(sessao), observacao: operacao.observacao };
-    const stdMov = (tipo, qtd) => registrarMovimentoMulti({ unidadeId, estoqueId, insumoId: item?.insumo_id, tipo, quantidade: qtd, usuarioId: idUsuario(sessao), usuarioNome: nomeUsuario(sessao), observacao: operacao.observacao, dataMovimento: operacao.data || null });
-    if (frac && modal?.tipo === "entrada") {
-      resposta = await entradaBebidaUnidades({ ...bebArgs, unidades: operacao.quantidade });
-      if (resposta?.error) resposta = await stdMov("entrada", (Number(operacao.quantidade) || 0) * conteudoFrac);
-    } else if (frac && modal?.tipo === "saida") {
-      resposta = operacao.modo === "unidade"
-        ? await baixaBebidaUnidades({ ...bebArgs, unidades: operacao.quantidade })
-        : await baixaBebidaConteudo({ ...bebArgs, quantidade: operacao.quantidade });
-      if (resposta?.error) resposta = await stdMov("saida", operacao.modo === "unidade" ? (Number(operacao.quantidade) || 0) * conteudoFrac : (Number(operacao.quantidade) || 0));
-    } else if (frac && modal?.tipo === "contagem") {
-      resposta = await contagemBebida({ ...bebArgs, fechadas: operacao.fechadas, aberto: operacao.aberto });
-      if (resposta?.error) resposta = await registrarContagemMulti({ unidadeId, estoqueId, insumoId: item?.insumo_id, saldoContado: (Number(operacao.fechadas) || 0) * conteudoFrac + (Number(operacao.aberto) || 0), usuarioId: idUsuario(sessao), usuarioNome: nomeUsuario(sessao), observacao: operacao.observacao });
-    } else if (modal?.tipo === "contagem") {
-      resposta = await registrarContagemMulti({
-        unidadeId, estoqueId, insumoId: item?.insumo_id,
-        saldoContado: operacao.quantidade, usuarioId: idUsuario(sessao),
-        usuarioNome: nomeUsuario(sessao), observacao: operacao.observacao,
-      });
-    } else if (modal?.tipo === "transferencia") {
-      resposta = await transferirEntreEstoques({
-        unidadeId, estoqueOrigem: estoqueAtual,
-        estoqueDestino: estoques.find(i => i.id === operacao.destino_id),
-        item, quantidade: operacao.quantidade, usuarioId: idUsuario(sessao),
-        usuarioNome: nomeUsuario(sessao), observacao: operacao.observacao,
-      });
-    } else {
-      resposta = await registrarMovimentoMulti({
-        unidadeId, estoqueId, insumoId: item?.insumo_id,
-        tipo: modal?.tipo, quantidade: operacao.quantidade,
-        usuarioId: idUsuario(sessao), usuarioNome: nomeUsuario(sessao),
-        observacao: operacao.observacao, dataMovimento: operacao.data || null,
-      });
-    }
-    setSalvando(false);
-    if (resposta?.error) return avisar(resposta.error, "erro");
-    setModal(null);
-    avisar(modal?.tipo === "transferencia" ? "Transferência concluída nos dois estoques." : "Movimentação registrada.");
-    await atualizarTudo();
   };
 
   const abrirEdicaoItem = item => {

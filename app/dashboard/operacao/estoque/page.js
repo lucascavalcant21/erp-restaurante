@@ -910,6 +910,22 @@ function saldoEmbalado(item) {
 function TabelaItens({ itens, estoque, loading, onEntrada, onSaida, onEditar }) {
   if (loading) return <div className="grid min-h-64 place-items-center text-slate-500"><Loader2 className="animate-spin" /></div>;
   if (!itens.length) return <div className="grid min-h-64 place-items-center px-5 text-center"><div><Package size={42} className="mx-auto mb-3 text-slate-300" /><p className="font-black text-slate-700">Nenhum item encontrado neste estoque</p><p className="mt-1 text-sm text-slate-500">Use “Nova entrada” ou “Importar lista” para começar.</p></div></div>;
+
+  const agrupadoPorCategoria = useMemo(() => {
+    const mapa = new Map();
+    for (const item of itens) {
+      const cat = item.categoria || "Sem categoria";
+      if (!mapa.has(cat)) mapa.set(cat, []);
+      mapa.get(cat).push(item);
+    }
+    const categoriasOrdenadas = Array.from(mapa.keys()).sort((a, b) => a.localeCompare(b, "pt-BR", { sensitivity: "base" }));
+    return categoriasOrdenadas.map(cat => {
+      const lista = mapa.get(cat).sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR", { sensitivity: "base" }));
+      const subtotal = lista.reduce((soma, i) => soma + calcularValorItem(i), 0);
+      return { categoria: cat, lista, subtotal };
+    });
+  }, [itens]);
+
   return (
     <>
       <div className="hidden overflow-x-auto lg:block">
@@ -918,50 +934,75 @@ function TabelaItens({ itens, estoque, loading, onEntrada, onSaida, onEditar }) 
             <th className="px-5 py-4">Produto</th><th className="px-4 py-4">Categoria</th><th className="px-4 py-4">Embalagem</th><th className="px-4 py-4 whitespace-nowrap">Custo/un.</th><th className="px-4 py-4">Saldo</th><th className="px-4 py-4 whitespace-nowrap">Valor total</th><th className="px-3 py-4">Mínimo</th><th className="px-3 py-4">Máximo</th>{estoque.controla_validade && <th className="px-4 py-4">Validade</th>}<th className="px-4 py-4">Local</th><th className="px-4 py-4">Última mov.</th><th className="px-4 py-4">Ações</th>
           </tr></thead>
           <tbody className="divide-y divide-slate-100">
-            {itens.map(item => {
-              const status = statusItemEstoque(item, estoque);
-              const valTotalItem = calcularValorItem(item);
-              return <tr key={item.id} className="hover:bg-slate-50">
-                <td className="px-5 py-3"><strong className="block">{item.nome}</strong><span className="text-xs text-slate-500">{item.codigo_interno || item.marca || "Sem código"}</span></td>
-                <td className="px-4 py-3"><span className="rounded-lg bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">{item.categoria || "Sem categoria"}</span></td>
-                <td className="px-4 py-3">{fmtQtd(item.tamanho_embalagem || 1)} {mostrarUn(item.unidade_medida)}</td>
-                <td className="px-4 py-3 whitespace-nowrap"><strong className="font-extrabold text-slate-900">{fmtBRL(item.custo_unitario || 0)}</strong></td>
-                <td className={`px-4 py-3 font-black ${status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}`}>{(() => { const s = saldoEmbalado(item); return s ? <><span>{s.principal}</span><span className="block text-[10px] font-medium text-slate-400">{s.secundario}</span></> : <>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</>; })()}</td>
-                <td className="px-4 py-3 whitespace-nowrap"><strong className="font-black text-emerald-800">{fmtBRL(valTotalItem)}</strong></td>
-                <td className="px-3 py-3 font-semibold text-slate-700">{item.estoque_minimo == null || item.estoque_minimo === "" ? "—" : `${fmtQtd(item.estoque_minimo)} ${mostrarUn(item.unidade_medida)}`}</td>
-                <td className="px-3 py-3 font-semibold text-slate-700">{item.estoque_maximo == null || item.estoque_maximo === "" ? "—" : `${fmtQtd(item.estoque_maximo)} ${mostrarUn(item.unidade_medida)}`}</td>
-                {estoque.controla_validade && <td className={`px-4 py-3 ${status.vencido || status.validadeProxima ? "font-bold text-amber-700" : ""}`}>{fmtData(item.validade)}</td>}
-                <td className="px-4 py-3"><span className="inline-flex items-center gap-1"><MapPin size={14} />{item.local_interno || "Não definido"}</span></td>
-                <td className="px-4 py-3 text-xs text-slate-500">{fmtData(item.ultima_movimentacao_em, true)}</td>
-                <td className="px-4 py-3"><div className="flex gap-2">
-                  <button onClick={() => onEntrada(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-emerald-600 text-emerald-700" title="Entrada"><Plus size={17} /></button>
-                  <button onClick={() => onSaida(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-emerald-600 text-emerald-700" title="Baixa"><span className="text-xl leading-none">−</span></button>
-                  <SimuladorRendimento item={item} variant="icon" />
-                  <button onClick={() => onEditar(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600" title="Configurar"><MoreVertical size={17} /></button>
-                </div></td>
-              </tr>;
-            })}
+            {agrupadoPorCategoria.map(({ categoria, lista, subtotal }) => (
+              <React.Fragment key={categoria}>
+                <tr className="bg-slate-100/90 border-y border-slate-200">
+                  <td colSpan={estoque.controla_validade ? 12 : 11} className="px-5 py-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-800">
+                        <span className="h-2.5 w-2.5 rounded-full bg-emerald-600"></span>
+                        {categoria} <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-bold text-slate-600 shadow-sm border border-slate-200">{lista.length} {lista.length === 1 ? "item" : "itens"}</span>
+                      </span>
+                      <span className="text-xs font-extrabold text-emerald-800">
+                        Subtotal: {fmtBRL(subtotal)}
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+                {lista.map(item => {
+                  const status = statusItemEstoque(item, estoque);
+                  const valTotalItem = calcularValorItem(item);
+                  return <tr key={item.id} className="hover:bg-slate-50">
+                    <td className="px-5 py-3"><strong className="block">{item.nome}</strong><span className="text-xs text-slate-500">{item.codigo_interno || item.marca || "Sem código"}</span></td>
+                    <td className="px-4 py-3"><span className="rounded-lg bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">{item.categoria || "Sem categoria"}</span></td>
+                    <td className="px-4 py-3">{fmtQtd(item.tamanho_embalagem || 1)} {mostrarUn(item.unidade_medida)}</td>
+                    <td className="px-4 py-3 whitespace-nowrap"><strong className="font-extrabold text-slate-900">{fmtBRL(item.custo_unitario || 0)}</strong></td>
+                    <td className={`px-4 py-3 font-black ${status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}`}>{(() => { const s = saldoEmbalado(item); return s ? <><span>{s.principal}</span><span className="block text-[10px] font-medium text-slate-400">{s.secundario}</span></> : <>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</>; })()}</td>
+                    <td className="px-4 py-3 whitespace-nowrap"><strong className="font-black text-emerald-800">{fmtBRL(valTotalItem)}</strong></td>
+                    <td className="px-3 py-3 font-semibold text-slate-700">{item.estoque_minimo == null || item.estoque_minimo === "" ? "—" : `${fmtQtd(item.estoque_minimo)} ${mostrarUn(item.unidade_medida)}`}</td>
+                    <td className="px-3 py-3 font-semibold text-slate-700">{item.estoque_maximo == null || item.estoque_maximo === "" ? "—" : `${fmtQtd(item.estoque_maximo)} ${mostrarUn(item.unidade_medida)}`}</td>
+                    {estoque.controla_validade && <td className={`px-4 py-3 ${status.vencido || status.validadeProxima ? "font-bold text-amber-700" : ""}`}>{fmtData(item.validade)}</td>}
+                    <td className="px-4 py-3"><span className="inline-flex items-center gap-1"><MapPin size={14} />{item.local_interno || "Não definido"}</span></td>
+                    <td className="px-4 py-3 text-xs text-slate-500">{fmtData(item.ultima_movimentacao_em, true)}</td>
+                    <td className="px-4 py-3"><div className="flex gap-2">
+                      <button onClick={() => onEntrada(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-emerald-600 text-emerald-700" title="Entrada"><Plus size={17} /></button>
+                      <button onClick={() => onSaida(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-emerald-600 text-emerald-700" title="Baixa"><span className="text-xl leading-none">−</span></button>
+                      <SimuladorRendimento item={item} variant="icon" />
+                      <button onClick={() => onEditar(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600" title="Configurar"><MoreVertical size={17} /></button>
+                    </div></td>
+                  </tr>;
+                })}
+              </React.Fragment>
+            ))}
           </tbody>
         </table>
       </div>
       <div className="divide-y divide-slate-100 lg:hidden">
-        {itens.map(item => {
-          const status = statusItemEstoque(item, estoque);
-          const valTotalItem = calcularValorItem(item);
-          return <article key={item.id} className="p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <strong>{item.nome}</strong>
-                <p className="mt-1 text-xs text-slate-500">{item.categoria || "Sem categoria"} · {item.local_interno || "Sem local"}</p>
-                <p className="mt-0.5 text-xs text-slate-500">Mín: {item.estoque_minimo ?? "—"} · Máx: {item.estoque_maximo ?? "—"}</p>
-                <p className="mt-0.5 text-xs font-black text-emerald-800">Valor total: {fmtBRL(valTotalItem)}</p>
-              </div>
-              <div className="text-right">{(() => { const s = saldoEmbalado(item); return s ? <><strong className={status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}>{s.principal}</strong><span className="block text-[10px] font-medium text-slate-400">{s.secundario}</span></> : <strong className={status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</strong>; })()}</div>
+        {agrupadoPorCategoria.map(({ categoria, lista, subtotal }) => (
+          <div key={categoria} className="p-3 space-y-3">
+            <div className="flex items-center justify-between rounded-xl bg-slate-100 px-3.5 py-2.5 text-xs font-extrabold text-slate-800">
+              <span className="uppercase tracking-wider">{categoria} ({lista.length})</span>
+              <span className="text-emerald-800">Subtotal: {fmtBRL(subtotal)}</span>
             </div>
-            <div className="mt-4 grid grid-cols-3 gap-2"><button onClick={() => onEntrada(item)} className="rounded-xl bg-emerald-50 py-2 text-sm font-bold text-emerald-700">+ Entrada</button><button onClick={() => onSaida(item)} className="rounded-xl bg-slate-100 py-2 text-sm font-bold">− Baixa</button><button onClick={() => onEditar(item)} className="rounded-xl bg-slate-100 py-2 text-sm font-bold">Configurar</button></div>
-            <div className="mt-2"><SimuladorRendimento item={item} variant="full" /></div>
-          </article>;
-        })}
+            {lista.map(item => {
+              const status = statusItemEstoque(item, estoque);
+              const valTotalItem = calcularValorItem(item);
+              return <article key={item.id} className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <strong className="text-slate-900">{item.nome}</strong>
+                    <p className="mt-1 text-xs text-slate-500">{item.categoria || "Sem categoria"} · {item.local_interno || "Sem local"}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">Mín: {item.estoque_minimo ?? "—"} · Máx: {item.estoque_maximo ?? "—"}</p>
+                    <p className="mt-0.5 text-xs font-black text-emerald-800">Valor total: {fmtBRL(valTotalItem)}</p>
+                  </div>
+                  <div className="text-right">{(() => { const s = saldoEmbalado(item); return s ? <><strong className={status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}>{s.principal}</strong><span className="block text-[10px] font-medium text-slate-400">{s.secundario}</span></> : <strong className={status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</strong>; })()}</div>
+                </div>
+                <div className="mt-4 grid grid-cols-3 gap-2"><button onClick={() => onEntrada(item)} className="rounded-xl bg-emerald-50 py-2 text-sm font-bold text-emerald-700">+ Entrada</button><button onClick={() => onSaida(item)} className="rounded-xl bg-slate-100 py-2 text-sm font-bold">− Baixa</button><button onClick={() => onEditar(item)} className="rounded-xl bg-slate-100 py-2 text-sm font-bold">Configurar</button></div>
+                <div className="mt-2"><SimuladorRendimento item={item} variant="full" /></div>
+              </article>;
+            })}
+          </div>
+        ))}
       </div>
     </>
   );

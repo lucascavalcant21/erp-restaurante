@@ -17,7 +17,7 @@ import {
   transferirEntreEstoques, vincularItemEstoque,
 } from "../../../lib/estoques-multiplos";
 import {
-  filtrarItensEstoque, statusItemEstoque, TIPOS_ESTOQUE, tiposCompativeis,
+  calcularValorItem, filtrarItensEstoque, statusItemEstoque, TIPOS_ESTOQUE, tiposCompativeis,
 } from "../../../lib/estoques-multiplos-utils.mjs";
 import { fmtBRL } from "../../../components/ui";
 import SimuladorRendimento from "../../../components/SimuladorRendimento";
@@ -39,26 +39,6 @@ const fmtEquiv = (q, un) => {
   return `${(+n.toFixed(3)).toLocaleString("pt-BR")} ${mostrarUn(u)}`;
 };
 
-function calcularValorItem(item) {
-  const qtd = Number(item.quantidade_atual) || 0;
-  if (qtd <= 0) return 0;
-
-  const custoUnit = Number(item.custo_unitario) || 0;
-  const custoCompra = Number(item.custo_compra) || 0;
-
-  if (ehFracionavel(item)) {
-    const tamEmb = Number(item.tamanho_embalagem) || 1;
-    const unComerciais = qtd / tamEmb;
-    let custoEmbalagem = custoCompra;
-    if (!custoEmbalagem || custoEmbalagem <= 0) {
-      custoEmbalagem = custoUnit > 0 ? (custoUnit < 1 ? custoUnit * tamEmb : custoUnit) : 0;
-    }
-    return unComerciais * custoEmbalagem;
-  }
-
-  const custo = custoUnit > 0 ? custoUnit : custoCompra;
-  return qtd * custo;
-}
 const fmtData = (valor, hora = false) => {
   if (!valor) return "—";
   return new Date(valor).toLocaleString("pt-BR", hora

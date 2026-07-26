@@ -1989,7 +1989,7 @@ function FichasRunner() {
       {/* MODAL DE CRIAÇÃO DA FICHA TÉCNICA */}
       {modalNovo && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-2 sm:p-4">
-             <div className="bg-white rounded-3xl sm:rounded-[32px] w-full max-w-4xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-hidden shadow-2xl animate-in zoom-in-95 flex flex-col">
+             <div className="bg-white rounded-3xl sm:rounded-[32px] w-full max-w-6xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-hidden shadow-2xl animate-in zoom-in-95 flex flex-col">
                
                {/* HEADER DO MODAL */}
                <div className="flex justify-between items-center gap-3 p-4 sm:p-6 border-b border-slate-100 bg-white">
@@ -2001,7 +2001,7 @@ function FichasRunner() {
                </div>
 
                {/* BODY DO MODAL COM SCROLL */}
-               <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-50/50 custom-scrollbar grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-8">
+               <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-50/50 custom-scrollbar grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-8 md:items-start">
                   
                    {/* COLUNA ESQUERDA: Dados Básicos e Foto */}
                   <div className="space-y-4">
@@ -2546,6 +2546,16 @@ function FichasRunner() {
                            )}
                         </select>
                      </div>
+
+                     {/* Cabeçalho estilo tabela (como na ficha de referência) */}
+                     {ingFicha.length > 0 && (
+                        <div className="flex items-center gap-3 px-3 pb-2 mb-1 border-b border-slate-200">
+                           <span className="flex-1 text-[9px] font-black uppercase tracking-wider text-slate-400">Ingrediente</span>
+                           <span className="w-20 text-center text-[9px] font-black uppercase tracking-wider text-slate-400">Qtd.</span>
+                           <span className="w-9 text-center text-[9px] font-black uppercase tracking-wider text-slate-400">Un.</span>
+                           <span className="w-8" />
+                        </div>
+                     )}
 
                      {/* LISTA DE INGREDIENTES */}
                      <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">

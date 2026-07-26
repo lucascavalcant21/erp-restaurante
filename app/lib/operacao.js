@@ -245,8 +245,27 @@ export async function fetchFichas(unidadeId, dept) {
 
   if (unidadeId && unidadeId !== "matriz") query = query.eq("unidade_id", unidadeId);
   if (dept) query = query.eq("departamento", dept);
+  query = query.eq("ativo", true);
 
-  const { data, error } = await query;
+  let { data, error } = await query;
+  // Compatibilidade durante a publicação: se a migração de inativação ainda
+  // estiver propagando, a tela continua listando as fichas normalmente.
+  if (error && /ativo/i.test(error.message || "")) {
+    let fallback = supabase.from("fichas_tecnicas")
+      .select(`
+        *,
+        fichas_ingredientes!ficha_id(
+          *,
+          insumos(id, nome, unidade_medida, custo_unitario, peso_medio_g)
+        )
+      `)
+      .order("nome_receita");
+    if (unidadeId && unidadeId !== "matriz") fallback = fallback.eq("unidade_id", unidadeId);
+    if (dept) fallback = fallback.eq("departamento", dept);
+    const resposta = await fallback;
+    data = resposta.data;
+    error = resposta.error;
+  }
   return { data: data || [], error: error?.message };
 }
 
@@ -305,6 +324,93 @@ export async function removerFicha(id) {
   if (!isSupabaseReady()) return { error: "Offline" };
   const { error } = await supabase.from("fichas_tecnicas").delete().eq("id", id);
   return { error: error?.message };
+}
+
+export async function verificarDependenciasFichas(fichas, unidadeId) {
+  if (!isSupabaseReady()) return { porFicha: {}, error: "Offline" };
+  const lista = (fichas || []).filter(item => item?.id);
+  const ids = lista.map(item => item.id);
+  const nomes = lista.map(item => item.nome_receita).filter(Boolean);
+  const porFicha = Object.fromEntries(ids.map(id => [id, []]));
+  if (!ids.length) return { porFicha, error: null };
+
+  const limitarUnidade = query => unidadeId && unidadeId !== "matriz" ? query.eq("unidade_id", unidadeId) : query;
+  const [produtos, referencias, producoes, montagens] = await Promise.all([
+    limitarUnidade(supabase.from("produtos").select("id,nome_produto,ficha_id").in("ficha_id", ids)),
+    supabase.from("fichas_ingredientes").select("ficha_id,subficha_id").in("subficha_id", ids),
+    limitarUnidade(supabase.from("producao_diaria").select("id,ficha_id").in("ficha_id", ids)),
+    nomes.length
+      ? limitarUnidade(supabase.from("montagem").select("id,nome").in("nome", nomes))
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  const adicionar = (id, tipo, nome) => {
+    if (!id || !porFicha[id]) return;
+    const rotulo = { tipo, nome: nome || tipo };
+    if (porFicha[id].some(item => item.tipo === rotulo.tipo && item.nome === rotulo.nome)) return;
+    porFicha[id].push(rotulo);
+  };
+  for (const item of produtos.data || []) adicionar(item.ficha_id, "Produto do cardápio", item.nome_produto);
+  for (const item of referencias.data || []) adicionar(item.subficha_id, "Outra ficha técnica", "Utilizada como componente");
+  for (const item of producoes.data || []) adicionar(item.ficha_id, "Histórico de produção", "Registro de produção existente");
+  const fichaPorNome = new Map(lista.map(item => [String(item.nome_receita || "").trim().toLocaleLowerCase("pt-BR"), item.id]));
+  for (const item of montagens.data || []) {
+    adicionar(fichaPorNome.get(String(item.nome || "").trim().toLocaleLowerCase("pt-BR")), "Guia de montagem", item.nome);
+  }
+
+  return {
+    porFicha,
+    avisos: [produtos.error, referencias.error, producoes.error, montagens.error]
+      .filter(Boolean).map(error => error.message),
+    error: null,
+  };
+}
+
+export async function registrarAuditoriaFichas({
+  unidadeId,
+  usuarioId = null,
+  usuarioNome = "",
+  acao,
+  fichas,
+  origem = "Tela de fichas técnicas",
+  detalhes = {},
+}) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const lista = (fichas || []).filter(Boolean);
+  const { error } = await supabase.from("fichas_lote_auditoria").insert([{
+    unidade_id: unidadeId,
+    usuario_id: usuarioId,
+    usuario_nome: usuarioNome || null,
+    acao,
+    ficha_ids: lista.map(item => item.id),
+    ficha_nomes: lista.map(item => item.nome_receita),
+    quantidade: lista.length,
+    origem,
+    detalhes,
+  }]);
+  return { error: error?.message || null };
+}
+
+export async function excluirFichasLote(fichas, auditoria = {}) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const lista = (fichas || []).filter(item => item?.id);
+  if (!lista.length) return { error: "Nenhuma ficha para excluir." };
+  const { error } = await supabase.from("fichas_tecnicas").delete().in("id", lista.map(item => item.id));
+  if (error) return { error: error.message };
+  await registrarAuditoriaFichas({ ...auditoria, acao: "exclusao", fichas: lista });
+  return { error: null, quantidade: lista.length };
+}
+
+export async function inativarFichasLote(fichas, auditoria = {}) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const lista = (fichas || []).filter(item => item?.id);
+  if (!lista.length) return { error: "Nenhuma ficha para inativar." };
+  const { error } = await supabase.from("fichas_tecnicas")
+    .update({ ativo: false, updated_at: new Date().toISOString() })
+    .in("id", lista.map(item => item.id));
+  if (error) return { error: error.message };
+  await registrarAuditoriaFichas({ ...auditoria, acao: "inativacao", fichas: lista });
+  return { error: null, quantidade: lista.length };
 }
 
 // Atualiza só a ordem de exibição (arrastar para reordenar). Se a coluna `ordem`

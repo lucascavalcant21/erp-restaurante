@@ -91,15 +91,27 @@ export default function RHPage() {
   const [domingosProximos, setDomingosProximos] = useState([]);
 
   // Estados Modal Consumo (Vales)
-  // Ficha de extra: antes de imprimir, escolhe os itens emprestados e o valor
+  // Recibo de prestação de serviço: recebe dados do cadastro e permite completar
+  // o acordo antes de imprimir; somente as assinaturas ficam manuscritas.
   // pago — o desmembramento (fixo/INSS/FGTS/taxa) é calculado na hora.
   const ITENS_FICHA_PADRAO = ["Uniforme / Camisa", "Avental", "Cartão de Consumo", "Rádio Comunicador / Fone"];
   const [modalFicha, setModalFicha] = useState(false);
+  const [modalEscolherExtra, setModalEscolherExtra] = useState(false);
+  const [buscaRecibo, setBuscaRecibo] = useState("");
   const [fichaFunc, setFichaFunc] = useState(null);
   const [fichaValor, setFichaValor] = useState("");
   const [fichaDias, setFichaDias] = useState("1"); // nº de dias combinados
   const [fichaItens, setFichaItens] = useState([]);
   const [fichaNovoItem, setFichaNovoItem] = useState("");
+  const dadosReciboVazios = {
+    nome: "", cpf: "", rg: "", endereco: "", telefone: "", chave_pix: "",
+    data_trabalho: new Date().toISOString().slice(0, 10), evento: "", funcao: "",
+    entrada: "", saida_intervalo: "", retorno_intervalo: "", saida_final: "", intervalo: "",
+    vale_transporte: "", adicional: "", descontos: "", forma_pagamento: "Pix",
+    responsavel_entrega: "", setor_entrega: "", conferencia_devolucao: "", horario_devolucao: "",
+    janta_ofertada: true,
+  };
+  const [fichaDados, setFichaDados] = useState(dadosReciboVazios);
 
   // Liberar o ponto do extra/freelancer para hoje (com a diária combinada).
   const dataHojeISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
@@ -129,9 +141,27 @@ export default function RHPage() {
   };
 
   const abrirModalFicha = (f) => {
+    if (!f?.id) {
+      setBuscaRecibo("");
+      setModalEscolherExtra(true);
+      return;
+    }
     setFichaFunc(f);
     setFichaValor(f?.salario ? String(f.salario) : "");
     setFichaDias("1");
+    setFichaDados({
+      ...dadosReciboVazios,
+      nome: f?.nome || "",
+      cpf: f?.cpf || "",
+      rg: f?.rg || "",
+      endereco: f?.endereco || "",
+      telefone: f?.telefone || "",
+      chave_pix: f?.chave_pix || "",
+      funcao: f?.cargo || "",
+      entrada: f?.horario_entrada || "",
+      saida_final: f?.horario_saida || "",
+      intervalo: f?.tempo_intervalo ? `${f.tempo_intervalo} min` : "",
+    });
     setFichaItens(ITENS_FICHA_PADRAO.map(nome => ({ nome, incluir: true })));
     setFichaNovoItem("");
     setModalFicha(true);
@@ -145,10 +175,12 @@ export default function RHPage() {
   };
 
   const imprimirFichaPreparada = () => {
+    if (!fichaFunc?.id) return alert("Selecione um extra cadastrado antes de gerar o recibo.");
     imprimirFichaExtra(fichaFunc, {
       diaria: fichaValor,
       dias: Math.max(1, Number(fichaDias) || 1),
       itens: fichaItens.filter(i => i.incluir).map(i => i.nome),
+      dados: fichaDados,
     });
     setModalFicha(false);
   };
@@ -828,9 +860,20 @@ export default function RHPage() {
 
   const imprimirFichaExtra = (funcionario, opcoes = {}) => {
     const hoje = new Date().toLocaleDateString('pt-BR');
-    const nome = funcionario ? funcionario.nome : "__________________________________________________";
-    const cpf = funcionario ? (funcionario.cpf || "___.___.___-__") : "___.___.___-__";
-    const cargo = funcionario ? (funcionario.cargo || "___________________") : "___________________";
+    const dados = opcoes.dados || {};
+    const esc = (valor) => String(valor ?? "").replace(/[&<>"]/g, caractere => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;",
+    }[caractere]));
+    const seguro = (valor, vazio = "—") => esc(String(valor || "").trim() || vazio);
+    const dataBR = (valor) => {
+      if (!valor) return "—";
+      const [ano, mes, dia] = String(valor).slice(0, 10).split("-");
+      return ano && mes && dia ? `${dia}/${mes}/${ano}` : valor;
+    };
+    const nome = seguro(dados.nome || funcionario?.nome);
+    const cpf = seguro(dados.cpf || funcionario?.cpf);
+    const rg = seguro(dados.rg || funcionario?.rg);
+    const cargo = seguro(dados.funcao || funcionario?.cargo);
 
     // Diária desmembrada (mesma regra do "Lançar Diária"): fixo + INSS 5% + FGTS 8% + taxa de serviço 10%
     // O valor digitado na hora da impressão tem prioridade sobre o cadastro.
@@ -844,60 +887,86 @@ export default function RHPage() {
     const dFgts = diariaTotal * 0.08;
     const dTaxa = diariaTotal * 0.10;
     const dFixo = diariaTotal - dInss - dFgts - dTaxa;
-    // Na ficha em branco (ou sem diária cadastrada) os valores ficam vazios p/ preencher à mão
     const money = (v) => diariaTotal > 0 ? `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "";
-    const telefone = funcionario?.telefone || "____________________________";
-    const pix = funcionario?.chave_pix || "________________________________________";
-    const horaIni = funcionario?.horario_entrada || "____:____";
-    const horaFim = funcionario?.horario_saida || "____:____";
-    const diariaAcordada = diariaTotal > 0 ? money(diariaTotal) : "R$ ______________";
+    const moedaOpcional = (valor) => {
+      const numero = parseFloat(String(valor || "").replace(",", ".")) || 0;
+      return numero ? `R$ ${numero.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "R$ 0,00";
+    };
+    const telefone = seguro(dados.telefone || funcionario?.telefone);
+    const pix = seguro(dados.chave_pix || funcionario?.chave_pix);
+    const endereco = seguro(dados.endereco || funcionario?.endereco);
+    const horaIni = seguro(dados.entrada || funcionario?.horario_entrada);
+    const horaFim = seguro(dados.saida_final || funcionario?.horario_saida);
+    const diariaAcordada = diariaTotal > 0 ? money(diariaTotal) : "R$ 0,00";
+    const valeTransporte = parseFloat(String(dados.vale_transporte || "").replace(",", ".")) || 0;
+    const adicional = parseFloat(String(dados.adicional || "").replace(",", ".")) || 0;
+    const descontos = parseFloat(String(dados.descontos || "").replace(",", ".")) || 0;
+    const totalPagar = Math.max(0, totalGeral + valeTransporte + adicional - descontos);
+    const reciboNumero = `EXT-${new Date().toISOString().slice(0, 10).replaceAll("-", "")}-${String(funcionario?.id || Date.now()).slice(-6).toUpperCase()}`;
     
     const html = `
       <html>
         <head>
-          <title>Ficha de Controle de Extras</title>
+          <title>Recibo de Prestação de Serviço</title>
           <style>
-            @page { size: A4 portrait; margin: 8mm; }
+            @page { size: A4 portrait; margin: 9mm; }
             * { box-sizing: border-box; }
-            body { font-family: sans-serif; padding: 12px; color: #1e293b; line-height: 1.4; font-size: 12px; }
-            h1 { text-align: center; margin: 0 0 3px; font-size: 21px; text-transform: uppercase; }
-            h2 { text-align: center; font-size: 11px; font-weight: normal; margin: 0 0 14px; color: #64748b; }
-            .section { margin-bottom: 14px; }
-            .section-title { font-size: 12px; font-weight: bold; background: #f1f5f9; padding: 6px 10px; border-radius: 4px; margin-bottom: 8px; text-transform: uppercase; }
+            body { font-family: Inter, Arial, sans-serif; padding: 4px; color: #172033; line-height: 1.35; font-size: 11px; }
+            .document-header { display:flex; align-items:center; justify-content:space-between; gap:18px; background:linear-gradient(135deg,#064e3b,#047857); color:#fff; border-radius:12px; padding:15px 18px; margin-bottom:12px; }
+            .brand { font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; opacity:.9; }
+            h1 { margin: 3px 0 2px; font-size: 23px; line-height:1.05; }
+            .subtitle { font-size:9px; opacity:.82; }
+            .receipt-id { text-align:right; font-size:9px; line-height:1.5; white-space:nowrap; }
+            .section { margin-bottom: 10px; break-inside: avoid; }
+            .section-title { font-size: 10px; font-weight: 900; color:#065f46; border-left:4px solid #10b981; background:#ecfdf5; padding: 5px 8px; border-radius: 0 6px 6px 0; margin-bottom: 6px; text-transform: uppercase; letter-spacing:.08em; }
+            .data-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px 12px; }
+            .field { border-bottom:1px solid #cbd5e1; padding:3px 2px 5px; min-height:24px; }
+            .field span { display:block; color:#64748b; font-size:8px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; }
+            .field strong { display:block; margin-top:2px; font-size:11px; color:#172033; }
             table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
-            th, td { border: 1px solid #cbd5e1; padding: 5px 7px; text-align: left; font-size: 11px; }
-            th { background: #f8fafc; font-size: 10px; text-transform: uppercase; color: #64748b; }
+            th, td { border: 1px solid #cbd5e1; padding: 5px 7px; text-align: left; font-size: 10px; }
+            th { background: #f1f5f9; font-size: 8px; text-transform: uppercase; color: #475569; letter-spacing:.04em; }
             .signature-box { height: 34px; }
-            .checkbox { width: 12px; height: 12px; border: 1px solid #94a3b8; display: inline-block; margin-right: 6px; vertical-align: middle; border-radius: 2px; }
+            .checkbox { width: 12px; height: 12px; border: 1px solid #64748b; display: inline-flex; align-items:center; justify-content:center; margin-right: 6px; vertical-align: middle; border-radius: 3px; font-size:9px; font-weight:900; }
+            .agreement { font-size:9px; color:#334155; border:1px solid #cbd5e1; border-radius:8px; padding:7px 9px; line-height:1.45; margin:0; background:#f8fafc; }
+            .signatures { display:flex; justify-content:space-between; gap:34px; margin-top:34px; }
+            .signature { flex:1; border-top:1px solid #172033; padding-top:4px; text-align:center; font-size:9px; }
             @media print { body { padding: 0; } }
           </style>
         </head>
         <body>
-          <h1>Ficha de Extra / Diária</h1>
-          <h2>Termo de trabalho e responsabilidade · Emitida em ${hoje} · Via única — fica arquivada com a empresa</h2>
+          <header class="document-header">
+            <div>
+              <div class="brand">${seguro(unidadeInfo?.nome, "Seldeestrela")}</div>
+              <h1>Recibo de Prestação de Serviço</h1>
+              <div class="subtitle">Acordo de diária, controle operacional e comprovante de pagamento</div>
+            </div>
+            <div class="receipt-id"><strong>${reciboNumero}</strong><br/>Emitido em ${hoje}<br/>Via da empresa</div>
+          </header>
 
           <div class="section">
              <div class="section-title">Dados Pessoais</div>
-             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
-                <div><strong>Nome:</strong> ${nome}</div>
-                <div><strong>CPF:</strong> ${cpf} &nbsp;&nbsp; <strong>RG:</strong> __________________</div>
-                <div style="grid-column: 1 / -1;"><strong>Endereço:</strong> ________________________________________________________________________________</div>
-                <div><strong>Telefone:</strong> ${telefone}</div>
-                <div><strong>Chave PIX:</strong> ${pix}</div>
+             <div class="data-grid">
+                <div class="field"><span>Nome completo</span><strong>${nome}</strong></div>
+                <div class="field"><span>CPF / RG</span><strong>${cpf} · ${rg}</strong></div>
+                <div class="field" style="grid-column:1/-1"><span>Endereço</span><strong>${endereco}</strong></div>
+                <div class="field"><span>Telefone</span><strong>${telefone}</strong></div>
+                <div class="field"><span>Chave PIX</span><strong>${pix}</strong></div>
              </div>
           </div>
 
           <div class="section">
-             <div class="section-title">Acordo do Dia</div>
-             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
-                <div><strong>Data do trabalho:</strong> ____/____/______</div>
-                <div><strong>Evento / Ocasião:</strong> ______________________________</div>
-                <div><strong>Função no dia:</strong> ${cargo}</div>
-                <div><strong>Carga acordada:</strong> das ${horaIni} às ${horaFim} · Intervalo: __________</div>
-                <div style="grid-column: 1 / -1; background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px; padding:5px 8px;">
+             <div class="section-title">Acordo de Trabalho</div>
+             <div class="data-grid">
+                <div class="field"><span>Data do trabalho</span><strong>${dataBR(dados.data_trabalho)}</strong></div>
+                <div class="field"><span>Evento / ocasião</span><strong>${seguro(dados.evento)}</strong></div>
+                <div class="field"><span>Função no dia</span><strong>${cargo}</strong></div>
+                <div class="field"><span>Carga acordada</span><strong>${horaIni} às ${horaFim} · intervalo ${seguro(dados.intervalo)}</strong></div>
+                <div class="field" style="grid-column:1/-1"><span>Benefício durante o turno</span><strong>${dados.janta_ofertada ? "Janta ofertada pelo restaurante" : "Janta não incluída"}</strong></div>
+                <div style="grid-column: 1 / -1; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:8px; padding:6px 9px;">
                    <strong>Diária acordada: ${diariaAcordada}</strong>
-                   ${dias > 1 ? `&nbsp;·&nbsp; <strong>Dias combinados: ${dias}</strong> &nbsp;·&nbsp; <strong>Total: ${diariaTotal > 0 ? money(totalGeral) : "R$ ______________"}</strong>` : ""}
-                   <span style="color:#64748b; font-size:9px; display:block; margin-top:2px;">${dias > 1 ? `${dias} dia(s) × ${diariaAcordada} = ${diariaTotal > 0 ? money(totalGeral) : "—"}. ` : ""}Desmembramento (por diária) detalhado no acerto financeiro abaixo.</span>
+                   ${dias > 1 ? `&nbsp;·&nbsp; <strong>Dias: ${dias}</strong> &nbsp;·&nbsp; <strong>Subtotal: ${money(totalGeral) || "R$ 0,00"}</strong>` : ""}
+                   <span style="color:#64748b; font-size:8px; display:block; margin-top:2px;">Valores e composição detalhados no acerto financeiro.</span>
                 </div>
              </div>
           </div>
@@ -915,10 +984,10 @@ export default function RHPage() {
                </thead>
                <tbody>
                  <tr>
-                   <td class="signature-box"></td>
-                   <td class="signature-box"></td>
-                   <td class="signature-box"></td>
-                   <td class="signature-box"></td>
+                   <td class="signature-box"><strong>${horaIni}</strong></td>
+                   <td class="signature-box"><strong>${seguro(dados.saida_intervalo)}</strong></td>
+                   <td class="signature-box"><strong>${seguro(dados.retorno_intervalo)}</strong></td>
+                   <td class="signature-box"><strong>${horaFim}</strong></td>
                  </tr>
                </tbody>
              </table>
@@ -940,23 +1009,18 @@ export default function RHPage() {
                <tbody>
                  ${itensLista.map(item => `
                  <tr>
-                   <td><span class="checkbox"></span> ${item}</td>
+                   <td><span class="checkbox">✓</span> ${esc(item)}</td>
                    <td class="signature-box"></td>
                    <td class="signature-box"></td>
                  </tr>`).join("")}
-                 <tr>
-                   <td><span class="checkbox"></span> Outro: ____________</td>
-                   <td class="signature-box"></td>
-                   <td class="signature-box"></td>
-                 </tr>
                </tbody>
             </table>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; font-size: 10px;">
-               <div><strong>Itens entregues por (responsável):</strong><br/>_______________________</div>
-               <div><strong>Local / setor da entrega:</strong><br/>_______________________</div>
-               <div><strong>Devolução no caixa — conferida por:</strong><br/>_______________________</div>
-               <div><strong>Horário da devolução:</strong> ____:____<br/><strong>Tudo em perfeito estado?</strong> <span class="checkbox"></span> Sim <span class="checkbox" style="margin-left:6px;"></span> Não</div>
+               <div><strong>Entregue por:</strong><br/>${seguro(dados.responsavel_entrega)}</div>
+               <div><strong>Local / setor:</strong><br/>${seguro(dados.setor_entrega)}</div>
+               <div><strong>Devolução conferida por:</strong><br/>${seguro(dados.conferencia_devolucao)}</div>
+               <div><strong>Horário da devolução:</strong> ${seguro(dados.horario_devolucao)}<br/></div>
             </div>
             </div>
 
@@ -996,19 +1060,19 @@ export default function RHPage() {
                    </tr>` : ""}
                    <tr>
                      <td>Vale Transporte / Passagem</td>
-                     <td></td>
+                     <td>${moedaOpcional(dados.vale_transporte)}</td>
                    </tr>
                    <tr>
                      <td>Adicional / Bônus</td>
-                     <td></td>
+                     <td>${moedaOpcional(dados.adicional)}</td>
                    </tr>
                    <tr>
                      <td>Descontos / Faltas / Quebras</td>
-                     <td></td>
+                     <td>${moedaOpcional(dados.descontos)}</td>
                    </tr>
                    <tr>
                      <td><strong>Total a Pagar${dias > 1 ? ` (${dias} dias)` : ""}</strong></td>
-                     <td><strong>${diariaTotal > 0 ? money(totalGeral) : ""}</strong></td>
+                     <td><strong>${diariaTotal > 0 ? `R$ ${totalPagar.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "R$ 0,00"}</strong></td>
                    </tr>
                  </tbody>
                </table>
@@ -1016,8 +1080,9 @@ export default function RHPage() {
                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; font-size: 10px;">
                   <div>
                     <strong>Forma de Pagamento:</strong><br/>
-                    <span class="checkbox" style="margin-top:3px;"></span> Pix
-                    <span class="checkbox" style="margin-top:3px; margin-left: 10px;"></span> Dinheiro
+                    <span class="checkbox" style="margin-top:3px;">${dados.forma_pagamento === "Pix" ? "✓" : ""}</span> Pix
+                    <span class="checkbox" style="margin-top:3px; margin-left: 10px;">${dados.forma_pagamento === "Dinheiro" ? "✓" : ""}</span> Dinheiro
+                    <span class="checkbox" style="margin-top:3px; margin-left: 10px;">${dados.forma_pagamento === "Transferência" ? "✓" : ""}</span> Transferência
                   </div>
                   <div>
                     <strong>Assinatura de Recebimento:</strong><br/>
@@ -1028,24 +1093,25 @@ export default function RHPage() {
             </div>
 
             <div class="section" style="margin-top: 14px;">
-               <p style="font-size: 10px; color: #334155; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 10px; line-height: 1.5; margin: 0;">
+               <p class="agreement">
                   Declaro que <strong>li e estou de acordo</strong> com o valor da diária e seu desmembramento (valor fixo, INSS, FGTS e taxa de serviço), com a carga de trabalho acordada para o dia e com a responsabilidade pela devolução dos itens recebidos, em perfeito estado, no caixa, ao término do turno.
                </p>
-               <div style="display: flex; justify-content: space-between; gap: 40px; margin-top: 42px;">
-                  <div style="flex:1; border-top: 1px solid #000; padding-top: 4px; text-align: center; font-size: 11px;">
-                     Assinatura do Extra / Diarista
+               <div class="signatures">
+                  <div class="signature">
+                     Assinatura do profissional extra
                   </div>
-                  <div style="flex:1; border-top: 1px solid #000; padding-top: 4px; text-align: center; font-size: 11px;">
-                     Gerente / Responsável da Empresa
+                  <div class="signature">
+                     Assinatura do responsável da empresa
                   </div>
                </div>
-               <p style="font-size: 9px; color: #94a3b8; margin-top: 12px; text-align: center; margin-bottom: 0;">Via única — este documento fica arquivado com a empresa.</p>
+               <p style="font-size: 8px; color: #94a3b8; margin-top: 10px; text-align: center; margin-bottom: 0;">Documento ${reciboNumero} · Emitido pelo sistema em ${hoje} · Arquivar junto ao cadastro do profissional.</p>
             </div>
           </body>
         </html>
     `;
 
     const win = window.open("", "_blank");
+    if (!win) return alert("Habilite pop-ups para gerar o recibo.");
     win.document.write(comFecharImpressao(html));
     win.document.close();
     setTimeout(() => win.print(), 500);
@@ -1162,18 +1228,24 @@ export default function RHPage() {
       foto: novoFunc.foto || null
     };
 
+    let colaboradorSalvo = null;
+    const cadastroNovo = !editandoId;
     if (editandoId) {
       const { error } = await atualizarColaborador(editandoId, payload);
       if (error) return alert("Erro ao atualizar: " + error);
     } else {
-      const { error } = await inserirColaborador(payload);
+      const { data, error } = await inserirColaborador(payload);
       if (error) return alert("Erro ao salvar: " + error);
+      colaboradorSalvo = data || payload;
     }
     
     setModalNovo(false);
     setEditandoId(null);
     setNovoFunc(statePadrao);
-    carregar();
+    await carregar();
+    if (cadastroNovo && payload.tipo_contrato === "Freelancer") {
+      abrirModalFicha(colaboradorSalvo || payload);
+    }
   };
 
   // Desligamento: arquiva (não apaga) — a vida do funcionário fica preservada
@@ -1464,13 +1536,13 @@ export default function RHPage() {
             {abaAtiva === "Freelancer" && (
                <>
                <button onClick={() => abrirModalFicha(null)} className="flex items-center gap-1.5 bg-white text-amber-700 border border-amber-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-amber-50 transition-colors">
-                  <Printer size={14} /> Ficha em Branco
+                  <Printer size={14} /> Recibo de Prestação de Serviço
                </button>
                <input ref={inputFichaExtraRef} type="file" accept="image/*" onChange={lerFichaExtraFoto} className="hidden" />
                <button onClick={() => inputFichaExtraRef.current?.click()} disabled={lendoFichaExtra}
-                  title="Tire a foto da ficha preenchida à mão: a IA lê os dados, cadastra o extra e anexa a foto como documento"
+                  title="Tire a foto de um recibo preenchido: a IA lê os dados, cadastra o extra e anexa a foto como documento"
                   className="flex items-center gap-1.5 bg-white text-emerald-700 border border-emerald-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-emerald-50 transition-colors disabled:opacity-60">
-                  {lendoFichaExtra ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} Ler Ficha Preenchida (IA)
+                  {lendoFichaExtra ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} Ler Recibo Preenchido (IA)
                </button>
                </>
             )}
@@ -1809,7 +1881,7 @@ export default function RHPage() {
                      <Acao icon={FileText} cor="text-emerald-700" bg="bg-emerald-50 hover:bg-emerald-100" onClick={() => ir(() => gerarContrato(f))}>Contrato de Trabalho</Acao>
                      <Acao icon={FileText} onClick={() => ir(() => router.push(`/dashboard/rh/contrato/${f.id}`))}>Regulamento</Acao>
                      {f.tipo_contrato === "Freelancer" && (
-                        <Acao icon={Printer} cor="text-amber-700" bg="bg-amber-50 hover:bg-amber-100" onClick={() => ir(() => abrirModalFicha(f))}>Ficha Controle</Acao>
+                        <Acao icon={Printer} cor="text-amber-700" bg="bg-amber-50 hover:bg-amber-100" onClick={() => ir(() => abrirModalFicha(f))}>Recibo de Prestação de Serviço</Acao>
                      )}
                      <Acao icon={Upload} onClick={() => ir(() => acionarUpload(f))}>Anexar Documento</Acao>
                      {(f.docs || []).map(d => (
@@ -2186,7 +2258,52 @@ export default function RHPage() {
       )}
 
       {/* Modal Gerenciar Folgas */}
-      {/* MODAL: PREPARAR FICHA DE EXTRA (valor pago + itens emprestados) */}
+      {/* O recibo só pode ser gerado para um extra já cadastrado */}
+      {modalEscolherExtra && (() => {
+         const extrasCadastrados = funcionarios
+           .filter(f => f.tipo_contrato === "Freelancer" && !ehInativo(f))
+           .filter(f => String(f.nome || "").toLocaleLowerCase("pt-BR").includes(buscaRecibo.toLocaleLowerCase("pt-BR")));
+         return (
+           <div className="fixed inset-0 z-[55] flex items-center justify-center bg-slate-950/65 p-3 backdrop-blur-sm" onClick={() => setModalEscolherExtra(false)}>
+             <div className="w-full max-w-xl overflow-hidden rounded-3xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
+               <div className="flex items-start justify-between gap-3 border-b border-slate-200 p-5">
+                 <div>
+                   <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Recibo de Prestação de Serviço</p>
+                   <h2 className="mt-1 text-xl font-black text-slate-900">Escolha um extra cadastrado</h2>
+                   <p className="mt-1 text-xs font-bold text-slate-500">Por segurança, não é possível gerar recibo para uma pessoa sem cadastro.</p>
+                 </div>
+                 <button onClick={() => setModalEscolherExtra(false)} className="rounded-full bg-slate-100 p-2.5 text-slate-500"><X size={18}/></button>
+               </div>
+               <div className="p-5">
+                 <div className="flex items-center gap-2 rounded-xl border border-slate-200 px-3">
+                   <Search size={17} className="text-slate-400"/>
+                   <input autoFocus value={buscaRecibo} onChange={e => setBuscaRecibo(e.target.value)} placeholder="Buscar extra por nome..." className="w-full bg-transparent py-3 text-sm font-bold text-slate-700 outline-none"/>
+                 </div>
+                 <div className="mt-3 max-h-[50vh] space-y-2 overflow-y-auto">
+                   {extrasCadastrados.length ? extrasCadastrados.map(extra => (
+                     <button key={extra.id} onClick={() => { setModalEscolherExtra(false); abrirModalFicha(extra); }} className="flex w-full items-center gap-3 rounded-xl border border-slate-200 p-3 text-left hover:border-emerald-300 hover:bg-emerald-50">
+                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 font-black text-emerald-700">{String(extra.nome || "E").charAt(0).toUpperCase()}</div>
+                       <div className="min-w-0 flex-1">
+                         <p className="truncate text-sm font-black text-slate-800">{extra.nome}</p>
+                         <p className="truncate text-xs font-bold text-slate-400">{extra.cargo || "Extra"} · {extra.cpf || "CPF não informado"} · {fmtBRL(extra.salario || 0)}/diária</p>
+                       </div>
+                       <Printer size={17} className="text-emerald-700"/>
+                     </button>
+                   )) : (
+                     <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center">
+                       <p className="text-sm font-black text-slate-700">Nenhum extra cadastrado encontrado</p>
+                       <p className="mt-1 text-xs font-bold text-slate-400">Cadastre o profissional como “Freelancer / Extra” antes de gerar o recibo.</p>
+                       <button onClick={() => { setModalEscolherExtra(false); abrirModalNovo(); }} className="mt-4 rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white">Cadastrar extra</button>
+                     </div>
+                   )}
+                 </div>
+               </div>
+             </div>
+           </div>
+         );
+      })()}
+
+      {/* MODAL: PREPARAR RECIBO DE PRESTAÇÃO DE SERVIÇO */}
       {modalFicha && (() => {
          const total = parseFloat(String(fichaValor).replace(",", ".")) || 0;
          const nDias = Math.max(1, Number(fichaDias) || 1);
@@ -2196,13 +2313,65 @@ export default function RHPage() {
          const fmt = (v) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
          return (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
-            <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-lg my-3 sm:my-8 p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[94vh] sm:max-h-[88vh] overflow-y-auto">
+            <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-3xl my-3 sm:my-8 p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[94vh] sm:max-h-[90vh] overflow-y-auto">
                <div className="flex flex-wrap justify-between items-center gap-2 mb-5">
                   <div>
-                     <h2 className="font-black text-2xl text-slate-800">Preparar Ficha de Extra</h2>
-                     <p className="text-sm font-bold text-slate-500 mt-1">{fichaFunc ? fichaFunc.nome : "Ficha em branco (extra não cadastrado)"}</p>
+                     <h2 className="font-black text-2xl text-slate-800">Preparar Recibo de Prestação de Serviço</h2>
+                     <p className="text-sm font-bold text-slate-500 mt-1">{fichaFunc ? `${fichaFunc.nome} · dados importados do cadastro` : "Preencha os dados pelo sistema; somente as assinaturas ficarão para a caneta."}</p>
                   </div>
                   <button onClick={() => setModalFicha(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+               </div>
+
+               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 mb-5">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                     <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Dados que sairão no recibo</p>
+                        <p className="text-xs font-bold text-slate-400">Quando o extra já está cadastrado, estes campos chegam preenchidos automaticamente.</p>
+                     </div>
+                     {fichaFunc && <span className="shrink-0 rounded-full bg-emerald-100 px-3 py-1 text-[10px] font-black text-emerald-700">Importado do cadastro</span>}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                     {[
+                       ["nome", "Nome completo", "text"], ["cpf", "CPF", "text"],
+                       ["rg", "RG", "text"], ["telefone", "Telefone", "text"],
+                       ["endereco", "Endereço", "text"], ["chave_pix", "Chave PIX", "text"],
+                     ].map(([campo, label, tipo]) => (
+                       <label key={campo} className={campo === "endereco" ? "sm:col-span-2 text-xs font-bold text-slate-600" : "text-xs font-bold text-slate-600"}>
+                         {label}
+                         <input type={tipo} value={fichaDados[campo]} onChange={e => setFichaDados(d => ({...d, [campo]: e.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
+                       </label>
+                     ))}
+                  </div>
+               </div>
+
+               <div className="rounded-2xl border border-slate-200 bg-white p-4 mb-5">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Trabalho e controle do turno</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                     <label className="col-span-2 text-xs font-bold text-slate-600">Data do trabalho
+                       <input type="date" value={fichaDados.data_trabalho} onChange={e => setFichaDados(d => ({...d, data_trabalho: e.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-emerald-500"/>
+                     </label>
+                     <label className="col-span-2 text-xs font-bold text-slate-600">Evento / ocasião
+                       <input type="text" value={fichaDados.evento} onChange={e => setFichaDados(d => ({...d, evento: e.target.value}))} placeholder="Ex.: casamento, festival, reforço de salão" className="mt-1 w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-emerald-500"/>
+                     </label>
+                     <label className="col-span-2 text-xs font-bold text-slate-600">Função no dia
+                       <input type="text" value={fichaDados.funcao} onChange={e => setFichaDados(d => ({...d, funcao: e.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-emerald-500"/>
+                     </label>
+                     {[
+                       ["entrada", "Entrada"], ["saida_intervalo", "Saída intervalo"],
+                       ["retorno_intervalo", "Retorno intervalo"], ["saida_final", "Saída final"],
+                     ].map(([campo, label]) => (
+                       <label key={campo} className="text-xs font-bold text-slate-600">{label}
+                         <input type="time" value={fichaDados[campo]} onChange={e => setFichaDados(d => ({...d, [campo]: e.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-emerald-500"/>
+                       </label>
+                     ))}
+                     <label className="col-span-2 text-xs font-bold text-slate-600">Intervalo acordado
+                       <input type="text" value={fichaDados.intervalo} onChange={e => setFichaDados(d => ({...d, intervalo: e.target.value}))} placeholder="Ex.: 60 min" className="mt-1 w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-emerald-500"/>
+                     </label>
+                     <label className="col-span-2 flex cursor-pointer items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-black text-emerald-800">
+                       <input type="checkbox" checked={!!fichaDados.janta_ofertada} onChange={e => setFichaDados(d => ({...d, janta_ofertada: e.target.checked}))} className="h-5 w-5 accent-emerald-700"/>
+                       Janta ofertada pelo restaurante
+                     </label>
+                  </div>
                </div>
 
                {/* Valor pago -> desmembramento automático */}
@@ -2241,6 +2410,24 @@ export default function RHPage() {
                   )}
                </div>
 
+               <div className="rounded-2xl border border-slate-200 bg-white p-4 mb-5">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Ajustes e pagamento</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                    {[
+                      ["vale_transporte", "Vale-transporte"], ["adicional", "Adicional / bônus"], ["descontos", "Descontos"],
+                    ].map(([campo, label]) => (
+                      <label key={campo} className="text-xs font-bold text-slate-600">{label} (R$)
+                        <input type="number" min="0" step="0.01" value={fichaDados[campo]} onChange={e => setFichaDados(d => ({...d, [campo]: e.target.value}))} placeholder="0,00" className="mt-1 w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-emerald-500"/>
+                      </label>
+                    ))}
+                    <label className="text-xs font-bold text-slate-600">Forma de pagamento
+                      <select value={fichaDados.forma_pagamento} onChange={e => setFichaDados(d => ({...d, forma_pagamento: e.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 outline-none focus:border-emerald-500">
+                        <option>Pix</option><option>Dinheiro</option><option>Transferência</option>
+                      </select>
+                    </label>
+                  </div>
+               </div>
+
                {/* Itens emprestados: escolhe na hora */}
                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-6">
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Itens que a empresa vai emprestar (só os marcados saem na ficha)</p>
@@ -2259,8 +2446,22 @@ export default function RHPage() {
                   </div>
                </div>
 
-               <button onClick={imprimirFichaPreparada} className="w-full py-4 bg-amber-600 hover:bg-amber-700 text-white font-black text-lg rounded-2xl transition-all active:scale-95 shadow-xl shadow-amber-600/20 flex items-center justify-center gap-2">
-                  <Printer size={20}/> Imprimir Ficha
+               <div className="rounded-2xl border border-slate-200 bg-white p-4 mb-5">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Entrega e devolução dos itens</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {[
+                      ["responsavel_entrega", "Entregue por"], ["setor_entrega", "Local / setor"],
+                      ["conferencia_devolucao", "Devolução conferida por"], ["horario_devolucao", "Horário da devolução"],
+                    ].map(([campo, label]) => (
+                      <label key={campo} className="text-xs font-bold text-slate-600">{label}
+                        <input type={campo === "horario_devolucao" ? "time" : "text"} value={fichaDados[campo]} onChange={e => setFichaDados(d => ({...d, [campo]: e.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-emerald-500"/>
+                      </label>
+                    ))}
+                  </div>
+               </div>
+
+               <button onClick={imprimirFichaPreparada} className="w-full py-4 bg-emerald-700 hover:bg-emerald-800 text-white font-black text-lg rounded-2xl transition-all active:scale-95 shadow-xl shadow-emerald-700/20 flex items-center justify-center gap-2">
+                  <Printer size={20}/> Gerar e imprimir recibo
                </button>
             </div>
          </div>

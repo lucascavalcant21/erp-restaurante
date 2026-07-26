@@ -3,13 +3,27 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
-import { fetchFichas, salvarFicha, removerFicha, fetchInsumos, salvarInsumo, atualizarOrdemFicha } from "../../../lib/operacao";
+import {
+  atualizarOrdemFicha, excluirFichasLote, fetchFichas, fetchInsumos,
+  inativarFichasLote, registrarAuditoriaFichas, removerFicha, salvarFicha,
+  salvarInsumo, verificarDependenciasFichas,
+} from "../../../lib/operacao";
 import { fetchProdutos, salvarProduto } from "../../../lib/vendas";
 import { fetchMontagens, inserirMontagem } from "../../../lib/montagem";
-import { LayoutList, Plus, Search, Trash2, Edit3, X, Save, ArrowLeft, UtensilsCrossed, Wine, ChevronRight, Printer, Sparkles, Loader2, Camera, CheckCircle2, AlertTriangle, GripVertical, Calculator, Download, Package } from "lucide-react";
+import {
+  AlertTriangle, ArrowDown, ArrowLeft, ArrowUp, BookOpen, Calculator, Camera,
+  CheckCircle2, CheckSquare2, ChevronLeft, ChevronRight, Copy, Download, Edit3,
+  FileDown, GripVertical, LayoutList, Loader2, Package, Plus, Printer, Save,
+  Search, ShieldAlert, Sparkles, Trash2, UtensilsCrossed, Wine, X,
+} from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 import { logoSeldeestrelaSVG } from "../../../lib/marca";
 import { baixarPdfDeHtml } from "../../../lib/pdf";
+import {
+  estimarPaginasDocumento,
+  ordenarFichasDocumento,
+  separarFichasPorDependencias,
+} from "../../../lib/fichas-lote-utils.mjs";
 import RecipeWorkspace from "../../../components/RecipeWorkspace";
 
 // Botão "Fechar" + fechamento automático após imprimir — no celular a aba de
@@ -213,8 +227,9 @@ function FichasRunner() {
   const searchParams = useSearchParams();
   const deptUrl = searchParams.get("dept") || "cozinha"; // 'cozinha' ou 'bar'
   
-  const { unidadeAtiva, unidadeInfo } = useERP();
+  const { unidadeAtiva, unidadeInfo, sessao } = useERP();
   const [fichas, setFichas] = useState([]);
+  const [montagens, setMontagens] = useState([]);
   const [produtos, setProdutos] = useState([]); // preços de venda (vêm do cardápio interno)
   const [insumosAtivos, setInsumosAtivos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -226,6 +241,15 @@ function FichasRunner() {
 
   const [selecionadas, setSelecionadas] = useState([]);
   const [dragId, setDragId] = useState(null); // arrastar para reordenar
+  const [pagina, setPagina] = useState(1);
+  const [porPagina, setPorPagina] = useState(12);
+  const [modalImpressao, setModalImpressao] = useState(null);
+  const [configImpressao, setConfigImpressao] = useState(null);
+  const [ordemPersonalizada, setOrdemPersonalizada] = useState([]);
+  const [modalExclusao, setModalExclusao] = useState(false);
+  const [dependenciasExclusao, setDependenciasExclusao] = useState(null);
+  const [processandoLote, setProcessandoLote] = useState(false);
+  const [mensagemLote, setMensagemLote] = useState("");
 
   // Estado do formulário da Ficha
   const [form, setForm] = useState({
@@ -491,14 +515,16 @@ function FichasRunner() {
 
   const carregar = async () => {
     setLoading(true);
-    const [resFichas, resInsumos, resProd] = await Promise.all([
+    const [resFichas, resInsumos, resProd, resMontagens] = await Promise.all([
        fetchFichas(unidadeAtiva, deptUrl),
        fetchInsumos(unidadeAtiva, deptUrl),
-       fetchProdutos(unidadeAtiva)
+       fetchProdutos(unidadeAtiva),
+       fetchMontagens(unidadeAtiva, deptUrl),
     ]);
     setFichas(resFichas.data || []);
     setInsumosAtivos(resInsumos.data || []);
     setProdutos(resProd.data || []);
+    setMontagens(resMontagens.data || []);
     setLoading(false);
   };
 
@@ -538,6 +564,23 @@ function FichasRunner() {
   const filtradas = fichas
     .filter(f => f.nome_receita.toLowerCase().includes(busca.toLowerCase()) && passaFiltro(f))
     .sort(ordenarFichas);
+  const totalPaginas = Math.max(1, Math.ceil(filtradas.length / porPagina));
+  const fichasPagina = filtradas.slice((pagina - 1) * porPagina, pagina * porPagina);
+  const fichasSelecionadas = selecionadas.map(id => fichas.find(f => f.id === id)).filter(Boolean);
+  const papelUsuario = String(sessao?.papel || sessao?.role || "").toLowerCase();
+  const podeImprimirCustos = ["admin", "administrador", "superadmin", "gestor", "gerente", "dono"]
+    .some(papel => papelUsuario.includes(papel));
+  const usuarioAuditoria = {
+    unidadeId: unidadeAtiva,
+    usuarioId: sessao?.id || sessao?.user?.id || null,
+    usuarioNome: sessao?.nome || sessao?.user_metadata?.nome || sessao?.email || "Usuário do sistema",
+    origem: "Ação em lote — fichas técnicas",
+  };
+
+  useEffect(() => { setPagina(1); }, [busca, tipoFiltro, porPagina]);
+  useEffect(() => {
+    if (pagina > totalPaginas) setPagina(totalPaginas);
+  }, [pagina, totalPaginas]);
 
   // Arrastar para reordenar: reposiciona o item arrastado antes do alvo e grava a ordem
   const reordenar = async (arrastadoId, alvoId) => {
@@ -872,6 +915,152 @@ function FichasRunner() {
     setSelecionadas(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
+  const selecionarPaginaLote = () => {
+    setSelecionadas(prev => [...new Set([...prev, ...fichasPagina.map(f => f.id)])]);
+  };
+
+  const selecionarResultadoLote = () => {
+    setSelecionadas(prev => [...new Set([...prev, ...filtradas.map(f => f.id)])]);
+  };
+
+  const limparSelecaoLote = () => setSelecionadas([]);
+
+  const abrirExclusaoSegura = async (lista = fichasSelecionadas) => {
+    if (!lista.length) return;
+    setProcessandoLote(true);
+    setMensagemLote("");
+    setDependenciasExclusao(null);
+    setModalExclusao({ lista });
+    const resposta = await verificarDependenciasFichas(lista, unidadeAtiva);
+    setDependenciasExclusao(resposta);
+    setProcessandoLote(false);
+  };
+
+  const concluirExclusaoLote = async (modo) => {
+    const alvo = modalExclusao?.lista || [];
+    const { vinculadas, livres } = separarFichasPorDependencias(alvo, dependenciasExclusao);
+    const verificacaoIncompleta = dependenciasExclusao?.avisos?.length > 0;
+    const lista = modo === "livres" ? livres : modo === "inativar" ? (verificacaoIncompleta ? alvo : vinculadas) : alvo;
+    if (!lista.length) return;
+    setProcessandoLote(true);
+    const resposta = modo === "inativar"
+      ? await inativarFichasLote(lista, usuarioAuditoria)
+      : await excluirFichasLote(lista, usuarioAuditoria);
+    setProcessandoLote(false);
+    if (resposta.error) return setMensagemLote(resposta.error);
+    setSelecionadas(prev => prev.filter(id => !lista.some(f => f.id === id)));
+    setMensagemLote(`${lista.length} ficha(s) ${modo === "inativar" ? "inativada(s)" : "excluída(s)"} com registro no histórico.`);
+    await carregar();
+    window.setTimeout(() => {
+      setModalExclusao(false);
+      setMensagemLote("");
+    }, 1400);
+  };
+
+  const duplicarFichasSelecionadas = async () => {
+    if (!fichasSelecionadas.length || !confirm(`Duplicar ${fichasSelecionadas.length} ficha(s) selecionada(s)?`)) return;
+    setProcessandoLote(true);
+    const nomes = new Set(fichas.map(f => String(f.nome_receita || "").toLocaleLowerCase("pt-BR")));
+    const criadas = [];
+    for (const origem of fichasSelecionadas) {
+      let indice = 1;
+      let nome = `${origem.nome_receita} (cópia)`;
+      while (nomes.has(nome.toLocaleLowerCase("pt-BR"))) {
+        indice += 1;
+        nome = `${origem.nome_receita} (cópia ${indice})`;
+      }
+      nomes.add(nome.toLocaleLowerCase("pt-BR"));
+      const { id, created_at, updated_at, fichas_ingredientes, ativo, ...campos } = origem;
+      const ingredientes = (fichas_ingredientes || []).map(item => ({
+        insumo_id: item.insumo_id || item.insumos?.id || null,
+        subficha_id: item.subficha_id || null,
+        quantidade: item.quantidade,
+        fator_correcao: item.fator_correcao || 0,
+      }));
+      const resultado = await salvarFicha({ ...campos, nome_receita: nome, ativo: true }, ingredientes);
+      if (!resultado.error) criadas.push({ id: resultado.id, nome_receita: nome });
+    }
+    await registrarAuditoriaFichas({
+      ...usuarioAuditoria,
+      acao: "duplicacao",
+      fichas: criadas,
+      detalhes: { originais: fichasSelecionadas.map(f => f.id) },
+    });
+    setProcessandoLote(false);
+    setSelecionadas([]);
+    setMensagemLote(`${criadas.length} cópia(s) criada(s) sem alterar as fichas originais.`);
+    await carregar();
+    window.setTimeout(() => setMensagemLote(""), 3500);
+  };
+
+  const abrirPreviaImpressao = (modo, lista = fichasSelecionadas) => {
+    if (!lista.length) return;
+    const livroAutomatico = modo === "livro" || lista.length >= 6;
+    const modelo = modo === "livro" ? "livro" : podeImprimirCustos ? "gerencial" : "operacional";
+    setOrdemPersonalizada(lista.map(f => f.id));
+    setConfigImpressao({
+      ordem: "selecao", formato: "a4-retrato", modelo,
+      foto: true, ingredientes: true,
+      custos: podeImprimirCustos && modelo !== "operacional",
+      preco: podeImprimirCustos && modelo !== "operacional",
+      cmv: podeImprimirCustos && modelo !== "operacional",
+      margem: podeImprimirCustos && modelo !== "operacional",
+      preparo: true, montagem: true, observacoes: true,
+      responsaveis: true, atualizacao: true,
+      capa: livroAutomatico, indice: livroAutomatico, livro: livroAutomatico,
+    });
+    setModalImpressao({ modo, lista });
+  };
+
+  const moverFichaNaPrevia = (id, direcao) => {
+    setOrdemPersonalizada(atual => {
+      const proxima = [...atual];
+      const indice = proxima.indexOf(id);
+      const destino = indice + direcao;
+      if (indice < 0 || destino < 0 || destino >= proxima.length) return atual;
+      [proxima[indice], proxima[destino]] = [proxima[destino], proxima[indice]];
+      return proxima;
+    });
+    setConfigImpressao(atual => ({ ...atual, ordem: "personalizada" }));
+  };
+
+  const listaOrdenadaPrevia = () => ordenarFichasDocumento(
+    modalImpressao?.lista || [],
+    configImpressao?.ordem,
+    ordemPersonalizada,
+  );
+
+  const gerarDocumentoConfigurado = async (acao) => {
+    const lista = listaOrdenadaPrevia();
+    if (!lista.length) return;
+    const html = montarHtmlFichas(lista, configImpressao);
+    if (acao === "pdf") {
+      baixarPdfDeHtml(html, configImpressao?.livro ? "livro-de-fichas" : "fichas-tecnicas");
+    } else {
+      const win = window.open("", "_blank");
+      if (!win) return alert("Habilite pop-ups para imprimir.");
+      win.document.write(comFecharImpressao(html));
+      win.document.close();
+      setTimeout(() => win.print(), 800);
+    }
+    await registrarAuditoriaFichas({
+      ...usuarioAuditoria,
+      acao: configImpressao?.livro ? "livro" : acao === "pdf" ? "pdf" : "impressao",
+      fichas: lista,
+      detalhes: configImpressao,
+    });
+  };
+
+  const salvarModeloImpressao = () => {
+    try {
+      localStorage.setItem("hefisto_modelo_impressao_fichas", JSON.stringify(configImpressao));
+      setMensagemLote("Modelo de impressão salvo neste dispositivo.");
+      window.setTimeout(() => setMensagemLote(""), 3000);
+    } catch {
+      setMensagemLote("Não foi possível salvar o modelo.");
+    }
+  };
+
   const imprimirLivroSelecionadas = () => {
     if (selecionadas.length === 0) return;
     const fichasParaImprimir = fichas.filter(f => selecionadas.includes(f.id));
@@ -899,7 +1088,7 @@ function FichasRunner() {
     baixarPdfDeHtml(montarHtmlFichas(listaDeFichas), nome);
   };
 
-  const montarHtmlFichas = (listaDeFichas) => {
+  const montarHtmlFichas = (listaDeFichas, opcoes = {}) => {
     const SUB = { kg: { s: 'g', fa: 1000 }, l: { s: 'ml', fa: 1000 } };
     const fmtQtd = (qtd, un) => {
        const c = SUB[String(un || '').toLowerCase()];
@@ -909,6 +1098,10 @@ function FichasRunner() {
     const esc = (s) => String(s == null ? '' : s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
     const fmtBRL = (v) => 'R$ ' + (Number(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const fmtDataBR = (d) => { if (!d) return '—'; const dt = new Date(d); return Number.isNaN(dt.getTime()) ? '—' : dt.toLocaleDateString('pt-BR'); };
+    const completo = !opcoes.modelo || opcoes.modelo === "gerencial" || opcoes.modelo === "livro";
+    const incluir = (campo, padrao = true) => opcoes[campo] === undefined ? padrao : !!opcoes[campo];
+    const paginaPaisagem = opcoes.formato === "a4-paisagem";
+    const permitirCustos = podeImprimirCustos && completo && incluir("custos", false);
 
     let conteudoHTML = `
        <!DOCTYPE html><html><head><meta charset="utf-8"/><title>Livro de Receitas</title>
@@ -944,7 +1137,7 @@ function FichasRunner() {
           .passo{font-size:13px;line-height:1.5;padding:7px 10px;font-weight:600}
           .passo:nth-child(even){background:#f5f7fa}
           .passo b{color:#0f172a;margin-right:4px}
-          @media print{@page{margin:12mm}}
+          @media print{@page{size:A4 ${paginaPaisagem ? "landscape" : "portrait"};margin:12mm}}
           .capa{height:88vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;page-break-after:always}
           .capa h1{font-size:46px;margin-bottom:14px}
           .capa p{font-size:18px;color:#64748b}
@@ -981,12 +1174,8 @@ function FichasRunner() {
       if (cat === 'sucos') return 'Sucos';
       return 'Preparos';
     };
-    const ehLivro = listaDeFichas.length > 1;
-    const lista = ehLivro
-      ? [...listaDeFichas].sort((a, b) =>
-          (ORDEM_SECOES.indexOf(secaoDe(a)) - ORDEM_SECOES.indexOf(secaoDe(b))) ||
-          String(a.nome_receita).localeCompare(String(b.nome_receita), 'pt-BR'))
-      : listaDeFichas;
+    const ehLivro = !!opcoes.livro || listaDeFichas.length >= 6;
+    const lista = [...listaDeFichas];
     // Capa e índice são montados DEPOIS, quando as páginas já foram distribuídas
     // (receitas pequenas se combinam 2 por página; as grandes se comprimem).
     const dados = lista.map((f) => {
@@ -1000,6 +1189,13 @@ function FichasRunner() {
          : (peso && peso.porcoes ? Number(peso.porcoes).toLocaleString('pt-BR') : '—');
       const custoPorcaoBase = unR === 'porcao' ? rende : (peso && peso.porcoes ? peso.porcoes : 0);
       const custoPorcao = custoPorcaoBase > 0 ? custoTotal / custoPorcaoBase : 0;
+      const produto = produtos.find(item => item.ficha_id === f.id
+        || String(item.nome_produto || "").toLocaleLowerCase("pt-BR") === String(f.nome_receita || "").toLocaleLowerCase("pt-BR"));
+      const precoVenda = Number(produto?.preco_venda) || 0;
+      const cmv = precoVenda > 0 ? (custoPorcao / precoVenda) * 100 : null;
+      const margem = cmv === null ? null : 100 - cmv;
+      const montagem = montagens.find(item =>
+        String(item.nome || "").toLocaleLowerCase("pt-BR") === String(f.nome_receita || "").toLocaleLowerCase("pt-BR"));
       // Rendimento = só o peso em GRAMAS. Se estiver em kg (ou L), converte p/ g.
       const pesoGramas = (peso && peso.pesoTotalG) ? peso.pesoTotalG
          : (unR === 'kg' || unR === 'l') ? rende * 1000
@@ -1022,9 +1218,9 @@ function FichasRunner() {
          return `<tr><td>${esc(tipo)}</td><td>${esc(nome)}</td><td>${esc(String(unidade || '').toUpperCase())}</td><td class="r">${fmtQtd(fi.quantidade, unidade)}</td></tr>`;
       }).join('');
 
-      const foto = f.imagem
+      const foto = incluir("foto") && f.imagem
          ? `<img src="data:image/jpeg;base64,${f.imagem}" class="foto" />`
-         : `<div class="foto-vazia">SEM FOTO</div>`;
+         : incluir("foto") ? `<div class="foto-vazia">SEM FOTO</div>` : "";
       const tipoFicha = f.eh_base ? 'Receita base' : 'Produto de venda';
       const deptLabel = f.departamento === 'bar' ? 'Bar' : (f.departamento === 'cozinha' ? 'Cozinha' : (f.departamento || '—'));
 
@@ -1045,9 +1241,10 @@ function FichasRunner() {
                      <div class="campo"><b>Categoria:</b> ${esc(f.categoria || deptLabel)}</div>
                      <div class="campo"><b>Área:</b> ${esc(deptLabel)}</div>
                      <div class="campo"><b>Tempo de preparo:</b> ${f.tempo_preparo != null && f.tempo_preparo !== '' ? esc(String(f.tempo_preparo)) + ' min' : '—'}</div>
-                     <div class="campo"><b>Data de criação:</b> ${fmtDataBR(f.created_at)}</div>
-                     <div class="campo"><b>Última atualização:</b> ${fmtDataBR(f.updated_at)}</div>
-                     ${f.observacoes ? `<div class="campo full"><b>Observações:</b> ${esc(f.observacoes)}</div>` : ''}
+                     ${incluir("atualizacao") ? `<div class="campo"><b>Data de criação:</b> ${fmtDataBR(f.created_at)}</div>
+                     <div class="campo"><b>Última atualização:</b> ${fmtDataBR(f.updated_at)}</div>` : ""}
+                     ${incluir("responsaveis") && f.responsavel ? `<div class="campo full"><b>Responsável:</b> ${esc(f.responsavel)}</div>` : ""}
+                     ${incluir("observacoes") && f.observacoes ? `<div class="campo full"><b>Observações:</b> ${esc(f.observacoes)}</div>` : ''}
                   </div>
                </div>
             </div>
@@ -1058,14 +1255,27 @@ function FichasRunner() {
                <tbody><tr><td>${pesoGramas > 0 ? Math.round(pesoGramas).toLocaleString('pt-BR') + ' g' : '—'}</td></tr></tbody>
             </table>
 
-            <h2>Itens do preparo</h2>
+            ${incluir("ingredientes") ? `<h2>Itens do preparo</h2>
             <table>
                <thead><tr><th>Tipo</th><th>Nome</th><th>Medida</th><th class="r">Quantidade total</th></tr></thead>
                <tbody>${rows || '<tr><td colspan="4">Sem itens cadastrados.</td></tr>'}</tbody>
-            </table>
+            </table>` : ""}
 
-            <h2>Modo de preparo</h2>
-            <div class="passos">${passosHTML}</div>`;
+            ${permitirCustos ? `<h2>Custos e precificação</h2>
+            <table><thead><tr>
+              <th>Custo total</th><th>Custo/porção</th>
+              ${incluir("preco", false) ? "<th>Preço de venda</th>" : ""}
+              ${incluir("cmv", false) ? "<th>CMV</th>" : ""}
+              ${incluir("margem", false) ? "<th>Margem</th>" : ""}
+            </tr></thead><tbody><tr>
+              <td>${fmtBRL(custoTotal)}</td><td>${fmtBRL(custoPorcao)}</td>
+              ${incluir("preco", false) ? `<td>${precoVenda > 0 ? fmtBRL(precoVenda) : "—"}</td>` : ""}
+              ${incluir("cmv", false) ? `<td>${cmv === null ? "—" : cmv.toFixed(1) + "%"}</td>` : ""}
+              ${incluir("margem", false) ? `<td>${margem === null ? "—" : margem.toFixed(1) + "%"}</td>` : ""}
+            </tr></tbody></table>` : ""}
+
+            ${incluir("preparo") ? `<h2>Modo de preparo</h2><div class="passos">${passosHTML}</div>` : ""}
+            ${incluir("montagem") ? `<h2>Guia de montagem</h2><div class="passos"><div class="passo">${esc(montagem?.descritivo || montagem?.observacoes || "Não informado.")}</div></div>` : ""}`;
 
       // Altura estimada (≈mm) para decidir se cabe DUAS na mesma página
       const score = (f.imagem ? 80 : 38) + 34 + (f.fichas_ingredientes || []).length * 7 + 10 + passos.length * 7 + (f.observacoes ? 8 : 0);
@@ -1091,14 +1301,16 @@ function FichasRunner() {
         paginasLivro.push(pg);
         i = j;
       }
+      const paginasIniciais = (incluir("capa", true) ? 1 : 0) + (incluir("indice", true) ? 1 : 0);
       const paginaPorFicha = {};
-      paginasLivro.forEach((pg, pi) => pg.forEach(x => { paginaPorFicha[x.f.id] = pi + 3; }));
+      paginasLivro.forEach((pg, pi) => pg.forEach(x => { paginaPorFicha[x.f.id] = pi + paginasIniciais + 1; }));
 
-      conteudoHTML += `
+      if (incluir("capa", true)) conteudoHTML += `
          <div class="capa">
            <div style="margin-bottom:26px">${logoSeldeestrelaSVG(70)}</div>
            <h1>Livro de Receitas</h1>
            <p>${lista.length} receitas catalogadas</p>
+           <p style="margin-top:8px;font-size:15px">${esc(unidadeInfo?.nome || "")}</p>
            <p style="margin-top:8px;font-size:14px;color:#94a3b8">${new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</p>
          </div>
        `;
@@ -1110,25 +1322,25 @@ function FichasRunner() {
           `<div class="ind-item"><span>${esc(x.f.nome_receita)}</span><span class="pontos"></span><span class="pg">${paginaPorFicha[x.f.id]}</span></div>`
         ).join('');
       });
-      conteudoHTML += `
+      if (incluir("indice", true)) conteudoHTML += `
          <div class="indice">
            <h1>Índice</h1>
            ${indiceHTML}
-           <div class="rodape-livro"><span>${esc(unidadeInfo?.nome || '')}</span><span>Página 2</span></div>
+           <div class="rodape-livro"><span>${esc(unidadeInfo?.nome || '')}</span><span>Página ${incluir("capa", true) ? 2 : 1}</span></div>
          </div>
        `;
       paginasLivro.forEach((pg, pi) => {
         conteudoHTML += `
          <div class="pagina-livro">
             <div class="conteudo-pg">${pg.map(x => `<div class="ficha${pg.length >= 2 ? ' ficha-metade' : ''}">${x.corpo}</div>`).join('')}</div>
-            <div class="rodape-livro"><span>${esc(pg[0].secao)} · ${esc(unidadeInfo?.nome || '')}</span><span>Página ${pi + 3}</span></div>
+            <div class="rodape-livro"><span>${esc(pg[0].secao)} · ${esc(unidadeInfo?.nome || '')}</span><span>Página ${pi + paginasIniciais + 1}</span></div>
          </div>`;
       });
       // Receita/página maior que a folha? Comprime até caber — nunca vaza.
       conteudoHTML += `<script>addEventListener('load',function(){document.querySelectorAll('.pagina-livro').forEach(function(pg){var c=pg.querySelector('.conteudo-pg');if(!c)return;if(c.scrollHeight>c.clientHeight+4){c.style.zoom=Math.max(0.5,c.clientHeight/c.scrollHeight);}});});<\/script>`;
     } else {
       // Ficha(s) avulsa(s): logo da marca no topo de cada folha impressa.
-      conteudoHTML += dados.map(x => `<div class="ficha"><div style="display:flex;justify-content:center;margin-bottom:10px">${logoSeldeestrelaSVG(40)}</div>${x.corpo}</div>`).join('');
+      conteudoHTML += dados.map((x, indice) => `<div class="ficha${dados.length > 1 && indice < dados.length - 1 ? " quebra" : ""}"><div style="display:flex;justify-content:center;margin-bottom:10px">${logoSeldeestrelaSVG(40)}</div>${x.corpo}</div>`).join('');
     }
 
     conteudoHTML += `</body></html>`;
@@ -1359,7 +1571,7 @@ function FichasRunner() {
       >
                <button onClick={() => {
                      if (!fichas.length) return alert("Nenhuma ficha para o livro.");
-                     imprimirFichas(fichas); // livro completo: capa, índice, páginas e seções
+                     abrirPreviaImpressao("livro", fichas);
                   }}
                   title="Livro completo: capa, índice, páginas numeradas e seções (pré-preparos, preparos, molhos, pratos, sobremesas, sucos)"
                   className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15">
@@ -1367,7 +1579,7 @@ function FichasRunner() {
                </button>
                <button onClick={() => {
                      if (!fichas.length) return alert("Nenhuma ficha para o livro.");
-                     baixarPdfFichas(fichas, "livro-de-receitas");
+                     abrirPreviaImpressao("pdf", fichas);
                   }}
                   title="Baixar o Livro de Receitas completo em PDF"
                   className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15">
@@ -1417,24 +1629,51 @@ function FichasRunner() {
                 : "Bases usadas dentro de outros pratos (molhos, massas, caldos). Marque \"É uma base/pré-preparo\" ao criar."}
             </p>
          )}
-         <div className="bg-white p-3 rounded-2xl border border-slate-200 mb-6 flex flex-col sm:flex-row items-center gap-3 shadow-sm justify-between">
+         <div className="bg-white p-3 rounded-2xl border border-slate-200 mb-3 flex flex-col lg:flex-row items-stretch lg:items-center gap-3 shadow-sm justify-between">
             <div className="flex flex-1 items-center gap-2 px-2">
                <Search size={20} className="text-slate-500" />
                <input type="text" placeholder="Buscar receita..." value={busca} onChange={e=>setBusca(e.target.value)} className="w-full outline-none font-bold text-slate-700 p-2" />
             </div>
             
-            {/* Controles de Livro de Receitas */}
-             <div className="flex flex-wrap items-center gap-2 sm:gap-3 border-t sm:border-t-0 sm:border-l border-slate-200 pt-3 sm:pt-0 sm:pl-3 w-full sm:w-auto">
-                <button onClick={toggleSelecionarTodas} className="text-xs font-bold text-slate-500 hover:text-emerald-600 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 whitespace-nowrap">
-                  {selecionadas.length === filtradas.length && filtradas.length > 0 ? "Desmarcar Todas" : "Selecionar Todas"}
-               </button>
-               {selecionadas.length > 0 && (
-                  <button onClick={imprimirLivroSelecionadas} className="flex items-center gap-2 bg-slate-800 text-white px-4 py-2 rounded-lg font-bold hover:bg-slate-700 text-xs shadow-md">
-                     <Printer size={16}/> Imprimir Livro ({selecionadas.length})
-                  </button>
-               )}
-            </div>
+             <div className="flex flex-wrap items-center gap-2 border-t lg:border-t-0 lg:border-l border-slate-200 pt-3 lg:pt-0 lg:pl-3">
+                <button onClick={selecionarPaginaLote} disabled={!fichasPagina.length} className="text-xs font-bold text-slate-600 hover:text-emerald-700 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 disabled:opacity-50">
+                  <CheckSquare2 size={15} className="inline mr-1.5" /> Selecionar página
+                </button>
+                <button onClick={selecionarResultadoLote} disabled={!filtradas.length} className="text-xs font-bold text-slate-600 hover:text-emerald-700 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 disabled:opacity-50">
+                  Selecionar resultado ({filtradas.length})
+                </button>
+                {selecionadas.length > 0 && <button onClick={limparSelecaoLote} className="text-xs font-bold text-slate-500 hover:text-rose-600 px-3 py-2">Limpar seleção</button>}
+             </div>
          </div>
+
+         {selecionadas.length > 0 && (
+           <div className="sticky top-2 z-30 mb-4 rounded-2xl border border-emerald-200 bg-white p-3 shadow-lg shadow-emerald-900/10">
+             <div className="flex flex-col xl:flex-row xl:items-center gap-3">
+               <div className="flex items-center justify-between gap-3 xl:min-w-48">
+                 <div>
+                   <p className="text-sm font-black text-slate-800">{selecionadas.length} {selecionadas.length === 1 ? "ficha selecionada" : "fichas selecionadas"}</p>
+                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">A seleção continua ao trocar de página</p>
+                 </div>
+                 <button onClick={limparSelecaoLote} title="Fechar ações e limpar seleção" className="xl:hidden p-2 rounded-lg bg-slate-100 text-slate-500"><X size={16}/></button>
+               </div>
+               <div className="flex flex-wrap gap-2 xl:flex-1 xl:justify-end">
+                 <button onClick={() => abrirPreviaImpressao("imprimir")} className="flex items-center gap-1.5 rounded-xl bg-emerald-700 px-3 py-2 text-xs font-black text-white hover:bg-emerald-800"><Printer size={15}/> Imprimir</button>
+                 <button onClick={() => abrirPreviaImpressao("livro")} className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"><BookOpen size={15}/> Gerar livro</button>
+                 <button onClick={() => abrirPreviaImpressao("pdf")} className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"><FileDown size={15}/> Exportar PDF</button>
+                 <button onClick={duplicarFichasSelecionadas} disabled={processandoLote} className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50 disabled:opacity-50"><Copy size={15}/> Duplicar</button>
+                 <button onClick={() => abrirExclusaoSegura()} disabled={processandoLote} className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 hover:bg-rose-100 disabled:opacity-50"><Trash2 size={15}/> Excluir</button>
+                 <button onClick={limparSelecaoLote} title="Fechar ações e limpar seleção" className="hidden xl:flex p-2 rounded-lg bg-slate-100 text-slate-500 hover:text-slate-800"><X size={16}/></button>
+               </div>
+             </div>
+           </div>
+         )}
+
+         {mensagemLote && (
+           <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">
+             <span className="flex items-center gap-2"><CheckCircle2 size={18}/>{mensagemLote}</span>
+             <button onClick={() => setMensagemLote("")}><X size={16}/></button>
+           </div>
+         )}
 
          {loading ? (
             <p className="font-bold text-slate-500">Buscando receitas...</p>
@@ -1446,7 +1685,7 @@ function FichasRunner() {
             </div>
          ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
-               {filtradas.map(f => {
+               {fichasPagina.map(f => {
                   const peso = infoPesoFicha(f, fichas);
                   const unR = String(f.rendimento_unidade || "porcao").toLowerCase();
                   const labelUn = { porcao: "porções", kg: "kg", g: "g", l: "L", ml: "ml", un: "un" }[unR] || unR;
@@ -1480,10 +1719,10 @@ function FichasRunner() {
                                  <button onClick={() => router.push(`/dashboard/operacao/montagem?dept=${f.departamento || deptUrl}&q=${encodeURIComponent(f.nome_receita)}`)} title="Abrir a Guia de Montagem deste prato" className="p-1.5 bg-white/90 backdrop-blur rounded-md text-slate-600 hover:text-emerald-600 shadow-sm"><LayoutList size={13}/></button>
                               )}
                               <button onClick={() => abrirSimulacao(f)} title="Simular outro rendimento" className="p-1.5 bg-white/90 backdrop-blur rounded-md text-slate-600 hover:text-emerald-600 shadow-sm"><Calculator size={13}/></button>
-                              <button onClick={() => imprimirFicha(f)} title="Imprimir ficha técnica" className="p-1.5 bg-white/90 backdrop-blur rounded-md text-slate-600 hover:text-emerald-600 shadow-sm"><Printer size={13}/></button>
-                              <button onClick={() => baixarPdfFichas([f], f.nome_receita)} title="Baixar ficha técnica em PDF" className="p-1.5 bg-white/90 backdrop-blur rounded-md text-slate-600 hover:text-emerald-600 shadow-sm"><Download size={13}/></button>
+                              <button onClick={() => abrirPreviaImpressao("imprimir", [f])} title="Imprimir ficha técnica" className="p-1.5 bg-white/90 backdrop-blur rounded-md text-slate-600 hover:text-emerald-600 shadow-sm"><Printer size={13}/></button>
+                              <button onClick={() => abrirPreviaImpressao("pdf", [f])} title="Baixar ficha técnica em PDF" className="p-1.5 bg-white/90 backdrop-blur rounded-md text-slate-600 hover:text-emerald-600 shadow-sm"><Download size={13}/></button>
                               <button onClick={() => abrirEditar(f)} title="Editar" className="p-1.5 bg-white/90 backdrop-blur rounded-md text-slate-600 hover:text-emerald-600 shadow-sm"><Edit3 size={13}/></button>
-                              <button onClick={() => handleRemover(f.id)} title="Remover" className="p-1.5 bg-white/90 backdrop-blur rounded-md text-slate-600 hover:text-rose-600 shadow-sm"><Trash2 size={13}/></button>
+                              <button onClick={() => abrirExclusaoSegura([f])} title="Remover" className="p-1.5 bg-white/90 backdrop-blur rounded-md text-slate-600 hover:text-rose-600 shadow-sm"><Trash2 size={13}/></button>
                            </div>
                         </div>
                         <div className="p-3">
@@ -1528,7 +1767,224 @@ function FichasRunner() {
                })}
             </div>
          )}
+         {!loading && filtradas.length > 0 && (
+           <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+             <p className="text-xs font-bold text-slate-500">
+               Mostrando {(pagina - 1) * porPagina + 1} a {Math.min(pagina * porPagina, filtradas.length)} de {filtradas.length} fichas
+             </p>
+             <div className="flex flex-wrap items-center justify-center gap-2">
+               <select value={porPagina} onChange={e => setPorPagina(Number(e.target.value))} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 outline-none">
+                 {[8, 12, 24, 48].map(valor => <option key={valor} value={valor}>{valor} por página</option>)}
+               </select>
+               <button onClick={() => setPagina(p => Math.max(1, p - 1))} disabled={pagina <= 1} title="Página anterior" className="rounded-xl border border-slate-200 p-2 text-slate-600 disabled:opacity-30"><ChevronLeft size={17}/></button>
+               <span className="min-w-24 text-center text-xs font-black text-slate-700">Página {pagina} de {totalPaginas}</span>
+               <button onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))} disabled={pagina >= totalPaginas} title="Próxima página" className="rounded-xl border border-slate-200 p-2 text-slate-600 disabled:opacity-30"><ChevronRight size={17}/></button>
+             </div>
+           </div>
+         )}
       </div>
+
+      {/* PRÉVIA E CONFIGURAÇÃO DA IMPRESSÃO / PDF */}
+      {modalImpressao && configImpressao && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/70 p-2 sm:p-4 backdrop-blur-sm">
+          <div className="flex max-h-[calc(100dvh-1rem)] w-full max-w-6xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl sm:max-h-[94vh]">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-4 sm:px-6">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">Prévia do documento</p>
+                <h2 className="text-xl font-black text-slate-900 sm:text-2xl">{modalImpressao.lista.length} {modalImpressao.lista.length === 1 ? "ficha técnica" : "fichas técnicas"}</h2>
+              </div>
+              <button onClick={() => setModalImpressao(null)} className="rounded-full bg-slate-100 p-3 text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+            </div>
+
+            <div className="grid flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+              <div className="space-y-5 border-b border-slate-200 bg-slate-50 p-4 sm:p-6 lg:border-b-0 lg:border-r">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <label className="text-xs font-black text-slate-600">Modelo
+                    <select value={configImpressao.modelo} onChange={e => {
+                      const modelo = e.target.value;
+                      setConfigImpressao(atual => ({
+                        ...atual, modelo,
+                        livro: modelo === "livro",
+                        capa: modelo === "livro",
+                        indice: modelo === "livro",
+                        custos: modelo !== "operacional" && podeImprimirCustos,
+                        preco: modelo !== "operacional" && podeImprimirCustos,
+                        cmv: modelo !== "operacional" && podeImprimirCustos,
+                        margem: modelo !== "operacional" && podeImprimirCustos,
+                      }));
+                    }} className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none">
+                      <option value="operacional">Operacional</option>
+                      {podeImprimirCustos && <option value="gerencial">Gerencial</option>}
+                      <option value="resumido">Resumo rápido</option>
+                      <option value="livro">Livro completo</option>
+                    </select>
+                  </label>
+                  <label className="text-xs font-black text-slate-600">Ordem
+                    <select value={configImpressao.ordem} onChange={e => setConfigImpressao(atual => ({...atual, ordem: e.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none">
+                      <option value="selecao">Ordem da seleção</option>
+                      <option value="nome">Nome A–Z</option>
+                      <option value="categoria">Categoria</option>
+                      <option value="tipo">Tipo</option>
+                      <option value="personalizada">Personalizada</option>
+                    </select>
+                  </label>
+                  <label className="text-xs font-black text-slate-600">Formato
+                    <select value={configImpressao.formato} onChange={e => setConfigImpressao(atual => ({...atual, formato: e.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none">
+                      <option value="a4-retrato">A4 retrato</option>
+                      <option value="a4-paisagem">A4 paisagem</option>
+                    </select>
+                  </label>
+                </div>
+
+                {!podeImprimirCustos && (
+                  <div className="flex gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-bold text-amber-800">
+                    <ShieldAlert size={18} className="shrink-0"/> Os custos, preços, CMV e margem ficam ocultos de acordo com a permissão do seu usuário.
+                  </div>
+                )}
+
+                <div>
+                  <p className="mb-2 text-xs font-black uppercase tracking-wider text-slate-500">Conteúdo incluído</p>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {[
+                      ["foto", "Foto"], ["ingredientes", "Ingredientes"], ["preparo", "Preparo"],
+                      ["montagem", "Montagem"], ["observacoes", "Observações"], ["responsaveis", "Responsável"],
+                      ["atualizacao", "Atualização"], ["capa", "Capa"], ["indice", "Índice"],
+                      ...(podeImprimirCustos ? [["custos", "Custos"], ["preco", "Preço"], ["cmv", "CMV"], ["margem", "Margem"]] : []),
+                    ].map(([campo, label]) => (
+                      <label key={campo} className="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700">
+                        <input type="checkbox" checked={!!configImpressao[campo]} onChange={e => setConfigImpressao(atual => ({...atual, [campo]: e.target.checked, ...(campo === "capa" || campo === "indice" ? { livro: e.target.checked || atual.livro } : {})}))} className="h-4 w-4 accent-emerald-700"/>
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {configImpressao.ordem === "personalizada" && modalImpressao.lista.length > 1 && (
+                  <div>
+                    <p className="mb-2 text-xs font-black uppercase tracking-wider text-slate-500">Arraste a ordem com as setas</p>
+                    <div className="max-h-48 space-y-1 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2">
+                      {listaOrdenadaPrevia().map((ficha, indice, lista) => (
+                        <div key={ficha.id} className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2">
+                          <span className="w-6 text-xs font-black text-slate-400">{indice + 1}</span>
+                          <span className="flex-1 truncate text-xs font-bold text-slate-700">{ficha.nome_receita}</span>
+                          <button onClick={() => moverFichaNaPrevia(ficha.id, -1)} disabled={indice === 0} className="p-1 text-slate-500 disabled:opacity-20"><ArrowUp size={15}/></button>
+                          <button onClick={() => moverFichaNaPrevia(ficha.id, 1)} disabled={indice === lista.length - 1} className="p-1 text-slate-500 disabled:opacity-20"><ArrowDown size={15}/></button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-white p-4 sm:p-6">
+                <div className={`mx-auto min-h-[420px] max-w-2xl rounded-lg border border-slate-300 bg-white p-5 shadow-xl ${configImpressao.formato === "a4-paisagem" ? "aspect-[1.414/1]" : "aspect-[1/1.414]"}`}>
+                  <div className="flex items-start justify-between gap-3 border-b-2 border-emerald-700 pb-3">
+                    <div>
+                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-700">{configImpressao.livro ? "Livro de fichas técnicas" : "Fichas técnicas"}</p>
+                      <h3 className="mt-1 text-xl font-black text-slate-900">{unidadeInfo?.nome || "Seldeestrela"}</h3>
+                    </div>
+                    <BookOpen size={30} className="text-emerald-700"/>
+                  </div>
+                  <div className="mt-5 grid grid-cols-2 gap-3">
+                    <div className="rounded-xl bg-slate-50 p-3"><p className="text-[9px] font-black uppercase text-slate-400">Fichas</p><p className="text-2xl font-black text-slate-800">{modalImpressao.lista.length}</p></div>
+                    <div className="rounded-xl bg-slate-50 p-3"><p className="text-[9px] font-black uppercase text-slate-400">Estimativa</p><p className="text-2xl font-black text-slate-800">{estimarPaginasDocumento(modalImpressao.lista.length, configImpressao)} pág.</p></div>
+                  </div>
+                  <p className="mt-5 text-[10px] font-black uppercase tracking-wider text-slate-400">Ordem do documento</p>
+                  <div className="mt-2 space-y-2">
+                    {listaOrdenadaPrevia().slice(0, 6).map((ficha, indice) => (
+                      <div key={ficha.id} className="flex items-center gap-3 rounded-lg border border-slate-100 px-3 py-2">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-50 text-[10px] font-black text-emerald-700">{indice + 1}</span>
+                        <span className="truncate text-xs font-bold text-slate-700">{ficha.nome_receita}</span>
+                      </div>
+                    ))}
+                    {modalImpressao.lista.length > 6 && <p className="text-center text-xs font-bold text-slate-400">+ {modalImpressao.lista.length - 6} fichas no documento</p>}
+                  </div>
+                  <p className="mt-5 text-[10px] font-bold text-slate-400">Modelo {configImpressao.modelo} · {configImpressao.formato === "a4-paisagem" ? "Paisagem" : "Retrato"} · {configImpressao.capa ? "Com capa" : "Sem capa"} · {configImpressao.indice ? "Com índice" : "Sem índice"}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 bg-white p-4 sm:px-6">
+              <button onClick={() => setModalImpressao(null)} className="mr-auto flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black text-slate-600 hover:bg-slate-100"><ArrowLeft size={17}/> Voltar</button>
+              <button onClick={salvarModeloImpressao} className="flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-black text-slate-700"><Save size={17}/> Salvar modelo</button>
+              <button onClick={() => gerarDocumentoConfigurado("pdf")} className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-black text-emerald-800"><Download size={17}/> Gerar PDF</button>
+              <button onClick={() => gerarDocumentoConfigurado("imprimir")} className="flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white hover:bg-emerald-800"><Printer size={17}/> Imprimir</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EXCLUSÃO SEGURA EM LOTE */}
+      {modalExclusao && (
+        <div className="fixed inset-0 z-[95] flex items-center justify-center bg-slate-950/70 p-3 backdrop-blur-sm">
+          <div className="w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl">
+            <div className="flex items-start justify-between gap-3 border-b border-slate-200 p-5 sm:p-6">
+              <div className="flex gap-3">
+                <div className="rounded-2xl bg-rose-100 p-3 text-rose-700"><AlertTriangle size={24}/></div>
+                <div>
+                  <h2 className="text-xl font-black text-slate-900">Confirmar exclusão segura</h2>
+                  <p className="mt-1 text-sm font-bold text-slate-500">Você está prestes a excluir {modalExclusao.lista.length} {modalExclusao.lista.length === 1 ? "ficha técnica" : "fichas técnicas"}.</p>
+                </div>
+              </div>
+              <button onClick={() => setModalExclusao(false)} disabled={processandoLote} className="rounded-full bg-slate-100 p-2 text-slate-500"><X size={18}/></button>
+            </div>
+
+            <div className="max-h-[62vh] space-y-4 overflow-y-auto p-5 sm:p-6">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Fichas selecionadas</p>
+                <p className="mt-1 text-sm font-bold text-slate-700">{modalExclusao.lista.slice(0, 8).map(f => f.nome_receita).join(", ")}{modalExclusao.lista.length > 8 ? ` e mais ${modalExclusao.lista.length - 8}` : ""}.</p>
+              </div>
+
+              {!dependenciasExclusao ? (
+                <div className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 p-6 text-sm font-bold text-slate-500"><Loader2 size={18} className="animate-spin"/> Verificando cardápio, outras receitas, montagem e histórico...</div>
+              ) : (() => {
+                const { vinculadas, livres } = separarFichasPorDependencias(modalExclusao.lista, dependenciasExclusao);
+                return (
+                  <>
+                    {dependenciasExclusao.avisos?.length > 0 && (
+                      <div className="flex gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-bold text-amber-800">
+                        <ShieldAlert size={18} className="shrink-0"/> A verificação não foi concluída em todas as áreas. Por segurança, a exclusão definitiva foi bloqueada; use apenas inativar ou cancelar.
+                      </div>
+                    )}
+                    {vinculadas.length > 0 ? (
+                      <div className="space-y-2">
+                        <p className="text-sm font-black text-slate-800">{vinculadas.length} {vinculadas.length === 1 ? "ficha possui vínculo" : "fichas possuem vínculos"} e não será excluída diretamente:</p>
+                        {vinculadas.map(ficha => (
+                          <div key={ficha.id} className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                            <p className="text-sm font-black text-slate-800">{ficha.nome_receita}</p>
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              {(dependenciasExclusao.porFicha?.[ficha.id] || []).map((item, indice) => <span key={`${item.tipo}-${indice}`} className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-amber-800">{item.tipo}: {item.nome}</span>)}
+                            </div>
+                          </div>
+                        ))}
+                        <p className="text-xs font-bold text-slate-500">Inativar preserva custos, vendas, produção e histórico. Os vínculos não são removidos automaticamente.</p>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-800"><CheckCircle2 size={19} className="shrink-0"/> Nenhum vínculo encontrado. As fichas podem ser excluídas com segurança.</div>
+                    )}
+                    {livres.length > 0 && vinculadas.length > 0 && <p className="text-xs font-bold text-emerald-700">{livres.length} ficha(s) sem vínculos podem ser excluídas separadamente.</p>}
+                  </>
+                );
+              })()}
+            </div>
+
+            <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 bg-slate-50 p-4 sm:px-6">
+              <button onClick={() => setModalExclusao(false)} disabled={processandoLote} className="mr-auto rounded-xl px-4 py-2.5 text-sm font-black text-slate-600">Cancelar</button>
+              {dependenciasExclusao && (() => {
+                const { vinculadas, livres } = separarFichasPorDependencias(modalExclusao.lista, dependenciasExclusao);
+                const verificacaoIncompleta = dependenciasExclusao.avisos?.length > 0;
+                return (
+                  <>
+                    {livres.length > 0 && vinculadas.length > 0 && !verificacaoIncompleta && <button onClick={() => concluirExclusaoLote("livres")} disabled={processandoLote} className="rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-black text-rose-700 disabled:opacity-50">Excluir somente livres ({livres.length})</button>}
+                    {(vinculadas.length > 0 || verificacaoIncompleta) && <button onClick={() => concluirExclusaoLote("inativar")} disabled={processandoLote} className="rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-black text-white disabled:opacity-50">{verificacaoIncompleta ? `Inativar com segurança (${modalExclusao.lista.length})` : `Inativar vinculadas (${vinculadas.length})`}</button>}
+                    {vinculadas.length === 0 && !verificacaoIncompleta && <button onClick={() => concluirExclusaoLote("todos")} disabled={processandoLote} className="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-black text-white disabled:opacity-50">{processandoLote ? "Excluindo..." : `Excluir ${modalExclusao.lista.length} ficha(s)`}</button>}
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL DE CRIAÇÃO DA FICHA TÉCNICA */}
       {modalNovo && (

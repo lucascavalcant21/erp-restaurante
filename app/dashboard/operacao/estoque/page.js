@@ -366,12 +366,12 @@ function EstoqueRunner() {
             </section>
 
             <section className="rounded-2xl border border-slate-200 bg-white">
-              <div className="flex gap-5 overflow-x-auto border-b border-slate-200 px-4 pt-1 sm:px-6">
+              <div className="grid grid-cols-2 gap-x-4 border-b border-slate-200 px-4 pt-1 sm:flex sm:gap-5 sm:overflow-x-auto sm:px-6">
                 {[
                   ["atual", "Estoque atual"], ["historico", "Histórico"],
                   ["movimentacoes", "Movimentações"], ["alertas", `Alertas (${alertas.length})`],
                 ].map(([id, label]) => (
-                  <button key={id} onClick={() => setAba(id)} className={`whitespace-nowrap border-b-2 px-1 py-4 text-sm font-extrabold ${aba === id ? "border-emerald-600 text-emerald-700" : "border-transparent text-slate-500"}`}>{label}</button>
+                  <button key={id} onClick={() => setAba(id)} className={`whitespace-nowrap border-b-2 px-1 py-3 text-xs font-extrabold sm:py-4 sm:text-sm ${aba === id ? "border-emerald-600 text-emerald-700" : "border-transparent text-slate-500"}`}>{label}</button>
                 ))}
               </div>
 
@@ -490,7 +490,7 @@ function TabelaItens({ itens, estoque, loading, onEntrada, onSaida, onEditar }) 
   if (!itens.length) return <div className="grid min-h-64 place-items-center px-5 text-center"><div><Package size={42} className="mx-auto mb-3 text-slate-300" /><p className="font-black text-slate-700">Nenhum item encontrado neste estoque</p><p className="mt-1 text-sm text-slate-500">Use “Nova entrada” ou “Importar lista” para começar.</p></div></div>;
   return (
     <>
-      <div className="hidden overflow-x-auto md:block">
+      <div className="hidden overflow-x-auto lg:block">
         <table className="w-full min-w-[1050px] text-left text-sm">
           <thead className="bg-slate-900 text-xs uppercase tracking-wide text-white"><tr>
             <th className="px-5 py-4">Produto</th><th className="px-4 py-4">Categoria</th><th className="px-4 py-4">Embalagem</th><th className="px-4 py-4">Custo/un.</th><th className="px-4 py-4">Saldo</th><th className="px-4 py-4">Mínimo</th>{estoque.controla_validade && <th className="px-4 py-4">Validade</th>}<th className="px-4 py-4">Local</th><th className="px-4 py-4">Última mov.</th><th className="px-4 py-4">Ações</th>
@@ -518,7 +518,7 @@ function TabelaItens({ itens, estoque, loading, onEntrada, onSaida, onEditar }) 
           </tbody>
         </table>
       </div>
-      <div className="divide-y divide-slate-100 md:hidden">
+      <div className="divide-y divide-slate-100 lg:hidden">
         {itens.map(item => {
           const status = statusItemEstoque(item, estoque);
           return <article key={item.id} className="p-4">

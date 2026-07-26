@@ -118,7 +118,42 @@ function EstoqueRunner() {
   const [formEstoque, setFormEstoque] = useState({});
   const [textoImportacao, setTextoImportacao] = useState("");
 
-  const estoqueAtual = useMemo(() => estoques.find(item => item.id === estoqueId), [estoques, estoqueId]);
+  const moduloPref = (searchParams.get("dept") || searchParams.get("modulo") || "").toLowerCase();
+
+  const estoquesVisiveis = useMemo(() => {
+    if (!estoques?.length) return [];
+
+    if (moduloPref.includes("cozinha")) {
+      const filtrados = estoques.filter(e => {
+        const s = (e.slug || e.nome || "").toLowerCase();
+        const t = (e.tipo || "").toLowerCase();
+        return s.includes("cozinha") || t === "alimentos" || s.includes("embalag") || t === "embalagens";
+      });
+      return filtrados.length ? filtrados : estoques;
+    }
+
+    if (moduloPref.includes("bar") || moduloPref.includes("bebida")) {
+      const filtrados = estoques.filter(e => {
+        const s = (e.slug || e.nome || "").toLowerCase();
+        const t = (e.tipo || "").toLowerCase();
+        return s.includes("bar") || t === "bebidas";
+      });
+      return filtrados.length ? filtrados : estoques;
+    }
+
+    if (moduloPref.includes("salão") || moduloPref.includes("salao") || moduloPref.includes("limpeza")) {
+      const filtrados = estoques.filter(e => {
+        const s = (e.slug || e.nome || "").toLowerCase();
+        const t = (e.tipo || "").toLowerCase();
+        return s.includes("limpeza") || t === "limpeza" || s.includes("salão") || s.includes("salao");
+      });
+      return filtrados.length ? filtrados : estoques;
+    }
+
+    return estoques;
+  }, [estoques, moduloPref]);
+
+  const estoqueAtual = useMemo(() => estoques.find(item => item.id === estoqueId) || estoquesVisiveis[0], [estoques, estoqueId, estoquesVisiveis]);
 
   const carregarEstoques = useCallback(async (manterId = "") => {
     if (!unidadeAtiva || unidadeAtiva === "todas") return;
@@ -128,13 +163,40 @@ function EstoqueRunner() {
       fetchColaboradores(unidadeAtiva),
     ]);
     if (resEstoques.error) setErro(resEstoques.error);
-    setEstoques(resEstoques.data || []);
+    const todosEstoques = resEstoques.data || [];
+    setEstoques(todosEstoques);
     setCatalogo(resCatalogo.data || []);
     setColaboradores(resColabs.data || []);
-    const preferencia = searchParams.get("dept");
-    const escolhido = resEstoques.data?.find(item => item.id === manterId)
-      || resEstoques.data?.find(item => item.slug === preferencia)
-      || resEstoques.data?.find(item => item.status === "ativo");
+
+    const preferencia = (searchParams.get("dept") || searchParams.get("modulo") || "").toLowerCase();
+    
+    let disponiveis = todosEstoques;
+    if (preferencia.includes("cozinha")) {
+      disponiveis = todosEstoques.filter(e => {
+        const s = (e.slug || e.nome || "").toLowerCase();
+        const t = (e.tipo || "").toLowerCase();
+        return s.includes("cozinha") || t === "alimentos" || s.includes("embalag") || t === "embalagens";
+      });
+    } else if (preferencia.includes("bar")) {
+      disponiveis = todosEstoques.filter(e => {
+        const s = (e.slug || e.nome || "").toLowerCase();
+        const t = (e.tipo || "").toLowerCase();
+        return s.includes("bar") || t === "bebidas";
+      });
+    } else if (preferencia.includes("salão") || preferencia.includes("salao") || preferencia.includes("limpeza")) {
+      disponiveis = todosEstoques.filter(e => {
+        const s = (e.slug || e.nome || "").toLowerCase();
+        const t = (e.tipo || "").toLowerCase();
+        return s.includes("limpeza") || t === "limpeza";
+      });
+    }
+
+    if (!disponiveis.length) disponiveis = todosEstoques;
+
+    const escolhido = disponiveis.find(item => item.id === manterId)
+      || disponiveis.find(item => item.status === "ativo")
+      || disponiveis[0];
+
     setEstoqueId(escolhido?.id || "");
   }, [unidadeAtiva, searchParams]);
 
@@ -622,7 +684,7 @@ function EstoqueRunner() {
             <button onClick={() => abrirEdicaoEstoque(estoqueAtual)} disabled={!estoqueAtual} className="text-sm font-bold text-emerald-700 hover:underline">Editar área</button>
           </div>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-            {estoques.map(estoque => (
+            {estoquesVisiveis.map(estoque => (
               <button
                 key={estoque.id}
                 onClick={() => setEstoqueId(estoque.id)}

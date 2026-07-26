@@ -239,6 +239,7 @@ function FichasRunner() {
   const [modalNovo, setModalNovo] = useState(false);
   const [fichaView, setFichaView] = useState(null); // ficha aberta em modo visualização (igual à foto)
   const [simPesoView, setSimPesoView] = useState(""); // simulador de porções da tela de visualização
+  const [viewTab, setViewTab] = useState("ficha"); // aba ativa na tela de visualização
   const [iaExplicacao, setIaExplicacao] = useState("");
   const [autoSoma, setAutoSoma] = useState(true);
 
@@ -1728,7 +1729,7 @@ function FichasRunner() {
                               <button onClick={() => abrirExclusaoSegura([f])} title="Remover" className="p-1.5 bg-white/90 backdrop-blur rounded-md text-slate-600 hover:text-rose-600 shadow-sm"><Trash2 size={13}/></button>
                            </div>
                         </div>
-                        <div className="p-3 cursor-pointer" onClick={() => { setSimPesoView(""); setFichaView(f); }} title="Ver ficha completa">
+                        <div className="p-3 cursor-pointer" onClick={() => { setSimPesoView(""); setViewTab("ficha"); setFichaView(f); }} title="Ver ficha completa">
                            {(() => {
                               // Métricas estilo "app de gestão": custo, preço, CMV e margem
                               const custoTotal = custoTotalDaFicha(f, fichas);
@@ -2052,10 +2053,21 @@ function FichasRunner() {
                      </div>
                   </div>
 
+                  {/* ABAS */}
+                  <div className="bg-white border-b border-slate-100 px-4 sm:px-6 flex gap-1 overflow-x-auto">
+                     {[["ficha", "Ficha técnica"], ["preparo", "Modo de preparo"], ["custos", "Histórico de custos"]].map(([id, rot]) => (
+                        <button key={id} onClick={() => setViewTab(id)}
+                           className={`shrink-0 px-3 py-3 text-sm font-black border-b-2 transition-colors ${viewTab === id ? "border-emerald-600 text-emerald-700" : "border-transparent text-slate-400 hover:text-slate-600"}`}>
+                           {rot}
+                        </button>
+                     ))}
+                  </div>
+
                   {/* CORPO: conteúdo + sidebar */}
                   <div className="flex-1 overflow-y-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-[1.55fr_1fr] gap-4 sm:gap-5 items-start">
                      {/* COLUNA PRINCIPAL */}
                      <div className="space-y-4 sm:space-y-5">
+                        {viewTab === "ficha" && (<>
                         {/* INFORMAÇÕES GERAIS */}
                         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
                            <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700 mb-4">Informações gerais</p>
@@ -2127,6 +2139,52 @@ function FichasRunner() {
                               {porcoes > 0 && <span className="text-slate-500 font-bold">Custo por porção{pesoPorcaoG ? ` (${nf(pesoPorcaoG)} g)` : ""}: <b className="text-emerald-700 font-black">{fmtBRL(custoPorcao)}</b></span>}
                            </div>
                         </div>
+                        )}
+                        </>)}
+
+                        {/* ABA: MODO DE PREPARO */}
+                        {viewTab === "preparo" && (
+                           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
+                              <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700 mb-3">Modo de preparo</p>
+                              {(() => {
+                                 const passos = String(f.modo_preparo || "").split(/\n+/).map(s => s.trim()).filter(Boolean);
+                                 if (!passos.length) return <p className="text-sm text-slate-400 font-medium">Nenhum modo de preparo cadastrado. Use <b>Editar ficha</b> para adicionar.</p>;
+                                 return (
+                                    <ol className="space-y-2.5">
+                                       {passos.map((p, i) => (
+                                          <li key={i} className="flex gap-3">
+                                             <span className="w-7 h-7 shrink-0 rounded-full bg-emerald-100 text-emerald-700 font-black text-sm flex items-center justify-center">{i + 1}</span>
+                                             <span className="text-sm text-slate-700 font-medium leading-relaxed pt-0.5">{p.replace(/^\d+[.)\-\s]+/, "")}</span>
+                                          </li>
+                                       ))}
+                                    </ol>
+                                 );
+                              })()}
+                           </div>
+                        )}
+
+                        {/* ABA: HISTÓRICO / COMPOSIÇÃO DE CUSTOS */}
+                        {viewTab === "custos" && (
+                           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
+                              <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700 mb-1">Composição do custo</p>
+                              <p className="text-[11px] font-medium text-slate-400 mb-3">Participação de cada ingrediente no custo total ({fmtBRL(custoTotal)}).</p>
+                              <div className="space-y-2.5">
+                                 {[...linhas].sort((a, b) => b.custoTot - a.custoTot).map((l, i) => {
+                                    const pct = custoTotal > 0 ? (l.custoTot / custoTotal) * 100 : 0;
+                                    return (
+                                       <div key={i}>
+                                          <div className="flex items-center justify-between text-sm mb-1">
+                                             <span className="font-bold text-slate-700 truncate pr-2">{l.nome}</span>
+                                             <span className="font-black text-slate-800 shrink-0">{fmtBRL(l.custoTot)} <span className="text-slate-400 font-bold">· {pct.toFixed(1)}%</span></span>
+                                          </div>
+                                          <div className="h-2 rounded-full bg-slate-100 overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(100, pct)}%` }} /></div>
+                                       </div>
+                                    );
+                                 })}
+                                 {linhas.length === 0 && <p className="text-sm text-slate-400 font-medium">Sem ingredientes para compor o custo.</p>}
+                              </div>
+                              <p className="text-[11px] font-medium text-slate-400 mt-4 pt-3 border-t border-slate-100">O histórico de variação de preços por período depende de um registro dedicado — por enquanto mostramos a composição atual do custo.</p>
+                           </div>
                         )}
                      </div>
 

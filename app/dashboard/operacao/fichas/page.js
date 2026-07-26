@@ -15,6 +15,7 @@ import {
   CheckCircle2, CheckSquare2, ChevronLeft, ChevronRight, Copy, Download, Edit3,
   FileDown, GripVertical, LayoutList, Loader2, Package, Plus, Printer, Save,
   Search, ShieldAlert, Sparkles, Trash2, UtensilsCrossed, Wine, X,
+  Clock, Thermometer, MoreVertical,
 } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 import { logoSeldeestrelaSVG } from "../../../lib/marca";
@@ -236,6 +237,8 @@ function FichasRunner() {
   const [busca, setBusca] = useState("");
   
   const [modalNovo, setModalNovo] = useState(false);
+  const [fichaView, setFichaView] = useState(null); // ficha aberta em modo visualização (igual à foto)
+  const [simPesoView, setSimPesoView] = useState(""); // simulador de porções da tela de visualização
   const [iaExplicacao, setIaExplicacao] = useState("");
   const [autoSoma, setAutoSoma] = useState(true);
 
@@ -1725,7 +1728,7 @@ function FichasRunner() {
                               <button onClick={() => abrirExclusaoSegura([f])} title="Remover" className="p-1.5 bg-white/90 backdrop-blur rounded-md text-slate-600 hover:text-rose-600 shadow-sm"><Trash2 size={13}/></button>
                            </div>
                         </div>
-                        <div className="p-3">
+                        <div className="p-3 cursor-pointer" onClick={() => { setSimPesoView(""); setFichaView(f); }} title="Ver ficha completa">
                            {(() => {
                               // Métricas estilo "app de gestão": custo, preço, CMV e margem
                               const custoTotal = custoTotalDaFicha(f, fichas);
@@ -1985,6 +1988,234 @@ function FichasRunner() {
           </div>
         </div>
       )}
+
+      {/* TELA DE VISUALIZAÇÃO DA FICHA (igual à referência) */}
+      {fichaView && (() => {
+         const f = fichaView;
+         const peso = infoPesoFicha(f, fichas);
+         const custoTotal = custoTotalDaFicha(f, fichas);
+         const unR = String(f.rendimento_unidade || "porcao").toLowerCase();
+         const labelUn = { porcao: "porções", kg: "kg", g: "g", l: "L", ml: "ml", un: "un" }[unR] || unR;
+         const rend = Number(f.rendimento_porcoes) || 0;
+         const porcoes = (unR === "porcao" || unR === "un") ? rend : (peso?.porcoes || 0);
+         const custoPorcao = porcoes > 0 ? custoTotal / porcoes : custoTotal;
+         const custoKg = peso?.pesoTotalG > 0 ? custoTotal / (peso.pesoTotalG / 1000) : null;
+         const prod = produtos.find(x => x.ficha_id === f.id || String(x.nome_produto || "").toLowerCase() === String(f.nome_receita || "").toLowerCase());
+         const preco = Number(prod?.preco_venda) || 0;
+         const meta = Number(f.cmv_meta) || 30;
+         const cmv = preco > 0 ? (custoPorcao / preco) * 100 : null;
+         const margem = cmv !== null ? 100 - cmv : null;
+         const markup = preco > 0 && custoPorcao > 0 ? preco / custoPorcao : null;
+         const precoSugerido = meta > 0 ? custoPorcao / (meta / 100) : 0;
+         const pesoPorcaoG = Number(f.peso_porcao_g) || 0;
+         const simN = Number(String(simPesoView).replace(",", ".")) || 0;
+         const simPorcoes = pesoPorcaoG > 0 ? Math.floor(simN / pesoPorcaoG) : 0;
+         const simSobra = pesoPorcaoG > 0 ? simN - simPorcoes * pesoPorcaoG : 0;
+         const linhas = (f.fichas_ingredientes || []).map(fi => {
+            const base = fi.subficha_id ? fichas.find(x => x.id === fi.subficha_id) : null;
+            const nome = fi.insumos?.nome || base?.nome_receita || "Item";
+            const un = (fi.insumos?.unidade_medida || base?.rendimento_unidade || "un").toUpperCase();
+            const liquida = Number(fi.quantidade) || 0;
+            const fc = Number(fi.fator_correcao) || 0;
+            const bruta = liquida * (1 + fc / 100);
+            const custoUnit = fi.insumos?.custo_unitario != null ? Number(fi.insumos.custo_unitario) : (base ? custoUnitBase(base, fichas) : 0);
+            return { nome, un, liquida, fc, bruta, custoUnit, custoTot: custoUnit * bruta, base: !!base };
+         });
+         const nf = (n) => (+Number(n || 0).toFixed(3)).toLocaleString("pt-BR");
+         const setorTxt = f.departamento === "bar" ? "Bar" : "Cozinha";
+         const fechar = () => setFichaView(null);
+         return (
+            <div className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm flex items-start sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
+               <div className="bg-slate-50 w-full max-w-6xl min-h-full sm:min-h-0 sm:max-h-[92vh] sm:rounded-[28px] overflow-hidden shadow-2xl flex flex-col animate-in fade-in zoom-in-95">
+                  {/* CABEÇALHO */}
+                  <div className="bg-white border-b border-slate-100 px-4 sm:px-6 py-4 flex flex-wrap items-center gap-3">
+                     <button onClick={fechar} className="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 shrink-0"><ArrowLeft size={19} /></button>
+                     <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                        {f.departamento === "bar" ? <Wine size={20} /> : <UtensilsCrossed size={20} />}
+                     </div>
+                     <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                           <h2 className="text-lg sm:text-xl font-black text-slate-900 truncate">{f.nome_receita}</h2>
+                           <span className="inline-flex items-center text-[10px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-100 rounded-full px-2.5 py-0.5">Ativo</span>
+                        </div>
+                        <p className="text-[11px] font-bold text-slate-500 mt-0.5">{f.categoria || (f.eh_base ? "Pré-preparo" : "Prato")} · {setorTxt}</p>
+                     </div>
+                     <div className="flex items-center gap-2 shrink-0">
+                        {!f.eh_base && (
+                           <>
+                              <button onClick={() => abrirPreviaImpressao("imprimir", [f])} title="Imprimir" className="w-10 h-10 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-emerald-400 flex items-center justify-center"><Printer size={17} /></button>
+                              <button onClick={() => abrirPreviaImpressao("pdf", [f])} title="Gerar PDF" className="w-10 h-10 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-emerald-400 flex items-center justify-center"><Download size={17} /></button>
+                              <button onClick={() => abrirSimulacao(f)} title="Simular rendimento" className="w-10 h-10 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-emerald-400 flex items-center justify-center"><Calculator size={17} /></button>
+                           </>
+                        )}
+                        <button onClick={() => { fechar(); abrirEditar(f); }} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm px-4 h-10 shadow-sm"><Edit3 size={16} /> Editar ficha</button>
+                     </div>
+                  </div>
+
+                  {/* CORPO: conteúdo + sidebar */}
+                  <div className="flex-1 overflow-y-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-[1.55fr_1fr] gap-4 sm:gap-5 items-start">
+                     {/* COLUNA PRINCIPAL */}
+                     <div className="space-y-4 sm:space-y-5">
+                        {/* INFORMAÇÕES GERAIS */}
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
+                           <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700 mb-4">Informações gerais</p>
+                           <div className="flex flex-col sm:flex-row gap-4">
+                              <div className="grid grid-cols-2 gap-3 flex-1">
+                                 {[
+                                    ["Categoria", f.categoria || "—"],
+                                    ["Setor", setorTxt],
+                                    ["Rendimento", `${nf(rend)} ${labelUn}`],
+                                    ["Peso líquido", peso?.pesoTotalG ? fmtG(peso.pesoTotalG) : (pesoPorcaoG && porcoes ? fmtG(pesoPorcaoG * porcoes) : "—")],
+                                    ["Unidade de venda", unR === "porcao" ? "Porção" : labelUn],
+                                    ["Porção padrão", pesoPorcaoG ? `${nf(pesoPorcaoG)} g` : "—"],
+                                 ].map(([rot, val]) => (
+                                    <div key={rot} className="rounded-xl bg-slate-50 border border-slate-100 px-3 py-2">
+                                       <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">{rot}</p>
+                                       <p className="text-sm font-black text-slate-800 mt-0.5 truncate">{val}</p>
+                                    </div>
+                                 ))}
+                              </div>
+                              <div onClick={() => { fechar(); abrirEditar(f); }} className="w-full sm:w-40 h-32 sm:h-auto shrink-0 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 cursor-pointer relative group">
+                                 {f.imagem ? (
+                                    <img src={`data:image/jpeg;base64,${f.imagem}`} alt={f.nome_receita} className="w-full h-full object-cover" />
+                                 ) : (
+                                    <div className="w-full h-full flex flex-col items-center justify-center text-slate-300 gap-1"><Camera size={26} /><span className="text-[9px] font-black uppercase tracking-widest">Sem foto</span></div>
+                                 )}
+                                 <div className="absolute inset-x-0 bottom-0 bg-slate-900/60 text-white text-[10px] font-bold py-1 text-center opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1"><Camera size={12} /> Alterar imagem</div>
+                              </div>
+                           </div>
+                        </div>
+
+                        {/* INGREDIENTES E CUSTOS */}
+                        {!f.eh_base && (
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
+                           <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700 mb-3">Ingredientes e custos</p>
+                           <div className="overflow-x-auto">
+                              <table className="w-full text-sm min-w-[560px]">
+                                 <thead>
+                                    <tr className="text-[9px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-200">
+                                       <th className="text-left font-black py-2 pr-2">Ingrediente</th>
+                                       <th className="text-center font-black py-2 px-1">Unid.</th>
+                                       <th className="text-right font-black py-2 px-1">Qtd. bruta</th>
+                                       <th className="text-right font-black py-2 px-1">FC %</th>
+                                       <th className="text-right font-black py-2 px-1">Qtd. líq.</th>
+                                       <th className="text-right font-black py-2 px-1">Custo un.</th>
+                                       <th className="text-right font-black py-2 pl-1">Custo total</th>
+                                    </tr>
+                                 </thead>
+                                 <tbody>
+                                    {linhas.length === 0 && (
+                                       <tr><td colSpan={7} className="py-6 text-center text-slate-400 font-medium">Sem ingredientes cadastrados.</td></tr>
+                                    )}
+                                    {linhas.map((l, i) => (
+                                       <tr key={i} className="border-b border-slate-50">
+                                          <td className="py-2.5 pr-2 font-bold text-slate-800">{l.nome}{l.base && <span className="ml-1.5 text-[8px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">Base</span>}</td>
+                                          <td className="py-2.5 px-1 text-center font-bold text-slate-500">{l.un}</td>
+                                          <td className="py-2.5 px-1 text-right font-bold text-slate-700">{nf(l.bruta)}</td>
+                                          <td className="py-2.5 px-1 text-right font-bold text-slate-500">{l.fc ? `${nf(l.fc)}%` : "—"}</td>
+                                          <td className="py-2.5 px-1 text-right font-bold text-slate-700">{nf(l.liquida)}</td>
+                                          <td className="py-2.5 px-1 text-right font-bold text-slate-600">{fmtBRL(l.custoUnit)}</td>
+                                          <td className="py-2.5 pl-1 text-right font-black text-slate-800">{fmtBRL(l.custoTot)}</td>
+                                       </tr>
+                                    ))}
+                                 </tbody>
+                              </table>
+                           </div>
+                           <button onClick={() => { fechar(); abrirEditar(f); }} className="mt-4 inline-flex items-center gap-2 rounded-xl border border-dashed border-emerald-300 text-emerald-700 font-black text-sm px-4 py-2.5 hover:bg-emerald-50"><Plus size={16} /> Adicionar ingrediente</button>
+                           <div className="mt-4 pt-3 border-t border-slate-200 flex flex-wrap items-center justify-end gap-x-6 gap-y-1 text-sm">
+                              <span className="text-slate-500 font-bold">Custo total da receita: <b className="text-emerald-700 font-black">{fmtBRL(custoTotal)}</b></span>
+                              {porcoes > 0 && <span className="text-slate-500 font-bold">Custo por porção{pesoPorcaoG ? ` (${nf(pesoPorcaoG)} g)` : ""}: <b className="text-emerald-700 font-black">{fmtBRL(custoPorcao)}</b></span>}
+                           </div>
+                        </div>
+                        )}
+                     </div>
+
+                     {/* SIDEBAR */}
+                     <div className="space-y-4 lg:sticky lg:top-0">
+                        {/* RENDIMENTO E PORÇÕES */}
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
+                           <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700 mb-3">Rendimento e porções</p>
+                           <div className="grid grid-cols-2 gap-3">
+                              <div className="rounded-xl bg-emerald-50 border border-emerald-100 px-3 py-2.5">
+                                 <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Esta receita rende</p>
+                                 <p className="text-xl font-black text-emerald-700">{nf(rend)} {labelUn}</p>
+                              </div>
+                              <div className="rounded-xl bg-emerald-50 border border-emerald-100 px-3 py-2.5">
+                                 <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Peso total</p>
+                                 <p className="text-xl font-black text-emerald-700">{peso?.pesoTotalG ? fmtG(peso.pesoTotalG) : (pesoPorcaoG && porcoes ? fmtG(pesoPorcaoG * porcoes) : "—")}</p>
+                              </div>
+                           </div>
+                           <div className="flex items-center justify-between mt-3 text-sm">
+                              <span className="text-slate-500 font-bold">Porção padrão</span>
+                              <span className="font-black text-slate-800">{pesoPorcaoG ? `${nf(pesoPorcaoG)} g` : "—"}</span>
+                           </div>
+                           {pesoPorcaoG > 0 && (
+                              <div className="mt-3 pt-3 border-t border-slate-100">
+                                 <p className="text-[11px] font-black text-slate-700">Simulador de porções</p>
+                                 <p className="text-[10px] font-medium text-slate-400 mb-2">Informe o peso disponível para ver quantas porções dá para servir.</p>
+                                 <div className="flex items-center gap-2">
+                                    <div className="flex-1 flex items-center rounded-xl border border-slate-200 bg-slate-50 overflow-hidden">
+                                       <input type="text" inputMode="decimal" value={simPesoView} onChange={e => setSimPesoView(e.target.value.replace(/[^0-9.,]/g, ""))} placeholder="Peso disponível" className="flex-1 min-w-0 px-3 py-2.5 bg-transparent font-black text-slate-800 outline-none" />
+                                       <span className="px-3 text-xs font-black text-slate-400">g</span>
+                                    </div>
+                                    <div className="text-right">
+                                       <p className="text-lg font-black text-emerald-700 leading-none">{simN > 0 ? `${simPorcoes} porç.` : "—"}</p>
+                                       <p className="text-[10px] font-bold text-slate-400 mt-0.5">{simN > 0 ? `sobra ${nf(simSobra)} g` : `de ${nf(pesoPorcaoG)} g`}</p>
+                                    </div>
+                                 </div>
+                              </div>
+                           )}
+                        </div>
+
+                        {/* CUSTO E PRECIFICAÇÃO */}
+                        {!f.eh_base && (
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
+                           <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700 mb-3">Custo e precificação</p>
+                           <div className="space-y-2 text-sm">
+                              <div className="flex items-center justify-between"><span className="text-slate-500 font-bold">Custo total da receita</span><span className="font-black text-slate-800">{fmtBRL(custoTotal)}</span></div>
+                              <div className="flex items-center justify-between"><span className="text-slate-500 font-bold">Custo por porção</span><span className="font-black text-slate-800">{fmtBRL(custoPorcao)}</span></div>
+                              {custoKg !== null && <div className="flex items-center justify-between"><span className="text-slate-500 font-bold">Custo por kg</span><span className="font-black text-slate-800">{fmtBRL(custoKg)}</span></div>}
+                           </div>
+                           <div className="grid grid-cols-2 gap-2 mt-3">
+                              <div className={`rounded-xl px-3 py-2 text-center border ${cmv !== null && cmv > meta ? "bg-red-50 border-red-200" : "bg-emerald-50 border-emerald-100"}`}>
+                                 <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">CMV</p>
+                                 <p className={`text-lg font-black ${cmv !== null && cmv > meta ? "text-red-600" : "text-emerald-700"}`}>{cmv !== null ? `${cmv.toFixed(1)}%` : "—"}</p>
+                              </div>
+                              <div className="rounded-xl px-3 py-2 text-center border bg-emerald-50 border-emerald-100">
+                                 <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Margem</p>
+                                 <p className="text-lg font-black text-emerald-700">{margem !== null ? `${margem.toFixed(1)}%` : "—"}</p>
+                              </div>
+                              <div className="rounded-xl px-3 py-2 text-center border bg-emerald-50 border-emerald-100">
+                                 <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Markup</p>
+                                 <p className="text-lg font-black text-emerald-700">{markup ? `${markup.toFixed(2)}×` : "—"}</p>
+                              </div>
+                              <div className="rounded-xl px-3 py-2 text-center border bg-slate-50 border-slate-200">
+                                 <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Preço/porção</p>
+                                 <p className="text-lg font-black text-slate-800">{preco > 0 ? fmtBRL(preco) : "—"}</p>
+                              </div>
+                           </div>
+                           <div className="mt-3 flex items-center justify-between rounded-xl bg-emerald-600 text-white px-3 py-2.5">
+                              <span className="text-[11px] font-black uppercase tracking-wider">Preço sugerido (CMV {meta}%)</span>
+                              <span className="text-lg font-black">{precoSugerido > 0 ? fmtBRL(precoSugerido) : "—"}</span>
+                           </div>
+                        </div>
+                        )}
+
+                        {/* INFORMAÇÕES ADICIONAIS */}
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
+                           <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700 mb-3">Informações adicionais</p>
+                           <div className="space-y-2 text-sm">
+                              <div className="flex items-center gap-2 text-slate-600"><Clock size={15} className="text-emerald-600 shrink-0" /><span className="font-bold">Tempo de preparo:</span> <b className="text-slate-800">{f.tempo_preparo ? `${f.tempo_preparo} min` : "—"}</b></div>
+                              <div className="flex items-center gap-2 text-slate-600"><Thermometer size={15} className="text-emerald-600 shrink-0" /><span className="font-bold">Validade:</span> <b className="text-slate-800">{f.validade_dias ? `${f.validade_dias} dia${Number(f.validade_dias) !== 1 ? "s" : ""}` : "—"}</b></div>
+                              {f.observacoes && <p className="text-[13px] text-slate-500 font-medium pt-1 leading-relaxed border-t border-slate-100 mt-2">{f.observacoes}</p>}
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         );
+      })()}
 
       {/* MODAL DE CRIAÇÃO DA FICHA TÉCNICA */}
       {modalNovo && (

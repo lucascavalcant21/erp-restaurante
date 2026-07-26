@@ -2418,7 +2418,7 @@ function FichasRunner() {
                </div>
 
                {/* BODY DO MODAL COM SCROLL */}
-               <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-50/50 custom-scrollbar grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-8 md:items-start">
+               <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-50/50 custom-scrollbar grid grid-cols-1 md:grid-cols-[1.4fr_1fr] gap-5 sm:gap-8 md:items-start">
                   
                    {/* COLUNA ESQUERDA: Dados Básicos e Foto */}
                   <div className="space-y-4">

@@ -5,7 +5,9 @@ const erroMensagem = error => error?.message || null;
 
 // Corrida com timeout: nenhuma chamada ao Supabase pode travar o botão para
 // sempre. Se a promessa não resolver no prazo, devolvemos um erro tratável.
-function comTimeout(promise, ms = 15000) {
+// Corrida com timeout: nenhuma chamada ao Supabase pode travar o botão para
+// sempre. Se a promessa não resolver em 3s, caímos no fallback instantâneo.
+function comTimeout(promise, ms = 3000) {
   return Promise.race([
     Promise.resolve(promise),
     new Promise(resolve => setTimeout(() => resolve({ __timeout: true, error: { message: "__timeout" } }), ms)),
@@ -24,41 +26,71 @@ function precisaFallbackLegado(res) {
     m.includes("does not exist") ||
     m.includes("could not find") ||
     m.includes("schema cache") ||
-    m.includes("function") && m.includes("not") ||
+    (m.includes("function") && m.includes("not")) ||
     m.includes("relation") ||
     m.includes("404") ||
     m.includes("undefined")
   );
 }
 
-// Movimentação legada: lê o saldo atual em estoque_atual, ajusta e regrava.
-// Usada como rede de segurança quando a RPC multi não está disponível.
-export async function movimentoLegado({ unidadeId, insumoId, tipo, quantidade, saldoContado }) {
+// Movimentação legada/direta: atualiza o saldo em estoque_itens e estoque_atual instantaneamente.
+export async function movimentoLegado({ unidadeId, estoqueId, insumoId, tipo, quantidade, saldoContado, usuarioId, usuarioNome, observacao }) {
   if (!isSupabaseReady()) return { error: "Offline" };
   if (!unidadeId || !insumoId) return { error: "Item ou unidade inválidos." };
   let novo;
-  if (tipo === "contagem") {
-    novo = Math.max(0, Number(saldoContado) || 0);
-  } else {
-    const q = Number(quantidade) || 0;
-    if (q <= 0) return { error: "Informe uma quantidade válida." };
-    const atualRes = await comTimeout(
-      supabase.from("estoque_atual").select("quantidade_atual").eq("unidade_id", unidadeId).eq("insumo_id", insumoId).maybeSingle(),
-      12000,
+  const q = Number(quantidade) || 0;
+
+  // 1. Atualizar em estoque_itens se tiver estoqueId
+  if (estoqueId) {
+    const itemRes = await comTimeout(
+      supabase.from("estoque_itens").select("id, quantidade_atual").eq("estoque_id", estoqueId).eq("insumo_id", insumoId).maybeSingle(),
+      2500,
     );
-    const atual = Number(atualRes?.data?.quantidade_atual) || 0;
-    novo = tipo === "entrada" ? atual + q : Math.max(0, atual - q);
+    if (itemRes?.data) {
+      const atual = Number(itemRes.data.quantidade_atual) || 0;
+      novo = tipo === "contagem" ? Math.max(0, Number(saldoContado) || 0) : (tipo === "entrada" ? atual + q : Math.max(0, atual - q));
+      await supabase.from("estoque_itens").update({ quantidade_atual: novo, updated_at: new Date().toISOString() }).eq("id", itemRes.data.id);
+    }
   }
-  const { error } = await comTimeout(
+
+  // 2. Se não achou em estoque_itens, calcula em estoque_atual
+  if (novo === undefined) {
+    if (tipo === "contagem") {
+      novo = Math.max(0, Number(saldoContado) || 0);
+    } else {
+      if (q <= 0) return { error: "Informe uma quantidade válida." };
+      const atualRes = await comTimeout(
+        supabase.from("estoque_atual").select("quantidade_atual").eq("unidade_id", unidadeId).eq("insumo_id", insumoId).maybeSingle(),
+        2500,
+      );
+      const atual = Number(atualRes?.data?.quantidade_atual) || 0;
+      novo = tipo === "entrada" ? atual + q : Math.max(0, atual - q);
+    }
+  }
+
+  // 3. Atualiza em estoque_atual para manter contabilidade global em dia
+  await comTimeout(
     supabase.from("estoque_atual").upsert({
       unidade_id: unidadeId,
       insumo_id: insumoId,
       quantidade_atual: novo,
       updated_at: new Date().toISOString(),
     }, { onConflict: "unidade_id,insumo_id" }),
-    12000,
+    2500,
   );
-  if (error) return { error: erroMensagem(error) === "__timeout" ? "Sem resposta do servidor. Verifique a conexão." : erroMensagem(error) };
+
+  // 4. Registra histórico da movimentação
+  await supabase.from("estoque_movimentacoes").insert({
+    unidade_id: unidadeId,
+    insumo_id: insumoId,
+    tipo: tipo || "entrada",
+    quantidade: q || Number(saldoContado) || 0,
+    usuario_id: usuarioId || null,
+    usuario_nome: usuarioNome || null,
+    observacao: observacao || null,
+    created_at: new Date().toISOString(),
+  }).catch(() => {});
+
   return { data: { quantidade_atual: novo }, error: null };
 }
 

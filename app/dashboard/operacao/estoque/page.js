@@ -587,13 +587,14 @@ function EstoqueRunner() {
   const abrirOperacao = (tipo, item = null) => {
     const frac = ehFracionavel(item);
     const div = frac ? dividirSaldo(item.quantidade_atual, conteudoDe(item), true) : null;
+    const agoraStr = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
     setOperacao({
       insumo_id: item?.insumo_id || "",
       quantidade: tipo === "contagem" && !frac ? String(item?.quantidade_atual ?? "") : "",
       destino_id: "",
       observacao: "",
       responsavel_id: "",
-      data: "",
+      data: agoraStr,
       // Bebidas: entrada por unidade fechada; baixa por conteúdo (mais comum).
       modo: tipo === "saida" ? "conteudo" : "unidade",
       fechadas: div ? String(div.fechadas) : "",
@@ -945,9 +946,9 @@ function EstoqueRunner() {
                             <option value="">Selecione...</option>{destinosCompativeis.map(item => <option key={item.id} value={item.id}>{item.nome}</option>)}
                           </select>
                         </Campo>
-                      ) : modal.tipo !== "contagem" ? (
-                        <Campo label="Data (opcional)"><input type="datetime-local" value={operacao.data} onChange={e => setOperacao({ ...operacao, data: e.target.value })} className="h-14 w-full rounded-2xl border border-slate-200 px-3 font-medium text-slate-800" /></Campo>
-                      ) : <div />}
+                      ) : (
+                        <Campo label="Data da Operação *"><input required type="datetime-local" value={operacao.data} onChange={e => setOperacao({ ...operacao, data: e.target.value })} className="h-14 w-full rounded-2xl border border-slate-200 px-3 font-semibold text-slate-800" /></Campo>
+                      )}
                     </div>
                     {modal.tipo !== "contagem" && (
                       <div className="flex flex-wrap gap-1.5 pt-1">
@@ -1032,7 +1033,6 @@ function EstoqueRunner() {
                 </div>
               );
             })()}
-            <Campo label="Observação"><textarea value={operacao.observacao} onChange={e => setOperacao({ ...operacao, observacao: e.target.value })} className="min-h-24 w-full rounded-xl border border-slate-200 p-3" placeholder="Motivo, documento ou observações adicionais..." /></Campo>
             {modal.tipo === "transferencia" && !destinosCompativeis.length && <p className="rounded-xl bg-amber-50 p-3 text-sm font-semibold text-amber-800">Não há outro estoque ativo e compatível com esta área.</p>}
             <div className="flex justify-end"><BotaoSalvar carregando={salvando}>Confirmar</BotaoSalvar></div>
           </form>
@@ -1301,8 +1301,8 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                     <td className="px-4 py-3"><span className="inline-flex items-center gap-1"><MapPin size={14} />{item.local_interno || "Não definido"}</span></td>
                     <td className="px-4 py-3 text-xs text-slate-500">{fmtData(item.ultima_movimentacao_em, true)}</td>
                     <td className="px-4 py-3"><div className="flex gap-2">
-                      <button onClick={() => onEntrada(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-emerald-600 text-emerald-700 hover:bg-emerald-50" title="Entrada"><Plus size={17} /></button>
-                      <button onClick={() => onSaida(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-emerald-600 text-emerald-700 hover:bg-emerald-50" title="Baixa"><span className="text-xl leading-none">−</span></button>
+                      <button onClick={() => onEntrada(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-emerald-600 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-extrabold" title="Entrada / Adicionar"><Plus size={17} /></button>
+                      <button onClick={() => onSaida(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-red-600 bg-red-50 text-red-700 hover:bg-red-100 font-extrabold" title="Baixa / Retirar"><span className="text-xl leading-none">−</span></button>
                       <button onClick={() => onHistorico && onHistorico(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50" title="Histórico do produto"><History size={17} /></button>
                       <SimuladorRendimento item={item} variant="icon" />
                       <button onClick={() => onEditar(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50" title="Configurar"><MoreVertical size={17} /></button>
@@ -1351,10 +1351,10 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-2.5">
                   <button onClick={() => onEntrada(item)} className="h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 active:scale-95 transition-all">
-                    <Plus size={20} /> + ENTRADA
+                    <Plus size={20} /> + ADICIONAR
                   </button>
-                  <button onClick={() => onSaida(item)} className="h-14 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md shadow-amber-500/20 active:scale-95 transition-all">
-                    <span className="text-2xl leading-none">−</span> − BAIXA
+                  <button onClick={() => onSaida(item)} className="h-14 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md shadow-red-600/20 active:scale-95 transition-all">
+                    <span className="text-2xl leading-none">−</span> − RETIRAR
                   </button>
                 </div>
                 <div className="mt-2.5 grid grid-cols-2 gap-2.5">

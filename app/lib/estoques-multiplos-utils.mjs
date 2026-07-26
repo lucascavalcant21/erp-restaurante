@@ -55,6 +55,24 @@ export function statusItemEstoque(item, estoque, agora = new Date()) {
   };
 }
 
+export function filtrarItensEstoque(itens, filtros, estoque) {
+  const termo = String(filtros?.busca || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+  return (itens || []).filter(item => {
+    if (!item) return false;
+    const texto = [item.nome, item.marca, item.codigo_interno, item.categoria, item.local_interno, item.fornecedor, item.departamento]
+      .join(" ").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const status = statusItemEstoque(item, estoque);
+    if (termo && !texto.includes(termo)) return false;
+    if (filtros?.categoria && filtros.categoria !== "Todas" && item.categoria !== filtros.categoria) return false;
+    if (filtros?.local && filtros.local !== "Todos" && item.local_interno !== filtros.local) return false;
+    if (filtros?.status === "abaixo" && !status.abaixoMinimo) return false;
+    if (filtros?.status === "validade" && !status.validadeProxima) return false;
+    if (filtros?.status === "sem-saldo" && !status.semSaldo) return false;
+    return true;
+  });
+}
+
 export function calcularValorItem(item) {
   const qtd = Number(item?.quantidade_atual) || 0;
   if (qtd <= 0) return 0;

@@ -19,6 +19,7 @@ import {
   filtrarItensEstoque, statusItemEstoque, TIPOS_ESTOQUE, tiposCompativeis,
 } from "../../../lib/estoques-multiplos-utils.mjs";
 import { fmtBRL } from "../../../components/ui";
+import SimuladorRendimento from "../../../components/SimuladorRendimento";
 
 const fmtQtd = (valor) => Number(valor || 0).toLocaleString("pt-BR", { maximumFractionDigits: 3 });
 const fmtData = (valor, hora = false) => {
@@ -511,6 +512,7 @@ function TabelaItens({ itens, estoque, loading, onEntrada, onSaida, onEditar }) 
                 <td className="px-4 py-3"><div className="flex gap-2">
                   <button onClick={() => onEntrada(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-emerald-600 text-emerald-700" title="Entrada"><Plus size={17} /></button>
                   <button onClick={() => onSaida(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-emerald-600 text-emerald-700" title="Baixa"><span className="text-xl leading-none">−</span></button>
+                  <SimuladorRendimento item={item} variant="icon" />
                   <button onClick={() => onEditar(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600" title="Configurar"><MoreVertical size={17} /></button>
                 </div></td>
               </tr>;
@@ -524,6 +526,7 @@ function TabelaItens({ itens, estoque, loading, onEntrada, onSaida, onEditar }) 
           return <article key={item.id} className="p-4">
             <div className="flex items-start justify-between gap-3"><div><strong>{item.nome}</strong><p className="mt-1 text-xs text-slate-500">{item.categoria || "Sem categoria"} · {item.local_interno || "Sem local"}</p></div><strong className={status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}>{fmtQtd(item.quantidade_atual)} {item.unidade_medida || "un"}</strong></div>
             <div className="mt-4 grid grid-cols-3 gap-2"><button onClick={() => onEntrada(item)} className="rounded-xl bg-emerald-50 py-2 text-sm font-bold text-emerald-700">+ Entrada</button><button onClick={() => onSaida(item)} className="rounded-xl bg-slate-100 py-2 text-sm font-bold">− Baixa</button><button onClick={() => onEditar(item)} className="rounded-xl bg-slate-100 py-2 text-sm font-bold">Configurar</button></div>
+            <div className="mt-2"><SimuladorRendimento item={item} variant="full" /></div>
           </article>;
         })}
       </div>

@@ -38,6 +38,27 @@ const fmtEquiv = (q, un) => {
   if (u === "g") return n >= 1000 ? `${(+(n / 1000).toFixed(3)).toLocaleString("pt-BR")} kg` : `${(+n.toFixed(3)).toLocaleString("pt-BR")} g`;
   return `${(+n.toFixed(3)).toLocaleString("pt-BR")} ${mostrarUn(u)}`;
 };
+
+function calcularValorItem(item) {
+  const qtd = Number(item.quantidade_atual) || 0;
+  if (qtd <= 0) return 0;
+
+  const tamEmb = Number(item.tamanho_embalagem) || 1;
+  const un = String(item.unidade_medida || "").toLowerCase();
+  const ehFrac = tamEmb > 1 && (un === "ml" || un === "g");
+
+  const custoUnit = Number(item.custo_unitario) || 0;
+  const custoCompra = Number(item.custo_compra) || 0;
+
+  if (ehFrac) {
+    const unComerciais = qtd / tamEmb;
+    const custoGarrafa = custoCompra > 0 ? custoCompra : (custoUnit * tamEmb > 0 ? custoUnit * tamEmb : custoUnit);
+    return unComerciais * custoGarrafa;
+  }
+
+  const custo = custoUnit > 0 ? custoUnit : custoCompra;
+  return qtd * custo;
+}
 const fmtData = (valor, hora = false) => {
   if (!valor) return "—";
   return new Date(valor).toLocaleString("pt-BR", hora
@@ -351,26 +372,6 @@ function EstoqueRunner() {
     }),
     [itensDaArea, estoqueAtual],
   );
-function calcularValorItem(item) {
-  const qtd = Number(item.quantidade_atual) || 0;
-  if (qtd <= 0) return 0;
-
-  const tamEmb = Number(item.tamanho_embalagem) || 1;
-  const un = String(item.unidade_medida || "").toLowerCase();
-  const ehFrac = tamEmb > 1 && (un === "ml" || un === "g");
-
-  const custoUnit = Number(item.custo_unitario) || 0;
-  const custoCompra = Number(item.custo_compra) || 0;
-
-  if (ehFrac) {
-    const unComerciais = qtd / tamEmb;
-    const custoGarrafa = custoCompra > 0 ? custoCompra : (custoUnit * tamEmb > 0 ? custoUnit * tamEmb : custoUnit);
-    return unComerciais * custoGarrafa;
-  }
-
-  const custo = custoUnit > 0 ? custoUnit : custoCompra;
-  return qtd * custo;
-}
 
   const valorTotal = itensDaArea.reduce((soma, item) => soma + calcularValorItem(item), 0);
   const ultimaEntrada = movimentos.find(m => ["entrada", "transferencia_entrada"].includes(m.tipo));

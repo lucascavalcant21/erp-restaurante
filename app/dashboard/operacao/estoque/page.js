@@ -44,16 +44,16 @@ function calcularValorItem(item) {
   if (qtd <= 0) return 0;
 
   const tamEmb = Number(item.tamanho_embalagem) || 1;
-  const un = String(item.unidade_medida || "").toLowerCase();
-  const ehFrac = tamEmb > 1 && (un === "ml" || un === "g");
-
   const custoUnit = Number(item.custo_unitario) || 0;
   const custoCompra = Number(item.custo_compra) || 0;
 
-  if (ehFrac) {
+  if (tamEmb > 1) {
     const unComerciais = qtd / tamEmb;
-    const custoGarrafa = custoCompra > 0 ? custoCompra : (custoUnit * tamEmb > 0 ? custoUnit * tamEmb : custoUnit);
-    return unComerciais * custoGarrafa;
+    let custoEmbalagem = custoCompra;
+    if (!custoEmbalagem || custoEmbalagem <= 0) {
+      custoEmbalagem = custoUnit > 0 ? (custoUnit < 1 ? custoUnit * tamEmb : custoUnit) : 0;
+    }
+    return unComerciais * custoEmbalagem;
   }
 
   const custo = custoUnit > 0 ? custoUnit : custoCompra;

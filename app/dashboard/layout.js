@@ -339,7 +339,7 @@ function Sidebar({ mobileOpen, setMobileOpen, collapsed, rotasPermitidas, sessao
         flex flex-col transition-all duration-300 ease-in-out shadow-2xl whitespace-nowrap overflow-hidden
         xl:static xl:z-auto xl:shadow-none
         ${mobileOpen ? "translate-x-0 w-[min(16rem,calc(100vw-2rem))]" : "-translate-x-full w-[min(16rem,calc(100vw-2rem))]"}
-        ${collapsed ? "xl:translate-x-0 xl:w-0 xl:border-r-0" : "xl:translate-x-0 xl:w-60"}
+        ${collapsed ? "xl:translate-x-0 xl:w-0 xl:border-r-0" : "xl:translate-x-0 xl:w-[180px]"}
       `} aria-label="Menu principal">
         {/* Logo Area */}
         <div className="erp-sidebar-logo min-h-14 flex items-center justify-between px-3 sm:px-4 shrink-0 relative overflow-hidden">

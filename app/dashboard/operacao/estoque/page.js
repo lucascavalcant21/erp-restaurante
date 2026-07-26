@@ -970,10 +970,8 @@ function saldoEmbalado(item) {
 }
 
 function TabelaItens({ itens, estoque, loading, onEntrada, onSaida, onEditar }) {
-  if (loading) return <div className="grid min-h-64 place-items-center text-slate-500"><Loader2 className="animate-spin" /></div>;
-  if (!itens.length) return <div className="grid min-h-64 place-items-center px-5 text-center"><div><Package size={42} className="mx-auto mb-3 text-slate-300" /><p className="font-black text-slate-700">Nenhum item encontrado neste estoque</p><p className="mt-1 text-sm text-slate-500">Use “Nova entrada” ou “Importar lista” para começar.</p></div></div>;
-
   const agrupadoPorCategoria = useMemo(() => {
+    if (!itens || !itens.length) return [];
     const mapa = new Map();
     for (const item of itens) {
       const cat = item.categoria || "Sem categoria";
@@ -987,6 +985,9 @@ function TabelaItens({ itens, estoque, loading, onEntrada, onSaida, onEditar }) 
       return { categoria: cat, lista, subtotal };
     });
   }, [itens]);
+
+  if (loading) return <div className="grid min-h-64 place-items-center text-slate-500"><Loader2 className="animate-spin" /></div>;
+  if (!itens || !itens.length) return <div className="grid min-h-64 place-items-center px-5 text-center"><div><Package size={42} className="mx-auto mb-3 text-slate-300" /><p className="font-black text-slate-700">Nenhum item encontrado neste estoque</p><p className="mt-1 text-sm text-slate-500">Use “Nova entrada” ou “Importar lista” para começar.</p></div></div>;
 
   return (
     <>

@@ -20,6 +20,7 @@ import {
 import { fmtBRL } from "../../../components/ui";
 import { logoSeldeestrelaSVG } from "../../../lib/marca";
 import { baixarPdfDeHtml } from "../../../lib/pdf";
+import { fetchHistoricoCustoFicha, registrarCustoFicha } from "../../../lib/ficha-custos";
 import {
   estimarPaginasDocumento,
   ordenarFichasDocumento,
@@ -240,6 +241,9 @@ function FichasRunner() {
   const [fichaView, setFichaView] = useState(null); // ficha aberta em modo visualização (igual à foto)
   const [simPesoView, setSimPesoView] = useState(""); // simulador de porções da tela de visualização
   const [viewTab, setViewTab] = useState("ficha"); // aba ativa na tela de visualização
+  const [histCustos, setHistCustos] = useState([]); // histórico de custos da ficha aberta
+  const [histStatus, setHistStatus] = useState("idle"); // idle | carregando | ok | sem_tabela
+  const [registrandoCusto, setRegistrandoCusto] = useState(false);
   const [iaExplicacao, setIaExplicacao] = useState("");
   const [autoSoma, setAutoSoma] = useState(true);
 
@@ -664,6 +668,42 @@ function FichasRunner() {
     setModalNovo(true);
   };
 
+  // ── Histórico de custos da ficha aberta em visualização ──
+  const custoAtualDaFicha = (ficha) => {
+    const custoTotal = custoTotalDaFicha(ficha, fichas);
+    const peso = infoPesoFicha(ficha, fichas);
+    const unR = String(ficha.rendimento_unidade || "porcao").toLowerCase();
+    const rend = Number(ficha.rendimento_porcoes) || 0;
+    const porcoes = (unR === "porcao" || unR === "un") ? rend : (peso?.porcoes || 0);
+    const custoPorcao = porcoes > 0 ? custoTotal / porcoes : custoTotal;
+    return { custoTotal, custoPorcao };
+  };
+  const carregarHistoricoCusto = async (ficha) => {
+    if (!ficha) return;
+    setHistStatus("carregando");
+    const { data, error } = await fetchHistoricoCustoFicha(unidadeAtiva, ficha.id);
+    if (error === "sem_tabela") { setHistCustos([]); setHistStatus("sem_tabela"); return; }
+    setHistCustos(data || []);
+    setHistStatus("ok");
+  };
+  const registrarCustoAtual = async (ficha, origem = "manual") => {
+    if (!ficha) return;
+    setRegistrandoCusto(true);
+    const { custoTotal, custoPorcao } = custoAtualDaFicha(ficha);
+    const r = await registrarCustoFicha({
+      unidadeId: unidadeAtiva, fichaId: ficha.id, custoTotal, custoPorcao, origem,
+      usuarioNome: sessao?.nome || sessao?.user?.email || "",
+    });
+    setRegistrandoCusto(false);
+    if (r.error === "sem_tabela") { setHistStatus("sem_tabela"); return; }
+    await carregarHistoricoCusto(ficha);
+  };
+  useEffect(() => {
+    if (fichaView) carregarHistoricoCusto(fichaView);
+    else { setHistCustos([]); setHistStatus("idle"); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fichaView]);
+
   // Custo considera o Fator de Correção (%) do item: bruta = líquida × (1 + fc)
   const calcularCustoTotal = (ingredientesLista) => {
     return ingredientesLista.reduce((acc, ing) => acc + (ing.custo_unitario * ing.quantidade * (1 + (Number(ing.fator) || 0) / 100)), 0);
@@ -825,6 +865,22 @@ function FichasRunner() {
 
     if (!criarOutra) setModalNovo(false);
     carregar();
+
+    // Registra um retrato do custo no histórico (não bloqueia o salvar).
+    const fichaIdHist = erro.id;
+    if (fichaIdHist && !form.produto_pronto) {
+      const custoTotalS = calcularCustoTotal(ingValidos);
+      const unRs = String(form.rendimento_unidade || "porcao").toLowerCase();
+      const rendS = Number(form.rendimento_porcoes) || 0;
+      const pesoPorcaoS = Number(form.peso_porcao_g) || 0;
+      const pesoTotalS = pesoTotalDaFicha(rendS, unRs, pesoPorcaoS);
+      const porcS = (unRs === "porcao" || unRs === "un") ? rendS : (pesoPorcaoS > 0 && pesoTotalS > 0 ? pesoTotalS / pesoPorcaoS : rendS);
+      const custoPorcaoS = porcS > 0 ? custoTotalS / porcS : custoTotalS;
+      registrarCustoFicha({
+        unidadeId: unidadeAtiva, fichaId: fichaIdHist, custoTotal: custoTotalS, custoPorcao: custoPorcaoS,
+        origem: "edicao_ficha", usuarioNome: sessao?.nome || sessao?.user?.email || "",
+      }).catch(() => {});
+    }
 
     // O PREÇO DE VENDA agora é definido AQUI na ficha (seção CMV e Precificação)
     // e sincroniza com o produto do cardápio interno em toda gravação.
@@ -2163,27 +2219,74 @@ function FichasRunner() {
                            </div>
                         )}
 
-                        {/* ABA: HISTÓRICO / COMPOSIÇÃO DE CUSTOS */}
+                        {/* ABA: HISTÓRICO DE CUSTOS */}
                         {viewTab === "custos" && (
-                           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
-                              <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700 mb-1">Composição do custo</p>
-                              <p className="text-[11px] font-medium text-slate-400 mb-3">Participação de cada ingrediente no custo total ({fmtBRL(custoTotal)}).</p>
-                              <div className="space-y-2.5">
-                                 {[...linhas].sort((a, b) => b.custoTot - a.custoTot).map((l, i) => {
-                                    const pct = custoTotal > 0 ? (l.custoTot / custoTotal) * 100 : 0;
-                                    return (
-                                       <div key={i}>
-                                          <div className="flex items-center justify-between text-sm mb-1">
-                                             <span className="font-bold text-slate-700 truncate pr-2">{l.nome}</span>
-                                             <span className="font-black text-slate-800 shrink-0">{fmtBRL(l.custoTot)} <span className="text-slate-400 font-bold">· {pct.toFixed(1)}%</span></span>
-                                          </div>
-                                          <div className="h-2 rounded-full bg-slate-100 overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(100, pct)}%` }} /></div>
-                                       </div>
-                                    );
-                                 })}
-                                 {linhas.length === 0 && <p className="text-sm text-slate-400 font-medium">Sem ingredientes para compor o custo.</p>}
+                           <div className="space-y-4 sm:space-y-5">
+                              {/* Linha do tempo */}
+                              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
+                                 <div className="flex items-center justify-between gap-2 mb-3">
+                                    <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700">Histórico de custos</p>
+                                    <button onClick={() => registrarCustoAtual(f, "manual")} disabled={registrandoCusto || histStatus === "sem_tabela"}
+                                       className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black text-xs px-3 py-2">
+                                       <Plus size={14} /> {registrandoCusto ? "Registrando..." : "Registrar custo atual"}
+                                    </button>
+                                 </div>
+                                 {histStatus === "sem_tabela" ? (
+                                    <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-[12px] text-amber-800 font-medium leading-relaxed">
+                                       Para guardar a variação de custo ao longo do tempo, rode a migração <b>db/migracao_ficha_custo_historico.sql</b> no SQL Editor do Supabase. Depois disso, cada alteração de custo fica registrada aqui automaticamente.
+                                    </div>
+                                 ) : histStatus === "carregando" ? (
+                                    <p className="text-sm text-slate-400 font-medium">Carregando histórico...</p>
+                                 ) : histCustos.length === 0 ? (
+                                    <p className="text-sm text-slate-400 font-medium">Nenhum custo registrado ainda. Toque em <b>Registrar custo atual</b> para criar o primeiro ponto — ou salve a ficha após mudar ingredientes.</p>
+                                 ) : (
+                                    <div className="space-y-2">
+                                       {histCustos.map((h, i) => {
+                                          const dif = h.diferenca == null ? null : Number(h.diferenca);
+                                          const pct = h.diferenca_pct == null ? null : Number(h.diferenca_pct);
+                                          const subiu = dif != null && dif > 0.005;
+                                          const desceu = dif != null && dif < -0.005;
+                                          const origemTxt = h.origem === "edicao_ficha" ? "edição" : h.origem === "variacao_preco" ? "variação de preço" : "manual";
+                                          return (
+                                             <div key={h.id || i} className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5">
+                                                <div className="min-w-0">
+                                                   <p className="text-sm font-black text-slate-800">{fmtBRL(Number(h.custo_total) || 0)}<span className="text-[11px] font-bold text-slate-400 ml-1.5">total{h.custo_porcao != null ? ` · ${fmtBRL(Number(h.custo_porcao))}/porção` : ""}</span></p>
+                                                   <p className="text-[10px] font-bold text-slate-400">{new Date(h.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })} · {origemTxt}{h.usuario_nome ? ` · ${h.usuario_nome}` : ""}</p>
+                                                </div>
+                                                {dif == null ? (
+                                                   <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 shrink-0">1º registro</span>
+                                                ) : (
+                                                   <span className={`text-xs font-black shrink-0 ${subiu ? "text-red-600" : desceu ? "text-emerald-700" : "text-slate-400"}`}>
+                                                      {subiu ? "▲" : desceu ? "▼" : "="} {fmtBRL(Math.abs(dif))}{pct != null ? ` (${pct > 0 ? "+" : ""}${pct.toFixed(1)}%)` : ""}
+                                                   </span>
+                                                )}
+                                             </div>
+                                          );
+                                       })}
+                                    </div>
+                                 )}
                               </div>
-                              <p className="text-[11px] font-medium text-slate-400 mt-4 pt-3 border-t border-slate-100">O histórico de variação de preços por período depende de um registro dedicado — por enquanto mostramos a composição atual do custo.</p>
+
+                              {/* Composição atual */}
+                              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
+                                 <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700 mb-1">Composição do custo atual</p>
+                                 <p className="text-[11px] font-medium text-slate-400 mb-3">Participação de cada ingrediente no custo total ({fmtBRL(custoTotal)}).</p>
+                                 <div className="space-y-2.5">
+                                    {[...linhas].sort((a, b) => b.custoTot - a.custoTot).map((l, i) => {
+                                       const pct = custoTotal > 0 ? (l.custoTot / custoTotal) * 100 : 0;
+                                       return (
+                                          <div key={i}>
+                                             <div className="flex items-center justify-between text-sm mb-1">
+                                                <span className="font-bold text-slate-700 truncate pr-2">{l.nome}</span>
+                                                <span className="font-black text-slate-800 shrink-0">{fmtBRL(l.custoTot)} <span className="text-slate-400 font-bold">· {pct.toFixed(1)}%</span></span>
+                                             </div>
+                                             <div className="h-2 rounded-full bg-slate-100 overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(100, pct)}%` }} /></div>
+                                          </div>
+                                       );
+                                    })}
+                                    {linhas.length === 0 && <p className="text-sm text-slate-400 font-medium">Sem ingredientes para compor o custo.</p>}
+                                 </div>
+                              </div>
                            </div>
                         )}
                      </div>

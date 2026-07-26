@@ -34,106 +34,10 @@ const mostrarUn = (u) => (String(u || "").toLowerCase() === "l" ? "L" : (u || "u
 
 const fmtEquiv = (q, un) => {
   const n = Number(q) || 0; const u = String(un || "un").toLowerCase();
-  if (u === "ml") return n >= 1000 ? `${(+(n / 1000).toFixed(3)).toLocaleString("pt-BR")} L` : `${fmtQtd(n)} ml`;
-  if (u === "g") return n >= 1000 ? `${(+(n / 1000).toFixed(3)).toLocaleString("pt-BR")} kg` : `${fmtQtd(n)} g`;
-  return `${fmtQtd(n)} ${mostrarUn(u)}`;
+  if (u === "ml") return n >= 1000 ? `${(+(n / 1000).toFixed(3)).toLocaleString("pt-BR")} L` : `${(+n.toFixed(3)).toLocaleString("pt-BR")} ml`;
+  if (u === "g") return n >= 1000 ? `${(+(n / 1000).toFixed(3)).toLocaleString("pt-BR")} kg` : `${(+n.toFixed(3)).toLocaleString("pt-BR")} g`;
+  return `${(+n.toFixed(3)).toLocaleString("pt-BR")} ${mostrarUn(u)}`;
 };
-
-function saldoEmbalado(item) {
-  if (!ehFracionavel(item)) return null;
-  const total = Number(item.quantidade_atual) || 0;
-  const conteudo = conteudoDe(item);
-  const un = String(item.unidade_medida || "").toLowerCase();
-  const fechadas = Math.floor(total / conteudo);
-  const aberto = total % conteudo;
-  const unLabel = mostrarUn(un) === "L" ? "L" : mostrarUn(un) === "kg" ? "kg" : "un";
-  const fmtEq = (q, u) => fmtEquiv(q, u);
-  const principal = `${fechadas} ${unLabel}${aberto > 0 ? ` + ${fmtEq(aberto, un)}` : ""}`;
-  const secundario = `Conteúdo: ${fmtQtd(conteudo)} ${mostrarUn(un)}/un · Total: ${fmtEq(total, un)}`;
-  return { principal, secundario };
-}
-
-function calcularValorItem(item) {
-  const qtd = Number(item.quantidade_atual) || 0;
-  if (qtd <= 0) return 0;
-
-  const tamEmb = Number(item.tamanho_embalagem) || 1;
-  const un = String(item.unidade_medida || "").toLowerCase();
-  const ehFrac = tamEmb > 1 && (un === "ml" || un === "g");
-
-  const custoUnit = Number(item.custo_unitario) || 0;
-  const custoCompra = Number(item.custo_compra) || 0;
-
-  if (ehFrac) {
-    const unComerciais = qtd / tamEmb;
-    const custoGarrafa = custoCompra > 0 ? custoCompra : (custoUnit * tamEmb > 0 ? custoUnit * tamEmb : custoUnit);
-    return unComerciais * custoGarrafa;
-  }
-
-  const custo = custoUnit > 0 ? custoUnit : custoCompra;
-  return qtd * custo;
-}
-
-function TabelaItens({ itens, estoque, loading, onEntrada, onSaida, onEditar }) {
-  if (loading) return <div className="grid min-h-64 place-items-center text-slate-500"><Loader2 className="animate-spin" /></div>;
-  if (!itens.length) return <div className="grid min-h-64 place-items-center px-5 text-center"><div><Package size={42} className="mx-auto mb-3 text-slate-300" /><p className="font-black text-slate-700">Nenhum item encontrado neste estoque</p><p className="mt-1 text-sm text-slate-500">Use “Nova entrada” ou “Importar lista” para começar.</p></div></div>;
-  return (
-    <>
-      <div className="hidden overflow-x-auto lg:block">
-        <table className="w-full min-w-[1100px] text-left text-sm">
-          <thead className="bg-slate-900 text-xs uppercase tracking-wide text-white"><tr>
-            <th className="px-5 py-4">Produto</th><th className="px-4 py-4">Categoria</th><th className="px-4 py-4">Embalagem</th><th className="px-4 py-4 whitespace-nowrap">Custo/un.</th><th className="px-4 py-4">Saldo</th><th className="px-4 py-4 whitespace-nowrap">Valor total</th><th className="px-3 py-4">Mínimo</th><th className="px-3 py-4">Máximo</th>{estoque.controla_validade && <th className="px-4 py-4">Validade</th>}<th className="px-4 py-4">Local</th><th className="px-4 py-4">Última mov.</th><th className="px-4 py-4">Ações</th>
-          </tr></thead>
-          <tbody className="divide-y divide-slate-100">
-            {itens.map(item => {
-              const status = statusItemEstoque(item, estoque);
-              const valTotalItem = calcularValorItem(item);
-              return <tr key={item.id} className="hover:bg-slate-50">
-                <td className="px-5 py-3"><strong className="block">{item.nome}</strong><span className="text-xs text-slate-500">{item.codigo_interno || item.marca || "Sem código"}</span></td>
-                <td className="px-4 py-3"><span className="rounded-lg bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">{item.categoria || "Sem categoria"}</span></td>
-                <td className="px-4 py-3">{fmtQtd(item.tamanho_embalagem || 1)} {mostrarUn(item.unidade_medida)}</td>
-                <td className="px-4 py-3 whitespace-nowrap"><strong className="font-extrabold text-slate-900">{fmtBRL(item.custo_unitario || 0)}</strong></td>
-                <td className={`px-4 py-3 font-black ${status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}`}>{(() => { const s = saldoEmbalado(item); return s ? <><span>{s.principal}</span><span className="block text-[10px] font-medium text-slate-400">{s.secundario}</span></> : <>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</>; })()}</td>
-                <td className="px-4 py-3 whitespace-nowrap"><strong className="font-black text-emerald-800">{fmtBRL(valTotalItem)}</strong></td>
-                <td className="px-3 py-3 font-semibold text-slate-700">{item.estoque_minimo == null || item.estoque_minimo === "" ? "—" : `${fmtQtd(item.estoque_minimo)} ${mostrarUn(item.unidade_medida)}`}</td>
-                <td className="px-3 py-3 font-semibold text-slate-700">{item.estoque_maximo == null || item.estoque_maximo === "" ? "—" : `${fmtQtd(item.estoque_maximo)} ${mostrarUn(item.unidade_medida)}`}</td>
-                {estoque.controla_validade && <td className={`px-4 py-3 ${status.vencido || status.validadeProxima ? "font-bold text-amber-700" : ""}`}>{fmtData(item.validade)}</td>}
-                <td className="px-4 py-3"><span className="inline-flex items-center gap-1"><MapPin size={14} />{item.local_interno || "Não definido"}</span></td>
-                <td className="px-4 py-3 text-xs text-slate-500">{fmtData(item.ultima_movimentacao_em, true)}</td>
-                <td className="px-4 py-3"><div className="flex gap-2">
-                  <button onClick={() => onEntrada(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-emerald-600 text-emerald-700" title="Entrada"><Plus size={17} /></button>
-                  <button onClick={() => onSaida(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-emerald-600 text-emerald-700" title="Baixa"><span className="text-xl leading-none">−</span></button>
-                  <SimuladorRendimento item={item} variant="icon" />
-                  <button onClick={() => onEditar(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600" title="Configurar"><MoreVertical size={17} /></button>
-                </div></td>
-              </tr>;
-            })}
-          </tbody>
-        </table>
-      </div>
-      <div className="divide-y divide-slate-100 lg:hidden">
-        {itens.map(item => {
-          const status = statusItemEstoque(item, estoque);
-          const valTotalItem = calcularValorItem(item);
-          return <article key={item.id} className="p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <strong>{item.nome}</strong>
-                <p className="mt-1 text-xs text-slate-500">{item.categoria || "Sem categoria"} · {item.local_interno || "Sem local"}</p>
-                <p className="mt-0.5 text-xs text-slate-500">Mín: {item.estoque_minimo ?? "—"} · Máx: {item.estoque_maximo ?? "—"}</p>
-                <p className="mt-0.5 text-xs font-black text-emerald-800">Valor total: {fmtBRL(valTotalItem)}</p>
-              </div>
-              <div className="text-right">{(() => { const s = saldoEmbalado(item); return s ? <><strong className={status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}>{s.principal}</strong><span className="block text-[10px] font-medium text-slate-400">{s.secundario}</span></> : <strong className={status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</strong>; })()}</div>
-            </div>
-            <div className="mt-4 grid grid-cols-3 gap-2"><button onClick={() => onEntrada(item)} className="rounded-xl bg-emerald-50 py-2 text-sm font-bold text-emerald-700">+ Entrada</button><button onClick={() => onSaida(item)} className="rounded-xl bg-slate-100 py-2 text-sm font-bold">− Baixa</button><button onClick={() => onEditar(item)} className="rounded-xl bg-slate-100 py-2 text-sm font-bold">Configurar</button></div>
-            <div className="mt-2"><SimuladorRendimento item={item} variant="full" /></div>
-          </article>;
-        })}
-      </div>
-    </>
-  );
-}
-
 const fmtData = (valor, hora = false) => {
   if (!valor) return "—";
   return new Date(valor).toLocaleString("pt-BR", hora
@@ -447,6 +351,27 @@ function EstoqueRunner() {
     }),
     [itensDaArea, estoqueAtual],
   );
+function calcularValorItem(item) {
+  const qtd = Number(item.quantidade_atual) || 0;
+  if (qtd <= 0) return 0;
+
+  const tamEmb = Number(item.tamanho_embalagem) || 1;
+  const un = String(item.unidade_medida || "").toLowerCase();
+  const ehFrac = tamEmb > 1 && (un === "ml" || un === "g");
+
+  const custoUnit = Number(item.custo_unitario) || 0;
+  const custoCompra = Number(item.custo_compra) || 0;
+
+  if (ehFrac) {
+    const unComerciais = qtd / tamEmb;
+    const custoGarrafa = custoCompra > 0 ? custoCompra : (custoUnit * tamEmb > 0 ? custoUnit * tamEmb : custoUnit);
+    return unComerciais * custoGarrafa;
+  }
+
+  const custo = custoUnit > 0 ? custoUnit : custoCompra;
+  return qtd * custo;
+}
+
   const valorTotal = itensDaArea.reduce((soma, item) => soma + calcularValorItem(item), 0);
   const ultimaEntrada = movimentos.find(m => ["entrada", "transferencia_entrada"].includes(m.tipo));
 
@@ -900,201 +825,6 @@ function EstoqueRunner() {
                 <div className="grid grid-cols-2 gap-3">
                   <Campo label="Unidade comercial">
                     <select value={formItem.unidade_comercial || ""} onChange={e => setFormItem({ ...formItem, unidade_comercial: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3">
-              <span className="mr-auto px-2 text-sm font-black" style={{ color: estoqueAtual.cor }}>{estoqueAtual.nome}</span>
-              <button disabled={!ativo} onClick={() => abrirOperacao("entrada")} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-emerald-700 px-4 text-sm font-extrabold text-white disabled:opacity-40"><PackagePlus size={17} /> Nova entrada</button>
-              <button disabled={!ativo || !itens.length} onClick={() => abrirOperacao("saida")} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-extrabold disabled:opacity-40"><PackageMinus size={17} /> Nova baixa</button>
-              <button disabled={!ativo || !itens.length} onClick={() => abrirOperacao("contagem")} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-extrabold disabled:opacity-40"><ClipboardCheck size={17} /> Contagem</button>
-              <button disabled={!ativo || !itens.length || !destinosCompativeis.length} onClick={() => abrirOperacao("transferencia")} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-extrabold disabled:opacity-40"><ArrowRightLeft size={17} /> Transferência</button>
-              <button disabled={!ativo} onClick={() => setModal({ tipo: "importar" })} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-extrabold disabled:opacity-40"><Upload size={17} /> Importar lista</button>
-            </section>
-
-            <section className="grid grid-cols-2 gap-3 xl:grid-cols-5">
-              {[
-                { icon: Package, label: "Valor neste estoque", value: fmtBRL(valorTotal) },
-                { icon: AlertTriangle, label: "Abaixo do mínimo", value: `${itensDaArea.filter(i => statusItemEstoque(i, estoqueAtual).abaixoMinimo).length} itens` },
-                { icon: CalendarDays, label: "Próximas validades", value: estoqueAtual.controla_validade ? `${itensDaArea.filter(i => statusItemEstoque(i, estoqueAtual).validadeProxima).length} itens` : "Não controlada" },
-                { icon: Clock3, label: "Última reposição", value: ultimaEntrada ? fmtData(ultimaEntrada.data_movimento, true) : "Sem registro" },
-                { icon: Boxes, label: "Resumo da área", value: `${itensDaArea.length} itens` },
-              ].map(({ icon: Icon, label, value }) => (
-                <div key={label} className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <div className="mb-4 grid h-9 w-9 place-items-center rounded-full bg-emerald-50 text-emerald-700"><Icon size={18} /></div>
-                  <p className="text-xs font-semibold text-slate-500">{label}</p>
-                  <p className="mt-1 text-lg font-black text-slate-900">{value}</p>
-                </div>
-              ))}
-            </section>
-
-            <section className="rounded-2xl border border-slate-200 bg-white">
-              <div className="grid grid-cols-2 gap-x-4 border-b border-slate-200 px-4 pt-1 sm:flex sm:gap-5 sm:overflow-x-auto sm:px-6">
-                {[
-                  ["atual", "Estoque atual"], ["historico", "Histórico completo"],
-                  ["movimentacoes", "Movimentações"], ["alertas", `Alertas (${alertas.length})`],
-                ].map(([id, label]) => (
-                  <button key={id} onClick={() => setAba(id)} className={`whitespace-nowrap border-b-2 px-1 py-3 text-xs font-extrabold sm:py-4 sm:text-sm ${aba === id ? "border-emerald-600 text-emerald-700" : "border-transparent text-slate-500"}`}>{label}</button>
-                ))}
-              </div>
-
-              {aba === "atual" || aba === "alertas" ? (
-                <>
-                  <div className="grid gap-3 p-4 lg:grid-cols-[1fr_190px_170px_180px]">
-                    <label className="relative"><Search className="absolute left-3 top-3 text-slate-400" size={19} /><input value={filtros.busca} onChange={e => setFiltros({ ...filtros, busca: e.target.value })} placeholder="Buscar produto por nome, marca ou código..." className="h-11 w-full rounded-xl border border-slate-200 pl-10 pr-3 outline-none focus:border-emerald-500" /></label>
-                    <select value={filtros.categoria} onChange={e => setFiltros({ ...filtros, categoria: e.target.value })} className="h-11 rounded-xl border border-slate-200 px-3 font-semibold">{categorias.map(v => <option key={v}>{v}</option>)}</select>
-                    <select value={filtros.status} onChange={e => setFiltros({ ...filtros, status: e.target.value })} className="h-11 rounded-xl border border-slate-200 px-3 font-semibold">
-                      <option value="todos">Todos os status</option><option value="abaixo">Abaixo do mínimo</option><option value="validade">Validade próxima</option><option value="sem-saldo">Sem saldo</option>
-                    </select>
-                    <select value={filtros.local} onChange={e => setFiltros({ ...filtros, local: e.target.value })} className="h-11 rounded-xl border border-slate-200 px-3 font-semibold">{locais.map(v => <option key={v}>{v}</option>)}</select>
-                  </div>
-                  <TabelaItens
-                    itens={aba === "alertas" ? itensFiltrados.filter(i => alertas.some(a => a.id === i.id)) : itensFiltrados}
-                    estoque={estoqueAtual} loading={loading}
-                    onEntrada={item => abrirOperacao("entrada", item)}
-                    onSaida={item => abrirOperacao("saida", item)}
-                    onEditar={abrirEdicaoItem}
-                  />
-                </>
-              ) : (
-                <ListaMovimentos movimentos={movimentos} modo={aba} />
-              )}
-            </section>
-          </>
-        )}
-      </main>
-
-      {["entrada", "saida", "contagem", "transferencia"].includes(modal?.tipo) && (
-        <Modal
-          titulo={{ entrada: "Nova entrada", saida: "Nova baixa", contagem: "Contagem de estoque", transferencia: "Transferir entre estoques" }[modal.tipo]}
-          descricao={`Movimentação exclusiva do estoque ${estoqueAtual?.nome}.`}
-          onClose={() => setModal(null)}
-        >
-          <form onSubmit={executarOperacao} className="space-y-4">
-            <Campo label={`Produto (${modal.tipo === "entrada" ? `Estoque ${estoqueAtual?.nome || ""}` : "Disponível no estoque"})`}>
-              <select required value={operacao.insumo_id} disabled={!!modal.item} onChange={e => setOperacao({ ...operacao, insumo_id: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3 disabled:bg-slate-100">
-                <option value="">Selecione o produto...</option>
-                {(modal.tipo === "entrada" ? catalogoFiltradoPorArea : itensDaArea).map(item => <option key={item.id} value={item.insumo_id || item.id}>{item.nome} {item.marca ? `· ${item.marca}` : ""}</option>)}
-              </select>
-            </Campo>
-
-            <Campo label={`Responsável (${estoqueAtual?.nome || "Estoque"})`}>
-              <select value={operacao.responsavel_id} onChange={e => setOperacao({ ...operacao, responsavel_id: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3 font-semibold text-slate-800">
-                <option value="">Selecione o colaborador responsável...</option>
-                {colaboradoresFiltrados.map(c => (
-                  <option key={c.id} value={c.id}>{c.nome} {c.cargo ? `· ${c.cargo}` : ""}</option>
-                ))}
-              </select>
-            </Campo>
-
-            {(() => {
-              const itemMod = modal.item || itens.find(i => i.insumo_id === operacao.insumo_id) || catalogo.find(i => (i.insumo_id || i.id) === operacao.insumo_id);
-              const frac = ehFracionavel(itemMod) && modal.tipo !== "transferencia";
-              const conteudo = conteudoDe(itemMod);
-              const unConteudo = mostrarUn(itemMod?.unidade_medida);
-              const unLabel = itemMod?.unidade_comercial || "unidade";
-              if (!frac) {
-                return (
-                  <div className="grid grid-cols-2 gap-3">
-                    <Campo label={modal.tipo === "contagem" ? "Saldo contado" : "Quantidade"}>
-                      <input required min="0" step="0.001" type="number" value={operacao.quantidade} onChange={e => setOperacao({ ...operacao, quantidade: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" />
-                    </Campo>
-                    {modal.tipo === "transferencia" ? (
-                      <Campo label="Estoque de destino">
-                        <select required value={operacao.destino_id} onChange={e => setOperacao({ ...operacao, destino_id: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3">
-                          <option value="">Selecione...</option>{destinosCompativeis.map(item => <option key={item.id} value={item.id}>{item.nome}</option>)}
-                        </select>
-                      </Campo>
-                    ) : modal.tipo !== "contagem" ? (
-                      <Campo label="Data (opcional)"><input type="datetime-local" value={operacao.data} onChange={e => setOperacao({ ...operacao, data: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" /></Campo>
-                    ) : <div />}
-                  </div>
-                );
-              }
-              // ---- Bebida/embalado fracionável ----
-              if (modal.tipo === "entrada") {
-                const un = Math.max(0, Number(operacao.quantidade) || 0);
-                return (
-                  <div className="space-y-2">
-                    <Campo label={`Quantidade recebida (${unLabel}s)`}>
-                      <input required min="0" step="1" type="number" value={operacao.quantidade} onChange={e => setOperacao({ ...operacao, quantidade: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" placeholder={`Ex.: 10 ${unLabel}s`} />
-                    </Campo>
-                    <p className="rounded-xl bg-emerald-50 p-3 text-sm font-bold text-emerald-800">Conteúdo por {unLabel}: {fmtEquiv(conteudo, unConteudo)} · Volume equivalente: <b>{fmtEquiv(un * conteudo, unConteudo)}</b></p>
-                  </div>
-                );
-              }
-              if (modal.tipo === "saida") {
-                const q = Math.max(0, Number(operacao.quantidade) || 0);
-                const div = dividirSaldo(itemMod.quantidade_atual, conteudo, true);
-                let preview = null;
-                if (operacao.modo === "conteudo" && q > 0) {
-                  const precisa = q - div.aberto;
-                  const abrir = precisa > 1e-9 ? Math.ceil(precisa / conteudo) : 0;
-                  const excede = q > (Number(itemMod.quantidade_atual) || 0) + 1e-9;
-                  preview = excede
-                    ? <span className="text-red-600">Saldo insuficiente (disponível {fmtEquiv(itemMod.quantidade_atual, unConteudo)}).</span>
-                    : <>{abrir > 0 ? `${abrir} ${unLabel}(s) será(ão) aberta(s) automaticamente. ` : ""}Depois: {Math.max(0, div.fechadas - abrir)} {unLabel}s + {fmtEquiv((div.aberto + abrir * conteudo) - q, unConteudo)}.</>;
-                }
-                if (operacao.modo === "unidade" && q > 0) {
-                  const excede = q > div.fechadas + 1e-9;
-                  preview = excede ? <span className="text-red-600">Só há {div.fechadas} {unLabel}(s) fechada(s).</span> : <>Baixa de {q} {unLabel}(s) fechada(s) = {fmtEquiv(q * conteudo, unConteudo)}.</>;
-                }
-                return (
-                  <div className="space-y-2">
-                    <div className="flex gap-2">
-                      {[["conteudo", `Por conteúdo (${unConteudo})`], ["unidade", `Por ${unLabel} fechada`]].map(([v, l]) => (
-                        <button type="button" key={v} onClick={() => setOperacao({ ...operacao, modo: v, quantidade: "" })} className={`flex-1 rounded-xl border px-3 py-2 text-sm font-bold ${operacao.modo === v ? "border-emerald-600 bg-emerald-50 text-emerald-700" : "border-slate-200 text-slate-600"}`}>{l}</button>
-                      ))}
-                    </div>
-                    <Campo label={operacao.modo === "unidade" ? `Quantidade (${unLabel}s)` : `Quantidade (${unConteudo})`}>
-                      <input required min="0" step={operacao.modo === "unidade" ? "1" : "0.001"} type="number" value={operacao.quantidade} onChange={e => setOperacao({ ...operacao, quantidade: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" />
-                    </Campo>
-                    <p className="rounded-xl bg-slate-50 p-3 text-sm font-semibold text-slate-700">Saldo: {div.fechadas} {unLabel}s{div.aberto > 0 ? ` + ${fmtEquiv(div.aberto, unConteudo)}` : ""}. {preview}</p>
-                  </div>
-                );
-              }
-              // contagem
-              const total = (Number(operacao.fechadas) || 0) * conteudo + (Number(operacao.aberto) || 0);
-              return (
-                <div className="space-y-2">
-                  <div className="grid grid-cols-2 gap-3">
-                    <Campo label={`${unLabel.charAt(0).toUpperCase() + unLabel.slice(1)}s fechadas`}>
-                      <input required min="0" step="1" type="number" value={operacao.fechadas} onChange={e => setOperacao({ ...operacao, fechadas: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" />
-                    </Campo>
-                    <Campo label={`Aberto (${unConteudo})`}>
-                      <input min="0" step="0.001" type="number" value={operacao.aberto} onChange={e => setOperacao({ ...operacao, aberto: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" />
-                    </Campo>
-                  </div>
-                  <p className="rounded-xl bg-slate-50 p-3 text-sm font-semibold text-slate-700">Total contado: {operacao.fechadas || 0} {unLabel}s + {fmtEquiv(Number(operacao.aberto) || 0, unConteudo)} = <b>{fmtEquiv(total, unConteudo)}</b></p>
-                </div>
-              );
-            })()}
-            <Campo label="Observação"><textarea value={operacao.observacao} onChange={e => setOperacao({ ...operacao, observacao: e.target.value })} className="min-h-24 w-full rounded-xl border border-slate-200 p-3" placeholder="Motivo, documento ou observações adicionais..." /></Campo>
-            {modal.tipo === "transferencia" && !destinosCompativeis.length && <p className="rounded-xl bg-amber-50 p-3 text-sm font-semibold text-amber-800">Não há outro estoque ativo e compatível com esta área.</p>}
-            <div className="flex justify-end"><BotaoSalvar carregando={salvando}>Confirmar</BotaoSalvar></div>
-          </form>
-        </Modal>
-      )}
-
-      {modal?.tipo === "item" && (
-        <Modal titulo={`Configurar ${modal.item.nome}`} descricao={`Parâmetros válidos apenas em ${estoqueAtual?.nome}.`} onClose={() => setModal(null)}>
-          <form onSubmit={salvarConfiguracaoItem} className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <Campo label="Estoque mínimo"><input type="number" min="0" step="0.001" value={formItem.estoque_minimo} onChange={e => setFormItem({ ...formItem, estoque_minimo: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" /></Campo>
-              <Campo label="Estoque máximo"><input type="number" min="0" step="0.001" value={formItem.estoque_maximo} onChange={e => setFormItem({ ...formItem, estoque_maximo: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" /></Campo>
-              <Campo label="Custo unitário">
-                <div className="relative">
-                  <span className="absolute left-3.5 top-3 text-sm font-extrabold text-slate-500">R$</span>
-                  <input type="number" min="0" step="0.01" value={formItem.custo_unitario} onChange={e => setFormItem({ ...formItem, custo_unitario: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 pl-10 pr-3 font-semibold" placeholder="0,00" />
-                </div>
-              </Campo>
-              <Campo label="Local interno"><input value={formItem.local_interno || ""} onChange={e => setFormItem({ ...formItem, local_interno: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" placeholder="Ex.: Câmara fria 01" /></Campo>
-              {estoqueAtual?.controla_validade && <Campo label="Validade"><input type="date" value={formItem.validade || ""} onChange={e => setFormItem({ ...formItem, validade: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" /></Campo>}
-            </div>
-            <label className="flex items-center gap-3 rounded-xl bg-slate-50 p-3 text-sm font-bold"><input type="checkbox" checked={formItem.permite_transferencia !== false} onChange={e => setFormItem({ ...formItem, permite_transferencia: e.target.checked })} /> Permitir transferências deste item</label>
-            {/* Embalagem/fracionamento — valem para o produto em todos os estoques */}
-            {Number(formItem.tamanho_embalagem) > 1 && String(formItem.unidade_medida || "").toLowerCase() !== "un" && (
-              <div className="rounded-xl border border-slate-200 p-3">
-                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">Bebida / embalado</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <Campo label="Unidade comercial">
-                    <select value={formItem.unidade_comercial || ""} onChange={e => setFormItem({ ...formItem, unidade_comercial: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3">
                       <option value="">Selecione...</option>
                       {["garrafa", "lata", "unidade", "caixa", "pacote", "fardo", "barril", "outro"].map(u => <option key={u} value={u}>{u}</option>)}
                     </select>
@@ -1142,6 +872,88 @@ function EstoqueRunner() {
         </Modal>
       )}
     </div>
+  );
+}
+
+// Saldo de bebidas/embalados: mostra UNIDADES comerciais como principal e o
+// equivalente (ml/L/g/kg) como secundário — quando o item tem conteúdo por
+// embalagem (> 1). Ex.: 5000 ml de garrafas de 750 → "6 un + 500 ml".
+function saldoEmbalado(item) {
+  const conteudo = Number(item.tamanho_embalagem) || 1;
+  const total = Number(item.quantidade_atual) || 0;
+  const un = String(item.unidade_medida || "un").toLowerCase();
+  if (conteudo <= 1 || un === "un") return null; // sem embalagem fracionável
+  const unLabel = item.unidade_comercial || "un";
+  const fechadas = Math.floor(total / conteudo);
+  const aberto = +(total - fechadas * conteudo).toFixed(3);
+  const fmtEq = (q, u) => {
+    const n = Number(q) || 0;
+    if (u === "ml") return n >= 1000 ? `${(+(n / 1000).toFixed(3)).toLocaleString("pt-BR")} L` : `${fmtQtd(n)} ml`;
+    if (u === "g") return n >= 1000 ? `${(+(n / 1000).toFixed(3)).toLocaleString("pt-BR")} kg` : `${fmtQtd(n)} g`;
+    return `${fmtQtd(n)} ${mostrarUn(u)}`;
+  };
+  const principal = `${fechadas} ${unLabel}${aberto > 0 ? ` + ${fmtEq(aberto, un)}` : ""}`;
+  const secundario = `Conteúdo: ${fmtQtd(conteudo)} ${mostrarUn(un)}/un · Total: ${fmtEq(total, un)}`;
+  return { principal, secundario };
+}
+
+function TabelaItens({ itens, estoque, loading, onEntrada, onSaida, onEditar }) {
+  if (loading) return <div className="grid min-h-64 place-items-center text-slate-500"><Loader2 className="animate-spin" /></div>;
+  if (!itens.length) return <div className="grid min-h-64 place-items-center px-5 text-center"><div><Package size={42} className="mx-auto mb-3 text-slate-300" /><p className="font-black text-slate-700">Nenhum item encontrado neste estoque</p><p className="mt-1 text-sm text-slate-500">Use “Nova entrada” ou “Importar lista” para começar.</p></div></div>;
+  return (
+    <>
+      <div className="hidden overflow-x-auto lg:block">
+        <table className="w-full min-w-[1100px] text-left text-sm">
+          <thead className="bg-slate-900 text-xs uppercase tracking-wide text-white"><tr>
+            <th className="px-5 py-4">Produto</th><th className="px-4 py-4">Categoria</th><th className="px-4 py-4">Embalagem</th><th className="px-4 py-4 whitespace-nowrap">Custo/un.</th><th className="px-4 py-4">Saldo</th><th className="px-4 py-4 whitespace-nowrap">Valor total</th><th className="px-3 py-4">Mínimo</th><th className="px-3 py-4">Máximo</th>{estoque.controla_validade && <th className="px-4 py-4">Validade</th>}<th className="px-4 py-4">Local</th><th className="px-4 py-4">Última mov.</th><th className="px-4 py-4">Ações</th>
+          </tr></thead>
+          <tbody className="divide-y divide-slate-100">
+            {itens.map(item => {
+              const status = statusItemEstoque(item, estoque);
+              const valTotalItem = calcularValorItem(item);
+              return <tr key={item.id} className="hover:bg-slate-50">
+                <td className="px-5 py-3"><strong className="block">{item.nome}</strong><span className="text-xs text-slate-500">{item.codigo_interno || item.marca || "Sem código"}</span></td>
+                <td className="px-4 py-3"><span className="rounded-lg bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">{item.categoria || "Sem categoria"}</span></td>
+                <td className="px-4 py-3">{fmtQtd(item.tamanho_embalagem || 1)} {mostrarUn(item.unidade_medida)}</td>
+                <td className="px-4 py-3 whitespace-nowrap"><strong className="font-extrabold text-slate-900">{fmtBRL(item.custo_unitario || 0)}</strong></td>
+                <td className={`px-4 py-3 font-black ${status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}`}>{(() => { const s = saldoEmbalado(item); return s ? <><span>{s.principal}</span><span className="block text-[10px] font-medium text-slate-400">{s.secundario}</span></> : <>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</>; })()}</td>
+                <td className="px-4 py-3 whitespace-nowrap"><strong className="font-black text-emerald-800">{fmtBRL(valTotalItem)}</strong></td>
+                <td className="px-3 py-3 font-semibold text-slate-700">{item.estoque_minimo == null || item.estoque_minimo === "" ? "—" : `${fmtQtd(item.estoque_minimo)} ${mostrarUn(item.unidade_medida)}`}</td>
+                <td className="px-3 py-3 font-semibold text-slate-700">{item.estoque_maximo == null || item.estoque_maximo === "" ? "—" : `${fmtQtd(item.estoque_maximo)} ${mostrarUn(item.unidade_medida)}`}</td>
+                {estoque.controla_validade && <td className={`px-4 py-3 ${status.vencido || status.validadeProxima ? "font-bold text-amber-700" : ""}`}>{fmtData(item.validade)}</td>}
+                <td className="px-4 py-3"><span className="inline-flex items-center gap-1"><MapPin size={14} />{item.local_interno || "Não definido"}</span></td>
+                <td className="px-4 py-3 text-xs text-slate-500">{fmtData(item.ultima_movimentacao_em, true)}</td>
+                <td className="px-4 py-3"><div className="flex gap-2">
+                  <button onClick={() => onEntrada(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-emerald-600 text-emerald-700" title="Entrada"><Plus size={17} /></button>
+                  <button onClick={() => onSaida(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-emerald-600 text-emerald-700" title="Baixa"><span className="text-xl leading-none">−</span></button>
+                  <SimuladorRendimento item={item} variant="icon" />
+                  <button onClick={() => onEditar(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600" title="Configurar"><MoreVertical size={17} /></button>
+                </div></td>
+              </tr>;
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div className="divide-y divide-slate-100 lg:hidden">
+        {itens.map(item => {
+          const status = statusItemEstoque(item, estoque);
+          const valTotalItem = calcularValorItem(item);
+          return <article key={item.id} className="p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <strong>{item.nome}</strong>
+                <p className="mt-1 text-xs text-slate-500">{item.categoria || "Sem categoria"} · {item.local_interno || "Sem local"}</p>
+                <p className="mt-0.5 text-xs text-slate-500">Mín: {item.estoque_minimo ?? "—"} · Máx: {item.estoque_maximo ?? "—"}</p>
+                <p className="mt-0.5 text-xs font-black text-emerald-800">Valor total: {fmtBRL(valTotalItem)}</p>
+              </div>
+              <div className="text-right">{(() => { const s = saldoEmbalado(item); return s ? <><strong className={status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}>{s.principal}</strong><span className="block text-[10px] font-medium text-slate-400">{s.secundario}</span></> : <strong className={status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</strong>; })()}</div>
+            </div>
+            <div className="mt-4 grid grid-cols-3 gap-2"><button onClick={() => onEntrada(item)} className="rounded-xl bg-emerald-50 py-2 text-sm font-bold text-emerald-700">+ Entrada</button><button onClick={() => onSaida(item)} className="rounded-xl bg-slate-100 py-2 text-sm font-bold">− Baixa</button><button onClick={() => onEditar(item)} className="rounded-xl bg-slate-100 py-2 text-sm font-bold">Configurar</button></div>
+            <div className="mt-2"><SimuladorRendimento item={item} variant="full" /></div>
+          </article>;
+        })}
+      </div>
+    </>
   );
 }
 

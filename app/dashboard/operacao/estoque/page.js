@@ -20,8 +20,23 @@ import {
 } from "../../../lib/estoques-multiplos-utils.mjs";
 import { fmtBRL } from "../../../components/ui";
 import SimuladorRendimento from "../../../components/SimuladorRendimento";
+import { entradaBebidaUnidades, baixaBebidaUnidades, baixaBebidaConteudo, contagemBebida, dividirSaldo } from "../../../lib/estoque-bebidas";
+
+// Item fracionável = tem conteúdo por embalagem (>1) e permite controle
+// fracionado (garrafa/lata/pacote). Nele a entrada é por unidade comercial e a
+// baixa pode ser por unidade fechada ou por conteúdo (ml/g).
+const ehFracionavel = (item) => item && Number(item.tamanho_embalagem) > 1 && item.permite_fracionado !== false && String(item.unidade_medida || "").toLowerCase() !== "un";
+const conteudoDe = (item) => Number(item?.tamanho_embalagem) || 1;
+const fmtEquiv = (q, un) => {
+  const n = Number(q) || 0; const u = String(un || "un").toLowerCase();
+  if (u === "ml") return n >= 1000 ? `${(+(n / 1000).toFixed(3)).toLocaleString("pt-BR")} L` : `${(+n.toFixed(3)).toLocaleString("pt-BR")} ml`;
+  if (u === "g") return n >= 1000 ? `${(+(n / 1000).toFixed(3)).toLocaleString("pt-BR")} kg` : `${(+n.toFixed(3)).toLocaleString("pt-BR")} g`;
+  return `${(+n.toFixed(3)).toLocaleString("pt-BR")} ${u}`;
+};
 
 const fmtQtd = (valor) => Number(valor || 0).toLocaleString("pt-BR", { maximumFractionDigits: 3 });
+// Litro em maiúsculo (L), como manda a convenção; demais unidades como estão.
+const mostrarUn = (u) => (String(u || "").toLowerCase() === "l" ? "L" : (u || "un"));
 const fmtData = (valor, hora = false) => {
   if (!valor) return "—";
   return new Date(valor).toLocaleString("pt-BR", hora
@@ -75,7 +90,7 @@ function EstoqueRunner() {
   const [aba, setAba] = useState("atual");
   const [filtros, setFiltros] = useState({ busca: "", categoria: "Todas", status: "todos", local: "Todos" });
   const [modal, setModal] = useState(null);
-  const [operacao, setOperacao] = useState({ insumo_id: "", quantidade: "", destino_id: "", observacao: "", data: "" });
+  const [operacao, setOperacao] = useState({ insumo_id: "", quantidade: "", destino_id: "", observacao: "", data: "", modo: "unidade", fechadas: "", aberto: "" });
   const [formItem, setFormItem] = useState({});
   const [formEstoque, setFormEstoque] = useState({});
   const [textoImportacao, setTextoImportacao] = useState("");
@@ -141,12 +156,18 @@ function EstoqueRunner() {
   const ultimaEntrada = movimentos.find(m => ["entrada", "transferencia_entrada"].includes(m.tipo));
 
   const abrirOperacao = (tipo, item = null) => {
+    const frac = ehFracionavel(item);
+    const div = frac ? dividirSaldo(item.quantidade_atual, conteudoDe(item), true) : null;
     setOperacao({
       insumo_id: item?.insumo_id || "",
-      quantidade: tipo === "contagem" ? String(item?.quantidade_atual ?? "") : "",
+      quantidade: tipo === "contagem" && !frac ? String(item?.quantidade_atual ?? "") : "",
       destino_id: "",
       observacao: "",
       data: "",
+      // Bebidas: entrada por unidade fechada; baixa por conteúdo (mais comum).
+      modo: tipo === "saida" ? "conteudo" : "unidade",
+      fechadas: div ? String(div.fechadas) : "",
+      aberto: div ? String(div.aberto) : "",
     });
     setModal({ tipo, item });
   };
@@ -173,7 +194,19 @@ function EstoqueRunner() {
       item = { ...insumo, insumo_id: insumo.id, estoque_item_id: vinculo.data?.id, permite_transferencia: true };
     }
     let resposta;
-    if (modal?.tipo === "contagem") {
+    // Bebidas/embalados fracionáveis: entrada por unidade, baixa por unidade ou
+    // conteúdo (abre garrafa automática), contagem com fechadas + aberto.
+    const frac = ehFracionavel(item);
+    const bebArgs = { unidadeId, estoqueId, insumoId: item?.insumo_id, usuarioId: idUsuario(sessao), usuarioNome: nomeUsuario(sessao), observacao: operacao.observacao };
+    if (frac && modal?.tipo === "entrada") {
+      resposta = await entradaBebidaUnidades({ ...bebArgs, unidades: operacao.quantidade });
+    } else if (frac && modal?.tipo === "saida") {
+      resposta = operacao.modo === "unidade"
+        ? await baixaBebidaUnidades({ ...bebArgs, unidades: operacao.quantidade })
+        : await baixaBebidaConteudo({ ...bebArgs, quantidade: operacao.quantidade });
+    } else if (frac && modal?.tipo === "contagem") {
+      resposta = await contagemBebida({ ...bebArgs, fechadas: operacao.fechadas, aberto: operacao.aberto });
+    } else if (modal?.tipo === "contagem") {
       resposta = await registrarContagemMulti({
         unidadeId, estoqueId, insumoId: item?.insumo_id,
         saldoContado: operacao.quantidade, usuarioId: idUsuario(sessao),
@@ -215,6 +248,15 @@ function EstoqueRunner() {
     event.preventDefault();
     setSalvando(true);
     const resposta = await atualizarItemEstoque(formItem.estoque_item_id, formItem);
+    // Unidade comercial e "permite fracionado" ficam no insumo (valem p/ todos
+    // os estoques do produto). Só grava se algum mudou.
+    if (formItem.insumo_id) {
+      await salvarInsumo({
+        id: formItem.insumo_id, unidade_id: unidadeAtiva, nome: formItem.nome,
+        unidade_comercial: formItem.unidade_comercial || null,
+        permite_fracionado: formItem.permite_fracionado !== false,
+      });
+    }
     setSalvando(false);
     if (resposta.error) return avisar(resposta.error, "erro");
     setModal(null);
@@ -415,20 +457,88 @@ function EstoqueRunner() {
                 {(modal.tipo === "entrada" ? catalogo : itens).map(item => <option key={item.id} value={item.insumo_id || item.id}>{item.nome} {item.marca ? `· ${item.marca}` : ""}</option>)}
               </select>
             </Campo>
-            <div className="grid grid-cols-2 gap-3">
-              <Campo label={modal.tipo === "contagem" ? "Saldo contado" : "Quantidade"}>
-                <input required min="0" step="0.001" type="number" value={operacao.quantidade} onChange={e => setOperacao({ ...operacao, quantidade: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" />
-              </Campo>
-              {modal.tipo === "transferencia" ? (
-                <Campo label="Estoque de destino">
-                  <select required value={operacao.destino_id} onChange={e => setOperacao({ ...operacao, destino_id: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3">
-                    <option value="">Selecione...</option>{destinosCompativeis.map(item => <option key={item.id} value={item.id}>{item.nome}</option>)}
-                  </select>
-                </Campo>
-              ) : modal.tipo !== "contagem" ? (
-                <Campo label="Data (opcional)"><input type="datetime-local" value={operacao.data} onChange={e => setOperacao({ ...operacao, data: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" /></Campo>
-              ) : <div />}
-            </div>
+            {(() => {
+              const itemMod = modal.item || itens.find(i => i.insumo_id === operacao.insumo_id) || catalogo.find(i => (i.insumo_id || i.id) === operacao.insumo_id);
+              const frac = ehFracionavel(itemMod) && modal.tipo !== "transferencia";
+              const conteudo = conteudoDe(itemMod);
+              const unConteudo = String(itemMod?.unidade_medida || "un").toLowerCase();
+              const unLabel = itemMod?.unidade_comercial || "unidade";
+              if (!frac) {
+                return (
+                  <div className="grid grid-cols-2 gap-3">
+                    <Campo label={modal.tipo === "contagem" ? "Saldo contado" : "Quantidade"}>
+                      <input required min="0" step="0.001" type="number" value={operacao.quantidade} onChange={e => setOperacao({ ...operacao, quantidade: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" />
+                    </Campo>
+                    {modal.tipo === "transferencia" ? (
+                      <Campo label="Estoque de destino">
+                        <select required value={operacao.destino_id} onChange={e => setOperacao({ ...operacao, destino_id: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3">
+                          <option value="">Selecione...</option>{destinosCompativeis.map(item => <option key={item.id} value={item.id}>{item.nome}</option>)}
+                        </select>
+                      </Campo>
+                    ) : modal.tipo !== "contagem" ? (
+                      <Campo label="Data (opcional)"><input type="datetime-local" value={operacao.data} onChange={e => setOperacao({ ...operacao, data: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" /></Campo>
+                    ) : <div />}
+                  </div>
+                );
+              }
+              // ---- Bebida/embalado fracionável ----
+              if (modal.tipo === "entrada") {
+                const un = Math.max(0, Number(operacao.quantidade) || 0);
+                return (
+                  <div className="space-y-2">
+                    <Campo label={`Quantidade recebida (${unLabel}s)`}>
+                      <input required min="0" step="1" type="number" value={operacao.quantidade} onChange={e => setOperacao({ ...operacao, quantidade: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" placeholder={`Ex.: 10 ${unLabel}s`} />
+                    </Campo>
+                    <p className="rounded-xl bg-emerald-50 p-3 text-sm font-bold text-emerald-800">Conteúdo por {unLabel}: {fmtEquiv(conteudo, unConteudo)} · Volume equivalente: <b>{fmtEquiv(un * conteudo, unConteudo)}</b></p>
+                  </div>
+                );
+              }
+              if (modal.tipo === "saida") {
+                const q = Math.max(0, Number(operacao.quantidade) || 0);
+                const div = dividirSaldo(itemMod.quantidade_atual, conteudo, true);
+                let preview = null;
+                if (operacao.modo === "conteudo" && q > 0) {
+                  const precisa = q - div.aberto;
+                  const abrir = precisa > 1e-9 ? Math.ceil(precisa / conteudo) : 0;
+                  const excede = q > (Number(itemMod.quantidade_atual) || 0) + 1e-9;
+                  preview = excede
+                    ? <span className="text-red-600">Saldo insuficiente (disponível {fmtEquiv(itemMod.quantidade_atual, unConteudo)}).</span>
+                    : <>{abrir > 0 ? `${abrir} ${unLabel}(s) será(ão) aberta(s) automaticamente. ` : ""}Depois: {Math.max(0, div.fechadas - abrir)} {unLabel}s + {fmtEquiv((div.aberto + abrir * conteudo) - q, unConteudo)}.</>;
+                }
+                if (operacao.modo === "unidade" && q > 0) {
+                  const excede = q > div.fechadas + 1e-9;
+                  preview = excede ? <span className="text-red-600">Só há {div.fechadas} {unLabel}(s) fechada(s).</span> : <>Baixa de {q} {unLabel}(s) fechada(s) = {fmtEquiv(q * conteudo, unConteudo)}.</>;
+                }
+                return (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      {[["conteudo", `Por conteúdo (${unConteudo})`], ["unidade", `Por ${unLabel} fechada`]].map(([v, l]) => (
+                        <button type="button" key={v} onClick={() => setOperacao({ ...operacao, modo: v, quantidade: "" })} className={`flex-1 rounded-xl border px-3 py-2 text-sm font-bold ${operacao.modo === v ? "border-emerald-600 bg-emerald-50 text-emerald-700" : "border-slate-200 text-slate-600"}`}>{l}</button>
+                      ))}
+                    </div>
+                    <Campo label={operacao.modo === "unidade" ? `Quantidade (${unLabel}s)` : `Quantidade (${unConteudo})`}>
+                      <input required min="0" step={operacao.modo === "unidade" ? "1" : "0.001"} type="number" value={operacao.quantidade} onChange={e => setOperacao({ ...operacao, quantidade: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" />
+                    </Campo>
+                    <p className="rounded-xl bg-slate-50 p-3 text-sm font-semibold text-slate-700">Saldo: {div.fechadas} {unLabel}s{div.aberto > 0 ? ` + ${fmtEquiv(div.aberto, unConteudo)}` : ""}. {preview}</p>
+                  </div>
+                );
+              }
+              // contagem
+              const total = (Number(operacao.fechadas) || 0) * conteudo + (Number(operacao.aberto) || 0);
+              return (
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-3">
+                    <Campo label={`${unLabel.charAt(0).toUpperCase() + unLabel.slice(1)}s fechadas`}>
+                      <input required min="0" step="1" type="number" value={operacao.fechadas} onChange={e => setOperacao({ ...operacao, fechadas: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" />
+                    </Campo>
+                    <Campo label={`Aberto (${unConteudo})`}>
+                      <input min="0" step="0.001" type="number" value={operacao.aberto} onChange={e => setOperacao({ ...operacao, aberto: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" />
+                    </Campo>
+                  </div>
+                  <p className="rounded-xl bg-slate-50 p-3 text-sm font-semibold text-slate-700">Total contado: {operacao.fechadas || 0} {unLabel}s + {fmtEquiv(Number(operacao.aberto) || 0, unConteudo)} = <b>{fmtEquiv(total, unConteudo)}</b></p>
+                </div>
+              );
+            })()}
             <Campo label="Observação"><textarea value={operacao.observacao} onChange={e => setOperacao({ ...operacao, observacao: e.target.value })} className="min-h-24 w-full rounded-xl border border-slate-200 p-3" placeholder="Motivo, documento ou responsável..." /></Campo>
             {modal.tipo === "transferencia" && !destinosCompativeis.length && <p className="rounded-xl bg-amber-50 p-3 text-sm font-semibold text-amber-800">Não há outro estoque ativo e compatível com esta área.</p>}
             <div className="flex justify-end"><BotaoSalvar carregando={salvando}>Confirmar</BotaoSalvar></div>
@@ -447,6 +557,24 @@ function EstoqueRunner() {
               {estoqueAtual?.controla_validade && <Campo label="Validade"><input type="date" value={formItem.validade || ""} onChange={e => setFormItem({ ...formItem, validade: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" /></Campo>}
             </div>
             <label className="flex items-center gap-3 rounded-xl bg-slate-50 p-3 text-sm font-bold"><input type="checkbox" checked={formItem.permite_transferencia !== false} onChange={e => setFormItem({ ...formItem, permite_transferencia: e.target.checked })} /> Permitir transferências deste item</label>
+            {/* Embalagem/fracionamento — valem para o produto em todos os estoques */}
+            {Number(formItem.tamanho_embalagem) > 1 && String(formItem.unidade_medida || "").toLowerCase() !== "un" && (
+              <div className="rounded-xl border border-slate-200 p-3">
+                <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">Bebida / embalado</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <Campo label="Unidade comercial">
+                    <select value={formItem.unidade_comercial || ""} onChange={e => setFormItem({ ...formItem, unidade_comercial: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3">
+                      <option value="">Selecione...</option>
+                      {["garrafa", "lata", "unidade", "caixa", "pacote", "fardo", "barril", "outro"].map(u => <option key={u} value={u}>{u}</option>)}
+                    </select>
+                  </Campo>
+                  <Campo label="Conteúdo por unidade">
+                    <div className="grid h-12 place-items-center rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-600">{fmtQtd(formItem.tamanho_embalagem)} {String(formItem.unidade_medida).toLowerCase() === "l" ? "L" : formItem.unidade_medida}</div>
+                  </Campo>
+                </div>
+                <label className="mt-2 flex items-center gap-3 rounded-xl bg-slate-50 p-3 text-sm font-bold"><input type="checkbox" checked={formItem.permite_fracionado !== false} onChange={e => setFormItem({ ...formItem, permite_fracionado: e.target.checked })} /> Permite controle fracionado (abrir e usar por conteúdo)</label>
+              </div>
+            )}
             <div className="flex justify-end"><BotaoSalvar carregando={salvando} /></div>
           </form>
         </Modal>
@@ -524,10 +652,10 @@ function TabelaItens({ itens, estoque, loading, onEntrada, onSaida, onEditar }) 
               return <tr key={item.id} className="hover:bg-slate-50">
                 <td className="px-5 py-3"><strong className="block">{item.nome}</strong><span className="text-xs text-slate-500">{item.codigo_interno || item.marca || "Sem código"}</span></td>
                 <td className="px-4 py-3"><span className="rounded-lg bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">{item.categoria || "Sem categoria"}</span></td>
-                <td className="px-4 py-3">{fmtQtd(item.tamanho_embalagem || 1)} {item.unidade_medida || "un"}</td>
+                <td className="px-4 py-3">{fmtQtd(item.tamanho_embalagem || 1)} {mostrarUn(item.unidade_medida)}</td>
                 <td className="px-4 py-3"><strong>{fmtBRL(item.custo_unitario || 0)}</strong></td>
-                <td className={`px-4 py-3 font-black ${status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}`}>{(() => { const s = saldoEmbalado(item); return s ? <><span>{s.principal}</span><span className="block text-[10px] font-medium text-slate-400">{s.secundario}</span></> : <>{fmtQtd(item.quantidade_atual)} {item.unidade_medida || "un"}</>; })()}</td>
-                <td className="px-4 py-3">{item.estoque_minimo == null ? "—" : `${fmtQtd(item.estoque_minimo)} ${item.unidade_medida || "un"}`}</td>
+                <td className={`px-4 py-3 font-black ${status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}`}>{(() => { const s = saldoEmbalado(item); return s ? <><span>{s.principal}</span><span className="block text-[10px] font-medium text-slate-400">{s.secundario}</span></> : <>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</>; })()}</td>
+                <td className="px-4 py-3">{item.estoque_minimo == null ? "—" : `${fmtQtd(item.estoque_minimo)} ${mostrarUn(item.unidade_medida)}`}</td>
                 {estoque.controla_validade && <td className={`px-4 py-3 ${status.vencido || status.validadeProxima ? "font-bold text-amber-700" : ""}`}>{fmtData(item.validade)}</td>}
                 <td className="px-4 py-3"><span className="inline-flex items-center gap-1"><MapPin size={14} />{item.local_interno || "Não definido"}</span></td>
                 <td className="px-4 py-3 text-xs text-slate-500">{fmtData(item.ultima_movimentacao_em, true)}</td>
@@ -546,7 +674,7 @@ function TabelaItens({ itens, estoque, loading, onEntrada, onSaida, onEditar }) 
         {itens.map(item => {
           const status = statusItemEstoque(item, estoque);
           return <article key={item.id} className="p-4">
-            <div className="flex items-start justify-between gap-3"><div><strong>{item.nome}</strong><p className="mt-1 text-xs text-slate-500">{item.categoria || "Sem categoria"} · {item.local_interno || "Sem local"}</p></div><div className="text-right">{(() => { const s = saldoEmbalado(item); return s ? <><strong className={status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}>{s.principal}</strong><span className="block text-[10px] font-medium text-slate-400">{s.secundario}</span></> : <strong className={status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}>{fmtQtd(item.quantidade_atual)} {item.unidade_medida || "un"}</strong>; })()}</div></div>
+            <div className="flex items-start justify-between gap-3"><div><strong>{item.nome}</strong><p className="mt-1 text-xs text-slate-500">{item.categoria || "Sem categoria"} · {item.local_interno || "Sem local"}</p></div><div className="text-right">{(() => { const s = saldoEmbalado(item); return s ? <><strong className={status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}>{s.principal}</strong><span className="block text-[10px] font-medium text-slate-400">{s.secundario}</span></> : <strong className={status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</strong>; })()}</div></div>
             <div className="mt-4 grid grid-cols-3 gap-2"><button onClick={() => onEntrada(item)} className="rounded-xl bg-emerald-50 py-2 text-sm font-bold text-emerald-700">+ Entrada</button><button onClick={() => onSaida(item)} className="rounded-xl bg-slate-100 py-2 text-sm font-bold">− Baixa</button><button onClick={() => onEditar(item)} className="rounded-xl bg-slate-100 py-2 text-sm font-bold">Configurar</button></div>
             <div className="mt-2"><SimuladorRendimento item={item} variant="full" /></div>
           </article>;
@@ -567,7 +695,7 @@ function ListaMovimentos({ movimentos, modo }) {
       return <div key={mov.id} className="flex flex-wrap items-center gap-3 px-5 py-4">
         <div className={`grid h-10 w-10 place-items-center rounded-full ${positivo ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"}`}>{mov.tipo.includes("transferencia") ? <ArrowRightLeft size={18} /> : <History size={18} />}</div>
         <div className="min-w-0 flex-1"><strong className="block truncate">{mov.insumo?.nome || "Produto"}</strong><p className="text-xs text-slate-500">{mov.tipo.replaceAll("_", " ")} · {mov.usuario_nome || "Sistema"} · {fmtData(mov.data_movimento, true)}</p></div>
-        <div className="text-right"><strong className={positivo ? "text-emerald-700" : "text-red-600"}>{positivo ? "+" : "−"} {fmtQtd(Math.abs(Number(mov.quantidade) || 0))} {mov.insumo?.unidade_medida || "un"}</strong>{mov.destino?.nome && <p className="text-xs text-slate-500">Destino: {mov.destino.nome}</p>}</div>
+        <div className="text-right"><strong className={positivo ? "text-emerald-700" : "text-red-600"}>{positivo ? "+" : "−"} {fmtQtd(Math.abs(Number(mov.quantidade) || 0))} {mostrarUn(mov.insumo?.unidade_medida)}</strong>{mov.destino?.nome && <p className="text-xs text-slate-500">Destino: {mov.destino.nome}</p>}</div>
       </div>;
     })}
   </div>;

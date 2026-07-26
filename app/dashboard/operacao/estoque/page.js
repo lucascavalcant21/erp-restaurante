@@ -27,16 +27,16 @@ import { entradaBebidaUnidades, baixaBebidaUnidades, baixaBebidaConteudo, contag
 // baixa pode ser por unidade fechada ou por conteúdo (ml/g).
 const ehFracionavel = (item) => item && Number(item.tamanho_embalagem) > 1 && item.permite_fracionado !== false && String(item.unidade_medida || "").toLowerCase() !== "un";
 const conteudoDe = (item) => Number(item?.tamanho_embalagem) || 1;
+const fmtQtd = (valor) => Number(valor || 0).toLocaleString("pt-BR", { maximumFractionDigits: 3 });
+// Litro em maiúsculo (L), como manda a convenção; demais unidades como estão.
+const mostrarUn = (u) => (String(u || "").toLowerCase() === "l" ? "L" : (u || "un"));
+
 const fmtEquiv = (q, un) => {
   const n = Number(q) || 0; const u = String(un || "un").toLowerCase();
   if (u === "ml") return n >= 1000 ? `${(+(n / 1000).toFixed(3)).toLocaleString("pt-BR")} L` : `${(+n.toFixed(3)).toLocaleString("pt-BR")} ml`;
   if (u === "g") return n >= 1000 ? `${(+(n / 1000).toFixed(3)).toLocaleString("pt-BR")} kg` : `${(+n.toFixed(3)).toLocaleString("pt-BR")} g`;
-  return `${(+n.toFixed(3)).toLocaleString("pt-BR")} ${u}`;
+  return `${(+n.toFixed(3)).toLocaleString("pt-BR")} ${mostrarUn(u)}`;
 };
-
-const fmtQtd = (valor) => Number(valor || 0).toLocaleString("pt-BR", { maximumFractionDigits: 3 });
-// Litro em maiúsculo (L), como manda a convenção; demais unidades como estão.
-const mostrarUn = (u) => (String(u || "").toLowerCase() === "l" ? "L" : (u || "un"));
 const fmtData = (valor, hora = false) => {
   if (!valor) return "—";
   return new Date(valor).toLocaleString("pt-BR", hora
@@ -468,7 +468,7 @@ function EstoqueRunner() {
               const itemMod = modal.item || itens.find(i => i.insumo_id === operacao.insumo_id) || catalogo.find(i => (i.insumo_id || i.id) === operacao.insumo_id);
               const frac = ehFracionavel(itemMod) && modal.tipo !== "transferencia";
               const conteudo = conteudoDe(itemMod);
-              const unConteudo = String(itemMod?.unidade_medida || "un").toLowerCase();
+              const unConteudo = mostrarUn(itemMod?.unidade_medida);
               const unLabel = itemMod?.unidade_comercial || "unidade";
               if (!frac) {
                 return (
@@ -636,10 +636,10 @@ function saldoEmbalado(item) {
     const n = Number(q) || 0;
     if (u === "ml") return n >= 1000 ? `${(+(n / 1000).toFixed(3)).toLocaleString("pt-BR")} L` : `${fmtQtd(n)} ml`;
     if (u === "g") return n >= 1000 ? `${(+(n / 1000).toFixed(3)).toLocaleString("pt-BR")} kg` : `${fmtQtd(n)} g`;
-    return `${fmtQtd(n)} ${u}`;
+    return `${fmtQtd(n)} ${mostrarUn(u)}`;
   };
   const principal = `${fechadas} ${unLabel}${aberto > 0 ? ` + ${fmtEq(aberto, un)}` : ""}`;
-  const secundario = `Conteúdo: ${fmtQtd(conteudo)} ${un}/un · Total: ${fmtEq(total, un)}`;
+  const secundario = `Conteúdo: ${fmtQtd(conteudo)} ${mostrarUn(un)}/un · Total: ${fmtEq(total, un)}`;
   return { principal, secundario };
 }
 

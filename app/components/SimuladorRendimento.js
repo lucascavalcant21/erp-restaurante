@@ -28,7 +28,8 @@ function paraBase(qtd, unUsr, unItem, densidade) {
   return fromCanon(toCanon(qtd, uu) * d, ui);
 }
 
-const fmtQtd = (q, u) => `${(+Number(q || 0).toFixed(2)).toLocaleString("pt-BR")} ${u}`;
+const mostrarUn = (u) => (String(u || "").toLowerCase() === "l" ? "L" : (u || "un"));
+const fmtQtd = (q, u) => `${(+Number(q || 0).toFixed(2)).toLocaleString("pt-BR")} ${mostrarUn(u)}`;
 
 function medidaPadraoSugerida(item) {
   if (Number(item.medida_padrao) > 0) return Number(item.medida_padrao);
@@ -128,7 +129,7 @@ export default function SimuladorRendimento({ item, variant = "icon", onSaved })
                 <input type="number" min="0" step="any" inputMode="decimal" value={medida} onChange={(e) => setMedida(e.target.value)} autoFocus
                   className="w-28 rounded-xl border-2 border-slate-200 p-3 font-black text-slate-800 outline-none focus:border-indigo-500" />
                 <select value={un} onChange={(e) => setUn(e.target.value)} className="rounded-xl border-2 border-slate-200 p-3 font-bold text-slate-700 outline-none">
-                  {["ml", "l", "g", "kg", "un"].map((u) => <option key={u} value={u}>{u}</option>)}
+                  {["ml", "l", "g", "kg", "un"].map((u) => <option key={u} value={u}>{mostrarUn(u)}</option>)}
                 </select>
                 <select value={tipo} onChange={(e) => setTipo(e.target.value)} className="flex-1 rounded-xl border-2 border-slate-200 p-3 font-bold text-slate-700 outline-none">
                   {TIPOS_RENDIMENTO.map((t) => <option key={t} value={t}>{t}</option>)}

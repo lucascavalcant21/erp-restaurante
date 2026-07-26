@@ -173,6 +173,101 @@ function EstoqueRunner() {
     return especificos.length ? especificos : ativos;
   }, [colaboradores, estoqueAtual]);
 
+  const catalogoFiltradoPorArea = useMemo(() => {
+    if (!catalogo?.length) return [];
+    if (!estoqueAtual) return catalogo;
+
+    const slug = (estoqueAtual.slug || estoqueAtual.nome || "").toLowerCase();
+    const tipo = (estoqueAtual.tipo || "").toLowerCase();
+
+    const filtrados = catalogo.filter(insumo => {
+      const dept = (insumo.departamento || "").toLowerCase();
+      const cat = (insumo.categoria || "").toLowerCase();
+      const nome = (insumo.nome || "").toLowerCase();
+
+      // 1. Limpeza
+      if (slug.includes("limpeza") || tipo === "limpeza") {
+        return (
+          dept.includes("limpeza") ||
+          cat.includes("limpeza") ||
+          cat.includes("higiene") ||
+          /(detergente|sabao|saboaria|desinfetante|cloro|alcool|papel toalha|bucha|esponja|vassoura|rodo|saco de lixo)/.test(nome) ||
+          /(limpeza|higiene)/.test(cat)
+        );
+      }
+
+      // 2. Embalagens
+      if (slug.includes("embalag") || tipo === "embalagens") {
+        return (
+          dept.includes("embalag") ||
+          dept.includes("descartav") ||
+          cat.includes("embalag") ||
+          cat.includes("descartav") ||
+          /(embalagem|caixa|sacola|copo|pote|marmita|isopor|papel acoplado|guardanapo|canudo|tampa|pelicula|filme pvc|aluminio)/.test(nome) ||
+          /(embalag|descartav)/.test(cat)
+        );
+      }
+
+      // 3. Bar
+      if (slug.includes("bar") || tipo === "bebidas") {
+        return (
+          dept.includes("bar") ||
+          dept.includes("bebida") ||
+          dept.includes("drink") ||
+          cat.includes("bebida") ||
+          cat.includes("drink") ||
+          cat.includes("cerveja") ||
+          cat.includes("destilado") ||
+          cat.includes("vinho") ||
+          cat.includes("refrigerante") ||
+          cat.includes("suco") ||
+          cat.includes("xarope") ||
+          cat.includes("gin") ||
+          cat.includes("vodka") ||
+          cat.includes("whisky") ||
+          cat.includes("cachaça") ||
+          cat.includes("rum") ||
+          cat.includes("chopp") ||
+          /(cerveja|chopp|vinho|vodka|gin|whisky|cachaca|rum|xarope|licor|tonica|energetico|refrigerante|suco|agua|ice|tequila|vermute|bitter|espumante)/.test(nome) ||
+          /(bar|bebida|drink|adega)/.test(dept)
+        );
+      }
+
+      // 4. Cozinha (Alimentos / Insumos da Cozinha)
+      if (slug.includes("cozinha") || tipo === "alimentos") {
+        const ehLimpezaOuEmbalagem = dept.includes("limpeza") || dept.includes("embalag") || cat.includes("limpeza") || cat.includes("embalag");
+        if (ehLimpezaOuEmbalagem) return false;
+        return (
+          dept.includes("cozinha") ||
+          dept.includes("alimento") ||
+          dept.includes("insumo") ||
+          dept.includes("hortifruti") ||
+          dept.includes("carne") ||
+          dept.includes("frio") ||
+          dept.includes("mercearia") ||
+          cat.includes("laticinio") ||
+          cat.includes("hortifruti") ||
+          cat.includes("carne") ||
+          cat.includes("graos") ||
+          cat.includes("tempero") ||
+          cat.includes("molho") ||
+          cat.includes("farinha") ||
+          cat.includes("massa") ||
+          cat.includes("confeitaria") ||
+          cat.includes("panificacao") ||
+          cat.includes("queijo") ||
+          cat.includes("proteina") ||
+          cat.includes("vegetal") ||
+          !dept || dept === "geral"
+        );
+      }
+
+      return true;
+    });
+
+    return filtrados.length ? filtrados : catalogo;
+  }, [catalogo, estoqueAtual]);
+
   const categorias = useMemo(() => ["Todas", ...new Set(itens.map(i => i.categoria || "Sem categoria"))], [itens]);
   const locais = useMemo(() => ["Todos", ...new Set(itens.map(i => i.local_interno).filter(Boolean))], [itens]);
   const itensFiltrados = useMemo(
@@ -511,10 +606,10 @@ function EstoqueRunner() {
           onClose={() => setModal(null)}
         >
           <form onSubmit={executarOperacao} className="space-y-4">
-            <Campo label="Produto">
+            <Campo label={`Produto (${modal.tipo === "entrada" ? `Estoque ${estoqueAtual?.nome || ""}` : "Disponível no estoque"})`}>
               <select required value={operacao.insumo_id} disabled={!!modal.item} onChange={e => setOperacao({ ...operacao, insumo_id: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3 disabled:bg-slate-100">
-                <option value="">Selecione...</option>
-                {(modal.tipo === "entrada" ? catalogo : itens).map(item => <option key={item.id} value={item.insumo_id || item.id}>{item.nome} {item.marca ? `· ${item.marca}` : ""}</option>)}
+                <option value="">Selecione o produto...</option>
+                {(modal.tipo === "entrada" ? catalogoFiltradoPorArea : itens).map(item => <option key={item.id} value={item.insumo_id || item.id}>{item.nome} {item.marca ? `· ${item.marca}` : ""}</option>)}
               </select>
             </Campo>
 

@@ -244,6 +244,7 @@ function FichasRunner() {
   const [histCustos, setHistCustos] = useState([]); // histórico de custos da ficha aberta
   const [histStatus, setHistStatus] = useState("idle"); // idle | carregando | ok | sem_tabela
   const [registrandoCusto, setRegistrandoCusto] = useState(false);
+  const [semeandoCustos, setSemeandoCustos] = useState(false);
   const [iaExplicacao, setIaExplicacao] = useState("");
   const [autoSoma, setAutoSoma] = useState(true);
 
@@ -703,6 +704,27 @@ function FichasRunner() {
     else { setHistCustos([]); setHistStatus("idle"); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fichaView]);
+  // Semeia o custo atual de todas as fichas (primeiro ponto do histórico).
+  const registrarCustoTodasFichas = async () => {
+    const alvo = fichas.filter(f => !f.eh_base && f.tipo_base !== "produto_pronto");
+    if (!alvo.length) return alert("Nenhuma ficha para registrar.");
+    if (!confirm(`Registrar o custo atual de ${alvo.length} ficha(s) no histórico?`)) return;
+    setSemeandoCustos(true);
+    let ok = 0, pulados = 0, semTabela = false;
+    for (const fc of alvo) {
+      const { custoTotal, custoPorcao } = custoAtualDaFicha(fc);
+      const r = await registrarCustoFicha({
+        unidadeId: unidadeAtiva, fichaId: fc.id, custoTotal, custoPorcao,
+        origem: "manual", usuarioNome: sessao?.nome || sessao?.user?.email || "",
+      });
+      if (r.error === "sem_tabela") { semTabela = true; break; }
+      if (r.pulado) pulados++; else ok++;
+    }
+    setSemeandoCustos(false);
+    if (semTabela) return alert("A tabela de histórico ainda não existe. Rode a migração db/migracao_ficha_custo_historico.sql no Supabase.");
+    if (fichaView) await carregarHistoricoCusto(fichaView);
+    alert(`Histórico atualizado.\n\n· ${ok} ponto(s) registrado(s)\n· ${pulados} sem mudança (já estavam no histórico)`);
+  };
 
   // Custo considera o Fator de Correção (%) do item: bruta = líquida × (1 + fc)
   const calcularCustoTotal = (ingredientesLista) => {
@@ -1647,6 +1669,9 @@ function FichasRunner() {
                </button>
                <button onClick={imprimirPlanilhaCustos} title="Tabela com custo, preço de venda, CMV de cada receita e o CMV médio" className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15">
                   <Calculator size={17} /> Custos e CMV
+               </button>
+               <button onClick={registrarCustoTodasFichas} disabled={semeandoCustos} title="Registra o custo atual de todas as fichas no histórico (primeiro ponto)" className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15 disabled:opacity-60">
+                  {semeandoCustos ? <Loader2 size={17} className="animate-spin" /> : <Save size={17} />} {semeandoCustos ? "Registrando..." : "Registrar custos"}
                </button>
                <input ref={inputCardapioRef} type="file" accept="image/*" multiple onChange={importarCardapioFoto} className="hidden" />
                <button onClick={() => inputCardapioRef.current?.click()} disabled={importandoCardapio} title="Envie a foto do cardápio para criar fichas" className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15 disabled:opacity-60">

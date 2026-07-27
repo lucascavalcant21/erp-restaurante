@@ -630,6 +630,11 @@ function EstoqueRunner() {
         // seguimos com um item sintético — o movimento cai no fallback legado.
         item = { ...insumo, insumo_id: insumo.id, estoque_item_id: vinculo.data?.id, permite_transferencia: true };
       }
+      if (!operacao.responsavel_id) {
+        avisar("Selecione o colaborador responsável pela operação.", "erro");
+        setSalvando(false);
+        return;
+      }
       if (!item?.insumo_id) {
         avisar("Selecione um produto válido.", "erro");
         return;
@@ -918,9 +923,9 @@ function EstoqueRunner() {
               </select>
             </Campo>
 
-            <Campo label={`Responsável (${estoqueAtual?.nome || "Estoque"})`}>
-              <select value={operacao.responsavel_id} onChange={e => setOperacao({ ...operacao, responsavel_id: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3 font-semibold text-slate-800">
-                <option value="">Selecione o colaborador responsável...</option>
+            <Campo label={`Responsável pela Operação * (${estoqueAtual?.nome || "Estoque"})`}>
+              <select required value={operacao.responsavel_id} onChange={e => setOperacao({ ...operacao, responsavel_id: e.target.value })} className="h-14 w-full rounded-2xl border-2 border-slate-300 px-3 font-bold text-slate-800 text-base outline-none focus:border-emerald-500">
+                <option value="">Selecione o colaborador responsável (Obrigatório)...</option>
                 {colaboradoresFiltrados.map(c => (
                   <option key={c.id} value={c.id}>{c.nome} {c.cargo ? `· ${c.cargo}` : ""}</option>
                 ))}
@@ -1376,51 +1381,164 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
 }
 
 function ListaMovimentos({ movimentos, modo }) {
-  const lista = modo === "movimentacoes"
-    ? movimentos.filter(m => ["entrada", "saida", "transferencia_saida", "transferencia_entrada", "contagem"].includes(m.tipo))
-    : movimentos;
+  const [busca, setBusca] = useState("");
+  const [tipoFiltro, setTipoFiltro] = useState("todos");
+  const [colabFiltro, setColabFiltro] = useState("todos");
+  const [periodoFiltro, setPeriodoFiltro] = useState("todos");
 
-  if (!lista.length) return <div className="grid min-h-64 place-items-center text-sm font-semibold text-slate-500">Nenhuma movimentação registrada nesta área.</div>;
+  const colaboradoresUnicos = useMemo(() => {
+    const set = new Set();
+    (movimentos || []).forEach(m => {
+      const nome = m.usuario_nome || m.responsavel_nome;
+      if (nome) set.add(nome);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [movimentos]);
+
+  const listaFiltrada = useMemo(() => {
+    let base = movimentos || [];
+    if (modo === "movimentacoes") {
+      base = base.filter(m => ["entrada", "saida", "transferencia_saida", "transferencia_entrada", "contagem"].includes(m.tipo));
+    }
+    const termo = busca.toLowerCase().trim();
+    const agora = new Date();
+
+    return base.filter(m => {
+      const prod = (m.insumo?.nome || m.insumo_nome || "").toLowerCase();
+      if (termo && !prod.includes(termo)) return false;
+      if (tipoFiltro !== "todos") {
+        if (tipoFiltro === "entrada" && !["entrada", "transferencia_entrada"].includes(m.tipo)) return false;
+        if (tipoFiltro === "saida" && !["saida", "transferencia_saida"].includes(m.tipo)) return false;
+        if (tipoFiltro === "contagem" && m.tipo !== "contagem") return false;
+      }
+      if (colabFiltro !== "todos") {
+        const nome = m.usuario_nome || m.responsavel_nome || "";
+        if (nome !== colabFiltro) return false;
+      }
+      if (periodoFiltro !== "todos") {
+        const rawDate = m.data_movimento || m.created_at;
+        if (!rawDate) return false;
+        const d = new Date(rawDate);
+        if (periodoFiltro === "hoje") {
+          if (d.toDateString() !== agora.toDateString()) return false;
+        } else if (periodoFiltro === "semana") {
+          const diffDias = (agora.getTime() - d.getTime()) / (1000 * 3600 * 24);
+          if (diffDias > 7 || diffDias < 0) return false;
+        } else if (periodoFiltro === "mes") {
+          if (d.getMonth() !== agora.getMonth() || d.getFullYear() !== agora.getFullYear()) return false;
+        }
+      }
+      return true;
+    });
+  }, [movimentos, modo, busca, tipoFiltro, colabFiltro, periodoFiltro]);
+
+  if (!movimentos || !movimentos.length) {
+    return <div className="grid min-h-64 place-items-center text-sm font-semibold text-slate-500">Nenhuma movimentação registrada nesta área.</div>;
+  }
 
   return (
-    <div className="divide-y divide-slate-100">
-      {lista.map(mov => {
-        const positivo = ["entrada", "transferencia_entrada"].includes(mov.tipo) || (mov.tipo === "contagem" && Number(mov.quantidade) >= 0);
-        const tipoRotulo = {
-          entrada: "Entrada",
-          saida: "Baixa",
-          contagem: "Contagem",
-          transferencia_saida: "Transferência (Saída)",
-          transferencia_entrada: "Transferência (Entrada)",
-        }[mov.tipo] || mov.tipo;
+    <div className="space-y-4 p-4">
+      {/* Filtros do Histórico */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <label className="relative">
+          <Search className="absolute left-3 top-3 text-slate-400" size={18} />
+          <input
+            value={busca}
+            onChange={e => setBusca(e.target.value)}
+            placeholder="Filtrar produto..."
+            className="h-11 w-full rounded-xl border border-slate-200 pl-10 pr-3 text-sm font-medium outline-none focus:border-emerald-500"
+          />
+        </label>
 
-        return (
-          <div key={mov.id} className="flex flex-wrap items-center justify-between gap-4 px-5 py-4 hover:bg-slate-50/80">
-            <div className="flex items-center gap-3.5 min-w-0 flex-1">
-              <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ${positivo ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"}`}>
-                {mov.tipo.includes("transferencia") ? <ArrowRightLeft size={18} /> : <History size={18} />}
-              </div>
-              <div className="min-w-0">
-                <strong className="block truncate text-sm font-black text-slate-900">{mov.insumo?.nome || "Produto"}</strong>
-                <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-slate-500">
-                  <span className={`font-bold ${positivo ? "text-emerald-700" : "text-slate-700"}`}>{tipoRotulo}</span>
-                  <span>·</span>
-                  <span className="inline-flex items-center gap-1 font-bold text-slate-800"><User size={13} className="text-slate-400" />{mov.usuario_nome || "Sistema"}</span>
-                  <span>·</span>
-                  <span className="font-medium text-slate-600">📅 {fmtData(mov.data_movimento, true)}</span>
+        <select
+          value={periodoFiltro}
+          onChange={e => setPeriodoFiltro(e.target.value)}
+          className="h-11 rounded-xl border border-slate-200 px-3 text-sm font-bold text-slate-800"
+        >
+          <option value="todos">🗓️ Todos os períodos</option>
+          <option value="hoje">📅 Hoje</option>
+          <option value="semana">📆 Esta Semana (7 dias)</option>
+          <option value="mes">📊 Este Mês</option>
+        </select>
+
+        <select
+          value={tipoFiltro}
+          onChange={e => setTipoFiltro(e.target.value)}
+          className="h-11 rounded-xl border border-slate-200 px-3 text-sm font-bold text-slate-800"
+        >
+          <option value="todos">Todos os tipos de ação</option>
+          <option value="entrada">🟢 Entradas (+ Adicionar)</option>
+          <option value="saida">🔴 Baixas (- Retirar)</option>
+          <option value="contagem">🔵 Contagens</option>
+        </select>
+
+        <select
+          value={colabFiltro}
+          onChange={e => setColabFiltro(e.target.value)}
+          className="h-11 rounded-xl border border-slate-200 px-3 text-sm font-bold text-slate-800"
+        >
+          <option value="todos">Todos os colaboradores</option>
+          {colaboradoresUnicos.map(c => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Lista de Movimentações */}
+      {!listaFiltrada.length ? (
+        <div className="p-8 text-center text-sm font-bold text-slate-500">Nenhum registro encontrado com esses filtros.</div>
+      ) : (
+        <div className="divide-y divide-slate-100 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          {listaFiltrada.map(mov => {
+            const ehEntrada = ["entrada", "transferencia_entrada"].includes(mov.tipo);
+            const ehSaida = ["saida", "transferencia_saida"].includes(mov.tipo);
+            const ehContagem = mov.tipo === "contagem";
+
+            const badgeConfig = ehEntrada
+              ? { bg: "bg-emerald-100 text-emerald-800 border-emerald-300", label: "ENTRADA", icon: "+" }
+              : ehSaida
+              ? { bg: "bg-red-100 text-red-800 border-red-300", label: "RETIRADA", icon: "−" }
+              : ehContagem
+              ? { bg: "bg-sky-100 text-sky-800 border-sky-300", label: "CONTAGEM", icon: "📋" }
+              : { bg: "bg-purple-100 text-purple-800 border-purple-300", label: "TRANSFERÊNCIA", icon: "⇄" };
+
+            const nomeProduto = mov.insumo?.nome || mov.insumo_nome || "Produto";
+            const unMedida = mostrarUn(mov.insumo?.unidade_medida || mov.unidade_medida);
+            const qtd = Math.abs(Number(mov.quantidade) || 0);
+
+            return (
+              <div key={mov.id} className="flex flex-wrap items-center justify-between gap-4 p-4 hover:bg-slate-50/90 transition-colors">
+                <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                  <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl font-black text-lg border ${badgeConfig.bg}`}>
+                    {badgeConfig.icon}
+                  </div>
+                  <div className="min-w-0">
+                    <strong className="block truncate text-base font-black text-slate-900">{nomeProduto}</strong>
+                    <div className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-slate-500">
+                      <span className={`rounded-md px-2 py-0.5 font-black uppercase text-[10px] border ${badgeConfig.bg}`}>{badgeConfig.label}</span>
+                      <span>·</span>
+                      <span className="inline-flex items-center gap-1 font-bold text-slate-800">
+                        <User size={13} className="text-slate-400" />
+                        {mov.usuario_nome || mov.responsavel_nome || "Sistema"}
+                      </span>
+                      <span>·</span>
+                      <span className="font-semibold text-slate-600">📅 {fmtData(mov.data_movimento, true)}</span>
+                    </div>
+                    {mov.observacao && <p className="mt-1 text-xs text-slate-500 italic">“{mov.observacao}”</p>}
+                  </div>
                 </div>
-                {mov.observacao && <p className="mt-1 text-xs text-slate-400 italic">“{mov.observacao}”</p>}
+
+                <div className="text-right shrink-0">
+                  <strong className={`text-lg font-black ${ehEntrada ? "text-emerald-700" : ehSaida ? "text-red-600" : "text-slate-900"}`}>
+                    {ehEntrada ? "+" : ehSaida ? "−" : ""} {fmtQtd(qtd)} {unMedida}
+                  </strong>
+                  {mov.destino?.nome && <p className="text-xs font-bold text-slate-500">Destino: {mov.destino.nome}</p>}
+                </div>
               </div>
-            </div>
-            <div className="text-right shrink-0">
-              <strong className={`text-base font-black ${positivo ? "text-emerald-700" : "text-red-600"}`}>
-                {positivo ? "+" : "−"} {fmtQtd(Math.abs(Number(mov.quantidade) || 0))} {mostrarUn(mov.insumo?.unidade_medida)}
-              </strong>
-              {mov.destino?.nome && <p className="text-xs font-medium text-slate-500">Destino: {mov.destino.nome}</p>}
-            </div>
-          </div>
-        );
-      })}
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

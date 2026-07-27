@@ -517,6 +517,208 @@ function EditorCamadas({ camadas, setCamadas }) {
 
 
 // =========================================================================
+// MODO PRODUÇÃO / PRAÇA (DISPLAY KDS PARA TABLET & TV DA COZINHA/BAR)
+// =========================================================================
+function ModoPracaDisplay({ guia, lista, onClose }) {
+  const [currentIndex, setCurrentIndex] = useState(() => {
+    const idx = (lista || []).findIndex(item => item.id === guia?.id);
+    return idx >= 0 ? idx : 0;
+  });
+
+  const [activeStep, setActiveStep] = useState(null);
+  const [timerSeconds, setTimerSeconds] = useState(0);
+  const [timerRunning, setTimerRunning] = useState(false);
+
+  const currentGuia = (lista || [])[currentIndex] || guia;
+
+  useEffect(() => {
+    let interval = null;
+    if (timerRunning && timerSeconds > 0) {
+      interval = setInterval(() => setTimerSeconds(s => s - 1), 1000);
+    } else if (timerSeconds === 0) {
+      setTimerRunning(false);
+    }
+    return () => clearInterval(interval);
+  }, [timerRunning, timerSeconds]);
+
+  const startTimer = (segundos, stepIdx) => {
+    setActiveStep(stepIdx);
+    setTimerSeconds(segundos);
+    setTimerRunning(true);
+  };
+
+  const passos = useMemo(() => {
+    if (!currentGuia?.descritivo) return [];
+    return currentGuia.descritivo
+      .split("\n")
+      .map(line => line.trim())
+      .filter(Boolean);
+  }, [currentGuia]);
+
+  const ingredientes = useMemo(() => {
+    if (Array.isArray(currentGuia?.estrutura_ia)) {
+      return currentGuia.estrutura_ia.filter(c => c.tipo !== "copo");
+    }
+    return [];
+  }, [currentGuia]);
+
+  const copo = useMemo(() => {
+    if (Array.isArray(currentGuia?.estrutura_ia)) {
+      return currentGuia.estrutura_ia.find(c => c.tipo === "copo");
+    }
+    return null;
+  }, [currentGuia]);
+
+  return (
+    <div className="fixed inset-0 z-[200] flex flex-col bg-slate-950 text-white select-none">
+      {/* Topbar */}
+      <header className="flex h-16 items-center justify-between border-b border-slate-800 bg-slate-900 px-6">
+        <div className="flex items-center gap-3">
+          <span className="rounded-xl bg-emerald-500/20 px-3 py-1 text-xs font-black uppercase text-emerald-400 border border-emerald-500/30">
+            {currentGuia?.departamento === "bar" ? "🍹 BAR DE PRODUÇÃO" : "🍳 COZINHA DA PRAÇA"}
+          </span>
+          <span className="text-sm font-bold text-slate-400">
+            Item {currentIndex + 1} de {lista.length}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-4">
+          {timerRunning && (
+            <div className="flex items-center gap-2 rounded-2xl bg-amber-500/20 px-4 py-1.5 text-amber-400 border border-amber-500/30 animate-pulse">
+              <Clock size={18} />
+              <span className="font-mono text-lg font-black">{timerSeconds}s</span>
+            </div>
+          )}
+          <button
+            onClick={onClose}
+            className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition"
+          >
+            <X size={22} />
+          </button>
+        </div>
+      </header>
+
+      {/* Main Body */}
+      <main className="grid flex-1 grid-cols-1 overflow-hidden lg:grid-cols-12">
+        {/* Left Side: Photo + Specs + Ingredients */}
+        <div className="p-6 border-r border-slate-800 overflow-y-auto lg:col-span-5 bg-slate-900/50 flex flex-col gap-5">
+          <div className="relative aspect-video w-full overflow-hidden rounded-3xl border-2 border-slate-800 bg-slate-900 shadow-2xl">
+            {currentGuia?.foto_url ? (
+              <img src={currentGuia.foto_url} alt={currentGuia.nome} className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex h-full w-full flex-col items-center justify-center text-slate-600">
+                <Camera size={48} />
+                <span className="mt-2 text-xs font-black uppercase tracking-widest">Sem Foto de Referência</span>
+              </div>
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent" />
+            <h1 className="absolute bottom-4 left-4 right-4 text-2xl lg:text-3xl font-black text-white leading-tight">
+              {currentGuia?.nome}
+            </h1>
+          </div>
+
+          {/* Quick Specs */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
+              <span className="text-[10px] font-black uppercase text-slate-400">Tempo de Preparo</span>
+              <p className="mt-1 text-lg font-black text-emerald-400">{currentGuia?.tempo_preparo ? `${currentGuia.tempo_preparo} min` : "Livre"}</p>
+            </div>
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
+              <span className="text-[10px] font-black uppercase text-slate-400">{currentGuia?.departamento === "bar" ? "Copo / Coparia" : "Rendimento"}</span>
+              <p className="mt-1 text-lg font-black text-sky-400 truncate">{copo?.nome || currentGuia?.rendimento || "1 Porção"}</p>
+            </div>
+          </div>
+
+          {/* Ingredients List */}
+          {ingredientes.length > 0 && (
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
+              <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
+                <ListChecks size={16} className="text-emerald-400" /> Ingredientes & Dosagem
+              </h3>
+              <ul className="space-y-2">
+                {ingredientes.map((ing, i) => (
+                  <li key={i} className="flex items-center gap-3 rounded-xl bg-slate-950 p-3 text-sm font-bold text-slate-200">
+                    <span className="h-2 w-2 rounded-full bg-emerald-400 shrink-0" />
+                    {ing.nome}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+
+        {/* Right Side: Giant Step-by-Step Instructions */}
+        <div className="p-6 overflow-y-auto lg:col-span-7 flex flex-col justify-between">
+          <div className="space-y-4">
+            <h2 className="text-sm font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+              <Sparkles size={18} className="text-amber-400" /> Passos de Montagem da Praça
+            </h2>
+
+            {passos.length === 0 ? (
+              <div className="p-12 text-center text-slate-500 font-bold">Nenhum passo de montagem cadastrado para este item.</div>
+            ) : (
+              <div className="space-y-3">
+                {passos.map((passo, idx) => {
+                  const isCurrentActive = activeStep === idx && timerRunning;
+                  return (
+                    <div
+                      key={idx}
+                      className={`group relative rounded-3xl border-2 p-5 transition-all ${
+                        isCurrentActive
+                          ? "border-amber-500 bg-amber-500/10 shadow-lg shadow-amber-500/10"
+                          : "border-slate-800 bg-slate-900/80 hover:border-slate-700"
+                      }`}
+                    >
+                      <div className="flex items-start gap-4">
+                        <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl font-black text-lg ${
+                          isCurrentActive ? "bg-amber-500 text-slate-950" : "bg-slate-800 text-emerald-400"
+                        }`}>
+                          {idx + 1}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-lg lg:text-xl font-black text-slate-100 leading-snug">
+                            {passo.replace(/^\d+[\.\)]\s*/, "")}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => startTimer(30, idx)}
+                          className="shrink-0 flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-emerald-600 hover:text-white px-3 py-2 text-xs font-bold text-slate-300 transition"
+                          title="Iniciar cronômetro de 30s"
+                        >
+                          <Clock size={14} /> 30s
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Navigation Controls Footer */}
+          <div className="mt-6 flex items-center justify-between gap-4 border-t border-slate-800 pt-5">
+            <button
+              disabled={currentIndex === 0}
+              onClick={() => setCurrentIndex(i => Math.max(0, i - 1))}
+              className="flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl bg-slate-800 px-6 font-black text-white hover:bg-slate-700 disabled:opacity-30 transition"
+            >
+              ◄ Item Anterior
+            </button>
+            <button
+              disabled={currentIndex >= lista.length - 1}
+              onClick={() => setCurrentIndex(i => Math.min(lista.length - 1, i + 1))}
+              className="flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-6 font-black text-white hover:bg-emerald-500 disabled:opacity-30 transition shadow-lg shadow-emerald-600/30"
+            >
+              Próximo Item ►
+            </button>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+// =========================================================================
 // PRÉVIA DA FICHA IMPRESSA (Modelo com foto) — espelha imprimirModelo
 // =========================================================================
 function PreviaModeloChef({ m, lista, cfg: cfgProp }) {
@@ -1611,6 +1813,7 @@ function MontagemPageInner() {
   const [modalGuia, setModalGuia] = useState(false); // escolha cartões × livro (bar)
   const [saidaGuia, setSaidaGuia] = useState("imprimir"); // "imprimir" | "pdf"
   const [preenchendoIA, setPreenchendoIA] = useState(false); // receitas em lote (bar)
+  const [guiaModoPraca, setGuiaModoPraca] = useState(null); // modo produção / praça (tablet/TV)
 
   // A Cozinha e o Bar são áreas separadas. Se a navegação mudar apenas o
   // parâmetro do setor, atualiza a tela inteira sem reaproveitar dados do outro.
@@ -1927,6 +2130,16 @@ function MontagemPageInner() {
             </>
           );
         })()}
+        <button
+          onClick={() => {
+            if (!filtrados.length) return alert("Nenhuma ficha cadastrada nesta área.");
+            setGuiaModoPraca(filtrados[0]);
+          }}
+          className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-500 shadow-md shadow-emerald-600/30 transition-all active:scale-95"
+          title="Abrir o Modo Produção em Tela Cheia para Tablet ou TV da Cozinha/Bar"
+        >
+          <Maximize size={15} /> Modo Produção / Praça
+        </button>
         <button onClick={() => setModalImpressao(true)} className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15"><Printer size={14} /> Imprimir{selecionadas.length ? ` (${selecionadas.length})` : ""}</button>
       </RecipeWorkspace>
       <PageBody className="max-w-7xl mx-auto">
@@ -2010,9 +2223,10 @@ function MontagemPageInner() {
               : <PreviaModeloChef m={previewCard} cfg={{ ...cfgModelo, porPagina: 1 }} />}
 
             {/* Ações discretas */}
-            <div className="mt-3 grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+            <div className="mt-3 grid grid-cols-2 sm:grid-cols-7 gap-1.5">
               {[
                 { icon: X, label: "Sair", onClick: () => setPreviewCard(null) },
+                { icon: Maximize, label: "Modo Praça", onClick: () => { setGuiaModoPraca(previewCard); setPreviewCard(null); } },
                 { icon: Edit3, label: "Editar", onClick: () => { setEditar(previewCard); setModal(true); setPreviewCard(null); } },
                 { icon: Printer, label: "Imprimir", onClick: () => imprimirFichasSetor([previewCard]) },
                 { icon: Download, label: "PDF", onClick: () => baixarPdf(previewCard) },
@@ -2020,7 +2234,7 @@ function MontagemPageInner() {
                 { icon: Trash2, label: "Excluir", onClick: () => remover(previewCard.id), perigo: true },
               ].map(({ icon: Ic, label, onClick, perigo }) => (
                 <button key={label} onClick={onClick}
-                  className="flex flex-col items-center justify-center gap-1 rounded-xl py-2.5 text-[11px] font-bold transition-colors"
+                  className="flex flex-col items-center justify-center gap-1 rounded-xl py-2.5 text-[11px] font-bold transition-colors hover:bg-slate-100 active:scale-95"
                   style={{ background: "var(--elevated)", color: perigo ? "#DC2626" : "var(--muted)" }}
                   title={label}>
                   <Ic size={16} />
@@ -2030,6 +2244,15 @@ function MontagemPageInner() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* MODO PRODUÇÃO / PRAÇA (DISPLAY DE TABLET / TV EM TELA CHEIA) */}
+      {guiaModoPraca && (
+        <ModoPracaDisplay
+          guia={guiaModoPraca}
+          lista={filtrados}
+          onClose={() => setGuiaModoPraca(null)}
+        />
       )}
 
       {/* MODAL GIGANTE para comportar o editor */}

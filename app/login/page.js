@@ -1,17 +1,18 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, LogIn } from "lucide-react";
-import { fazerLogin, homeDoPapel, formatarParaEmailFantasma } from "../lib/auth";
-import { loginAcesso, salvarAcessoLocal, limparAcessoLocal, resolverAcesso } from "../lib/acessos";
+import { fazerLogin, homeDoUsuario, formatarParaEmailFantasma } from "../lib/auth";
+import { supabase } from "../lib/supabase";
 
-// Guarda/recupera as credenciais lembradas (só neste aparelho).
-function guardarCred(email, senha, lembrar) {
+// Guarda somente o nome de usuário. A senha e os tokens ficam a cargo do
+// armazenamento seguro do Supabase Auth; nunca mais são copiados para o app.
+function guardarCred(email, lembrar) {
   try {
     if (lembrar) {
       localStorage.setItem("erp_lembrar", "1");
-      localStorage.setItem("erp_cred", btoa(unescape(encodeURIComponent(JSON.stringify({ email, senha })))));
+      localStorage.setItem("erp_cred", JSON.stringify({ email }));
     } else {
       localStorage.setItem("erp_lembrar", "0");
       localStorage.removeItem("erp_cred");
@@ -23,8 +24,23 @@ function lerCred() {
     if (localStorage.getItem("erp_lembrar") !== "1") return null;
     const raw = localStorage.getItem("erp_cred");
     if (!raw) return null;
-    return JSON.parse(decodeURIComponent(escape(atob(raw))));
+    try { return JSON.parse(raw); } catch {
+      // Remove o formato antigo, que continha senha codificada em base64.
+      localStorage.removeItem("erp_cred");
+      return null;
+    }
   } catch (_) { return null; }
+}
+
+function deviceId() {
+  try {
+    let id = localStorage.getItem("hefisto_device_id");
+    if (!id) {
+      id = crypto.randomUUID();
+      localStorage.setItem("hefisto_device_id", id);
+    }
+    return id;
+  } catch { return ""; }
 }
 
 export default function LoginPage() {
@@ -35,40 +51,43 @@ export default function LoginPage() {
   const [lembrar, setLembrar] = useState(true);
   const [erro, setErro] = useState("");
   const [loading, setLoading] = useState(false);
-  const autoTentou = useRef(false);
-
-  // Núcleo do login (usado no botão e no auto-login).
+  // Núcleo do login. Todos os tipos de usuário usam a mesma autenticação.
   async function entrar(em, se, lembrarAgora) {
     setLoading(true); setErro("");
-    // 1) Acesso por módulo (login criado pelo master em Configurações).
-    const acesso = await loginAcesso(em, se);
-    if (acesso) {
-      salvarAcessoLocal(acesso);
-      guardarCred(em, se, lembrarAgora);
-      router.push(resolverAcesso(acesso.modulo).home || "/dashboard");
-      return true;
+    const idAparelho = deviceId();
+    const policy = await fetch("/api/auth/policy", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ login: em, event: "precheck", deviceId: idAparelho }),
+    }).then((response) => response.json()).catch(() => ({ ok: true }));
+    if (!policy.ok) {
+      setErro(policy.error || "Usuário ou senha incorretos.");
+      setLoading(false);
+      return false;
     }
-    // 2) Login normal (master/papéis) via Supabase Auth.
-    limparAcessoLocal();
     const r = await fazerLogin(formatarParaEmailFantasma(em), se);
-    if (!r.ok) { setErro(r.erro); setLoading(false); return false; }
-    guardarCred(em, se, lembrarAgora);
-    router.push(homeDoPapel(r.usuario.papel));
+    if (!r.ok) {
+      await fetch("/api/auth/policy", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ login: em, event: "failure", deviceId: idAparelho }),
+      }).catch(() => null);
+      setErro(r.erro); setLoading(false); return false;
+    }
+    guardarCred(em, lembrarAgora);
+    const { data } = await supabase.auth.getSession();
+    await fetch("/api/auth/policy", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${data?.session?.access_token || ""}` },
+      body: JSON.stringify({ deviceId: idAparelho }),
+    }).catch(() => null);
+    router.push(r.usuario?.must_change_password ? "/nova-senha?obrigatoria=1" : homeDoUsuario(r.usuario));
     return true;
   }
 
-  // Ao abrir: preenche e-mail/senha lembrados e já entra sozinho (entra rápido
-  // e evita ficar refazendo login quando a sessão cai).
+  // Ao abrir, preenche somente o usuário lembrado.
   useEffect(() => {
     const c = lerCred();
     if (!c) return;
     if (c.email) setEmail(c.email);
-    if (c.senha) setSenha(c.senha);
-    if (c.email && c.senha && !autoTentou.current) {
-      autoTentou.current = true;
-      entrar(c.email, c.senha, true);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleLogin(e) {
@@ -115,7 +134,7 @@ export default function LoginPage() {
         <div className="flex items-center justify-between">
           <label className="flex items-center gap-2 text-[12px] font-medium cursor-pointer" style={{ color: "var(--muted)" }}>
             <input type="checkbox" checked={lembrar} onChange={(e) => setLembrar(e.target.checked)} style={{ accentColor: "var(--accent)" }} />
-            Lembrar e entrar automático
+            Lembrar meu usuário
           </label>
           <button type="button" onClick={() => router.push("/recuperar")} className="text-[12px] font-bold" style={{ color: "var(--accent-fg)" }}>
             Esqueci minha senha
@@ -129,9 +148,8 @@ export default function LoginPage() {
         </button>
       </form>
 
-      <p className="text-sm font-medium mt-6" style={{ color: "var(--muted)" }}>
-        Ainda não tem conta?{" "}
-        <button onClick={() => router.push("/cadastro")} className="font-bold" style={{ color: "var(--accent-fg)" }}>Cadastre-se</button>
+      <p className="text-sm font-medium mt-6 text-center" style={{ color: "var(--muted)" }}>
+        Precisa de acesso? Solicite seu usuário ao administrador.
       </p>
     </div>
   );

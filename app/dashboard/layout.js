@@ -3,6 +3,7 @@
 import { Suspense, useState, useEffect, useRef } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { lerSessao, encerrarSessao } from "../lib/auth";
+import { canAccessRoute, permittedRoutes } from "../lib/permissions-catalog";
 import { useERP } from "../context/ERPContext";
 import {
   Users, BarChart, Store, Settings, LogOut, ChevronDown, Check,
@@ -102,7 +103,9 @@ const SIDEBAR_MENU = [
       { label: "Inventário", href: "/dashboard/gestao/inventario" },
       { label: "Manutenção", href: "/dashboard/gestao/manutencao" },
       { label: "Relatórios", href: "/dashboard/relatorios" },
-      { label: "Configurações", href: "/dashboard/configuracoes" }
+      { label: "Configurações", href: "/dashboard/configuracoes" },
+      { label: "Usuários e acessos", href: "/dashboard/configuracoes/usuarios" },
+      { label: "Perfis de acesso", href: "/dashboard/configuracoes/perfis" }
     ]
   }
 ];
@@ -166,7 +169,9 @@ const ATALHOS_POR_PAPEL = {
 const rotuloPapel = (papel) => ({
   admin: "Administrador", gerente: "Gerente", financeiro: "Financeiro",
   rh: "Recursos Humanos", estoque: "Estoque", cozinha: "Cozinha",
-  marketing: "Marketing", caixa: "Caixa", garcom: "Atendimento", acesso: "Acesso restrito",
+  marketing: "Marketing", caixa: "Caixa", garcom: "Atendimento",
+  supervisor: "Supervisor", funcionario: "Funcionário", personalizado: "Personalizado",
+  setor: "Usuário de setor", consulta: "Somente consulta", terminal_ponto: "Terminal de ponto",
 }[papel] || "Usuário");
 
 function moduloDaRota(pathname, dept) {
@@ -279,6 +284,27 @@ function ProtecaoSetorDaArea({ children }) {
 
   if (areaTravada === undefined || !rotaPermitida || !setorCorreto) {
     return <div className="min-h-[40vh] flex items-center justify-center px-4 text-sm font-bold text-slate-500">Carregando área correta...</div>;
+  }
+  return children;
+}
+
+function ProtecaoPermissao({ sessao, children }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const search = searchParams.toString();
+  const permitido = !sessao?.gerenciado || canAccessRoute(sessao, pathname, search);
+
+  useEffect(() => {
+    if (!sessao?.gerenciado || permitido) return;
+    const fallback = permittedRoutes(sessao)?.[0] || "/login";
+    const configured = sessao.home || sessao.pagina_inicial;
+    const [configuredPath, configuredQuery = ""] = String(configured || "").split("?");
+    router.replace(configured && canAccessRoute(sessao, configuredPath, configuredQuery) ? configured : fallback);
+  }, [permitido, pathname, router, search, sessao]);
+
+  if (!sessao || !permitido) {
+    return <div className="min-h-[40vh] flex items-center justify-center px-4 text-sm font-bold text-slate-500">Verificando acesso...</div>;
   }
   return children;
 }
@@ -558,7 +584,13 @@ function ModuleBar({ rotasPermitidas }) {
 function MobileBottomNav({ sessao, onMenu }) {
   const pathname = usePathname();
   const router = useRouter();
-  const atalhos = ATALHOS_POR_PAPEL[sessao?.papel] || ATALHOS_POR_PAPEL.admin;
+  const candidatos = ATALHOS_POR_PAPEL[sessao?.papel] || ATALHOS_POR_PAPEL.admin;
+  const atalhos = sessao?.gerenciado
+    ? candidatos.filter((item) => {
+        const [path, query = ""] = item.href.split("?");
+        return canAccessRoute(sessao, path, query);
+      })
+    : candidatos;
   const visiveis = atalhos.slice(0, 4);
 
   return (
@@ -689,14 +721,9 @@ export default function DashboardLayout({ children }) {
       if (!vivo) return;
       if (s) {
         sessaoRef.current = s; setSessao(s);
-        // Acesso por módulo: só pode circular na rota do seu módulo. Qualquer
-        // outra rota volta para ela — vê exclusivamente o módulo liberado.
-        if (s.restrito && Array.isArray(s.rotas) && s.rotas.length) {
-          const permitido = s.rotas.some((r) => {
-            const b = r.split("?")[0];
-            return pathname === b || pathname.startsWith(b + "/");
-          });
-          if (!permitido) router.replace(s.rota || "/dashboard");
+        if (s.must_change_password && pathname !== "/nova-senha") {
+          router.replace("/nova-senha?obrigatoria=1");
+          return;
         }
         return;
       }
@@ -742,10 +769,8 @@ export default function DashboardLayout({ children }) {
     router.replace("/login");
   }
 
-  // Acesso restrito: a barra lateral mostra só as telas liberadas (setor
-  // inteiro) ou o único módulo.
-  const acessoRestrito = !!sessao?.restrito;
-  const rotasPermitidas = acessoRestrito ? (sessao?.rotas || []) : null;
+  const rotasPermitidas = sessao?.gerenciado ? permittedRoutes(sessao) : null;
+  const acessoRestrito = Array.isArray(rotasPermitidas);
 
   return (
     <div className={`erp-app-shell ${compacto ? "erp-density-compact" : "erp-density-comfortable"} flex h-screen h-[100dvh] min-h-0 bg-[#F8FAFC] overflow-hidden print:bg-white print:block print:h-auto print:min-h-0`}>
@@ -769,7 +794,9 @@ export default function DashboardLayout({ children }) {
         {/* Main Content Area com Scrollbar customizada */}
         <main className="erp-main-content flex-1 min-w-0 overflow-y-auto overscroll-y-contain custom-scrollbar animate-page-in relative print:overflow-visible print:block">
           <Suspense fallback={<div className="min-h-[40vh] flex items-center justify-center px-4 text-sm font-bold text-slate-500">Carregando...</div>}>
-            <ProtecaoSetorDaArea>{children}</ProtecaoSetorDaArea>
+            <ProtecaoPermissao sessao={sessao}>
+              <ProtecaoSetorDaArea>{children}</ProtecaoSetorDaArea>
+            </ProtecaoPermissao>
           </Suspense>
         </main>
       </div>

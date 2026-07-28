@@ -37,7 +37,7 @@ export default function NovaSenhaPage() {
     setLoading(false);
     if (!r.ok) { setErro(r.erro); return; }
     setPronto(true);
-    setTimeout(() => router.push("/login"), 2500);
+    setTimeout(() => router.push("/dashboard"), 1800);
   }
 
   return (
@@ -47,7 +47,7 @@ export default function NovaSenhaPage() {
           <div className="flex flex-col items-center text-center gap-2 py-4">
             <CheckCircle size={40} style={{ color: "var(--accent-fg)" }} />
             <p className="text-base font-bold" style={{ color: "var(--fg)" }}>Senha alterada!</p>
-            <p className="text-sm font-medium" style={{ color: "var(--muted)" }}>Você já pode entrar com a nova senha. Redirecionando...</p>
+            <p className="text-sm font-medium" style={{ color: "var(--muted)" }}>Senha atualizada com segurança. Redirecionando...</p>
           </div>
         ) : temSessao === false ? (
           <div className="flex flex-col items-center text-center gap-2 py-4">

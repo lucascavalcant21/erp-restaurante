@@ -591,7 +591,7 @@ function EtiquetasRunner() {
         {(!unidadeAtiva || unidadeAtiva === "todas") ? (
           <EmptyState icon={Tag} title="Acesso Restrito às Unidades" hint="O Cérebro (Gestão Central) apenas visualiza o Controle de Validade. Para gerar novas etiquetas, selecione uma unidade no menu lateral." />
         ) : (
-          <div className="grid lg:grid-cols-2 gap-4">
+          <div className="grid lg:grid-cols-2 gap-4 items-start">
             {/* ── Formulário ── */}
             <div className="space-y-4">
             <Card>
@@ -723,55 +723,10 @@ function EtiquetasRunner() {
               </a>
             </Card>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <Btn variant="ghost" disabled={salvando} onClick={() => salvar("")}><Save size={16} /> {salvando ? "..." : "Salvar"}</Btn>
-              {/* Um único botão Imprimir: usa a TP20 se estiver conectada; senão, impressão comum */}
-              <Btn variant="primary" disabled={salvando} onClick={() => salvar(impressoraStatus === "conectada" ? "tp20" : "navegador")}>
-                <Printer size={16} /> {salvando ? "..." : "Imprimir"}
-              </Btn>
-              <Btn variant="ghost" disabled={salvando} onClick={() => salvar("pdf")} title="Gera um PDF no tamanho exato da etiqueta — imprima o PDF em 'Tamanho real / 100%' para não sair miniatura">
-                <Printer size={16} /> PDF exato
-              </Btn>
-            </div>
-            {impressoraStatus !== "conectada" && (
-              <p className="text-[11px] mt-2 px-3 py-2 rounded-xl" style={{ background: "rgba(245,158,11,0.12)", color: "#B45309" }}>
-                Saindo <b>miniatura</b> ou borrado? O navegador imprime em ~96dpi e o driver costuma forçar A4. Para etiqueta nítida no tamanho certo: use o <b>PDF exato</b> (e imprima em "Tamanho real / 100%"), ou conecte a <b>impressora térmica</b> no botão acima (qualidade nativa 203dpi).
-              </p>
-            )}
-
-            {/* FILA: vários produtos, cada um com suas cópias, numa impressão só */}
-            <Card className="!p-4 mt-3">
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <SectionLabel>Fila de impressão (vários produtos)</SectionLabel>
-                {fila.length > 0 && <button onClick={() => setFila([])} className="text-[10px] font-bold" style={{ color: "#DC2626" }}>Limpar fila</button>}
-              </div>
-              <Btn variant="ghost" className="w-full" disabled={salvando} onClick={adicionarNaFila}>
-                <Tag size={15} /> Adicionar à fila: {nomeProduto || "produto"} × {quantidadeCopias}
-              </Btn>
-              {fila.length > 0 && (
-                <>
-                  <div className="space-y-1.5 mt-3 max-h-40 overflow-y-auto pr-1">
-                    {fila.map((f, idx) => (
-                      <div key={f.codigo} className="flex items-center justify-between gap-2 text-xs p-2 rounded-lg" style={{ background: "var(--elevated)" }}>
-                        <span className="font-bold truncate" style={{ color: "var(--fg-soft)" }}>{f.produto}</span>
-                        <span className="flex items-center gap-2 shrink-0">
-                          <span className="font-black" style={{ color: "var(--accent-strong)" }}>× {f.copias}</span>
-                          <button onClick={() => setFila((p) => p.filter((_, i) => i !== idx))} className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: "var(--card)", color: "#DC2626" }}><X size={12} /></button>
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                  <Btn variant="primary" className="w-full mt-3" onClick={imprimirFila}>
-                    <Printer size={15} /> Imprimir fila ({fila.reduce((s, f) => s + f.copias, 0)} etiquetas)
-                  </Btn>
-                  <p className="text-[10px] font-medium mt-2" style={{ color: "var(--dim)" }}>Sai tudo numa tira contínua, uma etiqueta colada na outra, pela impressão do navegador. Cada produto já fica registrado no Controle de Validade ao entrar na fila.</p>
-                </>
-              )}
-            </Card>
           </div>
 
-          {/* ── Preview / Etiqueta ── */}
-          <div>
+          {/* ── Preview / Etiqueta (coluna fixa) ── */}
+          <div className="lg:sticky lg:top-4">
             <div className="flex items-center justify-between mb-2">
               <SectionLabel>Pré-visualização</SectionLabel>
               <div className="flex gap-1.5">
@@ -860,6 +815,67 @@ function EtiquetasRunner() {
                 </button>
               ))}
             </div>
+
+            {/* Resumo da impressão */}
+            <div className="grid grid-cols-3 gap-2 mt-4">
+              {[
+                ["Etiquetas", quantidadeCopias],
+                ["Tamanho", tamanho.replace("x", "×") + "mm"],
+                ["Saída", modoTira === "tira" ? "Tira" : "Página"],
+              ].map(([rot, val]) => (
+                <div key={rot} className="rounded-xl px-2 py-2 text-center" style={{ background: "var(--elevated)", border: "1px solid var(--line)" }}>
+                  <p className="text-[9px] font-black uppercase tracking-wider" style={{ color: "var(--dim)" }}>{rot}</p>
+                  <p className="text-sm font-black" style={{ color: "var(--accent-strong)" }}>{val}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Ações principais */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
+              <Btn variant="ghost" disabled={salvando} onClick={() => salvar("")}><Save size={16} /> {salvando ? "..." : "Salvar"}</Btn>
+              {/* Um único botão Imprimir: usa a TP20 se estiver conectada; senão, impressão comum */}
+              <Btn variant="primary" disabled={salvando} onClick={() => salvar(impressoraStatus === "conectada" ? "tp20" : "navegador")}>
+                <Printer size={16} /> {salvando ? "..." : "Imprimir"}
+              </Btn>
+              <Btn variant="ghost" disabled={salvando} onClick={() => salvar("pdf")} title="Gera um PDF no tamanho exato da etiqueta — imprima o PDF em 'Tamanho real / 100%' para não sair miniatura">
+                <Printer size={16} /> PDF exato
+              </Btn>
+            </div>
+            {impressoraStatus !== "conectada" && (
+              <p className="text-[11px] mt-2 px-3 py-2 rounded-xl" style={{ background: "rgba(245,158,11,0.12)", color: "#B45309" }}>
+                Saindo <b>miniatura</b> ou borrado? O navegador imprime em ~96dpi e o driver costuma forçar A4. Para etiqueta nítida no tamanho certo: use o <b>PDF exato</b> (e imprima em "Tamanho real / 100%"), ou conecte a <b>impressora térmica</b> no botão acima (qualidade nativa 203dpi).
+              </p>
+            )}
+
+            {/* FILA: vários produtos, cada um com suas cópias, numa impressão só */}
+            <Card className="!p-4 mt-3">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <SectionLabel>Fila de impressão (vários produtos)</SectionLabel>
+                {fila.length > 0 && <button onClick={() => setFila([])} className="text-[10px] font-bold" style={{ color: "#DC2626" }}>Limpar fila</button>}
+              </div>
+              <Btn variant="ghost" className="w-full" disabled={salvando} onClick={adicionarNaFila}>
+                <Tag size={15} /> Adicionar à fila: {nomeProduto || "produto"} × {quantidadeCopias}
+              </Btn>
+              {fila.length > 0 && (
+                <>
+                  <div className="space-y-1.5 mt-3 max-h-40 overflow-y-auto pr-1">
+                    {fila.map((f, idx) => (
+                      <div key={f.codigo} className="flex items-center justify-between gap-2 text-xs p-2 rounded-lg" style={{ background: "var(--elevated)" }}>
+                        <span className="font-bold truncate" style={{ color: "var(--fg-soft)" }}>{f.produto}</span>
+                        <span className="flex items-center gap-2 shrink-0">
+                          <span className="font-black" style={{ color: "var(--accent-strong)" }}>× {f.copias}</span>
+                          <button onClick={() => setFila((p) => p.filter((_, i) => i !== idx))} className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: "var(--card)", color: "#DC2626" }}><X size={12} /></button>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <Btn variant="primary" className="w-full mt-3" onClick={imprimirFila}>
+                    <Printer size={15} /> Imprimir fila ({fila.reduce((s, f) => s + f.copias, 0)} etiquetas)
+                  </Btn>
+                  <p className="text-[10px] font-medium mt-2" style={{ color: "var(--dim)" }}>Sai tudo numa tira contínua, uma etiqueta colada na outra, pela impressão do navegador. Cada produto já fica registrado no Controle de Validade ao entrar na fila.</p>
+                </>
+              )}
+            </Card>
           </div>
         </div>
         )}

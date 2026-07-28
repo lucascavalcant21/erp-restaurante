@@ -8,21 +8,27 @@ export default function RegisterSW() {
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
 
-    let reg = null;
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (!refreshing) {
+        refreshing = true;
+        window.location.reload();
+      }
+    });
+
     const onLoad = () => {
-      navigator.serviceWorker.register("/sw.js").then((r) => { reg = r; }).catch(() => {});
-      // Armazenamento PERSISTENTE: pede ao Android/Chrome para nunca apagar os
-      // dados do app (é o que guarda o login). Sem isso, sob pressão de espaço
-      // o sistema pode limpar o site e o usuário "desloga sozinho".
+      navigator.serviceWorker.register("/sw.js").then((reg) => {
+        reg.update().catch(() => {});
+      }).catch(() => {});
+
       try { navigator.storage?.persist?.().catch(() => {}); } catch (_) {}
     };
-    const onFocus = () => { if (reg) reg.update().catch(() => {}); };
 
-    window.addEventListener("load", onLoad);
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") onFocus();
-    });
-    return () => window.removeEventListener("load", onLoad);
+    if (document.readyState === "complete") {
+      onLoad();
+    } else {
+      window.addEventListener("load", onLoad);
+    }
   }, []);
   return null;
 }

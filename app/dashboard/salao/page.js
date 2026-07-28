@@ -53,6 +53,16 @@ export default function SalaoHubPage() {
             </div>
          </button>
 
+         <button onClick={() => router.push("/dashboard/operacao/estoque?dept=salao")} className="rounded-[32px] p-6 sm:p-10 bg-white border-2 border-slate-200 hover:border-slate-400 transition-all shadow-sm flex flex-col justify-between group text-left min-h-56 sm:h-64">
+            <div className="w-16 h-16 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center mb-6">
+               <Store size={32} />
+            </div>
+            <div>
+               <h2 className="text-2xl font-black text-slate-900 mb-2">Produtos de Limpeza</h2>
+               <p className="text-slate-700 font-medium text-sm">Controle de insumos de higienização, sabões, papel toalha e materiais do salão.</p>
+            </div>
+         </button>
+
       </div>
     </div>
   );

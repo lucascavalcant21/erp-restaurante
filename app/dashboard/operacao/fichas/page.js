@@ -15,10 +15,12 @@ import {
   CheckCircle2, CheckSquare2, ChevronLeft, ChevronRight, Copy, Download, Edit3,
   FileDown, GripVertical, LayoutList, Loader2, Package, Plus, Printer, Save,
   Search, ShieldAlert, Sparkles, Trash2, UtensilsCrossed, Wine, X,
+  Clock, Thermometer, MoreVertical,
 } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 import { logoSeldeestrelaSVG } from "../../../lib/marca";
 import { baixarPdfDeHtml } from "../../../lib/pdf";
+import { fetchHistoricoCustoFicha, registrarCustoFicha } from "../../../lib/ficha-custos";
 import {
   estimarPaginasDocumento,
   ordenarFichasDocumento,
@@ -236,6 +238,13 @@ function FichasRunner() {
   const [busca, setBusca] = useState("");
   
   const [modalNovo, setModalNovo] = useState(false);
+  const [fichaView, setFichaView] = useState(null); // ficha aberta em modo visualização (igual à foto)
+  const [simPesoView, setSimPesoView] = useState(""); // simulador de porções da tela de visualização
+  const [viewTab, setViewTab] = useState("ficha"); // aba ativa na tela de visualização
+  const [histCustos, setHistCustos] = useState([]); // histórico de custos da ficha aberta
+  const [histStatus, setHistStatus] = useState("idle"); // idle | carregando | ok | sem_tabela
+  const [registrandoCusto, setRegistrandoCusto] = useState(false);
+  const [semeandoCustos, setSemeandoCustos] = useState(false);
   const [iaExplicacao, setIaExplicacao] = useState("");
   const [autoSoma, setAutoSoma] = useState(true);
 
@@ -660,6 +669,63 @@ function FichasRunner() {
     setModalNovo(true);
   };
 
+  // ── Histórico de custos da ficha aberta em visualização ──
+  const custoAtualDaFicha = (ficha) => {
+    const custoTotal = custoTotalDaFicha(ficha, fichas);
+    const peso = infoPesoFicha(ficha, fichas);
+    const unR = String(ficha.rendimento_unidade || "porcao").toLowerCase();
+    const rend = Number(ficha.rendimento_porcoes) || 0;
+    const porcoes = (unR === "porcao" || unR === "un") ? rend : (peso?.porcoes || 0);
+    const custoPorcao = porcoes > 0 ? custoTotal / porcoes : custoTotal;
+    return { custoTotal, custoPorcao };
+  };
+  const carregarHistoricoCusto = async (ficha) => {
+    if (!ficha) return;
+    setHistStatus("carregando");
+    const { data, error } = await fetchHistoricoCustoFicha(unidadeAtiva, ficha.id);
+    if (error === "sem_tabela") { setHistCustos([]); setHistStatus("sem_tabela"); return; }
+    setHistCustos(data || []);
+    setHistStatus("ok");
+  };
+  const registrarCustoAtual = async (ficha, origem = "manual") => {
+    if (!ficha) return;
+    setRegistrandoCusto(true);
+    const { custoTotal, custoPorcao } = custoAtualDaFicha(ficha);
+    const r = await registrarCustoFicha({
+      unidadeId: unidadeAtiva, fichaId: ficha.id, custoTotal, custoPorcao, origem,
+      usuarioNome: sessao?.nome || sessao?.user?.email || "",
+    });
+    setRegistrandoCusto(false);
+    if (r.error === "sem_tabela") { setHistStatus("sem_tabela"); return; }
+    await carregarHistoricoCusto(ficha);
+  };
+  useEffect(() => {
+    if (fichaView) carregarHistoricoCusto(fichaView);
+    else { setHistCustos([]); setHistStatus("idle"); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fichaView]);
+  // Semeia o custo atual de todas as fichas (primeiro ponto do histórico).
+  const registrarCustoTodasFichas = async () => {
+    const alvo = fichas.filter(f => !f.eh_base && f.tipo_base !== "produto_pronto");
+    if (!alvo.length) return alert("Nenhuma ficha para registrar.");
+    if (!confirm(`Registrar o custo atual de ${alvo.length} ficha(s) no histórico?`)) return;
+    setSemeandoCustos(true);
+    let ok = 0, pulados = 0, semTabela = false;
+    for (const fc of alvo) {
+      const { custoTotal, custoPorcao } = custoAtualDaFicha(fc);
+      const r = await registrarCustoFicha({
+        unidadeId: unidadeAtiva, fichaId: fc.id, custoTotal, custoPorcao,
+        origem: "manual", usuarioNome: sessao?.nome || sessao?.user?.email || "",
+      });
+      if (r.error === "sem_tabela") { semTabela = true; break; }
+      if (r.pulado) pulados++; else ok++;
+    }
+    setSemeandoCustos(false);
+    if (semTabela) return alert("A tabela de histórico ainda não existe. Rode a migração db/migracao_ficha_custo_historico.sql no Supabase.");
+    if (fichaView) await carregarHistoricoCusto(fichaView);
+    alert(`Histórico atualizado.\n\n· ${ok} ponto(s) registrado(s)\n· ${pulados} sem mudança (já estavam no histórico)`);
+  };
+
   // Custo considera o Fator de Correção (%) do item: bruta = líquida × (1 + fc)
   const calcularCustoTotal = (ingredientesLista) => {
     return ingredientesLista.reduce((acc, ing) => acc + (ing.custo_unitario * ing.quantidade * (1 + (Number(ing.fator) || 0) / 100)), 0);
@@ -821,6 +887,22 @@ function FichasRunner() {
 
     if (!criarOutra) setModalNovo(false);
     carregar();
+
+    // Registra um retrato do custo no histórico (não bloqueia o salvar).
+    const fichaIdHist = erro.id;
+    if (fichaIdHist && !form.produto_pronto) {
+      const custoTotalS = calcularCustoTotal(ingValidos);
+      const unRs = String(form.rendimento_unidade || "porcao").toLowerCase();
+      const rendS = Number(form.rendimento_porcoes) || 0;
+      const pesoPorcaoS = Number(form.peso_porcao_g) || 0;
+      const pesoTotalS = pesoTotalDaFicha(rendS, unRs, pesoPorcaoS);
+      const porcS = (unRs === "porcao" || unRs === "un") ? rendS : (pesoPorcaoS > 0 && pesoTotalS > 0 ? pesoTotalS / pesoPorcaoS : rendS);
+      const custoPorcaoS = porcS > 0 ? custoTotalS / porcS : custoTotalS;
+      registrarCustoFicha({
+        unidadeId: unidadeAtiva, fichaId: fichaIdHist, custoTotal: custoTotalS, custoPorcao: custoPorcaoS,
+        origem: "edicao_ficha", usuarioNome: sessao?.nome || sessao?.user?.email || "",
+      }).catch(() => {});
+    }
 
     // O PREÇO DE VENDA agora é definido AQUI na ficha (seção CMV e Precificação)
     // e sincroniza com o produto do cardápio interno em toda gravação.
@@ -1588,6 +1670,9 @@ function FichasRunner() {
                <button onClick={imprimirPlanilhaCustos} title="Tabela com custo, preço de venda, CMV de cada receita e o CMV médio" className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15">
                   <Calculator size={17} /> Custos e CMV
                </button>
+               <button onClick={registrarCustoTodasFichas} disabled={semeandoCustos} title="Registra o custo atual de todas as fichas no histórico (primeiro ponto)" className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15 disabled:opacity-60">
+                  {semeandoCustos ? <Loader2 size={17} className="animate-spin" /> : <Save size={17} />} {semeandoCustos ? "Registrando..." : "Registrar custos"}
+               </button>
                <input ref={inputCardapioRef} type="file" accept="image/*" multiple onChange={importarCardapioFoto} className="hidden" />
                <button onClick={() => inputCardapioRef.current?.click()} disabled={importandoCardapio} title="Envie a foto do cardápio para criar fichas" className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15 disabled:opacity-60">
                   {importandoCardapio ? <Loader2 size={17} className="animate-spin" /> : <Camera size={17} />} Importar cardápio
@@ -1610,7 +1695,7 @@ function FichasRunner() {
               ["Todos", "Todos", fichas.length],
             ].map(([t, label, n]) => (
               <button key={t} onClick={() => setTipoFiltro(t)}
-                className={`px-3 sm:px-4 py-2.5 rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-wider transition-all ${tipoFiltro === t ? (deptUrl === "bar" ? "bg-violet-600 text-white shadow-lg shadow-violet-600/20" : "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20") : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>
+                className={`px-3 sm:px-4 py-2.5 rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-wider transition-all ${tipoFiltro === t ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>
                 {label} <span className={tipoFiltro === t ? "text-emerald-200" : "text-slate-400"}>({n})</span>
               </button>
             ))}
@@ -1699,9 +1784,9 @@ function FichasRunner() {
                         {/* Foto do prato (compacta) */}
                         <div className="h-28 sm:h-32 bg-slate-100 relative">
                            {f.imagem ? (
-                              <img src={`data:image/jpeg;base64,${f.imagem}`} alt={f.nome_receita} className="w-full h-full object-cover" />
+                              <img onClick={() => { setSimPesoView(""); setViewTab("ficha"); setFichaView(f); }} title="Ver ficha completa" src={`data:image/jpeg;base64,${f.imagem}`} alt={f.nome_receita} className="w-full h-full object-cover cursor-pointer" />
                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-slate-300">
+                              <div onClick={() => { setSimPesoView(""); setViewTab("ficha"); setFichaView(f); }} title="Ver ficha completa" className="w-full h-full flex items-center justify-center text-slate-300 cursor-pointer">
                                  {f.departamento === 'bar' ? <Wine size={34}/> : <UtensilsCrossed size={34}/>}
                               </div>
                            )}
@@ -1725,7 +1810,7 @@ function FichasRunner() {
                               <button onClick={() => abrirExclusaoSegura([f])} title="Remover" className="p-1.5 bg-white/90 backdrop-blur rounded-md text-slate-600 hover:text-rose-600 shadow-sm"><Trash2 size={13}/></button>
                            </div>
                         </div>
-                        <div className="p-3">
+                        <div className="p-3 cursor-pointer" onClick={() => { setSimPesoView(""); setViewTab("ficha"); setFichaView(f); }} title="Ver ficha completa">
                            {(() => {
                               // Métricas estilo "app de gestão": custo, preço, CMV e margem
                               const custoTotal = custoTotalDaFicha(f, fichas);
@@ -1986,10 +2071,342 @@ function FichasRunner() {
         </div>
       )}
 
+      {/* TELA DE VISUALIZAÇÃO DA FICHA (igual à referência) */}
+      {fichaView && (() => {
+         const f = fichaView;
+         const peso = infoPesoFicha(f, fichas);
+         const custoTotal = custoTotalDaFicha(f, fichas);
+         const unR = String(f.rendimento_unidade || "porcao").toLowerCase();
+         const labelUn = { porcao: "porções", kg: "kg", g: "g", l: "L", ml: "ml", un: "un" }[unR] || unR;
+         const rend = Number(f.rendimento_porcoes) || 0;
+         const porcoes = (unR === "porcao" || unR === "un") ? rend : (peso?.porcoes || 0);
+         const custoPorcao = porcoes > 0 ? custoTotal / porcoes : custoTotal;
+         const custoKg = peso?.pesoTotalG > 0 ? custoTotal / (peso.pesoTotalG / 1000) : null;
+         const prod = produtos.find(x => x.ficha_id === f.id || String(x.nome_produto || "").toLowerCase() === String(f.nome_receita || "").toLowerCase());
+         const preco = Number(prod?.preco_venda) || 0;
+         const meta = Number(f.cmv_meta) || 30;
+         const cmv = preco > 0 ? (custoPorcao / preco) * 100 : null;
+         const margem = cmv !== null ? 100 - cmv : null;
+         const markup = preco > 0 && custoPorcao > 0 ? preco / custoPorcao : null;
+         const precoSugerido = meta > 0 ? custoPorcao / (meta / 100) : 0;
+         const pesoPorcaoG = Number(f.peso_porcao_g) || 0;
+         const simN = Number(String(simPesoView).replace(",", ".")) || 0;
+         const simPorcoes = pesoPorcaoG > 0 ? Math.floor(simN / pesoPorcaoG) : 0;
+         const simSobra = pesoPorcaoG > 0 ? simN - simPorcoes * pesoPorcaoG : 0;
+         const linhas = (f.fichas_ingredientes || []).map(fi => {
+            const base = fi.subficha_id ? fichas.find(x => x.id === fi.subficha_id) : null;
+            const nome = fi.insumos?.nome || base?.nome_receita || "Item";
+            const un = (fi.insumos?.unidade_medida || base?.rendimento_unidade || "un").toUpperCase();
+            const liquida = Number(fi.quantidade) || 0;
+            const fc = Number(fi.fator_correcao) || 0;
+            const bruta = liquida * (1 + fc / 100);
+            const custoUnit = fi.insumos?.custo_unitario != null ? Number(fi.insumos.custo_unitario) : (base ? custoUnitBase(base, fichas) : 0);
+            return { nome, un, liquida, fc, bruta, custoUnit, custoTot: custoUnit * bruta, base: !!base };
+         });
+         const nf = (n) => (+Number(n || 0).toFixed(3)).toLocaleString("pt-BR");
+         const setorTxt = f.departamento === "bar" ? "Bar" : "Cozinha";
+         const fechar = () => setFichaView(null);
+         return (
+            <div className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm flex items-start sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
+               <div className="bg-slate-50 w-full max-w-6xl min-h-full sm:min-h-0 sm:max-h-[92vh] sm:rounded-[28px] overflow-hidden shadow-2xl flex flex-col animate-in fade-in zoom-in-95">
+                  {/* CABEÇALHO */}
+                  <div className="bg-white border-b border-slate-100 px-4 sm:px-6 py-4 flex flex-wrap items-center gap-3">
+                     <button onClick={fechar} className="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 shrink-0"><ArrowLeft size={19} /></button>
+                     <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                        {f.departamento === "bar" ? <Wine size={20} /> : <UtensilsCrossed size={20} />}
+                     </div>
+                     <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                           <h2 className="text-lg sm:text-xl font-black text-slate-900 truncate">{f.nome_receita}</h2>
+                           <span className="inline-flex items-center text-[10px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-100 rounded-full px-2.5 py-0.5">Ativo</span>
+                        </div>
+                        <p className="text-[11px] font-bold text-slate-500 mt-0.5">{f.categoria || (f.eh_base ? "Pré-preparo" : "Prato")} · {setorTxt}</p>
+                     </div>
+                     <div className="flex items-center gap-2 shrink-0">
+                        {!f.eh_base && (
+                           <>
+                              <button onClick={() => abrirPreviaImpressao("imprimir", [f])} title="Imprimir" className="w-10 h-10 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-emerald-400 flex items-center justify-center"><Printer size={17} /></button>
+                              <button onClick={() => abrirPreviaImpressao("pdf", [f])} title="Gerar PDF" className="w-10 h-10 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-emerald-400 flex items-center justify-center"><Download size={17} /></button>
+                              <button onClick={() => abrirSimulacao(f)} title="Simular rendimento" className="w-10 h-10 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-emerald-400 flex items-center justify-center"><Calculator size={17} /></button>
+                           </>
+                        )}
+                        <button onClick={() => { fechar(); abrirEditar(f); }} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm px-4 h-10 shadow-sm"><Edit3 size={16} /> Editar ficha</button>
+                     </div>
+                  </div>
+
+                  {/* ABAS */}
+                  <div className="bg-white border-b border-slate-100 px-4 sm:px-6 flex gap-1 overflow-x-auto">
+                     {[["ficha", "Ficha técnica"], ["preparo", "Modo de preparo"], ["custos", "Histórico de custos"]].map(([id, rot]) => (
+                        <button key={id} onClick={() => setViewTab(id)}
+                           className={`shrink-0 px-3 py-3 text-sm font-black border-b-2 transition-colors ${viewTab === id ? "border-emerald-600 text-emerald-700" : "border-transparent text-slate-400 hover:text-slate-600"}`}>
+                           {rot}
+                        </button>
+                     ))}
+                  </div>
+
+                  {/* CORPO: conteúdo + sidebar */}
+                  <div className="flex-1 overflow-y-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-[1.55fr_1fr] gap-4 sm:gap-5 items-start">
+                     {/* COLUNA PRINCIPAL */}
+                     <div className="space-y-4 sm:space-y-5">
+                        {viewTab === "ficha" && (<>
+                        {/* INFORMAÇÕES GERAIS */}
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
+                           <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700 mb-4">Informações gerais</p>
+                           <div className="flex flex-col sm:flex-row gap-4">
+                              <div className="grid grid-cols-2 gap-3 flex-1">
+                                 {[
+                                    ["Categoria", f.categoria || "—"],
+                                    ["Setor", setorTxt],
+                                    ["Rendimento", `${nf(rend)} ${labelUn}`],
+                                    ["Peso líquido", peso?.pesoTotalG ? fmtG(peso.pesoTotalG) : (pesoPorcaoG && porcoes ? fmtG(pesoPorcaoG * porcoes) : "—")],
+                                    ["Unidade de venda", unR === "porcao" ? "Porção" : labelUn],
+                                    ["Porção padrão", pesoPorcaoG ? `${nf(pesoPorcaoG)} g` : "—"],
+                                 ].map(([rot, val]) => (
+                                    <div key={rot} className="rounded-xl bg-slate-50 border border-slate-100 px-3 py-2">
+                                       <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">{rot}</p>
+                                       <p className="text-sm font-black text-slate-800 mt-0.5 truncate">{val}</p>
+                                    </div>
+                                 ))}
+                              </div>
+                              <div onClick={() => { fechar(); abrirEditar(f); }} className="w-full sm:w-40 h-32 sm:h-auto shrink-0 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 cursor-pointer relative group">
+                                 {f.imagem ? (
+                                    <img src={`data:image/jpeg;base64,${f.imagem}`} alt={f.nome_receita} className="w-full h-full object-cover" />
+                                 ) : (
+                                    <div className="w-full h-full flex flex-col items-center justify-center text-slate-300 gap-1"><Camera size={26} /><span className="text-[9px] font-black uppercase tracking-widest">Sem foto</span></div>
+                                 )}
+                                 <div className="absolute inset-x-0 bottom-0 bg-slate-900/60 text-white text-[10px] font-bold py-1 text-center opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1"><Camera size={12} /> Alterar imagem</div>
+                              </div>
+                           </div>
+                        </div>
+
+                        {/* INGREDIENTES E CUSTOS */}
+                        {!f.eh_base && (
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
+                           <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700 mb-3">Ingredientes e custos</p>
+                           <div className="overflow-x-auto">
+                              <table className="w-full text-sm min-w-[560px]">
+                                 <thead>
+                                    <tr className="text-[9px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-200">
+                                       <th className="text-left font-black py-2 pr-2">Ingrediente</th>
+                                       <th className="text-center font-black py-2 px-1">Unid.</th>
+                                       <th className="text-right font-black py-2 px-1">Qtd. bruta</th>
+                                       <th className="text-right font-black py-2 px-1">FC %</th>
+                                       <th className="text-right font-black py-2 px-1">Qtd. líq.</th>
+                                       <th className="text-right font-black py-2 px-1">Custo un.</th>
+                                       <th className="text-right font-black py-2 pl-1">Custo total</th>
+                                    </tr>
+                                 </thead>
+                                 <tbody>
+                                    {linhas.length === 0 && (
+                                       <tr><td colSpan={7} className="py-6 text-center text-slate-400 font-medium">Sem ingredientes cadastrados.</td></tr>
+                                    )}
+                                    {linhas.map((l, i) => (
+                                       <tr key={i} className="border-b border-slate-50">
+                                          <td className="py-2.5 pr-2 font-bold text-slate-800">{l.nome}{l.base && <span className="ml-1.5 text-[8px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">Base</span>}</td>
+                                          <td className="py-2.5 px-1 text-center font-bold text-slate-500">{l.un}</td>
+                                          <td className="py-2.5 px-1 text-right font-bold text-slate-700">{nf(l.bruta)}</td>
+                                          <td className="py-2.5 px-1 text-right font-bold text-slate-500">{l.fc ? `${nf(l.fc)}%` : "—"}</td>
+                                          <td className="py-2.5 px-1 text-right font-bold text-slate-700">{nf(l.liquida)}</td>
+                                          <td className="py-2.5 px-1 text-right font-bold text-slate-600">{fmtBRL(l.custoUnit)}</td>
+                                          <td className="py-2.5 pl-1 text-right font-black text-slate-800">{fmtBRL(l.custoTot)}</td>
+                                       </tr>
+                                    ))}
+                                 </tbody>
+                              </table>
+                           </div>
+                           <button onClick={() => { fechar(); abrirEditar(f); }} className="mt-4 inline-flex items-center gap-2 rounded-xl border border-dashed border-emerald-300 text-emerald-700 font-black text-sm px-4 py-2.5 hover:bg-emerald-50"><Plus size={16} /> Adicionar ingrediente</button>
+                           <div className="mt-4 pt-3 border-t border-slate-200 flex flex-wrap items-center justify-end gap-x-6 gap-y-1 text-sm">
+                              <span className="text-slate-500 font-bold">Custo total da receita: <b className="text-emerald-700 font-black">{fmtBRL(custoTotal)}</b></span>
+                              {porcoes > 0 && <span className="text-slate-500 font-bold">Custo por porção{pesoPorcaoG ? ` (${nf(pesoPorcaoG)} g)` : ""}: <b className="text-emerald-700 font-black">{fmtBRL(custoPorcao)}</b></span>}
+                           </div>
+                        </div>
+                        )}
+                        </>)}
+
+                        {/* ABA: MODO DE PREPARO */}
+                        {viewTab === "preparo" && (
+                           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
+                              <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700 mb-3">Modo de preparo</p>
+                              {(() => {
+                                 const passos = String(f.modo_preparo || "").split(/\n+/).map(s => s.trim()).filter(Boolean);
+                                 if (!passos.length) return <p className="text-sm text-slate-400 font-medium">Nenhum modo de preparo cadastrado. Use <b>Editar ficha</b> para adicionar.</p>;
+                                 return (
+                                    <ol className="space-y-2.5">
+                                       {passos.map((p, i) => (
+                                          <li key={i} className="flex gap-3">
+                                             <span className="w-7 h-7 shrink-0 rounded-full bg-emerald-100 text-emerald-700 font-black text-sm flex items-center justify-center">{i + 1}</span>
+                                             <span className="text-sm text-slate-700 font-medium leading-relaxed pt-0.5">{p.replace(/^\d+[.)\-\s]+/, "")}</span>
+                                          </li>
+                                       ))}
+                                    </ol>
+                                 );
+                              })()}
+                           </div>
+                        )}
+
+                        {/* ABA: HISTÓRICO DE CUSTOS */}
+                        {viewTab === "custos" && (
+                           <div className="space-y-4 sm:space-y-5">
+                              {/* Linha do tempo */}
+                              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
+                                 <div className="flex items-center justify-between gap-2 mb-3">
+                                    <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700">Histórico de custos</p>
+                                    <button onClick={() => registrarCustoAtual(f, "manual")} disabled={registrandoCusto || histStatus === "sem_tabela"}
+                                       className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black text-xs px-3 py-2">
+                                       <Plus size={14} /> {registrandoCusto ? "Registrando..." : "Registrar custo atual"}
+                                    </button>
+                                 </div>
+                                 {histStatus === "sem_tabela" ? (
+                                    <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-[12px] text-amber-800 font-medium leading-relaxed">
+                                       Para guardar a variação de custo ao longo do tempo, rode a migração <b>db/migracao_ficha_custo_historico.sql</b> no SQL Editor do Supabase. Depois disso, cada alteração de custo fica registrada aqui automaticamente.
+                                    </div>
+                                 ) : histStatus === "carregando" ? (
+                                    <p className="text-sm text-slate-400 font-medium">Carregando histórico...</p>
+                                 ) : histCustos.length === 0 ? (
+                                    <p className="text-sm text-slate-400 font-medium">Nenhum custo registrado ainda. Toque em <b>Registrar custo atual</b> para criar o primeiro ponto — ou salve a ficha após mudar ingredientes.</p>
+                                 ) : (
+                                    <div className="space-y-2">
+                                       {histCustos.map((h, i) => {
+                                          const dif = h.diferenca == null ? null : Number(h.diferenca);
+                                          const pct = h.diferenca_pct == null ? null : Number(h.diferenca_pct);
+                                          const subiu = dif != null && dif > 0.005;
+                                          const desceu = dif != null && dif < -0.005;
+                                          const origemTxt = h.origem === "edicao_ficha" ? "edição" : h.origem === "variacao_preco" ? "variação de preço" : "manual";
+                                          return (
+                                             <div key={h.id || i} className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5">
+                                                <div className="min-w-0">
+                                                   <p className="text-sm font-black text-slate-800">{fmtBRL(Number(h.custo_total) || 0)}<span className="text-[11px] font-bold text-slate-400 ml-1.5">total{h.custo_porcao != null ? ` · ${fmtBRL(Number(h.custo_porcao))}/porção` : ""}</span></p>
+                                                   <p className="text-[10px] font-bold text-slate-400">{new Date(h.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })} · {origemTxt}{h.usuario_nome ? ` · ${h.usuario_nome}` : ""}</p>
+                                                </div>
+                                                {dif == null ? (
+                                                   <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 shrink-0">1º registro</span>
+                                                ) : (
+                                                   <span className={`text-xs font-black shrink-0 ${subiu ? "text-red-600" : desceu ? "text-emerald-700" : "text-slate-400"}`}>
+                                                      {subiu ? "▲" : desceu ? "▼" : "="} {fmtBRL(Math.abs(dif))}{pct != null ? ` (${pct > 0 ? "+" : ""}${pct.toFixed(1)}%)` : ""}
+                                                   </span>
+                                                )}
+                                             </div>
+                                          );
+                                       })}
+                                    </div>
+                                 )}
+                              </div>
+
+                              {/* Composição atual */}
+                              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
+                                 <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700 mb-1">Composição do custo atual</p>
+                                 <p className="text-[11px] font-medium text-slate-400 mb-3">Participação de cada ingrediente no custo total ({fmtBRL(custoTotal)}).</p>
+                                 <div className="space-y-2.5">
+                                    {[...linhas].sort((a, b) => b.custoTot - a.custoTot).map((l, i) => {
+                                       const pct = custoTotal > 0 ? (l.custoTot / custoTotal) * 100 : 0;
+                                       return (
+                                          <div key={i}>
+                                             <div className="flex items-center justify-between text-sm mb-1">
+                                                <span className="font-bold text-slate-700 truncate pr-2">{l.nome}</span>
+                                                <span className="font-black text-slate-800 shrink-0">{fmtBRL(l.custoTot)} <span className="text-slate-400 font-bold">· {pct.toFixed(1)}%</span></span>
+                                             </div>
+                                             <div className="h-2 rounded-full bg-slate-100 overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(100, pct)}%` }} /></div>
+                                          </div>
+                                       );
+                                    })}
+                                    {linhas.length === 0 && <p className="text-sm text-slate-400 font-medium">Sem ingredientes para compor o custo.</p>}
+                                 </div>
+                              </div>
+                           </div>
+                        )}
+                     </div>
+
+                     {/* SIDEBAR */}
+                     <div className="space-y-4 lg:sticky lg:top-0">
+                        {/* RENDIMENTO E PORÇÕES */}
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
+                           <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700 mb-3">Rendimento e porções</p>
+                           <div className="grid grid-cols-2 gap-3">
+                              <div className="rounded-xl bg-emerald-50 border border-emerald-100 px-3 py-2.5">
+                                 <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Esta receita rende</p>
+                                 <p className="text-xl font-black text-emerald-700">{nf(rend)} {labelUn}</p>
+                              </div>
+                              <div className="rounded-xl bg-emerald-50 border border-emerald-100 px-3 py-2.5">
+                                 <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Peso total</p>
+                                 <p className="text-xl font-black text-emerald-700">{peso?.pesoTotalG ? fmtG(peso.pesoTotalG) : (pesoPorcaoG && porcoes ? fmtG(pesoPorcaoG * porcoes) : "—")}</p>
+                              </div>
+                           </div>
+                           <div className="flex items-center justify-between mt-3 text-sm">
+                              <span className="text-slate-500 font-bold">Porção padrão</span>
+                              <span className="font-black text-slate-800">{pesoPorcaoG ? `${nf(pesoPorcaoG)} g` : "—"}</span>
+                           </div>
+                           {pesoPorcaoG > 0 && (
+                              <div className="mt-3 pt-3 border-t border-slate-100">
+                                 <p className="text-[11px] font-black text-slate-700">Simulador de porções</p>
+                                 <p className="text-[10px] font-medium text-slate-400 mb-2">Informe o peso disponível para ver quantas porções dá para servir.</p>
+                                 <div className="flex items-center gap-2">
+                                    <div className="flex-1 flex items-center rounded-xl border border-slate-200 bg-slate-50 overflow-hidden">
+                                       <input type="text" inputMode="decimal" value={simPesoView} onChange={e => setSimPesoView(e.target.value.replace(/[^0-9.,]/g, ""))} placeholder="Peso disponível" className="flex-1 min-w-0 px-3 py-2.5 bg-transparent font-black text-slate-800 outline-none" />
+                                       <span className="px-3 text-xs font-black text-slate-400">g</span>
+                                    </div>
+                                    <div className="text-right">
+                                       <p className="text-lg font-black text-emerald-700 leading-none">{simN > 0 ? `${simPorcoes} porç.` : "—"}</p>
+                                       <p className="text-[10px] font-bold text-slate-400 mt-0.5">{simN > 0 ? `sobra ${nf(simSobra)} g` : `de ${nf(pesoPorcaoG)} g`}</p>
+                                    </div>
+                                 </div>
+                              </div>
+                           )}
+                        </div>
+
+                        {/* CUSTO E PRECIFICAÇÃO */}
+                        {!f.eh_base && (
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
+                           <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700 mb-3">Custo e precificação</p>
+                           <div className="space-y-2 text-sm">
+                              <div className="flex items-center justify-between"><span className="text-slate-500 font-bold">Custo total da receita</span><span className="font-black text-slate-800">{fmtBRL(custoTotal)}</span></div>
+                              <div className="flex items-center justify-between"><span className="text-slate-500 font-bold">Custo por porção</span><span className="font-black text-slate-800">{fmtBRL(custoPorcao)}</span></div>
+                              {custoKg !== null && <div className="flex items-center justify-between"><span className="text-slate-500 font-bold">Custo por kg</span><span className="font-black text-slate-800">{fmtBRL(custoKg)}</span></div>}
+                           </div>
+                           <div className="grid grid-cols-2 gap-2 mt-3">
+                              <div className={`rounded-xl px-3 py-2 text-center border ${cmv !== null && cmv > meta ? "bg-red-50 border-red-200" : "bg-emerald-50 border-emerald-100"}`}>
+                                 <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">CMV</p>
+                                 <p className={`text-lg font-black ${cmv !== null && cmv > meta ? "text-red-600" : "text-emerald-700"}`}>{cmv !== null ? `${cmv.toFixed(1)}%` : "—"}</p>
+                              </div>
+                              <div className="rounded-xl px-3 py-2 text-center border bg-emerald-50 border-emerald-100">
+                                 <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Margem</p>
+                                 <p className="text-lg font-black text-emerald-700">{margem !== null ? `${margem.toFixed(1)}%` : "—"}</p>
+                              </div>
+                              <div className="rounded-xl px-3 py-2 text-center border bg-emerald-50 border-emerald-100">
+                                 <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Markup</p>
+                                 <p className="text-lg font-black text-emerald-700">{markup ? `${markup.toFixed(2)}×` : "—"}</p>
+                              </div>
+                              <div className="rounded-xl px-3 py-2 text-center border bg-slate-50 border-slate-200">
+                                 <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Preço/porção</p>
+                                 <p className="text-lg font-black text-slate-800">{preco > 0 ? fmtBRL(preco) : "—"}</p>
+                              </div>
+                           </div>
+                           <div className="mt-3 flex items-center justify-between rounded-xl bg-emerald-600 text-white px-3 py-2.5">
+                              <span className="text-[11px] font-black uppercase tracking-wider">Preço sugerido (CMV {meta}%)</span>
+                              <span className="text-lg font-black">{precoSugerido > 0 ? fmtBRL(precoSugerido) : "—"}</span>
+                           </div>
+                        </div>
+                        )}
+
+                        {/* INFORMAÇÕES ADICIONAIS */}
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
+                           <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700 mb-3">Informações adicionais</p>
+                           <div className="space-y-2 text-sm">
+                              <div className="flex items-center gap-2 text-slate-600"><Clock size={15} className="text-emerald-600 shrink-0" /><span className="font-bold">Tempo de preparo:</span> <b className="text-slate-800">{f.tempo_preparo ? `${f.tempo_preparo} min` : "—"}</b></div>
+                              <div className="flex items-center gap-2 text-slate-600"><Thermometer size={15} className="text-emerald-600 shrink-0" /><span className="font-bold">Validade:</span> <b className="text-slate-800">{f.validade_dias ? `${f.validade_dias} dia${Number(f.validade_dias) !== 1 ? "s" : ""}` : "—"}</b></div>
+                              {f.observacoes && <p className="text-[13px] text-slate-500 font-medium pt-1 leading-relaxed border-t border-slate-100 mt-2">{f.observacoes}</p>}
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         );
+      })()}
+
       {/* MODAL DE CRIAÇÃO DA FICHA TÉCNICA */}
       {modalNovo && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-2 sm:p-4">
-             <div className="bg-white rounded-3xl sm:rounded-[32px] w-full max-w-4xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-hidden shadow-2xl animate-in zoom-in-95 flex flex-col">
+             <div className="bg-white rounded-3xl sm:rounded-[32px] w-full max-w-6xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-hidden shadow-2xl animate-in zoom-in-95 flex flex-col">
                
                {/* HEADER DO MODAL */}
                <div className="flex justify-between items-center gap-3 p-4 sm:p-6 border-b border-slate-100 bg-white">
@@ -2001,7 +2418,7 @@ function FichasRunner() {
                </div>
 
                {/* BODY DO MODAL COM SCROLL */}
-               <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-50/50 custom-scrollbar grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-8">
+               <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-50/50 custom-scrollbar grid grid-cols-1 md:grid-cols-[1.4fr_1fr] gap-5 sm:gap-8 md:items-start">
                   
                    {/* COLUNA ESQUERDA: Dados Básicos e Foto */}
                   <div className="space-y-4">
@@ -2043,38 +2460,38 @@ function FichasRunner() {
                         </button>
                         {deptUrl === "bar" && (
                           <button type="button" onClick={() => { setForm({ ...form, eh_base: false, produto_pronto: true, tipo_base: "produto_pronto", categoria: form.categoria || "Cervejas", rendimento_porcoes: "1", rendimento_unidade: "un", peso_porcao_g: "", modo_preparo: "" }); setIngFicha([]); setAutoSoma(false); }}
-                            className={`min-h-[92px] py-3 px-2 rounded-xl font-black text-xs uppercase tracking-widest transition-all border-2 ${form.produto_pronto ? "bg-amber-500 border-amber-500 text-white shadow-lg shadow-amber-500/20" : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"}`}>
+                            className={`min-h-[92px] py-3 px-2 rounded-xl font-black text-xs uppercase tracking-widest transition-all border-2 ${form.produto_pronto ? "bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-600/20" : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"}`}>
                             Produto pronto
                             <span className="block text-[9px] font-bold normal-case tracking-normal mt-0.5 opacity-80">garrafa, lata, água, cerveja</span>
                           </button>
                         )}
                         <button type="button" onClick={() => setForm({ ...form, eh_base: true, produto_pronto: false, tipo_base: "pre", categoria: deptUrl === "bar" ? (CATEGORIAS_PREPARO_BAR.includes(form.categoria) ? form.categoria : "Xaropes") : "" })}
-                           className={`min-h-[92px] py-3 px-2 rounded-xl font-black text-xs uppercase tracking-widest transition-all border-2 ${form.eh_base && form.tipo_base !== "receita" ? "bg-purple-600 border-purple-600 text-white shadow-lg shadow-purple-600/20" : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"}`}>
+                           className={`min-h-[92px] py-3 px-2 rounded-xl font-black text-xs uppercase tracking-widest transition-all border-2 ${form.eh_base && form.tipo_base !== "receita" ? "bg-emerald-700 border-emerald-700 text-white shadow-lg shadow-emerald-700/20" : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"}`}>
                            Pré-preparo
                            <span className="block text-[9px] font-bold normal-case tracking-normal mt-0.5 opacity-80">{deptUrl === "bar" ? "xarope, mix, infusão" : "molho, massa, caldo"}</span>
                         </button>
                         <button type="button" onClick={() => setForm({ ...form, eh_base: true, produto_pronto: false, tipo_base: "receita", categoria: "" })}
-                           className={`min-h-[92px] py-3 px-2 rounded-xl font-black text-xs uppercase tracking-widest transition-all border-2 ${form.eh_base && form.tipo_base === "receita" ? "bg-sky-600 border-sky-600 text-white shadow-lg shadow-sky-600/20" : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"}`}>
+                           className={`min-h-[92px] py-3 px-2 rounded-xl font-black text-xs uppercase tracking-widest transition-all border-2 ${form.eh_base && form.tipo_base === "receita" ? "bg-teal-600 border-teal-600 text-white shadow-lg shadow-teal-600/20" : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"}`}>
                            Receita base
                            <span className="block text-[9px] font-bold normal-case tracking-normal mt-0.5 opacity-80">arroz, feijão, farofa — produção do dia</span>
                         </button>
                      </div>
                       {form.produto_pronto && (
-                        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                           <label className="text-xs font-bold text-amber-800 uppercase tracking-widest">Tipo de produto pronto</label>
-                           <select value={form.categoria || ""} onChange={e => setForm({ ...form, categoria: e.target.value })} className="w-full p-4 mt-2 bg-white border border-amber-200 rounded-xl font-bold text-slate-700 outline-none focus:border-amber-500 shadow-sm">
+                        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                           <label className="text-xs font-bold text-emerald-800 uppercase tracking-widest">Tipo de produto pronto</label>
+                           <select value={form.categoria || ""} onChange={e => setForm({ ...form, categoria: e.target.value })} className="w-full p-4 mt-2 bg-white border border-emerald-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500 shadow-sm">
                               {CATEGORIAS_PRODUTO_PRONTO_BAR.map(c => <option key={c} value={c}>{c}</option>)}
                            </select>
-                           <p className="mt-2 text-[11px] font-medium text-amber-700">Produto vendido como vem do fornecedor. Não exige ingredientes, receita ou guia de montagem.</p>
+                           <p className="mt-2 text-[11px] font-medium text-emerald-700">Produto vendido como vem do fornecedor. Não exige ingredientes, receita ou guia de montagem.</p>
                         </div>
                       )}
                       {deptUrl === "bar" && form.eh_base && form.tipo_base !== "receita" && (
-                         <div className="rounded-2xl border border-purple-200 bg-purple-50 p-4">
-                            <label className="text-xs font-bold text-purple-800 uppercase tracking-widest">Tipo de preparo do Bar</label>
-                            <select value={form.categoria || "Xaropes"} onChange={e => setForm({ ...form, categoria: e.target.value })} className="w-full p-4 mt-2 bg-white border border-purple-200 rounded-xl font-bold text-slate-700 outline-none focus:border-purple-500 shadow-sm">
+                         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                            <label className="text-xs font-bold text-emerald-800 uppercase tracking-widest">Tipo de preparo do Bar</label>
+                            <select value={form.categoria || "Xaropes"} onChange={e => setForm({ ...form, categoria: e.target.value })} className="w-full p-4 mt-2 bg-white border border-emerald-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500 shadow-sm">
                                {CATEGORIAS_PREPARO_BAR.map(c => <option key={c} value={c}>{c}</option>)}
                             </select>
-                            <p className="mt-2 text-[11px] font-medium text-purple-700">Este preparo poderá ser usado como componente de vários drinks e aparecerá na seção correta do Livro de Receitas.</p>
+                            <p className="mt-2 text-[11px] font-medium text-emerald-700">Este preparo poderá ser usado como componente de vários drinks e aparecerá na seção correta do Livro de Receitas.</p>
                          </div>
                       )}
                      {/* Categoria do cardápio (só para pratos, não para bases) */}
@@ -2405,9 +2822,27 @@ function FichasRunner() {
                         const precoNum = Number(String(form.preco_venda ?? "").replace(",", ".")) || 0;
                         const cmvTeo = precoNum > 0 ? (custoPorc / precoNum) * 100 : null;
                         const margem = cmvTeo !== null ? 100 - cmvTeo : null;
+                        const markup = precoNum > 0 && custoPorc > 0 ? precoNum / custoPorc : null;
+                        const lucro = precoNum > 0 ? precoNum - custoPorc : null;
+                        const custoKgForm = pesoTotalF > 0 ? custoTotalForm / (pesoTotalF / 1000) : 0;
                         return (
                            <div className="bg-white border-2 border-emerald-200 rounded-2xl p-4 shadow-sm">
                               <p className="text-xs font-black uppercase tracking-widest text-emerald-700 mb-3">CMV e Precificação</p>
+                              {/* Custos base — sempre visíveis, recalculam ao digitar */}
+                              <div className="grid grid-cols-3 gap-2 mb-3">
+                                 <div className="rounded-xl bg-slate-50 border border-slate-200 p-2 text-center">
+                                    <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Custo total</p>
+                                    <p className="text-sm font-black text-slate-800">{fmtBRL(custoTotalForm)}</p>
+                                 </div>
+                                 <div className="rounded-xl bg-slate-50 border border-slate-200 p-2 text-center">
+                                    <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Custo/porção</p>
+                                    <p className="text-sm font-black text-slate-800">{fmtBRL(custoPorc)}</p>
+                                 </div>
+                                 <div className="rounded-xl bg-slate-50 border border-slate-200 p-2 text-center">
+                                    <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Custo/kg</p>
+                                    <p className="text-sm font-black text-slate-800">{custoKgForm > 0 ? fmtBRL(custoKgForm) : "—"}</p>
+                                 </div>
+                              </div>
                               <div className="grid grid-cols-2 gap-3">
                                  <div>
                                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">CMV meta (%)</label>
@@ -2426,18 +2861,26 @@ function FichasRunner() {
                                  </button>
                               )}
                               {cmvTeo !== null ? (
-                                 <div className="grid grid-cols-2 gap-3 mt-2">
+                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
                                     <div className={`rounded-xl p-2.5 text-center border ${cmvTeo > meta ? "bg-red-50 border-red-200" : "bg-emerald-50 border-emerald-200"}`}>
-                                       <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">CMV teórico</p>
-                                       <p className={`text-xl font-black ${cmvTeo > meta ? "text-red-600" : "text-emerald-700"}`}>{cmvTeo.toFixed(1)}%</p>
+                                       <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">CMV teórico</p>
+                                       <p className={`text-lg font-black ${cmvTeo > meta ? "text-red-600" : "text-emerald-700"}`}>{cmvTeo.toFixed(1)}%</p>
                                     </div>
                                     <div className="rounded-xl p-2.5 text-center border bg-emerald-50 border-emerald-200">
-                                       <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Margem</p>
-                                       <p className="text-xl font-black text-emerald-700">{margem.toFixed(1)}%</p>
+                                       <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">Margem</p>
+                                       <p className="text-lg font-black text-emerald-700">{margem.toFixed(1)}%</p>
+                                    </div>
+                                    <div className="rounded-xl p-2.5 text-center border bg-emerald-50 border-emerald-200">
+                                       <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">Markup</p>
+                                       <p className="text-lg font-black text-emerald-700">{markup ? markup.toFixed(2) + "×" : "—"}</p>
+                                    </div>
+                                    <div className={`rounded-xl p-2.5 text-center border ${lucro < 0 ? "bg-red-50 border-red-200" : "bg-emerald-50 border-emerald-200"}`}>
+                                       <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">Lucro/porção</p>
+                                       <p className={`text-lg font-black ${lucro < 0 ? "text-red-600" : "text-emerald-700"}`}>{fmtBRL(lucro)}</p>
                                     </div>
                                  </div>
                               ) : (
-                                 <p className="text-[11px] font-medium text-slate-400 mt-2">Defina o preço de venda para ver o CMV teórico e a margem. Custo/porção atual: <b className="text-slate-600">{fmtBRL(custoPorc)}</b></p>
+                                 <p className="text-[11px] font-medium text-slate-400 mt-2">Defina o preço de venda para ver CMV teórico, margem, markup e lucro por porção.</p>
                               )}
                            </div>
                         );
@@ -2493,13 +2936,13 @@ function FichasRunner() {
 
                   {/* COLUNA DIREITA: Ingredientes da Ficha */}
                   {form.produto_pronto ? (
-                  <div className="bg-gradient-to-br from-amber-50 to-white p-6 rounded-2xl border border-amber-200 shadow-sm flex flex-col items-center justify-center min-h-[320px] text-center">
-                     <div className="w-16 h-16 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mb-4"><Package size={28} /></div>
+                  <div className="bg-gradient-to-br from-emerald-50 to-white p-6 rounded-2xl border border-emerald-200 shadow-sm flex flex-col items-center justify-center min-h-[320px] text-center">
+                     <div className="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-4"><Package size={28} /></div>
                      <h3 className="text-xl font-black text-slate-800">Produto pronto para venda</h3>
                      <p className="mt-2 max-w-sm text-sm font-medium leading-relaxed text-slate-500">Cadastre a categoria e o preço. O item entrará no cardápio do Bar sem exigir ingredientes ou montagem.</p>
                      <div className="mt-5 grid w-full max-w-sm grid-cols-2 gap-2 text-left">
-                        <div className="rounded-xl border border-amber-100 bg-white p-3"><span className="block text-[9px] font-black uppercase tracking-widest text-slate-400">Quantidade</span><span className="font-black text-slate-800">1 unidade</span></div>
-                        <div className="rounded-xl border border-amber-100 bg-white p-3"><span className="block text-[9px] font-black uppercase tracking-widest text-slate-400">Composição</span><span className="font-black text-slate-800">Não se aplica</span></div>
+                        <div className="rounded-xl border border-emerald-100 bg-white p-3"><span className="block text-[9px] font-black uppercase tracking-widest text-slate-400">Quantidade</span><span className="font-black text-slate-800">1 unidade</span></div>
+                        <div className="rounded-xl border border-emerald-100 bg-white p-3"><span className="block text-[9px] font-black uppercase tracking-widest text-slate-400">Composição</span><span className="font-black text-slate-800">Não se aplica</span></div>
                      </div>
                   </div>
                   ) : (
@@ -2520,6 +2963,16 @@ function FichasRunner() {
                            )}
                         </select>
                      </div>
+
+                     {/* Cabeçalho estilo tabela (como na ficha de referência) */}
+                     {ingFicha.length > 0 && (
+                        <div className="flex items-center gap-3 px-3 pb-2 mb-1 border-b border-slate-200">
+                           <span className="flex-1 text-[9px] font-black uppercase tracking-wider text-slate-400">Ingrediente</span>
+                           <span className="w-20 text-center text-[9px] font-black uppercase tracking-wider text-slate-400">Qtd.</span>
+                           <span className="w-9 text-center text-[9px] font-black uppercase tracking-wider text-slate-400">Un.</span>
+                           <span className="w-8" />
+                        </div>
+                     )}
 
                      {/* LISTA DE INGREDIENTES */}
                      <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
@@ -2544,7 +2997,7 @@ function FichasRunner() {
                               <div className="flex-1 min-w-0">
                                  <p className="font-bold text-slate-800 text-sm truncate flex items-center gap-1.5">
                                     {ing.nome}
-                                    {ing.tipo === "base" && <span className="text-[8px] font-black uppercase tracking-widest bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">Base</span>}
+                                    {ing.tipo === "base" && <span className="text-[8px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">Base</span>}
                                  </p>
                                  <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">Custo: {fmtBRL(ing.custo_unitario * ing.quantidade * (1 + (Number(ing.fator) || 0) / 100))} <span className="text-slate-400 normal-case">· {fmtBRL(ing.custo_unitario)}/{String(ing.unidade).toUpperCase()}</span></p>
                                  {/* Fator de correção (%): qtd bruta = líquida × (1 + fc) — o custo usa a bruta */}

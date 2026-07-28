@@ -95,8 +95,10 @@ export function statusItemEstoque(item, estoque, agora = new Date()) {
 
 export function filtrarItensEstoque(itens, filtros, estoque) {
   const termo = String(filtros?.busca || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
   return (itens || []).filter(item => {
-    const texto = [item.nome, item.marca, item.codigo_interno, item.categoria, item.local_interno, item.fornecedor]
+    if (!item) return false;
+    const texto = [item.nome, item.marca, item.codigo_interno, item.categoria, item.local_interno, item.fornecedor, item.departamento]
       .join(" ").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
     const status = statusItemEstoque(item, estoque);
     if (termo && !texto.includes(termo)) return false;
@@ -108,4 +110,28 @@ export function filtrarItensEstoque(itens, filtros, estoque) {
     if (filtros?.status === "sem-saldo" && !status.semSaldo) return false;
     return true;
   });
+}
+
+export function calcularValorItem(item) {
+  const qtd = Number(item?.quantidade_atual) || 0;
+  if (qtd <= 0) return 0;
+
+  const custoUnit = Number(item?.custo_unitario) || 0;
+  const custoCompra = Number(item?.custo_compra) || 0;
+  const tamEmb = Number(item?.tamanho_embalagem) || 1;
+  const un = String(item?.unidade_medida || "").toLowerCase();
+
+  const ehFrac = tamEmb > 1 && item?.permite_fracionado !== false && un !== "un";
+
+  if (ehFrac) {
+    const unComerciais = qtd / tamEmb;
+    let custoEmbalagem = custoCompra;
+    if (!custoEmbalagem || custoEmbalagem <= 0) {
+      custoEmbalagem = custoUnit > 0 ? (custoUnit < 1 ? custoUnit * tamEmb : custoUnit) : 0;
+    }
+    return unComerciais * custoEmbalagem;
+  }
+
+  const custo = custoUnit > 0 ? custoUnit : custoCompra;
+  return qtd * custo;
 }

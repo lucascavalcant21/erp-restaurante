@@ -309,7 +309,7 @@ function EstoqueRunner() {
     setColaboradores(resColabs.data || []);
 
     const preferencia = (searchParams.get("dept") || searchParams.get("modulo") || "").toLowerCase();
-    
+
     let disponiveis = todosEstoques;
     if (preferencia.includes("cozinha")) {
       disponiveis = todosEstoques.filter(e => {
@@ -625,7 +625,7 @@ function EstoqueRunner() {
       const unidadeId = unidadeAtiva;
       let item = modal?.item || itens.find(i => i.insumo_id === operacao.insumo_id);
       const insumo = catalogo.find(i => i.id === operacao.insumo_id);
-      
+
       const colabSel = colaboradores.find(c => String(c.id) === String(operacao.responsavel_id));
       const responsavelNome = colabSel
         ? `${colabSel.nome}${colabSel.cargo ? ` (${colabSel.cargo})` : ""}`

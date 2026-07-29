@@ -67,6 +67,11 @@ function novoFormulario(departamento = "cozinha") {
     fornecedor_atual_id: "",
     fornecedor_ids: [],
     densidade_g_ml: "",
+    peso_bruto_g: "",
+    perda_g: "",
+    empanado: false,
+    ganho_pct: "",
+    custo_empanado_kg: "",
   };
 }
 
@@ -275,6 +280,11 @@ function IngredientesRunner() {
       fornecedor_atual_id: insumo.fornecedor_atual_id || "",
       fornecedor_ids: (insumo.fornecedores_vinculados || []).map(item => item.id).filter(Boolean),
       densidade_g_ml: insumo.densidade_g_ml ? String(insumo.densidade_g_ml) : "",
+      peso_bruto_g: insumo.peso_bruto_padrao != null ? String(insumo.peso_bruto_padrao) : "",
+      perda_g: insumo.perda_g != null ? String(insumo.perda_g) : "",
+      empanado: !!insumo.empanado,
+      ganho_pct: insumo.ganho_pct != null ? String(insumo.ganho_pct) : "",
+      custo_empanado_kg: insumo.custo_empanado_kg != null ? String(insumo.custo_empanado_kg) : "",
     });
     setPrecosForn([]); setPrecoFornMsg("");
     fetchPrecosDoInsumo(insumo.id).then(r => {
@@ -344,6 +354,9 @@ function IngredientesRunner() {
 
     const fornecedorAtual = fornecedores.find(item => item.id === form.fornecedor_atual_id);
     const precoNormalizado = calcularPrecoNormalizado(quantidade, form.unidade_medida, valor);
+    const pesoBruto = form.peso_bruto_g ? parseNumeroBR(form.peso_bruto_g) : null;
+    const perdaG = form.perda_g ? parseNumeroBR(form.perda_g) : null;
+    const perdaPct = (Number.isFinite(pesoBruto) && pesoBruto > 0 && Number.isFinite(perdaG)) ? (perdaG / pesoBruto) * 100 : null;
     setSalvando(true);
     const resultado = await salvarInsumo({
       id: form.id,
@@ -363,6 +376,12 @@ function IngredientesRunner() {
       fornecedor: fornecedorAtual?.nome || null,
       fornecedor_ids: form.fornecedor_ids,
       densidade_g_ml: densidade,
+      peso_bruto_padrao: Number.isFinite(pesoBruto) ? pesoBruto : null,
+      perda_g: Number.isFinite(perdaG) ? perdaG : null,
+      perda_pct: perdaPct != null ? Number(perdaPct.toFixed(3)) : null,
+      empanado: !!form.empanado,
+      ganho_pct: form.empanado && form.ganho_pct ? parseNumeroBR(form.ganho_pct) : null,
+      custo_empanado_kg: form.empanado && form.custo_empanado_kg ? parseNumeroBR(form.custo_empanado_kg) : null,
     }, { origem: form.id ? "Edição manual do ingrediente" : "Cadastro manual do ingrediente" });
     setSalvando(false);
 
@@ -762,6 +781,43 @@ function IngredientesRunner() {
                     </span>
                   </div>
                 )}
+              </section>
+
+              <section>
+                <h3 className="mb-3 text-xs font-black uppercase tracking-wider text-slate-400">Perda e rendimento</h3>
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                  <label>
+                    <span className="text-xs font-bold text-slate-600">Peso bruto (g)</span>
+                    <input inputMode="decimal" value={form.peso_bruto_g} onChange={e => !e.target.value.startsWith("-") && setForm({ ...form, peso_bruto_g: e.target.value })} placeholder="Ex.: 1000" className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 outline-none focus:border-emerald-500" />
+                  </label>
+                  <label>
+                    <span className="text-xs font-bold text-slate-600">Perda (g)</span>
+                    <input inputMode="decimal" value={form.perda_g} onChange={e => !e.target.value.startsWith("-") && setForm({ ...form, perda_g: e.target.value })} placeholder="Ex.: 200" className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 outline-none focus:border-emerald-500" />
+                  </label>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-slate-600">Perda calculada</span>
+                    <div className="mt-1.5 flex h-11 items-center rounded-xl border border-emerald-100 bg-emerald-50 px-3.5 font-black text-emerald-700">
+                      {(() => { const b = parseNumeroBR(form.peso_bruto_g), p = parseNumeroBR(form.perda_g); return (Number.isFinite(b) && b > 0 && Number.isFinite(p)) ? ((p / b) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%" : "—"; })()}
+                    </div>
+                  </div>
+                </div>
+                <label className="mt-4 flex items-center gap-2">
+                  <input type="checkbox" checked={form.empanado} onChange={e => setForm({ ...form, empanado: e.target.checked })} className="h-4 w-4 accent-emerald-600" />
+                  <span className="text-xs font-bold text-slate-600">Produto empanado (ganha peso e tem custo do empanamento)</span>
+                </label>
+                {form.empanado && (
+                  <div className="mt-3 grid grid-cols-2 gap-4">
+                    <label>
+                      <span className="text-xs font-bold text-slate-600">Ganho de peso (%)</span>
+                      <input inputMode="decimal" value={form.ganho_pct} onChange={e => !e.target.value.startsWith("-") && setForm({ ...form, ganho_pct: e.target.value })} placeholder="Ex.: 30" className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 outline-none focus:border-emerald-500" />
+                    </label>
+                    <label>
+                      <span className="text-xs font-bold text-slate-600">Custo do empanado (R$/kg final)</span>
+                      <input inputMode="decimal" value={form.custo_empanado_kg} onChange={e => !e.target.value.startsWith("-") && setForm({ ...form, custo_empanado_kg: e.target.value })} placeholder="Ex.: 8,00" className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 outline-none focus:border-emerald-500" />
+                    </label>
+                  </div>
+                )}
+                <p className="mt-2 text-[11px] font-medium text-slate-400">A perda passa a ser do ingrediente (o FC sai da ficha técnica). Empanado: o produto rende mais peso, com o custo do empanamento somado ao custo final.</p>
               </section>
 
               <section>

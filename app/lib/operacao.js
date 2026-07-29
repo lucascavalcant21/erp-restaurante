@@ -171,6 +171,27 @@ export async function salvarInsumo(insumo, opcoes = {}) {
     if (!error) await sincronizarFornecedores(id, fornecedorIds);
     return { id, error: error?.message };
   } else {
+    // Trava de duplicidade: não permite dois ingredientes com o mesmo nome no
+    // mesmo setor/unidade. Para outro preço, edite o existente e adicione um
+    // fornecedor. Comparação sem acento e sem caixa.
+    try {
+      const norm = s => {
+        const d = String(s || "").normalize("NFD");
+        let out = "";
+        for (const ch of d) { const c = ch.charCodeAt(0); if (c < 0x300 || c > 0x36f) out += ch; }
+        return out.trim().toLowerCase();
+      };
+      const nomeNorm = norm(campos.nome);
+      if (nomeNorm) {
+        let q = supabase.from("insumos").select("id, nome, departamento, unidade_id");
+        if (campos.unidade_id) q = q.eq("unidade_id", campos.unidade_id);
+        if (campos.departamento) q = q.eq("departamento", campos.departamento);
+        const { data: existentes } = await q.ilike("nome", String(campos.nome || "").trim());
+        if ((existentes || []).some(e => norm(e.nome) === nomeNorm)) {
+          return { error: "Já existe um ingrediente com esse nome neste setor. Edite o existente para adicionar outro fornecedor ou preço." };
+        }
+      }
+    } catch { /* falha na checagem não bloqueia o cadastro */ }
     const normalizado = Number(campos.preco_normalizado) || calcularPrecoNormalizado(
       Number(campos.tamanho_embalagem) || 1,
       campos.unidade_medida,

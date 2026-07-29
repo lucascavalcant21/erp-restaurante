@@ -385,7 +385,8 @@ function EstoqueRunner() {
       const cargoStr = (c.cargo || "").toLowerCase();
       const setorStr = (c.setor || "").toLowerCase();
       if (areaChave === "bar") {
-        return /(\bbar\b|barman|bartender|barista|copeir)/.test(cargoStr) || setorStr.includes("bar");
+        // Bar: equipe do bar + supervisores, gerentes e CEO/diretoria também podem movimentar.
+        return /(\bbar\b|barman|bartender|barista|copeir|supervisor|gerente|encarregad|coordenad|\bceo\b|diretor|s[oó]cio|propriet|dono|administrador|chefe)/.test(cargoStr) || setorStr.includes("bar");
       }
       if (areaChave === "cozinha") {
         return /(cozinh|chapeir|confeit|pizzai|sushi|salgad|padeir|churrasqueir|a[cç]ougue|auxiliar|chefe)/.test(cargoStr) || setorStr.includes("cozinha");

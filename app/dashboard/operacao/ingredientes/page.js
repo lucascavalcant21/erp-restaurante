@@ -25,6 +25,7 @@ import {
 import { useERP } from "../../../context/ERPContext";
 import { fetchFornecedores } from "../../../lib/fornecedores";
 import { fetchHistoricoPrecos, fetchInsumos, removerInsumo, salvarInsumo } from "../../../lib/operacao";
+import { fetchPrecosDoInsumo, salvarPrecoFornecedor } from "../../../lib/insumo-fornecedores";
 import { CATEGORIAS_INSUMO, adivinharCategoria, categoriaDoProdutoBar } from "../../../lib/categorias-insumo";
 import {
   UNIDADES_INGREDIENTE,
@@ -189,6 +190,8 @@ function IngredientesRunner() {
   const [historico, setHistorico] = useState([]);
   const [historicoLoading, setHistoricoLoading] = useState(false);
   const [salvando, setSalvando] = useState(false);
+  const [precosForn, setPrecosForn] = useState([]);   // preço por fornecedor do insumo em edição
+  const [precoFornMsg, setPrecoFornMsg] = useState(""); // aviso quando a migração não rodou
   const [toast, setToast] = useState(null);
 
   const mostrarToast = (mensagem, tipo = "ok") => {
@@ -253,6 +256,7 @@ function IngredientesRunner() {
 
   const abrirNovo = () => {
     setForm(novoFormulario(deptUrl || "cozinha"));
+    setPrecosForn([]); setPrecoFornMsg("");
     setModalCadastro(true);
   };
 
@@ -272,7 +276,35 @@ function IngredientesRunner() {
       fornecedor_ids: (insumo.fornecedores_vinculados || []).map(item => item.id).filter(Boolean),
       densidade_g_ml: insumo.densidade_g_ml ? String(insumo.densidade_g_ml) : "",
     });
+    setPrecosForn([]); setPrecoFornMsg("");
+    fetchPrecosDoInsumo(insumo.id).then(r => {
+      if (r.error === "sem_migracao") { setPrecoFornMsg("Rode db/migracao_insumo_fornecedor_precos.sql no Supabase para ativar preço por fornecedor."); return; }
+      setPrecosForn((r.data || []).map(x => ({
+        id: x.id, fornecedor_id: x.fornecedor_id,
+        preco: x.preco != null ? String(x.preco) : "",
+        tamanho: x.tamanho_embalagem != null ? String(x.tamanho_embalagem) : String(insumo.tamanho_embalagem || 1),
+        unidade: x.unidade_embalagem || insumo.unidade_medida || "kg",
+      })));
+    });
     setModalCadastro(true);
+  };
+
+  const precoDe = fid => precosForn.find(p => p.fornecedor_id === fid);
+  const setPrecoDe = (fid, patch) => setPrecosForn(prev => {
+    const i = prev.findIndex(p => p.fornecedor_id === fid);
+    if (i === -1) return [...prev, { fornecedor_id: fid, preco: "", tamanho: form.tamanho_embalagem, unidade: form.unidade_medida, ...patch }];
+    const c = [...prev]; c[i] = { ...c[i], ...patch }; return c;
+  });
+  const usarPrecoFornecedor = fid => {
+    const p = precoDe(fid);
+    setForm(a => ({
+      ...a,
+      fornecedor_atual_id: fid,
+      fornecedor_ids: [...new Set([...a.fornecedor_ids, fid])],
+      valor_embalagem: p?.preco ? String(p.preco) : a.valor_embalagem,
+      tamanho_embalagem: p?.tamanho ? String(p.tamanho) : a.tamanho_embalagem,
+      unidade_medida: p?.unidade || a.unidade_medida,
+    }));
   };
 
   const selecionarFornecedorAtual = fornecedorId => {
@@ -335,6 +367,27 @@ function IngredientesRunner() {
     setSalvando(false);
 
     if (resultado.error) return alert(`Erro ao salvar ingrediente: ${resultado.error}`);
+
+    // Preço por fornecedor: grava o do fornecedor ativo (= valor principal) e os
+    // demais informados. Silencioso se a migração ainda não rodou.
+    const insumoId = form.id || resultado.id;
+    if (insumoId) {
+      const vistos = new Set();
+      const jobs = [];
+      if (form.fornecedor_atual_id) {
+        vistos.add(form.fornecedor_atual_id);
+        jobs.push(salvarPrecoFornecedor({ unidadeId: unidadeAtiva, insumoId, insumoNome: nome, fornecedorId: form.fornecedor_atual_id, fornecedorNome: fornecedorAtual?.nome, preco: valor, tamanho: quantidade, unidade: form.unidade_medida }));
+      }
+      for (const p of precosForn) {
+        if (vistos.has(p.fornecedor_id)) continue;
+        const pv = parseNumeroBR(p.preco);
+        if (!Number.isFinite(pv) || pv <= 0) continue;
+        const forn = fornecedores.find(f => f.id === p.fornecedor_id);
+        jobs.push(salvarPrecoFornecedor({ unidadeId: unidadeAtiva, insumoId, insumoNome: nome, fornecedorId: p.fornecedor_id, fornecedorNome: forn?.nome, preco: pv, tamanho: parseNumeroBR(p.tamanho) || quantidade, unidade: p.unidade || form.unidade_medida }));
+      }
+      if (jobs.length) await Promise.all(jobs).catch(() => {});
+    }
+
     setModalCadastro(false);
     await carregar();
     mostrarToast(form.id ? `${ehBar ? "Produto" : "Ingrediente"} atualizado.` : `${ehBar ? "Produto" : "Ingrediente"} cadastrado.`);
@@ -356,7 +409,9 @@ function IngredientesRunner() {
     setHistorico([]);
     setHistoricoLoading(true);
     const resposta = await fetchHistoricoPrecos(unidadeAtiva, insumo.id);
-    setHistorico(resposta.data || []);
+    let linhas = resposta.data || [];
+    if (insumo.fornecedor_id) linhas = linhas.filter(r => r.fornecedor_id === insumo.fornecedor_id);
+    setHistorico(linhas);
     setHistoricoLoading(false);
   };
 
@@ -658,14 +713,6 @@ function IngredientesRunner() {
                     />
                   </label>
                   <label>
-                    <span className="text-xs font-bold text-slate-600">Nome interno ou apelido</span>
-                    <input value={form.nome_interno} onChange={event => setForm({ ...form, nome_interno: event.target.value })} placeholder="Ex.: Açafrão" className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 outline-none focus:border-emerald-500" />
-                  </label>
-                  <label>
-                    <span className="text-xs font-bold text-slate-600">Código interno</span>
-                    <input value={form.codigo_interno} onChange={event => setForm({ ...form, codigo_interno: event.target.value })} placeholder="Ex.: IND-0001" className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 outline-none focus:border-emerald-500" />
-                  </label>
-                  <label>
                     <span className="text-xs font-bold text-slate-600">Marca</span>
                     <input value={form.marca} onChange={event => setForm({ ...form, marca: event.target.value })} placeholder="Deixe vazio para Sem marca" className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 outline-none focus:border-emerald-500" />
                   </label>
@@ -715,10 +762,6 @@ function IngredientesRunner() {
                     </span>
                   </div>
                 )}
-                <label className="mt-4 block">
-                  <span className="text-xs font-bold text-slate-600">Densidade em g/ml (opcional)</span>
-                  <input inputMode="decimal" value={form.densidade_g_ml} onChange={event => !event.target.value.startsWith("-") && setForm({ ...form, densidade_g_ml: event.target.value })} placeholder="Necessária apenas para converter peso ↔ volume" className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 outline-none focus:border-emerald-500" />
-                </label>
               </section>
 
               <section>
@@ -730,6 +773,32 @@ function IngredientesRunner() {
                     {fornecedores.map(item => <option key={item.id} value={item.id}>{item.nome}</option>)}
                   </select>
                 </label>
+                {precoFornMsg && <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-[12px] font-medium text-amber-800">{precoFornMsg}</p>}
+                {form.id && form.fornecedor_ids.length > 0 && !precoFornMsg && (
+                  <div className="mt-4">
+                    <p className="mb-2 text-xs font-bold text-slate-600">Preço por fornecedor</p>
+                    <div className="space-y-2">
+                      {form.fornecedor_ids.map(fid => {
+                        const forn = fornecedores.find(f => f.id === fid);
+                        if (!forn) return null;
+                        const p = precoDe(fid);
+                        const atual = form.fornecedor_atual_id === fid;
+                        return (
+                          <div key={fid} className={`flex flex-wrap items-center gap-2 rounded-xl border p-2.5 ${atual ? "border-emerald-300 bg-emerald-50" : "border-slate-200 bg-white"}`}>
+                            <span className="flex min-w-0 flex-1 items-center gap-2 truncate text-sm font-bold text-slate-700">{forn.nome}{atual && <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-white">Em uso</span>}</span>
+                            <div className="flex h-9 items-center rounded-lg border border-slate-200 bg-slate-50 px-2">
+                              <span className="mr-1 text-xs font-bold text-slate-400">R$</span>
+                              <input inputMode="decimal" value={p?.preco ?? ""} onChange={e => setPrecoDe(fid, { preco: e.target.value })} placeholder="0,00" className="w-20 bg-transparent text-sm font-black text-emerald-700 outline-none" />
+                            </div>
+                            {!atual && <button type="button" onClick={() => usarPrecoFornecedor(fid)} className="h-9 rounded-lg border border-emerald-200 bg-white px-3 text-xs font-black text-emerald-700 hover:bg-emerald-50">Usar</button>}
+                            <button type="button" onClick={() => abrirHistorico({ id: form.id, nome: form.nome, fornecedor_id: fid })} className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 hover:bg-slate-50">Histórico</button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p className="mt-2 text-[11px] font-medium text-slate-400">O preço do fornecedor "Em uso" vira o custo do ingrediente nas fichas. Salve para guardar os preços e o histórico.</p>
+                  </div>
+                )}
                 {fornecedores.length > 0 && (
                   <div className="mt-3">
                     <p className="mb-2 text-xs font-bold text-slate-600">Outros fornecedores vinculados</p>

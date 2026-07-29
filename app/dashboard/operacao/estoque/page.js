@@ -114,6 +114,44 @@ function gerarTextoWhatsApp(estoque, itens, unidadeInfo) {
   return txt;
 }
 
+// Lista de COMPRAS: só itens abaixo do mínimo (se nenhum, lista todos), agrupados
+// por fornecedor, com nome, marca, valor e a quantidade que falta comprar.
+function gerarListaComprasWhatsApp(estoque, itens, unidadeInfo) {
+  const abaixo = itens.filter(i => {
+    const min = Number(i.estoque_minimo);
+    return Number.isFinite(min) && min > 0 && (Number(i.quantidade_atual) || 0) < min;
+  });
+  const lista = abaixo.length ? abaixo : itens;
+  let txt = `*LISTA DE COMPRAS*\n`;
+  txt += `${estoque?.nome || "Estoque"} - ${unidadeInfo?.nome || "Restaurante"}\n`;
+  txt += `${new Date().toLocaleDateString("pt-BR")}\n`;
+  txt += `----------------------------------\n\n`;
+  const porForn = new Map();
+  for (const i of lista) {
+    const f = (i.fornecedor && String(i.fornecedor).trim()) || "Sem fornecedor definido";
+    if (!porForn.has(f)) porForn.set(f, []);
+    porForn.get(f).push(i);
+  }
+  for (const [forn, arr] of porForn.entries()) {
+    txt += `*${forn}*\n`;
+    for (const i of arr) {
+      const min = Number(i.estoque_minimo) || 0;
+      const atual = Number(i.quantidade_atual) || 0;
+      const falta = min > atual ? min - atual : 0;
+      const un = mostrarUn(i.unidade_medida);
+      const valor = Number(i.custo_compra ?? i.custo_unitario) || 0;
+      const marca = i.marca ? ` (${i.marca})` : "";
+      txt += `- ${i.nome}${marca}`;
+      if (falta > 0) txt += ` — comprar ~${fmtQtd(falta)} ${un}`;
+      if (valor > 0) txt += ` — ${fmtBRL(valor)}`;
+      txt += `\n`;
+    }
+    txt += `\n`;
+  }
+  txt += abaixo.length ? `${abaixo.length} item(ns) abaixo do mínimo.` : `Nenhum item abaixo do mínimo — lista completa do estoque.`;
+  return txt;
+}
+
 function imprimirRelatorio(estoque, itens, unidadeInfo) {
   const totalValor = itens.reduce((soma, i) => soma + (calcularValorItem(i) || 0), 0);
   const mapa = new Map();
@@ -1226,6 +1264,23 @@ function EstoqueRunner() {
             <button
               onClick={() => {
                 setModal(null);
+                const txt = gerarListaComprasWhatsApp(estoqueAtual, itensDaArea, unidadeInfo);
+                window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`, "_blank");
+              }}
+              className="flex w-full items-center gap-4 rounded-2xl border-2 border-emerald-200 bg-emerald-50/40 p-4 text-left hover:border-emerald-500 hover:bg-emerald-50 transition-all group"
+            >
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-emerald-600 text-white transition-colors">
+                <Share2 size={24} />
+              </div>
+              <div>
+                <strong className="block text-base font-extrabold text-slate-900">Lista de compras no WhatsApp</strong>
+                <p className="text-xs text-slate-500">Abre o WhatsApp com os itens abaixo do mínimo — nome, marca, valor e fornecedor, agrupados por fornecedor.</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => {
+                setModal(null);
                 const txt = gerarTextoWhatsApp(estoqueAtual, itensDaArea, unidadeInfo);
                 if (navigator.clipboard) {
                   navigator.clipboard.writeText(txt);
@@ -1240,8 +1295,8 @@ function EstoqueRunner() {
                 <Share2 size={24} />
               </div>
               <div>
-                <strong className="block text-base font-extrabold text-slate-900">Copiar para WhatsApp</strong>
-                <p className="text-xs text-slate-500">Copia o resumo formatado em texto para enviar no grupo do WhatsApp.</p>
+                <strong className="block text-base font-extrabold text-slate-900">Copiar resumo do estoque</strong>
+                <p className="text-xs text-slate-500">Copia o resumo completo (saldos por categoria) para colar no grupo do WhatsApp.</p>
               </div>
             </button>
 

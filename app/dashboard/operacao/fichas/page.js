@@ -1683,6 +1683,49 @@ function FichasRunner() {
       </RecipeWorkspace>
 
       <div className="max-w-7xl mx-auto px-3 sm:px-5 mt-5 sm:mt-6">
+         {/* Kanban de indicadores: CMV médio, margem, custo, ticket */}
+         {(() => {
+            const base = fichas.filter(f => !f.eh_base && f.tipo_base !== "produto_pronto");
+            if (!base.length) return null;
+            let somaCmv = 0, nCmv = 0, somaCusto = 0, nCusto = 0, somaPreco = 0, nPreco = 0, somaMargem = 0, semPreco = 0, acimaMeta = 0;
+            base.forEach(f => {
+               const peso = infoPesoFicha(f, fichas);
+               const custoTotal = custoTotalDaFicha(f, fichas);
+               const unR = String(f.rendimento_unidade || "porcao").toLowerCase();
+               const rend = Number(f.rendimento_porcoes) || 0;
+               const porcoes = (unR === "porcao" || unR === "un") ? rend : (peso?.porcoes || 0);
+               const custoPorcao = porcoes > 0 ? custoTotal / porcoes : custoTotal;
+               if (custoPorcao > 0) { somaCusto += custoPorcao; nCusto++; }
+               const prod = produtos.find(x => x.ficha_id === f.id || String(x.nome_produto || "").toLowerCase() === String(f.nome_receita || "").toLowerCase());
+               const preco = Number(prod?.preco_venda) || 0;
+               const meta = Number(f.cmv_meta) || 30;
+               if (preco > 0) {
+                  const cmv = (custoPorcao / preco) * 100;
+                  somaCmv += cmv; nCmv++; somaPreco += preco; nPreco++; somaMargem += (100 - cmv);
+                  if (cmv > meta) acimaMeta++;
+               } else semPreco++;
+            });
+            const cmvMedio = nCmv ? somaCmv / nCmv : null;
+            const cards = [
+               { rot: "Fichas", val: base.length, sub: "pratos/receitas" },
+               { rot: "CMV médio", val: cmvMedio != null ? cmvMedio.toFixed(1) + "%" : "—", sub: `${nCmv} precificadas`, alerta: cmvMedio != null && cmvMedio > 35 },
+               { rot: "Margem média", val: nCmv ? (somaMargem / nCmv).toFixed(1) + "%" : "—", sub: "bruta" },
+               { rot: "Custo médio/porção", val: nCusto ? fmtBRL(somaCusto / nCusto) : "—", sub: "por porção" },
+               { rot: "Ticket médio", val: nPreco ? fmtBRL(somaPreco / nPreco) : "—", sub: "preço de venda" },
+               { rot: "Acima da meta", val: acimaMeta, sub: semPreco ? `${semPreco} sem preço` : "CMV alto", alerta: acimaMeta > 0 },
+            ];
+            return (
+               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 mb-4">
+                  {cards.map(c => (
+                     <div key={c.rot} className={`rounded-2xl border shadow-sm px-3 py-2.5 ${c.alerta ? "bg-red-50 border-red-200" : "bg-white border-slate-200"}`}>
+                        <p className="text-[9px] font-black uppercase tracking-wider text-slate-400 leading-tight">{c.rot}</p>
+                        <p className={`text-lg font-black mt-0.5 ${c.alerta ? "text-red-600" : "text-emerald-700"}`}>{c.val}</p>
+                        <p className="text-[10px] font-bold text-slate-400 truncate">{c.sub}</p>
+                     </div>
+                  ))}
+               </div>
+            );
+         })()}
          {/* Abas: Pratos + categorias do cardápio + Pré-preparos + Todos */}
          <div className="flex flex-wrap gap-2 mb-4">
             {[

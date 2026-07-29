@@ -120,6 +120,19 @@ const SUB_UNIDADES = {
 };
 const getSub = (unidade) => SUB_UNIDADES[String(unidade || "").toLowerCase()] || null;
 
+// Custo unitário efetivo do ingrediente. Empanados ganham peso (ganho_pct) e
+// somam o custo do empanamento (custo_empanado_kg, por kg final). Só faz sentido
+// em peso (g/kg); em outras unidades usa o custo base.
+function custoUnitEfetivo(ins) {
+  const base = Number(ins?.custo_unitario) || 0;
+  if (!ins?.empanado) return base;
+  const ganho = 1 + (Number(ins.ganho_pct) || 0) / 100;
+  const u = String(ins.unidade_medida || "").toLowerCase();
+  const empKg = Number(ins.custo_empanado_kg) || 0;
+  const empNaUnidade = u === "g" ? empKg / 1000 : u === "kg" ? empKg : 0;
+  return base / ganho + empNaUnidade;
+}
+
 // Custo total de PRODUZIR uma ficha, resolvendo bases (sub-receitas) em cascata.
 // guard evita loop infinito se alguém criar uma referência circular.
 function custoTotalDaFicha(f, todasFichas, guard = new Set()) {
@@ -130,7 +143,7 @@ function custoTotalDaFicha(f, todasFichas, guard = new Set()) {
     // Fator de correção (%) do item: a quantidade BRUTA (líquida × 1+fc) é a que custa
     const fc = 1 + (Number(fi.fator_correcao) || 0) / 100;
     if (fi.insumos) {
-      total += (fi.insumos.custo_unitario || 0) * (fi.quantidade || 0) * fc;
+      total += custoUnitEfetivo(fi.insumos) * (fi.quantidade || 0) * fc;
     } else if (fi.subficha_id) {
       const base = todasFichas.find(x => x.id === fi.subficha_id);
       const custoBaseUnit = base ? custoTotalDaFicha(base, todasFichas, guard) / (base.rendimento_porcoes || 1) : 0;
@@ -658,9 +671,10 @@ function FichasRunner() {
        return {
           chave: fi.insumos.id, tipo: "insumo", insumo_id: fi.insumos.id,
           nome: fi.insumos.nome, unidade: fi.insumos.unidade_medida,
-          custo_unitario: fi.insumos.custo_unitario, quantidade: fi.quantidade,
+          custo_unitario: custoUnitEfetivo(fi.insumos), quantidade: fi.quantidade,
           // Perda vem do cadastro do ingrediente; cai no FC legado se não houver.
-          fator: Number(fi.insumos.perda_pct) || Number(fi.fator_correcao) || 0,
+          fator: fi.insumos.empanado ? 0 : (Number(fi.insumos.perda_pct) || Number(fi.fator_correcao) || 0),
+          empanado: !!fi.insumos.empanado,
           peso_medio_g: fi.insumos.peso_medio_g || null,
           modo: getSub(fi.insumos.unidade_medida) ? "sub" : "base",
        };
@@ -751,10 +765,11 @@ function FichasRunner() {
     return {
        chave: insumoDb.id, tipo: "insumo", insumo_id: insumoDb.id,
        nome: insumoDb.nome, unidade: insumoDb.unidade_medida,
-       custo_unitario: insumoDb.custo_unitario, quantidade,
+       custo_unitario: custoUnitEfetivo(insumoDb), quantidade,
        peso_medio_g: insumoDb.peso_medio_g || null,
-       // A perda (fator de correção) agora vem do cadastro do ingrediente.
-       fator: Number(insumoDb.perda_pct) || 0,
+       // Perda vem do cadastro do ingrediente. Empanado usa o ganho (não soma perda).
+       fator: insumoDb.empanado ? 0 : (Number(insumoDb.perda_pct) || 0),
+       empanado: !!insumoDb.empanado,
        modo: getSub(insumoDb.unidade_medida) ? "sub" : "base",
     };
   };

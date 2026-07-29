@@ -659,7 +659,8 @@ function FichasRunner() {
           chave: fi.insumos.id, tipo: "insumo", insumo_id: fi.insumos.id,
           nome: fi.insumos.nome, unidade: fi.insumos.unidade_medida,
           custo_unitario: fi.insumos.custo_unitario, quantidade: fi.quantidade,
-          fator: Number(fi.fator_correcao) || 0,
+          // Perda vem do cadastro do ingrediente; cai no FC legado se não houver.
+          fator: Number(fi.insumos.perda_pct) || Number(fi.fator_correcao) || 0,
           peso_medio_g: fi.insumos.peso_medio_g || null,
           modo: getSub(fi.insumos.unidade_medida) ? "sub" : "base",
        };
@@ -752,6 +753,8 @@ function FichasRunner() {
        nome: insumoDb.nome, unidade: insumoDb.unidade_medida,
        custo_unitario: insumoDb.custo_unitario, quantidade,
        peso_medio_g: insumoDb.peso_medio_g || null,
+       // A perda (fator de correção) agora vem do cadastro do ingrediente.
+       fator: Number(insumoDb.perda_pct) || 0,
        modo: getSub(insumoDb.unidade_medida) ? "sub" : "base",
     };
   };
@@ -3043,16 +3046,16 @@ function FichasRunner() {
                                     {ing.tipo === "base" && <span className="text-[8px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">Base</span>}
                                  </p>
                                  <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">Custo: {fmtBRL(ing.custo_unitario * ing.quantidade * (1 + (Number(ing.fator) || 0) / 100))} <span className="text-slate-400 normal-case">· {fmtBRL(ing.custo_unitario)}/{String(ing.unidade).toUpperCase()}</span></p>
-                                 {/* Fator de correção (%): qtd bruta = líquida × (1 + fc) — o custo usa a bruta */}
-                                 <div className="flex items-center gap-1.5 mt-1">
-                                    <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">FC %</span>
-                                    <input type="number" min="0" max="300" step="1" value={ing.fator || ""} placeholder="0"
-                                       onChange={e => updateFator(ing.chave, e.target.value)}
-                                       className="w-14 p-1 text-center bg-white border border-slate-200 rounded-md font-bold text-[11px] text-slate-700 outline-none focus:border-emerald-500" />
-                                    {Number(ing.fator) > 0 && ing.quantidade > 0 && (
-                                       <span className="text-[9px] font-bold text-amber-600">bruta: {(+(ing.quantidade * (emSub ? fator : 1) * (1 + Number(ing.fator) / 100)).toFixed(2)).toLocaleString("pt-BR")} {unidadeLabel}</span>
-                                    )}
-                                 </div>
+                                 {/* Perda vem do cadastro do ingrediente (o FC saiu da ficha). O custo usa a qtd bruta = líquida × (1 + perda). */}
+                                 {ing.tipo !== "base" && Number(ing.fator) > 0 && (
+                                    <div className="flex items-center gap-1.5 mt-1">
+                                       <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Perda do ingrediente</span>
+                                       <span className="text-[10px] font-black text-emerald-700">{Number(ing.fator).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%</span>
+                                       {ing.quantidade > 0 && (
+                                          <span className="text-[9px] font-bold text-slate-400">· bruta {(+(ing.quantidade * (emSub ? fator : 1) * (1 + Number(ing.fator) / 100)).toFixed(2)).toLocaleString("pt-BR")} {unidadeLabel}</span>
+                                       )}
+                                    </div>
+                                 )}
                                  {/* Equivalência em peso: 5 un de bolinho de 35g = 175 g (0,175 kg) */}
                                  {(() => {
                                     if (ing.tipo !== "base" || String(ing.unidade).toLowerCase() !== "un" || !ing.quantidade) return null;

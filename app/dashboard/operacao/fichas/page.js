@@ -247,6 +247,7 @@ function FichasRunner() {
   const [montagens, setMontagens] = useState([]);
   const [produtos, setProdutos] = useState([]); // preços de venda (vêm do cardápio interno)
   const [insumosAtivos, setInsumosAtivos] = useState([]);
+  const [embalagensCat, setEmbalagensCat] = useState([]); // catálogo de Embalagens (dept embalagens)
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
   
@@ -537,16 +538,18 @@ function FichasRunner() {
 
   const carregar = async () => {
     setLoading(true);
-    const [resFichas, resInsumos, resProd, resMontagens] = await Promise.all([
+    const [resFichas, resInsumos, resProd, resMontagens, resEmbalagens] = await Promise.all([
        fetchFichas(unidadeAtiva, deptUrl),
        fetchInsumos(unidadeAtiva, deptUrl),
        fetchProdutos(unidadeAtiva),
        fetchMontagens(unidadeAtiva, deptUrl),
+       fetchInsumos(unidadeAtiva, "embalagens"),
     ]);
     setFichas(resFichas.data || []);
     setInsumosAtivos(resInsumos.data || []);
     setProdutos(resProd.data || []);
     setMontagens(resMontagens.data || []);
+    setEmbalagensCat(resEmbalagens.data || []);
     setLoading(false);
   };
 
@@ -760,7 +763,7 @@ function FichasRunner() {
           modo: getSub(base.rendimento_unidade) ? "sub" : "base",
        };
     }
-    const insumoDb = insumosAtivos.find(i => i.id === id);
+    const insumoDb = insumosAtivos.find(i => i.id === id) || embalagensCat.find(i => i.id === id);
     if (!insumoDb) return null;
     return {
        chave: insumoDb.id, tipo: "insumo", insumo_id: insumoDb.id,
@@ -3020,6 +3023,11 @@ function FichasRunner() {
                            {basesDisponiveis.length > 0 && (
                               <optgroup label="Bases / Pré-preparos">
                                  {basesDisponiveis.map(b => <option key={b.id} value={`base:${b.id}`}>{b.nome_receita} ({b.rendimento_unidade})</option>)}
+                              </optgroup>
+                           )}
+                           {embalagensCat.length > 0 && (
+                              <optgroup label="Embalagens">
+                                 {embalagensCat.map(i => <option key={i.id} value={`insumo:${i.id}`}>{i.nome} ({i.unidade_medida})</option>)}
                               </optgroup>
                            )}
                         </select>

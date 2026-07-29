@@ -139,11 +139,12 @@ function gerarListaComprasWhatsApp(estoque, itens, unidadeInfo) {
       const atual = Number(i.quantidade_atual) || 0;
       const falta = min > atual ? min - atual : 0;
       const un = mostrarUn(i.unidade_medida);
+      const tam = Number(i.tamanho_embalagem) || 1;
       const valor = Number(i.custo_compra ?? i.custo_unitario) || 0;
       const marca = i.marca ? ` (${i.marca})` : "";
       txt += `- ${i.nome}${marca}`;
       if (falta > 0) txt += ` — comprar ~${fmtQtd(falta)} ${un}`;
-      if (valor > 0) txt += ` — ${fmtBRL(valor)}`;
+      if (valor > 0) txt += ` — ${fmtBRL(valor)} (${tam > 1 ? `${fmtQtd(tam)} ${un}` : un})`;
       txt += `\n`;
     }
     txt += `\n`;

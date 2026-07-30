@@ -1,5 +1,28 @@
 "use client";
 
+function comprimirFotoParaIA(file, maxDim = 1000, qualidade = 0.70) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
+        else { w = Math.round((w * maxDim) / h); h = maxDim; }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      const b64 = canvas.toDataURL("image/jpeg", qualidade).split(",")[1] || "";
+      resolve(b64);
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
@@ -46,7 +69,7 @@ const CATEGORIAS_CARDAPIO = [
 
 const CATEGORIAS_PRODUTO_PRONTO_BAR = [
   "Cervejas", "Águas", "Refrigerantes", "Energéticos", "Vinhos",
-  "Espumantes", "Destilados", "Sucos prontos", "Outros produtos prontos",
+  "Espumantes", "Destilados", "Sucos prontos", "Bombom", "Bombons", "Outros produtos prontos",
 ];
 
 const CATEGORIAS_PREPARO_BAR = [
@@ -76,6 +99,18 @@ function salvarNovaCategoriaFicha(novaCat, deptUrl) {
     if (!atuais.includes(cat)) {
       localStorage.setItem(key, JSON.stringify([...atuais, cat]));
     }
+  } catch {}
+}
+
+function excluirCategoriaFicha(catExcluir, deptUrl) {
+  const cat = String(catExcluir || "").trim();
+  if (!cat) return;
+  try {
+    const key = `custom_categorias_fichas_${deptUrl || "cozinha"}`;
+    const salvas = localStorage.getItem(key);
+    const atuais = salvas ? JSON.parse(salvas) : [];
+    const filtradas = atuais.filter(c => c !== cat);
+    localStorage.setItem(key, JSON.stringify(filtradas));
   } catch {}
 }
 

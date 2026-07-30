@@ -1048,9 +1048,60 @@ function EstoqueRunner() {
                 return (
                   <div className="space-y-2">
                     <div className="grid grid-cols-2 gap-3">
-                      <Campo label={modal.tipo === "contagem" ? "Saldo contado" : "Quantidade"}>
-                        <input required min="0" step="0.001" type="number" value={operacao.quantidade} onChange={e => setOperacao({ ...operacao, quantidade: e.target.value })} className="h-14 w-full rounded-2xl border-2 border-slate-300 px-4 text-center font-black text-xl text-slate-900 outline-none focus:border-emerald-500" placeholder="0" />
-                      </Campo>
+                      {(estoqueAtual?.departamento === "bar" || estoqueAtual?.slug === "bar" || modal.item?.departamento === "bar") && modal.tipo === "contagem" ? (
+                        <div className="col-span-2 space-y-3 rounded-2xl border-2 border-sky-200 bg-sky-50/80 p-4">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-black uppercase tracking-wider text-sky-950 flex items-center gap-1">
+                              🍺 Controle de Estoque do Bar (Estoque Frio vs Quente)
+                            </span>
+                            <span className="text-[10px] font-bold text-sky-700 bg-sky-100 px-2 py-0.5 rounded-md">Soma Automática</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-xs font-bold text-sky-900 mb-1">❄️ Estoque Frio (Expositor / Geladeira)</label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.001"
+                                placeholder="0"
+                                value={operacao.qtd_frio ?? ""}
+                                onChange={e => {
+                                  const frio = e.target.value;
+                                  const quente = operacao.qtd_quente || "0";
+                                  const tot = (Number(frio) || 0) + (Number(quente) || 0);
+                                  setOperacao({ ...operacao, qtd_frio: frio, quantidade: String(tot) });
+                                }}
+                                className="h-12 w-full rounded-xl border-2 border-sky-300 bg-white text-center font-black text-lg text-sky-950 outline-none focus:border-sky-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-amber-900 mb-1">🔥 Estoque Quente (Depósito / Seco)</label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.001"
+                                placeholder="0"
+                                value={operacao.qtd_quente ?? ""}
+                                onChange={e => {
+                                  const quente = e.target.value;
+                                  const frio = operacao.qtd_frio || "0";
+                                  const tot = (Number(frio) || 0) + (Number(quente) || 0);
+                                  setOperacao({ ...operacao, qtd_quente: quente, quantidade: String(tot) });
+                                }}
+                                className="h-12 w-full rounded-xl border-2 border-amber-300 bg-white text-center font-black text-lg text-amber-950 outline-none focus:border-amber-500"
+                              />
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between text-xs font-black text-slate-700 bg-white p-2.5 rounded-xl border border-sky-200">
+                            <span>📦 Saldo Total do Bar (Frio + Quente):</span>
+                            <span className="text-sm font-black text-emerald-600">{fmtQtd(operacao.quantidade)} {mostrarUn(itemMod?.unidade_medida)}</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <Campo label={modal.tipo === "contagem" ? "Saldo contado" : "Quantidade"}>
+                          <input required min="0" step="0.001" type="number" value={operacao.quantidade} onChange={e => setOperacao({ ...operacao, quantidade: e.target.value })} className="h-14 w-full rounded-2xl border-2 border-slate-300 px-4 text-center font-black text-xl text-slate-900 outline-none focus:border-emerald-500" placeholder="0" />
+                        </Campo>
+                      )}
                       {modal.tipo === "transferencia" ? (
                         <Campo label="Estoque de destino">
                           <select required value={operacao.destino_id} onChange={e => setOperacao({ ...operacao, destino_id: e.target.value })} className="h-14 w-full rounded-2xl border border-slate-200 px-3 font-bold text-slate-800">

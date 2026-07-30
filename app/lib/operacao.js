@@ -241,8 +241,17 @@ export async function fetchHistoricoPrecos(unidadeId, insumoId = null) {
 
 export async function removerInsumo(id) {
   if (!isSupabaseReady()) return { error: "Offline" };
+
   try {
-    // Desvincula/remove das fichas técnicas
+    // 1. Remover vínculos do módulo de múltiplos estoques e movimentações
+    await supabase.from("estoque_itens").delete().eq("insumo_id", id);
+    await supabase.from("estoque_movimentacoes_multi").delete().eq("insumo_id", id);
+  } catch (e) {
+    console.warn("Aviso ao desvincular de estoques múltiplos:", e);
+  }
+
+  try {
+    // 2. Desvincular/remover das fichas técnicas (fichas_ingredientes e ficha_itens)
     await supabase.from("ficha_itens").delete().eq("ingrediente_id", id);
     await supabase.from("ficha_itens").delete().eq("insumo_id", id);
     await supabase.from("fichas_ingredientes").delete().eq("ingrediente_id", id);
@@ -252,17 +261,42 @@ export async function removerInsumo(id) {
   }
 
   try {
-    // Remove registros secundários e históricos
+    // 3. Remover vínculos e históricos de fornecedores e preços
     await supabase.from("insumos_fornecedores").delete().eq("insumo_id", id);
     await supabase.from("insumos_precos_historico").delete().eq("insumo_id", id);
     await supabase.from("insumos_precos_fornecedores").delete().eq("insumo_id", id);
-    await supabase.from("estoque").delete().eq("insumo_id", id);
   } catch (e) {
     console.warn("Aviso ao remover dados secundários:", e);
   }
 
+  try {
+    // 4. Remover do estoque e movimentações legadas
+    await supabase.from("estoque").delete().eq("insumo_id", id);
+    await supabase.from("estoque_movimentacoes").delete().eq("insumo_id", id);
+  } catch (e) {
+    console.warn("Aviso ao remover estoque legado:", e);
+  }
+
+  // 5. Excluir do catálogo principal
   const { error } = await supabase.from("insumos").delete().eq("id", id);
-  return { error: error?.message };
+
+  // Fallback: se houver qualquer outra constraint de chave estrangeira no Postgres,
+  // identifica a tabela filha informada no erro e limpa dinamicamente.
+  if (error && error.code === "23503") {
+    const details = error.details || error.message || "";
+    const match = details.match(/table "([a-z_]+)"/i);
+    if (match && match[1]) {
+      const tabelaFilha = match[1];
+      try {
+        await supabase.from(tabelaFilha).delete().eq("insumo_id", id);
+        await supabase.from(tabelaFilha).delete().eq("ingrediente_id", id);
+        const retry = await supabase.from("insumos").delete().eq("id", id);
+        return { error: retry.error?.message || null };
+      } catch {}
+    }
+  }
+
+  return { error: error?.message || null };
 }
 
 // ─── FICHAS TÉCNICAS (Receitas) ──────────────────────────────────────────────

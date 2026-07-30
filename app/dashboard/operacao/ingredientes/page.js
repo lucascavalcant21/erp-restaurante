@@ -540,14 +540,14 @@ function IngredientesRunner() {
   };
 
   const handleRemover = async insumo => {
-    if (!confirm(`Deseja remover o ${rotuloItem} "${insumo.nome}" do catálogo?`)) return;
+    if (!confirm(`Deseja remover o ${rotuloItem} "${insumo.nome}" do catálogo? Esta ação excluirá este ingrediente e desvinculará de fichas técnicas e estoques.`)) return;
     const { error } = await removerInsumo(insumo.id);
     if (error) {
-      mostrarToast(`Não foi possível remover. Verifique se o ${rotuloItem} está sendo usado em uma ficha técnica.`, "erro");
+      mostrarToast(`Não foi possível remover: ${error}`, "erro");
       return;
     }
     await carregar();
-    mostrarToast(`${ehBar ? "Produto" : "Ingrediente"} removido.`);
+    mostrarToast(`${ehBar ? "Produto" : "Ingrediente"} removido com sucesso.`);
   };
 
   const abrirHistorico = async insumo => {

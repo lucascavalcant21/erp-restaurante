@@ -47,17 +47,10 @@ export function useTempoReal(tabelas, onMudou) {
       if (tabelas && tabelas.length && !tabelas.includes(t)) return;
       disparar(t);
     };
-    const aoVoltar = () => { if (document.visibilityState === "visible") disparar(null); };
-    const intervalo = setInterval(() => { if (document.visibilityState === "visible") disparar(null); }, 15000);
     window.addEventListener("hefisto:mudou", h);
-    window.addEventListener("focus", aoVoltar);
-    document.addEventListener("visibilitychange", aoVoltar);
     return () => {
       clearTimeout(timer.current);
-      clearInterval(intervalo);
       window.removeEventListener("hefisto:mudou", h);
-      window.removeEventListener("focus", aoVoltar);
-      document.removeEventListener("visibilitychange", aoVoltar);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(tabelas || [])]);

@@ -68,7 +68,6 @@ const CATEGORIAS_CARDAPIO = [
   "Entradas",
   "Sobremesas",
   "Acompanhamentos",
-  "Pré-preparos",
 ];
 
 // Categorias oficiais do Bar na ordem exata solicitada pelo usuário (incluindo Chopp no barril, águas, refrigerantes e bombons)
@@ -81,7 +80,6 @@ const CATEGORIAS_BAR = [
   "Águas",
   "Refrigerantes",
   "Bombons",
-  "Pré-preparos",
 ];
 
 function obterTodasCategoriasFicha(deptUrl, fichas = []) {

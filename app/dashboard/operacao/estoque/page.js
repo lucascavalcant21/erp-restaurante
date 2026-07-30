@@ -73,33 +73,27 @@ function calcularValorItem(item) {
   const tamEmb = Number(item.tamanho_embalagem) || 1;
   const un = String(item.unidade_medida || "").toLowerCase();
 
+  // 1. Preço/custo por garrafa/lata/unidade fechada (ex: R$ 12,00 por Amstel, R$ 40,00 por Aperol, R$ 55,00 por Cachaça)
+  let custoPorEmbalagem = custoCompra;
+  if (!custoPorEmbalagem || custoPorEmbalagem <= 0) {
+    if (custoUnit > 0) {
+      custoPorEmbalagem = (custoUnit < 1 && tamEmb > 1) ? (custoUnit * tamEmb) : custoUnit;
+    }
+  }
+
   const ehFrac = tamEmb > 1 && item.permite_fracionado !== false && un !== "un";
 
-  if (ehFrac) {
-    // Se a quantidade digitada no estoque for menor que o tamanho da embalagem (ex: 12 garrafas para tam 750ml),
-    // ou se a quantidade já estiver em unidades comerciais (un), usamos 'qtd' diretamente.
-    // Se a quantidade for em ml (ex: 9000 ml para tam 750ml), dividimos por tamEmb para achar as garrafas.
-    let unComerciais = qtd;
+  if (ehFrac && custoPorEmbalagem > 0) {
+    let numEmbalagens = qtd;
+    // Se a quantidade no banco for o volume total em ml (ex: 10800 ml para garrafas de 600ml):
     if (qtd >= tamEmb) {
-      unComerciais = qtd / tamEmb;
+      numEmbalagens = qtd / tamEmb;
     }
-
-    let custoEmbalagem = custoCompra;
-    if (!custoEmbalagem || custoEmbalagem <= 0) {
-      custoEmbalagem = custoUnit > 0 ? (custoUnit < 1 ? custoUnit * tamEmb : custoUnit) : 0;
-    }
-
-    if (custoEmbalagem > 0) {
-      return unComerciais * custoEmbalagem;
-    }
+    return Math.round(numEmbalagens * custoPorEmbalagem * 100) / 100;
   }
 
-  const custoFinal = custoUnit > 0 ? custoUnit : (custoCompra > 0 ? custoCompra : 0);
-  if (custoFinal > 0 && custoFinal < 0.8 && tamEmb > 1 && qtd < tamEmb) {
-    return qtd * (custoFinal * tamEmb);
-  }
-
-  return qtd * custoFinal;
+  const custoFinal = custoPorEmbalagem > 0 ? custoPorEmbalagem : (custoUnit > 0 ? custoUnit : 0);
+  return Math.round(qtd * custoFinal * 100) / 100;
 }
 
 function exportarExcel(estoque, itens, unidadeInfo) {

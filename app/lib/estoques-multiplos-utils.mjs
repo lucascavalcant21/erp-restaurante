@@ -15,8 +15,27 @@ export const ESTOQUES_PADRAO = [
 ];
 
 export const GRUPOS_OPERACIONAIS_ESTOQUE = {
-  cozinha: ["Todos", "Produtos prontos", "Ingredientes"],
-  bar: ["Todos", "Produtos", "Xaropes", "Guarnições", "Frutas"],
+  cozinha: [
+    "Todos",
+    "Prato principal 1 pessoa",
+    "Prato principal 2 pessoas",
+    "Entradas",
+    "Sobremesas",
+    "Acompanhamentos",
+    "Pré-preparos"
+  ],
+  bar: [
+    "Todos",
+    "Cervejas",
+    "Drinks",
+    "Vinhos",
+    "Doses",
+    "Chopp",
+    "Águas",
+    "Refrigerantes",
+    "Bombons",
+    "Pré-preparos"
+  ],
 };
 
 const textoNormalizado = valor => String(valor || "")
@@ -30,23 +49,31 @@ export function gruposOperacionaisEstoque(estoque) {
 }
 
 export function grupoOperacionalItem(item, estoque) {
-  const area = slugEstoque(estoque?.slug || estoque?.nome);
-  const categoria = textoNormalizado(item?.categoria);
-  const nome = textoNormalizado(item?.nome);
-  const tipo = textoNormalizado(item?.tipo_item || item?.tipo);
-  const texto = `${categoria} ${nome}`;
+  const cat = item?.categoria;
+  if (cat && cat !== "Sem categoria") return cat;
 
-  if (area === "cozinha") {
-    const produtoPronto = tipo === "produto"
-      || /produto pronto|prato pronto|bebida pronta|congelado|industrializado/.test(texto);
-    return produtoPronto ? "Produtos prontos" : "Ingredientes";
-  }
+  const area = slugEstoque(estoque?.slug || estoque?.nome);
+  const texto = textoNormalizado(`${item?.categoria || ""} ${item?.nome || ""}`);
 
   if (area === "bar") {
-    if (/xarope|cordial|syrup/.test(texto)) return "Xaropes";
-    if (/guarnic|decoracao|garnish|erva|especiaria/.test(texto)) return "Guarnições";
-    if (/fruta|hortifruti|limao|laranja|abacaxi|morango|maracuja|manga|uva|cereja/.test(texto)) return "Frutas";
-    return "Produtos";
+    if (/cerveja|chopp|amstel|heineken|skol|brahma|corona|budweiser|stella|eisenbahn|sol|spaten/.test(texto)) return "Cervejas";
+    if (/drink|coquetel|caipirinha|mojito|margarita|gin tonica|aperol/.test(texto)) return "Drinks";
+    if (/vinho|espumante|prosecco|cabernet|malbec|merlot/.test(texto)) return "Vinhos";
+    if (/dose|whisky|vodka|cachaca|rum|tequila|gin|licor/.test(texto)) return "Doses";
+    if (/chopp|chope|barril/.test(texto)) return "Chopp";
+    if (/agua|tonica/.test(texto)) return "Águas";
+    if (/refrigerante|coca|guarana|fanta|sprite|schweppes/.test(texto)) return "Refrigerantes";
+    if (/bombom|trufa|chocolate/.test(texto)) return "Bombons";
+    if (/xarope|mix|espuma|geleia|infusao/.test(texto)) return "Pré-preparos";
+    return "Cervejas";
+  }
+
+  if (area === "cozinha") {
+    if (/entrada/.test(texto)) return "Entradas";
+    if (/sobremesa|doce/.test(texto)) return "Sobremesas";
+    if (/acompanhamento|guarnicao/.test(texto)) return "Acompanhamentos";
+    if (/molho|massa|base|caldo|preparo/.test(texto)) return "Pré-preparos";
+    return "Prato principal 1 pessoa";
   }
 
   return "Todos";

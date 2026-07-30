@@ -49,53 +49,77 @@ Retorne ESTRITAMENTE em formato JSON:
   ]
 }`;
 
-    let jsonResult = null;
+    const todosItensBrutos = [];
 
     if (process.env.OPENAI_API_KEY) {
-      const messagesContent = [];
-      for (const imgObj of listaImagens) {
-        const mediaType = imgObj.media_type || "image/jpeg";
-        const b64 = imgObj.base64 || imgObj;
-        const dataUrl = typeof b64 === "string" && b64.startsWith("data:") ? b64 : `data:${mediaType};base64,${b64}`;
-        messagesContent.push({
-          type: "image_url",
-          image_url: { url: dataUrl, detail: "high" }
-        });
+      const CHUNK_SIZE = 4;
+      const chunks = [];
+      for (let i = 0; i < listaImagens.length; i += CHUNK_SIZE) {
+        chunks.push(listaImagens.slice(i, i + CHUNK_SIZE));
       }
-      messagesContent.push({
-        type: "text",
-        text: `Analise o(s) ${listaImagens.length} print(s)/imagem(ns) ou texto abaixo e extraia todos os ingredientes/produtos separando por bar e cozinha. Se houver itens duplicados entre as imagens, consolide mantendo o de MAIOR VALOR.\n\nTEXTO/LISTA:\n${texto || "(analisar imagens/prints anexas)"}`
-      });
+      if (chunks.length === 0 && texto) {
+        chunks.push([]);
+      }
 
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-4o",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: messagesContent }
-          ],
-          response_format: { type: "json_object" },
-          max_tokens: 4000,
+      const resultadosChunks = await Promise.all(
+        chunks.map(async (chunk, chunkIdx) => {
+          const messagesContent = [];
+          for (const imgObj of chunk) {
+            const mediaType = imgObj.media_type || "image/jpeg";
+            const b64 = imgObj.base64 || imgObj;
+            const dataUrl = typeof b64 === "string" && b64.startsWith("data:") ? b64 : `data:${mediaType};base64,${b64}`;
+            messagesContent.push({
+              type: "image_url",
+              image_url: { url: dataUrl, detail: "low" }
+            });
+          }
+
+          messagesContent.push({
+            type: "text",
+            text: `Analise o(s) ${chunk.length} print(s)/imagem(ns) (Lote ${chunkIdx + 1}/${chunks.length}) e extraia todos os ingredientes/produtos separando por bar e cozinha com nome, marca, quantidade, unidade, valor_total pago, departamento e categoria.\n\nTEXTO/LISTA:\n${texto || "(analisar imagens/prints anexas)"}`
+          });
+
+          const response = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+            },
+            body: JSON.stringify({
+              model: "gpt-4o",
+              messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: messagesContent }
+              ],
+              response_format: { type: "json_object" },
+              max_tokens: 4000,
+            })
+          });
+
+          if (!response.ok) {
+            const errText = await response.text();
+            console.error(`[IA Insumos] Erro OpenAI no lote ${chunkIdx + 1}:`, errText);
+            let msg = "Erro na chamada da API OpenAI";
+            try {
+              const errObj = JSON.parse(errText);
+              if (errObj.error?.message) msg = errObj.error.message;
+            } catch (_) {}
+            throw new Error(msg);
+          }
+
+          const resData = await response.json();
+          const rawText = resData.choices[0]?.message?.content || "{}";
+          const parsed = JSON.parse(rawText);
+          return Array.isArray(parsed?.itens) ? parsed.itens : [];
         })
-      });
+      );
 
-      if (!response.ok) {
-        const errText = await response.text();
-        console.error("[IA Insumos] Erro OpenAI:", errText);
-        throw new Error("Erro na chamada da API OpenAI");
+      for (const itensDoChunk of resultadosChunks) {
+        todosItensBrutos.push(...itensDoChunk);
       }
-
-      const resData = await response.json();
-      const rawText = resData.choices[0]?.message?.content || "{}";
-      jsonResult = JSON.parse(rawText);
     }
 
-    const itensBrutos = Array.isArray(jsonResult?.itens) ? jsonResult.itens : [];
+    const itensBrutos = todosItensBrutos;
 
     // Deduplicação determinística no servidor: consolida por (nome normalizado + departamento) mantendo o de MAIOR VALOR
     const mapaItens = new Map();

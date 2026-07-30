@@ -255,7 +255,7 @@ function IngredientesRunner() {
     try {
       const imagens = await Promise.all(
         migrarArquivos.map(async file => {
-          const b64 = await comprimirFotoParaIA(file, 1800, 0.85);
+          const b64 = await comprimirFotoParaIA(file, 1000, 0.70);
           return { base64: b64, media_type: file.type || "image/jpeg" };
         })
       );

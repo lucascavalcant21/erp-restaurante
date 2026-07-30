@@ -1687,47 +1687,94 @@ function FichasRunner() {
 
   return (
     <div className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50">
-      <RecipeWorkspace
-        active="fichas"
-        dept={deptUrl}
-        title={deptUrl === "bar" ? "Fichas técnicas do Bar" : "Fichas técnicas da Cozinha"}
-        description={deptUrl === "bar"
-          ? "Organize drinks, bases, dosagens, custos e margem em um receituário conectado ao guia de montagem."
-          : "Transforme ingredientes em receitas padronizadas, acompanhe custo, rendimento, CMV e envie o resultado para a montagem."}
-        total={fichas.length}
-        onPrimary={abrirNova}
-        primaryLabel="Nova ficha"
-      >
-               <button onClick={() => {
-                     if (!fichas.length) return alert("Nenhuma ficha para o livro.");
-                     abrirPreviaImpressao("livro", fichas);
-                  }}
-                  title="Livro completo: capa, índice, páginas numeradas e seções (pré-preparos, preparos, molhos, pratos, sobremesas, sucos)"
-                  className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15">
-                  <Printer size={17} /> Livro de receitas
-               </button>
-               <button onClick={() => {
-                     if (!fichas.length) return alert("Nenhuma ficha para o livro.");
-                     abrirPreviaImpressao("pdf", fichas);
-                  }}
-                  title="Baixar o Livro de Receitas completo em PDF"
-                  className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15">
-                  <Download size={17} /> Baixar PDF
-               </button>
-               <button onClick={imprimirPlanilhaCustos} title="Tabela com custo, preço de venda, CMV de cada receita e o CMV médio" className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15">
-                  <Calculator size={17} /> Custos e CMV
-               </button>
-               <button onClick={registrarCustoTodasFichas} disabled={semeandoCustos} title="Registra o custo atual de todas as fichas no histórico (primeiro ponto)" className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15 disabled:opacity-60">
-                  {semeandoCustos ? <Loader2 size={17} className="animate-spin" /> : <Save size={17} />} {semeandoCustos ? "Registrando..." : "Registrar custos"}
-               </button>
-               <input ref={inputCardapioRef} type="file" accept="image/*" multiple onChange={importarCardapioFoto} className="hidden" />
-               <button onClick={() => inputCardapioRef.current?.click()} disabled={importandoCardapio} title="Envie a foto do cardápio para criar fichas" className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15 disabled:opacity-60">
-                  {importandoCardapio ? <Loader2 size={17} className="animate-spin" /> : <Camera size={17} />} Importar cardápio
-               </button>
-               <button onClick={abrirModalIAFicha} className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15">
-                  <Sparkles size={17} /> Criar com IA
-               </button>
-      </RecipeWorkspace>
+      <header className="border-b border-slate-200 bg-white shadow-sm">
+        <div className="mx-auto flex max-w-[1480px] flex-col gap-4 px-4 py-4 sm:px-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={abrirMenu}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500 hover:text-slate-900"
+              title="Voltar ao menu"
+            >
+              <ArrowLeft size={19} />
+            </button>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-black tracking-tight text-slate-950">
+                  {deptUrl === "bar" ? "Fichas técnicas do Bar" : "Fichas técnicas da Cozinha"}
+                </h1>
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
+                  {fichas.length} cadastrada{fichas.length === 1 ? "" : "s"}
+                </span>
+              </div>
+              <p className="mt-1 text-sm font-medium text-slate-500">
+                {deptUrl === "bar"
+                  ? "Receituário, dosagens, custos e margens de drinks e bebidas."
+                  : "Transforme ingredientes em receitas padronizadas, acompanhe custo, rendimento e CMV."}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={abrirNova}
+              className="flex h-10 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-xs font-black text-white shadow-md shadow-emerald-600/20 hover:bg-emerald-700"
+            >
+              <Plus size={16} /> Nova ficha
+            </button>
+            <button
+              onClick={() => {
+                if (!fichas.length) return alert("Nenhuma ficha para o livro.");
+                abrirPreviaImpressao("livro", fichas);
+              }}
+              title="Livro completo de receitas"
+              className="flex h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50"
+            >
+              <Printer size={15} /> Livro de receitas
+            </button>
+            <button
+              onClick={() => {
+                if (!fichas.length) return alert("Nenhuma ficha para o livro.");
+                abrirPreviaImpressao("pdf", fichas);
+              }}
+              title="Baixar Livro em PDF"
+              className="flex h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50"
+            >
+              <Download size={15} /> Baixar PDF
+            </button>
+            <button
+              onClick={imprimirPlanilhaCustos}
+              title="Planilha com CMV e custos"
+              className="flex h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50"
+            >
+              <Calculator size={15} /> Custos e CMV
+            </button>
+            <button
+              onClick={registrarCustoTodasFichas}
+              disabled={semeandoCustos}
+              title="Registra custo no histórico"
+              className="flex h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            >
+              {semeandoCustos ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+              {semeandoCustos ? "Registrando..." : "Registrar custos"}
+            </button>
+            <input ref={inputCardapioRef} type="file" accept="image/*" multiple onChange={importarCardapioFoto} className="hidden" />
+            <button
+              onClick={() => inputCardapioRef.current?.click()}
+              disabled={importandoCardapio}
+              title="Importar cardápio via foto"
+              className="flex h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            >
+              {importandoCardapio ? <Loader2 size={15} className="animate-spin" /> : <Camera size={15} />} Importar cardápio
+            </button>
+            <button
+              onClick={abrirModalIAFicha}
+              className="flex h-10 items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 text-xs font-black text-emerald-700 hover:bg-emerald-100"
+            >
+              <Sparkles size={15} /> Criar com IA
+            </button>
+          </div>
+        </div>
+      </header>
 
       <div className="max-w-7xl mx-auto px-3 sm:px-5 mt-5 sm:mt-6">
          {/* Kanban de indicadores: CMV médio, margem, custo, ticket */}

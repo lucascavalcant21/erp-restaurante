@@ -40,6 +40,29 @@ const fmtEquiv = (q, un) => {
   return `${(+n.toFixed(3)).toLocaleString("pt-BR")} ${mostrarUn(u)}`;
 };
 
+// Categorias oficiais da Cozinha na ordem exata solicitada pelo usuário
+const CATEGORIAS_ESTOQUE_COZINHA = [
+  "Prato principal 1 pessoa",
+  "Prato principal 2 pessoas",
+  "Entradas",
+  "Sobremesas",
+  "Acompanhamentos",
+  "Pré-preparos",
+];
+
+// Categorias oficiais do Bar na ordem exata solicitada pelo usuário
+const CATEGORIAS_ESTOQUE_BAR = [
+  "Cervejas",
+  "Drinks",
+  "Vinhos",
+  "Doses",
+  "Chopp",
+  "Águas",
+  "Refrigerantes",
+  "Bombons",
+  "Pré-preparos",
+];
+
 function calcularValorItem(item) {
   if (!item) return 0;
   const qtd = Number(item.quantidade_atual) || 0;
@@ -1489,7 +1512,17 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
       if (!mapa.has(cat)) mapa.set(cat, []);
       mapa.get(cat).push(item);
     }
-    const categoriasOrdenadas = Array.from(mapa.keys()).sort((a, b) => String(a).localeCompare(String(b), "pt-BR", { sensitivity: "base" }));
+    const ehBar = estoque?.departamento === "bar" || estoque?.slug === "bar";
+    const listaOficial = ehBar ? CATEGORIAS_ESTOQUE_BAR : CATEGORIAS_ESTOQUE_COZINHA;
+
+    const categoriasOrdenadas = Array.from(mapa.keys()).sort((a, b) => {
+      const idxA = listaOficial.indexOf(a);
+      const idxB = listaOficial.indexOf(b);
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      if (idxA !== -1) return -1;
+      if (idxB !== -1) return 1;
+      return String(a).localeCompare(String(b), "pt-BR", { sensitivity: "base" });
+    });
     return categoriasOrdenadas.map(cat => {
       const lista = (mapa.get(cat) || []).sort((a, b) => String(a?.nome || "").localeCompare(String(b?.nome || ""), "pt-BR", { sensitivity: "base" }));
       const subtotal = lista.reduce((soma, i) => soma + (calcularValorItem(i) || 0), 0);

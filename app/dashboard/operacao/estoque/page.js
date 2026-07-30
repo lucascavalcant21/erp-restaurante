@@ -1263,10 +1263,29 @@ function EstoqueRunner() {
                 <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">Bebida / embalado</p>
                 <div className="grid grid-cols-2 gap-3">
                   <Campo label="Unidade comercial">
-                    <select value={formItem.unidade_comercial || ""} onChange={e => setFormItem({ ...formItem, unidade_comercial: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3">
-                      <option value="">Selecione...</option>
-                      {["garrafa", "lata", "unidade", "caixa", "pacote", "fardo", "barril", "outro"].map(u => <option key={u} value={u}>{u}</option>)}
-                    </select>
+                    {(() => {
+                      const ehBar = estoqueAtual?.departamento === "bar" || modal?.item?.departamento === "bar" || formItem?.departamento === "bar";
+                      const cat = String(formItem?.categoria || modal?.item?.categoria || "").toLowerCase();
+                      const nome = String(formItem?.nome || modal?.item?.nome || "").toLowerCase();
+                      const ehFruta = cat.includes("fruta") || cat.includes("horti") || cat.includes("fresco") ||
+                                      nome.includes("limão") || nome.includes("laranja") || nome.includes("abacaxi") ||
+                                      nome.includes("hortelã") || nome.includes("morango") || nome.includes("maracujá") ||
+                                      nome.includes("fruta");
+                      let opcoes = ["garrafa", "lata", "unidade", "caixa", "pacote", "fardo", "barril", "outro"];
+                      if (ehBar) {
+                        opcoes = ehFruta ? ["unidade", "g", "kg"] : ["garrafa", "lata", "barril"];
+                      }
+                      return (
+                        <select value={formItem.unidade_comercial || ""} onChange={e => setFormItem({ ...formItem, unidade_comercial: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3">
+                          <option value="">Selecione...</option>
+                          {opcoes.map(u => (
+                            <option key={u} value={u}>
+                              {u === "garrafa" ? "Garrafa" : u === "lata" ? "Lata" : u === "barril" ? "Barril (Chopp)" : u === "unidade" ? "Unidade (un)" : u === "g" ? "Grama (g)" : u === "kg" ? "Quilo (kg)" : u}
+                            </option>
+                          ))}
+                        </select>
+                      );
+                    })()}
                   </Campo>
                   <Campo label="Conteúdo por unidade">
                     <div className="grid h-12 place-items-center rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-600">{fmtQtd(formItem.tamanho_embalagem)} {String(formItem.unidade_medida).toLowerCase() === "l" ? "L" : formItem.unidade_medida}</div>

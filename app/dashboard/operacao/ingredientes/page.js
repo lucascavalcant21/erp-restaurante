@@ -909,9 +909,26 @@ function IngredientesRunner() {
                   </label>
                   <label>
                     <span className="text-xs font-bold text-slate-600">Unidade *</span>
-                    <select value={form.unidade_medida} onChange={event => setForm({ ...form, unidade_medida: event.target.value })} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 font-bold outline-none focus:border-emerald-500">
-                      {UNIDADES_INGREDIENTE.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
-                    </select>
+                    {(() => {
+                      const ehBar = deptUrl === "bar" || form.departamento === "bar";
+                      const cat = String(form.categoria || "").toLowerCase();
+                      const nome = String(form.nome || "").toLowerCase();
+                      const ehFruta = cat.includes("fruta") || cat.includes("horti") || cat.includes("fresco") ||
+                                      nome.includes("limão") || nome.includes("laranja") || nome.includes("abacaxi") ||
+                                      nome.includes("hortelã") || nome.includes("morango") || nome.includes("maracujá") ||
+                                      nome.includes("fruta");
+                      let lista = UNIDADES_INGREDIENTE;
+                      if (ehBar) {
+                        lista = ehFruta
+                          ? UNIDADES_INGREDIENTE.filter(u => ["un", "g", "kg"].includes(u.value))
+                          : UNIDADES_INGREDIENTE.filter(u => ["garrafa", "lata", "barril", "ml", "l", "un"].includes(u.value));
+                      }
+                      return (
+                        <select value={form.unidade_medida} onChange={event => setForm({ ...form, unidade_medida: event.target.value })} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 font-bold outline-none focus:border-emerald-500">
+                          {lista.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
+                        </select>
+                      );
+                    })()}
                   </label>
                   <label className="col-span-2">
                     <span className="text-xs font-bold text-slate-600">Valor da embalagem *</span>

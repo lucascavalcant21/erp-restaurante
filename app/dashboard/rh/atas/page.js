@@ -1,5 +1,29 @@
 "use client";
 
+function comprimirFotoParaIA(file, maxDim = 1000, qualidade = 0.70) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
+        else { w = Math.round((w * maxDim) / h); h = maxDim; }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      const b64 = canvas.toDataURL("image/jpeg", qualidade).split(",")[1] || "";
+      resolve(b64);
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+
 import { useState, useEffect } from "react";
 import {
   FileText, Sparkles, Loader2, Printer, Trash2, Save, X, History, ScrollText
@@ -57,6 +81,60 @@ export default function AtasReuniaoPage() {
   };
 
   useEffect(() => { if (unidadeAtiva && unidadeAtiva !== "todas") carregar(); }, [unidadeAtiva]);
+
+  // ── Transcrever foto da ata com IA ─────────────────────────────────────
+  const transcreverFotoAta = async (b64, mediaType = "image/jpeg") => {
+    setGerando(true);
+    try {
+      const res = await fetch("/api/ia-ata", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imagem_base64: b64,
+          imagem_media_type: mediaType,
+          tema: form.tema,
+          assuntos: form.assuntos,
+          data: form.data_reuniao,
+          hora: form.hora,
+          local: form.local || unidadeInfo?.nome,
+          condutor: form.condutor,
+          unidade_nome: unidadeFull?.nome_fantasia || unidadeInfo?.nome,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        alert(data.error || "Falha ao ler e transcrever foto da ata.");
+        return;
+      }
+      setForm(f => ({
+        ...f,
+        tema: data.tema || f.tema || "Ata de Reunião",
+        data_reuniao: data.data_reuniao || f.data_reuniao,
+        hora: data.hora || f.hora,
+        local: data.local || f.local,
+        condutor: data.condutor || f.condutor,
+        texto: data.texto || f.texto,
+        foto: b64,
+      }));
+      notificar("Ata transcrevida da foto pela IA mantendo sua estrutura!");
+    } catch (e) {
+      alert("Não consegui ler a foto da ata. Tente novamente.");
+    } finally {
+      setGerando(false);
+    }
+  };
+
+  const handleSelecionarFotoAta = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const base64 = await comprimirFotoParaIA(file, 1000, 0.70);
+      setForm(f => ({ ...f, foto: base64 }));
+      await transcreverFotoAta(base64, file.type || "image/jpeg");
+    } catch {
+      alert("Erro ao processar imagem.");
+    }
+  };
 
   // ── Gerar texto da ata com IA ─────────────────────────────────────────────
   const gerarComIA = async () => {
@@ -288,9 +366,28 @@ export default function AtasReuniaoPage() {
                   <input type="text" value={form.condutor} onChange={e => setForm({ ...form, condutor: e.target.value })} placeholder="Ex: Lucas (Gestor)" className="erp-input" />
                 </div>
               </div>
-              <Btn variant="primary" className="w-full" onClick={gerarComIA} disabled={gerando}>
-                {gerando ? <><Loader2 size={16} className="animate-spin" /> Redigindo a ata...</> : <><Sparkles size={16} /> Gerar texto da ata com IA</>}
-              </Btn>
+              <div className="space-y-3">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  <label className="erp-btn flex-1 flex items-center justify-center gap-2 cursor-pointer py-3 border border-dashed border-emerald-400 bg-emerald-50 text-emerald-800 font-bold text-xs rounded-xl hover:bg-emerald-100 transition-all">
+                    <Sparkles size={16} className="text-emerald-600" />
+                    <span>📸 Enviar Foto da Ata / Anotação (IA)</span>
+                    <input type="file" accept="image/*" capture="environment" className="hidden" disabled={gerando} onChange={handleSelecionarFotoAta} />
+                  </label>
+                  <Btn variant="primary" className="flex-1 py-3" onClick={gerarComIA} disabled={gerando}>
+                    {gerando ? <><Loader2 size={16} className="animate-spin" /> Processando...</> : <><Sparkles size={16} /> Gerar texto formal com IA</>}
+                  </Btn>
+                </div>
+                {form.foto && (
+                  <div className="flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
+                    <img src={"data:image/jpeg;base64," + form.foto} alt="Foto da Ata" className="w-16 h-16 object-cover rounded-lg border border-emerald-300 shadow-sm" />
+                    <div className="flex-1 min-w-0 text-xs">
+                      <p className="font-bold text-emerald-900">Foto da Ata / Anotação anexada</p>
+                      <p className="text-emerald-700 text-[11px]">Transcrevida pela IA mantendo sua estrutura original.</p>
+                    </div>
+                    <button type="button" onClick={() => setForm(f => ({ ...f, foto: null }))} className="px-2 py-1 text-xs font-bold text-rose-600 hover:bg-rose-100 rounded-lg">Remover</button>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="erp-card p-5">

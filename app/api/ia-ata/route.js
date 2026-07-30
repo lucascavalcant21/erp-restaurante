@@ -1,23 +1,98 @@
 import { NextResponse } from "next/server";
 
-// Gera o texto formal de uma ATA DE REUNIÃO a partir do tema e da pauta
-// (assuntos) informados. O texto volta editável — o humano revisa antes
-// de salvar/imprimir.
 export async function POST(request) {
   try {
-    const { tema, assuntos, data, hora, local, condutor, unidade_nome } = await request.json();
+    const { tema, assuntos, data, hora, local, condutor, unidade_nome, imagem_base64, imagem_media_type, imagens } = await request.json();
 
-    if (!tema || !String(tema).trim()) {
-      return NextResponse.json({ error: "Informe o tema da reunião." }, { status: 400 });
+    const listaImagens = Array.isArray(imagens) && imagens.length > 0
+      ? imagens
+      : (imagem_base64 ? [{ base64: imagem_base64, media_type: imagem_media_type || "image/jpeg" }] : []);
+
+    const temImagem = listaImagens.length > 0;
+    const temTexto = tema && String(tema).trim().length > 0;
+
+    if (!temTexto && !temImagem) {
+      return NextResponse.json({ error: "Informe o tema da reunião ou envie uma foto/print da ata." }, { status: 400 });
     }
 
-    if (!process.env.ANTHROPIC_API_KEY) {
-      console.error("[IA Ata] ANTHROPIC_API_KEY não configurada.");
+    const apiKey = process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
       return NextResponse.json({ error: "Chave da IA não configurada no servidor." }, { status: 500 });
     }
 
-    const dataFmt = data ? String(data).split("-").reverse().join("/") : "(data a definir)";
+    // Se houver imagem, transcreve a foto mantendo exatamente a estrutura do documento
+    if (process.env.OPENAI_API_KEY && temImagem) {
+      const messagesContent = [];
+      for (const imgObj of listaImagens) {
+        const mediaType = imgObj.media_type || "image/jpeg";
+        const b64 = imgObj.base64 || imgObj;
+        const dataUrl = typeof b64 === "string" && b64.startsWith("data:") ? b64 : `data:${mediaType};base64,${b64}`;
+        messagesContent.push({
+          type: "image_url",
+          image_url: { url: dataUrl, detail: "high" }
+        });
+      }
 
+      messagesContent.push({
+        type: "text",
+        text: `Analise a(s) imagem(ns) da Ata de Reunião ou anotação anexada e TRANSCREVA O CONTEÚDO MANTENDO INTEGRALMENTE A SUA ESTRUTURA ORIGINAL (títulos, tópicos, decisões, plano de ação, listas numeradas e participantes).
+
+Extraia e estruture em JSON:
+1. "tema": Título ou tema principal da reunião identificado na foto.
+2. "data_reuniao": Data da reunião em formato YYYY-MM-DD se constar na foto (ou null se não houver).
+3. "hora": Horário da reunião se constar na foto (ex: "15:00").
+4. "local": Local da reunião se constar na foto (ex: "Sala de Reuniões / Cozinha").
+5. "condutor": Nome da pessoa que conduziu ou líder responsável.
+6. "participantes_texto": Lista dos nomes dos participantes/presentes mencionados na foto.
+7. "texto": A transcrição COMPLETA e fiel do conteúdo da ata, organizando em parágrafos e seções estruturadas exatamente como na foto (Abertura, Pauta/Assuntos, Decisões Tomadas, Plano de Ação, Encerramento e Assinaturas).
+
+TEXTO ADICIONAL FORNECIDO:
+${tema ? `Tema: ${tema}\n` : ""}${assuntos ? `Pauta: ${assuntos}\n` : ""}`
+      });
+
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content: "Você é um especialista em transcrição e organização formal de Atas de Reunião empresariais para restaurantes. Sua função é transcrever fotos de atas manuscritas, quadros ou documentos mantendo fielmente sua estrutura e legibilidade."
+            },
+            { role: "user", content: messagesContent }
+          ],
+          response_format: { type: "json_object" },
+          max_tokens: 4000,
+        })
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error("[IA Ata Vision] Erro OpenAI:", errText);
+        throw new Error("Erro na chamada da API de IA.");
+      }
+
+      const resData = await response.json();
+      const rawText = resData.choices[0]?.message?.content || "{}";
+      const parsed = JSON.parse(rawText);
+
+      return NextResponse.json({
+        tema: String(parsed.tema || tema || "Ata de Reunião").trim(),
+        data_reuniao: parsed.data_reuniao || data || new Date().toISOString().split("T")[0],
+        hora: String(parsed.hora || hora || "").trim(),
+        local: String(parsed.local || local || "").trim(),
+        condutor: String(parsed.condutor || condutor || "").trim(),
+        participantes_texto: String(parsed.participantes_texto || "").trim(),
+        texto: String(parsed.texto || "").trim(),
+      });
+    }
+
+    // Redação formal via texto puro
+    const dataFmt = data ? String(data).split("-").reverse().join("/") : "(data a definir)";
     const prompt = `Você é assistente administrativo de um restaurante brasileiro chamado "${unidade_nome || "a empresa"}". Redija uma ATA DE REUNIÃO formal, em português do Brasil, clara e objetiva, pronta para ser lida e assinada pelos funcionários.
 
 DADOS DA REUNIÃO:
@@ -33,54 +108,65 @@ ESTRUTURA OBRIGATÓRIA do texto:
 2. Um parágrafo curto para CADA assunto da pauta, desenvolvendo o que foi apresentado/definido de forma profissional (2 a 4 frases cada). Use numeração (1., 2., 3.).
 3. Parágrafo de encerramento: nada mais havendo a tratar, a reunião foi encerrada, e a presente ata segue assinada pelos presentes.
 
-REGRAS:
-- Tom formal mas simples, sem juridiquês exagerado.
-- NÃO invente decisões específicas com números/valores que não estejam na pauta; desenvolva o assunto de forma genérica e profissional quando faltar detalhe.
-- Não use markdown, títulos ou listas com hífen — apenas parágrafos numerados quando for a pauta.
-
 Responda ESTRITAMENTE com um JSON válido, sem texto antes ou depois:
 { "texto": "..." }`;
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-opus-4-8",
-        max_tokens: 3000,
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
+    let textoFinal = "";
 
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error("[IA Ata] Erro da Anthropic:", errorData);
-      return NextResponse.json({ error: "Erro ao comunicar com a IA." }, { status: 500 });
+    if (process.env.OPENAI_API_KEY) {
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-4o",
+          messages: [{ role: "user", content: prompt }],
+          response_format: { type: "json_object" },
+          max_tokens: 3000,
+        })
+      });
+      if (!response.ok) throw new Error("Erro na chamada OpenAI");
+      const resData = await response.json();
+      const parsed = JSON.parse(resData.choices[0]?.message?.content || "{}");
+      textoFinal = parsed.texto || "";
+    } else if (process.env.ANTHROPIC_API_KEY) {
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-opus-4-8",
+          max_tokens: 3000,
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
+      if (!response.ok) throw new Error("Erro Anthropic");
+      const dataResp = await response.json();
+      let raw = (dataResp.content || []).filter(b => b.type === "text").map(b => b.text).join("").trim();
+      raw = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+      const parsed = JSON.parse(raw);
+      textoFinal = parsed.texto || "";
     }
 
-    const dataResp = await response.json();
-    let texto = (dataResp.content || []).filter(b => b.type === "text").map(b => b.text).join("").trim();
-    texto = texto.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
-
-    let obj;
-    try {
-      obj = JSON.parse(texto);
-    } catch {
-      const match = texto.match(/\{[\s\S]*\}/);
-      if (!match) throw new Error("Retorno da IA não é JSON válido.");
-      obj = JSON.parse(match[0]);
-    }
-
-    if (!obj.texto || !String(obj.texto).trim()) {
+    if (!textoFinal || !textoFinal.trim()) {
       return NextResponse.json({ error: "A IA não gerou o texto da ata. Tente novamente." }, { status: 422 });
     }
 
-    return NextResponse.json({ texto: String(obj.texto).trim() });
+    return NextResponse.json({
+      tema,
+      data_reuniao: data,
+      hora,
+      local,
+      condutor,
+      texto: textoFinal.trim()
+    });
   } catch (error) {
     console.error("[IA Ata] Catch:", error);
-    return NextResponse.json({ error: "Não consegui gerar a ata. Tente novamente." }, { status: 500 });
+    return NextResponse.json({ error: "Não consegui gerar/transcrever a ata. Tente novamente." }, { status: 500 });
   }
 }

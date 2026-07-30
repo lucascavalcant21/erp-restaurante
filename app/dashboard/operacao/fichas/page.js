@@ -61,32 +61,53 @@ function comFecharImpressao(html) {
   return html.includes("</body>") ? html.replace("</body>", extra + "</body>") : html + extra;
 }
 
-// Categorias do cardápio (cozinha). Os pratos são divididos nessas seções.
+// Categorias oficiais da Cozinha na ordem exata solicitada pelo usuário
 const CATEGORIAS_CARDAPIO = [
-  "Entradas", "Executivo", "Moquecas e Caldeirada", "Vatapá", "Maniçoba",
-  "Menu Degustação", "Sobremesas", "Sucos",
+  "Prato principal 1 pessoa",
+  "Prato principal 2 pessoas",
+  "Entradas",
+  "Sobremesas",
+  "Acompanhamentos",
+  "Pré-preparos",
 ];
 
-const CATEGORIAS_PRODUTO_PRONTO_BAR = [
-  "Cervejas", "Águas", "Refrigerantes", "Energéticos", "Vinhos",
-  "Espumantes", "Destilados", "Sucos prontos", "Bombom", "Bombons", "Outros produtos prontos",
-];
-
-const CATEGORIAS_PREPARO_BAR = [
-  "Xaropes", "Espumas", "Geleias", "Mixes e infusões", "Outros pré-preparos",
+// Categorias oficiais do Bar na ordem exata solicitada pelo usuário (incluindo Chopp no barril, águas, refrigerantes e bombons)
+const CATEGORIAS_BAR = [
+  "Cervejas",
+  "Drinks",
+  "Vinhos",
+  "Doses",
+  "Chopp",
+  "Águas",
+  "Refrigerantes",
+  "Bombons",
+  "Pré-preparos",
 ];
 
 function obterTodasCategoriasFicha(deptUrl, fichas = []) {
-  const base = deptUrl === "bar"
-    ? [...CATEGORIAS_PRODUTO_PRONTO_BAR, ...CATEGORIAS_PREPARO_BAR]
-    : CATEGORIAS_CARDAPIO;
+  const base = deptUrl === "bar" ? CATEGORIAS_BAR : CATEGORIAS_CARDAPIO;
   let custom = [];
   try {
     const salvas = typeof window !== "undefined" ? localStorage.getItem(`custom_categorias_fichas_${deptUrl || "cozinha"}`) : null;
     custom = salvas ? JSON.parse(salvas) : [];
   } catch {}
+  let excluidas = [];
+  try {
+    const exc = typeof window !== "undefined" ? localStorage.getItem(`excluidas_categorias_fichas_${deptUrl || "cozinha"}`) : null;
+    excluidas = exc ? JSON.parse(exc) : [];
+  } catch {}
+
   const vindosDasFichas = fichas.map(f => f.categoria).filter(Boolean);
-  return [...new Set([...base, ...custom, ...vindosDasFichas])].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  const todas = [...new Set([...base, ...custom, ...vindosDasFichas])].filter(c => !excluidas.includes(c));
+
+  return todas.sort((a, b) => {
+    const idxA = base.indexOf(a);
+    const idxB = base.indexOf(b);
+    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+    if (idxA !== -1) return -1;
+    if (idxB !== -1) return 1;
+    return a.localeCompare(b, "pt-BR");
+  });
 }
 
 function salvarNovaCategoriaFicha(novaCat, deptUrl) {
@@ -105,12 +126,19 @@ function salvarNovaCategoriaFicha(novaCat, deptUrl) {
 function excluirCategoriaFicha(catExcluir, deptUrl) {
   const cat = String(catExcluir || "").trim();
   if (!cat) return;
+  const dept = deptUrl || "cozinha";
   try {
-    const key = `custom_categorias_fichas_${deptUrl || "cozinha"}`;
-    const salvas = localStorage.getItem(key);
+    const keyCustom = `custom_categorias_fichas_${dept}`;
+    const salvas = localStorage.getItem(keyCustom);
     const atuais = salvas ? JSON.parse(salvas) : [];
-    const filtradas = atuais.filter(c => c !== cat);
-    localStorage.setItem(key, JSON.stringify(filtradas));
+    localStorage.setItem(keyCustom, JSON.stringify(atuais.filter(c => c !== cat)));
+
+    const keyExc = `excluidas_categorias_fichas_${dept}`;
+    const excSalvas = localStorage.getItem(keyExc);
+    const excAtuais = excSalvas ? JSON.parse(excSalvas) : [];
+    if (!excAtuais.includes(cat)) {
+      localStorage.setItem(keyExc, JSON.stringify([...excAtuais, cat]));
+    }
   } catch {}
 }
 
@@ -1830,13 +1858,34 @@ function FichasRunner() {
                </div>
             );
          })()}
-         {/* Abas: Pratos + categorias do cardápio + Pré-preparos + Todos */}
-         <div className="flex flex-wrap gap-2 mb-4">
+         {/* Abas na ordem exata solicitada pelo usuário com opção de excluir */}
+         <div className="flex flex-wrap items-center gap-2 mb-4">
+            {obterTodasCategoriasFicha(deptUrl, fichas).map(cat => {
+              const n = fichas.filter(f => (f.categoria || "") === cat).length;
+              return (
+                <div key={cat} className="group relative flex items-center">
+                  <button onClick={() => setTipoFiltro(cat)}
+                    className={`px-3.5 py-2.5 rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-wider transition-all ${tipoFiltro === cat ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20" : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"}`}>
+                    {cat} <span className={tipoFiltro === cat ? "text-emerald-200" : "text-slate-400"}>({n})</span>
+                  </button>
+                  <button
+                    type="button"
+                    title={`Excluir categoria "${cat}"`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm(`Excluir a categoria "${cat}" das fichas técnicas?`)) {
+                        excluirCategoriaFicha(cat, deptUrl);
+                        if (tipoFiltro === cat) setTipoFiltro("Todos");
+                      }
+                    }}
+                    className="ml-1 text-[10px] text-rose-400 hover:text-rose-600 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    ✕
+                  </button>
+                </div>
+              );
+            })}
             {[
-              ["Pratos", deptUrl === "bar" ? "Drinks" : "Pratos", fichas.filter(f => !f.eh_base && f.tipo_base !== "produto_pronto").length],
-              ...(deptUrl === "bar" ? [["Produtos prontos", "Produtos prontos", fichas.filter(f => !f.eh_base && f.tipo_base === "produto_pronto").length]] : []),
-              ...(deptUrl === "bar" ? CATEGORIAS_PREPARO_BAR.map(c => [c, c, fichas.filter(f => !!f.eh_base && f.tipo_base !== "receita" && categoriaPreparoBar(f) === c).length]) : []),
-              ...(deptUrl === "bar" ? [] : CATEGORIAS_CARDAPIO.map(c => [c, c, fichas.filter(f => !f.eh_base && (f.categoria || "") === c).length])),
               ["Pré-preparos", "Pré-preparos", fichas.filter(f => !!f.eh_base && f.tipo_base !== "receita").length],
               ["Receitas base", "Receitas base", fichas.filter(f => !!f.eh_base && f.tipo_base === "receita").length],
               ["Todos", "Todos", fichas.length],

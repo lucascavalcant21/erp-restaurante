@@ -14,7 +14,7 @@ import {
   fetchAdvertenciasColab, inserirAdvertencia, removerAdvertencia,
   fetchFeriados, inserirFeriado, removerFeriado,
   liberarPontoDia, fetchLiberacoesColab, removerLiberacao,
-  salvarReciboPrestacao, fetchRecibosPrestacao, atualizarPagamentoRecibo,
+  salvarReciboPrestacao, fetchRecibosPrestacao, atualizarPagamentoRecibo, anexarFotoReciboAssinado,
   desligarColaborador
 } from "../../lib/rh";
 import { fetchPontoHoje, fetchPontosMes, fetchPontosMesUnidade, fetchHistoricoPontoCompleto } from "../../lib/ponto";
@@ -104,13 +104,16 @@ export default function RHPage() {
   const [fichaDias, setFichaDias] = useState("1"); // nº de dias combinados
   const [fichaItens, setFichaItens] = useState([]);
   const [fichaNovoItem, setFichaNovoItem] = useState("");
+  const [fotoAmpliada, setFotoAmpliada] = useState(null);
+  const [anexandoFotoId, setAnexandoFotoId] = useState(null);
+
   const dadosReciboVazios = {
-    nome: "", cpf: "", rg: "", endereco: "", telefone: "", chave_pix: "",
-    data_trabalho: new Date().toISOString().slice(0, 10), evento: "", funcao: "",
+    nome: "", cpf: "", rg: "", endereco: "", rua_av: "", numero_casa: "", bairro: "", cidade_uf: "", telefone: "", chave_pix: "",
+    data_trabalho: new Date().toISOString().slice(0, 10), evento: "", funcao: "", topicos_funcao: "",
     entrada: "", saida_intervalo: "", retorno_intervalo: "", saida_final: "", intervalo: "",
     vale_transporte: "", adicional: "", descontos: "", forma_pagamento: "Pix",
     responsavel_entrega: "", setor_entrega: "", conferencia_devolucao: "", horario_devolucao: "",
-    janta_ofertada: true,
+    janta_ofertada: true, foto_recibo_assinado: "",
     pagamento_realizado: true, data_pagamento: new Date().toISOString().slice(0, 10),
   };
   const [fichaDados, setFichaDados] = useState(dadosReciboVazios);
@@ -919,6 +922,31 @@ export default function RHPage() {
     ? funcionarios.filter(f => f.nome.toLowerCase().includes(busca.toLowerCase()) && ehInativo(f))
     : funcionarios.filter(f => f.nome.toLowerCase().includes(busca.toLowerCase()) && (f.tipo_contrato || "Fixo") === abaAtiva && !ehInativo(f));
 
+  const formatarCPF = (valor) => {
+    if (!valor) return "—";
+    const num = String(valor).replace(/\D/g, "");
+    if (num.length === 11) {
+      return num.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+    }
+    return valor;
+  };
+
+  const formatarEnderecoComp = (d, f) => {
+    const rua = (d?.rua_av || f?.rua_av || "").trim();
+    const num = (d?.numero_casa || f?.numero_casa || "").trim();
+    const bai = (d?.bairro || f?.bairro || "").trim();
+    const cid = (d?.cidade_uf || f?.cidade_uf || "").trim();
+    if (rua || num || bai) {
+      const p = [];
+      if (rua) p.push(rua);
+      if (num) p.push(`Nº ${num}`);
+      if (bai) p.push(`Bairro: ${bai}`);
+      if (cid) p.push(cid);
+      return p.join(" · ");
+    }
+    return (d?.endereco || f?.endereco || "—").trim();
+  };
+
   const imprimirFichaExtra = (funcionario, opcoes = {}) => {
     const hoje = new Date().toLocaleDateString('pt-BR');
     const dados = opcoes.dados || {};
@@ -932,7 +960,7 @@ export default function RHPage() {
       return ano && mes && dia ? `${dia}/${mes}/${ano}` : valor;
     };
     const nome = seguro(dados.nome || funcionario?.nome);
-    const cpf = seguro(dados.cpf || funcionario?.cpf);
+    const cpf = seguro(formatarCPF(dados.cpf || funcionario?.cpf));
     const rg = seguro(dados.rg || funcionario?.rg);
     const cargo = seguro(dados.funcao || funcionario?.cargo);
 
@@ -955,7 +983,7 @@ export default function RHPage() {
     };
     const telefone = seguro(dados.telefone || funcionario?.telefone);
     const pix = seguro(dados.chave_pix || funcionario?.chave_pix);
-    const endereco = seguro(dados.endereco || funcionario?.endereco);
+    const endereco = seguro(formatarEnderecoComp(dados, funcionario));
     const horaIni = seguro(dados.entrada || funcionario?.horario_entrada);
     const horaFim = seguro(dados.saida_final || funcionario?.horario_saida);
     const diariaAcordada = diariaTotal > 0 ? money(diariaTotal) : "R$ 0,00";
@@ -964,18 +992,19 @@ export default function RHPage() {
     const descontos = parseFloat(String(dados.descontos || "").replace(",", ".")) || 0;
     const totalPagar = Math.max(0, totalGeral + valeTransporte + adicional - descontos);
     const reciboNumero = opcoes.numero || `RPS-${new Date().toISOString().slice(0, 10).replaceAll("-", "")}-${String(funcionario?.id || Date.now()).slice(-6).toUpperCase()}`;
+    const topicosFuncao = String(dados.topicos_funcao || "").split("\n").map(l => l.trim()).filter(Boolean);
     
     const html = `
       <html>
         <head>
-          <title>Recibo de Trabalho Extra</title>
+          <title>Recibo de Prestação de Serviço</title>
           <style>
             @page { size: A4 portrait; margin: 9mm; }
             * { box-sizing: border-box; }
             body { font-family: Inter, Arial, sans-serif; padding: 4px; color: #172033; line-height: 1.35; font-size: 11px; }
             .document-header { display:flex; align-items:center; justify-content:space-between; gap:18px; background:linear-gradient(135deg,#064e3b,#047857); color:#fff; border-radius:12px; padding:15px 18px; margin-bottom:12px; }
             .brand { font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; opacity:.9; }
-            h1 { margin: 3px 0 2px; font-size: 23px; line-height:1.05; }
+            h1 { margin: 3px 0 2px; font-size: 21px; line-height:1.05; letter-spacing:.02em; }
             .subtitle { font-size:9px; opacity:.82; }
             .receipt-id { text-align:right; font-size:9px; line-height:1.5; white-space:nowrap; }
             .section { margin-bottom: 10px; break-inside: avoid; }
@@ -992,6 +1021,8 @@ export default function RHPage() {
             .agreement { font-size:9px; color:#334155; border:1px solid #cbd5e1; border-radius:8px; padding:7px 9px; line-height:1.45; margin:0; background:#f8fafc; }
             .signatures { display:flex; justify-content:space-between; gap:34px; margin-top:34px; }
             .signature { flex:1; border-top:1px solid #172033; padding-top:4px; text-align:center; font-size:9px; }
+            .topics-box { background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:7px 10px; font-size:10px; line-height:1.5; color:#1e293b; }
+            .topic-item { margin-bottom:3px; display:flex; align-items:flex-start; gap:4px; }
             @media print { body { padding: 0; } }
           </style>
         </head>
@@ -999,29 +1030,29 @@ export default function RHPage() {
           <header class="document-header">
             <div>
               <div class="brand">${seguro(unidadeInfo?.nome, "Seldeestrela")}</div>
-              <h1>Recibo de Trabalho Extra</h1>
-              <div class="subtitle">Acordo de diária, controle operacional e comprovante de pagamento</div>
+              <h1>RECIBO DE PRESTAÇÃO DE SERVIÇO</h1>
+              <div class="subtitle">Comprovante de diária, atribuições operacionais e acerto financeiro</div>
             </div>
-            <div class="receipt-id"><strong>${reciboNumero}</strong><br/>Emitido em ${hoje}<br/>Via da empresa</div>
+            <div class="receipt-id"><strong>${reciboNumero}</strong><br/>Emitido em ${hoje}<br/>Via do Restaurante e do Prestador</div>
           </header>
 
           <div class="section">
-             <div class="section-title">Dados Pessoais</div>
+             <div class="section-title">Dados Pessoais do Prestador</div>
              <div class="data-grid">
                 <div class="field"><span>Nome completo</span><strong>${nome}</strong></div>
                 <div class="field"><span>CPF / RG</span><strong>${cpf} · ${rg}</strong></div>
-                <div class="field" style="grid-column:1/-1"><span>Endereço</span><strong>${endereco}</strong></div>
+                <div class="field" style="grid-column:1/-1"><span>Endereço (Rua/Av, Nº, Bairro)</span><strong>${endereco}</strong></div>
                 <div class="field"><span>Telefone</span><strong>${telefone}</strong></div>
                 <div class="field"><span>Chave PIX</span><strong>${pix}</strong></div>
              </div>
           </div>
 
           <div class="section">
-             <div class="section-title">Acordo de Trabalho</div>
+             <div class="section-title">Acordo de Trabalho e Função</div>
              <div class="data-grid">
                 <div class="field"><span>Data do trabalho</span><strong>${dataBR(dados.data_trabalho)}</strong></div>
                 <div class="field"><span>Evento / ocasião</span><strong>${seguro(dados.evento)}</strong></div>
-                <div class="field"><span>Função no dia</span><strong>${cargo}</strong></div>
+                <div class="field"><span>Função exercida</span><strong>${cargo}</strong></div>
                 <div class="field"><span>Carga acordada</span><strong>${horaIni} às ${horaFim} · intervalo ${seguro(dados.intervalo)}</strong></div>
                 <div class="field" style="grid-column:1/-1"><span>Benefício durante o turno</span><strong>${dados.janta_ofertada ? "Janta ofertada pelo restaurante" : "Janta não incluída"}</strong></div>
                 <div style="grid-column: 1 / -1; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:8px; padding:6px 9px;">
@@ -1031,6 +1062,15 @@ export default function RHPage() {
                 </div>
              </div>
           </div>
+
+          ${topicosFuncao.length > 0 ? `
+          <div class="section">
+             <div class="section-title">Atribuições / O que fará no trabalho</div>
+             <div class="topics-box">
+                ${topicosFuncao.map(t => `<div class="topic-item"><span>•</span> <span>${esc(t.replace(/^[•\-\*]\s*/, ""))}</span></div>`).join("")}
+             </div>
+          </div>
+          ` : ""}
 
           <div class="section">
              <div class="section-title">Controle de Ponto (Turno)</div>
@@ -2473,16 +2513,37 @@ export default function RHPage() {
                      {fichaFunc && <span className="shrink-0 rounded-full bg-emerald-100 px-3 py-1 text-[10px] font-black text-emerald-700">Importado do cadastro</span>}
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                     {[
-                       ["nome", "Nome completo", "text"], ["cpf", "CPF", "text"],
-                       ["rg", "RG", "text"], ["telefone", "Telefone", "text"],
-                       ["endereco", "Endereço", "text"], ["chave_pix", "Chave PIX", "text"],
-                     ].map(([campo, label, tipo]) => (
-                       <label key={campo} className={campo === "endereco" ? "sm:col-span-2 text-xs font-bold text-slate-600" : "text-xs font-bold text-slate-600"}>
-                         {label}
-                         <input type={tipo} value={fichaDados[campo]} onChange={e => setFichaDados(d => ({...d, [campo]: e.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
+                     <label className="text-xs font-bold text-slate-600">Nome completo
+                        <input type="text" value={fichaDados.nome} onChange={e => setFichaDados(d => ({...d, nome: e.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
+                     </label>
+                     <label className="text-xs font-bold text-slate-600">CPF
+                        <input type="text" value={fichaDados.cpf} onChange={e => setFichaDados(d => ({...d, cpf: e.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
+                     </label>
+                     <label className="text-xs font-bold text-slate-600">RG
+                        <input type="text" value={fichaDados.rg} onChange={e => setFichaDados(d => ({...d, rg: e.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
+                     </label>
+                     <label className="text-xs font-bold text-slate-600">Telefone
+                        <input type="text" value={fichaDados.telefone} onChange={e => setFichaDados(d => ({...d, telefone: e.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
+                     </label>
+                     <label className="sm:col-span-2 text-xs font-bold text-slate-600">Chave PIX
+                        <input type="text" value={fichaDados.chave_pix} onChange={e => setFichaDados(d => ({...d, chave_pix: e.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
+                     </label>
+
+                     {/* Endereço Estruturado */}
+                     <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-3 border-t border-slate-200 pt-3 mt-1">
+                       <label className="sm:col-span-2 text-xs font-bold text-slate-600">Rua ou Avenida
+                         <input type="text" value={fichaDados.rua_av} onChange={e => setFichaDados(d => ({...d, rua_av: e.target.value}))} placeholder="Ex.: Av. Paulista" className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
                        </label>
-                     ))}
+                       <label className="text-xs font-bold text-slate-600">Número da casa/apto
+                         <input type="text" value={fichaDados.numero_casa} onChange={e => setFichaDados(d => ({...d, numero_casa: e.target.value}))} placeholder="Ex.: 1500 ou S/N" className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
+                       </label>
+                       <label className="sm:col-span-2 text-xs font-bold text-slate-600">Bairro
+                         <input type="text" value={fichaDados.bairro} onChange={e => setFichaDados(d => ({...d, bairro: e.target.value}))} placeholder="Ex.: Bela Vista" className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
+                       </label>
+                       <label className="text-xs font-bold text-slate-600">Cidade / UF
+                         <input type="text" value={fichaDados.cidade_uf} onChange={e => setFichaDados(d => ({...d, cidade_uf: e.target.value}))} placeholder="Ex.: São Paulo / SP" className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 font-bold text-slate-800 outline-none focus:border-emerald-500"/>
+                       </label>
+                     </div>
                   </div>
                </div>
 
@@ -2497,6 +2558,15 @@ export default function RHPage() {
                      </label>
                      <label className="col-span-2 text-xs font-bold text-slate-600">Função no dia
                        <input type="text" value={fichaDados.funcao} onChange={e => setFichaDados(d => ({...d, funcao: e.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-emerald-500"/>
+                     </label>
+                     <label className="col-span-2 sm:col-span-4 text-xs font-bold text-slate-600">Descreva por tópicos o que irá fazer no trabalho (atribuições)
+                       <textarea
+                         rows={3}
+                         value={fichaDados.topicos_funcao}
+                         onChange={e => setFichaDados(d => ({...d, topicos_funcao: e.target.value}))}
+                         placeholder={"Digite em tópicos o que o profissional irá fazer, por exemplo:\n- Atendimento de mesas no salão\n- Montagem e organização da praça\n- Limpeza e fechamento"}
+                         className="mt-1 w-full rounded-xl border border-slate-200 p-3 font-medium text-slate-800 outline-none focus:border-emerald-500 text-xs"
+                       />
                      </label>
                      {[
                        ["entrada", "Entrada"], ["saida_intervalo", "Saída intervalo"],
@@ -2685,7 +2755,7 @@ export default function RHPage() {
                          <div className="overflow-x-auto rounded-2xl border border-slate-200">
                            <table className="w-full min-w-[720px] text-left text-xs">
                              <thead className="bg-slate-900 text-white"><tr><th className="p-3">Data</th><th className="p-3">Situação</th><th className="p-3">Horário do dia</th><th className="p-3">Valor</th><th className="p-3">Pagamento</th><th className="p-3">Ação</th></tr></thead>
-                             <tbody className="divide-y divide-slate-100">
+<tbody className="divide-y divide-slate-100">
                                {dias.map(item => (
                                  <tr key={item.data}>
                                    <td className="p-3 font-black">{dataBR(item.data)}</td>
@@ -2703,34 +2773,101 @@ export default function RHPage() {
                      </div>
 
                      <div className="mt-5 grid gap-5 lg:grid-cols-2">
-                       <section>
-                         <h3 className="mb-2 text-sm font-black text-slate-800">Histórico de recibos</h3>
-                         <div className="space-y-2">
-                           {recibos.length === 0 ? <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-400">Nenhum recibo emitido.</p> : recibos.map(recibo => (
-                             <div key={recibo.id} className="rounded-xl border border-slate-200 p-3">
-                               <div className="flex flex-wrap items-start justify-between gap-2">
-                                 <div><p className="font-black text-slate-800">{recibo.numero}</p><p className="text-xs text-slate-500">{dataBR(recibo.data_trabalho)} · {recibo.dias_contratados} dia(s) · {fmtBRL(recibo.valor_total)}</p></div>
-                                 <span className={`rounded-full px-2 py-1 text-[10px] font-black ${recibo.pagamento_realizado ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>{recibo.pagamento_realizado ? `Pago ${dataBR(recibo.data_pagamento)}` : "Pendente"}</span>
-                               </div>
-                               <div className="mt-2 flex flex-wrap gap-2">
-                                 <button onClick={() => imprimirFichaExtra(modalDiarias.func, { numero: recibo.numero, diaria: recibo.valor_diaria, dias: recibo.dias_contratados, itens: recibo.itens || [], dados: recibo.dados || {} })} className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-black text-slate-700"><Printer size={13} className="mr-1 inline" />Reimprimir</button>
-                                 <button onClick={async () => { const pago = !recibo.pagamento_realizado; const resposta = await atualizarPagamentoRecibo(recibo.id, pago); if (resposta.error) alert(resposta.error); else abrirHistoricoDiarias(modalDiarias.func); }} className="rounded-lg bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700">{recibo.pagamento_realizado ? "Marcar pendente" : "Marcar como pago"}</button>
-                               </div>
-                             </div>
-                           ))}
-                         </div>
-                       </section>
+                        <section>
+                          <h3 className="mb-2 text-sm font-black text-slate-800">Histórico de recibos de prestação</h3>
+                          <div className="space-y-3">
+                            {recibos.length === 0 ? <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-400">Nenhum recibo emitido.</p> : recibos.map(recibo => {
+                              const funcNome = recibo.funcao || recibo.dados?.funcao || modalDiarias.func?.cargo || "Prestador Extra";
+                              const hEntrada = recibo.hora_entrada || recibo.dados?.entrada || "—";
+                              const hSaida = recibo.hora_saida || recibo.dados?.saida_final || "—";
+                              const temFoto = !!recibo.dados?.foto_recibo_assinado;
+                              const topicos = String(recibo.dados?.topicos_funcao || "").split("\n").map(t => t.trim()).filter(Boolean);
 
-                       <section>
-                         <h3 className="mb-2 text-sm font-black text-slate-800">Problemas e ocorrências</h3>
-                         {modalDiarias.func?.anotacoes_rh && <p className="mb-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-900"><b>Anotação do cadastro:</b> {modalDiarias.func.anotacoes_rh}</p>}
-                         <div className="space-y-2">
-                           {advertencias.length === 0 && !modalDiarias.func?.anotacoes_rh ? <p className="rounded-xl bg-emerald-50 p-4 text-sm font-bold text-emerald-700">Nenhum problema registrado.</p> : advertencias.map(adv => (
-                             <div key={adv.id} className="rounded-xl border border-rose-200 bg-rose-50 p-3"><p className="text-xs font-black text-rose-700">{dataBR(adv.data)} · {adv.tipo || "Ocorrência"}</p><p className="mt-1 text-sm text-slate-700">{adv.motivo || adv.descricao || adv.observacao || "Registro disciplinar"}</p></div>
-                           ))}
-                         </div>
-                       </section>
-                     </div>
+                              return (
+                              <div key={recibo.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-2">
+                                <div className="flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 pb-2">
+                                  <div>
+                                    <p className="font-black text-slate-900 text-sm">{recibo.numero}</p>
+                                    <p className="text-xs font-bold text-slate-500">{dataBR(recibo.data_trabalho)} · {recibo.dias_contratados} dia(s) · <b className="text-emerald-700">{fmtBRL(recibo.valor_total)}</b></p>
+                                  </div>
+                                  <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${recibo.pagamento_realizado ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>{recibo.pagamento_realizado ? `Pago em ${dataBR(recibo.data_pagamento)}` : "Pagamento Pendente"}</span>
+                                </div>
+
+                                <div className="text-xs space-y-1">
+                                  <p className="font-bold text-slate-800">🛠️ Função exercida: <span className="text-emerald-800">{funcNome}</span></p>
+                                  <p className="font-medium text-slate-600">⏰ Horário de trabalho: <b>{hEntrada} às {hSaida}</b></p>
+                                  {topicos.length > 0 && (
+                                    <div className="mt-1 bg-slate-50 border border-slate-200 rounded-xl p-2 text-[11px] font-medium text-slate-700">
+                                      <p className="font-bold text-slate-500 text-[10px] uppercase mb-0.5">Atribuições do dia:</p>
+                                      {topicos.map((t, idx) => <p key={idx} className="truncate">• {t.replace(/^[•\-\*]\s*/, "")}</p>)}
+                                    </div>
+                                  )}
+                                </div>
+
+                                {temFoto && (
+                                  <div className="flex items-center gap-2 pt-1">
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                                      ✓ Recibo Assinado Anexado
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setFotoAmpliada(recibo.dados.foto_recibo_assinado)}
+                                      className="text-xs font-bold text-emerald-700 hover:underline flex items-center gap-1"
+                                    >
+                                      <Camera size={13} /> Ver Foto do Recibo
+                                    </button>
+                                  </div>
+                                )}
+
+                                <div className="mt-2 flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100">
+                                  <button onClick={() => imprimirFichaExtra(modalDiarias.func, { numero: recibo.numero, diaria: recibo.valor_diaria, dias: recibo.dias_contratados, itens: recibo.itens || [], dados: recibo.dados || {} })} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-100"><Printer size={13} className="mr-1 inline" />Reimprimir</button>
+                                  <button onClick={async () => { const pago = !recibo.pagamento_realizado; const resposta = await atualizarPagamentoRecibo(recibo.id, pago); if (resposta.error) alert(resposta.error); else abrirHistoricoDiarias(modalDiarias.func); }} className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700 hover:bg-emerald-100">{recibo.pagamento_realizado ? "Marcar pendente" : "Marcar como pago"}</button>
+                                  <label className="cursor-pointer rounded-xl bg-emerald-600 px-3 py-2 text-xs font-black text-white hover:bg-emerald-700 inline-flex items-center gap-1.5 shadow-sm">
+                                    {anexandoFotoId === recibo.id ? <Loader2 size={13} className="animate-spin" /> : <Camera size={13} />}
+                                    {temFoto ? "Trocar Foto" : "Anexar Foto do Recibo Assinado"}
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      capture="environment"
+                                      className="hidden"
+                                      onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        setAnexandoFotoId(recibo.id);
+                                        try {
+                                          const b64 = await comprimirFotoParaIA(file, 1600, 0.85);
+                                          const mediaType = file.type || "image/jpeg";
+                                          const dataUrl = b64.startsWith("data:") ? b64 : `data:${mediaType};base64,${b64}`;
+                                          const res = await anexarFotoReciboAssinado(recibo.id, dataUrl);
+                                          if (res.error) alert("Erro ao anexar foto: " + res.error);
+                                          else {
+                                            alert("Foto do recibo assinado anexada com sucesso ao histórico!");
+                                            abrirHistoricoDiarias(modalDiarias.func);
+                                          }
+                                        } catch (err) {
+                                          alert("Erro ao processar imagem: " + err.message);
+                                        } finally {
+                                          setAnexandoFotoId(null);
+                                        }
+                                      }}
+                                    />
+                                  </label>
+                                </div>
+                              </div>
+                            );})}
+                          </div>
+                        </section>
+
+                        <section>
+                          <h3 className="mb-2 text-sm font-black text-slate-800">Problemas e ocorrências</h3>
+                          {modalDiarias.func?.anotacoes_rh && <p className="mb-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-900"><b>Anotação do cadastro:</b> {modalDiarias.func.anotacoes_rh}</p>}
+                          <div className="space-y-2">
+                            {advertencias.length === 0 && !modalDiarias.func?.anotacoes_rh ? <p className="rounded-xl bg-emerald-50 p-4 text-sm font-bold text-emerald-700">Nenhum problema registrado.</p> : advertencias.map(adv => (
+                              <div key={adv.id} className="rounded-xl border border-rose-200 bg-rose-50 p-3"><p className="text-xs font-black text-rose-700">{dataBR(adv.data)} · {adv.tipo || "Ocorrência"}</p><p className="mt-1 text-sm text-slate-700">{adv.motivo || adv.descricao || adv.observacao || "Registro disciplinar"}</p></div>
+                            ))}
+                          </div>
+                        </section>
+                      </div>
                   </>
                )}
             </div>

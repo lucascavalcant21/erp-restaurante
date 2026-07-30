@@ -387,6 +387,20 @@ export async function atualizarPagamentoRecibo(id, pagamentoRealizado, dataPagam
   return { error: error?.message };
 }
 
+export async function anexarFotoReciboAssinado(id, fotoBase64) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { data: rec } = await supabase.from("rh_recibos_prestacao").select("dados").eq("id", id).maybeSingle();
+  const novosDados = { ...(rec?.dados || {}), foto_recibo_assinado: fotoBase64 };
+  const { error } = await supabase
+    .from("rh_recibos_prestacao")
+    .update({
+      dados: novosDados,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+  return { error: error?.message };
+}
+
 export async function fetchRegulamento(unidadeId) {
   if (!isSupabaseReady()) return { data: null, error: "Offline" };
   const { data, error } = await supabase.from("rh_regulamentos").select("*").eq("unidade_id", unidadeId).single();

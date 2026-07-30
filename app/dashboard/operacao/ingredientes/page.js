@@ -204,10 +204,10 @@ function IngredientesRunner() {
   const [precoFornMsg, setPrecoFornMsg] = useState(""); // aviso quando a migração não rodou
   const [toast, setToast] = useState(null);
 
-  // Estados da migração por print/imagem ou texto
+  // Estados da migração por print/imagem (suporta múltiplas fotos) ou texto
   const [modalMigrar, setModalMigrar] = useState(false);
   const [migrarTexto, setMigrarTexto] = useState("");
-  const [migrarArquivo, setMigrarArquivo] = useState(null);
+  const [migrarArquivos, setMigrarArquivos] = useState([]);
   const [migrarProcessando, setMigrarProcessando] = useState(false);
   const [migrarSalvando, setMigrarSalvando] = useState(false);
   const [itensMigracao, setItensMigracao] = useState([]);
@@ -250,29 +250,28 @@ function IngredientesRunner() {
   }, [deptUrl, insumos]);
 
   const processarMigracaoIA = async () => {
-    if (!migrarArquivo && !migrarTexto.trim()) return alert("Selecione uma imagem/print ou digite um texto.");
+    if (!migrarArquivos.length && !migrarTexto.trim()) return alert("Selecione pelo menos uma imagem/print ou digite um texto.");
     setMigrarProcessando(true);
     try {
-      let imagemBase64 = null;
-      let mediaType = "image/jpeg";
-      if (migrarArquivo) {
-        imagemBase64 = await comprimirFotoParaIA(migrarArquivo, 1800, 0.85);
-        mediaType = migrarArquivo.type || "image/jpeg";
-      }
+      const imagens = await Promise.all(
+        migrarArquivos.map(async file => {
+          const b64 = await comprimirFotoParaIA(file, 1800, 0.85);
+          return { base64: b64, media_type: file.type || "image/jpeg" };
+        })
+      );
 
       const res = await fetch("/api/ia-insumos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           texto: migrarTexto,
-          imagem_base64: imagemBase64,
-          imagem_media_type: mediaType,
+          imagens,
         }),
       });
 
       const data = await res.json();
       if (!res.ok || data.error) {
-        alert(data.error || "Não foi possível extrair a lista.");
+        alert(data.error || "Não foi possível extrair a lista das fotos.");
         setMigrarProcessando(false);
         return;
       }
@@ -598,7 +597,7 @@ function IngredientesRunner() {
               )}
             </label>
             <button
-              onClick={() => { setModalMigrar(true); setItensMigracao([]); setMigrarTexto(""); setMigrarArquivo(null); }}
+              onClick={() => { setModalMigrar(true); setItensMigracao([]); setMigrarTexto(""); setMigrarArquivos([]); }}
               className="flex h-11 items-center justify-center gap-2 rounded-xl border border-emerald-600/30 bg-emerald-50 px-4 text-sm font-black text-emerald-700 shadow-sm transition hover:bg-emerald-100"
             >
               <Camera size={18} /> Migrar por Print / Lista
@@ -1134,16 +1133,35 @@ function IngredientesRunner() {
                     <input
                       type="file"
                       accept="image/*"
+                      multiple
                       id="file-print-upload"
                       className="hidden"
                       onChange={e => {
-                        const file = e.target.files?.[0];
-                        if (file) setMigrarArquivo(file);
+                        const files = Array.from(e.target.files || []);
+                        if (files.length) {
+                          setMigrarArquivos(prev => [...prev, ...files]);
+                        }
                       }}
                     />
                     <label htmlFor="file-print-upload" className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-white border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-100">
-                      <Upload size={15} /> {migrarArquivo ? migrarArquivo.name : "Escolher Imagem / Print"}
+                      <Upload size={15} /> Adicionar Fotos / Prints
                     </label>
+                    {migrarArquivos.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-1.5 justify-center">
+                        {migrarArquivos.map((file, idx) => (
+                          <span key={idx} className="inline-flex items-center gap-1 rounded-lg bg-emerald-100 px-2.5 py-1 text-[11px] font-bold text-emerald-800">
+                            <Camera size={12} /> {file.name}
+                            <button
+                              type="button"
+                              onClick={() => setMigrarArquivos(prev => prev.filter((_, i) => i !== idx))}
+                              className="ml-1 text-emerald-600 hover:text-emerald-950"
+                            >
+                              <X size={12} />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1164,14 +1182,14 @@ function IngredientesRunner() {
 
               <div className="flex justify-end">
                 <button
-                  disabled={migrarProcessando || (!migrarArquivo && !migrarTexto.trim())}
+                  disabled={migrarProcessando || (!migrarArquivos.length && !migrarTexto.trim())}
                   onClick={processarMigracaoIA}
                   className="flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-black text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 disabled:opacity-50"
                 >
                   {migrarProcessando ? (
-                    <>Lendo print e consolidando (maior valor)...</>
+                    <>Lendo {migrarArquivos.length} foto(s) e consolidando...</>
                   ) : (
-                    <><Sparkles size={18} /> Analisar Print com IA</>
+                    <><Sparkles size={18} /> Analisar Fotos com IA</>
                   )}
                 </button>
               </div>

@@ -4,10 +4,14 @@ export const maxDuration = 60;
 
 export async function POST(request) {
   try {
-    const { texto, imagem_base64, imagem_media_type } = await request.json();
+    const { texto, imagem_base64, imagem_media_type, imagens } = await request.json();
 
-    if ((!texto || !texto.trim()) && !imagem_base64) {
-      return NextResponse.json({ error: "Envie uma lista de texto ou um print/imagem." }, { status: 400 });
+    const listaImagens = Array.isArray(imagens) && imagens.length > 0
+      ? imagens
+      : (imagem_base64 ? [{ base64: imagem_base64, media_type: imagem_media_type || "image/jpeg" }] : []);
+
+    if ((!texto || !texto.trim()) && listaImagens.length === 0) {
+      return NextResponse.json({ error: "Envie uma lista de texto ou ao menos um print/imagem." }, { status: 400 });
     }
 
     const apiKey = process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY;
@@ -16,7 +20,7 @@ export async function POST(request) {
     }
 
     const systemPrompt = `Você é um especialista em gestão de suprimentos e compras para restaurantes e bares.
-Extraia TODOS os ingredientes e produtos da lista/print/nota fiscal fornecida.
+Extraia TODOS os ingredientes e produtos das imagens/prints/notas fiscais fornecidas.
 
 Para CADA item, identifique:
 1. "nome": Nome limpo e descritivo do produto (ex: "Tomate Carmem", "Vodka Smirnoff", "Picanha Bovina", "Heineken Long Neck").
@@ -28,7 +32,7 @@ Para CADA item, identifique:
 7. "categoria": Categoria aproximada do item (ex: "Cervejas", "Destilados", "Refrigerantes", "Ingredientes", "Carne vermelha", "Aves", "Peixes", "Hortifrúti", "Laticínios", "Secos", "Temperos", "Outros").
 
 REGRA DE DEDUPLICAÇÃO DE ITENS NO RETORNO:
-Se houver produtos repetidos/duplicados no texto ou imagem, junte-os mantendo o de MAIOR VALOR TOTAL / MAIOR PREÇO (maior valor pago).
+Se houver produtos repetidos/duplicados no texto ou entre as várias imagens/prints, junte-os mantendo o de MAIOR VALOR TOTAL / MAIOR PREÇO (maior valor pago).
 
 Retorne ESTRITAMENTE em formato JSON:
 {
@@ -49,9 +53,10 @@ Retorne ESTRITAMENTE em formato JSON:
 
     if (process.env.OPENAI_API_KEY) {
       const messagesContent = [];
-      if (imagem_base64) {
-        const mediaType = imagem_media_type || "image/jpeg";
-        const dataUrl = imagem_base64.startsWith("data:") ? imagem_base64 : `data:${mediaType};base64,${imagem_base64}`;
+      for (const imgObj of listaImagens) {
+        const mediaType = imgObj.media_type || "image/jpeg";
+        const b64 = imgObj.base64 || imgObj;
+        const dataUrl = typeof b64 === "string" && b64.startsWith("data:") ? b64 : `data:${mediaType};base64,${b64}`;
         messagesContent.push({
           type: "image_url",
           image_url: { url: dataUrl, detail: "high" }
@@ -59,7 +64,7 @@ Retorne ESTRITAMENTE em formato JSON:
       }
       messagesContent.push({
         type: "text",
-        text: `Analise o print/imagem ou texto abaixo e extraia todos os ingredientes/produtos separando por bar e cozinha.\n\nTEXTO/LISTA:\n${texto || "(analisar imagem/print anexo)"}`
+        text: `Analise o(s) ${listaImagens.length} print(s)/imagem(ns) ou texto abaixo e extraia todos os ingredientes/produtos separando por bar e cozinha. Se houver itens duplicados entre as imagens, consolide mantendo o de MAIOR VALOR.\n\nTEXTO/LISTA:\n${texto || "(analisar imagens/prints anexas)"}`
       });
 
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -119,7 +124,7 @@ Retorne ESTRITAMENTE em formato JSON:
           categoria
         });
       } else {
-        // Se já existe duplicado, mantém o de MAIOR VALOR
+        // Se já existe duplicado entre as imagens, mantém o de MAIOR VALOR
         if (valorTotal > itemExistente.valor_total) {
           mapaItens.set(chave, {
             nome,
@@ -139,6 +144,6 @@ Retorne ESTRITAMENTE em formato JSON:
     return NextResponse.json({ itens: itensFinal });
   } catch (error) {
     console.error("[IA Insumos] Erro:", error);
-    return NextResponse.json({ error: error.message || "Erro ao processar imagem/texto" }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Erro ao processar imagens/texto" }, { status: 500 });
   }
 }

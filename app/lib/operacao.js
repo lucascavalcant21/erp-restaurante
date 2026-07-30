@@ -241,8 +241,26 @@ export async function fetchHistoricoPrecos(unidadeId, insumoId = null) {
 
 export async function removerInsumo(id) {
   if (!isSupabaseReady()) return { error: "Offline" };
-  // Isso falhará se o insumo estiver numa ficha (graças ao ON DELETE RESTRICT)
-  // O que é ótimo, pois evita quebrar o custo das receitas.
+  try {
+    // Desvincula/remove das fichas técnicas
+    await supabase.from("ficha_itens").delete().eq("ingrediente_id", id);
+    await supabase.from("ficha_itens").delete().eq("insumo_id", id);
+    await supabase.from("fichas_ingredientes").delete().eq("ingrediente_id", id);
+    await supabase.from("fichas_ingredientes").delete().eq("insumo_id", id);
+  } catch (e) {
+    console.warn("Aviso ao desvincular de fichas:", e);
+  }
+
+  try {
+    // Remove registros secundários e históricos
+    await supabase.from("insumos_fornecedores").delete().eq("insumo_id", id);
+    await supabase.from("insumos_precos_historico").delete().eq("insumo_id", id);
+    await supabase.from("insumos_precos_fornecedores").delete().eq("insumo_id", id);
+    await supabase.from("estoque").delete().eq("insumo_id", id);
+  } catch (e) {
+    console.warn("Aviso ao remover dados secundários:", e);
+  }
+
   const { error } = await supabase.from("insumos").delete().eq("id", id);
   return { error: error?.message };
 }

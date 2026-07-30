@@ -1,10 +1,38 @@
-// Categorias de insumo por setor + "adivinhador" por palavra-chave.
-// Conforme o usuário digita o nome, sugere a categoria; ele pode trocar.
+// Categorias de insumo por setor + "adivinhador" por palavra-chave + categorias personalizadas.
+// Conforme o usuário digita o nome, sugere a categoria; ele pode trocar ou criar novas.
 
 export const CATEGORIAS_INSUMO = {
   cozinha: ["Peixes", "Aves", "Carne vermelha", "Hortifrúti", "Congelados", "Laticínios", "Secos", "Líquidos", "Temperos", "Outros"],
   bar: ["Cervejas", "Refrigerantes", "Vinhos", "Ingredientes", "Whisky", "Vodka", "Cachaça", "Licor", "Suco industrializado", "Rum", "Conhaque"],
 };
+
+export function obterCategoriasCustom(departamento = "cozinha") {
+  if (typeof window === "undefined") return [];
+  try {
+    const salvas = localStorage.getItem(`custom_categorias_${departamento}`);
+    return salvas ? JSON.parse(salvas) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function salvarNovaCategoriaCustom(novaCategoria, departamento = "cozinha") {
+  const cat = String(novaCategoria || "").trim();
+  if (!cat) return;
+  const atuais = obterCategoriasCustom(departamento);
+  if (!atuais.includes(cat)) {
+    const atualizadas = [...atuais, cat];
+    try {
+      localStorage.setItem(`custom_categorias_${departamento}`, JSON.stringify(atualizadas));
+    } catch {}
+  }
+}
+
+export function obterTodasCategoriasInsumo(departamento = "cozinha") {
+  const padrao = CATEGORIAS_INSUMO[departamento] || CATEGORIAS_INSUMO.cozinha;
+  const custom = obterCategoriasCustom(departamento);
+  return [...new Set([...padrao, ...custom])].sort((a, b) => a.localeCompare(b, "pt-BR"));
+}
 
 // Palavras-chave por categoria (minúsculas, sem acento tratado no matcher)
 const KEYWORDS = {
@@ -40,12 +68,11 @@ function normalizar(s) {
 export function adivinharCategoria(nome, departamento = "cozinha", marca = "") {
   const alvo = normalizar(`${nome} ${marca}`);
   if (!alvo.trim()) return null;
-  const validas = CATEGORIAS_INSUMO[departamento] || CATEGORIAS_INSUMO.cozinha;
+  const validas = obterTodasCategoriasInsumo(departamento);
   let melhor = null, melhorScore = 0;
   for (const cat of validas) {
     const kws = KEYWORDS[cat] || [];
     for (const kw of kws) {
-      // match por palavra inteira ou substring, priorizando palavras maiores
       if (alvo.includes(kw)) {
         const score = kw.length;
         if (score > melhorScore) { melhorScore = score; melhor = cat; }
@@ -56,10 +83,10 @@ export function adivinharCategoria(nome, departamento = "cozinha", marca = "") {
 }
 
 // Converte categorias antigas do Bar para a nova organização de Produtos.
-// O valor é usado na listagem e passa a ser persistido quando o item for editado.
 export function categoriaDoProdutoBar(item = {}) {
   const atual = String(item.categoria || "").trim();
-  if (CATEGORIAS_INSUMO.bar.includes(atual)) return atual;
+  const disponiveis = obterTodasCategoriasInsumo("bar");
+  if (disponiveis.includes(atual)) return atual;
 
   const inferida = adivinharCategoria(item.nome, "bar", item.marca);
   if (inferida) return inferida;

@@ -2,30 +2,11 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { enviarCandidatura, PERGUNTAS_RECRUTAMENTO } from "../../lib/recrutamento";
+import { enviarCandidatura, PERGUNTAS_RECRUTAMENTO, fetchPortalVagasConfig, PORTAL_VAGAS_PADRAO } from "../../lib/recrutamento";
 import { Upload, CheckCircle, Send, FileText, User, MapPin, Briefcase, ChevronRight, Store, Loader2 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 
-const VAGAS_DETALHES = {
-  "Garçom (2 vagas)": {
-    salario: "R$ 1.800,00",
-    alimentacao: "R$ 400,00",
-    taxa: "Sim (Variável)",
-    jornada: "6x1 - 16h às 00h"
-  },
-  "Cozinheiro (1 vaga)": {
-    salario: "R$ 2.500,00",
-    alimentacao: "R$ 400,00",
-    taxa: "Sim (Variável)",
-    jornada: "6x1 - 15h às 23h"
-  },
-  "Auxiliar de Limpeza (1 vaga)": {
-    salario: "R$ 1.600,00",
-    alimentacao: "R$ 400,00",
-    taxa: "Não",
-    jornada: "6x1 - 08h às 16h"
-  }
-};
+const rotuloVaga = vaga => `${vaga.cargo} (${vaga.quantidade} ${vaga.quantidade === 1 ? "vaga" : "vagas"})`;
 
 export default function VagasPage() {
   const params = useParams();
@@ -34,6 +15,7 @@ export default function VagasPage() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [sucesso, setSucesso] = useState(false);
+  const [portalConfig, setPortalConfig] = useState(PORTAL_VAGAS_PADRAO);
 
   const [dadosPessoais, setDadosPessoais] = useState({
     nome: "",
@@ -45,7 +27,7 @@ export default function VagasPage() {
     rua: "",
     bairro: "",
     numero: "",
-    cargoPretendido: "Garçom (2 vagas)",
+    cargoPretendido: rotuloVaga(PORTAL_VAGAS_PADRAO.vagas[0]),
     experiencia: "",
     genero: "Masculino",
     escolaridade: "Ensino Médio Completo",
@@ -60,6 +42,26 @@ export default function VagasPage() {
   const fileInputRef = useRef(null);
   const [municipios, setMunicipios] = useState([]);
   const [carregandoMunicipios, setCarregandoMunicipios] = useState(false);
+  const vagasAtivas = portalConfig.vagas.filter(vaga => vaga.ativa);
+  const vagaSelecionada = vagasAtivas.find(vaga => rotuloVaga(vaga) === dadosPessoais.cargoPretendido);
+
+  useEffect(() => {
+    let ativo = true;
+    fetchPortalVagasConfig(unidadeId).then(({ data }) => {
+      if (!ativo || !data) return;
+      setPortalConfig(data);
+      const disponiveis = data.vagas.filter(vaga => vaga.ativa);
+      if (disponiveis.length) {
+        setDadosPessoais(atual => ({
+          ...atual,
+          cargoPretendido: disponiveis.some(vaga => rotuloVaga(vaga) === atual.cargoPretendido)
+            ? atual.cargoPretendido
+            : rotuloVaga(disponiveis[0]),
+        }));
+      }
+    });
+    return () => { ativo = false; };
+  }, [unidadeId]);
 
   useEffect(() => {
     if (!dadosPessoais.estado) {
@@ -110,17 +112,36 @@ export default function VagasPage() {
       }
     }
 
-    const detalhesExtras = `Gênero: ${dadosPessoais.genero} | Escolaridade: ${dadosPessoais.escolaridade} | Carro: ${dadosPessoais.temAutomovel === 'Sim' ? dadosPessoais.qualAutomovel : 'Não'} | Filhos: ${dadosPessoais.temFilhos === 'Sim' ? dadosPessoais.qtdFilhos : '0'} | Exp: ${dadosPessoais.experiencia}`;
+    const enderecoCompleto = `${dadosPessoais.rua}, ${dadosPessoais.numero} - ${dadosPessoais.bairro}, ${dadosPessoais.cidade}/${dadosPessoais.estado}`;
 
-    // Concatenando dados para enviar para o banco
     const payload = {
       nome: `${dadosPessoais.nome} ${dadosPessoais.sobrenome}`.trim(),
       cpf: dadosPessoais.cpf,
       telefone: dadosPessoais.telefone,
-      endereco: `${dadosPessoais.rua}, ${dadosPessoais.numero} - ${dadosPessoais.bairro}, ${dadosPessoais.cidade}/${dadosPessoais.estado}`,
+      endereco: enderecoCompleto,
       cargoPretendido: dadosPessoais.cargoPretendido,
-      experiencia: detalhesExtras,
-      temFilhos: dadosPessoais.temFilhos
+      experiencia: dadosPessoais.experiencia,
+      temFilhos: dadosPessoais.temFilhos,
+      detalhesCadastro: {
+        nome: dadosPessoais.nome,
+        sobrenome: dadosPessoais.sobrenome,
+        cpf: dadosPessoais.cpf,
+        telefone: dadosPessoais.telefone,
+        estado: dadosPessoais.estado,
+        cidade: dadosPessoais.cidade,
+        rua: dadosPessoais.rua,
+        bairro: dadosPessoais.bairro,
+        numero: dadosPessoais.numero,
+        enderecoCompleto,
+        cargoPretendido: dadosPessoais.cargoPretendido,
+        experiencia: dadosPessoais.experiencia,
+        genero: dadosPessoais.genero,
+        escolaridade: dadosPessoais.escolaridade,
+        temFilhos: dadosPessoais.temFilhos,
+        qtdFilhos: dadosPessoais.temFilhos === "Sim" ? dadosPessoais.qtdFilhos : "0",
+        temAutomovel: dadosPessoais.temAutomovel,
+        qualAutomovel: dadosPessoais.temAutomovel === "Sim" ? dadosPessoais.qualAutomovel : "",
+      },
     };
 
     const res = await enviarCandidatura(unidadeId, payload, respostas, fileUrl);
@@ -143,7 +164,7 @@ export default function VagasPage() {
           </div>
           <h1 className="text-2xl font-black text-slate-800 mb-2">Candidatura Enviada!</h1>
           <p className="text-slate-500 font-medium mb-8">
-            Seu perfil foi recebido com sucesso. Nossa equipe de RH irá analisar seus dados e, caso seu perfil esteja alinhado com a vaga, entraremos em contato pelo WhatsApp.
+            {portalConfig.mensagem_sucesso}
           </p>
           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Boa sorte!</p>
         </div>
@@ -163,9 +184,9 @@ export default function VagasPage() {
           <div className="w-16 h-16 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-6">
             <Store size={32} className="text-emerald-300" />
           </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter mb-4">Trabalhe Conosco - Seldeestrela</h1>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter mb-4">{portalConfig.titulo}</h1>
           <p className="text-emerald-200 text-base sm:text-lg md:text-xl font-medium max-w-xl mx-auto">
-            Estamos em busca de talentos apaixonados para integrar nossa equipe e levar o melhor da culinária amazônica aos nossos clientes. Preencha seus dados e faça o teste de perfil.
+            {portalConfig.subtitulo}
           </p>
         </div>
       </div>
@@ -434,30 +455,28 @@ export default function VagasPage() {
                         onChange={e => setDadosPessoais({...dadosPessoais, cargoPretendido: e.target.value})}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-11 pr-4 outline-none focus:border-emerald-500 font-medium text-slate-700 appearance-none"
                       >
-                        <option>Garçom (2 vagas)</option>
-                        <option>Cozinheiro (1 vaga)</option>
-                        <option>Auxiliar de Limpeza (1 vaga)</option>
+                        {vagasAtivas.map(vaga => <option key={vaga.id} value={rotuloVaga(vaga)}>{rotuloVaga(vaga)}</option>)}
                         <option>Banco de Talentos / Outros</option>
                       </select>
                     </div>
 
-                    {VAGAS_DETALHES[dadosPessoais.cargoPretendido] && (
+                    {vagaSelecionada && (
                       <div className="mt-4 bg-emerald-50 border border-emerald-100 rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-2">
                         <div>
                           <p className="text-[10px] font-black text-emerald-600/70 uppercase tracking-widest mb-1">Salário Base</p>
-                          <p className="font-bold text-emerald-900">{VAGAS_DETALHES[dadosPessoais.cargoPretendido].salario}</p>
+                          <p className="font-bold text-emerald-900">{vagaSelecionada.salario || "A combinar"}</p>
                         </div>
                         <div>
                           <p className="text-[10px] font-black text-emerald-600/70 uppercase tracking-widest mb-1">Vale Alimentação</p>
-                          <p className="font-bold text-emerald-900">{VAGAS_DETALHES[dadosPessoais.cargoPretendido].alimentacao}</p>
+                          <p className="font-bold text-emerald-900">{vagaSelecionada.alimentacao || "A combinar"}</p>
                         </div>
                         <div>
                           <p className="text-[10px] font-black text-emerald-600/70 uppercase tracking-widest mb-1">Taxa de Serviço</p>
-                          <p className="font-bold text-emerald-900">{VAGAS_DETALHES[dadosPessoais.cargoPretendido].taxa}</p>
+                          <p className="font-bold text-emerald-900">{vagaSelecionada.taxa || "A combinar"}</p>
                         </div>
                         <div>
                           <p className="text-[10px] font-black text-emerald-600/70 uppercase tracking-widest mb-1">Jornada</p>
-                          <p className="font-bold text-emerald-900 text-sm leading-tight">{VAGAS_DETALHES[dadosPessoais.cargoPretendido].jornada}</p>
+                          <p className="font-bold text-emerald-900 text-sm leading-tight">{vagaSelecionada.jornada || "A combinar"}</p>
                         </div>
                       </div>
                     )}

@@ -1,5 +1,78 @@
 import { supabase, isSupabaseReady } from "./supabase";
 
+export const PORTAL_VAGAS_PADRAO = {
+  titulo: "Trabalhe Conosco",
+  subtitulo: "Estamos em busca de talentos apaixonados para integrar nossa equipe. Preencha seus dados e faça o teste de perfil.",
+  mensagem_sucesso: "Seu perfil foi recebido com sucesso. Nossa equipe de RH irá analisar seus dados e entraremos em contato pelo WhatsApp se houver compatibilidade com a vaga.",
+  vagas: [
+    { id: "garcom", cargo: "Garçom", quantidade: 2, salario: "R$ 1.800,00", alimentacao: "R$ 400,00", taxa: "Sim (Variável)", jornada: "6x1 - 16h às 00h", ativa: true },
+    { id: "cozinheiro", cargo: "Cozinheiro", quantidade: 1, salario: "R$ 2.500,00", alimentacao: "R$ 400,00", taxa: "Sim (Variável)", jornada: "6x1 - 15h às 23h", ativa: true },
+    { id: "limpeza", cargo: "Auxiliar de Limpeza", quantidade: 1, salario: "R$ 1.600,00", alimentacao: "R$ 400,00", taxa: "Não", jornada: "6x1 - 08h às 16h", ativa: true },
+  ],
+};
+
+function normalizarPortalVagas(config) {
+  const base = config && typeof config === "object" ? config : {};
+  const vagas = Array.isArray(base.vagas) ? base.vagas : PORTAL_VAGAS_PADRAO.vagas;
+  return {
+    ...PORTAL_VAGAS_PADRAO,
+    ...base,
+    vagas: vagas.map((vaga, index) => ({
+      id: vaga.id || `vaga-${index + 1}`,
+      cargo: String(vaga.cargo || "").trim(),
+      quantidade: Math.max(1, Number(vaga.quantidade) || 1),
+      salario: String(vaga.salario || ""),
+      alimentacao: String(vaga.alimentacao || ""),
+      taxa: String(vaga.taxa || ""),
+      jornada: String(vaga.jornada || ""),
+      ativa: vaga.ativa !== false,
+    })).filter(vaga => vaga.cargo),
+  };
+}
+
+export async function fetchPortalVagasConfig(unidadeId) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") {
+    return { data: normalizarPortalVagas(null), error: null };
+  }
+  const { data, error } = await supabase
+    .from("config_sistema")
+    .select("params")
+    .eq("unidade_id", unidadeId)
+    .limit(1);
+  const config = data?.[0]?.params?.portal_vagas;
+  return { data: normalizarPortalVagas(config), error: error?.message };
+}
+
+export async function salvarPortalVagasConfig(unidadeId, config) {
+  if (!isSupabaseReady()) return { error: "Sistema sem conexão com o banco." };
+  if (!unidadeId || unidadeId === "todas") return { error: "Selecione uma unidade específica." };
+  const portal_vagas = normalizarPortalVagas(config);
+
+  try {
+    const { error } = await supabase.rpc("merge_config_sistema_params", {
+      p_unidade_id: unidadeId,
+      p_patch: { portal_vagas },
+    });
+    if (!error) return { data: portal_vagas, error: null };
+  } catch { /* usa o fallback abaixo */ }
+
+  const { data: registros, error: fetchError } = await supabase
+    .from("config_sistema")
+    .select("id, params")
+    .eq("unidade_id", unidadeId)
+    .limit(1);
+  if (fetchError) return { error: fetchError.message };
+
+  const registro = registros?.[0];
+  const params = { ...(registro?.params || {}), portal_vagas };
+  if (registro) {
+    const { error } = await supabase.from("config_sistema").update({ params, updated_at: new Date().toISOString() }).eq("id", registro.id);
+    return { data: portal_vagas, error: error?.message };
+  }
+  const { error } = await supabase.from("config_sistema").insert([{ unidade_id: unidadeId, params }]);
+  return { data: portal_vagas, error: error?.message };
+}
+
 // ─── ALGORITMO DE AVALIAÇÃO (MOTOR "IA" DO RH) ──────────────────────────────
 
 export const PERGUNTAS_RECRUTAMENTO = [
@@ -113,7 +186,11 @@ export async function enviarCandidatura(unidadeId, dadosPessoais, respostas, fil
     cargo_pretendido: dadosPessoais.cargoPretendido,
     tem_filhos: dadosPessoais.temFilhos,
     experiencia: dadosPessoais.experiencia,
-    respostas_comportamentais: respostas,
+    respostas_comportamentais: {
+      ...respostas,
+      _dados_pessoais: dadosPessoais.detalhesCadastro || null,
+      _versao_formulario: 2,
+    },
     url_curriculo: fileUrl,
     avaliacao_ia: avaliacao_ia,
     nota_ia: nota_ia,

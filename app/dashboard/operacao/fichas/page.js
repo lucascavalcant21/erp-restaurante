@@ -53,6 +53,32 @@ const CATEGORIAS_PREPARO_BAR = [
   "Xaropes", "Espumas", "Geleias", "Mixes e infusões", "Outros pré-preparos",
 ];
 
+function obterTodasCategoriasFicha(deptUrl, fichas = []) {
+  const base = deptUrl === "bar"
+    ? [...CATEGORIAS_PRODUTO_PRONTO_BAR, ...CATEGORIAS_PREPARO_BAR]
+    : CATEGORIAS_CARDAPIO;
+  let custom = [];
+  try {
+    const salvas = typeof window !== "undefined" ? localStorage.getItem(`custom_categorias_fichas_${deptUrl || "cozinha"}`) : null;
+    custom = salvas ? JSON.parse(salvas) : [];
+  } catch {}
+  const vindosDasFichas = fichas.map(f => f.categoria).filter(Boolean);
+  return [...new Set([...base, ...custom, ...vindosDasFichas])].sort((a, b) => a.localeCompare(b, "pt-BR"));
+}
+
+function salvarNovaCategoriaFicha(novaCat, deptUrl) {
+  const cat = String(novaCat || "").trim();
+  if (!cat) return;
+  try {
+    const key = `custom_categorias_fichas_${deptUrl || "cozinha"}`;
+    const salvas = localStorage.getItem(key);
+    const atuais = salvas ? JSON.parse(salvas) : [];
+    if (!atuais.includes(cat)) {
+      localStorage.setItem(key, JSON.stringify([...atuais, cat]));
+    }
+  } catch {}
+}
+
 function categoriaPreparoBar(ficha) {
   if (CATEGORIAS_PREPARO_BAR.includes(ficha?.categoria)) return ficha.categoria;
   const texto = normalizarNome(`${ficha?.categoria || ""} ${ficha?.nome_receita || ""}`);
@@ -2561,10 +2587,26 @@ function FichasRunner() {
                      {/* Categoria do cardápio (só para pratos, não para bases) */}
                      {!form.eh_base && deptUrl !== "bar" && (
                         <div>
-                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Categoria no cardápio</label>
+                           <div className="flex items-center justify-between">
+                             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Categoria no cardápio</label>
+                             <button
+                               type="button"
+                               onClick={() => {
+                                 const nova = prompt("Digite o nome da nova categoria para as fichas técnicas:");
+                                 if (nova && nova.trim()) {
+                                   const cat = nova.trim();
+                                   salvarNovaCategoriaFicha(cat, deptUrl);
+                                   setForm({ ...form, categoria: cat });
+                                 }
+                               }}
+                               className="text-[10px] font-bold text-emerald-600 hover:underline"
+                             >
+                               + Criar categoria
+                             </button>
+                           </div>
                            <select value={form.categoria || ""} onChange={e => setForm({ ...form, categoria: e.target.value })} className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500 shadow-sm">
                               <option value="">Sem categoria</option>
-                              {CATEGORIAS_CARDAPIO.map(c => <option key={c} value={c}>{c}</option>)}
+                              {obterTodasCategoriasFicha(deptUrl, fichas).map(c => <option key={c} value={c}>{c}</option>)}
                            </select>
                         </div>
                      )}

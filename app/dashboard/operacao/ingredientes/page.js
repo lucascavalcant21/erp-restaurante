@@ -8,17 +8,21 @@ import {
   ArrowLeft,
   ArrowUp,
   Calculator,
+  Camera,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Clock3,
   Edit3,
+  FileText,
   History,
   Package,
   Plus,
   Search,
+  Sparkles,
   Tag,
   Trash2,
+  Upload,
   Users,
   X,
 } from "lucide-react";
@@ -26,7 +30,8 @@ import { useERP } from "../../../context/ERPContext";
 import { fetchFornecedores } from "../../../lib/fornecedores";
 import { fetchHistoricoPrecos, fetchInsumos, removerInsumo, salvarInsumo } from "../../../lib/operacao";
 import { fetchPrecosDoInsumo, salvarPrecoFornecedor } from "../../../lib/insumo-fornecedores";
-import { CATEGORIAS_INSUMO, adivinharCategoria, categoriaDoProdutoBar } from "../../../lib/categorias-insumo";
+import { CATEGORIAS_INSUMO, adivinharCategoria, categoriaDoProdutoBar, obterTodasCategoriasInsumo, salvarNovaCategoriaCustom } from "../../../lib/categorias-insumo";
+import { comprimirFotoParaIA } from "../../../lib/imagem";
 import {
   UNIDADES_INGREDIENTE,
   calcularCustoSolicitado,
@@ -199,6 +204,14 @@ function IngredientesRunner() {
   const [precoFornMsg, setPrecoFornMsg] = useState(""); // aviso quando a migração não rodou
   const [toast, setToast] = useState(null);
 
+  // Estados da migração por print/imagem ou texto
+  const [modalMigrar, setModalMigrar] = useState(false);
+  const [migrarTexto, setMigrarTexto] = useState("");
+  const [migrarArquivo, setMigrarArquivo] = useState(null);
+  const [migrarProcessando, setMigrarProcessando] = useState(false);
+  const [migrarSalvando, setMigrarSalvando] = useState(false);
+  const [itensMigracao, setItensMigracao] = useState([]);
+
   const mostrarToast = (mensagem, tipo = "ok") => {
     setToast({ mensagem, tipo });
     setTimeout(() => setToast(null), 3000);
@@ -223,13 +236,127 @@ function IngredientesRunner() {
   }, [unidadeAtiva, deptUrl]);
 
   const categorias = useMemo(() => {
-    if (deptUrl) return CATEGORIAS_INSUMO[deptUrl] || [];
+    if (deptUrl) {
+      return [...new Set([
+        ...obterTodasCategoriasInsumo(deptUrl),
+        ...insumos.map(item => item.categoria).filter(Boolean)
+      ])].sort((a, b) => a.localeCompare(b, "pt-BR"));
+    }
     return [...new Set([
-      ...(CATEGORIAS_INSUMO.cozinha || []),
-      ...(CATEGORIAS_INSUMO.bar || []),
+      ...obterTodasCategoriasInsumo("cozinha"),
+      ...obterTodasCategoriasInsumo("bar"),
       ...insumos.map(item => item.categoria).filter(Boolean),
     ])].sort((a, b) => a.localeCompare(b, "pt-BR"));
   }, [deptUrl, insumos]);
+
+  const processarMigracaoIA = async () => {
+    if (!migrarArquivo && !migrarTexto.trim()) return alert("Selecione uma imagem/print ou digite um texto.");
+    setMigrarProcessando(true);
+    try {
+      let imagemBase64 = null;
+      let mediaType = "image/jpeg";
+      if (migrarArquivo) {
+        imagemBase64 = await comprimirFotoParaIA(migrarArquivo, 1800, 0.85);
+        mediaType = migrarArquivo.type || "image/jpeg";
+      }
+
+      const res = await fetch("/api/ia-insumos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          texto: migrarTexto,
+          imagem_base64: imagemBase64,
+          imagem_media_type: mediaType,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        alert(data.error || "Não foi possível extrair a lista.");
+        setMigrarProcessando(false);
+        return;
+      }
+
+      setItensMigracao(data.itens || []);
+    } catch (e) {
+      alert("Erro ao processar: " + (e.message || "Tente novamente."));
+    } finally {
+      setMigrarProcessando(false);
+    }
+  };
+
+  const atualizarItemMigracao = (idx, campo, valor) => {
+    setItensMigracao(prev => {
+      const copia = [...prev];
+      copia[idx] = { ...copia[idx], [campo]: valor };
+      return copia;
+    });
+  };
+
+  const removerItemMigracao = idx => {
+    setItensMigracao(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const confirmarSalvarMigracao = async () => {
+    if (!itensMigracao.length) return;
+    setMigrarSalvando(true);
+    let salvos = 0;
+
+    for (const item of itensMigracao) {
+      const nome = String(item.nome || "").trim();
+      if (!nome) continue;
+      const dept = item.departamento || deptUrl || "cozinha";
+      const qtd = parseNumeroBR(item.quantidade) || 1;
+      const valor = parseNumeroBR(item.valor_total) || 0;
+      const unidade = item.unidade || "kg";
+      const marca = item.marca || null;
+      const categoria = item.categoria || adivinharCategoria(nome, dept, marca) || "Outros";
+
+      const existente = insumos.find(i => 
+        (i.departamento || "cozinha") === dept && 
+        i.nome.toLowerCase().trim() === nome.toLowerCase().trim()
+      );
+
+      let valorFinal = valor;
+      let qtdFinal = qtd;
+      let targetId = null;
+
+      if (existente) {
+        targetId = existente.id;
+        const valorExistente = Number(existente.custo_compra || existente.custo_unitario) || 0;
+        if (valorExistente > valor) {
+          valorFinal = valorExistente;
+          qtdFinal = Number(existente.tamanho_embalagem) || qtd;
+        }
+      }
+
+      const precoNorm = calcularPrecoNormalizado(qtdFinal, unidade, valorFinal);
+
+      await salvarInsumo({
+        id: targetId,
+        unidade_id: unidadeAtiva,
+        departamento: dept,
+        nome,
+        marca: marca || existente?.marca || null,
+        categoria,
+        tamanho_embalagem: qtdFinal,
+        unidade_medida: unidade,
+        custo_compra: valorFinal,
+        custo_unitario: valorFinal / qtdFinal,
+        preco_normalizado: precoNorm,
+      }, { origem: "Migração por Print / Lista" });
+
+      if (categoria) {
+        salvarNovaCategoriaCustom(categoria, dept);
+      }
+      salvos++;
+    }
+
+    setMigrarSalvando(false);
+    setModalMigrar(false);
+    await carregar();
+    mostrarToast(`${salvos} ingrediente(s) migrado(s) com sucesso! Duplicados mantidos pelo maior valor.`);
+  };
 
   const filtrados = useMemo(() => {
     const termo = normalizarBusca(busca);
@@ -470,6 +597,12 @@ function IngredientesRunner() {
                 </button>
               )}
             </label>
+            <button
+              onClick={() => { setModalMigrar(true); setItensMigracao([]); setMigrarTexto(""); setMigrarArquivo(null); }}
+              className="flex h-11 items-center justify-center gap-2 rounded-xl border border-emerald-600/30 bg-emerald-50 px-4 text-sm font-black text-emerald-700 shadow-sm transition hover:bg-emerald-100"
+            >
+              <Camera size={18} /> Migrar por Print / Lista
+            </button>
             <button
               onClick={abrirNovo}
               className="flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-black text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700"
@@ -736,10 +869,26 @@ function IngredientesRunner() {
                     <input value={form.marca} onChange={event => setForm({ ...form, marca: event.target.value })} placeholder="Deixe vazio para Sem marca" className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 outline-none focus:border-emerald-500" />
                   </label>
                   <label>
-                    <span className="text-xs font-bold text-slate-600">Categoria</span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-600">Categoria</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nova = prompt("Digite o nome da nova categoria:");
+                          if (nova && nova.trim()) {
+                            const cat = nova.trim();
+                            salvarNovaCategoriaCustom(cat, form.departamento);
+                            setForm({ ...form, categoria: cat });
+                          }
+                        }}
+                        className="text-[10px] font-bold text-emerald-600 hover:underline"
+                      >
+                        + Criar categoria
+                      </button>
+                    </div>
                     <select value={form.categoria} onChange={event => setForm({ ...form, categoria: event.target.value })} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 font-bold outline-none focus:border-emerald-500">
                       <option value="">Selecione...</option>
-                      {(CATEGORIAS_INSUMO[form.departamento] || []).map(item => <option key={item} value={item}>{item}</option>)}
+                      {obterTodasCategoriasInsumo(form.departamento).map(item => <option key={item} value={item}>{item}</option>)}
                     </select>
                   </label>
                   <label>
@@ -951,6 +1100,202 @@ function IngredientesRunner() {
                   </article>
                 );
               })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modalMigrar && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm" onClick={() => setModalMigrar(false)}>
+          <div className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
+              <div>
+                <h2 className="flex items-center gap-2.5 text-xl font-black text-slate-900">
+                  <Sparkles className="text-emerald-600" size={22} /> Migração Inteligente por Print / Lista
+                </h2>
+                <p className="mt-1 text-xs font-semibold text-slate-500">
+                  Envie o print da lista de ingredientes ou cole o texto. O sistema separa Bar e Cozinha e consolida duplicados mantendo o <strong>maior valor</strong>.
+                </p>
+              </div>
+              <button onClick={() => setModalMigrar(false)} className="rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex flex-col justify-between rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-5 text-center">
+                  <div>
+                    <Camera size={32} className="mx-auto text-emerald-600 mb-2" />
+                    <p className="text-sm font-bold text-slate-700">Print / Foto da Lista</p>
+                    <p className="text-xs text-slate-400 mt-1">Selecione uma imagem (PNG, JPG, WEBP) do celular ou computador.</p>
+                  </div>
+                  <div className="mt-4">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      id="file-print-upload"
+                      className="hidden"
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (file) setMigrarArquivo(file);
+                      }}
+                    />
+                    <label htmlFor="file-print-upload" className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-white border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-100">
+                      <Upload size={15} /> {migrarArquivo ? migrarArquivo.name : "Escolher Imagem / Print"}
+                    </label>
+                  </div>
+                </div>
+
+                <div className="flex flex-col rounded-2xl border border-slate-200 bg-white p-4">
+                  <label className="text-xs font-bold text-slate-600 mb-1.5 flex items-center justify-between">
+                    <span>Texto / Lista Copiada</span>
+                    <span className="text-[10px] text-slate-400">Opcional</span>
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={migrarTexto}
+                    onChange={e => setMigrarTexto(e.target.value)}
+                    placeholder="Cole aqui nomes, valores, quantidades de produtos..."
+                    className="w-full flex-1 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs font-medium text-slate-800 outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  disabled={migrarProcessando || (!migrarArquivo && !migrarTexto.trim())}
+                  onClick={processarMigracaoIA}
+                  className="flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-black text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  {migrarProcessando ? (
+                    <>Lendo print e consolidando (maior valor)...</>
+                  ) : (
+                    <><Sparkles size={18} /> Analisar Print com IA</>
+                  )}
+                </button>
+              </div>
+
+              {itensMigracao.length > 0 && (
+                <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-black text-slate-800">
+                      Itens Extraídos ({itensMigracao.length})
+                    </h3>
+                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-bold text-emerald-800">
+                      Duplicados consolidados pelo maior valor
+                    </span>
+                  </div>
+
+                  <div className="max-h-[320px] overflow-y-auto rounded-xl border border-slate-100">
+                    <table className="w-full text-left text-xs">
+                      <thead className="sticky top-0 bg-slate-100 font-bold text-slate-600">
+                        <tr>
+                          <th className="p-3">Nome</th>
+                          <th className="p-3">Marca</th>
+                          <th className="p-3">Setor</th>
+                          <th className="p-3">Qtd</th>
+                          <th className="p-3">Unidade</th>
+                          <th className="p-3">Valor Total (R$)</th>
+                          <th className="p-3">Categoria</th>
+                          <th className="p-3 w-10"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
+                        {itensMigracao.map((item, idx) => (
+                          <tr key={idx} className="hover:bg-slate-50/80">
+                            <td className="p-2">
+                              <input
+                                value={item.nome}
+                                onChange={e => atualizarItemMigracao(idx, "nome", e.target.value)}
+                                className="w-full rounded-lg border border-slate-200 px-2 py-1 font-bold text-slate-800"
+                              />
+                            </td>
+                            <td className="p-2">
+                              <input
+                                value={item.marca || ""}
+                                onChange={e => atualizarItemMigracao(idx, "marca", e.target.value)}
+                                placeholder="Marca"
+                                className="w-full rounded-lg border border-slate-200 px-2 py-1"
+                              />
+                            </td>
+                            <td className="p-2">
+                              <select
+                                value={item.departamento || "cozinha"}
+                                onChange={e => atualizarItemMigracao(idx, "departamento", e.target.value)}
+                                className="rounded-lg border border-slate-200 px-2 py-1 font-bold text-slate-700"
+                              >
+                                <option value="cozinha">Cozinha</option>
+                                <option value="bar">Bar</option>
+                              </select>
+                            </td>
+                            <td className="p-2">
+                              <input
+                                type="number"
+                                step="any"
+                                value={item.quantidade}
+                                onChange={e => atualizarItemMigracao(idx, "quantidade", e.target.value)}
+                                className="w-16 rounded-lg border border-slate-200 px-2 py-1 text-center font-bold"
+                              />
+                            </td>
+                            <td className="p-2">
+                              <select
+                                value={item.unidade}
+                                onChange={e => atualizarItemMigracao(idx, "unidade", e.target.value)}
+                                className="rounded-lg border border-slate-200 px-1 py-1 font-bold"
+                              >
+                                {UNIDADES_INGREDIENTE.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
+                              </select>
+                            </td>
+                            <td className="p-2">
+                              <input
+                                type="number"
+                                step="any"
+                                value={item.valor_total}
+                                onChange={e => atualizarItemMigracao(idx, "valor_total", e.target.value)}
+                                className="w-24 rounded-lg border border-slate-200 px-2 py-1 text-right font-black text-emerald-700"
+                              />
+                            </td>
+                            <td className="p-2">
+                              <input
+                                value={item.categoria || ""}
+                                onChange={e => atualizarItemMigracao(idx, "categoria", e.target.value)}
+                                placeholder="Categoria"
+                                className="w-full rounded-lg border border-slate-200 px-2 py-1"
+                              />
+                            </td>
+                            <td className="p-2 text-center">
+                              <button
+                                onClick={() => removerItemMigracao(idx)}
+                                className="text-slate-400 hover:text-red-600"
+                                title="Remover item"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4">
+              <button
+                onClick={() => setModalMigrar(false)}
+                className="flex-1 rounded-xl border border-slate-200 bg-white py-3 text-sm font-bold text-slate-600 hover:bg-slate-100"
+              >
+                Cancelar
+              </button>
+              <button
+                disabled={itensMigracao.length === 0 || migrarSalvando}
+                onClick={confirmarSalvarMigracao}
+                className="flex-1 rounded-xl bg-emerald-600 py-3 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-50"
+              >
+                {migrarSalvando ? "Salvando ingredientes..." : `Salvar e Migrar ${itensMigracao.length} Ingrediente(s)`}
+              </button>
             </div>
           </div>
         </div>

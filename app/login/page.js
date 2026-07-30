@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, LogIn } from "lucide-react";
-import { fazerLogin, homeDoUsuario, formatarParaEmailFantasma } from "../lib/auth";
+import { fazerLogin, homeDoUsuario, formatarParaEmailFantasma, lerSessao } from "../lib/auth";
+import { Loader2 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
 // Guarda somente o nome de usuário. A senha e os tokens ficam a cargo do
@@ -83,17 +84,51 @@ export default function LoginPage() {
     return true;
   }
 
-  // Ao abrir, preenche somente o usuário lembrado.
+  const [verificandoSessao, setVerificandoSessao] = useState(true);
+
+  // Ao abrir o app, se o usuário já estiver logado e não apertou "Sair", entra direto no sistema
   useEffect(() => {
-    const c = lerCred();
-    if (!c) return;
-    if (c.email) setEmail(c.email);
-  }, []);
+    let cancelado = false;
+    async function checarSessaoAtiva() {
+      try {
+        const u = await lerSessao();
+        if (cancelado) return;
+        if (u) {
+          router.replace(homeDoUsuario(u));
+          return;
+        }
+      } catch (_) {}
+      if (!cancelado) {
+        setVerificandoSessao(false);
+        const c = lerCred();
+        if (c?.email) setEmail(c.email);
+      }
+    }
+    checarSessaoAtiva();
+    return () => { cancelado = true; };
+  }, [router]);
 
   async function handleLogin(e) {
     e.preventDefault();
     if (!email || !senha) { setErro("Preencha o usuário e a senha."); return; }
     await entrar(email, senha, lembrar);
+  }
+
+  if (verificandoSessao) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-slate-900 text-white">
+        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 bg-gradient-to-br from-orange-500 to-amber-600 shadow-xl shadow-orange-500/20">
+          <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5}>
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+        </div>
+        <p className="text-xl font-bold tracking-tight mb-2">Hefisto</p>
+        <div className="flex items-center gap-2 text-sm text-slate-400 font-medium">
+          <Loader2 size={16} className="animate-spin text-orange-400" />
+          <span>Restaurando sua sessão...</span>
+        </div>
+      </div>
+    );
   }
 
   return (

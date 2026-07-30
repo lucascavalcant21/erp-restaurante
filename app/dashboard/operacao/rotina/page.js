@@ -295,6 +295,10 @@ function RotinaRunner() {
     const ini = {};
     (tmpl.itens || []).forEach(i => ini[i.id] = {
       marcado: false,
+      status: undefined,
+      temperatura_val: "",
+      temp_alerta: false,
+      plano_acao: "",
       obs: "",
       feito_por: "",
       atribuido_para: "",
@@ -308,6 +312,65 @@ function RotinaRunner() {
     registroConcluido.current = false;
     salvamentoEmAndamento.current = false;
     setExp(null);
+  };
+
+  const mudaStatusItem = (id, status) => {
+    if (registroConcluido.current || salvamentoEmAndamento.current) return;
+    const atual = respostas[id] || {};
+    const responsavel = atual.feito_por || (modoAtribuicao === "uma_pessoa" ? colabSelecionado : "");
+    if (status !== "na" && !responsavel) {
+      alert(modoAtribuicao === "uma_pessoa"
+        ? "Selecione quem fará todas as atividades."
+        : "Escolha o funcionário responsável por esta atividade antes de responder.");
+      return;
+    }
+    setRespostas(r => ({
+      ...r,
+      [id]: {
+        ...r[id],
+        status,
+        marcado: true,
+        feito_por: r[id]?.feito_por || responsavel,
+        atribuido_para: r[id]?.atribuido_para || responsavel,
+        concluido_em: r[id]?.concluido_em || new Date().toISOString(),
+      }
+    }));
+    if (status === "nao_conforme") setExp(id);
+  };
+
+  const mudaTemperatura = (id, valStr, minVal, maxVal) => {
+    if (registroConcluido.current || salvamentoEmAndamento.current) return;
+    const val = parseFloat(String(valStr).replace(",", "."));
+    const ehNum = !isNaN(val);
+    let fora = false;
+    if (ehNum) {
+      if (minVal !== undefined && minVal !== null && val < minVal) fora = true;
+      if (maxVal !== undefined && maxVal !== null && val > maxVal) fora = true;
+    }
+    setRespostas(r => {
+      const atual = r[id] || {};
+      const statusFinal = fora ? "nao_conforme" : (atual.status || "conforme");
+      return {
+        ...r,
+        [id]: {
+          ...atual,
+          temperatura_val: valStr,
+          temp_alerta: fora,
+          status: statusFinal,
+          marcado: true,
+          concluido_em: atual.concluido_em || new Date().toISOString(),
+        }
+      };
+    });
+    if (fora) setExp(id);
+  };
+
+  const mudaPlanoAcao = (id, plano) => {
+    if (registroConcluido.current || salvamentoEmAndamento.current) return;
+    setRespostas(r => ({
+      ...r,
+      [id]: { ...r[id], plano_acao: plano }
+    }));
   };
 
   const atribuirTodos = (quem) => {
@@ -466,6 +529,10 @@ function RotinaRunner() {
       id_tarefa: k,
       texto_tarefa: itens.find(i => i.id.toString() === k.toString())?.texto,
       marcado: respostas[k].marcado,
+      status: respostas[k].status || (respostas[k].marcado ? "conforme" : undefined),
+      temperatura_val: respostas[k].temperatura_val || null,
+      temp_alerta: !!respostas[k].temp_alerta,
+      plano_acao: respostas[k].plano_acao || null,
       obs: respostas[k].obs,
       feito_por: respostas[k].feito_por || colabSelecionado,
       feito_por_nome: nomeDe(respostas[k].feito_por || colabSelecionado),
@@ -733,16 +800,30 @@ function RotinaRunner() {
             <SectionLabel>Tarefas</SectionLabel>
             <div className="space-y-2">
               {itens.map((it, i) => {
-                const ok = !!respostas[it.id]?.marcado;
+                const rItem = respostas[it.id] || {};
+                const ok = !!rItem.marcado;
                 const aberto = exp === it.id;
                 const cat = (it.categoria || "").trim();
                 const catAnterior = i > 0 ? (itens[i - 1].categoria || "").trim() : null;
                 const mostrarCat = cat && cat !== catAnterior;
-                const responsavelAtual = respostas[it.id]?.feito_por || "";
+                const responsavelAtual = rItem.feito_por || "";
                 const nomeResponsavel = colaboradoresDoSetor.find(c => String(c.id) === String(responsavelAtual))?.nome || "";
                 const itensDaCategoria = cat ? itens.filter(item => (item.categoria || "").trim() === cat) : [];
                 const responsaveisCategoria = new Set(itensDaCategoria.map(item => respostas[item.id]?.feito_por).filter(Boolean));
                 const responsavelCategoria = responsaveisCategoria.size === 1 ? [...responsaveisCategoria][0] : "";
+                
+                const textoLower = (it.texto || "").toLowerCase();
+                const isTempItem = it.tipo_item === "temperatura" || /(temperatura|c[aâ]mara|freezer|geladeira|estufa|balc[aã]o|frio)/i.test(textoLower);
+                let minTemp = it.temp_min;
+                let maxTemp = it.temp_max;
+                if (minTemp === undefined && maxTemp === undefined) {
+                  if (/freezer|congelad/i.test(textoLower)) { minTemp = -25; maxTemp = -12; }
+                  else if (/c[aâ]mara|geladeira|resfriad/i.test(textoLower)) { minTemp = 0; maxTemp = 5; }
+                  else if (/estufa|quente|balc[aã]o quente/i.test(textoLower)) { minTemp = 60; maxTemp = 90; }
+                }
+
+                const statusItem = rItem.status || (rItem.temp_alerta ? "nao_conforme" : (ok ? "conforme" : undefined));
+
                 return (
                   <div key={it.id}>
                   {mostrarCat && (
@@ -759,44 +840,142 @@ function RotinaRunner() {
                     </div>
                   )}
                   <div className="erp-card !p-0 overflow-hidden transition-all duration-200"
-                    style={{ borderColor: ok ? t.cor : undefined, borderWidth: ok ? 2 : undefined, boxShadow: ok ? `0 4px 20px ${t.cor}15` : undefined }}>
-                    <div className="flex items-center gap-3 px-4 py-3.5">
-                      <button onClick={() => toggle(it.id)} disabled={registrado || salvando}
-                        aria-label={ok ? `Desmarcar atividade ${i + 1}` : `Concluir atividade ${i + 1}`}
-                        className="w-11 h-11 flex items-center justify-center flex-shrink-0 active:scale-90 transition-all duration-200 rounded-xl focus-visible:ring-2">
-                        {ok ? (
-                          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: t.cor }}>
-                            <Check size={18} color="#fff" />
-                          </div>
-                        ) : (
-                          <div className="w-8 h-8 rounded-lg flex items-center justify-center border-2" style={{ borderColor: "var(--faint)", color: "var(--dim)" }}>
-                            <span className="text-xs font-black">{i + 1}</span>
-                          </div>
-                        )}
-                      </button>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold leading-tight transition-all"
-                          style={{ color: ok ? t.cor : "var(--fg)", textDecoration: ok ? "line-through" : "none", opacity: ok ? 0.85 : 1 }}>
-                          {it.texto}
-                        </p>
-                        {it.responsavel && <p className="text-[11px] font-bold mt-0.5" style={{ color: "var(--dim)" }}>Responsável: {it.responsavel}</p>}
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
-                          <span className="text-[11px] font-bold flex items-center gap-1" style={{ color: nomeResponsavel ? t.corTexto : "var(--dim)" }}>
-                            <User size={11} /> {nomeResponsavel || "Sem funcionário atribuído"}
-                          </span>
-                          {ok && (
-                            <span className="text-[11px] font-bold flex items-center gap-1" style={{ color: t.cor }}>
-                              <Clock3 size={11} /> {horaCurta(respostas[it.id]?.concluido_em)}
-                            </span>
+                    style={{
+                      borderColor: statusItem === "nao_conforme" ? "#EF4444" : ok ? t.cor : undefined,
+                      borderWidth: ok || statusItem ? 2 : undefined,
+                      boxShadow: statusItem === "nao_conforme" ? "0 4px 20px rgba(239,68,68,0.2)" : ok ? `0 4px 20px ${t.cor}15` : undefined
+                    }}>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-3.5">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <button onClick={() => toggle(it.id)} disabled={registrado || salvando}
+                          aria-label={ok ? `Desmarcar atividade ${i + 1}` : `Concluir atividade ${i + 1}`}
+                          className="w-11 h-11 flex items-center justify-center flex-shrink-0 active:scale-90 transition-all duration-200 rounded-xl focus-visible:ring-2">
+                          {statusItem === "nao_conforme" ? (
+                            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-rose-600 text-white font-black">
+                              <X size={18} />
+                            </div>
+                          ) : ok ? (
+                            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: t.cor }}>
+                              <Check size={18} color="#fff" />
+                            </div>
+                          ) : (
+                            <div className="w-8 h-8 rounded-lg flex items-center justify-center border-2" style={{ borderColor: "var(--faint)", color: "var(--dim)" }}>
+                              <span className="text-xs font-black">{i + 1}</span>
+                            </div>
                           )}
-                          {respostas[it.id]?.foto && <span className="text-[11px] font-bold flex items-center gap-1" style={{ color: t.cor }}><ImageIcon size={11} /> foto</span>}
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold leading-tight transition-all"
+                            style={{ color: statusItem === "nao_conforme" ? "#DC2626" : ok ? t.cor : "var(--fg)", textDecoration: ok && statusItem !== "nao_conforme" ? "line-through" : "none", opacity: ok ? 0.85 : 1 }}>
+                            {it.texto}
+                          </p>
+                          {it.responsavel && <p className="text-[11px] font-bold mt-0.5" style={{ color: "var(--dim)" }}>Responsável: {it.responsavel}</p>}
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+                            <span className="text-[11px] font-bold flex items-center gap-1" style={{ color: nomeResponsavel ? t.corTexto : "var(--dim)" }}>
+                              <User size={11} /> {nomeResponsavel || "Sem funcionário atribuído"}
+                            </span>
+                            {ok && (
+                              <span className="text-[11px] font-bold flex items-center gap-1" style={{ color: t.cor }}>
+                                <Clock3 size={11} /> {horaCurta(rItem.concluido_em)}
+                              </span>
+                            )}
+                            {rItem.foto && <span className="text-[11px] font-bold flex items-center gap-1" style={{ color: t.cor }}><ImageIcon size={11} /> foto</span>}
+                            {rItem.plano_acao && <span className="text-[10px] font-black uppercase text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md">Plano de Ação</span>}
+                          </div>
                         </div>
                       </div>
-                      <button onClick={() => setExp(aberto ? null : it.id)} aria-expanded={aberto}
-                        className="w-11 h-11 flex items-center justify-center flex-shrink-0 rounded-xl focus-visible:ring-2" title="Foto e observação">
-                        <ChevronDown size={16} style={{ color: "var(--dim)", transform: aberto ? "rotate(180deg)" : "none", transition: "transform 200ms" }} />
-                      </button>
+
+                      {/* BOTOES DE STATUS TIPO KONCLUI */}
+                      <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
+                        <button
+                          type="button"
+                          onClick={() => mudaStatusItem(it.id, "conforme")}
+                          disabled={registrado || salvando}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1 ${
+                            statusItem === "conforme"
+                              ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20 scale-105"
+                              : "bg-slate-100 text-slate-600 hover:bg-emerald-100 hover:text-emerald-800"
+                          }`}
+                        >
+                          <Check size={14} /> Conforme
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => mudaStatusItem(it.id, "nao_conforme")}
+                          disabled={registrado || salvando}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1 ${
+                            statusItem === "nao_conforme"
+                              ? "bg-rose-600 text-white shadow-md shadow-rose-600/20 scale-105 animate-pulse"
+                              : "bg-slate-100 text-slate-600 hover:bg-rose-100 hover:text-rose-800"
+                          }`}
+                        >
+                          <X size={14} /> Não Conforme
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => mudaStatusItem(it.id, "na")}
+                          disabled={registrado || salvando}
+                          className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                            statusItem === "na"
+                              ? "bg-slate-700 text-white"
+                              : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                          }`}
+                        >
+                          N/A
+                        </button>
+                        <button onClick={() => setExp(aberto ? null : it.id)} aria-expanded={aberto}
+                          className="w-9 h-9 flex items-center justify-center shrink-0 rounded-xl focus-visible:ring-2" title="Detalhes e fotos">
+                          <ChevronDown size={16} style={{ color: "var(--dim)", transform: aberto ? "rotate(180deg)" : "none", transition: "transform 200ms" }} />
+                        </button>
+                      </div>
                     </div>
+
+                    {/* MEDICAO DE TEMPERATURA SE FOR ITEM DE TEMPERATURA */}
+                    {isTempItem && (
+                      <div className="mx-4 mb-3 flex flex-wrap items-center gap-2 bg-amber-50/90 border border-amber-200 rounded-xl p-2.5 text-xs">
+                        <span className="font-black text-amber-900 flex items-center gap-1">🌡️ Temperatura Medida:</span>
+                        <input
+                          type="number"
+                          step="0.1"
+                          placeholder="0.0"
+                          value={rItem.temperatura_val || ""}
+                          onChange={e => mudaTemperatura(it.id, e.target.value, minTemp, maxTemp)}
+                          disabled={registrado || salvando}
+                          className="w-24 p-2 bg-white border-2 border-amber-300 rounded-lg font-black text-center text-sm text-amber-950 outline-none focus:border-amber-500"
+                        />
+                        <span className="font-black text-amber-900">°C</span>
+                        {(minTemp !== undefined || maxTemp !== undefined) && (
+                          <span className="text-[10px] font-bold text-amber-800 ml-auto">
+                            Faixa Ideal: {minTemp !== undefined ? minTemp + "°C" : ""} {maxTemp !== undefined ? "até " + maxTemp + "°C" : ""}
+                          </span>
+                        )}
+                        {rItem.temp_alerta && (
+                          <span className="w-full mt-1 font-black text-[10px] uppercase text-rose-700 bg-rose-100 border border-rose-200 rounded-md p-1 text-center">
+                            ⚠️ Alerta Koncluí: Temperatura fora dos limites permitidos!
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* PLANO DE ACAO SE NAO CONFORME */}
+                    {(statusItem === "nao_conforme" || rItem.temp_alerta) && (
+                      <div className="mx-4 mb-3 bg-rose-50 border-2 border-rose-200 rounded-2xl p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-black text-rose-900 flex items-center gap-1">
+                            ⚠️ Plano de Ação / Tratativa de Não Conformidade (Koncluí)
+                          </span>
+                          <span className="text-[10px] font-black uppercase text-rose-700 bg-rose-100 px-2 py-0.5 rounded-md">Obrigatório</span>
+                        </div>
+                        <textarea
+                          rows={2}
+                          placeholder="Descreva a ação corretiva imediata realizada (ex: Ajustado termostato, acionada manutenção e transferidos alimentos)..."
+                          value={rItem.plano_acao || ""}
+                          onChange={e => mudaPlanoAcao(it.id, e.target.value)}
+                          disabled={registrado || salvando}
+                          className="w-full p-2.5 bg-white border border-rose-300 rounded-xl text-xs font-medium text-slate-800 outline-none focus:border-rose-500"
+                        />
+                      </div>
+                    )}
                     {modoAtribuicao === "dividir" && (
                       <div className="px-4 pb-3">
                         <label className="block text-[11px] font-black uppercase tracking-wider mb-1" style={{ color: t.cor }}>Funcionário desta atividade</label>

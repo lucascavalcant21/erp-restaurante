@@ -234,7 +234,7 @@ export default function RHPage() {
       if (!/rh_recibos_prestacao/.test(resposta.error)) {
         return alert(`Erro ao salvar o recibo: ${resposta.error}`);
       }
-      alert("O recibo será impresso, mas o histórico de recibos ainda precisa ser ativado no banco de dados.");
+      console.warn("Aviso ao salvar histórico de recibo:", resposta.error);
     }
     imprimirFichaExtra(fichaFunc, {
       numero,

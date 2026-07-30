@@ -635,6 +635,40 @@ function EstoqueRunner() {
   const valorTotal = itensDaArea.reduce((soma, item) => soma + calcularValorItem(item), 0);
   const ultimaEntrada = movimentos.find(m => ["entrada", "transferencia_entrada"].includes(m.tipo));
 
+  // Cálculo do CMV das Contagens (impacto financeiro de perdas/ajustes físicos)
+  const resumoContagens = useMemo(() => {
+    const movsContagem = (movimentos || []).filter(m => m.tipo === "contagem");
+    let cmvPerdaTotal = 0;
+    let cmvSobraTotal = 0;
+    let totalContagens = movsContagem.length;
+    let itensComDivergencia = 0;
+
+    movsContagem.forEach(m => {
+      const ins = m.insumo || itensDaArea.find(i => (i.insumo_id === m.insumo_id || i.id === m.insumo_id));
+      const custo = Number(ins?.preco_normalizado || ins?.custo_unitario || ins?.insumo?.preco_normalizado || 0);
+      const anterior = Number(m.saldo_anterior ?? m.quantidade_anterior ?? 0);
+      const contado = Number(m.saldo_posterior ?? m.quantidade ?? 0);
+      const diff = contado - anterior;
+      if (Math.abs(diff) > 0.0001) {
+        itensComDivergencia++;
+        if (diff < 0) {
+          cmvPerdaTotal += Math.abs(diff) * custo;
+        } else {
+          cmvSobraTotal += diff * custo;
+        }
+      }
+    });
+
+    const cmvLiquidoAjustes = cmvPerdaTotal - cmvSobraTotal;
+    return {
+      cmvPerdaTotal,
+      cmvSobraTotal,
+      cmvLiquidoAjustes,
+      totalContagens,
+      itensComDivergencia,
+    };
+  }, [movimentos, itensDaArea]);
+
   const abrirOperacao = (tipo, item = null) => {
     const frac = ehFracionavel(item);
     const div = frac ? dividirSaldo(item.quantidade_atual, conteudoDe(item), true) : null;
@@ -907,18 +941,20 @@ function EstoqueRunner() {
               <button disabled={!itens.length} onClick={() => setModal({ tipo: "exportar_relatorio" })} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-emerald-50 px-4 text-sm font-extrabold text-emerald-800 hover:bg-emerald-100 disabled:opacity-40"><FileText size={17} /> Relatório / Exportar</button>
             </section>
 
-            <section className="grid grid-cols-2 gap-3 xl:grid-cols-5">
+            <section className="grid grid-cols-2 gap-3 xl:grid-cols-6">
               {[
-                { icon: Package, label: "Valor neste estoque", value: fmtBRL(valorTotal) },
+                { icon: Package, label: "Valor neste estoque", value: fmtBRL(valorTotal), note: `${itensDaArea.length} itens` },
+                { icon: ClipboardCheck, label: "CMV de Contagens", value: fmtBRL(resumoContagens.cmvLiquidoAjustes), note: `${resumoContagens.itensComDivergencia} desvios de ${resumoContagens.totalContagens} contagens` },
                 { icon: AlertTriangle, label: "Abaixo do mínimo", value: `${itensDaArea.filter(i => statusItemEstoque(i, estoqueAtual).abaixoMinimo).length} itens` },
                 { icon: CalendarDays, label: "Próximas validades", value: estoqueAtual.controla_validade ? `${itensDaArea.filter(i => statusItemEstoque(i, estoqueAtual).validadeProxima).length} itens` : "Não controlada" },
                 { icon: Clock3, label: "Última reposição", value: ultimaEntrada ? fmtData(ultimaEntrada.data_movimento, true) : "Sem registro" },
                 { icon: Boxes, label: "Resumo da área", value: `${itensDaArea.length} itens` },
-              ].map(({ icon: Icon, label, value }) => (
+              ].map(({ icon: Icon, label, value, note }) => (
                 <div key={label} className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <div className="mb-4 grid h-9 w-9 place-items-center rounded-full bg-emerald-50 text-emerald-700"><Icon size={18} /></div>
+                  <div className="mb-3 grid h-9 w-9 place-items-center rounded-full bg-emerald-50 text-emerald-700"><Icon size={18} /></div>
                   <p className="text-xs font-semibold text-slate-500">{label}</p>
                   <p className="mt-1 text-lg font-black text-slate-900">{value}</p>
+                  {note && <p className="text-[10px] font-bold text-slate-400 mt-0.5 truncate">{note}</p>}
                 </div>
               ))}
             </section>
@@ -1025,6 +1061,32 @@ function EstoqueRunner() {
                         <Campo label="Data da Operação *"><input required type="datetime-local" value={operacao.data} onChange={e => setOperacao({ ...operacao, data: e.target.value })} className="h-14 w-full rounded-2xl border border-slate-200 px-3 font-semibold text-slate-800" /></Campo>
                       )}
                     </div>
+                    {modal.tipo === "contagem" && itemMod && (() => {
+                      const custo = Number(itemMod?.preco_normalizado || itemMod?.custo_unitario || itemMod?.insumo?.preco_normalizado || 0);
+                      const saldoSistema = Number(itemMod?.quantidade_atual || 0);
+                      const saldoContado = Number(operacao.quantidade) || 0;
+                      const diff = saldoContado - saldoSistema;
+                      const valorDiff = diff * custo;
+                      const unName = mostrarUn(itemMod?.unidade_medida || itemMod?.unidade_comercial || "un");
+                      return (
+                        <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3.5 space-y-2 text-xs">
+                          <div className="flex justify-between items-center text-slate-600 font-medium">
+                            <span>Saldo no Sistema: <b>{saldoSistema.toFixed(2)} {unName}</b> ({fmtBRL(saldoSistema * custo)})</span>
+                            <span>Custo Un.: <b>{fmtBRL(custo)}/{unName}</b></span>
+                          </div>
+                          <div className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-black ${
+                            diff < -0.001
+                              ? "bg-red-100 text-red-900 border border-red-200"
+                              : diff > 0.001
+                              ? "bg-emerald-100 text-emerald-900 border border-emerald-200"
+                              : "bg-sky-100 text-sky-900 border border-sky-200"
+                          }`}>
+                            <span>Divergência: {diff > 0 ? `+${diff.toFixed(2)}` : diff.toFixed(2)} {unName}</span>
+                            <span>Impacto no CMV: {diff > 0 ? `+${fmtBRL(valorDiff)} (Sobra)` : diff < 0 ? `${fmtBRL(valorDiff)} (Quebra/Perda)` : "100% Exato (R$ 0,00)"}</span>
+                          </div>
+                        </div>
+                      );
+                    })()}
                     {modal.tipo !== "contagem" && (
                       <div className="flex flex-wrap gap-1.5 pt-1">
                         <span className="w-full text-[11px] font-black uppercase text-slate-400 tracking-wider">Atalhos Rápidos de Quantidade:</span>
@@ -1612,6 +1674,29 @@ function ListaMovimentos({ movimentos, modo }) {
                       <span className="font-semibold text-slate-600">📅 {fmtData(mov.data_movimento, true)}</span>
                     </div>
                     {mov.observacao && <p className="mt-1 text-xs text-slate-500 italic">“{mov.observacao}”</p>}
+                    {ehContagem && (() => {
+                      const ins = mov.insumo || itensDaArea.find(i => (i.insumo_id === mov.insumo_id || i.id === mov.insumo_id));
+                      const custo = Number(ins?.preco_normalizado || ins?.custo_unitario || 0);
+                      const anterior = Number(mov.saldo_anterior ?? 0);
+                      const posterior = Number(mov.saldo_posterior ?? mov.quantidade ?? 0);
+                      const diff = posterior - (mov.saldo_anterior !== undefined ? anterior : posterior);
+                      const valorDiff = diff * custo;
+
+                      return (
+                        <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs font-bold">
+                          {mov.saldo_anterior !== undefined && (
+                            <span className="text-slate-500">Sistema: {fmtQtd(anterior)} → Contado: {fmtQtd(posterior)}</span>
+                          )}
+                          {custo > 0 && Math.abs(diff) > 0.001 && (
+                            <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-black ${
+                              diff < 0 ? "bg-red-100 text-red-800 border border-red-200" : "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                            }`}>
+                              {diff < 0 ? `CMV / Quebra: ${fmtBRL(Math.abs(valorDiff))}` : `Sobra: +${fmtBRL(valorDiff)}`}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
 

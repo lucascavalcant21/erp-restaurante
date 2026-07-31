@@ -191,7 +191,7 @@ export function calcularValorItem(item) {
 
   // 2. Número de unidades comerciais/garrafas
   // Se a quantidade no banco for em ml/g totais (ex: 10800 ml com garrafas de 600ml), dividimos por 600 (10800 / 600 = 18 garrafas).
-  // Se a quantidade no banco já for em unidades/garrafas (ex: 18 garrafas, 24 un, 6 un, 1 fardo), usaremos 18 diretamente.
+  // Se a quantidade no banco já for em unidades/garrafas (ex: 18 garrafas, 24 un, 6 un, 1 lata), usaremos 18 diretamente.
   let numUnidades = qtd;
   if (tamEmb > 1 && qtd >= tamEmb * 1.5) {
     numUnidades = qtd / tamEmb;

@@ -9,7 +9,7 @@ const UNIDADES = {
   barril: { familia: "unidade", paraBase: valor => valor, rotulo: "Barril (Chopp)" },
   caixa: { familia: "unidade", paraBase: valor => valor, rotulo: "Caixa" },
   pacote: { familia: "unidade", paraBase: valor => valor, rotulo: "Pacote" },
-  fardo: { familia: "unidade", paraBase: valor => valor, rotulo: "Fardo" },
+  fardo: { familia: "unidade", paraBase: valor => valor, rotulo: "Lata" },
 };
 
 export const UNIDADES_INGREDIENTE = [

@@ -1342,7 +1342,7 @@ function EstoqueRunner() {
                                       nome.includes("limão") || nome.includes("laranja") || nome.includes("abacaxi") ||
                                       nome.includes("hortelã") || nome.includes("morango") || nome.includes("maracujá") ||
                                       nome.includes("fruta");
-                      let opcoes = ["garrafa", "lata", "unidade", "caixa", "pacote", "fardo", "barril", "outro"];
+                      let opcoes = ["garrafa", "lata", "unidade", "caixa", "pacote", "barril", "outro"];
                       if (ehBar) {
                         opcoes = ehFruta ? ["unidade", "g", "kg"] : ["garrafa", "lata", "barril"];
                       }

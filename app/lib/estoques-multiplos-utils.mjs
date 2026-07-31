@@ -52,22 +52,23 @@ export function gruposOperacionaisEstoque(estoque) {
 }
 
 export function grupoOperacionalItem(item, estoque) {
-  const cat = item?.categoria;
-  if (cat && cat !== "Sem categoria") return cat;
+  let cat = String(item?.categoria || "").trim();
+  const ehGenerico = !cat || /^(bebidas?|insumos?|ingredientes?|sem categoria|outros?)$/i.test(cat);
+  if (cat && !ehGenerico) return cat;
 
   const area = slugEstoque(estoque?.slug || estoque?.nome);
-  const texto = textoNormalizado(`${item?.categoria || ""} ${item?.nome || ""}`);
+  const texto = textoNormalizado(`${item?.categoria || ""} ${item?.nome || ""} ${item?.marca || ""}`);
 
   if (area === "bar") {
-    if (/cerveja|chopp|amstel|heineken|skol|brahma|corona|budweiser|stella|eisenbahn|sol|spaten/.test(texto)) return "Cervejas";
-    if (/destilado|whisky|vodka|cachaca|rum|tequila|gin|licor|dose|drink|coquetel|caipirinha|mojito|margarita|aperol|conhaque/.test(texto)) return "Destilados";
-    if (/vinho|espumante|prosecco|cabernet|malbec|merlot/.test(texto)) return "Vinhos";
+    if (/cerveja|chopp|chope|amstel|heineken|skol|brahma|corona|budweiser|stella|eisenbahn|sol|spaten|long neck|pilsen|ipa|lager/.test(texto)) return "Cervejas";
+    if (/destilado|vodka|absolut|smirnoff|grey goose|whisky|whiskey|red label|black label|jack daniels|ballantines|chivas|passport|white horse|gin|tanqueray|beefeater|gordons|bombay|cachaca|cachaça|jambu|amburana|pirassununga|51|velho barreiro|seleta|salinas|ypioca|rum|bacardi|montilla|tequila|jose cuervo|licor|jagermeister|baileys|cointreau|amaretto|drambuie|campari|aperol|martini|vermute|conhaque|domecq|dreher|presidente|dose|drink|coquetel|caipirinha|mojito|margarita/.test(texto)) return "Destilados";
+    if (/vinho|espumante|champagne|prosecco|cabernet|malbec|merlot|chardonnay|sauvignon|carmenere|tinto|branco|rose|rosé|chocovino|contry wine|campo largo|cordeiro con piel|pergola|santa helena|concha y toro/.test(texto)) return "Vinhos";
     if (/chopp|chope|barril/.test(texto)) return "Chopp";
-    if (/agua|tonica/.test(texto)) return "Água";
-    if (/refrigerante|coca|guarana|fanta|sprite|schweppes/.test(texto)) return "Refrigerantes";
-    if (/bombom|trufa|chocolate/.test(texto)) return "Bombons";
-    if (/xarope|mix|espuma|geleia|infusao/.test(texto)) return "Pré-preparos";
-    return "Cervejas";
+    if (/agua|água|tonica|tônica|schweppes|perrier|san pellegrino/.test(texto)) return "Água";
+    if (/refrigerante|coca|cocacola|guarana|guaraná|fanta|sprite|pepsi|soda|h2oh|sukita/.test(texto)) return "Refrigerantes";
+    if (/bombom|trufa|chocolate|ferrero|raffaello|lacta|nestle|garoto/.test(texto)) return "Bombons";
+    if (/xarope|mix|espuma|geleia|infusao|monin|1883|fabbri/.test(texto)) return "Pré-preparos";
+    return "Destilados";
   }
 
   if (area === "cozinha") {

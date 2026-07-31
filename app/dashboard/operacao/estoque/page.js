@@ -564,78 +564,64 @@ function EstoqueRunner() {
   }, [catalogo, estoqueAtual]);
 
   const itensDaArea = useMemo(() => {
-    if (!itens?.length) return [];
-    if (!estoqueAtual) return itens;
+    if (!estoqueAtual) return itens || [];
 
-    const slug = (estoqueAtual.slug || estoqueAtual.nome || "").toLowerCase();
-    const tipo = (estoqueAtual.tipo || "").toLowerCase();
+    const mapa = new Map();
+    // 1. Adiciona todos os insumos do catálogo cadastrados para a área (Bar, Cozinha, etc.)
+    for (const insumo of catalogoFiltradoPorArea || []) {
+      if (!insumo) continue;
+      const catResolvida = grupoOperacionalItem(insumo, estoqueAtual);
+      mapa.set(insumo.id, {
+        id: insumo.id,
+        insumo_id: insumo.id,
+        estoque_id: estoqueAtual.id,
+        nome: insumo.nome,
+        codigo_interno: insumo.codigo_interno,
+        marca: insumo.marca,
+        categoria: catResolvida,
+        departamento: insumo.departamento,
+        unidade_medida: insumo.unidade_medida,
+        tamanho_embalagem: insumo.tamanho_embalagem || 1,
+        unidade_comercial: insumo.unidade_comercial || (["ml", "l"].includes(String(insumo.unidade_medida).toLowerCase()) ? "garrafa" : insumo.unidade_medida),
+        custo_unitario: Number(insumo.custo_compra ?? insumo.custo_unitario) || 0,
+        quantidade_atual: Number(insumo.quantidade_atual) || 0,
+        estoque_minimo: insumo.estoque_minimo || null,
+        estoque_maximo: insumo.estoque_maximo || null,
+        validade: insumo.validade || null,
+        ultima_movimentacao_em: insumo.updated_at || insumo.created_at,
+        insumo: insumo,
+      });
+    }
 
-    return itens.filter(item => {
-      if (item.estoque_id && String(item.estoque_id) === String(estoqueAtual.id)) return true;
+    // 2. Sobrescreve com saldos ou metadados específicos da tabela estoque_itens (se existirem)
+    for (const item of itens || []) {
+      if (!item) continue;
+      const insumoId = item.insumo_id || item.id;
+      const insumo = item.insumo || catalogo.find(i => i.id === insumoId) || item;
+      const catResolvida = grupoOperacionalItem(item, estoqueAtual) || grupoOperacionalItem(insumo, estoqueAtual);
 
-      const dept = (item.departamento || "").toLowerCase();
-      const cat = (item.categoria || "").toLowerCase();
-      const nome = (item.nome || "").toLowerCase();
+      mapa.set(insumoId, {
+        ...insumo,
+        ...item,
+        id: item.id || insumoId,
+        insumo_id: insumoId,
+        estoque_id: estoqueAtual.id,
+        nome: item.nome || insumo.nome,
+        codigo_interno: item.codigo_interno || insumo.codigo_interno,
+        marca: item.marca || insumo.marca,
+        categoria: catResolvida,
+        unidade_medida: item.unidade_medida || insumo.unidade_medida,
+        tamanho_embalagem: item.tamanho_embalagem || insumo.tamanho_embalagem || 1,
+        unidade_comercial: item.unidade_comercial || insumo.unidade_comercial,
+        custo_unitario: Number(item.custo_unitario ?? insumo.custo_compra ?? insumo.custo_unitario) || 0,
+        quantidade_atual: Number(item.quantidade_atual ?? insumo.quantidade_atual) || 0,
+        estoque_minimo: item.estoque_minimo ?? insumo.estoque_minimo ?? null,
+        estoque_maximo: item.estoque_maximo ?? insumo.estoque_maximo ?? null,
+      });
+    }
 
-      // 1. Limpeza
-      if (slug.includes("limpeza") || tipo === "limpeza") {
-        return (
-          dept.includes("limpeza") ||
-          cat.includes("limpeza") ||
-          cat.includes("higiene") ||
-          /(detergente|sabao|saboaria|desinfetante|cloro|alcool|papel toalha|bucha|esponja|vassoura|rodo|saco de lixo|palha|alvejante|multiuso|pano)/.test(nome) ||
-          /(limpeza|higiene)/.test(cat)
-        );
-      }
-
-      // 2. Embalagens
-      if (slug.includes("embalag") || tipo === "embalagens") {
-        return (
-          dept.includes("embalag") ||
-          dept.includes("descartav") ||
-          cat.includes("embalag") ||
-          cat.includes("descartav") ||
-          /(embalagem|caixa|sacola|copo|pote|marmita|isopor|papel acoplado|guardanapo|canudo|tampa|pelicula|filme pvc|aluminio|bobina)/.test(nome) ||
-          /(embalag|descartav)/.test(cat)
-        );
-      }
-
-      // 3. Bar
-      if (slug.includes("bar") || tipo === "bebidas") {
-        return (
-          dept.includes("bar") ||
-          dept.includes("bebida") ||
-          dept.includes("drink") ||
-          cat.includes("bebida") ||
-          cat.includes("drink") ||
-          cat.includes("cerveja") ||
-          cat.includes("destilado") ||
-          cat.includes("vinho") ||
-          cat.includes("refrigerante") ||
-          cat.includes("suco") ||
-          cat.includes("xarope") ||
-          cat.includes("gin") ||
-          cat.includes("vodka") ||
-          cat.includes("whisky") ||
-          cat.includes("cachaça") ||
-          cat.includes("rum") ||
-          cat.includes("chopp") ||
-          /(cerveja|chopp|vinho|vodka|gin|whisky|cachaca|rum|xarope|licor|tonica|energetico|refrigerante|suco|agua|ice|tequila|vermute|bitter|espumante|poupa|hortela|morango|red bull|skol|brahma|heineken|amstel|stella|corona|budweiser|eisenbahn|sol|spaten|antarctica|coca|fanta|sprite|schweppes)/.test(nome) ||
-          /(bar|bebida|drink|adega)/.test(dept)
-        );
-      }
-
-      // 4. Cozinha (padrão para insumos alimentícios e gerais)
-      if (slug.includes("cozinha") || tipo === "alimentos") {
-        const ehLimpezaOuEmbalagem = dept.includes("limpeza") || dept.includes("embalag") || cat.includes("limpeza") || cat.includes("embalag");
-        if (ehLimpezaOuEmbalagem) return false;
-        if (dept.includes("bar") || dept.includes("bebida") || dept.includes("drink")) return false;
-        return true;
-      }
-
-      return true;
-    });
-  }, [itens, estoqueAtual]);
+    return Array.from(mapa.values());
+  }, [catalogoFiltradoPorArea, itens, estoqueAtual, catalogo]);
 
   const grupos = useMemo(() => gruposOperacionaisEstoque(estoqueAtual), [estoqueAtual]);
   const contagemGrupos = useMemo(() => Object.fromEntries(grupos.map(grupo => [

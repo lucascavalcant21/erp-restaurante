@@ -505,6 +505,7 @@ function EstoqueRunner() {
 
       // 3. Bar
       if (slug.includes("bar") || tipo === "bebidas") {
+        if (dept.includes("cozinha") || dept.includes("alimento")) return false;
         return (
           dept.includes("bar") ||
           dept.includes("bebida") ||

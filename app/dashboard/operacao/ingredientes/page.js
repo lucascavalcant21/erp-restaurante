@@ -75,6 +75,8 @@ function novoFormulario(departamento = "cozinha") {
     densidade_g_ml: "",
     peso_bruto_g: "",
     perda_g: "",
+    peso_peca_g: "",
+    pecas_por_kg: "",
     empanado: false,
     ganho_pct: "",
     custo_empanado_kg: "",
@@ -411,6 +413,8 @@ function IngredientesRunner() {
       densidade_g_ml: insumo.densidade_g_ml ? String(insumo.densidade_g_ml) : "",
       peso_bruto_g: insumo.peso_bruto_padrao != null ? String(insumo.peso_bruto_padrao) : "",
       perda_g: insumo.perda_g != null ? String(insumo.perda_g) : "",
+      peso_peca_g: insumo.peso_peca_g != null ? String(insumo.peso_peca_g) : "",
+      pecas_por_kg: insumo.pecas_por_kg != null ? String(insumo.pecas_por_kg) : "",
       empanado: !!insumo.empanado,
       ganho_pct: insumo.ganho_pct != null ? String(insumo.ganho_pct) : "",
       custo_empanado_kg: insumo.custo_empanado_kg != null ? String(insumo.custo_empanado_kg) : "",
@@ -508,6 +512,8 @@ function IngredientesRunner() {
       peso_bruto_padrao: Number.isFinite(pesoBruto) ? pesoBruto : null,
       perda_g: Number.isFinite(perdaG) ? perdaG : null,
       perda_pct: perdaPct != null ? Number(perdaPct.toFixed(3)) : null,
+      peso_peca_g: form.peso_peca_g ? parseNumeroBR(form.peso_peca_g) : null,
+      pecas_por_kg: form.pecas_por_kg ? parseNumeroBR(form.pecas_por_kg) : null,
       empanado: !!form.empanado,
       ganho_pct: form.empanado && form.ganho_pct ? parseNumeroBR(form.ganho_pct) : null,
       custo_empanado_kg: form.empanado && form.custo_empanado_kg ? parseNumeroBR(form.custo_empanado_kg) : null,
@@ -720,6 +726,20 @@ function IngredientesRunner() {
                       <p className="mt-0.5 text-[11px] font-medium text-slate-500">
                         {fmtBRL(normalizado)}/{unidadeNormalizada(insumo.unidade_medida)}
                       </p>
+                      {(() => {
+                        const pG = Number(insumo.peso_peca_g);
+                        const pK = Number(insumo.pecas_por_kg);
+                        if (normalizado > 0 && (pG > 0 || pK > 0)) {
+                          const custoPeca = pG > 0 ? normalizado * (pG / 1000) : normalizado / pK;
+                          const pesoF = pG || (1000 / pK);
+                          return (
+                            <span className="mt-1 inline-block rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-black text-emerald-800 border border-emerald-200">
+                              ~{fmtBRL(custoPeca)}/un ({pesoF.toFixed(0)}g)
+                            </span>
+                          );
+                        }
+                        return null;
+                      })()}
                     </td>
                     <td className="px-2.5 py-2">
                       <CalculadoraRapida
@@ -787,6 +807,20 @@ function IngredientesRunner() {
                     <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Valor atual</p>
                     <p className="mt-1 font-black">{fmtBRL(insumo.custo_compra ?? 0)}</p>
                     <p className="text-xs text-slate-500">{fmtBRL(normalizado)}/{unidadeNormalizada(insumo.unidade_medida)}</p>
+                    {(() => {
+                      const pG = Number(insumo.peso_peca_g);
+                      const pK = Number(insumo.pecas_por_kg);
+                      if (normalizado > 0 && (pG > 0 || pK > 0)) {
+                        const custoPeca = pG > 0 ? normalizado * (pG / 1000) : normalizado / pK;
+                        const pesoF = pG || (1000 / pK);
+                        return (
+                          <span className="mt-1 inline-block rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-black text-emerald-800 border border-emerald-200">
+                            ~{fmtBRL(custoPeca)}/un ({pesoF.toFixed(0)}g)
+                          </span>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Variação</p>
@@ -942,6 +976,69 @@ function IngredientesRunner() {
                     </span>
                   </div>
                 )}
+
+                {/* Porcionamento & Custo por Peça (Ex: R$ 90/kg, 150g/peça -> R$ 13,50/un) */}
+                <div className="mt-4 border-t border-slate-100 pt-3 space-y-3">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                    <Calculator size={14} className="text-emerald-600" />
+                    Porcionamento por Peça / Unidade (Opcional)
+                  </h4>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <label>
+                      <span className="text-xs font-bold text-slate-600">Peso médio de 1 peça (g)</span>
+                      <input
+                        inputMode="decimal"
+                        value={form.peso_peca_g}
+                        onChange={e => {
+                          const val = e.target.value;
+                          const numG = parseNumeroBR(val);
+                          const pecas = Number.isFinite(numG) && numG > 0 ? (1000 / numG).toFixed(2).replace('.', ',') : "";
+                          setForm({ ...form, peso_peca_g: val, pecas_por_kg: pecas });
+                        }}
+                        placeholder="Ex.: 150 (g por unidade)"
+                        className="mt-1 h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-bold outline-none focus:border-emerald-500 text-slate-800"
+                      />
+                    </label>
+                    <label>
+                      <span className="text-xs font-bold text-slate-600">Qtd. média de peças por kg</span>
+                      <input
+                        inputMode="decimal"
+                        value={form.pecas_por_kg}
+                        onChange={e => {
+                          const val = e.target.value;
+                          const numPec = parseNumeroBR(val);
+                          const peso = Number.isFinite(numPec) && numPec > 0 ? (1000 / numPec).toFixed(1).replace('.', ',') : "";
+                          setForm({ ...form, pecas_por_kg: val, peso_peca_g: peso });
+                        }}
+                        placeholder="Ex.: 6 (un por kg)"
+                        className="mt-1 h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-bold outline-none focus:border-emerald-500 text-slate-800"
+                      />
+                    </label>
+                  </div>
+
+                  {(() => {
+                    const pKg = calcularPrecoNormalizado(parseNumeroBR(form.tamanho_embalagem), form.unidade_medida, parseNumeroBR(form.valor_embalagem));
+                    const pesoG = parseNumeroBR(form.peso_peca_g);
+                    const pecasKg = parseNumeroBR(form.pecas_por_kg);
+                    if (pKg > 0 && (pesoG > 0 || pecasKg > 0)) {
+                      const custoPeca = pesoG > 0 ? pKg * (pesoG / 1000) : pKg / pecasKg;
+                      const pecasCalc = pecasKg || (1000 / pesoG);
+                      const pesoCalc = pesoG || (1000 / pecasKg);
+                      return (
+                        <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-3 text-xs text-emerald-950 space-y-1">
+                          <div className="flex justify-between items-center font-black text-emerald-900">
+                            <span>🥩 Custo estimado por peça/unidade:</span>
+                            <span className="text-sm font-black text-emerald-700">{fmtBRL(custoPeca)} / unidade</span>
+                          </div>
+                          <p className="font-semibold text-emerald-800">
+                            ~<strong>{pesoCalc.toFixed(0)}g</strong> por peça · Rende cerca de <strong>{pecasCalc.toFixed(1)} peças por kg</strong>.
+                          </p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
               </section>
 
               {!ehBar && (

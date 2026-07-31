@@ -106,12 +106,18 @@ export function tiposCompativeis(origem, destino) {
 }
 
 export function statusItemEstoque(item, estoque, agora = new Date()) {
-  const saldo = Number(item?.quantidade_atual) || 0;
+  const tamEmb = Number(item?.tamanho_embalagem) || 1;
+  const unMed = String(item?.unidade_medida || "").toLowerCase();
+  let saldoUnidades = Number(item?.quantidade_atual) || 0;
+  if (tamEmb > 1 && (unMed === "ml" || unMed === "l" || unMed === "g" || unMed === "kg")) {
+    saldoUnidades = (Number(item?.quantidade_atual) || 0) / tamEmb;
+  }
+
   const minimo = Number(item?.estoque_minimo);
   const abaixoMinimo = estoque?.controla_minimo !== false
     && Number.isFinite(minimo)
     && minimo > 0
-    && saldo < minimo;
+    && saldoUnidades < minimo;
 
   let diasValidade = null;
   if (estoque?.controla_validade && item?.validade) {
@@ -124,7 +130,7 @@ export function statusItemEstoque(item, estoque, agora = new Date()) {
     diasValidade,
     vencido: diasValidade !== null && diasValidade < 0,
     validadeProxima: diasValidade !== null && diasValidade >= 0 && diasValidade <= 7,
-    semSaldo: saldo <= 0,
+    semSaldo: (Number(item?.quantidade_atual) || 0) <= 0,
   };
 }
 

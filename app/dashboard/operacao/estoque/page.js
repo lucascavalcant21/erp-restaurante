@@ -65,35 +65,30 @@ const CATEGORIAS_ESTOQUE_BAR = [
 
 function calcularValorItem(item) {
   if (!item) return 0;
-  const qtd = Number(item.quantidade_atual) || 0;
+  const qtd = Number(item?.quantidade_atual) || 0;
   if (qtd <= 0) return 0;
 
-  const custoUnit = Number(item.custo_unitario || item.preco_normalizado || item.insumo?.preco_normalizado) || 0;
-  const custoCompra = Number(item.custo_compra || item.preco_compra || item.insumo?.custo_compra) || 0;
-  const tamEmb = Number(item.tamanho_embalagem) || 1;
-  const un = String(item.unidade_medida || "").toLowerCase();
+  const custoUnit = Number(item?.custo_unitario || item?.preco_normalizado || item?.insumo?.preco_normalizado) || 0;
+  const custoCompra = Number(item?.custo_compra || item?.preco_compra || item?.insumo?.custo_compra) || 0;
+  const tamEmb = Number(item?.tamanho_embalagem) || 1;
 
-  // 1. Preço/custo por garrafa/lata/unidade fechada (ex: R$ 12,00 por Amstel, R$ 40,00 por Aperol, R$ 55,00 por Cachaça)
-  let custoPorEmbalagem = custoCompra;
-  if (!custoPorEmbalagem || custoPorEmbalagem <= 0) {
-    if (custoUnit > 0) {
-      custoPorEmbalagem = (custoUnit < 1 && tamEmb > 1) ? (custoUnit * tamEmb) : custoUnit;
-    }
+  // 1. Custo por unidade comercial/embalagem (ex: R$ 13,00 por garrafa Amstel, R$ 14,00 Corona, R$ 40,00 Aperol)
+  let custoEfetivo = custoUnit > 0 ? custoUnit : custoCompra;
+  if (custoEfetivo > 0 && custoEfetivo < 0.5 && tamEmb > 1) {
+    custoEfetivo = custoEfetivo * tamEmb;
   }
 
-  const ehFrac = tamEmb > 1 && item.permite_fracionado !== false && un !== "un";
+  if (custoEfetivo <= 0) return 0;
 
-  if (ehFrac && custoPorEmbalagem > 0) {
-    let numEmbalagens = qtd;
-    // Se a quantidade no banco for o volume total em ml (ex: 10800 ml para garrafas de 600ml):
-    if (qtd >= tamEmb) {
-      numEmbalagens = qtd / tamEmb;
-    }
-    return Math.round(numEmbalagens * custoPorEmbalagem * 100) / 100;
+  // 2. Número de unidades comerciais/garrafas
+  // Se a quantidade no banco for em ml/g totais (ex: 10800 ml com garrafas de 600ml), dividimos por 600 (10800 / 600 = 18 garrafas).
+  // Se a quantidade no banco já for em unidades/garrafas (ex: 18 garrafas, 24 un, 6 un, 1 fardo), usaremos 18 diretamente.
+  let numUnidades = qtd;
+  if (tamEmb > 1 && qtd >= tamEmb * 1.5) {
+    numUnidades = qtd / tamEmb;
   }
 
-  const custoFinal = custoPorEmbalagem > 0 ? custoPorEmbalagem : (custoUnit > 0 ? custoUnit : 0);
-  return Math.round(qtd * custoFinal * 100) / 100;
+  return Math.round(numUnidades * custoEfetivo * 100) / 100;
 }
 
 function exportarExcel(estoque, itens, unidadeInfo) {

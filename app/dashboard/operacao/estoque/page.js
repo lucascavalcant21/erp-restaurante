@@ -4,7 +4,7 @@ import React, { Fragment, Suspense, useCallback, useEffect, useMemo, useState } 
 import { useSearchParams } from "next/navigation";
 import {
   AlertTriangle, ArrowLeft, ArrowRightLeft, Boxes, CalendarDays, Check,
-  ChevronRight, ClipboardCheck, Clock3, Copy, Download, Edit3, FileText, Filter, History, Loader2,
+  ChevronDown, ChevronRight, ChevronUp, ClipboardCheck, Clock3, Copy, Download, Edit3, FileText, Filter, History, Loader2,
   MapPin, MoreVertical, Package, PackageMinus, PackagePlus, Plus, Printer, Search,
   Settings2, Share2, Upload, User, Warehouse, X,
 } from "lucide-react";
@@ -755,6 +755,17 @@ function EstoqueRunner() {
       let resposta;
       const frac = ehFracionavel(item);
       const conteudoFrac = conteudoDe(item);
+
+      // Conversão automática de unidade se o usuário digitou em g para item cadastrado em kg (ou ml para L)
+      let qtdOperacao = operacao.quantidade;
+      const unBase = String(item?.unidade_medida || "").toLowerCase();
+      const unDig = String(operacao.unidade_digitada || unBase).toLowerCase();
+      if (unBase === "kg" && unDig === "g") {
+        qtdOperacao = String((Number(operacao.quantidade) || 0) / 1000);
+      } else if (unBase === "l" && unDig === "ml") {
+        qtdOperacao = String((Number(operacao.quantidade) || 0) / 1000);
+      }
+
       const bebArgs = {
         unidadeId, estoqueId, insumoId: item?.insumo_id,
         usuarioId: usuarioIdFinal, usuarioNome: responsavelNome,
@@ -767,33 +778,33 @@ function EstoqueRunner() {
       });
 
       if (frac && modal?.tipo === "entrada") {
-        resposta = await entradaBebidaUnidades({ ...bebArgs, unidades: operacao.quantidade });
-        if (resposta?.error) resposta = await stdMov("entrada", (Number(operacao.quantidade) || 0) * conteudoFrac);
+        resposta = await entradaBebidaUnidades({ ...bebArgs, unidades: qtdOperacao });
+        if (resposta?.error) resposta = await stdMov("entrada", (Number(qtdOperacao) || 0) * conteudoFrac);
       } else if (frac && modal?.tipo === "saida") {
         resposta = operacao.modo === "unidade"
-          ? await baixaBebidaUnidades({ ...bebArgs, unidades: operacao.quantidade })
-          : await baixaBebidaConteudo({ ...bebArgs, quantidade: operacao.quantidade });
-        if (resposta?.error) resposta = await stdMov("saida", operacao.modo === "unidade" ? (Number(operacao.quantidade) || 0) * conteudoFrac : (Number(operacao.quantidade) || 0));
+          ? await baixaBebidaUnidades({ ...bebArgs, unidades: qtdOperacao })
+          : await baixaBebidaConteudo({ ...bebArgs, quantidade: qtdOperacao });
+        if (resposta?.error) resposta = await stdMov("saida", operacao.modo === "unidade" ? (Number(qtdOperacao) || 0) * conteudoFrac : (Number(qtdOperacao) || 0));
       } else if (frac && modal?.tipo === "contagem") {
         resposta = await contagemBebida({ ...bebArgs, fechadas: operacao.fechadas, aberto: operacao.aberto });
         if (resposta?.error) resposta = await registrarContagemMulti({ unidadeId, estoqueId, insumoId: item?.insumo_id, saldoContado: (Number(operacao.fechadas) || 0) * conteudoFrac + (Number(operacao.aberto) || 0), usuarioId: usuarioIdFinal, usuarioNome: responsavelNome, observacao: operacao.observacao });
       } else if (modal?.tipo === "contagem") {
         resposta = await registrarContagemMulti({
           unidadeId, estoqueId, insumoId: item?.insumo_id,
-          saldoContado: operacao.quantidade, usuarioId: usuarioIdFinal,
+          saldoContado: qtdOperacao, usuarioId: usuarioIdFinal,
           usuarioNome: responsavelNome, observacao: operacao.observacao,
         });
       } else if (modal?.tipo === "transferencia") {
         resposta = await transferirEntreEstoques({
           unidadeId, estoqueOrigem: estoqueAtual,
           estoqueDestino: estoques.find(i => i.id === operacao.destino_id),
-          item, quantidade: operacao.quantidade, usuarioId: usuarioIdFinal,
+          item, quantidade: qtdOperacao, usuarioId: usuarioIdFinal,
           usuarioNome: responsavelNome, observacao: operacao.observacao,
         });
       } else {
         resposta = await registrarMovimentoMulti({
           unidadeId, estoqueId, insumoId: item?.insumo_id,
-          tipo: modal?.tipo, quantidade: operacao.quantidade,
+          tipo: modal?.tipo, quantidade: qtdOperacao,
           usuarioId: usuarioIdFinal, usuarioNome: responsavelNome,
           observacao: operacao.observacao, dataMovimento: operacao.data || null,
         });
@@ -936,111 +947,144 @@ function EstoqueRunner() {
           </div>
         )}
 
-        <section>
-          <div className="mb-3 flex items-center justify-between">
-            <div><p className="text-sm font-extrabold text-slate-800">Área de estoque</p><p className="text-xs text-slate-500">Cada área mantém seu próprio saldo.</p></div>
-            <button onClick={() => abrirEdicaoEstoque(estoqueAtual)} disabled={!estoqueAtual} className="text-sm font-bold text-emerald-700 hover:underline">Editar área</button>
+        <section className="bg-white rounded-2xl border border-slate-200 p-3 shadow-xs">
+          <div className="flex items-center justify-between gap-3 mb-2 px-1">
+            <div>
+              <p className="text-xs font-black uppercase tracking-wider text-slate-500">Setores de Estoque</p>
+              <p className="text-xs text-slate-400">Selecione o estoque para visualizar os saldos</p>
+            </div>
+            <button onClick={() => abrirEdicaoEstoque(estoqueAtual)} disabled={!estoqueAtual} className="text-xs font-bold text-emerald-700 hover:underline">
+              Editar Área
+            </button>
           </div>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-            {estoquesVisiveis.map(estoque => (
-              <button
-                key={estoque.id}
-                onClick={() => setEstoqueId(estoque.id)}
-                className={`relative min-h-[110px] rounded-2xl border p-4 text-left transition ${estoque.id === estoqueId ? "border-transparent text-white shadow-lg" : "border-slate-200 bg-white hover:border-slate-300"} ${estoque.status !== "ativo" ? "opacity-55" : ""}`}
-                style={estoque.id === estoqueId ? { backgroundColor: estoque.cor || "#047857" } : undefined}
-              >
-                <div className="flex items-center justify-between"><Warehouse size={20} /><ChevronRight size={17} /></div>
-                <strong className="mt-3 block text-base">{estoque.nome}</strong>
-                <span className={`text-xs ${estoque.id === estoqueId ? "text-white/80" : "text-slate-500"}`}>{estoque.itens || 0} itens · {estoque.status}</span>
-              </button>
-            ))}
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+            {estoquesVisiveis.map(estoque => {
+              const isSelected = estoque.id === estoqueId;
+              return (
+                <button
+                  key={estoque.id}
+                  type="button"
+                  onClick={() => setEstoqueId(estoque.id)}
+                  className={`flex shrink-0 items-center gap-2.5 rounded-xl px-4 py-2.5 text-xs font-black transition-all cursor-pointer ${
+                    isSelected
+                      ? "bg-slate-900 text-white shadow-md ring-2 ring-slate-900"
+                      : "border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 hover:border-slate-300"
+                  } ${estoque.status !== "ativo" ? "opacity-55" : ""}`}
+                >
+                  <div className={`grid h-6 w-6 place-items-center rounded-md ${isSelected ? "bg-white/20 text-emerald-400" : "bg-slate-200 text-slate-600"}`}>
+                    <Warehouse size={14} />
+                  </div>
+                  <span>{estoque.nome}</span>
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${isSelected ? "bg-white/20 text-white" : "bg-slate-200 text-slate-600"}`}>
+                    {estoque.itens || 0}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </section>
 
         {estoqueAtual && (
           <>
-            <section className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white p-3">
-              <span className="mr-auto px-2 text-sm font-black" style={{ color: estoqueAtual.cor }}>{estoqueAtual.nome}</span>
-              <button disabled={!ativo} onClick={() => abrirOperacao("entrada")} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-emerald-700 px-4 text-sm font-extrabold text-white disabled:opacity-40"><PackagePlus size={17} /> Nova entrada</button>
-              <button disabled={!ativo || !itens.length} onClick={() => abrirOperacao("saida")} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-extrabold disabled:opacity-40"><PackageMinus size={17} /> Nova baixa</button>
-              <button disabled={!ativo || !itens.length} onClick={() => abrirOperacao("contagem")} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-extrabold disabled:opacity-40"><ClipboardCheck size={17} /> Contagem</button>
-              <button disabled={!ativo || !itens.length || !destinosCompativeis.length} onClick={() => abrirOperacao("transferencia")} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-extrabold disabled:opacity-40"><ArrowRightLeft size={17} /> Transferência</button>
-              <button disabled={!ativo} onClick={() => setModal({ tipo: "importar" })} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-extrabold disabled:opacity-40"><Upload size={17} /> Importar lista</button>
-              <button disabled={!itens.length} onClick={() => setModal({ tipo: "exportar_relatorio" })} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-emerald-50 px-4 text-sm font-extrabold text-emerald-800 hover:bg-emerald-100 disabled:opacity-40"><FileText size={17} /> Relatório / Exportar</button>
+            <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm">
+              <div className="flex items-center gap-2.5">
+                <span className="h-3.5 w-3.5 rounded-full shrink-0" style={{ backgroundColor: estoqueAtual.cor || "#047857" }} />
+                <div>
+                  <h2 className="text-base font-black text-slate-900 leading-tight">{estoqueAtual.nome}</h2>
+                  <span className="text-[11px] font-bold text-slate-500">{itensDaArea.length} produtos cadastrados</span>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <button disabled={!ativo} onClick={() => abrirOperacao("entrada")} className="inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-xs font-extrabold text-white hover:bg-emerald-700 shadow-sm disabled:opacity-40 transition-all active:scale-95 cursor-pointer">
+                  <PackagePlus size={16} /> Nova entrada
+                </button>
+                <button disabled={!ativo || !itens.length} onClick={() => abrirOperacao("saida")} className="inline-flex h-10 items-center gap-2 rounded-xl bg-slate-900 px-4 text-xs font-extrabold text-white hover:bg-slate-800 shadow-sm disabled:opacity-40 transition-all active:scale-95 cursor-pointer">
+                  <PackageMinus size={16} /> Nova baixa
+                </button>
+                <button disabled={!ativo || !itens.length} onClick={() => abrirOperacao("contagem")} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-extrabold text-slate-700 hover:bg-slate-50 disabled:opacity-40 transition-all cursor-pointer">
+                  <ClipboardCheck size={16} className="text-sky-600" /> Contagem
+                </button>
+                <button disabled={!ativo || !itens.length || !destinosCompativeis.length} onClick={() => abrirOperacao("transferencia")} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-extrabold text-slate-700 hover:bg-slate-50 disabled:opacity-40 transition-all cursor-pointer">
+                  <ArrowRightLeft size={16} className="text-indigo-600" /> Transferência
+                </button>
+                <button disabled={!ativo} onClick={() => setModal({ tipo: "importar" })} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-extrabold text-slate-700 hover:bg-slate-50 disabled:opacity-40 transition-all cursor-pointer">
+                  <Upload size={16} className="text-teal-600" /> Importar
+                </button>
+                <button disabled={!itens.length} onClick={() => setModal({ tipo: "exportar_relatorio" })} className="inline-flex h-10 items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 text-xs font-extrabold text-emerald-800 hover:bg-emerald-100 disabled:opacity-40 transition-all cursor-pointer">
+                  <FileText size={16} /> Relatórios / WhatsApp
+                </button>
+              </div>
             </section>
 
-            <section className="grid grid-cols-2 gap-3 xl:grid-cols-6">
+            <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
               {[
-                { icon: Package, label: "Valor neste estoque", value: fmtBRL(valorTotal), action: () => { setAba("atual"); setFiltros(f => ({ ...f, busca: "", status: "todos", grupo: "Todos", tempBar: "todos_temp", estadoCozinha: "todos_estado" })); } },
-                { icon: ClipboardCheck, label: "CMV de Contagens", value: fmtBRL(resumoContagens.cmvLiquidoAjustes), action: () => setAba("movimentacoes") },
-                { icon: AlertTriangle, label: "Abaixo do mínimo", value: `${itensDaArea.filter(i => statusItemEstoque(i, estoqueAtual).abaixoMinimo).length} itens`, action: () => { setAba("alertas"); setFiltros(f => ({ ...f, status: "abaixo" })); } },
-                { icon: CalendarDays, label: "Próximas validades", value: estoqueAtual.controla_validade ? `${itensDaArea.filter(i => statusItemEstoque(i, estoqueAtual).validadeProxima).length} itens` : "Não controlada", action: () => { setAba("alertas"); setFiltros(f => ({ ...f, status: "validade" })); } },
-                { icon: Clock3, label: "Última reposição", value: ultimaEntrada ? fmtData(ultimaEntrada.data_movimento, true) : "Sem registro", action: () => setAba("movimentacoes") },
-                { icon: Boxes, label: "Resumo da área", value: `${itensDaArea.length} itens`, action: () => { setAba("atual"); setFiltros(f => ({ ...f, busca: "", status: "todos", grupo: "Todos", tempBar: "todos_temp", estadoCozinha: "todos_estado" })); } },
-              ].map(({ icon: Icon, label, value, action }) => (
+                { icon: Package, label: "Valor no Estoque", value: fmtBRL(valorTotal), color: "text-emerald-700 bg-emerald-50", action: () => { setAba("atual"); setFiltros(f => ({ ...f, busca: "", status: "todos", grupo: "Todos", tempBar: "todos_temp", estadoCozinha: "todos_estado" })); } },
+                { icon: ClipboardCheck, label: "CMV de Contagens", value: fmtBRL(resumoContagens.cmvLiquidoAjustes), color: "text-sky-700 bg-sky-50", action: () => setAba("movimentacoes") },
+                { icon: AlertTriangle, label: "Abaixo do Mínimo", value: `${itensDaArea.filter(i => statusItemEstoque(i, estoqueAtual).abaixoMinimo).length} itens`, color: "text-red-700 bg-red-50", action: () => { setAba("alertas"); setFiltros(f => ({ ...f, status: "abaixo" })); } },
+                { icon: CalendarDays, label: "Validades Próximas", value: estoqueAtual.controla_validade ? `${itensDaArea.filter(i => statusItemEstoque(i, estoqueAtual).validadeProxima).length} itens` : "Desativado", color: "text-amber-700 bg-amber-50", action: () => { setAba("alertas"); setFiltros(f => ({ ...f, status: "validade" })); } },
+                { icon: Boxes, label: "Resumo da Área", value: `${itensDaArea.length} produtos`, color: "text-indigo-700 bg-indigo-50", action: () => { setAba("atual"); setFiltros(f => ({ ...f, busca: "", status: "todos", grupo: "Todos", tempBar: "todos_temp", estadoCozinha: "todos_estado" })); } },
+              ].map(({ icon: Icon, label, value, color, action }) => (
                 <button
                   key={label}
                   type="button"
                   onClick={action}
-                  className="group flex flex-col justify-between rounded-2xl border-2 border-slate-200 bg-white p-4 text-left shadow-sm transition-all hover:-translate-y-1 hover:border-emerald-600 hover:ring-4 hover:ring-emerald-500/20 hover:shadow-lg active:scale-95 cursor-pointer select-none"
+                  className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 text-left shadow-xs transition-all hover:border-slate-300 hover:shadow-sm active:scale-95 cursor-pointer"
                 >
-                  <div>
-                    <div className="mb-3 grid h-10 w-10 place-items-center rounded-xl bg-emerald-50 text-emerald-700 transition-colors group-hover:bg-emerald-600 group-hover:text-white"><Icon size={19} /></div>
-                    <p className="text-xs font-black text-slate-600">{label}</p>
-                    <p className="mt-1 text-lg font-black text-slate-900">{value}</p>
+                  <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl font-black ${color}`}>
+                    <Icon size={18} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 truncate">{label}</p>
+                    <strong className="text-sm font-black text-slate-900 leading-tight block truncate">{value}</strong>
                   </div>
                 </button>
               ))}
             </section>
 
-            <section className="rounded-2xl border border-slate-200 bg-white">
-              <div className="grid grid-cols-2 gap-x-4 border-b border-slate-200 px-4 pt-1 sm:flex sm:gap-5 sm:overflow-x-auto sm:px-6">
+            <section className="rounded-2xl border border-slate-200 bg-white shadow-xs overflow-hidden">
+              <div className="grid grid-cols-2 gap-x-4 border-b border-slate-200 bg-slate-50/50 px-4 pt-1 sm:flex sm:gap-5 sm:overflow-x-auto sm:px-6">
                 {[
                   ["atual", "Estoque atual"], ["historico", "Histórico completo"],
                   ["movimentacoes", "Movimentações"], ["alertas", `Alertas (${alertas.length})`],
                 ].map(([id, label]) => (
-                  <button key={id} onClick={() => setAba(id)} className={`whitespace-nowrap border-b-2 px-1 py-3 text-xs font-extrabold sm:py-4 sm:text-sm ${aba === id ? "border-emerald-600 text-emerald-700" : "border-transparent text-slate-500"}`}>{label}</button>
+                  <button key={id} onClick={() => setAba(id)} className={`whitespace-nowrap border-b-2 px-1 py-3 text-xs font-black sm:py-3.5 sm:text-sm cursor-pointer ${aba === id ? "border-emerald-600 text-emerald-700" : "border-transparent text-slate-500 hover:text-slate-700"}`}>{label}</button>
                 ))}
               </div>
 
               {aba === "atual" || aba === "alertas" ? (
                 <>
-                  <div className="border-b border-slate-100 px-4 py-4 sm:px-6">
+                  <div className="border-b border-slate-100 px-4 py-3 sm:px-6">
                     {grupos.length > 1 && (
-                      <>
-                        <div className="mb-3">
-                          <p className="text-sm font-black text-slate-800">Separação do estoque de {estoqueAtual.nome}</p>
-                          <p className="text-xs text-slate-500">Escolha um grupo para visualizar somente os itens correspondentes.</p>
-                        </div>
-                        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap">
-                          {grupos.map(grupo => (
-                            <button
-                              key={grupo}
-                              onClick={() => setFiltros(atuais => ({ ...atuais, grupo }))}
-                              className={`shrink-0 rounded-full border px-4 py-2 text-sm font-extrabold transition ${filtros.grupo === grupo ? "border-emerald-700 bg-emerald-700 text-white shadow-sm" : "border-slate-200 bg-white text-slate-600 hover:border-emerald-300"}`}
-                            >
-                              {grupo} <span className={filtros.grupo === grupo ? "text-emerald-100" : "text-slate-400"}>({contagemGrupos[grupo] || 0})</span>
-                            </button>
-                          ))}
-                        </div>
-                      </>
+                      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+                        <span className="text-xs font-black text-slate-500 shrink-0">Grupo:</span>
+                        {grupos.map(grupo => (
+                          <button
+                            key={grupo}
+                            onClick={() => setFiltros(atuais => ({ ...atuais, grupo }))}
+                            className={`shrink-0 rounded-lg px-3 py-1 text-xs font-black transition cursor-pointer ${filtros.grupo === grupo ? "bg-emerald-700 text-white shadow-xs" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+                          >
+                            {grupo} ({contagemGrupos[grupo] || 0})
+                          </button>
+                        ))}
+                      </div>
                     )}
                     
-                    {/* Bar Temperature / Cozinha Ready Food Quick Filter Badges (Sem emojis) */}
-                    <div className="mt-3 flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
+                    {/* Bar Temperature / Cozinha Ready Food Quick Filter Badges */}
+                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
                       {(estoqueAtual?.departamento === "bar" || estoqueAtual?.slug?.includes("bar") || estoqueAtual?.nome?.toLowerCase()?.includes("bar")) ? (
                         <>
-                          <span className="text-xs font-black text-slate-700 mr-1">Filtro de Temperatura do Bar:</span>
+                          <span className="text-xs font-black text-slate-500 mr-1">Temperatura Bar:</span>
                           {[
                             ["todos_temp", "Todos os Itens"],
-                            ["apenas_gelado", "Apenas Gelados (Expositor)"],
-                            ["apenas_quente", "Apenas Quentes (Depósito)"],
+                            ["apenas_gelado", "Gelados (Expositor)"],
+                            ["apenas_quente", "Quentes (Depósito)"],
                           ].map(([id, label]) => (
                             <button
                               key={id}
                               type="button"
                               onClick={() => setFiltros(atuais => ({ ...atuais, tempBar: id }))}
-                              className={`rounded-xl px-3.5 py-1.5 text-xs font-black transition cursor-pointer ${(filtros.tempBar || "todos_temp") === id ? "bg-slate-900 text-white shadow-sm ring-2 ring-slate-900" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}
+                              className={`rounded-lg px-3 py-1 text-xs font-black transition cursor-pointer ${(filtros.tempBar || "todos_temp") === id ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
                             >
                               {label}
                             </button>
@@ -1048,18 +1092,18 @@ function EstoqueRunner() {
                         </>
                       ) : (
                         <>
-                          <span className="text-xs font-black text-slate-700 mr-1">Estado das Comidas & Insumos:</span>
+                          <span className="text-xs font-black text-slate-500 mr-1">Estado Insumo/Comida:</span>
                           {[
                             ["todos_estado", "Todos os Itens"],
                             ["insumos", "Insumos Brutos"],
-                            ["resfriados", "Comidas Prontas (Resfriadas)"],
-                            ["congelados", "Comidas Prontas (Congeladas)"],
+                            ["resfriados", "Resfriadas (Prontas)"],
+                            ["congelados", "Congeladas (Prontas)"],
                           ].map(([id, label]) => (
                             <button
                               key={id}
                               type="button"
                               onClick={() => setFiltros(atuais => ({ ...atuais, estadoCozinha: id }))}
-                              className={`rounded-xl px-3.5 py-1.5 text-xs font-black transition cursor-pointer ${(filtros.estadoCozinha || "todos_estado") === id ? "bg-slate-900 text-white shadow-sm ring-2 ring-slate-900" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}
+                              className={`rounded-lg px-3 py-1 text-xs font-black transition cursor-pointer ${(filtros.estadoCozinha || "todos_estado") === id ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
                             >
                               {label}
                             </button>
@@ -1068,21 +1112,21 @@ function EstoqueRunner() {
                       )}
                     </div>
                   </div>
-                  <div className="grid gap-3 p-4 lg:grid-cols-[1fr_190px_170px_180px]">
+                  <div className="grid gap-3 p-4 lg:grid-cols-[1fr_180px_170px_160px] bg-slate-50/30">
                     <label className="relative flex items-center">
-                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-700 font-bold z-10" size={19} />
+                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-bold z-10" size={18} />
                       <input
                         value={filtros.busca}
                         onChange={e => setFiltros({ ...filtros, busca: e.target.value })}
-                        placeholder="Buscar produto por nome, marca ou código..."
-                        className="h-11 w-full rounded-2xl border-2 border-slate-300 bg-white pl-11 pr-3 font-bold text-slate-900 shadow-sm transition-all focus:border-emerald-600 focus:bg-white focus:outline-none focus:ring-4 focus:ring-emerald-500/20 placeholder:font-medium placeholder:text-slate-400"
+                        placeholder="Buscar por nome, marca ou código..."
+                        className="h-10 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-3 text-xs font-bold text-slate-900 shadow-xs transition-all focus:border-emerald-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 placeholder:text-slate-400"
                       />
                     </label>
-                    <select value={filtros.categoria} onChange={e => setFiltros({ ...filtros, categoria: e.target.value })} className="h-11 rounded-xl border border-slate-200 px-3 font-semibold">{categorias.map(v => <option key={v}>{v}</option>)}</select>
-                    <select value={filtros.status} onChange={e => setFiltros({ ...filtros, status: e.target.value })} className="h-11 rounded-xl border border-slate-200 px-3 font-semibold">
+                    <select value={filtros.categoria} onChange={e => setFiltros({ ...filtros, categoria: e.target.value })} className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-xs font-bold text-slate-700">{categorias.map(v => <option key={v}>{v}</option>)}</select>
+                    <select value={filtros.status} onChange={e => setFiltros({ ...filtros, status: e.target.value })} className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-xs font-bold text-slate-700">
                       <option value="todos">Todos os status</option><option value="abaixo">Abaixo do mínimo</option><option value="validade">Validade próxima</option><option value="sem-saldo">Sem saldo</option>
                     </select>
-                    <select value={filtros.local} onChange={e => setFiltros({ ...filtros, local: e.target.value })} className="h-11 rounded-xl border border-slate-200 px-3 font-semibold">{locais.map(v => <option key={v}>{v}</option>)}</select>
+                    <select value={filtros.local} onChange={e => setFiltros({ ...filtros, local: e.target.value })} className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-xs font-bold text-slate-700">{locais.map(v => <option key={v}>{v}</option>)}</select>
                   </div>
                   <TabelaItens
                     itens={aba === "alertas" ? itensFiltrados.filter(i => alertas.some(a => a.id === i.id)) : itensFiltrados}
@@ -1184,9 +1228,66 @@ function EstoqueRunner() {
                           </div>
                         </div>
                       ) : (
-                        <Campo label={modal.tipo === "contagem" ? "Saldo contado" : "Quantidade"}>
-                          <input required min="0" step="0.001" type="number" value={operacao.quantidade} onChange={e => setOperacao({ ...operacao, quantidade: e.target.value })} className="h-14 w-full rounded-2xl border-2 border-slate-300 px-4 text-center font-black text-xl text-slate-900 outline-none focus:border-emerald-500" placeholder="0" />
-                        </Campo>
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <label className="block text-xs font-bold text-slate-700">
+                              {modal.tipo === "contagem" ? "Saldo contado" : "Quantidade"}
+                            </label>
+                            {itemMod && (
+                              <span className="text-[10px] font-bold text-slate-500">
+                                Cadastro: <strong className="text-slate-800 uppercase">{mostrarUn(itemMod.unidade_medida)}</strong>
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex gap-2">
+                            <input
+                              required
+                              min="0"
+                              step="0.001"
+                              type="number"
+                              value={operacao.quantidade}
+                              onChange={e => setOperacao({ ...operacao, quantidade: e.target.value })}
+                              className="h-14 flex-1 min-w-0 rounded-2xl border-2 border-slate-300 px-4 text-center font-black text-xl text-slate-900 outline-none focus:border-emerald-500"
+                              placeholder="0"
+                            />
+                            {itemMod && ["kg", "g", "l", "ml"].includes(String(itemMod.unidade_medida || "").toLowerCase()) && (
+                              <select
+                                value={operacao.unidade_digitada || String(itemMod.unidade_medida).toLowerCase()}
+                                onChange={e => {
+                                  const novaUn = e.target.value;
+                                  const unBase = String(itemMod.unidade_medida).toLowerCase();
+                                  setOperacao({ ...operacao, unidade_digitada: novaUn });
+                                }}
+                                className="h-14 rounded-2xl border-2 border-slate-300 bg-slate-100 px-3 font-black text-xs text-slate-800 outline-none"
+                              >
+                                {["kg", "g"].includes(String(itemMod.unidade_medida).toLowerCase()) ? (
+                                  <>
+                                    <option value="kg">kg (Quilos)</option>
+                                    <option value="g">g (Gramas)</option>
+                                  </>
+                                ) : (
+                                  <>
+                                    <option value="l">L (Litros)</option>
+                                    <option value="ml">ml (Mililitros)</option>
+                                  </>
+                                )}
+                              </select>
+                            )}
+                          </div>
+                          {itemMod && operacao.unidade_digitada && operacao.unidade_digitada.toLowerCase() !== String(itemMod.unidade_medida).toLowerCase() && Number(operacao.quantidade) > 0 && (() => {
+                            const unBase = String(itemMod.unidade_medida).toLowerCase();
+                            const unDig = String(operacao.unidade_digitada).toLowerCase();
+                            const val = Number(operacao.quantidade) || 0;
+                            let emBase = val;
+                            if (unBase === "kg" && unDig === "g") emBase = val / 1000;
+                            if (unBase === "l" && unDig === "ml") emBase = val / 1000;
+                            return (
+                              <p className="rounded-xl bg-emerald-50 p-2 text-xs font-bold text-emerald-900 border border-emerald-200">
+                                💡 Conversão automática: {val} {unDig} = <strong>{emBase} {mostrarUn(unBase)}</strong> (saldo final no estoque em {mostrarUn(unBase)}).
+                              </p>
+                            );
+                          })()}
+                        </div>
                       )}
                       {modal.tipo === "transferencia" ? (
                         <Campo label="Estoque de destino">
@@ -1549,6 +1650,12 @@ function saldoEmbalado(item) {
 }
 
 function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEditar, onHistorico }) {
+  const [colapsadas, setColapsadas] = useState({});
+
+  const toggleColapso = (cat) => {
+    setColapsadas(prev => ({ ...prev, [cat]: !prev[cat] }));
+  };
+
   const agrupadoPorCategoria = useMemo(() => {
     if (!itens || !itens.length) return [];
     const mapa = new Map();
@@ -1576,14 +1683,29 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
     });
   }, [itens]);
 
+  const expandirTodas = () => setColapsadas({});
+  const recolherTodas = () => {
+    const mapa = {};
+    agrupadoPorCategoria.forEach(c => { mapa[c.categoria] = true; });
+    setColapsadas(mapa);
+  };
+
   if (loading) return <div className="grid min-h-64 place-items-center text-slate-500"><Loader2 className="animate-spin" /></div>;
   if (!itens || !itens.length) return <div className="grid min-h-64 place-items-center px-5 text-center"><div><Package size={42} className="mx-auto mb-3 text-slate-300" /><p className="font-black text-slate-700">Nenhum item encontrado neste estoque</p><p className="mt-1 text-sm text-slate-500">Use “Nova entrada” ou “Importar lista” para começar.</p></div></div>;
 
   return (
     <>
-      <div className="hidden overflow-x-auto lg:block rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex items-center justify-between px-4 py-2.5 bg-slate-100/80 border-b border-slate-200 text-xs font-bold text-slate-600">
+        <span>Total de {agrupadoPorCategoria.length} categoria(s) no resultado</span>
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={expandirTodas} className="rounded-lg px-2.5 py-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 transition">Expandir todas</button>
+          <button type="button" onClick={recolherTodas} className="rounded-lg px-2.5 py-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 transition">Recolher todas</button>
+        </div>
+      </div>
+
+      <div className="hidden overflow-x-auto lg:block rounded-b-2xl border-x border-b border-slate-200 bg-white shadow-sm">
         <table className="w-full min-w-[1100px] text-left text-sm">
-          <thead className="bg-slate-900 text-xs font-black uppercase tracking-wider text-white"><tr>
+          <thead className="sticky top-0 z-20 bg-slate-900 text-xs font-black uppercase tracking-wider text-white shadow-md"><tr>
             <th className="px-5 py-4 whitespace-nowrap">Produto</th>
             <th className="px-4 py-4 whitespace-nowrap">Categoria</th>
             <th className="px-4 py-4 whitespace-nowrap">Embalagem</th>
@@ -1597,128 +1719,154 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
             <th className="px-4 py-4 whitespace-nowrap text-center">Ações</th>
           </tr></thead>
           <tbody className="divide-y divide-slate-100 font-medium">
-            {agrupadoPorCategoria.map(({ categoria, lista, subtotal }) => (
-              <Fragment key={categoria}>
-                <tr className="bg-slate-100/90 border-y border-slate-200">
-                  <td colSpan={estoque?.controla_validade ? 11 : 10} className="px-5 py-3">
-                    <div className="flex items-center justify-between">
-                      <span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-900">
-                        <span className="h-2.5 w-2.5 rounded-full bg-emerald-600"></span>
-                        {categoria} <span className="rounded-full bg-white px-2.5 py-0.5 text-[11px] font-black text-slate-700 shadow-sm border border-slate-200">{lista.length} {lista.length === 1 ? "item" : "itens"}</span>
-                      </span>
-                      <span className="text-xs font-black text-emerald-800 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-200">
-                        Subtotal: {fmtBRL(subtotal)}
-                      </span>
-                    </div>
-                  </td>
-                </tr>
-                {lista.map(item => {
-                  const status = statusItemEstoque(item, estoque || {});
-                  const valTotalItem = calcularValorItem(item);
-                  return <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-5 py-3.5 min-w-[240px] max-w-[320px]"><strong className="block text-slate-900 font-black text-sm leading-snug whitespace-normal break-words">{item.nome}</strong><span className="text-xs text-slate-400 font-extrabold block mt-0.5">{item.codigo_interno || item.marca || "Sem código"}</span></td>
-                    <td className="px-4 py-3.5 whitespace-nowrap">{(() => {
-                      const cat = String(item.categoria || "").trim();
-                      const cores = {
-                        "Cervejas": "bg-amber-100 text-amber-950 border-amber-300",
-                        "Destilados": "bg-purple-100 text-purple-950 border-purple-300",
-                        "Vinhos": "bg-rose-100 text-rose-950 border-rose-300",
-                        "Chopp": "bg-yellow-100 text-yellow-950 border-yellow-300",
-                        "Água": "bg-sky-100 text-sky-950 border-sky-300",
-                        "Refrigerantes": "bg-red-100 text-red-950 border-red-300",
-                        "Bombons": "bg-pink-100 text-pink-950 border-pink-300",
-                        "Pré-preparos": "bg-indigo-100 text-indigo-950 border-indigo-300",
-                        "Carne vermelha": "bg-red-100 text-red-950 border-red-300",
-                        "Peixe": "bg-cyan-100 text-cyan-950 border-cyan-300",
-                        "Aves": "bg-amber-100 text-amber-950 border-amber-300",
-                        "Frutos do mar": "bg-teal-100 text-teal-950 border-teal-300",
-                        "Caranguejo": "bg-orange-100 text-orange-950 border-orange-300",
-                        "Laticínios": "bg-yellow-100 text-yellow-950 border-yellow-300",
-                        "Hortifrúti": "bg-emerald-100 text-emerald-950 border-emerald-300",
-                        "Secos": "bg-stone-100 text-stone-950 border-stone-300",
-                        "Líquidos": "bg-blue-100 text-blue-950 border-blue-300",
-                      };
-                      const cl = cores[cat] || "bg-emerald-100 text-emerald-950 border-emerald-300";
-                      return <span className={`inline-block rounded-xl px-3 py-1 text-xs font-black border shadow-xs ${cl}`}>{cat || "Sem categoria"}</span>;
-                    })()}</td>
-                    <td className="px-4 py-3.5 whitespace-nowrap font-bold text-slate-700">{fmtQtd(item.tamanho_embalagem || 1)} {mostrarUn(item.unidade_medida)}</td>
-                    <td className="px-4 py-3.5 whitespace-nowrap"><strong className="font-extrabold text-slate-900">{fmtBRL(item.custo_unitario || 0)}</strong></td>
-                    <td className={`px-4 py-3.5 whitespace-nowrap font-black ${status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}`}>{(() => { const s = saldoEmbalado(item); return s ? <><span>{s.principal}</span><span className="block text-[11px] font-bold text-slate-400 mt-0.5">{s.secundario}</span></> : <>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</>; })()}</td>
-                    <td className="px-4 py-3.5 whitespace-nowrap"><strong className="font-black text-emerald-800 text-base">{fmtBRL(valTotalItem)}</strong></td>
-                    <td className="px-3 py-3.5 whitespace-nowrap font-extrabold text-slate-700">{item.estoque_minimo == null || item.estoque_minimo === "" ? "—" : `${fmtQtd(item.estoque_minimo)} ${item.unidade_comercial || (["ml", "l"].includes(String(item.unidade_medida).toLowerCase()) ? "garrafa" : mostrarUn(item.unidade_medida))}`}</td>
-                    <td className="px-3 py-3.5 whitespace-nowrap font-extrabold text-slate-700">{item.estoque_maximo == null || item.estoque_maximo === "" ? "—" : `${fmtQtd(item.estoque_maximo)} ${item.unidade_comercial || (["ml", "l"].includes(String(item.unidade_medida).toLowerCase()) ? "garrafa" : mostrarUn(item.unidade_medida))}`}</td>
-                    {estoque?.controla_validade && <td className={`px-4 py-3.5 whitespace-nowrap ${status.vencido || status.validadeProxima ? "font-black text-amber-700" : "font-semibold text-slate-600"}`}>{fmtData(item.validade)}</td>}
-                    <td className="px-4 py-3.5 whitespace-nowrap text-xs font-bold text-slate-600">{fmtData(item.ultima_movimentacao_em, true)}</td>
-                    <td className="px-4 py-3.5 whitespace-nowrap"><div className="flex items-center justify-center gap-1.5">
-                      <button onClick={() => onEntrada(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700 font-extrabold shadow-sm active:scale-95 transition-all" title="Entrada / Adicionar"><Plus size={18} /></button>
-                      <button onClick={() => onSaida(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-rose-600 bg-rose-600 text-white hover:bg-rose-700 font-extrabold shadow-sm active:scale-95 transition-all" title="Baixa / Retirar"><span className="text-xl leading-none">−</span></button>
-                      <button onClick={() => onHistorico && onHistorico(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-200 font-bold" title="Histórico do produto"><History size={17} /></button>
-                      <SimuladorRendimento item={item} variant="icon" />
-                      <button onClick={() => onEditar(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-200 font-bold" title="Configurar"><MoreVertical size={17} /></button>
-                    </div></td>
-                  </tr>;
-                })}
-              </Fragment>
-            ))}
+            {agrupadoPorCategoria.map(({ categoria, lista, subtotal }) => {
+              const isColapsed = !!colapsadas[categoria];
+              return (
+                <Fragment key={categoria}>
+                  <tr
+                    onClick={() => toggleColapso(categoria)}
+                    className="bg-slate-100/90 border-y border-slate-200 cursor-pointer hover:bg-slate-200/80 transition-colors select-none"
+                  >
+                    <td colSpan={estoque?.controla_validade ? 11 : 10} className="px-5 py-3">
+                      <div className="flex items-center justify-between">
+                        <div className="inline-flex items-center gap-2.5 text-xs font-black uppercase tracking-wider text-slate-900">
+                          <div className="grid h-6 w-6 place-items-center rounded-lg bg-slate-200 text-slate-700">
+                            {isColapsed ? <ChevronRight size={15} /> : <ChevronDown size={15} />}
+                          </div>
+                          <span className="h-2.5 w-2.5 rounded-full bg-emerald-600"></span>
+                          {categoria}
+                          <span className="rounded-full bg-white px-2.5 py-0.5 text-[11px] font-black text-slate-700 shadow-sm border border-slate-200">
+                            {lista.length} {lista.length === 1 ? "item" : "itens"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs font-black text-emerald-800 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-200">
+                            Subtotal: {fmtBRL(subtotal)}
+                          </span>
+                          <span className="text-[11px] font-bold text-slate-400">
+                            {isColapsed ? "Clique para abrir" : "Clique para recolher"}
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                  {!isColapsed && lista.map(item => {
+                    const status = statusItemEstoque(item, estoque || {});
+                    const valTotalItem = calcularValorItem(item);
+                    return <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-5 py-3.5 min-w-[240px] max-w-[320px]"><strong className="block text-slate-900 font-black text-sm leading-snug whitespace-normal break-words">{item.nome}</strong><span className="text-xs text-slate-400 font-extrabold block mt-0.5">{item.codigo_interno || item.marca || "Sem código"}</span></td>
+                      <td className="px-4 py-3.5 whitespace-nowrap">{(() => {
+                        const cat = String(item.categoria || "").trim();
+                        const cores = {
+                          "Cervejas": "bg-amber-100 text-amber-950 border-amber-300",
+                          "Destilados": "bg-purple-100 text-purple-950 border-purple-300",
+                          "Vinhos": "bg-rose-100 text-rose-950 border-rose-300",
+                          "Chopp": "bg-yellow-100 text-yellow-950 border-yellow-300",
+                          "Água": "bg-sky-100 text-sky-950 border-sky-300",
+                          "Refrigerantes": "bg-red-100 text-red-950 border-red-300",
+                          "Bombons": "bg-pink-100 text-pink-950 border-pink-300",
+                          "Pré-preparos": "bg-indigo-100 text-indigo-950 border-indigo-300",
+                          "Carne vermelha": "bg-red-100 text-red-950 border-red-300",
+                          "Peixe": "bg-cyan-100 text-cyan-950 border-cyan-300",
+                          "Aves": "bg-amber-100 text-amber-950 border-amber-300",
+                          "Frutos do mar": "bg-teal-100 text-teal-950 border-teal-300",
+                          "Caranguejo": "bg-orange-100 text-orange-950 border-orange-300",
+                          "Laticínios": "bg-yellow-100 text-yellow-950 border-yellow-300",
+                          "Hortifrúti": "bg-emerald-100 text-emerald-950 border-emerald-300",
+                          "Secos": "bg-stone-100 text-stone-950 border-stone-300",
+                          "Líquidos": "bg-blue-100 text-blue-950 border-blue-300",
+                        };
+                        const cl = cores[cat] || "bg-emerald-100 text-emerald-950 border-emerald-300";
+                        return <span className={`inline-block rounded-xl px-3 py-1 text-xs font-black border shadow-xs ${cl}`}>{cat || "Sem categoria"}</span>;
+                      })()}</td>
+                      <td className="px-4 py-3.5 whitespace-nowrap font-bold text-slate-700">{fmtQtd(item.tamanho_embalagem || 1)} {mostrarUn(item.unidade_medida)}</td>
+                      <td className="px-4 py-3.5 whitespace-nowrap"><strong className="font-extrabold text-slate-900">{fmtBRL(item.custo_unitario || 0)}</strong></td>
+                      <td className={`px-4 py-3.5 whitespace-nowrap font-black ${status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}`}>{(() => { const s = saldoEmbalado(item); return s ? <><span>{s.principal}</span><span className="block text-[11px] font-bold text-slate-400 mt-0.5">{s.secundario}</span></> : <>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</>; })()}</td>
+                      <td className="px-4 py-3.5 whitespace-nowrap"><strong className="font-black text-emerald-800 text-base">{fmtBRL(valTotalItem)}</strong></td>
+                      <td className="px-3 py-3.5 whitespace-nowrap font-extrabold text-slate-700">{item.estoque_minimo == null || item.estoque_minimo === "" ? "—" : `${fmtQtd(item.estoque_minimo)} ${item.unidade_comercial || (["ml", "l"].includes(String(item.unidade_medida).toLowerCase()) ? "garrafa" : mostrarUn(item.unidade_medida))}`}</td>
+                      <td className="px-3 py-3.5 whitespace-nowrap font-extrabold text-slate-700">{item.estoque_maximo == null || item.estoque_maximo === "" ? "—" : `${fmtQtd(item.estoque_maximo)} ${item.unidade_comercial || (["ml", "l"].includes(String(item.unidade_medida).toLowerCase()) ? "garrafa" : mostrarUn(item.unidade_medida))}`}</td>
+                      {estoque?.controla_validade && <td className={`px-4 py-3.5 whitespace-nowrap ${status.vencido || status.validadeProxima ? "font-black text-amber-700" : "font-semibold text-slate-600"}`}>{fmtData(item.validade)}</td>}
+                      <td className="px-4 py-3.5 whitespace-nowrap text-xs font-bold text-slate-600">{fmtData(item.ultima_movimentacao_em, true)}</td>
+                      <td className="px-4 py-3.5 whitespace-nowrap"><div className="flex items-center justify-center gap-1.5">
+                        <button onClick={() => onEntrada(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700 font-extrabold shadow-sm active:scale-95 transition-all" title="Entrada / Adicionar"><Plus size={18} /></button>
+                        <button onClick={() => onSaida(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-rose-600 bg-rose-600 text-white hover:bg-rose-700 font-extrabold shadow-sm active:scale-95 transition-all" title="Baixa / Retirar"><span className="text-xl leading-none">−</span></button>
+                        <button onClick={() => onHistorico && onHistorico(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-200 font-bold" title="Histórico do produto"><History size={17} /></button>
+                        <SimuladorRendimento item={item} variant="icon" />
+                        <button onClick={() => onEditar(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-200 font-bold" title="Configurar"><MoreVertical size={17} /></button>
+                      </div></td>
+                    </tr>;
+                  })}
+                </Fragment>
+              );
+            })}
           </tbody>
         </table>
       </div>
       <div className="divide-y divide-slate-100 lg:hidden">
-        {agrupadoPorCategoria.map(({ categoria, lista, subtotal }) => (
-          <div key={categoria} className="p-3 space-y-3">
-            <div className="flex items-center justify-between rounded-xl bg-slate-100 px-3.5 py-2.5 text-xs font-extrabold text-slate-800">
-              <span className="uppercase tracking-wider">{categoria} ({lista.length})</span>
-              <span className="text-emerald-800">Subtotal: {fmtBRL(subtotal)}</span>
-            </div>
-            {lista.map(item => {
-              const status = statusItemEstoque(item, estoque);
-              const valTotalItem = calcularValorItem(item);
-              return <article key={item.id} className="p-4 bg-white rounded-2xl border-2 border-slate-200 shadow-sm active:border-emerald-500 transition-all">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <strong className="text-base sm:text-lg font-black text-slate-900 leading-snug block truncate">{item.nome}</strong>
-                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                      <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700">{item.categoria || "Sem categoria"}</span>
-                      {item.local_interno && <span className="rounded-md bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-500">📍 {item.local_interno}</span>}
+        {agrupadoPorCategoria.map(({ categoria, lista, subtotal }) => {
+          const isColapsed = !!colapsadas[categoria];
+          return (
+            <div key={categoria} className="p-3 space-y-3">
+              <div
+                onClick={() => toggleColapso(categoria)}
+                className="flex items-center justify-between rounded-xl bg-slate-100 px-3.5 py-2.5 text-xs font-extrabold text-slate-800 cursor-pointer active:bg-slate-200 transition"
+              >
+                <div className="flex items-center gap-2 uppercase tracking-wider">
+                  {isColapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
+                  <span>{categoria} ({lista.length})</span>
+                </div>
+                <span className="text-emerald-800">Subtotal: {fmtBRL(subtotal)}</span>
+              </div>
+              {!isColapsed && lista.map(item => {
+                const status = statusItemEstoque(item, estoque);
+                const valTotalItem = calcularValorItem(item);
+                return <article key={item.id} className="p-4 bg-white rounded-2xl border-2 border-slate-200 shadow-sm active:border-emerald-500 transition-all">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <strong className="text-base sm:text-lg font-black text-slate-900 leading-snug block truncate">{item.nome}</strong>
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                        <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700">{item.categoria || "Sem categoria"}</span>
+                        {item.local_interno && <span className="rounded-md bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-500">📍 {item.local_interno}</span>}
+                      </div>
+                      <p className="mt-1.5 text-xs font-semibold text-slate-500">Mín: {item.estoque_minimo ?? "—"} · Máx: {item.estoque_maximo ?? "—"} · Valor: <strong className="text-emerald-800">{fmtBRL(valTotalItem)}</strong></p>
                     </div>
-                    <p className="mt-1.5 text-xs font-semibold text-slate-500">Mín: {item.estoque_minimo ?? "—"} · Máx: {item.estoque_maximo ?? "—"} · Valor: <strong className="text-emerald-800">{fmtBRL(valTotalItem)}</strong></p>
+                    <div className="text-right shrink-0 rounded-2xl bg-slate-900 px-3.5 py-2.5 text-white shadow-inner min-w-[100px]">
+                      <span className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Saldo Atual</span>
+                      {(() => {
+                        const s = saldoEmbalado(item);
+                        return s ? (
+                          <>
+                            <strong className={`text-base sm:text-lg font-black ${status.abaixoMinimo ? "text-red-400" : "text-emerald-400"}`}>{s.principal}</strong>
+                            <span className="block text-[9px] font-semibold text-slate-300">{s.secundario}</span>
+                          </>
+                        ) : (
+                          <strong className={`text-lg sm:text-xl font-black ${status.abaixoMinimo ? "text-red-400" : "text-emerald-400"}`}>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</strong>
+                        );
+                      })()}
+                    </div>
                   </div>
-                  <div className="text-right shrink-0 rounded-2xl bg-slate-900 px-3.5 py-2.5 text-white shadow-inner min-w-[100px]">
-                    <span className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Saldo Atual</span>
-                    {(() => {
-                      const s = saldoEmbalado(item);
-                      return s ? (
-                        <>
-                          <strong className={`text-base sm:text-lg font-black ${status.abaixoMinimo ? "text-red-400" : "text-emerald-400"}`}>{s.principal}</strong>
-                          <span className="block text-[9px] font-semibold text-slate-300">{s.secundario}</span>
-                        </>
-                      ) : (
-                        <strong className={`text-lg sm:text-xl font-black ${status.abaixoMinimo ? "text-red-400" : "text-emerald-400"}`}>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</strong>
-                      );
-                    })()}
+                  <div className="mt-4 grid grid-cols-2 gap-2.5">
+                    <button onClick={() => onEntrada(item)} className="h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 active:scale-95 transition-all">
+                      <Plus size={20} /> + ADICIONAR
+                    </button>
+                    <button onClick={() => onSaida(item)} className="h-14 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md shadow-red-600/20 active:scale-95 transition-all">
+                      <span className="text-2xl leading-none">−</span> − RETIRAR
+                    </button>
                   </div>
-                </div>
-                <div className="mt-4 grid grid-cols-2 gap-2.5">
-                  <button onClick={() => onEntrada(item)} className="h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 active:scale-95 transition-all">
-                    <Plus size={20} /> + ADICIONAR
-                  </button>
-                  <button onClick={() => onSaida(item)} className="h-14 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black text-sm flex items-center justify-center gap-2 shadow-md shadow-red-600/20 active:scale-95 transition-all">
-                    <span className="text-2xl leading-none">−</span> − RETIRAR
-                  </button>
-                </div>
-                <div className="mt-2.5 grid grid-cols-2 gap-2.5">
-                  <button onClick={() => onHistorico && onHistorico(item)} className="h-11 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold text-xs flex items-center justify-center gap-1.5 active:bg-slate-300 transition-all">
-                    <History size={16} /> Histórico
-                  </button>
-                  <button onClick={() => onEditar(item)} className="h-11 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold text-xs flex items-center justify-center gap-1.5 active:bg-slate-300 transition-all">
-                    <Settings2 size={16} /> Configurar
-                  </button>
-                </div>
-                <div className="mt-2.5"><SimuladorRendimento item={item} variant="full" /></div>
-              </article>;
-            })}
-          </div>
-        ))}
+                  <div className="mt-2.5 grid grid-cols-2 gap-2.5">
+                    <button onClick={() => onHistorico && onHistorico(item)} className="h-11 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold text-xs flex items-center justify-center gap-1.5 active:bg-slate-300 transition-all">
+                      <History size={16} /> Histórico
+                    </button>
+                    <button onClick={() => onEditar(item)} className="h-11 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold text-xs flex items-center justify-center gap-1.5 active:bg-slate-300 transition-all">
+                      <Settings2 size={16} /> Configurar
+                    </button>
+                  </div>
+                  <div className="mt-2.5"><SimuladorRendimento item={item} variant="full" /></div>
+                </article>;
+              })}
+            </div>
+          );
+        })}
       </div>
     </>
   );

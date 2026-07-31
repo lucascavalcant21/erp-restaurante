@@ -4,14 +4,23 @@ const UNIDADES = {
   ml: { familia: "volume", paraBase: valor => valor / 1000, rotulo: "ml" },
   l: { familia: "volume", paraBase: valor => valor, rotulo: "L" },
   un: { familia: "unidade", paraBase: valor => valor, rotulo: "unidade" },
+  garrafa: { familia: "unidade", paraBase: valor => valor, rotulo: "Garrafa" },
+  lata: { familia: "unidade", paraBase: valor => valor, rotulo: "Lata" },
+  barril: { familia: "unidade", paraBase: valor => valor, rotulo: "Barril (Chopp)" },
+  caixa: { familia: "unidade", paraBase: valor => valor, rotulo: "Caixa" },
+  pacote: { familia: "unidade", paraBase: valor => valor, rotulo: "Pacote" },
+  fardo: { familia: "unidade", paraBase: valor => valor, rotulo: "Fardo" },
 };
 
 export const UNIDADES_INGREDIENTE = [
-  { value: "g", label: "g" },
-  { value: "kg", label: "kg" },
   { value: "ml", label: "ml" },
   { value: "l", label: "L" },
-  { value: "un", label: "unidade" },
+  { value: "un", label: "unidade (un)" },
+  { value: "garrafa", label: "Garrafa" },
+  { value: "lata", label: "Lata" },
+  { value: "barril", label: "Barril (Chopp)" },
+  { value: "g", label: "g" },
+  { value: "kg", label: "kg" },
 ];
 
 export function parseNumeroBR(valor) {

@@ -168,15 +168,30 @@ export default function RHPage() {
     setFichaFunc(f);
     setFichaValor(f?.salario ? String(f.salario) : "");
     setFichaDias("1");
+    let rAv = f?.rua_av || f?.rua || "";
+    let nCasa = f?.numero_casa || f?.numero || "";
+    let bai = f?.bairro || "";
+    let cid = f?.cidade_uf || f?.cidade || "";
+    if (!rAv && f?.endereco) {
+      const partes = String(f.endereco).split(",").map(p => p.trim());
+      if (partes[0]) rAv = partes[0];
+      if (partes[1]) nCasa = partes[1];
+      if (partes[2]) bai = partes[2];
+      if (partes[3]) cid = partes[3];
+    }
     setFichaDados({
       ...dadosReciboVazios,
       nome: f?.nome || "",
       cpf: f?.cpf || "",
       rg: f?.rg || "",
       endereco: f?.endereco || "",
+      rua_av: rAv,
+      numero_casa: nCasa,
+      bairro: bai,
+      cidade_uf: cid,
       telefone: f?.telefone || "",
-      chave_pix: f?.chave_pix || "",
-      funcao: f?.cargo || "",
+      chave_pix: f?.chave_pix || f?.pix || "",
+      funcao: f?.cargo || f?.funcao || "",
       entrada: f?.horario_entrada || "",
       saida_final: f?.horario_saida || "",
       intervalo: f?.tempo_intervalo ? `${f.tempo_intervalo} min` : "",
@@ -2494,7 +2509,7 @@ export default function RHPage() {
          const fixo = total - inss - fgts - taxa;
          const fmt = (v) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
          return (
-         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
+<div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
             <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-3xl my-3 sm:my-8 p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[94vh] sm:max-h-[90vh] overflow-y-auto">
                <div className="flex flex-wrap justify-between items-center gap-2 mb-5">
                   <div>
@@ -2505,10 +2520,54 @@ export default function RHPage() {
                </div>
 
                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 mb-5">
+                  <div className="mb-4 bg-white p-3 rounded-xl border border-emerald-200">
+                     <label className="text-xs font-black text-emerald-800 block mb-1">Puxar dados do cadastro do colaborador:</label>
+                     <select
+                       onChange={e => {
+                         const fid = e.target.value;
+                         const func = (funcionarios || []).find(f => String(f.id) === String(fid));
+                         if (func) {
+                           setFichaFunc(func);
+                           let rAv = func.rua_av || func.rua || "";
+                           let nCasa = func.numero_casa || func.numero || "";
+                           let bai = func.bairro || "";
+                           let cid = func.cidade_uf || func.cidade || "";
+                           if (!rAv && func.endereco) {
+                             const partes = String(func.endereco).split(",").map(p => p.trim());
+                             if (partes[0]) rAv = partes[0];
+                             if (partes[1]) nCasa = partes[1];
+                             if (partes[2]) bai = partes[2];
+                             if (partes[3]) cid = partes[3];
+                           }
+                           setFichaDados(d => ({
+                             ...d,
+                             nome: func.nome || "",
+                             cpf: func.cpf || "",
+                             rg: func.rg || "",
+                             telefone: func.telefone || "",
+                             chave_pix: func.chave_pix || func.pix || "",
+                             funcao: func.cargo || func.funcao || "",
+                             rua_av: func.rua_av || func.rua || "",
+                             numero_casa: func.numero_casa || func.numero || "",
+                             bairro: func.bairro || "",
+                             cidade_uf: func.cidade_uf || func.cidade || "",
+                           }));
+                           if (func.salario) setFichaValor(String(func.salario));
+                         }
+                       }}
+                       className="w-full rounded-lg border border-emerald-300 bg-emerald-50/50 p-2.5 text-xs font-bold text-slate-800 outline-none focus:border-emerald-600"
+                     >
+                       <option value="">Selecione um colaborador cadastrado para auto-preencher...</option>
+                       {(funcionarios || []).map(f => (
+                         <option key={f.id} value={f.id}>{f.nome} — {f.cargo || "Sem cargo"} ({f.cpf ? `CPF: ${f.cpf}` : "Sem CPF"})</option>
+                       ))}
+                     </select>
+                  </div>
+
                   <div className="flex items-center justify-between gap-3 mb-3">
                      <div>
                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Dados que sairão no recibo</p>
-                        <p className="text-xs font-bold text-slate-400">Quando o extra já está cadastrado, estes campos chegam preenchidos automaticamente.</p>
+                        <p className="text-xs font-bold text-slate-400">Quando o colaborador é selecionado, estes campos são puxados automaticamente do cadastro.</p>
                      </div>
                      {fichaFunc && <span className="shrink-0 rounded-full bg-emerald-100 px-3 py-1 text-[10px] font-black text-emerald-700">Importado do cadastro</span>}
                   </div>
@@ -2670,14 +2729,43 @@ export default function RHPage() {
                <div className="rounded-2xl border border-slate-200 bg-white p-4 mb-5">
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Entrega e devolução dos itens</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {[
-                      ["responsavel_entrega", "Entregue por"], ["setor_entrega", "Local / setor"],
-                      ["conferencia_devolucao", "Devolução conferida por"], ["horario_devolucao", "Horário da devolução"],
-                    ].map(([campo, label]) => (
-                      <label key={campo} className="text-xs font-bold text-slate-600">{label}
-                        <input type={campo === "horario_devolucao" ? "time" : "text"} value={fichaDados[campo]} onChange={e => setFichaDados(d => ({...d, [campo]: e.target.value}))} className="mt-1 w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-emerald-500"/>
-                      </label>
-                    ))}
+                    {(() => {
+                      const lideres = (funcionarios || []).filter(f => {
+                        const st = (f.status || "ativo").toLowerCase();
+                        if (st === "inativo") return false;
+                        const cg = String(f.cargo || f.setor || "").toLowerCase();
+                        return /chef|supervisor|gerente|encarregad|coordenad|chefe|lider|líd|maitre/.test(cg) || true;
+                      });
+                      return (
+                        <>
+                          <label className="text-xs font-bold text-slate-600">Entregue por
+                            <select value={fichaDados.responsavel_entrega || ""} onChange={e => setFichaDados(d => ({ ...d, responsavel_entrega: e.target.value }))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 outline-none focus:border-emerald-500 font-bold">
+                              <option value="">Selecione o responsável...</option>
+                              {lideres.map(l => (
+                                <option key={l.id} value={l.nome}>{l.nome} ({l.cargo || "Supervisor/Líder"})</option>
+                              ))}
+                            </select>
+                          </label>
+
+                          <label className="text-xs font-bold text-slate-600">Local / setor
+                            <input type="text" value={fichaDados.setor_entrega} onChange={e => setFichaDados(d => ({ ...d, setor_entrega: e.target.value }))} className="mt-1 w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-emerald-500"/>
+                          </label>
+
+                          <label className="text-xs font-bold text-slate-600">Devolução conferida por (Chef / Supervisor)
+                            <select value={fichaDados.conferencia_devolucao || ""} onChange={e => setFichaDados(d => ({ ...d, conferencia_devolucao: e.target.value }))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 outline-none focus:border-emerald-500 font-bold">
+                              <option value="">Selecione o Chef / Supervisor / Responsável...</option>
+                              {lideres.map(l => (
+                                <option key={l.id} value={l.nome}>{l.nome} ({l.cargo || "Chef / Supervisor"})</option>
+                              ))}
+                            </select>
+                          </label>
+
+                          <label className="text-xs font-bold text-slate-600">Horário da devolução
+                            <input type="time" value={fichaDados.horario_devolucao} onChange={e => setFichaDados(d => ({ ...d, horario_devolucao: e.target.value }))} className="mt-1 w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-emerald-500"/>
+                          </label>
+                        </>
+                      );
+                    })()}
                   </div>
                </div>
 

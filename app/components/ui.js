@@ -77,31 +77,55 @@ export function SectionLabel({ children }) {
 export function KpiGrid({ children }) {
   return <div className="erp-kpi-grid grid gap-3 md:gap-4 min-w-0">{children}</div>;
 }
-export function Kpi({ icon: Icon, label, value }) {
-  // Estilo Takeat Premium: Layout flex, número grande, ícone colorido sutil
+export function Kpi({ icon: Icon, label, value, onClick, active = false, note }) {
+  const isClickable = typeof onClick === "function";
   return (
-    <div className="erp-card erp-kpi-card p-4 sm:p-5 md:p-6 xl:p-8 relative overflow-hidden flex flex-col justify-between group min-w-0">
+    <div
+      onClick={onClick}
+      role={isClickable ? "button" : undefined}
+      tabIndex={isClickable ? 0 : undefined}
+      onKeyDown={isClickable ? (e) => (e.key === "Enter" || e.key === " ") && onClick(e) : undefined}
+      className={`erp-card erp-kpi-card p-4 sm:p-5 md:p-6 xl:p-8 relative overflow-hidden flex flex-col justify-between group min-w-0 transition-all ${
+        isClickable
+          ? "cursor-pointer hover:shadow-md hover:border-emerald-500/50 active:scale-[0.98]"
+          : ""
+      } ${active ? "ring-2 ring-emerald-500 bg-emerald-50/20" : ""}`}
+    >
       <div className="flex items-start justify-between gap-2 mb-4 min-w-0">
         <p className="text-[10px] sm:text-xs md:text-sm font-bold tracking-widest uppercase min-w-0 break-words" style={{ color: "var(--muted)" }}>{label}</p>
         <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-[16px] flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110" style={{ background: "var(--accent-soft)" }}>
           {Icon && <Icon size={22} style={{ color: "var(--accent-strong)" }} />}
         </div>
       </div>
-      <p className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight mt-auto min-w-0 break-words" style={{ color: "var(--fg)" }}>{value}</p>
+      <div>
+        <p className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight mt-auto min-w-0 break-words" style={{ color: "var(--fg)" }}>{value}</p>
+        {note && <p className="text-xs font-semibold text-slate-500 mt-1">{note}</p>}
+      </div>
     </div>
   );
 }
 
 // ── Busca ──────────────────────────────────────────────────────
-export function SearchBar({ value, onChange, placeholder = "Buscar...", autoFocus = false }) {
+export function SearchBar({ value, onChange, placeholder = "Buscar no sistema...", autoFocus = false, className = "" }) {
   return (
-    <div className="relative min-w-0 w-full">
-      <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: "var(--dim)" }} />
-      <input autoFocus={autoFocus} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
-        className="erp-input" style={{ paddingLeft: 42, paddingRight: 38, height: 44 }} />
+    <div className={`relative min-w-0 w-full ${className}`}>
+      <Search size={19} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-900 font-black z-10" />
+      <input
+        autoFocus={autoFocus}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="erp-input w-full rounded-2xl border-2 border-slate-400 bg-white font-black text-slate-900 shadow-md transition-all focus:border-emerald-600 focus:bg-white focus:outline-none focus:ring-4 focus:ring-emerald-500/25 placeholder:text-slate-500 placeholder:font-bold"
+        style={{ paddingLeft: 46, paddingRight: 40, height: 46 }}
+      />
       {value && (
-        <button onClick={() => onChange("")} className="absolute right-3 top-1/2 -translate-y-1/2">
-          <X size={15} style={{ color: "var(--dim)" }} />
+        <button
+          type="button"
+          onClick={() => onChange("")}
+          className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-500 hover:bg-slate-200 hover:text-slate-900 transition"
+          title="Limpar busca"
+        >
+          <X size={16} />
         </button>
       )}
     </div>

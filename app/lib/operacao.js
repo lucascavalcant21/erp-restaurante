@@ -207,7 +207,7 @@ export async function salvarInsumo(insumo, opcoes = {}) {
       const r = await supabase.from("insumos").insert([campos]).select("id").single(); data = r.data; return r.error;
     }, campos);
 
-    // Registro inicial no histórico de preços. O catálogo não cria estoque.
+    // Registro inicial no histórico de preços e criação automática no Estoque
     if (data?.id) {
       try {
         await inserirHistoricoPreco(registroHistorico({
@@ -221,6 +221,42 @@ export async function salvarInsumo(insumo, opcoes = {}) {
         await sincronizarFornecedores(data.id, fornecedorIds);
       } catch { /* histórico é acessório */ }
 
+      // Garante que o ingrediente/produto apareça imediatamente no Estoque com saldo 0
+      try {
+        if (campos.unidade_id) {
+          await supabase.from("estoque_atual").upsert({
+            unidade_id: campos.unidade_id,
+            insumo_id: data.id,
+            quantidade_atual: 0,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: "unidade_id,insumo_id" });
+
+          // Tenta vincular à área de estoque correspondente (Bar, Cozinha, etc.)
+          const dept = (campos.departamento || "").toLowerCase();
+          const { data: ests } = await supabase.from("estoques").select("id, slug, nome").eq("unidade_id", campos.unidade_id);
+          if (ests?.length) {
+            const alvo = ests.find(e => {
+              const s = (e.slug || e.nome || "").toLowerCase();
+              return (dept.includes("bar") && s.includes("bar")) ||
+                     (dept.includes("limpeza") && s.includes("limpeza")) ||
+                     (dept.includes("embalag") && s.includes("embalag")) ||
+                     (dept.includes("cozinha") && s.includes("cozinha"));
+            }) || ests[0];
+
+            if (alvo?.id) {
+              await supabase.from("estoque_itens").upsert({
+                unidade_id: campos.unidade_id,
+                estoque_id: alvo.id,
+                insumo_id: data.id,
+                quantidade_atual: 0,
+                updated_at: new Date().toISOString(),
+              }, { onConflict: "estoque_id,insumo_id" }).catch(() => {});
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Aviso ao vincular novo ingrediente ao estoque:", e);
+      }
     }
     return { id: data?.id, error: error?.message };
   }

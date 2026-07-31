@@ -105,8 +105,14 @@ export default function CerebroDashboard() {
     );
   }
 
-  const kpiBox = (label, value, Icon, color, sub) => (
-    <Card className="!p-4 sm:!p-5 flex flex-col justify-between min-w-0" style={{ borderBottom: `4px solid ${color}`, boxShadow: `0 10px 30px -10px ${color}20` }}>
+  const kpiBox = (label, value, Icon, color, sub, onClick) => (
+    <Card
+      onClick={onClick}
+      className={`!p-4 sm:!p-5 flex flex-col justify-between min-w-0 transition-all ${
+        onClick ? "cursor-pointer hover:-translate-y-1 hover:shadow-lg active:scale-95" : ""
+      }`}
+      style={{ borderBottom: `4px solid ${color}`, boxShadow: `0 10px 30px -10px ${color}20` }}
+    >
       <div className="flex justify-between items-start gap-2 mb-4 min-w-0">
         <div className="w-11 h-11 rounded-2xl flex items-center justify-center" style={{ background: `${color}15` }}>
           <Icon size={22} style={{ color }} />
@@ -135,10 +141,10 @@ export default function CerebroDashboard() {
       <div>
         <SectionLabel>Visão Macro da Rede</SectionLabel>
         <div className="grid grid-cols-1 min-[400px]:grid-cols-2 xl:grid-cols-4 gap-3 min-w-0">
-          {kpiBox("Receita Total", fmtBRL(rede.receita), TrendingUp, "#10B981", "Faturamento somado")}
-          {kpiBox("Lucro Líquido", fmtBRL(rede.lucro), DollarSign, rede.lucro >= 0 ? "#3B82F6" : "#EF4444", "Receitas - Despesas")}
-          {kpiBox("CMV Médio", fmtPct(rede.cmv), Package, rede.cmv > 35 ? "#EF4444" : "#F59E0B", "Custo da Mercadoria Vendida")}
-          {kpiBox("CMO Médio", fmtPct(rede.cmo), Users, rede.cmo > 30 ? "#EF4444" : "#8B5CF6", "Custo de Mão de Obra")}
+          {kpiBox("Receita Total", fmtBRL(rede.receita), TrendingUp, "#10B981", "Faturamento somado", () => window.location.href = "/dashboard/financeiro/fluxo")}
+          {kpiBox("Lucro Líquido", fmtBRL(rede.lucro), DollarSign, rede.lucro >= 0 ? "#3B82F6" : "#EF4444", "Receitas - Despesas", () => window.location.href = "/dashboard/financeiro/dre")}
+          {kpiBox("CMV Médio", fmtPct(rede.cmv), Package, rede.cmv > 35 ? "#EF4444" : "#F59E0B", "Custo da Mercadoria Vendida", () => window.location.href = "/dashboard/operacao/estoque")}
+          {kpiBox("CMO Médio", fmtPct(rede.cmo), Users, rede.cmo > 30 ? "#EF4444" : "#8B5CF6", "Custo de Mão de Obra", () => window.location.href = "/dashboard/rh/gestao")}
         </div>
       </div>
 

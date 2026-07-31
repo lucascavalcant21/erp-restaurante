@@ -58,6 +58,7 @@ const ORDENACOES = [
 const unidadeLabel = unidade => UNIDADES_INGREDIENTE.find(item => item.value === unidade)?.label || unidade;
 
 function novoFormulario(departamento = "cozinha") {
+  const ehBar = departamento === "bar";
   return {
     id: null,
     departamento,
@@ -67,7 +68,7 @@ function novoFormulario(departamento = "cozinha") {
     categoria: "",
     codigo_interno: "",
     tamanho_embalagem: "1",
-    unidade_medida: "kg",
+    unidade_medida: ehBar ? "ml" : "kg",
     valor_embalagem: "",
     fornecedor_atual_id: "",
     fornecedor_ids: [],
@@ -392,16 +393,19 @@ function IngredientesRunner() {
   };
 
   const abrirEditar = insumo => {
+    const dep = insumo.departamento || deptUrl || "cozinha";
+    let un = insumo.unidade_medida || (dep === "bar" ? "ml" : "kg");
+    if (dep === "bar" && un === "kg") un = "ml";
     setForm({
       id: insumo.id,
-      departamento: insumo.departamento || deptUrl || "cozinha",
+      departamento: dep,
       nome: insumo.nome || "",
       nome_interno: insumo.nome_interno || "",
       marca: insumo.marca || "",
       categoria: insumo.categoria || "",
       codigo_interno: insumo.codigo_interno || "",
       tamanho_embalagem: String(insumo.tamanho_embalagem || 1),
-      unidade_medida: insumo.unidade_medida || "kg",
+      unidade_medida: un,
       valor_embalagem: String(Number(insumo.custo_compra) > 0 ? insumo.custo_compra : (insumo.custo_unitario || "")),
       fornecedor_atual_id: insumo.fornecedor_atual_id || "",
       fornecedor_ids: (insumo.fornecedores_vinculados || []).map(item => item.id).filter(Boolean),
@@ -419,7 +423,7 @@ function IngredientesRunner() {
         id: x.id, fornecedor_id: x.fornecedor_id,
         preco: x.preco != null ? String(x.preco) : "",
         tamanho: x.tamanho_embalagem != null ? String(x.tamanho_embalagem) : String(insumo.tamanho_embalagem || 1),
-        unidade: x.unidade_embalagem || insumo.unidade_medida || "kg",
+        unidade: x.unidade_embalagem || un,
       })));
     });
     setModalCadastro(true);
@@ -582,13 +586,13 @@ function IngredientesRunner() {
             </div>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
-            <label className="flex min-w-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 shadow-sm sm:w-[500px]">
-              <Search size={18} className="shrink-0 text-slate-400" />
+            <label className="flex min-w-0 items-center gap-2 rounded-2xl border-2 border-slate-300 bg-white px-3.5 shadow-sm transition-all focus-within:border-emerald-600 focus-within:ring-4 focus-within:ring-emerald-500/20 sm:w-[500px]">
+              <Search size={19} className="shrink-0 text-slate-700 font-bold" />
               <input
                 value={busca}
                 onChange={event => setBusca(event.target.value)}
-                placeholder={`Buscar ${rotuloItem} por nome, apelido, marca, fornecedor, código ou categoria...`}
-                className="h-11 min-w-0 flex-1 bg-transparent text-sm font-medium outline-none placeholder:text-slate-400"
+                placeholder={`Buscar ${rotuloItem} por nome, marca, fornecedor...`}
+                className="h-11 min-w-0 flex-1 bg-transparent text-sm font-bold text-slate-900 outline-none placeholder:font-medium placeholder:text-slate-400"
               />
               {busca && (
                 <button onClick={() => setBusca("")} className="text-slate-400 hover:text-slate-700" title="Limpar busca">
@@ -615,28 +619,33 @@ function IngredientesRunner() {
       <main className="mx-auto max-w-[1480px] px-4 py-4 sm:px-5">
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[
-            { icon: Package, label: `Total de ${rotuloItens}`, value: estatisticas.total, note: "No catálogo", color: "emerald" },
-            { icon: Tag, label: "Sem marca", value: estatisticas.semMarca, note: "Cadastro incompleto", color: "amber" },
-            { icon: Users, label: "Sem fornecedor", value: estatisticas.semFornecedor, note: "Nenhum vínculo", color: "violet" },
-            { icon: Clock3, label: "Preço atualizado", value: estatisticas.recentes, note: "Últimos 30 dias", color: "blue" },
+            { id: "todos", icon: Package, label: `Total de ${rotuloItens}`, value: estatisticas.total, note: "Clique p/ ver todos", color: "emerald", action: () => setBusca("") },
+            { id: "semMarca", icon: Tag, label: "Sem marca", value: estatisticas.semMarca, note: "Clique p/ filtrar", color: "amber", action: () => setBusca("sem marca") },
+            { id: "semFornecedor", icon: Users, label: "Sem fornecedor", value: estatisticas.semFornecedor, note: "Clique p/ filtrar", color: "violet", action: () => setBusca("Sem vínculo") },
+            { id: "recentes", icon: Clock3, label: "Preço atualizado", value: estatisticas.recentes, note: "Últimos 30 dias", color: "blue", action: () => setOrdenacao("recentes") },
           ].map(card => {
             const cores = {
-              emerald: "bg-emerald-50 text-emerald-600",
-              amber: "bg-amber-50 text-amber-600",
-              violet: "bg-violet-50 text-violet-600",
-              blue: "bg-blue-50 text-blue-600",
+              emerald: "bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white",
+              amber: "bg-amber-50 text-amber-600 group-hover:bg-amber-600 group-hover:text-white",
+              violet: "bg-violet-50 text-violet-600 group-hover:bg-violet-600 group-hover:text-white",
+              blue: "bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white",
             };
             return (
-              <div key={card.label} className="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-                <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${cores[card.color]}`}>
-                  <card.icon size={18} />
+              <button
+                key={card.label}
+                type="button"
+                onClick={card.action}
+                className="group flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-emerald-500/50 hover:shadow-md active:scale-95 cursor-pointer"
+              >
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors ${cores[card.color]}`}>
+                  <card.icon size={20} />
                 </div>
                 <div className="min-w-0">
                   <p className="truncate text-xs font-bold text-slate-500">{card.label}</p>
-                  <p className="text-lg font-black leading-tight text-slate-900">{card.value}</p>
-                  <p className="hidden text-[11px] text-slate-400 sm:block">{card.note}</p>
+                  <p className="text-xl font-black leading-tight text-slate-900">{card.value}</p>
+                  <p className="hidden text-[11px] font-semibold text-emerald-600 sm:block">{card.note}</p>
                 </div>
-              </div>
+              </button>
             );
           })}
         </section>

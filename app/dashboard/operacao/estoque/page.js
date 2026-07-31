@@ -57,11 +57,10 @@ const CATEGORIAS_ESTOQUE_COZINHA = [
 // Categorias oficiais do Bar na ordem exata solicitada pelo usuário
 const CATEGORIAS_ESTOQUE_BAR = [
   "Cervejas",
-  "Drinks",
+  "Destilados",
   "Vinhos",
-  "Doses",
   "Chopp",
-  "Águas",
+  "Água",
   "Refrigerantes",
   "Bombons",
   "Pré-preparos",
@@ -645,8 +644,8 @@ function EstoqueRunner() {
       ? itensDaArea.length
       : itensDaArea.filter(item => grupoOperacionalItem(item, estoqueAtual) === grupo).length,
   ])), [grupos, itensDaArea, estoqueAtual]);
-  const categorias = useMemo(() => ["Todas", ...new Set(itensDaArea.map(i => i.categoria || "Sem categoria"))], [itensDaArea]);
-  const locais = useMemo(() => ["Todos", ...new Set(itensDaArea.map(i => i.local_interno).filter(Boolean))], [itensDaArea]);
+  const categorias = useMemo(() => ["Todas", ...[...new Set(itensDaArea.map(i => i.categoria || "Sem categoria"))].sort((a, b) => a.localeCompare(b, "pt-BR"))], [itensDaArea]);
+  const locais = useMemo(() => ["Todos", ...[...new Set(itensDaArea.map(i => i.local_interno).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR"))], [itensDaArea]);
   const itensFiltrados = useMemo(
     () => {
       const res = filtrarItensEstoque(itensDaArea, filtros, estoqueAtual);
@@ -973,19 +972,26 @@ function EstoqueRunner() {
 
             <section className="grid grid-cols-2 gap-3 xl:grid-cols-6">
               {[
-                { icon: Package, label: "Valor neste estoque", value: fmtBRL(valorTotal), note: `${itensDaArea.length} itens` },
-                { icon: ClipboardCheck, label: "CMV de Contagens", value: fmtBRL(resumoContagens.cmvLiquidoAjustes), note: `${resumoContagens.itensComDivergencia} desvios de ${resumoContagens.totalContagens} contagens` },
-                { icon: AlertTriangle, label: "Abaixo do mínimo", value: `${itensDaArea.filter(i => statusItemEstoque(i, estoqueAtual).abaixoMinimo).length} itens` },
-                { icon: CalendarDays, label: "Próximas validades", value: estoqueAtual.controla_validade ? `${itensDaArea.filter(i => statusItemEstoque(i, estoqueAtual).validadeProxima).length} itens` : "Não controlada" },
-                { icon: Clock3, label: "Última reposição", value: ultimaEntrada ? fmtData(ultimaEntrada.data_movimento, true) : "Sem registro" },
-                { icon: Boxes, label: "Resumo da área", value: `${itensDaArea.length} itens` },
-              ].map(({ icon: Icon, label, value, note }) => (
-                <div key={label} className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <div className="mb-3 grid h-9 w-9 place-items-center rounded-full bg-emerald-50 text-emerald-700"><Icon size={18} /></div>
-                  <p className="text-xs font-semibold text-slate-500">{label}</p>
-                  <p className="mt-1 text-lg font-black text-slate-900">{value}</p>
-                  {note && <p className="text-[10px] font-bold text-slate-400 mt-0.5 truncate">{note}</p>}
-                </div>
+                { icon: Package, label: "Valor neste estoque", value: fmtBRL(valorTotal), note: "Clique p/ ver todos os itens", action: () => { setAba("atual"); setFiltros(f => ({ ...f, busca: "", status: "todos", grupo: "Todos", tempBar: "todos_temp", estadoCozinha: "todos_estado" })); } },
+                { icon: ClipboardCheck, label: "CMV de Contagens", value: fmtBRL(resumoContagens.cmvLiquidoAjustes), note: "Clique p/ ver histórico", action: () => setAba("movimentacoes") },
+                { icon: AlertTriangle, label: "Abaixo do mínimo", value: `${itensDaArea.filter(i => statusItemEstoque(i, estoqueAtual).abaixoMinimo).length} itens`, note: "Clique p/ filtrar abaixo", action: () => { setAba("alertas"); setFiltros(f => ({ ...f, status: "abaixo" })); } },
+                { icon: CalendarDays, label: "Próximas validades", value: estoqueAtual.controla_validade ? `${itensDaArea.filter(i => statusItemEstoque(i, estoqueAtual).validadeProxima).length} itens` : "Não controlada", note: "Clique p/ ver validades", action: () => { setAba("alertas"); setFiltros(f => ({ ...f, status: "validade" })); } },
+                { icon: Clock3, label: "Última reposição", value: ultimaEntrada ? fmtData(ultimaEntrada.data_movimento, true) : "Sem registro", note: "Clique p/ movimentações", action: () => setAba("movimentacoes") },
+                { icon: Boxes, label: "Resumo da área", value: `${itensDaArea.length} itens`, note: "Clique p/ resetar filtros", action: () => { setAba("atual"); setFiltros(f => ({ ...f, busca: "", status: "todos", grupo: "Todos", tempBar: "todos_temp", estadoCozinha: "todos_estado" })); } },
+              ].map(({ icon: Icon, label, value, note, action }) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={action}
+                  className="group flex flex-col justify-between rounded-2xl border-2 border-slate-200 bg-white p-4 text-left shadow-sm transition-all hover:-translate-y-1 hover:border-emerald-600 hover:ring-4 hover:ring-emerald-500/20 hover:shadow-lg active:scale-95 cursor-pointer select-none"
+                >
+                  <div>
+                    <div className="mb-3 grid h-10 w-10 place-items-center rounded-xl bg-emerald-50 text-emerald-700 transition-colors group-hover:bg-emerald-600 group-hover:text-white"><Icon size={19} /></div>
+                    <p className="text-xs font-black text-slate-600">{label}</p>
+                    <p className="mt-1 text-lg font-black text-slate-900">{value}</p>
+                  </div>
+                  {note && <p className="mt-2 text-[10px] font-black text-emerald-700 underline underline-offset-2 truncate">{note}</p>}
+                </button>
               ))}
             </section>
 
@@ -1001,67 +1007,79 @@ function EstoqueRunner() {
 
               {aba === "atual" || aba === "alertas" ? (
                 <>
-                  {grupos.length > 1 && (
-                    <div className="border-b border-slate-100 px-4 py-4 sm:px-6">
-                      <div className="mb-3">
-                        <p className="text-sm font-black text-slate-800">Separação do estoque de {estoqueAtual.nome}</p>
-                        <p className="text-xs text-slate-500">Escolha um grupo para visualizar somente os itens correspondentes.</p>
-                      </div>
-                      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap">
-                        {grupos.map(grupo => (
-                          <button
-                            key={grupo}
-                            onClick={() => setFiltros(atuais => ({ ...atuais, grupo }))}
-                            className={`shrink-0 rounded-full border px-4 py-2 text-sm font-extrabold transition ${filtros.grupo === grupo ? "border-emerald-700 bg-emerald-700 text-white shadow-sm" : "border-slate-200 bg-white text-slate-600 hover:border-emerald-300"}`}
-                          >
-                            {grupo} <span className={filtros.grupo === grupo ? "text-emerald-100" : "text-slate-400"}>({contagemGrupos[grupo] || 0})</span>
-                          </button>
-                        ))}
-                      </div>
-                      
-                      {/* Bar Temperature / Cozinha Ready Food Quick Filter Badges */}
-                      <div className="mt-3 flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
-                        {estoqueAtual?.departamento === "bar" || estoqueAtual?.slug === "bar" ? (
-                          <>
-                            <span className="text-xs font-black text-slate-500 mr-1">Filtro de Temperatura do Bar:</span>
-                            {[
-                              ["todos_temp", "Todos os Itens"],
-                              ["apenas_gelado", "🧊 Apenas Gelados (Expositor)"],
-                              ["apenas_quente", "🔥 Apenas Quentes (Depósito)"],
-                            ].map(([id, label]) => (
-                              <button
-                                key={id}
-                                onClick={() => setFiltros(atuais => ({ ...atuais, tempBar: id }))}
-                                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${(filtros.tempBar || "todos_temp") === id ? "bg-slate-900 text-white shadow-sm" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}
-                              >
-                                {label}
-                              </button>
-                            ))}
-                          </>
-                        ) : (
-                          <>
-                            <span className="text-xs font-black text-slate-500 mr-1">Estado das Comidas & Insumos:</span>
-                            {[
-                              ["todos_estado", "Todos os Itens"],
-                              ["insumos", "📦 Insumos Brutos"],
-                              ["resfriados", "❄️ Comidas Prontas (Resfriadas)"],
-                              ["congelados", "🧊 Comidas Prontas (Congeladas)"],
-                            ].map(([id, label]) => (
-                              <button
-                                key={id}
-                                onClick={() => setFiltros(atuais => ({ ...atuais, estadoCozinha: id }))}
-                                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${(filtros.estadoCozinha || "todos_estado") === id ? "bg-slate-900 text-white shadow-sm" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}
-                              >
-                                {label}
-                              </button>
-                            ))}
-                          </>
-                        )}
-                      </div>
+                  <div className="border-b border-slate-100 px-4 py-4 sm:px-6">
+                    {grupos.length > 1 && (
+                      <>
+                        <div className="mb-3">
+                          <p className="text-sm font-black text-slate-800">Separação do estoque de {estoqueAtual.nome}</p>
+                          <p className="text-xs text-slate-500">Escolha um grupo para visualizar somente os itens correspondentes.</p>
+                        </div>
+                        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap">
+                          {grupos.map(grupo => (
+                            <button
+                              key={grupo}
+                              onClick={() => setFiltros(atuais => ({ ...atuais, grupo }))}
+                              className={`shrink-0 rounded-full border px-4 py-2 text-sm font-extrabold transition ${filtros.grupo === grupo ? "border-emerald-700 bg-emerald-700 text-white shadow-sm" : "border-slate-200 bg-white text-slate-600 hover:border-emerald-300"}`}
+                            >
+                              {grupo} <span className={filtros.grupo === grupo ? "text-emerald-100" : "text-slate-400"}>({contagemGrupos[grupo] || 0})</span>
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                    
+                    {/* Bar Temperature / Cozinha Ready Food Quick Filter Badges (Sem emojis) */}
+                    <div className="mt-3 flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
+                      {(estoqueAtual?.departamento === "bar" || estoqueAtual?.slug?.includes("bar") || estoqueAtual?.nome?.toLowerCase()?.includes("bar")) ? (
+                        <>
+                          <span className="text-xs font-black text-slate-700 mr-1">Filtro de Temperatura do Bar:</span>
+                          {[
+                            ["todos_temp", "Todos os Itens"],
+                            ["apenas_gelado", "Apenas Gelados (Expositor)"],
+                            ["apenas_quente", "Apenas Quentes (Depósito)"],
+                          ].map(([id, label]) => (
+                            <button
+                              key={id}
+                              type="button"
+                              onClick={() => setFiltros(atuais => ({ ...atuais, tempBar: id }))}
+                              className={`rounded-xl px-3.5 py-1.5 text-xs font-black transition cursor-pointer ${(filtros.tempBar || "todos_temp") === id ? "bg-slate-900 text-white shadow-sm ring-2 ring-slate-900" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-xs font-black text-slate-700 mr-1">Estado das Comidas & Insumos:</span>
+                          {[
+                            ["todos_estado", "Todos os Itens"],
+                            ["insumos", "Insumos Brutos"],
+                            ["resfriados", "Comidas Prontas (Resfriadas)"],
+                            ["congelados", "Comidas Prontas (Congeladas)"],
+                          ].map(([id, label]) => (
+                            <button
+                              key={id}
+                              type="button"
+                              onClick={() => setFiltros(atuais => ({ ...atuais, estadoCozinha: id }))}
+                              className={`rounded-xl px-3.5 py-1.5 text-xs font-black transition cursor-pointer ${(filtros.estadoCozinha || "todos_estado") === id ? "bg-slate-900 text-white shadow-sm ring-2 ring-slate-900" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </>
+                      )}
                     </div>
-                  )}
+                  </div>
                   <div className="grid gap-3 p-4 lg:grid-cols-[1fr_190px_170px_180px]">
-                    <label className="relative"><Search className="absolute left-3 top-3 text-slate-400" size={19} /><input value={filtros.busca} onChange={e => setFiltros({ ...filtros, busca: e.target.value })} placeholder="Buscar produto por nome, marca ou código..." className="h-11 w-full rounded-xl border border-slate-200 pl-10 pr-3 outline-none focus:border-emerald-500" /></label>
+                    <label className="relative flex items-center">
+                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-700 font-bold z-10" size={19} />
+                      <input
+                        value={filtros.busca}
+                        onChange={e => setFiltros({ ...filtros, busca: e.target.value })}
+                        placeholder="Buscar produto por nome, marca ou código..."
+                        className="h-11 w-full rounded-2xl border-2 border-slate-300 bg-white pl-11 pr-3 font-bold text-slate-900 shadow-sm transition-all focus:border-emerald-600 focus:bg-white focus:outline-none focus:ring-4 focus:ring-emerald-500/20 placeholder:font-medium placeholder:text-slate-400"
+                      />
+                    </label>
                     <select value={filtros.categoria} onChange={e => setFiltros({ ...filtros, categoria: e.target.value })} className="h-11 rounded-xl border border-slate-200 px-3 font-semibold">{categorias.map(v => <option key={v}>{v}</option>)}</select>
                     <select value={filtros.status} onChange={e => setFiltros({ ...filtros, status: e.target.value })} className="h-11 rounded-xl border border-slate-200 px-3 font-semibold">
                       <option value="todos">Todos os status</option><option value="abaixo">Abaixo do mínimo</option><option value="validade">Validade próxima</option><option value="sem-saldo">Sem saldo</option>
@@ -1309,11 +1327,9 @@ function EstoqueRunner() {
                   <input type="number" min="0" step="0.01" value={formItem.custo_unitario} onChange={e => setFormItem({ ...formItem, custo_unitario: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 pl-10 pr-3 font-semibold" placeholder="0,00" />
                 </div>
               </Campo>
-              <Campo label="Local interno"><input value={formItem.local_interno || ""} onChange={e => setFormItem({ ...formItem, local_interno: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" placeholder="Ex.: Câmara fria 01" /></Campo>
               {estoqueAtual?.controla_validade && <Campo label="Validade"><input type="date" value={formItem.validade || ""} onChange={e => setFormItem({ ...formItem, validade: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" /></Campo>}
             </div>
-            <label className="flex items-center gap-3 rounded-xl bg-slate-50 p-3 text-sm font-bold"><input type="checkbox" checked={formItem.permite_transferencia !== false} onChange={e => setFormItem({ ...formItem, permite_transferencia: e.target.checked })} /> Permitir transferências deste item</label>
-            {/* Embalagem/fracionamento — valem para o produto em todos os estoques */}
+            {/* Embalagem — valem para o produto em todos os estoques */}
             {Number(formItem.tamanho_embalagem) > 1 && String(formItem.unidade_medida || "").toLowerCase() !== "un" && (
               <div className="rounded-xl border border-slate-200 p-3">
                 <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">Bebida / embalado</p>
@@ -1347,7 +1363,6 @@ function EstoqueRunner() {
                     <div className="grid h-12 place-items-center rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-600">{fmtQtd(formItem.tamanho_embalagem)} {String(formItem.unidade_medida).toLowerCase() === "l" ? "L" : formItem.unidade_medida}</div>
                   </Campo>
                 </div>
-                <label className="mt-2 flex items-center gap-3 rounded-xl bg-slate-50 p-3 text-sm font-bold"><input type="checkbox" checked={formItem.permite_fracionado !== false} onChange={e => setFormItem({ ...formItem, permite_fracionado: e.target.checked })} /> Permite controle fracionado (abrir e usar por conteúdo)</label>
               </div>
             )}
             <div className="flex justify-end"><BotaoSalvar carregando={salvando} /></div>
@@ -1568,22 +1583,32 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
 
   return (
     <>
-      <div className="hidden overflow-x-auto lg:block">
+      <div className="hidden overflow-x-auto lg:block rounded-2xl border border-slate-200 bg-white shadow-sm">
         <table className="w-full min-w-[1100px] text-left text-sm">
-          <thead className="bg-slate-900 text-xs uppercase tracking-wide text-white"><tr>
-            <th className="px-5 py-4">Produto</th><th className="px-4 py-4">Categoria</th><th className="px-4 py-4">Embalagem</th><th className="px-4 py-4 whitespace-nowrap">Custo/un.</th><th className="px-4 py-4">Saldo</th><th className="px-4 py-4 whitespace-nowrap">Valor total</th><th className="px-3 py-4">Mínimo</th><th className="px-3 py-4">Máximo</th>{estoque?.controla_validade && <th className="px-4 py-4">Validade</th>}<th className="px-4 py-4">Local</th><th className="px-4 py-4">Última mov.</th><th className="px-4 py-4">Ações</th>
+          <thead className="bg-slate-900 text-xs font-black uppercase tracking-wider text-white"><tr>
+            <th className="px-5 py-4 whitespace-nowrap">Produto</th>
+            <th className="px-4 py-4 whitespace-nowrap">Categoria</th>
+            <th className="px-4 py-4 whitespace-nowrap">Embalagem</th>
+            <th className="px-4 py-4 whitespace-nowrap">Custo / Un.</th>
+            <th className="px-4 py-4 whitespace-nowrap">Saldo Atual</th>
+            <th className="px-4 py-4 whitespace-nowrap">Valor Total</th>
+            <th className="px-3 py-4 whitespace-nowrap">Mínimo</th>
+            <th className="px-3 py-4 whitespace-nowrap">Máximo</th>
+            {estoque?.controla_validade && <th className="px-4 py-4 whitespace-nowrap">Validade</th>}
+            <th className="px-4 py-4 whitespace-nowrap">Última Movimentação</th>
+            <th className="px-4 py-4 whitespace-nowrap text-center">Ações</th>
           </tr></thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-100 font-medium">
             {agrupadoPorCategoria.map(({ categoria, lista, subtotal }) => (
               <Fragment key={categoria}>
                 <tr className="bg-slate-100/90 border-y border-slate-200">
-                  <td colSpan={estoque?.controla_validade ? 12 : 11} className="px-5 py-2.5">
+                  <td colSpan={estoque?.controla_validade ? 11 : 10} className="px-5 py-3">
                     <div className="flex items-center justify-between">
-                      <span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-800">
+                      <span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-900">
                         <span className="h-2.5 w-2.5 rounded-full bg-emerald-600"></span>
-                        {categoria} <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-bold text-slate-600 shadow-sm border border-slate-200">{lista.length} {lista.length === 1 ? "item" : "itens"}</span>
+                        {categoria} <span className="rounded-full bg-white px-2.5 py-0.5 text-[11px] font-black text-slate-700 shadow-sm border border-slate-200">{lista.length} {lista.length === 1 ? "item" : "itens"}</span>
                       </span>
-                      <span className="text-xs font-extrabold text-emerald-800">
+                      <span className="text-xs font-black text-emerald-800 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-200">
                         Subtotal: {fmtBRL(subtotal)}
                       </span>
                     </div>
@@ -1592,24 +1617,23 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                 {lista.map(item => {
                   const status = statusItemEstoque(item, estoque || {});
                   const valTotalItem = calcularValorItem(item);
-                  return <tr key={item.id} className="hover:bg-slate-50">
-                    <td className="px-5 py-3"><strong className="block">{item.nome}</strong><span className="text-xs text-slate-500">{item.codigo_interno || item.marca || "Sem código"}</span></td>
-                    <td className="px-4 py-3"><span className="rounded-lg bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">{item.categoria || "Sem categoria"}</span></td>
-                    <td className="px-4 py-3">{fmtQtd(item.tamanho_embalagem || 1)} {mostrarUn(item.unidade_medida)}</td>
-                    <td className="px-4 py-3 whitespace-nowrap"><strong className="font-extrabold text-slate-900">{fmtBRL(item.custo_unitario || 0)}</strong></td>
-                    <td className={`px-4 py-3 font-black ${status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}`}>{(() => { const s = saldoEmbalado(item); return s ? <><span>{s.principal}</span><span className="block text-[10px] font-medium text-slate-400">{s.secundario}</span></> : <>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</>; })()}</td>
-                    <td className="px-4 py-3 whitespace-nowrap"><strong className="font-black text-emerald-800">{fmtBRL(valTotalItem)}</strong></td>
-                    <td className="px-3 py-3 font-semibold text-slate-700">{item.estoque_minimo == null || item.estoque_minimo === "" ? "—" : `${fmtQtd(item.estoque_minimo)} ${mostrarUn(item.unidade_medida)}`}</td>
-                    <td className="px-3 py-3 font-semibold text-slate-700">{item.estoque_maximo == null || item.estoque_maximo === "" ? "—" : `${fmtQtd(item.estoque_maximo)} ${mostrarUn(item.unidade_medida)}`}</td>
-                    {estoque?.controla_validade && <td className={`px-4 py-3 ${status.vencido || status.validadeProxima ? "font-bold text-amber-700" : ""}`}>{fmtData(item.validade)}</td>}
-                    <td className="px-4 py-3"><span className="inline-flex items-center gap-1"><MapPin size={14} />{item.local_interno || "Não definido"}</span></td>
-                    <td className="px-4 py-3 text-xs text-slate-500">{fmtData(item.ultima_movimentacao_em, true)}</td>
-                    <td className="px-4 py-3"><div className="flex gap-2">
-                      <button onClick={() => onEntrada(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-emerald-600 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-extrabold" title="Entrada / Adicionar"><Plus size={17} /></button>
-                      <button onClick={() => onSaida(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-red-600 bg-red-50 text-red-700 hover:bg-red-100 font-extrabold" title="Baixa / Retirar"><span className="text-xl leading-none">−</span></button>
-                      <button onClick={() => onHistorico && onHistorico(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50" title="Histórico do produto"><History size={17} /></button>
+                  return <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-5 py-3.5"><strong className="block text-slate-900 font-extrabold">{item.nome}</strong><span className="text-xs text-slate-500 font-semibold">{item.codigo_interno || item.marca || "Sem código"}</span></td>
+                    <td className="px-4 py-3.5 whitespace-nowrap"><span className="inline-block rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-800 border border-emerald-200/60">{item.categoria || "Sem categoria"}</span></td>
+                    <td className="px-4 py-3.5 whitespace-nowrap font-bold text-slate-700">{fmtQtd(item.tamanho_embalagem || 1)} {mostrarUn(item.unidade_medida)}</td>
+                    <td className="px-4 py-3.5 whitespace-nowrap"><strong className="font-extrabold text-slate-900">{fmtBRL(item.custo_unitario || 0)}</strong></td>
+                    <td className={`px-4 py-3.5 whitespace-nowrap font-black ${status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}`}>{(() => { const s = saldoEmbalado(item); return s ? <><span>{s.principal}</span><span className="block text-[11px] font-bold text-slate-400 mt-0.5">{s.secundario}</span></> : <>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</>; })()}</td>
+                    <td className="px-4 py-3.5 whitespace-nowrap"><strong className="font-black text-emerald-800 text-base">{fmtBRL(valTotalItem)}</strong></td>
+                    <td className="px-3 py-3.5 whitespace-nowrap font-extrabold text-slate-700">{item.estoque_minimo == null || item.estoque_minimo === "" ? "—" : `${fmtQtd(item.estoque_minimo)} ${mostrarUn(item.unidade_medida)}`}</td>
+                    <td className="px-3 py-3.5 whitespace-nowrap font-extrabold text-slate-700">{item.estoque_maximo == null || item.estoque_maximo === "" ? "—" : `${fmtQtd(item.estoque_maximo)} ${mostrarUn(item.unidade_medida)}`}</td>
+                    {estoque?.controla_validade && <td className={`px-4 py-3.5 whitespace-nowrap ${status.vencido || status.validadeProxima ? "font-black text-amber-700" : "font-semibold text-slate-600"}`}>{fmtData(item.validade)}</td>}
+                    <td className="px-4 py-3.5 whitespace-nowrap text-xs font-bold text-slate-600">{fmtData(item.ultima_movimentacao_em, true)}</td>
+                    <td className="px-4 py-3.5 whitespace-nowrap"><div className="flex items-center justify-center gap-1.5">
+                      <button onClick={() => onEntrada(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700 font-extrabold shadow-sm active:scale-95 transition-all" title="Entrada / Adicionar"><Plus size={18} /></button>
+                      <button onClick={() => onSaida(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-rose-600 bg-rose-600 text-white hover:bg-rose-700 font-extrabold shadow-sm active:scale-95 transition-all" title="Baixa / Retirar"><span className="text-xl leading-none">−</span></button>
+                      <button onClick={() => onHistorico && onHistorico(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-200 font-bold" title="Histórico do produto"><History size={17} /></button>
                       <SimuladorRendimento item={item} variant="icon" />
-                      <button onClick={() => onEditar(item)} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50" title="Configurar"><MoreVertical size={17} /></button>
+                      <button onClick={() => onEditar(item)} className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-200 font-bold" title="Configurar"><MoreVertical size={17} /></button>
                     </div></td>
                   </tr>;
                 })}

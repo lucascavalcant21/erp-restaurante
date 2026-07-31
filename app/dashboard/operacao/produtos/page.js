@@ -251,7 +251,7 @@ function CardapioRunner() {
         await salvarProduto({
           unidade_id: unidadeAtiva,
           nome_produto: f.nome_receita,
-          categoria: f.departamento === "bar" ? "Drinks" : "Pratos Principais",
+          categoria: f.departamento === "bar" ? "Destilados" : "Pratos Principais",
           departamento: f.departamento,
           tempo_preparo_base: 15,
           preco_venda: 0,
@@ -283,7 +283,8 @@ function CardapioRunner() {
 
   const filtrados = produtos
     .filter(p => p.nome_produto.toLowerCase().includes(busca.toLowerCase()))
-    .filter(p => !catFiltro || p.categoria === catFiltro);
+    .filter(p => !catFiltro || p.categoria === catFiltro)
+    .sort((a, b) => String(a.nome_produto || "").localeCompare(String(b.nome_produto || ""), "pt-BR", { sensitivity: "base" }));
 
   // Agrupa por categoria para exibir o cardápio em seções
   const grupos = categoriasEmUso
@@ -632,9 +633,14 @@ function CardapioRunner() {
       </div>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 mt-6 sm:mt-8">
-         <div className="bg-white p-3 rounded-2xl border border-slate-200 mb-4 flex items-center gap-3 shadow-sm">
-            <Search size={20} className="text-slate-500 ml-2" />
-            <input type="text" placeholder="Buscar produto no cardápio..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-bold text-slate-700 p-2" />
+         <div className="bg-white p-2 sm:p-2.5 rounded-2xl border-2 border-slate-300 mb-4 flex items-center gap-3 shadow-sm transition-all focus-within:border-emerald-600 focus-within:ring-4 focus-within:ring-emerald-500/20">
+            <Search size={21} className="text-slate-700 font-bold ml-2 shrink-0" />
+            <input type="text" placeholder="Buscar produto no cardápio por nome..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-bold text-slate-900 text-sm p-1.5 placeholder:font-medium placeholder:text-slate-400" />
+            {busca && (
+              <button onClick={() => setBusca("")} className="mr-2 p-1 text-slate-400 hover:text-slate-700">
+                <X size={17} />
+              </button>
+            )}
          </div>
 
          {/* Chips de categoria (as que você criou aparecem aqui automaticamente) */}

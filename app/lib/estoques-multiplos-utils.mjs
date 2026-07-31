@@ -31,11 +31,10 @@ export const GRUPOS_OPERACIONAIS_ESTOQUE = {
   bar: [
     "Todos",
     "Cervejas",
-    "Drinks",
+    "Destilados",
     "Vinhos",
-    "Doses",
     "Chopp",
-    "Águas",
+    "Água",
     "Refrigerantes",
     "Bombons",
     "Pré-preparos"
@@ -61,11 +60,10 @@ export function grupoOperacionalItem(item, estoque) {
 
   if (area === "bar") {
     if (/cerveja|chopp|amstel|heineken|skol|brahma|corona|budweiser|stella|eisenbahn|sol|spaten/.test(texto)) return "Cervejas";
-    if (/drink|coquetel|caipirinha|mojito|margarita|gin tonica|aperol/.test(texto)) return "Drinks";
+    if (/destilado|whisky|vodka|cachaca|rum|tequila|gin|licor|dose|drink|coquetel|caipirinha|mojito|margarita|aperol|conhaque/.test(texto)) return "Destilados";
     if (/vinho|espumante|prosecco|cabernet|malbec|merlot/.test(texto)) return "Vinhos";
-    if (/dose|whisky|vodka|cachaca|rum|tequila|gin|licor/.test(texto)) return "Doses";
     if (/chopp|chope|barril/.test(texto)) return "Chopp";
-    if (/agua|tonica/.test(texto)) return "Águas";
+    if (/agua|tonica/.test(texto)) return "Água";
     if (/refrigerante|coca|guarana|fanta|sprite|schweppes/.test(texto)) return "Refrigerantes";
     if (/bombom|trufa|chocolate/.test(texto)) return "Bombons";
     if (/xarope|mix|espuma|geleia|infusao/.test(texto)) return "Pré-preparos";
@@ -145,8 +143,22 @@ export function filtrarItensEstoque(itens, filtros, estoque) {
     if (filtros?.status === "abaixo" && !status.abaixoMinimo) return false;
     if (filtros?.status === "validade" && !status.validadeProxima) return false;
     if (filtros?.status === "sem-saldo" && !status.semSaldo) return false;
-    if (filtros?.tempBar === "apenas_gelado" && (Number(item?.qtd_frio) || 0) <= 0) return false;
-    if (filtros?.tempBar === "apenas_quente" && (Number(item?.qtd_quente) || 0) <= 0) return false;
+    if (filtros?.tempBar === "apenas_gelado") {
+      const cat = String(item?.categoria || "").toLowerCase();
+      const nm = String(item?.nome || "").toLowerCase();
+      const ehGelado = (Number(item?.qtd_frio) > 0) ||
+        /cerveja|chopp|chope|refrigerante|coca|fanta|sprite|guarana|schweppes|agua|tonica|energetico|suco|ice|red bull|heineken|amstel|skol|brahma|corona|budweiser|stella|eisenbahn|spaten/.test(cat + " " + nm) ||
+        ["cervejas", "chopp", "águas", "refrigerantes", "sucos"].includes(cat);
+      if (!ehGelado) return false;
+    }
+    if (filtros?.tempBar === "apenas_quente") {
+      const cat = String(item?.categoria || "").toLowerCase();
+      const nm = String(item?.nome || "").toLowerCase();
+      const ehQuente = (Number(item?.qtd_quente) > 0) ||
+        /vinho|dose|destilado|whisky|vodka|cachaca|rum|tequila|gin|licor|xarope|vermute|bitter|espumante|conhaque/.test(cat + " " + nm) ||
+        ["vinhos", "doses", "drinks", "pré-preparos"].includes(cat);
+      if (!ehQuente) return false;
+    }
     if (filtros?.estadoCozinha === "resfriados" && item?.estado_conservacao !== "resfriado") return false;
     if (filtros?.estadoCozinha === "congelados" && item?.estado_conservacao !== "congelado") return false;
     if (filtros?.estadoCozinha === "insumos" && (item?.estado_conservacao === "resfriado" || item?.estado_conservacao === "congelado")) return false;

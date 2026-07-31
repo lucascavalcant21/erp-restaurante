@@ -73,11 +73,10 @@ const CATEGORIAS_CARDAPIO = [
 // Categorias oficiais do Bar na ordem exata solicitada pelo usuário (incluindo Chopp no barril, águas, refrigerantes e bombons)
 const CATEGORIAS_BAR = [
   "Cervejas",
-  "Drinks",
+  "Destilados",
   "Vinhos",
-  "Doses",
   "Chopp",
-  "Águas",
+  "Água",
   "Refrigerantes",
   "Bombons",
 ];
@@ -98,14 +97,7 @@ function obterTodasCategoriasFicha(deptUrl, fichas = []) {
   const vindosDasFichas = fichas.map(f => f.categoria).filter(Boolean);
   const todas = [...new Set([...base, ...custom, ...vindosDasFichas])].filter(c => !excluidas.includes(c));
 
-  return todas.sort((a, b) => {
-    const idxA = base.indexOf(a);
-    const idxB = base.indexOf(b);
-    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-    if (idxA !== -1) return -1;
-    if (idxB !== -1) return 1;
-    return a.localeCompare(b, "pt-BR");
-  });
+  return todas.sort((a, b) => a.localeCompare(b, "pt-BR", { sensitivity: "base" }));
 }
 
 function salvarNovaCategoriaFicha(novaCat, deptUrl) {
@@ -660,9 +652,7 @@ function FichasRunner() {
   // usadas dentro de outros pratos: molhos, massas, caldos...)
   const [tipoFiltro, setTipoFiltro] = useState("Pratos");
   const ordenarFichas = (a, b) => {
-    const oa = a.ordem ?? 1e9, ob = b.ordem ?? 1e9;
-    if (oa !== ob) return oa - ob;
-    return a.nome_receita.localeCompare(b.nome_receita, "pt-BR");
+    return String(a.nome_receita || "").localeCompare(String(b.nome_receita || ""), "pt-BR", { sensitivity: "base" });
   };
   const passaFiltro = (f) => {
     if (tipoFiltro === "Todos") return true;

@@ -66,7 +66,7 @@ export default function RHPage() {
   const [cargos, setCargos] = useState([]);
   const [busca, setBusca] = useState("");
   const [abaAtiva, setAbaAtiva] = useState("Fixo");
-  const statePadrao = { foto: "", nome: "", cargo: "", salario: "", vale_alimentacao: "", taxa_servico_mes: "", horario_entrada: "", horario_saida: "", horario_dom_entrada: "", horario_dom_saida: "", horario_por_dia: false, horarios_dia: {}, dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60, tipo_contrato: "Fixo", telefone: "", cpf: "", chave_pix: "", avaliacao_estrelas: 0, anotacoes_rh: "", data_admissao: "", status_contrato: "Definitivo", supervisor_id: "", supervisores_ids: [], endereco: "", cep: "", cidade_nascimento: "", data_nascimento: "", tem_filhos: false, qtd_filhos: "", tem_transporte: false, usa_vale_transporte: false, genero: "", escolaridade: "" };
+  const statePadrao = { foto: "", nome: "", cargo: "", salario: "", vale_alimentacao: "", taxa_servico_mes: "", horario_entrada: "", horario_saida: "", horario_dom_entrada: "", horario_dom_saida: "", horario_por_dia: false, horarios_dia: {}, dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60, tipo_contrato: "Fixo", telefone: "", cpf: "", rg: "", rua_av: "", numero_casa: "", bairro: "", cidade_uf: "", chave_pix: "", avaliacao_estrelas: 0, anotacoes_rh: "", data_admissao: "", status_contrato: "Definitivo", supervisor_id: "", supervisores_ids: [], endereco: "", cep: "", cidade_nascimento: "", data_nascimento: "", tem_filhos: false, qtd_filhos: "", tem_transporte: false, usa_vale_transporte: false, genero: "", escolaridade: "" };
   // Cargos de liderança sempre disponíveis, além dos cargos cadastrados
   const CARGOS_LIDERANCA = ["CEO", "Supervisor", "Gerente"];
   const [modalNovo, setModalNovo] = useState(false);
@@ -1280,6 +1280,11 @@ export default function RHPage() {
        tipo_contrato: f.tipo_contrato || "Fixo",
        telefone: f.telefone || "",
        cpf: f.cpf || "",
+       rg: f.rg || "",
+       rua_av: f.rua_av || f.rua || "",
+       numero_casa: f.numero_casa || f.numero || "",
+       bairro: f.bairro || "",
+       cidade_uf: f.cidade_uf || f.cidade || "",
        chave_pix: f.chave_pix || "",
        avaliacao_estrelas: f.avaliacao_estrelas || 0,
        anotacoes_rh: f.anotacoes_rh || "",
@@ -2179,28 +2184,48 @@ export default function RHPage() {
                      </div>
                      <p className="text-[10px] text-slate-400 font-medium mt-1">Pode marcar mais de um. Sem supervisor = topo da hierarquia no Organograma.</p>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Telefone / WhatsApp</label>
-                        <input type="text" value={novoFunc.telefone} onChange={e=>setNovoFunc({...novoFunc, telefone: e.target.value})} placeholder="(00) 00000-0000" className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                        <input type="text" value={novoFunc.telefone} onChange={e=>setNovoFunc({...novoFunc, telefone: e.target.value})} placeholder="(00) 00000-0000" className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
                      </div>
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">CPF</label>
-                        <input type="text" value={novoFunc.cpf} onChange={e=>setNovoFunc({...novoFunc, cpf: e.target.value})} placeholder="000.000.000-00" className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                        <input type="text" value={novoFunc.cpf} onChange={e=>setNovoFunc({...novoFunc, cpf: e.target.value})} placeholder="000.000.000-00" className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                     </div>
+                     <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">RG</label>
+                        <input type="text" value={novoFunc.rg || ""} onChange={e=>setNovoFunc({...novoFunc, rg: e.target.value})} placeholder="Ex.: 0000000 PC/PA" className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
                      </div>
                   </div>
 
                   {/* ── DADOS PESSOAIS ─────────────────────────────────────── */}
                   <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-4">
-                     <p className="text-[11px] font-black uppercase tracking-widest text-slate-500">Dados Pessoais</p>
+                     <p className="text-[11px] font-black uppercase tracking-widest text-slate-500">Endereço e Dados Pessoais</p>
+                     
                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div className="col-span-2">
-                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Endereço</label>
-                           <input type="text" value={novoFunc.endereco} onChange={e=>setNovoFunc({...novoFunc, endereco: e.target.value})} placeholder="Rua, número, bairro" className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
+                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Rua / Avenida</label>
+                           <input type="text" value={novoFunc.rua_av || ""} onChange={e=>setNovoFunc({...novoFunc, rua_av: e.target.value, endereco: `${e.target.value}${novoFunc.numero_casa ? `, ${novoFunc.numero_casa}` : ""}${novoFunc.bairro ? `, ${novoFunc.bairro}` : ""}`})} placeholder="Ex.: Av. Paulista" className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
+                        </div>
+                        <div>
+                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Número</label>
+                           <input type="text" value={novoFunc.numero_casa || ""} onChange={e=>setNovoFunc({...novoFunc, numero_casa: e.target.value})} placeholder="Ex.: 1500 ou S/N" className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
+                        </div>
+                     </div>
+
+                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Bairro</label>
+                           <input type="text" value={novoFunc.bairro || ""} onChange={e=>setNovoFunc({...novoFunc, bairro: e.target.value})} placeholder="Ex.: Bela Vista" className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
+                        </div>
+                        <div>
+                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Cidade / UF</label>
+                           <input type="text" value={novoFunc.cidade_uf || ""} onChange={e=>setNovoFunc({...novoFunc, cidade_uf: e.target.value})} placeholder="Ex.: São Paulo / SP" className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
                         </div>
                         <div>
                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">CEP</label>
-                           <input type="text" value={novoFunc.cep} onChange={e=>setNovoFunc({...novoFunc, cep: e.target.value})} placeholder="00000-000" className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
+                           <input type="text" value={novoFunc.cep || ""} onChange={e=>setNovoFunc({...novoFunc, cep: e.target.value})} placeholder="00000-000" className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
                         </div>
                      </div>
                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

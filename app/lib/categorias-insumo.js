@@ -2,8 +2,8 @@
 // Conforme o usuário digita o nome, sugere a categoria; ele pode trocar ou criar novas.
 
 export const CATEGORIAS_INSUMO = {
-  cozinha: ["Carne vermelha", "Peixe", "Aves", "Frutos do mar", "Caranguejo", "Laticínios", "Hortifrúti", "Secos", "Líquidos", "Pré-preparos"],
-  bar: ["Cervejas", "Refrigerantes", "Vinhos", "Ingredientes", "Whisky", "Vodka", "Cachaça", "Licor", "Suco industrializado", "Rum", "Conhaque"],
+  cozinha: ["Aves", "Caranguejo", "Carne vermelha", "Frutos do mar", "Hortifrúti", "Laticínios", "Líquidos", "Peixe", "Pré-preparos", "Secos"],
+  bar: ["Água", "Bombons", "Cervejas", "Chopp", "Destilados", "Pré-preparos", "Refrigerantes", "Vinhos"],
 };
 
 export function obterCategoriasCustom(departamento = "cozinha") {
@@ -46,19 +46,15 @@ const KEYWORDS = {
   "Hortifrúti": ["tomate", "cebola", "alho", "batata", "cenoura", "pimentao", "alface", "couve", "cheiro-verde", "cheiro verde", "coentro", "salsa", "chicoria", "abobora", "mandioca", "banana", "limao", "manga", "abacaxi", "maracuja", "repolho", "pepino", "beterraba", "quiabo", "jambu", "verdura", "legume"],
   "Secos": ["arroz", "feijao", "farinha", "acucar", "sal", "macarrao", "massa", "tapioca", "fuba", "amido", "fermento", "biscoito", "pao", "graos", "lentilha", "grao de bico", "aveia", "cafe", "cha", "pimenta", "colorau", "cominho", "curry", "acafrao", "louro", "oregano", "canela", "cravo", "noz-moscada", "tempero", "cumaru", "gengibre", "paprica"],
   "Líquidos": ["oleo", "azeite", "vinagre", "molho", "shoyu", "agua", "caldo", "leite de coco", "leite condensado"],
-  "Pré-preparos": ["molho pronto", "base de caldo", "mix de temperos", "massa caseira"],
+  "Pré-preparos": ["molho pronto", "base de caldo", "mix de temperos", "massa caseira", "xarope", "mix", "espuma"],
   // bar
-  "Refrigerantes": ["refrigerante", "coca", "guarana", "fanta", "sprite", "pepsi", "tonica", "soda", "schweppes", "antarctica"],
-  "Cervejas": ["cerveja", "chopp", "chope", "ipa", "pilsen", "lager", "heineken", "brahma", "skol", "budweiser", "corona", "long neck", "barril"],
-  "Vinhos": ["vinho", "espumante", "prosecco", "champagne", "frisante", "tinto", "branco seco", "rose"],
-  "Whisky": ["whisky", "uisque", "bourbon", "scotch", "jack daniels", "johnnie walker", "chivas", "ballantines"],
-  "Vodka": ["vodka", "smirnoff", "absolut", "ciroc"],
-  "Cachaça": ["cachaca", "aguardente", "pinga", "caninha", "51"],
-  "Licor": ["licor", "amarula", "baileys", "cointreau"],
-  "Suco industrializado": ["suco", "nectar", "polpa", "concentrado", "del valle", "maguary"],
-  "Rum": ["rum", "bacardi", "havana club", "malibu"],
-  "Conhaque": ["conhaque", "brandy", "dreher", "domus"],
-  "Ingredientes": ["agua", "gelo", "gin", "tequila", "aperol", "campari", "vermute", "sake", "steinhaeger", "guarnicao", "azeitona", "cereja", "xarope", "grenadine", "mel", "morango", "limao", "laranja", "abacaxi", "maracuja", "kiwi", "hortela", "menta", "framboesa", "amora", "fruta", "coco", "gengibre", "pepino", "manjericao", "alecrim", "capim santo", "pimenta"],
+  "Água": ["agua", "água", "tonica", "tônica", "schweppes", "perrier", "san pellegrino"],
+  "Bombons": ["bombom", "trufa", "chocolate", "ferrero", "raffaello", "lacta", "nestle", "garoto"],
+  "Cervejas": ["cerveja", "pilsen", "lager", "ipa", "heineken", "brahma", "skol", "budweiser", "corona", "long neck"],
+  "Chopp": ["chopp", "chope", "barril"],
+  "Destilados": ["destilado", "whisky", "uisque", "vodka", "smirnoff", "absolut", "ciroc", "cachaca", "cachaça", "pinga", "51", "licor", "amarula", "baileys", "rum", "bacardi", "conhaque", "brandy", "gin", "tequila", "aperol", "campari", "vermute"],
+  "Refrigerantes": ["refrigerante", "coca", "guarana", "guaraná", "fanta", "sprite", "pepsi", "sukita"],
+  "Vinhos": ["vinho", "espumante", "prosecco", "champagne", "frisante", "tinto", "rose", "rosé"],
 };
 
 function normalizar(s) {

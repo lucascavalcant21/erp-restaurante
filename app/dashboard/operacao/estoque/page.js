@@ -572,6 +572,12 @@ function EstoqueRunner() {
     for (const insumo of catalogoFiltradoPorArea || []) {
       if (!insumo) continue;
       const catResolvida = grupoOperacionalItem(insumo, estoqueAtual);
+      const ehEstoqueBar = (estoqueAtual.slug || estoqueAtual.nome || "").toLowerCase().includes("bar");
+      let unMed = insumo.unidade_medida;
+      if (ehEstoqueBar && (unMed === "kg" || unMed === "g" || !unMed)) {
+        unMed = (Number(insumo.tamanho_embalagem) >= 10) ? "ml" : "l";
+      }
+
       mapa.set(insumo.id, {
         id: insumo.id,
         insumo_id: insumo.id,
@@ -581,9 +587,9 @@ function EstoqueRunner() {
         marca: insumo.marca,
         categoria: catResolvida,
         departamento: insumo.departamento,
-        unidade_medida: insumo.unidade_medida,
+        unidade_medida: unMed,
         tamanho_embalagem: insumo.tamanho_embalagem || 1,
-        unidade_comercial: insumo.unidade_comercial || (["ml", "l"].includes(String(insumo.unidade_medida).toLowerCase()) ? "garrafa" : insumo.unidade_medida),
+        unidade_comercial: insumo.unidade_comercial || (["ml", "l"].includes(String(unMed).toLowerCase()) ? "garrafa" : unMed),
         custo_unitario: Number(insumo.custo_compra ?? insumo.custo_unitario) || 0,
         quantidade_atual: Number(insumo.quantidade_atual) || 0,
         estoque_minimo: insumo.estoque_minimo || null,
@@ -601,6 +607,12 @@ function EstoqueRunner() {
       const insumo = item.insumo || catalogo.find(i => i.id === insumoId) || item;
       const catResolvida = grupoOperacionalItem(item, estoqueAtual) || grupoOperacionalItem(insumo, estoqueAtual);
 
+      const ehEstoqueBar = (estoqueAtual.slug || estoqueAtual.nome || "").toLowerCase().includes("bar");
+      let unMed = item.unidade_medida || insumo.unidade_medida;
+      if (ehEstoqueBar && (unMed === "kg" || unMed === "g" || !unMed)) {
+        unMed = (Number(item.tamanho_embalagem || insumo.tamanho_embalagem) >= 10) ? "ml" : "l";
+      }
+
       mapa.set(insumoId, {
         ...insumo,
         ...item,
@@ -611,7 +623,7 @@ function EstoqueRunner() {
         codigo_interno: item.codigo_interno || insumo.codigo_interno,
         marca: item.marca || insumo.marca,
         categoria: catResolvida,
-        unidade_medida: item.unidade_medida || insumo.unidade_medida,
+        unidade_medida: unMed,
         tamanho_embalagem: item.tamanho_embalagem || insumo.tamanho_embalagem || 1,
         unidade_comercial: item.unidade_comercial || insumo.unidade_comercial,
         custo_unitario: Number(item.custo_unitario ?? insumo.custo_compra ?? insumo.custo_unitario) || 0,

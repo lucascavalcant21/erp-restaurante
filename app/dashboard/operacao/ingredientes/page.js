@@ -957,42 +957,44 @@ function IngredientesRunner() {
                 )}
               </section>
 
-              <section>
-                <h3 className="mb-3 text-xs font-black uppercase tracking-wider text-slate-400">Perda e rendimento</h3>
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                  <label>
-                    <span className="text-xs font-bold text-slate-600">Peso bruto (g)</span>
-                    <input inputMode="decimal" value={form.peso_bruto_g} onChange={e => !e.target.value.startsWith("-") && setForm({ ...form, peso_bruto_g: e.target.value })} placeholder="Ex.: 1000" className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 outline-none focus:border-emerald-500" />
-                  </label>
-                  <label>
-                    <span className="text-xs font-bold text-slate-600">Perda (g)</span>
-                    <input inputMode="decimal" value={form.perda_g} onChange={e => !e.target.value.startsWith("-") && setForm({ ...form, perda_g: e.target.value })} placeholder="Ex.: 200" className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 outline-none focus:border-emerald-500" />
-                  </label>
-                  <div className="flex flex-col">
-                    <span className="text-xs font-bold text-slate-600">Perda calculada</span>
-                    <div className="mt-1.5 flex h-11 items-center rounded-xl border border-emerald-100 bg-emerald-50 px-3.5 font-black text-emerald-700">
-                      {(() => { const b = parseNumeroBR(form.peso_bruto_g), p = parseNumeroBR(form.perda_g); return (Number.isFinite(b) && b > 0 && Number.isFinite(p)) ? ((p / b) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%" : "—"; })()}
+              {!ehBar && (
+                <section>
+                  <h3 className="mb-3 text-xs font-black uppercase tracking-wider text-slate-400">Perda e rendimento</h3>
+                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                    <label>
+                      <span className="text-xs font-bold text-slate-600">Peso bruto (g)</span>
+                      <input inputMode="decimal" value={form.peso_bruto_g} onChange={e => !e.target.value.startsWith("-") && setForm({ ...form, peso_bruto_g: e.target.value })} placeholder="Ex.: 1000" className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 outline-none focus:border-emerald-500" />
+                    </label>
+                    <label>
+                      <span className="text-xs font-bold text-slate-600">Perda (g)</span>
+                      <input inputMode="decimal" value={form.perda_g} onChange={e => !e.target.value.startsWith("-") && setForm({ ...form, perda_g: e.target.value })} placeholder="Ex.: 200" className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 outline-none focus:border-emerald-500" />
+                    </label>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-slate-600">Perda calculada</span>
+                      <div className="mt-1.5 flex h-11 items-center rounded-xl border border-emerald-100 bg-emerald-50 px-3.5 font-black text-emerald-700">
+                        {(() => { const b = parseNumeroBR(form.peso_bruto_g), p = parseNumeroBR(form.perda_g); return (Number.isFinite(b) && b > 0 && Number.isFinite(p)) ? ((p / b) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%" : "—"; })()}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <label className="mt-4 flex items-center gap-2">
-                  <input type="checkbox" checked={form.empanado} onChange={e => setForm({ ...form, empanado: e.target.checked })} className="h-4 w-4 accent-emerald-600" />
-                  <span className="text-xs font-bold text-slate-600">Produto empanado (ganha peso e tem custo do empanamento)</span>
-                </label>
-                {form.empanado && (
-                  <div className="mt-3 grid grid-cols-2 gap-4">
-                    <label>
-                      <span className="text-xs font-bold text-slate-600">Ganho de peso (%)</span>
-                      <input inputMode="decimal" value={form.ganho_pct} onChange={e => !e.target.value.startsWith("-") && setForm({ ...form, ganho_pct: e.target.value })} placeholder="Ex.: 30" className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 outline-none focus:border-emerald-500" />
-                    </label>
-                    <label>
-                      <span className="text-xs font-bold text-slate-600">Custo do empanado (R$/kg final)</span>
-                      <input inputMode="decimal" value={form.custo_empanado_kg} onChange={e => !e.target.value.startsWith("-") && setForm({ ...form, custo_empanado_kg: e.target.value })} placeholder="Ex.: 8,00" className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 outline-none focus:border-emerald-500" />
-                    </label>
-                  </div>
-                )}
-                <p className="mt-2 text-[11px] font-medium text-slate-400">A perda passa a ser do ingrediente (o FC sai da ficha técnica). Empanado: o produto rende mais peso, com o custo do empanamento somado ao custo final.</p>
-              </section>
+                  <label className="mt-4 flex items-center gap-2">
+                    <input type="checkbox" checked={form.empanado} onChange={e => setForm({ ...form, empanado: e.target.checked })} className="h-4 w-4 accent-emerald-600" />
+                    <span className="text-xs font-bold text-slate-600">Produto empanado (ganha peso e tem custo do empanamento)</span>
+                  </label>
+                  {form.empanado && (
+                    <div className="mt-3 grid grid-cols-2 gap-4">
+                      <label>
+                        <span className="text-xs font-bold text-slate-600">Ganho de peso (%)</span>
+                        <input inputMode="decimal" value={form.ganho_pct} onChange={e => !e.target.value.startsWith("-") && setForm({ ...form, ganho_pct: e.target.value })} placeholder="Ex.: 30" className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 outline-none focus:border-emerald-500" />
+                      </label>
+                      <label>
+                        <span className="text-xs font-bold text-slate-600">Custo do empanado (R$/kg final)</span>
+                        <input inputMode="decimal" value={form.custo_empanado_kg} onChange={e => !e.target.value.startsWith("-") && setForm({ ...form, custo_empanado_kg: e.target.value })} placeholder="Ex.: 8,00" className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 outline-none focus:border-emerald-500" />
+                      </label>
+                    </div>
+                  )}
+                  <p className="mt-2 text-[11px] font-medium text-slate-400">A perda passa a ser do ingrediente (o FC sai da ficha técnica). Empanado: o produto rende mais peso, com o custo do empanamento somado ao custo final.</p>
+                </section>
+              )}
 
               <section>
                 <h3 className="mb-3 text-xs font-black uppercase tracking-wider text-slate-400">Fornecedores</h3>

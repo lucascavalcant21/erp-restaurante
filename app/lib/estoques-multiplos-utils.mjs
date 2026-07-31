@@ -145,6 +145,11 @@ export function filtrarItensEstoque(itens, filtros, estoque) {
     if (filtros?.status === "abaixo" && !status.abaixoMinimo) return false;
     if (filtros?.status === "validade" && !status.validadeProxima) return false;
     if (filtros?.status === "sem-saldo" && !status.semSaldo) return false;
+    if (filtros?.tempBar === "apenas_gelado" && (Number(item?.qtd_frio) || 0) <= 0) return false;
+    if (filtros?.tempBar === "apenas_quente" && (Number(item?.qtd_quente) || 0) <= 0) return false;
+    if (filtros?.estadoCozinha === "resfriados" && item?.estado_conservacao !== "resfriado") return false;
+    if (filtros?.estadoCozinha === "congelados" && item?.estado_conservacao !== "congelado") return false;
+    if (filtros?.estadoCozinha === "insumos" && (item?.estado_conservacao === "resfriado" || item?.estado_conservacao === "congelado")) return false;
     return true;
   });
 }

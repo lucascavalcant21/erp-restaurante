@@ -1018,6 +1018,46 @@ function EstoqueRunner() {
                           </button>
                         ))}
                       </div>
+                      
+                      {/* Bar Temperature / Cozinha Ready Food Quick Filter Badges */}
+                      <div className="mt-3 flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
+                        {estoqueAtual?.departamento === "bar" || estoqueAtual?.slug === "bar" ? (
+                          <>
+                            <span className="text-xs font-black text-slate-500 mr-1">Filtro de Temperatura do Bar:</span>
+                            {[
+                              ["todos_temp", "Todos os Itens"],
+                              ["apenas_gelado", "🧊 Apenas Gelados (Expositor)"],
+                              ["apenas_quente", "🔥 Apenas Quentes (Depósito)"],
+                            ].map(([id, label]) => (
+                              <button
+                                key={id}
+                                onClick={() => setFiltros(atuais => ({ ...atuais, tempBar: id }))}
+                                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${(filtros.tempBar || "todos_temp") === id ? "bg-slate-900 text-white shadow-sm" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}
+                              >
+                                {label}
+                              </button>
+                            ))}
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-xs font-black text-slate-500 mr-1">Estado das Comidas & Insumos:</span>
+                            {[
+                              ["todos_estado", "Todos os Itens"],
+                              ["insumos", "📦 Insumos Brutos"],
+                              ["resfriados", "❄️ Comidas Prontas (Resfriadas)"],
+                              ["congelados", "🧊 Comidas Prontas (Congeladas)"],
+                            ].map(([id, label]) => (
+                              <button
+                                key={id}
+                                onClick={() => setFiltros(atuais => ({ ...atuais, estadoCozinha: id }))}
+                                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${(filtros.estadoCozinha || "todos_estado") === id ? "bg-slate-900 text-white shadow-sm" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}
+                              >
+                                {label}
+                              </button>
+                            ))}
+                          </>
+                        )}
+                      </div>
                     </div>
                   )}
                   <div className="grid gap-3 p-4 lg:grid-cols-[1fr_190px_170px_180px]">

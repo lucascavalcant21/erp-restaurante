@@ -972,13 +972,13 @@ function EstoqueRunner() {
 
             <section className="grid grid-cols-2 gap-3 xl:grid-cols-6">
               {[
-                { icon: Package, label: "Valor neste estoque", value: fmtBRL(valorTotal), note: "Clique p/ ver todos os itens", action: () => { setAba("atual"); setFiltros(f => ({ ...f, busca: "", status: "todos", grupo: "Todos", tempBar: "todos_temp", estadoCozinha: "todos_estado" })); } },
-                { icon: ClipboardCheck, label: "CMV de Contagens", value: fmtBRL(resumoContagens.cmvLiquidoAjustes), note: "Clique p/ ver histórico", action: () => setAba("movimentacoes") },
-                { icon: AlertTriangle, label: "Abaixo do mínimo", value: `${itensDaArea.filter(i => statusItemEstoque(i, estoqueAtual).abaixoMinimo).length} itens`, note: "Clique p/ filtrar abaixo", action: () => { setAba("alertas"); setFiltros(f => ({ ...f, status: "abaixo" })); } },
-                { icon: CalendarDays, label: "Próximas validades", value: estoqueAtual.controla_validade ? `${itensDaArea.filter(i => statusItemEstoque(i, estoqueAtual).validadeProxima).length} itens` : "Não controlada", note: "Clique p/ ver validades", action: () => { setAba("alertas"); setFiltros(f => ({ ...f, status: "validade" })); } },
-                { icon: Clock3, label: "Última reposição", value: ultimaEntrada ? fmtData(ultimaEntrada.data_movimento, true) : "Sem registro", note: "Clique p/ movimentações", action: () => setAba("movimentacoes") },
-                { icon: Boxes, label: "Resumo da área", value: `${itensDaArea.length} itens`, note: "Clique p/ resetar filtros", action: () => { setAba("atual"); setFiltros(f => ({ ...f, busca: "", status: "todos", grupo: "Todos", tempBar: "todos_temp", estadoCozinha: "todos_estado" })); } },
-              ].map(({ icon: Icon, label, value, note, action }) => (
+                { icon: Package, label: "Valor neste estoque", value: fmtBRL(valorTotal), action: () => { setAba("atual"); setFiltros(f => ({ ...f, busca: "", status: "todos", grupo: "Todos", tempBar: "todos_temp", estadoCozinha: "todos_estado" })); } },
+                { icon: ClipboardCheck, label: "CMV de Contagens", value: fmtBRL(resumoContagens.cmvLiquidoAjustes), action: () => setAba("movimentacoes") },
+                { icon: AlertTriangle, label: "Abaixo do mínimo", value: `${itensDaArea.filter(i => statusItemEstoque(i, estoqueAtual).abaixoMinimo).length} itens`, action: () => { setAba("alertas"); setFiltros(f => ({ ...f, status: "abaixo" })); } },
+                { icon: CalendarDays, label: "Próximas validades", value: estoqueAtual.controla_validade ? `${itensDaArea.filter(i => statusItemEstoque(i, estoqueAtual).validadeProxima).length} itens` : "Não controlada", action: () => { setAba("alertas"); setFiltros(f => ({ ...f, status: "validade" })); } },
+                { icon: Clock3, label: "Última reposição", value: ultimaEntrada ? fmtData(ultimaEntrada.data_movimento, true) : "Sem registro", action: () => setAba("movimentacoes") },
+                { icon: Boxes, label: "Resumo da área", value: `${itensDaArea.length} itens`, action: () => { setAba("atual"); setFiltros(f => ({ ...f, busca: "", status: "todos", grupo: "Todos", tempBar: "todos_temp", estadoCozinha: "todos_estado" })); } },
+              ].map(({ icon: Icon, label, value, action }) => (
                 <button
                   key={label}
                   type="button"
@@ -990,7 +990,6 @@ function EstoqueRunner() {
                     <p className="text-xs font-black text-slate-600">{label}</p>
                     <p className="mt-1 text-lg font-black text-slate-900">{value}</p>
                   </div>
-                  {note && <p className="mt-2 text-[10px] font-black text-emerald-700 underline underline-offset-2 truncate">{note}</p>}
                 </button>
               ))}
             </section>

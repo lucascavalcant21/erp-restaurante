@@ -1617,8 +1617,31 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                   const status = statusItemEstoque(item, estoque || {});
                   const valTotalItem = calcularValorItem(item);
                   return <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-5 py-3.5"><strong className="block text-slate-900 font-extrabold">{item.nome}</strong><span className="text-xs text-slate-500 font-semibold">{item.codigo_interno || item.marca || "Sem código"}</span></td>
-                    <td className="px-4 py-3.5 whitespace-nowrap"><span className="inline-block rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-800 border border-emerald-200/60">{item.categoria || "Sem categoria"}</span></td>
+                    <td className="px-5 py-3.5 min-w-[240px] max-w-[320px]"><strong className="block text-slate-900 font-black text-sm leading-snug whitespace-normal break-words">{item.nome}</strong><span className="text-xs text-slate-400 font-extrabold block mt-0.5">{item.codigo_interno || item.marca || "Sem código"}</span></td>
+                    <td className="px-4 py-3.5 whitespace-nowrap">{(() => {
+                      const cat = String(item.categoria || "").trim();
+                      const cores = {
+                        "Cervejas": "bg-amber-100 text-amber-950 border-amber-300",
+                        "Destilados": "bg-purple-100 text-purple-950 border-purple-300",
+                        "Vinhos": "bg-rose-100 text-rose-950 border-rose-300",
+                        "Chopp": "bg-yellow-100 text-yellow-950 border-yellow-300",
+                        "Água": "bg-sky-100 text-sky-950 border-sky-300",
+                        "Refrigerantes": "bg-red-100 text-red-950 border-red-300",
+                        "Bombons": "bg-pink-100 text-pink-950 border-pink-300",
+                        "Pré-preparos": "bg-indigo-100 text-indigo-950 border-indigo-300",
+                        "Carne vermelha": "bg-red-100 text-red-950 border-red-300",
+                        "Peixe": "bg-cyan-100 text-cyan-950 border-cyan-300",
+                        "Aves": "bg-amber-100 text-amber-950 border-amber-300",
+                        "Frutos do mar": "bg-teal-100 text-teal-950 border-teal-300",
+                        "Caranguejo": "bg-orange-100 text-orange-950 border-orange-300",
+                        "Laticínios": "bg-yellow-100 text-yellow-950 border-yellow-300",
+                        "Hortifrúti": "bg-emerald-100 text-emerald-950 border-emerald-300",
+                        "Secos": "bg-stone-100 text-stone-950 border-stone-300",
+                        "Líquidos": "bg-blue-100 text-blue-950 border-blue-300",
+                      };
+                      const cl = cores[cat] || "bg-emerald-100 text-emerald-950 border-emerald-300";
+                      return <span className={`inline-block rounded-xl px-3 py-1 text-xs font-black border shadow-xs ${cl}`}>{cat || "Sem categoria"}</span>;
+                    })()}</td>
                     <td className="px-4 py-3.5 whitespace-nowrap font-bold text-slate-700">{fmtQtd(item.tamanho_embalagem || 1)} {mostrarUn(item.unidade_medida)}</td>
                     <td className="px-4 py-3.5 whitespace-nowrap"><strong className="font-extrabold text-slate-900">{fmtBRL(item.custo_unitario || 0)}</strong></td>
                     <td className={`px-4 py-3.5 whitespace-nowrap font-black ${status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}`}>{(() => { const s = saldoEmbalado(item); return s ? <><span>{s.principal}</span><span className="block text-[11px] font-bold text-slate-400 mt-0.5">{s.secundario}</span></> : <>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</>; })()}</td>

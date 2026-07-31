@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { fetchUnidades, inserirUnidade, atualizarUnidade, removerUnidade } from "../../lib/unidades";
-import { Plus, Edit2, Trash2, Building2, Store, Save, X, Info, FileText, MapPin, Phone } from "lucide-react";
+import { capturarGPSAtual } from "../../lib/geolocalizacao";
+import { Plus, Edit2, Trash2, Building2, Store, Save, X, Info, FileText, MapPin, Phone, Crosshair, ShieldCheck } from "lucide-react";
 
 export default function LojasPage() {
   const [unidades, setUnidades] = useState([]);
@@ -54,7 +55,10 @@ export default function LojasPage() {
     cidade: "",
     uf: "",
     telefone_unidade: "",
-    email_unidade: ""
+    email_unidade: "",
+    latitude: "",
+    longitude: "",
+    raio_permitido_m: "100"
   };
   const [form, setForm] = useState(formPadrao);
 
@@ -90,7 +94,10 @@ export default function LojasPage() {
       cidade: unidade.cidade || "",
       uf: unidade.uf || "",
       telefone_unidade: unidade.telefone_unidade || "",
-      email_unidade: unidade.email_unidade || ""
+      email_unidade: unidade.email_unidade || "",
+      latitude: unidade.latitude != null ? String(unidade.latitude) : "",
+      longitude: unidade.longitude != null ? String(unidade.longitude) : "",
+      raio_permitido_m: unidade.raio_permitido_m != null ? String(unidade.raio_permitido_m) : "100"
     });
     setAbaAtual("basico");
     setModalAberta(true);
@@ -204,10 +211,11 @@ export default function LojasPage() {
                </div>
 
                {/* Abas */}
-               <div className="flex gap-4 mb-6 shrink-0 border-b border-slate-100">
-                  <button onClick={()=>setAbaAtual("basico")} className={`pb-3 font-bold text-sm tracking-wide border-b-2 transition-colors ${abaAtual === "basico" ? "border-slate-900 text-slate-900" : "border-transparent text-slate-400 hover:text-slate-600"}`}>Identificação</button>
-                  <button onClick={()=>setAbaAtual("fiscal")} className={`pb-3 font-bold text-sm tracking-wide border-b-2 transition-colors ${abaAtual === "fiscal" ? "border-slate-900 text-slate-900" : "border-transparent text-slate-400 hover:text-slate-600"}`}>Dados Fiscais / CNPJ</button>
-                  <button onClick={()=>setAbaAtual("endereco")} className={`pb-3 font-bold text-sm tracking-wide border-b-2 transition-colors ${abaAtual === "endereco" ? "border-slate-900 text-slate-900" : "border-transparent text-slate-400 hover:text-slate-600"}`}>Endereço & Contato</button>
+               <div className="flex gap-4 mb-6 shrink-0 border-b border-slate-100 overflow-x-auto">
+                  <button onClick={()=>setAbaAtual("basico")} className={`pb-3 font-bold text-sm tracking-wide border-b-2 transition-colors whitespace-nowrap ${abaAtual === "basico" ? "border-slate-900 text-slate-900" : "border-transparent text-slate-400 hover:text-slate-600"}`}>Identificação</button>
+                  <button onClick={()=>setAbaAtual("fiscal")} className={`pb-3 font-bold text-sm tracking-wide border-b-2 transition-colors whitespace-nowrap ${abaAtual === "fiscal" ? "border-slate-900 text-slate-900" : "border-transparent text-slate-400 hover:text-slate-600"}`}>Dados Fiscais / CNPJ</button>
+                  <button onClick={()=>setAbaAtual("endereco")} className={`pb-3 font-bold text-sm tracking-wide border-b-2 transition-colors whitespace-nowrap ${abaAtual === "endereco" ? "border-slate-900 text-slate-900" : "border-transparent text-slate-400 hover:text-slate-600"}`}>Endereço & Contato</button>
+                  <button onClick={()=>setAbaAtual("gps")} className={`pb-3 font-bold text-sm tracking-wide border-b-2 transition-colors whitespace-nowrap ${abaAtual === "gps" ? "border-emerald-600 text-emerald-600" : "border-transparent text-slate-400 hover:text-slate-600"}`}>📍 Geofencing GPS (Ponto)</button>
                </div>
 
                <div className="space-y-4 flex-1 overflow-y-auto pr-2 pb-4 custom-scrollbar">
@@ -302,6 +310,58 @@ export default function LojasPage() {
                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">UF</label>
                              <input type="text" value={form.uf} onChange={e=>setForm({...form, uf: e.target.value})} placeholder="SP" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-slate-900"/>
                           </div>
+                       </div>
+                    </div>
+                  )}
+
+                  {abaAtual === "gps" && (
+                    <div className="animate-in fade-in slide-in-from-right-4 space-y-4">
+                       <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-200">
+                          <div className="flex items-center gap-2 mb-1 text-emerald-900 font-black text-sm">
+                             <ShieldCheck size={18}/> Trava de Ponto por GPS (Geofencing)
+                          </div>
+                          <p className="text-xs text-emerald-800 font-medium leading-relaxed">
+                             Defina as coordenadas exatas do seu restaurante. O funcionário só poderá bater o ponto se estiver dentro do raio configurado (ex: 100m).
+                          </p>
+                       </div>
+
+                       <div className="flex justify-end">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                const pos = await capturarGPSAtual();
+                                setForm(prev => ({
+                                  ...prev,
+                                  latitude: String(pos.latitude),
+                                  longitude: String(pos.longitude),
+                                }));
+                                alert(`📍 Localização capturada com sucesso! Lat: ${pos.latitude}, Lng: ${pos.longitude}`);
+                              } catch (err) {
+                                alert(err.message || "Erro ao obter GPS.");
+                              }
+                            }}
+                            className="px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl flex items-center gap-2 transition-all cursor-pointer shadow-md shadow-emerald-600/20"
+                          >
+                             <Crosshair size={16}/> Capturar GPS Atual do Meu Dispositivo
+                          </button>
+                       </div>
+
+                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Latitude</label>
+                             <input type="text" value={form.latitude} onChange={e=>setForm({...form, latitude: e.target.value})} placeholder="-23.550520" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-600 text-slate-800"/>
+                          </div>
+                          <div>
+                             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Longitude</label>
+                             <input type="text" value={form.longitude} onChange={e=>setForm({...form, longitude: e.target.value})} placeholder="-46.633308" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-600 text-slate-800"/>
+                          </div>
+                       </div>
+
+                       <div>
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Raio Máximo Permitido (em metros)</label>
+                          <input type="number" min="10" max="5000" value={form.raio_permitido_m} onChange={e=>setForm({...form, raio_permitido_m: e.target.value})} placeholder="100" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-black text-slate-900 outline-none focus:border-emerald-600"/>
+                          <p className="text-[11px] text-slate-400 font-medium mt-1">Recomendado: 100 a 200 metros (cobre o perímetro da loja com segurança).</p>
                        </div>
                     </div>
                   )}

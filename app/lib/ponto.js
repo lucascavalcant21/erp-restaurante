@@ -142,7 +142,7 @@ export async function pularIntervalo(colaboradorId) {
 
 // horaMarcada (ISO, opcional): hora AJUSTADA pela tolerância (Súmula 366 TST) —
 // ex.: bateu 15:39 com turno 15:40 => grava 15:40. Sem ela, usa a hora real.
-export async function registrarBatida(colaboradorId, unidadeId, tipoBatida, horaMarcada = null) {
+export async function registrarBatida(colaboradorId, unidadeId, tipoBatida, horaMarcada = null, dadosGPS = null) {
   if (!isSupabaseReady()) return { error: "Offline" };
   const hoje = dataLocalISO(0);
   const ontem = dataLocalISO(-1);
@@ -184,6 +184,15 @@ export async function registrarBatida(colaboradorId, unidadeId, tipoBatida, hora
   } else if (tipoBatida === 'saida_trabalho') {
     updates = { hora_saida: agora, status_jornada: 4 };
     novoStatus = 4;
+  }
+
+  // Incorpora coordenadas e validação por GPS se disponíveis
+  if (dadosGPS) {
+    if (dadosGPS.latitude != null) updates.latitude = dadosGPS.latitude;
+    if (dadosGPS.longitude != null) updates.longitude = dadosGPS.longitude;
+    if (dadosGPS.distanciaMetros != null) updates.distancia_metros = dadosGPS.distanciaMetros;
+    if (dadosGPS.valido != null) updates.validado_gps = dadosGPS.valido;
+    if (dadosGPS.mensagem) updates.localizacao_texto = dadosGPS.mensagem;
   }
   
   if (!registro) {

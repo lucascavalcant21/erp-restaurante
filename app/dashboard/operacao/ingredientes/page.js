@@ -395,7 +395,6 @@ function IngredientesRunner() {
   const abrirEditar = insumo => {
     const dep = insumo.departamento || deptUrl || "cozinha";
     let un = insumo.unidade_medida || (dep === "bar" ? "ml" : "kg");
-    if (dep === "bar" && un === "kg") un = "ml";
     setForm({
       id: insumo.id,
       departamento: dep,
@@ -919,19 +918,7 @@ function IngredientesRunner() {
                   <label>
                     <span className="text-xs font-bold text-slate-600">Unidade *</span>
                     {(() => {
-                      const ehBar = deptUrl === "bar" || form.departamento === "bar";
-                      const cat = String(form.categoria || "").toLowerCase();
-                      const nome = String(form.nome || "").toLowerCase();
-                      const ehFruta = cat.includes("fruta") || cat.includes("horti") || cat.includes("fresco") ||
-                                      nome.includes("limão") || nome.includes("laranja") || nome.includes("abacaxi") ||
-                                      nome.includes("hortelã") || nome.includes("morango") || nome.includes("maracujá") ||
-                                      nome.includes("fruta");
-                      let lista = UNIDADES_INGREDIENTE;
-                      if (ehBar) {
-                        lista = ehFruta
-                          ? UNIDADES_INGREDIENTE.filter(u => ["un", "g", "kg"].includes(u.value))
-                          : UNIDADES_INGREDIENTE.filter(u => ["garrafa", "lata", "barril", "ml", "l", "un"].includes(u.value));
-                      }
+                      const lista = UNIDADES_INGREDIENTE;
                       return (
                         <select value={form.unidade_medida} onChange={event => setForm({ ...form, unidade_medida: event.target.value })} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 font-bold outline-none focus:border-emerald-500">
                           {lista.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}

@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useERP } from "../../context/ERPContext";
 import { fetchColaboradores } from "../../lib/rh";
 import { fetchPontoHoje, registrarBatida, fetchHistoricoPonto } from "../../lib/ponto";
-import { Fingerprint, Search, Clock, CheckCircle2, AlertCircle, Lock, ArrowLeft, Maximize, X, Calendar } from "lucide-react";
+import { capturarGPSAtual, validarGeofencePonto, linkGoogleMaps } from "../../lib/geolocalizacao";
+import { Fingerprint, Search, Clock, CheckCircle2, AlertCircle, Lock, ArrowLeft, Maximize, X, Calendar, MapPin, ShieldAlert, Compass, ExternalLink, Loader2 } from "lucide-react";
 
 // ─── Modal de PIN ─────────────────────────────────────────────────────────────
 function ModalPIN({ onSuccess, onClose, titulo, subtitulo }) {
@@ -143,6 +144,23 @@ function ModalHistorico({ onClose, colaborador }) {
                        <p className="font-bold text-slate-800">{reg.hora_saida ? new Date(reg.hora_saida).toLocaleTimeString('pt-BR').slice(0,5) : '--:--'}</p>
                     </div>
                  </div>
+
+                 {/* Detalhes de GPS / Geolocalização */}
+                 {reg.latitude != null && reg.longitude != null && (
+                   <div className="mt-2 pt-2 border-t border-slate-200 flex items-center justify-between text-[11px]">
+                     <span className="font-bold text-emerald-700 flex items-center gap-1">
+                       <MapPin size={12}/> {reg.distancia_metros != null ? `${reg.distancia_metros}m da loja` : "GPS Registrado"}
+                     </span>
+                     <a
+                       href={linkGoogleMaps(reg.latitude, reg.longitude)}
+                       target="_blank"
+                       rel="noreferrer"
+                       className="font-bold text-blue-600 hover:underline flex items-center gap-1"
+                     >
+                       Google Maps <ExternalLink size={10} />
+                     </a>
+                   </div>
+                 )}
                </div>
              );
           })}
@@ -198,16 +216,51 @@ export default function PontoPage() {
     return p ? p.status_jornada : 0;
   };
 
+  const [gpsProcessando, setGpsProcessando] = useState(false);
+
   const handleBaterPonto = async (tipo) => {
      if(!colabAtivo) return;
-     const { error } = await registrarBatida(colabAtivo.id, unidadeAtiva, tipo);
-     if(error) return alert(error);
-     
-     // Recarrega os dados para mostrar o checkmark verde
-     await carregar();
-     
-     // Dá um feedback visual para o usuário
-     alert("Ponto registrado com sucesso!");
+     setGpsProcessando(true);
+
+     try {
+       // 1. Obtém o GPS em tempo real do dispositivo
+       const coordsFuncionario = await capturarGPSAtual();
+
+       // 2. Valida contra as coordenadas da unidade do restaurante
+       const geofence = validarGeofencePonto(coordsFuncionario, unidadeInfo);
+
+       if (!geofence.valido) {
+         setGpsProcessando(false);
+         return alert(geofence.mensagem);
+       }
+
+       // 3. Registra o ponto com os dados de GPS validados
+       const { error } = await registrarBatida(
+         colabAtivo.id,
+         unidadeAtiva,
+         tipo,
+         null,
+         {
+           latitude: coordsFuncionario.latitude,
+           longitude: coordsFuncionario.longitude,
+           distanciaMetros: geofence.distanciaMetros,
+           valido: geofence.valido,
+           mensagem: geofence.mensagem,
+         }
+       );
+
+       setGpsProcessando(false);
+       if (error) return alert(`❌ Erro ao registrar ponto: ${error}`);
+
+       await carregar();
+       alert(geofence.semGeofenceConfigurado
+         ? "Ponto registrado com sucesso!"
+         : `📍 Ponto registrado com sucesso por GPS! (Distância: ${geofence.distanciaMetros}m do restaurante)`
+       );
+     } catch (errGps) {
+       setGpsProcessando(false);
+       alert(`❌ GPS Obrigatório: ${errGps.message || "Ative a localização no seu celular/dispositivo para bater o ponto."}`);
+     }
   };
 
   if(!unidadeAtiva) return <div className="p-10 font-bold text-slate-500">Selecione uma loja no topo.</div>;
@@ -333,11 +386,23 @@ export default function PontoPage() {
                        )}
                        
                        <div className="w-full text-left">
-                          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-2 mb-3">Registro do Dia:</p>
-                          
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full mb-4">
+                           <div className="flex items-center justify-between ml-2 mb-3">
+                             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Registro do Dia:</p>
+                             <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+                               <MapPin size={10}/> GPS Geofencing Ativo
+                             </span>
+                           </div>
+
+                           {gpsProcessando && (
+                             <div className="mb-3 p-3 rounded-xl bg-slate-900 text-white text-xs font-black flex items-center justify-center gap-2 animate-pulse">
+                               <Loader2 size={16} className="animate-spin text-emerald-400" />
+                               Obtendo localização por GPS do dispositivo...
+                             </div>
+                           )}
+                           
+                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full mb-4">
                              {/* Botão 1 */}
-                             <button onClick={() => handleBaterPonto('entrada')} disabled={st !== 0} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 0 ? 'bg-emerald-600 text-white shadow-xl shadow-emerald-600/20 hover:bg-emerald-700 scale-105' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
+                             <button onClick={() => handleBaterPonto('entrada')} disabled={st !== 0 || gpsProcessando} className={`relative w-full p-4 rounded-2xl transition-all flex flex-col items-center justify-center gap-1 ${st === 0 ? 'bg-emerald-600 text-white shadow-xl shadow-emerald-600/20 hover:bg-emerald-700 scale-105 cursor-pointer' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
                                 <div className="flex items-center gap-2">
                                    <span className="font-black text-[15px]">1. Entrada</span>
                                    {st > 0 && <CheckCircle2 size={16} className={st === 0 ? 'text-white' : 'text-emerald-500'} />}

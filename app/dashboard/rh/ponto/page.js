@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Clock, Search, ArrowLeft, CheckCircle2, LogIn, LogOut, Coffee, Undo2,
-  AlertTriangle, Maximize, Loader2, Hourglass, Ban, Timer, X, Lock, Tablet, MessageCircle
+  AlertTriangle, Maximize, Loader2, Hourglass, Ban, Timer, X, Lock, Tablet, MessageCircle, MapPin, ExternalLink
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { useRouter } from "next/navigation";
@@ -692,19 +692,6 @@ export default function PontoPage() {
               return (
                 <div key={e.id} className={`p-4 rounded-2xl border text-center ${hora ? "bg-emerald-500/10 border-emerald-500/40" : puladoAqui ? "bg-amber-500/10 border-amber-500/30" : ativa ? "bg-slate-800 border-slate-500 border-dashed" : "bg-slate-900 border-slate-800"}`}>
                   <e.icon size={18} className={`mx-auto mb-1.5 ${hora ? "text-emerald-400" : puladoAqui ? "text-amber-400" : "text-slate-500"}`} />
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{e.label}</p>
-                  <p className={`text-lg font-black mt-0.5 ${hora ? "text-emerald-400" : puladoAqui ? "text-amber-400 text-xs leading-tight" : "text-slate-600"}`}>
-                    {hora || (puladoAqui ? "não tirado" : "--:--")}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Folga hoje mas com jornada de ONTEM aberta: pode (e deve) fechar */}
-          {info.folga && etapa !== "entrada" && etapa !== "concluido" && (
-            <div className="rounded-2xl px-4 py-3 mb-4 bg-slate-800/70 border border-slate-700">
-              <p className="text-xs font-bold text-slate-300">Hoje é sua folga — você está fechando a jornada de ontem, que virou a madrugada. Bata normalmente.</p>
             </div>
           )}
 

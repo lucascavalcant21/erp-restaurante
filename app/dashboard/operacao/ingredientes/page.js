@@ -370,7 +370,7 @@ function IngredientesRunner() {
 
   useEffect(() => {
     setPagina(1);
-  }, [busca, categoria, ordenacao, deptUrl, insumos.length]);
+  }, [busca, categoria, ordenacao, deptUrl]);
 
   const totalPaginas = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
   const paginaAtual = Math.min(pagina, totalPaginas);

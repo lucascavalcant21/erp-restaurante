@@ -17,11 +17,15 @@ export const ESTOQUES_PADRAO = [
 export const GRUPOS_OPERACIONAIS_ESTOQUE = {
   cozinha: [
     "Todos",
-    "Prato principal 1 pessoa",
-    "Prato principal 2 pessoas",
-    "Entradas",
-    "Sobremesas",
-    "Acompanhamentos",
+    "Carne vermelha",
+    "Peixe",
+    "Aves",
+    "Frutos do mar",
+    "Caranguejo",
+    "Laticínios",
+    "Hortifrúti",
+    "Secos",
+    "Líquidos",
     "Pré-preparos"
   ],
   bar: [
@@ -69,11 +73,17 @@ export function grupoOperacionalItem(item, estoque) {
   }
 
   if (area === "cozinha") {
-    if (/entrada/.test(texto)) return "Entradas";
-    if (/sobremesa|doce/.test(texto)) return "Sobremesas";
-    if (/acompanhamento|guarnicao/.test(texto)) return "Acompanhamentos";
-    if (/molho|massa|base|caldo|preparo/.test(texto)) return "Pré-preparos";
-    return "Prato principal 1 pessoa";
+    if (/carne|bovina|picanha|alcatra|contrafile|costela|cupim|maminha|porco|suino|linguica|bacon|patinho|hamburguer/.test(texto)) return "Carne vermelha";
+    if (/peixe|salmao|tilapia|bacalhau|tucunare|tambaqui|pirarucu|pescada|robalo|atum|filhote|dourada/.test(texto)) return "Peixe";
+    if (/frango|galinha|peru|pato|chester|ave|coxa|sobrecoxa|asa|peito/.test(texto)) return "Aves";
+    if (/camarao|lula|polvo|ostra|marisco|mexilhao/.test(texto)) return "Frutos do mar";
+    if (/caranguejo|siri|patola/.test(texto)) return "Caranguejo";
+    if (/queijo|leite|manteiga|requeijao|creme de leite|iogurte|mucarela|cheddar|catupiry|coalho|nata|ricota|parmesao/.test(texto)) return "Laticínios";
+    if (/tomate|cebola|alho|batata|cenoura|pimentao|alface|couve|cheiro verde|coentro|salsa|banana|limao|manga|abacaxi|maracuja|repolho|verdura|legume|fruta/.test(texto)) return "Hortifrúti";
+    if (/arroz|feijao|farinha|acucar|sal|macarrao|massa|tapioca|fuba|amido|fermento|biscoito|pao|graos|aveia|cafe|cha|pimenta|colorau|cominho|curry|acafrao|louro|oregano|canela|cravo|tempero/.test(texto)) return "Secos";
+    if (/oleo|azeite|vinagre|molho|shoyu|agua|caldo|leite de coco|leite condensado/.test(texto)) return "Líquidos";
+    if (/base|mix|preparo/.test(texto)) return "Pré-preparos";
+    return "Carne vermelha";
   }
 
   return "Todos";

@@ -42,11 +42,15 @@ const fmtEquiv = (q, un) => {
 
 // Categorias oficiais da Cozinha na ordem exata solicitada pelo usuário
 const CATEGORIAS_ESTOQUE_COZINHA = [
-  "Prato principal 1 pessoa",
-  "Prato principal 2 pessoas",
-  "Entradas",
-  "Sobremesas",
-  "Acompanhamentos",
+  "Carne vermelha",
+  "Peixe",
+  "Aves",
+  "Frutos do mar",
+  "Caranguejo",
+  "Laticínios",
+  "Hortifrúti",
+  "Secos",
+  "Líquidos",
   "Pré-preparos",
 ];
 

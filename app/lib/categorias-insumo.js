@@ -2,7 +2,7 @@
 // Conforme o usuário digita o nome, sugere a categoria; ele pode trocar ou criar novas.
 
 export const CATEGORIAS_INSUMO = {
-  cozinha: ["Peixes", "Aves", "Carne vermelha", "Hortifrúti", "Congelados", "Laticínios", "Secos", "Líquidos", "Temperos", "Outros"],
+  cozinha: ["Carne vermelha", "Peixe", "Aves", "Frutos do mar", "Caranguejo", "Laticínios", "Hortifrúti", "Secos", "Líquidos", "Pré-preparos"],
   bar: ["Cervejas", "Refrigerantes", "Vinhos", "Ingredientes", "Whisky", "Vodka", "Cachaça", "Licor", "Suco industrializado", "Rum", "Conhaque"],
 };
 
@@ -37,15 +37,16 @@ export function obterTodasCategoriasInsumo(departamento = "cozinha") {
 // Palavras-chave por categoria (minúsculas, sem acento tratado no matcher)
 const KEYWORDS = {
   // cozinha
-  "Peixes": ["peixe", "pirarucu", "tambaqui", "tilapia", "salmao", "bacalhau", "sardinha", "atum", "camarao", "lula", "polvo", "filhote", "dourada", "pescada", "mariscos", "siri", "caranguejo"],
-  "Aves": ["frango", "galinha", "peru", "pato", "chester", "ave", "coxa", "sobrecoxa", "asa", "file de frango", "peito de frango"],
   "Carne vermelha": ["carne", "boi", "bovina", "picanha", "alcatra", "coxao", "acem", "costela", "porco", "suino", "linguica", "bacon", "cupim", "maminha", "fraldinha", "patinho", "moida", "hamburguer", "blend", "cordeiro"],
-  "Hortifrúti": ["tomate", "cebola", "alho", "batata", "cenoura", "pimentao", "alface", "couve", "cheiro-verde", "cheiro verde", "coentro", "salsa", "chicoria", "abobora", "mandioca", "banana", "limao", "manga", "abacaxi", "maracuja", "repolho", "pepino", "beterraba", "quiabo", "jambu", "verdura", "legume"],
-  "Congelados": ["congelado", "empanado", "nuggets", "polpa", "acai", "gelo", "sorvete", "batata palito"],
+  "Peixe": ["peixe", "pirarucu", "tambaqui", "tilapia", "salmao", "bacalhau", "sardinha", "atum", "filhote", "dourada", "pescada", "robalo"],
+  "Aves": ["frango", "galinha", "peru", "pato", "chester", "ave", "coxa", "sobrecoxa", "asa", "file de frango", "peito de frango"],
+  "Frutos do mar": ["camarao", "lula", "polvo", "ostra", "marisco", "mexilhao"],
+  "Caranguejo": ["caranguejo", "siri", "patola", "massa de caranguejo"],
   "Laticínios": ["queijo", "leite", "manteiga", "requeijao", "creme de leite", "iogurte", "muçarela", "mucarela", "cheddar", "catupiry", "coalho", "nata", "ricota", "parmesao"],
-  "Secos": ["arroz", "feijao", "farinha", "acucar", "sal", "macarrao", "massa", "tapioca", "fuba", "amido", "fermento", "biscoito", "pao", "graos", "lentilha", "grao de bico", "aveia", "cafe", "cha"],
+  "Hortifrúti": ["tomate", "cebola", "alho", "batata", "cenoura", "pimentao", "alface", "couve", "cheiro-verde", "cheiro verde", "coentro", "salsa", "chicoria", "abobora", "mandioca", "banana", "limao", "manga", "abacaxi", "maracuja", "repolho", "pepino", "beterraba", "quiabo", "jambu", "verdura", "legume"],
+  "Secos": ["arroz", "feijao", "farinha", "acucar", "sal", "macarrao", "massa", "tapioca", "fuba", "amido", "fermento", "biscoito", "pao", "graos", "lentilha", "grao de bico", "aveia", "cafe", "cha", "pimenta", "colorau", "cominho", "curry", "acafrao", "louro", "oregano", "canela", "cravo", "noz-moscada", "tempero", "cumaru", "gengibre", "paprica"],
   "Líquidos": ["oleo", "azeite", "vinagre", "molho", "shoyu", "agua", "caldo", "leite de coco", "leite condensado"],
-  "Temperos": ["pimenta", "colorau", "cominho", "curry", "acafrao", "louro", "oregano", "canela", "cravo", "noz-moscada", "tempero", "cumaru", "gengibre", "paprica"],
+  "Pré-preparos": ["molho pronto", "base de caldo", "mix de temperos", "massa caseira"],
   // bar
   "Refrigerantes": ["refrigerante", "coca", "guarana", "fanta", "sprite", "pepsi", "tonica", "soda", "schweppes", "antarctica"],
   "Cervejas": ["cerveja", "chopp", "chope", "ipa", "pilsen", "lager", "heineken", "brahma", "skol", "budweiser", "corona", "long neck", "barril"],

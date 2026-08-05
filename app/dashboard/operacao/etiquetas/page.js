@@ -144,6 +144,10 @@ function EtiquetasRunner() {
   // "tira" = todas numa página contínua (uma colada na outra); "paginas" = uma
   // etiqueta por página (para drivers que rejeitam página de altura fora do padrão)
   const [modoTira, setModoTira] = useState(() => { try { return localStorage.getItem("hefisto_etq_modo") || "tira"; } catch { return "tira"; } });
+  // Girar 90°: alguns drivers de etiquetadora esperam o papel "em pé"
+  // (60×100) e giram o conteúdo sozinhos. Aqui o usuário compensa isso.
+  const [girar, setGirar] = useState(() => { try { return localStorage.getItem("hefisto_etq_girar") === "1"; } catch { return false; } });
+  useEffect(() => { try { localStorage.setItem("hefisto_etq_girar", girar ? "1" : "0"); } catch {} }, [girar]);
   useEffect(() => { try { localStorage.setItem("hefisto_etq_modo", modoTira); } catch {} }, [modoTira]);
   const [validadeModo, setValidadeModo] = useState("dias"); // "dias" | "data"
   // "aberto" = produto aberto/manipulado (mostra data e hora de manipulação);
@@ -365,11 +369,17 @@ function EtiquetasRunner() {
   function imprimirTeste() {
     const largura = parseFloat(dim.paginaW) || 80;
     const altura = parseFloat(dim.paginaH) || 40;
+    // Girado: o papel vai "em pé" e o conteúdo é rotacionado para caber nele.
+    const pagW = girar ? altura : largura;
+    const pagH = girar ? largura : altura;
+    const giro = girar
+      ? `position:absolute;top:0;left:0;transform:translateX(${altura}mm) rotate(90deg);transform-origin:top left;`
+      : "";
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>Teste de etiqueta</title>
       <style>
-        @page { size: ${largura}mm ${altura}mm; margin: 0; }
+        @page { size: ${pagW}mm ${pagH}mm; margin: 0; }
         *{box-sizing:border-box} html,body{margin:0;padding:0;background:#fff}
-        .etq{width:${largura}mm;height:${altura}mm;padding:3mm;font-family:'Courier New',monospace;color:#000;
+        .etq{${giro}width:${largura}mm;height:${altura}mm;padding:3mm;font-family:'Courier New',monospace;color:#000;
              display:flex;flex-direction:column;justify-content:space-between;border:0.4mm solid #000;overflow:hidden}
         .t{font-size:4.5mm;font-weight:900;text-transform:uppercase;line-height:1.1}
         .m{font-size:3mm;font-weight:700}
@@ -508,11 +518,17 @@ function EtiquetasRunner() {
           const alturaTiraMm = modoTira === "tira" ? alturaEtqMm * quantidadeCopias : alturaEtqMm;
           // Página do TAMANHO EXATO da etiqueta: se usar largura maior que a
           // etiqueta física, o driver encolhe a folha e sai uma miniatura ruim.
+          const larguraEtqMm = parseFloat(dim.paginaW) || 80;
+          const pagW = girar ? alturaTiraMm : larguraEtqMm;
+          const pagH = girar ? larguraEtqMm : alturaTiraMm;
+          const giro = girar
+            ? `position:absolute;top:0;left:0;transform:translateX(${alturaTiraMm}mm) rotate(90deg);transform-origin:top left;`
+            : "margin:0 auto;";
           const htmlEtq = `<!doctype html><html><head><meta charset="utf-8"><title>Etiquetas</title>
             <style>
-              @page { size: ${dim.paginaW} ${alturaTiraMm}mm; margin: 0; }
+              @page { size: ${pagW}mm ${pagH}mm; margin: 0; }
               *{box-sizing:border-box} html,body{margin:0;padding:0;background:#fff}
-              #wrap{width:${dim.paginaW};margin:0 auto;display:flex;flex-direction:column;gap:0}
+              #wrap{${giro}width:${dim.paginaW};display:flex;flex-direction:column;gap:0}
               img,svg{image-rendering:crisp-edges}
               .etiqueta-print{page-break-after:${modoTira === "tira" ? "auto" : "always"};page-break-inside:avoid;overflow:hidden;box-shadow:none!important;border-radius:0!important;margin:0 auto!important}
               .etiqueta-print:last-child{page-break-after:auto}
@@ -849,6 +865,20 @@ function EtiquetasRunner() {
                 </button>
               ))}
             </div>
+            {/* Correção de orientação: use quando a etiqueta sair deitada */}
+            <div className="flex items-center justify-center gap-1.5 mt-2">
+              <span className="text-[10px] font-bold" style={{ color: "var(--dim)" }}>Orientação:</span>
+              {[[false, "Normal"], [true, "Girar 90°"]].map(([v, l]) => (
+                <button key={String(v)} onClick={() => setGirar(v)}
+                  className="text-[10px] font-bold px-2.5 py-1 rounded-lg transition-all"
+                  style={girar === v ? { background: "var(--accent-strong)", color: "#fff" } : { background: "var(--card)", color: "var(--muted)", border: "1px solid var(--line)" }}>
+                  {l}
+                </button>
+              ))}
+            </div>
+            <p className="text-[10px] text-center mt-1.5" style={{ color: "var(--dim)" }}>
+              Saiu deitada ou passando para a próxima etiqueta? Alterne aqui e imprima o teste de novo.
+            </p>
 
             {/* Resumo da impressão */}
             <div className="grid grid-cols-3 gap-2 mt-4">

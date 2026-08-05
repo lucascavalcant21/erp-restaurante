@@ -1898,7 +1898,7 @@ function FichasRunner() {
                 : "Bases usadas dentro de outros pratos (molhos, massas, caldos). Marque \"É uma base/pré-preparo\" ao criar."}
             </p>
          )}
-         <div className="bg-white p-3 rounded-2xl border border-slate-200 mb-3 flex flex-col lg:flex-row items-stretch lg:items-center gap-3 shadow-sm justify-between">
+         <div className="erp-busca-fixa bg-white p-3 rounded-2xl border border-slate-200 mb-3 flex flex-col lg:flex-row items-stretch lg:items-center gap-3 shadow-sm justify-between">
             <div className="flex flex-1 items-center gap-2 px-2">
                <Search size={20} className="text-slate-500" />
                <input type="text" placeholder="Buscar receita..." value={busca} onChange={e=>setBusca(e.target.value)} className="w-full outline-none font-bold text-slate-700 p-2" />
@@ -1966,7 +1966,7 @@ function FichasRunner() {
                         onDrop={() => reordenar(dragId, f.id)}
                         className={`bg-white rounded-2xl border shadow-sm hover:shadow-md transition-all relative group flex flex-col overflow-hidden ${dragId === f.id ? 'opacity-50' : ''} ${selecionadas.includes(f.id) ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-slate-200'}`}>
                         {/* Foto do prato (compacta) */}
-                        <div className="h-28 sm:h-32 bg-slate-100 relative">
+                        <div className="erp-card-foto h-28 sm:h-32 bg-slate-100 relative">
                            {f.imagem ? (
                               <img onClick={() => { setSimPesoView(""); setViewTab("ficha"); setFichaView(f); }} title="Ver ficha completa" src={`data:image/jpeg;base64,${f.imagem}`} alt={f.nome_receita} className="w-full h-full object-cover cursor-pointer" />
                            ) : (

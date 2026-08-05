@@ -1114,7 +1114,7 @@ function EstoqueRunner() {
                       )}
                     </div>
                   </div>
-                  <div className="grid gap-3 p-4 lg:grid-cols-[1fr_180px_170px_160px] bg-slate-50/30">
+                  <div className="erp-busca-fixa grid gap-3 p-4 lg:grid-cols-[1fr_180px_170px_160px] bg-slate-50/30">
                     <label className="relative flex items-center">
                       <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-bold z-10" size={18} />
                       <input

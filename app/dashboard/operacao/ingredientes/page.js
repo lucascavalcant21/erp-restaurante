@@ -590,7 +590,7 @@ function IngredientesRunner() {
               <p className="mt-1 text-sm font-medium text-slate-500">{ehBar ? "Catálogo de produtos do Bar e histórico de preços" : "Catálogo de ingredientes e histórico de preços"}</p>
             </div>
           </div>
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="erp-busca-fixa flex flex-col gap-3 sm:flex-row">
             <label className="flex min-w-0 items-center gap-2 rounded-2xl border-2 border-slate-300 bg-white px-3.5 shadow-sm transition-all focus-within:border-emerald-600 focus-within:ring-4 focus-within:ring-emerald-500/20 sm:w-[500px]">
               <Search size={19} className="shrink-0 text-slate-700 font-bold" />
               <input

@@ -780,3 +780,54 @@ button,
   }
 }
 
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LEITURA ESTILO APP (padrão de marketplace: OLX)
+   O ERP é usado em pé, na operação, no celular e no tablet. Aqui elevamos o
+   PISO do tamanho de texto: as centenas de rótulos de 9–11px do sistema passam
+   a ter tamanho legível, sem precisar mexer em cada tela.
+   A especificidade (.erp-app-shell + utilitária) já vence o Tailwind, por isso
+   não usamos !important. Vale só em tela — a impressão (etiquetas, fichas,
+   livros) usa estilo inline e janelas próprias, e continua intacta.
+   ═════════════════════════════════════════════════════════════════════════ */
+@media screen and (max-width: 1279px) {
+  .erp-app-shell .text-\[9px\]   { font-size: 11.5px; letter-spacing: 0.04em; }
+  .erp-app-shell .text-\[10px\]  { font-size: 12px; }
+  .erp-app-shell .text-\[11px\]  { font-size: 13px; }
+  .erp-app-shell .text-\[12px\]  { font-size: 13.5px; }
+  .erp-app-shell .text-\[13px\]  { font-size: 14px; }
+  .erp-app-shell .text-xs        { font-size: 13.5px; line-height: 1.45; }
+  .erp-app-shell .text-sm        { font-size: 15px;   line-height: 1.5; }
+  .erp-app-shell .text-base      { font-size: 16.5px; line-height: 1.55; }
+  .erp-app-shell .text-lg        { font-size: 18.5px; }
+  .erp-app-shell .text-xl        { font-size: 21px; }
+  .erp-app-shell .text-2xl       { font-size: 25px; }
+  .erp-app-shell .text-3xl       { font-size: 28px; }
+
+  /* 16px em campos evita o zoom automático do iOS ao tocar para digitar
+     e deixa a digitação confortável, como nos apps. */
+  .erp-main-content :where(input, select, textarea):not([type="checkbox"]):not([type="radio"]) {
+    font-size: 16px;
+  }
+}
+
+/* Busca que não some ao rolar a lista (como no app da OLX). Aplique a classe
+   no container da barra de busca/filtros da página. */
+.erp-busca-fixa {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: var(--surface);
+  padding-top: 8px;
+  padding-bottom: 8px;
+  margin-left: -4px;
+  margin-right: -4px;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+@media screen and (max-width: 767px) {
+  /* Fotos maiores nos cartões de lista — o produto precisa ser reconhecido
+     de relance, sem precisar abrir. */
+  .erp-card-foto { height: 10rem; }
+}

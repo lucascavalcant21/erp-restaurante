@@ -1,0 +1,296 @@
+"use client";
+
+import { useState, useRef, useEffect } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { Bot, Send, X, Loader2, Check, ChevronRight, AlertTriangle, Undo2 } from "lucide-react";
+import { useERP } from "../context/ERPContext";
+import { fmtBRL } from "./ui";
+import {
+  ACOES, camposFaltantes, resolverProduto, carregarContextoEstoque,
+  executarMovimento, desfazerMovimento, registrarAuditoria, fmtQtd, mostrarUn,
+} from "../lib/hefisto-acoes";
+
+const SUGESTOES = [
+  "Quanto tenho de camarão?",
+  "Abra o estoque do bar",
+  "Dê entrada em 10 kg de picanha",
+  "Retire 2 kg de tomate",
+];
+
+// Rótulo amigável do módulo atual, a partir da rota.
+function moduloDaRota(pathname, dept) {
+  const p = pathname || "";
+  const mapa = [
+    ["/dashboard/operacao/estoque", "Estoque"],
+    ["/dashboard/operacao/ingredientes", "Ingredientes"],
+    ["/dashboard/operacao/fichas", "Fichas técnicas"],
+    ["/dashboard/operacao/compras", "Compras"],
+    ["/dashboard/operacao/etiquetas", "Etiquetas"],
+    ["/dashboard/operacao/rotina", "Checklist"],
+    ["/dashboard/financeiro", "Financeiro"],
+    ["/dashboard/rh", "RH"],
+    ["/dashboard/relatorios", "Relatórios"],
+  ];
+  const achado = mapa.find(([rota]) => p.startsWith(rota));
+  const nome = achado ? achado[1] : "Painel";
+  return dept ? `${nome} · ${dept}` : nome;
+}
+
+export default function HefistoAssistant() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const params = useSearchParams();
+  const { unidadeAtiva, unidadeInfo, sessao } = useERP();
+
+  const [aberto, setAberto] = useState(false);
+  const [texto, setTexto] = useState("");
+  const [ocupado, setOcupado] = useState(false);
+  const [msgs, setMsgs] = useState([]);
+  const [pendente, setPendente] = useState(null); // {tipo, item, estoque, quantidade, intencao, comando}
+  const [ultima, setUltima] = useState(null);     // última execução (para desfazer)
+  const fimRef = useRef(null);
+
+  const dept = params?.get("dept") || "";
+  const contextoModulo = moduloDaRota(pathname, dept);
+
+  useEffect(() => { fimRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs, pendente, aberto]);
+
+  const diz = (autor, texto, extra = {}) => setMsgs(m => [...m, { autor, texto, ...extra, id: Math.random() }]);
+
+  // Envia o texto para o parser e trata a intenção resolvendo dados reais.
+  const enviar = async (valor) => {
+    const cmd = String(valor ?? texto).trim();
+    if (!cmd || ocupado) return;
+    setTexto("");
+    diz("user", cmd);
+    setOcupado(true);
+    try {
+      const resposta = await fetch("/api/hefisto", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          texto: cmd,
+          contexto: {
+            modulo: contextoModulo, pagina: pathname, setor: dept || null,
+            unidade: unidadeInfo?.nome || null, usuario: sessao?.nome || sessao?.email || null,
+          },
+        }),
+      });
+      const data = await resposta.json();
+      if (!resposta.ok || data.error) { diz("bot", data.error || "Não consegui interpretar."); return; }
+      await tratarIntencao(data.intencao, cmd);
+    } catch {
+      diz("bot", "A conexão falhou. Verifique a internet e tente de novo.");
+    } finally {
+      setOcupado(false);
+    }
+  };
+
+  const tratarIntencao = async (intencao, comando) => {
+    const { acao } = intencao || {};
+
+    if (acao === "navegar" && intencao.rota) {
+      diz("bot", intencao.resposta_curta || `Abrindo ${intencao.rota}.`);
+      await registrarAuditoria({
+        unidadeId: unidadeAtiva, usuarioId: sessao?.id, usuarioNome: sessao?.nome || sessao?.email,
+        comando, intencao, acao: ACOES.navegar.id, modulo: "core", resultado: "sucesso",
+      });
+      router.push(intencao.rota);
+      return;
+    }
+
+    if (acao === "responder" || acao === "desconhecido" || !acao) {
+      diz("bot", intencao?.resposta_curta || "Não entendi. Pode dizer de outro jeito?");
+      return;
+    }
+
+    // Ações de estoque: sempre resolver contra dados reais.
+    const setor = intencao.setor || dept || null;
+    const { estoque, itens } = await carregarContextoEstoque(unidadeAtiva, setor);
+    if (!estoque) { diz("bot", "Não encontrei um estoque para esta unidade."); return; }
+
+    const faltantes = camposFaltantes(acao, intencao);
+    if (faltantes.includes("produto")) {
+      diz("bot", intencao.resposta_curta || "Qual produto?");
+      return;
+    }
+
+    const achado = resolverProduto(itens, intencao.produto);
+    if (achado.status === "nao_encontrado") {
+      diz("bot", `Não encontrei "${intencao.produto}" no estoque ${estoque.nome}.`);
+      return;
+    }
+    if (achado.status === "ambiguo") {
+      diz("bot", "Qual produto você quer?", {
+        opcoes: achado.opcoes.map(o => ({ rotulo: `${o.nome}${o.marca ? ` · ${o.marca}` : ""}`, valor: o.nome })),
+        intencaoPendente: { ...intencao, produto: null },
+      });
+      return;
+    }
+
+    const item = achado.item;
+
+    if (acao === "consultar_estoque") {
+      const saldo = Number(item.quantidade_atual) || 0;
+      diz("bot", `${item.nome}: ${fmtQtd(saldo)} ${mostrarUn(item.unidade_medida)} no estoque ${estoque.nome}.`);
+      await registrarAuditoria({
+        unidadeId: unidadeAtiva, usuarioId: sessao?.id, usuarioNome: sessao?.nome || sessao?.email,
+        comando, intencao, acao: ACOES.consultar_estoque.id, modulo: "inventory",
+        registroId: item.insumo_id, valorNovo: saldo, resultado: "sucesso",
+      });
+      return;
+    }
+
+    // Entrada/retirada: falta quantidade? pergunta só o que falta.
+    if (!(Number(intencao.quantidade) > 0)) {
+      diz("bot", acao === "entrada_estoque"
+        ? `Quanto de ${item.nome} entrou? (em ${mostrarUn(item.unidade_medida)})`
+        : `Quanto de ${item.nome} vai sair? (em ${mostrarUn(item.unidade_medida)})`);
+      return;
+    }
+
+    // Nível 3: mostra resumo e aguarda confirmação.
+    setPendente({
+      tipo: acao === "entrada_estoque" ? "entrada" : "saida",
+      item, estoque, quantidade: Number(intencao.quantidade), intencao, comando,
+    });
+  };
+
+  const confirmar = async () => {
+    if (!pendente) return;
+    setOcupado(true);
+    const { tipo, item, estoque, quantidade, intencao, comando } = pendente;
+    const r = await executarMovimento({
+      tipo, unidadeId: unidadeAtiva, estoque, item, quantidade,
+      usuario: { id: sessao?.id, nome: sessao?.nome, email: sessao?.email },
+      comando, intencao,
+    });
+    setOcupado(false);
+    setPendente(null);
+    if (r.error) { diz("bot", r.error); return; }
+    diz("bot", `${tipo === "entrada" ? "Entrada" : "Retirada"} registrada. ${item.nome}: ${fmtQtd(r.saldoAntes)} → ${fmtQtd(r.saldoDepois)} ${mostrarUn(r.unidade)}.`);
+    setUltima({ tipo, item, estoque, quantidade });
+  };
+
+  const desfazer = async () => {
+    if (!ultima) return;
+    setOcupado(true);
+    const r = await desfazerMovimento({
+      ...ultima, unidadeId: unidadeAtiva,
+      usuario: { id: sessao?.id, nome: sessao?.nome, email: sessao?.email },
+    });
+    setOcupado(false);
+    setUltima(null);
+    diz("bot", r.error ? `Não consegui desfazer: ${r.error}` : `Lançamento desfeito. Saldo voltou para ${fmtQtd(r.saldoDepois)} ${mostrarUn(r.unidade)}.`);
+  };
+
+  return (
+    <>
+      {/* Botão flutuante */}
+      {!aberto && (
+        <button onClick={() => setAberto(true)} title="Assistente Hefisto"
+          className="print:hidden fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-[90] flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-xl shadow-emerald-600/30 hover:bg-emerald-700 transition-colors">
+          <Bot size={26} />
+        </button>
+      )}
+
+      {/* Painel lateral */}
+      {aberto && (
+        <div className="print:hidden fixed inset-y-0 right-0 z-[95] flex w-full max-w-md flex-col border-l border-slate-200 bg-white shadow-2xl">
+          <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3">
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-600 text-white"><Bot size={20} /></div>
+            <div className="min-w-0 flex-1">
+              <p className="font-black text-slate-900 leading-tight">Assistente Hefisto</p>
+              <p className="truncate text-[11px] font-bold text-slate-400">{contextoModulo} · {unidadeInfo?.nome || "unidade"}</p>
+            </div>
+            <button onClick={() => setAberto(false)} className="grid h-9 w-9 place-items-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200"><X size={17} /></button>
+          </div>
+
+          <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+            {msgs.length === 0 && (
+              <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+                <p className="text-sm font-bold text-emerald-800">Diga o que você precisa</p>
+                <p className="mt-1 text-[12px] font-medium text-emerald-700">Posso consultar saldo, abrir telas e lançar entrada/retirada no estoque.</p>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {SUGESTOES.map(s => (
+                    <button key={s} onClick={() => enviar(s)} className="rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-[11px] font-bold text-emerald-700 hover:bg-emerald-50">{s}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {msgs.map(m => (
+              <div key={m.id} className={m.autor === "user" ? "flex justify-end" : "flex justify-start"}>
+                <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm font-medium ${m.autor === "user" ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-700"}`}>
+                  {m.texto}
+                  {m.opcoes && (
+                    <div className="mt-2 space-y-1.5">
+                      {m.opcoes.map(o => (
+                        <button key={o.valor} onClick={() => enviar(`${m.intencaoPendente?.acao === "retirada_estoque" ? "retirar" : ""} ${o.valor}`.trim())}
+                          className="flex w-full items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-[12px] font-bold text-slate-700 hover:border-emerald-400">
+                          {o.rotulo} <ChevronRight size={14} className="text-slate-400" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            {/* Resumo aguardando confirmação */}
+            {pendente && (
+              <div className="rounded-2xl border-2 border-emerald-300 bg-white p-4 shadow-sm">
+                <p className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-emerald-700">
+                  <AlertTriangle size={13} /> Confirme a {pendente.tipo === "entrada" ? "entrada" : "retirada"}
+                </p>
+                <div className="mt-2 space-y-1 text-sm">
+                  <p className="font-black text-slate-800">{pendente.item.nome}</p>
+                  <p className="font-bold text-slate-500">Estoque: {pendente.estoque.nome}</p>
+                  <p className="font-bold text-slate-500">Quantidade: {fmtQtd(pendente.quantidade)} {mostrarUn(pendente.item.unidade_medida)}</p>
+                  {pendente.intencao?.valor_unitario > 0 && <p className="font-bold text-slate-500">Valor: {fmtBRL(pendente.intencao.valor_unitario)} / {mostrarUn(pendente.item.unidade_medida)}</p>}
+                  <p className="font-bold text-slate-500">
+                    Saldo: {fmtQtd(pendente.item.quantidade_atual)} → {fmtQtd(pendente.tipo === "entrada"
+                      ? (Number(pendente.item.quantidade_atual) || 0) + pendente.quantidade
+                      : Math.max(0, (Number(pendente.item.quantidade_atual) || 0) - pendente.quantidade))} {mostrarUn(pendente.item.unidade_medida)}
+                  </p>
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <button onClick={confirmar} disabled={ocupado} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 py-2.5 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-50">
+                    {ocupado ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />} Confirmar
+                  </button>
+                  <button onClick={() => { setPendente(null); diz("bot", "Cancelado."); }} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50">Cancelar</button>
+                </div>
+              </div>
+            )}
+
+            {ultima && !pendente && (
+              <button onClick={desfazer} disabled={ocupado} className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[12px] font-bold text-slate-600 hover:border-red-300 hover:text-red-600 disabled:opacity-50">
+                <Undo2 size={14} /> Desfazer lançamento
+              </button>
+            )}
+
+            {ocupado && !pendente && (
+              <p className="flex items-center gap-2 text-[12px] font-bold text-slate-400"><Loader2 size={14} className="animate-spin" /> Interpretando...</p>
+            )}
+            <div ref={fimRef} />
+          </div>
+
+          <div className="border-t border-slate-100 p-3">
+            <div className="flex items-center gap-2">
+              <input
+                value={texto}
+                onChange={e => setTexto(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") enviar(); }}
+                placeholder="Peça algo ao Hefisto..."
+                className="h-11 min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm font-medium outline-none focus:border-emerald-500"
+              />
+              <button onClick={() => enviar()} disabled={ocupado || !texto.trim()} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40">
+                <Send size={17} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}

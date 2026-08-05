@@ -5,6 +5,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { lerSessao, encerrarSessao } from "../lib/auth";
 import { canAccessRoute, permittedRoutes } from "../lib/permissions-catalog";
 import { useERP } from "../context/ERPContext";
+import HefistoAssistant from "../components/HefistoAssistant";
 import {
   Users, BarChart, Store, Settings, LogOut, ChevronDown, Check,
   UtensilsCrossed, Package, Wallet, Menu, X, Truck, ChefHat, GlassWater,
@@ -802,6 +803,10 @@ export default function DashboardLayout({ children }) {
       </div>
       <SyncFeedback />
       <MobileBottomNav sessao={sessao} onMenu={() => setMobileOpen(true)} />
+      {/* Assistente Hefisto — botão flutuante + painel lateral, em todas as telas */}
+      <Suspense fallback={null}>
+        <HefistoAssistant />
+      </Suspense>
     </div>
   );
 }

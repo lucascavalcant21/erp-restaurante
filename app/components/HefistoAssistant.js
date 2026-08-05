@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Bot, Send, X, Loader2, Check, ChevronRight, AlertTriangle, Undo2 } from "lucide-react";
 import { useERP } from "../context/ERPContext";
+import { fetchColaboradores } from "../lib/rh";
 import { fmtBRL } from "./ui";
 import {
   ACOES, camposFaltantes, resolverProduto, carregarContextoEstoque,
@@ -48,12 +49,22 @@ export default function HefistoAssistant() {
   const [msgs, setMsgs] = useState([]);
   const [pendente, setPendente] = useState(null); // {tipo, item, estoque, quantidade, intencao, comando}
   const [ultima, setUltima] = useState(null);     // última execução (para desfazer)
+  const [colaboradores, setColaboradores] = useState([]);
+  const [responsavelId, setResponsavelId] = useState(""); // quem está lançando/retirando
   const fimRef = useRef(null);
 
   const dept = params?.get("dept") || "";
   const contextoModulo = moduloDaRota(pathname, dept);
 
   useEffect(() => { fimRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs, pendente, aberto]);
+
+  // Colaboradores ativos: usados para registrar QUEM está lançando/retirando.
+  useEffect(() => {
+    if (!aberto || !unidadeAtiva || colaboradores.length) return;
+    fetchColaboradores(unidadeAtiva).then(r => {
+      setColaboradores((r.data || []).filter(c => (c.status || "ativo") !== "inativo"));
+    }).catch(() => {});
+  }, [aberto, unidadeAtiva, colaboradores.length]);
 
   const diz = (autor, texto, extra = {}) => setMsgs(m => [...m, { autor, texto, ...extra, id: Math.random() }]);
 
@@ -158,18 +169,25 @@ export default function HefistoAssistant() {
 
   const confirmar = async () => {
     if (!pendente) return;
+    // Quem está lançando/retirando é obrigatório — rastreabilidade do estoque.
+    if (!responsavelId) { diz("bot", "Informe quem está lançando ou retirando o produto."); return; }
+    const colab = colaboradores.find(c => String(c.id) === String(responsavelId));
     setOcupado(true);
     const { tipo, item, estoque, quantidade, intencao, comando } = pendente;
     const r = await executarMovimento({
       tipo, unidadeId: unidadeAtiva, estoque, item, quantidade,
-      usuario: { id: sessao?.id, nome: sessao?.nome, email: sessao?.email },
+      usuario: {
+        id: colab?.id || sessao?.id,
+        nome: colab ? `${colab.nome}${colab.cargo ? ` (${colab.cargo})` : ""}` : (sessao?.nome || sessao?.email),
+        email: sessao?.email,
+      },
       comando, intencao,
     });
     setOcupado(false);
     setPendente(null);
     if (r.error) { diz("bot", r.error); return; }
-    diz("bot", `${tipo === "entrada" ? "Entrada" : "Retirada"} registrada. ${item.nome}: ${fmtQtd(r.saldoAntes)} → ${fmtQtd(r.saldoDepois)} ${mostrarUn(r.unidade)}.`);
-    setUltima({ tipo, item, estoque, quantidade });
+    diz("bot", `${tipo === "entrada" ? "Entrada" : "Retirada"} registrada por ${colab?.nome || "você"}. ${item.nome}: ${fmtQtd(r.saldoAntes)} → ${fmtQtd(r.saldoDepois)} ${mostrarUn(r.unidade)}.`);
+    setUltima({ tipo, item, estoque, quantidade, colab });
   };
 
   const desfazer = async () => {
@@ -177,7 +195,11 @@ export default function HefistoAssistant() {
     setOcupado(true);
     const r = await desfazerMovimento({
       ...ultima, unidadeId: unidadeAtiva,
-      usuario: { id: sessao?.id, nome: sessao?.nome, email: sessao?.email },
+      usuario: {
+        id: ultima.colab?.id || sessao?.id,
+        nome: ultima.colab?.nome || sessao?.nome || sessao?.email,
+        email: sessao?.email,
+      },
     });
     setOcupado(false);
     setUltima(null);
@@ -254,8 +276,19 @@ export default function HefistoAssistant() {
                       : Math.max(0, (Number(pendente.item.quantidade_atual) || 0) - pendente.quantidade))} {mostrarUn(pendente.item.unidade_medida)}
                   </p>
                 </div>
+                {/* Obrigatório: quem está lançando/retirando */}
+                <label className="mt-3 block">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                    Quem está {pendente.tipo === "entrada" ? "lançando" : "retirando"}? *
+                  </span>
+                  <select value={responsavelId} onChange={e => setResponsavelId(e.target.value)}
+                    className={`mt-1 h-11 w-full rounded-xl border-2 px-3 text-sm font-bold outline-none ${responsavelId ? "border-slate-200 bg-slate-50 text-slate-800" : "border-red-300 bg-red-50 text-red-700"}`}>
+                    <option value="">Selecione o responsável...</option>
+                    {colaboradores.map(c => <option key={c.id} value={c.id}>{c.nome}{c.cargo ? ` (${c.cargo})` : ""}</option>)}
+                  </select>
+                </label>
                 <div className="mt-3 flex gap-2">
-                  <button onClick={confirmar} disabled={ocupado} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 py-2.5 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-50">
+                  <button onClick={confirmar} disabled={ocupado || !responsavelId} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 py-2.5 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-50">
                     {ocupado ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />} Confirmar
                   </button>
                   <button onClick={() => { setPendente(null); diz("bot", "Cancelado."); }} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50">Cancelar</button>

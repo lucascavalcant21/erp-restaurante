@@ -728,6 +728,13 @@ function EstoqueRunner() {
       let item = modal?.item || itens.find(i => i.insumo_id === operacao.insumo_id);
       const insumo = catalogo.find(i => i.id === operacao.insumo_id);
 
+      // Quem está lançando/retirando é obrigatório — conferido ANTES de criar
+      // qualquer vínculo, para não deixar registro órfão se o campo faltar.
+      if (!operacao.responsavel_id) {
+        avisar("Informe quem está lançando ou retirando o produto.", "erro");
+        return;
+      }
+
       const colabSel = colaboradores.find(c => String(c.id) === String(operacao.responsavel_id));
       const responsavelNome = colabSel
         ? `${colabSel.nome}${colabSel.cargo ? ` (${colabSel.cargo})` : ""}`
@@ -742,11 +749,6 @@ function EstoqueRunner() {
         // Se o vínculo falhar (ex.: tabela estoque_itens ainda não migrada),
         // seguimos com um item sintético — o movimento cai no fallback legado.
         item = { ...insumo, insumo_id: insumo.id, estoque_item_id: vinculo.data?.id, permite_transferencia: true };
-      }
-      if (!operacao.responsavel_id) {
-        avisar("Selecione o colaborador responsável pela operação.", "erro");
-        setSalvando(false);
-        return;
       }
       if (!item?.insumo_id) {
         avisar("Selecione um produto válido.", "erro");

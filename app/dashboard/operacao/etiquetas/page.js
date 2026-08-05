@@ -21,6 +21,7 @@ import {
   imprimirEtiquetasTp20, PERFIS_TP20,
 } from "../../../lib/impressaoTermica";
 import { baixarPdfDeHtml } from "../../../lib/pdf";
+import { imprimirHtml } from "../../../lib/imprimir";
 
 const UNIDADES = ["UN", "KG", "G", "L", "ML", "CX", "PCT", "BANDEJA"];
 const ICONE_CONS = { Resfriado: Thermometer, Congelado: Snowflake, Ambiente: Box };
@@ -364,9 +365,7 @@ function EtiquetasRunner() {
   function imprimirTeste() {
     const largura = parseFloat(dim.paginaW) || 80;
     const altura = parseFloat(dim.paginaH) || 40;
-    const win = window.open("", "_blank", "width=420,height=640");
-    if (!win) { alert("Habilite os popups deste site para imprimir."); return; }
-    win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Teste de etiqueta</title>
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Teste de etiqueta</title>
       <style>
         @page { size: ${largura}mm ${altura}mm; margin: 0; }
         *{box-sizing:border-box} html,body{margin:0;padding:0;background:#fff}
@@ -384,9 +383,13 @@ function EtiquetasRunner() {
         <div class="m">Se as bordas aparecerem inteiras e a medida bater com a etiqueta, o tamanho esta correto.</div>
         <div class="r"><span>${(unidadeInfo?.nome || "Unidade").toUpperCase()}</span><span>${new Date().toLocaleString("pt-BR")}</span></div>
       </div>
-      <script>window.onload=function(){setTimeout(function(){window.print()},250)}<\/script>
-      </body></html>`);
-    win.document.close();
+      </body></html>`;
+    // Imprime sem abrir aba: pop-up bloqueado era o motivo de "não acontecer nada".
+    const ok = imprimirHtml(html, {
+      aoFalhar: () => setSalvou("Não consegui abrir a impressão. Verifique se há impressora instalada no aparelho."),
+    });
+    if (ok) setSalvou(`Teste enviado (${largura}×${altura}mm). Escolha a impressora na janela do Windows.`);
+    setTimeout(() => setSalvou(""), 8000);
   }
 
   function imprimirFila() {
@@ -397,9 +400,7 @@ function EtiquetasRunner() {
     // senão etiquetas de 100 mm saem cortadas.
     const larguraPagMm = Math.max(...fila.map(f => Number(f.larguraMm) || 80));
     const corpo = fila.map(f => Array.from({ length: f.copias }).map(() => f.html).join("")).join("");
-    const win = window.open("", "_blank", "width=420,height=640");
-    if (!win) { alert("Habilite os popups para imprimir a fila."); return; }
-    win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Fila de Etiquetas</title>
+    const htmlFila = `<!doctype html><html><head><meta charset="utf-8"><title>Fila de Etiquetas</title>
       <style>
         @page { size: ${larguraPagMm}mm ${alturaPagMm}mm; margin: 0; }
         *{box-sizing:border-box} html,body{margin:0;padding:0;background:#fff}
@@ -408,10 +409,8 @@ function EtiquetasRunner() {
         .etiqueta-print:last-child{page-break-after:auto}
       </style></head><body>
       <div id="wrap">${corpo}</div>
-      <script>window.onload=function(){setTimeout(function(){window.print()},30)};window.onafterprint=function(){setTimeout(function(){try{window.close()}catch(e){}},200)}<\/script>
-      </body></html>`);
-    win.document.close();
-    try { win.focus(); } catch (_) {}
+      </body></html>`;
+    imprimirHtml(htmlFila, { aoFalhar: () => alert("Não consegui abrir a impressão da fila.") });
     setSalvou("Fila enviada para impressão.");
     setTimeout(() => setSalvou(""), 2500);
   }
@@ -501,8 +500,7 @@ function EtiquetasRunner() {
         // Impressão ISOLADA: abre uma janela só com as etiquetas (o resto da tela
         // fazia o navegador gerar várias folhas em branco).
         const area = document.getElementById("area-impressao");
-        const win = area ? window.open("", "_blank", "width=420,height=640") : null;
-        if (win && area) {
+        if (area) {
           // Largura SEMPRE 80mm (largura do papel da térmica — o driver rejeita
           // larguras fora do padrão com "Falha na impressão"). Modo tira: altura
           // = cópias × etiqueta, tudo numa página; modo páginas: uma por página.
@@ -510,7 +508,7 @@ function EtiquetasRunner() {
           const alturaTiraMm = modoTira === "tira" ? alturaEtqMm * quantidadeCopias : alturaEtqMm;
           // Página do TAMANHO EXATO da etiqueta: se usar largura maior que a
           // etiqueta física, o driver encolhe a folha e sai uma miniatura ruim.
-          win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Etiquetas</title>
+          const htmlEtq = `<!doctype html><html><head><meta charset="utf-8"><title>Etiquetas</title>
             <style>
               @page { size: ${dim.paginaW} ${alturaTiraMm}mm; margin: 0; }
               *{box-sizing:border-box} html,body{margin:0;padding:0;background:#fff}
@@ -520,14 +518,13 @@ function EtiquetasRunner() {
               .etiqueta-print:last-child{page-break-after:auto}
             </style></head><body>
             <div id="wrap">${area.innerHTML}</div>
-            <script>window.onload=function(){setTimeout(function(){window.print()},30)};window.onafterprint=function(){setTimeout(function(){try{window.close()}catch(e){}},200)}<\/script>
-            </body></html>`);
-          win.document.close();
-          try { win.focus(); } catch (_) {}
+            </body></html>`;
+          // Sem abrir aba: pop-up bloqueado fazia "não acontecer nada".
+          imprimirHtml(htmlEtq, { aoFalhar: () => window.print() });
         } else {
           window.print();
         }
-        setSalvou("Impressão aberta.");
+        setSalvou("Impressão enviada — escolha a impressora na janela do Windows.");
       } else if (modoImpressao === "pdf") {
         // PDF no TAMANHO EXATO da etiqueta: o arquivo carrega a geometria da
         // página, então ao imprimir a 100% (Tamanho real) não vira miniatura —

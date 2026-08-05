@@ -3,7 +3,7 @@
  * que não sejam GET, para nunca servir dado de operação desatualizado.
  * Para navegações/estáticos same-origin usa network-first com fallback ao cache.
  */
-const CACHE = "hefisto-shell-v6";
+const CACHE = "hefisto-shell-v7";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();

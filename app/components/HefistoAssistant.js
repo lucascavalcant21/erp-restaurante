@@ -58,6 +58,24 @@ export default function HefistoAssistant() {
 
   useEffect(() => { fimRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs, pendente, aberto]);
 
+  // Fechar com ESC e com o botão "voltar" do celular/tablet: no mobile o painel
+  // cobre a tela inteira e o usuário espera que "voltar" saia dele.
+  useEffect(() => {
+    if (!aberto) return;
+    const porTecla = (e) => { if (e.key === "Escape") setAberto(false); };
+    const porVoltar = () => setAberto(false);
+    window.history.pushState({ hefisto: true }, "");
+    window.addEventListener("keydown", porTecla);
+    window.addEventListener("popstate", porVoltar);
+    return () => {
+      window.removeEventListener("keydown", porTecla);
+      window.removeEventListener("popstate", porVoltar);
+      // Se o painel foi fechado pelo X (e não pelo "voltar"), tira a entrada
+      // que empilhamos, para o histórico do app não ficar sujo.
+      if (window.history.state?.hefisto) window.history.back();
+    };
+  }, [aberto]);
+
   // Colaboradores ativos: usados para registrar QUEM está lançando/retirando.
   useEffect(() => {
     if (!aberto || !unidadeAtiva || colaboradores.length) return;
@@ -218,14 +236,19 @@ export default function HefistoAssistant() {
 
       {/* Painel lateral */}
       {aberto && (
-        <div className="print:hidden fixed inset-y-0 right-0 z-[95] flex w-full max-w-md flex-col border-l border-slate-200 bg-white shadow-2xl">
+        <>
+        {/* Fundo: tocar fora fecha (no celular o painel ocupa a tela toda) */}
+        <div onClick={() => setAberto(false)} className="print:hidden fixed inset-0 z-[94] bg-slate-900/40 backdrop-blur-[2px]" />
+        <div className="print:hidden fixed inset-y-0 right-0 z-[95] flex w-full max-w-md flex-col border-l border-slate-200 bg-white shadow-2xl"
+          style={{ paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
           <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3">
             <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-600 text-white"><Bot size={20} /></div>
             <div className="min-w-0 flex-1">
               <p className="font-black text-slate-900 leading-tight">Assistente Hefisto</p>
               <p className="truncate text-[11px] font-bold text-slate-400">{contextoModulo} · {unidadeInfo?.nome || "unidade"}</p>
             </div>
-            <button onClick={() => setAberto(false)} className="grid h-9 w-9 place-items-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200"><X size={17} /></button>
+            <button onClick={() => setAberto(false)} aria-label="Fechar assistente"
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 active:scale-95"><X size={20} /></button>
           </div>
 
           <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
@@ -321,8 +344,13 @@ export default function HefistoAssistant() {
                 <Send size={17} />
               </button>
             </div>
+            {/* Saída explícita — no celular o painel cobre a tela inteira */}
+            <button onClick={() => setAberto(false)} className="mt-2 w-full rounded-xl border border-slate-200 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50 sm:hidden">
+              Voltar ao sistema
+            </button>
           </div>
         </div>
+        </>
       )}
     </>
   );

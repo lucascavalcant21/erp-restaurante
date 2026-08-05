@@ -831,3 +831,33 @@ button,
      de relance, sem precisar abrir. */
   .erp-card-foto { height: 10rem; }
 }
+
+/* ── Busca fixa em TODAS as telas ──────────────────────────────────────────
+   Em vez de marcar 32 páginas na mão, o :has() encontra o container do campo
+   de busca e o mantém no topo enquanto a lista rola. Quem já tem fundo próprio
+   (bg-white, bg-slate-50…) conserva o seu; quem não tem recebe o fundo da
+   página, para o conteúdo não passar por trás.
+   ──────────────────────────────────────────────────────────────────────── */
+@supports selector(:has(*)) {
+  .erp-main-content :where(div, label, form, section):has(> input[placeholder*="Buscar" i]):not(.erp-busca-fixa):not(.erp-busca-fixa *),
+  .erp-main-content :where(div, label, form, section):has(> input[placeholder*="Pesquis" i]):not(.erp-busca-fixa):not(.erp-busca-fixa *),
+  .erp-main-content :where(div, label, form, section):has(> input[type="search"]):not(.erp-busca-fixa):not(.erp-busca-fixa *) {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+  }
+
+  .erp-main-content :where(div, label, form, section):has(> input[placeholder*="Buscar" i]):not([class*="bg-"]),
+  .erp-main-content :where(div, label, form, section):has(> input[placeholder*="Pesquis" i]):not([class*="bg-"]),
+  .erp-main-content :where(div, label, form, section):has(> input[type="search"]):not([class*="bg-"]) {
+    background: var(--surface);
+  }
+}
+
+/* Sem zoom acidental: o duplo toque não amplia a tela e o iOS não reajusta o
+   texto sozinho ao girar o aparelho. A legibilidade vem do tamanho da fonte. */
+.erp-app-shell {
+  touch-action: pan-x pan-y;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}

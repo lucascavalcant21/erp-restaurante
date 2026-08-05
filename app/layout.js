@@ -35,8 +35,10 @@ export const metadata = {
 export const viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 5,
-  userScalable: true,
+  // App de operação: a tela não dá zoom sozinha ao tocar num campo nem com
+  // duplo toque. A leitura vem do tamanho de fonte, não do zoom do navegador.
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: "cover",
   themeColor: "#0f172a",
 };

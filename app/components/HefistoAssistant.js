@@ -2,9 +2,10 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { Bot, Send, X, Loader2, Check, ChevronRight, AlertTriangle, Undo2 } from "lucide-react";
+import { Bot, Send, X, Loader2, Check, ChevronRight, AlertTriangle, Undo2, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
 import { useERP } from "../context/ERPContext";
 import { fetchColaboradores } from "../lib/rh";
+import { vozDisponivel, audioDisponivel, criarEscuta, falar, calarVoz } from "../lib/hefisto-voz";
 import { fmtBRL } from "./ui";
 import {
   ACOES, camposFaltantes, resolverProduto, carregarContextoEstoque,
@@ -46,6 +47,12 @@ export default function HefistoAssistant() {
   const [aberto, setAberto] = useState(false);
   const [texto, setTexto] = useState("");
   const [ocupado, setOcupado] = useState(false);
+  const [ouvindo, setOuvindo] = useState(false);
+  const [parcial, setParcial] = useState("");        // o que está sendo falado agora
+  const [erroVoz, setErroVoz] = useState("");
+  const [comAudio, setComAudio] = useState(false);   // responder falando
+  const escutaRef = useRef(null);
+  const temVoz = typeof window !== "undefined" && vozDisponivel();
   const [msgs, setMsgs] = useState([]);
   const [pendente, setPendente] = useState(null); // {tipo, item, estoque, quantidade, intencao, comando}
   const [ultima, setUltima] = useState(null);     // última execução (para desfazer)
@@ -84,7 +91,53 @@ export default function HefistoAssistant() {
     }).catch(() => {});
   }, [aberto, unidadeAtiva, colaboradores.length]);
 
-  const diz = (autor, texto, extra = {}) => setMsgs(m => [...m, { autor, texto, ...extra, id: Math.random() }]);
+  const diz = (autor, texto, extra = {}) => {
+    setMsgs(m => [...m, { autor, texto, ...extra, id: Math.random() }]);
+    // Leitura em voz alta da resposta, quando o usuário ativou o áudio.
+    if (autor === "bot" && comAudio && audioDisponivel()) falar(texto);
+  };
+
+  // ── VOZ: falar o comando em vez de digitar ──────────────────────────────
+  const pararEscuta = () => {
+    escutaRef.current?.parar();
+    escutaRef.current = null;
+    setOuvindo(false);
+    setParcial("");
+  };
+
+  const iniciarEscuta = () => {
+    if (!temVoz) { setErroVoz("Este navegador não reconhece voz. Use o Chrome no Android ou o Safari no iPhone."); return; }
+    if (ouvindo) { pararEscuta(); return; }
+    setErroVoz("");
+    calarVoz(); // não escuta a si mesmo falando
+    const sessaoVoz = criarEscuta({
+      onParcial: (t) => setParcial(t),
+      onFinal: (frase) => {
+        setParcial("");
+        setOuvindo(false);
+        escutaRef.current = null;
+        if (frase) enviar(frase);        // fala vira comando na hora
+      },
+      onErro: (msg) => { setErroVoz(msg); setOuvindo(false); setParcial(""); escutaRef.current = null; },
+      onFim: () => { setOuvindo(false); setParcial(""); escutaRef.current = null; },
+    });
+    if (!sessaoVoz) { setErroVoz("Não consegui acessar o microfone."); return; }
+    escutaRef.current = sessaoVoz;
+    setOuvindo(true);
+    sessaoVoz.iniciar();
+  };
+
+  // Abre o painel já ouvindo — um toque para dar o comando por voz.
+  const abrirFalando = () => {
+    setAberto(true);
+    setTimeout(() => iniciarEscuta(), 350);
+  };
+
+  // Ao fechar o painel, para de ouvir e de falar.
+  useEffect(() => {
+    if (!aberto) { pararEscuta(); calarVoz(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aberto]);
 
   // Envia o texto para o parser e trata a intenção resolvendo dados reais.
   const enviar = async (valor) => {
@@ -226,12 +279,20 @@ export default function HefistoAssistant() {
 
   return (
     <>
-      {/* Botão flutuante */}
+      {/* Botões flutuantes: falar (atalho de 1 toque) + abrir o assistente */}
       {!aberto && (
-        <button onClick={() => setAberto(true)} title="Assistente Hefisto"
-          className="print:hidden fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-[90] flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-xl shadow-emerald-600/30 hover:bg-emerald-700 transition-colors">
-          <Bot size={26} />
-        </button>
+        <div className="print:hidden fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-[90] flex flex-col items-center gap-2.5">
+          {temVoz && (
+            <button onClick={abrirFalando} title="Falar um comando"
+              className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-emerald-600 bg-white text-emerald-700 shadow-lg hover:bg-emerald-50 active:scale-95 transition-all">
+              <Mic size={22} />
+            </button>
+          )}
+          <button onClick={() => setAberto(true)} title="Assistente Hefisto"
+            className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-xl shadow-emerald-600/30 hover:bg-emerald-700 transition-colors">
+            <Bot size={26} />
+          </button>
+        </div>
       )}
 
       {/* Painel lateral */}
@@ -247,6 +308,14 @@ export default function HefistoAssistant() {
               <p className="font-black text-slate-900 leading-tight">Assistente Hefisto</p>
               <p className="truncate text-[11px] font-bold text-slate-400">{contextoModulo} · {unidadeInfo?.nome || "unidade"}</p>
             </div>
+            {audioDisponivel() && (
+              <button onClick={() => { const n = !comAudio; setComAudio(n); if (!n) calarVoz(); }}
+                title={comAudio ? "Desligar resposta falada" : "Ouvir as respostas"} aria-label="Resposta em áudio"
+                className={`grid h-11 w-11 shrink-0 place-items-center rounded-full transition-colors ${
+                  comAudio ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>
+                {comAudio ? <Volume2 size={19} /> : <VolumeX size={19} />}
+              </button>
+            )}
             <button onClick={() => setAberto(false)} aria-label="Fechar assistente"
               className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 active:scale-95"><X size={20} /></button>
           </div>
@@ -332,12 +401,35 @@ export default function HefistoAssistant() {
           </div>
 
           <div className="border-t border-slate-100 p-3">
+            {/* Estado de escuta: mostra o que está sendo ouvido em tempo real */}
+            {ouvindo && (
+              <div className="mb-2 flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+                <span className="relative flex h-3 w-3 shrink-0">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-70" />
+                  <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-600" />
+                </span>
+                <p className="min-w-0 flex-1 truncate text-sm font-bold text-emerald-800">
+                  {parcial || "Ouvindo... pode falar"}
+                </p>
+                <button onClick={pararEscuta} className="shrink-0 text-[11px] font-black uppercase tracking-wider text-emerald-700">Parar</button>
+              </div>
+            )}
+            {erroVoz && (
+              <p className="mb-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[12px] font-bold text-red-700">{erroVoz}</p>
+            )}
             <div className="flex items-center gap-2">
+              {temVoz && (
+                <button onClick={iniciarEscuta} disabled={ocupado} title={ouvindo ? "Parar de ouvir" : "Falar um comando"}
+                  className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl border-2 transition-all disabled:opacity-40 ${
+                    ouvindo ? "border-emerald-600 bg-emerald-600 text-white" : "border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50"}`}>
+                  {ouvindo ? <MicOff size={18} /> : <Mic size={18} />}
+                </button>
+              )}
               <input
                 value={texto}
                 onChange={e => setTexto(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") enviar(); }}
-                placeholder="Peça algo ao Hefisto..."
+                placeholder={ouvindo ? "Falando..." : "Peça algo ao Hefisto..."}
                 className="h-11 min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm font-medium outline-none focus:border-emerald-500"
               />
               <button onClick={() => enviar()} disabled={ocupado || !texto.trim()} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40">

@@ -188,6 +188,9 @@ function EtiquetasRunner() {
     "60x40": { w: "60mm", h: "40mm", paginaW: "60mm", paginaH: "40mm", pad: "1.6mm", titulo: "3.6mm", linha: "2.5mm", resp: "2mm", qr: 36, gap: "0.35mm", secPad: "0.4mm", footLh: 1.12, respMt: "0.4mm" },
     "80x40": { w: "80mm", h: "40mm", paginaW: "80mm", paginaH: "40mm", pad: "2mm", titulo: "4.2mm", linha: "2.9mm", resp: "2.3mm", qr: 42, gap: "0.4mm", secPad: "0.5mm", footLh: 1.15, respMt: "0.5mm" },
     "60x60": { w: "60mm", h: "60mm", paginaW: "60mm", paginaH: "60mm", pad: "2.8mm", titulo: "4.4mm", linha: "3mm", resp: "2.6mm", qr: 58, gap: "0.6mm", secPad: "0.7mm", footLh: 1.25, respMt: "0.7mm" },
+    // Etiquetas em rolo (etiquetadora com driver do Windows)
+    "80x60": { w: "80mm", h: "60mm", paginaW: "80mm", paginaH: "60mm", pad: "3mm", titulo: "5mm", linha: "3.2mm", resp: "2.8mm", qr: 64, gap: "0.6mm", secPad: "0.8mm", footLh: 1.25, respMt: "0.7mm" },
+    "100x60": { w: "100mm", h: "60mm", paginaW: "100mm", paginaH: "60mm", pad: "3.4mm", titulo: "5.6mm", linha: "3.4mm", resp: "3mm", qr: 68, gap: "0.7mm", secPad: "0.9mm", footLh: 1.3, respMt: "0.8mm" },
   };
   const dim = DIMENSOES[tamanho] || DIMENSOES["60x40"];
 
@@ -730,7 +733,7 @@ function EtiquetasRunner() {
             <div className="flex items-center justify-between mb-2">
               <SectionLabel>Pré-visualização</SectionLabel>
               <div className="flex gap-1.5">
-                {["80x40", "60x40", "60x60"].map((t) => (
+                {["80x40", "60x40", "60x60", "80x60", "100x60"].map((t) => (
                   <button key={t} onClick={() => setTamanho(t)}
                     className="text-[11px] font-bold px-3 py-1.5 rounded-lg transition-all"
                     style={tamanho === t ? { background: "var(--accent-strong)", color: "#fff" } : { background: "var(--card)", color: "var(--muted)", border: "1px solid var(--line)" }}>

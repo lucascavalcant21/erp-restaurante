@@ -33,7 +33,52 @@ export const PERFIS_TP20 = {
     gapPontos: 16,
     descricao: "60 mm úteis × 60 mm · vão de 2 mm",
   },
+  // Etiquetadora de rolo (cabeça de 4"): a etiqueta inteira é a área útil.
+  // 203 dpi → 80 mm ≈ 640 pontos, 100 mm ≈ 800 pontos, 60 mm ≈ 480 pontos.
+  "80x60": {
+    id: "etq-80x60-v1",
+    larguraPontos: 640,
+    alturaPontos: 480,
+    xConteudo: 0,
+    larguraConteudo: 640,
+    gapPontos: 16,
+    descricao: "etiqueta 80 mm × 60 mm",
+  },
+  "100x60": {
+    id: "etq-100x60-v1",
+    larguraPontos: 800,
+    alturaPontos: 480,
+    xConteudo: 0,
+    larguraConteudo: 800,
+    gapPontos: 16,
+    descricao: "etiqueta 100 mm × 60 mm",
+  },
 };
+
+// Larguras de cabeça térmica mais comuns no Brasil (203 dpi). O desenho é feito
+// sempre no espaço de 576 pontos (80 mm) e reduzido por escala para a largura
+// real da impressora — o texto é redesenhado no tamanho certo, sem borrar.
+export const LARGURAS_TERMICAS = {
+  "80mm": { pontos: 576, rotulo: "80 mm — bobina grande (TP20, POS-80)" },
+  "58mm": { pontos: 384, rotulo: "58 mm — mini impressora (Tomate, Knup, MP-58)" },
+};
+
+// Ajusta um perfil para a largura real da impressora. Mantém a geometria de
+// desenho em 576 pontos e guarda a escala aplicada no raster.
+export function perfilNaLargura(perfil, larguraPontos) {
+  const base = perfil.larguraPontos;
+  const alvo = Number(larguraPontos) || base;
+  if (alvo === base) return { ...perfil, escala: 1, baseAltura: perfil.alturaPontos };
+  const escala = alvo / base;
+  return {
+    ...perfil,
+    escala,
+    baseAltura: perfil.alturaPontos,                       // espaço de desenho
+    larguraPontos: alvo,                                   // raster real
+    alturaPontos: Math.round(perfil.alturaPontos * escala),
+    gapPontos: Math.round(perfil.gapPontos * escala),
+  };
+}
 
 let qzCarregado;
 
@@ -61,7 +106,9 @@ export async function conectarAssistenteImpressao(preferida = "") {
   const impressoras = await qz.printers.find();
   const lista = Array.isArray(impressoras) ? impressoras : [impressoras].filter(Boolean);
   const exata = lista.find((nome) => nome === preferida);
-  const termica = lista.find((nome) => /TM-?T20|TP-?20|POS-?80|CELAK/i.test(nome));
+  // Marcas térmicas comuns no Brasil — inclui as mini de 58 mm.
+  const termica = lista.find((nome) =>
+    /TM-?T20|TP-?20|POS-?80|CELAK|TOMATE|MK-?0?22|MDK|ELGIN|BEMATECH|DARUMA|KNUP|EPSON|MP-?[45]8|58\s?mm|80\s?mm|THERMAL|TERMICA|PRINTER\s?POS/i.test(nome));
   // Nunca selecionar uma impressora comum automaticamente para receber RAW.
   const nome = exata || termica || "";
   return { nome, impressoras: lista };
@@ -148,7 +195,13 @@ function criarCanvasEtiqueta(perfil, dados, qrImagem) {
   ctx.fillStyle = "#000";
   ctx.imageSmoothingEnabled = false;
 
-  const alto = perfil.alturaPontos > 400;
+  // Impressora mais estreita: o desenho continua sendo feito no espaço de
+  // 576 pontos e a escala reduz tudo proporcionalmente.
+  const escala = perfil.escala || 1;
+  if (escala !== 1) ctx.scale(escala, escala);
+  const alturaDesenho = perfil.baseAltura || perfil.alturaPontos;
+
+  const alto = alturaDesenho > 400;
   const x = perfil.xConteudo;
   const largura = perfil.larguraConteudo;
   const pad = alto ? 20 : 14;
@@ -195,7 +248,7 @@ function criarCanvasEtiqueta(perfil, dados, qrImagem) {
   desenharLinha(ctx, esquerda, rodapeY, direita, alto ? 4 : 3);
   const qr = alto ? 116 : 76;
   const qrX = direita - qr;
-  const qrY = perfil.alturaPontos - pad - qr;
+  const qrY = alturaDesenho - pad - qr;
   ctx.drawImage(qrImagem, qrX, qrY, qr, qr);
 
   const textoRodapeW = Math.max(80, qrX - esquerda - 12);
@@ -260,9 +313,11 @@ function bytesParaBase64(bytes) {
   return btoa(binario);
 }
 
-export async function imprimirEtiquetasTp20({ impressora, tamanho, copias, dados }) {
-  const perfil = PERFIS_TP20[tamanho];
-  if (!perfil) throw new Error("Perfil de etiqueta não configurado");
+export async function imprimirEtiquetasTp20({ impressora, tamanho, copias, dados, larguraImpressora }) {
+  const perfilBase = PERFIS_TP20[tamanho];
+  if (!perfilBase) throw new Error("Perfil de etiqueta não configurado");
+  const pontos = LARGURAS_TERMICAS[larguraImpressora]?.pontos || perfilBase.larguraPontos;
+  const perfil = perfilNaLargura(perfilBase, pontos);
   const quantidade = Math.max(1, Math.min(100, Number(copias) || 1));
   const qz = await obterQz();
   if (!qz.websocket.isActive()) throw new Error("Conecte e autorize a impressora antes de imprimir");

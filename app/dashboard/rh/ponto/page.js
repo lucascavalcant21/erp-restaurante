@@ -692,8 +692,14 @@ export default function PontoPage() {
               return (
                 <div key={e.id} className={`p-4 rounded-2xl border text-center ${hora ? "bg-emerald-500/10 border-emerald-500/40" : puladoAqui ? "bg-amber-500/10 border-amber-500/30" : ativa ? "bg-slate-800 border-slate-500 border-dashed" : "bg-slate-900 border-slate-800"}`}>
                   <e.icon size={18} className={`mx-auto mb-1.5 ${hora ? "text-emerald-400" : puladoAqui ? "text-amber-400" : "text-slate-500"}`} />
-            </div>
-          )}
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{e.label}</p>
+                  <p className={`text-lg font-black mt-0.5 ${hora ? "text-emerald-400" : puladoAqui ? "text-amber-400 text-xs leading-tight" : "text-slate-600"}`}>
+                    {hora || (puladoAqui ? "não tirado" : "--:--")}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
 
           {/* EM INTERVALO: contagem regressiva até a hora de voltar */}
           {etapa === "retorno_intervalo" && reg?.hora_saida_intervalo && (() => {

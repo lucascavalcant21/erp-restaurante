@@ -358,18 +358,52 @@ function EtiquetasRunner() {
     });
   }
 
+  // Teste de impressão: manda uma etiqueta simples, no tamanho escolhido, sem
+  // depender de produto/validade. Serve para separar problema do ERP de
+  // problema do driver/papel da impressora.
+  function imprimirTeste() {
+    const largura = parseFloat(dim.paginaW) || 80;
+    const altura = parseFloat(dim.paginaH) || 40;
+    const win = window.open("", "_blank", "width=420,height=640");
+    if (!win) { alert("Habilite os popups deste site para imprimir."); return; }
+    win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Teste de etiqueta</title>
+      <style>
+        @page { size: ${largura}mm ${altura}mm; margin: 0; }
+        *{box-sizing:border-box} html,body{margin:0;padding:0;background:#fff}
+        .etq{width:${largura}mm;height:${altura}mm;padding:3mm;font-family:'Courier New',monospace;color:#000;
+             display:flex;flex-direction:column;justify-content:space-between;border:0.4mm solid #000;overflow:hidden}
+        .t{font-size:4.5mm;font-weight:900;text-transform:uppercase;line-height:1.1}
+        .m{font-size:3mm;font-weight:700}
+        .r{display:flex;justify-content:space-between;font-size:2.6mm;font-weight:700;border-top:0.3mm solid #000;padding-top:1mm}
+      </style></head><body>
+      <div class="etq">
+        <div>
+          <div class="t">Teste de impressao</div>
+          <div class="m">${largura} x ${altura} mm</div>
+        </div>
+        <div class="m">Se as bordas aparecerem inteiras e a medida bater com a etiqueta, o tamanho esta correto.</div>
+        <div class="r"><span>${(unidadeInfo?.nome || "Unidade").toUpperCase()}</span><span>${new Date().toLocaleString("pt-BR")}</span></div>
+      </div>
+      <script>window.onload=function(){setTimeout(function(){window.print()},250)}<\/script>
+      </body></html>`);
+    win.document.close();
+  }
+
   function imprimirFila() {
     if (!fila.length) return;
     const totalMm = fila.reduce((s, f) => s + f.alturaMm * f.copias, 0);
     const alturaPagMm = modoTira === "tira" ? totalMm : Math.max(...fila.map(f => f.alturaMm));
+    // A largura do papel é a da maior etiqueta da fila — nunca fixa em 80 mm,
+    // senão etiquetas de 100 mm saem cortadas.
+    const larguraPagMm = Math.max(...fila.map(f => Number(f.larguraMm) || 80));
     const corpo = fila.map(f => Array.from({ length: f.copias }).map(() => f.html).join("")).join("");
     const win = window.open("", "_blank", "width=420,height=640");
     if (!win) { alert("Habilite os popups para imprimir a fila."); return; }
     win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Fila de Etiquetas</title>
       <style>
-        @page { size: 80mm ${alturaPagMm}mm; margin: 0; }
+        @page { size: ${larguraPagMm}mm ${alturaPagMm}mm; margin: 0; }
         *{box-sizing:border-box} html,body{margin:0;padding:0;background:#fff}
-        #wrap{width:80mm;margin:0 auto;display:flex;flex-direction:column;gap:0}
+        #wrap{width:${larguraPagMm}mm;margin:0 auto;display:flex;flex-direction:column;gap:0}
         .etiqueta-print{page-break-after:${modoTira === "tira" ? "auto" : "always"};page-break-inside:avoid;overflow:hidden;box-shadow:none!important;border-radius:0!important;margin:0 auto!important}
         .etiqueta-print:last-child{page-break-after:auto}
       </style></head><body>
@@ -743,7 +777,7 @@ function EtiquetasRunner() {
               </div>
             </div>
             <div className="flex justify-center overflow-auto p-4 bg-slate-100 rounded-2xl border border-slate-200">
-              <div id="area-impressao" className="flex flex-col gap-4" style={{ width: "80mm" }}>
+              <div id="area-impressao" className="flex flex-col gap-4" style={{ width: dim.paginaW }}>
                 {Array.from({ length: quantidadeCopias }).map((_, idx) => (
                   <div key={idx} className="etiqueta-print shadow-sm" style={{ width: dim.w, height: dim.h, marginLeft: "auto", marginRight: "auto", background: "#fff", color: "#000", padding: dim.pad, fontFamily: "'Courier New', monospace", borderRadius: 8, display: "flex", flexDirection: "column", overflow: "hidden", flexShrink: 0 }}>
                     {/* produto */}
@@ -844,6 +878,12 @@ function EtiquetasRunner() {
                 <Printer size={16} /> PDF exato
               </Btn>
             </div>
+            <button type="button" onClick={imprimirTeste}
+              className="mt-2 w-full rounded-xl border border-dashed py-2.5 text-[12px] font-bold"
+              style={{ borderColor: "var(--line)", color: "var(--muted)" }}
+              title="Imprime uma etiqueta de teste no tamanho escolhido, sem depender de produto">
+              Imprimir etiqueta de teste ({tamanho.replace("x", "×")}mm)
+            </button>
             {impressoraStatus !== "conectada" && (
               <p className="text-[11px] mt-2 px-3 py-2 rounded-xl" style={{ background: "rgba(245,158,11,0.12)", color: "#B45309" }}>
                 Saindo <b>miniatura</b> ou borrado? O navegador imprime em ~96dpi e o driver costuma forçar A4. Para etiqueta nítida no tamanho certo: use o <b>PDF exato</b> (e imprima em "Tamanho real / 100%"), ou conecte a <b>impressora térmica</b> no botão acima (qualidade nativa 203dpi).

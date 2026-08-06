@@ -215,7 +215,11 @@ function criarCanvasEtiqueta(perfil, dados, qrImagem) {
 
   const infoY = alto ? 82 : 57;
   desenharTexto(ctx, String(dados.conservacao || "").toUpperCase(), esquerda, infoY, larguraInterna * 0.55, { fonte: alto ? 26 : 20 });
-  desenharTexto(ctx, `PESO: ${dados.quantidade}${dados.unidade !== "UN" ? ` ${dados.unidade}` : ""}`, direita, infoY, larguraInterna * 0.45, { fonte: alto ? 26 : 20, alinhar: "right" });
+  // Sem peso informado, nem a palavra PESO aparece.
+  const temPeso = String(dados.quantidade ?? "").trim() !== "" && Number(dados.quantidade) > 0;
+  if (temPeso) {
+    desenharTexto(ctx, `PESO: ${dados.quantidade}${dados.unidade !== "UN" ? ` ${dados.unidade}` : ""}`, direita, infoY, larguraInterna * 0.45, { fonte: alto ? 26 : 20, alinhar: "right" });
+  }
   const infoFim = alto ? 116 : 84;
   desenharLinha(ctx, esquerda, infoFim, direita, alto ? 4 : 3);
 

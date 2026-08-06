@@ -133,7 +133,8 @@ function EtiquetasRunner() {
   const [produtos, setProdutos] = useState([]);
   const [colaboradores, setColaboradores] = useState([]);
   const [form, setForm] = useState({ 
-    produto: "", conservacao: "Congelado", quantidade: "1", unidade: "UN", 
+    // Peso começa vazio: quem não pesa o produto não vê "PESO:" na etiqueta.
+    produto: "", conservacao: "Congelado", quantidade: "", unidade: "UN",
     dias: 30, lote: "", responsavel: "" 
   });
   const [codigo, setCodigo] = useState(gerarCodigo());
@@ -800,7 +801,10 @@ function EtiquetasRunner() {
                     {/* conservação + qtd */}
                     <div style={{ display: "flex", justifyContent: "space-between", whiteSpace: "nowrap", fontSize: dim.linha, fontWeight: 800, padding: `${dim.secPad} 0`, borderBottom: "0.4mm solid #000" }}>
                       <span>{form.conservacao.toUpperCase()}</span>
-                      <span>PESO: {form.quantidade}{form.unidade !== "UN" ? " " + form.unidade : ""}</span>
+                      {/* Sem peso informado, some a linha inteira — nada de "PESO:" vazio */}
+                      {String(form.quantidade ?? "").trim() !== "" && Number(form.quantidade) > 0 && (
+                        <span>PESO: {form.quantidade}{form.unidade !== "UN" ? " " + form.unidade : ""}</span>
+                      )}
                     </div>
                     {/* aberto: manipulação + validade com hora; fechado:
                         quando foi etiquetado + validade em destaque */}

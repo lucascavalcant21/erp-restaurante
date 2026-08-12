@@ -1274,6 +1274,8 @@ export default function RHPage() {
   };
 
   const abrirModalEdicao = (f) => {
+    // Extra tem cadastro próprio, em página separada do funcionário fixo.
+    if (f?.tipo_contrato === "Freelancer") { router.push(`/dashboard/rh/extra/${f.id}`); return; }
     setEditandoId(f.id);
     setNovoFunc({
        foto: f.foto || "",
@@ -1657,7 +1659,7 @@ export default function RHPage() {
                <button onClick={abrirModalNovo} className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-700 transition-colors shadow-md shadow-emerald-600/20">
                   <UserPlus size={16} /> Novo funcionário
                </button>
-               <button onClick={() => setAbaAtiva("Freelancer")} className="flex items-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-50 transition-colors">
+               <button onClick={() => router.push("/dashboard/rh/extra/novo")} className="flex items-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-50 transition-colors">
                   <UserPlus size={16} /> Novo extra
                </button>
                <button onClick={() => router.push('/dashboard/rh/fechamento')} className="flex items-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-50 transition-colors">

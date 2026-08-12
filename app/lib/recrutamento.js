@@ -34,6 +34,16 @@ export async function fetchPortalVagasConfig(unidadeId) {
   if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") {
     return { data: normalizarPortalVagas(null), error: null };
   }
+  // Página pública (candidato sem conta): a função devolve só o bloco de vagas,
+  // sem expor o restante das configurações da empresa.
+  try {
+    const { data: viaFuncao, error: erroFuncao } = await supabase
+      .rpc("portal_vagas_publico", { p_unidade_id: unidadeId });
+    if (!erroFuncao && viaFuncao && Object.keys(viaFuncao).length > 0) {
+      return { data: normalizarPortalVagas(viaFuncao), error: null };
+    }
+  } catch { /* função ainda não criada — cai na leitura direta abaixo */ }
+
   const { data, error } = await supabase
     .from("config_sistema")
     .select("params")

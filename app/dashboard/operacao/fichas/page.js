@@ -23,7 +23,7 @@ function comprimirFotoParaIA(file, maxDim = 1000, qualidade = 0.70) {
   });
 }
 
-import { useState, useEffect, useRef, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense, Fragment } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import {
@@ -332,6 +332,8 @@ function FichasRunner() {
   
   const [modalNovo, setModalNovo] = useState(false);
   const [fichaView, setFichaView] = useState(null); // ficha aberta em modo visualização (igual à foto)
+  const [escolhaFicha, setEscolhaFicha] = useState(null); // "vou fazer a receita" ou "vou montar o prato"
+  const abrirFicha = (f) => { setSimPesoView(""); setViewTab("ficha"); setFichaView(f); };
   const [simPesoView, setSimPesoView] = useState(""); // simulador de porções da tela de visualização
   const [viewTab, setViewTab] = useState("ficha"); // aba ativa na tela de visualização
   const [histCustos, setHistCustos] = useState([]); // histórico de custos da ficha aberta
@@ -1968,9 +1970,9 @@ function FichasRunner() {
                         {/* Foto do prato (compacta) */}
                         <div className="erp-card-foto h-28 sm:h-32 bg-slate-100 relative">
                            {f.imagem ? (
-                              <img onClick={() => { setSimPesoView(""); setViewTab("ficha"); setFichaView(f); }} title="Ver ficha completa" src={`data:image/jpeg;base64,${f.imagem}`} alt={f.nome_receita} className="w-full h-full object-cover cursor-pointer" />
+                              <img onClick={() => setEscolhaFicha(f)} title="Ver ficha completa" src={`data:image/jpeg;base64,${f.imagem}`} alt={f.nome_receita} className="w-full h-full object-cover cursor-pointer" />
                            ) : (
-                              <div onClick={() => { setSimPesoView(""); setViewTab("ficha"); setFichaView(f); }} title="Ver ficha completa" className="w-full h-full flex items-center justify-center text-slate-300 cursor-pointer">
+                              <div onClick={() => setEscolhaFicha(f)} title="Ver ficha completa" className="w-full h-full flex items-center justify-center text-slate-300 cursor-pointer">
                                  {f.departamento === 'bar' ? <Wine size={34}/> : <UtensilsCrossed size={34}/>}
                               </div>
                            )}
@@ -1994,7 +1996,7 @@ function FichasRunner() {
                               <button onClick={() => abrirExclusaoSegura([f])} title="Remover" className="p-1.5 bg-white/90 backdrop-blur rounded-md text-slate-600 hover:text-rose-600 shadow-sm"><Trash2 size={13}/></button>
                            </div>
                         </div>
-                        <div className="p-3 cursor-pointer" onClick={() => { setSimPesoView(""); setViewTab("ficha"); setFichaView(f); }} title="Ver ficha completa">
+                        <div className="p-3 cursor-pointer" onClick={() => setEscolhaFicha(f)} title="Ver ficha completa">
                            {(() => {
                               // Métricas estilo "app de gestão": custo, preço, CMV e margem
                               const custoTotal = custoTotalDaFicha(f, fichas);
@@ -2012,20 +2014,32 @@ function FichasRunner() {
                                     {cmv !== null && cmv > meta && (
                                        <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-red-700 bg-red-50 border border-red-200 rounded-full px-2 py-0.5 mb-1">Acima do CMV meta</span>
                                     )}
-                                    <h3 className="text-sm font-black text-slate-800 leading-tight mb-0.5 line-clamp-2">{f.nome_receita}</h3>
-                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">{pesoTxt}</p>
+                                    <h3 className="text-base font-black text-slate-900 leading-snug mb-1 line-clamp-2">{f.nome_receita}</h3>
+                                    <p className="text-[12px] font-bold text-slate-500 mb-2">{pesoTxt}</p>
                                     {!f.eh_base && (
-                                       <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px] border-t border-slate-100 pt-1.5">
-                                          <div><span className="block text-slate-400 font-bold">Custo total</span><span className="font-black text-slate-700">{fmtBRL(custoTotal)}</span></div>
-                                          <div><span className="block text-slate-400 font-bold">Custo/porção</span><span className="font-black text-slate-700">{fmtBRL(custoPorcao)}</span></div>
-                                          {custoKg !== null && <div><span className="block text-slate-400 font-bold">Custo/kg</span><span className="font-black text-slate-700">{fmtBRL(custoKg)}</span></div>}
-                                          <div><span className="block text-slate-400 font-bold">Venda/porção</span><span className="font-black text-slate-700">{precoPorcao > 0 ? fmtBRL(precoPorcao) : "—"}</span></div>
-                                          <div><span className="block text-slate-400 font-bold">CMV teórico</span><span className={`font-black ${cmv === null ? "text-slate-400" : cmv > meta ? "text-red-600" : "text-emerald-600"}`}>{cmv !== null ? `${cmv.toFixed(1)}%` : "—"}</span></div>
-                                          <div><span className="block text-slate-400 font-bold">Margem</span><span className={`font-black ${margem === null ? "text-slate-400" : "text-emerald-600"}`}>{margem !== null ? `${margem.toFixed(1)}%` : "—"}</span></div>
+                                       <div className="border-t border-slate-100 pt-2 space-y-1.5">
+                                          {/* O que mais importa em destaque; o resto embaixo, sem apertar */}
+                                          <div className="flex items-center justify-between">
+                                             <span className="text-[13px] font-bold text-slate-500">Custo/porção</span>
+                                             <span className="text-[15px] font-black text-slate-800">{fmtBRL(custoPorcao)}</span>
+                                          </div>
+                                          <div className="flex items-center justify-between">
+                                             <span className="text-[13px] font-bold text-slate-500">Venda/porção</span>
+                                             <span className="text-[15px] font-black text-emerald-700">{precoPorcao > 0 ? fmtBRL(precoPorcao) : "—"}</span>
+                                          </div>
+                                          <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-slate-100">
+                                             <span className={`rounded-lg px-2 py-1 text-[12px] font-black ${cmv === null ? "bg-slate-100 text-slate-400" : cmv > meta ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>
+                                                CMV {cmv !== null ? `${cmv.toFixed(1)}%` : "—"}
+                                             </span>
+                                             <span className="text-[12px] font-bold text-slate-500">
+                                                Margem <b className={margem === null ? "text-slate-400" : "text-emerald-700"}>{margem !== null ? `${margem.toFixed(1)}%` : "—"}</b>
+                                             </span>
+                                          </div>
+                                          <p className="text-[12px] font-bold text-slate-400">Custo total {fmtBRL(custoTotal)}{custoKg !== null ? ` · ${fmtBRL(custoKg)}/kg` : ""}</p>
                                        </div>
                                     )}
                                     {!f.eh_base && precoPorcao === 0 && (
-                                       <p className="text-[9px] font-bold text-amber-600 mt-1">Sem preço — defina em Editar → CMV e Precificação</p>
+                                       <p className="text-[12px] font-bold text-amber-600 mt-1.5">Sem preço — defina em Editar → CMV e Precificação</p>
                                     )}
                                  </>
                               );
@@ -2255,6 +2269,44 @@ function FichasRunner() {
         </div>
       )}
 
+      {/* O QUE VOCÊ VAI FAZER AGORA: seguir a receita ou montar o prato */}
+      {escolhaFicha && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/60 backdrop-blur-sm p-0 sm:p-4" onClick={() => setEscolhaFicha(null)}>
+          <div className="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-3 mb-1">
+              <div className="min-w-0">
+                <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700">O que você vai fazer</p>
+                <h3 className="text-xl font-black text-slate-900 leading-tight truncate">{escolhaFicha.nome_receita}</h3>
+              </div>
+              <button onClick={() => setEscolhaFicha(null)} className="w-10 h-10 shrink-0 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center"><X size={18} /></button>
+            </div>
+
+            <button onClick={() => { const f = escolhaFicha; setEscolhaFicha(null); abrirFicha(f); }}
+              className="mt-4 w-full flex items-center gap-4 rounded-2xl border-2 border-emerald-200 bg-emerald-50 p-4 text-left hover:border-emerald-500 transition-all">
+              <div className="w-12 h-12 shrink-0 rounded-2xl bg-emerald-600 text-white flex items-center justify-center"><BookOpen size={22} /></div>
+              <div className="min-w-0">
+                <p className="text-base font-black text-slate-900">Fazer a receita</p>
+                <p className="text-[13px] font-medium text-slate-600 leading-snug">Ingredientes, quantidades, rendimento, custo e modo de preparo.</p>
+              </div>
+            </button>
+
+            <button onClick={() => { const f = escolhaFicha; setEscolhaFicha(null); router.push(`/dashboard/operacao/montagem?dept=${f.departamento || deptUrl}&q=${encodeURIComponent(f.nome_receita)}`); }}
+              className="mt-3 w-full flex items-center gap-4 rounded-2xl border-2 border-slate-200 bg-white p-4 text-left hover:border-emerald-500 transition-all">
+              <div className="w-12 h-12 shrink-0 rounded-2xl bg-slate-100 text-emerald-700 flex items-center justify-center"><LayoutList size={22} /></div>
+              <div className="min-w-0">
+                <p className="text-base font-black text-slate-900">Montar o prato</p>
+                <p className="text-[13px] font-medium text-slate-600 leading-snug">Guia de montagem: como servir, empratar e finalizar.</p>
+              </div>
+            </button>
+
+            <button onClick={() => { const f = escolhaFicha; setEscolhaFicha(null); abrirEditar(f); }}
+              className="mt-3 w-full rounded-xl border border-slate-200 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50">
+              Editar esta ficha
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* TELA DE VISUALIZAÇÃO DA FICHA (igual à referência) */}
       {fichaView && (() => {
          const f = fichaView;
@@ -2292,7 +2344,7 @@ function FichasRunner() {
          const fechar = () => setFichaView(null);
          return (
             <div className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm flex items-start sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
-               <div className="bg-slate-50 w-full max-w-6xl min-h-full sm:min-h-0 sm:max-h-[92vh] sm:rounded-[28px] overflow-hidden shadow-2xl flex flex-col animate-in fade-in zoom-in-95">
+               <div className="erp-ficha bg-slate-50 w-full max-w-6xl min-h-full sm:min-h-0 sm:max-h-[92vh] sm:rounded-[28px] overflow-hidden shadow-2xl flex flex-col animate-in fade-in zoom-in-95">
                   {/* CABEÇALHO */}
                   <div className="bg-white border-b border-slate-100 px-4 sm:px-6 py-4 flex flex-wrap items-center gap-3">
                      <button onClick={fechar} className="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 shrink-0"><ArrowLeft size={19} /></button>
@@ -2384,16 +2436,32 @@ function FichasRunner() {
                                     {linhas.length === 0 && (
                                        <tr><td colSpan={7} className="py-6 text-center text-slate-400 font-medium">Sem ingredientes cadastrados.</td></tr>
                                     )}
-                                    {linhas.map((l, i) => (
-                                       <tr key={i} className="border-b border-slate-50">
-                                          <td className="py-2.5 pr-2 font-bold text-slate-800">{l.nome}{l.base && <span className="ml-1.5 text-[8px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">Base</span>}</td>
-                                          <td className="py-2.5 px-1 text-center font-bold text-slate-500">{l.un}</td>
-                                          <td className="py-2.5 px-1 text-right font-bold text-slate-700">{nf(l.bruta)}</td>
-                                          <td className="py-2.5 px-1 text-right font-bold text-slate-500">{l.fc ? `${nf(l.fc)}%` : "—"}</td>
-                                          <td className="py-2.5 px-1 text-right font-bold text-slate-700">{nf(l.liquida)}</td>
-                                          <td className="py-2.5 px-1 text-right font-bold text-slate-600">{fmtBRL(l.custoUnit)}</td>
-                                          <td className="py-2.5 pl-1 text-right font-black text-slate-800">{fmtBRL(l.custoTot)}</td>
-                                       </tr>
+                                    {/* Preparos (bases) primeiro, depois os ingredientes soltos:
+                                        na cozinha o preparo vem antes da montagem do prato. */}
+                                    {[
+                                      { titulo: "Preparos e bases", itens: linhas.filter(l => l.base) },
+                                      { titulo: "Ingredientes do prato", itens: linhas.filter(l => !l.base) },
+                                    ].filter(g => g.itens.length > 0).map(grupo => (
+                                      <Fragment key={grupo.titulo}>
+                                        {linhas.some(l => l.base) && linhas.some(l => !l.base) && (
+                                          <tr>
+                                            <td colSpan={7} className="pt-4 pb-1.5">
+                                              <span className="text-[11px] font-black uppercase tracking-widest text-emerald-700">{grupo.titulo}</span>
+                                            </td>
+                                          </tr>
+                                        )}
+                                        {grupo.itens.map((l, i) => (
+                                          <tr key={`${grupo.titulo}-${i}`} className="border-b border-slate-50">
+                                            <td className="py-3 pr-2 text-[15px] font-bold text-slate-800">{l.nome}{l.base && <span className="ml-1.5 text-[9px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">Preparo</span>}</td>
+                                            <td className="py-3 px-1 text-center font-bold text-slate-500">{l.un}</td>
+                                            <td className="py-3 px-1 text-right font-bold text-slate-700">{nf(l.bruta)}</td>
+                                            <td className="py-3 px-1 text-right font-bold text-slate-500">{l.fc ? `${nf(l.fc)}%` : "—"}</td>
+                                            <td className="py-3 px-1 text-right font-bold text-slate-700">{nf(l.liquida)}</td>
+                                            <td className="py-3 px-1 text-right font-bold text-slate-600">{fmtBRL(l.custoUnit)}</td>
+                                            <td className="py-3 pl-1 text-right font-black text-slate-800">{fmtBRL(l.custoTot)}</td>
+                                          </tr>
+                                        ))}
+                                      </Fragment>
                                     ))}
                                  </tbody>
                               </table>
@@ -2590,7 +2658,7 @@ function FichasRunner() {
       {/* MODAL DE CRIAÇÃO DA FICHA TÉCNICA */}
       {modalNovo && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-2 sm:p-4">
-             <div className="bg-white rounded-3xl sm:rounded-[32px] w-full max-w-6xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-hidden shadow-2xl animate-in zoom-in-95 flex flex-col">
+             <div className="erp-ficha bg-white rounded-3xl sm:rounded-[32px] w-full max-w-6xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-hidden shadow-2xl animate-in zoom-in-95 flex flex-col">
                
                {/* HEADER DO MODAL */}
                <div className="flex justify-between items-center gap-3 p-4 sm:p-6 border-b border-slate-100 bg-white">

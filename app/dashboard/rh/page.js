@@ -66,7 +66,9 @@ export default function RHPage() {
   const [cargos, setCargos] = useState([]);
   const [busca, setBusca] = useState("");
   const [abaAtiva, setAbaAtiva] = useState("Fixo");
-  const statePadrao = { foto: "", nome: "", cargo: "", salario: "", vale_alimentacao: "", taxa_servico_mes: "", horario_entrada: "", horario_saida: "", horario_dom_entrada: "", horario_dom_saida: "", horario_por_dia: false, horarios_dia: {}, dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60, tipo_contrato: "Fixo", telefone: "", cpf: "", rg: "", rua_av: "", numero_casa: "", bairro: "", cidade_uf: "", chave_pix: "", avaliacao_estrelas: 0, anotacoes_rh: "", data_admissao: "", status_contrato: "Definitivo", supervisor_id: "", supervisores_ids: [], endereco: "", cep: "", cidade_nascimento: "", data_nascimento: "", tem_filhos: false, qtd_filhos: "", tem_transporte: false, usa_vale_transporte: false, genero: "", escolaridade: "" };
+  const statePadrao = { foto: "", nome: "", cargo: "", salario: "", vale_alimentacao: "", taxa_servico_mes: "", horario_entrada: "", horario_saida: "", horario_dom_entrada: "", horario_dom_saida: "", horario_por_dia: false, horarios_dia: {}, dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60, tipo_contrato: "Fixo", telefone: "", cpf: "", rg: "", rua_av: "", numero_casa: "", bairro: "", cidade_uf: "", chave_pix: "", avaliacao_estrelas: 0, anotacoes_rh: "", data_admissao: "", status_contrato: "Definitivo", supervisor_id: "", supervisores_ids: [], endereco: "", cep: "", cidade_nascimento: "", data_nascimento: "", tem_filhos: false, qtd_filhos: "", tem_transporte: false, usa_vale_transporte: false, genero: "", escolaridade: "",
+    // Dados do Recibo de Trabalho Extra: ficam no cadastro para o recibo já sair preenchido
+    topicos_funcao: "", itens_emprestados: "", forma_pagamento: "Pix", vale_transporte_val: "", setor_entrega: "", janta_ofertada: true };
   // Cargos de liderança sempre disponíveis, além dos cargos cadastrados
   const CARGOS_LIDERANCA = ["CEO", "Supervisor", "Gerente"];
   const [modalNovo, setModalNovo] = useState(false);
@@ -195,8 +197,17 @@ export default function RHPage() {
       entrada: f?.horario_entrada || "",
       saida_final: f?.horario_saida || "",
       intervalo: f?.tempo_intervalo ? `${f.tempo_intervalo} min` : "",
+      // Textos do recibo que agora vivem no cadastro da pessoa
+      topicos_funcao: f?.topicos_funcao || "",
+      forma_pagamento: f?.forma_pagamento || "Pix",
+      vale_transporte: f?.vale_transporte_val != null && f?.vale_transporte_val !== "" ? String(f.vale_transporte_val) : "",
+      setor_entrega: f?.setor_entrega || "",
+      janta_ofertada: f?.janta_ofertada !== false,
     });
-    setFichaItens(ITENS_FICHA_PADRAO.map(nome => ({ nome, incluir: true })));
+    // Itens emprestados: usa a lista do cadastro; sem ela, cai no padrão da casa.
+    const itensDoCadastro = String(f?.itens_emprestados || "")
+      .split(",").map(s => s.trim()).filter(Boolean);
+    setFichaItens((itensDoCadastro.length ? itensDoCadastro : ITENS_FICHA_PADRAO).map(nome => ({ nome, incluir: true })));
     setFichaNovoItem("");
     setModalFicha(true);
   };
@@ -1303,7 +1314,14 @@ export default function RHPage() {
        tem_transporte: !!f.tem_transporte,
        usa_vale_transporte: !!f.usa_vale_transporte,
        genero: f.genero || "",
-       escolaridade: f.escolaridade || ""
+       escolaridade: f.escolaridade || "",
+       // Dados que alimentam o Recibo de Trabalho Extra
+       topicos_funcao: f.topicos_funcao || "",
+       itens_emprestados: f.itens_emprestados || "",
+       forma_pagamento: f.forma_pagamento || "Pix",
+       vale_transporte_val: f.vale_transporte_val ?? "",
+       setor_entrega: f.setor_entrega || "",
+       janta_ofertada: f.janta_ofertada !== false
     });
     setModalNovo(true);
   };
@@ -1331,6 +1349,13 @@ export default function RHPage() {
       telefone: novoFunc.telefone,
       cpf: novoFunc.cpf,
       chave_pix: novoFunc.chave_pix,
+      // Textos do recibo guardados no cadastro (migram sozinhos para o recibo)
+      topicos_funcao: novoFunc.topicos_funcao || null,
+      itens_emprestados: novoFunc.itens_emprestados || null,
+      forma_pagamento: novoFunc.forma_pagamento || null,
+      vale_transporte_val: novoFunc.vale_transporte_val === "" ? null : Number(novoFunc.vale_transporte_val),
+      setor_entrega: novoFunc.setor_entrega || null,
+      janta_ofertada: novoFunc.janta_ofertada !== false,
       avaliacao_estrelas: Number(novoFunc.avaliacao_estrelas) || 0,
       anotacoes_rh: novoFunc.anotacoes_rh,
       data_admissao: novoFunc.data_admissao || null,
@@ -2301,6 +2326,53 @@ export default function RHPage() {
                         <input type="number" value={novoFunc.salario} onChange={e=>setNovoFunc({...novoFunc, salario: e.target.value})} className="w-full p-4 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-emerald-600 outline-none focus:border-emerald-500"/>
                      </div>
                   </div>
+
+                  {/* EXTRA: o que o recibo precisa fica aqui no cadastro e migra sozinho */}
+                  {novoFunc.tipo_contrato === "Freelancer" && (
+                     <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50/50 p-4">
+                        <p className="text-xs font-black uppercase tracking-widest text-emerald-700">Dados do Recibo de Trabalho Extra</p>
+                        <p className="mt-1 mb-4 text-[12px] font-medium text-slate-500">Preenchido uma vez aqui, o recibo já sai pronto toda vez que esta pessoa trabalhar.</p>
+
+                        <label className="block">
+                           <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">O que a função faz (sai impresso no recibo)</span>
+                           <textarea rows={3} value={novoFunc.topicos_funcao} onChange={e=>setNovoFunc({...novoFunc, topicos_funcao: e.target.value})}
+                              placeholder="Ex.: Atender mesas, levar pedidos, repor bebidas, apoiar a limpeza do salão."
+                              className="w-full p-3.5 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500" />
+                        </label>
+
+                        <label className="mt-4 block">
+                           <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Itens emprestados (separe por vírgula)</span>
+                           <input type="text" value={novoFunc.itens_emprestados} onChange={e=>setNovoFunc({...novoFunc, itens_emprestados: e.target.value})}
+                              placeholder="Uniforme / Camisa, Avental, Cartão de Consumo"
+                              className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500" />
+                        </label>
+
+                        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                           <div>
+                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Forma de pagamento</label>
+                              <select value={novoFunc.forma_pagamento} onChange={e=>setNovoFunc({...novoFunc, forma_pagamento: e.target.value})}
+                                 className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500">
+                                 {["Pix", "Dinheiro", "Transferência"].map(v => <option key={v} value={v}>{v}</option>)}
+                              </select>
+                           </div>
+                           <div>
+                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Vale transporte (R$)</label>
+                              <input type="number" step="0.01" value={novoFunc.vale_transporte_val} onChange={e=>setNovoFunc({...novoFunc, vale_transporte_val: e.target.value})}
+                                 placeholder="0,00" className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500" />
+                           </div>
+                           <div>
+                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Setor</label>
+                              <input type="text" value={novoFunc.setor_entrega} onChange={e=>setNovoFunc({...novoFunc, setor_entrega: e.target.value})}
+                                 placeholder="Salão, Cozinha, Bar" className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500" />
+                           </div>
+                        </div>
+
+                        <label className="mt-4 flex items-center gap-2.5">
+                           <input type="checkbox" checked={novoFunc.janta_ofertada !== false} onChange={e=>setNovoFunc({...novoFunc, janta_ofertada: e.target.checked})} className="h-5 w-5 accent-emerald-600" />
+                           <span className="text-sm font-bold text-slate-700">A casa oferece a janta</span>
+                        </label>
+                     </div>
+                  )}
 
                   {novoFunc.tipo_contrato !== "Freelancer" && (
                      <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-4">

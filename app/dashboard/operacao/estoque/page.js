@@ -27,7 +27,19 @@ import { entradaBebidaUnidades, baixaBebidaUnidades, baixaBebidaConteudo, contag
 // Item fracionável = tem conteúdo por embalagem (>1) e permite controle
 // fracionado (garrafa/lata/pacote). Nele a entrada é por unidade comercial e a
 // baixa pode ser por unidade fechada ou por conteúdo (ml/g).
-const ehFracionavel = (item) => item && Number(item.tamanho_embalagem) > 1 && item.permite_fracionado !== false && String(item.unidade_medida || "").toLowerCase() !== "un";
+// Unidades que se CONTAM (não se medem): garrafa, lata, caixa... O sistema já
+// entende que são peças inteiras e não pede conversão em ml/g.
+const UNIDADES_CONTAVEIS = ["un", "unidade", "garrafa", "lata", "barril", "caixa", "cx", "pacote", "fardo", "maco", "maço"];
+const ehUnidadeContavel = (u) => UNIDADES_CONTAVEIS.includes(String(u || "").toLowerCase());
+
+// Fracionável = embalagem com conteúdo que se consome em partes (ml/g).
+// Numa unidade contável isso só vale se a pessoa marcar explicitamente
+// "permite fracionado" no cadastro (ex.: garrafa de whisky servida em doses).
+const ehFracionavel = (item) => {
+  if (!item || !(Number(item.tamanho_embalagem) > 1)) return false;
+  if (ehUnidadeContavel(item.unidade_medida)) return item.permite_fracionado === true;
+  return item.permite_fracionado !== false;
+};
 const conteudoDe = (item) => Number(item?.tamanho_embalagem) || 1;
 const fmtQtd = (valor) => Number(valor || 0).toLocaleString("pt-BR", { maximumFractionDigits: 3 });
 // Litro em maiúsculo (L), como manda a convenção; demais unidades como estão.

@@ -11,7 +11,11 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- 1) Leitura pública apenas das vagas -----------------------------------------
-create or replace function public.portal_vagas_publico(p_unidade_id uuid)
+-- config_sistema.unidade_id é TEXTO neste banco: o parâmetro segue o mesmo tipo
+-- e a comparação é feita como texto, funcionando com id em texto ou uuid.
+drop function if exists public.portal_vagas_publico(uuid);
+
+create or replace function public.portal_vagas_publico(p_unidade_id text)
 returns jsonb
 language sql
 stable
@@ -20,12 +24,12 @@ set search_path = public
 as $$
   select coalesce(params -> 'portal_vagas', '{}'::jsonb)
   from public.config_sistema
-  where unidade_id = p_unidade_id
+  where unidade_id::text = p_unidade_id
   limit 1;
 $$;
 
-revoke all on function public.portal_vagas_publico(uuid) from public;
-grant execute on function public.portal_vagas_publico(uuid) to anon, authenticated;
+revoke all on function public.portal_vagas_publico(text) from public;
+grant execute on function public.portal_vagas_publico(text) to anon, authenticated;
 
 -- 2) Envio da candidatura sem login -------------------------------------------
 -- Só cria a política se a tabela já usa RLS. Se a RLS estiver desligada, o

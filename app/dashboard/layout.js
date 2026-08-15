@@ -60,6 +60,7 @@ const SIDEBAR_MENU = [
       { label: "Ingredientes", href: "/dashboard/operacao/ingredientes?dept=cozinha" },
       { label: "Compras", href: "/dashboard/operacao/compras?dept=cozinha" },
       { label: "Entrada de Notas", href: "/dashboard/operacao/notas?dept=cozinha" },
+      { label: "Embalagens", href: "/dashboard/operacao/embalagens?dept=cozinha" },
       { label: "Produção do Dia", href: "/dashboard/operacao/producao?dept=cozinha" },
       { label: "Controles de Limpeza", href: "/dashboard/operacao/controles" },
       { label: "Checklist da Cozinha", href: "/dashboard/operacao/rotina?dept=cozinha" },
@@ -76,6 +77,7 @@ const SIDEBAR_MENU = [
       { label: "Produtos", href: "/dashboard/operacao/ingredientes?dept=bar" },
       { label: "Compras", href: "/dashboard/operacao/compras?dept=bar" },
       { label: "Entrada de Notas", href: "/dashboard/operacao/notas?dept=bar" },
+      { label: "Embalagens", href: "/dashboard/operacao/embalagens?dept=bar" },
       { label: "Produção do Dia", href: "/dashboard/operacao/producao?dept=bar" },
       { label: "Checklist do Bar", href: "/dashboard/operacao/rotina?dept=bar" },
       { label: "Orçamento de Eventos", href: "/dashboard/operacao/orcamento?dept=bar" }

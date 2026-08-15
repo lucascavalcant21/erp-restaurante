@@ -297,7 +297,7 @@ function ProducaoRunner() {
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto">
-               <button onClick={() => router.push("/dashboard/operacao/producao/memorando")} className="flex items-center gap-2 bg-violet-600 text-white px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-violet-700 transition-colors shadow-lg">
+               <button onClick={() => router.push("/dashboard/operacao/producao/memorando")} className="flex items-center gap-2 bg-emerald-600 text-white px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-emerald-700 transition-colors shadow-lg">
                   <ClipboardList size={18}/> <span className="hidden sm:inline">Memorando de Amanhã</span><span className="sm:hidden">Memorando</span>
                </button>
                <button onClick={() => setModalPlanejar(true)} className="flex items-center gap-2 bg-slate-900 text-white px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-slate-800 transition-colors shadow-lg">

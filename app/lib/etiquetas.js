@@ -5,6 +5,7 @@
 import { supabase, isSupabaseReady } from "./supabase";
 import { carimbarUnidade } from "./unidades";
 import { inserirLancamento } from "./financeiro";
+import { entradaPorEtiqueta, saidaPorEtiqueta } from "./etiqueta-estoque";
 
 // Presets de conservação (validade padrão em dias) — editável no formulário
 export const CONSERVACAO = [
@@ -34,14 +35,26 @@ async function etqRetrySemColuna(error, tentar, campos, n = 0) {
   return error;
 }
 
-export async function criarEtiqueta(dados, unidadeId) {
+export async function criarEtiqueta(dados, unidadeId, { departamento = "", usuario = null } = {}) {
   if (!isSupabaseReady()) return { data: null, error: "Sistema indisponível" };
   const payload = carimbarUnidade(dados, unidadeId);
   let res = await supabase.from("etiquetas").insert([payload]).select().single();
   const error = await etqRetrySemColuna(res.error, async () => {
     const r = await supabase.from("etiquetas").insert([payload]).select().single(); res = r; return r.error;
   }, payload);
-  return { data: res.data, error: error?.message || null };
+  if (error) return { data: res.data, error: error.message || null };
+
+  // Etiqueta gerada (impressa) declara produção: a quantidade entra no estoque.
+  // Só "salva" ainda não é produção, então não movimenta nada.
+  let estoque = null;
+  if (dados.status === "ativa") {
+    estoque = await entradaPorEtiqueta({
+      unidadeId,
+      etiqueta: { ...payload, ...(res.data || {}), departamento },
+      usuario,
+    });
+  }
+  return { data: res.data, error: null, estoque };
 }
 
 export async function fetchEtiquetas(unidadeId, limite = 30, status) {
@@ -111,32 +124,13 @@ export async function atualizarStatusEtiqueta(etiqueta, status) {
   const { error } = await supabase.from("etiquetas").update({ status }).eq("id", id);
   
   if (!error && typeof etiqueta === "object") {
-    // 1. Tentar dar baixa no Estoque Físico buscando o Insumo pelo Nome
-    const { data: insumoMatch } = await supabase.from("insumos")
-      .select("id")
-      .eq("unidade_id", etiqueta.unidade_id)
-      .ilike("nome", etiqueta.produto)
-      .maybeSingle();
-
-    if (insumoMatch) {
-       // Buscar saldo atual
-       const { data: estAtual } = await supabase.from("estoque_atual")
-          .select("quantidade_atual")
-          .eq("unidade_id", etiqueta.unidade_id)
-          .eq("insumo_id", insumoMatch.id)
-          .maybeSingle();
-
-       const saldoAnterior = estAtual ? estAtual.quantidade_atual : 0;
-       const qtdAbater = Number(etiqueta.quantidade) || 0;
-       const novoSaldo = Math.max(0, saldoAnterior - qtdAbater);
-
-       await supabase.from("estoque_atual").upsert({
-          unidade_id: etiqueta.unidade_id,
-          insumo_id: insumoMatch.id,
-          quantidade_atual: novoSaldo,
-          updated_at: new Date().toISOString()
-       }, { onConflict: 'unidade_id, insumo_id' });
-    }
+    // 1. Saída no estoque em que a etiqueta entrou, com histórico auditável.
+    //    (Antes o saldo era sobrescrito direto em estoque_atual, sem registro.)
+    await saidaPorEtiqueta({
+      unidadeId: etiqueta.unidade_id,
+      etiqueta,
+      motivo: status === "perda" ? "perda" : "baixa",
+    }).catch(() => {});
 
     // 2. Se for perda, lançar o prejuízo no DRE (Financeiro)
     if (status === "perda") {

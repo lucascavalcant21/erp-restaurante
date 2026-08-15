@@ -522,7 +522,13 @@ export default function EtiquetasRapidas() {
       validade_em: validadeDe(momento, produto.dias).toISOString(), lote: setor === "bar" ? "BAR" : "COZINHA",
       responsavel: responsavel.nome, custo_unit: produto.custo || 0, status: "ativa",
       copias: Math.max(1, Math.floor(numero(produto.copias))), tipo_etiqueta: produto.tipoEtiqueta || "aberto",
-    }, unidadeAtiva)));
+    }, unidadeAtiva, { departamento: setor, usuario: responsavel })));
+
+    // Quem não entrou no estoque (produto não cadastrado, sem peso) é avisado
+    // uma vez só, no fim — a impressão não pode parar por causa disso.
+    const foraDoEstoque = resultados
+      .map((r, i) => (r?.estoque && !r.estoque.ok ? `${etiquetasValidade[i].nome} (${r.estoque.motivo})` : null))
+      .filter(Boolean);
 
     const fonte = document.getElementById("etiquetas-rapidas-print");
     const dim = TAMANHOS[tamanho] || TAMANHOS["80x40"];
@@ -575,7 +581,11 @@ export default function EtiquetasRapidas() {
       erro: falhas ? `${falhas} item(ns) não foram registrados.` : null,
       exigiuConfirmacao: true,
     }).catch(() => {});
-    setAviso(falhas ? { tipo: "erro", texto: `A impressão abriu, mas ${falhas} item(ns) não foram registrados.` } : { tipo: "ok", texto: bluetoothNome ? `${totalEtiquetas} etiqueta(s) enviadas diretamente para ${bluetoothNome}.` : `${totalEtiquetas} etiqueta(s) preparadas para impressão.` });
+    setAviso(falhas
+      ? { tipo: "erro", texto: `A impressão abriu, mas ${falhas} item(ns) não foram registrados.` }
+      : foraDoEstoque.length
+        ? { tipo: "erro", texto: `Etiquetas prontas, mas fora do estoque: ${foraDoEstoque.join("; ")}.` }
+        : { tipo: "ok", texto: bluetoothNome ? `${totalEtiquetas} etiqueta(s) enviadas diretamente para ${bluetoothNome}.` : `${totalEtiquetas} etiqueta(s) preparadas para impressão.` });
     setFila([]);
     setBusca("");
   }

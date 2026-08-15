@@ -1167,6 +1167,11 @@ function EstoqueRunner() {
                 ].map(([id, label]) => (
                   <button key={id} onClick={() => setAba(id)} className={`whitespace-nowrap border-b-2 px-1 py-3 text-xs font-black sm:py-3.5 sm:text-sm cursor-pointer ${aba === id ? "border-emerald-600 text-emerald-700" : "border-transparent text-slate-500 hover:text-slate-700"}`}>{label}</button>
                 ))}
+                {/* Entradas e saídas em forma de calendário, fora das abas. */}
+                <button onClick={() => router.push("/dashboard/operacao/estoque/calendario")}
+                  className="ml-auto whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-xs font-black text-emerald-700 hover:text-emerald-800 sm:py-3.5 sm:text-sm">
+                  Calendário
+                </button>
               </div>
 
               {aba === "atual" || aba === "alertas" ? (

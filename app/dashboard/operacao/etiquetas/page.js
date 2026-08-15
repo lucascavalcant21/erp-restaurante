@@ -418,10 +418,16 @@ function EtiquetasRunner() {
       status: "ativa",
       copias: quantidadeCopias,
       tipo_etiqueta: tipoEtiqueta,
-    }, unidadeAtiva).then((resultado) => {
+    }, unidadeAtiva, { departamento: deptUrl }).then((resultado) => {
       if (resultado?.error) {
         setFila((p) => p.filter((x) => x.codigo !== codigoItem));
         setSalvou(`${nomeItem} saiu da fila — não foi possível registrar: ` + resultado.error);
+        setTimeout(() => setSalvou(""), 6000);
+        return;
+      }
+      // A etiqueta vale; o estoque é consequência. Só avisa quando não entrou.
+      if (resultado?.estoque && !resultado.estoque.ok) {
+        setSalvou(`${nomeItem} etiquetado, mas não entrou no estoque: ${resultado.estoque.motivo}`);
         setTimeout(() => setSalvou(""), 6000);
       }
     });
@@ -545,7 +551,7 @@ function EtiquetasRunner() {
           status: modoImpressao ? "ativa" : "salva",
           copias: quantidadeCopias,
           tipo_etiqueta: tipoEtiqueta,
-        }, unidadeAtiva);
+        }, unidadeAtiva, { departamento: deptUrl });
       }
 
       if (modoImpressao === "tp20") {
@@ -654,6 +660,15 @@ function EtiquetasRunner() {
         setCodigoSalvo(codigo);
         setAssinaturaSalva(assinaturaConteudo);
         if (!modoImpressao) setSalvou("Etiqueta salva!");
+        // Entrada no estoque é consequência da etiqueta; avisa quando não rolou.
+        if (resultado.estoque && !resultado.estoque.ok) {
+          setSalvou(`Etiqueta registrada, mas não entrou no estoque: ${resultado.estoque.motivo}`);
+          setTimeout(() => setSalvou(""), 6000);
+          return;
+        }
+        if (resultado.estoque?.ok) {
+          setSalvou(`Etiqueta registrada · +${resultado.estoque.quantidade} em ${resultado.estoque.estoque}`);
+        }
       }
       setTimeout(() => {
         setSalvou("");

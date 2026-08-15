@@ -102,6 +102,7 @@ const SIDEBAR_MENU = [
     icon: UserRound,
     items: [
       { label: "Cadastro e Recibos", href: "/dashboard/rh/extra" },
+      { label: "Banco de extras", href: "/dashboard/rh/extra/banco" },
       { label: "Cadastro facial do ponto", href: "/dashboard/rh/facial" }
     ]
   },

@@ -397,6 +397,10 @@ export default function EtiquetasRapidas() {
     setRespostaVoz("Ouvindo. Fale agora todos os produtos e quantidades.");
     setOuvindoVoz(true);
     const sessao = criarEscuta({
+      // Lista longa de produtos: continua ouvindo mesmo com pausas entre um
+      // item e outro; só encerra depois de 4s de silêncio ou no botão Parar.
+      continuo: true,
+      silencioMs: 4000,
       onParcial: parcial => setTextoVoz(parcial),
       onFinal: final => processarComandoVoz(final),
       onErro: erro => { setOuvindoVoz(false); setRespostaVoz(erro); },

@@ -111,6 +111,10 @@ export default function HefistoAssistant() {
     setErroVoz("");
     calarVoz(); // não escuta a si mesmo falando
     const sessaoVoz = criarEscuta({
+      // Pedidos longos ("dá entrada em 5 caixas de cerveja, cada uma com 24...")
+      // precisam de fôlego: só encerra após 3,5s de silêncio ou no botão Parar.
+      continuo: true,
+      silencioMs: 3500,
       onParcial: (t) => setParcial(t),
       onFinal: (frase) => {
         setParcial("");

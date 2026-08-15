@@ -8,6 +8,7 @@ import { useERP } from "../../../context/ERPContext";
 import { fetchFichas } from "../../../lib/operacao";
 import { calcularConsumoProducao, registrarProducao } from "../../../lib/estoque";
 import { fetchColaboradores } from "../../../lib/rh";
+import { fetchMemorandoOperacao } from "../../../lib/memorandos";
 import { fetchProdutos } from "../../../lib/vendas";
 import { Flame, Droplets, Save, ArrowLeft, X, UtensilsCrossed, Wine, Maximize, Printer, ClipboardList } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
@@ -200,16 +201,23 @@ function ProducaoRunner() {
   const [colabSelecionado, setColabSelecionado] = useState("");
   const [localArmazenamento, setLocalArmazenamento] = useState("");
 
+  // Memorando planejado para HOJE — a equipe abre a Produção e já vê o que
+  // precisa preparar, sem depender do papel impresso ou do WhatsApp.
+  const [memoHoje, setMemoHoje] = useState(null);
+
   const carregar = async (silencioso = false) => {
     if (!silencioso) setLoading(true);
-    const [resFichas, resProdutos, resColab] = await Promise.all([
+    const hojeISO = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; })();
+    const [resFichas, resProdutos, resColab, resMemo] = await Promise.all([
        fetchFichas(unidadeAtiva, deptUrl),
        fetchProdutos(unidadeAtiva, deptUrl),
-       fetchColaboradores(unidadeAtiva)
+       fetchColaboradores(unidadeAtiva),
+       fetchMemorandoOperacao(unidadeAtiva, hojeISO).catch(() => ({ data: null })),
     ]);
     setFichas(resFichas.data || []);
     setProdutos(resProdutos.data || []);
     setColaboradores((resColab.data || []).filter(c => c.ativo !== false && c.status !== "inativo"));
+    setMemoHoje(resMemo?.data || null);
     setLoading(false);
   };
 
@@ -316,6 +324,50 @@ function ProducaoRunner() {
             </div>
          </div>
       </div>
+
+      {/* MEMORANDO DE HOJE: o que a gerência planejou para este setor */}
+      {(() => {
+         if (!memoHoje) return null;
+         const setorChave = deptUrl === "bar" ? "bar" : "cozinha";
+         const plano = memoHoje[setorChave] || {};
+         const itens = Object.entries(plano)
+            .map(([fichaId, dados]) => ({ ficha: fichas.find(f => String(f.id) === String(fichaId)), ...dados }))
+            .filter(item => item.ficha && Number(item.qtd) > 0);
+         if (!itens.length) return null;
+         return (
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 mt-6">
+               <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50/60 p-4 sm:p-5">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                     <div>
+                        <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700">Produção planejada para hoje</p>
+                        <p className="text-sm font-bold text-slate-600">{itens.length} preparação(ões) no memorando de {deptUrl === "bar" ? "Bar" : "Cozinha"}</p>
+                     </div>
+                     <button onClick={() => router.push("/dashboard/operacao/producao/memorando")}
+                        className="shrink-0 rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-black text-emerald-700 hover:bg-emerald-50">
+                        Abrir memorando
+                     </button>
+                  </div>
+                  <div className="space-y-2">
+                     {itens.map((item, i) => (
+                        <div key={i} className="flex items-center justify-between gap-3 rounded-xl border border-emerald-100 bg-white px-3 py-2.5">
+                           <div className="min-w-0">
+                              <p className="text-[15px] font-black text-slate-800 truncate">{item.ficha.nome_receita}</p>
+                              {(item.responsavel || item.observacao) && (
+                                 <p className="text-[12px] font-bold text-slate-500 truncate">
+                                    {item.responsavel || ""}{item.responsavel && item.observacao ? " · " : ""}{item.observacao || ""}
+                                 </p>
+                              )}
+                           </div>
+                           <span className="shrink-0 rounded-lg bg-emerald-600 px-2.5 py-1 text-sm font-black text-white">
+                              {Number(item.qtd).toLocaleString("pt-BR")} porções
+                           </span>
+                        </div>
+                     ))}
+                  </div>
+               </div>
+            </div>
+         );
+      })()}
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 mt-6 sm:mt-8">
          <div className="mb-6">

@@ -51,20 +51,31 @@ test("pesquisa e filtros ficam restritos à lista do estoque ativo", () => {
   assert.deepEqual(resultado.map(item => item.nome), ["Detergente"]);
 });
 
-test("separa cozinha entre produtos prontos e ingredientes", () => {
+test("cozinha é separada pelo tipo do insumo", () => {
   const estoque = { slug: "cozinha" };
-  assert.deepEqual(gruposOperacionaisEstoque(estoque), ["Todos", "Produtos prontos", "Ingredientes"]);
-  assert.equal(grupoOperacionalItem({ nome: "Arroz branco", categoria: "Secos", tipo_item: "ingrediente" }, estoque), "Ingredientes");
-  assert.equal(grupoOperacionalItem({ nome: "Lasanha congelada", categoria: "Congelados", tipo_item: "produto" }, estoque), "Produtos prontos");
+  assert.deepEqual(gruposOperacionaisEstoque(estoque), [
+    "Todos", "Carne vermelha", "Peixe", "Aves", "Frutos do mar", "Caranguejo",
+    "Laticínios", "Hortifrúti", "Secos", "Líquidos", "Pré-preparos",
+  ]);
+  // A categoria cadastrada manda: é a escolha do usuário.
+  assert.equal(grupoOperacionalItem({ nome: "Arroz branco", categoria: "Secos" }, estoque), "Secos");
+  // Categoria genérica ou vazia: o nome do produto decide.
+  assert.equal(grupoOperacionalItem({ nome: "Picanha bovina", categoria: "Ingredientes" }, estoque), "Carne vermelha");
+  assert.equal(grupoOperacionalItem({ nome: "Filé de tilápia", categoria: "" }, estoque), "Peixe");
+  assert.equal(grupoOperacionalItem({ nome: "Queijo mussarela", categoria: "Sem categoria" }, estoque), "Laticínios");
 });
 
-test("separa bar entre produtos, xaropes, guarnições e frutas", () => {
+test("bar é separado pelo tipo da bebida", () => {
   const estoque = { slug: "bar" };
-  assert.deepEqual(gruposOperacionaisEstoque(estoque), ["Todos", "Produtos", "Xaropes", "Guarnições", "Frutas"]);
-  assert.equal(grupoOperacionalItem({ nome: "Xarope de baunilha", categoria: "Xaropes" }, estoque), "Xaropes");
-  assert.equal(grupoOperacionalItem({ nome: "Hortelã", categoria: "Guarnições" }, estoque), "Guarnições");
-  assert.equal(grupoOperacionalItem({ nome: "Limão tahiti", categoria: "Hortifruti" }, estoque), "Frutas");
-  assert.equal(grupoOperacionalItem({ nome: "Vodka", categoria: "Destilados" }, estoque), "Produtos");
+  assert.deepEqual(gruposOperacionaisEstoque(estoque), [
+    "Todos", "Cervejas", "Destilados", "Vinhos", "Chopp", "Água",
+    "Refrigerantes", "Bombons", "Pré-preparos",
+  ]);
+  assert.equal(grupoOperacionalItem({ nome: "Vodka Absolut", categoria: "Destilados" }, estoque), "Destilados");
+  // "Bebidas" não diz nada: cai no reconhecimento pelo nome.
+  assert.equal(grupoOperacionalItem({ nome: "Heineken long neck", categoria: "Bebidas" }, estoque), "Cervejas");
+  assert.equal(grupoOperacionalItem({ nome: "Coca-Cola 2L", categoria: "" }, estoque), "Refrigerantes");
+  assert.equal(grupoOperacionalItem({ nome: "Monin de baunilha", categoria: "Bebidas" }, estoque), "Pré-preparos");
 });
 
 test("filtro operacional mostra somente o grupo selecionado", () => {

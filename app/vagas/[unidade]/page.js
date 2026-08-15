@@ -5,7 +5,7 @@
 // cai direto no Banco de Talentos do RH, já com a nota do teste de perfil.
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { CheckCircle2, Loader2, Send, Briefcase, MapPin, Clock, Wallet, CalendarDays, ListChecks, CircleDollarSign } from "lucide-react";
 import {
   fetchPortalVagasConfig,
@@ -13,6 +13,7 @@ import {
   PERGUNTAS_RECRUTAMENTO,
   PORTAL_VAGAS_PADRAO,
 } from "../../lib/recrutamento";
+import { fetchExtraParaVaga } from "../../lib/portal-extras";
 
 const soDigitos = (v) => String(v || "").replace(/\D/g, "");
 const fmtTel = (v) => soDigitos(v).slice(0, 11)
@@ -20,6 +21,8 @@ const fmtTel = (v) => soDigitos(v).slice(0, 11)
 
 export default function PaginaPublicaVagas() {
   const { unidade } = useParams();
+  const parametros = useSearchParams();
+  const extraId = parametros.get("extra"); // veio do cadastro de extras
   const [config, setConfig] = useState(PORTAL_VAGAS_PADRAO);
   const [carregando, setCarregando] = useState(true);
   const [enviando, setEnviando] = useState(false);
@@ -33,6 +36,28 @@ export default function PaginaPublicaVagas() {
     escolaridade: "", experiencia: "",
   });
   const [respostas, setRespostas] = useState({});
+
+  // Quem se cadastrou como extra e marcou interesse em CLT chega com os dados
+  // prontos: puxa do banco de extras e preenche o formulário.
+  useEffect(() => {
+    if (!extraId) return;
+    fetchExtraParaVaga(extraId).then(({ data }) => {
+      if (!data) return;
+      setForm(a => ({
+        ...a,
+        nome: data.nome || a.nome,
+        telefone: data.telefone || a.telefone,
+        nascimento: data.data_nascimento || a.nascimento,
+        endereco: data.endereco || a.endereco,
+        bairro: data.bairro || a.bairro,
+        cidade: data.cidade || a.cidade,
+        escolaridade: data.escolaridade || a.escolaridade,
+        temFilhos: data.tem_filhos === true ? "Sim" : data.tem_filhos === false ? "Não" : a.temFilhos,
+        experiencia: data.experiencia || a.experiencia,
+        cargoPretendido: data.funcao_principal || a.cargoPretendido,
+      }));
+    });
+  }, [extraId]);
 
   useEffect(() => {
     fetchPortalVagasConfig(unidade)

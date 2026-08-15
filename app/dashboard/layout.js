@@ -7,6 +7,7 @@ import { canAccessRoute, permittedRoutes } from "../lib/permissions-catalog";
 import { useERP } from "../context/ERPContext";
 import HefistoAssistant from "../components/HefistoAssistant";
 import BuscaAutoScroll from "../components/BuscaAutoScroll";
+import SinoCadastros from "../components/SinoCadastros";
 import {
   Users, BarChart, Store, Settings, LogOut, ChevronDown, Check,
   UtensilsCrossed, Package, Wallet, Menu, X, Truck, ChefHat, GlassWater,

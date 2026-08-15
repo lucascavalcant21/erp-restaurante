@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft, Briefcase, CheckCircle2, DollarSign, FileClock, Loader2,
-  Pencil, Phone, Plus, Printer, ReceiptText, Search, UserPlus, UsersRound,
+  Check, Copy, Pencil, Phone, Plus, Printer, ReceiptText, Search, UserPlus, UsersRound,
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchColaboradores, fetchRecibosPrestacaoUnidade } from "../../../lib/rh";
@@ -19,6 +19,7 @@ export default function CadastroExtrasPage() {
   const [recibos, setRecibos] = useState([]);
   const [busca, setBusca] = useState("");
   const [carregando, setCarregando] = useState(true);
+  const [linkCopiado, setLinkCopiado] = useState(false);
 
   useEffect(() => {
     let ativo = true;
@@ -53,7 +54,7 @@ export default function CadastroExtrasPage() {
             <button onClick={() => router.back()} className="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50" aria-label="Voltar à tela anterior"><ArrowLeft size={20} /></button>
             <div><p className="text-xs font-black uppercase tracking-[.18em] text-emerald-700">Módulo exclusivo</p><h1 className="text-2xl font-black tracking-tight sm:text-3xl">Extras</h1><p className="text-sm font-medium text-slate-500">Cadastro e recibos · {unidadeInfo?.nome || "unidade selecionada"}</p></div>
           </div>
-          <button onClick={() => router.push("/dashboard/rh/extra/novo")} className="flex min-h-11 items-center gap-2 rounded-xl bg-emerald-600 px-5 font-black text-white shadow-sm hover:bg-emerald-700"><UserPlus size={18} /> Cadastrar novo extra</button>
+          <button onClick={() => router.push("/dashboard/rh/extra/novo")} className="flex min-h-11 items-center gap-2 rounded-xl bg-emerald-600 px-5 font-black text-white shadow-sm hover:bg-emerald-700"><UserPlus size={18} /> Cadastrar novo extra</button><button onClick={() => { const link = window.location.origin + "/extras/" + unidadeAtiva; navigator.clipboard?.writeText(link); setLinkCopiado(true); setTimeout(() => setLinkCopiado(false), 2500); }} className="flex min-h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-white px-5 font-black text-emerald-700 hover:bg-emerald-50">{linkCopiado ? <><Check size={18}/> Link copiado</> : <><Copy size={18}/> Link de cadastro</>}</button>
         </div>
       </header>
 

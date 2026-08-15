@@ -3036,10 +3036,10 @@ function FichasRunner() {
                       {form.eh_base && (
                          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
                             <div className="flex items-center justify-between gap-3">
-                              <label className="text-xs font-bold text-amber-800 uppercase tracking-widest">Categoria deste preparo</label>
-                              <button type="button" onClick={() => { setModoFicha("preparos"); setModalCategorias(true); }} className="text-xs font-black text-amber-700 hover:underline">+ Gerenciar</button>
+                              <label className="text-xs font-bold text-emerald-800 uppercase tracking-widest">Categoria deste preparo</label>
+                              <button type="button" onClick={() => { setModoFicha("preparos"); setModalCategorias(true); }} className="text-xs font-black text-emerald-700 hover:underline">+ Gerenciar</button>
                             </div>
-                            <select value={form.categoria || ""} onChange={e => setForm({ ...form, categoria: e.target.value })} className="w-full p-4 mt-2 bg-white border border-amber-200 rounded-xl font-bold text-slate-700 outline-none focus:border-amber-500 shadow-sm">
+                            <select value={form.categoria || ""} onChange={e => setForm({ ...form, categoria: e.target.value })} className="w-full p-4 mt-2 bg-white border border-emerald-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500 shadow-sm">
                                <option value="">Sem categoria</option>
                                {form.categoria && !categoriasPreparoDisponiveis.includes(form.categoria) && <option value={form.categoria}>{form.categoria}</option>}
                                {categoriasPreparoDisponiveis.map(c => <option key={c} value={c}>{c}</option>)}

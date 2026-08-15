@@ -16,13 +16,15 @@ create table if not exists public.extras_cadastros (
   nome text not null,
   telefone text not null,
   data_nascimento date,
+  nacionalidade text,
   estado_civil text,
   genero text,
   escolaridade text,
   tem_filhos boolean default false,
   qtd_filhos integer,
 
-  endereco text,
+  endereco text,                 -- rua/avenida
+  numero text,                   -- número, separado da rua
   bairro text,
   cidade text,
 
@@ -45,6 +47,12 @@ create table if not exists public.extras_cadastros (
   colaborador_id uuid,          -- preenchido quando o RH aprova e cria o cadastro
   created_at timestamptz not null default now()
 );
+
+-- Quem já rodou este arquivo antes: acrescenta só o que faltava.
+alter table public.extras_cadastros add column if not exists nacionalidade text;
+alter table public.extras_cadastros add column if not exists numero text;
+alter table public.extras_cadastros add column if not exists hora_inicio time;
+alter table public.extras_cadastros add column if not exists hora_fim time;
 
 create index if not exists idx_extras_cadastros_unidade
   on public.extras_cadastros (unidade_id, created_at desc);

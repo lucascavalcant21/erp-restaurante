@@ -10,7 +10,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { CheckCircle2, Loader2, Send, MapPin, Briefcase, CalendarDays } from "lucide-react";
 import {
-  DIAS_SEMANA, PORTAL_EXTRAS_PADRAO,
+  DIAS_SEMANA, PORTAL_EXTRAS_PADRAO, NACIONALIDADES,
   enviarCadastroExtra, fetchUnidadePublica, fetchPortalExtrasConfig,
 } from "../../lib/portal-extras";
 import { ESTADOS_CIVIS, ESCOLARIDADES, GENEROS } from "../../lib/contrato-experiencia.mjs";
@@ -30,12 +30,12 @@ export default function PortalExtras() {
   const [erro, setErro] = useState("");
 
   const [form, setForm] = useState({
-    nome: "", telefone: "", data_nascimento: "",
+    nome: "", telefone: "", data_nascimento: "", nacionalidade: "Brasileira",
     estado_civil: "", genero: "", escolaridade: "", tem_filhos: false, qtd_filhos: "",
-    endereco: "", bairro: "", cidade: "",
+    endereco: "", numero: "", bairro: "", cidade: "",
     funcao_principal: "", funcao_secundaria: "",
-    dias_disponiveis: [], periodo_disponivel: "",
-    experiencia: "", valor_diaria_pretendido: "", chave_pix: "",
+    dias_disponiveis: [], hora_inicio: "", hora_fim: "",
+    experiencia: "",
     interesse: "extra", observacoes: "",
   });
   const [respostas, setRespostas] = useState({});
@@ -126,7 +126,7 @@ export default function PortalExtras() {
       <main className="mx-auto max-w-2xl space-y-5 px-4 py-6 sm:px-5">
         {/* Funções */}
         <section className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 sm:p-5">
-          <p className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-emerald-700"><Briefcase size={15} /> O que você faz</p>
+          <p className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-emerald-700"><Briefcase size={15} /> Selecione sua função</p>
           <p className="mb-4 mt-1 text-sm font-semibold text-slate-600">Escolha sua função principal e, se quiser, uma segunda.</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
@@ -162,16 +162,16 @@ export default function PortalExtras() {
               );
             })}
           </div>
-          <label className="mt-4 block">
-            <span className={rotulo}>Período</span>
-            <select value={form.periodo_disponivel} onChange={e => set("periodo_disponivel", e.target.value)} className={`${campo} mt-1.5`}>
-              <option value="">Selecione...</option>
-              <option value="almoco">Almoço</option>
-              <option value="jantar">Jantar</option>
-              <option value="ambos">Almoço e jantar</option>
-              <option value="madrugada">Madrugada / eventos</option>
-            </select>
-          </label>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <label className="block">
+              <span className={rotulo}>A partir de que horas</span>
+              <input type="time" value={form.hora_inicio} onChange={e => set("hora_inicio", e.target.value)} className={`${campo} mt-1.5`} />
+            </label>
+            <label className="block">
+              <span className={rotulo}>Até que horas</span>
+              <input type="time" value={form.hora_fim} onChange={e => set("hora_fim", e.target.value)} className={`${campo} mt-1.5`} />
+            </label>
+          </div>
         </section>
 
         {/* Dados pessoais */}
@@ -212,12 +212,13 @@ export default function PortalExtras() {
                   {ESCOLARIDADES.map(v => <option key={v} value={v}>{v}</option>)}
                 </select>
               </label>
-              {config.pedir_pix !== false && (
-                <label className="block">
-                  <span className={rotulo}>Chave PIX (para pagamento)</span>
-                  <input value={form.chave_pix} onChange={e => set("chave_pix", e.target.value)} className={`${campo} mt-1.5`} />
-                </label>
-              )}
+              <label className="block">
+                <span className={rotulo}>Nacionalidade</span>
+                <select value={form.nacionalidade} onChange={e => set("nacionalidade", e.target.value)} className={`${campo} mt-1.5`}>
+                  <option value="">Selecione...</option>
+                  {NACIONALIDADES.map(v => <option key={v} value={v}>{v}</option>)}
+                </select>
+              </label>
             </div>
             <div className="flex flex-wrap items-center gap-4">
               <label className="flex items-center gap-2.5">
@@ -231,10 +232,16 @@ export default function PortalExtras() {
                 </label>
               )}
             </div>
-            <label className="block">
-              <span className={rotulo}>Endereço (rua e número)</span>
-              <input value={form.endereco} onChange={e => set("endereco", e.target.value)} className={`${campo} mt-1.5`} />
-            </label>
+            <div className="grid gap-4 sm:grid-cols-[1fr_120px]">
+              <label className="block">
+                <span className={rotulo}>Rua</span>
+                <input value={form.endereco} onChange={e => set("endereco", e.target.value)} className={`${campo} mt-1.5`} placeholder="Nome da rua ou avenida" />
+              </label>
+              <label className="block">
+                <span className={rotulo}>Número</span>
+                <input inputMode="numeric" value={form.numero} onChange={e => set("numero", e.target.value)} className={`${campo} mt-1.5`} placeholder="123" />
+              </label>
+            </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="block">
                 <span className={rotulo}>Bairro</span>
@@ -251,12 +258,6 @@ export default function PortalExtras() {
                 className="w-full rounded-xl border border-slate-300 bg-white p-3.5 text-base font-medium outline-none focus:border-emerald-600"
                 placeholder="Onde já trabalhou e o que fazia." />
             </label>
-            {config.pedir_diaria !== false && (
-              <label className="block">
-                <span className={rotulo}>Valor da diária que você cobra (R$)</span>
-                <input type="number" step="0.01" value={form.valor_diaria_pretendido} onChange={e => set("valor_diaria_pretendido", e.target.value)} className={`${campo} mt-1.5`} placeholder="0,00" />
-              </label>
-            )}
           </div>
         </section>
 
@@ -295,7 +296,7 @@ export default function PortalExtras() {
           <p className="text-xs font-black uppercase tracking-widest text-emerald-700">O que você procura</p>
           <div className="mt-3 space-y-2">
             {[
-              { v: "extra", t: "Só quero fazer extras (diárias)", d: "Trabalho por diária quando vocês chamarem." },
+              { v: "extra", t: "Só quero prestar serviço avulso", d: "Trabalho por diária quando vocês chamarem." },
               { v: "clt", t: "Quero ser contratado (CLT)", d: "Tenho interesse numa vaga fixa com carteira assinada." },
               { v: "ambos", t: "Os dois", d: "Faço extras e também quero concorrer a uma vaga fixa." },
             ].map(op => {

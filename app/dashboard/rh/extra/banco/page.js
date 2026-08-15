@@ -20,6 +20,15 @@ import {
 const moeda = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const dataBR = (v) => (v ? new Date(v).toLocaleDateString("pt-BR") : "—");
 const rotuloDia = (v) => DIAS_SEMANA.find(d => d.valor === v)?.rotulo || v;
+// Faixa de horário informada no portal ("das 18:00 às 23:00").
+const horario = (e) => {
+  const hi = String(e?.hora_inicio || "").slice(0, 5);
+  const hf = String(e?.hora_fim || "").slice(0, 5);
+  if (hi && hf) return `das ${hi} às ${hf}`;
+  if (hi) return `a partir das ${hi}`;
+  if (hf) return `até as ${hf}`;
+  return e?.periodo_disponivel || "";   // cadastros antigos
+};
 
 const semAcento = (v) => {
   const d = String(v || "").normalize("NFD");
@@ -179,8 +188,9 @@ export default function BancoDeExtras() {
                   <p className="flex items-center gap-1.5"><Phone size={14} className="text-slate-400" /> {e.telefone}</p>
                   {(e.bairro || e.cidade) && <p className="flex items-center gap-1.5"><MapPin size={14} className="text-slate-400" /> {[e.bairro, e.cidade].filter(Boolean).join(" · ")}</p>}
                   {Array.isArray(e.dias_disponiveis) && e.dias_disponiveis.length > 0 && (
-                    <p className="flex items-center gap-1.5"><CalendarDays size={14} className="text-slate-400" /> {e.dias_disponiveis.map(rotuloDia).join(", ")}{e.periodo_disponivel ? ` · ${e.periodo_disponivel}` : ""}</p>
+                    <p className="flex items-center gap-1.5"><CalendarDays size={14} className="text-slate-400" /> {e.dias_disponiveis.map(rotuloDia).join(", ")}{horario(e) ? ` · ${horario(e)}` : ""}</p>
                   )}
+                  {e.nacionalidade && <p>Nacionalidade: <b className="text-slate-800">{e.nacionalidade}</b></p>}
                   {Number(e.valor_diaria_pretendido) > 0 && <p>Diária pretendida: <b className="text-slate-800">{moeda(e.valor_diaria_pretendido)}</b></p>}
                 </div>
 

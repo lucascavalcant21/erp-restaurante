@@ -86,7 +86,7 @@ export default function EditarPortalExtras() {
         <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-3">
           <button onClick={() => router.push("/dashboard/rh/extra")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600"><ArrowLeft size={19} /></button>
           <div className="min-w-0 flex-1">
-            <h1 className="text-lg font-black text-slate-900 sm:text-xl">Editar portal de extras</h1>
+            <h1 className="text-lg font-black text-slate-900 sm:text-xl">Editar portal de prestadores</h1>
             <p className="text-xs font-bold text-slate-500">Textos, funções e perguntas do link público</p>
           </div>
           <button onClick={copiarLink} className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-white px-4 font-black text-emerald-700 hover:bg-emerald-50">
@@ -119,18 +119,11 @@ export default function EditarPortalExtras() {
                 <span className={rotulo}>Mensagem depois de enviar</span>
                 <textarea rows={2} value={config.mensagem_sucesso} onChange={e => set("mensagem_sucesso", e.target.value)} className={campo} />
               </label>
-              <div className="mt-4 space-y-2.5">
-                {[
-                  ["mostrar_endereco", "Mostrar o endereço do restaurante"],
-                  ["pedir_diaria", "Perguntar o valor da diária que a pessoa cobra"],
-                  ["pedir_pix", "Pedir a chave PIX no cadastro"],
-                ].map(([chave, texto]) => (
-                  <label key={chave} className="flex items-center gap-2.5">
-                    <input type="checkbox" checked={config[chave] !== false} onChange={e => set(chave, e.target.checked)} className="h-5 w-5 accent-emerald-600" />
-                    <span className="text-sm font-bold text-slate-700">{texto}</span>
-                  </label>
-                ))}
-              </div>
+              <label className="mt-4 flex items-center gap-2.5">
+                <input type="checkbox" checked={config.mostrar_endereco !== false}
+                  onChange={e => set("mostrar_endereco", e.target.checked)} className="h-5 w-5 accent-emerald-600" />
+                <span className="text-sm font-bold text-slate-700">Mostrar o endereço do restaurante</span>
+              </label>
             </section>
 
             {/* Funções */}

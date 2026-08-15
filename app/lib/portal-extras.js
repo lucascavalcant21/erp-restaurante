@@ -5,13 +5,20 @@ import { supabase, isSupabaseReady } from "./supabase";
 // Quem marca interesse em CLT é levado ao portal de vagas com os dados já
 // preenchidos, buscados por uma função que devolve só o necessário.
 
-// Funções mais comuns num restaurante — viram a "categoria" do banco de extras.
+// Funções mais comuns num restaurante — viram a "categoria" do banco.
+// Em ordem alfabética: a lista é longa e o candidato procura pelo nome.
 export const FUNCOES_EXTRA = [
   "Garçom", "Cumim", "Copeiro", "Barman", "Bartender", "Barista",
   "Cozinheiro", "Auxiliar de cozinha", "Chapeiro", "Pizzaiolo", "Sushiman",
   "Churrasqueiro", "Confeiteiro", "Padeiro", "Salgadeiro",
   "Auxiliar de limpeza", "Steward", "Recepcionista", "Hostess",
   "Segurança", "Manobrista", "Estoquista", "Motoboy", "Caixa",
+].sort((a, b) => a.localeCompare(b, "pt-BR"));
+
+export const NACIONALIDADES = [
+  "Brasileira", "Argentina", "Boliviana", "Chilena", "Colombiana", "Cubana",
+  "Equatoriana", "Espanhola", "Haitiana", "Italiana", "Paraguaia", "Peruana",
+  "Portuguesa", "Uruguaia", "Venezuelana", "Outra",
 ];
 
 export const DIAS_SEMANA = [
@@ -51,6 +58,19 @@ export async function fetchUnidadePublica(unidadeId) {
   } catch { return { data: null }; }
 }
 
+// Coluna ainda não migrada? Tira do envio e tenta de novo — o portal é público
+// e não pode falhar na cara do candidato por causa de um ALTER TABLE pendente.
+async function envioRetrySemColuna(error, tentar, campos, n = 0) {
+  const m = error?.message || "";
+  const achou = m.match(/column "?([a-z_]+)"? (?:of relation "extras_cadastros" )?does not exist/i)
+    || (m.includes("Could not find") && m.match(/'([a-z_]+)' column/i));
+  if (error && achou && n < 6 && achou[1] in campos) {
+    delete campos[achou[1]];
+    return envioRetrySemColuna(await tentar(), tentar, campos, n + 1);
+  }
+  return error;
+}
+
 export async function enviarCadastroExtra(unidadeId, form, respostas) {
   if (!isSupabaseReady()) return { error: "Sem conexão." };
   const payload = {
@@ -58,27 +78,32 @@ export async function enviarCadastroExtra(unidadeId, form, respostas) {
     nome: String(form.nome || "").trim(),
     telefone: String(form.telefone || "").trim(),
     data_nascimento: form.data_nascimento || null,
+    nacionalidade: form.nacionalidade || null,
     estado_civil: form.estado_civil || null,
     genero: form.genero || null,
     escolaridade: form.escolaridade || null,
     tem_filhos: !!form.tem_filhos,
     qtd_filhos: form.tem_filhos ? (Number(form.qtd_filhos) || 0) : null,
-    endereco: form.endereco || null,
+    endereco: form.endereco || null,      // rua
+    numero: form.numero || null,
     bairro: form.bairro || null,
     cidade: form.cidade || null,
     funcao_principal: form.funcao_principal,
     funcao_secundaria: form.funcao_secundaria || null,
     dias_disponiveis: Array.isArray(form.dias_disponiveis) ? form.dias_disponiveis : [],
-    periodo_disponivel: form.periodo_disponivel || null,
+    hora_inicio: form.hora_inicio || null,
+    hora_fim: form.hora_fim || null,
     experiencia: form.experiencia || null,
-    valor_diaria_pretendido: form.valor_diaria_pretendido ? Number(form.valor_diaria_pretendido) : null,
-    chave_pix: form.chave_pix || null,
     interesse: form.interesse || "extra",
     respostas: respostas || {},
     observacoes: form.observacoes || null,
   };
-  const { data, error } = await supabase.from("extras_cadastros").insert([payload]).select("id").single();
-  return { id: data?.id, error: erroMsg(error) };
+  let res = await supabase.from("extras_cadastros").insert([payload]).select("id").single();
+  const error = await envioRetrySemColuna(res.error, async () => {
+    const r = await supabase.from("extras_cadastros").insert([payload]).select("id").single();
+    res = r; return r.error;
+  }, payload);
+  return { id: res.data?.id, error: erroMsg(error) };
 }
 
 // Usado pelo portal de vagas para preencher a candidatura de quem já se
@@ -135,21 +160,20 @@ export async function atualizarCadastroExtra(id, campos) {
 // e a leitura pública passa por função que expõe só este bloco.
 
 export const PORTAL_EXTRAS_PADRAO = {
-  titulo: "Cadastro de Extras",
+  titulo: "Cadastro de Prestadores de Serviço",
   subtitulo: "Faça seu cadastro e entre no nosso banco de profissionais. Quando precisarmos de reforço, chamamos você.",
-  mensagem_sucesso: "Você entrou no nosso banco de extras. Quando precisarmos, chamamos pelo WhatsApp.",
+  mensagem_sucesso: "Você entrou no nosso banco de prestadores de serviço. Quando precisarmos, chamamos pelo WhatsApp.",
   mostrar_endereco: true,
-  pedir_diaria: true,
-  pedir_pix: true,
   funcoes: FUNCOES_EXTRA,
   perguntas: PERGUNTAS_EXTRA,
 };
 
 function normalizarPortalExtras(config) {
   const base = config && typeof config === "object" ? config : {};
-  const funcoes = Array.isArray(base.funcoes) && base.funcoes.length
+  const funcoes = (Array.isArray(base.funcoes) && base.funcoes.length
     ? base.funcoes.map(f => String(f).trim()).filter(Boolean)
-    : PORTAL_EXTRAS_PADRAO.funcoes;
+    : PORTAL_EXTRAS_PADRAO.funcoes
+  ).slice().sort((a, b) => a.localeCompare(b, "pt-BR"));
   const perguntas = Array.isArray(base.perguntas)
     ? base.perguntas
         .map((p, i) => ({
@@ -165,8 +189,6 @@ function normalizarPortalExtras(config) {
     funcoes,
     perguntas,
     mostrar_endereco: base.mostrar_endereco !== false,
-    pedir_diaria: base.pedir_diaria !== false,
-    pedir_pix: base.pedir_pix !== false,
   };
 }
 

@@ -15,6 +15,9 @@ export const ESTOQUES_PADRAO = [
   { nome: "Materiais variados", slug: "materiais-variados", tipo: "materiais", cor: "#d97706", controla_validade: false, controla_minimo: true },
   { nome: "Embalagens da Cozinha", slug: "embalagens-cozinha", tipo: "embalagens", cor: "#db2777", controla_validade: false, controla_minimo: true },
   { nome: "Embalagens do Bar", slug: "embalagens-bar", tipo: "embalagens", cor: "#9333ea", controla_validade: false, controla_minimo: true },
+  // Depósito: estoque geral da casa — aceita ingredientes E materiais juntos,
+  // sem o filtro por setor dos demais. Mesma auditoria dos outros estoques.
+  { nome: "Depósito", slug: "deposito", tipo: "materiais", cor: "#047857", controla_validade: true, controla_minimo: true },
 ];
 
 export const GRUPOS_OPERACIONAIS_ESTOQUE = {

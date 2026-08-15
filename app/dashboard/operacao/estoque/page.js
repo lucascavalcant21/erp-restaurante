@@ -490,6 +490,9 @@ function EstoqueRunner() {
     const slug = (estoqueAtual.slug || estoqueAtual.nome || "").toLowerCase();
     const tipo = (estoqueAtual.tipo || "").toLowerCase();
 
+    // Depósito é o estoque geral da casa: aceita tudo, ingrediente ou material.
+    if (slug.includes("deposito") || slug.includes("depósito")) return catalogo;
+
     const filtrados = catalogo.filter(insumo => {
       const dept = (insumo.departamento || "").toLowerCase();
       const cat = (insumo.categoria || "").toLowerCase();

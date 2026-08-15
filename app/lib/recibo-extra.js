@@ -26,7 +26,9 @@ function endereco(extra, dados) {
   return partes.join(", ") || dados?.endereco || extra?.endereco || "—";
 }
 
-export function imprimirReciboExtra({ extra, recibo, unidadeNome }) {
+// Monta o HTML do recibo. Usado tanto pela impressão quanto pela pré-visualização
+// ao lado do formulário, que atualiza a cada tecla.
+export function montarHtmlRecibo({ extra, recibo, unidadeNome }) {
   const dados = recibo?.dados || {};
   const itens = Array.isArray(recibo?.itens) ? recibo.itens : [];
   const dias = Math.max(1, Number(recibo?.dias_contratados) || 1);
@@ -45,7 +47,7 @@ export function imprimirReciboExtra({ extra, recibo, unidadeNome }) {
   <style>
     @page{size:A4 portrait;margin:10mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#172033;margin:0;font-size:11px;line-height:1.4}.topo{background:#064e3b;color:white;border-radius:12px;padding:17px 20px;display:flex;justify-content:space-between;gap:18px}.topo h1{font-size:20px;margin:3px 0}.marca{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.12em}.numero{text-align:right;font-size:9px;line-height:1.6}.secao{margin-top:12px;break-inside:avoid}.titulo{border-left:4px solid #10b981;background:#ecfdf5;color:#065f46;padding:6px 9px;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.08em}.grade{display:grid;grid-template-columns:1fr 1fr;gap:7px 14px;margin-top:7px}.campo{border-bottom:1px solid #cbd5e1;padding:3px 2px 6px}.campo span{display:block;color:#64748b;font-size:8px;font-weight:800;text-transform:uppercase}.campo strong{display:block;margin-top:2px}.inteiro{grid-column:1/-1}table{width:100%;border-collapse:collapse;margin-top:7px}th,td{border:1px solid #cbd5e1;padding:7px;text-align:left}th{background:#f1f5f9;color:#475569;font-size:8px;text-transform:uppercase}.total{background:#ecfdf5;color:#065f46;font-size:13px}.caixa{border:1px solid #cbd5e1;background:#f8fafc;border-radius:8px;padding:8px 10px;margin-top:7px}.assinaturas{display:grid;grid-template-columns:1fr 1fr;gap:42px;margin-top:44px}.assinatura{border-top:1px solid #172033;padding-top:5px;text-align:center;font-size:9px}.rodape{text-align:center;color:#94a3b8;font-size:8px;margin-top:18px}@media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
   </style></head><body>
-    <header class="topo"><div><div class="marca">${texto(unidadeNome, "Restaurante")}</div><h1>RECIBO DE TRABALHO EXTRA</h1><div>Prestação de serviço eventual · diária e acerto financeiro</div></div><div class="numero"><strong>${texto(recibo?.numero)}</strong><br/>Emitido em ${hoje}<br/>Via do restaurante e do prestador</div></header>
+    <header class="topo"><div><div class="marca">${texto(unidadeNome, "Restaurante")}</div><h1>RECIBO DE PRESTAÇÃO DE SERVIÇO</h1><div>Prestação de serviço eventual · diária e acerto financeiro</div></div><div class="numero"><strong>${texto(recibo?.numero)}</strong><br/>Emitido em ${hoje}<br/>Via do restaurante e do prestador</div></header>
 
     <section class="secao"><div class="titulo">Prestador cadastrado</div><div class="grade">
       <div class="campo"><span>Nome completo</span><strong>${texto(dados.nome || extra?.nome)}</strong></div>
@@ -81,5 +83,10 @@ export function imprimirReciboExtra({ extra, recibo, unidadeNome }) {
     <div class="rodape">Documento ${texto(recibo?.numero)} · vinculado ao cadastro do extra no ERP</div>
   </body></html>`;
 
+  return html;
+}
+
+export function imprimirReciboExtra({ extra, recibo, unidadeNome }) {
+  const html = montarHtmlRecibo({ extra, recibo, unidadeNome });
   return imprimirHtml(html, { aoFalhar: () => window.alert("Não foi possível abrir a impressão deste recibo.") });
 }

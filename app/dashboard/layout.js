@@ -64,6 +64,7 @@ const SIDEBAR_MENU = [
       { label: "Embalagens", href: "/dashboard/operacao/embalagens?dept=cozinha" },
       { label: "Produção do Dia", href: "/dashboard/operacao/producao?dept=cozinha" },
       { label: "Controles de Limpeza", href: "/dashboard/operacao/controles" },
+      { label: "Central Operacional", href: "/dashboard/operacao/inteligente" },
       { label: "Checklist da Cozinha", href: "/dashboard/operacao/rotina?dept=cozinha" },
       { label: "Orçamento de Eventos", href: "/dashboard/operacao/orcamento?dept=cozinha" }
     ]

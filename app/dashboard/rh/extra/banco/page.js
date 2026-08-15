@@ -8,7 +8,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft, Check, Copy, Loader2, MapPin, Pencil, Phone, Save, Search, UserPlus, X,
+  ArrowLeft, Check, Copy, ExternalLink, Loader2, MapPin, Pencil, Phone, Save, Search, UserPlus, X,
   UsersRound, Archive, CalendarDays, Briefcase,
 } from "lucide-react";
 import { useERP } from "../../../../context/ERPContext";
@@ -121,8 +121,9 @@ export default function BancoDeExtras() {
             <p className="text-xs font-bold text-slate-500">Quem se cadastrou pelo link público</p>
           </div>
           <button onClick={copiarLink} className="flex min-h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-white px-4 font-black text-emerald-700 hover:bg-emerald-50">
-            {linkCopiado ? <><Check size={18} /> Link copiado</> : <><Copy size={18} /> Link de cadastro</>}
+            {linkCopiado ? <><Check size={18} /> Link copiado</> : <><Copy size={18} /> Copiar link</>}
           </button>
+          <a href={`/extras/${unidadeAtiva}`} target="_blank" rel="noreferrer" className="flex min-h-11 items-center gap-2 rounded-xl bg-emerald-600 px-4 font-black text-white hover:bg-emerald-700"><ExternalLink size={18} /> Abrir portal</a>
         </div>
       </div>
 

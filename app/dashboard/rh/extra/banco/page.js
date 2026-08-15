@@ -8,13 +8,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft, Check, Copy, Loader2, MapPin, Phone, Search, UserPlus,
+  ArrowLeft, Check, Copy, Loader2, MapPin, Pencil, Phone, Save, Search, UserPlus, X,
   UsersRound, Archive, CalendarDays, Briefcase,
 } from "lucide-react";
 import { useERP } from "../../../../context/ERPContext";
 import { inserirColaborador } from "../../../../lib/rh";
 import {
-  fetchBancoExtras, atualizarStatusExtraCadastro, FUNCOES_EXTRA, DIAS_SEMANA,
+  fetchBancoExtras, atualizarStatusExtraCadastro, atualizarCadastroExtra, FUNCOES_EXTRA, DIAS_SEMANA,
 } from "../../../../lib/portal-extras";
 
 const moeda = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -39,6 +39,8 @@ export default function BancoDeExtras() {
   const [aprovando, setAprovando] = useState(null);
   const [linkCopiado, setLinkCopiado] = useState(false);
   const [aviso, setAviso] = useState("");
+  const [editando, setEditando] = useState(null); // cadastro em correção
+  const [salvandoEdicao, setSalvandoEdicao] = useState(false);
 
   const carregar = async () => {
     if (!unidadeAtiva || unidadeAtiva === "todas") { setCarregando(false); return; }
@@ -188,6 +190,8 @@ export default function BancoDeExtras() {
                     className="flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-sm font-black text-slate-700 hover:bg-slate-50">
                     <Phone size={15} /> WhatsApp
                   </a>
+                  <button onClick={() => setEditando({ ...e })} title="Corrigir dados"
+                    className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50"><Pencil size={16} /></button>
                   {e.status === "novo" && (
                     <>
                       <button onClick={() => aprovar(e)} disabled={aprovando === e.id}
@@ -212,6 +216,89 @@ export default function BancoDeExtras() {
           </div>
         )}
       </main>
+
+      {/* Correção do cadastro antes de aprovar */}
+      {editando && (
+        <div className="fixed inset-0 z-[110] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-5" onClick={() => !salvandoEdicao && setEditando(null)}>
+          <div className="max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-white p-5 shadow-2xl sm:max-w-lg sm:rounded-3xl" onClick={ev => ev.stopPropagation()}>
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-black text-slate-900">Corrigir cadastro</h2>
+                <p className="text-sm text-slate-500">Ajuste antes de cadastrar como extra.</p>
+              </div>
+              <button onClick={() => setEditando(null)} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-500"><X size={18} /></button>
+            </div>
+
+            <div className="space-y-4">
+              <label className="block">
+                <span className="text-xs font-black uppercase tracking-widest text-slate-500">Nome</span>
+                <input value={editando.nome || ""} onChange={ev => setEditando(v => ({ ...v, nome: ev.target.value }))}
+                  className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3.5 font-bold text-slate-800 outline-none focus:border-emerald-600" />
+              </label>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className="text-xs font-black uppercase tracking-widest text-slate-500">Telefone</span>
+                  <input value={editando.telefone || ""} onChange={ev => setEditando(v => ({ ...v, telefone: ev.target.value }))}
+                    className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3.5 font-bold text-slate-800 outline-none focus:border-emerald-600" />
+                </label>
+                <label className="block">
+                  <span className="text-xs font-black uppercase tracking-widest text-slate-500">Diária combinada (R$)</span>
+                  <input type="number" step="0.01" value={editando.valor_diaria_pretendido ?? ""} onChange={ev => setEditando(v => ({ ...v, valor_diaria_pretendido: ev.target.value }))}
+                    className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3.5 font-black text-emerald-700 outline-none focus:border-emerald-600" />
+                </label>
+                <label className="block">
+                  <span className="text-xs font-black uppercase tracking-widest text-slate-500">Função principal</span>
+                  <select value={editando.funcao_principal || ""} onChange={ev => setEditando(v => ({ ...v, funcao_principal: ev.target.value }))}
+                    className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3 font-bold text-slate-700 outline-none focus:border-emerald-600">
+                    {FUNCOES_EXTRA.map(f => <option key={f} value={f}>{f}</option>)}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="text-xs font-black uppercase tracking-widest text-slate-500">Segunda função</span>
+                  <select value={editando.funcao_secundaria || ""} onChange={ev => setEditando(v => ({ ...v, funcao_secundaria: ev.target.value }))}
+                    className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3 font-bold text-slate-700 outline-none focus:border-emerald-600">
+                    <option value="">Nenhuma</option>
+                    {FUNCOES_EXTRA.map(f => <option key={f} value={f}>{f}</option>)}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="text-xs font-black uppercase tracking-widest text-slate-500">Bairro</span>
+                  <input value={editando.bairro || ""} onChange={ev => setEditando(v => ({ ...v, bairro: ev.target.value }))}
+                    className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3.5 font-bold text-slate-800 outline-none focus:border-emerald-600" />
+                </label>
+                <label className="block">
+                  <span className="text-xs font-black uppercase tracking-widest text-slate-500">Cidade</span>
+                  <input value={editando.cidade || ""} onChange={ev => setEditando(v => ({ ...v, cidade: ev.target.value }))}
+                    className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3.5 font-bold text-slate-800 outline-none focus:border-emerald-600" />
+                </label>
+              </div>
+              <label className="block">
+                <span className="text-xs font-black uppercase tracking-widest text-slate-500">Chave PIX</span>
+                <input value={editando.chave_pix || ""} onChange={ev => setEditando(v => ({ ...v, chave_pix: ev.target.value }))}
+                  className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3.5 font-bold text-slate-800 outline-none focus:border-emerald-600" />
+              </label>
+              <label className="block">
+                <span className="text-xs font-black uppercase tracking-widest text-slate-500">Observações do RH</span>
+                <textarea rows={3} value={editando.observacoes || ""} onChange={ev => setEditando(v => ({ ...v, observacoes: ev.target.value }))}
+                  className="mt-1.5 w-full rounded-xl border border-slate-300 p-3.5 font-medium text-slate-800 outline-none focus:border-emerald-600"
+                  placeholder="Só o RH vê." />
+              </label>
+            </div>
+
+            <button onClick={async () => {
+                setSalvandoEdicao(true);
+                const r = await atualizarCadastroExtra(editando.id, editando);
+                setSalvandoEdicao(false);
+                if (r.error) { setAviso("Não consegui salvar: " + r.error); return; }
+                setEditando(null);
+                await carregar();
+              }} disabled={salvandoEdicao}
+              className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-4 text-base font-black text-white hover:bg-emerald-700 disabled:opacity-60">
+              {salvandoEdicao ? <><Loader2 size={19} className="animate-spin" /> Salvando...</> : <><Save size={19} /> Salvar correção</>}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

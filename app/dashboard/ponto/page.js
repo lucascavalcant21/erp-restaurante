@@ -6,6 +6,7 @@ import { useERP } from "../../context/ERPContext";
 import { fetchColaboradores } from "../../lib/rh";
 import { fetchPontoHoje, registrarBatida, fetchHistoricoPonto, anexarAuditoriaFacial } from "../../lib/ponto";
 import PontoFacial from "../../components/PontoFacial";
+import { equipeDaArea } from "../../lib/equipe-area.mjs";
 import { capturarGPSAtual, validarGeofencePonto, linkGoogleMaps } from "../../lib/geolocalizacao";
 import { Fingerprint, Search, Clock, CheckCircle2, AlertCircle, Lock, ArrowLeft, Maximize, X, Calendar, MapPin, ShieldAlert, Compass, ExternalLink, Loader2, ScanFace } from "lucide-react";
 
@@ -196,7 +197,8 @@ export default function PontoPage() {
       fetchColaboradores(unidadeAtiva),
       fetchPontoHoje(unidadeAtiva)
     ]);
-    setFuncionarios(resRh.data || []);
+    // Ponto é da equipe contratada; extras têm o próprio controle por diária.
+    setFuncionarios(equipeDaArea(resRh.data || [], ""));
     setPontos(resPonto.data || []);
     setLoading(false);
   };

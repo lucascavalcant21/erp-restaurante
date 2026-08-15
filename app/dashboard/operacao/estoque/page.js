@@ -12,6 +12,7 @@ import { useERP } from "../../../context/ERPContext";
 import { fetchInsumos, salvarInsumo } from "../../../lib/operacao";
 import { fetchColaboradores } from "../../../lib/rh";
 import { criarEscuta, vozDisponivel } from "../../../lib/hefisto-voz";
+import { equipeDaArea } from "../../../lib/equipe-area.mjs";
 import {
   atualizarItemEstoque, fetchEstoques, fetchItensEstoque, fetchMovimentosMulti,
   registrarContagemMulti, registrarMovimentoMulti, salvarEstoque,
@@ -453,36 +454,11 @@ function EstoqueRunner() {
     await Promise.all([carregarArea(), carregarEstoques(estoqueId)]);
   };
 
-  const colaboradoresFiltrados = useMemo(() => {
-    if (!colaboradores?.length) return [];
-    const ativos = colaboradores.filter(c => c.status !== "inativo" && c.tipo_contrato !== "Freelancer");
-    const nomeArea = (estoqueAtual?.nome || estoqueAtual?.slug || "").toLowerCase();
-
-    let areaChave = "";
-    if (nomeArea.includes("bar")) areaChave = "bar";
-    else if (nomeArea.includes("cozinha")) areaChave = "cozinha";
-    else if (nomeArea.includes("salão") || nomeArea.includes("salao")) areaChave = "salão";
-
-    if (!areaChave) return ativos;
-
-    const especificos = ativos.filter(c => {
-      const cargoStr = (c.cargo || "").toLowerCase();
-      const setorStr = (c.setor || "").toLowerCase();
-      if (areaChave === "bar") {
-        // Bar: equipe do bar + supervisores, gerentes e CEO/diretoria também podem movimentar.
-        return /(\bbar\b|barman|bartender|barista|copeir|supervisor|gerente|encarregad|coordenad|\bceo\b|diretor|s[oó]cio|propriet|dono|administrador|chefe)/.test(cargoStr) || setorStr.includes("bar");
-      }
-      if (areaChave === "cozinha") {
-        return /(cozinh|chapeir|confeit|pizzai|sushi|salgad|padeir|churrasqueir|a[cç]ougue|auxiliar|chefe)/.test(cargoStr) || setorStr.includes("cozinha");
-      }
-      if (areaChave === "salão") {
-        return /(gar[çc]|atendente|sal[aã]o|hostess|maitre|maître|comand|gerente|supervisor)/.test(cargoStr) || setorStr.includes("salão") || setorStr.includes("salao");
-      }
-      return false;
-    });
-
-    return especificos.length ? especificos : ativos;
-  }, [colaboradores, estoqueAtual]);
+  // Responsáveis da área do estoque aberto — regra única do ERP:
+  // sem extras, cada um no seu setor e liderança em todos.
+  const colaboradoresFiltrados = useMemo(
+    () => equipeDaArea(colaboradores, estoqueAtual?.nome || estoqueAtual?.slug || ""),
+    [colaboradores, estoqueAtual]);
 
   const catalogoFiltradoPorArea = useMemo(() => {
     if (!catalogo?.length) return [];

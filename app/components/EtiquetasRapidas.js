@@ -12,6 +12,7 @@ import { CONSERVACAO, criarEtiqueta, excluirListaEtiquetas, fetchListasEtiquetas
 import { fetchValidadesEtiqueta } from "../lib/parametros";
 import { imprimirHtml } from "../lib/imprimir";
 import { criarEscuta, vozDisponivel } from "../lib/hefisto-voz";
+import { equipeDaArea } from "../lib/equipe-area.mjs";
 import { registrarAuditoria } from "../lib/hefisto-acoes";
 import { conectarImpressoraBluetooth, imprimirEtiquetasBluetooth } from "../lib/impressaoTermica";
 
@@ -129,7 +130,7 @@ export default function EtiquetasRapidas() {
   const carregarBase = useCallback(async () => {
     if (!unidadeAtiva || unidadeAtiva === "todas") { setCarregando(false); return; }
     const [colaboradores, validades] = await Promise.all([fetchColaboradores(unidadeAtiva), fetchValidadesEtiqueta(unidadeAtiva)]);
-    setFuncionarios((colaboradores.data || []).filter(pessoa => pessoa.ativo !== false && pessoa.status !== "inativo" && pessoa.tipo_contrato !== "Freelancer"));
+    setFuncionarios(equipeDaArea(colaboradores.data || [], setor));
     setCategorias(validades.data || []);
   }, [unidadeAtiva]);
 

@@ -109,3 +109,23 @@ export async function atualizarStatusExtraCadastro(id, status, colaboradorId = n
   const { error } = await supabase.from("extras_cadastros").update(patch).eq("id", id);
   return { error: erroMsg(error) };
 }
+
+// Correção do cadastro pelo RH antes de aprovar (telefone errado, função
+// trocada, diária combinada diferente...).
+export async function atualizarCadastroExtra(id, campos) {
+  if (!isSupabaseReady() || !id) return { error: "Registro inválido." };
+  const permitidos = {
+    nome: campos.nome,
+    telefone: campos.telefone,
+    funcao_principal: campos.funcao_principal,
+    funcao_secundaria: campos.funcao_secundaria || null,
+    valor_diaria_pretendido: campos.valor_diaria_pretendido === "" || campos.valor_diaria_pretendido == null
+      ? null : Number(campos.valor_diaria_pretendido),
+    chave_pix: campos.chave_pix || null,
+    bairro: campos.bairro || null,
+    cidade: campos.cidade || null,
+    observacoes: campos.observacoes || null,
+  };
+  const { error } = await supabase.from("extras_cadastros").update(permitidos).eq("id", id);
+  return { error: erroMsg(error) };
+}

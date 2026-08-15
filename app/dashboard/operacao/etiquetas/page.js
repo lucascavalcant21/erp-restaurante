@@ -26,6 +26,7 @@ import {
 } from "../../../lib/impressaoBluetooth";
 import { baixarPdfDeHtml } from "../../../lib/pdf";
 import { imprimirHtml } from "../../../lib/imprimir";
+import { equipeDaArea } from "../../../lib/equipe-area.mjs";
 import EtiquetasRapidas from "../../../components/EtiquetasRapidas";
 
 const UNIDADES = ["UN", "KG", "G", "L", "ML", "CX", "PCT", "BANDEJA"];
@@ -255,7 +256,8 @@ function EtiquetasRunner() {
       const mapa = {};
       (e.data || []).forEach((x) => { mapa[x.nome] = Number(x.custo_unitario) || Number(x.preco_unit) || mapa[x.nome] || 0; });
       setCustoMap(mapa);
-      setColaboradores((colab.data || []).filter((c) => c.ativo !== false && c.status !== "inativo"));
+      // Só a equipe contratada do setor (liderança entra em todos), sem extras.
+      setColaboradores(equipeDaArea(colab.data || [], deptUrl));
       setCategoriasValidade(validades.data || []);
     })();
   }, [unidadeAtiva, deptUrl]);

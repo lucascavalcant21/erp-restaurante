@@ -129,3 +129,83 @@ export async function atualizarCadastroExtra(id, campos) {
   const { error } = await supabase.from("extras_cadastros").update(permitidos).eq("id", id);
   return { error: erroMsg(error) };
 }
+
+// ── CONFIGURAÇÃO EDITÁVEL DO PORTAL ─────────────────────────────────────────
+// Mesmo padrão do portal de vagas: fica em config_sistema.params.portal_extras
+// e a leitura pública passa por função que expõe só este bloco.
+
+export const PORTAL_EXTRAS_PADRAO = {
+  titulo: "Cadastro de Extras",
+  subtitulo: "Faça seu cadastro e entre no nosso banco de profissionais. Quando precisarmos de reforço, chamamos você.",
+  mensagem_sucesso: "Você entrou no nosso banco de extras. Quando precisarmos, chamamos pelo WhatsApp.",
+  mostrar_endereco: true,
+  pedir_diaria: true,
+  pedir_pix: true,
+  funcoes: FUNCOES_EXTRA,
+  perguntas: PERGUNTAS_EXTRA,
+};
+
+function normalizarPortalExtras(config) {
+  const base = config && typeof config === "object" ? config : {};
+  const funcoes = Array.isArray(base.funcoes) && base.funcoes.length
+    ? base.funcoes.map(f => String(f).trim()).filter(Boolean)
+    : PORTAL_EXTRAS_PADRAO.funcoes;
+  const perguntas = Array.isArray(base.perguntas)
+    ? base.perguntas
+        .map((p, i) => ({
+          id: p.id || `p${i + 1}`,
+          pergunta: String(p.pergunta || "").trim(),
+          opcoes: (Array.isArray(p.opcoes) ? p.opcoes : []).map(o => String(o).trim()).filter(Boolean),
+        }))
+        .filter(p => p.pergunta && p.opcoes.length >= 2)
+    : PORTAL_EXTRAS_PADRAO.perguntas;
+  return {
+    ...PORTAL_EXTRAS_PADRAO,
+    ...base,
+    funcoes,
+    perguntas,
+    mostrar_endereco: base.mostrar_endereco !== false,
+    pedir_diaria: base.pedir_diaria !== false,
+    pedir_pix: base.pedir_pix !== false,
+  };
+}
+
+export async function fetchPortalExtrasConfig(unidadeId) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") {
+    return { data: normalizarPortalExtras(null) };
+  }
+  // Página pública: função devolve só este bloco, sem expor o resto.
+  try {
+    const { data, error } = await supabase.rpc("portal_extras_publico", { p_unidade_id: String(unidadeId) });
+    if (!error && data && Object.keys(data).length > 0) return { data: normalizarPortalExtras(data) };
+  } catch { /* função ainda não criada — leitura direta abaixo */ }
+
+  const { data, error } = await supabase.from("config_sistema").select("params").eq("unidade_id", unidadeId).limit(1);
+  return { data: normalizarPortalExtras(data?.[0]?.params?.portal_extras), error: erroMsg(error) };
+}
+
+export async function salvarPortalExtrasConfig(unidadeId, config) {
+  if (!isSupabaseReady()) return { error: "Sistema sem conexão com o banco." };
+  if (!unidadeId || unidadeId === "todas") return { error: "Selecione uma unidade específica." };
+  const portal_extras = normalizarPortalExtras(config);
+
+  try {
+    const { error } = await supabase.rpc("merge_config_sistema_params", {
+      p_unidade_id: unidadeId, p_patch: { portal_extras },
+    });
+    if (!error) return { data: portal_extras, error: null };
+  } catch { /* usa o caminho direto abaixo */ }
+
+  const { data: registros, error: erroLeitura } = await supabase
+    .from("config_sistema").select("id, params").eq("unidade_id", unidadeId).limit(1);
+  if (erroLeitura) return { error: erroLeitura.message };
+
+  const registro = registros?.[0];
+  const params = { ...(registro?.params || {}), portal_extras };
+  if (registro) {
+    const { error } = await supabase.from("config_sistema").update({ params }).eq("id", registro.id);
+    return { data: portal_extras, error: erroMsg(error) };
+  }
+  const { error } = await supabase.from("config_sistema").insert([{ unidade_id: unidadeId, params }]);
+  return { data: portal_extras, error: erroMsg(error) };
+}

@@ -119,3 +119,27 @@ $$;
 
 revoke all on function public.unidade_publica(text) from public;
 grant execute on function public.unidade_publica(text) to anon, authenticated;
+
+-- Configuração editável do portal (títulos, funções oferecidas e perguntas).
+-- Fica em config_sistema.params -> 'portal_extras'. A função devolve SÓ esse
+-- bloco: o resto das configurações da empresa continua invisível para quem não
+-- tem conta. Mesmo padrão já usado no portal de vagas.
+-- Atenção: config_sistema.unidade_id é TEXTO neste banco — o parâmetro segue o
+-- mesmo tipo e a comparação é feita como texto (funciona com texto ou uuid).
+drop function if exists public.portal_extras_publico(uuid);
+
+create or replace function public.portal_extras_publico(p_unidade_id text)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(params -> 'portal_extras', '{}'::jsonb)
+  from public.config_sistema
+  where unidade_id::text = p_unidade_id
+  limit 1;
+$$;
+
+revoke all on function public.portal_extras_publico(text) from public;
+grant execute on function public.portal_extras_publico(text) to anon, authenticated;

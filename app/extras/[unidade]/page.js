@@ -10,8 +10,8 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { CheckCircle2, Loader2, Send, MapPin, Briefcase, CalendarDays } from "lucide-react";
 import {
-  FUNCOES_EXTRA, DIAS_SEMANA, PERGUNTAS_EXTRA,
-  enviarCadastroExtra, fetchUnidadePublica,
+  DIAS_SEMANA, PORTAL_EXTRAS_PADRAO,
+  enviarCadastroExtra, fetchUnidadePublica, fetchPortalExtrasConfig,
 } from "../../lib/portal-extras";
 import { ESTADOS_CIVIS, ESCOLARIDADES, GENEROS } from "../../lib/contrato-experiencia.mjs";
 
@@ -23,6 +23,8 @@ export default function PortalExtras() {
   const { unidade } = useParams();
   const router = useRouter();
   const [restaurante, setRestaurante] = useState(null);
+  // Textos, funções e perguntas vêm do que o restaurante editou no ERP.
+  const [config, setConfig] = useState(PORTAL_EXTRAS_PADRAO);
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(null); // { id, interesse }
   const [erro, setErro] = useState("");
@@ -38,7 +40,10 @@ export default function PortalExtras() {
   });
   const [respostas, setRespostas] = useState({});
 
-  useEffect(() => { fetchUnidadePublica(unidade).then(r => setRestaurante(r.data)); }, [unidade]);
+  useEffect(() => {
+    fetchUnidadePublica(unidade).then(r => setRestaurante(r.data));
+    fetchPortalExtrasConfig(unidade).then(r => { if (r.data) setConfig(r.data); });
+  }, [unidade]);
 
   const set = (campo, valor) => setForm(a => ({ ...a, [campo]: valor }));
   const alternarDia = (dia) => setForm(a => ({
@@ -53,7 +58,7 @@ export default function PortalExtras() {
     if (soDigitos(form.telefone).length < 10) return "Informe um telefone com DDD.";
     if (!form.funcao_principal) return "Escolha sua função principal.";
     if (!form.dias_disponiveis.length) return "Marque pelo menos um dia disponível.";
-    for (const p of PERGUNTAS_EXTRA) if (!respostas[p.id]) return "Responda todas as perguntas.";
+    for (const p of config.perguntas) if (!respostas[p.id]) return "Responda todas as perguntas.";
     return "";
   };
 
@@ -79,9 +84,10 @@ export default function PortalExtras() {
         <div className="w-full max-w-md rounded-3xl border border-emerald-200 bg-white p-7 text-center shadow-sm">
           <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-full bg-emerald-100 text-emerald-700"><CheckCircle2 size={34} /></div>
           <h1 className="text-xl font-black text-slate-900">Cadastro enviado</h1>
-          <p className="mt-3 text-sm font-medium leading-relaxed text-slate-600">
-            Você entrou no nosso banco de extras como <b>{form.funcao_principal}</b>. Quando precisarmos, chamamos pelo WhatsApp.
+          <p className="mt-3 whitespace-pre-line text-sm font-medium leading-relaxed text-slate-600">
+            {config.mensagem_sucesso}
           </p>
+          <p className="mt-2 text-sm font-bold text-slate-700">Função: {form.funcao_principal}</p>
           {querVaga && (
             <>
               <p className="mt-5 text-sm font-bold text-slate-700">Você marcou interesse em ser contratado.</p>
@@ -104,11 +110,11 @@ export default function PortalExtras() {
     <div className="min-h-screen bg-slate-50 pb-16">
       <header className="bg-emerald-700 px-5 py-8 text-white sm:py-10">
         <div className="mx-auto max-w-2xl">
-          <h1 className="text-2xl font-black leading-tight sm:text-3xl">Cadastro de Extras</h1>
-          <p className="mt-2 text-sm font-medium leading-relaxed text-emerald-50">
-            Faça seu cadastro e entre no nosso banco de profissionais. Quando precisarmos de reforço, chamamos você.
+          <h1 className="text-2xl font-black leading-tight sm:text-3xl">{config.titulo}</h1>
+          <p className="mt-2 whitespace-pre-line text-sm font-medium leading-relaxed text-emerald-50">
+            {config.subtitulo}
           </p>
-          {restaurante && (
+          {restaurante && config.mostrar_endereco !== false && (
             <div className="mt-4 rounded-2xl bg-emerald-800/50 p-3.5">
               <p className="text-sm font-black">{restaurante.nome}</p>
               {endereco && <p className="mt-0.5 flex items-start gap-1.5 text-[13px] font-medium text-emerald-50"><MapPin size={14} className="mt-0.5 shrink-0" /> {endereco}</p>}
@@ -127,14 +133,14 @@ export default function PortalExtras() {
               <span className={rotulo}>Função principal *</span>
               <select value={form.funcao_principal} onChange={e => set("funcao_principal", e.target.value)} className={`${campo} mt-1.5`}>
                 <option value="">Selecione...</option>
-                {FUNCOES_EXTRA.map(f => <option key={f} value={f}>{f}</option>)}
+                {config.funcoes.map(f => <option key={f} value={f}>{f}</option>)}
               </select>
             </label>
             <label className="block">
               <span className={rotulo}>Segunda função (opcional)</span>
               <select value={form.funcao_secundaria} onChange={e => set("funcao_secundaria", e.target.value)} className={`${campo} mt-1.5`}>
                 <option value="">Nenhuma</option>
-                {FUNCOES_EXTRA.filter(f => f !== form.funcao_principal).map(f => <option key={f} value={f}>{f}</option>)}
+                {config.funcoes.filter(f => f !== form.funcao_principal).map(f => <option key={f} value={f}>{f}</option>)}
               </select>
             </label>
           </div>
@@ -206,10 +212,12 @@ export default function PortalExtras() {
                   {ESCOLARIDADES.map(v => <option key={v} value={v}>{v}</option>)}
                 </select>
               </label>
-              <label className="block">
-                <span className={rotulo}>Chave PIX (para pagamento)</span>
-                <input value={form.chave_pix} onChange={e => set("chave_pix", e.target.value)} className={`${campo} mt-1.5`} />
-              </label>
+              {config.pedir_pix !== false && (
+                <label className="block">
+                  <span className={rotulo}>Chave PIX (para pagamento)</span>
+                  <input value={form.chave_pix} onChange={e => set("chave_pix", e.target.value)} className={`${campo} mt-1.5`} />
+                </label>
+              )}
             </div>
             <div className="flex flex-wrap items-center gap-4">
               <label className="flex items-center gap-2.5">
@@ -243,19 +251,22 @@ export default function PortalExtras() {
                 className="w-full rounded-xl border border-slate-300 bg-white p-3.5 text-base font-medium outline-none focus:border-emerald-600"
                 placeholder="Onde já trabalhou e o que fazia." />
             </label>
-            <label className="block">
-              <span className={rotulo}>Valor da diária que você cobra (R$)</span>
-              <input type="number" step="0.01" value={form.valor_diaria_pretendido} onChange={e => set("valor_diaria_pretendido", e.target.value)} className={`${campo} mt-1.5`} placeholder="0,00" />
-            </label>
+            {config.pedir_diaria !== false && (
+              <label className="block">
+                <span className={rotulo}>Valor da diária que você cobra (R$)</span>
+                <input type="number" step="0.01" value={form.valor_diaria_pretendido} onChange={e => set("valor_diaria_pretendido", e.target.value)} className={`${campo} mt-1.5`} placeholder="0,00" />
+              </label>
+            )}
           </div>
         </section>
 
         {/* Perguntas */}
+        {config.perguntas.length > 0 && (
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
           <p className="text-xs font-black uppercase tracking-widest text-emerald-700">Algumas perguntas</p>
           <p className="mb-4 mt-1 text-sm font-medium text-slate-500">Não existe resposta certa ou errada.</p>
           <div className="space-y-5">
-            {PERGUNTAS_EXTRA.map((p, i) => (
+            {config.perguntas.map((p, i) => (
               <div key={p.id}>
                 <p className="text-sm font-black text-slate-800">{i + 1}. {p.pergunta}<span className="text-emerald-600"> *</span></p>
                 <div className="mt-2 space-y-2">
@@ -277,6 +288,7 @@ export default function PortalExtras() {
             ))}
           </div>
         </section>
+        )}
 
         {/* Interesse */}
         <section className="rounded-2xl border-2 border-emerald-200 bg-emerald-50/60 p-4 sm:p-5">

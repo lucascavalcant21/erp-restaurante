@@ -336,6 +336,7 @@ function EstoqueRunner() {
   const [sucesso, setSucesso] = useState("");
   const [aba, setAba] = useState("atual");
   const [filtros, setFiltros] = useState({ busca: "", grupo: "Todos", categoria: "Todas", status: "todos", local: "Todos" });
+  const [agruparPor, setAgruparPor] = useState("categoria");   // categoria | local
   const [modal, setModal] = useState(null);
   const [operacao, setOperacao] = useState({ insumo_id: "", quantidade: "", destino_id: "", observacao: "", responsavel_id: "", data: "", modo: "unidade", fechadas: "", aberto: "" });
   const [formItem, setFormItem] = useState({});
@@ -639,7 +640,15 @@ function EstoqueRunner() {
       : itensDaArea.filter(item => grupoOperacionalItem(item, estoqueAtual) === grupo).length,
   ])), [grupos, itensDaArea, estoqueAtual]);
   const categorias = useMemo(() => ["Todas", ...[...new Set(itensDaArea.map(i => i.categoria || "Sem categoria"))].sort((a, b) => a.localeCompare(b, "pt-BR"))], [itensDaArea]);
-  const locais = useMemo(() => ["Todos", ...[...new Set(itensDaArea.map(i => i.local_interno).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR"))], [itensDaArea]);
+  // Junta os lugares cadastrados no estoque com os que os itens já usam: o
+  // filtro precisa mostrar "Balcão refrigerado" mesmo antes de ter algo lá.
+  const locais = useMemo(() => {
+    const cadastrados = (estoqueAtual?.locais_internos || []).map(String).filter(Boolean);
+    const usados = [...new Set(itensDaArea.map(i => i.local_interno).filter(Boolean))]
+      .filter(l => !cadastrados.includes(l))
+      .sort((a, b) => a.localeCompare(b, "pt-BR"));
+    return ["Todos", ...cadastrados, ...usados];
+  }, [itensDaArea, estoqueAtual]);
   const itensFiltrados = useMemo(
     () => {
       const res = filtrarItensEstoque(itensDaArea, filtros, estoqueAtual);
@@ -1235,10 +1244,17 @@ function EstoqueRunner() {
                       <option value="todos">Todos os status</option><option value="abaixo">Abaixo do mínimo</option><option value="validade">Validade próxima</option><option value="sem-saldo">Sem saldo</option>
                     </select>
                     <select value={filtros.local} onChange={e => setFiltros({ ...filtros, local: e.target.value })} className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-xs font-bold text-slate-700">{locais.map(v => <option key={v}>{v}</option>)}</select>
+                    {/* Separar a lista por onde a coisa fica (expositor, balcão, depósito...) */}
+                    {(estoqueAtual?.locais_internos || []).length > 0 && (
+                      <select value={agruparPor} onChange={e => setAgruparPor(e.target.value)} className="h-10 rounded-xl border border-emerald-300 bg-emerald-50 px-3 text-xs font-black text-emerald-800">
+                        <option value="categoria">Separar por categoria</option>
+                        <option value="local">Separar por lugar</option>
+                      </select>
+                    )}
                   </div>
                   <TabelaItens
                     itens={aba === "alertas" ? itensFiltrados.filter(i => alertas.some(a => a.id === i.id)) : itensFiltrados}
-                    estoque={estoqueAtual} loading={loading}
+                    estoque={estoqueAtual} loading={loading} agruparPor={agruparPor}
                     onEntrada={item => abrirOperacao("entrada", item)}
                     onSaida={item => abrirOperacao("saida", item)}
                     onEditar={abrirEdicaoItem}
@@ -1600,6 +1616,15 @@ function EstoqueRunner() {
                 </div>
               </Campo>
               {estoqueAtual?.controla_validade && <Campo label="Validade"><input type="date" value={formItem.validade || ""} onChange={e => setFormItem({ ...formItem, validade: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" /></Campo>}
+              {/* Onde a coisa fica dentro do estoque: expositor, balcão, depósito... */}
+              <Campo label="Onde fica">
+                <input list="locais-do-estoque" value={formItem.local_interno || ""} onChange={e => setFormItem({ ...formItem, local_interno: e.target.value })}
+                  placeholder={(estoqueAtual?.locais_internos || [])[0] || "Ex.: Balcão refrigerado"}
+                  className="h-12 w-full rounded-xl border border-slate-200 px-3" />
+                <datalist id="locais-do-estoque">
+                  {(estoqueAtual?.locais_internos || []).map(l => <option key={l} value={l} />)}
+                </datalist>
+              </Campo>
             </div>
             {/* Embalagem — valem para o produto em todos os estoques */}
             {Number(formItem.tamanho_embalagem) > 1 && String(formItem.unidade_medida || "").toLowerCase() !== "un" && (
@@ -1822,7 +1847,7 @@ function saldoEmbalado(item) {
   return { principal, secundario };
 }
 
-function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEditar, onHistorico }) {
+function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEditar, onHistorico, agruparPor = "categoria" }) {
   const [colapsadas, setColapsadas] = useState({});
 
   const toggleColapso = (cat) => {
@@ -1831,13 +1856,35 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
 
   const agrupadoPorCategoria = useMemo(() => {
     if (!itens || !itens.length) return [];
+    const porLocal = agruparPor === "local";
     const mapa = new Map();
     for (const item of itens) {
       if (!item) continue;
-      const cat = item.categoria || "Sem categoria";
+      const cat = porLocal
+        ? (String(item.local_interno || "").trim() || "Sem lugar definido")
+        : (item.categoria || "Sem categoria");
       if (!mapa.has(cat)) mapa.set(cat, []);
       mapa.get(cat).push(item);
     }
+
+    // Por lugar: segue a ordem cadastrada no estoque; o resto vem depois.
+    if (porLocal) {
+      const ordem = (estoque?.locais_internos || []).map(String);
+      const chaves = Array.from(mapa.keys()).sort((a, b) => {
+        const ia = ordem.indexOf(a); const ib = ordem.indexOf(b);
+        if (ia !== -1 && ib !== -1) return ia - ib;
+        if (ia !== -1) return -1;
+        if (ib !== -1) return 1;
+        if (a === "Sem lugar definido") return 1;
+        if (b === "Sem lugar definido") return -1;
+        return String(a).localeCompare(String(b), "pt-BR", { sensitivity: "base" });
+      });
+      return chaves.map(cat => {
+        const lista = (mapa.get(cat) || []).sort((a, b) => String(a?.nome || "").localeCompare(String(b?.nome || ""), "pt-BR", { sensitivity: "base" }));
+        return { categoria: cat, lista, subtotal: lista.reduce((soma, i) => soma + (calcularValorItem(i) || 0), 0) };
+      });
+    }
+
     const ehBar = estoque?.departamento === "bar" || estoque?.slug === "bar";
     const listaOficial = ehBar ? CATEGORIAS_ESTOQUE_BAR : CATEGORIAS_ESTOQUE_COZINHA;
 
@@ -1854,7 +1901,7 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
       const subtotal = lista.reduce((soma, i) => soma + (calcularValorItem(i) || 0), 0);
       return { categoria: cat, lista, subtotal };
     });
-  }, [itens]);
+  }, [itens, agruparPor, estoque]);
 
   const expandirTodas = () => setColapsadas({});
   const recolherTodas = () => {
@@ -1869,7 +1916,7 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
   return (
     <>
       <div className="flex items-center justify-between px-4 py-2.5 bg-slate-100/80 border-b border-slate-200 text-xs font-bold text-slate-600">
-        <span>Total de {agrupadoPorCategoria.length} categoria(s) no resultado</span>
+        <span>Total de {agrupadoPorCategoria.length} {agruparPor === "local" ? "lugar(es)" : "categoria(s)"} no resultado</span>
         <div className="flex items-center gap-2">
           <button type="button" onClick={expandirTodas} className="rounded-lg px-2.5 py-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 transition">Expandir todas</button>
           <button type="button" onClick={recolherTodas} className="rounded-lg px-2.5 py-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 transition">Recolher todas</button>

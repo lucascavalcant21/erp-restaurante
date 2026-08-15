@@ -107,7 +107,7 @@ export async function garantirEstoquesPadrao(unidadeId) {
     cor: item.cor,
     controla_validade: item.controla_validade,
     controla_minimo: item.controla_minimo,
-    locais_internos: [],
+    locais_internos: item.locais || [],
     permissoes: [],
     ordem,
   }));
@@ -140,6 +140,18 @@ export async function fetchEstoques(unidadeId, incluirInativos = false) {
         await garantirEstoquesPadrao(unidadeId);
         const recarregado = await supabase.from("estoques").select("*").eq("unidade_id", unidadeId).eq("status", "ativo").order("ordem").order("nome");
         if (recarregado.data?.length) estoques = recarregado.data;
+      }
+      // Locais padrão criados depois (ex.: expositor/balcão/depósito do Bar) não
+      // chegam pelo upsert acima, que ignora quem já existe. Preenche só quando
+      // o estoque ainda não tem local nenhum — nunca sobrescreve o do usuário.
+      const semLocais = estoques.filter(e => {
+        const padrao = ESTOQUES_PADRAO.find(p => p.slug === String(e.slug || "").toLowerCase());
+        return padrao?.locais?.length && !(e.locais_internos || []).length;
+      });
+      for (const estoque of semLocais) {
+        const padrao = ESTOQUES_PADRAO.find(p => p.slug === String(estoque.slug || "").toLowerCase());
+        await supabase.from("estoques").update({ locais_internos: padrao.locais }).eq("id", estoque.id);
+        estoque.locais_internos = padrao.locais;
       }
     } else {
       await garantirEstoquesPadrao(unidadeId);

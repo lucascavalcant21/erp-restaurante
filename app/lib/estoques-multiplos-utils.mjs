@@ -9,7 +9,10 @@ export const TIPOS_ESTOQUE = [
 export const ESTOQUES_PADRAO = [
   { nome: "Cozinha", slug: "cozinha", tipo: "alimentos", cor: "#059669", controla_validade: true, controla_minimo: true },
   { nome: "Pré-preparos da Cozinha", slug: "pre-preparos-cozinha", tipo: "alimentos", cor: "#d97706", controla_validade: true, controla_minimo: true },
-  { nome: "Bar", slug: "bar", tipo: "bebidas", cor: "#7c3aed", controla_validade: true, controla_minimo: true },
+  // O bar guarda a mesma bebida em três lugares diferentes; o local separa a
+  // contagem sem precisar de um estoque para cada geladeira.
+  { nome: "Bar", slug: "bar", tipo: "bebidas", cor: "#7c3aed", controla_validade: true, controla_minimo: true,
+    locais: ["Expositor de bebidas", "Balcão refrigerado", "Depósito de bebidas"] },
   { nome: "Pré-preparos do Bar", slug: "pre-preparos-bar", tipo: "bebidas", cor: "#ea580c", controla_validade: true, controla_minimo: true },
   { nome: "Limpeza", slug: "limpeza", tipo: "limpeza", cor: "#0284c7", controla_validade: false, controla_minimo: true },
   { nome: "Materiais variados", slug: "materiais-variados", tipo: "materiais", cor: "#d97706", controla_validade: false, controla_minimo: true },

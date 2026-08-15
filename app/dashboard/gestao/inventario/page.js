@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useMemo } from "react";
 import {
-  Warehouse, Plus, Minus, History, Trash2, Edit3, Boxes, Layers, PackageX, X, Sparkles, Loader2, Camera, Printer
+  Warehouse, Plus, Minus, History, Trash2, Edit3, Boxes, Layers, PackageX, X, Sparkles, Loader2, Camera, Printer, Mic, MapPin
 } from "lucide-react";
+import ContagemInventarioVoz from "../../../components/ContagemInventarioVoz";
+import { imprimirHtml } from "../../../lib/imprimir";
 import {
   PageHeader, PageBody, EmptyState, Modal, Field, TextInput, NumberInput, Select, Btn, Toast, SearchBar, Chips, SkeletonList, fmtBRL
 } from "../../../components/ui";
@@ -48,6 +50,8 @@ export default function InventarioPage() {
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
   const [catFiltro, setCatFiltro] = useState("Todas");
+  const [localFiltro, setLocalFiltro] = useState("Todos");
+  const [contagemAberta, setContagemAberta] = useState(false);
   const [toast, setToast] = useState("");
 
   // Modais
@@ -93,17 +97,32 @@ export default function InventarioPage() {
     return { totalUnidades, tipos: itens.length, categorias, valorTotal, baixasMes };
   }, [itens, movimentos]);
 
+  // Os lugares vêm do próprio inventário — não precisa cadastrar nada antes.
+  const lugares = useMemo(
+    () => [...new Set(itens.map(i => (i.localizacao || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR")),
+    [itens],
+  );
+
   const filtrados = itens.filter(i =>
     i.nome.toLowerCase().includes(busca.toLowerCase()) &&
-    (catFiltro === "Todas" || (i.categoria || "Outros") === catFiltro)
+    (catFiltro === "Todas" || (i.categoria || "Outros") === catFiltro) &&
+    (localFiltro === "Todos"
+      || (localFiltro === "Sem lugar" ? !(i.localizacao || "").trim() : (i.localizacao || "").trim() === localFiltro))
   );
+  // Agrupado como se conta na prática: categoria e, dentro dela, o lugar.
   const porCategoria = useMemo(() => {
-    const g = {};
+    const g = new Map();
     filtrados.forEach(i => {
       const c = i.categoria || "Outros";
-      (g[c] = g[c] || []).push(i);
+      const lugar = (i.localizacao || "").trim() || "Sem lugar definido";
+      if (!g.has(c)) g.set(c, new Map());
+      const porLugar = g.get(c);
+      if (!porLugar.has(lugar)) porLugar.set(lugar, []);
+      porLugar.get(lugar).push(i);
     });
-    return Object.entries(g).sort((a, b) => a[0].localeCompare(b[0], "pt-BR"));
+    return [...g.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0], "pt-BR"))
+      .map(([c, porLugar]) => [c, [...porLugar.entries()].sort((a, b) => a[0].localeCompare(b[0], "pt-BR"))]);
   }, [filtrados]);
 
   // ── Ações ─────────────────────────────────────────────────────────────────
@@ -222,9 +241,8 @@ export default function InventarioPage() {
       <div class="totais"><span>Patrimônio informado: ${fmtBRL(resumo.valorTotal)}</span></div>
       <div class="assin"><div>Conferido por</div><div>Data da contagem</div><div>Assinatura do responsável</div></div>
       </body></html>`;
-    const win = window.open("", "_blank", "width=900,height=1000");
-    if (win) { win.document.write(html); win.document.close(); setTimeout(() => win.print(), 500); }
-    else alert("Habilite os popups para imprimir a planilha.");
+    // Iframe invisível: aba nova costuma ser bloqueada e nada acontecia.
+    imprimirHtml(html, { aoFalhar: () => alert("Não consegui abrir a impressão neste aparelho.") });
   };
 
   const excluirItem = async (item) => {
@@ -330,6 +348,51 @@ export default function InventarioPage() {
     carregar();
   };
 
+  // ── Contagem por voz ──────────────────────────────────────────────────────
+  // Item que já existe vira ajuste (a contagem passa a ser a verdade); item
+  // novo é cadastrado na hora. A foto tirada na contagem fica no cadastro.
+  const aplicarLinhaContagem = async ({ existente, nome, quantidade, categoria, localizacao, foto }) => {
+    if (existente) {
+      const patch = {
+        id: existente.id, unidade_id: unidadeAtiva, nome: existente.nome,
+        categoria: categoria || existente.categoria || "Outros",
+        quantidade: Number(existente.quantidade) || 0,
+        valor_unitario: existente.valor_unitario ?? null,
+        localizacao: localizacao || existente.localizacao || null,
+        observacao: existente.observacao || null,
+        foto: foto || existente.foto || null,
+      };
+      const { error } = await salvarItemInventario(patch);
+      if (error) return false;
+      const r = await registrarMovimentoInventario(existente, {
+        tipo: "ajuste", quantidade, motivo: "Contagem por voz",
+      });
+      return !r?.error;
+    }
+    const { id, error } = await salvarItemInventario({
+      id: null, unidade_id: unidadeAtiva, nome,
+      categoria: categoria || "Outros", quantidade,
+      valor_unitario: null, localizacao: localizacao || null,
+      observacao: null, foto: foto || null,
+    });
+    if (error || !id) return false;
+    if (quantidade > 0) {
+      await registrarMovimentoInventario(
+        { id, unidade_id: unidadeAtiva, quantidade: 0 },
+        { tipo: "entrada", quantidade, motivo: "Contagem por voz" },
+      );
+    }
+    return true;
+  };
+
+  const fecharContagem = (feitos) => {
+    setContagemAberta(false);
+    if (typeof feitos === "number" && feitos > 0) {
+      notificar(`Contagem salva: ${feitos} item(ns).`);
+      carregar();
+    }
+  };
+
   if (!unidadeAtiva || unidadeAtiva === "todas") {
     return (
       <div className="min-h-screen">
@@ -345,6 +408,9 @@ export default function InventarioPage() {
     <div className="min-h-screen pb-24">
       <PageHeader title="Inventário da Unidade" subtitle={`Tudo que ${unidadeInfo?.nome || "a loja"} possui — com histórico de entradas, quebras e perdas`} icon={Warehouse}
         onAction={abrirNovo} actionLabel="Novo Item">
+        <Btn variant="ghost" className="!h-9 text-xs" onClick={() => setContagemAberta(true)}>
+          <Mic size={14} /> Contagem por voz
+        </Btn>
         <Btn variant="ghost" className="!h-9 text-xs" onClick={abrirModalIA}>
           <Sparkles size={14} /> Importar com IA
         </Btn>
@@ -387,6 +453,9 @@ export default function InventarioPage() {
         <div className="space-y-3">
           <SearchBar value={busca} onChange={setBusca} placeholder="Buscar item... (ex: garfo, freezer, pote)" />
           <Chips options={["Todas", ...CATEGORIAS_INVENTARIO]} value={catFiltro} onChange={setCatFiltro} />
+          {lugares.length > 0 && (
+            <Chips options={["Todos", ...lugares, "Sem lugar"]} value={localFiltro} onChange={setLocalFiltro} />
+          )}
         </div>
 
         {/* Lista agrupada por categoria */}
@@ -399,14 +468,21 @@ export default function InventarioPage() {
             onAction={itens.length === 0 ? abrirNovo : undefined} />
         ) : (
           <div className="space-y-6">
-            {porCategoria.map(([cat, lista]) => (
+            {porCategoria.map(([cat, porLugar]) => {
+              const todosDaCat = porLugar.flatMap(([, l]) => l);
+              return (
               <div key={cat}>
                 <div className="flex items-center justify-between mb-2">
                   <p className="erp-label flex items-center gap-1.5"><Layers size={12} /> {cat}</p>
                   <span className="text-[11px] font-black" style={{ color: "var(--muted)" }}>
-                    {lista.reduce((s, i) => s + (Number(i.quantidade) || 0), 0).toLocaleString("pt-BR")} un · {lista.length} tipo{lista.length !== 1 ? "s" : ""}
+                    {todosDaCat.reduce((s, i) => s + (Number(i.quantidade) || 0), 0).toLocaleString("pt-BR")} un · {todosDaCat.length} tipo{todosDaCat.length !== 1 ? "s" : ""}
                   </span>
                 </div>
+                {porLugar.map(([lugar, lista]) => (
+                <div key={lugar} className="mb-3">
+                <p className="mb-1.5 flex items-center gap-1 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>
+                  <MapPin size={11} /> {lugar} · {lista.reduce((s, i) => s + (Number(i.quantidade) || 0), 0).toLocaleString("pt-BR")} un
+                </p>
                 <div className="erp-card divide-y" style={{ borderColor: "var(--line)" }}>
                   {lista.map(item => {
                     const zerado = (Number(item.quantidade) || 0) <= 0;
@@ -452,11 +528,24 @@ export default function InventarioPage() {
                     );
                   })}
                 </div>
+                </div>
+                ))}
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </PageBody>
+
+      {/* Contagem falada, com foto por item */}
+      <ContagemInventarioVoz
+        aberto={contagemAberta}
+        aoFechar={fecharContagem}
+        unidadeInfo={unidadeInfo}
+        itens={itens}
+        categorias={CATEGORIAS_INVENTARIO}
+        aoConcluir={aplicarLinhaContagem}
+      />
 
       {/* Modal: novo/editar item */}
       <Modal open={modalItem} onClose={() => setModalItem(false)} title={form?.id ? "Editar Item" : "Novo Item do Inventário"}>

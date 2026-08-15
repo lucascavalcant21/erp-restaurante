@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, CheckCircle2, ChefHat, ClipboardList, GlassWater, Plus, Printer, Save, ShoppingCart, Trash2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ChefHat, ClipboardList, GlassWater, Plus, Printer, Save, Share2, ShoppingCart, Trash2 } from "lucide-react";
 import { useERP } from "../../../../context/ERPContext";
 import { fetchFichas } from "../../../../lib/operacao";
 import { fetchColaboradores } from "../../../../lib/rh";
@@ -167,6 +167,31 @@ export default function MemorandoProducaoPage() {
     setSalvando(false);
   };
 
+  // Manda a lista de compras do memorando direto para o WhatsApp: o que falta
+  // comprar para dar conta da produção de amanhã, já descontado o estoque.
+  const enviarComprasWhatsApp = () => {
+    const compras = [
+      ...comprasAutomaticas.map(item => ({
+        nome: item.nome,
+        quantidade: item.comprar,
+        unidade: item.unidade,
+        detalhe: `precisa ${numero(item.necessario).toLocaleString("pt-BR", { maximumFractionDigits: 3 })}, tem ${numero(item.disponivel).toLocaleString("pt-BR", { maximumFractionDigits: 3 })}`,
+      })),
+      ...comprasManuais.map(item => ({ nome: item.nome, quantidade: item.quantidade, unidade: item.unidade, detalhe: item.observacao || "" })),
+    ];
+    if (!compras.length) return setAviso("Nenhuma compra necessária para esta data.");
+    const dataFmt = dataReferencia.split("-").reverse().join("/");
+    let txt = `*LISTA DE COMPRAS*\n${unidadeInfo?.nome || "Restaurante"}\nProdução de ${dataFmt}\n`;
+    txt += `----------------------------------\n\n`;
+    compras.forEach(item => {
+      txt += `- ${item.nome}: *${numero(item.quantidade).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} ${item.unidade}*`;
+      if (item.detalhe) txt += `\n  (${item.detalhe})`;
+      txt += `\n`;
+    });
+    txt += `\n${compras.length} item(ns) para comprar.`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`, "_blank");
+  };
+
   const imprimir = () => {
     if (!planejados.length && !comprasAutomaticas.length && !comprasManuais.length) return setAviso("O memorando está vazio.");
     const dataFmt = dataReferencia.split("-").reverse().join("/");
@@ -186,7 +211,7 @@ export default function MemorandoProducaoPage() {
     <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:px-6">
       <div className="mx-auto flex max-w-7xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3"><button onClick={() => router.back()} className="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-600"><ArrowLeft size={20}/></button><div><h1 className="text-2xl font-black tracking-tight">Memorando do Dia Seguinte</h1><p className="text-xs font-bold text-slate-500">Cozinha + Bar + lista de compras · {unidadeInfo?.nome}</p></div></div>
-        <div className="flex flex-wrap items-center gap-2"><input type="date" value={dataReferencia} onChange={e => setDataReferencia(e.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-bold"/><select value={status} onChange={e => setStatus(e.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-bold"><option value="rascunho">Rascunho</option><option value="confirmado">Confirmado</option></select><button onClick={salvar} disabled={salvando} className="flex h-11 items-center gap-2 rounded-xl bg-emerald-600 px-4 font-black text-white disabled:opacity-50"><Save size={18}/>{salvando ? "Salvando..." : "Salvar"}</button><button onClick={imprimir} className="flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 font-black text-white"><Printer size={18}/>Imprimir</button></div>
+        <div className="flex flex-wrap items-center gap-2"><input type="date" value={dataReferencia} onChange={e => setDataReferencia(e.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-bold"/><select value={status} onChange={e => setStatus(e.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-bold"><option value="rascunho">Rascunho</option><option value="confirmado">Confirmado</option></select><button onClick={salvar} disabled={salvando} className="flex h-11 items-center gap-2 rounded-xl bg-emerald-600 px-4 font-black text-white disabled:opacity-50"><Save size={18}/>{salvando ? "Salvando..." : "Salvar"}</button><button onClick={enviarComprasWhatsApp} className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-white px-4 font-black text-emerald-700 hover:bg-emerald-50"><Share2 size={18}/>Compras no WhatsApp</button><button onClick={imprimir} className="flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 font-black text-white"><Printer size={18}/>Imprimir</button></div>
       </div>
     </header>
 

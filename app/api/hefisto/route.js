@@ -62,9 +62,15 @@ Regras:
   Para retirada_estoque, obrigatórios: produto, quantidade.
 - "resposta_curta": uma frase amigável dizendo o que você entendeu (ou a pergunta do que falta).
 
+- Para "etiquetas": o usuário pode pedir VÁRIOS produtos com quantidades diferentes
+  numa frase só. Ex.: "imprime 5 etiquetas de alho, 3 de tomate e 10 de cebola"
+  vira etiquetas: [{produto:"alho",copias:5},{produto:"tomate",copias:3},{produto:"cebola",copias:10}].
+  Quando não disser a quantidade de um item, use copias: 1.
+
 Responda ESTRITAMENTE em JSON, sem markdown:
 {
-  "acao": "navegar|consultar_estoque|entrada_estoque|retirada_estoque|responder|desconhecido",
+  "acao": "navegar|consultar_estoque|entrada_estoque|retirada_estoque|etiquetas|responder|desconhecido",
+  "etiquetas": [{ "produto": "string", "copias": number }],
   "modulo": "inventory|core|...",
   "setor": "cozinha|bar|null",
   "produto": "string|null",
@@ -108,9 +114,18 @@ Pedido do usuário: """${String(texto).trim()}"""`;
     if (!obj) return NextResponse.json({ error: "Não entendi o pedido. Pode reformular?" }, { status: 422 });
 
     // Whitelist: nunca confiar cegamente no que voltou do modelo.
-    const acoesValidas = ["navegar", "consultar_estoque", "entrada_estoque", "retirada_estoque", "responder", "desconhecido"];
+    const acoesValidas = ["navegar", "consultar_estoque", "entrada_estoque", "retirada_estoque", "etiquetas", "responder", "desconhecido"];
     const intencao = {
       acao: acoesValidas.includes(obj.acao) ? obj.acao : "desconhecido",
+      // Lista de etiquetas: vários produtos, cada um com sua quantidade.
+      etiquetas: Array.isArray(obj.etiquetas)
+        ? obj.etiquetas.slice(0, 30)
+            .filter(e => e && e.produto)
+            .map(e => ({
+              produto: String(e.produto).slice(0, 120),
+              copias: Math.max(1, Math.min(100, Number(e.copias) || 1)),
+            }))
+        : [],
       modulo: typeof obj.modulo === "string" ? obj.modulo : null,
       setor: obj.setor === "bar" || obj.setor === "cozinha" ? obj.setor : null,
       produto: obj.produto ? String(obj.produto).slice(0, 120) : null,

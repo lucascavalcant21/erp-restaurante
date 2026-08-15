@@ -314,6 +314,39 @@ function EtiquetasRunner() {
   const cadastroUnidadeCompleto = Boolean(cnpjUnidade && unidadeInfo?.cep && enderecoUnidade && unidadeInfo?.cidade && unidadeInfo?.uf);
 
   // ── FILA: adiciona a etiqueta atual (produto × cópias) e limpa para o próximo ──
+  // ── Fila ditada por voz ao Hefisto ────────────────────────────────────────
+  // "5 etiquetas de alho, 3 de tomate e 10 de cebola" chega aqui como lista.
+  // Cada item é preenchido, aguarda a prévia renderizar e entra na fila.
+  const [filaVoz, setFilaVoz] = useState(null); // { itens: [], idx: 0 }
+
+  useEffect(() => {
+    if (searchParams.get("fila") !== "voz") return;
+    try {
+      const bruto = localStorage.getItem("hefisto_etq_fila_voz");
+      localStorage.removeItem("hefisto_etq_fila_voz");
+      const itens = JSON.parse(bruto || "[]").filter(i => i && i.produto);
+      if (!itens.length) return;
+      setFilaVoz({ itens, idx: 0 });
+      set("produto", itens[0].produto);
+      setCopias(String(itens[0].copias || 1));
+    } catch { /* nada a fazer: a tela abre normal */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!filaVoz) return;
+    const t = setTimeout(async () => {
+      await adicionarNaFila();
+      const prox = filaVoz.idx + 1;
+      if (prox >= filaVoz.itens.length) { setFilaVoz(null); return; }
+      set("produto", filaVoz.itens[prox].produto);
+      setCopias(String(filaVoz.itens[prox].copias || 1));
+      setFilaVoz({ itens: filaVoz.itens, idx: prox });
+    }, 800); // tempo da prévia desenhar a etiqueta do item atual
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filaVoz]);
+
   async function adicionarNaFila() {
     if (salvando) return;
     const momentoImpressao = new Date();
@@ -322,7 +355,8 @@ function EtiquetasRunner() {
       : new Date(momentoImpressao.getTime() + (Number(form.dias) || 0) * 86400000);
     if (!nomeProduto) { setSalvou("Informe o produto"); setTimeout(() => setSalvou(""), 2000); return; }
     if (!form.responsavel.trim()) { setSalvou("Informe o responsável"); setTimeout(() => setSalvou(""), 2000); return; }
-    if (Number(form.quantidade) <= 0) { setSalvou("Informe uma quantidade maior que zero"); setTimeout(() => setSalvou(""), 2500); return; }
+    // Peso é opcional: só recusa se a pessoa digitou um valor inválido.
+    if (String(form.quantidade ?? "").trim() !== "" && Number(form.quantidade) <= 0) { setSalvou("O peso precisa ser maior que zero"); setTimeout(() => setSalvou(""), 2500); return; }
     if (!cadastroUnidadeCompleto) { setSalvou("Complete CNPJ, CEP, endereço, cidade e UF da unidade antes de imprimir"); setTimeout(() => setSalvou(""), 4000); return; }
     if (!Number.isFinite(validadeImpressao.getTime()) || validadeImpressao.getTime() < momentoImpressao.getTime()) {
       setSalvou("A validade não pode estar no passado"); setTimeout(() => setSalvou(""), 2500); return;
@@ -449,7 +483,8 @@ function EtiquetasRunner() {
     const diasImpressao = Math.max(0, Math.round((validadeImpressao.getTime() - momentoImpressao.getTime()) / 86400000));
     if (!nomeProduto) { setSalvou("Informe o produto"); setTimeout(() => setSalvou(""), 2000); return; }
     if (!form.responsavel.trim()) { setSalvou("Informe o responsável"); setTimeout(() => setSalvou(""), 2000); return; }
-    if (Number(form.quantidade) <= 0) { setSalvou("Informe uma quantidade maior que zero"); setTimeout(() => setSalvou(""), 2500); return; }
+    // Peso é opcional: só recusa se a pessoa digitou um valor inválido.
+    if (String(form.quantidade ?? "").trim() !== "" && Number(form.quantidade) <= 0) { setSalvou("O peso precisa ser maior que zero"); setTimeout(() => setSalvou(""), 2500); return; }
     if (!Number.isInteger(Number(copias))) { setSalvou("A quantidade de etiquetas deve ser um número inteiro"); setTimeout(() => setSalvou(""), 3000); return; }
     if (Number(copias) < 1) { setSalvou("Informe pelo menos uma etiqueta"); setTimeout(() => setSalvou(""), 2500); return; }
     if (Number(copias) > 100) { setSalvou("Imprima no máximo 100 etiquetas por lote"); setTimeout(() => setSalvou(""), 3000); return; }

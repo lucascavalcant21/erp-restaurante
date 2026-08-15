@@ -100,7 +100,8 @@ const SIDEBAR_MENU = [
     home: "/dashboard/rh/extra",
     icon: UserRound,
     items: [
-      { label: "Cadastro e Recibos", href: "/dashboard/rh/extra" }
+      { label: "Cadastro e Recibos", href: "/dashboard/rh/extra" },
+      { label: "Cadastro facial do ponto", href: "/dashboard/rh/facial" }
     ]
   },
   {

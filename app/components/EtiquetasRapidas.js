@@ -303,6 +303,71 @@ export default function EtiquetasRapidas() {
     return candidatos.sort((a, b) => Math.abs(normalizarVoz(a.nome).length - procurado.length) - Math.abs(normalizarVoz(b.nome).length - procurado.length))[0] || null;
   }
 
+  // Monta os itens da fila a partir de uma lista já interpretada.
+  function adicionarItensNaFila(itens, textoOriginal) {
+    const nomesLivres = [];
+    const novosItens = itens.map((item, indice) => {
+      const encontrado = localizarProdutoPorVoz(item.produto);
+      const produto = encontrado || { id: `voz-livre:${Date.now()}:${indice}`, nome: nomeBonitoVoz(item.produto), unidade: "UN", custo: 0, origem: "Comando de voz" };
+      if (!encontrado) nomesLivres.push(produto.nome);
+      return {
+        ...produto,
+        quantidade: "",
+        informarQuantidade: false,
+        copias: Math.max(1, Math.floor(Number(item.copias) || 1)),
+        dias: Number.isFinite(Number(item.dias)) && Number(item.dias) >= 0 ? Number(item.dias) : 3,
+        conservacao: "Resfriado",
+        codigo: gerarCodigo(),
+        modeloEtiqueta: item.somente_nome ? "nome" : "validade",
+        tipoEtiqueta: "aberto",
+      };
+    });
+    if (!novosItens.length) {
+      setRespostaVoz("Nao consegui separar os itens. Comece cada produto pela quantidade, por exemplo: 3 etiquetas de arroz, 2 de feijao.");
+      return;
+    }
+    const novasEtiquetas = novosItens.reduce((total, item) => total + item.copias, 0);
+    if (totalEtiquetas + novasEtiquetas > 1000) {
+      setRespostaVoz(`O comando tem ${novasEtiquetas} etiquetas e ultrapassa o limite de 1000. Fale quantidades menores.`);
+      return;
+    }
+    setFila(atual => [...atual, ...novosItens]);
+    setMomento(new Date());
+    setRespostaVoz(`${novosItens.length} produto(s) e ${novasEtiquetas} etiqueta(s) adicionados a fila.${nomesLivres.length ? ` Nao estavam no cadastro e entraram pelo nome falado: ${nomesLivres.join(", ")}.` : ""}`);
+    registrarAuditoria({
+      unidadeId: unidadeAtiva,
+      usuarioId: sessao?.user?.id || sessao?.id || responsavel?.id || null,
+      usuarioNome: responsavel?.nome || sessao?.nome || sessao?.user?.email || "",
+      comando: textoOriginal,
+      intencao: { itens: novosItens.map(item => ({ produto: item.nome, copias: item.copias, validade_dias: item.dias, modelo: item.modeloEtiqueta })) },
+      acao: "labels.voice_batch",
+      modulo: "labels",
+      valorAnterior: totalEtiquetas,
+      valorNovo: totalEtiquetas + novasEtiquetas,
+      resultado: "sucesso",
+      exigiuConfirmacao: true,
+    }).catch(() => {});
+  }
+
+  // A IA separa a lista ditada: a transcrição vem sem vírgulas e com erros de
+  // audição, e regex não dá conta. Se a IA falhar, cai no separador local.
+  async function processarComandoVozIA(texto) {
+    setRespostaVoz("Entendendo o que você falou...");
+    try {
+      const resposta = await fetch("/api/hefisto", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ texto, contexto: { modulo: "labels", pagina: "etiquetas" } }),
+      });
+      const dados = await resposta.json();
+      const itens = dados?.intencao?.etiquetas || [];
+      if (!resposta.ok || !itens.length) { processarComandoVoz(texto); return; }
+      adicionarItensNaFila(itens, texto);
+    } catch {
+      processarComandoVoz(texto); // sem internet: separador local
+    }
+  }
+
   function processarComandoVoz(texto) {
     const comando = converterNumerosDaVoz(texto);
     setTextoVoz(texto);
@@ -364,7 +429,7 @@ export default function EtiquetasRapidas() {
       return;
     }
     const novasEtiquetas = novosItens.reduce((total, item) => total + item.copias, 0);
-    if (totalEtiquetas + novasEtiquetas > 100) {
+    if (totalEtiquetas + novasEtiquetas > 1000) {
       setRespostaVoz(`O comando tem ${novasEtiquetas} etiquetas e ultrapassa o limite de 1000. Fale quantidades menores.`);
       return;
     }
@@ -402,7 +467,7 @@ export default function EtiquetasRapidas() {
       continuo: true,
       silencioMs: 4000,
       onParcial: parcial => setTextoVoz(parcial),
-      onFinal: final => processarComandoVoz(final),
+      onFinal: final => processarComandoVozIA(final),
       onErro: erro => { setOuvindoVoz(false); setRespostaVoz(erro); },
       onFim: () => setOuvindoVoz(false),
     });

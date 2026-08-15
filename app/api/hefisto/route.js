@@ -62,15 +62,24 @@ Regras:
   Para retirada_estoque, obrigatórios: produto, quantidade.
 - "resposta_curta": uma frase amigável dizendo o que você entendeu (ou a pergunta do que falta).
 
-- Para "etiquetas": o usuário pode pedir VÁRIOS produtos com quantidades diferentes
-  numa frase só. Ex.: "imprime 5 etiquetas de alho, 3 de tomate e 10 de cebola"
-  vira etiquetas: [{produto:"alho",copias:5},{produto:"tomate",copias:3},{produto:"cebola",copias:10}].
-  Quando não disser a quantidade de um item, use copias: 1.
+- Para "etiquetas": o usuário DITA uma lista longa, e a transcrição costuma vir
+  SEM vírgulas e com erros de audição. Separe os itens mesmo assim: cada vez que
+  aparece um número seguido de "etiquetas de X", começa um item novo.
+  Ex.: "15 etiquetas de feijão fradinho 4 etiquetas de baião de dois 20 etiquetas
+  de camarão seco" → três itens (15 feijão fradinho, 4 baião de dois, 20 camarão seco).
+  Regras por item:
+  · "copias": o número dito. Sem número, use 1.
+  · "dias": validade em dias, se ele disser ("com 4 dias de validade"). Senão null.
+    A validade pode vir DEPOIS, referindo-se a um item já citado ("as etiquetas do
+    feijão fradinho eu quero com 4 dias") — aplique ao item certo, não crie outro.
+  · "somente_nome": true se pedir "só o nome" / "somente nome" para aquele item.
+  · Nunca corte um nome composto ("baião de dois", "camarão seco", "saco de lagosta").
+  · Ignore trechos sem sentido da transcrição em vez de virar item.
 
 Responda ESTRITAMENTE em JSON, sem markdown:
 {
   "acao": "navegar|consultar_estoque|entrada_estoque|retirada_estoque|etiquetas|responder|desconhecido",
-  "etiquetas": [{ "produto": "string", "copias": number }],
+  "etiquetas": [{ "produto": "string", "copias": number, "dias": number|null, "somente_nome": boolean }],
   "modulo": "inventory|core|...",
   "setor": "cozinha|bar|null",
   "produto": "string|null",
@@ -124,6 +133,8 @@ Pedido do usuário: """${String(texto).trim()}"""`;
             .map(e => ({
               produto: String(e.produto).slice(0, 120),
               copias: Math.max(1, Math.min(1000, Number(e.copias) || 1)),
+              dias: Number.isFinite(Number(e.dias)) && Number(e.dias) >= 0 ? Math.min(3650, Number(e.dias)) : null,
+              somente_nome: e.somente_nome === true,
             }))
         : [],
       modulo: typeof obj.modulo === "string" ? obj.modulo : null,

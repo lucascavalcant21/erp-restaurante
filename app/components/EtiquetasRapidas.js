@@ -303,6 +303,13 @@ export default function EtiquetasRapidas() {
     return candidatos.sort((a, b) => Math.abs(normalizarVoz(a.nome).length - procurado.length) - Math.abs(normalizarVoz(b.nome).length - procurado.length))[0] || null;
   }
 
+  const semAcentoVoz = (v) => {
+    const d = String(v || "").normalize("NFD");
+    let out = "";
+    for (const ch of d) { const c = ch.charCodeAt(0); if (c < 0x300 || c > 0x36f) out += ch; }
+    return out.toLowerCase().trim();
+  };
+
   // Monta os itens da fila a partir de uma lista já interpretada.
   function adicionarItensNaFila(itens, textoOriginal) {
     const nomesLivres = [];
@@ -331,7 +338,20 @@ export default function EtiquetasRapidas() {
       setRespostaVoz(`O comando tem ${novasEtiquetas} etiquetas e ultrapassa o limite de 1000. Fale quantidades menores.`);
       return;
     }
-    setFila(atual => [...atual, ...novosItens]);
+    // Ditar o mesmo produto duas vezes soma as cópias em vez de criar duas
+    // linhas iguais na fila (só junta quando validade e modelo batem).
+    setFila(atual => {
+      const resultado = [...atual];
+      novosItens.forEach(novo => {
+        const igual = resultado.findIndex(x =>
+          semAcentoVoz(x.nome) === semAcentoVoz(novo.nome)
+          && Number(x.dias) === Number(novo.dias)
+          && x.modeloEtiqueta === novo.modeloEtiqueta);
+        if (igual >= 0) resultado[igual] = { ...resultado[igual], copias: resultado[igual].copias + novo.copias };
+        else resultado.push(novo);
+      });
+      return resultado;
+    });
     setMomento(new Date());
     setRespostaVoz(`${novosItens.length} produto(s) e ${novasEtiquetas} etiqueta(s) adicionados a fila.${nomesLivres.length ? ` Nao estavam no cadastro e entraram pelo nome falado: ${nomesLivres.join(", ")}.` : ""}`);
     registrarAuditoria({
@@ -569,7 +589,39 @@ export default function EtiquetasRapidas() {
     <style>{ESTILOS}</style>
     <header><button onClick={voltar}><ArrowLeft size={20} /></button><Tag size={27} color="var(--cor)" /><div><strong>Etiquetas · {setor === "bar" ? "Bar" : "Cozinha"}</strong><span>{responsavel.nome} · {totalEtiquetas} etiqueta(s) na fila</span></div><button onClick={telaCheia}><Maximize2 size={19} /></button></header>
     <main className="etq-conteudo">
-      {fila.length > 0 && <section className="etq-fila"><div className="etq-fila-topo"><div><strong>Fila de etiquetas</strong><span>{fila.length} tipo(s) · {totalEtiquetas} etiqueta(s)</span></div><div className="etq-fila-acoes"><button className="salvar" onClick={salvarFilaComoLista} disabled={salvandoLista || salvando}>{salvandoLista ? <RefreshCw className="animate-spin" size={18}/> : <Save size={19}/>} {salvandoLista ? "Salvando..." : "Salvar lista"}</button><button className="imprimir" onClick={() => imprimirFila()} disabled={salvando}>{salvando ? <RefreshCw className="animate-spin" size={19}/> : <Printer size={20}/>} {salvando ? "Preparando..." : "Imprimir"}</button></div></div><div className="etq-fila-lista">{fila.map((produto, indice) => <article key={`${produto.codigo}-${indice}`}><div><strong>{produto.nome}</strong><small>{produto.copias} cópia(s) · {produto.modeloEtiqueta === "nome" ? "somente nome" : `${produto.dias} dia(s) de validade`}</small></div><button onClick={() => setFila(atual => atual.filter((_, posicao) => posicao !== indice))} aria-label={`Remover ${produto.nome}`}><Trash2 size={17}/></button></article>)}</div></section>}
+      {fila.length > 0 && <section className="etq-fila"><div className="etq-fila-topo"><div><strong>Fila de etiquetas</strong><span>{fila.length} tipo(s) · {totalEtiquetas} etiqueta(s)</span></div><div className="etq-fila-acoes"><button className="salvar" onClick={iniciarEscutaVoz} disabled={salvando} style={{ background: "#ecfdf5", color: "#047857", borderColor: "#a7f3d0" }}><Mic size={19}/> Falar mais</button><button className="salvar" onClick={salvarFilaComoLista} disabled={salvandoLista || salvando}>{salvandoLista ? <RefreshCw className="animate-spin" size={18}/> : <Save size={19}/>} {salvandoLista ? "Salvando..." : "Salvar lista"}</button><button className="imprimir" onClick={() => imprimirFila()} disabled={salvando}>{salvando ? <RefreshCw className="animate-spin" size={19}/> : <Printer size={20}/>} {salvando ? "Preparando..." : "Imprimir"}</button></div></div><div className="etq-fila-lista">{fila.map((produto, indice) => {
+        const mudar = (campo, valor) => setFila(atual => atual.map((x, i) => i === indice ? { ...x, [campo]: valor } : x));
+        return (
+        <article key={`${produto.codigo}-${indice}`} style={{ display: "block" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <strong style={{ flex: 1, minWidth: 0 }}>{produto.nome}</strong>
+            <button onClick={() => setFila(atual => atual.filter((_, posicao) => posicao !== indice))} aria-label={`Remover ${produto.nome}`}><Trash2 size={17}/></button>
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 14, alignItems: "center", marginTop: 10 }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <small style={{ fontWeight: 800, color: "#64748b" }}>Cópias</small>
+              <button onClick={() => mudar("copias", Math.max(1, produto.copias - 1))} style={{ width: 38, height: 38, borderRadius: 10, border: "1px solid #cbd5e1", background: "#fff", fontWeight: 900, fontSize: 18 }}>−</button>
+              <input type="number" min="1" max="1000" value={produto.copias}
+                onChange={e => mudar("copias", Math.max(1, Math.min(1000, Math.floor(Number(e.target.value) || 1))))}
+                style={{ width: 66, height: 38, borderRadius: 10, border: "1px solid #cbd5e1", textAlign: "center", fontWeight: 900 }} />
+              <button onClick={() => mudar("copias", Math.min(1000, produto.copias + 1))} style={{ width: 38, height: 38, borderRadius: 10, border: "1px solid #cbd5e1", background: "#fff", fontWeight: 900, fontSize: 18 }}>+</button>
+            </span>
+            {produto.modeloEtiqueta !== "nome" && (
+              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <small style={{ fontWeight: 800, color: "#64748b" }}>Validade</small>
+                <input type="number" min="0" max="3650" value={produto.dias}
+                  onChange={e => mudar("dias", Math.max(0, Math.floor(Number(e.target.value) || 0)))}
+                  style={{ width: 66, height: 38, borderRadius: 10, border: "1px solid #cbd5e1", textAlign: "center", fontWeight: 900 }} />
+                <small style={{ fontWeight: 800, color: "#64748b" }}>dia(s)</small>
+              </span>
+            )}
+            <button onClick={() => mudar("modeloEtiqueta", produto.modeloEtiqueta === "nome" ? "validade" : "nome")}
+              style={{ height: 38, padding: "0 14px", borderRadius: 10, fontWeight: 800, border: "1px solid " + (produto.modeloEtiqueta === "nome" ? "#059669" : "#cbd5e1"), background: produto.modeloEtiqueta === "nome" ? "#059669" : "#fff", color: produto.modeloEtiqueta === "nome" ? "#fff" : "#334155" }}>
+              Só o nome
+            </button>
+          </div>
+        </article>);
+      })}</div></section>}
       <div className="etq-titulo"><h2>{fila.length ? "Adicionar outro produto" : "1. Escolha o produto"}</h2><span>{visiveis.length} disponível(is)</span></div>
       <button className="etq-voz-abrir" onClick={iniciarEscutaVoz}><span><Mic size={23}/></span><div><strong>Adicionar várias por voz</strong><small>Diga produtos, quantidades, validade ou somente nome</small></div></button>
       <button className={`etq-bluetooth ${bluetoothNome ? "conectada" : ""}`} onClick={conectarTomatoBluetooth} disabled={conectandoBluetooth}><Bluetooth size={22}/><div><strong>{bluetoothNome ? `Tomato conectada: ${bluetoothNome}` : "Conectar Tomato Bluetooth"}</strong><small>{bluetoothNome ? "A impressão será direta, sem AirPrint" : "Para Android com Chrome · escolha a impressora dentro do sistema"}</small></div>{conectandoBluetooth && <RefreshCw className="animate-spin" size={19}/>}</button>

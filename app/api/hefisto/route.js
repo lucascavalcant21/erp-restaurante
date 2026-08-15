@@ -69,7 +69,7 @@ Regras:
   de camarão seco" → três itens (15 feijão fradinho, 4 baião de dois, 20 camarão seco).
   Regras por item:
   · "copias": o número dito. Sem número, use 1.
-  · "dias": validade em dias, se ele disser ("com 4 dias de validade"). Senão null.
+  · "dias": validade em dias, SÓ se ele disser ("com 4 dias de validade"). Se não falar, use null — nunca 0.
     A validade pode vir DEPOIS, referindo-se a um item já citado ("as etiquetas do
     feijão fradinho eu quero com 4 dias") — aplique ao item certo, não crie outro.
   · "somente_nome": true se pedir "só o nome" / "somente nome" para aquele item.
@@ -133,7 +133,7 @@ Pedido do usuário: """${String(texto).trim()}"""`;
             .map(e => ({
               produto: String(e.produto).slice(0, 120),
               copias: Math.max(1, Math.min(1000, Number(e.copias) || 1)),
-              dias: Number.isFinite(Number(e.dias)) && Number(e.dias) >= 0 ? Math.min(3650, Number(e.dias)) : null,
+              dias: Number(e.dias) > 0 ? Math.min(3650, Number(e.dias)) : null,
               somente_nome: e.somente_nome === true,
             }))
         : [],

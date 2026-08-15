@@ -63,6 +63,11 @@ export async function salvarEstrutura(processoId, secoes, { subirVersao = false 
   await supabase.from("op_itens").delete().eq("processo_id", processoId);
   await supabase.from("op_secoes").delete().eq("processo_id", processoId);
 
+  // Regravar gera ids novos, então o item condicional é ligado pela "chave" que
+  // o construtor carrega e resolvido numa segunda passada, já com os ids reais.
+  const idPorChave = {};
+  const pendentes = [];
+
   for (const [iSecao, secao] of (secoes || []).entries()) {
     const { data: nova, error } = await supabase.from("op_secoes")
       .insert([{ processo_id: processoId, titulo: secao.titulo, descricao: secao.descricao || null, ordem: iSecao }])
@@ -88,20 +93,74 @@ export async function salvarEstrutura(processoId, secoes, { subirVersao = false 
       unidade_medida: item.unidade_medida || null,
       opcoes: Array.isArray(item.opcoes) ? item.opcoes : [],
       resposta_esperada: item.resposta_esperada || null,
-      depende_item_id: item.depende_item_id || null,
+      depende_item_id: item.depende_chave ? null : (item.depende_item_id || null),
       depende_valor: item.depende_valor || null,
       acao_reprovar: item.acao_reprovar || "nao_conformidade",
       criterios_ia: item.criterios_ia || null,
     }));
     if (itens.length) {
-      const { error: e2 } = await supabase.from("op_itens").insert(itens);
+      const { data: gravados, error: e2 } = await supabase.from("op_itens").insert(itens).select("id");
       if (e2) return { error: err(e2) };
+      (gravados || []).forEach((linha, i) => {
+        const origem = secao.itens[i];
+        if (origem?.chave) idPorChave[origem.chave] = linha.id;
+        if (origem?.depende_chave) pendentes.push({ id: linha.id, alvo: origem.depende_chave, valor: origem.depende_valor || null });
+      });
     }
+  }
+
+  for (const p of pendentes) {
+    const alvo = idPorChave[p.alvo];
+    if (alvo) await supabase.from("op_itens").update({ depende_item_id: alvo, depende_valor: p.valor }).eq("id", p.id);
   }
   return { error: null };
 }
 
 // ── AGENDAS ─────────────────────────────────────────────────────────────────
+// Já rodou alguma vez? Se sim, editar o modelo sobe a versão — o histórico
+// continua contando a história da versão que foi executada.
+export async function processoTemExecucao(processoId) {
+  if (!isSupabaseReady() || !processoId) return false;
+  const { count } = await supabase.from("op_execucoes")
+    .select("id", { count: "exact", head: true }).eq("processo_id", processoId);
+  return (count || 0) > 0;
+}
+
+export async function arquivarProcesso(id, arquivado = true) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase.from("op_processos")
+    .update({ arquivado, ativo: !arquivado, updated_at: new Date().toISOString() }).eq("id", id);
+  return { error: err(error) };
+}
+
+// Copia modelo, seções e itens. As agendas não vêm junto de propósito: a cópia
+// costuma rodar em outro horário.
+export async function duplicarProcesso(processoId, { criadoPor } = {}) {
+  const { data: original } = await fetchProcessoCompleto(processoId);
+  if (!original) return { error: "Processo não encontrado" };
+  const { id, secoes, created_at, updated_at, versao, ...campos } = original;
+  const { id: novoId, error } = await salvarProcesso({
+    ...campos, nome: `${original.nome} (cópia)`, versao: 1,
+    criado_por: criadoPor || original.criado_por || null,
+  });
+  if (error || !novoId) return { error: error || "Não consegui copiar." };
+  const e2 = await salvarEstrutura(novoId, secoes);
+  return { id: novoId, error: e2.error };
+}
+
+export async function fetchAgendasDoProcesso(processoId) {
+  if (!isSupabaseReady() || !processoId) return { data: [] };
+  const { data, error } = await supabase.from("op_agendas").select("*")
+    .eq("processo_id", processoId).order("hora_inicio");
+  return { data: data || [], error: err(error) };
+}
+
+export async function excluirAgenda(id) {
+  if (!isSupabaseReady() || !id) return { error: "Agenda inválida" };
+  const { error } = await supabase.from("op_agendas").delete().eq("id", id);
+  return { error: err(error) };
+}
+
 export async function fetchAgendas(unidadeId) {
   if (!isSupabaseReady() || !unidadeId) return { data: [] };
   const { data, error } = await supabase.from("op_agendas").select("*")

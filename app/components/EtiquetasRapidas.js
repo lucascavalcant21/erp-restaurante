@@ -258,7 +258,7 @@ export default function EtiquetasRapidas() {
     const itens = Array.isArray(lista.itens) ? lista.itens : [];
     const total = itens.reduce((soma, item) => soma + Math.max(1, Math.floor(numero(item.copias))), 0);
     if (!itens.length) return setAviso({ tipo: "erro", texto: "Esta lista não possui itens." });
-    if (total > 100) return setAviso({ tipo: "erro", texto: "A lista ultrapassa o limite de 100 etiquetas." });
+    if (total > 1000) return setAviso({ tipo: "erro", texto: "A lista ultrapassa o limite de 1000 etiquetas." });
     setFila(itens.map((itemLista, indice) => ({ ...itemLista, id: itemLista.id || `lista:${lista.id}:${indice}`, codigo: gerarCodigo() })));
     setMomento(new Date());
     setAviso({ tipo: "ok", texto: `Lista “${lista.nome}” carregada. Confira antes de imprimir.` });
@@ -365,7 +365,7 @@ export default function EtiquetasRapidas() {
     }
     const novasEtiquetas = novosItens.reduce((total, item) => total + item.copias, 0);
     if (totalEtiquetas + novasEtiquetas > 100) {
-      setRespostaVoz(`O comando tem ${novasEtiquetas} etiquetas e ultrapassa o limite de 100. Fale quantidades menores.`);
+      setRespostaVoz(`O comando tem ${novasEtiquetas} etiquetas e ultrapassa o limite de 1000. Fale quantidades menores.`);
       return;
     }
     setFila(atual => [...atual, ...novosItens]);
@@ -510,7 +510,7 @@ export default function EtiquetasRapidas() {
     </main>
 
     {item && <div className="etq-modal" onClick={() => setItem(null)}><div className="etq-card" onClick={evento => evento.stopPropagation()}><button className="fechar" onClick={() => setItem(null)}><X size={20} /></button><div className="etq-icone"><Tag size={27} /></div><p>Configure e imprima</p><h2>{item.nome}</h2>
-      <h3>2. Quantas cópias?</h3><div className="etq-copias"><button onClick={() => alterar("copias", Math.max(1, numero(item.copias) - 1))}><Minus size={26} /></button><label><input type="number" inputMode="numeric" min="1" max="100" value={item.copias} onChange={e => alterar("copias", Math.max(1, Math.min(100, Math.floor(numero(e.target.value) || 1))))} /><span>etiquetas</span></label><button onClick={() => alterar("copias", Math.min(100, numero(item.copias) + 1))}><Plus size={26} /></button></div>
+      <h3>2. Quantas cópias?</h3><div className="etq-copias"><button onClick={() => alterar("copias", Math.max(1, numero(item.copias) - 1))}><Minus size={26} /></button><label><input type="number" inputMode="numeric" min="1" max="1000" value={item.copias} onChange={e => alterar("copias", Math.max(1, Math.min(1000, Math.floor(numero(e.target.value) || 1))))} /><span>etiquetas</span></label><button onClick={() => alterar("copias", Math.min(1000, numero(item.copias) + 1))}><Plus size={26} /></button></div>
       <h3>3. Tipo de etiqueta</h3><div className="etq-modelos"><button className={modeloEtiqueta === "validade" ? "ativo" : ""} onClick={() => setModeloEtiqueta("validade")}><strong>Com validade</strong><span>Dados completos e QR</span></button><button className={modeloEtiqueta === "nome" ? "ativo" : ""} onClick={() => setModeloEtiqueta("nome")}><strong>Somente nome</strong><span>Nome grande e centralizado</span></button></div>
       {modeloEtiqueta === "validade" && <><h3>4. Validade</h3><div className="etq-validade"><select value={categoriaId} onChange={e => { setCategoriaId(e.target.value); const cat = categorias.find(c => c.id === e.target.value); if (cat) alterar("dias", cat.dias); }}><option value="">Prazo manual</option>{categorias.map(cat => <option key={cat.id} value={cat.id}>{cat.nome} · {cat.dias} dia(s)</option>)}</select><label><input type="number" inputMode="numeric" min="0" value={item.dias} onChange={e => { setCategoriaId(""); alterar("dias", e.target.value); }} /><span>dias</span></label></div>
       <button type="button" className="etq-detalhes-btn" onClick={() => setMostrarDetalhes(valor => !valor)}>{mostrarDetalhes ? "Ocultar opções" : "+ Peso, conservação e tipo de produto (opcional)"}</button>

@@ -119,11 +119,11 @@ Pedido do usuário: """${String(texto).trim()}"""`;
       acao: acoesValidas.includes(obj.acao) ? obj.acao : "desconhecido",
       // Lista de etiquetas: vários produtos, cada um com sua quantidade.
       etiquetas: Array.isArray(obj.etiquetas)
-        ? obj.etiquetas.slice(0, 30)
+        ? obj.etiquetas.slice(0, 60)
             .filter(e => e && e.produto)
             .map(e => ({
               produto: String(e.produto).slice(0, 120),
-              copias: Math.max(1, Math.min(100, Number(e.copias) || 1)),
+              copias: Math.max(1, Math.min(1000, Number(e.copias) || 1)),
             }))
         : [],
       modulo: typeof obj.modulo === "string" ? obj.modulo : null,

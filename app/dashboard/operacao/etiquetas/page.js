@@ -18,8 +18,12 @@ import { ControleValidade } from "../validade/page";
 import { useRascunho } from "../../../lib/rascunho";
 import {
   conectarAssistenteImpressao, observarAssistenteImpressao,
-  imprimirEtiquetasTp20, PERFIS_TP20,
+  imprimirEtiquetasTp20, PERFIS_TP20, gerarComandosEtiqueta,
 } from "../../../lib/impressaoTermica";
+import {
+  bluetoothDisponivel, motivoBluetoothIndisponivel, conectarImpressoraBluetooth,
+  impressoraBluetoothConectada, nomeImpressoraBluetooth, enviarBytesBluetooth,
+} from "../../../lib/impressaoBluetooth";
 import { baixarPdfDeHtml } from "../../../lib/pdf";
 import { imprimirHtml } from "../../../lib/imprimir";
 import EtiquetasRapidas from "../../../components/EtiquetasRapidas";
@@ -164,6 +168,24 @@ function EtiquetasRunner() {
   const [categoriaValidade, setCategoriaValidade] = useState("");
   const [salvou, setSalvou] = useState("");
   const [salvando, setSalvando] = useState(false);
+  // Impressão Bluetooth (tablet Android): sem PC, sem driver, sem AirPrint.
+  const [btNome, setBtNome] = useState("");
+  const [btErro, setBtErro] = useState("");
+  const [btConectando, setBtConectando] = useState(false);
+  const temBluetooth = typeof window !== "undefined" && bluetoothDisponivel();
+  const conectarBluetooth = async () => {
+    setBtErro("");
+    setBtConectando(true);
+    try {
+      const r = await conectarImpressoraBluetooth();
+      setBtNome(r.nome);
+    } catch (e) {
+      // Cancelar a janela de pareamento não é erro para o usuário.
+      if (!/cancel|user/i.test(e?.message || "")) setBtErro(e?.message || "Não consegui conectar na impressora.");
+    } finally {
+      setBtConectando(false);
+    }
+  };
   const [codigoSalvo, setCodigoSalvo] = useState(null);
   const [assinaturaSalva, setAssinaturaSalva] = useState(null);
   const [copias, setCopias] = useState(1);
@@ -301,7 +323,7 @@ function EtiquetasRunner() {
     return new Date(agora.getTime() + (Number(form.dias) || 0) * 86400000);
   }, [validadeModo, dataValidade, agora, form.dias]);
   const nomeProduto = (form.produto || "").trim();
-  const quantidadeCopias = Math.max(1, Math.min(100, Math.floor(Number(copias) || 1)));
+  const quantidadeCopias = Math.max(1, Math.min(1000, Math.floor(Number(copias) || 1)));
 
   const rastreioUrl = typeof window !== "undefined" ? `${window.location.origin}/rastreio/${codigo}` : `/rastreio/${codigo}`;
   const cnpjUnidade = unidadeInfo?.cnpj || "";
@@ -547,6 +569,21 @@ function EtiquetasRunner() {
           },
         });
         setSalvou(`${quantidadeCopias} etiqueta${quantidadeCopias !== 1 ? "s" : ""} enviada${quantidadeCopias !== 1 ? "s" : ""} para ${impressoraNome}`);
+      } else if (modoImpressao === "bluetooth") {
+        // Tablet/celular Android falando direto com a impressora — sem PC.
+        const bytes = await gerarComandosEtiqueta({
+          tamanho, copias: quantidadeCopias,
+          dados: {
+            codigo, produto: nomeProduto, conservacao: form.conservacao,
+            quantidade: form.quantidade, unidade: form.unidade, tipoEtiqueta,
+            momento: momentoImpressao, validade: validadeImpressao,
+            responsavel: form.responsavel.trim(), lote: form.lote,
+            unidadeNome: unidadeInfo.nome_fantasia || unidadeInfo.nome,
+            cnpj: fmtCNPJ(cnpjUnidade), endereco: enderecoUnidade, localizacao: localizacaoUnidade,
+          },
+        });
+        await enviarBytesBluetooth(bytes);
+        setSalvou(`${quantidadeCopias} etiqueta${quantidadeCopias !== 1 ? "s" : ""} enviada${quantidadeCopias !== 1 ? "s" : ""} por Bluetooth`);
       } else if (modoImpressao === "navegador") {
         // Impressão ISOLADA: abre uma janela só com as etiquetas (o resto da tela
         // fazia o navegador gerar várias folhas em branco).
@@ -729,7 +766,7 @@ function EtiquetasRunner() {
               <div className="grid grid-cols-3 gap-3">
                 <Field label="Peso do Produto"><NumberInput value={form.quantidade} onChange={(e) => set("quantidade", e.target.value)} placeholder="0.00" /></Field>
                 <Field label="Unidade"><Select value={form.unidade} onChange={(e) => set("unidade", e.target.value)}>{UNIDADES.map((u) => <option key={u}>{u}</option>)}</Select></Field>
-                <Field label="Etiquetas p/ Imprimir"><NumberInput value={copias} onChange={(e) => setCopias(e.target.value)} min="1" max="100" step="1" /></Field>
+                <Field label="Etiquetas p/ Imprimir"><NumberInput value={copias} onChange={(e) => setCopias(e.target.value)} min="1" max="1000" step="1" /></Field>
               </div>
               <div className="mb-2 flex gap-1.5">
                 {[["dias", "Daqui a X dias"], ["data", "Escolher a data"]].map(([m, l]) => (
@@ -823,6 +860,44 @@ function EtiquetasRunner() {
                 className="inline-block text-[10px] font-bold mt-1.5" style={{ color: "var(--accent-fg)" }}>
                 Instalar o assistente QZ Tray neste computador
               </a>
+            </Card>
+
+            {/* Impressora Bluetooth — caminho do tablet/celular Android */}
+            <Card>
+              <SectionLabel>Impressora Bluetooth (tablet)</SectionLabel>
+              {temBluetooth ? (
+                <>
+                  <div className="flex items-center justify-between gap-3 mt-1">
+                    <div className="flex items-center gap-2 min-w-0">
+                      {btNome
+                        ? <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                        : <WifiOff size={16} className="text-slate-400 shrink-0" />}
+                      <span className="text-sm font-bold truncate" style={{ color: btNome ? "#059669" : "var(--muted)" }}>
+                        {btNome ? `Conectada: ${btNome}` : "Nenhuma impressora pareada"}
+                      </span>
+                    </div>
+                    <button type="button" onClick={conectarBluetooth} disabled={btConectando}
+                      className="px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 disabled:opacity-50 shrink-0"
+                      style={{ background: "var(--accent-soft)", color: "var(--accent-fg)" }}>
+                      <RefreshCw size={13} className={btConectando ? "animate-spin" : ""} />
+                      {btNome ? "Trocar" : "Conectar"}
+                    </button>
+                  </div>
+                  {btErro && <p className="text-[11px] font-bold text-red-600 bg-red-50 rounded-lg px-3 py-2 mt-2">{btErro}</p>}
+                  {btNome && (
+                    <Btn variant="primary" className="w-full mt-3" disabled={salvando} onClick={() => salvar("bluetooth")}>
+                      <Printer size={15} /> Imprimir por Bluetooth
+                    </Btn>
+                  )}
+                  <p className="text-[10px] font-medium mt-2" style={{ color: "var(--dim)" }}>
+                    Imprime direto do tablet, sem computador e sem driver. Ligue a impressora e toque em Conectar.
+                  </p>
+                </>
+              ) : (
+                <p className="text-[11px] font-medium mt-1" style={{ color: "var(--muted)" }}>
+                  {motivoBluetoothIndisponivel()}
+                </p>
+              )}
             </Card>
 
           </div>

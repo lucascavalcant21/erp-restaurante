@@ -332,12 +332,26 @@ function bytesParaBase64(bytes) {
   return btoa(binario);
 }
 
+// Gera os bytes ESC/POS da etiqueta. Usado tanto pela impressão via QZ Tray
+// (cabo/USB no PC) quanto pela impressão Bluetooth direta do tablet.
+export async function gerarComandosEtiqueta({ tamanho, copias = 1, dados, larguraImpressora }) {
+  const perfilBase = PERFIS_TP20[tamanho];
+  if (!perfilBase) throw new Error("Perfil de etiqueta não configurado");
+  const pontos = LARGURAS_TERMICAS[larguraImpressora]?.pontos || perfilBase.larguraPontos;
+  const perfil = perfilNaLargura(perfilBase, pontos);
+  const quantidade = Math.max(1, Math.min(1000, Number(copias) || 1));
+  const qrImagem = await carregarQrDaPrevia();
+  const canvas = criarCanvasEtiqueta(perfil, dados, qrImagem);
+  const { raster, bytesPorLinha } = canvasParaRaster(canvas);
+  return criarComandosEscPos(perfil, raster, bytesPorLinha, quantidade);
+}
+
 export async function imprimirEtiquetasTp20({ impressora, tamanho, copias, dados, larguraImpressora }) {
   const perfilBase = PERFIS_TP20[tamanho];
   if (!perfilBase) throw new Error("Perfil de etiqueta não configurado");
   const pontos = LARGURAS_TERMICAS[larguraImpressora]?.pontos || perfilBase.larguraPontos;
   const perfil = perfilNaLargura(perfilBase, pontos);
-  const quantidade = Math.max(1, Math.min(100, Number(copias) || 1));
+  const quantidade = Math.max(1, Math.min(1000, Number(copias) || 1));
   const qz = await obterQz();
   if (!qz.websocket.isActive()) throw new Error("Conecte e autorize a impressora antes de imprimir");
   if (!impressora) throw new Error("Selecione a impressora térmica");
@@ -434,7 +448,7 @@ export async function imprimirEtiquetasBluetooth({ tamanho, copias, dados, largu
   const perfilBase = PERFIS_TP20[tamanho] || PERFIS_TP20["60x40"];
   const pontos = LARGURAS_TERMICAS[larguraImpressora]?.pontos || 384;
   const perfil = perfilNaLargura(perfilBase, pontos);
-  const quantidade = Math.max(1, Math.min(100, Number(copias) || 1));
+  const quantidade = Math.max(1, Math.min(1000, Number(copias) || 1));
   const qrImagem = dados.modeloEtiqueta === "nome" ? null : await carregarQrDaPrevia(dados.codigo);
   const canvas = criarCanvasEtiqueta(perfil, dados, qrImagem);
   const { raster, bytesPorLinha } = canvasParaRaster(canvas);

@@ -15,8 +15,6 @@ import {
 } from "../../lib/recrutamento";
 
 const soDigitos = (v) => String(v || "").replace(/\D/g, "");
-const fmtCPF = (v) => soDigitos(v).slice(0, 11)
-  .replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2");
 const fmtTel = (v) => soDigitos(v).slice(0, 11)
   .replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{5})(\d)/, "$1-$2");
 
@@ -29,7 +27,7 @@ export default function PaginaPublicaVagas() {
   const [erro, setErro] = useState("");
 
   const [form, setForm] = useState({
-    nome: "", cpf: "", telefone: "", nascimento: "",
+    nome: "", telefone: "", nascimento: "",
     endereco: "", bairro: "", cidade: "",
     cargoPretendido: "", temFilhos: "", temTransporte: "",
     escolaridade: "", experiencia: "",
@@ -48,7 +46,6 @@ export default function PaginaPublicaVagas() {
 
   const faltando = () => {
     if (!form.nome.trim()) return "Informe seu nome completo.";
-    if (soDigitos(form.cpf).length !== 11) return "Informe um CPF válido com 11 números.";
     if (soDigitos(form.telefone).length < 10) return "Informe um telefone com DDD.";
     if (!form.nascimento) return "Informe sua data de nascimento.";
     if (!form.cargoPretendido) return "Escolha uma área disponível.";
@@ -72,7 +69,7 @@ export default function PaginaPublicaVagas() {
     setEnviando(true);
     const dadosPessoais = {
       nome: form.nome.trim(),
-      cpf: soDigitos(form.cpf),
+      cpf: null,
       telefone: form.telefone.trim(),
       endereco: [form.endereco, form.bairro, form.cidade].filter(Boolean).join(", "),
       cargoPretendido: form.cargoPretendido,
@@ -80,7 +77,6 @@ export default function PaginaPublicaVagas() {
       experiencia: form.experiencia.trim(),
       detalhesCadastro: {
         nome: form.nome.trim(),
-        cpf: soDigitos(form.cpf),
         telefone: form.telefone.trim(),
         nascimento: form.nascimento,
         endereco: form.endereco.trim(),
@@ -215,14 +211,10 @@ export default function PaginaPublicaVagas() {
             <Campo label="Nome completo" obrigatorio>
               <input required value={form.nome} onChange={e => set("nome", e.target.value)} className={classeCampo} placeholder="Como está no seu documento" />
             </Campo>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Campo label="Telefone (WhatsApp)" obrigatorio>
-                <input required inputMode="tel" value={form.telefone} onChange={e => set("telefone", fmtTel(e.target.value))} className={classeCampo} placeholder="(45) 99999-9999" />
-              </Campo>
-              <Campo label="CPF">
-                <input required inputMode="numeric" value={form.cpf} onChange={e => set("cpf", fmtCPF(e.target.value))} className={classeCampo} placeholder="000.000.000-00" />
-              </Campo>
-            </div>
+            {/* CPF não é pedido na candidatura: só depois da contratação. */}
+            <Campo label="Telefone (WhatsApp)" obrigatorio>
+              <input required inputMode="tel" value={form.telefone} onChange={e => set("telefone", fmtTel(e.target.value))} className={classeCampo} placeholder="(45) 99999-9999" />
+            </Campo>
             <div className="grid gap-4 sm:grid-cols-2">
               <Campo label="Data de nascimento">
                 <input required type="date" value={form.nascimento} onChange={e => set("nascimento", e.target.value)} className={classeCampo} />

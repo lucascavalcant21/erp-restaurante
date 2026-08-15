@@ -4,9 +4,10 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useERP } from "../../context/ERPContext";
 import { fetchColaboradores } from "../../lib/rh";
-import { fetchPontoHoje, registrarBatida, fetchHistoricoPonto } from "../../lib/ponto";
+import { fetchPontoHoje, registrarBatida, fetchHistoricoPonto, anexarAuditoriaFacial } from "../../lib/ponto";
+import PontoFacial from "../../components/PontoFacial";
 import { capturarGPSAtual, validarGeofencePonto, linkGoogleMaps } from "../../lib/geolocalizacao";
-import { Fingerprint, Search, Clock, CheckCircle2, AlertCircle, Lock, ArrowLeft, Maximize, X, Calendar, MapPin, ShieldAlert, Compass, ExternalLink, Loader2 } from "lucide-react";
+import { Fingerprint, Search, Clock, CheckCircle2, AlertCircle, Lock, ArrowLeft, Maximize, X, Calendar, MapPin, ShieldAlert, Compass, ExternalLink, Loader2, ScanFace } from "lucide-react";
 
 // ─── Modal de PIN ─────────────────────────────────────────────────────────────
 function ModalPIN({ onSuccess, onClose, titulo, subtitulo }) {
@@ -184,6 +185,9 @@ export default function PontoPage() {
   const [pinOk, setPinOk] = useState(false);
   const [pedindoSaida, setPedindoSaida] = useState(false);
   const [historicoAberto, setHistoricoAberto] = useState(false);
+  // Reconhecimento facial: identifica quem é e já seleciona a pessoa.
+  const [facialAberto, setFacialAberto] = useState(false);
+  const [facialPendente, setFacialPendente] = useState(null); // { foto, distancia }
   const containerRef = useRef(null);
 
   const carregar = async () => {
@@ -252,6 +256,12 @@ export default function PontoPage() {
        setGpsProcessando(false);
        if (error) return alert(`❌ Erro ao registrar ponto: ${error}`);
 
+       // Batida vinda do reconhecimento: guarda a foto e a precisão do match.
+       if (facialPendente) {
+         await anexarAuditoriaFacial(colabAtivo.id, { ...facialPendente, tipo });
+         setFacialPendente(null);
+       }
+
        await carregar();
        alert(geofence.semGeofenceConfigurado
          ? "Ponto registrado com sucesso!"
@@ -291,6 +301,18 @@ export default function PontoPage() {
       )}
 
       {/* Modal de Histórico */}
+      {facialAberto && (
+        <PontoFacial
+          funcionarios={funcionarios}
+          onFechar={() => setFacialAberto(false)}
+          onIdentificado={({ funcionario, distancia, foto }) => {
+            setColabAtivo(funcionario);
+            setFacialPendente({ distancia, foto });
+            setFacialAberto(false);
+          }}
+        />
+      )}
+
       {historicoAberto && colabAtivo && (
          <ModalHistorico 
            colaborador={colabAtivo} 
@@ -324,7 +346,12 @@ export default function PontoPage() {
            
            {/* Lado Esquerdo: Lista de Funcionários */}
            <div className="w-full md:w-1/2 border-r border-slate-100 flex flex-col bg-slate-50">
-              <div className="p-4 border-b border-slate-200 shrink-0">
+              <div className="p-4 border-b border-slate-200 shrink-0 space-y-3">
+                 {/* Caminho rápido: a pessoa se identifica pelo rosto */}
+                 <button onClick={() => setFacialAberto(true)}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3.5 text-base font-black text-white hover:bg-emerald-700 shadow-lg shadow-emerald-600/20">
+                    <ScanFace size={20} /> Bater ponto pelo rosto
+                 </button>
                  <div className="bg-white p-3 rounded-xl border border-slate-200 flex items-center gap-3 shadow-sm">
                     <Search size={18} className="text-slate-400" />
                     <input type="text" placeholder="Buscar funcionário..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-bold text-slate-700 bg-transparent" />

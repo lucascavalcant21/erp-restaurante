@@ -211,3 +211,31 @@ export async function registrarBatida(colaboradorId, unidadeId, tipoBatida, hora
     return { error: error?.message, novoStatus };
   }
 }
+
+// Guarda a prova da batida por reconhecimento facial no registro do dia:
+// foto pequena para conferência, distância do match e origem. Nunca bloqueia a
+// batida — se a auditoria falhar, o ponto já está registrado.
+export async function anexarAuditoriaFacial(colaboradorId, { foto, distancia, tipo }) {
+  if (!isSupabaseReady() || !colaboradorId) return { error: null };
+  try {
+    const hoje = dataLocalISO(0);
+    const ontem = dataLocalISO(-1);
+    const { data: registros } = await supabase
+      .from("registro_ponto")
+      .select("id, data_referencia, hora_saida")
+      .eq("colaborador_id", colaboradorId)
+      .in("data_referencia", [hoje, ontem])
+      .order("data_referencia", { ascending: false });
+    const registro = (registros || [])[0];
+    if (!registro) return { error: null };
+
+    const campos = { origem_batida: "facial" };
+    if (Number.isFinite(Number(distancia))) campos.face_confianca = Number(distancia);
+    if (foto) campos[tipo === "saida" ? "face_foto_saida" : "face_foto_entrada"] = foto;
+
+    await supabase.from("registro_ponto").update(campos).eq("id", registro.id);
+    return { error: null };
+  } catch {
+    return { error: null }; // auditoria é acessória
+  }
+}

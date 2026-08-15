@@ -1,16 +1,17 @@
 "use client";
 
-import React, { Fragment, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import React, { Fragment, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertTriangle, ArrowLeft, ArrowRightLeft, Boxes, CalendarDays, Check,
   ChevronDown, ChevronRight, ChevronUp, ClipboardCheck, Clock3, Copy, Download, Edit3, FileText, Filter, History, Loader2,
-  MapPin, MoreVertical, Package, PackageMinus, PackagePlus, Plus, Printer, Search,
+  MapPin, Mic, MoreVertical, Package, PackageMinus, PackagePlus, Plus, Printer, Search,
   Settings2, Share2, Tablet, Upload, User, Warehouse, X,
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchInsumos, salvarInsumo } from "../../../lib/operacao";
 import { fetchColaboradores } from "../../../lib/rh";
+import { criarEscuta, vozDisponivel } from "../../../lib/hefisto-voz";
 import {
   atualizarItemEstoque, fetchEstoques, fetchItensEstoque, fetchMovimentosMulti,
   registrarContagemMulti, registrarMovimentoMulti, salvarEstoque,
@@ -715,6 +716,107 @@ function EstoqueRunner() {
     };
   }, [movimentos, itensDaArea]);
 
+  // ── CONTAGEM POR VOZ ────────────────────────────────────────────────────
+  // "banana cinco quilos, tomate três caixas, arroz dez" — a pessoa dita o
+  // inventário inteiro e confere na tela antes de gravar.
+  const [vozAberta, setVozAberta] = useState(false);
+  const [vozOuvindo, setVozOuvindo] = useState(false);
+  const [vozTexto, setVozTexto] = useState("");
+  const [vozLendo, setVozLendo] = useState(false);
+  const [vozItens, setVozItens] = useState([]);      // [{ item, quantidade, nomeFalado }]
+  const [vozNaoAchados, setVozNaoAchados] = useState([]);
+  const [vozErro, setVozErro] = useState("");
+  const [vozSalvando, setVozSalvando] = useState(false);
+  const escutaRef = useRef(null);
+
+  const semAcento = (v) => {
+    const d = String(v || "").normalize("NFD");
+    let out = "";
+    for (const ch of d) { const c = ch.charCodeAt(0); if (c < 0x300 || c > 0x36f) out += ch; }
+    return out.toLowerCase().trim();
+  };
+
+  const acharItemPorNome = (nome) => {
+    const alvo = semAcento(nome);
+    if (!alvo) return null;
+    const lista = itensDaArea || [];
+    return lista.find(i => semAcento(i.nome) === alvo)
+      || lista.find(i => semAcento(i.nome).startsWith(alvo))
+      || lista.find(i => semAcento(i.nome).includes(alvo))
+      || lista.find(i => alvo.includes(semAcento(i.nome)));
+  };
+
+  const interpretarContagemFalada = async (texto) => {
+    setVozLendo(true);
+    setVozErro("");
+    try {
+      const r = await fetch("/api/ia-contagem", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ texto }),
+      });
+      const dados = await r.json();
+      if (!r.ok || !dados?.itens?.length) {
+        setVozErro(dados?.error || "Não consegui separar os itens. Diga assim: banana cinco quilos, tomate três caixas.");
+        return;
+      }
+      const achados = [];
+      const perdidos = [];
+      dados.itens.forEach(linha => {
+        const item = acharItemPorNome(linha.nome);
+        if (item) achados.push({ item, quantidade: Number(linha.quantidade) || 0, nomeFalado: linha.nome });
+        else perdidos.push(`${linha.nome} (${linha.quantidade})`);
+      });
+      setVozItens(a => [...a, ...achados]);
+      setVozNaoAchados(perdidos);
+      if (!achados.length) setVozErro("Nenhum produto falado existe neste estoque. Cadastre antes de contar.");
+    } catch {
+      setVozErro("Sem conexão para interpretar a contagem.");
+    } finally {
+      setVozLendo(false);
+    }
+  };
+
+  const iniciarContagemVoz = () => {
+    if (!vozDisponivel()) { setVozErro("Este navegador não reconhece voz. Use o Chrome no Android."); return; }
+    if (vozOuvindo) { escutaRef.current?.parar(); return; }
+    setVozErro(""); setVozTexto("");
+    const sessao = criarEscuta({
+      continuo: true,
+      silencioMs: 4000,
+      onParcial: t => setVozTexto(t),
+      onFinal: t => { setVozTexto(t); interpretarContagemFalada(t); },
+      onErro: e => { setVozErro(e); setVozOuvindo(false); },
+      onFim: () => setVozOuvindo(false),
+    });
+    if (!sessao) { setVozErro("Não consegui acessar o microfone."); return; }
+    escutaRef.current = sessao;
+    setVozOuvindo(true);
+    sessao.iniciar();
+  };
+
+  const gravarContagemVoz = async () => {
+    if (!vozItens.length) return;
+    if (!operacao.responsavel_id) { setVozErro("Escolha quem está fazendo a contagem."); return; }
+    const colab = colaboradores.find(c => String(c.id) === String(operacao.responsavel_id));
+    const nomeResp = colab ? `${colab.nome}${colab.cargo ? ` (${colab.cargo})` : ""}` : (nomeUsuario(sessao) || "Usuário do sistema");
+    setVozSalvando(true);
+    let ok = 0, falhas = 0;
+    for (const linha of vozItens) {
+      const r = await registrarContagemMulti({
+        unidadeId: unidadeAtiva, estoqueId, insumoId: linha.item.insumo_id,
+        saldoContado: linha.quantidade, usuarioId: colab?.id || idUsuario(sessao),
+        usuarioNome: nomeResp, observacao: "Contagem ditada por voz",
+      });
+      if (r?.error) falhas += 1; else ok += 1;
+    }
+    setVozSalvando(false);
+    setVozAberta(false);
+    setVozItens([]); setVozTexto(""); setVozNaoAchados([]);
+    avisar(`Contagem gravada: ${ok} item(ns)${falhas ? ` · ${falhas} falhou(aram)` : ""}.`, falhas ? "erro" : "sucesso");
+    await atualizarTudo();
+  };
+
   const abrirOperacao = (tipo, item = null) => {
     const frac = ehFracionavel(item);
     const div = frac ? dividirSaldo(item.quantidade_atual, conteudoDe(item), true) : null;
@@ -726,8 +828,9 @@ function EstoqueRunner() {
       observacao: "",
       responsavel_id: "",
       data: agoraStr,
-      // Bebidas: entrada por unidade fechada; baixa por conteúdo (mais comum).
-      modo: tipo === "saida" ? "conteudo" : "unidade",
+      // Sempre começa em UNIDADE (peça inteira). Fracionar por conteúdo é a
+      // exceção — quem vai servir dose escolhe na hora, sem vir marcado.
+      modo: "unidade",
       fechadas: div ? String(div.fechadas) : "",
       aberto: div ? String(div.aberto) : "",
     });
@@ -1028,7 +1131,11 @@ function EstoqueRunner() {
                   <PackageMinus size={16} /> Nova baixa
                 </button>
                 <button disabled={!ativo || !itens.length} onClick={() => abrirOperacao("contagem")} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-extrabold text-slate-700 hover:bg-slate-50 disabled:opacity-40 transition-all cursor-pointer">
-                  <ClipboardCheck size={16} className="text-sky-600" /> Contagem
+                  <ClipboardCheck size={16} className="text-emerald-600" /> Contagem
+                </button>
+                <button disabled={!ativo || !itens.length} onClick={() => { setVozAberta(true); setVozItens([]); setVozTexto(""); setVozErro(""); setVozNaoAchados([]); }}
+                  className="inline-flex h-10 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-white px-3.5 text-xs font-extrabold text-emerald-700 hover:bg-emerald-50 disabled:opacity-40 transition-all cursor-pointer">
+                  <Mic size={16} /> Contagem por voz
                 </button>
                 <button disabled={!ativo || !itens.length || !destinosCompativeis.length} onClick={() => abrirOperacao("transferencia")} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-extrabold text-slate-700 hover:bg-slate-50 disabled:opacity-40 transition-all cursor-pointer">
                   <ArrowRightLeft size={16} className="text-indigo-600" /> Transferência
@@ -1169,6 +1276,71 @@ function EstoqueRunner() {
           </>
         )}
       </main>
+
+      {/* CONTAGEM POR VOZ: dita o inventário e confere antes de gravar */}
+      {vozAberta && (
+        <div className="fixed inset-0 z-[110] flex items-end justify-center bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-5" onClick={() => !vozSalvando && setVozAberta(false)}>
+          <div className="max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-white p-5 shadow-2xl sm:max-w-lg sm:rounded-3xl" onClick={e => e.stopPropagation()}>
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-black text-slate-900">Contagem por voz</h2>
+                <p className="text-sm text-slate-500">Fale item e quantidade: “banana cinco quilos, tomate três caixas”.</p>
+              </div>
+              <button onClick={() => setVozAberta(false)} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-500"><X size={18} /></button>
+            </div>
+
+            <button onClick={iniciarContagemVoz} disabled={vozLendo || vozSalvando}
+              className={`flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-base font-black transition-all disabled:opacity-60 ${
+                vozOuvindo ? "bg-emerald-600 text-white" : "border-2 border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50"}`}>
+              {vozOuvindo ? <><span className="relative flex h-3 w-3"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-70" /><span className="relative inline-flex h-3 w-3 rounded-full bg-white" /></span> Ouvindo... toque para parar</>
+                : vozLendo ? <><Loader2 size={19} className="animate-spin" /> Entendendo...</>
+                : <><Mic size={19} /> Falar a contagem</>}
+            </button>
+
+            {vozTexto && <p className="mt-3 rounded-xl bg-slate-50 border border-slate-200 p-3 text-sm font-medium text-slate-700">{vozTexto}</p>}
+            {vozErro && <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{vozErro}</p>}
+            {vozNaoAchados.length > 0 && (
+              <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] font-bold text-amber-800">
+                Não achei no estoque: {vozNaoAchados.join(", ")}. Cadastre o produto e conte de novo.
+              </p>
+            )}
+
+            {vozItens.length > 0 && (
+              <>
+                <p className="mt-4 text-xs font-black uppercase tracking-widest text-slate-500">Confira antes de gravar</p>
+                <div className="mt-2 space-y-2">
+                  {vozItens.map((linha, i) => (
+                    <div key={i} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-2.5">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[15px] font-black text-slate-800 truncate">{linha.item.nome}</p>
+                        <p className="text-[12px] font-bold text-slate-400">saldo atual {fmtQtd(linha.item.quantidade_atual)} {mostrarUn(linha.item.unidade_medida)}</p>
+                      </div>
+                      <input type="number" step="0.001" min="0" value={linha.quantidade}
+                        onChange={e => setVozItens(a => a.map((x, j) => j === i ? { ...x, quantidade: Number(e.target.value) } : x))}
+                        className="h-11 w-24 rounded-xl border-2 border-emerald-200 px-2 text-center font-black text-emerald-700 outline-none focus:border-emerald-500" />
+                      <button onClick={() => setVozItens(a => a.filter((_, j) => j !== i))} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-slate-200 text-rose-600"><X size={16} /></button>
+                    </div>
+                  ))}
+                </div>
+
+                <label className="mt-4 block">
+                  <span className="text-xs font-black uppercase tracking-widest text-slate-500">Quem está contando *</span>
+                  <select value={operacao.responsavel_id} onChange={e => setOperacao({ ...operacao, responsavel_id: e.target.value })}
+                    className={`mt-1.5 h-12 w-full rounded-xl border-2 px-3 font-bold outline-none ${operacao.responsavel_id ? "border-slate-200 bg-slate-50 text-slate-800" : "border-red-300 bg-red-50 text-red-700"}`}>
+                    <option value="">Selecione o responsável...</option>
+                    {colaboradoresDaArea.map(c => <option key={c.id} value={c.id}>{c.nome}{c.cargo ? ` (${c.cargo})` : ""}</option>)}
+                  </select>
+                </label>
+
+                <button onClick={gravarContagemVoz} disabled={vozSalvando || !operacao.responsavel_id}
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-4 text-base font-black text-white hover:bg-emerald-700 disabled:opacity-50">
+                  {vozSalvando ? <><Loader2 size={19} className="animate-spin" /> Gravando...</> : <>Gravar contagem de {vozItens.length} item(ns)</>}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {["entrada", "saida", "contagem", "transferencia"].includes(modal?.tipo) && (
         <Modal

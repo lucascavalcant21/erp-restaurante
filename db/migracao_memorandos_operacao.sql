@@ -3,7 +3,9 @@
 
 create table if not exists public.memorandos_operacao (
   id uuid primary key default gen_random_uuid(),
-  unidade_id uuid not null,
+  -- TEXTO, não uuid: neste banco a unidade nem sempre é um uuid (config_sistema
+  -- guarda unidade_id como texto). Com uuid, o salvar quebraria por tipo.
+  unidade_id text not null,
   data_referencia date not null,
   cozinha jsonb not null default '{}'::jsonb,
   bar jsonb not null default '{}'::jsonb,

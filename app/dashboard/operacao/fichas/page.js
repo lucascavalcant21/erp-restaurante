@@ -31,12 +31,15 @@ import {
   inativarFichasLote, registrarAuditoriaFichas, removerFicha, salvarFicha,
   salvarInsumo, verificarDependenciasFichas,
 } from "../../../lib/operacao";
+import { fetchEstoques, vincularItemEstoque } from "../../../lib/estoques-multiplos";
 import { fetchProdutos, salvarProduto } from "../../../lib/vendas";
+import { fetchEmbalagens, salvarEmbalagem } from "../../../lib/embalagens";
+import { garantirFichaNoEstoquePreparo } from "../../../lib/estoques-multiplos";
 import { fetchMontagens, inserirMontagem } from "../../../lib/montagem";
 import {
-  AlertTriangle, ArrowDown, ArrowLeft, ArrowUp, BookOpen, Calculator, Camera,
+  AlertTriangle, ArrowDown, ArrowLeft, ArrowUp, BarChart3, BookOpen, Calculator, Camera,
   CheckCircle2, CheckSquare2, ChevronLeft, ChevronRight, Copy, Download, Edit3,
-  FileDown, GripVertical, LayoutList, Loader2, Package, Plus, Printer, Save,
+  FileDown, FolderPlus, GripVertical, LayoutList, Loader2, Package, Plus, Printer, Save,
   Search, ShieldAlert, Sparkles, Trash2, UtensilsCrossed, Wine, X,
   Clock, Thermometer, MoreVertical,
 } from "lucide-react";
@@ -44,12 +47,12 @@ import { fmtBRL } from "../../../components/ui";
 import { logoSeldeestrelaSVG } from "../../../lib/marca";
 import { baixarPdfDeHtml } from "../../../lib/pdf";
 import { fetchHistoricoCustoFicha, registrarCustoFicha } from "../../../lib/ficha-custos";
+import { fetchCategoriasFichas, salvarCategoriasFichas } from "../../../lib/parametros";
 import {
   estimarPaginasDocumento,
   ordenarFichasDocumento,
   separarFichasPorDependencias,
 } from "../../../lib/fichas-lote-utils.mjs";
-import RecipeWorkspace from "../../../components/RecipeWorkspace";
 
 // Botão "Fechar" + fechamento automático após imprimir — no celular a aba de
 // impressão ficava presa e o usuário não conseguia voltar ao app.
@@ -80,6 +83,18 @@ const CATEGORIAS_BAR = [
   "Refrigerantes",
   "Bombons",
 ];
+
+const CATEGORIAS_PREPARO_BAR = ["Xaropes", "Espumas", "Geleias", "Mixes e infusões", "Outros pré-preparos"];
+const CATEGORIAS_PREPARO_COZINHA = [
+  "Molhos e caldos",
+  "Arroz, feijão e grãos",
+  "Massas e recheios",
+  "Carnes e proteínas",
+  "Guarnições e acompanhamentos",
+  "Sobremesas e bases doces",
+  "Outros preparos",
+];
+const CATEGORIAS_PRODUTO_PRONTO_BAR = ["Cervejas", "Destilados", "Vinhos", "Chopp", "Água", "Refrigerantes", "Bombons", "Outros produtos prontos"];
 
 function obterTodasCategoriasFicha(deptUrl, fichas = []) {
   const base = deptUrl === "bar" ? CATEGORIAS_BAR : CATEGORIAS_CARDAPIO;
@@ -229,7 +244,7 @@ function custoTotalDaFicha(f, todasFichas, guard = new Set()) {
       total += custoBaseUnit * (fi.quantidade || 0) * fc;
     }
   });
-  return total;
+  return total + (Number(f.custo_embalagens_total) || 0);
 }
 // Custo por unidade-de-rendimento de uma base (usado quando ela vira ingrediente)
 function custoUnitBase(base, todasFichas) {
@@ -327,12 +342,24 @@ function FichasRunner() {
   const [produtos, setProdutos] = useState([]); // preços de venda (vêm do cardápio interno)
   const [insumosAtivos, setInsumosAtivos] = useState([]);
   const [embalagensCat, setEmbalagensCat] = useState([]); // catálogo de Embalagens (dept embalagens)
+  const [embalagensEstoque, setEmbalagensEstoque] = useState([]);
+  const [fichaEmbalagens, setFichaEmbalagens] = useState([]);
+  const [novaEmbalagem, setNovaEmbalagem] = useState({ nome: "", custo: "" });
+  const [salvandoEmbalagem, setSalvandoEmbalagem] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
+  const [categoriasConfig, setCategoriasConfig] = useState({});
+  const [modalCategorias, setModalCategorias] = useState(false);
+  const [novaCategoria, setNovaCategoria] = useState("");
+  const [salvandoCategoria, setSalvandoCategoria] = useState(false);
+  const [modoFicha, setModoFicha] = useState("principais");
+  const [tipoFiltro, setTipoFiltro] = useState("Pratos principais");
+  const [mostrarIndicadores, setMostrarIndicadores] = useState(false);
+  const [categoriasRecolhidas, setCategoriasRecolhidas] = useState(true);
+  const [acoesCardAberto, setAcoesCardAberto] = useState("");
   
   const [modalNovo, setModalNovo] = useState(false);
   const [fichaView, setFichaView] = useState(null); // ficha aberta em modo visualização (igual à foto)
-  const [escolhaFicha, setEscolhaFicha] = useState(null); // "vou fazer a receita" ou "vou montar o prato"
   const abrirFicha = (f) => { setSimPesoView(""); setViewTab("ficha"); setFichaView(f); };
   const [simPesoView, setSimPesoView] = useState(""); // simulador de porções da tela de visualização
   const [viewTab, setViewTab] = useState("ficha"); // aba ativa na tela de visualização
@@ -582,6 +609,8 @@ function FichasRunner() {
     });
     setAutoSoma(true);
     setIngFicha(novosIngFicha);
+    setFichaEmbalagens([]);
+    setNovaEmbalagem({ nome: "", custo: "" });
     setIaExplicacao("");
     setModalIAFicha(false);
     setModalNovo(true);
@@ -619,24 +648,125 @@ function FichasRunner() {
 
   const carregar = async () => {
     setLoading(true);
-    const [resFichas, resInsumos, resProd, resMontagens, resEmbalagens] = await Promise.all([
+    const [resFichas, resInsumos, resProd, resMontagens, resEmbalagens, resEstoqueEmbalagens] = await Promise.all([
        fetchFichas(unidadeAtiva, deptUrl),
        fetchInsumos(unidadeAtiva, deptUrl),
        fetchProdutos(unidadeAtiva),
        fetchMontagens(unidadeAtiva, deptUrl),
        fetchInsumos(unidadeAtiva, "embalagens"),
+       fetchEmbalagens(unidadeAtiva, deptUrl),
     ]);
-    setFichas(resFichas.data || []);
+    const produtosCarregados = resProd.data || [];
+    const embalagensCarregadas = resEstoqueEmbalagens.data || [];
+    const fichasComEmbalagens = (resFichas.data || []).map(ficha => {
+      const produto = produtosCarregados.find(item => item.ficha_id === ficha.id);
+      const embalagensProduto = Array.isArray(produto?.embalagens) ? produto.embalagens : [];
+      const custoPorPorcao = embalagensProduto.reduce((total, item) => {
+        const embalagem = embalagensCarregadas.find(emb => String(emb.id) === String(item.embalagem_id));
+        return total + (Number(embalagem?.preco_unitario) || 0) * (Number(item.qtd) || 0);
+      }, 0);
+      const rendimento = Math.max(1, Number(ficha.rendimento_porcoes) || 1);
+      return { ...ficha, custo_embalagens_total: custoPorPorcao * rendimento };
+    });
+    setFichas(fichasComEmbalagens);
     setInsumosAtivos(resInsumos.data || []);
-    setProdutos(resProd.data || []);
+    setProdutos(produtosCarregados);
     setMontagens(resMontagens.data || []);
     setEmbalagensCat(resEmbalagens.data || []);
+    setEmbalagensEstoque(resEstoqueEmbalagens.data || []);
     setLoading(false);
   };
 
   useEffect(() => {
     if (unidadeAtiva) carregar();
   }, [unidadeAtiva, deptUrl]);
+
+  useEffect(() => {
+    setModoFicha("principais");
+    setTipoFiltro("Pratos principais");
+  }, [deptUrl]);
+
+  useEffect(() => {
+    if (!unidadeAtiva || unidadeAtiva === "todas") return;
+    fetchCategoriasFichas(unidadeAtiva).then(({ data }) => setCategoriasConfig(data || {}));
+  }, [unidadeAtiva]);
+
+  const configCategoriasDept = categoriasConfig?.[deptUrl] || {};
+  const configCategoriasModo = configCategoriasDept?.[modoFicha]
+    || (modoFicha === "principais" ? configCategoriasDept : {});
+  const categoriasAdicionais = Array.isArray(configCategoriasModo.adicionais) ? configCategoriasModo.adicionais : [];
+  const categoriasExcluidas = Array.isArray(configCategoriasModo.excluidas) ? configCategoriasModo.excluidas : [];
+  const categoriasBaseDept = modoFicha === "preparos"
+    ? (deptUrl === "bar" ? CATEGORIAS_PREPARO_BAR : CATEGORIAS_PREPARO_COZINHA)
+    : (deptUrl === "bar" ? CATEGORIAS_BAR : CATEGORIAS_CARDAPIO);
+  const fichasDoModo = fichas.filter(ficha => modoFicha === "preparos" ? !!ficha.eh_base : !ficha.eh_base);
+  const categoriasDisponiveis = [...new Set([
+    ...categoriasBaseDept,
+    ...categoriasAdicionais,
+    ...fichasDoModo.map(ficha => ficha.categoria).filter(Boolean),
+  ])].filter(categoria => !categoriasExcluidas.includes(categoria))
+    .sort((a, b) => a.localeCompare(b, "pt-BR", { sensitivity: "base" }));
+  const configCategoriasPreparo = configCategoriasDept?.preparos || {};
+  const categoriasPreparoDisponiveis = [...new Set([
+    ...(deptUrl === "bar" ? CATEGORIAS_PREPARO_BAR : CATEGORIAS_PREPARO_COZINHA),
+    ...(Array.isArray(configCategoriasPreparo.adicionais) ? configCategoriasPreparo.adicionais : []),
+    ...fichas.filter(ficha => !!ficha.eh_base).map(ficha => ficha.categoria).filter(Boolean),
+  ])].filter(categoria => !(configCategoriasPreparo.excluidas || []).includes(categoria))
+    .sort((a, b) => a.localeCompare(b, "pt-BR", { sensitivity: "base" }));
+  const configCategoriasPrincipais = configCategoriasDept?.principais || configCategoriasDept || {};
+  const categoriasPrincipaisDisponiveis = [...new Set([
+    ...(deptUrl === "bar" ? CATEGORIAS_BAR : CATEGORIAS_CARDAPIO),
+    ...(Array.isArray(configCategoriasPrincipais.adicionais) ? configCategoriasPrincipais.adicionais : []),
+    ...fichas.filter(ficha => !ficha.eh_base).map(ficha => ficha.categoria).filter(Boolean),
+  ])].filter(categoria => !(configCategoriasPrincipais.excluidas || []).includes(categoria))
+    .sort((a, b) => a.localeCompare(b, "pt-BR", { sensitivity: "base" }));
+
+  const persistirCategorias = async (proximoModo) => {
+    const temContextos = !!(configCategoriasDept?.principais || configCategoriasDept?.preparos);
+    const deptNormalizado = temContextos
+      ? configCategoriasDept
+      : {
+          principais: {
+            adicionais: Array.isArray(configCategoriasDept.adicionais) ? configCategoriasDept.adicionais : [],
+            excluidas: Array.isArray(configCategoriasDept.excluidas) ? configCategoriasDept.excluidas : [],
+          },
+          preparos: { adicionais: [], excluidas: [] },
+        };
+    const proximoDept = { ...deptNormalizado, [modoFicha]: proximoModo };
+    const proximo = { ...categoriasConfig, [deptUrl]: proximoDept };
+    setSalvandoCategoria(true);
+    const { error } = await salvarCategoriasFichas(unidadeAtiva, proximo);
+    setSalvandoCategoria(false);
+    if (error) return alert("Não foi possível salvar as categorias: " + error);
+    setCategoriasConfig(proximo);
+    return true;
+  };
+
+  const criarCategoria = async () => {
+    const nome = novaCategoria.trim();
+    if (!nome) return;
+    if (categoriasDisponiveis.some(item => item.toLocaleLowerCase("pt-BR") === nome.toLocaleLowerCase("pt-BR"))) {
+      return alert("Essa categoria já existe.");
+    }
+    const ok = await persistirCategorias({
+      adicionais: [...categoriasAdicionais, nome],
+      excluidas: categoriasExcluidas.filter(item => item !== nome),
+    });
+    if (ok) setNovaCategoria("");
+  };
+
+  const excluirCategoria = async (nome) => {
+    const quantidade = fichasDoModo.filter(ficha => ficha.categoria === nome).length;
+    const aviso = quantidade
+      ? `A categoria "${nome}" tem ${quantidade} ficha(s). Ela será removida da lista, mas as fichas não serão apagadas. Continuar?`
+      : `Excluir a categoria "${nome}"?`;
+    if (!confirm(aviso)) return;
+    const ok = await persistirCategorias({
+      adicionais: categoriasAdicionais.filter(item => item !== nome),
+      excluidas: [...new Set([...categoriasExcluidas, nome])],
+    });
+    if (ok && tipoFiltro === nome) setTipoFiltro(modoFicha === "preparos" ? "Preparos e receitas" : "Pratos principais");
+  };
 
   // Rendimento automático: sempre que os ingredientes mudam (e não estiver no
   // modo manual), o rendimento passa a ser o PESO SOMADO dos ingredientes, na
@@ -652,17 +782,17 @@ function FichasRunner() {
 
   // Divisão do receituário: Pratos (prontos p/ cardápio) × Pré-preparos (bases
   // usadas dentro de outros pratos: molhos, massas, caldos...)
-  const [tipoFiltro, setTipoFiltro] = useState("Pratos");
   const ordenarFichas = (a, b) => {
     return String(a.nome_receita || "").localeCompare(String(b.nome_receita || ""), "pt-BR", { sensitivity: "base" });
   };
   const passaFiltro = (f) => {
-    if (tipoFiltro === "Todos") return true;
+    if (tipoFiltro === "Preparos e receitas") return !!f.eh_base;
+    if (tipoFiltro === "Pratos principais") return !f.eh_base;
     if (tipoFiltro === "Pré-preparos") return !!f.eh_base && f.tipo_base !== "receita";
     if (tipoFiltro === "Receitas base") return !!f.eh_base && f.tipo_base === "receita";
     if (tipoFiltro === "Produtos prontos") return !f.eh_base && f.tipo_base === "produto_pronto";
     if (tipoFiltro === "Pratos") return !f.eh_base && f.tipo_base !== "produto_pronto";
-    if (CATEGORIAS_PREPARO_BAR.includes(tipoFiltro)) return !!f.eh_base && f.tipo_base !== "receita" && categoriaPreparoBar(f) === tipoFiltro;
+    if (modoFicha === "preparos") return !!f.eh_base && (f.categoria || "") === tipoFiltro;
     return !f.eh_base && (f.categoria || "") === tipoFiltro; // categoria específica
   };
   const filtradas = fichas
@@ -703,8 +833,14 @@ function FichasRunner() {
   };
 
   const abrirNova = () => {
-    setForm({ id: null, departamento: deptUrl, nome_receita: "", categoria: "", rendimento_porcoes: "1", modo_preparo: "", eh_base: false, produto_pronto: false, tipo_base: null, rendimento_unidade: "porcao", peso_porcao_g: "", imagem: "", tempo_preparo: "", validade_dias: "", observacoes: "", preco_venda: "", cmv_meta: 30 });
+    const criandoPreparo = modoFicha === "preparos";
+    const categoriaInicial = criandoPreparo
+      ? (deptUrl === "bar" ? CATEGORIAS_PREPARO_BAR[0] : CATEGORIAS_PREPARO_COZINHA[0])
+      : "";
+    setForm({ id: null, departamento: deptUrl, nome_receita: "", categoria: categoriaInicial, rendimento_porcoes: "1", modo_preparo: "", eh_base: criandoPreparo, produto_pronto: false, tipo_base: criandoPreparo ? "pre" : null, rendimento_unidade: "porcao", peso_porcao_g: "", imagem: "", tempo_preparo: "", validade_dias: "", observacoes: "", preco_venda: "", cmv_meta: 30 });
     setIngFicha([]);
+    setFichaEmbalagens([]);
+    setNovaEmbalagem({ nome: "", custo: "" });
     setAutoSoma(true);
     setCalcQtd("");
     setIaExplicacao("");
@@ -713,6 +849,7 @@ function FichasRunner() {
 
   const abrirEditar = (ficha) => {
     setAutoSoma(false);
+    const produtoFicha = produtos.find(x => x.ficha_id === ficha.id || String(x.nome_produto || "").toLowerCase() === String(ficha.nome_receita || "").toLowerCase());
     setForm({
        id: ficha.id,
        departamento: ficha.departamento,
@@ -762,8 +899,14 @@ function FichasRunner() {
        };
     });
     setIngFicha(mapIng);
+    setFichaEmbalagens(Array.isArray(produtoFicha?.embalagens) ? produtoFicha.embalagens.map(item => ({ embalagem_id: item.embalagem_id, qtd: Number(item.qtd) || 1 })) : []);
+    setNovaEmbalagem({ nome: "", custo: "" });
     setIaExplicacao("");
     setModalNovo(true);
+  };
+
+  const irSecaoEditorFicha = (id) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   // ── Histórico de custos da ficha aberta em visualização ──
@@ -826,6 +969,55 @@ function FichasRunner() {
   // Custo considera o Fator de Correção (%) do item: bruta = líquida × (1 + fc)
   const calcularCustoTotal = (ingredientesLista) => {
     return ingredientesLista.reduce((acc, ing) => acc + (ing.custo_unitario * ing.quantidade * (1 + (Number(ing.fator) || 0) / 100)), 0);
+  };
+
+  const numeroPorcoesFormulario = () => {
+    const rendimento = Number(String(form.rendimento_porcoes || "").replace(",", ".")) || 0;
+    const unidade = String(form.rendimento_unidade || "porcao").toLowerCase();
+    if (unidade === "porcao" || unidade === "un") return rendimento;
+    const pesoPorcao = Number(form.peso_porcao_g) || 0;
+    const pesoTotal = pesoTotalDaFicha(rendimento, unidade, pesoPorcao);
+    return pesoPorcao > 0 && pesoTotal > 0 ? pesoTotal / pesoPorcao : rendimento;
+  };
+
+  const custoEmbalagensPorPorcao = () => fichaEmbalagens.reduce((total, item) => {
+    const embalagem = embalagensEstoque.find(emb => String(emb.id) === String(item.embalagem_id));
+    return total + (Number(embalagem?.preco_unitario) || 0) * (Number(item.qtd) || 0);
+  }, 0);
+
+  const custoTotalFormulario = (ingredientesLista = ingFicha) => {
+    const porcoes = Math.max(1, numeroPorcoesFormulario());
+    return calcularCustoTotal(ingredientesLista) + custoEmbalagensPorPorcao() * porcoes;
+  };
+
+  const alternarEmbalagemFicha = (embalagemId) => {
+    setFichaEmbalagens(lista => lista.some(item => String(item.embalagem_id) === String(embalagemId))
+      ? lista.filter(item => String(item.embalagem_id) !== String(embalagemId))
+      : [...lista, { embalagem_id: embalagemId, qtd: 1 }]);
+  };
+
+  const alterarQuantidadeEmbalagem = (embalagemId, qtd) => {
+    setFichaEmbalagens(lista => lista.map(item => String(item.embalagem_id) === String(embalagemId)
+      ? { ...item, qtd: Math.max(0.01, Number(qtd) || 1) }
+      : item));
+  };
+
+  const cadastrarEmbalagemDaFicha = async () => {
+    const nome = novaEmbalagem.nome.trim();
+    const custo = Number(String(novaEmbalagem.custo || "").replace(",", "."));
+    if (!nome) return alert("Informe o nome da embalagem.");
+    if (!Number.isFinite(custo) || custo < 0) return alert("Informe um custo valido.");
+    setSalvandoEmbalagem(true);
+    const resultado = await salvarEmbalagem(unidadeAtiva, {
+      nome, categoria: "Embalagens de fichas", departamento: deptUrl,
+      quantidade_atual: 0, quantidade_minima: 0, preco_unitario: custo,
+    });
+    setSalvandoEmbalagem(false);
+    if (resultado.error) return alert("Erro ao cadastrar embalagem: " + (resultado.error.message || resultado.error));
+    const criada = resultado.data;
+    setEmbalagensEstoque(lista => [...lista, criada].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")));
+    setFichaEmbalagens(lista => [...lista, { embalagem_id: criada.id, qtd: 1 }]);
+    setNovaEmbalagem({ nome: "", custo: "" });
   };
 
   // Adiciona insumo ou base. `valor` = "insumo:<id>" ou "base:<id>"
@@ -962,9 +1154,9 @@ function FichasRunner() {
           unidade_id: unidadeAtiva,
           departamento: form.departamento,
           nome_receita: form.nome_receita,
-          categoria: form.eh_base && form.departamento !== "bar" ? null : (form.categoria || null),
+          categoria: form.categoria || null,
           rendimento_porcoes: Number(form.rendimento_porcoes),
-          modo_preparo: form.modo_preparo,
+          modo_preparo: form.eh_base ? form.modo_preparo : "",
           eh_base: !!form.eh_base,
           tipo_base: form.produto_pronto ? "produto_pronto" : (form.eh_base ? (form.tipo_base || "pre") : null),
           cmv_meta: form.cmv_meta != null && form.cmv_meta !== "" ? Number(form.cmv_meta) : 30,
@@ -985,13 +1177,72 @@ function FichasRunner() {
 
     if(erro.error) return alert("Erro ao salvar: " + erro.error);
 
+    if (form.eh_base && erro.id) {
+      const custoUnitarioPreparo = calcularCustoTotal(ingValidos) / Math.max(1, Number(form.rendimento_porcoes) || 1);
+      const estoquePreparo = await garantirFichaNoEstoquePreparo({
+        unidadeId: unidadeAtiva,
+        ficha: { ...form, id: erro.id },
+        departamento: form.departamento,
+        custoUnitario: custoUnitarioPreparo,
+      });
+      if (estoquePreparo.error) return alert(`A ficha foi salva, mas nao entrou no estoque de preparos: ${estoquePreparo.error}`);
+    }
+
     if (!criarOutra) setModalNovo(false);
     carregar();
+
+    // ── Liga a ficha aos estoques certos (não bloqueia o salvar) ────────────
+    // Pré-preparo entra no estoque de Pré-preparos (nunca no de pratos) e as
+    // embalagens usadas na receita entram no estoque de Embalagens do setor.
+    (async () => {
+      try {
+        const fichaId = erro.id;
+        if (!fichaId) return;
+        const dept = (form.departamento || deptUrl || "cozinha").toLowerCase();
+        const { data: estoques } = await fetchEstoques(unidadeAtiva);
+        const acharEstoque = (slug) => (estoques || []).find(e => String(e.slug || "").toLowerCase() === slug);
+
+        // 1) A ficha de PRÉ-PREPARO vira um item do estoque de pré-preparos.
+        if (form.eh_base && !form.produto_pronto) {
+          const estoquePre = acharEstoque(dept === "bar" ? "pre-preparos-bar" : "pre-preparos-cozinha");
+          if (estoquePre) {
+            const rend = Number(form.rendimento_porcoes) || 1;
+            const custoUnit = rend > 0 ? calcularCustoTotal(ingValidos) / rend : 0;
+            const insumo = await salvarInsumo({
+              unidade_id: unidadeAtiva,
+              nome: form.nome_receita.trim(),
+              departamento: dept,
+              categoria: "Pré-preparos",
+              unidade_medida: (form.rendimento_unidade || "un").toLowerCase(),
+              tamanho_embalagem: 1,
+              custo_unitario: custoUnit,
+              custo_compra: custoUnit,
+            }, { origem: "Ficha de pré-preparo" });
+            if (insumo?.id) {
+              await vincularItemEstoque({ unidadeId: unidadeAtiva, estoqueId: estoquePre.id, insumoId: insumo.id, custoUnitario: custoUnit });
+            }
+          }
+        }
+
+        // 2) Embalagens usadas na ficha entram no estoque de Embalagens.
+        const estoqueEmb = acharEstoque(dept === "bar" ? "embalagens-bar" : "embalagens-cozinha");
+        if (estoqueEmb) {
+          const idsEmbalagem = new Set(embalagensCat.map(e => e.id));
+          for (const item of ingValidos) {
+            if (item.tipo !== "insumo" || !idsEmbalagem.has(item.insumo_id)) continue;
+            await vincularItemEstoque({
+              unidadeId: unidadeAtiva, estoqueId: estoqueEmb.id,
+              insumoId: item.insumo_id, custoUnitario: item.custo_unitario,
+            });
+          }
+        }
+      } catch { /* integração com estoque é acessória: nunca derruba o salvar */ }
+    })();
 
     // Registra um retrato do custo no histórico (não bloqueia o salvar).
     const fichaIdHist = erro.id;
     if (fichaIdHist && !form.produto_pronto) {
-      const custoTotalS = calcularCustoTotal(ingValidos);
+      const custoTotalS = custoTotalFormulario(ingValidos);
       const unRs = String(form.rendimento_unidade || "porcao").toLowerCase();
       const rendS = Number(form.rendimento_porcoes) || 0;
       const pesoPorcaoS = Number(form.peso_porcao_g) || 0;
@@ -1015,8 +1266,8 @@ function FichasRunner() {
         const prodExistente = (prodsAtu || []).find(p =>
           p.ficha_id === fichaIdSalva || (p.nome_produto || "").toLowerCase() === nome.toLowerCase()
         );
-        if (prodExistente && Math.abs((Number(prodExistente.preco_venda) || 0) - precoVendaNum) > 0.004) {
-          await salvarProduto({ id: prodExistente.id, preco_venda: precoVendaNum });
+        if (prodExistente) {
+          await salvarProduto({ id: prodExistente.id, preco_venda: precoVendaNum, embalagens: fichaEmbalagens });
         }
       } catch { /* sincronização de preço não bloqueia o salvar */ }
     }
@@ -1043,6 +1294,7 @@ function FichasRunner() {
             preco_venda: precoVendaNum,
             ficha_id: fichaIdSalva,
             composicao: form.produto_pronto ? [] : [{ ficha_id: fichaIdSalva, qtd: 1 }],
+            embalagens: fichaEmbalagens,
           });
         }
 
@@ -1073,6 +1325,8 @@ function FichasRunner() {
     if (criarOutra) {
       setForm({ id: null, departamento: form.departamento, nome_receita: "", categoria: "", rendimento_porcoes: "1", modo_preparo: "", eh_base: false, produto_pronto: false, tipo_base: null, rendimento_unidade: "porcao", peso_porcao_g: "", imagem: "", tempo_preparo: "", validade_dias: "", observacoes: "", preco_venda: "", cmv_meta: 30 });
       setIngFicha([]);
+      setFichaEmbalagens([]);
+      setNovaEmbalagem({ nome: "", custo: "" });
       setAutoSoma(true);
       setIaExplicacao("");
     }
@@ -1740,75 +1994,80 @@ function FichasRunner() {
 
   return (
     <div className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50">
-      <RecipeWorkspace
-        active="fichas"
-        dept={deptUrl}
-        title={deptUrl === "bar" ? "Fichas técnicas do Bar" : "Fichas técnicas da Cozinha"}
-        description={deptUrl === "bar"
-          ? "Receituário, dosagens, custos e margens de drinks e bebidas."
-          : "Transforme ingredientes em receitas padronizadas, acompanhe custo, rendimento e CMV."}
-        total={fichas.length}
-        onPrimary={abrirNova}
-        primaryLabel="Nova ficha"
-      >
-        <button
-          onClick={() => {
-            if (!fichas.length) return alert("Nenhuma ficha para o livro.");
-            abrirPreviaImpressao("livro", fichas);
-          }}
-          title="Livro completo de receitas"
-          className="flex h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50"
-        >
-          <Printer size={15} /> Livro de receitas
-        </button>
-        <button
-          onClick={() => {
-            if (!fichas.length) return alert("Nenhuma ficha para o livro.");
-            abrirPreviaImpressao("pdf", fichas);
-          }}
-          title="Baixar Livro em PDF"
-          className="flex h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50"
-        >
-          <Download size={15} /> Baixar PDF
-        </button>
-        <button
-          onClick={imprimirPlanilhaCustos}
-          title="Planilha com CMV e custos"
-          className="flex h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50"
-        >
-          <Calculator size={15} /> Custos e CMV
-        </button>
-        <button
-          onClick={registrarCustoTodasFichas}
-          disabled={semeandoCustos}
-          title="Registra custo no histórico"
-          className="flex h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-        >
-          {semeandoCustos ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-          {semeandoCustos ? "Registrando..." : "Registrar custos"}
-        </button>
-        <input ref={inputCardapioRef} type="file" accept="image/*" multiple onChange={importarCardapioFoto} className="hidden" />
-        <button
-          onClick={() => inputCardapioRef.current?.click()}
-          disabled={importandoCardapio}
-          title="Importar cardápio via foto"
-          className="flex h-10 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-        >
-          {importandoCardapio ? <Loader2 size={15} className="animate-spin" /> : <Camera size={15} />} Importar cardápio
-        </button>
-        <button
-          onClick={abrirModalIAFicha}
-          className="flex h-10 items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 text-xs font-black text-emerald-700 hover:bg-emerald-100"
-        >
-          <Sparkles size={15} /> Criar com IA
-        </button>
-      </RecipeWorkspace>
+      <header className="border-b border-slate-200 bg-white">
+        <div className="mx-auto max-w-[1480px] px-4 py-4 sm:px-5">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex items-center gap-4">
+              <button onClick={abrirMenu} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500 hover:text-slate-900" title="Voltar ao menu">
+                <ArrowLeft size={19} />
+              </button>
+              <div>
+                <h1 className="text-2xl font-black tracking-tight text-slate-950">{deptUrl === "bar" ? "Fichas técnicas do Bar" : "Fichas técnicas da Cozinha"}</h1>
+                <p className="mt-1 text-sm font-medium text-slate-500">{modoFicha === "preparos"
+                  ? (deptUrl === "bar" ? "Produção de xaropes, espumas, infusões e bases do bar" : "Produção de molhos, caldos, massas e receitas-base da cozinha")
+                  : (deptUrl === "bar" ? "Montagem, custos e margens de drinks e bebidas" : "Montagem de pratos, rendimento, custo e CMV para o cardápio")}</p>
+              </div>
+            </div>
+            <div className="erp-busca-fixa flex flex-col gap-3 sm:flex-row">
+              <label className="flex min-w-0 items-center gap-2 rounded-2xl border-2 border-slate-300 bg-white px-3.5 shadow-sm transition-all focus-within:border-emerald-600 focus-within:ring-4 focus-within:ring-emerald-500/20 sm:w-[430px]">
+                <Search size={19} className="shrink-0 text-slate-700" />
+                <input value={busca} onChange={e => setBusca(e.target.value)} placeholder={modoFicha === "preparos" ? "Buscar preparo por nome..." : deptUrl === "bar" ? "Buscar drink ou produto..." : "Buscar prato por nome..."} className="h-11 min-w-0 flex-1 bg-transparent text-sm font-bold text-slate-900 outline-none placeholder:font-medium placeholder:text-slate-400" />
+                {busca && <button onClick={() => setBusca("")} className="text-slate-400 hover:text-slate-700" title="Limpar busca"><X size={16} /></button>}
+              </label>
+              <button onClick={abrirModalIAFicha} className="flex h-11 items-center justify-center gap-2 rounded-xl border border-emerald-600/30 bg-emerald-50 px-4 text-sm font-black text-emerald-700 shadow-sm hover:bg-emerald-100"><Sparkles size={18} /> Criar com IA</button>
+              <button onClick={abrirNova} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-black text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700"><Plus size={18} /> {modoFicha === "preparos" ? "Novo preparo" : deptUrl === "bar" ? "Novo drink" : "Novo prato"}</button>
+            </div>
+          </div>
+          <div className="mt-3 flex gap-2 overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-2">
+            <button onClick={() => { if (!fichas.length) return alert("Nenhuma ficha para o livro."); abrirPreviaImpressao("livro", fichas); }} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100"><Printer size={14} /> Livro de receitas</button>
+            <button onClick={() => { if (!fichas.length) return alert("Nenhuma ficha para o livro."); abrirPreviaImpressao("pdf", fichas); }} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100"><Download size={14} /> Baixar PDF</button>
+            <button onClick={imprimirPlanilhaCustos} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100"><Calculator size={14} /> Custos e CMV</button>
+            <button onClick={registrarCustoTodasFichas} disabled={semeandoCustos} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-50">{semeandoCustos ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}{semeandoCustos ? "Registrando..." : "Registrar custos"}</button>
+            <input ref={inputCardapioRef} type="file" accept="image/*" multiple onChange={importarCardapioFoto} className="hidden" />
+            <button onClick={() => inputCardapioRef.current?.click()} disabled={importandoCardapio} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-50">{importandoCardapio ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />} Importar cardápio</button>
+          </div>
+        </div>
+      </header>
 
-      <div className="max-w-7xl mx-auto px-3 sm:px-5 mt-5 sm:mt-6">
+      <main className="mx-auto max-w-[1480px] px-4 py-4 sm:px-5">
          {/* Kanban de indicadores: CMV médio, margem, custo, ticket */}
-         {(() => {
-            const base = fichas.filter(f => !f.eh_base && f.tipo_base !== "produto_pronto");
+         <div className="mb-2 flex justify-end">
+           <button type="button" onClick={() => setMostrarIndicadores(valor => !valor)} className="flex min-h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-black text-slate-600 shadow-sm hover:bg-slate-50">
+             <BarChart3 size={15} /> {mostrarIndicadores ? "Ocultar indicadores" : "Ver indicadores"}
+           </button>
+         </div>
+         {mostrarIndicadores && (() => {
+            const base = fichas.filter(f => modoFicha === "preparos"
+              ? !!f.eh_base
+              : (!f.eh_base && f.tipo_base !== "produto_pronto"));
             if (!base.length) return null;
+            if (modoFicha === "preparos") {
+              const prePreparos = base.filter(f => f.tipo_base !== "receita").length;
+              const receitasBase = base.filter(f => f.tipo_base === "receita").length;
+              const comCusto = base.filter(f => custoTotalDaFicha(f, fichas) > 0).length;
+              const semModo = base.filter(f => !String(f.modo_preparo || "").trim()).length;
+              const tempos = base.map(f => Number(f.tempo_preparo) || 0).filter(Boolean);
+              const tempoMedio = tempos.length ? Math.round(tempos.reduce((a, b) => a + b, 0) / tempos.length) : 0;
+              const cardsPreparo = [
+                { rot: "Preparos", val: base.length, sub: deptUrl === "bar" ? "bases do bar" : "bases da cozinha" },
+                { rot: "Pré-preparos", val: prePreparos, sub: "usados em montagens" },
+                { rot: "Receitas base", val: receitasBase, sub: "produção do dia" },
+                { rot: "Com custo", val: comCusto, sub: `${base.length - comCusto} sem custo` },
+                { rot: "Tempo médio", val: tempoMedio ? `${tempoMedio} min` : "—", sub: `${tempos.length} informados` },
+                { rot: "Sem instruções", val: semModo, sub: "modo de preparo", alerta: semModo > 0 },
+              ];
+              return (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 mb-4">
+                  {cardsPreparo.map(c => (
+                    <div key={c.rot} className={`rounded-2xl border shadow-sm px-3 py-2.5 ${c.alerta ? "bg-amber-50 border-amber-200" : "bg-white border-amber-100"}`}>
+                      <p className="text-[9px] font-black uppercase tracking-wider text-slate-400 leading-tight">{c.rot}</p>
+                      <p className={`text-lg font-black mt-0.5 ${c.alerta ? "text-amber-700" : "text-orange-700"}`}>{c.val}</p>
+                      <p className="text-[10px] font-bold text-slate-400 truncate">{c.sub}</p>
+                    </div>
+                  ))}
+                </div>
+              );
+            }
             let somaCmv = 0, nCmv = 0, somaCusto = 0, nCusto = 0, somaPreco = 0, nPreco = 0, somaMargem = 0, semPreco = 0, acimaMeta = 0;
             base.forEach(f => {
                const peso = infoPesoFicha(f, fichas);
@@ -1848,65 +2107,81 @@ function FichasRunner() {
                </div>
             );
          })()}
-         {/* Abas na ordem exata solicitada pelo usuário com opção de excluir */}
-         <div className="flex flex-wrap items-center gap-2 mb-4">
-            {obterTodasCategoriasFicha(deptUrl, fichas).map(cat => {
-              const n = fichas.filter(f => (f.categoria || "") === cat).length;
+         <div className="grid grid-cols-2 gap-2 mb-3">
+            {[
+              {
+                id: "Preparos e receitas",
+                modo: "preparos",
+                titulo: "Preparos e receitas",
+                descricao: deptUrl === "bar" ? "Xaropes, espumas, infusões e bases usadas em outras fichas." : "Molhos, caldos, massas, arroz, feijão e outras bases do prato.",
+                quantidade: fichas.filter(f => !!f.eh_base).length,
+                icone: <BookOpen size={24} />,
+              },
+              {
+                id: "Pratos principais",
+                modo: "principais",
+                titulo: deptUrl === "bar" ? "Drinks e montagens" : "Pratos principais e montagens",
+                descricao: deptUrl === "bar" ? "Monte o drink final usando insumos e preparos já cadastrados." : "Monte o prato final separando claramente cada preparo e ingrediente.",
+                quantidade: fichas.filter(f => !f.eh_base).length,
+                icone: <UtensilsCrossed size={24} />,
+              },
+            ].map(item => (
+              <button
+                type="button"
+                key={item.id}
+                onClick={() => { setModoFicha(item.modo); setTipoFiltro(item.id); setCategoriasRecolhidas(true); }}
+                className={`min-h-[74px] rounded-xl border p-3 text-left transition-all ${modoFicha === item.modo ? (item.modo === "preparos" ? "border-amber-500 bg-amber-50 shadow-sm" : "border-emerald-500 bg-emerald-50 shadow-sm") : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm"}`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg ${modoFicha === item.modo ? (item.modo === "preparos" ? "bg-amber-600 text-white" : "bg-emerald-600 text-white") : "bg-slate-100 text-slate-600"}`}>{item.icone}</span>
+                  <span className="min-w-0">
+                    <span className="block text-sm sm:text-base font-black leading-tight text-slate-900">{item.titulo} <span className={item.modo === "preparos" ? "text-amber-600" : "text-emerald-600"}>({item.quantidade})</span></span>
+                  </span>
+                </div>
+              </button>
+            ))}
+         </div>
+
+         <div className={`mb-3 rounded-xl border p-2.5 transition-colors ${modoFicha === "preparos" ? "border-amber-200 bg-amber-50" : "border-emerald-200 bg-emerald-50"}`}>
+           <div className={`flex items-center justify-between gap-3 ${categoriasRecolhidas ? "" : "mb-2"}`}>
+             <button type="button" onClick={() => setCategoriasRecolhidas(valor => !valor)} className="flex min-h-10 flex-1 items-center gap-2 rounded-lg px-2 text-left text-sm font-black text-slate-800 hover:bg-white/70" aria-expanded={!categoriasRecolhidas}>
+               <ChevronRight size={18} className={`transition-transform ${categoriasRecolhidas ? "" : "rotate-90"}`} />
+               {modoFicha === "preparos" ? "Categorias de preparos" : deptUrl === "bar" ? "Categorias de bebidas e drinks" : "Categorias de pratos"}
+               <span className="rounded-full bg-white px-2 py-0.5 text-[10px] text-slate-500">{categoriasDisponiveis.length}</span>
+             </button>
+             <button type="button" onClick={() => setModalCategorias(true)} className={`flex min-h-9 items-center gap-2 rounded-lg px-3 text-xs font-black text-white ${modoFicha === "preparos" ? "bg-amber-700 hover:bg-amber-800" : "bg-emerald-700 hover:bg-emerald-800"}`}>
+               <FolderPlus size={15} /> <span className="hidden sm:inline">Gerenciar</span>
+             </button>
+           </div>
+         {!categoriasRecolhidas && <div className="flex flex-wrap items-center gap-2">
+            {categoriasDisponiveis.map(cat => {
+              const n = fichasDoModo.filter(f => (f.categoria || "") === cat).length;
               return (
-                <div key={cat} className="group relative flex items-center">
+                <div key={cat} className="flex items-center">
                   <button onClick={() => setTipoFiltro(cat)}
-                    className={`px-3.5 py-2.5 rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-wider transition-all ${tipoFiltro === cat ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20" : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"}`}>
-                    {cat} <span className={tipoFiltro === cat ? "text-emerald-200" : "text-slate-400"}>({n})</span>
-                  </button>
-                  <button
-                    type="button"
-                    title={`Excluir categoria "${cat}"`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (confirm(`Excluir a categoria "${cat}" das fichas técnicas?`)) {
-                        excluirCategoriaFicha(cat, deptUrl);
-                        if (tipoFiltro === cat) setTipoFiltro("Todos");
-                      }
-                    }}
-                    className="ml-1 text-[10px] text-rose-400 hover:text-rose-600 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    ✕
+                    className={`px-4 py-3 rounded-xl font-black text-xs sm:text-sm transition-all ${tipoFiltro === cat ? (modoFicha === "preparos" ? "bg-amber-600 text-white shadow-lg shadow-amber-600/20" : "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20") : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50"}`}>
+                    {cat} <span className={tipoFiltro === cat ? "text-white/75" : "text-slate-400"}>({n})</span>
                   </button>
                 </div>
               );
             })}
-            {[
+            {(modoFicha === "preparos" ? [
               ["Pré-preparos", "Pré-preparos", fichas.filter(f => !!f.eh_base && f.tipo_base !== "receita").length],
               ["Receitas base", "Receitas base", fichas.filter(f => !!f.eh_base && f.tipo_base === "receita").length],
-              ["Todos", "Todos", fichas.length],
-            ].map(([t, label, n]) => (
+              ["Preparos e receitas", "Todos os preparos", fichas.filter(f => !!f.eh_base).length],
+            ] : [
+              ["Pratos principais", deptUrl === "bar" ? "Todos os drinks e produtos" : "Todos os pratos", fichas.filter(f => !f.eh_base).length],
+            ]).map(([t, label, n]) => (
               <button key={t} onClick={() => setTipoFiltro(t)}
-                className={`px-3 sm:px-4 py-2.5 rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-wider transition-all ${tipoFiltro === t ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>
-                {label} <span className={tipoFiltro === t ? "text-emerald-200" : "text-slate-400"}>({n})</span>
+                className={`px-4 py-3 rounded-xl font-black text-xs sm:text-sm transition-all ${tipoFiltro === t ? (modoFicha === "preparos" ? "bg-amber-600 text-white shadow-lg shadow-amber-600/20" : "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20") : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>
+                {label} <span className={tipoFiltro === t ? "text-white/75" : "text-slate-400"}>({n})</span>
               </button>
             ))}
+         </div>}
          </div>
-         {tipoFiltro === "Pratos" && (
-            <p className="text-[11px] font-bold text-slate-400 mb-4 px-1">
-              {deptUrl === "bar"
-                ? "Monte o drink aqui: adicione os insumos e os pré-preparos (xaropes, mixes, infusões) como componentes. O Cardápio só precifica em cima do que você montar."
-                : "Monte o prato aqui: adicione insumos e os pré-preparos como componentes. O Cardápio só precifica em cima do que você montar."}
-            </p>
-         )}
-         {tipoFiltro === "Pré-preparos" && (
-            <p className="text-[11px] font-bold text-slate-400 mb-4 px-1">
-              {deptUrl === "bar"
-                ? "Bases usadas dentro dos drinks (xarope simples, mix de limão, infusões, espumas). Marque \"É uma base/pré-preparo\" ao criar."
-                : "Bases usadas dentro de outros pratos (molhos, massas, caldos). Marque \"É uma base/pré-preparo\" ao criar."}
-            </p>
-         )}
-         <div className="erp-busca-fixa bg-white p-3 rounded-2xl border border-slate-200 mb-3 flex flex-col lg:flex-row items-stretch lg:items-center gap-3 shadow-sm justify-between">
-            <div className="flex flex-1 items-center gap-2 px-2">
-               <Search size={20} className="text-slate-500" />
-               <input type="text" placeholder="Buscar receita..." value={busca} onChange={e=>setBusca(e.target.value)} className="w-full outline-none font-bold text-slate-700 p-2" />
-            </div>
-            
-             <div className="flex flex-wrap items-center gap-2 border-t lg:border-t-0 lg:border-l border-slate-200 pt-3 lg:pt-0 lg:pl-3">
+         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
+             <p className="px-2 text-xs font-bold text-slate-500">{filtradas.length} {filtradas.length === 1 ? "ficha encontrada" : "fichas encontradas"}</p>
+             <div className="flex flex-wrap items-center gap-2">
                 <button onClick={selecionarPaginaLote} disabled={!fichasPagina.length} className="text-xs font-bold text-slate-600 hover:text-emerald-700 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 disabled:opacity-50">
                   <CheckSquare2 size={15} className="inline mr-1.5" /> Selecionar página
                 </button>
@@ -1955,92 +2230,79 @@ function FichasRunner() {
                <p className="text-slate-500 mt-2 font-medium">Cadastre suas receitas para calcular automaticamente o custo do prato.</p>
             </div>
          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
                {fichasPagina.map(f => {
                   const peso = infoPesoFicha(f, fichas);
                   const unR = String(f.rendimento_unidade || "porcao").toLowerCase();
                   const labelUn = { porcao: "porções", kg: "kg", g: "g", l: "L", ml: "ml", un: "un" }[unR] || unR;
-                  const pesoTxt = peso ? `Peso: ${fmtG(peso.pesoTotalG)}` : `Rende: ${Number(f.rendimento_porcoes).toLocaleString("pt-BR")} ${labelUn}${unR === "porcao" && f.peso_porcao_g ? ` de ${f.peso_porcao_g}g` : ''}`;
 
                   return (
                      <div key={f.id}
                         onDragOver={e => { if (dragId) e.preventDefault(); }}
                         onDrop={() => reordenar(dragId, f.id)}
                         className={`bg-white rounded-2xl border shadow-sm hover:shadow-md transition-all relative group flex flex-col overflow-hidden ${dragId === f.id ? 'opacity-50' : ''} ${selecionadas.includes(f.id) ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-slate-200'}`}>
-                        {/* Foto do prato (compacta) */}
-                        <div className="erp-card-foto h-28 sm:h-32 bg-slate-100 relative">
-                           {f.imagem ? (
-                              <img onClick={() => setEscolhaFicha(f)} title="Ver ficha completa" src={`data:image/jpeg;base64,${f.imagem}`} alt={f.nome_receita} className="w-full h-full object-cover cursor-pointer" />
-                           ) : (
-                              <div onClick={() => setEscolhaFicha(f)} title="Ver ficha completa" className="w-full h-full flex items-center justify-center text-slate-300 cursor-pointer">
-                                 {f.departamento === 'bar' ? <Wine size={34}/> : <UtensilsCrossed size={34}/>}
-                              </div>
-                           )}
-                           {/* Alça para arrastar e reordenar */}
-                           <div draggable onDragStart={() => setDragId(f.id)} onDragEnd={() => setDragId(null)}
-                              title="Arraste para reordenar"
-                              className="absolute bottom-2 left-2 bg-white/90 backdrop-blur rounded-md p-1 text-slate-500 shadow-sm cursor-grab active:cursor-grabbing">
-                              <GripVertical size={13} />
+                        {/* Cabeçalho sem foto: nome e ações sempre fáceis de tocar */}
+                        <div className="border-b border-slate-100 bg-slate-50 p-3">
+                           <div className="flex items-start gap-2">
+                             <div draggable onDragStart={() => setDragId(f.id)} onDragEnd={() => setDragId(null)} title="Arraste para reordenar" className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm cursor-grab active:cursor-grabbing"><GripVertical size={19} /></div>
+                             <label className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-slate-200 bg-white cursor-pointer shadow-sm">
+                               <input type="checkbox" checked={selecionadas.includes(f.id)} onChange={() => toggleSelecionar(f.id)} className="block h-5 w-5 cursor-pointer rounded accent-emerald-600"/>
+                             </label>
+                             <button type="button" onClick={() => abrirFicha(f)} title="Abrir ficha" className="min-h-10 min-w-0 flex-1 px-1 text-left">
+                               <span className="block text-lg font-black leading-tight text-slate-900">{f.nome_receita}</span>
+                             </button>
                            </div>
-                           <label className="absolute top-2 left-2 bg-white/90 backdrop-blur rounded-md p-0.5 cursor-pointer shadow-sm">
-                              <input type="checkbox" checked={selecionadas.includes(f.id)} onChange={() => toggleSelecionar(f.id)} className="w-4 h-4 accent-emerald-600 cursor-pointer rounded block"/>
-                           </label>
-                            <div className="absolute top-2 right-2 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                              {!f.eh_base && (
-                                 <button onClick={() => router.push(`/dashboard/operacao/montagem?dept=${f.departamento || deptUrl}&q=${encodeURIComponent(f.nome_receita)}`)} title="Abrir a Guia de Montagem deste prato" className="p-1.5 bg-white/90 backdrop-blur rounded-md text-slate-600 hover:text-emerald-600 shadow-sm"><LayoutList size={13}/></button>
-                              )}
-                              <button onClick={() => abrirSimulacao(f)} title="Simular outro rendimento" className="p-1.5 bg-white/90 backdrop-blur rounded-md text-slate-600 hover:text-emerald-600 shadow-sm"><Calculator size={13}/></button>
-                              <button onClick={() => abrirPreviaImpressao("imprimir", [f])} title="Imprimir ficha técnica" className="p-1.5 bg-white/90 backdrop-blur rounded-md text-slate-600 hover:text-emerald-600 shadow-sm"><Printer size={13}/></button>
-                              <button onClick={() => abrirPreviaImpressao("pdf", [f])} title="Baixar ficha técnica em PDF" className="p-1.5 bg-white/90 backdrop-blur rounded-md text-slate-600 hover:text-emerald-600 shadow-sm"><Download size={13}/></button>
-                              <button onClick={() => abrirEditar(f)} title="Editar" className="p-1.5 bg-white/90 backdrop-blur rounded-md text-slate-600 hover:text-emerald-600 shadow-sm"><Edit3 size={13}/></button>
-                              <button onClick={() => abrirExclusaoSegura([f])} title="Remover" className="p-1.5 bg-white/90 backdrop-blur rounded-md text-slate-600 hover:text-rose-600 shadow-sm"><Trash2 size={13}/></button>
+                           <div className="mt-3 flex justify-end gap-2">
+                              <button onClick={() => abrirFicha(f)} className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 shadow-sm"><BookOpen size={17}/> Abrir</button>
+                              <button onClick={() => abrirEditar(f)} className="flex h-11 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-black text-white shadow-md"><Edit3 size={17}/> Editar</button>
+                              <button onClick={() => setAcoesCardAberto(atual => atual === f.id ? "" : f.id)} title="Mais opções" className="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm"><MoreVertical size={19}/></button>
                            </div>
+                           {acoesCardAberto === f.id && <div className="mt-2 grid grid-cols-2 gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+                              {!f.eh_base && <button onClick={() => router.push(`/dashboard/operacao/montagem?dept=${f.departamento || deptUrl}&q=${encodeURIComponent(f.nome_receita)}`)} className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-bold text-slate-700 hover:bg-slate-50"><LayoutList size={17}/> Montagem</button>}
+                              <button onClick={() => abrirSimulacao(f)} className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-bold text-slate-700 hover:bg-slate-50"><Calculator size={17}/> Simular</button>
+                              <button onClick={() => abrirPreviaImpressao("imprimir", [f])} className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-bold text-slate-700 hover:bg-slate-50"><Printer size={17}/> Imprimir</button>
+                              <button onClick={() => abrirPreviaImpressao("pdf", [f])} className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-bold text-slate-700 hover:bg-slate-50"><Download size={17}/> PDF</button>
+                              <button onClick={() => abrirExclusaoSegura([f])} className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-bold text-rose-600 hover:bg-rose-50"><Trash2 size={17}/> Remover</button>
+                           </div>}
                         </div>
-                        <div className="p-3 cursor-pointer" onClick={() => setEscolhaFicha(f)} title="Ver ficha completa">
+                        <div className="p-4 sm:p-5 cursor-pointer" onClick={() => abrirFicha(f)} title="Abrir ficha">
                            {(() => {
                               // Métricas estilo "app de gestão": custo, preço, CMV e margem
                               const custoTotal = custoTotalDaFicha(f, fichas);
                               const rend = Number(f.rendimento_porcoes) || 1;
                               const porcoes = (unR === "porcao" || unR === "un") ? rend : (peso?.porcoes || 0);
                               const custoPorcao = porcoes > 0 ? custoTotal / porcoes : custoTotal;
-                              const custoKg = peso?.pesoTotalG > 0 ? custoTotal / (peso.pesoTotalG / 1000) : null;
                               const prod = produtos.find(x => x.ficha_id === f.id || String(x.nome_produto || "").toLowerCase() === String(f.nome_receita || "").toLowerCase());
                               const precoPorcao = Number(prod?.preco_venda) || 0;
                               const meta = Number(f.cmv_meta) || 30;
                               const cmv = precoPorcao > 0 ? (custoPorcao / precoPorcao) * 100 : null;
                               const margem = cmv !== null ? 100 - cmv : null;
+                              const composicao = (f.fichas_ingredientes || []).length;
+                              const pesoPorcao = Number(f.peso_porcao_g) || (peso?.pesoTotalG > 0 && porcoes > 0 ? peso.pesoTotalG / porcoes : 0);
+                              const rendimentoTexto = `${Number(f.rendimento_porcoes || 0).toLocaleString("pt-BR")} ${labelUn}`;
                               return (
                                  <>
-                                    {cmv !== null && cmv > meta && (
-                                       <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-red-700 bg-red-50 border border-red-200 rounded-full px-2 py-0.5 mb-1">Acima do CMV meta</span>
-                                    )}
-                                    <h3 className="text-base font-black text-slate-900 leading-snug mb-1 line-clamp-2">{f.nome_receita}</h3>
-                                    <p className="text-[12px] font-bold text-slate-500 mb-2">{pesoTxt}</p>
-                                    {!f.eh_base && (
-                                       <div className="border-t border-slate-100 pt-2 space-y-1.5">
-                                          {/* O que mais importa em destaque; o resto embaixo, sem apertar */}
-                                          <div className="flex items-center justify-between">
-                                             <span className="text-[13px] font-bold text-slate-500">Custo/porção</span>
-                                             <span className="text-[15px] font-black text-slate-800">{fmtBRL(custoPorcao)}</span>
-                                          </div>
-                                          <div className="flex items-center justify-between">
-                                             <span className="text-[13px] font-bold text-slate-500">Venda/porção</span>
-                                             <span className="text-[15px] font-black text-emerald-700">{precoPorcao > 0 ? fmtBRL(precoPorcao) : "—"}</span>
-                                          </div>
-                                          <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-slate-100">
-                                             <span className={`rounded-lg px-2 py-1 text-[12px] font-black ${cmv === null ? "bg-slate-100 text-slate-400" : cmv > meta ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>
-                                                CMV {cmv !== null ? `${cmv.toFixed(1)}%` : "—"}
-                                             </span>
-                                             <span className="text-[12px] font-bold text-slate-500">
-                                                Margem <b className={margem === null ? "text-slate-400" : "text-emerald-700"}>{margem !== null ? `${margem.toFixed(1)}%` : "—"}</b>
-                                             </span>
-                                          </div>
-                                          <p className="text-[12px] font-bold text-slate-400">Custo total {fmtBRL(custoTotal)}{custoKg !== null ? ` · ${fmtBRL(custoKg)}/kg` : ""}</p>
-                                       </div>
-                                    )}
-                                    {!f.eh_base && precoPorcao === 0 && (
-                                       <p className="text-[12px] font-bold text-amber-600 mt-1.5">Sem preço — defina em Editar → CMV e Precificação</p>
-                                    )}
+                                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                                      <span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${f.eh_base ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"}`}>{f.eh_base ? "Preparo" : deptUrl === "bar" ? "Drink / produto" : "Prato"}</span>
+                                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black text-slate-600">{f.categoria || "Sem categoria"}</span>
+                                      {cmv !== null && cmv > meta && <span className="rounded-full bg-red-50 px-2.5 py-1 text-[10px] font-black uppercase text-red-700">CMV alto</span>}
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2 border-y border-slate-100 py-3">
+                                      <div><p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Tempo</p><p className="mt-1 text-sm font-black text-slate-800">{f.tempo_preparo ? `${f.tempo_preparo} min` : "—"}</p></div>
+                                      <div><p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Validade</p><p className="mt-1 text-sm font-black text-slate-800">{f.validade_dias ? `${f.validade_dias} dia${Number(f.validade_dias) === 1 ? "" : "s"}` : "—"}</p></div>
+                                      <div><p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Composição</p><p className="mt-1 text-sm font-black text-slate-800">{composicao} {composicao === 1 ? "item" : "itens"}</p></div>
+                                    </div>
+
+                                    <div className="divide-y divide-slate-100">
+                                      <div className="flex min-h-12 items-center justify-between gap-3"><span className="text-sm font-bold text-slate-500">Rendimento</span><strong className="text-base text-slate-900">{rendimentoTexto}</strong></div>
+                                      <div className="flex min-h-12 items-center justify-between gap-3"><span className="text-sm font-bold text-slate-500">Porção</span><strong className="text-base text-slate-900">{pesoPorcao > 0 ? `${Math.round(pesoPorcao).toLocaleString("pt-BR")} g` : unR === "porcao" ? "1 porção" : "—"}</strong></div>
+                                      <div className="flex min-h-12 items-center justify-between gap-3"><span className="text-sm font-bold text-slate-500">Custo por porção</span><strong className="text-base text-slate-900">{fmtBRL(custoPorcao)}</strong></div>
+                                      <div className="flex min-h-12 items-center justify-between gap-3">
+                                        <span className="text-sm font-black text-slate-600">{f.eh_base ? "Custo total" : "CMV"}</span>
+                                        {f.eh_base ? <strong className="text-lg text-amber-700">{fmtBRL(custoTotal)}</strong> : <span className={`rounded-lg px-3 py-1.5 text-base font-black ${cmv === null ? "bg-slate-100 text-slate-400" : cmv > meta ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>{cmv !== null ? `${cmv.toFixed(1)}%` : "—"}</span>}
+                                      </div>
+                                    </div>
+                                    {!f.eh_base && <p className="mt-1 text-xs font-bold text-slate-400">Venda {precoPorcao > 0 ? fmtBRL(precoPorcao) : "não informada"} · Margem {margem !== null ? `${margem.toFixed(1)}%` : "—"}</p>}
                                  </>
                               );
                            })()}
@@ -2065,7 +2327,7 @@ function FichasRunner() {
              </div>
            </div>
          )}
-      </div>
+      </main>
 
       {/* PRÉVIA E CONFIGURAÇÃO DA IMPRESSÃO / PDF */}
       {modalImpressao && configImpressao && (
@@ -2269,40 +2531,46 @@ function FichasRunner() {
         </div>
       )}
 
-      {/* O QUE VOCÊ VAI FAZER AGORA: seguir a receita ou montar o prato */}
-      {escolhaFicha && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/60 backdrop-blur-sm p-0 sm:p-4" onClick={() => setEscolhaFicha(null)}>
-          <div className="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-start justify-between gap-3 mb-1">
-              <div className="min-w-0">
-                <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700">O que você vai fazer</p>
-                <h3 className="text-xl font-black text-slate-900 leading-tight truncate">{escolhaFicha.nome_receita}</h3>
+      {modalCategorias && (
+        <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-slate-900/60 backdrop-blur-sm p-0 sm:p-4" onClick={() => setModalCategorias(false)}>
+          <div className="w-full sm:max-w-xl max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl bg-white p-5 sm:p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className={`text-xs font-black uppercase tracking-widest ${modoFicha === "preparos" ? "text-amber-700" : "text-emerald-700"}`}>{modoFicha === "preparos" ? "Ambiente de preparos" : "Ambiente de pratos e montagens"}</p>
+                <h3 className="mt-1 text-2xl font-black text-slate-900">Gerenciar categorias de {modoFicha === "preparos" ? "preparos" : deptUrl === "bar" ? "drinks e produtos" : "pratos"}</h3>
+                <p className="mt-1 text-sm font-semibold leading-relaxed text-slate-500">As categorias ficam disponíveis para toda a equipe desta unidade.</p>
               </div>
-              <button onClick={() => setEscolhaFicha(null)} className="w-10 h-10 shrink-0 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center"><X size={18} /></button>
+              <button type="button" onClick={() => setModalCategorias(false)} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200"><X size={20} /></button>
             </div>
 
-            <button onClick={() => { const f = escolhaFicha; setEscolhaFicha(null); abrirFicha(f); }}
-              className="mt-4 w-full flex items-center gap-4 rounded-2xl border-2 border-emerald-200 bg-emerald-50 p-4 text-left hover:border-emerald-500 transition-all">
-              <div className="w-12 h-12 shrink-0 rounded-2xl bg-emerald-600 text-white flex items-center justify-center"><BookOpen size={22} /></div>
-              <div className="min-w-0">
-                <p className="text-base font-black text-slate-900">Fazer a receita</p>
-                <p className="text-[13px] font-medium text-slate-600 leading-snug">Ingredientes, quantidades, rendimento, custo e modo de preparo.</p>
-              </div>
-            </button>
+            <div className="mt-5 flex flex-col sm:flex-row gap-2">
+              <input
+                type="text"
+                value={novaCategoria}
+                onChange={e => setNovaCategoria(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") criarCategoria(); }}
+                placeholder={modoFicha === "preparos" ? "Ex.: Molhos da casa" : deptUrl === "bar" ? "Ex.: Coquetéis autorais" : "Ex.: Pratos executivos"}
+                className="min-h-12 flex-1 rounded-xl border border-slate-300 px-4 text-base font-bold text-slate-800 outline-none focus:border-emerald-500"
+              />
+              <button type="button" disabled={salvandoCategoria || !novaCategoria.trim()} onClick={criarCategoria} className="min-h-12 rounded-xl bg-emerald-600 px-5 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-50">
+                {salvandoCategoria ? "Salvando..." : "Criar categoria"}
+              </button>
+            </div>
 
-            <button onClick={() => { const f = escolhaFicha; setEscolhaFicha(null); router.push(`/dashboard/operacao/montagem?dept=${f.departamento || deptUrl}&q=${encodeURIComponent(f.nome_receita)}`); }}
-              className="mt-3 w-full flex items-center gap-4 rounded-2xl border-2 border-slate-200 bg-white p-4 text-left hover:border-emerald-500 transition-all">
-              <div className="w-12 h-12 shrink-0 rounded-2xl bg-slate-100 text-emerald-700 flex items-center justify-center"><LayoutList size={22} /></div>
-              <div className="min-w-0">
-                <p className="text-base font-black text-slate-900">Montar o prato</p>
-                <p className="text-[13px] font-medium text-slate-600 leading-snug">Guia de montagem: como servir, empratar e finalizar.</p>
-              </div>
-            </button>
-
-            <button onClick={() => { const f = escolhaFicha; setEscolhaFicha(null); abrirEditar(f); }}
-              className="mt-3 w-full rounded-xl border border-slate-200 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50">
-              Editar esta ficha
-            </button>
+            <div className="mt-5 space-y-2">
+              {categoriasDisponiveis.map(cat => {
+                const quantidade = fichasDoModo.filter(f => f.categoria === cat).length;
+                return (
+                  <div key={cat} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-base font-black text-slate-800">{cat}</p>
+                      <p className="text-xs font-semibold text-slate-500">{quantidade} {quantidade === 1 ? "ficha nesta categoria" : "fichas nesta categoria"}</p>
+                    </div>
+                    <button type="button" onClick={() => excluirCategoria(cat)} title={`Excluir categoria ${cat}`} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-rose-200 bg-white text-rose-600 hover:bg-rose-50"><Trash2 size={17} /></button>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
@@ -2383,10 +2651,10 @@ function FichasRunner() {
                   {/* CORPO: conteúdo + sidebar */}
                   <div className="flex-1 overflow-y-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-[1.55fr_1fr] gap-4 sm:gap-5 items-start">
                      {/* COLUNA PRINCIPAL */}
-                     <div className="space-y-4 sm:space-y-5">
+                     <div className="flex flex-col gap-4 sm:gap-5">
                         {viewTab === "ficha" && (<>
                         {/* INFORMAÇÕES GERAIS */}
-                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
+                        <div className="order-2 bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
                            <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700 mb-4">Informações gerais</p>
                            <div className="flex flex-col sm:flex-row gap-4">
                               <div className="grid grid-cols-2 gap-3 flex-1">
@@ -2416,9 +2684,9 @@ function FichasRunner() {
                         </div>
 
                         {/* INGREDIENTES E CUSTOS */}
-                        {!f.eh_base && (
-                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
-                           <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700 mb-3">Ingredientes e custos</p>
+                        {!f.produto_pronto && (
+                        <div className="order-1 bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
+                           <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700 mb-3">Ingredientes / composição</p>
                            <div className="overflow-x-auto">
                               <table className="w-full text-sm min-w-[560px]">
                                  <thead>
@@ -2658,22 +2926,41 @@ function FichasRunner() {
       {/* MODAL DE CRIAÇÃO DA FICHA TÉCNICA */}
       {modalNovo && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-2 sm:p-4">
-             <div className="erp-ficha bg-white rounded-3xl sm:rounded-[32px] w-full max-w-6xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-hidden shadow-2xl animate-in zoom-in-95 flex flex-col">
+             <div className="erp-ficha erp-editor-ficha bg-white rounded-3xl sm:rounded-[32px] w-full max-w-7xl max-h-[calc(100dvh-1rem)] sm:max-h-[94vh] overflow-hidden shadow-2xl animate-in zoom-in-95 flex flex-col">
+               <style>{`
+                 .erp-editor-ficha label { font-size: 13px !important; line-height: 1.4; }
+                 .erp-editor-ficha input, .erp-editor-ficha select, .erp-editor-ficha textarea { font-size: 16px !important; line-height: 1.5; }
+                 .erp-editor-ficha input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), .erp-editor-ficha select { min-height: 48px; }
+                 .erp-editor-ficha textarea { line-height: 1.65; }
+                 .erp-editor-ficha [class*="text-[9px]"], .erp-editor-ficha [class*="text-[10px]"] { font-size: 12px !important; }
+                 .erp-editor-ficha [class*="text-[11px]"] { font-size: 13px !important; }
+               `}</style>
                
                {/* HEADER DO MODAL */}
-               <div className="flex justify-between items-center gap-3 p-4 sm:p-6 border-b border-slate-100 bg-white">
-                  <div>
-                     <h2 className="font-black text-xl sm:text-2xl text-slate-800">{form.id ? "Editar Receita" : "Nova Receita"}</h2>
-                     <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mt-1">Custo Total Atual: <span className="text-emerald-600 font-black">{fmtBRL(calcularCustoTotal(ingFicha))}</span></p>
+               <div className="flex justify-between items-center gap-3 p-4 sm:px-6 sm:py-5 border-b border-slate-100 bg-white">
+                  <div className="min-w-0">
+                     <p className={`text-[10px] font-black uppercase tracking-[.18em] ${form.eh_base ? "text-amber-700" : "text-emerald-700"}`}>{form.eh_base ? "Pré-preparo / receita base" : form.produto_pronto ? "Produto pronto" : deptUrl === "bar" ? "Montagem de drink" : "Montagem de prato"}</p>
+                     <h2 className="font-black text-2xl sm:text-3xl text-slate-800">{form.id ? "Editar ficha técnica" : "Nova ficha técnica"}</h2>
+                     <p className="text-sm font-bold text-slate-500 mt-1">{ingFicha.length} ingrediente(s) · custo atual <span className="text-emerald-600 font-black">{fmtBRL(custoTotalFormulario(ingFicha))}</span></p>
                   </div>
-                  <button onClick={() => setModalNovo(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+                  <button onClick={() => setModalNovo(false)} className="w-12 h-12 shrink-0 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={21}/></button>
                </div>
 
+               <nav className="flex shrink-0 gap-2 overflow-x-auto border-b border-slate-100 bg-slate-50 px-4 py-3 sm:px-6">
+                  {[
+                    ["ficha-dados", "1. Dados", !!form.nome_receita],
+                    ["ficha-ingredientes", "2. Ingredientes", form.produto_pronto || ingFicha.length > 0],
+                    ["ficha-rendimento", "3. Rendimento", !!form.rendimento_porcoes],
+                    ...(!form.eh_base && !form.produto_pronto ? [["ficha-custos", "4. Custos e preço", Number(form.preco_venda) > 0]] : []),
+                    ...(form.eh_base ? [["ficha-preparo", "4. Preparo", !!form.modo_preparo]] : []),
+                  ].map(([id, label, completo]) => <button key={id} type="button" onClick={() => irSecaoEditorFicha(id)} className={`flex min-h-10 shrink-0 items-center gap-2 rounded-xl border bg-white px-3 text-xs font-black transition-colors ${completo ? "border-emerald-200 text-emerald-700" : "border-slate-200 text-slate-500 hover:border-emerald-300"}`}><span className={`h-2 w-2 rounded-full ${completo ? "bg-emerald-500" : "bg-slate-300"}`} />{label}</button>)}
+               </nav>
+
                {/* BODY DO MODAL COM SCROLL */}
-               <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-50/50 custom-scrollbar grid grid-cols-1 md:grid-cols-[1.4fr_1fr] gap-5 sm:gap-8 md:items-start">
+               <div className="flex-1 overflow-y-auto p-4 sm:p-7 bg-slate-50/50 custom-scrollbar grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-6 sm:gap-8 lg:items-start">
                   
                    {/* COLUNA ESQUERDA: Dados Básicos e Foto */}
-                  <div className="space-y-4">
+                  <div id="ficha-dados" className="space-y-4 scroll-mt-24">
                      <div className="flex gap-4">
                         <div className="w-24 h-24 shrink-0 relative">
                            <div onClick={() => fileInputRef.current?.click()} className="w-full h-full rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center cursor-pointer hover:bg-slate-100 hover:border-emerald-400 overflow-hidden relative group transition-colors">
@@ -2703,31 +2990,40 @@ function FichasRunner() {
                            {form.imagem && <button type="button" onClick={() => setForm({ ...form, imagem: "" })} className="text-[11px] font-bold text-rose-500 hover:text-rose-600 mt-1.5">Remover foto</button>}
                         </div>
                      </div>
-                     {/* Tipo da ficha: PRATO/DRINK (cardápio), PRÉ-PREPARO ou RECEITA BASE */}
-                     <div className={`grid gap-2 ${deptUrl === "bar" ? "grid-cols-2" : "grid-cols-3"}`}>
-                        <button type="button" onClick={() => setForm({ ...form, eh_base: false, produto_pronto: false, tipo_base: null, categoria: "" })}
-                           className={`min-h-[92px] py-3 px-2 rounded-xl font-black text-xs uppercase tracking-widest transition-all border-2 ${!form.eh_base && !form.produto_pronto ? "bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-600/20" : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"}`}>
-                           {deptUrl === "bar" ? "Drink" : "Prato"}
-                           <span className="block text-[9px] font-bold normal-case tracking-normal mt-0.5 opacity-80">vai pro cardápio</span>
-                        </button>
-                        {deptUrl === "bar" && (
-                          <button type="button" onClick={() => { setForm({ ...form, eh_base: false, produto_pronto: true, tipo_base: "produto_pronto", categoria: form.categoria || "Cervejas", rendimento_porcoes: "1", rendimento_unidade: "un", peso_porcao_g: "", modo_preparo: "" }); setIngFicha([]); setAutoSoma(false); }}
-                            className={`min-h-[92px] py-3 px-2 rounded-xl font-black text-xs uppercase tracking-widest transition-all border-2 ${form.produto_pronto ? "bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-600/20" : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"}`}>
-                            Produto pronto
-                            <span className="block text-[9px] font-bold normal-case tracking-normal mt-0.5 opacity-80">garrafa, lata, água, cerveja</span>
-                          </button>
-                        )}
-                        <button type="button" onClick={() => setForm({ ...form, eh_base: true, produto_pronto: false, tipo_base: "pre", categoria: deptUrl === "bar" ? (CATEGORIAS_PREPARO_BAR.includes(form.categoria) ? form.categoria : "Xaropes") : "" })}
-                           className={`min-h-[92px] py-3 px-2 rounded-xl font-black text-xs uppercase tracking-widest transition-all border-2 ${form.eh_base && form.tipo_base !== "receita" ? "bg-emerald-700 border-emerald-700 text-white shadow-lg shadow-emerald-700/20" : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"}`}>
-                           Pré-preparo
-                           <span className="block text-[9px] font-bold normal-case tracking-normal mt-0.5 opacity-80">{deptUrl === "bar" ? "xarope, mix, infusão" : "molho, massa, caldo"}</span>
-                        </button>
-                        <button type="button" onClick={() => setForm({ ...form, eh_base: true, produto_pronto: false, tipo_base: "receita", categoria: "" })}
-                           className={`min-h-[92px] py-3 px-2 rounded-xl font-black text-xs uppercase tracking-widest transition-all border-2 ${form.eh_base && form.tipo_base === "receita" ? "bg-teal-600 border-teal-600 text-white shadow-lg shadow-teal-600/20" : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"}`}>
-                           Receita base
-                           <span className="block text-[9px] font-bold normal-case tracking-normal mt-0.5 opacity-80">arroz, feijão, farofa — produção do dia</span>
-                        </button>
-                     </div>
+                     {/* Escolha principal, no mesmo padrão rápido do estoque */}
+                     {!form.id ? <div>
+                       <p className="mb-2 text-xs font-black uppercase tracking-widest text-slate-500">O que você vai cadastrar?</p>
+                       <div className="grid grid-cols-2 gap-3">
+                         <button type="button" onClick={() => setForm({ ...form, eh_base: true, produto_pronto: false, tipo_base: form.tipo_base === "receita" ? "receita" : "pre", categoria: categoriasPreparoDisponiveis.includes(form.categoria) ? form.categoria : categoriasPreparoDisponiveis[0] || "" })}
+                           className={`min-h-[94px] rounded-2xl border-2 p-4 text-left transition-all ${form.eh_base ? "border-amber-600 bg-amber-50 text-amber-900 shadow-lg shadow-amber-600/10" : "border-slate-200 bg-white text-slate-500 hover:border-amber-300"}`}>
+                           <BookOpen size={24} className={form.eh_base ? "text-amber-700" : "text-slate-400"} />
+                           <strong className="mt-2 block text-base">Pré-preparo</strong><span className="block text-xs font-semibold">base usada em outras fichas</span>
+                         </button>
+                         <button type="button" onClick={() => setForm({ ...form, eh_base: false, produto_pronto: false, tipo_base: null, categoria: categoriasPrincipaisDisponiveis.includes(form.categoria) ? form.categoria : "", modo_preparo: "" })}
+                           className={`min-h-[94px] rounded-2xl border-2 p-4 text-left transition-all ${!form.eh_base && !form.produto_pronto ? "border-emerald-600 bg-emerald-50 text-emerald-900 shadow-lg shadow-emerald-600/10" : "border-slate-200 bg-white text-slate-500 hover:border-emerald-300"}`}>
+                           <UtensilsCrossed size={24} className={!form.eh_base && !form.produto_pronto ? "text-emerald-700" : "text-slate-400"} />
+                           <strong className="mt-2 block text-base">{deptUrl === "bar" ? "Montagem de drink" : "Montagem de prato"}</strong><span className="block text-xs font-semibold">item final do cardápio</span>
+                         </button>
+                       </div>
+                       {form.eh_base && (
+                         <div className="mt-2 grid grid-cols-2 gap-2 rounded-xl bg-amber-50 p-2">
+                           <button type="button" onClick={() => setForm({ ...form, tipo_base: "pre" })} className={`min-h-11 rounded-lg px-3 text-sm font-black ${form.tipo_base !== "receita" ? "bg-amber-700 text-white" : "bg-white text-slate-600"}`}>Pré-preparo</button>
+                           <button type="button" onClick={() => setForm({ ...form, tipo_base: "receita" })} className={`min-h-11 rounded-lg px-3 text-sm font-black ${form.tipo_base === "receita" ? "bg-amber-700 text-white" : "bg-white text-slate-600"}`}>Receita base</button>
+                         </div>
+                       )}
+                       {deptUrl === "bar" && !form.eh_base && (
+                         <button type="button" onClick={() => { setForm({ ...form, eh_base: false, produto_pronto: true, tipo_base: "produto_pronto", categoria: form.categoria || "Cervejas", rendimento_porcoes: "1", rendimento_unidade: "un", peso_porcao_g: "", modo_preparo: "" }); setIngFicha([]); setAutoSoma(false); }} className={`mt-2 min-h-11 w-full rounded-xl border px-3 text-sm font-black ${form.produto_pronto ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 bg-white text-slate-600"}`}>É um produto pronto: garrafa, lata, água ou cerveja</button>
+                       )}
+                     </div> : (
+                       <div className={`flex items-center gap-3 rounded-2xl border p-4 ${form.eh_base ? "border-amber-200 bg-amber-50" : form.produto_pronto ? "border-violet-200 bg-violet-50" : "border-emerald-200 bg-emerald-50"}`}>
+                         <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl text-white ${form.eh_base ? "bg-amber-600" : form.produto_pronto ? "bg-violet-600" : "bg-emerald-600"}`}>{form.eh_base ? <BookOpen size={21} /> : form.produto_pronto ? <Package size={21} /> : <UtensilsCrossed size={21} />}</span>
+                         <div>
+                           <p className="text-[11px] font-black uppercase tracking-widest text-slate-500">Tipo da ficha</p>
+                           <p className="text-base font-black text-slate-900">{form.eh_base ? "Pré-preparo" : form.produto_pronto ? "Produto pronto" : deptUrl === "bar" ? "Montagem de drink" : "Montagem de prato"}</p>
+                           <p className="text-xs font-semibold text-slate-500">O tipo é definido no cadastro e não precisa ser escolhido novamente ao editar.</p>
+                         </div>
+                       </div>
+                     )}
                       {form.produto_pronto && (
                         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
                            <label className="text-xs font-bold text-emerald-800 uppercase tracking-widest">Tipo de produto pronto</label>
@@ -2737,43 +3033,42 @@ function FichasRunner() {
                            <p className="mt-2 text-[11px] font-medium text-emerald-700">Produto vendido como vem do fornecedor. Não exige ingredientes, receita ou guia de montagem.</p>
                         </div>
                       )}
-                      {deptUrl === "bar" && form.eh_base && form.tipo_base !== "receita" && (
-                         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-                            <label className="text-xs font-bold text-emerald-800 uppercase tracking-widest">Tipo de preparo do Bar</label>
-                            <select value={form.categoria || "Xaropes"} onChange={e => setForm({ ...form, categoria: e.target.value })} className="w-full p-4 mt-2 bg-white border border-emerald-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500 shadow-sm">
-                               {CATEGORIAS_PREPARO_BAR.map(c => <option key={c} value={c}>{c}</option>)}
+                      {form.eh_base && (
+                         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                            <div className="flex items-center justify-between gap-3">
+                              <label className="text-xs font-bold text-amber-800 uppercase tracking-widest">Categoria deste preparo</label>
+                              <button type="button" onClick={() => { setModoFicha("preparos"); setModalCategorias(true); }} className="text-xs font-black text-amber-700 hover:underline">+ Gerenciar</button>
+                            </div>
+                            <select value={form.categoria || ""} onChange={e => setForm({ ...form, categoria: e.target.value })} className="w-full p-4 mt-2 bg-white border border-amber-200 rounded-xl font-bold text-slate-700 outline-none focus:border-amber-500 shadow-sm">
+                               <option value="">Sem categoria</option>
+                               {form.categoria && !categoriasPreparoDisponiveis.includes(form.categoria) && <option value={form.categoria}>{form.categoria}</option>}
+                               {categoriasPreparoDisponiveis.map(c => <option key={c} value={c}>{c}</option>)}
                             </select>
-                            <p className="mt-2 text-[11px] font-medium text-emerald-700">Este preparo poderá ser usado como componente de vários drinks e aparecerá na seção correta do Livro de Receitas.</p>
+                            <p className="mt-2 text-[11px] font-medium text-amber-700">{deptUrl === "bar" ? "Este preparo poderá ser usado em vários drinks." : "Este preparo poderá ser reutilizado na montagem de vários pratos."}</p>
                          </div>
                       )}
-                     {/* Categoria do cardápio (só para pratos, não para bases) */}
-                     {!form.eh_base && deptUrl !== "bar" && (
+                     {/* Categoria do cardápio (pratos e drinks finais, não bases) */}
+                     {!form.eh_base && !form.produto_pronto && (
                         <div>
                            <div className="flex items-center justify-between">
-                             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Categoria no cardápio</label>
+                             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">{deptUrl === "bar" ? "Categoria do drink" : "Categoria no cardápio"}</label>
                              <button
                                type="button"
-                               onClick={() => {
-                                 const nova = prompt("Digite o nome da nova categoria para as fichas técnicas:");
-                                 if (nova && nova.trim()) {
-                                   const cat = nova.trim();
-                                   salvarNovaCategoriaFicha(cat, deptUrl);
-                                   setForm({ ...form, categoria: cat });
-                                 }
-                               }}
-                               className="text-[10px] font-bold text-emerald-600 hover:underline"
+                               onClick={() => { setModoFicha("principais"); setModalCategorias(true); }}
+                               className="text-sm font-black text-emerald-600 hover:underline"
                              >
-                               + Criar categoria
+                               + Gerenciar categorias
                              </button>
                            </div>
                            <select value={form.categoria || ""} onChange={e => setForm({ ...form, categoria: e.target.value })} className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500 shadow-sm">
                               <option value="">Sem categoria</option>
-                              {obterTodasCategoriasFicha(deptUrl, fichas).map(c => <option key={c} value={c}>{c}</option>)}
+                              {form.categoria && !categoriasPrincipaisDisponiveis.includes(form.categoria) && <option value={form.categoria}>{form.categoria}</option>}
+                              {categoriasPrincipaisDisponiveis.map(c => <option key={c} value={c}>{c}</option>)}
                            </select>
                         </div>
                      )}
                      {/* RENDIMENTO — automático pela soma dos ingredientes (peso + custo de 1 kg) */}
-                     <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+                     <div id="ficha-rendimento" className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm scroll-mt-24">
                         <div className="flex items-center justify-between mb-3">
                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Rendimento da receita</p>
                            {autoSoma
@@ -3077,8 +3372,32 @@ function FichasRunner() {
                      })()}
 
                      {/* CMV E PRECIFICAÇÃO — o preço de venda vive AQUI (Produtos e Preços saiu do menu) */}
+                     {!form.eh_base && <div className="rounded-2xl border-2 border-pink-200 bg-white p-4 shadow-sm">
+                        <div className="flex items-start justify-between gap-3">
+                           <div><p className="text-xs font-black uppercase tracking-widest text-pink-700">Embalagens</p><p className="mt-1 text-xs font-medium text-slate-500">Selecione o que acompanha cada prato ou drink. O custo entra automaticamente no CMV.</p></div>
+                           <span className="shrink-0 rounded-lg bg-pink-50 px-3 py-2 text-sm font-black text-pink-700">{fmtBRL(custoEmbalagensPorPorcao())}/porcao</span>
+                        </div>
+                        {embalagensEstoque.length > 0 ? <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                           {embalagensEstoque.map(emb => {
+                              const selecionada = fichaEmbalagens.find(item => String(item.embalagem_id) === String(emb.id));
+                              return <div key={emb.id} className={`rounded-xl border p-3 ${selecionada ? "border-pink-400 bg-pink-50" : "border-slate-200 bg-slate-50"}`}>
+                                 <button type="button" onClick={() => alternarEmbalagemFicha(emb.id)} className="flex w-full items-center gap-2 text-left">
+                                    <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${selecionada ? "bg-pink-600 text-white" : "bg-white text-slate-400"}`}>{selecionada ? <CheckSquare2 size={16}/> : <Package size={16}/>}</span>
+                                    <span className="min-w-0 flex-1"><strong className="block truncate text-sm text-slate-800">{emb.nome}</strong><small className="font-bold text-slate-500">{fmtBRL(emb.preco_unitario)} cada · saldo {Number(emb.quantidade_atual) || 0}</small></span>
+                                 </button>
+                                 {selecionada && <label className="mt-2 flex items-center justify-between gap-2 border-t border-pink-200 pt-2 text-xs font-bold text-pink-800"><span>Quantidade por venda</span><input type="number" min="0.01" step="0.01" value={selecionada.qtd} onChange={e => alterarQuantidadeEmbalagem(emb.id, e.target.value)} className="h-9 w-24 rounded-lg border border-pink-300 bg-white px-2 text-right font-black outline-none" /></label>}
+                              </div>;
+                           })}
+                        </div> : <p className="mt-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 text-center text-xs font-bold text-slate-500">Nenhuma embalagem cadastrada neste setor.</p>}
+                        <div className="mt-3 grid grid-cols-1 gap-2 rounded-xl border border-dashed border-pink-300 bg-pink-50 p-3 sm:grid-cols-[1fr_140px_auto]">
+                           <input value={novaEmbalagem.nome} onChange={e => setNovaEmbalagem({ ...novaEmbalagem, nome: e.target.value })} placeholder="Nova embalagem (ex.: Marmita 500 ml)" className="h-11 min-w-0 rounded-lg border border-pink-200 bg-white px-3 text-sm font-bold outline-none focus:border-pink-500" />
+                           <input value={novaEmbalagem.custo} onChange={e => setNovaEmbalagem({ ...novaEmbalagem, custo: e.target.value.replace(/[^0-9.,]/g, "") })} placeholder="Custo R$" inputMode="decimal" className="h-11 min-w-0 rounded-lg border border-pink-200 bg-white px-3 text-sm font-bold outline-none focus:border-pink-500" />
+                           <button type="button" disabled={salvandoEmbalagem} onClick={cadastrarEmbalagemDaFicha} className="h-11 rounded-lg bg-pink-600 px-4 text-sm font-black text-white disabled:opacity-50">{salvandoEmbalagem ? "Salvando..." : "Cadastrar e usar"}</button>
+                        </div>
+                     </div>}
+
                      {!form.eh_base && (() => {
-                        const custoTotalForm = calcularCustoTotal(ingFicha);
+                        const custoTotalForm = custoTotalFormulario(ingFicha);
                         const rendForm = Number(String(form.rendimento_porcoes).replace(",", ".")) || 0;
                         const unRF = String(form.rendimento_unidade || "porcao").toLowerCase();
                         const pesoPorcaoF = Number(form.peso_porcao_g) || 0;
@@ -3094,7 +3413,7 @@ function FichasRunner() {
                         const lucro = precoNum > 0 ? precoNum - custoPorc : null;
                         const custoKgForm = pesoTotalF > 0 ? custoTotalForm / (pesoTotalF / 1000) : 0;
                         return (
-                           <div className="bg-white border-2 border-emerald-200 rounded-2xl p-4 shadow-sm">
+                           <div id="ficha-custos" className="bg-white border-2 border-emerald-200 rounded-2xl p-4 shadow-sm scroll-mt-24">
                               <p className="text-xs font-black uppercase tracking-widest text-emerald-700 mb-3">CMV e Precificação</p>
                               {/* Custos base — sempre visíveis, recalculam ao digitar */}
                               <div className="grid grid-cols-3 gap-2 mb-3">
@@ -3154,7 +3473,7 @@ function FichasRunner() {
                         );
                      })()}
 
-                     <div>
+                     {form.eh_base && <div id="ficha-preparo" className="scroll-mt-24 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Modo de Preparo</label>
 
                         {/* Assistente de IA: você explica solto, a IA estrutura em etapas */}
@@ -3182,8 +3501,8 @@ function FichasRunner() {
                            <p className="text-[10px] text-emerald-700/70 font-medium mt-1.5 leading-tight">A IA deduz panela, se vai ao fogo, o tempo de cada etapa e o tempo total. Você pode editar o texto depois.</p>
                         </div>
 
-                        <textarea placeholder="Passo a passo da execução..." value={form.modo_preparo} onChange={e=>setForm({...form, modo_preparo: e.target.value})} className="w-full h-40 p-4 mt-1 bg-white border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:border-emerald-500 shadow-sm resize-none"></textarea>
-                     </div>
+                        <textarea placeholder="Passo a passo da execução..." value={form.modo_preparo} onChange={e=>setForm({...form, modo_preparo: e.target.value})} className="w-full h-52 p-4 mt-1 bg-white border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:border-emerald-500 shadow-sm resize-y"></textarea>
+                     </div>}
 
                      {/* Dados extras da ficha técnica: tempo, validade e observações */}
                      <div>
@@ -3204,7 +3523,7 @@ function FichasRunner() {
 
                   {/* COLUNA DIREITA: Ingredientes da Ficha */}
                   {form.produto_pronto ? (
-                  <div className="bg-gradient-to-br from-emerald-50 to-white p-6 rounded-2xl border border-emerald-200 shadow-sm flex flex-col items-center justify-center min-h-[320px] text-center">
+                  <div id="ficha-ingredientes" className="bg-gradient-to-br from-emerald-50 to-white p-6 rounded-2xl border border-emerald-200 shadow-sm flex flex-col items-center justify-center min-h-[320px] text-center scroll-mt-24">
                      <div className="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-4"><Package size={28} /></div>
                      <h3 className="text-xl font-black text-slate-800">Produto pronto para venda</h3>
                      <p className="mt-2 max-w-sm text-sm font-medium leading-relaxed text-slate-500">Cadastre a categoria e o preço. O item entrará no cardápio do Bar sem exigir ingredientes ou montagem.</p>
@@ -3214,8 +3533,8 @@ function FichasRunner() {
                      </div>
                   </div>
                   ) : (
-                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col h-full max-h-[500px]">
-                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 block">Composição (Ingredientes)</label>
+                  <div id="ficha-ingredientes" className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col h-full max-h-[620px] scroll-mt-24">
+                     <div className="mb-3"><label className="text-xs font-black text-emerald-700 uppercase tracking-widest block">Ingredientes / composição</label><p className="mt-1 text-xs font-semibold text-slate-500">Adicione o item, informe a quantidade e o custo será recalculado na hora.</p></div>
                      
                      {/* ADD INGREDIENTE */}
                      <div className="flex gap-2 mb-4">
@@ -3334,9 +3653,9 @@ function FichasRunner() {
                </div>
 
                {/* FOOTER DO MODAL */}
-               <div className="p-6 border-t border-slate-100 bg-white flex flex-col sm:flex-row gap-3">
+               <div className="p-3 sm:p-4 border-t border-slate-100 bg-white flex flex-col sm:flex-row gap-3">
                   <button onClick={() => handleSalvar(false)} className="flex-1 py-5 bg-slate-900 hover:bg-slate-800 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-slate-900/20 active:scale-95 flex items-center justify-center gap-2">
-                     <Save size={20}/> {form.produto_pronto ? "Salvar produto pronto" : `Salvar receita (${fmtBRL(calcularCustoTotal(ingFicha))})`}
+                     <Save size={20}/> {form.id ? "Salvar alterações" : form.produto_pronto ? "Salvar produto pronto" : `Salvar ficha (${fmtBRL(custoTotalFormulario(ingFicha))})`}
                   </button>
                   {!form.id && (
                      <button onClick={() => handleSalvar(true)} className="sm:w-56 py-5 bg-white border-2 border-slate-300 hover:border-slate-900 text-slate-800 font-black text-base rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2">

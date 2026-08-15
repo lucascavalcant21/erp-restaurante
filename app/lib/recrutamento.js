@@ -5,9 +5,9 @@ export const PORTAL_VAGAS_PADRAO = {
   subtitulo: "Estamos em busca de talentos apaixonados para integrar nossa equipe. Preencha seus dados e faça o teste de perfil.",
   mensagem_sucesso: "Seu perfil foi recebido com sucesso. Nossa equipe de RH irá analisar seus dados e entraremos em contato pelo WhatsApp se houver compatibilidade com a vaga.",
   vagas: [
-    { id: "garcom", cargo: "Garçom", quantidade: 2, salario: "R$ 1.800,00", alimentacao: "R$ 400,00", taxa: "Sim (Variável)", jornada: "6x1 - 16h às 00h", ativa: true },
-    { id: "cozinheiro", cargo: "Cozinheiro", quantidade: 1, salario: "R$ 2.500,00", alimentacao: "R$ 400,00", taxa: "Sim (Variável)", jornada: "6x1 - 15h às 23h", ativa: true },
-    { id: "limpeza", cargo: "Auxiliar de Limpeza", quantidade: 1, salario: "R$ 1.600,00", alimentacao: "R$ 400,00", taxa: "Não", jornada: "6x1 - 08h às 16h", ativa: true },
+    { id: "garcom", cargo: "Garçom", quantidade: 2, salario: "R$ 1.800,00", alimentacao: "R$ 400,00", taxa: "Variável", horario_trabalho: "16h às 00h", dias_trabalho: "Escala 6x1", folga: "1 folga semanal", domingo_folga: "1 domingo de folga por mês", requisitos: [], ativa: true },
+    { id: "cozinheiro", cargo: "Cozinheiro", quantidade: 1, salario: "R$ 2.500,00", alimentacao: "R$ 400,00", taxa: "Variável", horario_trabalho: "15h às 23h", dias_trabalho: "Escala 6x1", folga: "1 folga semanal", domingo_folga: "1 domingo de folga por mês", requisitos: [], ativa: true },
+    { id: "limpeza", cargo: "Auxiliar de Limpeza", quantidade: 1, salario: "R$ 1.600,00", alimentacao: "R$ 400,00", taxa: "Não", horario_trabalho: "08h às 16h", dias_trabalho: "Escala 6x1", folga: "1 folga semanal", domingo_folga: "1 domingo de folga por mês", requisitos: [], ativa: true },
   ],
 };
 
@@ -17,16 +17,26 @@ function normalizarPortalVagas(config) {
   return {
     ...PORTAL_VAGAS_PADRAO,
     ...base,
-    vagas: vagas.map((vaga, index) => ({
-      id: vaga.id || `vaga-${index + 1}`,
-      cargo: String(vaga.cargo || "").trim(),
-      quantidade: Math.max(1, Number(vaga.quantidade) || 1),
-      salario: String(vaga.salario || ""),
-      alimentacao: String(vaga.alimentacao || ""),
-      taxa: String(vaga.taxa || ""),
-      jornada: String(vaga.jornada || ""),
-      ativa: vaga.ativa !== false,
-    })).filter(vaga => vaga.cargo),
+    vagas: vagas.map((vaga, index) => {
+      const jornadaLegada = String(vaga.jornada || "").trim();
+      const requisitos = Array.isArray(vaga.requisitos)
+        ? vaga.requisitos
+        : String(vaga.requisitos || "").split(/\r?\n/);
+      return {
+        id: vaga.id || `vaga-${index + 1}`,
+        cargo: String(vaga.cargo || "").trim(),
+        quantidade: Math.max(1, Number(vaga.quantidade) || 1),
+        salario: String(vaga.salario || ""),
+        alimentacao: String(vaga.alimentacao || ""),
+        taxa: String(vaga.taxa || ""),
+        horario_trabalho: String(vaga.horario_trabalho || jornadaLegada),
+        dias_trabalho: String(vaga.dias_trabalho || (jornadaLegada ? "Escala conforme jornada informada" : "")),
+        folga: String(vaga.folga || ""),
+        domingo_folga: String(vaga.domingo_folga || "1 domingo de folga por mês"),
+        requisitos: requisitos.map(item => String(item || "").trim()).filter(Boolean).slice(0, 20),
+        ativa: vaga.ativa !== false,
+      };
+    }).filter(vaga => vaga.cargo),
   };
 }
 
@@ -76,7 +86,8 @@ export async function salvarPortalVagasConfig(unidadeId, config) {
   const registro = registros?.[0];
   const params = { ...(registro?.params || {}), portal_vagas };
   if (registro) {
-    const { error } = await supabase.from("config_sistema").update({ params, updated_at: new Date().toISOString() }).eq("id", registro.id);
+    // Nem todas as instalações possuem a coluna updated_at nesta tabela.
+    const { error } = await supabase.from("config_sistema").update({ params }).eq("id", registro.id);
     return { data: portal_vagas, error: error?.message };
   }
   const { error } = await supabase.from("config_sistema").insert([{ unidade_id: unidadeId, params }]);
@@ -124,22 +135,36 @@ export const PERGUNTAS_RECRUTAMENTO = [
   }
 ];
 
-function gerarLaudoIA(respostas, temFilhos) {
+function resolverOpcao(pergunta, resposta) {
+  if (!pergunta || resposta === null || resposta === undefined) return null;
+  if (typeof resposta === "object") {
+    if (resposta.texto) return resolverOpcao(pergunta, resposta.texto);
+    if (resposta.indice !== undefined) return resolverOpcao(pergunta, resposta.indice);
+  }
+  const indice = Number(resposta);
+  if (String(resposta).trim() !== "" && Number.isInteger(indice) && pergunta.opcoes[indice]) {
+    return pergunta.opcoes[indice];
+  }
+  const texto = String(resposta).trim().toLocaleLowerCase("pt-BR");
+  return pergunta.opcoes.find(opcao => opcao.texto.trim().toLocaleLowerCase("pt-BR") === texto) || null;
+}
+
+export function gerarLaudoIA(respostas = {}) {
   let notaTotal = 0;
   const tags = [];
 
-  for (const [idPergunta, idOpcaoSelecionada] of Object.entries(respostas)) {
-    const pergunta = PERGUNTAS_RECRUTAMENTO.find(p => p.id === idPergunta);
-    if (pergunta) {
-      const opcao = pergunta.opcoes[parseInt(idOpcaoSelecionada)];
-      if (opcao) {
-        notaTotal += opcao.pontos;
-        tags.push(opcao.tag);
-      }
+  for (const pergunta of PERGUNTAS_RECRUTAMENTO) {
+    const opcao = resolverOpcao(pergunta, respostas?.[pergunta.id]);
+    if (opcao) {
+      notaTotal += Number(opcao.pontos) || 0;
+      tags.push(opcao.tag);
     }
   }
 
-  const nota_ia = Math.round((notaTotal / 40) * 100);
+  const pontuacaoMaxima = PERGUNTAS_RECRUTAMENTO.reduce((total, pergunta) => (
+    total + Math.max(0, ...pergunta.opcoes.map(opcao => Number(opcao.pontos) || 0))
+  ), 0);
+  const nota_ia = pontuacaoMaxima > 0 ? Math.round((notaTotal / pontuacaoMaxima) * 100) : 0;
 
   let laudo = "";
 
@@ -152,10 +177,6 @@ function gerarLaudoIA(respostas, temFilhos) {
   }
 
   laudo += `\n**Traços Identificados:** ${tags.join(', ')}.\n`;
-
-  if (temFilhos === "Sim") {
-    laudo += "\n⚠️ **Atenção Gerencial:** O(a) candidato(a) declarou possuir filhos/dependentes. É extremamente recomendado alinhar muito bem durante a entrevista as expectativas sobre pontualidade, rotinas de creche/escola e plano de ação em caso de emergências de saúde das crianças, para evitar dores de cabeça futuras e absenteísmo.";
-  }
 
   return { nota_ia, avaliacao_ia: laudo };
 }
@@ -171,7 +192,18 @@ export async function fetchCandidatos(unidadeId) {
     .eq("unidade_id", unidadeId)
     .order("created_at", { ascending: false });
 
-  return { data: data || [], error: error?.message };
+  const normalizados = (data || []).map(candidato => {
+    let respostas = candidato.respostas_comportamentais || {};
+    if (typeof respostas === "string") {
+      try { respostas = JSON.parse(respostas); } catch { respostas = {}; }
+    }
+    const possuiRespostas = PERGUNTAS_RECRUTAMENTO.some(pergunta => respostas?.[pergunta.id] !== undefined);
+    if (!possuiRespostas) return candidato;
+    const avaliacao = gerarLaudoIA(respostas);
+    return { ...candidato, ...avaliacao };
+  });
+
+  return { data: normalizados, error: error?.message };
 }
 
 export async function atualizarStatusCandidato(id, novoStatus) {
@@ -184,7 +216,7 @@ export async function enviarCandidatura(unidadeId, dadosPessoais, respostas, fil
   if (!isSupabaseReady()) return { error: "Offline" };
 
   // 1. Roda a "Inteligência"
-  const { nota_ia, avaliacao_ia } = gerarLaudoIA(respostas, dadosPessoais.temFilhos);
+  const { nota_ia, avaliacao_ia } = gerarLaudoIA(respostas);
 
   // 2. Salva no banco
   const payload = {

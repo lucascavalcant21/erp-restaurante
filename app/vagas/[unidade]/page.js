@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { CheckCircle2, Loader2, Send, Briefcase, MapPin, Clock, Wallet } from "lucide-react";
+import { CheckCircle2, Loader2, Send, Briefcase, MapPin, Clock, Wallet, CalendarDays, ListChecks, CircleDollarSign } from "lucide-react";
 import {
   fetchPortalVagasConfig,
   enviarCandidatura,
@@ -48,10 +48,19 @@ export default function PaginaPublicaVagas() {
 
   const faltando = () => {
     if (!form.nome.trim()) return "Informe seu nome completo.";
+    if (soDigitos(form.cpf).length !== 11) return "Informe um CPF válido com 11 números.";
     if (soDigitos(form.telefone).length < 10) return "Informe um telefone com DDD.";
-    if (!form.cargoPretendido) return "Escolha a vaga desejada.";
+    if (!form.nascimento) return "Informe sua data de nascimento.";
+    if (!form.cargoPretendido) return "Escolha uma área disponível.";
+    if (!form.endereco.trim()) return "Informe seu endereço com rua e número.";
+    if (!form.bairro.trim()) return "Informe seu bairro.";
+    if (!form.cidade.trim()) return "Informe sua cidade.";
+    if (!form.temFilhos) return "Informe se você tem filhos.";
+    if (!form.temTransporte) return "Informe se você possui transporte próprio.";
+    if (!form.escolaridade) return "Informe sua escolaridade.";
+    if (!form.experiencia.trim()) return "Descreva sua experiência profissional. Se ainda não trabalhou, escreva que busca a primeira oportunidade.";
     for (const p of PERGUNTAS_RECRUTAMENTO) {
-      if (!respostas[p.id]) return "Responda todas as perguntas do teste de perfil.";
+      if (!Object.prototype.hasOwnProperty.call(respostas, p.id) || !String(respostas[p.id]).trim()) return "Responda todas as perguntas do teste de perfil.";
     }
     return "";
   };
@@ -63,22 +72,25 @@ export default function PaginaPublicaVagas() {
     setEnviando(true);
     const dadosPessoais = {
       nome: form.nome.trim(),
-      cpf: soDigitos(form.cpf) || null,
+      cpf: soDigitos(form.cpf),
       telefone: form.telefone.trim(),
       endereco: [form.endereco, form.bairro, form.cidade].filter(Boolean).join(", "),
       cargoPretendido: form.cargoPretendido,
-      temFilhos: form.temFilhos || "Não informado",
+      temFilhos: form.temFilhos,
       experiencia: form.experiencia.trim(),
       detalhesCadastro: {
         nome: form.nome.trim(),
-        cpf: soDigitos(form.cpf) || null,
+        cpf: soDigitos(form.cpf),
         telefone: form.telefone.trim(),
-        nascimento: form.nascimento || null,
+        nascimento: form.nascimento,
+        endereco: form.endereco.trim(),
+        bairro: form.bairro.trim(),
+        cidade: form.cidade.trim(),
         enderecoCompleto: [form.endereco, form.bairro, form.cidade].filter(Boolean).join(", "),
         cargoPretendido: form.cargoPretendido,
-        temFilhos: form.temFilhos || "Não informado",
-        temTransporte: form.temTransporte || "Não informado",
-        escolaridade: form.escolaridade || "Não informado",
+        temFilhos: form.temFilhos,
+        temTransporte: form.temTransporte,
+        escolaridade: form.escolaridade,
         experiencia: form.experiencia.trim(),
         origem: "Portal público de vagas",
       },
@@ -113,10 +125,10 @@ export default function PaginaPublicaVagas() {
     );
   }
 
-  const Campo = ({ label, children, obrigatorio }) => (
+  const Campo = ({ label, children }) => (
     <label className="block">
       <span className="text-xs font-black uppercase tracking-wider text-slate-500">
-        {label}{obrigatorio && <span className="text-emerald-600"> *</span>}
+        {label}<span className="text-emerald-600"> *</span>
       </span>
       <div className="mt-1.5">{children}</div>
     </label>
@@ -136,28 +148,51 @@ export default function PaginaPublicaVagas() {
       <main className="mx-auto max-w-2xl px-4 py-6 sm:px-5">
         {/* Vagas abertas */}
         {vagasAtivas.length > 0 && (
-          <section className="mb-6">
-            <h2 className="mb-3 text-xs font-black uppercase tracking-widest text-emerald-700">Vagas abertas</h2>
-            <div className="space-y-2.5">
+          <section className="mb-6 rounded-3xl border border-emerald-200 bg-emerald-50/60 p-4 sm:p-5">
+            <div className="mb-4 flex items-center gap-3">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-emerald-600 text-lg font-black text-white">1</span>
+              <div>
+                <h2 className="text-lg font-black text-slate-900">Escolha sua área de trabalho</h2>
+                <p className="text-sm font-semibold text-slate-600">Toque na vaga que mais combina com você para continuar.</p>
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
               {vagasAtivas.map(vaga => (
-                <button key={vaga.id} type="button" onClick={() => set("cargoPretendido", vaga.cargo)}
-                  className={`w-full rounded-2xl border-2 bg-white p-4 text-left transition-all ${
-                    form.cargoPretendido === vaga.cargo ? "border-emerald-600 shadow-sm" : "border-slate-200 hover:border-emerald-300"}`}>
+                <button key={vaga.id} type="button" onClick={() => {
+                  set("cargoPretendido", vaga.cargo);
+                  setTimeout(() => document.getElementById("dados-candidato")?.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
+                }}
+                  className={`relative w-full rounded-2xl border-2 bg-white p-4 text-left transition-all ${
+                    form.cargoPretendido === vaga.cargo ? "border-emerald-600 shadow-md shadow-emerald-900/10 ring-4 ring-emerald-500/10" : "border-slate-200 hover:border-emerald-400 hover:shadow-sm"}`}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="flex items-center gap-2 text-base font-black text-slate-900">
-                        <Briefcase size={17} className="shrink-0 text-emerald-600" /> {vaga.cargo}
+                      <p className="flex items-center gap-2 text-lg font-black text-slate-900">
+                        <Briefcase size={19} className="shrink-0 text-emerald-600" /> {vaga.cargo}
                       </p>
                       <div className="mt-2 space-y-1 text-sm font-semibold text-slate-600">
                         {vaga.salario && <p className="flex items-center gap-1.5"><Wallet size={14} className="text-emerald-600" /> {vaga.salario}{vaga.alimentacao ? ` + ${vaga.alimentacao} alimentação` : ""}</p>}
-                        {vaga.jornada && <p className="flex items-center gap-1.5"><Clock size={14} className="text-emerald-600" /> {vaga.jornada}</p>}
+                        {vaga.taxa && <p className="flex items-center gap-1.5"><CircleDollarSign size={14} className="text-emerald-600" /> Taxa de serviço (média): {vaga.taxa}</p>}
+                        {vaga.horario_trabalho && <p className="flex items-center gap-1.5"><Clock size={14} className="text-emerald-600" /> Horário: {vaga.horario_trabalho}</p>}
+                        {vaga.dias_trabalho && <p className="flex items-center gap-1.5"><CalendarDays size={14} className="text-emerald-600" /> {vaga.dias_trabalho}</p>}
+                        {vaga.folga && <p className="pl-5">Folga: {vaga.folga}</p>}
+                        {vaga.domingo_folga && <p className="pl-5">{vaga.domingo_folga}</p>}
                       </div>
                     </div>
-                    <span className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-wide ${
-                      form.cargoPretendido === vaga.cargo ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-500"}`}>
-                      {form.cargoPretendido === vaga.cargo ? "Escolhida" : "Quero esta"}
-                    </span>
+                    <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 ${form.cargoPretendido === vaga.cargo ? "border-emerald-600 bg-emerald-600 text-white" : "border-slate-300 bg-white text-transparent"}`}><CheckCircle2 size={19} /></span>
                   </div>
+                  {Array.isArray(vaga.requisitos) && vaga.requisitos.length > 0 && (
+                    <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50 p-3">
+                      <p className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wide text-slate-600">
+                        <ListChecks size={15} className="text-emerald-600" /> Pré-requisitos
+                      </p>
+                      <ul className="mt-2 space-y-1 text-xs font-medium leading-relaxed text-slate-600">
+                        {vaga.requisitos.map((requisito, indice) => <li key={`${vaga.id}-req-${indice}`}>• {requisito}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                  <span className={`mt-3 flex min-h-10 w-full items-center justify-center rounded-xl text-sm font-black ${form.cargoPretendido === vaga.cargo ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-600"}`}>
+                    {form.cargoPretendido === vaga.cargo ? "Área selecionada" : "Selecionar esta área"}
+                  </span>
                 </button>
               ))}
             </div>
@@ -165,67 +200,69 @@ export default function PaginaPublicaVagas() {
         )}
 
         {/* Dados pessoais */}
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-          <h2 className="mb-4 text-xs font-black uppercase tracking-widest text-emerald-700">Seus dados</h2>
+        <section id="dados-candidato" className="scroll-mt-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <div className="mb-4 flex items-center gap-3">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-900 font-black text-white">2</span>
+            <div><h2 className="text-base font-black text-slate-900">Preencha seus dados</h2><p className="text-xs font-bold text-slate-500">Todos os campos são obrigatórios.</p></div>
+          </div>
+          {form.cargoPretendido ? (
+            <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+              <span><span className="block text-xs font-black uppercase tracking-wide text-emerald-700">Área escolhida</span><strong className="text-base text-slate-900">{form.cargoPretendido}</strong></span>
+              <button type="button" onClick={() => { set("cargoPretendido", ""); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="rounded-lg bg-white px-3 py-2 text-xs font-black text-emerald-700 shadow-sm">Trocar área</button>
+            </div>
+          ) : <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-800">Escolha uma área de trabalho acima antes de enviar.</div>}
           <div className="space-y-4">
             <Campo label="Nome completo" obrigatorio>
-              <input value={form.nome} onChange={e => set("nome", e.target.value)} className={classeCampo} placeholder="Como está no seu documento" />
+              <input required value={form.nome} onChange={e => set("nome", e.target.value)} className={classeCampo} placeholder="Como está no seu documento" />
             </Campo>
             <div className="grid gap-4 sm:grid-cols-2">
               <Campo label="Telefone (WhatsApp)" obrigatorio>
-                <input inputMode="tel" value={form.telefone} onChange={e => set("telefone", fmtTel(e.target.value))} className={classeCampo} placeholder="(45) 99999-9999" />
+                <input required inputMode="tel" value={form.telefone} onChange={e => set("telefone", fmtTel(e.target.value))} className={classeCampo} placeholder="(45) 99999-9999" />
               </Campo>
               <Campo label="CPF">
-                <input inputMode="numeric" value={form.cpf} onChange={e => set("cpf", fmtCPF(e.target.value))} className={classeCampo} placeholder="000.000.000-00" />
+                <input required inputMode="numeric" value={form.cpf} onChange={e => set("cpf", fmtCPF(e.target.value))} className={classeCampo} placeholder="000.000.000-00" />
               </Campo>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <Campo label="Data de nascimento">
-                <input type="date" value={form.nascimento} onChange={e => set("nascimento", e.target.value)} className={classeCampo} />
-              </Campo>
-              <Campo label="Vaga desejada" obrigatorio>
-                <select value={form.cargoPretendido} onChange={e => set("cargoPretendido", e.target.value)} className={classeCampo}>
-                  <option value="">Selecione...</option>
-                  {vagasAtivas.map(v => <option key={v.id} value={v.cargo}>{v.cargo}</option>)}
-                  <option value="Outro">Outro cargo</option>
-                </select>
+                <input required type="date" value={form.nascimento} onChange={e => set("nascimento", e.target.value)} className={classeCampo} />
               </Campo>
             </div>
             <Campo label="Endereço (rua e número)">
-              <input value={form.endereco} onChange={e => set("endereco", e.target.value)} className={classeCampo} placeholder="Rua, número" />
+              <input required value={form.endereco} onChange={e => set("endereco", e.target.value)} className={classeCampo} placeholder="Rua, número" />
             </Campo>
             <div className="grid gap-4 sm:grid-cols-2">
               <Campo label="Bairro">
-                <input value={form.bairro} onChange={e => set("bairro", e.target.value)} className={classeCampo} />
+                <input required value={form.bairro} onChange={e => set("bairro", e.target.value)} className={classeCampo} />
               </Campo>
               <Campo label="Cidade">
-                <input value={form.cidade} onChange={e => set("cidade", e.target.value)} className={classeCampo} />
+                <input required value={form.cidade} onChange={e => set("cidade", e.target.value)} className={classeCampo} />
               </Campo>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <Campo label="Tem filhos?">
-                <select value={form.temFilhos} onChange={e => set("temFilhos", e.target.value)} className={classeCampo}>
-                  <option value="">Prefiro não informar</option>
+                <select required value={form.temFilhos} onChange={e => set("temFilhos", e.target.value)} className={classeCampo}>
+                  <option value="">Selecione...</option>
                   <option value="Não">Não</option>
                   <option value="Sim">Sim</option>
                 </select>
               </Campo>
               <Campo label="Transporte próprio?">
-                <select value={form.temTransporte} onChange={e => set("temTransporte", e.target.value)} className={classeCampo}>
-                  <option value="">Não informar</option>
+                <select required value={form.temTransporte} onChange={e => set("temTransporte", e.target.value)} className={classeCampo}>
+                  <option value="">Selecione...</option>
                   <option value="Sim">Sim</option>
                   <option value="Não">Não, uso transporte público</option>
                 </select>
               </Campo>
             </div>
             <Campo label="Escolaridade">
-              <select value={form.escolaridade} onChange={e => set("escolaridade", e.target.value)} className={classeCampo}>
+              <select required value={form.escolaridade} onChange={e => set("escolaridade", e.target.value)} className={classeCampo}>
                 <option value="">Selecione...</option>
                 {["Fundamental incompleto", "Fundamental completo", "Médio incompleto", "Médio completo", "Técnico", "Superior incompleto", "Superior completo"].map(e => <option key={e} value={e}>{e}</option>)}
               </select>
             </Campo>
             <Campo label="Experiência profissional">
-              <textarea value={form.experiencia} onChange={e => set("experiencia", e.target.value)} rows={4}
+              <textarea required value={form.experiencia} onChange={e => set("experiencia", e.target.value)} rows={4}
                 className="w-full rounded-xl border border-slate-300 bg-white p-3.5 text-base font-medium text-slate-800 outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-500/15"
                 placeholder="Onde já trabalhou, por quanto tempo e o que fazia." />
             </Campo>

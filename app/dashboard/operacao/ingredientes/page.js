@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   AlertTriangle,
@@ -16,6 +16,8 @@ import {
   Edit3,
   FileText,
   History,
+  Mic,
+  MicOff,
   Package,
   Plus,
   Search,
@@ -44,6 +46,8 @@ import {
   unidadeNormalizada,
 } from "../../../lib/ingredientes-utils.mjs";
 import { fmtBRL } from "../../../components/ui";
+import { criarEscuta, vozDisponivel } from "../../../lib/hefisto-voz";
+import { registrarAuditoria } from "../../../lib/hefisto-acoes";
 
 const PAGE_SIZE = 10;
 
@@ -184,7 +188,7 @@ function VariacaoPreco({ insumo }) {
 function IngredientesRunner() {
   const searchParams = useSearchParams();
   const deptUrl = searchParams.get("dept");
-  const { abrirMenu, unidadeAtiva } = useERP();
+  const { abrirMenu, unidadeAtiva, sessao } = useERP();
   const ehBar = deptUrl === "bar";
   const rotuloItem = ehBar ? "produto" : "ingrediente";
   const rotuloItens = ehBar ? "produtos" : "ingredientes";
@@ -214,11 +218,71 @@ function IngredientesRunner() {
   const [migrarProcessando, setMigrarProcessando] = useState(false);
   const [migrarSalvando, setMigrarSalvando] = useState(false);
   const [itensMigracao, setItensMigracao] = useState([]);
+  const [ouvindoIngredientes, setOuvindoIngredientes] = useState(false);
+  const [respostaVozIngredientes, setRespostaVozIngredientes] = useState("");
+  const [origemMigracaoVoz, setOrigemMigracaoVoz] = useState(false);
+  const escutaIngredientesRef = useRef(null);
 
   const mostrarToast = (mensagem, tipo = "ok") => {
     setToast({ mensagem, tipo });
     setTimeout(() => setToast(null), 3000);
   };
+
+  const iniciarCadastroPorVoz = (reiniciar = true) => {
+    setModalMigrar(true);
+    if (reiniciar) {
+      setItensMigracao([]);
+      setMigrarArquivos([]);
+      setMigrarTexto("");
+    }
+    setOrigemMigracaoVoz(true);
+    if (!vozDisponivel()) {
+      setRespostaVozIngredientes("Este navegador nao reconhece voz. Use o Chrome no Android ou o Safari no iPhone e autorize o microfone.");
+      return;
+    }
+    escutaIngredientesRef.current?.parar?.();
+    setOuvindoIngredientes(true);
+    setRespostaVozIngredientes("Ouvindo. Diga os ingredientes, quantidades, unidades e valores.");
+    const sessaoVoz = criarEscuta({
+      onParcial: parcial => setMigrarTexto(parcial),
+      onFinal: final => {
+        const comando = normalizarBusca(final);
+        const confirmouCadastro = /\b(?:confirmar|confirme|confirmo)\b.*\b(?:cadastro|ingredientes?|itens?|lista)\b|\b(?:pode salvar|salvar agora)\b/.test(comando);
+        if (confirmouCadastro) {
+          if (!itensMigracao.length) {
+            setRespostaVozIngredientes("Ainda não há ingredientes analisados para confirmar.");
+            return;
+          }
+          if (migrarSalvando) {
+            setRespostaVozIngredientes("Os ingredientes já estão sendo salvos.");
+            return;
+          }
+          setRespostaVozIngredientes("Confirmação por voz recebida. Salvando os ingredientes.");
+          confirmarSalvarMigracao(final);
+          return;
+        }
+        setMigrarTexto(final);
+        setRespostaVozIngredientes("Comando transcrito. Confira o texto e toque em Analisar com IA.");
+      },
+      onErro: erro => { setOuvindoIngredientes(false); setRespostaVozIngredientes(erro); },
+      onFim: () => setOuvindoIngredientes(false),
+    });
+    escutaIngredientesRef.current = sessaoVoz;
+    if (!sessaoVoz) {
+      setOuvindoIngredientes(false);
+      setRespostaVozIngredientes("Nao consegui acessar o microfone neste aparelho.");
+      return;
+    }
+    sessaoVoz.iniciar();
+  };
+
+  useEffect(() => () => escutaIngredientesRef.current?.parar?.(), []);
+  useEffect(() => {
+    if (!modalMigrar) {
+      escutaIngredientesRef.current?.parar?.();
+      setOuvindoIngredientes(false);
+    }
+  }, [modalMigrar]);
 
   const carregar = async () => {
     if (!unidadeAtiva) return;
@@ -280,6 +344,7 @@ function IngredientesRunner() {
       }
 
       setItensMigracao(data.itens || []);
+      if (origemMigracaoVoz) setRespostaVozIngredientes("Confira os itens. Para concluir, toque no microfone e diga: confirmar cadastro.");
     } catch (e) {
       alert("Erro ao processar: " + (e.message || "Tente novamente."));
     } finally {
@@ -299,7 +364,7 @@ function IngredientesRunner() {
     setItensMigracao(prev => prev.filter((_, i) => i !== idx));
   };
 
-  const confirmarSalvarMigracao = async () => {
+  const confirmarSalvarMigracao = async (comandoConfirmacao = "") => {
     if (!itensMigracao.length) return;
     setMigrarSalvando(true);
     let salvos = 0;
@@ -355,6 +420,21 @@ function IngredientesRunner() {
     }
 
     setMigrarSalvando(false);
+    await registrarAuditoria({
+      unidadeId: unidadeAtiva,
+      usuarioId: sessao?.user?.id || sessao?.id || null,
+      usuarioNome: sessao?.nome || sessao?.user?.email || "",
+      comando: origemMigracaoVoz
+        ? `${migrarTexto}${comandoConfirmacao ? `; Confirmação por voz: ${comandoConfirmacao}` : ""}`
+        : "Importacao de ingredientes por lista ou imagem",
+      intencao: { origem: origemMigracaoVoz ? "voz" : "lista", itens: itensMigracao.map(item => ({ nome: item.nome, quantidade: item.quantidade, unidade: item.unidade, valor_total: item.valor_total, departamento: item.departamento })) },
+      acao: origemMigracaoVoz ? "inventory.ingredients.voice_batch" : "inventory.ingredients.import_batch",
+      modulo: "inventory",
+      valorAnterior: insumos.length,
+      valorNovo: insumos.length + salvos,
+      resultado: "sucesso",
+      exigiuConfirmacao: true,
+    });
     setModalMigrar(false);
     await carregar();
     mostrarToast(`${salvos} ingrediente(s) migrado(s) com sucesso! Duplicados mantidos pelo maior valor.`);
@@ -606,10 +686,16 @@ function IngredientesRunner() {
               )}
             </label>
             <button
-              onClick={() => { setModalMigrar(true); setItensMigracao([]); setMigrarTexto(""); setMigrarArquivos([]); }}
+              onClick={() => { setModalMigrar(true); setItensMigracao([]); setMigrarTexto(""); setMigrarArquivos([]); setOrigemMigracaoVoz(false); setRespostaVozIngredientes(""); }}
               className="flex h-11 items-center justify-center gap-2 rounded-xl border border-emerald-600/30 bg-emerald-50 px-4 text-sm font-black text-emerald-700 shadow-sm transition hover:bg-emerald-100"
             >
               <Camera size={18} /> Migrar por Print / Lista
+            </button>
+            <button
+              onClick={() => iniciarCadastroPorVoz(true)}
+              className="flex h-11 items-center justify-center gap-2 rounded-xl border border-violet-600/30 bg-violet-50 px-4 text-sm font-black text-violet-700 shadow-sm transition hover:bg-violet-100"
+            >
+              <Mic size={18} /> Adicionar por voz
             </button>
             <button
               onClick={abrirNovo}
@@ -1289,6 +1375,7 @@ function IngredientesRunner() {
                     placeholder="Cole aqui nomes, valores, quantidades de produtos..."
                     className="w-full flex-1 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs font-medium text-slate-800 outline-none focus:border-emerald-500"
                   />
+                  {origemMigracaoVoz && <div className="mt-2"><p className="rounded-lg bg-violet-50 px-3 py-2 text-[11px] font-bold text-violet-700">{respostaVozIngredientes || "Use o microfone para ditar a lista."}</p><button type="button" onClick={ouvindoIngredientes ? () => escutaIngredientesRef.current?.parar?.() : () => iniciarCadastroPorVoz(false)} className={`mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-lg text-xs font-black text-white ${ouvindoIngredientes ? "bg-rose-600" : "bg-violet-600"}`}>{ouvindoIngredientes ? <><MicOff size={16}/> Parar de ouvir</> : <><Mic size={16}/> Falar ou confirmar por voz</>}</button></div>}
                 </div>
               </div>
 
@@ -1301,7 +1388,7 @@ function IngredientesRunner() {
                   {migrarProcessando ? (
                     <>Lendo {migrarArquivos.length} foto(s) e consolidando...</>
                   ) : (
-                    <><Sparkles size={18} /> Analisar Fotos com IA</>
+                    <><Sparkles size={18} /> Analisar lista com IA</>
                   )}
                 </button>
               </div>
@@ -1421,7 +1508,7 @@ function IngredientesRunner() {
               </button>
               <button
                 disabled={itensMigracao.length === 0 || migrarSalvando}
-                onClick={confirmarSalvarMigracao}
+                onClick={() => confirmarSalvarMigracao()}
                 className="flex-1 rounded-xl bg-emerald-600 py-3 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-50"
               >
                 {migrarSalvando ? "Salvando ingredientes..." : `Salvar e Migrar ${itensMigracao.length} Ingrediente(s)`}

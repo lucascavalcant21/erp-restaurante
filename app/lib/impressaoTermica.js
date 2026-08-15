@@ -157,8 +157,9 @@ function desenharLinha(ctx, x1, y, x2, espessura = 3) {
   ctx.fillRect(x1, y, Math.max(1, x2 - x1), espessura);
 }
 
-async function carregarQrDaPrevia() {
-  const svg = document.querySelector('[data-qr-etiqueta="true"]');
+async function carregarQrDaPrevia(codigo = "") {
+  const seletorCodigo = codigo ? `[data-qr-codigo="${CSS.escape(String(codigo))}"]` : "";
+  const svg = (seletorCodigo && document.querySelector(seletorCodigo)) || document.querySelector('[data-qr-etiqueta="true"]');
   if (!svg) throw new Error("O QR Code da etiqueta ainda não está pronto");
   const copia = svg.cloneNode(true);
   copia.setAttribute("xmlns", "http://www.w3.org/2000/svg");
@@ -208,6 +209,20 @@ function criarCanvasEtiqueta(perfil, dados, qrImagem) {
   const esquerda = x + pad;
   const direita = x + largura - pad;
   const larguraInterna = direita - esquerda;
+
+  if (dados.modeloEtiqueta === "nome") {
+    const nome = String(dados.produto || "PRODUTO").toUpperCase();
+    let fonte = alto ? 64 : 52;
+    ctx.font = `900 ${fonte}px Arial, sans-serif`;
+    while (fonte > 24 && ctx.measureText(nome).width > larguraInterna) {
+      fonte -= 2;
+      ctx.font = `900 ${fonte}px Arial, sans-serif`;
+    }
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(nome, x + (largura / 2), alturaDesenho / 2, larguraInterna);
+    return canvas;
+  }
 
   const tituloFim = alto ? 70 : 48;
   desenharTexto(ctx, String(dados.produto || "PRODUTO").toUpperCase(), esquerda, alto ? 18 : 11, larguraInterna, { fonte: alto ? 38 : 30 });
@@ -327,7 +342,7 @@ export async function imprimirEtiquetasTp20({ impressora, tamanho, copias, dados
   if (!qz.websocket.isActive()) throw new Error("Conecte e autorize a impressora antes de imprimir");
   if (!impressora) throw new Error("Selecione a impressora térmica");
 
-  const qrImagem = await carregarQrDaPrevia();
+  const qrImagem = dados.modeloEtiqueta === "nome" ? null : await carregarQrDaPrevia(dados.codigo);
   const canvas = criarCanvasEtiqueta(perfil, dados, qrImagem);
   const { raster, bytesPorLinha } = canvasParaRaster(canvas);
   const comandos = criarComandosEscPos(perfil, raster, bytesPorLinha, quantidade);
@@ -341,5 +356,89 @@ export async function imprimirEtiquetasTp20({ impressora, tamanho, copias, dados
     flavor: "base64",
     data: bytesParaBase64(comandos),
   }]);
+  return { perfil: perfil.id, copias: quantidade };
+}
+
+const SERVICOS_BLE_TERMICA = [
+  0xff00,
+  0xffe0,
+  "000018f0-0000-1000-8000-00805f9b34fb",
+  "49535343-fe7d-4ae5-8fa9-9fafd205e455",
+];
+
+let impressoraBluetooth = null;
+
+export function bluetoothTermicoDisponivel() {
+  return typeof navigator !== "undefined" && !!navigator.bluetooth;
+}
+
+export async function conectarImpressoraBluetooth() {
+  if (!bluetoothTermicoDisponivel()) {
+    throw new Error("Impressão Bluetooth direta requer Chrome no Android. No iPhone, o Safari não libera a impressora térmica para o site.");
+  }
+  const device = await navigator.bluetooth.requestDevice({
+    acceptAllDevices: true,
+    optionalServices: SERVICOS_BLE_TERMICA,
+  });
+  const server = await device.gatt.connect();
+  let escrita = null;
+  for (const uuid of SERVICOS_BLE_TERMICA) {
+    try {
+      const servico = await server.getPrimaryService(uuid);
+      const caracteristicas = await servico.getCharacteristics();
+      escrita = caracteristicas.find(item => item.properties.writeWithoutResponse || item.properties.write);
+      if (escrita) break;
+    } catch { /* tenta o próximo serviço comum */ }
+  }
+  if (!escrita) {
+    try {
+      const servicos = await server.getPrimaryServices();
+      for (const servico of servicos) {
+        const caracteristicas = await servico.getCharacteristics();
+        escrita = caracteristicas.find(item => item.properties.writeWithoutResponse || item.properties.write);
+        if (escrita) break;
+      }
+    } catch { /* dispositivo clássico não expõe GATT */ }
+  }
+  if (!escrita) {
+    try { device.gatt.disconnect(); } catch {}
+    throw new Error("A impressora conectou ao celular, mas não oferece impressão BLE ao navegador. Ela provavelmente usa Bluetooth Clássico; nesse caso use o aplicativo/driver Android da Tomato ou um conector de impressão compatível.");
+  }
+  impressoraBluetooth = { device, escrita };
+  device.addEventListener("gattserverdisconnected", () => {
+    if (impressoraBluetooth?.device === device) impressoraBluetooth = null;
+  });
+  return { nome: device.name || "Impressora Bluetooth" };
+}
+
+export function impressoraBluetoothConectada() {
+  return !!(impressoraBluetooth?.device?.gatt?.connected && impressoraBluetooth?.escrita);
+}
+
+async function escreverBluetooth(bytes) {
+  if (!impressoraBluetoothConectada()) throw new Error("Conecte a impressora Bluetooth dentro do sistema antes de imprimir.");
+  const caracteristica = impressoraBluetooth.escrita;
+  const tamanhoBloco = 20;
+  for (let inicio = 0, parte = 0; inicio < bytes.length; inicio += tamanhoBloco, parte += 1) {
+    const bloco = bytes.slice(inicio, Math.min(inicio + tamanhoBloco, bytes.length));
+    if (caracteristica.properties.writeWithoutResponse && caracteristica.writeValueWithoutResponse) {
+      await caracteristica.writeValueWithoutResponse(bloco);
+    } else {
+      await caracteristica.writeValue(bloco);
+    }
+    if (parte % 12 === 11) await new Promise(resolve => setTimeout(resolve, 12));
+  }
+}
+
+export async function imprimirEtiquetasBluetooth({ tamanho, copias, dados, larguraImpressora = "58mm" }) {
+  const perfilBase = PERFIS_TP20[tamanho] || PERFIS_TP20["60x40"];
+  const pontos = LARGURAS_TERMICAS[larguraImpressora]?.pontos || 384;
+  const perfil = perfilNaLargura(perfilBase, pontos);
+  const quantidade = Math.max(1, Math.min(100, Number(copias) || 1));
+  const qrImagem = dados.modeloEtiqueta === "nome" ? null : await carregarQrDaPrevia(dados.codigo);
+  const canvas = criarCanvasEtiqueta(perfil, dados, qrImagem);
+  const { raster, bytesPorLinha } = canvasParaRaster(canvas);
+  const comandos = criarComandosEscPos(perfil, raster, bytesPorLinha, quantidade);
+  await escreverBluetooth(comandos);
   return { perfil: perfil.id, copias: quantidade };
 }

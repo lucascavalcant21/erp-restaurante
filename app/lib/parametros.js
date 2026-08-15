@@ -132,6 +132,31 @@ export async function salvarModeloMontagem(unidadeId, modelo) {
   return { error: error?.message };
 }
 
+// Categorias personalizadas das fichas técnicas, compartilhadas entre todos os
+// aparelhos da unidade. Mantém também as categorias padrão que o usuário optou
+// por ocultar, sem alterar as fichas já cadastradas.
+export async function fetchCategoriasFichas(unidadeId) {
+  const registro = await fetchRegistroConfig(unidadeId);
+  const config = registro?.params?.categorias_fichas;
+  return { data: config && typeof config === "object" ? config : {} };
+}
+
+export async function salvarCategoriasFichas(unidadeId, categorias_fichas) {
+  if (!isSupabaseReady()) return { error: "Sistema sem conexão com o banco" };
+  if (!unidadeId || unidadeId === "todas") return { error: "Selecione uma unidade" };
+  const patch = { categorias_fichas };
+  const mergeAtomico = await tentarMergeAtomico(unidadeId, patch);
+  if (mergeAtomico) return { error: undefined, data: categorias_fichas };
+  const registro = await fetchRegistroConfig(unidadeId);
+  const params = { ...(registro?.params || {}), ...patch };
+  if (registro) {
+    const { error } = await supabase.from("config_sistema").update({ params }).eq("id", registro.id);
+    return { error: error?.message, data: categorias_fichas };
+  }
+  const { error } = await supabase.from("config_sistema").insert([{ unidade_id: unidadeId, params }]);
+  return { error: error?.message, data: categorias_fichas };
+}
+
 // Fotos REAIS dos copos do bar (tiradas pelo usuário): { idCopo: url }.
 // A foto vale para todos os drinks que usam aquele copo — substitui o desenho
 // no Guia de Drinks.

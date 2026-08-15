@@ -1,12 +1,12 @@
 "use client";
 
 import React, { Fragment, Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertTriangle, ArrowLeft, ArrowRightLeft, Boxes, CalendarDays, Check,
   ChevronDown, ChevronRight, ChevronUp, ClipboardCheck, Clock3, Copy, Download, Edit3, FileText, Filter, History, Loader2,
   MapPin, MoreVertical, Package, PackageMinus, PackagePlus, Plus, Printer, Search,
-  Settings2, Share2, Upload, User, Warehouse, X,
+  Settings2, Share2, Tablet, Upload, User, Warehouse, X,
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchInsumos, salvarInsumo } from "../../../lib/operacao";
@@ -22,6 +22,7 @@ import {
 } from "../../../lib/estoques-multiplos-utils.mjs";
 import { fmtBRL } from "../../../components/ui";
 import SimuladorRendimento from "../../../components/SimuladorRendimento";
+import TabletSetor from "../../../components/TabletSetor";
 import { entradaBebidaUnidades, baixaBebidaUnidades, baixaBebidaConteudo, contagemBebida, dividirSaldo } from "../../../lib/estoque-bebidas";
 
 // Item fracionável = tem conteúdo por embalagem (>1) e permite controle
@@ -114,7 +115,7 @@ function exportarExcel(estoque, itens, unidadeInfo) {
 
   for (const item of itens) {
     const valTotal = calcularValorItem(item);
-    csv += `"${item.nome || ""}";"${item.categoria || "Sem categoria"}";"${item.tamanho_embalagem || 1}";"${item.unidade_medida || ""}";"${(item.custo_unitario || 0).toFixed(2)}";"${item.quantidade_atual || 0}";"${valTotal.toFixed(2)}";"${item.estoque_minimo ?? ""}";"${item.local_interno || ""}";"${item.validade || ""}"\n`;
+    csv += `"${item.nome || ""}";"${item.categoria || "Sem categoria"}";"${item.tamanho_embalagem || 1}";"${mostrarUn(item.unidade_medida)}";"${(item.custo_unitario || 0).toFixed(2)}";"${item.quantidade_atual || 0}";"${valTotal.toFixed(2)}";"${item.estoque_minimo ?? ""}";"${item.local_interno || ""}";"${item.validade || ""}"\n`;
   }
 
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -318,6 +319,7 @@ function BotaoSalvar({ carregando, children = "Salvar" }) {
 }
 
 function EstoqueRunner() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const { unidadeAtiva, unidadeInfo, abrirMenu, sessao } = useERP();
   const [estoques, setEstoques] = useState([]);
@@ -347,7 +349,7 @@ function EstoqueRunner() {
       const filtrados = estoques.filter(e => {
         const s = (e.slug || e.nome || "").toLowerCase();
         const t = (e.tipo || "").toLowerCase();
-        return s.includes("cozinha") || t === "alimentos" || s.includes("embalag") || t === "embalagens";
+        return s.includes("cozinha") || t === "alimentos" || s === "embalagens";
       });
       return filtrados.length ? filtrados : estoques;
     }
@@ -386,7 +388,8 @@ function EstoqueRunner() {
     const todosEstoques = resEstoques.data || [];
     setEstoques(todosEstoques);
     setCatalogo(resCatalogo.data || []);
-    setColaboradores(resColabs.data || []);
+    // Extras são prestadores eventuais: não aparecem como responsáveis pelo estoque.
+    setColaboradores((resColabs.data || []).filter(c => c.tipo_contrato !== "Freelancer"));
 
     const preferencia = (searchParams.get("dept") || searchParams.get("modulo") || "").toLowerCase();
 
@@ -395,7 +398,7 @@ function EstoqueRunner() {
       disponiveis = todosEstoques.filter(e => {
         const s = (e.slug || e.nome || "").toLowerCase();
         const t = (e.tipo || "").toLowerCase();
-        return s.includes("cozinha") || t === "alimentos" || s.includes("embalag") || t === "embalagens";
+        return s.includes("cozinha") || t === "alimentos" || s === "embalagens";
       });
     } else if (preferencia.includes("bar")) {
       disponiveis = todosEstoques.filter(e => {
@@ -451,7 +454,7 @@ function EstoqueRunner() {
 
   const colaboradoresFiltrados = useMemo(() => {
     if (!colaboradores?.length) return [];
-    const ativos = colaboradores.filter(c => c.status !== "inativo");
+    const ativos = colaboradores.filter(c => c.status !== "inativo" && c.tipo_contrato !== "Freelancer");
     const nomeArea = (estoqueAtual?.nome || estoqueAtual?.slug || "").toLowerCase();
 
     let areaChave = "";
@@ -948,9 +951,14 @@ function EstoqueRunner() {
               <p className="text-sm text-slate-500">Saldos e movimentações separados por área · {unidadeInfo?.nome || "Unidade"}</p>
             </div>
           </div>
-          <button onClick={() => abrirEdicaoEstoque(null)} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 font-bold hover:bg-slate-50">
-            <Settings2 size={18} /> Gerenciar estoques
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => router.push("/dashboard/operacao/estoque")} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-indigo-600 px-4 font-black text-white shadow-sm hover:bg-indigo-700">
+              <Tablet size={18} /> Voltar ao Estoque
+            </button>
+            <button onClick={() => abrirEdicaoEstoque(null)} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 font-bold hover:bg-slate-50">
+              <Settings2 size={18} /> Gerenciar estoques
+            </button>
+          </div>
         </div>
       </header>
 
@@ -2073,5 +2081,11 @@ function ListaMovimentos({ movimentos, modo }) {
 }
 
 export default function EstoquePage() {
-  return <Suspense fallback={<div className="grid min-h-screen place-items-center"><Loader2 className="animate-spin text-emerald-700" /></div>}><EstoqueRunner /></Suspense>;
+  return <Suspense fallback={<div className="grid min-h-screen place-items-center"><Loader2 className="animate-spin text-emerald-700" /></div>}><EstoqueUnificado /></Suspense>;
+}
+
+function EstoqueUnificado() {
+  const searchParams = useSearchParams();
+  if (searchParams.get("gestao") === "1") return <EstoqueRunner />;
+  return <div className="fixed inset-0 z-[200] overflow-auto bg-slate-50"><TabletSetor titulo="Estoque" voltarHref="/dashboard" /></div>;
 }

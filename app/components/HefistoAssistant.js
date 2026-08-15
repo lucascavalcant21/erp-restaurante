@@ -127,12 +127,6 @@ export default function HefistoAssistant() {
     sessaoVoz.iniciar();
   };
 
-  // Abre o painel já ouvindo — um toque para dar o comando por voz.
-  const abrirFalando = () => {
-    setAberto(true);
-    setTimeout(() => iniciarEscuta(), 350);
-  };
-
   // Ao fechar o painel, para de ouvir e de falar.
   useEffect(() => {
     if (!aberto) { pararEscuta(); calarVoz(); }
@@ -279,28 +273,15 @@ export default function HefistoAssistant() {
 
   return (
     <>
-      {/* Botões flutuantes: falar (atalho de 1 toque) + abrir o assistente */}
-      {!aberto && (
-        <div className="print:hidden fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-[90] flex flex-col items-center gap-2.5">
-          {temVoz && (
-            <button onClick={abrirFalando} title="Falar um comando"
-              className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-emerald-600 bg-white text-emerald-700 shadow-lg hover:bg-emerald-50 active:scale-95 transition-all">
-              <Mic size={22} />
-            </button>
-          )}
-          <button onClick={() => setAberto(true)} title="Assistente Hefisto"
-            className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-xl shadow-emerald-600/30 hover:bg-emerald-700 transition-colors">
-            <Bot size={26} />
-          </button>
-        </div>
-      )}
+      {/* Os atalhos flutuantes de microfone e IA foram ocultados. O estoque usa
+          seu botão próprio de Auditoria por voz, dentro do fluxo da operação. */}
 
       {/* Painel lateral */}
       {aberto && (
         <>
         {/* Fundo: tocar fora fecha (no celular o painel ocupa a tela toda) */}
-        <div onClick={() => setAberto(false)} className="print:hidden fixed inset-0 z-[94] bg-slate-900/40 backdrop-blur-[2px]" />
-        <div className="print:hidden fixed inset-y-0 right-0 z-[95] flex w-full max-w-md flex-col border-l border-slate-200 bg-white shadow-2xl"
+        <div onClick={() => setAberto(false)} className="print:hidden fixed inset-0 z-[294] bg-slate-900/40 backdrop-blur-[2px]" />
+        <div className="print:hidden fixed inset-y-0 right-0 z-[295] flex w-full max-w-md flex-col border-l border-slate-200 bg-white shadow-2xl"
           style={{ paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
           <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3">
             <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-600 text-white"><Bot size={20} /></div>

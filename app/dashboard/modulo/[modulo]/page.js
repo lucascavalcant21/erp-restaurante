@@ -35,7 +35,6 @@ const MODULOS = {
         { label: "Orçamento de Eventos", desc: "Buffet e eventos", href: "/dashboard/operacao/orcamento?dept=cozinha", icon: CalendarClock },
       ]},
       { title: "Controle e Qualidade", subtitle: "Qualidade e conformidade", icon: ShieldCheck, accent: "#ea580c", items: [
-        { label: "Etiquetas e Validade", desc: "Controle de validade", href: "/dashboard/operacao/etiquetas?dept=cozinha", icon: Tag, countKey: "etiquetas" },
         { label: "Controle de Validade", desc: "Vencimentos", href: "/dashboard/operacao/validade", icon: CalendarClock },
         { label: "Checklist da Cozinha", desc: "Rotinas e conferências", href: "/dashboard/operacao/rotina?dept=cozinha", icon: ClipboardCheck },
         { label: "Controles de Limpeza", desc: "Higiene e conformidade", href: "/dashboard/operacao/controles", icon: ShieldCheck },
@@ -63,7 +62,6 @@ const MODULOS = {
         { label: "Orçamento de Eventos", desc: "Buffet e eventos", href: "/dashboard/operacao/orcamento?dept=bar", icon: CalendarClock },
       ]},
       { title: "Controle e Qualidade", subtitle: "Qualidade e rotinas", icon: ShieldCheck, accent: "#ea580c", items: [
-        { label: "Etiquetas e Validade", desc: "Controle de validade", href: "/dashboard/operacao/etiquetas?dept=bar", icon: Tag, countKey: "etiquetas" },
         { label: "Checklist do Bar", desc: "Rotinas e conferências", href: "/dashboard/operacao/rotina?dept=bar", icon: ClipboardCheck },
       ]},
     ],

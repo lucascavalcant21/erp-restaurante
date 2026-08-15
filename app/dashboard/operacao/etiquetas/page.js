@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
-import { Tag, Printer, Save, Snowflake, Thermometer, Box, QrCode, MapPin, AlertTriangle, Settings, RefreshCw, CheckCircle2, WifiOff, Smartphone, Tablet, Trash2, X, Check } from "lucide-react";
+import { Tag, Printer, Save, Snowflake, Thermometer, Box, QrCode, MapPin, AlertTriangle, Settings, RefreshCw, CheckCircle2, WifiOff, Smartphone, Tablet, Trash2, X, Check, Mic } from "lucide-react";
 import {
   PageHeader, PageBody, Card, SectionLabel, Field, TextInput, NumberInput, Select, Btn, Toast, EmptyState
 } from "../../../components/ui";
@@ -22,6 +22,7 @@ import {
 } from "../../../lib/impressaoTermica";
 import { baixarPdfDeHtml } from "../../../lib/pdf";
 import { imprimirHtml } from "../../../lib/imprimir";
+import EtiquetasRapidas from "../../../components/EtiquetasRapidas";
 
 const UNIDADES = ["UN", "KG", "G", "L", "ML", "CX", "PCT", "BANDEJA"];
 const ICONE_CONS = { Resfriado: Thermometer, Congelado: Snowflake, Ambiente: Box };
@@ -147,6 +148,10 @@ function EtiquetasRunner() {
   const [modoTira, setModoTira] = useState(() => { try { return localStorage.getItem("hefisto_etq_modo") || "tira"; } catch { return "tira"; } });
   // Girar 90°: alguns drivers de etiquetadora esperam o papel "em pé"
   // (60×100) e giram o conteúdo sozinhos. Aqui o usuário compensa isso.
+  // Modelo da etiqueta: "validade" (completa) ou "nome" (só o nome do produto,
+  // para identificar potes e caixas sem poluir com datas).
+  const [modelo, setModelo] = useState(() => { try { return localStorage.getItem("hefisto_etq_modelo") || "validade"; } catch { return "validade"; } });
+  useEffect(() => { try { localStorage.setItem("hefisto_etq_modelo", modelo); } catch {} }, [modelo]);
   const [girar, setGirar] = useState(() => { try { return localStorage.getItem("hefisto_etq_girar") === "1"; } catch { return false; } });
   useEffect(() => { try { localStorage.setItem("hefisto_etq_girar", girar ? "1" : "0"); } catch {} }, [girar]);
   useEffect(() => { try { localStorage.setItem("hefisto_etq_modo", modoTira); } catch {} }, [modoTira]);
@@ -606,6 +611,17 @@ function EtiquetasRunner() {
       `}} />
       <PageHeader title={`Etiquetas${deptUrl ? ` — ${deptUrl === 'bar' ? 'Bar' : 'Cozinha'}` : ''}`} subtitle={`QR Code + rastreio · ${unidadeInfo.nome}`} icon={Tag} />
       <PageBody>
+        <button
+          type="button"
+          onClick={() => router.push("/dashboard/operacao/etiquetas")}
+          className="mb-4 flex w-full items-center justify-between gap-4 rounded-2xl border border-violet-300 bg-gradient-to-r from-violet-700 to-fuchsia-600 p-4 text-left text-white shadow-lg shadow-violet-900/20 transition hover:brightness-105 sm:p-5"
+        >
+          <span className="flex items-center gap-4">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-white/15"><Mic size={25} /></span>
+            <span><strong className="block text-lg font-black">Etiquetas por voz</strong><span className="mt-1 block text-sm font-semibold text-violet-50">Fale vários produtos e quantidades diferentes, confira e confirme a impressão por voz</span></span>
+          </span>
+          <span className="hidden rounded-xl bg-white px-4 py-2 text-sm font-black text-violet-700 sm:block">Abrir voz</span>
+        </button>
         <Toast show={!!salvou}>{salvou}</Toast>
 
         {/* Abas em forma de botões: gerar, salvas (só salvas) e geradas.
@@ -778,6 +794,16 @@ function EtiquetasRunner() {
 
           {/* ── Preview / Etiqueta (coluna fixa) ── */}
           <div className="lg:sticky lg:top-4">
+            {/* Modelo da etiqueta */}
+            <div className="flex gap-1.5 mb-2">
+              {[["validade", "Validade completa"], ["nome", "Só o nome"]].map(([v, l]) => (
+                <button key={v} onClick={() => setModelo(v)}
+                  className="flex-1 py-2.5 rounded-xl text-[12px] font-bold transition-all"
+                  style={modelo === v ? { background: "var(--accent-strong)", color: "#fff" } : { background: "var(--card)", color: "var(--muted)", border: "1px solid var(--line)" }}>
+                  {l}
+                </button>
+              ))}
+            </div>
             <div className="flex items-center justify-between mb-2">
               <SectionLabel>Pré-visualização</SectionLabel>
               <div className="flex gap-1.5">
@@ -793,6 +819,19 @@ function EtiquetasRunner() {
             <div className="flex justify-center overflow-auto p-4 bg-slate-100 rounded-2xl border border-slate-200">
               <div id="area-impressao" className="flex flex-col gap-4" style={{ width: dim.paginaW }}>
                 {Array.from({ length: quantidadeCopias }).map((_, idx) => (
+                  modelo === "nome" ? (
+                  /* Etiqueta SÓ NOME: identifica o pote/caixa, sem datas */
+                  <div key={idx} className="etiqueta-print shadow-sm" style={{ width: dim.w, height: dim.h, marginLeft: "auto", marginRight: "auto", background: "#fff", color: "#000", padding: dim.pad, fontFamily: "'Courier New', monospace", borderRadius: 8, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", overflow: "hidden", flexShrink: 0 }}>
+                    <div style={{ fontSize: `calc(${dim.titulo} * 1.7)`, fontWeight: 900, lineHeight: 1.05, textTransform: "uppercase", wordBreak: "break-word" }}>
+                      {nomeProduto || "PRODUTO"}
+                    </div>
+                    {String(form.quantidade ?? "").trim() !== "" && Number(form.quantidade) > 0 && (
+                      <div style={{ fontSize: dim.linha, fontWeight: 800, marginTop: dim.gap }}>
+                        {form.quantidade}{form.unidade !== "UN" ? " " + form.unidade : ""}
+                      </div>
+                    )}
+                  </div>
+                  ) : (
                   <div key={idx} className="etiqueta-print shadow-sm" style={{ width: dim.w, height: dim.h, marginLeft: "auto", marginRight: "auto", background: "#fff", color: "#000", padding: dim.pad, fontFamily: "'Courier New', monospace", borderRadius: 8, display: "flex", flexDirection: "column", overflow: "hidden", flexShrink: 0 }}>
                     {/* produto */}
                     <div style={{ fontSize: dim.titulo, fontWeight: 900, lineHeight: 1.0, textTransform: "uppercase", paddingBottom: dim.gap, borderBottom: "0.5mm solid #000" }}>
@@ -852,6 +891,7 @@ function EtiquetasRunner() {
                       </div>
                     </div>
                   </div>
+                  )
                 ))}
               </div>
             </div>
@@ -963,9 +1003,15 @@ function EtiquetasRunner() {
 export default function EtiquetasPage() {
   return (
     <Suspense fallback={<div className="p-10 text-center font-bold" style={{ color: "var(--muted)" }}>Carregando Etiquetas...</div>}>
-       <EtiquetasRunner />
+       <EtiquetasUnificadas />
     </Suspense>
   );
+}
+
+function EtiquetasUnificadas() {
+  const searchParams = useSearchParams();
+  if (searchParams.get("gestao") === "1") return <EtiquetasRunner />;
+  return <div className="fixed inset-0 z-[200] overflow-auto bg-slate-50"><EtiquetasRapidas /></div>;
 }
 
 function fmtCNPJ(s) {

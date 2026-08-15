@@ -67,6 +67,36 @@ export async function excluirEtiqueta(id) {
   return { error: error?.message || null };
 }
 
+export async function salvarListaEtiquetas(dados, unidadeId) {
+  if (!isSupabaseReady()) return { data: null, error: "Sistema indisponível" };
+  const payload = carimbarUnidade({
+    nome: dados.nome,
+    setor: dados.setor,
+    responsavel_id: dados.responsavelId || null,
+    responsavel_nome: dados.responsavelNome || null,
+    itens: dados.itens || [],
+    total_etiquetas: Number(dados.totalEtiquetas) || 0,
+    criado_por: dados.criadoPor || null,
+  }, unidadeId);
+  const { data, error } = await supabase.from("listas_etiquetas").insert(payload).select().single();
+  return { data, error: error?.message || null };
+}
+
+export async function fetchListasEtiquetas(unidadeId, setor, limite = 30) {
+  if (!isSupabaseReady()) return { data: [], error: "Sistema indisponível" };
+  let consulta = supabase.from("listas_etiquetas").select("*").order("created_at", { ascending: false }).limit(limite);
+  if (unidadeId && unidadeId !== "todas") consulta = consulta.eq("unidade_id", unidadeId);
+  if (setor) consulta = consulta.eq("setor", setor);
+  const { data, error } = await consulta;
+  return { data: data || [], error: error?.message || null };
+}
+
+export async function excluirListaEtiquetas(id) {
+  if (!isSupabaseReady()) return { error: "Sistema indisponível" };
+  const { error } = await supabase.from("listas_etiquetas").delete().eq("id", id);
+  return { error: error?.message || null };
+}
+
 // Busca pública por código (usada na página de rastreio ao escanear o QR)
 export async function buscarPorCodigo(codigo) {
   if (!isSupabaseReady() || !codigo) return null;

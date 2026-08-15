@@ -374,6 +374,20 @@ export async function fetchRecibosPrestacao(colaboradorId) {
   return { data: data || [], error: error?.message };
 }
 
+// Visão geral do módulo de Extras. Mantém os recibos no mesmo histórico
+// individual, mas permite ao RH enxergar todos os acertos da unidade.
+export async function fetchRecibosPrestacaoUnidade(unidadeId, limite = 500) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") return { data: [] };
+  const { data, error } = await supabase
+    .from("rh_recibos_prestacao")
+    .select("*")
+    .eq("unidade_id", unidadeId)
+    .order("data_trabalho", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(limite);
+  return { data: data || [], error: error?.message };
+}
+
 export async function atualizarPagamentoRecibo(id, pagamentoRealizado, dataPagamento = null) {
   if (!isSupabaseReady()) return { error: "Offline" };
   const { error } = await supabase

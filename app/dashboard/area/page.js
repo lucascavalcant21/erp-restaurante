@@ -23,7 +23,7 @@ const AREAS = {
         itens: [
           { label: "Checklist", href: "/dashboard/operacao/rotina?dept=cozinha", Icon: ClipboardList },
           { label: "Produção Diária", href: "/dashboard/operacao/producao?dept=cozinha", Icon: Sparkles },
-          { label: "Validade e Etiquetas", href: "/dashboard/operacao/etiquetas?dept=cozinha", Icon: Tag },
+          { label: "Memorando de Amanhã", href: "/dashboard/operacao/producao/memorando", Icon: CalendarClock },
           { label: "Limpeza, Gás e Óleo", href: "/dashboard/operacao/controles", Icon: Droplets },
         ],
       },
@@ -55,7 +55,7 @@ const AREAS = {
         itens: [
           { label: "Checklist", href: "/dashboard/operacao/rotina?dept=bar", Icon: ClipboardList },
           { label: "Produção do Bar", href: "/dashboard/operacao/producao?dept=bar", Icon: Sparkles },
-          { label: "Etiquetas do Bar", href: "/dashboard/operacao/etiquetas?dept=bar", Icon: Tag },
+          { label: "Memorando de Amanhã", href: "/dashboard/operacao/producao/memorando", Icon: CalendarClock },
         ],
       },
       {

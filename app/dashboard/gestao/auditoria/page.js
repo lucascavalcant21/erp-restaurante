@@ -1,25 +1,47 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { ShieldAlert, TrendingDown, PackageMinus, Search, ChevronRight, Activity, Percent } from "lucide-react";
+import { ShieldAlert, TrendingDown, PackageMinus, Activity, Percent, Mic, CheckCircle2, XCircle } from "lucide-react";
 import {
   PageHeader, PageBody, Card, KpiGrid, Kpi,
   SearchBar, Chips, EmptyState, fmtBRL
 } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
 import { fetchRelatorioPerdas } from "../../../lib/auditoria";
+import { fetchAuditoriaHefisto } from "../../../lib/hefisto-acoes";
+
+const rotuloAcao = acao => ({
+  "labels.voice_batch": "Etiquetas em lote",
+  "labels.print_batch": "Impressão de etiquetas",
+  "inventory.ingredients.voice_batch": "Cadastro de ingredientes",
+  "inventory.ingredients.import_batch": "Importação de ingredientes",
+  "inventory.create_entry_batch": "Entrada no depósito",
+  "inventory.create_withdrawal_batch": "Retirada do depósito",
+  "inventory.create_entry": "Entrada no estoque",
+  "inventory.create_withdrawal": "Retirada do estoque",
+}[acao] || acao || "Ação do assistente");
+
+const dataHoraAuditoria = valor => {
+  const data = new Date(valor);
+  return Number.isNaN(data.getTime()) ? "Data não informada" : data.toLocaleString("pt-BR");
+};
 
 export default function AuditoriaPerdasPage() {
   const { unidadeAtiva, unidadeInfo } = useERP();
   const [dias, setDias] = useState(30);
   const [loading, setLoading] = useState(true);
   const [relatorio, setRelatorio] = useState([]);
+  const [acoesAuditadas, setAcoesAuditadas] = useState([]);
   const [busca, setBusca] = useState("");
 
   const carregar = async () => {
     setLoading(true);
-    const { data } = await fetchRelatorioPerdas(unidadeAtiva, dias);
-    setRelatorio(data || []);
+    const [perdas, acoes] = await Promise.all([
+      fetchRelatorioPerdas(unidadeAtiva, dias),
+      fetchAuditoriaHefisto(unidadeAtiva, 30),
+    ]);
+    setRelatorio(perdas.data || []);
+    setAcoesAuditadas(acoes.data || []);
     setLoading(false);
   };
 
@@ -98,6 +120,41 @@ export default function AuditoriaPerdasPage() {
           <Kpi icon={ShieldAlert} label="Insumos Críticos" value={resumo.itensCriticos} tint={resumo.itensCriticos > 0 ? "#EF4444" : "var(--muted)"} />
           <Kpi icon={PackageMinus} label="Baixas Manuais (Un)" value={resumo.perdasManuaisTotais} tint="#8B5CF6" />
         </KpiGrid>
+
+        <div className="mb-7">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <p className="flex items-center gap-2 text-sm font-black" style={{ color: "var(--fg)" }}><Mic size={17} className="text-violet-600" /> Comandos e ações auditadas</p>
+              <p className="mt-1 text-xs" style={{ color: "var(--dim)" }}>Quem fez, o que falou, itens preparados e resultado da confirmação.</p>
+            </div>
+            <span className="erp-badge">{acoesAuditadas.length} registro(s)</span>
+          </div>
+          {acoesAuditadas.length === 0 ? (
+            <Card className="p-4 text-sm" style={{ color: "var(--dim)" }}>Nenhum comando auditado nesta unidade.</Card>
+          ) : (
+            <div className="grid gap-2">
+              {acoesAuditadas.slice(0, 12).map(registro => {
+                const sucesso = registro.resultado === "sucesso";
+                return <Card key={registro.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {sucesso ? <CheckCircle2 size={17} className="text-emerald-600" /> : <XCircle size={17} className="text-rose-600" />}
+                      <strong className="text-sm" style={{ color: "var(--fg)" }}>{rotuloAcao(registro.acao)}</strong>
+                      <span className={`erp-badge ${sucesso ? "erp-badge-success" : "erp-badge-danger"}`}>{registro.resultado || "registrado"}</span>
+                    </div>
+                    <p className="mt-2 break-words text-sm font-semibold" style={{ color: "var(--fg-soft)" }}>“{registro.comando || "Ação manual confirmada"}”</p>
+                    {registro.erro && <p className="mt-1 text-xs text-rose-600">{registro.erro}</p>}
+                  </div>
+                  <div className="shrink-0 text-left text-xs sm:text-right" style={{ color: "var(--dim)" }}>
+                    <p className="font-bold">{registro.usuario_nome || "Usuário do sistema"}</p>
+                    <p className="mt-1">{dataHoraAuditoria(registro.created_at)}</p>
+                    <p className="mt-1">{registro.exigiu_confirmacao ? "Confirmado antes de gravar" : "Sem confirmação"}</p>
+                  </div>
+                </Card>;
+              })}
+            </div>
+          )}
+        </div>
 
         <SearchBar value={busca} onChange={setBusca} placeholder="Procurar insumo analisado..." />
 

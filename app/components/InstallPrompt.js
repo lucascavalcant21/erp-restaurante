@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Download, X, Share } from "lucide-react";
 
 // Banner discreto para instalar o app. No Android/desktop usa o evento nativo
 // beforeinstallprompt; no iOS (Safari não expõe o evento) mostra a dica de
 // "Compartilhar > Adicionar à Tela de Início".
 export default function InstallPrompt() {
+  const pathname = usePathname();
   const [deferred, setDeferred] = useState(null);
   const [visivel, setVisivel] = useState(false);
   const [ehIOS, setEhIOS] = useState(false);
@@ -59,7 +61,9 @@ export default function InstallPrompt() {
     try { localStorage.setItem("hefisto_install_dispensado_ate", String(Date.now() + 3 * 86400000)); } catch {}
   };
 
-  if (!visivel) return null;
+  // O portal público é apenas para candidatura. Não oferece instalação do ERP
+  // ao candidato nem mistura a seleção de vaga com recursos administrativos.
+  if (!visivel || pathname?.startsWith("/vagas/")) return null;
 
   return (
     <div

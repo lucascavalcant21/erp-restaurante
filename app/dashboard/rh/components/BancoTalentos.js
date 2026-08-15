@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { fetchCandidatos, atualizarStatusCandidato, removerCandidato, fetchPortalVagasConfig, salvarPortalVagasConfig, PERGUNTAS_RECRUTAMENTO } from "../../../lib/recrutamento";
 import { supabase } from "../../../lib/supabase";
-import { Loader2, Search, ExternalLink, FileText, Trash2, ShieldAlert, X, Phone, MapPin, Briefcase, Pencil, Plus, Save, UserRound, GraduationCap, Baby, Car, MessageSquareText, CalendarDays, RefreshCw, Copy, Check } from "lucide-react";
+import { Loader2, Search, ExternalLink, FileText, Trash2, ShieldAlert, X, Phone, MapPin, Briefcase, Pencil, Plus, Save, UserRound, GraduationCap, Baby, Car, MessageSquareText, CalendarDays, RefreshCw, Copy, Check, Sparkles } from "lucide-react";
 
 const valorOuTraco = valor => valor === null || valor === undefined || valor === "" ? "Não informado" : String(valor);
 
@@ -67,6 +67,12 @@ function dataHora(valor) {
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(data);
 }
 
+function dataNascimento(valor) {
+  if (!valor) return "Não informado";
+  const partes = String(valor).slice(0, 10).split("-");
+  return partes.length === 3 ? `${partes[2]}/${partes[1]}/${partes[0]}` : String(valor);
+}
+
 export default function BancoTalentos({ unidadeAtiva }) {
   const [candidatos, setCandidatos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -74,6 +80,7 @@ export default function BancoTalentos({ unidadeAtiva }) {
   const [candidatoAberto, setCandidatoAberto] = useState(null);
   const [editorPortal, setEditorPortal] = useState(null);
   const [salvandoPortal, setSalvandoPortal] = useState(false);
+  const [gerandoRequisitos, setGerandoRequisitos] = useState(null);
   const [linkCopiado, setLinkCopiado] = useState(false);
 
   const carregar = async () => {
@@ -164,6 +171,41 @@ export default function BancoTalentos({ unidadeAtiva }) {
     if (error) return alert("Não foi possível salvar: " + error);
     setEditorPortal(data);
     alert("Portal de Vagas atualizado com sucesso.");
+  };
+
+  const atualizarVaga = (index, alteracoes) => {
+    setEditorPortal(atual => ({
+      ...atual,
+      vagas: atual.vagas.map((item, i) => i === index ? { ...item, ...alteracoes } : item),
+    }));
+  };
+
+  const gerarRequisitosIA = async (vaga, index) => {
+    if (!vaga.cargo?.trim()) return alert("Informe o cargo antes de gerar os pré-requisitos.");
+    setGerandoRequisitos(vaga.id);
+    try {
+      const resposta = await fetch("/api/ia-requisitos-vaga", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cargo: vaga.cargo,
+          contexto: [vaga.horario_trabalho, vaga.dias_trabalho].filter(Boolean).join("; "),
+        }),
+      });
+      const gerado = await resposta.json();
+      if (!resposta.ok) throw new Error(gerado.error || "Não foi possível gerar os pré-requisitos.");
+      atualizarVaga(index, {
+        requisitos: gerado.requisitos || [],
+        horario_trabalho: vaga.horario_trabalho || gerado.horario_trabalho || "",
+        dias_trabalho: vaga.dias_trabalho || gerado.dias_trabalho || "",
+        folga: vaga.folga || gerado.folga || "",
+        domingo_folga: vaga.domingo_folga || gerado.domingo_folga || "1 domingo de folga por mês",
+      });
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setGerandoRequisitos(null);
+    }
   };
 
   const copiarLinkPortal = async () => {
@@ -289,11 +331,15 @@ export default function BancoTalentos({ unidadeAtiva }) {
                 <div className="flex items-center justify-between gap-3 mb-3">
                   <div>
                     <h3 className="font-black text-lg text-slate-800">Vagas disponíveis</h3>
-                    <p className="text-xs text-slate-500">Edite cargo, quantidade, remuneração, benefícios e jornada.</p>
+                    <p className="text-xs text-slate-500">Configure remuneração, escala, folgas e pré-requisitos de cada função.</p>
                   </div>
                   <button type="button" onClick={() => setEditorPortal({
                     ...editorPortal,
-                    vagas: [...editorPortal.vagas, { id: `vaga-${Date.now()}`, cargo: "", quantidade: 1, salario: "", alimentacao: "", taxa: "", jornada: "", ativa: true }],
+                    vagas: [...editorPortal.vagas, {
+                      id: `vaga-${Date.now()}`, cargo: "", quantidade: 1, salario: "", alimentacao: "", taxa: "",
+                      horario_trabalho: "", dias_trabalho: "", folga: "", domingo_folga: "1 domingo de folga por mês",
+                      requisitos: [], ativa: true,
+                    }],
                   })} className="flex items-center gap-2 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 px-3 py-2 text-xs font-black">
                     <Plus size={15} /> Nova vaga
                   </button>
@@ -305,33 +351,46 @@ export default function BancoTalentos({ unidadeAtiva }) {
                       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                         {[
                           ["cargo", "Cargo"],
-                          ["salario", "Salário"],
+                          ["salario", "Salário / faixa salarial"],
                           ["alimentacao", "Vale-alimentação"],
-                          ["taxa", "Taxa de serviço"],
-                          ["jornada", "Jornada"],
+                          ["taxa", "Média da taxa de serviço"],
+                          ["horario_trabalho", "Horário de trabalho"],
+                          ["dias_trabalho", "Dias de trabalho / escala"],
+                          ["folga", "Folga semanal"],
+                          ["domingo_folga", "Domingo de folga"],
                         ].map(([campo, label]) => (
                           <label key={campo} className="block">
                             <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{label}</span>
-                            <input value={vaga[campo]} onChange={e => setEditorPortal({
-                              ...editorPortal,
-                              vagas: editorPortal.vagas.map((item, i) => i === index ? { ...item, [campo]: e.target.value } : item),
-                            })} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-2.5 text-sm font-bold outline-none focus:border-indigo-500" />
+                            <input value={vaga[campo] || ""} onChange={e => atualizarVaga(index, { [campo]: e.target.value })} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-2.5 text-sm font-bold outline-none focus:border-indigo-500" />
                           </label>
                         ))}
                         <label className="block">
                           <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Quantidade</span>
-                          <input type="number" min="1" value={vaga.quantidade} onChange={e => setEditorPortal({
-                            ...editorPortal,
-                            vagas: editorPortal.vagas.map((item, i) => i === index ? { ...item, quantidade: Number(e.target.value) || 1 } : item),
-                          })} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-2.5 text-sm font-bold outline-none focus:border-indigo-500" />
+                          <input type="number" min="1" value={vaga.quantidade} onChange={e => atualizarVaga(index, { quantidade: Number(e.target.value) || 1 })} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white p-2.5 text-sm font-bold outline-none focus:border-indigo-500" />
                         </label>
+                      </div>
+                      <div className="mt-4 rounded-2xl border border-indigo-100 bg-white p-3.5">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Pré-requisitos da função</p>
+                            <p className="text-[11px] text-slate-400 mt-0.5">Um requisito por linha. Você pode editar tudo que a IA sugerir.</p>
+                          </div>
+                          <button type="button" disabled={gerandoRequisitos === vaga.id} onClick={() => gerarRequisitosIA(vaga, index)} className="flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-3 py-2 text-xs font-black text-white disabled:opacity-60">
+                            {gerandoRequisitos === vaga.id ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
+                            {gerandoRequisitos === vaga.id ? "Gerando..." : "Gerar com IA"}
+                          </button>
+                        </div>
+                        <textarea
+                          rows={5}
+                          value={(Array.isArray(vaga.requisitos) ? vaga.requisitos : String(vaga.requisitos || "").split(/\r?\n/)).join("\n")}
+                          onChange={e => atualizarVaga(index, { requisitos: e.target.value.split(/\r?\n/) })}
+                          placeholder="Ex.: Experiência com atendimento ao cliente&#10;Boa comunicação e trabalho em equipe"
+                          className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-medium leading-relaxed outline-none focus:border-indigo-500 resize-y"
+                        />
                       </div>
                       <div className="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-slate-200">
                         <label className="flex items-center gap-2 text-xs font-bold text-slate-600">
-                          <input type="checkbox" checked={vaga.ativa} onChange={e => setEditorPortal({
-                            ...editorPortal,
-                            vagas: editorPortal.vagas.map((item, i) => i === index ? { ...item, ativa: e.target.checked } : item),
-                          })} />
+                          <input type="checkbox" checked={vaga.ativa} onChange={e => atualizarVaga(index, { ativa: e.target.checked })} />
                           Exibir no portal
                         </label>
                         <button type="button" onClick={() => setEditorPortal({ ...editorPortal, vagas: editorPortal.vagas.filter((_, i) => i !== index) })} className="flex items-center gap-1.5 text-xs font-black text-rose-600 hover:text-rose-700">
@@ -384,10 +443,10 @@ export default function BancoTalentos({ unidadeAtiva }) {
                         {[
                            { label: "Telefone / WhatsApp", value: detalhesAbertos.telefone, icon: Phone },
                            { label: "CPF", value: detalhesAbertos.cpf, icon: UserRound },
-                           { label: "Gênero", value: detalhesAbertos.genero, icon: UserRound },
+                           { label: "Data de nascimento", value: dataNascimento(detalhesAbertos.nascimento), icon: CalendarDays },
                            { label: "Escolaridade", value: detalhesAbertos.escolaridade, icon: GraduationCap },
-                           { label: "Tem filhos", value: detalhesAbertos.temFilhos === "Sim" ? `Sim (${valorOuTraco(detalhesAbertos.qtdFilhos)})` : detalhesAbertos.temFilhos, icon: Baby },
-                           { label: "Automóvel", value: detalhesAbertos.temAutomovel === "Sim" ? `Sim — ${valorOuTraco(detalhesAbertos.qualAutomovel)}` : detalhesAbertos.temAutomovel, icon: Car },
+                           { label: "Tem filhos", value: detalhesAbertos.temFilhos, icon: Baby },
+                           { label: "Transporte próprio", value: detalhesAbertos.temTransporte, icon: Car },
                         ].map(({ label, value, icon: Icon }) => (
                            <div key={label} className="flex items-start gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100 min-w-0">
                               <Icon size={19} className="text-slate-400 shrink-0 mt-0.5" />

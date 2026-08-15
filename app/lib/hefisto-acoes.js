@@ -108,6 +108,22 @@ export async function registrarAuditoria(registro) {
   }
 }
 
+export async function fetchAuditoriaHefisto(unidadeId, limite = 50) {
+  if (!isSupabaseReady()) return { data: [], error: "Offline" };
+  try {
+    let consulta = supabase
+      .from("hefisto_auditoria")
+      .select("id, usuario_nome, comando, intencao, acao, modulo, resultado, erro, exigiu_confirmacao, created_at")
+      .order("created_at", { ascending: false })
+      .limit(Math.max(1, Math.min(200, Number(limite) || 50)));
+    if (unidadeId && unidadeId !== "todas") consulta = consulta.eq("unidade_id", unidadeId);
+    const { data, error } = await consulta;
+    return { data: data || [], error: error?.message || null };
+  } catch (e) {
+    return { data: [], error: e?.message || "erro" };
+  }
+}
+
 // ─── Execução ───────────────────────────────────────────────────────────────
 // Movimento de estoque usando o MESMO serviço das telas (registrarMovimentoMulti,
 // que já tem timeout e fallback legado).

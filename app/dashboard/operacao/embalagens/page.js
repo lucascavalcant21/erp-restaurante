@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchColaboradores } from "../../../lib/rh";
 import { 
@@ -15,8 +15,11 @@ import {
 } from "lucide-react";
 import { fmtBRL } from "../../../components/ui";
 
-export default function EmbalagensPage() {
+function EmbalagensContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const departamento = searchParams.get("dept") === "bar" ? "bar" : "cozinha";
+  const setorNome = departamento === "bar" ? "Bar" : "Cozinha";
   const { abrirMenu } = useERP();
   const { unidadeAtiva } = useERP();
   
@@ -30,7 +33,7 @@ export default function EmbalagensPage() {
 
   // Modal Estoque
   const [modalEstoque, setModalEstoque] = useState(false);
-  const estadoFormEmbalagem = { nome: "", categoria: "Potes", quantidade_atual: "", quantidade_minima: "", preco_unitario: "" };
+  const estadoFormEmbalagem = { nome: "", categoria: "Potes", departamento, quantidade_atual: "", quantidade_minima: "", preco_unitario: "" };
   const [formEmbalagem, setFormEmbalagem] = useState(estadoFormEmbalagem);
 
   // Registro Saida
@@ -40,10 +43,10 @@ export default function EmbalagensPage() {
   const carregarTudo = async () => {
     setLoading(true);
     const [resEmb, resColab, resComp, resHist] = await Promise.all([
-      fetchEmbalagens(unidadeAtiva),
+      fetchEmbalagens(unidadeAtiva, departamento),
       fetchColaboradores(unidadeAtiva),
-      fetchListaComprasEmbalagens(unidadeAtiva),
-      fetchHistoricoConsumoEmbalagens(unidadeAtiva)
+      fetchListaComprasEmbalagens(unidadeAtiva, departamento),
+      fetchHistoricoConsumoEmbalagens(unidadeAtiva, departamento)
     ]);
     setEmbalagens(resEmb.data || []);
     setColaboradores(resColab.data || []);
@@ -54,7 +57,7 @@ export default function EmbalagensPage() {
 
   useEffect(() => {
     if (unidadeAtiva) carregarTudo();
-  }, [unidadeAtiva]);
+  }, [unidadeAtiva, departamento]);
 
   // --- Funções Estoque ---
   const abrirNovoEstoque = () => {
@@ -71,6 +74,7 @@ export default function EmbalagensPage() {
     
     await salvarEmbalagem(unidadeAtiva, {
       ...formEmbalagem,
+      departamento,
       quantidade_atual: Number(formEmbalagem.quantidade_atual),
       quantidade_minima: Number(formEmbalagem.quantidade_minima),
       preco_unitario: Number(formEmbalagem.preco_unitario)
@@ -119,8 +123,8 @@ export default function EmbalagensPage() {
                  <Package size={32} />
               </div>
               <div>
-                 <h1 className="text-4xl font-black tracking-tighter">Embalagens</h1>
-                 <p className="text-slate-400 font-bold uppercase tracking-widest text-xs mt-1">Controle de Estoque e Uso</p>
+                 <h1 className="text-4xl font-black tracking-tighter">Embalagens · {setorNome}</h1>
+                 <p className="text-slate-400 font-bold uppercase tracking-widest text-xs mt-1">Estoque separado de {setorNome}</p>
               </div>
             </div>
          </div>
@@ -376,4 +380,8 @@ export default function EmbalagensPage() {
 
     </div>
   );
+}
+
+export default function EmbalagensPage() {
+  return <Suspense fallback={<div className="min-h-screen bg-slate-50 p-10 text-center font-bold text-slate-500">Carregando embalagens...</div>}><EmbalagensContent /></Suspense>;
 }

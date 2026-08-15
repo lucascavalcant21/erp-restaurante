@@ -401,8 +401,11 @@ export async function salvarFicha(ficha, ingredientes) {
     fichaId = res.data.id;
   }
 
-  // 2. Apaga ingredientes antigos e insere os novos (forma mais simples)
-  await supabase.from("fichas_ingredientes").delete().eq("ficha_id", fichaId);
+  // 2. Substitui os ingredientes. Guarda uma cópia antes de apagar para que
+  // uma falha de banco nunca deixe uma ficha existente vazia pela metade.
+  const { data: ingredientesAnteriores } = await supabase.from("fichas_ingredientes").select("*").eq("ficha_id", fichaId);
+  const { error: erroExclusaoIngredientes } = await supabase.from("fichas_ingredientes").delete().eq("ficha_id", fichaId);
+  if (erroExclusaoIngredientes) return { error: `Não foi possível atualizar os ingredientes: ${erroExclusaoIngredientes.message}` };
   
   if (ingredientes && ingredientes.length > 0) {
     const itens = ingredientes.map(i => ({
@@ -415,13 +418,23 @@ export async function salvarFicha(ficha, ingredientes) {
     let { error: errItens } = await supabase.from("fichas_ingredientes").insert(itens);
     // Coluna fator_correcao ainda não migrada? Regrava sem ela (não perde a ficha)
     if (errItens && /fator_correcao/i.test(errItens.message || "")) {
-      await supabase.from("fichas_ingredientes").insert(itens.map(({ fator_correcao, ...resto }) => resto));
+      const retry = await supabase.from("fichas_ingredientes").insert(itens.map(({ fator_correcao, ...resto }) => resto));
+      errItens = retry.error;
+    }
+    if (errItens) {
+      if (ingredientesAnteriores?.length) {
+        const restaurar = ingredientesAnteriores.map(({ id, created_at, updated_at, ...item }) => item);
+        await supabase.from("fichas_ingredientes").insert(restaurar);
+      }
+      return { error: `Não foi possível salvar os ingredientes: ${errItens.message}` };
     }
   }
 
   // Sincronização automática com o Guia de Montagem
   try {
-    await sincronizarFichaComMontagem({ ...ficha, id: fichaId }, ingredientes);
+    if (!ficha.eh_base && ficha.tipo_base !== "produto_pronto") {
+      await sincronizarFichaComMontagem({ ...ficha, id: fichaId }, ingredientes);
+    }
   } catch (errSync) {
     console.error("[salvarFicha] Erro ao sincronizar com Guia de Montagem:", errSync);
   }

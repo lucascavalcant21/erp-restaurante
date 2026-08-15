@@ -50,6 +50,15 @@ export function horarioDoDia(f, weekday) {
   return { entrada: f?.horario_entrada || "", saida: f?.horario_saida || "" };
 }
 
+function percentualCadastroFuncionario(f) {
+  const campos = [
+    f?.nome, f?.cargo, f?.telefone, f?.cpf, f?.rg, f?.rua_av, f?.bairro,
+    f?.cidade_uf, f?.cep, f?.data_nascimento, f?.chave_pix, f?.salario,
+    f?.data_admissao, f?.horario_entrada, f?.horario_saida, f?.dias_trabalho,
+  ];
+  return Math.round((campos.filter(valor => String(valor ?? "").trim()).length / campos.length) * 100);
+}
+
 export default function RHPage() {
   const router = useRouter();
   const { unidadeAtiva, unidadeInfo } = useERP();
@@ -66,7 +75,7 @@ export default function RHPage() {
   const [cargos, setCargos] = useState([]);
   const [busca, setBusca] = useState("");
   const [abaAtiva, setAbaAtiva] = useState("Fixo");
-  const statePadrao = { foto: "", nome: "", cargo: "", salario: "", vale_alimentacao: "", taxa_servico_mes: "", horario_entrada: "", horario_saida: "", horario_dom_entrada: "", horario_dom_saida: "", horario_por_dia: false, horarios_dia: {}, dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60, tipo_contrato: "Fixo", telefone: "", cpf: "", rg: "", rua_av: "", numero_casa: "", bairro: "", cidade_uf: "", chave_pix: "", avaliacao_estrelas: 0, anotacoes_rh: "", data_admissao: "", status_contrato: "Definitivo", supervisor_id: "", supervisores_ids: [], endereco: "", cep: "", cidade_nascimento: "", data_nascimento: "", tem_filhos: false, qtd_filhos: "", tem_transporte: false, usa_vale_transporte: false, genero: "", escolaridade: "",
+  const statePadrao = { foto: "", nome: "", cargo: "", salario: "", vale_alimentacao: "", taxa_servico_mes: "", horario_entrada: "", horario_saida: "", horario_dom_entrada: "", horario_dom_saida: "", horario_por_dia: false, horarios_dia: {}, dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60, tipo_contrato: "Fixo", telefone: "", email: "", cpf: "", rg: "", rua_av: "", numero_casa: "", bairro: "", cidade_uf: "", chave_pix: "", avaliacao_estrelas: 0, anotacoes_rh: "", data_admissao: "", status_contrato: "Definitivo", supervisor_id: "", supervisores_ids: [], endereco: "", cep: "", cidade_nascimento: "", data_nascimento: "", tem_filhos: false, qtd_filhos: "", tem_transporte: false, usa_vale_transporte: false, genero: "", escolaridade: "",
     // Dados do Recibo de Trabalho Extra: ficam no cadastro para o recibo já sair preenchido
     topicos_funcao: "", itens_emprestados: "", forma_pagamento: "Pix", vale_transporte_val: "", setor_entrega: "", janta_ofertada: true };
   // Cargos de liderança sempre disponíveis, além dos cargos cadastrados
@@ -1253,6 +1262,10 @@ export default function RHPage() {
     setModalNovo(true);
   };
 
+  const irSecaoCadastro = (id) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   // Foto do colaborador: comprime (máx. 400px, jpeg) e guarda em base64.
   const fotoInputRef = useRef(null);
   const escolherFotoColab = (e) => {
@@ -1292,6 +1305,7 @@ export default function RHPage() {
        tempo_intervalo: f.tempo_intervalo || 60,
        tipo_contrato: f.tipo_contrato || "Fixo",
        telefone: f.telefone || "",
+       email: f.email || "",
        cpf: f.cpf || "",
        rg: f.rg || "",
        rua_av: f.rua_av || f.rua || "",
@@ -1349,7 +1363,13 @@ export default function RHPage() {
       tempo_intervalo: Number(novoFunc.tempo_intervalo) || 60,
       tipo_contrato: novoFunc.tipo_contrato,
       telefone: novoFunc.telefone,
+      email: novoFunc.email || null,
       cpf: novoFunc.cpf,
+      rg: novoFunc.rg || null,
+      rua_av: novoFunc.rua_av || null,
+      numero_casa: novoFunc.numero_casa || null,
+      bairro: novoFunc.bairro || null,
+      cidade_uf: novoFunc.cidade_uf || null,
       chave_pix: novoFunc.chave_pix,
       // Textos do recibo guardados no cadastro (migram sozinhos para o recibo)
       topicos_funcao: novoFunc.topicos_funcao || null,
@@ -1659,8 +1679,8 @@ export default function RHPage() {
                <button onClick={abrirModalNovo} className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-700 transition-colors shadow-md shadow-emerald-600/20">
                   <UserPlus size={16} /> Novo funcionário
                </button>
-               <button onClick={() => router.push("/dashboard/rh/extra/novo")} className="flex items-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-50 transition-colors">
-                  <UserPlus size={16} /> Novo extra
+               <button onClick={() => router.push("/dashboard/rh/extra")} className="flex items-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-50 transition-colors">
+                  <UserPlus size={16} /> Cadastro de extras
                </button>
                <button onClick={() => router.push('/dashboard/rh/fechamento')} className="flex items-center gap-2 bg-white text-emerald-700 border border-emerald-200 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-50 transition-colors">
                   <ClipboardList size={16} /> Fechar folha
@@ -2138,21 +2158,37 @@ export default function RHPage() {
 
       {/* Modal Adicionar/Editar Funcionário */}
       {modalNovo && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-[32px] w-full max-w-md p-5 sm:p-8 shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[calc(100dvh-2rem)] overflow-hidden">
-               <div className="flex justify-between items-center mb-6 shrink-0 border-b border-slate-100 pb-4">
-                  <h2 className="font-black text-2xl text-slate-800">{editandoId ? "Editar Colaborador" : "Novo Funcionário"}</h2>
-                  <button onClick={() => setModalNovo(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-0 sm:p-4">
+            <div className="erp-editor-funcionario bg-white sm:rounded-[32px] w-full max-w-5xl shadow-2xl animate-in zoom-in-95 flex flex-col h-[100dvh] sm:h-auto sm:max-h-[calc(100dvh-2rem)] overflow-hidden">
+               <style>{`
+                 .erp-editor-funcionario label { font-size: 12px !important; line-height: 1.35; }
+                 .erp-editor-funcionario input:not([type="checkbox"]):not([type="file"]), .erp-editor-funcionario select { min-height: 48px; font-size: 15px; }
+                 .erp-editor-funcionario textarea { font-size: 15px; line-height: 1.6; }
+                 .erp-editor-funcionario section[id], .erp-editor-funcionario div[id^="func-"] { scroll-margin-top: 88px; }
+               `}</style>
+               <div className="flex justify-between items-center gap-4 shrink-0 border-b border-slate-100 p-4 sm:px-6 sm:py-5">
+                  <div className="min-w-0">
+                     <p className="text-[10px] font-black uppercase tracking-[.18em] text-emerald-700">Equipe fixa · cadastro completo</p>
+                     <h2 className="truncate font-black text-2xl text-slate-800">{editandoId ? "Editar funcionário" : "Novo funcionário fixo"}</h2>
+                     <p className="mt-1 text-xs font-bold text-slate-500">{percentualCadastroFuncionario(novoFunc)}% preenchido · dados usados no ponto, folha, organograma e portal</p>
+                  </div>
+                  <button onClick={() => setModalNovo(false)} className="w-12 h-12 shrink-0 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={21}/></button>
                </div>
 
-               <div className="space-y-4 flex-1 overflow-y-auto pr-2 pb-4 custom-scrollbar">
+               <nav className="flex shrink-0 gap-2 overflow-x-auto border-b border-slate-100 bg-slate-50 px-4 py-3 sm:px-6">
+                  {[
+                    ["func-identificacao", "1. Identificação"], ["func-pessoais", "2. Dados pessoais"],
+                    ["func-contrato", "3. Contrato e valores"], ["func-jornada", "4. Jornada"], ["func-observacoes", "5. Observações"],
+                  ].map(([id, label]) => <button key={id} type="button" onClick={() => irSecaoCadastro(id)} className="min-h-10 shrink-0 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-600 hover:border-emerald-300 hover:text-emerald-700">{label}</button>)}
+               </nav>
+
+               <div className="space-y-5 flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar bg-slate-50/60">
+                  <section id="func-identificacao" className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between gap-3"><div><p className="text-[11px] font-black uppercase tracking-widest text-emerald-700">Identificação profissional</p><p className="mt-1 text-xs font-semibold text-slate-500">Foto, nome, função, contato e posição no organograma.</p></div><span className="rounded-full bg-emerald-100 px-3 py-1 text-[10px] font-black uppercase text-emerald-700">Funcionário fixo</span></div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Tipo de Contrato</label>
-                        <select value={novoFunc.tipo_contrato} onChange={e=>setNovoFunc({...novoFunc, tipo_contrato: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500 text-slate-700 appearance-none">
-                           <option value="Fixo">Equipe Fixa (CLT/Mensalista)</option>
-                           <option value="Freelancer">Freelancer / Extra (Diária)</option>
-                        </select>
+                        <div className="flex min-h-12 items-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 font-black text-emerald-800">Equipe fixa (CLT / mensalista)</div>
                      </div>
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Nome Completo</label>
@@ -2211,10 +2247,14 @@ export default function RHPage() {
                      </div>
                      <p className="text-[10px] text-slate-400 font-medium mt-1">Pode marcar mais de um. Sem supervisor = topo da hierarquia no Organograma.</p>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Telefone / WhatsApp</label>
                         <input type="text" value={novoFunc.telefone} onChange={e=>setNovoFunc({...novoFunc, telefone: e.target.value})} placeholder="(00) 00000-0000" className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                     </div>
+                     <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">E-mail</label>
+                        <input type="email" value={novoFunc.email || ""} onChange={e=>setNovoFunc({...novoFunc, email: e.target.value})} placeholder="nome@email.com" className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
                      </div>
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">CPF</label>
@@ -2225,10 +2265,11 @@ export default function RHPage() {
                         <input type="text" value={novoFunc.rg || ""} onChange={e=>setNovoFunc({...novoFunc, rg: e.target.value})} placeholder="Ex.: 0000000 PC/PA" className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
                      </div>
                   </div>
+                  </section>
 
                   {/* ── DADOS PESSOAIS ─────────────────────────────────────── */}
-                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-4">
-                     <p className="text-[11px] font-black uppercase tracking-widest text-slate-500">Endereço e Dados Pessoais</p>
+                  <div id="func-pessoais" className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
+                     <div><p className="text-[11px] font-black uppercase tracking-widest text-emerald-700">Endereço e dados pessoais</p><p className="mt-1 text-xs font-semibold text-slate-500">Informações completas para documentos e gestão do RH.</p></div>
                      
                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div className="col-span-2">
@@ -2318,6 +2359,8 @@ export default function RHPage() {
                      </div>
                   </div>
 
+                  <div id="func-contrato" className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
+                  <div><p className="text-[11px] font-black uppercase tracking-widest text-emerald-700">Contrato, pagamento e benefícios</p><p className="mb-4 mt-1 text-xs font-semibold text-slate-500">Salário, PIX, admissão, fase do contrato e composição mensal.</p></div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Chave PIX</label>
@@ -2411,8 +2454,9 @@ export default function RHPage() {
                         </div>
                      </div>
                   )}
+                  </div>
 
-                  <div className="border-t border-slate-100 pt-4 mt-4">
+                  <div id="func-jornada" className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
                      <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Jornada de trabalho</p>
                         <label className="flex items-center gap-2 text-[11px] font-bold text-slate-600 cursor-pointer">
@@ -2524,7 +2568,7 @@ export default function RHPage() {
                      </div>
                   </div>
 
-                  <div className="border-t border-slate-100 pt-4 mt-4">
+                  <div id="func-observacoes" className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
                      {novoFunc.tipo_contrato === "Freelancer" && (
                         <div className="mb-4">
                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Avaliação do Freelancer (Estrelas)</label>
@@ -2544,8 +2588,8 @@ export default function RHPage() {
                   </div>
                </div>
 
-               <div className="mt-4 pt-4 border-t border-slate-100 shrink-0">
-                  <button onClick={handleSalvar} disabled={!novoFunc.nome} className="w-full py-5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95">
+               <div className="border-t border-slate-200 bg-white p-3 sm:p-4 shrink-0">
+                  <button onClick={handleSalvar} disabled={!novoFunc.nome || !novoFunc.cargo} className="w-full min-h-14 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-black text-lg rounded-2xl transition-all shadow-xl shadow-emerald-600/20 active:scale-95">
                      {editandoId ? "Salvar Alterações" : "Salvar Colaborador"}
                   </button>
                </div>

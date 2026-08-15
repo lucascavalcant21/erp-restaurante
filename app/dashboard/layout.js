@@ -11,7 +11,7 @@ import {
   Users, BarChart, Store, Settings, LogOut, ChevronDown, Check,
   UtensilsCrossed, Package, Wallet, Menu, X, Truck, ChefHat, GlassWater,
   Home, ClipboardList, UserRound, ShoppingCart, Bell, SlidersHorizontal,
-  Loader2, CheckCircle2, AlertTriangle, WifiOff
+  Loader2, CheckCircle2, AlertTriangle, Tag, WifiOff
 } from "lucide-react";
 
 // NOVO MENU SIDEBAR (PDV e KDS REMOVIDOS)
@@ -35,6 +35,22 @@ const SIDEBAR_MENU = [
   },
 
   {
+    category: "Estoque",
+    home: "/dashboard/operacao/estoque",
+    icon: Package,
+    items: [
+      { label: "Estoque", href: "/dashboard/operacao/estoque" }
+    ]
+  },
+  {
+    category: "Etiquetas",
+    home: "/dashboard/operacao/etiquetas",
+    icon: Tag,
+    items: [
+      { label: "Etiquetas", href: "/dashboard/operacao/etiquetas" }
+    ]
+  },
+  {
     category: "Cozinha",
     home: "/dashboard/modulo/cozinha",
     icon: ChefHat,
@@ -42,11 +58,9 @@ const SIDEBAR_MENU = [
       { label: "Fichas Técnicas", href: "/dashboard/operacao/fichas?dept=cozinha" },
       { label: "Guia de Montagem", href: "/dashboard/operacao/montagem?dept=cozinha" },
       { label: "Ingredientes", href: "/dashboard/operacao/ingredientes?dept=cozinha" },
-      { label: "Estoque", href: "/dashboard/operacao/estoque?dept=cozinha" },
       { label: "Compras", href: "/dashboard/operacao/compras?dept=cozinha" },
       { label: "Entrada de Notas", href: "/dashboard/operacao/notas?dept=cozinha" },
       { label: "Produção do Dia", href: "/dashboard/operacao/producao?dept=cozinha" },
-      { label: "Etiquetas e Validade", href: "/dashboard/operacao/etiquetas?dept=cozinha" },
       { label: "Controles de Limpeza", href: "/dashboard/operacao/controles" },
       { label: "Checklist da Cozinha", href: "/dashboard/operacao/rotina?dept=cozinha" },
       { label: "Orçamento de Eventos", href: "/dashboard/operacao/orcamento?dept=cozinha" }
@@ -60,11 +74,9 @@ const SIDEBAR_MENU = [
       { label: "Fichas de Drinks", href: "/dashboard/operacao/fichas?dept=bar" },
       { label: "Guia de Montagem", href: "/dashboard/operacao/montagem?dept=bar" },
       { label: "Produtos", href: "/dashboard/operacao/ingredientes?dept=bar" },
-      { label: "Estoque", href: "/dashboard/operacao/estoque?dept=bar" },
       { label: "Compras", href: "/dashboard/operacao/compras?dept=bar" },
       { label: "Entrada de Notas", href: "/dashboard/operacao/notas?dept=bar" },
       { label: "Produção do Dia", href: "/dashboard/operacao/producao?dept=bar" },
-      { label: "Etiquetas e Validade", href: "/dashboard/operacao/etiquetas?dept=bar" },
       { label: "Checklist do Bar", href: "/dashboard/operacao/rotina?dept=bar" },
       { label: "Orçamento de Eventos", href: "/dashboard/operacao/orcamento?dept=bar" }
     ]
@@ -79,6 +91,14 @@ const SIDEBAR_MENU = [
       { label: "Resultado (DRE)", href: "/dashboard/financeiro/dre" },
       { label: "CMV", href: "/dashboard/financeiro/cmv" },
       { label: "Dados Fiscais", href: "/dashboard/gestao/fiscal" }
+    ]
+  },
+  {
+    category: "Extras",
+    home: "/dashboard/rh/extra",
+    icon: UserRound,
+    items: [
+      { label: "Cadastro e Recibos", href: "/dashboard/rh/extra" }
     ]
   },
   {
@@ -135,21 +155,21 @@ const ATALHOS_POR_PAPEL = {
   ],
   rh: [
     { label: "RH", href: "/dashboard/rh", icon: Users },
+    { label: "Extras", href: "/dashboard/rh/extra", icon: UserRound },
     { label: "Ponto", href: "/dashboard/rh/ponto", icon: Check },
-    { label: "Equipe", href: "/dashboard/rh/gestao", icon: UserRound },
     { label: "Vagas", href: "/dashboard/rh/recrutamento", icon: ClipboardList },
   ],
   estoque: [
     { label: "Tarefas", href: "/dashboard/tarefas", icon: ClipboardList },
-    { label: "Estoque", href: "/dashboard/operacao/estoque?dept=cozinha", icon: Package },
+    { label: "Estoque", href: "/dashboard/operacao/estoque", icon: Package },
+    { label: "Etiquetas", href: "/dashboard/operacao/etiquetas", icon: Check },
     { label: "Compras", href: "/dashboard/operacao/compras?dept=cozinha", icon: ShoppingCart },
-    { label: "Validade", href: "/dashboard/operacao/etiquetas?dept=cozinha", icon: Check },
   ],
   cozinha: [
     { label: "Tarefas", href: "/dashboard/tarefas", icon: ClipboardList },
     { label: "Receitas", href: "/dashboard/operacao/fichas?dept=cozinha", icon: ChefHat },
     { label: "Produção", href: "/dashboard/operacao/producao?dept=cozinha", icon: Package },
-    { label: "Validade", href: "/dashboard/operacao/etiquetas?dept=cozinha", icon: Check },
+    { label: "Etiquetas", href: "/dashboard/operacao/etiquetas", icon: Check },
   ],
   marketing: [
     { label: "Clientes", href: "/dashboard/clientes/crm", icon: Users },
@@ -221,6 +241,8 @@ const ROTAS_SETORIZADAS = [
   "/dashboard/operacao/orcamento",
 ];
 
+const rotaEstoqueRapido = pathname => pathname === "/dashboard/operacao/estoque/tablet";
+
 const correspondeRota = (pathname, rota) => {
   if (rota === "/dashboard/checklists") return pathname === rota;
   return pathname === rota || pathname.startsWith(`${rota}/`);
@@ -252,7 +274,7 @@ function ProtecaoSetorDaArea({ children }) {
   const [areaTravada, setAreaTravada] = useState(undefined);
   const areaValida = areaTravada && ROTAS_AREA[areaTravada] ? areaTravada : "";
   const rotaPermitida = !areaValida || ROTAS_AREA[areaValida].some(rota => correspondeRota(pathname, rota));
-  const rotaSetorizada = ROTAS_SETORIZADAS.some(rota => correspondeRota(pathname, rota));
+  const rotaSetorizada = !rotaEstoqueRapido(pathname) && ROTAS_SETORIZADAS.some(rota => correspondeRota(pathname, rota));
   const setorCorreto = !areaValida || !rotaSetorizada || deptAtual === areaValida;
 
   useEffect(() => {
@@ -276,7 +298,7 @@ function ProtecaoSetorDaArea({ children }) {
         router.replace(`/dashboard/area?dept=${areaAtiva}`);
         return;
       }
-      if (!ROTAS_SETORIZADAS.some(rota => correspondeRota(pathname, rota)) || deptAtual === areaAtiva) return;
+      if (rotaEstoqueRapido(pathname) || !ROTAS_SETORIZADAS.some(rota => correspondeRota(pathname, rota)) || deptAtual === areaAtiva) return;
 
       const params = new URLSearchParams(consulta);
       params.set("dept", areaAtiva);
@@ -691,6 +713,8 @@ export default function DashboardLayout({ children }) {
   // Recolher a sidebar no desktop (lembra a preferência entre sessões)
   const [collapsed, setCollapsed] = useState(false);
   const [compacto, setCompacto] = useState(false);
+  const interfaceTelaCheia = pathname === "/dashboard/operacao/estoque/tablet"
+    || pathname === "/dashboard/operacao/etiquetas/tablet";
 
   useEffect(() => {
     try {
@@ -773,6 +797,18 @@ export default function DashboardLayout({ children }) {
 
   const rotasPermitidas = sessao?.gerenciado ? permittedRoutes(sessao) : null;
   const acessoRestrito = Array.isArray(rotasPermitidas);
+
+  if (interfaceTelaCheia) {
+    return (
+      <div className="fixed inset-0 z-[200] bg-slate-50">
+        <Suspense fallback={<div className="grid h-screen place-items-center"><Loader2 className="animate-spin text-indigo-600" /></div>}>
+          <ProtecaoPermissao sessao={sessao}>
+            <ProtecaoSetorDaArea>{children}</ProtecaoSetorDaArea>
+          </ProtecaoPermissao>
+        </Suspense>
+      </div>
+    );
+  }
 
   return (
     <div className={`erp-app-shell ${compacto ? "erp-density-compact" : "erp-density-comfortable"} flex h-screen h-[100dvh] min-h-0 bg-[#F8FAFC] overflow-hidden print:bg-white print:block print:h-auto print:min-h-0`}>

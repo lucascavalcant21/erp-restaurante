@@ -1,394 +1,856 @@
 "use client";
 
-/**
- * TabletSetor — Modo Tablet reutilizável para Bar e Cozinha.
- * Filtra os ingredientes pelo campo `setor` ("Bar" | "Cozinha").
- * Usado em:
- *   /dashboard/bar/tablet      → setor="Bar",    cor=#3B82F6
- *   /dashboard/cozinha/tablet  → setor="Cozinha", cor=#10B981
- */
-
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Search, PackagePlus, PackageMinus, Clock, ChevronLeft,
-  CheckCircle, AlertTriangle, XCircle, Lock, X, RotateCcw,
-  ArrowLeft, Layers, User, BookOpen, Plus, Minus,
+  AlertTriangle, ArrowLeft, Boxes, Check, CheckCircle2, ChefHat, CircleDollarSign, Clock, GlassWater, History, Layers3, Maximize2, Minus,
+  Mic, MicOff, PackageMinus, PackagePlus, Plus, RefreshCw, Search, ShoppingBasket,
+  Settings2, UserRound, X, XCircle, MessageSquareText,
 } from "lucide-react";
-import { fetchEstoque, movimentarTablet, fetchHistoricoTablet } from "../lib/estoque";
-import { fetchFuncionarios } from "../lib/rh";
+import {
+  fetchEstoques, fetchItensEstoque, fetchMovimentosMulti, registrarLoteMovimentosMulti,
+} from "../lib/estoques-multiplos";
+import { fetchColaboradores } from "../lib/rh";
 import { useERP } from "../context/ERPContext";
-import { supabase, isSupabaseReady } from "../lib/supabase";
+import { criarEscuta, falar, vozDisponivel } from "../lib/hefisto-voz";
+import { registrarAuditoria } from "../lib/hefisto-acoes";
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-const fmtHora = (iso) => { if (!iso) return "--"; const d = new Date(iso); return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }); };
-const fmtData = (iso) => { if (!iso) return "--"; const d = new Date(iso); return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" }); };
-
-function statusItem(item) {
-  if (!item.quantidade || item.quantidade <= 0) return "zero";
-  if (item.quantidade <= item.minimo) return "critico";
-  if (item.quantidade <= item.minimo * 1.5) return "baixo";
-  return "ok";
-}
-
-const STATUS = {
-  ok:      { bg: "#0D2B1F", border: "#10B981", badge: "#10B981", label: "Ok",      icon: CheckCircle  },
-  baixo:   { bg: "#2B1E09", border: "#F59E0B", badge: "#F59E0B", label: "Baixo",   icon: AlertTriangle },
-  critico: { bg: "#2B0D0D", border: "#EF4444", badge: "#EF4444", label: "Crítico", icon: XCircle      },
-  zero:    { bg: "#1A0D0D", border: "#7F1D1D", badge: "#DC2626", label: "Zerado",  icon: XCircle      },
+const cores = {
+  entrada: { principal: "#10B981", suave: "rgba(16,185,129,.14)", borda: "rgba(16,185,129,.38)" },
+  saida: { principal: "#F43F5E", suave: "rgba(244,63,94,.14)", borda: "rgba(244,63,94,.38)" },
 };
 
-// ─── PIN ─────────────────────────────────────────────────────────────────────
-function ModalPIN({ cor, onSuccess, onClose }) {
-  const [pin, setPin] = useState("");
-  const [erro, setErro] = useState("");
-  const PIN = "1234";
+const numero = valor => Number(valor) || 0;
+const fmtQtd = valor => numero(valor).toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+const fmtData = iso => new Date(iso).toLocaleString("pt-BR", {
+  day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
+});
 
-  function digit(d) {
-    if (pin.length >= 4) return;
-    const n = pin + d;
-    setPin(n);
-    if (n.length === 4) setTimeout(() => { if (n === PIN) onSuccess(); else { setErro("PIN incorreto"); setPin(""); } }, 200);
+const normalizarVoz = texto => String(texto || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+const NUMEROS_VOZ = { um: 1, uma: 1, dois: 2, duas: 2, tres: 3, quatro: 4, cinco: 5, seis: 6, sete: 7, oito: 8, nove: 9, dez: 10, onze: 11, doze: 12, treze: 13, quatorze: 14, quinze: 15, dezesseis: 16, dezessete: 17, dezoito: 18, dezenove: 19, vinte: 20 };
+
+function quantidadeDaVoz(texto) {
+  const normalizado = normalizarVoz(texto);
+  const numeroFalado = normalizado.match(/\b\d+(?:[.,]\d+)?\b/);
+  if (numeroFalado) return Number(numeroFalado[0].replace(",", "."));
+  const palavra = Object.keys(NUMEROS_VOZ).find(item => new RegExp(`\\b${item}\\b`).test(normalizado));
+  return palavra ? NUMEROS_VOZ[palavra] : null;
+}
+
+function unidadeComercialDoBar(item) {
+  const comercial = String(item.unidade_comercial || "").trim().toLowerCase();
+  const unidadesDeMedida = ["ml", "l", "litro", "litros", "g", "kg"];
+  if (["un", "un.", "unidade"].includes(comercial)) return "unidades";
+  if (comercial && !unidadesDeMedida.includes(comercial)) return comercial;
+  const descricao = `${item.nome || ""} ${item.categoria || ""}`.toLowerCase();
+  if (/\blata|latinha/.test(descricao)) return "lata";
+  if (/garraf|long neck|vinho|espumante|whisky|u[ií]sque|vodka|gin|licor/.test(descricao)) return "garrafa";
+  return "unidades";
+}
+
+function rotuloUnidade(unidade, quantidade) {
+  const texto = String(unidade || "unidades");
+  if (["l", "litro", "litros"].includes(texto.toLowerCase())) return "L";
+  if (numero(quantidade) === 1) {
+    if (texto === "unidades") return "unidade";
+    return texto;
   }
+  const plurais = { garrafa: "garrafas", lata: "latas", unidade: "unidades", barril: "barris", caixa: "caixas", pacote: "pacotes", fardo: "fardos" };
+  return plurais[texto.toLowerCase()] || texto;
+}
 
+function normalizarItem(item, estoque, departamento = "") {
+  const embalagem = numero(item.tamanho_embalagem) || 1;
+  const saldoBase = numero(item.quantidade_atual);
+  const textoEstoque = `${estoque?.slug || ""} ${estoque?.nome || ""}`.toLowerCase();
+  const itemDoBar = departamento === "bar" || estoque?.tipo === "bebidas" || textoEstoque.includes("bar");
+  // HÃ¡ cadastros antigos em que o saldo do bar foi salvo em ml e outros em
+  // unidades comerciais. Quando o valor alcanÃ§a ao menos uma embalagem,
+  // convertemos para garrafas/latas; saldos pequenos continuam como unidades.
+  const usaEmbalagem = embalagem > 1 && saldoBase >= embalagem * (itemDoBar ? 1 : 1.5);
+  const fator = usaEmbalagem ? embalagem : 1;
+  const unidade = itemDoBar
+    ? unidadeComercialDoBar(item)
+    : fator > 1
+      ? (item.unidade_comercial || "un.")
+      : (item.unidade_comercial || item.unidade_medida || "un.");
+  return {
+    ...item,
+    id: `${estoque.id}:${item.insumo_id || item.id}`,
+    estoqueId: estoque.id,
+    estoqueNome: estoque.nome,
+    insumoId: item.insumo_id || item.id,
+    unidade,
+    quantidade: saldoBase / fator,
+    fator,
+    minimo: item.estoque_minimo == null ? null : numero(item.estoque_minimo) / fator,
+    valorTotal: saldoBase * numero(item.custo_unitario || item.insumo?.custo_unitario),
+    validade: item.validade || null,
+    local: item.local_interno || "",
+  };
+}
+
+function Toast({ toast, onClose }) {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 4200);
+    return () => clearTimeout(timer);
+  }, [onClose, toast]);
+
+  const ok = toast.tipo === "ok";
   return (
-    <div className="erp-tablet-modal-backdrop" role="dialog" aria-modal="true" style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999,backdropFilter:"blur(6px)" }}>
-      <div className="erp-tablet-pin-panel" style={{ background:"#1E293B",borderRadius:24,padding:"40px 32px",width:"min(360px,90vw)",textAlign:"center",border:"1px solid #334155",boxShadow:"0 32px 64px rgba(0,0,0,0.6)" }}>
-        <div style={{ width:64,height:64,borderRadius:999,background:`${cor}22`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 20px" }}>
-          <Lock size={28} color={cor} />
-        </div>
-        <h2 style={{ color:"#F1F5F9",fontSize:20,fontWeight:700,marginBottom:6 }}>Digite o PIN</h2>
-        <p style={{ color:"#64748B",fontSize:14,marginBottom:28 }}>Acesso ao modo estoque</p>
-        <div style={{ display:"flex",gap:12,justifyContent:"center",marginBottom:28 }}>
-          {[0,1,2,3].map(i=><div key={i} style={{ width:18,height:18,borderRadius:999,background:i<pin.length?cor:"#334155",transition:"background 150ms",boxShadow:i<pin.length?`0 0 8px ${cor}`:"none" }}/>)}
-        </div>
-        <div style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:16 }}>
-          {[1,2,3,4,5,6,7,8,9,"",0,"⌫"].map((d,i)=>(
-            <button key={i} onClick={()=>d==="⌫"?setPin(p=>p.slice(0,-1)):d!==""?digit(String(d)):null} disabled={d===""} style={{ height:60,borderRadius:14,fontSize:22,fontWeight:700,background:d===""?"transparent":d==="⌫"?"#334155":"#0F172A",color:d==="⌫"?"#94A3B8":"#F1F5F9",border:"1px solid "+(d===""?"transparent":"#334155"),cursor:d===""?"default":"pointer" }}>{d}</button>
-          ))}
-        </div>
-        {erro && <p style={{ color:"#EF4444",fontSize:13,fontWeight:600,marginBottom:12 }}>{erro}</p>}
-        <button onClick={onClose} style={{ color:"#64748B",fontSize:13,fontWeight:600,background:"none",border:"none",cursor:"pointer" }}>Cancelar</button>
-      </div>
+    <div className="estoque-rapido-toast" style={{ background: ok ? "#059669" : "#E11D48" }}>
+      {ok ? <CheckCircle2 size={20} /> : <XCircle size={20} />}
+      <span>{toast.msg}</span>
+      <button onClick={onClose} aria-label="Fechar aviso"><X size={17} /></button>
     </div>
   );
 }
 
-// ─── Modal Retirada ───────────────────────────────────────────────────────────
-function ModalRetirada({ item, funcionarios, fichas, cor, onConfirmar, onClose, loading }) {
-  const [funcId, setFuncId] = useState("");
-  const [motivo, setMotivo] = useState("");
-  const [qtd,    setQtd]    = useState(1);
-  const [erro,   setErro]   = useState("");
-  const func = funcionarios.find(f=>f.id===funcId);
-
-  async function ok() {
-    if (!funcId) return setErro("Selecione o funcionário.");
-    if (!motivo) return setErro("Selecione a receita/motivo.");
-    if (qtd<=0)  return setErro("Quantidade inválida.");
-    setErro(""); await onConfirmar({ funcId, func, motivo, qtd });
-  }
-
+function ControleQuantidade({ valor, unidade, onChange }) {
+  const passo = numero(valor) > 1 ? 1 : 0.5;
   return (
-    <div className="erp-tablet-modal-backdrop" role="dialog" aria-modal="true" style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,backdropFilter:"blur(4px)",padding:16 }}>
-      <div className="erp-tablet-modal-panel" style={{ background:"#1E293B",borderRadius:24,width:"min(480px,100%)",border:"1px solid #334155",boxShadow:"0 32px 64px rgba(0,0,0,0.5)",overflow:"hidden" }}>
-        <div className="erp-tablet-modal-header" style={{ padding:"20px 24px",borderBottom:"1px solid #334155",display:"flex",alignItems:"center",justifyContent:"space-between" }}>
-          <div style={{ display:"flex",alignItems:"center",gap:12 }}>
-            <div style={{ width:40,height:40,borderRadius:12,background:"rgba(239,68,68,0.15)",display:"flex",alignItems:"center",justifyContent:"center" }}><PackageMinus size={20} color="#EF4444"/></div>
-            <div><p style={{ color:"#94A3B8",fontSize:12,fontWeight:600 }}>RETIRADA</p><p style={{ color:"#F1F5F9",fontSize:18,fontWeight:700 }}>{item.nome}</p></div>
-          </div>
-          <button onClick={onClose} style={{ color:"#64748B",background:"none",border:"none",cursor:"pointer" }}><X size={22}/></button>
-        </div>
-        <div className="erp-tablet-modal-body" style={{ padding:24,display:"flex",flexDirection:"column",gap:18 }}>
-          {/* Funcionário */}
-          <div>
-            <label style={{ display:"flex",alignItems:"center",gap:6,color:"#64748B",fontSize:12,fontWeight:700,marginBottom:8,textTransform:"uppercase",letterSpacing:"0.05em" }}><User size={14}/> Quem está retirando?</label>
-            <select value={funcId} onChange={e=>{setFuncId(e.target.value);setErro("");}} style={{ width:"100%",height:52,padding:"0 16px",borderRadius:12,background:"#0F172A",border:"1.5px solid #334155",color:funcId?"#F1F5F9":"#64748B",fontSize:16,fontWeight:600,outline:"none",cursor:"pointer" }}>
-              <option value="">Selecione...</option>
-              {funcionarios.map(f=><option key={f.id} value={f.id}>{f.nome} — {f.cargo}</option>)}
-            </select>
-          </div>
-          {/* Quantidade */}
-          <div>
-            <label style={{ color:"#64748B",fontSize:12,fontWeight:700,display:"block",marginBottom:8,textTransform:"uppercase",letterSpacing:"0.05em" }}>Quantidade ({item.unidade})</label>
-            <div className="erp-tablet-quantity-row" style={{ display:"flex",alignItems:"center",gap:12 }}>
-              <button onClick={()=>setQtd(q=>Math.max(0.5,q-(q>1?1:0.5)))} style={{ width:52,height:52,borderRadius:12,background:"#334155",border:"none",color:"#F1F5F9",fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}><Minus size={20}/></button>
-              <input type="number" value={qtd} min="0.1" step="0.5" onChange={e=>setQtd(e.target.value)} style={{ flex:1,height:52,textAlign:"center",borderRadius:12,background:"#0F172A",border:"1.5px solid #334155",color:"#F1F5F9",fontSize:22,fontWeight:700,outline:"none" }}/>
-              <button onClick={()=>setQtd(q=>q+1)} style={{ width:52,height:52,borderRadius:12,background:"#334155",border:"none",color:"#F1F5F9",fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}><Plus size={20}/></button>
-            </div>
-            <p style={{ color:"#475569",fontSize:12,marginTop:6 }}>Disponível: {Number(item.quantidade||0).toLocaleString("pt-BR",{maximumFractionDigits:2})} {item.unidade}</p>
-          </div>
-          {/* Receita */}
-          <div>
-            <label style={{ display:"flex",alignItems:"center",gap:6,color:"#64748B",fontSize:12,fontWeight:700,marginBottom:8,textTransform:"uppercase",letterSpacing:"0.05em" }}><BookOpen size={14}/> Para qual receita?</label>
-            {fichas.length===0
-              ? <p style={{ color:"#EF4444",fontSize:13,padding:"12px 0" }}>Nenhuma ficha técnica cadastrada.</p>
-              : <div style={{ display:"flex",flexDirection:"column",gap:8,maxHeight:180,overflowY:"auto" }}>
-                  {fichas.map(f=>(
-                    <button key={f.id} onClick={()=>{setMotivo(f.nome);setErro("");}} style={{ padding:"12px 16px",borderRadius:12,textAlign:"left",background:motivo===f.nome?`${cor}22`:"#0F172A",border:`1.5px solid ${motivo===f.nome?cor:"#334155"}`,color:motivo===f.nome?cor:"#94A3B8",fontSize:15,fontWeight:600,cursor:"pointer",transition:"all 150ms" }}>
-                      {motivo===f.nome&&<span style={{ marginRight:8 }}>✓</span>}{f.nome}
-                    </button>
-                  ))}
-                </div>
-            }
-          </div>
-          {erro && <p style={{ background:"rgba(239,68,68,0.12)",border:"1px solid rgba(239,68,68,0.3)",borderRadius:10,padding:"10px 14px",color:"#EF4444",fontSize:13,fontWeight:600 }}>{erro}</p>}
-          <div className="erp-tablet-modal-actions" style={{ display:"flex",gap:12 }}>
-            <button onClick={onClose} style={{ flex:1,height:52,borderRadius:14,background:"#334155",border:"none",color:"#94A3B8",fontSize:16,fontWeight:700,cursor:"pointer" }}>Cancelar</button>
-            <button onClick={ok} disabled={loading} style={{ flex:2,height:52,borderRadius:14,background:loading?"#475569":"#EF4444",border:"none",color:"#fff",fontSize:16,fontWeight:700,cursor:loading?"default":"pointer" }}>{loading?"Registrando...":`Retirar ${qtd} ${item.unidade}`}</button>
-          </div>
-        </div>
-      </div>
+    <div className="estoque-rapido-qtd" onClick={e => e.stopPropagation()}>
+      <button type="button" onClick={() => onChange(Math.max(0.1, numero(valor) - passo))} aria-label="Diminuir">
+        <Minus size={18} />
+      </button>
+      <label>
+        <input
+          type="number"
+          min="0.1"
+          step="0.5"
+          value={valor}
+          onChange={e => onChange(Math.max(0.1, numero(e.target.value)))}
+        />
+        <span>{rotuloUnidade(unidade, valor)}</span>
+      </label>
+      <button type="button" onClick={() => onChange(numero(valor) + 1)} aria-label="Aumentar">
+        <Plus size={18} />
+      </button>
     </div>
   );
 }
 
-// ─── Modal Entrada ────────────────────────────────────────────────────────────
-function ModalEntrada({ item, cor, onConfirmar, onClose, loading }) {
-  const [qtd, setQtd] = useState(1);
-  const [obs, setObs] = useState("");
-  return (
-    <div className="erp-tablet-modal-backdrop" role="dialog" aria-modal="true" style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,backdropFilter:"blur(4px)",padding:16 }}>
-      <div className="erp-tablet-modal-panel" style={{ background:"#1E293B",borderRadius:24,width:"min(420px,100%)",border:"1px solid #334155",overflow:"hidden" }}>
-        <div className="erp-tablet-modal-header" style={{ padding:"20px 24px",borderBottom:"1px solid #334155",display:"flex",alignItems:"center",justifyContent:"space-between" }}>
-          <div style={{ display:"flex",alignItems:"center",gap:12 }}>
-            <div style={{ width:40,height:40,borderRadius:12,background:`${cor}22`,display:"flex",alignItems:"center",justifyContent:"center" }}><PackagePlus size={20} color={cor}/></div>
-            <div><p style={{ color:"#94A3B8",fontSize:12,fontWeight:600 }}>ENTRADA</p><p style={{ color:"#F1F5F9",fontSize:18,fontWeight:700 }}>{item.nome}</p></div>
-          </div>
-          <button onClick={onClose} style={{ color:"#64748B",background:"none",border:"none",cursor:"pointer" }}><X size={22}/></button>
-        </div>
-        <div className="erp-tablet-modal-body" style={{ padding:24,display:"flex",flexDirection:"column",gap:18 }}>
-          <div>
-            <label style={{ color:"#64748B",fontSize:12,fontWeight:700,display:"block",marginBottom:8,textTransform:"uppercase",letterSpacing:"0.05em" }}>Quantidade ({item.unidade})</label>
-            <div className="erp-tablet-quantity-row" style={{ display:"flex",alignItems:"center",gap:12 }}>
-              <button onClick={()=>setQtd(q=>Math.max(0.5,q-(q>1?1:0.5)))} style={{ width:52,height:52,borderRadius:12,background:"#334155",border:"none",color:"#F1F5F9",fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}><Minus size={20}/></button>
-              <input type="number" value={qtd} min="0.1" step="0.5" onChange={e=>setQtd(e.target.value)} style={{ flex:1,height:52,textAlign:"center",borderRadius:12,background:"#0F172A",border:"1.5px solid #334155",color:"#F1F5F9",fontSize:22,fontWeight:700,outline:"none" }}/>
-              <button onClick={()=>setQtd(q=>q+1)} style={{ width:52,height:52,borderRadius:12,background:"#334155",border:"none",color:"#F1F5F9",fontSize:22,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}><Plus size={20}/></button>
-            </div>
-          </div>
-          <div>
-            <label style={{ color:"#64748B",fontSize:12,fontWeight:700,display:"block",marginBottom:8,textTransform:"uppercase",letterSpacing:"0.05em" }}>Observação (opcional)</label>
-            <input value={obs} onChange={e=>setObs(e.target.value)} placeholder="Ex: Chegou nota fiscal..." style={{ width:"100%",height:52,padding:"0 16px",borderRadius:12,background:"#0F172A",border:"1.5px solid #334155",color:"#F1F5F9",fontSize:15,outline:"none" }}/>
-          </div>
-          <div className="erp-tablet-modal-actions" style={{ display:"flex",gap:12 }}>
-            <button onClick={onClose} style={{ flex:1,height:52,borderRadius:14,background:"#334155",border:"none",color:"#94A3B8",fontSize:16,fontWeight:700,cursor:"pointer" }}>Cancelar</button>
-            <button onClick={()=>onConfirmar({qtd,obs})} disabled={loading} style={{ flex:2,height:52,borderRadius:14,background:loading?"#475569":cor,border:"none",color:"#fff",fontSize:16,fontWeight:700,cursor:loading?"default":"pointer" }}>{loading?"Registrando...":`Adicionar ${qtd} ${item.unidade}`}</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Toast ────────────────────────────────────────────────────────────────────
-function Toast({ msg, tipo, onClose }) {
-  useEffect(()=>{ const t=setTimeout(onClose,3000); return()=>clearTimeout(t); },[onClose]);
-  return (
-    <div className="erp-tablet-toast" style={{ position:"fixed",bottom:32,left:"50%",transform:"translateX(-50%)",background:tipo==="ok"?"#10B981":"#EF4444",color:"#fff",borderRadius:14,padding:"14px 24px",fontSize:15,fontWeight:700,zIndex:9999,boxShadow:"0 8px 32px rgba(0,0,0,0.4)",display:"flex",alignItems:"center",gap:10 }}>
-      {tipo==="ok"?<CheckCircle size={18}/>:<XCircle size={18}/>} {msg}
-    </div>
-  );
-}
-
-// ─── Componente Principal (exportado) ─────────────────────────────────────────
-export default function TabletSetor({ setor, titulo, emoji, cor, voltarHref }) {
+export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "📦", cor = "#10B981", voltarHref = "/dashboard/operacao/estoque" }) {
   const router = useRouter();
-  const { unidadeAtiva, unidadeInfo } = useERP();
+  const { unidadeAtiva, unidadeInfo, sessao } = useERP();
+  const setorFixo = String(setor || "").trim().toLowerCase();
+  const [setorEscolhido, setSetorEscolhido] = useState(setorFixo);
+  const departamento = setorEscolhido || setorFixo;
+  const [tipoEstoque, setTipoEstoque] = useState(""); // produtos | preparos
 
-  const [aba,          setAba]          = useState("estoque");
-  const [itens,        setItens]        = useState([]);
+  const [aba, setAba] = useState("operacao");
+  const [tipo, setTipo] = useState("saida");
+  const [itens, setItens] = useState([]);
   const [funcionarios, setFuncionarios] = useState([]);
-  const [fichas,       setFichas]       = useState([]);
-  const [historico,    setHistorico]    = useState([]);
-  const [busca,        setBusca]        = useState("");
-  const [loading,      setLoading]      = useState(true);
-  const [pinOk,        setPinOk]        = useState(false);
-  const [modalRetira,  setModalRetira]  = useState(null);
-  const [modalEntrada, setModalEntrada] = useState(null);
-  const [salvando,     setSalvando]     = useState(false);
-  const [toast,        setToast]        = useState(null);
-  const [filtroHist,   setFiltroHist]   = useState("todos");
+  const [historico, setHistorico] = useState([]);
+  const [selecionados, setSelecionados] = useState({});
+  const [responsavelId, setResponsavelId] = useState("");
+  const [motivo, setMotivo] = useState("");
+  const [mostrarMotivo, setMostrarMotivo] = useState(false);
+  const [busca, setBusca] = useState("");
+  const [carregando, setCarregando] = useState(true);
+  const [salvando, setSalvando] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [ultimoResultado, setUltimoResultado] = useState([]);
+  const [filtroHistorico, setFiltroHistorico] = useState("todos");
+  const [auditoriaVozAberta, setAuditoriaVozAberta] = useState(false);
+  const [ouvindoVoz, setOuvindoVoz] = useState(false);
+  const [textoVoz, setTextoVoz] = useState("");
+  const [respostaVoz, setRespostaVoz] = useState("Toque no microfone e fale o que deseja conferir ou movimentar.");
+  const escutaVozRef = useRef(null);
 
-  const carregar = useCallback(async () => {
-    setLoading(true);
-    const [resE, resF, resH] = await Promise.all([
-      fetchEstoque(unidadeAtiva),
-      fetchFuncionarios(unidadeAtiva),
-      fetchHistoricoTablet(unidadeAtiva, 150),
-    ]);
-    // Filtra pelo setor
-    const todos = resE.data || [];
-    setItens(setor ? todos.filter(i => !i.setor || i.setor === setor || i.setor?.toLowerCase() === setor.toLowerCase()) : todos);
-    setFuncionarios((resF.data || []).filter(f => f.ativo !== false));
-    setHistorico(resH.data || []);
-    if (isSupabaseReady()) {
-      const { data } = await supabase.from("fichas_tecnicas").select("id, nome").order("nome");
-      setFichas(data || []);
+  const carregar = useCallback(async (mostrarLoading = true) => {
+    if (!unidadeAtiva || unidadeAtiva === "todas") {
+      setItens([]);
+      setFuncionarios([]);
+      setHistorico([]);
+      setCarregando(false);
+      return [];
     }
-    setLoading(false);
-  }, [unidadeAtiva, setor]);
+    if (mostrarLoading) setCarregando(true);
+    const [resEstoques, resFuncionarios] = await Promise.all([
+      fetchEstoques(unidadeAtiva),
+      fetchColaboradores(unidadeAtiva),
+    ]);
+    const estoquesDoSetor = (resEstoques.data || []).filter(estoque => {
+      if (!departamento) return false;
+      const texto = `${estoque.slug || ""} ${estoque.nome || ""}`.toLowerCase();
+      if (departamento === "bar") return texto.includes("bar") || (estoque.tipo === "bebidas" && !texto.includes("cozinha"));
+      if (departamento === "cozinha") return texto.includes("cozinha") || (estoque.tipo === "alimentos" && !texto.includes("bar"));
+      return texto.includes(departamento);
+    });
+    const estoquesAlvo = estoquesDoSetor.filter(estoque => {
+      const texto = `${estoque.slug || ""} ${estoque.nome || ""}`.toLowerCase();
+      const ehPreparo = texto.includes("pre-preparo") || texto.includes("preparo");
+      return tipoEstoque === "preparos" ? ehPreparo : !ehPreparo;
+    });
+    const [respostasItens, respostasHistorico] = await Promise.all([
+      Promise.all(estoquesAlvo.map(estoque => fetchItensEstoque(estoque.id, unidadeAtiva))),
+      Promise.all(estoquesAlvo.map(estoque => fetchMovimentosMulti(unidadeAtiva, estoque.id, 120))),
+    ]);
+    const itensCarregados = estoquesAlvo.flatMap((estoque, indice) =>
+      (respostasItens[indice]?.data || []).map(item => normalizarItem(item, estoque, departamento))
+    );
+    setItens(itensCarregados);
+    setFuncionarios((resFuncionarios.data || []).filter(f =>
+      f.ativo !== false && f.status !== "inativo" && f.tipo_contrato !== "Freelancer"
+    ));
+    setHistorico(estoquesAlvo.flatMap((estoque, indice) =>
+      (respostasHistorico[indice]?.data || [])
+        .filter(mov => ["entrada", "saida"].includes(mov.tipo))
+        .map(mov => {
+          const embalagem = numero(mov.insumo?.tamanho_embalagem) || 1;
+          const qtdBase = numero(mov.quantidade);
+          const itemDoBar = departamento === "bar" || estoque.tipo === "bebidas";
+          const fator = embalagem > 1 && qtdBase >= embalagem ? embalagem : 1;
+          return {
+            id: mov.id,
+            tipo: mov.tipo,
+            quantidade: qtdBase / fator,
+            responsavel: mov.usuario_nome || "",
+            motivo: mov.observacao || "",
+            created_at: mov.data_movimento || mov.created_at,
+            estoque: {
+              nome: mov.insumo?.nome || "Item",
+              unidade: itemDoBar
+                ? unidadeComercialDoBar(mov.insumo || {})
+                : fator > 1
+                  ? (mov.insumo?.unidade_comercial || "un.")
+                  : (mov.insumo?.unidade_comercial || mov.insumo?.unidade_medida || "un."),
+              setor: estoque.nome,
+            },
+          };
+        })
+    ).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 200));
+    const erroItens = respostasItens.find(resposta => resposta?.error)?.error;
+    if (resEstoques.error || erroItens) setToast({ tipo: "erro", msg: `Não foi possível carregar o estoque: ${resEstoques.error || erroItens}` });
+    setCarregando(false);
+    return itensCarregados;
+  }, [departamento, tipoEstoque, unidadeAtiva]);
 
-  useEffect(() => { if (pinOk) carregar(); }, [pinOk, carregar]);
+  useEffect(() => { carregar(); }, [carregar]);
 
-  const visiveis = itens.filter(i => i.nome?.toLowerCase().includes(busca.toLowerCase()));
-  const histVis  = historico.filter(h => filtroHist === "todos" || h.tipo === filtroHist);
+  const responsavel = funcionarios.find(f => String(f.id) === String(responsavelId));
+  const listaSelecionados = Object.values(selecionados);
+  const estiloTipo = cores[tipo];
+  const tituloSetor = departamento === "bar" ? "Bar" : departamento === "cozinha" ? "Cozinha" : titulo;
+  const tituloAtual = tipoEstoque === "preparos" ? `Pré-preparos · ${tituloSetor}` : tituloSetor;
 
-  async function confirmarRetirada({ funcId, func, motivo, qtd }) {
-    setSalvando(true);
-    const { error, novaQtd } = await movimentarTablet(modalRetira.id, "saida", qtd, { responsavel: func?.nome||"", cargo: func?.cargo||"", motivo, tipo_motivo:"receita" }, unidadeAtiva);
-    setSalvando(false);
-    if (error) { setToast({ msg:"Erro: "+error, tipo:"erro" }); return; }
-    setItens(p => p.map(i => i.id===modalRetira.id ? {...i, quantidade:novaQtd} : i));
-    setHistorico(p => [{ id:Date.now(), estoque_id:modalRetira.id, tipo:"saida", quantidade:qtd, created_at:new Date().toISOString(), estoque:{nome:modalRetira.nome,unidade:modalRetira.unidade}, meta:{responsavel:func?.nome||"",cargo:func?.cargo||"",motivo,tipo_motivo:"receita",via:"tablet"} }, ...p]);
-    setModalRetira(null);
-    setToast({ msg:`Retirada de ${qtd} ${modalRetira.unidade} registrada!`, tipo:"ok" });
+  const selecionarSetor = novoSetor => {
+    setSetorEscolhido(novoSetor);
+    setTipoEstoque("");
+    setResponsavelId("");
+    setSelecionados({});
+    setBusca("");
+    setUltimoResultado([]);
+    setAba("operacao");
+  };
+
+  const voltarEtapa = () => {
+    if (responsavelId) {
+      setResponsavelId("");
+      setSelecionados({});
+      setBusca("");
+      setUltimoResultado([]);
+      return;
+    }
+    if (tipoEstoque) {
+      setTipoEstoque("");
+      setSelecionados({});
+      setBusca("");
+      setUltimoResultado([]);
+      return;
+    }
+    if (departamento && !setorFixo) {
+      setSetorEscolhido("");
+      setSelecionados({});
+      setBusca("");
+      setUltimoResultado([]);
+      return;
+    }
+    router.push(voltarHref || "/dashboard");
+  };
+
+  const pedirTelaCheia = async () => {
+    try {
+      if (!document.fullscreenElement) await document.documentElement.requestFullscreen?.();
+    } catch { /* o navegador pode bloquear; o modo visual continua em tela inteira */ }
+  };
+
+  const visiveis = useMemo(() => {
+    const termo = busca.trim().toLocaleLowerCase("pt-BR");
+    return itens.filter(item => !termo || `${item.nome} ${item.marca || ""}`.toLocaleLowerCase("pt-BR").includes(termo));
+  }, [busca, itens]);
+
+  const historicoVisivel = useMemo(() => historico.filter(item =>
+    filtroHistorico === "todos" || item.tipo === filtroHistorico
+  ), [filtroHistorico, historico]);
+
+  const localizarItemPorVoz = useCallback(texto => {
+    const comando = normalizarVoz(texto);
+    const ordenados = [...itens].sort((a, b) => String(b.nome || "").length - String(a.nome || "").length);
+    return ordenados.find(item => comando.includes(normalizarVoz(item.nome)))
+      || ordenados.find(item => {
+        const palavras = normalizarVoz(item.nome).split(/\s+/).filter(palavra => palavra.length > 2);
+        return palavras.length > 0 && palavras.every(palavra => comando.includes(palavra));
+      });
+  }, [itens]);
+
+  const responderAuditoriaVoz = useCallback(mensagem => {
+    setRespostaVoz(mensagem);
+    falar(mensagem, { velocidade: 1.02 });
+  }, []);
+
+  const processarComandoVoz = useCallback(texto => {
+    const comando = normalizarVoz(texto);
+    setTextoVoz(texto);
+    setOuvindoVoz(false);
+
+    const confirmouMovimentacao = /\b(?:confirmar|confirme|confirmo)\b.*\b(?:entrada|retirada|saida|movimentacao|deposito)\b|\b(?:pode confirmar|confirmar agora)\b/.test(comando);
+    if (confirmouMovimentacao) {
+      if (!listaSelecionados.length) {
+        responderAuditoriaVoz("Não há nenhuma movimentação preparada para confirmar.");
+        return;
+      }
+      if (!responsavel) {
+        responderAuditoriaVoz("Escolha na tela quem é o responsável antes de confirmar por voz.");
+        return;
+      }
+      if (salvando) {
+        responderAuditoriaVoz("A movimentação já está sendo registrada.");
+        return;
+      }
+      setMotivo(atual => atual.startsWith("Comando de voz:") ? atual : `Comando de voz: ${texto}`);
+      responderAuditoriaVoz("Confirmação por voz recebida. Registrando a movimentação.");
+      fecharAuditoriaVoz();
+      confirmarLote(texto);
+      return;
+    }
+
+    const querHistorico = /\b(mostrar|mostre|ver|veja|auditar|auditoria|consultar|historico|movimentacoes)\b/.test(comando);
+    const mencionaEntrada = /\b(entrada|entradas|deposito|depositos|adicionado|adicionados)\b/.test(comando);
+    const mencionaSaida = /\b(saida|saidas|retirada|retiradas|baixa|baixas)\b/.test(comando);
+
+    if (querHistorico && (mencionaEntrada || mencionaSaida || comando.includes("historico"))) {
+      const filtro = mencionaSaida ? "saida" : mencionaEntrada ? "entrada" : "todos";
+      const quantidade = historico.filter(item => filtro === "todos" || item.tipo === filtro).length;
+      setFiltroHistorico(filtro);
+      setAba("historico");
+      responderAuditoriaVoz(`Abri ${filtro === "entrada" ? "as entradas" : filtro === "saida" ? "as saídas" : "todo o histórico"}. Encontrei ${quantidade} movimentações recentes.`);
+      return;
+    }
+
+    const item = localizarItemPorVoz(texto);
+    if (/\b(quanto|quantos|quantas|saldo|tem|tenho|disponivel)\b/.test(comando)) {
+      if (!item) {
+        responderAuditoriaVoz("Não identifiquei o produto. Fale, por exemplo: quanto tem de Corona?");
+        return;
+      }
+      responderAuditoriaVoz(`${item.nome} tem ${fmtQtd(item.quantidade)} ${rotuloUnidade(item.unidade, item.quantidade)} no estoque do ${tituloAtual}.`);
+      return;
+    }
+
+    const ehSaida = /\b(retirar|retire|remover|remova|saida|dar baixa|baixar)\b/.test(comando);
+    const ehEntrada = /\b(adicionar|adicione|depositar|deposite|entrada|repor|colocar|coloque)\b/.test(comando);
+    if (!ehEntrada && !ehSaida) {
+      responderAuditoriaVoz("Não entendi o comando. Diga mostrar entradas, mostrar saídas, consultar o saldo ou retirar uma quantidade de um produto.");
+      return;
+    }
+    const quantidade = quantidadeDaVoz(texto);
+    if (!quantidade || quantidade <= 0) {
+      responderAuditoriaVoz("Não identifiquei a quantidade. Diga, por exemplo: retirar 3 garrafas de Corona.");
+      return;
+    }
+    if (!item) {
+      responderAuditoriaVoz("Não encontrei esse produto neste estoque. Fale novamente usando o nome que aparece no card.");
+      return;
+    }
+    if (ehSaida && quantidade > numero(item.quantidade)) {
+      responderAuditoriaVoz(`${item.nome} possui somente ${fmtQtd(item.quantidade)} ${rotuloUnidade(item.unidade, item.quantidade)} disponíveis. A retirada não foi preparada.`);
+      return;
+    }
+
+    const novoTipo = ehSaida ? "saida" : "entrada";
+    setTipo(novoTipo);
+    setAba("operacao");
+    setSelecionados({
+      [item.id]: {
+        id: item.id, nome: item.nome, unidade: item.unidade, quantidade,
+        disponivel: item.quantidade, fator: item.fator, estoqueId: item.estoqueId, insumoId: item.insumoId,
+      },
+    });
+    setMotivo(`Comando de voz: ${texto}`);
+    responderAuditoriaVoz(`Preparei a ${novoTipo === "entrada" ? "entrada" : "retirada"} de ${fmtQtd(quantidade)} ${rotuloUnidade(item.unidade, quantidade)} de ${item.nome}. Confira na tela e toque em confirmar.`);
+  }, [historico, listaSelecionados, localizarItemPorVoz, responsavel, responderAuditoriaVoz, salvando, tituloAtual]);
+
+  function iniciarEscutaAuditoria() {
+    if (!vozDisponivel()) {
+      setAuditoriaVozAberta(true);
+      setRespostaVoz("Este navegador não oferece reconhecimento de voz. Use o Chrome no Android ou Safari no iPhone e autorize o microfone.");
+      return;
+    }
+    escutaVozRef.current?.parar?.();
+    setAuditoriaVozAberta(true);
+    setTextoVoz("");
+    setRespostaVoz("Estou ouvindo. Fale agora.");
+    setOuvindoVoz(true);
+    const sessao = criarEscuta({
+      onParcial: parcial => setTextoVoz(parcial),
+      onFinal: final => processarComandoVoz(final),
+      onErro: erro => { setOuvindoVoz(false); setRespostaVoz(erro); },
+      onFim: () => setOuvindoVoz(false),
+    });
+    escutaVozRef.current = sessao;
+    if (!sessao) {
+      setOuvindoVoz(false);
+      setRespostaVoz("Não consegui acessar o microfone neste aparelho.");
+      return;
+    }
+    sessao.iniciar();
   }
 
-  async function confirmarEntrada({ qtd, obs }) {
-    setSalvando(true);
-    const { error, novaQtd } = await movimentarTablet(modalEntrada.id, "entrada", qtd, { responsavel:"", cargo:"", motivo:obs||"Entrada manual", tipo_motivo:"livre" }, unidadeAtiva);
-    setSalvando(false);
-    if (error) { setToast({ msg:"Erro: "+error, tipo:"erro" }); return; }
-    setItens(p => p.map(i => i.id===modalEntrada.id ? {...i, quantidade:novaQtd} : i));
-    setHistorico(p => [{ id:Date.now(), estoque_id:modalEntrada.id, tipo:"entrada", quantidade:qtd, created_at:new Date().toISOString(), estoque:{nome:modalEntrada.nome,unidade:modalEntrada.unidade}, meta:{responsavel:"",cargo:"",motivo:obs||"Entrada manual",tipo_motivo:"livre",via:"tablet"} }, ...p]);
-    setModalEntrada(null);
-    setToast({ msg:`Entrada de ${qtd} ${modalEntrada.unidade} registrada!`, tipo:"ok" });
+  function fecharAuditoriaVoz() {
+    escutaVozRef.current?.parar?.();
+    setOuvindoVoz(false);
+    setAuditoriaVozAberta(false);
   }
 
-  if (!pinOk) {
+  useEffect(() => () => escutaVozRef.current?.parar?.(), []);
+
+  const kanbans = useMemo(() => {
+    const abaixo = itens.filter(item => item.minimo != null && numero(item.quantidade) <= numero(item.minimo)).length;
+    const semSaldo = itens.filter(item => numero(item.quantidade) <= 0).length;
+    const valor = itens.reduce((soma, item) => soma + numero(item.valorTotal), 0);
+    const proximas = itens.filter(item => {
+      if (!item.validade) return false;
+      const dias = (new Date(item.validade).getTime() - Date.now()) / 86400000;
+      return dias >= 0 && dias <= 7;
+    }).length;
+    return [
+      { rotulo: "Produtos", valor: itens.length, detalhe: "cadastrados no setor", cor: "#4F46E5", fundo: "#EEF2FF", icone: Boxes },
+      { rotulo: "Valor no estoque", valor: valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }), detalhe: "saldo financeiro atual", cor: "#047857", fundo: "#ECFDF5", icone: CircleDollarSign },
+      { rotulo: "Abaixo do mínimo", valor: abaixo, detalhe: "precisam de reposição", cor: "#BE123C", fundo: "#FFF1F2", icone: AlertTriangle },
+      { rotulo: "Sem saldo", valor: semSaldo, detalhe: "produtos zerados", cor: "#C2410C", fundo: "#FFF7ED", icone: PackageMinus },
+      { rotulo: "Validade próxima", valor: proximas, detalhe: "próximos 7 dias", cor: "#A16207", fundo: "#FEFCE8", icone: Clock },
+    ];
+  }, [itens]);
+
+  function alternarItem(item) {
+    setSelecionados(atual => {
+      const proximo = { ...atual };
+      if (proximo[item.id]) delete proximo[item.id];
+      else proximo[item.id] = {
+        id: item.id, nome: item.nome, unidade: item.unidade, quantidade: 1,
+        disponivel: item.quantidade, fator: item.fator, estoqueId: item.estoqueId, insumoId: item.insumoId,
+      };
+      return proximo;
+    });
+  }
+
+  function alterarQuantidade(id, quantidade) {
+    setSelecionados(atual => ({
+      ...atual,
+      [id]: { ...atual[id], quantidade: Math.max(0.1, numero(quantidade)) },
+    }));
+  }
+
+  async function confirmarLote(comandoConfirmacao = "") {
+    if (!listaSelecionados.length) {
+      setToast({ tipo: "erro", msg: "Escolha pelo menos um item." });
+      return;
+    }
+    if (!responsavel) {
+      setToast({ tipo: "erro", msg: "Escolha quem está fazendo a movimentação." });
+      return;
+    }
+    const semSaldo = tipo === "saida" && listaSelecionados.find(item => numero(item.quantidade) > numero(item.disponivel));
+    if (semSaldo) {
+      setToast({ tipo: "erro", msg: `${semSaldo.nome} tem apenas ${fmtQtd(semSaldo.disponivel)} ${rotuloUnidade(semSaldo.unidade, semSaldo.disponivel)} disponíveis.` });
+      return;
+    }
+
+    setSalvando(true);
+    const resultado = await registrarLoteMovimentosMulti({
+      unidadeId: unidadeAtiva,
+      tipo,
+      itens: listaSelecionados.map(item => ({ ...item, quantidade: numero(item.quantidade) * (numero(item.fator) || 1) })),
+      observacao: motivo.trim() || (tipo === "entrada" ? "Reposição rápida" : "Retirada rápida"),
+      usuarioNome: responsavel.nome,
+    });
+
+    await registrarAuditoria({
+      unidadeId: unidadeAtiva,
+      usuarioId: sessao?.user?.id || sessao?.id || null,
+      usuarioNome: responsavel.nome,
+      comando: comandoConfirmacao
+        ? `${motivo.startsWith("Comando de voz:") ? motivo.replace(/^Comando de voz:\s*/, "") : motivo || "Movimentação preparada na tela"}; Confirmação por voz: ${comandoConfirmacao}`
+        : motivo.startsWith("Comando de voz:") ? motivo.replace(/^Comando de voz:\s*/, "") : motivo,
+      intencao: { tipo, setor: departamento, itens: listaSelecionados.map(item => ({ nome: item.nome, quantidade: item.quantidade, unidade: item.unidade })) },
+      acao: tipo === "entrada" ? "inventory.create_entry_batch" : "inventory.create_withdrawal_batch",
+      modulo: "inventory",
+      resultado: resultado.erros.length ? (resultado.concluidos.length ? "parcial" : "erro") : "sucesso",
+      erro: resultado.erros.length ? resultado.erros.map(item => `${item.nome}: ${item.error}`).join("; ") : null,
+      exigiuConfirmacao: true,
+    });
+
+    const idsConcluidos = new Set(resultado.concluidos.map(item => String(item.id)));
+    setSelecionados(atual => Object.fromEntries(
+      Object.entries(atual).filter(([id]) => !idsConcluidos.has(String(id)))
+    ));
+    const itensAtualizados = await carregar(false);
+    setSalvando(false);
+
+    const movimentados = listaSelecionados
+      .filter(item => idsConcluidos.has(String(item.id)))
+      .map(item => {
+        const atualizado = itensAtualizados.find(candidato => String(candidato.id) === String(item.id));
+        const saldoNovo = atualizado
+          ? numero(atualizado.quantidade)
+          : tipo === "entrada"
+            ? numero(item.disponivel) + numero(item.quantidade)
+            : Math.max(0, numero(item.disponivel) - numero(item.quantidade));
+        return {
+          id: item.id,
+          nome: item.nome,
+          unidade: item.unidade,
+          quantidadeMovida: numero(item.quantidade),
+          saldoAnterior: numero(item.disponivel),
+          saldoNovo,
+          tipo,
+        };
+      });
+    setUltimoResultado(movimentados);
+
+    if (resultado.erros.length) {
+      setToast({
+        tipo: "erro",
+        msg: `${resultado.concluidos.length} item(ns) concluído(s). Falhou: ${resultado.erros.map(item => item.nome).join(", ")}.`,
+      });
+      return;
+    }
+
+    setMotivo("");
+    setMostrarMotivo(false);
+    setBusca("");
+    setSelecionados({});
+    setToast({
+      tipo: "ok",
+      msg: `${tipo === "entrada" ? "Entrada" : "Retirada"} de ${resultado.concluidos.length} item(ns) registrada para ${responsavel.nome}.`,
+    });
+  }
+
+  if (!unidadeAtiva || unidadeAtiva === "todas") {
     return (
-      <div style={{ minHeight:"100vh",background:"#0F172A",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center" }}>
-        <div style={{ textAlign:"center",marginBottom:32 }}>
-          <div style={{ fontSize:52,marginBottom:12 }}>{emoji}</div>
-          <h1 style={{ color:"#F1F5F9",fontSize:26,fontWeight:800,margin:0 }}>Modo {titulo}</h1>
-          <p style={{ color:"#475569",fontSize:15,marginTop:6 }}>{unidadeInfo?.nome||""}</p>
+      <div className="estoque-rapido-vazio">
+        <Layers3 size={52} />
+        <h1>Escolha uma unidade</h1>
+        <p>Selecione uma loja no ERP antes de abrir o estoque rápido.</p>
+        <button onClick={() => router.push(voltarHref)}><ArrowLeft size={18} /> Voltar</button>
+      </div>
+    );
+  }
+
+  if (!departamento) {
+    return (
+      <div className="estoque-inicio">
+        <style>{`
+          .estoque-inicio{position:fixed;inset:0;z-index:80;overflow:auto;background:linear-gradient(145deg,#07111f,#0f2841);color:#fff;padding:clamp(18px,4vw,44px);display:flex;flex-direction:column}
+          .estoque-inicio-topo{display:flex;align-items:center;justify-content:space-between;gap:12px}.estoque-inicio-topo button{height:46px;border:1px solid rgba(255,255,255,.2);border-radius:14px;background:rgba(255,255,255,.08);color:#fff;padding:0 15px;display:flex;align-items:center;gap:8px;font-weight:800}
+          .estoque-inicio-centro{width:min(950px,100%);margin:auto;text-align:center}.estoque-inicio-centro h1{font-size:clamp(30px,5vw,58px);line-height:1;margin:18px 0 10px;font-weight:950}.estoque-inicio-centro p{color:#cbd5e1;font-size:clamp(15px,2vw,20px);margin:0 auto 34px}
+          .estoque-inicio-setores{display:grid;grid-template-columns:1fr 1fr;gap:clamp(14px,3vw,26px)}.estoque-inicio-setor{min-height:240px;border:2px solid rgba(255,255,255,.16);border-radius:30px;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;font-size:28px;font-weight:950;box-shadow:0 22px 55px rgba(0,0,0,.25);transition:.15s}.estoque-inicio-setor svg{width:62px;height:62px}.estoque-inicio-setor.cozinha{background:linear-gradient(145deg,#047857,#10b981)}.estoque-inicio-setor.bar{background:linear-gradient(145deg,#1d4ed8,#3b82f6)}.estoque-inicio-setor:active{transform:scale(.98)}.estoque-inicio-setor span{font-size:14px;font-weight:700;opacity:.88}
+          @media(max-width:620px){.estoque-inicio-setores{grid-template-columns:1fr}.estoque-inicio-setor{min-height:175px}.estoque-inicio-centro{margin:30px auto}}
+        `}</style>
+        <div className="estoque-inicio-topo">
+          <button onClick={() => router.push(voltarHref)}><ArrowLeft size={19} /> Voltar</button>
+          <button onClick={pedirTelaCheia}><Maximize2 size={18} /> Tela cheia</button>
         </div>
-        <ModalPIN cor={cor} onSuccess={()=>setPinOk(true)} onClose={()=>router.push(voltarHref)}/>
-        <button onClick={()=>router.push(voltarHref)} style={{ marginTop:40,color:"#475569",fontSize:14,fontWeight:600,background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:6 }}><ArrowLeft size={16}/>Voltar</button>
+        <main className="estoque-inicio-centro">
+          <ShoppingBasket size={48} />
+          <h1>Estoque</h1>
+          <p>Primeiro, escolha onde o produto será depositado ou retirado.</p>
+          <div className="estoque-inicio-setores">
+            <button className="estoque-inicio-setor cozinha" onClick={() => selecionarSetor("cozinha")}>
+              <ChefHat /> Cozinha <span>Alimentos e insumos da cozinha</span>
+            </button>
+            <button className="estoque-inicio-setor bar" onClick={() => selecionarSetor("bar")}>
+              <GlassWater /> Bar <span>Bebidas e insumos do bar</span>
+            </button>
+          </div>
+        </main>
+        {toast && <Toast toast={toast} onClose={() => setToast(null)} />}
+      </div>
+    );
+  }
+
+  if (!tipoEstoque) {
+    return (
+      <div className="estoque-inicio">
+        <style>{`
+          .estoque-inicio{position:fixed;inset:0;z-index:80;overflow:auto;background:linear-gradient(145deg,#07111f,#0f2841);color:#fff;padding:clamp(18px,4vw,44px);display:flex;flex-direction:column}.estoque-inicio-topo{display:flex;align-items:center;justify-content:space-between}.estoque-inicio-topo button{height:46px;border:1px solid rgba(255,255,255,.2);border-radius:14px;background:rgba(255,255,255,.08);color:#fff;padding:0 15px;display:flex;align-items:center;gap:8px;font-weight:800}.estoque-inicio-centro{width:min(950px,100%);margin:auto;text-align:center}.estoque-inicio-centro h1{font-size:clamp(30px,5vw,54px);margin:18px 0 10px;font-weight:950}.estoque-inicio-centro p{color:#cbd5e1;font-size:clamp(15px,2vw,19px);margin:0 auto 32px}.estoque-inicio-setores{display:grid;grid-template-columns:1fr 1fr;gap:clamp(14px,3vw,26px)}.estoque-inicio-setor{min-height:230px;border:2px solid rgba(255,255,255,.16);border-radius:30px;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;font-size:26px;font-weight:950;box-shadow:0 22px 55px rgba(0,0,0,.25)}.estoque-inicio-setor svg{width:58px;height:58px}.estoque-inicio-setor.produtos{background:linear-gradient(145deg,#047857,#10b981)}.estoque-inicio-setor.preparos{background:linear-gradient(145deg,#b45309,#f59e0b)}.estoque-inicio-setor span{font-size:14px;font-weight:700;opacity:.9}@media(max-width:620px){.estoque-inicio-setores{grid-template-columns:1fr}.estoque-inicio-setor{min-height:170px}.estoque-inicio-centro{margin:30px auto}}
+        `}</style>
+        <div className="estoque-inicio-topo"><button onClick={voltarEtapa}><ArrowLeft size={18} /> Voltar</button><button onClick={pedirTelaCheia}><Maximize2 size={18} /> Tela cheia</button></div>
+        <main className="estoque-inicio-centro"><Layers3 size={58} /><h1>Estoque do {tituloSetor}</h1><p>Escolha qual estoque deseja movimentar. Os saldos e históricos ficam separados.</p><div className="estoque-inicio-setores">
+          <button className="estoque-inicio-setor produtos" onClick={() => setTipoEstoque("produtos")}><Boxes /> Produtos <span>insumos, bebidas e mercadorias</span></button>
+          <button className="estoque-inicio-setor preparos" onClick={() => setTipoEstoque("preparos")}><ChefHat /> Pré-preparos <span>bases e produções já preparadas</span></button>
+        </div></main>
+      </div>
+    );
+  }
+
+  if (!responsavel) {
+    return (
+      <div className="estoque-funcionario">
+        <style>{`
+          .estoque-funcionario{position:fixed;inset:0;z-index:80;overflow:auto;background:#f1f5f9;color:#0f172a;padding:20px}.estoque-funcionario-topo{max-width:1100px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:12px}.estoque-funcionario-topo button{height:46px;border:1px solid #cbd5e1;border-radius:14px;background:#fff;padding:0 15px;display:flex;align-items:center;gap:8px;font-weight:850;color:#475569}.estoque-funcionario-main{max-width:1100px;margin:clamp(30px,7vh,85px) auto;text-align:center}.estoque-funcionario-main h1{font-size:clamp(28px,4vw,46px);line-height:1.05;margin:0}.estoque-funcionario-main>p{color:#64748b;margin:10px 0 28px;font-size:17px}.estoque-funcionario-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.estoque-funcionario-card{min-height:128px;border:2px solid #e2e8f0;border-radius:22px;background:#fff;padding:17px;text-align:left;display:flex;align-items:center;gap:14px;box-shadow:0 7px 22px rgba(15,23,42,.05)}.estoque-funcionario-card:active{transform:scale(.98);border-color:${cor}}.estoque-funcionario-icone{width:52px;height:52px;border-radius:17px;background:${cor}18;color:${cor};display:grid;place-items:center;flex:none}.estoque-funcionario-card strong{font-size:17px;display:block}.estoque-funcionario-card span{color:#64748b;font-size:12px;font-weight:700;display:block;margin-top:4px}.estoque-funcionario-vazio{padding:50px;border:2px dashed #cbd5e1;border-radius:24px;color:#64748b;font-weight:800;background:#fff}
+          @media(max-width:800px){.estoque-funcionario-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:520px){.estoque-funcionario{padding:13px}.estoque-funcionario-grid{grid-template-columns:1fr}.estoque-funcionario-card{min-height:92px}.estoque-funcionario-main{margin:28px auto}}
+        `}</style>
+        <div className="estoque-funcionario-topo">
+          <button onClick={voltarEtapa}><ArrowLeft size={19} /> Trocar setor</button>
+          <button onClick={pedirTelaCheia}><Maximize2 size={18} /> Tela cheia</button>
+        </div>
+        <main className="estoque-funcionario-main">
+          <h1>Quem está movimentando?</h1>
+          <p>Estoque do {tituloAtual} · toque no seu nome para continuar.</p>
+          {carregando ? <div className="estoque-funcionario-vazio"><RefreshCw className="animate-spin" /> Carregando equipe...</div> : funcionarios.length === 0 ? (
+            <div className="estoque-funcionario-vazio">Nenhum funcionário ativo encontrado nesta unidade.</div>
+          ) : (
+            <div className="estoque-funcionario-grid">
+              {funcionarios.map(func => (
+                <button key={func.id} className="estoque-funcionario-card" onClick={() => setResponsavelId(String(func.id))}>
+                  <span className="estoque-funcionario-icone"><UserRound size={25} /></span>
+                  <span><strong>{func.nome}</strong><span>{func.cargo || "Funcionário"}</span></span>
+                </button>
+              ))}
+            </div>
+          )}
+        </main>
+        {toast && <Toast toast={toast} onClose={() => setToast(null)} />}
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight:"100vh",background:"#0F172A",fontFamily:"'Inter',sans-serif" }}>
-      <style>{`@keyframes fadeIn{from{opacity:0}to{opacity:1}}.setor-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}@media(max-width:600px){.setor-grid{grid-template-columns:1fr 1fr}}`}</style>
+    <div className="estoque-rapido" style={{ "--setor": departamento === "bar" ? "#3B82F6" : "#10B981", "--acao": estiloTipo.principal, "--acao-suave": estiloTipo.suave, "--acao-borda": estiloTipo.borda }}>
+      <style>{`
+        .estoque-rapido{min-height:100vh;background:#F3F6FA;color:#0F172A;padding-bottom:118px}.estoque-rapido *{box-sizing:border-box}
+        .estoque-rapido-topo{position:sticky;top:0;z-index:40;background:#fff;border-bottom:1px solid #E2E8F0;box-shadow:0 3px 14px rgba(15,23,42,.06)}
+        .estoque-rapido-topo-interno{max-width:1240px;margin:auto;min-height:76px;padding:12px 18px;display:flex;align-items:center;gap:14px}
+        .estoque-rapido-voltar,.estoque-rapido-atualizar{width:44px;height:44px;border:1px solid #E2E8F0;border-radius:13px;background:#fff;color:#64748B;display:grid;place-items:center;cursor:pointer;flex:none}
+        .estoque-rapido-titulo{flex:1;min-width:0}.estoque-rapido-titulo strong{display:block;font-size:18px}.estoque-rapido-titulo span{display:block;color:#64748B;font-size:12px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .estoque-rapido-abas{display:flex;background:#F1F5F9;padding:4px;border-radius:14px;gap:4px}.estoque-rapido-abas button{height:40px;padding:0 15px;border:0;border-radius:10px;background:transparent;color:#64748B;font-weight:800;display:flex;align-items:center;gap:7px;cursor:pointer}.estoque-rapido-abas button.ativo{background:#fff;color:#0F172A;box-shadow:0 2px 8px rgba(15,23,42,.08)}
+        .estoque-rapido-voz{height:44px;padding:0 14px;border:0;border-radius:13px;background:#7C3AED;color:#fff;font-weight:900;display:flex;align-items:center;gap:7px;cursor:pointer;box-shadow:0 7px 18px rgba(124,58,237,.25);white-space:nowrap}
+        .estoque-rapido-conteudo{max-width:1240px;margin:auto;padding:20px 18px}.estoque-rapido-passos{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+        .estoque-rapido-kanban{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:14px}.estoque-rapido-kpi{background:#fff;border:1px solid #E2E8F0;border-radius:18px;padding:14px;display:flex;align-items:center;gap:11px;box-shadow:0 6px 18px rgba(15,23,42,.04);min-width:0}.estoque-rapido-kpi-icone{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;flex:none}.estoque-rapido-kpi strong{display:block;font-size:20px;line-height:1.1;overflow:hidden;text-overflow:ellipsis}.estoque-rapido-kpi b{display:block;font-size:11px;color:#475569;margin-top:3px}.estoque-rapido-kpi small{display:block;font-size:10px;color:#94A3B8;margin-top:2px}
+        .estoque-rapido-resultado{position:fixed;inset:0;z-index:95;margin:0;background:rgba(15,23,42,.58);padding:18px;display:grid;place-items:center;backdrop-filter:blur(4px)}.estoque-rapido-resultado-painel{width:min(720px,100%);max-height:min(720px,calc(100vh - 36px));overflow:auto;background:#ECFDF5;border:1px solid #A7F3D0;border-radius:24px;padding:20px;box-shadow:0 28px 70px rgba(15,23,42,.32)}.estoque-rapido-resultado-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px;color:#047857}.estoque-rapido-resultado-topo strong{display:flex;align-items:center;gap:9px;font-size:19px}.estoque-rapido-resultado-topo span{display:block;margin-top:4px;color:#475569;font-size:13px;font-weight:700}.estoque-rapido-resultado-topo button{width:40px;height:40px;border:0;border-radius:12px;background:#D1FAE5;color:#047857;display:grid;place-items:center;flex:none}.estoque-rapido-resultado-lista{display:grid;gap:9px}.estoque-rapido-resultado-item{display:grid;grid-template-columns:minmax(160px,1fr) auto;align-items:center;gap:8px 12px;background:#fff;border:1px solid #D1FAE5;border-radius:15px;padding:13px 15px}.estoque-rapido-resultado-item strong{font-size:15px}.estoque-rapido-resultado-mov{font-weight:950;color:#047857}.estoque-rapido-resultado-item.saida .estoque-rapido-resultado-mov{color:#BE123C}.estoque-rapido-resultado-saldo{grid-column:1/-1;font-size:13px;font-weight:800;color:#475569}.estoque-rapido-resultado-saldo b{color:#0F172A;font-size:20px}.estoque-rapido-resultado-continuar{width:100%;height:50px;margin-top:14px;border:0;border-radius:14px;background:#059669;color:#fff;font-size:15px;font-weight:950;cursor:pointer}
+        .estoque-rapido-painel{background:#fff;border:1px solid #E2E8F0;border-radius:20px;padding:17px;box-shadow:0 8px 24px rgba(15,23,42,.04)}.estoque-rapido-painel h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:#64748B;margin:0 0 12px;display:flex;align-items:center;gap:7px}
+        .estoque-rapido-painel select,.estoque-rapido-painel input[type=text]{width:100%;height:52px;border:2px solid #E2E8F0;border-radius:14px;background:#F8FAFC;padding:0 14px;color:#0F172A;font-size:16px;font-weight:750;outline:none}.estoque-rapido-painel select:focus,.estoque-rapido-painel input[type=text]:focus{border-color:var(--acao)}
+        .estoque-rapido-tipos{display:grid;grid-template-columns:1fr 1fr;gap:10px}.estoque-rapido-tipos button{height:52px;border:2px solid #E2E8F0;border-radius:14px;background:#F8FAFC;font-size:15px;font-weight:900;color:#64748B;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer}.estoque-rapido-tipos button.entrada.ativo{border-color:#10B981;background:rgba(16,185,129,.11);color:#047857}.estoque-rapido-tipos button.saida.ativo{border-color:#F43F5E;background:rgba(244,63,94,.10);color:#BE123C}
+        .estoque-rapido-busca{position:relative;margin:18px 0 14px}.estoque-rapido-busca svg{position:absolute;left:16px;top:17px;color:#94A3B8}.estoque-rapido-busca input{width:100%;height:54px;padding:0 50px;border:2px solid #E2E8F0;border-radius:16px;background:#fff;font-size:16px;outline:none}.estoque-rapido-busca input:focus{border-color:var(--acao)}.estoque-rapido-busca button{position:absolute;right:12px;top:11px;width:32px;height:32px;border:0;background:#F1F5F9;color:#64748B;border-radius:9px;display:grid;place-items:center}
+        .estoque-rapido-contador{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.estoque-rapido-contador h2{font-size:18px;margin:0}.estoque-rapido-contador span{font-size:13px;font-weight:800;color:#64748B}
+        .estoque-rapido-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.estoque-rapido-item{min-height:148px;background:#fff;border:2px solid #E2E8F0;border-radius:18px;padding:15px;text-align:left;cursor:pointer;transition:.15s;position:relative}.estoque-rapido-item:hover{border-color:#CBD5E1;transform:translateY(-1px)}.estoque-rapido-item.selecionado{border-color:var(--acao);background:var(--acao-suave);box-shadow:0 0 0 3px var(--acao-borda)}
+        .estoque-rapido-item-topo{display:flex;gap:10px;justify-content:space-between}.estoque-rapido-item-nome{font-size:16px;font-weight:900;line-height:1.25}.estoque-rapido-check{width:26px;height:26px;border:2px solid #CBD5E1;border-radius:8px;display:grid;place-items:center;color:transparent;flex:none}.selecionado .estoque-rapido-check{background:var(--acao);border-color:var(--acao);color:#fff}.estoque-rapido-saldo{margin:14px 0 0;color:#64748B;font-size:12px;font-weight:700}.estoque-rapido-saldo strong{display:block;color:#0F172A;font-size:22px;margin-top:2px}.estoque-rapido-minimo{font-size:11px;color:#94A3B8;margin-top:4px}
+        .estoque-rapido-qtd{display:grid;grid-template-columns:42px 1fr 42px;gap:7px;margin-top:13px}.estoque-rapido-qtd button{height:42px;border:0;border-radius:11px;background:#fff;color:var(--acao);display:grid;place-items:center;cursor:pointer;box-shadow:0 1px 5px rgba(15,23,42,.12)}.estoque-rapido-qtd label{height:42px;background:#fff;border-radius:11px;display:flex;align-items:center;justify-content:center;gap:5px;padding:0 6px}.estoque-rapido-qtd input{width:55px;border:0;outline:0;text-align:right;font-size:17px;font-weight:900;background:transparent}.estoque-rapido-qtd span{font-size:11px;color:#64748B;font-weight:800;white-space:nowrap}
+        .estoque-rapido-barra{position:fixed;z-index:50;left:0;right:0;bottom:0;background:rgba(255,255,255,.96);border-top:1px solid #CBD5E1;backdrop-filter:blur(12px);padding:12px 18px calc(12px + env(safe-area-inset-bottom))}.estoque-rapido-barra-interna{max-width:1240px;margin:auto;display:grid;grid-template-columns:minmax(200px,1fr) minmax(260px,1.2fr) auto;gap:12px;align-items:center}.estoque-rapido-resumo strong{display:block;font-size:17px}.estoque-rapido-resumo span{display:block;color:#64748B;font-size:12px;margin-top:2px}.estoque-rapido-barra input{height:50px;border:2px solid #E2E8F0;border-radius:14px;padding:0 14px;font-size:15px;outline:none}.estoque-rapido-motivo-btn{display:none;height:44px;border:1px solid #CBD5E1;border-radius:12px;background:#fff;color:#475569;font-weight:850;align-items:center;justify-content:center;gap:7px}.estoque-rapido-confirmar{height:52px;padding:0 22px;border:0;border-radius:15px;background:var(--acao);color:#fff;font-size:15px;font-weight:950;display:flex;align-items:center;gap:9px;cursor:pointer;box-shadow:0 8px 20px var(--acao-borda)}.estoque-rapido-confirmar:disabled{opacity:.55;cursor:wait}
+        .estoque-rapido-loading,.estoque-rapido-sem-itens{padding:70px 20px;text-align:center;color:#64748B;font-weight:800}.estoque-rapido-historico{display:flex;flex-direction:column;gap:9px}.estoque-rapido-hist-item{background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:14px 16px;display:grid;grid-template-columns:46px 1fr auto;gap:12px;align-items:center}.estoque-rapido-hist-icone{width:46px;height:46px;border-radius:13px;display:grid;place-items:center}.estoque-rapido-hist-item strong{display:block}.estoque-rapido-hist-item p{margin:4px 0 0;color:#64748B;font-size:12px}.estoque-rapido-hist-item time{font-size:12px;color:#64748B;text-align:right}.estoque-rapido-filtros{display:flex;gap:8px;margin-bottom:15px}.estoque-rapido-filtros button{height:38px;padding:0 14px;border:1px solid #CBD5E1;border-radius:11px;background:#fff;color:#64748B;font-weight:800}.estoque-rapido-filtros button.ativo{background:#0F172A;color:#fff;border-color:#0F172A}
+        .estoque-rapido-toast{position:fixed;z-index:100;left:50%;bottom:100px;transform:translateX(-50%);max-width:min(620px,calc(100vw - 28px));padding:14px 15px;border-radius:14px;color:#fff;display:flex;align-items:center;gap:9px;box-shadow:0 14px 34px rgba(15,23,42,.25);font-weight:800}.estoque-rapido-toast span{flex:1}.estoque-rapido-toast button{border:0;background:transparent;color:#fff;display:grid;place-items:center}
+        .estoque-voz-modal{position:fixed;inset:0;z-index:280;background:rgba(15,23,42,.66);padding:16px;display:grid;place-items:center;backdrop-filter:blur(5px)}.estoque-voz-card{position:relative;width:min(590px,100%);max-height:calc(100vh - 32px);overflow:auto;background:#fff;border-radius:26px;padding:24px;box-shadow:0 30px 80px rgba(15,23,42,.4)}.estoque-voz-fechar{position:absolute;right:14px;top:14px;width:42px;height:42px;border:0;border-radius:13px;background:#F1F5F9;color:#64748B;display:grid;place-items:center}.estoque-voz-topo{padding-right:46px}.estoque-voz-topo span{width:58px;height:58px;border-radius:18px;background:#EDE9FE;color:#7C3AED;display:grid;place-items:center;margin-bottom:12px}.estoque-voz-topo h2{margin:0;font-size:24px}.estoque-voz-topo p{margin:6px 0 0;color:#64748B;font-size:14px;font-weight:700}.estoque-voz-transcricao{min-height:55px;margin-top:17px;border:2px solid #DDD6FE;border-radius:15px;background:#FAF5FF;padding:13px;color:#5B21B6;font-weight:850}.estoque-voz-resposta{margin-top:10px;border-radius:15px;background:#F1F5F9;padding:13px;color:#334155;font-size:14px;font-weight:750;line-height:1.45}.estoque-voz-exemplos{margin-top:15px}.estoque-voz-exemplos strong{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#64748B;margin-bottom:7px}.estoque-voz-exemplos button{width:100%;min-height:40px;margin-top:6px;border:1px solid #E2E8F0;border-radius:11px;background:#fff;padding:8px 11px;text-align:left;color:#475569;font-weight:750}.estoque-voz-ouvir{width:100%;min-height:56px;margin-top:17px;border:0;border-radius:16px;background:#7C3AED;color:#fff;font-size:16px;font-weight:950;display:flex;align-items:center;justify-content:center;gap:9px}.estoque-voz-ouvir.ouvindo{background:#E11D48;animation:estoquePulso 1.1s infinite}@keyframes estoquePulso{50%{transform:scale(.985);opacity:.88}}
+        .estoque-rapido-vazio{min-height:100vh;background:#F8FAFC;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;color:#64748B}.estoque-rapido-vazio h1{color:#0F172A;margin:15px 0 6px}.estoque-rapido-vazio p{margin:0 0 20px}.estoque-rapido-vazio button{height:48px;padding:0 18px;border:0;border-radius:13px;background:#0F172A;color:#fff;font-weight:800;display:flex;align-items:center;gap:8px}
+        @media(max-width:1000px){.estoque-rapido-kanban{grid-template-columns:repeat(3,minmax(0,1fr))}}
+        @media(max-width:850px){.estoque-rapido-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.estoque-rapido-barra-interna{grid-template-columns:1fr 1fr}.estoque-rapido-resumo{grid-column:1/-1}.estoque-rapido-confirmar{justify-content:center}}
+        @media(max-width:620px){
+          .estoque-rapido{padding-bottom:150px}
+          .estoque-rapido-topo-interno{min-height:58px;padding:7px 9px;gap:6px;flex-wrap:nowrap}
+          .estoque-rapido-voltar{width:40px;height:40px;border-radius:11px}
+          .estoque-rapido-emoji,.estoque-rapido-atualizar{display:none}
+          .estoque-rapido-titulo{flex:1}.estoque-rapido-titulo strong{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.estoque-rapido-titulo span{display:none}
+          .estoque-rapido-abas{width:auto;margin-left:auto;padding:2px;border-radius:11px;gap:2px;flex:none}
+          .estoque-rapido-abas button{width:40px;height:40px;padding:0;justify-content:center;border-radius:9px}
+          .estoque-rapido-abas-label{display:none}
+          .estoque-rapido-voz{width:40px;height:40px;padding:0;justify-content:center;border-radius:11px}.estoque-rapido-voz span{display:none}
+          .estoque-rapido-conteudo{padding:10px 10px}
+          .estoque-rapido-kanban{display:flex;grid-template-columns:none;gap:8px;margin:0 -10px 10px;padding:0 10px 3px;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none}.estoque-rapido-kanban::-webkit-scrollbar{display:none}
+          .estoque-rapido-kpi{flex:0 0 148px;scroll-snap-align:start;padding:9px;gap:8px;border-radius:14px}.estoque-rapido-kpi-icone{width:34px;height:34px;border-radius:10px}.estoque-rapido-kpi strong{font-size:16px}.estoque-rapido-kpi b{font-size:10px}.estoque-rapido-kpi small{display:none}
+          .estoque-rapido-passos{grid-template-columns:1fr;margin-bottom:10px}.estoque-rapido-painel{padding:10px;border-radius:14px}.estoque-rapido-painel h2{font-size:10px;margin-bottom:8px}.estoque-rapido-tipos{gap:7px}.estoque-rapido-tipos button{height:46px;border-radius:11px;font-size:14px}
+          .estoque-rapido-busca{margin:10px 0}.estoque-rapido-busca input{height:48px;border-radius:13px;padding-left:45px}.estoque-rapido-busca svg{left:14px;top:14px}.estoque-rapido-busca button{top:8px}
+          .estoque-rapido-contador{margin-bottom:8px}.estoque-rapido-contador h2{font-size:16px}
+          .estoque-rapido-grid{grid-template-columns:1fr}.estoque-rapido-item{min-height:0;padding:13px;border-radius:15px}.estoque-rapido-saldo{margin-top:9px}.estoque-rapido-saldo strong{font-size:20px}
+          .estoque-rapido-resultado{padding:10px}.estoque-rapido-resultado-painel{max-height:calc(100vh - 20px);padding:15px;border-radius:18px}.estoque-rapido-resultado-topo strong{font-size:16px}.estoque-rapido-resultado-item{grid-template-columns:1fr auto;gap:6px}.estoque-rapido-resultado-saldo{grid-column:1/-1}.estoque-rapido-resultado-saldo b{font-size:18px}
+          .estoque-rapido-barra{padding:8px 10px calc(8px + env(safe-area-inset-bottom))}.estoque-rapido-barra-interna{grid-template-columns:1fr auto;gap:7px}.estoque-rapido-resumo{display:none}.estoque-rapido-motivo-btn{display:flex;width:48px;padding:0;font-size:0}.estoque-rapido-barra input{display:none;grid-column:1/-1;height:42px;border-radius:11px}.estoque-rapido-barra input.visivel{display:block}.estoque-rapido-confirmar{height:48px;border-radius:12px;justify-content:center}.estoque-rapido-motivo-btn{grid-column:2}.estoque-rapido-confirmar{grid-column:1;grid-row:1}
+          .estoque-rapido-hist-item{grid-template-columns:42px 1fr}.estoque-rapido-hist-item time{grid-column:2;text-align:left}.estoque-rapido-toast{bottom:140px}
+          .estoque-voz-modal{padding:9px}.estoque-voz-card{max-height:calc(100vh - 18px);border-radius:20px;padding:18px 14px}.estoque-voz-topo h2{font-size:20px}
+        }
+      `}</style>
 
-      {/* Header */}
-      <div style={{ background:"#1E293B",borderBottom:"1px solid #334155",padding:"16px 20px",display:"flex",alignItems:"center",gap:16,position:"sticky",top:0,zIndex:100 }}>
-        <button onClick={()=>router.push(voltarHref)} style={{ color:"#64748B",background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center" }}><ChevronLeft size={20}/></button>
-        <div style={{ display:"flex",alignItems:"center",gap:10,flex:1 }}>
-          <span style={{ fontSize:24 }}>{emoji}</span>
-          <div>
-            <p style={{ color:"#F1F5F9",fontSize:17,fontWeight:800,margin:0 }}>Sala {titulo}</p>
-            <p style={{ color:"#475569",fontSize:12,margin:0 }}>{unidadeInfo?.nome}</p>
+      <header className="estoque-rapido-topo">
+        <div className="estoque-rapido-topo-interno">
+          <button className="estoque-rapido-voltar" onClick={voltarEtapa} aria-label="Trocar funcionário ou setor"><ArrowLeft size={20} /></button>
+          <span className="estoque-rapido-emoji" style={{ fontSize: 27 }}>{emoji}</span>
+          <div className="estoque-rapido-titulo">
+            <strong>Estoque · {tituloAtual}</strong>
+            <span>{responsavel.nome} · {unidadeInfo?.nome || "Unidade selecionada"}</span>
           </div>
+          <nav className="estoque-rapido-abas">
+            <button className={aba === "operacao" ? "ativo" : ""} onClick={() => setAba("operacao")} aria-label="Movimentar estoque" title="Movimentar"><ShoppingBasket size={17} /> <span className="estoque-rapido-abas-label">Movimentar</span></button>
+            <button className={aba === "historico" ? "ativo" : ""} onClick={() => setAba("historico")} aria-label="Ver histórico" title="Histórico"><History size={17} /> <span className="estoque-rapido-abas-label">Histórico</span></button>
+            <button onClick={() => router.push("/dashboard/operacao/estoque?gestao=1")} aria-label="Abrir gestão completa" title="Gestão completa"><Settings2 size={17} /> <span className="estoque-rapido-abas-label">Gestão completa</span></button>
+          </nav>
+          <button className="estoque-rapido-atualizar" onClick={() => carregar()} aria-label="Atualizar"><RefreshCw size={18} /></button>
         </div>
-        <div style={{ display:"flex",background:"#0F172A",borderRadius:12,padding:4,gap:4 }}>
-          {[{id:"estoque",label:"Estoque",Icon:Layers},{id:"historico",label:"Histórico",Icon:Clock}].map(({id,label,Icon})=>(
-            <button key={id} onClick={()=>setAba(id)} style={{ padding:"8px 16px",borderRadius:10,fontSize:13,fontWeight:700,background:aba===id?"#334155":"transparent",color:aba===id?"#F1F5F9":"#475569",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:6,transition:"all 150ms" }}>
-              <Icon size={15}/>{label}
-            </button>
-          ))}
-        </div>
-        <button onClick={carregar} style={{ color:"#475569",background:"none",border:"none",cursor:"pointer" }}><RotateCcw size={18}/></button>
-      </div>
+      </header>
 
-      {/* ABA ESTOQUE */}
-      {aba==="estoque" && (
-        <div style={{ padding:"20px 16px",maxWidth:1200,margin:"0 auto" }}>
-          <div style={{ position:"relative",marginBottom:20 }}>
-            <Search size={18} style={{ position:"absolute",left:16,top:"50%",transform:"translateY(-50%)",color:"#475569" }}/>
-            <input value={busca} onChange={e=>setBusca(e.target.value)} placeholder={`Buscar ingrediente do ${titulo}...`} autoFocus style={{ width:"100%",height:52,paddingLeft:48,paddingRight:16,background:"#1E293B",border:"1.5px solid #334155",borderRadius:14,color:"#F1F5F9",fontSize:16,outline:"none" }}/>
-            {busca && <button onClick={()=>setBusca("")} style={{ position:"absolute",right:14,top:"50%",transform:"translateY(-50%)",color:"#64748B",background:"none",border:"none",cursor:"pointer" }}><X size={16}/></button>}
-          </div>
+      {aba === "operacao" ? (
+        <main className="estoque-rapido-conteudo">
+          <section className="estoque-rapido-kanban" aria-label="Indicadores do estoque">
+            {kanbans.map(card => {
+              const Icone = card.icone;
+              return (
+                <article className="estoque-rapido-kpi" key={card.rotulo}>
+                  <span className="estoque-rapido-kpi-icone" style={{ color: card.cor, background: card.fundo }}><Icone size={21} /></span>
+                  <span><strong style={{ color: card.cor }}>{card.valor}</strong><b>{card.rotulo}</b><small>{card.detalhe}</small></span>
+                </article>
+              );
+            })}
+          </section>
 
-          {loading ? (
-            <div style={{ textAlign:"center",padding:"60px 0",color:"#475569",fontSize:16 }}>Carregando...</div>
-          ) : visiveis.length===0 ? (
-            <div style={{ textAlign:"center",padding:"60px 0",color:"#475569" }}>
-              <span style={{ fontSize:48,opacity:.3 }}>{emoji}</span>
-              <p style={{ fontSize:16,fontWeight:600,marginTop:12 }}>Nenhum ingrediente do {titulo}</p>
-              <p style={{ fontSize:13,color:"#334155",marginTop:4 }}>Cadastre ingredientes com setor "{setor}" em Ingredientes</p>
-            </div>
-          ) : (
-            <div className="setor-grid">
-              {visiveis.map(item=>{
-                const st=statusItem(item);
-                const s=STATUS[st];
-                const Icon=s.icon;
-                return (
-                  <div key={item.id} style={{ background:s.bg,border:`1.5px solid ${s.border}`,borderRadius:18,padding:"16px 16px 14px",display:"flex",flexDirection:"column",gap:10 }}>
-                    <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8 }}>
-                      <p style={{ color:"#F1F5F9",fontSize:16,fontWeight:700,margin:0,lineHeight:1.3 }}>{item.nome}</p>
-                      <div style={{ display:"flex",alignItems:"center",gap:4,flexShrink:0,background:`${s.badge}22`,borderRadius:8,padding:"3px 8px" }}>
-                        <Icon size={12} color={s.badge}/><span style={{ color:s.badge,fontSize:11,fontWeight:700 }}>{s.label}</span>
-                      </div>
-                    </div>
-                    <div>
-                      <p style={{ color:s.badge,fontSize:26,fontWeight:800,margin:0,lineHeight:1 }}>
-                        {Number(item.quantidade||0).toLocaleString("pt-BR",{maximumFractionDigits:2})}
-                        <span style={{ fontSize:14,fontWeight:600,marginLeft:4,color:"#64748B" }}>{item.unidade}</span>
-                      </p>
-                      <p style={{ color:"#475569",fontSize:11,margin:"3px 0 0" }}>Mín: {item.minimo||0} {item.unidade}</p>
-                    </div>
-                    <div style={{ display:"flex",gap:8,marginTop:2 }}>
-                      <button onClick={()=>setModalEntrada(item)} style={{ flex:1,height:46,borderRadius:12,fontSize:13,fontWeight:700,background:`${cor}22`,border:`1px solid ${cor}44`,color:cor,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6 }}><Plus size={16}/>Entrada</button>
-                      <button onClick={()=>setModalRetira(item)} style={{ flex:1,height:46,borderRadius:12,fontSize:13,fontWeight:700,background:"rgba(239,68,68,0.12)",border:"1px solid rgba(239,68,68,0.3)",color:"#EF4444",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6 }}><Minus size={16}/>Retirada</button>
-                    </div>
+          {ultimoResultado.length > 0 && (
+            <section className="estoque-rapido-resultado" role="dialog" aria-modal="true" aria-label="Saldo atualizado do estoque">
+              <div className="estoque-rapido-resultado-painel">
+                <div className="estoque-rapido-resultado-topo">
+                  <div>
+                    <strong><CheckCircle2 size={23} /> Saldo atualizado do estoque</strong>
+                    <span>{tipo === "entrada" ? "Produtos adicionados com sucesso." : "Produtos retirados com sucesso."}</span>
                   </div>
+                  <button onClick={() => setUltimoResultado([])} aria-label="Fechar resultado"><X size={19} /></button>
+                </div>
+                <div className="estoque-rapido-resultado-lista">
+                  {ultimoResultado.map(item => (
+                    <div className={`estoque-rapido-resultado-item ${item.tipo}`} key={item.id}>
+                      <strong>{item.nome}</strong>
+                      <span className="estoque-rapido-resultado-mov">{item.tipo === "entrada" ? "+" : "−"}{fmtQtd(item.quantidadeMovida)} {rotuloUnidade(item.unidade, item.quantidadeMovida)}</span>
+                      <span className="estoque-rapido-resultado-saldo">Agora tem no estoque: <b>{fmtQtd(item.saldoNovo)} {rotuloUnidade(item.unidade, item.saldoNovo)}</b></span>
+                    </div>
+                  ))}
+                </div>
+                <button className="estoque-rapido-resultado-continuar" onClick={() => setUltimoResultado([])}>Fechar e continuar</button>
+              </div>
+            </section>
+          )}
+          <section className="estoque-rapido-passos" style={{ gridTemplateColumns: "1fr" }}>
+            <div className="estoque-rapido-painel">
+              <h2><Layers3 size={16} /> O que será feito?</h2>
+              <div className="estoque-rapido-tipos">
+                <button className={`entrada ${tipo === "entrada" ? "ativo" : ""}`} onClick={() => setTipo("entrada")}><PackagePlus size={20} /> Depositar</button>
+                <button className={`saida ${tipo === "saida" ? "ativo" : ""}`} onClick={() => setTipo("saida")}><PackageMinus size={20} /> Retirar</button>
+              </div>
+            </div>
+          </section>
+
+          <div className="estoque-rapido-busca">
+            <Search size={20} />
+            <input value={busca} onChange={e => setBusca(e.target.value)} placeholder={`Buscar item do ${tituloAtual.toLowerCase()}...`} autoFocus />
+            {busca && <button onClick={() => setBusca("")}><X size={17} /></button>}
+          </div>
+
+          <div className="estoque-rapido-contador">
+            <h2>Escolha um ou vários itens</h2>
+            <span>{listaSelecionados.length} selecionado(s)</span>
+          </div>
+
+          {carregando ? <div className="estoque-rapido-loading">Carregando itens...</div> : visiveis.length === 0 ? (
+            <div className="estoque-rapido-sem-itens">Nenhum item encontrado neste estoque.</div>
+          ) : (
+            <div className="estoque-rapido-grid">
+              {visiveis.map(item => {
+                const selecionado = selecionados[item.id];
+                return (
+                  <article key={item.id} className={`estoque-rapido-item ${selecionado ? "selecionado" : ""}`} onClick={() => alternarItem(item)}>
+                    <div className="estoque-rapido-item-topo">
+                      <div className="estoque-rapido-item-nome">{item.nome}</div>
+                      <div className="estoque-rapido-check"><Check size={17} /></div>
+                    </div>
+                    <div className="estoque-rapido-saldo">Disponível<strong>{fmtQtd(item.quantidade)} {rotuloUnidade(item.unidade, item.quantidade)}</strong></div>
+                    {item.local && <div className="estoque-rapido-minimo">Local: {item.local}</div>}
+                    {item.minimo != null && <div className="estoque-rapido-minimo">Mínimo: {fmtQtd(item.minimo)} {rotuloUnidade(item.unidade, item.minimo)}</div>}
+                    {selecionado && <ControleQuantidade valor={selecionado.quantidade} unidade={item.unidade} onChange={valor => alterarQuantidade(item.id, valor)} />}
+                  </article>
                 );
               })}
             </div>
           )}
-        </div>
-      )}
-
-      {/* ABA HISTÓRICO */}
-      {aba==="historico" && (
-        <div style={{ padding:"20px 16px",maxWidth:900,margin:"0 auto" }}>
-          <div style={{ display:"flex",gap:8,marginBottom:20 }}>
-            {[{id:"todos",label:"Todos"},{id:"saida",label:"Retiradas"},{id:"entrada",label:"Entradas"}].map(f=>(
-              <button key={f.id} onClick={()=>setFiltroHist(f.id)} style={{ padding:"8px 18px",borderRadius:10,fontSize:13,fontWeight:700,background:filtroHist===f.id?"#334155":"transparent",color:filtroHist===f.id?"#F1F5F9":"#475569",border:`1.5px solid ${filtroHist===f.id?"#475569":"#1E293B"}`,cursor:"pointer",transition:"all 150ms" }}>{f.label}</button>
+        </main>
+      ) : (
+        <main className="estoque-rapido-conteudo">
+          <div className="estoque-rapido-filtros">
+            {[{ id: "todos", label: "Todos" }, { id: "entrada", label: "Entradas" }, { id: "saida", label: "Retiradas" }].map(filtro => (
+              <button key={filtro.id} className={filtroHistorico === filtro.id ? "ativo" : ""} onClick={() => setFiltroHistorico(filtro.id)}>{filtro.label}</button>
             ))}
           </div>
-          {histVis.length===0 ? (
-            <div style={{ textAlign:"center",padding:"60px 0",color:"#475569" }}><Clock size={48} style={{ opacity:.3,marginBottom:12 }}/><p style={{ fontSize:16,fontWeight:600 }}>Nenhuma movimentação ainda</p></div>
-          ) : (
-            <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
-              {histVis.map((h,idx)=>{
-                const entrada=h.tipo==="entrada";
+          {historicoVisivel.length === 0 ? <div className="estoque-rapido-sem-itens">Nenhuma movimentação encontrada.</div> : (
+            <div className="estoque-rapido-historico">
+              {historicoVisivel.map(item => {
+                const entrada = item.tipo === "entrada";
                 return (
-                  <div key={h.id||idx} style={{ background:"#1E293B",borderRadius:16,border:`1px solid ${entrada?"rgba(16,185,129,0.2)":"rgba(239,68,68,0.2)"}`,padding:"14px 18px",display:"flex",alignItems:"center",gap:14 }}>
-                    <div style={{ width:44,height:44,borderRadius:12,flexShrink:0,background:entrada?"rgba(16,185,129,0.12)":"rgba(239,68,68,0.12)",display:"flex",alignItems:"center",justifyContent:"center" }}>
-                      {entrada?<PackagePlus size={20} color="#10B981"/>:<PackageMinus size={20} color="#EF4444"/>}
+                  <div className="estoque-rapido-hist-item" key={item.id}>
+                    <div className="estoque-rapido-hist-icone" style={{ color: entrada ? "#059669" : "#E11D48", background: entrada ? "#D1FAE5" : "#FFE4E6" }}>
+                      {entrada ? <PackagePlus size={21} /> : <PackageMinus size={21} />}
                     </div>
-                    <div style={{ flex:1,minWidth:0 }}>
-                      <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:4 }}>
-                        <p style={{ color:"#F1F5F9",fontSize:15,fontWeight:700,margin:0 }}>{h.estoque?.nome||"—"}</p>
-                        <span style={{ fontSize:12,fontWeight:700,padding:"2px 8px",borderRadius:8,background:entrada?"rgba(16,185,129,0.15)":"rgba(239,68,68,0.15)",color:entrada?"#10B981":"#EF4444" }}>
-                          {entrada?"+":"-"}{Number(h.quantidade).toLocaleString("pt-BR",{maximumFractionDigits:2})} {h.estoque?.unidade}
-                        </span>
-                      </div>
-                      <div style={{ display:"flex",flexWrap:"wrap",gap:"4px 16px" }}>
-                        {h.meta?.responsavel&&<span style={{ color:"#64748B",fontSize:12,display:"flex",alignItems:"center",gap:4 }}><User size={11}/>{h.meta.responsavel}{h.meta.cargo&&` · ${h.meta.cargo}`}</span>}
-                        {h.meta?.motivo&&<span style={{ color:"#64748B",fontSize:12,display:"flex",alignItems:"center",gap:4 }}><BookOpen size={11}/>{h.meta.motivo}</span>}
-                      </div>
+                    <div>
+                      <strong>{item.estoque?.nome || "Item"} · {entrada ? "+" : "−"}{fmtQtd(item.quantidade)} {rotuloUnidade(item.estoque?.unidade, item.quantidade)}</strong>
+                      <p>{item.responsavel || "Sem responsável"}{item.motivo ? ` · ${item.motivo}` : ""}</p>
                     </div>
-                    <div style={{ textAlign:"right",flexShrink:0 }}>
-                      <p style={{ color:"#94A3B8",fontSize:13,fontWeight:700,margin:0 }}>{fmtHora(h.created_at)}</p>
-                      <p style={{ color:"#475569",fontSize:11,margin:"2px 0 0" }}>{fmtData(h.created_at)}</p>
-                    </div>
+                    <time>{fmtData(item.created_at)}</time>
                   </div>
                 );
               })}
             </div>
           )}
+        </main>
+      )}
+
+      {auditoriaVozAberta && (
+        <div className="estoque-voz-modal" role="dialog" aria-modal="true" aria-label="Auditoria de estoque por voz">
+          <div className="estoque-voz-card">
+            <button className="estoque-voz-fechar" onClick={fecharAuditoriaVoz} aria-label="Fechar auditoria por voz"><X size={20} /></button>
+            <div className="estoque-voz-topo">
+              <span>{ouvindoVoz ? <MicOff size={28} /> : <Mic size={28} />}</span>
+              <h2>Auditoria por voz</h2>
+              <p>Consulte entradas, saídas e saldos ou prepare uma movimentação para confirmar.</p>
+            </div>
+            <div className="estoque-voz-transcricao">{textoVoz ? `“${textoVoz}”` : ouvindoVoz ? "Ouvindo..." : "Nenhum comando falado ainda."}</div>
+            <div className="estoque-voz-resposta">{respostaVoz}</div>
+            <div className="estoque-voz-exemplos">
+              <strong>Exemplos de comandos</strong>
+              <button type="button" onClick={() => processarComandoVoz("Mostrar entradas")}>“Mostrar entradas”</button>
+              <button type="button" onClick={() => processarComandoVoz("Mostrar saídas")}>“Mostrar saídas”</button>
+              {itens[0] && <button type="button" onClick={() => processarComandoVoz(`Quanto tem de ${itens[0].nome}`)}>“Quanto tem de {itens[0].nome}?”</button>}
+              {itens[0] && <button type="button" onClick={() => processarComandoVoz(`Retirar 1 unidade de ${itens[0].nome}`)}>“Retirar 1 unidade de {itens[0].nome}”</button>}
+              {listaSelecionados.length > 0 && <button type="button" onClick={() => processarComandoVoz(`Confirmar ${tipo === "entrada" ? "entrada" : "retirada"}`)}>“Confirmar {tipo === "entrada" ? "entrada" : "retirada"}”</button>}
+            </div>
+            <button className={`estoque-voz-ouvir ${ouvindoVoz ? "ouvindo" : ""}`} onClick={ouvindoVoz ? () => escutaVozRef.current?.parar?.() : iniciarEscutaAuditoria}>
+              {ouvindoVoz ? <MicOff size={22} /> : <Mic size={22} />}{ouvindoVoz ? "Parar de ouvir" : "Falar outro comando"}
+            </button>
+          </div>
         </div>
       )}
 
-      {modalRetira&&<ModalRetirada item={modalRetira} funcionarios={funcionarios} fichas={fichas} cor={cor} onConfirmar={confirmarRetirada} onClose={()=>setModalRetira(null)} loading={salvando}/>}
-      {modalEntrada&&<ModalEntrada item={modalEntrada} cor={cor} onConfirmar={confirmarEntrada} onClose={()=>setModalEntrada(null)} loading={salvando}/>}
-      {toast&&<Toast msg={toast.msg} tipo={toast.tipo} onClose={()=>setToast(null)}/>}
+      {aba === "operacao" && (
+        <footer className="estoque-rapido-barra">
+          <div className="estoque-rapido-barra-interna">
+            <div className="estoque-rapido-resumo">
+              <strong>{listaSelecionados.length} item(ns) · {tipo === "entrada" ? "Entrada" : "Retirada"}</strong>
+              <span>{responsavel ? `Responsável: ${responsavel.nome}` : "Escolha o responsável acima"}</span>
+            </div>
+            <input className={mostrarMotivo || motivo ? "visivel" : ""} type="text" value={motivo} onChange={e => setMotivo(e.target.value)} placeholder="Motivo ou observação (opcional)" />
+            <button type="button" className="estoque-rapido-motivo-btn" onClick={() => setMostrarMotivo(valor => !valor)} aria-label="Adicionar observação"><MessageSquareText size={19} /> Observação</button>
+            <button className="estoque-rapido-confirmar" onClick={() => confirmarLote()} disabled={salvando || !listaSelecionados.length}>
+              {salvando ? <RefreshCw className="animate-spin" size={19} /> : tipo === "entrada" ? <PackagePlus size={19} /> : <PackageMinus size={19} />}
+              {salvando ? "Registrando..." : `Confirmar ${tipo === "entrada" ? "entrada" : "retirada"}`}
+            </button>
+          </div>
+        </footer>
+      )}
+
+      {toast && <Toast toast={toast} onClose={() => setToast(null)} />}
     </div>
   );
 }

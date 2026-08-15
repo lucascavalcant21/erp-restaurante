@@ -1,4 +1,5 @@
 import { supabase, isSupabaseReady } from "./supabase";
+import { sincronizarEmbalagemNoEstoque } from "./embalagens";
 
 // ─── PRODUTOS (Cardápio Físico/Digital) ──────────────────────────────────────
 
@@ -17,7 +18,11 @@ export async function fetchProdutos(unidadeId, dept) {
   if (dept) query = query.eq("departamento", dept);
 
   const { data, error } = await query;
-  return { data: data || [], error: error?.message };
+  const produtosDeVenda = (data || []).filter(produto => {
+    const tipoFicha = String(produto.fichas_tecnicas?.tipo_base || "").toLowerCase();
+    return tipoFicha !== "pre" && tipoFicha !== "receita";
+  });
+  return { data: produtosDeVenda, error: error?.message };
 }
 
 export async function salvarProduto(produto) {
@@ -310,7 +315,7 @@ export async function processarBaixaEstoqueECMV(pedidoId, unidadeId) {
    const embIds = Object.keys(deducoesEmbalagem);
    if(embIds.length > 0) {
       const { data: embEstoqueDB } = await supabase.from("operacao_embalagens")
-         .select("id, quantidade_atual, preco_unitario, departamento")
+         .select("id, nome, categoria, quantidade_atual, quantidade_minima, preco_unitario, departamento, insumo_id")
          .eq("unidade_id", unidadeId)
          .in("id", embIds);
 
@@ -340,6 +345,10 @@ export async function processarBaixaEstoqueECMV(pedidoId, unidadeId) {
          if (payloadEmbalagens.length > 0) {
             await supabase.from("operacao_embalagens").upsert(payloadEmbalagens);
             await supabase.from("operacao_embalagens_consumo").insert(consumos);
+            await Promise.all(payloadEmbalagens.map(atualizacao => {
+              const cadastro = embEstoqueDB.find(item => item.id === atualizacao.id);
+              return sincronizarEmbalagemNoEstoque(unidadeId, { ...cadastro, ...atualizacao }).catch(() => {});
+            }));
          }
       }
    }

@@ -279,7 +279,10 @@ export default function PontoPage() {
       fetchAllFolgasDaUnidade(unidadeAtiva),
       fetchLiberacoesDia(unidadeAtiva, hojeISO),
     ]);
-    setColaboradores((rColab.data || []).filter(c => (c.status || "ativo") !== "inativo"));
+    // Extras têm recibo próprio e não participam do relógio de ponto.
+    setColaboradores((rColab.data || []).filter(c =>
+      (c.status || "ativo") !== "inativo" && c.tipo_contrato !== "Freelancer"
+    ));
     setPontosHoje(rPontos.data || []);
     setFolgas(rFolgas.data || []);
     setLiberadosHoje((rLib.data || []).map(l => l.colaborador_id));

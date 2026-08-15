@@ -8,10 +8,13 @@ export const TIPOS_ESTOQUE = [
 
 export const ESTOQUES_PADRAO = [
   { nome: "Cozinha", slug: "cozinha", tipo: "alimentos", cor: "#059669", controla_validade: true, controla_minimo: true },
+  { nome: "Pré-preparos da Cozinha", slug: "pre-preparos-cozinha", tipo: "alimentos", cor: "#d97706", controla_validade: true, controla_minimo: true },
   { nome: "Bar", slug: "bar", tipo: "bebidas", cor: "#7c3aed", controla_validade: true, controla_minimo: true },
+  { nome: "Pré-preparos do Bar", slug: "pre-preparos-bar", tipo: "bebidas", cor: "#ea580c", controla_validade: true, controla_minimo: true },
   { nome: "Limpeza", slug: "limpeza", tipo: "limpeza", cor: "#0284c7", controla_validade: false, controla_minimo: true },
   { nome: "Materiais variados", slug: "materiais-variados", tipo: "materiais", cor: "#d97706", controla_validade: false, controla_minimo: true },
-  { nome: "Embalagens", slug: "embalagens", tipo: "embalagens", cor: "#db2777", controla_validade: false, controla_minimo: true },
+  { nome: "Embalagens da Cozinha", slug: "embalagens-cozinha", tipo: "embalagens", cor: "#db2777", controla_validade: false, controla_minimo: true },
+  { nome: "Embalagens do Bar", slug: "embalagens-bar", tipo: "embalagens", cor: "#9333ea", controla_validade: false, controla_minimo: true },
 ];
 
 export const GRUPOS_OPERACIONAIS_ESTOQUE = {

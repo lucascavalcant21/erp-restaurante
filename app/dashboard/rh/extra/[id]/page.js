@@ -7,7 +7,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Save, Loader2, Camera, X, Trash2 } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Camera, Trash2, ReceiptText } from "lucide-react";
 import { useERP } from "../../../../context/ERPContext";
 import { supabase } from "../../../../lib/supabase";
 import { inserirColaborador, atualizarColaborador } from "../../../../lib/rh";
@@ -76,7 +76,8 @@ export default function CadastroExtraPage() {
     img.src = url;
   };
 
-  const salvar = async () => {
+  const salvar = async (gerarRecibo = false) => {
+    if (!unidadeAtiva || unidadeAtiva === "todas") { setErro("Selecione uma unidade específica antes de cadastrar o extra."); return; }
     if (!form.nome.trim()) { setErro("Informe o nome do extra."); return; }
     if (soDigitos(form.telefone).length < 10) { setErro("Informe o telefone com DDD."); return; }
     setErro("");
@@ -113,7 +114,9 @@ export default function CadastroExtraPage() {
     const r = novo ? await inserirColaborador(payload) : await atualizarColaborador(id, payload);
     setSalvando(false);
     if (r.error) { setErro("Não consegui salvar: " + r.error); return; }
-    router.push("/dashboard/rh");
+    const extraId = novo ? r.data?.id : id;
+    if (gerarRecibo && extraId) router.push(`/dashboard/rh/extra/${extraId}/recibo`);
+    else router.push("/dashboard/rh/extra");
   };
 
   if (carregando) {
@@ -128,7 +131,7 @@ export default function CadastroExtraPage() {
       {/* Cabeçalho */}
       <div className="sticky top-0 z-20 border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-3xl items-center gap-3">
-          <button onClick={() => router.push("/dashboard/rh")}
+          <button onClick={() => router.back()}
             className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200">
             <ArrowLeft size={19} />
           </button>
@@ -301,13 +304,17 @@ export default function CadastroExtraPage() {
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 p-3 backdrop-blur sm:p-4"
         style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0px))" }}>
         <div className="mx-auto flex max-w-3xl gap-3">
-          <button onClick={() => router.push("/dashboard/rh")}
+          <button onClick={() => router.back()}
             className="rounded-xl border border-slate-200 px-5 py-3.5 text-sm font-bold text-slate-600 hover:bg-slate-50">
             Cancelar
           </button>
-          <button onClick={salvar} disabled={salvando}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3.5 text-base font-black text-white hover:bg-emerald-700 disabled:opacity-60">
-            {salvando ? <><Loader2 size={18} className="animate-spin" /> Salvando...</> : <><Save size={18} /> {novo ? "Cadastrar extra" : "Salvar alterações"}</>}
+          <button onClick={() => salvar(false)} disabled={salvando}
+            className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 text-sm font-black text-emerald-700 hover:bg-emerald-100 disabled:opacity-60">
+            {salvando ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Salvar
+          </button>
+          <button onClick={() => salvar(true)} disabled={salvando}
+            className="flex min-h-12 flex-[1.4] items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-60">
+            {salvando ? <Loader2 size={18} className="animate-spin" /> : <ReceiptText size={18} />} Salvar e gerar recibo
           </button>
         </div>
       </div>

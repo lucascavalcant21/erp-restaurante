@@ -198,6 +198,7 @@ function ProducaoRunner() {
   // Form de produção
   const [qtdProd, setQtdProd] = useState("1");
   const [colabSelecionado, setColabSelecionado] = useState("");
+  const [localArmazenamento, setLocalArmazenamento] = useState("");
 
   const carregar = async (silencioso = false) => {
     if (!silencioso) setLoading(true);
@@ -231,6 +232,7 @@ function ProducaoRunner() {
     setFichaAtual(ficha);
     setQtdProd("1");
     setColabSelecionado("");
+    setLocalArmazenamento(deptUrl === "bar" ? "Geladeira do Bar" : "Freezer 1");
     setModalProduzir(true);
   };
 
@@ -240,7 +242,13 @@ function ProducaoRunner() {
     if(numQtd <= 0) return alert("Digite uma quantidade válida.");
 
     // O pulo do gato: registrarProducao abate do estoque automaticamente!
-    const erro = await registrarProducao(unidadeAtiva, fichaAtual, numQtd, colabSelecionado, fichas);
+    if(fichaAtual.eh_base && !localArmazenamento.trim()) return alert("Informe onde o pré-preparo será guardado.");
+    const colaborador = colaboradores.find(item => String(item.id) === String(colabSelecionado));
+    const erro = await registrarProducao(unidadeAtiva, fichaAtual, numQtd, colabSelecionado, fichas, {
+      departamento: deptUrl,
+      localArmazenamento,
+      colaboradorNome: colaborador?.nome || "",
+    });
     
     if (erro.codigo === "ESTOQUE_INSUFICIENTE") {
       const lista = (erro.faltantes || []).map(i =>
@@ -253,7 +261,9 @@ function ProducaoRunner() {
     }
     if(erro.error) return alert("Falha ao registrar produção: " + erro.error);
 
-    alert("Produção registrada e estoque abatido com sucesso!");
+    alert(erro.preparo
+      ? `Produção registrada!\n\nEntraram ${numQtd} ${fichaAtual.rendimento_unidade || "un"} de ${fichaAtual.nome_receita} no estoque de pré-preparos (${localArmazenamento}).`
+      : "Produção registrada e estoque abatido com sucesso!");
     setModalProduzir(false);
   };
 
@@ -287,6 +297,9 @@ function ProducaoRunner() {
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto">
+               <button onClick={() => router.push("/dashboard/operacao/producao/memorando")} className="flex items-center gap-2 bg-violet-600 text-white px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-violet-700 transition-colors shadow-lg">
+                  <ClipboardList size={18}/> <span className="hidden sm:inline">Memorando de Amanhã</span><span className="sm:hidden">Memorando</span>
+               </button>
                <button onClick={() => setModalPlanejar(true)} className="flex items-center gap-2 bg-slate-900 text-white px-3 sm:px-5 py-3 rounded-xl font-bold whitespace-nowrap hover:bg-slate-800 transition-colors shadow-lg">
                   <ClipboardList size={18}/> <span className="hidden sm:inline">Planejar & Imprimir o Dia</span><span className="sm:hidden">Planejar</span>
                   {itensPlanejados.length > 0 && <span className="bg-emerald-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">{itensPlanejados.length}</span>}
@@ -424,6 +437,17 @@ function ProducaoRunner() {
                         {colaboradores.map(c => <option key={c.id} value={c.id}>{c.nome} ({c.cargo})</option>)}
                      </select>
                   </div>
+
+                  {fichaAtual.eh_base && <div>
+                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Onde será guardado?</label>
+                     <div className="grid grid-cols-2 gap-2 mb-2">
+                        {(isBar ? ["Geladeira do Bar", "Prateleira do Bar", "Freezer do Bar", "Câmara fria"] : ["Freezer 1", "Freezer 2", "Geladeira", "Câmara fria"]).map(local => (
+                           <button type="button" key={local} onClick={() => setLocalArmazenamento(local)} className={`min-h-11 rounded-xl border px-3 text-sm font-black ${localArmazenamento === local ? "border-amber-600 bg-amber-600 text-white" : "border-slate-200 bg-white text-slate-600"}`}>{local}</button>
+                        ))}
+                     </div>
+                     <input value={localArmazenamento} onChange={e => setLocalArmazenamento(e.target.value)} placeholder={isBar ? "Ex.: Geladeira dos xaropes" : "Ex.: Freezer 3"} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-amber-600" />
+                     <p className="mt-2 text-xs font-semibold text-amber-700">O saldo produzido ficará separado neste local.</p>
+                  </div>}
 
                   {/* Quantidade */}
                   <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200">

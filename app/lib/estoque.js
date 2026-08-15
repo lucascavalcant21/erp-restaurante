@@ -1,4 +1,5 @@
 import { supabase, isSupabaseReady } from "./supabase";
+import { registrarProducaoNoEstoquePreparo } from "./estoques-multiplos";
 
 // ─── ESTOQUE FÍSICO ──────────────────────────────────────────────────────────
 
@@ -136,7 +137,7 @@ export function calcularConsumoProducao(ficha, qtdProduzida, todasFichas = []) {
   return { itens: Array.from(consumo.values()), erros };
 }
 
-export async function registrarProducao(unidadeId, ficha, qtdProduzida, colaboradorId, todasFichas = []) {
+export async function registrarProducao(unidadeId, ficha, qtdProduzida, colaboradorId, todasFichas = [], opcoes = {}) {
   if (!isSupabaseReady()) return { error: "Offline" };
   
   // Calcula e valida a baixa antes de registrar o histórico da produção.
@@ -197,12 +198,12 @@ export async function registrarProducao(unidadeId, ficha, qtdProduzida, colabora
      if(errUpsert) return { error: errUpsert.message };
   }
 
-  const { error: errLog } = await supabase.from("producao_diaria").insert([{
+  const { data: logProducao, error: errLog } = await supabase.from("producao_diaria").insert([{
      unidade_id: unidadeId,
      ficha_id: ficha.id,
      colaborador_id: colaboradorId,
      quantidade_produzida: qtdProduzida
-  }]);
+  }]).select("id").single();
 
   if (errLog) {
      const reversao = Object.keys(consumoPorInsumo).map(id => ({
@@ -215,6 +216,34 @@ export async function registrarProducao(unidadeId, ficha, qtdProduzida, colabora
         await supabase.from("estoque_atual").upsert(reversao, { onConflict: 'unidade_id, insumo_id' });
      }
      return { error: errLog.message };
+  }
+
+  // Receita base concluída vira saldo físico no estoque independente de
+  // pré-preparos, separado pelo freezer/geladeira escolhido na produção.
+  if (ficha.eh_base) {
+     const custoTotal = calculo.itens.reduce((total, item) => total + item.quantidade * Number(item.insumo.custo_unitario || 0), 0);
+     const resultadoPreparo = await registrarProducaoNoEstoquePreparo({
+        unidadeId,
+        ficha,
+        departamento: opcoes.departamento || ficha.departamento,
+        quantidade: qtdProduzida,
+        local: opcoes.localArmazenamento,
+        usuarioId: colaboradorId,
+        usuarioNome: opcoes.colaboradorNome || "",
+        custoUnitario: qtdProduzida > 0 ? custoTotal / qtdProduzida : 0,
+     });
+     if (resultadoPreparo.error) {
+        if (logProducao?.id) await supabase.from("producao_diaria").delete().eq("id", logProducao.id);
+        const reversao = Object.keys(consumoPorInsumo).map(id => ({
+           unidade_id: unidadeId,
+           insumo_id: id,
+           quantidade_atual: Number(mapaEstoque[id] || 0),
+           updated_at: new Date().toISOString(),
+        }));
+        if (reversao.length > 0) await supabase.from("estoque_atual").upsert(reversao, { onConflict: "unidade_id,insumo_id" });
+        return { error: `Não foi possível guardar o pré-preparo: ${resultadoPreparo.error}` };
+     }
+     return { success: true, preparo: resultadoPreparo.data };
   }
 
   return { success: true };

@@ -11,6 +11,7 @@ import { ArrowLeft, Save, Loader2, Camera, Trash2, ReceiptText } from "lucide-re
 import { useERP } from "../../../../context/ERPContext";
 import { supabase } from "../../../../lib/supabase";
 import { inserirColaborador, atualizarColaborador } from "../../../../lib/rh";
+import { ESTADOS_CIVIS, ESCOLARIDADES, GENEROS } from "../../../../lib/contrato-experiencia.mjs";
 
 const FORMAS_PAGAMENTO = ["Pix", "Dinheiro", "Transferência"];
 
@@ -18,6 +19,7 @@ const vazio = {
   foto: "", nome: "", cargo: "Extra", telefone: "", cpf: "", rg: "",
   rua_av: "", numero_casa: "", bairro: "", cidade_uf: "", cep: "",
   chave_pix: "", salario: "",
+  data_nascimento: "", estado_civil: "", genero: "", escolaridade: "", tem_filhos: false, qtd_filhos: "",
   horario_entrada: "", horario_saida: "", tempo_intervalo: 60,
   topicos_funcao: "", itens_emprestados: "", forma_pagamento: "Pix",
   vale_transporte_val: "", setor_entrega: "", janta_ofertada: true,
@@ -97,6 +99,12 @@ export default function CadastroExtraPage() {
       bairro: form.bairro || null,
       cidade_uf: form.cidade_uf || null,
       cep: form.cep || null,
+      data_nascimento: form.data_nascimento || null,
+      estado_civil: form.estado_civil || null,
+      genero: form.genero || null,
+      escolaridade: form.escolaridade || null,
+      tem_filhos: !!form.tem_filhos,
+      qtd_filhos: form.tem_filhos ? (Number(form.qtd_filhos) || 0) : null,
       endereco: [form.rua_av, form.numero_casa, form.bairro, form.cidade_uf].filter(Boolean).join(", ") || null,
       chave_pix: form.chave_pix || null,
       salario: Number(form.salario) || 0,
@@ -186,6 +194,51 @@ export default function CadastroExtraPage() {
               <span className={rotulo}>RG</span>
               <input value={form.rg} onChange={e => set("rg", e.target.value)} className={campo} />
             </label>
+          </div>
+        </section>
+
+        {/* Dados pessoais */}
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <p className="mb-4 text-xs font-black uppercase tracking-widest text-emerald-700">Dados pessoais</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block">
+              <span className={rotulo}>Data de nascimento</span>
+              <input type="date" value={form.data_nascimento} onChange={e => set("data_nascimento", e.target.value)} className={campo} />
+            </label>
+            <label className="block">
+              <span className={rotulo}>Estado civil</span>
+              <select value={form.estado_civil} onChange={e => set("estado_civil", e.target.value)} className={campo}>
+                <option value="">Selecione...</option>
+                {ESTADOS_CIVIS.map(v => <option key={v} value={v}>{v}</option>)}
+              </select>
+            </label>
+            <label className="block">
+              <span className={rotulo}>Gênero</span>
+              <select value={form.genero} onChange={e => set("genero", e.target.value)} className={campo}>
+                <option value="">Selecione...</option>
+                {GENEROS.map(v => <option key={v} value={v}>{v}</option>)}
+              </select>
+            </label>
+            <label className="block">
+              <span className={rotulo}>Escolaridade</span>
+              <select value={form.escolaridade} onChange={e => set("escolaridade", e.target.value)} className={campo}>
+                <option value="">Selecione...</option>
+                {ESCOLARIDADES.map(v => <option key={v} value={v}>{v}</option>)}
+              </select>
+            </label>
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-4">
+            <label className="flex items-center gap-2.5">
+              <input type="checkbox" checked={!!form.tem_filhos} onChange={e => set("tem_filhos", e.target.checked)} className="h-5 w-5 accent-emerald-600" />
+              <span className="text-sm font-bold text-slate-700">Tem filhos</span>
+            </label>
+            {form.tem_filhos && (
+              <label className="flex items-center gap-2">
+                <span className="text-sm font-bold text-slate-600">Quantos?</span>
+                <input type="number" min="0" value={form.qtd_filhos} onChange={e => set("qtd_filhos", e.target.value)}
+                  className="h-11 w-20 rounded-xl border border-slate-200 bg-slate-50 px-3 text-center font-black text-slate-800 outline-none focus:border-emerald-500" />
+              </label>
+            )}
           </div>
         </section>
 

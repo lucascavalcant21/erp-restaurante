@@ -18,6 +18,7 @@ import {
   desligarColaborador
 } from "../../lib/rh";
 import { fetchPontoHoje, fetchPontosMes, fetchPontosMesUnidade, fetchHistoricoPontoCompleto } from "../../lib/ponto";
+import { situacaoExperiencia, emExperiencia, tempoDeCasa, aniversario, ESTADOS_CIVIS, ESCOLARIDADES, GENEROS } from "../../lib/contrato-experiencia.mjs";
 import { fetchValesPendentes } from "../../lib/rh";
 import { calcularAdicionaisMes, calcularAdicionaisPorDia } from "../../lib/rh";
 import { salvarConta, fetchContas, fetchLancamentos } from "../../lib/financeiro";
@@ -75,7 +76,7 @@ export default function RHPage() {
   const [cargos, setCargos] = useState([]);
   const [busca, setBusca] = useState("");
   const [abaAtiva, setAbaAtiva] = useState("Fixo");
-  const statePadrao = { foto: "", nome: "", cargo: "", salario: "", vale_alimentacao: "", taxa_servico_mes: "", horario_entrada: "", horario_saida: "", horario_dom_entrada: "", horario_dom_saida: "", horario_por_dia: false, horarios_dia: {}, dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60, tipo_contrato: "Fixo", telefone: "", email: "", cpf: "", rg: "", rua_av: "", numero_casa: "", bairro: "", cidade_uf: "", chave_pix: "", avaliacao_estrelas: 0, anotacoes_rh: "", data_admissao: "", status_contrato: "Definitivo", supervisor_id: "", supervisores_ids: [], endereco: "", cep: "", cidade_nascimento: "", data_nascimento: "", tem_filhos: false, qtd_filhos: "", tem_transporte: false, usa_vale_transporte: false, genero: "", escolaridade: "",
+  const statePadrao = { foto: "", nome: "", cargo: "", salario: "", vale_alimentacao: "", taxa_servico_mes: "", horario_entrada: "", horario_saida: "", horario_dom_entrada: "", horario_dom_saida: "", horario_por_dia: false, horarios_dia: {}, dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60, tipo_contrato: "Fixo", telefone: "", email: "", cpf: "", rg: "", rua_av: "", numero_casa: "", bairro: "", cidade_uf: "", chave_pix: "", avaliacao_estrelas: 0, anotacoes_rh: "", data_admissao: "", status_contrato: "Definitivo", supervisor_id: "", supervisores_ids: [], endereco: "", cep: "", cidade_nascimento: "", data_nascimento: "", tem_filhos: false, qtd_filhos: "", tem_transporte: false, usa_vale_transporte: false, genero: "", escolaridade: "", estado_civil: "",
     // Dados do Recibo de Trabalho Extra: ficam no cadastro para o recibo já sair preenchido
     topicos_funcao: "", itens_emprestados: "", forma_pagamento: "Pix", vale_transporte_val: "", setor_entrega: "", janta_ofertada: true };
   // Cargos de liderança sempre disponíveis, além dos cargos cadastrados
@@ -1331,6 +1332,7 @@ export default function RHPage() {
        usa_vale_transporte: !!f.usa_vale_transporte,
        genero: f.genero || "",
        escolaridade: f.escolaridade || "",
+       estado_civil: f.estado_civil || "",
        // Dados que alimentam o Recibo de Trabalho Extra
        topicos_funcao: f.topicos_funcao || "",
        itens_emprestados: f.itens_emprestados || "",
@@ -1396,6 +1398,7 @@ export default function RHPage() {
       usa_vale_transporte: !!novoFunc.usa_vale_transporte,
       genero: novoFunc.genero || null,
       escolaridade: novoFunc.escolaridade || null,
+      estado_civil: novoFunc.estado_civil || null,
       foto: novoFunc.foto || null
     };
 
@@ -1458,13 +1461,25 @@ export default function RHPage() {
      const diffDias = Math.floor((hj - dAdm) / (1000 * 60 * 60 * 24));
      const anoAtual = hj.getFullYear();
      
-     if (f.status_contrato && f.status_contrato.startsWith("Experiência")) {
-        const m = f.status_contrato.match(/\d+/);
-        if (m) {
-           const diasTotal = parseInt(m[0], 10);
-           const faltam = diasTotal - diffDias;
-           if (faltam > 0) badges.push({ text: `Faltam ${faltam} dias (Experiência)`, color: 'text-amber-700 bg-amber-50 border-amber-200' });
-           else badges.push({ text: `Vencido há ${Math.abs(faltam)} dias`, color: 'text-rose-700 bg-rose-50 border-rose-200' });
+     // Tempo de casa: aparece para todo mundo, em experiência ou efetivo.
+     const casa = tempoDeCasa(f, hj);
+     if (casa) badges.push({ text: `${casa.texto} de casa`, color: 'text-slate-700 bg-slate-100 border-slate-200' });
+
+     // Aniversário próximo (ou hoje) — o RH costuma querer lembrar.
+     const aniv = aniversario(f, hj);
+     if (aniv?.ehHoje) badges.push({ text: `Aniversário hoje (${aniv.idade} anos)`, color: 'text-emerald-700 bg-emerald-50 border-emerald-200' });
+     else if (aniv && aniv.faltam <= 15) badges.push({ text: `Aniversário em ${aniv.faltam} dia(s) · ${aniv.diaMes}`, color: 'text-emerald-700 bg-emerald-50 border-emerald-200' });
+
+     if (emExperiencia(f)) {
+        // A experiência renova sozinha no 2º período até alguém efetivar.
+        const s = situacaoExperiencia(f, hj);
+        if (s && !s.erro) {
+           if (s.vencido) {
+              badges.push({ text: `Experiência encerrada — efetive ou desligue`, color: 'text-rose-700 bg-rose-50 border-rose-200' });
+           } else {
+              const cor = s.decidirAgora ? 'text-rose-700 bg-rose-50 border-rose-200' : 'text-emerald-800 bg-emerald-50 border-emerald-200';
+              badges.push({ text: `Experiência ${s.periodo}º período (${s.prazo}d) · faltam ${s.diasRestantes} dia(s)`, color: cor });
+           }
         }
      } else if (f.status_contrato === "Definitivo") {
         let prox = new Date(dAdm);
@@ -2320,6 +2335,13 @@ export default function RHPage() {
                               <option value="Masculino">Masculino</option>
                               <option value="Outro">Outro</option>
                               <option value="Prefere não dizer">Prefere não dizer</option>
+                           </select>
+                        </div>
+                        <div>
+                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Estado civil</label>
+                           <select value={novoFunc.estado_civil || ""} onChange={e=>setNovoFunc({...novoFunc, estado_civil: e.target.value})} className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500">
+                              <option value="">Selecione...</option>
+                              {ESTADOS_CIVIS.map(v => <option key={v} value={v}>{v}</option>)}
                            </select>
                         </div>
                      </div>

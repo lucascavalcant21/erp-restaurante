@@ -211,16 +211,26 @@ function criarCanvasEtiqueta(perfil, dados, qrImagem) {
   const larguraInterna = direita - esquerda;
 
   if (dados.modeloEtiqueta === "nome") {
-    const nome = String(dados.produto || "PRODUTO").toUpperCase();
-    let fonte = alto ? 64 : 52;
+    // Um ou dois nomes, centralizados; com dois, a letra encolhe para caber.
+    const nomes = [dados.produto, dados.produto2]
+      .map(n => String(n || "").trim().toUpperCase()).filter(Boolean);
+    if (!nomes.length) nomes.push("PRODUTO");
+    const duas = nomes.length > 1;
+
+    let fonte = Math.round((alto ? 64 : 52) * (duas ? 0.62 : 1));
     ctx.font = `900 ${fonte}px Arial, sans-serif`;
-    while (fonte > 24 && ctx.measureText(nome).width > larguraInterna) {
+    while (fonte > 20 && nomes.some(n => ctx.measureText(n).width > larguraInterna)) {
       fonte -= 2;
       ctx.font = `900 ${fonte}px Arial, sans-serif`;
     }
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(nome, x + (largura / 2), alturaDesenho / 2, larguraInterna);
+    const centro = alturaDesenho / 2;
+    const passo = fonte * 1.25;
+    nomes.forEach((nome, i) => {
+      const y = duas ? centro + (i === 0 ? -passo / 2 : passo / 2) : centro;
+      ctx.fillText(nome, x + (largura / 2), y, larguraInterna);
+    });
     return canvas;
   }
 

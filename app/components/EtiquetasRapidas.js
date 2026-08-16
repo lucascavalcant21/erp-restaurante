@@ -651,8 +651,11 @@ export default function EtiquetasRapidas() {
             <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <small style={{ fontWeight: 800, color: "#64748b" }}>Cópias</small>
               <button onClick={() => mudar("copias", Math.max(1, produto.copias - 1))} style={{ width: 38, height: 38, borderRadius: 10, border: "1px solid #cbd5e1", background: "#fff", fontWeight: 900, fontSize: 18 }}>−</button>
+              {/* Deixa apagar para digitar outro número; o mínimo só é aplicado
+                  ao sair do campo, senão o 1 volta a cada tecla. */}
               <input type="number" min="1" max="1000" value={produto.copias}
-                onChange={e => mudar("copias", Math.max(1, Math.min(1000, Math.floor(Number(e.target.value) || 1))))}
+                onChange={e => mudar("copias", e.target.value === "" ? "" : Math.min(1000, Math.max(0, Math.floor(Number(e.target.value) || 0))))}
+                onBlur={e => mudar("copias", Math.max(1, Math.min(1000, Math.floor(Number(e.target.value) || 1))))}
                 style={{ width: 66, height: 38, borderRadius: 10, border: "1px solid #cbd5e1", textAlign: "center", fontWeight: 900 }} />
               <button onClick={() => mudar("copias", Math.min(1000, produto.copias + 1))} style={{ width: 38, height: 38, borderRadius: 10, border: "1px solid #cbd5e1", background: "#fff", fontWeight: 900, fontSize: 18 }}>+</button>
             </span>
@@ -718,7 +721,9 @@ export default function EtiquetasRapidas() {
     </div>}
 
     {item && <div className="etq-modal" onClick={() => setItem(null)}><div className="etq-card" onClick={evento => evento.stopPropagation()}><button className="fechar" onClick={() => setItem(null)}><X size={20} /></button><div className="etq-icone"><Tag size={27} /></div><p>Configure e imprima</p><h2>{item.nome}</h2>
-      <h3>2. Quantas cópias?</h3><div className="etq-copias"><button onClick={() => alterar("copias", Math.max(1, numero(item.copias) - 1))}><Minus size={26} /></button><label><input type="number" inputMode="numeric" min="1" max="1000" value={item.copias} onChange={e => alterar("copias", Math.max(1, Math.min(1000, Math.floor(numero(e.target.value) || 1))))} /><span>etiquetas</span></label><button onClick={() => alterar("copias", Math.min(1000, numero(item.copias) + 1))}><Plus size={26} /></button></div>
+      <h3>2. Quantas cópias?</h3><div className="etq-copias"><button onClick={() => alterar("copias", Math.max(1, numero(item.copias) - 1))}><Minus size={26} /></button><label><input type="number" inputMode="numeric" min="1" max="1000" value={item.copias}
+        onChange={e => alterar("copias", e.target.value === "" ? "" : Math.min(1000, Math.max(0, Math.floor(numero(e.target.value)))))}
+        onBlur={e => alterar("copias", Math.max(1, Math.min(1000, Math.floor(numero(e.target.value) || 1))))} /><span>etiquetas</span></label><button onClick={() => alterar("copias", Math.min(1000, numero(item.copias) + 1))}><Plus size={26} /></button></div>
       <h3>3. Tipo de etiqueta</h3><div className="etq-modelos"><button className={modeloEtiqueta === "validade" ? "ativo" : ""} onClick={() => setModeloEtiqueta("validade")}><strong>Com validade</strong><span>Dados completos e QR</span></button><button className={modeloEtiqueta === "nome" ? "ativo" : ""} onClick={() => setModeloEtiqueta("nome")}><strong>Somente nome</strong><span>Nome grande e centralizado</span></button></div>
       {modeloEtiqueta === "nome" && <div className="etq-segundo-nome">
         <label>Primeiro nome</label>

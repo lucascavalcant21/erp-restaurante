@@ -28,8 +28,26 @@ export function bluetoothDisponivel() {
 export function motivoBluetoothIndisponivel() {
   if (typeof navigator === "undefined") return "";
   if (navigator.bluetooth) return "";
+
+  // Sem https o navegador esconde o Bluetooth mesmo no aparelho certo.
+  if (typeof window !== "undefined" && window.isSecureContext === false) {
+    return "O Bluetooth só funciona em conexão segura. Abra o ERP pelo endereço https.";
+  }
+
   const ua = String(navigator.userAgent || "");
-  if (/iPhone|iPad|iPod/i.test(ua)) {
+  const plataforma = String(navigator.userAgentData?.platform || "");
+
+  // Android vem primeiro: o aparelho é Android e o problema é o navegador.
+  // Antes o texto de iPhone aparecia em tablet Android quando o navegador
+  // (Samsung Internet, Firefox, navegador dentro de outro app) não tem a API.
+  if (/Android/i.test(ua) || plataforma === "Android") {
+    return "Este navegador do Android não abre Bluetooth. Abra o ERP no Google Chrome (não use o navegador de dentro de outro app).";
+  }
+
+  // iPadOS moderno se apresenta como "Macintosh" — só a tela de toque entrega.
+  const ehApple = /iPhone|iPad|iPod/i.test(ua)
+    || (/Macintosh/i.test(ua) && Number(navigator.maxTouchPoints) > 1);
+  if (ehApple) {
     return "O iPhone e o iPad não deixam sites usarem Bluetooth. Use o tablet Android ou imprima pelo computador.";
   }
   return "Este navegador não suporta Bluetooth. Use o Google Chrome no Android.";

@@ -1,5 +1,7 @@
 "use client";
 
+import { motivoBluetoothIndisponivel } from "./impressaoBluetooth";
+
 // Perfis medidos fisicamente na EPSON TM-T20 deste computador (203 dpi).
 // O corte fica deliberadamente desligado: a bobina adesiva precisa de uma
 // calibração separada da distância entre a cabeça e a guilhotina.
@@ -399,7 +401,9 @@ export function bluetoothTermicoDisponivel() {
 
 export async function conectarImpressoraBluetooth() {
   if (!bluetoothTermicoDisponivel()) {
-    throw new Error("Impressão Bluetooth direta requer Chrome no Android. No iPhone, o Safari não libera a impressora térmica para o site.");
+    // A explicação vem do aparelho de verdade: falar em iPhone para quem está
+    // num tablet Android só confunde.
+    throw new Error(motivoBluetoothIndisponivel() || "Impressão Bluetooth direta requer o Google Chrome no Android.");
   }
   const device = await navigator.bluetooth.requestDevice({
     acceptAllDevices: true,

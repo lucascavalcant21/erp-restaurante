@@ -43,7 +43,9 @@ async function acharEstoque(unidadeId, slug) {
 async function movimentarPorEtiqueta({ unidadeId, etiqueta, tipo, usuario, observacao }) {
   if (!isSupabaseReady() || !unidadeId || !etiqueta) return { ok: false, motivo: "sem conexão" };
   const quantidade = quantidadeDaEtiqueta(etiqueta);
-  if (quantidade <= 0) return { ok: false, motivo: "etiqueta sem peso informado" };
+  // Etiqueta sem peso é o caso normal (etiqueta de nome, por exemplo): não há
+  // o que somar no estoque e não há nada para o usuário corrigir.
+  if (quantidade <= 0) return { ok: false, silencioso: true, motivo: "etiqueta sem peso informado" };
 
   try {
     const insumo = await acharInsumo(unidadeId, etiqueta.produto);

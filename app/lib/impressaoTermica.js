@@ -217,7 +217,8 @@ function criarCanvasEtiqueta(perfil, dados, qrImagem) {
     if (!nomes.length) nomes.push("PRODUTO");
     const duas = nomes.length > 1;
 
-    let fonte = Math.round((alto ? 64 : 52) * (duas ? 0.62 : 1));
+    const escala = Math.min(2, Math.max(0.5, Number(dados.escalaNome) || 1));
+    let fonte = Math.round((alto ? 64 : 52) * (duas ? 0.62 : 1) * escala);
     ctx.font = `900 ${fonte}px Arial, sans-serif`;
     while (fonte > 20 && nomes.some(n => ctx.measureText(n).width > larguraInterna)) {
       fonte -= 2;

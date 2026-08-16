@@ -806,7 +806,10 @@ export default function DashboardLayout({ children }) {
 
   if (interfaceTelaCheia) {
     return (
-      <div className="fixed inset-0 z-[200] bg-slate-50">
+      // Sem a barra do app em cima, o cabeçalho da tela cheia encostava na
+      // barra de status do celular e o "voltar" ficava alto demais.
+      <div className="fixed inset-0 z-[200] overflow-hidden bg-slate-50"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <Suspense fallback={<div className="grid h-screen place-items-center"><Loader2 className="animate-spin text-indigo-600" /></div>}>
           <ProtecaoPermissao sessao={sessao}>
             <ProtecaoSetorDaArea>{children}</ProtecaoSetorDaArea>

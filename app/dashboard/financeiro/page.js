@@ -1,12 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useERP } from "../../context/ERPContext";
 import { fetchDRE, fetchContas, salvarConta, pagarConta, CATEGORIAS_CUSTO } from "../../lib/financeiro";
 import { DollarSign, TrendingUp, TrendingDown, Wallet, Plus, CheckCircle, Search, Edit2, Loader2, Target, CalendarDays, X } from "lucide-react";
 import { fmtBRL } from "../../components/ui";
 
 export default function FinanceiroDREPage() {
+  const router = useRouter();
   const { unidadeAtiva } = useERP();
   
   const [loading, setLoading] = useState(true);
@@ -81,9 +83,14 @@ export default function FinanceiroDREPage() {
             <p className="text-slate-500 font-medium mt-1">Gestão de Contas a Pagar e Lucratividade (DRE)</p>
          </div>
 
-         <button onClick={() => setModalConta(true)} className="px-6 py-3 bg-slate-900 text-white font-black rounded-xl shadow-xl shadow-slate-900/20 hover:bg-slate-800 transition-colors flex items-center gap-2">
-            <Plus size={20}/> Nova Despesa
-         </button>
+         <div className="flex flex-wrap gap-3">
+            <button onClick={() => router.push("/dashboard/financeiro/custos-fixos")} className="px-6 py-3 bg-white border-2 border-emerald-200 text-emerald-700 font-black rounded-xl hover:bg-emerald-50 transition-colors flex items-center gap-2">
+               <CalendarDays size={20}/> Custos fixos por dia
+            </button>
+            <button onClick={() => setModalConta(true)} className="px-6 py-3 bg-slate-900 text-white font-black rounded-xl shadow-xl shadow-slate-900/20 hover:bg-slate-800 transition-colors flex items-center gap-2">
+               <Plus size={20}/> Nova Despesa
+            </button>
+         </div>
       </div>
 
       {/* DASHBOARD DRE */}

@@ -1,5 +1,5 @@
 import { supabase, isSupabaseReady } from "./supabase";
-import { ESTOQUES_PADRAO, slugEstoque, tiposCompativeis } from "./estoques-multiplos-utils.mjs";
+import { ESTOQUES_PADRAO, LOCAIS_BAR_ANTIGOS, slugEstoque, tiposCompativeis } from "./estoques-multiplos-utils.mjs";
 
 const erroMensagem = error => error?.message || null;
 
@@ -144,9 +144,14 @@ export async function fetchEstoques(unidadeId, incluirInativos = false) {
       // Locais padrão criados depois (ex.: expositor/balcão/depósito do Bar) não
       // chegam pelo upsert acima, que ignora quem já existe. Preenche só quando
       // o estoque ainda não tem local nenhum — nunca sobrescreve o do usuário.
+      const mesmaLista = (a = [], b = []) =>
+        a.length === b.length && a.every(x => b.includes(x));
       const semLocais = estoques.filter(e => {
         const padrao = ESTOQUES_PADRAO.find(p => p.slug === String(e.slug || "").toLowerCase());
-        return padrao?.locais?.length && !(e.locais_internos || []).length;
+        if (!padrao?.locais?.length) return false;
+        const atuais = e.locais_internos || [];
+        // Sem local nenhum, ou ainda com a lista antiga que ninguém editou.
+        return !atuais.length || mesmaLista(atuais, LOCAIS_BAR_ANTIGOS);
       });
       for (const estoque of semLocais) {
         const padrao = ESTOQUES_PADRAO.find(p => p.slug === String(estoque.slug || "").toLowerCase());
@@ -360,6 +365,16 @@ export async function vincularItemEstoque({
     onConflict: "estoque_id,insumo_id",
   }).select("*").single();
   return { data, error: erroMensagem(error) };
+}
+
+// Troca só o lugar do produto dentro do estoque (depósito, expositor,
+// balcão...). Não mexe em saldo, mínimo nem validade.
+export async function realocarItemEstoque(estoqueItemId, local) {
+  if (!isSupabaseReady() || !estoqueItemId) return { error: "Item inválido" };
+  const { error } = await supabase.from("estoque_itens")
+    .update({ local_interno: local || null, updated_at: new Date().toISOString() })
+    .eq("id", estoqueItemId);
+  return { error: erroMensagem(error) };
 }
 
 export async function atualizarItemEstoque(estoqueItemId, campos) {

@@ -640,7 +640,11 @@ export default function EtiquetasRapidas() {
         return (
         <article key={`${produto.codigo}-${indice}`} style={{ display: "block" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <strong style={{ flex: 1, minWidth: 0 }}>{produto.nome}</strong>
+            {/* O nome vem da voz e às vezes sai errado: dá para corrigir aqui,
+                sem tirar da fila e adicionar de novo. */}
+            <input value={produto.nome} onChange={e => mudar("nome", e.target.value)}
+              aria-label={`Nome da etiqueta ${indice + 1}`}
+              style={{ flex: 1, minWidth: 0, height: 44, borderRadius: 11, border: "1px solid #cbd5e1", padding: "0 12px", fontWeight: 900, fontSize: 16, color: "#0f172a", background: "#fff" }} />
             <button onClick={() => setFila(atual => atual.filter((_, posicao) => posicao !== indice))} aria-label={`Remover ${produto.nome}`}><Trash2 size={17}/></button>
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 14, alignItems: "center", marginTop: 10 }}>

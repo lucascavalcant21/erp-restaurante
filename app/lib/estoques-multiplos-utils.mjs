@@ -6,14 +6,23 @@ export const TIPOS_ESTOQUE = [
   { value: "embalagens", label: "Embalagens", controlaValidade: false },
 ];
 
+// Onde a bebida fica dentro do bar. Vale para os produtos e para os
+// pré-preparos: o mesmo xarope pode estar no depósito e no balcão.
+export const LOCAIS_BAR = ["Depósito", "Expositor 1", "Expositor 2", "Balcão refrigerado"];
+
+// Nomes que estes locais já tiveram. Serve para trocar a lista antiga pela
+// atual sem apagar o que o usuário criou por conta própria.
+export const LOCAIS_BAR_ANTIGOS = ["Expositor de bebidas", "Balcão refrigerado", "Depósito de bebidas"];
+
 export const ESTOQUES_PADRAO = [
   { nome: "Cozinha", slug: "cozinha", tipo: "alimentos", cor: "#059669", controla_validade: true, controla_minimo: true },
   { nome: "Pré-preparos da Cozinha", slug: "pre-preparos-cozinha", tipo: "alimentos", cor: "#d97706", controla_validade: true, controla_minimo: true },
-  // O bar guarda a mesma bebida em três lugares diferentes; o local separa a
+  // O bar guarda a mesma bebida em lugares diferentes; o local separa a
   // contagem sem precisar de um estoque para cada geladeira.
   { nome: "Bar", slug: "bar", tipo: "bebidas", cor: "#7c3aed", controla_validade: true, controla_minimo: true,
-    locais: ["Expositor de bebidas", "Balcão refrigerado", "Depósito de bebidas"] },
-  { nome: "Pré-preparos do Bar", slug: "pre-preparos-bar", tipo: "bebidas", cor: "#ea580c", controla_validade: true, controla_minimo: true },
+    locais: LOCAIS_BAR },
+  { nome: "Pré-preparos do Bar", slug: "pre-preparos-bar", tipo: "bebidas", cor: "#ea580c", controla_validade: true, controla_minimo: true,
+    locais: LOCAIS_BAR },
   { nome: "Limpeza", slug: "limpeza", tipo: "limpeza", cor: "#0284c7", controla_validade: false, controla_minimo: true },
   { nome: "Materiais variados", slug: "materiais-variados", tipo: "materiais", cor: "#d97706", controla_validade: false, controla_minimo: true },
   { nome: "Embalagens da Cozinha", slug: "embalagens-cozinha", tipo: "embalagens", cor: "#db2777", controla_validade: false, controla_minimo: true },

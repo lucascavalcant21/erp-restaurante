@@ -18,6 +18,8 @@ import { registrarAuditoria } from "../lib/hefisto-acoes";
 const cores = {
   entrada: { principal: "#10B981", suave: "rgba(16,185,129,.14)", borda: "rgba(16,185,129,.38)" },
   saida: { principal: "#F43F5E", suave: "rgba(244,63,94,.14)", borda: "rgba(244,63,94,.38)" },
+  // Enquanto ninguém escolheu entre depositar e retirar.
+  neutro: { principal: "#64748B", suave: "rgba(100,116,139,.12)", borda: "rgba(100,116,139,.32)" },
 };
 
 const numero = valor => Number(valor) || 0;
@@ -139,7 +141,9 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
   const [tipoEstoque, setTipoEstoque] = useState(""); // produtos | preparos
 
   const [aba, setAba] = useState("operacao");
-  const [tipo, setTipo] = useState("saida");
+  // Nada vem marcado: quem opera escolhe depositar ou retirar. Vir na retirada
+  // fazia a pessoa dar baixa sem perceber.
+  const [tipo, setTipo] = useState("");
   const [itens, setItens] = useState([]);
   const [funcionarios, setFuncionarios] = useState([]);
   const [historico, setHistorico] = useState([]);
@@ -232,7 +236,7 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
 
   const responsavel = funcionarios.find(f => String(f.id) === String(responsavelId));
   const listaSelecionados = Object.values(selecionados);
-  const estiloTipo = cores[tipo];
+  const estiloTipo = cores[tipo] || cores.neutro;
   const tituloSetor = departamento === "bar" ? "Bar" : departamento === "cozinha" ? "Cozinha" : titulo;
   const tituloAtual = tipoEstoque === "preparos" ? `Pré-preparos · ${tituloSetor}` : tituloSetor;
 
@@ -455,6 +459,10 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
   }
 
   async function confirmarLote(comandoConfirmacao = "") {
+    if (!tipo) {
+      setToast({ tipo: "erro", msg: "Escolha se é entrada ou retirada." });
+      return;
+    }
     if (!listaSelecionados.length) {
       setToast({ tipo: "erro", msg: "Escolha pelo menos um item." });
       return;
@@ -837,14 +845,14 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
         <footer className="estoque-rapido-barra">
           <div className="estoque-rapido-barra-interna">
             <div className="estoque-rapido-resumo">
-              <strong>{listaSelecionados.length} item(ns) · {tipo === "entrada" ? "Entrada" : "Retirada"}</strong>
+              <strong>{listaSelecionados.length} item(ns) · {tipo === "entrada" ? "Entrada" : tipo === "saida" ? "Retirada" : "Escolha entrada ou retirada"}</strong>
               <span>{responsavel ? `Responsável: ${responsavel.nome}` : "Escolha o responsável acima"}</span>
             </div>
             <input className={mostrarMotivo || motivo ? "visivel" : ""} type="text" value={motivo} onChange={e => setMotivo(e.target.value)} placeholder="Motivo ou observação (opcional)" />
             <button type="button" className="estoque-rapido-motivo-btn" onClick={() => setMostrarMotivo(valor => !valor)} aria-label="Adicionar observação"><MessageSquareText size={19} /> Observação</button>
-            <button className="estoque-rapido-confirmar" onClick={() => confirmarLote()} disabled={salvando || !listaSelecionados.length}>
-              {salvando ? <RefreshCw className="animate-spin" size={19} /> : tipo === "entrada" ? <PackagePlus size={19} /> : <PackageMinus size={19} />}
-              {salvando ? "Registrando..." : `Confirmar ${tipo === "entrada" ? "entrada" : "retirada"}`}
+            <button className="estoque-rapido-confirmar" onClick={() => confirmarLote()} disabled={salvando || !listaSelecionados.length || !tipo}>
+              {salvando ? <RefreshCw className="animate-spin" size={19} /> : tipo === "saida" ? <PackageMinus size={19} /> : <PackagePlus size={19} />}
+              {salvando ? "Registrando..." : tipo ? `Confirmar ${tipo === "entrada" ? "entrada" : "retirada"}` : "Escolha entrada ou retirada"}
             </button>
           </div>
         </footer>

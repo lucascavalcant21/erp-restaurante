@@ -15,7 +15,7 @@ import { criarEscuta, vozDisponivel } from "../../../lib/hefisto-voz";
 import { equipeDaArea } from "../../../lib/equipe-area.mjs";
 import {
   atualizarItemEstoque, fetchEstoques, fetchItensEstoque, fetchMovimentosMulti,
-  registrarContagemMulti, registrarMovimentoMulti, salvarEstoque,
+  registrarContagemMulti, registrarMovimentoMulti, realocarItemEstoque, salvarEstoque,
   transferirEntreEstoques, vincularItemEstoque,
 } from "../../../lib/estoques-multiplos";
 import {
@@ -453,6 +453,14 @@ function EstoqueRunner() {
 
   const atualizarTudo = async () => {
     await Promise.all([carregarArea(), carregarEstoques(estoqueId)]);
+  };
+
+  // Muda o produto de lugar dentro do estoque (depósito, expositor, balcão).
+  const realocarItem = async (item, local) => {
+    const { error } = await realocarItemEstoque(item.id, local);
+    if (error) { avisar(error, "erro"); return; }
+    avisar(local ? `${item.nome} agora fica em ${local}.` : `${item.nome} ficou sem lugar definido.`);
+    await carregarArea();
   };
 
   // Responsáveis da área do estoque aberto — regra única do ERP:
@@ -2051,7 +2059,21 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                       <strong className="text-base sm:text-lg font-black text-slate-900 leading-snug block truncate">{item.nome}</strong>
                       <div className="mt-1 flex flex-wrap items-center gap-1.5">
                         <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700">{item.categoria || "Sem categoria"}</span>
-                        {item.local_interno && <span className="rounded-md bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-500">📍 {item.local_interno}</span>}
+                        {(estoqueAtual?.locais_internos || []).length > 0 ? (
+                          // Realocar é escolher o lugar aqui mesmo: um toque e
+                          // o produto muda de grupo na lista.
+                          <select value={item.local_interno || ""} onChange={e => realocarItem(item, e.target.value)}
+                            className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-bold text-slate-600 outline-none focus:border-emerald-500"
+                            aria-label={`Lugar de ${item.nome}`}>
+                            <option value="">Sem lugar</option>
+                            {(estoqueAtual.locais_internos || []).map(l => <option key={l} value={l}>{l}</option>)}
+                            {item.local_interno && !(estoqueAtual.locais_internos || []).includes(item.local_interno) && (
+                              <option value={item.local_interno}>{item.local_interno}</option>
+                            )}
+                          </select>
+                        ) : item.local_interno ? (
+                          <span className="rounded-md bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-500">{item.local_interno}</span>
+                        ) : null}
                       </div>
                       <p className="mt-1.5 text-xs font-semibold text-slate-500">Mín: {item.estoque_minimo ?? "—"} · Máx: {item.estoque_maximo ?? "—"} · Valor: <strong className="text-emerald-800">{fmtBRL(valTotalItem)}</strong></p>
                     </div>

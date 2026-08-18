@@ -93,8 +93,7 @@ export const PERMISSION_MODULES = [
       { id: "recruiting", label: "Recrutamento", route: "/dashboard/rh/recrutamento", actions: CRUD },
       { id: "minutes", label: "Atas de reunião", route: "/dashboard/rh/atas", actions: [...CRUD, "print"] },
       { id: "employee_portal", label: "Portal do colaborador", route: "/dashboard/rh/colaborador", actions: ["view", "edit", "view_history"] },
-      { id: "team_meals", label: "Refeição da equipe", route: "/dashboard/rh/cardapio-funcionarios", actions: CRUD },
-      { id: "admin_expenses", label: "Gastos administrativos", route: "/dashboard/rh/gastos-admin", actions: [...CRUD, "approve", "view_values", "export"] },
+      { id: "admin_expenses", label: "Compras do mês", route: "/dashboard/rh/gastos-admin", actions: [...CRUD, "approve", "view_values", "export"] },
     ],
   },
   {

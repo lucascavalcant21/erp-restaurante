@@ -119,7 +119,6 @@ const MODULOS = {
         { label: "Recrutamento", desc: "Vagas e candidatos", href: "/dashboard/rh/recrutamento", icon: BriefcaseBusiness },
       ]},
       { title: "Apoio", subtitle: "Rotinas e registros", icon: ScrollText, accent: "#0891b2", items: [
-        { label: "Refeição da Equipe", desc: "Cardápio dos funcionários", href: "/dashboard/rh/cardapio-funcionarios", icon: Utensils },
         { label: "Atas de Reunião", desc: "Decisões e alinhamentos", href: "/dashboard/rh/atas", icon: ScrollText },
       ]},
     ],

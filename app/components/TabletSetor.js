@@ -4,11 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle, ArrowLeft, Boxes, Check, CheckCircle2, ChefHat, CircleDollarSign, Clock, GlassWater, History, Layers3, Maximize2, Minus,
-  Mic, MicOff, PackageMinus, PackagePlus, Plus, RefreshCw, Search, ShoppingBasket,
-  Settings2, UserRound, X, XCircle, MessageSquareText,
+  Mic, MicOff, Package, PackageMinus, PackagePlus, Plus, RefreshCw, Search, ShoppingBasket,
+  Settings2, Trash2, UserRound, X, XCircle, MessageSquareText,
 } from "lucide-react";
 import {
-  fetchEstoques, fetchItensEstoque, fetchMovimentosMulti, registrarLoteMovimentosMulti,
+  fetchEstoques, fetchItensEstoque, fetchMovimentosMulti, garantirEstoquesPadrao,
+  registrarLoteMovimentosMulti,
 } from "../lib/estoques-multiplos";
 import { fetchColaboradores } from "../lib/rh";
 import { useERP } from "../context/ERPContext";
@@ -108,24 +109,31 @@ function Toast({ toast, onClose }) {
   );
 }
 
-function ControleQuantidade({ valor, unidade, onChange }) {
-  const passo = numero(valor) > 1 ? 1 : 0.5;
+// O passo é sempre 1, em qualquer unidade. Antes ele virava 0,5 assim que a
+// quantidade chegava a 1, e a contagem de un/garrafa/lata saía fracionada sem
+// ninguém ter pedido — meia lata não existe. Quem precisa de meio quilo digita.
+// E no 1 o botão vira lixeira: o piso antigo de 0,1 prendia o item na lista.
+function ControleQuantidade({ valor, unidade, onChange, onRemover }) {
+  const atual = numero(valor);
+  const vaiRemover = atual <= 1;
   return (
     <div className="estoque-rapido-qtd" onClick={e => e.stopPropagation()}>
-      <button type="button" onClick={() => onChange(Math.max(0.1, numero(valor) - passo))} aria-label="Diminuir">
-        <Minus size={18} />
+      <button type="button"
+        onClick={() => (vaiRemover ? onRemover() : onChange(atual - 1))}
+        aria-label={vaiRemover ? "Tirar item da lista" : "Diminuir"}>
+        {vaiRemover ? <Trash2 size={17} /> : <Minus size={18} />}
       </button>
       <label>
         <input
           type="number"
-          min="0.1"
-          step="0.5"
+          min="0"
+          step="any"
           value={valor}
-          onChange={e => onChange(Math.max(0.1, numero(e.target.value)))}
+          onChange={e => onChange(Math.max(0, numero(e.target.value)))}
         />
         <span>{rotuloUnidade(unidade, valor)}</span>
       </label>
-      <button type="button" onClick={() => onChange(numero(valor) + 1)} aria-label="Aumentar">
+      <button type="button" onClick={() => onChange(atual + 1)} aria-label="Aumentar">
         <Plus size={18} />
       </button>
     </div>
@@ -138,7 +146,7 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
   const setorFixo = String(setor || "").trim().toLowerCase();
   const [setorEscolhido, setSetorEscolhido] = useState(setorFixo);
   const departamento = setorEscolhido || setorFixo;
-  const [tipoEstoque, setTipoEstoque] = useState(""); // produtos | preparos
+  const [tipoEstoque, setTipoEstoque] = useState(""); // produtos | preparos | embalagens
 
   const [aba, setAba] = useState("operacao");
   // Nada vem marcado: quem opera escolhe depositar ou retirar. Vir na retirada
@@ -176,17 +184,31 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
       fetchEstoques(unidadeAtiva),
       fetchColaboradores(unidadeAtiva),
     ]);
-    const estoquesDoSetor = (resEstoques.data || []).filter(estoque => {
+    // Unidade criada antes de os estoques de embalagem existirem chega aqui sem
+    // eles. Em vez de mostrar a tela vazia sem explicação, cria os padrões na
+    // hora — a função é idempotente e só entra quando realmente falta algum.
+    let listaEstoques = resEstoques.data || [];
+    if (!listaEstoques.some(e => `${e.slug || ""} ${e.nome || ""}`.toLowerCase().includes("embalage"))) {
+      await garantirEstoquesPadrao(unidadeAtiva);
+      const recarregado = await fetchEstoques(unidadeAtiva);
+      if (recarregado.data?.length) listaEstoques = recarregado.data;
+    }
+    const estoquesDoSetor = listaEstoques.filter(estoque => {
       if (!departamento) return false;
       const texto = `${estoque.slug || ""} ${estoque.nome || ""}`.toLowerCase();
       if (departamento === "bar") return texto.includes("bar") || (estoque.tipo === "bebidas" && !texto.includes("cozinha"));
       if (departamento === "cozinha") return texto.includes("cozinha") || (estoque.tipo === "alimentos" && !texto.includes("bar"));
       return texto.includes(departamento);
     });
+    // Três estoques por setor, cada um com saldo e histórico próprios. Embalagem
+    // estava caindo dentro de "Produtos" e se misturava com insumo na contagem.
     const estoquesAlvo = estoquesDoSetor.filter(estoque => {
       const texto = `${estoque.slug || ""} ${estoque.nome || ""}`.toLowerCase();
       const ehPreparo = texto.includes("pre-preparo") || texto.includes("preparo");
-      return tipoEstoque === "preparos" ? ehPreparo : !ehPreparo;
+      const ehEmbalagem = texto.includes("embalagem") || texto.includes("embalagens") || estoque.tipo === "embalagens";
+      if (tipoEstoque === "preparos") return ehPreparo && !ehEmbalagem;
+      if (tipoEstoque === "embalagens") return ehEmbalagem;
+      return !ehPreparo && !ehEmbalagem;
     });
     const [respostasItens, respostasHistorico] = await Promise.all([
       Promise.all(estoquesAlvo.map(estoque => fetchItensEstoque(estoque.id, unidadeAtiva))),
@@ -238,7 +260,9 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
   const listaSelecionados = Object.values(selecionados);
   const estiloTipo = cores[tipo] || cores.neutro;
   const tituloSetor = departamento === "bar" ? "Bar" : departamento === "cozinha" ? "Cozinha" : titulo;
-  const tituloAtual = tipoEstoque === "preparos" ? `Pré-preparos · ${tituloSetor}` : tituloSetor;
+  const tituloAtual = tipoEstoque === "preparos" ? `Pré-preparos · ${tituloSetor}`
+    : tipoEstoque === "embalagens" ? `Embalagens · ${tituloSetor}`
+      : tituloSetor;
 
   const selecionarSetor = novoSetor => {
     setSetorEscolhido(novoSetor);
@@ -454,8 +478,16 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
   function alterarQuantidade(id, quantidade) {
     setSelecionados(atual => ({
       ...atual,
-      [id]: { ...atual[id], quantidade: Math.max(0.1, numero(quantidade)) },
+      [id]: { ...atual[id], quantidade: Math.max(0, numero(quantidade)) },
     }));
+  }
+
+  function removerSelecionado(id) {
+    setSelecionados(atual => {
+      const proximo = { ...atual };
+      delete proximo[id];
+      return proximo;
+    });
   }
 
   async function confirmarLote(comandoConfirmacao = "") {
@@ -469,6 +501,13 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
     }
     if (!responsavel) {
       setToast({ tipo: "erro", msg: "Escolha quem está fazendo a movimentação." });
+      return;
+    }
+    // Zero digitado à mão: movimento de nada não vale a pena gravar, e o item
+    // continua na lista para a pessoa corrigir ou tirar.
+    const zerado = listaSelecionados.find(item => numero(item.quantidade) <= 0);
+    if (zerado) {
+      setToast({ tipo: "erro", msg: `Informe a quantidade de ${zerado.nome} ou tire ele da lista.` });
       return;
     }
     const semSaldo = tipo === "saida" && listaSelecionados.find(item => numero(item.quantidade) > numero(item.disponivel));
@@ -594,12 +633,13 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
     return (
       <div className="estoque-inicio">
         <style>{`
-          .estoque-inicio{position:fixed;inset:0;z-index:80;overflow:auto;background:linear-gradient(145deg,#07111f,#0f2841);color:#fff;padding:clamp(18px,4vw,44px);display:flex;flex-direction:column}.estoque-inicio-topo{display:flex;align-items:center;justify-content:space-between}.estoque-inicio-topo button{height:46px;border:1px solid rgba(255,255,255,.2);border-radius:14px;background:rgba(255,255,255,.08);color:#fff;padding:0 15px;display:flex;align-items:center;gap:8px;font-weight:800}.estoque-inicio-centro{width:min(950px,100%);margin:auto;text-align:center}.estoque-inicio-centro h1{font-size:clamp(30px,5vw,54px);margin:18px 0 10px;font-weight:950}.estoque-inicio-centro p{color:#cbd5e1;font-size:clamp(15px,2vw,19px);margin:0 auto 32px}.estoque-inicio-setores{display:grid;grid-template-columns:1fr 1fr;gap:clamp(14px,3vw,26px)}.estoque-inicio-setor{min-height:230px;border:2px solid rgba(255,255,255,.16);border-radius:30px;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;font-size:26px;font-weight:950;box-shadow:0 22px 55px rgba(0,0,0,.25)}.estoque-inicio-setor svg{width:58px;height:58px}.estoque-inicio-setor.produtos{background:linear-gradient(145deg,#047857,#10b981)}.estoque-inicio-setor.preparos{background:linear-gradient(145deg,#b45309,#f59e0b)}.estoque-inicio-setor span{font-size:14px;font-weight:700;opacity:.9}@media(max-width:620px){.estoque-inicio-setores{grid-template-columns:1fr}.estoque-inicio-setor{min-height:170px}.estoque-inicio-centro{margin:30px auto}}
+          .estoque-inicio{position:fixed;inset:0;z-index:80;overflow:auto;background:linear-gradient(145deg,#07111f,#0f2841);color:#fff;padding:clamp(18px,4vw,44px);display:flex;flex-direction:column}.estoque-inicio-topo{display:flex;align-items:center;justify-content:space-between}.estoque-inicio-topo button{height:46px;border:1px solid rgba(255,255,255,.2);border-radius:14px;background:rgba(255,255,255,.08);color:#fff;padding:0 15px;display:flex;align-items:center;gap:8px;font-weight:800}.estoque-inicio-centro{width:min(950px,100%);margin:auto;text-align:center}.estoque-inicio-centro h1{font-size:clamp(30px,5vw,54px);margin:18px 0 10px;font-weight:950}.estoque-inicio-centro p{color:#cbd5e1;font-size:clamp(15px,2vw,19px);margin:0 auto 32px}.estoque-inicio-setores{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:clamp(14px,3vw,26px)}.estoque-inicio-setor{min-height:230px;border:2px solid rgba(255,255,255,.16);border-radius:30px;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;font-size:26px;font-weight:950;box-shadow:0 22px 55px rgba(0,0,0,.25)}.estoque-inicio-setor svg{width:58px;height:58px}.estoque-inicio-setor.produtos{background:linear-gradient(145deg,#047857,#10b981)}.estoque-inicio-setor.preparos{background:linear-gradient(145deg,#b45309,#f59e0b)}.estoque-inicio-setor.embalagens{background:linear-gradient(145deg,#334155,#64748b)}.estoque-inicio-setor span{font-size:14px;font-weight:700;opacity:.9}@media(max-width:620px){.estoque-inicio-setores{grid-template-columns:1fr}.estoque-inicio-setor{min-height:170px}.estoque-inicio-centro{margin:30px auto}}
         `}</style>
         <div className="estoque-inicio-topo"><button onClick={voltarEtapa}><ArrowLeft size={18} /> Voltar</button><button onClick={pedirTelaCheia}><Maximize2 size={18} /> Tela cheia</button></div>
         <main className="estoque-inicio-centro"><Layers3 size={58} /><h1>Estoque do {tituloSetor}</h1><p>Escolha qual estoque deseja movimentar. Os saldos e históricos ficam separados.</p><div className="estoque-inicio-setores">
           <button className="estoque-inicio-setor produtos" onClick={() => setTipoEstoque("produtos")}><Boxes /> Produtos <span>insumos, bebidas e mercadorias</span></button>
           <button className="estoque-inicio-setor preparos" onClick={() => setTipoEstoque("preparos")}><ChefHat /> Pré-preparos <span>bases e produções já preparadas</span></button>
+          <button className="estoque-inicio-setor embalagens" onClick={() => setTipoEstoque("embalagens")}><Package /> Embalagens <span>potes, sacos e descartáveis do setor</span></button>
         </div></main>
       </div>
     );
@@ -779,7 +819,7 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
                     <div className="estoque-rapido-saldo">Disponível<strong>{fmtQtd(item.quantidade)} {rotuloUnidade(item.unidade, item.quantidade)}</strong></div>
                     {item.local && <div className="estoque-rapido-minimo">Local: {item.local}</div>}
                     {item.minimo != null && <div className="estoque-rapido-minimo">Mínimo: {fmtQtd(item.minimo)} {rotuloUnidade(item.unidade, item.minimo)}</div>}
-                    {selecionado && <ControleQuantidade valor={selecionado.quantidade} unidade={item.unidade} onChange={valor => alterarQuantidade(item.id, valor)} />}
+                    {selecionado && <ControleQuantidade valor={selecionado.quantidade} unidade={item.unidade} onChange={valor => alterarQuantidade(item.id, valor)} onRemover={() => removerSelecionado(item.id)} />}
                   </article>
                 );
               })}

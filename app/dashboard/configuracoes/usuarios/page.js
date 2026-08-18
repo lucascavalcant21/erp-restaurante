@@ -66,7 +66,7 @@ export default function UsuariosAcessosPage() {
   useEffect(() => { load(); }, []);
 
   const profiles = (data?.profiles || []).filter((profile) => profile.ativo && profile.is_current);
-  const profileName = (id) => data?.profiles.find((profile) => profile.id === id)?.nome || "Sem perfil";
+  const profileName = (id) => (data?.profiles || []).find((profile) => profile.id === id)?.nome || "Sem perfil";
   const unitName = (id) => data?.units.find((unit) => unit.id === id)?.nome || "Todas";
   const sectorName = (id) => data?.sectors.find((sector) => sector.id === id)?.nome || "—";
   const users = useMemo(() => (data?.users || []).filter((user) => {
@@ -127,7 +127,7 @@ export default function UsuariosAcessosPage() {
 
   const expand = (keys = []) => new Set(allPermissionKeys().filter((wanted) => keys.some((granted) => permissionMatches(granted, wanted))));
   const openPermissions = (user) => {
-    const profile = data.profiles.find((item) => item.id === user.perfil_id);
+    const profile = (data?.profiles || []).find((item) => item.id === user.perfil_id);
     const inherited = expand(profile?.permissions || []);
     const rows = data.userPermissions.filter((item) => item.usuario_id === user.id);
     rows.filter((item) => item.effect === "allow").forEach((item) => expand([item.permission_key]).forEach((key) => inherited.add(key)));
@@ -137,7 +137,7 @@ export default function UsuariosAcessosPage() {
   const savePermissions = async () => {
     setSaving(true);
     try {
-      const profile = data.profiles.find((item) => item.id === form.perfil_id);
+      const profile = (data?.profiles || []).find((item) => item.id === form.perfil_id);
       const inherited = expand(profile?.permissions || []);
       const selected = new Set(permissionValue);
       const allowPermissions = [...selected].filter((key) => !inherited.has(key));
@@ -204,12 +204,12 @@ export default function UsuariosAcessosPage() {
             </tr></thead>
             <tbody className="divide-y divide-slate-100">
               {users.map((user) => {
-                const employee = data.employees.find((item) => item.id === user.funcionario_id);
+                const employee = (data?.employees || []).find((item) => item.id === user.funcionario_id);
                 return <tr key={user.id} className="text-sm text-slate-600 hover:bg-slate-50/70">
                   <td className="px-4 py-3"><div className="flex items-center gap-2"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-900 text-xs font-black text-white">{avatarInitials(user.nome)}</span><div><p className="font-black text-slate-800">{user.nome}</p><p className="text-xs text-slate-400">{TYPES.find(([id])=>id===user.tipo_acesso)?.[1]}</p></div></div></td>
                   <td className="px-4 py-3">{employee?.nome || "—"}</td><td className="px-4 py-3 font-bold">{user.login}</td><td className="px-4 py-3">{profileName(user.perfil_id)}</td>
                   <td className="px-4 py-3"><p className="font-bold">{sectorName(user.setor_principal_id)}</p><p className="text-xs text-slate-400">{unitName(user.unidade_principal_id)}</p></td>
-                  <td className="px-4 py-3"><Status value={user.status}/></td><td className="px-4 py-3">{formatLastAccess(user.ultimo_acesso_em)}</td><td className="px-4 py-3">{new Date(user.created_at).toLocaleDateString("pt-BR")}</td><td className="px-4 py-3">{data.users.find((item)=>item.auth_user_id===user.criado_por)?.nome||"Sistema"}</td>
+                  <td className="px-4 py-3"><Status value={user.status}/></td><td className="px-4 py-3">{formatLastAccess(user.ultimo_acesso_em)}</td><td className="px-4 py-3">{new Date(user.created_at).toLocaleDateString("pt-BR")}</td><td className="px-4 py-3">{(data?.users || []).find((item)=>item.auth_user_id===user.criado_por)?.nome||"Sistema"}</td>
                   <td className="px-4 py-3"><div className="flex gap-1">
                     <button title="Visualizar" onClick={()=>{setForm(user);setModal("view")}} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"><Eye size={15}/></button>
                     <button title="Editar" onClick={()=>openForm(user)} className="rounded-lg p-2 text-blue-600 hover:bg-blue-50"><Pencil size={15}/></button>
@@ -232,7 +232,7 @@ export default function UsuariosAcessosPage() {
       {modal==="form" && <Modal title={form.id?"Editar usuário":"Novo usuário"} subtitle="Dados pessoais, vínculo, escopo e políticas de segurança." onClose={()=>setModal(null)}>
         <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2">
           <div><label className={LABEL}>Nome completo *</label><input value={form.nome} onChange={e=>setForm({...form,nome:e.target.value})} className={INPUT}/></div>
-          <div><label className={LABEL}>Funcionário vinculado</label><select value={form.funcionario_id||""} onChange={e=>{const emp=data.employees.find(x=>x.id===e.target.value);setForm({...form,funcionario_id:e.target.value,cargo:form.cargo||emp?.cargo||""})}} className={INPUT}><option value="">Nenhum</option>{data.employees.filter(e=>e.ativo!==false).map(e=><option key={e.id} value={e.id}>{e.nome}</option>)}</select></div>
+          <div><label className={LABEL}>Funcionário vinculado</label><select value={form.funcionario_id||""} onChange={e=>{const emp=(data?.employees || []).find(x=>x.id===e.target.value);setForm({...form,funcionario_id:e.target.value,cargo:form.cargo||emp?.cargo||""})}} className={INPUT}><option value="">Nenhum</option>{(data?.employees || []).filter(e=>e.ativo!==false).map(e=><option key={e.id} value={e.id}>{e.nome}</option>)}</select></div>
           <div><label className={LABEL}>Foto ou avatar (URL)</label><input value={form.avatar_url||""} onChange={e=>setForm({...form,avatar_url:e.target.value})} className={INPUT}/></div>
           <div><label className={LABEL}>E-mail de contato</label><input type="email" value={form.email||""} onChange={e=>setForm({...form,email:e.target.value})} className={INPUT}/></div>
           <div><label className={LABEL}>Telefone</label><input value={form.telefone||""} onChange={e=>setForm({...form,telefone:e.target.value})} className={INPUT}/></div>
@@ -260,7 +260,7 @@ export default function UsuariosAcessosPage() {
         <footer className="flex justify-end gap-2 border-t border-slate-100 p-4"><button onClick={()=>setModal(null)} className="rounded-xl px-4 py-2 text-sm font-bold text-slate-500">Cancelar</button><button disabled={saving} onClick={submitUser} className="rounded-xl bg-emerald-600 px-5 py-2 text-sm font-black text-white">{saving?"Salvando...":"Salvar usuário"}</button></footer>
       </Modal>}
 
-      {modal==="permissions"&&<Modal wide title={`Permissões de ${form.nome}`} subtitle="Tudo bloqueado, exceto o que estiver selecionado." onClose={()=>setModal(null)}><div className="p-4"><PermissionBuilder value={permissionValue} onChange={setPermissionValue} copySources={[...data.profiles.map(p=>({id:`p-${p.id}`,label:`Perfil: ${p.nome}`,permissions:p.permissions})),...data.users.filter(u=>u.id!==form.id).map(u=>({id:`u-${u.id}`,label:`Usuário: ${u.nome}`,permissions:data.userPermissions.filter(x=>x.usuario_id===u.id&&x.effect==="allow").map(x=>x.permission_key)}))]}/></div><footer className="flex justify-end gap-2 border-t p-4"><button onClick={()=>setModal(null)} className="px-4 text-sm font-bold text-slate-500">Cancelar</button><button disabled={saving} onClick={savePermissions} className="rounded-xl bg-emerald-600 px-5 py-2 text-sm font-black text-white">Salvar permissões</button></footer></Modal>}
+      {modal==="permissions"&&<Modal wide title={`Permissões de ${form.nome}`} subtitle="Tudo bloqueado, exceto o que estiver selecionado." onClose={()=>setModal(null)}><div className="p-4"><PermissionBuilder value={permissionValue} onChange={setPermissionValue} copySources={[...(data?.profiles || []).map(p=>({id:`p-${p.id}`,label:`Perfil: ${p.nome}`,permissions:p.permissions})),...(data?.users || []).filter(u=>u.id!==form.id).map(u=>({id:`u-${u.id}`,label:`Usuário: ${u.nome}`,permissions:data.userPermissions.filter(x=>x.usuario_id===u.id&&x.effect==="allow").map(x=>x.permission_key)}))]}/></div><footer className="flex justify-end gap-2 border-t p-4"><button onClick={()=>setModal(null)} className="px-4 text-sm font-bold text-slate-500">Cancelar</button><button disabled={saving} onClick={savePermissions} className="rounded-xl bg-emerald-600 px-5 py-2 text-sm font-black text-white">Salvar permissões</button></footer></Modal>}
 
       {modal==="password"&&<Modal title={`Redefinir senha de ${form.nome}`} onClose={()=>setModal(null)}><div className="space-y-4 p-5"><div><label className={LABEL}>Nova senha temporária</label><input type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} className={INPUT}/></div><div><label className={LABEL}>Confirmar senha</label><input type="password" value={form.confirmPassword} onChange={e=>setForm({...form,confirmPassword:e.target.value})} className={INPUT}/></div><p className="text-sm text-slate-500">O usuário será obrigado a criar uma senha própria no próximo acesso.</p></div><footer className="flex justify-end gap-2 border-t p-4"><button onClick={()=>setModal(null)} className="px-4 text-sm font-bold text-slate-500">Cancelar</button><button onClick={resetPassword} className="rounded-xl bg-amber-600 px-5 py-2 text-sm font-black text-white">Redefinir senha</button></footer></Modal>}
 

@@ -369,6 +369,7 @@ function FichasRunner() {
   const [semeandoCustos, setSemeandoCustos] = useState(false);
   const [iaExplicacao, setIaExplicacao] = useState("");
   const [autoSoma, setAutoSoma] = useState(true);
+  const [buscaIng, setBuscaIng] = useState("");
 
   const [selecionadas, setSelecionadas] = useState([]);
   const [dragId, setDragId] = useState(null); // arrastar para reordenar
@@ -1048,6 +1049,19 @@ function FichasRunner() {
     };
   };
 
+  // Digitar é mais rápido do que rolar uma lista com centenas de opções.
+  const opcoesIngrediente = useMemo(() => [
+    ...insumosAtivos.map(i => ({ valor: `insumo:${i.id}`, nome: i.nome, detalhe: i.unidade_medida, tipo: "Insumo" })),
+    ...basesDisponiveis.map(b => ({ valor: `base:${b.id}`, nome: b.nome_receita, detalhe: b.rendimento_unidade, tipo: "Pré-preparo" })),
+    ...embalagensCat.map(i => ({ valor: `insumo:${i.id}`, nome: i.nome, detalhe: i.unidade_medida, tipo: "Embalagem" })),
+  ], [insumosAtivos, basesDisponiveis, embalagensCat]);
+
+  const sugestoesIngrediente = useMemo(() => {
+    const termo = buscaIng.trim().toLocaleLowerCase("pt-BR");
+    if (!termo) return [];
+    return opcoesIngrediente.filter(o => o.nome.toLocaleLowerCase("pt-BR").includes(termo)).slice(0, 8);
+  }, [buscaIng, opcoesIngrediente]);
+
   const addIngrediente = (valor) => {
     if (!valor) return;
     const [, id] = valor.split(":");
@@ -1056,6 +1070,7 @@ function FichasRunner() {
     if (!novo) return;
     setAutoSoma(true);
     setIngFicha([...ingFicha, novo]);
+    setBuscaIng("");
   };
 
   // Recebe a quantidade JÁ em unidade-base (a conversão acontece no onChange do input)
@@ -3091,24 +3106,28 @@ function FichasRunner() {
                            </span>
                         </div>
                      
-                        {/* ADD INGREDIENTE */}
-                        <div className="flex gap-2 mb-4">
-                           <select onChange={e => { addIngrediente(e.target.value); e.target.value=""; }} className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-600 outline-none focus:border-emerald-500 text-sm">
-                              <option value="">+ Adicionar insumo ou base...</option>
-                              <optgroup label="Insumos">
-                                 {insumosAtivos.map(i => <option key={i.id} value={`insumo:${i.id}`}>{i.nome} ({i.unidade_medida})</option>)}
-                              </optgroup>
-                              {basesDisponiveis.length > 0 && (
-                                 <optgroup label="Bases / Pré-preparos">
-                                    {basesDisponiveis.map(b => <option key={b.id} value={`base:${b.id}`}>{b.nome_receita} ({b.rendimento_unidade})</option>)}
-                                 </optgroup>
-                              )}
-                              {embalagensCat.length > 0 && (
-                                 <optgroup label="Embalagens">
-                                    {embalagensCat.map(i => <option key={i.id} value={`insumo:${i.id}`}>{i.nome} ({i.unidade_medida})</option>)}
-                                 </optgroup>
-                              )}
-                           </select>
+                        {/* ADD INGREDIENTE — busca por digitação: a lista tem centenas de itens */}
+                        <div className="relative mb-4">
+                           <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3">
+                              <Search size={17} className="shrink-0 text-slate-400" />
+                              <input value={buscaIng} onChange={e => setBuscaIng(e.target.value)}
+                                 placeholder="Digite para achar insumo, pré-preparo ou embalagem"
+                                 className="h-12 w-full bg-transparent font-bold text-slate-700 outline-none" />
+                              {buscaIng && <button type="button" onClick={() => setBuscaIng("")} className="shrink-0 text-slate-400 hover:text-slate-600"><X size={16} /></button>}
+                           </div>
+                           {buscaIng.trim() && (
+                              <div className="mt-2 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                                 {sugestoesIngrediente.length === 0 ? (
+                                    <p className="p-3 text-sm font-bold text-slate-400">Nada encontrado com esse nome.</p>
+                                 ) : sugestoesIngrediente.map(o => (
+                                    <button key={o.valor + o.nome} type="button" onClick={() => addIngrediente(o.valor)}
+                                       className="flex w-full items-center gap-2 border-b border-slate-50 px-3 py-2.5 text-left last:border-0 hover:bg-emerald-50">
+                                       <span className="min-w-0 flex-1 truncate text-sm font-black text-slate-800">{o.nome}</span>
+                                       <span className="shrink-0 text-[10px] font-black uppercase tracking-wider text-slate-400">{o.tipo}{o.detalhe ? ` · ${o.detalhe}` : ""}</span>
+                                    </button>
+                                 ))}
+                              </div>
+                           )}
                         </div>
 
                         {/* Cabeçalho estilo tabela (como na ficha de referência) */}

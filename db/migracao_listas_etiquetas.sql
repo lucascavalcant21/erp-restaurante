@@ -3,7 +3,7 @@
 
 create table if not exists public.listas_etiquetas (
   id uuid primary key default gen_random_uuid(),
-  unidade_id uuid not null,
+  unidade_id text not null,   -- TEXTO: ids de unidade no ERP nao sao uuid
   nome text not null,
   setor text not null check (setor in ('cozinha', 'bar')),
   responsavel_id uuid,

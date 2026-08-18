@@ -10,7 +10,7 @@
 
 create table if not exists public.fichas_custo_historico (
   id                 uuid primary key default gen_random_uuid(),
-  unidade_id         uuid,
+  unidade_id         text,   -- TEXTO: ids de unidade no ERP nao sao uuid
   ficha_id           uuid not null references public.fichas_tecnicas(id) on delete cascade,
   custo_total        numeric(14,4) not null default 0,
   custo_porcao       numeric(14,4),

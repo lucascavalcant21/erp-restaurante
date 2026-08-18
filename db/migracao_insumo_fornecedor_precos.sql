@@ -9,7 +9,7 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- Colunas de preço na tabela de vínculo insumo↔fornecedor.
-alter table public.insumos_fornecedores add column if not exists unidade_id         uuid;
+alter table public.insumos_fornecedores add column if not exists unidade_id         text;
 alter table public.insumos_fornecedores add column if not exists preco              numeric(14,4);
 alter table public.insumos_fornecedores add column if not exists tamanho_embalagem  numeric(14,4);
 alter table public.insumos_fornecedores add column if not exists unidade_embalagem  text;

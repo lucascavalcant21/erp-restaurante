@@ -12,6 +12,7 @@ import {
   registrarLoteMovimentosMulti,
 } from "../lib/estoques-multiplos";
 import { fetchNomesDePratosEDrinks } from "../lib/operacao";
+import { fetchEmbalagens } from "../lib/embalagens";
 import { fetchColaboradores } from "../lib/rh";
 import { useERP } from "../context/ERPContext";
 import { criarEscuta, falar, vozDisponivel } from "../lib/hefisto-voz";
@@ -225,6 +226,19 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
     const nomesProntos = await fetchNomesDePratosEDrinks(
       unidadeAtiva, ["cozinha", "bar"].includes(departamento) ? departamento : "",
     );
+    // Estoque de embalagem só mostra embalagem. Havia 93 produtos do bar
+    // vinculados ali por engano, todos zerados, escondendo os potes e sacos de
+    // verdade. Nada é apagado: o vínculo errado continua no banco, só sai da
+    // contagem. A lista oficial é o cadastro de embalagens do restaurante.
+    const ehEstoqueDeEmbalagem = estoquesAlvo.some(e =>
+      /embalage/i.test(`${e.slug || ""} ${e.nome || ""}`) || e.tipo === "embalagens");
+    const embalagensCadastradas = ehEstoqueDeEmbalagem
+      ? await fetchEmbalagens(unidadeAtiva)
+      : { data: [] };
+    const nomesEmbalagem = new Set(
+      (embalagensCadastradas.data || []).map(e => String(e.nome || "").trim().toLowerCase()).filter(Boolean));
+    const idsEmbalagem = new Set(
+      (embalagensCadastradas.data || []).map(e => e.insumo_id).filter(Boolean));
     const [respostasItens, respostasHistorico] = await Promise.all([
       Promise.all(estoquesAlvo.map(estoque => fetchItensEstoque(estoque.id, unidadeAtiva))),
       Promise.all(estoquesAlvo.map(estoque => fetchMovimentosMulti(unidadeAtiva, estoque.id, 120))),
@@ -236,7 +250,13 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
     const prontos = new Set(nomesProntos.data || []);
     const itensCarregados = estoquesAlvo.flatMap((estoque, indice) =>
       (respostasItens[indice]?.data || []).map(item => normalizarItem(item, estoque, departamento))
-    ).filter(item => !prontos.has(String(item.nome || "").trim().toLowerCase()));
+    ).filter(item => {
+      const nome = String(item.nome || "").trim().toLowerCase();
+      if (prontos.has(nome)) return false;
+      if (!ehEstoqueDeEmbalagem) return true;
+      const dept = String(item.departamento || item.insumo?.departamento || "").toLowerCase();
+      return dept.startsWith("embalage") || idsEmbalagem.has(item.insumo_id) || nomesEmbalagem.has(nome);
+    });
     setItens(itensCarregados);
     setFuncionarios((resFuncionarios.data || []).filter(f =>
       f.ativo !== false && f.status !== "inativo" && f.tipo_contrato !== "Freelancer"

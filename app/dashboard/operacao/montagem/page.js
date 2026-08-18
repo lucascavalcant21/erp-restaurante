@@ -14,7 +14,7 @@ import {
 } from "../../../lib/montagem";
 import { fetchProdutos } from "../../../lib/vendas";
 import { fetchModeloMontagem, salvarModeloMontagem } from "../../../lib/parametros";
-import { fetchNomesDePratosEDrinks, fetchNomesDeProdutosProntos } from "../../../lib/operacao";
+import { fetchNomesDeProdutosProntos } from "../../../lib/operacao";
 import { logoSeldeestrelaSVG } from "../../../lib/marca";
 import { CATALOGO_COPOS, desenhoCopoSVG, ilustracaoDrinkSVG, identificarCopo, imagemCopoHTML } from "../../../lib/copos";
 import { baixarPdfDeHtml } from "../../../lib/pdf";
@@ -1835,9 +1835,6 @@ function MontagemPageInner() {
   const [guiaModoPraca, setGuiaModoPraca] = useState(null); // modo produção / praça (tablet/TV)
   // Nomes do que é comprado pronto: ficam fora do guia de drinks.
   const [compradosProntos, setCompradosProntos] = useState(() => new Set());
-  // Nomes que têm ficha de receita de verdade (prato ou drink montado).
-  // null enquanto não carregou, para a lista não piscar vazia.
-  const [receitasDoSetor, setReceitasDoSetor] = useState(null);
 
   // A Cozinha e o Bar são áreas separadas. Se a navegação mudar apenas o
   // parâmetro do setor, atualiza a tela inteira sem reaproveitar dados do outro.
@@ -1934,13 +1931,8 @@ function MontagemPageInner() {
 
   useEffect(() => {
     let ativo = true;
-    Promise.all([
-      fetchNomesDeProdutosProntos(unidadeAtiva),
-      fetchNomesDePratosEDrinks(unidadeAtiva, dept),
-    ]).then(([comprados, receitas]) => {
-      if (!ativo) return;
-      setCompradosProntos(new Set(comprados.data || []));
-      setReceitasDoSetor(new Set(receitas.data || []));
+    fetchNomesDeProdutosProntos(unidadeAtiva).then(({ data }) => {
+      if (ativo) setCompradosProntos(new Set(data || []));
     }).catch(() => {});
     return () => { ativo = false; };
   }, [unidadeAtiva, dept]);
@@ -2032,13 +2024,14 @@ function MontagemPageInner() {
     // as três leem daqui. Quem cuida desses itens é o cardápio e o estoque.
     const nome = String(m.nome || "").trim().toLowerCase();
     const comprado = compradosProntos.has(nome);
-    // Guia de montagem é para o que se monta. Entra quem tem ficha de receita
-    // no setor ou quem já tem passo a passo escrito — o resto é garrafa que
-    // alguém cadastrou no cardápio e virou card sozinho. Enquanto a lista de
-    // receitas não chega (null), não filtra, para a tela não piscar vazia.
-    const ehReceita = !receitasDoSetor || receitasDoSetor.has(nome) || temConteudoDrink(m);
-    return mb && mt && !comprado && ehReceita;
-  }), [lista, busca, tipo, compradosProntos, receitasDoSetor]);
+    // Guia de montagem mostra o que TEM montagem. Tentei antes separar pela
+    // ficha técnica, mas garrafa e drink são cadastrados do mesmo jeito no
+    // receituário — de lá não dá para distinguir. O que separa de verdade é
+    // isto: água, cerveja e refrigerante nunca vão ter passo a passo, porque
+    // não se montam. Quem ainda não tem receita continua no botão "Receitas
+    // com IA", que lê a lista inteira, e reaparece assim que ganhar conteúdo.
+    return mb && mt && !comprado && temConteudoDrink(m);
+  }), [lista, busca, tipo, compradosProntos]);
 
   // O que vai pra impressora: as marcadas nos cards; sem marcação, as filtradas
   const alvoImpressao = selecionadas.length ? lista.filter(m => selecionadas.includes(m.id)) : filtrados;

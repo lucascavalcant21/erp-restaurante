@@ -378,6 +378,28 @@ export async function fetchFichas(unidadeId, dept) {
   return { data: data || [], error: error?.message };
 }
 
+// Nomes dos pratos e drinks que são montados na hora do pedido.
+// Servem para manter a contagem de estoque limpa: o que sai pronto da cozinha
+// ou do balcão não é coisa que se guarda e se conta — quem tem saldo é o
+// ingrediente e o pré-preparo. Ficam de fora desta lista, de propósito:
+//  · eh_base = pré-preparo, que tem estoque próprio e é contado lá;
+//  · tipo_base 'produto_pronto' = comprado pronto (cerveja, refrigerante),
+//    que é estoque de verdade e precisa continuar aparecendo.
+export async function fetchNomesDePratosEDrinks(unidadeId, dept = "") {
+  if (!isSupabaseReady() || !unidadeId) return { data: [] };
+  let query = supabase.from("fichas_tecnicas")
+    .select("nome_receita, eh_base, tipo_base").eq("unidade_id", unidadeId);
+  if (dept) query = query.eq("departamento", dept);
+  const { data, error } = await query;
+  if (error) return { data: [], error: error.message };
+  return {
+    data: (data || [])
+      .filter(f => !f.eh_base && f.tipo_base !== "produto_pronto")
+      .map(f => String(f.nome_receita || "").trim().toLowerCase())
+      .filter(Boolean),
+  };
+}
+
 export async function salvarFicha(ficha, ingredientes) {
   if (!isSupabaseReady()) return { error: "Offline" };
   

@@ -11,6 +11,7 @@ import {
   fetchEstoques, fetchItensEstoque, fetchMovimentosMulti, garantirEstoquesPadrao,
   registrarLoteMovimentosMulti,
 } from "../lib/estoques-multiplos";
+import { fetchNomesDePratosEDrinks } from "../lib/operacao";
 import { fetchColaboradores } from "../lib/rh";
 import { useERP } from "../context/ERPContext";
 import { criarEscuta, falar, vozDisponivel } from "../lib/hefisto-voz";
@@ -221,13 +222,21 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
       if (tipoEstoque === "embalagens") return ehEmbalagem;
       return !ehPreparo && !ehEmbalagem;
     });
+    const nomesProntos = await fetchNomesDePratosEDrinks(
+      unidadeAtiva, ["cozinha", "bar"].includes(departamento) ? departamento : "",
+    );
     const [respostasItens, respostasHistorico] = await Promise.all([
       Promise.all(estoquesAlvo.map(estoque => fetchItensEstoque(estoque.id, unidadeAtiva))),
       Promise.all(estoquesAlvo.map(estoque => fetchMovimentosMulti(unidadeAtiva, estoque.id, 120))),
     ]);
+    // Prato e drink montados na hora não são estoque: quem tem saldo é o
+    // ingrediente e o pré-preparo. Se um deles foi parar aqui como item, some
+    // da contagem — ninguém conta "caipirinha" na geladeira. Cerveja e
+    // refrigerante continuam, porque são comprados prontos.
+    const prontos = new Set(nomesProntos.data || []);
     const itensCarregados = estoquesAlvo.flatMap((estoque, indice) =>
       (respostasItens[indice]?.data || []).map(item => normalizarItem(item, estoque, departamento))
-    );
+    ).filter(item => !prontos.has(String(item.nome || "").trim().toLowerCase()));
     setItens(itensCarregados);
     setFuncionarios((resFuncionarios.data || []).filter(f =>
       f.ativo !== false && f.status !== "inativo" && f.tipo_contrato !== "Freelancer"

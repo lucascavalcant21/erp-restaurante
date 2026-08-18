@@ -9,7 +9,7 @@ import {
   Settings2, Share2, Tablet, Upload, User, Warehouse, X,
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
-import { fetchInsumos, salvarInsumo } from "../../../lib/operacao";
+import { fetchInsumos, fetchNomesDePratosEDrinks, salvarInsumo } from "../../../lib/operacao";
 import { fetchColaboradores } from "../../../lib/rh";
 import { criarEscuta, vozDisponivel } from "../../../lib/hefisto-voz";
 import { equipeDaArea } from "../../../lib/equipe-area.mjs";
@@ -431,11 +431,18 @@ function EstoqueRunner() {
   const carregarArea = useCallback(async () => {
     if (!estoqueId || !unidadeAtiva) return;
     setLoading(true);
-    const [resItens, resMovimentos] = await Promise.all([
+    const [resItens, resMovimentos, resProntos] = await Promise.all([
       fetchItensEstoque(estoqueId, unidadeAtiva),
       fetchMovimentosMulti(unidadeAtiva, estoqueId),
+      fetchNomesDePratosEDrinks(unidadeAtiva),
     ]);
-    setItens(resItens.data || []);
+    // Prato e drink montados na hora não têm saldo para contar: quem tem é o
+    // ingrediente e o pré-preparo, que fica no estoque próprio dele. Comprado
+    // pronto (cerveja, refrigerante) continua na lista, porque é estoque mesmo.
+    const prontos = new Set(resProntos.data || []);
+    setItens((resItens.data || []).filter(item =>
+      !prontos.has(String(item.nome || item.insumo?.nome || "").trim().toLowerCase())
+    ));
     setMovimentos(resMovimentos.data || []);
     if (resItens.error || resMovimentos.error) setErro(resItens.error || resMovimentos.error);
     setLoading(false);

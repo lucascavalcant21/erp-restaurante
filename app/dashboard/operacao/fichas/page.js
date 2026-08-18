@@ -85,6 +85,18 @@ const CATEGORIAS_BAR = [
 ];
 
 const CATEGORIAS_PREPARO_BAR = ["Xaropes", "Espumas", "Geleias", "Mixes e infusões", "Outros pré-preparos"];
+
+// Método do drink. Batido e mexido não são estilo: mudam o resultado no copo —
+// o shaker aera, gela e dilui mais; o mixing glass mantém o drink límpido e
+// com corpo. Quem monta no balcão precisa disso escrito, não subentendido.
+const METODOS_BAR = [
+  { id: "batido", nome: "Batido (shaker)", ajuda: "Suco, xarope, creme ou clara de ovo" },
+  { id: "mexido", nome: "Mexido (mixing glass)", ajuda: "Só destilados — límpido e sedoso" },
+  { id: "montado", nome: "Montado no copo", ajuda: "Direto no copo do cliente, sem transferir" },
+  { id: "liquidificador", nome: "Liquidificador", ajuda: "Frozen e batidas com gelo triturado" },
+  { id: "dose", nome: "Dose pura", ajuda: "Servido puro, sem preparo" },
+];
+const metodoBar = (id) => METODOS_BAR.find(m => m.id === id) || null;
 const CATEGORIAS_PREPARO_COZINHA = [
   "Molhos e caldos",
   "Arroz, feijão e grãos",
@@ -838,7 +850,7 @@ function FichasRunner() {
     const categoriaInicial = criandoPreparo
       ? (deptUrl === "bar" ? CATEGORIAS_PREPARO_BAR[0] : CATEGORIAS_PREPARO_COZINHA[0])
       : "";
-    setForm({ id: null, departamento: deptUrl, nome_receita: "", categoria: categoriaInicial, rendimento_porcoes: "1", modo_preparo: "", eh_base: criandoPreparo, produto_pronto: false, tipo_base: criandoPreparo ? "pre" : null, rendimento_unidade: "porcao", peso_porcao_g: "", imagem: "", tempo_preparo: "", validade_dias: "", observacoes: "", preco_venda: "", cmv_meta: 30 });
+    setForm({ id: null, departamento: deptUrl, nome_receita: "", categoria: categoriaInicial, rendimento_porcoes: "1", modo_preparo: "", eh_base: criandoPreparo, produto_pronto: false, tipo_base: criandoPreparo ? "pre" : null, rendimento_unidade: "porcao", peso_porcao_g: "", imagem: "", tempo_preparo: "", validade_dias: "", observacoes: "", metodo_bar: "", preco_venda: "", cmv_meta: 30 });
     setIngFicha([]);
     setFichaEmbalagens([]);
     setNovaEmbalagem({ nome: "", custo: "" });
@@ -866,7 +878,7 @@ function FichasRunner() {
        imagem: ficha.imagem || "",
        tempo_preparo: ficha.tempo_preparo != null ? String(ficha.tempo_preparo) : "",
        validade_dias: ficha.validade_dias != null ? String(ficha.validade_dias) : "",
-       observacoes: ficha.observacoes || "",
+       observacoes: ficha.observacoes || "", metodo_bar: ficha.metodo_bar || "",
        cmv_meta: ficha.cmv_meta != null ? Number(ficha.cmv_meta) : 30,
        preco_venda: (() => {
           const prod = produtos.find(x => x.ficha_id === ficha.id || String(x.nome_produto || "").toLowerCase() === String(ficha.nome_receita || "").toLowerCase());
@@ -1180,7 +1192,9 @@ function FichasRunner() {
           imagem: form.imagem || null,
           tempo_preparo: form.tempo_preparo ? Number(form.tempo_preparo) : null,
           validade_dias: form.validade_dias ? Number(form.validade_dias) : null,
-          observacoes: form.observacoes || null
+          observacoes: form.observacoes || null,
+          // Coluna nova: salvarFicha remove sozinha se a migração ainda não rodou.
+          metodo_bar: (form.departamento === "bar" && !form.eh_base && form.metodo_bar) ? form.metodo_bar : null
        },
        ingValidos.map(i => ({
           insumo_id: i.tipo === "insumo" ? i.insumo_id : null,
@@ -1338,7 +1352,7 @@ function FichasRunner() {
 
     // "Salvar e criar outra": limpa o formulário e continua no modal
     if (criarOutra) {
-      setForm({ id: null, departamento: form.departamento, nome_receita: "", categoria: "", rendimento_porcoes: "1", modo_preparo: "", eh_base: false, produto_pronto: false, tipo_base: null, rendimento_unidade: "porcao", peso_porcao_g: "", imagem: "", tempo_preparo: "", validade_dias: "", observacoes: "", preco_venda: "", cmv_meta: 30 });
+      setForm({ id: null, departamento: form.departamento, nome_receita: "", categoria: "", rendimento_porcoes: "1", modo_preparo: "", eh_base: false, produto_pronto: false, tipo_base: null, rendimento_unidade: "porcao", peso_porcao_g: "", imagem: "", tempo_preparo: "", validade_dias: "", observacoes: "", metodo_bar: "", preco_venda: "", cmv_meta: 30 });
       setIngFicha([]);
       setFichaEmbalagens([]);
       setNovaEmbalagem({ nome: "", custo: "" });
@@ -1692,6 +1706,7 @@ function FichasRunner() {
                      <div class="campo"><b>Categoria:</b> ${esc(f.categoria || deptLabel)}</div>
                      <div class="campo"><b>Área:</b> ${esc(deptLabel)}</div>
                      <div class="campo"><b>Tempo de preparo:</b> ${f.tempo_preparo != null && f.tempo_preparo !== '' ? esc(String(f.tempo_preparo)) + ' min' : '—'}</div>
+                     ${metodoBar(f.metodo_bar) ? `<div class="campo"><b>Método:</b> ${esc(metodoBar(f.metodo_bar).nome)}</div>` : ''}
                      ${incluir("atualizacao") ? `<div class="campo"><b>Data de criação:</b> ${fmtDataBR(f.created_at)}</div>
                      <div class="campo"><b>Última atualização:</b> ${fmtDataBR(f.updated_at)}</div>` : ""}
                      ${incluir("responsaveis") && f.responsavel ? `<div class="campo full"><b>Responsável:</b> ${esc(f.responsavel)}</div>` : ""}
@@ -2928,6 +2943,7 @@ function FichasRunner() {
                            <div className="space-y-2 text-sm">
                               <div className="flex items-center gap-2 text-slate-600"><Clock size={15} className="text-emerald-600 shrink-0" /><span className="font-bold">Tempo de preparo:</span> <b className="text-slate-800">{f.tempo_preparo ? `${f.tempo_preparo} min` : "—"}</b></div>
                               <div className="flex items-center gap-2 text-slate-600"><Thermometer size={15} className="text-emerald-600 shrink-0" /><span className="font-bold">Validade:</span> <b className="text-slate-800">{f.validade_dias ? `${f.validade_dias} dia${Number(f.validade_dias) !== 1 ? "s" : ""}` : "—"}</b></div>
+                              {metodoBar(f.metodo_bar) && <div className="flex items-center gap-2 text-slate-600"><Wine size={15} className="text-emerald-600 shrink-0" /><span className="font-bold">Método:</span> <b className="text-slate-800">{metodoBar(f.metodo_bar).nome}</b></div>}
                               {f.observacoes && <p className="text-[13px] text-slate-500 font-medium pt-1 leading-relaxed border-t border-slate-100 mt-2">{f.observacoes}</p>}
                            </div>
                         </div>
@@ -3660,6 +3676,26 @@ function FichasRunner() {
 
                         <textarea placeholder="Passo a passo da execução..." value={form.modo_preparo} onChange={e=>setForm({...form, modo_preparo: e.target.value})} className="w-full h-52 p-4 mt-1 bg-white border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:border-emerald-500 shadow-sm resize-y"></textarea>
                      </div>}
+
+                     {/* Só drink pronto tem método: xarope e infusão não se batem nem se mexem. */}
+                     {form.departamento === "bar" && !form.eh_base && (
+                        <div>
+                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Método de preparo</label>
+                           <div className="mt-1.5 grid gap-2 sm:grid-cols-2">
+                              {METODOS_BAR.map(metodo => {
+                                 const ativo = form.metodo_bar === metodo.id;
+                                 return (
+                                    <button key={metodo.id} type="button"
+                                       onClick={() => setForm({ ...form, metodo_bar: ativo ? "" : metodo.id })}
+                                       className={`rounded-xl border-2 p-3 text-left transition ${ativo ? "border-emerald-500 bg-emerald-50" : "border-slate-200 bg-white hover:border-emerald-300"}`}>
+                                       <span className={`block text-sm font-black ${ativo ? "text-emerald-700" : "text-slate-700"}`}>{metodo.nome}</span>
+                                       <span className="mt-0.5 block text-[11px] font-semibold text-slate-500">{metodo.ajuda}</span>
+                                    </button>
+                                 );
+                              })}
+                           </div>
+                        </div>
+                     )}
 
                      {/* Dados extras da ficha técnica: tempo, validade e observações */}
                      <div>

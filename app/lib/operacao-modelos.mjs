@@ -122,6 +122,87 @@ export const MODELOS_PROCESSO = [
       },
     ],
   },
+  {
+    id: "abertura_salao",
+    nome: "Abertura do salão",
+    descricao: "O salão pronto antes do primeiro cliente sentar.",
+    categoria: "Salão", setor: "salao", criticidade: "normal",
+    agenda: { frequencia: "diaria", hora_inicio: "10:00", minutos_tolerancia: 15, minutos_prazo: 120 },
+    secoes: [
+      {
+        titulo: "Ambiente",
+        itens: [
+          { titulo: "Mesas postas e alinhadas", tipo: "CONFORME_NAO_CONFORME", exige_foto: true },
+          { titulo: "Piso e banheiros limpos", tipo: "CONFORME_NAO_CONFORME", critico: true },
+          { titulo: "Ar-condicionado, som e iluminação ligados", tipo: "FEITO_NAO_FEITO" },
+          { titulo: "Temperatura do salão", tipo: "TEMPERATURA", unidade_medida: "°C", valor_min: 20, valor_max: 26 },
+        ],
+      },
+      {
+        titulo: "Atendimento",
+        itens: [
+          { titulo: "Cardápios limpos e sem página faltando", tipo: "CONFORME_NAO_CONFORME" },
+          { titulo: "Maquininhas carregadas e com bobina", tipo: "FEITO_NAO_FEITO", critico: true },
+          { titulo: "Troco conferido no caixa", tipo: "MOEDA", unidade_medida: "R$" },
+          { titulo: "Equipe uniformizada e escalada", tipo: "CONFORME_NAO_CONFORME" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "fechamento_cozinha",
+    nome: "Fechamento da cozinha",
+    descricao: "O que precisa estar feito antes de desligar as luzes da cozinha.",
+    categoria: "Cozinha", setor: "cozinha", criticidade: "alta",
+    agenda: { frequencia: "diaria", hora_inicio: "23:30", minutos_tolerancia: 20, minutos_prazo: 120 },
+    secoes: [
+      {
+        titulo: "Alimentos",
+        itens: [
+          { titulo: "Sobras etiquetadas e guardadas", tipo: "CONFORME_NAO_CONFORME", critico: true, exige_foto: true },
+          { titulo: "Temperatura da câmara fria no fechamento", tipo: "TEMPERATURA", unidade_medida: "°C", valor_min: 0, valor_max: 4, critico: true },
+          { titulo: "Descarte do dia (kg)", tipo: "QUANTIDADE", unidade_medida: "kg", exige_comentario: true },
+        ],
+      },
+      {
+        titulo: "Equipamentos e limpeza",
+        itens: [
+          { titulo: "Fogões, chapa e fritadeira desligados", tipo: "CONFORME_NAO_CONFORME", critico: true },
+          { titulo: "Coifa e filtros limpos", tipo: "FEITO_NAO_FEITO" },
+          { titulo: "Bancadas higienizadas e piso lavado", tipo: "CONFORME_NAO_CONFORME", exige_foto: true },
+          { titulo: "Lixo retirado", tipo: "FEITO_NAO_FEITO" },
+          { titulo: "Gás fechado no registro", tipo: "CONFORME_NAO_CONFORME", critico: true },
+        ],
+      },
+    ],
+  },
+  {
+    id: "fechamento_bar",
+    nome: "Fechamento do bar",
+    descricao: "Bebida guardada, bar limpo e caixa conferido.",
+    categoria: "Bar", setor: "bar", criticidade: "normal",
+    agenda: { frequencia: "diaria", hora_inicio: "23:30", minutos_tolerancia: 20, minutos_prazo: 120 },
+    secoes: [
+      {
+        titulo: "Bebidas",
+        itens: [
+          { titulo: "Garrafas abertas tampadas e guardadas", tipo: "CONFORME_NAO_CONFORME", critico: true },
+          { titulo: "Chope: torneira limpa e fechada", tipo: "FEITO_NAO_FEITO" },
+          { titulo: "Expositor e balcão refrigerado repostos", tipo: "CONFORME_NAO_CONFORME", exige_foto: true },
+          { titulo: "Frutas e guarnições descartadas ou guardadas", tipo: "FEITO_NAO_FEITO" },
+        ],
+      },
+      {
+        titulo: "Bar e caixa",
+        itens: [
+          { titulo: "Bancada e pia higienizadas", tipo: "CONFORME_NAO_CONFORME" },
+          { titulo: "Copos lavados e guardados", tipo: "FEITO_NAO_FEITO" },
+          { titulo: "Valor em caixa do bar", tipo: "MOEDA", unidade_medida: "R$", critico: true },
+          { titulo: "Observações do turno", tipo: "TEXTO_LONGO", obrigatorio: false },
+        ],
+      },
+    ],
+  },
 ];
 
 // Converte o modelo no formato que o construtor usa em memória.

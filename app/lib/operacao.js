@@ -385,6 +385,24 @@ export async function fetchFichas(unidadeId, dept) {
 //  · eh_base = pré-preparo, que tem estoque próprio e é contado lá;
 //  · tipo_base 'produto_pronto' = comprado pronto (cerveja, refrigerante),
 //    que é estoque de verdade e precisa continuar aparecendo.
+// Nomes do que é comprado pronto (cerveja, refrigerante, bombom). Não tem
+// receita nem montagem: entra no estoque e sai vendido do jeito que chegou.
+// Serve para tirar esses itens do guia de montagem e do receituário.
+export async function fetchNomesDeProdutosProntos(unidadeId, dept = "") {
+  if (!isSupabaseReady() || !unidadeId) return { data: [] };
+  let query = supabase.from("fichas_tecnicas")
+    .select("nome_receita, eh_base, tipo_base").eq("unidade_id", unidadeId);
+  if (dept) query = query.eq("departamento", dept);
+  const { data, error } = await query;
+  if (error) return { data: [], error: error.message };
+  return {
+    data: (data || [])
+      .filter(f => !f.eh_base && f.tipo_base === "produto_pronto")
+      .map(f => String(f.nome_receita || "").trim().toLowerCase())
+      .filter(Boolean),
+  };
+}
+
 export async function fetchNomesDePratosEDrinks(unidadeId, dept = "") {
   if (!isSupabaseReady() || !unidadeId) return { data: [] };
   let query = supabase.from("fichas_tecnicas")

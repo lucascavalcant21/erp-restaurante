@@ -14,10 +14,23 @@ import {
 } from "../../../lib/montagem";
 import { fetchProdutos } from "../../../lib/vendas";
 import { fetchModeloMontagem, salvarModeloMontagem } from "../../../lib/parametros";
+import { fetchNomesDeProdutosProntos } from "../../../lib/operacao";
 import { logoSeldeestrelaSVG } from "../../../lib/marca";
 import { CATALOGO_COPOS, desenhoCopoSVG, ilustracaoDrinkSVG, identificarCopo, imagemCopoHTML } from "../../../lib/copos";
 import { baixarPdfDeHtml } from "../../../lib/pdf";
 import RecipeWorkspace from "../../../components/RecipeWorkspace";
+
+// O guia já numera os passos por conta própria, na bolinha e no <ol>. Quando o
+// texto vinha com "Passo 1:" ou "1." escrito dentro, a linha saía numerada duas
+// vezes ("1  Passo 1: coloque o gelo"). Tira o prefixo na hora de mostrar, para
+// consertar também as receitas que já estão salvas assim.
+function limparPasso(texto) {
+  return String(texto || "")
+    .trim()
+    .replace(/^(?:passo|etapa)\s*\d+\s*[:.\-–)]?\s*/i, "")
+    .replace(/^\d+\s*[.)\-–]\s*/, "")
+    .trim();
+}
 
 const VAZIO = {
   nome: "", tipo: "prato", departamento: "cozinha",
@@ -677,7 +690,7 @@ function ModoPracaDisplay({ guia, lista, onClose }) {
                         </span>
                         <div className="flex-1 min-w-0">
                           <p className="text-lg lg:text-xl font-black text-slate-100 leading-snug">
-                            {passo.replace(/^\d+[\.\)]\s*/, "")}
+                            {limparPasso(passo)}
                           </p>
                         </div>
                         <button
@@ -1216,7 +1229,7 @@ function imprimirLote(fichas, porFolha, deptLabel) {
         <span class="tag">${escaparHtml(m.tipo || "")}${m.tempo_preparo ? ` · ${escaparHtml(m.tempo_preparo)} min` : ""}</span>
       </div>
       ${camadas.length ? `<div class="camadas"><b>Montagem (de cima p/ baixo):</b> ${camadas.map(c => escaparHtml(c.nome || c.tipo || "Camada")).join(" → ")}</div>` : ""}
-      ${passos.length ? `<ol>${passos.map(p => `<li>${escaparHtml(p.replace(/^\d+[\.\)]\s*/, ""))}</li>`).join("")}</ol>` : `<p class="vazio">Sem passo a passo cadastrado — edite a ficha para adicionar.</p>`}
+      ${passos.length ? `<ol>${passos.map(p => `<li>${escaparHtml(limparPasso(p))}</li>`).join("")}</ol>` : `<p class="vazio">Sem passo a passo cadastrado — edite a ficha para adicionar.</p>`}
       ${m.observacoes && !String(m.observacoes).startsWith("Criado automaticamente") ? `<p class="obs">${escaparHtml(m.observacoes)}</p>` : ""}
     </div>`;
   };
@@ -1274,7 +1287,7 @@ function gerarHtmlModelo(fichas, cfgEntrada, deptLabel, { previsualizacao = fals
 
   const cardHTML = (m) => {
     const nome = escaparHtml(m.nome || "Ficha de montagem");
-    const etapas = String(m.descritivo || "").split("\n").map((s) => s.trim().replace(/^\d+[\.\)]\s*/, "")).filter(Boolean);
+    const etapas = String(m.descritivo || "").split("\n").map((s) => limparPasso(s)).filter(Boolean);
     const camadas = Array.isArray(m.estrutura_ia) ? m.estrutura_ia : [];
     // Em cima só o tipo/setor; tempo e rendimento vão ABAIXO dos ingredientes
     const detalhes = [
@@ -1551,9 +1564,15 @@ function temConteudoDrink(m) {
   const temIng = camadas.some((c) => c.tipo !== "copo" && (c.nome || "").trim());
   return temIng || String(m.descritivo || "").trim().length > 0;
 }
-// Só os drinks que valem para o guia (é drink + tem receita/montagem).
-function drinksDoGuia(lista) {
-  return (lista || []).filter((m) => ehDrinkGuia(m) && temConteudoDrink(m));
+// Só os drinks que valem para o guia: é drink, tem receita/montagem e não é
+// comprado pronto. Água tônica e licor casam com as palavras de drink pelo
+// nome, mas garrafa que se abre e serve não tem montagem para ensinar.
+function drinksDoGuia(lista, comprados = new Set()) {
+  return (lista || []).filter((m) =>
+    ehDrinkGuia(m)
+    && temConteudoDrink(m)
+    && !comprados.has(String(m.nome || "").trim().toLowerCase())
+  );
 }
 
 // Cor de cada categoria (usada nos títulos e no índice/livro).
@@ -1568,7 +1587,7 @@ function drinkCardHTML(m) {
   const camadas = Array.isArray(m.estrutura_ia) ? m.estrutura_ia : [];
   const copo = camadas.find((c) => c.tipo === "copo");
   const ingredientes = camadas.filter((c) => c.tipo !== "copo" && (c.nome || "").trim());
-  const passos = String(m.descritivo || "").split("\n").map((s) => s.trim().replace(/^\d+[\.\)]\s*/, "")).filter(Boolean);
+  const passos = String(m.descritivo || "").split("\n").map((s) => limparPasso(s)).filter(Boolean);
   // A imagem principal pertence ao drink. A foto do copo é independente e
   // aparece somente no bloco "Copo" abaixo.
   const textoIngredientes = ingredientes.map((c) => c.nome).join(" ") + " " + (m.nome || "");
@@ -1814,6 +1833,8 @@ function MontagemPageInner() {
   const [saidaGuia, setSaidaGuia] = useState("imprimir"); // "imprimir" | "pdf"
   const [preenchendoIA, setPreenchendoIA] = useState(false); // receitas em lote (bar)
   const [guiaModoPraca, setGuiaModoPraca] = useState(null); // modo produção / praça (tablet/TV)
+  // Nomes do que é comprado pronto: ficam fora do guia de drinks.
+  const [compradosProntos, setCompradosProntos] = useState(() => new Set());
 
   // A Cozinha e o Bar são áreas separadas. Se a navegação mudar apenas o
   // parâmetro do setor, atualiza a tela inteira sem reaproveitar dados do outro.
@@ -1905,6 +1926,14 @@ function MontagemPageInner() {
         try { localStorage.setItem(chave, JSON.stringify(remoto)); } catch {}
       }).catch(() => {});
     }
+    return () => { ativo = false; };
+  }, [unidadeAtiva]);
+
+  useEffect(() => {
+    let ativo = true;
+    fetchNomesDeProdutosProntos(unidadeAtiva).then(({ data }) => {
+      if (ativo) setCompradosProntos(new Set(data || []));
+    }).catch(() => {});
     return () => { ativo = false; };
   }, [unidadeAtiva]);
 
@@ -2111,7 +2140,7 @@ function MontagemPageInner() {
         {dept === "bar" && (() => {
           // Só drinks COM receita/montagem entram no guia (a IA identifica; as
           // bebidas engarrafadas sem preparo ficam de fora).
-          const drinksGuia = drinksDoGuia(alvoImpressao);
+          const drinksGuia = drinksDoGuia(alvoImpressao, compradosProntos);
           const vazios = lista.filter((m) => !temConteudoDrink(m)).length;
           return (
             <>
@@ -2258,7 +2287,7 @@ function MontagemPageInner() {
       {/* MODAL GIGANTE para comportar o editor */}
       {/* MODAL DO GUIA DE DRINKS: cartões (pôster) ou livro (capa + índice) */}
       {modalGuia && (() => {
-        const drinksGuia = drinksDoGuia(alvoImpressao);
+        const drinksGuia = drinksDoGuia(alvoImpressao, compradosProntos);
         const fechar = () => setModalGuia(false);
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" onClick={fechar}>

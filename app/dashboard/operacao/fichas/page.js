@@ -798,13 +798,18 @@ function FichasRunner() {
   const ordenarFichas = (a, b) => {
     return String(a.nome_receita || "").localeCompare(String(b.nome_receita || ""), "pt-BR", { sensitivity: "base" });
   };
+  // Produto pronto (cerveja, refrigerante) não tem receita: é compra, não
+  // receituário. Só aparece na aba própria — nas outras poluía a lista de quem
+  // procura um prato, um drink ou uma base.
   const passaFiltro = (f) => {
+    const comprado = !f.eh_base && f.tipo_base === "produto_pronto";
+    if (tipoFiltro === "Produtos prontos") return comprado;
+    if (comprado) return false;
     if (tipoFiltro === "Preparos e receitas") return !!f.eh_base;
     if (tipoFiltro === "Pratos principais") return !f.eh_base;
     if (tipoFiltro === "Pré-preparos") return !!f.eh_base && f.tipo_base !== "receita";
     if (tipoFiltro === "Receitas base") return !!f.eh_base && f.tipo_base === "receita";
-    if (tipoFiltro === "Produtos prontos") return !f.eh_base && f.tipo_base === "produto_pronto";
-    if (tipoFiltro === "Pratos") return !f.eh_base && f.tipo_base !== "produto_pronto";
+    if (tipoFiltro === "Pratos") return !f.eh_base;
     if (modoFicha === "preparos") return !!f.eh_base && (f.categoria || "") === tipoFiltro;
     return !f.eh_base && (f.categoria || "") === tipoFiltro; // categoria específica
   };

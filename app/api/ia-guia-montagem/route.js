@@ -36,13 +36,16 @@ Responda ESTRITAMENTE com um JSON válido, sem texto antes ou depois, neste form
     { "item": "nome do componente", "quantidade": "quantidade exata a colocar (ex: '150g', '2 conchas', '5 unidades')" }
   ],
   "montagem": [
-    "Passo 1 da montagem, direto e no imperativo",
-    "Passo 2..."
+    "primeira ação da montagem, direta e no imperativo",
+    "segunda ação, e assim por diante"
   ],
   "finalizacao": "Como finalizar (molho por cima, ervas, azeite, ordem de saída, temperatura)",
   "visual": "Descrição do visual esperado do prato pronto (como deve ficar para sair bonito e padronizado)",
   "dicas": ["Dica de padronização/erro comum a evitar"]
-}`;
+}
+
+Em "montagem", escreva só a ação. O guia numera os passos sozinho, então NÃO
+comece a linha com "Passo 1", "Etapa 2", "1." ou "1)" — sairia numerado duas vezes.`;
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",

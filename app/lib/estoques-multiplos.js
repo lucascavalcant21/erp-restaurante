@@ -426,6 +426,19 @@ export async function zerarEstoque({ unidadeId, estoqueId, usuarioId = null, usu
     .eq("estoque_id", estoqueId);
   if (erroZerar) return { error: erroMensagem(erroZerar) };
 
+  // Confere lendo de volta. Um UPDATE barrado por RLS não devolve erro: ele
+  // simplesmente não afeta linha nenhuma. Sem esta conferência a tela dizia
+  // "zerado" com o saldo intacto na prateleira — pior que falhar avisando.
+  const { data: depois } = await supabase
+    .from("estoque_itens").select("quantidade_atual").eq("estoque_id", estoqueId);
+  const sobraram = (depois || []).filter(item => Number(item.quantidade_atual) > 0).length;
+  if (sobraram > 0) {
+    return {
+      error: `O banco não aceitou zerar: ${sobraram} item(ns) continuam com saldo. `
+        + "Provável política de RLS na tabela estoque_itens bloqueando o update.",
+    };
+  }
+
   return { data: { zerados: comSaldo.length, total: (itens || []).length, falhas }, error: null };
 }
 

@@ -529,7 +529,11 @@ function EstoqueRunner() {
     if (comErro.length) {
       avisar(`Não consegui zerar: ${comErro.map(r => `${r.nome} (${r.erro})`).join(" · ")}`, "erro");
     } else {
-      avisar(`${resumo.map(r => `${r.nome}: ${r.zerados} de ${r.total} com saldo`).join(" · ")}. Cada baixa está no histórico.`);
+      const comFalha = resumo.filter(r => r.falhas > 0);
+      avisar(`${resumo.map(r => `${r.nome}: ${r.zerados} de ${r.total} com saldo`).join(" · ")}. `
+        + (comFalha.length
+          ? `Atenção: ${comFalha.reduce((s, r) => s + r.falhas, 0)} baixa(s) não entraram no histórico.`
+          : "Cada baixa está no histórico."));
     }
     await atualizarTudo();
   };

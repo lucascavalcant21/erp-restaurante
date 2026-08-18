@@ -141,6 +141,18 @@ export default function BancoTalentos({ unidadeAtiva }) {
     { nome: "Descartado", status: "Reprovado", cor: "bg-slate-50", borda: "border-slate-200" }
   ];
 
+  // Dentro de cada etapa, os candidatos vêm separados pela vaga que querem:
+  // o gestor olha "Garçom" de uma vez, em vez de caçar nome por nome.
+  const agruparPorVaga = (lista) => {
+    const grupos = new Map();
+    lista.forEach(c => {
+      const vaga = String(c.cargo_pretendido || "").trim() || "Sem vaga definida";
+      if (!grupos.has(vaga)) grupos.set(vaga, []);
+      grupos.get(vaga).push(c);
+    });
+    return [...grupos.entries()].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0], "pt-BR"));
+  };
+
   const getCorNota = (nota) => {
     if (nota >= 80) return "text-emerald-600 bg-emerald-100";
     if (nota >= 50) return "text-amber-600 bg-amber-100";
@@ -237,15 +249,15 @@ export default function BancoTalentos({ unidadeAtiva }) {
             <Search size={18} className="text-slate-500" />
             <input type="text" placeholder="Buscar por nome ou cargo..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-medium text-slate-700 text-sm" />
          </div>
-         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
             <button type="button" onClick={carregar} disabled={loading} className="flex items-center justify-center gap-2 bg-white text-slate-600 px-4 py-3 rounded-2xl font-bold hover:bg-slate-50 transition-colors border border-slate-200 disabled:opacity-60 whitespace-nowrap">
-               <RefreshCw size={18} className={loading ? "animate-spin" : ""} /> Atualizar candidatos
+               <RefreshCw size={18} className={loading ? "animate-spin" : ""} /> Atualizar
             </button>
             <button type="button" onClick={abrirEditorPortal} className="flex items-center justify-center gap-2 bg-white text-slate-700 px-4 py-3 rounded-2xl font-bold hover:bg-slate-50 transition-colors border border-slate-200 whitespace-nowrap">
-               <Pencil size={18} /> Editar Portal de Vagas
+               <Pencil size={18} /> Editar portal
             </button>
             <a href={`/vagas/${unidadeAtiva}`} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-3 rounded-2xl font-bold hover:bg-indigo-100 transition-colors border border-indigo-200 whitespace-nowrap">
-               <ExternalLink size={18} /> Acessar Portal de Vagas
+               <ExternalLink size={18} /> Abrir portal
             </a>
             <button type="button" onClick={copiarLinkPortal} className={`flex items-center justify-center gap-2 px-4 py-3 rounded-2xl font-bold transition-colors border whitespace-nowrap ${linkCopiado ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-white text-indigo-700 border-indigo-200 hover:bg-indigo-50"}`}>
                {linkCopiado ? <Check size={18} /> : <Copy size={18} />} {linkCopiado ? "Link copiado" : "Copiar link"}
@@ -274,7 +286,13 @@ export default function BancoTalentos({ unidadeAtiva }) {
                     </span>
                  </div>
 
-                 {filtrados.filter(c => c.status === coluna.status).map(c => (
+                 {agruparPorVaga(filtrados.filter(c => c.status === coluna.status)).map(([vaga, daVaga]) => (
+                 <div key={vaga} className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between gap-2 rounded-xl bg-white/70 px-3 py-2">
+                       <h4 className="truncate text-[13px] font-black text-slate-700">{vaga}</h4>
+                       <span className="shrink-0 text-[11px] font-black text-slate-400">{daVaga.length}</span>
+                    </div>
+                 {daVaga.map(c => (
                     <div 
                        key={c.id} 
                        draggable
@@ -288,12 +306,13 @@ export default function BancoTalentos({ unidadeAtiva }) {
                              {c.nota_ia} pts
                           </span>
                        </div>
-                       <p className="text-xs font-bold text-slate-500 mb-3">{c.cargo_pretendido}</p>
                        <div className="flex gap-2">
                           {c.url_curriculo && <div className="text-[10px] bg-slate-100 text-slate-600 px-2 py-1 rounded font-bold flex items-center gap-1"><FileText size={10}/> Tem CV</div>}
                           {c.tem_filhos === "Sim" && <div className="text-[10px] bg-rose-50 text-rose-600 px-2 py-1 rounded font-bold border border-rose-100">Tem Filhos</div>}
                        </div>
                     </div>
+                 ))}
+                 </div>
                  ))}
               </div>
            ))}

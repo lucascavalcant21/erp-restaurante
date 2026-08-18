@@ -128,6 +128,8 @@ export default function EtiquetasRapidas() {
   const [produtos, setProdutos] = useState([]);
   const [item, setItem] = useState(null);
   const [fila, setFila] = useState([]);
+  // Impressão direta: sai só a etiqueta escolhida, sem mexer na fila.
+  const [filaImpressao, setFilaImpressao] = useState([]);
   const [nomeLivre, setNomeLivre] = useState("");
   const [criandoLivre, setCriandoLivre] = useState(false);
   const [categorias, setCategorias] = useState([]);
@@ -249,6 +251,19 @@ export default function EtiquetasRapidas() {
 
   async function telaCheia() {
     try { if (!document.fullscreenElement) await document.documentElement.requestFullscreen?.(); } catch {}
+  }
+
+  // Imprimir sem passar pela fila: útil para uma etiqueta só.
+  async function imprimirAgora() {
+    if (!item || salvando) return;
+    if (numero(item.copias) < 1 || (modeloEtiqueta === "validade" && numero(item.dias) < 0)) {
+      return setAviso({ tipo: "erro", texto: "Revise a quantidade de cópias e a validade." });
+    }
+    const pronto = { ...item, modeloEtiqueta, tipoEtiqueta, codigo: item.codigo || gerarCodigo() };
+    setItem(null);
+    setCriandoLivre(false);
+    setNomeLivre("");
+    await imprimirFila("", [pronto]);
   }
 
   function adicionarFila() {
@@ -573,12 +588,16 @@ export default function EtiquetasRapidas() {
 
   useEffect(() => () => escutaVozRef.current?.parar?.(), []);
 
-  async function imprimirFila(comandoVoz = "") {
+  async function imprimirFila(comandoVoz = "", listaDireta = null) {
+    const direta = Array.isArray(listaDireta) && listaDireta.length > 0;
+    const lista = direta ? listaDireta : fila;
+    const total = lista.reduce((soma, p) => soma + Math.max(1, Math.floor(numero(p.copias))), 0);
     if (!responsavel) return setAviso({ tipo: "erro", texto: "Escolha quem está etiquetando." });
-    if (!fila.length) return setAviso({ tipo: "erro", texto: "Adicione pelo menos uma etiqueta à fila." });
-    if (totalEtiquetas > 100) return setAviso({ tipo: "erro", texto: "A fila pode ter no máximo 100 etiquetas." });
+    if (!lista.length) return setAviso({ tipo: "erro", texto: "Adicione pelo menos uma etiqueta à fila." });
+    if (total > 100) return setAviso({ tipo: "erro", texto: "A fila pode ter no máximo 100 etiquetas." });
     setSalvando(true);
-    const etiquetasValidade = fila.filter(produto => produto.modeloEtiqueta !== "nome");
+    if (direta) { setFilaImpressao(lista); await new Promise(r => setTimeout(r, 80)); }
+    const etiquetasValidade = lista.filter(produto => produto.modeloEtiqueta !== "nome");
     const resultados = await Promise.all(etiquetasValidade.map(produto => criarEtiqueta({
       codigo: produto.codigo, produto: produto.nome, conservacao: produto.conservacao,
       quantidade: produto.informarQuantidade ? numero(produto.quantidade) : 0, unidade: produto.unidade,
@@ -592,7 +611,7 @@ export default function EtiquetasRapidas() {
     const dim = TAMANHOS[tamanho] || TAMANHOS["80x40"];
     try {
       if (bluetoothNome) {
-        for (const produto of fila) {
+        for (const produto of lista) {
           await imprimirEtiquetasBluetooth({
             tamanho,
             copias: Math.max(1, Math.floor(numero(produto.copias))),
@@ -632,20 +651,20 @@ export default function EtiquetasRapidas() {
       usuarioId: sessao?.user?.id || sessao?.id || responsavel?.id || null,
       usuarioNome: responsavel?.nome || sessao?.nome || sessao?.user?.email || "",
       comando: comandoVoz || "Confirmação pelo botão de impressão",
-      intencao: { itens: fila.map(produto => ({ produto: produto.nome, copias: produto.copias, validade_dias: produto.dias, modelo: produto.modeloEtiqueta })) },
+      intencao: { itens: lista.map(produto => ({ produto: produto.nome, copias: produto.copias, validade_dias: produto.dias, modelo: produto.modeloEtiqueta })) },
       acao: "labels.print_batch",
       modulo: "labels",
-      valorAnterior: totalEtiquetas,
-      valorNovo: totalEtiquetas,
+      valorAnterior: total,
+      valorNovo: total,
       resultado: falhas ? "parcial" : "sucesso",
       erro: falhas ? `${falhas} item(ns) não foram registrados.` : null,
       exigiuConfirmacao: true,
     }).catch(() => {});
     setAviso(falhas
       ? { tipo: "erro", texto: `A impressão abriu, mas ${falhas} item(ns) não foram registrados.` }
-      : { tipo: "ok", texto: bluetoothNome ? `${totalEtiquetas} etiqueta(s) enviadas diretamente para ${bluetoothNome}.` : `${totalEtiquetas} etiqueta(s) preparadas para impressão.` });
-    setFila([]);
-    setBusca("");
+      : { tipo: "ok", texto: bluetoothNome ? `${total} etiqueta(s) enviadas diretamente para ${bluetoothNome}.` : `${total} etiqueta(s) preparadas para impressão.` });
+    setFilaImpressao([]);
+    if (!direta) { setFila([]); setBusca(""); }
   }
 
   if (!unidadeAtiva || unidadeAtiva === "todas") return <div className="etq-vazio"><Tag size={56} /><h1>Escolha uma unidade</h1><p>Selecione uma loja antes de abrir Etiquetas.</p><button onClick={() => router.back()}><ArrowLeft size={18} /> Voltar</button><style>{ESTILOS}</style></div>;
@@ -767,10 +786,13 @@ export default function EtiquetasRapidas() {
       {modeloEtiqueta === "validade" && <><h3>4. Validade</h3><div className="etq-validade"><select value={categoriaId} onChange={e => { setCategoriaId(e.target.value); const cat = categorias.find(c => c.id === e.target.value); if (cat) alterar("dias", cat.dias); }}><option value="">Prazo manual</option>{categorias.map(cat => <option key={cat.id} value={cat.id}>{cat.nome} · {cat.dias} dia(s)</option>)}</select><label><input type="number" inputMode="numeric" min="0" value={item.dias} onChange={e => { setCategoriaId(""); alterar("dias", e.target.value); }} /><span>dias</span></label></div>
       <h3>5. Conservação, tipo e peso</h3>
       <div className="etq-detalhes"><div className="etq-opcoes">{CONSERVACAO.map(opcao => <button key={opcao.id} className={item.conservacao === opcao.id ? "ativo" : ""} onClick={() => alterar("conservacao", opcao.id)}>{opcao.id}</button>)}</div><div className="etq-opcoes"><button className={tipoEtiqueta === "aberto" ? "ativo" : ""} onClick={() => setTipoEtiqueta("aberto")}>Manipulado/aberto</button><button className={tipoEtiqueta === "fechado" ? "ativo" : ""} onClick={() => setTipoEtiqueta("fechado")}>Produto fechado</button></div><h3>Informar peso ou quantidade?</h3><div className="etq-opcoes"><button className={!item.informarQuantidade ? "ativo" : ""} onClick={() => setItem(atual => ({ ...atual, informarQuantidade: false, quantidade: "" }))}>Não</button><button className={item.informarQuantidade ? "ativo" : ""} onClick={() => alterar("informarQuantidade", true)}>Sim</button></div>{item.informarQuantidade && <div className="etq-quantidade"><input type="number" min="0" step="0.01" inputMode="decimal" value={item.quantidade} placeholder="Quantidade" onChange={e => alterar("quantidade", e.target.value)} /><select value={item.unidade} onChange={e => alterar("unidade", e.target.value)}>{(UNIDADES.includes(item.unidade) ? UNIDADES : [item.unidade, ...UNIDADES]).map(unidade => <option key={unidade}>{unidade}</option>)}</select></div>}</div></>}
-      <button className="etq-imprimir" onClick={adicionarFila}><Plus size={20} /> Adicionar {Math.max(1, Math.floor(numero(item.copias)))} à fila</button>
+      <div className="etq-acoes-item">
+        <button className="etq-imprimir" onClick={adicionarFila}><Plus size={20} /> Adicionar {Math.max(1, Math.floor(numero(item.copias)))} à fila</button>
+        <button className="etq-imprimir-direto" onClick={imprimirAgora} disabled={salvando}>{salvando ? <RefreshCw className="animate-spin" size={19} /> : <Printer size={19} />} Imprimir agora</button>
+      </div>
     </div></div>}
     {vozAberta && <div className="etq-voz-modal" role="dialog" aria-modal="true" aria-label="Adicionar etiquetas por voz"><div className="etq-voz-card"><button className="etq-voz-fechar" onClick={fecharVoz} aria-label="Fechar comando de voz"><X size={20}/></button><div className="etq-voz-topo"><span><Mic size={29}/></span><div><h2>Várias etiquetas por voz</h2><p>Fale tudo de uma vez. As etiquetas entram na fila para você conferir.</p></div></div><div className={`etq-voz-transcricao ${ouvindoVoz ? "ouvindo" : ""}`}>{textoVoz ? `“${textoVoz}”` : ouvindoVoz ? "Ouvindo..." : "Nenhum comando falado ainda."}</div><div className="etq-voz-resposta">{respostaVoz}</div><div className="etq-voz-exemplos"><strong>Exemplos de comando</strong><p>“3 etiquetas de arroz validade 5 dias, 2 de feijão validade 3 dias”</p><p>“4 somente nome de molho da casa e 2 produto fechado de água tônica validade 30 dias”</p><p>Depois de conferir: “confirmar impressão”.</p></div><button className={`etq-voz-ouvir ${ouvindoVoz ? "ouvindo" : ""}`} onClick={ouvindoVoz ? () => escutaVozRef.current?.parar?.() : iniciarEscutaVoz}>{ouvindoVoz ? <><X size={21}/> Parar de ouvir</> : <><Mic size={22}/> Falar novo comando</>}</button><button className="etq-voz-concluir" onClick={fecharVoz}>Conferir fila</button></div></div>}
-    <div id="etiquetas-rapidas-print" aria-hidden="true">{responsavel && fila.flatMap(produto => Array.from({ length: Math.max(1, Math.floor(numero(produto.copias))) }, (_, indice) => <EtiquetaPapel key={`${produto.codigo}-${indice}`} item={produto} responsavel={responsavel} unidadeInfo={unidadeInfo} momento={momento} tamanho={tamanho} tipoEtiqueta={produto.tipoEtiqueta || "aberto"} />))}</div>
+    <div id="etiquetas-rapidas-print" aria-hidden="true">{responsavel && (filaImpressao.length ? filaImpressao : fila).flatMap(produto => Array.from({ length: Math.max(1, Math.floor(numero(produto.copias))) }, (_, indice) => <EtiquetaPapel key={`${produto.codigo}-${indice}`} item={produto} responsavel={responsavel} unidadeInfo={unidadeInfo} momento={momento} tamanho={tamanho} tipoEtiqueta={produto.tipoEtiqueta || "aberto"} />))}</div>
     {aviso && <Aviso aviso={aviso} fechar={() => setAviso(null)} />}
   </div>;
 }
@@ -790,5 +812,5 @@ const ESTILOS = `
   .etq-modelos{display:grid;grid-template-columns:1fr 1fr;gap:9px}.etq-modelos button{min-height:72px;border:2px solid #e2e8f0;border-radius:15px;background:#f8fafc;padding:10px;color:#475569}.etq-modelos button.ativo{border-color:var(--cor);background:var(--suave);color:var(--cor)}.etq-modelos strong,.etq-modelos span{display:block}.etq-modelos strong{font-size:14px}.etq-modelos span{margin-top:5px;font-size:11px;font-weight:750;text-transform:none;color:#64748b}
   .etq-voz-abrir{width:100%;min-height:76px;margin-top:14px;border:2px solid #7c3aed;border-radius:18px;background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;padding:13px 16px;display:flex;align-items:center;gap:13px;text-align:left;box-shadow:0 10px 25px rgba(124,58,237,.22)}.etq-voz-abrir>span{width:46px;height:46px;flex:0 0 auto;border-radius:14px;background:rgba(255,255,255,.16);display:grid;place-items:center}.etq-voz-abrir strong,.etq-voz-abrir small{display:block}.etq-voz-abrir strong{font-size:17px}.etq-voz-abrir small{margin-top:4px;color:#ede9fe;font-weight:750}.etq-bluetooth{width:100%;min-height:66px;margin-top:10px;border:2px solid #2563eb;border-radius:17px;background:#eff6ff;color:#1d4ed8;padding:11px 15px;display:flex;align-items:center;gap:12px;text-align:left}.etq-bluetooth>div{flex:1}.etq-bluetooth strong,.etq-bluetooth small{display:block}.etq-bluetooth small{margin-top:3px;color:#64748b;font-weight:700}.etq-bluetooth.conectada{border-color:#059669;background:#ecfdf5;color:#047857}.etq-origem{margin-top:16px}.etq-origem h3{display:flex;align-items:center;gap:8px;margin:0 0 9px;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.09em;color:#64748b}.etq-origem h3 span{min-width:24px;padding:2px 7px;border-radius:999px;background:var(--suave);color:var(--cor);font-size:11px;letter-spacing:0}.etq-listas-salvas{margin-top:14px;border:1px solid #dbe3ec;border-radius:18px;background:#fff;padding:13px}.etq-listas-vazio{margin:10px 0 2px;color:#64748b;font-weight:750;font-size:13px}.etq-listas-grid .excluir.confirmar{width:auto!important;padding:0 12px;background:#e11d48!important;color:#fff!important;font-weight:900;font-size:12px}.etq-listas-titulo{display:flex;align-items:center;gap:9px;color:#475569}.etq-listas-titulo strong,.etq-listas-titulo span{display:block}.etq-listas-titulo span{margin-top:2px;font-size:11px;color:#94a3b8}.etq-listas-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}.etq-listas-grid article{min-width:0;border:1px solid #e2e8f0;border-radius:13px;display:flex;overflow:hidden}.etq-listas-grid .abrir{min-width:0;flex:1;border:0;background:#fff;padding:10px;text-align:left}.etq-listas-grid strong,.etq-listas-grid small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.etq-listas-grid small{margin-top:3px;color:#64748b}.etq-listas-grid .excluir{width:42px;border:0;background:#fff1f2;color:#e11d48;display:grid;place-items:center}.etq-voz-modal{position:fixed;inset:0;z-index:160;background:rgba(15,23,42,.7);padding:14px;display:grid;place-items:center;backdrop-filter:blur(5px)}.etq-voz-card{position:relative;width:min(620px,100%);max-height:calc(100vh - 28px);overflow:auto;border-radius:26px;background:#fff;padding:24px;box-shadow:0 30px 80px rgba(15,23,42,.45)}.etq-voz-fechar{position:absolute;right:14px;top:14px;width:42px;height:42px;border:0;border-radius:13px;background:#f1f5f9;color:#64748b;display:grid;place-items:center}.etq-voz-topo{display:flex;align-items:center;gap:13px;padding-right:45px}.etq-voz-topo>span{width:58px;height:58px;flex:0 0 auto;border-radius:18px;background:#ede9fe;color:#7c3aed;display:grid;place-items:center}.etq-voz-topo h2{margin:0;font-size:24px}.etq-voz-topo p{margin:5px 0 0;color:#64748b;font-size:13px;font-weight:700}.etq-voz-transcricao{min-height:58px;margin-top:17px;border:2px solid #ddd6fe;border-radius:15px;background:#faf5ff;padding:13px;color:#5b21b6;font-weight:850}.etq-voz-transcricao.ouvindo{animation:etqPulso 1.1s infinite}.etq-voz-resposta{margin-top:10px;border-radius:15px;background:#f1f5f9;padding:13px;color:#334155;font-size:14px;font-weight:750;line-height:1.45}.etq-voz-exemplos{margin-top:15px}.etq-voz-exemplos strong{display:block;margin-bottom:7px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#64748b}.etq-voz-exemplos p{margin:6px 0;border:1px solid #e2e8f0;border-radius:11px;background:#fff;padding:9px 11px;color:#475569;font-size:12px;font-weight:750}.etq-voz-ouvir,.etq-voz-concluir{width:100%;min-height:54px;margin-top:12px;border:0;border-radius:15px;font-size:15px;font-weight:950;display:flex;align-items:center;justify-content:center;gap:9px}.etq-voz-ouvir{background:#7c3aed;color:#fff}.etq-voz-ouvir.ouvindo{background:#e11d48}.etq-voz-concluir{background:#e2e8f0;color:#334155}@keyframes etqPulso{50%{transform:scale(.99);opacity:.82}}
   @media(max-width:900px){.etq-grid,.etq-pessoas-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:680px){.etq-setores{grid-template-columns:1fr}.etq-setores button{min-height:175px}.etq-inicio main{margin:28px auto}.etq-app>header{padding:9px 11px}.etq-conteudo{padding:16px 11px 35px}.etq-grid,.etq-pessoas-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.etq-card{padding:20px 14px;border-radius:21px}.etq-card>h2{font-size:20px}.etq-opcoes{flex-wrap:wrap}.etq-opcoes button{flex:1 1 30%}.etq-fila-topo{align-items:stretch;flex-direction:column}.etq-fila-acoes{width:100%}.etq-fila-acoes button{flex:1}.etq-listas-grid{grid-template-columns:1fr}}@media(max-width:420px){.etq-grid,.etq-pessoas-grid{grid-template-columns:1fr}.etq-grid>button{min-height:94px}.etq-validade{grid-template-columns:1fr 105px}.etq-copias{grid-template-columns:58px 1fr 58px}.etq-quantidade{grid-template-columns:1fr 115px}.etq-livre>div{grid-template-columns:1fr}.etq-livre>div button{height:48px}.etq-fila-acoes{flex-direction:column}}
-  .etq-detalhes-btn{width:100%;min-height:46px;margin-top:12px;border:1px dashed #94a3b8;border-radius:13px;background:#f8fafc;color:#475569;font-weight:850}.etq-detalhes{margin-top:8px;border-radius:16px;background:#f8fafc;padding:10px}.etq-detalhes h3{margin-top:12px}
+  .etq-detalhes-btn{width:100%;min-height:46px;margin-top:12px;border:1px dashed #94a3b8;border-radius:13px;background:#f8fafc;color:#475569;font-weight:850}.etq-acoes-item{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:18px}.etq-acoes-item .etq-imprimir{margin-top:0}.etq-imprimir-direto{min-height:56px;border:2px solid var(--cor);border-radius:16px;background:#fff;color:var(--cor);font-size:15px;font-weight:950;display:flex;align-items:center;justify-content:center;gap:8px}.etq-imprimir-direto:disabled{opacity:.5}@media(max-width:520px){.etq-acoes-item{grid-template-columns:1fr}}.etq-detalhes{margin-top:8px;border-radius:16px;background:#f8fafc;padding:10px}.etq-detalhes h3{margin-top:12px}
 `;

@@ -1,4 +1,5 @@
 import { supabase, isSupabaseReady } from "./supabase";
+import { registrarAuditoria } from "./hefisto-acoes";
 
 // ─── INVENTÁRIO DA UNIDADE (patrimônio físico) ───────────────────────────────
 // Tudo que a loja possui: talheres, louça, potes, panelas, freezers, móveis...
@@ -94,6 +95,20 @@ export async function registrarMovimentoInventario(item, { tipo, quantidade, mot
   const { error: errUpd } = await supabase.from("inventario_itens")
     .update({ quantidade: novaQtd, updated_at: new Date().toISOString() })
     .eq("id", item.id);
+
+  // Tudo que entra, sai, quebra ou some no patrimônio vai para a auditoria:
+  // é lá que se procura quando falta alguma coisa.
+  await registrarAuditoria({
+    unidadeId: item.unidade_id,
+    usuarioNome: responsavel || null,
+    modulo: "inventario",
+    acao: `inventory.${tipo}`,
+    registroId: item.id,
+    valorAnterior: atual,
+    valorNovo: novaQtd,
+    intencao: { item: item.nome || null, tipo, quantidade: qtd, motivo: motivo || null },
+    resultado: errUpd ? "erro" : "sucesso",
+  }).catch(() => {});
   return { error: errUpd?.message, novaQtd };
 }
 

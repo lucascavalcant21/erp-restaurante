@@ -338,6 +338,8 @@ function EstoqueRunner() {
   const [filtros, setFiltros] = useState({ busca: "", grupo: "Todos", categoria: "Todas", status: "todos", local: "Todos" });
   const [agruparPor, setAgruparPor] = useState("categoria");   // categoria | local
   const [modal, setModal] = useState(null);
+  // Produto que não existe ainda: cadastra pelo próprio estoque.
+  const [novoProduto, setNovoProduto] = useState(null);
   const [operacao, setOperacao] = useState({ insumo_id: "", quantidade: "", destino_id: "", observacao: "", responsavel_id: "", data: "", modo: "unidade", fechadas: "", aberto: "" });
   const [formItem, setFormItem] = useState({});
   const [formEstoque, setFormEstoque] = useState({});
@@ -453,6 +455,37 @@ function EstoqueRunner() {
 
   const atualizarTudo = async () => {
     await Promise.all([carregarArea(), carregarEstoques(estoqueId)]);
+  };
+
+  // Cadastrar sem sair do estoque: o produto nasce no catálogo de ingredientes
+  // e já entra vinculado a este estoque, pronto para receber a entrada.
+  const cadastrarProdutoAqui = async () => {
+    const nome = String(novoProduto?.nome || "").trim();
+    if (!nome) { avisar("Escreva o nome do produto.", "erro"); return; }
+    if (!estoqueAtual?.id) { avisar("Abra um estoque primeiro.", "erro"); return; }
+    setNovoProduto(p => ({ ...p, salvando: true }));
+    const custo = Number(String(novoProduto.custo ?? "").replace(",", ".")) || 0;
+    const criado = await salvarInsumo({
+      unidade_id: unidadeAtiva, departamento: estoqueAtual.slug,
+      nome, nome_original: nome,
+      unidade_medida: novoProduto.unidade || "un",
+      tamanho_embalagem: 1, categoria: "Sem categoria",
+      custo_unitario: custo, custo_compra: custo, ativo: true,
+    }, { origem: `Cadastro pelo estoque ${estoqueAtual.nome}` });
+    if (criado.error || !criado.id) {
+      setNovoProduto(p => ({ ...p, salvando: false }));
+      avisar(criado.error || "Não consegui cadastrar o produto.", "erro");
+      return;
+    }
+    const vinculo = await vincularItemEstoque({
+      unidadeId: unidadeAtiva, estoqueId: estoqueAtual.id, insumoId: criado.id,
+      custoUnitario: custo, local: novoProduto.local || null,
+    });
+    setNovoProduto(null);
+    if (vinculo.error) { avisar(vinculo.error, "erro"); return; }
+    setOperacao(o => ({ ...o, insumo_id: criado.id }));
+    avisar(`${nome} cadastrado e já disponível neste estoque.`);
+    await atualizarTudo();
   };
 
   // Muda o produto de lugar dentro do estoque (depósito, expositor, balcão).
@@ -1360,6 +1393,36 @@ function EstoqueRunner() {
                 {(modal.tipo === "entrada" ? catalogoFiltradoPorArea : itensDaArea).map(item => <option key={item.id} value={item.insumo_id || item.id}>{item.nome} {item.marca ? `· ${item.marca}` : ""}</option>)}
               </select>
             </Campo>
+
+            {/* Produto que ainda não existe: cadastra aqui e já entra no estoque */}
+            {modal.tipo === "entrada" && !modal.item && (novoProduto ? (
+              <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50/50 p-3.5">
+                <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700">Cadastrar produto novo</p>
+                <p className="mt-1 text-xs font-semibold text-slate-500">Entra no cadastro de ingredientes e neste estoque de uma vez.</p>
+                <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_110px_130px]">
+                  <input autoFocus value={novoProduto.nome} onChange={e => setNovoProduto(p => ({ ...p, nome: e.target.value }))}
+                    placeholder="Nome do produto" className="h-12 rounded-xl border border-slate-300 px-3 font-bold text-slate-800 outline-none focus:border-emerald-600" />
+                  <select value={novoProduto.unidade} onChange={e => setNovoProduto(p => ({ ...p, unidade: e.target.value }))}
+                    className="h-12 rounded-xl border border-slate-300 px-2 font-bold text-slate-700 outline-none focus:border-emerald-600">
+                    {["un", "kg", "g", "l", "ml", "cx", "pct"].map(u => <option key={u} value={u}>{u}</option>)}
+                  </select>
+                  <input inputMode="decimal" value={novoProduto.custo} onChange={e => setNovoProduto(p => ({ ...p, custo: e.target.value }))}
+                    placeholder="Custo (R$)" className="h-12 rounded-xl border border-slate-300 px-3 text-right font-bold text-slate-800 outline-none focus:border-emerald-600" />
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <button type="button" onClick={() => setNovoProduto(null)} className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-600">Cancelar</button>
+                  <button type="button" onClick={cadastrarProdutoAqui} disabled={novoProduto.salvando}
+                    className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-4 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-60">
+                    {novoProduto.salvando ? "Cadastrando..." : "Cadastrar e usar"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button type="button" onClick={() => setNovoProduto({ nome: "", unidade: "un", custo: "", salvando: false })}
+                className="text-sm font-black text-emerald-700 hover:underline">
+                Não está na lista? Cadastrar produto novo
+              </button>
+            ))}
 
             <Campo label={`Responsável pela Operação * (${estoqueAtual?.nome || "Estoque"})`}>
               <select required value={operacao.responsavel_id} onChange={e => setOperacao({ ...operacao, responsavel_id: e.target.value })} className="h-14 w-full rounded-2xl border-2 border-slate-300 px-3 font-bold text-slate-800 text-base outline-none focus:border-emerald-500">

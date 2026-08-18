@@ -435,6 +435,20 @@ export async function registrarMovimentoMulti({
   }
   const { data, error } = res;
   if (!error) await sincronizarSaldoLegado(unidadeId, insumoId).catch(() => {});
+  // Carimba o preço do dia no próprio movimento: sem isso, mudar o custo do
+  // ingrediente reescreveria o valor de todas as compras antigas dele.
+  const movimentoId = (Array.isArray(data) ? data[0] : data)?.id;
+  if (!error && movimentoId) {
+    try {
+      const { data: ing } = await supabase.from("insumos").select("custo_compra, custo_unitario").eq("id", insumoId).maybeSingle();
+      const unitario = Number(ing?.custo_compra ?? ing?.custo_unitario) || 0;
+      if (unitario > 0) {
+        await supabase.from("estoque_movimentacoes_multi")
+          .update({ valor_unitario: unitario, valor_total: Number((unitario * valor).toFixed(2)) })
+          .eq("id", movimentoId);
+      }
+    } catch { /* coluna ainda não migrada: o valor segue vindo do custo atual */ }
+  }
   return { data: Array.isArray(data) ? data[0] : data, error: erroMensagem(error) };
 }
 

@@ -197,7 +197,7 @@ export default function ComprasDoMesPage() {
             })}
 
             <p className="pt-2 text-center text-xs font-bold text-slate-400">
-              Cada entrada vale quantidade × custo do ingrediente. Custo desatualizado no cadastro, valor desatualizado aqui.
+              Cada entrada guarda o preço do dia em que foi lançada. Entradas antigas, de antes disso, usam o custo atual do ingrediente.
             </p>
           </>
         )}

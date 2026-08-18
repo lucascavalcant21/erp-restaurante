@@ -43,7 +43,13 @@ export function categoriaDaCompra(movimento, estoques = []) {
 // Quanto custou aquela entrada. O custo vem do ingrediente: é o preço que a
 // casa paga hoje por ele.
 export function valorDaCompra(movimento) {
+  // Valor gravado no dia da movimentacao manda: e o que realmente foi pago.
+  const gravado = Number(movimento?.valor_total);
+  if (Number.isFinite(gravado) && gravado > 0) return gravado;
   const qtd = Number(movimento?.quantidade) || 0;
+  const unitario = Number(movimento?.valor_unitario);
+  if (Number.isFinite(unitario) && unitario > 0) return qtd * unitario;
+  // Movimento antigo, de antes da coluna existir: cai no custo atual.
   const custo = Number(movimento?.insumo?.custo_compra ?? movimento?.insumo?.custo_unitario) || 0;
   return qtd * custo;
 }

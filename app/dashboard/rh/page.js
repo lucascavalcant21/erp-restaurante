@@ -1904,7 +1904,6 @@ export default function RHPage() {
                      { icon: CalendarDays, rot: "Feriados", on: () => abrirModalFeriados() },
                      { icon: Users, rot: "Organograma", on: () => router.push('/dashboard/rh/organograma') },
                      { icon: Award, rot: "Cargos", on: () => setAbaAtiva("Cargos & Carreiras") },
-                     { icon: Star, rot: "Banco de talentos", on: () => setAbaAtiva("Banco de Talentos") },
                      { icon: LogOut, rot: "Ex-funcionários", on: () => setAbaAtiva("Ex-funcionários") },
                   ].map(a => (
                      <button key={a.rot} onClick={a.on} className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 py-3 px-1 text-center transition-all">
@@ -1921,7 +1920,7 @@ export default function RHPage() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6">
 
          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none mb-4">
-            {[["Fixo", "Equipe Fixa"], ["Freelancer", "Freelancers Extras"], ["Cargos & Carreiras", "Cargos & Carreiras"], ["Banco de Talentos", "Banco de Talentos"], ["Ex-funcionários", "Ex-funcionários"]].map(([id, rot]) => (
+            {[["Fixo", "Equipe Fixa"], ["Cargos & Carreiras", "Cargos & Carreiras"], ["Ex-funcionários", "Ex-funcionários"]].map(([id, rot]) => (
                <button key={id} onClick={() => setAbaAtiva(id)}
                   className={`px-4 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shrink-0 ${abaAtiva === id ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>
                   {rot}

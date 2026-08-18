@@ -76,7 +76,7 @@ export default function RHPage() {
   const [cargos, setCargos] = useState([]);
   const [busca, setBusca] = useState("");
   const [abaAtiva, setAbaAtiva] = useState("Fixo");
-  const statePadrao = { foto: "", nome: "", cargo: "", salario: "", vale_alimentacao: "", taxa_servico_mes: "", horario_entrada: "", horario_saida: "", horario_dom_entrada: "", horario_dom_saida: "", horario_por_dia: false, horarios_dia: {}, dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60, tipo_contrato: "Fixo", telefone: "", email: "", cpf: "", rg: "", rua_av: "", numero_casa: "", bairro: "", cidade_uf: "", chave_pix: "", avaliacao_estrelas: 0, anotacoes_rh: "", data_admissao: "", status_contrato: "Definitivo", supervisor_id: "", supervisores_ids: [], endereco: "", cep: "", cidade_nascimento: "", data_nascimento: "", tem_filhos: false, qtd_filhos: "", tem_transporte: false, usa_vale_transporte: false, genero: "", escolaridade: "", estado_civil: "",
+  const statePadrao = { foto: "", nome: "", cargo: "", salario: "", vale_alimentacao: "", taxa_servico_mes: "", horario_entrada: "", horario_saida: "", horario_dom_entrada: "", horario_dom_saida: "", horario_por_dia: false, horarios_dia: {}, dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60, tipo_contrato: "Fixo", telefone: "", email: "", cpf: "", rg: "", rua_av: "", numero_casa: "", bairro: "", cidade_uf: "", chave_pix: "", avaliacao_estrelas: 0, anotacoes_rh: "", data_admissao: "", status_contrato: "Definitivo", supervisor_id: "", supervisores_ids: [], endereco: "", cep: "", cidade_nascimento: "", data_nascimento: "", tem_filhos: false, qtd_filhos: "", tem_transporte: false, usa_vale_transporte: false, genero: "", escolaridade: "", estado_civil: "", nome_pai: "", nome_mae: "", filhos: [],
     // Dados do Recibo de Trabalho Extra: ficam no cadastro para o recibo já sair preenchido
     topicos_funcao: "", itens_emprestados: "", forma_pagamento: "Pix", vale_transporte_val: "", setor_entrega: "", janta_ofertada: true };
   // Cargos de liderança sempre disponíveis, além dos cargos cadastrados
@@ -615,6 +615,7 @@ export default function RHPage() {
         table.jt th, table.jt td { border: 1px solid #cbd5e1; padding: 4px 8px; text-align: left; }
         table.jt th { background: #f1f5f9; text-transform: uppercase; font-size: 10px; }
         .obs { font-size: 11px; color: #334155; }
+        ul.filhos { margin: 2px 0 6px 18px; font-size: 11px; color: #334155; }
         .assinaturas { margin-top: 40px; display: flex; justify-content: space-between; gap: 40px; }
         .assinaturas div { flex: 1; border-top: 1px solid #000; padding-top: 4px; text-align: center; font-size: 11px; }
         .test { margin-top: 30px; font-size: 11px; }
@@ -626,6 +627,12 @@ export default function RHPage() {
       <div class="partes">
         <p><b>EMPREGADOR(A):</b> ${linha(empNome)}, inscrita no CNPJ sob o nº ${linha(emp.cnpj)}, com estabelecimento em ${linha(emp.endereco || emp.cidade)}, doravante denominada CONTRATANTE.</p>
         <p><b>EMPREGADO(A):</b> ${linha(f.nome)}, portador(a) do CPF nº ${linha(f.cpf)}${f.data_nascimento ? `, nascido(a) em ${dataBR(f.data_nascimento)}` : ""}${f.cidade_nascimento ? `, natural de ${esc(f.cidade_nascimento)}` : ""}, residente em ${linha(f.endereco)}${f.cep ? `, CEP ${esc(f.cep)}` : ""}, doravante denominado(a) CONTRATADO(A).</p>
+        ${(() => {
+          const filhos = (f.filhos || []).filter(x => String(x?.nome || "").trim());
+          if (!filhos.length) return f.tem_filhos ? `<p class="obs">Declara possuir ${esc(String(f.qtd_filhos || ""))} filho(s).</p>` : "";
+          const itens = filhos.map(x => `<li>${esc(x.nome)}${x.cpf ? ` — CPF ${esc(x.cpf)}` : ""}</li>`).join("");
+          return `<p class="obs">Filhos declarados (${filhos.length}):</p><ul class="filhos">${itens}</ul>`;
+        })()}
       </div>
 
       <p>As partes acima identificadas têm, entre si, justo e acordado o presente contrato, que se regerá pelas cláusulas seguintes e pelas condições da <b>Consolidação das Leis do Trabalho (CLT)</b>.</p>
@@ -1325,6 +1332,9 @@ export default function RHPage() {
        endereco: f.endereco || "",
        cep: f.cep || "",
        cidade_nascimento: f.cidade_nascimento || "",
+       nome_pai: f.nome_pai || "",
+       nome_mae: f.nome_mae || "",
+       filhos: Array.isArray(f.filhos) ? f.filhos : [],
        data_nascimento: f.data_nascimento || "",
        tem_filhos: !!f.tem_filhos,
        qtd_filhos: f.qtd_filhos || "",
@@ -1391,6 +1401,9 @@ export default function RHPage() {
       endereco: novoFunc.endereco || null,
       cep: novoFunc.cep || null,
       cidade_nascimento: novoFunc.cidade_nascimento || null,
+      nome_pai: novoFunc.nome_pai || null,
+      nome_mae: novoFunc.nome_mae || null,
+      filhos: (novoFunc.filhos || []).filter(x => String(x?.nome || "").trim()),
       data_nascimento: novoFunc.data_nascimento || null,
       tem_filhos: !!novoFunc.tem_filhos,
       qtd_filhos: novoFunc.tem_filhos ? (Number(novoFunc.qtd_filhos) || 0) : null,
@@ -2341,6 +2354,36 @@ export default function RHPage() {
                         <div>
                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Cidade de Nascimento</label>
                            <input type="text" value={novoFunc.cidade_nascimento} onChange={e=>setNovoFunc({...novoFunc, cidade_nascimento: e.target.value})} placeholder="Ex: Belém - PA" className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
+                        </div>
+                        <div>
+                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nome do pai</label>
+                           <input type="text" value={novoFunc.nome_pai || ""} onChange={e=>setNovoFunc({...novoFunc, nome_pai: e.target.value})} placeholder="Como consta no documento" className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
+                        </div>
+                        <div>
+                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nome da mãe</label>
+                           <input type="text" value={novoFunc.nome_mae || ""} onChange={e=>setNovoFunc({...novoFunc, nome_mae: e.target.value})} placeholder="Como consta no documento" className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
+                        </div>
+                        {/* Filhos com nome e CPF: entram no contrato */}
+                        <div className="sm:col-span-2">
+                           <div className="flex items-center justify-between gap-2">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Filhos</label>
+                              <button type="button" onClick={() => setNovoFunc({ ...novoFunc, filhos: [...(novoFunc.filhos || []), { nome: "", cpf: "" }] })} className="text-xs font-black text-emerald-700 hover:underline">+ Adicionar filho</button>
+                           </div>
+                           <div className="mt-2 space-y-2">
+                              {(novoFunc.filhos || []).length === 0 && <p className="text-xs font-semibold text-slate-400">Nenhum filho cadastrado.</p>}
+                              {(novoFunc.filhos || []).map((filho, idx) => (
+                                 <div key={idx} className="flex flex-wrap items-center gap-2">
+                                    <input type="text" value={filho.nome || ""} placeholder="Nome do filho"
+                                       onChange={e => setNovoFunc({ ...novoFunc, filhos: novoFunc.filhos.map((x, k) => k === idx ? { ...x, nome: e.target.value } : x) })}
+                                       className="min-w-[150px] flex-1 p-3 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
+                                    <input type="text" value={filho.cpf || ""} placeholder="CPF"
+                                       onChange={e => setNovoFunc({ ...novoFunc, filhos: novoFunc.filhos.map((x, k) => k === idx ? { ...x, cpf: e.target.value } : x) })}
+                                       className="w-40 p-3 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
+                                    <button type="button" onClick={() => setNovoFunc({ ...novoFunc, filhos: novoFunc.filhos.filter((_, k) => k !== idx) })}
+                                       className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50">×</button>
+                                 </div>
+                              ))}
+                           </div>
                         </div>
                         <div>
                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Gênero</label>

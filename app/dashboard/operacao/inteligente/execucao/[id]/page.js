@@ -8,18 +8,114 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft, ArrowRight, Camera, Check, CheckCircle2, Loader2,
-  AlertTriangle, ShieldAlert, X,
+  AlertTriangle, MapPin, ShieldAlert, Sparkles, Trash2, X,
 } from "lucide-react";
 import { useERP } from "../../../../../context/ERPContext";
 import { lerSessao } from "../../../../../lib/auth";
 import {
-  fetchExecucao, fetchProcessoCompleto, iniciarExecucao, responderItem, concluirExecucao,
+  abrirNaoConformidade, fetchExecucao, fetchProcessoCompleto, iniciarExecucao,
+  responderItem, concluirExecucao,
 } from "../../../../../lib/operacao-inteligente";
+import { descartarEvidencia, salvarEvidencia } from "../../../../../lib/operacao-evidencias";
 import { itemVisivel, respostaConforme } from "../../../../../lib/operacao-agenda.mjs";
 
 const POSITIVO = { FEITO_NAO_FEITO: "feito", CONFORME_NAO_CONFORME: "conforme", SIM_NAO: "sim", BOOLEAN: "sim" };
 const NEGATIVO = { FEITO_NAO_FEITO: "nao_feito", CONFORME_NAO_CONFORME: "nao_conforme", SIM_NAO: "nao", BOOLEAN: "nao" };
 const NUMERICOS = ["NUMERO", "DECIMAL", "TEMPERATURA", "QUANTIDADE", "PERCENTUAL", "MOEDA"];
+const TIPOS_FOTO = ["FOTO", "MULTIPLAS_FOTOS", "FOTO_COM_IA", "ASSINATURA"];
+
+// Como a conferência da IA aparece para quem está com o celular na mão.
+const VEREDITO_IA = {
+  aprovada: { rotulo: "IA aprovou a foto", classe: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+  reprovada: { rotulo: "IA reprovou a foto", classe: "border-red-200 bg-red-50 text-red-700" },
+  revisar: { rotulo: "IA pediu revisão", classe: "border-amber-200 bg-amber-50 text-amber-700" },
+};
+
+// Bloco de evidência: aparece nos itens de foto e em qualquer item que exija
+// foto ou localização. Mostra o que já foi capturado, porque quem executa
+// precisa ver a própria prova antes de seguir para o próximo item.
+function CapturaEvidencia({ item, evidencias, ocupado, erro, onCapturar, onDescartar }) {
+  const tipo = String(item.tipo).toUpperCase();
+  const multiplas = tipo === "MULTIPLAS_FOTOS";
+  const pedeFoto = item.exige_foto || TIPOS_FOTO.includes(tipo);
+  const podeCapturar = multiplas || evidencias.length === 0;
+  const rotuloBotao = evidencias.length === 0
+    ? (tipo === "ASSINATURA" ? "Fotografar assinatura" : "Tirar foto")
+    : "Adicionar outra foto";
+
+  return (
+    <div className="rounded-2xl border-2 border-dashed border-slate-300 p-4">
+      {evidencias.length > 0 && (
+        <div className="mb-3 space-y-3">
+          {evidencias.map((evidencia) => {
+            const veredito = VEREDITO_IA[evidencia.ia_status];
+            return (
+              <div key={evidencia.id} className="rounded-xl border border-slate-200 bg-white p-3">
+                <div className="flex items-start gap-3">
+                  {evidencia.arquivo_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={evidencia.arquivo_url} alt="Evidência registrada"
+                      className="h-20 w-20 shrink-0 rounded-lg border border-slate-200 object-cover" />
+                  ) : (
+                    <span className="grid h-20 w-20 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-400"><MapPin size={22} /></span>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">
+                      {evidencia.tipo === "gps" ? "Localização" : "Foto"} · {evidencia.usuario || "sem nome"}
+                    </p>
+                    {evidencia.latitude != null && (
+                      <p className="mt-1 flex items-center gap-1 text-[11px] font-bold text-slate-500">
+                        <MapPin size={12} /> {Number(evidencia.latitude).toFixed(5)}, {Number(evidencia.longitude).toFixed(5)}
+                        {evidencia.precisao_gps != null && ` · ±${Math.round(evidencia.precisao_gps)}m`}
+                      </p>
+                    )}
+                    {veredito && (
+                      <p className={`mt-2 rounded-lg border px-2 py-1.5 text-[12px] font-bold ${veredito.classe}`}>
+                        <Sparkles size={12} className="mr-1 inline" />
+                        {veredito.rotulo}
+                        {evidencia.ia_confianca != null && ` (${evidencia.ia_confianca}%)`}
+                        {evidencia.ia_motivo && <span className="mt-1 block font-medium">{evidencia.ia_motivo}</span>}
+                      </p>
+                    )}
+                  </div>
+                  <button onClick={() => onDescartar(evidencia)} disabled={ocupado}
+                    className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
+                    aria-label="Descartar esta evidência"><Trash2 size={16} /></button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {podeCapturar && pedeFoto && (
+        <label className={`flex min-h-14 cursor-pointer items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-black text-white ${ocupado ? "opacity-60" : "hover:bg-emerald-700"}`}>
+          {ocupado ? <Loader2 className="animate-spin" size={18} /> : <Camera size={18} />}
+          {ocupado ? "Enviando evidência..." : rotuloBotao}
+          <input type="file" accept="image/*" capture="environment" className="hidden" disabled={ocupado}
+            onChange={(e) => { const arquivo = e.target.files?.[0]; e.target.value = ""; if (arquivo) onCapturar(arquivo); }} />
+        </label>
+      )}
+
+      {/* Item que só precisa provar ONDE foi feito: registra a coordenada sem
+          obrigar uma foto que não acrescentaria nada. */}
+      {podeCapturar && !pedeFoto && item.exige_gps && (
+        <button onClick={() => onCapturar(null)} disabled={ocupado}
+          className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-60">
+          {ocupado ? <Loader2 className="animate-spin" size={18} /> : <MapPin size={18} />}
+          {ocupado ? "Lendo localização..." : "Registrar localização"}
+        </button>
+      )}
+
+      {item.exige_gps && pedeFoto && (
+        <p className="mt-2 flex items-center justify-center gap-1.5 text-[11px] font-bold text-slate-500">
+          <MapPin size={12} /> A localização do aparelho é gravada junto com a foto.
+        </p>
+      )}
+      {erro && <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold text-red-700">{erro}</p>}
+    </div>
+  );
+}
 
 export default function ExecucaoGuiada() {
   const { id } = useParams();
@@ -36,6 +132,9 @@ export default function ExecucaoGuiada() {
   const [sessao, setSessao] = useState(null);
   const [rascunho, setRascunho] = useState({ valor: "", comentario: "" });
   const [concluida, setConcluida] = useState(false);
+  const [evidencias, setEvidencias] = useState({});  // item_id -> evidências
+  const [capturando, setCapturando] = useState(false);
+  const [erroEvidencia, setErroEvidencia] = useState("");
 
   useEffect(() => { lerSessao().then(setSessao).catch(() => {}); }, []);
 
@@ -47,6 +146,9 @@ export default function ExecucaoGuiada() {
       setExecucao(exec);
       setProcesso(proc);
       setRespostas(Object.fromEntries((exec.respostas || []).map(r => [r.item_id, r])));
+      const porItem = {};
+      (exec.evidencias || []).forEach((e) => { (porItem[e.item_id] = porItem[e.item_id] || []).push(e); });
+      setEvidencias(porItem);
       setConcluida(["CONCLUIDA", "CONCLUIDA_COM_ATRASO"].includes(exec.status));
       setCarregando(false);
     })();
@@ -68,6 +170,7 @@ export default function ExecucaoGuiada() {
     const r = respostas[item.id];
     setRascunho({ valor: r?.valor ?? "", comentario: r?.comentario ?? "" });
     setErro("");
+    setErroEvidencia("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [indice, item?.id]);
 
@@ -79,12 +182,80 @@ export default function ExecucaoGuiada() {
     setExecucao(e => ({ ...e, status: "EM_ANDAMENTO" }));
   };
 
+  // Evidência descartada continua no banco (a auditoria precisa saber que
+  // existiu), então a tela filtra em vez de apagar da lista.
+  const evidenciasDoItem = (item && evidencias[item.id] || []).filter(e => e.status !== "descartada");
+  const fotosDoItem = evidenciasDoItem.filter(e => e.tipo !== "gps");
+  const ultimaFoto = fotosDoItem[fotosDoItem.length - 1] || null;
+  const reprovadaPelaIA = ultimaFoto?.ia_status === "reprovada";
+  const precisaEvidencia = !!item && (item.exige_foto || item.exige_gps || TIPOS_FOTO.includes(String(item.tipo).toUpperCase()));
+
+  const capturarEvidencia = async (arquivo) => {
+    if (!item || capturando) return;
+    setCapturando(true);
+    setErroEvidencia("");
+    await garantirIniciada();
+    const r = await salvarEvidencia({
+      execucaoId: execucao.id,
+      itemId: item.id,
+      unidadeId: execucao.unidade_id || unidadeAtiva,
+      file: arquivo,
+      usuario,
+      criteriosIa: item.criterios_ia || "",
+      itemTitulo: item.titulo,
+      exigeGps: !!item.exige_gps,
+    });
+    setCapturando(false);
+    if (r.error) { setErroEvidencia(r.error); return; }
+    setEvidencias(a => ({ ...a, [item.id]: [...(a[item.id] || []), r.data] }));
+  };
+
+  const descartar = async (evidencia) => {
+    if (capturando) return;
+    setCapturando(true);
+    const r = await descartarEvidencia(evidencia.id, usuario);
+    setCapturando(false);
+    if (r.error) { setErroEvidencia(r.error); return; }
+    setEvidencias(a => ({
+      ...a,
+      [item.id]: (a[item.id] || []).map(e => (e.id === evidencia.id ? { ...e, status: "descartada" } : e)),
+    }));
+  };
+
+  // Foto reprovada pela IA não vira conformidade automática: quem executa pode
+  // registrar assim mesmo, mas justificando — e aí a não conformidade abre com
+  // o motivo da IA junto, que é o que o gestor vai querer ler depois.
+  const registrarMesmoAssim = async () => {
+    if (!rascunho.comentario.trim()) {
+      setErro("A IA reprovou a foto. Escreva na observação por que está registrando assim mesmo.");
+      return;
+    }
+    await abrirNaoConformidade({
+      unidadeId: execucao.unidade_id,
+      processoId: execucao.processo_id,
+      execucaoId: execucao.id,
+      itemId: item.id,
+      setor: execucao.processo?.setor,
+      titulo: `${item.titulo} — foto reprovada pela IA`,
+      descricao: [
+        ultimaFoto?.ia_motivo ? `IA: ${ultimaFoto.ia_motivo}` : "IA reprovou a evidência.",
+        `Justificativa de quem executou: ${rascunho.comentario.trim()}`,
+      ].join("\n"),
+      criticidade: item.critico ? "critica" : "normal",
+      abertaPor: usuario?.nome,
+    });
+    await salvarResposta("registrado");
+  };
+
   const salvarResposta = async (valorDireto, naoAplica = false) => {
     if (!item || salvando) return;
     const valor = valorDireto ?? rascunho.valor;
     if (!naoAplica) {
       if (item.obrigatorio && (valor == null || String(valor).trim() === "")) { setErro("Este item é obrigatório."); return; }
       if (item.exige_comentario && !rascunho.comentario.trim()) { setErro("Escreva um comentário para este item."); return; }
+      // Item marcado como "foto obrigatória" não passa sem prova, mesmo quando a
+      // resposta em si é um sim/não — era assim que a evidência sumia antes.
+      if (item.exige_foto && fotosDoItem.length === 0) { setErro("Este item exige foto antes de seguir."); return; }
     }
     setSalvando(true);
     await garantirIniciada();
@@ -244,12 +415,32 @@ export default function ExecucaoGuiada() {
                   className="h-14 w-full rounded-2xl border-2 border-slate-200 px-4 text-base font-bold outline-none focus:border-emerald-500" />
               )}
 
-              {["FOTO", "MULTIPLAS_FOTOS", "FOTO_COM_IA", "ASSINATURA"].includes(tipo) && (
-                <div className="rounded-2xl border-2 border-dashed border-slate-300 p-6 text-center">
-                  <Camera className="mx-auto text-slate-400" size={30} />
-                  <p className="mt-2 text-sm font-bold text-slate-500">Captura de evidência entra na próxima etapa do módulo.</p>
-                  <button onClick={() => salvarResposta("registrado")} disabled={salvando}
-                    className="mt-3 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-black text-white">Marcar como feito</button>
+              {TIPOS_FOTO.includes(tipo) && (
+                <>
+                  <CapturaEvidencia item={item} evidencias={evidenciasDoItem} ocupado={capturando}
+                    erro={erroEvidencia} onCapturar={capturarEvidencia} onDescartar={descartar} />
+                  {fotosDoItem.length > 0 && !reprovadaPelaIA && (
+                    <button onClick={() => salvarResposta("registrado")} disabled={salvando}
+                      className="mt-3 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 text-base font-black text-white hover:bg-emerald-700 disabled:opacity-60">
+                      <Check size={19} /> Confirmar e seguir
+                    </button>
+                  )}
+                  {reprovadaPelaIA && (
+                    <button onClick={registrarMesmoAssim} disabled={salvando}
+                      className="mt-3 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl border-2 border-red-200 bg-white text-sm font-black text-red-700 hover:bg-red-50 disabled:opacity-60">
+                      <AlertTriangle size={18} /> Registrar assim mesmo (abre não conformidade)
+                    </button>
+                  )}
+                </>
+              )}
+
+              {/* Item que não é de foto mas exige prova: a captura entra junto
+                  da resposta, sem virar uma etapa separada no meio do corredor. */}
+              {!TIPOS_FOTO.includes(tipo) && precisaEvidencia && (
+                <div className="mt-4">
+                  <p className="mb-2 text-[11px] font-black uppercase tracking-wider text-slate-500">Evidência</p>
+                  <CapturaEvidencia item={item} evidencias={evidenciasDoItem} ocupado={capturando}
+                    erro={erroEvidencia} onCapturar={capturarEvidencia} onDescartar={descartar} />
                 </div>
               )}
             </div>

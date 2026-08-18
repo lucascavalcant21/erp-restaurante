@@ -51,11 +51,27 @@ Faça o erro aparecer no console, leia a mensagem e corrija a causa.
 As telas já não quebram (mostram aviso). Se continuarem vazias, o motivo é a
 variável `SUPABASE_SERVICE_ROLE_KEY` na Vercel — eu configuro, você não toca nisso.
 
-### 5. Módulo de treinamento de funcionários
+### 5. Operação Inteligente — construída pela metade
+Já existe: construtor de processos, 7 checklists prontos (abertura e fechamento
+de cozinha, bar e salão), agendamento recorrente, execução guiada item a item,
+não conformidades com ações corretivas, alertas com deduplicação e auditoria.
+Motor de recorrência testado em `app/lib/operacao-agenda.test.mjs` (33 testes).
+
+**Falta, do prompt original:**
+- **Captura de evidência** — foto, GPS e conferência por IA. Hoje a tela de
+  execução mostra "Captura de evidência entra na próxima etapa do módulo" e só
+  marca como feito. As colunas já existem em `op_evidencias`.
+- **Modo TV** — painel para pendurar na cozinha com o andamento do dia.
+- **Rankings e relatórios** — score P/E/Q por pessoa e por setor ao longo do tempo
+  (`calcularScore` já existe e é testado).
+- **Automações e WhatsApp** — avisar responsável, cobrar atraso, escalar NC crítica.
+- **Criar checklist por IA** — descrever em texto e a IA montar seções e itens.
+
+### 6. Módulo de treinamento de funcionários
 Trilhas por cargo, aulas e documentos, quiz, progresso por pessoa e certificado.
 Ainda não começado.
 
-### 6. Eventos da semana — completar
+### 7. Eventos da semana — completar
 `/dashboard/rh/semana` já mostra escala do dia, extras com diária e custo.
 **Falta** juntar feriados e atividades do restaurante na mesma agenda.
 
@@ -63,6 +79,10 @@ Ainda não começado.
 
 - Imagem própria (fachada) no cartão dos links dos portais — hoje usa `public/icon-512x512.png`.
 - Clicar num recibo do histórico do extra para reabrir e reimprimir.
+- Fila de impressão da EPSON TM-T20 travada desde 30/06 no meu PC (job em
+  "Printing, Retained" segurando ~40 documentos). É problema do Windows, não do
+  ERP: cancelar os documentos, reiniciar o spooler e desligar "Manter documentos
+  impressos" nas propriedades da impressora.
 
 ## Comece por
 

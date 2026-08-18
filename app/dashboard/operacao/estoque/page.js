@@ -507,20 +507,30 @@ function EstoqueRunner() {
       avisar("Digite ZERAR para confirmar.", "erro");
       return;
     }
+    const alvos = (modalZerar?.alvos || []).length ? modalZerar.alvos : [estoqueAtual?.id];
+    const escolhidos = estoquesVisiveis.filter(e => alvos.includes(e.id));
+    if (!escolhidos.length) { avisar("Escolha pelo menos um estoque.", "erro"); return; }
     setModalZerar(m => ({ ...m, salvando: true }));
-    const resposta = await zerarEstoque({
-      unidadeId: unidadeAtiva,
-      estoqueId: estoqueAtual?.id,
-      usuarioId: idUsuario(sessao),
-      usuarioNome: nomeUsuario(sessao),
-      motivo: String(modalZerar?.motivo || "").trim(),
-    });
+
+    const resumo = [];
+    for (const estoque of escolhidos) {
+      const resposta = await zerarEstoque({
+        unidadeId: unidadeAtiva,
+        estoqueId: estoque.id,
+        usuarioId: idUsuario(sessao),
+        usuarioNome: nomeUsuario(sessao),
+        motivo: String(modalZerar?.motivo || "").trim(),
+      });
+      resumo.push({ nome: estoque.nome, ...(resposta.data || {}), erro: resposta.error });
+    }
     setModalZerar(null);
-    if (resposta.error) { avisar(resposta.error, "erro"); return; }
-    const { zerados, total, falhas } = resposta.data || {};
-    avisar(falhas
-      ? `${zerados} item(ns) zerados, mas ${falhas} não entraram no histórico.`
-      : `${estoqueAtual?.nome} zerado: ${zerados} de ${total} item(ns) tinham saldo. Cada baixa está no histórico.`);
+
+    const comErro = resumo.filter(r => r.erro);
+    if (comErro.length) {
+      avisar(`Não consegui zerar: ${comErro.map(r => `${r.nome} (${r.erro})`).join(" · ")}`, "erro");
+    } else {
+      avisar(`${resumo.map(r => `${r.nome}: ${r.zerados} de ${r.total} com saldo`).join(" · ")}. Cada baixa está no histórico.`);
+    }
     await atualizarTudo();
   };
 
@@ -1292,7 +1302,7 @@ function EstoqueRunner() {
                 </button>
                 {/* Recomeço de contagem. Fica discreto de propósito: é a única
                     ação da tela que não tem desfazer. */}
-                <button onClick={() => setModalZerar({ confirmacao: "", salvando: false })}
+                <button onClick={() => setModalZerar({ confirmacao: "", alvos: estoqueAtual?.id ? [estoqueAtual.id] : [], salvando: false })}
                   className="whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-xs font-black text-slate-400 hover:text-red-600 sm:py-3.5 sm:text-sm">
                   Zerar estoque
                 </button>
@@ -1912,9 +1922,30 @@ function EstoqueRunner() {
         <Modal titulo={`Zerar ${estoqueAtual?.nome}`} descricao="Todos os saldos deste estoque vão a zero. Não tem desfazer." onClose={() => setModalZerar(null)}>
           <div className="space-y-3 pt-2">
             <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
-              {itensDaArea.filter(i => Number(i.quantidade_atual) > 0).length} item(ns) com saldo vão ser zerados.
-              Cada baixa fica no histórico com o seu nome, para a contagem poder ser conferida depois.
+              Cada baixa fica no histórico com o seu nome, para a contagem poder ser conferida depois. Não tem desfazer.
             </p>
+            {/* Marcar mais de um é possível, mas exige marcar: zerar bar e
+                cozinha de um clique só seria fácil demais para uma ação sem volta. */}
+            <div>
+              <span className="text-xs font-black uppercase tracking-widest text-slate-500">Quais estoques zerar</span>
+              <div className="mt-1.5 max-h-44 space-y-1 overflow-auto rounded-xl border border-slate-200 p-2">
+                {estoquesVisiveis.map(e => {
+                  const marcado = (modalZerar.alvos || []).includes(e.id);
+                  return (
+                    <label key={e.id} className="flex min-h-10 cursor-pointer items-center gap-2.5 rounded-lg px-2 hover:bg-slate-50">
+                      <input type="checkbox" checked={marcado} className="h-4 w-4 accent-red-600"
+                        onChange={() => setModalZerar(m => ({
+                          ...m,
+                          alvos: marcado
+                            ? (m.alvos || []).filter(id => id !== e.id)
+                            : [...(m.alvos || []), e.id],
+                        }))} />
+                      <span className="text-sm font-bold text-slate-700">{e.nome}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
             <label className="block">
               <span className="text-xs font-black uppercase tracking-widest text-slate-500">Motivo (opcional)</span>
               <input value={modalZerar.motivo || ""} onChange={e => setModalZerar(m => ({ ...m, motivo: e.target.value }))}

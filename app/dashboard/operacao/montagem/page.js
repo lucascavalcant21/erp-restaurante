@@ -1893,6 +1893,30 @@ function MontagemPageInner() {
   // Seleção de fichas para imprimir juntas (ex.: 2 receitas na mesma página)
   const [selecionadas, setSelecionadas] = useState([]);
   const toggleSel = (id) => setSelecionadas(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
+  // Ver o que foi tirado do guia, para poder devolver. Sem isso, tirar seria
+  // uma porta só de ida e ninguém arriscaria usar.
+  const [verForaDoGuia, setVerForaDoGuia] = useState(false);
+
+  const mudarForaDoGuia = async (fora) => {
+    if (!selecionadas.length) return;
+    const alvos = lista.filter(m => selecionadas.includes(m.id));
+    let erro = null;
+    for (const m of alvos) {
+      const r = await atualizarMontagem(m.id, { fora_do_guia: fora });
+      if (r?.error && !erro) erro = r.error;
+    }
+    setSelecionadas([]);
+    if (erro) {
+      // Coluna ainda não migrada é o erro esperado aqui: avisa o caminho.
+      setSalvou(/fora_do_guia/i.test(erro)
+        ? "Rode db/migracao_montagem_fora_do_guia.sql no Supabase para liberar isto."
+        : `Não consegui salvar: ${erro}`);
+    } else {
+      setSalvou(fora ? `${alvos.length} item(ns) fora do guia.` : `${alvos.length} item(ns) de volta ao guia.`);
+    }
+    setTimeout(() => setSalvou(""), 4000);
+    await carregar();
+  };
   useEffect(() => { setSelecionadas([]); }, [dept]);
   const [salvou, setSalvou] = useState("");
   const [porFolha, setPorFolha] = useState(4); // fichas por página na impressão
@@ -2024,14 +2048,14 @@ function MontagemPageInner() {
     // as três leem daqui. Quem cuida desses itens é o cardápio e o estoque.
     const nome = String(m.nome || "").trim().toLowerCase();
     const comprado = compradosProntos.has(nome);
-    // Guia de montagem mostra o que TEM montagem. Tentei antes separar pela
-    // ficha técnica, mas garrafa e drink são cadastrados do mesmo jeito no
-    // receituário — de lá não dá para distinguir. O que separa de verdade é
-    // isto: água, cerveja e refrigerante nunca vão ter passo a passo, porque
-    // não se montam. Quem ainda não tem receita continua no botão "Receitas
-    // com IA", que lê a lista inteira, e reaparece assim que ganhar conteúdo.
-    return mb && mt && !comprado && temConteudoDrink(m);
-  }), [lista, busca, tipo, compradosProntos]);
+    // Tentei separar garrafa de drink por regra duas vezes — pelo tipo da ficha
+    // e por ter passo a passo escrito — e nenhuma pegou: no banco os dois são
+    // iguais. Então a decisão é do usuário e fica gravada em fora_do_guia.
+    // Enquanto a coluna não existir no banco, o campo vem undefined e nada é
+    // escondido, que é o comportamento certo para não sumir com drink.
+    if (verForaDoGuia) return mb && mt && !!m.fora_do_guia;
+    return mb && mt && !comprado && !m.fora_do_guia;
+  }), [lista, busca, tipo, compradosProntos, verForaDoGuia]);
 
   // O que vai pra impressora: as marcadas nos cards; sem marcação, as filtradas
   const alvoImpressao = selecionadas.length ? lista.filter(m => selecionadas.includes(m.id)) : filtrados;
@@ -2199,6 +2223,23 @@ function MontagemPageInner() {
         <div className="erp-card p-3 sm:p-4 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_auto] gap-3 items-center">
           <SearchBar value={busca} onChange={setBusca} placeholder={dept === "bar" ? "Buscar drink ou montagem..." : "Buscar prato ou montagem..."} autoFocus />
           <Chips options={["Todos", "Prato", "Drink"]} value={tipo} onChange={setTipo} />
+        </div>
+
+        {/* Marcar o que não é drink e tirar do guia. A decisão fica gravada, e
+            dá para rever e desfazer pelo botão "Fora do guia". */}
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={() => { setVerForaDoGuia(v => !v); setSelecionadas([]); }}
+            className={`min-h-10 rounded-xl border px-3 text-xs font-black ${verForaDoGuia ? "border-slate-800 bg-slate-800 text-white" : "border-slate-200 bg-white text-slate-600"}`}>
+            {verForaDoGuia ? "Voltar ao guia" : `Fora do guia (${lista.filter(m => m.fora_do_guia).length})`}
+          </button>
+          {selecionadas.length > 0 && (
+            <button type="button" onClick={() => mudarForaDoGuia(!verForaDoGuia)}
+              className="min-h-10 rounded-xl bg-slate-800 px-4 text-xs font-black text-white hover:bg-slate-900">
+              {verForaDoGuia
+                ? `Devolver ao guia (${selecionadas.length})`
+                : `Não é drink — tirar do guia (${selecionadas.length})`}
+            </button>
+          )}
         </div>
 
         <div>

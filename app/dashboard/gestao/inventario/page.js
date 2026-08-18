@@ -12,7 +12,8 @@ import {
 import { useERP } from "../../../context/ERPContext";
 import {
   fetchInventario, salvarItemInventario, removerItemInventario,
-  registrarMovimentoInventario, fetchMovimentosInventario, CATEGORIAS_INVENTARIO
+  registrarMovimentoInventario, fetchMovimentosInventario, CATEGORIAS_INVENTARIO,
+  fetchCategoriasInventario, salvarCategoriasInventario
 } from "../../../lib/inventario";
 
 const TIPOS_BAIXA = [
@@ -50,6 +51,9 @@ export default function InventarioPage() {
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
   const [catFiltro, setCatFiltro] = useState("Todas");
+  // Categorias são do restaurante: começam nas padrão e ele edita.
+  const [categorias, setCategorias] = useState(CATEGORIAS_INVENTARIO);
+  const [novaCategoria, setNovaCategoria] = useState("");
   const [localFiltro, setLocalFiltro] = useState("Todos");
   const [contagemAberta, setContagemAberta] = useState(false);
   const [toast, setToast] = useState("");
@@ -80,6 +84,7 @@ export default function InventarioPage() {
     ]);
     setItens(ri.data || []);
     setMovimentos(rm.data || []);
+    fetchCategoriasInventario(unidadeAtiva).then(r => setCategorias(r.data));
     setLoading(false);
   };
 
@@ -126,6 +131,32 @@ export default function InventarioPage() {
   }, [filtrados]);
 
   // ── Ações ─────────────────────────────────────────────────────────────────
+  const criarCategoria = async () => {
+    const nome = novaCategoria.trim();
+    if (!nome) return;
+    if (categorias.some(c => c.toLowerCase() === nome.toLowerCase())) { notificar("Essa categoria já existe."); return; }
+    const lista = [...categorias, nome];
+    setCategorias(lista); setNovaCategoria("");
+    const r = await salvarCategoriasInventario(unidadeAtiva, lista);
+    notificar(r.error ? "Não consegui salvar: " + r.error : `Categoria "${nome}" criada.`);
+  };
+
+  // Excluir não some com item nenhum: quem usava a categoria vai para Outros.
+  const excluirCategoria = async (nome) => {
+    const usados = itens.filter(i => (i.categoria || "Outros") === nome).length;
+    if (usados && !confirm(`${usados} item(ns) usam "${nome}". Eles passam para Outros. Continuar?`)) return;
+    const lista = categorias.filter(c => c !== nome);
+    if (!lista.length) return notificar("Deixe pelo menos uma categoria.");
+    setCategorias(lista);
+    if (catFiltro === nome) setCatFiltro("Todas");
+    for (const item of itens.filter(i => (i.categoria || "Outros") === nome)) {
+      await salvarItemInventario({ ...item, categoria: "Outros" });
+    }
+    const r = await salvarCategoriasInventario(unidadeAtiva, lista);
+    notificar(r.error ? "Não consegui salvar: " + r.error : `Categoria "${nome}" excluída.`);
+    carregar();
+  };
+
   const limparFiltros = () => {
     setBusca(""); setCatFiltro("Todas"); setLocalFiltro("Todos");
   };
@@ -456,7 +487,24 @@ export default function InventarioPage() {
         {/* Busca + filtro por categoria */}
         <div className="space-y-3">
           <SearchBar value={busca} onChange={setBusca} placeholder="Buscar item... (ex: garfo, freezer, pote)" />
-          <Chips options={["Todas", ...CATEGORIAS_INVENTARIO]} value={catFiltro} onChange={setCatFiltro} />
+          <Chips options={["Todas", ...categorias]} value={catFiltro} onChange={setCatFiltro} />
+          <details className="rounded-xl border p-3" style={{ borderColor: "var(--line)" }}>
+            <summary className="cursor-pointer text-xs font-black uppercase tracking-widest" style={{ color: "var(--muted)" }}>Gerenciar categorias</summary>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {categorias.map(c => (
+                <span key={c} className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-bold" style={{ borderColor: "var(--line)", color: "var(--fg-soft)" }}>
+                  {c}
+                  <button type="button" onClick={() => excluirCategoria(c)} title={`Excluir ${c}`} style={{ color: "#e11d48" }}>×</button>
+                </span>
+              ))}
+            </div>
+            <div className="mt-3 flex gap-2">
+              <input value={novaCategoria} onChange={e => setNovaCategoria(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); criarCategoria(); } }}
+                placeholder="Nome da nova categoria" className="erp-input flex-1" />
+              <Btn variant="primary" onClick={criarCategoria}>Criar</Btn>
+            </div>
+          </details>
           {lugares.length > 0 && (
             <Chips options={["Todos", ...lugares, "Sem lugar"]} value={localFiltro} onChange={setLocalFiltro} />
           )}
@@ -575,7 +623,7 @@ export default function InventarioPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="Categoria">
                 <Select value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })}>
-                  {CATEGORIAS_INVENTARIO.map(c => <option key={c} value={c}>{c}</option>)}
+                  {categorias.map(c => <option key={c} value={c}>{c}</option>)}
                 </Select>
               </Field>
               <Field label={form.id ? "Quantidade" : "Quantidade inicial"}>
@@ -681,7 +729,7 @@ export default function InventarioPage() {
                           <input type="checkbox" checked={it.incluir} onChange={e => atualizarItemIA(idx, { incluir: e.target.checked })} className="w-4 h-4 accent-emerald-600 shrink-0" />
                           <input type="text" value={it.nome} onChange={e => atualizarItemIA(idx, { nome: e.target.value })} className="w-full sm:flex-1 sm:min-w-[140px] p-2 rounded-lg border font-bold text-sm outline-none" style={{ background: "var(--surface)", borderColor: "var(--line)", color: "var(--fg)" }} />
                           <select value={it.categoria} onChange={e => atualizarItemIA(idx, { categoria: e.target.value })} className="p-2 rounded-lg border font-bold text-xs outline-none" style={{ background: "var(--surface)", borderColor: "var(--line)", color: "var(--fg-soft)" }}>
-                            {CATEGORIAS_INVENTARIO.map(c => <option key={c} value={c}>{c}</option>)}
+                            {categorias.map(c => <option key={c} value={c}>{c}</option>)}
                           </select>
                         </div>
                         <div className="flex items-center gap-2 mt-2 pl-6 flex-wrap">

@@ -122,3 +122,46 @@ export async function fetchMovimentosInventario(unidadeId, limite = 120) {
     .limit(limite);
   return { data: data || [], error: error?.message };
 }
+
+// ── CATEGORIAS EDITÁVEIS ────────────────────────────────────────────────────
+// A lista fixa acima é só o ponto de partida. O que o restaurante criar fica em
+// config_sistema.params.categorias_inventario — sem tabela nova.
+
+export async function fetchCategoriasInventario(unidadeId) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") {
+    return { data: CATEGORIAS_INVENTARIO };
+  }
+  const { data } = await supabase.from("config_sistema")
+    .select("params").eq("unidade_id", unidadeId).limit(1);
+  const salvas = data?.[0]?.params?.categorias_inventario;
+  const lista = Array.isArray(salvas) && salvas.length
+    ? salvas.map(String).map(c => c.trim()).filter(Boolean)
+    : CATEGORIAS_INVENTARIO;
+  return { data: [...new Set(lista)] };
+}
+
+export async function salvarCategoriasInventario(unidadeId, categorias) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  if (!unidadeId || unidadeId === "todas") return { error: "Selecione uma unidade." };
+  const categorias_inventario = [...new Set(
+    (categorias || []).map(c => String(c).trim()).filter(Boolean),
+  )];
+  if (!categorias_inventario.length) return { error: "Deixe pelo menos uma categoria." };
+
+  try {
+    const { error } = await supabase.rpc("merge_config_sistema_params", {
+      p_unidade_id: unidadeId, p_patch: { categorias_inventario },
+    });
+    if (!error) return { data: categorias_inventario, error: null };
+  } catch { /* caminho direto abaixo */ }
+
+  const { data: registros, error: erroLeitura } = await supabase
+    .from("config_sistema").select("id, params").eq("unidade_id", unidadeId).limit(1);
+  if (erroLeitura) return { error: erroLeitura.message };
+  const registro = registros?.[0];
+  const params = { ...(registro?.params || {}), categorias_inventario };
+  const { error } = registro
+    ? await supabase.from("config_sistema").update({ params }).eq("id", registro.id)
+    : await supabase.from("config_sistema").insert([{ unidade_id: unidadeId, params }]);
+  return { data: categorias_inventario, error: error?.message };
+}

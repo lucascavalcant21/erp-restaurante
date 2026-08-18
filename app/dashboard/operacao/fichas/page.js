@@ -23,7 +23,7 @@ function comprimirFotoParaIA(file, maxDim = 1000, qualidade = 0.70) {
   });
 }
 
-import { useState, useEffect, useRef, Suspense, Fragment } from "react";
+import { useState, useEffect, useMemo, useRef, Suspense, Fragment } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import {

@@ -6,7 +6,7 @@ import { fetchUnidades, atualizarUnidade } from "../../../lib/unidades";
 import { enviarPedidoOnline } from "../../../lib/vendas";
 import { supabase } from "../../../lib/supabase";
 import { SkeletonList } from "../../../components/ui";
-import { Store, Link2, Link2Off, RefreshCw, ShoppingBag, CheckCircle, AlertCircle, PlayCircle } from "lucide-react";
+import { Store, Link2, Link2Off, RefreshCw, Settings, ShoppingBag, CheckCircle, AlertCircle, PlayCircle } from "lucide-react";
 
 export default function IFoodConfigPage() {
   const { unidadeAtiva } = useERP();

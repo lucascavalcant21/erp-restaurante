@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchColaboradores, fetchRecibosPrestacaoUnidade } from "../../../lib/rh";
+import { faixaCompras, andarPeriodo, rotuloPeriodo, isoData } from "../../../lib/compras.mjs";
 
 const fmtBRL = (valor) => Number(valor || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const dataBR = (valor) => valor ? new Date(`${String(valor).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR") : "—";
@@ -18,6 +19,8 @@ export default function CadastroExtrasPage() {
   const [extras, setExtras] = useState([]);
   const [recibos, setRecibos] = useState([]);
   const [busca, setBusca] = useState("");
+  const [periodo, setPeriodo] = useState("mes");   // dia | semana | mes
+  const [refPagamento, setRefPagamento] = useState(() => new Date());
   const [carregando, setCarregando] = useState(true);
   const [linkCopiado, setLinkCopiado] = useState(false);
 
@@ -46,6 +49,19 @@ export default function CadastroExtrasPage() {
   const pendentes = recibos.filter((recibo) => !recibo.pagamento_realizado);
   const totalPendente = pendentes.reduce((soma, recibo) => soma + Number(recibo.valor_total || 0), 0);
 
+  // Quanto já foi pago no recorte escolhido: dia, semana ou mês, andando
+  // para trás quando quiser conferir o mês passado.
+  const faixaPagamentos = useMemo(() => faixaCompras(refPagamento, periodo), [refPagamento, periodo]);
+  const pagosNoPeriodo = useMemo(() => {
+    const de = isoData(faixaPagamentos.de), ate = isoData(faixaPagamentos.ate);
+    return recibos.filter((r) => {
+      if (!r.pagamento_realizado) return false;
+      const d = String(r.data_pagamento || r.data_trabalho || "").slice(0, 10);
+      return d >= de && d <= ate;
+    });
+  }, [recibos, faixaPagamentos]);
+  const totalPago = pagosNoPeriodo.reduce((soma, r) => soma + Number(r.valor_total || 0), 0);
+
   return (
     <div className="min-h-screen bg-slate-50 pb-16 text-slate-900">
       <header className="border-b border-slate-200 bg-white px-4 py-5 sm:px-7">
@@ -59,10 +75,29 @@ export default function CadastroExtrasPage() {
       </header>
 
       <main className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-7">
-        <section className="grid gap-3 sm:grid-cols-3">
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="flex items-center justify-between"><span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-100 text-emerald-700"><UsersRound size={20} /></span><strong className="text-3xl text-slate-900">{extras.length}</strong></div><p className="mt-3 text-xs font-black uppercase tracking-wider text-slate-500">Extras cadastrados</p></div>
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="flex items-center justify-between"><span className="grid h-10 w-10 place-items-center rounded-xl bg-blue-100 text-blue-700"><ReceiptText size={20} /></span><strong className="text-3xl text-slate-900">{recibos.length}</strong></div><p className="mt-3 text-xs font-black uppercase tracking-wider text-slate-500">Recibos emitidos</p></div>
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm"><div className="flex items-center justify-between"><span className="grid h-10 w-10 place-items-center rounded-xl bg-amber-100 text-amber-700"><DollarSign size={20} /></span><strong className="text-2xl text-amber-950">{fmtBRL(totalPendente)}</strong></div><p className="mt-3 text-xs font-black uppercase tracking-wider text-amber-700">Pagamentos pendentes</p></div>
+          <div className="rounded-2xl border border-emerald-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-2">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-emerald-100 text-emerald-700"><DollarSign size={20} /></span>
+              <strong className="text-2xl text-slate-900">{fmtBRL(totalPago)}</strong>
+            </div>
+            <p className="mt-3 text-xs font-black uppercase tracking-wider text-emerald-700">Pago no período</p>
+            <div className="mt-2 flex rounded-lg border border-slate-200 p-0.5">
+              {[["dia", "Dia"], ["semana", "Semana"], ["mes", "Mês"]].map(([v, r]) => (
+                <button key={v} onClick={() => setPeriodo(v)}
+                  className={`h-8 flex-1 rounded-md text-[11px] font-black ${periodo === v ? "bg-emerald-600 text-white" : "text-slate-500 hover:bg-slate-50"}`}>{r}</button>
+              ))}
+            </div>
+            <div className="mt-2 flex items-center justify-between gap-1">
+              <button onClick={() => setRefPagamento(andarPeriodo(refPagamento, periodo, -1))} className="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50">&lsaquo;</button>
+              <span className="flex-1 truncate text-center text-[11px] font-black capitalize text-slate-600">{rotuloPeriodo(faixaPagamentos, periodo)}</span>
+              <button onClick={() => setRefPagamento(andarPeriodo(refPagamento, periodo, 1))} className="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50">&rsaquo;</button>
+            </div>
+            <p className="mt-1 text-[11px] font-bold text-slate-400">{pagosNoPeriodo.length} recibo(s) pago(s)</p>
+          </div>
         </section>
 
         <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4"><div className="flex items-start gap-3"><ReceiptText className="mt-0.5 shrink-0 text-emerald-700" size={22} /><div><p className="font-black text-emerald-950">Cadastro totalmente ligado ao recibo</p><p className="mt-1 text-sm font-medium text-emerald-800">Nome, CPF, PIX, função, diária, horário e itens emprestados entram automaticamente. Cada recibo fica salvo no histórico da pessoa.</p></div></div></section>

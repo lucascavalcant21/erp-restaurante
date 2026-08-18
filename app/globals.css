@@ -26,10 +26,10 @@
   --faint:      #E2E8F0;
 
   /* Cores de Ação e Acento (Verde Escuro / Emerald) */
-  --accent:        #059669; /* Emerald 600 */
-  --accent-strong: #047857; /* Emerald 700 */
+  --accent:        #047857; /* Emerald 700 — verde da marca, mais forte */
+  --accent-strong: #036249; /* Emerald 800 */
   --accent-fg:     #FFFFFF;
-  --accent-soft:   rgba(5,150,105,0.12);
+  --accent-soft:   rgba(4,120,87,0.14);
   
   /* Status */
   --success:        #059669; /* Emerald 600 */
@@ -51,7 +51,7 @@
 
   /* Sombras Ultra-Premium (Interatividade Elevada) */
   --shadow-sm:   0 1px 2px rgba(15, 23, 42, 0.04);
-  --shadow-card: 0 4px 20px rgba(15, 23, 42, 0.03), 0 1px 3px rgba(15, 23, 42, 0.02);
+  --shadow-card: 0 8px 26px rgba(15, 23, 42, 0.09), 0 2px 6px rgba(15, 23, 42, 0.05);
   --shadow-hover: 0 12px 32px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04);
   --shadow-float: 0 24px 48px rgba(15, 23, 42, 0.12), 0 4px 12px rgba(15, 23, 42, 0.06);
 }
@@ -91,7 +91,7 @@
   --info:          #60A5FA;
 
   --shadow-sm:    0 1px 2px rgba(0,0,0,0.30);
-  --shadow-card:  0 4px 20px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.30);
+  --shadow-card:  0 8px 26px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.35);
   --shadow-hover: 0 12px 32px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.35);
   --shadow-float: 0 24px 48px rgba(0,0,0,0.55), 0 4px 12px rgba(0,0,0,0.40);
 }

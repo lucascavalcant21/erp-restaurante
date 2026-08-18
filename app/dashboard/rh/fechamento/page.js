@@ -145,16 +145,16 @@ export default function FechamentoFolhaPage() {
                </div>
             ) : (
                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse min-w-[800px]">
+                  <table className="w-full text-left border-collapse min-w-[1040px]">
                      <thead>
                         <tr className="text-[10px] uppercase font-black tracking-widest text-slate-400 border-b-2 border-slate-100">
-                           <th className="pb-4 pl-4 w-[25%]">Colaborador</th>
-                           <th className="pb-4 text-center">Dias Trabs.</th>
-                           <th className="pb-4 text-right">Base</th>
-                           <th className="pb-4 text-right">Bônus (+)</th>
-                           <th className="pb-4 text-right">Vales/Adiant. (-)</th>
-                           <th className="pb-4 text-right">Faltas/Outros (-)</th>
-                           <th className="pb-4 pr-4 text-right w-[15%]">Líquido Final</th>
+                           <th className="pb-4 pl-4 min-w-[210px]">Colaborador</th>
+                           <th className="pb-4 text-center whitespace-nowrap">Dias Trabs.</th>
+                           <th className="pb-4 text-right whitespace-nowrap">Base</th>
+                           <th className="pb-4 text-right whitespace-nowrap">Bônus (+)</th>
+                           <th className="pb-4 text-right whitespace-nowrap">Vales/Adiant. (-)</th>
+                           <th className="pb-4 text-right whitespace-nowrap">Faltas/Outros (-)</th>
+                           <th className="pb-4 pr-4 text-right whitespace-nowrap">Líquido Final</th>
                         </tr>
                      </thead>
                      <tbody className="text-sm font-bold">
@@ -173,7 +173,7 @@ export default function FechamentoFolhaPage() {
                                  </span>
                               </td>
 
-                              <td className="py-4 text-right text-slate-500">
+                              <td className="py-4 text-right text-slate-500 whitespace-nowrap">
                                  {fmtBRL(p.base_calculada)}
                               </td>
 
@@ -214,8 +214,8 @@ export default function FechamentoFolhaPage() {
                                  />
                               </td>
 
-                              <td className="py-4 pr-4 text-right">
-                                 <p className="text-lg font-black text-slate-900 bg-slate-100 px-3 py-1.5 rounded-xl inline-block shadow-inner">
+                              <td className="py-4 pr-4 text-right whitespace-nowrap">
+                                 <p className="text-lg font-black text-slate-900 bg-slate-100 px-3 py-1.5 rounded-xl inline-block whitespace-nowrap shadow-inner">
                                     {fmtBRL(p.valor_liquido)}
                                  </p>
                               </td>

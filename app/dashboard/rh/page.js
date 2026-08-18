@@ -2005,6 +2005,21 @@ export default function RHPage() {
                                  {f.chave_pix && <span className="flex items-center gap-1"><CreditCard size={10} /> {f.chave_pix}</span>}
                               </div>
                            )}
+                           {/* Vida do contrato: quando entrou, que vínculo tem, há quanto tempo está aqui e quando faz aniversário */}
+                           {(() => {
+                              const casa = tempoDeCasa(f);
+                              const aniv = aniversario(f);
+                              const adm = f.data_admissao ? new Date(`${String(f.data_admissao).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR") : null;
+                              if (!adm && !casa && !aniv && !f.tipo_contrato) return null;
+                              return (
+                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-bold text-slate-500">
+                                    {f.tipo_contrato && <span className="rounded-md bg-slate-100 px-2 py-0.5 text-slate-600">{f.tipo_contrato}</span>}
+                                    {adm && <span>Admissão {adm}</span>}
+                                    {casa && <span className="text-emerald-700">{casa.textoDias} de casa</span>}
+                                    {aniv && <span className={aniv.ehHoje ? "text-amber-600" : ""}>Aniversário {aniv.diaMes}{aniv.ehHoje ? " · é hoje" : ""}</span>}
+                                 </div>
+                              );
+                           })()}
                            <div>{pontoBadge}</div>
                            <div>
                               {ehFreela ? (

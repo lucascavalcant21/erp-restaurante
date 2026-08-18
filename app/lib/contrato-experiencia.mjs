@@ -76,7 +76,15 @@ export function tempoDeCasa(colaborador, hoje = new Date()) {
   if (meses > 0) partes.push(`${meses} ${meses > 1 ? "meses" : "mês"}`);
   if (!partes.length) partes.push(`${dias} dia${dias === 1 ? "" : "s"}`);
 
-  return { dias, anos, meses, texto: partes.join(" e ") };
+  // O gestor conta em dias: passou de um ano, vira "1 ano e tantos dias".
+  const marco = new Date(admissao);
+  marco.setFullYear(admissao.getFullYear() + anos);
+  const diasDepois = Math.max(0, Math.floor((base - marco) / DIA));
+  const textoDias = anos > 0
+    ? `${anos} ano${anos > 1 ? "s" : ""}${diasDepois ? ` e ${diasDepois} dia${diasDepois === 1 ? "" : "s"}` : ""}`
+    : `${dias} dia${dias === 1 ? "" : "s"}`;
+
+  return { dias, anos, meses, diasDepois, texto: partes.join(" e "), textoDias };
 }
 
 // Aniversário: dia/mês, idade e quantos dias faltam para o próximo.

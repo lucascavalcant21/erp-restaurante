@@ -11,7 +11,7 @@ import SinoCadastros from "../components/SinoCadastros";
 import {
   Users, BarChart, Store, Settings, LogOut, ChevronDown, Check,
   UtensilsCrossed, Package, Wallet, Menu, X, Truck, ChefHat, GlassWater,
-  Home, ClipboardList, UserRound, ShoppingCart, Bell, SlidersHorizontal,
+  Home, ClipboardList, UserRound, ShoppingCart, Bell, SlidersHorizontal, Briefcase,
   Loader2, CheckCircle2, AlertTriangle, Tag, WifiOff
 } from "lucide-react";
 
@@ -108,6 +108,15 @@ const SIDEBAR_MENU = [
     ]
   },
   {
+    category: "Portal de Vagas",
+    home: "/dashboard/rh/recrutamento",
+    icon: Briefcase,
+    items: [
+      { label: "Candidatos e vagas", href: "/dashboard/rh/recrutamento" },
+      { label: "Ver o portal", href: "/vagas" }
+    ]
+  },
+  {
     category: "Equipe & RH",
     home: "/dashboard/modulo/rh",
     icon: Users,
@@ -117,7 +126,6 @@ const SIDEBAR_MENU = [
       { label: "Portal do Colaborador", href: "/dashboard/rh/colaborador" },
       { label: "Folha de Pagamento", href: "/dashboard/rh/fechamento" },
       { label: "Organograma", href: "/dashboard/rh/organograma" },
-      { label: "Recrutamento", href: "/dashboard/rh/recrutamento" },
       { label: "Atas de Reunião", href: "/dashboard/rh/atas" },
       { label: "Compras do Mês", href: "/dashboard/rh/gastos-admin" }
     ]

@@ -14,7 +14,7 @@ import {
 } from "../../../lib/montagem";
 import { fetchProdutos } from "../../../lib/vendas";
 import { fetchModeloMontagem, salvarModeloMontagem } from "../../../lib/parametros";
-import { fetchNomesDeProdutosProntos } from "../../../lib/operacao";
+import { fetchNomesDePratosEDrinks, fetchNomesDeProdutosProntos } from "../../../lib/operacao";
 import { logoSeldeestrelaSVG } from "../../../lib/marca";
 import { CATALOGO_COPOS, desenhoCopoSVG, ilustracaoDrinkSVG, identificarCopo, imagemCopoHTML } from "../../../lib/copos";
 import { baixarPdfDeHtml } from "../../../lib/pdf";
@@ -1835,6 +1835,9 @@ function MontagemPageInner() {
   const [guiaModoPraca, setGuiaModoPraca] = useState(null); // modo produção / praça (tablet/TV)
   // Nomes do que é comprado pronto: ficam fora do guia de drinks.
   const [compradosProntos, setCompradosProntos] = useState(() => new Set());
+  // Nomes que têm ficha de receita de verdade (prato ou drink montado).
+  // null enquanto não carregou, para a lista não piscar vazia.
+  const [receitasDoSetor, setReceitasDoSetor] = useState(null);
 
   // A Cozinha e o Bar são áreas separadas. Se a navegação mudar apenas o
   // parâmetro do setor, atualiza a tela inteira sem reaproveitar dados do outro.
@@ -1931,11 +1934,16 @@ function MontagemPageInner() {
 
   useEffect(() => {
     let ativo = true;
-    fetchNomesDeProdutosProntos(unidadeAtiva).then(({ data }) => {
-      if (ativo) setCompradosProntos(new Set(data || []));
+    Promise.all([
+      fetchNomesDeProdutosProntos(unidadeAtiva),
+      fetchNomesDePratosEDrinks(unidadeAtiva, dept),
+    ]).then(([comprados, receitas]) => {
+      if (!ativo) return;
+      setCompradosProntos(new Set(comprados.data || []));
+      setReceitasDoSetor(new Set(receitas.data || []));
     }).catch(() => {});
     return () => { ativo = false; };
-  }, [unidadeAtiva]);
+  }, [unidadeAtiva, dept]);
 
   const mudarCfg = (patch) => setCfgModelo(c => {
     const novo = normalizarCfgModelo({ ...c, ...patch, _updatedAt: Date.now() });
@@ -1982,9 +1990,14 @@ function MontagemPageInner() {
         fetchProdutos(unidadeAtiva, dept),
       ]);
       const nomes = new Set((rMont.data || []).map(m => (m.nome || "").toLowerCase().trim()));
+      // Só ganha ficha de montagem o que é receita de verdade. A checagem antiga
+      // olhava só o tipo_base, então cerveja e água cadastradas direto no
+      // cardápio — sem ficha nenhuma — passavam pelo `!== "produto_pronto"` e
+      // apareciam aqui como se fossem drinks a montar.
       const faltantes = (rProds.data || []).filter(p =>
         p.nome_produto &&
-        p.fichas_tecnicas?.tipo_base !== "produto_pronto" &&
+        p.fichas_tecnicas &&
+        p.fichas_tecnicas.tipo_base !== "produto_pronto" &&
         !nomes.has(p.nome_produto.toLowerCase().trim())
       );
       for (const p of faltantes) {
@@ -2014,8 +2027,18 @@ function MontagemPageInner() {
   const filtrados = useMemo(() => lista.filter((m) => {
     const mb = m.nome?.toLowerCase().includes(busca.toLowerCase());
     const mt = tipo === "Todos" || m.tipo === tipo.toLowerCase();
-    return mb && mt;
-  }), [lista, busca, tipo]);
+    // Garrafa, lata e água não têm montagem para ensinar — abrir e servir não é
+    // receita. Some da lista, da contagem e da impressão de uma vez só, porque
+    // as três leem daqui. Quem cuida desses itens é o cardápio e o estoque.
+    const nome = String(m.nome || "").trim().toLowerCase();
+    const comprado = compradosProntos.has(nome);
+    // Guia de montagem é para o que se monta. Entra quem tem ficha de receita
+    // no setor ou quem já tem passo a passo escrito — o resto é garrafa que
+    // alguém cadastrou no cardápio e virou card sozinho. Enquanto a lista de
+    // receitas não chega (null), não filtra, para a tela não piscar vazia.
+    const ehReceita = !receitasDoSetor || receitasDoSetor.has(nome) || temConteudoDrink(m);
+    return mb && mt && !comprado && ehReceita;
+  }), [lista, busca, tipo, compradosProntos, receitasDoSetor]);
 
   // O que vai pra impressora: as marcadas nos cards; sem marcação, as filtradas
   const alvoImpressao = selecionadas.length ? lista.filter(m => selecionadas.includes(m.id)) : filtrados;

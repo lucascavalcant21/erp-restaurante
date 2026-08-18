@@ -171,7 +171,6 @@ export default function BancoTalentos({ unidadeAtiva }) {
   const abrirEditorPortal = async () => {
     const { data, error } = await fetchPortalVagasConfig(unidadeAtiva);
     if (error) return alert("Não foi possível carregar a configuração: " + error);
-    setEditorPortal(data);
   };
 
   const salvarEditorPortal = async () => {
@@ -181,8 +180,10 @@ export default function BancoTalentos({ unidadeAtiva }) {
     const { error, data } = await salvarPortalVagasConfig(unidadeAtiva, editorPortal);
     setSalvandoPortal(false);
     if (error) return alert("Não foi possível salvar: " + error);
-    setEditorPortal(data);
-    alert("Portal de Vagas atualizado com sucesso.");
+    // Salvou: fecha o editor. O aviso era um alert que ficava por cima do
+    // modal aberto, e a tela parecia travada em "Salvando...".
+    setEditorPortal(null);
+    carregar();
   };
 
   const atualizarVaga = (index, alteracoes) => {

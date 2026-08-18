@@ -712,7 +712,12 @@ function FichasRunner() {
   const categoriasBaseDept = modoFicha === "preparos"
     ? (deptUrl === "bar" ? CATEGORIAS_PREPARO_BAR : CATEGORIAS_PREPARO_COZINHA)
     : (deptUrl === "bar" ? CATEGORIAS_BAR : CATEGORIAS_CARDAPIO);
-  const fichasDoModo = fichas.filter(ficha => modoFicha === "preparos" ? !!ficha.eh_base : !ficha.eh_base);
+  // Base de tudo que a tela conta e categoriza. Produto comprado pronto fica de
+  // fora aqui, senão as categorias e os contadores mostrariam número maior do
+  // que a lista logo abaixo — e "Cervejas (12)" com 3 drinks na tela confunde.
+  const fichasDoModo = fichas.filter(ficha => modoFicha === "preparos"
+    ? !!ficha.eh_base
+    : (!ficha.eh_base && ficha.tipo_base !== "produto_pronto"));
   const categoriasDisponiveis = [...new Set([
     ...categoriasBaseDept,
     ...categoriasAdicionais,
@@ -799,12 +804,10 @@ function FichasRunner() {
     return String(a.nome_receita || "").localeCompare(String(b.nome_receita || ""), "pt-BR", { sensitivity: "base" });
   };
   // Produto pronto (cerveja, refrigerante) não tem receita: é compra, não
-  // receituário. Só aparece na aba própria — nas outras poluía a lista de quem
-  // procura um prato, um drink ou uma base.
+  // receituário. Fica fora do receituário inteiro — quem cuida dele é o
+  // cardápio e o estoque, não a ficha técnica.
   const passaFiltro = (f) => {
-    const comprado = !f.eh_base && f.tipo_base === "produto_pronto";
-    if (tipoFiltro === "Produtos prontos") return comprado;
-    if (comprado) return false;
+    if (!f.eh_base && f.tipo_base === "produto_pronto") return false;
     if (tipoFiltro === "Preparos e receitas") return !!f.eh_base;
     if (tipoFiltro === "Pratos principais") return !f.eh_base;
     if (tipoFiltro === "Pré-preparos") return !!f.eh_base && f.tipo_base !== "receita";
@@ -2205,7 +2208,7 @@ function FichasRunner() {
               ["Receitas base", "Receitas base", fichas.filter(f => !!f.eh_base && f.tipo_base === "receita").length],
               ["Preparos e receitas", "Todos os preparos", fichas.filter(f => !!f.eh_base).length],
             ] : [
-              ["Pratos principais", deptUrl === "bar" ? "Todos os drinks e produtos" : "Todos os pratos", fichas.filter(f => !f.eh_base).length],
+              ["Pratos principais", deptUrl === "bar" ? "Todos os drinks" : "Todos os pratos", fichas.filter(f => !f.eh_base && f.tipo_base !== "produto_pronto").length],
             ]).map(([t, label, n]) => (
               <button key={t} onClick={() => setTipoFiltro(t)}
                 className={`px-4 py-3 rounded-xl font-black text-xs sm:text-sm transition-all ${tipoFiltro === t ? (modoFicha === "preparos" ? "bg-amber-600 text-white shadow-lg shadow-amber-600/20" : "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20") : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"}`}>
@@ -3047,9 +3050,10 @@ function FichasRunner() {
                            <button type="button" onClick={() => setForm({ ...form, tipo_base: "receita" })} className={`min-h-11 rounded-lg px-3 text-sm font-black ${form.tipo_base === "receita" ? "bg-amber-700 text-white" : "bg-white text-slate-600"}`}>Receita base</button>
                          </div>
                        )}
-                       {deptUrl === "bar" && !form.eh_base && (
-                         <button type="button" onClick={() => { setForm({ ...form, eh_base: false, produto_pronto: true, tipo_base: "produto_pronto", categoria: form.categoria || "Cervejas", rendimento_porcoes: "1", rendimento_unidade: "un", peso_porcao_g: "", modo_preparo: "" }); setIngFicha([]); setAutoSoma(false); }} className={`mt-2 min-h-11 w-full rounded-xl border px-3 text-sm font-black ${form.produto_pronto ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 bg-white text-slate-600"}`}>É um produto pronto: garrafa, lata, água ou cerveja</button>
-                       )}
+                       {/* O botão "É um produto pronto" saiu daqui: garrafa, lata e
+                           cerveja não são receituário e não aparecem mais na ficha
+                           técnica. Criar por aqui só geraria registro invisível.
+                           Esses itens se cadastram no Cardápio e no Estoque. */}
                      </div> : (
                        <div className={`flex items-center gap-3 rounded-2xl border p-4 ${form.eh_base ? "border-amber-200 bg-amber-50" : form.produto_pronto ? "border-violet-200 bg-violet-50" : "border-emerald-200 bg-emerald-50"}`}>
                          <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl text-white ${form.eh_base ? "bg-amber-600" : form.produto_pronto ? "bg-violet-600" : "bg-emerald-600"}`}>{form.eh_base ? <BookOpen size={21} /> : form.produto_pronto ? <Package size={21} /> : <UtensilsCrossed size={21} />}</span>

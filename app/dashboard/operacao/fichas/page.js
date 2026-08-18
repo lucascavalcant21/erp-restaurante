@@ -2926,7 +2926,7 @@ function FichasRunner() {
       {/* MODAL DE CRIAÇÃO DA FICHA TÉCNICA */}
       {modalNovo && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-2 sm:p-4">
-             <div className="erp-ficha erp-editor-ficha bg-white rounded-3xl sm:rounded-[32px] w-full max-w-7xl max-h-[calc(100dvh-1rem)] sm:max-h-[94vh] overflow-hidden shadow-2xl animate-in zoom-in-95 flex flex-col">
+             <div className="erp-ficha erp-editor-ficha bg-white rounded-3xl sm:rounded-[32px] w-full max-w-4xl max-h-[calc(100dvh-1rem)] sm:max-h-[94vh] overflow-hidden shadow-2xl animate-in zoom-in-95 flex flex-col">
                <style>{`
                  .erp-editor-ficha label { font-size: 13px !important; line-height: 1.4; }
                  .erp-editor-ficha input, .erp-editor-ficha select, .erp-editor-ficha textarea { font-size: 16px !important; line-height: 1.5; }
@@ -2957,7 +2957,7 @@ function FichasRunner() {
                </nav>
 
                {/* BODY DO MODAL COM SCROLL */}
-               <div className="flex-1 overflow-y-auto p-4 sm:p-7 bg-slate-50/50 custom-scrollbar grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-6 sm:gap-8 lg:items-start">
+               <div className="flex-1 overflow-y-auto p-4 sm:p-7 bg-slate-50/50 custom-scrollbar">
                   
                    {/* COLUNA ESQUERDA: Dados Básicos e Foto */}
                   <div id="ficha-dados" className="space-y-4 scroll-mt-24">
@@ -3067,6 +3067,144 @@ function FichasRunner() {
                            </select>
                         </div>
                      )}
+                     {/* INGREDIENTES — logo abaixo do nome: é deles que saem rendimento, CMV e preço */}
+                     {form.produto_pronto ? (
+                     <div id="ficha-ingredientes" className="bg-gradient-to-br from-emerald-50 to-white p-6 rounded-2xl border border-emerald-200 shadow-sm flex flex-col items-center justify-center min-h-[320px] text-center scroll-mt-24">
+                        <div className="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-4"><Package size={28} /></div>
+                        <h3 className="text-xl font-black text-slate-800">Produto pronto para venda</h3>
+                        <p className="mt-2 max-w-sm text-sm font-medium leading-relaxed text-slate-500">Cadastre a categoria e o preço. O item entrará no cardápio do Bar sem exigir ingredientes ou montagem.</p>
+                        <div className="mt-5 grid w-full max-w-sm grid-cols-2 gap-2 text-left">
+                           <div className="rounded-xl border border-emerald-100 bg-white p-3"><span className="block text-[9px] font-black uppercase tracking-widest text-slate-400">Quantidade</span><span className="font-black text-slate-800">1 unidade</span></div>
+                           <div className="rounded-xl border border-emerald-100 bg-white p-3"><span className="block text-[9px] font-black uppercase tracking-widest text-slate-400">Composição</span><span className="font-black text-slate-800">Não se aplica</span></div>
+                        </div>
+                     </div>
+                     ) : (
+                     <div id="ficha-ingredientes" className="bg-white p-5 rounded-2xl border-2 border-emerald-200 shadow-sm flex flex-col scroll-mt-24">
+                        <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+                           <div>
+                              <label className="block text-xs font-black uppercase tracking-widest text-emerald-700">Ingredientes / composição</label>
+                              <p className="mt-1 text-xs font-semibold text-slate-500">Comece por aqui: rendimento, CMV e preço saem desta lista.</p>
+                           </div>
+                           <span className="shrink-0 rounded-xl bg-emerald-50 px-3 py-2 text-right">
+                              <span className="block text-[10px] font-black uppercase tracking-widest text-emerald-700">{ingFicha.length} item(ns)</span>
+                              <span className="block text-sm font-black text-emerald-800">{fmtBRL(custoTotalFormulario(ingFicha))}</span>
+                           </span>
+                        </div>
+                     
+                        {/* ADD INGREDIENTE */}
+                        <div className="flex gap-2 mb-4">
+                           <select onChange={e => { addIngrediente(e.target.value); e.target.value=""; }} className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-600 outline-none focus:border-emerald-500 text-sm">
+                              <option value="">+ Adicionar insumo ou base...</option>
+                              <optgroup label="Insumos">
+                                 {insumosAtivos.map(i => <option key={i.id} value={`insumo:${i.id}`}>{i.nome} ({i.unidade_medida})</option>)}
+                              </optgroup>
+                              {basesDisponiveis.length > 0 && (
+                                 <optgroup label="Bases / Pré-preparos">
+                                    {basesDisponiveis.map(b => <option key={b.id} value={`base:${b.id}`}>{b.nome_receita} ({b.rendimento_unidade})</option>)}
+                                 </optgroup>
+                              )}
+                              {embalagensCat.length > 0 && (
+                                 <optgroup label="Embalagens">
+                                    {embalagensCat.map(i => <option key={i.id} value={`insumo:${i.id}`}>{i.nome} ({i.unidade_medida})</option>)}
+                                 </optgroup>
+                              )}
+                           </select>
+                        </div>
+
+                        {/* Cabeçalho estilo tabela (como na ficha de referência) */}
+                        {ingFicha.length > 0 && (
+                           <div className="flex items-center gap-3 px-3 pb-2 mb-1 border-b border-slate-200">
+                              <span className="flex-1 text-[9px] font-black uppercase tracking-wider text-slate-400">Ingrediente</span>
+                              <span className="w-20 text-center text-[9px] font-black uppercase tracking-wider text-slate-400">Qtd.</span>
+                              <span className="w-9 text-center text-[9px] font-black uppercase tracking-wider text-slate-400">Un.</span>
+                              <span className="w-8" />
+                           </div>
+                        )}
+
+                        {/* LISTA DE INGREDIENTES */}
+                        <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
+                           {ingFicha.length === 0 && (
+                              <div className="text-center p-6 text-slate-500 font-medium text-sm">
+                                 Selecione ingredientes acima para montar a ficha técnica e calcular o custo.
+                              </div>
+                           )}
+                           {ingFicha.map(ing => {
+                              const sub = getSub(ing.unidade);
+                              const emSub = sub && ing.modo === "sub";
+                              const fator = emSub ? sub.f : 1;
+                              const unidadeLabel = emSub ? sub.sub : ing.unidade;
+                              // valor exibido = quantidade-base convertida pra unidade de digitação
+                              const valorExibido = ing.quantidade ? +(ing.quantidade * fator).toFixed(4) : "";
+                              const onChangeQtd = (e) => {
+                                 const v = Number(e.target.value) || 0;
+                                 updateQtd(ing.chave, v / fator); // sempre grava em unidade-base
+                              };
+                              return (
+                              <div key={ing.chave} className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center gap-3 group">
+                                 <div className="flex-1 min-w-0">
+                                    <p className="font-bold text-slate-800 text-sm truncate flex items-center gap-1.5">
+                                       {ing.nome}
+                                       {ing.tipo === "base" && <span className="text-[8px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">Base</span>}
+                                    </p>
+                                    <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">Custo: {fmtBRL(ing.custo_unitario * ing.quantidade * (1 + (Number(ing.fator) || 0) / 100))} <span className="text-slate-400 normal-case">· {fmtBRL(ing.custo_unitario)}/{String(ing.unidade).toUpperCase()}</span></p>
+                                    {/* Perda vem do cadastro do ingrediente (o FC saiu da ficha). O custo usa a qtd bruta = líquida × (1 + perda). */}
+                                    {ing.tipo !== "base" && Number(ing.fator) > 0 && (
+                                       <div className="flex items-center gap-1.5 mt-1">
+                                          <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Perda do ingrediente</span>
+                                          <span className="text-[10px] font-black text-emerald-700">{Number(ing.fator).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%</span>
+                                          {ing.quantidade > 0 && (
+                                             <span className="text-[9px] font-bold text-slate-400">· bruta {(+(ing.quantidade * (emSub ? fator : 1) * (1 + Number(ing.fator) / 100)).toFixed(2)).toLocaleString("pt-BR")} {unidadeLabel}</span>
+                                          )}
+                                       </div>
+                                    )}
+                                    {/* Equivalência em peso: 5 un de bolinho de 35g = 175 g (0,175 kg) */}
+                                    {(() => {
+                                       if (ing.tipo !== "base" || String(ing.unidade).toLowerCase() !== "un" || !ing.quantidade) return null;
+                                       const baseFicha = fichas.find(x => x.id === ing.subficha_id);
+                                       const pg = Number(baseFicha?.peso_porcao_g) || 0;
+                                       if (!pg) return null;
+                                       const g = ing.quantidade * pg;
+                                       return (
+                                          <p className="text-[10px] font-bold text-slate-400 mt-0.5">
+                                             = {(+g.toFixed(1)).toLocaleString("pt-BR")} g ({(g / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} kg)
+                                          </p>
+                                       );
+                                    })()}
+                                 </div>
+                                 <div className="flex items-center gap-2">
+                                    <input
+                                       type="number"
+                                       step={emSub ? "1" : "0.001"}
+                                       min="0"
+                                       placeholder="0"
+                                       value={valorExibido}
+                                       onChange={onChangeQtd}
+                                       className="w-20 p-2 text-center bg-white border border-slate-200 rounded-lg font-black text-slate-700 outline-none focus:border-emerald-500"
+                                    />
+                                    {sub ? (
+                                       <button
+                                          type="button"
+                                          onClick={() => toggleModo(ing.chave)}
+                                          title="Alternar unidade de lançamento"
+                                          className="text-[10px] font-black text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-md px-1.5 py-1 uppercase w-9 transition-colors"
+                                       >
+                                          {unidadeLabel}
+                                       </button>
+                                    ) : (
+                                       <span className="text-[10px] font-black text-slate-500 uppercase w-9 text-center">{unidadeLabel}</span>
+                                    )}
+                                 </div>
+                                 <button onClick={() => { setSubstitutoValor(""); setSubstituirAlvo(ing); }} title="Remover ou substituir" className="p-2 text-slate-500 hover:text-rose-600 transition-colors bg-white rounded-lg border border-slate-200">
+                                    <Trash2 size={14}/>
+                                 </button>
+                              </div>
+                              );
+                           })}
+                        </div>
+
+                     </div>
+                     )}
+
                      {/* RENDIMENTO — automático pela soma dos ingredientes (peso + custo de 1 kg) */}
                      <div id="ficha-rendimento" className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm scroll-mt-24">
                         <div className="flex items-center justify-between mb-3">
@@ -3521,134 +3659,6 @@ function FichasRunner() {
                      </div>
                   </div>
 
-                  {/* COLUNA DIREITA: Ingredientes da Ficha */}
-                  {form.produto_pronto ? (
-                  <div id="ficha-ingredientes" className="bg-gradient-to-br from-emerald-50 to-white p-6 rounded-2xl border border-emerald-200 shadow-sm flex flex-col items-center justify-center min-h-[320px] text-center scroll-mt-24">
-                     <div className="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-4"><Package size={28} /></div>
-                     <h3 className="text-xl font-black text-slate-800">Produto pronto para venda</h3>
-                     <p className="mt-2 max-w-sm text-sm font-medium leading-relaxed text-slate-500">Cadastre a categoria e o preço. O item entrará no cardápio do Bar sem exigir ingredientes ou montagem.</p>
-                     <div className="mt-5 grid w-full max-w-sm grid-cols-2 gap-2 text-left">
-                        <div className="rounded-xl border border-emerald-100 bg-white p-3"><span className="block text-[9px] font-black uppercase tracking-widest text-slate-400">Quantidade</span><span className="font-black text-slate-800">1 unidade</span></div>
-                        <div className="rounded-xl border border-emerald-100 bg-white p-3"><span className="block text-[9px] font-black uppercase tracking-widest text-slate-400">Composição</span><span className="font-black text-slate-800">Não se aplica</span></div>
-                     </div>
-                  </div>
-                  ) : (
-                  <div id="ficha-ingredientes" className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col h-full max-h-[620px] scroll-mt-24">
-                     <div className="mb-3"><label className="text-xs font-black text-emerald-700 uppercase tracking-widest block">Ingredientes / composição</label><p className="mt-1 text-xs font-semibold text-slate-500">Adicione o item, informe a quantidade e o custo será recalculado na hora.</p></div>
-                     
-                     {/* ADD INGREDIENTE */}
-                     <div className="flex gap-2 mb-4">
-                        <select onChange={e => { addIngrediente(e.target.value); e.target.value=""; }} className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-600 outline-none focus:border-emerald-500 text-sm">
-                           <option value="">+ Adicionar insumo ou base...</option>
-                           <optgroup label="Insumos">
-                              {insumosAtivos.map(i => <option key={i.id} value={`insumo:${i.id}`}>{i.nome} ({i.unidade_medida})</option>)}
-                           </optgroup>
-                           {basesDisponiveis.length > 0 && (
-                              <optgroup label="Bases / Pré-preparos">
-                                 {basesDisponiveis.map(b => <option key={b.id} value={`base:${b.id}`}>{b.nome_receita} ({b.rendimento_unidade})</option>)}
-                              </optgroup>
-                           )}
-                           {embalagensCat.length > 0 && (
-                              <optgroup label="Embalagens">
-                                 {embalagensCat.map(i => <option key={i.id} value={`insumo:${i.id}`}>{i.nome} ({i.unidade_medida})</option>)}
-                              </optgroup>
-                           )}
-                        </select>
-                     </div>
-
-                     {/* Cabeçalho estilo tabela (como na ficha de referência) */}
-                     {ingFicha.length > 0 && (
-                        <div className="flex items-center gap-3 px-3 pb-2 mb-1 border-b border-slate-200">
-                           <span className="flex-1 text-[9px] font-black uppercase tracking-wider text-slate-400">Ingrediente</span>
-                           <span className="w-20 text-center text-[9px] font-black uppercase tracking-wider text-slate-400">Qtd.</span>
-                           <span className="w-9 text-center text-[9px] font-black uppercase tracking-wider text-slate-400">Un.</span>
-                           <span className="w-8" />
-                        </div>
-                     )}
-
-                     {/* LISTA DE INGREDIENTES */}
-                     <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
-                        {ingFicha.length === 0 && (
-                           <div className="text-center p-6 text-slate-500 font-medium text-sm">
-                              Selecione ingredientes acima para montar a ficha técnica e calcular o custo.
-                           </div>
-                        )}
-                        {ingFicha.map(ing => {
-                           const sub = getSub(ing.unidade);
-                           const emSub = sub && ing.modo === "sub";
-                           const fator = emSub ? sub.f : 1;
-                           const unidadeLabel = emSub ? sub.sub : ing.unidade;
-                           // valor exibido = quantidade-base convertida pra unidade de digitação
-                           const valorExibido = ing.quantidade ? +(ing.quantidade * fator).toFixed(4) : "";
-                           const onChangeQtd = (e) => {
-                              const v = Number(e.target.value) || 0;
-                              updateQtd(ing.chave, v / fator); // sempre grava em unidade-base
-                           };
-                           return (
-                           <div key={ing.chave} className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center gap-3 group">
-                              <div className="flex-1 min-w-0">
-                                 <p className="font-bold text-slate-800 text-sm truncate flex items-center gap-1.5">
-                                    {ing.nome}
-                                    {ing.tipo === "base" && <span className="text-[8px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">Base</span>}
-                                 </p>
-                                 <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">Custo: {fmtBRL(ing.custo_unitario * ing.quantidade * (1 + (Number(ing.fator) || 0) / 100))} <span className="text-slate-400 normal-case">· {fmtBRL(ing.custo_unitario)}/{String(ing.unidade).toUpperCase()}</span></p>
-                                 {/* Perda vem do cadastro do ingrediente (o FC saiu da ficha). O custo usa a qtd bruta = líquida × (1 + perda). */}
-                                 {ing.tipo !== "base" && Number(ing.fator) > 0 && (
-                                    <div className="flex items-center gap-1.5 mt-1">
-                                       <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Perda do ingrediente</span>
-                                       <span className="text-[10px] font-black text-emerald-700">{Number(ing.fator).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%</span>
-                                       {ing.quantidade > 0 && (
-                                          <span className="text-[9px] font-bold text-slate-400">· bruta {(+(ing.quantidade * (emSub ? fator : 1) * (1 + Number(ing.fator) / 100)).toFixed(2)).toLocaleString("pt-BR")} {unidadeLabel}</span>
-                                       )}
-                                    </div>
-                                 )}
-                                 {/* Equivalência em peso: 5 un de bolinho de 35g = 175 g (0,175 kg) */}
-                                 {(() => {
-                                    if (ing.tipo !== "base" || String(ing.unidade).toLowerCase() !== "un" || !ing.quantidade) return null;
-                                    const baseFicha = fichas.find(x => x.id === ing.subficha_id);
-                                    const pg = Number(baseFicha?.peso_porcao_g) || 0;
-                                    if (!pg) return null;
-                                    const g = ing.quantidade * pg;
-                                    return (
-                                       <p className="text-[10px] font-bold text-slate-400 mt-0.5">
-                                          = {(+g.toFixed(1)).toLocaleString("pt-BR")} g ({(g / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} kg)
-                                       </p>
-                                    );
-                                 })()}
-                              </div>
-                              <div className="flex items-center gap-2">
-                                 <input
-                                    type="number"
-                                    step={emSub ? "1" : "0.001"}
-                                    min="0"
-                                    placeholder="0"
-                                    value={valorExibido}
-                                    onChange={onChangeQtd}
-                                    className="w-20 p-2 text-center bg-white border border-slate-200 rounded-lg font-black text-slate-700 outline-none focus:border-emerald-500"
-                                 />
-                                 {sub ? (
-                                    <button
-                                       type="button"
-                                       onClick={() => toggleModo(ing.chave)}
-                                       title="Alternar unidade de lançamento"
-                                       className="text-[10px] font-black text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-md px-1.5 py-1 uppercase w-9 transition-colors"
-                                    >
-                                       {unidadeLabel}
-                                    </button>
-                                 ) : (
-                                    <span className="text-[10px] font-black text-slate-500 uppercase w-9 text-center">{unidadeLabel}</span>
-                                 )}
-                              </div>
-                              <button onClick={() => { setSubstitutoValor(""); setSubstituirAlvo(ing); }} title="Remover ou substituir" className="p-2 text-slate-500 hover:text-rose-600 transition-colors bg-white rounded-lg border border-slate-200">
-                                 <Trash2 size={14}/>
-                              </button>
-                           </div>
-                           );
-                        })}
-                     </div>
-
-                  </div>
-                  )}
 
                </div>
 

@@ -126,6 +126,10 @@ export default function InventarioPage() {
   }, [filtrados]);
 
   // ── Ações ─────────────────────────────────────────────────────────────────
+  const limparFiltros = () => {
+    setBusca(""); setCatFiltro("Todas"); setLocalFiltro("Todos");
+  };
+
   const abrirNovo = () => {
     setForm({ id: null, nome: "", categoria: catFiltro !== "Todas" ? catFiltro : "Talheres", quantidade: "", valor_unitario: "", localizacao: "", observacao: "", foto: "" });
     setModalItem(true);
@@ -427,26 +431,26 @@ export default function InventarioPage() {
 
         {/* Totais */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-          <div className="erp-card p-5 text-center">
+          <button type="button" onClick={limparFiltros} title="Ver todos os itens" className="erp-card p-5 text-center w-full transition-transform active:scale-[.98] cursor-pointer">
             <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--muted)" }}>Total de itens</p>
             <p className="text-3xl font-extrabold tracking-tight mt-1" style={{ color: "var(--fg)" }}>{resumo.totalUnidades.toLocaleString("pt-BR")}</p>
             <p className="text-[10px] font-medium" style={{ color: "var(--dim)" }}>unidades somadas</p>
-          </div>
-          <div className="erp-card p-5 text-center">
+          </button>
+          <button type="button" onClick={limparFiltros} title="Ver todos os itens" className="erp-card p-5 text-center w-full transition-transform active:scale-[.98] cursor-pointer">
             <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--muted)" }}>Tipos cadastrados</p>
             <p className="text-3xl font-extrabold tracking-tight mt-1" style={{ color: "var(--fg)" }}>{resumo.tipos}</p>
             <p className="text-[10px] font-medium" style={{ color: "var(--dim)" }}>em {resumo.categorias.length} categoria{resumo.categorias.length !== 1 ? "s" : ""}</p>
-          </div>
-          <div className="erp-card p-5 text-center">
+          </button>
+          <button type="button" onClick={() => setModalHist(true)} title="Ver o histórico de baixas" className="erp-card p-5 text-center w-full transition-transform active:scale-[.98] cursor-pointer">
             <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--muted)" }}>Baixas no mês</p>
             <p className="text-3xl font-extrabold tracking-tight mt-1" style={{ color: resumo.baixasMes > 0 ? "#DC2626" : "var(--fg)" }}>{resumo.baixasMes.toLocaleString("pt-BR")}</p>
             <p className="text-[10px] font-medium" style={{ color: "var(--dim)" }}>quebras, perdas e descartes</p>
-          </div>
-          <div className="erp-card p-5 text-center">
+          </button>
+          <button type="button" onClick={imprimirPlanilha} title="Abrir a planilha com os valores" className="erp-card p-5 text-center w-full transition-transform active:scale-[.98] cursor-pointer">
             <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--muted)" }}>Valor do patrimônio</p>
             <p className="text-2xl font-extrabold tracking-tight mt-1.5" style={{ color: "var(--accent-strong)" }}>{fmtBRL(resumo.valorTotal)}</p>
             <p className="text-[10px] font-medium" style={{ color: "var(--dim)" }}>itens com valor informado</p>
-          </div>
+          </button>
         </div>
 
         {/* Busca + filtro por categoria */}

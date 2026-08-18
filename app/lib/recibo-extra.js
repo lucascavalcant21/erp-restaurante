@@ -15,6 +15,15 @@ const moeda = (valor) => Number(valor || 0).toLocaleString("pt-BR", {
 });
 
 const texto = (valor, vazio = "—") => esc(String(valor ?? "").trim() || vazio);
+// Campo so entra no papel quando tem conteudo: recibo curto le melhor.
+const campo = (rot, valor, largo = false) => {
+  const v = String(valor ?? "").trim();
+  if (!v || v === "—") return "";
+  return `<div class="campo${largo ? " inteiro" : ""}"><span>${esc(rot)}</span><strong>${esc(v)}</strong></div>`;
+};
+// Linha de dinheiro so aparece se houver valor.
+const linhaValor = (rot, valor, sinal = "") =>
+  Number(valor) ? `<tr><td>${esc(rot)}</td><td>${sinal}${moeda(valor)}</td></tr>` : "";
 
 function endereco(extra, dados) {
   const partes = [
@@ -54,16 +63,16 @@ export function montarHtmlRecibo({ extra, recibo, unidadeNome }) {
       <div class="campo"><span>CPF / RG</span><strong>${texto(dados.cpf || extra?.cpf)} · ${texto(dados.rg || extra?.rg)}</strong></div>
       <div class="campo inteiro"><span>Endereço</span><strong>${texto(endereco(extra, dados))}</strong></div>
       <div class="campo"><span>Telefone</span><strong>${texto(dados.telefone || extra?.telefone)}</strong></div>
-      <div class="campo"><span>Chave PIX</span><strong>${texto(dados.chave_pix || extra?.chave_pix)}</strong></div>
+      ${campo("Chave PIX", dados.chave_pix || extra?.chave_pix)}
     </div></section>
 
     <section class="secao"><div class="titulo">Trabalho realizado</div><div class="grade">
       <div class="campo"><span>Data inicial</span><strong>${dataBR(recibo?.data_trabalho)}</strong></div>
       <div class="campo"><span>Dias contratados</span><strong>${dias}</strong></div>
       <div class="campo"><span>Função</span><strong>${texto(recibo?.funcao || dados.funcao || extra?.cargo)}</strong></div>
-      <div class="campo"><span>Evento / ocasião</span><strong>${texto(recibo?.evento || dados.evento)}</strong></div>
+      ${campo("Evento / ocasião", recibo?.evento || dados.evento)}
       <div class="campo"><span>Horário</span><strong>${texto(recibo?.hora_entrada || dados.entrada)} às ${texto(recibo?.hora_saida || dados.saida_final)}</strong></div>
-      <div class="campo"><span>Intervalo</span><strong>${texto(dados.intervalo)}</strong></div>
+      ${campo("Intervalo", dados.intervalo)}
       <div class="campo inteiro"><span>Refeição</span><strong>${recibo?.janta_ofertada ? "Janta oferecida pelo restaurante" : "Janta não incluída"}</strong></div>
     </div>${atribuicoes.length ? `<div class="caixa"><strong>Atribuições:</strong><br/>${atribuicoes.map((item) => `• ${esc(item.replace(/^[•\-*]\s*/, ""))}`).join("<br/>")}</div>` : ""}</section>
 
@@ -72,9 +81,9 @@ export function montarHtmlRecibo({ extra, recibo, unidadeNome }) {
     <section class="secao"><div class="titulo">Acerto financeiro</div><table><tbody>
       <tr><td>Diária acordada</td><td>${moeda(diaria)}</td></tr>
       <tr><td>Subtotal (${dias} diária${dias > 1 ? "s" : ""})</td><td>${moeda(base)}</td></tr>
-      <tr><td>Vale-transporte</td><td>${moeda(transporte)}</td></tr>
-      <tr><td>Adicional / bônus</td><td>${moeda(adicional)}</td></tr>
-      <tr><td>Descontos</td><td>− ${moeda(descontos)}</td></tr>
+      ${linhaValor("Vale-transporte", transporte)}
+      ${linhaValor("Adicional / bônus", adicional)}
+      ${linhaValor("Descontos", descontos, "− ")}
       <tr class="total"><td><strong>Total a pagar</strong></td><td><strong>${moeda(total)}</strong></td></tr>
     </tbody></table><div class="caixa"><strong>Pagamento:</strong> ${texto(recibo?.forma_pagamento)} · ${recibo?.pagamento_realizado ? `pago em ${dataBR(recibo?.data_pagamento)}` : "pendente"}</div></section>
 

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   AlertTriangle, ArrowLeft, Boxes, Check, CheckCircle2, ChefHat, CircleDollarSign, Clock, GlassWater, History, Layers3, Maximize2, Minus,
   Mic, MicOff, Package, PackageMinus, PackagePlus, Plus, RefreshCw, Search, ShoppingBasket,
-  Settings2, Trash2, UserRound, X, XCircle, MessageSquareText,
+  Settings2, Sparkles, Trash2, UserRound, X, XCircle, MessageSquareText,
 } from "lucide-react";
 import {
   fetchEstoques, fetchItensEstoque, fetchMovimentosMulti, garantirEstoquesPadrao,
@@ -113,6 +113,12 @@ function Toast({ toast, onClose }) {
 // quantidade chegava a 1, e a contagem de un/garrafa/lata saía fracionada sem
 // ninguém ter pedido — meia lata não existe. Quem precisa de meio quilo digita.
 // E no 1 o botão vira lixeira: o piso antigo de 0,1 prendia o item na lista.
+// Limpeza e Embalagens não se dividem em produtos/pré-preparos: têm um estoque
+// só e entram direto na lista. A escolha do tipo continua valendo para cozinha
+// e bar, que guardam três coisas diferentes no mesmo setor.
+const AREAS_DIRETAS = ["limpeza", "embalagens"];
+const NOME_AREA = { bar: "Bar", cozinha: "Cozinha", limpeza: "Limpeza", embalagens: "Embalagens" };
+
 function ControleQuantidade({ valor, unidade, onChange, onRemover }) {
   const atual = numero(valor);
   const vaiRemover = atual <= 1;
@@ -196,6 +202,10 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
     const estoquesDoSetor = listaEstoques.filter(estoque => {
       if (!departamento) return false;
       const texto = `${estoque.slug || ""} ${estoque.nome || ""}`.toLowerCase();
+      // Áreas próprias vêm antes: "Embalagens da Cozinha" contém "cozinha" e
+      // seria capturada pelo setor errado se a ordem fosse outra.
+      if (departamento === "limpeza") return texto.includes("limpeza") || estoque.tipo === "limpeza";
+      if (departamento === "embalagens") return texto.includes("embalage") || estoque.tipo === "embalagens";
       if (departamento === "bar") return texto.includes("bar") || (estoque.tipo === "bebidas" && !texto.includes("cozinha"));
       if (departamento === "cozinha") return texto.includes("cozinha") || (estoque.tipo === "alimentos" && !texto.includes("bar"));
       return texto.includes(departamento);
@@ -203,9 +213,10 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
     // Três estoques por setor, cada um com saldo e histórico próprios. Embalagem
     // estava caindo dentro de "Produtos" e se misturava com insumo na contagem.
     const estoquesAlvo = estoquesDoSetor.filter(estoque => {
+      if (tipoEstoque === "unico") return true;   // limpeza e embalagens: um estoque só
       const texto = `${estoque.slug || ""} ${estoque.nome || ""}`.toLowerCase();
       const ehPreparo = texto.includes("pre-preparo") || texto.includes("preparo");
-      const ehEmbalagem = texto.includes("embalagem") || texto.includes("embalagens") || estoque.tipo === "embalagens";
+      const ehEmbalagem = texto.includes("embalage") || estoque.tipo === "embalagens";
       if (tipoEstoque === "preparos") return ehPreparo && !ehEmbalagem;
       if (tipoEstoque === "embalagens") return ehEmbalagem;
       return !ehPreparo && !ehEmbalagem;
@@ -259,14 +270,15 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
   const responsavel = funcionarios.find(f => String(f.id) === String(responsavelId));
   const listaSelecionados = Object.values(selecionados);
   const estiloTipo = cores[tipo] || cores.neutro;
-  const tituloSetor = departamento === "bar" ? "Bar" : departamento === "cozinha" ? "Cozinha" : titulo;
+  const tituloSetor = NOME_AREA[departamento] || titulo;
   const tituloAtual = tipoEstoque === "preparos" ? `Pré-preparos · ${tituloSetor}`
     : tipoEstoque === "embalagens" ? `Embalagens · ${tituloSetor}`
       : tituloSetor;
 
   const selecionarSetor = novoSetor => {
     setSetorEscolhido(novoSetor);
-    setTipoEstoque("");
+    // Área sem subdivisão pula a tela de escolha e já abre a lista.
+    setTipoEstoque(AREAS_DIRETAS.includes(novoSetor) ? "unico" : "");
     setResponsavelId("");
     setSelecionados({});
     setBusca("");
@@ -287,6 +299,8 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
       setSelecionados({});
       setBusca("");
       setUltimoResultado([]);
+      // Área direta não tem tela de escolha para voltar: sai para as áreas.
+      if (AREAS_DIRETAS.includes(departamento) && !setorFixo) setSetorEscolhido("");
       return;
     }
     if (departamento && !setorFixo) {
@@ -604,7 +618,7 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
           .estoque-inicio{position:fixed;inset:0;z-index:80;overflow:auto;background:linear-gradient(145deg,#07111f,#0f2841);color:#fff;padding:clamp(18px,4vw,44px);display:flex;flex-direction:column}
           .estoque-inicio-topo{display:flex;align-items:center;justify-content:space-between;gap:12px}.estoque-inicio-topo button{height:46px;border:1px solid rgba(255,255,255,.2);border-radius:14px;background:rgba(255,255,255,.08);color:#fff;padding:0 15px;display:flex;align-items:center;gap:8px;font-weight:800}
           .estoque-inicio-centro{width:min(950px,100%);margin:auto;text-align:center}.estoque-inicio-centro h1{font-size:clamp(30px,5vw,58px);line-height:1;margin:18px 0 10px;font-weight:950}.estoque-inicio-centro p{color:#cbd5e1;font-size:clamp(15px,2vw,20px);margin:0 auto 34px}
-          .estoque-inicio-setores{display:grid;grid-template-columns:1fr 1fr;gap:clamp(14px,3vw,26px)}.estoque-inicio-setor{min-height:240px;border:2px solid rgba(255,255,255,.16);border-radius:30px;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;font-size:28px;font-weight:950;box-shadow:0 22px 55px rgba(0,0,0,.25);transition:.15s}.estoque-inicio-setor svg{width:62px;height:62px}.estoque-inicio-setor.cozinha{background:linear-gradient(145deg,#047857,#10b981)}.estoque-inicio-setor.bar{background:linear-gradient(145deg,#1d4ed8,#3b82f6)}.estoque-inicio-setor:active{transform:scale(.98)}.estoque-inicio-setor span{font-size:14px;font-weight:700;opacity:.88}
+          .estoque-inicio-setores{display:grid;grid-template-columns:1fr 1fr;gap:clamp(14px,3vw,26px)}.estoque-inicio-setor{min-height:240px;border:2px solid rgba(255,255,255,.16);border-radius:30px;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;font-size:28px;font-weight:950;box-shadow:0 22px 55px rgba(0,0,0,.25);transition:.15s}.estoque-inicio-setor svg{width:62px;height:62px}.estoque-inicio-setor.cozinha{background:linear-gradient(145deg,#047857,#10b981)}.estoque-inicio-setor.bar{background:linear-gradient(145deg,#1d4ed8,#3b82f6)}.estoque-inicio-setor.limpeza{background:linear-gradient(145deg,#0369a1,#0ea5e9)}.estoque-inicio-setor.embalagens{background:linear-gradient(145deg,#334155,#64748b)}.estoque-inicio-setor:active{transform:scale(.98)}.estoque-inicio-setor span{font-size:14px;font-weight:700;opacity:.88}
           @media(max-width:620px){.estoque-inicio-setores{grid-template-columns:1fr}.estoque-inicio-setor{min-height:175px}.estoque-inicio-centro{margin:30px auto}}
         `}</style>
         <div className="estoque-inicio-topo">
@@ -621,6 +635,12 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
             </button>
             <button className="estoque-inicio-setor bar" onClick={() => selecionarSetor("bar")}>
               <GlassWater /> Bar <span>Bebidas e insumos do bar</span>
+            </button>
+            <button className="estoque-inicio-setor limpeza" onClick={() => selecionarSetor("limpeza")}>
+              <Sparkles /> Limpeza <span>Produtos de limpeza da casa</span>
+            </button>
+            <button className="estoque-inicio-setor embalagens" onClick={() => selecionarSetor("embalagens")}>
+              <Package /> Embalagens <span>Potes, sacos e descartáveis</span>
             </button>
           </div>
         </main>

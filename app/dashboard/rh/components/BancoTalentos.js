@@ -314,7 +314,7 @@ export default function BancoTalentos({ unidadeAtiva }) {
                        {/* Marcou entrevista: falar com a pessoa tem que ser um toque */}
                        {coluna.status === "Entrevista Marcada" && c.telefone && (
                          <div className="mt-2 flex gap-2 border-t border-slate-100 pt-2" onClick={e => e.stopPropagation()}>
-                           <a href={`https://wa.me/55${String(c.telefone).replace(/D/g, "")}`} target="_blank" rel="noreferrer"
+                           <a href={`https://wa.me/55${String(c.telefone).replace(/[^0-9]/g, "")}`} target="_blank" rel="noreferrer"
                              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-50 px-2 py-1.5 text-[11px] font-black text-emerald-700 hover:bg-emerald-100">
                              <Phone size={13} /> Chamar
                            </a>

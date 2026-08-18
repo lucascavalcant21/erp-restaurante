@@ -2013,7 +2013,7 @@ export default function RHPage() {
                            </div>
                            {(f.telefone || f.chave_pix) && (
                               <div className="text-[11px] font-semibold text-slate-500 flex flex-wrap gap-x-3 gap-y-0.5">
-                                 {f.telefone && <a href={`https://wa.me/55${String(f.telefone).replace(/D/g, "")}`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 text-emerald-700 hover:underline"><Phone size={10} /> {f.telefone}</a>}
+                                 {f.telefone && <a href={`https://wa.me/55${String(f.telefone).replace(/[^0-9]/g, "")}`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 text-emerald-700 hover:underline"><Phone size={10} /> {f.telefone}</a>}
                                  {f.chave_pix && <span className="flex items-center gap-1"><CreditCard size={10} /> {f.chave_pix}</span>}
                               </div>
                            )}

@@ -310,6 +310,24 @@ export default function BancoTalentos({ unidadeAtiva }) {
                           {c.url_curriculo && <div className="text-[10px] bg-slate-100 text-slate-600 px-2 py-1 rounded font-bold flex items-center gap-1"><FileText size={10}/> Tem CV</div>}
                           {c.tem_filhos === "Sim" && <div className="text-[10px] bg-rose-50 text-rose-600 px-2 py-1 rounded font-bold border border-rose-100">Tem Filhos</div>}
                        </div>
+                       {/* Marcou entrevista: falar com a pessoa tem que ser um toque */}
+                       {coluna.status === "Entrevista Marcada" && c.telefone && (
+                         <div className="mt-2 flex gap-2 border-t border-slate-100 pt-2" onClick={e => e.stopPropagation()}>
+                           <a href={`https://wa.me/55${String(c.telefone).replace(/D/g, "")}`} target="_blank" rel="noreferrer"
+                             className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-50 px-2 py-1.5 text-[11px] font-black text-emerald-700 hover:bg-emerald-100">
+                             <Phone size={13} /> Chamar
+                           </a>
+                           <button type="button" title="Compartilhar contato"
+                             onClick={() => {
+                               const texto = `${c.nome} — ${c.cargo_pretendido || "candidato"} — ${c.telefone}`;
+                               if (navigator.share) navigator.share({ text: texto }).catch(() => {});
+                               else navigator.clipboard?.writeText(texto);
+                             }}
+                             className="flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5 text-[11px] font-black text-slate-600 hover:bg-slate-200">
+                             Compartilhar
+                           </button>
+                         </div>
+                       )}
                     </div>
                  ))}
                  </div>

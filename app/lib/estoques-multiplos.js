@@ -607,7 +607,7 @@ export async function fetchMovimentosMulti(unidadeId, estoqueId, limite = 500) {
   if (!isSupabaseReady() || !unidadeId || !estoqueId) return { data: [], error: null };
   const { data, error } = await supabase
     .from("estoque_movimentacoes_multi")
-    .select("*, insumo:insumos(nome, marca, unidade_medida, unidade_comercial, tamanho_embalagem), estoque:estoques!estoque_id(nome), destino:estoques!estoque_destino_id(nome)")
+    .select("*, insumo:insumos(nome, marca, unidade_medida, unidade_comercial, tamanho_embalagem, custo_unitario, custo_compra), estoque:estoques!estoque_id(nome, slug), destino:estoques!estoque_destino_id(nome)")
     .eq("unidade_id", unidadeId)
     .or(`estoque_id.eq.${estoqueId},estoque_destino_id.eq.${estoqueId}`)
     .order("data_movimento", { ascending: false })

@@ -110,7 +110,7 @@ const MODULOS = {
         { label: "Painel de RH", desc: "Equipe e indicadores", href: "/dashboard/rh", icon: LayoutDashboard },
         { label: "Ponto", desc: "Jornada e registros", href: "/dashboard/rh/ponto", icon: UserRoundCheck },
         { label: "Folha de Pagamento", desc: "Fechamento e valores", href: "/dashboard/rh/fechamento", icon: ReceiptText },
-        { label: "Gastos Administrativos", desc: "Custos com pessoas", href: "/dashboard/rh/gastos-admin", icon: Calculator },
+        { label: "Compras do Mês", desc: "Quanto entrou de mercadoria", href: "/dashboard/rh/gastos-admin", icon: Calculator },
       ]},
       { title: "Pessoas", subtitle: "Estrutura e desenvolvimento", icon: Users, accent: "#7c3aed", items: [
         { label: "Cargos & Carreiras", desc: "Funções e salários", href: "/dashboard/rh/cargos", icon: Award },

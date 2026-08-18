@@ -120,7 +120,7 @@ const SIDEBAR_MENU = [
       { label: "Recrutamento", href: "/dashboard/rh/recrutamento" },
       { label: "Refeição da Equipe", href: "/dashboard/rh/cardapio-funcionarios" },
       { label: "Atas de Reunião", href: "/dashboard/rh/atas" },
-      { label: "Gastos Administrativos", href: "/dashboard/rh/gastos-admin" }
+      { label: "Compras do Mês", href: "/dashboard/rh/gastos-admin" }
     ]
   },
   {

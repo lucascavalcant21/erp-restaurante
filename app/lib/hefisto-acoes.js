@@ -82,6 +82,25 @@ export async function carregarContextoEstoque(unidadeId, setor) {
 }
 
 // ─── Auditoria ──────────────────────────────────────────────────────────────
+// A auditoria nunca derruba a ação principal — mas falhar calada é pior que
+// falhar: o histórico simplesmente para de existir e ninguém fica sabendo.
+// Por isso todo erro é impresso inteiro (mensagem, código, details e hint do
+// PostgREST) e devolvido para quem chamou decidir se mostra na tela.
+function detalharErroAuditoria(erro, registro) {
+  const partes = [
+    erro?.message,
+    erro?.code ? `código ${erro.code}` : null,
+    erro?.details,
+    erro?.hint,
+  ].filter(Boolean);
+  const detalhe = partes.join(" · ") || "erro desconhecido";
+  console.error(
+    `[auditoria] não gravou ${registro?.modulo || "?"}/${registro?.acao || "?"}: ${detalhe}`,
+    { registro, erro },
+  );
+  return detalhe;
+}
+
 export async function registrarAuditoria(registro) {
   if (!isSupabaseReady()) return { error: "Offline" };
   try {
@@ -101,10 +120,9 @@ export async function registrarAuditoria(registro) {
       exigiu_confirmacao: !!registro.exigiuConfirmacao,
       dispositivo: typeof navigator !== "undefined" ? navigator.userAgent?.slice(0, 200) : null,
     });
-    // Tabela ainda não migrada não pode quebrar a ação principal.
-    return { error: error?.message || null };
+    return { error: error ? detalharErroAuditoria(error, registro) : null };
   } catch (e) {
-    return { error: e?.message || "erro" };
+    return { error: detalharErroAuditoria(e, registro) };
   }
 }
 
@@ -118,9 +136,12 @@ export async function fetchAuditoriaHefisto(unidadeId, limite = 50) {
       .limit(Math.max(1, Math.min(200, Number(limite) || 50)));
     if (unidadeId && unidadeId !== "todas") consulta = consulta.eq("unidade_id", unidadeId);
     const { data, error } = await consulta;
-    return { data: data || [], error: error?.message || null };
+    // Lista vazia por erro e lista vazia por não ter ação são coisas diferentes:
+    // sem esta distinção a tela de auditoria mente que está tudo em ordem.
+    if (error) return { data: [], error: detalharErroAuditoria(error, { modulo: "leitura" }) };
+    return { data: data || [], error: null };
   } catch (e) {
-    return { data: [], error: e?.message || "erro" };
+    return { data: [], error: detalharErroAuditoria(e, { modulo: "leitura" }) };
   }
 }
 

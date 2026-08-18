@@ -6,14 +6,16 @@
 
 create table if not exists public.hefisto_auditoria (
   id              uuid primary key default gen_random_uuid(),
-  unidade_id      uuid,
-  usuario_id      uuid,
+  -- Ids são TEXTO no ERP inteiro (a unidade pode ser "matriz", não só uuid).
+  -- Declarar uuid aqui derrubava o insert e a auditoria ficava vazia.
+  unidade_id      text,
+  usuario_id      text,
   usuario_nome    text,
   comando         text,              -- texto original digitado/ditado
   intencao        jsonb,             -- intenção estruturada interpretada
   acao            text,              -- id da ação executada
   modulo          text,
-  registro_id     uuid,              -- registro afetado (quando houver)
+  registro_id     text,              -- registro afetado (quando houver)
   valor_anterior  numeric(16,4),
   valor_novo      numeric(16,4),
   resultado       text,              -- sucesso | erro | cancelado | pendente

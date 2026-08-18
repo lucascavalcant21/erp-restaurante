@@ -302,10 +302,13 @@ export default function InventarioPage() {
     if (tipo !== "entrada" && tipo !== "ajuste" && qtd > (Number(item.quantidade) || 0)) {
       if (!confirm(`Você está dando baixa de ${qtd}, mas só há ${item.quantidade} no inventário. Continuar (o saldo vai a zero)?`)) return;
     }
-    const { error } = await registrarMovimentoInventario(item, {
+    const { error, avisoAuditoria } = await registrarMovimentoInventario(item, {
       tipo, quantidade: qtd, motivo: movForm.motivo, responsavel: movForm.responsavel,
     });
     if (error) return alert("Erro: " + error);
+    // O movimento valeu, mas se não entrou na auditoria quem deu a baixa
+    // precisa saber na hora — depois ninguém vai lembrar de conferir.
+    if (avisoAuditoria) alert(`Movimento registrado, mas NÃO entrou na auditoria:\n\n${avisoAuditoria}\n\nRode a migração db/migracao_auditoria_correcao.sql no Supabase.`);
     notificar(tipo === "entrada" ? "Entrada registrada!" : tipo === "ajuste" ? "Quantidade ajustada!" : "Baixa registrada!");
     setModalMov(null);
     carregar();

@@ -32,6 +32,7 @@ export default function AuditoriaPerdasPage() {
   const [loading, setLoading] = useState(true);
   const [relatorio, setRelatorio] = useState([]);
   const [acoesAuditadas, setAcoesAuditadas] = useState([]);
+  const [erroAuditoria, setErroAuditoria] = useState("");
   const [busca, setBusca] = useState("");
 
   const carregar = async () => {
@@ -42,6 +43,7 @@ export default function AuditoriaPerdasPage() {
     ]);
     setRelatorio(perdas.data || []);
     setAcoesAuditadas(acoes.data || []);
+    setErroAuditoria(acoes.error || "");
     setLoading(false);
   };
 
@@ -129,7 +131,15 @@ export default function AuditoriaPerdasPage() {
             </div>
             <span className="erp-badge">{acoesAuditadas.length} registro(s)</span>
           </div>
-          {acoesAuditadas.length === 0 ? (
+          {erroAuditoria ? (
+            // Lista vazia porque o banco recusou é problema de instalação, não
+            // ausência de movimento — a tela precisa dizer qual dos dois é.
+            <Card className="p-4 text-sm">
+              <p className="font-black text-rose-600">A auditoria não pôde ser lida.</p>
+              <p className="mt-1 break-words" style={{ color: "var(--fg-soft)" }}>{erroAuditoria}</p>
+              <p className="mt-2 text-xs" style={{ color: "var(--dim)" }}>Rode db/migracao_auditoria_correcao.sql no SQL Editor do Supabase.</p>
+            </Card>
+          ) : acoesAuditadas.length === 0 ? (
             <Card className="p-4 text-sm" style={{ color: "var(--dim)" }}>Nenhum comando auditado nesta unidade.</Card>
           ) : (
             <div className="grid gap-2">

@@ -97,8 +97,11 @@ export async function registrarMovimentoInventario(item, { tipo, quantidade, mot
     .eq("id", item.id);
 
   // Tudo que entra, sai, quebra ou some no patrimônio vai para a auditoria:
-  // é lá que se procura quando falta alguma coisa.
-  await registrarAuditoria({
+  // é lá que se procura quando falta alguma coisa. O movimento já está gravado
+  // neste ponto, então uma auditoria que falhe não desfaz nada — mas volta como
+  // aviso, porque baixa sem rastro é exatamente o que a auditoria existe para
+  // impedir. Antes isso era engolido por um .catch vazio.
+  const auditoria = await registrarAuditoria({
     unidadeId: item.unidade_id,
     usuarioNome: responsavel || null,
     modulo: "inventario",
@@ -108,8 +111,8 @@ export async function registrarMovimentoInventario(item, { tipo, quantidade, mot
     valorNovo: novaQtd,
     intencao: { item: item.nome || null, tipo, quantidade: qtd, motivo: motivo || null },
     resultado: errUpd ? "erro" : "sucesso",
-  }).catch(() => {});
-  return { error: errUpd?.message, novaQtd };
+  }).catch((e) => ({ error: e?.message || "erro" }));
+  return { error: errUpd?.message, novaQtd, avisoAuditoria: auditoria?.error || null };
 }
 
 export async function fetchMovimentosInventario(unidadeId, limite = 120) {

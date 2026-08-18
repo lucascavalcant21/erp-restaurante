@@ -6,6 +6,8 @@ import {
   PageHeader, PageBody, Card, SectionLabel, KpiGrid, Kpi, EmptyState, fmtBRL, fmtPct,
 } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
+import { fetchEstoques, fetchMovimentosMulti } from "../../../lib/estoques-multiplos";
+import { valorDaCompra, faixaCompras, isoData } from "../../../lib/compras.mjs";
 import { fetchFichas, fetchHistoricoPrecos } from "../../../lib/operacao";
 import { fetchProdutos } from "../../../lib/vendas";
 
@@ -56,10 +58,31 @@ function porcoesDaFicha(f) {
 export default function CmvPage() {
   const { unidadeAtiva, unidadeInfo } = useERP();
   const [fichas, setFichas] = useState([]);
+  // CMV de estoque: o que cada estoque consumiu de verdade no mês, em reais.
+  const [consumo, setConsumo] = useState([]);
   const [produtos, setProdutos] = useState([]);
   const [historico, setHistorico] = useState([]); // alterações de preço dos insumos
   const [loading, setLoading] = useState(true);
   const [modalHistPrato, setModalHistPrato] = useState(null); // { nome, mudancas }
+
+  useEffect(() => {
+    if (!unidadeAtiva || unidadeAtiva === "todas") return;
+    let ativo = true;
+    fetchEstoques(unidadeAtiva).then(async ({ data: estoques }) => {
+      const faixa = faixaCompras(new Date(), "mes");
+      const de = isoData(faixa.de), ate = isoData(faixa.ate);
+      const respostas = await Promise.all((estoques || []).map(e => fetchMovimentosMulti(unidadeAtiva, e.id, 500)));
+      if (!ativo) return;
+      const soma = (estoques || []).map((e, i) => {
+        const saidas = (respostas[i]?.data || []).filter(m => m.tipo === "saida" && m.estoque_id === e.id
+          && (m.data_movimento || m.created_at || "").slice(0, 10) >= de
+          && (m.data_movimento || m.created_at || "").slice(0, 10) <= ate);
+        return { nome: e.nome, total: saidas.reduce((s, m) => s + valorDaCompra(m), 0), itens: saidas.length };
+      }).filter(x => x.itens > 0).sort((a, b) => b.total - a.total);
+      setConsumo(soma);
+    });
+    return () => { ativo = false; };
+  }, [unidadeAtiva]);
 
   useEffect(() => {
     setLoading(true);
@@ -120,6 +143,25 @@ export default function CmvPage() {
     return { medio, acima, melhor };
   }, [linhas]);
 
+  // Cada area tem sua carta e seu proprio patamar de CMV: misturar drink com
+  // prato esconde o problema de um dos dois.
+  const porArea = useMemo(() => {
+    const areas = [
+      { chave: "cozinha", rotulo: "Cozinha", teste: (d) => !String(d || "").toLowerCase().includes("bar") },
+      { chave: "bar", rotulo: "Bar", teste: (d) => String(d || "").toLowerCase().includes("bar") },
+    ];
+    return areas.map(a => {
+      const daArea = linhas.filter(l => a.teste(l.departamento));
+      if (!daArea.length) return { ...a, itens: 0, medio: 0, acima: 0 };
+      return {
+        ...a,
+        itens: daArea.length,
+        medio: daArea.reduce((s, l) => s + l.cmv, 0) / daArea.length,
+        acima: daArea.filter(l => l.cmv > META_CMV).length,
+      };
+    }).filter(a => a.itens > 0);
+  }, [linhas]);
+
   return (
     <div className="min-h-screen">
       <PageHeader title="CMV" subtitle={`Custo da mercadoria vendida · ${unidadeInfo.nome}`} icon={Percent} />
@@ -135,6 +177,41 @@ export default function CmvPage() {
               <Kpi icon={Percent} label="CMV médio da carta" value={fmtPct(resumo.medio)} tint={resumo.medio <= META_CMV ? "#10B981" : "#EF4444"} />
               <Kpi icon={AlertCircle} label={`Acima da meta (${META_CMV}%)`} value={resumo.acima} tint={resumo.acima > 0 ? "#EF4444" : "#10B981"} />
             </KpiGrid>
+
+            {porArea.length > 1 && (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {porArea.map(a => (
+                  <Card key={a.chave} className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>CMV médio · {a.rotulo}</p>
+                      <p className="mt-1 text-3xl font-black" style={{ color: a.medio <= META_CMV ? "#10B981" : "#EF4444" }}>{fmtPct(a.medio)}</p>
+                      <p className="text-[11px] font-bold" style={{ color: "var(--dim)" }}>{a.itens} item(ns) · {a.acima} acima da meta</p>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            {/* CMV de estoque: o que saiu de cada estoque no mês, em reais */}
+            {consumo.length > 0 && (
+              <Card>
+                <p className="text-[11px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>Consumo de estoque no mês</p>
+                <p className="mt-0.5 text-[11px] font-medium" style={{ color: "var(--dim)" }}>Saídas de cada estoque valorizadas pelo custo do ingrediente.</p>
+                <div className="mt-3 space-y-2">
+                  {consumo.map(c => (
+                    <div key={c.nome} className="flex items-center justify-between gap-3 rounded-xl px-3 py-2" style={{ background: "var(--elevated)" }}>
+                      <span className="min-w-0 flex-1 truncate text-sm font-bold" style={{ color: "var(--fg)" }}>{c.nome}</span>
+                      <span className="text-[11px] font-bold" style={{ color: "var(--dim)" }}>{c.itens} saída(s)</span>
+                      <span className="shrink-0 text-base font-black" style={{ color: "var(--accent-strong)" }}>{fmtBRL(c.total)}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-3 flex items-center justify-between text-sm font-black" style={{ color: "var(--fg)" }}>
+                  <span>Total consumido</span>
+                  <span>{fmtBRL(consumo.reduce((s, c) => s + c.total, 0))}</span>
+                </p>
+              </Card>
+            )}
 
             {resumo.melhor && (
               <Card className="flex items-start sm:items-center gap-3">

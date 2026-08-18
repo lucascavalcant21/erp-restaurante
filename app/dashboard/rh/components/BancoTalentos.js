@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { fetchCandidatos, atualizarStatusCandidato, removerCandidato, fetchPortalVagasConfig, salvarPortalVagasConfig, PERGUNTAS_RECRUTAMENTO } from "../../../lib/recrutamento";
 import { supabase } from "../../../lib/supabase";
 import { Loader2, Search, ExternalLink, FileText, Trash2, ShieldAlert, X, Phone, MapPin, Briefcase, Pencil, Plus, Save, UserRound, GraduationCap, Baby, Car, MessageSquareText, CalendarDays, RefreshCw, Copy, Check, Sparkles } from "lucide-react";
+import { imprimirHtml } from "../../../lib/imprimir";
 
 const valorOuTraco = valor => valor === null || valor === undefined || valor === "" ? "Não informado" : String(valor);
 
@@ -242,6 +243,42 @@ export default function BancoTalentos({ unidadeAtiva }) {
   );
   const detalhesAbertos = candidatoAberto ? detalhesDoCandidato(candidatoAberto) : null;
 
+  // Ficha de uma página: o navegador salva como PDF e daí a pessoa envia por
+  // WhatsApp. O site não consegue anexar arquivo na conversa sozinho.
+  const imprimirFichaCandidato = (c) => {
+    const d = detalhesDoCandidato(c);
+    const esc = (v) => String(v ?? "").replace(/[&<>]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[ch]));
+    const linha = (rot, val) => val ? `<tr><th>${esc(rot)}</th><td>${esc(val)}</td></tr>` : "";
+    imprimirHtml(`<meta charset='utf-8'/><title>${esc(c.nome)}</title>
+      <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;padding:14mm}
+        h1{font-size:24px}
+        .cargo{margin-top:2px;font-size:13px;font-weight:bold;color:#475569;text-transform:uppercase;letter-spacing:1px}
+        .nota{margin-top:10px;display:inline-block;border:2px solid #047857;border-radius:8px;padding:4px 10px;font-weight:bold;color:#047857}
+        table{width:100%;border-collapse:collapse;margin-top:14px;font-size:12px}
+        th,td{border:1px solid #cbd5e1;padding:6px 9px;text-align:left;vertical-align:top}
+        th{width:38%;background:#f1f5f9;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#475569}
+        h2{margin-top:16px;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#475569}
+        p.txt{margin-top:6px;font-size:12px;white-space:pre-wrap}
+        .rodape{margin-top:18px;font-size:10px;color:#64748b}
+      </style>
+      <h1>${esc(c.nome)}</h1>
+      <p class='cargo'>${esc(d.cargoPretendido || c.cargo_pretendido || "Candidato")}</p>
+      ${Number.isFinite(Number(c.nota_ia)) ? `<p class='nota'>${Number(c.nota_ia)} pontos na triagem</p>` : ""}
+      <table>
+        ${linha("Telefone / WhatsApp", d.telefone)}
+        ${linha("CPF", d.cpf)}
+        ${linha("Escolaridade", d.escolaridade)}
+        ${linha("Tem filhos", d.temFilhos)}
+        ${linha("Transporte próprio", d.temTransporte)}
+        ${linha("Endereço", d.enderecoCompleto)}
+      </table>
+      ${d.experiencia ? `<h2>Experiência</h2><p class="txt">${esc(d.experiencia)}</p>` : ""}
+      <p class='rodape'>Ficha gerada pelo ERP em ${new Date().toLocaleString("pt-BR")}. Para enviar por WhatsApp, salve como PDF na janela de impressão.</p>`,
+      { aoFalhar: () => alert("Não consegui abrir a impressão neste aparelho.") });
+  };
+
   return (
     <div className="animate-in fade-in">
       
@@ -326,6 +363,10 @@ export default function BancoTalentos({ unidadeAtiva }) {
                              }}
                              className="flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5 text-[11px] font-black text-slate-600 hover:bg-slate-200">
                              Compartilhar
+                           </button>
+                           <button type="button" title="Ficha em PDF para enviar" onClick={() => imprimirFichaCandidato(c)}
+                             className="flex items-center justify-center rounded-lg bg-slate-100 px-2.5 py-1.5 text-[11px] font-black text-slate-600 hover:bg-slate-200">
+                             PDF
                            </button>
                          </div>
                        )}

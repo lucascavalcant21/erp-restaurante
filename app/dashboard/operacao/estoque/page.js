@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchInsumos, fetchNomesDePratosEDrinks, salvarInsumo } from "../../../lib/operacao";
+import { fetchEmbalagens } from "../../../lib/embalagens";
 import { fetchColaboradores } from "../../../lib/rh";
 import { criarEscuta, vozDisponivel } from "../../../lib/hefisto-voz";
 import { equipeDaArea } from "../../../lib/equipe-area.mjs";
@@ -80,6 +81,25 @@ const CATEGORIAS_ESTOQUE_BAR = [
   "Bombons",
   "Pré-preparos",
 ];
+
+// O estoque é o lugar físico; o departamento é o setor dono do ingrediente.
+// "Pré-preparos da Cozinha" e "Embalagens da Cozinha" são estoques diferentes,
+// mas o ingrediente que nasce neles pertence à cozinha do mesmo jeito.
+function departamentoDoEstoque(estoque) {
+  const texto = `${estoque?.slug || ""} ${estoque?.nome || ""}`.toLowerCase();
+  if (texto.includes("embalage")) return "embalagens";
+  if (texto.includes("bar")) return "bar";
+  if (texto.includes("cozinha")) return "cozinha";
+  return String(estoque?.slug || "cozinha").toLowerCase();
+}
+
+// Categorias oferecidas no cadastro rápido, conforme o setor do estoque.
+function categoriasDoEstoque(estoque) {
+  const dept = departamentoDoEstoque(estoque);
+  if (dept === "bar") return CATEGORIAS_ESTOQUE_BAR;
+  if (dept === "cozinha") return CATEGORIAS_ESTOQUE_COZINHA;
+  return [];
+}
 
 function calcularValorItem(item) {
   if (!item) return 0;
@@ -431,22 +451,37 @@ function EstoqueRunner() {
   const carregarArea = useCallback(async () => {
     if (!estoqueId || !unidadeAtiva) return;
     setLoading(true);
-    const [resItens, resMovimentos, resProntos] = await Promise.all([
+    const ehEstoqueEmbalagem = /embalage/i.test(`${estoqueAtual?.slug || ""} ${estoqueAtual?.nome || ""}`);
+    const [resItens, resMovimentos, resProntos, resEmbalagens] = await Promise.all([
       fetchItensEstoque(estoqueId, unidadeAtiva),
       fetchMovimentosMulti(unidadeAtiva, estoqueId),
       fetchNomesDePratosEDrinks(unidadeAtiva),
+      ehEstoqueEmbalagem ? fetchEmbalagens(unidadeAtiva) : Promise.resolve({ data: [] }),
     ]);
     // Prato e drink montados na hora não têm saldo para contar: quem tem é o
     // ingrediente e o pré-preparo, que fica no estoque próprio dele. Comprado
     // pronto (cerveja, refrigerante) continua na lista, porque é estoque mesmo.
     const prontos = new Set(resProntos.data || []);
-    setItens((resItens.data || []).filter(item =>
-      !prontos.has(String(item.nome || item.insumo?.nome || "").trim().toLowerCase())
-    ));
+    // No estoque de embalagens só entra o que está cadastrado como embalagem.
+    // Sem isso, produto do bar que foi vinculado ali por engano ficava na lista
+    // e a contagem virava 93 itens de cerveja num estoque de pote e saco.
+    const nomesEmbalagem = new Set(
+      (resEmbalagens.data || []).map(e => String(e.nome || "").trim().toLowerCase()).filter(Boolean),
+    );
+    const idsEmbalagem = new Set(
+      (resEmbalagens.data || []).map(e => e.insumo_id).filter(Boolean),
+    );
+    setItens((resItens.data || []).filter(item => {
+      const nome = String(item.nome || item.insumo?.nome || "").trim().toLowerCase();
+      if (prontos.has(nome)) return false;
+      if (!ehEstoqueEmbalagem) return true;
+      const dept = String(item.departamento || item.insumo?.departamento || "").toLowerCase();
+      return dept.startsWith("embalage") || idsEmbalagem.has(item.insumo_id) || nomesEmbalagem.has(nome);
+    }));
     setMovimentos(resMovimentos.data || []);
     if (resItens.error || resMovimentos.error) setErro(resItens.error || resMovimentos.error);
     setLoading(false);
-  }, [estoqueId, unidadeAtiva]);
+  }, [estoqueId, unidadeAtiva, estoqueAtual]);
 
   useEffect(() => { carregarEstoques(); }, [carregarEstoques]);
   useEffect(() => { carregarArea(); }, [carregarArea]);
@@ -466,6 +501,11 @@ function EstoqueRunner() {
 
   // Cadastrar sem sair do estoque: o produto nasce no catálogo de ingredientes
   // e já entra vinculado a este estoque, pronto para receber a entrada.
+  //
+  // O departamento vinha do slug do estoque, então quem cadastrasse pelo
+  // "Pré-preparos da Cozinha" criava um ingrediente de departamento
+  // "pre-preparos-cozinha" — que não existe em lugar nenhum e sumia da lista de
+  // ingredientes. Aqui o estoque é traduzido para o setor de verdade.
   const cadastrarProdutoAqui = async () => {
     const nome = String(novoProduto?.nome || "").trim();
     if (!nome) { avisar("Escreva o nome do produto.", "erro"); return; }
@@ -473,10 +513,10 @@ function EstoqueRunner() {
     setNovoProduto(p => ({ ...p, salvando: true }));
     const custo = Number(String(novoProduto.custo ?? "").replace(",", ".")) || 0;
     const criado = await salvarInsumo({
-      unidade_id: unidadeAtiva, departamento: estoqueAtual.slug,
+      unidade_id: unidadeAtiva, departamento: departamentoDoEstoque(estoqueAtual),
       nome, nome_original: nome,
       unidade_medida: novoProduto.unidade || "un",
-      tamanho_embalagem: 1, categoria: "Sem categoria",
+      tamanho_embalagem: 1, categoria: novoProduto.categoria || "Sem categoria",
       custo_unitario: custo, custo_compra: custo, ativo: true,
     }, { origem: `Cadastro pelo estoque ${estoqueAtual.nome}` });
     if (criado.error || !criado.id) {
@@ -977,12 +1017,17 @@ function EstoqueRunner() {
     }
   };
 
+  // Zero salvo no banco entrava no campo como "0" e travava a digitação: para
+  // escrever 12 era preciso apagar o zero antes, e em teclado de celular isso
+  // quase nunca dá certo. Zero vira campo vazio com o placeholder mostrando 0 —
+  // o valor gravado continua o mesmo se ninguém digitar nada.
   const abrirEdicaoItem = item => {
+    const semZero = (valor) => (valor == null || Number(valor) === 0 ? "" : valor);
     setFormItem({
       ...item,
-      estoque_minimo: item.estoque_minimo ?? "",
-      estoque_maximo: item.estoque_maximo ?? "",
-      custo_unitario: item.custo_unitario ?? "",
+      estoque_minimo: semZero(item.estoque_minimo),
+      estoque_maximo: semZero(item.estoque_maximo),
+      custo_unitario: semZero(item.custo_unitario),
     });
     setModal({ tipo: "item", item });
   };
@@ -1416,6 +1461,15 @@ function EstoqueRunner() {
                   <input inputMode="decimal" value={novoProduto.custo} onChange={e => setNovoProduto(p => ({ ...p, custo: e.target.value }))}
                     placeholder="Custo (R$)" className="h-12 rounded-xl border border-slate-300 px-3 text-right font-bold text-slate-800 outline-none focus:border-emerald-600" />
                 </div>
+                {/* Categoria já na hora do cadastro: item que nasce "Sem
+                    categoria" nunca mais é classificado depois. */}
+                {categoriasDoEstoque(estoqueAtual).length > 0 && (
+                  <select value={novoProduto.categoria} onChange={e => setNovoProduto(p => ({ ...p, categoria: e.target.value }))}
+                    className="mt-2 h-12 w-full rounded-xl border border-slate-300 px-2 font-bold text-slate-700 outline-none focus:border-emerald-600">
+                    {categoriasDoEstoque(estoqueAtual).map(c => <option key={c} value={c}>{c}</option>)}
+                    <option value="Sem categoria">Sem categoria</option>
+                  </select>
+                )}
                 <div className="mt-3 flex gap-2">
                   <button type="button" onClick={() => setNovoProduto(null)} className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-600">Cancelar</button>
                   <button type="button" onClick={cadastrarProdutoAqui} disabled={novoProduto.salvando}
@@ -1425,7 +1479,7 @@ function EstoqueRunner() {
                 </div>
               </div>
             ) : (
-              <button type="button" onClick={() => setNovoProduto({ nome: "", unidade: "un", custo: "", salvando: false })}
+              <button type="button" onClick={() => setNovoProduto({ nome: "", unidade: "un", custo: "", categoria: categoriasDoEstoque(estoqueAtual)[0] || "Sem categoria", salvando: false })}
                 className="text-sm font-black text-emerald-700 hover:underline">
                 Não está na lista? Cadastrar produto novo
               </button>
@@ -1690,8 +1744,8 @@ function EstoqueRunner() {
         <Modal titulo={`Configurar ${modal.item.nome}`} descricao={`Parâmetros válidos apenas em ${estoqueAtual?.nome}.`} onClose={() => setModal(null)}>
           <form onSubmit={salvarConfiguracaoItem} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <Campo label="Estoque mínimo"><input type="number" min="0" step="0.001" value={formItem.estoque_minimo} onChange={e => setFormItem({ ...formItem, estoque_minimo: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" /></Campo>
-              <Campo label="Estoque máximo"><input type="number" min="0" step="0.001" value={formItem.estoque_maximo} onChange={e => setFormItem({ ...formItem, estoque_maximo: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" /></Campo>
+              <Campo label="Estoque mínimo"><input type="number" min="0" step="0.001" value={formItem.estoque_minimo} placeholder="0" onChange={e => setFormItem({ ...formItem, estoque_minimo: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" /></Campo>
+              <Campo label="Estoque máximo"><input type="number" min="0" step="0.001" value={formItem.estoque_maximo} placeholder="0" onChange={e => setFormItem({ ...formItem, estoque_maximo: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" /></Campo>
               <Campo label="Custo unitário">
                 <div className="relative">
                   <span className="absolute left-3.5 top-3 text-sm font-extrabold text-slate-500">R$</span>
@@ -1968,7 +2022,8 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
       });
     }
 
-    const ehBar = estoque?.departamento === "bar" || estoque?.slug === "bar";
+    // Vale para pre-preparos-bar e embalagens-bar também, não só o slug "bar".
+    const ehBar = departamentoDoEstoque(estoque) === "bar";
     const listaOficial = ehBar ? CATEGORIAS_ESTOQUE_BAR : CATEGORIAS_ESTOQUE_COZINHA;
 
     const categoriasOrdenadas = Array.from(mapa.keys()).sort((a, b) => {

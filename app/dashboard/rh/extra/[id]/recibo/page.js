@@ -11,7 +11,10 @@ import { supabase } from "../../../../../lib/supabase";
 import {
   atualizarPagamentoRecibo, fetchRecibosPrestacao, salvarReciboPrestacao,
 } from "../../../../../lib/rh";
-import { imprimirReciboExtra, montarHtmlRecibo } from "../../../../../lib/recibo-extra";
+import {
+  RECIBO_TEXTOS_PADRAO, fetchReciboTextos, imprimirReciboExtra,
+  montarHtmlRecibo, salvarReciboTextos,
+} from "../../../../../lib/recibo-extra";
 
 const hojeISO = () => {
   const data = new Date();
@@ -44,6 +47,11 @@ export default function ReciboExtraPage() {
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
+  // Título e subtítulo do papel: vêm das configurações da unidade e valem para
+  // todo recibo impresso daqui, inclusive os reimpressos pelo histórico.
+  const [textos, setTextos] = useState(RECIBO_TEXTOS_PADRAO);
+  const [textosSalvando, setTextosSalvando] = useState(false);
+  const [textosAviso, setTextosAviso] = useState("");
 
   const carregarHistorico = useCallback(async () => {
     const resposta = await fetchRecibosPrestacao(id);
@@ -70,6 +78,24 @@ export default function ReciboExtraPage() {
     });
     return () => { ativo = false; };
   }, [id]);
+
+  useEffect(() => {
+    let ativo = true;
+    fetchReciboTextos(unidadeAtiva).then((resposta) => {
+      if (ativo && resposta.data) setTextos(resposta.data);
+    });
+    return () => { ativo = false; };
+  }, [unidadeAtiva]);
+
+  const salvarTextos = async () => {
+    setTextosSalvando(true);
+    setTextosAviso("");
+    const resposta = await salvarReciboTextos(unidadeAtiva, textos);
+    setTextosSalvando(false);
+    if (resposta.error) return setTextosAviso(`Não consegui salvar: ${resposta.error}`);
+    if (resposta.data) setTextos(resposta.data);
+    setTextosAviso("Textos salvos para esta unidade.");
+  };
 
   const set = (campo, valor) => setForm((anterior) => ({ ...anterior, [campo]: valor }));
   const total = useMemo(() => {
@@ -121,10 +147,10 @@ export default function ReciboExtraPage() {
   const htmlPrevia = useMemo(() => {
     if (!extra) return "";
     try {
-      return montarHtmlRecibo({ extra, recibo: montarRecibo("PRÉVIA"), unidadeNome: unidadeInfo?.nome });
+      return montarHtmlRecibo({ extra, recibo: montarRecibo("PRÉVIA"), unidadeNome: unidadeInfo?.nome, textos });
     } catch { return ""; }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [extra, form, total, unidadeInfo]);
+  }, [extra, form, total, unidadeInfo, textos]);
 
   const salvarRecibo = async (imprimirDepois) => {
     if (!form.data_trabalho) return setErro("Informe a data do trabalho.");
@@ -142,7 +168,7 @@ export default function ReciboExtraPage() {
     }
     const salvo = resposta.data || payload;
     setRecibos((lista) => [salvo, ...lista]);
-    if (imprimirDepois) imprimirReciboExtra({ extra, recibo: salvo, unidadeNome: unidadeInfo?.nome });
+    if (imprimirDepois) imprimirReciboExtra({ extra, recibo: salvo, unidadeNome: unidadeInfo?.nome, textos });
     setForm((anterior) => ({ ...formularioDoExtra(extra), data_trabalho: anterior.data_trabalho }));
   };
 
@@ -227,9 +253,22 @@ export default function ReciboExtraPage() {
             </div>
           </section>
 
+          {/* Cabeçalho do papel: cada casa dá um nome ao documento. Fica salvo
+              na unidade, então vale para todos os recibos, não só para este. */}
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center gap-2"><Pencil className="text-emerald-600" size={18} /><h2 className="text-lg font-black">Textos do recibo</h2></div>
+            <p className="mt-1 text-xs font-semibold text-slate-500">Valem para todos os recibos desta unidade.</p>
+            <div className="mt-4 space-y-3">
+              <label className="block"><span className={rotulo}>Título</span><input value={textos.titulo} onChange={(e) => setTextos((anterior) => ({ ...anterior, titulo: e.target.value }))} placeholder={RECIBO_TEXTOS_PADRAO.titulo} className={campo} /></label>
+              <label className="block"><span className={rotulo}>Subtítulo</span><input value={textos.subtitulo} onChange={(e) => setTextos((anterior) => ({ ...anterior, subtitulo: e.target.value }))} placeholder="Deixe em branco para não imprimir" className={campo} /></label>
+            </div>
+            {textosAviso && <p className={`mt-3 rounded-xl px-3 py-2 text-xs font-bold ${textosAviso.startsWith("Não") ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`}>{textosAviso}</p>}
+            <button onClick={salvarTextos} disabled={textosSalvando} className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border-2 border-emerald-200 bg-white text-sm font-black text-emerald-700 hover:bg-emerald-50 disabled:opacity-60">{textosSalvando ? <Loader2 className="animate-spin" size={17} /> : <Save size={17} />} Salvar textos</button>
+          </section>
+
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-xs font-black uppercase tracking-widest text-emerald-700">Dados vinculados</p><h2 className="mt-2 text-xl font-black">{extra.nome}</h2><p className="mt-1 font-bold text-slate-500">{extra.cargo || "Extra"}</p><div className="mt-4 space-y-2 rounded-xl bg-slate-50 p-3 text-sm font-semibold text-slate-600"><p>CPF: {extra.cpf || "não informado"}</p><p>PIX: {extra.chave_pix || "não informado"}</p><p>Diária padrão: {moeda(extra.salario)}</p></div></section>
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex items-center gap-2"><FileClock className="text-emerald-600" size={20} /><h2 className="text-lg font-black">Histórico de recibos</h2></div>
-            {recibos.length === 0 ? <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">O primeiro recibo desta pessoa aparecerá aqui.</p> : <div className="mt-4 space-y-3">{recibos.map((recibo) => <article key={recibo.id} className="rounded-xl border border-slate-200 p-3"><div className="flex items-start justify-between gap-2"><div><p className="font-black text-slate-800">{moeda(recibo.valor_total)}</p><p className="mt-0.5 text-xs font-bold text-slate-500">{dataBR(recibo.data_trabalho)} · {recibo.dias_contratados || 1} dia(s)</p></div><span className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${recibo.pagamento_realizado ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{recibo.pagamento_realizado ? "Pago" : "Pendente"}</span></div><div className="mt-3 grid grid-cols-2 gap-2"><button onClick={() => imprimirReciboExtra({ extra, recibo, unidadeNome: unidadeInfo?.nome })} className="flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-slate-100 text-xs font-black text-slate-700"><Printer size={14} /> Imprimir</button><button onClick={() => alterarPagamento(recibo)} className="flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-emerald-50 text-xs font-black text-emerald-700">{recibo.pagamento_realizado ? <Clock3 size={14} /> : <CheckCircle2 size={14} />} {recibo.pagamento_realizado ? "Tornar pendente" : "Marcar pago"}</button></div></article>)}</div>}
+            {recibos.length === 0 ? <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">O primeiro recibo desta pessoa aparecerá aqui.</p> : <div className="mt-4 space-y-3">{recibos.map((recibo) => <article key={recibo.id} className="rounded-xl border border-slate-200 p-3"><div className="flex items-start justify-between gap-2"><div><p className="font-black text-slate-800">{moeda(recibo.valor_total)}</p><p className="mt-0.5 text-xs font-bold text-slate-500">{dataBR(recibo.data_trabalho)} · {recibo.dias_contratados || 1} dia(s)</p></div><span className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${recibo.pagamento_realizado ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{recibo.pagamento_realizado ? "Pago" : "Pendente"}</span></div><div className="mt-3 grid grid-cols-2 gap-2"><button onClick={() => imprimirReciboExtra({ extra, recibo, unidadeNome: unidadeInfo?.nome, textos })} className="flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-slate-100 text-xs font-black text-slate-700"><Printer size={14} /> Imprimir</button><button onClick={() => alterarPagamento(recibo)} className="flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-emerald-50 text-xs font-black text-emerald-700">{recibo.pagamento_realizado ? <Clock3 size={14} /> : <CheckCircle2 size={14} />} {recibo.pagamento_realizado ? "Tornar pendente" : "Marcar pago"}</button></div></article>)}</div>}
           </section>
         </aside>
       </main>

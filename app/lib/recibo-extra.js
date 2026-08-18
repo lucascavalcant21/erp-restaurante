@@ -1,4 +1,5 @@
 import { imprimirHtml } from "./imprimir";
+import { supabase, isSupabaseReady } from "./supabase";
 
 const esc = (valor) => String(valor ?? "").replace(/[&<>\"]/g, (caractere) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;",
@@ -35,9 +36,64 @@ function endereco(extra, dados) {
   return partes.join(", ") || dados?.endereco || extra?.endereco || "—";
 }
 
+// ── TEXTOS EDITÁVEIS DO CABEÇALHO ───────────────────────────────────────────
+// Cada casa chama o documento de um jeito ("Recibo de diária", "Recibo de
+// prestação de serviço"...). Em vez de fixar no código, o texto fica em
+// config_sistema.params.recibo_textos — mesmo padrão dos portais, sem migração.
+export const RECIBO_TEXTOS_PADRAO = {
+  titulo: "RECIBO DE PRESTAÇÃO DE SERVIÇO",
+  subtitulo: "Prestação de serviço eventual · diária e acerto financeiro",
+};
+
+function normalizarTextos(config) {
+  if (!config || typeof config !== "object") return { ...RECIBO_TEXTOS_PADRAO };
+  const titulo = String(config.titulo ?? "").trim().slice(0, 120) || RECIBO_TEXTOS_PADRAO.titulo;
+  // Subtítulo em branco é escolha válida: a linha simplesmente some do papel.
+  const subtitulo = String(config.subtitulo ?? "").trim().slice(0, 160);
+  return { titulo, subtitulo };
+}
+
+export async function fetchReciboTextos(unidadeId) {
+  if (!isSupabaseReady() || !unidadeId || unidadeId === "todas") {
+    return { data: { ...RECIBO_TEXTOS_PADRAO } };
+  }
+  const { data, error } = await supabase.from("config_sistema")
+    .select("params").eq("unidade_id", unidadeId).limit(1);
+  if (error) return { data: { ...RECIBO_TEXTOS_PADRAO }, error: error.message };
+  return { data: normalizarTextos(data?.[0]?.params?.recibo_textos) };
+}
+
+export async function salvarReciboTextos(unidadeId, textos) {
+  if (!isSupabaseReady()) return { error: "Sistema sem conexão com o banco." };
+  if (!unidadeId || unidadeId === "todas") return { error: "Selecione uma unidade específica." };
+  const recibo_textos = normalizarTextos(textos);
+
+  // Merge atômico quando a função existe: não pisa nas outras chaves do JSON.
+  try {
+    const { error } = await supabase.rpc("merge_config_sistema_params", {
+      p_unidade_id: unidadeId, p_patch: { recibo_textos },
+    });
+    if (!error) return { data: recibo_textos, error: null };
+  } catch { /* função ainda não criada — grava lendo e reescrevendo o JSON */ }
+
+  const { data: registros, error: erroLeitura } = await supabase
+    .from("config_sistema").select("id, params").eq("unidade_id", unidadeId).limit(1);
+  if (erroLeitura) return { error: erroLeitura.message };
+
+  const registro = registros?.[0];
+  const params = { ...(registro?.params || {}), recibo_textos };
+  if (registro) {
+    const { error } = await supabase.from("config_sistema").update({ params }).eq("id", registro.id);
+    return { data: recibo_textos, error: error?.message || null };
+  }
+  const { error } = await supabase.from("config_sistema").insert([{ unidade_id: unidadeId, params }]);
+  return { data: recibo_textos, error: error?.message || null };
+}
+
 // Monta o HTML do recibo. Usado tanto pela impressão quanto pela pré-visualização
 // ao lado do formulário, que atualiza a cada tecla.
-export function montarHtmlRecibo({ extra, recibo, unidadeNome }) {
+export function montarHtmlRecibo({ extra, recibo, unidadeNome, textos }) {
+  const cabecalho = normalizarTextos(textos);
   const dados = recibo?.dados || {};
   const itens = Array.isArray(recibo?.itens) ? recibo.itens : [];
   const dias = Math.max(1, Number(recibo?.dias_contratados) || 1);
@@ -56,17 +112,14 @@ export function montarHtmlRecibo({ extra, recibo, unidadeNome }) {
   <style>
     @page{size:A4 portrait;margin:10mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#172033;margin:0;font-size:11px;line-height:1.4}.topo{background:#064e3b;color:white;border-radius:12px;padding:17px 20px;display:flex;justify-content:space-between;gap:18px}.topo h1{font-size:20px;margin:3px 0}.marca{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.12em}.numero{text-align:right;font-size:9px;line-height:1.6}.secao{margin-top:12px;break-inside:avoid}.titulo{border-left:4px solid #10b981;background:#ecfdf5;color:#065f46;padding:6px 9px;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.08em}.grade{display:grid;grid-template-columns:1fr 1fr;gap:7px 14px;margin-top:7px}.campo{border-bottom:1px solid #cbd5e1;padding:3px 2px 6px}.campo span{display:block;color:#64748b;font-size:8px;font-weight:800;text-transform:uppercase}.campo strong{display:block;margin-top:2px}.inteiro{grid-column:1/-1}table{width:100%;border-collapse:collapse;margin-top:7px}th,td{border:1px solid #cbd5e1;padding:7px;text-align:left}th{background:#f1f5f9;color:#475569;font-size:8px;text-transform:uppercase}.total{background:#ecfdf5;color:#065f46;font-size:13px}.caixa{border:1px solid #cbd5e1;background:#f8fafc;border-radius:8px;padding:8px 10px;margin-top:7px}.assinaturas{display:grid;grid-template-columns:1fr 1fr;gap:42px;margin-top:44px}.assinatura{border-top:1px solid #172033;padding-top:5px;text-align:center;font-size:9px}.rodape{text-align:center;color:#94a3b8;font-size:8px;margin-top:18px}@media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
   </style></head><body>
-    <header class="topo"><div><div class="marca">${texto(unidadeNome, "Restaurante")}</div><h1>RECIBO DE PRESTAÇÃO DE SERVIÇO</h1><div>Prestação de serviço eventual · diária e acerto financeiro</div></div><div class="numero"><strong>${texto(recibo?.numero)}</strong><br/>Emitido em ${hoje}<br/>Via do restaurante e do prestador</div></header>
+    <header class="topo"><div><div class="marca">${texto(unidadeNome, "Restaurante")}</div><h1>${esc(cabecalho.titulo)}</h1>${cabecalho.subtitulo ? `<div>${esc(cabecalho.subtitulo)}</div>` : ""}</div><div class="numero"><strong>${texto(recibo?.numero)}</strong><br/>Emitido em ${hoje}<br/>Via do restaurante e do prestador</div></header>
 
-    <section class="secao"><div class="titulo">Prestador cadastrado</div><div class="grade">
+    <section class="secao"><div class="grade">
       <div class="campo"><span>Nome completo</span><strong>${texto(dados.nome || extra?.nome)}</strong></div>
       <div class="campo"><span>CPF / RG</span><strong>${texto(dados.cpf || extra?.cpf)} · ${texto(dados.rg || extra?.rg)}</strong></div>
-      <div class="campo inteiro"><span>Endereço</span><strong>${texto(endereco(extra, dados))}</strong></div>
       <div class="campo"><span>Telefone</span><strong>${texto(dados.telefone || extra?.telefone)}</strong></div>
       ${campo("Chave PIX", dados.chave_pix || extra?.chave_pix)}
-    </div></section>
-
-    <section class="secao"><div class="titulo">Trabalho realizado</div><div class="grade">
+      <div class="campo inteiro"><span>Endereço</span><strong>${texto(endereco(extra, dados))}</strong></div>
       <div class="campo"><span>Data inicial</span><strong>${dataBR(recibo?.data_trabalho)}</strong></div>
       <div class="campo"><span>Dias contratados</span><strong>${dias}</strong></div>
       <div class="campo"><span>Função</span><strong>${texto(recibo?.funcao || dados.funcao || extra?.cargo)}</strong></div>
@@ -95,7 +148,7 @@ export function montarHtmlRecibo({ extra, recibo, unidadeNome }) {
   return html;
 }
 
-export function imprimirReciboExtra({ extra, recibo, unidadeNome }) {
-  const html = montarHtmlRecibo({ extra, recibo, unidadeNome });
+export function imprimirReciboExtra({ extra, recibo, unidadeNome, textos }) {
+  const html = montarHtmlRecibo({ extra, recibo, unidadeNome, textos });
   return imprimirHtml(html, { aoFalhar: () => window.alert("Não foi possível abrir a impressão deste recibo.") });
 }

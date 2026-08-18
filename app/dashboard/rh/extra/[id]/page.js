@@ -10,10 +10,13 @@ import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Save, Loader2, Camera, Trash2, ReceiptText } from "lucide-react";
 import { useERP } from "../../../../context/ERPContext";
 import { supabase } from "../../../../lib/supabase";
-import { inserirColaborador, atualizarColaborador } from "../../../../lib/rh";
+import { inserirColaborador, atualizarColaborador, fetchRecibosPrestacao } from "../../../../lib/rh";
 import { ESTADOS_CIVIS, ESCOLARIDADES, GENEROS } from "../../../../lib/contrato-experiencia.mjs";
 
 const FORMAS_PAGAMENTO = ["Pix", "Dinheiro", "Transferência"];
+
+const moeda = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const dataBR = (v) => v ? new Date(`${String(v).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR") : "—";
 
 const vazio = {
   foto: "", nome: "", cargo: "Extra", telefone: "", cpf: "", rg: "",
@@ -42,6 +45,9 @@ export default function CadastroExtraPage() {
   const [carregando, setCarregando] = useState(!novo);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
+  const [recibos, setRecibos] = useState([]);
+  // Quanto desta pessoa ainda não foi pago.
+  const emAberto = recibos.filter(r => !r.pagamento_realizado).reduce((s, r) => s + (Number(r.valor_total) || 0), 0);
 
   useEffect(() => {
     if (novo) return;
@@ -56,6 +62,13 @@ export default function CadastroExtraPage() {
       }
       setCarregando(false);
     });
+  }, [id, novo]);
+
+  // Histórico de recibos da própria pessoa: o que ela já recebeu e o que
+  // ainda está em aberto, sem precisar caçar na lista geral do módulo.
+  useEffect(() => {
+    if (novo) return;
+    fetchRecibosPrestacao(id).then(r => setRecibos(r.data || []));
   }, [id, novo]);
 
   const set = (campo, valor) => setForm(a => ({ ...a, [campo]: valor }));
@@ -339,6 +352,36 @@ export default function CadastroExtraPage() {
             <span className="text-sm font-bold text-slate-700">A casa oferece a janta</span>
           </label>
         </section>
+
+        {/* Histórico de recibos desta pessoa */}
+        {!novo && (
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <p className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-emerald-700"><ReceiptText size={14} /> Recibos desta pessoa</p>
+            <p className="text-sm font-black text-slate-700">{recibos.length} recibo(s) · {moeda(recibos.reduce((s, r) => s + (Number(r.valor_total) || 0), 0))}</p>
+          </div>
+          {emAberto > 0 && (
+            <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-[13px] font-bold text-amber-800">Em aberto: {moeda(emAberto)}</p>
+          )}
+          <div className="mt-3 space-y-2">
+            {recibos.length === 0 ? (
+              <p className="rounded-xl bg-slate-50 p-4 text-sm font-bold text-slate-500">Nenhum recibo emitido para esta pessoa ainda.</p>
+            ) : recibos.map(r => (
+              <div key={r.id}
+                className="flex w-full items-center gap-3 rounded-xl border border-slate-200 p-3 text-left">
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[15px] font-black text-slate-900">{dataBR(r.data_trabalho)}</span>
+                  <span className="block text-[12px] font-bold text-slate-500">
+                    {r.funcao_exercida || form.cargo || "Extra"}
+                    {r.pagamento_realizado ? ` · pago${r.data_pagamento ? ` em ${dataBR(r.data_pagamento)}` : ""}` : " · em aberto"}
+                  </span>
+                </span>
+                <span className={`shrink-0 text-base font-black ${r.pagamento_realizado ? "text-emerald-700" : "text-amber-700"}`}>{moeda(r.valor_total)}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+        )}
 
         {/* Observações */}
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">

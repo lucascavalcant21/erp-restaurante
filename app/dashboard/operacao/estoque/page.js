@@ -17,7 +17,7 @@ import { equipeDaArea } from "../../../lib/equipe-area.mjs";
 import {
   atualizarItemEstoque, fetchEstoques, fetchItensEstoque, fetchMovimentosMulti,
   registrarContagemMulti, registrarMovimentoMulti, realocarItemEstoque, salvarEstoque,
-  transferirEntreEstoques, vincularItemEstoque,
+  transferirEntreEstoques, vincularItemEstoque, zerarEstoque,
 } from "../../../lib/estoques-multiplos";
 import {
   filtrarItensEstoque, grupoOperacionalItem, gruposOperacionaisEstoque,
@@ -360,6 +360,7 @@ function EstoqueRunner() {
   const [modal, setModal] = useState(null);
   // Produto que não existe ainda: cadastra pelo próprio estoque.
   const [novoProduto, setNovoProduto] = useState(null);
+  const [modalZerar, setModalZerar] = useState(null);
   const [operacao, setOperacao] = useState({ insumo_id: "", quantidade: "", destino_id: "", observacao: "", responsavel_id: "", data: "", modo: "unidade", fechadas: "", aberto: "" });
   const [formItem, setFormItem] = useState({});
   const [formEstoque, setFormEstoque] = useState({});
@@ -497,6 +498,30 @@ function EstoqueRunner() {
 
   const atualizarTudo = async () => {
     await Promise.all([carregarArea(), carregarEstoques(estoqueId)]);
+  };
+
+  // Zerar não tem desfazer, então exige digitar ZERAR. Um confirm() se clica
+  // por reflexo; digitar a palavra obriga a ler o que está escrito antes.
+  const confirmarZerar = async () => {
+    if (String(modalZerar?.confirmacao || "").trim().toUpperCase() !== "ZERAR") {
+      avisar("Digite ZERAR para confirmar.", "erro");
+      return;
+    }
+    setModalZerar(m => ({ ...m, salvando: true }));
+    const resposta = await zerarEstoque({
+      unidadeId: unidadeAtiva,
+      estoqueId: estoqueAtual?.id,
+      usuarioId: idUsuario(sessao),
+      usuarioNome: nomeUsuario(sessao),
+      motivo: String(modalZerar?.motivo || "").trim(),
+    });
+    setModalZerar(null);
+    if (resposta.error) { avisar(resposta.error, "erro"); return; }
+    const { zerados, total, falhas } = resposta.data || {};
+    avisar(falhas
+      ? `${zerados} item(ns) zerados, mas ${falhas} não entraram no histórico.`
+      : `${estoqueAtual?.nome} zerado: ${zerados} de ${total} item(ns) tinham saldo. Cada baixa está no histórico.`);
+    await atualizarTudo();
   };
 
   // Cadastrar sem sair do estoque: o produto nasce no catálogo de ingredientes
@@ -1265,6 +1290,12 @@ function EstoqueRunner() {
                   className="ml-auto whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-xs font-black text-emerald-700 hover:text-emerald-800 sm:py-3.5 sm:text-sm">
                   Calendário
                 </button>
+                {/* Recomeço de contagem. Fica discreto de propósito: é a única
+                    ação da tela que não tem desfazer. */}
+                <button onClick={() => setModalZerar({ confirmacao: "", salvando: false })}
+                  className="whitespace-nowrap border-b-2 border-transparent px-1 py-3 text-xs font-black text-slate-400 hover:text-red-600 sm:py-3.5 sm:text-sm">
+                  Zerar estoque
+                </button>
               </div>
 
               {aba === "atual" || aba === "alertas" ? (
@@ -1872,6 +1903,35 @@ function EstoqueRunner() {
             })()}
             <div className="flex justify-end">
               <button onClick={() => setModal(null)} className="h-11 rounded-xl bg-slate-100 px-5 font-bold text-slate-700 hover:bg-slate-200">Fechar</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {modalZerar && (
+        <Modal titulo={`Zerar ${estoqueAtual?.nome}`} descricao="Todos os saldos deste estoque vão a zero. Não tem desfazer." onClose={() => setModalZerar(null)}>
+          <div className="space-y-3 pt-2">
+            <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+              {itensDaArea.filter(i => Number(i.quantidade_atual) > 0).length} item(ns) com saldo vão ser zerados.
+              Cada baixa fica no histórico com o seu nome, para a contagem poder ser conferida depois.
+            </p>
+            <label className="block">
+              <span className="text-xs font-black uppercase tracking-widest text-slate-500">Motivo (opcional)</span>
+              <input value={modalZerar.motivo || ""} onChange={e => setModalZerar(m => ({ ...m, motivo: e.target.value }))}
+                placeholder="Ex.: recontagem geral de agosto"
+                className="mt-1 h-12 w-full rounded-xl border border-slate-200 px-3 font-semibold text-slate-800 outline-none focus:border-emerald-600" />
+            </label>
+            <label className="block">
+              <span className="text-xs font-black uppercase tracking-widest text-slate-500">Digite ZERAR para confirmar</span>
+              <input autoFocus value={modalZerar.confirmacao} onChange={e => setModalZerar(m => ({ ...m, confirmacao: e.target.value }))}
+                className="mt-1 h-12 w-full rounded-xl border-2 border-slate-300 px-3 text-center font-black tracking-widest text-slate-900 outline-none focus:border-red-500" />
+            </label>
+            <div className="flex gap-2">
+              <button onClick={() => setModalZerar(null)} className="h-12 flex-1 rounded-xl border border-slate-200 bg-white font-bold text-slate-600">Cancelar</button>
+              <button onClick={confirmarZerar} disabled={modalZerar.salvando}
+                className="h-12 flex-1 rounded-xl bg-red-600 font-black text-white hover:bg-red-700 disabled:opacity-60">
+                {modalZerar.salvando ? "Zerando..." : "Zerar estoque"}
+              </button>
             </div>
           </div>
         </Modal>

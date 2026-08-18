@@ -392,6 +392,43 @@ export async function atualizarItemEstoque(estoqueItemId, campos) {
   return { error: erroMensagem(error) };
 }
 
+// Zera o saldo de todos os itens de um estoque. Existe para o recomeço de
+// contagem: quando o saldo do sistema já não tem relação com a prateleira,
+// zerar tudo e recontar é mais honesto que corrigir item por item.
+//
+// Grava uma saída por item que tinha saldo, em vez de apagar o número calado:
+// o histórico precisa mostrar quem zerou, quando e quanto sumiu — é isso que
+// separa um recomeço de contagem de um sumiço de mercadoria.
+export async function zerarEstoque({ unidadeId, estoqueId, usuarioId = null, usuarioNome = "", motivo = "" }) {
+  if (!isSupabaseReady()) return { error: "Sistema sem conexão com o banco." };
+  if (!unidadeId || !estoqueId) return { error: "Estoque inválido." };
+
+  const { data: itens, error: erroLeitura } = await supabase
+    .from("estoque_itens").select("id, insumo_id, quantidade_atual").eq("estoque_id", estoqueId);
+  if (erroLeitura) return { error: erroMensagem(erroLeitura) };
+
+  const comSaldo = (itens || []).filter(item => Number(item.quantidade_atual) > 0);
+  const observacao = `Zerado para recontagem${motivo ? ` · ${motivo}` : ""}`;
+  let falhas = 0;
+  for (const item of comSaldo) {
+    const resultado = await registrarMovimentoMulti({
+      unidadeId, estoqueId, insumoId: item.insumo_id,
+      tipo: "saida", quantidade: Number(item.quantidade_atual),
+      usuarioId, usuarioNome, observacao,
+    });
+    if (resultado?.error) falhas += 1;
+  }
+
+  // Item sem saldo já está zerado; os que falharam entram aqui como rede de
+  // segurança, para o estoque não ficar zerado pela metade.
+  const { error: erroZerar } = await supabase.from("estoque_itens")
+    .update({ quantidade_atual: 0, updated_at: new Date().toISOString() })
+    .eq("estoque_id", estoqueId);
+  if (erroZerar) return { error: erroMensagem(erroZerar) };
+
+  return { data: { zerados: comSaldo.length, total: (itens || []).length, falhas }, error: null };
+}
+
 async function sincronizarSaldoLegado(unidadeId, insumoId) {
   const { data } = await supabase.from("estoque_itens").select("quantidade_atual").eq("unidade_id", unidadeId).eq("insumo_id", insumoId);
   const total = (data || []).reduce((soma, item) => soma + (Number(item.quantidade_atual) || 0), 0);

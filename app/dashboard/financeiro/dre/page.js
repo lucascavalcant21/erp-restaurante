@@ -7,6 +7,8 @@ import {
 } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
 import { fetchLancamentos } from "../../../lib/financeiro";
+import { fetchColaboradores, fetchRecibosPrestacaoUnidade } from "../../../lib/rh";
+import { calcularCMO, pesoDoCMO } from "../../../lib/cmo.mjs";
 import FechamentoMes from "./FechamentoMes";
 
 export default function DreGerencialPage() {
@@ -14,10 +16,23 @@ export default function DreGerencialPage() {
   const [lanc, setLanc] = useState([]);
   const [loading, setLoading] = useState(true);
   const [periodoLetra, setPeriodoLetra] = useState("Mensal");
+  // CMO não se digita: vem do RH e do módulo de Extras.
+  const [cmo, setCmo] = useState(null);
 
   useEffect(() => {
     setLoading(true);
     fetchLancamentos(unidadeAtiva).then(({ data }) => { setLanc(data || []); setLoading(false); });
+  }, [unidadeAtiva]);
+
+  useEffect(() => {
+    if (!unidadeAtiva || unidadeAtiva === "todas") { setCmo(null); return; }
+    let ativo = true;
+    Promise.all([fetchColaboradores(unidadeAtiva), fetchRecibosPrestacaoUnidade(unidadeAtiva)])
+      .then(([equipe, recibos]) => {
+        if (!ativo) return;
+        setCmo(calcularCMO({ colaboradores: equipe.data || [], recibos: recibos.data || [] }));
+      });
+    return () => { ativo = false; };
   }, [unidadeAtiva]);
 
   // Cálculos contábeis do DRE
@@ -201,6 +216,30 @@ export default function DreGerencialPage() {
              </div>
 
           </div>
+        )}
+        {cmo && (
+          <Card className="mt-4">
+            <p className="text-[11px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>CMO · custo de mão de obra no mês</p>
+            <p className="mt-0.5 text-[11px] font-medium" style={{ color: "var(--dim)" }}>Folha vem do RH; diárias vêm dos recibos pagos no módulo de Extras.</p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+              <div className="rounded-xl px-3 py-2" style={{ background: "var(--elevated)" }}>
+                <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>Folha dos contratados</p>
+                <p className="text-lg font-black" style={{ color: "var(--fg)" }}>{fmtBRL(cmo.folha)}</p>
+              </div>
+              <div className="rounded-xl px-3 py-2" style={{ background: "var(--elevated)" }}>
+                <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--dim)" }}>Diárias de extras</p>
+                <p className="text-lg font-black" style={{ color: "var(--fg)" }}>{fmtBRL(cmo.extras)}</p>
+                {cmo.extrasEmAberto > 0 && <p className="text-[10px] font-bold" style={{ color: "#B45309" }}>{fmtBRL(cmo.extrasEmAberto)} em aberto</p>}
+              </div>
+              <div className="rounded-xl px-3 py-2" style={{ background: "var(--accent-soft)" }}>
+                <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--accent-strong)" }}>CMO total</p>
+                <p className="text-lg font-black" style={{ color: "var(--accent-strong)" }}>{fmtBRL(cmo.total)}</p>
+                {(() => { const p = pesoDoCMO(cmo.total, dre.receitaBruta); return p == null ? null : (
+                  <p className="text-[10px] font-bold" style={{ color: "var(--accent-strong)" }}>{fmtPct(p)} do faturamento</p>
+                ); })()}
+              </div>
+            </div>
+          </Card>
         )}
       </PageBody>
     </div>

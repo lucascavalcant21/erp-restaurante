@@ -12,7 +12,10 @@ export async function generateMetadata({ params }) {
   const descricao = "Entre no nosso banco de profissionais em 2 minutos: função, dias "
     + "disponíveis e horário. Não precisa criar conta.";
 
+  const imagem = { url: "/icon-512x512.png", width: 512, height: 512, alt: "Hefisto" };
+
   return {
+    metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://erp-restaurante-sand.vercel.app"),
     title: titulo(unidade),
     description: descricao,
     openGraph: {
@@ -20,9 +23,11 @@ export async function generateMetadata({ params }) {
       description: descricao,
       type: "website",
       locale: "pt_BR",
+      images: [imagem],
     },
     twitter: {
       card: "summary",
+      images: [imagem.url],
       title: titulo(unidade),
       description: descricao,
     },

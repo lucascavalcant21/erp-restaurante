@@ -12,7 +12,10 @@ export async function generateMetadata({ params }) {
   const descricao = "Veja as vagas abertas e mande sua candidatura em 2 minutos. "
     + "Não precisa criar conta nem enviar currículo em PDF.";
 
+  const imagem = { url: "/icon-512x512.png", width: 512, height: 512, alt: "Hefisto" };
+
   return {
+    metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://erp-restaurante-sand.vercel.app"),
     title: titulo(unidade),
     description: descricao,
     openGraph: {
@@ -20,9 +23,11 @@ export async function generateMetadata({ params }) {
       description: descricao,
       type: "website",
       locale: "pt_BR",
+      images: [imagem],
     },
     twitter: {
       card: "summary",
+      images: [imagem.url],
       title: titulo(unidade),
       description: descricao,
     },

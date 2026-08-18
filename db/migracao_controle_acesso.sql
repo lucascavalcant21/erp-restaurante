@@ -40,6 +40,16 @@ alter table public.perfis_acesso add column if not exists is_current boolean not
 alter table public.perfis_acesso add column if not exists supersedes_id uuid;
 alter table public.perfis_acesso add column if not exists sistema boolean not null default false;
 
+-- A tabela pode ja existir com outro formato: garante o que a rota usa.
+alter table public.perfis_acesso add column if not exists nome text;
+alter table public.perfis_acesso add column if not exists codigo text;
+alter table public.perfis_acesso add column if not exists descricao text;
+alter table public.perfis_acesso add column if not exists tipo text default 'personalizado';
+alter table public.perfis_acesso add column if not exists ativo boolean not null default true;
+alter table public.perfis_acesso add column if not exists created_by uuid;
+alter table public.perfis_acesso add column if not exists created_at timestamptz not null default now();
+alter table public.perfis_acesso add column if not exists updated_at timestamptz not null default now();
+
 create index if not exists idx_perfis_acesso_atual on public.perfis_acesso (is_current, ativo, nome);
 
 -- ── USUÁRIOS DO SISTEMA ─────────────────────────────────────────────────────
@@ -65,6 +75,19 @@ create table if not exists public.usuarios_erp (
   updated_at timestamptz not null default now()
 );
 
+-- Mesma proteção da tabela de perfis: completa o que faltar.
+alter table public.usuarios_erp add column if not exists auth_user_id uuid;
+alter table public.usuarios_erp add column if not exists nome text;
+alter table public.usuarios_erp add column if not exists login text;
+alter table public.usuarios_erp add column if not exists email text;
+alter table public.usuarios_erp add column if not exists perfil_id uuid;
+alter table public.usuarios_erp add column if not exists setor text;
+alter table public.usuarios_erp add column if not exists unidade_id text;
+alter table public.usuarios_erp add column if not exists status text not null default 'ativo';
+alter table public.usuarios_erp add column if not exists ativo boolean not null default true;
+alter table public.usuarios_erp add column if not exists criado_por uuid;
+alter table public.usuarios_erp add column if not exists created_at timestamptz not null default now();
+alter table public.usuarios_erp add column if not exists updated_at timestamptz not null default now();
 alter table public.usuarios_erp add column if not exists exigir_troca_senha boolean not null default true;
 alter table public.usuarios_erp add column if not exists failed_attempts integer not null default 0;
 alter table public.usuarios_erp add column if not exists locked_until timestamptz;

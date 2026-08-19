@@ -100,9 +100,9 @@ const AREAS_DA_CATEGORIA = {
   bar: ["Bar", "Liderança", "Outros"],
 };
 const AREAS_PONTO = [
-  { id: "cozinha", nome: "Cozinha", icone: ChefHat, cor: "#34D399", fundo: "rgba(16,185,129,.15)" },
-  { id: "salao", nome: "Salão", icone: UtensilsCrossed, cor: "#FBBF24", fundo: "rgba(245,158,11,.15)" },
-  { id: "bar", nome: "Bar", icone: GlassWater, cor: "#60A5FA", fundo: "rgba(59,130,246,.15)" },
+  { id: "cozinha", nome: "Cozinha", titulo: "Área da Cozinha", icone: ChefHat, cor: "#34D399", fundo: "rgba(16,185,129,.15)" },
+  { id: "salao", nome: "Salão", titulo: "Área do Salão", icone: UtensilsCrossed, cor: "#FBBF24", fundo: "rgba(245,158,11,.15)" },
+  { id: "bar", nome: "Bar", titulo: "Área do Bar", icone: GlassWater, cor: "#60A5FA", fundo: "rgba(59,130,246,.15)" },
 ];
 function categoriaFuncao(cargo) {
   const c = (cargo || "").toLowerCase();
@@ -356,7 +356,15 @@ export default function PontoPage() {
     try { navigator.vibrate && navigator.vibrate(tone === "alerta" ? [120,80,120] : 180); const A = window.AudioContext || window.webkitAudioContext; if (A) { const ctx = new A(), o = ctx.createOscillator(), g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value = tone === "alerta" ? 320 : 880; g.gain.value = 0.08; o.start(); o.stop(ctx.currentTime + 0.18); } } catch (_) {}
     setSucesso({ titulo, detalhe, tone });
     // Rápido: 2s no ok; alertas (têm mais texto) ganham um pouco mais
-    setTimeout(() => { setSucesso(null); setSelecionado(null); carregar(); }, tone === "alerta" ? 3500 : 2000);
+    // Volta para a escolha de área, não para a lista da área. Quem bateu já
+    // terminou; quem chega em seguida costuma ser de outro setor, e deixar a
+    // lista anterior aberta faz a próxima pessoa bater no nome errado.
+    setTimeout(() => {
+      setSucesso(null);
+      setSelecionado(null);
+      setAreaAtiva("");
+      carregar();
+    }, tone === "alerta" ? 3500 : 2000);
   };
 
   // Registra a batida de uma etapa. horaMarcada = hora ajustada pela tolerância
@@ -596,7 +604,7 @@ export default function PontoPage() {
     };
 
     return (
-      <div ref={containerRef} className="fixed inset-0 z-[9999] bg-slate-950 overflow-y-auto font-sans">
+      <div ref={containerRef} className="erp-safe-top fixed inset-0 z-[9999] bg-slate-950 overflow-y-auto font-sans">
         {pinAberto && (
           <ModalPinGerente senha={pinGerente}
             onClose={() => setPinAberto(false)}
@@ -923,6 +931,13 @@ export default function PontoPage() {
           <p className="text-slate-500 font-bold uppercase tracking-widest mt-2 relative">
             {horaLocal.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })} · {unidadeInfo?.nome}
           </p>
+          {/* Qual área está aberta, no meio e logo abaixo da hora: é a primeira
+              coisa que quem chega procura para saber se está na lista certa. */}
+          {areaAtiva && (
+            <p className="relative mt-4 text-3xl font-black text-white md:text-4xl">
+              {AREAS_PONTO.find(a => a.id === areaAtiva)?.titulo}
+            </p>
+          )}
         </div>
 
         {/* LEMBRETES: 10 min para a entrada ou para o fim do intervalo */}
@@ -1011,13 +1026,13 @@ export default function PontoPage() {
             })}
           </div>
         ) : (
-          <button onClick={() => { setAreaAtiva(""); setLetra(""); }}
-            className="mb-5 flex items-center gap-2 rounded-2xl border border-slate-800 bg-slate-900 px-5 py-3 text-base font-black text-slate-300 hover:border-emerald-500">
-            <ArrowLeft size={18} /> Trocar de área · {AREAS_PONTO.find(a => a.id === areaAtiva)?.nome}
+          // Só a seta. O nome da área já está no título, abaixo do relógio —
+          // repetir na tecla de voltar era dizer a mesma coisa duas vezes.
+          <button onClick={() => setAreaAtiva("")} aria-label="Voltar para a escolha de área"
+            className="mb-5 grid h-14 w-14 place-items-center rounded-2xl border border-slate-800 bg-slate-900 text-slate-300 hover:border-emerald-500">
+            <ArrowLeft size={24} />
           </button>
         )}
-
-        <div className="flex flex-wrap gap-1 mb-4">{[...new Set(colaboradores.map(c => (c.nome || "?")[0].toUpperCase()))].sort().map(L => (<button key={L} onClick={() => setLetra(letra === L ? "" : L)} className={`w-9 h-9 rounded-lg font-black text-sm ${letra === L ? "bg-emerald-600 text-white" : "bg-slate-900 text-slate-400 border border-slate-800"}`}>{L}</button>))}{letra && <button onClick={() => setLetra("")} className="px-3 h-9 rounded-lg font-bold text-xs bg-slate-800 text-slate-300">limpar</button>}</div>
         {loading ? (
           <div className="text-center py-16"><Loader2 size={40} className="animate-spin text-slate-600 mx-auto" /></div>
         ) : filtrados.length === 0 ? (

@@ -770,7 +770,7 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "ð
   }
 
   return (
-    <div className="estoque-rapido" style={{ "--setor": departamento === "bar" ? "#3B82F6" : "#10B981", "--acao": estiloTipo.principal, "--acao-suave": estiloTipo.suave, "--acao-borda": estiloTipo.borda }}>
+    <div className="estoque-rapido erp-safe-top" style={{ "--setor": departamento === "bar" ? "#3B82F6" : "#10B981", "--acao": estiloTipo.principal, "--acao-suave": estiloTipo.suave, "--acao-borda": estiloTipo.borda }}>
       <style>{`
         .estoque-rapido{min-height:100vh;background:#F3F6FA;color:#0F172A;padding-bottom:118px}.estoque-rapido *{box-sizing:border-box}
         .estoque-rapido-topo{position:sticky;top:0;z-index:40;background:#fff;border-bottom:1px solid #E2E8F0;box-shadow:0 3px 14px rgba(15,23,42,.06)}

@@ -856,10 +856,59 @@ button,
 
 /* Sem zoom acidental: o duplo toque não amplia a tela e o iOS não reajusta o
    texto sozinho ao girar o aparelho. A legibilidade vem do tamanho da fonte. */
+/* ── GESTOS: só rolagem vertical ───────────────────────────────────────────
+   O ERP é app de operação, não site. Pinça para dar zoom deixa a tela torta e
+   ninguém sabe desfazer; arraste lateral empurra a página para os lados e
+   esconde botão. Fica valendo um gesto só: arrastar para cima e para baixo.
+
+   O overflow-x escondido no html/body é o que impede a página inteira de
+   deslizar. Tabela e carrossel que precisam rolar na horizontal continuam
+   podendo, porque rolam DENTRO do próprio container. */
+html,
+body {
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
+  -ms-content-zooming: none;
+}
+
 .erp-app-shell {
-  touch-action: pan-x pan-y;
+  touch-action: pan-y;
+  overflow-x: hidden;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+}
+
+/* Exceção necessária: tabela larga, fila de categorias e carrossel PRECISAM
+   rolar de lado. Como touch-action é herdado, o pan-y acima mataria o gesto
+   dentro deles também. Aqui o arraste lateral volta — mas só dentro da caixa,
+   nunca na página. */
+.overflow-x-auto,
+.overflow-x-scroll,
+.overflow-auto,
+[data-rola-lateral] {
+  touch-action: pan-x pan-y;
+  overscroll-behavior-x: contain;
+}
+
+/* ── ÁREA SEGURA DO APARELHO ───────────────────────────────────────────────
+   O app usa viewport-fit=cover, então a página se estende por baixo da barra
+   de status e do notch. Sem reservar esse espaço, o topo de cada tela fica
+   escondido — e o que mora no topo é justamente o botão de voltar.
+
+   A regra existia, mas só dentro de @media (max-width: 767px): tablet nenhum
+   recebia, e é no tablet que a tela vive pendurada na parede. Agora vale em
+   qualquer largura. Em monitor o env() vale 0, então lá não muda nada. */
+.erp-top-header {
+  padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
+  min-height: calc(4rem + env(safe-area-inset-top, 0px));
+}
+
+/* Telas em tela cheia que desenham o próprio cabeçalho (ponto, contagem de
+   estoque, etiquetas) não passam pelo cabeçalho do ERP. A raiz delas leva
+   esta classe para ganhar o mesmo respiro. */
+.erp-safe-top {
+  padding-top: max(1rem, env(safe-area-inset-top, 0px)) !important;
 }
 
 /* ── Destaque ao passar de um quadro para outro ────────────────────────────

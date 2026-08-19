@@ -346,7 +346,7 @@ export default function PontoPage() {
   }
 
   return (
-    <div ref={containerRef} className="h-screen bg-slate-100 p-4 font-sans flex flex-col overflow-hidden">
+    <div ref={containerRef} className="erp-safe-top h-screen bg-slate-100 p-4 font-sans flex flex-col overflow-hidden">
       
       {/* Modal de Saída do Modo Ponto */}
       {pedindoSaida && (

@@ -303,7 +303,17 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
 
   const responsavel = funcionarios.find(f => String(f.id) === String(responsavelId));
   const listaSelecionados = Object.values(selecionados);
-  const estiloTipo = cores[tipo] || cores.neutro;
+  // A cor da tela seguia o tipo global. Agora que cada item tem o seu, ela
+  // segue o conjunto: verde se tudo é entrada, vermelho se tudo é saída, neutro
+  // quando há os dois — porque pintar de vermelho uma tela que também repõe
+  // passaria a mensagem errada para quem confirma.
+  const tiposEscolhidos = new Set(listaSelecionados.map(item => item.tipo || tipo).filter(Boolean));
+  const tipoDominante = tiposEscolhidos.size === 1 ? [...tiposEscolhidos][0] : "";
+  const estiloTipo = cores[tipoDominante] || cores.neutro;
+  const faltaEscolherTipo = listaSelecionados.some(item => !(item.tipo || tipo));
+  const resumoMovimento = tiposEscolhidos.size === 0 ? ""
+    : tiposEscolhidos.size > 1 ? "Entradas e retiradas"
+      : tipoDominante === "entrada" ? "Entrada" : "Retirada";
   const tituloSetor = NOME_AREA[departamento] || titulo;
   const tituloAtual = tipoEstoque === "preparos" ? `Pré-preparos · ${tituloSetor}`
     : tipoEstoque === "embalagens" ? `Embalagens · ${tituloSetor}`
@@ -518,9 +528,20 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
       else proximo[item.id] = {
         id: item.id, nome: item.nome, unidade: item.unidade, quantidade: 1,
         disponivel: item.quantidade, fator: item.fator, estoqueId: item.estoqueId, insumoId: item.insumoId,
+        // Sem tipo até a pessoa escolher. Antes o tipo era um botão só lá em
+        // cima, valendo para a lista inteira: quem precisava repor uma coisa e
+        // dar baixa em outra tinha que fazer duas rodadas.
+        tipo: "",
       };
       return proximo;
     });
+  }
+
+  function definirTipoItem(id, novoTipo) {
+    setSelecionados(atual => ({
+      ...atual,
+      [id]: { ...atual[id], tipo: atual[id]?.tipo === novoTipo ? "" : novoTipo },
+    }));
   }
 
   // Guarda o que foi digitado, sem converter. Converter aqui impedia o campo de
@@ -541,10 +562,6 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
   }
 
   async function confirmarLote(comandoConfirmacao = "") {
-    if (!tipo) {
-      setToast({ tipo: "erro", msg: "Escolha se é entrada ou retirada." });
-      return;
-    }
     if (!listaSelecionados.length) {
       setToast({ tipo: "erro", msg: "Escolha pelo menos um item." });
       return;
@@ -553,27 +570,43 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
       setToast({ tipo: "erro", msg: "Escolha quem está fazendo a movimentação." });
       return;
     }
+    // Cada item leva o próprio tipo. O tipo global só entra como reserva, para
+    // o comando de voz continuar funcionando como antes.
+    const comTipo = listaSelecionados.map(item => ({ ...item, tipo: item.tipo || tipo }));
+    const semTipo = comTipo.find(item => !item.tipo);
+    if (semTipo) {
+      setToast({ tipo: "erro", msg: `Escolha depositar ou retirar em ${semTipo.nome}.` });
+      return;
+    }
     // Zero digitado à mão: movimento de nada não vale a pena gravar, e o item
     // continua na lista para a pessoa corrigir ou tirar.
-    const zerado = listaSelecionados.find(item => numero(item.quantidade) <= 0);
+    const zerado = comTipo.find(item => numero(item.quantidade) <= 0);
     if (zerado) {
       setToast({ tipo: "erro", msg: `Informe a quantidade de ${zerado.nome} ou tire ele da lista.` });
       return;
     }
-    const semSaldo = tipo === "saida" && listaSelecionados.find(item => numero(item.quantidade) > numero(item.disponivel));
+    const semSaldo = comTipo.find(item => item.tipo === "saida" && numero(item.quantidade) > numero(item.disponivel));
     if (semSaldo) {
       setToast({ tipo: "erro", msg: `${semSaldo.nome} tem apenas ${fmtQtd(semSaldo.disponivel)} ${rotuloUnidade(semSaldo.unidade, semSaldo.disponivel)} disponíveis.` });
       return;
     }
 
     setSalvando(true);
-    const resultado = await registrarLoteMovimentosMulti({
-      unidadeId: unidadeAtiva,
-      tipo,
-      itens: listaSelecionados.map(item => ({ ...item, quantidade: numero(item.quantidade) * (numero(item.fator) || 1) })),
-      observacao: motivo.trim() || (tipo === "entrada" ? "Reposição rápida" : "Retirada rápida"),
-      usuarioNome: responsavel.nome,
-    });
+    // Uma chamada por tipo: o motor de estoque grava um lote de cada vez.
+    const resultado = { concluidos: [], erros: [] };
+    for (const grupo of ["entrada", "saida"]) {
+      const doGrupo = comTipo.filter(item => item.tipo === grupo);
+      if (!doGrupo.length) continue;
+      const parcial = await registrarLoteMovimentosMulti({
+        unidadeId: unidadeAtiva,
+        tipo: grupo,
+        itens: doGrupo.map(item => ({ ...item, quantidade: numero(item.quantidade) * (numero(item.fator) || 1) })),
+        observacao: motivo.trim() || (grupo === "entrada" ? "Reposição rápida" : "Retirada rápida"),
+        usuarioNome: responsavel.nome,
+      });
+      resultado.concluidos.push(...(parcial.concluidos || []));
+      resultado.erros.push(...(parcial.erros || []));
+    }
 
     await registrarAuditoria({
       unidadeId: unidadeAtiva,
@@ -582,8 +615,11 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
       comando: comandoConfirmacao
         ? `${motivo.startsWith("Comando de voz:") ? motivo.replace(/^Comando de voz:\s*/, "") : motivo || "Movimentação preparada na tela"}; Confirmação por voz: ${comandoConfirmacao}`
         : motivo.startsWith("Comando de voz:") ? motivo.replace(/^Comando de voz:\s*/, "") : motivo,
-      intencao: { tipo, setor: departamento, itens: listaSelecionados.map(item => ({ nome: item.nome, quantidade: item.quantidade, unidade: item.unidade })) },
-      acao: tipo === "entrada" ? "inventory.create_entry_batch" : "inventory.create_withdrawal_batch",
+      // A auditoria guarda o tipo item a item: numa confirmação mista, dizer só
+      // "entrada" ou só "saída" esconderia metade do que aconteceu.
+      intencao: { setor: departamento, itens: comTipo.map(item => ({ nome: item.nome, tipo: item.tipo, quantidade: item.quantidade, unidade: item.unidade })) },
+      acao: tiposEscolhidos.size > 1 ? "inventory.create_mixed_batch"
+        : tipoDominante === "entrada" ? "inventory.create_entry_batch" : "inventory.create_withdrawal_batch",
       modulo: "inventory",
       resultado: resultado.erros.length ? (resultado.concluidos.length ? "parcial" : "erro") : "sucesso",
       erro: resultado.erros.length ? resultado.erros.map(item => `${item.nome}: ${item.error}`).join("; ") : null,
@@ -632,7 +668,7 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
     setSelecionados({});
     setToast({
       tipo: "ok",
-      msg: `${tipo === "entrada" ? "Entrada" : "Retirada"} de ${resultado.concluidos.length} item(ns) registrada para ${responsavel.nome}.`,
+      msg: `${resultado.concluidos.length} item(ns) registrado(s) para ${responsavel.nome}.`,
     });
   }
 
@@ -748,7 +784,7 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
         .estoque-rapido-resultado{position:fixed;inset:0;z-index:95;margin:0;background:rgba(15,23,42,.58);padding:18px;display:grid;place-items:center;backdrop-filter:blur(4px)}.estoque-rapido-resultado-painel{width:min(720px,100%);max-height:min(720px,calc(100vh - 36px));overflow:auto;background:#ECFDF5;border:1px solid #A7F3D0;border-radius:24px;padding:20px;box-shadow:0 28px 70px rgba(15,23,42,.32)}.estoque-rapido-resultado-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px;color:#047857}.estoque-rapido-resultado-topo strong{display:flex;align-items:center;gap:9px;font-size:19px}.estoque-rapido-resultado-topo span{display:block;margin-top:4px;color:#475569;font-size:13px;font-weight:700}.estoque-rapido-resultado-topo button{width:40px;height:40px;border:0;border-radius:12px;background:#D1FAE5;color:#047857;display:grid;place-items:center;flex:none}.estoque-rapido-resultado-lista{display:grid;gap:9px}.estoque-rapido-resultado-item{display:grid;grid-template-columns:minmax(160px,1fr) auto;align-items:center;gap:8px 12px;background:#fff;border:1px solid #D1FAE5;border-radius:15px;padding:13px 15px}.estoque-rapido-resultado-item strong{font-size:15px}.estoque-rapido-resultado-mov{font-weight:950;color:#047857}.estoque-rapido-resultado-item.saida .estoque-rapido-resultado-mov{color:#BE123C}.estoque-rapido-resultado-saldo{grid-column:1/-1;font-size:13px;font-weight:800;color:#475569}.estoque-rapido-resultado-saldo b{color:#0F172A;font-size:20px}.estoque-rapido-resultado-continuar{width:100%;height:50px;margin-top:14px;border:0;border-radius:14px;background:#059669;color:#fff;font-size:15px;font-weight:950;cursor:pointer}
         .estoque-rapido-painel{background:#fff;border:1px solid #E2E8F0;border-radius:20px;padding:17px;box-shadow:0 8px 24px rgba(15,23,42,.04)}.estoque-rapido-painel h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:#64748B;margin:0 0 12px;display:flex;align-items:center;gap:7px}
         .estoque-rapido-painel select,.estoque-rapido-painel input[type=text]{width:100%;height:52px;border:2px solid #E2E8F0;border-radius:14px;background:#F8FAFC;padding:0 14px;color:#0F172A;font-size:16px;font-weight:750;outline:none}.estoque-rapido-painel select:focus,.estoque-rapido-painel input[type=text]:focus{border-color:var(--acao)}
-        .estoque-rapido-tipos{display:grid;grid-template-columns:1fr 1fr;gap:10px}.estoque-rapido-tipos button{height:52px;border:2px solid #E2E8F0;border-radius:14px;background:#F8FAFC;font-size:15px;font-weight:900;color:#64748B;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer}.estoque-rapido-tipos button.entrada.ativo{border-color:#10B981;background:rgba(16,185,129,.11);color:#047857}.estoque-rapido-tipos button.saida.ativo{border-color:#F43F5E;background:rgba(244,63,94,.10);color:#BE123C}
+        .estoque-rapido-tipos{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.estoque-rapido-tipos button{height:42px;font-size:13px;border:2px solid #E2E8F0;border-radius:14px;background:#F8FAFC;font-size:15px;font-weight:900;color:#64748B;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer}.estoque-rapido-tipos button.entrada.ativo{border-color:#10B981;background:rgba(16,185,129,.11);color:#047857}.estoque-rapido-tipos button.saida.ativo{border-color:#F43F5E;background:rgba(244,63,94,.10);color:#BE123C}
         .estoque-rapido-busca{position:relative;margin:18px 0 14px}.estoque-rapido-busca svg{position:absolute;left:16px;top:17px;color:#94A3B8}.estoque-rapido-busca input{width:100%;height:54px;padding:0 50px;border:2px solid #E2E8F0;border-radius:16px;background:#fff;font-size:16px;outline:none}.estoque-rapido-busca input:focus{border-color:var(--acao)}.estoque-rapido-busca button{position:absolute;right:12px;top:11px;width:32px;height:32px;border:0;background:#F1F5F9;color:#64748B;border-radius:9px;display:grid;place-items:center}
         .estoque-rapido-contador{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.estoque-rapido-contador h2{font-size:18px;margin:0}.estoque-rapido-contador span{font-size:13px;font-weight:800;color:#64748B}
         .estoque-rapido-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.estoque-rapido-item{min-height:148px;background:#fff;border:2px solid #E2E8F0;border-radius:18px;padding:15px;text-align:left;cursor:pointer;transition:.15s;position:relative}.estoque-rapido-item:hover{border-color:#CBD5E1;transform:translateY(-1px)}.estoque-rapido-item.selecionado{border-color:var(--acao);background:var(--acao-suave);box-shadow:0 0 0 3px var(--acao-borda)}
@@ -839,16 +875,6 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
               </div>
             </section>
           )}
-          <section className="estoque-rapido-passos" style={{ gridTemplateColumns: "1fr" }}>
-            <div className="estoque-rapido-painel">
-              <h2><Layers3 size={16} /> O que será feito?</h2>
-              <div className="estoque-rapido-tipos">
-                <button className={`entrada ${tipo === "entrada" ? "ativo" : ""}`} onClick={() => setTipo("entrada")}><PackagePlus size={20} /> Depositar</button>
-                <button className={`saida ${tipo === "saida" ? "ativo" : ""}`} onClick={() => setTipo("saida")}><PackageMinus size={20} /> Retirar</button>
-              </div>
-            </div>
-          </section>
-
           <div className="estoque-rapido-busca">
             <Search size={20} />
             <input value={busca} onChange={e => setBusca(e.target.value)} placeholder={`Buscar item do ${tituloAtual.toLowerCase()}...`} autoFocus />
@@ -875,7 +901,28 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
                     <div className="estoque-rapido-saldo">Disponível<strong>{fmtQtd(item.quantidade)} {rotuloUnidade(item.unidade, item.quantidade)}</strong></div>
                     {item.local && <div className="estoque-rapido-minimo">Local: {item.local}</div>}
                     {item.minimo != null && <div className="estoque-rapido-minimo">Mínimo: {fmtQtd(item.minimo)} {rotuloUnidade(item.unidade, item.minimo)}</div>}
-                    {selecionado && <ControleQuantidade valor={selecionado.quantidade} unidade={item.unidade} onChange={valor => alterarQuantidade(item.id, valor)} onRemover={() => removerSelecionado(item.id)} />}
+                    {selecionado && (
+                      <>
+                        {/* Depositar ou retirar por item: a escolha vive junto
+                            do produto, então dá para repor um e dar baixa em
+                            outro na mesma confirmação. */}
+                        <div className="estoque-rapido-tipos" onClick={e => e.stopPropagation()}>
+                          <button type="button" className={`entrada ${selecionado.tipo === "entrada" ? "ativo" : ""}`}
+                            onClick={() => definirTipoItem(item.id, "entrada")}>
+                            <PackagePlus size={17} /> Depositar
+                          </button>
+                          <button type="button" className={`saida ${selecionado.tipo === "saida" ? "ativo" : ""}`}
+                            onClick={() => definirTipoItem(item.id, "saida")}>
+                            <PackageMinus size={17} /> Retirar
+                          </button>
+                        </div>
+                        {selecionado.tipo && (
+                          <ControleQuantidade valor={selecionado.quantidade} unidade={item.unidade}
+                            onChange={valor => alterarQuantidade(item.id, valor)}
+                            onRemover={() => removerSelecionado(item.id)} />
+                        )}
+                      </>
+                    )}
                   </article>
                 );
               })}
@@ -941,14 +988,17 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
         <footer className="estoque-rapido-barra">
           <div className="estoque-rapido-barra-interna">
             <div className="estoque-rapido-resumo">
-              <strong>{listaSelecionados.length} item(ns) · {tipo === "entrada" ? "Entrada" : tipo === "saida" ? "Retirada" : "Escolha entrada ou retirada"}</strong>
+              <strong>{listaSelecionados.length} item(ns){resumoMovimento ? ` · ${resumoMovimento}` : ""}</strong>
               <span>{responsavel ? `Responsável: ${responsavel.nome}` : "Escolha o responsável acima"}</span>
             </div>
             <input className={mostrarMotivo || motivo ? "visivel" : ""} type="text" value={motivo} onChange={e => setMotivo(e.target.value)} placeholder="Motivo ou observação (opcional)" />
             <button type="button" className="estoque-rapido-motivo-btn" onClick={() => setMostrarMotivo(valor => !valor)} aria-label="Adicionar observação"><MessageSquareText size={19} /> Observação</button>
-            <button className="estoque-rapido-confirmar" onClick={() => confirmarLote()} disabled={salvando || !listaSelecionados.length || !tipo}>
-              {salvando ? <RefreshCw className="animate-spin" size={19} /> : tipo === "saida" ? <PackageMinus size={19} /> : <PackagePlus size={19} />}
-              {salvando ? "Registrando..." : tipo ? `Confirmar ${tipo === "entrada" ? "entrada" : "retirada"}` : "Escolha entrada ou retirada"}
+            <button className="estoque-rapido-confirmar" onClick={() => confirmarLote()} disabled={salvando || !listaSelecionados.length || faltaEscolherTipo}>
+              {salvando ? <RefreshCw className="animate-spin" size={19} /> : <Check size={19} />}
+              {salvando ? "Registrando..."
+                : !listaSelecionados.length ? "Escolha um item"
+                  : faltaEscolherTipo ? "Escolha depositar ou retirar"
+                    : "Confirmar movimentação"}
             </button>
           </div>
         </footer>

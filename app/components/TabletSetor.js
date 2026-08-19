@@ -132,12 +132,17 @@ function ControleQuantidade({ valor, unidade, onChange, onRemover }) {
         {vaiRemover ? <Trash2 size={17} /> : <Minus size={18} />}
       </button>
       <label>
+        {/* O texto digitado vai cru para o estado. Antes ele passava por
+            Math.max(0, numero(...)), então apagar o campo virava 0 na hora e o
+            campo nunca ficava vazio: digitar 5 em cima dava "05". Quem valida
+            é a confirmação, que já barra quantidade zerada pelo nome do item. */}
         <input
           type="number"
           min="0"
           step="any"
           value={valor}
-          onChange={e => onChange(Math.max(0, numero(e.target.value)))}
+          onFocus={e => e.target.select()}
+          onChange={e => onChange(e.target.value)}
         />
         <span>{rotuloUnidade(unidade, valor)}</span>
       </label>
@@ -518,10 +523,12 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
     });
   }
 
+  // Guarda o que foi digitado, sem converter. Converter aqui impedia o campo de
+  // ficar vazio enquanto a pessoa troca o número.
   function alterarQuantidade(id, quantidade) {
     setSelecionados(atual => ({
       ...atual,
-      [id]: { ...atual[id], quantidade: Math.max(0, numero(quantidade)) },
+      [id]: { ...atual[id], quantidade },
     }));
   }
 

@@ -231,6 +231,41 @@ export default function PontoPage() {
     return () => clearInterval(id);
   }, []);
 
+  // ── Comportamento de quiosque ────────────────────────────────────────────
+  // Tablet na parede não pode apagar: se a tela dorme, o funcionário chega,
+  // encontra o aparelho preto e vai embora sem bater. O Wake Lock cai sozinho
+  // quando o app perde o foco, por isso é pedido de novo ao voltar.
+  useEffect(() => {
+    if (!pinOk) return;
+    let travaTela = null;
+    let vivo = true;
+
+    const segurarTela = async () => {
+      try {
+        if (!("wakeLock" in navigator)) return;
+        travaTela = await navigator.wakeLock.request("screen");
+      } catch { /* bateria fraca ou aparelho sem suporte: segue sem travar */ }
+    };
+    const aoVoltar = () => { if (vivo && document.visibilityState === "visible") segurarTela(); };
+
+    segurarTela();
+    document.addEventListener("visibilitychange", aoVoltar);
+    return () => {
+      vivo = false;
+      document.removeEventListener("visibilitychange", aoVoltar);
+      travaTela?.release?.().catch(() => {});
+    };
+  }, [pinOk]);
+
+  // Menu de contexto e seleção de texto atrapalham em tela sensível ao toque:
+  // segurar o dedo num nome abria "copiar" em vez de selecionar a pessoa.
+  useEffect(() => {
+    if (!pinOk) return;
+    const bloquear = (evento) => evento.preventDefault();
+    document.addEventListener("contextmenu", bloquear);
+    return () => document.removeEventListener("contextmenu", bloquear);
+  }, [pinOk]);
+
   const filtrados = areaAtiva ? equipeDaArea(funcionarios, areaAtiva) : [];
 
   const getStatus = (colabId) => {
@@ -299,8 +334,13 @@ export default function PontoPage() {
        <ModalPIN 
          titulo="Modo Ponto" 
          subtitulo="Digite o PIN do Gerente para abrir o relógio"
-         onSuccess={() => setPinOk(true)} 
-         onClose={() => router.push("/dashboard")} 
+         // O acerto do PIN é o gesto do usuário que o navegador exige para
+         // entrar em tela cheia. Aproveitar aqui evita pedir um segundo toque.
+         onSuccess={() => {
+            setPinOk(true);
+            containerRef.current?.requestFullscreen?.().catch(() => {});
+         }}
+         onClose={() => router.push("/dashboard")}
        />
     );
   }

@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import {
   Users, ArrowLeft, Phone, CreditCard, Clock, Hourglass, CalendarHeart,
   ShoppingBag, FileText, Star, Edit3, Printer, ChevronRight, User, Network,
-  DollarSign, AlertTriangle
+  DollarSign, AlertTriangle, MapPin
 } from "lucide-react";
 import { PageHeader, PageBody, EmptyState, SearchBar, SkeletonList, fmtBRL, fmtData } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
@@ -17,9 +17,15 @@ import {
   fetchAdvertenciasColab, calcularAdicionaisMes, fetchFeriados, fetchAllFolgasDaUnidade
 } from "../../../lib/rh";
 import { fetchHistoricoPonto, fetchPontosMes, fetchPontoHoje } from "../../../lib/ponto";
+import { situacaoDoPonto, CORES_TOM } from "../../../lib/ponto-status.mjs";
 import { fetchHolerites, confirmarRecebimentoHolerite } from "../../../lib/pessoas";
 
 const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+// Nome curto de cada batida, para caber na etiqueta de localização.
+const ROTULO_BATIDA = {
+  entrada: "Entrada", saida_intervalo: "Saiu p/ intervalo",
+  retorno_intervalo: "Voltou", saida_trabalho: "Saída",
+};
 
 // Mesma dedução de área usada na Escala da Semana do painel
 const AREAS = ["Salão", "Bar", "Cozinha", "Caixa", "Louça", "Outros"];
@@ -317,14 +323,34 @@ export default function VidaColaboradorPage() {
                     <div className="grid grid-cols-[60px_1fr_1fr_1fr_1fr] gap-1 text-[9px] font-black uppercase tracking-widest text-center" style={{ color: "var(--dim)" }}>
                       <span className="text-left">Dia</span><span>Entrada</span><span>Int. saída</span><span>Int. volta</span><span>Saída</span>
                     </div>
-                    {vida.ponto.map(h => (
-                      <div key={h.id} className="grid grid-cols-[60px_1fr_1fr_1fr_1fr] gap-1 items-center text-center py-1.5 rounded-lg" style={{ background: "var(--elevated)" }}>
-                        <span className="text-[11px] font-black text-left pl-2" style={{ color: "var(--muted)" }}>{h.data_referencia?.slice(5).split("-").reverse().join("/")}</span>
-                        {["hora_entrada", "hora_saida_intervalo", "hora_retorno_intervalo", "hora_saida"].map(c => (
-                          <span key={c} className="text-xs font-bold" style={{ color: h[c] ? "var(--fg-soft)" : "var(--dim)" }}>{horaDe(h[c])}</span>
-                        ))}
+                    {vida.ponto.map(h => {
+                      const marcas = Array.isArray(h.localizacoes) ? h.localizacoes : [];
+                      return (
+                      <div key={h.id} className="rounded-lg py-1.5" style={{ background: "var(--elevated)" }}>
+                        <div className="grid grid-cols-[60px_1fr_1fr_1fr_1fr] gap-1 items-center text-center">
+                          <span className="text-[11px] font-black text-left pl-2" style={{ color: "var(--muted)" }}>{h.data_referencia?.slice(5).split("-").reverse().join("/")}</span>
+                          {["hora_entrada", "hora_saida_intervalo", "hora_retorno_intervalo", "hora_saida"].map(c => (
+                            <span key={c} className="text-xs font-bold" style={{ color: h[c] ? "var(--fg-soft)" : "var(--dim)" }}>{horaDe(h[c])}</span>
+                          ))}
+                        </div>
+                        {/* Onde a pessoa estava em cada batida. É a prova de que
+                            o ponto foi batido no restaurante, e não a caminho. */}
+                        {marcas.length > 0 && (
+                          <div className="mt-1.5 flex flex-wrap gap-1 px-2">
+                            {marcas.map((m, i) => (
+                              <span key={i} className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-black"
+                                style={{ background: m.valido === false ? "rgba(244,63,94,.12)" : "rgba(16,185,129,.12)", color: m.valido === false ? "#BE123C" : "#047857" }}
+                                title={m.latitude != null ? `${m.latitude}, ${m.longitude}` : "Sem coordenada"}>
+                                <MapPin size={9} />
+                                {ROTULO_BATIDA[m.tipo] || m.tipo}
+                                {m.distancia_metros != null ? ` · ${Math.round(m.distancia_metros)}m` : ""}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </Bloco>
@@ -425,16 +451,16 @@ export default function VidaColaboradorPage() {
     (areaFiltro === "Todos" || areaDoCargo(c.cargo) === areaFiltro)
   );
 
-  // Situação de agora: folga > saiu > trabalhando > sem ponto
+  // Situação de agora: folga na frente, o resto vem do módulo de status, que é
+  // a mesma frase usada no painel do RH — a tela não escreve texto próprio.
   const statusDoDia = (c) => {
     if ((c.status || "ativo") === "inativo") return null;
     const diaSemana = String(new Date().getDay());
     const folga = folgasHoje.has(c.id) || !(c.dias_trabalho || "").split(",").includes(diaSemana);
     if (folga) return { rotulo: "Folga hoje", cor: "var(--dim)", fundo: "var(--elevated)" };
-    const r = pontosHoje[c.id];
-    if (r?.hora_saida) return { rotulo: `Saiu ${horaDe(r.hora_saida)}`, cor: "#1D4ED8", fundo: "rgba(59,130,246,0.12)" };
-    if (r?.hora_entrada) return { rotulo: `Trabalhando · ${horaDe(r.hora_entrada)}`, cor: "#15803D", fundo: "rgba(34,197,94,0.12)" };
-    return { rotulo: "Sem ponto hoje", cor: "#B45309", fundo: "rgba(245,158,11,0.12)" };
+    const situacao = situacaoDoPonto(pontosHoje[c.id]);
+    const cores = CORES_TOM[situacao.tom] || CORES_TOM.atencao;
+    return { rotulo: situacao.texto, ...cores };
   };
 
   return (

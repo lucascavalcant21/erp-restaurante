@@ -8,7 +8,16 @@ import { fetchPontoHoje, registrarBatida, fetchHistoricoPonto, anexarAuditoriaFa
 import PontoFacial from "../../components/PontoFacial";
 import { equipeDaArea } from "../../lib/equipe-area.mjs";
 import { capturarGPSAtual, validarGeofencePonto, linkGoogleMaps } from "../../lib/geolocalizacao";
-import { Fingerprint, Search, Clock, CheckCircle2, AlertCircle, Lock, ArrowLeft, Maximize, X, Calendar, MapPin, ShieldAlert, Compass, ExternalLink, Loader2, ScanFace } from "lucide-react";
+import { Fingerprint, ChefHat, GlassWater, UtensilsCrossed, Clock, CheckCircle2, AlertCircle, Lock, ArrowLeft, Maximize, X, Calendar, MapPin, ShieldAlert, Compass, ExternalLink, Loader2, ScanFace } from "lucide-react";
+
+// As três frentes que batem ponto no salão de um restaurante. A limpeza entra
+// na cozinha porque é lá que ela se apresenta — separar criaria uma quarta
+// porta com uma ou duas pessoas.
+const AREAS_PONTO = [
+  { id: "cozinha", nome: "Cozinha", icone: ChefHat, cor: "#047857", fundo: "rgba(16,185,129,.12)" },
+  { id: "salao", nome: "Salão", icone: UtensilsCrossed, cor: "#B45309", fundo: "rgba(245,158,11,.12)" },
+  { id: "bar", nome: "Bar", icone: GlassWater, cor: "#1D4ED8", fundo: "rgba(59,130,246,.12)" },
+];
 
 // ─── Modal de PIN ─────────────────────────────────────────────────────────────
 function ModalPIN({ onSuccess, onClose, titulo, subtitulo }) {
@@ -178,7 +187,11 @@ export default function PontoPage() {
   
   const [funcionarios, setFuncionarios] = useState([]);
   const [pontos, setPontos] = useState([]);
-  const [busca, setBusca] = useState("");
+  // Área escolhida na entrada. A busca por nome saiu: quem chega para bater o
+  // ponto vem do próprio setor e acha o nome na lista mais rápido do que
+  // digitaria — ainda mais com a mão ocupada ou molhada.
+  const [areaAtiva, setAreaAtiva] = useState("");
+  const [agora, setAgora] = useState(() => new Date());
   const [loading, setLoading] = useState(true);
   const [colabAtivo, setColabAtivo] = useState(null);
   
@@ -212,10 +225,13 @@ export default function PontoPage() {
     else document.exitFullscreen?.();
   };
 
-  const filtrados = funcionarios.filter(f => 
-    f.nome.toLowerCase().includes(busca.toLowerCase()) || 
-    f.cargo.toLowerCase().includes(busca.toLowerCase())
-  );
+  // Relógio de parede: quem bate o ponto confere a hora antes de tocar no botão.
+  useEffect(() => {
+    const id = setInterval(() => setAgora(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const filtrados = areaAtiva ? equipeDaArea(funcionarios, areaAtiva) : [];
 
   const getStatus = (colabId) => {
     const p = pontos.find(pt => pt.colaborador_id === colabId);
@@ -333,7 +349,18 @@ export default function PontoPage() {
                  <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mt-0.5">Unidade: {unidadeInfo?.nome}</p>
               </div>
            </div>
-           
+
+           {/* Hora grande no meio: é o que a pessoa confere antes de bater. */}
+           <div className="text-center">
+              <p className="font-black leading-none text-slate-900 tabular-nums text-5xl sm:text-7xl">
+                 {agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                 <span className="text-2xl sm:text-3xl text-slate-400">:{String(agora.getSeconds()).padStart(2, "0")}</span>
+              </p>
+              <p className="mt-1 text-xs font-bold uppercase tracking-widest text-slate-500">
+                 {agora.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}
+              </p>
+           </div>
+
            <div className="flex items-center gap-3">
               <button onClick={toggleFullscreen} className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all text-sm">
                  <Maximize size={16}/> Tela Cheia
@@ -354,31 +381,56 @@ export default function PontoPage() {
                     className="w-full flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3.5 text-base font-black text-white hover:bg-emerald-700 shadow-lg shadow-emerald-600/20">
                     <ScanFace size={20} /> Bater ponto pelo rosto
                  </button>
-                 <div className="bg-white p-3 rounded-xl border border-slate-200 flex items-center gap-3 shadow-sm">
-                    <Search size={18} className="text-slate-400" />
-                    <input type="text" placeholder="Buscar funcionário..." value={busca} onChange={e=>setBusca(e.target.value)} className="flex-1 outline-none font-bold text-slate-700 bg-transparent" />
-                 </div>
+                 {areaAtiva && (
+                    <button onClick={() => { setAreaAtiva(""); setColabAtivo(null); }}
+                       className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-600 hover:bg-slate-50">
+                       <ArrowLeft size={16} /> Trocar de área · {AREAS_PONTO.find(a => a.id === areaAtiva)?.nome}
+                    </button>
+                 )}
               </div>
+              {!areaAtiva ? (
+                 // Três portas de entrada. Cada pessoa vê só a equipe do setor
+                 // dela, então a lista cabe na tela sem rolagem.
+                 <div className="flex-1 overflow-y-auto p-4 grid grid-cols-1 gap-4 content-start">
+                    {AREAS_PONTO.map(area => {
+                       const Icone = area.icone;
+                       const equipe = equipeDaArea(funcionarios, area.id);
+                       return (
+                          <button key={area.id} onClick={() => setAreaAtiva(area.id)}
+                             className="flex items-center gap-5 rounded-3xl border-2 border-slate-200 bg-white p-6 text-left transition-all hover:border-emerald-400 hover:shadow-lg">
+                             <span className="grid h-20 w-20 shrink-0 place-items-center rounded-2xl" style={{ background: area.fundo, color: area.cor }}>
+                                <Icone size={40} />
+                             </span>
+                             <span className="min-w-0">
+                                <span className="block text-3xl font-black leading-tight text-slate-900">{area.nome}</span>
+                                <span className="mt-1 block text-sm font-bold text-slate-500">{equipe.length} pessoa(s)</span>
+                             </span>
+                          </button>
+                       );
+                    })}
+                 </div>
+              ) : (
               <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
                  {loading && <p className="text-center font-bold text-slate-500 mt-10">Carregando...</p>}
                  {!loading && filtrados.map(f => {
                     const status = getStatus(f.id);
                     const isSelected = colabAtivo?.id === f.id;
-                    
+
                     return (
-                       <button key={f.id} onClick={() => setColabAtivo(f)} className={`p-4 rounded-xl text-left border transition-all ${isSelected ? 'bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-600/20 scale-[1.02]' : 'bg-white border-slate-200 hover:border-emerald-300'}`}>
-                          <div className="flex justify-between items-center">
-                             <div>
-                                <p className={`font-black text-lg leading-tight ${isSelected ? 'text-white' : 'text-slate-800'}`}>{f.nome}</p>
-                                <p className={`text-xs font-bold uppercase tracking-widest mt-0.5 ${isSelected ? 'text-indigo-100' : 'text-slate-500'}`}>{f.cargo}</p>
+                       <button key={f.id} onClick={() => setColabAtivo(f)} className={`p-5 rounded-2xl text-left border transition-all ${isSelected ? 'bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-600/20 scale-[1.02]' : 'bg-white border-slate-200 hover:border-emerald-300'}`}>
+                          <div className="flex justify-between items-center gap-3">
+                             <div className="min-w-0">
+                                <p className={`font-black text-2xl leading-tight ${isSelected ? 'text-white' : 'text-slate-900'}`}>{f.nome}</p>
+                                <p className={`text-sm font-bold uppercase tracking-widest mt-1 ${isSelected ? 'text-emerald-50' : 'text-slate-500'}`}>{f.cargo}</p>
                              </div>
-                             {status === 4 && <CheckCircle2 className={isSelected ? 'text-white' : 'text-emerald-500'} size={24} />}
+                             {status === 4 && <CheckCircle2 className={isSelected ? 'text-white shrink-0' : 'text-emerald-500 shrink-0'} size={30} />}
                           </div>
                        </button>
                     );
                  })}
-                 {!loading && filtrados.length === 0 && <p className="text-center font-bold text-slate-500 mt-10">Nenhum colaborador encontrado.</p>}
+                 {!loading && filtrados.length === 0 && <p className="text-center font-bold text-slate-500 mt-10">Ninguém cadastrado nesta área.</p>}
               </div>
+              )}
            </div>
 
            {/* Lado Direito: Batida de Ponto Sequencial */}

@@ -18,6 +18,7 @@ import {
   desligarColaborador
 } from "../../lib/rh";
 import { fetchPontoHoje, fetchPontosMes, fetchPontosMesUnidade, fetchHistoricoPontoCompleto } from "../../lib/ponto";
+import { situacaoDoPonto } from "../../lib/ponto-status.mjs";
 import { situacaoExperiencia, emExperiencia, tempoDeCasa, aniversario, ESTADOS_CIVIS, ESCOLARIDADES, GENEROS } from "../../lib/contrato-experiencia.mjs";
 import { fetchValesPendentes } from "../../lib/rh";
 import { calcularAdicionaisMes, calcularAdicionaisPorDia } from "../../lib/rh";
@@ -1975,23 +1976,26 @@ export default function RHPage() {
                               const minAgora = hoje.getHours() * 60 + hoje.getMinutes();
                               if (minAgora > strToMin(entradaEsperada)) return <span className={cls("text-rose-700 bg-rose-100 border-rose-200")}>Atrasado (era p/ {entradaEsperada})</span>;
                            }
-                           return <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md">Ainda não bateu</span>;
+                           return <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md">{situacaoDoPonto(null).texto}</span>;
                         }
-                        const hrEntrada = new Date(pt.hora_entrada).toLocaleTimeString('pt-BR').slice(0, 5);
+                        // A frase base vem do módulo de status, para o RH falar
+                        // igual em toda tela. O que a tela acrescenta são os
+                        // avisos que só ela calcula: atraso na entrada e
+                        // intervalo estourado — informação que o dono cobra.
+                        const situacao = situacaoDoPonto(pt);
                         if (pt.status_jornada === 1) {
                            let atrasado = false;
                            if (entradaEsperada) { const mPt = dateToMin(pt.hora_entrada), mAg = strToMin(entradaEsperada); atrasado = mPt > mAg + 5; }
-                           return <span className={cls(atrasado ? "text-rose-700 bg-rose-100 border-rose-200" : "text-emerald-700 bg-emerald-100 border-emerald-200")}>Trabalhando · entrou {hrEntrada}{atrasado ? ` (era p/ ${entradaEsperada})` : ""}</span>;
+                           return <span className={cls(atrasado ? "text-rose-700 bg-rose-100 border-rose-200" : "text-emerald-700 bg-emerald-100 border-emerald-200")}>{situacao.texto}{atrasado ? ` (era p/ ${entradaEsperada})` : ""}</span>;
                         }
-                        if (pt.status_jornada === 2) return <span className={cls("text-amber-700 bg-amber-100 border-amber-200")}>No intervalo · saiu {new Date(pt.hora_saida_intervalo).toLocaleTimeString('pt-BR').slice(0, 5)}</span>;
+                        if (pt.status_jornada === 2) return <span className={cls("text-amber-700 bg-amber-100 border-amber-200")}>{situacao.texto}</span>;
                         if (pt.status_jornada === 3) {
-                           const hrVolta = new Date(pt.hora_retorno_intervalo).toLocaleTimeString('pt-BR').slice(0, 5);
                            const minSaida = dateToMin(pt.hora_saida_intervalo); let minVolta = dateToMin(pt.hora_retorno_intervalo); if (minVolta < minSaida) minVolta += 1440;
                            const duracao = minVolta - minSaida, limite = f.tempo_intervalo || 60;
-                           if (duracao > limite) return <span className={cls("text-rose-700 bg-rose-100 border-rose-200")}>Voltou {hrVolta} · passou do intervalo ({minToStr(duracao)}/{minToStr(limite)})</span>;
-                           return <span className={cls("text-emerald-700 bg-emerald-100 border-emerald-200")}>Trabalhando · voltou {hrVolta}</span>;
+                           if (duracao > limite) return <span className={cls("text-rose-700 bg-rose-100 border-rose-200")}>{situacao.texto} · passou do intervalo ({minToStr(duracao)}/{minToStr(limite)})</span>;
+                           return <span className={cls("text-emerald-700 bg-emerald-100 border-emerald-200")}>{situacao.texto}</span>;
                         }
-                        if (pt.status_jornada === 4) return <span className={cls("text-blue-700 bg-blue-100 border-blue-200")}>Saiu do trabalho · {new Date(pt.hora_saida).toLocaleTimeString('pt-BR').slice(0, 5)}</span>;
+                        if (pt.status_jornada === 4) return <span className={cls(situacao.semIntervalo ? "text-rose-700 bg-rose-100 border-rose-200" : "text-blue-700 bg-blue-100 border-blue-200")}>{situacao.texto}</span>;
                         return <span className="text-[11px] font-bold text-slate-400">--</span>;
                      })();
                      const tb = totalBancoDe(f.id);

@@ -193,21 +193,44 @@ export async function registrarBatida(colaboradorId, unidadeId, tipoBatida, hora
     if (dadosGPS.distanciaMetros != null) updates.distancia_metros = dadosGPS.distanciaMetros;
     if (dadosGPS.valido != null) updates.validado_gps = dadosGPS.valido;
     if (dadosGPS.mensagem) updates.localizacao_texto = dadosGPS.mensagem;
+
+    // As colunas acima guardam UMA localização por dia, sobrescrita a cada
+    // batida: no fim do expediente só sobrava a última. Para o RH conferir onde
+    // a pessoa estava em cada marcação, toda batida vira uma linha nova no
+    // histórico do próprio registro do dia.
+    const marca = {
+      tipo: tipoBatida,
+      em: agora,
+      latitude: dadosGPS.latitude ?? null,
+      longitude: dadosGPS.longitude ?? null,
+      distancia_metros: dadosGPS.distanciaMetros ?? null,
+      valido: dadosGPS.valido ?? null,
+    };
+    const anteriores = Array.isArray(registro?.localizacoes) ? registro.localizacoes : [];
+    updates.localizacoes = [...anteriores, marca];
   }
-  
+
+  // Coluna nova ainda não migrada não pode impedir alguém de bater o ponto:
+  // grava sem ela e o histórico de localização começa quando o SQL rodar.
+  const semColunaNova = (erro) => /localizacoes/i.test(erro?.message || "");
+
   if (!registro) {
     // Primeira batida do dia (entrada)
     if(tipoBatida !== 'entrada') return { error: "Precisa bater a entrada primeiro." };
-    const { error } = await supabase.from("registro_ponto").insert([{
-      colaborador_id: colaboradorId,
-      unidade_id: unidadeId,
-      data_referencia: hoje,
-      ...updates
-    }]);
+    const base = { colaborador_id: colaboradorId, unidade_id: unidadeId, data_referencia: hoje };
+    let { error } = await supabase.from("registro_ponto").insert([{ ...base, ...updates }]);
+    if (error && semColunaNova(error)) {
+      const { localizacoes, ...semHistorico } = updates;
+      ({ error } = await supabase.from("registro_ponto").insert([{ ...base, ...semHistorico }]));
+    }
     return { error: error?.message, novoStatus };
   } else {
     // Atualiza o registro existente
-    const { error } = await supabase.from("registro_ponto").update(updates).eq("id", registro.id);
+    let { error } = await supabase.from("registro_ponto").update(updates).eq("id", registro.id);
+    if (error && semColunaNova(error)) {
+      const { localizacoes, ...semHistorico } = updates;
+      ({ error } = await supabase.from("registro_ponto").update(semHistorico).eq("id", registro.id));
+    }
     return { error: error?.message, novoStatus };
   }
 }

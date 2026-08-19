@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
-  Clock, Search, ArrowLeft, CheckCircle2, LogIn, LogOut, Coffee, Undo2,
-  AlertTriangle, Maximize, Loader2, Hourglass, Ban, Timer, X, Lock, Tablet, MessageCircle, MapPin, ExternalLink
+  Clock, ArrowLeft, CheckCircle2, LogIn, LogOut, Coffee, Undo2,
+  AlertTriangle, Maximize, Loader2, Hourglass, Ban, Timer, X, Lock, Tablet, MessageCircle, MapPin, ExternalLink,
+  ChefHat, GlassWater, UtensilsCrossed
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { useRouter } from "next/navigation";
@@ -90,6 +91,19 @@ const MOTIVOS_RAPIDOS = [
 
 // Categorias de função para agrupar os cards
 const ORDEM_CATEGORIAS = ["Liderança", "Cozinha", "Bar", "Salão", "Outros"];
+
+// As três portas de entrada do ponto. Liderança e "Outros" entram nas três:
+// gerente cobre qualquer setor, e ninguém pode ficar sem lugar para bater.
+const AREAS_DA_CATEGORIA = {
+  cozinha: ["Cozinha", "Liderança", "Outros"],
+  salao: ["Salão", "Liderança", "Outros"],
+  bar: ["Bar", "Liderança", "Outros"],
+};
+const AREAS_PONTO = [
+  { id: "cozinha", nome: "Cozinha", icone: ChefHat, cor: "#34D399", fundo: "rgba(16,185,129,.15)" },
+  { id: "salao", nome: "Salão", icone: UtensilsCrossed, cor: "#FBBF24", fundo: "rgba(245,158,11,.15)" },
+  { id: "bar", nome: "Bar", icone: GlassWater, cor: "#60A5FA", fundo: "rgba(59,130,246,.15)" },
+];
 function categoriaFuncao(cargo) {
   const c = (cargo || "").toLowerCase();
   if (/(cozinh|chapeir|confeit|pizzai|sushi|salgad|padeir|churrasqueir|a[cç]ougue|chefe de fila|copa)/.test(c)) return "Cozinha";
@@ -188,12 +202,13 @@ export default function PontoPage() {
   const { unidadeAtiva, unidadeInfo } = useERP();
   const router = useRouter();
 
+  // Area escolhida na entrada; vazio mostra os tres cards.
+  const [areaAtiva, setAreaAtiva] = useState("");
   const [colaboradores, setColaboradores] = useState([]);
   const [pontosHoje, setPontosHoje] = useState([]);
   const [folgas, setFolgas] = useState([]);
   const [liberadosHoje, setLiberadosHoje] = useState([]); // ids de freelancers liberados hoje
   const [loading, setLoading] = useState(true);
-  const [busca, setBusca] = useState("");
   const [letra, setLetra] = useState(""); // filtro A-Z (toque rapido no tablet)
   const [horaLocal, setHoraLocal] = useState(new Date());
 
@@ -310,7 +325,7 @@ export default function PontoPage() {
       return;
     }
     setSelecionado(c);
-    setBusca("");
+    setLetra("");
     setHistorico([]);
     setBancoMes([]);
     const mes = new Date().toISOString().slice(0, 7);
@@ -817,10 +832,11 @@ export default function PontoPage() {
     );
   }
 
-  // ── Tela inicial: relógio + busca + cards agrupados por função ─────────────
-  const q = busca.toLowerCase();
-  const filtrados = colaboradores.filter(c => (!letra || (c.nome || "").toUpperCase().startsWith(letra)) &&
-    c.nome.toLowerCase().includes(q) || (c.cargo || "").toLowerCase().includes(q)
+  // ── Tela inicial: relógio + áreas + cards agrupados por função ────────────
+  // Sem área escolhida ninguém aparece: a tela de entrada são os três cards.
+  const filtrados = !areaAtiva ? [] : colaboradores.filter(c =>
+    (!letra || (c.nome || "").toUpperCase().startsWith(letra))
+    && AREAS_DA_CATEGORIA[areaAtiva].includes(categoriaFuncao(c.cargo))
   );
   const rankPonto = (c) => { const r = registroDe(c.id); if (folgaHoje(c, folgas, horaLocal).folga) return 3; if (r?.hora_saida) return 2; if (r?.hora_entrada) return 0; return 1; };
   const grupos = ORDEM_CATEGORIAS
@@ -848,7 +864,7 @@ export default function PontoPage() {
         <div className="flex items-center gap-3 mb-3">
           <div className={`w-11 h-11 rounded-full overflow-hidden bg-slate-800 flex items-center justify-center text-lg font-black shrink-0 ring-2 ${info.folga || faltou ? "ring-rose-500/40 text-rose-300" : concluido ? "ring-slate-700 text-slate-500" : reg?.hora_entrada ? "ring-emerald-500/70 text-emerald-400" : "ring-slate-700 text-emerald-400"}`}>{c.foto ? <img src={`data:image/jpeg;base64,${c.foto}`} alt={c.nome} className="w-full h-full object-cover" /> : c.nome[0].toUpperCase()}</div>
           <div className="min-w-0">
-            <p className="font-black text-white leading-tight break-words">{c.nome}</p>
+            <p className="font-black text-white leading-tight break-words text-xl">{c.nome}</p>
             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">{c.cargo || "—"}</p>
           </div>
         </div>
@@ -900,9 +916,9 @@ export default function PontoPage() {
         <div className="text-center mb-8 relative">
           <div className="absolute left-1/2 -translate-x-1/2 -top-8 w-[420px] max-w-full h-44 bg-emerald-500/10 blur-3xl rounded-full pointer-events-none" />
           <p className="text-emerald-400 font-black uppercase tracking-[0.3em] text-xs mb-1 relative">{saudacao}, Equipe</p>
-          <h1 className="text-7xl md:text-8xl font-black tabular-nums tracking-tight relative bg-gradient-to-b from-white via-white to-slate-500 bg-clip-text text-transparent">
+          <h1 className="text-8xl md:text-[10rem] font-black tabular-nums tracking-tight relative bg-gradient-to-b from-white via-white to-slate-500 bg-clip-text text-transparent">
             {horaLocal.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-            <span className="text-2xl text-emerald-500/70 ml-2">{String(horaLocal.getSeconds()).padStart(2, "0")}</span>
+            <span className="text-3xl md:text-4xl text-emerald-500/70 ml-2">{String(horaLocal.getSeconds()).padStart(2, "0")}</span>
           </h1>
           <p className="text-slate-500 font-bold uppercase tracking-widest mt-2 relative">
             {horaLocal.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })} · {unidadeInfo?.nome}
@@ -974,16 +990,32 @@ export default function PontoPage() {
           );
         })()}
 
-        {/* Busca por nome OU função */}
-        <div className="relative mb-6">
-          <Search size={22} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500" />
-          <input
-            type="text" value={busca} onChange={e => setBusca(e.target.value)}
-            placeholder="Buscar por nome ou função..."
-            className="w-full pl-14 pr-5 py-5 bg-slate-900 border-2 border-slate-800 focus:border-emerald-500 rounded-3xl text-white text-xl font-bold outline-none placeholder:text-slate-600 transition-colors"
-            autoFocus
-          />
-        </div>
+        {/* Entrada por área. A busca por nome saiu: quem chega para bater vem do
+            próprio setor e acha o nome na lista mais rápido do que digitaria —
+            ainda mais com a mão ocupada ou molhada. */}
+        {!areaAtiva ? (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            {AREAS_PONTO.map(area => {
+              const Icone = area.icone;
+              const quantos = colaboradores.filter(c => AREAS_DA_CATEGORIA[area.id].includes(categoriaFuncao(c.cargo))).length;
+              return (
+                <button key={area.id} onClick={() => setAreaAtiva(area.id)}
+                  className="flex flex-col items-center gap-3 rounded-3xl border-2 border-slate-800 bg-slate-900 p-8 transition-all hover:border-emerald-500 active:scale-[.98]">
+                  <span className="grid h-24 w-24 place-items-center rounded-3xl" style={{ background: area.fundo, color: area.cor }}>
+                    <Icone size={48} />
+                  </span>
+                  <span className="text-3xl font-black text-white">{area.nome}</span>
+                  <span className="text-sm font-bold text-slate-500">{quantos} pessoa(s)</span>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <button onClick={() => { setAreaAtiva(""); setLetra(""); }}
+            className="mb-5 flex items-center gap-2 rounded-2xl border border-slate-800 bg-slate-900 px-5 py-3 text-base font-black text-slate-300 hover:border-emerald-500">
+            <ArrowLeft size={18} /> Trocar de área · {AREAS_PONTO.find(a => a.id === areaAtiva)?.nome}
+          </button>
+        )}
 
         <div className="flex flex-wrap gap-1 mb-4">{[...new Set(colaboradores.map(c => (c.nome || "?")[0].toUpperCase()))].sort().map(L => (<button key={L} onClick={() => setLetra(letra === L ? "" : L)} className={`w-9 h-9 rounded-lg font-black text-sm ${letra === L ? "bg-emerald-600 text-white" : "bg-slate-900 text-slate-400 border border-slate-800"}`}>{L}</button>))}{letra && <button onClick={() => setLetra("")} className="px-3 h-9 rounded-lg font-bold text-xs bg-slate-800 text-slate-300">limpar</button>}</div>
         {loading ? (

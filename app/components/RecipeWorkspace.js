@@ -65,6 +65,10 @@ export default function RecipeWorkspace({
   onPrimary,
   primaryLabel = "Novo item",
   primaryIcon: PrimaryIcon = Plus,
+  // A trilha Etapa 1/2/3 ajuda quem está montando o receituário pela primeira
+  // vez, mas atrapalha em tela de uso diário: ocupa um terço da altura útil
+  // repetindo um caminho que quem trabalha ali já sabe de cor.
+  mostrarEtapas = true,
   children,
 }) {
   const router = useRouter();
@@ -117,7 +121,7 @@ export default function RecipeWorkspace({
         </div>
 
         {/* Etapas de navegação rápida (Ingredientes -> Fichas técnicas -> Guia de montagem) */}
-        <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+        {mostrarEtapas && <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
           {ETAPAS.map((etapa, index) => {
             const Icon = etapa.icon;
             const ativo = active === etapa.id;
@@ -151,7 +155,7 @@ export default function RecipeWorkspace({
               </button>
             );
           })}
-        </div>
+        </div>}
       </div>
     </header>
   );

@@ -2053,8 +2053,16 @@ function MontagemPageInner() {
     // iguais. Então a decisão é do usuário e fica gravada em fora_do_guia.
     // Enquanto a coluna não existir no banco, o campo vem undefined e nada é
     // escondido, que é o comportamento certo para não sumir com drink.
-    if (verForaDoGuia) return mb && mt && !!m.fora_do_guia;
-    return mb && mt && !comprado && !m.fora_do_guia;
+    if (verForaDoGuia) return mb && mt && (!!m.fora_do_guia || !temConteudoDrink(m));
+    // Duas redes, porque uma só já falhou duas vezes aqui:
+    //  · a manual (fora_do_guia), que você marca e vale para sempre;
+    //  · a automática, que esconde quem não tem NADA de montagem — nem camadas
+    //    da IA, nem passo a passo escrito. Água, cerveja e refrigerante nunca
+    //    vão ter, porque não se montam.
+    // A automática funciona sem migração nenhuma; a manual é a palavra final
+    // para o caso de um drink de verdade cair na regra.
+    if (m.fora_do_guia) return false;
+    return mb && mt && !comprado && temConteudoDrink(m);
   }), [lista, busca, tipo, compradosProntos, verForaDoGuia]);
 
   // O que vai pra impressora: as marcadas nos cards; sem marcação, as filtradas
@@ -2173,7 +2181,8 @@ function MontagemPageInner() {
         description={dept === "bar"
           ? "Converta as fichas em instruções visuais de copo, dosagem, finalização e serviço para toda a equipe."
           : "Converta receitas em padrões visuais claros de porcionamento, montagem, acabamento e apresentação."}
-        total={lista.length}
+        total={filtrados.length}
+        mostrarEtapas={false}
         onPrimary={() => { setEditar(null); setModal(true); }}
         primaryLabel="Nova montagem"
       >
@@ -2230,7 +2239,7 @@ function MontagemPageInner() {
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" onClick={() => { setVerForaDoGuia(v => !v); setSelecionadas([]); }}
             className={`min-h-10 rounded-xl border px-3 text-xs font-black ${verForaDoGuia ? "border-slate-800 bg-slate-800 text-white" : "border-slate-200 bg-white text-slate-600"}`}>
-            {verForaDoGuia ? "Voltar ao guia" : `Fora do guia (${lista.filter(m => m.fora_do_guia).length})`}
+            {verForaDoGuia ? "Voltar ao guia" : `Fora do guia (${lista.filter(m => m.fora_do_guia || !temConteudoDrink(m)).length})`}
           </button>
           {selecionadas.length > 0 && (
             <button type="button" onClick={() => mudarForaDoGuia(!verForaDoGuia)}

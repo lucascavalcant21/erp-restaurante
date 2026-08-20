@@ -11,6 +11,20 @@
 -- distinguir o que foi digitado do que foi batido no aparelho com GPS.
 -- ═══════════════════════════════════════════════════════════════════════════
 
+-- Compara nome ignorando acento e espaço repetido. A extensão unaccent nem
+-- sempre está instalada, então a troca é feita à mão — são poucas letras e
+-- evita depender de algo que pode não existir no projeto.
+create or replace function unaccent_simples(txt text) returns text as $fn$
+  select btrim(regexp_replace(
+    translate(
+      coalesce(txt, ''),
+      'áàâãäéèêëíìîïóòôõöúùûüçÁÀÂÃÄÉÈÊËÍÌÎÏÓÒÔÕÖÚÙÛÜÇ',
+      'aaaaaeeeeiiiiooooouuuucAAAAAEEEEIIIIOOOOOUUUUC'
+    ),
+    '\s+', ' ', 'g'
+  ));
+$fn$ language sql immutable;
+
 begin;
 
 
@@ -20,16 +34,21 @@ declare
   v_id uuid;
   v_sets text;
 begin
+  -- Casa o nome sem depender de acento, espaço duplo ou maiúscula: "CEDEINE
+  -- DEL VALLE" e "Cedeine  del Valle" são a mesma pessoa.
   select id into v_id from public.colaboradores
-   where unidade_id = 'seldeestrela' and upper(btrim(nome)) = upper('LARISSA DA SILVA UHE') limit 1;
+   where unidade_id = 'seldeestrela'
+     and upper(unaccent_simples(nome)) = upper(unaccent_simples('LARISSA DA SILVA UHE'))
+   limit 1;
 
   if v_id is null then
-    -- Insere o mínimo; o UPDATE logo abaixo preenche o resto conforme as
-    -- colunas que este banco realmente tem.
-    insert into public.colaboradores (unidade_id, nome)
-    values ('seldeestrela', 'LARISSA DA SILVA UHE')
+    -- Cria com cargo desde já: a coluna é NOT NULL, então inserir só o nome
+    -- era recusado. Os demais campos entram no UPDATE logo abaixo, que só usa
+    -- coluna que existe de verdade neste banco.
+    insert into public.colaboradores (unidade_id, nome, cargo)
+    values ('seldeestrela', 'LARISSA DA SILVA UHE', 'Chef de Garçom')
     returning id into v_id;
-    raise notice 'CRIADO: LARISSA DA SILVA UHE';
+    raise notice 'CRIADO (conferir se nao e duplicata): LARISSA DA SILVA UHE';
   else
     raise notice 'ja existia: LARISSA DA SILVA UHE';
   end if;
@@ -93,6 +112,10 @@ begin
   delete from public.rh_atestados
    where colaborador_id = v_id and data_inicio between '2026-08-01' and '2026-08-18';
 
+  delete from public.rh_folgas_esporadicas
+   where colaborador_id = v_id and data_folga in ('2026-08-23');
+  insert into public.rh_folgas_esporadicas (unidade_id, colaborador_id, data_folga, descricao)
+  values ('seldeestrela', v_id, '2026-08-23', 'Folga (folha de agosto)');
 end $$;
 
 
@@ -102,16 +125,21 @@ declare
   v_id uuid;
   v_sets text;
 begin
+  -- Casa o nome sem depender de acento, espaço duplo ou maiúscula: "CEDEINE
+  -- DEL VALLE" e "Cedeine  del Valle" são a mesma pessoa.
   select id into v_id from public.colaboradores
-   where unidade_id = 'seldeestrela' and upper(btrim(nome)) = upper('ALICE TERESINHA VISINTAINER XAVIER') limit 1;
+   where unidade_id = 'seldeestrela'
+     and upper(unaccent_simples(nome)) = upper(unaccent_simples('ALICE TERESINHA VISINTAINER XAVIER'))
+   limit 1;
 
   if v_id is null then
-    -- Insere o mínimo; o UPDATE logo abaixo preenche o resto conforme as
-    -- colunas que este banco realmente tem.
-    insert into public.colaboradores (unidade_id, nome)
-    values ('seldeestrela', 'ALICE TERESINHA VISINTAINER XAVIER')
+    -- Cria com cargo desde já: a coluna é NOT NULL, então inserir só o nome
+    -- era recusado. Os demais campos entram no UPDATE logo abaixo, que só usa
+    -- coluna que existe de verdade neste banco.
+    insert into public.colaboradores (unidade_id, nome, cargo)
+    values ('seldeestrela', 'ALICE TERESINHA VISINTAINER XAVIER', 'Auxiliar de Cozinha')
     returning id into v_id;
-    raise notice 'CRIADO: ALICE TERESINHA VISINTAINER XAVIER';
+    raise notice 'CRIADO (conferir se nao e duplicata): ALICE TERESINHA VISINTAINER XAVIER';
   else
     raise notice 'ja existia: ALICE TERESINHA VISINTAINER XAVIER';
   end if;
@@ -174,6 +202,10 @@ begin
   delete from public.rh_atestados
    where colaborador_id = v_id and data_inicio between '2026-08-01' and '2026-08-18';
 
+  delete from public.rh_folgas_esporadicas
+   where colaborador_id = v_id and data_folga in ('2026-08-16');
+  insert into public.rh_folgas_esporadicas (unidade_id, colaborador_id, data_folga, descricao)
+  values ('seldeestrela', v_id, '2026-08-16', 'Folga (folha de agosto)');
 end $$;
 
 
@@ -183,16 +215,21 @@ declare
   v_id uuid;
   v_sets text;
 begin
+  -- Casa o nome sem depender de acento, espaço duplo ou maiúscula: "CEDEINE
+  -- DEL VALLE" e "Cedeine  del Valle" são a mesma pessoa.
   select id into v_id from public.colaboradores
-   where unidade_id = 'seldeestrela' and upper(btrim(nome)) = upper('CEDEINE DEL VALLE TABLANTE FLORES') limit 1;
+   where unidade_id = 'seldeestrela'
+     and upper(unaccent_simples(nome)) = upper(unaccent_simples('CEDEINE DEL VALLE TABLANTE FLORES'))
+   limit 1;
 
   if v_id is null then
-    -- Insere o mínimo; o UPDATE logo abaixo preenche o resto conforme as
-    -- colunas que este banco realmente tem.
-    insert into public.colaboradores (unidade_id, nome)
-    values ('seldeestrela', 'CEDEINE DEL VALLE TABLANTE FLORES')
+    -- Cria com cargo desde já: a coluna é NOT NULL, então inserir só o nome
+    -- era recusado. Os demais campos entram no UPDATE logo abaixo, que só usa
+    -- coluna que existe de verdade neste banco.
+    insert into public.colaboradores (unidade_id, nome, cargo)
+    values ('seldeestrela', 'CEDEINE DEL VALLE TABLANTE FLORES', 'Chefe de Cozinha')
     returning id into v_id;
-    raise notice 'CRIADO: CEDEINE DEL VALLE TABLANTE FLORES';
+    raise notice 'CRIADO (conferir se nao e duplicata): CEDEINE DEL VALLE TABLANTE FLORES';
   else
     raise notice 'ja existia: CEDEINE DEL VALLE TABLANTE FLORES';
   end if;
@@ -256,6 +293,10 @@ begin
   delete from public.rh_atestados
    where colaborador_id = v_id and data_inicio between '2026-08-01' and '2026-08-18';
 
+  delete from public.rh_folgas_esporadicas
+   where colaborador_id = v_id and data_folga in ('2026-08-23');
+  insert into public.rh_folgas_esporadicas (unidade_id, colaborador_id, data_folga, descricao)
+  values ('seldeestrela', v_id, '2026-08-23', 'Folga (folha de agosto)');
 end $$;
 
 
@@ -265,16 +306,21 @@ declare
   v_id uuid;
   v_sets text;
 begin
+  -- Casa o nome sem depender de acento, espaço duplo ou maiúscula: "CEDEINE
+  -- DEL VALLE" e "Cedeine  del Valle" são a mesma pessoa.
   select id into v_id from public.colaboradores
-   where unidade_id = 'seldeestrela' and upper(btrim(nome)) = upper('BRENDA LARISSA RIBEIRO MARTINS') limit 1;
+   where unidade_id = 'seldeestrela'
+     and upper(unaccent_simples(nome)) = upper(unaccent_simples('BRENDA LARISSA RIBEIRO MARTINS'))
+   limit 1;
 
   if v_id is null then
-    -- Insere o mínimo; o UPDATE logo abaixo preenche o resto conforme as
-    -- colunas que este banco realmente tem.
-    insert into public.colaboradores (unidade_id, nome)
-    values ('seldeestrela', 'BRENDA LARISSA RIBEIRO MARTINS')
+    -- Cria com cargo desde já: a coluna é NOT NULL, então inserir só o nome
+    -- era recusado. Os demais campos entram no UPDATE logo abaixo, que só usa
+    -- coluna que existe de verdade neste banco.
+    insert into public.colaboradores (unidade_id, nome, cargo)
+    values ('seldeestrela', 'BRENDA LARISSA RIBEIRO MARTINS', 'Garçom')
     returning id into v_id;
-    raise notice 'CRIADO: BRENDA LARISSA RIBEIRO MARTINS';
+    raise notice 'CRIADO (conferir se nao e duplicata): BRENDA LARISSA RIBEIRO MARTINS';
   else
     raise notice 'ja existia: BRENDA LARISSA RIBEIRO MARTINS';
   end if;
@@ -338,6 +384,7 @@ begin
   delete from public.rh_atestados
    where colaborador_id = v_id and data_inicio between '2026-08-01' and '2026-08-18';
 
+
 end $$;
 
 
@@ -347,16 +394,21 @@ declare
   v_id uuid;
   v_sets text;
 begin
+  -- Casa o nome sem depender de acento, espaço duplo ou maiúscula: "CEDEINE
+  -- DEL VALLE" e "Cedeine  del Valle" são a mesma pessoa.
   select id into v_id from public.colaboradores
-   where unidade_id = 'seldeestrela' and upper(btrim(nome)) = upper('EDUARDA DE LIMA OLIVEIRA') limit 1;
+   where unidade_id = 'seldeestrela'
+     and upper(unaccent_simples(nome)) = upper(unaccent_simples('EDUARDA DE LIMA OLIVEIRA'))
+   limit 1;
 
   if v_id is null then
-    -- Insere o mínimo; o UPDATE logo abaixo preenche o resto conforme as
-    -- colunas que este banco realmente tem.
-    insert into public.colaboradores (unidade_id, nome)
-    values ('seldeestrela', 'EDUARDA DE LIMA OLIVEIRA')
+    -- Cria com cargo desde já: a coluna é NOT NULL, então inserir só o nome
+    -- era recusado. Os demais campos entram no UPDATE logo abaixo, que só usa
+    -- coluna que existe de verdade neste banco.
+    insert into public.colaboradores (unidade_id, nome, cargo)
+    values ('seldeestrela', 'EDUARDA DE LIMA OLIVEIRA', 'Bartender')
     returning id into v_id;
-    raise notice 'CRIADO: EDUARDA DE LIMA OLIVEIRA';
+    raise notice 'CRIADO (conferir se nao e duplicata): EDUARDA DE LIMA OLIVEIRA';
   else
     raise notice 'ja existia: EDUARDA DE LIMA OLIVEIRA';
   end if;
@@ -421,6 +473,10 @@ begin
   values ('seldeestrela', v_id, '2026-08-15', '2026-08-15', false, 'Atestado do dia inteiro (folha de agosto)', 'Importação da folha de agosto');
   insert into public.rh_atestados (unidade_id, colaborador_id, data_inicio, data_fim, parcial, observacao, registrado_por)
   values ('seldeestrela', v_id, '2026-08-13', '2026-08-13', true, 'Saiu no meio do turno com atestado', 'Importação da folha de agosto');
+  delete from public.rh_folgas_esporadicas
+   where colaborador_id = v_id and data_folga in ('2026-08-16');
+  insert into public.rh_folgas_esporadicas (unidade_id, colaborador_id, data_folga, descricao)
+  values ('seldeestrela', v_id, '2026-08-16', 'Folga (folha de agosto)');
 end $$;
 
 
@@ -430,16 +486,21 @@ declare
   v_id uuid;
   v_sets text;
 begin
+  -- Casa o nome sem depender de acento, espaço duplo ou maiúscula: "CEDEINE
+  -- DEL VALLE" e "Cedeine  del Valle" são a mesma pessoa.
   select id into v_id from public.colaboradores
-   where unidade_id = 'seldeestrela' and upper(btrim(nome)) = upper('JOSEPH ANDREY GOMES DA SILVA') limit 1;
+   where unidade_id = 'seldeestrela'
+     and upper(unaccent_simples(nome)) = upper(unaccent_simples('JOSEPH ANDREY GOMES DA SILVA'))
+   limit 1;
 
   if v_id is null then
-    -- Insere o mínimo; o UPDATE logo abaixo preenche o resto conforme as
-    -- colunas que este banco realmente tem.
-    insert into public.colaboradores (unidade_id, nome)
-    values ('seldeestrela', 'JOSEPH ANDREY GOMES DA SILVA')
+    -- Cria com cargo desde já: a coluna é NOT NULL, então inserir só o nome
+    -- era recusado. Os demais campos entram no UPDATE logo abaixo, que só usa
+    -- coluna que existe de verdade neste banco.
+    insert into public.colaboradores (unidade_id, nome, cargo)
+    values ('seldeestrela', 'JOSEPH ANDREY GOMES DA SILVA', 'Cozinheiro III')
     returning id into v_id;
-    raise notice 'CRIADO: JOSEPH ANDREY GOMES DA SILVA';
+    raise notice 'CRIADO (conferir se nao e duplicata): JOSEPH ANDREY GOMES DA SILVA';
   else
     raise notice 'ja existia: JOSEPH ANDREY GOMES DA SILVA';
   end if;
@@ -496,13 +557,16 @@ begin
     ('2026-08-13', '2026-08-13 15:40:00', '2026-08-13 18:00:00', '2026-08-13 19:00:00', '2026-08-14 00:30:00'),
     ('2026-08-14', '2026-08-14 15:40:00', '2026-08-14 18:10:00', '2026-08-14 19:10:00', '2026-08-15 00:41:00'),
     ('2026-08-15', '2026-08-15 15:40:00', '2026-08-15 16:55:00', '2026-08-15 17:55:00', '2026-08-16 00:05:00'),
-    ('2026-08-16', '2026-08-16 15:40:00', '2026-08-16 16:00:00', '2026-08-16 17:00:00', '2026-08-17 00:00:00'),
     ('2026-08-18', '2026-08-18 15:40:00', '2026-08-18 17:10:00', '2026-08-18 18:10:00', '2026-08-19 00:00:00')
     ) as d(data_referencia, entrada, int_ini, int_fim, saida);
 
   delete from public.rh_atestados
    where colaborador_id = v_id and data_inicio between '2026-08-01' and '2026-08-18';
 
+  delete from public.rh_folgas_esporadicas
+   where colaborador_id = v_id and data_folga in ('2026-08-16');
+  insert into public.rh_folgas_esporadicas (unidade_id, colaborador_id, data_folga, descricao)
+  values ('seldeestrela', v_id, '2026-08-16', 'Folga (folha de agosto)');
 end $$;
 
 
@@ -521,4 +585,4 @@ select c.nome,
    and p.data_referencia between '2026-08-01' and '2026-08-18'
  group by c.nome
  order by c.nome;
--- Esperado: Larissa 15 · Alice 14 · Cedeine 15 · Brenda 15 · Eduarda 13 · Joseph 15
+-- Esperado: Larissa 15 · Alice 14 · Cedeine 15 · Brenda 15 · Eduarda 13 · Joseph 14

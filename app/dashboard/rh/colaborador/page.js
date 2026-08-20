@@ -12,12 +12,12 @@ import {
 import { PageHeader, PageBody, EmptyState, SearchBar, SkeletonList, fmtBRL, fmtData } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
 import {
-  fetchColaboradores, fetchDocumentos, fetchFolgasEsporadicas, fetchConsumoFuncionario,
+  fetchColaboradores, fetchDocumentos, fetchFolgasEsporadicas, fetchConsumoFuncionario, fetchAtestados,
   fetchBancoHorasColaborador, somaMinutosBanco, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN,
   fetchAdvertenciasColab, calcularAdicionaisMes, fetchFeriados, fetchAllFolgasDaUnidade
 } from "../../../lib/rh";
 import { fetchHistoricoPonto, fetchPontosMes, fetchPontoHoje } from "../../../lib/ponto";
-import { situacaoDoPonto, CORES_TOM } from "../../../lib/ponto-status.mjs";
+import { situacaoDoPonto, atestadoNaData, CORES_TOM } from "../../../lib/ponto-status.mjs";
 import { fetchHolerites, confirmarRecebimentoHolerite } from "../../../lib/pessoas";
 
 const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -93,7 +93,7 @@ export default function VidaColaboradorPage() {
     setVida(null);
     setVidaLoading(true);
     const mes = new Date().toISOString().slice(0, 7);
-    const [rDocs, rFolgas, rConsumo, rBanco, rPonto, rAdv, rPontosMes, rFeriados, rHolerites] = await Promise.all([
+    const [rDocs, rFolgas, rConsumo, rBanco, rPonto, rAdv, rPontosMes, rFeriados, rHolerites, rAtestados] = await Promise.all([
       fetchDocumentos(c.id),
       fetchFolgasEsporadicas(c.id),
       fetchConsumoFuncionario(c.id),
@@ -103,12 +103,14 @@ export default function VidaColaboradorPage() {
       fetchPontosMes(c.id, mes),
       fetchFeriados(unidadeAtiva, mes),
       fetchHolerites(c.id),
+      fetchAtestados(c.id),
     ]);
     setVida({
       docs: rDocs.data || [], folgas: rFolgas.data || [], consumo: rConsumo.data || [],
       banco: rBanco.data || [], ponto: rPonto.data || [],
       advertencias: rAdv.data || [], pontosMes: rPontosMes.data || [], feriados: rFeriados.data || [],
       holerites: Array.isArray(rHolerites) ? rHolerites : [],
+      atestados: rAtestados?.data || [],
     });
     setVidaLoading(false);
   };
@@ -325,6 +327,7 @@ export default function VidaColaboradorPage() {
                     </div>
                     {vida.ponto.map(h => {
                       const marcas = Array.isArray(h.localizacoes) ? h.localizacoes : [];
+                      const atestado = atestadoNaData(vida.atestados, h.data_referencia);
                       return (
                       <div key={h.id} className="rounded-lg py-1.5" style={{ background: "var(--elevated)" }}>
                         <div className="grid grid-cols-[60px_1fr_1fr_1fr_1fr] gap-1 items-center text-center">
@@ -333,6 +336,14 @@ export default function VidaColaboradorPage() {
                             <span key={c} className="text-xs font-bold" style={{ color: h[c] ? "var(--fg-soft)" : "var(--dim)" }}>{horaDe(h[c])}</span>
                           ))}
                         </div>
+                        {atestado && (
+                          <div className="mt-1.5 px-2">
+                            <span className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-black"
+                              style={{ background: CORES_TOM.atestado.fundo, color: CORES_TOM.atestado.cor }}>
+                              Atestado médico{atestado.cid ? ` · CID ${atestado.cid}` : ""}
+                            </span>
+                          </div>
+                        )}
                         {/* Onde a pessoa estava em cada batida. É a prova de que
                             o ponto foi batido no restaurante, e não a caminho. */}
                         {marcas.length > 0 && (

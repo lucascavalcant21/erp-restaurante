@@ -492,6 +492,47 @@ export async function removerFolgaEsporadica(id) {
   return { error: error?.message };
 }
 
+// ─── ATESTADO MÉDICO ─────────────────────────────────────────────────────────
+// Falta desconta, atestado não. Antes os dois caíam no mesmo lugar: errava o
+// pagamento e ainda deixava a pessoa marcada como faltosa no histórico dela.
+// Guarda um PERÍODO, porque atestado de três dias é um documento só — lançar
+// três registros soltos faria perder essa ligação.
+
+export async function fetchAtestados(colaboradorId) {
+  if (!isSupabaseReady() || !colaboradorId) return { data: [] };
+  const { data, error } = await supabase.from("rh_atestados")
+    .select("*").eq("colaborador_id", colaboradorId).order("data_inicio", { ascending: false });
+  return { data: data || [], error: error?.message };
+}
+
+export async function fetchAtestadosUnidade(unidadeId, { desde = null } = {}) {
+  if (!isSupabaseReady() || !unidadeId) return { data: [] };
+  let q = supabase.from("rh_atestados").select("*").eq("unidade_id", String(unidadeId));
+  if (desde) q = q.gte("data_fim", desde);
+  const { data, error } = await q.order("data_inicio", { ascending: false });
+  return { data: data || [], error: error?.message };
+}
+
+export async function salvarAtestado(atestado) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { id, created_at, ...campos } = atestado;
+  // Um dia só continua sendo um período: quem preenche não deveria digitar a
+  // mesma data duas vezes.
+  const payload = { ...campos, data_fim: campos.data_fim || campos.data_inicio };
+  if (id) {
+    const { error } = await supabase.from("rh_atestados").update(payload).eq("id", id);
+    return { error: error?.message };
+  }
+  const { data, error } = await supabase.from("rh_atestados").insert([payload]).select("id").single();
+  return { id: data?.id, error: error?.message };
+}
+
+export async function removerAtestado(id) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const { error } = await supabase.from("rh_atestados").delete().eq("id", id);
+  return { error: error?.message };
+}
+
 // ─── BANCO DE HORAS (intervalo não tirado) ───────────────────────────────────
 // Quando o colaborador não consegue tirar a folga/intervalo de 1h do dia (ou
 // tira só parte), os minutos que faltaram acumulam aqui. Limite: 8h (480 min)

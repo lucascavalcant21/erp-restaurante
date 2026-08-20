@@ -556,6 +556,10 @@ function EtiquetasRunner() {
           dados: {
             codigo,
             produto: nomeProduto,
+            // O modelo escolhido na tela precisa viajar junto. Sem ele o
+            // desenho caía sempre no layout completo, e "Só o nome" mudava a
+            // prévia mas saía impresso igual a uma etiqueta de validade.
+            modeloEtiqueta: modelo,
             conservacao: form.conservacao,
             quantidade: form.quantidade,
             unidade: form.unidade,
@@ -576,7 +580,7 @@ function EtiquetasRunner() {
         const bytes = await gerarComandosEtiqueta({
           tamanho, copias: quantidadeCopias,
           dados: {
-            codigo, produto: nomeProduto, conservacao: form.conservacao,
+            codigo, produto: nomeProduto, modeloEtiqueta: modelo, conservacao: form.conservacao,
             quantidade: form.quantidade, unidade: form.unidade, tipoEtiqueta,
             momento: momentoImpressao, validade: validadeImpressao,
             responsavel: form.responsavel.trim(), lote: form.lote,

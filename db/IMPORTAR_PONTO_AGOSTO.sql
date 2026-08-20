@@ -90,7 +90,11 @@ begin
   insert into public.registro_ponto
     (colaborador_id, unidade_id, data_referencia, hora_entrada, hora_saida_intervalo,
      hora_retorno_intervalo, hora_saida, status_jornada, origem_batida)
-  select v_id, 'seldeestrela', d.data_referencia, d.entrada, d.int_ini, d.int_fim, d.saida, 4, 'manual'
+  -- Os literais da lista VALUES chegam como texto; sem o cast o Postgres
+  -- recusa com "column data_referencia is of type date but expression is of
+  -- type text". Ele nao converte texto para data sozinho neste contexto.
+  select v_id, 'seldeestrela', d.data_referencia::date, d.entrada::timestamptz,
+         d.int_ini::timestamptz, d.int_fim::timestamptz, d.saida::timestamptz, 4, 'manual'
     from (values
     ('2026-08-01', '2026-08-01 15:40:00', '2026-08-01 16:40:00', '2026-08-01 17:40:00', '2026-08-02 00:25:00'),
     ('2026-08-02', '2026-08-02 15:40:00', '2026-08-02 16:40:00', '2026-08-02 17:40:00', '2026-08-03 00:30:00'),
@@ -181,7 +185,11 @@ begin
   insert into public.registro_ponto
     (colaborador_id, unidade_id, data_referencia, hora_entrada, hora_saida_intervalo,
      hora_retorno_intervalo, hora_saida, status_jornada, origem_batida)
-  select v_id, 'seldeestrela', d.data_referencia, d.entrada, d.int_ini, d.int_fim, d.saida, 4, 'manual'
+  -- Os literais da lista VALUES chegam como texto; sem o cast o Postgres
+  -- recusa com "column data_referencia is of type date but expression is of
+  -- type text". Ele nao converte texto para data sozinho neste contexto.
+  select v_id, 'seldeestrela', d.data_referencia::date, d.entrada::timestamptz,
+         d.int_ini::timestamptz, d.int_fim::timestamptz, d.saida::timestamptz, 4, 'manual'
     from (values
     ('2026-08-01', '2026-08-01 15:40:00', '2026-08-01 18:00:00', '2026-08-01 19:00:00', '2026-08-02 00:24:00'),
     ('2026-08-02', '2026-08-02 15:40:00', '2026-08-02 17:00:00', '2026-08-02 18:00:00', '2026-08-03 00:25:00'),
@@ -271,7 +279,11 @@ begin
   insert into public.registro_ponto
     (colaborador_id, unidade_id, data_referencia, hora_entrada, hora_saida_intervalo,
      hora_retorno_intervalo, hora_saida, status_jornada, origem_batida)
-  select v_id, 'seldeestrela', d.data_referencia, d.entrada, d.int_ini, d.int_fim, d.saida, 4, 'manual'
+  -- Os literais da lista VALUES chegam como texto; sem o cast o Postgres
+  -- recusa com "column data_referencia is of type date but expression is of
+  -- type text". Ele nao converte texto para data sozinho neste contexto.
+  select v_id, 'seldeestrela', d.data_referencia::date, d.entrada::timestamptz,
+         d.int_ini::timestamptz, d.int_fim::timestamptz, d.saida::timestamptz, 4, 'manual'
     from (values
     ('2026-08-01', '2026-08-01 15:40:00', '2026-08-01 17:00:00', '2026-08-01 18:00:00', '2026-08-02 00:24:00'),
     ('2026-08-02', '2026-08-02 09:00:00', '2026-08-02 11:00:00', '2026-08-02 12:00:00', '2026-08-02 17:25:00'),
@@ -362,7 +374,11 @@ begin
   insert into public.registro_ponto
     (colaborador_id, unidade_id, data_referencia, hora_entrada, hora_saida_intervalo,
      hora_retorno_intervalo, hora_saida, status_jornada, origem_batida)
-  select v_id, 'seldeestrela', d.data_referencia, d.entrada, d.int_ini, d.int_fim, d.saida, 4, 'manual'
+  -- Os literais da lista VALUES chegam como texto; sem o cast o Postgres
+  -- recusa com "column data_referencia is of type date but expression is of
+  -- type text". Ele nao converte texto para data sozinho neste contexto.
+  select v_id, 'seldeestrela', d.data_referencia::date, d.entrada::timestamptz,
+         d.int_ini::timestamptz, d.int_fim::timestamptz, d.saida::timestamptz, 4, 'manual'
     from (values
     ('2026-08-01', '2026-08-01 15:40:00', '2026-08-01 16:40:00', '2026-08-01 17:40:00', '2026-08-02 00:25:00'),
     ('2026-08-02', '2026-08-02 15:40:00', '2026-08-02 18:10:00', '2026-08-02 19:10:00', '2026-08-03 00:18:00'),
@@ -450,7 +466,11 @@ begin
   insert into public.registro_ponto
     (colaborador_id, unidade_id, data_referencia, hora_entrada, hora_saida_intervalo,
      hora_retorno_intervalo, hora_saida, status_jornada, origem_batida)
-  select v_id, 'seldeestrela', d.data_referencia, d.entrada, d.int_ini, d.int_fim, d.saida, 4, 'manual'
+  -- Os literais da lista VALUES chegam como texto; sem o cast o Postgres
+  -- recusa com "column data_referencia is of type date but expression is of
+  -- type text". Ele nao converte texto para data sozinho neste contexto.
+  select v_id, 'seldeestrela', d.data_referencia::date, d.entrada::timestamptz,
+         d.int_ini::timestamptz, d.int_fim::timestamptz, d.saida::timestamptz, 4, 'manual'
     from (values
     ('2026-08-01', '2026-08-01 15:40:00', '2026-08-01 16:40:00', '2026-08-01 17:40:00', '2026-08-01 23:30:00'),
     ('2026-08-02', '2026-08-02 11:00:00', '2026-08-02 11:30:00', '2026-08-02 12:30:00', '2026-08-02 19:00:00'),
@@ -542,7 +562,11 @@ begin
   insert into public.registro_ponto
     (colaborador_id, unidade_id, data_referencia, hora_entrada, hora_saida_intervalo,
      hora_retorno_intervalo, hora_saida, status_jornada, origem_batida)
-  select v_id, 'seldeestrela', d.data_referencia, d.entrada, d.int_ini, d.int_fim, d.saida, 4, 'manual'
+  -- Os literais da lista VALUES chegam como texto; sem o cast o Postgres
+  -- recusa com "column data_referencia is of type date but expression is of
+  -- type text". Ele nao converte texto para data sozinho neste contexto.
+  select v_id, 'seldeestrela', d.data_referencia::date, d.entrada::timestamptz,
+         d.int_ini::timestamptz, d.int_fim::timestamptz, d.saida::timestamptz, 4, 'manual'
     from (values
     ('2026-08-01', '2026-08-01 15:40:00', '2026-08-01 16:00:00', '2026-08-01 17:00:00', '2026-08-02 00:24:00'),
     ('2026-08-02', '2026-08-02 15:40:00', '2026-08-02 16:00:00', '2026-08-02 17:00:00', '2026-08-03 00:14:00'),

@@ -13,6 +13,7 @@ import { PageHeader, PageBody, EmptyState, SearchBar, SkeletonList, fmtBRL, fmtD
 import { useERP } from "../../../context/ERPContext";
 import {
   fetchColaboradores, fetchDocumentos, fetchFolgasEsporadicas, fetchConsumoFuncionario, fetchAtestados,
+  salvarAtestado, removerAtestado, anexarArquivoAtestado,
   fetchBancoHorasColaborador, somaMinutosBanco, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN,
   fetchAdvertenciasColab, calcularAdicionaisMes, fetchFeriados, fetchAllFolgasDaUnidade
 } from "../../../lib/rh";
@@ -67,6 +68,42 @@ export default function VidaColaboradorPage() {
   const [sel, setSel] = useState(null);
   const [vida, setVida] = useState(null); // { docs, folgas, consumo, banco, ponto }
   const [vidaLoading, setVidaLoading] = useState(false);
+  const [formAtestado, setFormAtestado] = useState(null);
+  const [salvandoAtestado, setSalvandoAtestado] = useState(false);
+
+  const salvarAtestadoDoColaborador = async () => {
+    if (!formAtestado?.data_inicio) return alert("Informe a data de início do atestado.");
+    setSalvandoAtestado(true);
+    // O anexo sobe primeiro: se o arquivo falhar, o registro não nasce sem a
+    // prova — melhor não gravar do que gravar um atestado que ninguém consegue
+    // comprovar depois.
+    let arquivo_url = "";
+    if (formAtestado.arquivo) {
+      const envio = await anexarArquivoAtestado(sel.id, formAtestado.arquivo);
+      if (envio.error) { setSalvandoAtestado(false); return alert(`Não consegui anexar o arquivo: ${envio.error}`); }
+      arquivo_url = envio.url;
+    }
+    const { error } = await salvarAtestado({
+      unidade_id: unidadeAtiva, colaborador_id: sel.id,
+      data_inicio: formAtestado.data_inicio,
+      data_fim: formAtestado.data_fim || formAtestado.data_inicio,
+      parcial: !!formAtestado.parcial,
+      cid: formAtestado.cid || null, medico: formAtestado.medico || null,
+      observacao: formAtestado.observacao || null,
+      arquivo_url: arquivo_url || null,
+    });
+    setSalvandoAtestado(false);
+    if (error) return alert(`Não consegui salvar: ${error}`);
+    setFormAtestado(null);
+    await abrir(sel);
+  };
+
+  const excluirAtestado = async (id) => {
+    if (!confirm("Excluir este atestado? O dia volta a contar como falta.")) return;
+    const { error } = await removerAtestado(id);
+    if (error) return alert(error);
+    await abrir(sel);
+  };
 
   const carregarLista = async (silencioso = false) => {
     if (!unidadeAtiva || unidadeAtiva === "todas") { setLoading(false); return; }
@@ -317,6 +354,66 @@ export default function VidaColaboradorPage() {
                 )}
                 <p className="text-[10px] font-medium mt-2" style={{ color: "var(--dim)" }}>Registradas e impressas pela Gestão de RH (botão Advertências).</p>
               </Bloco>
+              {/* Atestados médicos. Fica antes do ponto de propósito: quem abre
+                  a ficha para conferir uma falta precisa ver o atestado antes
+                  de olhar o dia em branco e concluir a coisa errada. */}
+              <Bloco icon={FileText} titulo="Atestados médicos"
+                extra={<button onClick={() => setFormAtestado({ data_inicio: "", data_fim: "", parcial: false, cid: "", medico: "", observacao: "" })}
+                  className="text-[10px] font-bold" style={{ color: "var(--accent-strong)" }}>Registrar</button>}>
+                {formAtestado && (
+                  <div className="mb-3 rounded-xl border p-3" style={{ borderColor: "var(--line)", background: "var(--elevated)" }}>
+                    <div className="grid grid-cols-2 gap-2">
+                      <label className="block"><span className="erp-label">Início</span>
+                        <input type="date" value={formAtestado.data_inicio} onChange={e => setFormAtestado({ ...formAtestado, data_inicio: e.target.value })} className="h-11 w-full rounded-lg border px-2 text-sm font-bold" style={{ borderColor: "var(--line)" }} /></label>
+                      <label className="block"><span className="erp-label">Fim</span>
+                        <input type="date" value={formAtestado.data_fim} onChange={e => setFormAtestado({ ...formAtestado, data_fim: e.target.value })} placeholder="igual ao início" className="h-11 w-full rounded-lg border px-2 text-sm font-bold" style={{ borderColor: "var(--line)" }} /></label>
+                      <label className="block"><span className="erp-label">CID (opcional)</span>
+                        <input value={formAtestado.cid} onChange={e => setFormAtestado({ ...formAtestado, cid: e.target.value })} className="h-11 w-full rounded-lg border px-2 text-sm font-bold" style={{ borderColor: "var(--line)" }} /></label>
+                      <label className="block"><span className="erp-label">Médico (opcional)</span>
+                        <input value={formAtestado.medico} onChange={e => setFormAtestado({ ...formAtestado, medico: e.target.value })} className="h-11 w-full rounded-lg border px-2 text-sm font-bold" style={{ borderColor: "var(--line)" }} /></label>
+                    </div>
+                    <label className="mt-2 flex items-center gap-2 text-xs font-bold" style={{ color: "var(--fg-soft)" }}>
+                      <input type="checkbox" checked={formAtestado.parcial} onChange={e => setFormAtestado({ ...formAtestado, parcial: e.target.checked })} className="h-4 w-4 accent-cyan-600" />
+                      Trabalhou e saiu no meio do turno (o ponto do dia continua valendo)
+                    </label>
+                    <label className="mt-2 block"><span className="erp-label">Anexar o atestado</span>
+                      <input type="file" accept="image/*,application/pdf" onChange={e => setFormAtestado({ ...formAtestado, arquivo: e.target.files?.[0] || null })}
+                        className="mt-1 w-full text-xs font-bold" /></label>
+                    <div className="mt-3 flex gap-2">
+                      <button onClick={() => setFormAtestado(null)} className="h-10 flex-1 rounded-lg border text-xs font-bold" style={{ borderColor: "var(--line)" }}>Cancelar</button>
+                      <button onClick={salvarAtestadoDoColaborador} disabled={salvandoAtestado}
+                        className="h-10 flex-1 rounded-lg text-xs font-black text-white disabled:opacity-60" style={{ background: "var(--accent-strong)" }}>
+                        {salvandoAtestado ? "Salvando..." : "Salvar atestado"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {(vida.atestados || []).length === 0 ? (
+                  <p className="text-xs font-medium" style={{ color: "var(--dim)" }}>Nenhum atestado registrado.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {vida.atestados.map(a => (
+                      <div key={a.id} className="flex items-center justify-between gap-2 rounded-lg p-2.5" style={{ background: "var(--elevated)" }}>
+                        <div className="min-w-0">
+                          <p className="text-xs font-black" style={{ color: "var(--fg)" }}>
+                            {String(a.data_inicio).split("-").reverse().join("/")}
+                            {a.data_fim && a.data_fim !== a.data_inicio ? ` até ${String(a.data_fim).split("-").reverse().join("/")}` : ""}
+                            {a.parcial ? " · parcial" : ""}
+                          </p>
+                          <p className="text-[10px] font-bold" style={{ color: "var(--dim)" }}>
+                            {[a.cid && `CID ${a.cid}`, a.medico, a.observacao].filter(Boolean).join(" · ") || "Sem detalhes"}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1.5">
+                          {a.arquivo_url && <a href={a.arquivo_url} target="_blank" rel="noreferrer" className="text-[10px] font-black" style={{ color: "var(--accent-strong)" }}>Ver anexo</a>}
+                          <button onClick={() => excluirAtestado(a.id)} className="text-[10px] font-bold text-rose-600">Excluir</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Bloco>
+
               {/* Ponto */}
               <Bloco icon={Clock} titulo="Ponto — últimos dias"
                 extra={<button onClick={() => router.push(`/dashboard/rh/espelho/${sel.id}?mes=${new Date().toISOString().slice(0, 7)}`)} className="text-[10px] font-bold flex items-center gap-0.5" style={{ color: "var(--accent-strong)" }}>Espelho completo <ChevronRight size={11} /></button>}>

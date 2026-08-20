@@ -533,6 +533,19 @@ export async function removerAtestado(id) {
   return { error: error?.message };
 }
 
+// O papel do atestado é a prova. Sem ele guardado, o registro no sistema vira
+// a palavra de alguém contra a de outro na hora de justificar o desconto.
+export async function anexarArquivoAtestado(colaboradorId, arquivo) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  if (!arquivo) return { error: "Escolha o arquivo do atestado." };
+  const extensao = (arquivo.name || "").split(".").pop()?.toLowerCase() || "jpg";
+  const caminho = `atestados/${colaboradorId}/${Date.now()}.${extensao}`;
+  const { error } = await supabase.storage.from("rh-docs").upload(caminho, arquivo, { upsert: false });
+  if (error) return { error: error.message };
+  const { data } = supabase.storage.from("rh-docs").getPublicUrl(caminho);
+  return { url: data?.publicUrl || "", caminho, error: null };
+}
+
 // ─── BANCO DE HORAS (intervalo não tirado) ───────────────────────────────────
 // Quando o colaborador não consegue tirar a folga/intervalo de 1h do dia (ou
 // tira só parte), os minutos que faltaram acumulam aqui. Limite: 8h (480 min)

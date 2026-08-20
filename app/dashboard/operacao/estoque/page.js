@@ -11,6 +11,7 @@ import {
 import { useERP } from "../../../context/ERPContext";
 import { fetchInsumos, fetchNomesDePratosEDrinks, salvarInsumo } from "../../../lib/operacao";
 import { fetchEmbalagens } from "../../../lib/embalagens";
+import { fetchPins } from "../../../lib/seguranca";
 import { fetchColaboradores } from "../../../lib/rh";
 import { criarEscuta, vozDisponivel } from "../../../lib/hefisto-voz";
 import { equipeDaArea } from "../../../lib/equipe-area.mjs";
@@ -361,6 +362,11 @@ function EstoqueRunner() {
   // Produto que não existe ainda: cadastra pelo próprio estoque.
   const [novoProduto, setNovoProduto] = useState(null);
   const [modalZerar, setModalZerar] = useState(null);
+  // Trocar a unidade de medida NÃO converte o saldo: 5 kg viram 5 g. Por isso
+  // fica atrás do PIN do gerente — o mesmo de Configurações, 1234 de fábrica.
+  const [pinGerente, setPinGerente] = useState("1234");
+  const [unidadeLiberada, setUnidadeLiberada] = useState(false);
+  const [pinDigitado, setPinDigitado] = useState(null); // null = não está pedindo
   const [operacao, setOperacao] = useState({ insumo_id: "", quantidade: "", destino_id: "", observacao: "", responsavel_id: "", data: "", modo: "unidade", fechadas: "", aberto: "" });
   const [formItem, setFormItem] = useState({});
   const [formEstoque, setFormEstoque] = useState({});
@@ -486,6 +492,9 @@ function EstoqueRunner() {
 
   useEffect(() => { carregarEstoques(); }, [carregarEstoques]);
   useEffect(() => { carregarArea(); }, [carregarArea]);
+  useEffect(() => {
+    if (unidadeAtiva) fetchPins(unidadeAtiva).then(r => setPinGerente(r.data?.pin_gerente || "1234")).catch(() => {});
+  }, [unidadeAtiva]);
   useEffect(() => {
     setFiltros(atuais => ({ ...atuais, grupo: "Todos", categoria: "Todas", status: "todos", local: "Todos" }));
   }, [estoqueId]);
@@ -1061,6 +1070,10 @@ function EstoqueRunner() {
   // quase nunca dá certo. Zero vira campo vazio com o placeholder mostrando 0 —
   // o valor gravado continua o mesmo se ninguém digitar nada.
   const abrirEdicaoItem = item => {
+    // A liberação vale para UMA edição. Abrir outro item pede o PIN de novo,
+    // senão bastaria destravar uma vez para trocar a unidade do estoque todo.
+    setUnidadeLiberada(false);
+    setPinDigitado(null);
     const semZero = (valor) => (valor == null || Number(valor) === 0 ? "" : valor);
     setFormItem({
       ...item,
@@ -1082,6 +1095,11 @@ function EstoqueRunner() {
         id: formItem.insumo_id, unidade_id: unidadeAtiva, nome: formItem.nome,
         unidade_comercial: formItem.unidade_comercial || null,
         permite_fracionado: formItem.permite_fracionado !== false,
+        // A unidade só vai junto se o gerente destravou nesta edição. Mandar
+        // sempre arriscaria regravar por acidente o valor que já estava lá.
+        ...(unidadeLiberada && formItem.unidade_medida
+          ? { unidade_medida: String(formItem.unidade_medida).toLowerCase() }
+          : {}),
       });
     }
     setSalvando(false);
@@ -1788,6 +1806,27 @@ function EstoqueRunner() {
       {modal?.tipo === "item" && (
         <Modal titulo={`Configurar ${modal.item.nome}`} descricao={`Parâmetros válidos apenas em ${estoqueAtual?.nome}.`} onClose={() => setModal(null)}>
           <form onSubmit={salvarConfiguracaoItem} className="space-y-4">
+            {/* Pedido do PIN, dentro do próprio modal para não perder o que já
+                foi digitado nos outros campos. */}
+            {pinDigitado !== null && !unidadeLiberada && (
+              <div className="rounded-xl border-2 border-amber-300 bg-amber-50 p-3">
+                <p className="text-sm font-black text-amber-900">PIN do gerente para trocar a unidade</p>
+                <p className="mt-1 text-xs font-semibold text-amber-800">
+                  Trocar a unidade não converte o saldo: {fmtQtd(modal?.item?.quantidade_atual)} continua {fmtQtd(modal?.item?.quantidade_atual)},
+                  só muda o nome da medida. Corrija o saldo depois, se precisar.
+                </p>
+                <div className="mt-2 flex gap-2">
+                  <input type="password" inputMode="numeric" autoFocus value={pinDigitado}
+                    onChange={e => setPinDigitado(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); if (pinDigitado === String(pinGerente)) { setUnidadeLiberada(true); setPinDigitado(null); } else avisar("PIN incorreto.", "erro"); } }}
+                    placeholder="••••" className="h-11 w-32 rounded-xl border border-amber-300 px-3 text-center font-black tracking-widest" />
+                  <button type="button" onClick={() => { if (pinDigitado === String(pinGerente)) { setUnidadeLiberada(true); setPinDigitado(null); } else avisar("PIN incorreto.", "erro"); }}
+                    className="h-11 rounded-xl bg-amber-600 px-4 text-sm font-black text-white">Liberar</button>
+                  <button type="button" onClick={() => setPinDigitado(null)}
+                    className="h-11 rounded-xl border border-amber-300 bg-white px-4 text-sm font-bold text-amber-800">Cancelar</button>
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <Campo label="Estoque mínimo"><input type="number" min="0" step="0.001" value={formItem.estoque_minimo} placeholder="0" onChange={e => setFormItem({ ...formItem, estoque_minimo: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" /></Campo>
               <Campo label="Estoque máximo"><input type="number" min="0" step="0.001" value={formItem.estoque_maximo} placeholder="0" onChange={e => setFormItem({ ...formItem, estoque_maximo: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" /></Campo>
@@ -1796,6 +1835,23 @@ function EstoqueRunner() {
                   <span className="absolute left-3.5 top-3 text-sm font-extrabold text-slate-500">R$</span>
                   <input type="number" min="0" step="0.01" value={formItem.custo_unitario} onChange={e => setFormItem({ ...formItem, custo_unitario: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 pl-10 pr-3 font-semibold" placeholder="0,00" />
                 </div>
+              </Campo>
+              {/* Unidade de medida: trocar não converte o saldo que já existe,
+                  então fica atrás do PIN do gerente. */}
+              <Campo label="Unidade de medida">
+                {unidadeLiberada ? (
+                  <select value={String(formItem.unidade_medida || "un").toLowerCase()}
+                    onChange={e => setFormItem({ ...formItem, unidade_medida: e.target.value })}
+                    className="h-12 w-full rounded-xl border-2 border-amber-400 bg-amber-50 px-3 font-bold">
+                    {["un", "kg", "g", "l", "ml"].map(u => <option key={u} value={u}>{u}</option>)}
+                  </select>
+                ) : (
+                  <button type="button" onClick={() => { setPinDigitado(""); }}
+                    className="flex h-12 w-full items-center justify-between rounded-xl border border-slate-200 px-3 text-left">
+                    <span className="font-bold text-slate-700">{String(formItem.unidade_medida || "un").toLowerCase()}</span>
+                    <span className="text-xs font-black text-emerald-700">Alterar</span>
+                  </button>
+                )}
               </Campo>
               {estoqueAtual?.controla_validade && <Campo label="Validade"><input type="date" value={formItem.validade || ""} onChange={e => setFormItem({ ...formItem, validade: e.target.value })} className="h-12 w-full rounded-xl border border-slate-200 px-3" /></Campo>}
               {/* Onde a coisa fica dentro do estoque: expositor, balcão, depósito... */}

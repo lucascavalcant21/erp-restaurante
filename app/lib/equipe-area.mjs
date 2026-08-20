@@ -46,6 +46,12 @@ export function areaDe(nome) {
 
 // Lista de responsáveis para uma área. Sem área definida (ex.: Depósito),
 // devolve toda a equipe contratada.
+// O cargo (ou o setor) já nomeia alguma área?
+export function ehDeAlgumSetor(c) {
+  const alvo = `${semAcento(c?.cargo)} ${semAcento(c?.setor)}`;
+  return Object.values(PADROES_AREA).some(padrao => padrao.test(alvo));
+}
+
 export function equipeDaArea(colaboradores, area) {
   const ativos = (colaboradores || []).filter(c => c && !ehInativo(c) && !ehExtra(c));
   const chave = areaDe(area) || semAcento(area);
@@ -53,8 +59,11 @@ export function equipeDaArea(colaboradores, area) {
   if (!padrao) return ativos;
 
   const doSetor = ativos.filter(c => {
-    if (ehLideranca(c)) return true; // liderança entra em qualquer área
-    return padrao.test(`${semAcento(c.cargo)} ${semAcento(c.setor)}`);
+    if (padrao.test(`${semAcento(c.cargo)} ${semAcento(c.setor)}`)) return true;
+    // Liderança entra em qualquer área — mas só a genérica. Quem já tem setor
+    // no próprio cargo pertence AO setor, mesmo sendo chefia: "Chefe de
+    // Cozinha" casava com /chefe/ e aparecia também no bar e no salão.
+    return ehLideranca(c) && !ehDeAlgumSetor(c);
   });
 
   // Ninguém casou com a área: melhor mostrar a equipe inteira do que uma

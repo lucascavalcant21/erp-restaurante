@@ -16,14 +16,18 @@ begin;
 
 -- ── LARISSA DA SILVA UHE · Chef de Garçom ────────────────────────
 do $$
-declare v_id uuid;
+declare
+  v_id uuid;
+  v_sets text;
 begin
   select id into v_id from public.colaboradores
    where unidade_id = 'SUA_UNIDADE' and upper(btrim(nome)) = upper('LARISSA DA SILVA UHE') limit 1;
 
   if v_id is null then
-    insert into public.colaboradores (unidade_id, nome, cargo, data_admissao, tipo_contrato, ativo)
-    values ('SUA_UNIDADE', 'LARISSA DA SILVA UHE', 'Chef de Garçom', '2026-07-21', 'Fixo', true)
+    -- Insere o mínimo; o UPDATE logo abaixo preenche o resto conforme as
+    -- colunas que este banco realmente tem.
+    insert into public.colaboradores (unidade_id, nome)
+    values ('SUA_UNIDADE', 'LARISSA DA SILVA UHE')
     returning id into v_id;
     raise notice 'CRIADO: LARISSA DA SILVA UHE';
   else
@@ -31,16 +35,33 @@ begin
   end if;
 
   -- Horário de trabalho da folha. Folga na segunda (dias_trabalho sem o 1).
-  update public.colaboradores set
-    cargo = 'Chef de Garçom',
-    data_admissao = '2026-07-21',
-    horario_entrada = '15:40',
-    horario_saida = '00:00',
-    horario_dom_entrada = null,
-    horario_dom_saida = null,
-    tempo_intervalo = 60,
-    dias_trabalho = '0,2,3,4,5,6'
-  where id = v_id;
+  --
+  -- Monta o UPDATE só com as colunas que existem de verdade neste banco. A
+  -- primeira versão listava tudo direto e parou no "column ativo does not
+  -- exist" — cada instalação tem um conjunto um pouco diferente, e não dá para
+  -- adivinhar de fora.
+  select string_agg(format('%I = %L', t.coluna, t.valor), ', ')
+    into v_sets
+    from (values
+      ('cargo', 'Chef de Garçom'),
+      ('data_admissao', '2026-07-21'),
+      ('horario_entrada', '15:40'),
+      ('horario_saida', '00:00'),
+      ('horario_dom_entrada', null::text),
+      ('horario_dom_saida', null::text),
+      ('tempo_intervalo', '60'),
+      ('dias_trabalho', '0,2,3,4,5,6'),
+      ('tipo_contrato', 'Fixo')
+    ) as t(coluna, valor)
+   where exists (
+     select 1 from information_schema.columns ic
+      where ic.table_schema = 'public' and ic.table_name = 'colaboradores'
+        and ic.column_name = t.coluna
+   );
+
+  if v_sets is not null then
+    execute format('update public.colaboradores set %s where id = %L', v_sets, v_id);
+  end if;
 
   -- Regrava o período inteiro, para rodar de novo não duplicar.
   delete from public.registro_ponto
@@ -77,14 +98,18 @@ end $$;
 
 -- ── ALICE TERESINHA VISINTAINER XAVIER · Auxiliar de Cozinha ────────────────────────
 do $$
-declare v_id uuid;
+declare
+  v_id uuid;
+  v_sets text;
 begin
   select id into v_id from public.colaboradores
    where unidade_id = 'SUA_UNIDADE' and upper(btrim(nome)) = upper('ALICE TERESINHA VISINTAINER XAVIER') limit 1;
 
   if v_id is null then
-    insert into public.colaboradores (unidade_id, nome, cargo, data_admissao, tipo_contrato, ativo)
-    values ('SUA_UNIDADE', 'ALICE TERESINHA VISINTAINER XAVIER', 'Auxiliar de Cozinha', '2026-03-01', 'Fixo', true)
+    -- Insere o mínimo; o UPDATE logo abaixo preenche o resto conforme as
+    -- colunas que este banco realmente tem.
+    insert into public.colaboradores (unidade_id, nome)
+    values ('SUA_UNIDADE', 'ALICE TERESINHA VISINTAINER XAVIER')
     returning id into v_id;
     raise notice 'CRIADO: ALICE TERESINHA VISINTAINER XAVIER';
   else
@@ -92,16 +117,33 @@ begin
   end if;
 
   -- Horário de trabalho da folha. Folga na segunda (dias_trabalho sem o 1).
-  update public.colaboradores set
-    cargo = 'Auxiliar de Cozinha',
-    data_admissao = '2026-03-01',
-    horario_entrada = '15:40',
-    horario_saida = '00:00',
-    horario_dom_entrada = null,
-    horario_dom_saida = null,
-    tempo_intervalo = 60,
-    dias_trabalho = '0,2,3,4,5,6'
-  where id = v_id;
+  --
+  -- Monta o UPDATE só com as colunas que existem de verdade neste banco. A
+  -- primeira versão listava tudo direto e parou no "column ativo does not
+  -- exist" — cada instalação tem um conjunto um pouco diferente, e não dá para
+  -- adivinhar de fora.
+  select string_agg(format('%I = %L', t.coluna, t.valor), ', ')
+    into v_sets
+    from (values
+      ('cargo', 'Auxiliar de Cozinha'),
+      ('data_admissao', '2026-03-01'),
+      ('horario_entrada', '15:40'),
+      ('horario_saida', '00:00'),
+      ('horario_dom_entrada', null::text),
+      ('horario_dom_saida', null::text),
+      ('tempo_intervalo', '60'),
+      ('dias_trabalho', '0,2,3,4,5,6'),
+      ('tipo_contrato', 'Fixo')
+    ) as t(coluna, valor)
+   where exists (
+     select 1 from information_schema.columns ic
+      where ic.table_schema = 'public' and ic.table_name = 'colaboradores'
+        and ic.column_name = t.coluna
+   );
+
+  if v_sets is not null then
+    execute format('update public.colaboradores set %s where id = %L', v_sets, v_id);
+  end if;
 
   -- Regrava o período inteiro, para rodar de novo não duplicar.
   delete from public.registro_ponto
@@ -137,14 +179,18 @@ end $$;
 
 -- ── CEDEINE DEL VALLE TABLANTE FLORES · Chefe de Cozinha ────────────────────────
 do $$
-declare v_id uuid;
+declare
+  v_id uuid;
+  v_sets text;
 begin
   select id into v_id from public.colaboradores
    where unidade_id = 'SUA_UNIDADE' and upper(btrim(nome)) = upper('CEDEINE DEL VALLE TABLANTE FLORES') limit 1;
 
   if v_id is null then
-    insert into public.colaboradores (unidade_id, nome, cargo, data_admissao, tipo_contrato, ativo)
-    values ('SUA_UNIDADE', 'CEDEINE DEL VALLE TABLANTE FLORES', 'Chefe de Cozinha', '2025-05-08', 'Fixo', true)
+    -- Insere o mínimo; o UPDATE logo abaixo preenche o resto conforme as
+    -- colunas que este banco realmente tem.
+    insert into public.colaboradores (unidade_id, nome)
+    values ('SUA_UNIDADE', 'CEDEINE DEL VALLE TABLANTE FLORES')
     returning id into v_id;
     raise notice 'CRIADO: CEDEINE DEL VALLE TABLANTE FLORES';
   else
@@ -152,16 +198,33 @@ begin
   end if;
 
   -- Horário de trabalho da folha. Folga na segunda (dias_trabalho sem o 1).
-  update public.colaboradores set
-    cargo = 'Chefe de Cozinha',
-    data_admissao = '2025-05-08',
-    horario_entrada = '15:40',
-    horario_saida = '00:00',
-    horario_dom_entrada = '09:00',
-    horario_dom_saida = '17:20',
-    tempo_intervalo = 60,
-    dias_trabalho = '0,2,3,4,5,6'
-  where id = v_id;
+  --
+  -- Monta o UPDATE só com as colunas que existem de verdade neste banco. A
+  -- primeira versão listava tudo direto e parou no "column ativo does not
+  -- exist" — cada instalação tem um conjunto um pouco diferente, e não dá para
+  -- adivinhar de fora.
+  select string_agg(format('%I = %L', t.coluna, t.valor), ', ')
+    into v_sets
+    from (values
+      ('cargo', 'Chefe de Cozinha'),
+      ('data_admissao', '2025-05-08'),
+      ('horario_entrada', '15:40'),
+      ('horario_saida', '00:00'),
+      ('horario_dom_entrada', '09:00'),
+      ('horario_dom_saida', '17:20'),
+      ('tempo_intervalo', '60'),
+      ('dias_trabalho', '0,2,3,4,5,6'),
+      ('tipo_contrato', 'Fixo')
+    ) as t(coluna, valor)
+   where exists (
+     select 1 from information_schema.columns ic
+      where ic.table_schema = 'public' and ic.table_name = 'colaboradores'
+        and ic.column_name = t.coluna
+   );
+
+  if v_sets is not null then
+    execute format('update public.colaboradores set %s where id = %L', v_sets, v_id);
+  end if;
 
   -- Regrava o período inteiro, para rodar de novo não duplicar.
   delete from public.registro_ponto
@@ -198,14 +261,18 @@ end $$;
 
 -- ── BRENDA LARISSA RIBEIRO MARTINS · Garçom ────────────────────────
 do $$
-declare v_id uuid;
+declare
+  v_id uuid;
+  v_sets text;
 begin
   select id into v_id from public.colaboradores
    where unidade_id = 'SUA_UNIDADE' and upper(btrim(nome)) = upper('BRENDA LARISSA RIBEIRO MARTINS') limit 1;
 
   if v_id is null then
-    insert into public.colaboradores (unidade_id, nome, cargo, data_admissao, tipo_contrato, ativo)
-    values ('SUA_UNIDADE', 'BRENDA LARISSA RIBEIRO MARTINS', 'Garçom', '2026-06-10', 'Fixo', true)
+    -- Insere o mínimo; o UPDATE logo abaixo preenche o resto conforme as
+    -- colunas que este banco realmente tem.
+    insert into public.colaboradores (unidade_id, nome)
+    values ('SUA_UNIDADE', 'BRENDA LARISSA RIBEIRO MARTINS')
     returning id into v_id;
     raise notice 'CRIADO: BRENDA LARISSA RIBEIRO MARTINS';
   else
@@ -213,16 +280,33 @@ begin
   end if;
 
   -- Horário de trabalho da folha. Folga na segunda (dias_trabalho sem o 1).
-  update public.colaboradores set
-    cargo = 'Garçom',
-    data_admissao = '2026-06-10',
-    horario_entrada = '15:40',
-    horario_saida = '00:00',
-    horario_dom_entrada = null,
-    horario_dom_saida = null,
-    tempo_intervalo = 60,
-    dias_trabalho = '0,2,3,4,5,6'
-  where id = v_id;
+  --
+  -- Monta o UPDATE só com as colunas que existem de verdade neste banco. A
+  -- primeira versão listava tudo direto e parou no "column ativo does not
+  -- exist" — cada instalação tem um conjunto um pouco diferente, e não dá para
+  -- adivinhar de fora.
+  select string_agg(format('%I = %L', t.coluna, t.valor), ', ')
+    into v_sets
+    from (values
+      ('cargo', 'Garçom'),
+      ('data_admissao', '2026-06-10'),
+      ('horario_entrada', '15:40'),
+      ('horario_saida', '00:00'),
+      ('horario_dom_entrada', null::text),
+      ('horario_dom_saida', null::text),
+      ('tempo_intervalo', '60'),
+      ('dias_trabalho', '0,2,3,4,5,6'),
+      ('tipo_contrato', 'Fixo')
+    ) as t(coluna, valor)
+   where exists (
+     select 1 from information_schema.columns ic
+      where ic.table_schema = 'public' and ic.table_name = 'colaboradores'
+        and ic.column_name = t.coluna
+   );
+
+  if v_sets is not null then
+    execute format('update public.colaboradores set %s where id = %L', v_sets, v_id);
+  end if;
 
   -- Regrava o período inteiro, para rodar de novo não duplicar.
   delete from public.registro_ponto
@@ -259,14 +343,18 @@ end $$;
 
 -- ── EDUARDA DE LIMA OLIVEIRA · Bartender ────────────────────────
 do $$
-declare v_id uuid;
+declare
+  v_id uuid;
+  v_sets text;
 begin
   select id into v_id from public.colaboradores
    where unidade_id = 'SUA_UNIDADE' and upper(btrim(nome)) = upper('EDUARDA DE LIMA OLIVEIRA') limit 1;
 
   if v_id is null then
-    insert into public.colaboradores (unidade_id, nome, cargo, data_admissao, tipo_contrato, ativo)
-    values ('SUA_UNIDADE', 'EDUARDA DE LIMA OLIVEIRA', 'Bartender', '2026-06-23', 'Fixo', true)
+    -- Insere o mínimo; o UPDATE logo abaixo preenche o resto conforme as
+    -- colunas que este banco realmente tem.
+    insert into public.colaboradores (unidade_id, nome)
+    values ('SUA_UNIDADE', 'EDUARDA DE LIMA OLIVEIRA')
     returning id into v_id;
     raise notice 'CRIADO: EDUARDA DE LIMA OLIVEIRA';
   else
@@ -274,16 +362,33 @@ begin
   end if;
 
   -- Horário de trabalho da folha. Folga na segunda (dias_trabalho sem o 1).
-  update public.colaboradores set
-    cargo = 'Bartender',
-    data_admissao = '2026-06-23',
-    horario_entrada = '15:40',
-    horario_saida = '00:00',
-    horario_dom_entrada = '11:00',
-    horario_dom_saida = '19:20',
-    tempo_intervalo = 60,
-    dias_trabalho = '0,2,3,4,5,6'
-  where id = v_id;
+  --
+  -- Monta o UPDATE só com as colunas que existem de verdade neste banco. A
+  -- primeira versão listava tudo direto e parou no "column ativo does not
+  -- exist" — cada instalação tem um conjunto um pouco diferente, e não dá para
+  -- adivinhar de fora.
+  select string_agg(format('%I = %L', t.coluna, t.valor), ', ')
+    into v_sets
+    from (values
+      ('cargo', 'Bartender'),
+      ('data_admissao', '2026-06-23'),
+      ('horario_entrada', '15:40'),
+      ('horario_saida', '00:00'),
+      ('horario_dom_entrada', '11:00'),
+      ('horario_dom_saida', '19:20'),
+      ('tempo_intervalo', '60'),
+      ('dias_trabalho', '0,2,3,4,5,6'),
+      ('tipo_contrato', 'Fixo')
+    ) as t(coluna, valor)
+   where exists (
+     select 1 from information_schema.columns ic
+      where ic.table_schema = 'public' and ic.table_name = 'colaboradores'
+        and ic.column_name = t.coluna
+   );
+
+  if v_sets is not null then
+    execute format('update public.colaboradores set %s where id = %L', v_sets, v_id);
+  end if;
 
   -- Regrava o período inteiro, para rodar de novo não duplicar.
   delete from public.registro_ponto
@@ -321,14 +426,18 @@ end $$;
 
 -- ── JOSEPH ANDREY GOMES DA SILVA · Cozinheiro III ────────────────────────
 do $$
-declare v_id uuid;
+declare
+  v_id uuid;
+  v_sets text;
 begin
   select id into v_id from public.colaboradores
    where unidade_id = 'SUA_UNIDADE' and upper(btrim(nome)) = upper('JOSEPH ANDREY GOMES DA SILVA') limit 1;
 
   if v_id is null then
-    insert into public.colaboradores (unidade_id, nome, cargo, data_admissao, tipo_contrato, ativo)
-    values ('SUA_UNIDADE', 'JOSEPH ANDREY GOMES DA SILVA', 'Cozinheiro III', '2026-04-17', 'Fixo', true)
+    -- Insere o mínimo; o UPDATE logo abaixo preenche o resto conforme as
+    -- colunas que este banco realmente tem.
+    insert into public.colaboradores (unidade_id, nome)
+    values ('SUA_UNIDADE', 'JOSEPH ANDREY GOMES DA SILVA')
     returning id into v_id;
     raise notice 'CRIADO: JOSEPH ANDREY GOMES DA SILVA';
   else
@@ -336,16 +445,33 @@ begin
   end if;
 
   -- Horário de trabalho da folha. Folga na segunda (dias_trabalho sem o 1).
-  update public.colaboradores set
-    cargo = 'Cozinheiro III',
-    data_admissao = '2026-04-17',
-    horario_entrada = '15:40',
-    horario_saida = '00:00',
-    horario_dom_entrada = null,
-    horario_dom_saida = null,
-    tempo_intervalo = 60,
-    dias_trabalho = '0,2,3,4,5,6'
-  where id = v_id;
+  --
+  -- Monta o UPDATE só com as colunas que existem de verdade neste banco. A
+  -- primeira versão listava tudo direto e parou no "column ativo does not
+  -- exist" — cada instalação tem um conjunto um pouco diferente, e não dá para
+  -- adivinhar de fora.
+  select string_agg(format('%I = %L', t.coluna, t.valor), ', ')
+    into v_sets
+    from (values
+      ('cargo', 'Cozinheiro III'),
+      ('data_admissao', '2026-04-17'),
+      ('horario_entrada', '15:40'),
+      ('horario_saida', '00:00'),
+      ('horario_dom_entrada', null::text),
+      ('horario_dom_saida', null::text),
+      ('tempo_intervalo', '60'),
+      ('dias_trabalho', '0,2,3,4,5,6'),
+      ('tipo_contrato', 'Fixo')
+    ) as t(coluna, valor)
+   where exists (
+     select 1 from information_schema.columns ic
+      where ic.table_schema = 'public' and ic.table_name = 'colaboradores'
+        and ic.column_name = t.coluna
+   );
+
+  if v_sets is not null then
+    execute format('update public.colaboradores set %s where id = %L', v_sets, v_id);
+  end if;
 
   -- Regrava o período inteiro, para rodar de novo não duplicar.
   delete from public.registro_ponto

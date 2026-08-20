@@ -4,8 +4,8 @@
 -- Gerado a partir das 6 folhas, com as correções que você confirmou.
 -- Cobre 01/08 a 2026-08-18. O dia 19 NÃO é tocado: é hoje, e já está no tablet.
 --
--- ANTES DE RODAR: troque SUA_UNIDADE pelo id da sua unidade (4 ocorrências por
--- pessoa). Rode o bloco de conferência do fim depois, para ver o resultado.
+-- Já vem com a unidade seldeestrela preenchida: cole e rode, sem editar nada.
+-- No fim tem a consulta de conferência.
 --
 -- Cada batida entra com origem_batida = 'manual': o histórico precisa
 -- distinguir o que foi digitado do que foi batido no aparelho com GPS.
@@ -21,13 +21,13 @@ declare
   v_sets text;
 begin
   select id into v_id from public.colaboradores
-   where unidade_id = 'SUA_UNIDADE' and upper(btrim(nome)) = upper('LARISSA DA SILVA UHE') limit 1;
+   where unidade_id = 'seldeestrela' and upper(btrim(nome)) = upper('LARISSA DA SILVA UHE') limit 1;
 
   if v_id is null then
     -- Insere o mínimo; o UPDATE logo abaixo preenche o resto conforme as
     -- colunas que este banco realmente tem.
     insert into public.colaboradores (unidade_id, nome)
-    values ('SUA_UNIDADE', 'LARISSA DA SILVA UHE')
+    values ('seldeestrela', 'LARISSA DA SILVA UHE')
     returning id into v_id;
     raise notice 'CRIADO: LARISSA DA SILVA UHE';
   else
@@ -71,7 +71,7 @@ begin
   insert into public.registro_ponto
     (colaborador_id, unidade_id, data_referencia, hora_entrada, hora_saida_intervalo,
      hora_retorno_intervalo, hora_saida, status_jornada, origem_batida)
-  select v_id, 'SUA_UNIDADE', d.data_referencia, d.entrada, d.int_ini, d.int_fim, d.saida, 4, 'manual'
+  select v_id, 'seldeestrela', d.data_referencia, d.entrada, d.int_ini, d.int_fim, d.saida, 4, 'manual'
     from (values
     ('2026-08-01', '2026-08-01 15:40:00', '2026-08-01 16:40:00', '2026-08-01 17:40:00', '2026-08-02 00:25:00'),
     ('2026-08-02', '2026-08-02 15:40:00', '2026-08-02 16:40:00', '2026-08-02 17:40:00', '2026-08-03 00:30:00'),
@@ -103,13 +103,13 @@ declare
   v_sets text;
 begin
   select id into v_id from public.colaboradores
-   where unidade_id = 'SUA_UNIDADE' and upper(btrim(nome)) = upper('ALICE TERESINHA VISINTAINER XAVIER') limit 1;
+   where unidade_id = 'seldeestrela' and upper(btrim(nome)) = upper('ALICE TERESINHA VISINTAINER XAVIER') limit 1;
 
   if v_id is null then
     -- Insere o mínimo; o UPDATE logo abaixo preenche o resto conforme as
     -- colunas que este banco realmente tem.
     insert into public.colaboradores (unidade_id, nome)
-    values ('SUA_UNIDADE', 'ALICE TERESINHA VISINTAINER XAVIER')
+    values ('seldeestrela', 'ALICE TERESINHA VISINTAINER XAVIER')
     returning id into v_id;
     raise notice 'CRIADO: ALICE TERESINHA VISINTAINER XAVIER';
   else
@@ -153,7 +153,7 @@ begin
   insert into public.registro_ponto
     (colaborador_id, unidade_id, data_referencia, hora_entrada, hora_saida_intervalo,
      hora_retorno_intervalo, hora_saida, status_jornada, origem_batida)
-  select v_id, 'SUA_UNIDADE', d.data_referencia, d.entrada, d.int_ini, d.int_fim, d.saida, 4, 'manual'
+  select v_id, 'seldeestrela', d.data_referencia, d.entrada, d.int_ini, d.int_fim, d.saida, 4, 'manual'
     from (values
     ('2026-08-01', '2026-08-01 15:40:00', '2026-08-01 18:00:00', '2026-08-01 19:00:00', '2026-08-02 00:24:00'),
     ('2026-08-02', '2026-08-02 15:40:00', '2026-08-02 17:00:00', '2026-08-02 18:00:00', '2026-08-03 00:25:00'),
@@ -184,13 +184,13 @@ declare
   v_sets text;
 begin
   select id into v_id from public.colaboradores
-   where unidade_id = 'SUA_UNIDADE' and upper(btrim(nome)) = upper('CEDEINE DEL VALLE TABLANTE FLORES') limit 1;
+   where unidade_id = 'seldeestrela' and upper(btrim(nome)) = upper('CEDEINE DEL VALLE TABLANTE FLORES') limit 1;
 
   if v_id is null then
     -- Insere o mínimo; o UPDATE logo abaixo preenche o resto conforme as
     -- colunas que este banco realmente tem.
     insert into public.colaboradores (unidade_id, nome)
-    values ('SUA_UNIDADE', 'CEDEINE DEL VALLE TABLANTE FLORES')
+    values ('seldeestrela', 'CEDEINE DEL VALLE TABLANTE FLORES')
     returning id into v_id;
     raise notice 'CRIADO: CEDEINE DEL VALLE TABLANTE FLORES';
   else
@@ -234,7 +234,7 @@ begin
   insert into public.registro_ponto
     (colaborador_id, unidade_id, data_referencia, hora_entrada, hora_saida_intervalo,
      hora_retorno_intervalo, hora_saida, status_jornada, origem_batida)
-  select v_id, 'SUA_UNIDADE', d.data_referencia, d.entrada, d.int_ini, d.int_fim, d.saida, 4, 'manual'
+  select v_id, 'seldeestrela', d.data_referencia, d.entrada, d.int_ini, d.int_fim, d.saida, 4, 'manual'
     from (values
     ('2026-08-01', '2026-08-01 15:40:00', '2026-08-01 17:00:00', '2026-08-01 18:00:00', '2026-08-02 00:24:00'),
     ('2026-08-02', '2026-08-02 09:00:00', '2026-08-02 11:00:00', '2026-08-02 12:00:00', '2026-08-02 17:25:00'),
@@ -266,13 +266,13 @@ declare
   v_sets text;
 begin
   select id into v_id from public.colaboradores
-   where unidade_id = 'SUA_UNIDADE' and upper(btrim(nome)) = upper('BRENDA LARISSA RIBEIRO MARTINS') limit 1;
+   where unidade_id = 'seldeestrela' and upper(btrim(nome)) = upper('BRENDA LARISSA RIBEIRO MARTINS') limit 1;
 
   if v_id is null then
     -- Insere o mínimo; o UPDATE logo abaixo preenche o resto conforme as
     -- colunas que este banco realmente tem.
     insert into public.colaboradores (unidade_id, nome)
-    values ('SUA_UNIDADE', 'BRENDA LARISSA RIBEIRO MARTINS')
+    values ('seldeestrela', 'BRENDA LARISSA RIBEIRO MARTINS')
     returning id into v_id;
     raise notice 'CRIADO: BRENDA LARISSA RIBEIRO MARTINS';
   else
@@ -316,7 +316,7 @@ begin
   insert into public.registro_ponto
     (colaborador_id, unidade_id, data_referencia, hora_entrada, hora_saida_intervalo,
      hora_retorno_intervalo, hora_saida, status_jornada, origem_batida)
-  select v_id, 'SUA_UNIDADE', d.data_referencia, d.entrada, d.int_ini, d.int_fim, d.saida, 4, 'manual'
+  select v_id, 'seldeestrela', d.data_referencia, d.entrada, d.int_ini, d.int_fim, d.saida, 4, 'manual'
     from (values
     ('2026-08-01', '2026-08-01 15:40:00', '2026-08-01 16:40:00', '2026-08-01 17:40:00', '2026-08-02 00:25:00'),
     ('2026-08-02', '2026-08-02 15:40:00', '2026-08-02 18:10:00', '2026-08-02 19:10:00', '2026-08-03 00:18:00'),
@@ -348,13 +348,13 @@ declare
   v_sets text;
 begin
   select id into v_id from public.colaboradores
-   where unidade_id = 'SUA_UNIDADE' and upper(btrim(nome)) = upper('EDUARDA DE LIMA OLIVEIRA') limit 1;
+   where unidade_id = 'seldeestrela' and upper(btrim(nome)) = upper('EDUARDA DE LIMA OLIVEIRA') limit 1;
 
   if v_id is null then
     -- Insere o mínimo; o UPDATE logo abaixo preenche o resto conforme as
     -- colunas que este banco realmente tem.
     insert into public.colaboradores (unidade_id, nome)
-    values ('SUA_UNIDADE', 'EDUARDA DE LIMA OLIVEIRA')
+    values ('seldeestrela', 'EDUARDA DE LIMA OLIVEIRA')
     returning id into v_id;
     raise notice 'CRIADO: EDUARDA DE LIMA OLIVEIRA';
   else
@@ -398,7 +398,7 @@ begin
   insert into public.registro_ponto
     (colaborador_id, unidade_id, data_referencia, hora_entrada, hora_saida_intervalo,
      hora_retorno_intervalo, hora_saida, status_jornada, origem_batida)
-  select v_id, 'SUA_UNIDADE', d.data_referencia, d.entrada, d.int_ini, d.int_fim, d.saida, 4, 'manual'
+  select v_id, 'seldeestrela', d.data_referencia, d.entrada, d.int_ini, d.int_fim, d.saida, 4, 'manual'
     from (values
     ('2026-08-01', '2026-08-01 15:40:00', '2026-08-01 16:40:00', '2026-08-01 17:40:00', '2026-08-01 23:30:00'),
     ('2026-08-02', '2026-08-02 11:00:00', '2026-08-02 11:30:00', '2026-08-02 12:30:00', '2026-08-02 19:00:00'),
@@ -418,9 +418,9 @@ begin
   delete from public.rh_atestados
    where colaborador_id = v_id and data_inicio between '2026-08-01' and '2026-08-18';
   insert into public.rh_atestados (unidade_id, colaborador_id, data_inicio, data_fim, parcial, observacao, registrado_por)
-  values ('SUA_UNIDADE', v_id, '2026-08-15', '2026-08-15', false, 'Atestado do dia inteiro (folha de agosto)', 'Importação da folha de agosto');
+  values ('seldeestrela', v_id, '2026-08-15', '2026-08-15', false, 'Atestado do dia inteiro (folha de agosto)', 'Importação da folha de agosto');
   insert into public.rh_atestados (unidade_id, colaborador_id, data_inicio, data_fim, parcial, observacao, registrado_por)
-  values ('SUA_UNIDADE', v_id, '2026-08-13', '2026-08-13', true, 'Saiu no meio do turno com atestado', 'Importação da folha de agosto');
+  values ('seldeestrela', v_id, '2026-08-13', '2026-08-13', true, 'Saiu no meio do turno com atestado', 'Importação da folha de agosto');
 end $$;
 
 
@@ -431,13 +431,13 @@ declare
   v_sets text;
 begin
   select id into v_id from public.colaboradores
-   where unidade_id = 'SUA_UNIDADE' and upper(btrim(nome)) = upper('JOSEPH ANDREY GOMES DA SILVA') limit 1;
+   where unidade_id = 'seldeestrela' and upper(btrim(nome)) = upper('JOSEPH ANDREY GOMES DA SILVA') limit 1;
 
   if v_id is null then
     -- Insere o mínimo; o UPDATE logo abaixo preenche o resto conforme as
     -- colunas que este banco realmente tem.
     insert into public.colaboradores (unidade_id, nome)
-    values ('SUA_UNIDADE', 'JOSEPH ANDREY GOMES DA SILVA')
+    values ('seldeestrela', 'JOSEPH ANDREY GOMES DA SILVA')
     returning id into v_id;
     raise notice 'CRIADO: JOSEPH ANDREY GOMES DA SILVA';
   else
@@ -481,7 +481,7 @@ begin
   insert into public.registro_ponto
     (colaborador_id, unidade_id, data_referencia, hora_entrada, hora_saida_intervalo,
      hora_retorno_intervalo, hora_saida, status_jornada, origem_batida)
-  select v_id, 'SUA_UNIDADE', d.data_referencia, d.entrada, d.int_ini, d.int_fim, d.saida, 4, 'manual'
+  select v_id, 'seldeestrela', d.data_referencia, d.entrada, d.int_ini, d.int_fim, d.saida, 4, 'manual'
     from (values
     ('2026-08-01', '2026-08-01 15:40:00', '2026-08-01 16:00:00', '2026-08-01 17:00:00', '2026-08-02 00:24:00'),
     ('2026-08-02', '2026-08-02 15:40:00', '2026-08-02 16:00:00', '2026-08-02 17:00:00', '2026-08-03 00:14:00'),
@@ -517,7 +517,7 @@ select c.nome,
        count(*) filter (where p.hora_saida is null)      as sem_saida
   from public.registro_ponto p
   join public.colaboradores c on c.id = p.colaborador_id
- where p.unidade_id = 'SUA_UNIDADE'
+ where p.unidade_id = 'seldeestrela'
    and p.data_referencia between '2026-08-01' and '2026-08-18'
  group by c.nome
  order by c.nome;

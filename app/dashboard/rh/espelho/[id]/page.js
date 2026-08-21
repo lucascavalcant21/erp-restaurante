@@ -211,7 +211,7 @@ export default function EspelhoDePonto() {
                </div>
                {/* Totais do mês. O que depende de conferência da contabilidade
                    fica em branco, como na folha de papel. */}
-               <table className="border-l border-slate-800 text-[8px] shrink-0" style={{ width: "38mm" }}>
+               <table data-print-table className="tabela-totais border-l border-slate-800 text-[8px] shrink-0" style={{ width: "38mm" }}>
                   <thead>
                      <tr>
                         <th className="border-b border-slate-800 px-1 font-black">TOTAIS</th>
@@ -222,7 +222,7 @@ export default function EspelhoDePonto() {
                   <tbody>
                      {["H. E. Diurna", "H. E. Noturna", "Adic.Noturno", "Faltas"].map((rot, i) => (
                         <tr key={rot}>
-                           <td className={`px-1 ${i < 3 ? "border-b border-slate-800" : ""}`}>{rot}</td>
+                           <td className={`px-1 whitespace-nowrap ${i < 3 ? "border-b border-slate-800" : ""}`}>{rot}</td>
                            <td className={`border-l border-slate-800 ${i < 3 ? "border-b border-slate-800" : ""}`}></td>
                            <td className={`border-l border-slate-800 ${i < 3 ? "border-b border-slate-800" : ""}`}></td>
                         </tr>
@@ -233,7 +233,7 @@ export default function EspelhoDePonto() {
          </div>
 
          {/* Tabela de Pontos */}
-          <table className="tabela-ponto w-full min-w-[680px] print:min-w-0 border-collapse border border-slate-800 text-center">
+          <table data-print-table className="tabela-ponto w-full min-w-[680px] print:min-w-0 border-collapse border border-slate-800 text-center">
             <thead>
                {/* Duas linhas de cabeçalho, como na folha: INTERVALO e HORAS
                    EXTRAS são grupos com subcolunas. */}

@@ -957,3 +957,44 @@ body {
 .erp-main-content .erp-ficha .text-\[11px\] { font-size: 12.5px; }
 .erp-main-content .erp-ficha .text-xs       { font-size: 13px; }
 .erp-main-content .erp-ficha .text-sm       { font-size: 14.5px; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   FOLHA DE PONTO — geometria de papel, não de lista de tela
+
+   Por que existe: as regras globais de tabela deste arquivo (th/td com
+   padding 16px 20px, texto 14px, listras, cabeçalho grudado) vivem FORA de
+   qualquer @layer, então vencem os utilitários Tailwind do componente por
+   ordem de cascata — não por especificidade. O resultado era a folha
+   inchada: cada célula com 16px de respiro, o bloco de identificação com um
+   vazio enorme e o mês transbordando para uma segunda página.
+
+   Aqui a geometria vem do componente, que copia o formulário impresso.
+   ───────────────────────────────────────────────────────────────────────── */
+.folha-espelho table {
+  border-collapse: collapse;
+  background: transparent;
+  table-layout: auto;
+}
+.folha-espelho th,
+.folha-espelho td {
+  padding: 0 2px;
+  font-size: inherit;
+  line-height: 1.3;
+  letter-spacing: normal;
+  text-transform: none;
+  color: #0f172a;
+  background: transparent;
+  border-bottom: 0;
+  box-shadow: none;
+  position: static;
+  transition: none;
+}
+/* Cabeçalho da folha não gruda: no papel ele aparece uma vez, no topo. */
+.folha-espelho thead th { position: static; top: auto; z-index: auto; }
+/* Sem listras nem hover — é documento assinado, não tabela navegável. */
+.folha-espelho tbody tr:hover td,
+.folha-espelho tbody tr:nth-child(even) td { background: transparent; }
+
+/* O quadro de totais tem linhas altas de propósito: são campos que a
+   contabilidade preenche à mão depois de imprimir. */
+.tabela-totais td { height: 7mm; }

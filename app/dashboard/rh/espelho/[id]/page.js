@@ -306,7 +306,7 @@ export default function EspelhoDePonto() {
                          <tr key={dia}>
                             <td className="border border-slate-800 !py-0 !px-1 font-bold bg-slate-50 text-slate-500 text-left">{rotuloDia(dia)}</td>
                             <td colSpan={7} className="border border-slate-800 !py-0 !px-1 font-black tracking-[0.18em] bg-slate-50">{textoFolga}</td>
-                            <td className="border border-slate-800 !py-0 !px-1"></td>
+                            <td className="border border-slate-800 !py-0 !px-1 font-black tracking-[0.12em] bg-slate-50 text-[8px]">{partesFolga[0]} — NÃO ASSINAR</td>
                          </tr>
                       );
                   }

@@ -28,7 +28,7 @@ export const ehLideranca = (c) => {
 const PADROES_AREA = {
   cozinha: /(cozinh|chapeir|confeit|pizzai|sushi|salgad|padeir|churrasqueir|acougue|copa|auxiliar de cozinha|prepar)/,
   bar: /(\bbar\b|barman|bartender|barista|copeir|drink|adega)/,
-  salao: /(gar[cç]|atendente|sal[ao]|hostess|maitre|recep|comand|caixa|cumim)/,
+  salao: /(gar[cç]|atendente|sal[ao]|hostess|maitre|recep|comand|caixa|cumim|chefe? de fila)/,
   limpeza: /(limpeza|higien|steward|zelador|faxin)/,
 };
 

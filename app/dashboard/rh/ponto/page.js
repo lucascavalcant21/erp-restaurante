@@ -103,10 +103,15 @@ const ORDEM_CATEGORIAS = ["Liderança", "Cozinha", "Bar", "Salão", "Outros"];
 
 // As três portas de entrada do ponto. Liderança e "Outros" entram nas três:
 // gerente cobre qualquer setor, e ninguém pode ficar sem lugar para bater.
+// Liderança não bate ponto: cargo de gestão é isento de controle de jornada
+// (CLT art. 62, II). Aparecer no tablet só gerava registro que ninguém usa e
+// poluía a lista de quem a casa precisa conferir. Chefe de Cozinha e Chef de
+// Garçom continuam: o cargo deles nomeia o setor, então caem em Cozinha e
+// Salão, não aqui.
 const AREAS_DA_CATEGORIA = {
-  cozinha: ["Cozinha", "Liderança", "Outros"],
-  salao: ["Salão", "Liderança", "Outros"],
-  bar: ["Bar", "Liderança", "Outros"],
+  cozinha: ["Cozinha", "Outros"],
+  salao: ["Salão", "Outros"],
+  bar: ["Bar", "Outros"],
 };
 const AREAS_PONTO = [
   { id: "cozinha", nome: "Cozinha", titulo: "Área da Cozinha", icone: ChefHat, cor: "#34D399", fundo: "rgba(16,185,129,.15)" },
@@ -115,9 +120,9 @@ const AREAS_PONTO = [
 ];
 function categoriaFuncao(cargo) {
   const c = (cargo || "").toLowerCase();
-  if (/(cozinh|chapeir|confeit|pizzai|sushi|salgad|padeir|churrasqueir|a[cç]ougue|chefe de fila|copa)/.test(c)) return "Cozinha";
+  if (/(cozinh|chapeir|confeit|pizzai|sushi|salgad|padeir|churrasqueir|a[cç]ougue|copa)/.test(c)) return "Cozinha";
   if (/(\bbar\b|barman|bartender|barista|drinks)/.test(c)) return "Bar";
-  if (/(gar[çc]|atendente|sal[aã]o|recep|hostess|maitre|maître|caixa|comand)/.test(c)) return "Salão";
+  if (/(gar[çc]|atendente|sal[aã]o|recep|hostess|maitre|maître|caixa|comand|chefe de fila|chef de fila)/.test(c)) return "Salão";
   if (/(gerente|supervisor|\bceo\b|coordenad|encarregad|gestor|propriet|diretor|s[oó]cio)/.test(c)) return "Liderança";
   return "Outros";
 }

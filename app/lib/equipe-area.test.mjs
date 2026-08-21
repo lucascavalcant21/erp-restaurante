@@ -51,5 +51,14 @@ const comExtras = [...equipe,
 ];
 conferir("extra fica de fora", nomes(equipeDaArea(comExtras, "salao")), "Brenda, Larissa");
 
+// Chefe de fila e do salao, nao da cozinha: o "chefe" casava com a regra de
+// lideranca e o cargo ia parar em todas as areas.
+const comFila = [...equipe, { nome: "Rita Fila", cargo: "Chefe de Fila" }];
+conferir("chefe de fila entra no salao",
+  String(equipeDaArea(comFila, "salao").some(c => c.cargo === "Chefe de Fila")), "true");
+conferir("chefe de fila nao vaza p/ a cozinha",
+  String(equipeDaArea(comFila, "cozinha").some(c => c.cargo === "Chefe de Fila")), "false");
+conferir("chefe de fila tem setor proprio", String(ehDeAlgumSetor({ cargo: "Chefe de Fila" })), "true");
+
 console.log(falhas ? `\n${falhas} falha(s)` : "\nTodos os casos passaram.");
 process.exit(falhas ? 1 : 0);

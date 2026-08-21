@@ -64,6 +64,9 @@ function percentualCadastroFuncionario(f) {
 export default function RHPage() {
   const router = useRouter();
   const { unidadeAtiva, unidadeInfo } = useERP();
+  // "71 dias de Seldeestrela" diz mais que "71 dias de casa": a equipe chama a
+  // unidade pelo nome, e quem opera mais de uma precisa saber de qual se trata.
+  const nomeDaCasa = unidadeInfo?.nome || "casa";
   
   const [funcionarios, setFuncionarios] = useState([]);
   const [pontosHoje, setPontosHoje] = useState([]);
@@ -1485,7 +1488,7 @@ export default function RHPage() {
      
      // Tempo de casa: aparece para todo mundo, em experiência ou efetivo.
      const casa = tempoDeCasa(f, hj);
-     if (casa) badges.push({ text: `${casa.texto} de casa`, color: 'text-slate-700 bg-slate-100 border-slate-200' });
+     if (casa) badges.push({ text: `${casa.texto} de ${nomeDaCasa}`, color: 'text-slate-700 bg-slate-100 border-slate-200' });
 
      // Aniversário próximo (ou hoje) — o RH costuma querer lembrar.
      const aniv = aniversario(f, hj);
@@ -2039,7 +2042,7 @@ export default function RHPage() {
                                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-bold text-slate-500">
                                     {f.tipo_contrato && <span className="rounded-md bg-slate-100 px-2 py-0.5 text-slate-600">{f.tipo_contrato}</span>}
                                     {adm && <span>Admissão {adm}</span>}
-                                    {casa && <span className="text-emerald-700">{casa.textoDias} de casa</span>}
+                                    {casa && <span className="text-emerald-700">{casa.textoDias} de {nomeDaCasa}</span>}
                                     {aniv && <span className={aniv.ehHoje ? "text-amber-600" : ""}>Aniversário {aniv.diaMes}{aniv.ehHoje ? " · é hoje" : ""}</span>}
                                  </div>
                               );

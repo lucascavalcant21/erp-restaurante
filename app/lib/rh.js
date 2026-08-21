@@ -1,4 +1,5 @@
 import { supabase, isSupabaseReady } from "./supabase";
+import { calcularAdicionaisPorDia, jornadaContratadaMin, minutosTrabalhados } from "./jornada-calculo.mjs";
 
 export async function fetchColaboradores(unidadeId) {
   if (!isSupabaseReady()) return { data: [], error: "Supabase offline" };
@@ -595,48 +596,24 @@ export async function removerBancoHoras(id) {
   return { error: error?.message };
 }
 
-// ─── REMUNERAÇÃO (CLT simplificada) ─────────────────────────────────────────
-// Regras da casa: adicional noturno começa às 23:30 (20% sobre a hora normal,
-// ref. CLT art. 73); o que passar de 00:00 conta como hora extra (+50%,
-// ref. CF art. 7º XVI); dia trabalhado em FERIADO paga adicional de 100%
-// (dobro, Lei 605/49 art. 9º). Hora normal = salário ÷ 220 (divisor CLT).
-export function calcularAdicionaisMes(pontosMes, salarioBase, feriados = []) {
+// ─── REMUNERAÇÃO ────────────────────────────────────────────────────────────
+// Adicional noturno de 20% sobre a hora normal (CLT art. 73), hora extra com
+// +50% (CF art. 7º XVI) e feriado trabalhado com +100% (Lei 605/49 art. 9º).
+// Hora normal = salário ÷ 220 (divisor CLT).
+//
+// A contagem dos minutos vem de jornada-calculo.mjs, a mesma que alimenta o
+// espelho: antes esta função tinha a própria conta, com a faixa noturna errada
+// (23:30 em vez de 22h) e sem a hora ficta. Duas contas paralelas para o mesmo
+// número é como o erro sobreviveu tanto tempo.
+export function calcularAdicionaisMes(pontosMes, salarioBase, feriados = [], opcoes = {}) {
   const valorHora = (Number(salarioBase) || 0) / 220;
-  const feriadosSet = new Set((feriados || []).map(f => f.data || f));
-  let minNoturno = 0;   // 23:30 → 00:00
-  let minExtra = 0;     // após 00:00
-  let minFeriado = 0;   // horas trabalhadas em dia de feriado
-
-  (pontosMes || []).forEach(reg => {
-    if (!reg.hora_entrada || !reg.hora_saida) return;
-    const entrada = new Date(reg.hora_entrada);
-    const saida = new Date(reg.hora_saida);
-    if (saida <= entrada) return;
-
-    // Marco das 23:30 do dia da entrada e a meia-noite seguinte
-    const marco2330 = new Date(entrada); marco2330.setHours(23, 30, 0, 0);
-    const meiaNoite = new Date(marco2330); meiaNoite.setMinutes(meiaNoite.getMinutes() + 30);
-
-    // Minutos trabalhados entre 23:30 e 00:00 → adicional noturno
-    const iniNot = Math.max(entrada.getTime(), marco2330.getTime());
-    const fimNot = Math.min(saida.getTime(), meiaNoite.getTime());
-    if (fimNot > iniNot) minNoturno += Math.round((fimNot - iniNot) / 60000);
-
-    // Minutos após a meia-noite → hora extra
-    if (saida.getTime() > meiaNoite.getTime()) {
-      minExtra += Math.round((saida.getTime() - meiaNoite.getTime()) / 60000);
-    }
-
-    // Dia de feriado: todas as horas trabalhadas pagam +100%
-    if (feriadosSet.has(reg.data_referencia)) {
-      // Desconta o intervalo, se registrado
-      let minDia = Math.round((saida - entrada) / 60000);
-      if (reg.hora_saida_intervalo && reg.hora_retorno_intervalo) {
-        minDia -= Math.max(0, Math.round((new Date(reg.hora_retorno_intervalo) - new Date(reg.hora_saida_intervalo)) / 60000));
-      }
-      if (minDia > 0) minFeriado += minDia;
-    }
-  });
+  const totais = calcularAdicionaisPorDia(pontosMes, feriados, opcoes)
+    .reduce((a, d) => ({
+      minNoturno: a.minNoturno + d.minNoturno,
+      minExtra: a.minExtra + d.minExtra,
+      minFeriado: a.minFeriado + d.minFeriado,
+    }), { minNoturno: 0, minExtra: 0, minFeriado: 0 });
+  const { minNoturno, minExtra, minFeriado } = totais;
 
   const valorNoturno = (minNoturno / 60) * valorHora * 0.20;      // só o adicional de 20%
   const valorExtra = (minExtra / 60) * valorHora * 1.50;          // hora cheia + 50%
@@ -649,45 +626,12 @@ export function calcularAdicionaisMes(pontosMes, salarioBase, feriados = []) {
   };
 }
 
-// Mesmas regras, mas DIA A DIA — alimenta o relatório do espelho de ponto
-// ("quais dias teve hora extra / adicional noturno e quantos minutos").
-// toleranciaMin: a batida guardada é sempre a real, então a tolerância da CLT
-// (art. 58 §1º) tem que ser aplicada AQUI. Sem isso, sair 00:02 com turno até
-// 00:00 viraria 2 min de hora extra — e passaria a gerar extra quase todo dia.
+// Cálculo dia a dia dos adicionais — alimenta o relatório do espelho.
 //
-// Ultrapassada a tolerância, conta o período INTEIRO, não só o excedente: é o
-// que diz a Súmula 366 do TST. Sair 00:07 são 7 min de extra, não 2.
-export function calcularAdicionaisPorDia(pontosMes, feriados = [], toleranciaMin = 5) {
-  const feriadosSet = new Set((feriados || []).map(f => f.data || f));
-  const dias = [];
-  (pontosMes || []).forEach(reg => {
-    if (!reg.hora_entrada || !reg.hora_saida) return;
-    const entrada = new Date(reg.hora_entrada);
-    const saida = new Date(reg.hora_saida);
-    if (saida <= entrada) return;
-
-    const marco2330 = new Date(entrada); marco2330.setHours(23, 30, 0, 0);
-    const meiaNoite = new Date(marco2330); meiaNoite.setMinutes(meiaNoite.getMinutes() + 30);
-
-    let minNoturno = 0, minExtra = 0, minFeriado = 0;
-    const iniNot = Math.max(entrada.getTime(), marco2330.getTime());
-    const fimNot = Math.min(saida.getTime(), meiaNoite.getTime());
-    if (fimNot > iniNot) minNoturno = Math.round((fimNot - iniNot) / 60000);
-    if (saida.getTime() > meiaNoite.getTime()) minExtra = Math.round((saida.getTime() - meiaNoite.getTime()) / 60000);
-    if (minExtra > 0 && minExtra <= toleranciaMin) minExtra = 0;
-    if (feriadosSet.has(reg.data_referencia)) {
-      let minDia = Math.round((saida - entrada) / 60000);
-      if (reg.hora_saida_intervalo && reg.hora_retorno_intervalo) {
-        minDia -= Math.max(0, Math.round((new Date(reg.hora_retorno_intervalo) - new Date(reg.hora_saida_intervalo)) / 60000));
-      }
-      if (minDia > 0) minFeriado = minDia;
-    }
-    if (minNoturno > 0 || minExtra > 0 || minFeriado > 0) {
-      dias.push({ data: reg.data_referencia, minNoturno, minExtra, minFeriado });
-    }
-  });
-  return dias.sort((a, b) => String(a.data).localeCompare(String(b.data)));
-}
+// Mora em jornada-calculo.mjs: é o código que decide quanto a casa paga, e lá
+// ele roda sem Supabase, com testes que cobrem a faixa noturna, a hora ficta e
+// a tolerância. Rode com: node app/lib/jornada-calculo.test.mjs
+export { calcularAdicionaisPorDia, jornadaContratadaMin, minutosTrabalhados };
 
 // ─── FERIADOS DA UNIDADE ─────────────────────────────────────────────────────
 export async function fetchFeriados(unidadeId, mesAno = null) {

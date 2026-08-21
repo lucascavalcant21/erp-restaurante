@@ -21,7 +21,7 @@ import { fetchPontoHoje, fetchPontosMes, fetchPontosMesUnidade, fetchHistoricoPo
 import { situacaoDoPonto } from "../../lib/ponto-status.mjs";
 import { situacaoExperiencia, emExperiencia, tempoDeCasa, aniversario, ESTADOS_CIVIS, ESCOLARIDADES, GENEROS } from "../../lib/contrato-experiencia.mjs";
 import { fetchValesPendentes } from "../../lib/rh";
-import { calcularAdicionaisMes, calcularAdicionaisPorDia } from "../../lib/rh";
+import { calcularAdicionaisMes, calcularAdicionaisPorDia, jornadaContratadaMin } from "../../lib/rh";
 import { salvarConta, fetchContas, fetchLancamentos } from "../../lib/financeiro";
 import { fetchCardapio } from "../../lib/cardapio";
 import { fetchProdutos } from "../../lib/vendas";
@@ -558,7 +558,7 @@ export default function RHPage() {
     const taxa = Number(f.taxa_servico_mes) || 0;
     const base = fixo + va + taxa; // remuneração cheia
     const meusPontos = pontosMesUnidade.filter(p => p.colaborador_id === f.id);
-    const ad = calcularAdicionaisMes(meusPontos, fixo, feriadosMesAtual);
+    const ad = calcularAdicionaisMes(meusPontos, fixo, feriadosMesAtual, { contratadaDoDia: (d) => jornadaContratadaMin(f, d) });
     const descontos = valesPendentes
       .filter(v => v.funcionario_id === f.id)
       .reduce((s, v) => s + (Number(v.valor_final ?? v.valor_desconto ?? v.valor_original) || 0), 0);
@@ -757,7 +757,7 @@ export default function RHPage() {
     const folha = [];
     for (const f of fixos) {
       const { data: pontos } = await fetchPontosMes(f.id, mesISO);
-      const ad = calcularAdicionaisMes(pontos || [], f.salario, feriadosMes || []);
+      const ad = calcularAdicionaisMes(pontos || [], f.salario, feriadosMes || [], { contratadaDoDia: (d) => jornadaContratadaMin(f, d) });
       const fixo = Number(f.salario) || 0;
       const va = Number(f.vale_alimentacao) || 0;
       const taxa = Number(f.taxa_servico_mes) || 0;
@@ -2055,7 +2055,7 @@ export default function RHPage() {
                                  (() => {
                                  // Dia a dia do mês: alimenta os cliques (extra/noturno/feriado) e os contadores
                                  const meusPontos = pontosMesUnidade.filter(x => x.colaborador_id === f.id);
-                                 const porDia = calcularAdicionaisPorDia(meusPontos, feriadosMesAtual);
+                                 const porDia = calcularAdicionaisPorDia(meusPontos, feriadosMesAtual, { contratadaDoDia: (d) => jornadaContratadaMin(f, d) });
                                  const fSet = new Set((feriadosMesAtual || []).map(x => x.data || x));
                                  const diasTrab = [...new Set(meusPontos.filter(x => x.hora_entrada).map(x => x.data_referencia))];
                                  const escala = new Set(String(f.dias_trabalho || "").split(",").filter(Boolean));

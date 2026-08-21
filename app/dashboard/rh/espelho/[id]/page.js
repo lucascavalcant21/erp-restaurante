@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabase";
 import { fetchPontosMes } from "../../../../lib/ponto";
-import { fetchFolgasEsporadicas, fetchBancoHorasColaborador, fetchFeriados, calcularAdicionaisPorDia, fetchEspelhoFechado, fecharEspelho } from "../../../../lib/rh";
+import { fetchFolgasEsporadicas, fetchBancoHorasColaborador, fetchFeriados, calcularAdicionaisPorDia, jornadaContratadaMin, fetchEspelhoFechado, fecharEspelho } from "../../../../lib/rh";
 import { Printer, ArrowLeft } from "lucide-react";
 
 export default function EspelhoDePonto() {
@@ -458,7 +458,7 @@ export default function EspelhoDePonto() {
 
          {/* Hora extra e adicional noturno — dia a dia */}
          {(() => {
-            const dias = calcularAdicionaisPorDia(pontos, feriadosMes);
+            const dias = calcularAdicionaisPorDia(pontos, feriadosMes, { contratadaDoDia: (d) => jornadaContratadaMin(colaborador, d) });
             if (!dias.length) return null;
             const tot = dias.reduce((a, d) => ({ e: a.e + d.minExtra, n: a.n + d.minNoturno, f: a.f + d.minFeriado }), { e: 0, n: 0, f: 0 });
             const fmtM = (m) => m > 0 ? `${m} min` : "—";
@@ -498,7 +498,7 @@ export default function EspelhoDePonto() {
          })()}
 
          <div className="mt-2 text-[8px] text-slate-600 leading-snug">
-            <b>Descanso Semanal Remunerado (DSR):</b> incluso na remuneração mensal (Lei 605/49). Adicional noturno de 20% entre 23h30 e 00h00; após 00h00, hora extra com acréscimo de 50%; feriado trabalhado com adicional de 100%.
+            <b>Descanso Semanal Remunerado (DSR):</b> incluso na remuneração mensal (Lei 605/49). Adicional noturno de 20% das 22h00 às 05h00, com hora noturna reduzida de 52min30s (CLT art. 73). Hora extra além da jornada contratada com acréscimo de 50%; tolerância de 5 min por marcação, limitada a 10 min diários (CLT art. 58, §1º). Feriado trabalhado com adicional de 100%.
          </div>
 
          

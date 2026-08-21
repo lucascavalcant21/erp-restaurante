@@ -118,28 +118,13 @@ export async function fetchPontosMesUnidade(unidadeId, anoMes) {
   return { data: data || [], error: error?.message };
 }
 
-// Funcionário declarou que NÃO vai tirar o intervalo hoje: pula direto para o
-// estado "voltou do intervalo" (sem horários de intervalo) — a próxima batida
-// é a saída. Os minutos não tirados vão para o banco de horas (feito na tela).
-export async function pularIntervalo(colaboradorId) {
-  if (!isSupabaseReady()) return { error: "Offline" };
-  const hoje = dataLocalISO(0);
-  const ontem = dataLocalISO(-1);
-  const { data: registros } = await supabase
-    .from("registro_ponto")
-    .select("id, hora_entrada, hora_saida, data_referencia")
-    .eq("colaborador_id", colaboradorId)
-    .in("data_referencia", [hoje, ontem])
-    .order("data_referencia", { ascending: false });
-  // Hoje primeiro; senão a jornada de ontem ainda aberta (madrugada)
-  const registro = (registros || []).find(r => r.data_referencia === hoje)
-    || (registros || []).find(r => r.data_referencia === ontem && jornadaAbertaDeOntem(r));
-  if (!registro || !registro.hora_entrada) return { error: "Precisa bater a entrada primeiro." };
-  const { error } = await supabase.from("registro_ponto")
-    .update({ status_jornada: 3 })
-    .eq("id", registro.id);
-  return { error: error?.message };
-}
+// A opção de declarar que NÃO vai tirar o intervalo saiu do sistema.
+//
+// A CLT art. 71 obriga a CONCESSÃO do intervalo, e o §4º manda pagar como
+// extra, com 50%, o período suprimido. Um botão que oferece pular convidava à
+// irregularidade e ainda deixava gravado que a casa ofereceu — prova pronta
+// contra ela mesma. Quem precisar encurtar bate a volta antes e justifica:
+// assim é exceção registrada, não rotina oferecida.
 
 // horaMarcada (ISO, opcional): hora AJUSTADA pela tolerância (Súmula 366 TST) —
 // ex.: bateu 15:39 com turno 15:40 => grava 15:40. Sem ela, usa a hora real.

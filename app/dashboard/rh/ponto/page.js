@@ -9,7 +9,7 @@ import {
 import { useERP } from "../../../context/ERPContext";
 import { useRouter } from "next/navigation";
 import { fetchColaboradores, inserirBancoHoras, fetchBancoHorasColaborador, somaMinutosBanco, fetchAllFolgasDaUnidade, fetchLiberacoesDia, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN } from "../../../lib/rh";
-import { fetchPontoHoje, fetchPontosMes, registrarBatida, pularIntervalo } from "../../../lib/ponto";
+import { fetchPontoHoje, fetchPontosMes, registrarBatida } from "../../../lib/ponto";
 import { fetchPins } from "../../../lib/seguranca";
 import { fetchParams, PARAMS_PADRAO } from "../../../lib/parametros";
 import { useTempoReal } from "../../../lib/realtime";
@@ -243,7 +243,7 @@ export default function PontoPage() {
   const [bancoMes, setBancoMes] = useState([]);
   const [batendo, setBatendo] = useState(false);
   const [sucesso, setSucesso] = useState(null); // { titulo, detalhe, tone }
-  const [justif, setJustif] = useState(null);    // { tipo: 'retorno_cedo' | 'pular_intervalo', ... }
+  const [justif, setJustif] = useState(null);    // { tipo: 'retorno_cedo', tirou, faltou }
   const [liberados, setLiberados] = useState({}); // { [colabId]: true } — atraso liberado pelo gerente hoje
   const [pinAberto, setPinAberto] = useState(false);
   const [pinAntecipada, setPinAntecipada] = useState(false);      // entrar ANTES do horário (reunião)
@@ -655,13 +655,6 @@ export default function PontoPage() {
         setJustif(null);
         mostrarSucesso(`Volta registrada às ${agoraStr}`,
           `${primeiro}, ${j.tirou} min de intervalo. ${creditado > 0 ? `${fmtMin(creditado)} foram pro seu banco de horas.` : ""} ${aviso}`);
-      } else if (j.tipo === "pular_intervalo") {
-        const { error } = await pularIntervalo(selecionado.id);
-        if (error) { alert(error); return; }
-        const { creditado, aviso } = await creditarBanco(intervaloPadrao, `Não tirou o intervalo. Motivo: ${motivo}`);
-        setJustif(null);
-        mostrarSucesso("Intervalo não tirado — registrado!",
-          `${creditado > 0 ? `${fmtMin(creditado)} creditados no seu banco de horas.` : ""} ${aviso}`);
       }
     } finally {
       setBatendo(false);
@@ -816,10 +809,8 @@ export default function PontoPage() {
         )}
         {justif && (
           <ModalJustificativa
-            titulo={justif.tipo === "pular_intervalo" ? "Não vai tirar o intervalo?" : `Voltando ${justif.tirou}min de intervalo`}
-            subtitulo={justif.tipo === "pular_intervalo"
-              ? `O intervalo de ${fmtMin(intervaloPadrao)} vai pro seu banco de horas. Diga o porquê:`
-              : `Faltam ${justif.faltou}min para completar ${fmtMin(intervaloPadrao)}. Diga o porquê de voltar antes:`}
+            titulo={`Voltando ${justif.tirou}min de intervalo`}
+            subtitulo={`Faltam ${justif.faltou}min para completar ${fmtMin(intervaloPadrao)}. Diga o porquê de voltar antes:`}
             confirmando={batendo}
             onConfirm={confirmarJustificativa}
             onClose={() => setJustif(null)}
@@ -944,13 +935,11 @@ export default function PontoPage() {
             </button>
           )}
 
-          {/* Não vou tirar o intervalo — só aparece na etapa certa */}
-          {etapa === "saida_intervalo" && podeBater && (
-            <button onClick={() => setJustif({ tipo: "pular_intervalo" })} disabled={batendo}
-              className="w-full py-4 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 text-amber-400 rounded-2xl font-black text-base transition-colors flex items-center justify-center gap-2 mb-6">
-              <AlertTriangle size={18} /> Não vou tirar a folga de {fmtMin(intervaloPadrao)} hoje
-            </button>
-          )}
+          {/* O intervalo não é opcional: a CLT art. 71 obriga a concessão, e
+              o §4º manda pagar como extra o período suprimido. Oferecer o botão
+              de pular convidava à irregularidade e ainda deixava registrado que
+              a casa sabia. Quem precisar encurtar bate a volta antes e
+              justifica — aí fica a exceção, não a rotina. */}
 
           {/* Histórico do mês, com navegação. O funcionário precisa conseguir
               conferir o mês fechado — com 7 dias não dava para contestar uma

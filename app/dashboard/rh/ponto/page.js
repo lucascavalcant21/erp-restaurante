@@ -1107,7 +1107,9 @@ export default function PontoPage() {
           <div className="absolute left-1/2 -translate-x-1/2 -top-8 w-[420px] max-w-full h-44 bg-emerald-500/10 blur-3xl rounded-full pointer-events-none" />
           <p className="text-emerald-400 font-black uppercase tracking-[0.3em] text-xs mb-1 relative">{saudacao}, Equipe</p>
           <h1 className="text-8xl md:text-[10rem] font-black tabular-nums tracking-tight relative bg-gradient-to-b from-white via-white to-slate-500 bg-clip-text text-transparent">
-            {horaLocal.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+            {/* Segundos não são enfeite: o Anexo IX, item 3, exige que o
+                coletor exiba horas, minutos e segundos no momento da marcação. */}
+            {horaLocal.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
             <span className="text-3xl md:text-4xl text-emerald-500/70 ml-2">{String(horaLocal.getSeconds()).padStart(2, "0")}</span>
           </h1>
           <p className="text-slate-500 font-bold uppercase tracking-widest mt-2 relative">

@@ -232,3 +232,20 @@ end $$;
 -- continua barrando pelo cliente.
 
 notify pgrst, 'reload schema';
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- HORA DO SERVIDOR NA MARCAÇÃO (Anexo IX, itens 2 e 8.2)
+--
+-- O REP-P precisa obter a data e a hora "de forma confiável", sincronizadas com
+-- a Hora Legal Brasileira com variação máxima de 30 segundos. O relógio do
+-- tablet não serve: ele é ajustável por quem usa, e uma marcação com hora do
+-- próprio aparelho não prova nada.
+--
+-- Com o default, o servidor carimba a hora e o cliente nem participa disso.
+-- Importação e ajuste continuam podendo informar a hora, que é justamente o
+-- caso em que ela NÃO é a de agora.
+-- ─────────────────────────────────────────────────────────────────────────────
+alter table public.ponto_marcacao alter column marcado_em set default now();
+
+notify pgrst, 'reload schema';

@@ -34,7 +34,7 @@ export async function registrarMarcacao({
   valorAnterior = null, tipoAlvo = null, registradoPor = null, motivo = null,
 }) {
   if (!isSupabaseReady()) return { erro: "Offline", pendente: true };
-  if (!unidadeId || !colaboradorId || !tipo || !marcadoEm || !dataReferencia) {
+  if (!unidadeId || !colaboradorId || !tipo || !dataReferencia) {
     return { erro: "Marcação incompleta", pendente: true };
   }
 
@@ -44,7 +44,11 @@ export async function registrarMarcacao({
       unidade_id: unidadeId,
       colaborador_id: colaboradorId,
       tipo,
-      marcado_em: marcadoEm,
+      // Sem marcadoEm o banco carimba com now(). O Anexo IX, itens 2 e 8.2,
+      // exige hora obtida de forma confiável — o relógio do tablet é ajustável
+      // por quem usa, então marcação com hora do aparelho não prova nada.
+      // Importação e ajuste informam a hora, que é o caso em que ela não é agora.
+      ...(marcadoEm ? { marcado_em: marcadoEm } : {}),
       data_referencia: dataReferencia,
       origem,
       latitude, longitude,

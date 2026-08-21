@@ -211,6 +211,13 @@ export async function registrarBatida(colaboradorId, unidadeId, tipoBatida, hora
     updates.localizacoes = [...anteriores, marca];
   }
 
+  // O livro é a fonte da hora: o servidor carimbou, e o resumo do dia segue o
+  // livro. Divergir aqui faria o espelho mostrar uma hora e o AFD outra.
+  const horaOficial = marcacao.marcadoEm || agora;
+  for (const campo of ["hora_entrada", "hora_saida_intervalo", "hora_retorno_intervalo", "hora_saida"]) {
+    if (updates[campo]) updates[campo] = horaOficial;
+  }
+
   // Coluna nova ainda não migrada não pode impedir alguém de bater o ponto:
   // grava sem ela e o histórico de localização começa quando o SQL rodar.
   const semColunaNova = (erro) => /localizacoes/i.test(erro?.message || "");
@@ -226,7 +233,9 @@ export async function registrarBatida(colaboradorId, unidadeId, tipoBatida, hora
     unidadeId,
     colaboradorId,
     tipo: tipoBatida,
-    marcadoEm: agora,
+    // Hora só quando ela NÃO é agora (tolerância antiga, importação). No fluxo
+    // normal vai vazia e quem carimba é o servidor.
+    marcadoEm: horaMarcada || null,
     dataReferencia: dataDaMarcacao,
     origem: "tablet",
     latitude: dadosGPS?.latitude ?? null,
@@ -242,7 +251,7 @@ export async function registrarBatida(colaboradorId, unidadeId, tipoBatida, hora
       const { localizacoes, ...semHistorico } = updates;
       ({ error } = await supabase.from("registro_ponto").insert([{ ...base, ...semHistorico }]));
     }
-    return { error: error?.message, novoStatus, nsr: marcacao.nsr, hash: marcacao.hash || null, marcadoEm: agora, avisoLegal: marcacao.erro || null };
+    return { error: error?.message, novoStatus, nsr: marcacao.nsr, hash: marcacao.hash || null, marcadoEm: horaOficial, avisoLegal: marcacao.erro || null };
   } else {
     // Atualiza o registro existente
     let { error } = await supabase.from("registro_ponto").update(updates).eq("id", registro.id);
@@ -250,7 +259,7 @@ export async function registrarBatida(colaboradorId, unidadeId, tipoBatida, hora
       const { localizacoes, ...semHistorico } = updates;
       ({ error } = await supabase.from("registro_ponto").update(semHistorico).eq("id", registro.id));
     }
-    return { error: error?.message, novoStatus, nsr: marcacao.nsr, hash: marcacao.hash || null, marcadoEm: agora, avisoLegal: marcacao.erro || null };
+    return { error: error?.message, novoStatus, nsr: marcacao.nsr, hash: marcacao.hash || null, marcadoEm: horaOficial, avisoLegal: marcacao.erro || null };
   }
 }
 

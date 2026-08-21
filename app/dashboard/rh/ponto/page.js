@@ -412,22 +412,29 @@ export default function PontoPage() {
     }, tone === "alerta" ? 3500 : 2000);
   };
 
-  // Registra a batida de uma etapa. horaMarcada = hora ajustada pela tolerância
-  // (grava e mostra o horário "cheio"); atrasoMin > 0 = entrada fora da tolerância.
-  const executarBatida = async (etapa, reg, horaMarcada = null, atrasoMin = 0, extrasSaida = {}) => {
+  // Registra a batida de uma etapa.
+  //
+  // A hora GRAVADA é sempre a hora real do relógio. A tolerância não muda o
+  // registro, só a conta: quem bateu 15:39 tem 15:39 no espelho, e o sistema
+  // sabe que aqueles 60 segundos não geram atraso. Gravar 15:40 apagava a
+  // marcação verdadeira — e é ela que a Portaria 671/2021 manda guardar.
+  //
+  // horaPrevista = horário do turno, usado só para decidir atraso/hora extra.
+  const executarBatida = async (etapa, reg, horaPrevista = null, atrasoMin = 0, extrasSaida = {}) => {
     setBatendo(true);
     try {
-      const { error } = await registrarBatida(selecionado.id, unidadeAtiva, etapa, horaMarcada ? horaMarcada.toISOString() : null);
+      const { error } = await registrarBatida(selecionado.id, unidadeAtiva, etapa);
       if (error) { alert(error); return; }
-      const agoraStr = (horaMarcada || new Date()).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+      const agoraStr = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
       const primeiro = selecionado.nome.split(" ")[0];
 
       // Volta do intervalo com tempo ACIMA do padrão (fora da tolerância): excesso
       if (etapa === "retorno_intervalo" && reg?.hora_saida_intervalo) {
-        const base = horaMarcada ? horaMarcada.getTime() : Date.now();
-        const tirou = Math.round((base - new Date(reg.hora_saida_intervalo).getTime()) / 60000);
+        const tirou = Math.round((Date.now() - new Date(reg.hora_saida_intervalo).getTime()) / 60000);
         const passou = tirou - intervaloPadrao;
-        if (passou >= 1) {
+        // A tolerância entra aqui, não no registro: voltar 2 min depois não é
+        // excesso de intervalo, mas o horário gravado continua sendo o real.
+        if (passou > cfgP.tolerancia_retorno) {
           const hoje = new Date().toISOString().split("T")[0];
           await inserirBancoHoras(unidadeAtiva, selecionado.id, hoje, passou,
             `Passou ${passou}min do intervalo (tirou ${tirou}min de ${intervaloPadrao}min)`, "excesso");
@@ -480,7 +487,9 @@ export default function PontoPage() {
     const etapa = proximaEtapa(reg);
     if (etapa === "concluido") return;
     const agora = new Date();
-    let horaMarcada = null;
+    // horaPrevista existe só para comparar; o que vai para o banco é a hora
+    // real da batida, em qualquer etapa.
+    let horaPrevista = null;
     let atrasoMin = 0;
 
     // ENTRADA: até 5 min depois (ou adiantado, já liberado) grava o horário do turno
@@ -489,7 +498,7 @@ export default function PontoPage() {
       if (entradaStr) {
         const prevista = comHora(agora, entradaStr);
         const diffMin = (agora.getTime() - prevista.getTime()) / 60000;
-        if (diffMin <= cfgP.tolerancia_marcacao) horaMarcada = prevista;
+        if (diffMin <= cfgP.tolerancia_marcacao) horaPrevista = prevista;
         else atrasoMin = Math.round(diffMin);
       }
     }
@@ -503,7 +512,7 @@ export default function PontoPage() {
         setJustif({ tipo: "retorno_cedo", tirou, faltou: intervaloPadrao - tirou });
         return;
       }
-      if (diffMin <= cfgP.tolerancia_retorno) horaMarcada = prevista;
+      if (diffMin <= cfgP.tolerancia_retorno) horaPrevista = prevista;
     }
 
     // SAÍDA DO TRABALHO: até 5 min de diferença do horário grava o horário do turno
@@ -517,13 +526,13 @@ export default function PontoPage() {
         const cands = [-1, 0, 1].map(d => { const c = comHora(agora, saidaStr); c.setDate(c.getDate() + d); return c; });
         const prevista = cands.reduce((a, b) => Math.abs(agora - b) < Math.abs(agora - a) ? b : a);
         const difMin = (agora.getTime() - prevista.getTime()) / 60000;
-        if (Math.abs(difMin) <= cfgP.tolerancia_marcacao) horaMarcada = prevista;
+        if (Math.abs(difMin) <= cfgP.tolerancia_marcacao) horaPrevista = prevista;
         else if (difMin > 0) extrasSaida = { extraMin: Math.round(difMin), prevStr: saidaStr };
         else extrasSaida = { saiuAntesMin: Math.round(-difMin), prevStr: saidaStr };
       }
     }
 
-    await executarBatida(etapa, reg, horaMarcada, atrasoMin, extrasSaida);
+    await executarBatida(etapa, reg, horaPrevista, atrasoMin, extrasSaida);
   };
 
   // Entrada ANTECIPADA autorizada (reunião/serviço): o gerente decide se os

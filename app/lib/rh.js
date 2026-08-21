@@ -651,7 +651,13 @@ export function calcularAdicionaisMes(pontosMes, salarioBase, feriados = []) {
 
 // Mesmas regras, mas DIA A DIA — alimenta o relatório do espelho de ponto
 // ("quais dias teve hora extra / adicional noturno e quantos minutos").
-export function calcularAdicionaisPorDia(pontosMes, feriados = []) {
+// toleranciaMin: a batida guardada é sempre a real, então a tolerância da CLT
+// (art. 58 §1º) tem que ser aplicada AQUI. Sem isso, sair 00:02 com turno até
+// 00:00 viraria 2 min de hora extra — e passaria a gerar extra quase todo dia.
+//
+// Ultrapassada a tolerância, conta o período INTEIRO, não só o excedente: é o
+// que diz a Súmula 366 do TST. Sair 00:07 são 7 min de extra, não 2.
+export function calcularAdicionaisPorDia(pontosMes, feriados = [], toleranciaMin = 5) {
   const feriadosSet = new Set((feriados || []).map(f => f.data || f));
   const dias = [];
   (pontosMes || []).forEach(reg => {
@@ -668,6 +674,7 @@ export function calcularAdicionaisPorDia(pontosMes, feriados = []) {
     const fimNot = Math.min(saida.getTime(), meiaNoite.getTime());
     if (fimNot > iniNot) minNoturno = Math.round((fimNot - iniNot) / 60000);
     if (saida.getTime() > meiaNoite.getTime()) minExtra = Math.round((saida.getTime() - meiaNoite.getTime()) / 60000);
+    if (minExtra > 0 && minExtra <= toleranciaMin) minExtra = 0;
     if (feriadosSet.has(reg.data_referencia)) {
       let minDia = Math.round((saida - entrada) / 60000);
       if (reg.hora_saida_intervalo && reg.hora_retorno_intervalo) {

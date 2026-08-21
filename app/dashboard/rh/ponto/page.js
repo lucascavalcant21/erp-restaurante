@@ -987,8 +987,8 @@ export default function PontoPage() {
       <div className="max-w-4xl mx-auto p-6 md:p-10">
         <div className="flex items-center justify-between mb-6">
           {kiosk ? (
-            <button onClick={() => setPinSair(true)} className="flex items-center gap-2 px-4 py-3 bg-slate-900 hover:bg-slate-800 text-slate-600 hover:text-slate-400 rounded-2xl font-bold text-xs transition-colors border border-slate-800" title="Destravar com PIN do gerente">
-              <Lock size={14} /> Travado
+            <button onClick={() => setPinSair(true)} aria-label="Destravar com PIN do gerente" className="grid h-12 w-12 place-items-center bg-slate-900 hover:bg-slate-800 text-slate-600 hover:text-slate-400 rounded-2xl transition-colors border border-slate-800" title="Destravar com PIN do gerente">
+              <Lock size={18} />
             </button>
           ) : (
             <button onClick={() => router.push("/dashboard")} className="flex items-center gap-2 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-2xl font-bold transition-colors">

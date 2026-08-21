@@ -176,7 +176,7 @@ export default function EspelhoDePonto() {
                padding: 0 2px !important;
                height: auto !important;
              }
-             .bloco-identificacao { font-size: 9.5px !important; }
+             .bloco-identificacao { font-size: 10.5px !important; }
 
              /* Banco de horas e adicionais sao analise interna do ERP, nao
                 fazem parte do registro de jornada. Ficam na tela e fora do
@@ -219,7 +219,7 @@ export default function EspelhoDePonto() {
                <p className="text-[10px] font-bold">CNPJ: {mascaraCNPJ(colaborador.unidade?.cnpj) || "—"}</p>
             </div>
             <div className="flex items-stretch border-t border-slate-800">
-               <div className="bloco-identificacao flex-1 px-1 py-0.5 text-[9px] leading-[1.4]">
+               <div className="bloco-identificacao flex-1 px-1 py-1 text-[10.5px] leading-[1.5]">
                   <p>{rotulo("Lotação")} {colaborador.setor || "Administrativo"}</p>
                   <p>{rotulo("Trabalhador")} {(colaborador.nome || "").toUpperCase()}</p>
                   <p>{rotulo("Admissão")} {dataBR(colaborador.data_admissao)}
@@ -228,7 +228,7 @@ export default function EspelhoDePonto() {
                   <div className="flex">
                      <span className="shrink-0 whitespace-pre">{rotulo("Horário")} </span>
                      <div className="grid flex-1 grid-cols-2 gap-x-3">
-                        {linhasHorario.map(l => <span key={l} className="text-[7.5px] leading-[1.5]">{l}</span>)}
+                        {linhasHorario.map(l => <span key={l} className="text-[9.5px] leading-[1.5]">{l}</span>)}
                      </div>
                   </div>
                </div>

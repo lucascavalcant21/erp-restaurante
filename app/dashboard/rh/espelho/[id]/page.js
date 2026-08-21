@@ -72,6 +72,32 @@ export default function EspelhoDePonto() {
   const diasNoMes = new Date(mesParam.slice(0,4), mesParam.slice(5,7), 0).getDate();
   const arrayDias = Array.from({length: diasNoMes}, (_, i) => i + 1);
 
+  // ── Cabeçalho no formato da folha oficial ─────────────────────────────────
+  const dataBR = (iso) => iso ? String(iso).slice(0, 10).split("-").reverse().join("/") : "—";
+  const periodoBR = `${dataBR(`${mesParam}-01`)} à ${dataBR(`${mesParam}-${String(diasNoMes).padStart(2, "0")}`)}`;
+
+  // "01 SÁB" — o dia da semana ao lado do número, como na folha de papel.
+  const SIGLA_DIA = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
+  const rotuloDia = (dia) => {
+    const d = new Date(`${mesParam}-${String(dia).padStart(2, "0")}T12:00:00`);
+    return `${String(dia).padStart(2, "0")} ${SIGLA_DIA[d.getDay()]}`;
+  };
+
+  // A jornada contratada, dia a dia. O domingo pode ter horário próprio; os
+  // demais seguem o padrão. O intervalo sai pela duração quando a janela não
+  // está cadastrada — o sistema guarda os minutos, não as horas de início e fim.
+  const NOME_DIA = ["DOMINGO", "SEGUNDA", "TERÇA", "QUARTA", "QUINTA", "SEXTA", "SÁBADO"];
+  const trabalhaNo = (n) => String(colaborador.dias_trabalho || "0,1,2,3,4,5,6").split(",").includes(String(n));
+  const intervaloTexto = colaborador.tempo_intervalo ? ` - int: ${colaborador.tempo_intervalo} min` : "";
+  const linhasHorario = [2, 3, 4, 5, 6, 0]
+    .filter(trabalhaNo)
+    .map(n => {
+      const ehDom = n === 0;
+      const ent = (ehDom && colaborador.horario_dom_entrada) || colaborador.horario_entrada || "—";
+      const sai = (ehDom && colaborador.horario_dom_saida) || colaborador.horario_saida || "—";
+      return `${NOME_DIA[n]} Ent: ${ent} Sai: ${sai}${intervaloTexto}`;
+    });
+
   // Calcula horas
   const calcularHorasDecimais = (h1, h2) => {
     if (!h1 || !h2) return 0;
@@ -128,34 +154,73 @@ export default function EspelhoDePonto() {
            }
          `}} />
          
-         {/* Cabeçalho */}
-         <div className="border border-slate-800 p-1 mb-1">
-            <h1 className="text-lg font-black text-center uppercase tracking-widest border-b border-slate-800 pb-1 mb-1">
-               Folha de Frequência - {mesParam.split('-').reverse().join('/')}
+         {/* Cabeçalho no formato da folha oficial da casa: título, dados do
+             trabalhador à esquerda e o quadro de totais à direita. */}
+         <div className="border border-slate-800 mb-1">
+            <h1 className="text-[15px] font-black text-center uppercase tracking-[0.25em] py-0.5">
+               Registro de Jornada Diária
             </h1>
-            <div className="grid grid-cols-2 gap-4 text-[10px] font-bold uppercase mt-1">
-               <div>
-                  <p><strong>Empregador:</strong> {colaborador.unidade?.nome || "Empresa"}</p>
-                  <p><strong>CNPJ:</strong> {mascaraCNPJ(colaborador.unidade?.cnpj) || "00.000.000/0000-00"}</p>
+            <div className="flex items-start justify-between border-t border-slate-800 px-1 py-0.5">
+               <p className="text-[11px] font-black uppercase">{colaborador.unidade?.nome || "Empresa"}</p>
+               <p className="text-[10px] font-bold">CNPJ: {mascaraCNPJ(colaborador.unidade?.cnpj) || "—"}</p>
+            </div>
+            <div className="flex items-stretch border-t border-slate-800">
+               <div className="flex-1 px-1 py-0.5 text-[9px] leading-[1.35]">
+                  <p><span className="inline-block w-[68px]">Lotação</span>: {colaborador.setor || "Administrativo"}</p>
+                  <p><span className="inline-block w-[68px]">Trabalhador</span>: {colaborador.nome}</p>
+                  <p><span className="inline-block w-[68px]">Admissão</span>: {dataBR(colaborador.data_admissao)}
+                     <span className="ml-6">Cargo: {colaborador.cargo || "—"}</span></p>
+                  <p><span className="inline-block w-[68px]">Período</span>: {periodoBR}</p>
+                  <div className="flex gap-1">
+                     <span className="inline-block w-[68px] shrink-0">Horário</span>
+                     <span>:</span>
+                     <div className="grid grid-cols-2 gap-x-4">
+                        {linhasHorario.map(l => <span key={l} className="text-[8px]">{l}</span>)}
+                     </div>
+                  </div>
                </div>
-               <div>
-                  <p><strong>Empregado(a):</strong> {colaborador.nome}</p>
-                  <p><strong>Função:</strong> {colaborador.cargo}</p>
-               </div>
+               {/* Totais do mês. O que depende de conferência da contabilidade
+                   fica em branco, como na folha de papel. */}
+               <table className="border-l border-slate-800 text-[8px] shrink-0" style={{ width: "38mm" }}>
+                  <thead>
+                     <tr>
+                        <th className="border-b border-slate-800 px-1 font-black">TOTAIS</th>
+                        <th className="border-b border-l border-slate-800 px-1 w-8">%</th>
+                        <th className="border-b border-l border-slate-800 px-1 w-8">%</th>
+                     </tr>
+                  </thead>
+                  <tbody>
+                     {["H. E. Diurna", "H. E. Noturna", "Adic.Noturno", "Faltas"].map((rot, i) => (
+                        <tr key={rot}>
+                           <td className={`px-1 ${i < 3 ? "border-b border-slate-800" : ""}`}>{rot}</td>
+                           <td className={`border-l border-slate-800 ${i < 3 ? "border-b border-slate-800" : ""}`}></td>
+                           <td className={`border-l border-slate-800 ${i < 3 ? "border-b border-slate-800" : ""}`}></td>
+                        </tr>
+                     ))}
+                  </tbody>
+               </table>
             </div>
          </div>
 
          {/* Tabela de Pontos */}
           <table className="tabela-ponto w-full min-w-[680px] print:min-w-0 border-collapse border border-slate-800 text-center">
             <thead>
+               {/* Duas linhas de cabeçalho, como na folha: INTERVALO e HORAS
+                   EXTRAS são grupos com subcolunas. */}
                <tr className="bg-slate-100">
-                  <th className="border border-slate-800 !py-0 !px-1 w-8">DIA</th>
-                  <th className="border border-slate-800 !py-0 !px-1 w-20">ENTRADA</th>
-                  <th className="border border-slate-800 !py-0 !px-1 w-20">SAÍDA INT.</th>
-                  <th className="border border-slate-800 !py-0 !px-1 w-20">VOLTA INT.</th>
-                  <th className="border border-slate-800 !py-0 !px-1 w-20">SAÍDA FINAL</th>
-                  <th className="border border-slate-800 !py-0 !px-1 w-20">TOTAL DIÁRIO</th>
-                  <th className="border border-slate-800 !py-0 !px-1">ASSINATURA</th>
+                  <th rowSpan={2} className="border border-slate-800 !py-0 !px-1 w-14">DIAS</th>
+                  <th rowSpan={2} className="border border-slate-800 !py-0 !px-1 w-16">ENTRADA</th>
+                  <th colSpan={2} className="border border-slate-800 !py-0 !px-1">INTERVALO</th>
+                  <th rowSpan={2} className="border border-slate-800 !py-0 !px-1 w-16">SAÍDA</th>
+                  <th colSpan={3} className="border border-slate-800 !py-0 !px-1">HORAS EXTRAS</th>
+                  <th rowSpan={2} className="border border-slate-800 !py-0 !px-1">ASSINATURA<br/>DO TRABALHADOR</th>
+               </tr>
+               <tr className="bg-slate-100">
+                  <th className="border border-slate-800 !py-0 !px-1 w-16">INÍCIO</th>
+                  <th className="border border-slate-800 !py-0 !px-1 w-16">FIM</th>
+                  <th className="border border-slate-800 !py-0 !px-1 w-12">ENTRADA</th>
+                  <th className="border border-slate-800 !py-0 !px-1 w-12">SAÍDA</th>
+                  <th className="border border-slate-800 !py-0 !px-1 w-12">TOTAIS</th>
                </tr>
             </thead>
             <tbody>
@@ -173,8 +238,8 @@ export default function EspelhoDePonto() {
                   if (isFolga && !reg) {
                       return (
                          <tr key={dia}>
-                            <td className="border border-slate-800 !py-0 !px-1 font-bold bg-slate-50 text-slate-500">{dia.toString().padStart(2,'0')}</td>
-                            <td colSpan={5} className="border border-slate-800 !py-0 !px-1 font-black tracking-[0.5em] text-slate-400 bg-slate-50">FOLGA</td>
+                            <td className="border border-slate-800 !py-0 !px-1 font-bold bg-slate-50 text-slate-500 text-left">{rotuloDia(dia)}</td>
+                            <td colSpan={7} className="border border-slate-800 !py-0 !px-1 font-black tracking-[0.4em] text-slate-400 bg-slate-50">FOLGA</td>
                             <td className="border border-slate-800 !py-0 !px-1"></td>
                          </tr>
                       );
@@ -194,12 +259,16 @@ export default function EspelhoDePonto() {
 
                   return (
                      <tr key={dia}>
-                        <td className="border border-slate-800 !py-0 !px-1 font-bold">{dia.toString().padStart(2,'0')}</td>
+                        <td className="border border-slate-800 !py-0 !px-1 font-bold text-left">{rotuloDia(dia)}</td>
                         <td className="border border-slate-800 !py-0 !px-1">{horaStr(reg?.hora_entrada)}</td>
                         <td className="border border-slate-800 !py-0 !px-1">{horaStr(reg?.hora_saida_intervalo)}</td>
                         <td className="border border-slate-800 !py-0 !px-1">{horaStr(reg?.hora_retorno_intervalo)}</td>
                         <td className="border border-slate-800 !py-0 !px-1">{horaStr(reg?.hora_saida)}</td>
-                        <td className="border border-slate-800 !py-0 !px-1 font-bold">{horasDia > 0 ? fmtHoras(horasDia) : ""}</td>
+                        {/* Hora extra é conferência da contabilidade: a folha
+                            de papel também sai em branco para preenchimento. */}
+                        <td className="border border-slate-800 !py-0 !px-1"></td>
+                        <td className="border border-slate-800 !py-0 !px-1"></td>
+                        <td className="border border-slate-800 !py-0 !px-1"></td>
                         <td className="border border-slate-800 !py-0 !px-1"></td>
                      </tr>
                   );
@@ -208,10 +277,24 @@ export default function EspelhoDePonto() {
             <tfoot>
                <tr className="bg-slate-100">
                   <td colSpan={5} className="border border-slate-800 !py-1 !px-2 text-right font-black uppercase text-[10px]">Total de Horas no Mês:</td>
-                  <td colSpan={2} className="border border-slate-800 !py-1 !px-2 text-left font-black text-[11px]">{fmtHoras(totalHorasMes)} hrs</td>
+                  <td colSpan={4} className="border border-slate-800 !py-1 !px-2 text-left font-black text-[11px]">{fmtHoras(totalHorasMes)} hrs</td>
                </tr>
             </tfoot>
          </table>
+
+         {/* Rodapé de assinatura, igual ao da folha: data em branco à esquerda,
+             nome do trabalhador ao centro e o responsável pela lotação. */}
+         <div className="mt-4 flex items-end justify-between gap-6 px-1 text-[9px] print:mt-3">
+            <div className="w-[38mm] text-center">
+               <p>____/____/________</p>
+            </div>
+            <div className="flex-1 text-center">
+               <p className="border-t border-slate-800 pt-0.5 uppercase">{colaborador.nome}</p>
+            </div>
+            <div className="w-[45mm] text-center">
+               <p className="border-t border-slate-800 pt-0.5">Responsável Lotação</p>
+            </div>
+         </div>
 
          {/* Banco de Horas do mês (intervalos não tirados) */}
          {bancoMes.length > 0 && (() => {

@@ -871,6 +871,16 @@ export default function PontoPage() {
               <p className="text-sm font-medium text-slate-600">Nenhum registro neste mês.</p>
             ) : (
               <div className="space-y-1.5">
+                {/* Rotulo em cima de cada coluna: quatro horarios seguidos sem
+                    titulo obrigam a decorar a ordem. Mesma grade das linhas
+                    para os titulos cairem exatamente sobre os numeros. */}
+                <div className="grid grid-cols-[96px_1fr_1fr_1fr_1fr] gap-2 items-end px-2 pb-1 text-center">
+                  <span className="text-[9px] font-black uppercase tracking-wider text-slate-600 text-left">Dia</span>
+                  <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">Entrada</span>
+                  <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">Saiu p/<br/>intervalo</span>
+                  <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">Voltou do<br/>intervalo</span>
+                  <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">Saída</span>
+                </div>
                 {historico.map(h => (
                   <div key={h.id} className="grid grid-cols-[96px_1fr_1fr_1fr_1fr] gap-2 items-center text-center py-1.5 px-2 rounded-lg bg-slate-950/60">
                     {/* Dia da semana ao lado da data: quem confere o próprio

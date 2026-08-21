@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Clock, ArrowLeft, CheckCircle2, LogIn, LogOut, Coffee, Undo2,
-  AlertTriangle, Maximize, Loader2, Hourglass, Ban, Timer, X, Lock, Tablet, MessageCircle, MapPin, ExternalLink,
+  AlertTriangle, Maximize, Loader2, Ban, Timer, X, Lock, Tablet, MessageCircle, MapPin, ExternalLink,
   ChefHat, GlassWater, UtensilsCrossed
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
@@ -846,10 +846,9 @@ export default function PontoPage() {
                 {entradaStr && <p className="text-slate-500 font-bold text-[11px] sm:text-xs mt-0.5">Entrada: {entradaStr}{saidaDoDia(selecionado, horaLocal) ? ` — ${saidaDoDia(selecionado, horaLocal)}` : ""}</p>}
               </div>
             </div>
-            <div className={`flex sm:flex-col items-center justify-between sm:justify-center sm:text-center px-4 py-2 rounded-2xl border shrink-0 w-full sm:w-auto ${totalBancoMes >= BANCO_LIMITE_MIN ? "bg-red-500/10 border-red-500/40" : totalBancoMes >= BANCO_ALERTA_MIN ? "bg-amber-500/10 border-amber-500/40" : "bg-slate-800 border-slate-700"}`}>
-              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1"><Hourglass size={10} /> Banco de horas</p>
-              <p className={`text-lg sm:text-xl font-black ${totalBancoMes >= BANCO_LIMITE_MIN ? "text-red-400" : totalBancoMes >= BANCO_ALERTA_MIN ? "text-amber-400" : "text-white"}`}>{fmtMin(totalBancoMes)} <span className="text-xs text-slate-500">/ 8h</span></p>
-            </div>
+            {/* O cartão do banco de horas saiu daqui: a tela de bater ponto
+                é para bater ponto. Saldo é assunto de conferência, e continua
+                no histórico logo abaixo e no espelho do RH. */}
           </div>
 
           {/* Linha do dia: as 4 batidas */}
@@ -997,17 +996,9 @@ export default function PontoPage() {
                 ))}
               </div>
             )}
-            {bancoMes.length > 0 && (() => {
-              const excessos = bancoMes.filter(b => b.tipo === "excesso");
-              const creditos = bancoMes.length - excessos.length;
-              return (
-                <p className="text-[10px] font-bold text-slate-500 mt-3">
-                  Banco de horas no mês: {creditos} crédito(s) somando <span className={totalBancoMes >= BANCO_ALERTA_MIN ? "text-amber-400" : "text-emerald-400"}>{fmtMin(totalBancoMes)}</span>.
-                  {excessos.length > 0 && <span className="text-amber-400"> {excessos.length} ocorrência(s) de intervalo passado do horário.</span>}
-                  {" "}O espelho completo é impresso pelo RH.
-                </p>
-              );
-            })()}
+            {/* O resumo do banco de horas saiu daqui junto com o cartão do
+                topo: a tela de bater ponto é para bater ponto. Saldo é
+                assunto de conferência e continua no espelho do RH. */}
           </div>
         </div>
       </div>

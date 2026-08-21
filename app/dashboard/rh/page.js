@@ -2094,7 +2094,7 @@ export default function RHPage() {
                                     </>)}
                                     <button onClick={(e) => { e.stopPropagation(); setDetAberto(prev => ({ ...prev, [f.id]: !prev[f.id] })); }} className="w-full text-[10px] font-black text-slate-400 hover:text-slate-600 mt-1.5 uppercase tracking-widest">{detAberto[f.id] ? "ocultar detalhes" : "ver detalhes"}</button>
                                     <button onClick={() => gerarHolerite(f, p)} className="w-full mt-2 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white font-black text-[11px] flex items-center justify-center gap-1.5">
-                                       <Printer size={12} /> Holerite (INSS + FGTS)
+                                       <Printer size={12} /> Holerite
                                     </button>
                                  </div>
                                  );

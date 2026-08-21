@@ -285,14 +285,27 @@ export default function EspelhoDePonto() {
                   const dataObj = new Date(dataString + "T12:00:00Z");
                   const diaSemana = dataObj.getUTCDay().toString();
                   const isFolgaFixa = colaborador?.dias_trabalho ? !colaborador.dias_trabalho.split(',').includes(diaSemana) : false;
-                  const isFolgaEsporadica = folgasEsporadicas.some(f => f.data_folga === dataString);
+                  const esporadica = folgasEsporadicas.find(f => String(f.data_folga).slice(0, 10) === dataString);
+                  const isFolgaEsporadica = !!esporadica;
                   const isFolga = isFolgaFixa || isFolgaEsporadica;
+                  const feriado = feriadosMes.find(f => String(f.data).slice(0, 10) === dataString);
 
-                  if (isFolga && !reg) {
+                  // Tres folgas diferentes, e a casa trata cada uma de um jeito:
+                  // a semanal esta no contrato, a de domingo e a escala que roda
+                  // entre a equipe e a programada e combinada caso a caso. Escrever
+                  // "FOLGA" em todas apagava a diferenca justamente para quem
+                  // confere a folha. Feriado aparece junto, porque muda o calculo.
+                  const partesFolga = [];
+                  if (isFolgaFixa) partesFolga.push("FOLGA SEMANAL");
+                  else if (isFolgaEsporadica) partesFolga.push(diaSemana === "0" ? "FOLGA DE DOMINGO" : "FOLGA PROGRAMADA");
+                  if (feriado) partesFolga.push(`FERIADO${feriado.nome ? " - " + String(feriado.nome).toUpperCase() : ""}`);
+                  const textoFolga = partesFolga.join("   ·   ");
+
+                  if ((isFolga || feriado) && !reg) {
                       return (
                          <tr key={dia}>
                             <td className="border border-slate-800 !py-0 !px-1 font-bold bg-slate-50 text-slate-500 text-left">{rotuloDia(dia)}</td>
-                            <td colSpan={7} className="border border-slate-800 !py-0 !px-1 font-black tracking-[0.4em] text-slate-400 bg-slate-50">FOLGA</td>
+                            <td colSpan={7} className="border border-slate-800 !py-0 !px-1 font-black tracking-[0.18em] bg-slate-50">{textoFolga}</td>
                             <td className="border border-slate-800 !py-0 !px-1"></td>
                          </tr>
                       );
@@ -429,17 +442,6 @@ export default function EspelhoDePonto() {
             <b>Descanso Semanal Remunerado (DSR):</b> incluso na remuneração mensal (Lei 605/49). Adicional noturno de 20% entre 23h30 e 00h00; após 00h00, hora extra com acréscimo de 50%; feriado trabalhado com adicional de 100%.
          </div>
 
-         {/* Assinaturas */}
-         <div className="mt-6 print:mt-4 flex justify-between w-full px-12 text-[10px] font-bold uppercase text-center gap-10">
-            <div className="w-[45%]">
-               <div className="border-b border-slate-800 mb-1"></div>
-               {colaborador.unidade?.nome ? `Responsável ${colaborador.unidade.nome}` : "Responsável pela Empresa"}
-            </div>
-            <div className="w-[45%]">
-               <div className="border-b border-slate-800 mb-1"></div>
-               {colaborador.nome}
-            </div>
-         </div>
          
          <div className="mt-2 text-[8px] text-center text-slate-500">
             Documento gerado pelo sistema REP-A. Reconhecimento de marcação de ponto nos termos da Portaria MTP nº 671/2021.

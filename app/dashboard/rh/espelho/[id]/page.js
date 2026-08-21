@@ -156,33 +156,56 @@ export default function EspelhoDePonto() {
          <style dangerouslySetInnerHTML={{__html: `
            @media print {
              @page { size: A4 portrait; margin: 5mm; }
-             body { -webkit-print-color-adjust: exact; }
-             .folha-espelho { page-break-inside: avoid; }
+             body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
-             /* A folha da casa é UMA página, com os 31 dias. As linhas encolhem
-                para caber; nada de quebrar o mês no meio. */
-             .tabela-ponto th, .tabela-ponto td {
-               font-size: 7.5px !important;
-               height: 6.4mm !important;
-               padding: 0 1px !important;
+             /* A folha ocupa o papel inteiro: A4 (297mm) menos as margens.
+                Em coluna, so a tabela cresce - cabecalho e assinaturas ficam do
+                tamanho do conteudo. As 31 linhas se distribuem no espaco que
+                sobra, entao o mes cabe numa pagina so E sem faixa branca no
+                rodape. Altura fixa por linha nao servia: ou sobrava papel, ou
+                estourava para a segunda folha. */
+             .folha-espelho {
+               display: flex;
+               flex-direction: column;
+               height: 287mm;
+               page-break-inside: avoid;
              }
-             .tabela-ponto { page-break-inside: avoid; }
+             .tabela-ponto { flex: 1 1 auto; page-break-inside: avoid; }
+             .tabela-ponto th, .tabela-ponto td {
+               font-size: 8.5px !important;
+               padding: 0 2px !important;
+               height: auto !important;
+             }
+             .bloco-identificacao { font-size: 9.5px !important; }
 
-             /* Banco de horas e adicionais são análise interna do ERP, não
+             /* Banco de horas e adicionais sao analise interna do ERP, nao
                 fazem parte do registro de jornada. Ficam na tela e fora do
-                papel — senão empurrariam a folha para uma segunda página. */
+                papel - senao empurrariam a folha para uma segunda pagina. */
              .fora-da-folha { display: none !important; }
            }
+
+           /* Tela: linha curta para caber o mes sem rolagem vertical longa. */
            .tabela-ponto th, .tabela-ponto td {
              font-size: 9px !important;
              line-height: 1 !important;
              padding: 1px !important;
              height: 12px !important;
            }
-           /* O bloco de identificação da folha é datilografado. A fonte de
-              largura fixa é o que faz os rótulos pontilhados alinharem os dois
-              pontos numa coluna só, como no papel. */
-           .bloco-identificacao { font-family: "Courier New", Courier, monospace; }
+
+           /* Tinta cheia. A folha e assinada, fotocopiada e arquivada, e o
+              cinza claro do tema some na copia - o dado do trabalhador tem que
+              sair legivel na terceira via. */
+           .folha-espelho { color: #000; }
+           .folha-espelho th, .folha-espelho td { color: #000; font-weight: 700; }
+
+           /* O bloco de identificacao e datilografado. A fonte de largura fixa
+              e o que faz os rotulos pontilhados alinharem os dois pontos numa
+              coluna so, como no papel. */
+           .bloco-identificacao {
+             font-family: "Courier New", Courier, monospace;
+             color: #000;
+             font-weight: 700;
+           }
          `}} />
          
          {/* Cabeçalho no formato da folha oficial da casa: título, dados do

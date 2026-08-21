@@ -348,18 +348,21 @@ export default function EspelhoDePonto() {
             </tfoot>
          </table>
 
-         {/* Rodapé de assinatura, igual ao da folha: data em branco à esquerda,
-             nome do trabalhador ao centro e o responsável pela lotação. */}
-         <div className="mt-14 flex items-end justify-between gap-6 px-1 text-[9px] print:mt-[18mm]">
-            <div className="w-[38mm] text-center">
-               <p>____/____/________</p>
-            </div>
-            <div className="flex-1 text-center">
-               <p className="border-t border-slate-800 pt-0.5 uppercase">{colaborador.nome}</p>
-            </div>
-            <div className="w-[45mm] text-center">
-               <p className="border-t border-slate-800 pt-0.5">Responsável Lotação</p>
-            </div>
+         {/* Rodape de assinatura: tres campos iguais - mesma largura, mesma
+             linha, mesmo rotulo embaixo. A data ficava mais baixa e mais
+             estreita que as assinaturas, e a folha parecia montada em dois
+             momentos. Quem assina espera os tres campos no mesmo nivel. */}
+         <div className="mt-14 grid grid-cols-3 gap-8 px-1 text-[9px] print:mt-[18mm]">
+            {[
+               { chave: "data", rotulo: "Data" },
+               { chave: "trabalhador", rotulo: colaborador.nome },
+               { chave: "responsavel", rotulo: "Responsável Lotação" },
+            ].map(campo => (
+               <div key={campo.chave} className="text-center">
+                  <div className="border-t border-slate-800" />
+                  <p className="pt-1 uppercase font-bold tracking-wide text-black">{campo.rotulo}</p>
+               </div>
+            ))}
          </div>
 
          {/* Banco de Horas do mês (intervalos não tirados) */}

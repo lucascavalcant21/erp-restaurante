@@ -73,6 +73,9 @@ export default function EspelhoDePonto() {
   const arrayDias = Array.from({length: diasNoMes}, (_, i) => i + 1);
 
   // ── Cabeçalho no formato da folha oficial ─────────────────────────────────
+  // "Lotação....:" — os pontos preenchem até a mesma coluna em todos os
+  // rótulos, que é como a folha datilografada alinha os dois pontos.
+  const rotulo = (texto) => `${texto}${".".repeat(Math.max(0, 11 - texto.length))}:`;
   const dataBR = (iso) => iso ? String(iso).slice(0, 10).split("-").reverse().join("/") : "—";
   const periodoBR = `${dataBR(`${mesParam}-01`)} à ${dataBR(`${mesParam}-${String(diasNoMes).padStart(2, "0")}`)}`;
 
@@ -155,6 +158,20 @@ export default function EspelhoDePonto() {
              @page { size: A4 portrait; margin: 5mm; }
              body { -webkit-print-color-adjust: exact; }
              .folha-espelho { page-break-inside: avoid; }
+
+             /* A folha da casa é UMA página, com os 31 dias. As linhas encolhem
+                para caber; nada de quebrar o mês no meio. */
+             .tabela-ponto th, .tabela-ponto td {
+               font-size: 7.5px !important;
+               height: 6.4mm !important;
+               padding: 0 1px !important;
+             }
+             .tabela-ponto { page-break-inside: avoid; }
+
+             /* Banco de horas e adicionais são análise interna do ERP, não
+                fazem parte do registro de jornada. Ficam na tela e fora do
+                papel — senão empurrariam a folha para uma segunda página. */
+             .fora-da-folha { display: none !important; }
            }
            .tabela-ponto th, .tabela-ponto td {
              font-size: 9px !important;
@@ -162,6 +179,10 @@ export default function EspelhoDePonto() {
              padding: 1px !important;
              height: 12px !important;
            }
+           /* O bloco de identificação da folha é datilografado. A fonte de
+              largura fixa é o que faz os rótulos pontilhados alinharem os dois
+              pontos numa coluna só, como no papel. */
+           .bloco-identificacao { font-family: "Courier New", Courier, monospace; }
          `}} />
          
          {/* Cabeçalho no formato da folha oficial da casa: título, dados do
@@ -175,17 +196,16 @@ export default function EspelhoDePonto() {
                <p className="text-[10px] font-bold">CNPJ: {mascaraCNPJ(colaborador.unidade?.cnpj) || "—"}</p>
             </div>
             <div className="flex items-stretch border-t border-slate-800">
-               <div className="flex-1 px-1 py-0.5 text-[9px] leading-[1.35]">
-                  <p><span className="inline-block w-[68px]">Lotação</span>: {colaborador.setor || "Administrativo"}</p>
-                  <p><span className="inline-block w-[68px]">Trabalhador</span>: {colaborador.nome}</p>
-                  <p><span className="inline-block w-[68px]">Admissão</span>: {dataBR(colaborador.data_admissao)}
-                     <span className="ml-6">Cargo: {colaborador.cargo || "—"}</span></p>
-                  <p><span className="inline-block w-[68px]">Período</span>: {periodoBR}</p>
-                  <div className="flex gap-1">
-                     <span className="inline-block w-[68px] shrink-0">Horário</span>
-                     <span>:</span>
-                     <div className="grid grid-cols-2 gap-x-4">
-                        {linhasHorario.map(l => <span key={l} className="text-[8px]">{l}</span>)}
+               <div className="bloco-identificacao flex-1 px-1 py-0.5 text-[9px] leading-[1.4]">
+                  <p>{rotulo("Lotação")} {colaborador.setor || "Administrativo"}</p>
+                  <p>{rotulo("Trabalhador")} {(colaborador.nome || "").toUpperCase()}</p>
+                  <p>{rotulo("Admissão")} {dataBR(colaborador.data_admissao)}
+                     <span className="ml-8">Cargo: {(colaborador.cargo || "—").toUpperCase()}</span></p>
+                  <p>{rotulo("Período")} {periodoBR}</p>
+                  <div className="flex">
+                     <span className="shrink-0 whitespace-pre">{rotulo("Horário")} </span>
+                     <div className="grid flex-1 grid-cols-2 gap-x-3">
+                        {linhasHorario.map(l => <span key={l} className="text-[7.5px] leading-[1.5]">{l}</span>)}
                      </div>
                   </div>
                </div>
@@ -311,7 +331,7 @@ export default function EspelhoDePonto() {
             const totalMin = bancoMes.filter(b => b.tipo !== "excesso").reduce((s, b) => s + (Number(b.minutos) || 0), 0);
             const fmtM = (m) => `${Math.floor(m / 60)}h${String(m % 60).padStart(2, "0")}`;
             return (
-               <div className="mt-2 print:mt-1">
+               <div className="fora-da-folha mt-2 print:mt-1">
                   <p className="text-[9px] font-black uppercase tracking-widest mb-0.5">Banco de Horas — intervalos não tirados (limite 8h/mês)</p>
                   <table className="w-full border-collapse text-[9px]">
                      <thead>
@@ -348,7 +368,7 @@ export default function EspelhoDePonto() {
             const tot = dias.reduce((a, d) => ({ e: a.e + d.minExtra, n: a.n + d.minNoturno, f: a.f + d.minFeriado }), { e: 0, n: 0, f: 0 });
             const fmtM = (m) => m > 0 ? `${m} min` : "—";
             return (
-               <div className="mt-2 print:mt-1">
+               <div className="fora-da-folha mt-2 print:mt-1">
                   <p className="text-[9px] font-black uppercase tracking-widest mb-0.5">Hora extra e adicionais — dia a dia</p>
                   <table className="w-full border-collapse text-[9px]">
                      <thead>

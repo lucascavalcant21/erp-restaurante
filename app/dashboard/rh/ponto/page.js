@@ -15,6 +15,13 @@ import { fetchParams, PARAMS_PADRAO } from "../../../lib/parametros";
 import { useTempoReal } from "../../../lib/realtime";
 
 const fmtMin = (m) => `${Math.floor(m / 60)}h${String(Math.round(m) % 60).padStart(2, "0")}`;
+// Data de hoje no fuso do tablet. toISOString() não serve: ele converte para
+// UTC e, depois das 21h, devolveria o dia seguinte.
+const isoLocalDeHoje = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
 const horaDe = (iso) => iso ? new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : null;
 const strToMin = (hhmm) => { const [h, m] = String(hhmm || "").split(":").map(Number); return (h || 0) * 60 + (m || 0); };
 const isoLocal = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -342,7 +349,33 @@ export default function PontoPage() {
     return () => clearInterval(t);
   }, [unidadeAtiva, carregar]);
 
-  const registroDe = (colabId) => pontosHoje.find(p => p.colaborador_id === colabId) || null;
+  // Registro que vale AGORA para a pessoa.
+  //
+  // pontosHoje traz hoje E ontem de propósito, para o turno que vira a
+  // meia-noite. O find sem filtro de data pegava o primeiro que achasse: quem
+  // esqueceu de bater a saída ontem chegava hoje e a tela, lendo o dia
+  // anterior, achava que a entrada "já foi" e oferecia SAÍDA P/ INTERVALO na
+  // hora em que a pessoa ia bater a ENTRADA.
+  //
+  // A regra aqui é a mesma de registrarBatida, e tem que ser: quando as duas
+  // discordam sobre qual é o dia corrente, a tela oferece uma batida que a
+  // biblioteca recusa — ou grava no dia errado.
+  const jornadaDeOntemAberta = (reg) => {
+    if (!reg || !reg.hora_entrada || reg.hora_saida) return false;
+    return (Date.now() - new Date(reg.hora_entrada).getTime()) < 20 * 3600000;
+  };
+
+  const registroDe = (colabId) => {
+    const meus = pontosHoje.filter(p => p.colaborador_id === colabId);
+    if (!meus.length) return null;
+    const hojeISO = isoLocalDeHoje();
+    const deHoje = meus.find(p => p.data_referencia === hojeISO);
+    if (deHoje) return deHoje;
+    // Sem registro de hoje: só continua no de ontem se a jornada estiver mesmo
+    // aberta. Passou de 20h é dia esquecido, não turno da madrugada.
+    const deOntem = meus.find(p => p.data_referencia < hojeISO);
+    return jornadaDeOntemAberta(deOntem) ? deOntem : null;
+  };
 
   // Abre a tela do funcionário INSTANTANEAMENTE; histórico/banco carregam em segundo plano
   const abrirFuncionario = (c) => {
@@ -850,6 +883,21 @@ export default function PontoPage() {
                 é para bater ponto. Saldo é assunto de conferência, e continua
                 no histórico logo abaixo e no espelho do RH. */}
           </div>
+
+          {/* Continuando a jornada da véspera: precisa estar escrito. Foi
+              exatamente essa informação faltando que fez alguém bater a entrada
+              e o sistema registrar como intervalo do dia anterior. */}
+          {reg && reg.data_referencia !== isoLocalDeHoje() && (
+            <div className="mb-4 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3">
+              <p className="text-[11px] font-black uppercase tracking-widest text-amber-300">
+                Jornada de {reg.data_referencia.slice(5).split("-").reverse().join("/")} ainda aberta
+              </p>
+              <p className="mt-1 text-xs font-bold leading-snug text-amber-100/90">
+                A batida vai para aquele dia, não para hoje. Se você já encerrou
+                aquele expediente, chame o gerente antes de bater.
+              </p>
+            </div>
+          )}
 
           {/* Linha do dia: as 4 batidas */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">

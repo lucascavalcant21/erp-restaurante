@@ -19,6 +19,15 @@ const horaDe = (iso) => iso ? new Date(iso).toLocaleTimeString("pt-BR", { hour: 
 const strToMin = (hhmm) => { const [h, m] = String(hhmm || "").split(":").map(Number); return (h || 0) * 60 + (m || 0); };
 const isoLocal = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
+// Sigla do dia da semana a partir da data do registro. O meio-dia na conversão
+// evita o clássico "sábado virou sexta" por causa de fuso.
+const SIGLAS_SEMANA = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+const siglaDiaSemana = (dataISO) => {
+  if (!dataISO) return "";
+  const d = new Date(`${String(dataISO).slice(0, 10)}T12:00:00`);
+  return Number.isNaN(d.getTime()) ? "" : SIGLAS_SEMANA[d.getDay()];
+};
+
 // Tolerâncias e limites do ponto: valores AJUSTÁVEIS em Configurações >
 // Parâmetros do Sistema (cfgP). Os padrões vêm de PARAMS_PADRAO na lib.
 
@@ -855,8 +864,13 @@ export default function PontoPage() {
             ) : (
               <div className="space-y-1.5">
                 {historico.map(h => (
-                  <div key={h.id} className="grid grid-cols-[70px_1fr_1fr_1fr_1fr] gap-2 items-center text-center py-1.5 px-2 rounded-lg bg-slate-950/60">
-                    <span className="text-[11px] font-black text-slate-400 text-left">{h.data_referencia?.slice(5).split("-").reverse().join("/")}</span>
+                  <div key={h.id} className="grid grid-cols-[96px_1fr_1fr_1fr_1fr] gap-2 items-center text-center py-1.5 px-2 rounded-lg bg-slate-950/60">
+                    {/* Dia da semana ao lado da data: quem confere o próprio
+                        ponto lembra "no sábado eu saí tarde", não "no dia 15". */}
+                    <span className="text-[11px] font-black text-slate-400 text-left">
+                      {h.data_referencia?.slice(5).split("-").reverse().join("/")}
+                      <span className="ml-1.5 text-slate-500">{siglaDiaSemana(h.data_referencia)}</span>
+                    </span>
                     {["hora_entrada", "hora_saida_intervalo", "hora_retorno_intervalo", "hora_saida"].map(c => (
                       <span key={c} className={`text-xs font-bold ${h[c] ? "text-slate-200" : "text-slate-700"}`}>{horaDe(h[c]) || "--:--"}</span>
                     ))}

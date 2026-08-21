@@ -242,7 +242,7 @@ export async function registrarBatida(colaboradorId, unidadeId, tipoBatida, hora
       const { localizacoes, ...semHistorico } = updates;
       ({ error } = await supabase.from("registro_ponto").insert([{ ...base, ...semHistorico }]));
     }
-    return { error: error?.message, novoStatus, nsr: marcacao.nsr, marcadoEm: agora, avisoLegal: marcacao.erro || null };
+    return { error: error?.message, novoStatus, nsr: marcacao.nsr, hash: marcacao.hash || null, marcadoEm: agora, avisoLegal: marcacao.erro || null };
   } else {
     // Atualiza o registro existente
     let { error } = await supabase.from("registro_ponto").update(updates).eq("id", registro.id);
@@ -250,7 +250,7 @@ export async function registrarBatida(colaboradorId, unidadeId, tipoBatida, hora
       const { localizacoes, ...semHistorico } = updates;
       ({ error } = await supabase.from("registro_ponto").update(semHistorico).eq("id", registro.id));
     }
-    return { error: error?.message, novoStatus, nsr: marcacao.nsr, marcadoEm: agora, avisoLegal: marcacao.erro || null };
+    return { error: error?.message, novoStatus, nsr: marcacao.nsr, hash: marcacao.hash || null, marcadoEm: agora, avisoLegal: marcacao.erro || null };
   }
 }
 

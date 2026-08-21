@@ -409,8 +409,13 @@ export default function PontoPage() {
       esc(cp.nome),
       cp.cpf ? `CPF ${esc(cp.cpf)}` : "",
       "",
+      cp.local ? `Local: ${esc(cp.local)}` : "",
+      "",
       esc(cp.etapa),
       cp.em.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "medium" }),
+      "",
+      cp.registroRep ? `Registro INPI: ${esc(cp.registroRep)}` : "",
+      cp.hash ? `Hash SHA-256:<br>${esc(cp.hash)}` : "",
     ].filter(Boolean).join("<br>");
 
     const janela = window.open("", "_blank", "width=380,height=560");
@@ -425,7 +430,7 @@ export default function PontoPage() {
         .rod { margin-top: 10px; font-size: 8.5px; line-height: 1.4; }
         hr { border: 0; border-top: 1px dashed #000; margin: 8px 0; }
       </style></head><body>
-      <div class="rot">Comprovante de marcação</div>
+      <div class="rot">Comprovante de Registro de Ponto do Trabalhador</div>
       <div class="nsr">NSR ${cp.nsr}</div>
       <hr>${linhas}<hr>
       <div class="rod">Marcação registrada nos termos da Portaria MTP 671/2021.
@@ -470,8 +475,14 @@ export default function PontoPage() {
       // Comprovante da marcação (Portaria MTP 671/2021, art. 84): o trabalhador
       // tem direito a levar a prova do que bateu. Sem NSR não há comprovante
       // válido — e sem NSR o livro de marcações não recebeu a batida.
+      // Campos obrigatórios do art. 79 da Portaria 671/2021. O que falta aqui
+      // não é enfeite: comprovante sem NSR, sem local da prestação ou sem o
+      // hash da marcação não cumpre a norma.
       const comprovante = recibo.nsr ? {
         nsr: recibo.nsr,
+        hash: recibo.hash || null,
+        local: unidadeInfo?.endereco || unidadeInfo?.nome || "",
+        registroRep: unidadeInfo?.registro_inpi || "",
         etapa: ETAPAS.find(e => e.id === etapa)?.label || etapa,
         nome: selecionado.nome,
         cpf: selecionado.cpf || null,
@@ -681,12 +692,18 @@ export default function PontoPage() {
             de longe, sem pegar o tablet. */}
         {sucesso.comprovante && (
           <div className="mt-7 w-full max-w-md bg-white rounded-2xl px-5 py-4 text-left shadow-2xl font-mono text-slate-800">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Comprovante de marcação</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Comprovante de Registro de Ponto do Trabalhador</p>
             <p className="mt-1 text-4xl font-black tabular-nums tracking-tight">NSR {sucesso.comprovante.nsr}</p>
             <div className="mt-3 space-y-0.5 text-[12px] leading-snug">
               <p>{sucesso.comprovante.empresa}{sucesso.comprovante.cnpj ? ` · CNPJ ${sucesso.comprovante.cnpj}` : ""}</p>
               <p className="font-bold">{sucesso.comprovante.nome}{sucesso.comprovante.cpf ? ` · CPF ${sucesso.comprovante.cpf}` : ""}</p>
               <p>{sucesso.comprovante.etapa} · {sucesso.comprovante.em.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "medium" })}</p>
+              {sucesso.comprovante.local && <p>{sucesso.comprovante.local}</p>}
+              {sucesso.comprovante.hash && (
+                <p className="mt-1 break-all text-[9px] leading-tight text-slate-500">
+                  SHA-256 {sucesso.comprovante.hash}
+                </p>
+              )}
             </div>
             <button
               onClick={() => imprimirComprovante(sucesso.comprovante)}

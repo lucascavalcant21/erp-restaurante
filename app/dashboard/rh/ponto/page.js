@@ -396,10 +396,50 @@ export default function PontoPage() {
     return { creditado: credito, aviso };
   };
 
-  const mostrarSucesso = (titulo, detalhe, tone = "ok") => {
+  // Comprovante em papel: janela isolada, largura de bobina térmica (58mm) para
+  // sair na mesma impressora das etiquetas. Fica fora do React de propósito —
+  // window.print() na página inteira levaria o tablet junto.
+  const imprimirComprovante = (cp) => {
+    if (!cp) return;
+    const esc = (v) => String(v ?? "").replace(/[&<>]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[ch]));
+    const linhas = [
+      esc(cp.empresa),
+      cp.cnpj ? `CNPJ ${esc(cp.cnpj)}` : "",
+      "",
+      esc(cp.nome),
+      cp.cpf ? `CPF ${esc(cp.cpf)}` : "",
+      "",
+      esc(cp.etapa),
+      cp.em.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "medium" }),
+    ].filter(Boolean).join("<br>");
+
+    const janela = window.open("", "_blank", "width=380,height=560");
+    if (!janela) { alert("Libere as janelas pop-up para imprimir o comprovante."); return; }
+    janela.document.write(`<!doctype html><html><head><meta charset="utf-8">
+      <title>Comprovante NSR ${cp.nsr}</title>
+      <style>
+        @page { size: 58mm auto; margin: 3mm; }
+        body { font-family: "Courier New", monospace; font-size: 11px; line-height: 1.45; color: #000; margin: 0; }
+        .nsr { font-size: 22px; font-weight: bold; letter-spacing: 0.02em; margin: 4px 0 8px; }
+        .rot { font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; }
+        .rod { margin-top: 10px; font-size: 8.5px; line-height: 1.4; }
+        hr { border: 0; border-top: 1px dashed #000; margin: 8px 0; }
+      </style></head><body>
+      <div class="rot">Comprovante de marcação</div>
+      <div class="nsr">NSR ${cp.nsr}</div>
+      <hr>${linhas}<hr>
+      <div class="rod">Marcação registrada nos termos da Portaria MTP 671/2021.
+      Guarde este comprovante.</div>
+      </body></html>`);
+    janela.document.close();
+    janela.focus();
+    janela.print();
+  };
+
+  const mostrarSucesso = (titulo, detalhe, tone = "ok", comprovante = null) => {
     // Feedback sem olhar a tela: vibra e apita ao confirmar
     try { navigator.vibrate && navigator.vibrate(tone === "alerta" ? [120,80,120] : 180); const A = window.AudioContext || window.webkitAudioContext; if (A) { const ctx = new A(), o = ctx.createOscillator(), g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value = tone === "alerta" ? 320 : 880; g.gain.value = 0.08; o.start(); o.stop(ctx.currentTime + 0.18); } } catch (_) {}
-    setSucesso({ titulo, detalhe, tone });
+    setSucesso({ titulo, detalhe, tone, comprovante });
     // Rápido: 2s no ok; alertas (têm mais texto) ganham um pouco mais
     // Volta para a escolha de área, não para a lista da área. Quem bateu já
     // terminou; quem chega em seguida costuma ser de outro setor, e deixar a
@@ -409,7 +449,7 @@ export default function PontoPage() {
       setSelecionado(null);
       setAreaAtiva("");
       carregar();
-    }, tone === "alerta" ? 3500 : 2000);
+    }, comprovante ? 6000 : tone === "alerta" ? 3500 : 2000);
   };
 
   // Registra a batida de uma etapa.
@@ -423,9 +463,22 @@ export default function PontoPage() {
   const executarBatida = async (etapa, reg, horaPrevista = null, atrasoMin = 0, extrasSaida = {}) => {
     setBatendo(true);
     try {
-      const { error } = await registrarBatida(selecionado.id, unidadeAtiva, etapa);
-      if (error) { alert(error); return; }
+      const recibo = await registrarBatida(selecionado.id, unidadeAtiva, etapa);
+      if (recibo.error) { alert(recibo.error); return; }
       const agoraStr = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+      // Comprovante da marcação (Portaria MTP 671/2021, art. 84): o trabalhador
+      // tem direito a levar a prova do que bateu. Sem NSR não há comprovante
+      // válido — e sem NSR o livro de marcações não recebeu a batida.
+      const comprovante = recibo.nsr ? {
+        nsr: recibo.nsr,
+        etapa: ETAPAS.find(e => e.id === etapa)?.label || etapa,
+        nome: selecionado.nome,
+        cpf: selecionado.cpf || null,
+        empresa: unidadeInfo?.nome || "",
+        cnpj: unidadeInfo?.cnpj || "",
+        em: new Date(recibo.marcadoEm || Date.now()),
+      } : null;
       const primeiro = selecionado.nome.split(" ")[0];
 
       // Volta do intervalo com tempo ACIMA do padrão (fora da tolerância): excesso
@@ -440,14 +493,14 @@ export default function PontoPage() {
             `Passou ${passou}min do intervalo (tirou ${tirou}min de ${intervaloPadrao}min)`, "excesso");
           mostrarSucesso("Atenção ao horário de intervalo!",
             `${primeiro}, você tirou ${fmtMin(tirou)} — ${passou} minuto(s) além do intervalo de ${fmtMin(intervaloPadrao)}. Ficou registrado no seu histórico.`,
-            "alerta");
+            "alerta", comprovante);
           return;
         }
       }
 
       // Entrada com atraso (fora da tolerância): mostra os minutos
       if (etapa === "entrada" && atrasoMin > 0) {
-        mostrarSucesso(`Entrada às ${agoraStr}`, `${primeiro}, ${atrasoMin} min de atraso — ficou registrado no espelho.`, "alerta");
+        mostrarSucesso(`Entrada às ${agoraStr}`, `${primeiro}, ${atrasoMin} min de atraso — ficou registrado no espelho.`, "alerta", comprovante);
         return;
       }
 
@@ -456,14 +509,14 @@ export default function PontoPage() {
         const { creditado, aviso } = await creditarBanco(extrasSaida.extraMin, `Hora extra: saiu às ${agoraStr} (previsto ${extrasSaida.prevStr})`);
         mostrarSucesso(`Saída às ${agoraStr}`,
           `${primeiro}, você passou ${extrasSaida.extraMin} min do horário (${extrasSaida.prevStr}). ${creditado > 0 ? `${fmtMin(creditado)} viraram hora extra no seu banco de horas.` : ""} ${aviso}`,
-          "alerta");
+          "alerta", comprovante);
         return;
       }
       // Saída ANTES do horário → registrada como saída antecipada
       if (etapa === "saida_trabalho" && extrasSaida.saiuAntesMin > 0) {
         mostrarSucesso(`Saída às ${agoraStr}`,
           `${primeiro}, saída ${extrasSaida.saiuAntesMin} min antes do previsto (${extrasSaida.prevStr}) — registrado no espelho de ponto.`,
-          "alerta");
+          "alerta", comprovante);
         return;
       }
 
@@ -473,7 +526,7 @@ export default function PontoPage() {
         retorno_intervalo: `Bem-vindo de volta, ${primeiro}!`,
         saida_trabalho: `Até logo, ${primeiro}!`,
       };
-      mostrarSucesso(`${ETAPAS.find(e => e.id === etapa)?.label} às ${agoraStr}`, msgs[etapa] || "");
+      mostrarSucesso(`${ETAPAS.find(e => e.id === etapa)?.label} às ${agoraStr}`, msgs[etapa] || "", "ok", comprovante);
     } finally {
       setBatendo(false);
     }
@@ -620,6 +673,28 @@ export default function PontoPage() {
         </div>
         <h1 className="text-white font-black text-3xl sm:text-4xl md:text-6xl tracking-tight max-w-3xl">{sucesso.titulo}</h1>
         {sucesso.detalhe && <p className={`${alerta ? "text-amber-50" : "text-emerald-100"} font-bold text-lg md:text-2xl mt-5 max-w-2xl leading-relaxed`}>{sucesso.detalhe}</p>}
+
+        {/* Comprovante da marcação (Portaria MTP 671/2021, art. 84). O
+            trabalhador tem direito à prova do que bateu, e o NSR é o que
+            identifica a marcação no livro — sem ele o comprovante não serve.
+            Fica em fonte de largura fixa e número grande: o operador confere
+            de longe, sem pegar o tablet. */}
+        {sucesso.comprovante && (
+          <div className="mt-7 w-full max-w-md bg-white rounded-2xl px-5 py-4 text-left shadow-2xl font-mono text-slate-800">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Comprovante de marcação</p>
+            <p className="mt-1 text-4xl font-black tabular-nums tracking-tight">NSR {sucesso.comprovante.nsr}</p>
+            <div className="mt-3 space-y-0.5 text-[12px] leading-snug">
+              <p>{sucesso.comprovante.empresa}{sucesso.comprovante.cnpj ? ` · CNPJ ${sucesso.comprovante.cnpj}` : ""}</p>
+              <p className="font-bold">{sucesso.comprovante.nome}{sucesso.comprovante.cpf ? ` · CPF ${sucesso.comprovante.cpf}` : ""}</p>
+              <p>{sucesso.comprovante.etapa} · {sucesso.comprovante.em.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "medium" })}</p>
+            </div>
+            <button
+              onClick={() => imprimirComprovante(sucesso.comprovante)}
+              className="mt-3 w-full rounded-lg bg-slate-900 py-2 text-[12px] font-bold text-white hover:bg-slate-800">
+              Imprimir comprovante
+            </button>
+          </div>
+        )}
       </div>
     );
   }

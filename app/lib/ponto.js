@@ -1,4 +1,5 @@
 import { supabase, isSupabaseReady } from "./supabase";
+import { registrarMarcacao } from "./ponto-marcacao";
 
 // Data local (São Paulo) em YYYY-MM-DD, com deslocamento opcional de dias
 function dataLocalISO(offsetDias = 0) {
@@ -214,6 +215,24 @@ export async function registrarBatida(colaboradorId, unidadeId, tipoBatida, hora
   // grava sem ela e o histórico de localização começa quando o SQL rodar.
   const semColunaNova = (erro) => /localizacoes/i.test(erro?.message || "");
 
+  // O livro de marcações é o registro que vale para a fiscalização: uma linha
+  // por batida, com NSR e encadeada por hash. Entra ANTES do resumo do dia,
+  // porque é ele que precisa ser inviolável — registro_ponto é derivado.
+  //
+  // Se falhar, a batida continua: travar o ponto da casa por causa do livro
+  // seria pior. Mas o aviso sobe junto para não passar despercebido.
+  const dataDaMarcacao = registro?.data_referencia || hoje;
+  const marcacao = await registrarMarcacao({
+    unidadeId,
+    colaboradorId,
+    tipo: tipoBatida,
+    marcadoEm: agora,
+    dataReferencia: dataDaMarcacao,
+    origem: "tablet",
+    latitude: dadosGPS?.latitude ?? null,
+    longitude: dadosGPS?.longitude ?? null,
+  });
+
   if (!registro) {
     // Primeira batida do dia (entrada)
     if(tipoBatida !== 'entrada') return { error: "Precisa bater a entrada primeiro." };
@@ -223,7 +242,7 @@ export async function registrarBatida(colaboradorId, unidadeId, tipoBatida, hora
       const { localizacoes, ...semHistorico } = updates;
       ({ error } = await supabase.from("registro_ponto").insert([{ ...base, ...semHistorico }]));
     }
-    return { error: error?.message, novoStatus };
+    return { error: error?.message, novoStatus, nsr: marcacao.nsr, marcadoEm: agora, avisoLegal: marcacao.erro || null };
   } else {
     // Atualiza o registro existente
     let { error } = await supabase.from("registro_ponto").update(updates).eq("id", registro.id);
@@ -231,7 +250,7 @@ export async function registrarBatida(colaboradorId, unidadeId, tipoBatida, hora
       const { localizacoes, ...semHistorico } = updates;
       ({ error } = await supabase.from("registro_ponto").update(semHistorico).eq("id", registro.id));
     }
-    return { error: error?.message, novoStatus };
+    return { error: error?.message, novoStatus, nsr: marcacao.nsr, marcadoEm: agora, avisoLegal: marcacao.erro || null };
   }
 }
 

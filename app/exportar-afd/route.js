@@ -1,144 +1,141 @@
 import { NextResponse } from "next/server";
 import { supabase } from "../lib/supabase";
 
-export const dynamic = 'force-dynamic';
+// Arquivo Fonte de Dados (AFD) — o arquivo que a fiscalização pede.
+//
+// Lê do livro de marcações (ponto_marcacao), não de registro_ponto. A diferença
+// é o que dá valor ao arquivo: o NSR vem gravado em cada marcação, sequencial e
+// imutável. A versão anterior numerava do 1 a cada exportação — dois arquivos
+// do mesmo período saíam com numeração diferente, o oposto do que o NSR existe
+// para provar. O CPF também era fixo em zeros.
+//
+// ATENÇÃO ao layout: os tamanhos de campo abaixo seguem a estrutura que já
+// estava no projeto. Antes de entregar o arquivo numa fiscalização, valide o
+// layout com o contador contra o anexo vigente da Portaria MTP 671/2021 — um
+// campo fora de posição invalida o arquivo inteiro.
 
-const padR = (str, len) => (str || "").toString().substring(0, len).padEnd(len, ' ');
-const padL = (str, len) => (str || "").toString().substring(0, len).padStart(len, '0');
+export const dynamic = "force-dynamic";
+
+const padR = (str, len) => (str || "").toString().substring(0, len).padEnd(len, " ");
+const padL = (str, len) => (str || "").toString().substring(0, len).padStart(len, "0");
 const soNumeros = (str) => (str || "").replace(/\D/g, "");
+
+// Como o AFD identifica o sentido de cada marcação.
+const SENTIDO = {
+  entrada: "E",
+  saida_intervalo: "S",
+  retorno_intervalo: "E",
+  saida_trabalho: "S",
+  ajuste: "A",
+};
+
+function partesSP(data) {
+  const fmt = new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  });
+  const p = fmt.formatToParts(data);
+  const pega = (t) => p.find(x => x.type === t)?.value || "00";
+  return { D: pega("day"), M: pega("month"), Y: pega("year"), h: pega("hour"), m: pega("minute") };
+}
 
 export async function GET(request) {
   try {
-
     const { searchParams } = new URL(request.url);
     const unidadeId = searchParams.get("unidadeId");
+    if (!unidadeId) return new NextResponse("Faltando unidadeId", { status: 400 });
 
-    if (!unidadeId) {
-      return new NextResponse("Faltando unidadeId", { status: 400 });
-    }
+    // A fiscalização pede um período, não o histórico inteiro. Sem parâmetro,
+    // o mês corrente.
+    const hoje = new Date();
+    const mesPadrao = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
+    const ultimoDia = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
+    const inicio = searchParams.get("inicio") || `${mesPadrao}-01`;
+    const fim = searchParams.get("fim") || `${mesPadrao}-${String(ultimoDia).padStart(2, "0")}`;
 
-    // 1. Busca dados da Unidade Empregadora
     const { data: unidade, error: errUnid } = await supabase
-      .from("unidades")
-      .select("*")
-      .eq("id", unidadeId)
-      .single();
+      .from("unidades").select("*").eq("id", unidadeId).single();
+    if (errUnid) return new NextResponse("Erro ao buscar unidade: " + errUnid.message, { status: 500 });
+    if (!unidade) return new NextResponse("Unidade não encontrada", { status: 404 });
 
-    if (errUnid) {
-      return new NextResponse("Erro ao buscar unidade: " + errUnid.message, { status: 200 });
-    }
-    if (!unidade) {
-      return new NextResponse("Unidade não encontrada", { status: 404 });
-    }
+    const { data: colaboradores } = await supabase
+      .from("colaboradores").select("id, nome, cpf").eq("unidade_id", unidadeId);
+    const porId = new Map((colaboradores || []).map(c => [c.id, c]));
 
-    // 2. Busca todos os Colaboradores da Unidade
-    const { data: colaboradores, error: errColab } = await supabase
-      .from("colaboradores")
-      .select("id, nome")
-      .eq("unidade_id", unidadeId);
-      
-    if (errColab) {
-      return new NextResponse("Erro ao buscar colaboradores: " + errColab.message, { status: 200 });
-    }
-
-    const colabMap = {};
-    if(colaboradores) {
-       colaboradores.forEach(c => colabMap[c.id] = c.nome);
-    }
-
-    // 3. Busca os registros de ponto
-    const { data: pontos, error: errPontos } = await supabase
-      .from("registro_ponto")
-      .select("*")
+    const { data: marcacoes, error: errMarc } = await supabase
+      .from("ponto_marcacao")
+      .select("nsr, colaborador_id, tipo, marcado_em, data_referencia")
       .eq("unidade_id", unidadeId)
-      .order("created_at", { ascending: true });
+      .gte("data_referencia", inicio)
+      .lte("data_referencia", fim)
+      .order("nsr");
 
-    if (errPontos) {
-      return new NextResponse("Erro ao buscar pontos: " + errPontos.message, { status: 200 });
+    if (errMarc) {
+      // Migração não rodada: dizer isso é melhor do que devolver um arquivo
+      // vazio, que passaria por "sem movimento no período".
+      if (/ponto_marcacao/i.test(errMarc.message)) {
+        return new NextResponse(
+          "O livro de marcações ainda não existe neste banco. Rode db/migracao_ponto_nsr.sql antes de exportar o AFD.",
+          { status: 503 },
+        );
+      }
+      return new NextResponse("Erro ao buscar marcações: " + errMarc.message, { status: 500 });
     }
-    if (!pontos) {
-      return new NextResponse("Sem dados", { status: 200 });
+
+    const agora = partesSP(new Date());
+    const dataGeracao = agora.D + agora.M + agora.Y;
+    const horaGeracao = agora.h + agora.m;
+    const cnpj = soNumeros(unidade.cnpj || "");
+
+    const linhas = [];
+
+    // Registro tipo 1 — cabeçalho.
+    linhas.push(
+      "1" + "1" +
+      padL(cnpj, 14) +
+      padR("", 14) +
+      padR(unidade.nome || "Empresa", 150) +
+      "A" +
+      dataGeracao + horaGeracao +
+      padL("1", 9) +
+      "001",
+    );
+
+    // Registro tipo 3 — marcações, na ordem do NSR gravado.
+    for (const m of (marcacoes || [])) {
+      const colab = porId.get(m.colaborador_id);
+      const p = partesSP(new Date(m.marcado_em));
+      linhas.push(
+        "3" +
+        padL(String(m.nsr), 9) +
+        p.D + p.M + p.Y +
+        p.h + p.m +
+        padL(soNumeros(colab?.cpf), 11) +
+        padR(colab?.nome || "DESCONHECIDO", 52) +
+        (SENTIDO[m.tipo] || "E"),
+      );
     }
 
-    // 4. Construção do AFD
-    let nsr = 1;
-    const formatterSP = new Intl.DateTimeFormat("pt-BR", {
-      timeZone: "America/Sao_Paulo",
-      year: "numeric", month: "2-digit", day: "2-digit",
-      hour: "2-digit", minute: "2-digit",
-      hour12: false
-    });
-    
-    const getParts = (dateObj) => {
-       const parts = formatterSP.formatToParts(dateObj);
-       return {
-          D: parts.find(p => p.type === 'day')?.value || "00",
-          M: parts.find(p => p.type === 'month')?.value || "00",
-          Y: parts.find(p => p.type === 'year')?.value || "0000",
-          h: parts.find(p => p.type === 'hour')?.value || "00",
-          m: parts.find(p => p.type === 'minute')?.value || "00"
-       };
-    };
+    // Registro tipo 9 — trailer. É ele que fecha o arquivo e diz quantas
+    // marcações deveriam estar dentro; sem trailer, truncar o arquivo passa
+    // despercebido.
+    linhas.push(
+      "9" +
+      padL("0", 9) + padL("0", 9) + padL("0", 9) +
+      padL(String((marcacoes || []).length), 9) +
+      "9",
+    );
 
-    const hojeP = getParts(new Date());
-    const dataGeracao = hojeP.D + hojeP.M + hojeP.Y;
-    const horaGeracao = hojeP.h + hojeP.m;
-    
-    const cnpjApenasNum = soNumeros(unidade.cnpj || "00000000000000");
-
-    let linhas = [];
-
-    // REGISTRO TIPO 1 (Cabeçalho)
-    const header = "1" + 
-                   "1" + 
-                   padL(cnpjApenasNum, 14) + 
-                   padR("", 14) + 
-                   padR(unidade.nome || "Empresa", 150) + 
-                   "A" + 
-                   dataGeracao + 
-                   horaGeracao + 
-                   padL("1", 9) + 
-                   "001";
-                   
-    linhas.push(header);
-
-    // REGISTRO TIPO 3 (Batidas de Ponto)
-    pontos.forEach(pt => {
-       const dataFormatada = pt.data_referencia ? pt.data_referencia.split("-").reverse().join("") : "00000000"; // DDMMYYYY
-       const nomeColab = padR(colabMap[pt.colaborador_id] || "DESCONHECIDO", 52);
-       const cpfMock = padL("00000000000", 11); 
-
-       const adicionarBatida = (horaISO, tipoBatidaChar) => {
-          if(!horaISO) return;
-          const bp = getParts(new Date(horaISO));
-          const horaStr = bp.h + bp.m;
-          
-          const detalhe = "3" + 
-                          padL(nsr.toString(), 9) + 
-                          dataFormatada + 
-                          horaStr + 
-                          cpfMock + 
-                          nomeColab;
-                          
-          linhas.push(detalhe);
-          nsr++;
-       };
-
-       adicionarBatida(pt.hora_entrada, "E");
-       adicionarBatida(pt.hora_saida_intervalo, "S");
-       adicionarBatida(pt.hora_retorno_intervalo, "E");
-       adicionarBatida(pt.hora_saida, "S");
-    });
-
-    const conteudoAFD = linhas.join("\r\n");
-
-    const resposta = new NextResponse(conteudoAFD);
+    const resposta = new NextResponse(linhas.join("\r\n") + "\r\n");
     resposta.headers.set("Content-Type", "text/plain; charset=utf-8");
-    resposta.headers.set("Content-Disposition", `attachment; filename="AFD_REPA_${cnpjApenasNum}_${dataGeracao}.txt"`);
-
+    resposta.headers.set(
+      "Content-Disposition",
+      `attachment; filename="AFD_${cnpj || "SEMCNPJ"}_${inicio}_a_${fim}.txt"`,
+    );
     return resposta;
   } catch (error) {
-    console.error("ERRO CRÍTICO AFD:", error);
-    return new NextResponse("Erro Interno do Servidor: " + error.message, { status: 200 });
+    console.error("ERRO AFD:", error);
+    return new NextResponse("Erro interno: " + error.message, { status: 500 });
   }
 }

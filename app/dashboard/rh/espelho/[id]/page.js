@@ -350,7 +350,7 @@ export default function EspelhoDePonto() {
 
          {/* Rodapé de assinatura, igual ao da folha: data em branco à esquerda,
              nome do trabalhador ao centro e o responsável pela lotação. */}
-         <div className="mt-4 flex items-end justify-between gap-6 px-1 text-[9px] print:mt-3">
+         <div className="mt-14 flex items-end justify-between gap-6 px-1 text-[9px] print:mt-[18mm]">
             <div className="w-[38mm] text-center">
                <p>____/____/________</p>
             </div>

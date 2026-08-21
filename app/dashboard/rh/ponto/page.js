@@ -159,17 +159,25 @@ function saidaDoDia(c, base) {
 }
 
 // Está de folga hoje? (folga semanal via dias_trabalho + folga esporádica)
+// Três folgas diferentes, e a casa trata cada uma de um jeito: a semanal é a
+// que está no contrato; a de domingo é a escala que roda entre a equipe; e a
+// programada é combinada caso a caso. Chamar todas de "folga" apagava essa
+// diferença justamente para quem precisa dela — quem monta a escala.
 function folgaHoje(c, folgas, base) {
   const diasStr = String(c?.dias_trabalho || "").trim();
   if (diasStr) {
     const dias = diasStr.split(",").map(s => s.trim()).filter(Boolean);
     if (dias.length && !dias.includes(String(base.getDay()))) {
-      return { folga: true, motivo: "Folga semanal" };
+      return { folga: true, tipo: "semanal", motivo: "Folga da semana" };
     }
   }
   const hoje = isoLocal(base);
   const esp = (folgas || []).find(f => f.colaborador_id === c?.id && String(f.data_folga).slice(0, 10) === hoje);
-  if (esp) return { folga: true, motivo: esp.descricao ? `Folga programada — ${esp.descricao}` : "Folga programada" };
+  if (esp) {
+    // Domingo tem nome próprio porque é assim que a escala é falada na casa.
+    if (base.getDay() === 0) return { folga: true, tipo: "domingo", motivo: "Folga de domingo" };
+    return { folga: true, tipo: "programada", motivo: esp.descricao ? `Folga — ${esp.descricao}` : "Folga programada" };
+  }
   return { folga: false };
 }
 
@@ -934,8 +942,11 @@ export default function PontoPage() {
         <div className="flex items-center justify-between gap-2 flex-wrap">
           {/* PRIORIDADE: jornada aberta (mesmo em dia de folga — turno de ontem
               que virou a madrugada) vem antes do selo de folga */}
-          <div className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1.5 ${bloqueado && !reg?.hora_entrada ? "bg-violet-500/10 text-violet-300" : reg?.hora_entrada && !concluido ? "bg-sky-500/10 text-sky-400" : info.folga || faltou ? "bg-rose-500/10 text-rose-400" : concluido ? "bg-emerald-500/10 text-emerald-500" : "bg-slate-800 text-slate-500"}`}>
-            {bloqueado && !reg?.hora_entrada ? <><Ban size={11} /> Aguardando liberação</> : reg?.hora_entrada && !concluido ? <><Clock size={11} /> Próx: {ETAPAS.find(e => e.id === etapa)?.label}</> : info.folga ? <><Ban size={11} /> Folga hoje</> : faltou ? <><Ban size={11} /> Falta — não bateu até {entradaStr}+{cfgP.limite_atraso}min</> : concluido ? <><CheckCircle2 size={11} /> Jornada concluída</> : <><LogIn size={11} /> Aguardando entrada</>}
+          {/* Folga não é falta: sai em âmbar, não em vermelho. E cada tipo diz
+              o próprio nome — quem monta a escala precisa saber se a pessoa
+              está de folga semanal ou se foi a vez dela no domingo. */}
+          <div className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1.5 ${bloqueado && !reg?.hora_entrada ? "bg-violet-500/10 text-violet-300" : reg?.hora_entrada && !concluido ? "bg-sky-500/10 text-sky-400" : info.folga ? (info.tipo === "domingo" ? "bg-amber-500/10 text-amber-300" : "bg-slate-700/40 text-slate-300") : faltou ? "bg-rose-500/10 text-rose-400" : concluido ? "bg-emerald-500/10 text-emerald-500" : "bg-slate-800 text-slate-500"}`}>
+            {bloqueado && !reg?.hora_entrada ? <><Ban size={11} /> Aguardando liberação</> : reg?.hora_entrada && !concluido ? <><Clock size={11} /> Próx: {ETAPAS.find(e => e.id === etapa)?.label}</> : info.folga ? <><Ban size={11} /> {info.motivo}</> : faltou ? <><Ban size={11} /> Falta — não bateu até {entradaStr}+{cfgP.limite_atraso}min</> : concluido ? <><CheckCircle2 size={11} /> Jornada concluída</> : <><LogIn size={11} /> Aguardando entrada</>}
           </div>
           {entradaStr && !info.folga && (
             <span className="text-[10px] font-bold text-slate-600">{entradaStr}{saidaDoDia(c, horaLocal) ? `–${saidaDoDia(c, horaLocal)}` : ""}</span>

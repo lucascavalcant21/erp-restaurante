@@ -55,7 +55,10 @@ function nomeBonitoVoz(nome) {
 
 function Aviso({ aviso, fechar }) {
   useEffect(() => {
-    const timer = setTimeout(fechar, 5200);
+    // Confirmacao de rotina ("X adicionado a fila") o operador ja sabe que
+    // deu certo — 5s de banner tapando a tela so atrasa a proxima etiqueta.
+    // Erro fica o tempo todo: esse precisa ser lido antes de sumir.
+    const timer = setTimeout(fechar, aviso.tipo === "erro" ? 5200 : 1600);
     return () => clearTimeout(timer);
   }, [aviso, fechar]);
   return <div className={`etq-toast ${aviso.tipo}`}>

@@ -354,16 +354,26 @@ export default function EspelhoDePonto() {
              momentos. Quem assina espera os tres campos no mesmo nivel. */}
          <div className="mt-14 grid grid-cols-3 items-end gap-8 px-1 text-[9px] print:mt-[18mm]">
             {[
-               { chave: "data", rotulo: "Data", mascara: "____/____/________" },
+               { chave: "data", rotulo: "Data", comBarras: true },
                { chave: "trabalhador", rotulo: colaborador.nome },
                { chave: "responsavel", rotulo: "Responsável Lotação" },
             ].map(campo => (
                <div key={campo.chave} className="text-center">
-                  {/* A data se escreve a mao: sem as barras, quem preenche nao
-                      sabe onde termina o dia e comeca o mes. Fica sobre a linha,
-                      e items-end mantem as tres linhas no mesmo nivel. */}
-                  {campo.mascara && <p className="pb-0.5 leading-none tracking-[0.15em] text-black">{campo.mascara}</p>}
-                  <div className="border-t border-slate-800" />
+                  {/* As barras fazem parte da linha, nao ficam em cima dela:
+                      a linha preta e a mesma das outras duas colunas, so
+                      dividida em dia / mes / ano. Sem as barras quem preenche
+                      a mao nao sabe onde termina um campo e comeca o outro. */}
+                  {campo.comBarras ? (
+                     <div className="flex items-end">
+                        <span className="flex-1 border-t border-slate-800" />
+                        <span className="px-1 leading-[0.4] text-black">/</span>
+                        <span className="flex-1 border-t border-slate-800" />
+                        <span className="px-1 leading-[0.4] text-black">/</span>
+                        <span className="flex-[1.6] border-t border-slate-800" />
+                     </div>
+                  ) : (
+                     <div className="border-t border-slate-800" />
+                  )}
                   <p className="pt-1 uppercase font-bold tracking-wide text-black">{campo.rotulo}</p>
                </div>
             ))}

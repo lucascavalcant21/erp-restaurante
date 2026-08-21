@@ -125,5 +125,18 @@ conferir("sem contrato conhecido nao gera extra",
 const r4 = calcularAdicionaisPorDia(umDia, [{ data: "2026-08-04" }], { contratadaDoDia })[0];
 conferir("feriado trabalhado conta os 440 min do dia", r4.minFeriado, 440);
 
+// Teto de 2h de hora extra por dia (CLT art. 59, caput) — tambem o limite do
+// acordo de banco de horas da casa. Passar disso nao apaga o direito: marca.
+const esticado = [{
+  data_referencia: "2026-08-04",
+  hora_entrada: em("2026-08-04T15:40"), hora_saida: em("2026-08-05T03:00"),
+  hora_saida_intervalo: em("2026-08-04T17:00"), hora_retorno_intervalo: em("2026-08-04T18:00"),
+}];
+const r5 = calcularAdicionaisPorDia(esticado, [], { contratadaDoDia })[0];
+conferir("3h alem do contrato contam inteiras como extra", r5.minExtra, 180);
+conferir("o que passa de 2h vem marcado", r5.extraAcimaDoLimite, 60);
+conferir("dentro das 2h nao marca nada",
+  calcularAdicionaisPorDia(comExtra, [], { contratadaDoDia })[0].extraAcimaDoLimite, 0);
+
 console.log(falhas ? `\n${falhas} falha(s)` : "\nTodos os casos passaram.");
 process.exit(falhas ? 1 : 0);

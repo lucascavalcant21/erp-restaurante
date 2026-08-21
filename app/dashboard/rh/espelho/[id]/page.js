@@ -478,7 +478,15 @@ export default function EspelhoDePonto() {
                         {dias.map(d => (
                            <tr key={d.data}>
                               <td className="border border-slate-800 !py-0.5 !px-2">{d.data ? d.data.split("-").reverse().join("/") : "—"}</td>
-                              <td className="border border-slate-800 !py-0.5 !px-2 text-right font-bold">{fmtM(d.minExtra)}</td>
+                              {/* Passou de 2h no dia: os minutos continuam
+                                  devidos, mas o art. 59 da CLT limita o
+                                  acréscimo a duas horas — e é esse também o
+                                  teto do acordo de banco de horas da casa.
+                                  Quem monta a escala precisa ver o dia. */}
+                              <td className={`border border-slate-800 !py-0.5 !px-2 text-right font-bold ${d.extraAcimaDoLimite > 0 ? "text-red-700" : ""}`}>
+                                 {fmtM(d.minExtra)}
+                                 {d.extraAcimaDoLimite > 0 && <span className="ml-1 font-black">· {d.extraAcimaDoLimite} min acima do limite</span>}
+                              </td>
                               <td className="border border-slate-800 !py-0.5 !px-2 text-right font-bold">{fmtM(d.minNoturno)}</td>
                               <td className="border border-slate-800 !py-0.5 !px-2 text-right font-bold">{fmtM(d.minFeriado)}</td>
                            </tr>

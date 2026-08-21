@@ -17,6 +17,12 @@ export const HORA_FICTA_MIN = 52.5;
 export const TOLERANCIA_MARCACAO_MIN = 5;
 export const TOLERANCIA_TETO_DIA_MIN = 10;
 
+// Limite legal de hora extra (CLT art. 59, caput): no máximo 2 horas por dia.
+// É também o que o acordo de banco de horas da casa combina com cada
+// trabalhador. Passar disso não é "mais hora extra" — é infração, e continua
+// devido. Por isso o dia que estoura vem marcado, não silenciosamente somado.
+export const EXTRA_MAXIMA_DIA_MIN = 120;
+
 const MIN = 60000;
 
 // Interseção de dois intervalos, em minutos. Base de tudo que segue.
@@ -167,8 +173,16 @@ export function calcularAdicionaisPorDia(pontosMes, feriados = [], opcoes = {}) 
     // Lei 605/49 — trabalho em feriado sem folga compensatória, em dobro).
     const minFeriado = feriadosSet.has(data) ? trabalhado : 0;
 
+    // Estourou o teto do art. 59: os minutos continuam devidos, mas o dia
+    // precisa aparecer para quem monta a escala — senão a irregularidade só
+    // vira problema quando alguém reclama.
+    const extraAcimaDoLimite = Math.max(0, minExtra - EXTRA_MAXIMA_DIA_MIN);
+
     if (minNoturno > 0 || minExtra > 0 || minFeriado > 0) {
-      dias.push({ data, minNoturno, minNoturnoRelogio: noturnoRelogio, minExtra, minFeriado, minTrabalhado: trabalhado });
+      dias.push({
+        data, minNoturno, minNoturnoRelogio: noturnoRelogio, minExtra, minFeriado,
+        minTrabalhado: trabalhado, extraAcimaDoLimite,
+      });
     }
   });
 

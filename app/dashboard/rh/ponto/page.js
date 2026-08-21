@@ -9,7 +9,7 @@ import {
 import { useERP } from "../../../context/ERPContext";
 import { useRouter } from "next/navigation";
 import { fetchColaboradores, inserirBancoHoras, fetchBancoHorasColaborador, somaMinutosBanco, fetchAllFolgasDaUnidade, fetchLiberacoesDia, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN } from "../../../lib/rh";
-import { fetchPontoHoje, fetchHistoricoPonto, registrarBatida, pularIntervalo } from "../../../lib/ponto";
+import { fetchPontoHoje, fetchPontosMes, registrarBatida, pularIntervalo } from "../../../lib/ponto";
 import { fetchPins } from "../../../lib/seguranca";
 import { fetchParams, PARAMS_PADRAO } from "../../../lib/parametros";
 import { useTempoReal } from "../../../lib/realtime";
@@ -214,6 +214,10 @@ export default function PontoPage() {
 
   const [selecionado, setSelecionado] = useState(null);
   const [historico, setHistorico] = useState([]);
+  // Mês que o funcionário está olhando no próprio histórico. Antes eram só os
+  // 7 últimos dias, o que não dava para conferir o mês fechado nem contestar
+  // uma batida do começo do mês.
+  const [mesHistorico, setMesHistorico] = useState(() => isoLocal(new Date()).slice(0, 7));
   const [bancoMes, setBancoMes] = useState([]);
   const [batendo, setBatendo] = useState(false);
   const [sucesso, setSucesso] = useState(null); // { titulo, detalhe, tone }
@@ -328,10 +332,29 @@ export default function PontoPage() {
     setLetra("");
     setHistorico([]);
     setBancoMes([]);
-    const mes = new Date().toISOString().slice(0, 7);
-    fetchHistoricoPonto(c.id).then(r => setHistorico(r.data || [])).catch(() => {});
+    const mes = isoLocal(new Date()).slice(0, 7);
+    setMesHistorico(mes); // sempre abre no mês corrente
     fetchBancoHorasColaborador(c.id, mes).then(r => setBancoMes(r.data || [])).catch(() => {});
   };
+
+  // Recarrega ao trocar de pessoa ou de mês.
+  useEffect(() => {
+    if (!selecionado?.id) return;
+    let ativo = true;
+    fetchPontosMes(selecionado.id, mesHistorico)
+      .then(r => { if (ativo) setHistorico(r.data || []); })
+      .catch(() => {});
+    return () => { ativo = false; };
+  }, [selecionado?.id, mesHistorico]);
+
+  // Não deixa navegar para o futuro: mês que ainda não aconteceu só teria
+  // linhas vazias e passaria a impressão de que faltou batida.
+  const mesEhFuturo = mesHistorico >= isoLocal(new Date()).slice(0, 7);
+  const andarMes = (passo) => setMesHistorico(atual => {
+    const [ano, mes] = atual.split("-").map(Number);
+    const d = new Date(ano, mes - 1 + passo, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
 
   const totalBancoMes = somaMinutosBanco(bancoMes);
   const intervaloPadrao = selecionado ? (Number(selecionado.tempo_intervalo) || 60) : 60;
@@ -806,11 +829,29 @@ export default function PontoPage() {
             </button>
           )}
 
-          {/* Histórico: últimos 7 dias */}
+          {/* Histórico do mês, com navegação. O funcionário precisa conseguir
+              conferir o mês fechado — com 7 dias não dava para contestar uma
+              batida do começo do mês. */}
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5">
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 flex items-center gap-1.5"><Clock size={12} /> Últimos dias</p>
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-1.5"><Clock size={12} /> Meu histórico</p>
+              <div className="flex items-center gap-1">
+                <button onClick={() => andarMes(-1)} aria-label="Mês anterior"
+                  className="grid h-9 w-9 place-items-center rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700">‹</button>
+                <span className="min-w-[112px] text-center text-xs font-black uppercase text-slate-300">
+                  {new Date(`${mesHistorico}-01T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
+                </span>
+                <button onClick={() => andarMes(1)} disabled={mesEhFuturo} aria-label="Próximo mês"
+                  className="grid h-9 w-9 place-items-center rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 disabled:opacity-30">›</button>
+              </div>
+            </div>
+            {historico.length > 0 && (
+              <p className="mb-2 text-[11px] font-bold text-slate-500">
+                {historico.length} dia(s) com registro neste mês
+              </p>
+            )}
             {historico.length === 0 ? (
-              <p className="text-sm font-medium text-slate-600">Sem registros anteriores.</p>
+              <p className="text-sm font-medium text-slate-600">Nenhum registro neste mês.</p>
             ) : (
               <div className="space-y-1.5">
                 {historico.map(h => (

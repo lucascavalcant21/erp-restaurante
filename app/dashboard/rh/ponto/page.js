@@ -538,6 +538,12 @@ export default function PontoPage() {
         saida_trabalho: `Até logo, ${primeiro}!`,
       };
       mostrarSucesso(`${ETAPAS.find(e => e.id === etapa)?.label} às ${agoraStr}`, msgs[etapa] || "", "ok", comprovante);
+    } catch (e) {
+      // Sem isto, qualquer exceção aqui fazia o botão não responder: o
+      // funcionário aperta, nada acontece, e ninguém fica sabendo. Num tablet
+      // de ponto, falha silenciosa é pior que erro na tela.
+      console.error("Falha ao bater o ponto:", e);
+      alert("Não consegui registrar a batida: " + (e?.message || e) + " — chame o gerente e não bata de novo antes de conferir.");
     } finally {
       setBatendo(false);
     }

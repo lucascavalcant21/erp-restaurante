@@ -196,13 +196,6 @@ export async function registrarBatida(colaboradorId, unidadeId, tipoBatida, hora
     updates.localizacoes = [...anteriores, marca];
   }
 
-  // O livro é a fonte da hora: o servidor carimbou, e o resumo do dia segue o
-  // livro. Divergir aqui faria o espelho mostrar uma hora e o AFD outra.
-  const horaOficial = marcacao.marcadoEm || agora;
-  for (const campo of ["hora_entrada", "hora_saida_intervalo", "hora_retorno_intervalo", "hora_saida"]) {
-    if (updates[campo]) updates[campo] = horaOficial;
-  }
-
   // Coluna nova ainda não migrada não pode impedir alguém de bater o ponto:
   // grava sem ela e o histórico de localização começa quando o SQL rodar.
   const semColunaNova = (erro) => /localizacoes/i.test(erro?.message || "");
@@ -226,6 +219,16 @@ export async function registrarBatida(colaboradorId, unidadeId, tipoBatida, hora
     latitude: dadosGPS?.latitude ?? null,
     longitude: dadosGPS?.longitude ?? null,
   });
+
+  // O livro é a fonte da hora: o servidor carimbou, e o resumo do dia segue o
+  // livro. Divergir aqui faria o espelho mostrar uma hora e o AFD outra.
+  //
+  // Tem que vir DEPOIS da marcação: antes, "marcacao" ainda está na zona morta
+  // e a leitura estoura — o botão do tablet simplesmente não fazia nada.
+  const horaOficial = marcacao.marcadoEm || agora;
+  for (const campo of ["hora_entrada", "hora_saida_intervalo", "hora_retorno_intervalo", "hora_saida"]) {
+    if (updates[campo]) updates[campo] = horaOficial;
+  }
 
   if (!registro) {
     // Primeira batida do dia (entrada)

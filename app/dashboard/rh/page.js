@@ -77,7 +77,7 @@ export default function RHPage() {
   const [cargos, setCargos] = useState([]);
   const [busca, setBusca] = useState("");
   const [abaAtiva, setAbaAtiva] = useState("Fixo");
-  const statePadrao = { foto: "", nome: "", cargo: "", salario: "", vale_alimentacao: "", taxa_servico_mes: "", horario_entrada: "", horario_saida: "", horario_dom_entrada: "", horario_dom_saida: "", horario_por_dia: false, horarios_dia: {}, dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60, tipo_contrato: "Fixo", telefone: "", email: "", cpf: "", rg: "", rua_av: "", numero_casa: "", bairro: "", cidade_uf: "", chave_pix: "", avaliacao_estrelas: 0, anotacoes_rh: "", data_admissao: "", status_contrato: "Definitivo", supervisor_id: "", supervisores_ids: [], endereco: "", cep: "", cidade_nascimento: "", data_nascimento: "", tem_filhos: false, qtd_filhos: "", tem_transporte: false, usa_vale_transporte: false, genero: "", escolaridade: "", estado_civil: "", nome_pai: "", nome_mae: "", filhos: [],
+  const statePadrao = { foto: "", nome: "", cargo: "", salario: "", vale_alimentacao: "", taxa_servico_mes: "", horario_entrada: "", horario_saida: "", horario_dom_entrada: "", horario_dom_saida: "", intervalo_inicio: "", intervalo_fim: "", intervalo_dom_inicio: "", intervalo_dom_fim: "", horario_por_dia: false, horarios_dia: {}, dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60, tipo_contrato: "Fixo", telefone: "", email: "", cpf: "", rg: "", rua_av: "", numero_casa: "", bairro: "", cidade_uf: "", chave_pix: "", avaliacao_estrelas: 0, anotacoes_rh: "", data_admissao: "", status_contrato: "Definitivo", supervisor_id: "", supervisores_ids: [], endereco: "", cep: "", cidade_nascimento: "", data_nascimento: "", tem_filhos: false, qtd_filhos: "", tem_transporte: false, usa_vale_transporte: false, genero: "", escolaridade: "", estado_civil: "", nome_pai: "", nome_mae: "", filhos: [],
     // Dados do Recibo de Trabalho Extra: ficam no cadastro para o recibo já sair preenchido
     topicos_funcao: "", itens_emprestados: "", forma_pagamento: "Pix", vale_transporte_val: "", setor_entrega: "", janta_ofertada: true };
   // Cargos de liderança sempre disponíveis, além dos cargos cadastrados
@@ -1312,6 +1312,10 @@ export default function RHPage() {
        horarios_dia: (f.horarios_dia && typeof f.horarios_dia === "object") ? f.horarios_dia : {},
        dias_trabalho: f.dias_trabalho || "1,2,3,4,5,6",
        tempo_intervalo: f.tempo_intervalo || 60,
+       intervalo_inicio: f.intervalo_inicio || "",
+       intervalo_fim: f.intervalo_fim || "",
+       intervalo_dom_inicio: f.intervalo_dom_inicio || "",
+       intervalo_dom_fim: f.intervalo_dom_fim || "",
        tipo_contrato: f.tipo_contrato || "Fixo",
        telefone: f.telefone || "",
        email: f.email || "",
@@ -1374,6 +1378,10 @@ export default function RHPage() {
         ? Object.entries(novoFunc.horarios_dia || {}).filter(([, h]) => h && h.e && h.s).map(([d]) => d).sort().join(",")
         : novoFunc.dias_trabalho,
       tempo_intervalo: Number(novoFunc.tempo_intervalo) || 60,
+      intervalo_inicio: novoFunc.intervalo_inicio || null,
+      intervalo_fim: novoFunc.intervalo_fim || null,
+      intervalo_dom_inicio: novoFunc.intervalo_dom_inicio || null,
+      intervalo_dom_fim: novoFunc.intervalo_dom_fim || null,
       tipo_contrato: novoFunc.tipo_contrato,
       telefone: novoFunc.telefone,
       email: novoFunc.email || null,
@@ -2649,6 +2657,32 @@ export default function RHPage() {
                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Intervalo (Minutos)</label>
                         <input type="number" value={novoFunc.tempo_intervalo || ""} onChange={e=>setNovoFunc({...novoFunc, tempo_intervalo: e.target.value})} placeholder="Ex: 60" className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
                      </div>
+                  </div>
+
+                  {/* Janela do intervalo. Os minutos acima servem ao banco de
+                      horas; estas duas horas são o que sai impresso na folha de
+                      jornada, no formato "int: 17:00 as 18:00". */}
+                  <div className="grid grid-cols-2 gap-3 mt-3">
+                     <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Intervalo começa</label>
+                        <input type="time" value={novoFunc.intervalo_inicio || ""} onChange={e=>setNovoFunc({...novoFunc, intervalo_inicio: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                     </div>
+                     <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Intervalo termina</label>
+                        <input type="time" value={novoFunc.intervalo_fim || ""} onChange={e=>setNovoFunc({...novoFunc, intervalo_fim: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                     </div>
+                     {/* Só aparece para quem trabalha domingo com jornada
+                         diferente — caso da chefia de cozinha. */}
+                     {(novoFunc.horario_dom_entrada || novoFunc.horario_dom_saida) && <>
+                        <div>
+                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Intervalo domingo · início</label>
+                           <input type="time" value={novoFunc.intervalo_dom_inicio || ""} onChange={e=>setNovoFunc({...novoFunc, intervalo_dom_inicio: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                        </div>
+                        <div>
+                           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Intervalo domingo · fim</label>
+                           <input type="time" value={novoFunc.intervalo_dom_fim || ""} onChange={e=>setNovoFunc({...novoFunc, intervalo_dom_fim: e.target.value})} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                        </div>
+                     </>}
                   </div>
 
                   <div id="func-observacoes" className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">

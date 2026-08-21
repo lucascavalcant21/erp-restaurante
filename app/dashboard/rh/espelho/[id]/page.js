@@ -88,14 +88,24 @@ export default function EspelhoDePonto() {
   // está cadastrada — o sistema guarda os minutos, não as horas de início e fim.
   const NOME_DIA = ["DOMINGO", "SEGUNDA", "TERÇA", "QUARTA", "QUINTA", "SEXTA", "SÁBADO"];
   const trabalhaNo = (n) => String(colaborador.dias_trabalho || "0,1,2,3,4,5,6").split(",").includes(String(n));
-  const intervaloTexto = colaborador.tempo_intervalo ? ` - int: ${colaborador.tempo_intervalo} min` : "";
+
+  // A janela do intervalo é o que a folha mostra ("int: 17:00 as 18:00"). Quem
+  // ainda não tem a janela cadastrada cai na duração, para a linha não sair
+  // vazia — mas o certo é preencher as duas horas no RH.
+  const janelaIntervalo = (ehDom) => {
+    const ini = (ehDom && colaborador.intervalo_dom_inicio) || colaborador.intervalo_inicio;
+    const fim = (ehDom && colaborador.intervalo_dom_fim) || colaborador.intervalo_fim;
+    if (ini && fim) return ` - int: ${ini} as ${fim}`;
+    return colaborador.tempo_intervalo ? ` - int: ${colaborador.tempo_intervalo} min` : "";
+  };
+
   const linhasHorario = [2, 3, 4, 5, 6, 0]
     .filter(trabalhaNo)
     .map(n => {
       const ehDom = n === 0;
       const ent = (ehDom && colaborador.horario_dom_entrada) || colaborador.horario_entrada || "—";
       const sai = (ehDom && colaborador.horario_dom_saida) || colaborador.horario_saida || "—";
-      return `${NOME_DIA[n]} Ent: ${ent} Sai: ${sai}${intervaloTexto}`;
+      return `${NOME_DIA[n]} Ent: ${ent} Sai: ${sai}${janelaIntervalo(ehDom)}`;
     });
 
   // Calcula horas

@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabase";
 import { fetchPontosMes } from "../../../../lib/ponto";
-import { fetchFolgasEsporadicas, fetchBancoHorasColaborador, fetchFeriados, calcularAdicionaisPorDia } from "../../../../lib/rh";
+import { fetchFolgasEsporadicas, fetchBancoHorasColaborador, fetchFeriados, calcularAdicionaisPorDia, fetchEspelhoFechado, fecharEspelho } from "../../../../lib/rh";
 import { Printer, ArrowLeft } from "lucide-react";
 
 export default function EspelhoDePonto() {
@@ -22,6 +22,7 @@ export default function EspelhoDePonto() {
   const [folgasEsporadicas, setFolgasEsporadicas] = useState([]);
   const [bancoMes, setBancoMes] = useState([]);
   const [feriadosMes, setFeriadosMes] = useState([]);
+  const [fechamento, setFechamento] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -39,6 +40,25 @@ export default function EspelhoDePonto() {
         if (colab.unidade_id) {
            const { data: unid } = await supabase.from("unidades").select("nome, cnpj").eq("id", colab.unidade_id).single();
            colab.unidade = unid;
+        }
+        // Mês encerrado: a folha tem que sair igual à que foi assinada. Se já
+        // existe retrato do contrato, ele manda; se não existe, tira um agora e
+        // congela. Mês corrente segue ao vivo, porque ainda está sendo formado.
+        const mesAtual = new Date().toISOString().slice(0, 7);
+        if (mesParam < mesAtual) {
+          const { data: fechado } = await fetchEspelhoFechado(colabId, mesParam);
+          if (fechado?.contrato) {
+            Object.assign(colab, fechado.contrato);
+            setFechamento(fechado);
+          } else {
+            // Best-effort: se o fechamento falhar (rede, permissão), a folha
+            // ainda imprime com o cadastro atual em vez de não abrir.
+            const res = await fecharEspelho(colab, mesParam);
+            if (!res?.error) {
+              const { data: novo } = await fetchEspelhoFechado(colabId, mesParam);
+              if (novo) setFechamento(novo);
+            }
+          }
         }
         setColaborador(colab);
       }
@@ -138,6 +158,17 @@ export default function EspelhoDePonto() {
     return v;
   };
 
+  // Descarta o retrato antigo e grava o cadastro de agora no lugar.
+  const refazerRetrato = async () => {
+    if (refazendo || !colaborador) return;
+    if (!confirm("Refazer o retrato do contrato deste mês com os dados atuais do cadastro?")) return;
+    setRefazendo(true);
+    const { error } = await refazerEspelho(colaborador, mesParam);
+    setRefazendo(false);
+    if (error) { alert(error); return; }
+    window.location.reload();
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 font-sans pb-20 print:bg-white print:pb-0">
       
@@ -146,9 +177,20 @@ export default function EspelhoDePonto() {
          <button onClick={() => abrirMenu()} className="flex items-center gap-2 text-slate-600 font-bold hover:text-slate-800">
             <ArrowLeft size={20}/> Voltar
          </button>
-         <button onClick={() => window.print()} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
-            <Printer size={18}/> Imprimir PDF
-         </button>
+         <div className="flex items-center gap-3">
+            {/* Congelar um mês antigo usa o cadastro de hoje. Se o contrato já
+                tinha mudado antes de alguém abrir a folha, o retrato nasce
+                errado — e sem isto não haveria como corrigir. */}
+            {fechamento && (
+               <button onClick={refazerRetrato} disabled={refazendo}
+                  className="text-xs font-bold text-slate-500 hover:text-slate-800 underline underline-offset-2 disabled:opacity-40">
+                  {refazendo ? "Atualizando..." : "Refazer retrato do contrato"}
+               </button>
+            )}
+            <button onClick={() => window.print()} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
+               <Printer size={18}/> Imprimir PDF
+            </button>
+         </div>
       </div>
 
       {/* Folha A4 */}
@@ -462,6 +504,7 @@ export default function EspelhoDePonto() {
          
          <div className="mt-2 text-[8px] text-center text-slate-500">
             Documento gerado pelo sistema REP-A. Reconhecimento de marcação de ponto nos termos da Portaria MTP nº 671/2021.
+            {fechamento?.fechado_em && ` Mês encerrado em ${new Date(fechamento.fechado_em).toLocaleDateString("pt-BR")} — jornada contratada congelada nesta data.`}
          </div>
 
       </div>

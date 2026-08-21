@@ -969,3 +969,71 @@ export async function fecharFolhaMensal(unidadeId, mesAno, pagamentos) {
     contasJaExistentes: pagamentos.length - contasParaInserir.length
   };
 }
+
+// ─── ESPELHO FECHADO ─────────────────────────────────────────────────────────
+// As batidas nunca mudam, mas o cabeçalho da folha era lido ao vivo do cadastro:
+// mudou o horário de alguém, a folha de um mês já assinado passava a imprimir
+// outra coisa. Aqui fica o retrato do contrato no mês.
+
+// Campos do contrato que a folha imprime. Só estes: o resto do cadastro muda o
+// tempo todo e não aparece no papel.
+export const CAMPOS_CONTRATO_ESPELHO = [
+  "nome", "cargo", "setor", "cpf", "data_admissao", "tipo_contrato",
+  "dias_trabalho", "horario_entrada", "horario_saida", "tempo_intervalo",
+  "intervalo_inicio", "intervalo_fim",
+  "horario_dom_entrada", "horario_dom_saida",
+  "intervalo_dom_inicio", "intervalo_dom_fim",
+];
+
+export function retratoDoContrato(colaborador) {
+  const retrato = {};
+  for (const campo of CAMPOS_CONTRATO_ESPELHO) {
+    if (colaborador?.[campo] !== undefined) retrato[campo] = colaborador[campo];
+  }
+  return retrato;
+}
+
+export async function fetchEspelhoFechado(colaboradorId, anoMes) {
+  if (!isSupabaseReady() || !colaboradorId || !anoMes) return { data: null };
+  const { data, error } = await supabase
+    .from("rh_espelho_fechado")
+    .select("*")
+    .eq("colaborador_id", colaboradorId)
+    .eq("mes_ref", `${anoMes}-01`)
+    .maybeSingle();
+  return { data: data || null, error: error?.message };
+}
+
+// Fecha o mês gravando o retrato. onConflict evita duplicar quando duas telas
+// abrem a mesma folha ao mesmo tempo — o índice único é quem garante isso.
+export async function fecharEspelho(colaborador, anoMes, fechadoPor = null) {
+  if (!isSupabaseReady() || !colaborador?.id || !anoMes) return { error: "Offline" };
+  const { error } = await supabase
+    .from("rh_espelho_fechado")
+    .upsert([{
+      unidade_id: colaborador.unidade_id || null,
+      colaborador_id: colaborador.id,
+      mes_ref: `${anoMes}-01`,
+      contrato: retratoDoContrato(colaborador),
+      fechado_por: fechadoPor,
+    }], { onConflict: "colaborador_id,mes_ref", ignoreDuplicates: true });
+  return { error: error?.message };
+}
+
+// Refaz o retrato com o cadastro de agora. Existe porque o congelamento de um
+// mês antigo usa o cadastro atual — se o contrato já tinha mudado antes de
+// alguém abrir a folha, o retrato nasce errado e o RH precisa poder corrigir.
+export async function refazerEspelho(colaborador, anoMes, fechadoPor = null) {
+  if (!isSupabaseReady() || !colaborador?.id || !anoMes) return { error: "Offline" };
+  const { error } = await supabase
+    .from("rh_espelho_fechado")
+    .upsert([{
+      unidade_id: colaborador.unidade_id || null,
+      colaborador_id: colaborador.id,
+      mes_ref: `${anoMes}-01`,
+      contrato: retratoDoContrato(colaborador),
+      fechado_em: new Date().toISOString(),
+      fechado_por: fechadoPor,
+    }], { onConflict: "colaborador_id,mes_ref" });
+  return { error: error?.message };
+}

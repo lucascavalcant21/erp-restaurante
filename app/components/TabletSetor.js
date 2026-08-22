@@ -961,7 +961,10 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "ð
           )}
           <div className="estoque-rapido-busca" ref={refBusca}>
             <Search size={20} />
-            <input value={busca} onChange={e => setBusca(e.target.value)} placeholder={`Buscar item do ${tituloAtual.toLowerCase()}...`} autoFocus />
+            {/* Sem autoFocus: no tablet ele abria o teclado por cima da lista
+                assim que a tela carregava, e quem entra para conferir saldo
+                tinha de fechar o teclado antes de ver qualquer item. */}
+            <input value={busca} onChange={e => setBusca(e.target.value)} placeholder={`Buscar item do ${tituloAtual.toLowerCase()}...`} />
             {busca && <button onClick={() => setBusca("")}><X size={17} /></button>}
           </div>
 

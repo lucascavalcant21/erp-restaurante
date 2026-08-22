@@ -12,6 +12,7 @@ import { useERP } from "../../../context/ERPContext";
 import { fetchInsumos, fetchNomesDePratosEDrinks, salvarInsumo } from "../../../lib/operacao";
 import { fetchEmbalagens } from "../../../lib/embalagens";
 import { fetchPins } from "../../../lib/seguranca";
+import { fetchCategoriasCriadas, salvarCategoriasCriadas, mesclarCategorias, ehEmbutida, contarItensNaCategoria } from "../../../lib/categorias-estoque";
 import { fetchColaboradores } from "../../../lib/rh";
 import { criarEscuta, vozDisponivel } from "../../../lib/hefisto-voz";
 import { equipeDaArea } from "../../../lib/equipe-area.mjs";
@@ -380,6 +381,54 @@ function EstoqueRunner() {
   const [modal, setModal] = useState(null);
   // Produto que não existe ainda: cadastra pelo próprio estoque.
   const [novoProduto, setNovoProduto] = useState(null);
+  // Categorias criadas pela unidade, por departamento. As embutidas ficam no
+  // código; estas moram em config_sistema.params.
+  const [categoriasCriadas, setCategoriasCriadas] = useState({});
+  const [novaCategoria, setNovaCategoria] = useState("");
+
+  // Lista final: as embutidas do departamento mais as que a unidade criou.
+  const categoriasDisponiveis = (estoque) => {
+    const dept = departamentoDoEstoque(estoque);
+    return mesclarCategorias(categoriasDoEstoque(estoque), categoriasCriadas[dept] || []);
+  };
+
+  async function criarCategoria(estoque) {
+    const nome = String(novaCategoria || "").trim();
+    if (!nome) return;
+    const dept = departamentoDoEstoque(estoque);
+    if (!dept) return avisar("Escolha um estoque de bar ou cozinha.", "erro");
+    if (categoriasDisponiveis(estoque).some(x => x.toLowerCase() === nome.toLowerCase())) {
+      setNovaCategoria("");
+      return avisar("Essa categoria já existe.", "erro");
+    }
+    const mapa = { ...categoriasCriadas, [dept]: [...(categoriasCriadas[dept] || []), nome] };
+    const res = await salvarCategoriasCriadas(unidadeAtiva, mapa);
+    if (res.error) return avisar(res.error, "erro");
+    setCategoriasCriadas(res.data || mapa);
+    setNovoProduto(p => (p ? { ...p, categoria: nome } : p));
+    setNovaCategoria("");
+    avisar(`Categoria "${nome}" criada.`);
+  }
+
+  async function excluirCategoria(estoque, nome) {
+    const dept = departamentoDoEstoque(estoque);
+    // Embutida não sai: o código de relatório ainda a menciona, e apagá-la
+    // deixaria itens apontando para uma categoria que não existe mais.
+    if (ehEmbutida(nome, categoriasDoEstoque(estoque))) {
+      return avisar("Categoria da casa não pode ser excluída.", "erro");
+    }
+    const emUso = await contarItensNaCategoria(unidadeAtiva, dept, nome);
+    if (emUso > 0) {
+      return avisar(`${emUso} produto(s) ainda usam "${nome}". Reclassifique antes de excluir.`, "erro");
+    }
+    if (!confirm(`Excluir a categoria "${nome}"?`)) return;
+    const mapa = { ...categoriasCriadas, [dept]: (categoriasCriadas[dept] || []).filter(x => x !== nome) };
+    const res = await salvarCategoriasCriadas(unidadeAtiva, mapa);
+    if (res.error) return avisar(res.error, "erro");
+    setCategoriasCriadas(res.data || mapa);
+    setNovoProduto(p => (p && p.categoria === nome ? { ...p, categoria: "Sem categoria" } : p));
+    avisar(`Categoria "${nome}" excluída.`);
+  }
   const [modalZerar, setModalZerar] = useState(null);
   // Trocar a unidade de medida NÃO converte o saldo: 5 kg viram 5 g. Por isso
   // fica atrás do PIN do gerente — o mesmo de Configurações, 1234 de fábrica.
@@ -513,6 +562,7 @@ function EstoqueRunner() {
   useEffect(() => { carregarArea(); }, [carregarArea]);
   useEffect(() => {
     if (unidadeAtiva) fetchPins(unidadeAtiva).then(r => setPinGerente(r.data?.pin_gerente || "1234")).catch(() => {});
+    if (unidadeAtiva) fetchCategoriasCriadas(unidadeAtiva).then(r => setCategoriasCriadas(r.data || {})).catch(() => {});
   }, [unidadeAtiva]);
   useEffect(() => {
     setFiltros(atuais => ({ ...atuais, grupo: "Todos", categoria: "Todas", status: "todos", local: "Todos" }));
@@ -583,7 +633,12 @@ function EstoqueRunner() {
       unidade_id: unidadeAtiva, departamento: departamentoDoEstoque(estoqueAtual),
       nome, nome_original: nome,
       unidade_medida: novoProduto.unidade || "un",
-      tamanho_embalagem: 1, categoria: novoProduto.categoria || "Sem categoria",
+      // O volume da embalagem vinha fixo em 1, então todo produto cadastrado
+      // por aqui nascia sem volume — e a tela do tablet não tinha o que
+      // mostrar, nem a ficha técnica o que dividir.
+      tamanho_embalagem: Number(String(novoProduto.volume ?? "").replace(",", ".")) || 1,
+      unidade_comercial: novoProduto.unidadeComercial || null,
+      categoria: novoProduto.categoria || "Sem categoria",
       custo_unitario: custo, custo_compra: custo, ativo: true,
     }, { origem: `Cadastro pelo estoque ${estoqueAtual.nome}` });
     if (criado.error || !criado.id) {
@@ -1557,24 +1612,78 @@ function EstoqueRunner() {
               <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50/50 p-3.5">
                 <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700">Cadastrar produto novo</p>
                 <p className="mt-1 text-xs font-semibold text-slate-500">Entra no cadastro de ingredientes e neste estoque de uma vez.</p>
-                <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_110px_130px]">
-                  <input autoFocus value={novoProduto.nome} onChange={e => setNovoProduto(p => ({ ...p, nome: e.target.value }))}
-                    placeholder="Nome do produto" className="h-12 rounded-xl border border-slate-300 px-3 font-bold text-slate-800 outline-none focus:border-emerald-600" />
-                  <select value={novoProduto.unidade} onChange={e => setNovoProduto(p => ({ ...p, unidade: e.target.value }))}
-                    className="h-12 rounded-xl border border-slate-300 px-2 font-bold text-slate-700 outline-none focus:border-emerald-600">
-                    {["un", "kg", "g", "l", "ml", "cx", "pct"].map(u => <option key={u} value={u}>{u}</option>)}
-                  </select>
-                  <input inputMode="decimal" value={novoProduto.custo} onChange={e => setNovoProduto(p => ({ ...p, custo: e.target.value }))}
-                    placeholder="Custo (R$)" className="h-12 rounded-xl border border-slate-300 px-3 text-right font-bold text-slate-800 outline-none focus:border-emerald-600" />
+                <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_90px_100px_120px]">
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Produto</span>
+                    <input autoFocus value={novoProduto.nome} onChange={e => setNovoProduto(p => ({ ...p, nome: e.target.value }))}
+                      placeholder="Nome do produto" className="h-12 rounded-xl border border-slate-300 px-3 font-bold text-slate-800 outline-none focus:border-emerald-600" />
+                  </label>
+                  {/* Volume da embalagem: 750 para uma garrafa de 750 ml, 1
+                      para a de 1 L. Vinha fixo em 1, então todo produto
+                      cadastrado aqui nascia sem volume — e sem volume a ficha
+                      técnica não sabe quanto sai de cada garrafa. */}
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Volume</span>
+                    <input inputMode="decimal" value={novoProduto.volume} onChange={e => setNovoProduto(p => ({ ...p, volume: e.target.value }))}
+                      placeholder="750" className="h-12 rounded-xl border border-slate-300 px-3 text-right font-bold text-slate-800 outline-none focus:border-emerald-600" />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Medida</span>
+                    <select value={novoProduto.unidade} onChange={e => setNovoProduto(p => ({ ...p, unidade: e.target.value }))}
+                      className="h-12 rounded-xl border border-slate-300 px-2 font-bold text-slate-700 outline-none focus:border-emerald-600">
+                      {["ml", "l", "g", "kg", "un"].map(u => <option key={u} value={u}>{u}</option>)}
+                    </select>
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Custo</span>
+                    <input inputMode="decimal" value={novoProduto.custo} onChange={e => setNovoProduto(p => ({ ...p, custo: e.target.value }))}
+                      placeholder="0,00" className="h-12 rounded-xl border border-slate-300 px-3 text-right font-bold text-slate-800 outline-none focus:border-emerald-600" />
+                  </label>
                 </div>
+                {/* Como se compra: garrafa, lata, caixa. É o par do volume — é
+                    esta unidade que aparece na contagem ("3 garrafas"), e o
+                    volume diz quanto tem em cada uma. */}
+                <label className="mt-2 flex flex-col gap-1">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Como se compra (opcional)</span>
+                  <select value={novoProduto.unidadeComercial || ""} onChange={e => setNovoProduto(p => ({ ...p, unidadeComercial: e.target.value }))}
+                    className="h-12 w-full rounded-xl border border-slate-300 px-2 font-bold text-slate-700 outline-none focus:border-emerald-600">
+                    <option value="">A granel — conta na própria medida</option>
+                    {["garrafa", "lata", "caixa", "pacote", "fardo", "pote", "unidade"].map(u => <option key={u} value={u}>{u}</option>)}
+                  </select>
+                </label>
                 {/* Categoria já na hora do cadastro: item que nasce "Sem
                     categoria" nunca mais é classificado depois. */}
-                {categoriasDoEstoque(estoqueAtual).length > 0 && (
-                  <select value={novoProduto.categoria} onChange={e => setNovoProduto(p => ({ ...p, categoria: e.target.value }))}
-                    className="mt-2 h-12 w-full rounded-xl border border-slate-300 px-2 font-bold text-slate-700 outline-none focus:border-emerald-600">
-                    {categoriasDoEstoque(estoqueAtual).map(c => <option key={c} value={c}>{c}</option>)}
-                    <option value="Sem categoria">Sem categoria</option>
-                  </select>
+                {categoriasDisponiveis(estoqueAtual).length > 0 && (
+                  <div className="mt-2">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Categoria</span>
+                    <div className="mt-1 flex gap-2">
+                      <select value={novoProduto.categoria} onChange={e => setNovoProduto(p => ({ ...p, categoria: e.target.value }))}
+                        className="h-12 flex-1 rounded-xl border border-slate-300 px-2 font-bold text-slate-700 outline-none focus:border-emerald-600">
+                        {categoriasDisponiveis(estoqueAtual).map(c => <option key={c} value={c}>{c}</option>)}
+                        <option value="Sem categoria">Sem categoria</option>
+                      </select>
+                      {/* Excluir só aparece na categoria criada pela unidade, e
+                          só se ninguém estiver usando. */}
+                      {novoProduto.categoria && novoProduto.categoria !== "Sem categoria"
+                        && !ehEmbutida(novoProduto.categoria, categoriasDoEstoque(estoqueAtual)) && (
+                        <button type="button" onClick={() => excluirCategoria(estoqueAtual, novoProduto.categoria)}
+                          title={`Excluir a categoria "${novoProduto.categoria}"`}
+                          className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-red-200 text-red-600 hover:bg-red-50">
+                          <X size={18} />
+                        </button>
+                      )}
+                    </div>
+                    <div className="mt-2 flex gap-2">
+                      <input value={novaCategoria} onChange={e => setNovaCategoria(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); criarCategoria(estoqueAtual); } }}
+                        placeholder="Criar nova categoria..."
+                        className="h-11 flex-1 rounded-xl border border-slate-200 px-3 font-bold text-slate-700 outline-none focus:border-emerald-600" />
+                      <button type="button" onClick={() => criarCategoria(estoqueAtual)} disabled={!novaCategoria.trim()}
+                        className="h-11 shrink-0 rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-black text-emerald-700 disabled:opacity-40">
+                        Criar
+                      </button>
+                    </div>
+                  </div>
                 )}
                 <div className="mt-3 flex gap-2">
                   <button type="button" onClick={() => setNovoProduto(null)} className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-600">Cancelar</button>
@@ -1585,7 +1694,7 @@ function EstoqueRunner() {
                 </div>
               </div>
             ) : (
-              <button type="button" onClick={() => setNovoProduto({ nome: "", unidade: "un", custo: "", categoria: categoriasDoEstoque(estoqueAtual)[0] || "Sem categoria", salvando: false })}
+              <button type="button" onClick={() => setNovoProduto({ nome: "", volume: "", unidade: "ml", unidadeComercial: "", custo: "", categoria: categoriasDisponiveis(estoqueAtual)[0] || "Sem categoria", salvando: false })}
                 className="text-sm font-black text-emerald-700 hover:underline">
                 Não está na lista? Cadastrar produto novo
               </button>

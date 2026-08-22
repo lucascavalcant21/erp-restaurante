@@ -639,6 +639,11 @@ function EstoqueRunner() {
       tamanho_embalagem: Number(String(novoProduto.volume ?? "").replace(",", ".")) || 1,
       unidade_comercial: novoProduto.unidadeComercial || null,
       categoria: novoProduto.categoria || "Sem categoria",
+      // Mínimo e máximo já dava para editar depois, mas não na hora de
+      // cadastrar — e item que nasce sem mínimo nunca aparece no alerta de
+      // "abaixo do mínimo". Ninguém volta para preencher o que não faltou.
+      estoque_minimo: Number(String(novoProduto.minimo ?? "").replace(",", ".")) || null,
+      estoque_maximo: Number(String(novoProduto.maximo ?? "").replace(",", ".")) || null,
       custo_unitario: custo, custo_compra: custo, ativo: true,
     }, { origem: `Cadastro pelo estoque ${estoqueAtual.nome}` });
     if (criado.error || !criado.id) {
@@ -1651,6 +1656,21 @@ function EstoqueRunner() {
                     {["garrafa", "lata", "caixa", "pacote", "fardo", "pote", "unidade"].map(u => <option key={u} value={u}>{u}</option>)}
                   </select>
                 </label>
+                {/* Mínimo e máximo na hora do cadastro: item que nasce sem
+                    mínimo nunca entra no alerta de reposição, e ninguém volta
+                    depois para preencher o que ainda não faltou. */}
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Estoque mínimo</span>
+                    <input inputMode="decimal" value={novoProduto.minimo || ""} onChange={e => setNovoProduto(p => ({ ...p, minimo: e.target.value }))}
+                      placeholder="Avisa quando cair abaixo" className="h-12 rounded-xl border border-slate-300 px-3 font-bold text-slate-800 outline-none focus:border-emerald-600" />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Estoque máximo</span>
+                    <input inputMode="decimal" value={novoProduto.maximo || ""} onChange={e => setNovoProduto(p => ({ ...p, maximo: e.target.value }))}
+                      placeholder="Quanto cabe / quanto comprar" className="h-12 rounded-xl border border-slate-300 px-3 font-bold text-slate-800 outline-none focus:border-emerald-600" />
+                  </label>
+                </div>
                 {/* Categoria já na hora do cadastro: item que nasce "Sem
                     categoria" nunca mais é classificado depois. */}
                 {categoriasDisponiveis(estoqueAtual).length > 0 && (
@@ -1694,7 +1714,7 @@ function EstoqueRunner() {
                 </div>
               </div>
             ) : (
-              <button type="button" onClick={() => setNovoProduto({ nome: "", volume: "", unidade: "ml", unidadeComercial: "", custo: "", categoria: categoriasDisponiveis(estoqueAtual)[0] || "Sem categoria", salvando: false })}
+              <button type="button" onClick={() => setNovoProduto({ nome: "", volume: "", unidade: "ml", unidadeComercial: "", custo: "", minimo: "", maximo: "", categoria: categoriasDisponiveis(estoqueAtual)[0] || "Sem categoria", salvando: false })}
                 className="text-sm font-black text-emerald-700 hover:underline">
                 Não está na lista? Cadastrar produto novo
               </button>

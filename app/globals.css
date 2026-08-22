@@ -1024,3 +1024,36 @@ body {
   user-select: text;
   -webkit-touch-callout: default;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   BARRA DE BUSCA FIXA
+
+   .erp-busca-fixa já existia como marcador — o BuscaAutoScroll usa a classe
+   para saber o que subir ao topo quando alguém digita — mas nunca teve estilo
+   próprio. Faltava a outra metade: continuar alcançável DEPOIS de descer a
+   lista, sem ter de voltar ao topo para pesquisar.
+
+   Gruda no topo da área de conteúdo, que é o elemento que rola. Fundo quase
+   opaco com desfoque atrás: as seis telas que usam a classe têm fundos
+   diferentes, e cor chapada acertaria uma e destoaria nas outras.
+   ───────────────────────────────────────────────────────────────────────── */
+.erp-main-content .erp-busca-fixa {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--card) 92%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+/* Dentro de modal a barra não gruda: a janela já rola sozinha e a barra
+   colada cobriria o próprio conteúdo do diálogo. */
+[role="dialog"] .erp-busca-fixa,
+.erp-modal .erp-busca-fixa {
+  position: static;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-bottom: 0;
+}

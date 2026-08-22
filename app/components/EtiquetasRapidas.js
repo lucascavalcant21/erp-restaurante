@@ -158,6 +158,9 @@ export default function EtiquetasRapidas() {
   const [respostaVoz, setRespostaVoz] = useState("Fale todos os produtos e quantidades em uma unica frase.");
   const escutaVozRef = useRef(null);
   const [listasSalvas, setListasSalvas] = useState([]);
+  // Limpar a fila é destrutivo e fica ao lado de "Imprimir": dois toques
+  // evitam apagar o trabalho por engano com o dedo na pressa.
+  const [confirmandoLimpar, setConfirmandoLimpar] = useState(false);
   const [salvandoLista, setSalvandoLista] = useState(false);
   const [modalSalvarLista, setModalSalvarLista] = useState(false);
   const [nomeNovaLista, setNomeNovaLista] = useState("");
@@ -609,8 +612,14 @@ export default function EtiquetasRapidas() {
     if (total > 100) return setAviso({ tipo: "erro", texto: "A fila pode ter no máximo 100 etiquetas." });
     setSalvando(true);
     if (direta) { setFilaImpressao(lista); await new Promise(r => setTimeout(r, 80)); }
+    // O registro das etiquetas ficava FORA do try. Quando ele falhava (rede,
+    // permissão), a função inteira estourava: a fila não era limpa, nenhum
+    // erro aparecia e o botão ficava preso em "Preparando...". Era o defeito
+    // de "imprimi e a lista continuou lá".
+    let resultados = [];
+    try {
     const etiquetasValidade = lista.filter(produto => produto.modeloEtiqueta !== "nome");
-    const resultados = await Promise.all(etiquetasValidade.map(produto => criarEtiqueta({
+    resultados = await Promise.all(etiquetasValidade.map(produto => criarEtiqueta({
       codigo: produto.codigo, produto: produto.nome, conservacao: produto.conservacao,
       quantidade: produto.informarQuantidade ? numero(produto.quantidade) : 0, unidade: produto.unidade,
       validade_dias: numero(produto.dias), manipulacao_em: momento.toISOString(),
@@ -618,6 +627,11 @@ export default function EtiquetasRapidas() {
       responsavel: responsavel.nome, custo_unit: produto.custo || 0, status: "ativa",
       copias: Math.max(1, Math.floor(numero(produto.copias))), tipo_etiqueta: produto.tipoEtiqueta || "aberto",
     }, unidadeAtiva, { departamento: setor, usuario: responsavel })));
+    } catch (erro) {
+      setSalvando(false);
+      setAviso({ tipo: "erro", texto: `Não consegui registrar as etiquetas: ${erro?.message || erro}. Nada foi impresso.` });
+      return;
+    }
 
     const fonte = document.getElementById("etiquetas-rapidas-print");
     const dim = TAMANHOS[tamanho] || TAMANHOS["80x40"];
@@ -676,7 +690,27 @@ export default function EtiquetasRapidas() {
       ? { tipo: "erro", texto: `A impressão abriu, mas ${falhas} item(ns) não foram registrados.` }
       : { tipo: "ok", texto: bluetoothNome ? `${total} etiqueta(s) enviadas diretamente para ${bluetoothNome}.` : `${total} etiqueta(s) preparadas para impressão.` });
     setFilaImpressao([]);
-    if (!direta) { setFila([]); setBusca(""); }
+    // Só a impressão da fila esvazia a fila. A impressão direta é de um item
+    // avulso e nunca passou por aqui.
+    if (!direta) {
+      setFila([]);
+      setBusca("");
+      setConfirmandoLimpar(false);
+    }
+  }
+
+  // Esvaziar a fila sem imprimir. Faltava: dava para tirar item por item na
+  // lixeira, mas não a lista inteira — quem carregava a lista errada tinha de
+  // sair da página para se livrar dela.
+  function limparFila() {
+    if (!confirmandoLimpar) {
+      setConfirmandoLimpar(true);
+      setTimeout(() => setConfirmandoLimpar(false), 4000);
+      return;
+    }
+    setFila([]);
+    setConfirmandoLimpar(false);
+    setAviso({ tipo: "ok", texto: "Fila esvaziada." });
   }
 
   if (!unidadeAtiva || unidadeAtiva === "todas") return <div className="etq-vazio"><Tag size={56} /><h1>Escolha uma unidade</h1><p>Selecione uma loja antes de abrir Etiquetas.</p><button onClick={() => router.back()}><ArrowLeft size={18} /> Voltar</button><style>{ESTILOS}</style></div>;
@@ -689,7 +723,7 @@ export default function EtiquetasRapidas() {
     <style>{ESTILOS}</style>
     <header><button onClick={voltar}><ArrowLeft size={20} /></button><Tag size={27} color="var(--cor)" /><div><strong>Etiquetas · {setor === "bar" ? "Bar" : "Cozinha"}</strong><span>{responsavel.nome} · {totalEtiquetas} etiqueta(s) na fila</span></div><button onClick={iniciarEscutaVoz} title="Adicionar várias por voz" aria-label="Adicionar várias por voz"><Mic size={19} /></button><button onClick={conectarTomatoBluetooth} disabled={conectandoBluetooth} title={bluetoothNome ? `Tomato conectada: ${bluetoothNome}` : "Conectar impressora Bluetooth"} aria-label="Conectar impressora Bluetooth" style={bluetoothNome ? { borderColor: "#059669", color: "#047857" } : undefined}>{conectandoBluetooth ? <RefreshCw className="animate-spin" size={19} /> : <Bluetooth size={19} />}</button><button onClick={telaCheia}><Maximize2 size={19} /></button></header>
     <main className="etq-conteudo">
-      {fila.length > 0 && <section className="etq-fila"><div className="etq-fila-topo"><div><strong>Fila de etiquetas</strong><span>{fila.length} tipo(s) · {totalEtiquetas} etiqueta(s)</span></div><div className="etq-fila-acoes"><button className="salvar" onClick={iniciarEscutaVoz} disabled={salvando} style={{ background: "#ecfdf5", color: "#047857", borderColor: "#a7f3d0" }}><Mic size={19}/> Falar mais</button><button className="salvar" onClick={salvarFilaComoLista} disabled={salvandoLista || salvando}>{salvandoLista ? <RefreshCw className="animate-spin" size={18}/> : <Save size={19}/>} {salvandoLista ? "Salvando..." : "Salvar lista"}</button><button className="imprimir" onClick={() => imprimirFila()} disabled={salvando}>{salvando ? <RefreshCw className="animate-spin" size={19}/> : <Printer size={20}/>} {salvando ? "Preparando..." : "Imprimir"}</button></div></div><div className="etq-fila-lista">{fila.map((produto, indice) => {
+      {fila.length > 0 && <section className="etq-fila"><div className="etq-fila-topo"><div><strong>Fila de etiquetas</strong><span>{fila.length} tipo(s) · {totalEtiquetas} etiqueta(s)</span></div><div className="etq-fila-acoes"><button className="salvar" onClick={iniciarEscutaVoz} disabled={salvando} style={{ background: "#ecfdf5", color: "#047857", borderColor: "#a7f3d0" }}><Mic size={19}/> Falar mais</button><button className="salvar" onClick={salvarFilaComoLista} disabled={salvandoLista || salvando}>{salvandoLista ? <RefreshCw className="animate-spin" size={18}/> : <Save size={19}/>} {salvandoLista ? "Salvando..." : "Salvar lista"}</button><button className="salvar" onClick={limparFila} disabled={salvando} style={confirmandoLimpar ? { background: "#fee2e2", color: "#b91c1c", borderColor: "#fca5a5" } : undefined}><Trash2 size={19}/> {confirmandoLimpar ? "Confirmar?" : "Limpar fila"}</button><button className="imprimir" onClick={() => imprimirFila()} disabled={salvando}>{salvando ? <RefreshCw className="animate-spin" size={19}/> : <Printer size={20}/>} {salvando ? "Preparando..." : "Imprimir"}</button></div></div><div className="etq-fila-lista">{fila.map((produto, indice) => {
         const mudar = (campo, valor) => setFila(atual => atual.map((x, i) => i === indice ? { ...x, [campo]: valor } : x));
         return (
         <article key={`${produto.codigo}-${indice}`} style={{ display: "block" }}>

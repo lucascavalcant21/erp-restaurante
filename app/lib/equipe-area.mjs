@@ -60,6 +60,11 @@ export function equipeDaArea(colaboradores, area) {
 
   const doSetor = ativos.filter(c => {
     if (padrao.test(`${semAcento(c.cargo)} ${semAcento(c.setor)}`)) return true;
+    // Marcado no cadastro para circular por tudo: é o caso de quem cobre
+    // qualquer setor mas TEM setor próprio no cargo, como a chefia de salão.
+    // Sem a marca explícita, a regra de liderança sozinha não alcança essas
+    // pessoas — e alcançar por nome quebraria no primeiro cadastro corrigido.
+    if (c?.acesso_todas_areas) return true;
     // Liderança entra em qualquer área — mas só a genérica. Quem já tem setor
     // no próprio cargo pertence AO setor, mesmo sendo chefia: "Chefe de
     // Cozinha" casava com /chefe/ e aparecia também no bar e no salão.

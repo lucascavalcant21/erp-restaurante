@@ -14,6 +14,7 @@ import {
 import { fetchNomesDePratosEDrinks } from "../lib/operacao";
 import { fetchEmbalagens } from "../lib/embalagens";
 import { fetchColaboradores } from "../lib/rh";
+import { equipeDaArea } from "../lib/equipe-area.mjs";
 import { useERP } from "../context/ERPContext";
 import { criarEscuta, falar, vozDisponivel } from "../lib/hefisto-voz";
 import { registrarAuditoria } from "../lib/hefisto-acoes";
@@ -139,12 +140,14 @@ function ControleQuantidade({ valor, unidade, onChange, onRemover }) {
             Math.max(0, numero(...)), então apagar o campo virava 0 na hora e o
             campo nunca ficava vazio: digitar 5 em cima dava "05". Quem valida
             é a confirmação, que já barra quantidade zerada pelo nome do item. */}
+        {/* Sem select() no foco: quem toca no número quer apagar um dígito,
+            e a seleção do valor inteiro fazia a primeira tecla varrer tudo.
+            O cursor fica onde o dedo tocou. */}
         <input
           type="number"
           min="0"
           step="any"
           value={valor}
-          onFocus={e => e.target.select()}
           onChange={e => onChange(e.target.value)}
         />
         <span>{rotuloUnidade(unidade, valor)}</span>
@@ -303,6 +306,14 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
   }, [departamento, tipoEstoque, unidadeAtiva]);
 
   useEffect(() => { carregar(); }, [carregar]);
+
+  // Mesma regra do ponto: cada área mostra a sua equipe. Quem tem
+  // acesso_todas_areas marcado no cadastro aparece em todas — é o caso de quem
+  // cobre qualquer setor mas tem setor próprio no cargo.
+  const equipeDoSetor = useMemo(
+    () => equipeDaArea(funcionarios, departamento),
+    [funcionarios, departamento],
+  );
 
   const responsavel = funcionarios.find(f => String(f.id) === String(responsavelId));
   const listaSelecionados = Object.values(selecionados);
@@ -754,11 +765,11 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
         <main className="estoque-funcionario-main">
           <h1>Quem está movimentando?</h1>
           <p>Estoque do {tituloAtual} · toque no seu nome para continuar.</p>
-          {carregando ? <div className="estoque-funcionario-vazio"><RefreshCw className="animate-spin" /> Carregando equipe...</div> : funcionarios.length === 0 ? (
-            <div className="estoque-funcionario-vazio">Nenhum funcionário ativo encontrado nesta unidade.</div>
+          {carregando ? <div className="estoque-funcionario-vazio"><RefreshCw className="animate-spin" /> Carregando equipe...</div> : equipeDoSetor.length === 0 ? (
+            <div className="estoque-funcionario-vazio">Ninguém cadastrado nesta área. Ajuste o cargo em Equipe &amp; RH.</div>
           ) : (
             <div className="estoque-funcionario-grid">
-              {funcionarios.map(func => (
+              {equipeDoSetor.map(func => (
                 <button key={func.id} className="estoque-funcionario-card" onClick={() => setResponsavelId(String(func.id))}>
                   <span className="estoque-funcionario-icone"><UserRound size={25} /></span>
                   <span><strong>{func.nome}</strong><span>{func.cargo || "Funcionário"}</span></span>
@@ -1011,14 +1022,9 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
             </div>
             <input className={mostrarMotivo || motivo ? "visivel" : ""} type="text" value={motivo} onChange={e => setMotivo(e.target.value)} placeholder="Motivo ou observação (opcional)" />
             <button type="button" className="estoque-rapido-motivo-btn" onClick={() => setMostrarMotivo(valor => !valor)} aria-label="Adicionar observação"><MessageSquareText size={19} /> Observação</button>
-            <button className="estoque-rapido-confirmar" onClick={() => confirmarLote()} disabled={salvando || !listaSelecionados.length || faltaEscolherTipo}>
-              {salvando ? <RefreshCw className="animate-spin" size={19} /> : <Check size={19} />}
-              {/* A escolha agora acontece no produto, e o lançamento também.
-                  O rodapé virou atalho, não cobrança. */}
-              {salvando ? "Registrando..."
-                : !listaSelecionados.length ? "Escolha um item"
-                  : "Confirmar movimentação"}
-            </button>
+            {/* Não há mais botão de confirmar aqui: o lançamento acontece no
+                produto, junto da escolha e da quantidade. Dois botões para a
+                mesma ação faziam a pessoa procurar qual dos dois valia. */}
           </div>
         </footer>
       )}

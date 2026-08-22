@@ -60,5 +60,14 @@ conferir("chefe de fila nao vaza p/ a cozinha",
   String(equipeDaArea(comFila, "cozinha").some(c => c.cargo === "Chefe de Fila")), "false");
 conferir("chefe de fila tem setor proprio", String(ehDeAlgumSetor({ cargo: "Chefe de Fila" })), "true");
 
+// Marca no cadastro faz circular por tudo, mesmo com setor proprio no cargo.
+const comCoringa = [...equipe, { nome: "Sarah Coringa", cargo: "Chef de Garcom", acesso_todas_areas: true }];
+for (const area of ["cozinha", "bar", "salao", "limpeza"]) {
+  conferir(`acesso_todas_areas entra em ${area}`,
+    String(equipeDaArea(comCoringa, area).some(c => c.nome === "Sarah Coringa")), "true");
+}
+conferir("sem a marca, chef de garcom nao vai para a cozinha",
+  String(equipeDaArea([...equipe, { nome: "Rita Salao", cargo: "Chef de Garcom" }], "cozinha").some(c => c.nome === "Rita Salao")), "false");
+
 console.log(falhas ? `\n${falhas} falha(s)` : "\nTodos os casos passaram.");
 process.exit(falhas ? 1 : 0);

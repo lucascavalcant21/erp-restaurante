@@ -40,5 +40,25 @@ conferir("item nulo", volumeDaEmbalagem(null), "");
 conferir("le do insumo aninhado",
   volumeDaEmbalagem({ insumo: { tamanho_embalagem: 1, unidade_medida: "L" } }), "1 L");
 
+// ── Pre-preparo da ficha tecnica: nao vem em embalagem ────────────────────
+// Ao migrar da ficha, o item nasce com tamanho 1 e a MESMA unidade nos dois
+// campos. Item comprado tem os dois diferentes.
+conferir("molho da ficha (1 l / l) nao mostra volume",
+  volumeDaEmbalagem({ tamanho_embalagem: 1, unidade_medida: "l", unidade_comercial: "l" }), "");
+conferir("xarope da ficha (1 un / un) nao mostra volume",
+  volumeDaEmbalagem({ tamanho_embalagem: 1, unidade_medida: "un", unidade_comercial: "un" }), "");
+conferir("Absolut (1 L / garrafa) continua mostrando",
+  volumeDaEmbalagem({ tamanho_embalagem: 1, unidade_medida: "L", unidade_comercial: "garrafa" }), "1 L");
+// Omissao nao e granel: cadastro sem unidade comercial nao pode apagar o
+// volume de uma garrafa de 1 L.
+conferir("sem unidade comercial ainda mostra o volume",
+  volumeDaEmbalagem({ tamanho_embalagem: 1, unidade_medida: "kg" }), "1 kg");
+conferir("categoria de pre-preparo esconde, mesmo com unidades diferentes",
+  volumeDaEmbalagem({ tamanho_embalagem: 1, unidade_medida: "l", unidade_comercial: "garrafa", categoria: "Pre-preparos" }), "");
+conferir("xarope do bar tambem",
+  volumeDaEmbalagem({ tamanho_embalagem: 1, unidade_medida: "ml", categoria: "Xaropes e pre-preparos" }), "");
+conferir("granel so vale com tamanho 1: 5 kg a granel ainda mostra",
+  volumeDaEmbalagem({ tamanho_embalagem: 5, unidade_medida: "kg", unidade_comercial: "kg" }), "5 kg");
+
 console.log(falhas ? `\n${falhas} falha(s)` : "\nTodos os casos passaram.");
 process.exit(falhas ? 1 : 0);

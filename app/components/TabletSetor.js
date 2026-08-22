@@ -111,6 +111,12 @@ function normalizarItem(item, estoque, departamento = "") {
     quantidade: saldoBase / fator,
     fator,
     minimo: item.estoque_minimo == null ? null : numero(item.estoque_minimo) / fator,
+    // Quanto cabe em cada garrafa/lata/pote. Sem isso, "0 garrafas" não diz se
+    // a garrafa é de 600 ml ou de 1 litro — e é essa a conta que a pessoa faz
+    // de cabeça ao repor.
+    volumeEmbalagem: embalagem > 1 && item.unidade_medida
+      ? `${fmtQtd(embalagem)} ${item.unidade_medida}`
+      : "",
     valorTotal: saldoBase * numero(item.custo_unitario || item.insumo?.custo_unitario),
     validade: item.validade || null,
     local: item.local_interno || "",
@@ -246,8 +252,13 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
       // seria capturada pelo setor errado se a ordem fosse outra.
       if (departamento === "limpeza") return texto.includes("limpeza") || estoque.tipo === "limpeza";
       if (departamento === "embalagens") return texto.includes("embalage") || estoque.tipo === "embalagens";
-      if (departamento === "bar") return texto.includes("bar") || (estoque.tipo === "bebidas" && !texto.includes("cozinha"));
-      if (departamento === "cozinha") return texto.includes("cozinha") || (estoque.tipo === "alimentos" && !texto.includes("bar"));
+      // Embalagens e limpeza têm área própria na tela inicial. "Embalagens do
+      // Bar" contém "bar" e entrava no bar de novo — o mesmo estoque aparecia
+      // em dois lugares, e a contagem virava duas contagens do mesmo item.
+      const ehDeOutraArea = texto.includes("embalage") || texto.includes("limpeza")
+        || estoque.tipo === "embalagens" || estoque.tipo === "limpeza";
+      if (departamento === "bar") return !ehDeOutraArea && (texto.includes("bar") || (estoque.tipo === "bebidas" && !texto.includes("cozinha")));
+      if (departamento === "cozinha") return !ehDeOutraArea && (texto.includes("cozinha") || (estoque.tipo === "alimentos" && !texto.includes("bar")));
       return texto.includes(departamento);
     });
     // Três estoques por setor, cada um com saldo e histórico próprios. Embalagem
@@ -410,7 +421,9 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
   // devolve "Creme de leite" na frente de "Leite".
   const visiveis = useMemo(() => {
     const termo = semAcento(busca);
-    if (!termo) return itens;
+    // Sem busca, ordem alfabética: a lista vinha na ordem do banco, então o
+    // mesmo item mudava de lugar entre uma contagem e outra.
+    if (!termo) return [...itens].sort((a, b) => semAcento(a.nome).localeCompare(semAcento(b.nome)));
     const achados = itens.filter(item => semAcento(`${item.nome} ${item.marca || ""}`).includes(termo));
     return achados.sort((a, b) => {
       const ia = semAcento(a.nome).indexOf(termo);
@@ -859,7 +872,7 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
         .estoque-rapido-busca{position:sticky;top:0;z-index:30;margin:18px 0 14px;padding:8px 0;background:#F3F6FA}.estoque-rapido-busca svg{position:absolute;left:16px;top:17px;color:#94A3B8}.estoque-rapido-busca input{width:100%;height:54px;padding:0 50px;border:2px solid #E2E8F0;border-radius:16px;background:#fff;font-size:16px;outline:none}.estoque-rapido-busca input:focus{border-color:var(--acao)}.estoque-rapido-busca button{position:absolute;right:12px;top:11px;width:32px;height:32px;border:0;background:#F1F5F9;color:#64748B;border-radius:9px;display:grid;place-items:center}
         .estoque-rapido-contador{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.estoque-rapido-contador h2{font-size:18px;margin:0}.estoque-rapido-contador span{font-size:13px;font-weight:800;color:#64748B}
         .estoque-rapido-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.estoque-rapido-item{min-height:148px;background:#fff;border:2px solid #E2E8F0;border-radius:18px;padding:15px;text-align:left;cursor:pointer;transition:.15s;position:relative}.estoque-rapido-item:hover{border-color:#CBD5E1;transform:translateY(-1px)}.estoque-rapido-item.selecionado{border-color:var(--acao);background:var(--acao-suave);box-shadow:0 0 0 3px var(--acao-borda)}
-        .estoque-rapido-item-topo{display:flex;gap:10px;justify-content:space-between}.estoque-rapido-item-nome{font-size:16px;font-weight:900;line-height:1.25}.estoque-rapido-check{width:26px;height:26px;border:2px solid #CBD5E1;border-radius:8px;display:grid;place-items:center;color:transparent;flex:none}.selecionado .estoque-rapido-check{background:var(--acao);border-color:var(--acao);color:#fff}.estoque-rapido-saldo{margin:14px 0 0;color:#64748B;font-size:12px;font-weight:700}.estoque-rapido-saldo strong{display:block;color:#0F172A;font-size:22px;margin-top:2px}.estoque-rapido-minimo{font-size:11px;color:#94A3B8;margin-top:4px}
+        .estoque-rapido-item-topo{display:flex;gap:10px;justify-content:space-between}.estoque-rapido-item-nome{font-size:16px;font-weight:900;line-height:1.25}.estoque-rapido-check{width:26px;height:26px;border:2px solid #CBD5E1;border-radius:8px;display:grid;place-items:center;color:transparent;flex:none}.selecionado .estoque-rapido-check{background:var(--acao);border-color:var(--acao);color:#fff}.estoque-rapido-saldo{margin:14px 0 0;color:#64748B;font-size:12px;font-weight:700}.estoque-rapido-saldo strong{display:block;color:#0F172A;font-size:22px;margin-top:2px}.estoque-rapido-volume{font-size:12px;font-weight:800;color:#64748B;margin-top:2px}.estoque-rapido-minimo{font-size:11px;color:#94A3B8;margin-top:4px}
         .estoque-rapido-qtd{display:grid;grid-template-columns:42px 1fr 42px;gap:7px;margin-top:13px}.estoque-rapido-qtd button{height:42px;border:0;border-radius:11px;background:#fff;color:var(--acao);display:grid;place-items:center;cursor:pointer;box-shadow:0 1px 5px rgba(15,23,42,.12)}.estoque-rapido-qtd label{height:42px;background:#fff;border-radius:11px;display:flex;align-items:center;justify-content:center;gap:5px;padding:0 6px}.estoque-rapido-qtd input{width:55px;border:0;outline:0;text-align:right;font-size:17px;font-weight:900;background:transparent}.estoque-rapido-qtd span{font-size:11px;color:#64748B;font-weight:800;white-space:nowrap}
         .estoque-rapido-barra{position:fixed;z-index:50;left:0;right:0;bottom:0;background:rgba(255,255,255,.96);border-top:1px solid #CBD5E1;backdrop-filter:blur(12px);padding:12px 18px calc(12px + env(safe-area-inset-bottom))}.estoque-rapido-barra-interna{max-width:1240px;margin:auto;display:grid;grid-template-columns:minmax(200px,1fr) minmax(260px,1.2fr) auto;gap:12px;align-items:center}.estoque-rapido-resumo strong{display:block;font-size:17px}.estoque-rapido-resumo span{display:block;color:#64748B;font-size:12px;margin-top:2px}.estoque-rapido-barra input{height:50px;border:2px solid #E2E8F0;border-radius:14px;padding:0 14px;font-size:15px;outline:none}.estoque-rapido-motivo-btn{display:none;height:44px;border:1px solid #CBD5E1;border-radius:12px;background:#fff;color:#475569;font-weight:850;align-items:center;justify-content:center;gap:7px}.estoque-rapido-confirmar{height:52px;padding:0 22px;border:0;border-radius:15px;background:var(--acao);color:#fff;font-size:15px;font-weight:950;display:flex;align-items:center;gap:9px;cursor:pointer;box-shadow:0 8px 20px var(--acao-borda)}.estoque-rapido-confirmar:disabled{opacity:.55;cursor:wait}
         .estoque-rapido-loading,.estoque-rapido-sem-itens{padding:70px 20px;text-align:center;color:#64748B;font-weight:800}.estoque-rapido-historico{display:flex;flex-direction:column;gap:9px}.estoque-rapido-hist-item{background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:14px 16px;display:grid;grid-template-columns:46px 1fr auto;gap:12px;align-items:center}.estoque-rapido-hist-icone{width:46px;height:46px;border-radius:13px;display:grid;place-items:center}.estoque-rapido-hist-item strong{display:block}.estoque-rapido-hist-item p{margin:4px 0 0;color:#64748B;font-size:12px}.estoque-rapido-hist-item time{font-size:12px;color:#64748B;text-align:right}.estoque-rapido-filtros{display:flex;gap:8px;margin-bottom:15px}.estoque-rapido-filtros button{height:38px;padding:0 14px;border:1px solid #CBD5E1;border-radius:11px;background:#fff;color:#64748B;font-weight:800}.estoque-rapido-filtros button.ativo{background:#0F172A;color:#fff;border-color:#0F172A}
@@ -969,6 +982,7 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
                       <div className="estoque-rapido-item-nome">{item.nome}</div>
                       <div className="estoque-rapido-check"><Check size={17} /></div>
                     </div>
+                    {item.volumeEmbalagem && <div className="estoque-rapido-volume">{rotuloUnidade(item.unidade, 1)} de {item.volumeEmbalagem}</div>}
                     <div className="estoque-rapido-saldo">Disponível<strong>{fmtQtd(item.quantidade)} {rotuloUnidade(item.unidade, item.quantidade)}</strong></div>
                     {item.local && <div className="estoque-rapido-minimo">Local: {item.local}</div>}
                     {item.minimo != null && <div className="estoque-rapido-minimo">Mínimo: {fmtQtd(item.minimo)} {rotuloUnidade(item.unidade, item.minimo)}</div>}

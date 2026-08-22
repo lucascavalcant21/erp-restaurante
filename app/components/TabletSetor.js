@@ -70,10 +70,23 @@ function normalizarItem(item, estoque, departamento = "") {
   const saldoBase = numero(item.quantidade_atual);
   const textoEstoque = `${estoque?.slug || ""} ${estoque?.nome || ""}`.toLowerCase();
   const itemDoBar = departamento === "bar" || estoque?.tipo === "bebidas" || textoEstoque.includes("bar");
-  // HÃ¡ cadastros antigos em que o saldo do bar foi salvo em ml e outros em
-  // unidades comerciais. Quando o valor alcanÃ§a ao menos uma embalagem,
-  // convertemos para garrafas/latas; saldos pequenos continuam como unidades.
-  const usaEmbalagem = embalagem > 1 && saldoBase >= embalagem * (itemDoBar ? 1 : 1.5);
+  // Em que unidade a pessoa conta este item.
+  //
+  // A regra antiga adivinhava pelo SALDO: só contava por embalagem quando o
+  // saldo já era maior que uma embalagem. Item recém-cadastrado tem saldo zero,
+  // então caía no ml — era isso que fazia o creme de leite de 200ml pedir
+  // mililitro em vez de unidade, justo na primeira contagem.
+  //
+  // Agora a ordem é: o que o cadastro DIZ vem primeiro; o palpite pelo saldo só
+  // entra quando ninguém disse nada, e só para saldo já existente. Saldo zero
+  // não é ambíguo — zero é zero em qualquer unidade, e quem vai contar vai
+  // contar potes.
+  const declarado = item.conta_por_embalagem ?? item.insumo?.conta_por_embalagem ?? null;
+  const usaEmbalagem = embalagem > 1 && (
+    declarado !== null
+      ? declarado === true
+      : saldoBase === 0 || saldoBase >= embalagem * (itemDoBar ? 1 : 1.5)
+  );
   const fator = usaEmbalagem ? embalagem : 1;
   const unidade = itemDoBar
     ? unidadeComercialDoBar(item)

@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertTriangle, ArrowLeft, ArrowRightLeft, Boxes, CalendarDays, Check,
   ChevronDown, ChevronRight, ChevronUp, ClipboardCheck, Clock3, Copy, Download, Edit3, FileText, Filter, History, Loader2,
-  MapPin, Mic, MoreVertical, Package, PackageMinus, PackagePlus, Plus, Printer, Search,
+  Lock, MapPin, Mic, MoreVertical, Package, PackageMinus, PackagePlus, Plus, Printer, Search,
   Settings2, Share2, Tablet, Upload, User, Warehouse, X,
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
@@ -356,6 +356,25 @@ function EstoqueRunner() {
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
   const [aba, setAba] = useState("atual");
+
+  // Modo quiosque: o tablet fica no salão, à vista de todos. Custo e valor de
+  // estoque são informação de gestão — quem faz contagem não precisa deles, e
+  // deixá-los na tela expõe a margem da casa a qualquer um que passe.
+  //
+  // Fica no localStorage porque o tablet recarrega sozinho (service worker,
+  // queda de rede) e voltar do quiosque sem querer mostraria tudo de novo.
+  const [quiosque, setQuiosque] = useState(false);
+  useEffect(() => {
+    try { setQuiosque(localStorage.getItem("erp_estoque_quiosque") === "1"); } catch {}
+  }, []);
+  const definirQuiosque = (ligado) => {
+    setQuiosque(ligado);
+    try { localStorage.setItem("erp_estoque_quiosque", ligado ? "1" : "0"); } catch {}
+  };
+
+  // Uma função só para todo dinheiro da tela: esconder valor em quinze lugares
+  // na mão deixaria um esquecido, e o esquecido é justamente o que aparece.
+  const dinheiro = (valor) => (quiosque ? "—" : fmtBRL(valor));
   const [filtros, setFiltros] = useState({ busca: "", grupo: "Todos", categoria: "Todas", status: "todos", local: "Todos" });
   const [agruparPor, setAgruparPor] = useState("categoria");   // categoria | local
   const [modal, setModal] = useState(null);
@@ -1193,12 +1212,36 @@ function EstoqueRunner() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button onClick={() => router.push("/dashboard/operacao/estoque")} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-indigo-600 px-4 font-black text-white shadow-sm hover:bg-indigo-700">
-              <Tablet size={18} /> Voltar ao Estoque
-            </button>
-            <button onClick={() => abrirEdicaoEstoque(null)} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 font-bold hover:bg-slate-50">
-              <Settings2 size={18} /> Gerenciar estoques
-            </button>
+            {/* Sair do quiosque pede o PIN do gerente: o modo existe justamente
+                para quem está no salão não ver custo, e um botão livre de
+                desligar não esconderia nada. */}
+            {quiosque ? (
+              <button
+                onClick={() => {
+                  const pin = prompt("PIN do gerente para mostrar os valores:");
+                  if (pin === null) return;
+                  if (pin === String(pinGerente)) definirQuiosque(false);
+                  else avisar("PIN incorreto.", "erro");
+                }}
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 font-black text-slate-600 hover:bg-slate-50"
+                title="Valores ocultos — PIN do gerente para mostrar">
+                <Lock size={18} /> Valores ocultos
+              </button>
+            ) : (
+              <>
+                <button onClick={() => definirQuiosque(true)}
+                  className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 font-bold hover:bg-slate-50"
+                  title="Esconde custo e valor de estoque — para o tablet no salão">
+                  <Lock size={18} /> Modo quiosque
+                </button>
+                <button onClick={() => router.push("/dashboard/operacao/estoque")} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-indigo-600 px-4 font-black text-white shadow-sm hover:bg-indigo-700">
+                  <Tablet size={18} /> Voltar ao Estoque
+                </button>
+                <button onClick={() => abrirEdicaoEstoque(null)} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 font-bold hover:bg-slate-50">
+                  <Settings2 size={18} /> Gerenciar estoques
+                </button>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -1286,12 +1329,12 @@ function EstoqueRunner() {
 
             <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
               {[
-                { icon: Package, label: "Valor no Estoque", value: fmtBRL(valorTotal), color: "text-emerald-700 bg-emerald-50", action: () => { setAba("atual"); setFiltros(f => ({ ...f, busca: "", status: "todos", grupo: "Todos", tempBar: "todos_temp", estadoCozinha: "todos_estado" })); } },
-                { icon: ClipboardCheck, label: "CMV de Contagens", value: fmtBRL(resumoContagens.cmvLiquidoAjustes), color: "text-sky-700 bg-sky-50", action: () => setAba("movimentacoes") },
+                { icon: Package, label: "Valor no Estoque", value: dinheiro(valorTotal), oculto: quiosque, color: "text-emerald-700 bg-emerald-50", action: () => { setAba("atual"); setFiltros(f => ({ ...f, busca: "", status: "todos", grupo: "Todos", tempBar: "todos_temp", estadoCozinha: "todos_estado" })); } },
+                { icon: ClipboardCheck, label: "CMV de Contagens", value: dinheiro(resumoContagens.cmvLiquidoAjustes), oculto: quiosque, color: "text-sky-700 bg-sky-50", action: () => setAba("movimentacoes") },
                 { icon: AlertTriangle, label: "Abaixo do Mínimo", value: `${itensDaArea.filter(i => statusItemEstoque(i, estoqueAtual).abaixoMinimo).length} itens`, color: "text-red-700 bg-red-50", action: () => { setAba("alertas"); setFiltros(f => ({ ...f, status: "abaixo" })); } },
                 { icon: CalendarDays, label: "Validades Próximas", value: estoqueAtual.controla_validade ? `${itensDaArea.filter(i => statusItemEstoque(i, estoqueAtual).validadeProxima).length} itens` : "Desativado", color: "text-amber-700 bg-amber-50", action: () => { setAba("alertas"); setFiltros(f => ({ ...f, status: "validade" })); } },
                 { icon: Boxes, label: "Resumo da Área", value: `${itensDaArea.length} produtos`, color: "text-indigo-700 bg-indigo-50", action: () => { setAba("atual"); setFiltros(f => ({ ...f, busca: "", status: "todos", grupo: "Todos", tempBar: "todos_temp", estadoCozinha: "todos_estado" })); } },
-              ].map(({ icon: Icon, label, value, color, action }) => (
+              ].filter(cartao => !cartao.oculto).map(({ icon: Icon, label, value, color, action }) => (
                 <button
                   key={label}
                   type="button"
@@ -1698,8 +1741,8 @@ function EstoqueRunner() {
                       return (
                         <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3.5 space-y-2 text-xs">
                           <div className="flex justify-between items-center text-slate-600 font-medium">
-                            <span>Saldo no Sistema: <b>{saldoSistema.toFixed(2)} {unName}</b> ({fmtBRL(saldoSistema * custo)})</span>
-                            <span>Custo Un.: <b>{fmtBRL(custo)}/{unName}</b></span>
+                            <span>Saldo no Sistema: <b>{saldoSistema.toFixed(2)} {unName}</b> ({dinheiro(saldoSistema * custo)})</span>
+                            <span>Custo Un.: <b>{dinheiro(custo)}/{unName}</b></span>
                           </div>
                           <div className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-black ${
                             diff < -0.001
@@ -1709,7 +1752,7 @@ function EstoqueRunner() {
                               : "bg-sky-100 text-sky-900 border border-sky-200"
                           }`}>
                             <span>Divergência: {diff > 0 ? `+${diff.toFixed(2)}` : diff.toFixed(2)} {unName}</span>
-                            <span>Impacto no CMV: {diff > 0 ? `+${fmtBRL(valorDiff)} (Sobra)` : diff < 0 ? `${fmtBRL(valorDiff)} (Quebra/Perda)` : "100% Exato (R$ 0,00)"}</span>
+                            <span>Impacto no CMV: {diff > 0 ? `+${dinheiro(valorDiff)} (Sobra)` : diff < 0 ? `${dinheiro(valorDiff)} (Quebra/Perda)` : "100% Exato (R$ 0,00)"}</span>
                           </div>
                         </div>
                       );
@@ -2250,7 +2293,7 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                         </div>
                         <div className="flex items-center gap-3">
                           <span className="text-xs font-black text-emerald-800 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-200">
-                            Subtotal: {fmtBRL(subtotal)}
+                            Subtotal: {dinheiro(subtotal)}
                           </span>
                           <span className="text-[11px] font-bold text-slate-400">
                             {isColapsed ? "Clique para abrir" : "Clique para recolher"}
@@ -2289,9 +2332,9 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                         return <span className={`inline-block rounded-xl px-3 py-1 text-xs font-black border shadow-xs ${cl}`}>{cat || "Sem categoria"}</span>;
                       })()}</td>
                       <td className="px-4 py-3.5 whitespace-nowrap font-bold text-slate-700">{fmtQtd(item.tamanho_embalagem || 1)} {mostrarUn(item.unidade_medida)}</td>
-                      <td className="px-4 py-3.5 whitespace-nowrap"><strong className="font-extrabold text-slate-900">{fmtBRL(item.custo_unitario || 0)}</strong></td>
+                      <td className="px-4 py-3.5 whitespace-nowrap"><strong className="font-extrabold text-slate-900">{dinheiro(item.custo_unitario || 0)}</strong></td>
                       <td className={`px-4 py-3.5 whitespace-nowrap font-black ${status.abaixoMinimo ? "text-red-600" : "text-emerald-700"}`}>{(() => { const s = saldoEmbalado(item); return s ? <><span>{s.principal}</span><span className="block text-[11px] font-bold text-slate-400 mt-0.5">{s.secundario}</span></> : <>{fmtQtd(item.quantidade_atual)} {mostrarUn(item.unidade_medida)}</>; })()}</td>
-                      <td className="px-4 py-3.5 whitespace-nowrap"><strong className="font-black text-emerald-800 text-base">{fmtBRL(valTotalItem)}</strong></td>
+                      <td className="px-4 py-3.5 whitespace-nowrap"><strong className="font-black text-emerald-800 text-base">{dinheiro(valTotalItem)}</strong></td>
                       <td className="px-3 py-3.5 whitespace-nowrap font-extrabold text-slate-700">{item.estoque_minimo == null || item.estoque_minimo === "" ? "—" : `${fmtQtd(item.estoque_minimo)} ${item.unidade_comercial || (["ml", "l"].includes(String(item.unidade_medida).toLowerCase()) ? "garrafa" : mostrarUn(item.unidade_medida))}`}</td>
                       <td className="px-3 py-3.5 whitespace-nowrap font-extrabold text-slate-700">{item.estoque_maximo == null || item.estoque_maximo === "" ? "—" : `${fmtQtd(item.estoque_maximo)} ${item.unidade_comercial || (["ml", "l"].includes(String(item.unidade_medida).toLowerCase()) ? "garrafa" : mostrarUn(item.unidade_medida))}`}</td>
                       {estoque?.controla_validade && <td className={`px-4 py-3.5 whitespace-nowrap ${status.vencido || status.validadeProxima ? "font-black text-amber-700" : "font-semibold text-slate-600"}`}>{fmtData(item.validade)}</td>}
@@ -2324,7 +2367,7 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                   {isColapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
                   <span>{categoria} ({lista.length})</span>
                 </div>
-                <span className="text-emerald-800">Subtotal: {fmtBRL(subtotal)}</span>
+                <span className="text-emerald-800">Subtotal: {dinheiro(subtotal)}</span>
               </div>
               {!isColapsed && lista.map(item => {
                 const status = statusItemEstoque(item, estoque);
@@ -2351,7 +2394,7 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                           <span className="rounded-md bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-500">{item.local_interno}</span>
                         ) : null}
                       </div>
-                      <p className="mt-1.5 text-xs font-semibold text-slate-500">Mín: {item.estoque_minimo ?? "—"} · Máx: {item.estoque_maximo ?? "—"} · Valor: <strong className="text-emerald-800">{fmtBRL(valTotalItem)}</strong></p>
+                      <p className="mt-1.5 text-xs font-semibold text-slate-500">Mín: {item.estoque_minimo ?? "—"} · Máx: {item.estoque_maximo ?? "—"} · Valor: <strong className="text-emerald-800">{dinheiro(valTotalItem)}</strong></p>
                     </div>
                     <div className="text-right shrink-0 rounded-2xl bg-slate-900 px-3.5 py-2.5 text-white shadow-inner min-w-[100px]">
                       <span className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Saldo Atual</span>
@@ -2557,7 +2600,7 @@ function ListaMovimentos({ movimentos, modo }) {
                             <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-black ${
                               diff < 0 ? "bg-red-100 text-red-800 border border-red-200" : "bg-emerald-100 text-emerald-800 border border-emerald-200"
                             }`}>
-                              {diff < 0 ? `CMV / Quebra: ${fmtBRL(Math.abs(valorDiff))}` : `Sobra: +${fmtBRL(valorDiff)}`}
+                              {diff < 0 ? `CMV / Quebra: ${dinheiro(Math.abs(valorDiff))}` : `Sobra: +${dinheiro(valorDiff)}`}
                             </span>
                           )}
                         </div>

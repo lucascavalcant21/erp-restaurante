@@ -22,6 +22,7 @@ import { situacaoDoPonto } from "../../lib/ponto-status.mjs";
 import { situacaoExperiencia, emExperiencia, tempoDeCasa, aniversario, ESTADOS_CIVIS, ESCOLARIDADES, GENEROS } from "../../lib/contrato-experiencia.mjs";
 import { fetchValesPendentes } from "../../lib/rh";
 import { calcularAdicionaisMes, calcularAdicionaisPorDia, jornadaContratadaMin } from "../../lib/rh";
+import { mascaraCPF, mascaraRG, mascaraTelefone } from "../../lib/mascaras.mjs";
 import { salvarConta, fetchContas, fetchLancamentos } from "../../lib/financeiro";
 import { fetchCardapio } from "../../lib/cardapio";
 import { fetchProdutos } from "../../lib/vendas";
@@ -80,7 +81,7 @@ export default function RHPage() {
   const [cargos, setCargos] = useState([]);
   const [busca, setBusca] = useState("");
   const [abaAtiva, setAbaAtiva] = useState("Fixo");
-  const statePadrao = { foto: "", nome: "", cargo: "", salario: "", vale_alimentacao: "", taxa_servico_mes: "", horario_entrada: "", horario_saida: "", horario_dom_entrada: "", horario_dom_saida: "", intervalo_inicio: "", intervalo_fim: "", intervalo_dom_inicio: "", intervalo_dom_fim: "", horario_por_dia: false, horarios_dia: {}, dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60, tipo_contrato: "Fixo", telefone: "", email: "", cpf: "", rg: "", rua_av: "", numero_casa: "", bairro: "", cidade_uf: "", chave_pix: "", avaliacao_estrelas: 0, anotacoes_rh: "", data_admissao: "", status_contrato: "Definitivo", supervisor_id: "", supervisores_ids: [], endereco: "", cep: "", cidade_nascimento: "", data_nascimento: "", tem_filhos: false, qtd_filhos: "", tem_transporte: false, usa_vale_transporte: false, genero: "", escolaridade: "", estado_civil: "", nome_pai: "", nome_mae: "", filhos: [],
+  const statePadrao = { foto: "", nome: "", cargo: "", salario: "", vale_alimentacao: "", taxa_servico_mes: "", horario_entrada: "", horario_saida: "", horario_dom_entrada: "", horario_dom_saida: "", intervalo_inicio: "", intervalo_fim: "", intervalo_dom_inicio: "", intervalo_dom_fim: "", horario_por_dia: false, horarios_dia: {}, dias_trabalho: "1,2,3,4,5,6", tempo_intervalo: 60, tipo_contrato: "Fixo", telefone: "", email: "", cpf: "", rg: "", rua_av: "", numero_casa: "", bairro: "", cidade_uf: "", chave_pix: "", avaliacao_estrelas: 0, anotacoes_rh: "", data_admissao: "", status_contrato: "Definitivo", supervisor_id: "", supervisores_ids: [], endereco: "", cep: "", cidade_nascimento: "", data_nascimento: "", tem_transporte: false, tipo_transporte: "", usa_vale_transporte: false, pontos_taxa: "", genero: "", escolaridade: "", estado_civil: "", nome_pai: "", nome_mae: "", filhos: [],
     // Dados do Recibo de Trabalho Extra: ficam no cadastro para o recibo já sair preenchido
     topicos_funcao: "", itens_emprestados: "", forma_pagamento: "Pix", vale_transporte_val: "", setor_entrega: "", janta_ofertada: true };
   // Cargos de liderança sempre disponíveis, além dos cargos cadastrados
@@ -1344,10 +1345,10 @@ export default function RHPage() {
        nome_mae: f.nome_mae || "",
        filhos: Array.isArray(f.filhos) ? f.filhos : [],
        data_nascimento: f.data_nascimento || "",
-       tem_filhos: !!f.tem_filhos,
-       qtd_filhos: f.qtd_filhos || "",
        tem_transporte: !!f.tem_transporte,
+       tipo_transporte: f.tipo_transporte || "",
        usa_vale_transporte: !!f.usa_vale_transporte,
+       pontos_taxa: f.pontos_taxa != null ? String(f.pontos_taxa) : "",
        genero: f.genero || "",
        escolaridade: f.escolaridade || "",
        estado_civil: f.estado_civil || "",
@@ -1417,8 +1418,12 @@ export default function RHPage() {
       nome_mae: novoFunc.nome_mae || null,
       filhos: (novoFunc.filhos || []).filter(x => String(x?.nome || "").trim()),
       data_nascimento: novoFunc.data_nascimento || null,
-      tem_filhos: !!novoFunc.tem_filhos,
-      qtd_filhos: novoFunc.tem_filhos ? (Number(novoFunc.qtd_filhos) || 0) : null,
+      // Derivados da lista: manter checkbox e contador separados criava o
+      // clássico "diz que tem 2 filhos e cadastrou 3". A lista é a verdade.
+      tem_filhos: (novoFunc.filhos || []).some(x => String(x?.nome || "").trim()),
+      qtd_filhos: (novoFunc.filhos || []).filter(x => String(x?.nome || "").trim()).length || null,
+      tipo_transporte: novoFunc.tem_transporte ? (novoFunc.tipo_transporte || null) : null,
+      pontos_taxa: novoFunc.pontos_taxa === "" ? null : Number(novoFunc.pontos_taxa),
       tem_transporte: !!novoFunc.tem_transporte,
       usa_vale_transporte: !!novoFunc.usa_vale_transporte,
       genero: novoFunc.genero || null,
@@ -2307,7 +2312,7 @@ export default function RHPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Telefone / WhatsApp</label>
-                        <input type="text" value={novoFunc.telefone} onChange={e=>setNovoFunc({...novoFunc, telefone: e.target.value})} placeholder="(00) 00000-0000" className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                        <input type="text" inputMode="numeric" value={novoFunc.telefone} onChange={e=>setNovoFunc({...novoFunc, telefone: mascaraTelefone(e.target.value)})} placeholder="(00) 00000-0000" className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
                      </div>
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">E-mail</label>
@@ -2315,11 +2320,11 @@ export default function RHPage() {
                      </div>
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">CPF</label>
-                        <input type="text" value={novoFunc.cpf} onChange={e=>setNovoFunc({...novoFunc, cpf: e.target.value})} placeholder="000.000.000-00" className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                        <input type="text" inputMode="numeric" value={novoFunc.cpf} onChange={e=>setNovoFunc({...novoFunc, cpf: mascaraCPF(e.target.value)})} placeholder="000.000.000-00" className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
                      </div>
                      <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">RG</label>
-                        <input type="text" value={novoFunc.rg || ""} onChange={e=>setNovoFunc({...novoFunc, rg: e.target.value})} placeholder="Ex.: 0000000 PC/PA" className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
+                        <input type="text" inputMode="numeric" value={novoFunc.rg || ""} onChange={e=>setNovoFunc({...novoFunc, rg: mascaraRG(e.target.value)})} placeholder="000.000-0" className="w-full p-3.5 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"/>
                      </div>
                   </div>
                   </section>
@@ -2390,8 +2395,8 @@ export default function RHPage() {
                                     <input type="text" value={filho.nome || ""} placeholder="Nome do filho"
                                        onChange={e => setNovoFunc({ ...novoFunc, filhos: novoFunc.filhos.map((x, k) => k === idx ? { ...x, nome: e.target.value } : x) })}
                                        className="min-w-[150px] flex-1 p-3 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
-                                    <input type="text" value={filho.cpf || ""} placeholder="CPF"
-                                       onChange={e => setNovoFunc({ ...novoFunc, filhos: novoFunc.filhos.map((x, k) => k === idx ? { ...x, cpf: e.target.value } : x) })}
+                                    <input type="text" inputMode="numeric" value={filho.cpf || ""} placeholder="000.000.000-00"
+                                       onChange={e => setNovoFunc({ ...novoFunc, filhos: novoFunc.filhos.map((x, k) => k === idx ? { ...x, cpf: mascaraCPF(e.target.value) } : x) })}
                                        className="w-40 p-3 bg-white border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500"/>
                                     <button type="button" onClick={() => setNovoFunc({ ...novoFunc, filhos: novoFunc.filhos.filter((_, k) => k !== idx) })}
                                        className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50">×</button>
@@ -2431,21 +2436,30 @@ export default function RHPage() {
                               <option value="Pós-graduação">Pós-graduação</option>
                            </select>
                         </div>
-                        <div className="flex flex-col justify-end gap-2">
-                           <label className="flex items-center gap-2 cursor-pointer">
-                              <input type="checkbox" checked={novoFunc.tem_filhos} onChange={e=>setNovoFunc({...novoFunc, tem_filhos: e.target.checked})} className="w-4 h-4 accent-emerald-600"/>
-                              <span className="text-xs font-bold text-slate-600">Possui filhos</span>
-                           </label>
-                           {novoFunc.tem_filhos && (
-                              <input type="number" min="1" value={novoFunc.qtd_filhos} onChange={e=>setNovoFunc({...novoFunc, qtd_filhos: e.target.value})} placeholder="Quantos?" className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-medium text-sm outline-none focus:border-emerald-500"/>
-                           )}
-                        </div>
                      </div>
-                     <div className="flex flex-wrap gap-5">
+                     <div className="flex flex-wrap items-center gap-5">
                         <label className="flex items-center gap-2 cursor-pointer">
-                           <input type="checkbox" checked={novoFunc.tem_transporte} onChange={e=>setNovoFunc({...novoFunc, tem_transporte: e.target.checked})} className="w-4 h-4 accent-emerald-600"/>
+                           <input type="checkbox" checked={novoFunc.tem_transporte}
+                              onChange={e=>setNovoFunc({...novoFunc, tem_transporte: e.target.checked, tipo_transporte: e.target.checked ? novoFunc.tipo_transporte : ""})}
+                              className="w-4 h-4 accent-emerald-600"/>
                            <span className="text-xs font-bold text-slate-600">Possui transporte próprio</span>
                         </label>
+                        {/* Moto ou carro muda o que a casa precisa saber: vaga,
+                            seguro e quem pode fazer entrega. Perguntar só "tem
+                            transporte" deixava a informação pela metade. */}
+                        {novoFunc.tem_transporte && (
+                           <div className="flex items-center gap-2">
+                              {["Moto", "Carro"].map(v => (
+                                 <label key={v} className="flex cursor-pointer items-center gap-1.5">
+                                    <input type="radio" name="tipo_transporte" value={v}
+                                       checked={novoFunc.tipo_transporte === v}
+                                       onChange={()=>setNovoFunc({...novoFunc, tipo_transporte: v})}
+                                       className="h-4 w-4 accent-emerald-600"/>
+                                    <span className="text-xs font-bold text-slate-600">{v}</span>
+                                 </label>
+                              ))}
+                           </div>
+                        )}
                         <label className="flex items-center gap-2 cursor-pointer">
                            <input type="checkbox" checked={novoFunc.usa_vale_transporte} onChange={e=>setNovoFunc({...novoFunc, usa_vale_transporte: e.target.checked})} className="w-4 h-4 accent-emerald-600"/>
                            <span className="text-xs font-bold text-slate-600">Usa vale transporte</span>
@@ -2522,12 +2536,22 @@ export default function RHPage() {
                               <input type="number" min="0" step="0.01" placeholder="0,00" value={novoFunc.vale_alimentacao} onChange={e=>setNovoFunc({...novoFunc, vale_alimentacao: e.target.value})} className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500"/>
                            </div>
                            <div>
-                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Taxa de Serviço do mês (R$)</label>
-                              <input type="number" min="0" step="0.01" placeholder="0,00" value={novoFunc.taxa_servico_mes} onChange={e=>setNovoFunc({...novoFunc, taxa_servico_mes: e.target.value})} className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500"/>
-                              <p className="text-[10px] text-slate-400 font-medium mt-1">Varia com as vendas — atualize no fim do mês, antes de lançar a folha.</p>
+                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Pontos na taxa de serviço</label>
+                              {/* A taxa é rateada por pontos, não digitada em
+                                  reais pessoa por pessoa: o valor do ponto só
+                                  se sabe no fim do mês, quando se divide o que
+                                  foi arrecadado pela soma dos pontos. */}
+                              <select value={novoFunc.pontos_taxa ?? ""} onChange={e=>setNovoFunc({...novoFunc, pontos_taxa: e.target.value})}
+                                 className="w-full p-4 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500">
+                                 <option value="">Não participa</option>
+                                 {["0.5","1","1.5","2"].map(v => (
+                                    <option key={v} value={v}>{v.replace(".", ",")} {v === "1" ? "ponto" : "pontos"}</option>
+                                 ))}
+                              </select>
+                              <p className="text-[10px] text-slate-400 font-medium mt-1">De 0,5 a 2 pontos. O valor em reais sai do rateio no fechamento do mês.</p>
                            </div>
                         </div>
-                        <p className="text-[10px] font-medium text-emerald-700/70 mt-3">Adicional noturno (20% após 23h30) e hora extra (+50% após 00h00) são calculados automaticamente pelo ponto, nos moldes da CLT (hora normal = salário ÷ 220).</p>
+                        <p className="text-[10px] font-medium text-emerald-700/70 mt-3">Adicional noturno (20% das 22h às 5h, com hora noturna reduzida de 52min30s) e hora extra (+50% além da jornada contratada) são calculados automaticamente pelo ponto. Hora normal = salário ÷ 220.</p>
                      </div>
                   )}
 
@@ -2701,10 +2725,6 @@ export default function RHPage() {
                            </div>
                         </div>
                      )}
-                     <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Anotações / Ocorrências (Oculto para o funcionário)</label>
-                        <textarea value={novoFunc.anotacoes_rh} onChange={e=>setNovoFunc({...novoFunc, anotacoes_rh: e.target.value})} rows="3" placeholder="Registre advertências, faltas não justificadas, comportamento, etc..." className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:border-emerald-500 text-slate-700 resize-none"></textarea>
-                     </div>
                   </div>
                </div>
 

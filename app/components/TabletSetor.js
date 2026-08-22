@@ -26,6 +26,14 @@ const cores = {
   neutro: { principal: "#64748B", suave: "rgba(100,116,139,.12)", borda: "rgba(100,116,139,.32)" },
 };
 
+// Comparar sem acento e sem caixa: no tablet ninguém para para achar o ç, e
+// "acucar" tem de encontrar "Açúcar".
+const semAcento = (valor) => String(valor ?? "")
+  .normalize("NFD")
+  .replace(/[̀-ͯ]/g, "")
+  .toLocaleLowerCase("pt-BR")
+  .trim();
+
 const numero = valor => Number(valor) || 0;
 const fmtQtd = valor => numero(valor).toLocaleString("pt-BR", { maximumFractionDigits: 2 });
 const fmtData = iso => new Date(iso).toLocaleString("pt-BR", {
@@ -390,10 +398,34 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
     } catch { /* o navegador pode bloquear; o modo visual continua em tela inteira */ }
   };
 
+  // Sem acento dos dois lados: no tablet ninguém para para achar o ç, e
+  // "acucar" tem de encontrar "Açúcar". A ordenação também muda: quem começa
+  // com o termo vem antes de quem só o contém no meio, senão buscar "leite"
+  // devolve "Creme de leite" na frente de "Leite".
   const visiveis = useMemo(() => {
-    const termo = busca.trim().toLocaleLowerCase("pt-BR");
-    return itens.filter(item => !termo || `${item.nome} ${item.marca || ""}`.toLocaleLowerCase("pt-BR").includes(termo));
+    const termo = semAcento(busca);
+    if (!termo) return itens;
+    const achados = itens.filter(item => semAcento(`${item.nome} ${item.marca || ""}`).includes(termo));
+    return achados.sort((a, b) => {
+      const ia = semAcento(a.nome).indexOf(termo);
+      const ib = semAcento(b.nome).indexOf(termo);
+      if (ia !== ib) return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib);
+      return semAcento(a.nome).localeCompare(semAcento(b.nome));
+    });
   }, [busca, itens]);
+
+  // A lista é longa e a barra saía da tela junto com o topo: a pessoa digitava
+  // e o resultado ficava acima do que estava sendo visto, parecendo que a busca
+  // não achou nada. Ao pesquisar, a barra volta para o alto e o resultado nasce
+  // logo abaixo dela.
+  const refBusca = useRef(null);
+  useEffect(() => {
+    if (!busca.trim() || !refBusca.current) return;
+    const topo = refBusca.current.getBoundingClientRect().top;
+    // Só rola se estiver mesmo fora de posição — senão brigaria com o dedo a
+    // cada tecla digitada.
+    if (topo < 0 || topo > 140) refBusca.current.scrollIntoView({ block: "start" });
+  }, [busca]);
 
   const historicoVisivel = useMemo(() => historico.filter(item =>
     filtroHistorico === "todos" || item.tipo === filtroHistorico
@@ -818,7 +850,7 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
         .estoque-rapido-lancar.entrada{background:#059669;box-shadow:0 6px 18px rgba(5,150,105,.32)}
         .estoque-rapido-lancar.saida{background:#E11D48;box-shadow:0 6px 18px rgba(225,29,72,.32)}
         .estoque-rapido-lancar:disabled{opacity:.5;cursor:default;box-shadow:none}
-        .estoque-rapido-busca{position:relative;margin:18px 0 14px}.estoque-rapido-busca svg{position:absolute;left:16px;top:17px;color:#94A3B8}.estoque-rapido-busca input{width:100%;height:54px;padding:0 50px;border:2px solid #E2E8F0;border-radius:16px;background:#fff;font-size:16px;outline:none}.estoque-rapido-busca input:focus{border-color:var(--acao)}.estoque-rapido-busca button{position:absolute;right:12px;top:11px;width:32px;height:32px;border:0;background:#F1F5F9;color:#64748B;border-radius:9px;display:grid;place-items:center}
+        .estoque-rapido-busca{position:sticky;top:0;z-index:30;margin:18px 0 14px;padding:8px 0;background:#F3F6FA}.estoque-rapido-busca svg{position:absolute;left:16px;top:17px;color:#94A3B8}.estoque-rapido-busca input{width:100%;height:54px;padding:0 50px;border:2px solid #E2E8F0;border-radius:16px;background:#fff;font-size:16px;outline:none}.estoque-rapido-busca input:focus{border-color:var(--acao)}.estoque-rapido-busca button{position:absolute;right:12px;top:11px;width:32px;height:32px;border:0;background:#F1F5F9;color:#64748B;border-radius:9px;display:grid;place-items:center}
         .estoque-rapido-contador{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.estoque-rapido-contador h2{font-size:18px;margin:0}.estoque-rapido-contador span{font-size:13px;font-weight:800;color:#64748B}
         .estoque-rapido-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.estoque-rapido-item{min-height:148px;background:#fff;border:2px solid #E2E8F0;border-radius:18px;padding:15px;text-align:left;cursor:pointer;transition:.15s;position:relative}.estoque-rapido-item:hover{border-color:#CBD5E1;transform:translateY(-1px)}.estoque-rapido-item.selecionado{border-color:var(--acao);background:var(--acao-suave);box-shadow:0 0 0 3px var(--acao-borda)}
         .estoque-rapido-item-topo{display:flex;gap:10px;justify-content:space-between}.estoque-rapido-item-nome{font-size:16px;font-weight:900;line-height:1.25}.estoque-rapido-check{width:26px;height:26px;border:2px solid #CBD5E1;border-radius:8px;display:grid;place-items:center;color:transparent;flex:none}.selecionado .estoque-rapido-check{background:var(--acao);border-color:var(--acao);color:#fff}.estoque-rapido-saldo{margin:14px 0 0;color:#64748B;font-size:12px;font-weight:700}.estoque-rapido-saldo strong{display:block;color:#0F172A;font-size:22px;margin-top:2px}.estoque-rapido-minimo{font-size:11px;color:#94A3B8;margin-top:4px}
@@ -908,7 +940,7 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
               </div>
             </section>
           )}
-          <div className="estoque-rapido-busca">
+          <div className="estoque-rapido-busca" ref={refBusca}>
             <Search size={20} />
             <input value={busca} onChange={e => setBusca(e.target.value)} placeholder={`Buscar item do ${tituloAtual.toLowerCase()}...`} autoFocus />
             {busca && <button onClick={() => setBusca("")}><X size={17} /></button>}

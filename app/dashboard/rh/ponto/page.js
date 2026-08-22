@@ -10,6 +10,7 @@ import { useERP } from "../../../context/ERPContext";
 import { useRouter } from "next/navigation";
 import { fetchColaboradores, inserirBancoHoras, fetchBancoHorasColaborador, somaMinutosBanco, fetchAllFolgasDaUnidade, fetchLiberacoesDia, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN } from "../../../lib/rh";
 import { fetchPontoHoje, fetchPontosMes, registrarBatida } from "../../../lib/ponto";
+import { linhasJornadaSemana } from "../../../lib/jornada-semana.mjs";
 import { fetchPins } from "../../../lib/seguranca";
 import { fetchParams, PARAMS_PADRAO } from "../../../lib/parametros";
 import { useTempoReal } from "../../../lib/realtime";
@@ -846,7 +847,14 @@ export default function PontoPage() {
               <div className="flex-1 min-w-0">
                 <h2 className="text-lg sm:text-2xl font-black text-white leading-tight line-clamp-2">{selecionado.nome}</h2>
                 <p className="text-slate-400 font-bold text-xs sm:text-sm truncate">{selecionado.cargo || "—"}</p>
-                {entradaStr && <p className="text-slate-500 font-bold text-[11px] sm:text-xs mt-0.5">Entrada: {entradaStr}{saidaDoDia(selecionado, horaLocal) ? ` — ${saidaDoDia(selecionado, horaLocal)}` : ""}</p>}
+                {/* A jornada da semana inteira, agrupada como no espelho:
+                    "Terça a domingo: 15:40 às 00:00", e o domingo em linha
+                    própria quando tem horário diferente. Mostrar só o horário
+                    de hoje escondia justamente o dia que muda — que é o dia em
+                    que a pessoa erra. */}
+                {linhasJornadaSemana(selecionado).map(linha => (
+                  <p key={linha} className="text-slate-500 font-bold text-[11px] sm:text-xs mt-0.5">{linha}</p>
+                ))}
               </div>
             </div>
             {/* O cartão do banco de horas saiu daqui: a tela de bater ponto

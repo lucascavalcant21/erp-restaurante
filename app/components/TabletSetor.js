@@ -15,6 +15,7 @@ import { fetchNomesDePratosEDrinks } from "../lib/operacao";
 import { fetchEmbalagens } from "../lib/embalagens";
 import { fetchColaboradores } from "../lib/rh";
 import { equipeDaArea } from "../lib/equipe-area.mjs";
+import { volumeDaEmbalagem } from "../lib/volume-embalagem.mjs";
 import { useERP } from "../context/ERPContext";
 import { criarEscuta, falar, vozDisponivel } from "../lib/hefisto-voz";
 import { registrarAuditoria } from "../lib/hefisto-acoes";
@@ -111,12 +112,10 @@ function normalizarItem(item, estoque, departamento = "") {
     quantidade: saldoBase / fator,
     fator,
     minimo: item.estoque_minimo == null ? null : numero(item.estoque_minimo) / fator,
-    // Quanto cabe em cada garrafa/lata/pote. Sem isso, "0 garrafas" não diz se
-    // a garrafa é de 600 ml ou de 1 litro — e é essa a conta que a pessoa faz
-    // de cabeça ao repor.
-    volumeEmbalagem: embalagem > 1 && item.unidade_medida
-      ? `${fmtQtd(embalagem)} ${item.unidade_medida}`
-      : "",
+    // Quanto cabe em cada garrafa/lata/pote. A regra tem exceção (fardo de 12
+    // não é volume) e mora em volume-embalagem.mjs, com teste — a condição
+    // solta que estava aqui escondia o Absolut de 1 L, porque 1 não é > 1.
+    volumeEmbalagem: volumeDaEmbalagem(item),
     valorTotal: saldoBase * numero(item.custo_unitario || item.insumo?.custo_unitario),
     validade: item.validade || null,
     local: item.local_interno || "",

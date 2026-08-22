@@ -998,3 +998,29 @@ body {
 /* O quadro de totais tem linhas altas de propósito: são campos que a
    contabilidade preenche à mão depois de imprimir. */
 .tabela-totais td { height: 7mm; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   TELAS DE OPERAÇÃO — sem seleção de texto
+
+   Estoque e etiquetas são operadas no tablet, com o dedo. Toque longo em
+   qualquer texto abria a alça de seleção e o menu de copiar por cima do
+   produto, e o toque seguinte caía no menu em vez do botão. Quem está
+   contando estoque não copia texto.
+
+   Campos de digitação ficam de fora: sem isso, corrigir uma quantidade
+   digitada errada viraria apagar tudo e redigitar.
+   ───────────────────────────────────────────────────────────────────────── */
+.erp-sem-selecao {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.erp-sem-selecao input,
+.erp-sem-selecao textarea,
+.erp-sem-selecao [contenteditable="true"] {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}

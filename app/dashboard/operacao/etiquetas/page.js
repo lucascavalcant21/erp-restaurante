@@ -1125,7 +1125,12 @@ function EtiquetasRunner() {
 export default function EtiquetasPage() {
   return (
     <Suspense fallback={<div className="p-10 text-center font-bold" style={{ color: "var(--muted)" }}>Carregando Etiquetas...</div>}>
-       <EtiquetasUnificadas />
+       {/* Toque longo abria a alça de seleção por cima do produto e o toque
+           seguinte caía no menu de copiar em vez do botão. Campos de digitação
+           continuam selecionáveis — a regra está em globals.css. */}
+       <div className="erp-sem-selecao">
+          <EtiquetasUnificadas />
+       </div>
     </Suspense>
   );
 }

@@ -97,7 +97,10 @@ function normalizarItem(item, estoque, departamento = "") {
 
 function Toast({ toast, onClose }) {
   useEffect(() => {
-    const timer = setTimeout(onClose, 4200);
+    // 4,2s era tempo de sobra: quem lança estoque encadeia item atrás de item,
+    // e o aviso ficava por cima do próximo produto. Erro fica mais tempo do que
+    // acerto, porque erro precisa ser lido.
+    const timer = setTimeout(onClose, toast.tipo === "ok" ? 1600 : 3200);
     return () => clearTimeout(timer);
   }, [onClose, toast]);
 
@@ -770,7 +773,7 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
   }
 
   return (
-    <div className="estoque-rapido erp-safe-top" style={{ "--setor": departamento === "bar" ? "#3B82F6" : "#10B981", "--acao": estiloTipo.principal, "--acao-suave": estiloTipo.suave, "--acao-borda": estiloTipo.borda }}>
+    <div className="estoque-rapido erp-safe-top erp-sem-selecao" style={{ "--setor": departamento === "bar" ? "#3B82F6" : "#10B981", "--acao": estiloTipo.principal, "--acao-suave": estiloTipo.suave, "--acao-borda": estiloTipo.borda }}>
       <style>{`
         .estoque-rapido{min-height:100vh;background:#F3F6FA;color:#0F172A;padding-bottom:118px}.estoque-rapido *{box-sizing:border-box}
         .estoque-rapido-topo{position:sticky;top:0;z-index:40;background:#fff;border-bottom:1px solid #E2E8F0;box-shadow:0 3px 14px rgba(15,23,42,.06)}
@@ -784,7 +787,13 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
         .estoque-rapido-resultado{position:fixed;inset:0;z-index:95;margin:0;background:rgba(15,23,42,.58);padding:18px;display:grid;place-items:center;backdrop-filter:blur(4px)}.estoque-rapido-resultado-painel{width:min(720px,100%);max-height:min(720px,calc(100vh - 36px));overflow:auto;background:#ECFDF5;border:1px solid #A7F3D0;border-radius:24px;padding:20px;box-shadow:0 28px 70px rgba(15,23,42,.32)}.estoque-rapido-resultado-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px;color:#047857}.estoque-rapido-resultado-topo strong{display:flex;align-items:center;gap:9px;font-size:19px}.estoque-rapido-resultado-topo span{display:block;margin-top:4px;color:#475569;font-size:13px;font-weight:700}.estoque-rapido-resultado-topo button{width:40px;height:40px;border:0;border-radius:12px;background:#D1FAE5;color:#047857;display:grid;place-items:center;flex:none}.estoque-rapido-resultado-lista{display:grid;gap:9px}.estoque-rapido-resultado-item{display:grid;grid-template-columns:minmax(160px,1fr) auto;align-items:center;gap:8px 12px;background:#fff;border:1px solid #D1FAE5;border-radius:15px;padding:13px 15px}.estoque-rapido-resultado-item strong{font-size:15px}.estoque-rapido-resultado-mov{font-weight:950;color:#047857}.estoque-rapido-resultado-item.saida .estoque-rapido-resultado-mov{color:#BE123C}.estoque-rapido-resultado-saldo{grid-column:1/-1;font-size:13px;font-weight:800;color:#475569}.estoque-rapido-resultado-saldo b{color:#0F172A;font-size:20px}.estoque-rapido-resultado-continuar{width:100%;height:50px;margin-top:14px;border:0;border-radius:14px;background:#059669;color:#fff;font-size:15px;font-weight:950;cursor:pointer}
         .estoque-rapido-painel{background:#fff;border:1px solid #E2E8F0;border-radius:20px;padding:17px;box-shadow:0 8px 24px rgba(15,23,42,.04)}.estoque-rapido-painel h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:#64748B;margin:0 0 12px;display:flex;align-items:center;gap:7px}
         .estoque-rapido-painel select,.estoque-rapido-painel input[type=text]{width:100%;height:52px;border:2px solid #E2E8F0;border-radius:14px;background:#F8FAFC;padding:0 14px;color:#0F172A;font-size:16px;font-weight:750;outline:none}.estoque-rapido-painel select:focus,.estoque-rapido-painel input[type=text]:focus{border-color:var(--acao)}
-        .estoque-rapido-tipos{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.estoque-rapido-tipos button{height:42px;font-size:13px;border:2px solid #E2E8F0;border-radius:14px;background:#F8FAFC;font-size:15px;font-weight:900;color:#64748B;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer}.estoque-rapido-tipos button.entrada.ativo{border-color:#10B981;background:rgba(16,185,129,.11);color:#047857}.estoque-rapido-tipos button.saida.ativo{border-color:#F43F5E;background:rgba(244,63,94,.10);color:#BE123C}
+        .estoque-rapido-tipos{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.estoque-rapido-tipos button{height:42px;font-size:13px;border:2px solid #E2E8F0;border-radius:14px;background:#F8FAFC;font-size:15px;font-weight:900;color:#64748B;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer}.estoque-rapido-tipos button.entrada.ativo{border-color:#047857;background:#059669;color:#fff;box-shadow:0 4px 14px rgba(5,150,105,.35)}.estoque-rapido-tipos button.saida.ativo{border-color:#9F1239;background:#E11D48;color:#fff;box-shadow:0 4px 14px rgba(225,29,72,.35)}
+        /* Lançar de onde a escolha foi feita: quem marcou o tipo e a quantidade
+           no produto não deveria ter de caçar o botão no rodapé da lista. */
+        .estoque-rapido-lancar{margin-top:10px;width:100%;height:52px;border:none;border-radius:14px;font-size:16px;font-weight:900;color:#fff;display:flex;align-items:center;justify-content:center;gap:9px;cursor:pointer}
+        .estoque-rapido-lancar.entrada{background:#059669;box-shadow:0 6px 18px rgba(5,150,105,.32)}
+        .estoque-rapido-lancar.saida{background:#E11D48;box-shadow:0 6px 18px rgba(225,29,72,.32)}
+        .estoque-rapido-lancar:disabled{opacity:.5;cursor:default;box-shadow:none}
         .estoque-rapido-busca{position:relative;margin:18px 0 14px}.estoque-rapido-busca svg{position:absolute;left:16px;top:17px;color:#94A3B8}.estoque-rapido-busca input{width:100%;height:54px;padding:0 50px;border:2px solid #E2E8F0;border-radius:16px;background:#fff;font-size:16px;outline:none}.estoque-rapido-busca input:focus{border-color:var(--acao)}.estoque-rapido-busca button{position:absolute;right:12px;top:11px;width:32px;height:32px;border:0;background:#F1F5F9;color:#64748B;border-radius:9px;display:grid;place-items:center}
         .estoque-rapido-contador{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.estoque-rapido-contador h2{font-size:18px;margin:0}.estoque-rapido-contador span{font-size:13px;font-weight:800;color:#64748B}
         .estoque-rapido-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.estoque-rapido-item{min-height:148px;background:#fff;border:2px solid #E2E8F0;border-radius:18px;padding:15px;text-align:left;cursor:pointer;transition:.15s;position:relative}.estoque-rapido-item:hover{border-color:#CBD5E1;transform:translateY(-1px)}.estoque-rapido-item.selecionado{border-color:var(--acao);background:var(--acao-suave);box-shadow:0 0 0 3px var(--acao-borda)}
@@ -917,9 +926,18 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
                           </button>
                         </div>
                         {selecionado.tipo && (
-                          <ControleQuantidade valor={selecionado.quantidade} unidade={item.unidade}
-                            onChange={valor => alterarQuantidade(item.id, valor)}
-                            onRemover={() => removerSelecionado(item.id)} />
+                          <>
+                            <ControleQuantidade valor={selecionado.quantidade} unidade={item.unidade}
+                              onChange={valor => alterarQuantidade(item.id, valor)}
+                              onRemover={() => removerSelecionado(item.id)} />
+                            <button type="button"
+                              className={`estoque-rapido-lancar ${selecionado.tipo}`}
+                              onClick={e => { e.stopPropagation(); confirmarLote(); }}
+                              disabled={salvando || faltaEscolherTipo}>
+                              {salvando ? <RefreshCw className="animate-spin" size={19} /> : <Check size={19} />}
+                              {salvando ? "Registrando..." : `Fazer lançamento${listaSelecionados.length > 1 ? ` (${listaSelecionados.length} itens)` : ""}`}
+                            </button>
+                          </>
                         )}
                       </>
                     )}
@@ -995,10 +1013,11 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
             <button type="button" className="estoque-rapido-motivo-btn" onClick={() => setMostrarMotivo(valor => !valor)} aria-label="Adicionar observação"><MessageSquareText size={19} /> Observação</button>
             <button className="estoque-rapido-confirmar" onClick={() => confirmarLote()} disabled={salvando || !listaSelecionados.length || faltaEscolherTipo}>
               {salvando ? <RefreshCw className="animate-spin" size={19} /> : <Check size={19} />}
+              {/* A escolha agora acontece no produto, e o lançamento também.
+                  O rodapé virou atalho, não cobrança. */}
               {salvando ? "Registrando..."
                 : !listaSelecionados.length ? "Escolha um item"
-                  : faltaEscolherTipo ? "Escolha depositar ou retirar"
-                    : "Confirmar movimentação"}
+                  : "Confirmar movimentação"}
             </button>
           </div>
         </footer>

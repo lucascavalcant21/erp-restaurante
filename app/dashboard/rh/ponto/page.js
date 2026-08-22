@@ -251,11 +251,9 @@ export default function PontoPage() {
   const [batendo, setBatendo] = useState(false);
   const [sucesso, setSucesso] = useState(null); // { titulo, detalhe, tone }
   const [justif, setJustif] = useState(null);    // { tipo: 'retorno_cedo', tirou, faltou }
-  const [liberados, setLiberados] = useState({}); // { [colabId]: true } — atraso liberado pelo gerente hoje
   const [pinAberto, setPinAberto] = useState(false);
   const [pinAntecipada, setPinAntecipada] = useState(false);      // entrar ANTES do horário (reunião)
   const [escolhaAntecipada, setEscolhaAntecipada] = useState(null); // { min } — decisão do gerente
-  const [escolhaAtraso, setEscolhaAtraso] = useState(null);         // { min } — descontar do banco?
 
   // PIN do gerente e parâmetros do ponto (Configurações > Senhas / Parâmetros)
   const [pinGerente, setPinGerente] = useState(PIN_GERENTE);
@@ -666,18 +664,6 @@ export default function PontoPage() {
     }
   };
 
-  // Atraso liberado pelo gerente: descontar do banco de horas ou só liberar
-  const confirmarAtraso = async (descontar) => {
-    if (!escolhaAtraso || !selecionado) return;
-    const min = escolhaAtraso.min;
-    if (descontar) {
-      const hoje = new Date().toISOString().split("T")[0];
-      await inserirBancoHoras(unidadeAtiva, selecionado.id, hoje, -min,
-        `Atraso de ${min}min descontado do banco de horas (autorizado pelo gerente)`);
-    }
-    setLiberados(prev => ({ ...prev, [selecionado.id]: true }));
-    setEscolhaAtraso(null);
-  };
 
   // Confirma a justificativa (motivo escolhido ou digitado)
   const confirmarJustificativa = async (motivo) => {
@@ -772,8 +758,11 @@ export default function PontoPage() {
     }
     const bloqueiaFolga = etapa === "entrada" && info.folga;
     const bloqueiaJanela = etapa === "entrada" && janela && janela.faltaMs > 0;
-    const bloqueiaAtraso = etapa === "entrada" && janela && janela.atrasoMs > 0 && !liberados[selecionado.id];
-    const podeBater = etapa !== "concluido" && !bloqueiaFolga && !bloqueiaJanela && !bloqueiaAtraso;
+    // Atraso não bloqueia mais a marcação. O art. 74, I da Portaria 671/2021
+    // proíbe restrições de horário à marcação do ponto: quem chegou atrasado
+    // bate a hora em que chegou, e o atraso aparece no espelho para o RH
+    // tratar. Barrar a batida apagava a prova de que a pessoa trabalhou.
+    const podeBater = etapa !== "concluido" && !bloqueiaFolga && !bloqueiaJanela;
 
     const fmtFalta = (ms) => {
       const s = Math.max(0, Math.ceil(ms / 1000));
@@ -824,25 +813,6 @@ export default function PontoPage() {
                 </button>
               </div>
               <button onClick={() => setEscolhaAntecipada(null)} className="text-slate-500 hover:text-slate-300 text-xs font-bold mt-4">Cancelar</button>
-            </div>
-          </div>
-        )}
-        {/* Decisão do gerente: atraso liberado — desconta do banco de horas? */}
-        {escolhaAtraso && (
-          <div className="fixed inset-0 z-[10001] bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-5">
-            <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 w-full max-w-sm text-center">
-              <p className="text-lg font-black text-white">Atraso de {escolhaAtraso.min} min</p>
-              <p className="text-slate-400 font-medium text-xs mb-5">Entrada liberada. Como tratar o atraso?</p>
-              <div className="space-y-2">
-                <button onClick={() => confirmarAtraso(true)} className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm">
-                  Descontar do banco de horas
-                  <span className="block text-[10px] font-bold opacity-80">tira {escolhaAtraso.min} min do saldo</span>
-                </button>
-                <button onClick={() => confirmarAtraso(false)} className="w-full py-3.5 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-black text-sm">
-                  Só liberar a entrada
-                  <span className="block text-[10px] font-bold opacity-70">o atraso fica registrado no espelho</span>
-                </button>
-              </div>
             </div>
           </div>
         )}
@@ -952,19 +922,6 @@ export default function PontoPage() {
               <p className="text-2xl font-black text-white">Hoje é sua folga</p>
               <p className="text-rose-200 font-bold text-base mt-2">{info.motivo}. Não é possível bater o ponto em dia de folga.</p>
               <p className="text-slate-400 font-medium text-sm mt-2">Se isso está errado, procure a gerência para ajustar sua escala.</p>
-            </div>
-          ) : bloqueiaAtraso ? (
-            <div className="bg-rose-500/10 border border-rose-500/40 rounded-3xl p-5 sm:p-8 text-center mb-6">
-              <Ban size={44} className="text-rose-400 mx-auto mb-3" />
-              <p className="text-2xl font-black text-white">Entrada bloqueada — falta registrada</p>
-              <p className="text-rose-200 font-bold text-base mt-2">
-                Seu horário era {janela.entradaStr} e já passou mais de {Math.floor(cfgP.limite_atraso / 60) > 0 ? `${Math.floor(cfgP.limite_atraso / 60)}h` : `${cfgP.limite_atraso}min`} — não é mais possível bater o ponto hoje.
-              </p>
-              <p className="text-slate-400 font-medium text-sm mt-2">O dia sem batida conta como falta no espelho de ponto. Procure a gerência para justificar.</p>
-              <button onClick={() => setPinAberto(true)}
-                className="mt-5 px-5 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-black text-sm transition-colors">
-                Liberar entrada — PIN do gerente
-              </button>
             </div>
           ) : bloqueiaJanela ? (
             <div className="bg-slate-900 border border-slate-700 rounded-3xl p-5 sm:p-8 text-center mb-6">

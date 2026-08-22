@@ -234,20 +234,47 @@ export async function registrarBatida(colaboradorId, unidadeId, tipoBatida, hora
     // Primeira batida do dia (entrada)
     if(tipoBatida !== 'entrada') return { error: "Precisa bater a entrada primeiro." };
     const base = { colaborador_id: colaboradorId, unidade_id: unidadeId, data_referencia: hoje };
-    let { error } = await supabase.from("registro_ponto").insert([{ ...base, ...updates }]);
+    let { data, error } = await supabase
+      .from("registro_ponto").insert([{ ...base, ...updates }]).select("id");
     if (error && semColunaNova(error)) {
       const { localizacoes, ...semHistorico } = updates;
-      ({ error } = await supabase.from("registro_ponto").insert([{ ...base, ...semHistorico }]));
+      ({ data, error } = await supabase
+        .from("registro_ponto").insert([{ ...base, ...semHistorico }]).select("id"));
     }
-    return { error: error?.message, novoStatus, nsr: marcacao.nsr, hash: marcacao.hash || null, marcadoEm: horaOficial, avisoLegal: marcacao.erro || null };
+    return concluir(error, data);
   } else {
     // Atualiza o registro existente
-    let { error } = await supabase.from("registro_ponto").update(updates).eq("id", registro.id);
+    let { data, error } = await supabase
+      .from("registro_ponto").update(updates).eq("id", registro.id).select("id");
     if (error && semColunaNova(error)) {
       const { localizacoes, ...semHistorico } = updates;
-      ({ error } = await supabase.from("registro_ponto").update(semHistorico).eq("id", registro.id));
+      ({ data, error } = await supabase
+        .from("registro_ponto").update(semHistorico).eq("id", registro.id).select("id"));
     }
-    return { error: error?.message, novoStatus, nsr: marcacao.nsr, hash: marcacao.hash || null, marcadoEm: horaOficial, avisoLegal: marcacao.erro || null };
+    return concluir(error, data);
+  }
+
+  // Confere que a linha foi mesmo gravada.
+  //
+  // O PostgREST devolve sucesso sem erro quando a RLS barra o UPDATE ou quando
+  // nenhuma linha casa: a batida "dava OK" e nada era escrito. Num ponto isso é
+  // o pior defeito possível — a pessoa vai embora achando que bateu e o dia
+  // fica em branco. Sem o .select(), não há como distinguir os dois casos.
+  function concluir(error, linhas) {
+    if (!error && (!linhas || linhas.length === 0)) {
+      return {
+        error: "A batida não foi gravada (o banco não confirmou a escrita). Chame o gerente — não bata de novo antes de conferir.",
+        nsr: marcacao.nsr, avisoLegal: marcacao.erro || null,
+      };
+    }
+    return {
+      error: error?.message,
+      novoStatus,
+      nsr: marcacao.nsr,
+      hash: marcacao.hash || null,
+      marcadoEm: horaOficial,
+      avisoLegal: marcacao.erro || null,
+    };
   }
 }
 

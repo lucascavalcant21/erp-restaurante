@@ -258,17 +258,28 @@ function criarCanvasEtiqueta(perfil, dados, qrImagem) {
   const valorData = formatarData(dados.momento, !fechado);
   desenharTexto(ctx, rotuloData, esquerda, dataY, larguraInterna * 0.43, { fonte: fonteData });
   desenharTexto(ctx, valorData, direita, dataY, larguraInterna * 0.57, { fonte: fonteData, alinhar: "right" });
-  if (fechado) {
+  // Faixa invertida na validade, nos DOIS tipos de etiqueta.
+  //
+  // Antes só a etiqueta fechada ganhava a faixa; a de manipulado saía em preto
+  // sobre branco, igual às outras seis linhas, e a data que todo mundo procura
+  // de longe se perdia no meio. Pior: a mesma etiqueta impressa pelo navegador
+  // e pela Bluetooth ficava diferente uma da outra.
+  //
+  // A faixa é fina de propósito: impressora térmica borra e esquenta demais
+  // quando tem de encher área grande de preto.
+  {
     const faixaY = alto ? 159 : 116;
     const faixaH = alto ? 31 : 27;
     ctx.fillStyle = "#000";
     ctx.fillRect(esquerda, faixaY, larguraInterna, faixaH);
     ctx.fillStyle = "#fff";
-    desenharTexto(ctx, `VAL: ${formatarData(dados.validade)}`, esquerda + 7, faixaY + 3, larguraInterna - 14, { fonte: alto ? 25 : 20 });
+    // Manipulado leva hora junto: dois dias com a mesma data se distinguem
+    // pela hora, e é isso que decide o que descartar.
+    const texto = fechado
+      ? `VAL: ${formatarData(dados.validade)}`
+      : `VAL: ${formatarData(dados.validade, true)}`;
+    desenharTexto(ctx, texto, esquerda + 7, faixaY + 3, larguraInterna - 14, { fonte: alto ? 25 : 20 });
     ctx.fillStyle = "#000";
-  } else {
-    desenharTexto(ctx, "VALIDADE:", esquerda, dataY + (alto ? 31 : 24), larguraInterna * 0.43, { fonte: fonteData });
-    desenharTexto(ctx, formatarData(dados.validade, true), direita, dataY + (alto ? 31 : 24), larguraInterna * 0.57, { fonte: fonteData, alinhar: "right" });
   }
   const datasFim = alto ? 194 : 146;
   desenharLinha(ctx, esquerda, datasFim, direita, alto ? 4 : 3);

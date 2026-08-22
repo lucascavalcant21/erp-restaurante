@@ -118,9 +118,23 @@ function EtiquetaPapel({ item, responsavel, unidadeInfo, momento, tamanho, tipoE
     <div style={{ display: "flex", justifyContent: "space-between", gap: "2mm", fontSize: `${dim.texto}mm`, lineHeight: 1.15, fontWeight: 900, padding: ".6mm 0", borderBottom: ".35mm solid #000" }}>
       <span>{item.conservacao.toUpperCase()}</span>{numero(item.quantidade) > 0 && <span>{item.quantidade} {item.unidade}</span>}
     </div>
-    <div style={{ fontSize: `${dim.texto}mm`, lineHeight: 1.2, fontWeight: 850, padding: ".55mm 0", borderBottom: ".35mm solid #000" }}>
+    <div style={{ fontSize: `${dim.texto}mm`, lineHeight: 1.2, fontWeight: 850, padding: ".55mm 0" }}>
       <div style={{ display: "flex", justifyContent: "space-between" }}><span>{tipoEtiqueta === "aberto" ? "MANIPULADO:" : "ETIQUETADO:"}</span><span>{tipoEtiqueta === "aberto" ? dataHora(momento) : dataCurta(momento)}</span></div>
-      <div style={{ display: "flex", justifyContent: "space-between", marginTop: ".35mm", fontWeight: 950 }}><span>VALIDADE:</span><span>{tipoEtiqueta === "aberto" ? dataHora(validade) : dataCurta(validade)}</span></div>
+    </div>
+    {/* Validade em faixa invertida: é o único dado que alguém procura de longe,
+        com a porta da geladeira aberta. Preto sobre branco no meio de outras
+        seis linhas pretas não se destaca de nada.
+        A faixa é fina de propósito — impressora térmica queima papel e borra
+        quando tem de encher uma área grande de preto. */}
+    <div style={{
+      background: "#000", color: "#fff",
+      display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "1.5mm",
+      fontSize: `${dim.texto * 1.22}mm`, lineHeight: 1.15, fontWeight: 950,
+      padding: ".7mm 1mm", marginBottom: ".45mm",
+      WebkitPrintColorAdjust: "exact", printColorAdjust: "exact",
+    }}>
+      <span>VALIDADE</span>
+      <span>{tipoEtiqueta === "aberto" ? dataHora(validade) : dataCurta(validade)}</span>
     </div>
     <div style={{ fontSize: `${dim.texto}mm`, fontWeight: 850, marginTop: ".45mm" }}>RESP.: {String(responsavel?.nome || "SEM RESPONSÁVEL").toUpperCase()}</div>
     <div style={{ flex: 1 }} />
@@ -663,7 +677,7 @@ export default function EtiquetasRapidas() {
           });
         }
       } else if (fonte) {
-        imprimirHtml(`<!doctype html><html><head><meta charset="utf-8"><title>Etiquetas</title><style>@page{size:${dim.w}mm ${dim.h}mm;margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff}#etiquetas-rapidas-print{position:static!important;left:auto!important;display:block!important;width:${dim.w}mm!important}.etiqueta-rapida-papel{break-after:page;page-break-after:always;break-inside:avoid;margin:0!important}.etiqueta-rapida-papel:last-child{break-after:auto;page-break-after:auto}</style></head><body>${fonte.outerHTML}</body></html>`, { aoFalhar: () => setAviso({ tipo: "erro", texto: "A janela de impressão não abriu." }) });
+        imprimirHtml(`<!doctype html><html><head><meta charset="utf-8"><title>Etiquetas</title><style>@page{size:${dim.w}mm ${dim.h}mm;margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}#etiquetas-rapidas-print{position:static!important;left:auto!important;display:block!important;width:${dim.w}mm!important}.etiqueta-rapida-papel{break-after:page;page-break-after:always;break-inside:avoid;margin:0!important}.etiqueta-rapida-papel:last-child{break-after:auto;page-break-after:auto}</style></head><body>${fonte.outerHTML}</body></html>`, { aoFalhar: () => setAviso({ tipo: "erro", texto: "A janela de impressão não abriu." }) });
       }
     } catch (erro) {
       setSalvando(false);

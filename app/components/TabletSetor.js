@@ -6,6 +6,12 @@ import {
   AlertTriangle, ArrowLeft, Boxes, Check, CheckCircle2, ChefHat, CircleDollarSign, Clock, GlassWater, History, Layers3, Maximize2, Minus,
   Mic, MicOff, Package, PackageMinus, PackagePlus, Plus, RefreshCw, Search, ShoppingBasket,
   Settings2, Sparkles, Trash2, UserRound, X, XCircle, MessageSquareText,
+  // Ícones dos produtos. A lista tem de bater com ICONES_USADOS de
+  // icone-produto.mjs — nome fora da lista vira componente indefinido, e o
+  // React renderiza indefinido como nada, sem erro nenhum.
+  Banana, Bean, Beef, Beer, Candy, Carrot, Citrus, Coffee, Croissant, CupSoda,
+  Drumstick, Egg, Fish, FlaskConical, Ham, IceCreamCone, Martini, Milk, Salad,
+  Snowflake, Soup, Utensils, Wheat, Wine,
 } from "lucide-react";
 import {
   fetchEstoques, fetchItensEstoque, fetchMovimentosMulti, garantirEstoquesPadrao,
@@ -16,6 +22,7 @@ import { fetchEmbalagens } from "../lib/embalagens";
 import { fetchColaboradores } from "../lib/rh";
 import { equipeDaArea } from "../lib/equipe-area.mjs";
 import { volumeDaEmbalagem } from "../lib/volume-embalagem.mjs";
+import { iconeDoProduto } from "../lib/icone-produto.mjs";
 import { useERP } from "../context/ERPContext";
 import { criarEscuta, falar, vozDisponivel } from "../lib/hefisto-voz";
 import { registrarAuditoria } from "../lib/hefisto-acoes";
@@ -34,6 +41,12 @@ const semAcento = (valor) => String(valor ?? "")
   .replace(/[̀-ͯ]/g, "")
   .toLocaleLowerCase("pt-BR")
   .trim();
+
+const ICONES_PRODUTO = {
+  Banana, Bean, Beef, Beer, Candy, Carrot, Citrus, Coffee, Croissant, CupSoda,
+  Drumstick, Egg, Fish, FlaskConical, GlassWater, Ham, IceCreamCone, Martini,
+  Milk, Package, Salad, Snowflake, Soup, Utensils, Wheat, Wine,
+};
 
 const numero = valor => Number(valor) || 0;
 const fmtQtd = valor => numero(valor).toLocaleString("pt-BR", { maximumFractionDigits: 2 });
@@ -116,6 +129,7 @@ function normalizarItem(item, estoque, departamento = "") {
     // não é volume) e mora em volume-embalagem.mjs, com teste — a condição
     // solta que estava aqui escondia o Absolut de 1 L, porque 1 não é > 1.
     volumeEmbalagem: volumeDaEmbalagem(item),
+    icone: iconeDoProduto(item, departamento),
     valorTotal: saldoBase * numero(item.custo_unitario || item.insumo?.custo_unitario),
     validade: item.validade || null,
     local: item.local_interno || "",
@@ -871,7 +885,7 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
         .estoque-rapido-busca{position:sticky;top:0;z-index:30;margin:18px 0 14px;padding:8px 0;background:#F3F6FA}.estoque-rapido-busca svg{position:absolute;left:16px;top:17px;color:#94A3B8}.estoque-rapido-busca input{width:100%;height:54px;padding:0 50px;border:2px solid #E2E8F0;border-radius:16px;background:#fff;font-size:16px;outline:none}.estoque-rapido-busca input:focus{border-color:var(--acao)}.estoque-rapido-busca button{position:absolute;right:12px;top:11px;width:32px;height:32px;border:0;background:#F1F5F9;color:#64748B;border-radius:9px;display:grid;place-items:center}
         .estoque-rapido-contador{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.estoque-rapido-contador h2{font-size:18px;margin:0}.estoque-rapido-contador span{font-size:13px;font-weight:800;color:#64748B}
         .estoque-rapido-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.estoque-rapido-item{min-height:148px;background:#fff;border:2px solid #E2E8F0;border-radius:18px;padding:15px;text-align:left;cursor:pointer;transition:.15s;position:relative}.estoque-rapido-item:hover{border-color:#CBD5E1;transform:translateY(-1px)}.estoque-rapido-item.selecionado{border-color:var(--acao);background:var(--acao-suave);box-shadow:0 0 0 3px var(--acao-borda)}
-        .estoque-rapido-item-topo{display:flex;gap:10px;justify-content:space-between}.estoque-rapido-item-nome{font-size:16px;font-weight:900;line-height:1.25}.estoque-rapido-check{width:26px;height:26px;border:2px solid #CBD5E1;border-radius:8px;display:grid;place-items:center;color:transparent;flex:none}.selecionado .estoque-rapido-check{background:var(--acao);border-color:var(--acao);color:#fff}.estoque-rapido-saldo{margin:14px 0 0;color:#64748B;font-size:12px;font-weight:700}.estoque-rapido-saldo strong{display:block;color:#0F172A;font-size:22px;margin-top:2px}.estoque-rapido-volume{font-size:12px;font-weight:800;color:#64748B;margin-top:2px}.estoque-rapido-minimo{font-size:11px;color:#94A3B8;margin-top:4px}
+        .estoque-rapido-item-topo{display:flex;gap:10px;justify-content:space-between}.estoque-rapido-item-nome{font-size:16px;font-weight:900;line-height:1.25}.estoque-rapido-check{width:26px;height:26px;border:2px solid #CBD5E1;border-radius:8px;display:grid;place-items:center;color:transparent;flex:none}.selecionado .estoque-rapido-check{background:var(--acao);border-color:var(--acao);color:#fff}.estoque-rapido-saldo{margin:14px 0 0;color:#64748B;font-size:12px;font-weight:700}.estoque-rapido-saldo strong{display:block;color:#0F172A;font-size:22px;margin-top:2px}.estoque-rapido-item-icone{width:34px;height:34px;border-radius:11px;background:var(--acao-suave,#F1F5F9);color:var(--acao,#475569);display:grid;place-items:center;flex:none;margin-right:9px}.estoque-rapido-volume{font-size:12px;font-weight:800;color:#64748B;margin-top:2px}.estoque-rapido-minimo{font-size:11px;color:#94A3B8;margin-top:4px}
         .estoque-rapido-qtd{display:grid;grid-template-columns:42px 1fr 42px;gap:7px;margin-top:13px}.estoque-rapido-qtd button{height:42px;border:0;border-radius:11px;background:#fff;color:var(--acao);display:grid;place-items:center;cursor:pointer;box-shadow:0 1px 5px rgba(15,23,42,.12)}.estoque-rapido-qtd label{height:42px;background:#fff;border-radius:11px;display:flex;align-items:center;justify-content:center;gap:5px;padding:0 6px}.estoque-rapido-qtd input{width:55px;border:0;outline:0;text-align:right;font-size:17px;font-weight:900;background:transparent}.estoque-rapido-qtd span{font-size:11px;color:#64748B;font-weight:800;white-space:nowrap}
         .estoque-rapido-barra{position:fixed;z-index:50;left:0;right:0;bottom:0;background:rgba(255,255,255,.96);border-top:1px solid #CBD5E1;backdrop-filter:blur(12px);padding:12px 18px calc(12px + env(safe-area-inset-bottom))}.estoque-rapido-barra-interna{max-width:1240px;margin:auto;display:grid;grid-template-columns:minmax(200px,1fr) minmax(260px,1.2fr) auto;gap:12px;align-items:center}.estoque-rapido-resumo strong{display:block;font-size:17px}.estoque-rapido-resumo span{display:block;color:#64748B;font-size:12px;margin-top:2px}.estoque-rapido-barra input{height:50px;border:2px solid #E2E8F0;border-radius:14px;padding:0 14px;font-size:15px;outline:none}.estoque-rapido-motivo-btn{display:none;height:44px;border:1px solid #CBD5E1;border-radius:12px;background:#fff;color:#475569;font-weight:850;align-items:center;justify-content:center;gap:7px}.estoque-rapido-confirmar{height:52px;padding:0 22px;border:0;border-radius:15px;background:var(--acao);color:#fff;font-size:15px;font-weight:950;display:flex;align-items:center;gap:9px;cursor:pointer;box-shadow:0 8px 20px var(--acao-borda)}.estoque-rapido-confirmar:disabled{opacity:.55;cursor:wait}
         .estoque-rapido-loading,.estoque-rapido-sem-itens{padding:70px 20px;text-align:center;color:#64748B;font-weight:800}.estoque-rapido-historico{display:flex;flex-direction:column;gap:9px}.estoque-rapido-hist-item{background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:14px 16px;display:grid;grid-template-columns:46px 1fr auto;gap:12px;align-items:center}.estoque-rapido-hist-icone{width:46px;height:46px;border-radius:13px;display:grid;place-items:center}.estoque-rapido-hist-item strong{display:block}.estoque-rapido-hist-item p{margin:4px 0 0;color:#64748B;font-size:12px}.estoque-rapido-hist-item time{font-size:12px;color:#64748B;text-align:right}.estoque-rapido-filtros{display:flex;gap:8px;margin-bottom:15px}.estoque-rapido-filtros button{height:38px;padding:0 14px;border:1px solid #CBD5E1;border-radius:11px;background:#fff;color:#64748B;font-weight:800}.estoque-rapido-filtros button.ativo{background:#0F172A;color:#fff;border-color:#0F172A}
@@ -981,6 +995,13 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
                 return (
                   <article key={item.id} className={`estoque-rapido-item ${selecionado ? "selecionado" : ""}`} onClick={() => alternarItem(item)}>
                     <div className="estoque-rapido-item-topo">
+                      {/* Ícone do produto: numa grade de trinta itens de nome
+                          parecido, a forma é o que a pessoa acha primeiro —
+                          "a garrafa" antes de ler "Cachaça de jambu G". */}
+                      {(() => {
+                        const Icone = ICONES_PRODUTO[item.icone] || Package;
+                        return <span className="estoque-rapido-item-icone"><Icone size={19} /></span>;
+                      })()}
                       <div className="estoque-rapido-item-nome">{item.nome}</div>
                       <div className="estoque-rapido-check"><Check size={17} /></div>
                     </div>

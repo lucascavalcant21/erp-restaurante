@@ -54,13 +54,22 @@ function nomeBonitoVoz(nome) {
 }
 
 function Aviso({ aviso, fechar }) {
+  // fechar chega como função nova a cada render do pai. Com ela na lista de
+  // dependências, o efeito reiniciava o cronômetro a CADA renderização — e a
+  // tela de etiquetas renderiza o tempo todo (busca, seleção, fila). O aviso
+  // só sumia quando a tela finalmente parava, muito depois dos 1,6s.
+  //
+  // A ref guarda sempre a última versão da função sem entrar nas dependências.
+  const fecharRef = useRef(fechar);
+  fecharRef.current = fechar;
+
   useEffect(() => {
-    // Confirmacao de rotina ("X adicionado a fila") o operador ja sabe que
-    // deu certo — 5s de banner tapando a tela so atrasa a proxima etiqueta.
-    // Erro fica o tempo todo: esse precisa ser lido antes de sumir.
-    const timer = setTimeout(fechar, aviso.tipo === "erro" ? 5200 : 1600);
+    // Confirmação de rotina ("X adicionado à fila") o operador já sabe que deu
+    // certo — banner tapando a tela só atrasa a próxima etiqueta. Erro fica
+    // mais tempo: esse precisa ser lido antes de sumir.
+    const timer = setTimeout(() => fecharRef.current(), aviso.tipo === "erro" ? 5200 : 1400);
     return () => clearTimeout(timer);
-  }, [aviso, fechar]);
+  }, [aviso]);
   return <div className={`etq-toast ${aviso.tipo}`}>
     {aviso.tipo === "ok" ? <CheckCircle2 size={20} /> : <XCircle size={20} />}
     <span>{aviso.texto}</span><button onClick={fechar}><X size={17} /></button>

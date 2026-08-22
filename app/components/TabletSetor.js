@@ -118,13 +118,19 @@ function normalizarItem(item, estoque, departamento = "") {
 }
 
 function Toast({ toast, onClose }) {
+  // onClose chega como função nova a cada render do pai. Com ela nas
+  // dependências, o cronômetro reiniciava a cada renderização e o aviso ficava
+  // muito além do tempo configurado — era esse o motivo de "demora a sair", e
+  // não a duração em si. A ref mantém a última versão fora das dependências.
+  const fecharRef = useRef(onClose);
+  fecharRef.current = onClose;
+
   useEffect(() => {
-    // 4,2s era tempo de sobra: quem lança estoque encadeia item atrás de item,
-    // e o aviso ficava por cima do próximo produto. Erro fica mais tempo do que
-    // acerto, porque erro precisa ser lido.
-    const timer = setTimeout(onClose, toast.tipo === "ok" ? 1600 : 3200);
+    // Quem lança estoque encadeia item atrás de item, e o aviso ficava por cima
+    // do próximo produto. Erro fica mais tempo, porque erro precisa ser lido.
+    const timer = setTimeout(() => fecharRef.current(), toast.tipo === "ok" ? 1400 : 3200);
     return () => clearTimeout(timer);
-  }, [onClose, toast]);
+  }, [toast]);
 
   const ok = toast.tipo === "ok";
   return (

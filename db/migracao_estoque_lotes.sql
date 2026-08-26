@@ -302,3 +302,221 @@ grant execute on function public.sincronizar_lotes_apos_contagem(text, uuid, uui
 -- O PostgREST guarda o desenho em cache; sem isto a tabela e as funções novas
 -- continuam respondendo "Could not find" logo depois da migração.
 notify pgrst, 'reload schema';
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- CONTAGEM E TRANSFERÊNCIA TAMBÉM PRECISAM CONHECER LOTE
+--
+-- As duas mexiam em quantidade_atual direto. Depois dos lotes, isso faria o
+-- saldo do item discordar da soma dos lotes em silêncio — que é justamente o
+-- que esta migração existe para impedir.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+-- ── Contagem ────────────────────────────────────────────────────────────────
+-- O saldo contado passa a ser aplicado nos lotes: faltando, tira FEFO;
+-- sobrando, a diferença entra no lote sem validade, porque quem contou não
+-- disse de qual fornada era a sobra. A assinatura não muda.
+create or replace function public.registrar_contagem_estoque_multi(
+  p_unidade_id text,
+  p_estoque_id uuid,
+  p_insumo_id uuid,
+  p_saldo_contado numeric,
+  p_usuario_id uuid default null,
+  p_usuario_nome text default null,
+  p_observacao text default null
+)
+returns table(novo_saldo numeric)
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare
+  v_item public.estoque_itens%rowtype;
+  v_anterior numeric;
+  v_novo numeric;
+begin
+  if p_saldo_contado < 0 then raise exception 'Saldo contado inválido'; end if;
+
+  insert into public.estoque_itens (unidade_id, estoque_id, insumo_id)
+  values (p_unidade_id, p_estoque_id, p_insumo_id)
+  on conflict (estoque_id, insumo_id) do nothing;
+
+  select * into v_item
+    from public.estoque_itens
+   where estoque_id = p_estoque_id and insumo_id = p_insumo_id
+   for update;
+
+  -- Guardado antes do acerto: depois dele o valor antigo já não existe.
+  v_anterior := coalesce(v_item.quantidade_atual, 0);
+
+  v_novo := public.sincronizar_lotes_apos_contagem(
+    p_unidade_id, p_estoque_id, p_insumo_id, p_saldo_contado
+  );
+
+  update public.estoque_itens
+     set ultima_movimentacao_em = now()
+   where id = v_item.id;
+
+  insert into public.estoque_movimentacoes_multi (
+    unidade_id, estoque_id, insumo_id, tipo, quantidade,
+    saldo_anterior, saldo_posterior, usuario_id, usuario_nome,
+    observacao, data_movimento
+  ) values (
+    p_unidade_id, p_estoque_id, p_insumo_id, 'contagem',
+    v_novo - v_anterior, v_anterior, v_novo,
+    p_usuario_id, p_usuario_nome, p_observacao, now()
+  );
+
+  return query select v_novo;
+end;
+$$;
+
+-- ── Transferência leva a validade junto ─────────────────────────────────────
+-- Mover só a quantidade faria o destino receber mercadoria sem prazo e a
+-- origem perder o controle de qual fornada saiu. Cada pedaço tirado da origem
+-- entra no destino com a MESMA validade.
+create or replace function public.transferir_lotes_estoque(
+  p_unidade_id text,
+  p_estoque_origem_id uuid,
+  p_estoque_destino_id uuid,
+  p_insumo_id uuid,
+  p_quantidade numeric
+)
+returns void
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare
+  v_resta numeric := p_quantidade;
+  v_lote  record;
+  v_leva  numeric;
+begin
+  for v_lote in
+    select id, validade, quantidade from public.estoque_lotes
+     where estoque_id = p_estoque_origem_id and insumo_id = p_insumo_id and quantidade > 0
+     order by validade asc nulls last, created_at asc
+     for update
+  loop
+    exit when v_resta <= 0;
+    v_leva := least(v_lote.quantidade, v_resta);
+
+    update public.estoque_lotes
+       set quantidade = quantidade - v_leva, updated_at = now()
+     where id = v_lote.id;
+
+    perform public.entrada_lote_estoque(
+      p_estoque_destino_id, p_insumo_id, p_unidade_id, v_lote.validade, v_leva
+    );
+
+    v_resta := v_resta - v_leva;
+  end loop;
+
+  -- Saldo que nenhum lote lastreava (estoque anterior aos lotes) viaja sem
+  -- prazo, em vez de sumir na transferência.
+  if v_resta > 0 then
+    perform public.entrada_lote_estoque(
+      p_estoque_destino_id, p_insumo_id, p_unidade_id, null, v_resta
+    );
+  end if;
+end;
+$$;
+
+create or replace function public.transferir_item_entre_estoques(
+  p_unidade_id text,
+  p_estoque_origem_id uuid,
+  p_estoque_destino_id uuid,
+  p_insumo_id uuid,
+  p_quantidade numeric,
+  p_usuario_id uuid default null,
+  p_usuario_nome text default null,
+  p_observacao text default null
+)
+returns table(saldo_origem numeric, saldo_destino numeric)
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare
+  v_origem public.estoque_itens%rowtype;
+  v_destino public.estoque_itens%rowtype;
+  v_tipo_origem text;
+  v_tipo_destino text;
+  v_transferencia uuid := gen_random_uuid();
+  v_ant_origem numeric;
+  v_ant_destino numeric;
+  v_novo_origem numeric;
+  v_novo_destino numeric;
+begin
+  if p_estoque_origem_id = p_estoque_destino_id or p_quantidade <= 0 then
+    raise exception 'Transferência inválida';
+  end if;
+
+  select tipo into v_tipo_origem from public.estoques where id = p_estoque_origem_id and unidade_id = p_unidade_id and status = 'ativo';
+  select tipo into v_tipo_destino from public.estoques where id = p_estoque_destino_id and unidade_id = p_unidade_id and status = 'ativo';
+  if v_tipo_origem is null or v_tipo_destino is null then raise exception 'Estoque inválido'; end if;
+  if v_tipo_origem <> v_tipo_destino
+     and not (v_tipo_origem in ('alimentos', 'bebidas') and v_tipo_destino in ('alimentos', 'bebidas')) then
+    raise exception 'Tipos de estoque incompatíveis';
+  end if;
+
+  select * into v_origem
+    from public.estoque_itens
+   where estoque_id = p_estoque_origem_id and insumo_id = p_insumo_id
+   for update;
+  if v_origem.id is null or not v_origem.permite_transferencia then raise exception 'Item não transferível'; end if;
+  if v_origem.quantidade_atual < p_quantidade then raise exception 'Saldo insuficiente no estoque de origem'; end if;
+
+  insert into public.estoque_itens (
+    unidade_id, estoque_id, insumo_id, quantidade_atual,
+    estoque_minimo, estoque_maximo, custo_unitario, permite_transferencia
+  ) values (
+    p_unidade_id, p_estoque_destino_id, p_insumo_id, 0,
+    v_origem.estoque_minimo, v_origem.estoque_maximo,
+    v_origem.custo_unitario, v_origem.permite_transferencia
+  )
+  on conflict (estoque_id, insumo_id) do nothing;
+
+  select * into v_destino
+    from public.estoque_itens
+   where estoque_id = p_estoque_destino_id and insumo_id = p_insumo_id
+   for update;
+
+  v_ant_origem  := coalesce(v_origem.quantidade_atual, 0);
+  v_ant_destino := coalesce(v_destino.quantidade_atual, 0);
+
+  perform public.transferir_lotes_estoque(
+    p_unidade_id, p_estoque_origem_id, p_estoque_destino_id, p_insumo_id, p_quantidade
+  );
+
+  v_novo_origem  := public.sincronizar_item_por_lotes(p_estoque_origem_id, p_insumo_id);
+  v_novo_destino := public.sincronizar_item_por_lotes(p_estoque_destino_id, p_insumo_id);
+
+  update public.estoque_itens set ultima_movimentacao_em = now() where id in (v_origem.id, v_destino.id);
+
+  insert into public.estoque_movimentacoes_multi (
+    transferencia_id, unidade_id, estoque_id, estoque_destino_id,
+    insumo_id, tipo, quantidade, saldo_anterior, saldo_posterior,
+    usuario_id, usuario_nome, observacao
+  ) values
+  (
+    v_transferencia, p_unidade_id, p_estoque_origem_id, p_estoque_destino_id,
+    p_insumo_id, 'transferencia_saida', p_quantidade,
+    v_ant_origem, v_novo_origem,
+    p_usuario_id, p_usuario_nome, p_observacao
+  ),
+  (
+    v_transferencia, p_unidade_id, p_estoque_destino_id, p_estoque_origem_id,
+    p_insumo_id, 'transferencia_entrada', p_quantidade,
+    v_ant_destino, v_novo_destino,
+    p_usuario_id, p_usuario_nome, p_observacao
+  );
+
+  return query select v_novo_origem, v_novo_destino;
+end;
+$$;
+
+grant execute on function public.transferir_lotes_estoque(text, uuid, uuid, uuid, numeric) to authenticated;
+grant execute on function public.registrar_contagem_estoque_multi(text, uuid, uuid, numeric, uuid, text, text) to authenticated;
+grant execute on function public.transferir_item_entre_estoques(text, uuid, uuid, uuid, numeric, uuid, text, text) to authenticated;
+
+notify pgrst, 'reload schema';

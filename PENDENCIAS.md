@@ -34,12 +34,18 @@ Supabase, deploy por `git push origin main` na Vercel
 `migracao_colaborador_estado_civil`, `migracao_insumo_fornecedor_precos`,
 `migracao_insumo_perda_empanado`, `migracao_memorandos_operacao` — todas em `db/`.
 
-### 2. Recibo do extra mais curto
-Já foi feito: campo vazio não ocupa linha e sumiram as linhas de R$ 0,00.
-**Falta:** juntar "Prestador cadastrado" e "Trabalho realizado" num bloco só de
-duas colunas (tirando dois cabeçalhos verdes) e deixar **título e subtítulo
-editáveis** — hoje fixos em `app/lib/recibo-extra.js` (~linha 50). Guarde em
-`config_sistema.params.recibo_textos`, mesmo padrão dos portais, sem migração.
+### 2. Recibo do extra mais curto — CONCLUÍDO
+Nada pendente aqui. O que ficou pronto, tudo já no `main`:
+- Campo vazio não ocupa linha e as linhas de R$ 0,00 sumiram
+  (`campo()` e `linhaValor()` em `app/lib/recibo-extra.js`).
+- "Prestador cadastrado" e "Trabalho realizado" viraram **um bloco só** de duas
+  colunas e os dois cabeçalhos verdes saíram do papel.
+- **Título e subtítulo editáveis** na tela `/dashboard/rh/extra/[id]/recibo`,
+  guardados em `config_sistema.params.recibo_textos` por unidade — sem migração.
+  Subtítulo em branco é escolha válida: a linha some do papel.
+- O merge do JSON tenta a função `merge_config_sistema_params`
+  (`docs/config-etiquetas-unidades.sql`) e, se ela ainda não existir no banco,
+  cai sozinho para ler-e-reescrever o `params`. Por isso não trava nada.
 
 ### 3. Auditoria não recebeu a baixa do inventário
 A tela é `/dashboard/gestao/auditoria`. O registro é gravado em
@@ -86,4 +92,4 @@ Ainda não começado.
 
 ## Comece por
 
-Me pergunte por qual item começar, ou vá direto no item 2 se eu não responder.
+Me pergunte por qual item começar, ou vá direto no item 3 se eu não responder.

@@ -27,17 +27,20 @@ Supabase, deploy por `git push origin main` na Vercel
 
 ## O que está pendente, em ordem
 
-### 1. Rodar 13 migrações (eu faço, só me lembre quando for relevante)
+### 1. Rodar 14 migrações (eu faço, só me lembre quando for relevante)
 `migracao_controle_acesso`, `migracao_operacao_inteligente`, `migracao_portal_extras`,
 `migracao_colaborador_filiacao`, `migracao_movimento_valor`, `migracao_ponto_facial`,
 `migracao_recibos_prestacao`, `migracao_extra_dados_recibo`,
 `migracao_colaborador_estado_civil`, `migracao_insumo_fornecedor_precos`,
 `migracao_insumo_perda_empanado`, `migracao_memorandos_operacao`,
-`migracao_auditoria_correcao` — todas em `db/`.
+`migracao_auditoria_correcao`, `migracao_colaborador_endereco_rg` — todas em `db/`.
 
-`migracao_auditoria_correcao` é a que destrava o item 3 e estava de fora desta
-lista, então nunca chegava a ser rodada. Rode ela primeiro: é rápida e é o
-único passo que falta ali.
+Duas destas destravam bug confirmado e valem prioridade:
+
+- `migracao_auditoria_correcao` — é o único passo que falta para o item 3.
+- `migracao_colaborador_endereco_rg` — cria `rua_av`, `numero_casa`, `bairro` e
+  `rg` em `colaboradores`. Essas colunas nunca existiram no banco, e o cadastro
+  do extra descartava esses quatro campos em silêncio a cada "Salvar".
 
 ### 2. Recibo do extra mais curto — CONCLUÍDO
 Nada pendente aqui. O que ficou pronto, tudo já no `main`:

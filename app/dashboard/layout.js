@@ -36,6 +36,18 @@ const SIDEBAR_MENU = [
   },
 
   {
+    category: "Checklists",
+    home: "/dashboard/operacao/rotina",
+    icon: ClipboardList,
+    items: [
+      { label: "Escolher a área", href: "/dashboard/operacao/rotina" },
+      { label: "Cozinha", href: "/dashboard/operacao/rotina?dept=cozinha" },
+      { label: "Bar", href: "/dashboard/operacao/rotina?dept=bar" },
+      { label: "Salão", href: "/dashboard/operacao/rotina?dept=salao" },
+      { label: "Montar e gerenciar", href: "/dashboard/checklists/gerenciar" }
+    ]
+  },
+  {
     category: "Estoque",
     home: "/dashboard/operacao/estoque",
     icon: Package,
@@ -232,8 +244,8 @@ function moduloDaRota(pathname, dept) {
 
 // Rotas liberadas em cada área travada (estação Cozinha/Bar/Salão).
 const ROTAS_AREA = {
-  cozinha: ["/dashboard/modulo/cozinha", "/dashboard/area", "/dashboard/checklists", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/validade", "/dashboard/operacao/controles", "/dashboard/operacao/ingredientes", "/dashboard/operacao/fornecedores", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem", "/dashboard/operacao/produtos", "/dashboard/operacao/orcamento"],
-  bar: ["/dashboard/modulo/bar", "/dashboard/area", "/dashboard/checklists", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/ingredientes", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/drinks", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem", "/dashboard/operacao/orcamento"],
+  cozinha: ["/dashboard/modulo/cozinha", "/dashboard/area", "/dashboard/checklists", "/dashboard/checklists/gerenciar", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/validade", "/dashboard/operacao/controles", "/dashboard/operacao/ingredientes", "/dashboard/operacao/fornecedores", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem", "/dashboard/operacao/produtos", "/dashboard/operacao/orcamento"],
+  bar: ["/dashboard/modulo/bar", "/dashboard/area", "/dashboard/checklists", "/dashboard/checklists/gerenciar", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/ingredientes", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/drinks", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem", "/dashboard/operacao/orcamento"],
   salao: ["/dashboard/modulo/salao", "/dashboard/area", "/dashboard/checklists", "/dashboard/mesas", "/dashboard/tarefas", "/dashboard/operacao/rotina", "/dashboard/salao/treinamento", "/dashboard/operacao/observacoes"],
 };
 

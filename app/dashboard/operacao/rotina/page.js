@@ -114,7 +114,9 @@ function RotinaRunner() {
   const deptUrl = searchParams.get("dept");
   const tipoUrl = searchParams.get("tipo");
 
-  const dept = TEMAS[deptUrl] ? deptUrl : "cozinha";
+  // Sem ?dept a tela caía calada na cozinha, e quem entrava pelo menu ficava
+  // olhando os checklists do setor errado sem perceber. Agora escolhe.
+  const deptValido = TEMAS[deptUrl] ? deptUrl : null;
   const [templates, setTemplates] = useState([]);
   const [historico, setHistorico] = useState([]);
   const [colaboradores, setColaboradores] = useState([]);
@@ -142,7 +144,12 @@ function RotinaRunner() {
   const [fotoAmpliada, setFotoAmpliada] = useState("");
   const [registrado, setRegistrado] = useState(false);
   const [salvando, setSalvando] = useState(false);
+  // Estação travada guarda o próprio setor: sem ?dept na URL, ele vale como
+  // escolha em vez de a tela cair na cozinha e mostrar a área errada.
+  const [areaDaEstacao, setAreaDaEstacao] = useState(null);
   const [estacaoTravada, setEstacaoTravada] = useState(false);
+  const dept = deptValido || areaDaEstacao || "cozinha";
+  const precisaEscolherArea = !deptValido && !estacaoTravada && !areaDaEstacao;
   const cargaAtual = useRef(0);
   const registroConcluido = useRef(false);
   const salvamentoEmAndamento = useRef(false);
@@ -184,7 +191,11 @@ function RotinaRunner() {
   }, [filtroTipo]);
 
   useEffect(() => {
-    try { setEstacaoTravada(Boolean(localStorage.getItem("hefisto_modo_area"))); } catch { setEstacaoTravada(false); }
+    try {
+      const area = localStorage.getItem("hefisto_modo_area");
+      setEstacaoTravada(Boolean(area));
+      setAreaDaEstacao(TEMAS[area] ? area : null);
+    } catch { setEstacaoTravada(false); setAreaDaEstacao(null); }
   }, [dept]);
 
   // Tempo real: checklist marcado em outro aparelho atualiza aqui sozinho
@@ -691,6 +702,43 @@ function RotinaRunner() {
     else alert("O navegador bloqueou a impressão. Habilite os popups.");
   };
 
+  /* ─── ESCOLHA DA ÁREA ─── */
+  // Mesma ideia do estoque: a área é uma decisão explícita, não um padrão
+  // silencioso. Vem antes de qualquer carregamento porque escolher aqui muda
+  // quais checklists a tela vai buscar.
+  if (precisaEscolherArea) {
+    return (
+      <div className="min-h-screen pb-28">
+        <PageHeader title="Checklists" subtitle={`Escolha a área · ${unidadeInfo?.nome || ""}`} icon={ClipboardList} back={false} />
+        <PageBody>
+          <div className="grid gap-4 sm:grid-cols-3">
+            {["cozinha", "bar", "salao"].map((chave) => {
+              const tema = TEMAS[chave];
+              const AreaIcon = tema.Icon;
+              return (
+                <button key={chave} onClick={() => router.push(`/dashboard/operacao/rotina?dept=${chave}`)}
+                  className="erp-card flex flex-col items-center gap-3 p-7 text-center transition-all active:scale-[0.98]"
+                  style={{ border: `2px solid ${tema.corBorda}`, background: tema.corBg }}>
+                  <span className="grid h-16 w-16 place-items-center rounded-2xl bg-white/70" style={{ color: tema.cor }}>
+                    <AreaIcon size={30} />
+                  </span>
+                  <span className="text-lg font-black" style={{ color: tema.corTexto }}>{tema.nome}</span>
+                  <span className="text-xs font-bold" style={{ color: tema.corTexto, opacity: .75 }}>
+                    Abertura, fechamento e conferências
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <button onClick={() => router.push("/dashboard/checklists/gerenciar")}
+            className="erp-btn erp-btn-ghost mt-5 !h-12 text-xs">
+            Montar e gerenciar checklists
+          </button>
+        </PageBody>
+      </div>
+    );
+  }
+
   /* ─── EXECUÇÃO DE UM CHECKLIST ─── */
   if (checklistAtual) {
     const DIcon = t.Icon;
@@ -1095,6 +1143,27 @@ function RotinaRunner() {
         )}
       </PageHeader>
       <PageBody>
+        {/* Trocar de área sem voltar ao menu, igual à fileira do estoque.
+            Estação travada não vê: ela só pode operar o próprio setor. */}
+        {!estacaoTravada && (
+          <div className="mb-5 flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+            {["cozinha", "bar", "salao"].map((chave) => {
+              const tema = TEMAS[chave];
+              const AreaIcon = tema.Icon;
+              const ativo = chave === dept;
+              return (
+                <button key={chave} type="button"
+                  onClick={() => router.push(`/dashboard/operacao/rotina?dept=${chave}${filtroTipo ? `&tipo=${filtroTipo}` : ""}`)}
+                  className="flex shrink-0 items-center gap-2.5 rounded-xl px-4 py-2.5 text-xs font-black transition-all"
+                  style={ativo
+                    ? { background: tema.cor, color: "#fff", boxShadow: `0 6px 18px ${tema.cor}40` }
+                    : { border: "1px solid var(--border)", background: "var(--elevated)", color: "var(--dim)" }}>
+                  <AreaIcon size={14} /> {tema.nome}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* Resumo exclusivo do setor */}
         <div className="relative overflow-hidden rounded-3xl p-5 sm:p-6 mb-2" style={{ background: t.corBg, border: `1px solid ${t.corBorda}` }}>

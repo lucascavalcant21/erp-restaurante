@@ -119,6 +119,9 @@ function RotinaRunner() {
   const [historico, setHistorico] = useState([]);
   const [colaboradores, setColaboradores] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Banco recusando a leitura vira "nenhum checklist" na tela, e o setor passa
+  // o dia sem executar achando que não tem nada para fazer.
+  const [erroCarga, setErroCarga] = useState("");
 
   // Produtividade individual (tarefas feitas por pessoa no mês)
   const [modalProd, setModalProd] = useState(false);
@@ -162,6 +165,7 @@ function RotinaRunner() {
       fetchHistoricoExecucoes(unidadeAtiva, hoje, dept),
     ]);
     if (idCarga !== cargaAtual.current) return;
+    setErroCarga(resT.error ? `Não consegui carregar os checklists: ${resT.error}` : "");
     setTemplates(resT.data || []);
     setColaboradores((resC.data || []).filter(c => c.ativo !== false && String(c.status || "ativo").toLowerCase() !== "inativo"));
     setHistorico(resH.data || []);
@@ -1127,6 +1131,10 @@ function RotinaRunner() {
             <Loader2 size={24} className="animate-spin" />
             <span className="font-bold text-sm">Carregando checklists...</span>
           </div>
+        ) : erroCarga ? (
+          <EmptyState icon={ClipboardList} title="Não consegui carregar os checklists"
+            hint={`${erroCarga} — não quer dizer que este setor não tenha checklist. Tente de novo daqui a pouco.`}
+            actionLabel="Tentar de novo" onAction={() => carregar()} />
         ) : templatesExibidos.length === 0 ? (
           <EmptyState icon={ClipboardList} title={`Nenhum checklist de ${t.nome}`}
             hint={estacaoTravada ? "Peça a um gerente para criar os modelos deste setor." : "Crie modelos de abertura, fechamento, mise en place etc. pelo Gerenciar."}

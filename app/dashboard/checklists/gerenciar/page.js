@@ -67,12 +67,16 @@ function GerenciarChecklistsContent() {
   // Montar por IA (organiza em título + categorias + tópicos)
   const [contextoIA, setContextoIA] = useState("");
   const [montandoIA, setMontandoIA] = useState(false);
+  // Recusa do banco não pode passar por sucesso: um checklist que não salvou
+  // é uma tarefa que o time não vai executar, e ninguém fica sabendo.
+  const [erroBanco, setErroBanco] = useState("");
 
   const carregar = async () => {
     const idCarga = ++cargaAtual.current;
     setLoading(true);
-    const { data } = await fetchTemplates(unidadeAtiva, deptFixo || undefined);
+    const { data, error } = await fetchTemplates(unidadeAtiva, deptFixo || undefined);
     if (idCarga !== cargaAtual.current) return;
+    setErroBanco(error ? `Não consegui carregar os checklists: ${error}` : "");
     setTemplates(data || []);
     setLoading(false);
   };
@@ -153,18 +157,25 @@ function GerenciarChecklistsContent() {
     if (!paraCriar.length) return alert(`Todos os checklists de ${dept} já existem.`);
     if (!confirm(`Criar ${paraCriar.length} checklist(s) completo(s) de ${dept} (${paraCriar.map(([, m]) => m.titulo).join(", ")})?`)) return;
     setCriandoTudo(true);
+    // O lote continua mesmo se um falhar, mas os que falharam são nomeados no
+    // fim: antes o setor ficava pela metade sem ninguém perceber.
+    const falhas = [];
     for (const [tipo, m] of paraCriar) {
-      await salvarTemplate({
+      const { error } = await salvarTemplate({
         unidade_id: unidadeAtiva,
         departamento: dept,
         tipo,
         titulo: m.titulo,
         itens: m.itens.map((texto, i) => ({ id: i + 1, texto, responsavel: "" })),
       });
+      if (error) falhas.push(`${m.titulo} (${error})`);
     }
     setCriandoTudo(false);
     setModalModelos(false);
     carregar();
+    if (falhas.length) {
+      alert(`${paraCriar.length - falhas.length} de ${paraCriar.length} checklist(s) criados.\n\nNão entraram:\n${falhas.join("\n")}`);
+    }
   };
 
   const handleSalvar = async () => {
@@ -172,7 +183,7 @@ function GerenciarChecklistsContent() {
     const itensValidos = form.itens.filter(i => i.texto.trim() !== "");
     if (itensValidos.length === 0) return alert("Adicione pelo menos uma tarefa");
 
-    await salvarTemplate({
+    const { error } = await salvarTemplate({
       id: form.id,
       unidade_id: unidadeAtiva,
       departamento: deptFixo || form.departamento,
@@ -181,12 +192,18 @@ function GerenciarChecklistsContent() {
       frequencia: form.frequencia || "diario",
       itens: itensValidos,
     });
+    // Fechar o modal com o salvamento recusado jogava fora tudo que foi
+    // digitado, e a lista recarregada só não mostrava o checklist novo.
+    if (error) return alert(`Não consegui salvar este checklist: ${error}`);
     setModalNovo(false);
     carregar();
   };
 
   const handleDesativar = async (id) => {
-    if (confirm("Deseja apagar este checklist?")) { await desativarTemplate(id); carregar(); }
+    if (!confirm("Deseja apagar este checklist?")) return;
+    const { error } = await desativarTemplate(id);
+    if (error) return alert(`Não consegui apagar este checklist: ${error}`);
+    carregar();
   };
 
   // ── Relatório mensal imprimível: o que foi feito, por quem, quantas vezes ──
@@ -394,8 +411,16 @@ function GerenciarChecklistsContent() {
         </div>
       </div>
 
+      {/* Banco recusou a leitura: a lista vazia abaixo não significa que não há
+          checklist, e o convite dos modelos criaria duplicata quando voltar. */}
+      {erroBanco && (
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 mb-6">
+          <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{erroBanco}</p>
+        </div>
+      )}
+
       {/* Faixa: começar rápido com os modelos completos por setor */}
-      {!loading && templates.length === 0 && (
+      {!loading && !erroBanco && templates.length === 0 && (
         <div className="max-w-5xl mx-auto px-4 sm:px-6 mb-6">
           <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex flex-col sm:flex-row items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0"><Sparkles size={22} /></div>
@@ -424,7 +449,7 @@ function GerenciarChecklistsContent() {
         {loading ? (
           <div className="col-span-full"><SkeletonList /></div>
         ) : filtrados.length === 0 ? (
-          <p className="col-span-full font-bold text-slate-500 text-center py-10">Nenhum checklist {deptFiltro !== "todos" ? `de ${deptFiltro}` : ""} criado ainda. Crie um para cada momento do dia (abertura, fechamento...).</p>
+          <p className="col-span-full font-bold text-slate-500 text-center py-10">{erroBanco ? "A lista não pôde ser carregada — veja o aviso acima." : `Nenhum checklist ${deptFiltro !== "todos" ? `de ${deptFiltro}` : ""} criado ainda. Crie um para cada momento do dia (abertura, fechamento...).`}</p>
         ) : (
           filtrados.map(t => (
             <div key={t.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all flex flex-col">

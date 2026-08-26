@@ -117,4 +117,4 @@ Ainda não começado.
 ## Comece por
 
 Me pergunte por qual item começar, ou vá direto no item 5 se eu não responder
-(o 3 depénde só de você rodar a migração).
+(o 3 depende só de você rodar a migração).

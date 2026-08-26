@@ -31,6 +31,7 @@ const SIDEBAR_MENU = [
     icon: Users,
     items: [
       { label: "Checklist do Salão", href: "/dashboard/operacao/rotina?dept=salao" },
+      { label: "Produção do Dia", href: "/dashboard/operacao/producao?dept=salao" },
       { label: "Treinamentos", href: "/dashboard/salao/treinamento" }
     ]
   },
@@ -246,7 +247,7 @@ function moduloDaRota(pathname, dept) {
 const ROTAS_AREA = {
   cozinha: ["/dashboard/modulo/cozinha", "/dashboard/area", "/dashboard/checklists", "/dashboard/checklists/gerenciar", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/validade", "/dashboard/operacao/controles", "/dashboard/operacao/ingredientes", "/dashboard/operacao/fornecedores", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem", "/dashboard/operacao/produtos", "/dashboard/operacao/orcamento"],
   bar: ["/dashboard/modulo/bar", "/dashboard/area", "/dashboard/checklists", "/dashboard/checklists/gerenciar", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/operacao/etiquetas", "/dashboard/operacao/ingredientes", "/dashboard/operacao/estoque", "/dashboard/operacao/compras", "/dashboard/operacao/notas", "/dashboard/operacao/drinks", "/dashboard/operacao/fichas", "/dashboard/operacao/montagem", "/dashboard/operacao/orcamento"],
-  salao: ["/dashboard/modulo/salao", "/dashboard/area", "/dashboard/checklists", "/dashboard/mesas", "/dashboard/tarefas", "/dashboard/operacao/rotina", "/dashboard/salao/treinamento", "/dashboard/operacao/observacoes"],
+  salao: ["/dashboard/modulo/salao", "/dashboard/area", "/dashboard/checklists", "/dashboard/checklists/gerenciar", "/dashboard/mesas", "/dashboard/tarefas", "/dashboard/operacao/rotina", "/dashboard/operacao/producao", "/dashboard/salao/treinamento", "/dashboard/operacao/observacoes"],
 };
 
 // Nestas telas o setor é definido por ?dept=. Uma estação travada nunca pode

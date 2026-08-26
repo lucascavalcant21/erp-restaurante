@@ -5,7 +5,7 @@
 // Tudo que o Recibo de Trabalho Extra precisa fica aqui: ao gerar o recibo, os
 // campos já vêm preenchidos.
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Save, Loader2, Camera, Trash2, ReceiptText } from "lucide-react";
 import { useERP } from "../../../../context/ERPContext";
@@ -46,23 +46,48 @@ export default function CadastroExtraPage() {
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
   const [recibos, setRecibos] = useState([]);
+  // Cadastro que não carregou não pode virar formulário em branco: os campos
+  // vazios seriam gravados por cima da pessoa real no primeiro "Salvar".
+  const [naoCarregou, setNaoCarregou] = useState("");
+  const [tentativa, setTentativa] = useState(0);
+  // O botão Salvar é fixo no rodapé, então dá para clicar nele com a página no
+  // topo — e o aviso, que fica no fim do formulário, passava despercebido. Sem
+  // ver o aviso, clicar em Salvar parecia não fazer nada.
+  const avisoRef = useRef(null);
   // Quanto desta pessoa ainda não foi pago.
   const emAberto = recibos.filter(r => !r.pagamento_realizado).reduce((s, r) => s + (Number(r.valor_total) || 0), 0);
 
   useEffect(() => {
     if (novo) return;
-    supabase.from("colaboradores").select("*").eq("id", id).single().then(({ data }) => {
-      if (data) {
-        setForm({
-          ...vazio,
-          ...Object.fromEntries(Object.keys(vazio).map(k => [k, data[k] ?? vazio[k]])),
-          janta_ofertada: data.janta_ofertada !== false,
-          tempo_intervalo: data.tempo_intervalo ?? 60,
-        });
-      }
-      setCarregando(false);
-    });
-  }, [id, novo]);
+    let ativo = true;
+    setCarregando(true);
+    setNaoCarregou("");
+    // maybeSingle em vez de single: linha ausente volta como data null em vez de
+    // erro. E o catch existe porque, sem ele, uma queda de rede deixava o
+    // carregando ligado para sempre — a tela ficava no giro e a barra de
+    // Salvar, que só é montada depois, nunca aparecia.
+    supabase.from("colaboradores").select("*").eq("id", id).maybeSingle()
+      .then(({ data, error }) => {
+        if (!ativo) return;
+        if (error) setNaoCarregou(error.message);
+        else if (!data) setNaoCarregou("Este cadastro de extra não foi encontrado.");
+        else {
+          setForm({
+            ...vazio,
+            ...Object.fromEntries(Object.keys(vazio).map(k => [k, data[k] ?? vazio[k]])),
+            janta_ofertada: data.janta_ofertada !== false,
+            tempo_intervalo: data.tempo_intervalo ?? 60,
+          });
+        }
+        setCarregando(false);
+      })
+      .catch((e) => {
+        if (!ativo) return;
+        setNaoCarregou(e?.message || "Falha de conexão ao buscar o cadastro.");
+        setCarregando(false);
+      });
+    return () => { ativo = false; };
+  }, [id, novo, tentativa]);
 
   // Histórico de recibos da própria pessoa: o que ela já recebeu e o que
   // ainda está em aberto, sem precisar caçar na lista geral do módulo.
@@ -70,6 +95,10 @@ export default function CadastroExtraPage() {
     if (novo) return;
     fetchRecibosPrestacao(id).then(r => setRecibos(r.data || []));
   }, [id, novo]);
+
+  useEffect(() => {
+    if (erro) avisoRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [erro]);
 
   const set = (campo, valor) => setForm(a => ({ ...a, [campo]: valor }));
 
@@ -135,6 +164,17 @@ export default function CadastroExtraPage() {
     const r = novo ? await inserirColaborador(payload) : await atualizarColaborador(id, payload);
     setSalvando(false);
     if (r.error) { setErro("Não consegui salvar: " + r.error); return; }
+    // O cadastro salvou, mas o banco não tem estas colunas ainda e o que foi
+    // digitado nelas se perdeu. Ficar na tela é de propósito: sair daqui dando
+    // tudo certo é o que fazia os campos "sumirem" sem explicação.
+    if (r.colunasIgnoradas?.length) {
+      setErro(
+        `Salvei o cadastro, mas estes campos NÃO foram gravados porque o banco ainda não tem as colunas: ` +
+        `${r.colunasIgnoradas.join(", ")}. Rode as migrações pendentes em db/ (PENDENCIAS.md, item 1) e ` +
+        `preencha estes campos de novo.`
+      );
+      return;
+    }
     const extraId = novo ? r.data?.id : id;
     if (gerarRecibo && extraId) router.push(`/dashboard/rh/extra/${extraId}/recibo`);
     else router.push("/dashboard/rh/extra");
@@ -144,11 +184,37 @@ export default function CadastroExtraPage() {
     return <div className="grid min-h-[60vh] place-items-center"><Loader2 size={28} className="animate-spin text-emerald-600" /></div>;
   }
 
+  // De propósito não abrimos o formulário aqui. Ele viria com todos os campos
+  // vazios, parecendo um cadastro novo, e salvar apagaria os dados da pessoa.
+  if (naoCarregou) {
+    return (
+      <div className="grid min-h-[60vh] place-items-center px-4">
+        <div className="w-full max-w-md rounded-2xl border border-red-200 bg-red-50 p-6 text-center">
+          <p className="font-black text-red-700">Não consegui abrir este cadastro</p>
+          <p className="mt-2 break-words text-sm font-semibold text-red-600">{naoCarregou}</p>
+          <p className="mt-3 text-xs font-semibold text-slate-600">
+            O formulário não abre em branco de propósito: salvar por cima apagaria os dados da pessoa.
+          </p>
+          <div className="mt-5 grid gap-2">
+            <button onClick={() => setTentativa((n) => n + 1)}
+              className="min-h-12 rounded-xl bg-emerald-600 font-black text-white hover:bg-emerald-700">
+              Tentar de novo
+            </button>
+            <button onClick={() => router.push("/dashboard/rh/extra")}
+              className="min-h-12 rounded-xl border border-slate-200 bg-white font-bold text-slate-600 hover:bg-slate-50">
+              Voltar para Extras
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const rotulo = "text-xs font-black uppercase tracking-widest text-slate-500";
   const campo = "w-full p-4 mt-1.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500";
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-28">
+    <div className="min-h-screen bg-slate-50 pb-40 sm:pb-28">
       {/* Cabeçalho */}
       <div className="sticky top-0 z-20 border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-3xl items-center gap-3">
@@ -393,15 +459,15 @@ export default function CadastroExtraPage() {
           </label>
         </section>
 
-        {erro && <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{erro}</p>}
+        {erro && <p ref={avisoRef} className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{erro}</p>}
       </main>
 
       {/* Botão fixo: salvar sempre à mão */}
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 p-3 backdrop-blur sm:p-4"
         style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0px))" }}>
-        <div className="mx-auto flex max-w-3xl gap-3">
+        <div className="mx-auto flex max-w-3xl flex-wrap gap-2 sm:flex-nowrap sm:gap-3">
           <button onClick={() => router.back()}
-            className="rounded-xl border border-slate-200 px-5 py-3.5 text-sm font-bold text-slate-600 hover:bg-slate-50">
+            className="min-h-12 rounded-xl border border-slate-200 px-5 text-sm font-bold text-slate-600 hover:bg-slate-50">
             Cancelar
           </button>
           <button onClick={() => salvar(false)} disabled={salvando}
@@ -409,7 +475,7 @@ export default function CadastroExtraPage() {
             {salvando ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Salvar
           </button>
           <button onClick={() => salvar(true)} disabled={salvando}
-            className="flex min-h-12 flex-[1.4] items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-60">
+            className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 text-sm font-black text-white hover:bg-emerald-700 disabled:opacity-60 sm:w-auto sm:flex-[1.4]">
             {salvando ? <Loader2 size={18} className="animate-spin" /> : <ReceiptText size={18} />} Salvar e gerar recibo
           </button>
         </div>

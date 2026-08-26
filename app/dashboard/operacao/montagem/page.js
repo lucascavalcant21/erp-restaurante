@@ -2043,10 +2043,16 @@ function MontagemPageInner() {
       // olhava só o tipo_base, então cerveja e água cadastradas direto no
       // cardápio — sem ficha nenhuma — passavam pelo `!== "produto_pronto"` e
       // apareciam aqui como se fossem drinks a montar.
+      //
+      // Pré-preparo também não entra: o guia mostra o que se monta para o
+      // cliente, e molho, base ou caldo é insumo de outra receita, não prato.
+      // Passavam porque tipo_base "pre" não é "produto_pronto".
+      const ehPrePreparo = (f) => !!f?.eh_base || f?.tipo_base === "pre";
       const faltantes = (rProds.data || []).filter(p =>
         p.nome_produto &&
         p.fichas_tecnicas &&
         p.fichas_tecnicas.tipo_base !== "produto_pronto" &&
+        !ehPrePreparo(p.fichas_tecnicas) &&
         !nomes.has(p.nome_produto.toLowerCase().trim())
       );
       for (const p of faltantes) {

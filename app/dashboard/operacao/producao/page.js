@@ -6,7 +6,7 @@ import { useTempoReal } from "../../../lib/realtime";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchFichas } from "../../../lib/operacao";
-import { calcularConsumoProducao, registrarProducao } from "../../../lib/estoque";
+import { calcularConsumoProducao, fetchProducaoDeHoje, registrarProducao } from "../../../lib/estoque";
 import { fetchColaboradores } from "../../../lib/rh";
 import { fetchMemorandoOperacao } from "../../../lib/memorandos";
 import { fetchProdutos } from "../../../lib/vendas";
@@ -59,6 +59,18 @@ function ProducaoRunner() {
   const { abrirMenu } = useERP();
   const searchParams = useSearchParams();
   const deptUrl = searchParams.get("dept") || "cozinha";
+  // O salao tambem pre-prepara e nao tinha lugar nenhum aqui: a tela decidia
+  // tudo por "e bar? senao e cozinha", e o que ele produzia caia no setor
+  // errado. Setor passa a ser dado, com nome, local padrao e prateleiras.
+  const SETORES = {
+    cozinha: { nome: "Cozinha", responsavel: "cozinha", localPadrao: "Freezer 1",
+      locais: ["Freezer 1", "Freezer 2", "Geladeira", "Câmara fria"], exemplo: "Ex.: Freezer 3" },
+    bar: { nome: "Bar", responsavel: "produção do bar", localPadrao: "Geladeira do Bar",
+      locais: ["Geladeira do Bar", "Prateleira do Bar", "Freezer do Bar", "Câmara fria"], exemplo: "Ex.: Geladeira dos xaropes" },
+    salao: { nome: "Salão", responsavel: "produção do salão", localPadrao: "Geladeira do Salão",
+      locais: ["Geladeira do Salão", "Balcão", "Estufa", "Câmara fria"], exemplo: "Ex.: Balcão de sobremesas" },
+  };
+  const setor = SETORES[deptUrl] || SETORES.cozinha;
   
   const { unidadeAtiva, unidadeInfo } = useERP();
   const [fichas, setFichas] = useState([]);
@@ -155,7 +167,7 @@ function ProducaoRunner() {
       </style></head><body>
       <div class="head">
         <div>
-          <div class="tag">Produção do Dia — ${deptUrl === "bar" ? "Bar" : "Cozinha"} · ${unidadeInfo?.nome || ""}</div>
+          <div class="tag">Produção do Dia — ${setor.nome} · ${unidadeInfo?.nome || ""}</div>
           <h1>O que produzir hoje</h1>
         </div>
         <div class="quando">${dataFmt}<span>${diaSemana}</span></div>
@@ -168,7 +180,7 @@ function ProducaoRunner() {
       </table>
       <div class="legenda">Quem produzir escreve o próprio nome, os horários de início/término e marca OK ao finalizar. Depois, registre no sistema (Produção do Dia) para dar baixa no estoque.</div>
       <div class="assin">
-        <div>Responsável pela ${deptUrl === "bar" ? "produção do bar" : "cozinha"}</div>
+        <div>Responsável pela ${setor.responsavel}</div>
         <div>Gerente / Conferência</div>
       </div>
       </body></html>`;
@@ -204,16 +216,29 @@ function ProducaoRunner() {
   // Memorando planejado para HOJE — a equipe abre a Produção e já vê o que
   // precisa preparar, sem depender do papel impresso ou do WhatsApp.
   const [memoHoje, setMemoHoje] = useState(null);
+  // Quem esta na bancada. Fica guardado por unidade+setor: numa estacao fixa a
+  // pessoa escolhe uma vez no comeco do turno, nao a cada producao.
+  const chaveEu = `producao_eu_${unidadeAtiva || ""}_${deptUrl}`;
+  const [euColab, setEuColab] = useState("");
+  const [producaoHoje, setProducaoHoje] = useState([]);
+  useEffect(() => {
+    try { setEuColab(localStorage.getItem(chaveEu) || ""); } catch { setEuColab(""); }
+  }, [chaveEu]);
+  useEffect(() => {
+    try { if (euColab) localStorage.setItem(chaveEu, euColab); } catch { /* aba anonima */ }
+  }, [euColab, chaveEu]);
 
   const carregar = async (silencioso = false) => {
     if (!silencioso) setLoading(true);
     const hojeISO = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; })();
-    const [resFichas, resProdutos, resColab, resMemo] = await Promise.all([
+    const [resFichas, resProdutos, resColab, resMemo, resProducao] = await Promise.all([
        fetchFichas(unidadeAtiva, deptUrl),
        fetchProdutos(unidadeAtiva, deptUrl),
        fetchColaboradores(unidadeAtiva),
        fetchMemorandoOperacao(unidadeAtiva, hojeISO).catch(() => ({ data: null })),
+       fetchProducaoDeHoje(unidadeAtiva, { departamento: deptUrl }).catch(() => ({ data: [] })),
     ]);
+    setProducaoHoje(resProducao?.data || []);
     setFichas(resFichas.data || []);
     setProdutos(resProdutos.data || []);
     setColaboradores((resColab.data || []).filter(c => c.ativo !== false && c.status !== "inativo"));
@@ -239,8 +264,10 @@ function ProducaoRunner() {
   const abrirProduzir = (ficha) => {
     setFichaAtual(ficha);
     setQtdProd("1");
-    setColabSelecionado("");
-    setLocalArmazenamento(deptUrl === "bar" ? "Geladeira do Bar" : "Freezer 1");
+    // Ja escolhida na barra do turno: nao faz sentido perguntar de novo a cada
+    // producao. Continua trocavel dentro do modal.
+    setColabSelecionado(euColab || "");
+    setLocalArmazenamento(setor.localPadrao);
     setModalProduzir(true);
   };
 
@@ -285,6 +312,7 @@ function ProducaoRunner() {
   };
 
   const isBar = deptUrl === 'bar';
+  const isSalao = deptUrl === 'salao';
 
   return (
     <div ref={containerRef} className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50">
@@ -297,7 +325,7 @@ function ProducaoRunner() {
                  <ArrowLeft size={20}/>
               </button>
                <div className={`hidden sm:flex w-14 h-14 shrink-0 rounded-2xl items-center justify-center shadow-inner ${isBar ? 'bg-slate-100 text-emerald-600' : 'bg-slate-100 text-emerald-600'}`}>
-                 {isBar ? <Droplets size={28} /> : <Flame size={28} />}
+                 {isBar ? <Droplets size={28} /> : isSalao ? <UtensilsCrossed size={28} /> : <Flame size={28} />}
               </div>
               <div>
                   <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-slate-900">Produção do Dia</h1>
@@ -325,10 +353,104 @@ function ProducaoRunner() {
          </div>
       </div>
 
+      {/* O TURNO DE QUEM ESTÁ NA BANCADA: o que já saiu, o que falta e o que
+          esta pessoa produziu. O plano do dia manda; sem plano, a barra mostra
+          só o que foi feito, que continua sendo a informação que falta hoje. */}
+      {(() => {
+         const setorChave = SETORES[deptUrl] ? deptUrl : "cozinha";
+         const plano = (memoHoje && memoHoje[setorChave]) || {};
+
+         // Somatório do que já foi produzido hoje, por ficha e por pessoa.
+         const feitoPorFicha = {};
+         const feitoPorFichaEu = {};
+         producaoHoje.forEach((registro) => {
+            const id = String(registro.ficha_id || "");
+            const qtd = Number(registro.quantidade_produzida) || 0;
+            feitoPorFicha[id] = (feitoPorFicha[id] || 0) + qtd;
+            if (euColab && String(registro.colaborador_id) === String(euColab)) {
+               feitoPorFichaEu[id] = (feitoPorFichaEu[id] || 0) + qtd;
+            }
+         });
+
+         const linhas = Object.entries(plano)
+            .map(([fichaId, dados]) => {
+               const ficha = fichas.find(f => String(f.id) === String(fichaId));
+               if (!ficha) return null;
+               const meta = Number(String(dados?.qtd || "").replace(",", ".")) || 0;
+               if (meta <= 0) return null;
+               const feito = feitoPorFicha[String(fichaId)] || 0;
+               return { ficha, meta, feito, meu: feitoPorFichaEu[String(fichaId)] || 0, falta: Math.max(0, meta - feito) };
+            })
+            .filter(Boolean);
+
+         const meuTotal = producaoHoje.filter(r => euColab && String(r.colaborador_id) === String(euColab)).length;
+         if (!linhas.length && !producaoHoje.length) return null;
+
+         const concluidas = linhas.filter(l => l.falta === 0).length;
+         return (
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 mt-6">
+               <div className="rounded-2xl border-2 border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                     <div className="min-w-0">
+                        <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700">Meu turno em {setor.nome}</p>
+                        <p className="text-sm font-bold text-slate-600">
+                           {linhas.length
+                              ? `${concluidas} de ${linhas.length} preparação(ões) do plano concluída(s)`
+                              : `${producaoHoje.length} produção(ões) registrada(s) hoje neste setor`}
+                        </p>
+                     </div>
+                     <label className="min-w-[190px]">
+                        <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Quem está produzindo</span>
+                        <select value={euColab} onChange={(e) => setEuColab(e.target.value)}
+                           className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 font-bold text-slate-700 outline-none focus:border-emerald-500">
+                           <option value="">Selecione…</option>
+                           {colaboradores.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                        </select>
+                     </label>
+                  </div>
+
+                  {euColab && (
+                     <p className="mt-3 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800">
+                        {meuTotal > 0
+                           ? `Você registrou ${meuTotal} produção(ões) hoje. Sua parte aparece em verde em cada linha.`
+                           : "Você ainda não registrou nenhuma produção hoje."}
+                     </p>
+                  )}
+
+                  {linhas.length > 0 && (
+                     <div className="mt-3 space-y-2">
+                        {linhas.map((l) => {
+                           const pct = Math.min(100, Math.round((l.feito / l.meta) * 100));
+                           const un = l.ficha.rendimento_unidade || "un";
+                           return (
+                              <div key={l.ficha.id} className={`rounded-xl border px-3 py-2.5 ${l.falta === 0 ? "border-emerald-200 bg-emerald-50/60" : "border-slate-200 bg-white"}`}>
+                                 <div className="flex items-center justify-between gap-3">
+                                    <p className="min-w-0 flex-1 truncate text-[15px] font-black text-slate-800">{l.ficha.nome_receita}</p>
+                                    <p className={`shrink-0 text-sm font-black ${l.falta === 0 ? "text-emerald-700" : "text-amber-700"}`}>
+                                       {l.falta === 0 ? "Concluído" : `Faltam ${(+l.falta.toFixed(3))} ${un}`}
+                                    </p>
+                                 </div>
+                                 <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                                    <div className="h-full rounded-full bg-emerald-500" style={{ width: `${pct}%` }} />
+                                 </div>
+                                 <p className="mt-1 text-[11px] font-bold text-slate-500">
+                                    {(+l.feito.toFixed(3))} de {(+l.meta.toFixed(3))} {un}
+                                    {l.meu > 0 && <span className="text-emerald-700"> · seus {(+l.meu.toFixed(3))} {un}</span>}
+                                 </p>
+                              </div>
+                           );
+                        })}
+                     </div>
+                  )}
+               </div>
+            </div>
+         );
+      })()}
+
       {/* MEMORANDO DE HOJE: o que a gerência planejou para este setor */}
       {(() => {
          if (!memoHoje) return null;
-         const setorChave = deptUrl === "bar" ? "bar" : "cozinha";
+         const setorChave = SETORES[deptUrl] ? deptUrl : "cozinha";
          const plano = memoHoje[setorChave] || {};
          const itens = Object.entries(plano)
             .map(([fichaId, dados]) => ({ ficha: fichas.find(f => String(f.id) === String(fichaId)), ...dados }))
@@ -340,7 +462,7 @@ function ProducaoRunner() {
                   <div className="flex items-center justify-between gap-3 mb-3">
                      <div>
                         <p className="text-[11px] font-black uppercase tracking-widest text-emerald-700">Produção planejada para hoje</p>
-                        <p className="text-sm font-bold text-slate-600">{itens.length} preparação(ões) no memorando de {deptUrl === "bar" ? "Bar" : "Cozinha"}</p>
+                        <p className="text-sm font-bold text-slate-600">{itens.length} preparação(ões) no memorando de {setor.nome}</p>
                      </div>
                      <button onClick={() => router.push("/dashboard/operacao/producao/memorando")}
                         className="shrink-0 rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-black text-emerald-700 hover:bg-emerald-50">
@@ -407,7 +529,7 @@ function ProducaoRunner() {
 
                      <div className="mt-auto pt-4 border-t border-slate-100">
                         <span className={`inline-flex items-center gap-2 font-bold text-sm ${isBar ? 'text-emerald-600' : 'text-emerald-600'}`}>
-                           {isBar ? <Droplets size={16}/> : <Flame size={16}/>} Iniciar Produção
+                           {isBar ? <Droplets size={16}/> : isSalao ? <UtensilsCrossed size={16}/> : <Flame size={16}/>} Iniciar Produção
                         </span>
                      </div>
                   </button>
@@ -493,11 +615,11 @@ function ProducaoRunner() {
                   {fichaAtual.eh_base && <div>
                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Onde será guardado?</label>
                      <div className="grid grid-cols-2 gap-2 mb-2">
-                        {(isBar ? ["Geladeira do Bar", "Prateleira do Bar", "Freezer do Bar", "Câmara fria"] : ["Freezer 1", "Freezer 2", "Geladeira", "Câmara fria"]).map(local => (
+                        {setor.locais.map(local => (
                            <button type="button" key={local} onClick={() => setLocalArmazenamento(local)} className={`min-h-11 rounded-xl border px-3 text-sm font-black ${localArmazenamento === local ? "border-amber-600 bg-amber-600 text-white" : "border-slate-200 bg-white text-slate-600"}`}>{local}</button>
                         ))}
                      </div>
-                     <input value={localArmazenamento} onChange={e => setLocalArmazenamento(e.target.value)} placeholder={isBar ? "Ex.: Geladeira dos xaropes" : "Ex.: Freezer 3"} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-amber-600" />
+                     <input value={localArmazenamento} onChange={e => setLocalArmazenamento(e.target.value)} placeholder={setor.exemplo} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-amber-600" />
                      <p className="mt-2 text-xs font-semibold text-amber-700">O saldo produzido ficará separado neste local.</p>
                   </div>}
 

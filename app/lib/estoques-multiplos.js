@@ -534,6 +534,18 @@ export async function registrarMovimentoMulti({
 // Uma única confirmação na interface pode movimentar vários itens. Cada item
 // usa o mesmo motor transacional do estoque e o retorno preserva falhas
 // individuais para não esconder uma movimentação parcial.
+// Setor do pre-preparo. Antes a conta era `=== "bar" ? "bar" : "cozinha"`, que
+// mandava tudo que nao fosse bar para a cozinha -- inclusive o salao, cujo
+// pre-preparo ia parar no estoque do setor errado e somava na contagem dele.
+const SETORES_PREPARO = ["cozinha", "bar", "salao"];
+function setorDoPreparo(departamento, ficha) {
+  const bruto = String(departamento || ficha?.departamento || "cozinha").toLowerCase().trim();
+  const semAcento = bruto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return SETORES_PREPARO.includes(semAcento) ? semAcento : "cozinha";
+}
+
+const LOCAL_PADRAO_PREPARO = { bar: "Bar", salao: "Salao", cozinha: "Freezer 1" };
+
 // Cadastra a ficha no estoque correto com saldo zero. A entrada de quantidade
 // continua acontecendo somente quando a producao for efetivamente registrada.
 export async function garantirFichaNoEstoquePreparo({ unidadeId, ficha, departamento = "cozinha", local = "", custoUnitario = 0 }) {
@@ -541,11 +553,11 @@ export async function garantirFichaNoEstoquePreparo({ unidadeId, ficha, departam
   if (!unidadeId || !ficha?.id || !ficha?.nome_receita) return { error: "Ficha de preparo invalida." };
 
   await garantirEstoquesPadrao(unidadeId);
-  const dept = String(departamento || ficha.departamento || "cozinha").toLowerCase() === "bar" ? "bar" : "cozinha";
+  const dept = setorDoPreparo(departamento, ficha);
   const { data: estoque, error: erroEstoque } = await supabase.from("estoques").select("id,nome").eq("unidade_id", unidadeId).eq("slug", `pre-preparos-${dept}`).maybeSingle();
   if (erroEstoque || !estoque?.id) return { error: erroMensagem(erroEstoque) || "Estoque de pre-preparos nao encontrado." };
 
-  const localLimpo = String(local || (dept === "bar" ? "Bar" : "Freezer 1")).trim();
+  const localLimpo = String(local || LOCAL_PADRAO_PREPARO[dept] || "Freezer 1").trim();
   const nomeBase = String(ficha.nome_receita).trim();
   const nomeItem = `${nomeBase} - ${localLimpo}`;
   let { data: insumo } = await supabase.from("insumos").select("id,nome,unidade_medida,custo_unitario").eq("unidade_id", unidadeId).eq("departamento", dept).in("nome", [nomeItem, `${nomeBase} · ${localLimpo}`]).limit(1).maybeSingle();
@@ -577,11 +589,11 @@ export async function registrarProducaoNoEstoquePreparo({ unidadeId, ficha, depa
   if (!ficha?.id || !ficha?.nome_receita || !Number.isFinite(qtd) || qtd <= 0) return { error: "Produção inválida." };
 
   await garantirEstoquesPadrao(unidadeId);
-  const dept = String(departamento || ficha.departamento || "cozinha").toLowerCase() === "bar" ? "bar" : "cozinha";
+  const dept = setorDoPreparo(departamento, ficha);
   const { data: estoque, error: erroEstoque } = await supabase.from("estoques").select("id,nome").eq("unidade_id", unidadeId).eq("slug", `pre-preparos-${dept}`).maybeSingle();
   if (erroEstoque || !estoque?.id) return { error: erroMensagem(erroEstoque) || "Estoque de pré-preparos não encontrado." };
 
-  const localLimpo = String(local || (dept === "bar" ? "Bar" : "Freezer 1")).trim();
+  const localLimpo = String(local || LOCAL_PADRAO_PREPARO[dept] || "Freezer 1").trim();
   const nomeBase = String(ficha.nome_receita).trim();
   const nomeItem = `${nomeBase} · ${localLimpo}`;
   let { data: insumo } = await supabase.from("insumos").select("id,nome,unidade_medida,custo_unitario").eq("unidade_id", unidadeId).eq("departamento", dept).in("nome", [nomeItem, `${nomeBase} - ${localLimpo}`]).limit(1).maybeSingle();

@@ -23,6 +23,10 @@ export const ESTOQUES_PADRAO = [
     locais: LOCAIS_BAR },
   { nome: "Pré-preparos do Bar", slug: "pre-preparos-bar", tipo: "bebidas", cor: "#ea580c", controla_validade: true, controla_minimo: true,
     locais: LOCAIS_BAR },
+  // O salão também pré-prepara (mise en place de bebidas, guarnições de balcão,
+  // sobremesas montadas). Sem estoque próprio isso caía no da cozinha, e a
+  // contagem de dois setores virava um número só.
+  { nome: "Pré-preparos do Salão", slug: "pre-preparos-salao", tipo: "alimentos", cor: "#0d9488", controla_validade: true, controla_minimo: true },
   { nome: "Limpeza", slug: "limpeza", tipo: "limpeza", cor: "#0284c7", controla_validade: false, controla_minimo: true },
   { nome: "Materiais variados", slug: "materiais-variados", tipo: "materiais", cor: "#d97706", controla_validade: false, controla_minimo: true },
   { nome: "Embalagens da Cozinha", slug: "embalagens-cozinha", tipo: "embalagens", cor: "#db2777", controla_validade: false, controla_minimo: true },

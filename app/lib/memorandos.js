@@ -18,6 +18,7 @@ export async function salvarMemorandoOperacao(unidadeId, memorando) {
     data_referencia: memorando.dataReferencia,
     cozinha: memorando.cozinha || {},
     bar: memorando.bar || {},
+    salao: memorando.salao || {},
     compras_manuais: memorando.comprasManuais || [],
     observacoes: memorando.observacoes || null,
     status: memorando.status || "rascunho",

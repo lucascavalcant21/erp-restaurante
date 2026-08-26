@@ -1580,8 +1580,20 @@ const COR_CATEGORIA = { "Com Álcool": "#1f7a33", "Sem Álcool": "#b45309", "Dos
 const ORDEM_CATEGORIA = ["Com Álcool", "Sem Álcool", "Doses", "Xaropes", "Espumas", "Geleias"];
 
 // HTML de um card de drink (kanban) — reaproveitado pelo pôster e pelo livro.
+// Batido e mexido não são estilo: mudam o resultado no copo. O shaker aera,
+// gela e dilui mais; o mixing glass mantém o drink límpido. O campo já existia
+// na ficha (fichas_tecnicas.metodo_bar) e só não chegava até aqui.
+const METODOS_DRINK = {
+  batido: "Batido (shaker)",
+  mexido: "Mexido (mixing glass)",
+  montado: "Montado no copo",
+  liquidificador: "Liquidificador",
+  dose: "Dose pura",
+};
+
 function drinkCardHTML(m) {
   const nome = escaparHtml((m.nome || "Drink").toUpperCase());
+  const metodo = METODOS_DRINK[m.metodo_bar] || null;
   const categoria = categoriaDrink(m);
   const classeCategoria = categoria === "Doses" ? " dose" : categoria === "Sem Álcool" ? " semAlcool" : "";
   const camadas = Array.isArray(m.estrutura_ia) ? m.estrutura_ia : [];
@@ -1594,7 +1606,8 @@ function drinkCardHTML(m) {
   const foto = m.foto_url
     ? `<div class="foto"><img src="${escaparHtml(m.foto_url)}" alt="${nome}"/></div>`
     : `<div class="foto ilustrada">${ilustracaoDrinkSVG(copo?.nome || m.nome, textoIngredientes, 96)}</div>`;
-  const subtitulo = m.rendimento ? `<p class="copo">${escaparHtml(m.rendimento)}</p>` : "";
+  const linhaSub = [m.rendimento, metodo].filter(Boolean).map(escaparHtml).join(" · ");
+  const subtitulo = linhaSub ? `<p class="copo">${linhaSub}</p>` : "";
   const blocoIngredientes = ingredientes.length
     ? `<div class="bloco"><p class="rot">Ingredientes</p><ul>${ingredientes.map((c) => `<li>${escaparHtml(c.nome)}</li>`).join("")}</ul></div>` : "";
   const blocoPreparo = passos.length
@@ -1604,7 +1617,7 @@ function drinkCardHTML(m) {
   const blocoCopo = copo && (copo.nome || "").trim()
     ? `<div class="bloco"><p class="rot">Copo</p><div class="copoRow">${imagemCopoHTML(copo.nome, { altura: 58, fotoUrl: copo.foto_url || null, usarFotoGlobal: false })}<span>${escaparHtml(copo.nome)}</span></div></div>`
     : "";
-  return `<article class="drink${classeCategoria}"><div class="cab">${foto}<div class="tit"><h2>${nome}</h2>${subtitulo}</div></div>${blocoIngredientes}${blocoPreparo}${blocoCopo}</article>`;
+  return `<article class="drink${classeCategoria}"><h2>${nome}</h2><div class="cab">${foto}<div class="tit">${subtitulo}</div></div>${blocoIngredientes}${blocoPreparo}${blocoCopo}</article>`;
 }
 
 // CSS dos cards (compartilhado). `colunas` controla o tamanho de fonte/foto;
@@ -1618,25 +1631,25 @@ function drinkCardCSS(colunas, gridCols = colunas, larguraCardMm = null) {
     : `grid-template-columns:repeat(${gridCols},1fr)`;
   return `
     .grade{display:grid;${colunasCss};gap:3.5mm;align-content:start}
-    .drink{border:2.5px solid #111;border-radius:10px;padding:3.5mm;display:flex;flex-direction:column;break-inside:avoid;page-break-inside:avoid;background:#fff}
-    .cab{display:flex;gap:3mm;align-items:center;margin-bottom:2.5mm}
-    .foto{width:${colunas >= 4 ? 16 : colunas === 3 ? 20 : 26}mm;height:${colunas >= 4 ? 16 : colunas === 3 ? 20 : 26}mm;flex:none;border:2px solid #111;border-radius:8px;overflow:hidden;background:#f4f4f5}
+    .drink{border:2px solid #111;border-radius:10px;padding:${colunas >= 3 ? 2.6 : 3.5}mm;display:flex;flex-direction:column;break-inside:avoid;page-break-inside:avoid;background:#fff;overflow:hidden}
+    .cab{display:flex;gap:2.5mm;align-items:center;margin-bottom:2mm}
+    .foto{width:${colunas >= 4 ? 14 : colunas === 3 ? 16 : 26}mm;height:${colunas >= 4 ? 14 : colunas === 3 ? 16 : 26}mm;flex:none;border:2px solid #111;border-radius:8px;overflow:hidden;background:#f4f4f5}
     .foto img{width:100%;height:100%;object-fit:cover;display:block}
     .foto.semFoto{display:flex;align-items:center;justify-content:center;text-align:center;color:#a1a1aa;font-weight:800;text-transform:uppercase;font-size:8px;letter-spacing:.5px}
     .tit{min-width:0;flex:1}
-    .drink h2{font-size:${colunas >= 4 ? 18 : colunas === 3 ? 22 : 28}px;font-weight:900;line-height:1.05;letter-spacing:.5px;text-transform:uppercase}
-    .copo{font-size:${colunas >= 4 ? 11 : 13}px;font-weight:800;color:#444;margin-top:2px}
-    .bloco{margin-top:2.5mm}
-    .rot{font-size:${colunas >= 4 ? 12 : 14}px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;border-bottom:2px solid #111;padding-bottom:2px;margin-bottom:3px}
-    .drink ul,.drink ol{padding-left:1.3em}
-    .drink li{font-size:${colunas >= 4 ? 13 : colunas === 3 ? 15 : 17}px;font-weight:700;line-height:1.35;margin-bottom:2px}
+    .drink h2{font-size:${colunas >= 4 ? 16 : colunas === 3 ? 19 : 28}px;font-weight:900;line-height:1.08;letter-spacing:.3px;text-transform:uppercase;overflow-wrap:break-word;hyphens:auto;margin-bottom:2mm}
+    .copo{font-size:${colunas >= 4 ? 10 : colunas === 3 ? 11 : 13}px;font-weight:800;color:#444;line-height:1.25}
+    .bloco{margin-top:${colunas >= 3 ? 1.6 : 2.5}mm}
+    .rot{font-size:${colunas >= 4 ? 11 : colunas === 3 ? 12 : 14}px;font-weight:900;text-transform:uppercase;letter-spacing:1.2px;border-bottom:2px solid #111;padding-bottom:1px;margin-bottom:2px}
+    .drink ul,.drink ol{padding-left:1.1em}
+    .drink li{font-size:${colunas >= 4 ? 12 : colunas === 3 ? 13 : 17}px;font-weight:700;line-height:${colunas >= 3 ? 1.25 : 1.35};margin-bottom:${colunas >= 3 ? 1 : 2}px;overflow-wrap:break-word}
     .drink ol li::marker{font-weight:900}
     .vazio{font-size:13px;color:#999;font-style:italic}
     .foto.ilustrada{display:flex;align-items:center;justify-content:center;background:#fdf9ef}
     .foto.ilustrada svg{width:76%;height:86%}
     .copoRow{display:flex;align-items:center;gap:2.5mm}
-    .copoRow svg{height:${colunas >= 4 ? 12 : 15}mm;width:auto;flex:none}
-    .copoRow span{font-size:${colunas >= 4 ? 12 : 14}px;font-weight:800}
+    .copoRow svg{height:${colunas >= 4 ? 10 : colunas === 3 ? 11 : 15}mm;width:auto;flex:none}
+    .copoRow span{font-size:${colunas >= 4 ? 11 : colunas === 3 ? 12 : 14}px;font-weight:800}
     .drink.semAlcool,.drink.dose{padding:3.5mm}`;
 }
 
@@ -1717,13 +1730,19 @@ function gerarHtmlLivroDrinks(fichas, formato = "a4") {
   if (!drinks.length) { alert("Nenhum drink para o livro."); return null; }
   // A4 = folha inteira; A5 = metade da A4 (148×210mm), para um livro menor.
   const a5 = formato === "a5";
-  const CARDS_POR_PAGINA = a5 ? 4 : 6; // A4: 2×3 · A5: 2×2
-  const colunas = a5 ? 4 : 2;          // A5 usa letras/fotos compactas
-  const gridCols = 2;
+  // A4 passou de 2×3 para 3×3 e o A5 de 2×2 para 2×3: metade das páginas para o
+  // mesmo cardápio, e o livro cabe na mão de quem está atrás do balcão.
+  const CARDS_POR_PAGINA = a5 ? 6 : 9;  // A4: 3×3 · A5: 2×3
+  const gridCols = a5 ? 2 : 3;
+  // `colunas` manda no tamanho de letra e foto, não na grade. Com 3 colunas na
+  // A4 a fonte cai junto — era o título de 28px num card estreito que vazava
+  // para fora da borda.
+  const colunas = a5 ? 4 : 3;
   const larguraPapelMm = a5 ? 148 : 210;
   const alturaPapelMm = a5 ? 210 : 297;
   // Largura FIXA do card: categorias com poucos drinks não esticam pra folha.
-  const larguraCardMm = a5 ? 58 : 86;
+  // A4 útil = 210 − 8 − 18 = 184mm; 3 cards de 58mm + 2 vãos de 3,5mm = 181mm.
+  const larguraCardMm = a5 ? 58 : 58;
 
   const porCat = {};
   drinks.forEach((d) => { const c = categoriaDrink(d); (porCat[c] = porCat[c] || []).push(d); });

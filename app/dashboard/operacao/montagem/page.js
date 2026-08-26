@@ -1801,10 +1801,23 @@ function gerarHtmlLivroDrinks(fichas, formato = "a4") {
       <section class="indice"><h1>Índice</h1>${indiceHTML}<div class="rodape-livro"><span>Guia de Drinks</span><span>Página 2</span></div></section>
       ${conteudo}
       <script>addEventListener('load',function(){
+        // Encolher a grade para caber na altura tambem encolhe a LARGURA, e a
+        // pagina ficava com tarja branca dos dois lados. A correcao e alargar as
+        // colunas na proporcao inversa do encolhimento: BASE/z de largura, com
+        // zoom z, volta ao tamanho visual certo e enche a folha.
+        //
+        // So que texto em coluna mais larga quebra menos e ocupa menos altura,
+        // entao o fator certo nao sai de uma conta -- uma unica passada travava
+        // no piso e deixava letra minuscula com meia pagina vazia. Procuramos o
+        // MAIOR zoom que ainda cabe, do maior para o menor.
+        var BASE=${larguraCardMm}, COLS=${gridCols};
         document.querySelectorAll('.pagina').forEach(function(pg){
-          var cont=pg.querySelector('.conteudo');var grade=pg.querySelector('.grade');
-          if(cont&&grade&&cont.scrollHeight>cont.clientHeight+4){
-            grade.style.zoom=Math.max(0.5,cont.clientHeight/cont.scrollHeight);
+          var cont=pg.querySelector('.conteudo'),grade=pg.querySelector('.grade');
+          if(!cont||!grade)return;
+          for(var z=1; z>=0.5; z-=0.05){
+            grade.style.gridTemplateColumns='repeat('+COLS+','+(BASE/z).toFixed(2)+'mm)';
+            grade.style.zoom=(z>=0.999?'':z);
+            if(cont.scrollHeight<=cont.clientHeight+4)break;
           }
         });
       });<\/script>
@@ -2030,10 +2043,16 @@ function MontagemPageInner() {
       // olhava só o tipo_base, então cerveja e água cadastradas direto no
       // cardápio — sem ficha nenhuma — passavam pelo `!== "produto_pronto"` e
       // apareciam aqui como se fossem drinks a montar.
+      //
+      // Pré-preparo também não entra: o guia mostra o que se monta para o
+      // cliente, e molho, base ou caldo é insumo de outra receita, não prato.
+      // Passavam porque tipo_base "pre" não é "produto_pronto".
+      const ehPrePreparo = (f) => !!f?.eh_base || f?.tipo_base === "pre";
       const faltantes = (rProds.data || []).filter(p =>
         p.nome_produto &&
         p.fichas_tecnicas &&
         p.fichas_tecnicas.tipo_base !== "produto_pronto" &&
+        !ehPrePreparo(p.fichas_tecnicas) &&
         !nomes.has(p.nome_produto.toLowerCase().trim())
       );
       for (const p of faltantes) {

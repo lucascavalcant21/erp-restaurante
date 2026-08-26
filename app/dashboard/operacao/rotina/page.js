@@ -572,15 +572,10 @@ function RotinaRunner() {
   /* ─── Impressão ─── */
   const imprimir = (tmpl, preenchido = null) => {
     const nomePor = (id) => colaboradores.find(c => c.id === id)?.nome || "";
-    const horaDe = (iso) => {
-      if (!iso) return "";
-      const d = new Date(iso);
-      return isNaN(d) ? "" : d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-    };
     let catImpr = null;
     const itensHtml = (tmpl.itens || []).map((it, i) => {
       const cat = (it.categoria || "").trim();
-      const header = cat && cat !== catImpr ? (catImpr = cat, `<tr class="cat"><td colspan="5">${cat}</td></tr>`) : "";
+      const header = cat && cat !== catImpr ? (catImpr = cat, `<tr class="cat"><td colspan="4">${cat}</td></tr>`) : "";
       const r = preenchido ? preenchido[it.id] : null;
       const feito = !!r?.marcado;
       const quem = r ? (nomePor(r.feito_por) || nomePor(colabSelecionado)) : "";
@@ -589,14 +584,13 @@ function RotinaRunner() {
         <td class="tarefa">${it.texto || ""}</td>
         <td class="resp">${quem || it.responsavel || ""}</td>
         <td class="check">${feito ? `<span class="box feito">&#10003;</span>` : `<span class="box"></span>`}</td>
-        <td class="visto">${horaDe(r?.concluido_em)}</td>
       </tr>`;
     }).join("");
     const extras = preenchido ? "" : Array.from({ length: 3 }).map((_, i) => `
       <tr>
         <td class="n">${(tmpl.itens?.length || 0) + i + 1}</td>
         <td class="tarefa"></td><td class="resp"></td>
-        <td class="check"><span class="box"></span></td><td class="visto"></td>
+        <td class="check"><span class="box"></span></td>
       </tr>`).join("");
 
     const deptLabel = TEMAS[tmpl.departamento]?.nome || tmpl.departamento;
@@ -620,10 +614,9 @@ function RotinaRunner() {
         tr.cat td{background:${corDept}18;color:${corDept};font-weight:bold;text-transform:uppercase;letter-spacing:1px;font-size:10px;height:auto;padding:5px 6px}
         td{height:32px}
         td.n{width:5%;text-align:center;color:#666}
-        td.tarefa{width:45%}
-        td.resp{width:22%}
-        td.check{width:8%;text-align:center}
-        td.visto{width:20%}
+        td.tarefa{width:53%}
+        td.resp{width:32%}
+        td.check{width:10%;text-align:center}
         .box{display:inline-block;width:14px;height:14px;border:2px solid #333;border-radius:3px;line-height:12px;font-size:12px;font-weight:bold}
         .box.feito{background:#333;color:#fff}
         .assin{margin-top:24px;display:flex;justify-content:space-between;gap:40px}
@@ -635,11 +628,11 @@ function RotinaRunner() {
           <div class="tag">${deptLabel} · ${tipoLabel} · ${unidadeInfo?.nome || ""}</div>
           <h1>${tmpl.titulo}</h1>
         </div>
-        <div class="meta">${tmpl.itens?.length || 0} tarefas<span>${preenchido ? "registro do que foi feito" : "marque ao concluir e vista"}</span></div>
+        <div class="meta">${tmpl.itens?.length || 0} tarefas<span>${preenchido ? "registro do que foi feito" : "marque ao concluir"}</span></div>
       </div>
-      <div class="datas">Data: <b>${preenchido ? new Date().toLocaleDateString("pt-BR") : "&nbsp;"}</b> Turno/Horário: <b>&nbsp;</b> Responsável geral: <b>${preenchido ? (nomePor(colabSelecionado) || "&nbsp;") : "&nbsp;"}</b></div>
+      <div class="datas">Data: <b>${preenchido ? new Date().toLocaleDateString("pt-BR") : "&nbsp;"}</b> Entrada: <b>&nbsp;</b> Intervalo: <b>&nbsp;</b> Funcionário: <b>${preenchido ? (nomePor(colabSelecionado) || "&nbsp;") : "&nbsp;"}</b></div>
       <table>
-        <thead><tr><th>#</th><th>Tarefa</th><th>Responsável</th><th>Feito</th><th>Visto / Hora</th></tr></thead>
+        <thead><tr><th>#</th><th>Tarefa</th><th>Quem realizou</th><th>Feito</th></tr></thead>
         <tbody>${itensHtml}${extras}</tbody>
       </table>
       <div class="assin">
@@ -661,18 +654,18 @@ function RotinaRunner() {
       let catB = null;
       const linhas = (tmpl.itens || []).map((it, i) => {
         const cat = (it.categoria || "").trim();
-        const header = cat && cat !== catB ? (catB = cat, `<tr class="cat"><td colspan="5">${cat}</td></tr>`) : "";
-        return `${header}<tr><td class="n">${i + 1}</td><td class="tarefa">${it.texto || ""}</td><td class="resp">${it.responsavel || ""}</td><td class="check"><span class="box"></span></td><td class="visto"></td></tr>`;
+        const header = cat && cat !== catB ? (catB = cat, `<tr class="cat"><td colspan="4">${cat}</td></tr>`) : "";
+        return `${header}<tr><td class="n">${i + 1}</td><td class="tarefa">${it.texto || ""}</td><td class="resp">${it.responsavel || ""}</td><td class="check"><span class="box"></span></td></tr>`;
       }).join("");
       const extras = Array.from({ length: 2 }).map((_, i) => `
-        <tr><td class="n">${(tmpl.itens?.length || 0) + i + 1}</td><td class="tarefa"></td><td class="resp"></td><td class="check"><span class="box"></span></td><td class="visto"></td></tr>`).join("");
+        <tr><td class="n">${(tmpl.itens?.length || 0) + i + 1}</td><td class="tarefa"></td><td class="resp"></td><td class="check"><span class="box"></span></td></tr>`).join("");
       return `<section>
         <div class="head">
           <div><div class="tag">${t.nome} · ${ROTULOS_TIPO[tmpl.tipo] || tmpl.tipo} · ${unidadeInfo?.nome || ""}</div><h1>${tmpl.titulo}</h1></div>
-          <div class="meta">${tmpl.itens?.length || 0} tarefas<span>marque ao concluir e vista</span></div>
+          <div class="meta">${tmpl.itens?.length || 0} tarefas<span>marque ao concluir</span></div>
         </div>
-        <div class="datas">Data: <b>&nbsp;</b> Turno/Horário: <b>&nbsp;</b> Responsável geral: <b>&nbsp;</b></div>
-        <table><thead><tr><th>#</th><th>Tarefa</th><th>Responsável</th><th>Feito</th><th>Visto / Hora</th></tr></thead><tbody>${linhas}${extras}</tbody></table>
+        <div class="datas">Data: <b>&nbsp;</b> Entrada: <b>&nbsp;</b> Intervalo: <b>&nbsp;</b> Funcionário: <b>&nbsp;</b></div>
+        <table><thead><tr><th>#</th><th>Tarefa</th><th>Quem realizou</th><th>Feito</th></tr></thead><tbody>${linhas}${extras}</tbody></table>
         <div class="assin"><div>Responsável pelo ${t.nome}</div><div>Gerente / Conferência</div></div>
       </section>`;
     };
@@ -691,7 +684,7 @@ function RotinaRunner() {
         th,td{border:1px solid #333;padding:8px 6px;font-size:12px;vertical-align:middle}
         th{background:${corDept}22;text-transform:uppercase;letter-spacing:.5px;font-size:9px;color:${corDept}}
         tr.cat td{background:${corDept}18;color:${corDept};font-weight:bold;text-transform:uppercase;letter-spacing:1px;font-size:10px;height:auto;padding:5px 6px}
-        td{height:32px}td.n{width:5%;text-align:center;color:#666}td.tarefa{width:45%}td.resp{width:22%}td.check{width:8%;text-align:center}td.visto{width:20%}
+        td{height:32px}td.n{width:5%;text-align:center;color:#666}td.tarefa{width:53%}td.resp{width:32%}td.check{width:10%;text-align:center}
         .box{display:inline-block;width:14px;height:14px;border:2px solid #333;border-radius:3px;line-height:12px;font-size:12px;font-weight:bold}
         .box.feito{background:#333;color:#fff}
         .assin{margin-top:24px;display:flex;justify-content:space-between;gap:40px}.assin div{flex:1;border-top:1px solid #333;padding-top:5px;font-size:10px;text-align:center;color:#444}

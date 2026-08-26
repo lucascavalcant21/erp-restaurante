@@ -453,12 +453,28 @@ async function sincronizarSaldoLegado(unidadeId, insumoId) {
   }, { onConflict: "unidade_id,insumo_id" });
 }
 
+// Lotes por validade de um item: o que vence primeiro vem primeiro, e o lote
+// sem prazo fica no fim, igual à ordem em que o banco os consome.
+export async function fetchLotesItem(estoqueId, insumoId) {
+  if (!isSupabaseReady()) return { data: [] };
+  const { data, error } = await supabase.from("estoque_lotes")
+    .select("id, validade, quantidade, created_at")
+    .eq("estoque_id", estoqueId).eq("insumo_id", insumoId)
+    .gt("quantidade", 0)
+    .order("validade", { ascending: true, nullsFirst: false });
+  // Migração de lotes ainda não rodada: a tela some com o bloco em vez de
+  // acusar erro, porque o saldo continua correto sem ela.
+  if (error) return { data: [], error: error.message };
+  return { data: data || [], error: null };
+}
+
 export async function registrarMovimentoMulti({
   unidadeId,
   estoqueId,
   insumoId,
   tipo,
   quantidade,
+  validade = null,
   usuarioId = null,
   usuarioNome = "",
   observacao = "",
@@ -469,18 +485,31 @@ export async function registrarMovimentoMulti({
   if (!["entrada", "saida"].includes(tipo) || !Number.isFinite(valor) || valor <= 0) {
     return { error: "Informe uma movimentação válida." };
   }
-  const res = await comTimeout(supabase.rpc("registrar_movimento_estoque_multi", {
-    p_unidade_id: unidadeId,
-    p_estoque_id: estoqueId,
-    p_insumo_id: insumoId,
-    p_tipo: tipo,
-    p_quantidade: valor,
-    p_usuario_id: usuarioId,
-    p_usuario_nome: usuarioNome || null,
-    p_observacao: observacao || null,
-    p_data_movimento: dataMovimento ? new Date(dataMovimento).toISOString() : new Date().toISOString(),
-  }));
+  // Com validade vai pela função de lote; sem validade, pela antiga — que
+  // depois da migração também mantém os lotes, então os dois caminhos são
+  // consistentes e o app funciona igual antes de ela rodar.
+  const comLote = !!validade;
+  const res = await comTimeout(supabase.rpc(
+    comLote ? "registrar_movimento_estoque_lote" : "registrar_movimento_estoque_multi",
+    {
+      p_unidade_id: unidadeId,
+      p_estoque_id: estoqueId,
+      p_insumo_id: insumoId,
+      p_tipo: tipo,
+      p_quantidade: valor,
+      ...(comLote ? { p_validade: validade } : {}),
+      p_usuario_id: usuarioId,
+      p_usuario_nome: usuarioNome || null,
+      p_observacao: observacao || null,
+      p_data_movimento: dataMovimento ? new Date(dataMovimento).toISOString() : new Date().toISOString(),
+    }));
   if (precisaFallbackLegado(res)) {
+    // O caminho legado não sabe o que é lote. Cair nele com uma validade na
+    // mão gravaria a quantidade e jogaria a data fora sem avisar — o mesmo
+    // silêncio que a tela existe para evitar. Melhor recusar e dizer o porquê.
+    if (comLote) {
+      return { error: "A validade não pôde ser gravada porque o banco ainda não tem os lotes. Rode db/migracao_estoque_lotes.sql no Supabase e repita a entrada." };
+    }
     return movimentoLegado({ unidadeId, estoqueId, insumoId, tipo, quantidade: valor, usuarioId, usuarioNome, observacao });
   }
   const { data, error } = res;

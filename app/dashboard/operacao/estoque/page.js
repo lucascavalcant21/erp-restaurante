@@ -18,7 +18,7 @@ import { criarEscuta, vozDisponivel } from "../../../lib/hefisto-voz";
 import { equipeDaArea } from "../../../lib/equipe-area.mjs";
 import {
   atualizarItemEstoque, fetchEstoques, fetchItensEstoque, fetchMovimentosMulti,
-  registrarContagemMulti, registrarMovimentoMulti, realocarItemEstoque, salvarEstoque,
+  fetchLotesItem, registrarContagemMulti, registrarMovimentoMulti, realocarItemEstoque, salvarEstoque,
   transferirEntreEstoques, vincularItemEstoque, zerarEstoque,
 } from "../../../lib/estoques-multiplos";
 import {
@@ -379,6 +379,9 @@ function EstoqueRunner() {
   const [filtros, setFiltros] = useState({ busca: "", grupo: "Todos", categoria: "Todas", status: "todos", local: "Todos" });
   const [agruparPor, setAgruparPor] = useState("categoria");   // categoria | local
   const [modal, setModal] = useState(null);
+  // Lotes que o item já tem. Servem para repor na MESMA validade com um toque,
+  // em vez de redigitar a data e errar por um dia — o que criaria um lote novo.
+  const [lotesItem, setLotesItem] = useState([]);
   // Produto que não existe ainda: cadastra pelo próprio estoque.
   const [novoProduto, setNovoProduto] = useState(null);
   // Categorias criadas pela unidade, por departamento. As embutidas ficam no
@@ -435,7 +438,7 @@ function EstoqueRunner() {
   const [pinGerente, setPinGerente] = useState("1234");
   const [unidadeLiberada, setUnidadeLiberada] = useState(false);
   const [pinDigitado, setPinDigitado] = useState(null); // null = não está pedindo
-  const [operacao, setOperacao] = useState({ insumo_id: "", quantidade: "", destino_id: "", observacao: "", responsavel_id: "", data: "", modo: "unidade", fechadas: "", aberto: "" });
+  const [operacao, setOperacao] = useState({ insumo_id: "", quantidade: "", destino_id: "", observacao: "", responsavel_id: "", data: "", validade: "", modo: "unidade", fechadas: "", aberto: "" });
   const [formItem, setFormItem] = useState({});
   const [formEstoque, setFormEstoque] = useState({});
   const [textoImportacao, setTextoImportacao] = useState("");
@@ -476,6 +479,17 @@ function EstoqueRunner() {
   }, [estoques, moduloPref]);
 
   const estoqueAtual = useMemo(() => estoques.find(item => item.id === estoqueId) || estoquesVisiveis[0], [estoques, estoqueId, estoquesVisiveis]);
+
+  useEffect(() => {
+    const insumoId = modal?.item?.insumo_id;
+    if (!modal || modal.tipo !== "entrada" || !insumoId || !estoqueAtual?.id || !estoqueAtual?.controla_validade) {
+      setLotesItem([]);
+      return;
+    }
+    let ativo = true;
+    fetchLotesItem(estoqueAtual.id, insumoId).then((r) => { if (ativo) setLotesItem(r.data || []); });
+    return () => { ativo = false; };
+  }, [modal, estoqueAtual?.id, estoqueAtual?.controla_validade]);
 
   const carregarEstoques = useCallback(async (manterId = "") => {
     if (!unidadeAtiva || unidadeAtiva === "todas") return;
@@ -1028,6 +1042,7 @@ function EstoqueRunner() {
       observacao: "",
       responsavel_id: "",
       data: agoraStr,
+      validade: "",
       // Sempre começa em UNIDADE (peça inteira). Fracionar por conteúdo é a
       // exceção — quem vai servir dose escolhe na hora, sem vir marcado.
       modo: "unidade",
@@ -1098,6 +1113,7 @@ function EstoqueRunner() {
         unidadeId, estoqueId, insumoId: item?.insumo_id, tipo,
         quantidade: qtd, usuarioId: usuarioIdFinal, usuarioNome: responsavelNome,
         observacao: operacao.observacao, dataMovimento: operacao.data || null,
+        validade: tipo === "entrada" ? (operacao.validade || null) : null,
       });
 
       if (frac && modal?.tipo === "entrada") {
@@ -1130,6 +1146,7 @@ function EstoqueRunner() {
           tipo: modal?.tipo, quantidade: qtdOperacao,
           usuarioId: usuarioIdFinal, usuarioNome: responsavelNome,
           observacao: operacao.observacao, dataMovimento: operacao.data || null,
+          validade: modal?.tipo === "entrada" ? (operacao.validade || null) : null,
         });
       }
       if (resposta?.error) return avisar(resposta.error, "erro");
@@ -1860,6 +1877,42 @@ function EstoqueRunner() {
                         <Campo label="Data da Operação *"><input required type="datetime-local" value={operacao.data} onChange={e => setOperacao({ ...operacao, data: e.target.value })} className="h-14 w-full rounded-2xl border border-slate-200 px-3 font-semibold text-slate-800" /></Campo>
                       )}
                     </div>
+
+                    {/* Validade desta entrada. Repor com a mesma data soma no
+                        lote que já existe; com outra data, cria um lote novo e
+                        as duas fornadas passam a ser contadas em separado. */}
+                    {modal.tipo === "entrada" && estoqueAtual?.controla_validade && (
+                      <div className="mt-3">
+                        <Campo label="Validade desta entrada">
+                          <input type="date" value={operacao.validade || ""}
+                            onChange={e => setOperacao({ ...operacao, validade: e.target.value })}
+                            className="h-14 w-full rounded-2xl border border-slate-200 px-3 font-semibold text-slate-800" />
+                        </Campo>
+                        {lotesItem.length > 0 && (
+                          <div className="mt-2.5">
+                            <p className="text-xs font-black uppercase tracking-wider text-slate-500">Já em estoque</p>
+                            <div className="mt-1.5 flex flex-wrap gap-2">
+                              {lotesItem.map((lote) => {
+                                const iso = lote.validade ? String(lote.validade).slice(0, 10) : "";
+                                const escolhido = iso && operacao.validade === iso;
+                                return (
+                                  <button key={lote.id} type="button"
+                                    onClick={() => setOperacao({ ...operacao, validade: iso })}
+                                    className={`min-h-10 rounded-xl border-2 px-3 text-xs font-black transition ${escolhido
+                                      ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                                      : "border-slate-200 bg-white text-slate-600 hover:border-emerald-300"}`}>
+                                    {iso ? fmtData(iso) : "Sem validade"} · {Number(lote.quantidade)}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                        <p className="mt-1.5 text-xs font-semibold text-slate-500">
+                          Mesma validade soma no lote existente. Validade diferente vira outro lote, e a saída tira primeiro o que vence antes.
+                        </p>
+                      </div>
+                    )}
                     {modal.tipo === "contagem" && itemMod && (() => {
                       const custo = Number(itemMod?.preco_normalizado || itemMod?.custo_unitario || itemMod?.insumo?.preco_normalizado || 0);
                       const saldoSistema = Number(itemMod?.quantidade_atual || 0);

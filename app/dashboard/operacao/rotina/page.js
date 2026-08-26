@@ -114,11 +114,16 @@ function RotinaRunner() {
   const deptUrl = searchParams.get("dept");
   const tipoUrl = searchParams.get("tipo");
 
-  const dept = TEMAS[deptUrl] ? deptUrl : "cozinha";
+  // Sem ?dept a tela caía calada na cozinha, e quem entrava pelo menu ficava
+  // olhando os checklists do setor errado sem perceber. Agora escolhe.
+  const deptValido = TEMAS[deptUrl] ? deptUrl : null;
   const [templates, setTemplates] = useState([]);
   const [historico, setHistorico] = useState([]);
   const [colaboradores, setColaboradores] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Banco recusando a leitura vira "nenhum checklist" na tela, e o setor passa
+  // o dia sem executar achando que não tem nada para fazer.
+  const [erroCarga, setErroCarga] = useState("");
 
   // Produtividade individual (tarefas feitas por pessoa no mês)
   const [modalProd, setModalProd] = useState(false);
@@ -139,7 +144,12 @@ function RotinaRunner() {
   const [fotoAmpliada, setFotoAmpliada] = useState("");
   const [registrado, setRegistrado] = useState(false);
   const [salvando, setSalvando] = useState(false);
+  // Estação travada guarda o próprio setor: sem ?dept na URL, ele vale como
+  // escolha em vez de a tela cair na cozinha e mostrar a área errada.
+  const [areaDaEstacao, setAreaDaEstacao] = useState(null);
   const [estacaoTravada, setEstacaoTravada] = useState(false);
+  const dept = deptValido || areaDaEstacao || "cozinha";
+  const precisaEscolherArea = !deptValido && !estacaoTravada && !areaDaEstacao;
   const cargaAtual = useRef(0);
   const registroConcluido = useRef(false);
   const salvamentoEmAndamento = useRef(false);
@@ -162,6 +172,7 @@ function RotinaRunner() {
       fetchHistoricoExecucoes(unidadeAtiva, hoje, dept),
     ]);
     if (idCarga !== cargaAtual.current) return;
+    setErroCarga(resT.error ? `Não consegui carregar os checklists: ${resT.error}` : "");
     setTemplates(resT.data || []);
     setColaboradores((resC.data || []).filter(c => c.ativo !== false && String(c.status || "ativo").toLowerCase() !== "inativo"));
     setHistorico(resH.data || []);
@@ -180,7 +191,11 @@ function RotinaRunner() {
   }, [filtroTipo]);
 
   useEffect(() => {
-    try { setEstacaoTravada(Boolean(localStorage.getItem("hefisto_modo_area"))); } catch { setEstacaoTravada(false); }
+    try {
+      const area = localStorage.getItem("hefisto_modo_area");
+      setEstacaoTravada(Boolean(area));
+      setAreaDaEstacao(TEMAS[area] ? area : null);
+    } catch { setEstacaoTravada(false); setAreaDaEstacao(null); }
   }, [dept]);
 
   // Tempo real: checklist marcado em outro aparelho atualiza aqui sozinho
@@ -317,13 +332,9 @@ function RotinaRunner() {
   const mudaStatusItem = (id, status) => {
     if (registroConcluido.current || salvamentoEmAndamento.current) return;
     const atual = respostas[id] || {};
+    // Sem responsável a tarefa é marcada assim mesmo: quem está com as mãos na
+    // massa não pode ficar preso a um cadastro para registrar o que já fez.
     const responsavel = atual.feito_por || (modoAtribuicao === "uma_pessoa" ? colabSelecionado : "");
-    if (status !== "na" && !responsavel) {
-      alert(modoAtribuicao === "uma_pessoa"
-        ? "Selecione quem fará todas as atividades."
-        : "Escolha o funcionário responsável por esta atividade antes de responder.");
-      return;
-    }
     setRespostas(r => ({
       ...r,
       [id]: {
@@ -419,12 +430,6 @@ function RotinaRunner() {
     if (registroConcluido.current || salvamentoEmAndamento.current) return;
     const atual = respostas[id] || {};
     const responsavel = atual.feito_por || (modoAtribuicao === "uma_pessoa" ? colabSelecionado : "");
-    if (!atual.marcado && !responsavel) {
-      alert(modoAtribuicao === "uma_pessoa"
-        ? "Selecione quem fará todas as atividades."
-        : "Escolha o funcionário responsável por esta atividade antes de concluir.");
-      return;
-    }
     setRespostas(r => {
       const respostaAtual = r[id] || {};
       const marcado = !respostaAtual.marcado;
@@ -515,11 +520,10 @@ function RotinaRunner() {
   };
 
   const finalizar = async () => {
-    if (!colabSelecionado) return alert(modoAtribuicao === "uma_pessoa"
-      ? "Selecione quem fez todas as atividades."
-      : "Selecione quem conferiu e está finalizando o checklist.");
+    // Responsável deixou de ser obrigatório: exigir nome travava o registro de
+    // um checklist que já foi feito, e a tarefa cumprida sem registro é pior
+    // para a operação do que o registro sem o nome de quem fez.
     if (pct < 100) return;
-    if (naoAtribuidas > 0) return alert(`Ainda existem ${naoAtribuidas} atividade(s) sem funcionário responsável.`);
     if (salvamentoEmAndamento.current) return;
     salvamentoEmAndamento.current = true;
     setSalvando(true);
@@ -546,7 +550,7 @@ function RotinaRunner() {
       resultado = await salvarExecucao({
         template_id: checklistAtual.id,
         unidade_id: unidadeAtiva,
-        colaborador_id: colabSelecionado,
+        colaborador_id: colabSelecionado || null,
         data_referencia: dataHojeLocal(),
         respostas: arrRespostas,
       });
@@ -566,20 +570,29 @@ function RotinaRunner() {
   };
 
   /* ─── Impressão ─── */
-  const imprimir = (tmpl) => {
+  const imprimir = (tmpl, preenchido = null) => {
+    const nomePor = (id) => colaboradores.find(c => c.id === id)?.nome || "";
+    const horaDe = (iso) => {
+      if (!iso) return "";
+      const d = new Date(iso);
+      return isNaN(d) ? "" : d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    };
     let catImpr = null;
     const itensHtml = (tmpl.itens || []).map((it, i) => {
       const cat = (it.categoria || "").trim();
       const header = cat && cat !== catImpr ? (catImpr = cat, `<tr class="cat"><td colspan="5">${cat}</td></tr>`) : "";
+      const r = preenchido ? preenchido[it.id] : null;
+      const feito = !!r?.marcado;
+      const quem = r ? (nomePor(r.feito_por) || nomePor(colabSelecionado)) : "";
       return `${header}<tr>
         <td class="n">${i + 1}</td>
         <td class="tarefa">${it.texto || ""}</td>
-        <td class="resp">${it.responsavel || ""}</td>
-        <td class="check"><span class="box"></span></td>
-        <td class="visto"></td>
+        <td class="resp">${quem || it.responsavel || ""}</td>
+        <td class="check">${feito ? `<span class="box feito">&#10003;</span>` : `<span class="box"></span>`}</td>
+        <td class="visto">${horaDe(r?.concluido_em)}</td>
       </tr>`;
     }).join("");
-    const extras = Array.from({ length: 3 }).map((_, i) => `
+    const extras = preenchido ? "" : Array.from({ length: 3 }).map((_, i) => `
       <tr>
         <td class="n">${(tmpl.itens?.length || 0) + i + 1}</td>
         <td class="tarefa"></td><td class="resp"></td>
@@ -611,7 +624,8 @@ function RotinaRunner() {
         td.resp{width:22%}
         td.check{width:8%;text-align:center}
         td.visto{width:20%}
-        .box{display:inline-block;width:14px;height:14px;border:2px solid #333;border-radius:3px}
+        .box{display:inline-block;width:14px;height:14px;border:2px solid #333;border-radius:3px;line-height:12px;font-size:12px;font-weight:bold}
+        .box.feito{background:#333;color:#fff}
         .assin{margin-top:24px;display:flex;justify-content:space-between;gap:40px}
         .assin div{flex:1;border-top:1px solid #333;padding-top:5px;font-size:10px;text-align:center;color:#444}
         @media print{@page{margin:0}}
@@ -621,9 +635,9 @@ function RotinaRunner() {
           <div class="tag">${deptLabel} · ${tipoLabel} · ${unidadeInfo?.nome || ""}</div>
           <h1>${tmpl.titulo}</h1>
         </div>
-        <div class="meta">${tmpl.itens?.length || 0} tarefas<span>marque ao concluir e vista</span></div>
+        <div class="meta">${tmpl.itens?.length || 0} tarefas<span>${preenchido ? "registro do que foi feito" : "marque ao concluir e vista"}</span></div>
       </div>
-      <div class="datas">Data: <b>&nbsp;</b> Turno/Horário: <b>&nbsp;</b> Responsável geral: <b>&nbsp;</b></div>
+      <div class="datas">Data: <b>${preenchido ? new Date().toLocaleDateString("pt-BR") : "&nbsp;"}</b> Turno/Horário: <b>&nbsp;</b> Responsável geral: <b>${preenchido ? (nomePor(colabSelecionado) || "&nbsp;") : "&nbsp;"}</b></div>
       <table>
         <thead><tr><th>#</th><th>Tarefa</th><th>Responsável</th><th>Feito</th><th>Visto / Hora</th></tr></thead>
         <tbody>${itensHtml}${extras}</tbody>
@@ -678,7 +692,8 @@ function RotinaRunner() {
         th{background:${corDept}22;text-transform:uppercase;letter-spacing:.5px;font-size:9px;color:${corDept}}
         tr.cat td{background:${corDept}18;color:${corDept};font-weight:bold;text-transform:uppercase;letter-spacing:1px;font-size:10px;height:auto;padding:5px 6px}
         td{height:32px}td.n{width:5%;text-align:center;color:#666}td.tarefa{width:45%}td.resp{width:22%}td.check{width:8%;text-align:center}td.visto{width:20%}
-        .box{display:inline-block;width:14px;height:14px;border:2px solid #333;border-radius:3px}
+        .box{display:inline-block;width:14px;height:14px;border:2px solid #333;border-radius:3px;line-height:12px;font-size:12px;font-weight:bold}
+        .box.feito{background:#333;color:#fff}
         .assin{margin-top:24px;display:flex;justify-content:space-between;gap:40px}.assin div{flex:1;border-top:1px solid #333;padding-top:5px;font-size:10px;text-align:center;color:#444}
         @media print{@page{margin:0}}
       </style></head><body>${templatesExibidos.map(bloco).join("")}</body></html>`;
@@ -686,6 +701,43 @@ function RotinaRunner() {
     if (win) { win.document.write(html); win.document.close(); setTimeout(() => win.print(), 400); }
     else alert("O navegador bloqueou a impressão. Habilite os popups.");
   };
+
+  /* ─── ESCOLHA DA ÁREA ─── */
+  // Mesma ideia do estoque: a área é uma decisão explícita, não um padrão
+  // silencioso. Vem antes de qualquer carregamento porque escolher aqui muda
+  // quais checklists a tela vai buscar.
+  if (precisaEscolherArea) {
+    return (
+      <div className="min-h-screen pb-28">
+        <PageHeader title="Checklists" subtitle={`Escolha a área · ${unidadeInfo?.nome || ""}`} icon={ClipboardList} back={false} />
+        <PageBody>
+          <div className="grid gap-4 sm:grid-cols-3">
+            {["cozinha", "bar", "salao"].map((chave) => {
+              const tema = TEMAS[chave];
+              const AreaIcon = tema.Icon;
+              return (
+                <button key={chave} onClick={() => router.push(`/dashboard/operacao/rotina?dept=${chave}`)}
+                  className="erp-card flex flex-col items-center gap-3 p-7 text-center transition-all active:scale-[0.98]"
+                  style={{ border: `2px solid ${tema.corBorda}`, background: tema.corBg }}>
+                  <span className="grid h-16 w-16 place-items-center rounded-2xl bg-white/70" style={{ color: tema.cor }}>
+                    <AreaIcon size={30} />
+                  </span>
+                  <span className="text-lg font-black" style={{ color: tema.corTexto }}>{tema.nome}</span>
+                  <span className="text-xs font-bold" style={{ color: tema.corTexto, opacity: .75 }}>
+                    Abertura, fechamento e conferências
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <button onClick={() => router.push("/dashboard/checklists/gerenciar")}
+            className="erp-btn erp-btn-ghost mt-5 !h-12 text-xs">
+            Montar e gerenciar checklists
+          </button>
+        </PageBody>
+      </div>
+    );
+  }
 
   /* ─── EXECUÇÃO DE UM CHECKLIST ─── */
   if (checklistAtual) {
@@ -696,7 +748,7 @@ function RotinaRunner() {
       <div className="min-h-screen pb-28">
         <PageHeader title={checklistAtual.titulo} subtitle={`${t.nome} · ${tipoLabel} · ${unidadeInfo?.nome || ""}`} icon={DIcon} back={false}>
           <button onClick={() => setChecklistAtual(null)} className="erp-btn erp-btn-ghost !h-11 text-xs">← Voltar</button>
-          <button onClick={() => imprimir(checklistAtual)} className="erp-btn erp-btn-ghost !h-11 text-xs"><Printer size={14} /> Imprimir</button>
+          <button onClick={() => imprimir(checklistAtual)} className="erp-btn erp-btn-ghost !h-11 text-xs" title="Folha em branco para marcar à mão"><Printer size={14} /> Imprimir lista</button>
         </PageHeader>
         <PageBody>
           {/* Progresso */}
@@ -1032,27 +1084,32 @@ function RotinaRunner() {
               <CheckCircle2 size={40} style={{ color: t.cor }} />
               <p className="text-lg font-black" style={{ color: t.corTexto }}>Checklist registrado!</p>
               <p className="text-xs font-medium" style={{ color: t.corTexto }}>
-                {t.nome} · {tipoLabel} · {unidadeInfo?.nome} — {modoAtribuicao === "dividir" ? "conferido por" : "feito por"} <b>{colaboradores.find(c => c.id === colabSelecionado)?.nome || ""}</b>
+                {t.nome} · {tipoLabel} · {unidadeInfo?.nome}
+                {colabSelecionado ? <> — {modoAtribuicao === "dividir" ? "conferido por" : "feito por"} <b>{colaboradores.find(c => c.id === colabSelecionado)?.nome || ""}</b></> : " — sem responsável informado"}
               </p>
               <button onClick={compartilharWhatsApp}
                 className="mt-2 flex items-center gap-2 px-5 py-3 rounded-xl font-black text-sm text-white transition-all active:scale-95"
                 style={{ background: "#25D366", boxShadow: "0 6px 20px rgba(37,211,102,0.35)" }}>
                 <Share2 size={16} /> Enviar comprovação no WhatsApp
               </button>
+              <button onClick={() => imprimir(checklistAtual, respostas)}
+                className="mt-1 flex items-center gap-2 px-5 py-3 rounded-xl font-black text-sm border-2 transition-all active:scale-95"
+                style={{ borderColor: t.cor, color: t.cor }}>
+                <Printer size={16} /> Imprimir o que foi feito
+              </button>
               <button onClick={() => setChecklistAtual(null)} className="mt-1 text-sm font-bold underline" style={{ color: t.cor }}>← Voltar aos checklists</button>
             </div>
           ) : (
             <button className="w-full py-4 rounded-2xl font-black text-base transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
-              disabled={pct < 100 || !colabSelecionado || naoAtribuidas > 0 || salvando}
+              disabled={pct < 100 || salvando}
               onClick={finalizar}
               style={{
-                background: pct === 100 && colabSelecionado && naoAtribuidas === 0 ? t.cor : "var(--elevated)",
-                color: pct === 100 && colabSelecionado && naoAtribuidas === 0 ? "#fff" : "var(--dim)",
-                boxShadow: pct === 100 && colabSelecionado && naoAtribuidas === 0 ? `0 8px 30px ${t.cor}40` : "none",
-                cursor: pct < 100 || !colabSelecionado || naoAtribuidas > 0 ? "not-allowed" : "pointer",
+                background: pct === 100 ? t.cor : "var(--elevated)",
+                color: pct === 100 ? "#fff" : "var(--dim)",
+                boxShadow: pct === 100 ? `0 8px 30px ${t.cor}40` : "none",
+                cursor: pct < 100 ? "not-allowed" : "pointer",
               }}>
               {salvando ? <><Loader2 size={18} className="animate-spin" /> Salvando...</> :
-                naoAtribuidas > 0 ? `Atribua ${naoAtribuidas} atividade(s)` :
                 pct === 100 ? "Finalizar e registrar" : `Conclua as tarefas (${itens.length - concluidas} restantes)`}
             </button>
           )}
@@ -1086,6 +1143,27 @@ function RotinaRunner() {
         )}
       </PageHeader>
       <PageBody>
+        {/* Trocar de área sem voltar ao menu, igual à fileira do estoque.
+            Estação travada não vê: ela só pode operar o próprio setor. */}
+        {!estacaoTravada && (
+          <div className="mb-5 flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+            {["cozinha", "bar", "salao"].map((chave) => {
+              const tema = TEMAS[chave];
+              const AreaIcon = tema.Icon;
+              const ativo = chave === dept;
+              return (
+                <button key={chave} type="button"
+                  onClick={() => router.push(`/dashboard/operacao/rotina?dept=${chave}${filtroTipo ? `&tipo=${filtroTipo}` : ""}`)}
+                  className="flex shrink-0 items-center gap-2.5 rounded-xl px-4 py-2.5 text-xs font-black transition-all"
+                  style={ativo
+                    ? { background: tema.cor, color: "#fff", boxShadow: `0 6px 18px ${tema.cor}40` }
+                    : { border: "1px solid var(--border)", background: "var(--elevated)", color: "var(--dim)" }}>
+                  <AreaIcon size={14} /> {tema.nome}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* Resumo exclusivo do setor */}
         <div className="relative overflow-hidden rounded-3xl p-5 sm:p-6 mb-2" style={{ background: t.corBg, border: `1px solid ${t.corBorda}` }}>
@@ -1127,6 +1205,10 @@ function RotinaRunner() {
             <Loader2 size={24} className="animate-spin" />
             <span className="font-bold text-sm">Carregando checklists...</span>
           </div>
+        ) : erroCarga ? (
+          <EmptyState icon={ClipboardList} title="Não consegui carregar os checklists"
+            hint={`${erroCarga} — não quer dizer que este setor não tenha checklist. Tente de novo daqui a pouco.`}
+            actionLabel="Tentar de novo" onAction={() => carregar()} />
         ) : templatesExibidos.length === 0 ? (
           <EmptyState icon={ClipboardList} title={`Nenhum checklist de ${t.nome}`}
             hint={estacaoTravada ? "Peça a um gerente para criar os modelos deste setor." : "Crie modelos de abertura, fechamento, mise en place etc. pelo Gerenciar."}

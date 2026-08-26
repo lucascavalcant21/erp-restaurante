@@ -1606,8 +1606,9 @@ function drinkCardHTML(m) {
   const foto = m.foto_url
     ? `<div class="foto"><img src="${escaparHtml(m.foto_url)}" alt="${nome}"/></div>`
     : `<div class="foto ilustrada">${ilustracaoDrinkSVG(copo?.nome || m.nome, textoIngredientes, 96)}</div>`;
-  const linhaSub = [m.rendimento, metodo].filter(Boolean).map(escaparHtml).join(" · ");
-  const subtitulo = linhaSub ? `<p class="copo">${linhaSub}</p>` : "";
+  // Só o método na cabeça do card. O rendimento saiu daqui: quem está montando
+  // o drink precisa saber se bate ou mexe, e a dose já está nos ingredientes.
+  const subtitulo = metodo ? `<p class="copo">${escaparHtml(metodo)}</p>` : "";
   const blocoIngredientes = ingredientes.length
     ? `<div class="bloco"><p class="rot">Ingredientes</p><ul>${ingredientes.map((c) => `<li>${escaparHtml(c.nome)}</li>`).join("")}</ul></div>` : "";
   const blocoPreparo = passos.length

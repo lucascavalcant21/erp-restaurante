@@ -25,6 +25,13 @@ const moeda = (valor) => Number(valor || 0).toLocaleString("pt-BR", { style: "cu
 const numero = (valor) => Number(String(valor || "").replace(",", ".")) || 0;
 const dataBR = (valor) => valor ? new Date(`${String(valor).slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR") : "—";
 
+// "ter 18" — curto porque são até 31 botões lado a lado no tablet.
+const DIAS_CURTOS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+const diaCurto = (iso) => {
+  const d = new Date(`${String(iso).slice(0, 10)}T12:00:00`);
+  return `${DIAS_CURTOS[d.getDay()]} ${d.getDate()}`;
+};
+
 function formularioDoExtra(extra) {
   return {
     data_trabalho: hojeISO(), dias: "1", evento: "", funcao: extra?.cargo || "Extra",
@@ -52,6 +59,9 @@ export default function ReciboExtraPage() {
   const [textos, setTextos] = useState(RECIBO_TEXTOS_PADRAO);
   const [textosSalvando, setTextosSalvando] = useState(false);
   const [textosAviso, setTextosAviso] = useState("");
+  // Dias do período em que não houve expediente. Ficam de fora das diárias e
+  // viram a frase "não houve expediente" no recibo.
+  const [folgas, setFolgas] = useState([]);
 
   const carregarHistorico = useCallback(async () => {
     const resposta = await fetchRecibosPrestacao(id);
@@ -98,19 +108,44 @@ export default function ReciboExtraPage() {
   };
 
   const set = (campo, valor) => setForm((anterior) => ({ ...anterior, [campo]: valor }));
-  const total = useMemo(() => {
-    if (!form) return 0;
-    return Math.max(0, (numero(form.diaria) * Math.max(1, Number(form.dias) || 1)) + numero(form.vale_transporte) + numero(form.adicional) - numero(form.descontos));
-  }, [form]);
 
-  const montarRecibo = (numeroRecibo) => {
+  // Todas as datas do intervalo escolhido, para a tela poder marcar quais
+  // tiveram expediente. A folga não some do período: ela é citada no recibo.
+  const datasDoPeriodo = useMemo(() => {
+    if (!form?.data_trabalho) return [];
     const dias = Math.max(1, Number(form.dias) || 1);
     const inicio = new Date(`${form.data_trabalho}T12:00:00`);
-    const datasContratadas = Array.from({ length: dias }, (_, indice) => {
+    return Array.from({ length: dias }, (_, indice) => {
       const data = new Date(inicio);
       data.setDate(data.getDate() + indice);
       return data.toISOString().slice(0, 10);
     });
+  }, [form?.data_trabalho, form?.dias]);
+
+  const datasTrabalhadas = useMemo(
+    () => datasDoPeriodo.filter((data) => !folgas.includes(data)),
+    [datasDoPeriodo, folgas],
+  );
+
+  const alternarDia = (data) => setFolgas((anterior) =>
+    anterior.includes(data) ? anterior.filter((d) => d !== data) : [...anterior, data]);
+
+  // Mudou o intervalo: descarta marcação de dia que não existe mais nele.
+  useEffect(() => {
+    setFolgas((anterior) => anterior.filter((data) => datasDoPeriodo.includes(data)));
+  }, [datasDoPeriodo]);
+
+  // Só dia trabalhado gera diária. Antes o total multiplicava o intervalo
+  // inteiro, e a folga vinha cobrada junto.
+  const total = useMemo(() => {
+    if (!form) return 0;
+    const dias = Math.max(1, datasTrabalhadas.length);
+    return Math.max(0, (numero(form.diaria) * dias) + numero(form.vale_transporte) + numero(form.adicional) - numero(form.descontos));
+  }, [form, datasTrabalhadas]);
+
+  const montarRecibo = (numeroRecibo) => {
+    const datasContratadas = datasTrabalhadas;
+    const dias = Math.max(1, datasContratadas.length);
     const itens = String(form.itens || "").split(",").map((item) => item.trim()).filter(Boolean);
     const dados = {
       ...form,
@@ -147,7 +182,7 @@ export default function ReciboExtraPage() {
   const htmlPrevia = useMemo(() => {
     if (!extra) return "";
     try {
-      return montarHtmlRecibo({ extra, recibo: montarRecibo("PRÉVIA"), unidadeNome: unidadeInfo?.nome, textos });
+      return montarHtmlRecibo({ extra, recibo: montarRecibo("PRÉVIA"), unidade: unidadeInfo, unidadeNome: unidadeInfo?.nome, textos });
     } catch { return ""; }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [extra, form, total, unidadeInfo, textos]);
@@ -168,8 +203,9 @@ export default function ReciboExtraPage() {
     }
     const salvo = resposta.data || payload;
     setRecibos((lista) => [salvo, ...lista]);
-    if (imprimirDepois) imprimirReciboExtra({ extra, recibo: salvo, unidadeNome: unidadeInfo?.nome, textos });
+    if (imprimirDepois) imprimirReciboExtra({ extra, recibo: salvo, unidade: unidadeInfo, unidadeNome: unidadeInfo?.nome, textos });
     setForm((anterior) => ({ ...formularioDoExtra(extra), data_trabalho: anterior.data_trabalho }));
+    setFolgas([]);
   };
 
   const alterarPagamento = async (recibo) => {
@@ -209,6 +245,33 @@ export default function ReciboExtraPage() {
               <label><span className={rotulo}>Saída</span><input type="time" value={form.saida_final} onChange={(e) => set("saida_final", e.target.value)} className={campo} /></label>
               <label><span className={rotulo}>Intervalo</span><input value={form.intervalo} onChange={(e) => set("intervalo", e.target.value)} placeholder="60 min" className={campo} /></label>
             </div>
+
+            {/* Dia desmarcado não gera diária e vira "não houve expediente" no
+                recibo. É assim que a folga do restaurante aparece no papel. */}
+            {datasDoPeriodo.length > 1 && (
+              <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <p className={rotulo}>Dias com expediente</p>
+                <p className="mt-1 text-xs font-semibold text-slate-500">Desmarque o que foi folga. Só dia marcado conta diária.</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {datasDoPeriodo.map((data) => {
+                    const trabalhou = !folgas.includes(data);
+                    return (
+                      <button key={data} type="button" onClick={() => alternarDia(data)}
+                        aria-pressed={trabalhou}
+                        className={`min-h-11 rounded-xl border-2 px-3 text-xs font-black transition ${trabalhou
+                          ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                          : "border-slate-200 bg-white text-slate-400 line-through"}`}>
+                        {diaCurto(data)}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="mt-3 text-xs font-bold text-slate-600">
+                  {datasTrabalhadas.length} dia(s) com expediente
+                  {folgas.length > 0 && ` · ${folgas.length} de folga`}
+                </p>
+              </div>
+            )}
           </section>
 
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
@@ -219,7 +282,7 @@ export default function ReciboExtraPage() {
               <label><span className={rotulo}>Adicional / bônus</span><input type="number" min="0" step="0.01" value={form.adicional} onChange={(e) => set("adicional", e.target.value)} className={campo} /></label>
               <label><span className={rotulo}>Descontos</span><input type="number" min="0" step="0.01" value={form.descontos} onChange={(e) => set("descontos", e.target.value)} className={campo} /></label>
             </div>
-            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-emerald-950 p-4 text-white"><div><p className="text-xs font-black uppercase tracking-widest text-emerald-300">Total do recibo</p><p className="mt-1 text-3xl font-black">{moeda(total)}</p></div><p className="text-sm font-semibold text-emerald-100">{Math.max(1, Number(form.dias) || 1)} dia(s) × {moeda(numero(form.diaria))}</p></div>
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-emerald-950 p-4 text-white"><div><p className="text-xs font-black uppercase tracking-widest text-emerald-300">Total do recibo</p><p className="mt-1 text-3xl font-black">{moeda(total)}</p></div><p className="text-sm font-semibold text-emerald-100">{Math.max(1, datasTrabalhadas.length)} dia(s) × {moeda(numero(form.diaria))}</p></div>
           </section>
 
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
@@ -257,10 +320,14 @@ export default function ReciboExtraPage() {
               na unidade, então vale para todos os recibos, não só para este. */}
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center gap-2"><Pencil className="text-emerald-600" size={18} /><h2 className="text-lg font-black">Textos do recibo</h2></div>
-            <p className="mt-1 text-xs font-semibold text-slate-500">Valem para todos os recibos desta unidade.</p>
+            <p className="mt-1 text-xs font-semibold text-slate-500">Valem para todos os recibos desta unidade. Razão social, CNPJ e cidade vêm de Configurações.</p>
             <div className="mt-4 space-y-3">
               <label className="block"><span className={rotulo}>Título</span><input value={textos.titulo} onChange={(e) => setTextos((anterior) => ({ ...anterior, titulo: e.target.value }))} placeholder={RECIBO_TEXTOS_PADRAO.titulo} className={campo} /></label>
-              <label className="block"><span className={rotulo}>Subtítulo</span><input value={textos.subtitulo} onChange={(e) => setTextos((anterior) => ({ ...anterior, subtitulo: e.target.value }))} placeholder="Deixe em branco para não imprimir" className={campo} /></label>
+              <label className="block"><span className={rotulo}>Quem assina</span><input value={textos.responsavel_nome} onChange={(e) => setTextos((anterior) => ({ ...anterior, responsavel_nome: e.target.value }))} placeholder="Nome completo do responsável" className={campo} /></label>
+              <label className="block"><span className={rotulo}>Cargo de quem assina</span><input value={textos.responsavel_cargo} onChange={(e) => setTextos((anterior) => ({ ...anterior, responsavel_cargo: e.target.value }))} placeholder={RECIBO_TEXTOS_PADRAO.responsavel_cargo} className={campo} /></label>
+              <label className="block"><span className={rotulo}>Motivo da folga</span><input value={textos.motivo_folga} onChange={(e) => setTextos((anterior) => ({ ...anterior, motivo_folga: e.target.value }))} placeholder={RECIBO_TEXTOS_PADRAO.motivo_folga} className={campo} /></label>
+              <label className="block"><span className={rotulo}>Observação de horário</span><textarea rows={3} value={textos.observacao_horario} onChange={(e) => setTextos((anterior) => ({ ...anterior, observacao_horario: e.target.value }))} placeholder="Deixe em branco para não imprimir este parágrafo" className={`${campo} h-auto py-3`} /></label>
+              <label className="block"><span className={rotulo}>Parágrafo de encerramento</span><textarea rows={3} value={textos.encerramento} onChange={(e) => setTextos((anterior) => ({ ...anterior, encerramento: e.target.value }))} placeholder="Deixe em branco para não imprimir este parágrafo" className={`${campo} h-auto py-3`} /></label>
             </div>
             {textosAviso && <p className={`mt-3 rounded-xl px-3 py-2 text-xs font-bold ${textosAviso.startsWith("Não") ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`}>{textosAviso}</p>}
             <button onClick={salvarTextos} disabled={textosSalvando} className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border-2 border-emerald-200 bg-white text-sm font-black text-emerald-700 hover:bg-emerald-50 disabled:opacity-60">{textosSalvando ? <Loader2 className="animate-spin" size={17} /> : <Save size={17} />} Salvar textos</button>
@@ -268,7 +335,7 @@ export default function ReciboExtraPage() {
 
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-xs font-black uppercase tracking-widest text-emerald-700">Dados vinculados</p><h2 className="mt-2 text-xl font-black">{extra.nome}</h2><p className="mt-1 font-bold text-slate-500">{extra.cargo || "Extra"}</p><div className="mt-4 space-y-2 rounded-xl bg-slate-50 p-3 text-sm font-semibold text-slate-600"><p>CPF: {extra.cpf || "não informado"}</p><p>PIX: {extra.chave_pix || "não informado"}</p><p>Diária padrão: {moeda(extra.salario)}</p></div></section>
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex items-center gap-2"><FileClock className="text-emerald-600" size={20} /><h2 className="text-lg font-black">Histórico de recibos</h2></div>
-            {recibos.length === 0 ? <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">O primeiro recibo desta pessoa aparecerá aqui.</p> : <div className="mt-4 space-y-3">{recibos.map((recibo) => <article key={recibo.id} className="rounded-xl border border-slate-200 p-3"><div className="flex items-start justify-between gap-2"><div><p className="font-black text-slate-800">{moeda(recibo.valor_total)}</p><p className="mt-0.5 text-xs font-bold text-slate-500">{dataBR(recibo.data_trabalho)} · {recibo.dias_contratados || 1} dia(s)</p></div><span className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${recibo.pagamento_realizado ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{recibo.pagamento_realizado ? "Pago" : "Pendente"}</span></div><div className="mt-3 grid grid-cols-2 gap-2"><button onClick={() => imprimirReciboExtra({ extra, recibo, unidadeNome: unidadeInfo?.nome, textos })} className="flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-slate-100 text-xs font-black text-slate-700"><Printer size={14} /> Imprimir</button><button onClick={() => alterarPagamento(recibo)} className="flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-emerald-50 text-xs font-black text-emerald-700">{recibo.pagamento_realizado ? <Clock3 size={14} /> : <CheckCircle2 size={14} />} {recibo.pagamento_realizado ? "Tornar pendente" : "Marcar pago"}</button></div></article>)}</div>}
+            {recibos.length === 0 ? <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">O primeiro recibo desta pessoa aparecerá aqui.</p> : <div className="mt-4 space-y-3">{recibos.map((recibo) => <article key={recibo.id} className="rounded-xl border border-slate-200 p-3"><div className="flex items-start justify-between gap-2"><div><p className="font-black text-slate-800">{moeda(recibo.valor_total)}</p><p className="mt-0.5 text-xs font-bold text-slate-500">{dataBR(recibo.data_trabalho)} · {recibo.dias_contratados || 1} dia(s)</p></div><span className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${recibo.pagamento_realizado ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{recibo.pagamento_realizado ? "Pago" : "Pendente"}</span></div><div className="mt-3 grid grid-cols-2 gap-2"><button onClick={() => imprimirReciboExtra({ extra, recibo, unidade: unidadeInfo, unidadeNome: unidadeInfo?.nome, textos })} className="flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-slate-100 text-xs font-black text-slate-700"><Printer size={14} /> Imprimir</button><button onClick={() => alterarPagamento(recibo)} className="flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-emerald-50 text-xs font-black text-emerald-700">{recibo.pagamento_realizado ? <Clock3 size={14} /> : <CheckCircle2 size={14} />} {recibo.pagamento_realizado ? "Tornar pendente" : "Marcar pago"}</button></div></article>)}</div>}
           </section>
         </aside>
       </main>

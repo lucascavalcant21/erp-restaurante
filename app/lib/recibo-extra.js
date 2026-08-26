@@ -5,52 +5,100 @@ const esc = (valor) => String(valor ?? "").replace(/[&<>\"]/g, (caractere) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;",
 }[caractere]));
 
-const dataBR = (valor) => {
-  if (!valor) return "—";
-  const [ano, mes, dia] = String(valor).slice(0, 10).split("-");
-  return ano && mes && dia ? `${dia}/${mes}/${ano}` : String(valor);
-};
-
 const moeda = (valor) => Number(valor || 0).toLocaleString("pt-BR", {
   style: "currency", currency: "BRL",
 });
 
-const texto = (valor, vazio = "—") => esc(String(valor ?? "").trim() || vazio);
-// Campo so entra no papel quando tem conteudo: recibo curto le melhor.
-const campo = (rot, valor, largo = false) => {
-  const v = String(valor ?? "").trim();
-  if (!v || v === "—") return "";
-  return `<div class="campo${largo ? " inteiro" : ""}"><span>${esc(rot)}</span><strong>${esc(v)}</strong></div>`;
+// Nomes fixos em vez de toLocaleDateString: a janela de impressão pode abrir
+// com outro locale e trocar "terça-feira" por "Tuesday" no meio do documento.
+const DIAS_SEMANA = [
+  "domingo", "segunda-feira", "terça-feira", "quarta-feira",
+  "quinta-feira", "sexta-feira", "sábado",
+];
+const MESES = [
+  "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+  "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+];
+
+// Meio-dia evita o recuo de fuso que joga a data para o dia anterior.
+const comoData = (iso) => iso ? new Date(`${String(iso).slice(0, 10)}T12:00:00`) : null;
+const diaSemana = (iso) => { const d = comoData(iso); return d ? DIAS_SEMANA[d.getDay()] : ""; };
+const diaDoMes = (iso) => { const d = comoData(iso); return d ? d.getDate() : ""; };
+const porExtenso = (iso) => {
+  const d = comoData(iso);
+  return d ? `${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}` : "—";
 };
-// Linha de dinheiro so aparece se houver valor.
+
+// "18 e 25 de agosto de 2026" quando cabe no mesmo mês; a forma longa só quando
+// o período atravessa mês ou ano, para o texto não ficar repetitivo à toa.
+function periodoPorExtenso(inicio, fim) {
+  const a = comoData(inicio);
+  const b = comoData(fim);
+  if (!a) return "—";
+  if (!b || a.getTime() === b.getTime()) return porExtenso(inicio);
+  if (a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth()) {
+    return `${a.getDate()} e ${b.getDate()} de ${MESES[b.getMonth()]} de ${b.getFullYear()}`;
+  }
+  if (a.getFullYear() === b.getFullYear()) {
+    return `${a.getDate()} de ${MESES[a.getMonth()]} e ${b.getDate()} de ${MESES[b.getMonth()]} de ${b.getFullYear()}`;
+  }
+  return `${porExtenso(inicio)} e ${porExtenso(fim)}`;
+}
+
+// "terça-feira (18), quarta-feira (19) e quinta-feira (20)"
+function listarComE(itens) {
+  const lista = itens.filter(Boolean);
+  if (lista.length === 0) return "";
+  if (lista.length === 1) return lista[0];
+  return `${lista.slice(0, -1).join(", ")} e ${lista[lista.length - 1]}`;
+}
+
+// Todos os dias entre o primeiro e o último trabalhado, para descobrir quais
+// ficaram de fora: é dessa diferença que sai a frase de "não houve expediente".
+function diasDoPeriodo(inicio, fim) {
+  const a = comoData(inicio);
+  const b = comoData(fim);
+  if (!a || !b) return [];
+  const dias = [];
+  for (const d = new Date(a); d <= b; d.setDate(d.getDate() + 1)) {
+    dias.push(d.toISOString().slice(0, 10));
+  }
+  return dias;
+}
+
+// Linha de dinheiro só aparece se houver valor.
 const linhaValor = (rot, valor, sinal = "") =>
   Number(valor) ? `<tr><td>${esc(rot)}</td><td>${sinal}${moeda(valor)}</td></tr>` : "";
 
-function endereco(extra, dados) {
-  const partes = [
-    dados?.rua_av || extra?.rua_av,
-    dados?.numero_casa || extra?.numero_casa,
-    dados?.bairro || extra?.bairro,
-    dados?.cidade_uf || extra?.cidade_uf,
-  ].filter(Boolean);
-  return partes.join(", ") || dados?.endereco || extra?.endereco || "—";
-}
-
-// ── TEXTOS EDITÁVEIS DO CABEÇALHO ───────────────────────────────────────────
-// Cada casa chama o documento de um jeito ("Recibo de diária", "Recibo de
-// prestação de serviço"...). Em vez de fixar no código, o texto fica em
-// config_sistema.params.recibo_textos — mesmo padrão dos portais, sem migração.
+// ── TEXTOS EDITÁVEIS ────────────────────────────────────────────────────────
+// Cada casa escreve o recibo com as próprias palavras. Em vez de fixar no
+// código, tudo isto fica em config_sistema.params.recibo_textos — mesmo padrão
+// dos portais, sem migração.
 export const RECIBO_TEXTOS_PADRAO = {
-  titulo: "RECIBO DE PRESTAÇÃO DE SERVIÇO",
-  subtitulo: "Prestação de serviço eventual · diária e acerto financeiro",
+  titulo: "RECIBO DE PAGAMENTO E SERVIÇO PRESTADO",
+  responsavel_nome: "",
+  responsavel_cargo: "Proprietário(a)",
+  motivo_folga: "por ser o dia de folga do restaurante",
+  observacao_horario: "Em razão da alta demanda de produção e do fluxo de trabalho do restaurante, o horário de saída pode variar, de acordo com a necessidade operacional de cada dia.",
+  encerramento: "O presente recibo é emitido para comprovação dos serviços prestados e dos respectivos pagamentos referentes ao período acima mencionado.",
+};
+
+const LIMITES = {
+  titulo: 120, responsavel_nome: 120, responsavel_cargo: 80,
+  motivo_folga: 160, observacao_horario: 400, encerramento: 400,
 };
 
 function normalizarTextos(config) {
-  if (!config || typeof config !== "object") return { ...RECIBO_TEXTOS_PADRAO };
-  const titulo = String(config.titulo ?? "").trim().slice(0, 120) || RECIBO_TEXTOS_PADRAO.titulo;
-  // Subtítulo em branco é escolha válida: a linha simplesmente some do papel.
-  const subtitulo = String(config.subtitulo ?? "").trim().slice(0, 160);
-  return { titulo, subtitulo };
+  const base = config && typeof config === "object" ? config : {};
+  const saida = {};
+  for (const chave of Object.keys(RECIBO_TEXTOS_PADRAO)) {
+    const valor = String(base[chave] ?? "").trim().slice(0, LIMITES[chave]);
+    // Só o título é obrigatório; os demais em branco somem do papel de propósito.
+    saida[chave] = chave === "titulo" ? (valor || RECIBO_TEXTOS_PADRAO.titulo) : valor;
+  }
+  // Primeira gravação: quem nunca configurou recebe os textos de exemplo.
+  if (!config) return { ...RECIBO_TEXTOS_PADRAO };
+  return saida;
 }
 
 export async function fetchReciboTextos(unidadeId) {
@@ -92,63 +140,132 @@ export async function salvarReciboTextos(unidadeId, textos) {
 
 // Monta o HTML do recibo. Usado tanto pela impressão quanto pela pré-visualização
 // ao lado do formulário, que atualiza a cada tecla.
-export function montarHtmlRecibo({ extra, recibo, unidadeNome, textos }) {
-  const cabecalho = normalizarTextos(textos);
+//
+// `unidade` é o registro inteiro da tabela unidades: dele saem razão social,
+// CNPJ e cidade/UF. O nome solto continua aceito para chamadas antigas.
+export function montarHtmlRecibo({ extra, recibo, unidade, unidadeNome, textos }) {
+  const t = normalizarTextos(textos);
   const dados = recibo?.dados || {};
-  const itens = Array.isArray(recibo?.itens) ? recibo.itens : [];
-  const dias = Math.max(1, Number(recibo?.dias_contratados) || 1);
+  const emp = unidade || {};
+
+  const empresa = emp.razao_social || emp.nome_fantasia || emp.nome || unidadeNome || "Restaurante";
+  const cnpj = String(emp.cnpj || "").trim();
+  const cidadeUf = [emp.cidade, emp.uf].filter(Boolean).join("/");
+
+  const nome = String(dados.nome || extra?.nome || "").trim() || "—";
+  const cpf = String(dados.cpf || extra?.cpf || "").trim();
+  const funcao = String(recibo?.funcao || dados.funcao || extra?.cargo || "").trim() || "prestador de serviço";
+
+  // Só os dias efetivamente trabalhados entram aqui; o que faltar no meio do
+  // intervalo vira a frase de folga mais abaixo.
+  const trabalhados = (Array.isArray(recibo?.datas_contratadas) && recibo.datas_contratadas.length
+    ? [...recibo.datas_contratadas]
+    : [recibo?.data_trabalho].filter(Boolean)
+  ).map((d) => String(d).slice(0, 10)).sort();
+
+  const inicio = trabalhados[0] || recibo?.data_trabalho;
+  const fim = trabalhados[trabalhados.length - 1] || inicio;
+  const folgas = diasDoPeriodo(inicio, fim).filter((d) => !trabalhados.includes(d));
+
+  const dias = trabalhados.length || Math.max(1, Number(recibo?.dias_contratados) || 1);
   const diaria = Number(recibo?.valor_diaria || 0);
   const base = diaria * dias;
   const transporte = Number(dados.vale_transporte || 0);
   const adicional = Number(dados.adicional || 0);
   const descontos = Number(dados.descontos || 0);
   const total = Number(recibo?.valor_total ?? Math.max(0, base + transporte + adicional - descontos));
-  const atribuicoes = String(dados.topicos_funcao || extra?.topicos_funcao || "")
-    .split(/\n|;/).map((item) => item.trim()).filter(Boolean);
-  const hoje = new Date().toLocaleDateString("pt-BR");
+
+  const b = (texto) => `<strong>${esc(texto)}</strong>`;
+
+  // ── Parágrafo de abertura ──
+  const abertura = `Declaro, para os devidos fins, que ${b(nome)}${cpf ? `, inscrito no CPF nº ${b(cpf)}` : ""}, ` +
+    `prestou serviços como ${b(funcao)} no ${b(empresa)}${cnpj ? `, inscrito no CNPJ nº ${b(cnpj)}` : ""}, ` +
+    `no período compreendido entre ${b(periodoPorExtenso(inicio, fim))}.`;
+
+  // ── Parágrafo dos dias ──
+  const entrada = String(recibo?.hora_entrada || dados.entrada || "").trim();
+  const partes = [
+    `A prestação de serviços teve início na ${b(`${diaSemana(inicio)}, dia ${porExtenso(inicio)}`)}` +
+    `${entrada ? `, às ${b(entrada)}` : ""}.`,
+  ];
+  // Quando há folga no meio, a lista para antes dela: o dia da volta é dito na
+  // frase seguinte, e repetir os dois lugares fica redundante no papel.
+  const ateAFolga = folgas.length ? trabalhados.filter((d) => d < folgas[0]) : trabalhados;
+  if (ateAFolga.length > 1) {
+    partes.push(`No período referente a este recibo, o prestador trabalhou na ` +
+      `${b(listarComE(ateAFolga.map((d) => `${diaSemana(d)} (${diaDoMes(d)})`)))}.`);
+  }
+  if (folgas.length) {
+    const retomada = trabalhados.filter((d) => d > folgas[folgas.length - 1])[0];
+    partes.push(
+      `Na ${b(listarComE(folgas.map((d) => `${diaSemana(d)} (${diaDoMes(d)})`)))}, não houve expediente` +
+      `${t.motivo_folga ? `, ${esc(t.motivo_folga)}` : ""}` +
+      `${retomada ? `, retornando normalmente às atividades na ${b(`${diaSemana(retomada)}, dia ${porExtenso(retomada)}`)}` : ""}.`
+    );
+  }
+
+  // ── Pagamento ──
+  const forma = String(recibo?.forma_pagamento || "").trim();
+  const pagamento = `O pagamento referente aos serviços prestados é realizado ${b("ao final de cada turno de trabalho")}` +
+    `${forma ? `, podendo ser efetuado ${b(`via ${forma}`)}` : ""}.`;
+
+  const hoje = new Date();
+  const emissao = `${hoje.getDate()} de ${MESES[hoje.getMonth()]} de ${hoje.getFullYear()}`;
 
   const html = `<!doctype html>
-  <html lang="pt-BR"><head><meta charset="utf-8"/><title>${texto(recibo?.numero, "Recibo de extra")}</title>
+  <html lang="pt-BR"><head><meta charset="utf-8"/><title>${esc(recibo?.numero || "Recibo de extra")}</title>
   <style>
-    @page{size:A4 portrait;margin:10mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#172033;margin:0;font-size:11px;line-height:1.4}.topo{background:#064e3b;color:white;border-radius:12px;padding:17px 20px;display:flex;justify-content:space-between;gap:18px}.topo h1{font-size:20px;margin:3px 0}.marca{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.12em}.numero{text-align:right;font-size:9px;line-height:1.6}.secao{margin-top:12px;break-inside:avoid}.titulo{border-left:4px solid #10b981;background:#ecfdf5;color:#065f46;padding:6px 9px;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.08em}.grade{display:grid;grid-template-columns:1fr 1fr;gap:7px 14px;margin-top:7px}.campo{border-bottom:1px solid #cbd5e1;padding:3px 2px 6px}.campo span{display:block;color:#64748b;font-size:8px;font-weight:800;text-transform:uppercase}.campo strong{display:block;margin-top:2px}.inteiro{grid-column:1/-1}table{width:100%;border-collapse:collapse;margin-top:7px}th,td{border:1px solid #cbd5e1;padding:7px;text-align:left}th{background:#f1f5f9;color:#475569;font-size:8px;text-transform:uppercase}.total{background:#ecfdf5;color:#065f46;font-size:13px}.caixa{border:1px solid #cbd5e1;background:#f8fafc;border-radius:8px;padding:8px 10px;margin-top:7px}.assinaturas{display:grid;grid-template-columns:1fr 1fr;gap:42px;margin-top:44px}.assinatura{border-top:1px solid #172033;padding-top:5px;text-align:center;font-size:9px}.rodape{text-align:center;color:#94a3b8;font-size:8px;margin-top:18px}@media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
-  </style></head><body>
-    <header class="topo"><div><div class="marca">${texto(unidadeNome, "Restaurante")}</div><h1>${esc(cabecalho.titulo)}</h1>${cabecalho.subtitulo ? `<div>${esc(cabecalho.subtitulo)}</div>` : ""}</div><div class="numero"><strong>${texto(recibo?.numero)}</strong><br/>Emitido em ${hoje}<br/>Via do restaurante e do prestador</div></header>
+    @page{size:A4 portrait;margin:14mm}
+    *{box-sizing:border-box}
+    body{font-family:Arial,Helvetica,sans-serif;color:#000;margin:0;font-size:12px;line-height:1.65}
+    .folha{border:1px solid #000;padding:26px 30px}
+    h1{font-size:15px;text-align:center;margin:0 0 26px;letter-spacing:.02em}
+    p{margin:0 0 15px;text-align:justify}
+    table{width:100%;border-collapse:collapse;margin:0 0 15px}
+    th,td{border:1px solid #000;padding:6px 9px;text-align:left}
+    th{font-size:10px;text-transform:uppercase;letter-spacing:.06em}
+    td:last-child{text-align:right;white-space:nowrap;width:32%}
+    .total td{font-weight:bold}
+    .local{margin-top:26px;font-weight:bold}
+    .assinatura{margin-top:64px;text-align:center}
+    .linha{border-top:1px solid #000;width:62%;margin:0 auto 6px}
+    .assinatura strong{display:block}
+    .assinatura span{display:block;font-size:11px}
+    @media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+  </style></head><body><div class="folha">
+    <h1>${esc(t.titulo)}</h1>
 
-    <section class="secao"><div class="grade">
-      <div class="campo"><span>Nome completo</span><strong>${texto(dados.nome || extra?.nome)}</strong></div>
-      <div class="campo"><span>CPF / RG</span><strong>${texto(dados.cpf || extra?.cpf)} · ${texto(dados.rg || extra?.rg)}</strong></div>
-      <div class="campo"><span>Telefone</span><strong>${texto(dados.telefone || extra?.telefone)}</strong></div>
-      ${campo("Chave PIX", dados.chave_pix || extra?.chave_pix)}
-      <div class="campo inteiro"><span>Endereço</span><strong>${texto(endereco(extra, dados))}</strong></div>
-      <div class="campo"><span>Data inicial</span><strong>${dataBR(recibo?.data_trabalho)}</strong></div>
-      <div class="campo"><span>Dias contratados</span><strong>${dias}</strong></div>
-      <div class="campo"><span>Função</span><strong>${texto(recibo?.funcao || dados.funcao || extra?.cargo)}</strong></div>
-      ${campo("Evento / ocasião", recibo?.evento || dados.evento)}
-      <div class="campo"><span>Horário</span><strong>${texto(recibo?.hora_entrada || dados.entrada)} às ${texto(recibo?.hora_saida || dados.saida_final)}</strong></div>
-      ${campo("Intervalo", dados.intervalo)}
-      <div class="campo inteiro"><span>Refeição</span><strong>${recibo?.janta_ofertada ? "Janta oferecida pelo restaurante" : "Janta não incluída"}</strong></div>
-    </div>${atribuicoes.length ? `<div class="caixa"><strong>Atribuições:</strong><br/>${atribuicoes.map((item) => `• ${esc(item.replace(/^[•\-*]\s*/, ""))}`).join("<br/>")}</div>` : ""}</section>
+    <p>${abertura}</p>
+    <p>${partes.join(" ")}</p>
+    ${t.observacao_horario ? `<p>${esc(t.observacao_horario)}</p>` : ""}
+    <p>${pagamento}</p>
 
-    ${itens.length ? `<section class="secao"><div class="titulo">Itens entregues para o trabalho</div><div class="caixa">${itens.map((item) => `☐ ${esc(item)}`).join(" &nbsp;&nbsp; ")}</div></section>` : ""}
-
-    <section class="secao"><div class="titulo">Acerto financeiro</div><table><tbody>
+    <table><tbody>
       <tr><td>Diária acordada</td><td>${moeda(diaria)}</td></tr>
-      <tr><td>Subtotal (${dias} diária${dias > 1 ? "s" : ""})</td><td>${moeda(base)}</td></tr>
+      <tr><td>Dias trabalhados</td><td>${dias}</td></tr>
+      <tr><td>Subtotal das diárias</td><td>${moeda(base)}</td></tr>
       ${linhaValor("Vale-transporte", transporte)}
       ${linhaValor("Adicional / bônus", adicional)}
       ${linhaValor("Descontos", descontos, "− ")}
-      <tr class="total"><td><strong>Total a pagar</strong></td><td><strong>${moeda(total)}</strong></td></tr>
-    </tbody></table><div class="caixa"><strong>Pagamento:</strong> ${texto(recibo?.forma_pagamento)} · ${recibo?.pagamento_realizado ? `pago em ${dataBR(recibo?.data_pagamento)}` : "pendente"}</div></section>
+      <tr class="total"><td>Total ${recibo?.pagamento_realizado ? "pago" : "a pagar"}</td><td>${moeda(total)}</td></tr>
+    </tbody></table>
 
-    <p class="caixa">Declaro que recebi o valor descrito acima pela prestação eventual dos serviços informados neste recibo e que conferi os dados do acerto.</p>
-    <div class="assinaturas"><div class="assinatura">Assinatura do profissional extra</div><div class="assinatura">Assinatura do responsável da empresa</div></div>
-    <div class="rodape">Documento ${texto(recibo?.numero)} · vinculado ao cadastro do extra no ERP</div>
-  </body></html>`;
+    ${t.encerramento ? `<p>${esc(t.encerramento)}</p>` : ""}
+
+    <p class="local">${cidadeUf ? `${esc(cidadeUf)}, ` : ""}${esc(emissao)}.</p>
+
+    <div class="assinatura">
+      <div class="linha"></div>
+      ${t.responsavel_nome ? `<strong>${esc(t.responsavel_nome)}</strong>` : ""}
+      ${t.responsavel_cargo ? `<span>${esc(t.responsavel_cargo)} do ${esc(empresa)}</span>` : ""}
+      ${cnpj ? `<span>CNPJ: ${esc(cnpj)}</span>` : ""}
+    </div>
+  </div></body></html>`;
 
   return html;
 }
 
-export function imprimirReciboExtra({ extra, recibo, unidadeNome, textos }) {
-  const html = montarHtmlRecibo({ extra, recibo, unidadeNome, textos });
+export function imprimirReciboExtra({ extra, recibo, unidade, unidadeNome, textos }) {
+  const html = montarHtmlRecibo({ extra, recibo, unidade, unidadeNome, textos });
   return imprimirHtml(html, { aoFalhar: () => window.alert("Não foi possível abrir a impressão deste recibo.") });
 }

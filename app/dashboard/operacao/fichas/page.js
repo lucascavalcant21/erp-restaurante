@@ -2337,10 +2337,6 @@ function FichasRunner() {
 
                                     <div className="divide-y divide-slate-100">
                                       <div className="flex min-h-12 items-center justify-between gap-3"><span className="text-sm font-bold text-slate-500">Quantidade</span><strong className="text-base text-slate-900">{rendimentoTexto}</strong></div>
-                                      {/* No bar o rendimento JA e a dose: repetir "1 porcao" logo
-                                          abaixo so gastava uma linha dizendo o mesmo. Na cozinha a
-                                          linha continua, porque la porcao e peso, nao rendimento. */}
-                                      {!ehBarCard && <div className="flex min-h-12 items-center justify-between gap-3"><span className="text-sm font-bold text-slate-500">Porção</span><strong className="text-base text-slate-900">{pesoPorcao > 0 ? `${Math.round(pesoPorcao).toLocaleString("pt-BR")} g` : unR === "porcao" ? "1 porção" : "—"}</strong></div>}
                                       <div className="flex min-h-12 items-center justify-between gap-3"><span className="text-sm font-bold text-slate-500">{ehBarCard ? "Custo por dose" : "Custo por porção"}</span><strong className="text-base text-slate-900">{fmtBRL(custoPorcao)}</strong></div>
                                       <div className="flex min-h-12 items-center justify-between gap-3">
                                         <span className="text-sm font-black text-slate-600">{f.eh_base ? "Custo total" : "CMV"}</span>
@@ -3534,36 +3530,17 @@ function FichasRunner() {
                         const cmvTeo = precoNum > 0 ? (custoPorc / precoNum) * 100 : null;
                         const margem = cmvTeo !== null ? 100 - cmvTeo : null;
                         const markup = precoNum > 0 && custoPorc > 0 ? precoNum / custoPorc : null;
-                        const custoKgForm = pesoTotalF > 0 ? custoTotalForm / (pesoTotalF / 1000) : 0;
                         return (
                            <div id="ficha-custos" className="bg-white border-2 border-emerald-200 rounded-2xl p-4 shadow-sm scroll-mt-24">
                               <p className="text-xs font-black uppercase tracking-widest text-emerald-700 mb-3">CMV e Precificação</p>
-                              {/* No bar o drink e a unidade de venda: custo total,
-                                  custo por dose e custo por litro dao o mesmo numero
-                                  numa receita de uma dose. Fica um so, que e o custo
-                                  do produto. Na cozinha os tres seguem diferentes,
-                                  porque a receita rende varias porcoes. */}
-                              {ehBarFicha ? (
-                                 <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-center">
-                                    <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Custo do produto</p>
-                                    <p className="text-lg font-black text-slate-800">{fmtBRL(custoPorc)}</p>
-                                 </div>
-                              ) : (
-                              <div className="grid grid-cols-3 gap-2 mb-3">
-                                 <div className="rounded-xl bg-slate-50 border border-slate-200 p-2 text-center">
-                                    <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Custo total</p>
-                                    <p className="text-sm font-black text-slate-800">{fmtBRL(custoTotalForm)}</p>
-                                 </div>
-                                 <div className="rounded-xl bg-slate-50 border border-slate-200 p-2 text-center">
-                                    <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Custo/porção</p>
-                                    <p className="text-sm font-black text-slate-800">{fmtBRL(custoPorc)}</p>
-                                 </div>
-                                 <div className="rounded-xl bg-slate-50 border border-slate-200 p-2 text-center">
-                                    <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Custo/{unGrande}</p>
-                                    <p className="text-sm font-black text-slate-800">{custoKgForm > 0 ? fmtBRL(custoKgForm) : "—"}</p>
-                                 </div>
+                              {/* Tres cartoes de custo viraram um. O que decide preco e
+                                  o custo de UMA unidade vendida: total e custo por kg
+                                  ficavam ao lado repetindo a mesma conta por outro
+                                  caminho, e ninguem precificava por eles. */}
+                              <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-center">
+                                 <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">{ehBarFicha ? "Custo do produto" : "Custo por porção"}</p>
+                                 <p className="text-lg font-black text-slate-800">{fmtBRL(custoPorc)}</p>
                               </div>
-                              )}
                               <div className="grid grid-cols-2 gap-3">
                                  <div>
                                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">CMV meta (%)</label>
@@ -3653,27 +3630,6 @@ function FichasRunner() {
                         </div>
                      )}
 
-                     {/* Dados extras da ficha técnica: tempo, validade e observações */}
-                     <div>
-                        {/* Drink e feito na hora e servido na hora: nem tempo de
-                            preparo nem prazo de guarda dizem algo util no bar.
-                            O pre-preparo do bar (xarope, infusao) continua com os
-                            dois, porque esse sim fica guardado. */}
-                        {(!ehBarFicha || form.eh_base) && <div className="grid grid-cols-2 gap-3">
-                           <div>
-                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tempo de preparo (min)</label>
-                              <input type="number" min="0" step="1" placeholder="Ex: 15" value={form.tempo_preparo} onChange={e=>setForm({...form, tempo_preparo: e.target.value})} className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500 shadow-sm"/>
-                           </div>
-                           <div>
-                              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Validade (dias)</label>
-                              <input type="number" min="0" step="1" placeholder="Ex: 3" value={form.validade_dias} onChange={e=>setForm({...form, validade_dias: e.target.value})} className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500 shadow-sm"/>
-                           </div>
-                        </div>}
-                        {!ehBarFicha && <>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-3 block">Observações</label>
-                        <textarea placeholder="Observações da ficha (opcional)..." value={form.observacoes} onChange={e=>setForm({...form, observacoes: e.target.value})} className="w-full h-20 p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:border-emerald-500 shadow-sm resize-none"></textarea>
-                        </>}
-                     </div>
                   </div>
 
 

@@ -188,3 +188,36 @@ export function calcularAdicionaisPorDia(pontosMes, feriados = [], opcoes = {}) 
 
   return dias.sort((a, b) => String(a.data).localeCompare(String(b.data)));
 }
+
+// Ninguém bate a entrada antes do turno começar.
+//
+// Por que BLOQUEAR em vez de gravar o horário do turno: registro_ponto segue o
+// livro de marcações, e o livro guarda a hora REAL — o art. 74, II da CLT
+// proíbe marcação com horário predeterminado. Carimbar 15:40 em quem bateu
+// 15:39 seria exatamente isso. Barrando na hora, a marcação que entra já é a
+// verdadeira, e a Súmula 366 continua valendo onde ela vale: no cálculo.
+//
+// A janela de 6 horas existe para o caso legítimo de quem foi chamado bem mais
+// cedo. Quem chega às 15:39 para um turno de 15:40 está adiantado e espera um
+// minuto; quem bate às 9h de um turno de 15:40 não está "adiantado", está
+// começando outro expediente, e travar essa pessoa apagaria hora extra real.
+export const ANTECIPACAO_MAXIMA_BLOQUEADA_MIN = 6 * 60;
+
+export function minutosDoHorario(horario) {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(String(horario || "").trim());
+  if (!m) return null;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  if (h > 23 || min > 59) return null;
+  return h * 60 + min;
+}
+
+// Devolve os minutos que faltam para o turno começar, ou 0 quando pode bater.
+export function minutosAteOTurno(horarioEntrada, agora = new Date()) {
+  const inicio = minutosDoHorario(horarioEntrada);
+  if (inicio === null) return 0; // sem horário cadastrado, sem restrição
+  const atual = agora.getHours() * 60 + agora.getMinutes();
+  const falta = inicio - atual;
+  if (falta <= 0) return 0;
+  return falta <= ANTECIPACAO_MAXIMA_BLOQUEADA_MIN ? falta : 0;
+}

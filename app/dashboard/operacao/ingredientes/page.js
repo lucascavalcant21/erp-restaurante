@@ -44,7 +44,7 @@ import {
   precoNormalizadoDoInsumo,
   textoPesquisavel,
   unidadeNormalizada,
-  ehUnidadeContada, rotuloVolumeUnitario,
+  ehUnidadeContada, ehUnidadeUnitaria, rotuloVolumeUnitario, rotuloPesoUnitario,
 } from "../../../lib/ingredientes-utils.mjs";
 import { fmtBRL } from "../../../components/ui";
 import { criarEscuta, vozDisponivel } from "../../../lib/hefisto-voz";
@@ -75,6 +75,7 @@ function novoFormulario(departamento = "cozinha") {
     tamanho_embalagem: "1",
     unidade_medida: ehBar ? "ml" : "kg",
     volume_unidade_ml: "",
+    peso_medio_g: "",
     valor_embalagem: "",
     fornecedor_atual_id: "",
     fornecedor_ids: [],
@@ -490,6 +491,7 @@ function IngredientesRunner() {
       tamanho_embalagem: String(insumo.tamanho_embalagem || 1),
       unidade_medida: un,
       volume_unidade_ml: insumo.volume_unidade_ml ? String(insumo.volume_unidade_ml) : "",
+      peso_medio_g: insumo.peso_medio_g ? String(insumo.peso_medio_g) : "",
       valor_embalagem: String(Number(insumo.custo_compra) > 0 ? insumo.custo_compra : (insumo.custo_unitario || "")),
       fornecedor_atual_id: insumo.fornecedor_atual_id || "",
       fornecedor_ids: (insumo.fornecedores_vinculados || []).map(item => item.id).filter(Boolean),
@@ -589,6 +591,11 @@ function IngredientesRunner() {
       // ficaria um volume órfão contradizendo a unidade.
       volume_unidade_ml: ehUnidadeContada(form.unidade_medida)
         ? (parseNumeroBR(form.volume_unidade_ml) > 0 ? parseNumeroBR(form.volume_unidade_ml) : null)
+        : null,
+      // Mesma ideia do volume, do lado do peso: "1 un" de tomate só serve para
+      // a receita quando alguém diz quanto pesa.
+      peso_medio_g: ehUnidadeUnitaria(form.unidade_medida)
+        ? (parseNumeroBR(form.peso_medio_g) > 0 ? parseNumeroBR(form.peso_medio_g) : null)
         : null,
       custo_compra: valor,
       custo_unitario: valor / quantidade,
@@ -1071,6 +1078,22 @@ function IngredientesRunner() {
                         {parseNumeroBR(form.volume_unidade_ml) > 0
                           ? `1 ${form.unidade_medida} = ${rotuloVolumeUnitario({ unidade_medida: form.unidade_medida, volume_unidade_ml: parseNumeroBR(form.volume_unidade_ml) })}`
                           : "Sem isso a receita não sabe quanto rende. Barril de chopp: 30000."}
+                      </span>
+                    </label>
+                  )}
+                  {/* A cozinha faz a mesma pergunta do bar, em peso. Sem isso, "1 un"
+                      de tomate vale zero no rendimento da ficha. */}
+                  {ehUnidadeUnitaria(form.unidade_medida) && (
+                    <label className="col-span-2">
+                      <span className="text-xs font-bold text-slate-600">Quanto pesa 1 unidade (g) *</span>
+                      <input inputMode="decimal" value={form.peso_medio_g}
+                        onChange={event => !event.target.value.startsWith("-") && setForm({ ...form, peso_medio_g: event.target.value })}
+                        placeholder="100"
+                        className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 font-bold outline-none focus:border-emerald-500" />
+                      <span className="mt-1 block text-[11px] font-medium text-slate-400">
+                        {parseNumeroBR(form.peso_medio_g) > 0
+                          ? `1 unidade = ${rotuloPesoUnitario({ unidade_medida: "un", peso_medio_g: parseNumeroBR(form.peso_medio_g) })}`
+                          : "Sem isso a receita não sabe quanto rende. Tomate: 100. Ovo: 50."}
                       </span>
                     </label>
                   )}

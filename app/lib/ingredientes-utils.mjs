@@ -49,6 +49,29 @@ export function rotuloVolumeUnitario(insumo) {
     : `${ml.toLocaleString("pt-BR", { maximumFractionDigits: 0 })} ml`;
 }
 
+// A cozinha tem o mesmo problema do bar, só que em peso. "1 un" de tomate não
+// diz nada para a receita enquanto ninguém contar quanto pesa. Mesma pergunta,
+// mesma tela, unidade diferente: o bar responde em ml, a cozinha em g.
+export const ehUnidadeUnitaria = (unidade) =>
+  ["un", "unidade"].includes(String(unidade || "").toLowerCase().trim());
+
+// Quantos gramas vale 1 unidade. Zero quando não é "un" ou quando ninguém
+// preencheu — aí o item fica de fora do rendimento, como a garrafa sem volume.
+export function pesoUnitarioG(insumo) {
+  if (!ehUnidadeUnitaria(insumo?.unidade_medida)) return 0;
+  const g = Number(insumo?.peso_medio_g);
+  return Number.isFinite(g) && g > 0 ? g : 0;
+}
+
+// "100 g", "1,5 kg" — como mostrar o peso de uma unidade.
+export function rotuloPesoUnitario(insumo) {
+  const g = pesoUnitarioG(insumo);
+  if (!g) return "";
+  return g >= 1000
+    ? `${(g / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} kg`
+    : `${g.toLocaleString("pt-BR", { maximumFractionDigits: 0 })} g`;
+}
+
 export function parseNumeroBR(valor) {
   if (typeof valor === "number") return Number.isFinite(valor) ? valor : NaN;
   const texto = String(valor ?? "").trim().replace(/\s/g, "");

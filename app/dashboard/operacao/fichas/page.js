@@ -47,7 +47,7 @@ import { fmtBRL } from "../../../components/ui";
 import { logoSeldeestrelaSVG } from "../../../lib/marca";
 import { baixarPdfDeHtml } from "../../../lib/pdf";
 import { fetchHistoricoCustoFicha, registrarCustoFicha } from "../../../lib/ficha-custos";
-import { ehUnidadeContada, rotuloVolumeUnitario, volumeUnitarioMl } from "../../../lib/ingredientes-utils.mjs";
+import { ehUnidadeContada, ehUnidadeUnitaria, rotuloPesoUnitario, rotuloVolumeUnitario, volumeUnitarioMl } from "../../../lib/ingredientes-utils.mjs";
 import { fetchCategoriasFichas, salvarCategoriasFichas } from "../../../lib/parametros";
 import {
   estimarPaginasDocumento,
@@ -3208,7 +3208,14 @@ function FichasRunner() {
                                     {ehUnidadeContada(ing.unidade) && (
                                        rotuloVolumeUnitario(ing)
                                           ? <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">{rotuloVolumeUnitario(ing)} por {ing.unidade}</p>
-                                          : <p className="text-[10px] font-bold text-slate-400 mt-0.5">Sem volume no cadastro — não entra no rendimento</p>
+                                          : <p className="text-[10px] font-bold text-slate-400 mt-0.5">Sem volume no cadastro — abra o ingrediente e preencha quanto cabe em 1 {ing.unidade}</p>
+                                    )}
+                                    {/* Mesmo aviso do bar, do lado do peso: na cozinha "1 un"
+                                        só entra na conta quando alguém diz quanto pesa. */}
+                                    {ing.tipo !== "base" && ehUnidadeUnitaria(ing.unidade) && (
+                                       rotuloPesoUnitario(ing)
+                                          ? <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">{rotuloPesoUnitario(ing)} por unidade</p>
+                                          : <p className="text-[10px] font-bold text-slate-400 mt-0.5">Sem peso no cadastro — abra o ingrediente e preencha quanto pesa 1 unidade</p>
                                     )}
                                     <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">Custo: {fmtBRL(ing.custo_unitario * ing.quantidade * (1 + (Number(ing.fator) || 0) / 100))} <span className="text-slate-400 normal-case">· {fmtBRL(ing.custo_unitario)}/{String(ing.unidade).toUpperCase()}</span></p>
                                     {/* Perda vem do cadastro do ingrediente (o FC saiu da ficha). O custo usa a qtd bruta = líquida × (1 + perda). */}

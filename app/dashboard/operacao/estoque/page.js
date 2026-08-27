@@ -1569,10 +1569,11 @@ function EstoqueRunner() {
                     onSaida={item => abrirOperacao("saida", item)}
                     onEditar={abrirEdicaoItem}
                     onHistorico={item => setModal({ tipo: "historico_item", item })}
+                    dinheiro={dinheiro}
                   />
                 </>
               ) : (
-                <ListaMovimentos movimentos={movimentos} modo={aba} />
+                <ListaMovimentos movimentos={movimentos} modo={aba} dinheiro={dinheiro} />
               )}
             </section>
           </>
@@ -2389,7 +2390,11 @@ function saldoEmbalado(item) {
   return { principal, secundario };
 }
 
-function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEditar, onHistorico, agruparPor = "categoria" }) {
+// `dinheiro` vem por prop: ele mora em EstoqueRunner porque depende do modo
+// quiosque, e este componente e irmao, nao filho. Uma troca global de
+// fmtBRL( por dinheiro( atravessou a fronteira e derrubava a tela inteira
+// com "dinheiro is not defined" assim que a tabela renderizava.
+function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEditar, onHistorico, agruparPor = "categoria", dinheiro = (v) => v }) {
   const [colapsadas, setColapsadas] = useState({});
 
   const toggleColapso = (cat) => {
@@ -2589,15 +2594,15 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
                       <strong className="text-base sm:text-lg font-black text-slate-900 leading-snug block truncate">{item.nome}</strong>
                       <div className="mt-1 flex flex-wrap items-center gap-1.5">
                         <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700">{item.categoria || "Sem categoria"}</span>
-                        {(estoqueAtual?.locais_internos || []).length > 0 ? (
+                        {(estoque?.locais_internos || []).length > 0 ? (
                           // Realocar é escolher o lugar aqui mesmo: um toque e
                           // o produto muda de grupo na lista.
                           <select value={item.local_interno || ""} onChange={e => realocarItem(item, e.target.value)}
                             className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-bold text-slate-600 outline-none focus:border-emerald-500"
                             aria-label={`Lugar de ${item.nome}`}>
                             <option value="">Sem lugar</option>
-                            {(estoqueAtual.locais_internos || []).map(l => <option key={l} value={l}>{l}</option>)}
-                            {item.local_interno && !(estoqueAtual.locais_internos || []).includes(item.local_interno) && (
+                            {(estoque.locais_internos || []).map(l => <option key={l} value={l}>{l}</option>)}
+                            {item.local_interno && !(estoque.locais_internos || []).includes(item.local_interno) && (
                               <option value={item.local_interno}>{item.local_interno}</option>
                             )}
                           </select>
@@ -2649,7 +2654,7 @@ function TabelaItens({ itens, estoque = {}, loading, onEntrada, onSaida, onEdita
   );
 }
 
-function ListaMovimentos({ movimentos, modo }) {
+function ListaMovimentos({ movimentos, modo, dinheiro = (v) => v }) {
   const [busca, setBusca] = useState("");
   const [tipoFiltro, setTipoFiltro] = useState("todos");
   const [colabFiltro, setColabFiltro] = useState("todos");

@@ -1,6 +1,6 @@
 import { supabase, isSupabaseReady } from "./supabase";
 import { registrarMarcacao } from "./ponto-marcacao";
-import { minutosAteOTurno } from "./jornada-calculo.mjs";
+import { entradaContratada, minutosAteOTurno } from "./jornada-calculo.mjs";
 
 // Data local (São Paulo) em YYYY-MM-DD, com deslocamento opcional de dias
 function dataLocalISO(offsetDias = 0) {
@@ -144,12 +144,13 @@ export async function registrarBatida(colaboradorId, unidadeId, tipoBatida, hora
   if (tipoBatida === "entrada" && !horaMarcada) {
     const { data: colab } = await supabase
       .from("colaboradores")
-      .select("horario_entrada, horario_dom_entrada")
+      .select("horario_entrada, horario_dom_entrada, horario_por_dia, horarios_dia")
       .eq("id", colaboradorId)
       .maybeSingle();
     const agoraLocal = new Date();
-    const ehDomingo = agoraLocal.getDay() === 0;
-    const inicio = (ehDomingo && colab?.horario_dom_entrada) || colab?.horario_entrada || "";
+    // Quem tem jornada por dia da semana comeca em hora diferente a cada dia.
+    // Comparar com o horario fixo travaria a pessoa no dia errado.
+    const inicio = entradaContratada(colab, agoraLocal);
     const falta = minutosAteOTurno(inicio, agoraLocal);
     if (falta > 0) {
       return {

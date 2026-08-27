@@ -203,6 +203,22 @@ export function calcularAdicionaisPorDia(pontosMes, feriados = [], opcoes = {}) 
 // começando outro expediente, e travar essa pessoa apagaria hora extra real.
 export const ANTECIPACAO_MAXIMA_BLOQUEADA_MIN = 6 * 60;
 
+// Hora contratada de entrada no dia. A regra tem tres niveis e ja existia
+// escrita duas vezes (horarioDoDia no RH, entradaDoDia no ponto). Aqui vira
+// uma so: jornada por dia da semana ganha de domingo, que ganha do fixo.
+// Duas copias da mesma regra e uma copia esperando divergir.
+export function entradaContratada(colaborador, base = new Date()) {
+  if (!colaborador) return "";
+  const wd = String(base.getDay());
+  const porDia = colaborador.horario_por_dia
+    && colaborador.horarios_dia
+    && colaborador.horarios_dia[wd]
+    && colaborador.horarios_dia[wd].e;
+  if (porDia) return colaborador.horarios_dia[wd].e;
+  if (base.getDay() === 0 && colaborador.horario_dom_entrada) return colaborador.horario_dom_entrada;
+  return colaborador.horario_entrada || "";
+}
+
 export function minutosDoHorario(horario) {
   const m = /^(\d{1,2}):(\d{2})$/.exec(String(horario || "").trim());
   if (!m) return null;

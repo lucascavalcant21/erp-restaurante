@@ -42,13 +42,17 @@ export const ESTOQUES_PADRAO = [
 // reposição só atrasava o lançamento e vinha em branco de qualquer jeito.
 // O nome entra na conta junto do slug porque estoque criado à mão não segue o
 // slug padrão.
-export function estoqueControlaLote(estoque) {
-  if (!estoque || !estoque.controla_validade) return false;
+export function ehEstoquePrePreparo(estoque) {
+  if (!estoque) return false;
   const alvo = `${estoque.slug || ""} ${estoque.nome || ""}`
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
   return alvo.includes("pre-preparo") || alvo.includes("pre preparo");
+}
+
+export function estoqueControlaLote(estoque) {
+  return !!estoque?.controla_validade && ehEstoquePrePreparo(estoque);
 }
 
 export const GRUPOS_OPERACIONAIS_ESTOQUE = {

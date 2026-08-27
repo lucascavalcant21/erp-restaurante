@@ -22,7 +22,7 @@ import {
   transferirEntreEstoques, vincularItemEstoque, zerarEstoque,
 } from "../../../lib/estoques-multiplos";
 import {
-  estoqueControlaLote, filtrarItensEstoque, grupoOperacionalItem, gruposOperacionaisEstoque,
+  ehEstoquePrePreparo, estoqueControlaLote, filtrarItensEstoque, grupoOperacionalItem, gruposOperacionaisEstoque,
   statusItemEstoque, TIPOS_ESTOQUE, tiposCompativeis,
 } from "../../../lib/estoques-multiplos-utils.mjs";
 import { fmtBRL } from "../../../components/ui";
@@ -50,6 +50,13 @@ const conteudoDe = (item) => Number(item?.tamanho_embalagem) || 1;
 const fmtQtd = (valor) => Number(valor || 0).toLocaleString("pt-BR", { maximumFractionDigits: 3 });
 // Litro em maiúsculo (L), como manda a convenção; demais unidades como estão.
 const mostrarUn = (u) => (String(u || "").toLowerCase() === "l" ? "L" : (u || "un"));
+
+// De qual receituario vem o pre-preparo deste estoque. A tela de fichas so tem
+// cozinha e bar; o pre-preparo do salao e receita de cozinha, entao cai la.
+const setorDaFicha = (estoque) => {
+  const alvo = `${estoque?.slug || ""} ${estoque?.nome || ""}`.toLowerCase();
+  return alvo.includes("bar") ? "bar" : "cozinha";
+};
 
 const fmtEquiv = (q, un) => {
   const n = Number(q) || 0; const u = String(un || "un").toLowerCase();
@@ -1395,6 +1402,28 @@ function EstoqueRunner() {
                 <button disabled={!ativo || !itens.length || !destinosCompativeis.length} onClick={() => abrirOperacao("transferencia")} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-extrabold text-slate-700 hover:bg-slate-50 disabled:opacity-40 transition-all cursor-pointer">
                   <ArrowRightLeft size={16} className="text-indigo-600" /> Transferência
                 </button>
+                {/* Produto que ainda nao existe no cadastro de ingredientes. O
+                    formulario ja existia, mas escondido atras de "Nova entrada" e
+                    como link de texto no meio do modal: quem estava conferindo
+                    estoque e achava um item novo nao tinha por onde comecar.
+
+                    No pre-preparo o botao nao cria nada: item de pre-preparo nasce
+                    da ficha tecnica (garantirFichaNoEstoquePreparo), e deixar
+                    cadastrar aqui a mao criaria um segundo item com o mesmo nome,
+                    fora da receita que o produz. */}
+                {ehEstoquePrePreparo(estoqueAtual) ? (
+                  <button disabled={!ativo}
+                    onClick={() => router.push(`/dashboard/operacao/fichas?dept=${setorDaFicha(estoqueAtual)}`)}
+                    className="inline-flex h-10 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-white px-3.5 text-xs font-extrabold text-emerald-700 hover:bg-emerald-50 disabled:opacity-40 transition-all cursor-pointer">
+                    <Plus size={16} /> Novo pré-preparo (na ficha técnica)
+                  </button>
+                ) : (
+                  <button disabled={!ativo}
+                    onClick={() => { abrirOperacao("entrada"); setNovoProduto({ nome: "", volume: "", unidade: "ml", unidadeComercial: "", custo: "", minimo: "", maximo: "", categoria: categoriasDisponiveis(estoqueAtual)[0] || "Sem categoria", salvando: false }); }}
+                    className="inline-flex h-10 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-white px-3.5 text-xs font-extrabold text-emerald-700 hover:bg-emerald-50 disabled:opacity-40 transition-all cursor-pointer">
+                    <Plus size={16} /> Cadastrar produto
+                  </button>
+                )}
                 <button disabled={!ativo} onClick={() => setModal({ tipo: "importar" })} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-extrabold text-slate-700 hover:bg-slate-50 disabled:opacity-40 transition-all cursor-pointer">
                   <Upload size={16} className="text-teal-600" /> Importar
                 </button>

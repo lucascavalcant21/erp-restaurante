@@ -145,6 +145,31 @@ Nada aqui está pendente — é registro, para a próxima sessão não refazer.
 - **Duplicados no guia**: três telas comparavam nome de três jeitos. Chave
   unificada em `chaveNomeMontagem` + índice único no banco.
 
+- **Medida x embalagem**: "Unidade" misturava o que mede (ml, L, g, kg) com o
+  que conta (garrafa, lata, barril), e escolher "Garrafa" apagava o volume —
+  500 ml viravam "500 garrafas". Viraram duas perguntas: quanto e em que. O bar
+  só oferece ml e L. A ficha mostra "500 ml por garrafa" e, quando falta, diz
+  que falta em vez de sair da conta calada. Colunas `volume_unidade_ml` e
+  `peso_medio_g` cobrem o cadastro antigo e o "un" (1 tomate = 100 g).
+- **Checklist**: tempo por tarefa e foto do padrão ("como tem que ficar"), os
+  dois no JSONB do item, sem migração. A folha ganhou coluna Tempo, total no
+  cabeçalho e galeria de fotos numerada no fim — foto ao lado de cada linha
+  jogaria o checklist para três folhas. Montar por foto do ambiente, tempo
+  estimado pela IA, e tarefa marcável como "em conjunto".
+- **Tablet do estoque**: cadastrar produto sem sair da tela; mínimo e máximo por
+  produto atrás do PIN do gerente (o mesmo do ponto, 1234 de fábrica); fora os
+  cinco indicadores do topo e o painel que cobria a tela a cada lançamento.
+- **Ponto**: entrada antes do turno é barrada em vez de arredondada. O livro
+  guarda a hora real (art. 74, II proíbe horário predeterminado) e o resumo
+  segue o livro, então carimbar 15:40 em quem bateu 15:39 seria ilegal. A trava
+  vale até 6 horas antes, para não apagar hora extra de quem foi chamado cedo,
+  e usa a jornada do dia da semana, não o horário fixo.
+- **Dois crashes**: `bar e cozinha não abre para editar` (setters órfãos depois
+  de remover o simulador) e `dinheiro is not defined` (troca global de `fmtBRL(`
+  que atravessou a fronteira de dois componentes). A varredura de escopo que
+  achou o segundo compara, componente a componente, o que é usado contra o que é
+  declarado ou recebido por prop — vale rodar depois de qualquer troca global.
+
 ## Ideias levantadas, não decididas
 
 - Imagem própria (fachada) no cartão dos links dos portais — hoje usa `public/icon-512x512.png`.

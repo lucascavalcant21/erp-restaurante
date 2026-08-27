@@ -3532,6 +3532,25 @@ function FichasRunner() {
                         </div>
                      </div>}
 
+                     {/* Só drink pronto tem método: xarope e infusão não se batem nem se mexem. */}
+                     {form.departamento === "bar" && !form.eh_base && (
+                        <div>
+                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Método de preparo</label>
+                           <div className="mt-1.5 grid gap-2 sm:grid-cols-2">
+                              {METODOS_BAR.map(metodo => {
+                                 const ativo = form.metodo_bar === metodo.id;
+                                 return (
+                                    <button key={metodo.id} type="button"
+                                       onClick={() => setForm({ ...form, metodo_bar: ativo ? "" : metodo.id })}
+                                       className={`rounded-xl border-2 p-3 text-left transition ${ativo ? "border-emerald-500 bg-emerald-50" : "border-slate-200 bg-white hover:border-emerald-300"}`}>
+                                       <span className={`block text-sm font-black ${ativo ? "text-emerald-700" : "text-slate-700"}`}>{metodo.nome}</span>
+                                    </button>
+                                 );
+                              })}
+                           </div>
+                        </div>
+                     )}
+
                      {!form.eh_base && (() => {
                         const custoTotalForm = custoTotalFormulario(ingFicha);
                         const rendForm = Number(String(form.rendimento_porcoes).replace(",", ".")) || 0;
@@ -3626,25 +3645,6 @@ function FichasRunner() {
 
                         <textarea placeholder="Passo a passo da execução..." value={form.modo_preparo} onChange={e=>setForm({...form, modo_preparo: e.target.value})} className="w-full h-52 p-4 mt-1 bg-white border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:border-emerald-500 shadow-sm resize-y"></textarea>
                      </div>}
-
-                     {/* Só drink pronto tem método: xarope e infusão não se batem nem se mexem. */}
-                     {form.departamento === "bar" && !form.eh_base && (
-                        <div>
-                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Método de preparo</label>
-                           <div className="mt-1.5 grid gap-2 sm:grid-cols-2">
-                              {METODOS_BAR.map(metodo => {
-                                 const ativo = form.metodo_bar === metodo.id;
-                                 return (
-                                    <button key={metodo.id} type="button"
-                                       onClick={() => setForm({ ...form, metodo_bar: ativo ? "" : metodo.id })}
-                                       className={`rounded-xl border-2 p-3 text-left transition ${ativo ? "border-emerald-500 bg-emerald-50" : "border-slate-200 bg-white hover:border-emerald-300"}`}>
-                                       <span className={`block text-sm font-black ${ativo ? "text-emerald-700" : "text-slate-700"}`}>{metodo.nome}</span>
-                                    </button>
-                                 );
-                              })}
-                           </div>
-                        </div>
-                     )}
 
                   </div>
 

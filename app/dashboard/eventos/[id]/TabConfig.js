@@ -72,7 +72,8 @@ export default function TabConfig({ evento, onChange }) {
 
   async function excluirEvento() {
     if (!confirm(`EXCLUIR o evento "${evento.nome}" e TODOS os seus dados? Essa ação NÃO pode ser desfeita.`)) return;
-    await removerEvento(evento.id);
+    const { error } = await removerEvento(evento.id);
+    if (error) return alert(`Não consegui excluir este evento: ${error}`);
     router.push("/dashboard/eventos");
   }
 

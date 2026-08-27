@@ -109,7 +109,8 @@ export default function BancoDeExtras() {
 
   const arquivar = async (cadastro) => {
     if (!confirm(`Arquivar o cadastro de ${cadastro.nome}?`)) return;
-    await atualizarStatusExtraCadastro(cadastro.id, "arquivado");
+    const { error } = await atualizarStatusExtraCadastro(cadastro.id, "arquivado");
+    if (error) return alert(`Não consegui arquivar este cadastro: ${error}`);
     await carregar();
   };
 

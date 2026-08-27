@@ -722,7 +722,8 @@ export default function RHPage() {
 
   const excluirBancoHoras = async (id) => {
     if (!confirm("Remover este lançamento do banco de horas?")) return;
-    await removerBancoHoras(id);
+    const { error } = await removerBancoHoras(id);
+    if (error) return alert(`Não consegui remover este lançamento: ${error}`);
     carregar();
   };
 
@@ -1475,7 +1476,8 @@ export default function RHPage() {
 
   const handleRemover = async (id) => {
     if(confirm("Apagar DEFINITIVAMENTE este funcionário e toda a vida dele?\n\nPara manter o histórico, use 'Desligar' — ele vai para o arquivo de ex-funcionários.")) {
-      await removerColaborador(id);
+      const { error } = await removerColaborador(id);
+      if (error) return alert(`Não consegui apagar este funcionário: ${error}`);
       carregar();
     }
   };
@@ -1640,7 +1642,8 @@ export default function RHPage() {
 
   const handleApagarDoc = async (docId, url) => {
      if(confirm("Apagar este documento permanentemente?")) {
-        await removerDocumento(docId, url);
+        const { error } = await removerDocumento(docId, url);
+        if (error) return alert(`Não consegui apagar este documento: ${error}`);
         carregar();
      }
   };

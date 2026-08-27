@@ -412,6 +412,14 @@ function FichasRunner() {
     preco_venda: "",
     cmv_meta: 30
   });
+
+  // Bar não é cozinha em miniatura: não embala nada e mede tudo em volume. A
+  // tela era escrita para prato — falava kg, porção e embalagem — e no drink
+  // isso vira ruído ou, pior, campo que ninguém sabe o que preencher.
+  // Vale o departamento da ficha aberta; a URL só decide quando é ficha nova.
+  const ehBarFicha = String(form?.departamento || deptUrl || "").toLowerCase() === "bar";
+  const unPeso = ehBarFicha ? "ml" : "g";
+  const unGrande = ehBarFicha ? "L" : "kg";
   
   const fileInputRef = useRef(null);
 
@@ -858,7 +866,7 @@ function FichasRunner() {
     const categoriaInicial = criandoPreparo
       ? (deptUrl === "bar" ? CATEGORIAS_PREPARO_BAR[0] : CATEGORIAS_PREPARO_COZINHA[0])
       : "";
-    setForm({ id: null, departamento: deptUrl, nome_receita: "", categoria: categoriaInicial, rendimento_porcoes: "1", modo_preparo: "", eh_base: criandoPreparo, produto_pronto: false, tipo_base: criandoPreparo ? "pre" : null, rendimento_unidade: "porcao", peso_porcao_g: "", imagem: "", tempo_preparo: "", validade_dias: "", observacoes: "", metodo_bar: "", preco_venda: "", cmv_meta: 30 });
+    setForm({ id: null, departamento: deptUrl, nome_receita: "", categoria: categoriaInicial, rendimento_porcoes: "1", modo_preparo: "", eh_base: criandoPreparo, produto_pronto: false, tipo_base: criandoPreparo ? "pre" : null, rendimento_unidade: deptUrl === "bar" ? "ml" : "porcao", peso_porcao_g: "", imagem: "", tempo_preparo: "", validade_dias: "", observacoes: "", metodo_bar: "", preco_venda: "", cmv_meta: 30 });
     setIngFicha([]);
     setFichaEmbalagens([]);
     setNovaEmbalagem({ nome: "", custo: "" });
@@ -2333,7 +2341,7 @@ function FichasRunner() {
 
                                     <div className="divide-y divide-slate-100">
                                       <div className="flex min-h-12 items-center justify-between gap-3"><span className="text-sm font-bold text-slate-500">Rendimento</span><strong className="text-base text-slate-900">{rendimentoTexto}</strong></div>
-                                      <div className="flex min-h-12 items-center justify-between gap-3"><span className="text-sm font-bold text-slate-500">Porção</span><strong className="text-base text-slate-900">{pesoPorcao > 0 ? `${Math.round(pesoPorcao).toLocaleString("pt-BR")} g` : unR === "porcao" ? "1 porção" : "—"}</strong></div>
+                                      <div className="flex min-h-12 items-center justify-between gap-3"><span className="text-sm font-bold text-slate-500">Porção</span><strong className="text-base text-slate-900">{pesoPorcao > 0 ? `${Math.round(pesoPorcao).toLocaleString("pt-BR")} ${String(f.departamento || "").toLowerCase() === "bar" ? "ml" : "g"}` : unR === "porcao" ? "1 porção" : "—"}</strong></div>
                                       <div className="flex min-h-12 items-center justify-between gap-3"><span className="text-sm font-bold text-slate-500">Custo por porção</span><strong className="text-base text-slate-900">{fmtBRL(custoPorcao)}</strong></div>
                                       <div className="flex min-h-12 items-center justify-between gap-3">
                                         <span className="text-sm font-black text-slate-600">{f.eh_base ? "Custo total" : "CMV"}</span>
@@ -3261,7 +3269,7 @@ function FichasRunner() {
                            (() => {
                               const est = rendimentoPelosIngredientes(ingFicha);
                               const custoTotal = calcularCustoTotal(ingFicha);
-                              if (!est) return <p className="text-sm text-slate-400 font-medium py-2">Adicione ingredientes — o rendimento e o custo de 1 kg aparecem aqui sozinhos.</p>;
+                              if (!est) return <p className="text-sm text-slate-400 font-medium py-2">Adicione ingredientes — o rendimento e o custo de 1 {unGrande} aparecem aqui sozinhos.</p>;
                               const custoKg = custoTotal / (est.totalG / 1000);
                               const unLabel = ({ kg: "kg", g: "g", l: "L", ml: "ml" })[est.unidade];
                               return (
@@ -3390,8 +3398,8 @@ function FichasRunner() {
                            </div>
                            {!["kg", "g", "l", "ml"].includes(String(form.rendimento_unidade || "porcao").toLowerCase()) && (
                               <div>
-                                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Porção pesa (g)</label>
-                                 <input type="number" step="0.1" min="0" placeholder="Ex: 300" value={form.peso_porcao_g} onChange={e=>{
+                                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{ehBarFicha ? "Dose tem (ml)" : "Porção pesa (g)"}</label>
+                                 <input type="number" step="0.1" min="0" placeholder={ehBarFicha ? "Ex: 300" : "Ex: 300"} value={form.peso_porcao_g} onChange={e=>{
                                     setForm({...form, peso_porcao_g: e.target.value});
                                     setAutoSoma(false);
                                  }} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-slate-800 outline-none focus:border-emerald-500 text-center"/>
@@ -3554,9 +3562,9 @@ function FichasRunner() {
                      })()}
 
                      {/* CMV E PRECIFICAÇÃO — o preço de venda vive AQUI (Produtos e Preços saiu do menu) */}
-                     {!form.eh_base && <div className="rounded-2xl border-2 border-pink-200 bg-white p-4 shadow-sm">
+                     {!form.eh_base && !ehBarFicha && <div className="rounded-2xl border-2 border-pink-200 bg-white p-4 shadow-sm">
                         <div className="flex items-start justify-between gap-3">
-                           <div><p className="text-xs font-black uppercase tracking-widest text-pink-700">Embalagens</p><p className="mt-1 text-xs font-medium text-slate-500">Selecione o que acompanha cada prato ou drink. O custo entra automaticamente no CMV.</p></div>
+                           <div><p className="text-xs font-black uppercase tracking-widest text-pink-700">Embalagens</p><p className="mt-1 text-xs font-medium text-slate-500">Selecione o que acompanha cada prato. O custo entra automaticamente no CMV.</p></div>
                            <span className="shrink-0 rounded-lg bg-pink-50 px-3 py-2 text-sm font-black text-pink-700">{fmtBRL(custoEmbalagensPorPorcao())}/porcao</span>
                         </div>
                         {embalagensEstoque.length > 0 ? <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -3608,7 +3616,7 @@ function FichasRunner() {
                                     <p className="text-sm font-black text-slate-800">{fmtBRL(custoPorc)}</p>
                                  </div>
                                  <div className="rounded-xl bg-slate-50 border border-slate-200 p-2 text-center">
-                                    <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Custo/kg</p>
+                                    <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Custo/{unGrande}</p>
                                     <p className="text-sm font-black text-slate-800">{custoKgForm > 0 ? fmtBRL(custoKgForm) : "—"}</p>
                                  </div>
                               </div>
@@ -3708,7 +3716,11 @@ function FichasRunner() {
 
                      {/* Dados extras da ficha técnica: tempo, validade e observações */}
                      <div>
-                        <div className="grid grid-cols-2 gap-3">
+                        {/* Drink e feito na hora e servido na hora: nem tempo de
+                            preparo nem prazo de guarda dizem algo util no bar.
+                            O pre-preparo do bar (xarope, infusao) continua com os
+                            dois, porque esse sim fica guardado. */}
+                        {(!ehBarFicha || form.eh_base) && <div className="grid grid-cols-2 gap-3">
                            <div>
                               <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tempo de preparo (min)</label>
                               <input type="number" min="0" step="1" placeholder="Ex: 15" value={form.tempo_preparo} onChange={e=>setForm({...form, tempo_preparo: e.target.value})} className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500 shadow-sm"/>
@@ -3717,7 +3729,7 @@ function FichasRunner() {
                               <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Validade (dias)</label>
                               <input type="number" min="0" step="1" placeholder="Ex: 3" value={form.validade_dias} onChange={e=>setForm({...form, validade_dias: e.target.value})} className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500 shadow-sm"/>
                            </div>
-                        </div>
+                        </div>}
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-3 block">Observações</label>
                         <textarea placeholder="Observações da ficha (opcional)..." value={form.observacoes} onChange={e=>setForm({...form, observacoes: e.target.value})} className="w-full h-20 p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:border-emerald-500 shadow-sm resize-none"></textarea>
                      </div>

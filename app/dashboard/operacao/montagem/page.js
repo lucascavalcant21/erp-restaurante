@@ -2109,11 +2109,12 @@ function MontagemPageInner() {
   const alvoImpressao = selecionadas.length ? lista.filter(m => selecionadas.includes(m.id)) : filtrados;
 
   async function salvar(dados) {
-    if (editar) {
-      await atualizarMontagem(editar.id, dados);
-    } else {
-      await inserirMontagem(dados, unidadeAtiva);
-    }
+    const r = editar
+      ? await atualizarMontagem(editar.id, dados)
+      : await inserirMontagem(dados, unidadeAtiva);
+    // Fechar o modal com o banco recusando jogava fora o que foi digitado e
+    // ainda anunciava "salva!".
+    if (r?.error) return alert(`Não consegui salvar esta ficha de montagem: ${r.error}`);
     setModal(false); setEditar(null); setSalvou("Ficha de montagem salva!");
     setTimeout(() => setSalvou(""), 2600);
     carregar();
@@ -2311,12 +2312,10 @@ function MontagemPageInner() {
               {excluindo ? "Excluindo..." : `Excluir (${selecionadas.length})`}
             </button>
           )}
-          {selecionadas.length > 0 && (
-            <button type="button" onClick={() => mudarForaDoGuia(!verForaDoGuia)}
+          {verForaDoGuia && selecionadas.length > 0 && (
+            <button type="button" onClick={() => mudarForaDoGuia(false)}
               className="min-h-10 rounded-xl bg-slate-800 px-4 text-xs font-black text-white hover:bg-slate-900">
-              {verForaDoGuia
-                ? `Devolver ao guia (${selecionadas.length})`
-                : `Não é drink — tirar do guia (${selecionadas.length})`}
+              Devolver ao guia ({selecionadas.length})
             </button>
           )}
         </div>

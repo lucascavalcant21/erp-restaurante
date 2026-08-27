@@ -2648,7 +2648,9 @@ function FichasRunner() {
          const meta = Number(f.cmv_meta) || 30;
          const cmv = preco > 0 ? (custoPorcao / preco) * 100 : null;
          const margem = cmv !== null ? 100 - cmv : null;
-         const markup = preco > 0 && custoPorcao > 0 ? preco / custoPorcao : null;
+         // Markup saiu: "62,50×" não diz quanto entra no caixa. Lucro é o que
+         // sobra em reais de cada porção vendida — preço menos o que ela custa.
+         const lucro = preco > 0 ? preco - custoPorcao : null;
          const precoSugerido = meta > 0 ? custoPorcao / (meta / 100) : 0;
          const pesoPorcaoG = Number(f.peso_porcao_g) || 0;
          const simN = Number(String(simPesoView).replace(",", ".")) || 0;
@@ -2949,8 +2951,8 @@ function FichasRunner() {
                                  <p className="text-lg font-black text-emerald-700">{margem !== null ? `${margem.toFixed(1)}%` : "—"}</p>
                               </div>
                               <div className="rounded-xl px-3 py-2 text-center border bg-emerald-50 border-emerald-100">
-                                 <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Markup</p>
-                                 <p className="text-lg font-black text-emerald-700">{markup ? `${markup.toFixed(2)}×` : "—"}</p>
+                                 <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Lucro</p>
+                                 <p className="text-lg font-black text-emerald-700">{lucro !== null ? fmtBRL(lucro) : "—"}</p>
                               </div>
                               <div className="rounded-xl px-3 py-2 text-center border bg-slate-50 border-slate-200">
                                  <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Preço/porção</p>
@@ -3248,7 +3250,13 @@ function FichasRunner() {
                      </div>
                      )}
 
-                     {/* RENDIMENTO — automático pela soma dos ingredientes (peso + custo de 1 kg) */}
+                     {/* RENDIMENTO — automático pela soma dos ingredientes (peso + custo de 1 kg).
+                         No modo automático e sem ingrediente nenhum o card não tem o que
+                         mostrar: era um retângulo com uma frase cinza entre o receituário e
+                         a precificação. Ele volta sozinho no primeiro ingrediente, e no modo
+                         manual fica sempre — é lá que se corrige o rendimento de receita que
+                         reduz no fogo. */}
+                     {(!autoSoma || ingFicha.length > 0) && (
                      <div id="ficha-rendimento" className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm scroll-mt-24">
                         <div className="flex items-center justify-between mb-3">
                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Quantidade da receita</p>
@@ -3439,6 +3447,7 @@ function FichasRunner() {
                         </>
                         )}
                      </div>
+                     )}
 
                      {/* COMPOSIÇÃO DA PORÇÃO: quantas gramas de cada ingrediente vão em 1 porção */}
                      {(() => {
@@ -3530,6 +3539,25 @@ function FichasRunner() {
                         </div>
                      </div>}
 
+                     {/* Só drink pronto tem método: xarope e infusão não se batem nem se mexem. */}
+                     {form.departamento === "bar" && !form.eh_base && (
+                        <div>
+                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Método de preparo</label>
+                           <div className="mt-1.5 grid gap-2 sm:grid-cols-2">
+                              {METODOS_BAR.map(metodo => {
+                                 const ativo = form.metodo_bar === metodo.id;
+                                 return (
+                                    <button key={metodo.id} type="button"
+                                       onClick={() => setForm({ ...form, metodo_bar: ativo ? "" : metodo.id })}
+                                       className={`rounded-xl border-2 p-3 text-left transition ${ativo ? "border-emerald-500 bg-emerald-50" : "border-slate-200 bg-white hover:border-emerald-300"}`}>
+                                       <span className={`block text-sm font-black ${ativo ? "text-emerald-700" : "text-slate-700"}`}>{metodo.nome}</span>
+                                    </button>
+                                 );
+                              })}
+                           </div>
+                        </div>
+                     )}
+
                      {!form.eh_base && (() => {
                         const custoTotalForm = custoTotalFormulario(ingFicha);
                         const rendForm = Number(String(form.rendimento_porcoes).replace(",", ".")) || 0;
@@ -3543,7 +3571,7 @@ function FichasRunner() {
                         const precoNum = Number(String(form.preco_venda ?? "").replace(",", ".")) || 0;
                         const cmvTeo = precoNum > 0 ? (custoPorc / precoNum) * 100 : null;
                         const margem = cmvTeo !== null ? 100 - cmvTeo : null;
-                        const markup = precoNum > 0 && custoPorc > 0 ? precoNum / custoPorc : null;
+                        const lucro = precoNum > 0 ? precoNum - custoPorc : null;
                         return (
                            <div id="ficha-custos" className="bg-white border-2 border-emerald-200 rounded-2xl p-4 shadow-sm scroll-mt-24">
                               <p className="text-xs font-black uppercase tracking-widest text-emerald-700 mb-3">CMV e Precificação</p>
@@ -3583,12 +3611,12 @@ function FichasRunner() {
                                        <p className="text-lg font-black text-emerald-700">{margem.toFixed(1)}%</p>
                                     </div>
                                     <div className="rounded-xl p-2.5 text-center border bg-emerald-50 border-emerald-200">
-                                       <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">Markup</p>
-                                       <p className="text-lg font-black text-emerald-700">{markup ? markup.toFixed(2) + "×" : "—"}</p>
+                                       <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">Lucro</p>
+                                       <p className="text-lg font-black text-emerald-700">{lucro !== null ? fmtBRL(lucro) : "—"}</p>
                                     </div>
                                  </div>
                               ) : (
-                                 <p className="text-[11px] font-medium text-slate-400 mt-2">Defina o preço de venda para ver CMV teórico, margem e markup.</p>
+                                 <p className="text-[11px] font-medium text-slate-400 mt-2">Defina o preço de venda para ver CMV teórico, margem e lucro.</p>
                               )}
                            </div>
                         );
@@ -3624,25 +3652,6 @@ function FichasRunner() {
 
                         <textarea placeholder="Passo a passo da execução..." value={form.modo_preparo} onChange={e=>setForm({...form, modo_preparo: e.target.value})} className="w-full h-52 p-4 mt-1 bg-white border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:border-emerald-500 shadow-sm resize-y"></textarea>
                      </div>}
-
-                     {/* Só drink pronto tem método: xarope e infusão não se batem nem se mexem. */}
-                     {form.departamento === "bar" && !form.eh_base && (
-                        <div>
-                           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Método de preparo</label>
-                           <div className="mt-1.5 grid gap-2 sm:grid-cols-2">
-                              {METODOS_BAR.map(metodo => {
-                                 const ativo = form.metodo_bar === metodo.id;
-                                 return (
-                                    <button key={metodo.id} type="button"
-                                       onClick={() => setForm({ ...form, metodo_bar: ativo ? "" : metodo.id })}
-                                       className={`rounded-xl border-2 p-3 text-left transition ${ativo ? "border-emerald-500 bg-emerald-50" : "border-slate-200 bg-white hover:border-emerald-300"}`}>
-                                       <span className={`block text-sm font-black ${ativo ? "text-emerald-700" : "text-slate-700"}`}>{metodo.nome}</span>
-                                    </button>
-                                 );
-                              })}
-                           </div>
-                        </div>
-                     )}
 
                   </div>
 

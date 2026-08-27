@@ -2280,7 +2280,9 @@ function FichasRunner() {
                {fichasPagina.map(f => {
                   const peso = infoPesoFicha(f, fichas);
                   const unR = String(f.rendimento_unidade || "porcao").toLowerCase();
-                  const labelUn = { porcao: String(f.departamento || "").toLowerCase() === "bar" ? "doses" : "porções", kg: "kg", g: "g", l: "L", ml: "ml", un: "un" }[unR] || unR;
+                  const ehBarCard = String(f.departamento || "").toLowerCase() === "bar";
+                  const umSo = Number(f.rendimento_porcoes || 0) === 1;
+                  const labelUn = { porcao: ehBarCard ? (umSo ? "dose" : "doses") : (umSo ? "porção" : "porções"), kg: "kg", g: "g", l: "L", ml: "ml", un: "un" }[unR] || unR;
 
                   return (
                      <div key={f.id}
@@ -2341,8 +2343,11 @@ function FichasRunner() {
 
                                     <div className="divide-y divide-slate-100">
                                       <div className="flex min-h-12 items-center justify-between gap-3"><span className="text-sm font-bold text-slate-500">Rendimento</span><strong className="text-base text-slate-900">{rendimentoTexto}</strong></div>
-                                      <div className="flex min-h-12 items-center justify-between gap-3"><span className="text-sm font-bold text-slate-500">Porção</span><strong className="text-base text-slate-900">{pesoPorcao > 0 ? `${Math.round(pesoPorcao).toLocaleString("pt-BR")} ${String(f.departamento || "").toLowerCase() === "bar" ? "ml" : "g"}` : unR === "porcao" ? "1 porção" : "—"}</strong></div>
-                                      <div className="flex min-h-12 items-center justify-between gap-3"><span className="text-sm font-bold text-slate-500">Custo por porção</span><strong className="text-base text-slate-900">{fmtBRL(custoPorcao)}</strong></div>
+                                      {/* No bar o rendimento JA e a dose: repetir "1 porcao" logo
+                                          abaixo so gastava uma linha dizendo o mesmo. Na cozinha a
+                                          linha continua, porque la porcao e peso, nao rendimento. */}
+                                      {!ehBarCard && <div className="flex min-h-12 items-center justify-between gap-3"><span className="text-sm font-bold text-slate-500">Porção</span><strong className="text-base text-slate-900">{pesoPorcao > 0 ? `${Math.round(pesoPorcao).toLocaleString("pt-BR")} g` : unR === "porcao" ? "1 porção" : "—"}</strong></div>}
+                                      <div className="flex min-h-12 items-center justify-between gap-3"><span className="text-sm font-bold text-slate-500">{ehBarCard ? "Custo por dose" : "Custo por porção"}</span><strong className="text-base text-slate-900">{fmtBRL(custoPorcao)}</strong></div>
                                       <div className="flex min-h-12 items-center justify-between gap-3">
                                         <span className="text-sm font-black text-slate-600">{f.eh_base ? "Custo total" : "CMV"}</span>
                                         {f.eh_base ? <strong className="text-lg text-amber-700">{fmtBRL(custoTotal)}</strong> : <span className={`rounded-lg px-3 py-1.5 text-base font-black ${cmv === null ? "bg-slate-100 text-slate-400" : cmv > meta ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>{cmv !== null ? `${cmv.toFixed(1)}%` : "—"}</span>}
@@ -2627,7 +2632,9 @@ function FichasRunner() {
          const peso = infoPesoFicha(f, fichas);
          const custoTotal = custoTotalDaFicha(f, fichas);
          const unR = String(f.rendimento_unidade || "porcao").toLowerCase();
-         const labelUn = { porcao: String(f.departamento || "").toLowerCase() === "bar" ? "doses" : "porções", kg: "kg", g: "g", l: "L", ml: "ml", un: "un" }[unR] || unR;
+         const ehBarView = String(f.departamento || "").toLowerCase() === "bar";
+         const umSoView = Number(f.rendimento_porcoes || 0) === 1;
+         const labelUn = { porcao: ehBarView ? (umSoView ? "dose" : "doses") : (umSoView ? "porção" : "porções"), kg: "kg", g: "g", l: "L", ml: "ml", un: "un" }[unR] || unR;
          const rend = Number(f.rendimento_porcoes) || 0;
          const porcoes = (unR === "porcao" || unR === "un") ? rend : (peso?.porcoes || 0);
          const custoPorcao = porcoes > 0 ? custoTotal / porcoes : custoTotal;

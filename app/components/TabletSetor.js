@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  AlertTriangle, ArrowLeft, Boxes, Check, CheckCircle2, ChefHat, CircleDollarSign, Clock, GlassWater, History, Layers3, Maximize2, Minus,
+  ArrowLeft, Boxes, Check, CheckCircle2, ChefHat, GlassWater, History, Layers3, Maximize2, Minus,
   Mic, MicOff, Package, PackageMinus, PackagePlus, Plus, RefreshCw, Search, ShoppingBasket,
   Settings2, Sparkles, Trash2, UserRound, X, XCircle,
   // Ãcones dos produtos. A lista tem de bater com ICONES_USADOS de
@@ -228,15 +228,6 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "ð
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [toast, setToast] = useState(null);
-  const [ultimoResultado, setUltimoResultado] = useState([]);
-  // O aviso cobria a tela inteira e exigia um toque a cada lancamento. Quem
-  // esta conferindo estoque lanca item atras de item -- o toque extra so
-  // atrapalha, e o saldo novo ja aparece no proprio card atras do aviso.
-  useEffect(() => {
-    if (!ultimoResultado.length) return undefined;
-    const t = setTimeout(() => setUltimoResultado([]), 4500);
-    return () => clearTimeout(t);
-  }, [ultimoResultado]);
   const [filtroHistorico, setFiltroHistorico] = useState("todos");
   const [auditoriaVozAberta, setAuditoriaVozAberta] = useState(false);
   const [ouvindoVoz, setOuvindoVoz] = useState(false);
@@ -396,7 +387,6 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "ð
     setResponsavelId("");
     setSelecionados({});
     setBusca("");
-    setUltimoResultado([]);
     setAba("operacao");
   };
 
@@ -405,14 +395,12 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "ð
       setResponsavelId("");
       setSelecionados({});
       setBusca("");
-      setUltimoResultado([]);
       return;
     }
     if (tipoEstoque) {
       setTipoEstoque("");
       setSelecionados({});
       setBusca("");
-      setUltimoResultado([]);
       // Ãrea direta nÃ£o tem tela de escolha para voltar: sai para as Ã¡reas.
       if (AREAS_DIRETAS.includes(departamento) && !setorFixo) setSetorEscolhido("");
       return;
@@ -421,7 +409,6 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "ð
       setSetorEscolhido("");
       setSelecionados({});
       setBusca("");
-      setUltimoResultado([]);
       return;
     }
     router.push(voltarHref || "/dashboard");
@@ -597,23 +584,6 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "ð
 
   useEffect(() => () => escutaVozRef.current?.parar?.(), []);
 
-  const kanbans = useMemo(() => {
-    const abaixo = itens.filter(item => item.minimo != null && numero(item.quantidade) <= numero(item.minimo)).length;
-    const semSaldo = itens.filter(item => numero(item.quantidade) <= 0).length;
-    const valor = itens.reduce((soma, item) => soma + numero(item.valorTotal), 0);
-    const proximas = itens.filter(item => {
-      if (!item.validade) return false;
-      const dias = (new Date(item.validade).getTime() - Date.now()) / 86400000;
-      return dias >= 0 && dias <= 7;
-    }).length;
-    return [
-      { rotulo: "Produtos", valor: itens.length, detalhe: "cadastrados no setor", cor: "#4F46E5", fundo: "#EEF2FF", icone: Boxes },
-      { rotulo: "Valor no estoque", valor: valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }), detalhe: "saldo financeiro atual", cor: "#047857", fundo: "#ECFDF5", icone: CircleDollarSign },
-      { rotulo: "Abaixo do mÃ­nimo", valor: abaixo, detalhe: "precisam de reposiÃ§Ã£o", cor: "#BE123C", fundo: "#FFF1F2", icone: AlertTriangle },
-      { rotulo: "Sem saldo", valor: semSaldo, detalhe: "produtos zerados", cor: "#C2410C", fundo: "#FFF7ED", icone: PackageMinus },
-      { rotulo: "Validade prÃ³xima", valor: proximas, detalhe: "prÃ³ximos 7 dias", cor: "#A16207", fundo: "#FEFCE8", icone: Clock },
-    ];
-  }, [itens]);
 
   function alternarItem(item) {
     setSelecionados(atual => {
@@ -733,29 +703,10 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "ð
     setSelecionados(atual => Object.fromEntries(
       Object.entries(atual).filter(([id]) => !idsConcluidos.has(String(id)))
     ));
-    const itensAtualizados = await carregar(false);
+    // O saldo novo aparece no proprio card do produto assim que a lista
+    // recarrega. O painel que repetia isso por cima da tela saiu.
+    await carregar(false);
     setSalvando(false);
-
-    const movimentados = listaSelecionados
-      .filter(item => idsConcluidos.has(String(item.id)))
-      .map(item => {
-        const atualizado = itensAtualizados.find(candidato => String(candidato.id) === String(item.id));
-        const saldoNovo = atualizado
-          ? numero(atualizado.quantidade)
-          : tipo === "entrada"
-            ? numero(item.disponivel) + numero(item.quantidade)
-            : Math.max(0, numero(item.disponivel) - numero(item.quantidade));
-        return {
-          id: item.id,
-          nome: item.nome,
-          unidade: item.unidade,
-          quantidadeMovida: numero(item.quantidade),
-          saldoAnterior: numero(item.disponivel),
-          saldoNovo,
-          tipo,
-        };
-      });
-    setUltimoResultado(movimentados);
 
     if (resultado.erros.length) {
       setToast({
@@ -880,9 +831,7 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "ð
         .estoque-rapido-abas{display:flex;background:#F1F5F9;padding:4px;border-radius:14px;gap:4px}.estoque-rapido-abas button{height:40px;padding:0 15px;border:0;border-radius:10px;background:transparent;color:#64748B;font-weight:800;display:flex;align-items:center;gap:7px;cursor:pointer}.estoque-rapido-abas button.ativo{background:#fff;color:#0F172A;box-shadow:0 2px 8px rgba(15,23,42,.08)}
         .estoque-rapido-voz{height:44px;padding:0 14px;border:0;border-radius:13px;background:#7C3AED;color:#fff;font-weight:900;display:flex;align-items:center;gap:7px;cursor:pointer;box-shadow:0 7px 18px rgba(124,58,237,.25);white-space:nowrap}
         .estoque-rapido-conteudo{max-width:1240px;margin:auto;padding:20px 18px}.estoque-rapido-passos{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
-        .estoque-rapido-kanban{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:14px}.estoque-rapido-kpi{background:#fff;border:1px solid #E2E8F0;border-radius:18px;padding:14px;display:flex;align-items:center;gap:11px;box-shadow:0 6px 18px rgba(15,23,42,.04);min-width:0}.estoque-rapido-kpi-icone{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;flex:none}.estoque-rapido-kpi strong{display:block;font-size:20px;line-height:1.1;overflow:hidden;text-overflow:ellipsis}.estoque-rapido-kpi b{display:block;font-size:11px;color:#475569;margin-top:3px}.estoque-rapido-kpi small{display:block;font-size:10px;color:#94A3B8;margin-top:2px}
         .estoque-rapido-validade{display:grid;gap:5px;margin-top:9px}.estoque-rapido-validade span{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#64748B}.estoque-rapido-validade input{height:46px;border:1px solid #CBD5E1;border-radius:12px;padding:0 12px;font-size:15px;font-weight:800;color:#0F172A;background:#fff}
-        .estoque-rapido-resultado{position:fixed;left:0;right:0;bottom:0;z-index:95;margin:0;padding:14px;display:grid;justify-items:center;pointer-events:none}.estoque-rapido-resultado-painel{pointer-events:auto;width:min(560px,100%);max-height:min(420px,calc(100vh - 36px));overflow:auto;background:#ECFDF5;border:1px solid #A7F3D0;border-radius:24px;padding:20px;box-shadow:0 28px 70px rgba(15,23,42,.32)}.estoque-rapido-resultado-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px;color:#047857}.estoque-rapido-resultado-topo strong{display:flex;align-items:center;gap:9px;font-size:19px}.estoque-rapido-resultado-topo span{display:block;margin-top:4px;color:#475569;font-size:13px;font-weight:700}.estoque-rapido-resultado-topo button{width:40px;height:40px;border:0;border-radius:12px;background:#D1FAE5;color:#047857;display:grid;place-items:center;flex:none}.estoque-rapido-resultado-lista{display:grid;gap:9px}.estoque-rapido-resultado-item{display:grid;grid-template-columns:minmax(160px,1fr) auto;align-items:center;gap:8px 12px;background:#fff;border:1px solid #D1FAE5;border-radius:15px;padding:13px 15px}.estoque-rapido-resultado-item strong{font-size:15px}.estoque-rapido-resultado-mov{font-weight:950;color:#047857}.estoque-rapido-resultado-item.saida .estoque-rapido-resultado-mov{color:#BE123C}.estoque-rapido-resultado-saldo{grid-column:1/-1;font-size:13px;font-weight:800;color:#475569}.estoque-rapido-resultado-saldo b{color:#0F172A;font-size:20px}.estoque-rapido-resultado-continuar{width:100%;height:50px;margin-top:14px;border:0;border-radius:14px;background:#059669;color:#fff;font-size:15px;font-weight:950;cursor:pointer}
         .estoque-rapido-painel{background:#fff;border:1px solid #E2E8F0;border-radius:20px;padding:17px;box-shadow:0 8px 24px rgba(15,23,42,.04)}.estoque-rapido-painel h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:#64748B;margin:0 0 12px;display:flex;align-items:center;gap:7px}
         .estoque-rapido-painel select,.estoque-rapido-painel input[type=text]{width:100%;height:52px;border:2px solid #E2E8F0;border-radius:14px;background:#F8FAFC;padding:0 14px;color:#0F172A;font-size:16px;font-weight:750;outline:none}.estoque-rapido-painel select:focus,.estoque-rapido-painel input[type=text]:focus{border-color:var(--acao)}
         .estoque-rapido-tipos{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.estoque-rapido-tipos button{height:42px;font-size:13px;border:2px solid #E2E8F0;border-radius:14px;background:#F8FAFC;font-size:15px;font-weight:900;color:#64748B;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer}.estoque-rapido-tipos button.entrada.ativo{border-color:#047857;background:#059669;color:#fff;box-shadow:0 4px 14px rgba(5,150,105,.35)}.estoque-rapido-tipos button.saida.ativo{border-color:#9F1239;background:#E11D48;color:#fff;box-shadow:0 4px 14px rgba(225,29,72,.35)}
@@ -901,7 +850,6 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "ð
         .estoque-rapido-toast{position:fixed;z-index:100;left:50%;bottom:100px;transform:translateX(-50%);max-width:min(620px,calc(100vw - 28px));padding:14px 15px;border-radius:14px;color:#fff;display:flex;align-items:center;gap:9px;box-shadow:0 14px 34px rgba(15,23,42,.25);font-weight:800}.estoque-rapido-toast span{flex:1}.estoque-rapido-toast button{border:0;background:transparent;color:#fff;display:grid;place-items:center}
         .estoque-voz-modal{position:fixed;inset:0;z-index:280;background:rgba(15,23,42,.66);padding:16px;display:grid;place-items:center;backdrop-filter:blur(5px)}.estoque-voz-card{position:relative;width:min(590px,100%);max-height:calc(100vh - 32px);overflow:auto;background:#fff;border-radius:26px;padding:24px;box-shadow:0 30px 80px rgba(15,23,42,.4)}.estoque-voz-fechar{position:absolute;right:14px;top:14px;width:42px;height:42px;border:0;border-radius:13px;background:#F1F5F9;color:#64748B;display:grid;place-items:center}.estoque-voz-topo{padding-right:46px}.estoque-voz-topo span{width:58px;height:58px;border-radius:18px;background:#EDE9FE;color:#7C3AED;display:grid;place-items:center;margin-bottom:12px}.estoque-voz-topo h2{margin:0;font-size:24px}.estoque-voz-topo p{margin:6px 0 0;color:#64748B;font-size:14px;font-weight:700}.estoque-voz-transcricao{min-height:55px;margin-top:17px;border:2px solid #DDD6FE;border-radius:15px;background:#FAF5FF;padding:13px;color:#5B21B6;font-weight:850}.estoque-voz-resposta{margin-top:10px;border-radius:15px;background:#F1F5F9;padding:13px;color:#334155;font-size:14px;font-weight:750;line-height:1.45}.estoque-voz-exemplos{margin-top:15px}.estoque-voz-exemplos strong{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#64748B;margin-bottom:7px}.estoque-voz-exemplos button{width:100%;min-height:40px;margin-top:6px;border:1px solid #E2E8F0;border-radius:11px;background:#fff;padding:8px 11px;text-align:left;color:#475569;font-weight:750}.estoque-voz-ouvir{width:100%;min-height:56px;margin-top:17px;border:0;border-radius:16px;background:#7C3AED;color:#fff;font-size:16px;font-weight:950;display:flex;align-items:center;justify-content:center;gap:9px}.estoque-voz-ouvir.ouvindo{background:#E11D48;animation:estoquePulso 1.1s infinite}@keyframes estoquePulso{50%{transform:scale(.985);opacity:.88}}
         .estoque-rapido-vazio{min-height:100vh;background:#F8FAFC;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;color:#64748B}.estoque-rapido-vazio h1{color:#0F172A;margin:15px 0 6px}.estoque-rapido-vazio p{margin:0 0 20px}.estoque-rapido-vazio button{height:48px;padding:0 18px;border:0;border-radius:13px;background:#0F172A;color:#fff;font-weight:800;display:flex;align-items:center;gap:8px}
-        @media(max-width:1000px){.estoque-rapido-kanban{grid-template-columns:repeat(3,minmax(0,1fr))}}
         @media(max-width:850px){.estoque-rapido-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
         @media(max-width:620px){
           .estoque-rapido{padding-bottom:24px}
@@ -914,13 +862,10 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "ð
           .estoque-rapido-abas-label{display:none}
           .estoque-rapido-voz{width:40px;height:40px;padding:0;justify-content:center;border-radius:11px}.estoque-rapido-voz span{display:none}
           .estoque-rapido-conteudo{padding:10px 10px}
-          .estoque-rapido-kanban{display:flex;grid-template-columns:none;gap:8px;margin:0 -10px 10px;padding:0 10px 3px;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none}.estoque-rapido-kanban::-webkit-scrollbar{display:none}
-          .estoque-rapido-kpi{flex:0 0 148px;scroll-snap-align:start;padding:9px;gap:8px;border-radius:14px}.estoque-rapido-kpi-icone{width:34px;height:34px;border-radius:10px}.estoque-rapido-kpi strong{font-size:16px}.estoque-rapido-kpi b{font-size:10px}.estoque-rapido-kpi small{display:none}
           .estoque-rapido-passos{grid-template-columns:1fr;margin-bottom:10px}.estoque-rapido-painel{padding:10px;border-radius:14px}.estoque-rapido-painel h2{font-size:10px;margin-bottom:8px}.estoque-rapido-tipos{gap:7px}.estoque-rapido-tipos button{height:46px;border-radius:11px;font-size:14px}
           .estoque-rapido-busca{margin:10px 0}.estoque-rapido-busca input{height:48px;border-radius:13px;padding-left:45px}.estoque-rapido-busca svg{left:14px;top:14px}.estoque-rapido-busca button{top:8px}
           .estoque-rapido-contador{margin-bottom:8px}.estoque-rapido-contador h2{font-size:16px}
           .estoque-rapido-grid{grid-template-columns:1fr}.estoque-rapido-item{min-height:0;padding:13px;border-radius:15px}.estoque-rapido-saldo{margin-top:9px}.estoque-rapido-saldo strong{font-size:20px}
-          .estoque-rapido-resultado{padding:10px}.estoque-rapido-resultado-painel{max-height:calc(100vh - 20px);padding:15px;border-radius:18px}.estoque-rapido-resultado-topo strong{font-size:16px}.estoque-rapido-resultado-item{grid-template-columns:1fr auto;gap:6px}.estoque-rapido-resultado-saldo{grid-column:1/-1}.estoque-rapido-resultado-saldo b{font-size:18px}
                     .estoque-rapido-hist-item{grid-template-columns:42px 1fr}.estoque-rapido-hist-item time{grid-column:2;text-align:left}.estoque-rapido-toast{bottom:140px}
           .estoque-voz-modal{padding:9px}.estoque-voz-card{max-height:calc(100vh - 18px);border-radius:20px;padding:18px 14px}.estoque-voz-topo h2{font-size:20px}
         }
@@ -945,40 +890,6 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "ð
 
       {aba === "operacao" ? (
         <main className="estoque-rapido-conteudo">
-          <section className="estoque-rapido-kanban" aria-label="Indicadores do estoque">
-            {kanbans.map(card => {
-              const Icone = card.icone;
-              return (
-                <article className="estoque-rapido-kpi" key={card.rotulo}>
-                  <span className="estoque-rapido-kpi-icone" style={{ color: card.cor, background: card.fundo }}><Icone size={21} /></span>
-                  <span><strong style={{ color: card.cor }}>{card.valor}</strong><b>{card.rotulo}</b><small>{card.detalhe}</small></span>
-                </article>
-              );
-            })}
-          </section>
-
-          {ultimoResultado.length > 0 && (
-            <section className="estoque-rapido-resultado" role="status" aria-live="polite" aria-label="Saldo atualizado do estoque">
-              <div className="estoque-rapido-resultado-painel">
-                <div className="estoque-rapido-resultado-topo">
-                  <div>
-                    <strong><CheckCircle2 size={23} /> Saldo atualizado do estoque</strong>
-                    <span>{tipo === "entrada" ? "Produtos adicionados com sucesso." : "Produtos retirados com sucesso."}</span>
-                  </div>
-                  <button onClick={() => setUltimoResultado([])} aria-label="Fechar resultado"><X size={19} /></button>
-                </div>
-                <div className="estoque-rapido-resultado-lista">
-                  {ultimoResultado.map(item => (
-                    <div className={`estoque-rapido-resultado-item ${item.tipo}`} key={item.id}>
-                      <strong>{item.nome}</strong>
-                      <span className="estoque-rapido-resultado-mov">{item.tipo === "entrada" ? "+" : "âˆ’"}{fmtQtd(item.quantidadeMovida)} {rotuloUnidade(item.unidade, item.quantidadeMovida)}</span>
-                      <span className="estoque-rapido-resultado-saldo">Agora tem no estoque: <b>{fmtQtd(item.saldoNovo)} {rotuloUnidade(item.unidade, item.saldoNovo)}</b></span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </section>
-          )}
           <div className="estoque-rapido-busca" ref={refBusca}>
             <Search size={20} />
             {/* Sem autoFocus: no tablet ele abria o teclado por cima da lista

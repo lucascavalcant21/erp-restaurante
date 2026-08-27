@@ -12,16 +12,50 @@ const UNIDADES = {
   fardo: { familia: "unidade", paraBase: valor => valor, rotulo: "Lata" },
 };
 
+// UNIDADE mede; EMBALAGEM conta. Garrafa, lata e barril estavam misturadas na
+// mesma lista das unidades de medida, e escolher "Garrafa" fazia o volume
+// desaparecer: 500 ml de agua viravam "500 garrafas". Agora sao duas perguntas
+// separadas — quanto (500 ml) e em que (garrafa).
 export const UNIDADES_INGREDIENTE = [
   { value: "ml", label: "ml" },
   { value: "l", label: "L" },
+  { value: "g", label: "g" },
+  { value: "kg", label: "kg" },
   { value: "un", label: "unidade (un)" },
+];
+
+// O bar mede tudo em volume. Poder escolher kg numa garrafa de gin so gerava
+// ficha com rendimento errado.
+export const UNIDADES_INGREDIENTE_BAR = [
+  { value: "ml", label: "ml" },
+  { value: "l", label: "L" },
+];
+
+export function unidadesDoDepartamento(departamento) {
+  return String(departamento || "").toLowerCase() === "bar"
+    ? UNIDADES_INGREDIENTE_BAR
+    : UNIDADES_INGREDIENTE;
+}
+
+// Em que o volume/peso vem embalado. Vazio = a granel, pesado na balanca.
+export const EMBALAGENS_INGREDIENTE = [
+  { value: "", label: "A granel / sem embalagem" },
   { value: "garrafa", label: "Garrafa" },
   { value: "lata", label: "Lata" },
   { value: "barril", label: "Barril (Chopp)" },
-  { value: "g", label: "g" },
-  { value: "kg", label: "kg" },
+  { value: "caixa", label: "Caixa" },
+  { value: "pacote", label: "Pacote" },
+  { value: "saco", label: "Saco" },
+  { value: "pote", label: "Pote" },
+  { value: "un", label: "Unidade" },
 ];
+
+export function rotuloEmbalagem(valor) {
+  const achado = EMBALAGENS_INGREDIENTE.find(e => e.value === String(valor || "").toLowerCase());
+  // "Barril (Chopp)" e bom no seletor e ruim no meio da frase: o parentese
+  // vira "30 L por barril (chopp)".
+  return achado && achado.value ? achado.label.replace(/\s*\(.*\)$/, "").toLowerCase() : "";
+}
 
 // Unidades que CONTAM em vez de medir. Uma garrafa não é uma quantidade: é um
 // recipiente, e o que interessa na receita é quanto cabe nele. Por isso essas
@@ -35,18 +69,42 @@ export const ehUnidadeContada = (unidade) =>
 // quando ninguém preencheu o volume — nesse caso a receita continua sem saber o
 // rendimento, que é melhor do que inventar um número.
 export function volumeUnitarioMl(insumo) {
-  if (!ehUnidadeContada(insumo?.unidade_medida)) return 0;
+  // Caminho novo: mede em ml/L e vem embalado. 500 ml numa garrafa = 500 ml
+  // por garrafa. tamanho_embalagem ja e o conteudo de UMA embalagem.
+  const un = String(insumo?.unidade_medida || "").toLowerCase();
+  if (un === "ml" || un === "l") {
+    if (!String(insumo?.unidade_comercial || "").trim()) return 0;
+    const tam = Number(insumo?.tamanho_embalagem);
+    if (!Number.isFinite(tam) || tam <= 0) return 0;
+    return un === "l" ? tam * 1000 : tam;
+  }
+  // Caminho antigo: quem foi cadastrado com "garrafa" na unidade de medida,
+  // quando as duas listas eram uma so. O volume ficou em volume_unidade_ml.
+  if (!ehUnidadeContada(un)) return 0;
   const ml = Number(insumo?.volume_unidade_ml);
   return Number.isFinite(ml) && ml > 0 ? ml : 0;
+}
+
+// Em que esse volume vem: "garrafa", "lata", "barril". Vazio quando o item e
+// a granel — ai nao ha embalagem para mostrar.
+export function embalagemDoInsumo(insumo) {
+  const comercial = String(insumo?.unidade_comercial || "").toLowerCase().trim();
+  if (comercial) return rotuloEmbalagem(comercial) || comercial;
+  const un = String(insumo?.unidade_medida || "").toLowerCase();
+  return ehUnidadeContada(un) ? un : "";
 }
 
 // "500 ml", "1 L", "30 L" — como mostrar o volume de uma unidade contada.
 export function rotuloVolumeUnitario(insumo) {
   const ml = volumeUnitarioMl(insumo);
   if (!ml) return "";
-  return ml >= 1000
+  const medida = ml >= 1000
     ? `${(ml / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} L`
     : `${ml.toLocaleString("pt-BR", { maximumFractionDigits: 0 })} ml`;
+  // O volume sozinho nao diz onde ele esta. "500 ml" pode ser garrafa, lata ou
+  // uma medida solta; "500 ml por garrafa" e o que a pessoa precisa ler.
+  const emb = embalagemDoInsumo(insumo);
+  return emb ? `${medida} por ${emb}` : medida;
 }
 
 // A cozinha tem o mesmo problema do bar, só que em peso. "1 un" de tomate não
@@ -58,7 +116,15 @@ export const ehUnidadeUnitaria = (unidade) =>
 // Quantos gramas vale 1 unidade. Zero quando não é "un" ou quando ninguém
 // preencheu — aí o item fica de fora do rendimento, como a garrafa sem volume.
 export function pesoUnitarioG(insumo) {
-  if (!ehUnidadeUnitaria(insumo?.unidade_medida)) return 0;
+  // Mesma logica do volume, do lado do peso: 5 kg num saco = 5 kg por saco.
+  const un = String(insumo?.unidade_medida || "").toLowerCase();
+  if (un === "g" || un === "kg") {
+    if (!String(insumo?.unidade_comercial || "").trim()) return 0;
+    const tam = Number(insumo?.tamanho_embalagem);
+    if (!Number.isFinite(tam) || tam <= 0) return 0;
+    return un === "kg" ? tam * 1000 : tam;
+  }
+  if (!ehUnidadeUnitaria(un)) return 0;
   const g = Number(insumo?.peso_medio_g);
   return Number.isFinite(g) && g > 0 ? g : 0;
 }
@@ -67,9 +133,11 @@ export function pesoUnitarioG(insumo) {
 export function rotuloPesoUnitario(insumo) {
   const g = pesoUnitarioG(insumo);
   if (!g) return "";
-  return g >= 1000
+  const medida = g >= 1000
     ? `${(g / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} kg`
     : `${g.toLocaleString("pt-BR", { maximumFractionDigits: 0 })} g`;
+  const emb = embalagemDoInsumo(insumo);
+  return emb ? `${medida} por ${emb}` : `${medida} por unidade`;
 }
 
 export function parseNumeroBR(valor) {

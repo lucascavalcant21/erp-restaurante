@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { ClipboardList, Plus, Trash2, Edit3, Printer, Camera, Clock, Sparkles, Loader2, ArrowUp, ArrowDown, SlidersHorizontal, Save, RotateCcw, ImageIcon, Maximize, Type, Palette, ListChecks, Download, Share2, X, Eye, Wine } from "lucide-react";
+import { ClipboardList, Plus, Trash2, Edit3, Printer, Camera, Sparkles, Loader2, ArrowUp, ArrowDown, SlidersHorizontal, Save, RotateCcw, ImageIcon, Type, Palette, ListChecks, Download, Share2, X, Eye, Wine, CheckSquare, Square } from "lucide-react";
 import {
-  PageHeader, PageBody, Card, SectionLabel, KpiGrid, Kpi,
+  PageHeader, PageBody, Card, SectionLabel,
   SearchBar, Chips, EmptyState, Modal, Field, TextInput, NumberInput, Select, Btn, Toast,
 } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
@@ -1925,6 +1925,7 @@ function MontagemPageInner() {
   };
   // Seleção de fichas para imprimir juntas (ex.: 2 receitas na mesma página)
   const [selecionadas, setSelecionadas] = useState([]);
+  const [excluindo, setExcluindo] = useState(false);
   const toggleSel = (id) => setSelecionadas(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
   // Ver o que foi tirado do guia, para poder devolver. Sem isso, tirar seria
   // uma porta só de ida e ninguém arriscaria usar.
@@ -2118,6 +2119,38 @@ function MontagemPageInner() {
     carregar();
   }
 
+  // Marca ou desmarca o que esta na tela AGORA, respeitando busca e filtro:
+  // "todos" tem que querer dizer o que a pessoa esta vendo, nao a base inteira.
+  function alternarTodos() {
+    const idsNaTela = filtrados.map((m) => m.id);
+    const todosMarcados = idsNaTela.length > 0 && idsNaTela.every((id) => selecionadas.includes(id));
+    setSelecionadas(todosMarcados ? [] : idsNaTela);
+  }
+
+  async function removerSelecionadas() {
+    const alvos = lista.filter((m) => selecionadas.includes(m.id));
+    if (!alvos.length) return;
+    // Nome dos primeiros na confirmacao: "excluir 12 fichas" nao deixa conferir
+    // se a selecao e a que se pretendia.
+    const amostra = alvos.slice(0, 5).map((m) => `· ${m.nome}`).join("\n");
+    const resto = alvos.length > 5 ? `\n· e mais ${alvos.length - 5}` : "";
+    if (!confirm(`Excluir ${alvos.length} ficha(s) de montagem?\n\n${amostra}${resto}\n\nNão tem desfazer.`)) return;
+
+    setExcluindo(true);
+    const falhas = [];
+    for (const m of alvos) {
+      const r = await removerMontagem(m.id);
+      if (r?.error) falhas.push(`${m.nome} (${r.error})`);
+    }
+    const idsFalhos = new Set(alvos.filter((m) => falhas.some((f) => f.startsWith(m.nome))).map((m) => m.id));
+    setLista((p) => p.filter((m) => !selecionadas.includes(m.id) || idsFalhos.has(m.id)));
+    setSelecionadas([]);
+    setExcluindo(false);
+    // O lote continua ate o fim mesmo com erro, mas quem falhou e nomeado:
+    // antes uma exclusao recusada sumiria da tela e voltaria no proximo load.
+    if (falhas.length) alert(`${alvos.length - falhas.length} de ${alvos.length} excluída(s).\n\nNão saíram:\n${falhas.join("\n")}`);
+  }
+
   async function remover(id) {
     if (!confirm("Remover esta ficha de montagem?")) return;
     await removerMontagem(id);
@@ -2217,9 +2250,6 @@ function MontagemPageInner() {
         active="montagem"
         dept={dept}
         title={dept === "bar" ? "Guia de montagem do Bar" : "Guia de montagem da Cozinha"}
-        description={dept === "bar"
-          ? "Converta as fichas em instruções visuais de copo, dosagem, finalização e serviço para toda a equipe."
-          : "Converta receitas em padrões visuais claros de porcionamento, montagem, acabamento e apresentação."}
         total={filtrados.length}
         mostrarEtapas={false}
         onPrimary={() => { setEditar(null); setModal(true); }}
@@ -2247,26 +2277,10 @@ function MontagemPageInner() {
             </>
           );
         })()}
-        <button
-          onClick={() => {
-            if (!filtrados.length) return alert("Nenhuma ficha cadastrada nesta área.");
-            setGuiaModoPraca(filtrados[0]);
-          }}
-          className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-500 shadow-md shadow-emerald-600/30 transition-all active:scale-95"
-          title="Abrir o Modo Produção em Tela Cheia para Tablet ou TV da Cozinha/Bar"
-        >
-          <Maximize size={15} /> Modo Produção / Praça
-        </button>
         <button onClick={() => setModalImpressao(true)} className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15"><Printer size={14} /> Imprimir{selecionadas.length ? ` (${selecionadas.length})` : ""}</button>
       </RecipeWorkspace>
       <PageBody className="max-w-7xl mx-auto">
         <Toast show={!!salvou}>{salvou}</Toast>
-
-        <KpiGrid>
-          <Kpi icon={ClipboardList} label="Fichas cadastradas" value={lista.length} tint="var(--accent-fg)" />
-          <Kpi icon={Sparkles} label="Geradas com IA" value={lista.filter(l => !!l.estrutura_ia).length} tint="#9333EA" />
-          <Kpi icon={Clock} label="Tempo médio" value={`${lista.length ? Math.round(lista.reduce((a, m) => a + (m.tempo_preparo || 0), 0) / lista.length) : 0} min`} tint="#3B82F6" />
-        </KpiGrid>
 
         <div className="erp-card p-3 sm:p-4 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_auto] gap-3 items-center">
           <SearchBar value={busca} onChange={setBusca} placeholder={dept === "bar" ? "Buscar drink ou montagem..." : "Buscar prato ou montagem..."} autoFocus />
@@ -2280,6 +2294,23 @@ function MontagemPageInner() {
             className={`min-h-10 rounded-xl border px-3 text-xs font-black ${verForaDoGuia ? "border-slate-800 bg-slate-800 text-white" : "border-slate-200 bg-white text-slate-600"}`}>
             {verForaDoGuia ? "Voltar ao guia" : `Fora do guia (${lista.filter(m => m.fora_do_guia || !temConteudoDrink(m)).length})`}
           </button>
+          {filtrados.length > 0 && (() => {
+            const todosMarcados = filtrados.every(m => selecionadas.includes(m.id));
+            return (
+              <button type="button" onClick={alternarTodos}
+                className="flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-600 hover:border-emerald-300">
+                {todosMarcados ? <CheckSquare size={15} /> : <Square size={15} />}
+                {todosMarcados ? "Desmarcar todos" : `Selecionar todos (${filtrados.length})`}
+              </button>
+            );
+          })()}
+          {selecionadas.length > 0 && (
+            <button type="button" onClick={removerSelecionadas} disabled={excluindo}
+              className="flex min-h-10 items-center gap-2 rounded-xl bg-red-600 px-4 text-xs font-black text-white hover:bg-red-700 disabled:opacity-60">
+              {excluindo ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+              {excluindo ? "Excluindo..." : `Excluir (${selecionadas.length})`}
+            </button>
+          )}
           {selecionadas.length > 0 && (
             <button type="button" onClick={() => mudarForaDoGuia(!verForaDoGuia)}
               className="min-h-10 rounded-xl bg-slate-800 px-4 text-xs font-black text-white hover:bg-slate-900">

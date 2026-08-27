@@ -23,6 +23,32 @@ export const UNIDADES_INGREDIENTE = [
   { value: "kg", label: "kg" },
 ];
 
+// Unidades que CONTAM em vez de medir. Uma garrafa não é uma quantidade: é um
+// recipiente, e o que interessa na receita é quanto cabe nele. Por isso essas
+// três pedem o volume no cadastro (insumos.volume_unidade_ml, em ml).
+export const UNIDADES_CONTADAS = new Set(["garrafa", "lata", "barril"]);
+
+export const ehUnidadeContada = (unidade) =>
+  UNIDADES_CONTADAS.has(String(unidade || "").toLowerCase().trim());
+
+// Quantos ml valem 1 unidade contada. Zero quando não é unidade contada ou
+// quando ninguém preencheu o volume — nesse caso a receita continua sem saber o
+// rendimento, que é melhor do que inventar um número.
+export function volumeUnitarioMl(insumo) {
+  if (!ehUnidadeContada(insumo?.unidade_medida)) return 0;
+  const ml = Number(insumo?.volume_unidade_ml);
+  return Number.isFinite(ml) && ml > 0 ? ml : 0;
+}
+
+// "500 ml", "1 L", "30 L" — como mostrar o volume de uma unidade contada.
+export function rotuloVolumeUnitario(insumo) {
+  const ml = volumeUnitarioMl(insumo);
+  if (!ml) return "";
+  return ml >= 1000
+    ? `${(ml / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} L`
+    : `${ml.toLocaleString("pt-BR", { maximumFractionDigits: 0 })} ml`;
+}
+
 export function parseNumeroBR(valor) {
   if (typeof valor === "number") return Number.isFinite(valor) ? valor : NaN;
   const texto = String(valor ?? "").trim().replace(/\s/g, "");

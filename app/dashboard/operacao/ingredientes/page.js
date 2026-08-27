@@ -44,6 +44,7 @@ import {
   precoNormalizadoDoInsumo,
   textoPesquisavel,
   unidadeNormalizada,
+  ehUnidadeContada, rotuloVolumeUnitario,
 } from "../../../lib/ingredientes-utils.mjs";
 import { fmtBRL } from "../../../components/ui";
 import { criarEscuta, vozDisponivel } from "../../../lib/hefisto-voz";
@@ -73,6 +74,7 @@ function novoFormulario(departamento = "cozinha") {
     codigo_interno: "",
     tamanho_embalagem: "1",
     unidade_medida: ehBar ? "ml" : "kg",
+    volume_unidade_ml: "",
     valor_embalagem: "",
     fornecedor_atual_id: "",
     fornecedor_ids: [],
@@ -487,6 +489,7 @@ function IngredientesRunner() {
       codigo_interno: insumo.codigo_interno || "",
       tamanho_embalagem: String(insumo.tamanho_embalagem || 1),
       unidade_medida: un,
+      volume_unidade_ml: insumo.volume_unidade_ml ? String(insumo.volume_unidade_ml) : "",
       valor_embalagem: String(Number(insumo.custo_compra) > 0 ? insumo.custo_compra : (insumo.custo_unitario || "")),
       fornecedor_atual_id: insumo.fornecedor_atual_id || "",
       fornecedor_ids: (insumo.fornecedores_vinculados || []).map(item => item.id).filter(Boolean),
@@ -582,6 +585,11 @@ function IngredientesRunner() {
       codigo_interno: form.codigo_interno.trim() || null,
       tamanho_embalagem: quantidade,
       unidade_medida: form.unidade_medida,
+      // Só faz sentido em garrafa/lata/barril. Trocar para ml zera o campo, senão
+      // ficaria um volume órfão contradizendo a unidade.
+      volume_unidade_ml: ehUnidadeContada(form.unidade_medida)
+        ? (parseNumeroBR(form.volume_unidade_ml) > 0 ? parseNumeroBR(form.volume_unidade_ml) : null)
+        : null,
       custo_compra: valor,
       custo_unitario: valor / quantidade,
       preco_normalizado: precoNormalizado,
@@ -1046,6 +1054,26 @@ function IngredientesRunner() {
                       );
                     })()}
                   </label>
+                  {/* Garrafa, lata e barril CONTAM em vez de medir. Sem dizer quanto cabe
+                      em cada uma, a ficha técnica não consegue somar o rendimento: uma
+                      garrafa valia zero na conta e o card de quantidade pedia
+                      ingredientes mesmo já tendo um. */}
+                  {ehUnidadeContada(form.unidade_medida) && (
+                    <label className="col-span-2">
+                      <span className="text-xs font-bold text-slate-600">
+                        Quanto cabe em 1 {form.unidade_medida === "barril" ? "barril" : form.unidade_medida} (ml) *
+                      </span>
+                      <input inputMode="decimal" value={form.volume_unidade_ml}
+                        onChange={event => !event.target.value.startsWith("-") && setForm({ ...form, volume_unidade_ml: event.target.value })}
+                        placeholder={form.unidade_medida === "barril" ? "30000" : form.unidade_medida === "lata" ? "350" : "500"}
+                        className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 font-bold outline-none focus:border-emerald-500" />
+                      <span className="mt-1 block text-[11px] font-medium text-slate-400">
+                        {parseNumeroBR(form.volume_unidade_ml) > 0
+                          ? `1 ${form.unidade_medida} = ${rotuloVolumeUnitario({ unidade_medida: form.unidade_medida, volume_unidade_ml: parseNumeroBR(form.volume_unidade_ml) })}`
+                          : "Sem isso a receita não sabe quanto rende. Barril de chopp: 30000."}
+                      </span>
+                    </label>
+                  )}
                   <label className="col-span-2">
                     <span className="text-xs font-bold text-slate-600">Valor da embalagem *</span>
                     <div className="mt-1.5 flex h-11 items-center rounded-xl border border-slate-200 bg-slate-50 px-3.5 focus-within:border-emerald-500">

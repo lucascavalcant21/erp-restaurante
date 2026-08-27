@@ -28,13 +28,16 @@ Supabase, deploy por `git push origin main` na Vercel
 ## O que está pendente, em ordem
 
 ### 1. Migrações — RODADAS EM 27/08
-As 17 da fila foram executadas. Falta rodar estes dois:
+As 17 da fila foram executadas. Falta rodar estes três:
 
 - **`db/LIMPAR_MONTAGENS_DUPLICADAS.sql`** — apaga os cards duplicados do guia
   de montagem e cria o índice único que impede voltarem. A primeira tentativa
   falhou porque o arquivo tinha um `'SUA_UNIDADE'` para trocar à mão e o passo
   do índice não usava esse filtro; foi corrigido e agora roda inteiro sem
   editar nada. Confirme se rodou até o `CREATE INDEX`.
+- **`db/migracao_insumo_volume_unidade.sql`** — cria `insumos.volume_unidade_ml`.
+  Sem ela o campo "Quanto cabe em 1 garrafa" não grava, e a ficha continua sem
+  conseguir somar o rendimento de quem é cadastrado em garrafa, lata ou barril.
 - **`db/CORRIGIR_PONTO_LARISSA_25_08_E_CEDEINE_27_08.sql`** — Larissa 25/08
   (entrada 15:40, intervalo 16:40–17:40, saída 00h) e Cedeine 27/08 (entrada
   15:40). Grava o ajuste no livro legal antes do resumo do dia, igual à tela de

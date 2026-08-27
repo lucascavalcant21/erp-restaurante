@@ -347,7 +347,7 @@ export async function fetchFichas(unidadeId, dept) {
       *,
       fichas_ingredientes!ficha_id(
         *,
-        insumos(id, nome, unidade_medida, custo_unitario, peso_medio_g, perda_pct, empanado, ganho_pct, custo_empanado_kg)
+        insumos(*)
       )
     `)
     .order("nome_receita");
@@ -365,7 +365,7 @@ export async function fetchFichas(unidadeId, dept) {
         *,
         fichas_ingredientes!ficha_id(
           *,
-          insumos(id, nome, unidade_medida, custo_unitario, peso_medio_g, perda_pct, empanado, ganho_pct, custo_empanado_kg)
+          insumos(*)
         )
       `)
       .order("nome_receita");

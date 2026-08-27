@@ -271,6 +271,17 @@ function pesoTotalDaFicha(rendimento, unidade, pesoPorcaoG) {
   return pesoPorcaoG > 0 ? rendimento * pesoPorcaoG : 0; // porções ou unidades
 }
 
+// Base do custo por rótulo. Por dentro 1 ml conta como 1 g (densidade 1) para
+// somar líquido e sólido na mesma conta, mas escrever "1 kg custa" numa receita
+// medida em ml confunde quem lê: xarope se compra e se serve em volume. Quando
+// a ficha não diz em que mede (rende em porções), vale o padrão do setor.
+function baseCustoDaFicha(unidadeRendimento, padrao = "kg") {
+  const un = String(unidadeRendimento || "").toLowerCase();
+  if (un === "l" || un === "ml") return "L";
+  if (un === "kg" || un === "g") return "kg";
+  return padrao;
+}
+
 // Info de peso de uma ficha: peso total produzido (g), custo por kg, peso por
 // porção e QUANTAS porções renderam. Vale quando a ficha tem peso_porcao_g
 // preenchido OU quando rende direto em peso/volume (kg/g/l/ml).
@@ -823,7 +834,9 @@ function FichasRunner() {
     return !f.eh_base && (f.categoria || "") === tipoFiltro; // categoria específica
   };
   const filtradas = fichas
-    .filter(f => f.nome_receita.toLowerCase().includes(busca.toLowerCase()) && passaFiltro(f))
+    // normalizarNome nos dois lados: quem digita "acai" tem de achar "Açaí",
+    // e quem digita "á" tem de achar "Agua". Ninguém procura com acento.
+    .filter(f => normalizarNome(f.nome_receita).includes(normalizarNome(busca)) && passaFiltro(f))
     .sort(ordenarFichas);
   const totalPaginas = Math.max(1, Math.ceil(filtradas.length / porPagina));
   const fichasPagina = filtradas.slice((pagina - 1) * porPagina, pagina * porPagina);
@@ -1077,9 +1090,11 @@ function FichasRunner() {
   ], [insumosAtivos, basesDisponiveis, embalagensCat]);
 
   const sugestoesIngrediente = useMemo(() => {
-    const termo = buscaIng.trim().toLocaleLowerCase("pt-BR");
+    // Sem acento dos dois lados: "a" acha "Água" e "c" acha "Açaí", porque
+    // normalizarNome tira o cedilha junto com os acentos.
+    const termo = normalizarNome(buscaIng);
     if (!termo) return [];
-    return opcoesIngrediente.filter(o => o.nome.toLocaleLowerCase("pt-BR").includes(termo)).slice(0, 8);
+    return opcoesIngrediente.filter(o => normalizarNome(o.nome).includes(termo)).slice(0, 8);
   }, [buscaIng, opcoesIngrediente]);
 
   const addIngrediente = (valor) => {
@@ -2149,20 +2164,20 @@ function FichasRunner() {
          <div className="grid grid-cols-2 gap-2 mb-3">
             {[
               {
-                id: "Preparos e receitas",
-                modo: "preparos",
-                titulo: "Preparos e receitas",
-                descricao: deptUrl === "bar" ? "Xaropes, espumas, infusões e bases usadas em outras fichas." : "Molhos, caldos, massas, arroz, feijão e outras bases do prato.",
-                quantidade: fichas.filter(f => !!f.eh_base).length,
-                icone: <BookOpen size={24} />,
-              },
-              {
                 id: "Pratos principais",
                 modo: "principais",
                 titulo: deptUrl === "bar" ? "Drinks e montagens" : "Pratos principais e montagens",
                 descricao: deptUrl === "bar" ? "Monte o drink final usando insumos e preparos já cadastrados." : "Monte o prato final separando claramente cada preparo e ingrediente.",
                 quantidade: fichas.filter(f => !f.eh_base).length,
                 icone: <UtensilsCrossed size={24} />,
+              },
+              {
+                id: "Preparos e receitas",
+                modo: "preparos",
+                titulo: "Preparos e receitas",
+                descricao: deptUrl === "bar" ? "Xaropes, espumas, infusões e bases usadas em outras fichas." : "Molhos, caldos, massas, arroz, feijão e outras bases do prato.",
+                quantidade: fichas.filter(f => !!f.eh_base).length,
+                icone: <BookOpen size={24} />,
               },
             ].map(item => (
               <button
@@ -2922,7 +2937,7 @@ function FichasRunner() {
                            <div className="space-y-2 text-sm">
                               <div className="flex items-center justify-between"><span className="text-slate-500 font-bold">Custo total da receita</span><span className="font-black text-slate-800">{fmtBRL(custoTotal)}</span></div>
                               <div className="flex items-center justify-between"><span className="text-slate-500 font-bold">Custo por porção</span><span className="font-black text-slate-800">{fmtBRL(custoPorcao)}</span></div>
-                              {custoKg !== null && <div className="flex items-center justify-between"><span className="text-slate-500 font-bold">Custo por kg</span><span className="font-black text-slate-800">{fmtBRL(custoKg)}</span></div>}
+                              {custoKg !== null && <div className="flex items-center justify-between"><span className="text-slate-500 font-bold">Custo por {baseCustoDaFicha(unR, unGrande)}</span><span className="font-black text-slate-800">{fmtBRL(custoKg)}</span></div>}
                            </div>
                            <div className="grid grid-cols-2 gap-2 mt-3">
                               <div className={`rounded-xl px-3 py-2 text-center border ${cmv !== null && cmv > meta ? "bg-red-50 border-red-200" : "bg-emerald-50 border-emerald-100"}`}>
@@ -3257,7 +3272,7 @@ function FichasRunner() {
                                           <p className="text-[10px] font-medium text-slate-400">somado dos ingredientes</p>
                                        </div>
                                        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center">
-                                          <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">1 kg custa</p>
+                                          <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">1 {baseCustoDaFicha(est.unidade, unGrande)} custa</p>
                                           <p className="text-2xl font-black text-emerald-700 mt-1">{fmtBRL(custoKg)}</p>
                                           <p className="text-[10px] font-medium text-emerald-600/70">custo total {fmtBRL(custoTotal)}</p>
                                        </div>
@@ -3410,7 +3425,7 @@ function FichasRunner() {
                                        </>
                                     )}
                                     {custoPorc !== null && <> · porção custa <span className="font-black text-emerald-700">{fmtBRL(custoPorc)}</span></>}
-                                    {custoKg !== null && <> · 1 kg custa <span className="font-black text-emerald-700">{fmtBRL(custoKg)}</span></>}
+                                    {custoKg !== null && <> · 1 {baseCustoDaFicha(unR, unGrande)} custa <span className="font-black text-emerald-700">{fmtBRL(custoKg)}</span></>}
                                  </p>
                                  {est && Math.abs(est.totalG - pesoTotalG) / Math.max(est.totalG, pesoTotalG) > 0.05 && (
                                     <p className="text-[10px] font-medium text-slate-400 mt-1">

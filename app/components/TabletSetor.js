@@ -14,9 +14,10 @@ import {
   Snowflake, Soup, Utensils, Wheat, Wine,
 } from "lucide-react";
 import {
-  fetchEstoques, fetchItensEstoque, fetchMovimentosMulti, garantirEstoquesPadrao,
-  registrarLoteMovimentosMulti,
+  atualizarItemEstoque, fetchEstoques, fetchItensEstoque, fetchMovimentosMulti,
+  garantirEstoquesPadrao, registrarLoteMovimentosMulti,
 } from "../lib/estoques-multiplos";
+import { fetchPins } from "../lib/seguranca";
 import { estoqueControlaLote } from "../lib/estoques-multiplos-utils.mjs";
 import { fetchNomesDePratosEDrinks } from "../lib/operacao";
 import { fetchEmbalagens } from "../lib/embalagens";
@@ -119,6 +120,9 @@ function normalizarItem(item, estoque, departamento = "") {
   return {
     ...item,
     id: `${estoque.id}:${item.insumo_id || item.id}`,
+    // O id do VINCULO (estoque_itens) some no id composto acima, e e ele
+    // que o update de minimo/maximo precisa.
+    estoqueItemId: item.id,
     estoqueId: estoque.id,
     estoqueNome: estoque.nome,
     controlaValidade: estoqueControlaLote(estoque),
@@ -127,6 +131,7 @@ function normalizarItem(item, estoque, departamento = "") {
     quantidade: saldoBase / fator,
     fator,
     minimo: item.estoque_minimo == null ? null : numero(item.estoque_minimo) / fator,
+    maximo: item.estoque_maximo == null ? null : numero(item.estoque_maximo) / fator,
     // Quanto cabe em cada garrafa/lata/pote. A regra tem exceção (fardo de 12
     // não é volume) e mora em volume-embalagem.mjs, com teste — a condição
     // solta que estava aqui escondia o Absolut de 1 L, porque 1 não é > 1.
@@ -585,6 +590,48 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
   useEffect(() => () => escutaVozRef.current?.parar?.(), []);
 
 
+  // Minimo e maximo mudam o que o sistema cobra de reposicao. Quem esta
+  // contando na geladeira nao decide isso sozinho, por isso pede o PIN do
+  // gerente — o mesmo que ja destrava o Modo Tablet do ponto, com 1234 de
+  // padrao e configuravel em config_sistema.
+  const [limitesItem, setLimitesItem] = useState(null);
+  const [salvandoLimites, setSalvandoLimites] = useState(false);
+
+  async function gravarLimites() {
+    if (!limitesItem?.estoqueItemId) {
+      setLimitesItem(l => ({ ...l, erro: "Este item ainda não está vinculado a este estoque." }));
+      return;
+    }
+    setSalvandoLimites(true);
+    // fetchPins devolve { data: { pin_gerente } }. Ler um nivel acima daria
+    // undefined e a senha certa seria recusada sempre.
+    const pins = await fetchPins(unidadeAtiva);
+    const esperado = String(pins?.data?.pin_gerente || "1234");
+    if (String(limitesItem.pin || "").trim() !== esperado) {
+      setSalvandoLimites(false);
+      setLimitesItem(l => ({ ...l, erro: "Senha incorreta." }));
+      return;
+    }
+    // A tela mostra na unidade de venda; o banco guarda na unidade-base. Sem
+    // multiplicar de volta pelo fator, um minimo de 2 garrafas viraria 2 ml.
+    const fator = numero(limitesItem.fator) || 1;
+    const paraBase = (valor) => {
+      const texto = String(valor ?? "").trim().replace(",", ".");
+      if (texto === "") return "";
+      const n = Number(texto);
+      return Number.isFinite(n) && n >= 0 ? n * fator : "";
+    };
+    const { error } = await atualizarItemEstoque(limitesItem.estoqueItemId, {
+      estoque_minimo: paraBase(limitesItem.minimo),
+      estoque_maximo: paraBase(limitesItem.maximo),
+    });
+    setSalvandoLimites(false);
+    if (error) { setLimitesItem(l => ({ ...l, erro: error })); return; }
+    setLimitesItem(null);
+    await carregar(false);
+    setToast({ tipo: "ok", msg: "Mínimo e máximo atualizados." });
+  }
+
   function alternarItem(item) {
     setSelecionados(atual => {
       const proximo = { ...atual };
@@ -844,7 +891,7 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
         .estoque-rapido-busca{position:sticky;top:0;z-index:30;margin:18px 0 14px;padding:8px 0;background:#F3F6FA}.estoque-rapido-busca svg{position:absolute;left:16px;top:17px;color:#94A3B8}.estoque-rapido-busca input{width:100%;height:54px;padding:0 50px;border:2px solid #E2E8F0;border-radius:16px;background:#fff;font-size:16px;outline:none}.estoque-rapido-busca input:focus{border-color:var(--acao)}.estoque-rapido-busca button{position:absolute;right:12px;top:11px;width:32px;height:32px;border:0;background:#F1F5F9;color:#64748B;border-radius:9px;display:grid;place-items:center}
         .estoque-rapido-contador{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.estoque-rapido-contador h2{font-size:18px;margin:0}.estoque-rapido-contador span{font-size:13px;font-weight:800;color:#64748B}
         .estoque-rapido-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.estoque-rapido-item{min-height:148px;background:#fff;border:2px solid #E2E8F0;border-radius:18px;padding:15px;text-align:left;cursor:pointer;transition:.15s;position:relative}.estoque-rapido-item:hover{border-color:#CBD5E1;transform:translateY(-1px)}.estoque-rapido-item.selecionado{border-color:var(--acao);background:var(--acao-suave);box-shadow:0 0 0 3px var(--acao-borda)}
-        .estoque-rapido-item-topo{display:flex;gap:10px;justify-content:space-between}.estoque-rapido-item-nome{font-size:16px;font-weight:900;line-height:1.25}.estoque-rapido-check{width:26px;height:26px;border:2px solid #CBD5E1;border-radius:8px;display:grid;place-items:center;color:transparent;flex:none}.selecionado .estoque-rapido-check{background:var(--acao);border-color:var(--acao);color:#fff}.estoque-rapido-saldo{margin:14px 0 0;color:#64748B;font-size:12px;font-weight:700}.estoque-rapido-saldo strong{display:block;color:#0F172A;font-size:22px;margin-top:2px}.estoque-rapido-item-icone{width:34px;height:34px;border-radius:11px;background:var(--acao-suave,#F1F5F9);color:var(--acao,#475569);display:grid;place-items:center;flex:none;margin-right:9px}.estoque-rapido-volume{font-size:12px;font-weight:800;color:#64748B;margin-top:2px}.estoque-rapido-minimo{font-size:11px;color:#94A3B8;margin-top:4px}
+        .estoque-rapido-item-topo{display:flex;gap:10px;justify-content:space-between}.estoque-rapido-item-nome{font-size:16px;font-weight:900;line-height:1.25}.estoque-rapido-check{width:26px;height:26px;border:2px solid #CBD5E1;border-radius:8px;display:grid;place-items:center;color:transparent;flex:none}.selecionado .estoque-rapido-check{background:var(--acao);border-color:var(--acao);color:#fff}.estoque-rapido-saldo{margin:14px 0 0;color:#64748B;font-size:12px;font-weight:700}.estoque-rapido-saldo strong{display:block;color:#0F172A;font-size:22px;margin-top:2px}.estoque-rapido-item-icone{width:34px;height:34px;border-radius:11px;background:var(--acao-suave,#F1F5F9);color:var(--acao,#475569);display:grid;place-items:center;flex:none;margin-right:9px}.estoque-rapido-volume{font-size:12px;font-weight:800;color:#64748B;margin-top:2px}.estoque-rapido-modal{position:fixed;inset:0;z-index:90;background:rgba(15,23,42,.55);display:grid;place-items:center;padding:18px}.estoque-rapido-modal-caixa{background:#fff;border-radius:20px;padding:20px;width:min(420px,100%);display:flex;flex-direction:column;gap:11px}.estoque-rapido-modal-caixa strong{font-size:18px}.estoque-rapido-modal-caixa p{color:#64748B;font-size:12px;font-weight:700;margin:0}.estoque-rapido-modal-caixa label{display:flex;flex-direction:column;gap:5px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#64748B}.estoque-rapido-modal-caixa input{height:48px;border:2px solid #E2E8F0;border-radius:13px;padding:0 13px;font-size:16px;font-weight:800;color:#0F172A;outline:none}.estoque-rapido-modal-caixa input:focus{border-color:var(--acao)}.estoque-rapido-modal-erro{color:#B91C1C!important;font-weight:800!important}.estoque-rapido-modal-botoes{display:flex;gap:9px;margin-top:4px}.estoque-rapido-modal-botoes button{flex:1;height:48px;border-radius:14px;border:1px solid #CBD5E1;background:#fff;font-weight:900;color:#475569;cursor:pointer}.estoque-rapido-modal-botoes .principal{border:0;background:var(--acao);color:#fff}.estoque-rapido-modal-botoes .principal:disabled{opacity:.6;cursor:wait}.estoque-rapido-minimo{font-size:11px;color:#94A3B8;margin-top:4px}.estoque-rapido-limites{margin-top:5px;font-size:11px;font-weight:800;color:#64748B;background:none;border:0;border-bottom:1px dashed #CBD5E1;padding:0 0 1px;cursor:pointer;text-align:left}
         .estoque-rapido-qtd{display:grid;grid-template-columns:42px 1fr 42px;gap:7px;margin-top:13px}.estoque-rapido-qtd button{height:42px;border:0;border-radius:11px;background:#fff;color:var(--acao);display:grid;place-items:center;cursor:pointer;box-shadow:0 1px 5px rgba(15,23,42,.12)}.estoque-rapido-qtd label{height:42px;background:#fff;border-radius:11px;display:flex;align-items:center;justify-content:center;gap:5px;padding:0 6px}.estoque-rapido-qtd input{width:55px;border:0;outline:0;text-align:right;font-size:17px;font-weight:900;background:transparent}.estoque-rapido-qtd span{font-size:11px;color:#64748B;font-weight:800;white-space:nowrap}
                 .estoque-rapido-loading,.estoque-rapido-sem-itens{padding:70px 20px;text-align:center;color:#64748B;font-weight:800}.estoque-rapido-historico{display:flex;flex-direction:column;gap:9px}.estoque-rapido-hist-item{background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:14px 16px;display:grid;grid-template-columns:46px 1fr auto;gap:12px;align-items:center}.estoque-rapido-hist-icone{width:46px;height:46px;border-radius:13px;display:grid;place-items:center}.estoque-rapido-hist-item strong{display:block}.estoque-rapido-hist-item p{margin:4px 0 0;color:#64748B;font-size:12px}.estoque-rapido-hist-item time{font-size:12px;color:#64748B;text-align:right}.estoque-rapido-filtros{display:flex;gap:8px;margin-bottom:15px}.estoque-rapido-filtros button{height:38px;padding:0 14px;border:1px solid #CBD5E1;border-radius:11px;background:#fff;color:#64748B;font-weight:800}.estoque-rapido-filtros button.ativo{background:#0F172A;color:#fff;border-color:#0F172A}
         .estoque-rapido-toast{position:fixed;z-index:100;left:50%;bottom:100px;transform:translateX(-50%);max-width:min(620px,calc(100vw - 28px));padding:14px 15px;border-radius:14px;color:#fff;display:flex;align-items:center;gap:9px;box-shadow:0 14px 34px rgba(15,23,42,.25);font-weight:800}.estoque-rapido-toast span{flex:1}.estoque-rapido-toast button{border:0;background:transparent;color:#fff;display:grid;place-items:center}
@@ -926,7 +973,17 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
                     {item.volumeEmbalagem && <div className="estoque-rapido-volume">{rotuloUnidade(item.unidade, 1)} de {item.volumeEmbalagem}</div>}
                     <div className="estoque-rapido-saldo">Disponível<strong>{fmtQtd(item.quantidade)} {rotuloUnidade(item.unidade, item.quantidade)}</strong></div>
                     {item.local && <div className="estoque-rapido-minimo">Local: {item.local}</div>}
-                    {item.minimo != null && <div className="estoque-rapido-minimo">Mínimo: {fmtQtd(item.minimo)} {rotuloUnidade(item.unidade, item.minimo)}</div>}
+                    <button type="button" className="estoque-rapido-limites"
+                      onClick={e => { e.stopPropagation(); setLimitesItem({
+                        estoqueItemId: item.estoqueItemId, nome: item.nome, unidade: item.unidade, fator: item.fator,
+                        minimo: item.minimo == null ? "" : String(item.minimo),
+                        maximo: item.maximo == null ? "" : String(item.maximo),
+                        pin: "", erro: "",
+                      }); }}>
+                      {item.minimo != null || item.maximo != null
+                        ? `Mín: ${item.minimo != null ? fmtQtd(item.minimo) : "—"} · Máx: ${item.maximo != null ? fmtQtd(item.maximo) : "—"}`
+                        : "Definir mínimo e máximo"}
+                    </button>
                     {selecionado && (
                       <>
                         {/* Depositar ou retirar por item: a escolha vive junto
@@ -1030,6 +1087,34 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
           produto e o campo de observação foi retirado; o que sobrava era um
           resumo repetido — quem é o responsável está no topo e a contagem de
           selecionados está acima da lista. */}
+
+      {limitesItem && (
+        <div className="estoque-rapido-modal" role="dialog" aria-modal="true" aria-label="Mínimo e máximo">
+          <div className="estoque-rapido-modal-caixa">
+            <strong>{limitesItem.nome}</strong>
+            <p>Quanto o sistema deve cobrar de reposição, em {rotuloUnidade(limitesItem.unidade, 2)}.</p>
+            <label>Mínimo
+              <input type="number" min="0" inputMode="decimal" value={limitesItem.minimo}
+                onChange={e => setLimitesItem(l => ({ ...l, minimo: e.target.value, erro: "" }))} />
+            </label>
+            <label>Máximo
+              <input type="number" min="0" inputMode="decimal" value={limitesItem.maximo}
+                onChange={e => setLimitesItem(l => ({ ...l, maximo: e.target.value, erro: "" }))} />
+            </label>
+            <label>Senha do gerente
+              <input type="password" inputMode="numeric" autoComplete="off" value={limitesItem.pin}
+                onChange={e => setLimitesItem(l => ({ ...l, pin: e.target.value, erro: "" }))} />
+            </label>
+            {limitesItem.erro && <p className="estoque-rapido-modal-erro">{limitesItem.erro}</p>}
+            <div className="estoque-rapido-modal-botoes">
+              <button type="button" onClick={() => setLimitesItem(null)}>Cancelar</button>
+              <button type="button" className="principal" disabled={salvandoLimites} onClick={gravarLimites}>
+                {salvandoLimites ? "Salvando..." : "Salvar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {toast && <Toast toast={toast} onClose={() => setToast(null)} />}
     </div>

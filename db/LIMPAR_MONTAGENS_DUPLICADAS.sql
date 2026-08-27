@@ -30,7 +30,9 @@ $fn$ language sql immutable;
 
 
 -- ── PASSO 1: VER O QUE ESTA DUPLICADO ──────────────────────────────────────
--- Troque 'SUA_UNIDADE' pelo id da sua unidade.
+-- Vale para TODAS as unidades: a chave de comparacao ja separa por unidade e
+-- por setor, entao nao ha o que escolher aqui -- e nao ha placeholder para
+-- esquecer de trocar.
 -- A coluna "conteudo" diz quantas informacoes o card tem: e por ela que o
 -- PASSO 2 escolhe qual fica.
 with chave as (
@@ -41,12 +43,11 @@ with chave as (
     + (case when coalesce(btrim(m.descritivo), '') <> '' then 1 else 0 end)
     + (case when coalesce(btrim(m.foto_url), '') <> '' then 1 else 0 end) as conteudo
   from public.montagem m
-  where m.unidade_id = 'SUA_UNIDADE'
 )
-select nome_chave, count(*) as copias,
+select unidade_id, departamento, nome_chave, count(*) as copias,
        string_agg(nome || ' [conteudo ' || conteudo || ']', ' | ' order by conteudo desc, created_at) as versoes
   from chave
- group by nome_chave
+ group by unidade_id, departamento, nome_chave
 having count(*) > 1
  order by copias desc, nome_chave;
 
@@ -59,17 +60,16 @@ begin;
 
 with chave as (
   select
-    m.id, m.nome, m.created_at,
+    m.id, m.nome, m.unidade_id, m.departamento, m.created_at,
     lower(regexp_replace(btrim(unaccent_simples(m.nome)), '\s+', ' ', 'g')) as nome_chave,
     (case when m.estrutura_ia is not null and jsonb_array_length(coalesce(m.estrutura_ia, '[]'::jsonb)) > 0 then 1 else 0 end)
     + (case when coalesce(btrim(m.descritivo), '') <> '' then 1 else 0 end)
     + (case when coalesce(btrim(m.foto_url), '') <> '' then 1 else 0 end) as conteudo
   from public.montagem m
-  where m.unidade_id = 'SUA_UNIDADE'
 ),
 ranqueado as (
-  select id, nome_chave,
-         row_number() over (partition by nome_chave order by conteudo desc, created_at asc) as posicao
+  select id, unidade_id, departamento, nome_chave,
+         row_number() over (partition by unidade_id, departamento, nome_chave order by conteudo desc, created_at asc) as posicao
     from chave
 )
 delete from public.montagem

@@ -1,5 +1,6 @@
 import { supabase, isSupabaseReady } from "./supabase";
 import { registrarMarcacao } from "./ponto-marcacao";
+import { minutosAteOTurno } from "./jornada-calculo.mjs";
 
 // Data local (São Paulo) em YYYY-MM-DD, com deslocamento opcional de dias
 function dataLocalISO(offsetDias = 0) {
@@ -133,6 +134,29 @@ export async function registrarBatida(colaboradorId, unidadeId, tipoBatida, hora
   const hoje = dataLocalISO(0);
   const ontem = dataLocalISO(-1);
   const agora = horaMarcada || new Date().toISOString();
+
+  // Entrada antes da hora do turno não entra. O livro de marcações guarda a
+  // hora REAL (art. 74, II proíbe horário predeterminado) e registro_ponto
+  // segue o livro, então não dá para "arredondar" 15:39 para 15:40 na
+  // gravação: o jeito honesto é a pessoa esperar o minuto e bater 15:40.
+  //
+  // Falha na consulta não tranca o ponto de ninguém: sem o horário, libera.
+  if (tipoBatida === "entrada" && !horaMarcada) {
+    const { data: colab } = await supabase
+      .from("colaboradores")
+      .select("horario_entrada, horario_dom_entrada")
+      .eq("id", colaboradorId)
+      .maybeSingle();
+    const agoraLocal = new Date();
+    const ehDomingo = agoraLocal.getDay() === 0;
+    const inicio = (ehDomingo && colab?.horario_dom_entrada) || colab?.horario_entrada || "";
+    const falta = minutosAteOTurno(inicio, agoraLocal);
+    if (falta > 0) {
+      return {
+        error: `Seu turno começa às ${inicio}. Faltam ${falta} ${falta === 1 ? "minuto" : "minutos"} — bata a entrada a partir desse horário.`,
+      };
+    }
+  }
 
   // Busca o registro de hoje E o de ontem (turno noturno que virou a madrugada)
   let { data: registros, error: err } = await supabase

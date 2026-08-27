@@ -11,7 +11,7 @@ import {
   PageHeader, PageBody, Card, SectionLabel, Field, TextInput, Btn, EmptyState,
 } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
-import { fetchTemplates, salvarExecucao, fetchHistoricoExecucoes, fetchExecucoesMes, fetchExecucoesIntervalo } from "../../../lib/checklists";
+import { fetchTemplates, salvarExecucao, fetchHistoricoExecucoes, fetchExecucoesMes, fetchExecucoesIntervalo, formatarMinutos, tempoDoChecklist } from "../../../lib/checklists";
 import { fetchColaboradores } from "../../../lib/rh";
 import { useTempoReal } from "../../../lib/realtime";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -757,6 +757,18 @@ function RotinaRunner() {
               <div className="text-right">
                 <p className="text-[11px] font-bold" style={{ color: "var(--dim)" }}>{concluidas} de {itens.length}</p>
                 <p className="text-[10px]" style={{ color: "var(--dim)" }}>tarefas concluídas</p>
+                {/* Quanto falta de tempo previsto: soma so das tarefas que ainda
+                    nao foram marcadas. Ver "2h15" quando ja se fez metade nao
+                    ajudaria ninguem a decidir se da tempo antes de abrir. */}
+                {(() => {
+                  const restante = tempoDoChecklist(itens.filter(it => !respostas[it.id]?.marcado));
+                  if (!restante.minutos) return null;
+                  return (
+                    <p className="text-[10px] font-bold mt-1" style={{ color: "var(--dim)" }}>
+                      ~{formatarMinutos(restante.minutos)} restantes{restante.parcial ? " (parcial)" : ""}
+                    </p>
+                  );
+                })()}
               </div>
             </div>
             <div className="h-3 rounded-full overflow-hidden" style={{ background: "var(--elevated)" }}>
@@ -923,6 +935,24 @@ function RotinaRunner() {
                               <span className="text-[11px] font-bold flex items-center gap-1" style={{ color: t.cor }}>
                                 <Clock3 size={11} /> {horaCurta(rItem.concluido_em)}
                               </span>
+                            )}
+                            {/* Tempo previsto da tarefa. E previsao, nao cronometro:
+                                serve para quem esta abrindo o salao saber se cabe no
+                                tempo que tem antes de abrir a porta. */}
+                            {Number(it.minutos) > 0 && (
+                              <span className="text-[11px] font-bold flex items-center gap-1" style={{ color: "var(--dim)" }}>
+                                <Clock3 size={11} /> {formatarMinutos(it.minutos)}
+                              </span>
+                            )}
+                            {/* Foto do padrao da casa: como o ambiente TEM QUE FICAR.
+                                Abre em aba nova porque no celular a miniatura nao
+                                mostra o detalhe que a pessoa precisa comparar. */}
+                            {it.foto_url && (
+                              <a href={it.foto_url} target="_blank" rel="noopener noreferrer"
+                                onClick={e => e.stopPropagation()}
+                                className="text-[11px] font-bold flex items-center gap-1 underline" style={{ color: t.cor }}>
+                                <ImageIcon size={11} /> como deve ficar
+                              </a>
                             )}
                             {rItem.foto && <span className="text-[11px] font-bold flex items-center gap-1" style={{ color: t.cor }}><ImageIcon size={11} /> foto</span>}
                             {rItem.plano_acao && <span className="text-[10px] font-black uppercase text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md">Plano de Ação</span>}

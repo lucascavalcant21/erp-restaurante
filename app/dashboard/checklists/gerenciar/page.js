@@ -3,9 +3,11 @@
 import { Suspense, useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
-import { fetchTemplates, salvarTemplate, desativarTemplate, fetchExecucoesMes } from "../../../lib/checklists";
+import {
+  desativarTemplate, fetchExecucoesMes, fetchTemplates, formatarMinutos, salvarFotoReferencia, salvarTemplate, tempoDoChecklist,
+} from "../../../lib/checklists";
 import { SkeletonList } from "../../../components/ui";
-import { CheckSquare, Plus, Trash2, Edit3, X, Save, Printer, User, Sparkles, Layers, Loader2, BarChart3 } from "lucide-react";
+import { BarChart3, Camera, CheckSquare, Clock, Edit3, Layers, Loader2, Plus, Printer, Save, Sparkles, Trash2, User, X } from "lucide-react";
 import { MODELOS_CHECKLIST, modeloDe } from "../modelos";
 
 // Tipos de checklist por setor:
@@ -62,7 +64,7 @@ function GerenciarChecklistsContent() {
   const [modalNovo, setModalNovo] = useState(false);
   const [modalModelos, setModalModelos] = useState(false);
   const [criandoTudo, setCriandoTudo] = useState(false);
-  const [form, setForm] = useState({ id: null, departamento: deptPadrao, tipo: "abertura", titulo: "", frequencia: "diario", itens: [{ id: 1, texto: "", categoria: "", responsavel: "" }] });
+  const [form, setForm] = useState({ id: null, departamento: deptPadrao, tipo: "abertura", titulo: "", frequencia: "diario", itens: [{ id: 1, texto: "", categoria: "", responsavel: "", minutos: "", foto_url: null }] });
 
   // Montar por IA (organiza em título + categorias + tópicos)
   const [contextoIA, setContextoIA] = useState("");
@@ -91,26 +93,39 @@ function GerenciarChecklistsContent() {
     setDeptFiltro(deptFixo);
     setModalNovo(false);
     setModalModelos(false);
-    setForm({ id: null, departamento: deptFixo, tipo: TIPOS_POR_DEPT[deptFixo][0][0], titulo: "", frequencia: "diario", itens: [{ id: 1, texto: "", categoria: "", responsavel: "" }] });
+    setForm({ id: null, departamento: deptFixo, tipo: TIPOS_POR_DEPT[deptFixo][0][0], titulo: "", frequencia: "diario", itens: [{ id: 1, texto: "", categoria: "", responsavel: "", minutos: "", foto_url: null }] });
   }, [deptFixo]);
 
   const abrirNovo = () => {
     const departamento = deptFixo || (deptFiltro !== "todos" && deptValido(deptFiltro) ? deptFiltro : "cozinha");
-    setForm({ id: null, departamento, tipo: TIPOS_POR_DEPT[departamento][0][0], titulo: "", frequencia: "diario", itens: [{ id: 1, texto: "", categoria: "", responsavel: "" }] });
+    setForm({ id: null, departamento, tipo: TIPOS_POR_DEPT[departamento][0][0], titulo: "", frequencia: "diario", itens: [{ id: 1, texto: "", categoria: "", responsavel: "", minutos: "", foto_url: null }] });
     setContextoIA("");
     setModalNovo(true);
   };
   const abrirEditar = (t) => {
     if (deptFixo && t.departamento !== deptFixo) return;
-    setForm({ frequencia: "diario", ...t, itens: t.itens?.length ? t.itens.map(i => ({ categoria: "", responsavel: "", ...i })) : [{ id: 1, texto: "", categoria: "", responsavel: "" }] });
+    setForm({ frequencia: "diario", ...t, itens: t.itens?.length ? t.itens.map(i => ({ categoria: "", responsavel: "", minutos: "", foto_url: null, ...i })) : [{ id: 1, texto: "", categoria: "", responsavel: "", minutos: "", foto_url: null }] });
     setContextoIA("");
     setModalNovo(true);
   };
 
   // Nova tarefa herda a categoria da última (facilita montar por blocos)
-  const addTarefa = () => setForm(f => ({ ...f, itens: [...f.itens, { id: Date.now(), texto: "", categoria: f.itens[f.itens.length - 1]?.categoria || "", responsavel: "" }] }));
+  const addTarefa = () => setForm(f => ({ ...f, itens: [...f.itens, { id: Date.now(), texto: "", categoria: f.itens[f.itens.length - 1]?.categoria || "", responsavel: "", minutos: "", foto_url: null }] }));
   const mudaTarefa = (id, patch) => setForm(f => ({ ...f, itens: f.itens.map(i => i.id === id ? { ...i, ...patch } : i) }));
   const removeTarefa = (id) => setForm(f => ({ ...f, itens: f.itens.filter(i => i.id !== id) }));
+
+  // Foto de como o ambiente tem que FICAR. É o padrão da casa, tirado uma vez
+  // pelo gestor — quem executa olha e compara. Não confundir com evidência do
+  // que foi feito, que é outro módulo.
+  const [subindoFoto, setSubindoFoto] = useState(null);
+  const enviarFotoTarefa = async (itemId, file) => {
+    if (!file) return;
+    setSubindoFoto(itemId);
+    const r = await salvarFotoReferencia(file, { unidadeId: unidadeAtiva, itemId });
+    setSubindoFoto(null);
+    if (r.error) return alert(r.error);
+    mudaTarefa(itemId, { foto_url: r.url });
+  };
 
   const mudarDept = (dept) => {
     if (deptFixo) return;
@@ -293,10 +308,14 @@ function GerenciarChecklistsContent() {
     let catAtual = null;
     const linhas = itens.map((it, i) => {
       const cat = (it.categoria || "").trim();
-      const header = cat && cat !== catAtual ? (catAtual = cat, `<tr class="cat"><td colspan="5">${cat}</td></tr>`) : "";
+      const header = cat && cat !== catAtual ? (catAtual = cat, `<tr class="cat"><td colspan="6">${cat}</td></tr>`) : "";
+      // A marca de foto vai na propria linha da tarefa: quem esta com a folha
+      // na mao precisa saber que existe um padrao para conferir no fim.
+      const marcaFoto = it.foto_url ? ` <span class="temfoto">ver foto ${i + 1}</span>` : "";
       return `${header}<tr>
         <td class="n">${i + 1}</td>
-        <td class="tarefa">${it.texto || ""}</td>
+        <td class="tarefa">${it.texto || ""}${marcaFoto}</td>
+        <td class="tempo">${formatarMinutos(it.minutos)}</td>
         <td class="resp">${it.responsavel || ""}</td>
         <td class="check"><span class="box"></span></td>
         <td class="visto"></td>
@@ -306,10 +325,29 @@ function GerenciarChecklistsContent() {
       <tr>
         <td class="n">${itens.length + i + 1}</td>
         <td class="tarefa"></td>
+        <td class="tempo"></td>
         <td class="resp"></td>
         <td class="check"><span class="box"></span></td>
         <td class="visto"></td>
       </tr>`).join("");
+
+    // Galeria no fim, numerada igual as tarefas. Foto ao lado de cada linha
+    // esticaria a tabela e jogaria o checklist para tres folhas; no fim ela
+    // cabe em uma e continua servindo para conferir antes de assinar.
+    const comFoto = itens.map((it, i) => ({ ...it, n: i + 1 })).filter(it => it.foto_url);
+    const galeria = comFoto.length ? `
+      <div class="galeria">
+        <h2>Como tem que ficar</h2>
+        <div class="fotos">
+          ${comFoto.map(it => `
+            <figure>
+              <img src="${it.foto_url}" alt="Padrao da tarefa ${it.n}" />
+              <figcaption><b>${it.n}.</b> ${it.texto || ""}</figcaption>
+            </figure>`).join("")}
+        </div>
+      </div>` : "";
+
+    const tempo = tempoDoChecklist(itens);
 
     const deptLabel = t.departamento === "salao" ? "Salão" : t.departamento === "bar" ? "Bar" : "Cozinha";
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Checklist - ${t.titulo}</title>
@@ -329,10 +367,18 @@ function GerenciarChecklistsContent() {
         tr.cat td{background:#f3e8ff;color:#6b21a8;font-weight:bold;text-transform:uppercase;letter-spacing:1px;font-size:10px;height:auto;padding:5px 6px}
         td{height:30px}
         td.n{width:5%;text-align:center;color:#666}
-        td.tarefa{width:45%}
-        td.resp{width:22%}
-        td.check{width:8%;text-align:center}
+        td.tarefa{width:40%}
+        td.tempo{width:8%;text-align:center;font-weight:bold;color:#444}
+        td.resp{width:20%}
+        td.check{width:7%;text-align:center}
         td.visto{width:20%}
+        .temfoto{font-size:9px;color:#6b21a8;font-weight:bold;white-space:nowrap}
+        .galeria{page-break-before:always;padding-top:4mm}
+        .galeria h2{font-size:15px;border-bottom:2px solid #111;padding-bottom:5px;margin-bottom:8px}
+        .fotos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+        .fotos figure{border:1px solid #333;padding:4px;page-break-inside:avoid}
+        .fotos img{width:100%;height:46mm;object-fit:cover;display:block}
+        .fotos figcaption{font-size:9px;margin-top:3px;line-height:1.25}
         .box{display:inline-block;width:14px;height:14px;border:2px solid #333;border-radius:3px}
         .assin{margin-top:22px;display:flex;justify-content:space-between;gap:40px}
         .assin div{flex:1;border-top:1px solid #333;padding-top:4px;font-size:10px;text-align:center;color:#444}
@@ -343,17 +389,18 @@ function GerenciarChecklistsContent() {
           <div class="tag">Checklist ${deptLabel} · ${rotuloTipo(t.tipo)} · ${unidadeInfo?.nome || ""}</div>
           <h1>${t.titulo}</h1>
         </div>
-        <div class="meta">${itens.length} tarefas<span>marque ao concluir e vista</span></div>
+        <div class="meta">${itens.length} tarefas${tempo.minutos > 0 ? ` &middot; ${formatarMinutos(tempo.minutos)}` : ""}<span>${tempo.parcial ? `tempo de ${tempo.comTempo} de ${tempo.total} tarefas` : "marque ao concluir e vista"}</span></div>
       </div>
       <div class="datas">Data: <b>&nbsp;</b> Turno/Horário: <b>&nbsp;</b> Responsável geral: <b>&nbsp;</b></div>
       <table>
-        <thead><tr><th>#</th><th>Tarefa</th><th>Responsável</th><th>Feito</th><th>Visto / Hora</th></tr></thead>
+        <thead><tr><th>#</th><th>Tarefa</th><th>Tempo</th><th>Responsável</th><th>Feito</th><th>Visto / Hora</th></tr></thead>
         <tbody>${linhas}${extras}</tbody>
       </table>
       <div class="assin">
         <div>Responsável pelo ${deptLabel.toLowerCase()}</div>
         <div>Gerente / Conferência</div>
       </div>
+      ${galeria}
       </body></html>`;
 
     let win = null;
@@ -658,6 +705,32 @@ function GerenciarChecklistsContent() {
                             className="w-full p-3 pl-8 bg-slate-50 border border-slate-200 rounded-lg font-medium text-base outline-none focus:border-emerald-500"
                           />
                         </div>
+                        <div className="relative col-start-2 w-full sm:col-auto sm:shrink-0 sm:w-24">
+                          <Clock size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                          <input
+                            type="number" min="1" inputMode="numeric"
+                            placeholder="min"
+                            value={it.minutos ?? ""}
+                            onChange={e => mudaTarefa(it.id, { minutos: e.target.value })}
+                            className="w-full p-3 pl-8 bg-slate-50 border border-slate-200 rounded-lg font-medium text-base outline-none focus:border-emerald-500"
+                          />
+                        </div>
+                        <label className={`col-start-2 justify-self-start sm:col-auto sm:shrink-0 h-11 w-11 flex items-center justify-center rounded-lg border cursor-pointer transition-colors ${it.foto_url ? "border-emerald-300 bg-emerald-50" : "border-slate-200 bg-white hover:border-emerald-300"}`}
+                          title={it.foto_url ? "Trocar a foto de como deve ficar" : "Foto de como deve ficar"}>
+                          <input type="file" accept="image/*" className="hidden"
+                            onChange={e => { const f = e.target.files?.[0]; e.target.value = ""; enviarFotoTarefa(it.id, f); }} />
+                          {subindoFoto === it.id
+                            ? <span className="text-[10px] font-black text-slate-400">...</span>
+                            : it.foto_url
+                              ? <img src={it.foto_url} alt="Como deve ficar" className="h-9 w-9 rounded object-cover" />
+                              : <Camera size={16} className="text-slate-400" />}
+                        </label>
+                        {it.foto_url && (
+                          <button type="button" onClick={() => mudaTarefa(it.id, { foto_url: null })}
+                            className="col-start-2 justify-self-start sm:col-auto text-[10px] font-bold text-slate-400 hover:text-red-600 underline">
+                            tirar foto
+                          </button>
+                        )}
                         <button onClick={() => removeTarefa(it.id)} className="col-start-2 justify-self-end sm:col-auto w-11 h-11 flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors shrink-0" aria-label={`Remover tarefa ${i + 1}`}><Trash2 size={17} /></button>
                       </div>
                     </div>

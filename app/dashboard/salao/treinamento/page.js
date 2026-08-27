@@ -57,7 +57,8 @@ export default function TreinamentoPage() {
 
   const handleRemover = async (id) => {
     if(confirm("Remover este treinamento?")) {
-       await removerTreinamento(id);
+       const { error } = await removerTreinamento(id);
+       if (error) return alert(`Não consegui remover este treinamento: ${error}`);
        carregar();
     }
   };

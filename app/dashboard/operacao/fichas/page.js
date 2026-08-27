@@ -1373,7 +1373,8 @@ function FichasRunner() {
 
   const handleRemover = async (id) => {
     if(confirm("Deseja excluir esta ficha técnica permanentemente?")) {
-       await removerFicha(id);
+       const { error } = await removerFicha(id);
+       if (error) return alert(`Não consegui remover esta ficha: ${error}`);
        carregar();
     }
   };

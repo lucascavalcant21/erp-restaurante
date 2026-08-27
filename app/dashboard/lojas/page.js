@@ -118,7 +118,8 @@ export default function LojasPage() {
 
   const handleRemover = async (id) => {
     if(confirm("Tem certeza? Esta unidade e TODOS os dados atrelados ficarão inacessíveis permanentemente.")) {
-      await removerUnidade(id);
+      const { error } = await removerUnidade(id);
+      if (error) return alert(`Não consegui remover esta unidade: ${error}`);
       carregar();
     }
   };

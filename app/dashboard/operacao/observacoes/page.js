@@ -39,7 +39,8 @@ export default function ObservacoesPage() {
 
   const handleExcluir = async (id) => {
     if (!confirm("Remover esta observação padrão?")) return;
-    await excluirObservacaoPadrao(id);
+    const { error } = await excluirObservacaoPadrao(id);
+    if (error) return alert(`Não consegui excluir esta observação: ${error}`);
     carregar();
   };
 

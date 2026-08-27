@@ -55,7 +55,8 @@ export default function NaoConformidades() {
   };
 
   const mudarStatus = async (nc, status) => {
-    await atualizarNaoConformidade(nc.id, { status }, { nome: sessao?.nome });
+    const { error } = await atualizarNaoConformidade(nc.id, { status }, { nome: sessao?.nome });
+    if (error) return alert(`Não consegui atualizar esta não conformidade: ${error}`);
     await carregar();
     if (aberta?.id === nc.id) setAberta({ ...nc, status });
   };

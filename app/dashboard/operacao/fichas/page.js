@@ -35,7 +35,7 @@ import { fetchEstoques, vincularItemEstoque } from "../../../lib/estoques-multip
 import { fetchProdutos, salvarProduto } from "../../../lib/vendas";
 import { fetchEmbalagens, salvarEmbalagem } from "../../../lib/embalagens";
 import { garantirFichaNoEstoquePreparo } from "../../../lib/estoques-multiplos";
-import { fetchMontagens, inserirMontagem } from "../../../lib/montagem";
+import { chaveNomeMontagem, fetchMontagens, inserirMontagem } from "../../../lib/montagem";
 import {
   AlertTriangle, ArrowDown, ArrowLeft, ArrowUp, BarChart3, BookOpen, Calculator, Camera,
   CheckCircle2, CheckSquare2, ChevronLeft, ChevronRight, Copy, Download, Edit3,
@@ -1338,7 +1338,7 @@ function FichasRunner() {
         // 2) Guia de Montagem: entra como ficha pendente de montagem
         if (!form.produto_pronto) {
           const { data: monts } = await fetchMontagens(unidadeAtiva, form.departamento);
-          const jaTemMontagem = (monts || []).some(m => (m.nome || "").toLowerCase() === nome.toLowerCase());
+          const jaTemMontagem = (monts || []).some(m => chaveNomeMontagem(m.nome) === chaveNomeMontagem(nome));
           if (!jaTemMontagem) {
             await inserirMontagem({
               nome,

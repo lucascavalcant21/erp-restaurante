@@ -9,8 +9,8 @@ import {
 } from "../../../components/ui";
 import { useERP } from "../../../context/ERPContext";
 import {
-  fetchMontagens, inserirMontagem, atualizarMontagem, removerMontagem,
-  uploadFotoMontagem,
+  chaveNomeMontagem, fetchMontagens, inserirMontagem, atualizarMontagem,
+  removerMontagem, uploadFotoMontagem,
 } from "../../../lib/montagem";
 import { fetchProdutos } from "../../../lib/vendas";
 import { fetchModeloMontagem, salvarModeloMontagem } from "../../../lib/parametros";
@@ -2039,7 +2039,7 @@ function MontagemPageInner() {
         fetchMontagens(unidadeAtiva, dept),
         fetchProdutos(unidadeAtiva, dept),
       ]);
-      const nomes = new Set((rMont.data || []).map(m => (m.nome || "").toLowerCase().trim()));
+      const nomes = new Set((rMont.data || []).map(m => chaveNomeMontagem(m.nome)));
       // Só ganha ficha de montagem o que é receita de verdade. A checagem antiga
       // olhava só o tipo_base, então cerveja e água cadastradas direto no
       // cardápio — sem ficha nenhuma — passavam pelo `!== "produto_pronto"` e
@@ -2054,7 +2054,7 @@ function MontagemPageInner() {
         p.fichas_tecnicas &&
         p.fichas_tecnicas.tipo_base !== "produto_pronto" &&
         !ehPrePreparo(p.fichas_tecnicas) &&
-        !nomes.has(p.nome_produto.toLowerCase().trim())
+        !nomes.has(chaveNomeMontagem(p.nome_produto))
       );
       for (const p of faltantes) {
         await inserirMontagem({

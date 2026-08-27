@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import { fetchProdutos, salvarProduto, removerProduto, removerProdutoComPedidos } from "../../../lib/vendas";
-import { fetchMontagens, inserirMontagem } from "../../../lib/montagem";
+import { chaveNomeMontagem, fetchMontagens, inserirMontagem } from "../../../lib/montagem";
 import { fetchFichas } from "../../../lib/operacao"; // Pra linkar o custo
 import { fetchEmbalagens } from "../../../lib/embalagens";
 import { supabase } from "../../../lib/supabase";
@@ -390,7 +390,7 @@ function CardapioRunner() {
     // (cozinha ou bar) para criar a montagem lá — sem duplicar por nome.
     if (!form.id) {
       const { data: montagens } = await fetchMontagens(unidadeAtiva, form.departamento);
-      const jaExiste = (montagens || []).some(m => (m.nome || "").toLowerCase() === form.nome_produto.trim().toLowerCase());
+      const jaExiste = (montagens || []).some(m => chaveNomeMontagem(m.nome) === chaveNomeMontagem(form.nome_produto));
       if (!jaExiste) {
         await inserirMontagem({
           nome: form.nome_produto.trim(),

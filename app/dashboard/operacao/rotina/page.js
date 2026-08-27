@@ -928,8 +928,8 @@ function RotinaRunner() {
                           </p>
                           {it.responsavel && <p className="text-[11px] font-bold mt-0.5" style={{ color: "var(--dim)" }}>Responsável: {it.responsavel}</p>}
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
-                            <span className="text-[11px] font-bold flex items-center gap-1" style={{ color: nomeResponsavel ? t.corTexto : "var(--dim)" }}>
-                              <User size={11} /> {nomeResponsavel || "Sem funcionário atribuído"}
+                            <span className="text-[11px] font-bold flex items-center gap-1" style={{ color: it.conjunto || nomeResponsavel ? t.corTexto : "var(--dim)" }}>
+                              <User size={11} /> {it.conjunto ? "Em conjunto — todo o time" : (nomeResponsavel || "Sem funcionário atribuído")}
                             </span>
                             {ok && (
                               <span className="text-[11px] font-bold flex items-center gap-1" style={{ color: t.cor }}>

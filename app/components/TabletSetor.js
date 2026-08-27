@@ -15,11 +15,12 @@ import {
 } from "lucide-react";
 import {
   atualizarItemEstoque, fetchEstoques, fetchItensEstoque, fetchMovimentosMulti,
-  garantirEstoquesPadrao, registrarLoteMovimentosMulti,
+  garantirEstoquesPadrao, registrarLoteMovimentosMulti, vincularItemEstoque,
 } from "../lib/estoques-multiplos";
 import { fetchPins } from "../lib/seguranca";
+import { EMBALAGENS_INGREDIENTE, unidadesDoDepartamento } from "../lib/ingredientes-utils.mjs";
 import { estoqueControlaLote } from "../lib/estoques-multiplos-utils.mjs";
-import { fetchNomesDePratosEDrinks } from "../lib/operacao";
+import { fetchNomesDePratosEDrinks, salvarInsumo } from "../lib/operacao";
 import { fetchEmbalagens } from "../lib/embalagens";
 import { fetchColaboradores } from "../lib/rh";
 import { equipeDaArea } from "../lib/equipe-area.mjs";
@@ -225,6 +226,9 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
   // fazia a pessoa dar baixa sem perceber.
   const [tipo, setTipo] = useState("");
   const [itens, setItens] = useState([]);
+  // Onde o produto novo vai ser vinculado. Tirar isso do primeiro item da
+  // lista falharia justamente no caso que interessa: estoque ainda vazio.
+  const [estoqueDestino, setEstoqueDestino] = useState(null);
   const [funcionarios, setFuncionarios] = useState([]);
   const [historico, setHistorico] = useState([]);
   const [selecionados, setSelecionados] = useState({});
@@ -324,6 +328,7 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
       return dept.startsWith("embalage") || idsEmbalagem.has(item.insumo_id) || nomesEmbalagem.has(nome);
     });
     setItens(itensCarregados);
+    setEstoqueDestino(estoquesAlvo[0] || null);
     setFuncionarios((resFuncionarios.data || []).filter(f =>
       f.ativo !== false && f.status !== "inativo" && f.tipo_contrato !== "Freelancer"
     ));
@@ -632,6 +637,75 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
     setToast({ tipo: "ok", msg: "Mínimo e máximo atualizados." });
   }
 
+  // Produto que ainda nao existe. Quem esta conferindo estoque e acha um item
+  // fora do cadastro precisava sair do tablet, abrir a tela grande e voltar.
+  // O item nasce no cadastro de ingredientes E vinculado a este estoque.
+  const [novoProduto, setNovoProduto] = useState(null);
+  const [salvandoProduto, setSalvandoProduto] = useState(false);
+
+  function abrirNovoProduto() {
+    const unidades = unidadesDoDepartamento(departamento);
+    setNovoProduto({
+      nome: "", quantidade: "", unidade: unidades[0]?.value || "un",
+      embalagem: "", custo: "", erro: "",
+    });
+  }
+
+  async function gravarNovoProduto() {
+    const nome = String(novoProduto?.nome || "").trim();
+    if (!nome) { setNovoProduto(p => ({ ...p, erro: "Escreva o nome do produto." })); return; }
+    if (!estoqueDestino?.id) { setNovoProduto(p => ({ ...p, erro: "Não identifiquei este estoque. Recarregue a tela." })); return; }
+
+    const nomeNormalizado = semAcento(nome);
+    if (itens.some(item => semAcento(item.nome) === nomeNormalizado)) {
+      setNovoProduto(p => ({ ...p, erro: "Já existe um produto com esse nome neste estoque." }));
+      return;
+    }
+
+    const numeroDoCampo = (valor) => {
+      const texto = String(valor ?? "").trim().replace(",", ".");
+      const n = Number(texto);
+      return Number.isFinite(n) && n > 0 ? n : 0;
+    };
+    const quantidade = numeroDoCampo(novoProduto.quantidade) || 1;
+    const custo = numeroDoCampo(novoProduto.custo);
+
+    setSalvandoProduto(true);
+    const criado = await salvarInsumo({
+      unidade_id: unidadeAtiva,
+      departamento: ["cozinha", "bar", "salao"].includes(departamento) ? departamento : "cozinha",
+      nome, nome_original: nome,
+      // Quanto vem em UMA embalagem, e em que ela vem. E a mesma dupla do
+      // cadastro completo: sem a embalagem, a ficha nao sabe quanto rende 1 peca.
+      tamanho_embalagem: quantidade,
+      unidade_medida: novoProduto.unidade,
+      unidade_comercial: novoProduto.embalagem || null,
+      categoria: "Sem categoria",
+      custo_unitario: custo, custo_compra: custo, ativo: true,
+    }, { origem: `Cadastro pelo tablet — ${estoqueDestino.nome || "estoque"}` });
+
+    if (criado.error || !criado.id) {
+      setSalvandoProduto(false);
+      setNovoProduto(p => ({ ...p, erro: criado.error || "Não consegui cadastrar o produto." }));
+      return;
+    }
+
+    const vinculo = await vincularItemEstoque({
+      unidadeId: unidadeAtiva, estoqueId: estoqueDestino.id, insumoId: criado.id,
+      custoUnitario: custo,
+    });
+    setSalvandoProduto(false);
+    if (vinculo.error) {
+      // O insumo ja existe; so o vinculo falhou. Dizer "nao cadastrou" faria a
+      // pessoa tentar de novo e esbarrar no nome duplicado.
+      setNovoProduto(p => ({ ...p, erro: `Produto cadastrado, mas não entrou neste estoque: ${vinculo.error}` }));
+      return;
+    }
+    setNovoProduto(null);
+    await carregar(false);
+    setToast({ tipo: "ok", msg: `${nome} cadastrado e já disponível aqui.` });
+  }
+
   function alternarItem(item) {
     setSelecionados(atual => {
       const proximo = { ...atual };
@@ -889,9 +963,9 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
         .estoque-rapido-lancar.saida{background:#E11D48;box-shadow:0 6px 18px rgba(225,29,72,.32)}
         .estoque-rapido-lancar:disabled{opacity:.5;cursor:default;box-shadow:none}
         .estoque-rapido-busca{position:sticky;top:0;z-index:30;margin:18px 0 14px;padding:8px 0;background:#F3F6FA}.estoque-rapido-busca svg{position:absolute;left:16px;top:17px;color:#94A3B8}.estoque-rapido-busca input{width:100%;height:54px;padding:0 50px;border:2px solid #E2E8F0;border-radius:16px;background:#fff;font-size:16px;outline:none}.estoque-rapido-busca input:focus{border-color:var(--acao)}.estoque-rapido-busca button{position:absolute;right:12px;top:11px;width:32px;height:32px;border:0;background:#F1F5F9;color:#64748B;border-radius:9px;display:grid;place-items:center}
-        .estoque-rapido-contador{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.estoque-rapido-contador h2{font-size:18px;margin:0}.estoque-rapido-contador span{font-size:13px;font-weight:800;color:#64748B}
+        .estoque-rapido-contador{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;flex-wrap:wrap}.estoque-rapido-contador-acoes{display:flex;align-items:center;gap:11px}.estoque-rapido-novo{height:40px;padding:0 14px;border:2px solid var(--acao);border-radius:13px;background:#fff;color:var(--acao);font-weight:900;font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer}.estoque-rapido-contador h2{font-size:18px;margin:0}.estoque-rapido-contador span{font-size:13px;font-weight:800;color:#64748B}
         .estoque-rapido-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.estoque-rapido-item{min-height:148px;background:#fff;border:2px solid #E2E8F0;border-radius:18px;padding:15px;text-align:left;cursor:pointer;transition:.15s;position:relative}.estoque-rapido-item:hover{border-color:#CBD5E1;transform:translateY(-1px)}.estoque-rapido-item.selecionado{border-color:var(--acao);background:var(--acao-suave);box-shadow:0 0 0 3px var(--acao-borda)}
-        .estoque-rapido-item-topo{display:flex;gap:10px;justify-content:space-between}.estoque-rapido-item-nome{font-size:16px;font-weight:900;line-height:1.25}.estoque-rapido-check{width:26px;height:26px;border:2px solid #CBD5E1;border-radius:8px;display:grid;place-items:center;color:transparent;flex:none}.selecionado .estoque-rapido-check{background:var(--acao);border-color:var(--acao);color:#fff}.estoque-rapido-saldo{margin:14px 0 0;color:#64748B;font-size:12px;font-weight:700}.estoque-rapido-saldo strong{display:block;color:#0F172A;font-size:22px;margin-top:2px}.estoque-rapido-item-icone{width:34px;height:34px;border-radius:11px;background:var(--acao-suave,#F1F5F9);color:var(--acao,#475569);display:grid;place-items:center;flex:none;margin-right:9px}.estoque-rapido-volume{font-size:12px;font-weight:800;color:#64748B;margin-top:2px}.estoque-rapido-modal{position:fixed;inset:0;z-index:90;background:rgba(15,23,42,.55);display:grid;place-items:center;padding:18px}.estoque-rapido-modal-caixa{background:#fff;border-radius:20px;padding:20px;width:min(420px,100%);display:flex;flex-direction:column;gap:11px}.estoque-rapido-modal-caixa strong{font-size:18px}.estoque-rapido-modal-caixa p{color:#64748B;font-size:12px;font-weight:700;margin:0}.estoque-rapido-modal-caixa label{display:flex;flex-direction:column;gap:5px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#64748B}.estoque-rapido-modal-caixa input{height:48px;border:2px solid #E2E8F0;border-radius:13px;padding:0 13px;font-size:16px;font-weight:800;color:#0F172A;outline:none}.estoque-rapido-modal-caixa input:focus{border-color:var(--acao)}.estoque-rapido-modal-erro{color:#B91C1C!important;font-weight:800!important}.estoque-rapido-modal-botoes{display:flex;gap:9px;margin-top:4px}.estoque-rapido-modal-botoes button{flex:1;height:48px;border-radius:14px;border:1px solid #CBD5E1;background:#fff;font-weight:900;color:#475569;cursor:pointer}.estoque-rapido-modal-botoes .principal{border:0;background:var(--acao);color:#fff}.estoque-rapido-modal-botoes .principal:disabled{opacity:.6;cursor:wait}.estoque-rapido-minimo{font-size:11px;color:#94A3B8;margin-top:4px}.estoque-rapido-limites{margin-top:5px;font-size:11px;font-weight:800;color:#64748B;background:none;border:0;border-bottom:1px dashed #CBD5E1;padding:0 0 1px;cursor:pointer;text-align:left}
+        .estoque-rapido-item-topo{display:flex;gap:10px;justify-content:space-between}.estoque-rapido-item-nome{font-size:16px;font-weight:900;line-height:1.25}.estoque-rapido-check{width:26px;height:26px;border:2px solid #CBD5E1;border-radius:8px;display:grid;place-items:center;color:transparent;flex:none}.selecionado .estoque-rapido-check{background:var(--acao);border-color:var(--acao);color:#fff}.estoque-rapido-saldo{margin:14px 0 0;color:#64748B;font-size:12px;font-weight:700}.estoque-rapido-saldo strong{display:block;color:#0F172A;font-size:22px;margin-top:2px}.estoque-rapido-item-icone{width:34px;height:34px;border-radius:11px;background:var(--acao-suave,#F1F5F9);color:var(--acao,#475569);display:grid;place-items:center;flex:none;margin-right:9px}.estoque-rapido-volume{font-size:12px;font-weight:800;color:#64748B;margin-top:2px}.estoque-rapido-modal{position:fixed;inset:0;z-index:90;background:rgba(15,23,42,.55);display:grid;place-items:center;padding:18px}.estoque-rapido-modal-caixa{background:#fff;border-radius:20px;padding:20px;width:min(420px,100%);display:flex;flex-direction:column;gap:11px}.estoque-rapido-modal-caixa strong{font-size:18px}.estoque-rapido-modal-caixa p{color:#64748B;font-size:12px;font-weight:700;margin:0}.estoque-rapido-modal-caixa label{display:flex;flex-direction:column;gap:5px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#64748B}.estoque-rapido-modal-caixa input{height:48px;border:2px solid #E2E8F0;border-radius:13px;padding:0 13px;font-size:16px;font-weight:800;color:#0F172A;outline:none}.estoque-rapido-modal-caixa input:focus{border-color:var(--acao)}.estoque-rapido-modal-erro{color:#B91C1C!important;font-weight:800!important}.estoque-rapido-modal-linha{display:grid;grid-template-columns:1fr 1fr;gap:9px}.estoque-rapido-modal-caixa select{height:48px;border:2px solid #E2E8F0;border-radius:13px;padding:0 10px;font-size:15px;font-weight:800;color:#0F172A;background:#fff;outline:none}.estoque-rapido-modal-botoes{display:flex;gap:9px;margin-top:4px}.estoque-rapido-modal-botoes button{flex:1;height:48px;border-radius:14px;border:1px solid #CBD5E1;background:#fff;font-weight:900;color:#475569;cursor:pointer}.estoque-rapido-modal-botoes .principal{border:0;background:var(--acao);color:#fff}.estoque-rapido-modal-botoes .principal:disabled{opacity:.6;cursor:wait}.estoque-rapido-minimo{font-size:11px;color:#94A3B8;margin-top:4px}.estoque-rapido-limites{margin-top:5px;font-size:11px;font-weight:800;color:#64748B;background:none;border:0;border-bottom:1px dashed #CBD5E1;padding:0 0 1px;cursor:pointer;text-align:left}
         .estoque-rapido-qtd{display:grid;grid-template-columns:42px 1fr 42px;gap:7px;margin-top:13px}.estoque-rapido-qtd button{height:42px;border:0;border-radius:11px;background:#fff;color:var(--acao);display:grid;place-items:center;cursor:pointer;box-shadow:0 1px 5px rgba(15,23,42,.12)}.estoque-rapido-qtd label{height:42px;background:#fff;border-radius:11px;display:flex;align-items:center;justify-content:center;gap:5px;padding:0 6px}.estoque-rapido-qtd input{width:55px;border:0;outline:0;text-align:right;font-size:17px;font-weight:900;background:transparent}.estoque-rapido-qtd span{font-size:11px;color:#64748B;font-weight:800;white-space:nowrap}
                 .estoque-rapido-loading,.estoque-rapido-sem-itens{padding:70px 20px;text-align:center;color:#64748B;font-weight:800}.estoque-rapido-historico{display:flex;flex-direction:column;gap:9px}.estoque-rapido-hist-item{background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:14px 16px;display:grid;grid-template-columns:46px 1fr auto;gap:12px;align-items:center}.estoque-rapido-hist-icone{width:46px;height:46px;border-radius:13px;display:grid;place-items:center}.estoque-rapido-hist-item strong{display:block}.estoque-rapido-hist-item p{margin:4px 0 0;color:#64748B;font-size:12px}.estoque-rapido-hist-item time{font-size:12px;color:#64748B;text-align:right}.estoque-rapido-filtros{display:flex;gap:8px;margin-bottom:15px}.estoque-rapido-filtros button{height:38px;padding:0 14px;border:1px solid #CBD5E1;border-radius:11px;background:#fff;color:#64748B;font-weight:800}.estoque-rapido-filtros button.ativo{background:#0F172A;color:#fff;border-color:#0F172A}
         .estoque-rapido-toast{position:fixed;z-index:100;left:50%;bottom:100px;transform:translateX(-50%);max-width:min(620px,calc(100vw - 28px));padding:14px 15px;border-radius:14px;color:#fff;display:flex;align-items:center;gap:9px;box-shadow:0 14px 34px rgba(15,23,42,.25);font-weight:800}.estoque-rapido-toast span{flex:1}.estoque-rapido-toast button{border:0;background:transparent;color:#fff;display:grid;place-items:center}
@@ -948,7 +1022,12 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
 
           <div className="estoque-rapido-contador">
             <h2>Escolha um ou vários itens</h2>
-            <span>{listaSelecionados.length} selecionado(s)</span>
+            <div className="estoque-rapido-contador-acoes">
+              <span>{listaSelecionados.length} selecionado(s)</span>
+              <button type="button" className="estoque-rapido-novo" onClick={abrirNovoProduto}>
+                <Plus size={16} /> Cadastrar produto
+              </button>
+            </div>
           </div>
 
           {carregando ? <div className="estoque-rapido-loading">Carregando itens...</div> : visiveis.length === 0 ? (
@@ -1087,6 +1166,48 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
           produto e o campo de observação foi retirado; o que sobrava era um
           resumo repetido — quem é o responsável está no topo e a contagem de
           selecionados está acima da lista. */}
+
+      {novoProduto && (
+        <div className="estoque-rapido-modal" role="dialog" aria-modal="true" aria-label="Cadastrar produto">
+          <div className="estoque-rapido-modal-caixa">
+            <strong>Cadastrar produto</strong>
+            <p>Entra no cadastro de ingredientes e neste estoque de uma vez.</p>
+            <label>Nome do produto
+              <input type="text" autoFocus value={novoProduto.nome}
+                onChange={e => setNovoProduto(p => ({ ...p, nome: e.target.value, erro: "" }))} />
+            </label>
+            <div className="estoque-rapido-modal-linha">
+              <label>Quantidade
+                <input type="number" min="0" inputMode="decimal" placeholder="500" value={novoProduto.quantidade}
+                  onChange={e => setNovoProduto(p => ({ ...p, quantidade: e.target.value, erro: "" }))} />
+              </label>
+              <label>Unidade
+                <select value={novoProduto.unidade}
+                  onChange={e => setNovoProduto(p => ({ ...p, unidade: e.target.value, erro: "" }))}>
+                  {unidadesDoDepartamento(departamento).map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
+                </select>
+              </label>
+            </div>
+            <label>Embalado em
+              <select value={novoProduto.embalagem}
+                onChange={e => setNovoProduto(p => ({ ...p, embalagem: e.target.value, erro: "" }))}>
+                {EMBALAGENS_INGREDIENTE.map(item => <option key={item.value || "granel"} value={item.value}>{item.label}</option>)}
+              </select>
+            </label>
+            <label>Custo da embalagem (R$)
+              <input type="number" min="0" inputMode="decimal" placeholder="0,00" value={novoProduto.custo}
+                onChange={e => setNovoProduto(p => ({ ...p, custo: e.target.value, erro: "" }))} />
+            </label>
+            {novoProduto.erro && <p className="estoque-rapido-modal-erro">{novoProduto.erro}</p>}
+            <div className="estoque-rapido-modal-botoes">
+              <button type="button" onClick={() => setNovoProduto(null)}>Cancelar</button>
+              <button type="button" className="principal" disabled={salvandoProduto} onClick={gravarNovoProduto}>
+                {salvandoProduto ? "Salvando..." : "Cadastrar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {limitesItem && (
         <div className="estoque-rapido-modal" role="dialog" aria-modal="true" aria-label="Mínimo e máximo">

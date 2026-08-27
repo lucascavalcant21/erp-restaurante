@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 // CATEGORIAS (tópicos), a partir do setor, momento do dia e um contexto livre.
 export async function POST(request) {
   try {
-    const { departamento, tipo, contexto, unidade_nome } = await request.json();
+    const { departamento, tipo, contexto, unidade_nome, foto } = await request.json();
 
     if (!process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json({ error: "Chave da IA não configurada no servidor." }, { status: 500 });
@@ -29,8 +29,13 @@ Regras:
 - Sem emojis. Português do Brasil.
 - Título curto e direto para o checklist.
 
+${foto ? `
+A FOTO ANEXADA é do ambiente real deste restaurante. Olhe o que está nela — equipamentos, bancadas, geladeiras, prateleiras, o que está fora do lugar — e monte o checklist a partir do que você vê, citando os itens concretos da imagem. Não descreva a foto: transforme em tarefas.
+` : ""}
+Se souber estimar, inclua "minutos" com o tempo médio de cada tarefa (número inteiro, sem unidade). Omita quando não fizer sentido.
+
 Responda ESTRITAMENTE com JSON, sem markdown:
-{ "titulo": "...", "itens": [ { "categoria": "Nome da categoria", "texto": "Tarefa a fazer" }, ... ] }`;
+{ "titulo": "...", "itens": [ { "categoria": "Nome da categoria", "texto": "Tarefa a fazer", "minutos": 5 }, ... ] }`;
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -39,7 +44,22 @@ Responda ESTRITAMENTE com JSON, sem markdown:
         "x-api-key": process.env.ANTHROPIC_API_KEY,
         "anthropic-version": "2023-06-01",
       },
-      body: JSON.stringify({ model: "claude-opus-4-8", max_tokens: 3000, messages: [{ role: "user", content: prompt }] }),
+      // Com foto a mensagem vira multimodal: bloco de imagem ANTES do texto, que
+      // é a ordem que o modelo lê melhor. foto.data precisa vir em base64 puro,
+      // sem o prefixo "data:image/...;base64,".
+      body: JSON.stringify({
+        model: "claude-opus-4-8",
+        max_tokens: 3000,
+        messages: [{
+          role: "user",
+          content: foto?.data
+            ? [
+                { type: "image", source: { type: "base64", media_type: foto.media_type || "image/jpeg", data: foto.data } },
+                { type: "text", text: prompt },
+              ]
+            : prompt,
+        }],
+      }),
     });
 
     if (!response.ok) {
@@ -58,7 +78,22 @@ Responda ESTRITAMENTE com JSON, sem markdown:
 
     const itens = obj.itens
       .filter(i => i && (i.texto || "").trim())
-      .map((i, idx) => ({ id: Date.now() + idx, texto: String(i.texto).trim(), categoria: (i.categoria || "").trim(), responsavel: "" }));
+      .map((i, idx) => {
+        // A IA às vezes devolve "5 min" ou "5-10". Fica só o primeiro número
+        // inteiro; qualquer outra coisa vira vazio, que a tela trata como
+        // "sem tempo" em vez de gravar lixo no checklist.
+        const bruto = String(i.minutos ?? "").match(/\d+/);
+        const minutos = bruto ? Number(bruto[0]) : "";
+        return {
+          id: Date.now() + idx,
+          texto: String(i.texto).trim(),
+          categoria: (i.categoria || "").trim(),
+          responsavel: "",
+          minutos: minutos > 0 ? minutos : "",
+          foto_url: null,
+          conjunto: false,
+        };
+      });
 
     return NextResponse.json({ titulo: String(obj.titulo || "").trim(), itens });
   } catch (error) {

@@ -331,9 +331,6 @@ export async function corrigirBatida({
   if (!campo) return { error: "Tipo de batida inválido." };
   if (!unidadeId || !colaboradorId || !dataReferencia) return { error: "Faltam dados da correção." };
   if (!novaHoraISO) return { error: "Informe o horário corrigido." };
-  // Motivo é o que justifica o ajuste numa fiscalização: ajuste sem motivo é
-  // exatamente o que a portaria quer evitar.
-  if (!String(motivo || "").trim()) return { error: "Descreva o motivo da correção." };
   if (!String(registradoPor || "").trim()) return { error: "Informe quem está corrigindo." };
 
   const { data: registro, error: erroLeitura } = await supabase
@@ -357,7 +354,7 @@ export async function corrigirBatida({
     valorAnterior,
     origem: "ajuste",
     registradoPor,
-    motivo: String(motivo).trim(),
+    motivo: String(motivo || "").trim() || null,
   });
   if (marcacao?.erro) {
     return {

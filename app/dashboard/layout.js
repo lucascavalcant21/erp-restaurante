@@ -136,6 +136,7 @@ const SIDEBAR_MENU = [
     items: [
       { label: "Painel de RH", href: "/dashboard/rh" },
       { label: "Ponto", href: "/dashboard/rh/ponto" },
+      { label: "Corrigir batida", href: "/dashboard/rh/ponto/corrigir" },
       { label: "Semana do Restaurante", href: "/dashboard/rh/semana" },
       { label: "Portal do Colaborador", href: "/dashboard/rh/colaborador" },
       { label: "Folha de Pagamento", href: "/dashboard/rh/fechamento" },

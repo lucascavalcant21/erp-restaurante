@@ -3294,7 +3294,18 @@ function FichasRunner() {
                            (() => {
                               const est = rendimentoPelosIngredientes(ingFicha);
                               const custoTotal = calcularCustoTotal(ingFicha);
-                              if (!est) return <p className="text-sm text-slate-400 font-medium py-2">Adicione ingredientes — o rendimento e o custo de 1 {unGrande} aparecem aqui sozinhos.</p>;
+                              // Duas coisas diferentes davam a mesma frase. Sem ingrediente
+                              // nenhum o card nem aparece; se chegou aqui com ingrediente na
+                              // lista, o que falta é peso ou volume no cadastro deles — dizer
+                              // "adicione ingredientes" mandava procurar o problema no lugar
+                              // errado, que foi o que aconteceu com a água em garrafa.
+                              if (!est) return (
+                                 <p className="text-sm text-slate-400 font-medium py-2">
+                                    {ingFicha.length === 0
+                                       ? `Adicione ingredientes — o rendimento e o custo de 1 ${unGrande} aparecem aqui sozinhos.`
+                                       : "Nenhum ingrediente tem peso ou volume cadastrado. Abra cada um no cadastro e preencha quanto pesa ou quanto cabe em 1 unidade — o rendimento aparece aqui sozinho."}
+                                 </p>
+                              );
                               const custoKg = custoTotal / (est.totalG / 1000);
                               const unLabel = ({ kg: "kg", g: "g", l: "L", ml: "ml" })[est.unidade];
                               return (

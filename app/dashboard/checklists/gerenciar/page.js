@@ -6,8 +6,9 @@ import { useERP } from "../../../context/ERPContext";
 import {
   desativarTemplate, fetchExecucoesMes, fetchTemplates, formatarMinutos, salvarFotoReferencia, salvarTemplate, tempoDoChecklist,
 } from "../../../lib/checklists";
+import { comprimirFoto } from "../../../lib/operacao-evidencias";
 import { SkeletonList } from "../../../components/ui";
-import { BarChart3, Camera, CheckSquare, Clock, Edit3, Layers, Loader2, Plus, Printer, Save, Sparkles, Trash2, User, X } from "lucide-react";
+import { BarChart3, Camera, CheckSquare, Clock, Edit3, Layers, Loader2, Plus, Printer, Save, Sparkles, Trash2, User, Users, X } from "lucide-react";
 import { MODELOS_CHECKLIST, modeloDe } from "../modelos";
 
 // Tipos de checklist por setor:
@@ -104,7 +105,7 @@ function GerenciarChecklistsContent() {
   };
   const abrirEditar = (t) => {
     if (deptFixo && t.departamento !== deptFixo) return;
-    setForm({ frequencia: "diario", ...t, itens: t.itens?.length ? t.itens.map(i => ({ categoria: "", responsavel: "", minutos: "", foto_url: null, ...i })) : [{ id: 1, texto: "", categoria: "", responsavel: "", minutos: "", foto_url: null }] });
+    setForm({ frequencia: "diario", ...t, itens: t.itens?.length ? t.itens.map(i => ({ categoria: "", responsavel: "", minutos: "", foto_url: null, conjunto: false, ...i })) : [{ id: 1, texto: "", categoria: "", responsavel: "", minutos: "", foto_url: null }] });
     setContextoIA("");
     setModalNovo(true);
   };
@@ -141,24 +142,29 @@ function GerenciarChecklistsContent() {
     setForm(f => ({
       ...f,
       titulo: f.titulo.trim() || modelo.titulo,
-      itens: modelo.itens.map((texto, i) => ({ id: Date.now() + i, texto, responsavel: "" })),
+      itens: modelo.itens.map((texto, i) => ({ id: Date.now() + i, texto, responsavel: "", minutos: "", foto_url: null, conjunto: false })),
     }));
   };
 
   // Monta o checklist inteiro por IA: título + tarefas organizadas em categorias
+  // Foto do ambiente: a IA olha o que esta na imagem (equipamentos, bancadas,
+  // o que esta fora do lugar) e monta as tarefas a partir dai, em vez de sair
+  // do modelo generico de "abertura de salao".
+  const [fotoIA, setFotoIA] = useState(null);
+
   const montarPorIA = async () => {
     setMontandoIA(true);
     try {
       const res = await fetch("/api/ia-checklist", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ departamento: form.departamento, tipo: form.tipo, contexto: contextoIA, unidade_nome: unidadeInfo?.nome }),
+        body: JSON.stringify({ departamento: form.departamento, tipo: form.tipo, contexto: contextoIA, unidade_nome: unidadeInfo?.nome, foto: fotoIA?.envio || null }),
       });
       const data = await res.json();
       if (!res.ok || data.error) { alert(data.error || "Falha ao montar o checklist."); return; }
       setForm(f => ({
         ...f,
         titulo: f.titulo.trim() || data.titulo || "",
-        itens: (data.itens || []).map((i, idx) => ({ id: Date.now() + idx, texto: i.texto || "", categoria: i.categoria || "", responsavel: "" })),
+        itens: (data.itens || []).map((i, idx) => ({ id: Date.now() + idx, texto: i.texto || "", categoria: i.categoria || "", responsavel: "", minutos: i.minutos ?? "", foto_url: null, conjunto: false })),
       }));
     } catch { alert("Não consegui falar com a IA."); } finally { setMontandoIA(false); }
   };
@@ -316,7 +322,7 @@ function GerenciarChecklistsContent() {
         <td class="n">${i + 1}</td>
         <td class="tarefa">${it.texto || ""}${marcaFoto}</td>
         <td class="tempo">${formatarMinutos(it.minutos)}</td>
-        <td class="resp">${it.responsavel || ""}</td>
+        <td class="resp">${it.conjunto ? "Em conjunto" : (it.responsavel || "")}</td>
         <td class="check"><span class="box"></span></td>
         <td class="visto"></td>
       </tr>`;
@@ -632,9 +638,33 @@ function GerenciarChecklistsContent() {
                 <textarea rows={2} value={contextoIA} onChange={e => setContextoIA(e.target.value)}
                   placeholder="Opcional: detalhe o que não pode faltar (ex: conferir chopeira, repor gelo, higienizar dosadores...)"
                   className="w-full p-3 bg-white border border-violet-200 rounded-xl font-medium text-base outline-none focus:border-violet-500 resize-none mb-2" />
+                {/* A foto do ambiente vai junto do texto. Comprimida com o mesmo
+                    comprimirFoto das evidencias: foto de celular crua passa de 5 MB
+                    e a requisicao morre no limite de tamanho. */}
+                <div className="flex items-center gap-2 mb-2">
+                  <label className="flex items-center gap-2 rounded-xl border border-violet-200 bg-white px-3 py-2 text-xs font-black text-violet-700 cursor-pointer hover:border-violet-400">
+                    <input type="file" accept="image/*" className="hidden"
+                      onChange={async e => {
+                        const file = e.target.files?.[0];
+                        e.target.value = "";
+                        if (!file) return;
+                        try {
+                          const foto = await comprimirFoto(file);
+                          setFotoIA({ nome: file.name, previa: URL.createObjectURL(file), envio: { data: foto.base64, media_type: foto.mediaType } });
+                        } catch (erro) { alert(erro?.message || "Não consegui preparar a foto."); }
+                      }} />
+                    <Camera size={14} /> {fotoIA ? "Trocar foto" : "Enviar foto do ambiente"}
+                  </label>
+                  {fotoIA && (
+                    <>
+                      <img src={fotoIA.previa} alt="Ambiente" className="h-9 w-9 rounded-lg object-cover border border-violet-200" />
+                      <button type="button" onClick={() => setFotoIA(null)} className="text-[11px] font-bold text-violet-700 underline">tirar</button>
+                    </>
+                  )}
+                </div>
                 <button type="button" onClick={montarPorIA} disabled={montandoIA}
                   className="w-full flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-bold text-sm py-3 rounded-xl transition-colors disabled:opacity-60">
-                  {montandoIA ? <><Loader2 size={16} className="animate-spin" /> Montando checklist...</> : <><Sparkles size={16} /> Montar por IA</>}
+                  {montandoIA ? <><Loader2 size={16} className="animate-spin" /> Montando checklist...</> : <><Sparkles size={16} /> {fotoIA ? "Montar pela foto" : "Montar por IA"}</>}
                 </button>
               </div>
 
@@ -695,15 +725,32 @@ function GerenciarChecklistsContent() {
                           onChange={e => mudaTarefa(it.id, { categoria: e.target.value })}
                           className="col-start-2 w-full sm:col-auto sm:shrink-0 sm:w-32 p-3 bg-violet-50 border border-violet-200 rounded-lg font-medium text-base outline-none focus:border-violet-500"
                         />
-                        <div className="relative col-start-2 w-full sm:col-auto sm:shrink-0 sm:w-36">
-                          <User size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                          <input
-                            type="text"
-                            placeholder="Responsável"
-                            value={it.responsavel || ""}
-                            onChange={e => mudaTarefa(it.id, { responsavel: e.target.value })}
-                            className="w-full p-3 pl-8 bg-slate-50 border border-slate-200 rounded-lg font-medium text-base outline-none focus:border-emerald-500"
-                          />
+                        {/* Tarefa de uma pessoa ou do time. Marcar "em conjunto" limpa
+                            o nome: guardar os dois deixaria a folha dizendo "Todos" e o
+                            sistema cobrando de uma pessoa so. */}
+                        <div className="relative col-start-2 w-full sm:col-auto sm:shrink-0 sm:w-44 flex items-center gap-1.5">
+                          {it.conjunto ? (
+                            <span className="flex-1 flex items-center gap-1.5 h-11 px-3 rounded-lg bg-emerald-50 border border-emerald-200 text-[13px] font-black text-emerald-700">
+                              <Users size={13} /> Em conjunto
+                            </span>
+                          ) : (
+                            <span className="relative flex-1">
+                              <User size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                              <input
+                                type="text"
+                                placeholder="Responsável"
+                                value={it.responsavel || ""}
+                                onChange={e => mudaTarefa(it.id, { responsavel: e.target.value })}
+                                className="w-full p-3 pl-8 bg-slate-50 border border-slate-200 rounded-lg font-medium text-base outline-none focus:border-emerald-500"
+                              />
+                            </span>
+                          )}
+                          <button type="button"
+                            onClick={() => mudaTarefa(it.id, { conjunto: !it.conjunto, responsavel: "" })}
+                            title={it.conjunto ? "Voltar para uma pessoa" : "Marcar como tarefa do time"}
+                            className={`h-11 w-9 shrink-0 grid place-items-center rounded-lg border transition-colors ${it.conjunto ? "border-emerald-300 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-white text-slate-400 hover:border-emerald-300"}`}>
+                            <Users size={15} />
+                          </button>
                         </div>
                         <div className="relative col-start-2 w-full sm:col-auto sm:shrink-0 sm:w-24">
                           <Clock size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />

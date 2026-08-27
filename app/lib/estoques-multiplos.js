@@ -636,6 +636,9 @@ export async function registrarLoteMovimentosMulti({ unidadeId, tipo, itens, usu
       insumoId: item.insumoId,
       tipo,
       quantidade: Number(item.quantidade),
+      // Validade e por item: no mesmo lancamento pode entrar uma fornada de
+      // hoje e outra de ontem, cada uma no seu lote.
+      validade: tipo === "entrada" ? (item.validade || null) : null,
       usuarioId,
       usuarioNome,
       observacao,

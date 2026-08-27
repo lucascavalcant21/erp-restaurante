@@ -582,7 +582,7 @@ function RotinaRunner() {
       return `${header}<tr>
         <td class="n">${i + 1}</td>
         <td class="tarefa">${it.texto || ""}</td>
-        <td class="resp">${quem || it.responsavel || ""}</td>
+        <td class="resp">${quem || (it.conjunto ? "Em conjunto" : it.responsavel || "")}</td>
         <td class="check">${feito ? `<span class="box feito">&#10003;</span>` : `<span class="box"></span>`}</td>
       </tr>`;
     }).join("");
@@ -655,7 +655,7 @@ function RotinaRunner() {
       const linhas = (tmpl.itens || []).map((it, i) => {
         const cat = (it.categoria || "").trim();
         const header = cat && cat !== catB ? (catB = cat, `<tr class="cat"><td colspan="4">${cat}</td></tr>`) : "";
-        return `${header}<tr><td class="n">${i + 1}</td><td class="tarefa">${it.texto || ""}</td><td class="resp">${it.responsavel || ""}</td><td class="check"><span class="box"></span></td></tr>`;
+        return `${header}<tr><td class="n">${i + 1}</td><td class="tarefa">${it.texto || ""}</td><td class="resp">${it.conjunto ? "Em conjunto" : (it.responsavel || "")}</td><td class="check"><span class="box"></span></td></tr>`;
       }).join("");
       const extras = Array.from({ length: 2 }).map((_, i) => `
         <tr><td class="n">${(tmpl.itens?.length || 0) + i + 1}</td><td class="tarefa"></td><td class="resp"></td><td class="check"><span class="box"></span></td></tr>`).join("");

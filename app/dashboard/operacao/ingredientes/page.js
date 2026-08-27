@@ -35,16 +35,7 @@ import { fetchPrecosDoInsumo, salvarPrecoFornecedor } from "../../../lib/insumo-
 import { CATEGORIAS_INSUMO, adivinharCategoria, categoriaDoProdutoBar, obterTodasCategoriasInsumo, salvarNovaCategoriaCustom } from "../../../lib/categorias-insumo";
 import { comprimirFotoParaIA } from "../../../lib/imagem";
 import {
-  UNIDADES_INGREDIENTE,
-  calcularCustoSolicitado,
-  calcularPrecoNormalizado,
-  normalizarBusca,
-  ordenarIngredientes,
-  parseNumeroBR,
-  precoNormalizadoDoInsumo,
-  textoPesquisavel,
-  unidadeNormalizada,
-  ehUnidadeContada, ehUnidadeUnitaria, rotuloVolumeUnitario, rotuloPesoUnitario,
+  EMBALAGENS_INGREDIENTE, UNIDADES_INGREDIENTE, calcularCustoSolicitado, calcularPrecoNormalizado, ehUnidadeContada, ehUnidadeUnitaria, normalizarBusca, ordenarIngredientes, parseNumeroBR, precoNormalizadoDoInsumo, rotuloPesoUnitario, rotuloVolumeUnitario, textoPesquisavel, unidadeNormalizada, unidadesDoDepartamento,
 } from "../../../lib/ingredientes-utils.mjs";
 import { fmtBRL } from "../../../components/ui";
 import { criarEscuta, vozDisponivel } from "../../../lib/hefisto-voz";
@@ -75,6 +66,7 @@ function novoFormulario(departamento = "cozinha") {
     tamanho_embalagem: "1",
     unidade_medida: ehBar ? "ml" : "kg",
     volume_unidade_ml: "",
+    unidade_comercial: "",
     peso_medio_g: "",
     valor_embalagem: "",
     fornecedor_atual_id: "",
@@ -491,6 +483,7 @@ function IngredientesRunner() {
       tamanho_embalagem: String(insumo.tamanho_embalagem || 1),
       unidade_medida: un,
       volume_unidade_ml: insumo.volume_unidade_ml ? String(insumo.volume_unidade_ml) : "",
+      unidade_comercial: insumo.unidade_comercial || "",
       peso_medio_g: insumo.peso_medio_g ? String(insumo.peso_medio_g) : "",
       valor_embalagem: String(Number(insumo.custo_compra) > 0 ? insumo.custo_compra : (insumo.custo_unitario || "")),
       fornecedor_atual_id: insumo.fornecedor_atual_id || "",
@@ -587,6 +580,8 @@ function IngredientesRunner() {
       codigo_interno: form.codigo_interno.trim() || null,
       tamanho_embalagem: quantidade,
       unidade_medida: form.unidade_medida,
+      // Em que a quantidade acima vem. Vazio = a granel, pesado na balanca.
+      unidade_comercial: form.unidade_comercial || null,
       // Só faz sentido em garrafa/lata/barril. Trocar para ml zera o campo, senão
       // ficaria um volume órfão contradizendo a unidade.
       volume_unidade_ml: ehUnidadeContada(form.unidade_medida)
@@ -1053,7 +1048,9 @@ function IngredientesRunner() {
                   <label>
                     <span className="text-xs font-bold text-slate-600">Unidade *</span>
                     {(() => {
-                      const lista = UNIDADES_INGREDIENTE;
+                      // O bar mede tudo em volume; garrafa/lata/barril sairam daqui
+                      // e viraram a pergunta separada "Embalado em".
+                      const lista = unidadesDoDepartamento(form.departamento);
                       return (
                         <select value={form.unidade_medida} onChange={event => setForm({ ...form, unidade_medida: event.target.value })} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 font-bold outline-none focus:border-emerald-500">
                           {lista.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
@@ -1061,42 +1058,39 @@ function IngredientesRunner() {
                       );
                     })()}
                   </label>
-                  {/* Garrafa, lata e barril CONTAM em vez de medir. Sem dizer quanto cabe
-                      em cada uma, a ficha técnica não consegue somar o rendimento: uma
-                      garrafa valia zero na conta e o card de quantidade pedia
-                      ingredientes mesmo já tendo um. */}
-                  {ehUnidadeContada(form.unidade_medida) && (
-                    <label className="col-span-2">
-                      <span className="text-xs font-bold text-slate-600">
-                        Quanto cabe em 1 {form.unidade_medida === "barril" ? "barril" : form.unidade_medida} (ml) *
-                      </span>
-                      <input inputMode="decimal" value={form.volume_unidade_ml}
-                        onChange={event => !event.target.value.startsWith("-") && setForm({ ...form, volume_unidade_ml: event.target.value })}
-                        placeholder={form.unidade_medida === "barril" ? "30000" : form.unidade_medida === "lata" ? "350" : "500"}
-                        className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 font-bold outline-none focus:border-emerald-500" />
-                      <span className="mt-1 block text-[11px] font-medium text-slate-400">
-                        {parseNumeroBR(form.volume_unidade_ml) > 0
-                          ? `1 ${form.unidade_medida} = ${rotuloVolumeUnitario({ unidade_medida: form.unidade_medida, volume_unidade_ml: parseNumeroBR(form.volume_unidade_ml) })}`
-                          : "Sem isso a receita não sabe quanto rende. Barril de chopp: 30000."}
-                      </span>
-                    </label>
-                  )}
-                  {/* A cozinha faz a mesma pergunta do bar, em peso. Sem isso, "1 un"
-                      de tomate vale zero no rendimento da ficha. */}
+                  {/* "un" nao tem tamanho de embalagem que revele o peso: 1 tomate
+                      nao e "1 kg de tomate". Aqui a pessoa diz quanto pesa uma peca,
+                      senao o item fica fora do rendimento da ficha. */}
                   {ehUnidadeUnitaria(form.unidade_medida) && (
                     <label className="col-span-2">
-                      <span className="text-xs font-bold text-slate-600">Quanto pesa 1 unidade (g) *</span>
+                      <span className="text-xs font-bold text-slate-600">Quanto pesa 1 unidade (g)</span>
                       <input inputMode="decimal" value={form.peso_medio_g}
                         onChange={event => !event.target.value.startsWith("-") && setForm({ ...form, peso_medio_g: event.target.value })}
                         placeholder="100"
                         className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 font-bold outline-none focus:border-emerald-500" />
                       <span className="mt-1 block text-[11px] font-medium text-slate-400">
                         {parseNumeroBR(form.peso_medio_g) > 0
-                          ? `1 unidade = ${rotuloPesoUnitario({ unidade_medida: "un", peso_medio_g: parseNumeroBR(form.peso_medio_g) })}`
-                          : "Sem isso a receita não sabe quanto rende. Tomate: 100. Ovo: 50."}
+                          ? rotuloPesoUnitario({ unidade_medida: "un", peso_medio_g: parseNumeroBR(form.peso_medio_g) })
+                          : "Tomate: 100. Ovo: 50. Sem isso a receita nao sabe quanto rende."}
                       </span>
                     </label>
                   )}
+                  {/* Onde esse volume/peso esta. "500 ml" sozinho nao diz se e
+                      garrafa, lata ou barril, e era essa a informacao que faltava
+                      para a ficha tecnica somar 1 garrafa como 500 ml. */}
+                  <label className="col-span-2">
+                    <span className="text-xs font-bold text-slate-600">Embalado em</span>
+                    <select value={form.unidade_comercial || ""}
+                      onChange={event => setForm({ ...form, unidade_comercial: event.target.value })}
+                      className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 font-bold outline-none focus:border-emerald-500">
+                      {EMBALAGENS_INGREDIENTE.map(item => <option key={item.value || "granel"} value={item.value}>{item.label}</option>)}
+                    </select>
+                    <span className="mt-1 block text-[11px] font-medium text-slate-400">
+                      {rotuloVolumeUnitario({ unidade_medida: form.unidade_medida, tamanho_embalagem: parseNumeroBR(form.tamanho_embalagem), unidade_comercial: form.unidade_comercial })
+                        || rotuloPesoUnitario({ unidade_medida: form.unidade_medida, tamanho_embalagem: parseNumeroBR(form.tamanho_embalagem), unidade_comercial: form.unidade_comercial })
+                        || "Sem embalagem a receita nao sabe quanto rende 1 peca."}
+                    </span>
+                  </label>
                   <label className="col-span-2">
                     <span className="text-xs font-bold text-slate-600">Valor da embalagem *</span>
                     <div className="mt-1.5 flex h-11 items-center rounded-xl border border-slate-200 bg-slate-50 px-3.5 focus-within:border-emerald-500">

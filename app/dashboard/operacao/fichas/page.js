@@ -47,7 +47,7 @@ import { fmtBRL } from "../../../components/ui";
 import { logoSeldeestrelaSVG } from "../../../lib/marca";
 import { baixarPdfDeHtml } from "../../../lib/pdf";
 import { fetchHistoricoCustoFicha, registrarCustoFicha } from "../../../lib/ficha-custos";
-import { ehUnidadeContada, ehUnidadeUnitaria, rotuloPesoUnitario, rotuloVolumeUnitario, volumeUnitarioMl } from "../../../lib/ingredientes-utils.mjs";
+import { rotuloPesoUnitario, rotuloVolumeUnitario, volumeUnitarioMl } from "../../../lib/ingredientes-utils.mjs";
 import { fetchCategoriasFichas, salvarCategoriasFichas } from "../../../lib/parametros";
 import {
   estimarPaginasDocumento,
@@ -621,6 +621,8 @@ function FichasRunner() {
         custo_unitario: insumo.custo_unitario, quantidade,
         peso_medio_g: insumo.peso_medio_g || null,
         unidade_medida: insumo.unidade_medida,
+        unidade_comercial: insumo.unidade_comercial || null,
+        tamanho_embalagem: insumo.tamanho_embalagem || null,
         volume_unidade_ml: insumo.volume_unidade_ml || null,
         modo: getSub(insumo.unidade_medida) ? "sub" : "base",
       };
@@ -941,6 +943,8 @@ function FichasRunner() {
           empanado: !!fi.insumos.empanado,
           peso_medio_g: fi.insumos.peso_medio_g || null,
           unidade_medida: fi.insumos.unidade_medida,
+          unidade_comercial: fi.insumos.unidade_comercial || null,
+          tamanho_embalagem: fi.insumos.tamanho_embalagem || null,
           volume_unidade_ml: fi.insumos.volume_unidade_ml || null,
           modo: getSub(fi.insumos.unidade_medida) ? "sub" : "base",
        };
@@ -1085,6 +1089,8 @@ function FichasRunner() {
        custo_unitario: custoUnitEfetivo(insumoDb), quantidade,
        peso_medio_g: insumoDb.peso_medio_g || null,
        unidade_medida: insumoDb.unidade_medida,
+       unidade_comercial: insumoDb.unidade_comercial || null,
+       tamanho_embalagem: insumoDb.tamanho_embalagem || null,
        volume_unidade_ml: insumoDb.volume_unidade_ml || null,
        // Perda vem do cadastro do ingrediente. Empanado usa o ganho (não soma perda).
        fator: insumoDb.empanado ? 0 : (Number(insumoDb.perda_pct) || 0),
@@ -3205,18 +3211,16 @@ function FichasRunner() {
                                     {/* Quanto cabe em 1 garrafa/lata/barril. É o número que
                                         faz a receita saber o rendimento, e sem ele a linha
                                         avisa que falta preencher no cadastro. */}
-                                    {ehUnidadeContada(ing.unidade) && (
-                                       rotuloVolumeUnitario(ing)
-                                          ? <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">{rotuloVolumeUnitario(ing)} por {ing.unidade}</p>
-                                          : <p className="text-[10px] font-bold text-slate-400 mt-0.5">Sem volume no cadastro — abra o ingrediente e preencha quanto cabe em 1 {ing.unidade}</p>
-                                    )}
-                                    {/* Mesmo aviso do bar, do lado do peso: na cozinha "1 un"
-                                        só entra na conta quando alguém diz quanto pesa. */}
-                                    {ing.tipo !== "base" && ehUnidadeUnitaria(ing.unidade) && (
-                                       rotuloPesoUnitario(ing)
-                                          ? <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">{rotuloPesoUnitario(ing)} por unidade</p>
-                                          : <p className="text-[10px] font-bold text-slate-400 mt-0.5">Sem peso no cadastro — abra o ingrediente e preencha quanto pesa 1 unidade</p>
-                                    )}
+                                    {/* Quanto rende 1 peca e em que ela vem: "500 ml por
+                                        garrafa". Sem isso o item nao entra na soma do
+                                        rendimento, e o aviso diz onde arrumar em vez de
+                                        deixar a conta errada em silencio. */}
+                                    {ing.tipo !== "base" && (() => {
+                                       const rotulo = rotuloVolumeUnitario(ing) || rotuloPesoUnitario(ing);
+                                       if (rotulo) return <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">{rotulo}</p>;
+                                       if (["ml", "l", "g", "kg"].includes(String(ing.unidade || "").toLowerCase())) return null;
+                                       return <p className="text-[10px] font-bold text-slate-400 mt-0.5">Sem embalagem no cadastro — não entra no rendimento</p>;
+                                    })()}
                                     <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">Custo: {fmtBRL(ing.custo_unitario * ing.quantidade * (1 + (Number(ing.fator) || 0) / 100))} <span className="text-slate-400 normal-case">· {fmtBRL(ing.custo_unitario)}/{String(ing.unidade).toUpperCase()}</span></p>
                                     {/* Perda vem do cadastro do ingrediente (o FC saiu da ficha). O custo usa a qtd bruta = líquida × (1 + perda). */}
                                     {ing.tipo !== "base" && Number(ing.fator) > 0 && (

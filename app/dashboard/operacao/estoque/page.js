@@ -22,7 +22,7 @@ import {
   transferirEntreEstoques, vincularItemEstoque, zerarEstoque,
 } from "../../../lib/estoques-multiplos";
 import {
-  filtrarItensEstoque, grupoOperacionalItem, gruposOperacionaisEstoque,
+  estoqueControlaLote, filtrarItensEstoque, grupoOperacionalItem, gruposOperacionaisEstoque,
   statusItemEstoque, TIPOS_ESTOQUE, tiposCompativeis,
 } from "../../../lib/estoques-multiplos-utils.mjs";
 import { fmtBRL } from "../../../components/ui";
@@ -482,14 +482,14 @@ function EstoqueRunner() {
 
   useEffect(() => {
     const insumoId = modal?.item?.insumo_id;
-    if (!modal || modal.tipo !== "entrada" || !insumoId || !estoqueAtual?.id || !estoqueAtual?.controla_validade) {
+    if (!modal || modal.tipo !== "entrada" || !insumoId || !estoqueAtual?.id || !estoqueControlaLote(estoqueAtual)) {
       setLotesItem([]);
       return;
     }
     let ativo = true;
     fetchLotesItem(estoqueAtual.id, insumoId).then((r) => { if (ativo) setLotesItem(r.data || []); });
     return () => { ativo = false; };
-  }, [modal, estoqueAtual?.id, estoqueAtual?.controla_validade]);
+  }, [modal, estoqueAtual?.id, estoqueAtual?.controla_validade, estoqueAtual?.slug, estoqueAtual?.nome]);
 
   const carregarEstoques = useCallback(async (manterId = "") => {
     if (!unidadeAtiva || unidadeAtiva === "todas") return;
@@ -1878,10 +1878,10 @@ function EstoqueRunner() {
                       )}
                     </div>
 
-                    {/* Validade desta entrada. Repor com a mesma data soma no
-                        lote que já existe; com outra data, cria um lote novo e
-                        as duas fornadas passam a ser contadas em separado. */}
-                    {modal.tipo === "entrada" && estoqueAtual?.controla_validade && (
+                    {/* Validade desta entrada, só no pré-preparo. Repor com a mesma
+                        data soma no lote que já existe; com outra data, cria um lote
+                        novo e as duas fornadas passam a ser contadas em separado. */}
+                    {modal.tipo === "entrada" && estoqueControlaLote(estoqueAtual) && (
                       <div className="mt-3">
                         <Campo label="Validade desta entrada">
                           <input type="date" value={operacao.validade || ""}

@@ -47,6 +47,7 @@ import { fmtBRL } from "../../../components/ui";
 import { logoSeldeestrelaSVG } from "../../../lib/marca";
 import { baixarPdfDeHtml } from "../../../lib/pdf";
 import { fetchHistoricoCustoFicha, registrarCustoFicha } from "../../../lib/ficha-custos";
+import { ehUnidadeContada, rotuloVolumeUnitario, volumeUnitarioMl } from "../../../lib/ingredientes-utils.mjs";
 import { fetchCategoriasFichas, salvarCategoriasFichas } from "../../../lib/parametros";
 import {
   estimarPaginasDocumento,
@@ -324,7 +325,10 @@ function rendimentoPelosIngredientes(ingLista) {
     else if (u === "l") liquidosMl += q * 1000;
     else if (u === "ml") liquidosMl += q;
     else if ((u === "un" || u === "unidade" || u === "porcao") && pm > 0) solidosG += q * pm;
-    // "un" sem peso médio cadastrado: continua de fora
+    // Garrafa, lata e barril contam recipientes. Valem o que cabe dentro, se o
+    // cadastro disser quanto é — 1 garrafa de 500 ml entra como 500 ml. Sem o
+    // volume o item fica de fora, como o "un" sem peso médio.
+    else if (volumeUnitarioMl(ing) > 0) liquidosMl += q * volumeUnitarioMl(ing);
   });
   const total = solidosG + liquidosMl;
   if (total <= 0) return null;
@@ -346,6 +350,7 @@ function detalheIngrediente(ing) {
   else if (u === "l") { pesoG = q * 1000; liquido = true; }
   else if (u === "ml") { pesoG = q; liquido = true; }
   else if ((u === "un" || u === "unidade" || u === "porcao") && pm > 0) pesoG = q * pm;
+  else if (volumeUnitarioMl(ing) > 0) { pesoG = q * volumeUnitarioMl(ing); liquido = true; }
   const custo = (Number(ing.custo_unitario) || 0) * q;
   // Preço por grama ≥ R$1 (= R$1000/kg): quase sempre é cadastro errado
   // (preço do pacote/maço salvo como preço da grama).
@@ -615,6 +620,8 @@ function FichasRunner() {
         nome: insumo.nome, unidade: insumo.unidade_medida,
         custo_unitario: insumo.custo_unitario, quantidade,
         peso_medio_g: insumo.peso_medio_g || null,
+        unidade_medida: insumo.unidade_medida,
+        volume_unidade_ml: insumo.volume_unidade_ml || null,
         modo: getSub(insumo.unidade_medida) ? "sub" : "base",
       };
     });
@@ -933,6 +940,8 @@ function FichasRunner() {
           fator: fi.insumos.empanado ? 0 : (Number(fi.insumos.perda_pct) || Number(fi.fator_correcao) || 0),
           empanado: !!fi.insumos.empanado,
           peso_medio_g: fi.insumos.peso_medio_g || null,
+          unidade_medida: fi.insumos.unidade_medida,
+          volume_unidade_ml: fi.insumos.volume_unidade_ml || null,
           modo: getSub(fi.insumos.unidade_medida) ? "sub" : "base",
        };
     });
@@ -1075,6 +1084,8 @@ function FichasRunner() {
        nome: insumoDb.nome, unidade: insumoDb.unidade_medida,
        custo_unitario: custoUnitEfetivo(insumoDb), quantidade,
        peso_medio_g: insumoDb.peso_medio_g || null,
+       unidade_medida: insumoDb.unidade_medida,
+       volume_unidade_ml: insumoDb.volume_unidade_ml || null,
        // Perda vem do cadastro do ingrediente. Empanado usa o ganho (não soma perda).
        fator: insumoDb.empanado ? 0 : (Number(insumoDb.perda_pct) || 0),
        empanado: !!insumoDb.empanado,
@@ -3191,6 +3202,14 @@ function FichasRunner() {
                                        {ing.nome}
                                        {ing.tipo === "base" && <span className="text-[8px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">Base</span>}
                                     </p>
+                                    {/* Quanto cabe em 1 garrafa/lata/barril. É o número que
+                                        faz a receita saber o rendimento, e sem ele a linha
+                                        avisa que falta preencher no cadastro. */}
+                                    {ehUnidadeContada(ing.unidade) && (
+                                       rotuloVolumeUnitario(ing)
+                                          ? <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">{rotuloVolumeUnitario(ing)} por {ing.unidade}</p>
+                                          : <p className="text-[10px] font-bold text-slate-400 mt-0.5">Sem volume no cadastro — não entra no rendimento</p>
+                                    )}
                                     <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">Custo: {fmtBRL(ing.custo_unitario * ing.quantidade * (1 + (Number(ing.fator) || 0) / 100))} <span className="text-slate-400 normal-case">· {fmtBRL(ing.custo_unitario)}/{String(ing.unidade).toUpperCase()}</span></p>
                                     {/* Perda vem do cadastro do ingrediente (o FC saiu da ficha). O custo usa a qtd bruta = líquida × (1 + perda). */}
                                     {ing.tipo !== "base" && Number(ing.fator) > 0 && (
@@ -3831,7 +3850,8 @@ function FichasRunner() {
                               const pesoIA = rendimentoPelosIngredientes(
                                  iaFResultado.itens.map(it => {
                                     const ins = insumosAtivos.find(i => i.id === it.vinculoId);
-                                    return { unidade: it.unidade_lida, quantidade: it.quantidade_lida, peso_medio_g: ins?.peso_medio_g || null };
+                                    return { unidade: it.unidade_lida, quantidade: it.quantidade_lida, peso_medio_g: ins?.peso_medio_g || null,
+                                       unidade_medida: ins?.unidade_medida, volume_unidade_ml: ins?.volume_unidade_ml || null };
                                  })
                               );
                               if (pesoIA) return (

@@ -2081,7 +2081,9 @@ function MontagemPageInner() {
   useEffect(() => { carregar(); }, [unidadeAtiva, dept]);
 
   const filtrados = useMemo(() => lista.filter((m) => {
-    const mb = m.nome?.toLowerCase().includes(busca.toLowerCase());
+    // chaveNomeMontagem nos dois lados: buscar "acai" acha "Açaí" e buscar
+    // "a" acha "Água". É a mesma chave que já compara nomes duplicados.
+    const mb = chaveNomeMontagem(m.nome).includes(chaveNomeMontagem(busca));
     const mt = tipo === "Todos" || m.tipo === tipo.toLowerCase();
     // Garrafa, lata e água não têm montagem para ensinar — abrir e servir não é
     // receita. Some da lista, da contagem e da impressão de uma vez só, porque

@@ -36,6 +36,21 @@ export const ESTOQUES_PADRAO = [
   { nome: "Depósito", slug: "deposito", tipo: "materiais", cor: "#047857", controla_validade: true, controla_minimo: true },
 ];
 
+// Validade por entrada (lote) só existe no pré-preparo. Lá cada fornada tem a
+// sua data e sai na ordem de vencimento. No estoque normal da cozinha e do bar
+// a pessoa repõe o mesmo produto várias vezes por turno; pedir a data em cada
+// reposição só atrasava o lançamento e vinha em branco de qualquer jeito.
+// O nome entra na conta junto do slug porque estoque criado à mão não segue o
+// slug padrão.
+export function estoqueControlaLote(estoque) {
+  if (!estoque || !estoque.controla_validade) return false;
+  const alvo = `${estoque.slug || ""} ${estoque.nome || ""}`
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  return alvo.includes("pre-preparo") || alvo.includes("pre preparo");
+}
+
 export const GRUPOS_OPERACIONAIS_ESTOQUE = {
   cozinha: [
     "Todos",

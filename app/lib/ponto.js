@@ -305,3 +305,81 @@ export async function anexarAuditoriaFacial(colaboradorId, { foto, distancia, ti
     return { error: null }; // auditoria é acessória
   }
 }
+
+// ─── CORREÇÃO DE BATIDA ──────────────────────────────────────────────────────
+// Esqueceu de picar, picou na hora errada, tablet fora do ar: a batida precisa
+// ser corrigida, e ATÉ AGORA não havia como fazer isso pelo sistema — só
+// mexendo no banco à mão, o que quebraria o encadeamento por hash.
+//
+// Corrigir aqui NÃO reescreve a marcação original. Entra uma marcação do tipo
+// 'ajuste' guardando o valor anterior, quem corrigiu e o motivo — que é o que a
+// Portaria MTP 671/2021 manda. Depois disso o resumo do dia (registro_ponto),
+// que é o que as telas leem, recebe a hora nova.
+
+export const CAMPO_POR_TIPO = {
+  entrada: "hora_entrada",
+  saida_intervalo: "hora_saida_intervalo",
+  retorno_intervalo: "hora_retorno_intervalo",
+  saida_trabalho: "hora_saida",
+};
+
+export async function corrigirBatida({
+  unidadeId, colaboradorId, dataReferencia, tipo, novaHoraISO, registradoPor, motivo,
+}) {
+  if (!isSupabaseReady()) return { error: "Sistema sem conexão com o banco." };
+  const campo = CAMPO_POR_TIPO[tipo];
+  if (!campo) return { error: "Tipo de batida inválido." };
+  if (!unidadeId || !colaboradorId || !dataReferencia) return { error: "Faltam dados da correção." };
+  if (!novaHoraISO) return { error: "Informe o horário corrigido." };
+  // Motivo é o que justifica o ajuste numa fiscalização: ajuste sem motivo é
+  // exatamente o que a portaria quer evitar.
+  if (!String(motivo || "").trim()) return { error: "Descreva o motivo da correção." };
+  if (!String(registradoPor || "").trim()) return { error: "Informe quem está corrigindo." };
+
+  const { data: registro, error: erroLeitura } = await supabase
+    .from("registro_ponto")
+    .select(`id, ${campo}`)
+    .eq("colaborador_id", colaboradorId)
+    .eq("data_referencia", dataReferencia)
+    .maybeSingle();
+  if (erroLeitura) return { error: erroLeitura.message };
+
+  const valorAnterior = registro ? registro[campo] : null;
+
+  // Livro legal PRIMEIRO. Se ele não gravar, nada mais acontece: resumo
+  // corrigido sem marcação correspondente é pior do que correção nenhuma,
+  // porque a tela passa a mostrar uma hora que o livro não conhece.
+  const marcacao = await registrarMarcacao({
+    unidadeId, colaboradorId, dataReferencia,
+    tipo: "ajuste",
+    tipoAlvo: tipo,
+    marcadoEm: novaHoraISO,
+    valorAnterior,
+    origem: "ajuste",
+    registradoPor,
+    motivo: String(motivo).trim(),
+  });
+  if (marcacao?.erro) {
+    return {
+      error: marcacao.semTabela
+        ? "O livro de marcações não existe neste banco. Rode db/migracao_ponto_nsr.sql antes de corrigir batidas."
+        : `Não consegui gravar a correção no livro de marcações: ${marcacao.erro}`,
+    };
+  }
+
+  // Agora o resumo do dia, que é o que as telas mostram.
+  if (registro) {
+    const { error } = await supabase.from("registro_ponto")
+      .update({ [campo]: novaHoraISO }).eq("id", registro.id);
+    if (error) return { error: `Correção registrada no livro, mas o resumo do dia não aceitou: ${error.message}` };
+  } else {
+    // Dia sem registro nenhum: a pessoa não bateu nada. A correção cria a linha.
+    const { error } = await supabase.from("registro_ponto").insert([{
+      colaborador_id: colaboradorId, unidade_id: unidadeId,
+      data_referencia: dataReferencia, [campo]: novaHoraISO,
+    }]);
+    if (error) return { error: `Correção registrada no livro, mas não consegui criar o dia: ${error.message}` };
+  }
+
+  return { error: null, nsr: marcacao?.nsr ?? null, valorAnterior };
+}

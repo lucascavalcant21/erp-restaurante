@@ -27,20 +27,35 @@ Supabase, deploy por `git push origin main` na Vercel
 
 ## O que está pendente, em ordem
 
-### 1. Rodar 14 migrações (eu faço, só me lembre quando for relevante)
+### 1. Rodar 17 migrações (eu faço, só me lembre quando for relevante)
 `migracao_controle_acesso`, `migracao_operacao_inteligente`, `migracao_portal_extras`,
 `migracao_colaborador_filiacao`, `migracao_movimento_valor`, `migracao_ponto_facial`,
 `migracao_recibos_prestacao`, `migracao_extra_dados_recibo`,
 `migracao_colaborador_estado_civil`, `migracao_insumo_fornecedor_precos`,
 `migracao_insumo_perda_empanado`, `migracao_memorandos_operacao`,
-`migracao_auditoria_correcao`, `migracao_colaborador_endereco_rg` — todas em `db/`.
+`migracao_auditoria_correcao`, `migracao_colaborador_endereco_rg`,
+`migracao_ficha_metodo_bar`, `migracao_estoque_lotes`, `migracao_producao_salao`
+— todas em `db/`.
 
-Duas destas destravam bug confirmado e valem prioridade:
+**Esta lista NÃO é o inventário de `db/`.** Ela é a fila do que ainda falta
+rodar; há dezenas de migrações antigas na pasta que já foram aplicadas. Três
+vezes num mesmo dia uma funcionalidade pareceu quebrada só porque a migração
+dela nunca tinha entrado aqui. Ao criar migração nova, acrescente na lista no
+mesmo commit.
 
-- `migracao_auditoria_correcao` — é o único passo que falta para o item 3.
+Quais destravam funcionalidade já publicada:
+
+- `migracao_auditoria_correcao` — único passo que falta para o item 3.
 - `migracao_colaborador_endereco_rg` — cria `rua_av`, `numero_casa`, `bairro` e
   `rg` em `colaboradores`. Essas colunas nunca existiram no banco, e o cadastro
   do extra descartava esses quatro campos em silêncio a cada "Salvar".
+- `migracao_ficha_metodo_bar` — sem ela o método (batido/mexido) não persiste na
+  ficha e o livro de drinks imprime o card sem essa linha.
+- `migracao_estoque_lotes` — cria os lotes por validade. Sem ela, a entrada com
+  validade no estoque é **recusada** com o motivo, em vez de gravar a
+  quantidade e descartar a data.
+- `migracao_producao_salao` — acrescenta o salão ao plano do dia e grava setor e
+  local na produção. Sem ela o painel do turno não tem o que comparar.
 
 ### 2. Recibo do extra mais curto — CONCLUÍDO
 Nada pendente aqui. O que ficou pronto, tudo já no `main`:

@@ -27,29 +27,31 @@ Supabase, deploy por `git push origin main` na Vercel
 
 ## O que está pendente, em ordem
 
-### 1. Migrações — RODADAS EM 27/08
-As 17 da fila foram executadas. Falta rodar estes quatro:
+### 1. Migrações — FILA VAZIA (27/08)
 
-- **`db/LIMPAR_MONTAGENS_DUPLICADAS.sql`** — apaga os cards duplicados do guia
-  de montagem e cria o índice único que impede voltarem. A primeira tentativa
-  falhou porque o arquivo tinha um `'SUA_UNIDADE'` para trocar à mão e o passo
-  do índice não usava esse filtro; foi corrigido e agora roda inteiro sem
-  editar nada. Confirme se rodou até o `CREATE INDEX`.
-- **`db/migracao_insumo_volume_unidade.sql`** — cria `insumos.volume_unidade_ml`
-  e `insumos.peso_medio_g`.
-  Sem ela o campo "Quanto cabe em 1 garrafa" não grava, e a ficha continua sem
-  conseguir somar o rendimento de quem é cadastrado em garrafa, lata ou barril.
-- **`db/CORRIGIR_PONTO_LARISSA_26_08.sql`** — Larissa 26/08: entrada 15:40 (era
-  15:39, um minuto antes do turno) e saída 23:49 (estava como 00:49 do dia 27).
-- **`db/CORRIGIR_PONTO_LARISSA_25_08_E_CEDEINE_27_08.sql`** — Larissa 25/08
-  (entrada 15:40, intervalo 16:40–17:40, saída 00h) e Cedeine 27/08 (entrada
-  15:40). Grava o ajuste no livro legal antes do resumo do dia, igual à tela de
-  Corrigir batida. Rodar duas vezes não duplica nada.
+Nada de banco pendente. As 17 antigas mais estas quatro foram rodadas em 27/08:
+`LIMPAR_MONTAGENS_DUPLICADAS`, `migracao_insumo_volume_unidade`,
+`CORRIGIR_PONTO_LARISSA_26_08` e `CORRIGIR_PONTO_LARISSA_25_08_E_CEDEINE_27_08`.
+
+**Falta um passo à mão, não é SQL:** a coluna do volume nasceu vazia para quem
+já estava cadastrado. Abra cada ingrediente medido em garrafa/lata/barril e
+preencha quanto cabe em 1 (a Água sem gás é 500), e cada um medido em "un" e
+preencha quanto pesa 1. Enquanto estiver vazio, o item não entra no rendimento
+da ficha — e a linha dele diz isso, em vez de sumir da conta calado.
 
 **Esta lista é a FILA do que falta rodar, não o inventário de `db/`.** Três
 vezes num mesmo dia uma funcionalidade pareceu quebrada só porque a migração
 dela nunca tinha entrado aqui. Ao criar migração nova, acrescente na lista no
 mesmo commit que a cria.
+
+**Dois erros de forma que custaram uma rodada cada, para não repetir:**
+`LIMPAR_MONTAGENS_DUPLICADAS` tinha um `'SUA_UNIDADE'` para trocar à mão em
+dois passos e um terceiro que não usava esse filtro — passo destrutivo que
+depende de edição manual ao lado de um que não depende é armadilha. E os
+arquivos abriam com `--` seguido de régua de caractere de desenho: no caminho
+de cópia para o navegador os dois hifens viraram um travessão, que não abre
+comentário, e o script morria na linha 1. Comentário de SQL neste projeto é
+`/* */`, sem caractere decorativo.
 
 Scripts avulsos que existem mas você roda só se quiser:
 `ZERAR_FICHAS_COZINHA_E_BAR.sql` (apaga o receituário dos dois setores) e

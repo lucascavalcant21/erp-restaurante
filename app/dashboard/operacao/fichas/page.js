@@ -90,11 +90,11 @@ const CATEGORIAS_PREPARO_BAR = ["Xaropes", "Espumas", "Geleias", "Mixes e infus�
 // o shaker aera, gela e dilui mais; o mixing glass mantém o drink límpido e
 // com corpo. Quem monta no balcão precisa disso escrito, não subentendido.
 const METODOS_BAR = [
-  { id: "batido", nome: "Batido (shaker)", ajuda: "Suco, xarope, creme ou clara de ovo" },
-  { id: "mexido", nome: "Mexido (mixing glass)", ajuda: "Só destilados — límpido e sedoso" },
-  { id: "montado", nome: "Montado no copo", ajuda: "Direto no copo do cliente, sem transferir" },
-  { id: "liquidificador", nome: "Liquidificador", ajuda: "Frozen e batidas com gelo triturado" },
-  { id: "dose", nome: "Dose pura", ajuda: "Servido puro, sem preparo" },
+  { id: "batido", nome: "Batido (shaker)" },
+  { id: "mexido", nome: "Mexido (mixing glass)" },
+  { id: "montado", nome: "Montado no copo" },
+  { id: "liquidificador", nome: "Liquidificador" },
+  { id: "dose", nome: "Dose pura" },
 ];
 const metodoBar = (id) => METODOS_BAR.find(m => m.id === id) || null;
 const CATEGORIAS_PREPARO_COZINHA = [
@@ -2280,7 +2280,7 @@ function FichasRunner() {
                {fichasPagina.map(f => {
                   const peso = infoPesoFicha(f, fichas);
                   const unR = String(f.rendimento_unidade || "porcao").toLowerCase();
-                  const labelUn = { porcao: "porções", kg: "kg", g: "g", l: "L", ml: "ml", un: "un" }[unR] || unR;
+                  const labelUn = { porcao: String(f.departamento || "").toLowerCase() === "bar" ? "doses" : "porções", kg: "kg", g: "g", l: "L", ml: "ml", un: "un" }[unR] || unR;
 
                   return (
                      <div key={f.id}
@@ -2627,7 +2627,7 @@ function FichasRunner() {
          const peso = infoPesoFicha(f, fichas);
          const custoTotal = custoTotalDaFicha(f, fichas);
          const unR = String(f.rendimento_unidade || "porcao").toLowerCase();
-         const labelUn = { porcao: "porções", kg: "kg", g: "g", l: "L", ml: "ml", un: "un" }[unR] || unR;
+         const labelUn = { porcao: String(f.departamento || "").toLowerCase() === "bar" ? "doses" : "porções", kg: "kg", g: "g", l: "L", ml: "ml", un: "un" }[unR] || unR;
          const rend = Number(f.rendimento_porcoes) || 0;
          const porcoes = (unR === "porcao" || unR === "un") ? rend : (peso?.porcoes || 0);
          const custoPorcao = porcoes > 0 ? custoTotal / porcoes : custoTotal;
@@ -3062,16 +3062,11 @@ function FichasRunner() {
                            cerveja não são receituário e não aparecem mais na ficha
                            técnica. Criar por aqui só geraria registro invisível.
                            Esses itens se cadastram no Cardápio e no Estoque. */}
-                     </div> : (
-                       <div className={`flex items-center gap-3 rounded-2xl border p-4 ${form.eh_base ? "border-amber-200 bg-amber-50" : form.produto_pronto ? "border-violet-200 bg-violet-50" : "border-emerald-200 bg-emerald-50"}`}>
-                         <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl text-white ${form.eh_base ? "bg-amber-600" : form.produto_pronto ? "bg-violet-600" : "bg-emerald-600"}`}>{form.eh_base ? <BookOpen size={21} /> : form.produto_pronto ? <Package size={21} /> : <UtensilsCrossed size={21} />}</span>
-                         <div>
-                           <p className="text-[11px] font-black uppercase tracking-widest text-slate-500">Tipo da ficha</p>
-                           <p className="text-base font-black text-slate-900">{form.eh_base ? "Pré-preparo" : form.produto_pronto ? "Produto pronto" : deptUrl === "bar" ? "Montagem de drink" : "Montagem de prato"}</p>
-                           <p className="text-xs font-semibold text-slate-500">O tipo é definido no cadastro e não precisa ser escolhido novamente ao editar.</p>
-                         </div>
-                       </div>
-                     )}
+                     </div> : null}
+                     {/* Ao editar havia um cartão "Tipo da ficha" que só dizia que
+                         o tipo não podia ser mudado ali. O cabeçalho do modal já
+                         mostra o tipo, então o cartão ocupava espaço para repetir
+                         o que estava logo acima e avisar que nada podia ser feito. */}
                       {form.produto_pronto && (
                         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
                            <label className="text-xs font-bold text-emerald-800 uppercase tracking-widest">Tipo de produto pronto</label>
@@ -3388,18 +3383,25 @@ function FichasRunner() {
                                  });
                                  setAutoSoma(false);
                               }} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500">
-                                 <option value="porcao">porções</option>
-                                 <option value="kg">kg</option>
-                                 <option value="g">g</option>
-                                 <option value="l">L</option>
-                                 <option value="ml">ml</option>
-                                 <option value="un">unidades</option>
+                                 {ehBarFicha ? <>
+                                    <option value="ml">ml</option>
+                                    <option value="l">L</option>
+                                    <option value="porcao">doses</option>
+                                    <option value="un">unidades</option>
+                                 </> : <>
+                                    <option value="porcao">porções</option>
+                                    <option value="kg">kg</option>
+                                    <option value="g">g</option>
+                                    <option value="l">L</option>
+                                    <option value="ml">ml</option>
+                                    <option value="un">unidades</option>
+                                 </>}
                               </select>
                            </div>
                            {!["kg", "g", "l", "ml"].includes(String(form.rendimento_unidade || "porcao").toLowerCase()) && (
                               <div>
                                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{ehBarFicha ? "Dose tem (ml)" : "Porção pesa (g)"}</label>
-                                 <input type="number" step="0.1" min="0" placeholder={ehBarFicha ? "Ex: 300" : "Ex: 300"} value={form.peso_porcao_g} onChange={e=>{
+                                 <input type="number" step="0.1" min="0" placeholder={ehBarFicha ? "Ex: 50" : "Ex: 300"} value={form.peso_porcao_g} onChange={e=>{
                                     setForm({...form, peso_porcao_g: e.target.value});
                                     setAutoSoma(false);
                                  }} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-slate-800 outline-none focus:border-emerald-500 text-center"/>
@@ -3706,7 +3708,6 @@ function FichasRunner() {
                                        onClick={() => setForm({ ...form, metodo_bar: ativo ? "" : metodo.id })}
                                        className={`rounded-xl border-2 p-3 text-left transition ${ativo ? "border-emerald-500 bg-emerald-50" : "border-slate-200 bg-white hover:border-emerald-300"}`}>
                                        <span className={`block text-sm font-black ${ativo ? "text-emerald-700" : "text-slate-700"}`}>{metodo.nome}</span>
-                                       <span className="mt-0.5 block text-[11px] font-semibold text-slate-500">{metodo.ajuda}</span>
                                     </button>
                                  );
                               })}

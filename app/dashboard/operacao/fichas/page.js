@@ -3534,12 +3534,21 @@ function FichasRunner() {
                         const cmvTeo = precoNum > 0 ? (custoPorc / precoNum) * 100 : null;
                         const margem = cmvTeo !== null ? 100 - cmvTeo : null;
                         const markup = precoNum > 0 && custoPorc > 0 ? precoNum / custoPorc : null;
-                        const lucro = precoNum > 0 ? precoNum - custoPorc : null;
                         const custoKgForm = pesoTotalF > 0 ? custoTotalForm / (pesoTotalF / 1000) : 0;
                         return (
                            <div id="ficha-custos" className="bg-white border-2 border-emerald-200 rounded-2xl p-4 shadow-sm scroll-mt-24">
                               <p className="text-xs font-black uppercase tracking-widest text-emerald-700 mb-3">CMV e Precificação</p>
-                              {/* Custos base — sempre visíveis, recalculam ao digitar */}
+                              {/* No bar o drink e a unidade de venda: custo total,
+                                  custo por dose e custo por litro dao o mesmo numero
+                                  numa receita de uma dose. Fica um so, que e o custo
+                                  do produto. Na cozinha os tres seguem diferentes,
+                                  porque a receita rende varias porcoes. */}
+                              {ehBarFicha ? (
+                                 <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-center">
+                                    <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Custo do produto</p>
+                                    <p className="text-lg font-black text-slate-800">{fmtBRL(custoPorc)}</p>
+                                 </div>
+                              ) : (
                               <div className="grid grid-cols-3 gap-2 mb-3">
                                  <div className="rounded-xl bg-slate-50 border border-slate-200 p-2 text-center">
                                     <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Custo total</p>
@@ -3554,6 +3563,7 @@ function FichasRunner() {
                                     <p className="text-sm font-black text-slate-800">{custoKgForm > 0 ? fmtBRL(custoKgForm) : "—"}</p>
                                  </div>
                               </div>
+                              )}
                               <div className="grid grid-cols-2 gap-3">
                                  <div>
                                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">CMV meta (%)</label>
@@ -3572,7 +3582,7 @@ function FichasRunner() {
                                  </button>
                               )}
                               {cmvTeo !== null ? (
-                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
+                                 <div className="grid grid-cols-3 gap-2 mt-2">
                                     <div className={`rounded-xl p-2.5 text-center border ${cmvTeo > meta ? "bg-red-50 border-red-200" : "bg-emerald-50 border-emerald-200"}`}>
                                        <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">CMV teórico</p>
                                        <p className={`text-lg font-black ${cmvTeo > meta ? "text-red-600" : "text-emerald-700"}`}>{cmvTeo.toFixed(1)}%</p>
@@ -3585,13 +3595,9 @@ function FichasRunner() {
                                        <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">Markup</p>
                                        <p className="text-lg font-black text-emerald-700">{markup ? markup.toFixed(2) + "×" : "—"}</p>
                                     </div>
-                                    <div className={`rounded-xl p-2.5 text-center border ${lucro < 0 ? "bg-red-50 border-red-200" : "bg-emerald-50 border-emerald-200"}`}>
-                                       <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">Lucro/porção</p>
-                                       <p className={`text-lg font-black ${lucro < 0 ? "text-red-600" : "text-emerald-700"}`}>{fmtBRL(lucro)}</p>
-                                    </div>
                                  </div>
                               ) : (
-                                 <p className="text-[11px] font-medium text-slate-400 mt-2">Defina o preço de venda para ver CMV teórico, margem, markup e lucro por porção.</p>
+                                 <p className="text-[11px] font-medium text-slate-400 mt-2">Defina o preço de venda para ver CMV teórico, margem e markup.</p>
                               )}
                            </div>
                         );
@@ -3663,8 +3669,10 @@ function FichasRunner() {
                               <input type="number" min="0" step="1" placeholder="Ex: 3" value={form.validade_dias} onChange={e=>setForm({...form, validade_dias: e.target.value})} className="w-full p-3 mt-1 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500 shadow-sm"/>
                            </div>
                         </div>}
+                        {!ehBarFicha && <>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-3 block">Observações</label>
                         <textarea placeholder="Observações da ficha (opcional)..." value={form.observacoes} onChange={e=>setForm({...form, observacoes: e.target.value})} className="w-full h-20 p-3 mt-1 bg-white border border-slate-200 rounded-xl font-medium text-slate-700 outline-none focus:border-emerald-500 shadow-sm resize-none"></textarea>
+                        </>}
                      </div>
                   </div>
 

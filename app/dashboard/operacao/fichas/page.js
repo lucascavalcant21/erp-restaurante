@@ -869,7 +869,6 @@ function FichasRunner() {
     setFichaEmbalagens([]);
     setNovaEmbalagem({ nome: "", custo: "" });
     setAutoSoma(true);
-    setCalcQtd("");
     setIaExplicacao("");
     setModalNovo(true);
   };
@@ -899,7 +898,6 @@ function FichasRunner() {
           return prod && Number(prod.preco_venda) > 0 ? String(prod.preco_venda) : "";
        })()
     });
-    setCalcQtd("");
     // Reconstrói os ingredientes: cada um é um INSUMO ou uma BASE (sub-ficha).
     const mapIng = (ficha.fichas_ingredientes || []).map(fi => {
        if (fi.subficha_id) {

@@ -3250,7 +3250,13 @@ function FichasRunner() {
                      </div>
                      )}
 
-                     {/* RENDIMENTO — automático pela soma dos ingredientes (peso + custo de 1 kg) */}
+                     {/* RENDIMENTO — automático pela soma dos ingredientes (peso + custo de 1 kg).
+                         No modo automático e sem ingrediente nenhum o card não tem o que
+                         mostrar: era um retângulo com uma frase cinza entre o receituário e
+                         a precificação. Ele volta sozinho no primeiro ingrediente, e no modo
+                         manual fica sempre — é lá que se corrige o rendimento de receita que
+                         reduz no fogo. */}
+                     {(!autoSoma || ingFicha.length > 0) && (
                      <div id="ficha-rendimento" className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm scroll-mt-24">
                         <div className="flex items-center justify-between mb-3">
                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Quantidade da receita</p>
@@ -3441,6 +3447,7 @@ function FichasRunner() {
                         </>
                         )}
                      </div>
+                     )}
 
                      {/* COMPOSIÇÃO DA PORÇÃO: quantas gramas de cada ingrediente vão em 1 porção */}
                      {(() => {

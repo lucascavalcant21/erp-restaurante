@@ -27,35 +27,23 @@ Supabase, deploy por `git push origin main` na Vercel
 
 ## O que está pendente, em ordem
 
-### 1. Rodar 17 migrações (eu faço, só me lembre quando for relevante)
-`migracao_controle_acesso`, `migracao_operacao_inteligente`, `migracao_portal_extras`,
-`migracao_colaborador_filiacao`, `migracao_movimento_valor`, `migracao_ponto_facial`,
-`migracao_recibos_prestacao`, `migracao_extra_dados_recibo`,
-`migracao_colaborador_estado_civil`, `migracao_insumo_fornecedor_precos`,
-`migracao_insumo_perda_empanado`, `migracao_memorandos_operacao`,
-`migracao_auditoria_correcao`, `migracao_colaborador_endereco_rg`,
-`migracao_ficha_metodo_bar`, `migracao_estoque_lotes`, `migracao_producao_salao`
-— todas em `db/`.
+### 1. Migrações — RODADAS EM 27/08
+As 17 da fila foram executadas. Só sobrou uma coisa de banco em aberto:
 
-**Esta lista NÃO é o inventário de `db/`.** Ela é a fila do que ainda falta
-rodar; há dezenas de migrações antigas na pasta que já foram aplicadas. Três
+- **`db/LIMPAR_MONTAGENS_DUPLICADAS.sql`** — apaga os cards duplicados do guia
+  de montagem e cria o índice único que impede voltarem. A primeira tentativa
+  falhou porque o arquivo tinha um `'SUA_UNIDADE'` para trocar à mão e o passo
+  do índice não usava esse filtro; foi corrigido e agora roda inteiro sem
+  editar nada. Confirme se rodou até o `CREATE INDEX`.
+
+**Esta lista é a FILA do que falta rodar, não o inventário de `db/`.** Três
 vezes num mesmo dia uma funcionalidade pareceu quebrada só porque a migração
 dela nunca tinha entrado aqui. Ao criar migração nova, acrescente na lista no
-mesmo commit.
+mesmo commit que a cria.
 
-Quais destravam funcionalidade já publicada:
-
-- `migracao_auditoria_correcao` — único passo que falta para o item 3.
-- `migracao_colaborador_endereco_rg` — cria `rua_av`, `numero_casa`, `bairro` e
-  `rg` em `colaboradores`. Essas colunas nunca existiram no banco, e o cadastro
-  do extra descartava esses quatro campos em silêncio a cada "Salvar".
-- `migracao_ficha_metodo_bar` — sem ela o método (batido/mexido) não persiste na
-  ficha e o livro de drinks imprime o card sem essa linha.
-- `migracao_estoque_lotes` — cria os lotes por validade. Sem ela, a entrada com
-  validade no estoque é **recusada** com o motivo, em vez de gravar a
-  quantidade e descartar a data.
-- `migracao_producao_salao` — acrescenta o salão ao plano do dia e grava setor e
-  local na produção. Sem ela o painel do turno não tem o que comparar.
+Scripts avulsos que existem mas você roda só se quiser:
+`ZERAR_FICHAS_COZINHA_E_BAR.sql` (apaga o receituário dos dois setores) e
+`IMPORTAR_PONTO_AGOSTO.sql`.
 
 ### 2. Recibo do extra mais curto — CONCLUÍDO
 Nada pendente aqui. O que ficou pronto, tudo já no `main`:
@@ -70,50 +58,45 @@ Nada pendente aqui. O que ficou pronto, tudo já no `main`:
   (`docs/config-etiquetas-unidades.sql`) e, se ela ainda não existir no banco,
   cai sozinho para ler-e-reescrever o `params`. Por isso não trava nada.
 
-### 3. Auditoria não recebeu a baixa do inventário — SÓ FALTA A MIGRAÇÃO
-O código já está inteiro; o que falta é rodar `db/migracao_auditoria_correcao.sql`
-no SQL Editor (item 1). Enquanto ela não rodar, o sintoma continua igual.
+### 3. Auditoria da baixa do inventário — MIGRAÇÃO RODADA, FALTA CONFERIR
+O código está inteiro e `migracao_auditoria_correcao` foi executada em 27/08.
+Falta só o teste: dê uma baixa em `/dashboard/gestao/inventario` e veja se ela
+aparece em `/dashboard/gestao/auditoria`.
 
-O `.catch(() => {})` já saiu. Hoje o caminho todo fala:
-- `registrarAuditoria` (`app/lib/hefisto-acoes.js`) devolve o motivo da recusa e
-  loga em `console.error` por `detalharErroAuditoria`.
-- `registrarMovimentoInventario` (`app/lib/inventario.js`) devolve `avisoAuditoria`
-  sem desfazer o movimento — o movimento já está gravado quando a auditoria falha.
-- A tela de inventário avisa na hora que o movimento não entrou na auditoria e
-  diz qual migração rodar.
-- `/dashboard/gestao/auditoria` separa "lista vazia porque não houve ação" de
-  "lista vazia porque o banco recusou" e mostra o erro em vez de fingir calmaria.
+Se não aparecer, o sistema agora **diz o motivo** em vez de falhar calado — o
+alerta na tela de inventário e o `console.error` trazem a mensagem exata do
+banco. Traga esse texto e a causa se resolve na hora.
 
-A causa provável está escrita na própria migração: `unidade_id`, `usuario_id` e
-`registro_id` nasceram `uuid` na criação original, mas no ERP inteiro esses ids
-trafegam como texto ("matriz" não é uuid). Qualquer id não-uuid derruba o INSERT
-com `invalid input syntax for type uuid`. A migração cobre os quatro casos
-possíveis — tabela faltando, coluna faltando, tipo errado e GRANT/RLS — e no fim
-manda `notify pgrst, 'reload schema'`, senão o PostgREST continua respondendo
-com o desenho antigo em cache.
-
-**Se depois de rodar ainda falhar:** a mensagem exata agora aparece no alerta da
-tela de inventário e no console. Me traga esse texto que eu ataco a causa certa.
+O caminho todo fala hoje: `registrarAuditoria` devolve o motivo da recusa,
+`registrarMovimentoInventario` devolve `avisoAuditoria` sem desfazer o
+movimento, e a tela de auditoria separa "vazio porque não houve ação" de
+"vazio porque o banco recusou".
 
 ### 4. Usuários e Perfis de acesso
 As telas já não quebram (mostram aviso). Se continuarem vazias, o motivo é a
 variável `SUPABASE_SERVICE_ROLE_KEY` na Vercel — eu configuro, você não toca nisso.
 
-### 5. Operação Inteligente — construída pela metade
-Já existe: construtor de processos, 7 checklists prontos (abertura e fechamento
-de cozinha, bar e salão), agendamento recorrente, execução guiada item a item,
-não conformidades com ações corretivas, alertas com deduplicação e auditoria.
-Motor de recorrência testado em `app/lib/operacao-agenda.test.mjs` (33 testes).
+### 5. Operação Inteligente — falta menos do que este arquivo dizia
+Conferido no código em 27/08. **Dois dos cinco itens que constavam como
+pendentes já estavam prontos** e ninguém sabia:
 
-**Falta, do prompt original:**
-- **Captura de evidência** — foto, GPS e conferência por IA. Hoje a tela de
-  execução mostra "Captura de evidência entra na próxima etapa do módulo" e só
-  marca como feito. As colunas já existem em `op_evidencias`.
+- **Captura de evidência — JÁ EXISTE.** `app/lib/operacao-evidencias.js` tem
+  foto, GPS de verdade (`navigator.geolocation`, com `exigeGps` por item) e
+  conferência por IA via `/api/ia-evidencia`. A tela de execução monta o
+  componente `CapturaEvidencia` com veredito. A frase "Captura de evidência
+  entra na próxima etapa do módulo", que este arquivo citava, não existe mais.
+- **Criar checklist por IA — JÁ EXISTE**, mas no módulo vizinho:
+  `/api/ia-checklist` monta título, categorias e tarefas, e
+  `/dashboard/checklists/gerenciar` já usa. Não está no construtor de processos
+  do Operação Inteligente — são modelos de dados diferentes (`templates` x
+  `processos`), então levar para lá é trabalho, não um botão.
+
+**Falta de verdade:**
 - **Modo TV** — painel para pendurar na cozinha com o andamento do dia.
-- **Rankings e relatórios** — score P/E/Q por pessoa e por setor ao longo do tempo
-  (`calcularScore` já existe e é testado).
-- **Automações e WhatsApp** — avisar responsável, cobrar atraso, escalar NC crítica.
-- **Criar checklist por IA** — descrever em texto e a IA montar seções e itens.
+- **Rankings e relatórios** — `calcularScore` existe e é usado no painel, mas só
+  agregado; não há nada por pessoa nem por setor ao longo do tempo.
+- **Automações e WhatsApp** — avisar responsável, cobrar atraso, escalar NC
+  crítica. Existe integração de WhatsApp em outros módulos, nenhuma aqui.
 
 ### 6. Módulo de treinamento de funcionários
 Trilhas por cargo, aulas e documentos, quiz, progresso por pessoa e certificado.
@@ -122,6 +105,33 @@ Ainda não começado.
 ### 7. Eventos da semana — completar
 `/dashboard/rh/semana` já mostra escala do dia, extras com diária e custo.
 **Falta** juntar feriados e atividades do restaurante na mesma agenda.
+
+## O que a sessão de 27/08 entregou
+
+Nada aqui está pendente — é registro, para a próxima sessão não refazer.
+
+- **Recibo do extra**: formato narrativo (declaração, período por extenso, dias
+  da semana calculados), dados da empresa vindos de `unidades`, valor detalhado
+  e dias de folga marcáveis na tela.
+- **Checklists**: módulo próprio na lateral com escolha de área; responsável
+  deixou de ser obrigatório (eram quatro bloqueios); impressão em branco para
+  marcar à mão e impressão do que foi feito.
+- **Estoque**: lotes por validade com saída FEFO, contagem e transferência
+  cientes de lote, campo de validade no estoque e no tablet.
+- **Produção do Dia**: salão com estoque próprio (o roteamento mandava tudo que
+  não era bar para a cozinha) e painel de plano × produzido × falta por pessoa.
+- **Ponto**: tela de corrigir batida em `/dashboard/rh/ponto/corrigir`. Não
+  existia — `registrarAjuste` estava escrito e sem chamador. A batida original
+  nunca é reescrita: entra um ajuste com valor anterior e autor.
+- **Ficha técnica**: linguagem do bar (ml, dose, sem embalagem), e a tela ficou
+  mais enxuta nos dois setores — um custo só, sem barra de etapas, sem
+  simulador, sem tempo/validade/observações.
+- **Livro de drinks**: método (batido/mexido) no card, 9 por página A4 sem
+  cortar, e a página com card alto parou de perder a largura da folha.
+- **Erro silencioso**: varredura de 243 pontos; 12 exclusões que falhavam sem
+  dizer nada passaram a mostrar o motivo.
+- **Duplicados no guia**: três telas comparavam nome de três jeitos. Chave
+  unificada em `chaveNomeMontagem` + índice único no banco.
 
 ## Ideias levantadas, não decididas
 
@@ -134,5 +144,5 @@ Ainda não começado.
 
 ## Comece por
 
-Me pergunte por qual item começar, ou vá direto no item 5 se eu não responder
-(o 3 depende só de você rodar a migração).
+Me pergunte por qual item começar, ou vá direto no item 5 se eu não responder —
+Modo TV, rankings e automações são o que sobrou de verdade lá.

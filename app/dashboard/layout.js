@@ -471,7 +471,7 @@ function Sidebar({ mobileOpen, setMobileOpen, collapsed, rotasPermitidas, sessao
 }
 
 function TopHeader({ onSair, onToggleSidebar, acessoRestrito, sessao, compacto, onToggleDensidade }) {
-  const { unidades, unidadeAtiva, setUnidadeAtiva, podeTrocar, unidadeInfo } = useERP();
+  const { unidades, unidadeAtiva, setUnidadeAtiva, podeTrocar, unidadeInfo, erroUnidades } = useERP();
   const router = useRouter();
 
   // Seletor de unidade: abre por CLIQUE e fica fixo até escolher ou clicar fora.
@@ -496,7 +496,7 @@ function TopHeader({ onSair, onToggleSidebar, acessoRestrito, sessao, compacto, 
   };
 
   return (
-    <header className="erp-top-header min-h-16 border-b border-slate-200/60 bg-white/80 backdrop-blur-md flex items-center justify-between gap-2 px-2 sm:px-4 md:px-6 py-2 shrink-0 sticky top-0 z-30 shadow-sm min-w-0">
+    <header className="erp-top-header min-h-16 border-b border-slate-200/60 bg-white/80 backdrop-blur-md flex flex-wrap items-center justify-between gap-2 px-2 sm:px-4 md:px-6 py-2 shrink-0 sticky top-0 z-30 shadow-sm min-w-0">
 
       <div className="flex flex-1 items-center gap-2 md:gap-4 min-w-0">
          <button onClick={onToggleSidebar} title="Menu" aria-label="Abrir menu" className="w-11 h-11 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors shrink-0">
@@ -506,6 +506,19 @@ function TopHeader({ onSair, onToggleSidebar, acessoRestrito, sessao, compacto, 
             {unidadeInfo?.nome ? `Dashboard · ${unidadeInfo.nome}` : "Painel de Controle"}
          </h1>
       </div>
+
+      {/* Sem unidade o sistema não grava nada: toda tabela é escopada por loja e
+          algumas têm chave estrangeira para `unidades`. Antes o app inventava uma
+          unidade "matriz" e o erro só aparecia no save, com a mensagem crua do
+          Postgres. Aqui a causa fica na cara, no topo de todas as telas. */}
+      {(erroUnidades || unidades.length === 0) && (
+        <div className="order-last w-full basis-full rounded-xl border-2 border-red-200 bg-red-50 px-3 py-2 text-[12px] font-bold text-red-800">
+          {erroUnidades
+            ? `Não consegui carregar as lojas: ${erroUnidades}`
+            : "Nenhuma loja cadastrada."}
+          {" "}Enquanto isso o sistema não salva ficha, estoque nem ponto — tudo é gravado por loja.
+        </div>
+      )}
 
       <div className="flex items-center justify-end gap-1.5 sm:gap-3 min-w-0 shrink">
          {podeTrocar && (

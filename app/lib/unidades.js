@@ -4,16 +4,37 @@
 
 import { supabase, isSupabaseReady } from "./supabase";
 
+// Unidade de demonstração: só existe quando NÃO há Supabase configurado, para
+// a tela abrir em desenvolvimento. Ela é marcada, e nada que grava aceita uma
+// unidade marcada assim.
+const UNIDADE_DEMO = { id: "matriz", nome: "Unidade Matriz", cor: "#22c55e", demo: true };
+
 export async function fetchUnidades() {
-  if (!isSupabaseReady()) {
-    // Retorno fallback se não tiver supabase
-    return { data: [{ id: "matriz", nome: "Unidade Matriz", cor: "#22c55e" }], error: null };
-  }
+  // Sem Supabase nada é gravado, então a unidade de demonstração não faz mal.
+  if (!isSupabaseReady()) return { data: [UNIDADE_DEMO], error: null };
+
   const { data, error } = await supabase.from("unidades").select("*").order("nome");
-  if (error || !data || data.length === 0) {
-    return { data: [{ id: "matriz", nome: "Unidade Matriz", cor: "#22c55e" }], error: null };
+
+  // Antes, erro de leitura OU tabela vazia devolviam a unidade "matriz" como se
+  // fosse real. O app inteiro passava a operar nela — e "matriz" nunca foi uma
+  // linha de `unidades`: é o curinga que as consultas usam para dizer "não
+  // filtre por unidade". Na hora de salvar, a chave estrangeira recusava
+  // ("violates foreign key constraint fichas_tecnicas_unidade_id_fkey"), e onde
+  // não há chave estrangeira era pior: gravava numa unidade inexistente sem
+  // erro nenhum.
+  //
+  // Agora a falha aparece como falha. Sem unidade, as telas pedem para escolher
+  // uma — que é a verdade — em vez de deixar o usuário gravar no vazio.
+  if (error) {
+    const m = error.message || "";
+    return {
+      data: [],
+      error: /row-level security|violates row-level|permission denied|policy/i.test(m)
+        ? "Sem permissão para ler as unidades (política RLS na tabela `unidades`)."
+        : m,
+    };
   }
-  return { data, error: null };
+  return { data: data || [], error: null };
 }
 
 export async function inserirUnidade(u) {

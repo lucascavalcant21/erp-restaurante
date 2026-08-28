@@ -418,9 +418,26 @@ export async function fetchNomesDePratosEDrinks(unidadeId, dept = "") {
   };
 }
 
+// A mensagem crua do Postgres ("violates foreign key constraint
+// fichas_tecnicas_unidade_id_fkey") não diz a ninguém o que fazer. A causa é
+// sempre a mesma: a unidade que a tela mandou não existe na tabela `unidades`.
+function erroDeUnidade(mensagem, unidadeId) {
+  if (!/foreign key/i.test(mensagem || "") || !/unidade/i.test(mensagem || "")) return null;
+  return `A unidade "${unidadeId || "(vazia)"}" não está cadastrada em Unidades, então a ficha não pode ser gravada nela. `
+    + "Recarregue a página e confirme a loja selecionada no topo; se o aviso continuar, a unidade precisa ser cadastrada.";
+}
+
 export async function salvarFicha(ficha, ingredientes) {
   if (!isSupabaseReady()) return { error: "Offline" };
-  
+
+  // Sem unidade de verdade não dá para gravar. "matriz" e "todas" são curingas
+  // de LEITURA ("não filtre por unidade") — gravar com eles estoura a chave
+  // estrangeira ou arquiva a ficha numa unidade que não existe.
+  const unidade = String(ficha?.unidade_id || "").trim();
+  if (!unidade || unidade === "todas" || unidade === "matriz") {
+    return { error: "Escolha a loja no topo da tela antes de salvar a ficha." };
+  }
+
   let fichaId = ficha.id;
   // `id` nulo quebra o INSERT (mesma constraint NOT NULL da tabela insumos)
   const { id: _id, created_at, ...camposFicha } = ficha;
@@ -431,13 +448,13 @@ export async function salvarFicha(ficha, ingredientes) {
     error = await retrySemColunaAusente(error, async () => {
       const r = await supabase.from("fichas_tecnicas").update(camposFicha).eq("id", fichaId); return r.error;
     }, camposFicha);
-    if(error) return { error: error.message };
+    if(error) return { error: erroDeUnidade(error.message, unidade) || error.message };
   } else {
     let res = await supabase.from("fichas_tecnicas").insert([camposFicha]).select("id").single();
     let error = await retrySemColunaAusente(res.error, async () => {
       const r = await supabase.from("fichas_tecnicas").insert([camposFicha]).select("id").single(); res = r; return r.error;
     }, camposFicha);
-    if(error) return { error: error.message };
+    if(error) return { error: erroDeUnidade(error.message, unidade) || error.message };
     fichaId = res.data.id;
   }
 

@@ -2,16 +2,23 @@
 
 // EVENTOS DA SEMANA — a semana do restaurante numa tela só.
 // Quem trabalha cada dia (escala do RH), quais extras têm diária no dia
-// (recibos), e quanto custa a mão de obra daquele dia. Nada é digitado aqui:
-// tudo vem do que já foi cadastrado no RH e no módulo de Extras.
+// (recibos), quanto custa a mão de obra, os feriados e os eventos da casa.
+// Nada é digitado aqui: tudo vem do que já foi cadastrado no RH, nos Extras,
+// nos feriados da unidade e no módulo de Eventos.
+//
+// Feriado e evento moravam cada um na sua tela. Quem monta escala precisava
+// abrir três lugares para saber se o sábado tinha casamento marcado — e era
+// justamente aí que faltava gente.
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, Loader2, UserRound, Users,
+  ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, Loader2, PartyPopper,
+  Star, UserRound, Users,
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
-import { fetchColaboradores, fetchRecibosPrestacaoUnidade } from "../../../lib/rh";
+import { fetchColaboradores, fetchFeriados, fetchRecibosPrestacaoUnidade } from "../../../lib/rh";
+import { fetchEventos } from "../../../lib/eventos";
 import { isoData } from "../../../lib/compras.mjs";
 
 const brl = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -40,6 +47,8 @@ export default function SemanaPage() {
   const { unidadeAtiva } = useERP();
   const [equipe, setEquipe] = useState([]);
   const [recibos, setRecibos] = useState([]);
+  const [feriados, setFeriados] = useState([]);
+  const [eventos, setEventos] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [referencia, setReferencia] = useState(() => new Date());
 
@@ -47,11 +56,21 @@ export default function SemanaPage() {
     if (!unidadeAtiva || unidadeAtiva === "todas") { setCarregando(false); return; }
     let vivo = true;
     setCarregando(true);
-    Promise.all([fetchColaboradores(unidadeAtiva), fetchRecibosPrestacaoUnidade(unidadeAtiva)])
-      .then(([pessoas, historico]) => {
+    // Feriado e evento são acessórios: se a tabela deles não existir ou o
+    // banco recusar, a semana continua mostrando escala e extras em vez de
+    // ficar em branco. Por isso cada um cai para lista vazia sozinho.
+    Promise.all([
+      fetchColaboradores(unidadeAtiva),
+      fetchRecibosPrestacaoUnidade(unidadeAtiva),
+      fetchFeriados(unidadeAtiva).catch(() => ({ data: [] })),
+      fetchEventos(unidadeAtiva).catch(() => ({ data: [] })),
+    ])
+      .then(([pessoas, historico, datasFeriado, agenda]) => {
         if (!vivo) return;
         setEquipe((pessoas.data || []).filter(ativo));
         setRecibos(historico.data || []);
+        setFeriados(datasFeriado?.data || []);
+        setEventos(agenda?.data || []);
         setCarregando(false);
       });
     return () => { vivo = false; };
@@ -69,10 +88,14 @@ export default function SemanaPage() {
       const escalados = contratados.filter(c => trabalhaNoDia(c, data.getDay()));
       const diarias = recibos.filter(r => String(r.data_trabalho || "").slice(0, 10) === iso);
       const custoDiarias = diarias.reduce((s, r) => s + (Number(r.valor_total) || 0), 0);
+      // slice(0,10) nos dois lados: a data vem "2026-08-30" do feriado e
+      // "2026-08-30T00:00:00+00" do evento. Comparar cru nunca casaria.
+      const feriadosDoDia = feriados.filter(f => String(f.data || "").slice(0, 10) === iso);
+      const eventosDoDia = eventos.filter(e => String(e.data_evento || "").slice(0, 10) === iso);
 
-      return { data, iso, diaSemana: data.getDay(), escalados, diarias, custoDiarias };
+      return { data, iso, diaSemana: data.getDay(), escalados, diarias, custoDiarias, feriadosDoDia, eventosDoDia };
     });
-  }, [equipe, recibos, referencia]);
+  }, [equipe, recibos, feriados, eventos, referencia]);
 
   const totalSemana = semana.reduce((s, d) => s + d.custoDiarias, 0);
   const hoje = isoData(new Date());
@@ -114,6 +137,8 @@ export default function SemanaPage() {
               <p className="mt-1 text-3xl font-black text-slate-900 sm:text-4xl">{brl(totalSemana)}</p>
               <p className="mt-1 text-sm font-bold text-slate-500">
                 {semana.reduce((s, d) => s + d.diarias.length, 0)} diária(s) · {equipe.filter(c => !ehExtra(c)).length} contratado(s) na escala
+                {semana.reduce((s, d) => s + d.eventosDoDia.length, 0) > 0 && ` · ${semana.reduce((s, d) => s + d.eventosDoDia.length, 0)} evento(s)`}
+                {semana.reduce((s, d) => s + d.feriadosDoDia.length, 0) > 0 && ` · ${semana.reduce((s, d) => s + d.feriadosDoDia.length, 0)} feriado(s)`}
               </p>
             </section>
 
@@ -130,6 +155,24 @@ export default function SemanaPage() {
                       </p>
                       <p className="text-xs font-black text-slate-400">{dia.data.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}</p>
                     </div>
+
+                    {/* Feriado e evento vêm ANTES da escala: são eles que mudam
+                        quanta gente o dia precisa, então quem lê o card decide
+                        a escala já sabendo disso. */}
+                    {dia.feriadosDoDia.map(f => (
+                      <div key={f.id} className="mt-2.5 flex items-center gap-1.5 rounded-lg bg-rose-50 px-2 py-1.5 text-[12px] font-black text-rose-800">
+                        <Star size={13} className="shrink-0" />
+                        <span className="min-w-0 truncate">{f.nome || "Feriado"}</span>
+                      </div>
+                    ))}
+                    {dia.eventosDoDia.map(e => (
+                      <button key={e.id} type="button" onClick={() => router.push(`/dashboard/eventos/${e.id}`)}
+                        className="mt-2.5 flex w-full items-center gap-1.5 rounded-lg bg-violet-50 px-2 py-1.5 text-left text-[12px] font-black text-violet-800 hover:bg-violet-100">
+                        <PartyPopper size={13} className="shrink-0" />
+                        <span className="min-w-0 flex-1 truncate">{e.nome || "Evento"}</span>
+                        {Number(e.capacidade) > 0 && <span className="shrink-0 text-[11px] font-bold">{e.capacidade} lug.</span>}
+                      </button>
+                    ))}
 
                     <p className="mt-3 flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-slate-500">
                       <Users size={13} /> Escala · {dia.escalados.length}
@@ -171,7 +214,7 @@ export default function SemanaPage() {
             </div>
 
             <p className="flex items-center justify-center gap-1.5 pt-2 text-xs font-bold text-slate-400">
-              <CalendarDays size={13} /> Escala vem dos dias de trabalho do RH; diárias vêm dos recibos dos extras.
+              <CalendarDays size={13} /> Escala vem do RH; diárias, dos recibos dos extras; feriados e eventos, dos módulos deles.
             </p>
           </>
         )}

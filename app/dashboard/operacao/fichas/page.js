@@ -410,6 +410,8 @@ function FichasRunner() {
   const [dependenciasExclusao, setDependenciasExclusao] = useState(null);
   const [processandoLote, setProcessandoLote] = useState(false);
   const [mensagemLote, setMensagemLote] = useState("");
+  // Sem isso, erro e sucesso saíam iguais: verde, com ícone de check.
+  const [erroLote, setErroLote] = useState(false);
 
   // Estado do formulário da Ficha
   const [form, setForm] = useState({
@@ -1443,6 +1445,8 @@ function FichasRunner() {
   };
 
   const concluirExclusaoLote = async (modo) => {
+    setMensagemLote("");
+    setErroLote(false);
     const alvo = modalExclusao?.lista || [];
     const { vinculadas, livres } = separarFichasPorDependencias(alvo, dependenciasExclusao);
     const verificacaoIncompleta = dependenciasExclusao?.avisos?.length > 0;
@@ -1458,7 +1462,8 @@ function FichasRunner() {
         ? await excluirFichasComVinculos(lista, usuarioAuditoria)
         : await excluirFichasLote(lista, usuarioAuditoria);
     setProcessandoLote(false);
-    if (resposta.error) return setMensagemLote(resposta.error);
+    if (resposta.error) { setErroLote(true); return setMensagemLote(resposta.error); }
+    setErroLote(false);
     setSelecionadas(prev => prev.filter(id => !lista.some(f => f.id === id)));
     const removidos = resposta.removidos;
     setMensagemLote(
@@ -2299,8 +2304,8 @@ function FichasRunner() {
          )}
 
          {mensagemLote && (
-           <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">
-             <span className="flex items-center gap-2"><CheckCircle2 size={18}/>{mensagemLote}</span>
+           <div className={`mb-4 flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm font-bold ${erroLote ? "border-red-200 bg-red-50 text-red-800" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}>
+             <span className="flex items-center gap-2">{erroLote ? <ShieldAlert size={18}/> : <CheckCircle2 size={18}/>}{mensagemLote}</span>
              <button onClick={() => setMensagemLote("")}><X size={16}/></button>
            </div>
          )}
@@ -2597,6 +2602,15 @@ function FichasRunner() {
                 );
               })()}
             </div>
+
+            {/* A mensagem do lote ficava só no corpo da página, ATRÁS deste modal:
+                a exclusão falhava, o motivo era escrito onde ninguém via, e da
+                cadeira parecia que apertar OK não fazia nada. */}
+            {mensagemLote && (
+              <div className={`mx-4 mb-1 rounded-xl border px-4 py-3 text-sm font-bold sm:mx-6 ${erroLote ? "border-red-200 bg-red-50 text-red-800" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}>
+                {mensagemLote}
+              </div>
+            )}
 
             <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 bg-slate-50 p-4 sm:px-6">
               <button onClick={() => setModalExclusao(false)} disabled={processandoLote} className="mr-auto rounded-xl px-4 py-2.5 text-sm font-black text-slate-600">Cancelar</button>

@@ -637,6 +637,54 @@ function IngredientesRunner() {
     mostrarToast(form.id ? `${ehBar ? "Produto" : "Ingrediente"} atualizado.` : `${ehBar ? "Produto" : "Ingrediente"} cadastrado.`);
   };
 
+  // Seleção múltipla: apagar 40 itens um a um, com um confirm cada, é o tipo de
+  // tarefa que ninguém termina. Guardamos ids, não objetos — a lista recarrega
+  // e os objetos trocam de identidade.
+  const [selecionados, setSelecionados] = useState(() => new Set());
+  const [removendoLote, setRemovendoLote] = useState(false);
+
+  const alternarSelecao = (id) => setSelecionados(atual => {
+    const proximo = new Set(atual);
+    if (proximo.has(id)) proximo.delete(id); else proximo.add(id);
+    return proximo;
+  });
+
+  // Marca/desmarca só o que está VISÍVEL na página. Selecionar em silêncio o que
+  // o filtro escondeu é a receita para apagar o que não se viu.
+  const todosDaPaginaMarcados = paginados.length > 0 && paginados.every(i => selecionados.has(i.id));
+  const alternarPagina = () => setSelecionados(atual => {
+    const proximo = new Set(atual);
+    if (todosDaPaginaMarcados) paginados.forEach(i => proximo.delete(i.id));
+    else paginados.forEach(i => proximo.add(i.id));
+    return proximo;
+  });
+
+  const removerSelecionados = async () => {
+    const alvo = filtrados.filter(i => selecionados.has(i.id));
+    if (!alvo.length) return;
+    const nomes = alvo.slice(0, 5).map(i => i.nome).join(", ");
+    const resto = alvo.length > 5 ? ` e mais ${alvo.length - 5}` : "";
+    if (!confirm(`Remover ${alvo.length} ${alvo.length === 1 ? rotuloItem : rotuloItens} do catálogo?\n\n${nomes}${resto}\n\nEles saem também das fichas técnicas e dos estoques. Não tem volta.`)) return;
+
+    setRemovendoLote(true);
+    // Um a um de propósito: removerInsumo limpa vínculo por vínculo e devolve o
+    // motivo de cada falha. Em lote, um item preso levaria os outros junto.
+    const falhas = [];
+    for (const item of alvo) {
+      const { error } = await removerInsumo(item.id);
+      if (error) falhas.push(`${item.nome}: ${error}`);
+    }
+    setRemovendoLote(false);
+    // Quem falhou continua marcado, para a pessoa ver o que sobrou e tentar de novo.
+    setSelecionados(new Set(alvo.filter(i => falhas.some(f => f.startsWith(`${i.nome}:`))).map(i => i.id)));
+    await carregar();
+    if (falhas.length) {
+      mostrarToast(`${alvo.length - falhas.length} removido(s). Falhou: ${falhas.slice(0, 2).join(" | ")}`, "erro");
+    } else {
+      mostrarToast(`${alvo.length} ${alvo.length === 1 ? rotuloItem : rotuloItens} removido(s).`);
+    }
+  };
+
   const handleRemover = async insumo => {
     if (!confirm(`Deseja remover o ${rotuloItem} "${insumo.nome}" do catálogo? Esta ação excluirá este ingrediente e desvinculará de fichas técnicas e estoques.`)) return;
     const { error } = await removerInsumo(insumo.id);
@@ -775,10 +823,35 @@ function IngredientesRunner() {
           </select>
         </section>
 
+        {/* Barra da seleção: só aparece com algo marcado, e some sozinha depois.
+            Fica acima das duas listas (tabela e cards) para servir às duas. */}
+        {selecionados.size > 0 && (
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border-2 border-emerald-200 bg-emerald-50 px-4 py-3">
+            <span className="text-sm font-black text-emerald-900">
+              {selecionados.size} {selecionados.size === 1 ? rotuloItem : rotuloItens} selecionado(s)
+            </span>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => setSelecionados(new Set())} disabled={removendoLote}
+                className="rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-xs font-black text-slate-600 hover:bg-slate-50 disabled:opacity-50">
+                Limpar seleção
+              </button>
+              <button type="button" onClick={removerSelecionados} disabled={removendoLote}
+                className="rounded-xl border-2 border-red-300 bg-white px-3.5 py-2 text-xs font-black text-red-700 hover:bg-red-50 disabled:opacity-50">
+                {removendoLote ? "Removendo..." : `Remover ${selecionados.size} do catálogo`}
+              </button>
+            </div>
+          </div>
+        )}
+
         <section className="mt-3 hidden overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm lg:block">
           <table className="w-full min-w-[1050px] table-fixed text-left">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-black uppercase tracking-wide text-slate-500">
+                <th className="w-9 pl-3 pr-0">
+                  <input type="checkbox" aria-label="Selecionar os desta página"
+                    checked={todosDaPaginaMarcados} onChange={alternarPagina}
+                    className="h-4 w-4 accent-emerald-600" />
+                </th>
                 <th className="w-[190px] px-4 py-3">{ehBar ? "Produto" : "Ingrediente"}</th>
                 <th className="w-[85px] px-2.5 py-3">Marca</th>
                 <th className="w-[80px] px-2.5 py-3">Embalagem</th>
@@ -792,15 +865,20 @@ function IngredientesRunner() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
-                <tr><td colSpan={9} className="py-16 text-center text-sm font-bold text-slate-400">Carregando {rotuloItens}...</td></tr>
+                <tr><td colSpan={10} className="py-16 text-center text-sm font-bold text-slate-400">Carregando {rotuloItens}...</td></tr>
               ) : paginados.length === 0 ? (
-                <tr><td colSpan={9} className="py-16 text-center text-sm font-bold text-slate-400">Nenhum {rotuloItem} encontrado.</td></tr>
+                <tr><td colSpan={10} className="py-16 text-center text-sm font-bold text-slate-400">Nenhum {rotuloItem} encontrado.</td></tr>
               ) : paginados.map(insumo => {
                 const vinculados = insumo.fornecedores_vinculados || [];
                 const outros = Math.max(0, vinculados.length - 1);
                 const normalizado = precoNormalizadoDoInsumo(insumo);
                 return (
-                  <tr key={insumo.id} className="align-middle transition hover:bg-emerald-50/30">
+                  <tr key={insumo.id} className={`align-middle transition ${selecionados.has(insumo.id) ? "bg-emerald-50" : "hover:bg-emerald-50/30"}`}>
+                    <td className="w-9 pl-3 pr-0">
+                      <input type="checkbox" aria-label={`Selecionar ${insumo.nome}`}
+                        checked={selecionados.has(insumo.id)} onChange={() => alternarSelecao(insumo.id)}
+                        className="h-4 w-4 accent-emerald-600" />
+                    </td>
                     <td className="px-4 py-2">
                       <p className="truncate text-sm font-black text-slate-900">{insumo.nome}</p>
                       <p className="mt-0.5 truncate text-[11px] text-slate-500">
@@ -879,9 +957,12 @@ function IngredientesRunner() {
             const vinculados = insumo.fornecedores_vinculados || [];
             const normalizado = precoNormalizadoDoInsumo(insumo);
             return (
-              <article key={insumo.id} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+              <article key={insumo.id} className={`rounded-xl border bg-white p-3 shadow-sm ${selecionados.has(insumo.id) ? "border-emerald-400 ring-2 ring-emerald-100" : "border-slate-200"}`}>
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
+                  <input type="checkbox" aria-label={`Selecionar ${insumo.nome}`}
+                    checked={selecionados.has(insumo.id)} onChange={() => alternarSelecao(insumo.id)}
+                    className="mt-1 h-4 w-4 shrink-0 accent-emerald-600" />
+                  <div className="min-w-0 flex-1">
                     <h2 className="truncate font-black text-slate-900">{insumo.nome}</h2>
                     <p className="mt-1 truncate text-xs text-slate-500">
                       {insumo.nome_interno || insumo.codigo_interno || insumo.categoria || (ehBar ? "Produto" : "Ingrediente")}

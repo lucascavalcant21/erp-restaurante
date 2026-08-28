@@ -13,15 +13,22 @@ export async function fetchInsumos(unidadeId, dept, opcoes = {}) {
   const { data, error } = await query;
   if (error || !data?.length) return { data: data || [], error: error?.message };
 
+  // O insumo espelho existe apenas para o saldo físico do pré-preparo. Na ficha
+  // ele é escolhido como subficha, nunca como ingrediente cru; esconder também
+  // os legados impede que a migração deixe opções duplicadas no formulário.
+  const dadosVisiveis = data.filter(item =>
+    !item.ficha_tecnica_id && item.pre_preparo_legado !== true);
+  if (!dadosVisiveis.length) return { data: [], error: null };
+
   // A tabela de vínculo foi adicionada depois do cadastro original. Se a
   // migração ainda não tiver sido aplicada, a listagem continua funcionando
   // com o fornecedor textual legado.
-  const ids = data.map(item => item.id);
+  const ids = dadosVisiveis.map(item => item.id);
   const { data: vinculos, error: erroVinculos } = await supabase
     .from("insumos_fornecedores")
     .select("insumo_id, fornecedor_id, fornecedor:fornecedores(id,nome)")
     .in("insumo_id", ids);
-  if (erroVinculos) return { data, error: null };
+  if (erroVinculos) return { data: dadosVisiveis, error: null };
 
   const porInsumo = new Map();
   for (const vinculo of vinculos || []) {
@@ -31,7 +38,7 @@ export async function fetchInsumos(unidadeId, dept, opcoes = {}) {
     porInsumo.get(vinculo.insumo_id).push(fornecedor);
   }
   return {
-    data: data.map(item => ({
+    data: dadosVisiveis.map(item => ({
       ...item,
       fornecedores_vinculados: porInsumo.get(item.id) || (item.fornecedor ? [{ nome: item.fornecedor }] : []),
     })),

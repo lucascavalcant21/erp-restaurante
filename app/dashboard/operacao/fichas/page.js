@@ -1258,9 +1258,9 @@ function FichasRunner() {
     if (!criarOutra) setModalNovo(false);
     carregar();
 
-    // ── Liga a ficha aos estoques certos (não bloqueia o salvar) ────────────
-    // Pré-preparo entra no estoque de Pré-preparos (nunca no de pratos) e as
-    // embalagens usadas na receita entram no estoque de Embalagens do setor.
+    // ── Liga as embalagens ao estoque certo (não bloqueia o salvar) ─────────
+    // O pré-preparo já foi sincronizado acima, com identidade pela ficha. Antes
+    // havia uma segunda criação aqui, por nome, que gerava itens duplicados.
     (async () => {
       try {
         const fichaId = erro.id;
@@ -1269,29 +1269,7 @@ function FichasRunner() {
         const { data: estoques } = await fetchEstoques(unidadeAtiva);
         const acharEstoque = (slug) => (estoques || []).find(e => String(e.slug || "").toLowerCase() === slug);
 
-        // 1) A ficha de PRÉ-PREPARO vira um item do estoque de pré-preparos.
-        if (form.eh_base && !form.produto_pronto) {
-          const estoquePre = acharEstoque(dept === "bar" ? "pre-preparos-bar" : "pre-preparos-cozinha");
-          if (estoquePre) {
-            const rend = Number(form.rendimento_porcoes) || 1;
-            const custoUnit = rend > 0 ? calcularCustoTotal(ingValidos) / rend : 0;
-            const insumo = await salvarInsumo({
-              unidade_id: unidadeAtiva,
-              nome: form.nome_receita.trim(),
-              departamento: dept,
-              categoria: "Pré-preparos",
-              unidade_medida: (form.rendimento_unidade || "un").toLowerCase(),
-              tamanho_embalagem: 1,
-              custo_unitario: custoUnit,
-              custo_compra: custoUnit,
-            }, { origem: "Ficha de pré-preparo" });
-            if (insumo?.id) {
-              await vincularItemEstoque({ unidadeId: unidadeAtiva, estoqueId: estoquePre.id, insumoId: insumo.id, custoUnitario: custoUnit });
-            }
-          }
-        }
-
-        // 2) Embalagens usadas na ficha entram no estoque de Embalagens.
+        // Embalagens usadas na ficha entram no estoque de Embalagens.
         const estoqueEmb = acharEstoque(dept === "bar" ? "embalagens-bar" : "embalagens-cozinha");
         if (estoqueEmb) {
           const idsEmbalagem = new Set(embalagensCat.map(e => e.id));
@@ -2294,9 +2272,6 @@ function FichasRunner() {
                {fichasPagina.map(f => {
                   const peso = infoPesoFicha(f, fichas);
                   const unR = String(f.rendimento_unidade || "porcao").toLowerCase();
-                  const ehBarCard = String(f.departamento || "").toLowerCase() === "bar";
-                  const umSo = Number(f.rendimento_porcoes || 0) === 1;
-                  const labelUn = { porcao: ehBarCard ? (umSo ? "dose" : "doses") : (umSo ? "porção" : "porções"), kg: "kg", g: "g", l: "L", ml: "ml", un: "un" }[unR] || unR;
 
                   return (
                      <div key={f.id}
@@ -2313,10 +2288,7 @@ function FichasRunner() {
                              <button type="button" onClick={() => abrirFicha(f)} title="Abrir ficha" className="min-h-10 min-w-0 flex-1 px-1 text-left">
                                <span className="block text-lg font-black leading-tight text-slate-900">{f.nome_receita}</span>
                              </button>
-                           </div>
-                           <div className="mt-3 flex justify-end gap-2">
-                              <button onClick={() => abrirFicha(f)} className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 shadow-sm"><BookOpen size={17}/> Abrir</button>
-                              <button onClick={() => abrirEditar(f)} className="flex h-11 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-black text-white shadow-md"><Edit3 size={17}/> Editar</button>
+                              <button onClick={() => abrirEditar(f)} className="flex h-10 shrink-0 items-center gap-2 rounded-xl bg-emerald-600 px-3 text-sm font-black text-white shadow-md"><Edit3 size={17}/> Editar</button>
                               <button onClick={() => setAcoesCardAberto(atual => atual === f.id ? "" : f.id)} title="Mais opções" className="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm"><MoreVertical size={19}/></button>
                            </div>
                            {acoesCardAberto === f.id && <div className="mt-2 grid grid-cols-2 gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
@@ -2340,8 +2312,6 @@ function FichasRunner() {
                               const cmv = precoPorcao > 0 ? (custoPorcao / precoPorcao) * 100 : null;
                               const margem = cmv !== null ? 100 - cmv : null;
                               const composicao = (f.fichas_ingredientes || []).length;
-                              const pesoPorcao = Number(f.peso_porcao_g) || (peso?.pesoTotalG > 0 && porcoes > 0 ? peso.pesoTotalG / porcoes : 0);
-                              const rendimentoTexto = `${Number(f.rendimento_porcoes || 0).toLocaleString("pt-BR")} ${labelUn}`;
                               return (
                                  <>
                                     <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -2349,15 +2319,12 @@ function FichasRunner() {
                                       <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black text-slate-600">{f.categoria || "Sem categoria"}</span>
                                       {cmv !== null && cmv > meta && <span className="rounded-full bg-red-50 px-2.5 py-1 text-[10px] font-black uppercase text-red-700">CMV alto</span>}
                                     </div>
-                                    <div className="grid grid-cols-3 gap-2 border-y border-slate-100 py-3">
-                                      <div><p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Tempo</p><p className="mt-1 text-sm font-black text-slate-800">{f.tempo_preparo ? `${f.tempo_preparo} min` : "—"}</p></div>
-                                      <div><p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Validade</p><p className="mt-1 text-sm font-black text-slate-800">{f.validade_dias ? `${f.validade_dias} dia${Number(f.validade_dias) === 1 ? "" : "s"}` : "—"}</p></div>
-                                      <div><p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Composição</p><p className="mt-1 text-sm font-black text-slate-800">{composicao} {composicao === 1 ? "item" : "itens"}</p></div>
+                                    <div className="border-y border-slate-100 py-3">
+                                      <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Composição</p><p className="mt-1 text-sm font-black text-slate-800">{composicao} {composicao === 1 ? "item" : "itens"}</p>
                                     </div>
 
                                     <div className="divide-y divide-slate-100">
-                                      <div className="flex min-h-12 items-center justify-between gap-3"><span className="text-sm font-bold text-slate-500">Quantidade</span><strong className="text-base text-slate-900">{rendimentoTexto}</strong></div>
-                                      <div className="flex min-h-12 items-center justify-between gap-3"><span className="text-sm font-bold text-slate-500">{ehBarCard ? "Custo por dose" : "Custo por porção"}</span><strong className="text-base text-slate-900">{fmtBRL(custoPorcao)}</strong></div>
+                                      <div className="flex min-h-12 items-center justify-between gap-3"><span className="text-sm font-bold text-slate-500">Custo</span><strong className="text-base text-slate-900">{fmtBRL(custoPorcao)}</strong></div>
                                       <div className="flex min-h-12 items-center justify-between gap-3">
                                         <span className="text-sm font-black text-slate-600">{f.eh_base ? "Custo total" : "CMV"}</span>
                                         {f.eh_base ? <strong className="text-lg text-amber-700">{fmtBRL(custoTotal)}</strong> : <span className={`rounded-lg px-3 py-1.5 text-base font-black ${cmv === null ? "bg-slate-100 text-slate-400" : cmv > meta ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>{cmv !== null ? `${cmv.toFixed(1)}%` : "—"}</span>}
@@ -3204,7 +3171,9 @@ function FichasRunner() {
                          a precificação. Ele volta sozinho no primeiro ingrediente, e no modo
                          manual fica sempre — é lá que se corrige o rendimento de receita que
                          reduz no fogo. */}
-                     {(!autoSoma || ingFicha.length > 0) && (
+                     {/* A quantidade continua sendo calculada automaticamente para
+                         custos e estoque, mas não é exibida no formulário. */}
+                     {false && (
                      <div id="ficha-rendimento" className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm scroll-mt-24">
                         <div className="flex items-center justify-between mb-3">
                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Quantidade da receita</p>

@@ -276,6 +276,7 @@ export async function fetchItensEstoque(estoqueId, unidadeId) {
         id: registro.id,
         estoque_item_id: registro.id,
         insumo_id: registro.insumo_id,
+        ficha_tecnica_id: registro.ficha_tecnica_id || registro.insumo?.ficha_tecnica_id || null,
         estoque_id: registro.estoque_id,
         quantidade_atual: Number(registro.quantidade_atual) || 0,
         estoque_minimo: registro.estoque_minimo,
@@ -343,6 +344,7 @@ export async function vincularItemEstoque({
   unidadeId,
   estoqueId,
   insumoId,
+  fichaTecnicaId = null,
   minimo = null,
   maximo = null,
   local = null,
@@ -361,6 +363,7 @@ export async function vincularItemEstoque({
     custo_unitario: custoUnitario === "" ? null : custoUnitario,
     updated_at: new Date().toISOString(),
   };
+  if (fichaTecnicaId) payload.ficha_tecnica_id = fichaTecnicaId;
   const { data, error } = await supabase.from("estoque_itens").upsert(payload, {
     onConflict: "estoque_id,insumo_id",
   }).select("*").single();
@@ -559,26 +562,56 @@ export async function garantirFichaNoEstoquePreparo({ unidadeId, ficha, departam
 
   const localLimpo = String(local || LOCAL_PADRAO_PREPARO[dept] || "Freezer 1").trim();
   const nomeBase = String(ficha.nome_receita).trim();
-  const nomeItem = `${nomeBase} - ${localLimpo}`;
-  let { data: insumo } = await supabase.from("insumos").select("id,nome,unidade_medida,custo_unitario").eq("unidade_id", unidadeId).eq("departamento", dept).in("nome", [nomeItem, `${nomeBase} · ${localLimpo}`]).limit(1).maybeSingle();
-
   const unidadeFicha = String(ficha.rendimento_unidade || "un").toLowerCase();
   const unidade = ["kg", "g", "l", "ml", "un"].includes(unidadeFicha) ? unidadeFicha : "un";
+  const categoria = ficha.categoria || (dept === "bar" ? "Xaropes e pré-preparos" : "Pré-preparos");
+  const custo = Number(custoUnitario) || 0;
+
+  // O vínculo pela ficha é a identidade do item. Nome e local podem mudar; usar
+  // essas duas informações como chave criava um novo insumo a cada edição e
+  // deixava o anterior solto no estoque.
+  let { data: insumo, error: erroBusca } = await supabase
+    .from("insumos")
+    .select("id,nome,unidade_medida,custo_unitario,ficha_tecnica_id")
+    .eq("unidade_id", unidadeId)
+    .eq("ficha_tecnica_id", ficha.id)
+    .maybeSingle();
+  if (erroBusca) return { error: erroMensagem(erroBusca) || "A migração dos pré-preparos ainda não foi aplicada." };
+
   if (!insumo) {
     const criado = await supabase.from("insumos").insert([{
-      unidade_id: unidadeId, nome: nomeItem, departamento: dept,
-      categoria: ficha.categoria || (dept === "bar" ? "Xaropes e pre-preparos" : "Pre-preparos"),
+      unidade_id: unidadeId, nome: nomeBase, nome_interno: nomeBase, departamento: dept,
+      categoria, tipo: "ingrediente", ficha_tecnica_id: ficha.id, pre_preparo_legado: false,
       unidade_medida: unidade, unidade_comercial: unidade, tamanho_embalagem: 1,
-      custo_unitario: Number(custoUnitario) || 0, custo_compra: Number(custoUnitario) || 0,
-    }]).select("id,nome,unidade_medida,custo_unitario").single();
+      custo_unitario: custo, custo_compra: custo,
+    }]).select("id,nome,unidade_medida,custo_unitario,ficha_tecnica_id").single();
     if (criado.error || !criado.data) return { error: erroMensagem(criado.error) || "Nao foi possivel criar o item de preparo." };
     insumo = criado.data;
+  } else {
+    const atualizado = await supabase.from("insumos").update({
+      nome: nomeBase, nome_interno: nomeBase, departamento: dept, categoria,
+      tipo: "ingrediente", pre_preparo_legado: false,
+      unidade_medida: unidade, unidade_comercial: unidade,
+      tamanho_embalagem: 1, custo_unitario: custo, custo_compra: custo,
+    }).eq("id", insumo.id);
+    if (atualizado.error) return { error: erroMensagem(atualizado.error) };
   }
 
   const { data: itemExistente } = await supabase.from("estoque_itens").select("id").eq("estoque_id", estoque.id).eq("insumo_id", insumo.id).maybeSingle();
   if (!itemExistente) {
-    const vinculo = await vincularItemEstoque({ unidadeId, estoqueId: estoque.id, insumoId: insumo.id, local: localLimpo, custoUnitario: Number(custoUnitario) || 0 });
+    const vinculo = await vincularItemEstoque({
+      unidadeId, estoqueId: estoque.id, insumoId: insumo.id,
+      fichaTecnicaId: ficha.id, local: localLimpo, custoUnitario: custo,
+    });
     if (vinculo.error) return { error: vinculo.error };
+  } else {
+    const atualizado = await supabase.from("estoque_itens").update({
+      ficha_tecnica_id: ficha.id,
+      local_interno: localLimpo,
+      custo_unitario: custo,
+      updated_at: new Date().toISOString(),
+    }).eq("id", itemExistente.id);
+    if (atualizado.error) return { error: erroMensagem(atualizado.error) };
   }
   return { data: { estoque, insumo, nome: nomeBase, local: localLimpo, unidade }, error: null };
 }
@@ -588,34 +621,11 @@ export async function registrarProducaoNoEstoquePreparo({ unidadeId, ficha, depa
   const qtd = Number(quantidade);
   if (!ficha?.id || !ficha?.nome_receita || !Number.isFinite(qtd) || qtd <= 0) return { error: "Produção inválida." };
 
-  await garantirEstoquesPadrao(unidadeId);
-  const dept = setorDoPreparo(departamento, ficha);
-  const { data: estoque, error: erroEstoque } = await supabase.from("estoques").select("id,nome").eq("unidade_id", unidadeId).eq("slug", `pre-preparos-${dept}`).maybeSingle();
-  if (erroEstoque || !estoque?.id) return { error: erroMensagem(erroEstoque) || "Estoque de pré-preparos não encontrado." };
-
-  const localLimpo = String(local || LOCAL_PADRAO_PREPARO[dept] || "Freezer 1").trim();
-  const nomeBase = String(ficha.nome_receita).trim();
-  const nomeItem = `${nomeBase} · ${localLimpo}`;
-  let { data: insumo } = await supabase.from("insumos").select("id,nome,unidade_medida,custo_unitario").eq("unidade_id", unidadeId).eq("departamento", dept).in("nome", [nomeItem, `${nomeBase} - ${localLimpo}`]).limit(1).maybeSingle();
-
-  const unidadeFicha = String(ficha.rendimento_unidade || "un").toLowerCase();
-  const unidade = ["kg", "g", "l", "ml", "un"].includes(unidadeFicha) ? unidadeFicha : "un";
-  if (!insumo) {
-    const criado = await supabase.from("insumos").insert([{
-      unidade_id: unidadeId, nome: nomeItem, departamento: dept,
-      categoria: ficha.categoria || (dept === "bar" ? "Xaropes e pré-preparos" : "Pré-preparos"),
-      unidade_medida: unidade, unidade_comercial: unidade, tamanho_embalagem: 1,
-      custo_unitario: Number(custoUnitario) || 0, custo_compra: Number(custoUnitario) || 0,
-    }]).select("id,nome,unidade_medida,custo_unitario").single();
-    if (criado.error || !criado.data) return { error: erroMensagem(criado.error) || "Não foi possível criar o item produzido." };
-    insumo = criado.data;
-  }
-
-  const { data: itemExistente } = await supabase.from("estoque_itens").select("id").eq("estoque_id", estoque.id).eq("insumo_id", insumo.id).maybeSingle();
-  if (!itemExistente) {
-    const vinculo = await vincularItemEstoque({ unidadeId, estoqueId: estoque.id, insumoId: insumo.id, local: localLimpo, custoUnitario: Number(custoUnitario) || 0 });
-    if (vinculo.error) return { error: vinculo.error };
-  }
+  const preparo = await garantirFichaNoEstoquePreparo({
+    unidadeId, ficha, departamento, local, custoUnitario,
+  });
+  if (preparo.error) return preparo;
+  const { estoque, insumo, nome: nomeBase, local: localLimpo, unidade } = preparo.data;
 
   const movimento = await registrarMovimentoMulti({
     unidadeId, estoqueId: estoque.id, insumoId: insumo.id, tipo: "entrada", quantidade: qtd,

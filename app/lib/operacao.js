@@ -648,6 +648,56 @@ export async function excluirFichasLote(fichas, auditoria = {}) {
   return { error: null, quantidade: lista.length };
 }
 
+// Exclusão FORÇADA: apaga a ficha e leva junto os dois vínculos que a tela
+// mostra — o produto do cardápio e o guia de montagem. É o "excluir mesmo
+// assim", para quando a ficha foi criada errada e não há nada a preservar.
+//
+// O que NÃO é apagado aqui, de propósito:
+//   - producao_diaria: é histórico do que a casa produziu, não um vínculo.
+//   - fichas_ingredientes.subficha_id: essa ficha é INGREDIENTE de outra, e
+//     apagar mudaria a receita alheia sem ninguém pedir.
+// Se um desses bloquear a exclusão, o erro volta dizendo qual foi, em vez de
+// falhar com a mensagem crua do Postgres.
+export async function excluirFichasComVinculos(fichas, auditoria = {}) {
+  if (!isSupabaseReady()) return { error: "Offline" };
+  const lista = (fichas || []).filter(item => item?.id);
+  if (!lista.length) return { error: "Nenhuma ficha para excluir." };
+  const ids = lista.map(item => item.id);
+  const nomes = lista.map(item => item.nome_receita).filter(Boolean);
+  const unidadeId = auditoria?.unidadeId;
+  const limitarUnidade = query => unidadeId && unidadeId !== "matriz" ? query.eq("unidade_id", unidadeId) : query;
+
+  // Vínculos primeiro: apagar a ficha antes deixaria produto e montagem
+  // apontando para um id que não existe mais.
+  const removidos = { produtos: 0, montagens: 0 };
+  const p = await limitarUnidade(supabase.from("produtos").delete().in("ficha_id", ids)).select("id");
+  if (p.error) return { error: `Não consegui remover o produto do cardápio: ${p.error.message}` };
+  removidos.produtos = (p.data || []).length;
+
+  if (nomes.length) {
+    const m = await limitarUnidade(supabase.from("montagem").delete().in("nome", nomes)).select("id");
+    if (m.error) return { error: `Não consegui remover o guia de montagem: ${m.error.message}` };
+    removidos.montagens = (m.data || []).length;
+  }
+
+  const { error } = await supabase.from("fichas_tecnicas").delete().in("id", ids);
+  if (error) {
+    const msg = error.message || "";
+    if (/foreign key|violates/i.test(msg)) {
+      return {
+        error: "Os vínculos do cardápio e do guia foram removidos, mas a ficha ainda está presa a "
+          + "histórico de produção ou é ingrediente de outra ficha. Esses dois não são apagados "
+          + "automaticamente: apagar histórico destrói registro, e mexer na receita alheia muda "
+          + "prato que ninguém pediu para mudar. Use Inativar, ou tire a ficha da outra receita antes.",
+      };
+    }
+    return { error: msg };
+  }
+
+  await registrarAuditoriaFichas({ ...auditoria, acao: "exclusao_forcada", fichas: lista, detalhes: removidos });
+  return { error: null, quantidade: lista.length, removidos };
+}
+
 export async function inativarFichasLote(fichas, auditoria = {}) {
   if (!isSupabaseReady()) return { error: "Offline" };
   const lista = (fichas || []).filter(item => item?.id);

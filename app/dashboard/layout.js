@@ -507,6 +507,14 @@ function TopHeader({ onSair, onToggleSidebar, acessoRestrito, sessao, compacto, 
          </h1>
       </div>
 
+      {/* Qual código está no ar. Sem isso, "nada mudou" é ambíguo: pode ser o
+          conserto que não funcionou ou o deploy que não chegou — e nas últimas
+          vezes era a segunda. A Vercel injeta o SHA do commit no build; com ele
+          na tela dá para dizer em um segundo qual versão a pessoa está vendo. */}
+      <span title="Versão publicada" className="order-first shrink-0 select-all rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] font-bold text-slate-400">
+        {(process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA || "dev").slice(0, 7)}
+      </span>
+
       {/* Sem unidade o sistema não grava nada: toda tabela é escopada por loja e
           algumas têm chave estrangeira para `unidades`. Antes o app inventava uma
           unidade "matriz" e o erro só aparecia no save, com a mensagem crua do

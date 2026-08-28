@@ -573,6 +573,21 @@ export async function removerFicha(id) {
   return { error: error?.message };
 }
 
+// O nome da ficha-mãe entra junto: "Utilizada como componente" não dizia POR
+// QUEM, e é essa receita que perde o ingrediente se a exclusão for forçada.
+//
+// O embed do PostgREST depende do nome da chave estrangeira. Se ele não casar,
+// a consulta inteira falharia e a tela bloquearia a exclusão por "verificação
+// incompleta" — pior do que antes. Por isso o fallback: sem o nome, mas sem
+// travar nada.
+async function referenciasComNome(ids) {
+  const comNome = await supabase.from("fichas_ingredientes")
+    .select("ficha_id,subficha_id,fichas_tecnicas!ficha_id(nome_receita)")
+    .in("subficha_id", ids);
+  if (!comNome.error) return comNome;
+  return supabase.from("fichas_ingredientes").select("ficha_id,subficha_id").in("subficha_id", ids);
+}
+
 export async function verificarDependenciasFichas(fichas, unidadeId) {
   if (!isSupabaseReady()) return { porFicha: {}, error: "Offline" };
   const lista = (fichas || []).filter(item => item?.id);
@@ -584,7 +599,7 @@ export async function verificarDependenciasFichas(fichas, unidadeId) {
   const limitarUnidade = query => unidadeId && unidadeId !== "matriz" ? query.eq("unidade_id", unidadeId) : query;
   const [produtos, referencias, producoes, montagens] = await Promise.all([
     limitarUnidade(supabase.from("produtos").select("id,nome_produto,ficha_id").in("ficha_id", ids)),
-    supabase.from("fichas_ingredientes").select("ficha_id,subficha_id").in("subficha_id", ids),
+    referenciasComNome(ids),
     limitarUnidade(supabase.from("producao_diaria").select("id,ficha_id").in("ficha_id", ids)),
     nomes.length
       ? limitarUnidade(supabase.from("montagem").select("id,nome").in("nome", nomes))
@@ -598,7 +613,10 @@ export async function verificarDependenciasFichas(fichas, unidadeId) {
     porFicha[id].push(rotulo);
   };
   for (const item of produtos.data || []) adicionar(item.ficha_id, "Produto do cardápio", item.nome_produto);
-  for (const item of referencias.data || []) adicionar(item.subficha_id, "Outra ficha técnica", "Utilizada como componente");
+  for (const item of referencias.data || []) {
+    const mae = item.fichas_tecnicas?.nome_receita;
+    adicionar(item.subficha_id, "Outra ficha técnica", mae ? `Ingrediente de: ${mae}` : "Utilizada como componente");
+  }
   for (const item of producoes.data || []) adicionar(item.ficha_id, "Histórico de produção", "Registro de produção existente");
   const fichaPorNome = new Map(lista.map(item => [String(item.nome_receita || "").trim().toLocaleLowerCase("pt-BR"), item.id]));
   for (const item of montagens.data || []) {
@@ -654,10 +672,13 @@ export async function excluirFichasLote(fichas, auditoria = {}) {
 //
 // O que NÃO é apagado aqui, de propósito:
 //   - producao_diaria: é histórico do que a casa produziu, não um vínculo.
-//   - fichas_ingredientes.subficha_id: essa ficha é INGREDIENTE de outra, e
-//     apagar mudaria a receita alheia sem ninguém pedir.
-// Se um desses bloquear a exclusão, o erro volta dizendo qual foi, em vez de
-// falhar com a mensagem crua do Postgres.
+//   - producao_diaria: é histórico do que a casa produziu, não um vínculo.
+// Se ele bloquear a exclusão, o erro volta dizendo isso, em vez de falhar com a
+// mensagem crua do Postgres.
+//
+// fichas_ingredientes.subficha_id É apagado: essa ficha é ingrediente de outra,
+// e a receita-mãe perde essa linha. É perda de verdade, então a tela nomeia as
+// receitas afetadas na confirmação antes de chegar aqui.
 export async function excluirFichasComVinculos(fichas, auditoria = {}) {
   if (!isSupabaseReady()) return { error: "Offline" };
   const lista = (fichas || []).filter(item => item?.id);
@@ -669,7 +690,7 @@ export async function excluirFichasComVinculos(fichas, auditoria = {}) {
 
   // Vínculos primeiro: apagar a ficha antes deixaria produto e montagem
   // apontando para um id que não existe mais.
-  const removidos = { produtos: 0, montagens: 0 };
+  const removidos = { produtos: 0, montagens: 0, componentes: 0 };
   const p = await limitarUnidade(supabase.from("produtos").delete().in("ficha_id", ids)).select("id");
   if (p.error) return { error: `Não consegui remover o produto do cardápio: ${p.error.message}` };
   removidos.produtos = (p.data || []).length;
@@ -680,15 +701,19 @@ export async function excluirFichasComVinculos(fichas, auditoria = {}) {
     removidos.montagens = (m.data || []).length;
   }
 
+  // A ficha usada como ingrediente de outra: some a linha da receita-mãe.
+  const r = await supabase.from("fichas_ingredientes").delete().in("subficha_id", ids).select("id");
+  if (r.error) return { error: `Não consegui tirar a ficha das receitas que a usam: ${r.error.message}` };
+  removidos.componentes = (r.data || []).length;
+
   const { error } = await supabase.from("fichas_tecnicas").delete().in("id", ids);
   if (error) {
     const msg = error.message || "";
     if (/foreign key|violates/i.test(msg)) {
       return {
-        error: "Os vínculos do cardápio e do guia foram removidos, mas a ficha ainda está presa a "
-          + "histórico de produção ou é ingrediente de outra ficha. Esses dois não são apagados "
-          + "automaticamente: apagar histórico destrói registro, e mexer na receita alheia muda "
-          + "prato que ninguém pediu para mudar. Use Inativar, ou tire a ficha da outra receita antes.",
+        error: "Cardápio, guia e as receitas que usavam esta ficha já foram desvinculados, mas ela "
+          + "ainda está presa ao histórico de produção. Histórico não é vínculo: apagar destrói "
+          + "registro do que a casa produziu. Use Inativar para essa ficha.",
       };
     }
     return { error: msg };

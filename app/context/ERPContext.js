@@ -47,6 +47,9 @@ export function ERPProvider({ children }) {
 
   const [unidades, setUnidades] = useState([]);
   const [unidadeAtiva, setUnidadeAtivaState] = useState(null);
+  // Por que não há unidade. Sem isso a tela fica sem loja e sem explicação,
+  // e o usuário só descobre o problema quando um save é recusado.
+  const [erroUnidades, setErroUnidades] = useState(null);
   const [departamento, setDepartamentoState] = useState(null);
   const [podeTrocar,   setPodeTrocar]        = useState(true);
   const [sessao,       setSessao]            = useState(null);
@@ -62,9 +65,10 @@ export function ERPProvider({ children }) {
   const fecharMenu = useCallback(() => setMegaMenuOpen(false), []);
 
   const recarregarUnidades = useCallback(async () => {
-    const { data } = await fetchUnidades();
+    const { data, error } = await fetchUnidades();
     const lista = data || [];
     setUnidades(lista);
+    setErroUnidades(error || null);
     return lista;
   }, []);
 
@@ -74,6 +78,7 @@ export function ERPProvider({ children }) {
       if (!vivo) return;
       const unids = resUnidades.data || [];
       setUnidades(unids);
+      setErroUnidades(resUnidades.error || null);
       setSessao(sessaoObj);
       const trocar = podeVerTodas(sessaoObj?.papel);
       setPodeTrocar(trocar);
@@ -203,7 +208,7 @@ export function ERPProvider({ children }) {
   return (
     <ERPContext.Provider value={{
       sessao,
-      unidades, unidadeAtiva, setUnidadeAtiva, podeTrocar, recarregarUnidades,
+      unidades, unidadeAtiva, setUnidadeAtiva, podeTrocar, recarregarUnidades, erroUnidades,
       unidadeInfo: getUnidade(unidades, unidadeAtiva),
       departamento, setDepartamento,
       estoque, setEstoque, estoqueReady,

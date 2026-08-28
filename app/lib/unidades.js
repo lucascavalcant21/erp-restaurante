@@ -93,7 +93,16 @@ export function getUnidade(listaUnidades, id) {
  * Resolve a unidade inicial a partir da sessão.
  */
 export function unidadeDaSessao(sessao, listaUnidades = []) {
-  if (listaUnidades.length === 0) return "matriz";
+  // Lista vazia NÃO vira "matriz". "matriz" é um curinga de leitura ("não
+  // filtre por unidade") e nunca foi uma linha da tabela `unidades` — gravar
+  // com ele estoura a chave estrangeira ("violates foreign key constraint
+  // fichas_tecnicas_unidade_id_fkey") ou, pior, arquiva o registro numa
+  // unidade que não existe, sem erro nenhum.
+  //
+  // Uma falha passageira ao carregar as unidades trocava o app inteiro por
+  // essa unidade fantasma e só aparecia na hora de salvar. Sem id, as telas
+  // já pedem para escolher a unidade, que é a verdade.
+  if (listaUnidades.length === 0) return "";
   const v = sessao?.unidade;
   if (!v) return listaUnidades[0].id;
   const porId = listaUnidades.find((u) => u.id === v);

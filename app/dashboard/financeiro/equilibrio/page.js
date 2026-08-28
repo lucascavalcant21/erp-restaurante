@@ -39,6 +39,26 @@ const COR = {
   limpeza: "#14B8A6", cmo: "#EC4899", lucro: "#10B981",
 };
 
+// CampoCusto mora FORA do componente de propósito.
+//
+// Definido dentro, virava uma função nova a cada render — e render acontece a
+// cada tecla. Para o React, função nova é OUTRO tipo de componente: ele
+// desmontava o campo e montava outro, o <input> morria e o foco ia embora no
+// primeiro caractere. Recebe valor e onChange por prop porque precisava do
+// estado que ficou lá dentro.
+function CampoCusto({ valor, onChange, label, prefixo = "R$" }) {
+  return (
+    <div>
+      <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">{label}</label>
+      <div className="relative mt-1">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">{prefixo}</span>
+        <input type="number" min="0" step="0.01" value={valor ?? ""} onChange={e => onChange(e.target.value)}
+          className="w-full pl-10 pr-3 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500" />
+      </div>
+    </div>
+  );
+}
+
 export default function PontoEquilibrioPage() {
   const { unidadeAtiva, unidadeInfo } = useERP();
   const [p, setP] = useState({ ...PARAMS_PADRAO });
@@ -130,16 +150,6 @@ export default function PontoEquilibrioPage() {
     return `${cor} ${ini.toFixed(2)}% ${fim.toFixed(2)}%`;
   }).join(", ");
 
-  const CampoCusto = ({ k, label, prefixo = "R$" }) => (
-    <div>
-      <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">{label}</label>
-      <div className="relative mt-1">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">{prefixo}</span>
-        <input type="number" min="0" step="0.01" value={p[k] ?? ""} onChange={e => set(k, e.target.value)}
-          className="w-full pl-10 pr-3 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500" />
-      </div>
-    </div>
-  );
 
   return (
     <div className="min-h-screen">
@@ -155,22 +165,22 @@ export default function PontoEquilibrioPage() {
             <h3 className="font-black text-slate-800 mb-1">Custos do mês</h3>
             <p className="text-[11px] text-slate-500 mb-4">Quanto você gasta por mês com cada item. O sistema divide pelos dias de operação.</p>
             <div className="grid grid-cols-2 gap-3">
-              <CampoCusto k="custo_aluguel_mes" label="Aluguel" />
-              <CampoCusto k="custo_luz_mes" label="Luz / Energia" />
-              <CampoCusto k="custo_gas_mes" label="Gás" />
-              <CampoCusto k="custo_agua_mes" label="Água" />
-              <CampoCusto k="custo_limpeza_mes" label="Produtos de limpeza" />
-              <CampoCusto k="custo_cmo_mes" label="Folha / Mão de obra" />
-              <CampoCusto k="custo_outros_mes" label="Outros fixos" />
+              <CampoCusto valor={p["custo_aluguel_mes"]} onChange={v => set("custo_aluguel_mes", v)} label="Aluguel" />
+              <CampoCusto valor={p["custo_luz_mes"]} onChange={v => set("custo_luz_mes", v)} label="Luz / Energia" />
+              <CampoCusto valor={p["custo_gas_mes"]} onChange={v => set("custo_gas_mes", v)} label="Gás" />
+              <CampoCusto valor={p["custo_agua_mes"]} onChange={v => set("custo_agua_mes", v)} label="Água" />
+              <CampoCusto valor={p["custo_limpeza_mes"]} onChange={v => set("custo_limpeza_mes", v)} label="Produtos de limpeza" />
+              <CampoCusto valor={p["custo_cmo_mes"]} onChange={v => set("custo_cmo_mes", v)} label="Folha / Mão de obra" />
+              <CampoCusto valor={p["custo_outros_mes"]} onChange={v => set("custo_outros_mes", v)} label="Outros fixos" />
             </div>
             <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-100">
-              <CampoCusto k="dias_operacao_mes" label="Dias abertos no mês" prefixo="dias" />
-              <CampoCusto k="pratos_por_dia" label="Pratos vendidos/dia" prefixo="un" />
+              <CampoCusto valor={p["dias_operacao_mes"]} onChange={v => set("dias_operacao_mes", v)} label="Dias abertos no mês" prefixo="dias" />
+              <CampoCusto valor={p["pratos_por_dia"]} onChange={v => set("pratos_por_dia", v)} label="Pratos vendidos/dia" prefixo="un" />
             </div>
             <div className="grid grid-cols-3 gap-3 mt-3 pt-3 border-t border-slate-100">
-              <CampoCusto k="meta_cmv" label="CMV %" prefixo="%" />
-              <CampoCusto k="imposto_pct" label="Imposto %" prefixo="%" />
-              <CampoCusto k="embalagem_pct" label="Embalagem %" prefixo="%" />
+              <CampoCusto valor={p["meta_cmv"]} onChange={v => set("meta_cmv", v)} label="CMV %" prefixo="%" />
+              <CampoCusto valor={p["imposto_pct"]} onChange={v => set("imposto_pct", v)} label="Imposto %" prefixo="%" />
+              <CampoCusto valor={p["embalagem_pct"]} onChange={v => set("embalagem_pct", v)} label="Embalagem %" prefixo="%" />
             </div>
             <button onClick={salvar} disabled={salvando} className="mt-4 w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black rounded-xl flex items-center justify-center gap-2">
               <Save size={16} /> {salvando ? "Salvando..." : (salvou ? "Salvo!" : "Salvar")}

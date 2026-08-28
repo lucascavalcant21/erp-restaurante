@@ -27,7 +27,7 @@ import { useState, useEffect, useMemo, useRef, Suspense, Fragment } from "react"
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import {
-  atualizarOrdemFicha, excluirFichasLote, fetchFichas, fetchInsumos,
+  atualizarOrdemFicha, excluirFichasLote, excluirFichasComVinculos, fetchFichas, fetchInsumos,
   inativarFichasLote, registrarAuditoriaFichas, removerFicha, salvarFicha,
   salvarInsumo, verificarDependenciasFichas,
 } from "../../../lib/operacao";
@@ -1446,16 +1446,29 @@ function FichasRunner() {
     const alvo = modalExclusao?.lista || [];
     const { vinculadas, livres } = separarFichasPorDependencias(alvo, dependenciasExclusao);
     const verificacaoIncompleta = dependenciasExclusao?.avisos?.length > 0;
-    const lista = modo === "livres" ? livres : modo === "inativar" ? (verificacaoIncompleta ? alvo : vinculadas) : alvo;
+    const lista = modo === "livres" ? livres
+      : modo === "inativar" ? (verificacaoIncompleta ? alvo : vinculadas)
+      : modo === "forcar" ? vinculadas
+      : alvo;
     if (!lista.length) return;
     setProcessandoLote(true);
     const resposta = modo === "inativar"
       ? await inativarFichasLote(lista, usuarioAuditoria)
-      : await excluirFichasLote(lista, usuarioAuditoria);
+      : modo === "forcar"
+        ? await excluirFichasComVinculos(lista, usuarioAuditoria)
+        : await excluirFichasLote(lista, usuarioAuditoria);
     setProcessandoLote(false);
     if (resposta.error) return setMensagemLote(resposta.error);
     setSelecionadas(prev => prev.filter(id => !lista.some(f => f.id === id)));
-    setMensagemLote(`${lista.length} ficha(s) ${modo === "inativar" ? "inativada(s)" : "excluída(s)"} com registro no histórico.`);
+    const removidos = resposta.removidos;
+    setMensagemLote(
+      modo === "inativar"
+        ? `${lista.length} ficha(s) inativada(s) com registro no histórico.`
+        : modo === "forcar"
+          ? `${lista.length} ficha(s) excluída(s) com os vínculos`
+            + `${removidos ? ` (${removidos.produtos} produto(s) do cardápio, ${removidos.montagens} guia(s) de montagem)` : ""}.`
+          : `${lista.length} ficha(s) excluída(s) com registro no histórico.`,
+    );
     await carregar();
     window.setTimeout(() => {
       setModalExclusao(false);
@@ -2574,7 +2587,7 @@ function FichasRunner() {
                             </div>
                           </div>
                         ))}
-                        <p className="text-xs font-bold text-slate-500">Inativar preserva custos, vendas, produção e histórico. Os vínculos não são removidos automaticamente.</p>
+                        <p className="text-xs font-bold text-slate-500">Inativar preserva custos, vendas, produção e histórico. Excluir com os vínculos apaga também o produto do cardápio e o guia de montagem listados acima, e não tem volta. Histórico de produção e uso como ingrediente de outra ficha nunca são apagados por aqui. Os vínculos não são removidos automaticamente.</p>
                       </div>
                     ) : (
                       <div className="flex gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-800"><CheckCircle2 size={19} className="shrink-0"/> Nenhum vínculo encontrado. As fichas podem ser excluídas com segurança.</div>
@@ -2594,6 +2607,22 @@ function FichasRunner() {
                   <>
                     {livres.length > 0 && vinculadas.length > 0 && !verificacaoIncompleta && <button onClick={() => concluirExclusaoLote("livres")} disabled={processandoLote} className="rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-black text-rose-700 disabled:opacity-50">Excluir somente livres ({livres.length})</button>}
                     {(vinculadas.length > 0 || verificacaoIncompleta) && <button onClick={() => concluirExclusaoLote("inativar")} disabled={processandoLote} className="rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-black text-white disabled:opacity-50">{verificacaoIncompleta ? `Inativar com segurança (${modalExclusao.lista.length})` : `Inativar vinculadas (${vinculadas.length})`}</button>}
+                    {/* "Excluir mesmo assim": a ficha some junto com o produto do
+                        cardápio e o guia de montagem. Fica ao lado de Inativar, e não
+                        no lugar dela, porque inativar continua sendo o certo quando há
+                        histórico a preservar. */}
+                    {vinculadas.length > 0 && !verificacaoIncompleta && (
+                      <button
+                        onClick={() => {
+                          const nomes = vinculadas.map(f => f.nome_receita).join(", ");
+                          if (!confirm(`Excluir ${vinculadas.length} ficha(s) E os vínculos delas?\n\n${nomes}\n\nO produto do cardápio e o guia de montagem também serão apagados. Não tem volta.`)) return;
+                          concluirExclusaoLote("forcar");
+                        }}
+                        disabled={processandoLote}
+                        className="rounded-xl border-2 border-red-300 bg-white px-4 py-2.5 text-sm font-black text-red-700 hover:bg-red-50 disabled:opacity-50">
+                        Excluir com os vínculos
+                      </button>
+                    )}
                     {vinculadas.length === 0 && !verificacaoIncompleta && <button onClick={() => concluirExclusaoLote("todos")} disabled={processandoLote} className="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-black text-white disabled:opacity-50">{processandoLote ? "Excluindo..." : `Excluir ${modalExclusao.lista.length} ficha(s)`}</button>}
                   </>
                 );

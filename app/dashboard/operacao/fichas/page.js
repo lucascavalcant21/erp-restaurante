@@ -27,9 +27,8 @@ import { useState, useEffect, useMemo, useRef, Suspense, Fragment } from "react"
 import { useSearchParams, useRouter } from "next/navigation";
 import { useERP } from "../../../context/ERPContext";
 import {
-  atualizarOrdemFicha, excluirFichasLote, excluirFichasComVinculos, fetchFichas, fetchInsumos,
-  inativarFichasLote, registrarAuditoriaFichas, removerFicha, salvarFicha,
-  salvarInsumo, verificarDependenciasFichas,
+  atualizarOrdemFicha, excluirFichasComVinculos, fetchFichas, fetchInsumos,
+  registrarAuditoriaFichas, removerFicha, salvarFicha, salvarInsumo,
 } from "../../../lib/operacao";
 import { fetchEstoques, vincularItemEstoque } from "../../../lib/estoques-multiplos";
 import { fetchProdutos, salvarProduto } from "../../../lib/vendas";
@@ -52,7 +51,6 @@ import { fetchCategoriasFichas, salvarCategoriasFichas } from "../../../lib/para
 import {
   estimarPaginasDocumento,
   ordenarFichasDocumento,
-  separarFichasPorDependencias,
 } from "../../../lib/fichas-lote-utils.mjs";
 
 // Botão "Fechar" + fechamento automático após imprimir — no celular a aba de
@@ -406,8 +404,6 @@ function FichasRunner() {
   const [modalImpressao, setModalImpressao] = useState(null);
   const [configImpressao, setConfigImpressao] = useState(null);
   const [ordemPersonalizada, setOrdemPersonalizada] = useState([]);
-  const [modalExclusao, setModalExclusao] = useState(false);
-  const [dependenciasExclusao, setDependenciasExclusao] = useState(null);
   const [processandoLote, setProcessandoLote] = useState(false);
   const [mensagemLote, setMensagemLote] = useState("");
   // Sem isso, erro e sucesso saíam iguais: verde, com ícone de check.
@@ -1433,53 +1429,27 @@ function FichasRunner() {
 
   const limparSelecaoLote = () => setSelecionadas([]);
 
+  // Excluir exclui. Antes havia um diálogo que listava vínculo por vínculo e
+  // oferecia inativar — e a ficha acabava não saindo. Uma confirmação do
+  // navegador basta: quem apertou Excluir e confirmou já decidiu.
+  //
+  // Vai direto no caminho com vínculos: produto do cardápio, guia de montagem e
+  // a linha desta ficha nas receitas que a usam saem junto. O histórico de
+  // produção é preservado — as linhas ficam, só deixam de apontar para a ficha.
   const abrirExclusaoSegura = async (lista = fichasSelecionadas) => {
     if (!lista.length) return;
-    setProcessandoLote(true);
-    setMensagemLote("");
-    setDependenciasExclusao(null);
-    setModalExclusao({ lista });
-    const resposta = await verificarDependenciasFichas(lista, unidadeAtiva);
-    setDependenciasExclusao(resposta);
-    setProcessandoLote(false);
-  };
+    const nomes = lista.slice(0, 6).map(f => f.nome_receita).join(", ");
+    const resto = lista.length > 6 ? ` e mais ${lista.length - 6}` : "";
+    if (!confirm(`Excluir ${lista.length} ficha(s)?\n\n${nomes}${resto}\n\nSaem junto o produto do cardápio, o guia de montagem e o uso como ingrediente de outras receitas. O histórico de produção é preservado. Não tem volta.`)) return;
 
-  const concluirExclusaoLote = async (modo) => {
+    setProcessandoLote(true);
     setMensagemLote("");
     setErroLote(false);
-    const alvo = modalExclusao?.lista || [];
-    const { vinculadas, livres } = separarFichasPorDependencias(alvo, dependenciasExclusao);
-    const verificacaoIncompleta = dependenciasExclusao?.avisos?.length > 0;
-    const lista = modo === "livres" ? livres
-      : modo === "inativar" ? (verificacaoIncompleta ? alvo : vinculadas)
-      : modo === "forcar" ? vinculadas
-      : alvo;
-    if (!lista.length) return;
-    setProcessandoLote(true);
-    const resposta = modo === "inativar"
-      ? await inativarFichasLote(lista, usuarioAuditoria)
-      : modo === "forcar"
-        ? await excluirFichasComVinculos(lista, usuarioAuditoria)
-        : await excluirFichasLote(lista, usuarioAuditoria);
+    const resposta = await excluirFichasComVinculos(lista, usuarioAuditoria);
     setProcessandoLote(false);
     if (resposta.error) { setErroLote(true); return setMensagemLote(resposta.error); }
-    setErroLote(false);
     setSelecionadas(prev => prev.filter(id => !lista.some(f => f.id === id)));
-    const removidos = resposta.removidos;
-    setMensagemLote(
-      modo === "inativar"
-        ? `${lista.length} ficha(s) inativada(s) com registro no histórico.`
-        : modo === "forcar"
-          ? `${lista.length} ficha(s) excluída(s) com os vínculos`
-            + `${removidos ? ` (${removidos.produtos} produto(s) do cardápio, ${removidos.montagens} guia(s) de montagem, ${removidos.componentes || 0} uso(s) como ingrediente`
-              + `${removidos.producoesDesvinculadas ? `, ${removidos.producoesDesvinculadas} produção(ões) mantida(s) no histórico` : ""})` : ""}.`
-          : `${lista.length} ficha(s) excluída(s) com registro no histórico.`,
-    );
     await carregar();
-    window.setTimeout(() => {
-      setModalExclusao(false);
-      setMensagemLote("");
-    }, 1400);
   };
 
   const duplicarFichasSelecionadas = async () => {
@@ -2550,113 +2520,6 @@ function FichasRunner() {
         </div>
       )}
 
-      {/* EXCLUSÃO SEGURA EM LOTE */}
-      {modalExclusao && (
-        <div className="fixed inset-0 z-[95] flex items-center justify-center bg-slate-950/70 p-3 backdrop-blur-sm">
-          <div className="w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl">
-            <div className="flex items-start justify-between gap-3 border-b border-slate-200 p-5 sm:p-6">
-              <div className="flex gap-3">
-                <div className="rounded-2xl bg-rose-100 p-3 text-rose-700"><AlertTriangle size={24}/></div>
-                <div>
-                  <h2 className="text-xl font-black text-slate-900">Confirmar exclusão segura</h2>
-                  <p className="mt-1 text-sm font-bold text-slate-500">Você está prestes a excluir {modalExclusao.lista.length} {modalExclusao.lista.length === 1 ? "ficha técnica" : "fichas técnicas"}.</p>
-                </div>
-              </div>
-              <button onClick={() => setModalExclusao(false)} disabled={processandoLote} className="rounded-full bg-slate-100 p-2 text-slate-500"><X size={18}/></button>
-            </div>
-
-            <div className="max-h-[62vh] space-y-4 overflow-y-auto p-5 sm:p-6">
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Fichas selecionadas</p>
-                <p className="mt-1 text-sm font-bold text-slate-700">{modalExclusao.lista.slice(0, 8).map(f => f.nome_receita).join(", ")}{modalExclusao.lista.length > 8 ? ` e mais ${modalExclusao.lista.length - 8}` : ""}.</p>
-              </div>
-
-              {!dependenciasExclusao ? (
-                <div className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 p-6 text-sm font-bold text-slate-500"><Loader2 size={18} className="animate-spin"/> Verificando cardápio, outras receitas, montagem e histórico...</div>
-              ) : (() => {
-                const { vinculadas, livres } = separarFichasPorDependencias(modalExclusao.lista, dependenciasExclusao);
-                return (
-                  <>
-                    {dependenciasExclusao.avisos?.length > 0 && (
-                      <div className="flex gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-bold text-amber-800">
-                        <ShieldAlert size={18} className="shrink-0"/> A verificação não foi concluída em todas as áreas. Por segurança, a exclusão definitiva foi bloqueada; use apenas inativar ou cancelar.
-                      </div>
-                    )}
-                    {vinculadas.length > 0 ? (
-                      <div className="space-y-2">
-                        <p className="text-sm font-black text-slate-800">{vinculadas.length} {vinculadas.length === 1 ? "ficha possui vínculo" : "fichas possuem vínculos"} e não será excluída diretamente:</p>
-                        {vinculadas.map(ficha => (
-                          <div key={ficha.id} className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-                            <p className="text-sm font-black text-slate-800">{ficha.nome_receita}</p>
-                            <div className="mt-2 flex flex-wrap gap-1.5">
-                              {(dependenciasExclusao.porFicha?.[ficha.id] || []).map((item, indice) => <span key={`${item.tipo}-${indice}`} className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-amber-800">{item.tipo}: {item.nome}</span>)}
-                            </div>
-                          </div>
-                        ))}
-                        <p className="text-xs font-bold text-slate-500">Inativar preserva custos, vendas, produção e histórico. Excluir com os vínculos apaga também o produto do cardápio, o guia de montagem e a linha desta ficha nas receitas que a usam como ingrediente — o custo dessas receitas muda, e não tem volta. O histórico de produção é preservado: as linhas continuam, só deixam de apontar para a ficha. Os vínculos não são removidos automaticamente.</p>
-                      </div>
-                    ) : (
-                      <div className="flex gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-800"><CheckCircle2 size={19} className="shrink-0"/> Nenhum vínculo encontrado. As fichas podem ser excluídas com segurança.</div>
-                    )}
-                    {livres.length > 0 && vinculadas.length > 0 && <p className="text-xs font-bold text-emerald-700">{livres.length} ficha(s) sem vínculos podem ser excluídas separadamente.</p>}
-                  </>
-                );
-              })()}
-            </div>
-
-            {/* A mensagem do lote ficava só no corpo da página, ATRÁS deste modal:
-                a exclusão falhava, o motivo era escrito onde ninguém via, e da
-                cadeira parecia que apertar OK não fazia nada. */}
-            {mensagemLote && (
-              <div className={`mx-4 mb-1 rounded-xl border px-4 py-3 text-sm font-bold sm:mx-6 ${erroLote ? "border-red-200 bg-red-50 text-red-800" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}>
-                {mensagemLote}
-              </div>
-            )}
-
-            <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 bg-slate-50 p-4 sm:px-6">
-              <button onClick={() => setModalExclusao(false)} disabled={processandoLote} className="mr-auto rounded-xl px-4 py-2.5 text-sm font-black text-slate-600">Cancelar</button>
-              {dependenciasExclusao && (() => {
-                const { vinculadas, livres } = separarFichasPorDependencias(modalExclusao.lista, dependenciasExclusao);
-                const verificacaoIncompleta = dependenciasExclusao.avisos?.length > 0;
-                return (
-                  <>
-                    {livres.length > 0 && vinculadas.length > 0 && !verificacaoIncompleta && <button onClick={() => concluirExclusaoLote("livres")} disabled={processandoLote} className="rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-black text-rose-700 disabled:opacity-50">Excluir somente livres ({livres.length})</button>}
-                    {(vinculadas.length > 0 || verificacaoIncompleta) && <button onClick={() => concluirExclusaoLote("inativar")} disabled={processandoLote} className="rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-black text-white disabled:opacity-50">{verificacaoIncompleta ? `Inativar com segurança (${modalExclusao.lista.length})` : `Inativar vinculadas (${vinculadas.length})`}</button>}
-                    {/* "Excluir mesmo assim": a ficha some junto com o produto do
-                        cardápio e o guia de montagem. Fica ao lado de Inativar, e não
-                        no lugar dela, porque inativar continua sendo o certo quando há
-                        histórico a preservar. */}
-                    {vinculadas.length > 0 && !verificacaoIncompleta && (
-                      <button
-                        onClick={() => {
-                          const nomes = vinculadas.map(f => f.nome_receita).join(", ");
-                          // Receita que perde ingrediente é perda de verdade: o custo dela
-                          // muda. Some na confirmação com nome e tudo, para a decisão não
-                          // ser tomada no escuro.
-                          const receitasAfetadas = [...new Set(vinculadas.flatMap(f =>
-                            (dependenciasExclusao?.porFicha?.[f.id] || [])
-                              .filter(d => d.tipo === "Outra ficha técnica")
-                              .map(d => String(d.nome || "").replace(/^Ingrediente de:\s*/, ""))
-                              .filter(n => n && n !== "Utilizada como componente")))];
-                          const avisoReceitas = receitasAfetadas.length
-                            ? `\n\nEstas receitas PERDEM esse ingrediente e o custo delas muda:\n· ${receitasAfetadas.join("\n· ")}`
-                            : "";
-                          if (!confirm(`Excluir ${vinculadas.length} ficha(s) E os vínculos delas?\n\n${nomes}\n\nO produto do cardápio e o guia de montagem também serão apagados.${avisoReceitas}\n\nNão tem volta.`)) return;
-                          concluirExclusaoLote("forcar");
-                        }}
-                        disabled={processandoLote}
-                        className="rounded-xl border-2 border-red-300 bg-white px-4 py-2.5 text-sm font-black text-red-700 hover:bg-red-50 disabled:opacity-50">
-                        Excluir com os vínculos
-                      </button>
-                    )}
-                    {vinculadas.length === 0 && !verificacaoIncompleta && <button onClick={() => concluirExclusaoLote("todos")} disabled={processandoLote} className="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-black text-white disabled:opacity-50">{processandoLote ? "Excluindo..." : `Excluir ${modalExclusao.lista.length} ficha(s)`}</button>}
-                  </>
-                );
-              })()}
-            </div>
-          </div>
-        </div>
-      )}
 
       {modalCategorias && (
         <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-slate-900/60 backdrop-blur-sm p-0 sm:p-4" onClick={() => setModalCategorias(false)}>

@@ -672,13 +672,12 @@ export async function excluirFichasLote(fichas, auditoria = {}) {
 //
 // O que NÃO é apagado aqui, de propósito:
 //   - producao_diaria: é histórico do que a casa produziu, não um vínculo.
-//   - producao_diaria: é histórico do que a casa produziu, não um vínculo.
-// Se ele bloquear a exclusão, o erro volta dizendo isso, em vez de falhar com a
-// mensagem crua do Postgres.
-//
-// fichas_ingredientes.subficha_id É apagado: essa ficha é ingrediente de outra,
-// e a receita-mãe perde essa linha. É perda de verdade, então a tela nomeia as
-// receitas afetadas na confirmação antes de chegar aqui.
+//   - fichas_ingredientes.subficha_id é APAGADO: essa ficha é ingrediente de
+//     outra, e a receita-mãe perde essa linha. É perda de verdade, então a tela
+//     nomeia as receitas afetadas na confirmação antes de chegar aqui.
+//   - producao_diaria é PRESERVADO: a linha continua, só perde o ponteiro para
+//     a ficha. Data, quantidade e quem produziu valem sem a receita; apagar
+//     destruiria registro do que a casa produziu.
 export async function excluirFichasComVinculos(fichas, auditoria = {}) {
   if (!isSupabaseReady()) return { error: "Offline" };
   const lista = (fichas || []).filter(item => item?.id);
@@ -690,7 +689,7 @@ export async function excluirFichasComVinculos(fichas, auditoria = {}) {
 
   // Vínculos primeiro: apagar a ficha antes deixaria produto e montagem
   // apontando para um id que não existe mais.
-  const removidos = { produtos: 0, montagens: 0, componentes: 0 };
+  const removidos = { produtos: 0, montagens: 0, componentes: 0, producoesDesvinculadas: 0 };
   const p = await limitarUnidade(supabase.from("produtos").delete().in("ficha_id", ids)).select("id");
   if (p.error) return { error: `Não consegui remover o produto do cardápio: ${p.error.message}` };
   removidos.produtos = (p.data || []).length;
@@ -706,14 +705,31 @@ export async function excluirFichasComVinculos(fichas, auditoria = {}) {
   if (r.error) return { error: `Não consegui tirar a ficha das receitas que a usam: ${r.error.message}` };
   removidos.componentes = (r.data || []).length;
 
+  // Histórico de produção: a linha FICA, só perde o ponteiro para a ficha.
+  // Apagar destruiria o registro do que a casa produziu — data, quantidade e
+  // quem produziu continuam valendo mesmo sem a receita. Assim a chave
+  // estrangeira solta sem custo nenhum de informação.
+  const h = await supabase.from("producao_diaria").update({ ficha_id: null }).in("ficha_id", ids).select("id");
+  if (h.error && !/violates not-null|null value/i.test(h.error.message || "")) {
+    return { error: `Não consegui soltar o histórico de produção: ${h.error.message}` };
+  }
+  removidos.producoesDesvinculadas = (h.data || []).length;
+
   const { error } = await supabase.from("fichas_tecnicas").delete().in("id", ids);
   if (error) {
     const msg = error.message || "";
     if (/foreign key|violates/i.test(msg)) {
+      // Nomear a tabela que segurou: "um dos dois" mandava procurar no escuro.
+      // O Postgres cita duas tabelas: `on table "fichas_tecnicas" violates ...
+      // on table "producao_diaria"`. A que segura é a ÚLTIMA; a primeira é a
+      // que se tentou apagar.
+      const citadas = [...msg.matchAll(/on table "([a-z_]+)"/gi)].map(m => m[1]);
+      const tabela = citadas.length > 1 ? citadas[citadas.length - 1] : (citadas[0] || "");
       return {
-        error: "Cardápio, guia e as receitas que usavam esta ficha já foram desvinculados, mas ela "
-          + "ainda está presa ao histórico de produção. Histórico não é vínculo: apagar destrói "
-          + "registro do que a casa produziu. Use Inativar para essa ficha.",
+        error: `Cardápio, guia, receitas que a usavam e histórico de produção já foram desvinculados, `
+          + `mas a ficha continua presa${tabela ? ` a "${tabela}"` : ""}. `
+          + `Esse vínculo não é apagado automaticamente porque não estava previsto: me mande esta `
+          + `mensagem que eu trato. Enquanto isso, Inativar resolve. (${msg})`,
       };
     }
     return { error: msg };

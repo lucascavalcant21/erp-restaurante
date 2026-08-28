@@ -1471,7 +1471,8 @@ function FichasRunner() {
         ? `${lista.length} ficha(s) inativada(s) com registro no histórico.`
         : modo === "forcar"
           ? `${lista.length} ficha(s) excluída(s) com os vínculos`
-            + `${removidos ? ` (${removidos.produtos} produto(s) do cardápio, ${removidos.montagens} guia(s) de montagem, ${removidos.componentes || 0} uso(s) como ingrediente)` : ""}.`
+            + `${removidos ? ` (${removidos.produtos} produto(s) do cardápio, ${removidos.montagens} guia(s) de montagem, ${removidos.componentes || 0} uso(s) como ingrediente`
+              + `${removidos.producoesDesvinculadas ? `, ${removidos.producoesDesvinculadas} produção(ões) mantida(s) no histórico` : ""})` : ""}.`
           : `${lista.length} ficha(s) excluída(s) com registro no histórico.`,
     );
     await carregar();
@@ -2592,7 +2593,7 @@ function FichasRunner() {
                             </div>
                           </div>
                         ))}
-                        <p className="text-xs font-bold text-slate-500">Inativar preserva custos, vendas, produção e histórico. Excluir com os vínculos apaga também o produto do cardápio, o guia de montagem e a linha desta ficha nas receitas que a usam como ingrediente — o custo dessas receitas muda, e não tem volta. Só o histórico de produção nunca é apagado por aqui. Os vínculos não são removidos automaticamente.</p>
+                        <p className="text-xs font-bold text-slate-500">Inativar preserva custos, vendas, produção e histórico. Excluir com os vínculos apaga também o produto do cardápio, o guia de montagem e a linha desta ficha nas receitas que a usam como ingrediente — o custo dessas receitas muda, e não tem volta. O histórico de produção é preservado: as linhas continuam, só deixam de apontar para a ficha. Os vínculos não são removidos automaticamente.</p>
                       </div>
                     ) : (
                       <div className="flex gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-800"><CheckCircle2 size={19} className="shrink-0"/> Nenhum vínculo encontrado. As fichas podem ser excluídas com segurança.</div>

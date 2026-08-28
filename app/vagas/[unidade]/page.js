@@ -19,6 +19,19 @@ const soDigitos = (v) => String(v || "").replace(/\D/g, "");
 const fmtTel = (v) => soDigitos(v).slice(0, 11)
   .replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{5})(\d)/, "$1-$2");
 
+const classeCampo = "h-12 w-full rounded-xl border border-slate-300 bg-white px-3.5 text-base font-semibold text-slate-800 outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-500/15";
+
+function Campo({ label, children }) {
+  return (
+    <label className="block">
+      <span className="text-xs font-black uppercase tracking-wider text-slate-500">
+        {label}<span className="text-emerald-600"> *</span>
+      </span>
+      <div className="mt-1.5">{children}</div>
+    </label>
+  );
+}
+
 export default function PaginaPublicaVagas() {
   const { unidade } = useParams();
   const parametros = useSearchParams();
@@ -145,16 +158,6 @@ export default function PaginaPublicaVagas() {
       </div>
     );
   }
-
-  const Campo = ({ label, children }) => (
-    <label className="block">
-      <span className="text-xs font-black uppercase tracking-wider text-slate-500">
-        {label}<span className="text-emerald-600"> *</span>
-      </span>
-      <div className="mt-1.5">{children}</div>
-    </label>
-  );
-  const classeCampo = "h-12 w-full rounded-xl border border-slate-300 bg-white px-3.5 text-base font-semibold text-slate-800 outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-500/15";
 
   return (
     <div className="min-h-screen bg-slate-50 pb-16">

@@ -1466,7 +1466,7 @@ function FichasRunner() {
         ? `${lista.length} ficha(s) inativada(s) com registro no histórico.`
         : modo === "forcar"
           ? `${lista.length} ficha(s) excluída(s) com os vínculos`
-            + `${removidos ? ` (${removidos.produtos} produto(s) do cardápio, ${removidos.montagens} guia(s) de montagem)` : ""}.`
+            + `${removidos ? ` (${removidos.produtos} produto(s) do cardápio, ${removidos.montagens} guia(s) de montagem, ${removidos.componentes || 0} uso(s) como ingrediente)` : ""}.`
           : `${lista.length} ficha(s) excluída(s) com registro no histórico.`,
     );
     await carregar();
@@ -2587,7 +2587,7 @@ function FichasRunner() {
                             </div>
                           </div>
                         ))}
-                        <p className="text-xs font-bold text-slate-500">Inativar preserva custos, vendas, produção e histórico. Excluir com os vínculos apaga também o produto do cardápio e o guia de montagem listados acima, e não tem volta. Histórico de produção e uso como ingrediente de outra ficha nunca são apagados por aqui. Os vínculos não são removidos automaticamente.</p>
+                        <p className="text-xs font-bold text-slate-500">Inativar preserva custos, vendas, produção e histórico. Excluir com os vínculos apaga também o produto do cardápio, o guia de montagem e a linha desta ficha nas receitas que a usam como ingrediente — o custo dessas receitas muda, e não tem volta. Só o histórico de produção nunca é apagado por aqui. Os vínculos não são removidos automaticamente.</p>
                       </div>
                     ) : (
                       <div className="flex gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-800"><CheckCircle2 size={19} className="shrink-0"/> Nenhum vínculo encontrado. As fichas podem ser excluídas com segurança.</div>
@@ -2615,7 +2615,18 @@ function FichasRunner() {
                       <button
                         onClick={() => {
                           const nomes = vinculadas.map(f => f.nome_receita).join(", ");
-                          if (!confirm(`Excluir ${vinculadas.length} ficha(s) E os vínculos delas?\n\n${nomes}\n\nO produto do cardápio e o guia de montagem também serão apagados. Não tem volta.`)) return;
+                          // Receita que perde ingrediente é perda de verdade: o custo dela
+                          // muda. Some na confirmação com nome e tudo, para a decisão não
+                          // ser tomada no escuro.
+                          const receitasAfetadas = [...new Set(vinculadas.flatMap(f =>
+                            (dependenciasExclusao?.porFicha?.[f.id] || [])
+                              .filter(d => d.tipo === "Outra ficha técnica")
+                              .map(d => String(d.nome || "").replace(/^Ingrediente de:\s*/, ""))
+                              .filter(n => n && n !== "Utilizada como componente")))];
+                          const avisoReceitas = receitasAfetadas.length
+                            ? `\n\nEstas receitas PERDEM esse ingrediente e o custo delas muda:\n· ${receitasAfetadas.join("\n· ")}`
+                            : "";
+                          if (!confirm(`Excluir ${vinculadas.length} ficha(s) E os vínculos delas?\n\n${nomes}\n\nO produto do cardápio e o guia de montagem também serão apagados.${avisoReceitas}\n\nNão tem volta.`)) return;
                           concluirExclusaoLote("forcar");
                         }}
                         disabled={processandoLote}

@@ -1237,7 +1237,7 @@ function imprimirLote(fichas, porFolha, deptLabel) {
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Montagens — ${escaparHtml(deptLabel)}</title>
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
-      body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:5mm 6mm;font-size:${escala}px}
+      body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:3mm 3.5mm;font-size:${escala}px}
       .grade{display:grid;grid-template-columns:repeat(${cols},1fr);gap:4mm}
       .card{border:1.5px solid #333;border-radius:8px;padding:${porFolha <= 2 ? "6mm" : "3.5mm"};height:${alturaCard};overflow:hidden;overflow-wrap:anywhere;break-inside:avoid;page-break-inside:avoid;display:flex;flex-direction:column}
       .card.card-longo{height:auto;min-height:${alturaCard};overflow:visible;grid-column:1/-1;break-inside:auto;page-break-inside:auto}
@@ -1584,10 +1584,10 @@ const ORDEM_CATEGORIA = ["Com Álcool", "Sem Álcool", "Doses", "Xaropes", "Espu
 // gela e dilui mais; o mixing glass mantém o drink límpido. O campo já existia
 // na ficha (fichas_tecnicas.metodo_bar) e só não chegava até aqui.
 const METODOS_DRINK = {
-  batido: "Batido (shaker)",
-  mexido: "Mexido (mixing glass)",
+  batido: "Batido na coqueteleira",
+  mexido: "Mexido",
   montado: "Montado no copo",
-  liquidificador: "Liquidificador",
+  liquidificador: "Batido no liquidificador",
   dose: "Dose pura",
 };
 
@@ -1606,9 +1606,11 @@ function drinkCardHTML(m) {
   const foto = m.foto_url
     ? `<div class="foto"><img src="${escaparHtml(m.foto_url)}" alt="${nome}"/></div>`
     : `<div class="foto ilustrada">${ilustracaoDrinkSVG(copo?.nome || m.nome, textoIngredientes, 96)}</div>`;
-  // Só o método na cabeça do card. O rendimento saiu daqui: quem está montando
-  // o drink precisa saber se bate ou mexe, e a dose já está nos ingredientes.
-  const subtitulo = metodo ? `<p class="copo">${escaparHtml(metodo)}</p>` : "";
+  // O método vira balão colado na foto. Como subtítulo ele se perdia entre o
+  // nome e os ingredientes; ao lado da imagem é a primeira coisa que quem monta
+  // o drink lê — bater na coqueteleira, no liquidificador ou mexer muda o
+  // resultado no copo, não é detalhe de estilo.
+  const subtitulo = metodo ? `<p class="metodo">${escaparHtml(metodo)}</p>` : "";
   const blocoIngredientes = ingredientes.length
     ? `<div class="bloco"><p class="rot">Ingredientes</p><ul>${ingredientes.map((c) => `<li>${escaparHtml(c.nome)}</li>`).join("")}</ul></div>` : "";
   const blocoPreparo = passos.length
@@ -1640,6 +1642,7 @@ function drinkCardCSS(colunas, gridCols = colunas, larguraCardMm = null) {
     .tit{min-width:0;flex:1}
     .drink h2{font-size:${colunas >= 4 ? 16 : colunas === 3 ? 19 : 28}px;font-weight:900;line-height:1.08;letter-spacing:.3px;text-transform:uppercase;overflow-wrap:break-word;hyphens:auto;margin-bottom:2mm}
     .copo{font-size:${colunas >= 4 ? 10 : colunas === 3 ? 11 : 13}px;font-weight:800;color:#444;line-height:1.25}
+    .metodo{display:inline-block;max-width:100%;font-size:${colunas >= 4 ? 8.5 : colunas === 3 ? 9.5 : 12}px;font-weight:900;line-height:1.3;color:#111;background:#f4f4f5;border:1.5px solid #111;border-radius:${colunas >= 3 ? 3 : 999}mm;padding:${colunas >= 3 ? "1mm 2mm" : "1.4mm 3mm"};text-transform:uppercase;overflow-wrap:break-word}
     .bloco{margin-top:${colunas >= 3 ? 1.6 : 2.5}mm}
     .rot{font-size:${colunas >= 4 ? 11 : colunas === 3 ? 12 : 14}px;font-weight:900;text-transform:uppercase;letter-spacing:1.2px;border-bottom:2px solid #111;padding-bottom:1px;margin-bottom:2px}
     .drink ul,.drink ol{padding-left:1.1em}

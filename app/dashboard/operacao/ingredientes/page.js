@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchFornecedores } from "../../../lib/fornecedores";
-import { fetchHistoricoPrecos, fetchInsumos, removerInsumo, salvarInsumo } from "../../../lib/operacao";
+import { DEPARTAMENTO_COMPARTILHADO, fetchHistoricoPrecos, fetchInsumos, removerInsumo, salvarInsumo } from "../../../lib/operacao";
 import { fetchPrecosDoInsumo, salvarPrecoFornecedor } from "../../../lib/insumo-fornecedores";
 import { CATEGORIAS_INSUMO, adivinharCategoria, categoriaDoProdutoBar, obterTodasCategoriasInsumo, salvarNovaCategoriaCustom } from "../../../lib/categorias-insumo";
 import { comprimirFotoParaIA } from "../../../lib/imagem";
@@ -489,7 +489,7 @@ function IngredientesRunner() {
   };
 
   const abrirEditar = insumo => {
-    const dep = deptUrl;
+    const dep = insumo.departamento === DEPARTAMENTO_COMPARTILHADO ? DEPARTAMENTO_COMPARTILHADO : deptUrl;
     let un = insumo.unidade_medida || (dep === "bar" ? "ml" : "kg");
     setForm({
       id: insumo.id,
@@ -904,7 +904,7 @@ function IngredientesRunner() {
                         className="h-4 w-4 accent-emerald-600" />
                     </td>
                     <td className="px-4 py-2">
-                      <p className="truncate text-sm font-black text-slate-900">{insumo.nome}</p>
+                      <p className="truncate text-sm font-black text-slate-900">{insumo.nome}{insumo.departamento === DEPARTAMENTO_COMPARTILHADO && <span title="Usado no bar e na cozinha" className="ml-2 shrink-0 rounded-full bg-indigo-50 px-2 py-0.5 align-middle text-[9px] font-black uppercase tracking-wider text-indigo-700">Bar e cozinha</span>}</p>
                       <p className="mt-0.5 truncate text-[11px] text-slate-500">
                         {insumo.codigo_interno || "Sem código"}
                         {insumo.nome_interno ? ` · ${insumo.nome_interno}` : ""}
@@ -987,7 +987,7 @@ function IngredientesRunner() {
                     checked={selecionados.has(insumo.id)} onChange={() => alternarSelecao(insumo.id)}
                     className="mt-1 h-4 w-4 shrink-0 accent-emerald-600" />
                   <div className="min-w-0 flex-1">
-                    <h2 className="truncate font-black text-slate-900">{insumo.nome}</h2>
+                    <h2 className="truncate font-black text-slate-900">{insumo.nome}{insumo.departamento === DEPARTAMENTO_COMPARTILHADO && <span title="Usado no bar e na cozinha" className="ml-2 shrink-0 rounded-full bg-indigo-50 px-2 py-0.5 align-middle text-[9px] font-black uppercase tracking-wider text-indigo-700">Bar e cozinha</span>}</h2>
                     <p className="mt-1 truncate text-xs text-slate-500">
                       {insumo.nome_interno || insumo.codigo_interno || insumo.categoria || (ehBar ? "Produto" : "Ingrediente")}
                     </p>
@@ -1143,10 +1143,18 @@ function IngredientesRunner() {
                     </select>
                   </label>
                   <label>
-                    <span className="text-xs font-bold text-slate-600">Setor</span>
-                    <div className="mt-1.5 flex h-11 w-full items-center rounded-xl border border-slate-200 bg-slate-100 px-3.5 font-bold text-slate-600">
-                      {ehBar ? "Bar" : "Cozinha"}
-                    </div>
+                    <span className="text-xs font-bold text-slate-600">Onde é usado</span>
+                    <select
+                      value={form.departamento}
+                      onChange={event => setForm({ ...form, departamento: event.target.value })}
+                      className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 font-bold outline-none focus:border-emerald-500"
+                    >
+                      <option value={deptUrl}>Só {ehBar ? "no bar" : "na cozinha"}</option>
+                      <option value={DEPARTAMENTO_COMPARTILHADO}>Bar e cozinha</option>
+                    </select>
+                    <span className="mt-1 block text-[11px] font-medium text-slate-400">
+                      "Bar e cozinha" é uma linha só, com um preço e um estoque, que aparece nos dois catálogos.
+                    </span>
                   </label>
                 </div>
               </section>

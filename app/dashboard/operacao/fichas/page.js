@@ -2423,12 +2423,21 @@ function FichasRunner() {
                                         <span className="text-right"><strong className="block text-base text-slate-900">{quantidadeTexto}</strong>{unidadesDoPeso && <small className="block font-bold text-slate-400">rende {unidadesDoPeso}</small>}</span>
                                       </div>
                                       <div className="flex min-h-12 items-center justify-between gap-3"><span className="text-sm font-bold text-slate-500">Custo</span><strong className="text-base text-slate-900">{fmtBRL(custoPorcao)}</strong></div>
+                                      {/* Venda vem logo acima do CMV: é o número que explica o CMV. */}
+                                      {!f.eh_base && (
+                                        <div className="flex min-h-12 items-center justify-between gap-3">
+                                          <span className="text-sm font-bold text-slate-500">Venda</span>
+                                          {precoPorcao > 0
+                                            ? <strong className="text-base text-slate-900">{fmtBRL(precoPorcao)}</strong>
+                                            : <span className="text-sm font-bold text-slate-400">não informada</span>}
+                                        </div>
+                                      )}
                                       <div className="flex min-h-12 items-center justify-between gap-3">
                                         <span className="text-sm font-black text-slate-600">{f.eh_base ? "Custo total" : "CMV"}</span>
                                         {f.eh_base ? <strong className="text-lg text-amber-700">{fmtBRL(custoTotal)}</strong> : <span className={`rounded-lg px-3 py-1.5 text-base font-black ${cmv === null ? "bg-slate-100 text-slate-400" : cmv > meta ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>{cmv !== null ? `${cmv.toFixed(1)}%` : "—"}</span>}
                                       </div>
                                     </div>
-                                    {!f.eh_base && <p className="mt-1 text-xs font-bold text-slate-400">Venda {precoPorcao > 0 ? fmtBRL(precoPorcao) : "não informada"} · Margem {margem !== null ? `${margem.toFixed(1)}%` : "—"}</p>}
+                                    {!f.eh_base && <p className="mt-1 text-xs font-bold text-slate-400">Margem {margem !== null ? `${margem.toFixed(1)}%` : "—"}</p>}
                                  </>
                               );
                            })()}

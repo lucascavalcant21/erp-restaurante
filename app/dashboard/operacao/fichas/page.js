@@ -2041,14 +2041,18 @@ function FichasRunner() {
       td.bom{color:#047857;font-weight:900}td.ruim{color:#dc2626;font-weight:900}
       tfoot td{border-top:2px solid #0f172a;font-weight:900;font-size:13px;padding-top:8px}
       .nota{margin-top:12px;border-top:1px solid #e2e8f0;padding-top:8px;font-size:10px;color:#64748b;line-height:1.5}
+      .destaque{display:flex;align-items:baseline;justify-content:space-between;gap:10px;border:2px solid #0f172a;border-radius:8px;padding:8px 12px;margin-bottom:12px}
+      .destaque span{font-size:10px;text-transform:uppercase;letter-spacing:2px;font-weight:bold;color:#475569}
+      .destaque strong{font-size:22px}
       @media print{@page{margin:10mm}}
     </style></head><body>
       <div style="display:flex;justify-content:center;margin-bottom:10px">${logoSeldeestrelaSVG(42)}</div>
       <h1>Planilha de Custos e CMV</h1>
-      <div class="sub">${esc2(unidadeInfo?.nome || '')} · ${new Date().toLocaleDateString('pt-BR')} · ${linhas.length} receita(s)</div>
+      <div class="sub">${esc2(unidadeInfo?.nome || '')} · ${new Date().toLocaleDateString('pt-BR')} · ${linhas.length} receita(s) · ${comCmv.length} precificada(s)</div>
+      <div class="destaque"><span>CMV médio</span><strong>${cmvMedio !== null ? cmvMedio.toFixed(1) + '%' : '—'}</strong></div>
       <table><thead><tr><th>Receita</th><th>Categoria</th><th class="r">Custo do produto</th><th class="r">Preço de venda</th><th class="r">Lucro</th><th class="r">CMV</th></tr></thead>
       <tbody>${rows}</tbody>
-      <tfoot><tr><td colspan="5">CMV médio da carta (${comCmv.length} precificada(s))</td><td class="r">${cmvMedio !== null ? cmvMedio.toFixed(1) + '%' : '—'}</td></tr></tfoot></table>
+      </table>
       <p class="nota"><b>Custo do produto</b> é o de uma porção: ingredientes mais embalagem. <b>Lucro</b> é o que sobra da venda depois dele, da maquininha (${(Number(taxasVenda.cartao) || 0).toLocaleString('pt-BR')}%) e do imposto (${(Number(taxasVenda.imposto) || 0).toLocaleString('pt-BR')}%), antes do custo fixo. <b>CMV</b> é o custo do produto dividido pela venda. Em laranja, por quanto o prato sairia para fechar 30% de CMV.</p>
     </body></html>`);
     win.document.close();
@@ -2363,8 +2367,7 @@ function FichasRunner() {
           </div>
           <div className="mt-3 flex gap-2 overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-2">
             <button onClick={() => { if (!fichas.length) return alert("Nenhuma ficha para o livro."); abrirPreviaImpressao("livro", fichas); }} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100"><Printer size={14} /> Livro de receitas</button>
-            <button onClick={() => { if (!fichas.length) return alert("Nenhuma ficha para o livro."); abrirPreviaImpressao("pdf", fichas); }} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100"><Download size={14} /> Baixar PDF</button>
-            <button onClick={imprimirPlanilhaCustos} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100"><Calculator size={14} /> Custos e CMV</button>
+            <button onClick={imprimirPlanilhaCustos} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100"><Calculator size={14} /> Planilha de custos</button>
             <button onClick={imprimirRentabilidade} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-bold text-emerald-700 hover:bg-emerald-100"><BarChart3 size={14} /> Rentabilidade</button>
             <button onClick={registrarCustoTodasFichas} disabled={semeandoCustos} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-50">{semeandoCustos ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}{semeandoCustos ? "Registrando..." : "Registrar custos"}</button>
             <input ref={inputCardapioRef} type="file" accept="image/*" multiple onChange={importarCardapioFoto} className="hidden" />

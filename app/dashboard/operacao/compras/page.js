@@ -82,7 +82,7 @@ export default function ComprasPage() {
   };
 
   return (
-    <div className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50">
+    <div className="min-h-screen pb-24 font-sans text-slate-800 bg-[var(--surface)]">
       
       <div className="bg-slate-900 pt-6 sm:pt-8 pb-8 sm:pb-10 px-4 sm:px-8 shadow-lg text-white">
          <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-6">

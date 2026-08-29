@@ -61,7 +61,7 @@ export default function DreGerencialPage() {
   const isLucro = dre.ebitda >= 0;
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans pb-20">
+    <div className="min-h-screen bg-[var(--surface)] font-sans pb-20">
       {/* HEADER EXECUTIVO */}
       <div className="bg-slate-900 text-white px-6 py-10 md:py-14 rounded-b-[40px] shadow-xl relative overflow-hidden">
          <div className="absolute top-0 right-0 p-8 opacity-5"><FileText size={200} /></div>

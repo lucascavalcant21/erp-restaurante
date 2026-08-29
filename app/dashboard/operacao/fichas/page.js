@@ -2145,7 +2145,7 @@ function FichasRunner() {
   };
 
   return (
-    <div className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50">
+    <div className="min-h-screen pb-24 font-sans text-slate-800 bg-[var(--surface)]">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto max-w-[1480px] px-4 py-4 sm:px-5">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">

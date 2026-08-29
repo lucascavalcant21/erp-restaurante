@@ -3,12 +3,24 @@ import { calcularPrecoNormalizado } from "./ingredientes-utils.mjs";
 
 // ─── INSUMOS (Ingredientes Brutos) ──────────────────────────────────────────
 
+// Setor de um insumo: "cozinha", "bar" ou este, que vale para os dois.
+export const DEPARTAMENTO_COMPARTILHADO = "ambos";
+
 export async function fetchInsumos(unidadeId, dept, opcoes = {}) {
   if (!isSupabaseReady()) return { data: [], error: "Offline" };
   
   let query = supabase.from("insumos").select("*");
   if (unidadeId && (opcoes?.escopoEstrito === true || unidadeId !== "matriz")) query = query.eq("unidade_id", unidadeId);
-  if (dept) query = query.eq("departamento", dept);
+  // "ambos" é o insumo que serve às duas cozinhas — açúcar, limão, gelo. Ele
+  // aparece nos dois catálogos sendo uma linha só, com um preço e um estoque.
+  // Só cozinha e bar o recebem: "embalagens" também chega aqui como setor, e um
+  // insumo compartilhado não tem nada que fazer no catálogo de embalagens.
+  if (dept) {
+    const setores = ["cozinha", "bar"].includes(String(dept).toLowerCase())
+      ? [dept, DEPARTAMENTO_COMPARTILHADO]
+      : [dept];
+    query = setores.length > 1 ? query.in("departamento", setores) : query.eq("departamento", dept);
+  }
 
   const { data, error } = await query;
   if (error || !data?.length) return { data: data || [], error: error?.message };
@@ -199,10 +211,17 @@ export async function salvarInsumo(insumo, opcoes = {}) {
         // A comparação também é feita aqui, e não no banco: `ilike` diferencia
         // acento, então "Açúcar" não reconhecia um "Acucar" já gravado e a trava
         // deixava passar a duplicata que ela existe para impedir.
+        // O que conflita é o que aparece no mesmo catálogo. Cadastrar na cozinha
+        // conflita com os da cozinha e com os compartilhados; cadastrar como
+        // compartilhado conflita com os dois setores, porque vai aparecer nos
+        // dois. "Açúcar" do bar e "Açúcar" da cozinha, esses, convivem.
+        const setoresEmConflito = campos.departamento === DEPARTAMENTO_COMPARTILHADO
+          ? ["cozinha", "bar", DEPARTAMENTO_COMPARTILHADO]
+          : [campos.departamento, DEPARTAMENTO_COMPARTILHADO];
         const montarConsulta = (colunas) => {
           let q = supabase.from("insumos").select(colunas);
           if (campos.unidade_id) q = q.eq("unidade_id", campos.unidade_id);
-          if (campos.departamento) q = q.eq("departamento", campos.departamento);
+          if (campos.departamento) q = q.in("departamento", setoresEmConflito.filter(Boolean));
           return q;
         };
         let { data: existentes, error: erroConsulta } =

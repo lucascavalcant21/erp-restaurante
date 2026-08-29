@@ -41,7 +41,8 @@ import { fmtBRL } from "../../../components/ui";
 import { criarEscuta, vozDisponivel } from "../../../lib/hefisto-voz";
 import { registrarAuditoria } from "../../../lib/hefisto-acoes";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 50;
+const TAMANHOS_PAGINA = [25, 50, 100, 200];
 
 const ORDENACOES = [
   { value: "nome-asc", label: "Nome A–Z" },
@@ -195,6 +196,7 @@ function IngredientesRunner() {
   const [categoria, setCategoria] = useState("Todas");
   const [ordenacao, setOrdenacao] = useState("nome-asc");
   const [pagina, setPagina] = useState(1);
+  const [porPagina, setPorPagina] = useState(PAGE_SIZE);
   const [calculos, setCalculos] = useState({});
   const [form, setForm] = useState(() => novoFormulario(deptUrl || "cozinha"));
   const [modalCadastro, setModalCadastro] = useState(false);
@@ -447,11 +449,13 @@ function IngredientesRunner() {
 
   useEffect(() => {
     setPagina(1);
-  }, [busca, categoria, ordenacao, deptUrl]);
+  }, [busca, categoria, ordenacao, deptUrl, porPagina]);
 
-  const totalPaginas = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
+  // porPagina 0 = "Todos": o catálogo inteiro numa página só.
+  const tamanhoPagina = porPagina > 0 ? porPagina : Math.max(1, filtrados.length);
+  const totalPaginas = Math.max(1, Math.ceil(filtrados.length / tamanhoPagina));
   const paginaAtual = Math.min(pagina, totalPaginas);
-  const paginados = filtrados.slice((paginaAtual - 1) * PAGE_SIZE, paginaAtual * PAGE_SIZE);
+  const paginados = filtrados.slice((paginaAtual - 1) * tamanhoPagina, paginaAtual * tamanhoPagina);
 
   const estatisticas = useMemo(() => {
     const limiteRecente = Date.now() - 30 * 24 * 60 * 60 * 1000;
@@ -1025,9 +1029,18 @@ function IngredientesRunner() {
         {!loading && filtrados.length > 0 && (
           <footer className="mt-4 flex flex-col items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 sm:flex-row">
             <p className="text-xs font-medium text-slate-500">
-              Mostrando {(paginaAtual - 1) * PAGE_SIZE + 1} a {Math.min(paginaAtual * PAGE_SIZE, filtrados.length)} de {filtrados.length} {rotuloItens}
+              Mostrando {(paginaAtual - 1) * tamanhoPagina + 1} a {Math.min(paginaAtual * tamanhoPagina, filtrados.length)} de {filtrados.length} {rotuloItens}
             </p>
             <div className="flex items-center gap-2">
+              <select
+                value={porPagina}
+                onChange={e => setPorPagina(Number(e.target.value))}
+                aria-label={`Quantidade de ${rotuloItens} por página`}
+                className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-black text-slate-600 outline-none"
+              >
+                {TAMANHOS_PAGINA.map(valor => <option key={valor} value={valor}>{valor} por página</option>)}
+                <option value={0}>Todos</option>
+              </select>
               <button
                 onClick={() => setPagina(valor => Math.max(1, valor - 1))}
                 disabled={paginaAtual === 1}

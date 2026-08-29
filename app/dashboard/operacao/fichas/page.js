@@ -313,6 +313,17 @@ function infoPesoFicha(f, todasFichas) {
     liquido: un === "l" || un === "ml",
   };
 }
+// Insumo medido em g ou ml custa frações de centavo por unidade: R$ 1,00 a
+// garrafa de 500 ml dá R$ 0,002/ml, que em duas casas vira "R$ 0,00" e parece
+// custo zero. Mostramos por kg/L, que é o número do catálogo de ingredientes.
+const fmtCustoUnitario = (custo, unidade) => {
+  const un = String(unidade || "").toLowerCase();
+  const valor = Number(custo) || 0;
+  if (un === "g") return `${fmtBRL(valor * 1000)}/kg`;
+  if (un === "ml") return `${fmtBRL(valor * 1000)}/L`;
+  return `${fmtBRL(valor)}/${String(unidade || "").toUpperCase()}`;
+};
+
 const fmtG = (g) => g >= 1000
   ? `${(g / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} kg`
   : `${(+g.toFixed(1)).toLocaleString("pt-BR")} g`;
@@ -2800,7 +2811,7 @@ function FichasRunner() {
                                             <td className="py-3 px-1 text-right font-bold text-slate-700">{nf(l.bruta)}</td>
                                             <td className="py-3 px-1 text-right font-bold text-slate-500">{l.fc ? `${nf(l.fc)}%` : "—"}</td>
                                             <td className="py-3 px-1 text-right font-bold text-slate-700">{nf(l.liquida)}</td>
-                                            <td className="py-3 px-1 text-right font-bold text-slate-600">{fmtBRL(l.custoUnit)}</td>
+                                            <td className="py-3 px-1 text-right font-bold text-slate-600">{fmtCustoUnitario(l.custoUnit, l.un)}</td>
                                             <td className="py-3 pl-1 text-right font-black text-slate-800">{fmtBRL(l.custoTot)}</td>
                                           </tr>
                                         ))}
@@ -3220,7 +3231,7 @@ function FichasRunner() {
                                        if (["ml", "l", "g", "kg"].includes(String(ing.unidade || "").toLowerCase())) return null;
                                        return <p className="text-[10px] font-bold text-slate-400 mt-0.5">Sem embalagem no cadastro — não entra no rendimento</p>;
                                     })()}
-                                    <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">Custo: {fmtBRL(ing.custo_unitario * ing.quantidade * multiplicadorPerda(ing.fator))} <span className="text-slate-400 normal-case">· {fmtBRL(ing.custo_unitario)}/{String(ing.unidade).toUpperCase()}</span></p>
+                                    <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">Custo: {fmtBRL(ing.custo_unitario * ing.quantidade * multiplicadorPerda(ing.fator))} <span className="text-slate-400 normal-case">· {fmtCustoUnitario(ing.custo_unitario, ing.unidade)}</span></p>
                                     {/* Perda vem do cadastro do ingrediente. A quantidade
                                         bruta é a líquida dividida pelo percentual aproveitável. */}
                                     {ing.tipo !== "base" && Number(ing.fator) > 0 && (

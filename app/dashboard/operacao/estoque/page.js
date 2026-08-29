@@ -2845,10 +2845,9 @@ export default function EstoquePage() {
 }
 
 function EstoqueUnificado() {
-  const searchParams = useSearchParams();
-  if (searchParams.get("gestao") === "1") return <EstoqueRunner />;
-  // Mesmo respiro das rotas /tablet: sem ele o "voltar" encosta na barra de
-  // status do celular.
+  // A operação inteira fica na mesma tela rápida. O endereço antigo com
+  // ?gestao=1 também cai aqui, para ninguém voltar sem querer à gestão
+  // separada que foi substituída pelos controles dentro do próprio estoque.
   return <div className="fixed inset-0 z-[200] overflow-auto bg-slate-50"
     style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}><TabletSetor titulo="Estoque" voltarHref="/dashboard" /></div>;
 }

@@ -225,6 +225,14 @@ const SUB_UNIDADES = {
 };
 const getSub = (unidade) => SUB_UNIDADES[String(unidade || "").toLowerCase()] || null;
 
+// A perda informa quanto da compra não vira produto aproveitável. Por isso o
+// custo correto é dividido pelo rendimento: R$ 39,90 com 30% de perda =
+// 39,90 / 0,70 = R$ 57,00 por kg útil (e não 39,90 × 1,30).
+function multiplicadorPerda(percentual) {
+  const perda = Math.min(99.99, Math.max(0, Number(percentual) || 0));
+  return 1 / (1 - perda / 100);
+}
+
 // Custo unitário efetivo do ingrediente. Empanados ganham peso (ganho_pct) e
 // somam o custo do empanamento (custo_empanado_kg, por kg final). Só faz sentido
 // em peso (g/kg); em outras unidades usa o custo base.
@@ -245,13 +253,14 @@ function custoTotalDaFicha(f, todasFichas, guard = new Set()) {
   guard.add(f.id);
   let total = 0;
   (f.fichas_ingredientes || []).forEach(fi => {
-    // Fator de correção (%) do item: a quantidade BRUTA (líquida × 1+fc) é a que custa
-    const fc = 1 + (Number(fi.fator_correcao) || 0) / 100;
+    // A quantidade da ficha é líquida/aproveitável; a compra bruta necessária
+    // considera o percentual que será perdido no preparo.
+    const fc = multiplicadorPerda(fi.insumos?.perda_pct || fi.fator_correcao);
     if (fi.insumos) {
       total += custoUnitEfetivo(fi.insumos) * (fi.quantidade || 0) * fc;
     } else if (fi.subficha_id) {
       const base = todasFichas.find(x => x.id === fi.subficha_id);
-      const custoBaseUnit = base ? custoTotalDaFicha(base, todasFichas, guard) / (base.rendimento_porcoes || 1) : 0;
+      const custoBaseUnit = base ? custoTotalDaFicha(base, todasFichas, new Set(guard)) / (base.rendimento_porcoes || 1) : 0;
       total += custoBaseUnit * (fi.quantidade || 0) * fc;
     }
   });
@@ -349,7 +358,7 @@ function detalheIngrediente(ing) {
   else if (u === "ml") { pesoG = q; liquido = true; }
   else if ((u === "un" || u === "unidade" || u === "porcao") && pm > 0) pesoG = q * pm;
   else if (volumeUnitarioMl(ing) > 0) { pesoG = q * volumeUnitarioMl(ing); liquido = true; }
-  const custo = (Number(ing.custo_unitario) || 0) * q;
+  const custo = (Number(ing.custo_unitario) || 0) * q * multiplicadorPerda(ing.fator);
   // Preço por grama ≥ R$1 (= R$1000/kg): quase sempre é cadastro errado
   // (preço do pacote/maço salvo como preço da grama).
   const precoSuspeito = (u === "g" || u === "ml") && (Number(ing.custo_unitario) || 0) >= 1;
@@ -1013,7 +1022,7 @@ function FichasRunner() {
 
   // Custo considera o Fator de Correção (%) do item: bruta = líquida × (1 + fc)
   const calcularCustoTotal = (ingredientesLista) => {
-    return ingredientesLista.reduce((acc, ing) => acc + (ing.custo_unitario * ing.quantidade * (1 + (Number(ing.fator) || 0) / 100)), 0);
+    return ingredientesLista.reduce((acc, ing) => acc + (ing.custo_unitario * ing.quantidade * multiplicadorPerda(ing.fator)), 0);
   };
 
   const numeroPorcoesFormulario = () => {
@@ -2272,6 +2281,9 @@ function FichasRunner() {
                {fichasPagina.map(f => {
                   const peso = infoPesoFicha(f, fichas);
                   const unR = String(f.rendimento_unidade || "porcao").toLowerCase();
+                  const ehBarCard = String(f.departamento || "").toLowerCase() === "bar";
+                  const umSo = Number(f.rendimento_porcoes || 0) === 1;
+                  const labelUn = { porcao: ehBarCard ? (umSo ? "dose" : "doses") : (umSo ? "porção" : "porções"), kg: "kg", g: "g", l: "L", ml: "ml", un: "un" }[unR] || unR;
 
                   return (
                      <div key={f.id}
@@ -2280,16 +2292,19 @@ function FichasRunner() {
                         className={`bg-white rounded-2xl border shadow-sm hover:shadow-md transition-all relative group flex flex-col overflow-hidden ${dragId === f.id ? 'opacity-50' : ''} ${selecionadas.includes(f.id) ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-slate-200'}`}>
                         {/* Cabeçalho sem foto: nome e ações sempre fáceis de tocar */}
                         <div className="border-b border-slate-100 bg-slate-50 p-3">
-                           <div className="flex items-start gap-2">
+                           <div className="flex items-center gap-2">
                              <div draggable onDragStart={() => setDragId(f.id)} onDragEnd={() => setDragId(null)} title="Arraste para reordenar" className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm cursor-grab active:cursor-grabbing"><GripVertical size={19} /></div>
                              <label className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-slate-200 bg-white cursor-pointer shadow-sm">
                                <input type="checkbox" checked={selecionadas.includes(f.id)} onChange={() => toggleSelecionar(f.id)} className="block h-5 w-5 cursor-pointer rounded accent-emerald-600"/>
                              </label>
-                             <button type="button" onClick={() => abrirFicha(f)} title="Abrir ficha" className="min-h-10 min-w-0 flex-1 px-1 text-left">
-                               <span className="block text-lg font-black leading-tight text-slate-900">{f.nome_receita}</span>
-                             </button>
-                              <button onClick={() => abrirEditar(f)} className="flex h-10 shrink-0 items-center gap-2 rounded-xl bg-emerald-600 px-3 text-sm font-black text-white shadow-md"><Edit3 size={17}/> Editar</button>
+                             <span className="flex-1" />
                               <button onClick={() => setAcoesCardAberto(atual => atual === f.id ? "" : f.id)} title="Mais opções" className="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm"><MoreVertical size={19}/></button>
+                           </div>
+                           <div className="mt-3 flex items-center gap-3">
+                             <button type="button" onClick={() => abrirFicha(f)} title="Abrir ficha" className="min-h-10 min-w-0 flex-1 text-left">
+                               <span className="block break-words text-lg font-black leading-snug text-slate-900">{f.nome_receita}</span>
+                             </button>
+                             <button onClick={() => abrirEditar(f)} className="flex h-10 shrink-0 items-center gap-2 rounded-xl bg-emerald-600 px-3 text-sm font-black text-white shadow-md"><Edit3 size={17}/> Editar</button>
                            </div>
                            {acoesCardAberto === f.id && <div className="mt-2 grid grid-cols-2 gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
                               {!f.eh_base && <button onClick={() => router.push(`/dashboard/operacao/montagem?dept=${f.departamento || deptUrl}&q=${encodeURIComponent(f.nome_receita)}`)} className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-bold text-slate-700 hover:bg-slate-50"><LayoutList size={17}/> Montagem</button>}
@@ -2312,6 +2327,10 @@ function FichasRunner() {
                               const cmv = precoPorcao > 0 ? (custoPorcao / precoPorcao) * 100 : null;
                               const margem = cmv !== null ? 100 - cmv : null;
                               const composicao = (f.fichas_ingredientes || []).length;
+                              const quantidadeTexto = `${Number(f.rendimento_porcoes || 0).toLocaleString("pt-BR")} ${labelUn}`;
+                              const unidadesDoPeso = ["kg", "g", "l", "ml"].includes(unR) && peso?.porcoes > 0
+                                ? `${Number(peso.porcoes).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} ${ehBarCard ? "doses" : "unidades/porções"}`
+                                : "";
                               return (
                                  <>
                                     <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -2324,6 +2343,10 @@ function FichasRunner() {
                                     </div>
 
                                     <div className="divide-y divide-slate-100">
+                                      <div className="flex min-h-12 items-center justify-between gap-3">
+                                        <span className="text-sm font-bold text-slate-500">Quantidade</span>
+                                        <span className="text-right"><strong className="block text-base text-slate-900">{quantidadeTexto}</strong>{unidadesDoPeso && <small className="block font-bold text-slate-400">rende {unidadesDoPeso}</small>}</span>
+                                      </div>
                                       <div className="flex min-h-12 items-center justify-between gap-3"><span className="text-sm font-bold text-slate-500">Custo</span><strong className="text-base text-slate-900">{fmtBRL(custoPorcao)}</strong></div>
                                       <div className="flex min-h-12 items-center justify-between gap-3">
                                         <span className="text-sm font-black text-slate-600">{f.eh_base ? "Custo total" : "CMV"}</span>
@@ -3106,14 +3129,15 @@ function FichasRunner() {
                                        if (["ml", "l", "g", "kg"].includes(String(ing.unidade || "").toLowerCase())) return null;
                                        return <p className="text-[10px] font-bold text-slate-400 mt-0.5">Sem embalagem no cadastro — não entra no rendimento</p>;
                                     })()}
-                                    <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">Custo: {fmtBRL(ing.custo_unitario * ing.quantidade * (1 + (Number(ing.fator) || 0) / 100))} <span className="text-slate-400 normal-case">· {fmtBRL(ing.custo_unitario)}/{String(ing.unidade).toUpperCase()}</span></p>
-                                    {/* Perda vem do cadastro do ingrediente (o FC saiu da ficha). O custo usa a qtd bruta = líquida × (1 + perda). */}
+                                    <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">Custo: {fmtBRL(ing.custo_unitario * ing.quantidade * multiplicadorPerda(ing.fator))} <span className="text-slate-400 normal-case">· {fmtBRL(ing.custo_unitario)}/{String(ing.unidade).toUpperCase()}</span></p>
+                                    {/* Perda vem do cadastro do ingrediente. A quantidade
+                                        bruta é a líquida dividida pelo percentual aproveitável. */}
                                     {ing.tipo !== "base" && Number(ing.fator) > 0 && (
                                        <div className="flex items-center gap-1.5 mt-1">
                                           <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Perda do ingrediente</span>
                                           <span className="text-[10px] font-black text-emerald-700">{Number(ing.fator).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%</span>
                                           {ing.quantidade > 0 && (
-                                             <span className="text-[9px] font-bold text-slate-400">· bruta {(+(ing.quantidade * (emSub ? fator : 1) * (1 + Number(ing.fator) / 100)).toFixed(2)).toLocaleString("pt-BR")} {unidadeLabel}</span>
+                                             <span className="text-[9px] font-bold text-slate-400">· bruta {(+(ing.quantidade * (emSub ? fator : 1) * multiplicadorPerda(ing.fator)).toFixed(2)).toLocaleString("pt-BR")} {unidadeLabel}</span>
                                           )}
                                        </div>
                                     )}
@@ -3171,9 +3195,7 @@ function FichasRunner() {
                          a precificação. Ele volta sozinho no primeiro ingrediente, e no modo
                          manual fica sempre — é lá que se corrige o rendimento de receita que
                          reduz no fogo. */}
-                     {/* A quantidade continua sendo calculada automaticamente para
-                         custos e estoque, mas não é exibida no formulário. */}
-                     {false && (
+                     {(!autoSoma || ingFicha.length > 0) && (
                      <div id="ficha-rendimento" className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm scroll-mt-24">
                         <div className="flex items-center justify-between mb-3">
                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Quantidade da receita</p>

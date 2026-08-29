@@ -29,6 +29,70 @@ create unique index if not exists estoque_itens_ficha_tecnica_unico_idx
   on public.estoque_itens (estoque_id, ficha_tecnica_id)
   where ficha_tecnica_id is not null;
 
+-- Custo da ficha por composição, incluindo subfichas e perda real. Exemplo:
+-- R$ 39,90/kg com 30% de perda = 39,90 / 0,70 = R$ 57,00/kg aproveitável.
+create or replace function public.custo_total_ficha_preparo(
+  p_ficha_id uuid,
+  p_visitados uuid[] default '{}'::uuid[]
+)
+returns numeric
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_total numeric := 0;
+  v_perda numeric;
+  v_rendimento numeric;
+  item record;
+begin
+  if p_ficha_id is null or p_ficha_id = any(p_visitados) then
+    return 0;
+  end if;
+
+  for item in
+    select
+      fi.quantidade,
+      fi.fator_correcao,
+      fi.insumo_id,
+      fi.subficha_id,
+      i.custo_unitario,
+      i.perda_pct
+    from public.fichas_ingredientes fi
+    left join public.insumos i on i.id = fi.insumo_id
+    where fi.ficha_id = p_ficha_id
+  loop
+    v_perda := least(99.99, greatest(0,
+      case when coalesce(item.perda_pct, 0) > 0
+        then item.perda_pct else coalesce(item.fator_correcao, 0) end
+    ));
+
+    if item.insumo_id is not null then
+      v_total := v_total
+        + coalesce(item.custo_unitario, 0) * coalesce(item.quantidade, 0)
+          / (1 - v_perda / 100);
+    elsif item.subficha_id is not null then
+      select greatest(coalesce(rendimento_porcoes, 1), 1)
+        into v_rendimento
+      from public.fichas_tecnicas
+      where id = item.subficha_id;
+
+      v_total := v_total
+        + public.custo_total_ficha_preparo(
+            item.subficha_id,
+            array_append(p_visitados, p_ficha_id)
+          )
+          / greatest(coalesce(v_rendimento, 1), 1)
+          * coalesce(item.quantidade, 0)
+          / (1 - v_perda / 100);
+    end if;
+  end loop;
+
+  return v_total;
+end;
+$$;
+
 -- Garante os dois estoques em todas as unidades antes de sincronizar.
 insert into public.estoques (
   unidade_id, nome, slug, tipo, descricao, status, cor,
@@ -64,6 +128,7 @@ declare
   v_unidade text;
   v_categoria text;
   v_saldo numeric := 0;
+  v_custo numeric := 0;
 begin
   select * into v_ficha
   from public.fichas_tecnicas
@@ -108,6 +173,8 @@ begin
     case when lower(v_ficha.departamento) = 'bar'
       then 'Xaropes e pré-preparos' else 'Pré-preparos' end
   );
+  v_custo := public.custo_total_ficha_preparo(v_ficha.id)
+    / greatest(coalesce(v_ficha.rendimento_porcoes, 1), 1);
 
   select id into v_estoque_id
   from public.estoques
@@ -128,7 +195,7 @@ begin
     ) values (
       v_ficha.unidade_id, trim(v_ficha.nome_receita), trim(v_ficha.nome_receita),
       lower(v_ficha.departamento), v_categoria, 'ingrediente',
-      v_unidade, v_unidade, 1, 0, 0, v_ficha.id, false
+      v_unidade, v_unidade, 1, v_custo, v_custo, v_ficha.id, false
     ) returning id into v_insumo_id;
   else
     update public.insumos set
@@ -140,7 +207,9 @@ begin
       pre_preparo_legado = false,
       unidade_medida = v_unidade,
       unidade_comercial = v_unidade,
-      tamanho_embalagem = 1
+      tamanho_embalagem = 1,
+      custo_unitario = v_custo,
+      custo_compra = v_custo
     where id = v_insumo_id;
   end if;
 
@@ -164,12 +233,13 @@ begin
     custo_unitario, local_interno, updated_at
   ) values (
     v_ficha.unidade_id, v_estoque_id, v_insumo_id, v_ficha.id, v_saldo,
-    0,
+    v_custo,
     case when lower(v_ficha.departamento) = 'bar' then 'Geladeira do Bar' else 'Freezer 1' end,
     now()
   )
   on conflict (estoque_id, insumo_id) do update set
     ficha_tecnica_id = excluded.ficha_tecnica_id,
+    custo_unitario = excluded.custo_unitario,
     updated_at = now();
 end;
 $$;
@@ -220,6 +290,7 @@ before delete on public.fichas_tecnicas
 for each row execute function public.trigger_remover_pre_preparo_ficha();
 
 revoke all on function public.sincronizar_pre_preparo_ficha(uuid) from public, anon, authenticated;
+revoke all on function public.custo_total_ficha_preparo(uuid, uuid[]) from public, anon, authenticated;
 revoke all on function public.trigger_sincronizar_pre_preparo_ficha() from public, anon, authenticated;
 revoke all on function public.trigger_remover_pre_preparo_ficha() from public, anon, authenticated;
 

@@ -18,14 +18,6 @@ import {
 // NOVO MENU SIDEBAR (PDV e KDS REMOVIDOS)
 const SIDEBAR_MENU = [
   {
-    category: "Início",
-    home: "/dashboard",
-    icon: BarChart,
-    items: [
-      { label: "Painel Geral", href: "/dashboard" }
-    ]
-  },
-  {
     category: "Salão",
     home: "/dashboard/modulo/salao",
     icon: Users,

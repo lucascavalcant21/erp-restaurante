@@ -264,6 +264,28 @@ export async function salvarInsumo(insumo, opcoes = {}) {
         await sincronizarFornecedores(data.id, fornecedorIds);
       } catch { /* histórico é acessório */ }
 
+      // Estoque do setor: cozinha vai para "cozinha", bar para "bar", e o
+      // compartilhado entra nos dois, porque é usado nos dois. Sem isto o
+      // ingrediente nascia visível só no estoque legado, e quem fosse contar
+      // pelo módulo de estoques não achava o que acabou de cadastrar.
+      try {
+        const dept = String(campos.departamento || "").toLowerCase();
+        const slugs = dept === "ambos" ? ["cozinha", "bar"] : (dept === "bar" ? ["bar"] : dept === "cozinha" ? ["cozinha"] : []);
+        if (campos.unidade_id && slugs.length) {
+          const { data: estoques } = await supabase.from("estoques")
+            .select("id, slug").eq("unidade_id", campos.unidade_id).in("slug", slugs);
+          for (const estoque of estoques || []) {
+            await supabase.from("estoque_itens").upsert({
+              unidade_id: campos.unidade_id,
+              estoque_id: estoque.id,
+              insumo_id: data.id,
+              quantidade_atual: 0,
+              custo_unitario: Number(campos.custo_unitario) || 0,
+            }, { onConflict: "estoque_id,insumo_id" });
+          }
+        }
+      } catch { /* o módulo de estoques pode não estar migrado: não bloqueia o cadastro */ }
+
       // Garante que o ingrediente/produto apareça imediatamente no Estoque com saldo 0
       try {
         if (campos.unidade_id) {
@@ -349,7 +371,10 @@ export async function removerInsumo(id) {
   }
 
   try {
-    // 4. Remover do estoque e movimentações legadas
+    // 4. Remover do estoque e movimentações legadas. estoque_atual é escrito
+    // no cadastro ("aparece no Estoque com saldo 0") e não era limpo aqui: a
+    // linha ficava apontando para um insumo que não existe mais.
+    await supabase.from("estoque_atual").delete().eq("insumo_id", id);
     await supabase.from("estoque").delete().eq("insumo_id", id);
     await supabase.from("estoque_movimentacoes").delete().eq("insumo_id", id);
   } catch (e) {

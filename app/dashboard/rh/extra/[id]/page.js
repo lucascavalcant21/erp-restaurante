@@ -214,7 +214,7 @@ export default function CadastroExtraPage() {
   const campo = "w-full p-4 mt-1.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-emerald-500";
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-40 sm:pb-28">
+    <div className="min-h-screen bg-[var(--surface)] pb-40 sm:pb-28">
       {/* Cabeçalho */}
       <div className="sticky top-0 z-20 border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-3xl items-center gap-3">

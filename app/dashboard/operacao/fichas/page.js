@@ -290,6 +290,12 @@ function baseCustoDaFicha(unidadeRendimento, padrao = "kg") {
   return padrao;
 }
 
+// Cartão e imposto incidem sobre o preço de venda. O Simples Nacional é
+// apurado sobre o faturamento, e a alíquota depende do anexo e da faixa de
+// receita da loja — por isso é editável, e não um número fixo no código.
+const TAXAS_VENDA_PADRAO = { cartao: 3, imposto: 4 };
+const chaveTaxasVenda = (unidadeId) => `erp_taxas_venda_${unidadeId || "sem-unidade"}`;
+
 // Quantas embalagens a ficha consome: uma por porção servida. Quando o
 // rendimento é em peso ou volume, o número de porções só existe se a ficha
 // disser quanto pesa uma porção — 200 ml de rendimento não são 200 porções.
@@ -443,6 +449,10 @@ function FichasRunner() {
   const [modoFicha, setModoFicha] = useState("principais");
   const [tipoFiltro, setTipoFiltro] = useState("Pratos principais");
   const [mostrarIndicadores, setMostrarIndicadores] = useState(false);
+  // Taxas que incidem sobre a VENDA, não sobre a mercadoria: elas não entram no
+  // CMV (que é custo de mercadoria vendida), mas comem o lucro. Ficam por
+  // unidade porque maquininha e faixa do Simples mudam de loja para loja.
+  const [taxasVenda, setTaxasVenda] = useState(TAXAS_VENDA_PADRAO);
   const [categoriasRecolhidas, setCategoriasRecolhidas] = useState(true);
   const [acoesCardAberto, setAcoesCardAberto] = useState("");
   
@@ -779,6 +789,26 @@ function FichasRunner() {
   useEffect(() => {
     if (unidadeAtiva) carregar();
   }, [unidadeAtiva, deptUrl]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !unidadeAtiva) return;
+    try {
+      const salvo = JSON.parse(localStorage.getItem(chaveTaxasVenda(unidadeAtiva)) || "null");
+      setTaxasVenda({
+        cartao: Number(salvo?.cartao) >= 0 ? Number(salvo.cartao) : TAXAS_VENDA_PADRAO.cartao,
+        imposto: Number(salvo?.imposto) >= 0 ? Number(salvo.imposto) : TAXAS_VENDA_PADRAO.imposto,
+      });
+    } catch { setTaxasVenda(TAXAS_VENDA_PADRAO); }
+  }, [unidadeAtiva]);
+
+  const alterarTaxaVenda = (campo, valor) => {
+    const numero = Math.min(100, Math.max(0, Number(String(valor).replace(",", ".")) || 0));
+    setTaxasVenda(atual => {
+      const proximo = { ...atual, [campo]: numero };
+      try { localStorage.setItem(chaveTaxasVenda(unidadeAtiva), JSON.stringify(proximo)); } catch { /* sem storage, vale só nesta sessão */ }
+      return proximo;
+    });
+  };
 
   // A ficha aberta em visualização é um retrato do momento em que foi aberta.
   // Sem reapontá-la para a versão recarregada, a tela continua mostrando os
@@ -2145,7 +2175,7 @@ function FichasRunner() {
   };
 
   return (
-    <div className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50">
+    <div className="min-h-screen pb-24 font-sans text-slate-800 bg-[var(--surface)]">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto max-w-[1480px] px-4 py-4 sm:px-5">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
@@ -2160,37 +2190,6 @@ function FichasRunner() {
                   : (deptUrl === "bar" ? "Montagem, custos e margens de drinks e bebidas" : "Montagem de pratos, rendimento, custo e CMV para o cardápio")}</p>
               </div>
             </div>
-            <div className="erp-busca-fixa flex flex-col gap-3 sm:flex-row">
-              {/* O CMV médio viaja com a busca: a busca é sticky, então o número
-                  continua à vista enquanto se rola a lista de fichas. */}
-              <div className="flex min-w-0 items-center gap-2.5">
-              {resumoCardapio.totalFichas > 0 && (() => {
-                const cmv = resumoCardapio.cmvMedio;
-                const alto = cmv != null && cmv > 35;
-                return (
-                  <button type="button" onClick={() => setMostrarIndicadores(valor => !valor)} title="Ver todos os indicadores do cardápio"
-                    className={`flex h-11 shrink-0 items-center gap-2 rounded-2xl border px-3 shadow-sm transition-colors ${alto ? "border-red-200 bg-red-50 hover:bg-red-100" : "border-emerald-200 bg-emerald-50 hover:bg-emerald-100"}`}>
-                    <Calculator size={18} className={`shrink-0 ${alto ? "text-red-600" : "text-emerald-700"}`} />
-                    <span className="text-left">
-                      <span className="block text-[9px] font-black uppercase tracking-wider leading-none text-slate-500">CMV médio</span>
-                      <span className={`block text-lg font-black leading-tight ${alto ? "text-red-600" : "text-emerald-700"}`}>{cmv != null ? `${cmv.toFixed(1)}%` : "—"}</span>
-                    </span>
-                    <span className="hidden text-[10px] font-bold leading-tight text-slate-400 xl:block">
-                      {resumoCardapio.precificadas} precificad{resumoCardapio.precificadas === 1 ? "a" : "as"}
-                      {resumoCardapio.semPreco > 0 && <><br />{resumoCardapio.semPreco} sem preço</>}
-                    </span>
-                  </button>
-                );
-              })()}
-              <label className="flex min-w-0 flex-1 items-center gap-2 rounded-2xl border-2 border-slate-300 bg-white px-3.5 shadow-sm transition-all focus-within:border-emerald-600 focus-within:ring-4 focus-within:ring-emerald-500/20 sm:w-[430px] sm:flex-none">
-                <Search size={19} className="shrink-0 text-slate-700" />
-                <input value={busca} onChange={e => setBusca(e.target.value)} placeholder={modoFicha === "preparos" ? "Buscar preparo por nome..." : deptUrl === "bar" ? "Buscar drink ou produto..." : "Buscar prato por nome..."} className="h-11 min-w-0 flex-1 bg-transparent text-sm font-bold text-slate-900 outline-none placeholder:font-medium placeholder:text-slate-400" />
-                {busca && <button onClick={() => setBusca("")} className="text-slate-400 hover:text-slate-700" title="Limpar busca"><X size={16} /></button>}
-              </label>
-              </div>
-              <button onClick={abrirModalIAFicha} className="flex h-11 items-center justify-center gap-2 rounded-xl border border-emerald-600/30 bg-emerald-50 px-4 text-sm font-black text-emerald-700 shadow-sm hover:bg-emerald-100"><Sparkles size={18} /> Criar com IA</button>
-              <button onClick={abrirNova} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-black text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700"><Plus size={18} /> {modoFicha === "preparos" ? "Novo preparo" : deptUrl === "bar" ? "Novo drink" : "Novo prato"}</button>
-            </div>
           </div>
           <div className="mt-3 flex gap-2 overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-2">
             <button onClick={() => { if (!fichas.length) return alert("Nenhuma ficha para o livro."); abrirPreviaImpressao("livro", fichas); }} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100"><Printer size={14} /> Livro de receitas</button>
@@ -2202,6 +2201,46 @@ function FichasRunner() {
           </div>
         </div>
       </header>
+
+      {/* A busca e o CMV médio ficam FORA do <header>. Um elemento sticky só
+          gruda enquanto o pai está na tela: dentro do cabeçalho, ele saía de
+          vista junto com o título logo na primeira rolagem. Aqui o pai é a
+          página inteira, então a faixa acompanha a lista até o fim. */}
+      {/* A faixa de busca gruda no topo com margens zeradas: a classe
+          .erp-busca-fixa nasceu para viver dentro de um container com padding e
+          traz margens negativas de 4px. Aqui ela ocupa a largura toda, e essas
+          margens empurrariam a página 8px além da tela. */}
+      <div className="erp-busca-fixa border-b border-slate-200 bg-white" style={{ marginLeft: 0, marginRight: 0 }}>
+        <div className="mx-auto flex max-w-[1480px] flex-col gap-3 px-4 py-2.5 sm:flex-row sm:px-5">
+          <div className="flex min-w-0 items-center gap-2.5">
+            {resumoCardapio.totalFichas > 0 && (() => {
+              const cmv = resumoCardapio.cmvMedio;
+              const alto = cmv != null && cmv > 35;
+              return (
+                <button type="button" onClick={() => setMostrarIndicadores(valor => !valor)} title="Ver todos os indicadores do cardápio"
+                  className={`flex h-11 shrink-0 items-center gap-2 rounded-2xl border px-3 shadow-sm transition-colors ${alto ? "border-red-200 bg-red-50 hover:bg-red-100" : "border-emerald-200 bg-emerald-50 hover:bg-emerald-100"}`}>
+                  <Calculator size={18} className={`shrink-0 ${alto ? "text-red-600" : "text-emerald-700"}`} />
+                  <span className="text-left">
+                    <span className="block text-[9px] font-black uppercase tracking-wider leading-none text-slate-500">CMV médio</span>
+                    <span className={`block text-lg font-black leading-tight ${alto ? "text-red-600" : "text-emerald-700"}`}>{cmv != null ? `${cmv.toFixed(1)}%` : "—"}</span>
+                  </span>
+                  <span className="hidden text-[10px] font-bold leading-tight text-slate-400 xl:block">
+                    {resumoCardapio.precificadas} precificad{resumoCardapio.precificadas === 1 ? "a" : "as"}
+                    {resumoCardapio.semPreco > 0 && <><br />{resumoCardapio.semPreco} sem preço</>}
+                  </span>
+                </button>
+              );
+            })()}
+            <label className="flex min-w-0 flex-1 items-center gap-2 rounded-2xl border-2 border-slate-300 bg-white px-3.5 shadow-sm transition-all focus-within:border-emerald-600 focus-within:ring-4 focus-within:ring-emerald-500/20 sm:w-[430px] sm:flex-none">
+              <Search size={19} className="shrink-0 text-slate-700" />
+              <input value={busca} onChange={e => setBusca(e.target.value)} placeholder={modoFicha === "preparos" ? "Buscar preparo por nome..." : deptUrl === "bar" ? "Buscar drink ou produto..." : "Buscar prato por nome..."} className="h-11 min-w-0 flex-1 bg-transparent text-sm font-bold text-slate-900 outline-none placeholder:font-medium placeholder:text-slate-400" />
+              {busca && <button onClick={() => setBusca("")} className="text-slate-400 hover:text-slate-700" title="Limpar busca"><X size={16} /></button>}
+            </label>
+          </div>
+          <button onClick={abrirModalIAFicha} className="flex h-11 items-center justify-center gap-2 rounded-xl border border-emerald-600/30 bg-emerald-50 px-4 text-sm font-black text-emerald-700 shadow-sm hover:bg-emerald-100"><Sparkles size={18} /> Criar com IA</button>
+          <button onClick={abrirNova} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-black text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700"><Plus size={18} /> {modoFicha === "preparos" ? "Novo preparo" : deptUrl === "bar" ? "Novo drink" : "Novo prato"}</button>
+        </div>
+      </div>
 
       <main className="mx-auto max-w-[1480px] px-4 py-4 sm:px-5">
          {/* Kanban de indicadores: CMV médio, margem, custo, ticket */}
@@ -3623,19 +3662,28 @@ function FichasRunner() {
                      )}
 
                      {!form.eh_base && (() => {
-                        const custoTotalForm = custoTotalFormulario(ingFicha);
                         const rendForm = Number(String(form.rendimento_porcoes).replace(",", ".")) || 0;
                         const unRF = String(form.rendimento_unidade || "porcao").toLowerCase();
                         const pesoPorcaoF = Number(form.peso_porcao_g) || 0;
                         const pesoTotalF = pesoTotalDaFicha(rendForm, unRF, pesoPorcaoF);
                         const nPorc = (unRF === "porcao" || unRF === "un") ? rendForm : (pesoPorcaoF > 0 && pesoTotalF > 0 ? pesoTotalF / pesoPorcaoF : 0);
-                        const custoPorc = nPorc > 0 ? custoTotalForm / nPorc : custoTotalForm;
+                        // Mercadoria e taxas são coisas diferentes: o CMV mede o que
+                        // custa PRODUZIR o que foi vendido (ingrediente + embalagem).
+                        // Maquininha e imposto incidem sobre a venda e comem o lucro,
+                        // mas não são custo de mercadoria — entram só no lucro.
+                        const porcoesEfetivas = nPorc > 0 ? nPorc : 1;
+                        const custoIngredientesPorc = calcularCustoTotal(ingFicha) / porcoesEfetivas;
+                        const custoEmbalagemPorc = custoEmbalagensPorPorcao();
+                        const custoPorc = custoIngredientesPorc + custoEmbalagemPorc;
                         const meta = Number(form.cmv_meta) || 30;
                         const sugerido = meta > 0 ? custoPorc / (meta / 100) : 0;
                         const precoNum = Number(String(form.preco_venda ?? "").replace(",", ".")) || 0;
                         const cmvTeo = precoNum > 0 ? (custoPorc / precoNum) * 100 : null;
                         const margem = cmvTeo !== null ? 100 - cmvTeo : null;
-                        const lucro = precoNum > 0 ? precoNum - custoPorc : null;
+                        const custoCartao = precoNum * (Number(taxasVenda.cartao) || 0) / 100;
+                        const custoImposto = precoNum * (Number(taxasVenda.imposto) || 0) / 100;
+                        const lucro = precoNum > 0 ? precoNum - custoPorc - custoCartao - custoImposto : null;
+                        const lucroPct = lucro !== null && precoNum > 0 ? (lucro / precoNum) * 100 : null;
                         return (
                            <div id="ficha-custos" className="bg-white border-2 border-emerald-200 rounded-2xl p-4 shadow-sm scroll-mt-24">
                               <p className="text-xs font-black uppercase tracking-widest text-emerald-700 mb-3">CMV e Precificação</p>
@@ -3643,9 +3691,59 @@ function FichasRunner() {
                                   o custo de UMA unidade vendida: total e custo por kg
                                   ficavam ao lado repetindo a mesma conta por outro
                                   caminho, e ninguem precificava por eles. */}
-                              <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-center">
-                                 <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">{ehBarFicha ? "Custo do produto" : "Custo por porção"}</p>
-                                 <p className="text-lg font-black text-slate-800">{fmtBRL(custoPorc)}</p>
+                              {/* Custo aberto linha a linha. Um número só ("custo por
+                                  porção") esconde de onde ele vem: quem vê 51% de CMV
+                                  precisa saber se o peso está no ingrediente ou na
+                                  embalagem para saber o que negociar. */}
+                              <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                                 <p className="mb-2 text-[9px] font-black uppercase tracking-wider text-slate-400">Custo {ehBarFicha ? "do produto" : "por porção"}</p>
+                                 <div className="space-y-1.5 text-sm">
+                                    <div className="flex items-center justify-between gap-3">
+                                       <span className="font-bold text-slate-500">Ingredientes</span>
+                                       <span className="font-black text-slate-800">{fmtBRL(custoIngredientesPorc)}</span>
+                                    </div>
+                                    {custoEmbalagemPorc > 0 && (
+                                       <div className="flex items-center justify-between gap-3">
+                                          <span className="font-bold text-slate-500">Embalagem</span>
+                                          <span className="font-black text-slate-800">{fmtBRL(custoEmbalagemPorc)}</span>
+                                       </div>
+                                    )}
+                                    <div className="flex items-center justify-between gap-3 border-t border-slate-200 pt-1.5">
+                                       <span className="font-black text-slate-600">Custo da mercadoria</span>
+                                       <span className="text-base font-black text-slate-900">{fmtBRL(custoPorc)}</span>
+                                    </div>
+                                    {precoNum > 0 && (
+                                       <>
+                                          <div className="flex items-center justify-between gap-3">
+                                             <span className="font-bold text-slate-500">Maquininha ({Number(taxasVenda.cartao).toLocaleString("pt-BR")}%)</span>
+                                             <span className="font-black text-slate-800">{fmtBRL(custoCartao)}</span>
+                                          </div>
+                                          <div className="flex items-center justify-between gap-3">
+                                             <span className="font-bold text-slate-500">Imposto · Simples ({Number(taxasVenda.imposto).toLocaleString("pt-BR")}%)</span>
+                                             <span className="font-black text-slate-800">{fmtBRL(custoImposto)}</span>
+                                          </div>
+                                          <div className="flex items-center justify-between gap-3 border-t border-slate-200 pt-1.5">
+                                             <span className="font-black text-slate-600">Sai da venda</span>
+                                             <span className="text-base font-black text-slate-900">{fmtBRL(custoPorc + custoCartao + custoImposto)}</span>
+                                          </div>
+                                       </>
+                                    )}
+                                 </div>
+                                 <div className="mt-3 grid grid-cols-2 gap-2 border-t border-dashed border-slate-300 pt-2.5">
+                                    <label className="block">
+                                       <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Maquininha (%)</span>
+                                       <input type="number" min="0" max="100" step="0.01" value={taxasVenda.cartao}
+                                          onChange={e => alterarTaxaVenda("cartao", e.target.value)}
+                                          className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-sm font-bold outline-none focus:border-emerald-500" />
+                                    </label>
+                                    <label className="block">
+                                       <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Imposto (%)</span>
+                                       <input type="number" min="0" max="100" step="0.01" value={taxasVenda.imposto}
+                                          onChange={e => alterarTaxaVenda("imposto", e.target.value)}
+                                          className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-sm font-bold outline-none focus:border-emerald-500" />
+                                    </label>
+                                 </div>
+                                 <p className="mt-1.5 text-[10px] font-medium text-slate-400">Valem para todas as fichas desta loja. O Simples varia por anexo e faixa de faturamento — confira a sua.</p>
                               </div>
                               <div className="grid grid-cols-2 gap-3">
                                  <div>
@@ -3657,6 +3755,15 @@ function FichasRunner() {
                                     <input type="text" inputMode="decimal" placeholder={sugerido > 0 ? sugerido.toFixed(2) : "0,00"} value={form.preco_venda} onChange={e => setForm({ ...form, preco_venda: e.target.value.replace(/[^0-9.,]/g, "") })} className="w-full p-3 mt-1 bg-emerald-50 border-2 border-emerald-300 rounded-xl font-black text-emerald-700 outline-none focus:border-emerald-500" />
                                  </div>
                               </div>
+                              {lucro !== null && (
+                                 <div className={`mt-2 flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5 ${lucro >= 0 ? "border-emerald-200 bg-emerald-50" : "border-red-200 bg-red-50"}`}>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Lucro por {ehBarFicha ? "unidade" : "porção"}</span>
+                                    <span className={`text-xl font-black ${lucro >= 0 ? "text-emerald-700" : "text-red-600"}`}>
+                                       {fmtBRL(lucro)}
+                                       {lucroPct !== null && <span className="ml-2 text-xs font-bold text-slate-400">{lucroPct.toFixed(1)}%</span>}
+                                    </span>
+                                 </div>
+                              )}
                               {sugerido > 0 && (
                                  <button type="button" onClick={() => setForm({ ...form, preco_venda: sugerido.toFixed(2) })} className="mt-2 w-full text-left bg-slate-50 border border-slate-200 rounded-xl p-2.5 hover:border-emerald-400 transition-colors">
                                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Preço sugerido/porção (CMV {meta}%)</span>
@@ -3665,7 +3772,7 @@ function FichasRunner() {
                                  </button>
                               )}
                               {cmvTeo !== null ? (
-                                 <div className="grid grid-cols-3 gap-2 mt-2">
+                                 <div className="grid grid-cols-2 gap-2 mt-2">
                                     <div className={`rounded-xl p-2.5 text-center border ${cmvTeo > meta ? "bg-red-50 border-red-200" : "bg-emerald-50 border-emerald-200"}`}>
                                        <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">CMV teórico</p>
                                        <p className={`text-lg font-black ${cmvTeo > meta ? "text-red-600" : "text-emerald-700"}`}>{cmvTeo.toFixed(1)}%</p>
@@ -3673,10 +3780,6 @@ function FichasRunner() {
                                     <div className="rounded-xl p-2.5 text-center border bg-emerald-50 border-emerald-200">
                                        <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">Margem</p>
                                        <p className="text-lg font-black text-emerald-700">{margem.toFixed(1)}%</p>
-                                    </div>
-                                    <div className="rounded-xl p-2.5 text-center border bg-emerald-50 border-emerald-200">
-                                       <p className="text-[9px] font-black uppercase tracking-wider text-slate-500">Lucro</p>
-                                       <p className="text-lg font-black text-emerald-700">{lucro !== null ? fmtBRL(lucro) : "—"}</p>
                                     </div>
                                  </div>
                               ) : (

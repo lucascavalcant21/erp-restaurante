@@ -63,7 +63,7 @@ export default function CadastroExtrasPage() {
   const totalPago = pagosNoPeriodo.reduce((soma, r) => soma + Number(r.valor_total || 0), 0);
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-16 text-slate-900">
+    <div className="min-h-screen bg-[var(--surface)] pb-16 text-slate-900">
       <header className="border-b border-slate-200 bg-white px-4 py-5 sm:px-7">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">

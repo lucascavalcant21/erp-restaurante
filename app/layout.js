@@ -2,6 +2,7 @@ import "./globals.css";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { ERPProvider } from "./context/ERPContext";
 import RegisterSW from "./components/RegisterSW";
+import AvisoNovaVersao from "./components/AvisoNovaVersao";
 import PullToRefresh from "./components/PullToRefresh";
 import InstallPrompt from "./components/InstallPrompt";
 
@@ -52,6 +53,7 @@ export default function RootLayout({ children }) {
     <html lang="pt-BR" className={fonteApp.variable}>
       <body className={fonteApp.className}>
         <RegisterSW />
+        <AvisoNovaVersao />
         <PullToRefresh />
         <ERPProvider>
           {children}

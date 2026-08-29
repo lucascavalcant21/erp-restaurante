@@ -236,8 +236,24 @@ function multiplicadorPerda(percentual) {
 // Custo unitário efetivo do ingrediente. Empanados ganham peso (ganho_pct) e
 // somam o custo do empanamento (custo_empanado_kg, por kg final). Só faz sentido
 // em peso (g/kg); em outras unidades usa o custo base.
+// Custo de UMA unidade-base do insumo.
+//
+// custo_unitario é o caminho normal, mas registros antigos e importados vieram
+// com 0 nessa coluna enquanto a embalagem tem preço. O catálogo já se defende
+// disso — precoNormalizadoDoInsumo cai para custo_compra ÷ tamanho quando o
+// valor salvo é zero — e a ficha não se defendia: o mesmo insumo aparecia a
+// R$ 4,00/L no catálogo e a R$ 0,00/L na ficha, o custo entrava zerado e o CMV
+// saía errado sem nenhum aviso na tela.
+function custoUnitarioDoInsumo(ins) {
+  const salvo = Number(ins?.custo_unitario);
+  if (Number.isFinite(salvo) && salvo > 0) return salvo;
+  const tamanho = Number(ins?.tamanho_embalagem) || 0;
+  const compra = Number(ins?.custo_compra) || 0;
+  return tamanho > 0 && compra > 0 ? compra / tamanho : 0;
+}
+
 function custoUnitEfetivo(ins) {
-  const base = Number(ins?.custo_unitario) || 0;
+  const base = custoUnitarioDoInsumo(ins);
   if (!ins?.empanado) return base;
   const ganho = 1 + (Number(ins.ganho_pct) || 0) / 100;
   const u = String(ins.unidade_medida || "").toLowerCase();

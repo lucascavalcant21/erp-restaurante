@@ -2271,19 +2271,19 @@ function MontagemPageInner() {
               {vazios > 0 && (
                 <button onClick={preencherVaziosIA} disabled={preenchendoIA}
                   title="A IA monta a receita clássica (copo, dosagem e preparo) de todas as bebidas sem conteúdo — para você editar depois"
-                  className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15">
+                  className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-700 shadow-sm transition-all hover:bg-slate-50 active:scale-[.98] disabled:opacity-50">
                   {preenchendoIA ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
                   {preenchendoIA ? "Montando..." : `Receitas com IA (${vazios})`}
                 </button>
               )}
               <button onClick={() => drinksGuia.length ? setModalGuia(true) : alert(vazios ? `Nenhum drink com receita ainda. Use o botão "Receitas com IA" para a IA montar as ${vazios} bebidas de uma vez, ou cadastre manualmente.` : "Nenhum drink com receita para o guia.")}
-                title="Guia de Drinks: pôster em cartões ou livro com capa e índice — só os drinks com receita" className="flex items-center gap-2 rounded-xl border border-violet-300/30 bg-violet-500/30 px-4 py-2 text-sm font-bold text-white hover:bg-violet-500/40">
+                title="Guia de Drinks: pôster em cartões ou livro com capa e índice — só os drinks com receita" className="flex h-10 items-center gap-2 rounded-xl bg-violet-600 px-4 text-xs font-black text-white shadow-md shadow-violet-600/20 transition-all hover:bg-violet-700 active:scale-[.98]">
                 <Wine size={14} /> Guia de Drinks{drinksGuia.length ? ` (${drinksGuia.length})` : ""}
               </button>
             </>
           );
         })()}
-        <button onClick={() => setModalImpressao(true)} className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white hover:bg-white/15"><Printer size={14} /> Imprimir{selecionadas.length ? ` (${selecionadas.length})` : ""}</button>
+        <button onClick={() => setModalImpressao(true)} className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-700 shadow-sm transition-all hover:bg-slate-50 active:scale-[.98]"><Printer size={14} /> Imprimir{selecionadas.length ? ` (${selecionadas.length})` : ""}</button>
       </RecipeWorkspace>
       <PageBody className="max-w-7xl mx-auto">
         <Toast show={!!salvou}>{salvou}</Toast>

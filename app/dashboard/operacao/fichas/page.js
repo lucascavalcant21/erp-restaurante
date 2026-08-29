@@ -1880,30 +1880,49 @@ function FichasRunner() {
                </div>
             </div>
 
-            <h2>Quantidade</h2>
+            <h2>${f.eh_base ? "Rendimento do preparo" : "Rendimento"}</h2>
             <table class="rende">
-               <thead><tr><th>Peso total</th></tr></thead>
-               <tbody><tr><td>${pesoGramas > 0 ? Math.round(pesoGramas).toLocaleString('pt-BR') + ' g' : '—'}</td></tr></tbody>
+               <thead><tr><th>${f.eh_base ? "Produz" : "Rende"}</th><th>Peso total</th>${f.eh_base ? "" : "<th>Porções</th>"}</tr></thead>
+               <tbody><tr>
+                 <td>${esc(textoRendimento(f.rendimento_porcoes, f.rendimento_unidade, String(f.departamento || '').toLowerCase() === 'bar'))}</td>
+                 <td>${pesoGramas > 0 ? fmtG(pesoGramas) : '—'}</td>
+                 ${f.eh_base ? "" : `<td>${porcoesTxt}</td>`}
+               </tr></tbody>
             </table>
 
-            ${incluir("ingredientes") ? `<h2>Itens do preparo</h2>
+            ${incluir("ingredientes") ? `<h2>${f.eh_base ? "Itens do preparo" : "Ingredientes do prato"}</h2>
             <table>
                <thead><tr><th>Tipo</th><th>Nome</th><th>Medida</th><th class="r">Quantidade total</th></tr></thead>
                <tbody>${rows || '<tr><td colspan="4">Sem itens cadastrados.</td></tr>'}</tbody>
             </table>` : ""}
 
-            ${permitirCustos ? `<h2>Custos e precificação</h2>
+            ${permitirCustos ? (f.eh_base
+              /* Preparo não se vende: preço, CMV e margem são campos vazios que
+                 na tela viravam "CMV 0,0%" e "Margem 100,0%" — informação falsa
+                 num papel que vai para a bancada. O que interessa num preparo é
+                 quanto custa produzir e quanto custa cada kg dele. */
+              ? `<h2>Custos do preparo</h2>
             <table><thead><tr>
-              <th>Custo total</th><th>Custo/porção</th>
+              <th>Custo total da produção</th>
+              <th>Custo por ${esc(baseCustoDaFicha(unR, String(f.departamento || '').toLowerCase() === 'bar' ? 'L' : 'kg'))}</th>
+            </tr></thead><tbody><tr>
+              <td>${fmtBRL(custoTotal)}</td>
+              <td>${peso?.custoKg > 0 ? fmtBRL(peso.custoKg) : "—"}</td>
+            </tr></tbody></table>`
+              : `<h2>Custos e precificação</h2>
+            <table><thead><tr>
+              <th>Custo/porção</th>
               ${incluir("preco", false) ? "<th>Preço de venda</th>" : ""}
               ${incluir("cmv", false) ? "<th>CMV</th>" : ""}
-              ${incluir("margem", false) ? "<th>Margem</th>" : ""}
+              ${incluir("margem", false) ? "<th>Lucro/porção</th>" : ""}
             </tr></thead><tbody><tr>
-              <td>${fmtBRL(custoTotal)}</td><td>${fmtBRL(custoPorcao)}</td>
+              <td>${fmtBRL(custoPorcao)}</td>
               ${incluir("preco", false) ? `<td>${precoVenda > 0 ? fmtBRL(precoVenda) : "—"}</td>` : ""}
               ${incluir("cmv", false) ? `<td>${cmv === null ? "—" : cmv.toFixed(1) + "%"}</td>` : ""}
-              ${incluir("margem", false) ? `<td>${margem === null ? "—" : margem.toFixed(1) + "%"}</td>` : ""}
-            </tr></tbody></table>` : ""}
+              ${incluir("margem", false) ? `<td>${precoVenda > 0
+                  ? fmtBRL(precoVenda - custoPorcao - precoVenda * ((Number(taxasVenda.cartao) || 0) + (Number(taxasVenda.imposto) || 0)) / 100)
+                  : "—"}</td>` : ""}
+            </tr></tbody></table>`) : ""}
 
             ${incluir("preparo") ? `<h2>Modo de preparo</h2><div class="passos">${passosHTML}</div>` : ""}
             ${incluir("montagem") ? `<h2>Guia de montagem</h2><div class="passos"><div class="passo">${esc(montagem?.descritivo || montagem?.observacoes || "Não informado.")}</div></div>` : ""}`;
@@ -2016,6 +2035,126 @@ function FichasRunner() {
       <table><thead><tr><th>Receita</th><th>Categoria</th><th class="r">Custo total</th><th class="r">Custo/porção</th><th class="r">Preço de venda</th><th class="r">CMV</th></tr></thead>
       <tbody>${rows}</tbody>
       <tfoot><tr><td colspan="5">CMV médio da carta (${comCmv.length} precificada(s))</td><td class="r">${cmvMedio !== null ? cmvMedio.toFixed(1) + '%' : '—'}</td></tr></tfoot></table>
+    </body></html>`);
+    win.document.close();
+    setTimeout(() => win.print(), 400);
+  };
+
+  // ── RELATÓRIO DE RENTABILIDADE: só os pratos, ordenados pelo que sobra ─────
+  // A planilha de custos responde "quanto custa"; esta responde "o que vale a
+  // pena vender". São perguntas diferentes: um prato de CMV baixo pode deixar
+  // menos dinheiro no caixa que um de CMV alto e ticket maior, e é o lucro por
+  // prato vendido que paga a conta no fim do mês.
+  const imprimirRentabilidade = () => {
+    const win = window.open("", "_blank");
+    if (!win) return alert("Habilite pop-ups para imprimir.");
+    const esc = (v) => String(v == null ? "" : v).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+    const brl = (v) => "R$ " + (Number(v) || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const pctCartao = Number(taxasVenda.cartao) || 0;
+    const pctImposto = Number(taxasVenda.imposto) || 0;
+
+    // Mesmo recorte do CMV médio do cabeçalho, para os dois números baterem.
+    const linhas = fichas
+      .filter(f => !f.eh_base && f.tipo_base !== "produto_pronto")
+      .map(f => {
+        const peso = infoPesoFicha(f, fichas);
+        const custoTotal = custoTotalDaFicha(f, fichas);
+        const unR = String(f.rendimento_unidade || "porcao").toLowerCase();
+        const rend = Number(f.rendimento_porcoes) || 0;
+        const porcoes = (unR === "porcao" || unR === "un") ? rend : (peso?.porcoes || 0);
+        const custo = porcoes > 0 ? custoTotal / porcoes : custoTotal;
+        const prod = produtos.find(x => x.ficha_id === f.id || String(x.nome_produto || "").toLowerCase() === String(f.nome_receita || "").toLowerCase());
+        const venda = Number(prod?.preco_venda) || 0;
+        const cartao = venda * pctCartao / 100;
+        const imposto = venda * pctImposto / 100;
+        return {
+          nome: f.nome_receita,
+          categoria: f.categoria || "Sem categoria",
+          custo,
+          venda,
+          cmv: venda > 0 ? (custo / venda) * 100 : null,
+          lucro: venda > 0 ? venda - custo - cartao - imposto : null,
+          lucroPct: venda > 0 ? ((venda - custo - cartao - imposto) / venda) * 100 : null,
+        };
+      });
+
+    const precificados = linhas.filter(l => l.venda > 0);
+    if (!precificados.length) return alert("Nenhum prato com preço de venda cadastrado. Defina os preços nas fichas para gerar o relatório.");
+    const semPreco = linhas.filter(l => l.venda <= 0);
+
+    const media = (arr, campo) => arr.reduce((soma, item) => soma + item[campo], 0) / arr.length;
+    const cmvMedio = media(precificados, "cmv");
+    const ticketMedio = media(precificados, "venda");
+    const custoMedio = media(precificados, "custo");
+    const lucroMedio = media(precificados, "lucro");
+    const lucroMedioPct = media(precificados, "lucroPct");
+
+    // Do que mais sobra para o que menos sobra: é a ordem da pergunta.
+    const ordenados = [...precificados].sort((a, b) => b.lucro - a.lucro);
+    const topCinco = ordenados.slice(0, 5);
+
+    const cardResumo = (rotulo, valor, nota) =>
+      `<div class="kpi"><span class="kpi-rot">${esc(rotulo)}</span><strong class="kpi-val">${esc(valor)}</strong><span class="kpi-nota">${esc(nota)}</span></div>`;
+
+    const linhaTabela = (l, i) => `<tr>
+      <td class="pos">${i + 1}</td>
+      <td>${esc(l.nome)}<small>${esc(l.categoria)}</small></td>
+      <td class="r">${brl(l.custo)}</td>
+      <td class="r">${brl(l.venda)}</td>
+      <td class="r ${l.cmv > 35 ? "ruim" : "bom"}">${l.cmv.toFixed(1)}%</td>
+      <td class="r forte ${l.lucro < 0 ? "ruim" : "bom"}">${brl(l.lucro)}</td>
+      <td class="r ${l.lucro < 0 ? "ruim" : ""}">${l.lucroPct.toFixed(1)}%</td>
+    </tr>`;
+
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Rentabilidade do Cardápio</title><style>
+      *{margin:0;padding:0;box-sizing:border-box}
+      body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;padding:12mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      h1{font-size:20px;text-transform:uppercase;letter-spacing:2px;border-bottom:3px solid #0f172a;padding-bottom:6px;margin-bottom:4px}
+      h2{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#475569;margin:16px 0 6px}
+      .sub{font-size:11px;color:#64748b;font-weight:bold;margin-bottom:12px}
+      .kpis{display:flex;gap:8px;margin-bottom:6px}
+      .kpi{flex:1;border:1px solid #cbd5e1;border-radius:8px;padding:8px 10px}
+      .kpi-rot{display:block;font-size:8px;text-transform:uppercase;letter-spacing:1px;color:#64748b;font-weight:bold}
+      .kpi-val{display:block;font-size:18px;margin-top:2px}
+      .kpi-nota{display:block;font-size:9px;color:#94a3b8;font-weight:bold}
+      table{width:100%;border-collapse:collapse;font-size:12px}
+      th,td{padding:6px 8px;border-bottom:1px solid #e2e8f0;text-align:left;vertical-align:top}
+      th{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#475569;border-bottom:2px solid #cbd5e1}
+      td small{display:block;font-size:9px;color:#94a3b8;font-weight:bold}
+      td.r,th.r{text-align:right}
+      td.pos{color:#94a3b8;font-weight:900;width:22px}
+      tbody tr:nth-child(even){background:#f5f7fa}
+      td.bom{color:#047857;font-weight:bold}td.ruim{color:#dc2626;font-weight:bold}td.forte{font-weight:900}
+      .aviso{margin-top:10px;font-size:10px;color:#64748b;font-weight:bold}
+      .nota{margin-top:14px;border-top:1px solid #e2e8f0;padding-top:8px;font-size:10px;color:#64748b;line-height:1.5}
+      @media print{@page{margin:10mm}}
+    </style></head><body>
+      <div style="display:flex;justify-content:center;margin-bottom:10px">${logoSeldeestrelaSVG(42)}</div>
+      <h1>Rentabilidade do Cardápio</h1>
+      <div class="sub">${esc(unidadeInfo?.nome || "")} · ${deptUrl === "bar" ? "Bar" : "Cozinha"} · ${new Date().toLocaleDateString("pt-BR")} · ${precificados.length} prato(s) com preço</div>
+
+      <div class="kpis">
+        ${cardResumo("CMV médio", cmvMedio.toFixed(1) + "%", "mercadoria ÷ venda")}
+        ${cardResumo("Ticket médio", brl(ticketMedio), "preço de venda")}
+        ${cardResumo("Custo médio", brl(custoMedio), "por porção")}
+        ${cardResumo("Lucro médio", brl(lucroMedio), lucroMedioPct.toFixed(1) + "% da venda")}
+      </div>
+      ${semPreco.length ? `<p class="aviso">${semPreco.length} prato(s) fora da conta por não terem preço de venda: ${esc(semPreco.map(l => l.nome).join(", "))}.</p>` : ""}
+
+      <h2>Os 5 que mais deixam dinheiro</h2>
+      <table><thead><tr><th></th><th>Prato</th><th class="r">Custo</th><th class="r">Venda</th><th class="r">CMV</th><th class="r">Lucro</th><th class="r">%</th></tr></thead>
+      <tbody>${topCinco.map(linhaTabela).join("")}</tbody></table>
+
+      <h2>Cardápio completo, do que mais sobra ao que menos sobra</h2>
+      <table><thead><tr><th></th><th>Prato</th><th class="r">Custo</th><th class="r">Venda</th><th class="r">CMV</th><th class="r">Lucro</th><th class="r">%</th></tr></thead>
+      <tbody>${ordenados.map(linhaTabela).join("")}</tbody></table>
+
+      <p class="nota">
+        <b>Custo</b> é a mercadoria de uma porção: ingredientes mais embalagem. <b>CMV</b> é essa mercadoria dividida pela venda.
+        <b>Lucro</b> é o que sobra da venda depois da mercadoria, da maquininha (${pctCartao.toLocaleString("pt-BR")}%) e do imposto (${pctImposto.toLocaleString("pt-BR")}%) —
+        antes de aluguel, folha, energia e o resto do custo fixo, que não pertencem a um prato específico.
+        Preparos e produtos prontos ficam de fora: não se vendem sozinhos.
+      </p>
     </body></html>`);
     win.document.close();
     setTimeout(() => win.print(), 400);
@@ -2211,6 +2350,7 @@ function FichasRunner() {
             <button onClick={() => { if (!fichas.length) return alert("Nenhuma ficha para o livro."); abrirPreviaImpressao("livro", fichas); }} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100"><Printer size={14} /> Livro de receitas</button>
             <button onClick={() => { if (!fichas.length) return alert("Nenhuma ficha para o livro."); abrirPreviaImpressao("pdf", fichas); }} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100"><Download size={14} /> Baixar PDF</button>
             <button onClick={imprimirPlanilhaCustos} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100"><Calculator size={14} /> Custos e CMV</button>
+            <button onClick={imprimirRentabilidade} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-bold text-emerald-700 hover:bg-emerald-100"><BarChart3 size={14} /> Rentabilidade</button>
             <button onClick={registrarCustoTodasFichas} disabled={semeandoCustos} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-50">{semeandoCustos ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}{semeandoCustos ? "Registrando..." : "Registrar custos"}</button>
             <input ref={inputCardapioRef} type="file" accept="image/*" multiple onChange={importarCardapioFoto} className="hidden" />
             <button onClick={() => inputCardapioRef.current?.click()} disabled={importandoCardapio} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-50">{importandoCardapio ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />} Importar cardápio</button>

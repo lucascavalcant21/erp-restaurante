@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchContadoresModulo } from "../../../lib/contadores";
 import {
-  AlertTriangle, Armchair, Award, BarChart3, BriefcaseBusiness, Boxes, Calculator,
+  AlertTriangle, Armchair, Award, BarChart3, BookOpen, BriefcaseBusiness, Boxes, Calculator,
   CalendarCheck, ClipboardCheck, ClipboardList, FileBarChart, FileText, FlaskConical,
   GraduationCap, Landmark, LayoutDashboard, LayoutList, ListChecks, Network, Package,
   PackageSearch, ReceiptText, ScrollText, Settings, ShieldCheck, ShoppingCart,
@@ -38,6 +38,7 @@ const MODULOS = {
         { label: "Controle de Validade", desc: "Vencimentos", href: "/dashboard/operacao/validade", icon: CalendarClock },
         { label: "Checklist da Cozinha", desc: "Rotinas e conferências", href: "/dashboard/operacao/rotina?dept=cozinha", icon: ClipboardCheck },
         { label: "Controles de Limpeza", desc: "Higiene e conformidade", href: "/dashboard/operacao/controles", icon: ShieldCheck },
+        { label: "Guia de Uso", desc: "Como usar e higienizar produtos e equipamentos", href: "/dashboard/operacao/guias", icon: BookOpen },
       ]},
       { title: "Ferramentas", subtitle: "Utilitários", icon: Settings, accent: "#0f766e", items: [
         { label: "CMV da Cozinha", desc: "Custo de mercadoria", href: "/dashboard/financeiro/cmv", icon: Calculator },

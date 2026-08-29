@@ -1442,29 +1442,34 @@ function FichasRunner() {
     if (!form.eh_base && fichaIdSalva) {
       try {
         const nome = form.nome_receita.trim();
-        const { data: prodsAtu } = await fetchProdutos(unidadeAtiva, form.departamento);
-        const prodExistente = (prodsAtu || []).find(p =>
-          p.ficha_id === fichaIdSalva || (p.nome_produto || "").toLowerCase() === nome.toLowerCase()
-        );
-        if (prodExistente) {
-          await salvarProduto({ id: prodExistente.id, preco_venda: precoVendaNum, embalagens: fichaEmbalagens });
-        }
-      } catch { /* sincronização de preço não bloqueia o salvar */ }
-    }
-
-    // PRATO/DRINK novo: cai automaticamente no Cardápio e no Guia de Montagem.
-    // Pré-preparo não dispara nada (é só uma base).
-    if (!form.id && !form.eh_base && fichaIdSalva) {
-      try {
-        const nome = form.nome_receita.trim();
         const ehBarDept = form.departamento === "bar";
-
-        // 1) Cardápio: cria o produto já com o preço definido na ficha
-        const { data: prods } = await fetchProdutos(unidadeAtiva, form.departamento);
-        const jaTemProduto = (prods || []).some(p =>
-          p.ficha_id === fichaIdSalva || (p.nome_produto || "").toLowerCase() === nome.toLowerCase()
-        );
-        if (!jaTemProduto) {
+        // A leitura vem sem filtro de departamento — igual ao carregar() — para
+        // enxergar também o produto antigo que ficou sem setor. A consulta
+        // filtrada não o encontrava, e o preço digitado na ficha era descartado
+        // em silêncio: a ficha salvava, o CMV médio não se mexia.
+        //
+        // O casamento, esse, continua respeitando o setor: "Açúcar" da cozinha e
+        // "Açúcar" do bar são dois produtos, e um nunca pode receber o preço do
+        // outro. Só o vínculo por ficha_id dispensa a checagem, porque aponta
+        // para uma ficha só. Produto sem setor é órfão de migração e é adotado
+        // pelo setor da ficha.
+        const { data: prodsAtu } = await fetchProdutos(unidadeAtiva);
+        const mesmoSetor = (p) => !p.departamento || String(p.departamento).toLowerCase() === String(form.departamento || "").toLowerCase();
+        const prodExistente = (prodsAtu || []).find(p => p.ficha_id === fichaIdSalva)
+          || (prodsAtu || []).find(p => (p.nome_produto || "").toLowerCase() === nome.toLowerCase() && mesmoSetor(p));
+        if (prodExistente) {
+          await salvarProduto({
+            id: prodExistente.id,
+            preco_venda: precoVendaNum,
+            embalagens: fichaEmbalagens,
+            // Cura o vínculo: casado pelo nome hoje, casado pelo id amanhã.
+            ...(prodExistente.ficha_id ? {} : { ficha_id: fichaIdSalva }),
+            ...(prodExistente.departamento ? {} : { departamento: form.departamento }),
+          });
+        } else {
+          // Sem produto no cardápio o preço não tem onde morar. Antes só se
+          // criava um ao cadastrar a ficha; editar uma ficha antiga e digitar o
+          // preço não gravava nada, porque não havia o que atualizar.
           await salvarProduto({
             unidade_id: unidadeAtiva,
             nome_produto: nome,
@@ -1477,8 +1482,17 @@ function FichasRunner() {
             embalagens: fichaEmbalagens,
           });
         }
+      } catch { /* sincronização de preço não bloqueia o salvar */ }
+    }
 
-        // 2) Guia de Montagem: entra como ficha pendente de montagem
+    // PRATO/DRINK novo: entra também no Guia de Montagem. O produto do cardápio
+    // já foi criado ou atualizado acima, para ficha nova e ficha antiga igual.
+    if (!form.id && !form.eh_base && fichaIdSalva) {
+      try {
+        const nome = form.nome_receita.trim();
+        const ehBarDept = form.departamento === "bar";
+
+        // Guia de Montagem: entra como ficha pendente de montagem
         if (!form.produto_pronto) {
           const { data: monts } = await fetchMontagens(unidadeAtiva, form.departamento);
           const jaTemMontagem = (monts || []).some(m => chaveNomeMontagem(m.nome) === chaveNomeMontagem(nome));

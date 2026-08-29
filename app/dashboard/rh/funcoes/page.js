@@ -1,0 +1,243 @@
+"use client";
+
+// GUIA DE FUNÇÕES — a rotina de cada função, hora a hora.
+//
+// A escala responde "quem trabalha hoje"; esta tela responde "o que a pessoa
+// faz às 15h40". A segunda pergunta vivia na cabeça de quem está na casa há
+// tempo, e cobrava caro em todo treino e toda falta.
+//
+// É por FUNÇÃO, sem nomes: quem cobre o turno do outro lê a mesma folha.
+
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  ArrowLeft, Clock, Coffee, Loader2, Plus, Printer, RotateCcw, Save, Trash2,
+} from "lucide-react";
+import { useERP } from "../../../context/ERPContext";
+import {
+  GUIA_FUNCOES_PADRAO, chaveGuiaFuncoes, ordenarBlocos, periodoDoBloco,
+} from "../../../lib/guia-funcoes.mjs";
+import { logoSeldeestrelaSVG } from "../../../lib/marca";
+
+const esc = (v) => String(v == null ? "" : v).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+
+export default function GuiaDeFuncoes() {
+  const router = useRouter();
+  const { unidadeAtiva, unidadeInfo } = useERP();
+  const [funcoes, setFuncoes] = useState(GUIA_FUNCOES_PADRAO);
+  const [carregando, setCarregando] = useState(true);
+  const [editando, setEditando] = useState(false);
+  const [salvo, setSalvo] = useState("");
+
+  // Guardado por unidade: cada loja abre num horário e tem a sua rotina.
+  useEffect(() => {
+    setCarregando(true);
+    try {
+      const bruto = localStorage.getItem(chaveGuiaFuncoes(unidadeAtiva));
+      const salvoJson = bruto ? JSON.parse(bruto) : null;
+      setFuncoes(Array.isArray(salvoJson) && salvoJson.length ? salvoJson : GUIA_FUNCOES_PADRAO);
+    } catch {
+      setFuncoes(GUIA_FUNCOES_PADRAO);
+    }
+    setCarregando(false);
+  }, [unidadeAtiva]);
+
+  const guardar = (proximo) => {
+    setFuncoes(proximo);
+    try {
+      localStorage.setItem(chaveGuiaFuncoes(unidadeAtiva), JSON.stringify(proximo));
+      setSalvo("Guia salvo");
+    } catch {
+      setSalvo("Não consegui salvar neste navegador");
+    }
+    setTimeout(() => setSalvo(""), 2500);
+  };
+
+  const alterarBloco = (idFuncao, indice, campo, valor) => {
+    guardar(funcoes.map(f => f.id !== idFuncao ? f : {
+      ...f,
+      blocos: f.blocos.map((b, i) => i === indice ? { ...b, [campo]: valor } : b),
+    }));
+  };
+
+  const adicionarBloco = (idFuncao) => {
+    guardar(funcoes.map(f => f.id !== idFuncao ? f : {
+      ...f,
+      blocos: [...f.blocos, { hora: "", fim: "", atividade: "" }],
+    }));
+  };
+
+  const removerBloco = (idFuncao, indice) => {
+    guardar(funcoes.map(f => f.id !== idFuncao ? f : {
+      ...f,
+      blocos: f.blocos.filter((_, i) => i !== indice),
+    }));
+  };
+
+  const restaurarPadrao = () => {
+    if (!confirm("Voltar o guia ao modelo padrão? O que você editou nesta loja será perdido.")) return;
+    guardar(GUIA_FUNCOES_PADRAO);
+  };
+
+  const funcoesOrdenadas = useMemo(
+    () => funcoes.map(f => ({ ...f, blocos: ordenarBlocos(f.blocos) })),
+    [funcoes],
+  );
+
+  // Uma função por página: a folha vai para a parede do setor, não para uma
+  // pasta. Juntar duas funções na mesma folha obriga a ler a do vizinho.
+  const imprimir = () => {
+    const win = window.open("", "_blank");
+    if (!win) return alert("Habilite pop-ups para imprimir.");
+    const paginas = funcoesOrdenadas.map((f, indice) => `
+      <section class="pagina${indice < funcoesOrdenadas.length - 1 ? " quebra" : ""}">
+        <div class="marca">${logoSeldeestrelaSVG(38)}</div>
+        <div class="faixa" style="background:${esc(f.cor)}"></div>
+        <h1>${esc(f.funcao)}</h1>
+        <p class="sub">${esc(f.setor || "")} · ${esc(unidadeInfo?.nome || "")}</p>
+        <table>
+          <thead><tr><th class="h">Horário</th><th>Atividade</th></tr></thead>
+          <tbody>
+            ${f.blocos.map(b => `
+              <tr class="${b.intervalo ? "pausa" : ""}">
+                <td class="h">${esc(periodoDoBloco(b))}</td>
+                <td>${b.intervalo ? "<b>INTERVALO</b> — " : ""}${esc(b.atividade || "")}</td>
+              </tr>`).join("")}
+          </tbody>
+        </table>
+        <p class="rodape">Guia de funções · impresso em ${new Date().toLocaleDateString("pt-BR")}</p>
+      </section>`).join("");
+
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Guia de Funções</title><style>
+      *{margin:0;padding:0;box-sizing:border-box}
+      body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      .pagina{padding:14mm}
+      .quebra{page-break-after:always}
+      .marca{display:flex;justify-content:center;margin-bottom:10px}
+      .faixa{height:6px;border-radius:99px;margin-bottom:10px}
+      h1{font-size:30px;text-transform:uppercase;letter-spacing:1px;line-height:1.05}
+      .sub{font-size:12px;font-weight:bold;color:#64748b;margin:4px 0 14px}
+      table{width:100%;border-collapse:collapse;font-size:14px}
+      th,td{padding:9px 10px;border-bottom:1px solid #e2e8f0;text-align:left;vertical-align:top}
+      th{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#475569;border-bottom:2px solid #cbd5e1}
+      .h{white-space:nowrap;font-weight:bold;width:34%}
+      tr.pausa td{background:#f1f5f9;font-weight:bold}
+      .rodape{margin-top:14px;font-size:10px;color:#94a3b8;font-weight:bold}
+      @media print{@page{margin:0}}
+    </style></head><body>${paginas}</body></html>`);
+    win.document.close();
+    setTimeout(() => win.print(), 400);
+  };
+
+  return (
+    <div className="min-h-screen bg-[var(--surface)] pb-16">
+      <div className="sticky top-0 z-20 border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-3">
+          <button onClick={() => router.push("/dashboard/rh")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200"><ArrowLeft size={19} /></button>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-lg font-black text-slate-900 sm:text-xl">Guia de funções</h1>
+            <p className="text-xs font-bold text-slate-500">A rotina de cada função, hora a hora — sem nomes, por posição</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button onClick={() => setEditando(v => !v)}
+              className={`flex h-10 items-center gap-2 rounded-xl px-4 text-xs font-black transition-colors ${editando ? "bg-emerald-600 text-white hover:bg-emerald-700" : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}>
+              <Save size={15} /> {editando ? "Concluir edição" : "Editar horários"}
+            </button>
+            {editando && (
+              <button onClick={restaurarPadrao} className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-600 hover:bg-slate-50">
+                <RotateCcw size={15} /> Voltar ao padrão
+              </button>
+            )}
+            <button onClick={imprimir} className="flex h-10 items-center gap-2 rounded-xl bg-slate-900 px-4 text-xs font-black text-white hover:bg-slate-800">
+              <Printer size={15} /> Imprimir
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {salvo && (
+        <div className="mx-auto mt-3 max-w-5xl px-4 sm:px-6">
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-800">{salvo}</div>
+        </div>
+      )}
+
+      <main className="mx-auto max-w-5xl px-4 py-5 sm:px-6">
+        {carregando ? (
+          <div className="flex items-center gap-2 text-sm font-bold text-slate-500"><Loader2 size={16} className="animate-spin" /> Carregando o guia...</div>
+        ) : (
+          <div className="space-y-4">
+            {funcoesOrdenadas.map(funcao => (
+              <section key={funcao.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <header className="flex flex-wrap items-center gap-3 border-b border-slate-100 px-4 py-3 sm:px-5">
+                  <span className="h-9 w-1.5 shrink-0 rounded-full" style={{ background: funcao.cor }} />
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-base font-black uppercase tracking-tight text-slate-900 sm:text-lg">{funcao.funcao}</h2>
+                    <p className="text-[11px] font-bold text-slate-400">{funcao.setor}</p>
+                  </div>
+                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black text-slate-500">
+                    {funcao.blocos.length} etapa{funcao.blocos.length === 1 ? "" : "s"}
+                  </span>
+                </header>
+
+                <div className="divide-y divide-slate-100">
+                  {funcao.blocos.map((bloco, indice) => (
+                    <div key={indice} className={`flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:gap-4 sm:px-5 ${bloco.intervalo ? "bg-slate-50" : ""}`}>
+                      {editando ? (
+                        <>
+                          <div className="flex shrink-0 items-center gap-1.5">
+                            <input type="time" value={bloco.hora || ""} onChange={e => alterarBloco(funcao.id, indice, "hora", e.target.value)}
+                              className="h-10 w-[104px] rounded-lg border border-slate-200 bg-white px-2 text-sm font-bold outline-none focus:border-emerald-500" />
+                            <span className="text-xs font-bold text-slate-400">às</span>
+                            <input type="time" value={bloco.fim || ""} onChange={e => alterarBloco(funcao.id, indice, "fim", e.target.value)}
+                              className="h-10 w-[104px] rounded-lg border border-slate-200 bg-white px-2 text-sm font-bold outline-none focus:border-emerald-500" />
+                          </div>
+                          <input value={bloco.atividade || ""} onChange={e => alterarBloco(funcao.id, indice, "atividade", e.target.value)}
+                            placeholder="O que fazer neste horário"
+                            className="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium outline-none focus:border-emerald-500" />
+                          <button onClick={() => alterarBloco(funcao.id, indice, "intervalo", !bloco.intervalo)}
+                            title="Marcar como intervalo"
+                            className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg border ${bloco.intervalo ? "border-amber-300 bg-amber-100 text-amber-700" : "border-slate-200 bg-white text-slate-400"}`}>
+                            <Coffee size={16} />
+                          </button>
+                          <button onClick={() => removerBloco(funcao.id, indice)} title="Remover etapa"
+                            className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-red-600">
+                            <Trash2 size={16} />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <span className="flex w-[168px] shrink-0 items-center gap-2 text-sm font-black text-slate-700">
+                            {bloco.intervalo ? <Coffee size={15} className="text-amber-600" /> : <Clock size={15} className="text-slate-300" />}
+                            {periodoDoBloco(bloco)}
+                          </span>
+                          <p className="min-w-0 flex-1 text-sm font-medium text-slate-600">
+                            {bloco.intervalo && <b className="mr-1 font-black uppercase tracking-wide text-amber-700">Intervalo</b>}
+                            {bloco.atividade}
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {editando && (
+                  <div className="border-t border-slate-100 px-4 py-3 sm:px-5">
+                    <button onClick={() => adicionarBloco(funcao.id)} className="flex h-9 items-center gap-2 rounded-lg border border-dashed border-slate-300 px-3 text-xs font-black text-slate-500 hover:border-emerald-400 hover:text-emerald-700">
+                      <Plus size={15} /> Adicionar etapa
+                    </button>
+                  </div>
+                )}
+              </section>
+            ))}
+          </div>
+        )}
+
+        <p className="mt-5 text-[11px] font-medium leading-relaxed text-slate-400">
+          O guia é por função, sem nomes: quem cobre o turno de alguém lê a mesma folha. Os horários vêm de um
+          modelo e valem para esta loja — edite e eles ficam guardados neste navegador. A impressão sai com uma
+          função por página, para ir à parede do setor.
+        </p>
+      </main>
+    </div>
+  );
+}

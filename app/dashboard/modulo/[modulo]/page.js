@@ -9,7 +9,7 @@ import {
   CalendarCheck, ClipboardCheck, ClipboardList, FileBarChart, FileText, FlaskConical,
   GraduationCap, Landmark, LayoutDashboard, LayoutList, ListChecks, Network, Package,
   PackageSearch, ReceiptText, ScrollText, Settings, ShieldCheck, ShoppingCart,
-  Tag, Target, Users, UserRoundCheck, Utensils, Wallet, Wine, Wrench, CalendarClock,
+  Tag, Target, Users, UserRoundCheck, Utensils, Wallet, Wine, Wrench, CalendarClock, Clock,
 } from "lucide-react";
 import ModuleHub from "../../../components/ModuleHub";
 
@@ -116,6 +116,7 @@ const MODULOS = {
         { label: "Cargos & Carreiras", desc: "Funções e salários", href: "/dashboard/rh/cargos", icon: Award },
         { label: "Portal do Colaborador", desc: "Acesso da equipe", href: "/dashboard/rh/colaborador", icon: Users, countKey: "colaboradores" },
         { label: "Organograma", desc: "Estrutura e lideranças", href: "/dashboard/rh/organograma", icon: Network },
+        { label: "Guia de Funções", desc: "A rotina de cada função, hora a hora", href: "/dashboard/rh/funcoes", icon: Clock },
         { label: "Recrutamento", desc: "Vagas e candidatos", href: "/dashboard/rh/recrutamento", icon: BriefcaseBusiness },
       ]},
       { title: "Apoio", subtitle: "Rotinas e registros", icon: ScrollText, accent: "#0891b2", items: [

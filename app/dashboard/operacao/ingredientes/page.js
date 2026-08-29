@@ -197,6 +197,7 @@ function IngredientesRunner() {
   const [ordenacao, setOrdenacao] = useState("nome-asc");
   const [pagina, setPagina] = useState(1);
   const [porPagina, setPorPagina] = useState(PAGE_SIZE);
+  const [destacado, setDestacado] = useState(null); // item recém-salvo, para não sumir de vista
   const [calculos, setCalculos] = useState({});
   const [form, setForm] = useState(() => novoFormulario(deptUrl || "cozinha"));
   const [modalCadastro, setModalCadastro] = useState(false);
@@ -457,6 +458,18 @@ function IngredientesRunner() {
   const paginaAtual = Math.min(pagina, totalPaginas);
   const paginados = filtrados.slice((paginaAtual - 1) * tamanhoPagina, paginaAtual * tamanhoPagina);
 
+  // A lista é alfabética e paginada: um "Tomate" recém-cadastrado cai numa
+  // página que ninguém está olhando e parece ter sumido. Depois de salvar,
+  // vamos até a página onde ele está e o destacamos por alguns segundos.
+  useEffect(() => {
+    if (!destacado) return;
+    const indice = filtrados.findIndex(item => item.id === destacado);
+    if (indice < 0) return;
+    setPagina(Math.floor(indice / tamanhoPagina) + 1);
+    const limpar = setTimeout(() => setDestacado(null), 5000);
+    return () => clearTimeout(limpar);
+  }, [destacado, filtrados, tamanhoPagina]);
+
   const estatisticas = useMemo(() => {
     const limiteRecente = Date.now() - 30 * 24 * 60 * 60 * 1000;
     return {
@@ -637,7 +650,22 @@ function IngredientesRunner() {
     }
 
     setModalCadastro(false);
+    // Cadastro novo entra no fim do alfabeto ou fora do filtro ativo. Limpar
+    // busca e categoria garante que ele esteja na lista; o efeito de destaque
+    // leva até a página dele.
+    if (!form.id) { setBusca(""); setCategoria("Todas"); }
+    setDestacado(insumoId || null);
     await carregar();
+
+    // Salvou em outro setor? Esta tela lista só o setor da URL, então o item
+    // não apareceria aqui e o sumiço não teria explicação na tela.
+    const setorDaTela = deptUrl || null;
+    if (setorDaTela && form.departamento !== setorDaTela) {
+      alert(`Salvo no setor "${form.departamento}", e esta tela lista apenas "${setorDaTela}".\n\n`
+        + `Por isso ele não aparece nesta lista. Abra o catálogo de ${form.departamento} para vê-lo, `
+        + `ou edite o item e troque o setor para "${setorDaTela}".`);
+      return;
+    }
     mostrarToast(form.id ? `${ehBar ? "Produto" : "Ingrediente"} atualizado.` : `${ehBar ? "Produto" : "Ingrediente"} cadastrado.`);
   };
 
@@ -877,7 +905,7 @@ function IngredientesRunner() {
                 const outros = Math.max(0, vinculados.length - 1);
                 const normalizado = precoNormalizadoDoInsumo(insumo);
                 return (
-                  <tr key={insumo.id} className={`align-middle transition ${selecionados.has(insumo.id) ? "bg-emerald-50" : "hover:bg-emerald-50/30"}`}>
+                  <tr key={insumo.id} className={`align-middle transition ${destacado === insumo.id ? "bg-emerald-100 ring-2 ring-inset ring-emerald-400" : selecionados.has(insumo.id) ? "bg-emerald-50" : "hover:bg-emerald-50/30"}`}>
                     <td className="w-9 pl-3 pr-0">
                       <input type="checkbox" aria-label={`Selecionar ${insumo.nome}`}
                         checked={selecionados.has(insumo.id)} onChange={() => alternarSelecao(insumo.id)}
@@ -961,7 +989,7 @@ function IngredientesRunner() {
             const vinculados = insumo.fornecedores_vinculados || [];
             const normalizado = precoNormalizadoDoInsumo(insumo);
             return (
-              <article key={insumo.id} className={`rounded-xl border bg-white p-3 shadow-sm ${selecionados.has(insumo.id) ? "border-emerald-400 ring-2 ring-emerald-100" : "border-slate-200"}`}>
+              <article key={insumo.id} className={`rounded-xl border bg-white p-3 shadow-sm ${destacado === insumo.id ? "border-emerald-500 ring-2 ring-emerald-300" : selecionados.has(insumo.id) ? "border-emerald-400 ring-2 ring-emerald-100" : "border-slate-200"}`}>
                 <div className="flex items-start justify-between gap-3">
                   <input type="checkbox" aria-label={`Selecionar ${insumo.nome}`}
                     checked={selecionados.has(insumo.id)} onChange={() => alternarSelecao(insumo.id)}

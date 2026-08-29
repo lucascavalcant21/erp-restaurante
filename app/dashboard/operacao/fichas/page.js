@@ -293,7 +293,7 @@ function baseCustoDaFicha(unidadeRendimento, padrao = "kg") {
 // Cartão e imposto incidem sobre o preço de venda. O Simples Nacional é
 // apurado sobre o faturamento, e a alíquota depende do anexo e da faixa de
 // receita da loja — por isso é editável, e não um número fixo no código.
-const TAXAS_VENDA_PADRAO = { cartao: 3, imposto: 7.3 };
+const TAXAS_VENDA_PADRAO = { cartao: 3, imposto: 7.3, lucro: 20 };
 const chaveTaxasVenda = (unidadeId) => `erp_taxas_venda_${unidadeId || "sem-unidade"}`;
 
 // Quantas embalagens a ficha consome: uma por porção servida. Quando o
@@ -349,14 +349,15 @@ const fmtG = (g) => g >= 1000
   ? `${(g / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} kg`
   : `${(+g.toFixed(1)).toLocaleString("pt-BR")} g`;
 
-// Como escrever o rendimento de uma ficha. Na cozinha tudo se pesa: a receita
-// medida em ml ou L aparece em peso (1 ml conta como 1 g, a mesma densidade
-// que o custo já usa por dentro), e a unidade acompanha o tamanho — gramas até
-// 1 kg, kg daí para cima, como no resto do sistema. No bar a medida do balcão
-// é volume, então L e ml continuam como foram cadastrados.
-const MEDIDAS_DE_PESO = ["kg", "g", "l", "ml"];
-function pesarNaCozinha(unidade, ehBar) {
-  return !ehBar && MEDIDAS_DE_PESO.includes(String(unidade || "").toLowerCase());
+// Como escrever o rendimento de uma ficha. A cozinha pesa, o bar mede volume:
+// rendimento em medida contínua sai SEMPRE em kg na cozinha e SEMPRE em L no
+// bar, qualquer que seja a unidade cadastrada (1 ml conta como 1 g, a mesma
+// densidade que o custo já usa por dentro). Uma unidade só por setor poupa a
+// conta de cabeça entre 570 g e 1,2 kg a cada ficha da lista. Rendimento em
+// porções ou unidades não é medida contínua e continua como está.
+const MEDIDAS_CONTINUAS = ["kg", "g", "l", "ml"];
+function medidaContinua(unidade) {
+  return MEDIDAS_CONTINUAS.includes(String(unidade || "").toLowerCase());
 }
 function gramasRendimento(quantidade, unidade) {
   const un = String(unidade || "").toLowerCase();
@@ -365,15 +366,14 @@ function gramasRendimento(quantidade, unidade) {
 }
 function unidadeRendimento(unidade, ehBar, quantidade = 0) {
   const un = String(unidade || "porcao").toLowerCase();
-  if (pesarNaCozinha(un, ehBar)) return gramasRendimento(quantidade, un) >= 1000 ? "kg" : "g";
+  if (medidaContinua(un)) return ehBar ? "L" : "kg";
   const umSo = Number(quantidade) === 1;
-  return { porcao: ehBar ? (umSo ? "dose" : "doses") : (umSo ? "porção" : "porções"), kg: "kg", g: "g", l: "L", ml: "ml", un: "un" }[un] || un;
+  return { porcao: ehBar ? (umSo ? "dose" : "doses") : (umSo ? "porção" : "porções"), un: "un" }[un] || un;
 }
 function textoRendimento(quantidade, unidade, ehBar) {
   const un = String(unidade || "porcao").toLowerCase();
-  if (pesarNaCozinha(un, ehBar)) return fmtG(gramasRendimento(quantidade, un));
-  const qtd = Number(quantidade) || 0;
-  return `${(+qtd.toFixed(3)).toLocaleString("pt-BR")} ${unidadeRendimento(un, ehBar, qtd)}`;
+  const valor = medidaContinua(un) ? gramasRendimento(quantidade, un) / 1000 : (Number(quantidade) || 0);
+  return `${(+valor.toFixed(3)).toLocaleString("pt-BR")} ${unidadeRendimento(un, ehBar, quantidade)}`;
 }
 
 // Soma dos ingredientes → rendimento bruto estimado da receita (antes de perdas
@@ -797,6 +797,8 @@ function FichasRunner() {
       setTaxasVenda({
         cartao: Number(salvo?.cartao) >= 0 ? Number(salvo.cartao) : TAXAS_VENDA_PADRAO.cartao,
         imposto: Number(salvo?.imposto) >= 0 ? Number(salvo.imposto) : TAXAS_VENDA_PADRAO.imposto,
+        // Quem já salvou taxas antes do lucro alvo existir não tem esse campo.
+        lucro: Number(salvo?.lucro) >= 0 ? Number(salvo.lucro) : TAXAS_VENDA_PADRAO.lucro,
       });
     } catch { setTaxasVenda(TAXAS_VENDA_PADRAO); }
   }, [unidadeAtiva]);
@@ -2505,7 +2507,20 @@ function FichasRunner() {
                                         <span className="text-sm font-bold text-slate-500">Quantidade</span>
                                         <span className="text-right"><strong className="block text-base text-slate-900">{quantidadeTexto}</strong>{unidadesDoPeso && <small className="block font-bold text-slate-400">rende {unidadesDoPeso}</small>}</span>
                                       </div>
-                                      <div className="flex min-h-12 items-center justify-between gap-3"><span className="text-sm font-bold text-slate-500">Custo</span><strong className="text-base text-slate-900">{fmtBRL(custoPorcao)}</strong></div>
+                                      {/* Num preparo sem porção definida, "Custo" repetia o custo
+                                          total logo abaixo — duas linhas, um número. O que interessa
+                                          num preparo é quanto custa 1 kg (ou 1 L no bar): é assim que
+                                          ele entra em outra ficha e é assim que se compara com o
+                                          insumo pronto do fornecedor. */}
+                                      {!(f.eh_base && custoPorcao === custoTotal) && (
+                                        <div className="flex min-h-12 items-center justify-between gap-3"><span className="text-sm font-bold text-slate-500">Custo</span><strong className="text-base text-slate-900">{fmtBRL(custoPorcao)}</strong></div>
+                                      )}
+                                      {f.eh_base && peso?.custoKg > 0 && (
+                                        <div className="flex min-h-12 items-center justify-between gap-3">
+                                          <span className="text-sm font-bold text-slate-500">Custo por {ehBarCard ? "L" : "kg"}</span>
+                                          <strong className="text-base text-slate-900">{fmtBRL(peso.custoKg)}</strong>
+                                        </div>
+                                      )}
                                       {/* Venda vem logo acima do CMV: é o número que explica o CMV. */}
                                       {!f.eh_base && (
                                         <div className="flex min-h-12 items-center justify-between gap-3">
@@ -3691,6 +3706,17 @@ function FichasRunner() {
                         const custoPorc = custoIngredientesPorc + custoEmbalagemPorc;
                         const meta = Number(form.cmv_meta) || 30;
                         const sugerido = meta > 0 ? custoPorc / (meta / 100) : 0;
+                        // Markup divisor: cartão, imposto e lucro são fatias da VENDA, não
+                        // do custo. Somar tudo sobre a mercadoria erraria — é o preço que
+                        // precisa comportar as três fatias e ainda pagar a mercadoria:
+                        //   venda × (1 − cartão% − imposto% − lucro%) = mercadoria
+                        // O preço por CMV meta ignora cartão e imposto, e por isso promete
+                        // uma sobra que não existe: com meta de 30%, o lucro real é 30%
+                        // menos as taxas. Os dois ficam lado a lado, cada um dizendo a que
+                        // veio.
+                        const lucroAlvoPct = Number(taxasVenda.lucro) || 0;
+                        const fatiaDaVenda = 1 - ((Number(taxasVenda.cartao) || 0) + (Number(taxasVenda.imposto) || 0) + lucroAlvoPct) / 100;
+                        const sugeridoLucro = fatiaDaVenda > 0 ? custoPorc / fatiaDaVenda : null;
                         const precoNum = Number(String(form.preco_venda ?? "").replace(",", ".")) || 0;
                         const cmvTeo = precoNum > 0 ? (custoPorc / precoNum) * 100 : null;
                         const margem = cmvTeo !== null ? 100 - cmvTeo : null;
@@ -3743,7 +3769,7 @@ function FichasRunner() {
                                        </>
                                     )}
                                  </div>
-                                 <div className="mt-3 grid grid-cols-2 gap-2 border-t border-dashed border-slate-300 pt-2.5">
+                                 <div className="mt-3 grid grid-cols-3 gap-2 border-t border-dashed border-slate-300 pt-2.5">
                                     <label className="block">
                                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Maquininha (%)</span>
                                        <input type="number" min="0" max="100" step="0.01" value={taxasVenda.cartao}
@@ -3754,6 +3780,12 @@ function FichasRunner() {
                                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Imposto (%)</span>
                                        <input type="number" min="0" max="100" step="0.01" value={taxasVenda.imposto}
                                           onChange={e => alterarTaxaVenda("imposto", e.target.value)}
+                                          className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-sm font-bold outline-none focus:border-emerald-500" />
+                                    </label>
+                                    <label className="block">
+                                       <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">Lucro alvo (%)</span>
+                                       <input type="number" min="0" max="100" step="0.01" value={taxasVenda.lucro}
+                                          onChange={e => alterarTaxaVenda("lucro", e.target.value)}
                                           className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-2.5 text-sm font-bold outline-none focus:border-emerald-500" />
                                     </label>
                                  </div>
@@ -3778,12 +3810,28 @@ function FichasRunner() {
                                     </span>
                                  </div>
                               )}
-                              {sugerido > 0 && (
-                                 <button type="button" onClick={() => setForm({ ...form, preco_venda: sugerido.toFixed(2) })} className="mt-2 w-full text-left bg-slate-50 border border-slate-200 rounded-xl p-2.5 hover:border-emerald-400 transition-colors">
-                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Preço sugerido/porção (CMV {meta}%)</span>
-                                    <span className="text-lg font-black text-slate-800">{fmtBRL(sugerido)}</span>
-                                    <span className="text-[10px] font-bold text-slate-400 ml-2">toque para usar</span>
-                                 </button>
+                              {(sugerido > 0 || sugeridoLucro > 0) && (
+                                 <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                    {sugerido > 0 && (
+                                       <button type="button" onClick={() => setForm({ ...form, preco_venda: sugerido.toFixed(2) })} className="w-full text-left bg-slate-50 border border-slate-200 rounded-xl p-2.5 hover:border-emerald-400 transition-colors">
+                                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Para CMV de {meta}%</span>
+                                          <span className="text-lg font-black text-slate-800">{fmtBRL(sugerido)}</span>
+                                          <span className="mt-0.5 block text-[10px] font-bold text-slate-400">só mercadoria · toque para usar</span>
+                                       </button>
+                                    )}
+                                    {sugeridoLucro > 0 && (
+                                       <button type="button" onClick={() => setForm({ ...form, preco_venda: sugeridoLucro.toFixed(2) })} className="w-full text-left bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 hover:border-emerald-500 transition-colors">
+                                          <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest block">Para lucro de {Number(lucroAlvoPct).toLocaleString("pt-BR")}%</span>
+                                          <span className="text-lg font-black text-emerald-800">{fmtBRL(sugeridoLucro)}</span>
+                                          <span className="mt-0.5 block text-[10px] font-bold text-emerald-600">já com cartão e imposto · toque para usar</span>
+                                       </button>
+                                    )}
+                                 </div>
+                              )}
+                              {sugeridoLucro === null && (
+                                 <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-2.5 text-[11px] font-bold text-amber-800">
+                                    Cartão, imposto e lucro alvo somam 100% ou mais da venda: não existe preço que feche essa conta. Baixe o lucro alvo.
+                                 </p>
                               )}
                               {cmvTeo !== null ? (
                                  <div className="grid grid-cols-2 gap-2 mt-2">

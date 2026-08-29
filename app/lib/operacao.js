@@ -190,12 +190,29 @@ export async function salvarInsumo(insumo, opcoes = {}) {
       };
       const nomeNorm = norm(campos.nome);
       if (nomeNorm) {
-        let q = supabase.from("insumos").select("id, nome, departamento, unidade_id");
-        if (campos.unidade_id) q = q.eq("unidade_id", campos.unidade_id);
-        if (campos.departamento) q = q.eq("departamento", campos.departamento);
-        const { data: existentes } = await q.ilike("nome", String(campos.nome || "").trim());
-        if ((existentes || []).some(e => norm(e.nome) === nomeNorm)) {
-          return { error: "Já existe um ingrediente com esse nome neste setor. Edite o existente para adicionar outro fornecedor ou preço." };
+        // A trava tem de enxergar exatamente o que o catálogo mostra. Ela olhava
+        // a tabela crua, incluindo o que fetchInsumos esconde: os insumos espelho
+        // de pré-preparo (ficha_tecnica_id) e os legados de migração. O cadastro
+        // era barrado por uma linha que ninguém acha na busca nem consegue
+        // editar — sem saída para quem só queria cadastrar o ingrediente.
+        //
+        // A comparação também é feita aqui, e não no banco: `ilike` diferencia
+        // acento, então "Açúcar" não reconhecia um "Acucar" já gravado e a trava
+        // deixava passar a duplicata que ela existe para impedir.
+        const montarConsulta = (colunas) => {
+          let q = supabase.from("insumos").select(colunas);
+          if (campos.unidade_id) q = q.eq("unidade_id", campos.unidade_id);
+          if (campos.departamento) q = q.eq("departamento", campos.departamento);
+          return q;
+        };
+        let { data: existentes, error: erroConsulta } =
+          await montarConsulta("id, nome, ficha_tecnica_id, pre_preparo_legado");
+        // Migração ainda não rodou? Sem as colunas de espelho, todo mundo conta.
+        if (erroConsulta) ({ data: existentes } = await montarConsulta("id, nome"));
+        const conflito = (existentes || []).find(e => norm(e.nome) === nomeNorm
+          && !e.ficha_tecnica_id && e.pre_preparo_legado !== true);
+        if (conflito) {
+          return { error: `Já existe "${conflito.nome}" neste setor. Edite o existente para adicionar outro fornecedor ou preço.` };
         }
       }
     } catch { /* falha na checagem não bloqueia o cadastro */ }

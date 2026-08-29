@@ -1993,7 +1993,10 @@ function FichasRunner() {
         const catFicha = item.categoria === "Sobremesa" ? "Sobremesas" : item.categoria === "Suco" ? "Sucos" : "";
         const r = await salvarFicha({
           unidade_id: unidadeAtiva,
-          departamento: item.categoria === "Drink" ? "bar" : (deptUrl || "cozinha"),
+          // O setor é o da tela. Importar o cardápio na cozinha criava fichas
+          // no bar quando a IA classificava o item como drink, e elas sumiam
+          // da lista de quem acabou de importar.
+          departamento: deptUrl,
           nome_receita: item.nome,
           categoria: catFicha || null,
           rendimento_porcoes: 1,
@@ -2006,7 +2009,7 @@ function FichasRunner() {
             unidade_id: unidadeAtiva,
             nome_produto: item.nome,
             categoria: item.categoria === "Drink" ? "Drinks" : (catFicha || "Pratos Principais"),
-            departamento: item.categoria === "Drink" ? "bar" : (deptUrl || "cozinha"),
+            departamento: deptUrl,
             tempo_preparo_base: 15,
             preco_venda: item.preco,
             ficha_id: r.id,

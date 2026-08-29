@@ -183,7 +183,9 @@ function VariacaoPreco({ insumo }) {
 
 function IngredientesRunner() {
   const searchParams = useSearchParams();
-  const deptUrl = searchParams.get("dept");
+  // Um catálogo, um setor. Sem ?dept= a listagem vinha sem filtro e misturava
+  // produtos do bar com ingredientes da cozinha na mesma tela.
+  const deptUrl = searchParams.get("dept") === "bar" ? "bar" : "cozinha";
   const { abrirMenu, unidadeAtiva, sessao } = useERP();
   const ehBar = deptUrl === "bar";
   const rotuloItem = ehBar ? "produto" : "ingrediente";
@@ -199,7 +201,7 @@ function IngredientesRunner() {
   const [porPagina, setPorPagina] = useState(PAGE_SIZE);
   const [destacado, setDestacado] = useState(null); // item recém-salvo, para não sumir de vista
   const [calculos, setCalculos] = useState({});
-  const [form, setForm] = useState(() => novoFormulario(deptUrl || "cozinha"));
+  const [form, setForm] = useState(() => novoFormulario(deptUrl));
   const [modalCadastro, setModalCadastro] = useState(false);
   const [modalHistorico, setModalHistorico] = useState(null);
   const [historico, setHistorico] = useState([]);
@@ -370,7 +372,7 @@ function IngredientesRunner() {
     for (const item of itensMigracao) {
       const nome = String(item.nome || "").trim();
       if (!nome) continue;
-      const dept = item.departamento || deptUrl || "cozinha";
+      const dept = deptUrl;
       const qtd = parseNumeroBR(item.quantidade) || 1;
       const valor = parseNumeroBR(item.valor_total) || 0;
       const unidade = item.unidade || "kg";
@@ -425,7 +427,7 @@ function IngredientesRunner() {
       comando: origemMigracaoVoz
         ? `${migrarTexto}${comandoConfirmacao ? `; Confirmação por voz: ${comandoConfirmacao}` : ""}`
         : "Importacao de ingredientes por lista ou imagem",
-      intencao: { origem: origemMigracaoVoz ? "voz" : "lista", itens: itensMigracao.map(item => ({ nome: item.nome, quantidade: item.quantidade, unidade: item.unidade, valor_total: item.valor_total, departamento: item.departamento })) },
+      intencao: { origem: origemMigracaoVoz ? "voz" : "lista", itens: itensMigracao.map(item => ({ nome: item.nome, quantidade: item.quantidade, unidade: item.unidade, valor_total: item.valor_total, departamento: deptUrl })) },
       acao: origemMigracaoVoz ? "inventory.ingredients.voice_batch" : "inventory.ingredients.import_batch",
       modulo: "inventory",
       valorAnterior: insumos.length,
@@ -481,13 +483,13 @@ function IngredientesRunner() {
   }, [insumos]);
 
   const abrirNovo = () => {
-    setForm(novoFormulario(deptUrl || "cozinha"));
+    setForm(novoFormulario(deptUrl));
     setPrecosForn([]); setPrecoFornMsg("");
     setModalCadastro(true);
   };
 
   const abrirEditar = insumo => {
-    const dep = insumo.departamento || deptUrl || "cozinha";
+    const dep = deptUrl;
     let un = insumo.unidade_medida || (dep === "bar" ? "ml" : "kg");
     setForm({
       id: insumo.id,
@@ -656,16 +658,6 @@ function IngredientesRunner() {
     if (!form.id) { setBusca(""); setCategoria("Todas"); }
     setDestacado(insumoId || null);
     await carregar();
-
-    // Salvou em outro setor? Esta tela lista só o setor da URL, então o item
-    // não apareceria aqui e o sumiço não teria explicação na tela.
-    const setorDaTela = deptUrl || null;
-    if (setorDaTela && form.departamento !== setorDaTela) {
-      alert(`Salvo no setor "${form.departamento}", e esta tela lista apenas "${setorDaTela}".\n\n`
-        + `Por isso ele não aparece nesta lista. Abra o catálogo de ${form.departamento} para vê-lo, `
-        + `ou edite o item e troque o setor para "${setorDaTela}".`);
-      return;
-    }
     mostrarToast(form.id ? `${ehBar ? "Produto" : "Ingrediente"} atualizado.` : `${ehBar ? "Produto" : "Ingrediente"} cadastrado.`);
   };
 
@@ -1151,11 +1143,10 @@ function IngredientesRunner() {
                     </select>
                   </label>
                   <label>
-                    <span className="text-xs font-bold text-slate-600">Departamento</span>
-                    <select value={form.departamento} onChange={event => setForm({ ...form, departamento: event.target.value, categoria: "" })} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 font-bold outline-none focus:border-emerald-500">
-                      <option value="cozinha">Cozinha</option>
-                      <option value="bar">Bar</option>
-                    </select>
+                    <span className="text-xs font-bold text-slate-600">Setor</span>
+                    <div className="mt-1.5 flex h-11 w-full items-center rounded-xl border border-slate-200 bg-slate-100 px-3.5 font-bold text-slate-600">
+                      {ehBar ? "Bar" : "Cozinha"}
+                    </div>
                   </label>
                 </div>
               </section>
@@ -1577,7 +1568,6 @@ function IngredientesRunner() {
                         <tr>
                           <th className="p-3">Nome</th>
                           <th className="p-3">Marca</th>
-                          <th className="p-3">Setor</th>
                           <th className="p-3">Qtd</th>
                           <th className="p-3">Unidade</th>
                           <th className="p-3">Valor Total (R$)</th>
@@ -1602,16 +1592,6 @@ function IngredientesRunner() {
                                 placeholder="Marca"
                                 className="w-full rounded-lg border border-slate-200 px-2 py-1"
                               />
-                            </td>
-                            <td className="p-2">
-                              <select
-                                value={item.departamento || "cozinha"}
-                                onChange={e => atualizarItemMigracao(idx, "departamento", e.target.value)}
-                                className="rounded-lg border border-slate-200 px-2 py-1 font-bold text-slate-700"
-                              >
-                                <option value="cozinha">Cozinha</option>
-                                <option value="bar">Bar</option>
-                              </select>
                             </td>
                             <td className="p-2">
                               <input

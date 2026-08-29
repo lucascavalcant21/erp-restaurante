@@ -317,6 +317,33 @@ const fmtG = (g) => g >= 1000
   ? `${(g / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} kg`
   : `${(+g.toFixed(1)).toLocaleString("pt-BR")} g`;
 
+// Como escrever o rendimento de uma ficha. Na cozinha tudo se pesa: a receita
+// medida em ml ou L aparece em peso (1 ml conta como 1 g, a mesma densidade
+// que o custo já usa por dentro), e a unidade acompanha o tamanho — gramas até
+// 1 kg, kg daí para cima, como no resto do sistema. No bar a medida do balcão
+// é volume, então L e ml continuam como foram cadastrados.
+const MEDIDAS_DE_PESO = ["kg", "g", "l", "ml"];
+function pesarNaCozinha(unidade, ehBar) {
+  return !ehBar && MEDIDAS_DE_PESO.includes(String(unidade || "").toLowerCase());
+}
+function gramasRendimento(quantidade, unidade) {
+  const un = String(unidade || "").toLowerCase();
+  const qtd = Number(quantidade) || 0;
+  return (un === "kg" || un === "l") ? qtd * 1000 : qtd;
+}
+function unidadeRendimento(unidade, ehBar, quantidade = 0) {
+  const un = String(unidade || "porcao").toLowerCase();
+  if (pesarNaCozinha(un, ehBar)) return gramasRendimento(quantidade, un) >= 1000 ? "kg" : "g";
+  const umSo = Number(quantidade) === 1;
+  return { porcao: ehBar ? (umSo ? "dose" : "doses") : (umSo ? "porção" : "porções"), kg: "kg", g: "g", l: "L", ml: "ml", un: "un" }[un] || un;
+}
+function textoRendimento(quantidade, unidade, ehBar) {
+  const un = String(unidade || "porcao").toLowerCase();
+  if (pesarNaCozinha(un, ehBar)) return fmtG(gramasRendimento(quantidade, un));
+  const qtd = Number(quantidade) || 0;
+  return `${(+qtd.toFixed(3)).toLocaleString("pt-BR")} ${unidadeRendimento(un, ehBar, qtd)}`;
+}
+
 // Soma dos ingredientes → rendimento bruto estimado da receita (antes de perdas
 // no cozimento). Separa sólidos (g) de líquidos (ml). Itens em "un" entram se o
 // insumo tiver peso médio cadastrado (ex: 1 tomate ≈ 100g). Sugere a unidade
@@ -409,7 +436,7 @@ function FichasRunner() {
   const [selecionadas, setSelecionadas] = useState([]);
   const [dragId, setDragId] = useState(null); // arrastar para reordenar
   const [pagina, setPagina] = useState(1);
-  const [porPagina, setPorPagina] = useState(12);
+  const [porPagina, setPorPagina] = useState(60);
   const [modalImpressao, setModalImpressao] = useState(null);
   const [configImpressao, setConfigImpressao] = useState(null);
   const [ordemPersonalizada, setOrdemPersonalizada] = useState([]);
@@ -727,6 +754,13 @@ function FichasRunner() {
     if (unidadeAtiva) carregar();
   }, [unidadeAtiva, deptUrl]);
 
+  // A ficha aberta em visualização é um retrato do momento em que foi aberta.
+  // Sem reapontá-la para a versão recarregada, a tela continua mostrando os
+  // números antigos depois de salvar — parece que a gravação não pegou.
+  useEffect(() => {
+    setFichaView(aberta => (aberta ? (fichas.find(f => f.id === aberta.id) || aberta) : aberta));
+  }, [fichas]);
+
   useEffect(() => {
     setModoFicha("principais");
     setTipoFiltro("Pratos principais");
@@ -854,8 +888,10 @@ function FichasRunner() {
     // e quem digita "á" tem de achar "Agua". Ninguém procura com acento.
     .filter(f => normalizarNome(f.nome_receita).includes(normalizarNome(busca)) && passaFiltro(f))
     .sort(ordenarFichas);
-  const totalPaginas = Math.max(1, Math.ceil(filtradas.length / porPagina));
-  const fichasPagina = filtradas.slice((pagina - 1) * porPagina, pagina * porPagina);
+  // porPagina 0 = "Todas": a lista inteira numa página só.
+  const tamanhoPagina = porPagina > 0 ? porPagina : Math.max(1, filtradas.length);
+  const totalPaginas = Math.max(1, Math.ceil(filtradas.length / tamanhoPagina));
+  const fichasPagina = filtradas.slice((pagina - 1) * tamanhoPagina, pagina * tamanhoPagina);
   const fichasSelecionadas = selecionadas.map(id => fichas.find(f => f.id === id)).filter(Boolean);
   const papelUsuario = String(sessao?.papel || sessao?.role || "").toLowerCase();
   const podeImprimirCustos = ["admin", "administrador", "superadmin", "gestor", "gerente", "dono"]
@@ -1113,6 +1149,41 @@ function FichasRunner() {
     ...embalagensCat.map(i => ({ valor: `insumo:${i.id}`, nome: i.nome, detalhe: i.unidade_medida, tipo: "Embalagem" })),
   ], [insumosAtivos, basesDisponiveis, embalagensCat]);
 
+  // Resumo de custo do cardápio (só fichas de montagem com preço de venda).
+  // Alimenta o CMV médio do cabeçalho e o kanban de indicadores, para os dois
+  // sempre falarem o mesmo número.
+  const resumoCardapio = useMemo(() => {
+    const base = fichas.filter(f => !f.eh_base && f.tipo_base !== "produto_pronto");
+    let somaCmv = 0, nCmv = 0, somaCusto = 0, nCusto = 0, somaPreco = 0, nPreco = 0, somaMargem = 0, semPreco = 0, acimaMeta = 0;
+    base.forEach(f => {
+      const peso = infoPesoFicha(f, fichas);
+      const custoTotal = custoTotalDaFicha(f, fichas);
+      const unR = String(f.rendimento_unidade || "porcao").toLowerCase();
+      const rend = Number(f.rendimento_porcoes) || 0;
+      const porcoes = (unR === "porcao" || unR === "un") ? rend : (peso?.porcoes || 0);
+      const custoPorcao = porcoes > 0 ? custoTotal / porcoes : custoTotal;
+      if (custoPorcao > 0) { somaCusto += custoPorcao; nCusto++; }
+      const prod = produtos.find(x => x.ficha_id === f.id || String(x.nome_produto || "").toLowerCase() === String(f.nome_receita || "").toLowerCase());
+      const preco = Number(prod?.preco_venda) || 0;
+      const meta = Number(f.cmv_meta) || 30;
+      if (preco > 0) {
+        const cmv = (custoPorcao / preco) * 100;
+        somaCmv += cmv; nCmv++; somaPreco += preco; nPreco++; somaMargem += (100 - cmv);
+        if (cmv > meta) acimaMeta++;
+      } else semPreco++;
+    });
+    return {
+      totalFichas: base.length,
+      precificadas: nCmv,
+      semPreco,
+      acimaMeta,
+      cmvMedio: nCmv ? somaCmv / nCmv : null,
+      margemMedia: nCmv ? somaMargem / nCmv : null,
+      custoMedio: nCusto ? somaCusto / nCusto : null,
+      ticketMedio: nPreco ? somaPreco / nPreco : null,
+    };
+  }, [fichas, produtos]);
+
   const sugestoesIngrediente = useMemo(() => {
     // Sem acento dos dois lados: "a" acha "Água" e "c" acha "Açaí", porque
     // normalizarNome tira o cedilha junto com os acentos.
@@ -1261,11 +1332,13 @@ function FichasRunner() {
         departamento: form.departamento,
         custoUnitario: custoUnitarioPreparo,
       });
-      if (estoquePreparo.error) return alert(`A ficha foi salva, mas nao entrou no estoque de preparos: ${estoquePreparo.error}`);
+      if (estoquePreparo.error) {
+        await carregar();
+        return alert(`A ficha foi salva, mas nao entrou no estoque de preparos: ${estoquePreparo.error}`);
+      }
     }
 
     if (!criarOutra) setModalNovo(false);
-    carregar();
 
     // ── Liga as embalagens ao estoque certo (não bloqueia o salvar) ─────────
     // O pré-preparo já foi sincronizado acima, com identidade pela ficha. Antes
@@ -1374,6 +1447,13 @@ function FichasRunner() {
         alert(`"${nome}" salvo!\n\n· Preço de venda: ${precoVendaNum > 0 ? "definido na ficha" : "pendente — edite a ficha e preencha em CMV e Precificação"}${form.produto_pronto ? "\n· Produto pronto — não exige ingredientes nem montagem" : "\n· Guia de Montagem — crie o passo a passo lá"}`);
       } catch { /* integrações não bloqueiam o salvar da ficha */ }
     }
+
+    // A lista só recarrega agora, no fim. Preço de venda, embalagens e produto
+    // do cardápio são gravados nos passos acima; recarregar antes deles trazia
+    // a ficha sem essas informações e dava a impressão de que o salvar não
+    // tinha pegado — só "pegava" no segundo salvamento, quando a leitura já
+    // encontrava o que a primeira gravação tinha escrito.
+    await carregar();
 
     // "Salvar e criar outra": limpa o formulário e continua no modal
     if (criarOutra) {
@@ -1665,7 +1745,6 @@ function FichasRunner() {
       const rende = Number(f.rendimento_porcoes) || 1;
       const peso = infoPesoFicha(f, fichas);
       const unR = String(f.rendimento_unidade || 'porcao').toLowerCase();
-      const labelUnPrint = { porcao: `porç${rende > 1 ? 'ões' : 'ão'}`, kg: 'kg', g: 'g', l: 'L', ml: 'ml', un: 'un' }[unR] || unR;
       const porcoesTxt = unR === 'porcao'
          ? Number(rende).toLocaleString('pt-BR')
          : (peso && peso.porcoes ? Number(peso.porcoes).toLocaleString('pt-BR') : '—');
@@ -2044,7 +2123,7 @@ function FichasRunner() {
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto max-w-[1480px] px-4 py-4 sm:px-5">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4">
               <button onClick={abrirMenu} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500 hover:text-slate-900" title="Voltar ao menu">
                 <ArrowLeft size={19} />
               </button>
@@ -2054,6 +2133,24 @@ function FichasRunner() {
                   ? (deptUrl === "bar" ? "Produção de xaropes, espumas, infusões e bases do bar" : "Produção de molhos, caldos, massas e receitas-base da cozinha")
                   : (deptUrl === "bar" ? "Montagem, custos e margens de drinks e bebidas" : "Montagem de pratos, rendimento, custo e CMV para o cardápio")}</p>
               </div>
+              {resumoCardapio.totalFichas > 0 && (() => {
+                const cmv = resumoCardapio.cmvMedio;
+                const alto = cmv != null && cmv > 35;
+                return (
+                  <button type="button" onClick={() => setMostrarIndicadores(valor => !valor)} title="Ver todos os indicadores do cardápio"
+                    className={`flex shrink-0 items-center gap-2.5 rounded-2xl border px-3.5 py-2 shadow-sm transition-colors ${alto ? "border-red-200 bg-red-50 hover:bg-red-100" : "border-emerald-200 bg-emerald-50 hover:bg-emerald-100"}`}>
+                    <Calculator size={20} className={alto ? "text-red-600" : "text-emerald-700"} />
+                    <span className="text-left">
+                      <span className="block text-[9px] font-black uppercase tracking-wider leading-tight text-slate-500">CMV médio</span>
+                      <span className={`block text-xl font-black leading-tight ${alto ? "text-red-600" : "text-emerald-700"}`}>{cmv != null ? `${cmv.toFixed(1)}%` : "—"}</span>
+                    </span>
+                    <span className="hidden text-[10px] font-bold leading-tight text-slate-400 sm:block">
+                      {resumoCardapio.precificadas} precificad{resumoCardapio.precificadas === 1 ? "a" : "as"}
+                      {resumoCardapio.semPreco > 0 && <><br />{resumoCardapio.semPreco} sem preço</>}
+                    </span>
+                  </button>
+                );
+              })()}
             </div>
             <div className="erp-busca-fixa flex flex-col gap-3 sm:flex-row">
               <label className="flex min-w-0 items-center gap-2 rounded-2xl border-2 border-slate-300 bg-white px-3.5 shadow-sm transition-all focus-within:border-emerald-600 focus-within:ring-4 focus-within:ring-emerald-500/20 sm:w-[430px]">
@@ -2084,11 +2181,9 @@ function FichasRunner() {
            </button>
          </div>
          {mostrarIndicadores && (() => {
-            const base = fichas.filter(f => modoFicha === "preparos"
-              ? !!f.eh_base
-              : (!f.eh_base && f.tipo_base !== "produto_pronto"));
-            if (!base.length) return null;
             if (modoFicha === "preparos") {
+              const base = fichas.filter(f => !!f.eh_base);
+              if (!base.length) return null;
               const prePreparos = base.filter(f => f.tipo_base !== "receita").length;
               const receitasBase = base.filter(f => f.tipo_base === "receita").length;
               const comCusto = base.filter(f => custoTotalDaFicha(f, fichas) > 0).length;
@@ -2115,32 +2210,15 @@ function FichasRunner() {
                 </div>
               );
             }
-            let somaCmv = 0, nCmv = 0, somaCusto = 0, nCusto = 0, somaPreco = 0, nPreco = 0, somaMargem = 0, semPreco = 0, acimaMeta = 0;
-            base.forEach(f => {
-               const peso = infoPesoFicha(f, fichas);
-               const custoTotal = custoTotalDaFicha(f, fichas);
-               const unR = String(f.rendimento_unidade || "porcao").toLowerCase();
-               const rend = Number(f.rendimento_porcoes) || 0;
-               const porcoes = (unR === "porcao" || unR === "un") ? rend : (peso?.porcoes || 0);
-               const custoPorcao = porcoes > 0 ? custoTotal / porcoes : custoTotal;
-               if (custoPorcao > 0) { somaCusto += custoPorcao; nCusto++; }
-               const prod = produtos.find(x => x.ficha_id === f.id || String(x.nome_produto || "").toLowerCase() === String(f.nome_receita || "").toLowerCase());
-               const preco = Number(prod?.preco_venda) || 0;
-               const meta = Number(f.cmv_meta) || 30;
-               if (preco > 0) {
-                  const cmv = (custoPorcao / preco) * 100;
-                  somaCmv += cmv; nCmv++; somaPreco += preco; nPreco++; somaMargem += (100 - cmv);
-                  if (cmv > meta) acimaMeta++;
-               } else semPreco++;
-            });
-            const cmvMedio = nCmv ? somaCmv / nCmv : null;
+            const r = resumoCardapio;
+            if (!r.totalFichas) return null;
             const cards = [
-               { rot: "Fichas", val: base.length, sub: "pratos/receitas" },
-               { rot: "CMV médio", val: cmvMedio != null ? cmvMedio.toFixed(1) + "%" : "—", sub: `${nCmv} precificadas`, alerta: cmvMedio != null && cmvMedio > 35 },
-               { rot: "Margem média", val: nCmv ? (somaMargem / nCmv).toFixed(1) + "%" : "—", sub: "bruta" },
-               { rot: "Custo médio/porção", val: nCusto ? fmtBRL(somaCusto / nCusto) : "—", sub: "por porção" },
-               { rot: "Ticket médio", val: nPreco ? fmtBRL(somaPreco / nPreco) : "—", sub: "preço de venda" },
-               { rot: "Acima da meta", val: acimaMeta, sub: semPreco ? `${semPreco} sem preço` : "CMV alto", alerta: acimaMeta > 0 },
+               { rot: "Fichas", val: r.totalFichas, sub: "pratos/receitas" },
+               { rot: "CMV médio", val: r.cmvMedio != null ? r.cmvMedio.toFixed(1) + "%" : "—", sub: `${r.precificadas} precificadas`, alerta: r.cmvMedio != null && r.cmvMedio > 35 },
+               { rot: "Margem média", val: r.margemMedia != null ? r.margemMedia.toFixed(1) + "%" : "—", sub: "bruta" },
+               { rot: "Custo médio/porção", val: r.custoMedio != null ? fmtBRL(r.custoMedio) : "—", sub: "por porção" },
+               { rot: "Ticket médio", val: r.ticketMedio != null ? fmtBRL(r.ticketMedio) : "—", sub: "preço de venda" },
+               { rot: "Acima da meta", val: r.acimaMeta, sub: r.semPreco ? `${r.semPreco} sem preço` : "CMV alto", alerta: r.acimaMeta > 0 },
             ];
             return (
                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 mb-4">
@@ -2282,9 +2360,6 @@ function FichasRunner() {
                   const peso = infoPesoFicha(f, fichas);
                   const unR = String(f.rendimento_unidade || "porcao").toLowerCase();
                   const ehBarCard = String(f.departamento || "").toLowerCase() === "bar";
-                  const umSo = Number(f.rendimento_porcoes || 0) === 1;
-                  const labelUn = { porcao: ehBarCard ? (umSo ? "dose" : "doses") : (umSo ? "porção" : "porções"), kg: "kg", g: "g", l: "L", ml: "ml", un: "un" }[unR] || unR;
-
                   return (
                      <div key={f.id}
                         onDragOver={e => { if (dragId) e.preventDefault(); }}
@@ -2327,7 +2402,7 @@ function FichasRunner() {
                               const cmv = precoPorcao > 0 ? (custoPorcao / precoPorcao) * 100 : null;
                               const margem = cmv !== null ? 100 - cmv : null;
                               const composicao = (f.fichas_ingredientes || []).length;
-                              const quantidadeTexto = `${Number(f.rendimento_porcoes || 0).toLocaleString("pt-BR")} ${labelUn}`;
+                              const quantidadeTexto = textoRendimento(f.rendimento_porcoes, unR, ehBarCard);
                               const unidadesDoPeso = ["kg", "g", "l", "ml"].includes(unR) && peso?.porcoes > 0
                                 ? `${Number(peso.porcoes).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} ${ehBarCard ? "doses" : "unidades/porções"}`
                                 : "";
@@ -2366,11 +2441,12 @@ function FichasRunner() {
          {!loading && filtradas.length > 0 && (
            <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
              <p className="text-xs font-bold text-slate-500">
-               Mostrando {(pagina - 1) * porPagina + 1} a {Math.min(pagina * porPagina, filtradas.length)} de {filtradas.length} fichas
+               Mostrando {(pagina - 1) * tamanhoPagina + 1} a {Math.min(pagina * tamanhoPagina, filtradas.length)} de {filtradas.length} fichas
              </p>
              <div className="flex flex-wrap items-center justify-center gap-2">
                <select value={porPagina} onChange={e => setPorPagina(Number(e.target.value))} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 outline-none">
-                 {[8, 12, 24, 48].map(valor => <option key={valor} value={valor}>{valor} por página</option>)}
+                 {[12, 24, 48, 60, 120].map(valor => <option key={valor} value={valor}>{valor} por página</option>)}
+                 <option value={0}>Todas as fichas</option>
                </select>
                <button onClick={() => setPagina(p => Math.max(1, p - 1))} disabled={pagina <= 1} title="Página anterior" className="rounded-xl border border-slate-200 p-2 text-slate-600 disabled:opacity-30"><ChevronLeft size={17}/></button>
                <span className="min-w-24 text-center text-xs font-black text-slate-700">Página {pagina} de {totalPaginas}</span>
@@ -2562,8 +2638,7 @@ function FichasRunner() {
          const custoTotal = custoTotalDaFicha(f, fichas);
          const unR = String(f.rendimento_unidade || "porcao").toLowerCase();
          const ehBarView = String(f.departamento || "").toLowerCase() === "bar";
-         const umSoView = Number(f.rendimento_porcoes || 0) === 1;
-         const labelUn = { porcao: ehBarView ? (umSoView ? "dose" : "doses") : (umSoView ? "porção" : "porções"), kg: "kg", g: "g", l: "L", ml: "ml", un: "un" }[unR] || unR;
+         const labelUn = unidadeRendimento(unR, ehBarView, f.rendimento_porcoes);
          const rend = Number(f.rendimento_porcoes) || 0;
          const porcoes = (unR === "porcao" || unR === "un") ? rend : (peso?.porcoes || 0);
          const custoPorcao = porcoes > 0 ? custoTotal / porcoes : custoTotal;
@@ -2645,7 +2720,7 @@ function FichasRunner() {
                                  {[
                                     ["Categoria", f.categoria || "—"],
                                     ["Setor", setorTxt],
-                                    ["Rendimento", `${nf(rend)} ${labelUn}`],
+                                    ["Rendimento", textoRendimento(rend, unR, ehBarView)],
                                     ["Peso líquido", peso?.pesoTotalG ? fmtG(peso.pesoTotalG) : (pesoPorcaoG && porcoes ? fmtG(pesoPorcaoG * porcoes) : "—")],
                                     ["Unidade de venda", unR === "porcao" ? "Porção" : labelUn],
                                     ["Porção padrão", pesoPorcaoG ? `${nf(pesoPorcaoG)} g` : "—"],
@@ -2828,7 +2903,7 @@ function FichasRunner() {
                            <div className="grid grid-cols-2 gap-3">
                               <div className="rounded-xl bg-emerald-50 border border-emerald-100 px-3 py-2.5">
                                  <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Esta receita rende</p>
-                                 <p className="text-xl font-black text-emerald-700">{nf(rend)} {labelUn}</p>
+                                 <p className="text-xl font-black text-emerald-700">{textoRendimento(rend, unR, ehBarView)}</p>
                               </div>
                               <div className="rounded-xl bg-emerald-50 border border-emerald-100 px-3 py-2.5">
                                  <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">Peso total</p>

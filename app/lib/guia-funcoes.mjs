@@ -7,8 +7,6 @@
 // O guia é por FUNÇÃO, nunca por pessoa: quem cobre o turno do outro lê a
 // mesma linha e sabe o que fazer, sem depender de quem escreveu.
 
-export const chaveGuiaFuncoes = (unidadeId) => `erp_guia_funcoes_${unidadeId || "sem-unidade"}`;
-
 // Cada função tem uma cor para achar a coluna certa de relance na parede, e
 // blocos com horário + atividade. `intervalo: true` marca a pausa, que aparece
 // destacada porque é o que mais gera dúvida e discussão no fim do mês.

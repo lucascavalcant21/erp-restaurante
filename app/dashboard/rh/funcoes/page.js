@@ -8,14 +8,15 @@
 //
 // É por FUNÇÃO, sem nomes: quem cobre o turno do outro lê a mesma folha.
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft, Clock, Coffee, Loader2, Plus, Printer, RotateCcw, Save, Table, Trash2,
+  ArrowLeft, Clock, Coffee, Database, Loader2, Plus, Printer, RotateCcw, Save, Table, Trash2,
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
+import { fetchGuias, removerGuia, salvarGuia, semearGuias, TIPOS_GUIA } from "../../../lib/guias";
 import {
-  GUIA_FUNCOES_PADRAO, chaveGuiaFuncoes, ordenarBlocos, periodoDoBloco,
+  GUIA_FUNCOES_PADRAO, ordenarBlocos, periodoDoBloco,
 } from "../../../lib/guia-funcoes.mjs";
 import { logoSeldeestrelaSVG } from "../../../lib/marca";
 
@@ -28,74 +29,108 @@ export default function GuiaDeFuncoes() {
   const [carregando, setCarregando] = useState(true);
   const [editando, setEditando] = useState(false);
   const [salvo, setSalvo] = useState("");
+  const [semTabela, setSemTabela] = useState(false);
 
-  // Guardado por unidade: cada loja abre num horário e tem a sua rotina.
-  useEffect(() => {
+  const avisar = (texto) => { setSalvo(texto); setTimeout(() => setSalvo(""), 2500); };
+
+  // O guia vive no banco: o tablet da cozinha e o computador da gerência leem a
+  // mesma versão. Guardado em cada aparelho, cada um teria a sua — e a versão
+  // errada é pior que nenhuma, porque ninguém desconfia dela.
+  const daLinha = (linha) => ({
+    id: linha.id, funcao: linha.titulo, setor: linha.setor || "",
+    cor: linha.cor || "#475569", blocos: Array.isArray(linha.conteudo) ? linha.conteudo : [],
+  });
+
+  const carregar = useCallback(async () => {
+    if (!unidadeAtiva) return;
     setCarregando(true);
-    try {
-      const bruto = localStorage.getItem(chaveGuiaFuncoes(unidadeAtiva));
-      const salvoJson = bruto ? JSON.parse(bruto) : null;
-      setFuncoes(Array.isArray(salvoJson) && salvoJson.length ? salvoJson : GUIA_FUNCOES_PADRAO);
-    } catch {
-      setFuncoes(GUIA_FUNCOES_PADRAO);
+    let { data, error } = await fetchGuias(unidadeAtiva, TIPOS_GUIA.FUNCAO);
+    if (error === "sem_tabela") { setSemTabela(true); setFuncoes([]); setCarregando(false); return; }
+    setSemTabela(false);
+
+    // Loja nova estreia com o modelo: uma tela vazia não ensina o que ela
+    // deveria conter, e ninguém escreve a primeira rotina do zero.
+    if (!data.length) {
+      const semeado = await semearGuias(unidadeAtiva, GUIA_FUNCOES_PADRAO.map(f => ({
+        titulo: f.funcao, setor: f.setor, cor: f.cor, conteudo: f.blocos,
+      })), TIPOS_GUIA.FUNCAO);
+      if (semeado.error === "sem_tabela") { setSemTabela(true); setCarregando(false); return; }
+      data = semeado.data || [];
     }
+    setFuncoes(data.map(daLinha));
     setCarregando(false);
   }, [unidadeAtiva]);
 
-  const guardar = (proximo) => {
-    setFuncoes(proximo);
-    try {
-      localStorage.setItem(chaveGuiaFuncoes(unidadeAtiva), JSON.stringify(proximo));
-      setSalvo("Guia salvo");
-    } catch {
-      setSalvo("Não consegui salvar neste navegador");
-    }
-    setTimeout(() => setSalvo(""), 2500);
+  useEffect(() => { carregar(); }, [carregar]);
+
+  // Edita local e grava a função afetada. Esperar o banco a cada tecla deixaria
+  // o campo travado; gravar o guia inteiro reescreveria seis linhas por letra.
+  const persistir = async (funcaoLocal) => {
+    const { error } = await salvarGuia({
+      id: funcaoLocal.id, unidade_id: unidadeAtiva, tipo: TIPOS_GUIA.FUNCAO,
+      titulo: funcaoLocal.funcao, setor: funcaoLocal.setor, cor: funcaoLocal.cor,
+      conteudo: funcaoLocal.blocos,
+    });
+    if (error === "sem_tabela") return setSemTabela(true);
+    avisar(error ? `Não consegui salvar: ${error}` : "Guia salvo");
   };
 
-  const alterarBloco = (idFuncao, indice, campo, valor) => {
-    guardar(funcoes.map(f => f.id !== idFuncao ? f : {
-      ...f,
-      blocos: f.blocos.map((b, i) => i === indice ? { ...b, [campo]: valor } : b),
-    }));
+  const mexer = (idFuncao, transformacao, gravar = true) => {
+    setFuncoes(atual => {
+      const proximo = atual.map(f => f.id === idFuncao ? transformacao(f) : f);
+      if (gravar) {
+        const alvo = proximo.find(f => f.id === idFuncao);
+        if (alvo) persistir(alvo);
+      }
+      return proximo;
+    });
   };
 
-  const adicionarBloco = (idFuncao) => {
-    guardar(funcoes.map(f => f.id !== idFuncao ? f : {
-      ...f,
-      blocos: [...f.blocos, { hora: "", fim: "", atividade: "" }],
-    }));
+  const alterarBloco = (idFuncao, indice, campo, valor, gravar = true) =>
+    mexer(idFuncao, f => ({ ...f, blocos: f.blocos.map((b, i) => i === indice ? { ...b, [campo]: valor } : b) }), gravar);
+
+  const adicionarBloco = (idFuncao) =>
+    mexer(idFuncao, f => ({ ...f, blocos: [...f.blocos, { hora: "", fim: "", atividade: "" }] }));
+
+  const removerBloco = (idFuncao, indice) =>
+    mexer(idFuncao, f => ({ ...f, blocos: f.blocos.filter((_, i) => i !== indice) }));
+
+  const alterarFuncao = (idFuncao, campo, valor, gravar = true) =>
+    mexer(idFuncao, f => ({ ...f, [campo]: valor }), gravar);
+
+  const gravarFuncao = (idFuncao) => {
+    const alvo = funcoes.find(f => f.id === idFuncao);
+    if (alvo) persistir(alvo);
   };
 
-  const removerBloco = (idFuncao, indice) => {
-    guardar(funcoes.map(f => f.id !== idFuncao ? f : {
-      ...f,
-      blocos: f.blocos.filter((_, i) => i !== indice),
-    }));
-  };
-
-  const alterarFuncao = (idFuncao, campo, valor) => {
-    guardar(funcoes.map(f => f.id === idFuncao ? { ...f, [campo]: valor } : f));
-  };
-
-  const adicionarFuncao = () => {
-    const id = `funcao-${Date.now()}`;
-    guardar([...funcoes, {
-      id, funcao: "Nova função", cor: "#475569", setor: "",
-      blocos: [{ hora: "", fim: "", atividade: "" }],
-    }]);
+  const adicionarFuncao = async () => {
+    const { error } = await salvarGuia({
+      unidade_id: unidadeAtiva, tipo: TIPOS_GUIA.FUNCAO, titulo: "Nova função",
+      setor: "", cor: "#475569", conteudo: [{ hora: "", fim: "", atividade: "" }],
+      ordem: funcoes.length,
+    });
+    if (error === "sem_tabela") return setSemTabela(true);
+    if (error) return avisar(`Não consegui criar: ${error}`);
     setEditando(true);
+    await carregar();
   };
 
-  const removerFuncao = (idFuncao) => {
+  const removerFuncao = async (idFuncao) => {
     const alvo = funcoes.find(f => f.id === idFuncao);
     if (!confirm(`Remover a função "${alvo?.funcao || ""}" do guia? Some com todas as etapas dela.`)) return;
-    guardar(funcoes.filter(f => f.id !== idFuncao));
+    const { error } = await removerGuia(idFuncao);
+    if (error) return avisar(`Não consegui remover: ${error}`);
+    setFuncoes(atual => atual.filter(f => f.id !== idFuncao));
+    avisar("Função removida");
   };
 
-  const restaurarPadrao = () => {
-    if (!confirm("Voltar o guia ao modelo padrão? O que você editou nesta loja será perdido.")) return;
-    guardar(GUIA_FUNCOES_PADRAO);
+  const restaurarPadrao = async () => {
+    if (!confirm("Voltar o guia ao modelo padrão? O que foi editado nesta loja será perdido, para todos os aparelhos.")) return;
+    setCarregando(true);
+    await Promise.all(funcoes.map(f => removerGuia(f.id)));
+    setFuncoes([]);
+    await carregar();
+    avisar("Guia restaurado");
   };
 
   const funcoesOrdenadas = useMemo(
@@ -331,7 +366,8 @@ export default function GuiaDeFuncoes() {
 
         <p className="mt-5 text-[11px] font-medium leading-relaxed text-slate-400">
           O guia é por função, sem nomes: quem cobre o turno de alguém lê a mesma folha. Tudo é editável — nome da
-          função, setor, cor, horários e etapas —, e o que você mudar fica guardado nesta loja. São duas saídas:
+          função, setor, cor, horários e etapas —, e o que você mudar fica no banco, igual em todos os aparelhos
+          da loja: o tablet da cozinha e o computador da gerência leem a mesma versão. São duas saídas:
           <b> Cartaz por função</b> imprime uma função por página, para a parede do setor;
           <b> Planilha</b> põe a casa inteira numa tabela só, para conferir de uma vez.
         </p>

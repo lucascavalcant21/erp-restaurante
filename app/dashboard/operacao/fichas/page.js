@@ -313,29 +313,36 @@ function infoPesoFicha(f, todasFichas) {
     liquido: un === "l" || un === "ml",
   };
 }
-// Como escrever o rendimento de uma ficha. Na cozinha tudo se pesa: mesmo que a
-// receita tenha sido medida em g, ml ou L, o valor aparece sempre em kg (1 ml
-// conta como 1 g, densidade 1), que é a unidade que a equipe usa na balança.
-// No bar o dia a dia é volume, então L e ml continuam como foram cadastrados.
-function unidadeRendimento(unidade, ehBar, quantidade = 0) {
-  const un = String(unidade || "porcao").toLowerCase();
-  if (!ehBar && ["kg", "g", "l", "ml"].includes(un)) return "kg";
-  const umSo = Number(quantidade) === 1;
-  return { porcao: ehBar ? (umSo ? "dose" : "doses") : (umSo ? "porção" : "porções"), kg: "kg", g: "g", l: "L", ml: "ml", un: "un" }[un] || un;
-}
-function valorRendimento(quantidade, unidade, ehBar) {
-  const un = String(unidade || "porcao").toLowerCase();
-  const qtd = Number(quantidade) || 0;
-  return (!ehBar && (un === "g" || un === "ml")) ? qtd / 1000 : qtd;
-}
-function textoRendimento(quantidade, unidade, ehBar) {
-  const valor = valorRendimento(quantidade, unidade, ehBar);
-  return `${(+valor.toFixed(3)).toLocaleString("pt-BR")} ${unidadeRendimento(unidade, ehBar, quantidade)}`;
-}
-
 const fmtG = (g) => g >= 1000
   ? `${(g / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} kg`
   : `${(+g.toFixed(1)).toLocaleString("pt-BR")} g`;
+
+// Como escrever o rendimento de uma ficha. Na cozinha tudo se pesa: a receita
+// medida em ml ou L aparece em peso (1 ml conta como 1 g, a mesma densidade
+// que o custo já usa por dentro), e a unidade acompanha o tamanho — gramas até
+// 1 kg, kg daí para cima, como no resto do sistema. No bar a medida do balcão
+// é volume, então L e ml continuam como foram cadastrados.
+const MEDIDAS_DE_PESO = ["kg", "g", "l", "ml"];
+function pesarNaCozinha(unidade, ehBar) {
+  return !ehBar && MEDIDAS_DE_PESO.includes(String(unidade || "").toLowerCase());
+}
+function gramasRendimento(quantidade, unidade) {
+  const un = String(unidade || "").toLowerCase();
+  const qtd = Number(quantidade) || 0;
+  return (un === "kg" || un === "l") ? qtd * 1000 : qtd;
+}
+function unidadeRendimento(unidade, ehBar, quantidade = 0) {
+  const un = String(unidade || "porcao").toLowerCase();
+  if (pesarNaCozinha(un, ehBar)) return gramasRendimento(quantidade, un) >= 1000 ? "kg" : "g";
+  const umSo = Number(quantidade) === 1;
+  return { porcao: ehBar ? (umSo ? "dose" : "doses") : (umSo ? "porção" : "porções"), kg: "kg", g: "g", l: "L", ml: "ml", un: "un" }[un] || un;
+}
+function textoRendimento(quantidade, unidade, ehBar) {
+  const un = String(unidade || "porcao").toLowerCase();
+  if (pesarNaCozinha(un, ehBar)) return fmtG(gramasRendimento(quantidade, un));
+  const qtd = Number(quantidade) || 0;
+  return `${(+qtd.toFixed(3)).toLocaleString("pt-BR")} ${unidadeRendimento(un, ehBar, qtd)}`;
+}
 
 // Soma dos ingredientes → rendimento bruto estimado da receita (antes de perdas
 // no cozimento). Separa sólidos (g) de líquidos (ml). Itens em "un" entram se o

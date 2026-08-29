@@ -157,6 +157,51 @@ function EtiquetasRunner() {
   // para identificar potes e caixas sem poluir com datas).
   const [modelo, setModelo] = useState(() => { try { return localStorage.getItem("hefisto_etq_modelo") || "validade"; } catch { return "validade"; } });
   useEffect(() => { try { localStorage.setItem("hefisto_etq_modelo", modelo); } catch {} }, [modelo]);
+  // Logo na etiqueta. Fica por unidade porque cada loja tem a sua marca, e
+  // guardado como data URL já reduzida: o localStorage tem alguns megabytes no
+  // total, e uma foto de logo saída do celular sozinha estoura isso.
+  const chaveLogo = `hefisto_etq_logo_${unidadeAtiva || "sem-unidade"}`;
+  const [logoEtiqueta, setLogoEtiqueta] = useState("");
+  const [mostrarLogo, setMostrarLogo] = useState(() => { try { return localStorage.getItem("hefisto_etq_logo_on") === "1"; } catch { return false; } });
+  const [erroLogo, setErroLogo] = useState("");
+  const inputLogoRef = useRef(null);
+  useEffect(() => { try { setLogoEtiqueta(localStorage.getItem(chaveLogo) || ""); } catch { setLogoEtiqueta(""); } }, [chaveLogo]);
+  useEffect(() => { try { localStorage.setItem("hefisto_etq_logo_on", mostrarLogo ? "1" : "0"); } catch {} }, [mostrarLogo]);
+
+  // Reduz para caber no armazenamento e imprimir limpo: numa etiqueta o logo
+  // ocupa milímetros, então mais de 240px de largura é peso sem ganho nenhum.
+  const escolherLogo = (arquivo) => {
+    if (!arquivo) return;
+    setErroLogo("");
+    if (!/^image\//.test(arquivo.type)) { setErroLogo("Escolha um arquivo de imagem."); return; }
+    const leitor = new FileReader();
+    leitor.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const largura = Math.min(240, img.width);
+        const altura = Math.round(img.height * (largura / img.width));
+        const canvas = document.createElement("canvas");
+        canvas.width = largura; canvas.height = altura;
+        canvas.getContext("2d").drawImage(img, 0, 0, largura, altura);
+        const reduzida = canvas.toDataURL("image/png");
+        try {
+          localStorage.setItem(chaveLogo, reduzida);
+          setLogoEtiqueta(reduzida);
+          setMostrarLogo(true);
+        } catch { setErroLogo("Não consegui guardar o logo neste navegador. Tente uma imagem menor."); }
+      };
+      img.onerror = () => setErroLogo("Não consegui ler essa imagem.");
+      img.src = String(leitor.result || "");
+    };
+    leitor.onerror = () => setErroLogo("Não consegui ler o arquivo.");
+    leitor.readAsDataURL(arquivo);
+  };
+
+  const removerLogo = () => {
+    try { localStorage.removeItem(chaveLogo); } catch {}
+    setLogoEtiqueta(""); setMostrarLogo(false); setErroLogo("");
+  };
+
   const [girar, setGirar] = useState(() => { try { return localStorage.getItem("hefisto_etq_girar") === "1"; } catch { return false; } });
   useEffect(() => { try { localStorage.setItem("hefisto_etq_girar", girar ? "1" : "0"); } catch {} }, [girar]);
   useEffect(() => { try { localStorage.setItem("hefisto_etq_modo", modoTira); } catch {} }, [modoTira]);
@@ -926,6 +971,30 @@ function EtiquetasRunner() {
                 </button>
               ))}
             </div>
+            {/* Logo da etiqueta */}
+            <div className="mb-2 flex flex-wrap items-center gap-2 rounded-xl border p-2" style={{ borderColor: "var(--line)", background: "var(--card)" }}>
+              <input ref={inputLogoRef} type="file" accept="image/*" className="hidden"
+                onChange={(e) => { escolherLogo(e.target.files?.[0]); e.target.value = ""; }} />
+              {logoEtiqueta ? (
+                <>
+                  <img src={logoEtiqueta} alt="Logo da etiqueta" className="h-8 w-auto max-w-[90px] object-contain" />
+                  <button onClick={() => setMostrarLogo(v => !v)}
+                    className="rounded-lg px-3 py-1.5 text-[11px] font-bold"
+                    style={mostrarLogo ? { background: "var(--accent-strong)", color: "#fff" } : { background: "var(--card)", color: "var(--muted)", border: "1px solid var(--line)" }}>
+                    {mostrarLogo ? "Na etiqueta" : "Fora da etiqueta"}
+                  </button>
+                  <button onClick={() => inputLogoRef.current?.click()} className="rounded-lg border px-3 py-1.5 text-[11px] font-bold" style={{ borderColor: "var(--line)", color: "var(--muted)" }}>Trocar</button>
+                  <button onClick={removerLogo} className="rounded-lg border px-3 py-1.5 text-[11px] font-bold" style={{ borderColor: "var(--line)", color: "var(--muted)" }}>Remover</button>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => inputLogoRef.current?.click()} className="rounded-lg px-3 py-1.5 text-[11px] font-bold" style={{ background: "var(--accent-strong)", color: "#fff" }}>Adicionar logo</button>
+                  <span className="text-[11px] font-medium" style={{ color: "var(--subtle)" }}>Sai no topo da etiqueta, na impressão pelo navegador e no PDF. Vale para esta loja.</span>
+                </>
+              )}
+              {erroLogo && <span className="w-full text-[11px] font-bold text-red-600">{erroLogo}</span>}
+            </div>
+
             <div className="flex items-center justify-between mb-2">
               <SectionLabel>Pré-visualização</SectionLabel>
               <div className="flex gap-1.5">
@@ -944,6 +1013,9 @@ function EtiquetasRunner() {
                   modelo === "nome" ? (
                   /* Etiqueta SÓ NOME: identifica o pote/caixa, sem datas */
                   <div key={idx} className="etiqueta-print shadow-sm" style={{ width: dim.w, height: dim.h, marginLeft: "auto", marginRight: "auto", background: "#fff", color: "#000", padding: dim.pad, fontFamily: "'Courier New', monospace", borderRadius: 8, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", overflow: "hidden", flexShrink: 0 }}>
+                    {mostrarLogo && logoEtiqueta && (
+                      <img src={logoEtiqueta} alt="" style={{ maxHeight: "8mm", maxWidth: "70%", objectFit: "contain", marginBottom: dim.gap }} />
+                    )}
                     <div style={{ fontSize: `calc(${dim.titulo} * 1.7)`, fontWeight: 900, lineHeight: 1.05, textTransform: "uppercase", wordBreak: "break-word" }}>
                       {nomeProduto || "PRODUTO"}
                     </div>
@@ -955,9 +1027,16 @@ function EtiquetasRunner() {
                   </div>
                   ) : (
                   <div key={idx} className="etiqueta-print shadow-sm" style={{ width: dim.w, height: dim.h, marginLeft: "auto", marginRight: "auto", background: "#fff", color: "#000", padding: dim.pad, fontFamily: "'Courier New', monospace", borderRadius: 8, display: "flex", flexDirection: "column", overflow: "hidden", flexShrink: 0 }}>
-                    {/* produto */}
-                    <div style={{ fontSize: dim.titulo, fontWeight: 900, lineHeight: 1.0, textTransform: "uppercase", paddingBottom: dim.gap, borderBottom: "0.5mm solid #000" }}>
-                      {nomeProduto || "PRODUTO"}
+                    {/* logo + produto */}
+                    <div style={{ paddingBottom: dim.gap, borderBottom: "0.5mm solid #000" }}>
+                      {mostrarLogo && logoEtiqueta && (
+                        <div style={{ display: "flex", justifyContent: "center", marginBottom: "0.5mm" }}>
+                          <img src={logoEtiqueta} alt="" style={{ maxHeight: "5mm", maxWidth: "60%", objectFit: "contain" }} />
+                        </div>
+                      )}
+                      <div style={{ fontSize: dim.titulo, fontWeight: 900, lineHeight: 1.0, textTransform: "uppercase" }}>
+                        {nomeProduto || "PRODUTO"}
+                      </div>
                     </div>
                     {/* conservação + qtd */}
                     <div style={{ display: "flex", justifyContent: "space-between", whiteSpace: "nowrap", fontSize: dim.linha, fontWeight: 800, padding: `${dim.secPad} 0`, borderBottom: "0.4mm solid #000" }}>

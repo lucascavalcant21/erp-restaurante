@@ -2160,37 +2160,6 @@ function FichasRunner() {
                   : (deptUrl === "bar" ? "Montagem, custos e margens de drinks e bebidas" : "Montagem de pratos, rendimento, custo e CMV para o cardápio")}</p>
               </div>
             </div>
-            <div className="erp-busca-fixa flex flex-col gap-3 sm:flex-row">
-              {/* O CMV médio viaja com a busca: a busca é sticky, então o número
-                  continua à vista enquanto se rola a lista de fichas. */}
-              <div className="flex min-w-0 items-center gap-2.5">
-              {resumoCardapio.totalFichas > 0 && (() => {
-                const cmv = resumoCardapio.cmvMedio;
-                const alto = cmv != null && cmv > 35;
-                return (
-                  <button type="button" onClick={() => setMostrarIndicadores(valor => !valor)} title="Ver todos os indicadores do cardápio"
-                    className={`flex h-11 shrink-0 items-center gap-2 rounded-2xl border px-3 shadow-sm transition-colors ${alto ? "border-red-200 bg-red-50 hover:bg-red-100" : "border-emerald-200 bg-emerald-50 hover:bg-emerald-100"}`}>
-                    <Calculator size={18} className={`shrink-0 ${alto ? "text-red-600" : "text-emerald-700"}`} />
-                    <span className="text-left">
-                      <span className="block text-[9px] font-black uppercase tracking-wider leading-none text-slate-500">CMV médio</span>
-                      <span className={`block text-lg font-black leading-tight ${alto ? "text-red-600" : "text-emerald-700"}`}>{cmv != null ? `${cmv.toFixed(1)}%` : "—"}</span>
-                    </span>
-                    <span className="hidden text-[10px] font-bold leading-tight text-slate-400 xl:block">
-                      {resumoCardapio.precificadas} precificad{resumoCardapio.precificadas === 1 ? "a" : "as"}
-                      {resumoCardapio.semPreco > 0 && <><br />{resumoCardapio.semPreco} sem preço</>}
-                    </span>
-                  </button>
-                );
-              })()}
-              <label className="flex min-w-0 flex-1 items-center gap-2 rounded-2xl border-2 border-slate-300 bg-white px-3.5 shadow-sm transition-all focus-within:border-emerald-600 focus-within:ring-4 focus-within:ring-emerald-500/20 sm:w-[430px] sm:flex-none">
-                <Search size={19} className="shrink-0 text-slate-700" />
-                <input value={busca} onChange={e => setBusca(e.target.value)} placeholder={modoFicha === "preparos" ? "Buscar preparo por nome..." : deptUrl === "bar" ? "Buscar drink ou produto..." : "Buscar prato por nome..."} className="h-11 min-w-0 flex-1 bg-transparent text-sm font-bold text-slate-900 outline-none placeholder:font-medium placeholder:text-slate-400" />
-                {busca && <button onClick={() => setBusca("")} className="text-slate-400 hover:text-slate-700" title="Limpar busca"><X size={16} /></button>}
-              </label>
-              </div>
-              <button onClick={abrirModalIAFicha} className="flex h-11 items-center justify-center gap-2 rounded-xl border border-emerald-600/30 bg-emerald-50 px-4 text-sm font-black text-emerald-700 shadow-sm hover:bg-emerald-100"><Sparkles size={18} /> Criar com IA</button>
-              <button onClick={abrirNova} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-black text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700"><Plus size={18} /> {modoFicha === "preparos" ? "Novo preparo" : deptUrl === "bar" ? "Novo drink" : "Novo prato"}</button>
-            </div>
           </div>
           <div className="mt-3 flex gap-2 overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-2">
             <button onClick={() => { if (!fichas.length) return alert("Nenhuma ficha para o livro."); abrirPreviaImpressao("livro", fichas); }} className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-100"><Printer size={14} /> Livro de receitas</button>
@@ -2202,6 +2171,46 @@ function FichasRunner() {
           </div>
         </div>
       </header>
+
+      {/* A busca e o CMV médio ficam FORA do <header>. Um elemento sticky só
+          gruda enquanto o pai está na tela: dentro do cabeçalho, ele saía de
+          vista junto com o título logo na primeira rolagem. Aqui o pai é a
+          página inteira, então a faixa acompanha a lista até o fim. */}
+      {/* A faixa de busca gruda no topo com margens zeradas: a classe
+          .erp-busca-fixa nasceu para viver dentro de um container com padding e
+          traz margens negativas de 4px. Aqui ela ocupa a largura toda, e essas
+          margens empurrariam a página 8px além da tela. */}
+      <div className="erp-busca-fixa border-b border-slate-200 bg-white" style={{ marginLeft: 0, marginRight: 0 }}>
+        <div className="mx-auto flex max-w-[1480px] flex-col gap-3 px-4 py-2.5 sm:flex-row sm:px-5">
+          <div className="flex min-w-0 items-center gap-2.5">
+            {resumoCardapio.totalFichas > 0 && (() => {
+              const cmv = resumoCardapio.cmvMedio;
+              const alto = cmv != null && cmv > 35;
+              return (
+                <button type="button" onClick={() => setMostrarIndicadores(valor => !valor)} title="Ver todos os indicadores do cardápio"
+                  className={`flex h-11 shrink-0 items-center gap-2 rounded-2xl border px-3 shadow-sm transition-colors ${alto ? "border-red-200 bg-red-50 hover:bg-red-100" : "border-emerald-200 bg-emerald-50 hover:bg-emerald-100"}`}>
+                  <Calculator size={18} className={`shrink-0 ${alto ? "text-red-600" : "text-emerald-700"}`} />
+                  <span className="text-left">
+                    <span className="block text-[9px] font-black uppercase tracking-wider leading-none text-slate-500">CMV médio</span>
+                    <span className={`block text-lg font-black leading-tight ${alto ? "text-red-600" : "text-emerald-700"}`}>{cmv != null ? `${cmv.toFixed(1)}%` : "—"}</span>
+                  </span>
+                  <span className="hidden text-[10px] font-bold leading-tight text-slate-400 xl:block">
+                    {resumoCardapio.precificadas} precificad{resumoCardapio.precificadas === 1 ? "a" : "as"}
+                    {resumoCardapio.semPreco > 0 && <><br />{resumoCardapio.semPreco} sem preço</>}
+                  </span>
+                </button>
+              );
+            })()}
+            <label className="flex min-w-0 flex-1 items-center gap-2 rounded-2xl border-2 border-slate-300 bg-white px-3.5 shadow-sm transition-all focus-within:border-emerald-600 focus-within:ring-4 focus-within:ring-emerald-500/20 sm:w-[430px] sm:flex-none">
+              <Search size={19} className="shrink-0 text-slate-700" />
+              <input value={busca} onChange={e => setBusca(e.target.value)} placeholder={modoFicha === "preparos" ? "Buscar preparo por nome..." : deptUrl === "bar" ? "Buscar drink ou produto..." : "Buscar prato por nome..."} className="h-11 min-w-0 flex-1 bg-transparent text-sm font-bold text-slate-900 outline-none placeholder:font-medium placeholder:text-slate-400" />
+              {busca && <button onClick={() => setBusca("")} className="text-slate-400 hover:text-slate-700" title="Limpar busca"><X size={16} /></button>}
+            </label>
+          </div>
+          <button onClick={abrirModalIAFicha} className="flex h-11 items-center justify-center gap-2 rounded-xl border border-emerald-600/30 bg-emerald-50 px-4 text-sm font-black text-emerald-700 shadow-sm hover:bg-emerald-100"><Sparkles size={18} /> Criar com IA</button>
+          <button onClick={abrirNova} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-black text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700"><Plus size={18} /> {modoFicha === "preparos" ? "Novo preparo" : deptUrl === "bar" ? "Novo drink" : "Novo prato"}</button>
+        </div>
+      </div>
 
       <main className="mx-auto max-w-[1480px] px-4 py-4 sm:px-5">
          {/* Kanban de indicadores: CMV médio, margem, custo, ticket */}

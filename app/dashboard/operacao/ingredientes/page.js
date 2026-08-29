@@ -183,7 +183,9 @@ function VariacaoPreco({ insumo }) {
 
 function IngredientesRunner() {
   const searchParams = useSearchParams();
-  const deptUrl = searchParams.get("dept");
+  // Um catálogo, um setor. Sem ?dept= a listagem vinha sem filtro e misturava
+  // produtos do bar com ingredientes da cozinha na mesma tela.
+  const deptUrl = searchParams.get("dept") === "bar" ? "bar" : "cozinha";
   const { abrirMenu, unidadeAtiva, sessao } = useERP();
   const ehBar = deptUrl === "bar";
   const rotuloItem = ehBar ? "produto" : "ingrediente";
@@ -197,8 +199,9 @@ function IngredientesRunner() {
   const [ordenacao, setOrdenacao] = useState("nome-asc");
   const [pagina, setPagina] = useState(1);
   const [porPagina, setPorPagina] = useState(PAGE_SIZE);
+  const [destacado, setDestacado] = useState(null); // item recém-salvo, para não sumir de vista
   const [calculos, setCalculos] = useState({});
-  const [form, setForm] = useState(() => novoFormulario(deptUrl || "cozinha"));
+  const [form, setForm] = useState(() => novoFormulario(deptUrl));
   const [modalCadastro, setModalCadastro] = useState(false);
   const [modalHistorico, setModalHistorico] = useState(null);
   const [historico, setHistorico] = useState([]);
@@ -369,7 +372,7 @@ function IngredientesRunner() {
     for (const item of itensMigracao) {
       const nome = String(item.nome || "").trim();
       if (!nome) continue;
-      const dept = item.departamento || deptUrl || "cozinha";
+      const dept = deptUrl;
       const qtd = parseNumeroBR(item.quantidade) || 1;
       const valor = parseNumeroBR(item.valor_total) || 0;
       const unidade = item.unidade || "kg";
@@ -424,7 +427,7 @@ function IngredientesRunner() {
       comando: origemMigracaoVoz
         ? `${migrarTexto}${comandoConfirmacao ? `; Confirmação por voz: ${comandoConfirmacao}` : ""}`
         : "Importacao de ingredientes por lista ou imagem",
-      intencao: { origem: origemMigracaoVoz ? "voz" : "lista", itens: itensMigracao.map(item => ({ nome: item.nome, quantidade: item.quantidade, unidade: item.unidade, valor_total: item.valor_total, departamento: item.departamento })) },
+      intencao: { origem: origemMigracaoVoz ? "voz" : "lista", itens: itensMigracao.map(item => ({ nome: item.nome, quantidade: item.quantidade, unidade: item.unidade, valor_total: item.valor_total, departamento: deptUrl })) },
       acao: origemMigracaoVoz ? "inventory.ingredients.voice_batch" : "inventory.ingredients.import_batch",
       modulo: "inventory",
       valorAnterior: insumos.length,
@@ -457,6 +460,18 @@ function IngredientesRunner() {
   const paginaAtual = Math.min(pagina, totalPaginas);
   const paginados = filtrados.slice((paginaAtual - 1) * tamanhoPagina, paginaAtual * tamanhoPagina);
 
+  // A lista é alfabética e paginada: um "Tomate" recém-cadastrado cai numa
+  // página que ninguém está olhando e parece ter sumido. Depois de salvar,
+  // vamos até a página onde ele está e o destacamos por alguns segundos.
+  useEffect(() => {
+    if (!destacado) return;
+    const indice = filtrados.findIndex(item => item.id === destacado);
+    if (indice < 0) return;
+    setPagina(Math.floor(indice / tamanhoPagina) + 1);
+    const limpar = setTimeout(() => setDestacado(null), 5000);
+    return () => clearTimeout(limpar);
+  }, [destacado, filtrados, tamanhoPagina]);
+
   const estatisticas = useMemo(() => {
     const limiteRecente = Date.now() - 30 * 24 * 60 * 60 * 1000;
     return {
@@ -468,13 +483,13 @@ function IngredientesRunner() {
   }, [insumos]);
 
   const abrirNovo = () => {
-    setForm(novoFormulario(deptUrl || "cozinha"));
+    setForm(novoFormulario(deptUrl));
     setPrecosForn([]); setPrecoFornMsg("");
     setModalCadastro(true);
   };
 
   const abrirEditar = insumo => {
-    const dep = insumo.departamento || deptUrl || "cozinha";
+    const dep = deptUrl;
     let un = insumo.unidade_medida || (dep === "bar" ? "ml" : "kg");
     setForm({
       id: insumo.id,
@@ -637,6 +652,11 @@ function IngredientesRunner() {
     }
 
     setModalCadastro(false);
+    // Cadastro novo entra no fim do alfabeto ou fora do filtro ativo. Limpar
+    // busca e categoria garante que ele esteja na lista; o efeito de destaque
+    // leva até a página dele.
+    if (!form.id) { setBusca(""); setCategoria("Todas"); }
+    setDestacado(insumoId || null);
     await carregar();
     mostrarToast(form.id ? `${ehBar ? "Produto" : "Ingrediente"} atualizado.` : `${ehBar ? "Produto" : "Ingrediente"} cadastrado.`);
   };
@@ -877,7 +897,7 @@ function IngredientesRunner() {
                 const outros = Math.max(0, vinculados.length - 1);
                 const normalizado = precoNormalizadoDoInsumo(insumo);
                 return (
-                  <tr key={insumo.id} className={`align-middle transition ${selecionados.has(insumo.id) ? "bg-emerald-50" : "hover:bg-emerald-50/30"}`}>
+                  <tr key={insumo.id} className={`align-middle transition ${destacado === insumo.id ? "bg-emerald-100 ring-2 ring-inset ring-emerald-400" : selecionados.has(insumo.id) ? "bg-emerald-50" : "hover:bg-emerald-50/30"}`}>
                     <td className="w-9 pl-3 pr-0">
                       <input type="checkbox" aria-label={`Selecionar ${insumo.nome}`}
                         checked={selecionados.has(insumo.id)} onChange={() => alternarSelecao(insumo.id)}
@@ -961,7 +981,7 @@ function IngredientesRunner() {
             const vinculados = insumo.fornecedores_vinculados || [];
             const normalizado = precoNormalizadoDoInsumo(insumo);
             return (
-              <article key={insumo.id} className={`rounded-xl border bg-white p-3 shadow-sm ${selecionados.has(insumo.id) ? "border-emerald-400 ring-2 ring-emerald-100" : "border-slate-200"}`}>
+              <article key={insumo.id} className={`rounded-xl border bg-white p-3 shadow-sm ${destacado === insumo.id ? "border-emerald-500 ring-2 ring-emerald-300" : selecionados.has(insumo.id) ? "border-emerald-400 ring-2 ring-emerald-100" : "border-slate-200"}`}>
                 <div className="flex items-start justify-between gap-3">
                   <input type="checkbox" aria-label={`Selecionar ${insumo.nome}`}
                     checked={selecionados.has(insumo.id)} onChange={() => alternarSelecao(insumo.id)}
@@ -1123,11 +1143,10 @@ function IngredientesRunner() {
                     </select>
                   </label>
                   <label>
-                    <span className="text-xs font-bold text-slate-600">Departamento</span>
-                    <select value={form.departamento} onChange={event => setForm({ ...form, departamento: event.target.value, categoria: "" })} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 font-bold outline-none focus:border-emerald-500">
-                      <option value="cozinha">Cozinha</option>
-                      <option value="bar">Bar</option>
-                    </select>
+                    <span className="text-xs font-bold text-slate-600">Setor</span>
+                    <div className="mt-1.5 flex h-11 w-full items-center rounded-xl border border-slate-200 bg-slate-100 px-3.5 font-bold text-slate-600">
+                      {ehBar ? "Bar" : "Cozinha"}
+                    </div>
                   </label>
                 </div>
               </section>
@@ -1549,7 +1568,6 @@ function IngredientesRunner() {
                         <tr>
                           <th className="p-3">Nome</th>
                           <th className="p-3">Marca</th>
-                          <th className="p-3">Setor</th>
                           <th className="p-3">Qtd</th>
                           <th className="p-3">Unidade</th>
                           <th className="p-3">Valor Total (R$)</th>
@@ -1574,16 +1592,6 @@ function IngredientesRunner() {
                                 placeholder="Marca"
                                 className="w-full rounded-lg border border-slate-200 px-2 py-1"
                               />
-                            </td>
-                            <td className="p-2">
-                              <select
-                                value={item.departamento || "cozinha"}
-                                onChange={e => atualizarItemMigracao(idx, "departamento", e.target.value)}
-                                className="rounded-lg border border-slate-200 px-2 py-1 font-bold text-slate-700"
-                              >
-                                <option value="cozinha">Cozinha</option>
-                                <option value="bar">Bar</option>
-                              </select>
                             </td>
                             <td className="p-2">
                               <input

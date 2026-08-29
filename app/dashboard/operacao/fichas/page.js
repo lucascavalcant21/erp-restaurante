@@ -293,7 +293,7 @@ function baseCustoDaFicha(unidadeRendimento, padrao = "kg") {
 // Cartão e imposto incidem sobre o preço de venda. O Simples Nacional é
 // apurado sobre o faturamento, e a alíquota depende do anexo e da faixa de
 // receita da loja — por isso é editável, e não um número fixo no código.
-const TAXAS_VENDA_PADRAO = { cartao: 3, imposto: 4 };
+const TAXAS_VENDA_PADRAO = { cartao: 3, imposto: 7.3 };
 const chaveTaxasVenda = (unidadeId) => `erp_taxas_venda_${unidadeId || "sem-unidade"}`;
 
 // Quantas embalagens a ficha consome: uma por porção servida. Quando o
@@ -3723,7 +3723,7 @@ function FichasRunner() {
                                              <span className="font-black text-slate-800">{fmtBRL(custoImposto)}</span>
                                           </div>
                                           <div className="flex items-center justify-between gap-3 border-t border-slate-200 pt-1.5">
-                                             <span className="font-black text-slate-600">Sai da venda</span>
+                                             <span className="font-black text-slate-600">Custo total da venda</span>
                                              <span className="text-base font-black text-slate-900">{fmtBRL(custoPorc + custoCartao + custoImposto)}</span>
                                           </div>
                                        </>

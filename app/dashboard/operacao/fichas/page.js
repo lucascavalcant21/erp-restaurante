@@ -1911,7 +1911,7 @@ function FichasRunner() {
             </tr></tbody></table>`
               : `<h2>Custos e precificação</h2>
             <table><thead><tr>
-              <th>Custo/porção</th>
+              <th>Custo do produto</th>
               ${incluir("preco", false) ? "<th>Preço de venda</th>" : ""}
               ${incluir("cmv", false) ? "<th>CMV</th>" : ""}
               ${incluir("margem", false) ? "<th>Lucro/porção</th>" : ""}
@@ -2012,11 +2012,23 @@ function FichasRunner() {
       const prod = produtos.find(x => x.ficha_id === f.id || String(x.nome_produto || '').toLowerCase() === String(f.nome_receita || '').toLowerCase());
       const preco = Number(prod?.preco_venda) || 0;
       const cmv = preco > 0 ? (custoPorcao / preco) * 100 : null;
-      return { nome: f.nome_receita, cat: f.categoria || (f.departamento === 'bar' ? 'Bar' : 'Cozinha'), custoTotal, custoPorcao, preco, cmv };
+      // Acima de 30% de CMV a planilha não se limita a apontar o problema: diz
+      // por quanto o prato precisaria sair para chegar lá. Sem isso, quem lê
+      // volta para a calculadora com o custo na mão.
+      const sugerido30 = cmv !== null && cmv > 30 ? custoPorcao / 0.30 : null;
+      // Lucro vem antes do CMV porque é a pergunta que se faz primeiro: quanto
+      // sobra. O CMV explica por que sobra isso. Já descontados maquininha e
+      // imposto, as duas fatias que a venda perde depois da mercadoria.
+      const taxas = preco * ((Number(taxasVenda.cartao) || 0) + (Number(taxasVenda.imposto) || 0)) / 100;
+      const lucro = preco > 0 ? preco - custoPorcao - taxas : null;
+      return { nome: f.nome_receita, cat: f.categoria || (f.departamento === 'bar' ? 'Bar' : 'Cozinha'), custoTotal, custoPorcao, preco, cmv, sugerido30, lucro };
     }).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
     const comCmv = linhas.filter(l => l.cmv !== null);
     const cmvMedio = comCmv.length ? comCmv.reduce((s, l) => s + l.cmv, 0) / comCmv.length : null;
-    const rows = linhas.map(l => `<tr><td>${esc2(l.nome)}</td><td>${esc2(l.cat)}</td><td class="r">${brl(l.custoTotal)}</td><td class="r">${brl(l.custoPorcao)}</td><td class="r">${l.preco > 0 ? brl(l.preco) : '—'}</td><td class="r ${l.cmv === null ? '' : l.cmv > 35 ? 'ruim' : 'bom'}">${l.cmv !== null ? l.cmv.toFixed(1) + '%' : '—'}</td></tr>`).join('');
+    // "Custo total" e "Custo/porção" repetiam o mesmo valor em toda ficha que
+    // rende uma porção — a maioria. Fica a que casa com o preço de venda e
+    // forma o CMV, com o nome que a operação usa: custo do produto.
+    const rows = linhas.map(l => `<tr><td>${esc2(l.nome)}</td><td>${esc2(l.cat)}</td><td class="r">${brl(l.custoPorcao)}</td><td class="r">${l.preco > 0 ? brl(l.preco) : '—'}${l.sugerido30 ? `<small>${brl(l.sugerido30)} (30% CMV)</small>` : ''}</td><td class="r ${l.lucro === null ? '' : l.lucro < 0 ? 'ruim' : 'bom'}">${l.lucro !== null ? brl(l.lucro) : '—'}</td><td class="r ${l.cmv === null ? '' : l.cmv > 35 ? 'ruim' : 'bom'}">${l.cmv !== null ? l.cmv.toFixed(1) + '%' : '—'}</td></tr>`).join('');
     win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Planilha de Custos</title><style>
       *{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;color:#0f172a;padding:12mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}
       h1{font-size:20px;text-transform:uppercase;letter-spacing:2px;border-bottom:3px solid #0f172a;padding-bottom:6px;margin-bottom:4px}
@@ -2025,16 +2037,19 @@ function FichasRunner() {
       th,td{padding:6px 8px;border-bottom:1px solid #e2e8f0;text-align:left}
       th{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#475569;border-bottom:2px solid #cbd5e1}
       td.r,th.r{text-align:right}tbody tr:nth-child(even){background:#f5f7fa}
+      td small{display:block;font-size:9px;color:#b45309;font-weight:bold;margin-top:1px}
       td.bom{color:#047857;font-weight:900}td.ruim{color:#dc2626;font-weight:900}
       tfoot td{border-top:2px solid #0f172a;font-weight:900;font-size:13px;padding-top:8px}
+      .nota{margin-top:12px;border-top:1px solid #e2e8f0;padding-top:8px;font-size:10px;color:#64748b;line-height:1.5}
       @media print{@page{margin:10mm}}
     </style></head><body>
       <div style="display:flex;justify-content:center;margin-bottom:10px">${logoSeldeestrelaSVG(42)}</div>
       <h1>Planilha de Custos e CMV</h1>
       <div class="sub">${esc2(unidadeInfo?.nome || '')} · ${new Date().toLocaleDateString('pt-BR')} · ${linhas.length} receita(s)</div>
-      <table><thead><tr><th>Receita</th><th>Categoria</th><th class="r">Custo total</th><th class="r">Custo/porção</th><th class="r">Preço de venda</th><th class="r">CMV</th></tr></thead>
+      <table><thead><tr><th>Receita</th><th>Categoria</th><th class="r">Custo do produto</th><th class="r">Preço de venda</th><th class="r">Lucro</th><th class="r">CMV</th></tr></thead>
       <tbody>${rows}</tbody>
       <tfoot><tr><td colspan="5">CMV médio da carta (${comCmv.length} precificada(s))</td><td class="r">${cmvMedio !== null ? cmvMedio.toFixed(1) + '%' : '—'}</td></tr></tfoot></table>
+      <p class="nota"><b>Custo do produto</b> é o de uma porção: ingredientes mais embalagem. <b>Lucro</b> é o que sobra da venda depois dele, da maquininha (${(Number(taxasVenda.cartao) || 0).toLocaleString('pt-BR')}%) e do imposto (${(Number(taxasVenda.imposto) || 0).toLocaleString('pt-BR')}%), antes do custo fixo. <b>CMV</b> é o custo do produto dividido pela venda. Em laranja, por quanto o prato sairia para fechar 30% de CMV.</p>
     </body></html>`);
     win.document.close();
     setTimeout(() => win.print(), 400);
@@ -2142,15 +2157,15 @@ function FichasRunner() {
       ${semPreco.length ? `<p class="aviso">${semPreco.length} prato(s) fora da conta por não terem preço de venda: ${esc(semPreco.map(l => l.nome).join(", "))}.</p>` : ""}
 
       <h2>Os 5 que mais deixam dinheiro</h2>
-      <table><thead><tr><th></th><th>Prato</th><th class="r">Custo</th><th class="r">Venda</th><th class="r">CMV</th><th class="r">Lucro</th><th class="r">%</th></tr></thead>
+      <table><thead><tr><th></th><th>Prato</th><th class="r">Custo do produto</th><th class="r">Venda</th><th class="r">CMV</th><th class="r">Lucro</th><th class="r">%</th></tr></thead>
       <tbody>${topCinco.map(linhaTabela).join("")}</tbody></table>
 
       <h2>Cardápio completo, do que mais sobra ao que menos sobra</h2>
-      <table><thead><tr><th></th><th>Prato</th><th class="r">Custo</th><th class="r">Venda</th><th class="r">CMV</th><th class="r">Lucro</th><th class="r">%</th></tr></thead>
+      <table><thead><tr><th></th><th>Prato</th><th class="r">Custo do produto</th><th class="r">Venda</th><th class="r">CMV</th><th class="r">Lucro</th><th class="r">%</th></tr></thead>
       <tbody>${ordenados.map(linhaTabela).join("")}</tbody></table>
 
       <p class="nota">
-        <b>Custo</b> é a mercadoria de uma porção: ingredientes mais embalagem. <b>CMV</b> é essa mercadoria dividida pela venda.
+        <b>Custo do produto</b> é o de uma porção: ingredientes mais embalagem. <b>CMV</b> é esse custo dividido pela venda.
         <b>Lucro</b> é o que sobra da venda depois da mercadoria, da maquininha (${pctCartao.toLocaleString("pt-BR")}%) e do imposto (${pctImposto.toLocaleString("pt-BR")}%) —
         antes de aluguel, folha, energia e o resto do custo fixo, que não pertencem a um prato específico.
         Preparos e produtos prontos ficam de fora: não se vendem sozinhos.
@@ -3889,7 +3904,7 @@ function FichasRunner() {
                                        </div>
                                     )}
                                     <div className="flex items-center justify-between gap-3 border-t border-slate-200 pt-1.5">
-                                       <span className="font-black text-slate-600">Custo da mercadoria</span>
+                                       <span className="font-black text-slate-600">Custo do produto</span>
                                        <span className="text-base font-black text-slate-900">{fmtBRL(custoPorc)}</span>
                                     </div>
                                     {precoNum > 0 && (

@@ -290,6 +290,21 @@ function baseCustoDaFicha(unidadeRendimento, padrao = "kg") {
   return padrao;
 }
 
+// Quantas embalagens a ficha consome: uma por porção servida. Quando o
+// rendimento é em peso ou volume, o número de porções só existe se a ficha
+// disser quanto pesa uma porção — 200 ml de rendimento não são 200 porções.
+// Sem esse dado a receita conta como um lote só. Antes o número cru virava a
+// quantidade de porções, e a embalagem era multiplicada pelo número de
+// mililitros: uma tampa de R$ 1,60 somava R$ 320,00 ao custo da ficha.
+function porcoesParaEmbalagem(rendimento, unidade, pesoPorcaoG) {
+  const un = String(unidade || "porcao").toLowerCase();
+  const rend = Number(rendimento) || 0;
+  if (un === "porcao" || un === "un") return Math.max(1, rend);
+  const pesoPorcao = Number(pesoPorcaoG) || 0;
+  const pesoTotal = pesoTotalDaFicha(rend, un, pesoPorcao);
+  return pesoPorcao > 0 && pesoTotal > 0 ? Math.max(1, pesoTotal / pesoPorcao) : 1;
+}
+
 // Info de peso de uma ficha: peso total produzido (g), custo por kg, peso por
 // porção e QUANTAS porções renderam. Vale quando a ficha tem peso_porcao_g
 // preenchido OU quando rende direto em peso/volume (kg/g/l/ml).
@@ -749,8 +764,8 @@ function FichasRunner() {
         const embalagem = embalagensCarregadas.find(emb => String(emb.id) === String(item.embalagem_id));
         return total + (Number(embalagem?.preco_unitario) || 0) * (Number(item.qtd) || 0);
       }, 0);
-      const rendimento = Math.max(1, Number(ficha.rendimento_porcoes) || 1);
-      return { ...ficha, custo_embalagens_total: custoPorPorcao * rendimento };
+      const porcoes = porcoesParaEmbalagem(ficha.rendimento_porcoes, ficha.rendimento_unidade, ficha.peso_porcao_g);
+      return { ...ficha, custo_embalagens_total: custoPorPorcao * porcoes };
     });
     setFichas(fichasComEmbalagens);
     setInsumosAtivos(resInsumos.data || []);
@@ -1072,14 +1087,11 @@ function FichasRunner() {
     return ingredientesLista.reduce((acc, ing) => acc + (ing.custo_unitario * ing.quantidade * multiplicadorPerda(ing.fator)), 0);
   };
 
-  const numeroPorcoesFormulario = () => {
-    const rendimento = Number(String(form.rendimento_porcoes || "").replace(",", ".")) || 0;
-    const unidade = String(form.rendimento_unidade || "porcao").toLowerCase();
-    if (unidade === "porcao" || unidade === "un") return rendimento;
-    const pesoPorcao = Number(form.peso_porcao_g) || 0;
-    const pesoTotal = pesoTotalDaFicha(rendimento, unidade, pesoPorcao);
-    return pesoPorcao > 0 && pesoTotal > 0 ? pesoTotal / pesoPorcao : rendimento;
-  };
+  const numeroPorcoesFormulario = () => porcoesParaEmbalagem(
+    String(form.rendimento_porcoes || "").replace(",", "."),
+    form.rendimento_unidade,
+    form.peso_porcao_g,
+  );
 
   const custoEmbalagensPorPorcao = () => fichaEmbalagens.reduce((total, item) => {
     const embalagem = embalagensEstoque.find(emb => String(emb.id) === String(item.embalagem_id));

@@ -23,6 +23,11 @@ Supabase, deploy por `git push origin main` na Vercel
   (portais, custos fixos, categorias de inventário).
 - **UI:** sem emojis. Verde é a única cor primária, vermelho só para erro.
   Cores vêm dos tokens em `app/globals.css` — nunca hex chumbado no componente.
+- **Nunca `.catch()` em cima de chamada ao Supabase.** O que ele devolve tem
+  `then` e não tem `catch`: chamar `.catch()` estoura um TypeError **antes de a
+  requisição sair**, e um `try` em volta engole tudo — a gravação simplesmente
+  não acontece, sem erro na tela. Use `try/catch` ou leia o `error` do retorno.
+  (Vale para `.from()`, `.rpc()`; `supabase.storage` é Promise de verdade.)
 - Escreva comentários e textos de tela em português, explicando o **porquê**, não o quê.
 
 ## O que está pendente, em ordem
@@ -54,8 +59,13 @@ comentário, e o script morria na linha 1. Comentário de SQL neste projeto é
 `/* */`, sem caractere decorativo.
 
 Scripts avulsos que existem mas você roda só se quiser:
-`ZERAR_FICHAS_COZINHA_E_BAR.sql` (apaga o receituário dos dois setores) e
-`IMPORTAR_PONTO_AGOSTO.sql`.
+`ZERAR_FICHAS_COZINHA_E_BAR.sql` (apaga o receituário dos dois setores),
+`IMPORTAR_PONTO_AGOSTO.sql` e `VINCULAR_PRODUTOS_AOS_ESTOQUES.sql`.
+
+O último (30/08) põe cada produto na prateleira do setor dele de uma vez, em
+todas as unidades. **Não precisa rodar**: o app faz isso sozinho ao abrir cada
+estoque. Serve para quem prefere consertar tudo sem abrir tela por tela. É
+idempotente e preserva saldo de quem já estava vinculado.
 
 ### 2. Recibo do extra mais curto — CONCLUÍDO
 Nada pendente aqui. O que ficou pronto, tudo já no `main`:
@@ -114,9 +124,11 @@ pendentes já estavam prontos** e ninguém sabia:
 Trilhas por cargo, aulas e documentos, quiz, progresso por pessoa e certificado.
 Ainda não começado.
 
-### 7. Eventos da semana — completar
-`/dashboard/rh/semana` já mostra escala do dia, extras com diária e custo.
-**Falta** juntar feriados e atividades do restaurante na mesma agenda.
+### 7. Eventos da semana — CONCLUÍDO (30/08)
+`/dashboard/rh/semana` mostra escala do dia, extras com diária e custo, e agora
+também os feriados da unidade e os eventos da casa na mesma agenda
+(`fetchFeriados` + `fetchEventos`). Os dois são acessórios: se a tabela não
+existir ou o acesso for negado, a tela abre igual, sem a faixa deles.
 
 ## O que a sessão de 27/08 entregou
 
@@ -170,6 +182,50 @@ Nada aqui está pendente — é registro, para a próxima sessão não refazer.
   achou o segundo compara, componente a componente, o que é usado contra o que é
   declarado ou recebido por prop — vale rodar depois de qualquer troca global.
 
+## O que a sessão de 30/08 entregou
+
+- **Produto cadastrado no bar não entrava no estoque do bar.** O cadastro
+  tentava vincular, mas a chamada terminava em `.catch(() => {})` — e o que o
+  Supabase devolve tem `then` e **não tem `catch`**. Chamá-lo estourava um
+  TypeError antes de a requisição sair, e o `try` de fora engolia tudo. O
+  vínculo nunca era gravado, sem erro na tela. Ficou escondido enquanto o
+  `estoque_itens` do bar estava vazio, porque aí a listagem caía num fallback
+  que mostrava o catálogo inteiro do setor; a primeira entrada criou uma linha,
+  o fallback desligou e os produtos sumiram.
+  **Se for usar `.catch()` em cima de chamada ao Supabase: não existe.** Use
+  `try/catch` ou leia o `error` do retorno. A varredura que acha isso compara,
+  para cada `.catch()`, se a função é `async` de verdade ou devolve o builder.
+- **Escolha do estoque estava frouxa**: procurava "bar" no nome, o que casa com
+  "Pré-preparos do Bar" e "Embalagens do Bar", sem ordem definida — e um
+  `|| ests[0]` mandava a bebida para a cozinha quando não achava nada. Agora
+  `estoquePrincipalDoSetor` escolhe a prateleira certa ou nenhuma, com teste.
+- **Pré-preparo não sobe para o estoque principal.** O que a ficha produz já
+  mora no "Pré-preparos do Bar/Cozinha"; sem esse filtro o mesmo saldo seria
+  contado em dois lugares. Xarope *comprado* (Monin, 1883) continua indo para o
+  Bar — o critério é ter ou não casa num pré-preparo, não o nome nem a categoria.
+- **Histórico da movimentação** tinha o mesmo `.catch()`, e ali ele derrubava o
+  registro **depois** de o saldo já ter sido gravado: a entrada entrava, sumia
+  do histórico e a tela ainda mostrava erro.
+- **Ficha: rendimento sempre automático.** O "ajustar manualmente" saiu. Número
+  digitado à mão envelhecia calado quando o preço ou a quantidade de um
+  ingrediente mudava. No card verde a hierarquia estava invertida — grande era o
+  preço de 1 kg/L e o custo real da receita ficava pequeno embaixo; trocado.
+  O efeito automático também apagava o `peso_porcao_g`: enquanto havia modo
+  manual isso não acontecia ao abrir ficha salva (ela abria em manual), e sem
+  ele abrir para editar apagaria um valor gravado — de que depende a composição
+  por porção existir. Parei de apagar.
+- **Tablet: mínimo e máximo de todos os produtos numa tela.** Já existia num
+  botão dentro do card, abaixo da dobra — ninguém achava, e num estoque de trinta
+  bebidas eram trinta modais e trinta senhas. Botão no cabeçalho, lista inteira,
+  senha uma vez só. Grava apenas o que foi mexido, respeita a busca e congela a
+  lista na abertura.
+- **Portal da vaga**: o campo perdia o foco a cada tecla. `Campo` era declarado
+  dentro do componente, então virava função nova a cada render e o React
+  desmontava o `<label>` inteiro. Subiu para o topo do módulo.
+- **Marcador de versão no cabeçalho** (`NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA`).
+  Existe porque "nada mudou" era ambíguo entre build velho e bug de verdade:
+  agora dá para comparar o que está na tela com o que está no `main`.
+
 ## Ideias levantadas, não decididas
 
 - Imagem própria (fachada) no cartão dos links dos portais — hoje usa `public/icon-512x512.png`.
@@ -183,3 +239,14 @@ Nada aqui está pendente — é registro, para a próxima sessão não refazer.
 
 Me pergunte por qual item começar, ou vá direto no item 5 se eu não responder —
 Modo TV, rankings e automações são o que sobrou de verdade lá.
+
+Aberto hoje (30/08), em ordem de esforço:
+- **Item 3** é só conferir: dê uma baixa no inventário e veja se aparece na
+  auditoria. Se não aparecer, a tela agora diz o motivo — traga o texto.
+- **Item 5**: Modo TV, rankings por pessoa/setor, automações e WhatsApp.
+- **Item 6**: módulo de treinamento, do zero.
+- **Item 4** é meu, não seu: depende da `SUPABASE_SERVICE_ROLE_KEY` na Vercel.
+
+E o passo à mão do item 1 continua de pé: ingrediente cadastrado antes das
+colunas de embalagem nasceu sem volume. Enquanto estiver vazio, ele não entra no
+rendimento da ficha — e a linha dele diz isso, em vez de sumir da conta calado.

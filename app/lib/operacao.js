@@ -4,25 +4,44 @@ import { estoquePrincipalDoSetor } from "./estoques-multiplos-utils.mjs";
 
 // ─── INSUMOS (Ingredientes Brutos) ──────────────────────────────────────────
 
+// Setor de um insumo: "cozinha", "bar" ou este, que vale para os dois.
+export const DEPARTAMENTO_COMPARTILHADO = "ambos";
+
 export async function fetchInsumos(unidadeId, dept, opcoes = {}) {
   if (!isSupabaseReady()) return { data: [], error: "Offline" };
   
   let query = supabase.from("insumos").select("*");
   if (unidadeId && (opcoes?.escopoEstrito === true || unidadeId !== "matriz")) query = query.eq("unidade_id", unidadeId);
-  if (dept) query = query.eq("departamento", dept);
+  // "ambos" é o insumo que serve às duas cozinhas — açúcar, limão, gelo. Ele
+  // aparece nos dois catálogos sendo uma linha só, com um preço e um estoque.
+  // Só cozinha e bar o recebem: "embalagens" também chega aqui como setor, e um
+  // insumo compartilhado não tem nada que fazer no catálogo de embalagens.
+  if (dept) {
+    const setores = ["cozinha", "bar"].includes(String(dept).toLowerCase())
+      ? [dept, DEPARTAMENTO_COMPARTILHADO]
+      : [dept];
+    query = setores.length > 1 ? query.in("departamento", setores) : query.eq("departamento", dept);
+  }
 
   const { data, error } = await query;
   if (error || !data?.length) return { data: data || [], error: error?.message };
 
+  // O insumo espelho existe apenas para o saldo físico do pré-preparo. Na ficha
+  // ele é escolhido como subficha, nunca como ingrediente cru; esconder também
+  // os legados impede que a migração deixe opções duplicadas no formulário.
+  const dadosVisiveis = data.filter(item =>
+    !item.ficha_tecnica_id && item.pre_preparo_legado !== true);
+  if (!dadosVisiveis.length) return { data: [], error: null };
+
   // A tabela de vínculo foi adicionada depois do cadastro original. Se a
   // migração ainda não tiver sido aplicada, a listagem continua funcionando
   // com o fornecedor textual legado.
-  const ids = data.map(item => item.id);
+  const ids = dadosVisiveis.map(item => item.id);
   const { data: vinculos, error: erroVinculos } = await supabase
     .from("insumos_fornecedores")
     .select("insumo_id, fornecedor_id, fornecedor:fornecedores(id,nome)")
     .in("insumo_id", ids);
-  if (erroVinculos) return { data, error: null };
+  if (erroVinculos) return { data: dadosVisiveis, error: null };
 
   const porInsumo = new Map();
   for (const vinculo of vinculos || []) {
@@ -32,7 +51,7 @@ export async function fetchInsumos(unidadeId, dept, opcoes = {}) {
     porInsumo.get(vinculo.insumo_id).push(fornecedor);
   }
   return {
-    data: data.map(item => ({
+    data: dadosVisiveis.map(item => ({
       ...item,
       fornecedores_vinculados: porInsumo.get(item.id) || (item.fornecedor ? [{ nome: item.fornecedor }] : []),
     })),
@@ -184,12 +203,36 @@ export async function salvarInsumo(insumo, opcoes = {}) {
       };
       const nomeNorm = norm(campos.nome);
       if (nomeNorm) {
-        let q = supabase.from("insumos").select("id, nome, departamento, unidade_id");
-        if (campos.unidade_id) q = q.eq("unidade_id", campos.unidade_id);
-        if (campos.departamento) q = q.eq("departamento", campos.departamento);
-        const { data: existentes } = await q.ilike("nome", String(campos.nome || "").trim());
-        if ((existentes || []).some(e => norm(e.nome) === nomeNorm)) {
-          return { error: "Já existe um ingrediente com esse nome neste setor. Edite o existente para adicionar outro fornecedor ou preço." };
+        // A trava tem de enxergar exatamente o que o catálogo mostra. Ela olhava
+        // a tabela crua, incluindo o que fetchInsumos esconde: os insumos espelho
+        // de pré-preparo (ficha_tecnica_id) e os legados de migração. O cadastro
+        // era barrado por uma linha que ninguém acha na busca nem consegue
+        // editar — sem saída para quem só queria cadastrar o ingrediente.
+        //
+        // A comparação também é feita aqui, e não no banco: `ilike` diferencia
+        // acento, então "Açúcar" não reconhecia um "Acucar" já gravado e a trava
+        // deixava passar a duplicata que ela existe para impedir.
+        // O que conflita é o que aparece no mesmo catálogo. Cadastrar na cozinha
+        // conflita com os da cozinha e com os compartilhados; cadastrar como
+        // compartilhado conflita com os dois setores, porque vai aparecer nos
+        // dois. "Açúcar" do bar e "Açúcar" da cozinha, esses, convivem.
+        const setoresEmConflito = campos.departamento === DEPARTAMENTO_COMPARTILHADO
+          ? ["cozinha", "bar", DEPARTAMENTO_COMPARTILHADO]
+          : [campos.departamento, DEPARTAMENTO_COMPARTILHADO];
+        const montarConsulta = (colunas) => {
+          let q = supabase.from("insumos").select(colunas);
+          if (campos.unidade_id) q = q.eq("unidade_id", campos.unidade_id);
+          if (campos.departamento) q = q.in("departamento", setoresEmConflito.filter(Boolean));
+          return q;
+        };
+        let { data: existentes, error: erroConsulta } =
+          await montarConsulta("id, nome, ficha_tecnica_id, pre_preparo_legado");
+        // Migração ainda não rodou? Sem as colunas de espelho, todo mundo conta.
+        if (erroConsulta) ({ data: existentes } = await montarConsulta("id, nome"));
+        const conflito = (existentes || []).find(e => norm(e.nome) === nomeNorm
+          && !e.ficha_tecnica_id && e.pre_preparo_legado !== true);
+        if (conflito) {
+          return { error: `Já existe "${conflito.nome}" neste setor. Edite o existente para adicionar outro fornecedor ou preço.` };
         }
       }
     } catch { /* falha na checagem não bloqueia o cadastro */ }
@@ -222,6 +265,28 @@ export async function salvarInsumo(insumo, opcoes = {}) {
         await sincronizarFornecedores(data.id, fornecedorIds);
       } catch { /* histórico é acessório */ }
 
+      // Estoque do setor: cozinha vai para "cozinha", bar para "bar", e o
+      // compartilhado entra nos dois, porque é usado nos dois. Sem isto o
+      // ingrediente nascia visível só no estoque legado, e quem fosse contar
+      // pelo módulo de estoques não achava o que acabou de cadastrar.
+      try {
+        const dept = String(campos.departamento || "").toLowerCase();
+        const slugs = dept === "ambos" ? ["cozinha", "bar"] : (dept === "bar" ? ["bar"] : dept === "cozinha" ? ["cozinha"] : []);
+        if (campos.unidade_id && slugs.length) {
+          const { data: estoques } = await supabase.from("estoques")
+            .select("id, slug").eq("unidade_id", campos.unidade_id).in("slug", slugs);
+          for (const estoque of estoques || []) {
+            await supabase.from("estoque_itens").upsert({
+              unidade_id: campos.unidade_id,
+              estoque_id: estoque.id,
+              insumo_id: data.id,
+              quantidade_atual: 0,
+              custo_unitario: Number(campos.custo_unitario) || 0,
+            }, { onConflict: "estoque_id,insumo_id" });
+          }
+        }
+      } catch { /* o módulo de estoques pode não estar migrado: não bloqueia o cadastro */ }
+
       // Garante que o ingrediente/produto apareça imediatamente no Estoque com saldo 0
       try {
         if (campos.unidade_id) {
@@ -251,15 +316,13 @@ export async function salvarInsumo(insumo, opcoes = {}) {
           //    estoque certo o produto fica sem vínculo em vez de ir para o
           //    lugar errado.
           //
-          // 3. Pré-preparo tem casa própria. Quem cria a partir de uma ficha
-          //    técnica avisa aqui e vincula ele mesmo ao "Pré-preparos do
-          //    Bar/Cozinha"; sem isso o item entraria nos dois estoques e o
-          //    mesmo saldo seria contado duas vezes.
-          const { data: ests } = opcoes.semVinculoAutomatico
-            ? { data: [] }
-            : await supabase
-              .from("estoques").select("id, slug, nome")
-              .eq("unidade_id", campos.unidade_id);
+          // Pré-preparo não passa por aqui: quem a ficha técnica produz é
+          // criado direto por garantirFichaNoEstoquePreparo, que já vincula ao
+          // "Pré-preparos do Bar/Cozinha". Se um dia voltar a passar, precisa
+          // ficar de fora — senão o mesmo saldo é contado em dois estoques.
+          const { data: ests } = await supabase
+            .from("estoques").select("id, slug, nome")
+            .eq("unidade_id", campos.unidade_id);
           const alvo = estoquePrincipalDoSetor(ests, campos.departamento);
           if (alvo?.id) {
             const { error: erroVinculo } = await supabase.from("estoque_itens").upsert({
@@ -324,7 +387,10 @@ export async function removerInsumo(id) {
   }
 
   try {
-    // 4. Remover do estoque e movimentações legadas
+    // 4. Remover do estoque e movimentações legadas. estoque_atual é escrito
+    // no cadastro ("aparece no Estoque com saldo 0") e não era limpo aqui: a
+    // linha ficava apontando para um insumo que não existe mais.
+    await supabase.from("estoque_atual").delete().eq("insumo_id", id);
     await supabase.from("estoque").delete().eq("insumo_id", id);
     await supabase.from("estoque_movimentacoes").delete().eq("insumo_id", id);
   } catch (e) {

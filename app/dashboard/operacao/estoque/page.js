@@ -1285,7 +1285,7 @@ function EstoqueRunner() {
   const ativo = estoqueAtual?.status === "ativo";
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-16 text-slate-900">
+    <div className="min-h-screen bg-[var(--surface)] pb-16 text-slate-900">
       <header className="border-b border-slate-200 bg-white px-4 py-5 sm:px-7">
         <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
@@ -2845,10 +2845,9 @@ export default function EstoquePage() {
 }
 
 function EstoqueUnificado() {
-  const searchParams = useSearchParams();
-  if (searchParams.get("gestao") === "1") return <EstoqueRunner />;
-  // Mesmo respiro das rotas /tablet: sem ele o "voltar" encosta na barra de
-  // status do celular.
+  // A operação inteira fica na mesma tela rápida. O endereço antigo com
+  // ?gestao=1 também cai aqui, para ninguém voltar sem querer à gestão
+  // separada que foi substituída pelos controles dentro do próprio estoque.
   return <div className="fixed inset-0 z-[200] overflow-auto bg-slate-50"
     style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}><TabletSetor titulo="Estoque" voltarHref="/dashboard" /></div>;
 }

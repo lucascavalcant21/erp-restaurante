@@ -84,7 +84,7 @@ export default function FechamentoFolhaPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans pb-24">
+    <div className="min-h-screen bg-[var(--surface)] font-sans pb-24">
       {/* Header Escuro */}
       <div className="bg-slate-900 pt-8 pb-12 px-6 shadow-2xl relative text-white border-b border-slate-800">
          <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">

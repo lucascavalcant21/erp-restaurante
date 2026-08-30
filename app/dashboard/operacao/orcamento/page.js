@@ -908,7 +908,7 @@ export default function OrcamentoEventoPage() {
   };
 
   return (
-    <div className="min-h-screen pb-24 font-sans text-slate-800 bg-slate-50">
+    <div className="min-h-screen pb-24 font-sans text-slate-800 bg-[var(--surface)]">
 
       {/* TOPBAR — linha 1: título + ações do evento; linha 2: documentos p/ imprimir */}
       <div className="bg-white border-b border-slate-200 pt-5 pb-4 px-6 sticky top-0 z-10">

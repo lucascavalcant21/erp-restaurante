@@ -47,7 +47,7 @@ function EngenhariaRunner() {
   }, [itens]);
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans pb-24">
+    <div className="min-h-screen bg-[var(--surface)] font-sans pb-24">
       {/* HEADER */}
       <div className="pt-5 sm:pt-6 pb-6 sm:pb-8 px-4 sm:px-6 max-w-5xl mx-auto flex items-center gap-3 sm:gap-4">
          <button onClick={() => abrirMenu()} className="w-12 h-12 rounded-full bg-white border border-slate-200 text-slate-500 flex items-center justify-center hover:bg-slate-100 transition-colors">

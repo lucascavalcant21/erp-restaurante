@@ -64,7 +64,7 @@ export default function TreinamentoPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans pb-24 text-slate-800">
+    <div className="min-h-screen bg-[var(--surface)] font-sans pb-24 text-slate-800">
       
       {/* HEADER */}
       <div className="pt-5 sm:pt-6 pb-6 sm:pb-8 px-4 sm:px-6 max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">

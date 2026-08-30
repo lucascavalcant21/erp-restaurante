@@ -4,8 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft, Boxes, Check, CheckCircle2, ChefHat, GlassWater, History, Layers3, Maximize2, Minus,
-  Mic, MicOff, Package, PackageMinus, PackagePlus, Plus, RefreshCw, Search, ShoppingBasket,
-  Settings2, Sparkles, Trash2, UserRound, X, XCircle,
+  Mic, MicOff, Package, PackageMinus, PackagePlus, Plus, Printer, RefreshCw, Search, ShoppingBasket,
+  Sparkles, Trash2, UserRound, X, XCircle,
   // Ícones dos produtos. A lista tem de bater com ICONES_USADOS de
   // icone-produto.mjs — nome fora da lista vira componente indefinido, e o
   // React renderiza indefinido como nada, sem erro nenhum.
@@ -447,6 +447,59 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
       return semAcento(a.nome).localeCompare(semAcento(b.nome));
     });
   }, [busca, itens]);
+
+  function imprimirPlanilhaEstoque() {
+    const lista = [...itens].sort((a, b) => semAcento(a.nome).localeCompare(semAcento(b.nome)));
+    if (!lista.length) {
+      setToast({ tipo: "erro", msg: "Não há itens neste estoque para imprimir." });
+      return;
+    }
+
+    const escapar = valor => String(valor ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+    const data = new Date().toLocaleString("pt-BR");
+    const linhas = lista.map((item, indice) => `
+      <tr>
+        <td>${indice + 1}</td>
+        <td class="nome">${escapar(item.nome)}</td>
+        <td>${escapar(item.estoqueNome || tituloAtual)}</td>
+        <td class="numero">${fmtQtd(item.quantidade)}</td>
+        <td>${escapar(rotuloUnidade(item.unidade, item.quantidade))}</td>
+        <td class="numero">${item.minimo == null ? "—" : fmtQtd(item.minimo)}</td>
+        <td class="numero">${item.maximo == null ? "—" : fmtQtd(item.maximo)}</td>
+        <td>${escapar(item.local || "")}</td>
+        <td class="conferido"></td>
+      </tr>`).join("");
+
+    const iframe = document.createElement("iframe");
+    iframe.setAttribute("aria-hidden", "true");
+    iframe.style.position = "fixed";
+    iframe.style.width = "1px";
+    iframe.style.height = "1px";
+    iframe.style.opacity = "0";
+    iframe.style.pointerEvents = "none";
+    document.body.appendChild(iframe);
+    const doc = iframe.contentDocument;
+    doc.open();
+    doc.write(`<!doctype html><html><head><meta charset="utf-8"><title>Planilha de estoque</title><style>
+      @page{size:landscape;margin:10mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#0f172a;margin:0}
+      h1{font-size:22px;margin:0 0 4px}p{font-size:11px;color:#475569;margin:0 0 14px}table{width:100%;border-collapse:collapse;font-size:10px}
+      th,td{border:1px solid #94a3b8;padding:6px 5px;text-align:left}th{background:#e2e8f0;text-transform:uppercase;font-size:9px;letter-spacing:.04em}
+      td.nome{font-weight:700}.numero{text-align:right;white-space:nowrap}.conferido{min-width:70px;height:28px}.assinatura{margin-top:20px;display:flex;gap:30px;font-size:11px}.linha{flex:1;border-top:1px solid #475569;padding-top:5px;text-align:center}
+    </style></head><body><h1>Planilha de estoque · ${escapar(tituloAtual)}</h1><p>${escapar(unidadeInfo?.nome || "Unidade selecionada")} · ${escapar(data)} · ${lista.length} item(ns)</p>
+    <table><thead><tr><th>#</th><th>Produto</th><th>Estoque</th><th>Saldo</th><th>Unidade</th><th>Mín.</th><th>Máx.</th><th>Local</th><th>Conferido</th></tr></thead><tbody>${linhas}</tbody></table>
+    <div class="assinatura"><div class="linha">Responsável pela contagem</div><div class="linha">Conferência do gerente</div></div></body></html>`);
+    doc.close();
+    setTimeout(() => {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+      setTimeout(() => iframe.remove(), 1500);
+    }, 250);
+  }
 
   // A lista é longa e a barra saía da tela junto com o topo: a pessoa digitava
   // e o resultado ficava acima do que estava sendo visto, parecendo que a busca
@@ -963,7 +1016,7 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
         .estoque-rapido-lancar.saida{background:#E11D48;box-shadow:0 6px 18px rgba(225,29,72,.32)}
         .estoque-rapido-lancar:disabled{opacity:.5;cursor:default;box-shadow:none}
         .estoque-rapido-busca{position:sticky;top:0;z-index:30;margin:18px 0 14px;padding:8px 0;background:#F3F6FA}.estoque-rapido-busca svg{position:absolute;left:16px;top:17px;color:#94A3B8}.estoque-rapido-busca input{width:100%;height:54px;padding:0 50px;border:2px solid #E2E8F0;border-radius:16px;background:#fff;font-size:16px;outline:none}.estoque-rapido-busca input:focus{border-color:var(--acao)}.estoque-rapido-busca button{position:absolute;right:12px;top:11px;width:32px;height:32px;border:0;background:#F1F5F9;color:#64748B;border-radius:9px;display:grid;place-items:center}
-        .estoque-rapido-contador{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;flex-wrap:wrap}.estoque-rapido-contador-acoes{display:flex;align-items:center;gap:11px}.estoque-rapido-novo{height:40px;padding:0 14px;border:2px solid var(--acao);border-radius:13px;background:#fff;color:var(--acao);font-weight:900;font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer}.estoque-rapido-contador h2{font-size:18px;margin:0}.estoque-rapido-contador span{font-size:13px;font-weight:800;color:#64748B}
+        .estoque-rapido-contador{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;flex-wrap:wrap}.estoque-rapido-contador-acoes{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}.estoque-rapido-novo{height:40px;padding:0 14px;border:2px solid var(--acao);border-radius:13px;background:#fff;color:var(--acao);font-weight:900;font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap}.estoque-rapido-contador h2{font-size:18px;margin:0}.estoque-rapido-contador span{font-size:13px;font-weight:800;color:#64748B}
         .estoque-rapido-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.estoque-rapido-item{min-height:148px;background:#fff;border:2px solid #E2E8F0;border-radius:18px;padding:15px;text-align:left;cursor:pointer;transition:.15s;position:relative}.estoque-rapido-item:hover{border-color:#CBD5E1;transform:translateY(-1px)}.estoque-rapido-item.selecionado{border-color:var(--acao);background:var(--acao-suave);box-shadow:0 0 0 3px var(--acao-borda)}
         .estoque-rapido-item-topo{display:flex;gap:10px;justify-content:space-between}.estoque-rapido-item-nome{font-size:16px;font-weight:900;line-height:1.25}.estoque-rapido-check{width:26px;height:26px;border:2px solid #CBD5E1;border-radius:8px;display:grid;place-items:center;color:transparent;flex:none}.selecionado .estoque-rapido-check{background:var(--acao);border-color:var(--acao);color:#fff}.estoque-rapido-saldo{margin:14px 0 0;color:#64748B;font-size:12px;font-weight:700}.estoque-rapido-saldo strong{display:block;color:#0F172A;font-size:22px;margin-top:2px}.estoque-rapido-item-icone{width:34px;height:34px;border-radius:11px;background:var(--acao-suave,#F1F5F9);color:var(--acao,#475569);display:grid;place-items:center;flex:none;margin-right:9px}.estoque-rapido-volume{font-size:12px;font-weight:800;color:#64748B;margin-top:2px}.estoque-rapido-modal{position:fixed;inset:0;z-index:90;background:rgba(15,23,42,.55);display:grid;place-items:center;padding:18px}.estoque-rapido-modal-caixa{background:#fff;border-radius:20px;padding:20px;width:min(420px,100%);display:flex;flex-direction:column;gap:11px}.estoque-rapido-modal-caixa strong{font-size:18px}.estoque-rapido-modal-caixa p{color:#64748B;font-size:12px;font-weight:700;margin:0}.estoque-rapido-modal-caixa label{display:flex;flex-direction:column;gap:5px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#64748B}.estoque-rapido-modal-caixa input{height:48px;border:2px solid #E2E8F0;border-radius:13px;padding:0 13px;font-size:16px;font-weight:800;color:#0F172A;outline:none}.estoque-rapido-modal-caixa input:focus{border-color:var(--acao)}.estoque-rapido-modal-erro{color:#B91C1C!important;font-weight:800!important}.estoque-rapido-modal-linha{display:grid;grid-template-columns:1fr 1fr;gap:9px}.estoque-rapido-modal-caixa select{height:48px;border:2px solid #E2E8F0;border-radius:13px;padding:0 10px;font-size:15px;font-weight:800;color:#0F172A;background:#fff;outline:none}.estoque-rapido-modal-botoes{display:flex;gap:9px;margin-top:4px}.estoque-rapido-modal-botoes button{flex:1;height:48px;border-radius:14px;border:1px solid #CBD5E1;background:#fff;font-weight:900;color:#475569;cursor:pointer}.estoque-rapido-modal-botoes .principal{border:0;background:var(--acao);color:#fff}.estoque-rapido-modal-botoes .principal:disabled{opacity:.6;cursor:wait}.estoque-rapido-minimo{font-size:11px;color:#94A3B8;margin-top:4px}.estoque-rapido-limites{margin-top:5px;font-size:11px;font-weight:800;color:#64748B;background:none;border:0;border-bottom:1px dashed #CBD5E1;padding:0 0 1px;cursor:pointer;text-align:left}
         .estoque-rapido-qtd{display:grid;grid-template-columns:42px 1fr 42px;gap:7px;margin-top:13px}.estoque-rapido-qtd button{height:42px;border:0;border-radius:11px;background:#fff;color:var(--acao);display:grid;place-items:center;cursor:pointer;box-shadow:0 1px 5px rgba(15,23,42,.12)}.estoque-rapido-qtd label{height:42px;background:#fff;border-radius:11px;display:flex;align-items:center;justify-content:center;gap:5px;padding:0 6px}.estoque-rapido-qtd input{width:55px;border:0;outline:0;text-align:right;font-size:17px;font-weight:900;background:transparent}.estoque-rapido-qtd span{font-size:11px;color:#64748B;font-weight:800;white-space:nowrap}
@@ -1003,7 +1056,6 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
           <nav className="estoque-rapido-abas">
             <button className={aba === "operacao" ? "ativo" : ""} onClick={() => setAba("operacao")} aria-label="Movimentar estoque" title="Movimentar"><ShoppingBasket size={17} /> <span className="estoque-rapido-abas-label">Movimentar</span></button>
             <button className={aba === "historico" ? "ativo" : ""} onClick={() => setAba("historico")} aria-label="Ver histórico" title="Histórico"><History size={17} /> <span className="estoque-rapido-abas-label">Histórico</span></button>
-            <button onClick={() => router.push("/dashboard/operacao/estoque?gestao=1")} aria-label="Abrir gestão completa" title="Gestão completa"><Settings2 size={17} /> <span className="estoque-rapido-abas-label">Gestão completa</span></button>
           </nav>
           <button className="estoque-rapido-atualizar" onClick={() => carregar()} aria-label="Atualizar"><RefreshCw size={18} /></button>
         </div>
@@ -1024,6 +1076,9 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
             <h2>Escolha um ou vários itens</h2>
             <div className="estoque-rapido-contador-acoes">
               <span>{listaSelecionados.length} selecionado(s)</span>
+              <button type="button" className="estoque-rapido-novo" onClick={imprimirPlanilhaEstoque}>
+                <Printer size={16} /> Imprimir planilha
+              </button>
               <button type="button" className="estoque-rapido-novo" onClick={abrirNovoProduto}>
                 <Plus size={16} /> Cadastrar produto
               </button>

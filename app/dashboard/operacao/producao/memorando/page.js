@@ -229,7 +229,7 @@ export default function MemorandoProducaoPage() {
 
   if (!unidadeAtiva || unidadeAtiva === "todas") return <div className="p-10 text-center font-bold text-slate-500">Selecione uma unidade para criar o memorando.</div>;
 
-  return <div className="min-h-screen bg-slate-50 pb-24 text-slate-800">
+  return <div className="min-h-screen bg-[var(--surface)] pb-24 text-slate-800">
     <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:px-6">
       <div className="mx-auto flex max-w-7xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3"><button onClick={() => router.back()} className="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-600"><ArrowLeft size={20}/></button><div><h1 className="text-2xl font-black tracking-tight">Memorando do Dia Seguinte</h1><p className="text-xs font-bold text-slate-500">Cozinha + Bar + lista de compras · {unidadeInfo?.nome}</p></div></div>

@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchFornecedores } from "../../../lib/fornecedores";
-import { fetchHistoricoPrecos, fetchInsumos, removerInsumo, salvarInsumo } from "../../../lib/operacao";
+import { DEPARTAMENTO_COMPARTILHADO, fetchHistoricoPrecos, fetchInsumos, removerInsumo, salvarInsumo } from "../../../lib/operacao";
 import { fetchPrecosDoInsumo, salvarPrecoFornecedor } from "../../../lib/insumo-fornecedores";
 import { CATEGORIAS_INSUMO, adivinharCategoria, categoriaDoProdutoBar, obterTodasCategoriasInsumo, salvarNovaCategoriaCustom } from "../../../lib/categorias-insumo";
 import { comprimirFotoParaIA } from "../../../lib/imagem";
@@ -41,7 +41,8 @@ import { fmtBRL } from "../../../components/ui";
 import { criarEscuta, vozDisponivel } from "../../../lib/hefisto-voz";
 import { registrarAuditoria } from "../../../lib/hefisto-acoes";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 50;
+const TAMANHOS_PAGINA = [25, 50, 100, 200];
 
 const ORDENACOES = [
   { value: "nome-asc", label: "Nome A–Z" },
@@ -182,7 +183,9 @@ function VariacaoPreco({ insumo }) {
 
 function IngredientesRunner() {
   const searchParams = useSearchParams();
-  const deptUrl = searchParams.get("dept");
+  // Um catálogo, um setor. Sem ?dept= a listagem vinha sem filtro e misturava
+  // produtos do bar com ingredientes da cozinha na mesma tela.
+  const deptUrl = searchParams.get("dept") === "bar" ? "bar" : "cozinha";
   const { abrirMenu, unidadeAtiva, sessao } = useERP();
   const ehBar = deptUrl === "bar";
   const rotuloItem = ehBar ? "produto" : "ingrediente";
@@ -195,8 +198,10 @@ function IngredientesRunner() {
   const [categoria, setCategoria] = useState("Todas");
   const [ordenacao, setOrdenacao] = useState("nome-asc");
   const [pagina, setPagina] = useState(1);
+  const [porPagina, setPorPagina] = useState(PAGE_SIZE);
+  const [destacado, setDestacado] = useState(null); // item recém-salvo, para não sumir de vista
   const [calculos, setCalculos] = useState({});
-  const [form, setForm] = useState(() => novoFormulario(deptUrl || "cozinha"));
+  const [form, setForm] = useState(() => novoFormulario(deptUrl));
   const [modalCadastro, setModalCadastro] = useState(false);
   const [modalHistorico, setModalHistorico] = useState(null);
   const [historico, setHistorico] = useState([]);
@@ -367,7 +372,7 @@ function IngredientesRunner() {
     for (const item of itensMigracao) {
       const nome = String(item.nome || "").trim();
       if (!nome) continue;
-      const dept = item.departamento || deptUrl || "cozinha";
+      const dept = deptUrl;
       const qtd = parseNumeroBR(item.quantidade) || 1;
       const valor = parseNumeroBR(item.valor_total) || 0;
       const unidade = item.unidade || "kg";
@@ -422,7 +427,7 @@ function IngredientesRunner() {
       comando: origemMigracaoVoz
         ? `${migrarTexto}${comandoConfirmacao ? `; Confirmação por voz: ${comandoConfirmacao}` : ""}`
         : "Importacao de ingredientes por lista ou imagem",
-      intencao: { origem: origemMigracaoVoz ? "voz" : "lista", itens: itensMigracao.map(item => ({ nome: item.nome, quantidade: item.quantidade, unidade: item.unidade, valor_total: item.valor_total, departamento: item.departamento })) },
+      intencao: { origem: origemMigracaoVoz ? "voz" : "lista", itens: itensMigracao.map(item => ({ nome: item.nome, quantidade: item.quantidade, unidade: item.unidade, valor_total: item.valor_total, departamento: deptUrl })) },
       acao: origemMigracaoVoz ? "inventory.ingredients.voice_batch" : "inventory.ingredients.import_batch",
       modulo: "inventory",
       valorAnterior: insumos.length,
@@ -447,11 +452,25 @@ function IngredientesRunner() {
 
   useEffect(() => {
     setPagina(1);
-  }, [busca, categoria, ordenacao, deptUrl]);
+  }, [busca, categoria, ordenacao, deptUrl, porPagina]);
 
-  const totalPaginas = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
+  // porPagina 0 = "Todos": o catálogo inteiro numa página só.
+  const tamanhoPagina = porPagina > 0 ? porPagina : Math.max(1, filtrados.length);
+  const totalPaginas = Math.max(1, Math.ceil(filtrados.length / tamanhoPagina));
   const paginaAtual = Math.min(pagina, totalPaginas);
-  const paginados = filtrados.slice((paginaAtual - 1) * PAGE_SIZE, paginaAtual * PAGE_SIZE);
+  const paginados = filtrados.slice((paginaAtual - 1) * tamanhoPagina, paginaAtual * tamanhoPagina);
+
+  // A lista é alfabética e paginada: um "Tomate" recém-cadastrado cai numa
+  // página que ninguém está olhando e parece ter sumido. Depois de salvar,
+  // vamos até a página onde ele está e o destacamos por alguns segundos.
+  useEffect(() => {
+    if (!destacado) return;
+    const indice = filtrados.findIndex(item => item.id === destacado);
+    if (indice < 0) return;
+    setPagina(Math.floor(indice / tamanhoPagina) + 1);
+    const limpar = setTimeout(() => setDestacado(null), 5000);
+    return () => clearTimeout(limpar);
+  }, [destacado, filtrados, tamanhoPagina]);
 
   const estatisticas = useMemo(() => {
     const limiteRecente = Date.now() - 30 * 24 * 60 * 60 * 1000;
@@ -464,13 +483,13 @@ function IngredientesRunner() {
   }, [insumos]);
 
   const abrirNovo = () => {
-    setForm(novoFormulario(deptUrl || "cozinha"));
+    setForm(novoFormulario(deptUrl));
     setPrecosForn([]); setPrecoFornMsg("");
     setModalCadastro(true);
   };
 
   const abrirEditar = insumo => {
-    const dep = insumo.departamento || deptUrl || "cozinha";
+    const dep = insumo.departamento === DEPARTAMENTO_COMPARTILHADO ? DEPARTAMENTO_COMPARTILHADO : deptUrl;
     let un = insumo.unidade_medida || (dep === "bar" ? "ml" : "kg");
     setForm({
       id: insumo.id,
@@ -633,6 +652,11 @@ function IngredientesRunner() {
     }
 
     setModalCadastro(false);
+    // Cadastro novo entra no fim do alfabeto ou fora do filtro ativo. Limpar
+    // busca e categoria garante que ele esteja na lista; o efeito de destaque
+    // leva até a página dele.
+    if (!form.id) { setBusca(""); setCategoria("Todas"); }
+    setDestacado(insumoId || null);
     await carregar();
     mostrarToast(form.id ? `${ehBar ? "Produto" : "Ingrediente"} atualizado.` : `${ehBar ? "Produto" : "Ingrediente"} cadastrado.`);
   };
@@ -708,11 +732,11 @@ function IngredientesRunner() {
   };
 
   if (!unidadeAtiva) {
-    return <div className="min-h-screen bg-slate-50 p-12 text-center font-bold text-slate-500">Selecione uma unidade para consultar os ingredientes.</div>;
+    return <div className="min-h-screen bg-[var(--surface)] p-12 text-center font-bold text-slate-500">Selecione uma unidade para consultar os ingredientes.</div>;
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20 text-slate-800">
+    <div className="min-h-screen bg-[var(--surface)] pb-20 text-slate-800">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-[1480px] flex-col gap-3 px-4 py-4 sm:px-5 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex items-center gap-4">
@@ -873,14 +897,14 @@ function IngredientesRunner() {
                 const outros = Math.max(0, vinculados.length - 1);
                 const normalizado = precoNormalizadoDoInsumo(insumo);
                 return (
-                  <tr key={insumo.id} className={`align-middle transition ${selecionados.has(insumo.id) ? "bg-emerald-50" : "hover:bg-emerald-50/30"}`}>
+                  <tr key={insumo.id} className={`align-middle transition ${destacado === insumo.id ? "bg-emerald-100 ring-2 ring-inset ring-emerald-400" : selecionados.has(insumo.id) ? "bg-emerald-50" : "hover:bg-emerald-50/30"}`}>
                     <td className="w-9 pl-3 pr-0">
                       <input type="checkbox" aria-label={`Selecionar ${insumo.nome}`}
                         checked={selecionados.has(insumo.id)} onChange={() => alternarSelecao(insumo.id)}
                         className="h-4 w-4 accent-emerald-600" />
                     </td>
                     <td className="px-4 py-2">
-                      <p className="truncate text-sm font-black text-slate-900">{insumo.nome}</p>
+                      <p className="truncate text-sm font-black text-slate-900">{insumo.nome}{insumo.departamento === DEPARTAMENTO_COMPARTILHADO && <span title="Usado no bar e na cozinha" className="ml-2 shrink-0 rounded-full bg-indigo-50 px-2 py-0.5 align-middle text-[9px] font-black uppercase tracking-wider text-indigo-700">Bar e cozinha</span>}</p>
                       <p className="mt-0.5 truncate text-[11px] text-slate-500">
                         {insumo.codigo_interno || "Sem código"}
                         {insumo.nome_interno ? ` · ${insumo.nome_interno}` : ""}
@@ -957,13 +981,13 @@ function IngredientesRunner() {
             const vinculados = insumo.fornecedores_vinculados || [];
             const normalizado = precoNormalizadoDoInsumo(insumo);
             return (
-              <article key={insumo.id} className={`rounded-xl border bg-white p-3 shadow-sm ${selecionados.has(insumo.id) ? "border-emerald-400 ring-2 ring-emerald-100" : "border-slate-200"}`}>
+              <article key={insumo.id} className={`rounded-xl border bg-white p-3 shadow-sm ${destacado === insumo.id ? "border-emerald-500 ring-2 ring-emerald-300" : selecionados.has(insumo.id) ? "border-emerald-400 ring-2 ring-emerald-100" : "border-slate-200"}`}>
                 <div className="flex items-start justify-between gap-3">
                   <input type="checkbox" aria-label={`Selecionar ${insumo.nome}`}
                     checked={selecionados.has(insumo.id)} onChange={() => alternarSelecao(insumo.id)}
                     className="mt-1 h-4 w-4 shrink-0 accent-emerald-600" />
                   <div className="min-w-0 flex-1">
-                    <h2 className="truncate font-black text-slate-900">{insumo.nome}</h2>
+                    <h2 className="truncate font-black text-slate-900">{insumo.nome}{insumo.departamento === DEPARTAMENTO_COMPARTILHADO && <span title="Usado no bar e na cozinha" className="ml-2 shrink-0 rounded-full bg-indigo-50 px-2 py-0.5 align-middle text-[9px] font-black uppercase tracking-wider text-indigo-700">Bar e cozinha</span>}</h2>
                     <p className="mt-1 truncate text-xs text-slate-500">
                       {insumo.nome_interno || insumo.codigo_interno || insumo.categoria || (ehBar ? "Produto" : "Ingrediente")}
                     </p>
@@ -1025,9 +1049,18 @@ function IngredientesRunner() {
         {!loading && filtrados.length > 0 && (
           <footer className="mt-4 flex flex-col items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 sm:flex-row">
             <p className="text-xs font-medium text-slate-500">
-              Mostrando {(paginaAtual - 1) * PAGE_SIZE + 1} a {Math.min(paginaAtual * PAGE_SIZE, filtrados.length)} de {filtrados.length} {rotuloItens}
+              Mostrando {(paginaAtual - 1) * tamanhoPagina + 1} a {Math.min(paginaAtual * tamanhoPagina, filtrados.length)} de {filtrados.length} {rotuloItens}
             </p>
             <div className="flex items-center gap-2">
+              <select
+                value={porPagina}
+                onChange={e => setPorPagina(Number(e.target.value))}
+                aria-label={`Quantidade de ${rotuloItens} por página`}
+                className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-black text-slate-600 outline-none"
+              >
+                {TAMANHOS_PAGINA.map(valor => <option key={valor} value={valor}>{valor} por página</option>)}
+                <option value={0}>Todos</option>
+              </select>
               <button
                 onClick={() => setPagina(valor => Math.max(1, valor - 1))}
                 disabled={paginaAtual === 1}
@@ -1110,11 +1143,18 @@ function IngredientesRunner() {
                     </select>
                   </label>
                   <label>
-                    <span className="text-xs font-bold text-slate-600">Departamento</span>
-                    <select value={form.departamento} onChange={event => setForm({ ...form, departamento: event.target.value, categoria: "" })} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 font-bold outline-none focus:border-emerald-500">
-                      <option value="cozinha">Cozinha</option>
-                      <option value="bar">Bar</option>
+                    <span className="text-xs font-bold text-slate-600">Onde é usado</span>
+                    <select
+                      value={form.departamento}
+                      onChange={event => setForm({ ...form, departamento: event.target.value })}
+                      className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 font-bold outline-none focus:border-emerald-500"
+                    >
+                      <option value={deptUrl}>Só {ehBar ? "no bar" : "na cozinha"}</option>
+                      <option value={DEPARTAMENTO_COMPARTILHADO}>Bar e cozinha</option>
                     </select>
+                    <span className="mt-1 block text-[11px] font-medium text-slate-400">
+                      "Bar e cozinha" é uma linha só, com um preço e um estoque, que aparece nos dois catálogos.
+                    </span>
                   </label>
                 </div>
               </section>
@@ -1536,7 +1576,6 @@ function IngredientesRunner() {
                         <tr>
                           <th className="p-3">Nome</th>
                           <th className="p-3">Marca</th>
-                          <th className="p-3">Setor</th>
                           <th className="p-3">Qtd</th>
                           <th className="p-3">Unidade</th>
                           <th className="p-3">Valor Total (R$)</th>
@@ -1561,16 +1600,6 @@ function IngredientesRunner() {
                                 placeholder="Marca"
                                 className="w-full rounded-lg border border-slate-200 px-2 py-1"
                               />
-                            </td>
-                            <td className="p-2">
-                              <select
-                                value={item.departamento || "cozinha"}
-                                onChange={e => atualizarItemMigracao(idx, "departamento", e.target.value)}
-                                className="rounded-lg border border-slate-200 px-2 py-1 font-bold text-slate-700"
-                              >
-                                <option value="cozinha">Cozinha</option>
-                                <option value="bar">Bar</option>
-                              </select>
                             </td>
                             <td className="p-2">
                               <input
@@ -1656,7 +1685,7 @@ function IngredientesRunner() {
 
 export default function Page() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-slate-50 p-12 text-center font-bold text-slate-400">Carregando ingredientes...</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-[var(--surface)] p-12 text-center font-bold text-slate-400">Carregando ingredientes...</div>}>
       <IngredientesRunner />
     </Suspense>
   );

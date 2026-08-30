@@ -107,7 +107,7 @@ export default function CadastroFacialPage() {
   const temRosto = (c) => Array.isArray(c.face_descritores) && c.face_descritores.length > 0;
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-24">
+    <div className="min-h-screen bg-[var(--surface)] pb-24">
       <div className="sticky top-0 z-20 border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-3xl items-center gap-3">
           <button onClick={() => router.push("/dashboard/rh")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200">

@@ -310,7 +310,7 @@ export default function TabletSetor({ setor = "", titulo = "Estoque", emoji = "�
     const idsEmbalagem = new Set(
       (embalagensCadastradas.data || []).map(e => e.insumo_id).filter(Boolean));
     const [respostasItens, respostasHistorico] = await Promise.all([
-      Promise.all(estoquesAlvo.map(estoque => fetchItensEstoque(estoque.id, unidadeAtiva))),
+      Promise.all(estoquesAlvo.map(estoque => fetchItensEstoque(estoque.id, unidadeAtiva, estoque))),
       Promise.all(estoquesAlvo.map(estoque => fetchMovimentosMulti(unidadeAtiva, estoque.id, 120))),
     ]);
     // Prato e drink montados na hora não são estoque: quem tem saldo é o

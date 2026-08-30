@@ -241,3 +241,53 @@ export function calcularValorItem(item) {
 
   return Math.round(numUnidades * custoEfetivo * 100) / 100;
 }
+
+// ---------------------------------------------------------------------------
+// De que setor é o estoque, e qual estoque é a casa do setor.
+//
+// São duas perguntas diferentes e é por isso que existem duas funções:
+//
+// 1. "Um produto do bar nasce e vai para onde?" -> estoquePrincipalDoSetor.
+//    O bar tem quatro estoques ("Bar", "Pré-preparos do Bar", "Embalagens do
+//    Bar" e o "Depósito"). Procurar só por "bar" no nome acha os quatro, e um
+//    `find` sem ordem definida devolvia qualquer um deles: a cerveja recém
+//    cadastrada ia parar no pré-preparo. A casa do setor é o estoque simples.
+//
+// 2. "Este estoque recebe automaticamente os produtos do setor?" ->
+//    setorAutomaticoDoEstoque. Só o estoque principal recebe. O pré-preparo é
+//    alimentado pela ficha técnica e o depósito é geral; encher os dois com
+//    todo o catálogo do setor bagunçaria a contagem de ambos.
+// ---------------------------------------------------------------------------
+
+function textoDoEstoque(estoque) {
+  return `${estoque?.slug || ""} ${estoque?.nome || ""}`
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+/** Setor cujos produtos este estoque recebe sozinho. "" = nenhum. */
+export function setorAutomaticoDoEstoque(estoque) {
+  if (!estoque) return "";
+  const texto = textoDoEstoque(estoque);
+  // Pré-preparo vem da produção, não do catálogo de compras.
+  if (ehEstoquePrePreparo(estoque)) return "";
+  // Depósito e materiais variados são gerais: não pertencem a um setor.
+  if (texto.includes("deposito") || texto.includes("materiais")) return "";
+  if (texto.includes("embalage")) return "embalagens";
+  if (texto.includes("limpeza")) return "limpeza";
+  if (texto.includes("bar") || texto.includes("bebida")) return "bar";
+  if (texto.includes("cozinha")) return "cozinha";
+  return "";
+}
+
+/** Onde um produto recém cadastrado neste setor deve aparecer. null = nenhum. */
+export function estoquePrincipalDoSetor(estoques, departamento) {
+  const setor = String(departamento || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  if (!setor || !Array.isArray(estoques)) return null;
+  const candidatos = estoques.filter(e => setorAutomaticoDoEstoque(e) === setor);
+  if (!candidatos.length) return null;
+  // Empate é resolvido pelo nome mais curto: "Bar" ganha de "Bar do Terraço".
+  // Sem isso a escolha dependia da ordem em que o banco devolveu as linhas.
+  return candidatos.sort((a, b) => textoDoEstoque(a).length - textoDoEstoque(b).length)[0];
+}

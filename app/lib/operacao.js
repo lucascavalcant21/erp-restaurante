@@ -1,5 +1,6 @@
 import { supabase, isSupabaseReady } from "./supabase";
 import { calcularPrecoNormalizado } from "./ingredientes-utils.mjs";
+import { estoquePrincipalDoSetor } from "./estoques-multiplos-utils.mjs";
 
 // ─── INSUMOS (Ingredientes Brutos) ──────────────────────────────────────────
 
@@ -296,27 +297,42 @@ export async function salvarInsumo(insumo, opcoes = {}) {
             updated_at: new Date().toISOString(),
           }, { onConflict: "unidade_id,insumo_id" });
 
-          // Tenta vincular à área de estoque correspondente (Bar, Cozinha, etc.)
-          const dept = (campos.departamento || "").toLowerCase();
-          const { data: ests } = await supabase.from("estoques").select("id, slug, nome").eq("unidade_id", campos.unidade_id);
-          if (ests?.length) {
-            const alvo = ests.find(e => {
-              const s = (e.slug || e.nome || "").toLowerCase();
-              return (dept.includes("bar") && s.includes("bar")) ||
-                     (dept.includes("limpeza") && s.includes("limpeza")) ||
-                     (dept.includes("embalag") && s.includes("embalag")) ||
-                     (dept.includes("cozinha") && s.includes("cozinha"));
-            }) || ests[0];
-
-            if (alvo?.id) {
-              await supabase.from("estoque_itens").upsert({
-                unidade_id: campos.unidade_id,
-                estoque_id: alvo.id,
-                insumo_id: data.id,
-                quantidade_atual: 0,
-                updated_at: new Date().toISOString(),
-              }, { onConflict: "estoque_id,insumo_id" }).catch(() => {});
-            }
+          // Coloca o produto na prateleira do setor dele (Bar, Cozinha...).
+          //
+          // Duas coisas quebravam aqui e o produto do bar nunca chegava ao
+          // estoque do bar:
+          //
+          // 1. O `.catch()` no fim do upsert. O que o supabase devolve é um
+          //    "thenable" — tem `then`, não tem `catch`. Chamar `.catch()`
+          //    estourava um TypeError ANTES de a requisição sair, e o try
+          //    de fora engolia tudo num console.warn. O vínculo jamais era
+          //    gravado, sem nenhum erro na tela.
+          //
+          // 2. O `|| ests[0]`. Sem estoque do setor, o produto era jogado no
+          //    primeiro estoque que o banco devolvesse — a cerveja aparecia
+          //    na cozinha. E como a busca era por "bar" no nome, ela também
+          //    casava com "Pré-preparos do Bar" e "Embalagens do Bar".
+          //    Agora quem escolhe é estoquePrincipalDoSetor, e não achando o
+          //    estoque certo o produto fica sem vínculo em vez de ir para o
+          //    lugar errado.
+          //
+          // Pré-preparo não passa por aqui: quem a ficha técnica produz é
+          // criado direto por garantirFichaNoEstoquePreparo, que já vincula ao
+          // "Pré-preparos do Bar/Cozinha". Se um dia voltar a passar, precisa
+          // ficar de fora — senão o mesmo saldo é contado em dois estoques.
+          const { data: ests } = await supabase
+            .from("estoques").select("id, slug, nome")
+            .eq("unidade_id", campos.unidade_id);
+          const alvo = estoquePrincipalDoSetor(ests, campos.departamento);
+          if (alvo?.id) {
+            const { error: erroVinculo } = await supabase.from("estoque_itens").upsert({
+              unidade_id: campos.unidade_id,
+              estoque_id: alvo.id,
+              insumo_id: data.id,
+              quantidade_atual: 0,
+              updated_at: new Date().toISOString(),
+            }, { onConflict: "estoque_id,insumo_id" });
+            if (erroVinculo) console.warn("Aviso ao vincular novo ingrediente ao estoque:", erroVinculo.message);
           }
         }
       } catch (e) {

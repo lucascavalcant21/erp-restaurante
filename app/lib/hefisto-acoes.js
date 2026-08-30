@@ -77,7 +77,7 @@ export async function carregarContextoEstoque(unidadeId, setor) {
   const { data: estoques } = await fetchEstoques(unidadeId);
   const estoque = escolherEstoque(estoques, setor);
   if (!estoque) return { estoque: null, itens: [] };
-  const { data: itens } = await fetchItensEstoque(estoque.id, unidadeId);
+  const { data: itens } = await fetchItensEstoque(estoque.id, unidadeId, estoque);
   return { estoque, itens: itens || [] };
 }
 

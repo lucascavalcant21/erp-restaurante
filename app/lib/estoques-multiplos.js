@@ -1,5 +1,5 @@
 import { supabase, isSupabaseReady } from "./supabase";
-import { ESTOQUES_PADRAO, LOCAIS_BAR_ANTIGOS, slugEstoque, tiposCompativeis } from "./estoques-multiplos-utils.mjs";
+import { ehEstoquePrePreparo, ESTOQUES_PADRAO, LOCAIS_BAR_ANTIGOS, setorAutomaticoDoEstoque, slugEstoque, tiposCompativeis } from "./estoques-multiplos-utils.mjs";
 
 const erroMensagem = error => error?.message || null;
 
@@ -81,16 +81,27 @@ export async function movimentoLegado({ unidadeId, estoqueId, insumoId, tipo, qu
   );
 
   // 4. Registra histórico da movimentação
-  await supabase.from("estoque_movimentacoes").insert({
-    unidade_id: unidadeId,
-    insumo_id: insumoId,
-    tipo: tipo || "entrada",
-    quantidade: q || Number(saldoContado) || 0,
-    usuario_id: usuarioId || null,
-    usuario_nome: usuarioNome || null,
-    observacao: observacao || null,
-    created_at: new Date().toISOString(),
-  }).catch(() => {});
+  //
+  // O `.catch()` que estava aqui não existe no supabase: o que ele devolve tem
+  // `then`, mas não tem `catch`. Chamá-lo estourava um TypeError antes de a
+  // requisição sair, e como isso acontece depois de o saldo já ter sido
+  // gravado, a entrada entrava no estoque e sumia do histórico — e a tela
+  // ainda mostrava erro. O try/catch de verdade cobre a mesma intenção:
+  // histórico é acessório, não pode derrubar a movimentação.
+  try {
+    await supabase.from("estoque_movimentacoes").insert({
+      unidade_id: unidadeId,
+      insumo_id: insumoId,
+      tipo: tipo || "entrada",
+      quantidade: q || Number(saldoContado) || 0,
+      usuario_id: usuarioId || null,
+      usuario_nome: usuarioNome || null,
+      observacao: observacao || null,
+      created_at: new Date().toISOString(),
+    });
+  } catch (e) {
+    console.warn("Aviso ao gravar histórico da movimentação:", e);
+  }
 
   return { data: { quantidade_atual: novo }, error: null };
 }
@@ -252,8 +263,74 @@ export async function salvarEstoque(estoque) {
   return { data, error: erroMensagem(error) };
 }
 
-export async function fetchItensEstoque(estoqueId, unidadeId) {
+// Põe na prateleira do setor os produtos que já estavam no catálogo mas nunca
+// foram vinculados a ela. Existe porque o vínculo automático do cadastro ficou
+// quebrado por um tempo (ver salvarInsumo em operacao.js): quem cadastrou uma
+// bebida nesse período tem o produto no catálogo do bar e não no estoque do
+// bar. Sem isso, só os produtos cadastrados de hoje em diante apareceriam.
+//
+// É seguro rodar sempre: o ERP não tem "tirar um produto deste estoque", então
+// produto do setor fora da prateleira do setor é sempre falha, nunca escolha.
+// Depois da primeira vez não sobra nada para vincular e o custo é uma consulta.
+async function vincularProdutosDoSetorPendentes(estoque, unidadeId) {
+  const setor = setorAutomaticoDoEstoque(estoque);
+  if (!setor || !unidadeId || unidadeId === "todas" || unidadeId === "matriz") return;
+  try {
+    const [{ data: doSetor }, { data: jaNaPrateleira }] = await Promise.all([
+      supabase.from("insumos").select("id").eq("unidade_id", unidadeId).eq("departamento", setor),
+      supabase.from("estoque_itens").select("insumo_id").eq("estoque_id", estoque.id),
+    ]);
+    const vinculados = new Set((jaNaPrateleira || []).map(i => i.insumo_id));
+    let faltando = (doSetor || []).filter(i => !vinculados.has(i.id));
+    if (!faltando.length) return;
+
+    // Pré-preparo do setor não sobe para a prateleira principal. O que a ficha
+    // técnica produz ("Açaí · Freezer 1", "Xarope de gengibre - Bar") é insumo
+    // do bar como qualquer outro e viria junto nessa varredura, enchendo o
+    // estoque do Bar com item que já tem casa no Pré-preparos do Bar — e
+    // contando o mesmo saldo em dois lugares. Quem já mora num pré-preparo
+    // fica fora.
+    const { data: estoquesDaUnidade } = await supabase
+      .from("estoques").select("id, slug, nome").eq("unidade_id", unidadeId);
+    const idsPreparo = (estoquesDaUnidade || []).filter(ehEstoquePrePreparo).map(e => e.id);
+    if (idsPreparo.length) {
+      const { data: jaNoPreparo } = await supabase
+        .from("estoque_itens").select("insumo_id")
+        .in("estoque_id", idsPreparo)
+        .in("insumo_id", faltando.map(i => i.id));
+      const produzidos = new Set((jaNoPreparo || []).map(i => i.insumo_id));
+      faltando = faltando.filter(i => !produzidos.has(i.id));
+      if (!faltando.length) return;
+    }
+
+    const agora = new Date().toISOString();
+    const { error } = await supabase.from("estoque_itens").upsert(
+      faltando.map(i => ({
+        unidade_id: unidadeId,
+        estoque_id: estoque.id,
+        insumo_id: i.id,
+        quantidade_atual: 0,
+        updated_at: agora,
+      })),
+      { onConflict: "estoque_id,insumo_id" },
+    );
+    if (error) console.warn("[fetchItensEstoque] Não consegui vincular produtos do setor:", error.message);
+  } catch (e) {
+    console.warn("[fetchItensEstoque] Não consegui vincular produtos do setor:", e);
+  }
+}
+
+export async function fetchItensEstoque(estoqueId, unidadeId, estoque = null) {
   if (!isSupabaseReady() || !estoqueId) return { data: [], error: null };
+
+  // O cadastro do estoque diz de que setor ele é e se controla lote. Quem já
+  // tem o registro na mão passa adiante para não repetir a consulta.
+  let cadastroEstoque = estoque && estoque.id === estoqueId ? estoque : null;
+  if (!cadastroEstoque) {
+    const { data: achado } = await supabase.from("estoques").select("id,slug,nome").eq("id", estoqueId).maybeSingle();
+    cadastroEstoque = achado || { id: estoqueId, slug: String(estoqueId), nome: "" };
+  }
+  await vincularProdutosDoSetorPendentes(cadastroEstoque, unidadeId);
 
   let data = null;
   try {
@@ -292,12 +369,12 @@ export async function fetchItensEstoque(estoqueId, unidadeId) {
 
   // Pré-preparos começam vazios e só exibem os itens vinculados a esse estoque.
   // Isso impede que o fallback legado misture o saldo dos produtos comuns.
-  let identificadorEstoque = String(estoqueId).toLowerCase();
-  if (!identificadorEstoque.includes("pre-preparo") && !identificadorEstoque.includes("preparo")) {
-    const { data: cadastroEstoque } = await supabase.from("estoques").select("slug,nome").eq("id", estoqueId).maybeSingle();
-    identificadorEstoque = `${cadastroEstoque?.slug || ""} ${cadastroEstoque?.nome || ""}`.toLowerCase();
-  }
-  if (identificadorEstoque.includes("pre-preparo") || identificadorEstoque.includes("pré-preparo")) {
+  // O cadastro já veio lá de cima, então aqui não se consulta o banco de novo —
+  // e a comparação passa a ignorar acento, que era como "Pré-preparos" com
+  // acento escapava do teste feito só sobre o texto cru do id.
+  const identificadorEstoque = `${cadastroEstoque.slug || ""} ${cadastroEstoque.nome || ""}`.trim().toLowerCase()
+    || String(estoqueId).toLowerCase();
+  if (ehEstoquePrePreparo(cadastroEstoque)) {
     return { data: [], error: null };
   }
 

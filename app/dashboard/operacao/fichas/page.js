@@ -1284,7 +1284,7 @@ function FichasRunner() {
               tamanho_embalagem: 1,
               custo_unitario: custoUnit,
               custo_compra: custoUnit,
-            }, { origem: "Ficha de pré-preparo" });
+            }, { origem: "Ficha de pré-preparo", semVinculoAutomatico: true });
             if (insumo?.id) {
               await vincularItemEstoque({ unidadeId: unidadeAtiva, estoqueId: estoquePre.id, insumoId: insumo.id, custoUnitario: custoUnit });
             }

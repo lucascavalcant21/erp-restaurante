@@ -549,7 +549,7 @@ function EstoqueRunner() {
     setLoading(true);
     const ehEstoqueEmbalagem = /embalage/i.test(`${estoqueAtual?.slug || ""} ${estoqueAtual?.nome || ""}`);
     const [resItens, resMovimentos, resProntos, resEmbalagens] = await Promise.all([
-      fetchItensEstoque(estoqueId, unidadeAtiva),
+      fetchItensEstoque(estoqueId, unidadeAtiva, estoqueAtual),
       fetchMovimentosMulti(unidadeAtiva, estoqueId),
       fetchNomesDePratosEDrinks(unidadeAtiva),
       ehEstoqueEmbalagem ? fetchEmbalagens(unidadeAtiva) : Promise.resolve({ data: [] }),

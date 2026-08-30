@@ -482,7 +482,6 @@ function FichasRunner() {
   const [registrandoCusto, setRegistrandoCusto] = useState(false);
   const [semeandoCustos, setSemeandoCustos] = useState(false);
   const [iaExplicacao, setIaExplicacao] = useState("");
-  const [autoSoma, setAutoSoma] = useState(true);
   const [buscaIng, setBuscaIng] = useState("");
 
   const [selecionadas, setSelecionadas] = useState([]);
@@ -732,7 +731,6 @@ function FichasRunner() {
       preco_venda: "",
       cmv_meta: 30,
     });
-    setAutoSoma(true);
     setIngFicha(novosIngFicha);
     setFichaEmbalagens([]);
     setNovaEmbalagem({ nome: "", custo: "" });
@@ -927,17 +925,23 @@ function FichasRunner() {
     if (ok && tipoFiltro === nome) setTipoFiltro(modoFicha === "preparos" ? "Preparos e receitas" : "Pratos principais");
   };
 
-  // Rendimento automático: sempre que os ingredientes mudam (e não estiver no
-  // modo manual), o rendimento passa a ser o PESO SOMADO dos ingredientes, na
-  // unidade que domina (kg/g/l/ml). Sem porção, sem multiplicação.
+  // Rendimento automático e único: sempre que os ingredientes mudam, o
+  // rendimento passa a ser o PESO SOMADO deles, na unidade que domina
+  // (kg/g/l/ml). Sem porção, sem multiplicação. Digitar à mão não existe mais:
+  // número digitado envelhecia calado quando o preço ou a quantidade de um
+  // ingrediente mudava, e a ficha passava a mentir sem ninguém perceber.
   useEffect(() => {
-    if (form && autoSoma && ingFicha.length > 0) {
+    if (form && ingFicha.length > 0) {
       const est = rendimentoPelosIngredientes(ingFicha);
       if (est && est.totalG > 0) {
-         setForm(f => ({ ...f, rendimento_porcoes: String(est.valor), rendimento_unidade: est.unidade, peso_porcao_g: "" }));
+         // Só o rendimento é recalculado. O peso da porção não sai dos
+         // ingredientes — é decisão de quem monta o prato — e apagá-lo aqui
+         // limpava, ao abrir a ficha para editar, um valor que já estava salvo
+         // e que a composição por porção usa para existir.
+         setForm(f => ({ ...f, rendimento_porcoes: String(est.valor), rendimento_unidade: est.unidade }));
       }
     }
-  }, [ingFicha, autoSoma]);
+  }, [ingFicha]);
 
   // Divisão do receituário: Pratos (prontos p/ cardápio) × Pré-preparos (bases
   // usadas dentro de outros pratos: molhos, massas, caldos...)
@@ -1007,13 +1011,11 @@ function FichasRunner() {
     setIngFicha([]);
     setFichaEmbalagens([]);
     setNovaEmbalagem({ nome: "", custo: "" });
-    setAutoSoma(true);
     setIaExplicacao("");
     setModalNovo(true);
   };
 
   const abrirEditar = (ficha) => {
-    setAutoSoma(false);
     const produtoFicha = produtos.find(x => x.ficha_id === ficha.id || String(x.nome_produto || "").toLowerCase() === String(ficha.nome_receita || "").toLowerCase());
     setForm({
        id: ficha.id,
@@ -1269,19 +1271,16 @@ function FichasRunner() {
     if (ingFicha.find(i => i.chave === id)) return; // já existe
     const novo = construirIng(valor, 0);
     if (!novo) return;
-    setAutoSoma(true);
     setIngFicha([...ingFicha, novo]);
     setBuscaIng("");
   };
 
   // Recebe a quantidade JÁ em unidade-base (a conversão acontece no onChange do input)
   const updateQtd = (chave, qtdBase) => {
-    setAutoSoma(true);
     setIngFicha(lista => lista.map(i => i.chave === chave ? { ...i, quantidade: Number(qtdBase) || 0 } : i));
   };
 
   const toggleModo = (chave) => {
-    setAutoSoma(true);
     setIngFicha(lista => lista.map(i => i.chave === chave ? { ...i, modo: i.modo === 'sub' ? 'base' : 'sub' } : i));
   };
 
@@ -1291,7 +1290,6 @@ function FichasRunner() {
   };
 
   const removeIngrediente = (chave) => {
-    setAutoSoma(true);
     setIngFicha(lista => lista.filter(i => i.chave !== chave));
   };
 
@@ -1303,7 +1301,6 @@ function FichasRunner() {
     if (novoId === alvo.chave) { fecharSubstituicao(); return; }
     const novo = construirIng(substitutoValor, alvo.quantidade || 0);
     if (!novo) return;
-    setAutoSoma(true);
     setIngFicha(lista => {
       // Se o substituto já está na ficha, apenas remove o alvo (evita duplicar)
       if (lista.find(i => i.chave === novo.chave)) return lista.filter(i => i.chave !== alvo.chave);
@@ -1546,7 +1543,6 @@ function FichasRunner() {
       setIngFicha([]);
       setFichaEmbalagens([]);
       setNovaEmbalagem({ nome: "", custo: "" });
-      setAutoSoma(true);
       setIaExplicacao("");
     }
   };
@@ -3545,22 +3541,17 @@ function FichasRunner() {
                      </div>
                      )}
 
-                     {/* RENDIMENTO — automático pela soma dos ingredientes (peso + custo de 1 kg).
-                         No modo automático e sem ingrediente nenhum o card não tem o que
-                         mostrar: era um retângulo com uma frase cinza entre o receituário e
-                         a precificação. Ele volta sozinho no primeiro ingrediente, e no modo
-                         manual fica sempre — é lá que se corrige o rendimento de receita que
-                         reduz no fogo. */}
-                     {(!autoSoma || ingFicha.length > 0) && (
+                     {/* RENDIMENTO — sempre a soma dos ingredientes (peso + custo). Não há
+                         mais como digitar à mão: o número digitado envelhecia calado quando o
+                         preço ou a quantidade de um ingrediente mudava, e a ficha passava a
+                         mentir sem ninguém perceber. Sem ingrediente nenhum o card não tem o
+                         que mostrar e some; volta sozinho no primeiro ingrediente. */}
+                     {ingFicha.length > 0 && (
                      <div id="ficha-rendimento" className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm scroll-mt-24">
                         <div className="flex items-center justify-between mb-3">
                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Quantidade da receita</p>
-                           {autoSoma
-                              ? <button type="button" onClick={() => setAutoSoma(false)} className="text-[10px] font-bold text-slate-400 hover:text-slate-600 underline">ajustar manualmente</button>
-                              : <button type="button" onClick={() => setAutoSoma(true)} className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 underline">← voltar ao automático</button>}
                         </div>
-                        {autoSoma ? (
-                           (() => {
+                        {(() => {
                               const est = rendimentoPelosIngredientes(ingFicha);
                               const custoTotal = calcularCustoTotal(ingFicha);
                               // Duas coisas diferentes davam a mesma frase. Sem ingrediente
@@ -3585,10 +3576,14 @@ function FichasRunner() {
                                           <p className="text-2xl font-black text-slate-800 mt-1">{est.valor.toLocaleString("pt-BR")} <span className="text-base">{unLabel}</span></p>
                                           <p className="text-[10px] font-medium text-slate-400">somado dos ingredientes</p>
                                        </div>
+                                       {/* O número grande é o que saiu do nosso bolso nesta receita.
+                                           O preço por kg/L é consequência dele e fica embaixo: era o
+                                           contrário, e o valor que a cozinha precisa ver primeiro
+                                           aparecia pequeno, embaixo do que ela não usa no dia a dia. */}
                                        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center">
-                                          <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">1 {baseCustoDaFicha(est.unidade, unGrande)} custa</p>
-                                          <p className="text-2xl font-black text-emerald-700 mt-1">{fmtBRL(custoKg)}</p>
-                                          <p className="text-[10px] font-medium text-emerald-600/70">custo total {fmtBRL(custoTotal)}</p>
+                                          <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Custo dos ingredientes</p>
+                                          <p className="text-2xl font-black text-emerald-700 mt-1">{fmtBRL(custoTotal)}</p>
+                                          <p className="text-[10px] font-medium text-emerald-600/70">1 {baseCustoDaFicha(est.unidade, unGrande)} custa {fmtBRL(custoKg)}</p>
                                        </div>
                                     </div>
 
@@ -3643,115 +3638,7 @@ function FichasRunner() {
                                     })()}
                                  </>
                               );
-                           })()
-                        ) : (
-                        <>
-                        <div className={`grid ${["kg", "g", "l", "ml"].includes(String(form.rendimento_unidade || "porcao").toLowerCase()) ? "grid-cols-2" : "grid-cols-3"} gap-3`}>
-                           <div>
-                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Quantidade</label>
-                              <input type="number" step="0.01" placeholder="Ex: 80" value={form.rendimento_porcoes} onChange={e=>{
-                                 setForm({...form, rendimento_porcoes: e.target.value});
-                                 setAutoSoma(false);
-                              }} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-slate-800 outline-none focus:border-emerald-500 text-center"/>
-                           </div>
-                           <div>
-                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Medido em</label>
-                              <select value={form.rendimento_unidade} onChange={e=>{
-                                 const newUn = String(e.target.value).toLowerCase();
-                                 const oldUn = String(form.rendimento_unidade || "porcao").toLowerCase();
-                                 let newVal = Number(String(form.rendimento_porcoes).replace(',', '.')) || 0;
-                                 
-                                 if (newVal > 0) {
-                                    if (oldUn === "kg" && newUn === "g") newVal = newVal * 1000;
-                                    else if (oldUn === "g" && newUn === "kg") newVal = newVal / 1000;
-                                    else if (oldUn === "l" && newUn === "ml") newVal = newVal * 1000;
-                                    else if (oldUn === "ml" && newUn === "l") newVal = newVal / 1000;
-                                 }
-
-                                 setForm({
-                                    ...form, 
-                                    rendimento_unidade: newUn,
-                                    rendimento_porcoes: newVal > 0 ? String(newVal).replace('.', ',') : form.rendimento_porcoes
-                                 });
-                                 setAutoSoma(false);
-                              }} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500">
-                                 {ehBarFicha ? <>
-                                    <option value="ml">ml</option>
-                                    <option value="l">L</option>
-                                    <option value="porcao">doses</option>
-                                    <option value="un">unidades</option>
-                                 </> : <>
-                                    <option value="porcao">porções</option>
-                                    <option value="kg">kg</option>
-                                    <option value="g">g</option>
-                                    <option value="l">L</option>
-                                    <option value="ml">ml</option>
-                                    <option value="un">unidades</option>
-                                 </>}
-                              </select>
-                           </div>
-                           {!["kg", "g", "l", "ml"].includes(String(form.rendimento_unidade || "porcao").toLowerCase()) && (
-                              <div>
-                                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{ehBarFicha ? "Dose tem (ml)" : "Porção pesa (g)"}</label>
-                                 <input type="number" step="0.1" min="0" placeholder={ehBarFicha ? "Ex: 50" : "Ex: 300"} value={form.peso_porcao_g} onChange={e=>{
-                                    setForm({...form, peso_porcao_g: e.target.value});
-                                    setAutoSoma(false);
-                                 }} className="w-full p-3 mt-1 bg-slate-50 border border-slate-200 rounded-xl font-black text-slate-800 outline-none focus:border-emerald-500 text-center"/>
-                              </div>
-                           )}
-                        </div>
-
-                        {/* Resumo em UMA linha do que isso significa */}
-                        {(() => {
-                           const rendimento = Number(form.rendimento_porcoes) || 0;
-                           const pesoPorcao = Number(form.peso_porcao_g) || 0;
-                           const unR = String(form.rendimento_unidade || "porcao").toLowerCase();
-                           const est = rendimentoPelosIngredientes(ingFicha);
-                           const pesoTotalG = pesoTotalDaFicha(rendimento, unR, pesoPorcao) || (est ? est.totalG : 0);
-                           const custoTotal = calcularCustoTotal(ingFicha);
-                           const porcoesRendidas = (unR === "porcao" || unR === "un")
-                              ? rendimento
-                              : (pesoPorcao > 0 && pesoTotalG > 0 ? pesoTotalG / pesoPorcao : null);
-                           const custoKg = pesoTotalG > 0 ? custoTotal / (pesoTotalG / 1000) : null;
-                           const custoPorc = porcoesRendidas > 0 ? custoTotal / porcoesRendidas : null;
-
-                           if (!pesoTotalG && !porcoesRendidas) {
-                              // Sem dados suficientes: só a sugestão pelos ingredientes, se houver
-                              return est ? (
-                                 <p className="text-[11px] font-bold text-slate-500 mt-3">
-                                    Os ingredientes somam <span className="text-slate-800">{est.valor.toLocaleString("pt-BR")} {({ kg: "kg", g: "g", l: "L", ml: "ml" })[est.unidade]}</span>.
-                                    <button type="button" onClick={() => setForm(f => ({ ...f, rendimento_porcoes: String(est.valor), rendimento_unidade: est.unidade }))} className="ml-1.5 text-emerald-600 underline hover:text-emerald-700">Usar como rendimento</button>
-                                 </p>
-                              ) : null;
-                           }
-                           return (
-                              <div className="mt-3 bg-emerald-50 border border-emerald-100 rounded-xl px-3.5 py-2.5">
-                                 <p className="text-sm font-bold text-slate-700 leading-relaxed">
-                                    {unR === "porcao" ? (
-                                       <>
-                                          Rende <span className="font-black text-slate-900">{rendimento} {rendimento >= 2 ? "porções" : "porção"}</span>
-                                          {pesoPorcao > 0 && <> de <span className="font-black text-slate-900">{pesoPorcao}g</span> (Total: {fmtG(pesoTotalG)})</>}
-                                       </>
-                                    ) : (
-                                       <>
-                                          Rende <span className="font-black text-slate-900">{rendimento} {unR}</span>
-                                          {porcoesRendidas !== null && pesoPorcao > 0 && <> = <span className="font-black text-slate-900">{(+porcoesRendidas.toFixed(1)).toLocaleString("pt-BR")} porções de {pesoPorcao}g</span></>}
-                                       </>
-                                    )}
-                                    {custoPorc !== null && <> · porção custa <span className="font-black text-emerald-700">{fmtBRL(custoPorc)}</span></>}
-                                    {custoKg !== null && <> · 1 {baseCustoDaFicha(unR, unGrande)} custa <span className="font-black text-emerald-700">{fmtBRL(custoKg)}</span></>}
-                                 </p>
-                                 {est && Math.abs(est.totalG - pesoTotalG) / Math.max(est.totalG, pesoTotalG) > 0.05 && (
-                                    <p className="text-[10px] font-medium text-slate-400 mt-1">
-                                       Ingredientes somam {fmtG(est.totalG)} (diferença = água/perdas do preparo).
-                                       <button type="button" onClick={() => setForm(f => ({ ...f, rendimento_porcoes: String(est.valor), rendimento_unidade: est.unidade }))} className="ml-1 text-emerald-600 underline hover:text-emerald-700">Usar esse valor</button>
-                                    </p>
-                                 )}
-                              </div>
-                           );
                         })()}
-                        </>
-                        )}
                      </div>
                      )}
 

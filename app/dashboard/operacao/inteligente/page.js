@@ -8,7 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft, Loader2, Play, CheckCircle2, AlertTriangle, Clock,
-  ListChecks, ShieldAlert, Plus, RefreshCw, ClipboardList,
+  ListChecks, ShieldAlert, Plus, RefreshCw, ClipboardList, MonitorPlay,
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { lerSessao } from "../../../lib/auth";
@@ -101,6 +101,10 @@ export default function CentralOperacional() {
           <button onClick={() => carregar({ gerar: true })} disabled={gerando}
             className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-white px-4 font-black text-emerald-700 hover:bg-emerald-50 disabled:opacity-60">
             <RefreshCw size={17} className={gerando ? "animate-spin" : ""} /> Atualizar
+          </button>
+          <button onClick={() => router.push("/dashboard/operacao/inteligente/tv")}
+            className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-white px-4 font-black text-emerald-700 hover:bg-emerald-50">
+            <MonitorPlay size={17} /> Modo TV
           </button>
           <button onClick={() => router.push("/dashboard/operacao/inteligente/processos")}
             className="flex h-11 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-white px-4 font-black text-emerald-700 hover:bg-emerald-50">

@@ -755,7 +755,10 @@ export default function DashboardLayout({ children }) {
   const [collapsed, setCollapsed] = useState(false);
   const [compacto, setCompacto] = useState(false);
   const interfaceTelaCheia = pathname === "/dashboard/operacao/estoque/tablet"
-    || pathname === "/dashboard/operacao/etiquetas/tablet";
+    || pathname === "/dashboard/operacao/etiquetas/tablet"
+    // Modo TV fica pendurado na cozinha: menu lateral e cabeçalho do app só
+    // roubariam a área útil de uma tela que ninguém vai clicar.
+    || pathname === "/dashboard/operacao/inteligente/tv";
 
   useEffect(() => {
     try {

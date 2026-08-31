@@ -62,10 +62,28 @@ Scripts avulsos que existem mas você roda só se quiser:
 `ZERAR_FICHAS_COZINHA_E_BAR.sql` (apaga o receituário dos dois setores),
 `IMPORTAR_PONTO_AGOSTO.sql` e `VINCULAR_PRODUTOS_AOS_ESTOQUES.sql`.
 
-O último (30/08) põe cada produto na prateleira do setor dele de uma vez, em
-todas as unidades. **Não precisa rodar**: o app faz isso sozinho ao abrir cada
-estoque. Serve para quem prefere consertar tudo sem abrir tela por tela. É
-idempotente e preserva saldo de quem já estava vinculado.
+O `VINCULAR_PRODUTOS_AOS_ESTOQUES` (30/08) põe cada produto na prateleira do
+setor dele de uma vez, em todas as unidades. **Não precisa rodar**: o app faz
+isso sozinho ao abrir cada estoque. É idempotente e preserva saldo de quem já
+estava vinculado.
+
+**Correções de ponto de 31/08** (rodadas pelo proprietário):
+- `CORRIGIR_PONTO_27_A_30_08.sql` — Larissa da Silva, Eduarda, Joseph Andrey,
+  Cedeine e Brenda Larissa. **Já foi rodado: deu certo.**
+- `NORMALIZAR_ENTRADAS_PARA_O_TURNO.sql` — toda entrada batida antes da hora
+  contratada vira a hora contratada, em todos. Tem uma prévia no topo que só
+  mostra o que vai mudar; rode ela primeiro.
+
+Duas armadilhas que esses scripts custaram a achar, para não repetir:
+- **`LIKE 'NOME%'` só casa no começo.** "Andrey" é nome do meio (Joseph Andrey
+  Gomes da Silva) e o script não achava ninguém. E busca por trecho casa
+  demais: `%LARISSA%` pega *Brenda Larissa Ribeiro Martins* E *Larissa da
+  Silva Uhe*, que são pessoas diferentes. Todo script que procura gente por
+  nome precisa **recusar empate** em vez de usar `limit 1` — senão o ajuste
+  cai no ponto de quem não era, calado.
+- **`to_char(data, 'D')` devolve 1 para domingo**, mas `horarios_dia` é gravado
+  com a chave do `getDay()` do JavaScript, onde domingo é 0. Use
+  `extract(dow ...)`, que bate com o JS.
 
 ### 2. Recibo do extra mais curto — CONCLUÍDO
 Nada pendente aqui. O que ficou pronto, tudo já no `main`:
@@ -113,12 +131,12 @@ pendentes já estavam prontos** e ninguém sabia:
   do Operação Inteligente — são modelos de dados diferentes (`templates` x
   `processos`), então levar para lá é trabalho, não um botão.
 
-**Falta de verdade:**
-- **Modo TV** — painel para pendurar na cozinha com o andamento do dia.
-- **Rankings e relatórios** — `calcularScore` existe e é usado no painel, mas só
-  agregado; não há nada por pessoa nem por setor ao longo do tempo.
+**Falta de verdade — sobrou uma de três (31/08):**
+- ~~Modo TV~~ — **pronto** em `/dashboard/operacao/inteligente/tv`.
+- ~~Rankings e relatórios~~ — **pronto** em `/dashboard/operacao/inteligente/rankings`.
 - **Automações e WhatsApp** — avisar responsável, cobrar atraso, escalar NC
-  crítica. Existe integração de WhatsApp em outros módulos, nenhuma aqui.
+  crítica. Existe integração de WhatsApp em outros módulos (sempre `wa.me` com
+  texto pronto, sem API), nenhuma aqui. É o próximo daqui.
 
 ### 6. Módulo de treinamento de funcionários
 Trilhas por cargo, aulas e documentos, quiz, progresso por pessoa e certificado.
@@ -182,7 +200,7 @@ Nada aqui está pendente — é registro, para a próxima sessão não refazer.
   achou o segundo compara, componente a componente, o que é usado contra o que é
   declarado ou recebido por prop — vale rodar depois de qualquer troca global.
 
-## O que a sessão de 30/08 entregou
+## O que as sessões de 30 e 31/08 entregaram
 
 - **Produto cadastrado no bar não entrava no estoque do bar.** O cadastro
   tentava vincular, mas a chamada terminava em `.catch(() => {})` — e o que o
@@ -222,6 +240,25 @@ Nada aqui está pendente — é registro, para a próxima sessão não refazer.
 - **Portal da vaga**: o campo perdia o foco a cada tecla. `Campo` era declarado
   dentro do componente, então virava função nova a cada render e o React
   desmontava o `<label>` inteiro. Subiu para o topo do módulo.
+- **Modo TV** (`/dashboard/operacao/inteligente/tv`): painel para pendurar na
+  cozinha, com atrasado / acontecendo agora / a seguir. O status recalcula com
+  o relógio a cada 10s, não só na busca ao banco — rotina que vence às 15h vira
+  atraso sozinha na parede.
+- **Rankings** (`/dashboard/operacao/inteligente/rankings`): por pessoa, por
+  setor e as rotinas que mais falham. Duas regras que sustentam o número:
+  rotina que **ninguém iniciou** não tem dono e não entra na conta de pessoa
+  nenhuma (conta no setor, e aparece numa faixa à parte); e quem fez menos de
+  três no período fica numa lista separada, porque uma rotina certa dá 100% e
+  ordenar isso junto premiaria quem trabalhou menos.
+- **Ponto**: trava contra batida duplicada (menos de 1 min entre marcações é
+  recusado) — era o defeito que gravava a mesma hora em campos seguidos e
+  comia o intervalo inteiro. E a antecipação saiu da conta: quem bate antes do
+  turno não gera mais hora extra por ter chegado cedo, **no cálculo**, sem
+  mexer no registro.
+- **Recrutamento**: vaga ao lado do nome e mover de etapa marcando, sem
+  arrastar (arrastar nunca funcionou no celular).
+- **Guia de funções**: "Nova função" no cabeçalho — existia só no fim da lista
+  e só depois de entrar em edição — e a tela ajustada para celular e tablet.
 - **Marcador de versão no cabeçalho** (`NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA`).
   Existe porque "nada mudou" era ambíguo entre build velho e bug de verdade:
   agora dá para comparar o que está na tela com o que está no `main`.
@@ -240,10 +277,11 @@ Nada aqui está pendente — é registro, para a próxima sessão não refazer.
 Me pergunte por qual item começar, ou vá direto no item 5 se eu não responder —
 Modo TV, rankings e automações são o que sobrou de verdade lá.
 
-Aberto hoje (30/08), em ordem de esforço:
+Aberto em 31/08, em ordem de esforço:
 - **Item 3** é só conferir: dê uma baixa no inventário e veja se aparece na
   auditoria. Se não aparecer, a tela agora diz o motivo — traga o texto.
-- **Item 5**: Modo TV, rankings por pessoa/setor, automações e WhatsApp.
+- **Item 5** — sobrou só **automações e WhatsApp** (Modo TV e Rankings estão
+  prontos). Avisar responsável, cobrar atraso, escalar NC crítica.
 - **Item 6**: módulo de treinamento, do zero.
 - **Item 4** é meu, não seu: depende da `SUPABASE_SERVICE_ROLE_KEY` na Vercel.
 

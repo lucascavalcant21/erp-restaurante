@@ -73,6 +73,18 @@ estava vinculado.
 - `NORMALIZAR_ENTRADAS_PARA_O_TURNO.sql` — toda entrada batida antes da hora
   contratada vira a hora contratada, em todos. Tem uma prévia no topo que só
   mostra o que vai mudar; rode ela primeiro.
+- `HORARIOS_DE_ENTRADA_DA_CASA.sql` — grava a regra: 15:40 de terça a sábado,
+  domingo Cedeine 09:00 e Eduarda 11:00, os demais no fixo. **Rode a primeira
+  consulta sozinha**: ela mostra quem está sem horário cadastrado.
+- `FOLGA_DOMINGO_23_08.sql` — folga de 23/08 para Alice, Andrey, Eduarda,
+  Larissa, Cedeine e Brenda, e apaga o resumo de ponto da Eduarda nesse dia
+  (ela não trabalhou).
+
+**O bloqueio de entrada só vale para quem tem horário cadastrado.** O app lê
+`horario_entrada` da pessoa; se estiver vazio, ele **libera** a batida a
+qualquer hora — de propósito, porque travar o ponto de alguém por falta de
+cadastro seria pior. Então "o sistema só deixa bater a partir das 15:40" é
+verdade só depois de o cadastro estar preenchido.
 
 Duas armadilhas que esses scripts custaram a achar, para não repetir:
 - **`LIKE 'NOME%'` só casa no começo.** "Andrey" é nome do meio (Joseph Andrey

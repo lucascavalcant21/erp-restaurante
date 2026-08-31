@@ -5,12 +5,19 @@
  23/08/2026 e o unico "dia 23" que cai num domingo por aqui: 23/09 e quarta e
  23/10 e sexta.
 
- ATENCAO - CONFERIR A EDUARDA
- Ela tem ponto batido nesse dia (11:06 | 15:18 | 16:18 | 19:24). Registrar a
- folga NAO apaga a batida, e as duas coisas juntas sao validas: quem trabalha
- na propria folga em domingo recebe em dobro (Lei 605/49, art. 9). Mas pode
- ser que ela nao devesse estar na lista. A ultima consulta abaixo mostra quem
- tem folga E ponto no mesmo dia, para voce decidir.
+ A BATIDA DA EDUARDA NESSE DIA E APAGADA
+ Havia ponto lancado para ela em 23/08 (11:06 | 15:18 | 16:18 | 19:24), mas
+ ela nao trabalhou: era a folga dela. O resumo do dia sai.
+
+ O que sai e o registro_ponto, que e o RESUMO que as telas leem e o que entra
+ na folha. O livro do Anexo IX (ponto_marcacao) nao e tocado: se aquelas horas
+ chegaram a ser batidas no aparelho, a marcacao original continua la, e e por
+ isso que apagar o resumo e reversivel. O script imprime os valores antes de
+ apagar, entao fica registrado tambem na saida do proprio SQL.
+
+ A ultima consulta confere que ninguem mais ficou com folga E ponto no mesmo
+ dia. Trabalhar na propria folga em domingo nao e proibido -- paga em dobro,
+ Lei 605/49 art. 9 --, mas aqui nao e o caso.
 
  Rodar de novo nao duplica: a folga so entra se ainda nao existir.
 
@@ -75,6 +82,49 @@ begin
 end $$;
 
 
+/* A Eduarda nao trabalhou no 23/08: o resumo do dia dela sai.
+   Mostra o que sera apagado antes de apagar. */
+do $$
+declare
+  v_unidade text := 'seldeestrela';
+  v_data    date := '2026-08-23';
+  v_colab   uuid;
+  v_quantos int;
+  r         record;
+begin
+  select count(*) into v_quantos
+    from public.colaboradores
+   where unidade_id = v_unidade and upper(nome) like 'EDUARDA%';
+  if v_quantos <> 1 then
+    raise notice 'PULEI a remocao: "EDUARDA%%" casou com % pessoa(s).', v_quantos;
+    return;
+  end if;
+
+  select id into v_colab
+    from public.colaboradores
+   where unidade_id = v_unidade and upper(nome) like 'EDUARDA%'
+   limit 1;
+
+  for r in
+    select (hora_entrada           at time zone 'America/Sao_Paulo')::time as e,
+           (hora_saida_intervalo   at time zone 'America/Sao_Paulo')::time as si,
+           (hora_retorno_intervalo at time zone 'America/Sao_Paulo')::time as ri,
+           (hora_saida             at time zone 'America/Sao_Paulo')::time as s
+      from public.registro_ponto
+     where colaborador_id = v_colab and data_referencia = v_data
+  loop
+    raise notice 'Apagando o dia % da Eduarda: % | % | % | %',
+      to_char(v_data, 'DD/MM'), coalesce(r.e::text,'--'), coalesce(r.si::text,'--'),
+      coalesce(r.ri::text,'--'), coalesce(r.s::text,'--');
+  end loop;
+
+  delete from public.registro_ponto
+   where colaborador_id = v_colab and data_referencia = v_data;
+  get diagnostics v_quantos = row_count;
+  raise notice 'Resumos apagados: % (0 = ja estava sem ponto nesse dia)', v_quantos;
+end $$;
+
+
 /* Confira quem ficou com folga no dia. */
 select c.nome, to_char(f.data_folga, 'DD/MM/YYYY') as folga, f.descricao
   from public.rh_folgas_esporadicas f
@@ -84,9 +134,7 @@ select c.nome, to_char(f.data_folga, 'DD/MM/YYYY') as folga, f.descricao
  order by c.nome;
 
 
-/* CONFERIR: quem tem folga E ponto batido no mesmo dia.
-   Nao e erro por si so -- trabalhar na folga em domingo paga em dobro --,
-   mas vale saber quem foi. */
+/* CONFERIR: tem que voltar ZERO linhas -- ninguem com folga E ponto no dia. */
 select c.nome,
        (p.hora_entrada at time zone 'America/Sao_Paulo')::time as entrou,
        (p.hora_saida   at time zone 'America/Sao_Paulo')::time as saiu

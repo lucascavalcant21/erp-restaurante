@@ -1,5 +1,16 @@
 /*
- CORRECOES DE PONTO - 27 a 30/08/2026 (Larissa, Eduarda, Andrey e Cedeine)
+ CORRECOES DE PONTO - 27 a 30/08/2026
+ (Larissa da Silva, Eduarda, Joseph Andrey, Cedeine e Brenda Larissa)
+
+ CUIDADO COM OS NOMES - duas pessoas tem "Larissa":
+   Brenda Larissa Ribeiro Martins  -> a "Brenda"
+   Larissa da Silva Uhe            -> a "Larissa"
+ Sao pessoas diferentes: no dia 27/08 a Larissa tem 15:40|16:59|18:08|00:21 e
+ a Brenda so a entrada. Por isso cada trecho abaixo e o mais curto que ainda
+ identifica UMA pessoa, e o script recusa rodar se algum casar com duas -- o
+ ajuste cairia no ponto de quem nao era, sem avisar.
+ "Andrey" e nome do meio (Joseph Andrey Gomes da Silva), entao esse casa em
+ qualquer posicao.
 
  LARISSA
    29/08 (sab): faltava so a saida. Entrada e intervalo ficam como estao.
@@ -73,20 +84,20 @@ begin
   for r in
     select * from (values
       /* LARISSA - 29/08: so a saida, que ficou em aberto. */
-      ('%LARISSA%', '2026-08-29', 'hora_saida',             'saida_trabalho',    '2026-08-30 00:00:00-03'),
+      ('LARISSA DA SILVA%', '2026-08-29', 'hora_saida',             'saida_trabalho',    '2026-08-30 00:00:00-03'),
       /* LARISSA - 30/08: o dia inteiro. */
-      ('%LARISSA%', '2026-08-30', 'hora_entrada',           'entrada',           '2026-08-30 15:40:00-03'),
-      ('%LARISSA%', '2026-08-30', 'hora_saida_intervalo',   'saida_intervalo',   '2026-08-30 16:40:00-03'),
-      ('%LARISSA%', '2026-08-30', 'hora_retorno_intervalo', 'retorno_intervalo', '2026-08-30 17:40:00-03'),
-      ('%LARISSA%', '2026-08-30', 'hora_saida',             'saida_trabalho',    '2026-08-30 23:00:00-03'),
+      ('LARISSA DA SILVA%', '2026-08-30', 'hora_entrada',           'entrada',           '2026-08-30 15:40:00-03'),
+      ('LARISSA DA SILVA%', '2026-08-30', 'hora_saida_intervalo',   'saida_intervalo',   '2026-08-30 16:40:00-03'),
+      ('LARISSA DA SILVA%', '2026-08-30', 'hora_retorno_intervalo', 'retorno_intervalo', '2026-08-30 17:40:00-03'),
+      ('LARISSA DA SILVA%', '2026-08-30', 'hora_saida',             'saida_trabalho',    '2026-08-30 23:00:00-03'),
 
       /* EDUARDA - 29/08: so a saida (estava 00:16). */
-      ('%EDUARDA%', '2026-08-29', 'hora_saida',             'saida_trabalho',    '2026-08-30 00:00:00-03'),
+      ('EDUARDA%', '2026-08-29', 'hora_saida',             'saida_trabalho',    '2026-08-30 00:00:00-03'),
       /* EDUARDA - 30/08: turno de domingo, 11h as 19:20. */
-      ('%EDUARDA%', '2026-08-30', 'hora_entrada',           'entrada',           '2026-08-30 11:00:00-03'),
-      ('%EDUARDA%', '2026-08-30', 'hora_saida_intervalo',   'saida_intervalo',   '2026-08-30 15:00:00-03'),
-      ('%EDUARDA%', '2026-08-30', 'hora_retorno_intervalo', 'retorno_intervalo', '2026-08-30 16:00:00-03'),
-      ('%EDUARDA%', '2026-08-30', 'hora_saida',             'saida_trabalho',    '2026-08-30 19:20:00-03'),
+      ('EDUARDA%', '2026-08-30', 'hora_entrada',           'entrada',           '2026-08-30 11:00:00-03'),
+      ('EDUARDA%', '2026-08-30', 'hora_saida_intervalo',   'saida_intervalo',   '2026-08-30 15:00:00-03'),
+      ('EDUARDA%', '2026-08-30', 'hora_retorno_intervalo', 'retorno_intervalo', '2026-08-30 16:00:00-03'),
+      ('EDUARDA%', '2026-08-30', 'hora_saida',             'saida_trabalho',    '2026-08-30 19:20:00-03'),
 
       /* ANDREY - 28/08: o app repetiu a mesma hora em campos seguidos. */
       ('%ANDREY%',  '2026-08-28', 'hora_entrada',           'entrada',           '2026-08-28 15:40:00-03'),
@@ -100,15 +111,15 @@ begin
       ('%ANDREY%',  '2026-08-30', 'hora_saida',             'saida_trabalho',    '2026-08-30 23:00:00-03'),
 
       /* CEDEINE - 27/08: a saida do intervalo bateu duas vezes. */
-      ('%CEDEINE%', '2026-08-27', 'hora_entrada',           'entrada',           '2026-08-27 15:40:00-03'),
-      ('%CEDEINE%', '2026-08-27', 'hora_saida_intervalo',   'saida_intervalo',   '2026-08-27 16:40:00-03'),
-      ('%CEDEINE%', '2026-08-27', 'hora_retorno_intervalo', 'retorno_intervalo', '2026-08-27 17:40:00-03'),
-      ('%CEDEINE%', '2026-08-27', 'hora_saida',             'saida_trabalho',    '2026-08-28 00:00:00-03'),
+      ('CEDEINE%', '2026-08-27', 'hora_entrada',           'entrada',           '2026-08-27 15:40:00-03'),
+      ('CEDEINE%', '2026-08-27', 'hora_saida_intervalo',   'saida_intervalo',   '2026-08-27 16:40:00-03'),
+      ('CEDEINE%', '2026-08-27', 'hora_retorno_intervalo', 'retorno_intervalo', '2026-08-27 17:40:00-03'),
+      ('CEDEINE%', '2026-08-27', 'hora_saida',             'saida_trabalho',    '2026-08-28 00:00:00-03'),
 
       /* BRENDA - 27/08: so a entrada tinha sido batida. */
-      ('%BRENDA%',  '2026-08-27', 'hora_saida_intervalo',   'saida_intervalo',   '2026-08-27 16:40:00-03'),
-      ('%BRENDA%',  '2026-08-27', 'hora_retorno_intervalo', 'retorno_intervalo', '2026-08-27 17:40:00-03'),
-      ('%BRENDA%',  '2026-08-27', 'hora_saida',             'saida_trabalho',    '2026-08-27 22:00:00-03')
+      ('BRENDA%',  '2026-08-27', 'hora_saida_intervalo',   'saida_intervalo',   '2026-08-27 16:40:00-03'),
+      ('BRENDA%',  '2026-08-27', 'hora_retorno_intervalo', 'retorno_intervalo', '2026-08-27 17:40:00-03'),
+      ('BRENDA%',  '2026-08-27', 'hora_saida',             'saida_trabalho',    '2026-08-27 22:00:00-03')
     ) as t(pessoa, dia, campo, tipo, hora)
   loop
     v_data  := r.dia::date;
@@ -211,8 +222,8 @@ select c.nome,
   from public.registro_ponto p
   join public.colaboradores c on c.id = p.colaborador_id
  where c.unidade_id = 'seldeestrela'
-   and (upper(c.nome) like '%LARISSA%' or upper(c.nome) like '%EDUARDA%'
-        or upper(c.nome) like '%ANDREY%' or upper(c.nome) like '%CEDEINE%'
-        or upper(c.nome) like '%BRENDA%')
+   and (upper(c.nome) like 'LARISSA DA SILVA%' or upper(c.nome) like 'EDUARDA%'
+        or upper(c.nome) like '%ANDREY%' or upper(c.nome) like 'CEDEINE%'
+        or upper(c.nome) like 'BRENDA%')
    and p.data_referencia between '2026-08-27' and '2026-08-30'
  order by c.nome, p.data_referencia;

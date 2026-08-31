@@ -1,6 +1,7 @@
 import { supabase, isSupabaseReady } from "./supabase";
 import { registrarMarcacao } from "./ponto-marcacao";
 import { entradaContratada, minutosAteOTurno } from "./jornada-calculo.mjs";
+import { esperaEntreBatidasMs } from "./ponto-status.mjs";
 
 // Data local (São Paulo) em YYYY-MM-DD, com deslocamento opcional de dias
 function dataLocalISO(offsetDias = 0) {
@@ -180,6 +181,20 @@ export async function registrarBatida(colaboradorId, unidadeId, tipoBatida, hora
     registro = regOntem;
   }
     
+  // Toque duplo não pode virar duas marcações. A regra e o porquê estão em
+  // esperaEntreBatidasMs (ponto-status.mjs), com teste.
+  //
+  // Só vale para a batida ao vivo: correção manual passa `horaMarcada` e
+  // lança um horário passado de propósito — travá-la impediria justamente o
+  // conserto do estrago que esta trava existe para evitar.
+  if (!horaMarcada) {
+    const faltaMs = esperaEntreBatidasMs(registro, agora);
+    if (faltaMs > 0) {
+      const seg = Math.max(1, Math.ceil(faltaMs / 1000));
+      return { error: `Você acabou de bater o ponto. Espere ${seg} segundo${seg === 1 ? "" : "s"} antes da próxima marcação.` };
+    }
+  }
+
   let updates = {};
   let novoStatus = 0;
   

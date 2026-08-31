@@ -15,7 +15,7 @@ import {
   fetchColaboradores, fetchDocumentos, fetchFolgasEsporadicas, fetchConsumoFuncionario, fetchAtestados,
   salvarAtestado, removerAtestado, anexarArquivoAtestado,
   fetchBancoHorasColaborador, somaMinutosBanco, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN,
-  fetchAdvertenciasColab, calcularAdicionaisMes, jornadaContratadaMin, fetchFeriados, fetchAllFolgasDaUnidade
+  fetchAdvertenciasColab, calcularAdicionaisMes, entradaContratadaDoDia, jornadaContratadaMin, fetchFeriados, fetchAllFolgasDaUnidade
 } from "../../../lib/rh";
 import { fetchHistoricoPonto, fetchPontosMes, fetchPontoHoje } from "../../../lib/ponto";
 import { situacaoDoPonto, atestadoNaData, CORES_TOM } from "../../../lib/ponto-status.mjs";
@@ -224,7 +224,10 @@ export default function VidaColaboradorPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* Remuneração do mês: fixo + VA + taxa + adicionais do ponto (CLT) */}
               {!isFree && (() => {
-                const ad = calcularAdicionaisMes(vida.pontosMes, sel.salario, vida.feriados, { contratadaDoDia: (d) => jornadaContratadaMin(sel, d) });
+                const ad = calcularAdicionaisMes(vida.pontosMes, sel.salario, vida.feriados, {
+                  contratadaDoDia: (d) => jornadaContratadaMin(sel, d),
+                  entradaDoDia: (d) => entradaContratadaDoDia(sel, d),
+                });
                 const fixo = Number(sel.salario) || 0;
                 const va = Number(sel.vale_alimentacao) || 0;
                 const taxa = Number(sel.taxa_servico_mes) || 0;

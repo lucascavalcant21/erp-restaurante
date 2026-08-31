@@ -1,7 +1,7 @@
 // Testes das frases do ponto no RH. São a linguagem que o dono lê todo dia —
 // se uma delas mentir sobre intervalo ou encerramento, vira problema
 // trabalhista, não bug de tela.
-import { situacaoDoPonto, atestadoNaData, TOM } from "./ponto-status.mjs";
+import { situacaoDoPonto, atestadoNaData, esperaEntreBatidasMs, TOM } from "./ponto-status.mjs";
 
 const hoje = (hhmm) => {
   const [h, m] = hhmm.split(":").map(Number);
@@ -74,6 +74,43 @@ conferir("parcial mantem a jornada", situacaoDoPonto(
   { hora_entrada: hoje("15:40"), hora_saida_intervalo: hoje("17:26"), hora_retorno_intervalo: hoje("18:26"), hora_saida: hoje("23:59") },
   { atestado: atestadoNaData(parcial, "2026-08-13") },
 ).texto, "Finalizou o trabalho às 23:59");
+
+
+// ── Trava contra batida duplicada ──────────────────────────────────────────
+// O defeito real: o segundo toque chega antes de a tela atualizar, o sistema
+// avanca de etapa e grava o MESMO instante no campo seguinte. Foi assim que
+// Andrey e Cedeine perderam o intervalo inteiro.
+const t = (hhmm) => `2026-08-27T${hhmm}:00-03:00`;
+
+conferir("sem registro, pode bater", esperaEntreBatidasMs(null, t("15:40")), 0);
+conferir("registro vazio, pode bater", esperaEntreBatidasMs({}, t("15:40")), 0);
+
+conferir("segundo toque no mesmo instante e barrado",
+  esperaEntreBatidasMs({ hora_entrada: t("15:40") }, t("15:40")), 60000);
+
+conferir("um segundo depois ainda e barrado",
+  esperaEntreBatidasMs({ hora_entrada: t("15:40") }, t("15:40").replace(":00-03", ":01-03")), 59000);
+
+conferir("passado o minuto, libera",
+  esperaEntreBatidasMs({ hora_entrada: t("15:40") }, t("15:41")), 0);
+
+conferir("olha a marcacao mais recente, nao a primeira",
+  esperaEntreBatidasMs(
+    { hora_entrada: t("15:40"), hora_saida_intervalo: t("16:40") },
+    t("16:40")), 60000);
+
+conferir("intervalo de verdade passa",
+  esperaEntreBatidasMs(
+    { hora_entrada: t("15:40"), hora_saida_intervalo: t("16:40") },
+    t("17:40")), 0);
+
+// Relogio do aparelho atrasado poe a batida anterior no futuro. Trancar o
+// ponto de alguem por causa disso seria pior que o bug que a trava conserta.
+conferir("batida anterior no futuro nao tranca ninguem",
+  esperaEntreBatidasMs({ hora_entrada: t("16:00") }, t("15:40")), 0);
+
+conferir("hora invalida nao tranca ninguem",
+  esperaEntreBatidasMs({ hora_entrada: t("15:40") }, "isso nao e data"), 0);
 
 console.log(falhas ? `\n${falhas} falha(s)` : "\nTodos os casos passaram.");
 process.exit(falhas ? 1 : 0);

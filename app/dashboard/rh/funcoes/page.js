@@ -241,23 +241,34 @@ export default function GuiaDeFuncoes() {
             <h1 className="text-lg font-black text-slate-900 sm:text-xl">Guia de funções</h1>
             <p className="text-xs font-bold text-slate-500">A rotina de cada função, hora a hora — sem nomes, por posição</p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          {/* No celular os botões viravam quatro linhas empilhadas e o cabeçalho
+              comia meia tela antes de aparecer a primeira função. Agora eles
+              correm na horizontal numa faixa só; do tablet para cima voltam a
+              quebrar linha normalmente. */}
+          <div className="-mx-4 flex w-full items-center gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:w-auto sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
             <button onClick={() => setEditando(v => !v)}
-              className={`flex h-10 items-center gap-2 rounded-xl px-4 text-xs font-black transition-colors ${editando ? "bg-emerald-600 text-white hover:bg-emerald-700" : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}>
+              className={`flex h-10 shrink-0 items-center gap-2 rounded-xl px-4 text-xs font-black transition-colors ${editando ? "bg-emerald-600 text-white hover:bg-emerald-700" : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}>
               <Save size={15} /> {editando ? "Concluir edição" : "Editar horários"}
             </button>
+            {/* Criar função estava só no fim da lista e só depois de entrar em
+                edição — quem chegava para criar uma função não achava. Aqui ele
+                já liga a edição sozinho. */}
+            <button onClick={adicionarFuncao} title="Cria uma função nova e abre a edição"
+              className="flex h-10 shrink-0 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-white px-4 text-xs font-black text-emerald-700 hover:bg-emerald-50">
+              <Plus size={15} /> Nova função
+            </button>
             {editando && (
-              <button onClick={restaurarPadrao} className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-600 hover:bg-slate-50">
+              <button onClick={restaurarPadrao} className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-600 hover:bg-slate-50">
                 <RotateCcw size={15} /> Voltar ao padrão
               </button>
             )}
             <button onClick={imprimirPlanilha} title="Todas as funções numa tabela só, para a mesa da gerência"
-              className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-700 hover:bg-slate-50">
+              className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-700 hover:bg-slate-50">
               <Table size={15} /> Planilha
             </button>
             <button onClick={imprimir} title="Uma função por página, para a parede do setor"
-              className="flex h-10 items-center gap-2 rounded-xl bg-slate-900 px-4 text-xs font-black text-white hover:bg-slate-800">
-              <Printer size={15} /> Cartaz por função
+              className="flex h-10 shrink-0 items-center gap-2 rounded-xl bg-slate-900 px-4 text-xs font-black text-white hover:bg-slate-800">
+              <Printer size={15} /> <span className="sm:hidden">Cartaz</span><span className="hidden sm:inline">Cartaz por função</span>
             </button>
           </div>
         </div>
@@ -283,10 +294,10 @@ export default function GuiaDeFuncoes() {
                         title="Cor da função" className="h-9 w-9 shrink-0 cursor-pointer rounded-lg border border-slate-200 bg-white p-1" />
                       <input value={funcao.funcao} onChange={e => alterarFuncao(funcao.id, "funcao", e.target.value)}
                         placeholder="Nome da função"
-                        className="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 text-base font-black text-slate-900 outline-none focus:border-emerald-500" />
+                        className="order-first h-10 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-base font-black text-slate-900 outline-none focus:border-emerald-500 sm:order-none sm:w-auto sm:flex-1" />
                       <input value={funcao.setor || ""} onChange={e => alterarFuncao(funcao.id, "setor", e.target.value)}
                         placeholder="Setor"
-                        className="h-10 w-32 shrink-0 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-600 outline-none focus:border-emerald-500" />
+                        className="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-600 outline-none focus:border-emerald-500 sm:w-32 sm:flex-none" />
                       <button onClick={() => removerFuncao(funcao.id)} title="Remover função"
                         className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-red-300 hover:text-red-600">
                         <Trash2 size={16} />
@@ -311,12 +322,12 @@ export default function GuiaDeFuncoes() {
                     <div key={indice} className={`flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:gap-4 sm:px-5 ${bloco.intervalo ? "bg-slate-50" : ""}`}>
                       {editando ? (
                         <>
-                          <div className="flex shrink-0 items-center gap-1.5">
+                          <div className="flex w-full shrink-0 items-center gap-1.5 sm:w-auto">
                             <input type="time" value={bloco.hora || ""} onChange={e => alterarBloco(funcao.id, indice, "hora", e.target.value)}
-                              className="h-10 w-[104px] rounded-lg border border-slate-200 bg-white px-2 text-sm font-bold outline-none focus:border-emerald-500" />
+                              className="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 text-sm font-bold outline-none focus:border-emerald-500 sm:w-[104px] sm:flex-none" />
                             <span className="text-xs font-bold text-slate-400">às</span>
                             <input type="time" value={bloco.fim || ""} onChange={e => alterarBloco(funcao.id, indice, "fim", e.target.value)}
-                              className="h-10 w-[104px] rounded-lg border border-slate-200 bg-white px-2 text-sm font-bold outline-none focus:border-emerald-500" />
+                              className="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 text-sm font-bold outline-none focus:border-emerald-500 sm:w-[104px] sm:flex-none" />
                           </div>
                           <input value={bloco.atividade || ""} onChange={e => alterarBloco(funcao.id, indice, "atividade", e.target.value)}
                             placeholder="O que fazer neste horário"
@@ -333,7 +344,7 @@ export default function GuiaDeFuncoes() {
                         </>
                       ) : (
                         <>
-                          <span className="flex w-[168px] shrink-0 items-center gap-2 text-sm font-black text-slate-700">
+                          <span className="flex w-full shrink-0 items-center gap-2 text-sm font-black text-slate-700 sm:w-[168px]">
                             {bloco.intervalo ? <Coffee size={15} className="text-amber-600" /> : <Clock size={15} className="text-slate-300" />}
                             {periodoDoBloco(bloco)}
                           </span>

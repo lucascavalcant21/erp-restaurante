@@ -75,9 +75,33 @@ export function comHoraFicta(minutosRelogio) {
 }
 
 // Minutos efetivamente trabalhados no dia (fora o intervalo).
-export function minutosTrabalhados(reg) {
+// Onde a jornada PAGA começa. Não é a batida: é a batida ou o início do turno,
+// o que vier depois.
+//
+// Quem chega 15:00 num turno que abre 15:40 ficou 40 min à disposição por
+// conta própria, e isso não é trabalho — nem extra. Contar dava hora extra a
+// quem só chegou cedo. Chegar DEPOIS não é tocado aqui: atraso é atraso.
+//
+// A batida real continua intocada no livro e na tela. Carimbar 15:40 por cima
+// de quem bateu 15:00 seria horário predeterminado, que o art. 74, II da CLT
+// (Portaria MTP 671/2021) proíbe — o ajuste é sempre no cálculo, nunca no
+// registro.
+export function inicioPagoDoDia(reg, horarioEntrada = null) {
+  const batida = new Date(reg.hora_entrada).getTime();
+  const inicioMin = minutosDoHorario(horarioEntrada);
+  if (inicioMin === null) return batida;
+  const turno = new Date(reg.hora_entrada);
+  turno.setHours(Math.floor(inicioMin / 60), inicioMin % 60, 0, 0);
+  // Turno da madrugada: se o início calculado caiu depois da batida por mais
+  // de meio dia, é porque a batida é do dia seguinte — aí vale a batida.
+  const diff = turno.getTime() - batida;
+  if (diff > 12 * 60 * MIN) return batida;
+  return Math.max(batida, turno.getTime());
+}
+
+export function minutosTrabalhados(reg, horarioEntrada = null) {
   if (!reg?.hora_entrada || !reg?.hora_saida) return 0;
-  const ini = new Date(reg.hora_entrada).getTime();
+  const ini = inicioPagoDoDia(reg, horarioEntrada);
   const fim = new Date(reg.hora_saida).getTime();
   if (!(fim > ini)) return 0;
   let total = (fim - ini) / MIN;
@@ -140,6 +164,9 @@ export function calcularAdicionaisPorDia(pontosMes, feriados = [], opcoes = {}) 
     toleranciaMin = TOLERANCIA_MARCACAO_MIN,
     tetoDiaMin = TOLERANCIA_TETO_DIA_MIN,
     contratadaDoDia = null,
+    // Hora em que o turno abre naquele dia ("15:40"). Sem ela o cálculo segue
+    // como antes, contando da batida — nenhuma tela quebra por não passar.
+    entradaDoDia = null,
   } = opcoes;
 
   const feriadosSet = new Set((feriados || []).map(f => (f?.data || f)).map(d => String(d).slice(0, 10)));
@@ -147,10 +174,10 @@ export function calcularAdicionaisPorDia(pontosMes, feriados = [], opcoes = {}) 
 
   (pontosMes || []).forEach(reg => {
     if (!reg.hora_entrada || !reg.hora_saida) return;
-    const trabalhado = minutosTrabalhados(reg);
-    if (trabalhado <= 0) return;
-
     const data = String(reg.data_referencia).slice(0, 10);
+    const horarioEntrada = entradaDoDia ? entradaDoDia(data) : null;
+    const trabalhado = minutosTrabalhados(reg, horarioEntrada);
+    if (trabalhado <= 0) return;
 
     // Noturno: minutos de relógio na faixa 22h–5h, convertidos pela hora ficta.
     const noturnoRelogio = minutosNoturnosRelogio(
@@ -217,6 +244,16 @@ export function entradaContratada(colaborador, base = new Date()) {
   if (porDia) return colaborador.horarios_dia[wd].e;
   if (base.getDay() === 0 && colaborador.horario_dom_entrada) return colaborador.horario_dom_entrada;
   return colaborador.horario_entrada || "";
+}
+
+// Mesma regra de entradaContratada, mas a partir da data em texto ("2026-08-30").
+//
+// O T12:00:00 não é enfeite: `new Date("2026-08-30")` é meia-noite UTC, que no
+// nosso fuso é dia 29 às 21h — getDay() devolveria o dia anterior e o domingo
+// pegaria o horário de sábado. Meio-dia fica longe das duas bordas.
+export function entradaContratadaDoDia(colaborador, dataISO) {
+  if (!colaborador || !dataISO) return "";
+  return entradaContratada(colaborador, new Date(`${String(dataISO).slice(0, 10)}T12:00:00`));
 }
 
 export function minutosDoHorario(horario) {

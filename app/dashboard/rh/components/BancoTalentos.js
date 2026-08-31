@@ -135,6 +135,41 @@ export default function BancoTalentos({ unidadeAtiva }) {
     await atualizarStatusCandidato(id, novoStatus);
   };
 
+  // Mover sem arrastar. Arrastar não existe em celular e, mesmo no computador,
+  // levar dez candidatos um a um para a mesma etapa é dez arrastes. Marcando,
+  // a etapa inteira anda de uma vez — e continua dando para arrastar.
+  const [selecionados, setSelecionados] = useState({});
+  const [movendo, setMovendo] = useState(false);
+  const idsSelecionados = Object.keys(selecionados).filter(id => selecionados[id]);
+
+  const alternarSelecao = (id) => setSelecionados(atual => {
+    const proximo = { ...atual };
+    if (proximo[id]) delete proximo[id]; else proximo[id] = true;
+    return proximo;
+  });
+
+  const moverSelecionados = async (novoStatus) => {
+    if (!idsSelecionados.length) return;
+    setMovendo(true);
+    const ids = [...idsSelecionados];
+    // Otimista: a coluna reage na hora, e o que falhar volta abaixo.
+    setCandidatos(prev => prev.map(c => ids.includes(c.id) ? { ...c, status: novoStatus } : c));
+    const falhas = [];
+    for (const id of ids) {
+      const { error } = await atualizarStatusCandidato(id, novoStatus);
+      if (error) falhas.push(id);
+    }
+    setMovendo(false);
+    if (falhas.length) {
+      // Desfaz só o que não gravou, para a tela não mentir sobre o que moveu.
+      await carregar();
+      alert(`${falhas.length} candidato(s) não mudaram de etapa. Tente de novo.`);
+      setSelecionados(Object.fromEntries(falhas.map(id => [id, true])));
+      return;
+    }
+    setSelecionados({});
+  };
+
   const colunas = [
     { nome: "Novo", status: "Novo", cor: "bg-blue-50", borda: "border-blue-200" },
     { nome: "Em Contato / Entrevista", status: "Entrevista Marcada", cor: "bg-amber-50", borda: "border-amber-200" },
@@ -309,7 +344,10 @@ export default function BancoTalentos({ unidadeAtiva }) {
            <p className="font-bold">Carregando banco de talentos...</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-start pb-10">
+        // Com a barra presa no rodapé, o fim da última coluna ficava embaixo
+        // dela — o candidato de baixo virava inalcançável justamente quando
+        // havia seleção para mover.
+        <div className={`grid grid-cols-1 lg:grid-cols-4 gap-4 items-start ${idsSelecionados.length > 0 ? "pb-32" : "pb-10"}`}>
            {colunas.map(coluna => (
               <div 
                  key={coluna.status}
@@ -336,11 +374,26 @@ export default function BancoTalentos({ unidadeAtiva }) {
                        draggable
                        onDragStart={(e) => handleDragStart(e, c.id)}
                        onClick={() => setCandidatoAberto(c)}
-                       className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm cursor-grab active:cursor-grabbing hover:border-indigo-300 hover:shadow-md transition-all group"
+                       className={`bg-white p-4 rounded-2xl border shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md transition-all group ${selecionados[c.id] ? "border-indigo-500 ring-2 ring-indigo-200" : "border-slate-200 hover:border-indigo-300"}`}
                     >
-                       <div className="flex justify-between items-start mb-2">
-                          <p className="font-black text-sm text-slate-800 line-clamp-1">{c.nome}</p>
-                          <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${getCorNota(c.nota_ia)}`}>
+                       <div className="flex justify-between items-start gap-2 mb-2">
+                          {/* A caixa fica fora do onClick do card: marcar não pode
+                              abrir a ficha, e abrir a ficha não pode marcar. */}
+                          <button type="button" aria-label={selecionados[c.id] ? `Desmarcar ${c.nome}` : `Marcar ${c.nome}`}
+                             onClick={e => { e.stopPropagation(); alternarSelecao(c.id); }}
+                             className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md border-2 transition-colors ${selecionados[c.id] ? "border-indigo-600 bg-indigo-600 text-white" : "border-slate-300 bg-white text-transparent hover:border-indigo-400"}`}>
+                             <Check size={13} strokeWidth={3} />
+                          </button>
+                          <p className="min-w-0 flex-1 text-sm font-black leading-snug text-slate-800">
+                             {c.nome}
+                             {/* A vaga também na linha do nome: o cabeçalho do
+                                 grupo sai da vista ao rolar a coluna, e na busca
+                                 os grupos se misturam. */}
+                             {c.cargo_pretendido && (
+                               <span className="font-bold text-slate-400"> ({c.cargo_pretendido})</span>
+                             )}
+                          </p>
+                          <span className={`shrink-0 text-[10px] font-black px-2 py-0.5 rounded-md ${getCorNota(c.nota_ia)}`}>
                              {c.nota_ia} pts
                           </span>
                        </div>
@@ -376,6 +429,30 @@ export default function BancoTalentos({ unidadeAtiva }) {
                  ))}
               </div>
            ))}
+        </div>
+      )}
+
+      {/* Barra de ação: só existe quando há alguém marcado. Fica presa no rodapé
+          porque no celular a coluna de destino pode estar telas abaixo. */}
+      {idsSelecionados.length > 0 && (
+        <div className="fixed inset-x-0 bottom-0 z-[60] border-t border-slate-200 bg-white/95 px-3 py-3 shadow-[0_-8px_24px_rgba(15,23,42,0.10)] backdrop-blur sm:px-6">
+          <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-2">
+            <span className="mr-1 text-sm font-black text-slate-700">
+              {idsSelecionados.length} marcado{idsSelecionados.length > 1 ? "s" : ""}
+            </span>
+            <span className="hidden text-xs font-bold text-slate-400 sm:inline">mover para</span>
+            {colunas.map(coluna => (
+              <button key={coluna.status} type="button" disabled={movendo}
+                onClick={() => moverSelecionados(coluna.status)}
+                className="rounded-xl border-2 border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:border-indigo-400 hover:text-indigo-700 disabled:opacity-50">
+                {coluna.nome}
+              </button>
+            ))}
+            <button type="button" onClick={() => setSelecionados({})} disabled={movendo}
+              className="ml-auto rounded-xl px-3 py-2 text-xs font-black text-slate-500 hover:text-slate-800 disabled:opacity-50">
+              {movendo ? "Movendo..." : "Limpar"}
+            </button>
+          </div>
         </div>
       )}
 

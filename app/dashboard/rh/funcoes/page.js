@@ -75,15 +75,14 @@ export default function GuiaDeFuncoes() {
     avisar(error ? `Não consegui salvar: ${error}` : "Guia salvo");
   };
 
+  // Gravar fora do atualizador de estado: o React pode reexecutar o atualizador,
+  // e cada reexecução mandaria a mesma função ao banco de novo.
   const mexer = (idFuncao, transformacao, gravar = true) => {
-    setFuncoes(atual => {
-      const proximo = atual.map(f => f.id === idFuncao ? transformacao(f) : f);
-      if (gravar) {
-        const alvo = proximo.find(f => f.id === idFuncao);
-        if (alvo) persistir(alvo);
-      }
-      return proximo;
-    });
+    const alvo = funcoes.find(f => f.id === idFuncao);
+    if (!alvo) return;
+    const proximo = transformacao(alvo);
+    setFuncoes(atual => atual.map(f => (f.id === idFuncao ? proximo : f)));
+    if (gravar) persistir(proximo);
   };
 
   const alterarBloco = (idFuncao, indice, campo, valor, gravar = true) =>

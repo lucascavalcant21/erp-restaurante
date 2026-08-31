@@ -71,54 +71,61 @@ export default function GuiaDeUso() {
     mostrar("Guia salvo");
   };
 
-  // Edita local e grava: esperar o banco a cada tecla deixaria o campo travado.
-  const alterarGuia = (id, campo, valor) => {
-    setGuias(atual => atual.map(g => g.id === id ? { ...g, [campo]: valor } : g));
+  // Mexe no guia e grava. Texto grava ao sair do campo (esperar o banco a cada
+  // tecla travaria a digitação); tudo que é estrutura — passo, seção, cor,
+  // "nunca faça" — grava na hora, porque não existe momento de "sair do campo"
+  // e o que se perdia era justamente o clique, sem aviso nenhum.
+  const mexer = (id, transformar, gravarAgora = true) => {
+    const alvo = guias.find(g => g.id === id);
+    if (!alvo) return;
+    const proximo = transformar(alvo);
+    setGuias(atual => atual.map(g => (g.id === id ? proximo : g)));
+    if (gravarAgora) gravar(proximo);
   };
 
-  const alterarSecao = (id, indice, campo, valor) => {
-    setGuias(atual => atual.map(g => g.id !== id ? g : {
+  const alterarGuia = (id, campo, valor, gravarAgora = false) =>
+    mexer(id, g => ({ ...g, [campo]: valor }), gravarAgora);
+
+  const alterarSecao = (id, indice, campo, valor, gravarAgora = false) =>
+    mexer(id, g => ({
       ...g,
-      conteudo: (g.conteudo || []).map((s, i) => i === indice ? { ...s, [campo]: valor } : s),
-    }));
-  };
+      conteudo: (g.conteudo || []).map((s, i) => (i === indice ? { ...s, [campo]: valor } : s)),
+    }), gravarAgora);
 
-  const alterarPasso = (id, indiceSecao, indicePasso, valor) => {
-    setGuias(atual => atual.map(g => g.id !== id ? g : {
+  const alterarPasso = (id, indiceSecao, indicePasso, valor) =>
+    mexer(id, g => ({
       ...g,
       conteudo: (g.conteudo || []).map((s, i) => i !== indiceSecao ? s : {
         ...s,
-        passos: (s.passos || []).map((p, j) => j === indicePasso ? valor : p),
+        passos: (s.passos || []).map((p, j) => (j === indicePasso ? valor : p)),
       }),
-    }));
-  };
+    }), false);
 
-  const adicionarPasso = (id, indiceSecao) => {
-    setGuias(atual => atual.map(g => g.id !== id ? g : {
+  const adicionarPasso = (id, indiceSecao) =>
+    mexer(id, g => ({
       ...g,
       conteudo: (g.conteudo || []).map((s, i) => i !== indiceSecao ? s : { ...s, passos: [...(s.passos || []), ""] }),
     }));
-  };
 
-  const removerPasso = (id, indiceSecao, indicePasso) => {
-    setGuias(atual => atual.map(g => g.id !== id ? g : {
+  const removerPasso = (id, indiceSecao, indicePasso) =>
+    mexer(id, g => ({
       ...g,
       conteudo: (g.conteudo || []).map((s, i) => i !== indiceSecao ? s : {
         ...s, passos: (s.passos || []).filter((_, j) => j !== indicePasso),
       }),
     }));
-  };
 
-  const adicionarSecao = (id) => {
-    setGuias(atual => atual.map(g => g.id !== id ? g : {
-      ...g, conteudo: [...(g.conteudo || []), { titulo: "Nova seção", passos: [""] }],
-    }));
-  };
+  const adicionarSecao = (id) =>
+    mexer(id, g => ({ ...g, conteudo: [...(g.conteudo || []), { titulo: "Nova seção", passos: [""] }] }));
 
-  const removerSecao = (id, indice) => {
-    setGuias(atual => atual.map(g => g.id !== id ? g : {
-      ...g, conteudo: (g.conteudo || []).filter((_, i) => i !== indice),
-    }));
+  const removerSecao = (id, indice) =>
+    mexer(id, g => ({ ...g, conteudo: (g.conteudo || []).filter((_, i) => i !== indice) }));
+
+  // Gravar pelo id, e não pelo objeto que a tela tinha quando o campo abriu:
+  // entre digitar e sair do campo o guia já é outro.
+  const gravarPorId = (id) => {
+    const alvo = guias.find(g => g.id === id);
+    if (alvo) gravar(alvo);
   };
 
   const novoGuia = async (tipo) => {
@@ -163,11 +170,13 @@ export default function GuiaDeUso() {
 
   // Cartaz: um guia por página, para ficar ao lado do equipamento ou na porta
   // do armário de químicos — onde a dúvida acontece.
-  const imprimirCartazes = () => {
+  const imprimirCartazes = (lista) => {
+    const alvos = lista?.length ? lista : visiveis;
+    if (!alvos.length) return alert("Nenhum guia para imprimir.");
     const win = window.open("", "_blank");
     if (!win) return alert("Habilite pop-ups para imprimir.");
-    const paginas = visiveis.map((g, i) => `
-      <div class="pagina${i < visiveis.length - 1 ? " quebra" : ""}">
+    const paginas = alvos.map((g, i) => `
+      <div class="pagina${i < alvos.length - 1 ? " quebra" : ""}">
         <div class="marca">${logoSeldeestrelaSVG(36)}</div>
         ${corpoImpresso(g)}
         <p class="rodape">Guia de uso · impresso em ${new Date().toLocaleDateString("pt-BR")}</p>
@@ -253,7 +262,7 @@ export default function GuiaDeUso() {
             <button onClick={imprimirPlanilha} title="Tudo numa tabela só" className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-700 hover:bg-slate-50">
               <Table size={15} /> Planilha
             </button>
-            <button onClick={imprimirCartazes} title="Um guia por página, para o lado do equipamento" className="flex h-10 items-center gap-2 rounded-xl bg-slate-900 px-4 text-xs font-black text-white hover:bg-slate-800">
+            <button onClick={() => imprimirCartazes()} title="Um guia por página, para o lado do equipamento" className="flex h-10 items-center gap-2 rounded-xl bg-slate-900 px-4 text-xs font-black text-white hover:bg-slate-800">
               <Printer size={15} /> Cartaz
             </button>
           </div>
@@ -306,12 +315,12 @@ export default function GuiaDeUso() {
                         {editando ? (
                           <>
                             <input type="color" value={guia.cor || "#0f172a"} onChange={e => alterarGuia(guia.id, "cor", e.target.value)}
-                              title="Cor" className="h-9 w-9 shrink-0 cursor-pointer rounded-lg border border-slate-200 bg-white p-1" />
+                              onBlur={() => gravarPorId(guia.id)} title="Cor" className="h-9 w-9 shrink-0 cursor-pointer rounded-lg border border-slate-200 bg-white p-1" />
                             <input value={guia.titulo} onChange={e => alterarGuia(guia.id, "titulo", e.target.value)}
-                              onBlur={() => gravar(guia)} placeholder="Nome do produto ou equipamento"
+                              onBlur={() => gravarPorId(guia.id)} placeholder="Nome do produto ou equipamento"
                               className="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 text-base font-black text-slate-900 outline-none focus:border-emerald-500" />
                             <input value={guia.setor || ""} onChange={e => alterarGuia(guia.id, "setor", e.target.value)}
-                              onBlur={() => gravar(guia)} placeholder="Setor"
+                              onBlur={() => gravarPorId(guia.id)} placeholder="Setor"
                               className="h-10 w-32 shrink-0 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-600 outline-none focus:border-emerald-500" />
                             <button onClick={() => excluirGuia(guia)} title="Excluir guia"
                               className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-red-300 hover:text-red-600">
@@ -332,6 +341,10 @@ export default function GuiaDeUso() {
                             <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black text-slate-500">
                               {totalPassos(guia.conteudo)} passo{totalPassos(guia.conteudo) === 1 ? "" : "s"}
                             </span>
+                            <button onClick={() => imprimirCartazes([guia])} title={`Imprimir só "${guia.titulo}"`}
+                              className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-slate-300 hover:text-slate-700">
+                              <Printer size={15} />
+                            </button>
                           </>
                         )}
                       </header>
@@ -344,9 +357,9 @@ export default function GuiaDeUso() {
                               {editando ? (
                                 <>
                                   <input value={secao.titulo || ""} onChange={e => alterarSecao(guia.id, indiceSecao, "titulo", e.target.value)}
-                                    onBlur={() => gravar(guia)} placeholder="Título da seção"
+                                    onBlur={() => gravarPorId(guia.id)} placeholder="Título da seção"
                                     className="h-9 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-black uppercase tracking-wider text-slate-700 outline-none focus:border-emerald-500" />
-                                  <button onClick={() => { alterarSecao(guia.id, indiceSecao, "alerta", !secao.alerta); }}
+                                  <button onClick={() => alterarSecao(guia.id, indiceSecao, "alerta", !secao.alerta, true)}
                                     title="Marcar como 'nunca faça'"
                                     className={`h-9 shrink-0 rounded-lg border px-2.5 text-[10px] font-black ${secao.alerta ? "border-red-300 bg-red-100 text-red-700" : "border-slate-200 bg-white text-slate-400"}`}>
                                     Nunca faça
@@ -371,7 +384,7 @@ export default function GuiaDeUso() {
                                   {editando ? (
                                     <>
                                       <input value={passo} onChange={e => alterarPasso(guia.id, indiceSecao, indicePasso, e.target.value)}
-                                        onBlur={() => gravar(guia)} placeholder="O que fazer neste passo"
+                                        onBlur={() => gravarPorId(guia.id)} placeholder="O que fazer neste passo"
                                         className="h-9 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2.5 text-sm font-medium outline-none focus:border-emerald-500" />
                                       <button onClick={() => removerPasso(guia.id, indiceSecao, indicePasso)} title="Remover passo"
                                         className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-slate-300 hover:text-red-600">
@@ -396,7 +409,7 @@ export default function GuiaDeUso() {
                             <button onClick={() => adicionarSecao(guia.id)} className="flex h-9 items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-3 text-xs font-black text-slate-500 hover:border-emerald-400 hover:text-emerald-700">
                               <Plus size={14} /> Seção
                             </button>
-                            <button onClick={() => gravar(guia)} className="flex h-9 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-black text-white hover:bg-emerald-700">
+                            <button onClick={() => gravarPorId(guia.id)} className="flex h-9 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-black text-white hover:bg-emerald-700">
                               <Save size={14} /> Salvar este guia
                             </button>
                           </div>

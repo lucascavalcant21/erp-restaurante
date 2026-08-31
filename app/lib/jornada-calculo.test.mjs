@@ -138,5 +138,50 @@ conferir("o que passa de 2h vem marcado", r5.extraAcimaDoLimite, 60);
 conferir("dentro das 2h nao marca nada",
   calcularAdicionaisPorDia(comExtra, [], { contratadaDoDia })[0].extraAcimaDoLimite, 0);
 
+
+// ── Entrada antes do turno: o cálculo começa na hora do turno ──────────────
+// Quem chega 15:00 num turno que abre 15:40 ficou 40 min à disposição por
+// conta própria. Contar dava hora extra a quem só chegou cedo. A batida real
+// segue intocada no livro — carimbar 15:40 por cima dela seria horário
+// predeterminado, proibido pelo art. 74, II.
+const regCedo = {
+  data_referencia: "2026-08-30",
+  hora_entrada: em("2026-08-30T15:00"),
+  hora_saida: em("2026-08-30T23:00"),
+};
+conferir("sem horario do turno, conta da batida", minutosTrabalhados(regCedo), 480);
+conferir("com turno 15:40, os 40 min de antecipacao nao contam",
+  minutosTrabalhados(regCedo, "15:40"), 440);
+
+conferir("chegar depois do turno continua contando da batida",
+  minutosTrabalhados({ ...regCedo, hora_entrada: em("2026-08-30T16:10") }, "15:40"), 410);
+
+conferir("o intervalo continua sendo descontado",
+  minutosTrabalhados({
+    ...regCedo,
+    hora_saida_intervalo: em("2026-08-30T18:00"),
+    hora_retorno_intervalo: em("2026-08-30T19:00"),
+  }, "15:40"), 380);
+
+for (const h of [null, "", "abc", "99:99", "15"]) {
+  conferir(`horario invalido (${h}) nao muda nada`, minutosTrabalhados(regCedo, h), 480);
+}
+
+// Turno da madrugada: batida 00:10 com turno que abre 22:00. O inicio
+// calculado sobre a data da batida cairia 22h depois e zeraria a jornada.
+conferir("turno que vira a madrugada nao e empurrado para o dia seguinte",
+  minutosTrabalhados({
+    data_referencia: "2026-08-30",
+    hora_entrada: em("2026-08-31T00:10"),
+    hora_saida: em("2026-08-31T06:00"),
+  }, "22:00"), 350);
+
+// E a regra ligada de ponta a ponta: sem ela sobrariam 40 min de extra.
+conferir("entradaDoDia zera a extra de quem so chegou cedo",
+  calcularAdicionaisPorDia([regCedo], [], {
+    contratadaDoDia: () => 440,
+    entradaDoDia: () => "15:40",
+  })[0].minExtra, 0);
+
 console.log(falhas ? `\n${falhas} falha(s)` : "\nTodos os casos passaram.");
 process.exit(falhas ? 1 : 0);

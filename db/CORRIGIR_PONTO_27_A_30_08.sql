@@ -1,5 +1,5 @@
 /*
- LARISSA e EDUARDA - 29/08/2026 e 30/08/2026
+ CORRECOES DE PONTO - 27 a 30/08/2026 (Larissa, Eduarda, Andrey e Cedeine)
 
  LARISSA
    29/08 (sab): faltava so a saida. Entrada e intervalo ficam como estao.
@@ -16,10 +16,24 @@
      semana, e por isso o dia dela e lancado por inteiro.
      depois: 11:00 | 15:00 | 16:00 | 19:20
 
- A saida 00:00 do dia 29 e do dia 30 no relogio, mas o dia trabalhado continua
- sendo 29: o turno comeca de tarde e atravessa a meia-noite. Por isso a
- data_referencia fica 29 e so o horario cai no 30 -- e como ja estao gravados
- os 00:15, 00:16 e 00:42 das outras noites.
+ ANDREY - o app gravou a mesma hora em campos seguidos.
+   28/08: estava 15:40 | 15:40 | 00:27 | 00:27
+     depois: 15:40 | 16:50 | 17:50 | 23:40
+   30/08: estava 15:40 | 15:41 | 16:58 | 18:01
+     depois: 15:40 | 16:50 | 17:50 | 23:00
+
+ CEDEINE - mesmo defeito: a saida do intervalo bateu duas vezes.
+   27/08: estava 15:40 | 18:11 | 18:12 | 18:12
+     depois: 15:40 | 16:40 | 17:40 | 00:00
+
+ BRENDA - so a entrada tinha sido batida.
+   27/08: estava 15:40 | --:-- | --:-- | --:--
+     depois: 15:40 | 16:40 | 17:40 | 22:00
+
+ A saida 00:00 e do dia seguinte no relogio, mas o dia trabalhado continua
+ sendo o anterior: o turno comeca de tarde e atravessa a meia-noite. Por isso a
+ data_referencia fica no dia de entrada e so o horario cai no seguinte -- e
+ como ja estao gravados os 00:15, 00:16 e 00:42 das outras noites.
 
  COMO A CORRECAO E GRAVADA
  registro_ponto e o resumo que as telas mostram; ponto_marcacao e o livro do
@@ -71,7 +85,29 @@ begin
       ('EDUARDA%', '2026-08-30', 'hora_entrada',           'entrada',           '2026-08-30 11:00:00-03'),
       ('EDUARDA%', '2026-08-30', 'hora_saida_intervalo',   'saida_intervalo',   '2026-08-30 15:00:00-03'),
       ('EDUARDA%', '2026-08-30', 'hora_retorno_intervalo', 'retorno_intervalo', '2026-08-30 16:00:00-03'),
-      ('EDUARDA%', '2026-08-30', 'hora_saida',             'saida_trabalho',    '2026-08-30 19:20:00-03')
+      ('EDUARDA%', '2026-08-30', 'hora_saida',             'saida_trabalho',    '2026-08-30 19:20:00-03'),
+
+      /* ANDREY - 28/08: o app repetiu a mesma hora em campos seguidos. */
+      ('ANDREY%',  '2026-08-28', 'hora_entrada',           'entrada',           '2026-08-28 15:40:00-03'),
+      ('ANDREY%',  '2026-08-28', 'hora_saida_intervalo',   'saida_intervalo',   '2026-08-28 16:50:00-03'),
+      ('ANDREY%',  '2026-08-28', 'hora_retorno_intervalo', 'retorno_intervalo', '2026-08-28 17:50:00-03'),
+      ('ANDREY%',  '2026-08-28', 'hora_saida',             'saida_trabalho',    '2026-08-28 23:40:00-03'),
+      /* ANDREY - 30/08. */
+      ('ANDREY%',  '2026-08-30', 'hora_entrada',           'entrada',           '2026-08-30 15:40:00-03'),
+      ('ANDREY%',  '2026-08-30', 'hora_saida_intervalo',   'saida_intervalo',   '2026-08-30 16:50:00-03'),
+      ('ANDREY%',  '2026-08-30', 'hora_retorno_intervalo', 'retorno_intervalo', '2026-08-30 17:50:00-03'),
+      ('ANDREY%',  '2026-08-30', 'hora_saida',             'saida_trabalho',    '2026-08-30 23:00:00-03'),
+
+      /* CEDEINE - 27/08: a saida do intervalo bateu duas vezes. */
+      ('CEDEINE%', '2026-08-27', 'hora_entrada',           'entrada',           '2026-08-27 15:40:00-03'),
+      ('CEDEINE%', '2026-08-27', 'hora_saida_intervalo',   'saida_intervalo',   '2026-08-27 16:40:00-03'),
+      ('CEDEINE%', '2026-08-27', 'hora_retorno_intervalo', 'retorno_intervalo', '2026-08-27 17:40:00-03'),
+      ('CEDEINE%', '2026-08-27', 'hora_saida',             'saida_trabalho',    '2026-08-28 00:00:00-03'),
+
+      /* BRENDA - 27/08: so a entrada tinha sido batida. */
+      ('BRENDA%',  '2026-08-27', 'hora_saida_intervalo',   'saida_intervalo',   '2026-08-27 16:40:00-03'),
+      ('BRENDA%',  '2026-08-27', 'hora_retorno_intervalo', 'retorno_intervalo', '2026-08-27 17:40:00-03'),
+      ('BRENDA%',  '2026-08-27', 'hora_saida',             'saida_trabalho',    '2026-08-27 22:00:00-03')
     ) as t(pessoa, dia, campo, tipo, hora)
   loop
     v_data  := r.dia::date;
@@ -143,7 +179,11 @@ end $$;
    LARISSA 29/08 -> 15:40 | 18:24 | 19:25 | 00:00
    LARISSA 30/08 -> 15:40 | 16:40 | 17:40 | 23:00
    EDUARDA 29/08 -> (entrada e intervalo como estavam) | 00:00
-   EDUARDA 30/08 -> 11:00 | 15:00 | 16:00 | 19:20  */
+   EDUARDA 30/08 -> 11:00 | 15:00 | 16:00 | 19:20
+   ANDREY  28/08 -> 15:40 | 16:50 | 17:50 | 23:40
+   ANDREY  30/08 -> 15:40 | 16:50 | 17:50 | 23:00
+   CEDEINE 27/08 -> 15:40 | 16:40 | 17:40 | 00:00
+   BRENDA  27/08 -> 15:40 | 16:40 | 17:40 | 22:00  */
 select c.nome,
        to_char(p.data_referencia, 'DD/MM')                               as dia,
        (p.hora_entrada           at time zone 'America/Sao_Paulo')::time as entrada,
@@ -154,6 +194,8 @@ select c.nome,
   from public.registro_ponto p
   join public.colaboradores c on c.id = p.colaborador_id
  where c.unidade_id = 'seldeestrela'
-   and (upper(c.nome) like 'LARISSA%' or upper(c.nome) like 'EDUARDA%')
-   and p.data_referencia in ('2026-08-29', '2026-08-30')
+   and (upper(c.nome) like 'LARISSA%' or upper(c.nome) like 'EDUARDA%'
+        or upper(c.nome) like 'ANDREY%' or upper(c.nome) like 'CEDEINE%'
+        or upper(c.nome) like 'BRENDA%')
+   and p.data_referencia between '2026-08-27' and '2026-08-30'
  order by c.nome, p.data_referencia;

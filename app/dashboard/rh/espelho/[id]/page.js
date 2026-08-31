@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "../../../../lib/supabase";
 import { fetchPontosMes } from "../../../../lib/ponto";
-import { fetchFolgasEsporadicas, fetchBancoHorasColaborador, fetchFeriados, calcularAdicionaisPorDia, jornadaContratadaMin, fetchEspelhoFechado, fecharEspelho } from "../../../../lib/rh";
+import { fetchFolgasEsporadicas, fetchBancoHorasColaborador, fetchFeriados, calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin, fetchEspelhoFechado, fecharEspelho } from "../../../../lib/rh";
 import { Printer, ArrowLeft } from "lucide-react";
 
 export default function EspelhoDePonto() {
@@ -458,7 +458,13 @@ export default function EspelhoDePonto() {
 
          {/* Hora extra e adicional noturno — dia a dia */}
          {(() => {
-            const dias = calcularAdicionaisPorDia(pontos, feriadosMes, { contratadaDoDia: (d) => jornadaContratadaMin(colaborador, d) });
+            // entradaDoDia: quem bate antes do turno não ganha hora extra por
+            // ter chegado cedo. A batida real continua no espelho e no livro;
+            // o corte é só na conta.
+            const dias = calcularAdicionaisPorDia(pontos, feriadosMes, {
+              contratadaDoDia: (d) => jornadaContratadaMin(colaborador, d),
+              entradaDoDia: (d) => entradaContratadaDoDia(colaborador, d),
+            });
             if (!dias.length) return null;
             const tot = dias.reduce((a, d) => ({ e: a.e + d.minExtra, n: a.n + d.minNoturno, f: a.f + d.minFeriado }), { e: 0, n: 0, f: 0 });
             const fmtM = (m) => m > 0 ? `${m} min` : "—";

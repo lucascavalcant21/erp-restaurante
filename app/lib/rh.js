@@ -1,5 +1,5 @@
 import { supabase, isSupabaseReady } from "./supabase";
-import { calcularAdicionaisPorDia, jornadaContratadaMin, minutosTrabalhados } from "./jornada-calculo.mjs";
+import { calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin, minutosTrabalhados } from "./jornada-calculo.mjs";
 
 export async function fetchColaboradores(unidadeId) {
   if (!isSupabaseReady()) return { data: [], error: "Supabase offline" };
@@ -639,7 +639,7 @@ export function calcularAdicionaisMes(pontosMes, salarioBase, feriados = [], opc
 // Mora em jornada-calculo.mjs: é o código que decide quanto a casa paga, e lá
 // ele roda sem Supabase, com testes que cobrem a faixa noturna, a hora ficta e
 // a tolerância. Rode com: node app/lib/jornada-calculo.test.mjs
-export { calcularAdicionaisPorDia, jornadaContratadaMin, minutosTrabalhados };
+export { calcularAdicionaisPorDia, entradaContratadaDoDia, jornadaContratadaMin, minutosTrabalhados };
 
 // ─── FERIADOS DA UNIDADE ─────────────────────────────────────────────────────
 export async function fetchFeriados(unidadeId, mesAno = null) {

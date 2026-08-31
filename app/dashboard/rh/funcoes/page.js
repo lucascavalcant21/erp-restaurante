@@ -104,15 +104,35 @@ export default function GuiaDeFuncoes() {
   };
 
   const adicionarFuncao = async () => {
+    // Nasce em branco, com três linhas vazias.
+    //
+    // Antes o título vinha escrito "Nova função" e havia uma linha só: quem ia
+    // cadastrar precisava apagar o texto antes de digitar o nome, e apertar
+    // "adicionar etapa" a cada linha. Campo vazio mostra o placeholder e já
+    // aceita a digitação.
     const { error } = await salvarGuia({
-      unidade_id: unidadeAtiva, tipo: TIPOS_GUIA.FUNCAO, titulo: "Nova função",
-      setor: "", cor: "#475569", conteudo: [{ hora: "", fim: "", atividade: "" }],
+      unidade_id: unidadeAtiva, tipo: TIPOS_GUIA.FUNCAO, titulo: "",
+      setor: "", cor: "#475569",
+      conteudo: [
+        { hora: "", fim: "", atividade: "" },
+        { hora: "", fim: "", atividade: "" },
+        { hora: "", fim: "", atividade: "" },
+      ],
       ordem: funcoes.length,
     });
     if (error === "sem_tabela") return setSemTabela(true);
     if (error) return avisar(`Não consegui criar: ${error}`);
     setEditando(true);
     await carregar();
+    // Numa lista de seis funções, a nova nasce lá embaixo e some da vista. Rola
+    // até ela e põe o cursor no nome, que é o primeiro campo a preencher.
+    setTimeout(() => {
+      const campos = document.querySelectorAll('#guia-lista input[placeholder="Nome da função"]');
+      const ultimo = campos[campos.length - 1];
+      if (!ultimo) return;
+      ultimo.scrollIntoView({ behavior: "smooth", block: "center" });
+      ultimo.focus();
+    }, 150);
   };
 
   const removerFuncao = async (idFuncao) => {
@@ -147,7 +167,7 @@ export default function GuiaDeFuncoes() {
       <section class="pagina${indice < funcoesOrdenadas.length - 1 ? " quebra" : ""}">
         <div class="marca">${logoSeldeestrelaSVG(38)}</div>
         <div class="faixa" style="background:${esc(f.cor)}"></div>
-        <h1>${esc(f.funcao)}</h1>
+        <h1>${esc(f.funcao || "(sem nome)")}</h1>
         <p class="sub">${esc(f.setor || "")} · ${esc(unidadeInfo?.nome || "")}</p>
         <table>
           <thead><tr><th class="h">Horário</th><th>Atividade</th></tr></thead>
@@ -155,7 +175,7 @@ export default function GuiaDeFuncoes() {
             ${f.blocos.map(b => `
               <tr class="${b.intervalo ? "pausa" : ""}">
                 <td class="h">${esc(periodoDoBloco(b))}</td>
-                <td>${b.intervalo ? "<b>INTERVALO</b> — " : ""}${esc(b.atividade || "")}</td>
+                <td>${b.intervalo ? "<b>INTERVALO</b>" : ""}${b.intervalo && /^intervalo$/i.test(String(b.atividade || "").trim()) ? "" : `${b.intervalo ? " — " : ""}${esc(b.atividade || "")}`}</td>
               </tr>`).join("")}
           </tbody>
         </table>
@@ -192,13 +212,13 @@ export default function GuiaDeFuncoes() {
     if (!win) return alert("Habilite pop-ups para imprimir.");
     const linhas = funcoesOrdenadas.map(f => `
       <tr class="grupo"><td colspan="3" style="border-left:6px solid ${esc(f.cor)}">
-        ${esc(f.funcao)}<small>${esc(f.setor || "")}</small>
+        ${esc(f.funcao || "(sem nome)")}<small>${esc(f.setor || "")}</small>
       </td></tr>
       ${f.blocos.map(b => `
         <tr class="${b.intervalo ? "pausa" : ""}">
           <td></td>
           <td class="h">${esc(periodoDoBloco(b))}</td>
-          <td>${b.intervalo ? "<b>INTERVALO</b> — " : ""}${esc(b.atividade || "")}</td>
+          <td>${b.intervalo ? "<b>INTERVALO</b>" : ""}${b.intervalo && /^intervalo$/i.test(String(b.atividade || "").trim()) ? "" : `${b.intervalo ? " — " : ""}${esc(b.atividade || "")}`}</td>
         </tr>`).join("")}`).join("");
 
     win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Guia de Funções — planilha</title><style>
@@ -284,7 +304,7 @@ export default function GuiaDeFuncoes() {
         {carregando ? (
           <div className="flex items-center gap-2 text-sm font-bold text-slate-500"><Loader2 size={16} className="animate-spin" /> Carregando o guia...</div>
         ) : (
-          <div className="space-y-4">
+          <div id="guia-lista" className="space-y-4">
             {funcoesOrdenadas.map(funcao => (
               <section key={funcao.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                 <header className="flex flex-wrap items-center gap-3 border-b border-slate-100 px-4 py-3 sm:px-5">
@@ -307,7 +327,11 @@ export default function GuiaDeFuncoes() {
                     <>
                       <span className="h-9 w-1.5 shrink-0 rounded-full" style={{ background: funcao.cor }} />
                       <div className="min-w-0 flex-1">
-                        <h2 className="text-base font-black uppercase tracking-tight text-slate-900 sm:text-lg">{funcao.funcao}</h2>
+                        {/* Função recém-criada nasce sem nome. Sem isto o card
+                            aparece com um título vazio e parece quebrado. */}
+                        <h2 className={`text-base font-black uppercase tracking-tight sm:text-lg ${funcao.funcao ? "text-slate-900" : "text-slate-300"}`}>
+                          {funcao.funcao || "Sem nome — abra a edição para preencher"}
+                        </h2>
                         <p className="text-[11px] font-bold text-slate-400">{funcao.setor}</p>
                       </div>
                       <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black text-slate-500">
@@ -350,7 +374,12 @@ export default function GuiaDeFuncoes() {
                           </span>
                           <p className="min-w-0 flex-1 text-sm font-medium text-slate-600">
                             {bloco.intervalo && <b className="mr-1 font-black uppercase tracking-wide text-amber-700">Intervalo</b>}
-                            {bloco.atividade}
+                            {/* Na linha de pausa a atividade costuma ser a própria
+                                palavra "Intervalo", e o selo ao lado já diz isso —
+                                saía "INTERVALO Intervalo". */}
+                            {bloco.intervalo && /^intervalo$/i.test(String(bloco.atividade || "").trim())
+                              ? null
+                              : bloco.atividade}
                           </p>
                         </>
                       )}

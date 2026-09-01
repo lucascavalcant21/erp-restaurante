@@ -11,7 +11,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft, Clock, Coffee, Database, Loader2, Plus, Printer, RotateCcw, Save, Table, Trash2,
+  ArrowLeft, Clock, Coffee, Database, Loader2, Plus, Printer, RotateCcw, Save, Table, Trash2, X,
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchGuias, removerGuia, salvarGuia, semearGuias, TIPOS_GUIA } from "../../../lib/guias";
@@ -28,6 +28,10 @@ export default function GuiaDeFuncoes() {
   const [funcoes, setFuncoes] = useState(GUIA_FUNCOES_PADRAO);
   const [carregando, setCarregando] = useState(true);
   const [editando, setEditando] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+  const [alterado, setAlterado] = useState(false);
+  const [copiaInicial, setCopiaInicial] = useState([]);
+  const [idsRemovidos, setIdsRemovidos] = useState([]);
   const [salvo, setSalvo] = useState("");
   const [semTabela, setSemTabela] = useState(false);
 
@@ -63,31 +67,35 @@ export default function GuiaDeFuncoes() {
 
   useEffect(() => { carregar(); }, [carregar]);
 
-  // Edita local e grava a função afetada. Esperar o banco a cada tecla deixaria
-  // o campo travado; gravar o guia inteiro reescreveria seis linhas por letra.
-  const persistir = async (funcaoLocal) => {
-    const { error } = await salvarGuia({
-      id: funcaoLocal.id, unidade_id: unidadeAtiva, tipo: TIPOS_GUIA.FUNCAO,
-      titulo: funcaoLocal.funcao, setor: funcaoLocal.setor, cor: funcaoLocal.cor,
-      conteudo: funcaoLocal.blocos,
-    });
-    if (error === "sem_tabela") return setSemTabela(true);
-    avisar(error ? `Não consegui salvar: ${error}` : "Guia salvo");
+  // Tudo o que a pessoa digita fica apenas neste rascunho. Antes, cada tecla
+  // fazia uma chamada ao banco e a linha mudava de posição enquanto o horário
+  // ainda estava sendo preenchido. Além de travar, isso fazia o cursor "pular".
+  const clonar = (valor) => JSON.parse(JSON.stringify(valor));
+
+  const iniciarEdicao = () => {
+    setCopiaInicial(clonar(funcoes));
+    setIdsRemovidos([]);
+    setAlterado(false);
+    setEditando(true);
   };
 
-  const mexer = (idFuncao, transformacao, gravar = true) => {
+  const cancelarEdicao = () => {
+    if (alterado && !confirm("Descartar todas as alterações que ainda não foram salvas?")) return;
+    setFuncoes(clonar(copiaInicial));
+    setIdsRemovidos([]);
+    setAlterado(false);
+    setEditando(false);
+  };
+
+  const mexer = (idFuncao, transformacao) => {
     setFuncoes(atual => {
-      const proximo = atual.map(f => f.id === idFuncao ? transformacao(f) : f);
-      if (gravar) {
-        const alvo = proximo.find(f => f.id === idFuncao);
-        if (alvo) persistir(alvo);
-      }
-      return proximo;
+      return atual.map(f => f.id === idFuncao ? transformacao(f) : f);
     });
+    setAlterado(true);
   };
 
-  const alterarBloco = (idFuncao, indice, campo, valor, gravar = true) =>
-    mexer(idFuncao, f => ({ ...f, blocos: f.blocos.map((b, i) => i === indice ? { ...b, [campo]: valor } : b) }), gravar);
+  const alterarBloco = (idFuncao, indice, campo, valor) =>
+    mexer(idFuncao, f => ({ ...f, blocos: f.blocos.map((b, i) => i === indice ? { ...b, [campo]: valor } : b) }));
 
   const adicionarBloco = (idFuncao) =>
     mexer(idFuncao, f => ({ ...f, blocos: [...f.blocos, { hora: "", fim: "", atividade: "" }] }));
@@ -95,68 +103,121 @@ export default function GuiaDeFuncoes() {
   const removerBloco = (idFuncao, indice) =>
     mexer(idFuncao, f => ({ ...f, blocos: f.blocos.filter((_, i) => i !== indice) }));
 
-  const alterarFuncao = (idFuncao, campo, valor, gravar = true) =>
-    mexer(idFuncao, f => ({ ...f, [campo]: valor }), gravar);
+  const alterarFuncao = (idFuncao, campo, valor) =>
+    mexer(idFuncao, f => ({ ...f, [campo]: valor }));
 
-  const gravarFuncao = (idFuncao) => {
-    const alvo = funcoes.find(f => f.id === idFuncao);
-    if (alvo) persistir(alvo);
-  };
-
-  const adicionarFuncao = async () => {
-    // Nasce em branco, com três linhas vazias.
-    //
-    // Antes o título vinha escrito "Nova função" e havia uma linha só: quem ia
-    // cadastrar precisava apagar o texto antes de digitar o nome, e apertar
-    // "adicionar etapa" a cada linha. Campo vazio mostra o placeholder e já
-    // aceita a digitação.
-    const { error } = await salvarGuia({
-      unidade_id: unidadeAtiva, tipo: TIPOS_GUIA.FUNCAO, titulo: "",
-      setor: "", cor: "#475569",
-      conteudo: [
+  const adicionarFuncao = () => {
+    if (!editando) {
+      setCopiaInicial(clonar(funcoes));
+      setIdsRemovidos([]);
+      setEditando(true);
+    }
+    const idTemporario = `nova-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    setFuncoes(atual => [...atual, {
+      id: idTemporario, funcao: "", setor: "", cor: "#475569",
+      blocos: [
         { hora: "", fim: "", atividade: "" },
         { hora: "", fim: "", atividade: "" },
         { hora: "", fim: "", atividade: "" },
       ],
-      ordem: funcoes.length,
-    });
-    if (error === "sem_tabela") return setSemTabela(true);
-    if (error) return avisar(`Não consegui criar: ${error}`);
-    setEditando(true);
-    await carregar();
-    // Numa lista de seis funções, a nova nasce lá embaixo e some da vista. Rola
-    // até ela e põe o cursor no nome, que é o primeiro campo a preencher.
+    }]);
+    setAlterado(true);
+    // A ficha nova e todas as novas linhas permanecem no fim durante a edição.
     setTimeout(() => {
-      const campos = document.querySelectorAll('#guia-lista input[placeholder="Nome da função"]');
-      const ultimo = campos[campos.length - 1];
-      if (!ultimo) return;
-      ultimo.scrollIntoView({ behavior: "smooth", block: "center" });
-      ultimo.focus();
-    }, 150);
+      const campo = document.querySelector(`[data-funcao-id="${idTemporario}"] input[placeholder="Nome da função"]`);
+      campo?.scrollIntoView({ behavior: "smooth", block: "center" });
+      campo?.focus();
+    }, 50);
   };
 
-  const removerFuncao = async (idFuncao) => {
+  const removerFuncao = (idFuncao) => {
     const alvo = funcoes.find(f => f.id === idFuncao);
-    if (!confirm(`Remover a função "${alvo?.funcao || ""}" do guia? Some com todas as etapas dela.`)) return;
-    const { error } = await removerGuia(idFuncao);
-    if (error) return avisar(`Não consegui remover: ${error}`);
+    if (!confirm(`Excluir a ficha inteira de "${alvo?.funcao || "sem nome"}", com todas as linhas? A exclusão só será confirmada quando você clicar em Salvar alterações.`)) return;
+    if (!String(idFuncao).startsWith("nova-")) setIdsRemovidos(atual => [...atual, idFuncao]);
     setFuncoes(atual => atual.filter(f => f.id !== idFuncao));
-    avisar("Função removida");
+    setAlterado(true);
+    avisar("Ficha removida do rascunho — clique em Salvar alterações");
   };
 
-  const restaurarPadrao = async () => {
-    if (!confirm("Voltar o guia ao modelo padrão? O que foi editado nesta loja será perdido, para todos os aparelhos.")) return;
-    setCarregando(true);
-    await Promise.all(funcoes.map(f => removerGuia(f.id)));
-    setFuncoes([]);
+  const salvarAlteracoes = async () => {
+    if (!alterado) { setEditando(false); return; }
+    const semNome = funcoes.find(f => !String(f.funcao || "").trim());
+    if (semNome) {
+      avisar("Preencha o nome da função antes de salvar");
+      setTimeout(() => {
+        const campo = document.querySelector(`[data-funcao-id="${semNome.id}"] input[placeholder="Nome da função"]`);
+        campo?.scrollIntoView({ behavior: "smooth", block: "center" });
+        campo?.focus();
+      }, 50);
+      return;
+    }
+    setSalvando(true);
+
+    for (let ordem = 0; ordem < funcoes.length; ordem += 1) {
+      const funcao = funcoes[ordem];
+      const nova = String(funcao.id).startsWith("nova-");
+      const { error } = await salvarGuia({
+        id: nova ? undefined : funcao.id,
+        unidade_id: unidadeAtiva,
+        tipo: TIPOS_GUIA.FUNCAO,
+        titulo: funcao.funcao,
+        setor: funcao.setor,
+        cor: funcao.cor,
+        // A ordem cronológica só é aplicada agora, nunca no meio da digitação.
+        conteudo: ordenarBlocos(funcao.blocos),
+        ordem,
+      });
+      if (error === "sem_tabela") {
+        setSemTabela(true);
+        setSalvando(false);
+        return;
+      }
+      if (error) {
+        setSalvando(false);
+        return avisar(`Não consegui salvar: ${error}`);
+      }
+    }
+
+    // Exclui por último: se a conexão falhar ao salvar alguma ficha, as fichas
+    // antigas continuam no banco e a pessoa não perde o conteúdo original.
+    for (const id of idsRemovidos) {
+      const { error } = await removerGuia(id);
+      if (error) {
+        setSalvando(false);
+        return avisar(`Não consegui excluir a ficha: ${error}`);
+      }
+    }
+
     await carregar();
-    avisar("Guia restaurado");
+    setCopiaInicial([]);
+    setIdsRemovidos([]);
+    setAlterado(false);
+    setEditando(false);
+    setSalvando(false);
+    avisar("Alterações salvas");
+  };
+
+  const restaurarPadrao = () => {
+    if (!confirm("Substituir o rascunho pelo modelo padrão? A mudança só irá para os outros aparelhos quando você clicar em Salvar alterações.")) return;
+    const idsAtuais = funcoes
+      .filter(f => !String(f.id).startsWith("nova-"))
+      .map(f => f.id);
+    setIdsRemovidos(atual => [...new Set([...atual, ...idsAtuais])]);
+    setFuncoes(GUIA_FUNCOES_PADRAO.map((f, indice) => ({
+      ...clonar(f), id: `nova-padrao-${Date.now()}-${indice}`,
+    })));
+    setAlterado(true);
+    avisar("Modelo padrão aplicado ao rascunho — clique em Salvar alterações");
   };
 
   const funcoesOrdenadas = useMemo(
     () => funcoes.map(f => ({ ...f, blocos: ordenarBlocos(f.blocos) })),
     [funcoes],
   );
+
+  // No modo de edição não reordena. Assim o campo não muda de lugar enquanto
+  // a hora está sendo preenchida, e Adicionar etapa sempre põe a linha no fim.
+  const funcoesExibidas = editando ? funcoes : funcoesOrdenadas;
 
   // Uma função por página: a folha vai para a parede do setor, não para uma
   // pasta. Juntar duas funções na mesma folha obriga a ler a do vizinho.
@@ -266,10 +327,24 @@ export default function GuiaDeFuncoes() {
               correm na horizontal numa faixa só; do tablet para cima voltam a
               quebrar linha normalmente. */}
           <div className="-mx-4 flex w-full items-center gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:w-auto sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
-            <button onClick={() => setEditando(v => !v)}
-              className={`flex h-10 shrink-0 items-center gap-2 rounded-xl px-4 text-xs font-black transition-colors ${editando ? "bg-emerald-600 text-white hover:bg-emerald-700" : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}>
-              <Save size={15} /> {editando ? "Concluir edição" : "Editar horários"}
-            </button>
+            {editando ? (
+              <>
+                <button onClick={salvarAlteracoes} disabled={salvando}
+                  className="flex h-10 shrink-0 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-xs font-black text-white hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-60">
+                  {salvando ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+                  {salvando ? "Salvando..." : "Salvar alterações"}
+                </button>
+                <button onClick={cancelarEdicao} disabled={salvando}
+                  className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-600 hover:bg-slate-50 disabled:opacity-60">
+                  <X size={15} /> Cancelar
+                </button>
+              </>
+            ) : (
+              <button onClick={iniciarEdicao}
+                className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-700 hover:bg-slate-50">
+                <Save size={15} /> Editar horários
+              </button>
+            )}
             {/* Criar função estava só no fim da lista e só depois de entrar em
                 edição — quem chegava para criar uma função não achava. Aqui ele
                 já liga a edição sozinho. */}
@@ -300,13 +375,21 @@ export default function GuiaDeFuncoes() {
         </div>
       )}
 
+      {editando && alterado && (
+        <div className="mx-auto mt-3 max-w-5xl px-4 sm:px-6">
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-black text-amber-800">
+            Alterações ainda não salvas. Você pode continuar editando sem travar e salvar tudo quando terminar.
+          </div>
+        </div>
+      )}
+
       <main className="mx-auto max-w-5xl px-4 py-5 sm:px-6">
         {carregando ? (
           <div className="flex items-center gap-2 text-sm font-bold text-slate-500"><Loader2 size={16} className="animate-spin" /> Carregando o guia...</div>
         ) : (
           <div id="guia-lista" className="space-y-4">
-            {funcoesOrdenadas.map(funcao => (
-              <section key={funcao.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            {funcoesExibidas.map(funcao => (
+              <section key={funcao.id} data-funcao-id={funcao.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                 <header className="flex flex-wrap items-center gap-3 border-b border-slate-100 px-4 py-3 sm:px-5">
                   {editando ? (
                     <>
@@ -318,9 +401,9 @@ export default function GuiaDeFuncoes() {
                       <input value={funcao.setor || ""} onChange={e => alterarFuncao(funcao.id, "setor", e.target.value)}
                         placeholder="Setor"
                         className="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-600 outline-none focus:border-emerald-500 sm:w-32 sm:flex-none" />
-                      <button onClick={() => removerFuncao(funcao.id)} title="Remover função"
-                        className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-red-300 hover:text-red-600">
-                        <Trash2 size={16} />
+                      <button onClick={() => removerFuncao(funcao.id)} title="Excluir a ficha inteira desta função"
+                        className="flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3 text-xs font-black text-red-600 hover:bg-red-50">
+                        <Trash2 size={16} /> <span className="hidden sm:inline">Excluir ficha</span>
                       </button>
                     </>
                   ) : (
@@ -390,7 +473,7 @@ export default function GuiaDeFuncoes() {
                 {editando && (
                   <div className="border-t border-slate-100 px-4 py-3 sm:px-5">
                     <button onClick={() => adicionarBloco(funcao.id)} className="flex h-9 items-center gap-2 rounded-lg border border-dashed border-slate-300 px-3 text-xs font-black text-slate-500 hover:border-emerald-400 hover:text-emerald-700">
-                      <Plus size={15} /> Adicionar etapa
+                      <Plus size={15} /> Adicionar linha no final
                     </button>
                   </div>
                 )}
@@ -406,8 +489,9 @@ export default function GuiaDeFuncoes() {
 
         <p className="mt-5 text-[11px] font-medium leading-relaxed text-slate-400">
           O guia é por função, sem nomes: quem cobre o turno de alguém lê a mesma folha. Tudo é editável — nome da
-          função, setor, cor, horários e etapas —, e o que você mudar fica no banco, igual em todos os aparelhos
-          da loja: o tablet da cozinha e o computador da gerência leem a mesma versão. São duas saídas:
+          função, setor, cor, horários e etapas. Durante a edição, tudo fica apenas como rascunho neste aparelho;
+          só vai para o banco quando você clicar em <b>Salvar alterações</b>. Depois disso, o tablet da cozinha e o
+          computador da gerência leem a mesma versão. São duas saídas:
           <b> Cartaz por função</b> imprime uma função por página, para a parede do setor;
           <b> Planilha</b> põe a casa inteira numa tabela só, para conferir de uma vez.
         </p>

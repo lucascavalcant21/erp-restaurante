@@ -144,6 +144,11 @@ const SIDEBAR_MENU = [
     icon: Store,
     items: [
       { label: "Inventário", href: "/dashboard/gestao/inventario" },
+      // A tela existia e funcionava, mas não tinha link em lugar nenhum: só
+      // chegava lá quem digitasse o endereço. Fica ao lado de Manutenção
+      // porque é a mesma pergunta em dois tempos — como usar o equipamento, e
+      // quem consertou quando quebrou.
+      { label: "Guia de uso (equipamentos)", href: "/dashboard/operacao/guias" },
       { label: "Manutenção", href: "/dashboard/gestao/manutencao" },
       { label: "Relatórios", href: "/dashboard/relatorios" },
       { label: "Configurações", href: "/dashboard/configuracoes" },

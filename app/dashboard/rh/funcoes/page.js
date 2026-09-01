@@ -626,41 +626,38 @@ export default function GuiaDeFuncoes() {
                         return (
                           <div
                             key={idxHorario}
-                            className={`rounded-2xl sm:rounded-3xl border-2 p-4 sm:p-5 transition-all shadow-sm ${
+                            className={`rounded-2xl border p-4 transition-all ${
                               horario.intervalo
-                                ? "bg-amber-50/90 border-amber-300"
+                                ? "bg-amber-50/70 border-amber-200"
                                 : status === "ativo"
-                                ? "bg-emerald-50/70 border-emerald-400 ring-4 ring-emerald-500/20 shadow-md"
+                                ? "bg-emerald-50/50 border-emerald-300 ring-2 ring-emerald-500/20 shadow-md"
                                 : status === "passado"
-                                ? "bg-slate-50 border-slate-200/90 opacity-80"
-                                : "bg-white border-slate-200/90 hover:border-slate-300"
+                                ? "bg-slate-50 border-slate-200 opacity-80"
+                                : "bg-white border-slate-200"
                             }`}
                           >
                             {/* Alerta de Tempo Restante */}
                             {alertaRestando && (
-                              <div className="mb-3.5 p-3 rounded-xl bg-amber-500 text-white font-black text-xs sm:text-sm flex items-center gap-2 animate-bounce shadow-md">
-                                <AlertTriangle size={18} />
+                              <div className="mb-3 p-2.5 rounded-xl bg-amber-500 text-white font-black text-xs flex items-center gap-2 animate-bounce shadow-md">
+                                <AlertTriangle size={16} />
                                 <span>Atenção: Faltam apenas {restaMin} minutos para encerrar esta etapa ({horario.fim})!</span>
                               </div>
                             )}
 
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3.5 pb-3 border-b border-slate-200/80">
-                              <div className="flex items-center gap-2.5 flex-wrap">
-                                <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl font-black text-sm sm:text-base shadow-sm ${
-                                  status === "ativo" ? "bg-emerald-600 text-white" : "bg-slate-900 text-white"
-                                }`}>
-                                  <Clock size={18} className={status === "ativo" ? "text-white animate-pulse" : "text-emerald-400"} />
-                                  <span>{periodoDoHorario(horario)}</span>
-                                </div>
+                            <div className="flex items-center justify-between mb-3 border-b border-slate-200/60 pb-2">
+                              <div className="flex items-center gap-2">
+                                <span className={`text-xs font-black px-2.5 py-1 rounded-lg ${status === "ativo" ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-700"}`}>
+                                  {periodoDoHorario(horario)}
+                                </span>
                                 {status === "ativo" && (
-                                  <span className="text-xs font-black uppercase tracking-wider text-emerald-800 bg-emerald-100 border border-emerald-300 px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm">
-                                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span> Horário Atual
+                                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> Horário Atual
                                   </span>
                                 )}
                               </div>
                               {horario.intervalo && (
-                                <span className="inline-flex items-center gap-1.5 text-xs font-black text-amber-800 bg-amber-200/80 px-3.5 py-1.5 rounded-full uppercase tracking-wider">
-                                  <Coffee size={14} /> Pausa para Intervalo
+                                <span className="text-xs font-black text-amber-700 bg-amber-200/60 px-3 py-0.5 rounded-full flex items-center gap-1">
+                                  <Coffee size={13} /> Pausa para Intervalo
                                 </span>
                               )}
                             </div>
@@ -874,41 +871,35 @@ export default function GuiaDeFuncoes() {
                         </div>
                       ) : (
                         <div>
-                          <div className="bg-slate-900 text-white p-4 flex justify-between items-center">
-                            <span className="font-black text-xs sm:text-sm uppercase tracking-wide">{bloco.titulo || "Período"}</span>
-                            <span className="text-xs font-bold text-slate-300 bg-slate-800 px-3 py-1 rounded-full">{periodoDoBloco(bloco)}</span>
+                          <div className="bg-slate-900 text-white p-3 flex justify-between items-center">
+                            <span className="font-black text-xs uppercase">{bloco.titulo || "Período"}</span>
+                            <span className="text-xs font-bold text-slate-300">{periodoDoBloco(bloco)}</span>
                           </div>
-                          <div className="p-4 sm:p-5 space-y-4 bg-slate-100/70">
+                          <div className="p-4 space-y-3 bg-slate-50/50">
                             {(bloco.horarios || []).map((h, idxH) => (
                               <div
                                 key={idxH}
-                                className={`rounded-2xl sm:rounded-3xl border-2 p-4 sm:p-5 transition-all shadow-sm ${
+                                className={`p-4 rounded-2xl border transition-all ${
                                   h.intervalo
-                                    ? "bg-amber-50/90 border-amber-300 shadow-amber-900/5"
-                                    : "bg-white border-slate-200/90 hover:border-slate-300 shadow-slate-900/5 hover:shadow-md"
+                                    ? "bg-amber-50/90 border-amber-200 text-amber-900"
+                                    : "bg-white border-slate-200 shadow-sm"
                                 }`}
                               >
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3.5 pb-3 border-b border-slate-100">
-                                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white font-black text-sm sm:text-base tracking-wide shadow-sm">
-                                    <Clock size={18} className="text-emerald-400" />
-                                    <span>{periodoDoHorario(h)}</span>
-                                  </div>
-                                  {h.intervalo && (
-                                    <span className="inline-flex items-center gap-1.5 text-xs font-black text-amber-800 bg-amber-200/80 px-3.5 py-1.5 rounded-full uppercase tracking-wider">
-                                      <Coffee size={14} /> Pausa para Intervalo
-                                    </span>
-                                  )}
-                                </div>
+                                <span className={`text-xs font-black px-2.5 py-1 rounded-md inline-block mb-2 ${
+                                  h.intervalo ? "bg-amber-200/80 text-amber-900" : "bg-slate-100 text-slate-800"
+                                }`}>
+                                  {periodoDoHorario(h)}
+                                </span>
 
                                 {h.intervalo ? (
-                                  <p className="text-xs sm:text-sm font-bold text-amber-800">Horário reservado para descanso/intervalo da função.</p>
+                                  <div className="flex items-center gap-2 text-xs font-black text-amber-800 uppercase tracking-wider">
+                                    <Coffee size={15} className="text-amber-700" />
+                                    <span>INTERVALO / PAUSA</span>
+                                  </div>
                                 ) : (
-                                  <ul className="space-y-2 text-xs sm:text-sm font-bold text-slate-800">
+                                  <ul className="list-disc list-inside space-y-1.5 text-xs font-bold text-slate-700">
                                     {tarefasDoHorario(h).map((t, idxT) => (
-                                      <li key={idxT} className="flex items-start gap-2.5 bg-slate-50 p-3 rounded-xl border border-slate-200/70">
-                                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 mt-1.5 shrink-0"></span>
-                                        <span className="leading-relaxed text-slate-800">{t}</span>
-                                      </li>
+                                      <li key={idxT}>{t}</li>
                                     ))}
                                   </ul>
                                 )}

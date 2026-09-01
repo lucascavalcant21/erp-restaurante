@@ -12,7 +12,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft, Clock, Coffee, Database, Loader2, Plus, Printer, RotateCcw, Save, Table, Trash2, X,
-  Copy, CheckSquare, BarChart3, AlertTriangle, ShieldCheck, CheckCircle2, ListChecks, ChevronRight, RefreshCw, Layers, Check
+  Copy, CheckSquare, BarChart3, AlertTriangle, ShieldCheck, CheckCircle2, ListChecks, ChevronRight, RefreshCw, Layers, Check, GripVertical, ChevronUp, ChevronDown
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchGuias, removerGuia, salvarGuia, semearGuias, TIPOS_GUIA } from "../../../lib/guias";
@@ -167,6 +167,24 @@ export default function GuiaDeFuncoes() {
       blocos: f.blocos.map((bloco, i) => i === indiceBloco
         ? { ...bloco, horarios: bloco.horarios.filter((_, j) => j !== indiceHorario) }
         : bloco),
+    }));
+
+  const [dragIndex, setDragIndex] = useState(null);
+
+  const moverTarefaNoHorario = (idFuncao, indiceBloco, indiceHorario, origem, destino) =>
+    mexer(idFuncao, f => ({
+      ...f,
+      blocos: f.blocos.map((bloco, i) => i === indiceBloco ? {
+        ...bloco,
+        horarios: bloco.horarios.map((horario, j) => {
+          if (j !== indiceHorario) return horario;
+          const tarefas = [...tarefasDoHorario(horario)];
+          if (destino < 0 || destino >= tarefas.length || origem === destino) return horario;
+          const [removida] = tarefas.splice(origem, 1);
+          tarefas.splice(destino, 0, removida);
+          return { ...horario, tarefas };
+        }),
+      } : bloco),
     }));
 
   const alterarTarefa = (idFuncao, indiceBloco, indiceHorario, indiceTarefa, valor) =>
@@ -835,7 +853,7 @@ export default function GuiaDeFuncoes() {
                                   </div>
                                   <div className="flex items-center gap-2">
                                     <button onClick={() => alterarHorario(funcao.id, indice, idxHorario, "intervalo", !horario.intervalo)} className={`h-9 px-3 text-xs font-black rounded-xl border transition-all ${horario.intervalo ? "bg-amber-200 text-amber-900 border-amber-400" : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200"}`}>
-                                      <Coffee size={14} className="inline mr-1" /> {horario.intervalo ? "Intervalo / Pausa" : "É intervalo?"}
+                                      <Coffee size={14} className="inline mr-1" /> {horario.intervalo ? "Intervalo" : "É intervalo?"}
                                     </button>
                                     <button onClick={() => removerHorario(funcao.id, indice, idxHorario)} title="Excluir este horário" className="h-9 w-9 bg-red-50 text-red-600 rounded-xl flex items-center justify-center border border-red-200 hover:bg-red-100">
                                       <Trash2 size={15} />
@@ -847,10 +865,48 @@ export default function GuiaDeFuncoes() {
                                   <div className="space-y-2 pt-1">
                                     <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Tarefas deste horário (linha por linha)</p>
                                     {tarefasDoHorario(horario).map((t, idxT) => (
-                                      <div key={idxT} className="flex items-center gap-2">
-                                        <span className="w-6 h-6 rounded-full bg-slate-100 border border-slate-200 text-[10px] font-black text-slate-500 flex items-center justify-center shrink-0">{idxT + 1}</span>
+                                      <div
+                                        key={idxT}
+                                        draggable
+                                        onDragStart={() => setDragIndex(idxT)}
+                                        onDragOver={e => { if (dragIndex !== null) e.preventDefault(); }}
+                                        onDrop={() => {
+                                          if (dragIndex !== null && dragIndex !== idxT) {
+                                            moverTarefaNoHorario(funcao.id, indice, idxHorario, dragIndex, idxT);
+                                            setDragIndex(null);
+                                          }
+                                        }}
+                                        className={`flex items-center gap-1.5 p-1 rounded-xl transition-all ${dragIndex === idxT ? "opacity-50 border border-emerald-400 bg-emerald-50/50" : ""}`}
+                                      >
+                                        <div className="flex items-center gap-0.5 shrink-0">
+                                          <span className="grid h-7 w-7 cursor-grab active:cursor-grabbing place-items-center rounded-lg bg-slate-200/80 text-slate-500 hover:bg-slate-300 transition-colors" title="Arraste para reordenar esta tarefa">
+                                            <GripVertical size={14} />
+                                          </span>
+                                          <div className="flex flex-col gap-0.5">
+                                            <button
+                                              type="button"
+                                              disabled={idxT === 0}
+                                              onClick={() => moverTarefaNoHorario(funcao.id, indice, idxHorario, idxT, idxT - 1)}
+                                              title="Mover para cima"
+                                              className="grid h-3.5 w-5 place-items-center rounded bg-slate-200/90 text-slate-700 hover:bg-emerald-600 hover:text-white disabled:opacity-25 transition-colors"
+                                            >
+                                              <ChevronUp size={10} />
+                                            </button>
+                                            <button
+                                              type="button"
+                                              disabled={idxT === tarefasDoHorario(horario).length - 1}
+                                              onClick={() => moverTarefaNoHorario(funcao.id, indice, idxHorario, idxT, idxT + 1)}
+                                              title="Mover para baixo"
+                                              className="grid h-3.5 w-5 place-items-center rounded bg-slate-200/90 text-slate-700 hover:bg-emerald-600 hover:text-white disabled:opacity-25 transition-colors"
+                                            >
+                                              <ChevronDown size={10} />
+                                            </button>
+                                          </div>
+                                          <span className="w-6 h-6 rounded-full bg-slate-100 border border-slate-200 text-[10px] font-black text-slate-600 flex items-center justify-center shrink-0 ml-0.5">{idxT + 1}</span>
+                                        </div>
+
                                         <input value={t} onChange={e => alterarTarefa(funcao.id, indice, idxHorario, idxT, e.target.value)} placeholder="Descrição da tarefa" className="h-9 flex-1 bg-slate-50 border border-slate-300 px-3 text-xs font-bold rounded-xl outline-none focus:border-emerald-500 focus:bg-white" />
-                                        <button onClick={() => removerTarefa(funcao.id, indice, idxHorario, idxT)} className="h-9 w-9 text-slate-400 hover:text-red-600 flex items-center justify-center">
+                                        <button onClick={() => removerTarefa(funcao.id, indice, idxHorario, idxT)} className="h-9 w-9 text-slate-400 hover:text-red-600 flex items-center justify-center shrink-0">
                                           <Trash2 size={15} />
                                         </button>
                                       </div>

@@ -10,7 +10,6 @@ import {
   fetchCargos, fetchHistoricoPromocoes,
   fetchAllFolgasDaUnidade, fetchFolgasEsporadicas, inserirFolgaEsporadica, removerFolgaEsporadica,
   fetchConsumoFuncionario, inserirConsumoFuncionario, atualizarStatusConsumo, removerConsumoFuncionario,
-  fetchBancoHoras, inserirBancoHoras, removerBancoHoras, BANCO_LIMITE_MIN, BANCO_ALERTA_MIN,
   fetchAdvertenciasColab, inserirAdvertencia, removerAdvertencia,
   fetchFeriados, inserirFeriado, removerFeriado,
   liberarPontoDia, fetchLiberacoesColab, removerLiberacao,
@@ -396,11 +395,6 @@ export default function RHPage() {
     setTimeout(() => win.print(), 400);
   };
 
-  // Banco de horas: intervalo de 1h não tirado acumula (limite 8h/mês)
-  const [bancoHoras, setBancoHoras] = useState([]);
-  const [modalBanco, setModalBanco] = useState(false);
-  const [funcBanco, setFuncBanco] = useState(null);
-  const [formBanco, setFormBanco] = useState({ data: "", minutos: "60", observacao: "" });
 
   const [modalConsumo, setModalConsumo] = useState(false);
   const [funcionarioConsumo, setFuncionarioConsumo] = useState(null);
@@ -414,11 +408,10 @@ export default function RHPage() {
   const carregar = async (silencioso = false) => {
     if (!silencioso) setLoading(true);
     const mesAtual = new Date().toISOString().slice(0, 7);
-    const [resRh, resPonto, resCargos, resBanco, resVales, resPontosMes, resFeriadosMes, resFolgas] = await Promise.all([
+    const [resRh, resPonto, resCargos, resVales, resPontosMes, resFeriadosMes, resFolgas] = await Promise.all([
       fetchColaboradores(unidadeAtiva),
       fetchPontoHoje(unidadeAtiva),
       fetchCargos(unidadeAtiva),
-      fetchBancoHoras(unidadeAtiva, mesAtual),
       fetchValesPendentes(unidadeAtiva),
       fetchPontosMesUnidade(unidadeAtiva, mesAtual),
       fetchFeriados(unidadeAtiva, mesAtual),
@@ -435,7 +428,6 @@ export default function RHPage() {
     setFuncionarios(comDocs);
     setPontosHoje(resPonto.data || []);
     setCargos(resCargos.data || []);
-    setBancoHoras(resBanco.data || []);
     setValesPendentes(resVales.data || []);
     setPontosMesUnidade(resPontosMes.data || []);
     setFeriadosMesAtual(resFeriadosMes.data || []);
@@ -687,64 +679,8 @@ export default function RHPage() {
   }, [unidadeAtiva]);
 
   // Tempo real: lançamentos (ponto, vales, folgas, contas...) aparecem sozinhos
-  useTempoReal(["colaboradores", "registro_ponto", "rh_consumo_funcionarios", "rh_banco_horas", "rh_folgas_esporadicas", "lancamentos", "contas_pagar", "documentos_rh"], () => { if (unidadeAtiva) carregar(true); });
+  useTempoReal(["colaboradores", "registro_ponto", "rh_consumo_funcionarios", "rh_folgas_esporadicas", "lancamentos", "contas_pagar", "documentos_rh"], () => { if (unidadeAtiva) carregar(true); });
 
-  // --- Banco de Horas ---
-  const fmtMin = (m) => `${Math.floor(m / 60)}h${String(Math.round(m) % 60).padStart(2, "0")}`;
-  // Só créditos contam para as 8h — "excesso" (passou do intervalo) é ocorrência
-  const totalBancoDe = (colabId) => bancoHoras
-    .filter(b => b.colaborador_id === colabId && b.tipo !== "excesso")
-    .reduce((s, b) => s + (Number(b.minutos) || 0), 0);
-
-  const abrirModalBanco = (f) => {
-    setFuncBanco(f);
-    setFormBanco({ data: new Date().toISOString().split("T")[0], minutos: "60", observacao: "" });
-    setCompensarData(new Date().toISOString().split("T")[0]);
-    setModalBanco(true);
-  };
-
-  const lancarBancoHoras = async (e) => {
-    e.preventDefault();
-    const min = Number(formBanco.minutos) || 0;
-    if (min <= 0) return alert("Informe os minutos que faltaram do intervalo.");
-    if (min > 60) return alert("O lançamento é por dia e o intervalo é de 1h — máximo 60 minutos por dia.");
-    if (!formBanco.data) return alert("Informe a data.");
-    const totalAtual = totalBancoDe(funcBanco.id);
-    if (totalAtual + min > BANCO_LIMITE_MIN) {
-      return alert(`Não dá: ${funcBanco.nome} já tem ${fmtMin(totalAtual)} acumuladas neste mês. O limite é 8h — restam só ${fmtMin(BANCO_LIMITE_MIN - totalAtual)}. Programe a folga dele(a)!`);
-    }
-    const { error } = await inserirBancoHoras(unidadeAtiva, funcBanco.id, formBanco.data, min, formBanco.observacao);
-    if (error) return alert("Erro ao lançar: " + error);
-    const novoTotal = totalAtual + min;
-    if (novoTotal >= BANCO_ALERTA_MIN) {
-      alert(`Atenção: ${funcBanco.nome} chegou a ${fmtMin(novoTotal)} de banco de horas no mês (limite 8h). Programe a compensação!`);
-    }
-    setFormBanco({ data: new Date().toISOString().split("T")[0], minutos: "60", observacao: "" });
-    carregar();
-  };
-
-  const excluirBancoHoras = async (id) => {
-    if (!confirm("Remover este lançamento do banco de horas?")) return;
-    const { error } = await removerBancoHoras(id);
-    if (error) return alert(`Não consegui remover este lançamento: ${error}`);
-    carregar();
-  };
-
-  // Compensar o banco com uma folga: registra a folga e zera os créditos do mês
-  const [compensarData, setCompensarData] = useState("");
-  const compensarBanco = async () => {
-    const creditos = bancoHoras.filter(b => b.colaborador_id === funcBanco.id && b.tipo !== "excesso");
-    const total = creditos.reduce((s, b) => s + (Number(b.minutos) || 0), 0);
-    if (total <= 0) return alert("Não há créditos para compensar.");
-    if (!compensarData) return alert("Escolha a data da folga compensatória.");
-    if (!confirm(`Dar folga compensatória em ${compensarData.split("-").reverse().join("/")} para ${funcBanco.nome} e ZERAR ${fmtMin(total)} do banco de horas?`)) return;
-    const { error } = await inserirFolgaEsporadica(unidadeAtiva, funcBanco.id, compensarData, `Folga compensatória — banco de horas (${fmtMin(total)})`);
-    if (error) return alert("Erro ao registrar a folga: " + error);
-    for (const b of creditos) await removerBancoHoras(b.id);
-    alert(`Pronto: folga registrada e ${fmtMin(total)} compensadas. O banco de ${funcBanco.nome.split(" ")[0]} voltou a zero.`);
-    setModalBanco(false);
-    carregar();
-  };
 
   // Lança a folha do mês no Financeiro: fixo + vale alimentação + taxa de
   // serviço + adicional noturno e horas extras calculados do ponto (CLT)
@@ -2023,7 +1959,6 @@ export default function RHPage() {
                         if (pt.status_jornada === 4) return <span className={cls(situacao.semIntervalo ? "text-rose-700 bg-rose-100 border-rose-200" : "text-blue-700 bg-blue-100 border-blue-200")}>{situacao.texto}</span>;
                         return <span className="text-[11px] font-bold text-slate-400">--</span>;
                      })();
-                     const tb = totalBancoDe(f.id);
                      return (
                         <div key={f.id} onClick={() => abrirModalEdicao(f)}
                            className="text-left rounded-2xl border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all p-3 cursor-pointer flex flex-col gap-2.5">
@@ -2127,11 +2062,6 @@ export default function RHPage() {
                                  {f.docs?.length > 0
                                     ? <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-md flex items-center gap-1"><FileText size={10} /> {f.docs.length}</span>
                                     : <span className="text-[10px] text-slate-400">Sem docs</span>}
-                                 {tb >= BANCO_ALERTA_MIN && (
-                                    <button onClick={() => abrirModalBanco(f)} className={`text-[10px] font-black px-2 py-1 rounded-md flex items-center gap-1 ${tb >= BANCO_LIMITE_MIN ? "text-red-700 bg-red-100" : "text-amber-700 bg-amber-100"}`}>
-                                       <Clock size={10} /> {fmtMin(tb)}{tb >= BANCO_LIMITE_MIN ? "!" : ""}
-                                    </button>
-                                 )}
                               </div>
                               <div className="flex items-center gap-1.5">
                                  <button onClick={() => abrirModalEdicao(f)} className="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-50">Editar</button>
@@ -2154,8 +2084,6 @@ export default function RHPage() {
          const f = menuAcoes;
          const fechar = () => setMenuAcoes(null);
          const ir = (fn) => { fechar(); fn(); };
-         const tb = totalBancoDe(f.id);
-         const critico = tb >= BANCO_LIMITE_MIN, alerta = tb >= BANCO_ALERTA_MIN;
          const Acao = ({ icon: Icon, cor = "text-slate-700", bg = "bg-slate-50 hover:bg-slate-100", onClick, children, extra }) => (
             <button onClick={onClick} className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl font-bold text-sm text-left transition-colors ${bg} ${cor}`}>
                <Icon size={16} className="shrink-0" /> <span className="flex-1">{children}</span> {extra}
@@ -2181,11 +2109,6 @@ export default function RHPage() {
                <div className="space-y-4 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
                   <Grupo titulo="Ponto e Jornada">
                      <Acao icon={Clock} onClick={() => ir(() => router.push(`/dashboard/rh/espelho/${f.id}?mes=${new Date().toISOString().slice(0,7)}`))}>Espelho de Ponto</Acao>
-                     <Acao icon={Clock} cor={critico ? "text-red-700" : alerta ? "text-amber-700" : "text-sky-700"} bg={critico ? "bg-red-50 hover:bg-red-100" : alerta ? "bg-amber-50 hover:bg-amber-100" : "bg-sky-50 hover:bg-sky-100"}
-                        onClick={() => ir(() => abrirModalBanco(f))}
-                        extra={tb > 0 && <span className="text-xs font-black">{fmtMin(tb)}{critico ? " LIMITE!" : ""}</span>}>
-                        Banco de Horas
-                     </Acao>
                      <Acao icon={CalendarHeart} cor="text-rose-600" bg="bg-rose-50 hover:bg-rose-100" onClick={() => ir(() => abrirModalFolgas(f))}>Folgas</Acao>
                      <Acao icon={Award} cor="text-purple-600" bg="bg-purple-50 hover:bg-purple-100" onClick={() => ir(() => abrirHistoricoCarreira(f))}>Linha do Tempo de Carreira</Acao>
                   </Grupo>
@@ -3387,91 +3310,6 @@ export default function RHPage() {
             </div>
          </div>
       )}
-
-      {/* MODAL: BANCO DE HORAS (intervalo não tirado; limite 8h/mês) */}
-      {modalBanco && funcBanco && (() => {
-         const lancs = bancoHoras.filter(b => b.colaborador_id === funcBanco.id);
-         const total = lancs.filter(b => b.tipo !== "excesso").reduce((s, b) => s + (Number(b.minutos) || 0), 0);
-         const pct = Math.min(100, (total / BANCO_LIMITE_MIN) * 100);
-         const critico = total >= BANCO_LIMITE_MIN;
-         const alerta = total >= BANCO_ALERTA_MIN;
-         return (
-         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
-            <div className="bg-white rounded-2xl sm:rounded-[32px] w-full max-w-lg my-3 sm:my-8 p-4 sm:p-8 shadow-2xl animate-in zoom-in-95 max-h-[94vh] sm:max-h-[88vh] flex flex-col">
-               <div className="flex justify-between items-center mb-5 shrink-0">
-                  <div>
-                     <h2 className="font-black text-2xl text-slate-800">Banco de Horas</h2>
-                     <p className="text-sm font-bold text-slate-500 mt-1">{funcBanco.nome} · mês atual</p>
-                  </div>
-                  <button onClick={() => setModalBanco(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"><X size={20}/></button>
-               </div>
-
-               {/* Acumulado do mês vs limite de 8h */}
-               <div className={`p-4 rounded-2xl border mb-5 shrink-0 ${critico ? "bg-red-50 border-red-200" : alerta ? "bg-amber-50 border-amber-200" : "bg-slate-50 border-slate-200"}`}>
-                  <div className="flex justify-between items-baseline mb-2">
-                     <span className={`text-[10px] font-black uppercase tracking-widest ${critico ? "text-red-600" : alerta ? "text-amber-700" : "text-slate-500"}`}>
-                        {critico ? "Limite de 8h atingido!" : alerta ? "Perto de estourar as 8h!" : "Acumulado no mês"}
-                     </span>
-                     <span className={`text-2xl font-black ${critico ? "text-red-600" : alerta ? "text-amber-700" : "text-slate-800"}`}>{fmtMin(total)} <span className="text-sm font-bold text-slate-400">/ 8h00</span></span>
-                  </div>
-                  <div className="h-2.5 rounded-full overflow-hidden bg-white border border-slate-200">
-                     <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: critico ? "#DC2626" : alerta ? "#F59E0B" : "#059669" }} />
-                  </div>
-                  {(alerta || critico) && <p className="text-[11px] font-bold mt-2 text-slate-600">Programe a compensação/folga de {funcBanco.nome.split(" ")[0]} para zerar o banco.</p>}
-               </div>
-
-               {/* Compensar tudo com uma folga (registra a folga e zera os créditos) */}
-               {total > 0 && (
-                  <div className="flex flex-wrap items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-2xl p-3 mb-5 shrink-0">
-                     <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700 flex-1">Compensar com folga:</span>
-                     <input type="date" value={compensarData} onChange={e=>setCompensarData(e.target.value)} className="p-2 bg-white border border-emerald-200 rounded-lg font-bold text-sm text-slate-700 outline-none focus:border-emerald-500"/>
-                     <button onClick={compensarBanco} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl transition-colors">
-                        Dar folga e zerar {fmtMin(total)}
-                     </button>
-                  </div>
-               )}
-
-               {/* Lançar minutos não tirados do dia */}
-               <form onSubmit={lancarBancoHoras} className="bg-sky-50 border border-sky-200 rounded-2xl p-4 mb-5 shrink-0">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-sky-700 mb-3">Lançar intervalo não tirado</p>
-                  <div className="flex flex-wrap items-end gap-3">
-                     <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Dia</label>
-                        <input type="date" value={formBanco.data} onChange={e=>setFormBanco({...formBanco, data: e.target.value})} className="p-2.5 mt-1 bg-white border border-slate-200 rounded-lg font-bold text-slate-700 outline-none focus:border-sky-500"/>
-                     </div>
-                     <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Minutos que faltaram</label>
-                        <input type="number" min="1" max="60" value={formBanco.minutos} onChange={e=>setFormBanco({...formBanco, minutos: e.target.value})} className="w-24 p-2.5 mt-1 text-center bg-white border border-slate-200 rounded-lg font-black text-slate-800 outline-none focus:border-sky-500"/>
-                     </div>
-                     <button type="submit" className="ml-auto px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-black text-sm rounded-xl transition-colors">Lançar</button>
-                  </div>
-                  <input type="text" placeholder="Motivo (opcional): casa cheia, evento, faltou gente..." value={formBanco.observacao} onChange={e=>setFormBanco({...formBanco, observacao: e.target.value})} className="w-full p-2.5 mt-3 bg-white border border-slate-200 rounded-lg font-medium text-sm text-slate-700 outline-none focus:border-sky-500"/>
-                  <p className="text-[10px] font-medium text-sky-700/70 mt-2">Ex.: só tirou 20 min do intervalo de 1h → lance 40 minutos. Máx. 60 por dia.</p>
-               </form>
-
-               {/* Lançamentos do mês */}
-               <div className="overflow-y-auto space-y-2">
-                  {lancs.length === 0 ? (
-                     <p className="text-sm font-medium text-slate-400 text-center py-4">Nenhum lançamento neste mês.</p>
-                  ) : lancs.map(b => (
-                     <div key={b.id} className={`flex items-center gap-3 p-3 rounded-xl border ${b.tipo === "excesso" ? "bg-amber-50 border-amber-200" : "bg-slate-50 border-slate-100"}`}>
-                        <div className="flex-1 min-w-0">
-                           <p className="text-sm font-bold text-slate-700">
-                              {b.data ? b.data.split("-").reverse().join("/") : "—"} ·{" "}
-                              {b.tipo === "excesso"
-                                 ? <span className="text-amber-700">passou {fmtMin(Number(b.minutos) || 0)} do intervalo</span>
-                                 : <span className="text-sky-700">{fmtMin(Number(b.minutos) || 0)}</span>}
-                           </p>
-                           {b.observacao && <p className="text-[11px] font-medium text-slate-400 truncate">{b.observacao}</p>}
-                        </div>
-                        <button onClick={() => excluirBancoHoras(b.id)} className="p-2 text-slate-400 hover:text-red-500 rounded-lg"><Trash2 size={14}/></button>
-                     </div>
-                  ))}
-               </div>
-            </div>
-         </div>
-         );
-      })()}
 
       {modalFolgas && funcParaFolgas && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">

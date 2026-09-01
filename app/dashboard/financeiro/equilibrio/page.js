@@ -101,7 +101,7 @@ export default function PontoEquilibrioPage() {
   const salvar = async () => {
     setSalvando(true);
     const payload = {};
-    ["custo_aluguel_mes", "custo_luz_mes", "custo_gas_mes", "custo_agua_mes", "custo_limpeza_mes", "custo_cmo_mes", "custo_outros_mes", "imposto_pct", "embalagem_pct", "dias_operacao_mes", "pratos_por_dia", "meta_cmv"]
+    ["custo_aluguel_mes", "custo_luz_mes", "custo_gas_mes", "custo_agua_mes", "custo_limpeza_mes", "custo_cmo_mes", "custo_outros_mes", "imposto_pct", "taxa_cartao_pct", "embalagem_pct", "dias_operacao_mes", "pratos_por_dia", "meta_cmv"]
       .forEach(k => payload[k] = num(p[k]));
     const { error } = await salvarParams(unidadeAtiva, payload);
     setSalvando(false);
@@ -114,7 +114,9 @@ export default function PontoEquilibrioPage() {
   const pratosDia = Math.max(1, num(p.pratos_por_dia));
   const fixosMes = num(p.custo_aluguel_mes) + num(p.custo_luz_mes) + num(p.custo_gas_mes) + num(p.custo_agua_mes) + num(p.custo_limpeza_mes) + num(p.custo_cmo_mes) + num(p.custo_outros_mes);
   const fixoDia = fixosMes / dias;
-  const variavelPct = num(p.meta_cmv) + num(p.imposto_pct) + num(p.embalagem_pct);
+  // A maquininha e um custo variavel como qualquer outro: fica com uma fatia
+  // de CADA venda. Fora da conta, o ponto de equilibrio sai otimista.
+  const variavelPct = num(p.meta_cmv) + num(p.imposto_pct) + num(p.taxa_cartao_pct) + num(p.embalagem_pct);
   const margemPct = 100 - variavelPct;
   const equilibrioDia = margemPct > 0 ? fixoDia / (margemPct / 100) : Infinity;
 
@@ -127,6 +129,7 @@ export default function PontoEquilibrioPage() {
   const fatias = [
     { id: "ingredientes", nome: "Ingredientes (CMV)", valor: ingredientes },
     { id: "imposto", nome: "Imposto", valor: P * num(p.imposto_pct) / 100 },
+    { id: "cartao", nome: "Taxa de cartão", valor: P * num(p.taxa_cartao_pct) / 100 },
     { id: "embalagem", nome: "Embalagem", valor: P * num(p.embalagem_pct) / 100 },
     { id: "aluguel", nome: "Aluguel", valor: porPrato(p.custo_aluguel_mes) },
     { id: "luz", nome: "Luz / Energia", valor: porPrato(p.custo_luz_mes) },
@@ -180,6 +183,7 @@ export default function PontoEquilibrioPage() {
             <div className="grid grid-cols-3 gap-3 mt-3 pt-3 border-t border-slate-100">
               <CampoCusto valor={p["meta_cmv"]} onChange={v => set("meta_cmv", v)} label="CMV %" prefixo="%" />
               <CampoCusto valor={p["imposto_pct"]} onChange={v => set("imposto_pct", v)} label="Imposto %" prefixo="%" />
+              <CampoCusto valor={p["taxa_cartao_pct"]} onChange={v => set("taxa_cartao_pct", v)} label="Taxa de cartão %" prefixo="%" />
               <CampoCusto valor={p["embalagem_pct"]} onChange={v => set("embalagem_pct", v)} label="Embalagem %" prefixo="%" />
             </div>
             <button onClick={salvar} disabled={salvando} className="mt-4 w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black rounded-xl flex items-center justify-center gap-2">

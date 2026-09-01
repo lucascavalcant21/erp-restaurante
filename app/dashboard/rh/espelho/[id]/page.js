@@ -164,6 +164,12 @@ export default function EspelhoDePonto() {
     return v;
   };
 
+  // O botão de refazer o retrato lia `refazendo` e chamava `setRefazendo`, mas
+  // o estado nunca foi declarado — "refazendo is not defined" derrubava a tela
+  // inteira. Ficou escondido porque o botão só existe em mês FECHADO, e até o
+  // seletor de mês existir não havia como abrir um mês fechado pela interface.
+  const [refazendo, setRefazendo] = useState(false);
+
   // Descarta o retrato antigo e grava o cadastro de agora no lugar.
   const refazerRetrato = async () => {
     if (refazendo || !colaborador) return;

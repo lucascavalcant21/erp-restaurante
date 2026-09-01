@@ -79,6 +79,15 @@ estava vinculado.
 - `FOLGA_DOMINGO_23_08.sql` — folga de 23/08 para Alice, Andrey, Eduarda,
   Larissa, Cedeine e Brenda, e apaga o resumo de ponto da Eduarda nesse dia
   (ela não trabalhou).
+- `CORRIGIR_PONTO_13_A_30_08.sql` — turno padrão de 19 e 22/08, saída da
+  Eduarda no 13/08, atestados de Brenda / Cedeine / Eduarda com o ponto desses
+  dias apagado, e a folga de domingo da Eduarda movida para 23/08.
+
+**`migracao_guias_operacionais.sql` pode nunca ter sido rodada.** É ela que
+cria a tabela do **Guia de uso** (`/dashboard/operacao/guias`, equipamentos e
+produtos). A tela avisa na hora se a tabela não existe. Ela não estava nesta
+lista — foi a terceira vez nesta sessão que uma funcionalidade pareceu não
+existir só porque a migração dela nunca entrou aqui.
 
 **O bloqueio de entrada só vale para quem tem horário cadastrado.** O app lê
 `horario_entrada` da pessoa; se estiver vazio, ele **libera** a batida a

@@ -47,7 +47,7 @@ import { logoSeldeestrelaSVG } from "../../../lib/marca";
 import { baixarPdfDeHtml } from "../../../lib/pdf";
 import { fetchHistoricoCustoFicha, registrarCustoFicha } from "../../../lib/ficha-custos";
 import { rotuloPesoUnitario, rotuloVolumeUnitario, volumeUnitarioMl } from "../../../lib/ingredientes-utils.mjs";
-import { fetchCategoriasFichas, salvarCategoriasFichas } from "../../../lib/parametros";
+import { fetchCategoriasFichas, fetchParams, salvarCategoriasFichas } from "../../../lib/parametros";
 import {
   estimarPaginasDocumento,
   ordenarFichasDocumento,
@@ -264,23 +264,39 @@ function custoUnitEfetivo(ins) {
 
 // Custo total de PRODUZIR uma ficha, resolvendo bases (sub-receitas) em cascata.
 // guard evita loop infinito se alguém criar uma referência circular.
-function custoTotalDaFicha(f, todasFichas, guard = new Set()) {
-  if (!f || guard.has(f.id)) return 0;
+// Custo da ficha aberto em duas partes.
+//
+// O card mostrava um número só e ninguém sabia quanto dele era ingrediente e
+// quanto era embalagem — que é justamente a parte que se corta quando o CMV
+// aperta. As duas contas sempre existiram aqui dentro; só a soma saía.
+//
+// Uma travessia só devolve as duas: separar em duas funções faria a mesma
+// recursão duas vezes e, pior, deixaria as regras livres para divergirem.
+function custosDaFicha(f, todasFichas, guard = new Set()) {
+  if (!f || guard.has(f.id)) return { ingredientes: 0, agregados: 0, total: 0 };
   guard.add(f.id);
-  let total = 0;
+  let ingredientes = 0;
   (f.fichas_ingredientes || []).forEach(fi => {
     // A quantidade da ficha é líquida/aproveitável; a compra bruta necessária
     // considera o percentual que será perdido no preparo.
     const fc = multiplicadorPerda(fi.insumos?.perda_pct || fi.fator_correcao);
     if (fi.insumos) {
-      total += custoUnitEfetivo(fi.insumos) * (fi.quantidade || 0) * fc;
+      ingredientes += custoUnitEfetivo(fi.insumos) * (fi.quantidade || 0) * fc;
     } else if (fi.subficha_id) {
       const base = todasFichas.find(x => x.id === fi.subficha_id);
-      const custoBaseUnit = base ? custoTotalDaFicha(base, todasFichas, new Set(guard)) / (base.rendimento_porcoes || 1) : 0;
-      total += custoBaseUnit * (fi.quantidade || 0) * fc;
+      // O preparo entra pelo custo CHEIO dele: a embalagem do preparo é custo
+      // do preparo, não da ficha que o usa. Somá-la nos agregados daqui
+      // misturaria a embalagem do xarope com a do prato.
+      const custoBaseUnit = base ? custosDaFicha(base, todasFichas, new Set(guard)).total / (base.rendimento_porcoes || 1) : 0;
+      ingredientes += custoBaseUnit * (fi.quantidade || 0) * fc;
     }
   });
-  return total + (Number(f.custo_embalagens_total) || 0);
+  const agregados = Number(f.custo_embalagens_total) || 0;
+  return { ingredientes, agregados, total: ingredientes + agregados };
+}
+
+function custoTotalDaFicha(f, todasFichas, guard = new Set()) {
+  return custosDaFicha(f, todasFichas, guard).total;
 }
 // Custo por unidade-de-rendimento de uma base (usado quando ela vira ingrediente)
 function custoUnitBase(base, todasFichas) {
@@ -459,6 +475,11 @@ function FichasRunner() {
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
   const [categoriasConfig, setCategoriasConfig] = useState({});
+  // Imposto e taxa de cartão são % da VENDA e valem para a unidade inteira —
+  // ficam nos parâmetros, editáveis no Ponto de Equilíbrio. Não confundir com
+  // a embalagem, que é valor fixo POR FICHA: a caixa do açaí não é a mesma do
+  // hambúrguer, e somar as duas como percentual esconderia isso.
+  const [paramsUnidade, setParamsUnidade] = useState({});
   const [modalCategorias, setModalCategorias] = useState(false);
   const [novaCategoria, setNovaCategoria] = useState("");
   const [salvandoCategoria, setSalvandoCategoria] = useState(false);
@@ -841,6 +862,7 @@ function FichasRunner() {
   useEffect(() => {
     if (!unidadeAtiva || unidadeAtiva === "todas") return;
     fetchCategoriasFichas(unidadeAtiva).then(({ data }) => setCategoriasConfig(data || {}));
+    fetchParams(unidadeAtiva).then(({ data }) => setParamsUnidade(data || {})).catch(() => {});
   }, [unidadeAtiva]);
 
   const configCategoriasDept = categoriasConfig?.[deptUrl] || {};
@@ -2647,13 +2669,25 @@ function FichasRunner() {
                         <div className="p-4 sm:p-5 cursor-pointer" onClick={() => abrirFicha(f)} title="Abrir ficha">
                            {(() => {
                               // Métricas estilo "app de gestão": custo, preço, CMV e margem
-                              const custoTotal = custoTotalDaFicha(f, fichas);
+                              const custos = custosDaFicha(f, fichas);
+                              const custoTotal = custos.total;
                               const rend = Number(f.rendimento_porcoes) || 1;
                               const porcoes = (unR === "porcao" || unR === "un") ? rend : (peso?.porcoes || 0);
-                              const custoPorcao = porcoes > 0 ? custoTotal / porcoes : custoTotal;
+                              const porPorcao = (v) => (porcoes > 0 ? v / porcoes : v);
+                              const custoPorcao = porPorcao(custoTotal);
+                              const custoIngredientes = porPorcao(custos.ingredientes);
+                              const custoEmbalagem = porPorcao(custos.agregados);
                               const prod = produtos.find(x => x.ficha_id === f.id || String(x.nome_produto || "").toLowerCase() === String(f.nome_receita || "").toLowerCase());
                               const precoPorcao = Number(prod?.preco_venda) || 0;
                               const meta = Number(f.cmv_meta) || 30;
+                              // Imposto e maquininha mordem uma fatia de CADA venda, então a
+                              // base deles é o preço, não o custo. Sem preço não há o que
+                              // calcular — e aí a linha nem aparece, em vez de mostrar zero
+                              // e dar a impressão de que a casa não paga nada disso.
+                              const pctAgregados = (Number(paramsUnidade.imposto_pct) || 0)
+                                + (Number(paramsUnidade.taxa_cartao_pct) || 0);
+                              const custoAgregados = precoPorcao > 0 ? precoPorcao * pctAgregados / 100 : 0;
+                              const custoCheio = custoPorcao + custoAgregados;
                               const cmv = precoPorcao > 0 ? (custoPorcao / precoPorcao) * 100 : null;
                               const margem = cmv !== null ? 100 - cmv : null;
                               const composicao = (f.fichas_ingredientes || []).length;
@@ -2682,8 +2716,49 @@ function FichasRunner() {
                                           num preparo é quanto custa 1 kg (ou 1 L no bar): é assim que
                                           ele entra em outra ficha e é assim que se compara com o
                                           insumo pronto do fornecedor. */}
+                                      {/* Ingredientes e agregados separados. Quando o CMV
+                                          aperta, é o agregado que se corta primeiro — e
+                                          antes ele vinha somado, invisível. Só aparece
+                                          quando há agregado: ficha sem embalagem não
+                                          precisa de uma linha dizendo "R$ 0,00". */}
+                                      {/* Três linhas separadas porque são três decisões
+                                          diferentes: ingrediente se muda na ficha,
+                                          embalagem se troca no fornecedor, e imposto e
+                                          maquininha se negociam ou se mudam de regime.
+                                          Somadas, o dono não sabe onde mexer. Cada uma só
+                                          aparece quando existe. */}
                                       {!(f.eh_base && custoPorcao === custoTotal) && (
-                                        <div className="flex min-h-12 items-center justify-between gap-3"><span className="text-sm font-bold text-slate-500">Custo</span><strong className="text-base text-slate-900">{fmtBRL(custoPorcao)}</strong></div>
+                                        <>
+                                          {(custoEmbalagem > 0 || custoAgregados > 0) && (
+                                            <div className="flex min-h-12 items-center justify-between gap-3">
+                                              <span className="text-sm font-bold text-slate-500">Ingredientes</span>
+                                              <strong className="text-base text-slate-700">{fmtBRL(custoIngredientes)}</strong>
+                                            </div>
+                                          )}
+                                          {custoEmbalagem > 0 && (
+                                            <div className="flex min-h-12 items-center justify-between gap-3">
+                                              <span className="text-sm font-bold text-slate-500">Embalagem</span>
+                                              <strong className="text-base text-slate-700">{fmtBRL(custoEmbalagem)}</strong>
+                                            </div>
+                                          )}
+                                          {custoAgregados > 0 && (
+                                            <div className="flex min-h-12 items-center justify-between gap-3">
+                                              <span className="text-sm font-bold text-slate-500">
+                                                Agregados
+                                                <small className="block text-[10px] font-bold text-slate-400">
+                                                  imposto e cartão · {pctAgregados.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}% da venda
+                                                </small>
+                                              </span>
+                                              <strong className="text-base text-slate-700">{fmtBRL(custoAgregados)}</strong>
+                                            </div>
+                                          )}
+                                          <div className="flex min-h-12 items-center justify-between gap-3">
+                                            <span className={`text-sm ${(custoEmbalagem > 0 || custoAgregados > 0) ? "font-black text-slate-600" : "font-bold text-slate-500"}`}>
+                                              {(custoEmbalagem > 0 || custoAgregados > 0) ? "Custo total" : "Custo"}
+                                            </span>
+                                            <strong className="text-base text-slate-900">{fmtBRL(custoCheio)}</strong>
+                                          </div>
+                                        </>
                                       )}
                                       {f.eh_base && peso?.custoKg > 0 && (
                                         <div className="flex min-h-12 items-center justify-between gap-3">
@@ -2700,8 +2775,31 @@ function FichasRunner() {
                                             : <span className="text-sm font-bold text-slate-400">não informada</span>}
                                         </div>
                                       )}
+                                      {/* Lucro em reais, sobre o custo COM agregados. A
+                                          margem em % já estava no rodapé, mas ninguém
+                                          decide preço com porcentagem: o dono quer saber
+                                          quanto sobra em dinheiro por prato vendido. */}
+                                      {!f.eh_base && precoPorcao > 0 && (
+                                        <div className="flex min-h-12 items-center justify-between gap-3">
+                                          <span className="text-sm font-black text-slate-600">Lucro por {ehBarCard ? "dose" : "porção"}</span>
+                                          <strong className={`text-base ${precoPorcao - custoCheio >= 0 ? "text-emerald-700" : "text-red-600"}`}>
+                                            {fmtBRL(precoPorcao - custoCheio)}
+                                          </strong>
+                                        </div>
+                                      )}
+                                      {/* O CMV conta ingrediente + embalagem, e NÃO imposto e
+                                          cartão: é assim que a conta se compara com a meta
+                                          e com o resto do mercado. Sem dizer isso, o card
+                                          mostra "custo total R$ 7,40" ao lado de "CMV
+                                          39,8%" e parece erro de conta — 7,40 de 15,00
+                                          seriam 49%. O lucro acima é que desconta tudo. */}
                                       <div className="flex min-h-12 items-center justify-between gap-3">
-                                        <span className="text-sm font-black text-slate-600">{f.eh_base ? "Custo total" : "CMV"}</span>
+                                        <span className="text-sm font-black text-slate-600">
+                                          {f.eh_base ? "Custo total" : "CMV"}
+                                          {!f.eh_base && custoAgregados > 0 && (
+                                            <small className="block text-[10px] font-bold text-slate-400">só ingrediente e embalagem</small>
+                                          )}
+                                        </span>
                                         {f.eh_base ? <strong className="text-lg text-amber-700">{fmtBRL(custoTotal)}</strong> : <span className={`rounded-lg px-3 py-1.5 text-base font-black ${cmv === null ? "bg-slate-100 text-slate-400" : cmv > meta ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>{cmv !== null ? `${cmv.toFixed(1)}%` : "—"}</span>}
                                       </div>
                                     </div>

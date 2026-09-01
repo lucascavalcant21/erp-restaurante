@@ -25,6 +25,7 @@ export const PARAMS_PADRAO = {
   custo_cmo_mes: 0,        // folha (mão de obra) do mês
   custo_outros_mes: 0,
   imposto_pct: 0,          // % de imposto sobre a venda
+  taxa_cartao_pct: 0,      // % que a maquininha fica, sobre a venda
   embalagem_pct: 0,        // % de embalagem sobre a venda
   dias_operacao_mes: 26,   // dias que a loja abre no mês
   pratos_por_dia: 100,     // média de pratos vendidos por dia (rateio dos fixos)

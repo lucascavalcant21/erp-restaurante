@@ -2365,6 +2365,15 @@ function FichasRunner() {
                            const custoEmb = (f.embalagens || []).reduce((acc, emb) => acc + (Number(emb.custo) || Number(emb.preco_unitario) || 0) * (Number(emb.qtd) || 1), 0);
                            const custoIngred = Math.max(0, custoPorcao - custoEmb);
 
+                           const taxaMaqPct = Number(f.taxa_maquininha ?? prod?.taxa_cartao ?? 2.5);
+                           const impostoPct = Number(f.imposto_pct ?? prod?.aliquota_imposto ?? 4.0);
+
+                           const custoMaquininha = precoPorcao > 0 ? (precoPorcao * (taxaMaqPct / 100)) : 0;
+                           const custoImposto = precoPorcao > 0 ? (precoPorcao * (impostoPct / 100)) : 0;
+
+                           const custoTotalComGastos = custoPorcao + custoMaquininha + custoImposto;
+                           const lucroReal = precoPorcao > 0 ? precoPorcao - custoTotalComGastos : null;
+
                            return (
                              <div>
                                <div className="mb-3 flex flex-wrap items-center gap-1.5">
@@ -2388,41 +2397,53 @@ function FichasRunner() {
 
                                {/* TABELA DE VALORES COM LINHAS DIVISORAS LIMPAS */}
                                <div className="divide-y divide-slate-100 text-xs font-bold">
-                                 <div className="py-2.5 flex items-center justify-between">
+                                 <div className="py-2 flex items-center justify-between">
                                    <span className="text-slate-600 font-bold">Quantidade</span>
                                    <span className="text-sm font-black text-slate-900">{rendimentoTexto}</span>
                                  </div>
 
-                                 <div className="py-2.5 flex items-center justify-between">
-                                   <span className="text-slate-600 font-bold">{custoEmb > 0 ? "Ingredientes" : "Custo"}</span>
+                                 <div className="py-2 flex items-center justify-between">
+                                   <span className="text-slate-600 font-bold">Custo</span>
                                    <span className="text-sm font-black text-slate-900">{fmtBRL(custoIngred)}</span>
                                  </div>
 
-                                 {custoEmb > 0 && (
-                                   <div className="py-2.5 flex items-center justify-between">
-                                     <span className="text-slate-600 font-bold">Embalagem</span>
-                                     <span className="text-sm font-black text-slate-900">{fmtBRL(custoEmb)}</span>
-                                   </div>
-                                 )}
-
-                                 <div className="py-2.5 flex items-center justify-between">
-                                   <span className="text-slate-700 font-black">Custo total</span>
-                                   <span className="text-sm font-black text-slate-900">{fmtBRL(custoPorcao)}</span>
+                                 <div className="py-2 flex items-center justify-between">
+                                   <span className="text-slate-600 font-bold">Embalagem</span>
+                                   <span className="text-sm font-black text-slate-900">{fmtBRL(custoEmb)}</span>
                                  </div>
 
                                  {!f.eh_base && (
                                    <>
-                                     <div className="py-2.5 flex items-center justify-between">
+                                     <div className="py-2 flex items-center justify-between">
+                                       <span className="text-slate-600 font-bold">Custo maquininha ({taxaMaqPct}%)</span>
+                                       <span className="text-sm font-black text-slate-900">{precoPorcao > 0 ? fmtBRL(custoMaquininha) : "—"}</span>
+                                     </div>
+
+                                     <div className="py-2 flex items-center justify-between">
+                                       <span className="text-slate-600 font-bold">Imposto ({impostoPct}%)</span>
+                                       <span className="text-sm font-black text-slate-900">{precoPorcao > 0 ? fmtBRL(custoImposto) : "—"}</span>
+                                     </div>
+                                   </>
+                                 )}
+
+                                 <div className="py-2 flex items-center justify-between">
+                                   <span className="text-slate-700 font-black">Custo total</span>
+                                   <span className="text-sm font-black text-slate-900">{fmtBRL(custoTotalComGastos)}</span>
+                                 </div>
+
+                                 {!f.eh_base && (
+                                   <>
+                                     <div className="py-2 flex items-center justify-between">
                                        <span className="text-slate-600 font-bold">Venda</span>
                                        <span className="text-sm font-black text-slate-900">{precoPorcao > 0 ? fmtBRL(precoPorcao) : "—"}</span>
                                      </div>
 
-                                     <div className="py-2.5 flex items-center justify-between">
+                                     <div className="py-2 flex items-center justify-between">
                                        <span className="text-slate-600 font-bold">Lucro por porção</span>
-                                       <span className="text-base font-black text-emerald-600">{lucro !== null ? fmtBRL(lucro) : "—"}</span>
+                                       <span className="text-base font-black text-emerald-600">{lucroReal !== null ? fmtBRL(lucroReal) : "—"}</span>
                                      </div>
 
-                                     <div className="pt-2.5 pb-1 flex flex-col items-end">
+                                     <div className="pt-2 pb-1 flex flex-col items-end">
                                        <div className="w-full flex items-center justify-between">
                                          <span className="text-slate-600 font-bold">CMV</span>
                                          <span className={`px-3 py-1 rounded-xl text-sm font-black ${

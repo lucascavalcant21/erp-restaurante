@@ -12,11 +12,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft, Clock, Coffee, Database, Loader2, Plus, Printer, RotateCcw, Save, Table, Trash2, X,
+  Copy, CheckSquare, BarChart3, AlertTriangle, ShieldCheck, CheckCircle2, ListChecks, ChevronRight, RefreshCw, Layers, Check
 } from "lucide-react";
 import { useERP } from "../../../context/ERPContext";
 import { fetchGuias, removerGuia, salvarGuia, semearGuias, TIPOS_GUIA } from "../../../lib/guias";
 import {
   GUIA_FUNCOES_PADRAO, normalizarConteudo, ordenarBlocos, periodoDoBloco, periodoDoHorario, tarefasDoHorario,
+  obterStatusHorario, calcularMinutosRestantes, calcularProgressoFuncao, calcularProgressoSetores,
 } from "../../../lib/guia-funcoes.mjs";
 import { logoSeldeestrelaSVG } from "../../../lib/marca";
 
@@ -35,11 +37,45 @@ export default function GuiaDeFuncoes() {
   const [salvo, setSalvo] = useState("");
   const [semTabela, setSemTabela] = useState(false);
 
+  // Abas e modo de operação: "guia" (visão geral/edição/impressão), "checklist" (execução do turno), "painel" (gerência)
+  const [abaAtiva, setAbaAtiva] = useState("guia");
+  const [funcaoChecklistId, setFuncaoChecklistId] = useState("");
+  const [horaAtual, setHoraAtual] = useState("");
+  const [concluidos, setConcluidos] = useState({});
+
   const avisar = (texto) => { setSalvo(texto); setTimeout(() => setSalvo(""), 2500); };
 
-  // O guia vive no banco: o tablet da cozinha e o computador da gerência leem a
-  // mesma versão. Guardado em cada aparelho, cada um teria a sua — e a versão
-  // errada é pior que nenhuma, porque ninguém desconfia dela.
+  // Atualiza relógio em tempo real
+  useEffect(() => {
+    const atualizarRelogio = () => {
+      setHoraAtual(new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }));
+    };
+    atualizarRelogio();
+    const timer = setInterval(atualizarRelogio, 10000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Chave diária do localStorage para tarefas concluídas
+  const hojeChave = useMemo(() => {
+    const d = new Date();
+    return `guias_concluidos_${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }, []);
+
+  useEffect(() => {
+    try {
+      const salvos = localStorage.getItem(hojeChave);
+      if (salvos) setConcluidos(JSON.parse(salvos));
+    } catch {}
+  }, [hojeChave]);
+
+  const alternarTarefaConcluida = (chave) => {
+    setConcluidos(prev => {
+      const prox = { ...prev, [chave]: !prev[chave] };
+      try { localStorage.setItem(hojeChave, JSON.stringify(prox)); } catch {}
+      return prox;
+    });
+  };
+
   const daLinha = (linha) => ({
     id: linha.id, funcao: linha.titulo, setor: linha.setor || "",
     cor: linha.cor || "#475569",
@@ -53,8 +89,6 @@ export default function GuiaDeFuncoes() {
     if (error === "sem_tabela") { setSemTabela(true); setFuncoes([]); setCarregando(false); return; }
     setSemTabela(false);
 
-    // Loja nova estreia com o modelo: uma tela vazia não ensina o que ela
-    // deveria conter, e ninguém escreve a primeira rotina do zero.
     if (!data.length) {
       const semeado = await semearGuias(unidadeAtiva, GUIA_FUNCOES_PADRAO.map(f => ({
         titulo: f.funcao, setor: f.setor, cor: f.cor, conteudo: f.blocos,
@@ -62,15 +96,16 @@ export default function GuiaDeFuncoes() {
       if (semeado.error === "sem_tabela") { setSemTabela(true); setCarregando(false); return; }
       data = semeado.data || [];
     }
-    setFuncoes(data.map(daLinha));
+    const listaNormalizada = data.map(daLinha);
+    setFuncoes(listaNormalizada);
+    if (listaNormalizada.length && !funcaoChecklistId) {
+      setFuncaoChecklistId(listaNormalizada[0].id);
+    }
     setCarregando(false);
-  }, [unidadeAtiva]);
+  }, [unidadeAtiva, funcaoChecklistId]);
 
   useEffect(() => { carregar(); }, [carregar]);
 
-  // Tudo o que a pessoa digita fica apenas neste rascunho. Antes, cada tecla
-  // fazia uma chamada ao banco e a linha mudava de posição enquanto o horário
-  // ainda estava sendo preenchido. Além de travar, isso fazia o cursor "pular".
   const clonar = (valor) => JSON.parse(JSON.stringify(valor));
 
   const iniciarEdicao = () => {
@@ -187,7 +222,31 @@ export default function GuiaDeFuncoes() {
       }],
     }]);
     setAlterado(true);
-    // A ficha nova e todas as novas linhas permanecem no fim durante a edição.
+    setTimeout(() => {
+      const campo = document.querySelector(`[data-funcao-id="${idTemporario}"] input[placeholder="Nome da função"]`);
+      campo?.scrollIntoView({ behavior: "smooth", block: "center" });
+      campo?.focus();
+    }, 50);
+  };
+
+  // REQUISITO SOLICITADO: Clonar Função em 1 clique
+  const clonarFuncao = (idFuncao) => {
+    if (!editando) {
+      setCopiaInicial(clonar(funcoes));
+      setIdsRemovidos([]);
+      setEditando(true);
+    }
+    const origem = funcoes.find(f => f.id === idFuncao);
+    if (!origem) return;
+    const idTemporario = `nova-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const clonada = {
+      ...clonar(origem),
+      id: idTemporario,
+      funcao: `${origem.funcao || "Nova Função"} (Cópia)`,
+    };
+    setFuncoes(atual => [...atual, clonada]);
+    setAlterado(true);
+    avisar(`Função "${clonada.funcao}" clonada! Clique em Salvar alterações.`);
     setTimeout(() => {
       const campo = document.querySelector(`[data-funcao-id="${idTemporario}"] input[placeholder="Nome da função"]`);
       campo?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -228,7 +287,6 @@ export default function GuiaDeFuncoes() {
         titulo: funcao.funcao,
         setor: funcao.setor,
         cor: funcao.cor,
-        // A ordem cronológica só é aplicada agora, nunca no meio da digitação.
         conteudo: ordenarBlocos(funcao.blocos),
         ordem,
       });
@@ -241,9 +299,8 @@ export default function GuiaDeFuncoes() {
         setSalvando(false);
         return avisar(`Não consegui salvar: ${error}`);
       }
-}
-    // Exclui por último: se a conexão falhar ao salvar alguma ficha, as fichas
-    // antigas continuam no banco e a pessoa não perde o conteúdo original.
+    }
+
     for (const id of idsRemovidos) {
       const { error } = await removerGuia(id);
       if (error) {
@@ -281,12 +338,8 @@ export default function GuiaDeFuncoes() {
     [funcoes],
   );
 
-  // No modo de edição não reordena. Assim o campo não muda de lugar enquanto
-  // a hora está sendo preenchida, e Adicionar etapa sempre põe a linha no fim.
   const funcoesExibidas = editando ? funcoes : funcoesOrdenadas;
 
-  // Uma função por página: a folha vai para a parede do setor, não para uma
-  // pasta. Juntar duas funções na mesma folha obriga a ler a do vizinho.
   const imprimir = () => {
     const win = window.open("", "_blank");
     if (!win) return alert("Habilite pop-ups para imprimir.");
@@ -340,10 +393,6 @@ export default function GuiaDeFuncoes() {
     setTimeout(() => win.print(), 400);
   };
 
-  // Planilha: as seis funções na mesma folha, uma tabela só. O cartaz serve
-  // para a parede do setor; a planilha serve para a mesa da gerência, para
-  // conferir a casa inteira de uma vez e ver se dois postos foram escalados
-  // para o mesmo intervalo.
   const imprimirPlanilha = () => {
     const win = window.open("", "_blank");
     if (!win) return alert("Habilite pop-ups para imprimir.");
@@ -399,265 +448,465 @@ export default function GuiaDeFuncoes() {
     setTimeout(() => win.print(), 400);
   };
 
+  const funcaoAtivaChecklist = useMemo(() => {
+    return funcoesOrdenadas.find(f => f.id === funcaoChecklistId) || funcoesOrdenadas[0];
+  }, [funcoesOrdenadas, funcaoChecklistId]);
+
+  const progressoGerencia = useMemo(() => {
+    return calcularProgressoSetores(funcoesOrdenadas, concluidos);
+  }, [funcoesOrdenadas, concluidos]);
+
   return (
     <div className="min-h-screen bg-[var(--surface)] pb-16">
-      <div className="sticky top-0 z-20 border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
+      <div className="sticky top-0 z-20 border-b border-slate-200 bg-white px-4 py-4 sm:px-6 shadow-sm">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-3">
           <button onClick={() => router.push("/dashboard/rh")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200"><ArrowLeft size={19} /></button>
           <div className="min-w-0 flex-1">
-            <h1 className="text-lg font-black text-slate-900 sm:text-xl">Guia de funções</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg font-black text-slate-900 sm:text-xl">Guia de Funções</h1>
+              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-black text-emerald-800 border border-emerald-200">Rotina Interativa</span>
+            </div>
             <p className="text-xs font-bold text-slate-500">A rotina de cada função, hora a hora — sem nomes, por posição</p>
           </div>
-          {/* No celular os botões viravam quatro linhas empilhadas e o cabeçalho
-              comia meia tela antes de aparecer a primeira função. Agora eles
-              correm na horizontal numa faixa só; do tablet para cima voltam a
-              quebrar linha normalmente. */}
-          <div className="-mx-4 flex w-full items-center gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:w-auto sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
-            {editando ? (
-              <>
-                <button onClick={salvarAlteracoes} disabled={salvando}
-                  className="flex h-10 shrink-0 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-xs font-black text-white hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-60">
-                  {salvando ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-                  {salvando ? "Salvando..." : "Salvar alterações"}
-                </button>
-                <button onClick={cancelarEdicao} disabled={salvando}
-                  className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-600 hover:bg-slate-50 disabled:opacity-60">
-                  <X size={15} /> Cancelar
-                </button>
-              </>
-            ) : (
-              <button onClick={iniciarEdicao}
-                className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-700 hover:bg-slate-50">
-                <Save size={15} /> Editar horários
-              </button>
-            )}
-            {/* Criar função estava só no fim da lista e só depois de entrar em
-                edição — quem chegava para criar uma função não achava. Aqui ele
-                já liga a edição sozinho. */}
-            <button onClick={adicionarFuncao} title="Cria uma função nova e abre a edição"
-              className="flex h-10 shrink-0 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-white px-4 text-xs font-black text-emerald-700 hover:bg-emerald-50">
-              <Plus size={15} /> Nova função
+
+          {/* Navegação por Abas Principais */}
+          <div className="flex rounded-xl bg-slate-100 p-1 border border-slate-200 text-xs font-black">
+            <button
+              onClick={() => setAbaAtiva("guia")}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 transition-all ${abaAtiva === "guia" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-900"}`}
+            >
+              <ListChecks size={15} /> <span>Fichas & Edição</span>
             </button>
-            {editando && (
-              <button onClick={restaurarPadrao} className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-600 hover:bg-slate-50">
-                <RotateCcw size={15} /> Voltar ao padrão
-              </button>
-            )}
-            <button onClick={imprimirPlanilha} title="Todas as funções numa tabela só, para a mesa da gerência"
-              className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-700 hover:bg-slate-50">
-              <Table size={15} /> Planilha
+            <button
+              onClick={() => setAbaAtiva("checklist")}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 transition-all ${abaAtiva === "checklist" ? "bg-emerald-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-900"}`}
+            >
+              <CheckSquare size={15} /> <span>Modo Checklist</span>
             </button>
-            <button onClick={imprimir} title="Uma função por página, para a parede do setor"
-              className="flex h-10 shrink-0 items-center gap-2 rounded-xl bg-slate-900 px-4 text-xs font-black text-white hover:bg-slate-800">
-              <Printer size={15} /> <span className="sm:hidden">Cartaz</span><span className="hidden sm:inline">Cartaz por função</span>
+            <button
+              onClick={() => setAbaAtiva("painel")}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 transition-all ${abaAtiva === "painel" ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:text-slate-900"}`}
+            >
+              <BarChart3 size={15} /> <span>Painel Gerência</span>
             </button>
           </div>
+
+          {abaAtiva === "guia" && (
+            <div className="-mx-4 flex w-full items-center gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:w-auto sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
+              {editando ? (
+                <>
+                  <button onClick={salvarAlteracoes} disabled={salvando}
+                    className="flex h-10 shrink-0 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-xs font-black text-white hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-60">
+                    {salvando ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+                    {salvando ? "Salvando..." : "Salvar alterações"}
+                  </button>
+                  <button onClick={cancelarEdicao} disabled={salvando}
+                    className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-600 hover:bg-slate-50 disabled:opacity-60">
+                    <X size={15} /> Cancelar
+                  </button>
+                </>
+              ) : (
+                <button onClick={iniciarEdicao}
+                  className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-700 hover:bg-slate-50">
+                  <Save size={15} /> Editar horários
+                </button>
+              )}
+              <button onClick={adicionarFuncao} title="Cria uma função nova e abre a edição"
+                className="flex h-10 shrink-0 items-center gap-2 rounded-xl border-2 border-emerald-200 bg-white px-4 text-xs font-black text-emerald-700 hover:bg-emerald-50">
+                <Plus size={15} /> Nova função
+              </button>
+              {editando && (
+                <button onClick={restaurarPadrao} className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-600 hover:bg-slate-50">
+                  <RotateCcw size={15} /> Voltar ao padrão
+                </button>
+              )}
+              <button onClick={imprimirPlanilha} title="Todas as funções numa tabela só, para a mesa da gerência"
+                className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-700 hover:bg-slate-50">
+                <Table size={15} /> Planilha
+              </button>
+              <button onClick={imprimir} title="Uma função por página, para a parede do setor"
+                className="flex h-10 shrink-0 items-center gap-2 rounded-xl bg-slate-900 px-4 text-xs font-black text-white hover:bg-slate-800">
+                <Printer size={15} /> <span className="sm:hidden">Cartaz</span><span className="hidden sm:inline">Cartaz por função</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
       {salvo && (
         <div className="mx-auto mt-3 max-w-5xl px-4 sm:px-6">
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-800">{salvo}</div>
-        </div>
-      )}
-
-      {editando && alterado && (
-        <div className="mx-auto mt-3 max-w-5xl px-4 sm:px-6">
-          <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-black text-amber-800">
-            Alterações ainda não salvas. Você pode continuar editando sem travar e salvar tudo quando terminar.
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-800 flex items-center justify-between animate-in fade-in">
+            <span>{salvo}</span>
+            <CheckCircle2 size={16} />
           </div>
         </div>
       )}
 
-      <main className="mx-auto max-w-5xl px-4 py-5 sm:px-6">
+      <div className="mx-auto mt-6 max-w-5xl px-4 sm:px-6">
         {carregando ? (
-          <div className="flex items-center gap-2 text-sm font-bold text-slate-500"><Loader2 size={16} className="animate-spin" /> Carregando o guia...</div>
+          <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+            <Loader2 size={32} className="animate-spin mb-3 text-emerald-600" />
+            <p className="text-sm font-bold">Carregando o guia de funções...</p>
+          </div>
+        ) : semTabela ? (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center text-amber-900">
+            <h2 className="text-lg font-black mb-2">Tabela de guias operacionais não encontrada</h2>
+            <p className="text-xs font-medium">Execute a migração `db/migracao_guias_operacionais.sql` no Supabase para ativar a funcionalidade na loja.</p>
+          </div>
+        ) : abaAtiva === "checklist" ? (
+          /* 📱 ABA 2: MODO CHECKLIST DINÂMICO DO TURNO (EXECUÇÃO) */
+          <div className="space-y-6">
+            {/* Seletor de Função e Relógio em Tempo Real */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+              <div className="flex-1 w-full">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1.5">Selecione a sua função no turno</label>
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {funcoesOrdenadas.map(f => (
+                    <button
+                      key={f.id}
+                      onClick={() => setFuncaoChecklistId(f.id)}
+                      className={`px-4 py-2.5 rounded-2xl text-xs font-black whitespace-nowrap transition-all border ${funcaoChecklistId === f.id ? "bg-slate-900 text-white border-slate-900 shadow-md" : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"}`}
+                    >
+                      <span className="inline-block w-2.5 h-2.5 rounded-full mr-2" style={{ background: f.cor }}></span>
+                      {f.funcao}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="bg-slate-900 text-white px-5 py-3 rounded-2xl flex items-center gap-3 shrink-0 self-end sm:self-center">
+                <Clock size={20} className="text-emerald-400 animate-pulse" />
+                <div>
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Horário Atual</span>
+                  <span className="text-xl font-black tabular-nums">{horaAtual}</span>
+                </div>
+              </div>
+            </div>
+
+            {funcaoAtivaChecklist && (
+              <div className="space-y-4">
+                {/* Progresso da Função */}
+                {(() => {
+                  const prog = calcularProgressoFuncao(funcaoAtivaChecklist, concluidos);
+                  return (
+                    <div className="bg-white p-4 rounded-2xl border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-white" style={{ background: funcaoAtivaChecklist.cor }}>
+                          {prog.pct}%
+                        </div>
+                        <div>
+                          <h3 className="font-black text-slate-900 text-base">{funcaoAtivaChecklist.funcao}</h3>
+                          <p className="text-xs font-bold text-slate-400">{prog.concluidos} de {prog.total} tarefas concluídas no turno de hoje</p>
+                        </div>
+                      </div>
+                      <div className="w-full sm:w-48 bg-slate-100 h-3 rounded-full overflow-hidden border border-slate-200">
+                        <div className="bg-emerald-600 h-full transition-all duration-500" style={{ width: `${prog.pct}%` }}></div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Blocos de Horário e Tarefas */}
+                {funcaoAtivaChecklist.blocos.map((bloco, idxBloco) => (
+                  <div key={idxBloco} className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
+                    <div className="bg-slate-900 text-white p-4 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full" style={{ background: funcaoAtivaChecklist.cor }}></span>
+                        <h4 className="font-black text-sm uppercase tracking-wide">{bloco.titulo || "Período"}</h4>
+                      </div>
+                      <span className="text-xs font-bold text-slate-300 bg-slate-800 px-3 py-1 rounded-full">{periodoDoBloco(bloco)}</span>
+                    </div>
+
+                    <div className="p-4 space-y-4">
+                      {(bloco.horarios || []).map((horario, idxHorario) => {
+                        const status = obterStatusHorario(horario, horaAtual);
+                        const restaMin = horario.fim ? calcularMinutosRestantes(horario.fim, horaAtual) : null;
+                        const alertaRestando = status === "ativo" && restaMin !== null && restaMin >= 0 && restaMin <= 15;
+                        const tarefas = tarefasDoHorario(horario).filter(t => t.trim());
+
+                        return (
+                          <div
+                            key={idxHorario}
+                            className={`rounded-2xl border p-4 transition-all ${
+                              horario.intervalo
+                                ? "bg-amber-50/70 border-amber-200"
+                                : status === "ativo"
+                                ? "bg-emerald-50/50 border-emerald-300 ring-2 ring-emerald-500/20 shadow-md"
+                                : status === "passado"
+                                ? "bg-slate-50 border-slate-200 opacity-80"
+                                : "bg-white border-slate-200"
+                            }`}
+                          >
+                            {/* Alerta de Tempo Restante */}
+                            {alertaRestando && (
+                              <div className="mb-3 p-2.5 rounded-xl bg-amber-500 text-white font-black text-xs flex items-center gap-2 animate-bounce shadow-md">
+                                <AlertTriangle size={16} />
+                                <span>Atenção: Faltam apenas {restaMin} minutos para encerrar esta etapa ({horario.fim})!</span>
+                              </div>
+                            )}
+
+                            <div className="flex items-center justify-between mb-3 border-b border-slate-200/60 pb-2">
+                              <div className="flex items-center gap-2">
+                                <span className={`text-xs font-black px-2.5 py-1 rounded-lg ${status === "ativo" ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-700"}`}>
+                                  {periodoDoHorario(horario)}
+                                </span>
+                                {status === "ativo" && (
+                                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> Horário Atual
+                                  </span>
+                                )}
+                              </div>
+                              {horario.intervalo && (
+                                <span className="text-xs font-black text-amber-700 bg-amber-200/60 px-3 py-0.5 rounded-full flex items-center gap-1">
+                                  <Coffee size={13} /> Pausa para Intervalo
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Lista de Tarefas Interativas */}
+                            {horario.intervalo ? (
+                              <p className="text-xs font-bold text-amber-800">Horário reservado para descanso/intervalo da função.</p>
+                            ) : (
+                              <div className="space-y-2">
+                                {tarefas.map((tarefa, idxTarefa) => {
+                                  const chave = `${funcaoAtivaChecklist.id}_${bloco.titulo}_${horario.hora}_${idxTarefa}`;
+                                  const estaConcluido = !!concluidos[chave];
+
+                                  return (
+                                    <label
+                                      key={idxTarefa}
+                                      onClick={() => alternarTarefaConcluida(chave)}
+                                      className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer select-none ${
+                                        estaConcluido
+                                          ? "bg-emerald-100/60 border-emerald-300 text-emerald-900"
+                                          : "bg-white border-slate-200 hover:border-slate-300 text-slate-800"
+                                      }`}
+                                    >
+                                      <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 mt-0.5 transition-colors border ${
+                                        estaConcluido ? "bg-emerald-600 border-emerald-600 text-white" : "border-slate-300 bg-white"
+                                      }`}>
+                                        {estaConcluido && <Check size={14} strokeWidth={3} />}
+                                      </div>
+                                      <span className={`text-xs font-bold leading-relaxed flex-1 ${estaConcluido ? "line-through opacity-75" : ""}`}>
+                                        {tarefa}
+                                      </span>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : abaAtiva === "painel" ? (
+          /* 📊 ABA 3: PAINEL DE ACOMPANHAMENTO DA GERÊNCIA */
+          <div className="space-y-6">
+            <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-lg border border-slate-800">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-black">Painel da Gerência — Rotina do Dia</h2>
+                  <p className="text-xs text-slate-400 font-bold mt-1">Acompanhamento em tempo real do cumprimento do Guia de Funções por Setor</p>
+                </div>
+                <div className="bg-slate-800 px-4 py-2 rounded-2xl text-right border border-slate-700">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Data</span>
+                  <span className="text-sm font-black">{new Date().toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" })}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Grid de Progresso por Setor */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {Object.keys(progressoGerencia).map(setorKey => {
+                const s = progressoGerencia[setorKey];
+                return (
+                  <div key={setorKey} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-black uppercase tracking-wider text-slate-400">{setorKey}</span>
+                      <span className="text-lg font-black text-slate-900">{s.pct}%</span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden border border-slate-200">
+                      <div
+                        className={`h-full transition-all duration-500 ${s.pct >= 80 ? "bg-emerald-600" : s.pct >= 40 ? "bg-amber-500" : "bg-rose-500"}`}
+                        style={{ width: `${s.pct}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-xs font-bold text-slate-500">
+                      {s.concluidos} de {s.total} tarefas executadas ({s.funcoesCount} função/funções)
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Status por Função Individual */}
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+              <h3 className="font-black text-slate-900 text-base">Detalhamento por Função no Turno de Hoje</h3>
+              <div className="divide-y divide-slate-100">
+                {funcoesOrdenadas.map(f => {
+                  const p = calcularProgressoFuncao(f, concluidos);
+                  return (
+                    <div key={f.id} className="py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 rounded-full shrink-0" style={{ background: f.cor }}></div>
+                        <div>
+                          <p className="font-black text-slate-900 text-sm">{f.funcao}</p>
+                          <p className="text-xs font-bold text-slate-400">{f.setor || "Sem setor"}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 w-full sm:w-auto justify-between">
+                        <div className="text-right">
+                          <span className="text-xs font-black text-slate-800">{p.concluidos} / {p.total} tarefas</span>
+                          <span className="text-[11px] font-bold text-slate-400 block">{p.pct}% concluído</span>
+                        </div>
+                        <div className="w-24 bg-slate-100 h-2.5 rounded-full overflow-hidden border border-slate-200">
+                          <div className="bg-emerald-600 h-full" style={{ width: `${p.pct}%` }}></div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         ) : (
-          <div id="guia-lista" className="space-y-4">
-            {funcoesExibidas.map(funcao => (
-              <section key={funcao.id} data-funcao-id={funcao.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                <header className="flex flex-wrap items-center gap-3 border-b border-slate-100 px-4 py-3 sm:px-5">
+          /* 📋 ABA 1: GUIA DE FUNÇÕES (LISTAGEM / EDIÇÃO / IMPRESSÃO) */
+          <div className="space-y-6">
+            {funcoesExibidas.map((funcao) => (
+              <article key={funcao.id} data-funcao-id={funcao.id} className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition-all hover:border-slate-300">
+                <header className="flex flex-col gap-3 border-b border-slate-200 bg-slate-900 p-4 text-white sm:flex-row sm:items-center sm:justify-between sm:p-5">
                   {editando ? (
-                    <>
-                      <input type="color" value={funcao.cor || "#475569"} onChange={e => alterarFuncao(funcao.id, "cor", e.target.value)}
-                        title="Cor da função" className="h-9 w-9 shrink-0 cursor-pointer rounded-lg border border-slate-200 bg-white p-1" />
-                      <input value={funcao.funcao} onChange={e => alterarFuncao(funcao.id, "funcao", e.target.value)}
-                        placeholder="Nome da função"
-                        className="order-first h-10 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-base font-black text-slate-900 outline-none focus:border-emerald-500 sm:order-none sm:w-auto sm:flex-1" />
-                      <input value={funcao.setor || ""} onChange={e => alterarFuncao(funcao.id, "setor", e.target.value)}
-                        placeholder="Área / setor — ex: Salão"
-                        className="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-600 outline-none focus:border-emerald-500 sm:w-32 sm:flex-none" />
-                      <button onClick={() => removerFuncao(funcao.id)} title="Excluir a ficha inteira desta função"
-                        className="flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3 text-xs font-black text-red-600 hover:bg-red-50">
-                        <Trash2 size={16} /> <span className="hidden sm:inline">Excluir ficha</span>
-                      </button>
-                    </>
+                    <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+                      <input type="color" value={funcao.cor || "#475569"} onChange={e => alterarFuncao(funcao.id, "cor", e.target.value)} title="Cor da faixa no cartaz impresso" className="h-10 w-12 cursor-pointer rounded-lg border border-slate-700 bg-slate-800 p-1" />
+                      <input value={funcao.funcao || ""} onChange={e => alterarFuncao(funcao.id, "funcao", e.target.value)} placeholder="Nome da função" className="h-10 font-black text-white bg-slate-800 border border-slate-700 px-3 rounded-xl" />
+                      <input value={funcao.setor || ""} onChange={e => alterarFuncao(funcao.id, "setor", e.target.value)} placeholder="Área / Setor" className="h-10 font-bold text-white bg-slate-800 border border-slate-700 px-3 rounded-xl" />
+                      <div className="flex gap-2">
+                        <button onClick={() => clonarFuncao(funcao.id)} title="Duplicar esta função" className="h-10 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-black text-xs rounded-xl flex items-center gap-1.5 border border-slate-700">
+                          <Copy size={14} /> Clonar
+                        </button>
+                        <button onClick={() => removerFuncao(funcao.id)} className="h-10 px-3 bg-red-500/20 text-red-300 hover:bg-red-500/30 font-black text-xs rounded-xl flex items-center gap-1.5 border border-red-500/30">
+                          <Trash2 size={14} /> Excluir
+                        </button>
+                      </div>
+                    </div>
                   ) : (
                     <>
-                      <span className="h-9 w-1.5 shrink-0 rounded-full" style={{ background: funcao.cor }} />
-                      <div className="min-w-0 flex-1">
-                        {/* Função recém-criada nasce sem nome. Sem isto o card
-                            aparece com um título vazio e parece quebrado. */}
-                        <h2 className={`text-base font-black uppercase tracking-tight sm:text-lg ${funcao.funcao ? "text-slate-900" : "text-slate-300"}`}>
-                          {funcao.funcao || "Sem nome — abra a edição para preencher"}
-                        </h2>
-                        <p className="text-[11px] font-bold text-slate-400">{funcao.setor ? `Área: ${funcao.setor}` : "Área não informada"}</p>
+                      <div className="flex items-center gap-3">
+                        <div className="w-4 h-10 rounded-full" style={{ background: funcao.cor }}></div>
+                        <div>
+                          <h2 className="text-lg font-black uppercase text-white">{funcao.funcao}</h2>
+                          <p className="text-xs font-bold text-slate-400">{funcao.setor}</p>
+                        </div>
                       </div>
-                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black text-slate-500">
-                        {funcao.blocos.length} horário{funcao.blocos.length === 1 ? "" : "s"}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => clonarFuncao(funcao.id)} title="Duplicar função" className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-black text-slate-200 rounded-xl flex items-center gap-1.5 border border-slate-700">
+                          <Copy size={13} /> Clonar
+                        </button>
+                      </div>
                     </>
                   )}
                 </header>
 
-                <div className="space-y-4 bg-slate-50/70 p-3 sm:p-4">
+                <div className="space-y-4 p-4">
                   {funcao.blocos.map((bloco, indice) => (
-                    <div key={indice} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                    <div key={indice} className="rounded-2xl border border-slate-200 overflow-hidden bg-slate-50/50">
                       {editando ? (
-                        <>
-                          <div className="border-b border-slate-200 bg-slate-100 p-3">
-                            <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-500">Período maior</p>
-                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                              <input value={bloco.titulo || ""} onChange={e => alterarBloco(funcao.id, indice, "titulo", e.target.value)}
-                                placeholder="Ex: Abertura do Salão 1"
-                                className="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 text-sm font-black text-slate-800 outline-none focus:border-emerald-500" />
-                              <div className="flex w-full shrink-0 items-center gap-1.5 sm:w-auto">
-                                <input type="time" value={bloco.hora || ""} onChange={e => alterarBloco(funcao.id, indice, "hora", e.target.value)}
-                                  aria-label="Início do período maior"
-                                  className="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 text-sm font-bold outline-none focus:border-emerald-500 sm:w-[104px] sm:flex-none" />
-                                <span className="text-xs font-bold text-slate-400">até</span>
-                                <input type="time" value={bloco.fim || ""} onChange={e => alterarBloco(funcao.id, indice, "fim", e.target.value)}
-                                  aria-label="Fim do período maior"
-                                  className="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 text-sm font-bold outline-none focus:border-emerald-500 sm:w-[104px] sm:flex-none" />
-                              </div>
-                              <button onClick={() => removerBloco(funcao.id, indice)} title="Excluir este período e todos os horários dentro dele"
-                                className="flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3 text-xs font-black text-red-600 hover:bg-red-50">
-                                <Trash2 size={16} /> <span className="hidden sm:inline">Excluir período</span>
-                              </button>
+                        <div className="p-4 space-y-3">
+                          <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                            <input value={bloco.titulo || ""} onChange={e => alterarBloco(funcao.id, indice, "titulo", e.target.value)} placeholder="Período Maior (Ex: Abertura do Salão 1)" className="h-10 flex-1 bg-white border border-slate-200 px-3 font-black text-sm rounded-xl" />
+                            <div className="flex items-center gap-1.5">
+                              <input type="time" value={bloco.hora || ""} onChange={e => alterarBloco(funcao.id, indice, "hora", e.target.value)} className="h-10 bg-white border border-slate-200 px-2 font-bold text-sm rounded-xl" />
+                              <span className="text-xs font-bold text-slate-400">até</span>
+                              <input type="time" value={bloco.fim || ""} onChange={e => alterarBloco(funcao.id, indice, "fim", e.target.value)} className="h-10 bg-white border border-slate-200 px-2 font-bold text-sm rounded-xl" />
                             </div>
+                            <button onClick={() => removerBloco(funcao.id, indice)} className="h-10 px-3 bg-red-50 text-red-600 font-black text-xs rounded-xl flex items-center gap-1 border border-red-200">
+                              <Trash2 size={14} /> Excluir Período
+                            </button>
                           </div>
 
-                          <div className="space-y-3 p-3">
-                            {(bloco.horarios || []).map((horario, indiceHorario) => (
-                              <div key={indiceHorario} className={`rounded-xl border p-3 ${horario.intervalo ? "border-amber-200 bg-amber-50" : "border-slate-200 bg-slate-50"}`}>
-                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                                  <div className="flex w-full shrink-0 items-center gap-1.5 sm:w-auto">
-                                    <input type="time" value={horario.hora || ""} onChange={e => alterarHorario(funcao.id, indice, indiceHorario, "hora", e.target.value)}
-                                      aria-label="Horário da tarefa"
-                                      className="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 text-sm font-bold outline-none focus:border-emerald-500 sm:w-[104px] sm:flex-none" />
+                          <div className="space-y-3 pt-2">
+                            {(bloco.horarios || []).map((horario, idxHorario) => (
+                              <div key={idxHorario} className="bg-white p-3 rounded-xl border border-slate-200 space-y-2">
+                                <div className="flex flex-col sm:flex-row gap-2 sm:items-center justify-between">
+                                  <div className="flex items-center gap-1.5">
+                                    <input type="time" value={horario.hora || ""} onChange={e => alterarHorario(funcao.id, indice, idxHorario, "hora", e.target.value)} className="h-9 bg-slate-50 border border-slate-200 px-2 font-bold text-xs rounded-lg" />
                                     <span className="text-xs font-bold text-slate-400">até</span>
-                                    <input type="time" value={horario.fim || ""} onChange={e => alterarHorario(funcao.id, indice, indiceHorario, "fim", e.target.value)}
-                                      aria-label="Fim do horário, opcional"
-                                      title="Deixe vazio quando for um horário único"
-                                      className="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 text-sm font-bold outline-none focus:border-emerald-500 sm:w-[104px] sm:flex-none" />
+                                    <input type="time" value={horario.fim || ""} onChange={e => alterarHorario(funcao.id, indice, idxHorario, "fim", e.target.value)} className="h-9 bg-slate-50 border border-slate-200 px-2 font-bold text-xs rounded-lg" />
                                   </div>
-                                  <span className="text-[10px] font-bold text-slate-400 sm:flex-1">Deixe o segundo horário vazio para usar somente “às {horario.hora || "16:00"}”.</span>
-                                  <div className="flex shrink-0 gap-2">
-                                    <button onClick={() => alterarHorario(funcao.id, indice, indiceHorario, "intervalo", !horario.intervalo)}
-                                      title="Marcar como intervalo"
-                                      className={`flex h-10 items-center gap-2 rounded-lg border px-3 text-xs font-black ${horario.intervalo ? "border-amber-300 bg-amber-100 text-amber-700" : "border-slate-200 bg-white text-slate-500"}`}>
-                                      <Coffee size={16} /> {horario.intervalo ? "Intervalo" : "É intervalo?"}
+                                  <div className="flex items-center gap-2">
+                                    <button onClick={() => alterarHorario(funcao.id, indice, idxHorario, "intervalo", !horario.intervalo)} className={`h-9 px-3 text-xs font-black rounded-lg border ${horario.intervalo ? "bg-amber-100 text-amber-800 border-amber-300" : "bg-slate-50 text-slate-600 border-slate-200"}`}>
+                                      <Coffee size={14} className="inline mr-1" /> {horario.intervalo ? "Intervalo" : "É intervalo?"}
                                     </button>
-                                    <button onClick={() => removerHorario(funcao.id, indice, indiceHorario)} title="Excluir este horário"
-                                      className="grid h-10 w-10 place-items-center rounded-lg border border-red-200 bg-white text-red-500 hover:bg-red-50">
-                                      <Trash2 size={16} />
+                                    <button onClick={() => removerHorario(funcao.id, indice, idxHorario)} className="h-9 w-9 bg-red-50 text-red-600 rounded-lg flex items-center justify-center border border-red-200">
+                                      <Trash2 size={14} />
                                     </button>
                                   </div>
                                 </div>
 
                                 {!horario.intervalo && (
-                                  <div className="mt-3 border-t border-slate-200 pt-3">
-                                    <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-500">O que fazer neste horário</p>
-                                    <div className="space-y-2">
-                                      {tarefasDoHorario(horario).map((tarefa, indiceTarefa) => (
-                                        <div key={indiceTarefa} className="flex items-center gap-2">
-                                          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white text-[10px] font-black text-slate-400">{indiceTarefa + 1}</span>
-                                          <input value={tarefa} onChange={e => alterarTarefa(funcao.id, indice, indiceHorario, indiceTarefa, e.target.value)}
-                                            placeholder={indiceTarefa === 0 ? "Ex: Levantar cadeiras" : "Outra tarefa deste mesmo horário"}
-                                            className="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium outline-none focus:border-emerald-500" />
-                                          <button onClick={() => removerTarefa(funcao.id, indice, indiceHorario, indiceTarefa)} title="Remover tarefa"
-                                            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600">
-                                            <Trash2 size={15} />
-                                          </button>
-                                        </div>
-                                      ))}
-                                    </div>
-                                    <button onClick={() => adicionarTarefa(funcao.id, indice, indiceHorario)}
-                                      className="mt-3 flex h-9 items-center gap-2 rounded-lg border border-dashed border-emerald-300 bg-white px-3 text-xs font-black text-emerald-700 hover:bg-emerald-50">
-                                      <Plus size={15} /> Adicionar outra tarefa neste horário
+                                  <div className="space-y-1.5 pt-1">
+                                    {tarefasDoHorario(horario).map((t, idxT) => (
+                                      <div key={idxT} className="flex items-center gap-2">
+                                        <input value={t} onChange={e => alterarTarefa(funcao.id, indice, idxHorario, idxT, e.target.value)} placeholder="Descrição da tarefa" className="h-9 flex-1 bg-slate-50 border border-slate-200 px-3 text-xs font-bold rounded-lg" />
+                                        <button onClick={() => removerTarefa(funcao.id, indice, idxHorario, idxT)} className="h-9 w-9 text-slate-400 hover:text-red-600 flex items-center justify-center">
+                                          <Trash2 size={14} />
+                                        </button>
+                                      </div>
+                                    ))}
+                                    <button onClick={() => adicionarTarefa(funcao.id, indice, idxHorario)} className="text-xs font-black text-emerald-700 hover:underline flex items-center gap-1 pt-1">
+                                      <Plus size={13} /> Adicionar tarefa neste horário
                                     </button>
                                   </div>
                                 )}
                               </div>
                             ))}
-
-                            <button onClick={() => adicionarHorario(funcao.id, indice)}
-                              className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-dashed border-sky-300 bg-sky-50 text-xs font-black text-sky-700 hover:bg-sky-100">
-                              <Plus size={15} /> Adicionar horário dentro deste período
+                            <button onClick={() => adicionarHorario(funcao.id, indice)} className="text-xs font-black text-slate-700 hover:underline flex items-center gap-1 pt-1">
+                              <Plus size={13} /> Adicionar horário menor dentro deste período
                             </button>
                           </div>
-                        </>
+                        </div>
                       ) : (
-                        <>
-                          <div className="flex flex-col gap-1 border-b border-slate-200 bg-slate-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                            <p className="text-sm font-black uppercase tracking-wide text-slate-900">{bloco.titulo || "Período sem nome"}</p>
-                            <span className="text-xs font-black text-slate-600">{periodoDoBloco(bloco)}</span>
+                        <div>
+                          <div className="bg-slate-900 text-white p-3 flex justify-between items-center">
+                            <span className="font-black text-xs uppercase">{bloco.titulo || "Período"}</span>
+                            <span className="text-xs font-bold text-slate-300">{periodoDoBloco(bloco)}</span>
                           </div>
-                          <div className="divide-y divide-slate-100">
-                            {(bloco.horarios || []).map((horario, indiceHorario) => (
-                              <div key={indiceHorario} className={`flex flex-col gap-2 px-4 py-3 sm:flex-row sm:gap-5 ${horario.intervalo ? "bg-amber-50" : ""}`}>
-                                <span className="flex w-full shrink-0 items-center gap-2 text-sm font-black text-slate-700 sm:w-[168px]">
-                                  {horario.intervalo ? <Coffee size={15} className="text-amber-600" /> : <Clock size={15} className="text-slate-300" />}
-                                  {periodoDoHorario(horario)}
-                                </span>
-                                {horario.intervalo ? (
-                                  <p className="text-xs font-black uppercase tracking-wider text-amber-700">Intervalo</p>
+                          <div className="p-3 space-y-3">
+                            {(bloco.horarios || []).map((h, idxH) => (
+                              <div key={idxH} className="bg-white p-3 rounded-xl border border-slate-200">
+                                <span className="text-xs font-black bg-slate-100 text-slate-800 px-2 py-1 rounded-md inline-block mb-2">{periodoDoHorario(h)}</span>
+                                {h.intervalo ? (
+                                  <p className="text-xs font-bold text-amber-700">INTERVALO / PAUSA</p>
                                 ) : (
-                                  <ul className="min-w-0 flex-1 space-y-1.5">
-                                    {tarefasDoHorario(horario).filter(tarefa => tarefa.trim()).map((tarefa, indiceTarefa) => (
-                                      <li key={indiceTarefa} className="flex gap-2 text-sm font-medium leading-relaxed text-slate-600">
-                                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: funcao.cor }} />
-                                        <span>{tarefa}</span>
-                                      </li>
+                                  <ul className="list-disc list-inside space-y-1 text-xs font-bold text-slate-700">
+                                    {tarefasDoHorario(h).map((t, idxT) => (
+                                      <li key={idxT}>{t}</li>
                                     ))}
                                   </ul>
                                 )}
                               </div>
                             ))}
                           </div>
-                        </>
+                        </div>
                       )}
                     </div>
                   ))}
-                </div>
 
-                {editando && (
-                  <div className="border-t border-slate-100 px-4 py-3 sm:px-5">
-                    <button onClick={() => adicionarBloco(funcao.id)} className="flex h-9 items-center gap-2 rounded-lg border border-dashed border-slate-300 px-3 text-xs font-black text-slate-500 hover:border-emerald-400 hover:text-emerald-700">
-                      <Plus size={15} /> Adicionar outro período maior no final
+                  {editando && (
+                    <button onClick={() => adicionarBloco(funcao.id)} className="w-full py-3 bg-white border-2 border-dashed border-slate-300 text-slate-600 hover:border-emerald-500 hover:text-emerald-700 font-black text-xs rounded-2xl flex items-center justify-center gap-1.5 transition-all">
+                      <Plus size={15} /> Adicionar Período Maior (Ex: Abertura, Serviço, Fechamento)
                     </button>
-                  </div>
-                )}
-              </section>
+                  )}
+                </div>
+              </article>
             ))}
-            {editando && (
-              <button onClick={adicionarFuncao} className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-300 bg-white text-sm font-black text-slate-500 hover:border-emerald-400 hover:text-emerald-700">
-                <Plus size={17} /> Adicionar função
-              </button>
-            )}
           </div>
         )}
-
-        <p className="mt-5 text-[11px] font-medium leading-relaxed text-slate-400">
-          O guia é por função, sem nomes: quem cobre o turno de alguém lê a mesma folha. Tudo é editável — nome da
-          função, área, cor, blocos de horário e tarefas. Cada horário pode ter quantas tarefas forem necessárias.
-          Durante a edição, tudo fica apenas como rascunho neste aparelho;
-          só vai para o banco quando você clicar em <b>Salvar alterações</b>. Depois disso, o tablet da cozinha e o
-          computador da gerência leem a mesma versão. São duas saídas:
-          <b> Cartaz por função</b> imprime uma função por página, para a parede do setor;
-          <b> Planilha</b> põe a casa inteira numa tabela só, para conferir de uma vez.
-        </p>
-      </main>
+      </div>
     </div>
   );
 }

@@ -186,3 +186,61 @@ export function periodoDoHorario(horario) {
   if (!inicio) return "—";
   return fim ? `${inicio} às ${fim}` : `às ${inicio}`;
 }
+
+export function obterStatusHorario(horario, horaAtualStr) {
+  if (!horario || !horaAtualStr) return "indefinido";
+  const mAtual = minutos(horaAtualStr);
+  const mInicio = minutos(horario.hora);
+  const mFim = horario.fim ? minutos(horario.fim) : mInicio + 30; // 30min padrão se sem fim
+
+  if (mAtual < mInicio) return "futuro";
+  if (mAtual >= mInicio && mAtual <= mFim) return "ativo";
+  return "passado";
+}
+
+export function calcularMinutosRestantes(horaFimStr, horaAtualStr) {
+  if (!horaFimStr || !horaAtualStr) return null;
+  const mAtual = minutos(horaAtualStr);
+  const mFim = minutos(horaFimStr);
+  const resta = mFim - mAtual;
+  return resta;
+}
+
+export function calcularProgressoFuncao(funcao, concluidosMap = {}) {
+  if (!funcao || !Array.isArray(funcao.blocos)) return { total: 0, concluidos: 0, pct: 0 };
+  let total = 0;
+  let concluidos = 0;
+
+  funcao.blocos.forEach(b => {
+    (b.horarios || []).forEach(h => {
+      const tarefas = tarefasDoHorario(h);
+      tarefas.forEach((_, idx) => {
+        total += 1;
+        const chave = `${funcao.id}_${b.titulo}_${h.hora}_${idx}`;
+        if (concluidosMap[chave]) concluidos += 1;
+      });
+    });
+  });
+
+  const pct = total > 0 ? Math.round((concluidos / total) * 100) : 0;
+  return { total, concluidos, pct };
+}
+
+export function calcularProgressoSetores(funcoes = [], concluidosMap = {}) {
+  const setores = {};
+  funcoes.forEach(f => {
+    const setor = f.setor || "Outros";
+    if (!setores[setor]) setores[setor] = { total: 0, concluidos: 0, funcoesCount: 0 };
+    const prog = calcularProgressoFuncao(f, concluidosMap);
+    setores[setor].total += prog.total;
+    setores[setor].concluidos += prog.concluidos;
+    setores[setor].funcoesCount += 1;
+  });
+
+  Object.keys(setores).forEach(key => {
+    const s = setores[key];
+    s.pct = s.total > 0 ? Math.round((s.concluidos / s.total) * 100) : 0;
+  });
+
+  return setores;
+}

@@ -1700,6 +1700,9 @@ export default function RHPage() {
                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg font-bold text-xs transition-colors border ${(!unidadeAtiva || unidadeAtiva === "todas") ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed" : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"}`}>
                <FileText size={14} /> Exportar AFD
             </a>
+            <button onClick={() => router.push('/dashboard/rh/organograma')} title="Quem responde para quem" className="flex items-center gap-1.5 bg-white text-slate-700 border border-slate-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-slate-50 transition-colors">
+               <Users size={14} /> Organograma
+            </button>
             {abaAtiva === "Freelancer" && (
                <>
                <button onClick={() => abrirModalFicha(null)} className="flex items-center gap-1.5 bg-white text-amber-700 border border-amber-200 px-3.5 py-2 rounded-lg font-bold text-xs hover:bg-amber-50 transition-colors">
@@ -1753,17 +1756,16 @@ export default function RHPage() {
                { rot: "Funcionários", val: ativos.length, sub: `${fixos.length} fixos · ${extras.length} extras` },
                { rot: "Bateram ponto hoje", val: trabalhandoAgora, sub: "presença registrada" },
                { rot: "Em experiência", val: emExperiencia, sub: "contrato de experiência" },
-               { rot: "Folha prevista (mês)", val: fmtBRL(folhaFixa), sub: `${fixos.length} fixos · salário + VA + taxa` },
-               { rot: "Gasto com extras (mês)", val: fmtBRL(gastoExtras), sub: `${extras.length} extras · diárias batidas` },
-               { rot: "CMO total", val: fmtBRL(total), sub: pct === null ? "folha + extras" : `${pct.toFixed(1)}% do faturamento` },
+               { rot: "CMO total (mês)", val: fmtBRL(total), largo: true,
+                 sub: `folha ${fmtBRL(folhaFixa)} · extras ${fmtBRL(gastoExtras)}${pct === null ? "" : ` · ${pct.toFixed(1)}% do faturamento`}` },
             ];
             return (
                <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
                   {cards.map(c => (
-                     <div key={c.rot} className="bg-white rounded-2xl border border-slate-200 shadow-sm px-3 py-2.5">
+                     <div key={c.rot} className={`bg-white rounded-2xl border border-slate-200 shadow-sm px-3 py-2.5 ${c.largo ? "col-span-2" : ""}`}>
                         <p className="text-[9px] font-black uppercase tracking-wider text-slate-400 leading-tight">{c.rot}</p>
                         <p className="text-lg font-black text-emerald-700 mt-0.5">{c.val}</p>
-                        <p className="text-[10px] font-bold text-slate-400 truncate">{c.sub}</p>
+                        <p className={`text-[10px] font-bold text-slate-400 ${c.largo ? "" : "truncate"}`}>{c.sub}</p>
                      </div>
                   ))}
                   {incompletos > 0 && (
@@ -1802,82 +1804,12 @@ export default function RHPage() {
             const cores = { erro: "bg-rose-50 border-rose-200 text-rose-700", aviso: "bg-emerald-50 border-emerald-200 text-emerald-800", info: "bg-emerald-50 border-emerald-100 text-emerald-700" };
             return <div className="mt-4 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
                <div className="flex items-center justify-between mb-3"><div><p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Central de prazos</p><h3 className="font-black text-slate-800">Experiência, admissão e revisão de férias</h3></div><span className="text-xs font-black bg-rose-100 text-rose-700 px-2.5 py-1 rounded-full">{alertas.length}</span></div>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">{alertas.slice(0, 8).map(a => <button key={`${a.id}-${a.texto}`} onClick={() => router.push(`/dashboard/rh/funcionario/${a.id}`)} className={`text-left border rounded-xl px-3 py-2 transition-all hover:shadow-sm ${cores[a.nivel]}`}><p className="text-xs font-black">{a.nome}</p><p className="text-[10px] font-bold mt-0.5">{a.texto} · toque para abrir</p></button>)}</div>
-               {alertas.length > 8 && <p className="text-[10px] font-bold text-slate-400 mt-2">Mais {alertas.length - 8} alerta(s) nos cadastros abaixo.</p>}
-               <p className="text-[9px] font-medium text-slate-400 mt-3">Avisos operacionais para conferência do RH. A concessão de férias e decisões contratuais devem ser validadas pelo responsável e pela contabilidade.</p>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">{alertas.slice(0, 4).map(a => <button key={`${a.id}-${a.texto}`} onClick={() => router.push(`/dashboard/rh/funcionario/${a.id}`)} className={`flex items-baseline gap-2 text-left border rounded-lg px-2.5 py-1.5 transition-all hover:shadow-sm ${cores[a.nivel]}`}><span className="text-xs font-black truncate">{a.nome}</span><span className="text-[10px] font-bold opacity-80 ml-auto shrink-0">{a.texto}</span></button>)}</div>
+               {alertas.length > 4 && <p className="text-[10px] font-bold text-slate-400 mt-2">Mais {alertas.length - 4} nos cadastros abaixo.</p>}
+               <p className="text-[9px] font-medium text-slate-400 mt-2">Férias e decisões contratuais precisam do aval do responsável e da contabilidade.</p>
             </div>;
          })()}
       </div>
-
-      {/* Composição da equipe + Ações rápidas */}
-      {funcionarios.length > 0 && (
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 mb-4">
-         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_1.4fr] gap-3">
-            {/* Donut de composição */}
-            {(() => {
-               const todos = funcionarios;
-               const total = todos.length || 1;
-               const inativos = todos.filter(f => ehInativo(f)).length;
-               const ativos = todos.filter(f => !ehInativo(f));
-               const extras = ativos.filter(f => f.tipo_contrato === "Freelancer").length;
-               const exp = ativos.filter(f => f.tipo_contrato !== "Freelancer" && String(f.status_contrato || "").toLowerCase().includes("experi")).length;
-               const fixos = ativos.length - extras - exp;
-               const segs = [
-                  { rot: "Fixos ativos", n: fixos, cor: "#059669" },
-                  { rot: "Em experiência", n: exp, cor: "#6ee7b7" },
-                  { rot: "Extras", n: extras, cor: "#94a3b8" },
-                  { rot: "Inativos", n: inativos, cor: "#cbd5e1" },
-               ].filter(s => s.n > 0);
-               let acc = 0;
-               const stops = segs.map(s => { const ini = (acc / total) * 360; acc += s.n; const fim = (acc / total) * 360; return `${s.cor} ${ini}deg ${fim}deg`; }).join(", ");
-               return (
-                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex items-center gap-4">
-                     <div className="relative w-24 h-24 shrink-0 rounded-full" style={{ background: `conic-gradient(${stops || "#e2e8f0 0deg 360deg"})` }}>
-                        <div className="absolute inset-[14px] rounded-full bg-white flex flex-col items-center justify-center">
-                           <span className="text-xl font-black text-slate-800 leading-none">{todos.length}</span>
-                           <span className="text-[8px] font-black uppercase tracking-wider text-slate-400">Total</span>
-                        </div>
-                     </div>
-                     <div className="min-w-0 flex-1">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Composição da equipe</p>
-                        <div className="space-y-1">
-                           {segs.map(s => (
-                              <div key={s.rot} className="flex items-center gap-2 text-xs">
-                                 <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: s.cor }} />
-                                 <span className="font-bold text-slate-600 flex-1 truncate">{s.rot}</span>
-                                 <span className="font-black text-slate-800">{s.n}</span>
-                                 <span className="text-slate-400 font-bold w-10 text-right">{Math.round((s.n / total) * 100)}%</span>
-                              </div>
-                           ))}
-                        </div>
-                     </div>
-                  </div>
-               );
-            })()}
-
-            {/* Ações rápidas */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
-               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2.5">Ações rápidas</p>
-               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {[
-                     { icon: Printer, rot: "Recibo de extra", on: () => { setAbaAtiva("Freelancer"); abrirModalFicha(null); } },
-                     { icon: ClipboardList, rot: "Fechar folha", on: () => router.push('/dashboard/rh/fechamento') },
-                     { icon: Clock, rot: "Faltas e atrasos", on: () => imprimirFaltasAtrasos() },
-                     { icon: CalendarDays, rot: "Feriados", on: () => abrirModalFeriados() },
-                     { icon: Users, rot: "Organograma", on: () => router.push('/dashboard/rh/organograma') },
-                     { icon: Award, rot: "Cargos", on: () => setAbaAtiva("Cargos & Carreiras") },
-                     { icon: LogOut, rot: "Ex-funcionários", on: () => setAbaAtiva("Ex-funcionários") },
-                  ].map(a => (
-                     <button key={a.rot} onClick={a.on} className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 py-3 px-1 text-center transition-all">
-                        <a.icon size={18} className="text-emerald-600" />
-                        <span className="text-[10px] font-black text-slate-600 leading-tight">{a.rot}</span>
-                     </button>
-                  ))}
-               </div>
-            </div>
-         </div>
-      </div>
-      )}
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6">
 

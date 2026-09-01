@@ -621,13 +621,17 @@ export default function GuiaDeFuncoes() {
                 {/* Blocos de Horário e Tarefas */}
                 {funcaoAtivaChecklist.blocos.map((bloco, idxBloco) => (
                   <div key={idxBloco} className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
-                    <div className="bg-slate-900 text-white p-4 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="w-3 h-3 rounded-full" style={{ background: funcaoAtivaChecklist.cor }}></span>
-                        <h4 className="font-black text-sm uppercase tracking-wide">{bloco.titulo || "Período"}</h4>
+                    {Boolean(bloco.titulo && bloco.titulo !== "Período" && bloco.titulo.trim()) && (
+                      <div className="bg-slate-900 text-white p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-full" style={{ background: funcaoAtivaChecklist.cor }}></span>
+                          <h4 className="font-black text-sm uppercase tracking-wide">{bloco.titulo}</h4>
+                        </div>
+                        {periodoDoBloco(bloco) !== "—" && (
+                          <span className="text-xs font-bold text-slate-300 bg-slate-800 px-3 py-1 rounded-full">{periodoDoBloco(bloco)}</span>
+                        )}
                       </div>
-                      <span className="text-xs font-bold text-slate-300 bg-slate-800 px-3 py-1 rounded-full">{periodoDoBloco(bloco)}</span>
-                    </div>
+                    )}
 
                     <div className="p-4 space-y-4">
                       {(bloco.horarios || []).map((horario, idxHorario) => {
@@ -925,10 +929,12 @@ export default function GuiaDeFuncoes() {
                         </div>
                       ) : (
                         <div>
-                          <div className="bg-slate-900 text-white p-3 flex justify-between items-center">
-                            <span className="font-black text-xs uppercase">{bloco.titulo || "Período"}</span>
-                            <span className="text-xs font-bold text-slate-300">{periodoDoBloco(bloco)}</span>
-                          </div>
+                          {Boolean(bloco.titulo && bloco.titulo !== "Período" && bloco.titulo.trim()) && (
+                            <div className="bg-slate-900 text-white p-3 flex justify-between items-center">
+                              <span className="font-black text-xs uppercase">{bloco.titulo}</span>
+                              {periodoDoBloco(bloco) !== "—" && <span className="text-xs font-bold text-slate-300">{periodoDoBloco(bloco)}</span>}
+                            </div>
+                          )}
                           <div className="p-4 space-y-3 bg-slate-50/50">
                             {(bloco.horarios || []).map((h, idxH) => (
                               <div
